@@ -1,0 +1,55 @@
+# Python/cache artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# Local virtual environments and editor noise
+.env
+.venv/
+venv/
+env/
+*.local.env
+*.swp
+*.swo
+.DS_Store
+
+# Generated experiment outputs
+/metrics_logs/
+/phase3_logs/
+/phase3_logs_lowres/
+latest_fusion_object_spatial_map*.png
+*.log
+*.trace
+*.pcap
+*.pcapng
+
+# Model weights and framework caches
+/checkpoints/
+/torch_cache/
+*.pt
+*.pth
+*.onnx
+*.engine
+
+# Local runtime/grouping files
+/scripts/current_scenesense_run.env
+/scripts/local*.env
+
+# Build/package artifacts
+build/
+dist/
+*.egg-info/
+
+# Large binary reference/generated documents.
+# Force-add individual files only when they are intentional deliverables.
+*.pdf
+*.pptx
+*.docx
+
+# External repositories/checkouts
+/V2Xverse/
+/OAI/openairinterface5g/

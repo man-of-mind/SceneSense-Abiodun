@@ -1,0 +1,24 @@
+# Overlay for running oai-perception-rx as the LR-ASPP segmentation
+# split-inference back-half with GPU access.
+#
+# Use with:
+#   docker compose -f docker-compose.yaml -f docker-compose.seg-back.yaml up -d --build
+
+services:
+    oai-perception-rx:
+        environment:
+            - TORCH_HOME=/work/torch_cache
+            - MPLBACKEND=Agg
+        volumes:
+            - ../torch_cache:/work/torch_cache:rw
+        gpus: all
+        command:
+            - /bin/bash
+            - -lc
+            - >
+                python3 -u /work/abiodun/carla_split_inference_udp_segmentation_oai.py
+                --role back
+                --bind-host ${SEG_BACK_BIND_HOST:-0.0.0.0}
+                --remote-host ${SEG_BACK_REMOTE_HOST:-10.0.0.2}
+                --back-device ${SEG_BACK_DEVICE:-cuda}
+                ${SEG_BACK_EXTRA_ARGS:-}

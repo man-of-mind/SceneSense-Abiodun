@@ -1,0 +1,26 @@
+# Overlay for Phase 2: run the receiver container as the OD split-inference
+# back-half with GPU access. Use with:
+#
+#   docker compose -f docker-compose.yaml -f docker-compose.od-back.yaml up -d --build
+#
+# The base docker-compose.yaml still defines the OAI network, X11 mount, and
+# /work/abiodun bind mount used by the original video receiver.
+
+services:
+    oai-perception-rx:
+        environment:
+            - TORCH_HOME=/work/torch_cache
+            - MPLBACKEND=Agg
+        volumes:
+            - ../torch_cache:/work/torch_cache:rw
+        gpus: all
+        command:
+            - /bin/bash
+            - -lc
+            - >
+                python3 -u /work/abiodun/carla_split_inference_udp_oai.py
+                --role back
+                --bind-host ${OD_BACK_BIND_HOST:-0.0.0.0}
+                --remote-host ${OD_BACK_REMOTE_HOST:-10.0.0.2}
+                --back-device ${OD_BACK_DEVICE:-cuda}
+                ${OD_BACK_EXTRA_ARGS:-}

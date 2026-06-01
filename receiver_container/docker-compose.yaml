@@ -1,0 +1,35 @@
+# Adds the perception receiver to the existing OAI 5G core network.
+#
+# Run AFTER /abiodun/scripts/cn_start.sh (the OAI compose creates the network).
+# Brought up via /abiodun/scripts/receiver_container_up.sh.
+
+services:
+    oai-perception-rx:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        image: oai-perception-rx:latest
+        container_name: oai-perception-rx
+        privileged: true
+        init: true
+        environment:
+            - DISPLAY=${DISPLAY}
+            - QT_X11_NO_MITSHM=1
+            - UDP_PORT=${UDP_PORT:-65000}
+            - RX_BIND=${RX_BIND:-0.0.0.0}
+            # Path inside the container where /abiodun is mounted:
+            - PYTHONPATH=/work/abiodun
+        volumes:
+            # Live-edit the receiver script on the host:
+            - ../../abiodun:/work/abiodun:ro
+            # X11 socket for cv2.imshow (host must `xhost +local:` first):
+            - /tmp/.X11-unix:/tmp/.X11-unix:rw
+        networks:
+            public_net:
+                ipv4_address: 192.168.70.140
+        command: ["python3", "/work/abiodun/scan_receiver_v3_oai.py"]
+
+networks:
+    public_net:
+        external: true
+        name: oai-cn5g-public-net

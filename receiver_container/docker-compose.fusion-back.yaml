@@ -1,0 +1,33 @@
+# Overlay for running oai-perception-rx as the RGB+radar fusion
+# split-inference back-half with GPU access.
+#
+# By default this starts two back-half workers in one container, matching the
+# two pole-stream baseline:
+#   stream 1: recv 51002, send 51003 -> UE 51004
+#   stream 2: recv 51102, send 51103 -> UE 51104
+#
+# Use with:
+#   docker compose -f docker-compose.yaml -f docker-compose.fusion-back.yaml up -d --build
+
+services:
+    oai-perception-rx:
+        environment:
+            - TORCH_HOME=/work/torch_cache
+            - MPLBACKEND=Agg
+        volumes:
+            - ../torch_cache:/work/torch_cache:rw
+        gpus: all
+        command:
+            - /bin/bash
+            - -lc
+            - >
+                set -e;
+                if [ "${FUSION_BACK_DUAL:-1}" = "1" ]; then
+                  echo "[fusion-back] starting dual workers";
+                  python3 -u /work/abiodun/carla_split_inference_udp_fusion_object_pole_client_spatial_stream_oai.py --role back --bind-host ${FUSION_BACK_BIND_HOST:-0.0.0.0} --remote-host ${FUSION_BACK_REMOTE_HOST_1:-10.0.0.2} --back-device ${FUSION_BACK_DEVICE:-cuda} --fusion-checkpoint ${FUSION_BACK_CHECKPOINT:-/work/abiodun/checkpoints/fusion_object_best.pt} --quantization-mode ${FUSION_QUANTIZATION_MODE:-per_channel_uint8} --entropy-coder ${FUSION_ENTROPY_CODER:-zlib} --back-log-every ${FUSION_BACK_LOG_EVERY:-30} --remote-port ${FUSION_REMOTE_PORT_1:-51002} --remote-source-port ${FUSION_REMOTE_SOURCE_PORT_1:-51003} --camera-result-port ${FUSION_CAMERA_RESULT_PORT_1:-51004} ${FUSION_BACK_EXTRA_ARGS:-} &
+                  python3 -u /work/abiodun/carla_split_inference_udp_fusion_object_pole_client_spatial_stream_oai.py --role back --bind-host ${FUSION_BACK_BIND_HOST:-0.0.0.0} --remote-host ${FUSION_BACK_REMOTE_HOST_2:-10.0.0.2} --back-device ${FUSION_BACK_DEVICE:-cuda} --fusion-checkpoint ${FUSION_BACK_CHECKPOINT:-/work/abiodun/checkpoints/fusion_object_best.pt} --quantization-mode ${FUSION_QUANTIZATION_MODE:-per_channel_uint8} --entropy-coder ${FUSION_ENTROPY_CODER:-zlib} --back-log-every ${FUSION_BACK_LOG_EVERY:-30} --remote-port ${FUSION_REMOTE_PORT_2:-51102} --remote-source-port ${FUSION_REMOTE_SOURCE_PORT_2:-51103} --camera-result-port ${FUSION_CAMERA_RESULT_PORT_2:-51104} ${FUSION_BACK_EXTRA_ARGS:-} &
+                  wait;
+                else
+                  echo "[fusion-back] starting single worker";
+                  python3 -u /work/abiodun/carla_split_inference_udp_fusion_object_pole_client_spatial_stream_oai.py --role back --bind-host ${FUSION_BACK_BIND_HOST:-0.0.0.0} --remote-host ${FUSION_BACK_REMOTE_HOST_1:-10.0.0.2} --back-device ${FUSION_BACK_DEVICE:-cuda} --fusion-checkpoint ${FUSION_BACK_CHECKPOINT:-/work/abiodun/checkpoints/fusion_object_best.pt} --quantization-mode ${FUSION_QUANTIZATION_MODE:-per_channel_uint8} --entropy-coder ${FUSION_ENTROPY_CODER:-zlib} --back-log-every ${FUSION_BACK_LOG_EVERY:-30} --remote-port ${FUSION_REMOTE_PORT_1:-51002} --remote-source-port ${FUSION_REMOTE_SOURCE_PORT_1:-51003} --camera-result-port ${FUSION_CAMERA_RESULT_PORT_1:-51004} ${FUSION_BACK_EXTRA_ARGS:-};
+                fi

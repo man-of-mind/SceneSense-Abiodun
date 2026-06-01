@@ -1,0 +1,790 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>In-House Split RGB+Radar LR-ASPP Neural Network Architecture</title>
+  <style>
+    :root {
+      --bg: #f7f8f5;
+      --ink: #17212f;
+      --muted: #5d6875;
+      --line: #c8d0d9;
+      --panel: #ffffff;
+      --sensor: #e9f5ee;
+      --sensor-border: #3e8f69;
+      --nn: #eaf2fb;
+      --nn-border: #3776b8;
+      --split: #fff4df;
+      --split-border: #bf802b;
+      --transport: #f1ecfa;
+      --transport-border: #7f61b8;
+      --server: #edf5f8;
+      --server-border: #2f7e8d;
+      --output: #f7efe8;
+      --output-border: #b2643f;
+      --note: #f9f6dc;
+      --note-border: #bba947;
+      --shadow: 0 16px 36px rgba(23, 33, 47, 0.11);
+      --radius: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      background: var(--bg);
+    }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.42;
+      overflow-wrap: anywhere;
+    }
+
+    main {
+      width: min(1680px, calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 28px 0 36px;
+    }
+
+    header {
+      margin-bottom: 18px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(24px, 3vw, 36px);
+      font-weight: 780;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      max-width: 1040px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    .meta-row,
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 18px 0;
+    }
+
+    .pill {
+      display: inline-flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      min-height: 34px;
+      max-width: 100%;
+      padding: 7px 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--panel);
+      color: var(--muted);
+      font-size: 12px;
+      white-space: normal;
+    }
+
+    .pill strong {
+      color: var(--ink);
+      font-weight: 740;
+    }
+
+    .swatch {
+      width: 13px;
+      height: 13px;
+      border-radius: 4px;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      flex: 0 0 auto;
+    }
+
+    .swatch.sensor { background: var(--sensor); border-color: var(--sensor-border); }
+    .swatch.nn { background: var(--nn); border-color: var(--nn-border); }
+    .swatch.split { background: var(--split); border-color: var(--split-border); }
+    .swatch.transport { background: var(--transport); border-color: var(--transport-border); }
+    .swatch.server { background: var(--server); border-color: var(--server-border); }
+    .swatch.output { background: var(--output); border-color: var(--output-border); }
+
+    .diagram-shell {
+      overflow-x: auto;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .architecture {
+      display: grid;
+      grid-template-columns:
+        minmax(260px, 0.78fr)
+        42px
+        minmax(330px, 1fr)
+        42px
+        minmax(290px, 0.88fr)
+        42px
+        minmax(300px, 0.9fr)
+        42px
+        minmax(330px, 1fr)
+        42px
+        minmax(340px, 1.03fr);
+      align-items: stretch;
+      row-gap: 14px;
+      min-width: 2060px;
+    }
+
+    .architecture > :nth-child(12) {
+      display: none;
+    }
+
+    .architecture > :nth-child(13) {
+      grid-column: 1 / 12;
+      grid-row: 2;
+    }
+
+    .architecture > :nth-child(14) {
+      display: none;
+    }
+
+    .architecture > :nth-child(15) {
+      grid-column: 1 / 12;
+      grid-row: 3;
+    }
+
+    .stage {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-width: 0;
+      min-height: 100%;
+      padding: 14px;
+      border: 2px solid var(--line);
+      border-radius: var(--radius);
+      background: #fff;
+    }
+
+    .stage.sensor { background: var(--sensor); border-color: var(--sensor-border); }
+    .stage.nn { background: var(--nn); border-color: var(--nn-border); }
+    .stage.split { background: var(--split); border-color: var(--split-border); }
+    .stage.transport { background: var(--transport); border-color: var(--transport-border); }
+    .stage.server { background: var(--server); border-color: var(--server-border); }
+    .stage.output { background: var(--output); border-color: var(--output-border); }
+
+    .stage h2 {
+      margin: 0;
+      font-size: 18px;
+      letter-spacing: 0;
+    }
+
+    .stage-note {
+      margin: -4px 0 2px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .lane {
+      display: grid;
+      gap: 9px;
+      min-width: 0;
+    }
+
+    .node {
+      border: 1px solid rgba(23, 33, 47, 0.18);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.88);
+      padding: 10px;
+      min-width: 0;
+      min-height: 74px;
+    }
+
+    .node.compact {
+      min-height: 58px;
+    }
+
+    .node h3 {
+      margin: 0 0 5px;
+      font-size: 13px;
+      font-weight: 760;
+      letter-spacing: 0;
+      overflow-wrap: anywhere;
+    }
+
+    .node p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      overflow-wrap: anywhere;
+    }
+
+    .node .shape {
+      display: block;
+      width: fit-content;
+      max-width: 100%;
+      margin-top: 6px;
+      padding: 3px 6px;
+      border: 1px solid rgba(23, 33, 47, 0.16);
+      border-radius: 6px;
+      background: #fff;
+      color: #263342;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      font-size: 11px;
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+
+    .fork {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .mini {
+      min-height: 64px;
+      padding: 8px;
+      border: 1px solid rgba(23, 33, 47, 0.18);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.86);
+      min-width: 0;
+    }
+
+    .mini strong {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 12px;
+    }
+
+    .mini span {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      overflow-wrap: anywhere;
+    }
+
+    .arrow {
+      position: relative;
+      min-height: 100%;
+    }
+
+    .arrow::before {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 7px;
+      right: 13px;
+      height: 2px;
+      background: #9eabb8;
+      transform: translateY(-50%);
+    }
+
+    .arrow::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      right: 5px;
+      width: 0;
+      height: 0;
+      border-top: 7px solid transparent;
+      border-bottom: 7px solid transparent;
+      border-left: 11px solid #9eabb8;
+      transform: translateY(-50%);
+    }
+
+    .vwire {
+      display: grid;
+      place-items: center;
+      height: 26px;
+      color: #718091;
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    .channel-strip {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 4px;
+      margin-top: 8px;
+    }
+
+    .channel {
+      display: grid;
+      place-items: center;
+      min-height: 38px;
+      padding: 4px;
+      border: 1px solid rgba(23, 33, 47, 0.18);
+      border-radius: 6px;
+      background: #eff5ff;
+      font-size: 11px;
+      font-weight: 720;
+      text-align: center;
+    }
+
+    .channel.radar {
+      background: #eef8ed;
+    }
+
+    .backbone {
+      display: grid;
+      gap: 8px;
+    }
+
+    .layer {
+      display: grid;
+      grid-template-columns: minmax(0, 0.72fr) minmax(0, 1fr);
+      gap: 8px;
+      align-items: center;
+      padding: 8px;
+      border: 1px solid rgba(23, 33, 47, 0.18);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.88);
+      min-width: 0;
+    }
+
+    .layer strong {
+      font-size: 12px;
+    }
+
+    .layer span {
+      color: var(--muted);
+      font-size: 11px;
+      overflow-wrap: anywhere;
+    }
+
+    .compress-stack {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .step {
+      position: relative;
+      min-height: 48px;
+      padding: 8px 9px;
+      border: 1px solid rgba(23, 33, 47, 0.18);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.88);
+      min-width: 0;
+    }
+
+    .step strong {
+      display: block;
+      margin-bottom: 3px;
+      font-size: 12px;
+    }
+
+    .step span {
+      color: var(--muted);
+      font-size: 11px;
+      overflow-wrap: anywhere;
+    }
+
+    .tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-top: 7px;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 22px;
+      max-width: 100%;
+      padding: 3px 6px;
+      border: 1px solid rgba(23, 33, 47, 0.16);
+      border-radius: 6px;
+      background: #fff;
+      color: #354253;
+      font-size: 11px;
+      font-weight: 650;
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+
+    .heads {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 9px;
+      min-width: 0;
+    }
+
+    .head-branch {
+      display: grid;
+      gap: 8px;
+      align-content: start;
+      min-width: 0;
+    }
+
+    .output-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .output-grid .node:last-child {
+      grid-column: 1 / -1;
+    }
+
+    .summary {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .info {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+      padding: 14px;
+    }
+
+    .info h2 {
+      margin: 0 0 8px;
+      font-size: 17px;
+      letter-spacing: 0;
+    }
+
+    .info ul {
+      margin: 0;
+      padding-left: 18px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .info li {
+      margin: 5px 0;
+    }
+
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      font-size: 0.92em;
+      color: #263342;
+      overflow-wrap: anywhere;
+    }
+
+    footer {
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    @media (max-width: 900px) {
+      main {
+        width: min(100vw - 24px, 1680px);
+        padding-top: 20px;
+      }
+
+      .summary {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media print {
+      body {
+        background: #fff;
+      }
+
+      main {
+        width: 100%;
+      }
+
+      .diagram-shell,
+      .info {
+        box-shadow: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>In-House Split RGB+Radar LR-ASPP Neural Network Architecture</h1>
+      <p class="subtitle">
+        Block diagram for the CARLA traffic-light-pole split-inference model:
+        RGB and radar are fused at the sensor side, MobileNetV3 LR-ASPP backbone
+        features are compressed and sent over UDP, and the network-side tail
+        reconstructs features to produce segmentation and object-localization output.
+      </p>
+    </header>
+
+    <section class="meta-row" aria-label="Model summary">
+      <span class="pill"><strong>Input</strong> [B, 7, H, W]</span>
+      <span class="pill"><strong>Backbone</strong> MobileNetV3-Large LR-ASPP</span>
+      <span class="pill"><strong>Split</strong> after backbone feature dictionary</span>
+      <span class="pill"><strong>Compression</strong> per-channel uint8 + zlib</span>
+      <span class="pill"><strong>Output</strong> mask + global objects</span>
+    </section>
+
+    <section class="legend" aria-label="Legend">
+      <span class="pill"><i class="swatch sensor"></i> Sensor input and fusion</span>
+      <span class="pill"><i class="swatch nn"></i> Sensor-side neural encoder</span>
+      <span class="pill"><i class="swatch split"></i> Split boundary</span>
+      <span class="pill"><i class="swatch transport"></i> Feature compression and transport</span>
+      <span class="pill"><i class="swatch server"></i> Receiver reconstruction and tail NN</span>
+      <span class="pill"><i class="swatch output"></i> Spatial-map output</span>
+    </section>
+
+    <section class="diagram-shell" aria-label="Split RGB radar LR-ASPP block diagram">
+      <div class="architecture">
+        <section class="stage sensor">
+          <h2>1. Sensor Inputs</h2>
+          <p class="stage-note">Traffic-light-pole sensor pair</p>
+          <div class="lane">
+            <div class="node">
+              <h3>RGB Camera</h3>
+              <p>BGR frame captured at pole view, then converted to RGB and resized to checkpoint input size.</p>
+              <span class="shape">[3, H, W]</span>
+            </div>
+            <div class="node">
+              <h3>Radar Sensor</h3>
+              <p>Raw CARLA detections provide altitude, azimuth, depth, and radial velocity.</p>
+              <span class="shape">range 120 m, HFoV 100 deg</span>
+            </div>
+            <div class="node compact">
+              <h3>Calibration Metadata</h3>
+              <p>Camera-to-world matrix and intrinsics travel with every feature payload.</p>
+              <span class="shape">K + T_camera_to_world</span>
+            </div>
+          </div>
+        </section>
+
+        <div class="arrow" aria-hidden="true"></div>
+
+        <section class="stage sensor">
+          <h2>2. Early Fusion Tensor</h2>
+          <p class="stage-note">Runs before the split point</p>
+          <div class="lane">
+            <div class="node compact">
+              <h3>RGB Preprocess</h3>
+              <p>Resize, BGR to RGB, scale to [0, 1], normalize with ImageNet mean and std.</p>
+            </div>
+            <div class="node">
+              <h3>Radar Projection and Rasterization</h3>
+              <p>Radar points are transformed into camera coordinates and painted into four image-plane channels.</p>
+              <div class="tag-row">
+                <span class="tag">occupancy</span>
+                <span class="tag">inverse range</span>
+                <span class="tag">velocity</span>
+                <span class="tag">stationary age</span>
+              </div>
+              <span class="shape">[4, H, W]</span>
+            </div>
+            <div class="node">
+              <h3>Channel Concatenation</h3>
+              <p>The model receives RGB plus radar as one aligned early-fusion tensor.</p>
+              <div class="channel-strip" aria-label="Seven input channels">
+                <span class="channel">R</span>
+                <span class="channel">G</span>
+                <span class="channel">B</span>
+                <span class="channel radar">Occ</span>
+                <span class="channel radar">Inv<br>Range</span>
+                <span class="channel radar">Vel</span>
+                <span class="channel radar">Age</span>
+              </div>
+              <span class="shape">[B, 7, H, W]</span>
+            </div>
+          </div>
+        </section>
+
+        <div class="arrow" aria-hidden="true"></div>
+
+        <section class="stage nn">
+          <h2>3. Sensor-Side Encoder</h2>
+          <p class="stage-note">MobileNetV3-Large LR-ASPP backbone</p>
+          <div class="backbone">
+            <div class="layer">
+              <strong>Adapted Stem Conv</strong>
+              <span>First convolution expanded from 3 to 7 input channels.</span>
+            </div>
+            <div class="layer">
+              <strong>Inverted Residual Stack</strong>
+              <span>MobileNetV3 depthwise separable blocks extract compact semantic features.</span>
+            </div>
+            <div class="fork">
+              <div class="mini">
+                <strong>low feature</strong>
+                <span>Higher spatial detail used by LR-ASPP skip path.</span>
+              </div>
+              <div class="mini">
+                <strong>high feature</strong>
+                <span>Semantic feature used by classifier and object head.</span>
+              </div>
+            </div>
+            <div class="node compact">
+              <h3><code>MultimodalLRASPPSplitModel.encode()</code></h3>
+              <p>Returns an ordered feature dictionary, typically <code>{low, high}</code>.</p>
+            </div>
+          </div>
+        </section>
+
+        <div class="arrow" aria-hidden="true"></div>
+
+        <section class="stage split">
+          <h2>4. Split Boundary</h2>
+          <p class="stage-note">Neural tensor leaves the sensor side</p>
+          <div class="lane">
+            <div class="node">
+              <h3>Backbone Feature Dictionary</h3>
+              <p>Only intermediate features and calibration metadata are sent, not the raw RGB frame or raw radar packet.</p>
+              <span class="shape">features: low + high</span>
+            </div>
+            <div class="node compact">
+              <h3>Payload Metadata</h3>
+              <p>Frame id, input size, display size, feature shapes, camera matrix, and intrinsics.</p>
+            </div>
+          </div>
+        </section>
+
+        <div class="arrow" aria-hidden="true"></div>
+
+        <section class="stage transport">
+          <h2>5. Sender Compression</h2>
+          <p class="stage-note">Feature coding before uplink</p>
+          <div class="compress-stack">
+            <div class="step">
+              <strong>Per-Level Feature Codec</strong>
+              <span>Each feature tensor is encoded independently.</span>
+            </div>
+            <div class="vwire" aria-hidden="true">&darr;</div>
+            <div class="step">
+              <strong>Per-Channel uint8 Quantization</strong>
+              <span>Feature channels keep separate activation ranges for compact transport.</span>
+            </div>
+            <div class="vwire" aria-hidden="true">&darr;</div>
+            <div class="step">
+              <strong>Pickle Payload + zlib Entropy Coding</strong>
+              <span>Compressed bytes are logged against a float16 feature baseline.</span>
+            </div>
+            <div class="vwire" aria-hidden="true">&darr;</div>
+            <div class="step">
+              <strong>Chunked UDP Uplink</strong>
+              <span>Default path: camera port 51001 to remote port 51002, chunk size 60000 bytes.</span>
+            </div>
+          </div>
+        </section>
+
+        <div class="arrow" aria-hidden="true"></div>
+
+        <section class="stage server">
+          <h2>6. Receiver Reconstruction</h2>
+          <p class="stage-note">Network-side feature recovery</p>
+          <div class="compress-stack">
+            <div class="step">
+              <strong>UDP Reassembly</strong>
+              <span>Chunks are grouped by message id and stale partial payloads are dropped.</span>
+            </div>
+            <div class="vwire" aria-hidden="true">&darr;</div>
+            <div class="step">
+              <strong>zlib Decompression + Unpickle</strong>
+              <span>The serialized feature payload and metadata are restored.</span>
+            </div>
+            <div class="vwire" aria-hidden="true">&darr;</div>
+            <div class="step">
+              <strong>Feature Dequantization</strong>
+              <span>Per-channel uint8 features are reconstructed as tensors on the tail device.</span>
+            </div>
+            <div class="vwire" aria-hidden="true">&darr;</div>
+            <div class="step">
+              <strong>Reconstructed Feature Dict</strong>
+              <span><code>{low, high}</code> is passed into the LR-ASPP tail.</span>
+            </div>
+          </div>
+        </section>
+
+        <div class="arrow" aria-hidden="true"></div>
+
+        <section class="stage server">
+          <h2>7. Server-Side Tail NN</h2>
+          <p class="stage-note">Decoder heads run in the network</p>
+          <div class="heads">
+            <div class="head-branch">
+              <div class="node">
+                <h3>LR-ASPP Segmentation Head</h3>
+                <p>Combines low and high features, then upsamples logits to model input size.</p>
+                <span class="shape">[B, 3, H, W]</span>
+              </div>
+              <div class="node compact">
+                <h3>Argmax Mask</h3>
+                <p>Classes: background, vehicle, person.</p>
+              </div>
+            </div>
+            <div class="head-branch">
+              <div class="node">
+                <h3>Dense Object Head</h3>
+                <p>High feature passes through Conv-BN-ReLU, Conv-BN-ReLU, and 1x1 Conv.</p>
+                <span class="shape">[B, 11, H, W]</span>
+              </div>
+              <div class="node compact">
+                <h3>Peak Decode</h3>
+                <p>Top-K heatmap peaks, score threshold, local NMS, and regression readout.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <div class="arrow" aria-hidden="true"></div>
+
+        <section class="stage output">
+          <h2>8. Output</h2>
+          <p class="stage-note">Returned to client and spatial-map service</p>
+          <div class="output-grid">
+            <div class="node">
+              <h3>Segmentation Output</h3>
+              <p>Pixel-level mask resized to display resolution for overlay and map update.</p>
+              <span class="shape">mask: H_display x W_display</span>
+            </div>
+            <div class="node">
+              <h3>Object Output</h3>
+              <p>Decoded center, global XY, dimensions, yaw, parked score, radar-support score, and optional 2D box.</p>
+              <span class="shape">objects: list[dict]</span>
+            </div>
+            <div class="node compact">
+              <h3>UDP Downlink</h3>
+              <p>Server sends <code>{mask, objects, server_ms}</code> back to camera result port 51004.</p>
+            </div>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <section class="summary" aria-label="Implementation notes">
+      <div class="info">
+        <h2>Neural Layers</h2>
+        <ul>
+          <li>The sender-side neural work stops after the MobileNetV3 LR-ASPP backbone.</li>
+          <li>The adapted first convolution accepts RGB plus four radar raster channels.</li>
+          <li>The segmentation branch uses LR-ASPP features to output three semantic classes.</li>
+          <li>The object branch outputs an 11-channel dense map: center heatmap plus local XYZ, dimensions, yaw sin/cos, parked score, and radar support.</li>
+        </ul>
+      </div>
+
+      <div class="info">
+        <h2>Transport Path</h2>
+        <ul>
+          <li><code>serialize_feature_maps()</code> encodes each backbone feature tensor before uplink.</li>
+          <li>Default transport uses per-channel uint8 quantization and zlib entropy coding.</li>
+          <li><code>deserialize_feature_maps()</code> reconstructs feature tensors before the LR-ASPP classifier and object head run.</li>
+          <li>The live payload includes feature shapes and calibration matrices so decoded objects can be placed in global coordinates.</li>
+        </ul>
+      </div>
+    </section>
+
+    <footer>
+      Generated from the in-house split RGB+radar LR-ASPP runtime documented by
+      <code>carla_split_inference_udp_fusion_object_pole_client.py</code> and the fusion walkthrough.
+    </footer>
+  </main>
+</body>
+</html>
