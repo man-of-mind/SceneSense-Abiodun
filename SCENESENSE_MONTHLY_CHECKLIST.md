@@ -108,7 +108,8 @@ Month 1 goal is not to create every final scenario. The goal is to create a smal
   - [x] Add targeted scout for better right-turn occlusion anchors.
   - [ ] Run right-turn anchor scout and select a more realistic intersection.
   - [x] Occluded crossing failure visually validated from ego camera and observer view.
-  - [ ] Ground truth confirms the object exists even if perception misses it.
+  - [x] Add evidence-pack support for actor ground truth, event-window CSVs, and ego/helper RGB frames.
+  - [ ] Run canonical evidence-pack validation so ground truth confirms the object exists even if ego view is late/partial.
 - [x] Define ego-motion settings:
   - [x] Static/parked ego or pole baseline.
   - [x] Slow-moving ego follow-up.

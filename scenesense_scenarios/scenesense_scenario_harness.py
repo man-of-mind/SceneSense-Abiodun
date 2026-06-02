@@ -16,10 +16,11 @@ import random
 import subprocess
 import sys
 import time
+from collections import deque
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Sequence, Tuple
+from typing import Callable, Dict, Iterable, List, Optional, Sequence, Tuple
 
 
 def _bootstrap_carla():
@@ -203,6 +204,16 @@ def parse_args() -> argparse.Namespace:
         help="Scenario name.",
     )
     parser.add_argument("--list", action="store_true", help="List scenarios and exit.")
+    parser.add_argument(
+        "--list-vehicles",
+        action="store_true",
+        help=(
+            "Connect to CARLA, print all vehicle.* blueprint IDs in the loaded world "
+            "(grouped into trucks/vans/large vs cars/sedans), then exit. Use this to "
+            "discover which trucks are actually available in CARLA 0.10 before passing "
+            "them to --curbside-occluder-blueprint."
+        ),
+    )
     parser.add_argument("--seed", type=int, default=7, help="Deterministic spawn seed.")
     parser.add_argument(
         "--town",
@@ -378,8 +389,19 @@ def parse_args() -> argparse.Namespace:
         type=float,
         default=-1.0,
         help=(
-            "Override low-level walker-control speed for deterministic crossings. "
+            "Override low-level WalkerControl speed for target crossings. "
             "Use a negative value to keep the scenario default."
+        ),
+    )
+    parser.add_argument(
+        "--target-crossing-motion-mode",
+        choices=("", "walker_control", "deterministic", "exact_transform", "ai_controller"),
+        default="",
+        help=(
+            "Override how the target pedestrian crosses. Empty keeps the scenario default. "
+            "walker_control uses CARLA WalkerControl animation, deterministic uses target "
+            "velocity plus WalkerControl for an animated dart-out, exact_transform hard-sets "
+            "geometry every tick for debugging, and ai_controller uses CARLA's walker AI controller."
         ),
     )
     parser.add_argument(
@@ -388,7 +410,21 @@ def parse_args() -> argparse.Namespace:
         default=18.0,
         help=(
             "When the layout has a conflict point, start the target crossing once the ego is "
-            "within this distance after --target-crossing-delay-s. Use 0 to use delay only."
+            "within this distance after --target-crossing-delay-s. Use 0 to use delay only. "
+            "Ignored when --target-crossing-trigger-ttc-s is positive."
+        ),
+    )
+    parser.add_argument(
+        "--target-crossing-trigger-ttc-s",
+        type=float,
+        default=0.0,
+        help=(
+            "If positive, fire the crossing when the ego's time-to-conflict-point (ego "
+            "distance / current ego speed) drops below this many seconds. This self-adjusts "
+            "to ego speed and pedestrian walk distance so the ego arrives roughly as the "
+            "pedestrian reaches the lane. Recommended starting value: pedestrian walk "
+            "distance / crossing speed minus a small safety margin (e.g. 0.4 s). When "
+            "positive, overrides --target-crossing-trigger-distance-m."
         ),
     )
     parser.add_argument(
@@ -455,7 +491,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--helper-drive",
         action="store_true",
-        help="Drive the optional helper vehicle slowly toward the conflict point instead of keeping it static.",
+        help="Drive the optional helper vehicle slowly through its own opposite-lane path instead of keeping it static.",
     )
     parser.add_argument(
         "--helper-target-speed",
@@ -469,12 +505,166 @@ def parse_args() -> argparse.Namespace:
         default=5.0,
         help=(
             "Stop the helper vehicle this many meters before its own pass-through target. "
-            "The helper target is beyond the conflict point in the opposite lane."
+            "The helper target is beyond the conflict point in the opposite lane. "
+            "Set this low (e.g. 1.0) when you want the helper to drive all the way through "
+            "and never stop within the camera window."
+        ),
+    )
+    parser.add_argument(
+        "--helper-pause-until-crossing",
+        action="store_true",
+        help=(
+            "When set, the helper holds the brake at its spawn position and only starts "
+            "driving the moment the pedestrian crossing actually fires. Looks unnatural "
+            "(car visibly parked on the road) — prefer using --curbside-helper-spawn-forward-m "
+            "to push the helper far enough away that it arrives at the conflict zone "
+            "naturally, without pausing."
+        ),
+    )
+    parser.add_argument(
+        "--curbside-helper-spawn-forward-m",
+        type=float,
+        default=35.0,
+        help=(
+            "Curbside scenario: helper spawn distance past the conflict point on the "
+            "opposite lane. Calibrate with --helper-target-speed so that "
+            "spawn_distance / speed equals the time you want the helper to arrive at "
+            "the conflict point. E.g. at speed 4.5 m/s and spawn 35 m, helper arrives "
+            "at t = 7.8 s. Pair with --target-crossing-delay-s so the walker starts "
+            "around that same moment, putting the walker in the helper's view."
+        ),
+    )
+    parser.add_argument(
+        "--curbside-helper-target-forward-m",
+        type=float,
+        default=-30.0,
+        help=(
+            "Curbside scenario: helper's drive-through target distance past the conflict "
+            "(negative = beyond the conflict, on the ego-spawn side). Together with "
+            "--helper-stop-distance-to-conflict-m this sets where the helper finally "
+            "brakes. Make it sufficiently negative that the helper never brakes within "
+            "the crossing window."
+        ),
+    )
+    parser.add_argument(
+        "--curbside-occluder-z-offset-m",
+        type=float,
+        default=0.1,
+        help=(
+            "Curbside scenario: vertical lift (in metres) applied to spawned occluders "
+            "above the road surface. The default 0.1 keeps the vehicle just above the "
+            "ground to avoid spawn-collision with road mesh. Set higher (e.g. 0.3) only "
+            "if the vehicle clips into the road; set lower if it appears to float."
+        ),
+    )
+    parser.add_argument(
+        "--curbside-occluder-yaw-offset-deg",
+        type=float,
+        default=0.0,
+        help=(
+            "Curbside scenario: additional yaw rotation (in degrees) applied to our "
+            "spawned occluder vehicles relative to the ego lane direction. Use this when "
+            "the baked map vehicles at the curbside are parked at a different angle "
+            "than the lane heading (common at angled-parking spots) and our truck looks "
+            "rotated relative to them. Try ±5 to ±15 deg to align visually."
+        ),
+    )
+    parser.add_argument(
+        "--curbside-occluder-blueprint",
+        type=str,
+        default="",
+        help=(
+            "Curbside scenario: force a specific CARLA vehicle blueprint id for OUR "
+            "spawned occluders (slot 0, 1, 2, and extra van). Empty (default) means "
+            "use the heavy-vehicle pool. Examples: "
+            "'vehicle.carlamotors.carlacola' (box truck), "
+            "'vehicle.carlamotors.firetruck' (fire truck), "
+            "'vehicle.tesla.cybertruck' (pickup), "
+            "'vehicle.sprinter.mercedes' (sprinter van). Useful when you want a "
+            "specific truck visually distinct from the baked map van."
+        ),
+    )
+    parser.add_argument(
+        "--curbside-occluder-count",
+        type=int,
+        choices=[1, 2, 3],
+        default=3,
+        help=(
+            "Curbside scenario: number of parked vehicles to spawn (1, 2, or 3). "
+            "Use 1 when the map already has baked-in vehicles at the curbside and "
+            "you just want to add one of our trucks/vans to flank the pedestrian. "
+            "When 1, only the middle slot (the designated truck) spawns at "
+            "--curbside-slot-1-forward-m."
+        ),
+    )
+    parser.add_argument(
+        "--curbside-slot-1-forward-m",
+        type=float,
+        default=-1.0,
+        help=(
+            "Curbside scenario: forward offset for the middle parked vehicle (slot 1, "
+            "the designated truck/van). Default -1.0 sits it just before the conflict "
+            "point. Adjust to move the truck relative to baked map vehicles when using "
+            "--curbside-occluder-count 1."
+        ),
+    )
+    parser.add_argument(
+        "--curbside-slot-0-forward-m",
+        type=float,
+        default=-5.5,
+        help=(
+            "Curbside scenario: forward offset for the front parked vehicle (slot 0). "
+            "Default -5.5 puts it about 5 m behind slot 1 (the truck). Push it further "
+            "back (e.g. -12 or -15) to open up parking space between slot 0 and slot 1 "
+            "for the extra-van flag — useful when you want the extra van placed BEHIND "
+            "the truck (closer to ego's spawn) rather than ahead of it."
+        ),
+    )
+    parser.add_argument(
+        "--curbside-extra-occluder-forward-m",
+        type=float,
+        default=0.0,
+        help=(
+            "Curbside scenario: when nonzero, spawn an EXTRA parked van at this forward "
+            "offset (in route metres relative to the occluder reference point, which "
+            "sits 2 m before the conflict). Sign convention follows the ROUTE direction "
+            "(positive = further along the route, in ego's direction of travel; "
+            "negative = behind, toward ego's spawn). The three default slots sit at "
+            "(-5.5, -1.0, +4.5) so the immediate gaps that have parking room are at "
+            "approximately +8 to +12 (past slot 2) and -8 to -12 (behind slot 0). "
+            "Values between -5 and +4 will usually fail to spawn because they overlap "
+            "the default occluders."
         ),
     )
     parser.add_argument("--helper-camera-width", type=int, default=768, help="Helper RGB camera width.")
     parser.add_argument("--helper-camera-height", type=int, default=432, help="Helper RGB camera height.")
     parser.add_argument("--helper-camera-fov", type=float, default=100.0, help="Helper RGB camera FoV.")
+    parser.add_argument(
+        "--evidence-pack",
+        action="store_true",
+        help=(
+            "Write an evidence folder with actor ground-truth traces and buffered ego/helper RGB frames. "
+            "Use this for canonical failure/safety-baseline runs."
+        ),
+    )
+    parser.add_argument(
+        "--evidence-window-s",
+        type=float,
+        default=3.0,
+        help="Seconds before/after the first target collision to extract into evidence window CSVs.",
+    )
+    parser.add_argument(
+        "--evidence-camera-buffer-size",
+        type=int,
+        default=80,
+        help="Number of sampled RGB frames to keep per evidence camera.",
+    )
+    parser.add_argument(
+        "--evidence-camera-stride",
+        type=int,
+        default=2,
+        help="Store every Nth RGB frame in the evidence camera buffer.",
+    )
     parser.add_argument(
         "--stop-on-target-collision",
         action="store_true",
@@ -657,6 +847,40 @@ def transform_from_dict(row: Dict[str, object]) -> "carla.Transform":
             roll=float(rot["roll"]),
         ),
     )
+
+
+def write_bgra_image(record: Dict[str, object], path_stem: Path) -> str:
+    """Write a CARLA BGRA image buffer as PNG when possible, otherwise PPM."""
+    width = int(record["width"])
+    height = int(record["height"])
+    raw = bytes(record["raw_data"])
+    try:
+        import cv2  # type: ignore
+        import numpy as np  # type: ignore
+
+        frame_bgr = np.frombuffer(raw, dtype=np.uint8).reshape((height, width, 4))[:, :, :3]
+        png_path = path_stem.with_suffix(".png")
+        if cv2.imwrite(str(png_path), frame_bgr):
+            return png_path.name
+    except Exception:
+        pass
+
+    # Portable fallback: PPM stores RGB bytes without external dependencies.
+    ppm_path = path_stem.with_suffix(".ppm")
+    rgb = bytearray(width * height * 3)
+    out_index = 0
+    for in_index in range(0, min(len(raw), width * height * 4), 4):
+        blue = raw[in_index]
+        green = raw[in_index + 1]
+        red = raw[in_index + 2]
+        rgb[out_index] = red
+        rgb[out_index + 1] = green
+        rgb[out_index + 2] = blue
+        out_index += 3
+    with ppm_path.open("wb") as handle:
+        handle.write(f"P6\n{width} {height}\n255\n".encode("ascii"))
+        handle.write(rgb)
+    return ppm_path.name
 
 
 def vector_bearing_deg(origin: "carla.Location", target: "carla.Location") -> float:
@@ -872,10 +1096,17 @@ def configure_vehicle_blueprint(
 
 def configure_walker_blueprint(
     blueprint: "carla.ActorBlueprint",
+    speed_mode: str = "default",
 ) -> "carla.ActorBlueprint":
     configured = blueprint
     if configured.has_attribute("is_invincible"):
         configured.set_attribute("is_invincible", "false")
+    if str(speed_mode) == "running" and configured.has_attribute("speed"):
+        values = list(configured.get_attribute("speed").recommended_values)
+        if len(values) >= 3:
+            configured.set_attribute("speed", str(values[2]))
+        elif values:
+            configured.set_attribute("speed", str(values[-1]))
     return configured
 
 
@@ -1189,7 +1420,8 @@ def spawn_occlusion_crossing_layout(
             world,
             ("walker.pedestrian.0001", "walker.pedestrian.0010", "walker.pedestrian.0020"),
             "walker.pedestrian.*",
-        )
+        ),
+        speed_mode="running",
     )
     target = try_spawn_configured_actor(
         world,
@@ -1264,6 +1496,15 @@ def spawn_curbside_parked_pedestrian_layout(
     curbside_heavy_occluder_first: bool = True,
     helper_vehicle: bool = False,
     helper_drive: bool = False,
+    helper_spawn_forward_m: float = 35.0,
+    helper_target_forward_m: float = -30.0,
+    extra_occluder_forward_m: float = 0.0,
+    slot_0_forward_m: float = -5.5,
+    slot_1_forward_m: float = -1.0,
+    occluder_count: int = 3,
+    forced_occluder_blueprint_id: str = "",
+    occluder_yaw_offset_deg: float = 0.0,
+    occluder_z_offset_m: float = 0.1,
 ) -> Tuple["carla.Actor", List["carla.Actor"], Dict[str, object]]:
     requested_route_choice = str(route_choice)
     route_choice = "straight"
@@ -1314,72 +1555,162 @@ def spawn_curbside_parked_pedestrian_layout(
 
     vehicle_blueprints = sorted(world.get_blueprint_library().filter("vehicle.*"), key=lambda bp: bp.id)
     vehicle_blueprints_by_id = {bp.id: bp for bp in vehicle_blueprints}
+    # CARLA 0.10 truck/van pool. Confirmed available blueprint IDs (from
+    # `--list-vehicles`): sprinter.mercedes, carlacola.actors, firetruck.actors,
+    # ambulance.ford. Older IDs (carlamotors.carlacola, carlamotors.firetruck,
+    # mercedes.sprinter, volkswagen.t2, tesla.cybertruck, mitsubishi.fusorosa)
+    # don't exist in 0.10. Order: medium vans first (visually consistent with
+    # typical curbside), larger trucks last as fallback.
     heavy_preferred_ids = (
-        "vehicle.carlamotors.carlacola",
-        "vehicle.carlacola.actors",
-        "vehicle.carlamotors.firetruck",
-        "vehicle.firetruck.actors",
-        "vehicle.mitsubishi.fusorosa",
-        "vehicle.tesla.cybertruck",
         "vehicle.sprinter.mercedes",
-        "vehicle.mercedes.sprinter",
-        "vehicle.volkswagen.t2",
+        "vehicle.carlacola.actors",
+        "vehicle.ambulance.ford",
+        # Largest, last resort:
+        "vehicle.firetruck.actors",
     )
+    # CARLA 0.10 sedan/car pool. Older IDs (toyota.prius, audi.a2,
+    # mkz_2017/2020, mercedes.coupe_2020) don't exist in 0.10.
     car_fallback_ids = (
         "vehicle.lincoln.mkz",
-        "vehicle.toyota.prius",
-        "vehicle.audi.a2",
+        "vehicle.dodge.charger",
+        "vehicle.mini.cooper",
+        "vehicle.taxi.ford",
+        "vehicle.nissan.patrol",
     )
-    heavy_tokens = ("carlacola", "firetruck", "fusorosa", "bus", "truck", "sprinter", "van", "cybertruck")
+    heavy_tokens = ("carlacola", "firetruck", "ambulance", "bus", "truck", "sprinter", "van", "cybertruck")
     heavy_occluder_candidate_ids = [
         str(bp.id)
         for bp in vehicle_blueprints
         if any(token in str(bp.id).lower() for token in heavy_tokens)
     ]
-    preferred_ids = (
-        (*heavy_preferred_ids, *car_fallback_ids)
-        if curbside_heavy_occluder_first
-        else (*car_fallback_ids, *heavy_preferred_ids)
-    )
-    occluder_blueprint_options = [
-        vehicle_blueprints_by_id[bp_id]
-        for bp_id in preferred_ids
-        if bp_id in vehicle_blueprints_by_id
-    ]
-    for token in heavy_tokens:
-        occluder_blueprint_options.extend(
-            [bp for bp in vehicle_blueprints if token in str(bp.id).lower()]
-        )
-    for bp_id in SAFE_VEHICLE_BLUEPRINTS:
-        if bp_id in vehicle_blueprints_by_id:
-            occluder_blueprint_options.append(vehicle_blueprints_by_id[bp_id])
+    # When the user asks for heavy occluders first, treat that as STRICT:
+    # only vans / trucks / box-vehicles are eligible for any of the three
+    # parked slots. Sedan fallbacks were leaking in when the heavy spawn
+    # collided on first try, letting the pedestrian's head clear short
+    # rooflines and ruining the occlusion from the ego camera.
+    if curbside_heavy_occluder_first:
+        occluder_blueprint_options = [
+            vehicle_blueprints_by_id[bp_id]
+            for bp_id in heavy_preferred_ids
+            if bp_id in vehicle_blueprints_by_id
+        ]
+        # Also add any other blueprint matching a heavy token (covers map
+        # variants we didn't enumerate explicitly), but no sedan fallback.
+        for token in heavy_tokens:
+            occluder_blueprint_options.extend(
+                [bp for bp in vehicle_blueprints if token in str(bp.id).lower()]
+            )
+    else:
+        preferred_ids = (*car_fallback_ids, *heavy_preferred_ids)
+        occluder_blueprint_options = [
+            vehicle_blueprints_by_id[bp_id]
+            for bp_id in preferred_ids
+            if bp_id in vehicle_blueprints_by_id
+        ]
+        for token in heavy_tokens:
+            occluder_blueprint_options.extend(
+                [bp for bp in vehicle_blueprints if token in str(bp.id).lower()]
+            )
+        for bp_id in SAFE_VEHICLE_BLUEPRINTS:
+            if bp_id in vehicle_blueprints_by_id:
+                occluder_blueprint_options.append(vehicle_blueprints_by_id[bp_id])
     occluder_blueprint_options = unique_blueprints_by_id(occluder_blueprint_options or vehicle_blueprints[:5])
+
+    # Per-slot blueprint pools so the pedestrian's emergence is between a van
+    # (slot 1, immediately on the ego-approach side) and a car (slot 2, past
+    # the pedestrian). Pattern: [van, van, sedan]. Slot 1 must be tall to
+    # actually occlude the standing pedestrian from the ego camera; slot 2 is
+    # a sedan so the visual is "between a van and a car", matching the typical
+    # mixed curbside in the demo brief.
+    # If user forced a specific blueprint via --curbside-occluder-blueprint,
+    # use only that one (with optional retries via spawn nudges). Otherwise
+    # fall back to the heavy/sedan pool selection.
+    forced_bp = None
+    if forced_occluder_blueprint_id:
+        forced_bp = vehicle_blueprints_by_id.get(forced_occluder_blueprint_id)
+        if forced_bp is None:
+            print(
+                f"[curbside] WARNING: --curbside-occluder-blueprint "
+                f"'{forced_occluder_blueprint_id}' not found in this CARLA world; "
+                f"falling back to the heavy-pool default."
+            )
+
+    if forced_bp is not None:
+        forced_only_pool = [forced_bp]
+        slot_blueprint_options = {0: forced_only_pool, 1: forced_only_pool, 2: forced_only_pool}
+    elif curbside_heavy_occluder_first:
+        van_pool = unique_blueprints_by_id([
+            vehicle_blueprints_by_id[bp_id]
+            for bp_id in heavy_preferred_ids
+            if bp_id in vehicle_blueprints_by_id
+        ] + [
+            bp for bp in vehicle_blueprints
+            if any(token in str(bp.id).lower() for token in heavy_tokens)
+        ])
+        sedan_pool = unique_blueprints_by_id([
+            vehicle_blueprints_by_id[bp_id]
+            for bp_id in SAFE_VEHICLE_BLUEPRINTS
+            if bp_id in vehicle_blueprints_by_id
+        ] + [
+            vehicle_blueprints_by_id[bp_id]
+            for bp_id in car_fallback_ids
+            if bp_id in vehicle_blueprints_by_id
+        ])
+        slot_blueprint_options = {0: van_pool, 1: van_pool, 2: sedan_pool}
+    else:
+        slot_blueprint_options = {0: occluder_blueprint_options, 1: occluder_blueprint_options, 2: occluder_blueprint_options}
 
     occluders: List["carla.Actor"] = []
     occluder_spawn_infos: List[Dict[str, object]] = []
     occluder_blueprint_ids: List[str] = []
     planned_occluder_transforms: List["carla.Transform"] = []
     spawned_occluder_transforms: List["carla.Transform"] = []
-    for index, forward_m in enumerate((-8.0, -1.6, 5.0)):
-        role = (
-            f"{SCENESENSE_ROLE_PREFIX}{spec.name}_parked_van_occluder"
-            if index == 1
-            else f"{SCENESENSE_ROLE_PREFIX}{spec.name}_parked_curb_vehicle_{index}"
-        )
+    # Tighter spacing closes the gaps between parked vehicles so the pedestrian
+    # cannot be seen "between" cars from the ego camera. Original spacing
+    # (-8.0, -1.6, 5.0) left ~2.5 m air gaps; this brings them down to ~0.5 m
+    # while still giving the variant-spawner enough room to nudge for spawn
+    # collisions. The middle slot is the heavy occluder (van/truck), the rear
+    # slot is a sedan so the pedestrian emerges between a van and a car.
+    # Choose which slots to spawn based on --curbside-occluder-count.
+    # count=3 → all three [slot 0, slot 1, slot 2] (default)
+    # count=2 → drop slot 0 (keep the truck + the rear sedan)
+    # count=1 → only slot 1 (the truck) — use this when baked map vehicles
+    #          already fill the rest of the curbside row, so the truck just
+    #          adds the immediate occluder for the pedestrian.
+    all_slots = (
+        (0, float(slot_0_forward_m)),
+        (1, float(slot_1_forward_m)),
+        (2, 4.5),
+    )
+    if int(occluder_count) == 1:
+        selected_slots = (all_slots[1],)
+    elif int(occluder_count) == 2:
+        selected_slots = (all_slots[1], all_slots[2])
+    else:
+        selected_slots = all_slots
+    for index, forward_m in selected_slots:
+        if index == 1:
+            role_suffix = "parked_van_occluder"
+        elif index == 2:
+            role_suffix = "parked_car_far"
+        else:
+            role_suffix = f"parked_curb_vehicle_{index}"
+        role = f"{SCENESENSE_ROLE_PREFIX}{spec.name}_{role_suffix}"
         transform = carla.Transform(
             offset_location(
                 occluder_tf.location,
                 route_yaw,
                 forward_m=forward_m,
                 right_m=occluder_lateral_offset_m,
-                z_offset_m=0.4,
+                z_offset_m=float(occluder_z_offset_m),
             ),
-            carla.Rotation(pitch=0.0, yaw=route_yaw, roll=0.0),
+            carla.Rotation(pitch=0.0, yaw=route_yaw + float(occluder_yaw_offset_deg), roll=0.0),
         )
         planned_occluder_transforms.append(transform)
+        slot_options = slot_blueprint_options.get(index) or occluder_blueprint_options
         actor, used_bp, used_transform, spawn_info = try_spawn_configured_actor_variants(
             world,
-            occluder_blueprint_options,
+            slot_options,
             transform,
             role,
             nudge_yaw_deg=route_yaw,
@@ -1400,25 +1731,78 @@ def spawn_curbside_parked_pedestrian_layout(
             if used_transform is not None:
                 spawned_occluder_transforms.append(used_transform)
 
+    # Optional 4th occluder (van) at a user-specified forward offset. Useful
+    # when the spawn point has baked-in map vehicles that consume one of the
+    # default three slots, leaving an obvious empty parking spot. The user
+    # supplies the forward offset via --curbside-extra-occluder-forward-m.
+    if abs(float(extra_occluder_forward_m)) > 0.01:
+        extra_role = f"{SCENESENSE_ROLE_PREFIX}{spec.name}_parked_extra_van"
+        extra_transform = carla.Transform(
+            offset_location(
+                occluder_tf.location,
+                route_yaw,
+                forward_m=float(extra_occluder_forward_m),
+                right_m=occluder_lateral_offset_m,
+                z_offset_m=float(occluder_z_offset_m),
+            ),
+            carla.Rotation(pitch=0.0, yaw=route_yaw + float(occluder_yaw_offset_deg), roll=0.0),
+        )
+        planned_occluder_transforms.append(extra_transform)
+        # Use the van pool (same one slot 1 draws from when heavy-first is on).
+        extra_pool = slot_blueprint_options.get(1) or occluder_blueprint_options
+        extra_actor, extra_bp, extra_used_tf, extra_info = try_spawn_configured_actor_variants(
+            world,
+            extra_pool,
+            extra_transform,
+            extra_role,
+            nudge_yaw_deg=route_yaw,
+            forward_nudges_m=(0.0, -0.8, 0.8, -1.6, 1.6),
+            right_nudges_m=(0.0, curb_side * 0.6, -curb_side * 0.4, curb_side * 1.0),
+            z_nudges_m=(0.0, 0.2),
+        )
+        extra_info.update({"role": extra_role, "planned_forward_m": float(extra_occluder_forward_m)})
+        occluder_spawn_infos.append(extra_info)
+        if extra_actor is not None:
+            try:
+                extra_actor.set_simulate_physics(False)
+            except RuntimeError:
+                pass
+            occluders.append(extra_actor)
+            if extra_bp is not None:
+                occluder_blueprint_ids.append(str(extra_bp.id))
+            if extra_used_tf is not None:
+                spawned_occluder_transforms.append(extra_used_tf)
+
+    # Walker anchor: the route position where the walker actually crosses.
+    # Previously target_start used forward_m=target_forward_offset_m but
+    # target_end used forward_m=0, which made the walker walk diagonally
+    # toward conflict_tf if target_forward_offset_m != 0. Now we resolve a
+    # walker_anchor along the route at conflict_distance + offset, and the
+    # walker walks STRAIGHT across (perpendicular) at that anchor. The
+    # crossing trigger is repositioned to this anchor so ego times its
+    # arrival to where the walker actually crosses, not to conflict_tf.
+    walker_anchor_route_distance = float(conflict_distance) + float(target_forward_offset_m)
+    walker_anchor_tf = route_transform_at_distance(route, walker_anchor_route_distance)
+    walker_anchor_yaw = float(walker_anchor_tf.rotation.yaw)
     target_start = offset_location(
-        conflict_tf.location,
-        route_yaw,
-        forward_m=target_forward_offset_m,
+        walker_anchor_tf.location,
+        walker_anchor_yaw,
+        forward_m=0.0,
         right_m=target_start_lateral_offset_m,
         z_offset_m=1.0,
     )
     target_end = offset_location(
-        conflict_tf.location,
-        route_yaw,
+        walker_anchor_tf.location,
+        walker_anchor_yaw,
         forward_m=0.0,
         right_m=target_end_lateral_offset_m,
         z_offset_m=1.0,
     )
     target_prewalk_start = (
         offset_location(
-            conflict_tf.location,
-            route_yaw,
-            forward_m=target_forward_offset_m - target_prewalk_distance_m,
+            walker_anchor_tf.location,
+            walker_anchor_yaw,
+            forward_m=-target_prewalk_distance_m,
             right_m=target_prewalk_lateral_offset_m,
             z_offset_m=1.0,
         )
@@ -1434,7 +1818,8 @@ def spawn_curbside_parked_pedestrian_layout(
             world,
             ("walker.pedestrian.0001", "walker.pedestrian.0010", "walker.pedestrian.0020"),
             "walker.pedestrian.*",
-        )
+        ),
+        speed_mode="running",
     )
     target, _target_bp, spawned_target_transform, target_spawn_info = try_spawn_configured_actor_variants(
         world,
@@ -1467,8 +1852,16 @@ def spawn_curbside_parked_pedestrian_layout(
     helper_spawn_info: Dict[str, object] = {}
     helper_transform: Optional["carla.Transform"] = None
     helper_lateral_offset_m = -3.6
-    helper_spawn_forward_m = 14.0
-    helper_target_forward_m = -34.0
+    # Helper geometry: spawn far enough past the conflict that the helper
+    # arrives at the conflict point during the pedestrian's crossing window.
+    # Calibration: time-to-arrival at conflict = helper_spawn_forward_m /
+    # helper_target_speed. The defaults (35 m, ~4.5 m/s) put helper at
+    # the conflict at ~7-8 s; pair with --target-crossing-delay-s to align
+    # the walker with that window. Both values are now CLI-tunable:
+    #   --curbside-helper-spawn-forward-m
+    #   --curbside-helper-target-forward-m
+    # The target stays well past the conflict so the helper does not brake
+    # within the danger window.
     helper_target_location = offset_location(
         conflict_tf.location,
         route_yaw,
@@ -1542,8 +1935,9 @@ def spawn_curbside_parked_pedestrian_layout(
         "occlusion_mode": "curbside_parked_vehicle_hidden_pedestrian",
         "requested_route_choice": requested_route_choice,
         "effective_route_choice": route_choice,
-        "target_motion_mode": "walker_control",
-        "target_crossing_control_speed_override": 12.0,
+        "target_motion_mode": "ai_controller",
+        "target_walker_speed_mode": "running",
+        "target_crossing_control_speed_override": 4.5,
         "target_actor_id": int(target.id),
         "target_role": f"{SCENESENSE_ROLE_PREFIX}{spec.name}_hidden_pedestrian",
         "target_spawn_info": target_spawn_info,
@@ -1554,7 +1948,10 @@ def spawn_curbside_parked_pedestrian_layout(
         "target_prewalk_end_location": location_to_dict(target_start),
         "target_prewalk_distance_m": float(target_prewalk_distance_m),
         "target_prewalk_lateral_offset_m": float(target_prewalk_lateral_offset_m),
-        "target_crossing_trigger_location": location_to_dict(conflict_tf.location),
+        # Trigger fires when ego is near where the walker will actually cross,
+        # not at conflict_tf — important when --curbside-target-forward-offset-m
+        # shifts the walker away from conflict_tf.
+        "target_crossing_trigger_location": location_to_dict(walker_anchor_tf.location),
         "target_forward_offset_m": float(target_forward_offset_m),
         "target_start_lateral_offset_m": float(target_start_lateral_offset_m),
         "target_end_lateral_offset_m": float(target_end_lateral_offset_m),
@@ -1610,6 +2007,62 @@ def spawn_curbside_parked_pedestrian_layout(
     extra_actors = [*occluders, target]
     if helper_actor is not None:
         extra_actors.append(helper_actor)
+
+    # Diagnostic prints so the user can see where everything actually landed
+    # and tune --curbside-slot-1-forward-m / --curbside-target-forward-offset-m
+    # against the visible curbside layout in CARLA. We use the spawned
+    # transforms tracked above rather than actor.get_location() — the latter
+    # returns (0,0,0) before CARLA has ticked once.
+    try:
+        print("[curbside-layout] anchor route_distance (conflict_tf): "
+              f"{conflict_distance:.2f} m at x={conflict_tf.location.x:.1f}, y={conflict_tf.location.y:.1f}")
+        print(f"[curbside-layout] walker_anchor route_distance: "
+              f"{walker_anchor_route_distance:.2f} m at x={walker_anchor_tf.location.x:.1f}, y={walker_anchor_tf.location.y:.1f}")
+        for idx, occ_tf in enumerate(spawned_occluder_transforms):
+            bp_id = occluder_blueprint_ids[idx] if idx < len(occluder_blueprint_ids) else "?"
+            print(f"[curbside-layout] occluder[{idx}]: blueprint={bp_id} "
+                  f"at x={occ_tf.location.x:.1f}, y={occ_tf.location.y:.1f}, z={occ_tf.location.z:.1f}")
+        # target_start is the (x,y,z) Location where the pedestrian was spawned,
+        # computed before the actor existed (so its coords are valid immediately).
+        print(f"[curbside-layout] pedestrian start: "
+              f"x={target_start.x:.1f}, y={target_start.y:.1f}, z={target_start.z:.1f}")
+        print(f"[curbside-layout] pedestrian end:   "
+              f"x={target_end.x:.1f}, y={target_end.y:.1f}, z={target_end.z:.1f}")
+        if helper_actor is not None and helper_transform is not None:
+            print(f"[curbside-layout] helper spawn:    "
+                  f"x={helper_transform.location.x:.1f}, y={helper_transform.location.y:.1f}, "
+                  f"yaw={helper_transform.rotation.yaw:.0f}")
+        # Find baked / non-spawned vehicles within 30 m of conflict for context.
+        # CARLA's static decoration "vehicles" don't always appear in world.get_actors()
+        # (they may be baked into the level mesh as props rather than spawned actors).
+        # Try anyway — anything that DOES register is useful.
+        own_ids = {ego.id} | {a.id for a in extra_actors if a is not None}
+        try:
+            nearby = []
+            for actor in world.get_actors().filter("vehicle.*"):
+                if actor.id in own_ids:
+                    continue
+                try:
+                    d = float(actor.get_location().distance(conflict_tf.location))
+                except Exception:
+                    continue
+                if 0.01 < d <= 30.0:  # skip uninitialized (0,0,0) actors
+                    nearby.append((d, actor))
+            nearby.sort(key=lambda kv: kv[0])
+            if nearby:
+                print(f"[curbside-layout] {len(nearby)} other actor vehicle(s) within 30 m of conflict:")
+                for d, actor in nearby[:8]:
+                    al = actor.get_location()
+                    print(f"  [curbside-layout]   d={d:5.1f} m  type={actor.type_id}  "
+                          f"x={al.x:.1f}, y={al.y:.1f}")
+            else:
+                print("[curbside-layout] no nearby actor vehicles within 30 m "
+                      "(baked map decoration vehicles are typically static props, not actors)")
+        except (RuntimeError, AttributeError):
+            pass
+    except Exception as diag_exc:
+        print(f"[curbside-layout] diagnostic print failed: {diag_exc}")
+
     return ego, extra_actors, layout
 
 
@@ -2296,6 +2749,9 @@ class EgoSensorMonitor:
         radar_vfov: float,
         radar_pps: int,
         preview: bool,
+        evidence_capture: bool = False,
+        evidence_buffer_size: int = 80,
+        evidence_stride: int = 2,
     ) -> None:
         self.world = world
         self.ego = ego
@@ -2308,8 +2764,12 @@ class EgoSensorMonitor:
         self.radar_pps = int(radar_pps)
         self.preview_requested = bool(preview)
         self.preview = bool(preview)
+        self.evidence_capture = bool(evidence_capture)
+        self.evidence_buffer_size = max(1, int(evidence_buffer_size))
+        self.evidence_stride = max(1, int(evidence_stride))
         self.sensors: List["carla.Actor"] = []
         self.camera_queue: "queue.Queue[object]" = queue.Queue(maxsize=2)
+        self.evidence_frames = deque(maxlen=self.evidence_buffer_size)
         self.camera_frames = 0
         self.radar_frames = 0
         self.radar_points_total = 0
@@ -2362,6 +2822,16 @@ class EgoSensorMonitor:
     def _on_camera(self, image: object) -> None:
         self.camera_frames += 1
         self.last_camera_frame = int(getattr(image, "frame", -1))
+        if self.evidence_capture and self.camera_frames % self.evidence_stride == 0:
+            self.evidence_frames.append(
+                {
+                    "frame": self.last_camera_frame,
+                    "timestamp": float(getattr(image, "timestamp", -1.0)),
+                    "width": int(getattr(image, "width")),
+                    "height": int(getattr(image, "height")),
+                    "raw_data": bytes(getattr(image, "raw_data")),
+                }
+            )
         try:
             if self.camera_queue.full():
                 self.camera_queue.get_nowait()
@@ -2431,6 +2901,9 @@ class EgoSensorMonitor:
             "preview_requested": bool(self.preview_requested),
             "preview_active": bool(self.preview),
             "preview_error": self.preview_error,
+            "evidence_capture": bool(self.evidence_capture),
+            "evidence_buffer_size": int(self.evidence_buffer_size),
+            "evidence_stride": int(self.evidence_stride),
         }
 
     def summary(self) -> Dict[str, object]:
@@ -2448,6 +2921,7 @@ class EgoSensorMonitor:
             "radar_points_per_frame_avg": float(
                 self.radar_points_total / max(1, self.radar_frames)
             ),
+            "evidence_frames_buffered": int(len(self.evidence_frames)),
         }
 
     def write_summary(self, out_dir: Path) -> None:
@@ -2456,6 +2930,38 @@ class EgoSensorMonitor:
             json.dumps(self.summary(), indent=2, sort_keys=True),
             encoding="utf-8",
         )
+
+    def write_evidence_frames(self, evidence_dir: Path, label: str = "ego") -> Dict[str, object]:
+        frames_dir = evidence_dir / f"{sanitize_token(label)}_rgb_frames"
+        frames_dir.mkdir(parents=True, exist_ok=True)
+        index_rows: List[Dict[str, object]] = []
+        for idx, record in enumerate(self.evidence_frames):
+            frame_id = int(record["frame"])
+            filename = write_bgra_image(record, frames_dir / f"{idx:04d}_frame_{frame_id}")
+            index_rows.append(
+                {
+                    "camera_label": label,
+                    "sequence_index": idx,
+                    "frame": frame_id,
+                    "timestamp": record.get("timestamp", ""),
+                    "width": record.get("width", ""),
+                    "height": record.get("height", ""),
+                    "file": f"{frames_dir.name}/{filename}",
+                }
+            )
+        if index_rows:
+            with (evidence_dir / f"{sanitize_token(label)}_rgb_frame_index.csv").open(
+                "w", newline="", encoding="utf-8"
+            ) as handle:
+                writer = csv.DictWriter(handle, fieldnames=list(index_rows[0].keys()))
+                writer.writeheader()
+                writer.writerows(index_rows)
+        return {
+            "camera_label": label,
+            "frames_dir": frames_dir.name,
+            "frames_written": int(len(index_rows)),
+            "frame_index_file": f"{sanitize_token(label)}_rgb_frame_index.csv" if index_rows else None,
+        }
 
     def destroy(self) -> None:
         for sensor in self.sensors:
@@ -2489,6 +2995,9 @@ class ActorCameraMonitor:
         camera_height: int,
         camera_fov: float,
         preview: bool,
+        evidence_capture: bool = False,
+        evidence_buffer_size: int = 80,
+        evidence_stride: int = 2,
     ) -> None:
         self.world = world
         self.actor = actor
@@ -2499,8 +3008,12 @@ class ActorCameraMonitor:
         self.camera_fov = float(camera_fov)
         self.preview_requested = bool(preview)
         self.preview = bool(preview)
+        self.evidence_capture = bool(evidence_capture)
+        self.evidence_buffer_size = max(1, int(evidence_buffer_size))
+        self.evidence_stride = max(1, int(evidence_stride))
         self.sensors: List["carla.Actor"] = []
         self.camera_queue: "queue.Queue[object]" = queue.Queue(maxsize=2)
+        self.evidence_frames = deque(maxlen=self.evidence_buffer_size)
         self.camera_frames = 0
         self.last_camera_frame: Optional[int] = None
         self.started_at = time.time()
@@ -2535,6 +3048,16 @@ class ActorCameraMonitor:
     def _on_camera(self, image: object) -> None:
         self.camera_frames += 1
         self.last_camera_frame = int(getattr(image, "frame", -1))
+        if self.evidence_capture and self.camera_frames % self.evidence_stride == 0:
+            self.evidence_frames.append(
+                {
+                    "frame": self.last_camera_frame,
+                    "timestamp": float(getattr(image, "timestamp", -1.0)),
+                    "width": int(getattr(image, "width")),
+                    "height": int(getattr(image, "height")),
+                    "raw_data": bytes(getattr(image, "raw_data")),
+                }
+            )
         try:
             if self.camera_queue.full():
                 self.camera_queue.get_nowait()
@@ -2585,6 +3108,9 @@ class ActorCameraMonitor:
             "preview_requested": bool(self.preview_requested),
             "preview_active": bool(self.preview),
             "preview_error": self.preview_error,
+            "evidence_capture": bool(self.evidence_capture),
+            "evidence_buffer_size": int(self.evidence_buffer_size),
+            "evidence_stride": int(self.evidence_stride),
         }
 
     def summary(self) -> Dict[str, object]:
@@ -2596,6 +3122,7 @@ class ActorCameraMonitor:
             "camera_frames": int(self.camera_frames),
             "camera_fps": float(self.camera_frames / elapsed),
             "last_camera_frame": self.last_camera_frame,
+            "evidence_frames_buffered": int(len(self.evidence_frames)),
         }
 
     def write_summary(self, out_dir: Path, filename: str) -> None:
@@ -2604,6 +3131,38 @@ class ActorCameraMonitor:
             json.dumps(self.summary(), indent=2, sort_keys=True),
             encoding="utf-8",
         )
+
+    def write_evidence_frames(self, evidence_dir: Path, label: Optional[str] = None) -> Dict[str, object]:
+        camera_label = sanitize_token(label or self.label)
+        frames_dir = evidence_dir / f"{camera_label}_rgb_frames"
+        frames_dir.mkdir(parents=True, exist_ok=True)
+        index_rows: List[Dict[str, object]] = []
+        for idx, record in enumerate(self.evidence_frames):
+            frame_id = int(record["frame"])
+            filename = write_bgra_image(record, frames_dir / f"{idx:04d}_frame_{frame_id}")
+            index_rows.append(
+                {
+                    "camera_label": camera_label,
+                    "sequence_index": idx,
+                    "frame": frame_id,
+                    "timestamp": record.get("timestamp", ""),
+                    "width": record.get("width", ""),
+                    "height": record.get("height", ""),
+                    "file": f"{frames_dir.name}/{filename}",
+                }
+            )
+        index_file = f"{camera_label}_rgb_frame_index.csv"
+        if index_rows:
+            with (evidence_dir / index_file).open("w", newline="", encoding="utf-8") as handle:
+                writer = csv.DictWriter(handle, fieldnames=list(index_rows[0].keys()))
+                writer.writeheader()
+                writer.writerows(index_rows)
+        return {
+            "camera_label": camera_label,
+            "frames_dir": frames_dir.name,
+            "frames_written": int(len(index_rows)),
+            "frame_index_file": index_file if index_rows else None,
+        }
 
     def destroy(self) -> None:
         for sensor in self.sensors:
@@ -2633,6 +3192,7 @@ class HelperVehicleController:
         target_location: "carla.Location",
         target_speed: float,
         stop_distance_m: float,
+        gate_predicate: Optional[Callable[[], bool]] = None,
     ) -> None:
         self.actor = actor
         self.target_location = copy_location(target_location)
@@ -2644,11 +3204,27 @@ class HelperVehicleController:
         self.last_distance_m = float(self.start_location.distance(self.target_location))
         self.min_distance_m = self.last_distance_m
         self.stopped = False
+        # Optional gate: when set, helper holds the brake (does not drive)
+        # until the predicate returns True. Used by --helper-pause-until-crossing
+        # so the helper sits stationary and only starts driving once the
+        # pedestrian's crossing actually fires.
+        self.gate_predicate = gate_predicate
+        self.released = gate_predicate is None
 
     def tick(self) -> None:
         if self.actor is None:
             return
         self.ticks += 1
+        # Hold the brake until the gate predicate releases us.
+        if not self.released:
+            if self.gate_predicate is not None and self.gate_predicate():
+                self.released = True
+            else:
+                try:
+                    self.actor.apply_control(carla.VehicleControl(throttle=0.0, brake=1.0))
+                except RuntimeError:
+                    pass
+                return
         loc = self.actor.get_location()
         self.last_location = copy_location(loc)
         distance = float(loc.distance(self.target_location))
@@ -2658,6 +3234,22 @@ class HelperVehicleController:
             self.actor.apply_control(carla.VehicleControl(throttle=0.0, brake=1.0))
             self.stopped = True
             return
+
+        # Off-road safety brake: if the helper has drifted more than 3 m off
+        # the nearest drivable lane (happens on curved roads where straight-
+        # line steering cuts the corner), brake hard and stop. This is a
+        # safety net; we keep the original straight-line steering as the
+        # primary mode because waypoint following at intersections was
+        # picking turn-into-side-street branches and making things worse.
+        try:
+            world = self.actor.get_world()
+            wp = world.get_map().get_waypoint(loc, project_to_road=True, lane_type=carla.LaneType.Driving)
+            if wp is None or wp.transform.location.distance(loc) > 3.0:
+                self.actor.apply_control(carla.VehicleControl(throttle=0.0, brake=1.0))
+                self.stopped = True
+                return
+        except RuntimeError:
+            pass
 
         transform = self.actor.get_transform()
         target_yaw = math.degrees(math.atan2(self.target_location.y - loc.y, self.target_location.x - loc.x))
@@ -2698,6 +3290,178 @@ class HelperVehicleController:
         )
 
 
+class ScenarioEvidenceRecorder:
+    """Record actor ground truth and export a compact evidence pack."""
+
+    def __init__(
+        self,
+        world: "carla.World",
+        actors: Sequence["carla.Actor"],
+        event_monitor: Optional["OcclusionEventMonitor"],
+        window_s: float,
+    ) -> None:
+        self.world = world
+        self.actors = list(actors)
+        self.event_monitor = event_monitor
+        self.window_s = max(0.0, float(window_s))
+        self.started_at = time.time()
+        self.rows: List[Dict[str, object]] = []
+
+    def tick(self) -> None:
+        elapsed_s = self._elapsed_s()
+        try:
+            frame = int(self.world.get_snapshot().frame)
+        except Exception:
+            frame = -1
+        for actor in self.actors:
+            if actor is None:
+                continue
+            try:
+                if not actor.is_alive:
+                    continue
+                transform = actor.get_transform()
+                velocity = actor.get_velocity()
+                angular_velocity = actor.get_angular_velocity()
+                acceleration = actor.get_acceleration()
+            except Exception:
+                continue
+            self.rows.append(
+                {
+                    "elapsed_s": float(elapsed_s),
+                    "frame": frame,
+                    "actor_id": int(actor.id),
+                    "type_id": str(actor.type_id),
+                    "role_name": str(actor.attributes.get("role_name", "")),
+                    "x": float(transform.location.x),
+                    "y": float(transform.location.y),
+                    "z": float(transform.location.z),
+                    "pitch": float(transform.rotation.pitch),
+                    "yaw": float(transform.rotation.yaw),
+                    "roll": float(transform.rotation.roll),
+                    "velocity_x": float(velocity.x),
+                    "velocity_y": float(velocity.y),
+                    "velocity_z": float(velocity.z),
+                    "speed_mps": math.sqrt(
+                        float(velocity.x) ** 2 + float(velocity.y) ** 2 + float(velocity.z) ** 2
+                    ),
+                    "angular_velocity_x": float(angular_velocity.x),
+                    "angular_velocity_y": float(angular_velocity.y),
+                    "angular_velocity_z": float(angular_velocity.z),
+                    "acceleration_x": float(acceleration.x),
+                    "acceleration_y": float(acceleration.y),
+                    "acceleration_z": float(acceleration.z),
+                }
+            )
+
+    def _elapsed_s(self) -> float:
+        if self.event_monitor is not None:
+            return float(self.event_monitor._elapsed_s())
+        try:
+            return float(self.world.get_snapshot().timestamp.elapsed_seconds)
+        except Exception:
+            return float(time.time() - self.started_at)
+
+    def _event_center(self) -> Tuple[Optional[float], str]:
+        if self.event_monitor is None:
+            return None, "no_event_monitor"
+        target_id = None if self.event_monitor.target is None else int(self.event_monitor.target.id)
+        for event in self.event_monitor.collision_events:
+            if target_id is None or event.get("other_actor_id") == target_id:
+                return float(event.get("elapsed_s", 0.0)), "target_collision"
+        if self.event_monitor.target_started_at_s is not None:
+            return float(self.event_monitor.target_started_at_s), "target_start"
+        return None, "no_target_event"
+
+    def _write_csv(self, path: Path, rows: Sequence[Dict[str, object]]) -> Optional[str]:
+        if not rows:
+            return None
+        path.parent.mkdir(parents=True, exist_ok=True)
+        fieldnames = list(rows[0].keys())
+        with path.open("w", newline="", encoding="utf-8") as handle:
+            writer = csv.DictWriter(handle, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(rows)
+        return path.name
+
+    def write(
+        self,
+        out_dir: Path,
+        ego_sensor_monitor: Optional[EgoSensorMonitor] = None,
+        helper_camera_monitor: Optional[ActorCameraMonitor] = None,
+    ) -> None:
+        evidence_dir = out_dir / "evidence"
+        evidence_dir.mkdir(parents=True, exist_ok=True)
+        files: Dict[str, object] = {}
+        files["ground_truth_actor_trace"] = self._write_csv(
+            evidence_dir / "ground_truth_actor_trace.csv",
+            self.rows,
+        )
+
+        event_center_s, event_center_reason = self._event_center()
+        window_rows: List[Dict[str, object]] = []
+        event_window_rows: List[Dict[str, object]] = []
+        if event_center_s is not None:
+            start_s = float(event_center_s) - self.window_s
+            end_s = float(event_center_s) + self.window_s
+            window_rows = [
+                row
+                for row in self.rows
+                if start_s <= float(row.get("elapsed_s", -1.0)) <= end_s
+            ]
+            if self.event_monitor is not None:
+                event_window_rows = [
+                    row
+                    for row in self.event_monitor.trace_rows
+                    if start_s <= float(row.get("elapsed_s", -1.0)) <= end_s
+                ]
+        files["ground_truth_event_window"] = self._write_csv(
+            evidence_dir / "ground_truth_event_window.csv",
+            window_rows,
+        )
+        files["scenario_event_window"] = self._write_csv(
+            evidence_dir / "scenario_event_window.csv",
+            event_window_rows,
+        )
+
+        camera_exports: List[Dict[str, object]] = []
+        if ego_sensor_monitor is not None:
+            camera_exports.append(ego_sensor_monitor.write_evidence_frames(evidence_dir, "ego"))
+        if helper_camera_monitor is not None:
+            camera_exports.append(helper_camera_monitor.write_evidence_frames(evidence_dir, "helper"))
+
+        summary = {
+            "enabled": True,
+            "evidence_dir": "evidence",
+            "window_s": float(self.window_s),
+            "event_center_s": event_center_s,
+            "event_center_reason": event_center_reason,
+            "actor_trace_rows": int(len(self.rows)),
+            "actor_trace_window_rows": int(len(window_rows)),
+            "event_trace_window_rows": int(len(event_window_rows)),
+            "files": files,
+            "camera_exports": camera_exports,
+        }
+        (evidence_dir / "evidence_summary.json").write_text(
+            json.dumps(summary, indent=2, sort_keys=True),
+            encoding="utf-8",
+        )
+        summary_path = out_dir / "summary.txt"
+        if summary_path.exists():
+            summary_lines = summary_path.read_text(encoding="utf-8").rstrip("\n").splitlines()
+        else:
+            summary_lines = []
+        summary_lines.extend(
+            [
+                "evidence_pack_enabled=True",
+                f"evidence_dir={evidence_dir}",
+                f"evidence_event_center_s={event_center_s}",
+                f"evidence_event_center_reason={event_center_reason}",
+                f"evidence_actor_trace_rows={len(self.rows)}",
+            ]
+        )
+        summary_path.write_text("\n".join(summary_lines) + "\n", encoding="utf-8")
+
+
 class OcclusionEventMonitor:
     """Script simple ego/target motion and record collision/closest-distance events."""
 
@@ -2719,6 +3483,7 @@ class OcclusionEventMonitor:
         target_crossing_speed: float,
         target_crossing_trigger_location: Optional["carla.Location"],
         target_crossing_trigger_distance_m: float,
+        target_crossing_trigger_ttc_s: float = 0.0,
         target_motion_mode: str = "walker_control",
         target_crossing_control_speed_override: Optional[float] = None,
         target_prewalk: bool = False,
@@ -2740,6 +3505,8 @@ class OcclusionEventMonitor:
         self.ego_route_lookahead = max(2.0, float(ego_route_lookahead))
         self.target_crossing = bool(target_crossing and target is not None and target_end_location is not None)
         self.target_motion_mode = str(target_motion_mode or "walker_control")
+        if self.target_motion_mode not in {"walker_control", "deterministic", "exact_transform", "ai_controller"}:
+            self.target_motion_mode = "walker_control"
         self.target_crossing_delay_s = max(0.0, float(target_crossing_delay_s))
         self.target_crossing_speed = max(0.1, float(target_crossing_speed))
         if target_crossing_control_speed_override is None:
@@ -2750,6 +3517,7 @@ class OcclusionEventMonitor:
             None if target_crossing_trigger_location is None else copy_location(target_crossing_trigger_location)
         )
         self.target_crossing_trigger_distance_m = max(0.0, float(target_crossing_trigger_distance_m))
+        self.target_crossing_trigger_ttc_s = max(0.0, float(target_crossing_trigger_ttc_s))
         self.target_prewalk = bool(target_prewalk and target is not None and target_prewalk_end_location is not None)
         self.target_prewalk_end_location = (
             None if target_prewalk_end_location is None else copy_location(target_prewalk_end_location)
@@ -2856,6 +3624,25 @@ class OcclusionEventMonitor:
             return
         if self.target is None or self.target_end_location is None:
             return
+        # TTC mode (preferred when set): fires when ego is N seconds away from
+        # the conflict point at its current speed. Self-adjusts to ego speed
+        # and pedestrian walk distance so we don't have to re-tune the trigger
+        # every time we change geometry.
+        if (
+            self.target_crossing_trigger_ttc_s > 0.0
+            and self.target_crossing_trigger_location is not None
+        ):
+            ego_speed = self._ego_speed_mps()
+            # Ego still accelerating from spawn — wait until it has meaningful
+            # forward velocity, otherwise TTC is undefined / huge.
+            if ego_speed < 0.5:
+                return
+            ego_distance = float(self.ego.get_location().distance(self.target_crossing_trigger_location))
+            ego_ttc_s = ego_distance / ego_speed
+            if ego_ttc_s <= self.target_crossing_trigger_ttc_s:
+                self._start_target_crossing(elapsed_s, "ego_ttc_match")
+            return
+        # Legacy distance mode.
         if self.target_crossing_trigger_location is None or self.target_crossing_trigger_distance_m <= 0.0:
             self._start_target_crossing(elapsed_s, "delay")
             return
@@ -2937,7 +3724,9 @@ class OcclusionEventMonitor:
         if self.target_motion_mode == "ai_controller" and self.target_controller is not None:
             try:
                 self.target_controller.start()
-                self.target_controller.set_max_speed(self.target_crossing_speed)
+                self.target_controller.set_max_speed(
+                    max(self.target_crossing_speed, self.target_crossing_control_speed)
+                )
                 if self.target_end_location is not None:
                     self.target_controller.go_to_location(self.target_end_location)
             except RuntimeError:
@@ -2953,6 +3742,8 @@ class OcclusionEventMonitor:
             "ego_z": float(ego_location.z),
             "ego_speed_mps": float(self._ego_speed_mps()),
             "ego_route_index": int(self.ego_route_index),
+            "target_crossing_control_speed": float(self.target_crossing_control_speed),
+            "target_crossing_trigger_ttc_s": float(self.target_crossing_trigger_ttc_s),
             "target_started": int(bool(self.target_started)),
             "target_start_reason": "" if self.target_start_reason is None else self.target_start_reason,
             "target_started_at_s": "" if self.target_started_at_s is None else float(self.target_started_at_s),
@@ -2962,11 +3753,23 @@ class OcclusionEventMonitor:
         except Exception:
             row["frame"] = -1
         if self.target_crossing_trigger_location is not None:
-            row["ego_to_conflict_distance_m"] = float(ego_location.distance(self.target_crossing_trigger_location))
+            ego_to_conflict_distance = float(ego_location.distance(self.target_crossing_trigger_location))
+            ego_speed = float(self._ego_speed_mps())
+            row["ego_to_conflict_distance_m"] = ego_to_conflict_distance
+            row["ego_ttc_to_conflict_s"] = (
+                ego_to_conflict_distance / ego_speed if ego_speed > 0.05 else ""
+            )
         else:
             row["ego_to_conflict_distance_m"] = ""
+            row["ego_ttc_to_conflict_s"] = ""
         if self.target is not None:
             target_location = self.target.get_location()
+            target_velocity = self.target.get_velocity()
+            target_speed_mps = math.sqrt(
+                float(target_velocity.x) ** 2
+                + float(target_velocity.y) ** 2
+                + float(target_velocity.z) ** 2
+            )
             if self.target_prewalk_end_location is not None:
                 row["target_prewalk_distance_to_start_m"] = float(
                     target_location.distance(self.target_prewalk_end_location)
@@ -2979,6 +3782,7 @@ class OcclusionEventMonitor:
                     "target_x": float(target_location.x),
                     "target_y": float(target_location.y),
                     "target_z": float(target_location.z),
+                    "target_speed_mps": float(target_speed_mps),
                     "ego_target_distance_m": float(ego_location.distance(target_location)),
                 }
             )
@@ -2989,6 +3793,7 @@ class OcclusionEventMonitor:
                     "target_x": "",
                     "target_y": "",
                     "target_z": "",
+                    "target_speed_mps": "",
                     "ego_target_distance_m": "",
                     "target_prewalk_distance_to_start_m": "",
                 }
@@ -3018,6 +3823,12 @@ class OcclusionEventMonitor:
             return
         if self.target_crossing_completed:
             return
+        if self.target_motion_mode == "exact_transform":
+            self._apply_exact_transform_target_crossing(elapsed_s)
+            return
+        if self.target_motion_mode == "deterministic":
+            self._apply_deterministic_target_crossing(elapsed_s)
+            return
         current = self.target.get_location()
         end = self.target_end_location
         dx = float(end.x - current.x)
@@ -3032,7 +3843,11 @@ class OcclusionEventMonitor:
                         pass
                 self.target_crossing_completed = True
             return
-        if horizontal_distance <= 0.35:
+        # Tighter stop tolerance (0.15 m, down from 0.35 m): at high commanded
+        # walker speeds the previous threshold let the walker overshoot the
+        # target by up to ~0.3 m and stop in a slightly random position,
+        # making collision repeatability worse.
+        if horizontal_distance <= 0.15:
             self.target.apply_control(
                 carla.WalkerControl(direction=carla.Vector3D(0.0, 0.0, 0.0), speed=0.0, jump=False)
             )
@@ -3047,6 +3862,83 @@ class OcclusionEventMonitor:
             carla.WalkerControl(direction=direction, speed=self.target_crossing_control_speed, jump=False)
         )
 
+    def _apply_deterministic_target_crossing(self, elapsed_s: float) -> None:
+        if self.target is None or self.target_start_location is None or self.target_end_location is None:
+            return
+        current = self.target.get_location()
+        end = self.target_end_location
+        dx = float(end.x - current.x)
+        dy = float(end.y - current.y)
+        horizontal_distance = math.sqrt(dx * dx + dy * dy)
+        if horizontal_distance <= 0.15:
+            self.target_crossing_completed = True
+            try:
+                self.target.set_target_velocity(carla.Vector3D(0.0, 0.0, 0.0))
+                self.target.apply_control(
+                    carla.WalkerControl(direction=carla.Vector3D(0.0, 0.0, 0.0), speed=0.0, jump=False)
+                )
+            except RuntimeError:
+                pass
+            return
+        direction = carla.Vector3D(
+            x=dx / horizontal_distance,
+            y=dy / horizontal_distance,
+            z=0.0,
+        )
+        root_speed = max(0.1, float(self.target_crossing_control_speed))
+        animation_speed = max(0.8, min(5.5, root_speed))
+        try:
+            self.target.set_target_velocity(
+                carla.Vector3D(
+                    x=direction.x * root_speed,
+                    y=direction.y * root_speed,
+                    z=0.0,
+                )
+            )
+            self.target.apply_control(
+                carla.WalkerControl(direction=direction, speed=animation_speed, jump=False)
+            )
+        except RuntimeError:
+            pass
+
+    def _apply_exact_transform_target_crossing(self, elapsed_s: float) -> None:
+        if self.target is None or self.target_start_location is None or self.target_end_location is None:
+            return
+        start = self.target_start_location
+        end = self.target_end_location
+        dx = float(end.x - start.x)
+        dy = float(end.y - start.y)
+        dz = float(end.z - start.z)
+        horizontal_distance = math.sqrt(dx * dx + dy * dy)
+        if horizontal_distance <= 0.05:
+            self.target_crossing_completed = True
+            return
+        direction = carla.Vector3D(
+            x=dx / horizontal_distance,
+            y=dy / horizontal_distance,
+            z=0.0,
+        )
+        crossing_elapsed = max(0.0, float(elapsed_s) - float(self.target_started_at_s or elapsed_s))
+        progress = min(1.0, crossing_elapsed * self.target_crossing_control_speed / horizontal_distance)
+        new_location = carla.Location(
+            x=float(start.x + dx * progress),
+            y=float(start.y + dy * progress),
+            z=float(start.z + dz * progress),
+        )
+        yaw = math.degrees(math.atan2(dy, dx))
+        try:
+            self.target.set_transform(
+                carla.Transform(new_location, carla.Rotation(pitch=0.0, yaw=yaw, roll=0.0))
+            )
+            animation_speed = 0.0 if progress >= 1.0 else max(0.8, min(5.5, self.target_crossing_control_speed))
+            self.target.apply_control(
+                carla.WalkerControl(direction=direction, speed=animation_speed, jump=False)
+            )
+        except RuntimeError:
+            pass
+        if progress >= 1.0:
+            self.target_crossing_completed = True
+
     def _stop_target_walker(self) -> None:
         if self.target is None:
             return
@@ -3057,6 +3949,7 @@ class OcclusionEventMonitor:
                 pass
             return
         try:
+            self.target.set_target_velocity(carla.Vector3D(0.0, 0.0, 0.0))
             self.target.apply_control(
                 carla.WalkerControl(direction=carla.Vector3D(0.0, 0.0, 0.0), speed=0.0, jump=False)
             )
@@ -3075,8 +3968,12 @@ class OcclusionEventMonitor:
         except RuntimeError:
             current_wp = None
         if current_wp is None:
+            # Lost the road (ego drifted off the drivable surface, or the route
+            # ended). DO NOT keep applying throttle straight ahead — that's how
+            # the ego ends up driving into buildings at spawn points where the
+            # route runs out. Brake instead.
             self.ego.apply_control(
-                carla.VehicleControl(throttle=self.ego_drive_throttle, steer=0.0, brake=0.0)
+                carla.VehicleControl(throttle=0.0, steer=0.0, brake=1.0)
             )
             return
 
@@ -3140,6 +4037,7 @@ class OcclusionEventMonitor:
             "target_crossing_speed": self.target_crossing_speed,
             "target_crossing_control_speed": self.target_crossing_control_speed,
             "target_crossing_trigger_distance_m": self.target_crossing_trigger_distance_m,
+            "target_crossing_trigger_ttc_s": self.target_crossing_trigger_ttc_s,
             "target_crossing_trigger_location": None
             if self.target_crossing_trigger_location is None
             else location_to_dict(self.target_crossing_trigger_location),
@@ -3183,6 +4081,7 @@ class OcclusionEventMonitor:
             if self.target_prewalk_end_location is None
             else location_to_dict(self.target_prewalk_end_location),
             "target_crossing_trigger_distance_m": self.target_crossing_trigger_distance_m,
+            "target_crossing_trigger_ttc_s": self.target_crossing_trigger_ttc_s,
             "target_crossing_trigger_location": None
             if self.target_crossing_trigger_location is None
             else location_to_dict(self.target_crossing_trigger_location),
@@ -3246,12 +4145,16 @@ class OcclusionEventMonitor:
                 "ego_speed_mps",
                 "ego_route_index",
                 "ego_to_conflict_distance_m",
+                "ego_ttc_to_conflict_s",
                 "target_actor_id",
                 "target_x",
                 "target_y",
                 "target_z",
+                "target_speed_mps",
                 "ego_target_distance_m",
                 "target_prewalk_distance_to_start_m",
+                "target_crossing_control_speed",
+                "target_crossing_trigger_ttc_s",
                 "target_started",
                 "target_start_reason",
                 "target_started_at_s",
@@ -3360,6 +4263,7 @@ def write_outputs(
         summary_lines.extend(
             [
                 f"target_crossing_trigger_distance_m={occlusion_event.get('target_crossing_trigger_distance_m')}",
+                f"target_crossing_trigger_ttc_s={occlusion_event.get('target_crossing_trigger_ttc_s')}",
                 f"target_crossing_speed_mps={occlusion_event.get('target_crossing_speed')}",
                 f"target_crossing_control_speed={occlusion_event.get('target_crossing_control_speed')}",
                 f"target_motion_mode={occlusion_event.get('target_motion_mode')}",
@@ -3394,6 +4298,7 @@ def hold_scene(
     helper_camera_monitor: Optional[ActorCameraMonitor] = None,
     helper_vehicle_controller: Optional[HelperVehicleController] = None,
     event_monitor: Optional[OcclusionEventMonitor] = None,
+    evidence_recorder: Optional[ScenarioEvidenceRecorder] = None,
     stop_on_target_collision: bool = False,
     post_target_collision_hold_s: float = 0.0,
 ) -> None:
@@ -3421,6 +4326,8 @@ def hold_scene(
                 helper_vehicle_controller.tick()
             if event_monitor is not None:
                 event_monitor.tick()
+            if evidence_recorder is not None:
+                evidence_recorder.tick()
             if not poll_previews():
                 return
 
@@ -3435,6 +4342,9 @@ def hold_scene(
                 helper_vehicle_controller.tick()
             if event_monitor is not None:
                 event_monitor.tick()
+            if evidence_recorder is not None:
+                evidence_recorder.tick()
+            if event_monitor is not None:
                 if stop_on_target_collision and event_monitor.has_target_collision():
                     hold_after_target_collision()
                     print("Target collision detected; ending scenario.")
@@ -3451,6 +4361,9 @@ def hold_scene(
             helper_vehicle_controller.tick()
         if event_monitor is not None:
             event_monitor.tick()
+        if evidence_recorder is not None:
+            evidence_recorder.tick()
+        if event_monitor is not None:
             if stop_on_target_collision and event_monitor.has_target_collision():
                 hold_after_target_collision()
                 print("Target collision detected; ending scenario.")
@@ -3474,6 +4387,22 @@ def main() -> int:
 
     if carla is None:
         carla = _bootstrap_carla()
+
+    if getattr(args, "list_vehicles", False):
+        client = carla.Client(args.host, int(args.port))
+        client.set_timeout(15.0)
+        world = client.get_world()
+        bps = sorted(world.get_blueprint_library().filter("vehicle.*"), key=lambda b: b.id)
+        truck_tokens = ("truck", "carlacola", "firetruck", "fusorosa", "bus", "sprinter", "van", "cybertruck", "t2", "ambulance")
+        trucks = [b for b in bps if any(t in str(b.id).lower() for t in truck_tokens)]
+        sedans = [b for b in bps if b not in trucks]
+        print(f"Trucks/vans/large vehicles ({len(trucks)}):")
+        for b in trucks:
+            print(f"  {b.id}")
+        print(f"\nCars/sedans/other ({len(sedans)}):")
+        for b in sedans:
+            print(f"  {b.id}")
+        return 0
 
     spec = SCENARIOS[args.scenario]
     rng = random.Random(int(args.seed))
@@ -3533,6 +4462,7 @@ def main() -> int:
     helper_camera_monitor: Optional[ActorCameraMonitor] = None
     helper_vehicle_controller: Optional[HelperVehicleController] = None
     event_monitor: Optional[OcclusionEventMonitor] = None
+    evidence_recorder: Optional[ScenarioEvidenceRecorder] = None
     special_layout: Optional[Dict[str, object]] = None
 
     try:
@@ -3581,6 +4511,15 @@ def main() -> int:
                 curbside_heavy_occluder_first=bool(args.curbside_heavy_occluder_first),
                 helper_vehicle=bool(args.helper_vehicle or args.helper_camera_preview or args.helper_drive),
                 helper_drive=bool(args.helper_drive),
+                helper_spawn_forward_m=float(args.curbside_helper_spawn_forward_m),
+                helper_target_forward_m=float(args.curbside_helper_target_forward_m),
+                extra_occluder_forward_m=float(args.curbside_extra_occluder_forward_m),
+                slot_0_forward_m=float(args.curbside_slot_0_forward_m),
+                slot_1_forward_m=float(args.curbside_slot_1_forward_m),
+                occluder_count=int(args.curbside_occluder_count),
+                forced_occluder_blueprint_id=str(args.curbside_occluder_blueprint or ""),
+                occluder_yaw_offset_deg=float(args.curbside_occluder_yaw_offset_deg),
+                occluder_z_offset_m=float(args.curbside_occluder_z_offset_m),
             )
             actors.append(ego)
             actors.extend(special_actors)
@@ -3642,6 +4581,9 @@ def main() -> int:
                 radar_vfov=float(args.ego_radar_vfov),
                 radar_pps=int(args.ego_radar_pps),
                 preview=bool(args.ego_camera_preview),
+                evidence_capture=bool(args.evidence_pack),
+                evidence_buffer_size=int(args.evidence_camera_buffer_size),
+                evidence_stride=int(args.evidence_camera_stride),
             )
             ego_sensor_monitor.spawn()
             if ego_sensor_monitor.preview_error:
@@ -3662,10 +4604,17 @@ def main() -> int:
                     camera_height=int(args.helper_camera_height),
                     camera_fov=float(args.helper_camera_fov),
                     preview=True,
+                    evidence_capture=bool(args.evidence_pack),
+                    evidence_buffer_size=int(args.evidence_camera_buffer_size),
+                    evidence_stride=int(args.evidence_camera_stride),
                 )
                 helper_camera_monitor.spawn()
                 if helper_camera_monitor.preview_error:
                     print(helper_camera_monitor.preview_error)
+
+        # Mutable forward-reference cell so the helper's gate predicate can see
+        # the OcclusionEventMonitor that will be constructed below.
+        event_monitor_ref: List[Optional["OcclusionEventMonitor"]] = [None]
 
         if args.helper_drive and special_layout is not None:
             helper_actor_id = special_layout.get("helper_vehicle_actor_id")
@@ -3678,11 +4627,20 @@ def main() -> int:
             elif not isinstance(helper_target_raw, dict):
                 print("Helper drive requested, but no helper target location was recorded.")
             else:
+                helper_gate = None
+                if args.helper_pause_until_crossing:
+                    # Release the helper the moment the pedestrian crossing
+                    # actually fires. event_monitor.target_started flips to True
+                    # inside OcclusionEventMonitor._start_target_crossing().
+                    def helper_gate() -> bool:
+                        monitor = event_monitor_ref[0]
+                        return monitor is not None and bool(getattr(monitor, "target_started", False))
                 helper_vehicle_controller = HelperVehicleController(
                     helper_actor,
                     location_from_dict(helper_target_raw),
                     target_speed=float(args.helper_target_speed),
                     stop_distance_m=float(args.helper_stop_distance_to_conflict_m),
+                    gate_predicate=helper_gate,
                 )
 
         if (
@@ -3722,6 +4680,9 @@ def main() -> int:
                 target_control_speed_override = None
             else:
                 target_control_speed_override = float(layout_control_speed)
+            target_motion_mode = str(special_layout.get("target_motion_mode", "walker_control"))
+            if str(args.target_crossing_motion_mode):
+                target_motion_mode = str(args.target_crossing_motion_mode)
             event_monitor = OcclusionEventMonitor(
                 world,
                 ego,
@@ -3739,7 +4700,8 @@ def main() -> int:
                 target_crossing_speed=float(args.target_crossing_speed),
                 target_crossing_trigger_location=target_trigger_location,
                 target_crossing_trigger_distance_m=float(args.target_crossing_trigger_distance_m),
-                target_motion_mode=str(special_layout.get("target_motion_mode", "walker_control")),
+                target_crossing_trigger_ttc_s=float(args.target_crossing_trigger_ttc_s),
+                target_motion_mode=target_motion_mode,
                 target_crossing_control_speed_override=target_control_speed_override,
                 target_prewalk=bool(args.target_prewalk),
                 target_prewalk_end_location=target_prewalk_end,
@@ -3747,6 +4709,9 @@ def main() -> int:
                 target_prewalk_mode=str(args.target_prewalk_mode),
             )
             event_monitor.spawn()
+            # Publish event_monitor into the forward-reference cell so the
+            # helper's gate predicate (if any) can read target_started.
+            event_monitor_ref[0] = event_monitor
 
         background = spawn_background_vehicles(
             client,
@@ -3773,6 +4738,14 @@ def main() -> int:
         )
         actors.extend(walkers)
         controllers.extend(walker_controllers)
+
+        if args.evidence_pack:
+            evidence_recorder = ScenarioEvidenceRecorder(
+                world,
+                actors,
+                event_monitor,
+                window_s=float(args.evidence_window_s),
+            )
 
         if sync_world:
             world.tick()
@@ -3819,12 +4792,18 @@ def main() -> int:
                 "target_crossing": bool(args.target_crossing),
                 "target_crossing_delay_s": float(args.target_crossing_delay_s),
                 "target_crossing_speed": float(args.target_crossing_speed),
+                "target_crossing_motion_mode": str(args.target_crossing_motion_mode),
                 "target_crossing_trigger_distance_m": float(args.target_crossing_trigger_distance_m),
+                "target_crossing_trigger_ttc_s": float(args.target_crossing_trigger_ttc_s),
                 "helper_vehicle": bool(args.helper_vehicle or args.helper_camera_preview or args.helper_drive),
                 "helper_drive": bool(args.helper_drive),
                 "helper_target_speed": float(args.helper_target_speed),
                 "helper_stop_distance_to_conflict_m": float(args.helper_stop_distance_to_conflict_m),
                 "helper_camera_preview": bool(args.helper_camera_preview),
+                "evidence_pack": bool(args.evidence_pack),
+                "evidence_window_s": float(args.evidence_window_s),
+                "evidence_camera_buffer_size": int(args.evidence_camera_buffer_size),
+                "evidence_camera_stride": int(args.evidence_camera_stride),
                 "post_target_collision_hold_s": float(args.post_target_collision_hold_s),
                 "stop_on_target_collision": bool(args.stop_on_target_collision),
                 "spectator_focus": str(args.spectator_focus),
@@ -3876,6 +4855,7 @@ def main() -> int:
             helper_camera_monitor=helper_camera_monitor,
             helper_vehicle_controller=helper_vehicle_controller,
             event_monitor=event_monitor,
+            evidence_recorder=evidence_recorder,
             stop_on_target_collision=bool(args.stop_on_target_collision),
             post_target_collision_hold_s=float(args.post_target_collision_hold_s),
         )
@@ -3905,6 +4885,12 @@ def main() -> int:
                 event_monitor.write_summary(out_dir)
             except Exception as exc:
                 print(f"Unable to write occlusion event summary: {exc}")
+        if evidence_recorder is not None:
+            try:
+                evidence_recorder.write(out_dir, ego_sensor_monitor, helper_camera_monitor)
+            except Exception as exc:
+                print(f"Unable to write evidence pack: {exc}")
+        if event_monitor is not None:
             event_monitor.destroy()
         if not args.keep_actors:
             destroy_actors(actors, controllers)

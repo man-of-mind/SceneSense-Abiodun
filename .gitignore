@@ -21,6 +21,8 @@ env/
 /metrics_logs/
 /phase3_logs/
 /phase3_logs_lowres/
+/remote_files/*
+!/remote_files/README.md
 latest_fusion_object_spatial_map*.png
 *.log
 *.trace

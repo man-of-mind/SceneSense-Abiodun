@@ -213,7 +213,7 @@ python3 scenesense_scenarios/scenesense_scenario_harness.py \
   --target-crossing-speed 1.8 \
   --target-crossing-control-speed 12.0 \
   --target-crossing-trigger-distance-m 14.0 \
-  --curbside-target-start-lateral-offset-m 2.8 \
+  --curbside-target-start-lateral-offset-m 4.2 \
   --curbside-target-end-lateral-offset-m 0.4 \
   --curbside-heavy-occluder-first \
   --helper-vehicle \
@@ -221,6 +221,7 @@ python3 scenesense_scenarios/scenesense_scenario_harness.py \
   --helper-target-speed 1.5 \
   --helper-stop-distance-to-conflict-m 5.0 \
   --helper-camera-preview \
+  --evidence-pack \
   --stop-on-target-collision \
   --post-target-collision-hold-s 3.0 \
   --spectator-focus conflict
@@ -234,6 +235,8 @@ observer camera for checking whether another viewpoint can see the hidden
 pedestrian earlier than the ego camera; `--helper-drive` makes that viewpoint
 move slowly through the opposite lane and past the scene instead of remaining
 parked or participating in the ego-pedestrian collision.
+`--evidence-pack` adds an `evidence/` folder with actor ground-truth traces,
+event-window CSVs, and buffered ego/helper RGB frames around the collision.
 
 Scout cleaner non-intersection curbside anchors first:
 
@@ -326,6 +329,7 @@ metrics_logs/scenesense_scenarios/<timestamp>_<scenario>_seed<seed>/
   summary.txt
   ego_sensor_summary.json   # only when --ego-sensors is used
   scenario_event_summary.json # only for occlusion event runs
+  evidence/                 # only when --evidence-pack is used
 ```
 
 The manifest records:
@@ -337,6 +341,7 @@ The manifest records:
 - actor ids, type ids, roles, transforms, and bounding boxes
 - optional ego front RGB/radar smoke-test configuration and frame counts
 - optional occlusion event layout, target crossing, closest distance, and collision events
+- optional evidence pack with actor ground truth and sampled ego/helper RGB frames
 - suggested pole sensor placements for later fusion runs
 
 ## Step Boundary
