@@ -395,13 +395,17 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--target-crossing-motion-mode",
-        choices=("", "walker_control", "deterministic", "exact_transform", "ai_controller"),
+        choices=("", "walker_control", "deterministic", "exact_transform", "scripted_transform", "ai_controller"),
         default="",
         help=(
             "Override how the target pedestrian crosses. Empty keeps the scenario default. "
             "walker_control uses CARLA WalkerControl animation, deterministic uses target "
-            "velocity plus WalkerControl for an animated dart-out, exact_transform hard-sets "
-            "geometry every tick for debugging, and ai_controller uses CARLA's walker AI controller."
+            "velocity plus WalkerControl for an animated dart-out, scripted_transform hard-sets "
+            "the target along the planned crossing path at the requested speed for collision "
+            "timing, exact_transform is a debugging alias for scripted_transform, and "
+            "ai_controller uses CARLA's walker AI controller on the navigation mesh. "
+            "ai_controller can choose sidewalk routes and is not the default for forced "
+            "road-crossing failures."
         ),
     )
     parser.add_argument(
@@ -425,6 +429,30 @@ def parse_args() -> argparse.Namespace:
             "pedestrian reaches the lane. Recommended starting value: pedestrian walk "
             "distance / crossing speed minus a small safety margin (e.g. 0.4 s). When "
             "positive, overrides --target-crossing-trigger-distance-m."
+        ),
+    )
+    parser.add_argument(
+        "--target-crossing-trigger-route-lead-m",
+        type=float,
+        default=0.0,
+        help=(
+            "If positive and the scenario has a preplanned ego route, start the pedestrian "
+            "when the ego reaches this many route meters before the target crossing trigger "
+            "point. This is a tick/location-style calibrated trigger: use it with "
+            "walker_control to keep natural pedestrian animation while tuning collision "
+            "timing. When positive and route projection is available, overrides TTC and "
+            "Euclidean distance triggers."
+        ),
+    )
+    parser.add_argument(
+        "--target-crossing-trigger-min-ego-speed-mps",
+        type=float,
+        default=0.0,
+        help=(
+            "If positive, do not start the target crossing until the ego is moving "
+            "at least this fast. This creates a rolling-start trigger for cases "
+            "where route-lead matching fires while the ego is still accelerating "
+            "from spawn."
         ),
     )
     parser.add_argument(
@@ -456,6 +484,17 @@ def parse_args() -> argparse.Namespace:
         type=float,
         default=1.2,
         help="Curbside scenario pedestrian start forward offset from the conflict point.",
+    )
+    parser.add_argument(
+        "--curbside-ego-start-forward-m",
+        type=float,
+        default=0.0,
+        help=(
+            "Curbside scenario: spawn the ego this many metres forward along the "
+            "preplanned route while keeping the occluder/pedestrian layout fixed. "
+            "Use small values such as 3-6 m to reduce the ego reaction window "
+            "without retuning pedestrian/van placement."
+        ),
     )
     parser.add_argument(
         "--curbside-target-prewalk-distance-m",
@@ -1491,6 +1530,7 @@ def spawn_curbside_parked_pedestrian_layout(
     curbside_target_start_lateral_offset_m: float = 3.8,
     curbside_target_end_lateral_offset_m: float = -0.6,
     curbside_target_forward_offset_m: float = 1.2,
+    curbside_ego_start_forward_m: float = 0.0,
     curbside_target_prewalk_distance_m: float = 0.0,
     curbside_target_prewalk_lateral_offset_m: float = -1.0,
     curbside_heavy_occluder_first: bool = True,
@@ -1524,7 +1564,28 @@ def spawn_curbside_parked_pedestrian_layout(
     if len(route) < 8:
         raise RuntimeError("Unable to generate a long enough curbside occlusion ego route.")
 
+    route_base_ego_sp = ego_sp
     conflict_distance = max(15.0, float(curbside_conflict_distance_m))
+    ego_start_forward_m = max(0.0, float(curbside_ego_start_forward_m))
+    # Keep at least a small runway before the conflict zone. Larger offsets
+    # make the ego spawn too close to the occluder/pedestrian cluster and can
+    # disturb the scene geometry we are trying to preserve.
+    ego_start_forward_m = min(ego_start_forward_m, max(0.0, conflict_distance - 8.0))
+    if ego_start_forward_m > 0.01:
+        sampled_ego_tf = route_transform_at_distance(route, ego_start_forward_m)
+        ego_sp = carla.Transform(
+            carla.Location(
+                x=float(sampled_ego_tf.location.x),
+                y=float(sampled_ego_tf.location.y),
+                z=float(sampled_ego_tf.location.z + 0.2),
+            ),
+            carla.Rotation(
+                pitch=0.0,
+                yaw=float(sampled_ego_tf.rotation.yaw),
+                roll=0.0,
+            ),
+        )
+
     primary_occluder_distance = max(12.0, conflict_distance - 2.0)
     conflict_tf = route_transform_at_distance(route, conflict_distance)
     occluder_tf = route_transform_at_distance(route, primary_occluder_distance)
@@ -1931,13 +1992,20 @@ def spawn_curbside_parked_pedestrian_layout(
         "type": spec.name,
         "ego_actor_id": int(ego.id),
         "ego_spawn_transform": transform_to_dict(ego_sp),
+        "ego_route_base_spawn_transform": transform_to_dict(route_base_ego_sp),
         "ego_spawn_index": int(ego_spawn_index),
+        "ego_start_forward_m": float(ego_start_forward_m),
         "occlusion_mode": "curbside_parked_vehicle_hidden_pedestrian",
         "requested_route_choice": requested_route_choice,
         "effective_route_choice": route_choice,
-        "target_motion_mode": "ai_controller",
+        "target_motion_mode": "walker_control",
         "target_walker_speed_mode": "running",
         "target_crossing_control_speed_override": 4.5,
+        "target_motion_mode_note": (
+            "Curbside baseline uses direct WalkerControl so the hidden pedestrian follows the "
+            "planned road-crossing vector. CARLA's ai_controller follows the navigation mesh and "
+            "can route along the sidewalk instead of crossing."
+        ),
         "target_actor_id": int(target.id),
         "target_role": f"{SCENESENSE_ROLE_PREFIX}{spec.name}_hidden_pedestrian",
         "target_spawn_info": target_spawn_info,
@@ -3484,6 +3552,8 @@ class OcclusionEventMonitor:
         target_crossing_trigger_location: Optional["carla.Location"],
         target_crossing_trigger_distance_m: float,
         target_crossing_trigger_ttc_s: float = 0.0,
+        target_crossing_trigger_route_lead_m: float = 0.0,
+        target_crossing_trigger_min_ego_speed_mps: float = 0.0,
         target_motion_mode: str = "walker_control",
         target_crossing_control_speed_override: Optional[float] = None,
         target_prewalk: bool = False,
@@ -3505,7 +3575,13 @@ class OcclusionEventMonitor:
         self.ego_route_lookahead = max(2.0, float(ego_route_lookahead))
         self.target_crossing = bool(target_crossing and target is not None and target_end_location is not None)
         self.target_motion_mode = str(target_motion_mode or "walker_control")
-        if self.target_motion_mode not in {"walker_control", "deterministic", "exact_transform", "ai_controller"}:
+        if self.target_motion_mode not in {
+            "walker_control",
+            "deterministic",
+            "exact_transform",
+            "scripted_transform",
+            "ai_controller",
+        }:
             self.target_motion_mode = "walker_control"
         self.target_crossing_delay_s = max(0.0, float(target_crossing_delay_s))
         self.target_crossing_speed = max(0.1, float(target_crossing_speed))
@@ -3518,6 +3594,23 @@ class OcclusionEventMonitor:
         )
         self.target_crossing_trigger_distance_m = max(0.0, float(target_crossing_trigger_distance_m))
         self.target_crossing_trigger_ttc_s = max(0.0, float(target_crossing_trigger_ttc_s))
+        self.target_crossing_trigger_route_lead_m = max(0.0, float(target_crossing_trigger_route_lead_m))
+        self.target_crossing_trigger_min_ego_speed_mps = max(
+            0.0,
+            float(target_crossing_trigger_min_ego_speed_mps),
+        )
+        self.ego_route_distances_m = self._route_cumulative_distances(self.ego_route_transforms)
+        self.target_crossing_trigger_route_distance_m: Optional[float] = None
+        self.target_crossing_trigger_route_gap_m: Optional[float] = None
+        if self.target_crossing_trigger_location is not None and self.ego_route_transforms:
+            route_projection = self._project_location_onto_ego_route(self.target_crossing_trigger_location)
+            if route_projection is not None:
+                (
+                    self.target_crossing_trigger_route_distance_m,
+                    self.target_crossing_trigger_route_gap_m,
+                ) = route_projection
+        self.ego_route_progress_m: Optional[float] = None
+        self.ego_route_projection_gap_m: Optional[float] = None
         self.target_prewalk = bool(target_prewalk and target is not None and target_prewalk_end_location is not None)
         self.target_prewalk_end_location = (
             None if target_prewalk_end_location is None else copy_location(target_prewalk_end_location)
@@ -3538,6 +3631,7 @@ class OcclusionEventMonitor:
         self.target_start_reason: Optional[str] = None
         self.target_started_at_s: Optional[float] = None
         self.target_crossing_completed = False
+        self.target_crossing_initial_distance_m: Optional[float] = None
         self._map = world.get_map()
 
     def spawn(self) -> None:
@@ -3589,6 +3683,7 @@ class OcclusionEventMonitor:
 
     def tick(self) -> None:
         elapsed = self._elapsed_s()
+        self._update_ego_route_projection()
         if self.target is not None:
             distance = float(self.ego.get_location().distance(self.target.get_location()))
             if self.min_target_distance_m is None or distance < self.min_target_distance_m:
@@ -3623,6 +3718,24 @@ class OcclusionEventMonitor:
         if elapsed_s < self.target_crossing_delay_s:
             return
         if self.target is None or self.target_end_location is None:
+            return
+        if self.target_crossing_trigger_min_ego_speed_mps > 0.0:
+            ego_speed = self._ego_speed_mps()
+            if ego_speed < self.target_crossing_trigger_min_ego_speed_mps:
+                return
+        # Route-lead mode: start when the ego reaches a calibrated location
+        # along the planned route. This is closer to "start N ticks/metres
+        # before the ego reaches the collision point" than Euclidean TTC.
+        if (
+            self.target_crossing_trigger_route_lead_m > 0.0
+            and self.target_crossing_trigger_route_distance_m is not None
+            and self.ego_route_progress_m is not None
+        ):
+            trigger_at = float(self.target_crossing_trigger_route_distance_m) - float(
+                self.target_crossing_trigger_route_lead_m
+            )
+            if float(self.ego_route_progress_m) >= trigger_at:
+                self._start_target_crossing(elapsed_s, "ego_route_lead_match")
             return
         # TTC mode (preferred when set): fires when ego is N seconds away from
         # the conflict point at its current speed. Self-adjusts to ego speed
@@ -3718,9 +3831,31 @@ class OcclusionEventMonitor:
         if self.target is None:
             return
         self.target_start_location = copy_location(self.target.get_location())
+        if self.target_end_location is not None:
+            dx = float(self.target_end_location.x - self.target_start_location.x)
+            dy = float(self.target_end_location.y - self.target_start_location.y)
+            self.target_crossing_initial_distance_m = math.sqrt(dx * dx + dy * dy)
         self.target_started = True
         self.target_start_reason = reason
         self.target_started_at_s = float(elapsed_s)
+        if self.target_motion_mode != "ai_controller" and self.target_end_location is not None:
+            dx = float(self.target_end_location.x - self.target_start_location.x)
+            dy = float(self.target_end_location.y - self.target_start_location.y)
+            if math.sqrt(dx * dx + dy * dy) > 0.05:
+                transform = self.target.get_transform()
+                try:
+                    self.target.set_transform(
+                        carla.Transform(
+                            transform.location,
+                            carla.Rotation(
+                                pitch=0.0,
+                                yaw=math.degrees(math.atan2(dy, dx)),
+                                roll=0.0,
+                            ),
+                        )
+                    )
+                except RuntimeError:
+                    pass
         if self.target_motion_mode == "ai_controller" and self.target_controller is not None:
             try:
                 self.target_controller.start()
@@ -3742,11 +3877,27 @@ class OcclusionEventMonitor:
             "ego_z": float(ego_location.z),
             "ego_speed_mps": float(self._ego_speed_mps()),
             "ego_route_index": int(self.ego_route_index),
+            "ego_route_progress_m": "" if self.ego_route_progress_m is None else float(self.ego_route_progress_m),
+            "ego_route_projection_gap_m": ""
+            if self.ego_route_projection_gap_m is None
+            else float(self.ego_route_projection_gap_m),
+            "target_crossing_trigger_route_lead_m": float(self.target_crossing_trigger_route_lead_m),
+            "target_crossing_trigger_route_distance_m": ""
+            if self.target_crossing_trigger_route_distance_m is None
+            else float(self.target_crossing_trigger_route_distance_m),
+            "target_motion_mode": self.target_motion_mode,
             "target_crossing_control_speed": float(self.target_crossing_control_speed),
             "target_crossing_trigger_ttc_s": float(self.target_crossing_trigger_ttc_s),
+            "target_crossing_trigger_min_ego_speed_mps": float(
+                self.target_crossing_trigger_min_ego_speed_mps
+            ),
             "target_started": int(bool(self.target_started)),
             "target_start_reason": "" if self.target_start_reason is None else self.target_start_reason,
             "target_started_at_s": "" if self.target_started_at_s is None else float(self.target_started_at_s),
+            "target_crossing_completed": int(bool(self.target_crossing_completed)),
+            "target_crossing_initial_distance_m": ""
+            if self.target_crossing_initial_distance_m is None
+            else float(self.target_crossing_initial_distance_m),
         }
         try:
             row["frame"] = int(self.world.get_snapshot().frame)
@@ -3762,6 +3913,12 @@ class OcclusionEventMonitor:
         else:
             row["ego_to_conflict_distance_m"] = ""
             row["ego_ttc_to_conflict_s"] = ""
+        if self.ego_route_progress_m is not None and self.target_crossing_trigger_route_distance_m is not None:
+            row["ego_route_distance_to_trigger_m"] = float(
+                self.target_crossing_trigger_route_distance_m - self.ego_route_progress_m
+            )
+        else:
+            row["ego_route_distance_to_trigger_m"] = ""
         if self.target is not None:
             target_location = self.target.get_location()
             target_velocity = self.target.get_velocity()
@@ -3776,6 +3933,25 @@ class OcclusionEventMonitor:
                 )
             else:
                 row["target_prewalk_distance_to_start_m"] = ""
+            if self.target_end_location is not None:
+                dx_to_end = float(self.target_end_location.x - target_location.x)
+                dy_to_end = float(self.target_end_location.y - target_location.y)
+                distance_to_end = math.sqrt(dx_to_end * dx_to_end + dy_to_end * dy_to_end)
+                row["target_crossing_distance_to_end_m"] = float(distance_to_end)
+                if self.target_crossing_initial_distance_m is not None and self.target_crossing_initial_distance_m > 0.05:
+                    row["target_crossing_progress_ratio"] = float(
+                        clamp(
+                            (self.target_crossing_initial_distance_m - distance_to_end)
+                            / self.target_crossing_initial_distance_m,
+                            0.0,
+                            1.0,
+                        )
+                    )
+                else:
+                    row["target_crossing_progress_ratio"] = ""
+            else:
+                row["target_crossing_distance_to_end_m"] = ""
+                row["target_crossing_progress_ratio"] = ""
             row.update(
                 {
                     "target_actor_id": int(self.target.id),
@@ -3796,6 +3972,8 @@ class OcclusionEventMonitor:
                     "target_speed_mps": "",
                     "ego_target_distance_m": "",
                     "target_prewalk_distance_to_start_m": "",
+                    "target_crossing_distance_to_end_m": "",
+                    "target_crossing_progress_ratio": "",
                 }
             )
         self.trace_rows.append(row)
@@ -3818,12 +3996,63 @@ class OcclusionEventMonitor:
         velocity = self.ego.get_velocity()
         return math.sqrt(float(velocity.x) ** 2 + float(velocity.y) ** 2 + float(velocity.z) ** 2)
 
+    def _route_cumulative_distances(self, route: Sequence["carla.Transform"]) -> List[float]:
+        distances = [0.0]
+        for previous, current in zip(route, route[1:]):
+            distances.append(
+                distances[-1]
+                + float(previous.location.distance(current.location))
+            )
+        return distances
+
+    def _project_location_onto_ego_route(
+        self,
+        location: "carla.Location",
+    ) -> Optional[Tuple[float, float]]:
+        if len(self.ego_route_transforms) < 2 or len(self.ego_route_distances_m) != len(self.ego_route_transforms):
+            return None
+        best: Optional[Tuple[float, float]] = None
+        px = float(location.x)
+        py = float(location.y)
+        for index, (start_tf, end_tf) in enumerate(zip(self.ego_route_transforms, self.ego_route_transforms[1:])):
+            sx = float(start_tf.location.x)
+            sy = float(start_tf.location.y)
+            ex = float(end_tf.location.x)
+            ey = float(end_tf.location.y)
+            vx = ex - sx
+            vy = ey - sy
+            segment_len_sq = vx * vx + vy * vy
+            if segment_len_sq <= 1e-6:
+                continue
+            t = clamp(((px - sx) * vx + (py - sy) * vy) / segment_len_sq, 0.0, 1.0)
+            proj_x = sx + vx * t
+            proj_y = sy + vy * t
+            gap = math.sqrt((px - proj_x) ** 2 + (py - proj_y) ** 2)
+            segment_len = math.sqrt(segment_len_sq)
+            route_distance = float(self.ego_route_distances_m[index]) + segment_len * t
+            if best is None or gap < best[1]:
+                best = (route_distance, gap)
+        return best
+
+    def _update_ego_route_projection(self) -> None:
+        projection = self._project_location_onto_ego_route(self.ego.get_location())
+        if projection is None:
+            return
+        route_distance, route_gap = projection
+        if self.ego_route_progress_m is None:
+            self.ego_route_progress_m = route_distance
+        else:
+            # The route projection can jitter by a small amount around curved
+            # segments; for trigger purposes ego progress should be monotonic.
+            self.ego_route_progress_m = max(float(self.ego_route_progress_m), route_distance)
+        self.ego_route_projection_gap_m = route_gap
+
     def _apply_manual_target_crossing(self, elapsed_s: float) -> None:
         if self.target is None or self.target_start_location is None or self.target_end_location is None:
             return
         if self.target_crossing_completed:
             return
-        if self.target_motion_mode == "exact_transform":
+        if self.target_motion_mode in {"exact_transform", "scripted_transform"}:
             self._apply_exact_transform_target_crossing(elapsed_s)
             return
         if self.target_motion_mode == "deterministic":
@@ -3931,6 +4160,14 @@ class OcclusionEventMonitor:
                 carla.Transform(new_location, carla.Rotation(pitch=0.0, yaw=yaw, roll=0.0))
             )
             animation_speed = 0.0 if progress >= 1.0 else max(0.8, min(5.5, self.target_crossing_control_speed))
+            velocity_speed = 0.0 if progress >= 1.0 else max(0.1, float(self.target_crossing_control_speed))
+            self.target.set_target_velocity(
+                carla.Vector3D(
+                    x=direction.x * velocity_speed,
+                    y=direction.y * velocity_speed,
+                    z=0.0,
+                )
+            )
             self.target.apply_control(
                 carla.WalkerControl(direction=direction, speed=animation_speed, jump=False)
             )
@@ -3999,6 +4236,17 @@ class OcclusionEventMonitor:
             self.ego.apply_control(carla.VehicleControl(throttle=0.0, brake=0.5))
             return
 
+        if (
+            self.ego_route_progress_m is not None
+            and len(self.ego_route_distances_m) == len(self.ego_route_transforms)
+        ):
+            while (
+                self.ego_route_index < last_index
+                and float(self.ego_route_distances_m[self.ego_route_index])
+                < float(self.ego_route_progress_m) - 1.0
+            ):
+                self.ego_route_index += 1
+
         while self.ego_route_index < last_index:
             current_target = self.ego_route_transforms[self.ego_route_index].location
             if location.distance(current_target) >= 3.5:
@@ -4038,9 +4286,14 @@ class OcclusionEventMonitor:
             "target_crossing_control_speed": self.target_crossing_control_speed,
             "target_crossing_trigger_distance_m": self.target_crossing_trigger_distance_m,
             "target_crossing_trigger_ttc_s": self.target_crossing_trigger_ttc_s,
+            "target_crossing_trigger_route_lead_m": self.target_crossing_trigger_route_lead_m,
+            "target_crossing_trigger_min_ego_speed_mps": self.target_crossing_trigger_min_ego_speed_mps,
+            "target_crossing_trigger_route_distance_m": self.target_crossing_trigger_route_distance_m,
+            "target_crossing_trigger_route_gap_m": self.target_crossing_trigger_route_gap_m,
             "target_crossing_trigger_location": None
             if self.target_crossing_trigger_location is None
             else location_to_dict(self.target_crossing_trigger_location),
+            "target_crossing_initial_distance_m": self.target_crossing_initial_distance_m,
             "target_prewalk": self.target_prewalk,
             "target_prewalk_speed": self.target_prewalk_speed,
             "target_prewalk_mode": self.target_prewalk_mode,
@@ -4068,6 +4321,7 @@ class OcclusionEventMonitor:
             "target_crossing": self.target_crossing,
             "target_motion_mode": self.target_motion_mode,
             "target_crossing_completed": self.target_crossing_completed,
+            "target_crossing_initial_distance_m": self.target_crossing_initial_distance_m,
             "target_started": self.target_started,
             "target_start_reason": self.target_start_reason,
             "target_started_at_s": self.target_started_at_s,
@@ -4082,6 +4336,12 @@ class OcclusionEventMonitor:
             else location_to_dict(self.target_prewalk_end_location),
             "target_crossing_trigger_distance_m": self.target_crossing_trigger_distance_m,
             "target_crossing_trigger_ttc_s": self.target_crossing_trigger_ttc_s,
+            "target_crossing_trigger_route_lead_m": self.target_crossing_trigger_route_lead_m,
+            "target_crossing_trigger_min_ego_speed_mps": self.target_crossing_trigger_min_ego_speed_mps,
+            "target_crossing_trigger_route_distance_m": self.target_crossing_trigger_route_distance_m,
+            "target_crossing_trigger_route_gap_m": self.target_crossing_trigger_route_gap_m,
+            "ego_route_progress_m": self.ego_route_progress_m,
+            "ego_route_projection_gap_m": self.ego_route_projection_gap_m,
             "target_crossing_trigger_location": None
             if self.target_crossing_trigger_location is None
             else location_to_dict(self.target_crossing_trigger_location),
@@ -4128,6 +4388,10 @@ class OcclusionEventMonitor:
                 f"event_min_target_distance_m={summary.get('min_target_distance_m')}",
                 f"event_target_started_at_s={summary.get('target_started_at_s')}",
                 f"event_target_start_reason={summary.get('target_start_reason')}",
+                f"event_target_crossing_initial_distance_m={summary.get('target_crossing_initial_distance_m')}",
+                f"event_target_crossing_trigger_route_lead_m={summary.get('target_crossing_trigger_route_lead_m')}",
+                f"event_target_crossing_trigger_min_ego_speed_mps={summary.get('target_crossing_trigger_min_ego_speed_mps')}",
+                f"event_target_crossing_trigger_route_distance_m={summary.get('target_crossing_trigger_route_distance_m')}",
                 f"event_target_prewalk={summary.get('target_prewalk')}",
                 f"event_target_prewalk_speed={summary.get('target_prewalk_speed')}",
                 f"event_target_prewalk_mode={summary.get('target_prewalk_mode')}",
@@ -4144,8 +4408,12 @@ class OcclusionEventMonitor:
                 "ego_z",
                 "ego_speed_mps",
                 "ego_route_index",
+                "ego_route_progress_m",
+                "ego_route_projection_gap_m",
                 "ego_to_conflict_distance_m",
                 "ego_ttc_to_conflict_s",
+                "ego_route_distance_to_trigger_m",
+                "target_motion_mode",
                 "target_actor_id",
                 "target_x",
                 "target_y",
@@ -4153,8 +4421,15 @@ class OcclusionEventMonitor:
                 "target_speed_mps",
                 "ego_target_distance_m",
                 "target_prewalk_distance_to_start_m",
+                "target_crossing_distance_to_end_m",
+                "target_crossing_progress_ratio",
+                "target_crossing_completed",
+                "target_crossing_initial_distance_m",
                 "target_crossing_control_speed",
                 "target_crossing_trigger_ttc_s",
+                "target_crossing_trigger_route_lead_m",
+                "target_crossing_trigger_min_ego_speed_mps",
+                "target_crossing_trigger_route_distance_m",
                 "target_started",
                 "target_start_reason",
                 "target_started_at_s",
@@ -4274,6 +4549,7 @@ def write_outputs(
         summary_lines.extend(
             [
                 f"ego_spawn_index={occlusion_layout.get('ego_spawn_index')}",
+                f"ego_start_forward_m={occlusion_layout.get('ego_start_forward_m')}",
                 f"occluder_blueprint_id={occlusion_layout.get('occluder_blueprint_id')}",
                 f"occluder_simulate_physics={occlusion_layout.get('occluder_simulate_physics')}",
                 f"conflict_crosswalk_gap_m={occlusion_layout.get('conflict_crosswalk_gap_m')}",
@@ -4506,6 +4782,7 @@ def main() -> int:
                 curbside_target_start_lateral_offset_m=float(args.curbside_target_start_lateral_offset_m),
                 curbside_target_end_lateral_offset_m=float(args.curbside_target_end_lateral_offset_m),
                 curbside_target_forward_offset_m=float(args.curbside_target_forward_offset_m),
+                curbside_ego_start_forward_m=float(args.curbside_ego_start_forward_m),
                 curbside_target_prewalk_distance_m=float(args.curbside_target_prewalk_distance_m),
                 curbside_target_prewalk_lateral_offset_m=float(args.curbside_target_prewalk_lateral_offset_m),
                 curbside_heavy_occluder_first=bool(args.curbside_heavy_occluder_first),
@@ -4701,6 +4978,10 @@ def main() -> int:
                 target_crossing_trigger_location=target_trigger_location,
                 target_crossing_trigger_distance_m=float(args.target_crossing_trigger_distance_m),
                 target_crossing_trigger_ttc_s=float(args.target_crossing_trigger_ttc_s),
+                target_crossing_trigger_route_lead_m=float(args.target_crossing_trigger_route_lead_m),
+                target_crossing_trigger_min_ego_speed_mps=float(
+                    args.target_crossing_trigger_min_ego_speed_mps
+                ),
                 target_motion_mode=target_motion_mode,
                 target_crossing_control_speed_override=target_control_speed_override,
                 target_prewalk=bool(args.target_prewalk),
@@ -4792,9 +5073,14 @@ def main() -> int:
                 "target_crossing": bool(args.target_crossing),
                 "target_crossing_delay_s": float(args.target_crossing_delay_s),
                 "target_crossing_speed": float(args.target_crossing_speed),
+                "curbside_ego_start_forward_m": float(args.curbside_ego_start_forward_m),
                 "target_crossing_motion_mode": str(args.target_crossing_motion_mode),
                 "target_crossing_trigger_distance_m": float(args.target_crossing_trigger_distance_m),
                 "target_crossing_trigger_ttc_s": float(args.target_crossing_trigger_ttc_s),
+                "target_crossing_trigger_route_lead_m": float(args.target_crossing_trigger_route_lead_m),
+                "target_crossing_trigger_min_ego_speed_mps": float(
+                    args.target_crossing_trigger_min_ego_speed_mps
+                ),
                 "helper_vehicle": bool(args.helper_vehicle or args.helper_camera_preview or args.helper_drive),
                 "helper_drive": bool(args.helper_drive),
                 "helper_target_speed": float(args.helper_target_speed),

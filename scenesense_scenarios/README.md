@@ -211,7 +211,8 @@ python3 scenesense_scenarios/scenesense_scenario_harness.py \
   --target-crossing \
   --target-crossing-delay-s 1.0 \
   --target-crossing-speed 1.8 \
-  --target-crossing-control-speed 12.0 \
+  --target-crossing-control-speed 4.5 \
+  --target-crossing-motion-mode walker_control \
   --target-crossing-trigger-distance-m 14.0 \
   --curbside-target-start-lateral-offset-m 4.2 \
   --curbside-target-end-lateral-offset-m 0.4 \
@@ -229,14 +230,112 @@ python3 scenesense_scenarios/scenesense_scenario_harness.py \
 
 For Month 1, treat this as the canonical hidden-pedestrian dart-out
 scenario. The prewalk flags exist for later demo polish, but the current
-CARLA pedestrian controller can make sidewalk prewalks look awkward or route
-through nearby parked vehicles. The optional helper vehicle is an opposite-lane
+CARLA pedestrian AI controller can route along the navigation mesh instead of
+crossing the road, so the baseline uses direct `walker_control` motion. The
+optional helper vehicle is an opposite-lane
 observer camera for checking whether another viewpoint can see the hidden
 pedestrian earlier than the ego camera; `--helper-drive` makes that viewpoint
 move slowly through the opposite lane and past the scene instead of remaining
 parked or participating in the ego-pedestrian collision.
 `--evidence-pack` adds an `evidence/` folder with actor ground-truth traces,
 event-window CSVs, and buffered ego/helper RGB frames around the collision.
+Use `scenario_event_trace.csv` fields such as
+`target_crossing_progress_ratio` and `target_crossing_distance_to_end_m` to
+confirm the pedestrian followed the planned crossing vector.
+Validate the resulting run folder with:
+
+```bash
+python3 scenesense_scenarios/validate_evidence_pack.py \
+  metrics_logs/scenesense_scenarios/<timestamp>_curbside_parked_vehicle_pedestrian_occlusion_seed7
+```
+
+For an explicit collision-tuned run, use the same setup but switch the target
+motion and TTC trigger to a scripted transform. This bypasses CARLA's walker
+speed caps and moves the pedestrian along the planned crossing vector at the
+requested geometry speed:
+
+```bash
+  --target-crossing-speed 3.2 \
+  --target-crossing-control-speed 3.2 \
+  --target-crossing-motion-mode scripted_transform \
+  --target-crossing-trigger-distance-m 0.0 \
+  --target-crossing-trigger-ttc-s 1.65 \
+  --stop-on-target-collision \
+  --post-target-collision-hold-s 3.0
+```
+
+This mode is for collision/evidence validation, not final demo visuals:
+`scripted_transform` forces the actor along the crossing path and may look like
+sliding because CARLA's normal walker animation is no longer driving root
+motion. Use `walker_control` for more natural pedestrian animation when an
+exact collision is not required.
+
+Validate collision-tuned runs with:
+
+```bash
+python3 scenesense_scenarios/validate_evidence_pack.py \
+  metrics_logs/scenesense_scenarios/<timestamp>_curbside_parked_vehicle_pedestrian_occlusion_seed7 \
+  --require-collision
+```
+
+For an animated collision attempt, keep normal walker animation and trigger by
+ego route location instead of TTC. This implements the "start when the ego is at
+a known route position/tick before the collision point" calibration idea:
+
+```bash
+  --target-crossing-speed 8.0 \
+  --target-crossing-control-speed 8.0 \
+  --target-crossing-motion-mode walker_control \
+  --target-crossing-trigger-distance-m 0.0 \
+  --target-crossing-trigger-ttc-s 0.0 \
+  --target-crossing-trigger-route-lead-m 26.0 \
+  --curbside-ego-start-forward-m 5.0 \
+  --stop-on-target-collision \
+  --post-target-collision-hold-s 3.0
+```
+
+Tuning rule: keep `--target-crossing-trigger-route-lead-m` at 26 m when that
+is the collision-producing lead, then reduce the reaction window with
+`--curbside-ego-start-forward-m`. This moves only the ego spawn along the
+already-planned route and keeps the pedestrian/occluder layout fixed. Start
+with 5 m; if collision is missed, try 3-4 m; if the pedestrian is still visible
+for too long, try 6 m or increase ego throttle. The speed-gate option
+`--target-crossing-trigger-min-ego-speed-mps` exists for diagnostics but is
+not recommended for the current curbside demo because it can hold the target
+forever if the ego never reaches the configured threshold before the run
+breaks down. The event trace logs `ego_route_distance_to_trigger_m`,
+`ego_route_progress_m`, `ego_ttc_to_conflict_s`,
+`target_crossing_progress_ratio`, and the validator prints
+`target_start_to_first_collision_s` plus `target_start_ego_speed_mps` so the
+next value can be chosen from measured route position and timing rather than
+eyeballing the video.
+
+If moving the ego forward still leaves a long visible reaction window, switch
+to a farther hidden-sidewalk start instead. The helper script avoids fragile
+multi-line shell backslash errors and uses a shell array:
+
+```bash
+bash scenesense_scenarios/run_curbside_far_sidewalk_demo.sh
+```
+
+Default values now reproduce the validated animated curbside collision run
+`20260602_125157...`: `TARGET_START_LAT=5.2`, `TARGET_FORWARD=-6.5`,
+`TARGET_SPEED=21.0`, `ROUTE_LEAD=24.0`, `EGO_TARGET_SPEED=6.0`,
+`EGO_THROTTLE=0.45`, and a forced `vehicle.sprinter.mercedes` occluder. That
+run passed evidence validation with `walker_control`, 9 target collisions,
+0.569 crossing progress, 88 ego frames, and 89 helper frames. Tune with
+environment variables only after saving this baseline:
+
+```bash
+ROUTE_LEAD=24.0 TARGET_START_LAT=5.2 TARGET_SPEED=21.0 EGO_THROTTLE=0.45 \
+  bash scenesense_scenarios/run_curbside_far_sidewalk_demo.sh
+```
+
+If the pedestrian appears too early in a later run, reduce `ROUTE_LEAD` by
+1-2 m. If collision misses late, increase `ROUTE_LEAD` by 1-2 m. The script
+forces `vehicle.sprinter.mercedes` by default; try
+`OCCLUDER_BP=vehicle.carlacola.actors` only if the pedestrian is visually
+aligned with a car instead of a van.
 
 Scout cleaner non-intersection curbside anchors first:
 

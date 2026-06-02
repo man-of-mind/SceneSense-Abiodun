@@ -109,25 +109,31 @@ Month 1 goal is not to create every final scenario. The goal is to create a smal
   - [ ] Run right-turn anchor scout and select a more realistic intersection.
   - [x] Occluded crossing failure visually validated from ego camera and observer view.
   - [x] Add evidence-pack support for actor ground truth, event-window CSVs, and ego/helper RGB frames.
-  - [ ] Run canonical evidence-pack validation so ground truth confirms the object exists even if ego view is late/partial.
+  - [x] Fix curbside target motion default to avoid AI sidewalk routing and expose crossing-progress telemetry.
+  - [x] Add evidence-pack validator for canonical occlusion run folders.
+  - [x] Run canonical evidence-pack validation so ground truth confirms the object exists even if ego view is late/partial (`20260601_183145...`, validator PASS: target progress 0.698, min distance 2.62 m, 80 ego + 80 helper frames).
+  - [x] Run collision-tuned evidence validation with forced crossing geometry (`20260602_101912...`, `--require-collision` PASS: 19 target collisions, target progress 0.495, 130 ego + 131 helper frames). Note: visual pedestrian animation still slides in this collision-forcing mode; treat as demo polish, not Month 1 evidence blocker.
+  - [x] Add ego-route-location trigger for animated pedestrian collision calibration.
+  - [x] Validate animated walker-control collision using ego route-location trigger (`20260602_104540...`, `--require-collision` PASS: 11 target collisions, route lead about 26 m, target progress 0.488).
+  - [x] Lock final animated curbside evidence demo (`20260602_125157...`, `walker_control`, `--require-collision` PASS: 9 target collisions, 0.569 target progress, 88 ego + 89 helper RGB frames).
 - [x] Define ego-motion settings:
   - [x] Static/parked ego or pole baseline.
   - [x] Slow-moving ego follow-up.
-- [ ] Define OD/SEG split routes:
-  - [ ] Camera-only OD route.
-  - [ ] Camera-only SEG route.
-  - [ ] RGB+radar fusion route evaluated as OD.
-  - [ ] RGB+radar fusion route evaluated as SEG.
-- [ ] Define static compression settings for trace collection:
-  - [ ] Quantization options.
-  - [ ] Entropy coder options.
-  - [ ] AE channel options, where supported.
-  - [ ] ROI threshold options, where supported.
-- [ ] Define first network stress trace placeholders:
-  - [ ] Local no-stress baseline.
-  - [ ] OAI 5G transport baseline with no intentional impairment.
-  - [ ] Logged latency/loss traces for later replay.
-  - [ ] Delay/loss/bandwidth stress settings reserved for Month 2/3.
+- [x] Define OD/SEG split routes in `SCENESENSE_MONTH1_TRACE_MATRIX.md`:
+  - [x] Camera-only OD route.
+  - [x] Camera-only SEG route.
+  - [x] RGB+radar fusion route evaluated as OD.
+  - [x] RGB+radar fusion route evaluated as SEG.
+- [x] Define static compression settings for trace collection in `SCENESENSE_MONTH1_TRACE_MATRIX.md`:
+  - [x] Quantization options.
+  - [x] Entropy coder options.
+  - [x] AE channel options, where supported.
+  - [x] ROI threshold options, where supported.
+- [x] Define first network stress trace placeholders in `SCENESENSE_MONTH1_TRACE_MATRIX.md`:
+  - [x] Local no-stress baseline.
+  - [x] OAI 5G transport baseline with no intentional impairment.
+  - [x] Logged latency/loss traces for later replay.
+  - [x] Delay/loss/bandwidth stress settings reserved for Month 2/3.
 
 ### 4. Build the Metrics Foundation
 
@@ -153,7 +159,7 @@ Minimum per-run metadata:
 
 - [x] Script name and git/status note.
 - [x] CARLA town/map.
-- [ ] Sensor placement: ego vehicle, pole, or other.
+- [x] Sensor placement: ego vehicle, pole, or other.
 - [x] Model/checkpoint path.
 - [x] Front device and back device.
 - [x] Resolution and FPS.
@@ -193,14 +199,14 @@ Task metrics:
 
 ### 5. Define Ground Truth and Evaluation Path
 
-- [ ] Identify the CARLA ground-truth source for each task:
-  - [ ] Semantic segmentation camera for masks.
-  - [ ] CARLA actors/transforms/bounding boxes for object position and size.
-  - [ ] Radar detections/raster for fusion input validation.
+- [x] Identify the CARLA ground-truth source for each task:
+  - [x] Semantic segmentation camera for masks.
+  - [x] CARLA actors/transforms/bounding boxes for object position and size.
+  - [x] Radar detections/raster for fusion input validation.
 - [x] Decide where evaluation logs live under `abiodun/`.
 - [x] Decide CSV/JSON schema for run metrics.
-- [ ] Decide whether evaluation is online during the demo or offline from saved traces.
-- [ ] Create a small repeatable test scene for smoke-test metrics.
+- [x] Decide whether evaluation is online during the demo or offline from saved traces.
+- [x] Create a small repeatable test scene for smoke-test metrics.
 
 ### 6. Understand Prior Payload Characterization Work
 
@@ -237,38 +243,38 @@ Scope for Month 1: prove data collection and retraining feasibility, not final m
 
 No full RL training required in Month 1, but the schema should be clear enough that traces can support it later.
 
-- [ ] State candidates:
-  - [ ] Scene density / object count.
-  - [ ] Foreground fraction.
-  - [ ] Vulnerable-object presence.
-  - [ ] Model confidence / uncertainty.
-  - [ ] Payload size.
-  - [ ] Latency / RTT.
-  - [ ] Timeout or loss indicators.
-- [ ] Action candidates:
-  - [ ] AE channel setting, where supported.
-  - [ ] ROI threshold, where supported.
-  - [ ] Quantization setting.
-  - [ ] Frame send/skip.
-  - [ ] Redundancy add/drop.
-- [ ] Reward sketch:
-  - [ ] Task utility retained.
-  - [ ] Minus payload cost.
-  - [ ] Minus latency cost.
-  - [ ] Minus loss/timeout cost.
-- [ ] Guardrail sketch:
-  - [ ] Reject/clamp if AP, mIoU, foreground IoU, or class recall drops too far.
-  - [ ] Use safer fallback settings under low confidence or high loss.
+- [x] State candidates in `SCENESENSE_RL_SCHEMA.md`:
+  - [x] Scene density / object count.
+  - [x] Foreground fraction.
+  - [x] Vulnerable-object presence.
+  - [x] Model confidence / uncertainty.
+  - [x] Payload size.
+  - [x] Latency / RTT.
+  - [x] Timeout or loss indicators.
+- [x] Action candidates in `SCENESENSE_RL_SCHEMA.md`:
+  - [x] AE channel setting, where supported.
+  - [x] ROI threshold, where supported.
+  - [x] Quantization setting.
+  - [x] Frame send/skip.
+  - [x] Redundancy add/drop.
+- [x] Reward sketch in `SCENESENSE_RL_SCHEMA.md`:
+  - [x] Task utility retained.
+  - [x] Minus payload cost.
+  - [x] Minus latency cost.
+  - [x] Minus loss/timeout cost.
+- [x] Guardrail sketch in `SCENESENSE_RL_SCHEMA.md`:
+  - [x] Reject/clamp if AP, mIoU, foreground IoU, or class recall drops too far.
+  - [x] Use safer fallback settings under low confidence or high loss.
 
 ### Month 1 Definition of Done
 
 - [ ] Reproducible local commands for camera-only OD, camera-only SEG, and RGB+radar fusion.
 - [ ] Reproducible OAI 5G commands for camera-only OD, camera-only SEG, and RGB+radar fusion transport.
-- [ ] Small repeatable CARLA scenario battery covering simple, crowded, and occlusion-focused cases.
-- [ ] At least one metrics log format that records network, split-inference, and task data.
-- [ ] Ground-truth plan confirmed for OD and SEG.
+- [x] Small repeatable CARLA scenario battery covering simple, crowded, and occlusion-focused cases.
+- [x] At least one metrics log format that records network, split-inference, and task data.
+- [x] Ground-truth plan confirmed for OD and SEG.
 - [ ] Parked ego data collection path started.
-- [ ] RL state/action/reward/guardrail schema drafted.
+- [x] RL state/action/reward/guardrail schema drafted.
 
 ## Month 2: Static Sweeps and First Controller Harness
 
