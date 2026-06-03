@@ -1,0 +1,463 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SceneSense Fusion: Loopback vs OAI 5G Transport</title>
+  <style>
+    :root {
+      --ink: #17202a;
+      --muted: #53616f;
+      --line: #d7dde3;
+      --blue: #4c78a8;
+      --orange: #f58518;
+      --green: #2f9e71;
+      --bg: #f6f8fb;
+      --panel: #ffffff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Arial, Helvetica, sans-serif;
+      line-height: 1.35;
+    }
+    .deck {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    .slide {
+      min-height: 720px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      margin: 0 0 28px;
+      padding: 42px 52px;
+      box-shadow: 0 8px 28px rgba(23, 32, 42, 0.08);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      page-break-after: always;
+    }
+    .slide.compact { justify-content: flex-start; }
+    h1 {
+      margin: 0 0 18px;
+      font-size: 46px;
+      letter-spacing: 0;
+      line-height: 1.08;
+    }
+    h2 {
+      margin: 0 0 24px;
+      font-size: 34px;
+      letter-spacing: 0;
+      line-height: 1.12;
+    }
+    h3 {
+      margin: 18px 0 8px;
+      font-size: 22px;
+    }
+    p, li {
+      font-size: 23px;
+      color: var(--ink);
+    }
+    p {
+      margin: 0 0 18px;
+    }
+    ul {
+      margin: 0;
+      padding-left: 28px;
+    }
+    li {
+      margin: 0 0 12px;
+    }
+    .subtitle {
+      color: var(--muted);
+      font-size: 25px;
+      max-width: 950px;
+    }
+    .eyebrow {
+      color: var(--blue);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      font-size: 16px;
+      margin: 0 0 14px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 24px;
+      align-items: stretch;
+    }
+    .grid.three {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .box {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 22px;
+      background: #fbfcfe;
+    }
+    .box h3 { margin-top: 0; }
+    .metric {
+      font-size: 44px;
+      font-weight: 700;
+      color: var(--blue);
+      margin: 0 0 6px;
+    }
+    .metric.orange { color: var(--orange); }
+    .metric.green { color: var(--green); }
+    .label {
+      color: var(--muted);
+      font-size: 18px;
+      margin: 0;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      font-size: 18px;
+    }
+    th, td {
+      border-bottom: 1px solid var(--line);
+      padding: 9px 8px;
+      text-align: right;
+      vertical-align: top;
+    }
+    th:first-child, td:first-child,
+    th:nth-child(2), td:nth-child(2) {
+      text-align: left;
+    }
+    th {
+      color: var(--muted);
+      font-weight: 700;
+      background: #f3f6f9;
+    }
+    .plot {
+      max-width: 100%;
+      max-height: 560px;
+      object-fit: contain;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: white;
+    }
+    .plot.tall {
+      max-height: 600px;
+    }
+    .small {
+      font-size: 17px;
+      color: var(--muted);
+    }
+    .callout {
+      border-left: 8px solid var(--orange);
+      padding: 18px 22px;
+      background: #fff7ee;
+      margin-top: 18px;
+    }
+    .callout p {
+      margin: 0;
+      font-size: 24px;
+    }
+    .legend {
+      display: flex;
+      gap: 18px;
+      align-items: center;
+      margin-top: 16px;
+      color: var(--muted);
+      font-size: 18px;
+    }
+    .swatch {
+      display: inline-block;
+      width: 18px;
+      height: 18px;
+      border-radius: 3px;
+      vertical-align: -3px;
+      margin-right: 6px;
+    }
+    .blue { background: var(--blue); }
+    .orange-bg { background: var(--orange); }
+    code {
+      font-family: "SFMono-Regular", Consolas, Menlo, monospace;
+      background: #eef2f7;
+      border-radius: 4px;
+      padding: 2px 5px;
+      font-size: 0.85em;
+    }
+    @media print {
+      body { background: white; }
+      .deck { padding: 0; max-width: none; }
+      .slide {
+        width: 13.333in;
+        min-height: 7.5in;
+        margin: 0;
+        border: none;
+        border-radius: 0;
+        box-shadow: none;
+      }
+    }
+  </style>
+</head>
+<body>
+<main class="deck">
+  <section class="slide">
+    <p class="eyebrow">SceneSense Month 1 Evidence</p>
+    <h1>RGB + radar fusion over loopback vs OAI 5G</h1>
+    <p class="subtitle">
+      Clean 6000-byte UDP chunk comparison for dual-stream and single-stream CARLA traffic-light fusion.
+    </p>
+    <div class="grid three" style="margin-top: 34px;">
+      <div class="box">
+        <p class="metric">6</p>
+        <p class="label">transport experiments</p>
+      </div>
+      <div class="box">
+        <p class="metric orange">2</p>
+        <p class="label">camera pole streams</p>
+      </div>
+      <div class="box">
+        <p class="metric green">180 s</p>
+        <p class="label">nominal run duration</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide compact">
+    <h2>Question we tested</h2>
+    <div class="grid">
+      <div class="box">
+        <h3>Baseline: loopback</h3>
+        <ul>
+          <li>Same split-inference fusion application.</li>
+          <li>Front and back communicate over <code>127.0.0.1</code>.</li>
+          <li>No OAI radio/core path is involved.</li>
+          <li>Purpose: isolate application compute and UDP packaging overhead.</li>
+        </ul>
+      </div>
+      <div class="box">
+        <h3>Test path: OAI 5G</h3>
+        <ul>
+          <li>Same application and model checkpoint.</li>
+          <li>Front clients bind to OAI UE tunnel IPs.</li>
+          <li>Back half runs in the OAI receiver container.</li>
+          <li>Purpose: measure added transport delay and result loss over the OAI path.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="callout">
+      <p>The goal is not only to show OAI is slower, but to locate whether the extra latency is compute, payload encoding, backend inference, or network/queue behavior.</p>
+    </div>
+  </section>
+
+  <section class="slide compact">
+    <h2>OAI network configuration used</h2>
+    <div class="grid">
+      <div class="box">
+        <h3>5G/RAN setup</h3>
+        <ul>
+          <li>OAI RAN in RF simulator mode: <code>--rfsim</code>.</li>
+          <li>gNB config: <code>gnb.sa.band78.fr1.106PRB.usrpb210.conf</code>.</li>
+          <li>Band: <code>78</code>; numerology: <code>1</code>.</li>
+          <li>PRBs: <code>106</code>, corresponding to the 20 MHz FR1 profile used in this setup.</li>
+          <li>DL carrier frequency argument: <code>3619200000</code>.</li>
+        </ul>
+      </div>
+      <div class="box">
+        <h3>Multi-UE transport mapping</h3>
+        <ul>
+          <li>UE1: <code>oaitun_ue1</code> / <code>10.0.0.2</code>.</li>
+          <li>UE2: <code>oaitun_ue2</code> / <code>10.0.0.3</code>.</li>
+          <li>Receiver container: <code>oai-perception-rx</code> / <code>192.168.70.140</code>.</li>
+          <li>Core network examples use <code>192.168.70.x</code>; ext-DN is <code>192.168.70.135</code>.</li>
+          <li>Fusion feature transport: UDP, 6000-byte chunks, <code>zlib</code>, <code>per_channel_uint8</code>.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide compact">
+    <h2>Experiment matrix</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Scenario</th>
+          <th>Stream(s)</th>
+          <th>Loopback path</th>
+          <th>OAI path</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Dual S1 + S2</td>
+          <td><code>fusion_tl_14</code> and <code>fusion_tl_14_view_2</code></td>
+          <td><code>127.0.0.1 -> 127.0.0.1</code></td>
+          <td><code>10.0.0.2/10.0.0.3 -> 192.168.70.140</code></td>
+        </tr>
+        <tr>
+          <td>Solo S1</td>
+          <td><code>fusion_tl_14</code></td>
+          <td><code>127.0.0.1 -> 127.0.0.1</code></td>
+          <td><code>10.0.0.2 -> 192.168.70.140</code></td>
+        </tr>
+        <tr>
+          <td>Solo S2</td>
+          <td><code>fusion_tl_14_view_2</code></td>
+          <td><code>127.0.0.1 -> 127.0.0.1</code></td>
+          <td><code>10.0.0.3 -> 192.168.70.140</code></td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="small" style="margin-top: 18px;">
+      All runs used traffic light 14, 854x480 camera frames, the same fusion checkpoint, UDP feature payloads, and the same application logging pipeline.
+    </p>
+  </section>
+
+  <section class="slide compact">
+    <h2>Headline result: OAI adds large application RTT</h2>
+    <img class="plot tall" alt="Side-by-side loopback vs OAI latency and receive rate"
+      src="metrics_logs/scenesense_analysis/fusion_oai_loopback_6000_180s_clean_20260603_presentation/presentation_loopback_oai_side_by_side.png">
+    <div class="legend">
+      <span><span class="swatch blue"></span>Loopback</span>
+      <span><span class="swatch orange-bg"></span>OAI 5G path</span>
+    </div>
+  </section>
+
+  <section class="slide compact">
+    <h2>Numeric summary</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Run</th>
+          <th>Path</th>
+          <th>Avg RTT</th>
+          <th>p95 RTT</th>
+          <th>Recv rate</th>
+          <th>Avg front</th>
+          <th>Avg back</th>
+          <th>Avg RTT - back</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Dual S1</td><td>Loopback</td><td>52.3 ms</td><td>69.1 ms</td><td>100%</td><td>51.8 ms</td><td>8.8 ms</td><td>43.5 ms</td></tr>
+        <tr><td>Dual S1</td><td>OAI</td><td>305.5 ms</td><td>537.6 ms</td><td>74%</td><td>59.9 ms</td><td>8.0 ms</td><td>297.5 ms</td></tr>
+        <tr><td>Dual S2</td><td>Loopback</td><td>61.2 ms</td><td>80.5 ms</td><td>100%</td><td>56.2 ms</td><td>11.1 ms</td><td>50.1 ms</td></tr>
+        <tr><td>Dual S2</td><td>OAI</td><td>305.1 ms</td><td>535.8 ms</td><td>82%</td><td>55.7 ms</td><td>9.0 ms</td><td>296.2 ms</td></tr>
+        <tr><td>Solo S1</td><td>Loopback</td><td>53.5 ms</td><td>73.3 ms</td><td>100%</td><td>52.5 ms</td><td>6.6 ms</td><td>46.9 ms</td></tr>
+        <tr><td>Solo S1</td><td>OAI</td><td>274.9 ms</td><td>452.7 ms</td><td>71%</td><td>56.8 ms</td><td>8.6 ms</td><td>266.3 ms</td></tr>
+        <tr><td>Solo S2</td><td>Loopback</td><td>54.8 ms</td><td>82.0 ms</td><td>100%</td><td>53.7 ms</td><td>7.4 ms</td><td>47.3 ms</td></tr>
+        <tr><td>Solo S2</td><td>OAI</td><td>270.0 ms</td><td>451.1 ms</td><td>69%</td><td>54.6 ms</td><td>7.8 ms</td><td>262.2 ms</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="slide compact">
+    <h2>Where the latency lives</h2>
+    <img class="plot" alt="Average glass-to-result latency components"
+      src="metrics_logs/scenesense_analysis/fusion_oai_loopback_6000_180s_clean_20260603_presentation/presentation_latency_components.png">
+    <div class="callout">
+      <p>Backend inference is small and stable. The OAI gap is dominated by the transport/queue component estimated as <code>RTT - back_ms</code>.</p>
+    </div>
+  </section>
+
+  <section class="slide compact">
+    <h2>Interpretation</h2>
+    <div class="grid">
+      <div class="box">
+        <h3>What the evidence supports</h3>
+        <ul>
+          <li>OAI is about 5x to 6x higher average RTT than loopback.</li>
+          <li>OAI p95 RTT reaches roughly 450-538 ms.</li>
+          <li>Loopback receives every result; OAI receives only about 69-82%.</li>
+          <li>Single-UE OAI is still high latency, so the second stream is not the only cause.</li>
+        </ul>
+      </div>
+      <div class="box">
+        <h3>What it does not prove yet</h3>
+        <ul>
+          <li>It does not identify the exact radio-layer bottleneck.</li>
+          <li>It does not separate OAI tunnel queueing from UDP reassembly behavior.</li>
+          <li>It does not prove the 20 MHz / 106 PRB profile is saturated in every run.</li>
+          <li>It does not yet use T-tracer timing to localize MAC/RLC/PDCP delays.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide compact">
+    <h2>Network sampler evidence</h2>
+    <div class="grid">
+      <div class="box">
+        <h3>Dual OAI captured traffic</h3>
+        <ul>
+          <li>UE1 avg TX: 8.34 Mbps; p95 TX: 27.86 Mbps; max TX: 37.13 Mbps.</li>
+          <li>UE2 avg TX: 10.03 Mbps; p95 TX: 28.34 Mbps; max TX: 37.84 Mbps.</li>
+          <li>UE tunnel TX drops were observed: 6023 on UE1 and 10272 on UE2.</li>
+          <li>Ping RTT was much lower than application RTT: about 19-21 ms average.</li>
+        </ul>
+      </div>
+      <div class="box">
+        <h3>Caution on solo sampler runs</h3>
+        <ul>
+          <li>The solo OAI app logs clearly received fusion results.</li>
+          <li>However, the solo network sampler summaries look nearly idle.</li>
+          <li>So the solo network counters should not be used for final claims until the sampler/interface timing is checked.</li>
+          <li>The app-level comparison remains valid because it is logged by the fusion clients themselves.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide compact">
+    <h2>Why loopback is still useful</h2>
+    <ul>
+      <li>Loopback is not a deployment claim. It is the controlled baseline.</li>
+      <li>It exercises the same model split, feature serialization, UDP chunking, result decoding, and visualization path without the OAI network.</li>
+      <li>Because loopback RTT is low and stable, the fusion application and back-half inference are not the main reason OAI playback feels laggy.</li>
+      <li>The difference between loopback and OAI gives a clean estimate of the transport-side penalty that needs deeper tracing.</li>
+    </ul>
+    <div class="callout">
+      <p>The story for the supervisor: the logging pipeline is working, the visual lag is measurable, and the current evidence points toward network/queue behavior rather than model compute.</p>
+    </div>
+  </section>
+
+  <section class="slide compact">
+    <h2>Next steps</h2>
+    <div class="grid">
+      <div class="box">
+        <h3>Root-cause tracing</h3>
+        <ul>
+          <li>Repeat dual OAI with T-tracer enabled on gNB and UE.</li>
+          <li>Join app frames to radio/tunnel events using the same run group.</li>
+          <li>Check where delay builds: UE tunnel, PDCP/RLC/MAC, container path, or UDP reassembly.</li>
+          <li>Fix solo network sampler capture so counters match app traffic.</li>
+        </ul>
+      </div>
+      <div class="box">
+        <h3>System experiments</h3>
+        <ul>
+          <li>Try wider/UL-heavy RAN configuration after baseline tracing.</li>
+          <li>Run controlled 20 MHz vs wider-bandwidth comparisons if the config is stable.</li>
+          <li>Evaluate lower payload settings and non-blocking display/result handling.</li>
+          <li>Move toward parked-ego fusion experiments once transport behavior is characterized.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide compact">
+    <h2>Appendix: output artifacts</h2>
+    <ul>
+      <li>Presentation comparison folder: <code>metrics_logs/scenesense_analysis/fusion_oai_loopback_6000_180s_clean_20260603_presentation/</code></li>
+      <li>Main plot: <code>presentation_loopback_oai_side_by_side.png</code></li>
+      <li>Component plot: <code>presentation_latency_components.png</code></li>
+      <li>RTT and receive-rate plot: <code>presentation_rtt_receive_rate.png</code></li>
+      <li>Combined CSV: <code>combined_experiment_summary.csv</code></li>
+    </ul>
+    <p class="small" style="margin-top: 24px;">
+      Open this file in a browser for presentation mode. Browser print/export can create a PDF copy.
+    </p>
+  </section>
+</main>
+</body>
+</html>

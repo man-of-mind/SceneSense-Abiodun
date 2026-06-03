@@ -2236,7 +2236,18 @@ def run_client(args: argparse.Namespace) -> None:
         max_measurement_frames = max(0, int(args.max_frames))
         run_duration_s = max(0.0, float(args.run_duration_s))
 
+        def run_duration_elapsed() -> bool:
+            if run_duration_s <= 0.0:
+                return False
+            elapsed = time.perf_counter() - start_perf
+            if elapsed < run_duration_s:
+                return False
+            print(f"Reached --run-duration-s={run_duration_s:.1f}; stopping run.")
+            return True
+
         while True:
+            if run_duration_elapsed():
+                break
             if bool(args.sync_world):
                 world_frame = int(world.tick())
                 image = od_demo.wait_for_camera_frame(
@@ -2251,6 +2262,8 @@ def run_client(args: argparse.Namespace) -> None:
                     image = None
             if image is None:
                 print(f"Warning: camera frame not received within {args.camera_timeout:.1f}s; retrying.")
+                if run_duration_elapsed():
+                    break
                 continue
 
             radar_measurement = radar_pipeline.get_latest(timeout=float(args.camera_timeout))
@@ -2259,6 +2272,8 @@ def run_client(args: argparse.Namespace) -> None:
                     f"Warning: radar measurement not received within {args.camera_timeout:.1f}s; "
                     "skipping frame."
                 )
+                if run_duration_elapsed():
+                    break
                 continue
 
             frame_bgr = od_demo.camera_image_to_bgr(image)
@@ -2347,8 +2362,7 @@ def run_client(args: argparse.Namespace) -> None:
             if max_measurement_frames > 0 and processed_frames >= max_measurement_frames:
                 print(f"Reached --max-frames={max_measurement_frames}; stopping run.")
                 break
-            if run_duration_s > 0.0 and elapsed_s >= run_duration_s:
-                print(f"Reached --run-duration-s={run_duration_s:.1f}; stopping run.")
+            if run_duration_elapsed():
                 break
 
             if gui_enabled:
