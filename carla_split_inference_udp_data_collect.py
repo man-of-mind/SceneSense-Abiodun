@@ -1284,9 +1284,16 @@ class UDPMessageSocket:
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 8 * 1024 * 1024)
         self.socket.bind((host, bind_port))
         self.socket.settimeout(socket_timeout)
-        self._pending: Dict[int, Dict[str, object]] = {}
-        self._next_message_id = 1
+        self._pending: Dict[Tuple[str, int, int], Dict[str, object]] = {}
+        # Do not use the module-level deterministic RNG here. Many SceneSense
+        # scripts seed `random` for repeatable CARLA scenarios, and two UDP
+        # senders with the same source port + message id can corrupt
+        # reassembly. SystemRandom keeps transport message IDs independent of
+        # scenario seeds.
+        self._next_message_id = random.SystemRandom().randint(1, 0xFFFFFFFF)
         self._entropy_coder: Optional["EntropyCoder"] = entropy_coder
+        self.decode_errors = 0
+        self._last_decode_error_log = 0.0
 
     def _coder(self) -> "EntropyCoder":
         if self._entropy_coder is None:
@@ -1325,7 +1332,13 @@ class UDPMessageSocket:
     def receive(self) -> Optional[object]:
         while True:
             try:
-                packet, _ = self.socket.recvfrom(self.chunk_bytes)
+                # `chunk_bytes` controls how this socket sends datagrams, but
+                # receive should accept a full UDP datagram. If two peers are
+                # temporarily misconfigured with different chunk sizes, using
+                # `self.chunk_bytes` here truncates larger incoming datagrams
+                # and turns an otherwise recoverable configuration mistake
+                # into zlib/pickle corruption.
+                packet, source = self.socket.recvfrom(max(int(self.chunk_bytes), 65535))
             except socket.timeout:
                 self._drop_stale_buffers()
                 return None
@@ -1341,8 +1354,11 @@ class UDPMessageSocket:
             if total_chunks == 0 or chunk_index >= total_chunks:
                 continue
 
+            source_host = str(source[0]) if isinstance(source, tuple) and len(source) >= 1 else ""
+            source_port = int(source[1]) if isinstance(source, tuple) and len(source) >= 2 else 0
+            pending_key = (source_host, source_port, int(message_id))
             now = time.time()
-            entry = self._pending.get(message_id)
+            entry = self._pending.get(pending_key)
             if entry is None or int(entry["total_chunks"]) != total_chunks:
                 entry = {
                     "updated_at": now,
@@ -1350,7 +1366,7 @@ class UDPMessageSocket:
                     "chunks": [None] * total_chunks,
                     "received": 0,
                 }
-                self._pending[message_id] = entry
+                self._pending[pending_key] = entry
 
             chunks = entry["chunks"]
             if chunks[chunk_index] is None:
@@ -1360,8 +1376,21 @@ class UDPMessageSocket:
 
             if int(entry["received"]) == total_chunks:
                 combined = b"".join(chunk for chunk in chunks if chunk is not None)
-                del self._pending[message_id]
-                return pickle.loads(self._coder().decompress(combined))
+                del self._pending[pending_key]
+                try:
+                    return pickle.loads(self._coder().decompress(combined))
+                except Exception as exc:
+                    self.decode_errors += 1
+                    if now - self._last_decode_error_log > 5.0:
+                        self._last_decode_error_log = now
+                        print(
+                            "[UDPMessageSocket] dropped corrupt reassembled payload "
+                            f"source={source_host}:{source_port} "
+                            f"message_id={message_id} chunks={total_chunks} "
+                            f"bytes={len(combined)} error={type(exc).__name__}: {exc}",
+                            file=sys.stderr,
+                        )
+                    continue
 
             self._drop_stale_buffers(now)
 
