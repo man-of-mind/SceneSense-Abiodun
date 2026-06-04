@@ -86,11 +86,51 @@ come from the same run folder.
 | --- | --- | --- | --- |
 | `pole_tl14_view_1` | Traffic-light pole candidate | `fusion_as_od`, `fusion_as_seg` | Runbook default: traffic light 14, camera x=9, y=2, pitch=-30, yaw offset=50, FoV=100. |
 | `pole_tl14_view_2` | Traffic-light pole candidate | `fusion_as_od`, `fusion_as_seg` | Second stream: camera x=11, y=2, pitch=-30, yaw offset=120, FoV=100. |
-| `ego_front` | Ego vehicle | Scenario harness evidence, future ego OD/SEG/fusion traces | RGB camera at x=1.8, z=1.6 and radar at x=2.0, z=1.0 in the harness. |
+| `ego_front` | Ego vehicle | Scenario harness evidence, ego OD/SEG/fusion traces | RGB camera at x=1.8, z=1.6 and radar at x=2.0, z=1.0. Parked-ego fusion stream 1 uses spawn index 152, right offset 3.0 m, and forward offset 0.0 m. |
+| `ego_front_view_2` | Ego vehicle | Ego OD/SEG/fusion traces | Parked-ego fusion stream 2 uses the same spawn index 152, forward offset 8.0 m, right offset 3.0 m, and yaw offset 180 deg to create a nearby face-to-face second view. |
 | `helper_front` | Opposite-lane helper vehicle | Occlusion evidence only | Observer camera, not a controller or participant in the ego collision. |
 
 Every official run should record one of these placement IDs, plus the exact
 resolved transform already written by the script manifest.
+
+## Current Fusion Transfer Result
+
+The current pole-vs-parked-ego comparison evaluates the fusion segmentation
+head only (`fusion_as_seg`) using CARLA semantic-segmentation ground truth
+co-located with the fusion RGB camera. It uses the same fusion checkpoint and
+loopback transport for two pole streams and two face-to-face parked-ego streams.
+
+| Platform/view | Binary IoU | 3-class macro IoU | Vehicle IoU | Person IoU | Frames |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `pole_tl14_view_1` | 0.420 | 0.565 | 0.805 | 0.000 | 604 |
+| `pole_tl14_view_2` | 0.349 | 0.556 | 0.730 | 0.000 | 714 |
+| `ego_front` | 0.370 | 0.468 | 0.459 | 0.000 | 602 |
+| `ego_front_view_2` | 0.376 | 0.501 | 0.530 | 0.000 | 712 |
+
+Platform averages:
+
+| Platform | Binary IoU | 3-class macro IoU | Vehicle IoU |
+| --- | ---: | ---: | ---: |
+| Pole streams | 0.384 | 0.560 | 0.768 |
+| Parked-ego streams | 0.373 | 0.485 | 0.495 |
+
+Interpretation: foreground/binary segmentation transfers well, while vehicle
+IoU drops to about 64% of pole-stream performance. This is enough to continue
+parked-ego fusion experiments, but it also motivates parked-ego fine-tuning if
+the parked-ego viewpoint becomes central.
+
+Presentation artifacts:
+
+- `metrics_logs/scenesense_analysis/pole_vs_ego_transfer_presentation/pole_vs_ego_platform_average_iou.png`
+- `metrics_logs/scenesense_analysis/pole_vs_ego_transfer_presentation/pole_vs_ego_stream_iou_core_metrics.png`
+- `metrics_logs/scenesense_analysis/pole_vs_ego_transfer_presentation/pole_vs_ego_transfer_iou_summary.csv`
+
+Next OD/localization step: evaluate `fusion_as_od` from the same object-head
+outputs. The current per-frame runtime CSV logs returned `object_count` and
+spatial-map status, which is useful for smoke tests, but OD accuracy requires
+matching decoded object predictions against CARLA actor/object ground truth to
+compute object recall, XY/XYZ localization error, yaw error, and dimension
+error.
 
 ## Static Compression Settings
 

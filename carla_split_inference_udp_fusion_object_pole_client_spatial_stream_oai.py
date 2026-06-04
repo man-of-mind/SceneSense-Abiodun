@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
 """
-Traffic-light-pole RGB+radar fusion client for split-inference object detection
-over localhost or the OAI 5G transport path.
+Traffic-light-pole / parked-ego RGB+radar fusion client for split-inference
+object detection over localhost or the OAI 5G transport path.
 
 Sibling of carla_split_inference_udp_segmentation_trained_lraspp_pole_client.py.
 Hosts the trained pole_lraspp_multimodal_fusion model (segmentation + learned
@@ -112,6 +112,18 @@ DEFAULT_RADAR_CHANNELS = 4
 DEFAULT_SPATIAL_MAP_PORT = 39201
 SPATIAL_STREAM_SCHEMA = "fusion_object_spatial_map.v1"
 DEFAULT_SCENESENSE_RUN_ROOT = Path(__file__).resolve().parent / "metrics_logs" / "scenesense_runs"
+DEFAULT_EGO_CAMERA_X = 1.8
+DEFAULT_EGO_CAMERA_Y = 0.0
+DEFAULT_EGO_CAMERA_Z = 1.55
+DEFAULT_EGO_CAMERA_PITCH = -4.0
+DEFAULT_EGO_CAMERA_YAW = 0.0
+DEFAULT_EGO_CAMERA_ROLL = 0.0
+DEFAULT_EGO_RADAR_X = 2.0
+DEFAULT_EGO_RADAR_Y = 0.0
+DEFAULT_EGO_RADAR_Z = 1.0
+DEFAULT_EGO_RADAR_PITCH = 0.0
+DEFAULT_EGO_RADAR_YAW = 0.0
+DEFAULT_EGO_RADAR_ROLL = 0.0
 
 VEHICLE_BBOX_COLOR_BGR = (0, 240, 255)
 
@@ -136,6 +148,13 @@ FUSION_METRICS_FIELDS = (
     "result_payload_chunks_estimate",
     "mask_present",
     "segmentation_class_count",
+    "gt_camera_available",
+    "miou_binary",
+    "miou_3class_macro",
+    "miou_vehicle_iou",
+    "miou_person_iou",
+    "gt_vehicle_pixels",
+    "gt_person_pixels",
     "object_count",
     "radar_projected_points",
     "spatial_map_enabled",
@@ -164,8 +183,8 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
             "Run split RGB+radar fusion object localization over a "
-            "traffic-light-pole CARLA sensor pair, with intermediate features "
-            "transported between model halves over localhost UDP."
+            "traffic-light-pole or parked ego CARLA sensor pair, with "
+            "intermediate features transported between model halves over UDP."
         )
     )
 
@@ -183,7 +202,17 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--tm-port", type=int, default=8000, help="Traffic Manager port.")
     parser.add_argument("--seed", type=int, default=7, help="Random seed for traffic + pedestrians.")
 
-    # Traffic-light pole + sensor mounting (mirrors the segmentation pole client).
+    # Sensor platform + mounting.
+    parser.add_argument(
+        "--sensor-platform",
+        choices=("pole", "ego_vehicle"),
+        default="pole",
+        help=(
+            "Sensor host. 'pole' preserves the traffic-light pole baseline; "
+            "'ego_vehicle' spawns a parked vehicle and attaches front RGB+radar "
+            "sensors to it."
+        ),
+    )
     parser.add_argument(
         "--traffic-light-id",
         default=DEFAULT_TRAFFIC_LIGHT_ID,
@@ -253,6 +282,70 @@ def parse_args() -> argparse.Namespace:
         help="Seconds to wait for a camera frame before retrying.",
     )
     parser.add_argument("--camera-warmup-ticks", type=int, default=8)
+
+    # Parked ego sensor mounting. These are intentionally separate from the
+    # pole camera args so existing pole runbooks keep their defaults.
+    parser.add_argument(
+        "--ego-vehicle-blueprint",
+        default="vehicle.lincoln.mkz",
+        help="Vehicle blueprint used when --sensor-platform ego_vehicle.",
+    )
+    parser.add_argument(
+        "--ego-spawn-index",
+        type=int,
+        default=-1,
+        help="Map spawn-point index for the parked ego vehicle. Negative = first available spawn point.",
+    )
+    parser.add_argument(
+        "--ego-role-name",
+        default="scenesense_fusion_ego",
+        help="CARLA role_name assigned to the parked ego vehicle.",
+    )
+    parser.add_argument(
+        "--ego-freeze",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Disable parked ego vehicle physics after spawn so it stays fixed.",
+    )
+    parser.add_argument(
+        "--ego-spawn-forward-offset-m",
+        type=float,
+        default=0.0,
+        help="Move the parked ego spawn forward along its lane heading after selecting the spawn point.",
+    )
+    parser.add_argument(
+        "--ego-spawn-right-offset-m",
+        type=float,
+        default=0.0,
+        help=(
+            "Move the parked ego spawn laterally to the right of the lane heading. "
+            "Use values around 2.5-3.5 m to push the parked ego toward the curb."
+        ),
+    )
+    parser.add_argument(
+        "--ego-spawn-z-offset-m",
+        type=float,
+        default=0.15,
+        help="Vertical lift applied to the parked ego spawn transform to avoid road-mesh collisions.",
+    )
+    parser.add_argument(
+        "--ego-spawn-yaw-offset-deg",
+        type=float,
+        default=0.0,
+        help="Yaw adjustment applied to the parked ego after selecting the spawn point.",
+    )
+    parser.add_argument("--ego-camera-x", type=float, default=DEFAULT_EGO_CAMERA_X)
+    parser.add_argument("--ego-camera-y", type=float, default=DEFAULT_EGO_CAMERA_Y)
+    parser.add_argument("--ego-camera-z", type=float, default=DEFAULT_EGO_CAMERA_Z)
+    parser.add_argument("--ego-camera-pitch", type=float, default=DEFAULT_EGO_CAMERA_PITCH)
+    parser.add_argument("--ego-camera-yaw", type=float, default=DEFAULT_EGO_CAMERA_YAW)
+    parser.add_argument("--ego-camera-roll", type=float, default=DEFAULT_EGO_CAMERA_ROLL)
+    parser.add_argument("--ego-radar-x", type=float, default=DEFAULT_EGO_RADAR_X)
+    parser.add_argument("--ego-radar-y", type=float, default=DEFAULT_EGO_RADAR_Y)
+    parser.add_argument("--ego-radar-z", type=float, default=DEFAULT_EGO_RADAR_Z)
+    parser.add_argument("--ego-radar-pitch", type=float, default=DEFAULT_EGO_RADAR_PITCH)
+    parser.add_argument("--ego-radar-yaw", type=float, default=DEFAULT_EGO_RADAR_YAW)
+    parser.add_argument("--ego-radar-roll", type=float, default=DEFAULT_EGO_RADAR_ROLL)
 
     # Synchronous mode toggle.
     sync_group = parser.add_mutually_exclusive_group()
@@ -381,6 +474,23 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Overlay a translucent dot for each projected radar return.",
     )
+    semantic_gt_group = parser.add_mutually_exclusive_group()
+    semantic_gt_group.add_argument(
+        "--enable-semantic-gt",
+        dest="enable_semantic_gt",
+        action="store_true",
+        help=(
+            "Spawn a co-located CARLA semantic-segmentation camera and log "
+            "3-class IoU for the returned fusion mask."
+        ),
+    )
+    semantic_gt_group.add_argument(
+        "--disable-semantic-gt",
+        dest="enable_semantic_gt",
+        action="store_false",
+        help="Disable semantic-GT camera and segmentation IoU logging.",
+    )
+    parser.set_defaults(enable_semantic_gt=False)
     parser.add_argument(
         "--max-objects-drawn",
         type=int,
@@ -591,6 +701,7 @@ class PoleRadarPipeline:
         *,
         world: "carla.World",
         transform: "carla.Transform",
+        attach_to: Optional["carla.Actor"] = None,
         args: argparse.Namespace,
         model_input_size: Tuple[int, int],
     ) -> None:
@@ -600,7 +711,7 @@ class PoleRadarPipeline:
         bp.set_attribute("vertical_fov", str(float(args.radar_vfov)))
         bp.set_attribute("points_per_second", str(int(args.radar_points_per_second)))
         bp.set_attribute("sensor_tick", str(1.0 / max(0.1, float(args.fps))))
-        self.sensor: "carla.Actor" = world.spawn_actor(bp, transform)
+        self.sensor: "carla.Actor" = world.spawn_actor(bp, transform, attach_to=attach_to)
         self.queue: "queue.Queue[carla.RadarMeasurement]" = queue.Queue(maxsize=2)
         self.sensor.listen(lambda measurement: od_demo.put_latest(self.queue, measurement))
 
@@ -1159,8 +1270,9 @@ def draw_fusion_overlay(
     payload_bytes = max(1, int(front_stats["payload_bytes"]))
     payload_bytes_uncompressed = int(front_stats["payload_bytes_uncompressed"])
     compression_ratio = payload_bytes_uncompressed / payload_bytes
+    source_kind = "Parked ego RGB+Radar fusion" if str(getattr(args, "sensor_platform", "")) == "ego_vehicle" else "Pole RGB+Radar fusion"
     lines = [
-        f"Pole RGB+Radar fusion | traffic light {traffic_light_id}",
+        f"{source_kind} | {traffic_light_id}",
         f"Front half: {float(front_stats['front_ms']):.1f} ms",
         (
             "Feature payload: "
@@ -1234,6 +1346,39 @@ def _segmentation_summary(mask: Optional[np.ndarray]) -> Dict[str, object]:
             for label, count in zip(labels, counts)
         },
     }
+
+
+def _segmentation_quality_columns(
+    mask: Optional[np.ndarray],
+    gt_3class: Optional[np.ndarray],
+) -> Dict[str, object]:
+    columns: Dict[str, object] = {
+        "gt_camera_available": int(gt_3class is not None),
+        "miou_binary": float("nan"),
+        "miou_3class_macro": float("nan"),
+        "miou_vehicle_iou": float("nan"),
+        "miou_person_iou": float("nan"),
+        "gt_vehicle_pixels": 0,
+        "gt_person_pixels": 0,
+    }
+    if gt_3class is not None:
+        columns["gt_vehicle_pixels"] = int(
+            np.count_nonzero(gt_3class == trained_seg_demo.CLASS_ID_VEHICLE)
+        )
+        columns["gt_person_pixels"] = int(
+            np.count_nonzero(gt_3class == trained_seg_demo.CLASS_ID_PERSON)
+        )
+    if mask is None or gt_3class is None:
+        return columns
+    vehicle_iou, person_iou, macro_iou, binary_iou = trained_seg_demo.compute_3class_iou(
+        mask.astype(np.uint8, copy=False),
+        gt_3class.astype(np.uint8, copy=False),
+    )
+    columns["miou_binary"] = float(binary_iou)
+    columns["miou_3class_macro"] = float(macro_iou)
+    columns["miou_vehicle_iou"] = float(vehicle_iou)
+    columns["miou_person_iou"] = float(person_iou)
+    return columns
 
 
 def _normalize_spatial_objects(
@@ -1417,7 +1562,9 @@ class FusionRunLogger:
         self,
         *,
         world: "carla.World",
-        traffic_light: "carla.Actor",
+        anchor_actor: "carla.Actor",
+        sensor_placement: str,
+        anchor_label: str,
         model_input_size: Tuple[int, int],
         camera_width: int,
         camera_height: int,
@@ -1443,13 +1590,32 @@ class FusionRunLogger:
             "checkpoint_path": str(checkpoint_path),
             "front_device": str(front_device),
             "back_device": str(back_device),
-            "sensor_placement": "traffic_light_pole",
+            "sensor_placement": str(sensor_placement),
+            "anchor": {
+                "label": str(anchor_label),
+                "actor_id": int(anchor_actor.id),
+                "type_id": str(getattr(anchor_actor, "type_id", "")),
+                "transform": _carla_transform_payload(anchor_actor.get_transform()),
+            },
             "camera": {
                 "width": int(camera_width),
                 "height": int(camera_height),
                 "fov": float(self.args.camera_fov),
-                "traffic_light_id": str(self.args.traffic_light_id),
-                "traffic_light_actor_id": int(traffic_light.id),
+                "traffic_light_id": (
+                    str(self.args.traffic_light_id)
+                    if str(sensor_placement) == "traffic_light_pole"
+                    else ""
+                ),
+                "traffic_light_actor_id": (
+                    int(anchor_actor.id)
+                    if str(sensor_placement) == "traffic_light_pole"
+                    else None
+                ),
+                "ego_vehicle_actor_id": (
+                    int(anchor_actor.id)
+                    if str(sensor_placement) == "ego_vehicle_front"
+                    else None
+                ),
                 "x": float(self.args.camera_x),
                 "y": float(self.args.camera_y),
                 "z": float(self.args.camera_z),
@@ -1457,6 +1623,37 @@ class FusionRunLogger:
                 "yaw": None if self.args.camera_yaw is None else float(self.args.camera_yaw),
                 "yaw_offset": float(self.args.camera_yaw_offset),
                 "roll": float(self.args.camera_roll),
+                "ego_relative_transform": {
+                    "x": float(getattr(self.args, "ego_camera_x", 0.0)),
+                    "y": float(getattr(self.args, "ego_camera_y", 0.0)),
+                    "z": float(getattr(self.args, "ego_camera_z", 0.0)),
+                    "pitch": float(getattr(self.args, "ego_camera_pitch", 0.0)),
+                    "yaw": float(getattr(self.args, "ego_camera_yaw", 0.0)),
+                    "roll": float(getattr(self.args, "ego_camera_roll", 0.0)),
+                },
+            },
+            "radar": {
+                "relative_transform": {
+                    "x": float(getattr(self.args, "ego_radar_x", 0.0)),
+                    "y": float(getattr(self.args, "ego_radar_y", 0.0)),
+                    "z": float(getattr(self.args, "ego_radar_z", 0.0)),
+                    "pitch": float(getattr(self.args, "ego_radar_pitch", 0.0)),
+                    "yaw": float(getattr(self.args, "ego_radar_yaw", 0.0)),
+                    "roll": float(getattr(self.args, "ego_radar_roll", 0.0)),
+                },
+                "range_m": float(self.args.radar_range),
+                "hfov": float(self.args.radar_hfov),
+                "vfov": float(self.args.radar_vfov),
+                "points_per_second": int(self.args.radar_points_per_second),
+            },
+            "semantic_gt": {
+                "enabled": bool(getattr(self.args, "enable_semantic_gt", False)),
+                "metrics": [
+                    "miou_binary",
+                    "miou_3class_macro",
+                    "miou_vehicle_iou",
+                    "miou_person_iou",
+                ],
             },
             "model_input_size": [int(model_input_size[0]), int(model_input_size[1])],
             "transport": {
@@ -1513,13 +1710,15 @@ def build_fusion_metrics_row(
     remote_stats: Optional[Dict[str, object]],
     mask: Optional[np.ndarray],
     objects: Sequence[Dict[str, object]],
-    radar_projected_points: int,
-    spatial_publisher: Optional["SpatialMapResultPublisher"],
-    camera_width: int,
+        radar_projected_points: int,
+        gt_3class: Optional[np.ndarray],
+        spatial_publisher: Optional["SpatialMapResultPublisher"],
+        camera_width: int,
     camera_height: int,
     model_input_size: Tuple[int, int],
 ) -> Dict[str, object]:
     segmentation = _segmentation_summary(mask)
+    quality = _segmentation_quality_columns(mask, gt_3class)
     remote_host = str(args.remote_host if args.remote_host is not None else args.bind_host)
     return {
         "wall_time_iso": datetime.now().isoformat(timespec="milliseconds"),
@@ -1551,6 +1750,7 @@ def build_fusion_metrics_row(
         ),
         "mask_present": bool(segmentation.get("mask_present", False)),
         "segmentation_class_count": len(segmentation.get("class_counts", {})),
+        **quality,
         "object_count": len(objects),
         "radar_projected_points": int(radar_projected_points),
         "spatial_map_enabled": spatial_publisher is not None,
@@ -1861,6 +2061,123 @@ def _resolve_traffic_light_with_fallback(
     raise ValueError(f"Traffic light id {requested_id!r} could not be resolved.")
 
 
+def _relative_transform(
+    *,
+    x: float,
+    y: float,
+    z: float,
+    pitch: float,
+    yaw: float,
+    roll: float,
+) -> "carla.Transform":
+    return carla.Transform(
+        carla.Location(x=float(x), y=float(y), z=float(z)),
+        carla.Rotation(pitch=float(pitch), yaw=float(yaw), roll=float(roll)),
+    )
+
+
+def _ego_camera_transform(args: argparse.Namespace) -> "carla.Transform":
+    return _relative_transform(
+        x=float(args.ego_camera_x),
+        y=float(args.ego_camera_y),
+        z=float(args.ego_camera_z),
+        pitch=float(args.ego_camera_pitch),
+        yaw=float(args.ego_camera_yaw),
+        roll=float(args.ego_camera_roll),
+    )
+
+
+def _ego_radar_transform(args: argparse.Namespace) -> "carla.Transform":
+    return _relative_transform(
+        x=float(args.ego_radar_x),
+        y=float(args.ego_radar_y),
+        z=float(args.ego_radar_z),
+        pitch=float(args.ego_radar_pitch),
+        yaw=float(args.ego_radar_yaw),
+        roll=float(args.ego_radar_roll),
+    )
+
+
+def _offset_spawn_transform(
+    transform: "carla.Transform",
+    *,
+    forward_m: float,
+    right_m: float,
+    z_offset_m: float,
+    yaw_offset_deg: float,
+) -> "carla.Transform":
+    yaw_rad = math.radians(float(transform.rotation.yaw))
+    forward_x = math.cos(yaw_rad)
+    forward_y = math.sin(yaw_rad)
+    right_x = math.cos(yaw_rad + math.pi / 2.0)
+    right_y = math.sin(yaw_rad + math.pi / 2.0)
+    return carla.Transform(
+        carla.Location(
+            x=float(transform.location.x) + forward_x * float(forward_m) + right_x * float(right_m),
+            y=float(transform.location.y) + forward_y * float(forward_m) + right_y * float(right_m),
+            z=float(transform.location.z) + float(z_offset_m),
+        ),
+        carla.Rotation(
+            pitch=float(transform.rotation.pitch),
+            yaw=float(transform.rotation.yaw) + float(yaw_offset_deg),
+            roll=float(transform.rotation.roll),
+        ),
+    )
+
+
+def _spawn_parked_ego_vehicle(
+    *,
+    world: "carla.World",
+    args: argparse.Namespace,
+) -> "carla.Actor":
+    preferred, fell_back = od_demo.resolve_hero_blueprint(world, str(args.ego_vehicle_blueprint))
+    if fell_back:
+        print(
+            f"Requested ego blueprint {args.ego_vehicle_blueprint!r} was not found. "
+            f"Falling back to {preferred.id!r}."
+        )
+
+    spawn_points = list(world.get_map().get_spawn_points())
+    if not spawn_points:
+        raise RuntimeError("No CARLA spawn points are available for parked ego fusion.")
+    if int(args.ego_spawn_index) >= 0:
+        index = int(args.ego_spawn_index) % len(spawn_points)
+        ordered_spawn_points = [spawn_points[index], *spawn_points[:index], *spawn_points[index + 1 :]]
+    else:
+        ordered_spawn_points = list(spawn_points)
+        random.shuffle(ordered_spawn_points)
+
+    for spawn_point in ordered_spawn_points:
+        blueprint = od_demo.get_fresh_vehicle_blueprint(
+            world,
+            preferred.id,
+            str(args.ego_role_name),
+        )
+        candidate_transform = _offset_spawn_transform(
+            spawn_point,
+            forward_m=float(args.ego_spawn_forward_offset_m),
+            right_m=float(args.ego_spawn_right_offset_m),
+            z_offset_m=float(args.ego_spawn_z_offset_m),
+            yaw_offset_deg=float(args.ego_spawn_yaw_offset_deg),
+        )
+        actor = world.try_spawn_actor(blueprint, candidate_transform)
+        if actor is None:
+            continue
+        try:
+            actor.set_autopilot(False)
+            actor.apply_control(carla.VehicleControl(throttle=0.0, brake=1.0, hand_brake=True))
+        except RuntimeError:
+            pass
+        if bool(args.ego_freeze):
+            try:
+                actor.set_simulate_physics(False)
+            except RuntimeError:
+                pass
+        return actor
+
+    raise RuntimeError("Unable to spawn parked ego vehicle at any available spawn point.")
+
+
 def _transport_config_from_args(args: argparse.Namespace) -> "od_collect.TransportConfig":
     return od_collect.TransportConfig(
         quantization_mode=str(args.quantization_mode),
@@ -2063,6 +2380,14 @@ def run_client(args: argparse.Namespace) -> None:
     metrics_logger: Optional[FusionRunLogger] = None
     actors: List["carla.Actor"] = []
     checkpoint_path = _resolve_fusion_checkpoint_path(args)
+    sensor_platform = str(args.sensor_platform)
+    traffic_light: Optional["carla.Actor"] = None
+    ego_vehicle: Optional["carla.Actor"] = None
+    anchor_actor: Optional["carla.Actor"] = None
+    anchor_location: Optional["carla.Location"] = None
+    camera_attach_to: Optional["carla.Actor"] = None
+    radar_attach_to: Optional["carla.Actor"] = None
+    od_id = ""
 
     try:
         client = carla.Client(args.host, args.port)
@@ -2079,9 +2404,16 @@ def run_client(args: argparse.Namespace) -> None:
         except Exception:
             pass
 
-        traffic_light = _resolve_traffic_light_with_fallback(world, args)
-        camera_transform = pole_client.build_camera_transform(traffic_light, args)
-        anchor_location = traffic_light.get_transform().location
+        if sensor_platform == "pole":
+            traffic_light = _resolve_traffic_light_with_fallback(world, args)
+            camera_transform = pole_client.build_camera_transform(traffic_light, args)
+            radar_transform = camera_transform
+            anchor_actor = traffic_light
+            anchor_location = traffic_light.get_transform().location
+            od_id = pole_client._traffic_light_opendrive_id(traffic_light)
+        else:
+            camera_transform = _ego_camera_transform(args)
+            radar_transform = _ego_radar_transform(args)
         original_settings = world.get_settings()
     except Exception:
         _close_split_runtime(
@@ -2093,20 +2425,40 @@ def run_client(args: argparse.Namespace) -> None:
         raise
 
     image_queue: "queue.Queue[carla.Image]" = queue.Queue(maxsize=2)
+    gt_queue: Optional["queue.Queue[carla.Image]"] = None
+    gt_camera: Optional["carla.Actor"] = None
     print(f"Connected to CARLA at {args.host}:{args.port}")
     print(f"World: {world.get_map().name}")
-    print(f"Traffic light actor id: {traffic_light.id}")
-    od_id = pole_client._traffic_light_opendrive_id(traffic_light)
-    if od_id:
-        print(f"Traffic light OpenDRIVE id: {od_id}")
-    print(
-        "Pole sensor transform: "
-        f"loc=({camera_transform.location.x:.2f}, {camera_transform.location.y:.2f}, "
-        f"{camera_transform.location.z:.2f}), "
-        f"pitch={camera_transform.rotation.pitch:.1f}, "
-        f"yaw={camera_transform.rotation.yaw:.1f}, "
-        f"roll={camera_transform.rotation.roll:.1f}"
-    )
+    print(f"Sensor platform: {sensor_platform}")
+    if sensor_platform == "pole" and traffic_light is not None:
+        print(f"Traffic light actor id: {traffic_light.id}")
+        if od_id:
+            print(f"Traffic light OpenDRIVE id: {od_id}")
+        print(
+            "Pole sensor transform: "
+            f"loc=({camera_transform.location.x:.2f}, {camera_transform.location.y:.2f}, "
+            f"{camera_transform.location.z:.2f}), "
+            f"pitch={camera_transform.rotation.pitch:.1f}, "
+            f"yaw={camera_transform.rotation.yaw:.1f}, "
+            f"roll={camera_transform.rotation.roll:.1f}"
+        )
+    else:
+        print(
+            "Parked ego relative camera transform: "
+            f"loc=({camera_transform.location.x:.2f}, {camera_transform.location.y:.2f}, "
+            f"{camera_transform.location.z:.2f}), "
+            f"pitch={camera_transform.rotation.pitch:.1f}, "
+            f"yaw={camera_transform.rotation.yaw:.1f}, "
+            f"roll={camera_transform.rotation.roll:.1f}"
+        )
+        print(
+            "Parked ego relative radar transform: "
+            f"loc=({radar_transform.location.x:.2f}, {radar_transform.location.y:.2f}, "
+            f"{radar_transform.location.z:.2f}), "
+            f"pitch={radar_transform.rotation.pitch:.1f}, "
+            f"yaw={radar_transform.rotation.yaw:.1f}, "
+            f"roll={radar_transform.rotation.roll:.1f}"
+        )
     print(f"Camera resolution: {camera_width}x{camera_height} ({camera_resolution_label})")
     print(f"Model input: {model_input_size[0]}x{model_input_size[1]}")
     print(f"Front device: {front_device}, back device: {back_device}")
@@ -2130,6 +2482,23 @@ def run_client(args: argparse.Namespace) -> None:
         # sync state. The TM is shared across clients via the same --tm-port,
         # so a concurrent --sync-world client would have its TM mode silently
         # flipped to async if we toggled it here.
+
+        if sensor_platform == "ego_vehicle":
+            ego_vehicle = _spawn_parked_ego_vehicle(world=world, args=args)
+            actors.append(ego_vehicle)
+            anchor_actor = ego_vehicle
+            anchor_location = ego_vehicle.get_location()
+            camera_attach_to = ego_vehicle
+            radar_attach_to = ego_vehicle
+            print(
+                "Parked ego vehicle: "
+                f"id={ego_vehicle.id}, type={ego_vehicle.type_id}, "
+                f"spawn_index={int(args.ego_spawn_index)}, "
+                f"freeze={bool(args.ego_freeze)}"
+            )
+
+        if anchor_actor is None or anchor_location is None:
+            raise RuntimeError("Sensor anchor was not initialized.")
 
         background_vehicles = pole_client.spawn_background_vehicles_near(
             client,
@@ -2158,13 +2527,27 @@ def run_client(args: argparse.Namespace) -> None:
         camera = world.spawn_actor(
             pole_client._camera_blueprint(world, camera_width, camera_height, args.camera_fov, args.fps),
             camera_transform,
+            attach_to=camera_attach_to,
         )
         actors.append(camera)
         camera.listen(lambda image: od_demo.put_latest(image_queue, image))
 
+        if bool(args.enable_semantic_gt):
+            gt_bp = world.get_blueprint_library().find("sensor.camera.semantic_segmentation")
+            gt_bp.set_attribute("image_size_x", str(int(camera_width)))
+            gt_bp.set_attribute("image_size_y", str(int(camera_height)))
+            gt_bp.set_attribute("fov", str(float(args.camera_fov)))
+            gt_bp.set_attribute("sensor_tick", str(1.0 / max(0.1, float(args.fps))))
+            gt_camera = world.spawn_actor(gt_bp, camera_transform, attach_to=camera_attach_to)
+            actors.append(gt_camera)
+            gt_queue = queue.Queue(maxsize=2)
+            gt_camera.listen(lambda image, q=gt_queue: od_demo.put_latest(q, image))
+            print("Semantic-GT camera enabled for per-frame fusion mask IoU.")
+
         radar_pipeline = PoleRadarPipeline(
             world=world,
-            transform=camera_transform,
+            transform=radar_transform,
+            attach_to=radar_attach_to,
             args=args,
             model_input_size=model_input_size,
         )
@@ -2179,13 +2562,19 @@ def run_client(args: argparse.Namespace) -> None:
             )
         else:
             first_image = image_queue.get(timeout=max(1.0, float(args.camera_timeout)))
-        print(f"Pole RGB camera ready on frame {first_image.frame}.")
+        sensor_label = "Pole" if sensor_platform == "pole" else "Parked ego"
+        print(f"{sensor_label} RGB camera ready on frame {first_image.frame}.")
 
         intrinsics_input = intrinsics_at(
             int(model_input_size[0]), int(model_input_size[1]), float(args.camera_fov)
         )
 
-        spatial_stream_id = str(args.spatial_map_stream_id).strip() or f"fusion_tl_{traffic_light.id}"
+        if str(args.spatial_map_stream_id).strip():
+            spatial_stream_id = str(args.spatial_map_stream_id).strip()
+        elif sensor_platform == "pole" and traffic_light is not None:
+            spatial_stream_id = f"fusion_tl_{traffic_light.id}"
+        else:
+            spatial_stream_id = f"fusion_ego_{anchor_actor.id}"
         transport_label = _default_transport_label(args)
 
         if bool(args.run_logging):
@@ -2196,7 +2585,15 @@ def run_client(args: argparse.Namespace) -> None:
             )
             metrics_logger.write_manifest(
                 world=world,
-                traffic_light=traffic_light,
+                anchor_actor=anchor_actor,
+                sensor_placement=(
+                    "traffic_light_pole" if sensor_platform == "pole" else "ego_vehicle_front"
+                ),
+                anchor_label=(
+                    f"traffic_light_{traffic_light.id}"
+                    if sensor_platform == "pole" and traffic_light is not None
+                    else f"ego_vehicle_{anchor_actor.id}"
+                ),
                 model_input_size=model_input_size,
                 camera_width=int(camera_width),
                 camera_height=int(camera_height),
@@ -2213,9 +2610,13 @@ def run_client(args: argparse.Namespace) -> None:
                 host=str(args.spatial_map_host),
                 port=int(args.spatial_map_port),
                 stream_id=spatial_stream_id,
-                traffic_light_id=str(args.traffic_light_id),
-                traffic_light_actor_id=int(traffic_light.id),
-                traffic_light_opendrive_id=od_id,
+                traffic_light_id=(
+                    str(args.traffic_light_id)
+                    if sensor_platform == "pole"
+                    else f"ego_vehicle_{anchor_actor.id}"
+                ),
+                traffic_light_actor_id=int(anchor_actor.id),
+                traffic_light_opendrive_id=od_id if sensor_platform == "pole" else "",
                 camera_width=int(camera_width),
                 camera_height=int(camera_height),
                 camera_fov=float(args.camera_fov),
@@ -2265,6 +2666,23 @@ def run_client(args: argparse.Namespace) -> None:
                 if run_duration_elapsed():
                     break
                 continue
+
+            gt_3class: Optional[np.ndarray] = None
+            if gt_queue is not None:
+                if bool(args.sync_world):
+                    gt_image = od_demo.wait_for_camera_frame(
+                        gt_queue,
+                        int(image.frame),
+                        float(args.camera_timeout),
+                    )
+                else:
+                    try:
+                        gt_image = gt_queue.get(timeout=0.01)
+                    except queue.Empty:
+                        gt_image = None
+                if gt_image is not None:
+                    gt_tags = trained_seg_demo.carla_semantic_image_to_tags(gt_image)
+                    gt_3class = trained_seg_demo.map_carla_tags_to_3class(gt_tags)
 
             radar_measurement = radar_pipeline.get_latest(timeout=float(args.camera_timeout))
             if radar_measurement is None:
@@ -2353,6 +2771,7 @@ def run_client(args: argparse.Namespace) -> None:
                         mask=mask,
                         objects=objects,
                         radar_projected_points=radar_projected_points,
+                        gt_3class=gt_3class,
                         spatial_publisher=spatial_publisher,
                         camera_width=int(camera_width),
                         camera_height=int(camera_height),
@@ -2388,7 +2807,11 @@ def run_client(args: argparse.Namespace) -> None:
                     front_stats=front_stats,
                     remote_stats=remote_stats,
                     args=args,
-                    traffic_light_id=str(args.traffic_light_id),
+                    traffic_light_id=(
+                        str(args.traffic_light_id)
+                        if sensor_platform == "pole"
+                        else f"ego vehicle {anchor_actor.id}"
+                    ),
                 )
                 cv2.imshow(DEFAULT_WINDOW_NAME, annotated)
                 key = cv2.waitKey(1) & 0xFF

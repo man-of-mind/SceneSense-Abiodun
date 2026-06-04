@@ -1,0 +1,5 @@
+stream,stream_id,platform,miou_binary,miou_3class_macro,miou_vehicle_iou,miou_person_iou,frames,metric_n
+Pole S1,fusion_tl_14,Pole,0.42,0.565,0.805,0.0,604,603
+Pole S2,fusion_tl_14_view_2,Pole,0.349,0.556,0.73,0.0,714,710
+Ego S1,fusion_ego_front,Parked Ego,0.37,0.468,0.459,0.0,602,601
+Ego S2,fusion_ego_front_view_2,Parked Ego,0.376,0.501,0.53,0.0,712,708

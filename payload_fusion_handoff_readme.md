@@ -603,25 +603,25 @@ http://127.0.0.1:35011/api/spatial_map/live.png
 
 ## Mobile Ego-Vehicle RGB+Radar Hosting
 
-This is the requested target, but it is not currently a single existing command.
-The current state is:
-
-- `carla_split_inference_udp_segmentation_trained_lraspp_demo.py`: ego vehicle,
-  front RGB camera, segmentation, no radar fusion.
-- `carla_split_inference_udp_segmentation_trained_lraspp_pole_client.py`: pole
-  camera, segmentation, no radar fusion.
-- `carla_split_inference_udp_fusion_object_pole_client.py`: pole RGB+radar
-  split-fusion runtime.
-- `pole_lraspp_multimodal_fusion/`: pole RGB+radar training pipeline.
-
-To host the RGB+radar fusion model on a mobile ego vehicle, create an additive
-runtime such as:
+The parked ego smoke-test client now exists as:
 
 ```text
 carla_split_inference_udp_fusion_object_ego_client.py
 ```
 
-Build it by combining:
+The current related runtime state is:
+
+- `carla_split_inference_udp_segmentation_trained_lraspp_demo.py`: ego vehicle,
+  front RGB camera, segmentation, no radar fusion.
+- `carla_split_inference_udp_segmentation_trained_lraspp_pole_client.py`: pole
+  camera, segmentation, no radar fusion.
+- `carla_split_inference_udp_fusion_object_pole_client_spatial_stream_oai.py`:
+  shared pole/ego RGB+radar split-fusion runtime.
+- `carla_split_inference_udp_fusion_object_ego_client.py`: parked ego wrapper
+  for the shared fusion runtime.
+- `pole_lraspp_multimodal_fusion/`: pole RGB+radar training pipeline.
+
+The ego client was built by combining:
 
 - Hero vehicle spawning, autopilot/manual drive, and front camera mounting from
   `carla_split_inference_udp_demo.py`.

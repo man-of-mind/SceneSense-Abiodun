@@ -233,6 +233,124 @@ http://127.0.0.1:35011/api/spatial_map/live.png
 
 The server also writes `latest_fusion_object_spatial_map.png` in the server output directory by default.
 
+## Parked Ego Loopback Smoke Test
+
+Use this after the pole streams are working and before moving ego fusion back
+onto OAI. It uses the same split-fusion model/runtime, but attaches the RGB
+camera and radar to a parked vehicle instead of a traffic-light pole.
+
+Start with one parked ego stream:
+
+```bash
+source /path/to/carla_0_10_venv/bin/activate
+cd /path/to/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab
+
+python3 carla_split_inference_udp_fusion_object_ego_client.py \
+  --sync-world \
+  --ego-vehicle-blueprint vehicle.lincoln.mkz \
+  --ego-spawn-index 152 \
+  --ego-spawn-forward-offset-m 0.0 \
+  --ego-spawn-right-offset-m 3.0 \
+  --ego-spawn-z-offset-m 0.15 \
+  --fusion-checkpoint checkpoints/fusion_object_best.pt \
+  --entropy-coder zlib \
+  --npc-vehicles 20 \
+  --npc-pedestrians 10 \
+  --run-group exp_parked_ego_loopback_smoke \
+  --transport-label loopback \
+  --spatial-map-stream-id fusion_ego_front \
+  --spatial-map-port 39201 \
+  --camera-source-port 51201 \
+  --remote-port 51202 \
+  --remote-source-port 51203 \
+  --camera-result-port 51204 \
+  --result-timeout 1.5 \
+  --headless
+```
+
+This runs continuously until Ctrl+C. Add `--run-duration-s 60` for a timed run,
+or `--max-frames 120` for a short smoke test.
+
+The parked ego starts from a normal CARLA lane spawn point, so the
+`--ego-spawn-right-offset-m` value is what pushes it toward curb-side parking.
+If it moves to the wrong side of the road at a given spawn point, flip the sign
+to `--ego-spawn-right-offset-m -3.0`.
+
+For a two-stream parked-ego view, run a second parked vehicle with different
+ports and a nearby face-to-face pose. Start it after the synchronous owner above
+is running. This keeps common moving objects visible in both ego streams, but
+from different angles:
+
+```bash
+python3 carla_split_inference_udp_fusion_object_ego_client.py \
+  --async-world \
+  --ego-vehicle-blueprint vehicle.dodge.charger \
+  --ego-spawn-index 152 \
+  --ego-spawn-forward-offset-m 8.0 \
+  --ego-spawn-right-offset-m 3.0 \
+  --ego-spawn-z-offset-m 0.15 \
+  --ego-spawn-yaw-offset-deg 180.0 \
+  --ego-camera-yaw 0.0 \
+  --fusion-checkpoint checkpoints/fusion_object_best.pt \
+  --entropy-coder zlib \
+  --run-group exp_parked_ego_loopback_smoke \
+  --transport-label loopback \
+  --spatial-map-stream-id fusion_ego_front_view_2 \
+  --spatial-map-port 39201 \
+  --camera-source-port 51301 \
+  --remote-port 51302 \
+  --remote-source-port 51303 \
+  --camera-result-port 51304 \
+  --result-timeout 1.5 \
+  --headless
+```
+
+Use the two-stream version only after the one-stream smoke test confirms that
+the parked ego RGB/radar sensors produce returned masks/objects and metrics.
+For parked-ego map viewing, prefer starting
+`real_time_spatial_map_server_fusion_object_v2.py` without
+`--focus-traffic-light-ids 14`; that TL14 crop is useful for the pole demo but
+can hide ego-vehicle detections outside the focused radius.
+
+The ego wrapper enables a co-located CARLA semantic-segmentation camera by
+default. Use the per-stream metrics CSV to summarize segmentation agreement
+against CARLA semantic ground truth:
+
+```bash
+RUN_DIR=metrics_logs/scenesense_runs/<run_group>/<timestamped_run_dir>
+
+python3 - "$RUN_DIR/streams/fusion_ego_front_metrics.csv" <<'PY'
+import csv
+import math
+import sys
+from pathlib import Path
+
+rows = list(csv.DictReader(Path(sys.argv[1]).open()))
+for key in ("miou_binary", "miou_3class_macro", "miou_vehicle_iou", "miou_person_iou"):
+    values = []
+    for row in rows:
+        try:
+            value = float(row.get(key, "nan"))
+        except ValueError:
+            continue
+        if math.isfinite(value):
+            values.append(value)
+    avg = sum(values) / len(values) if values else float("nan")
+    print(f"{key}: n={len(values)} avg={avg:.3f}")
+PY
+```
+
+If the spatial map looks empty, first check whether the stream is arriving:
+
+```bash
+curl http://127.0.0.1:35011/api/fusion_streams/latest
+```
+
+An ego stream can be active while the rendered map still shows no objects if the
+fusion head returns zero object detections. Also avoid starting the map server
+with a tight `--focus-traffic-light-ids 14` crop unless the parked ego is near
+that anchor; otherwise detections can be outside the cropped view.
+
 ## Common Issues
 
 - `Fusion checkpoint not found`: use `--fusion-checkpoint` with the remote path to `best.pt`. Do not rely on a copied manifest unless its absolute `best_checkpoint` path matches the remote machine.
