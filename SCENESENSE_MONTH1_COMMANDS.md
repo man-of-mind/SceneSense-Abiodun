@@ -457,12 +457,12 @@ python3 carla_split_inference_udp_fusion_object_pole_client_spatial_stream_oai.p
   --headless
 ```
 
-Terminal D, pole stream 2 over UE1:
+Terminal D, pole stream 2 over UE2:
 
 ```bash
 python3 carla_split_inference_udp_fusion_object_pole_client_spatial_stream_oai.py \
   --role front \
-  --bind-host 10.0.0.2 \
+  --bind-host 10.0.0.3 \
   --remote-host 192.168.70.140 \
   --async-world \
   --traffic-light-id 14 \
