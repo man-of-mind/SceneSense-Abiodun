@@ -1,6 +1,6 @@
 # Research Direction — Network-Aware Selective Feature Transmission for Multi-UE Cooperative Perception
 
-> **Status:** Living document. Last updated 2026-05-20.
+> **Status:** Living document. Last updated 2026-06-05.
 > **Target venue:** ACM MobiSys.
 > **Owner:** Abiodun (under Subhramoy's track in the IDCC × NEU collaboration).
 >
@@ -13,6 +13,41 @@
 ## 1. One-paragraph problem statement [FIRM]
 
 A vehicle's perception is fundamentally limited by occlusion and viewpoint. Multiple connected vehicles can collectively perceive a scene better than any one of them alone — but **sharing perception requires transmitting intermediate model features over a cellular link**, and the bandwidth, latency, and reliability of that link are not free. We propose a *network-aware, scene-aware, model-aware* feature transmission policy for split-inference systems that **adaptively decides which feature tensors (and which parts of them) to transmit**, conditioned on current channel state, scene complexity, and the downstream task. The system extends SCAN-AI's single-UE cross-layer adaptation framework to the multi-UE cooperative-perception setting, where feature-level decisions must be made under real-time safety-critical constraints.
+
+## 1.5. Current thesis after Month 1 evidence [FIRM — updated 2026-06-05]
+
+Month 1 changed the project from a conceptual research direction into a
+measurable systems problem. We now have reproducible local and OAI 5G paths for
+camera-only OD, camera-only SEG, and RGB+radar fusion, plus a canonical
+curbside hidden-pedestrian scenario and pole-vs-parked-ego fusion
+transferability evidence.
+
+The refined MobiSys-facing thesis is:
+
+> Cooperative perception needs a runtime evidence-sharing layer, not only a
+> better perception model. Existing V2X/cooperative-driving systems show that
+> sharing can improve autonomy, but often abstract the wireless network as a
+> bandwidth/latency constraint. SceneSense opens that abstraction: it measures
+> split-perception evidence over a real OAI 5G path, quantifies when static
+> sharing fails, and builds task-aware/network-aware controls for what, when,
+> and whose perception evidence should be transmitted.
+
+Evidence already in hand:
+
+- Camera-only OD and SEG split-inference routes run over loopback and OAI.
+- RGB+radar fusion runs over loopback, single-UE OAI, and two-UE OAI paths.
+- OAI-vs-loopback fusion measurements show a clear application-level transport
+  penalty: higher RTT, higher tail latency, and lower result receive rate.
+- The fusion model transferability experiment gives a task-side warning:
+  pole-trained segmentation partially transfers to parked ego, but OD/localized
+  object recall drops sharply from pole views to parked-ego views.
+- A saved parked-ego fusion training-data path now exists, so fine-tuning is
+  possible if supervisor feedback says the parked-ego viewpoint should become
+  central.
+
+The missing paper-critical piece is a **design intervention**: a policy or
+controller that improves payload/latency/reliability while preserving task
+utility, compared against strong static and V2X baselines.
 
 ---
 
@@ -129,6 +164,19 @@ This is the *baseline characterization*. Required before any adaptive policy can
 
 ### RQ8 — Latency-aware decisions **[OPEN]**
 **How does the agent reason about its own decision latency? Is the decision policy itself fast enough to act within the safety-critical decision window?**
+
+### RQ9 — Graceful degradation under limited cooperation **[OPEN]**
+**How does cooperative perception scale with peer density and peer availability?**
+When no useful peer has line of sight, the system should fall back to local-only
+perception or infrastructure/RSU assistance rather than over-spending network
+resources on low-value sharing.
+
+### RQ10 — Viewpoint transferability and retraining boundary **[OPEN]**
+**When does a cooperative perception model trained for one sensor placement
+stop being reliable enough for another placement?** Month 1 evidence suggests
+pole-to-parked-ego transfer is acceptable for some segmentation signals but
+poor for OD/localization. This motivates either a viewpoint-aware policy
+guardrail or parked-ego fine-tuning before making strong spatial-map claims.
 
 ---
 
@@ -269,6 +317,22 @@ The agent's decision must come *before* the frame is encoded. How fast can it be
 
 A good MobiSys paper typically shows: clear win over the strongest static baseline + clear win in a regime where the static baseline breaks (high bandwidth pressure, congested channel).
 
+### Cooperative-perception baselines and references [updated 2026-06-05]
+
+These are needed so the work is not perceived as only an internal CARLA/OAI
+demo:
+
+| Baseline/reference | Why it matters | How to use it |
+|---|---|---|
+| **Local-only ego perception** | Minimum safety fallback and deployment reality when no peers exist | Compare hazard recall, OD/SEG quality, and warning latency against cooperative runs |
+| **Send-everything / highest-quality split features** | Upper-bound task utility; worst-case network cost | Report bytes/frame, chunks/frame, RTT, and task metric ceiling |
+| **Best fixed static policy** | Strongest no-adaptation baseline | Select the best fixed compression/drop setting on validation traces, then test on held-out scenes/network stress |
+| **Network-only adaptation** | Shows why channel state alone is not enough | Adapt payload to RTT/loss/throughput while ignoring task risk; compare task collapses |
+| **Task-only adaptation** | Shows why scene/model awareness alone is not enough | Preserve salient objects while ignoring OAI congestion; compare latency/receive failures |
+| **CoDriving / V2Xverse** | Strong perception-side reference for collaborative autonomous driving | Run their public reference if environment permits; otherwise use it as the closest SOTA framing and reproduce comparable communication constraints in our stack |
+| **Where2comm** | Closest "what to communicate" selective-cooperation method | Use as attention/selective-sharing comparator; highlight lack of real network-state conditioning |
+| **F-Cooper / V2X-ViT / Coopernaut / V2VNet family** | Standard cooperative perception context | Literature baselines; use their assumptions to sharpen what our network-aware systems layer adds |
+
 ---
 
 ## 10. Experimental plan [SOFT — to refine]
@@ -338,9 +402,72 @@ A good MobiSys paper typically shows: clear win over the strongest static baseli
 | Prior work | What it solves | What it leaves open (our contribution) |
 |---|---|---|
 | SCAN-AI | Single-UE cross-layer video adaptation | Multi-UE, feature-level (not video-level), cooperative perception |
-| CoDriving / V2Xverse | Multi-agent perception fusion | Network is black box; no learned transmission policy |
-| Where2comm | Selective communication via attention | No network-state conditioning; offline-trained; no real radio testbed |
+| CoDriving / V2Xverse | End-to-end collaborative autonomous driving with shared perceptual information and communication efficiency | Wireless path is not a real OAI/5G testbed; limited cross-layer network-state control; not focused on OAI/RIC/NWDAF-style orchestration |
+| Where2comm | Selective communication via attention | No real radio testbed; network state is not a first-class runtime signal |
+| Coopernaut | Early end-to-end cooperative driving in CARLA | Less emphasis on real wireless constraints and cross-layer policy placement |
+| F-Cooper / V2X-ViT / V2VNet family | Feature/BEV fusion architectures for cooperative perception | Perception fusion is central; network scheduling and task-aware transport are usually abstracted |
 | MPEG VCM / CompressAI-Vision | Feature compression codecs | Codec is fixed; no policy layer; no network awareness |
+
+## 12.5. MobiSys fit assessment [SOFT — updated 2026-06-05]
+
+The project is a plausible MobiSys paper if it is framed as a **mobile systems
+paper for network-aware cooperative perception**, not as a perception-model
+paper. The fit is strong because MobiSys values working implementations and
+practical evaluations, and its topic areas explicitly include vehicular/robotic
+systems, ML for mobile devices, wireless communication systems including 5G/6G,
+and experience with mobile applications/networks/systems.
+
+### Why the work fits
+
+- **Working system:** CARLA 0.10 + split inference + OAI 5G + receiver
+  container + spatial-map server + metrics analyzers.
+- **Mobile/wireless core:** OAI 5G transport is not a toy network abstraction;
+  it creates measurable latency, tail, and receive-rate behavior that changes
+  application utility.
+- **Cross-layer story:** The application can observe task utility, payload, RTT,
+  receive failures, and network/tunnel/RAN evidence. A controller can make
+  decisions at the boundary between perception and network.
+- **Compelling application:** Hidden-pedestrian/occlusion scenarios are a clean
+  safety motivation for why local perception alone is insufficient.
+- **Generalizable abstraction:** "Perception evidence sharing under network
+  constraints" can apply to vehicles, robots, drones, RSUs, and edge cameras.
+
+### Current acceptance risk
+
+- **No accepted design intervention yet.** Month 1 is strong measurement and
+  infrastructure, but MobiSys needs a system that changes outcomes, not only a
+  report that OAI is slower than loopback.
+- **Need stronger baselines.** V2Xverse/CoDriving, Where2comm-style selective
+  sharing, local-only, send-everything, and best fixed policies should all be
+  clearly addressed.
+- **Need closed-loop utility.** A reviewer will ask whether the map update helps
+  the affected vehicle act earlier or more reliably. Offline mIoU/recall is
+  necessary but not sufficient.
+- **Need avoid overclaiming 5G.** If OAI is RF simulator/no-impairment only, we
+  should call it an OAI 5G transport testbed, not a full commercial-network
+  deployment.
+- **Need make RL earn its keep.** A simple heuristic/bandit may be enough for
+  the first paper. RL is acceptable only if it beats simpler controllers and
+  its own decision latency is tiny.
+
+### Most promising paper shape
+
+1. **Measurement:** quantify payload/task/latency behavior for OD, SEG, and
+   fusion over loopback and OAI.
+2. **Design:** SceneSense Evidence Controller chooses feature detail, frame
+   send/skip, stream priority, and map update detail using scene/model/network
+   state.
+3. **Guardrails:** prevent unsafe compression when vulnerable-object risk,
+   model uncertainty, or map freshness risk is high.
+4. **Evaluation:** show that the controller beats best fixed/static policies
+   under OAI pressure while preserving OD/SEG/fusion utility and improving the
+   hidden-hazard case.
+5. **Case study:** spatial-map update warns the affected ego/helper earlier
+   than local-only perception, with lower network cost than send-everything.
+
+Bottom-line assessment: **good MobiSys fit, medium acceptance probability once
+the controller and closed-loop case study exist; low probability if submitted
+as Month-1 measurement only.**
 
 ---
 
@@ -366,21 +493,35 @@ A good MobiSys paper typically shows: clear win over the strongest static baseli
 
 ---
 
-## 14. Next actions [FIRM — updated 2026-05-21]
+## 14. Next actions [FIRM — updated 2026-06-05]
 
-1. **Install V2Xverse** (after checking with supervisor where to install — possibly on his machine; check CARLA version compatibility). Run CoDriving reference solution to verify.
-2. **Read CoDriving with the differentiation-table lens.** Fill in §12 row by row as you go.
-3. **Read Coopernaut** (CVPR 2022) and add to the differentiation table.
-4. **Skim adjacent works** (Where2comm, V2X-ViT, F-Cooper) and note which they treat as black-boxed.
-5. **Read the saliency-gating implementation** in [`carla_split_inference_udp_segmentation_demo.py`](../carla_split_inference_udp_segmentation_demo.py) (around lines 1003 and 1629) — this is the *primitive* form of what your research extends.
-6. **Read up on O-RAN / RIC / xApp basics** if the architectural question survives further conversations. Start with O-RAN Alliance whitepapers.
-7. **Bring filled-in differentiation table + V2Xverse run results to next supervisor sync.** Use this to discuss which gap to attack first.
-
-(Phase 1 experiments — payload-vs-accuracy curve — are still planned but now happen after the SOTA characterization, not before.)
+1. **Present Month 1 evidence** to supervisor: OAI-vs-loopback latency,
+   camera-only OD/SEG metrics, fusion_as_seg/OD transferability, parked-ego
+   data-collection path, and curbside evidence scenario.
+2. **Ask for thesis choice:** measurement+controller MobiSys paper now, or hold
+   for a stronger learned/RL agent later.
+3. **Finish CoDriving/V2Xverse differentiation.** If V2Xverse remains blocked
+   locally, document the compatibility blocker and use paper/repo-level
+   baselines until a compatible machine is available.
+4. **Run static policy sweeps** for payload-vs-task curves: camera SEG saliency
+   drop, camera OD compression/quality knobs, and fusion payload settings where
+   available.
+5. **Build first controller baseline:** start with rule-based or contextual
+   bandit before RL. Inputs: scene density/foreground, model confidence or
+   uncertainty, RTT/loss/receive-rate, payload bytes/chunks.
+6. **Define closed-loop utility metric** for the curbside hazard: warning lead
+   time, vulnerable-object recall before collision, stale-map rate, and network
+   cost.
+7. **Decide parked-ego training plan:** if supervisor wants parked-ego as the
+   primary viewpoint, use the saved training-schema pipeline to fine-tune or at
+   least build a larger dataset.
 
 ---
 
 ## Change log
 
+- **2026-06-05** — Month 1 consolidation. Added current thesis/evidence,
+  RQ9/RQ10, expanded baselines, updated differentiation table, MobiSys fit
+  assessment, and new next actions before supervisor discussion.
 - **2026-05-21** — Supervisor sync. Added §2.5 (research strategy = gap-finding). Added "Scope: what we are NOT doing". Updated §8 Q1 with RIC / O-RAN option and community-fit framing. Added Coopernaut and other comparator papers to §11. Restructured next actions (§14) — SOTA characterization comes before Phase 1.
 - **2026-05-20** — Initial consolidation. Captures phased plan, control knobs, open questions, related reading, and supervisor's recent steer.

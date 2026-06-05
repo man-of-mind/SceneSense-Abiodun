@@ -304,18 +304,275 @@ No full RL training required in Month 1, but the schema should be clear enough t
 - [x] Parked ego data collection path started: live parked-ego RGB/radar inference, semantic-GT metrics, object-GT logging, pole-vs-ego transfer evidence, and smoke-validated saved training-schema export are in place.
 - [x] RL state/action/reward/guardrail schema drafted.
 
-## Month 2: Static Sweeps and First Controller Harness
+## Month 2: Static Sweeps, 5QI/QoS, and First Controller Harness
 
-- [ ] Run static compression sweeps for available knobs.
-- [ ] Run payload-characterization sweeps using the handoff pattern:
-  - [ ] `local_unlimited`.
-  - [ ] OAI 5G transport baseline with no intentional impairment.
-  - [ ] TC/netem profiles only when ready for controlled stress.
-  - [ ] Quantization and entropy-coder configurations.
-- [ ] Compare camera-only OD, camera-only SEG, and RGB+radar fusion under the same scenes where possible.
-- [ ] Implement/evaluate a first controller harness against logged traces.
-- [ ] Establish static baselines that the learned policy must beat.
-- [ ] Produce first plots: payload vs latency vs task utility.
+Proposal row being covered:
+
+> Implement constrained RL controller over AE/ROI/quantization/scheduling/
+> redundancy actions.
+>
+> Exit criterion: policy can train or evaluate against static policies using
+> the same logged metrics.
+
+Working Month 2 interpretation:
+
+> Static payload/task/latency Pareto curves, first 5QI/QoS comparison, and an
+> offline controller harness that can score candidate actions against logged
+> traces with guardrail/fallback accounting.
+
+Month 2 goal is not to claim a final RL policy. The goal is to produce the
+static baselines and QoS evidence that any learned policy must beat.
+
+### 1. Freeze the Month 2 Experiment Matrix
+
+- [ ] Select the Month 2 scenario subset:
+  - [ ] Low-density clear scene.
+  - [ ] Crowded scene.
+  - [ ] Curbside hidden-pedestrian scenario.
+  - [ ] Optional parked-ego fusion transfer scene if supervisor wants parked ego prioritized.
+- [ ] Select the Month 2 route subset:
+  - [ ] Camera-only OD.
+  - [ ] Camera-only SEG.
+  - [ ] RGB+radar fusion as SEG.
+  - [ ] RGB+radar fusion as OD.
+- [ ] Define canonical run durations:
+  - [ ] Short smoke: 30-60 s.
+  - [ ] Measurement run: 180 s.
+  - [ ] Long stability run: 300-600 s, only after smoke passes.
+- [ ] Define canonical run-group naming:
+  - [ ] Static sweeps: `month2_static_<route>_<profile>_<transport>`.
+  - [ ] 5QI sweeps: `month2_5qi_<value>_<route>_<transport>`.
+  - [ ] Controller replay: `month2_controller_replay_<date>`.
+- [ ] Update or create the Month 2 command sheet/runbook section once the first
+  smoke commands are validated.
+
+Completion criteria:
+
+- [ ] A table exists listing scenario x route x transport x profile combinations.
+- [ ] Every planned run has a reproducible command, expected output folder, and
+  analyzer command.
+- [ ] Remote sync instructions are recorded for any edited scripts/config files.
+
+### 2. Static UE-Side Payload/Task Sweeps
+
+These sweeps establish the fixed operating points that the future controller
+must beat.
+
+- [ ] Run camera-only OD static sweeps where supported:
+  - [ ] Resolution/profile baseline.
+  - [ ] Quantization/compression profile, if exposed by the active OD route.
+  - [ ] Confidence/score threshold sweep for returned detections.
+  - [ ] Optional frame-rate or send-rate sweep if supported.
+- [ ] Run camera-only SEG static sweeps where supported:
+  - [ ] Resolution/profile baseline.
+  - [ ] Segmentation input size sweep.
+  - [ ] Saliency/drop sweep if using the route with `--saliency-drop-q`.
+  - [ ] Mask output size: model vs camera, where relevant.
+- [ ] Run RGB+radar fusion static sweeps:
+  - [ ] Quantization: `per_tensor_uint8`, `per_channel_uint8`, `per_channel_uint4`
+    where supported.
+  - [ ] Entropy coder: `zlib`, `zstd` if installed, and `none` for diagnosis.
+  - [ ] Object score threshold / top-k sweep for fusion_as_od.
+  - [ ] Semantic-GT enabled sweep for fusion_as_seg.
+- [ ] For each accepted static profile, collect:
+  - [ ] Application metrics CSV.
+  - [ ] Run manifest/resolved config.
+  - [ ] Task-quality summary: OD recall/precision or fusion OD recall/localization.
+  - [ ] SEG summary: mIoU, foreground IoU, vehicle/person IoU where visible.
+  - [ ] Payload summary: bytes/frame, chunks/frame, compression ratio.
+  - [ ] Latency summary: front, back, RTT, timeout/no-result rate.
+
+Completion criteria:
+
+- [ ] At least one static Pareto plot exists per priority route:
+  payload vs latency vs task utility.
+- [ ] A "best fixed static policy" is identified for each priority route.
+- [ ] A "lowest-byte unsafe policy" is identified to motivate guardrails.
+- [ ] Runs that saturate or time out are labeled as saturation evidence, not
+  valid task-quality samples.
+
+### 3. OAI 5QI/QoS Experiments
+
+Hypothesis: the current default OAI QoS path is too close to best-effort/eMBB
+behavior for safety-critical cooperative perception. Month 2 should test
+whether changing the 5QI/QoS profile improves application latency, result
+receive rate, and task utility under fixed payloads.
+
+- [ ] Record current OAI QoS baseline:
+  - [ ] DNN name.
+  - [ ] S-NSSAI / SST / SD.
+  - [ ] Active 5QI.
+  - [ ] AMBR UL/DL.
+  - [ ] UE tunnel IPs.
+  - [ ] Any visible QFI/DRB mapping in OAI logs/traces.
+- [ ] Create reversible OAI config variants or scripts for candidate 5QIs:
+  - [ ] `5QI 9`: current/default baseline.
+  - [ ] `5QI 7`: live video / interactive non-GBR candidate.
+  - [ ] `5QI 2`: conversational video GBR candidate.
+  - [ ] `5QI 79`: V2X message candidate.
+  - [ ] `5QI 85` or `86`: low-delay V2X / remote-driving style candidate.
+  - [ ] `5QI 88`, `89`, or `90`: split-AI / visual-content candidates if OAI accepts them.
+- [ ] For each 5QI candidate, verify whether the configured value is actually
+  active:
+  - [ ] Core config snapshot saved.
+  - [ ] CN/gNB/UE restart sequence documented.
+  - [ ] UE registration/session success confirmed.
+  - [ ] QFI/5QI/DRB evidence captured if available.
+  - [ ] If OAI does not expose/accept the candidate cleanly, record the failure
+    and keep the baseline unchanged.
+- [ ] Run fixed-payload OAI traces for each accepted 5QI:
+  - [ ] Same scene.
+  - [ ] Same route/model/checkpoint.
+  - [ ] Same payload profile.
+  - [ ] Same duration.
+  - [ ] Same UE count.
+  - [ ] Same chunk size.
+- [ ] Run at least one 5QI sweep under background load:
+  - [ ] No background load.
+  - [ ] Fixed iperf uplink/downlink load.
+  - [ ] Optional two-UE competing perception load.
+- [ ] Analyze 5QI effects:
+  - [ ] RTT median/p95/p99.
+  - [ ] Timeout/no-result rate.
+  - [ ] Receive rate.
+  - [ ] UE tunnel drops/errors.
+  - [ ] gNB/UE grants: MCS, RBs, TBS, HARQ/retransmission proxy.
+  - [ ] Task utility: OD recall/localization or SEG IoU.
+
+Completion criteria:
+
+- [ ] A 5QI comparison table exists with config evidence, app metrics, network
+  metrics, and task metrics.
+- [ ] A plot shows whether lower-delay/V2X/split-AI 5QIs improve application RTT
+  and receive rate under fixed payload.
+- [ ] The conclusion explicitly says whether static 5QI alone is enough, or
+  whether payload control is still required.
+
+### 4. First Offline Controller Harness
+
+This is the first bridge from measurement to control. It should replay logged
+traces and score decisions offline before any online RL touches CARLA/OAI.
+
+- [ ] Implement trace loader that joins:
+  - [ ] Application metrics by run group / stream / frame or timestamp window.
+  - [ ] Network sampler metrics.
+  - [ ] T-tracer / gNB metrics where available.
+  - [ ] Scenario metadata.
+  - [ ] Task-quality summaries.
+- [ ] Implement action-profile catalog:
+  - [ ] Safe/high-quality profile.
+  - [ ] Balanced profile.
+  - [ ] Low-byte profile.
+  - [ ] Hazard/guarded profile.
+  - [ ] Route-specific unsupported actions are masked.
+- [ ] Implement reward scorer:
+  - [ ] Task utility retained.
+  - [ ] Minus payload cost.
+  - [ ] Minus latency cost.
+  - [ ] Minus timeout/loss cost.
+  - [ ] Minus stale-map or vulnerable-object penalty where available.
+- [ ] Implement first non-RL baselines:
+  - [ ] Always-safe/send-everything.
+  - [ ] Always-low-byte.
+  - [ ] Best fixed profile.
+  - [ ] Network-only rule.
+  - [ ] Task-only rule.
+  - [ ] Simple heuristic rule using scene + network state.
+- [ ] Optional learning baseline:
+  - [ ] Contextual bandit or DQN over discrete action profiles.
+  - [ ] Do not use SAC unless continuous knobs are introduced and simple
+    baselines are already beaten.
+
+Completion criteria:
+
+- [ ] Controller replay produces a CSV/JSON summary for every baseline policy.
+- [ ] Baseline policy comparison plot exists:
+  task utility vs bytes vs latency/timeout.
+- [ ] The best simple heuristic is identified as the first policy the learned
+  controller must beat.
+- [ ] No online action execution is enabled until offline replay passes sanity
+  checks.
+
+### 5. Guardrail Threshold Draft
+
+Month 2 guardrails can remain offline, but thresholds must become concrete
+enough for controller replay.
+
+- [ ] Draft route-specific task floors:
+  - [ ] Camera OD recall/precision or AP proxy floor.
+  - [ ] Camera SEG foreground IoU / mIoU floor.
+  - [ ] Fusion_as_od recall/localization floor.
+  - [ ] Fusion_as_seg foreground/vehicle/person IoU floor.
+- [ ] Draft vulnerable-object rules:
+  - [ ] No frame skip when pedestrian/cyclist/hidden-hazard flag is active.
+  - [ ] No aggressive saliency/ROI drop when vulnerable-object confidence is low
+    or uncertainty is high.
+  - [ ] Safer fallback when map freshness is stale.
+- [ ] Draft network fallback rules:
+  - [ ] If timeout/no-result rate rises, prefer smaller payload before dropping
+    safety-critical frames.
+  - [ ] If UE tunnel drops/errors rise, reduce payload detail or send compact
+    hazard messages.
+
+Completion criteria:
+
+- [ ] Guardrail thresholds are written in config or a replay script, not only in prose.
+- [ ] Replay reports accepted, clamped, and rejected actions separately.
+- [ ] Fallback cost is measurable in bytes/latency/task utility.
+
+### 6. Spatial-Map Sharing Groundwork
+
+The full map-sharing RL agent is Month 5, but Month 2 should make the closed-loop
+case study measurable.
+
+- [ ] Define spatial-map utility fields needed by the future map-sharing agent:
+  - [ ] Object class.
+  - [ ] Pose / velocity.
+  - [ ] Confidence / uncertainty.
+  - [ ] Provenance stream id.
+  - [ ] Freshness / age.
+  - [ ] Occlusion or hazard flag.
+  - [ ] Intended recipient or affected ego vehicle.
+- [ ] Define curbside hidden-hazard utility metrics:
+  - [ ] Warning lead time before collision / near-miss.
+  - [ ] Vulnerable-object recall before collision.
+  - [ ] Stale-object rate.
+  - [ ] False hazard rate.
+  - [ ] Bytes per useful warning.
+- [ ] Create a local-only vs cooperative comparison plan:
+  - [ ] Ego-only evidence.
+  - [ ] Helper/observer evidence.
+  - [ ] Spatial-map shared warning.
+  - [ ] Send-everything map update baseline.
+  - [ ] Compact hazard-only update baseline.
+
+Completion criteria:
+
+- [ ] A replayable curbside run folder can produce warning-lead-time and
+  freshness metrics.
+- [ ] Spatial-map entries can be joined back to CARLA ground truth and evidence
+  traces.
+- [ ] There is a clear Month 3/4 path from spatial-map measurement to online map
+  sharing.
+
+### Month 2 Definition of Done
+
+- [ ] Static sweeps produce at least one payload/latency/task Pareto curve for
+  camera-only SEG or fusion SEG.
+- [ ] Static sweeps produce at least one OD/localization trade-off curve for
+  camera-only OD or fusion_as_od.
+- [ ] 5QI/QoS sweep has at least baseline 5QI 9 plus two accepted alternative
+  5QI candidates, or documented OAI blockers if alternatives fail.
+- [ ] OAI runs include matching application, UE tunnel, and radio/grant metrics
+  under a shared `run_group`.
+- [ ] Offline controller replay can compare at least five policies: safe,
+  low-byte, best fixed, network-only, and heuristic scene+network.
+- [ ] Guardrail replay reports accept/clamp/reject counts and fallback costs.
+- [ ] A Month 2 slide/report summarizes:
+  - [ ] Static Pareto curves.
+  - [ ] 5QI/QoS findings.
+  - [ ] First controller baseline results.
+  - [ ] Remaining gap before online RL.
 
 ## Month 3: Guardrail Stress Tests
 

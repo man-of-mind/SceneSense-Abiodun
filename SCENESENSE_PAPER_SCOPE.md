@@ -4,6 +4,8 @@ Living outline for turning the project into a focused MobiSys-style systems pape
 
 This document should evolve as experiments produce evidence. The goal is to keep the research story sharp while the engineering work grows.
 
+Last updated: 2026-06-05.
+
 ## Working Title
 
 SceneSense Agent: Task-aware Split Inference and Spatial-Map Sharing for Network-aware Cooperative Perception
@@ -25,6 +27,33 @@ scene/model/network state
   -> guardrail acceptance or fallback
   -> spatial-map update for cooperative perception
 ```
+
+## Refined Scope After Month 1
+
+The strongest first-paper shape is no longer "build a cooperative perception
+model." It is:
+
+> **SceneSense is a network-aware evidence-sharing layer for cooperative
+> perception.** It measures task utility and network cost for OD, SEG, and
+> RGB+radar fusion over loopback and OAI 5G, then controls what perception
+> evidence is transmitted so safety-relevant map updates arrive within useful
+> latency/byte budgets.
+
+Month 1 supports the premise:
+
+- Camera-only OD and SEG split-inference routes run locally and over OAI.
+- RGB+radar fusion runs locally and over OAI, including multi-UE transport.
+- OAI adds a large application-level RTT/tail penalty compared with loopback.
+- Fusion_as_seg and fusion_as_od can now be evaluated separately.
+- Pole-to-parked-ego transferability is measured: segmentation partially
+  transfers, while object detection/localization drops enough to motivate
+  guardrails or fine-tuning.
+- The curbside hidden-pedestrian scenario provides a concrete safety case for
+  spatial-map sharing.
+
+The paper-critical gap is still the controller: the current evidence proves the
+measurement problem is real; the final paper needs a system intervention that
+improves outcomes over static baselines.
 
 ## Primary Scope
 
@@ -51,6 +80,9 @@ scene/model/network state
 - Problem: cooperative perception cannot send everything all the time.
 - Safety risk: static compression can erase critical objects.
 - Opportunity: scene-aware, model-aware, and network-aware split-inference control.
+- Evidence hook: OAI transport makes a fixed fusion payload much slower and
+  less reliable than loopback, while viewpoint transfer can break object-level
+  utility.
 - Contributions summarized clearly.
 
 ### 2. Motivation and Challenges
@@ -70,6 +102,14 @@ Evidence we need before claiming an agent is useful:
 - Scene density or occlusion causing harder perception outcomes.
 - Spatial-map freshness and stale-object behavior.
 
+Month 1 measurement figures already available or near-ready:
+
+- Camera-only OD loopback vs OAI latency and OD quality.
+- Camera-only SEG loopback vs OAI latency and SEG quality.
+- RGB+radar fusion OAI vs loopback latency/receive-rate comparison.
+- Fusion pole-vs-parked-ego transferability for SEG and OD.
+- Curbside evidence pack demonstrating hidden-pedestrian failure geometry.
+
 ### 4. SceneSense Agent Design
 
 - State:
@@ -88,6 +128,15 @@ Evidence we need before claiming an agent is useful:
   - Task utility retained minus byte/latency/loss/staleness cost.
 - Guardrails:
   - Reject or clamp unsafe actions using validated thresholds and online proxies.
+
+First implementation target:
+
+- Start with a rule-based or contextual-bandit controller before full RL.
+- Actions should be simple and measurable: send/skip, detail level, saliency
+  drop/compression profile, stream priority, and spatial-map update detail.
+- The controller should have an explicit fallback: if task risk is high or
+  confidence proxy is low, use higher-detail evidence even when the network is
+  pressured.
 
 ### 5. Implementation
 
@@ -109,6 +158,17 @@ Core comparisons:
 - Learned policy.
 - Learned policy with and without guardrails.
 
+Required baselines:
+
+- Local-only ego perception.
+- Send-everything / highest-quality split features.
+- Best fixed static policy selected offline.
+- Network-only adaptive policy that ignores task utility.
+- Task-only adaptive policy that ignores network state.
+- V2Xverse/CoDriving-style collaborative driving or trace-level comparison.
+- Where2comm-style selective sharing as the closest "what to communicate"
+  baseline.
+
 Core metrics:
 
 - Payload bytes and chunks.
@@ -127,6 +187,16 @@ Core metrics:
 - Server-side map-sharing policy decides what/when/who.
 - Target outcome: the affected vehicle gets useful warning; unaffected vehicles are not spammed.
 
+Concrete Month 1 case study candidate:
+
+- Curbside hidden pedestrian behind parked vehicle(s).
+- Ego camera misses or sees late; helper/observer view has earlier evidence.
+- Spatial map should deliver a pedestrian/hazard update before the collision
+  window, with lower byte cost than sending everything continuously.
+- Metrics: warning lead time, vulnerable-object recall before collision,
+  stale-object rate, false hazard rate, application RTT, and bytes per useful
+  warning.
+
 ### 8. Discussion and Limitations
 
 - Runtime guardrails rely on proxies, while AP/mIoU ground truth is offline.
@@ -138,10 +208,34 @@ Core metrics:
 
 These should be tightened as results arrive:
 
-1. A task-aware split-inference control framework that adapts payload knobs using scene, model, and network state.
-2. A CARLA + OAI 5G evaluation harness for OD/SEG/fusion payload characterization.
-3. A guardrail layer that preserves safety-critical task utility under compression and network stress.
-4. A spatial-map sharing extension that routes cooperative perception updates based on risk, freshness, and bandwidth.
+1. A CARLA + OAI 5G cooperative-perception measurement stack that exposes
+   payload, latency, receive-rate, task utility, and spatial-map freshness for
+   OD, SEG, and RGB+radar fusion.
+2. A task-aware/network-aware evidence controller that adapts perception
+   evidence detail and stream priority under OAI transport pressure.
+3. A guardrail layer that preserves safety-critical OD/SEG/fusion utility under
+   compression and network stress.
+4. A spatial-map sharing case study that routes cooperative perception updates
+   based on risk, freshness, and bandwidth in a hidden-hazard scenario.
+
+## MobiSys Acceptance Bar
+
+Likely acceptable shape:
+
+- Full working implementation with reproducible commands and artifacts.
+- Strong measurement showing why fixed sharing fails over OAI/network stress.
+- Controller that beats best fixed/static policies on both network cost and
+  task utility.
+- Closed-loop hidden-hazard case showing useful warning/map improvement.
+- Honest comparison to V2Xverse/CoDriving and Where2comm-style assumptions.
+
+Likely weak shape:
+
+- OAI-vs-loopback measurement only.
+- CARLA perception accuracy only.
+- Fusion retraining only.
+- RL claim without beating simple heuristics.
+- Spatial-map visualization without downstream utility metrics.
 
 ## Month-by-Month Evidence Needed
 
@@ -186,3 +280,8 @@ Month 6:
 - Does it generalize to new scenes or network conditions?
 - What is the cost of the controller itself?
 - Does the spatial-map sharing actually help a downstream vehicle?
+- How does this differ from V2Xverse/CoDriving beyond using a different
+  simulator?
+- What is the strongest fixed baseline and why is it insufficient?
+- Is OAI RF-sim/no-impairment representative enough, and what claims are not
+  being made?

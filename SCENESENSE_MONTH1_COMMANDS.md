@@ -1,6 +1,6 @@
 # SceneSense Month 1 Reproducible Commands
 
-Last updated: 2026-06-04
+Last updated: 2026-06-05
 
 Purpose: one compact command sheet for the Month 1 Definition of Done. These
 commands point to the reproducible local loopback and OAI 5G paths for:
@@ -402,6 +402,75 @@ python3 carla_split_inference_udp_fusion_object_pole_client_spatial_stream_oai.p
   --npc-pedestrians 0 \
   --transport-label loopback \
   --run-group month1_fusion_loopback \
+  --result-timeout 1.5 \
+  --headless
+```
+
+### Local Loopback, Parked-Ego Transfer Variant
+
+Run this after the two pole streams above when collecting pole-vs-parked-ego
+fusion transferability evidence. Stop the pole streams first, then start the
+parked-ego pair with the same `--run-group` so the SEG/OD analyzers can compare
+`fusion_tl_*` and `fusion_ego_*` streams together. For parked-ego map viewing,
+restart the spatial-map server without the TL14 focus crop:
+
+```bash
+python3 real_time_spatial_map_server_fusion_object_v2.py \
+  --object-yaw-map-offset-deg 10.0
+```
+
+Terminal B, parked-ego stream 1. This stream owns synchronous CARLA ticking and
+spawns the shared NPC scene:
+
+```bash
+python3 carla_split_inference_udp_fusion_object_ego_client.py \
+  --sync-world \
+  --ego-vehicle-blueprint vehicle.lincoln.mkz \
+  --ego-spawn-index 152 \
+  --ego-spawn-forward-offset-m 0.0 \
+  --ego-spawn-right-offset-m 3.0 \
+  --ego-spawn-z-offset-m 0.15 \
+  --fusion-checkpoint checkpoints/fusion_object_best.pt \
+  --entropy-coder zlib \
+  --npc-vehicles 20 \
+  --npc-pedestrians 10 \
+  --run-group month1_fusion_loopback \
+  --transport-label loopback \
+  --spatial-map-stream-id fusion_ego_front \
+  --spatial-map-port 39201 \
+  --camera-source-port 51201 \
+  --remote-port 51202 \
+  --remote-source-port 51203 \
+  --camera-result-port 51204 \
+  --result-timeout 1.5 \
+  --headless
+```
+
+Terminal C, parked-ego stream 2. Start this after stream 1 is running; it uses
+the nearby face-to-face pose and stays asynchronous:
+
+```bash
+python3 carla_split_inference_udp_fusion_object_ego_client.py \
+  --async-world \
+  --ego-vehicle-blueprint vehicle.dodge.charger \
+  --ego-spawn-index 152 \
+  --ego-spawn-forward-offset-m 8.0 \
+  --ego-spawn-right-offset-m 3.0 \
+  --ego-spawn-z-offset-m 0.15 \
+  --ego-spawn-yaw-offset-deg 180.0 \
+  --ego-camera-yaw 0.0 \
+  --fusion-checkpoint checkpoints/fusion_object_best.pt \
+  --entropy-coder zlib \
+  --npc-vehicles 0 \
+  --npc-pedestrians 0 \
+  --run-group month1_fusion_loopback \
+  --transport-label loopback \
+  --spatial-map-stream-id fusion_ego_front_view_2 \
+  --spatial-map-port 39201 \
+  --camera-source-port 51301 \
+  --remote-port 51302 \
+  --remote-source-port 51303 \
+  --camera-result-port 51304 \
   --result-timeout 1.5 \
   --headless
 ```

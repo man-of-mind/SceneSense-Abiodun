@@ -6,6 +6,75 @@
 
 ---
 
+## 2026-06-05 — Month 1 evidence sharpened the paper shape
+
+### What changed since the earlier research framing
+- The project is no longer only "possible direction." We now have a working
+  measurement harness across camera-only OD, camera-only SEG, RGB+radar fusion,
+  loopback, and OAI 5G transport.
+- The hidden-pedestrian curbside scenario is now the Month 1 canonical safety
+  case, with ego/helper evidence-pack support.
+- Fusion model transferability is now measured rather than guessed:
+  pole-trained fusion segmentation partially transfers to parked ego, but
+  object detection/localization drops sharply on parked-ego views.
+- OAI-vs-loopback is now a real systems story: same split application, same
+  checkpoint, same CARLA scene, much higher app RTT and non-100% receive rate
+  on the OAI path.
+
+### New framing instinct
+The paper should probably not start as "we built an RL agent." It should start
+as:
+
+> Cooperative perception systems need to decide what evidence to transmit under
+> real wireless constraints. Existing V2X/cooperative-driving work shows that
+> sharing helps, but it often abstracts the network. SceneSense opens that
+> abstraction with a working CARLA + OAI measurement/control stack and then
+> introduces task-aware, network-aware sharing policies.
+
+This is more MobiSys-shaped than perception-shaped. The perception models are
+important because they define task utility, but the contribution is the mobile
+system that measures, controls, and routes the evidence.
+
+### MobiSys acceptance thought
+Strong fit if the final submission has:
+- a working end-to-end system, not only simulator plots;
+- a crisp cross-layer problem: application evidence utility vs real OAI network
+  delay/loss/resource behavior;
+- strong baselines including V2Xverse/CoDriving-style collaboration, local-only,
+  send-everything, static compression, and best fixed policy;
+- a controller/policy that beats simple heuristics under network pressure;
+- a closed-loop safety case where the map update helps an affected vehicle
+  sooner or more reliably than local-only perception.
+
+Weak fit if it remains only:
+- a collection of CARLA scripts;
+- offline accuracy comparisons without an adaptive policy;
+- a perception-model transferability story without a systems contribution;
+- OAI transport measurements without a design intervention.
+
+### Baselines to carry forward
+- Local-only ego perception, no sharing.
+- Send-everything / highest-quality split features.
+- Static compression or fixed saliency-drop policies.
+- Best fixed policy selected offline for the dataset.
+- Network-only policy that ignores task utility.
+- Task-only policy that ignores network state.
+- V2Xverse/CoDriving-style collaboration, using their public system where
+  feasible or a carefully documented reimplementation/trace-level comparison if
+  the environment remains blocked.
+- Cooperative-perception methods as perception-side references: Where2comm,
+  F-Cooper, V2X-ViT, Coopernaut, V2VNet/DiscoNet family.
+
+### Supervisor discussion prompts
+- Should the first paper be a measurement+system paper with a rule/bandit
+  controller, or should we hold for a full RL agent?
+- Is the primary novelty expected to be "what to share" or "when/whom to share"
+  under OAI network state?
+- Should the agent live at the UE/fusion server for the first paper, while RIC
+  remains a forward-looking architecture?
+- Is parked-ego fine-tuning a paper requirement, or only a future system-quality
+  improvement?
+
 ## Running follow-ups (open items to chase)
 
 - [ ] Read [`carla_split_inference_udp_segmentation_demo.py`](../carla_split_inference_udp_segmentation_demo.py) saliency gating code in depth (~line 1003, ~line 1629).
@@ -15,7 +84,7 @@
 - [ ] Survey what feature-importance metrics exist in the pruning / knowledge-distillation literature.
 - [ ] Check whether the testbed scene-complexity signal (SI/TI from SCAN-AI) is already wired into the split-inference scripts, or only into `scan_sender_v2*`.
 - [ ] **Investigate V2Xverse as a complementary scenario source on top of OAI (rather than as a replacement for CARLA).**
-- [ ] Promote RQ9 (graceful degradation under low peer density) to [research_direction.md](research_direction.md) §5 if it survives supervisor review.
+- [x] Promote RQ9 (graceful degradation under low peer density) to [research_direction.md](research_direction.md) §5 if it survives supervisor review.
 - [ ] Ask supervisor: which of the §8 open design questions in [research_direction.md](research_direction.md) does he have strong opinions on?
 - [ ] Ask supervisor: target paper length for the Phase 1 deliverable — workshop submission, or build toward full MobiSys?
 
