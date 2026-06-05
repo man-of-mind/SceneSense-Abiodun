@@ -306,6 +306,18 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--ego-camera-width", type=int, default=768, help="Ego RGB camera width.")
     parser.add_argument("--ego-camera-height", type=int, default=432, help="Ego RGB camera height.")
     parser.add_argument("--ego-camera-fov", type=float, default=100.0, help="Ego RGB camera FoV.")
+    parser.add_argument(
+        "--ego-preview-width",
+        type=int,
+        default=0,
+        help="Ego RGB preview display width. 0 uses the camera frame width.",
+    )
+    parser.add_argument(
+        "--ego-preview-height",
+        type=int,
+        default=0,
+        help="Ego RGB preview display height. 0 uses the camera frame height.",
+    )
     parser.add_argument("--ego-radar-range", type=float, default=80.0, help="Ego radar range in meters.")
     parser.add_argument("--ego-radar-hfov", type=float, default=80.0, help="Ego radar horizontal FoV.")
     parser.add_argument("--ego-radar-vfov", type=float, default=20.0, help="Ego radar vertical FoV.")
@@ -678,6 +690,18 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--helper-camera-width", type=int, default=768, help="Helper RGB camera width.")
     parser.add_argument("--helper-camera-height", type=int, default=432, help="Helper RGB camera height.")
     parser.add_argument("--helper-camera-fov", type=float, default=100.0, help="Helper RGB camera FoV.")
+    parser.add_argument(
+        "--helper-preview-width",
+        type=int,
+        default=0,
+        help="Helper RGB preview display width. 0 uses the camera frame width.",
+    )
+    parser.add_argument(
+        "--helper-preview-height",
+        type=int,
+        default=0,
+        help="Helper RGB preview display height. 0 uses the camera frame height.",
+    )
     parser.add_argument(
         "--evidence-pack",
         action="store_true",
@@ -2817,6 +2841,8 @@ class EgoSensorMonitor:
         radar_vfov: float,
         radar_pps: int,
         preview: bool,
+        preview_width: int = 0,
+        preview_height: int = 0,
         evidence_capture: bool = False,
         evidence_buffer_size: int = 80,
         evidence_stride: int = 2,
@@ -2832,6 +2858,9 @@ class EgoSensorMonitor:
         self.radar_pps = int(radar_pps)
         self.preview_requested = bool(preview)
         self.preview = bool(preview)
+        self.window_name = "SceneSense Ego RGB Preview"
+        self.preview_width = max(0, int(preview_width))
+        self.preview_height = max(0, int(preview_height))
         self.evidence_capture = bool(evidence_capture)
         self.evidence_buffer_size = max(1, int(evidence_buffer_size))
         self.evidence_stride = max(1, int(evidence_stride))
@@ -2855,6 +2884,9 @@ class EgoSensorMonitor:
 
                 self.cv2 = cv2
                 self.np = np
+                self.cv2.namedWindow(self.window_name, self.cv2.WINDOW_NORMAL)
+                if self.preview_width > 0 and self.preview_height > 0:
+                    self.cv2.resizeWindow(self.window_name, self.preview_width, self.preview_height)
             except Exception as exc:
                 self.preview = False
                 self.preview_error = f"OpenCV preview disabled: {exc}"
@@ -2927,6 +2959,12 @@ class EgoSensorMonitor:
 
         array = self.np.frombuffer(image.raw_data, dtype=self.np.uint8)  # type: ignore[attr-defined]
         frame = array.reshape((image.height, image.width, 4))[:, :, :3].copy()  # type: ignore[attr-defined]
+        if self.preview_width > 0 and self.preview_height > 0:
+            frame = self.cv2.resize(
+                frame,
+                (self.preview_width, self.preview_height),
+                interpolation=self.cv2.INTER_LINEAR,
+            )
         self.cv2.putText(
             frame,
             f"ego RGB frame={self.last_camera_frame} radar_frames={self.radar_frames}",
@@ -2937,7 +2975,7 @@ class EgoSensorMonitor:
             1,
             self.cv2.LINE_AA,
         )
-        self.cv2.imshow("SceneSense Ego RGB Preview", frame)
+        self.cv2.imshow(self.window_name, frame)
         key = self.cv2.waitKey(1) & 0xFF
         return key not in (27, ord("q"))
 
@@ -2968,6 +3006,8 @@ class EgoSensorMonitor:
             },
             "preview_requested": bool(self.preview_requested),
             "preview_active": bool(self.preview),
+            "preview_width": int(self.preview_width or self.camera_width),
+            "preview_height": int(self.preview_height or self.camera_height),
             "preview_error": self.preview_error,
             "evidence_capture": bool(self.evidence_capture),
             "evidence_buffer_size": int(self.evidence_buffer_size),
@@ -3045,7 +3085,7 @@ class EgoSensorMonitor:
                 pass
         if self.cv2 is not None:
             try:
-                self.cv2.destroyWindow("SceneSense Ego RGB Preview")
+                self.cv2.destroyWindow(self.window_name)
             except Exception:
                 pass
 
@@ -3063,6 +3103,8 @@ class ActorCameraMonitor:
         camera_height: int,
         camera_fov: float,
         preview: bool,
+        preview_width: int = 0,
+        preview_height: int = 0,
         evidence_capture: bool = False,
         evidence_buffer_size: int = 80,
         evidence_stride: int = 2,
@@ -3076,6 +3118,8 @@ class ActorCameraMonitor:
         self.camera_fov = float(camera_fov)
         self.preview_requested = bool(preview)
         self.preview = bool(preview)
+        self.preview_width = max(0, int(preview_width))
+        self.preview_height = max(0, int(preview_height))
         self.evidence_capture = bool(evidence_capture)
         self.evidence_buffer_size = max(1, int(evidence_buffer_size))
         self.evidence_stride = max(1, int(evidence_stride))
@@ -3096,6 +3140,9 @@ class ActorCameraMonitor:
 
                 self.cv2 = cv2
                 self.np = np
+                self.cv2.namedWindow(self.window_name, self.cv2.WINDOW_NORMAL)
+                if self.preview_width > 0 and self.preview_height > 0:
+                    self.cv2.resizeWindow(self.window_name, self.preview_width, self.preview_height)
             except Exception as exc:
                 self.preview = False
                 self.preview_error = f"{self.label} preview disabled: {exc}"
@@ -3144,6 +3191,12 @@ class ActorCameraMonitor:
 
         array = self.np.frombuffer(image.raw_data, dtype=self.np.uint8)  # type: ignore[attr-defined]
         frame = array.reshape((image.height, image.width, 4))[:, :, :3].copy()  # type: ignore[attr-defined]
+        if self.preview_width > 0 and self.preview_height > 0:
+            frame = self.cv2.resize(
+                frame,
+                (self.preview_width, self.preview_height),
+                interpolation=self.cv2.INTER_LINEAR,
+            )
         self.cv2.putText(
             frame,
             f"{self.label} frame={self.last_camera_frame}",
@@ -3175,6 +3228,8 @@ class ActorCameraMonitor:
             },
             "preview_requested": bool(self.preview_requested),
             "preview_active": bool(self.preview),
+            "preview_width": int(self.preview_width or self.camera_width),
+            "preview_height": int(self.preview_height or self.camera_height),
             "preview_error": self.preview_error,
             "evidence_capture": bool(self.evidence_capture),
             "evidence_buffer_size": int(self.evidence_buffer_size),
@@ -4858,6 +4913,8 @@ def main() -> int:
                 radar_vfov=float(args.ego_radar_vfov),
                 radar_pps=int(args.ego_radar_pps),
                 preview=bool(args.ego_camera_preview),
+                preview_width=int(args.ego_preview_width),
+                preview_height=int(args.ego_preview_height),
                 evidence_capture=bool(args.evidence_pack),
                 evidence_buffer_size=int(args.evidence_camera_buffer_size),
                 evidence_stride=int(args.evidence_camera_stride),
@@ -4881,6 +4938,8 @@ def main() -> int:
                     camera_height=int(args.helper_camera_height),
                     camera_fov=float(args.helper_camera_fov),
                     preview=True,
+                    preview_width=int(args.helper_preview_width),
+                    preview_height=int(args.helper_preview_height),
                     evidence_capture=bool(args.evidence_pack),
                     evidence_buffer_size=int(args.evidence_camera_buffer_size),
                     evidence_stride=int(args.evidence_camera_stride),

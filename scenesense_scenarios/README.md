@@ -239,6 +239,11 @@ move slowly through the opposite lane and past the scene instead of remaining
 parked or participating in the ego-pedestrian collision.
 `--evidence-pack` adds an `evidence/` folder with actor ground-truth traces,
 event-window CSVs, and buffered ego/helper RGB frames around the collision.
+Camera capture size and preview size are separate: the demo wrapper defaults
+both ego and helper RGB cameras to `1920x1080`, and the preview windows follow
+that same size unless overridden. Use the matching `EGO_CAMERA_*`,
+`HELPER_CAMERA_*`, `EGO_PREVIEW_*`, and `HELPER_PREVIEW_*` environment
+variables when a smaller/faster run is needed.
 Use `scenario_event_trace.csv` fields such as
 `target_crossing_progress_ratio` and `target_crossing_distance_to_end_m` to
 confirm the pedestrian followed the planned crossing vector.
