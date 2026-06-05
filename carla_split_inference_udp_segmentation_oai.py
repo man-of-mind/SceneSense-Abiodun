@@ -67,6 +67,30 @@ SEGMENTATION_OVERLAY_PALETTE_RGB = np.array(
     dtype=np.uint8,
 )
 SEGMENTATION_BOUNDARY_KERNEL = np.ones((3, 3), dtype=np.uint8)
+CARLA_3CLASS_SEGMENTATION_LABELS = ("background", "vehicle", "person")
+CLASS_ID_BACKGROUND = 0
+CLASS_ID_VEHICLE = 1
+CLASS_ID_PERSON = 2
+_CARLA_TAG_TO_3CLASS: Dict[int, int] = {
+    12: CLASS_ID_PERSON,  # Pedestrian
+    13: CLASS_ID_PERSON,  # Rider
+    14: CLASS_ID_VEHICLE,  # Car
+    15: CLASS_ID_VEHICLE,  # Truck
+    16: CLASS_ID_VEHICLE,  # Bus
+    17: CLASS_ID_VEHICLE,  # Train
+    18: CLASS_ID_VEHICLE,  # Motorcycle
+    19: CLASS_ID_VEHICLE,  # Bicycle
+}
+_VOC_LABEL_TO_3CLASS: Dict[int, int] = {
+    1: CLASS_ID_VEHICLE,  # aeroplane
+    2: CLASS_ID_VEHICLE,  # bicycle
+    4: CLASS_ID_VEHICLE,  # boat
+    6: CLASS_ID_VEHICLE,  # bus
+    7: CLASS_ID_VEHICLE,  # car
+    14: CLASS_ID_VEHICLE,  # motorbike
+    19: CLASS_ID_VEHICLE,  # train
+    15: CLASS_ID_PERSON,  # person
+}
 METRICS_CSV_FIELDS = (
     "wall_time_iso",
     "elapsed_s",
@@ -83,6 +107,13 @@ METRICS_CSV_FIELDS = (
     "mask_payload_bytes_estimate",
     "mask_foreground_pixels",
     "mask_classes",
+    "gt_camera_available",
+    "miou_binary",
+    "miou_3class_macro",
+    "miou_vehicle_iou",
+    "miou_person_iou",
+    "gt_vehicle_pixels",
+    "gt_person_pixels",
 )
 
 
@@ -130,6 +161,22 @@ def parse_args() -> argparse.Namespace:
         "--seg-weights-path",
         default="",
         help="Optional local LR-ASPP checkpoint path.",
+    )
+    parser.add_argument(
+        "--seg-num-classes",
+        type=int,
+        default=len(SEGMENTATION_LABELS),
+        help=(
+            "Number of output segmentation classes. Keep 21 for torchvision "
+            "VOC weights; use 3 with --seg-disable-pretrained for CARLA "
+            "3-class checkpoints."
+        ),
+    )
+    parser.add_argument(
+        "--seg-class-scheme",
+        choices=("voc", "carla_3class"),
+        default="voc",
+        help="Prediction label scheme used when computing 3-class mIoU.",
     )
     parser.add_argument(
         "--seg-input-width",
@@ -195,6 +242,23 @@ def parse_args() -> argparse.Namespace:
         dest="collect_metrics",
         action="store_false",
     )
+    semantic_gt_group = parser.add_mutually_exclusive_group()
+    semantic_gt_group.add_argument(
+        "--enable-semantic-gt",
+        dest="enable_semantic_gt",
+        action="store_true",
+        help=(
+            "Spawn a co-located CARLA semantic-segmentation camera on the "
+            "front side and log binary, macro, vehicle, and person IoU."
+        ),
+    )
+    semantic_gt_group.add_argument(
+        "--disable-semantic-gt",
+        dest="enable_semantic_gt",
+        action="store_false",
+        help="Do not spawn the evaluation-only semantic GT camera.",
+    )
+    parser.set_defaults(enable_semantic_gt=False)
     return parser.parse_args()
 
 
@@ -272,14 +336,21 @@ def build_raw_lraspp_model(args: argparse.Namespace) -> torch.nn.Module:
         model = lraspp_mobilenet_v3_large(
             weights=None,
             weights_backbone=None,
-            num_classes=len(SEGMENTATION_LABELS),
+            num_classes=int(args.seg_num_classes),
         )
     load_state_dict_if_requested(model, str(args.seg_weights_path or ""))
     return model.eval()
 
 
-def clone_segmentation_model(reference_model: torch.nn.Module) -> torch.nn.Module:
-    clone_args = argparse.Namespace(seg_pretrained=False, seg_weights_path="")
+def clone_segmentation_model(
+    reference_model: torch.nn.Module,
+    args: argparse.Namespace,
+) -> torch.nn.Module:
+    clone_args = argparse.Namespace(
+        seg_pretrained=False,
+        seg_weights_path="",
+        seg_num_classes=int(args.seg_num_classes),
+    )
     cloned = build_raw_lraspp_model(clone_args)
     cloned.load_state_dict(reference_model.state_dict())
     cloned.eval()
@@ -478,6 +549,117 @@ class CameraResultReceiver(threading.Thread):
             self.result_store.put(int(payload["frame_id"]), payload)
 
 
+def _build_lookup(table: Dict[int, int], size: int = 256) -> np.ndarray:
+    lut = np.zeros(size, dtype=np.uint8)
+    for raw, mapped in table.items():
+        if 0 <= raw < size:
+            lut[int(raw)] = int(mapped)
+    return lut
+
+
+_CARLA_LUT = _build_lookup(_CARLA_TAG_TO_3CLASS)
+_VOC_LUT = _build_lookup(_VOC_LABEL_TO_3CLASS)
+
+
+def segmentation_label_names(args: argparse.Namespace) -> Tuple[str, ...]:
+    if str(args.seg_class_scheme) == "carla_3class":
+        return CARLA_3CLASS_SEGMENTATION_LABELS
+    return tuple(SEGMENTATION_LABELS)
+
+
+def carla_semantic_image_to_tags(image: "carla.Image") -> np.ndarray:
+    arr = np.frombuffer(image.raw_data, dtype=np.uint8).reshape(
+        (image.height, image.width, 4)
+    )
+    return arr[:, :, 2].copy()
+
+
+def map_carla_tags_to_3class(tags: np.ndarray) -> np.ndarray:
+    return _CARLA_LUT[tags]
+
+
+def prediction_mask_to_3class(mask: np.ndarray, args: argparse.Namespace) -> np.ndarray:
+    if str(args.seg_class_scheme) == "carla_3class":
+        pred = np.zeros(mask.shape, dtype=np.uint8)
+        pred[mask == CLASS_ID_VEHICLE] = CLASS_ID_VEHICLE
+        pred[mask == CLASS_ID_PERSON] = CLASS_ID_PERSON
+        return pred
+    return _VOC_LUT[mask]
+
+
+def compute_3class_iou(
+    pred_3class: np.ndarray,
+    gt_3class: np.ndarray,
+) -> Tuple[float, float, float, float]:
+    if pred_3class.shape != gt_3class.shape:
+        gt_3class = cv2.resize(
+            gt_3class,
+            (pred_3class.shape[1], pred_3class.shape[0]),
+            interpolation=cv2.INTER_NEAREST,
+        )
+
+    ious: List[float] = []
+    per_class: Dict[int, float] = {}
+    for class_id in (CLASS_ID_BACKGROUND, CLASS_ID_VEHICLE, CLASS_ID_PERSON):
+        pred_match = pred_3class == class_id
+        gt_match = gt_3class == class_id
+        union = int(np.logical_or(pred_match, gt_match).sum())
+        if union == 0:
+            per_class[class_id] = float("nan")
+            continue
+        intersection = int(np.logical_and(pred_match, gt_match).sum())
+        iou = intersection / union
+        per_class[class_id] = iou
+        ious.append(iou)
+
+    pred_fg = pred_3class != CLASS_ID_BACKGROUND
+    gt_fg = gt_3class != CLASS_ID_BACKGROUND
+    union_fg = int(np.logical_or(pred_fg, gt_fg).sum())
+    binary_iou = (
+        int(np.logical_and(pred_fg, gt_fg).sum()) / union_fg
+        if union_fg > 0
+        else float("nan")
+    )
+    macro_iou = float(np.mean(ious)) if ious else float("nan")
+    return (
+        per_class[CLASS_ID_VEHICLE],
+        per_class[CLASS_ID_PERSON],
+        macro_iou,
+        binary_iou,
+    )
+
+
+def quality_metric_columns(
+    mask: Optional[np.ndarray],
+    gt_3class: Optional[np.ndarray],
+    args: argparse.Namespace,
+) -> Dict[str, object]:
+    columns: Dict[str, object] = {
+        "gt_camera_available": int(gt_3class is not None),
+        "miou_binary": float("nan"),
+        "miou_3class_macro": float("nan"),
+        "miou_vehicle_iou": float("nan"),
+        "miou_person_iou": float("nan"),
+        "gt_vehicle_pixels": 0,
+        "gt_person_pixels": 0,
+    }
+    if mask is None or gt_3class is None:
+        return columns
+
+    pred_3class = prediction_mask_to_3class(mask.astype(np.uint8, copy=False), args)
+    vehicle_iou, person_iou, macro_iou, binary_iou = compute_3class_iou(
+        pred_3class,
+        gt_3class,
+    )
+    columns["miou_binary"] = float(binary_iou)
+    columns["miou_3class_macro"] = float(macro_iou)
+    columns["miou_vehicle_iou"] = float(vehicle_iou)
+    columns["miou_person_iou"] = float(person_iou)
+    columns["gt_vehicle_pixels"] = int(np.count_nonzero(gt_3class == CLASS_ID_VEHICLE))
+    columns["gt_person_pixels"] = int(np.count_nonzero(gt_3class == CLASS_ID_PERSON))
+    return columns
+
+
 def segmentation_mask_boundaries(mask: np.ndarray) -> np.ndarray:
     boundaries = np.zeros(mask.shape[:2], dtype=bool)
     boundaries[1:, :] |= mask[1:, :] != mask[:-1, :]
@@ -487,10 +669,15 @@ def segmentation_mask_boundaries(mask: np.ndarray) -> np.ndarray:
     return boundaries & (mask > 0)
 
 
-def mask_class_summary(mask: Optional[np.ndarray], max_items: int = 4) -> str:
+def mask_class_summary(
+    mask: Optional[np.ndarray],
+    args: argparse.Namespace,
+    max_items: int = 4,
+) -> str:
     if mask is None:
         return "mask: waiting"
     labels, counts = np.unique(mask, return_counts=True)
+    label_names = segmentation_label_names(args)
     foreground = sorted(
         ((int(label), int(count)) for label, count in zip(labels, counts) if int(label) != 0),
         key=lambda item: item[1],
@@ -500,7 +687,7 @@ def mask_class_summary(mask: Optional[np.ndarray], max_items: int = 4) -> str:
         return "classes: background"
     parts = []
     for label, count in foreground[:max_items]:
-        name = SEGMENTATION_LABELS[label] if label < len(SEGMENTATION_LABELS) else str(label)
+        name = label_names[label] if label < len(label_names) else str(label)
         parts.append(f"{name} {count / mask.size * 100.0:.1f}%")
     return "classes: " + ", ".join(parts)
 
@@ -581,7 +768,7 @@ def draw_segmentation_overlay(
             "Float16 baseline: "
             f"{payload_bytes_uncompressed / 1024.0:.1f} KiB, ratio {compression_ratio:.2f}x"
         ),
-        mask_class_summary(mask),
+        mask_class_summary(mask, args),
     ]
     if remote_stats is not None:
         lines.append(f"Back half: {remote_stats['server_ms']:.1f} ms")
@@ -600,9 +787,11 @@ def build_metrics_record(
     *,
     frame_id: int,
     elapsed_s: float,
+    args: argparse.Namespace,
     front_stats: Dict[str, object],
     remote_stats: Optional[Dict[str, object]],
     mask: Optional[np.ndarray],
+    gt_3class: Optional[np.ndarray] = None,
 ) -> Dict[str, object]:
     back_ms = float("nan")
     round_trip_ms = float("nan")
@@ -618,8 +807,9 @@ def build_metrics_record(
         labels, counts = np.unique(mask, return_counts=True)
         foreground = [(int(label), int(count)) for label, count in zip(labels, counts) if int(label) != 0]
         foreground_pixels = int(sum(count for _, count in foreground))
+        label_names = segmentation_label_names(args)
         mask_classes = ";".join(
-            f"{SEGMENTATION_LABELS[label] if label < len(SEGMENTATION_LABELS) else label}:{count}"
+            f"{label_names[label] if label < len(label_names) else label}:{count}"
             for label, count in foreground
         )
 
@@ -641,6 +831,7 @@ def build_metrics_record(
         "mask_payload_bytes_estimate": mask_payload_bytes_estimate,
         "mask_foreground_pixels": foreground_pixels,
         "mask_classes": mask_classes,
+        **quality_metric_columns(mask, gt_3class, args),
     }
 
 
@@ -725,7 +916,7 @@ def run_demo(args: argparse.Namespace) -> None:
         torch.backends.cudnn.benchmark = True
 
     front_raw_model = build_raw_lraspp_model(args)
-    back_raw_model = clone_segmentation_model(front_raw_model) if args.role == "loopback" else None
+    back_raw_model = clone_segmentation_model(front_raw_model, args) if args.role == "loopback" else None
     front_model = TorchvisionSegmentationSplitModel(
         front_raw_model,
         front_device,
@@ -884,6 +1075,19 @@ def run_demo(args: argparse.Namespace) -> None:
         )
         print(f"Camera ready on frame {first_image.frame}.")
 
+        gt_queue: Optional["queue.Queue[carla.Image]"] = None
+        if bool(args.enable_semantic_gt):
+            gt_bp = world.get_blueprint_library().find("sensor.camera.semantic_segmentation")
+            gt_bp.set_attribute("image_size_x", str(camera_width))
+            gt_bp.set_attribute("image_size_y", str(camera_height))
+            gt_bp.set_attribute("fov", str(args.camera_fov))
+            gt_bp.set_attribute("sensor_tick", str(1.0 / args.fps))
+            gt_camera = world.spawn_actor(gt_bp, camera_transform, attach_to=hero_vehicle)
+            actors.append(gt_camera)
+            gt_queue = queue.Queue(maxsize=2)
+            gt_camera.listen(lambda image, q=gt_queue: od_oai.put_latest(q, image))
+            print("Semantic GT camera enabled (3-class mIoU logging is on).")
+
         metrics_start_perf: Optional[float] = None
         metrics_warmup_remaining = (
             max(0, int(args.metrics_warmup_frames)) if metrics_logger is not None else 0
@@ -922,6 +1126,23 @@ def run_demo(args: argparse.Namespace) -> None:
                 mask_output_size=mask_output_size,
             )
 
+            gt_3class: Optional[np.ndarray] = None
+            if gt_queue is not None:
+                gt_image = od_oai.wait_for_camera_frame(
+                    gt_queue,
+                    world_frame,
+                    args.camera_timeout,
+                )
+                if gt_image is not None:
+                    gt_tags = carla_semantic_image_to_tags(gt_image)
+                    gt_3class = map_carla_tags_to_3class(gt_tags)
+                else:
+                    print(
+                        f"Warning: semantic-GT frame for tick {world_frame} was not "
+                        f"received within {args.camera_timeout:.1f}s; mIoU columns "
+                        "will be NaN for this frame."
+                    )
+
             result = result_store.wait_for(int(image.frame), args.result_timeout)
             remote_stats = None
             mask: Optional[np.ndarray] = None
@@ -947,9 +1168,11 @@ def run_demo(args: argparse.Namespace) -> None:
                         build_metrics_record(
                             frame_id=int(image.frame),
                             elapsed_s=time.perf_counter() - metrics_start_perf,
+                            args=args,
                             front_stats=front_stats,
                             remote_stats=remote_stats,
                             mask=mask,
+                            gt_3class=gt_3class,
                         )
                     )
 

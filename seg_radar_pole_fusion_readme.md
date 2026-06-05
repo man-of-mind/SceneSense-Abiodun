@@ -351,6 +351,97 @@ fusion head returns zero object detections. Also avoid starting the map server
 with a tight `--focus-traffic-light-ids 14` crop unless the parked ego is near
 that anchor; otherwise detections can be outside the cropped view.
 
+## Parked-Ego Fusion Training Data Collection
+
+This is separate from live split inference. Use it when we want saved samples
+for parked-ego fine-tuning/retraining:
+
+- RGB image files.
+- 3-class semantic masks.
+- Raw CARLA semantic tag images.
+- Radar tensors and radar projected point files.
+- CARLA actor object labels/bboxes.
+- Camera/radar pose and calibration matrices.
+- `manifest.csv` and `object_boxes.csv` in the existing fusion schema.
+
+Smoke collect 30 samples:
+
+```bash
+python3 carla_collect_parked_ego_fusion_training_data.py \
+  --sync-world \
+  --experiment-id parked_ego_fusion_training_smoke_20260604 \
+  --max-samples 30 \
+  --sample-stride 2 \
+  --ego-vehicle-blueprint vehicle.lincoln.mkz \
+  --ego-spawn-index 152 \
+  --ego-spawn-forward-offset-m 0.0 \
+  --ego-spawn-right-offset-m 3.0 \
+  --ego-spawn-z-offset-m 0.15 \
+  --npc-vehicles 20 \
+  --npc-pedestrians 10
+```
+
+Validate the saved folder:
+
+```bash
+python3 scripts/validate_fusion_training_dataset.py \
+  fusion_training_data/parked_ego_fusion_training_smoke_20260604 \
+  --max-samples 30
+```
+
+Dry-run training target construction:
+
+```bash
+python3 scripts/dry_run_fusion_training_targets.py \
+  fusion_training_data/parked_ego_fusion_training_smoke_20260604 \
+  --max-samples 30
+```
+
+This does not start training. It verifies that saved RGB/radar files can form a
+7-channel fusion input tensor, masks can form segmentation targets, and
+`object_boxes.csv` vehicle rows can form the current object-head heatmap and
+regression targets. The current object target helper consumes vehicle actor rows
+only; person rows are still validated and used by the segmentation target path,
+but they are not object-head positives in this dry run.
+
+Observed target dry-run result for `parked_ego_fusion_training_smoke_20260604`:
+
+- validator status: `PASS`, with no errors or warnings
+- fusion inputs: 30 samples at shape `(7, 432, 768)`
+- segmentation targets: 30 masks at shape `(432, 768)`, classes `0/1/2` seen
+- object targets: 369 valid vehicle objects across 30/30 positive samples
+- target shapes: heatmap `(1, 432, 768)`, regression `(10, 432, 768)`,
+  GT object tensor `(64, 9)`
+- radar support: 65 vehicle targets have radar-support evidence; 5 are marked
+  parked
+
+The local checkout does not appear to include the original standalone
+SceneSense fusion training driver. See `FUSION_TRAINING_DRIVER_GAP_ANALYSIS.md`
+for the found reusable pieces and the missing minimal smoke-trainer pieces.
+
+Expected dataset layout:
+
+```text
+fusion_training_data/<experiment_id>/
+  manifest.csv
+  object_boxes.csv
+  metadata.json
+  validation_summary.json
+  rgb/
+  masks/
+  semantic_tags/
+  radar_tensors/
+  radar_points/
+```
+
+Observed smoke result for `parked_ego_fusion_training_smoke_20260604`:
+
+- validator status: `PASS`, with no errors or warnings
+- samples: 30 manifest rows, split into 23 train / 4 val / 3 test
+- object labels: 474 actor-derived rows, 370 vehicles and 104 persons
+- masks: all inspected samples include classes `0/1/2` at shape `(480, 854)`
+- RGB/radar: RGB shape `(480, 854, 3)`, radar tensor shape `(4, 432, 768)`
+
 ## Common Issues
 
 - `Fusion checkpoint not found`: use `--fusion-checkpoint` with the remote path to `best.pt`. Do not rely on a copied manifest unless its absolute `best_checkpoint` path matches the remote machine.

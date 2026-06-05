@@ -1,0 +1,9 @@
+threshold_m,stream,stream_id,platform,gt,pred,recall,mean_xy_error_m
+2,Ego S1,fusion_ego_front,Parked Ego,2049,5091,0.025,1.301
+2,Ego S2,fusion_ego_front_view_2,Parked Ego,1322,3901,0.024,1.412
+2,Pole S1,fusion_tl_14,Pole,1158,9894,0.282,1.088
+2,Pole S2,fusion_tl_14_view_2,Pole,1586,9499,0.354,1.151
+5,Ego S1,fusion_ego_front,Parked Ego,2049,5091,0.136,3.361
+5,Ego S2,fusion_ego_front_view_2,Parked Ego,1322,3901,0.108,3.054
+5,Pole S1,fusion_tl_14,Pole,1158,9894,0.523,2.103
+5,Pole S2,fusion_tl_14_view_2,Pole,1586,9499,0.637,2.019

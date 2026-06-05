@@ -191,10 +191,26 @@ Network/split metrics:
 
 Task metrics:
 
-- [ ] Camera-only OD: AP or first-pass precision/recall/object recall.
-- [ ] Camera-only SEG: mIoU, foreground IoU, class IoU.
-- [ ] RGB+radar fusion object head: object recall, localization error, yaw/dimension error, confidence calibration.
-- [ ] RGB+radar fusion segmentation head: mIoU, foreground IoU, vehicle/person IoU.
+- [x] Camera-only OD: AP or first-pass precision/recall/object recall. Fresh
+  loopback/OAI traces collected with `--enable-od-gt` and analyzed with
+  `scripts/analyze_camera_od_metrics.py`:
+  `month1_camera_od_loopback_20260604_153409.csv` and
+  `month1_camera_od_oai_20260604_153845.csv`. Overall: 2380 frames, 9983 GT
+  objects, 2294 predicted objects, 1047 matches at IoU 0.5, global recall
+  0.105, global precision 0.456, mean matched IoU 0.713. Loopback recall /
+  precision: 0.112 / 0.526; OAI recall / precision: 0.092 / 0.358. Vehicle
+  recall: loopback 0.226, OAI 0.140. Person recall: loopback 0.047, OAI 0.066.
+  Output summary:
+  `metrics_logs/month1_camera_od_analysis/month1_camera_od_quality_20260604_154333.md`.
+- [x] Camera-only SEG: mIoU, foreground IoU, class IoU. Loopback quality run
+  `month1_camera_seg_loopback_20260604_145934.csv` analyzed with
+  `scripts/analyze_camera_seg_metrics.py`: 451 frames, 450 GT frames,
+  foreground/binary IoU mean 0.195, 3-class macro mIoU mean 0.508, vehicle IoU
+  mean 0.172. No visible person GT pixels were present, so person IoU remains
+  unmeasured for this trace. OAI SEG-quality repeat can be collected later with
+  `--enable-semantic-gt` using `SCENESENSE_MONTH1_COMMANDS.md`.
+- [x] RGB+radar fusion object head: first-pass object recall, localization error, yaw/dimension error, and score-threshold sensitivity (`fusion_od_transfer_20260604_01`; deck: `SceneSense_Fusion_Model_Transferability_OD_SEG.pptx`). Note: full confidence calibration/ECE remains a later polish item.
+- [x] RGB+radar fusion segmentation head: mIoU, foreground IoU, vehicle/person IoU (`pole_vs_ego_transfer_presentation`; person IoU is zero in the transfer run and should not be over-interpreted without visible person GT).
 - [ ] Class-specific misses, especially vulnerable or small objects.
 
 ### 5. Define Ground Truth and Evaluation Path
@@ -211,10 +227,22 @@ Task metrics:
 ### 6. Understand Prior Payload Characterization Work
 
 Month 1 goal: understand and reuse the prior OD-vs-SEG payload-comparison structure before creating new fusion payload experiments.
+The six-month proposal does not name a specific `od_seg_fair_latency_*` run
+folder; that root is a handoff-specific reference artifact. Treat it as useful
+provenance if recovered, not as a proposal-mandated Month 1 blocker.
 
 - [x] Read `payload_fusion_handoff_readme.md`.
+- [x] Inspect slide-level OD-vs-SEG traffic-characterization artifact: `AI_traffic_characterization_IDCC_template.pptx`. It summarizes OD/SEG payload sizing, ROI/AE/quantization candidates, and 5QI burst-volume gaps.
+- [x] Create current Month 1 camera-only OD-vs-SEG latency/payload comparison
+  over loopback and OAI 5G. Artifact:
+  `SceneSense_Camera_OD_SEG_Latency_Comparison.pptx`; evidence folder:
+  `metrics_logs/scenesense_analysis/camera_od_seg_latency_20260604/`.
+  Headline: OD median RTT loopback/OAI `8.2/74.9 ms`; SEG median RTT
+  loopback/OAI `13.4/107.9 ms`; SEG median feature payload is about `4.6x`
+  OD. OAI config slide records RFsim, band n78, 30 kHz SCS, 106 PRB
+  approximately 40 MHz, 5 ms TDD pattern, DNN `oai`, SST 1, 5QI 9.
 - [ ] Inspect the completed OD-vs-SEG comparison root:
-  - [ ] `metrics_logs/od_seg_latency_comparison/od_seg_fair_latency_recovery_20260520_220356/`
+  - [ ] `metrics_logs/od_seg_latency_comparison/od_seg_fair_latency_recovery_20260520_220356/`. Not present in the current local/remote mirror; keep open unless the raw root is recovered.
 - [ ] Understand the key output files:
   - [ ] `per_frame_metrics.csv`.
   - [ ] `run_manifest.json`.
@@ -222,9 +250,9 @@ Month 1 goal: understand and reuse the prior OD-vs-SEG payload-comparison struct
   - [ ] `analysis/payload_summary_by_profile.csv`.
   - [ ] `analysis/latency_summary_by_profile.csv`.
   - [ ] `analysis/quality_summary_by_profile.csv`.
-- [ ] Keep OD and SEG quality metrics separate:
-  - [ ] OD uses COCO-style AP / mAP.
-  - [ ] SEG uses dense mIoU / class IoU / foreground IoU.
+- [x] Keep OD and SEG quality metrics separate:
+  - [x] OD uses COCO-style AP / mAP or first-pass recall/precision.
+  - [x] SEG uses dense mIoU / class IoU / foreground IoU.
 - [ ] Treat no-result or saturated runs as saturation evidence, not valid returned-result quality samples.
 - [ ] Reuse the same experiment-root style for future RGB+radar fusion payload characterization.
 
@@ -232,12 +260,12 @@ Month 1 goal: understand and reuse the prior OD-vs-SEG payload-comparison struct
 
 Scope for Month 1: prove data collection and retraining feasibility, not final model quality.
 
-- [ ] Mount RGB + radar on a parked ego vehicle in CARLA.
-- [ ] Collect synchronized RGB, radar tensor/points, semantic mask, object actor labels, sensor pose, and calibration.
-- [ ] Verify saved samples match the expected fusion training schema.
-- [ ] Confirm whether the original training driver exists.
-- [ ] If training code exists: run a tiny fine-tuning/smoke training job.
-- [ ] If training code is missing: list the missing pieces needed to recreate it.
+- [x] Mount RGB + radar on a parked ego vehicle in CARLA for live split-inference and transferability runs.
+- [x] Collect synchronized saved training samples, not just live inference logs: RGB, radar tensor/points, semantic mask, object actor labels, sensor pose, and calibration. Remote smoke PASS: `parked_ego_fusion_training_smoke_20260604`, 30 manifest rows, 474 actor-derived object rows, vehicle/person labels, RGB shape `(480, 854, 3)`, mask shape `(480, 854)`, radar tensor shape `(4, 432, 768)`.
+- [x] Verify saved samples match the expected fusion training schema. Validator PASS with no errors/warnings; all 30 inspected samples include mask classes `0/1/2`, radar tensors, RGB, and linked object labels. Target dry-run PASS: 30/30 samples build `(7, 432, 768)` fusion inputs, `(432, 768)` segmentation targets, `(1, 432, 768)` heatmaps, `(10, 432, 768)` regression maps, and `(64, 9)` GT object tensors; 369 valid vehicle object targets.
+- [x] Confirm whether the original training driver exists. Local scan found fusion model/object-target helpers but no obvious standalone SceneSense fusion training driver; V2Xverse/OpenCOOD trainers are present but belong to a different stack.
+- [ ] If training code exists: run a tiny fine-tuning/smoke training job. Leave open unless a remote-only original trainer is found or a recreated trainer is implemented.
+- [x] If training code is missing: list the missing pieces needed to recreate it. See `FUSION_TRAINING_DRIVER_GAP_ANALYSIS.md`.
 
 ### 8. Freeze the First RL Schema
 
@@ -268,12 +296,12 @@ No full RL training required in Month 1, but the schema should be clear enough t
 
 ### Month 1 Definition of Done
 
-- [ ] Reproducible local commands for camera-only OD, camera-only SEG, and RGB+radar fusion.
-- [ ] Reproducible OAI 5G commands for camera-only OD, camera-only SEG, and RGB+radar fusion transport.
+- [x] Reproducible local commands for camera-only OD, camera-only SEG, and RGB+radar fusion. See `SCENESENSE_MONTH1_COMMANDS.md`.
+- [x] Reproducible OAI 5G commands for camera-only OD, camera-only SEG, and RGB+radar fusion transport. See `SCENESENSE_MONTH1_COMMANDS.md`.
 - [x] Small repeatable CARLA scenario battery covering simple, crowded, and occlusion-focused cases.
 - [x] At least one metrics log format that records network, split-inference, and task data.
 - [x] Ground-truth plan confirmed for OD and SEG.
-- [ ] Parked ego data collection path started.
+- [x] Parked ego data collection path started: live parked-ego RGB/radar inference, semantic-GT metrics, object-GT logging, pole-vs-ego transfer evidence, and smoke-validated saved training-schema export are in place.
 - [x] RL state/action/reward/guardrail schema drafted.
 
 ## Month 2: Static Sweeps and First Controller Harness

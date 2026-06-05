@@ -1,0 +1,5 @@
+threshold_m,platform,mean_recall,mean_xy_error_m
+2,Pole,0.31799999999999995,1.1195
+2,Parked Ego,0.0245,1.3565
+5,Pole,0.5800000000000001,2.061
+5,Parked Ego,0.122,3.2075

@@ -173,6 +173,63 @@ FUSION_METRICS_FIELDS = (
     "entropy_coder",
 )
 
+FUSION_OBJECT_PREDICTION_FIELDS = (
+    "wall_time_iso",
+    "elapsed_s",
+    "run_id",
+    "run_group",
+    "stream_id",
+    "frame_id",
+    "object_index",
+    "class_name",
+    "score",
+    "world_x",
+    "world_y",
+    "world_z",
+    "yaw_deg",
+    "length_m",
+    "width_m",
+    "height_m",
+    "center_x_px",
+    "center_y_px",
+    "bbox_x1",
+    "bbox_y1",
+    "bbox_x2",
+    "bbox_y2",
+    "parked_score",
+    "radar_support_score",
+    "radar_support_count",
+)
+
+FUSION_OBJECT_GROUND_TRUTH_FIELDS = (
+    "wall_time_iso",
+    "elapsed_s",
+    "run_id",
+    "run_group",
+    "stream_id",
+    "frame_id",
+    "carla_timestamp",
+    "actor_id",
+    "type_id",
+    "role_name",
+    "class_name",
+    "world_x",
+    "world_y",
+    "world_z",
+    "yaw_deg",
+    "length_m",
+    "width_m",
+    "height_m",
+    "distance_m",
+    "in_camera_frustum",
+    "projected_x",
+    "projected_y",
+    "bbox_x1",
+    "bbox_y1",
+    "bbox_x2",
+    "bbox_y2",
+)
+
 
 # ---------------------------------------------------------------------------
 # Argument parsing
@@ -1318,6 +1375,16 @@ def _safe_int(value: object, default: int = 0) -> int:
         return int(default)
 
 
+def _bbox_xyxy_values(value: object) -> Tuple[float, float, float, float]:
+    try:
+        values = list(value)  # type: ignore[arg-type]
+    except TypeError:
+        values = []
+    if len(values) != 4:
+        return (float("nan"), float("nan"), float("nan"), float("nan"))
+    return tuple(_safe_float(item, float("nan")) for item in values)  # type: ignore[return-value]
+
+
 def _carla_transform_payload(transform: "carla.Transform") -> Dict[str, Dict[str, float]]:
     return {
         "location": {
@@ -1331,6 +1398,168 @@ def _carla_transform_payload(transform: "carla.Transform") -> Dict[str, Dict[str
             "roll": float(transform.rotation.roll),
         },
     }
+
+
+def _project_world_point_to_image(
+    point_world: np.ndarray,
+    *,
+    camera_inverse_matrix: np.ndarray,
+    intrinsics: np.ndarray,
+) -> Tuple[float, float, bool, float]:
+    homo = np.asarray([point_world[0], point_world[1], point_world[2], 1.0], dtype=np.float64)
+    point_cam = (camera_inverse_matrix @ homo.T).T[:3]
+    depth = float(point_cam[0])
+    if depth <= 0.05:
+        return (float("nan"), float("nan"), False, depth)
+    u = float(intrinsics[0, 2] + (point_cam[1] / depth) * intrinsics[0, 0])
+    v = float(intrinsics[1, 2] - (point_cam[2] / depth) * intrinsics[1, 1])
+    return (u, v, True, depth)
+
+
+def _actor_bbox_world_points(actor: "carla.Actor") -> Tuple[np.ndarray, np.ndarray]:
+    bbox = actor.bounding_box
+    extent = bbox.extent
+    center_local = np.array([bbox.location.x, bbox.location.y, bbox.location.z], dtype=np.float64)
+    offsets = np.array(
+        [
+            [+extent.x, +extent.y, +extent.z],
+            [+extent.x, +extent.y, -extent.z],
+            [+extent.x, -extent.y, +extent.z],
+            [+extent.x, -extent.y, -extent.z],
+            [-extent.x, +extent.y, +extent.z],
+            [-extent.x, +extent.y, -extent.z],
+            [-extent.x, -extent.y, +extent.z],
+            [-extent.x, -extent.y, -extent.z],
+        ],
+        dtype=np.float64,
+    )
+    local_points = center_local[None, :] + offsets
+    homo = np.concatenate([local_points, np.ones((local_points.shape[0], 1))], axis=1)
+    world_points = (actor_world_matrix(actor) @ homo.T).T[:, :3]
+    center_world = (actor_world_matrix(actor) @ np.asarray([*center_local, 1.0], dtype=np.float64).T).T[:3]
+    return center_world, world_points
+
+
+def _project_actor_bbox_to_image(
+    actor: "carla.Actor",
+    *,
+    camera_inverse_matrix: np.ndarray,
+    intrinsics: np.ndarray,
+    camera_width: int,
+    camera_height: int,
+) -> Dict[str, object]:
+    center_world, corners_world = _actor_bbox_world_points(actor)
+    center_u, center_v, center_in_front, _center_depth = _project_world_point_to_image(
+        center_world,
+        camera_inverse_matrix=camera_inverse_matrix,
+        intrinsics=intrinsics,
+    )
+
+    homo = np.concatenate([corners_world, np.ones((corners_world.shape[0], 1))], axis=1)
+    corners_cam = (camera_inverse_matrix @ homo.T).T[:, :3]
+    depth = corners_cam[:, 0]
+    in_front = depth > 0.05
+    if not np.any(in_front):
+        return {
+            "center_world": center_world,
+            "projected_x": center_u,
+            "projected_y": center_v,
+            "in_camera_frustum": False,
+            "bbox_xyxy": (float("nan"), float("nan"), float("nan"), float("nan")),
+        }
+
+    x = depth[in_front]
+    y = corners_cam[in_front, 1]
+    z = corners_cam[in_front, 2]
+    u = intrinsics[0, 2] + (y / x) * intrinsics[0, 0]
+    v = intrinsics[1, 2] - (z / x) * intrinsics[1, 1]
+    bbox = (float(np.min(u)), float(np.min(v)), float(np.max(u)), float(np.max(v)))
+    intersects = (
+        bbox[2] >= 0.0
+        and bbox[0] < float(camera_width)
+        and bbox[3] >= 0.0
+        and bbox[1] < float(camera_height)
+    )
+    return {
+        "center_world": center_world,
+        "projected_x": center_u,
+        "projected_y": center_v,
+        "in_camera_frustum": bool(intersects and (center_in_front or np.any(in_front))),
+        "bbox_xyxy": bbox,
+    }
+
+
+def build_vehicle_ground_truth_rows(
+    *,
+    world: "carla.World",
+    frame_id: int,
+    elapsed_s: float,
+    carla_timestamp: float,
+    camera_transform: "carla.Transform",
+    camera_inverse_matrix: np.ndarray,
+    intrinsics: np.ndarray,
+    camera_width: int,
+    camera_height: int,
+    exclude_actor_ids: Optional[Sequence[int]] = None,
+) -> List[Dict[str, object]]:
+    camera_location = camera_transform.location
+    excluded_actor_ids = {int(actor_id) for actor_id in (exclude_actor_ids or ())}
+    rows: List[Dict[str, object]] = []
+    for actor in world.get_actors().filter("vehicle.*"):
+        if int(actor.id) in excluded_actor_ids:
+            continue
+        try:
+            transform = actor.get_transform()
+            bbox = actor.bounding_box
+            projection = _project_actor_bbox_to_image(
+                actor,
+                camera_inverse_matrix=camera_inverse_matrix,
+                intrinsics=intrinsics,
+                camera_width=int(camera_width),
+                camera_height=int(camera_height),
+            )
+        except RuntimeError:
+            continue
+
+        center_world = np.asarray(projection["center_world"], dtype=np.float64)
+        bbox_x1, bbox_y1, bbox_x2, bbox_y2 = _bbox_xyxy_values(projection["bbox_xyxy"])
+        distance_m = math.sqrt(
+            (float(center_world[0]) - float(camera_location.x)) ** 2
+            + (float(center_world[1]) - float(camera_location.y)) ** 2
+            + (float(center_world[2]) - float(camera_location.z)) ** 2
+        )
+        role_name = ""
+        try:
+            role_name = str(actor.attributes.get("role_name", ""))
+        except Exception:
+            role_name = ""
+        rows.append(
+            {
+                "elapsed_s": float(elapsed_s),
+                "frame_id": int(frame_id),
+                "carla_timestamp": float(carla_timestamp),
+                "actor_id": int(actor.id),
+                "type_id": str(getattr(actor, "type_id", "")),
+                "role_name": role_name,
+                "class_name": "vehicle",
+                "world_x": float(center_world[0]),
+                "world_y": float(center_world[1]),
+                "world_z": float(center_world[2]),
+                "yaw_deg": float(transform.rotation.yaw),
+                "length_m": float(bbox.extent.x) * 2.0,
+                "width_m": float(bbox.extent.y) * 2.0,
+                "height_m": float(bbox.extent.z) * 2.0,
+                "distance_m": float(distance_m),
+                "in_camera_frustum": int(bool(projection["in_camera_frustum"])),
+                "projected_x": float(projection["projected_x"]),
+                "projected_y": float(projection["projected_y"]),
+                "bbox_x1": bbox_x1,
+                "bbox_y1": bbox_y1,
+                "bbox_x2": bbox_x2,
+                "bbox_y2": bbox_y2,
+            }
+        )
+    return rows
 
 
 def _segmentation_summary(mask: Optional[np.ndarray]) -> Dict[str, object]:
@@ -1525,11 +1754,25 @@ class FusionRunLogger:
         self.stream_dir.mkdir(parents=True, exist_ok=True)
         self.manifest_dir.mkdir(parents=True, exist_ok=True)
         self.csv_path = self.stream_dir / f"{self.stream_token}_metrics.csv"
+        self.predictions_path = self.stream_dir / f"{self.stream_token}_object_predictions.csv"
+        self.ground_truth_path = self.stream_dir / f"{self.stream_token}_object_ground_truth.csv"
         self.manifest_path = self.manifest_dir / f"{self.stream_token}_manifest.json"
         self.config_path = self.manifest_dir / f"{self.stream_token}_resolved_config.json"
         self._file = self.csv_path.open("w", newline="", encoding="utf-8")
         self._writer = csv.DictWriter(self._file, fieldnames=FUSION_METRICS_FIELDS)
         self._writer.writeheader()
+        self._prediction_file = self.predictions_path.open("w", newline="", encoding="utf-8")
+        self._prediction_writer = csv.DictWriter(
+            self._prediction_file,
+            fieldnames=FUSION_OBJECT_PREDICTION_FIELDS,
+        )
+        self._prediction_writer.writeheader()
+        self._ground_truth_file = self.ground_truth_path.open("w", newline="", encoding="utf-8")
+        self._ground_truth_writer = csv.DictWriter(
+            self._ground_truth_file,
+            fieldnames=FUSION_OBJECT_GROUND_TRUTH_FIELDS,
+        )
+        self._ground_truth_writer.writeheader()
 
     @classmethod
     def from_args(
@@ -1669,6 +1912,8 @@ class FusionRunLogger:
             },
             "output_files": {
                 "metrics_csv": str(self.csv_path),
+                "object_predictions_csv": str(self.predictions_path),
+                "object_ground_truth_csv": str(self.ground_truth_path),
                 "manifest": str(self.manifest_path),
                 "resolved_config": str(self.config_path),
             },
@@ -1693,9 +1938,71 @@ class FusionRunLogger:
     def append(self, row: Dict[str, object]) -> None:
         self._writer.writerow(row)
 
+    def append_object_predictions(
+        self,
+        *,
+        elapsed_s: float,
+        frame_id: int,
+        objects: Sequence[Dict[str, object]],
+    ) -> None:
+        now = datetime.now().isoformat(timespec="milliseconds")
+        for index, obj in enumerate(objects):
+            bbox_x1, bbox_y1, bbox_x2, bbox_y2 = _bbox_xyxy_values(obj.get("bbox_xyxy"))
+            row: Dict[str, object] = {
+                "wall_time_iso": now,
+                "elapsed_s": float(elapsed_s),
+                "run_id": self.run_id,
+                "run_group": self.run_group,
+                "stream_id": self.stream_id,
+                "frame_id": int(frame_id),
+                "object_index": int(index),
+                "class_name": "vehicle",
+                "score": _safe_float(obj.get("score"), float("nan")),
+                "world_x": _safe_float(obj.get("world_x"), float("nan")),
+                "world_y": _safe_float(obj.get("world_y"), float("nan")),
+                "world_z": _safe_float(obj.get("world_z"), float("nan")),
+                "yaw_deg": _safe_float(obj.get("yaw_deg"), float("nan")),
+                "length_m": _safe_float(obj.get("size_x"), float("nan")),
+                "width_m": _safe_float(obj.get("size_y"), float("nan")),
+                "height_m": _safe_float(obj.get("size_z"), float("nan")),
+                "center_x_px": _safe_float(obj.get("center_x_px"), float("nan")),
+                "center_y_px": _safe_float(obj.get("center_y_px"), float("nan")),
+                "bbox_x1": bbox_x1,
+                "bbox_y1": bbox_y1,
+                "bbox_x2": bbox_x2,
+                "bbox_y2": bbox_y2,
+                "parked_score": _safe_float(obj.get("parked_score"), float("nan")),
+                "radar_support_score": _safe_float(
+                    obj.get("radar_support_score"),
+                    float("nan"),
+                ),
+                "radar_support_count": "",
+            }
+            self._prediction_writer.writerow(
+                {field: row.get(field, "") for field in FUSION_OBJECT_PREDICTION_FIELDS}
+            )
+
+    def append_object_ground_truth(self, rows: Sequence[Dict[str, object]]) -> None:
+        now = datetime.now().isoformat(timespec="milliseconds")
+        for row in rows:
+            enriched: Dict[str, object] = {
+                "wall_time_iso": now,
+                "run_id": self.run_id,
+                "run_group": self.run_group,
+                "stream_id": self.stream_id,
+                **row,
+            }
+            self._ground_truth_writer.writerow(
+                {field: enriched.get(field, "") for field in FUSION_OBJECT_GROUND_TRUTH_FIELDS}
+            )
+
     def close(self) -> None:
         self._file.flush()
         self._file.close()
+        self._prediction_file.flush()
+        self._prediction_file.close()
+        self._ground_truth_file.flush()
+        self._ground_truth_file.close()
 
 
 def build_fusion_metrics_row(
@@ -2568,6 +2875,11 @@ def run_client(args: argparse.Namespace) -> None:
         intrinsics_input = intrinsics_at(
             int(model_input_size[0]), int(model_input_size[1]), float(args.camera_fov)
         )
+        intrinsics_display = intrinsics_at(
+            int(camera_width),
+            int(camera_height),
+            float(args.camera_fov),
+        )
 
         if str(args.spatial_map_stream_id).strip():
             spatial_stream_id = str(args.spatial_map_stream_id).strip()
@@ -2776,6 +3088,27 @@ def run_client(args: argparse.Namespace) -> None:
                         camera_width=int(camera_width),
                         camera_height=int(camera_height),
                         model_input_size=model_input_size,
+                    )
+                )
+                metrics_logger.append_object_predictions(
+                    elapsed_s=elapsed_s,
+                    frame_id=int(image.frame),
+                    objects=objects,
+                )
+                metrics_logger.append_object_ground_truth(
+                    build_vehicle_ground_truth_rows(
+                        world=world,
+                        frame_id=int(image.frame),
+                        elapsed_s=elapsed_s,
+                        carla_timestamp=float(image.timestamp),
+                        camera_transform=camera.get_transform(),
+                        camera_inverse_matrix=camera_inverse_matrix,
+                        intrinsics=intrinsics_display,
+                        camera_width=int(camera_width),
+                        camera_height=int(camera_height),
+                        exclude_actor_ids=(
+                            [int(anchor_actor.id)] if sensor_platform == "ego_vehicle" else []
+                        ),
                     )
                 )
             if max_measurement_frames > 0 and processed_frames >= max_measurement_frames:

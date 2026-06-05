@@ -61,7 +61,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from collections import OrderedDict
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple
 
 import cv2
 import numpy as np
@@ -157,11 +157,31 @@ METRICS_CSV_FIELDS = (
     "payload_uncompressed_kib",
     "payload_chunks",
     "detections",
+    "gt_od_available",
+    "gt_object_count",
+    "gt_vehicle_count",
+    "gt_person_count",
+    "pred_object_count",
+    "pred_vehicle_count",
+    "pred_person_count",
+    "od_match_iou_threshold",
+    "od_matched_count",
+    "od_vehicle_matched_count",
+    "od_person_matched_count",
+    "od_recall",
+    "od_precision",
+    "od_vehicle_recall",
+    "od_vehicle_precision",
+    "od_person_recall",
+    "od_person_precision",
+    "od_mean_iou",
 )
 DEFAULT_METRICS_BATCH_SIZE = 60
 DEFAULT_METRICS_FLUSH_INTERVAL = 1.0
 DEFAULT_LIVE_PLOT_REFRESH_SECONDS = 0.25
 DEFAULT_METRICS_WARMUP_FRAMES = 30
+COCO_VEHICLE_NAMES = {"bicycle", "car", "motorcycle", "bus", "train", "truck"}
+COCO_PERSON_NAMES = {"person"}
 
 
 def parse_args() -> argparse.Namespace:
@@ -241,6 +261,41 @@ def parse_args() -> argparse.Namespace:
         type=int,
         default=20,
         help="Maximum number of detections rendered per frame.",
+    )
+    od_gt_group = parser.add_mutually_exclusive_group()
+    od_gt_group.add_argument(
+        "--enable-od-gt",
+        dest="enable_od_gt",
+        action="store_true",
+        help=(
+            "Project CARLA vehicle/person actors into the RGB camera and log "
+            "first-pass OD precision/recall using 2D IoU matching."
+        ),
+    )
+    od_gt_group.add_argument(
+        "--disable-od-gt",
+        dest="enable_od_gt",
+        action="store_false",
+        help="Skip CARLA actor GT projection for OD quality metrics.",
+    )
+    parser.set_defaults(enable_od_gt=False)
+    parser.add_argument(
+        "--od-gt-iou-threshold",
+        type=float,
+        default=0.5,
+        help="2D box IoU threshold used for camera-only OD GT matching.",
+    )
+    parser.add_argument(
+        "--od-gt-min-area-px",
+        type=float,
+        default=64.0,
+        help="Drop projected GT boxes smaller than this image area.",
+    )
+    parser.add_argument(
+        "--od-gt-max-distance-m",
+        type=float,
+        default=80.0,
+        help="Drop actor GT farther than this from the RGB camera. 0 disables.",
     )
     parser.add_argument(
         "--camera-source-port",
@@ -1165,12 +1220,344 @@ class AsyncMetricsCollector(threading.Thread):
             )
 
 
+def get_camera_intrinsics(width: int, height: int, fov_deg: float) -> np.ndarray:
+    focal = width / (2.0 * math.tan(math.radians(fov_deg) / 2.0))
+    intrinsics = np.identity(3, dtype=np.float32)
+    intrinsics[0, 0] = intrinsics[1, 1] = focal
+    intrinsics[0, 2] = width / 2.0
+    intrinsics[1, 2] = height / 2.0
+    return intrinsics
+
+
+def world_to_camera_points(points_world: np.ndarray, cam_inv_matrix: np.ndarray) -> np.ndarray:
+    if points_world.size == 0:
+        return points_world
+    points = np.concatenate(
+        [
+            points_world.astype(np.float32),
+            np.ones((len(points_world), 1), dtype=np.float32),
+        ],
+        axis=1,
+    )
+    return (cam_inv_matrix @ points.T).T[:, :3]
+
+
+def project_camera_points_to_image(
+    points_cam: np.ndarray,
+    intrinsics: np.ndarray,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    if points_cam.size == 0:
+        empty = np.zeros((0,), dtype=np.float32)
+        return empty, empty, empty
+    x = points_cam[:, 0]
+    y = points_cam[:, 1]
+    z = points_cam[:, 2]
+    in_front = x > 0.05
+    if not np.any(in_front):
+        empty = np.zeros((0,), dtype=np.float32)
+        return empty, empty, empty
+    x2, y2, z2 = x[in_front], y[in_front], z[in_front]
+    u = intrinsics[0, 2] + (y2 / x2) * intrinsics[0, 0]
+    v = intrinsics[1, 2] - (z2 / x2) * intrinsics[1, 1]
+    return u, v, x2
+
+
+def bbox_corner_offsets(extent: "carla.Vector3D") -> np.ndarray:
+    ex, ey, ez = float(extent.x), float(extent.y), float(extent.z)
+    return np.array(
+        [
+            [ex, ey, ez],
+            [ex, ey, -ez],
+            [ex, -ey, ez],
+            [ex, -ey, -ez],
+            [-ex, ey, ez],
+            [-ex, ey, -ez],
+            [-ex, -ey, ez],
+            [-ex, -ey, -ez],
+        ],
+        dtype=np.float32,
+    )
+
+
+def actor_bbox_world_corners(actor: "carla.Actor") -> Optional[np.ndarray]:
+    bbox = getattr(actor, "bounding_box", None)
+    if bbox is None:
+        return None
+    try:
+        vertices = bbox.get_world_vertices(actor.get_transform())
+        return np.array([[v.x, v.y, v.z] for v in vertices], dtype=np.float32)
+    except (AttributeError, RuntimeError):
+        pass
+
+    try:
+        actor_transform = actor.get_transform()
+    except RuntimeError:
+        return None
+    actor_matrix = np.array(actor_transform.get_matrix(), dtype=np.float32)
+    bbox_location = np.array(
+        [bbox.location.x, bbox.location.y, bbox.location.z],
+        dtype=np.float32,
+    )
+    corners_local = bbox_corner_offsets(bbox.extent) + bbox_location.reshape(1, 3)
+    homogeneous = np.concatenate(
+        [corners_local, np.ones((corners_local.shape[0], 1), dtype=np.float32)],
+        axis=1,
+    )
+    return (actor_matrix @ homogeneous.T).T[:, :3]
+
+
+def projected_actor_bbox_xyxy(
+    actor: "carla.Actor",
+    cam_inv_matrix: np.ndarray,
+    intrinsics: np.ndarray,
+    width: int,
+    height: int,
+) -> Optional[Dict[str, float]]:
+    corners_world = actor_bbox_world_corners(actor)
+    if corners_world is None or corners_world.size == 0:
+        return None
+    corners_cam = world_to_camera_points(corners_world, cam_inv_matrix)
+    u, v, depths = project_camera_points_to_image(corners_cam, intrinsics)
+    if u.size == 0:
+        return None
+    x1 = float(np.clip(np.min(u), 0.0, width))
+    y1 = float(np.clip(np.min(v), 0.0, height))
+    x2 = float(np.clip(np.max(u), 0.0, width))
+    y2 = float(np.clip(np.max(v), 0.0, height))
+    area = max(0.0, x2 - x1) * max(0.0, y2 - y1)
+    if area <= 0.0:
+        return None
+    return {
+        "x1": x1,
+        "y1": y1,
+        "x2": x2,
+        "y2": y2,
+        "area_px": area,
+        "center_x": (x1 + x2) / 2.0,
+        "center_y": (y1 + y2) / 2.0,
+        "min_depth_m": float(np.min(depths)),
+    }
+
+
+def normalize_coco_detection_label(detection: Dict[str, object]) -> Optional[str]:
+    name = str(detection.get("name", "")).strip().lower()
+    if name in COCO_PERSON_NAMES:
+        return "person"
+    if name in COCO_VEHICLE_NAMES:
+        return "vehicle"
+    return None
+
+
+def project_od_ground_truth_objects(
+    world: "carla.World",
+    camera_actor: Optional["carla.Actor"],
+    hero_id: Optional[int],
+    *,
+    width: int,
+    height: int,
+    fov: float,
+    max_distance_m: float,
+    min_area_px: float,
+) -> List[Dict[str, object]]:
+    if camera_actor is None:
+        return []
+    try:
+        camera_transform = camera_actor.get_transform()
+        camera_location = camera_transform.location
+        cam_inv_matrix = np.array(camera_transform.get_inverse_matrix(), dtype=np.float32)
+    except RuntimeError:
+        return []
+
+    intrinsics = get_camera_intrinsics(int(width), int(height), float(fov))
+    gt_objects: List[Dict[str, object]] = []
+    max_distance = max(0.0, float(max_distance_m))
+    min_area = max(0.0, float(min_area_px))
+    actor_sets = (("vehicle", "vehicle.*"), ("person", "walker.pedestrian.*"))
+    for label, pattern in actor_sets:
+        for actor in world.get_actors().filter(pattern):
+            if hero_id is not None and actor.id == hero_id:
+                continue
+            if actor.id == camera_actor.id:
+                continue
+            try:
+                distance_m = float(actor.get_location().distance(camera_location))
+            except RuntimeError:
+                continue
+            if max_distance > 0.0 and distance_m > max_distance:
+                continue
+            projection = projected_actor_bbox_xyxy(
+                actor,
+                cam_inv_matrix,
+                intrinsics,
+                int(width),
+                int(height),
+            )
+            if projection is None or float(projection["area_px"]) < min_area:
+                continue
+            gt_objects.append(
+                {
+                    "label": label,
+                    "actor_id": int(actor.id),
+                    "type_id": str(actor.type_id),
+                    "bbox_xyxy": (
+                        float(projection["x1"]),
+                        float(projection["y1"]),
+                        float(projection["x2"]),
+                        float(projection["y2"]),
+                    ),
+                    "area_px": float(projection["area_px"]),
+                    "center_x": float(projection["center_x"]),
+                    "center_y": float(projection["center_y"]),
+                    "distance_m": distance_m,
+                    "depth_m": float(projection["min_depth_m"]),
+                }
+            )
+    return gt_objects
+
+
+def detection_bbox_xyxy(detection: Dict[str, object]) -> Optional[Tuple[float, float, float, float]]:
+    raw = detection.get("box")
+    if not isinstance(raw, (list, tuple)) or len(raw) < 4:
+        return None
+    try:
+        x1, y1, x2, y2 = (float(raw[index]) for index in range(4))
+    except (TypeError, ValueError):
+        return None
+    if x2 <= x1 or y2 <= y1:
+        return None
+    return x1, y1, x2, y2
+
+
+def bbox_iou_xyxy(
+    a: Sequence[float],
+    b: Sequence[float],
+) -> float:
+    ax1, ay1, ax2, ay2 = (float(value) for value in a)
+    bx1, by1, bx2, by2 = (float(value) for value in b)
+    ix1 = max(ax1, bx1)
+    iy1 = max(ay1, by1)
+    ix2 = min(ax2, bx2)
+    iy2 = min(ay2, by2)
+    inter_w = max(0.0, ix2 - ix1)
+    inter_h = max(0.0, iy2 - iy1)
+    intersection = inter_w * inter_h
+    area_a = max(0.0, ax2 - ax1) * max(0.0, ay2 - ay1)
+    area_b = max(0.0, bx2 - bx1) * max(0.0, by2 - by1)
+    union = area_a + area_b - intersection
+    return float(intersection / union) if union > 0.0 else 0.0
+
+
+def empty_od_quality_columns(*, available: bool, iou_threshold: float) -> Dict[str, object]:
+    return {
+        "gt_od_available": int(available),
+        "gt_object_count": 0,
+        "gt_vehicle_count": 0,
+        "gt_person_count": 0,
+        "pred_object_count": 0,
+        "pred_vehicle_count": 0,
+        "pred_person_count": 0,
+        "od_match_iou_threshold": float(iou_threshold),
+        "od_matched_count": 0,
+        "od_vehicle_matched_count": 0,
+        "od_person_matched_count": 0,
+        "od_recall": float("nan"),
+        "od_precision": float("nan"),
+        "od_vehicle_recall": float("nan"),
+        "od_vehicle_precision": float("nan"),
+        "od_person_recall": float("nan"),
+        "od_person_precision": float("nan"),
+        "od_mean_iou": float("nan"),
+    }
+
+
+def ratio_or_nan(numerator: int, denominator: int) -> float:
+    return float(numerator / denominator) if denominator > 0 else float("nan")
+
+
+def compute_od_quality_columns(
+    detections: Sequence[Dict[str, object]],
+    gt_objects: Optional[Sequence[Dict[str, object]]],
+    *,
+    iou_threshold: float,
+) -> Dict[str, object]:
+    if gt_objects is None:
+        return empty_od_quality_columns(available=False, iou_threshold=iou_threshold)
+
+    predicted: List[Dict[str, object]] = []
+    for detection in detections:
+        label = normalize_coco_detection_label(detection)
+        bbox = detection_bbox_xyxy(detection)
+        if label is None or bbox is None:
+            continue
+        predicted.append({"label": label, "bbox_xyxy": bbox})
+
+    gt_by_label = {
+        "vehicle": [gt for gt in gt_objects if str(gt.get("label")) == "vehicle"],
+        "person": [gt for gt in gt_objects if str(gt.get("label")) == "person"],
+    }
+    pred_by_label = {
+        "vehicle": [pred for pred in predicted if str(pred.get("label")) == "vehicle"],
+        "person": [pred for pred in predicted if str(pred.get("label")) == "person"],
+    }
+
+    candidates: List[Tuple[float, int, int]] = []
+    for pred_index, pred in enumerate(predicted):
+        pred_label = str(pred["label"])
+        for gt_index, gt in enumerate(gt_objects):
+            if pred_label != str(gt.get("label")):
+                continue
+            iou = bbox_iou_xyxy(pred["bbox_xyxy"], gt["bbox_xyxy"])  # type: ignore[arg-type]
+            if iou >= float(iou_threshold):
+                candidates.append((iou, pred_index, gt_index))
+    candidates.sort(reverse=True)
+
+    used_pred = set()
+    used_gt = set()
+    matched_ious: List[float] = []
+    matched_by_label = {"vehicle": 0, "person": 0}
+    for iou, pred_index, gt_index in candidates:
+        if pred_index in used_pred or gt_index in used_gt:
+            continue
+        used_pred.add(pred_index)
+        used_gt.add(gt_index)
+        matched_ious.append(float(iou))
+        label = str(gt_objects[gt_index].get("label"))
+        if label in matched_by_label:
+            matched_by_label[label] += 1
+
+    gt_count = len(gt_objects)
+    pred_count = len(predicted)
+    matched_count = len(matched_ious)
+    return {
+        "gt_od_available": 1,
+        "gt_object_count": int(gt_count),
+        "gt_vehicle_count": int(len(gt_by_label["vehicle"])),
+        "gt_person_count": int(len(gt_by_label["person"])),
+        "pred_object_count": int(pred_count),
+        "pred_vehicle_count": int(len(pred_by_label["vehicle"])),
+        "pred_person_count": int(len(pred_by_label["person"])),
+        "od_match_iou_threshold": float(iou_threshold),
+        "od_matched_count": int(matched_count),
+        "od_vehicle_matched_count": int(matched_by_label["vehicle"]),
+        "od_person_matched_count": int(matched_by_label["person"]),
+        "od_recall": ratio_or_nan(matched_count, gt_count),
+        "od_precision": ratio_or_nan(matched_count, pred_count),
+        "od_vehicle_recall": ratio_or_nan(matched_by_label["vehicle"], len(gt_by_label["vehicle"])),
+        "od_vehicle_precision": ratio_or_nan(matched_by_label["vehicle"], len(pred_by_label["vehicle"])),
+        "od_person_recall": ratio_or_nan(matched_by_label["person"], len(gt_by_label["person"])),
+        "od_person_precision": ratio_or_nan(matched_by_label["person"], len(pred_by_label["person"])),
+        "od_mean_iou": float(sum(matched_ious) / len(matched_ious)) if matched_ious else float("nan"),
+    }
+
+
 def build_metrics_record(
     frame_id: int,
     elapsed_s: float,
     front_stats: Dict[str, object],
     remote_stats: Optional[Dict[str, object]],
-    detections_count: int,
+    detections: Sequence[Dict[str, object]],
+    gt_objects: Optional[Sequence[Dict[str, object]]],
+    args: argparse.Namespace,
 ) -> Dict[str, object]:
     back_ms = float("nan")
     round_trip_ms = float("nan")
@@ -1192,7 +1579,12 @@ def build_metrics_record(
         "payload_kib": payload_bytes / 1024.0,
         "payload_uncompressed_kib": payload_bytes_uncompressed / 1024.0,
         "payload_chunks": int(front_stats["payload_chunks"]),
-        "detections": int(detections_count),
+        "detections": int(len(detections)),
+        **compute_od_quality_columns(
+            detections,
+            gt_objects,
+            iou_threshold=float(args.od_gt_iou_threshold),
+        ),
     }
 
 
@@ -2327,6 +2719,19 @@ def run_demo(args: argparse.Namespace) -> None:
                 }
                 detections = list(result["detections"])
 
+            gt_objects: Optional[List[Dict[str, object]]] = None
+            if bool(args.enable_od_gt):
+                gt_objects = project_od_ground_truth_objects(
+                    world,
+                    camera,
+                    int(hero_vehicle.id),
+                    width=int(camera_width),
+                    height=int(camera_height),
+                    fov=float(args.camera_fov),
+                    max_distance_m=float(args.od_gt_max_distance_m),
+                    min_area_px=float(args.od_gt_min_area_px),
+                )
+
             if metrics_collector is not None:
                 if metrics_warmup_remaining > 0:
                     metrics_warmup_remaining -= 1
@@ -2340,7 +2745,9 @@ def run_demo(args: argparse.Namespace) -> None:
                         elapsed_s=time.perf_counter() - metrics_start_perf,
                         front_stats=front_stats,
                         remote_stats=remote_stats,
-                        detections_count=len(detections),
+                        detections=detections,
+                        gt_objects=gt_objects,
+                        args=args,
                     )
                     metrics_collector.submit(metrics_record)
 
