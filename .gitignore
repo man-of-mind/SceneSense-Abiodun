@@ -19,10 +19,12 @@ env/
 
 # Generated experiment outputs
 /metrics_logs/
+/experiments/
 /phase3_logs/
 /phase3_logs_lowres/
 /remote_files/*
 !/remote_files/README.md
+/_rsync_backups_supervisor/
 latest_fusion_object_spatial_map*.png
 *.log
 *.trace

@@ -42,6 +42,7 @@ import torch.nn.functional as F
 
 import carla_split_inference_udp_demo as od_demo
 import carla_split_inference_udp_data_collect as od_collect
+from scenesense_tx_gate import TxGate, decision_to_stats
 
 carla = od_demo.carla
 cv2 = od_demo.cv2
@@ -129,6 +130,11 @@ METRICS_CSV_FIELDS = (
     "payload_kib",
     "payload_uncompressed_kib",
     "payload_chunks",
+    "tx_active",
+    "tx_task_name",
+    "tx_gate_active_task",
+    "tx_gate_reason",
+    "tx_gate_profile",
     "mask_available",
     "mask_foreground_pixels",
     "mask_classes",
@@ -367,6 +373,30 @@ def parse_args() -> argparse.Namespace:
         type=float,
         default=0.35,
         help="Seconds to wait for a matching segmentation result.",
+    )
+    parser.add_argument(
+        "--tx-gate-file",
+        default="",
+        help=(
+            "Optional JSON control file. When provided, this task only sends "
+            "feature payloads while active_task matches --tx-task-name."
+        ),
+    )
+    parser.add_argument(
+        "--tx-task-name",
+        default="seg",
+        help="Task name used when matching --tx-gate-file active_task.",
+    )
+    parser.add_argument(
+        "--tx-gate-default-inactive",
+        action="store_true",
+        help="If the gate file is missing/invalid/stale, mute this task instead of sending.",
+    )
+    parser.add_argument(
+        "--tx-gate-stale-timeout-s",
+        type=float,
+        default=0.0,
+        help="Treat gate files older than this many seconds as stale. Use 0 to disable.",
     )
     parser.add_argument(
         "--socket-timeout",
@@ -1741,6 +1771,7 @@ class CameraSideSegmentationSplitInference:
         transport: "od_collect.TransportConfig",
         autoencoder: Optional[PerLevelFeatureAutoencoder] = None,
         per_level_compress_probe: bool = False,
+        tx_gate: Optional[TxGate] = None,
     ) -> None:
         self.model = model
         self.sender = sender
@@ -1750,6 +1781,7 @@ class CameraSideSegmentationSplitInference:
         self.transport = transport
         self.autoencoder = autoencoder
         self.per_level_compress_probe = bool(per_level_compress_probe)
+        self.tx_gate = tx_gate
         # Cache the entropy coder used by the per-level probe so we don't
         # rebuild a fresh zstd context every frame.
         self._probe_coder = transport.make_entropy_coder()
@@ -1807,12 +1839,28 @@ class CameraSideSegmentationSplitInference:
             "features": serialized_features,
             "camera_sent_perf": time.perf_counter(),
         }
-        payload_bytes, payload_chunks = self.sender.send(payload)
+        decision = self.tx_gate.decide() if self.tx_gate is not None else None
+        gate_stats = (
+            decision_to_stats(decision)
+            if decision is not None
+            else {
+                "tx_active": 1,
+                "tx_task_name": "seg",
+                "tx_gate_active_task": "all",
+                "tx_gate_reason": "gate_disabled",
+                "tx_gate_profile": "",
+            }
+        )
+        if decision is not None and not decision.active:
+            payload_bytes, payload_chunks = 0, 0
+        else:
+            payload_bytes, payload_chunks = self.sender.send(payload)
         return {
             "front_ms": (time.perf_counter() - started) * 1000.0,
             "payload_bytes": int(payload_bytes),
             "payload_bytes_uncompressed": int(payload_bytes_uncompressed),
             "payload_chunks": int(payload_chunks),
+            **gate_stats,
             "roi_drop_fraction_total": float(drop_fraction_total),
             "roi_drop_fraction_per_level": dict(drop_fraction_per_level),
             "per_level_uncompressed_bytes": dict(per_level_uncompressed),
@@ -1996,6 +2044,10 @@ def write_run_manifest(
         "ae_spatial_stride": int(args.ae_spatial_stride),
         "ae_checkpoint": str(args.ae_checkpoint or ""),
         "ae_seed": int(args.ae_seed),
+        "tx_gate_file": str(args.tx_gate_file or ""),
+        "tx_task_name": str(args.tx_task_name or "seg"),
+        "tx_gate_default_active": not bool(args.tx_gate_default_inactive),
+        "tx_gate_stale_timeout_s": float(args.tx_gate_stale_timeout_s),
         "enable_semantic_gt": bool(args.enable_semantic_gt),
         "per_level_compress_probe": bool(args.per_level_compress_probe),
         "extra": _parse_manifest_extra(args.manifest_extra_json),
@@ -2099,6 +2151,11 @@ def build_metrics_record(
         "payload_kib": payload_bytes / 1024.0,
         "payload_uncompressed_kib": payload_bytes_uncompressed / 1024.0,
         "payload_chunks": int(front_stats["payload_chunks"]),
+        "tx_active": int(front_stats.get("tx_active", 1)),
+        "tx_task_name": str(front_stats.get("tx_task_name", "seg")),
+        "tx_gate_active_task": str(front_stats.get("tx_gate_active_task", "all")),
+        "tx_gate_reason": str(front_stats.get("tx_gate_reason", "")),
+        "tx_gate_profile": str(front_stats.get("tx_gate_profile", "")),
         "mask_available": int(mask is not None),
         "mask_foreground_pixels": foreground_pixels,
         "mask_classes": mask_classes,
@@ -2339,6 +2396,16 @@ def run_demo(args: argparse.Namespace) -> None:
     )
     front_autoencoder = build_per_level_autoencoder(args, front_device)
     back_autoencoder = build_per_level_autoencoder(args, back_device)
+    tx_gate = (
+        TxGate(
+            args.tx_gate_file,
+            args.tx_task_name,
+            default_active=not bool(args.tx_gate_default_inactive),
+            stale_timeout_s=float(args.tx_gate_stale_timeout_s),
+        )
+        if str(args.tx_gate_file or "").strip()
+        else None
+    )
 
     # Each socket gets its own coder so send/receive paths don't share a single
     # zstd context across threads. Same idiom as the OD data-collect demo.
@@ -2379,6 +2446,7 @@ def run_demo(args: argparse.Namespace) -> None:
         transport=transport_cfg,
         autoencoder=front_autoencoder,
         per_level_compress_probe=bool(args.per_level_compress_probe),
+        tx_gate=tx_gate,
     )
     remote_worker = SegmentationRemoteInferenceWorker(
         model=back_model,
@@ -2561,12 +2629,14 @@ def run_demo(args: argparse.Namespace) -> None:
                         f"received within {args.camera_timeout:.1f}s; mIoU columns "
                         "will be NaN for this frame."
                     )
-            result = result_store.wait_for(
-                int(image.frame),
-                args.result_timeout,
-                tick_callback=lambda: _manual_tick(manual_controller),
-                tick_hz=float(args.fps),
-            )
+            result = None
+            if int(front_stats.get("tx_active", 1)):
+                result = result_store.wait_for(
+                    int(image.frame),
+                    args.result_timeout,
+                    tick_callback=lambda: _manual_tick(manual_controller),
+                    tick_hz=float(args.fps),
+                )
 
             remote_stats = None
             mask: Optional[np.ndarray] = None

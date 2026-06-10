@@ -53,6 +53,8 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
+from scenesense_tx_gate import TxGate, decision_to_stats
+
 
 def _bootstrap_carla():
     try:
@@ -140,6 +142,11 @@ METRICS_CSV_FIELDS = (
     "payload_kib",
     "payload_uncompressed_kib",
     "payload_chunks",
+    "tx_active",
+    "tx_task_name",
+    "tx_gate_active_task",
+    "tx_gate_reason",
+    "tx_gate_profile",
     "detections",
     # Ground-truth scene descriptors derived from CARLA actor state projected
     # into the current camera frame. These let us regress payload size against
@@ -303,6 +310,30 @@ def parse_args() -> argparse.Namespace:
         type=float,
         default=0.35,
         help="Seconds to wait for a matching detection result.",
+    )
+    parser.add_argument(
+        "--tx-gate-file",
+        default="",
+        help=(
+            "Optional JSON control file. When provided, this task only sends "
+            "feature payloads while active_task matches --tx-task-name."
+        ),
+    )
+    parser.add_argument(
+        "--tx-task-name",
+        default="od",
+        help="Task name used when matching --tx-gate-file active_task.",
+    )
+    parser.add_argument(
+        "--tx-gate-default-inactive",
+        action="store_true",
+        help="If the gate file is missing/invalid/stale, mute this task instead of sending.",
+    )
+    parser.add_argument(
+        "--tx-gate-stale-timeout-s",
+        type=float,
+        default=0.0,
+        help="Treat gate files older than this many seconds as stale. Use 0 to disable.",
     )
     parser.add_argument(
         "--socket-timeout",
@@ -1651,6 +1682,11 @@ def build_metrics_record(
         "payload_kib": payload_bytes / 1024.0,
         "payload_uncompressed_kib": payload_bytes_uncompressed / 1024.0,
         "payload_chunks": int(front_stats["payload_chunks"]),
+        "tx_active": int(front_stats.get("tx_active", 1)),
+        "tx_task_name": str(front_stats.get("tx_task_name", "od")),
+        "tx_gate_active_task": str(front_stats.get("tx_gate_active_task", "all")),
+        "tx_gate_reason": str(front_stats.get("tx_gate_reason", "")),
+        "tx_gate_profile": str(front_stats.get("tx_gate_profile", "")),
         "detections": int(detections_count),
         "gt_vehicles_in_fov": int(gt.get("gt_vehicles_in_fov", 0)),
         "gt_pedestrians_in_fov": int(gt.get("gt_pedestrians_in_fov", 0)),
@@ -1972,6 +2008,10 @@ def write_run_manifest(
         "rcnn_min_size_resolved": list(rcnn_min_size_resolved),
         "rcnn_max_size_resolved": int(rcnn_max_size_resolved),
         "bypass_rcnn_transform": bool(args.bypass_rcnn_transform),
+        "tx_gate_file": str(args.tx_gate_file or ""),
+        "tx_task_name": str(args.tx_task_name or "od"),
+        "tx_gate_default_active": not bool(args.tx_gate_default_inactive),
+        "tx_gate_stale_timeout_s": float(args.tx_gate_stale_timeout_s),
         "extra": extra,
     }
     with manifest_path.open("w", encoding="utf-8") as fh:
@@ -2687,6 +2727,7 @@ class CameraSideSplitInference:
         transport: TransportConfig,
         autoencoder: Optional[FeatureAutoencoder] = None,
         per_level_compress_probe: bool = False,
+        tx_gate: Optional[TxGate] = None,
     ) -> None:
         self.model = model.to(device).eval()
         self.sender = sender
@@ -2695,6 +2736,7 @@ class CameraSideSplitInference:
         self.per_level_compress_probe = bool(per_level_compress_probe)
         self.transport = transport
         self.autoencoder = autoencoder.to(device).eval() if autoencoder is not None else None
+        self.tx_gate = tx_gate
         self.size_divisible = int(getattr(model.transform, "size_divisible", 32))
         # Cache the entropy coder used by the per-level compression probe so we
         # don't reconstruct it (and possibly re-import zstd) every frame.
@@ -2790,12 +2832,28 @@ class CameraSideSplitInference:
             "ae_output_sizes": {k: list(v) for k, v in ae_output_sizes.items()},
             "camera_sent_perf": time.perf_counter(),
         }
-        payload_bytes, payload_chunks = self.sender.send(payload)
+        decision = self.tx_gate.decide() if self.tx_gate is not None else None
+        gate_stats = (
+            decision_to_stats(decision)
+            if decision is not None
+            else {
+                "tx_active": 1,
+                "tx_task_name": "od",
+                "tx_gate_active_task": "all",
+                "tx_gate_reason": "gate_disabled",
+                "tx_gate_profile": "",
+            }
+        )
+        if decision is not None and not decision.active:
+            payload_bytes, payload_chunks = 0, 0
+        else:
+            payload_bytes, payload_chunks = self.sender.send(payload)
         return {
             "front_ms": (time.perf_counter() - started) * 1000.0,
             "payload_bytes": payload_bytes,
             "payload_bytes_uncompressed": payload_bytes_uncompressed,
             "payload_chunks": payload_chunks,
+            **gate_stats,
             "per_level_uncompressed_bytes": dict(per_level_uncompressed),
             "per_level_compressed_bytes": dict(per_level_compressed),
             "roi_drop_fraction_total": float(drop_fraction_total),
@@ -3079,6 +3137,16 @@ def run_demo(args: argparse.Namespace) -> None:
     transport_cfg = transport_config_from_args(args)
     front_autoencoder = build_feature_autoencoder(args, front_device)
     back_autoencoder = build_feature_autoencoder(args, back_device)
+    tx_gate = (
+        TxGate(
+            args.tx_gate_file,
+            args.tx_task_name,
+            default_active=not bool(args.tx_gate_default_inactive),
+            stale_timeout_s=float(args.tx_gate_stale_timeout_s),
+        )
+        if str(args.tx_gate_file or "").strip()
+        else None
+    )
 
     payload_coder_send = transport_cfg.make_entropy_coder()
     payload_coder_recv_remote = transport_cfg.make_entropy_coder()
@@ -3123,6 +3191,7 @@ def run_demo(args: argparse.Namespace) -> None:
         transport=transport_cfg,
         autoencoder=front_autoencoder,
         per_level_compress_probe=args.per_level_compress_probe,
+        tx_gate=tx_gate,
     )
     remote_worker = RemoteInferenceWorker(
         model=back_model,
@@ -3181,6 +3250,10 @@ def run_demo(args: argparse.Namespace) -> None:
         "rcnn_min_size": rcnn_min_size_resolved[0] if rcnn_min_size_resolved else 0,
         "rcnn_max_size": rcnn_max_size_resolved,
         "bypass_rcnn_transform": args.bypass_rcnn_transform,
+        "tx_gate_file": args.tx_gate_file,
+        "tx_task_name": args.tx_task_name,
+        "tx_gate_default_active": not bool(args.tx_gate_default_inactive),
+        "tx_gate_stale_timeout_s": args.tx_gate_stale_timeout_s,
     }
 
     actors: List["carla.Actor"] = []
@@ -3310,7 +3383,9 @@ def run_demo(args: argparse.Namespace) -> None:
             frame_bgr = camera_image_to_bgr(image)
             front_stats = split_camera.process(image.frame, frame_bgr)
 
-            result = result_store.wait_for(image.frame, args.result_timeout)
+            result = None
+            if int(front_stats.get("tx_active", 1)):
+                result = result_store.wait_for(image.frame, args.result_timeout)
             remote_stats = None
             detections: List[Dict[str, object]] = []
             if result is not None:
