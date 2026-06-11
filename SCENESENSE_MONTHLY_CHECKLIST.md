@@ -28,11 +28,14 @@ The policy is only acceptable if task guardrails are respected:
 | --- | --- | --- | --- |
 | Camera-only OD | RGB camera | Boxes / detections | Compare against earlier OD split-inference pipeline. |
 | Camera-only SEG | RGB camera | Semantic mask | Compare against earlier segmentation split-inference pipeline. |
-| RGB+radar fusion as OD | RGB + radar tensor | Object head: boxes, world position, yaw, size | Evaluate fusion object/localization quality. |
-| RGB+radar fusion as SEG | RGB + radar tensor | Segmentation head: mask | Evaluate fusion segmentation quality. |
+| RGB+radar fusion SEG/localization | RGB + radar tensor | Segmentation mask plus localization-style output | Evaluate fusion segmentation and spatial localization quality. Do not treat this as true OD boxes/classes/AP. |
+| Single-ego OD/SEG controller harness | RGB camera | Either OD boxes or SEG mask, selected by controller | Exercise task scheduling with two separate split-inference task pipes on the same ego/camera stream. |
 | Spatial-map fusion | Outputs from one or more clients | Fused object map | Support occlusion-aware physical-AI experiments later. |
 
-Important note: the new RGB+radar fusion model produces both segmentation and object/localization outputs. For evaluation, treat OD and SEG as separate task metrics even when they come from the same model run.
+Important note: the RGB+radar fusion model should be described as a fusion
+segmentation/localization model, not a true OD model. True OD currently means
+the camera-only Faster R-CNN split route. Keep the old fusion localization
+analysis as localization/transferability evidence, not OD AP evidence.
 
 ## Month 1: Baselines, Transport, Metrics, and Schema
 
@@ -323,6 +326,27 @@ Working Month 2 interpretation:
 Month 2 goal is not to claim a final RL policy. The goal is to produce the
 static baselines and QoS evidence that any learned policy must beat.
 
+Month 2 preflight / terminology correction completed:
+
+- [x] Corrected model taxonomy: current RGB+radar fusion checkpoint is
+  segmentation/localization, not true OD. True OD currently means the RGB-only
+  Faster R-CNN split route.
+- [x] Built and smoke-tested a single-ego OD/SEG controller harness with two
+  separate UDP task pipes, timer-based OD/SEG gating, and original demo traffic
+  density defaults.
+- [x] Built a clean RGB-only transferability harness for moving/autopilot and
+  parked ego viewpoints without modifying the controller harness.
+- [x] Ran clean RGB-only transferability set locally: moving SEG moving/parked,
+  pole-trained SEG TL14/parked-near-TL14, and moving OD moving/parked.
+- [x] Generated presentation-ready transferability plots:
+  `metrics_logs/rgb_ego_transfer/analysis_clean_20260610/seg_vehicle_iou_clean.png`
+  and
+  `metrics_logs/rgb_ego_transfer/analysis_clean_20260610/od_recall_precision_clean.png`.
+  Headline: moving SEG is weak in both settings (`0.20 -> 0.19` vehicle IoU);
+  pole-trained SEG drops but remains strong (`0.90 -> 0.71` vehicle IoU);
+  moving OD recall drops on parked ego (`0.35 -> 0.18`) while precision rises
+  (`0.67 -> 0.93`), indicating a conservative parked-view detector.
+
 ### 1. Freeze the Month 2 Experiment Matrix
 
 - [ ] Select the Month 2 scenario subset:
@@ -331,20 +355,22 @@ static baselines and QoS evidence that any learned policy must beat.
   - [ ] Curbside hidden-pedestrian scenario.
   - [ ] Optional parked-ego fusion transfer scene if supervisor wants parked ego prioritized.
 - [ ] Select the Month 2 route subset:
-  - [ ] Camera-only OD.
-  - [ ] Camera-only SEG.
-  - [ ] RGB+radar fusion as SEG.
-  - [ ] RGB+radar fusion as OD.
+  - [x] Camera-only OD.
+  - [x] Camera-only SEG.
+  - [x] RGB+radar fusion SEG/localization.
+  - [x] Single-ego OD/SEG controller harness.
+  - [ ] Future RGB+radar OD route, only if/when a true fusion OD model exists.
 - [ ] Define canonical run durations:
   - [ ] Short smoke: 30-60 s.
-  - [ ] Measurement run: 180 s.
+  - [x] Measurement run: 180 s.
   - [ ] Long stability run: 300-600 s, only after smoke passes.
 - [ ] Define canonical run-group naming:
+  - [x] RGB-only transferability: `month2_clean_<model>_<task>_<view>_<resolution>`.
   - [ ] Static sweeps: `month2_static_<route>_<profile>_<transport>`.
   - [ ] 5QI sweeps: `month2_5qi_<value>_<route>_<transport>`.
   - [ ] Controller replay: `month2_controller_replay_<date>`.
-- [ ] Update or create the Month 2 command sheet/runbook section once the first
-  smoke commands are validated.
+- [x] Update or create the Month 2 command sheet/runbook section once the first
+  smoke commands are validated. See `SCENESENSE_MONTH2_COMMANDS.md`.
 
 Completion criteria:
 

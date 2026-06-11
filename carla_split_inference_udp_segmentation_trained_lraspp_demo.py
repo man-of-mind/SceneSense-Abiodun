@@ -716,9 +716,15 @@ def _find_best_checkpoint_in_experiment(exp_dir: Path) -> Path:
         candidate = Path(str(summary.get("best_checkpoint", ""))).expanduser()
         if not candidate.is_absolute():
             candidate = (exp_dir / candidate).resolve()
+        if not candidate.exists():
+            candidate = summary_path.parent / "best.pt"
         if candidate.exists() and miou > best_miou:
             best_miou = miou
             best_path = candidate
+    if best_path is None:
+        local_best = sorted((exp_dir / "checkpoints").glob("*/best.pt"))
+        if local_best:
+            return local_best[0]
     if best_path is None:
         raise FileNotFoundError(f"No best checkpoint found under {exp_dir}")
     return best_path

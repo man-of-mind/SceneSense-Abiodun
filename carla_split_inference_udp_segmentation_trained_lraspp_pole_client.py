@@ -1113,6 +1113,43 @@ def _traffic_light_opendrive_id(actor: "carla.Actor") -> str:
     return "" if value is None else str(value)
 
 
+def _safe_float(value: object, default: float = 0.0) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return float(default)
+
+
+def _saved_traffic_light_location(requested_id: str) -> Optional["carla.Location"]:
+    path = Path(__file__).resolve().parent / "traffic_lights_data.json"
+    if not path.exists():
+        return None
+    try:
+        rows = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+
+    requested = str(requested_id).strip()
+    for entry in rows if isinstance(rows, list) else []:
+        if not isinstance(entry, dict):
+            continue
+        candidates = {str(entry.get("id", "")).strip()}
+        opendrive_id = str(entry.get("opendrive_id", "")).strip()
+        if opendrive_id:
+            candidates.add(opendrive_id)
+        if requested not in candidates:
+            continue
+        location = entry.get("location")
+        if not isinstance(location, dict):
+            return None
+        return carla.Location(
+            x=_safe_float(location.get("x"), 0.0),
+            y=_safe_float(location.get("y"), 0.0),
+            z=_safe_float(location.get("z"), 0.0),
+        )
+    return None
+
+
 def list_traffic_lights(world: "carla.World") -> None:
     actors = sorted(world.get_actors().filter("traffic.traffic_light"), key=lambda actor: actor.id)
     print(f"Traffic lights in {world.get_map().name}: {len(actors)}")
@@ -1134,6 +1171,21 @@ def resolve_traffic_light(world: "carla.World", requested_id: str) -> "carla.Act
     for actor in traffic_lights:
         if requested in _traffic_light_id_candidates(actor):
             return actor
+    saved_location = _saved_traffic_light_location(requested)
+    if saved_location is not None and traffic_lights:
+        nearest = min(
+            traffic_lights,
+            key=lambda actor: float(actor.get_transform().location.distance(saved_location)),
+        )
+        nearest_distance = float(nearest.get_transform().location.distance(saved_location))
+        if nearest_distance <= 5.0:
+            print(
+                "Traffic light id "
+                f"{requested!r} was not a live actor id; using nearest live "
+                f"traffic light actor {nearest.id} from traffic_lights_data.json "
+                f"({nearest_distance:.2f} m away)."
+            )
+            return nearest
     available = ", ".join(str(actor.id) for actor in sorted(traffic_lights, key=lambda item: item.id))
     raise ValueError(
         f"Traffic light id {requested!r} was not found in {world.get_map().name}. "
