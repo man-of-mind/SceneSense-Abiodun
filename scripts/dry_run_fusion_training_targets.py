@@ -31,9 +31,11 @@ if str(FUSION_PACKAGE_ROOT) not in sys.path:
     sys.path.insert(0, str(FUSION_PACKAGE_ROOT))
 
 from pole_lraspp_multimodal_fusion.object_targets import (  # noqa: E402
+    OBJECT_CLASS_NAMES,
+    OBJECT_REG_CHANNELS,
     build_object_targets,
     load_object_boxes,
-    valid_vehicle_objects,
+    valid_localization_objects,
 )
 
 
@@ -77,15 +79,22 @@ def parse_args() -> argparse.Namespace:
         "--min-gt-area-px",
         type=float,
         default=12.0,
-        help="Minimum projected vehicle bbox area used by valid_vehicle_objects().",
+        help="Minimum projected bbox area used by valid_localization_objects().",
+    )
+    parser.add_argument(
+        "--object-classes",
+        default=",".join(OBJECT_CLASS_NAMES),
+        help="Comma-separated object classes used by the localization head.",
     )
     parser.add_argument("--heatmap-radius-px", type=int, default=2)
     parser.add_argument("--max-objects", type=int, default=64)
     parser.add_argument(
         "--require-positive-vehicle-target",
+        "--require-positive-target",
+        dest="require_positive_vehicle_target",
         action=argparse.BooleanOptionalAction,
         default=True,
-        help="Fail if no inspected sample produces a positive vehicle object target.",
+        help="Fail if no inspected sample produces a positive localization target.",
     )
     parser.add_argument("--write-summary", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument(
@@ -157,6 +166,11 @@ def resolve_input_size(args: argparse.Namespace, dataset_dir: Path) -> Tuple[int
     return 768, 432
 
 
+def parse_object_classes(raw: str) -> Tuple[str, ...]:
+    classes = tuple(part.strip() for part in str(raw).split(",") if part.strip())
+    return classes or OBJECT_CLASS_NAMES
+
+
 def select_rows(rows: Sequence[Dict[str, str]], args: argparse.Namespace) -> List[Dict[str, str]]:
     selected = [
         row for row in rows if args.split == "all" or str(row.get("split", "")) == str(args.split)
@@ -225,15 +239,17 @@ def validate_target_shapes(
     targets: Dict[str, torch.Tensor],
     input_size: Tuple[int, int],
     max_objects: int,
+    object_class_count: int,
     errors: List[str],
     sample_id: str,
 ) -> None:
     input_width, input_height = int(input_size[0]), int(input_size[1])
     expected = {
-        "center_heatmap": (1, input_height, input_width),
-        "regression": (10, input_height, input_width),
+        "center_heatmap": (int(object_class_count), input_height, input_width),
+        "regression": (OBJECT_REG_CHANNELS, input_height, input_width),
         "regression_mask": (1, input_height, input_width),
         "gt_objects": (int(max_objects), 9),
+        "gt_class_indices": (int(max_objects),),
     }
     for name, expected_shape in expected.items():
         actual = shape_tuple(targets[name])
@@ -245,6 +261,7 @@ def validate_target_shapes(
 def dry_run(args: argparse.Namespace) -> Dict[str, object]:
     dataset_dir = Path(args.dataset_dir).expanduser().resolve()
     input_size = resolve_input_size(args, dataset_dir)
+    object_class_names = parse_object_classes(args.object_classes)
     manifest_rows = read_csv(dataset_dir / "manifest.csv")
     selected_rows = select_rows(manifest_rows, args)
     objects_by_sample = load_object_boxes(dataset_dir / "object_boxes.csv")
@@ -252,8 +269,9 @@ def dry_run(args: argparse.Namespace) -> Dict[str, object]:
     errors: List[str] = []
     warnings: List[str] = []
     notes = [
-        "The current object target helper consumes vehicle actor rows only; "
-        "person rows are not object-head positives in this dry run."
+        "The object target helper is class-aware for: "
+        + ", ".join(object_class_names)
+        + ". Regression channels are shared across classes."
     ]
 
     split_counts = Counter(row.get("split", "") for row in manifest_rows)
@@ -268,8 +286,13 @@ def dry_run(args: argparse.Namespace) -> Dict[str, object]:
 
     total_object_rows = 0
     total_vehicle_rows = 0
+    total_person_rows = 0
     total_actor_vehicle_rows = 0
-    total_valid_vehicle_objects = 0
+    total_actor_person_rows = 0
+    total_valid_localization_objects = 0
+    valid_objects_by_class = Counter()
+    radar_supported_by_class = Counter()
+    parked_targets_by_class = Counter()
     total_target_gt_count = 0
     total_positive_pixels = 0
     total_radar_supported_targets = 0
@@ -293,11 +316,17 @@ def dry_run(args: argparse.Namespace) -> Dict[str, object]:
             label_counts[obj_row.get("label", "")] += 1
             source_counts[obj_row.get("gt_source", "")] += 1
         vehicle_rows = [obj for obj in object_rows if obj.get("label") == "vehicle"]
+        person_rows = [obj for obj in object_rows if obj.get("label") == "person"]
         actor_vehicle_rows = [
             obj for obj in vehicle_rows if obj.get("gt_source") == "actor"
         ]
+        actor_person_rows = [
+            obj for obj in person_rows if obj.get("gt_source") == "actor"
+        ]
         total_vehicle_rows += len(vehicle_rows)
+        total_person_rows += len(person_rows)
         total_actor_vehicle_rows += len(actor_vehicle_rows)
+        total_actor_person_rows += len(actor_person_rows)
 
         image_width = to_int(row.get("camera_width", ""), 0)
         image_height = to_int(row.get("camera_height", ""), 0)
@@ -305,19 +334,23 @@ def dry_run(args: argparse.Namespace) -> Dict[str, object]:
             errors.append(f"{sample_id}: invalid camera_width/camera_height in manifest")
             continue
 
-        valid_objects = valid_vehicle_objects(
+        valid_objects = valid_localization_objects(
             object_rows,
             image_width=image_width,
             image_height=image_height,
             min_area_px=float(args.min_gt_area_px),
+            object_class_names=object_class_names,
         )
-        total_valid_vehicle_objects += len(valid_objects)
-        total_radar_supported_targets += sum(
-            1 for obj in valid_objects if float(obj.get("radar_support", 0.0)) > 0.5
-        )
-        total_parked_targets += sum(
-            1 for obj in valid_objects if float(obj.get("parked", 0.0)) > 0.5
-        )
+        total_valid_localization_objects += len(valid_objects)
+        for obj in valid_objects:
+            class_name = str(obj.get("class_name", "object"))
+            valid_objects_by_class[class_name] += 1
+            if float(obj.get("radar_support", 0.0)) > 0.5:
+                total_radar_supported_targets += 1
+                radar_supported_by_class[class_name] += 1
+            if float(obj.get("parked", 0.0)) > 0.5:
+                total_parked_targets += 1
+                parked_targets_by_class[class_name] += 1
 
         targets = build_object_targets(
             objects=valid_objects,
@@ -325,11 +358,13 @@ def dry_run(args: argparse.Namespace) -> Dict[str, object]:
             input_size=input_size,
             heatmap_radius_px=int(args.heatmap_radius_px),
             max_objects=int(args.max_objects),
+            object_class_names=object_class_names,
         )
         validate_target_shapes(
             targets=targets,
             input_size=input_size,
             max_objects=int(args.max_objects),
+            object_class_count=len(object_class_names),
             errors=errors,
             sample_id=sample_id,
         )
@@ -354,7 +389,7 @@ def dry_run(args: argparse.Namespace) -> Dict[str, object]:
             )
         if len(valid_objects) > int(args.max_objects):
             warnings.append(
-                f"{sample_id}: {len(valid_objects)} valid vehicles exceeds "
+                f"{sample_id}: {len(valid_objects)} valid localization objects exceeds "
                 f"--max-objects={int(args.max_objects)}; targets were truncated."
             )
 
@@ -387,7 +422,7 @@ def dry_run(args: argparse.Namespace) -> Dict[str, object]:
             errors.append(f"{sample_id}: segmentation target has unknown classes {unknown_classes}")
 
     if bool(args.require_positive_vehicle_target) and samples_with_positive_targets == 0:
-        errors.append("No inspected sample produced a positive vehicle object target.")
+        errors.append("No inspected sample produced a positive localization target.")
 
     inspected = len(selected_rows)
     summary = {
@@ -401,8 +436,13 @@ def dry_run(args: argparse.Namespace) -> Dict[str, object]:
         "label_counts_inspected": counter_to_json(label_counts),
         "gt_source_counts_inspected": counter_to_json(source_counts),
         "vehicle_rows_inspected": int(total_vehicle_rows),
+        "person_rows_inspected": int(total_person_rows),
         "actor_vehicle_rows_inspected": int(total_actor_vehicle_rows),
-        "valid_vehicle_objects": int(total_valid_vehicle_objects),
+        "actor_person_rows_inspected": int(total_actor_person_rows),
+        "valid_vehicle_objects": int(valid_objects_by_class.get("vehicle", 0)),
+        "valid_person_objects": int(valid_objects_by_class.get("person", 0)),
+        "valid_localization_objects": int(total_valid_localization_objects),
+        "valid_localization_objects_by_class": counter_to_json(valid_objects_by_class),
         "target_gt_count_total": int(total_target_gt_count),
         "target_gt_count_mean": (
             total_target_gt_count / inspected if inspected else float("nan")
@@ -412,11 +452,18 @@ def dry_run(args: argparse.Namespace) -> Dict[str, object]:
             total_positive_pixels / inspected if inspected else float("nan")
         ),
         "target_max_gt_count": int(max_target_gt_count),
+        "target_samples_with_positive_localization_target": int(samples_with_positive_targets),
         "target_samples_with_positive_vehicle": int(samples_with_positive_targets),
+        "target_samples_without_positive_localization_target": len(samples_without_positive_targets),
         "target_samples_without_positive_vehicle": len(samples_without_positive_targets),
+        "target_samples_without_positive_localization_target_ids": samples_without_positive_targets[:20],
         "target_samples_without_positive_vehicle_ids": samples_without_positive_targets[:20],
-        "target_radar_supported_vehicle_objects": int(total_radar_supported_targets),
-        "target_parked_vehicle_objects": int(total_parked_targets),
+        "target_radar_supported_vehicle_objects": int(radar_supported_by_class.get("vehicle", 0)),
+        "target_radar_supported_localization_objects": int(total_radar_supported_targets),
+        "target_radar_supported_objects_by_class": counter_to_json(radar_supported_by_class),
+        "target_parked_vehicle_objects": int(parked_targets_by_class.get("vehicle", 0)),
+        "target_parked_localization_objects": int(total_parked_targets),
+        "target_parked_objects_by_class": counter_to_json(parked_targets_by_class),
         "target_heatmap_shapes": counter_to_json(target_heatmap_shapes),
         "target_regression_shapes": counter_to_json(target_regression_shapes),
         "target_gt_object_shapes": counter_to_json(target_gt_object_shapes),
@@ -428,6 +475,8 @@ def dry_run(args: argparse.Namespace) -> Dict[str, object]:
             "min_gt_area_px": float(args.min_gt_area_px),
             "heatmap_radius_px": int(args.heatmap_radius_px),
             "max_objects": int(args.max_objects),
+            "object_classes": list(object_class_names),
+            "require_positive_target": bool(args.require_positive_vehicle_target),
             "require_positive_vehicle_target": bool(args.require_positive_vehicle_target),
         },
         "notes": notes,

@@ -307,7 +307,7 @@ No full RL training required in Month 1, but the schema should be clear enough t
 - [x] Parked ego data collection path started: live parked-ego RGB/radar inference, semantic-GT metrics, object-GT logging, pole-vs-ego transfer evidence, and smoke-validated saved training-schema export are in place.
 - [x] RL state/action/reward/guardrail schema drafted.
 
-## Month 2: Static Sweeps, 5QI/QoS, and First Controller Harness
+## Month 2: Parked-Ego RGB+Radar Models, Static Sweeps, and Controller Groundwork
 
 Proposal row being covered:
 
@@ -317,14 +317,19 @@ Proposal row being covered:
 > Exit criterion: policy can train or evaluate against static policies using
 > the same logged metrics.
 
-Working Month 2 interpretation:
+Working Month 2 interpretation, updated after the 2026-06-11 supervisor
+discussion:
 
-> Static payload/task/latency Pareto curves, first 5QI/QoS comparison, and an
-> offline controller harness that can score candidate actions against logged
-> traces with guardrail/fallback accounting.
+> Get the perception models right first on local loopback. Select a strong
+> parked-ego intersection viewpoint, collect CARLA RGB+radar training data,
+> train parked-ego RGB+radar SEG/localization and true OD models where possible,
+> then use the trained models to produce static payload/task/latency curves and
+> offline controller traces. OAI/5QI remains important but is deferred until the
+> model behavior is strong and interpretable.
 
 Month 2 goal is not to claim a final RL policy. The goal is to produce the
-static baselines and QoS evidence that any learned policy must beat.
+parked-ego perception base models, data/metrics pipeline, and static baselines
+that any learned policy must beat.
 
 Month 2 preflight / terminology correction completed:
 
@@ -342,12 +347,140 @@ Month 2 preflight / terminology correction completed:
   `metrics_logs/rgb_ego_transfer/analysis_clean_20260610/seg_vehicle_iou_clean.png`
   and
   `metrics_logs/rgb_ego_transfer/analysis_clean_20260610/od_recall_precision_clean.png`.
-  Headline: moving SEG is weak in both settings (`0.20 -> 0.19` vehicle IoU);
-  pole-trained SEG drops but remains strong (`0.90 -> 0.71` vehicle IoU);
+  Updated fusion-geometry-matched SEG plot:
+  `metrics_logs/rgb_ego_transfer/analysis_fusionmatched_20260611/seg_vehicle_iou_fusionmatched.png`.
+  Headline: moving SEG is weak in both settings because it is mostly pretrained
+  and not CARLA-trained (`0.20 -> 0.19` vehicle IoU); pole-trained SEG is much
+  stronger because it is CARLA-trained and drops from TL14 pole to parked ego
+  (`0.89 -> 0.69` vehicle IoU);
   moving OD recall drops on parked ego (`0.35 -> 0.18`) while precision rises
   (`0.67 -> 0.93`), indicating a conservative parked-view detector.
+- [x] Supervisor agreed that the next primary action is to train parked-ego
+  RGB+radar models for SEG/localization and true OD, using CARLA-collected
+  data from a dense intersection viewpoint.
 
-### 1. Freeze the Month 2 Experiment Matrix
+### 1. Parked-Ego RGB+Radar Training Track
+
+This is now the primary Month 2 track. Network/QoS analysis resumes after the
+parked-ego models are good enough to make task-quality comparisons meaningful.
+
+- [x] Inventory available local training scripts:
+  - [x] RGB-only CARLA LR-ASPP training workflow:
+    `pole_lraspp_training/pole_lraspp_training/{collect_dataset.py,train_lraspp.py,evaluate_lraspp.py,run_pipeline.py}`.
+  - [x] RGB+radar fusion SEG/localization workflow:
+    `pole_lraspp_multimodal_fusion/pole_lraspp_multimodal_fusion/{collect_dataset.py,train_fusion.py,evaluate_fusion.py,run_pipeline.py}`.
+  - [x] Launcher/status helpers exist:
+    `pole_lraspp_multimodal_fusion/launch_unattended_fusion_training.sh`,
+    `status_unattended_fusion_training.sh`, and
+    `stop_unattended_fusion_training.sh`.
+  - [ ] Normalize launcher paths before running from the `abiodun/` copy; the
+    copied shell helpers still assume the workflow lives at the `neu_collab/`
+    root, while the complete local copy is under `abiodun/`.
+  - [ ] Confirm with supervisor whether there is a separate true RGB+radar OD
+    training workflow. Local scan found fusion SEG/localization training, but
+    no separate Faster-R-CNN-style RGB+radar OD trainer yet.
+- [ ] Select the parked-ego training intersection:
+  - [x] Add a parked-ego training-view scout that ranks real CARLA spawn
+    points by intersection/crosswalk coverage and emits repeatable collection
+    commands.
+  - [x] Scout Town10HD intersections with high vehicle and pedestrian traffic.
+    Current top candidate from `20260611_172311_parked_ego_view_scout`: TL16,
+    spawn 80, right offset `-3 m`, yaw offset `-3.02 deg`, quality `235.55`,
+    road/crosswalk proxy coverage `40/20`, left/center/right road coverage
+    `17/11/12`.
+  - [x] Pick a parked ego view family with broad view of moving vehicles,
+    pedestrians, crosswalks, and occlusions: TL16 with spawn80/right `-3`,
+    spawn80/right `0`, and spawn85/right `0`.
+  - [x] Record spawn index or anchor coordinates, camera mount, FoV, traffic
+    density, pedestrian density, weather, and rationale. Pilot recipe uses
+    `1280x720`, FoV `120`, model input `768x432`, radar HFoV `120`, 35 NPC
+    vehicles, 45 pedestrians, and `sample-stride 5`.
+  - [x] Visually confirm the parked camera sees enough vehicle/person foreground
+    coverage before collecting a large dataset. Contact-sheet review: spawn85
+    is cleaner/broader; spawn80 variants are stronger occlusion/near-vehicle
+    views.
+  - [ ] Rerun/inspect the parked-ego scout with supervisor-preferred
+    right-side-road placement so the ego is out of the active travel lane and
+    the camera sees side-passing, oncoming, crossing, and pedestrian profiles
+    before full collection.
+    Selected candidate after visual inspection: TL16 spawn `80`, forward
+    offset `4.0 m`, right offset `7.0 m`, yaw offset `-28.414 deg`.
+- [ ] Collect parked-ego RGB+radar training data:
+  - [x] Smoke set: 30-100 samples, validator PASS. TL16/spawn80 smoke dataset
+    `parked_ego_training_tl16_spawn80_60samp` has 60 samples, 3,493 actor rows,
+    1,761 vehicle labels, 1,732 person labels, all mask classes present, and no
+    validator errors/warnings.
+  - [x] Pilot set: enough samples to estimate vehicle/person pixel coverage and
+    actor-label density. Three 300-sample pilots PASS validation and target
+    dry-run: total 900 samples, 12,294 vehicle actor rows, and 15,367 person
+    actor rows.
+  - [ ] Full overnight set: about 12k-18k saved samples for the first serious
+    parked-ego SEG/localization training run, with train/val/test coverage and
+    traffic-density variation where practical. Preferred first plan: 3 density
+    profiles x 4,000 saved samples with `--sample-stride 2`.
+  - [ ] Merge low/medium/crowded folders into one training dataset using
+    `scripts/merge_fusion_training_datasets.py`.
+  - [ ] Save RGB, radar tensor/points, semantic masks, actor boxes/classes,
+    calibration, ego/camera/radar poses, split labels, and scenario metadata.
+- [ ] Validate dataset and target construction:
+  - [x] `scripts/validate_fusion_training_dataset.py` PASS for
+    `parked_ego_training_tl16_spawn80_60samp`.
+  - [x] `scripts/dry_run_fusion_training_targets.py` PASS for
+    `parked_ego_training_tl16_spawn80_60samp`: 60/60 samples produce positive
+    vehicle targets, `(7,432,768)` features, `(432,768)` segmentation targets,
+    and `(64,9)` GT tensors. Minor dense-scene center-overlap warnings are
+    recorded but not blocking.
+  - [x] Extend localization targets from vehicle-only to class-aware
+    `vehicle/person` heatmaps. New object head is 12 channels: 2 center
+    heatmap channels plus 10 shared regression channels.
+  - [x] Confirm person samples are now localization positives. Class-aware
+    pilot dry-runs PASS on all three TL16 pilots with valid person target
+    counts: 4,562; 4,216; and 4,164 respectively.
+  - [x] Confirm actor-derived OD labels have enough visible vehicles and
+    pedestrians for true OD training. Pilot data has enough actor-derived boxes
+    to justify implementing the RGB+radar OD training path.
+- [ ] Train parked-ego RGB+radar SEG/localization:
+  - [x] Start with the existing `pole_lraspp_multimodal_fusion` trainer or adapt
+    it to consume the parked-ego dataset directory. Trainer now accepts parked
+    `.npy` radar tensors and class-aware `vehicle/person` object targets.
+  - [x] Run a tiny smoke training job before any overnight run.
+    `experiments/parked_ego_classaware_train_smoke_20260611` completed one
+    CPU epoch on the 60-sample TL16 parked-ego dataset and wrote `best.pt` plus
+    `last.pt`. Checkpoint metadata confirms `object_channels=12` and
+    `object_class_names=['vehicle', 'person']`.
+  - [ ] Launch full training in `screen`/`nohup` when leaving the office.
+  - [ ] Evaluate held-out mIoU, vehicle IoU, person IoU, localization recall,
+    xy error, yaw error, payload, and latency.
+- [ ] Train or obtain true parked-ego RGB+radar OD:
+  - [ ] Confirm target model family: Faster-R-CNN-style boxes/classes, CenterNet
+    style, or extension of the current object-head targets.
+  - [ ] Confirm class labels: vehicle/person at minimum.
+  - [ ] Train/evaluate recall, precision, AP proxy, class recall, and payload.
+- [ ] Transfer tests after parked models are strong:
+  - [ ] Parked-trained SEG/localization on parked ego test set.
+  - [ ] Parked-trained SEG/localization on moving ego.
+  - [ ] Parked-trained OD on parked ego test set.
+  - [ ] Parked-trained OD on moving ego.
+  - [ ] Decide whether a separate moving-ego RGB+radar model is needed.
+- [ ] Record controller-relevant static model/action profiles:
+  - [ ] Baseline/high-quality model.
+  - [ ] Lower-payload compression profile(s).
+  - [ ] Frame-rate/send-rate profile(s).
+  - [ ] Scene complexity metadata: visible vehicle/person pixels, actor counts,
+    occlusion/density proxies, ego/traffic speed.
+
+Completion criteria:
+
+- [ ] One canonical parked-ego intersection/viewpoint is selected and documented.
+- [ ] Parked-ego RGB+radar dataset passes schema and target dry-run validation.
+- [ ] At least one parked-ego RGB+radar SEG/localization training run completes
+  and produces held-out metrics.
+- [ ] True RGB+radar OD training path is either located from the supervisor or
+  specified clearly enough to implement.
+- [ ] A short report/slide explains model performance, visible-object coverage,
+  and whether parked-trained models transfer to moving ego.
+
+### 2. Freeze the Month 2 Experiment Matrix
 
 - [ ] Select the Month 2 scenario subset:
   - [ ] Low-density clear scene.
@@ -379,7 +512,7 @@ Completion criteria:
   analyzer command.
 - [ ] Remote sync instructions are recorded for any edited scripts/config files.
 
-### 2. Static UE-Side Payload/Task Sweeps
+### 3. Static UE-Side Payload/Task Sweeps
 
 These sweeps establish the fixed operating points that the future controller
 must beat.
@@ -417,7 +550,11 @@ Completion criteria:
 - [ ] Runs that saturate or time out are labeled as saturation evidence, not
   valid task-quality samples.
 
-### 3. OAI 5QI/QoS Experiments
+### 4. OAI 5QI/QoS Experiments
+
+Status: deferred until the parked-ego perception models are strong enough.
+Keep the checklist so the network thread is not lost, but do not block the
+model-first Month 2 definition of done on 5QI results.
 
 Hypothesis: the current default OAI QoS path is too close to best-effort/eMBB
 behavior for safety-critical cooperative perception. Month 2 should test
@@ -474,7 +611,7 @@ Completion criteria:
 - [ ] The conclusion explicitly says whether static 5QI alone is enough, or
   whether payload control is still required.
 
-### 4. First Offline Controller Harness
+### 5. First Offline Controller Harness
 
 This is the first bridge from measurement to control. It should replay logged
 traces and score decisions offline before any online RL touches CARLA/OAI.
@@ -519,7 +656,7 @@ Completion criteria:
 - [ ] No online action execution is enabled until offline replay passes sanity
   checks.
 
-### 5. Guardrail Threshold Draft
+### 6. Guardrail Threshold Draft
 
 Month 2 guardrails can remain offline, but thresholds must become concrete
 enough for controller replay.
@@ -546,7 +683,7 @@ Completion criteria:
 - [ ] Replay reports accepted, clamped, and rejected actions separately.
 - [ ] Fallback cost is measurable in bytes/latency/task utility.
 
-### 6. Spatial-Map Sharing Groundwork
+### 7. Spatial-Map Sharing Groundwork
 
 The full map-sharing RL agent is Month 5, but Month 2 should make the closed-loop
 case study measurable.
@@ -583,22 +720,22 @@ Completion criteria:
 
 ### Month 2 Definition of Done
 
-- [ ] Static sweeps produce at least one payload/latency/task Pareto curve for
-  camera-only SEG or fusion SEG.
-- [ ] Static sweeps produce at least one OD/localization trade-off curve for
-  camera-only OD or fusion_as_od.
-- [ ] 5QI/QoS sweep has at least baseline 5QI 9 plus two accepted alternative
-  5QI candidates, or documented OAI blockers if alternatives fail.
-- [ ] OAI runs include matching application, UE tunnel, and radio/grant metrics
-  under a shared `run_group`.
-- [ ] Offline controller replay can compare at least five policies: safe,
-  low-byte, best fixed, network-only, and heuristic scene+network.
-- [ ] Guardrail replay reports accept/clamp/reject counts and fallback costs.
+- [ ] Parked-ego RGB+radar training viewpoint is selected and documented with
+  visual evidence.
+- [ ] Parked-ego RGB+radar dataset collection and validation are repeatable.
+- [ ] Parked-ego RGB+radar SEG/localization model is trained and evaluated on a
+  held-out test split.
+- [ ] True RGB+radar OD training path is located or its missing architecture/
+  label requirements are documented.
+- [ ] At least one static payload/latency/task profile is collected using the
+  new parked-ego model or the best available substitute.
+- [ ] Offline controller replay can score simple static policies once at least
+  two valid action/model profiles exist.
 - [ ] A Month 2 slide/report summarizes:
-  - [ ] Static Pareto curves.
-  - [ ] 5QI/QoS findings.
-  - [ ] First controller baseline results.
-  - [ ] Remaining gap before online RL.
+  - [ ] Chosen parked-ego scene and dataset coverage.
+  - [ ] SEG/localization and OD model performance.
+  - [ ] Payload/latency/task tradeoffs for available profiles.
+  - [ ] Remaining gap before OAI/QoS and online RL.
 
 ## Month 3: Guardrail Stress Tests
 

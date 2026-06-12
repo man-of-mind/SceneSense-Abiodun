@@ -7,8 +7,9 @@ from typing import Dict, Optional, Tuple
 import torch
 import torch.nn.functional as F
 
+from .object_targets import OBJECT_OUTPUT_CHANNELS, OBJECT_REG_CHANNELS
 
-OBJECT_HEAD_CHANNELS = 11
+OBJECT_HEAD_CHANNELS = OBJECT_OUTPUT_CHANNELS
 
 
 class MultiTaskFusionLRASPP(torch.nn.Module):
@@ -64,7 +65,9 @@ class MultiTaskFusionLRASPP(torch.nn.Module):
         if isinstance(final, torch.nn.Conv2d) and final.bias is not None:
             with torch.no_grad():
                 final.bias.zero_()
-                final.bias[0] = -4.6
+                heatmap_channels = max(1, int(self.object_channels) - OBJECT_REG_CHANNELS)
+                heatmap_channels = min(heatmap_channels, int(final.bias.numel()))
+                final.bias[:heatmap_channels] = -4.6
 
     def _high_feature(self, features: object) -> torch.Tensor:
         if isinstance(features, torch.Tensor):

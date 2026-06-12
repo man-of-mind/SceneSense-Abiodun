@@ -1,0 +1,54 @@
+experiment_name: pole_lraspp_multimodal_fusion_smoke
+runtime_budget_hours: 0.25
+collection_budget_hours: 0.08
+training_budget_hours: 0.12
+
+collection:
+  frames_per_view: 8
+  max_samples: 12
+  require_all_anchors: false
+  scenarios_per_anchor: 1
+  traffic_densities: [4]
+  pedestrian_densities: [0]
+  fovs: [80.0]
+  yaw_offsets: [90.0]
+  pitches: [-35.0]
+  warmup_ticks: 3
+
+object_heads:
+  output_channels: 12
+  object_classes: [vehicle, person]
+  hidden_channels: 64
+  heatmap_radius_px: 1
+  max_objects_per_frame: 32
+  min_gt_area_px: 16.0
+
+training:
+  epochs: 1
+  batch_size: 2
+  num_workers: 0
+  loss_weights:
+    segmentation: 1.0
+    object_total: 1.0
+    object:
+      center: 1.0
+      location: 0.05
+      dimensions: 0.2
+      yaw: 0.05
+      parked: 0.2
+      radar_support: 0.1
+  trials:
+    - name: smoke_learnedloc_adamw_256x144
+      optimizer: adamw
+      lr: 0.0002
+      weight_decay: 0.0001
+      augment_strength: off
+      input_size: [256, 144]
+      batch_size: 2
+
+evaluation:
+  object_score_threshold: 0.2
+  object_nms_radius_px: 4
+  topk_objects: 20
+  match_distance_m: 6.0
+  classical_radar_diagnostic: false

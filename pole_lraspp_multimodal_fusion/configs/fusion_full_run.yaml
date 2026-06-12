@@ -1,0 +1,141 @@
+experiment_name: pole_lraspp_multimodal_fusion_learned_localization_v2
+runtime_budget_hours: 12.0
+collection_budget_hours: 2.0
+training_budget_hours: 9.0
+
+carla:
+  host: 127.0.0.1
+  port: 2000
+  town: ''
+  tm_port: 8000
+  startup_timeout_s: 180
+  restart_cooldown_s: 20
+  max_restarts: 12
+  stop_server_on_exit: false
+  server_command: /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/CarlaUnreal.sh
+
+# Roughly 3x the run-3 dataset (run-3 was 12k samples). With 12 scenarios per
+# anchor x 200 frames per view across ~15 anchors -> ~36k samples. The tighter
+# xy_mae and yaw_mae targets need much more data than the original run-3 sweep
+# saw, especially across pitch/yaw/FoV combinations that exercise the new low-
+# feature object-head path.
+collection:
+  camera_height_m: 6.0
+  camera_x_m: 0.0
+  camera_y_m: 0.0
+  resolution: [854, 480]
+  fps: 10.0
+  frames_per_view: 200
+  warmup_ticks: 10
+  require_all_anchors: true
+  scenarios_per_anchor: 12
+  traffic_densities: [12, 28, 44]
+  pedestrian_densities: [16, 32, 48]
+  min_person_pixels_per_frame: 200
+  fovs: [80.0, 100.0, 110.0]
+  yaw_offsets: [50.0, 70.0, 90.0, 110.0]
+  pitches: [-25.0, -35.0, -45.0]
+  spawn_radius_m: 110.0
+  gt_bbox_max_distance_m: 140.0
+  include_static_level_bboxes: true
+  max_samples: 0
+  seed: 17
+  jpeg_quality: 92
+  writer_queue_size: 64
+  radar:
+    match_camera_fov: true
+    horizontal_fov: 100.0
+    vertical_fov: 30.0
+    range_m: 120.0
+    points_per_second: 5000
+    max_abs_velocity_mps: 20.0
+    raster_point_radius_px: 2
+
+fusion:
+  mode: early_concat
+  radar_channels: 4
+  radar_channel_names:
+    - occupancy
+    - inverse_range
+    - radial_velocity
+    - stationary_age
+  split_point: backbone
+  stationary_tracker:
+    stationary_velocity_mps: 0.35
+    parked_threshold_s: 5.0
+    association_grid_m: 1.5
+    max_stale_s: 2.0
+
+# fuse_low_feature: true enables the new MultiTaskFusionLRASPP path that
+# concatenates the 1/8-stride 'low' backbone feature with the upsampled 1/16-
+# stride 'high' feature before the object head. This is the structural fix
+# flagged in the run-3 final_summary.md as the highest-leverage change to lift
+# learned_object_recall, and tighten learned_global_xy_mae_m by giving the head
+# higher spatial resolution at object centers.
+object_heads:
+  output_channels: 12
+  object_classes: [vehicle, person]
+  hidden_channels: 128
+  heatmap_radius_px: 3
+  max_objects_per_frame: 64
+  min_gt_area_px: 12.0
+  localization_target: sensor_relative_xyz
+  fuse_low_feature: true
+  learned_outputs:
+    - class_aware_object_center_heatmaps
+    - sensor_relative_xyz
+    - dimensions_lwh
+    - yaw_sin_cos
+    - parked_state
+    - radar_support_confidence
+
+splits:
+  train: 0.72
+  val: 0.14
+  test: 0.14
+  seed: 23
+
+training:
+  num_classes: 3
+  class_names: [background, vehicle, person]
+  class_loss_weights: [0.5, 1.0, 4.0]
+  input_size: [640, 360]
+  epochs: 40
+  batch_size: 4
+  num_workers: 4
+  amp: true
+  pretrained: false
+  early_stop_patience: 8
+  checkpoint_every_epochs: 1
+  loss_weights:
+    segmentation: 1.0
+    object_total: 1.0
+    object:
+      center: 2.0
+      location: 0.50
+      dimensions: 0.2
+      yaw: 1.0
+      parked: 0.2
+      radar_support: 0.1
+  init_rgb_checkpoint: /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/pole_lraspp_training/20260505_173329_pole_lraspp_training/checkpoints/adamw_640x360_lr1e-4_wd1e-4_aug_medium_bs6/best.pt
+  baseline_rgb_checkpoint: /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/pole_lraspp_training/20260505_173329_pole_lraspp_training/checkpoints/adamw_640x360_lr1e-4_wd1e-4_aug_medium_bs6/best.pt
+  trials:
+    - name: fusion_v5_lowfuse_adamw_768x432_lr1e-4_radar4_aug_strong_bs2_obj_sel_extbudget
+      optimizer: adamw
+      lr: 0.0001
+      weight_decay: 0.0002
+      augment_strength: strong
+      input_size: [768, 432]
+      batch_size: 2
+
+# match_distance_m tightened from 7.5 to 3.0 to align with the new xy_mae <= 1
+# target. A predicted box that lands 3 m off a GT actor still counts toward TP,
+# but anything farther is a false positive — the same evaluator that decides
+# success cannot also be giving free passes far beyond the metric target.
+evaluation:
+  min_component_area_px: 32
+  object_score_threshold: 0.03
+  object_nms_radius_px: 4
+  topk_objects: 80
+  match_distance_m: 3.0
+  classical_radar_diagnostic: false

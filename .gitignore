@@ -20,6 +20,7 @@ env/
 # Generated experiment outputs
 /metrics_logs/
 /experiments/
+/fusion_training_data/
 /phase3_logs/
 /phase3_logs_lowres/
 /remote_files/*
@@ -30,6 +31,7 @@ latest_fusion_object_spatial_map*.png
 *.trace
 *.pcap
 *.pcapng
+/pole_lraspp_multimodal_fusion/latest_*.txt
 
 # Model weights and framework caches
 /checkpoints/

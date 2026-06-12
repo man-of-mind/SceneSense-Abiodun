@@ -11,8 +11,11 @@ import torch
 import torch.nn.functional as F
 
 
+OBJECT_CLASS_NAMES = ("vehicle", "person")
+OBJECT_CLASS_TO_INDEX = {name: idx for idx, name in enumerate(OBJECT_CLASS_NAMES)}
+OBJECT_HEATMAP_CHANNELS = len(OBJECT_CLASS_NAMES)
 OBJECT_REG_CHANNELS = 10
-OBJECT_OUTPUT_CHANNELS = 1 + OBJECT_REG_CHANNELS
+OBJECT_OUTPUT_CHANNELS = OBJECT_HEATMAP_CHANNELS + OBJECT_REG_CHANNELS
 REG_LOCAL_XYZ = slice(0, 3)
 REG_DIMS = slice(3, 6)
 REG_YAW = slice(6, 8)
@@ -58,16 +61,19 @@ def _float(row: Dict[str, str], key: str, default: float = 0.0) -> float:
         return float(default)
 
 
-def valid_vehicle_objects(
+def valid_localization_objects(
     rows: Sequence[Dict[str, str]],
     *,
     image_width: int,
     image_height: int,
     min_area_px: float,
+    object_class_names: Sequence[str] = OBJECT_CLASS_NAMES,
 ) -> List[Dict[str, float]]:
+    class_to_index = {str(name): idx for idx, name in enumerate(object_class_names)}
     objects: List[Dict[str, float]] = []
     for row in rows:
-        if row.get("label") != "vehicle" or row.get("gt_source") != "actor":
+        label = str(row.get("label", ""))
+        if label not in class_to_index or row.get("gt_source") != "actor":
             continue
         if row.get("object_sensor_x", "") == "" or row.get("object_world_x", "") == "":
             continue
@@ -81,6 +87,8 @@ def valid_vehicle_objects(
         yaw_rad = math.radians(_float(row, "object_yaw_deg"))
         objects.append(
             {
+                "class_index": float(class_to_index[label]),
+                "class_name": label,
                 "center_x": cx,
                 "center_y": cy,
                 "bbox_w": _float(row, "gt_bbox_w"),
@@ -102,6 +110,24 @@ def valid_vehicle_objects(
             }
         )
     return objects
+
+
+def valid_vehicle_objects(
+    rows: Sequence[Dict[str, str]],
+    *,
+    image_width: int,
+    image_height: int,
+    min_area_px: float,
+) -> List[Dict[str, float]]:
+    """Compatibility wrapper for older vehicle-only experiments."""
+
+    return valid_localization_objects(
+        rows,
+        image_width=image_width,
+        image_height=image_height,
+        min_area_px=min_area_px,
+        object_class_names=("vehicle",),
+    )
 
 
 def draw_gaussian(heatmap: np.ndarray, cx: float, cy: float, radius: int) -> None:
@@ -128,46 +154,53 @@ def build_object_targets(
     input_size: Tuple[int, int],
     heatmap_radius_px: int,
     max_objects: int,
+    object_class_names: Sequence[str] = OBJECT_CLASS_NAMES,
 ) -> Dict[str, torch.Tensor]:
     input_width, input_height = int(input_size[0]), int(input_size[1])
     original_width, original_height = int(original_size[0]), int(original_size[1])
     sx = input_width / max(1.0, float(original_width))
     sy = input_height / max(1.0, float(original_height))
-    heatmap = np.zeros((input_height, input_width), dtype=np.float32)
+    object_class_count = max(1, len(tuple(object_class_names)))
+    heatmap = np.zeros((object_class_count, input_height, input_width), dtype=np.float32)
     regression = np.zeros((OBJECT_REG_CHANNELS, input_height, input_width), dtype=np.float32)
     reg_mask = np.zeros((1, input_height, input_width), dtype=np.float32)
     gt_objects = np.zeros((int(max_objects), 9), dtype=np.float32)
+    gt_class_indices = np.zeros((int(max_objects),), dtype=np.int64)
     gt_count = 0
     for obj in sorted(objects, key=lambda item: float(item.get("area", 0.0)), reverse=True):
+        class_index = int(obj.get("class_index", 0))
+        if class_index < 0 or class_index >= object_class_count:
+            continue
         cx = float(obj["center_x"]) * sx
         cy = float(obj["center_y"]) * sy
         ix = int(round(cx))
         iy = int(round(cy))
         if ix < 0 or iy < 0 or ix >= input_width or iy >= input_height:
             continue
-        draw_gaussian(heatmap, cx, cy, heatmap_radius_px)
+        draw_gaussian(heatmap[class_index], cx, cy, heatmap_radius_px)
         # The gaussian is evaluated at integer pixel coordinates; with a sub-pixel
         # (cx, cy) the peak pixel only reaches exp(-d^2/(2 sigma^2)) < 1.0. The
         # focal heatmap loss treats positives via target == 1.0, so without this
         # the previous run had pos_count == 0 every batch and the center head
         # never learned (learned_object_f1 = 0).
-        heatmap[iy, ix] = 1.0
-        regression[:, iy, ix] = np.array(
-            [
-                obj["local_x"],
-                obj["local_y"],
-                obj["local_z"],
-                obj["size_x"],
-                obj["size_y"],
-                obj["size_z"],
-                obj["yaw_sin"],
-                obj["yaw_cos"],
-                obj["parked"],
-                obj["radar_support"],
-            ],
-            dtype=np.float32,
-        )
-        reg_mask[0, iy, ix] = 1.0
+        heatmap[class_index, iy, ix] = 1.0
+        if reg_mask[0, iy, ix] < 0.5:
+            regression[:, iy, ix] = np.array(
+                [
+                    obj["local_x"],
+                    obj["local_y"],
+                    obj["local_z"],
+                    obj["size_x"],
+                    obj["size_y"],
+                    obj["size_z"],
+                    obj["yaw_sin"],
+                    obj["yaw_cos"],
+                    obj["parked"],
+                    obj["radar_support"],
+                ],
+                dtype=np.float32,
+            )
+            reg_mask[0, iy, ix] = 1.0
         if gt_count < int(max_objects):
             gt_objects[gt_count] = np.array(
                 [
@@ -183,6 +216,7 @@ def build_object_targets(
                 ],
                 dtype=np.float32,
             )
+            gt_class_indices[gt_count] = class_index
             gt_count += 1
     if gt_count > 0:
         assert float(heatmap.max()) >= 0.999, (
@@ -190,10 +224,11 @@ def build_object_targets(
             "focal loss positive count would be zero (learned_object_f1 = 0 regression)."
         )
     return {
-        "center_heatmap": torch.from_numpy(heatmap[None, :, :]),
+        "center_heatmap": torch.from_numpy(heatmap),
         "regression": torch.from_numpy(regression),
         "regression_mask": torch.from_numpy(reg_mask),
         "gt_objects": torch.from_numpy(gt_objects),
+        "gt_class_indices": torch.from_numpy(gt_class_indices),
         "gt_count": torch.tensor(gt_count, dtype=torch.long),
     }
 
@@ -209,9 +244,15 @@ def focal_heatmap_loss(logits: torch.Tensor, target: torch.Tensor, *, alpha: flo
 
 
 def multitask_object_loss(outputs: torch.Tensor, targets: Dict[str, torch.Tensor], weights: Dict[str, float]) -> Tuple[torch.Tensor, Dict[str, float]]:
-    center_logits = outputs[:, 0:1]
-    regs = outputs[:, 1:]
     heatmap = targets["center_heatmap"].to(outputs.device)
+    heatmap_channels = int(heatmap.shape[1])
+    center_logits = outputs[:, :heatmap_channels]
+    regs = outputs[:, heatmap_channels:]
+    if int(regs.shape[1]) != OBJECT_REG_CHANNELS:
+        raise ValueError(
+            f"Object head regression channels={int(regs.shape[1])}, expected {OBJECT_REG_CHANNELS}. "
+            f"Output channels={int(outputs.shape[1])}, heatmap channels={heatmap_channels}."
+        )
     reg_target = targets["regression"].to(outputs.device)
     reg_mask = targets["regression_mask"].to(outputs.device)
     center_loss = focal_heatmap_loss(center_logits, heatmap)
@@ -259,37 +300,47 @@ def decode_objects(
     topk: int,
     score_threshold: float,
     nms_radius_px: int,
+    object_class_names: Sequence[str] = OBJECT_CLASS_NAMES,
 ) -> List[Dict[str, float]]:
     if object_output.ndim == 4:
         object_output = object_output[0]
-    center = torch.sigmoid(object_output[0]).detach().cpu()
-    regs = object_output[1:].detach().cpu().numpy()
+    heatmap_channels = max(1, int(object_output.shape[0]) - OBJECT_REG_CHANNELS)
+    center = torch.sigmoid(object_output[:heatmap_channels]).detach().cpu()
+    regs = object_output[heatmap_channels:].detach().cpu().numpy()
     flat = center.reshape(-1)
     k = min(int(topk), int(flat.numel()))
     if k <= 0:
         return []
     scores, indices = torch.topk(flat, k=k)
-    height, width = int(center.shape[0]), int(center.shape[1])
-    occupied = np.zeros((height, width), dtype=bool)
+    height, width = int(center.shape[1]), int(center.shape[2])
+    occupied = np.zeros((heatmap_channels, height, width), dtype=bool)
     predictions: List[Dict[str, float]] = []
     for score_t, index_t in zip(scores, indices):
         score = float(score_t.item())
         if score < float(score_threshold):
             continue
         idx = int(index_t.item())
-        y, x = divmod(idx, width)
+        class_index, rem = divmod(idx, height * width)
+        y, x = divmod(rem, width)
         y0, y1 = max(0, y - int(nms_radius_px)), min(height, y + int(nms_radius_px) + 1)
         x0, x1 = max(0, x - int(nms_radius_px)), min(width, x + int(nms_radius_px) + 1)
-        if occupied[y0:y1, x0:x1].any():
+        if occupied[class_index, y0:y1, x0:x1].any():
             continue
-        occupied[y0:y1, x0:x1] = True
+        occupied[class_index, y0:y1, x0:x1] = True
         local = regs[REG_LOCAL_XYZ, y, x]
         dims = np.maximum(regs[REG_DIMS, y, x], 0.0)
         yaw_sin, yaw_cos = regs[REG_YAW, y, x]
         norm = max(1e-6, float(np.hypot(yaw_sin, yaw_cos)))
         world = transform_point(camera_matrix, local)
+        class_name = (
+            str(object_class_names[class_index])
+            if class_index < len(object_class_names)
+            else f"object_{class_index}"
+        )
         predictions.append(
             {
+                "class_index": float(class_index),
+                "class_name": class_name,
                 "score": score,
                 "center_x_px": float(x),
                 "center_y_px": float(y),
@@ -304,8 +355,8 @@ def decode_objects(
                 "size_z": float(dims[2]),
                 "yaw_sin": float(yaw_sin / norm),
                 "yaw_cos": float(yaw_cos / norm),
-                "parked_score": float(torch.sigmoid(object_output[1 + REG_PARKED, y, x]).item()),
-                "radar_support_score": float(torch.sigmoid(object_output[1 + REG_RADAR_SUPPORT, y, x]).item()),
+                "parked_score": float(torch.sigmoid(object_output[heatmap_channels + REG_PARKED, y, x]).item()),
+                "radar_support_score": float(torch.sigmoid(object_output[heatmap_channels + REG_RADAR_SUPPORT, y, x]).item()),
             }
         )
     return predictions
@@ -316,10 +367,13 @@ def greedy_match_predictions(
     gt_objects: Sequence[Dict[str, float]],
     *,
     max_distance_m: float,
+    class_aware: bool = True,
 ) -> List[Tuple[int, int, float]]:
     candidates: List[Tuple[float, int, int]] = []
     for pred_idx, pred in enumerate(predictions):
         for gt_idx, gt in enumerate(gt_objects):
+            if bool(class_aware) and str(pred.get("class_name", "")) != str(gt.get("class_name", "")):
+                continue
             dist = float(np.hypot(float(pred["world_x"]) - float(gt["world_x"]), float(pred["world_y"]) - float(gt["world_y"])))
             if dist <= float(max_distance_m):
                 candidates.append((dist, pred_idx, gt_idx))
