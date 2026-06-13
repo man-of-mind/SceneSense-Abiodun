@@ -69,8 +69,16 @@ def load_fused_tensor(row: Dict[str, str], dataset_dir: Path, input_size: Tuple[
     image = Image.open(dataset_dir / row["rgb_path"]).convert("RGB")
     original_width, original_height = image.size
     image_tensor = _rgb_normalized_tensor(image, input_size)
-    with np.load(dataset_dir / row["radar_tensor_path"]) as payload:
-        radar = payload["radar"].astype(np.float32)
+    radar_path = dataset_dir / row["radar_tensor_path"]
+    payload = np.load(radar_path)
+    try:
+        if isinstance(payload, np.lib.npyio.NpzFile):
+            radar = payload["radar"].astype(np.float32)
+        else:
+            radar = np.asarray(payload, dtype=np.float32)
+    finally:
+        if hasattr(payload, "close"):
+            payload.close()
     if radar.shape[2] != input_size[0] or radar.shape[1] != input_size[1]:
         channels = []
         for idx, channel in enumerate(radar):
@@ -155,7 +163,15 @@ def evaluate_checkpoint(args: argparse.Namespace) -> int:
     train_cfg = config["training"]
     fusion_cfg = config.get("fusion", {})
     object_cfg = config.get("object_heads", {})
-    eval_cfg = config.get("evaluation", {})
+    eval_cfg = dict(config.get("evaluation", {}))
+    if args.object_score_threshold is not None:
+        eval_cfg["object_score_threshold"] = float(args.object_score_threshold)
+    if args.object_nms_radius_px is not None:
+        eval_cfg["object_nms_radius_px"] = int(args.object_nms_radius_px)
+    if args.topk_objects is not None:
+        eval_cfg["topk_objects"] = int(args.topk_objects)
+    if args.match_distance_m is not None:
+        eval_cfg["match_distance_m"] = float(args.match_distance_m)
     num_classes = int(train_cfg.get("num_classes", 3))
     class_names = list(CLASS_NAMES[:num_classes])
     input_size = tuple(int(v) for v in args.input_size) if args.input_size else tuple(int(v) for v in train_cfg.get("input_size", [512, 288]))
@@ -424,6 +440,10 @@ def main() -> None:
     parser.add_argument("--checkpoint", required=True)
     parser.add_argument("--split", default="test", choices=("train", "val", "test"))
     parser.add_argument("--input-size", nargs=2, type=int, default=None)
+    parser.add_argument("--object-score-threshold", type=float, default=None)
+    parser.add_argument("--object-nms-radius-px", type=int, default=None)
+    parser.add_argument("--topk-objects", type=int, default=None)
+    parser.add_argument("--match-distance-m", type=float, default=None)
     args = parser.parse_args()
     raise SystemExit(evaluate_checkpoint(args))
 

@@ -338,6 +338,11 @@ def train(args: argparse.Namespace) -> int:
         ckpt = torch.load(last_path, map_location=device)
         model.load_state_dict(ckpt["model"])
         optimizer.load_state_dict(ckpt["optimizer"])
+        if "resume_lr" in trial:
+            resume_lr = float(trial["resume_lr"])
+            for group in optimizer.param_groups:
+                group["lr"] = resume_lr
+            log(f"Overrode resumed optimizer lr to {resume_lr:g}.")
         start_epoch = int(ckpt.get("epoch", -1)) + 1
         best_score = float(ckpt.get("best_selection_score", ckpt.get("best_miou", best_score)))
         best_miou = float(ckpt.get("best_miou", best_miou))
@@ -372,7 +377,7 @@ def train(args: argparse.Namespace) -> int:
     deadline = time.monotonic() + float(args.training_budget_hours) * 3600.0 if float(args.training_budget_hours) > 0 else math.inf
     patience = int(train_cfg.get("early_stop_patience", 3))
     stale_epochs = 0
-    max_epochs = int(train_cfg.get("epochs", 8))
+    max_epochs = int(trial.get("epochs", train_cfg.get("epochs", 8)))
     for epoch in range(start_epoch, max_epochs):
         if time.monotonic() >= deadline:
             log(f"Training budget exhausted during {trial_name}; checkpointing and stopping.")
@@ -415,7 +420,7 @@ def train(args: argparse.Namespace) -> int:
             "parked_loss": val_metrics.get("parked_loss", float("nan")),
             "radar_support_loss": val_metrics.get("radar_support_loss", float("nan")),
             "gt_objects": val_metrics.get("gt_objects", 0.0),
-            "lr": float(trial.get("lr", 2e-4)),
+            "lr": float(optimizer.param_groups[0].get("lr", trial.get("lr", 2e-4))),
             "timestamp": utc_iso(),
         }
         with metrics_path.open("a", newline="", encoding="utf-8") as fh:

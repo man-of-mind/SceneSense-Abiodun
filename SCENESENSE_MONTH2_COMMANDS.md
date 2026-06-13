@@ -1,6 +1,6 @@
 # SceneSense Month 2 Reproducible Commands
 
-Last updated: 2026-06-11
+Last updated: 2026-06-12
 
 Purpose: one command sheet for Month 2 work: static task/payload sweeps,
 model-transferability checks, and the first controller-shaped OD/SEG scheduler
@@ -725,6 +725,229 @@ Selected parked-ego training view after visual inspection:
   parking/curb lane while preserving oncoming, crossing, side-passing, and
   pedestrian/crosswalk profiles
 
+### V2 Multi-View Parked-Ego Inspection
+
+Use these before collecting any V2 data. The goal is to keep the V1 view as an
+anchor and add 1-2 nearby parked views that improve crosswalk/person visibility,
+side-passing profiles, and medium/crowded traffic coverage. Run them one at a
+time with the preview window enabled and pick the views that are visibly useful.
+
+View A, V1 anchor:
+
+```bash
+python3 carla_split_inference_udp_rgb_ego_transfer_client.py \
+  --run-duration-s 90 \
+  --startup-task seg \
+  --seg-seconds 120 \
+  --od-seconds 1 \
+  --ego-mode parked \
+  --ego-spawn-index 80 \
+  --ego-spawn-forward-offset-m 4.0 \
+  --ego-spawn-right-offset-m 7.0 \
+  --ego-spawn-yaw-offset-deg -28.414 \
+  --camera-resolution custom \
+  --camera-width 1280 \
+  --camera-height 720 \
+  --camera-fov 120 \
+  --camera-x 1.8 \
+  --camera-y 0.0 \
+  --camera-z 1.55 \
+  --camera-pitch -4.0 \
+  --fps 10 \
+  --npc-vehicles 35 \
+  --npc-pedestrians 45 \
+  --seg-route pole_trained \
+  --enable-semantic-gt \
+  --seg-port-base 52101 \
+  --run-tag-prefix month2_v2_viewA_spawn80_right7_fwd4_visual
+```
+
+Candidate View B, TL16 near-intersection curb view. This keeps the same general
+road approach as View A, but moves the parked ego closer to the intersection and
+slightly farther right so it sees more crossing/side-passing traffic:
+
+```bash
+python3 carla_split_inference_udp_rgb_ego_transfer_client.py \
+  --run-duration-s 90 \
+  --startup-task seg \
+  --seg-seconds 120 \
+  --od-seconds 1 \
+  --ego-mode parked \
+  --ego-spawn-index 80 \
+  --ego-spawn-forward-offset-m 16.0 \
+  --ego-spawn-right-offset-m 8.0 \
+  --ego-spawn-yaw-offset-deg -28.414 \
+  --camera-resolution custom \
+  --camera-width 1280 \
+  --camera-height 720 \
+  --camera-fov 120 \
+  --camera-x 1.8 \
+  --camera-y 0.0 \
+  --camera-z 1.55 \
+  --camera-pitch -4.0 \
+  --fps 10 \
+  --npc-vehicles 35 \
+  --npc-pedestrians 45 \
+  --seg-route pole_trained \
+  --enable-semantic-gt \
+  --seg-port-base 52201 \
+  --run-tag-prefix month2_v2_viewB_spawn80_right8_fwd16_visual
+```
+
+Candidate View C, View-B side-looking camera probe. This is the same parked ego
+pose as View B, but with the camera yawed left to get a wider across-intersection
+perspective without moving the parked ego into a drive lane:
+
+```bash
+python3 carla_split_inference_udp_rgb_ego_transfer_client.py \
+  --run-duration-s 90 \
+  --startup-task seg \
+  --seg-seconds 120 \
+  --od-seconds 1 \
+  --ego-mode parked \
+  --ego-spawn-index 80 \
+  --ego-spawn-forward-offset-m 16.0 \
+  --ego-spawn-right-offset-m 8.0 \
+  --ego-spawn-yaw-offset-deg -28.414 \
+  --camera-resolution custom \
+  --camera-width 1280 \
+  --camera-height 720 \
+  --camera-fov 120 \
+  --camera-x 1.8 \
+  --camera-y 0.0 \
+  --camera-z 1.55 \
+  --camera-pitch -4.0 \
+  --camera-yaw -35.0 \
+  --fps 10 \
+  --npc-vehicles 35 \
+  --npc-pedestrians 45 \
+  --seg-route pole_trained \
+  --enable-semantic-gt \
+  --seg-port-base 52301 \
+  --run-tag-prefix month2_v2_viewC_tl16_viewB_cam_yawm35_visual
+```
+
+Optional TL14 shifted-right diversity probe. Use this only if we want a
+different-intersection training view after View A and View B. The first TL14
+visual landed in a drive lane, so this version shifts the ego farther toward
+local right; inspect before using it for collection:
+
+```bash
+python3 carla_split_inference_udp_rgb_ego_transfer_client.py \
+  --run-duration-s 90 \
+  --startup-task seg \
+  --seg-seconds 120 \
+  --od-seconds 1 \
+  --ego-mode parked \
+  --ego-spawn-index 52 \
+  --ego-spawn-forward-offset-m -8.0 \
+  --ego-spawn-right-offset-m -2.0 \
+  --ego-spawn-yaw-offset-deg -5.225 \
+  --camera-resolution custom \
+  --camera-width 1280 \
+  --camera-height 720 \
+  --camera-fov 120 \
+  --camera-x 1.8 \
+  --camera-y 0.0 \
+  --camera-z 1.55 \
+  --camera-pitch -4.0 \
+  --fps 10 \
+  --npc-vehicles 35 \
+  --npc-pedestrians 45 \
+  --seg-route pole_trained \
+  --enable-semantic-gt \
+  --seg-port-base 52501 \
+  --run-tag-prefix month2_v2_tl14_shifted_right_spawn52_rightm2_fwdm8_visual
+```
+
+Selection rule:
+
+- Keep View A as the baseline anchor.
+- Add View B only if it is a plausible parked position and gives a genuinely
+  different angle from View A.
+- Add View C only as camera-orientation diversity from the valid View-B parked
+  pose. For fusion data collection, yaw the RGB, semantic, and radar sensors
+  together so the RGB/radar tensors remain aligned.
+- Use the TL14 diversity view only after a visual pass confirms it is not in a
+  drive lane.
+- Reject any view where the parked ego blocks traffic, stares mostly at stopped
+  vehicles, or sees too few pedestrians/vehicles for long stretches.
+
+Automated View B and View A+B training pipeline:
+
+```bash
+mkdir -p logs
+
+nohup bash scripts/run_viewB_viewAB_fusion_training_pipeline.sh \
+  > logs/viewB_viewAB_pipeline_20260612.log 2>&1 &
+
+tail -f logs/viewB_viewAB_pipeline_20260612.log
+```
+
+By default this collects `4000` samples for each View B density profile
+low/medium/crowded, giving `12000` View B samples and `24000` View A+B samples
+after merging with the existing View A dataset. The script stops the CARLA
+server after collection/validation and before GPU training/evaluation so the
+model has more GPU headroom. To keep CARLA running, launch with
+`STOP_CARLA_BEFORE_TRAINING=0`.
+
+If you intentionally want
+`6000` samples per density instead, launch with:
+
+```bash
+SAMPLES_PER_DENSITY=6000 \
+nohup bash scripts/run_viewB_viewAB_fusion_training_pipeline.sh \
+  > logs/viewB_viewAB_pipeline_6000perdensity_20260612.log 2>&1 &
+```
+
+Note: `6000` samples per density gives `18000` View B samples and `30000`
+combined View A+B samples, not `24000`.
+
+Selected-view collector smoke:
+
+```bash
+python3 carla_collect_parked_ego_fusion_training_data.py \
+  --experiment-id parked_ego_tl16_spawn80_right7_fwd4_smoke_60_stride2 \
+  --max-samples 60 \
+  --sample-stride 2 \
+  --fps 10 \
+  --camera-width 1280 \
+  --camera-height 720 \
+  --camera-fov 120 \
+  --model-input-width 768 \
+  --model-input-height 432 \
+  --ego-spawn-index 80 \
+  --ego-spawn-forward-offset-m 4.0 \
+  --ego-spawn-right-offset-m 7.0 \
+  --ego-spawn-yaw-offset-deg -28.414 \
+  --ego-camera-x 1.8 \
+  --ego-camera-y 0.0 \
+  --ego-camera-z 1.55 \
+  --ego-camera-pitch -4.0 \
+  --ego-camera-yaw 0.0 \
+  --radar-hfov 120 \
+  --radar-vfov 30 \
+  --radar-range 120 \
+  --npc-vehicles 20 \
+  --npc-pedestrians 25 \
+  --spawn-radius 95 \
+  --seed 21 \
+  --include-pedestrians
+```
+
+Validate selected-view smoke:
+
+```bash
+python3 scripts/validate_fusion_training_dataset.py \
+  fusion_training_data/parked_ego_tl16_spawn80_right7_fwd4_smoke_60_stride2 \
+  --max-samples 30
+
+python3 scripts/dry_run_fusion_training_targets.py \
+  fusion_training_data/parked_ego_tl16_spawn80_right7_fwd4_smoke_60_stride2 \
+  --object-classes vehicle,person \
+  --max-samples 30
+```
+
 First full collection commands:
 
 ```bash
@@ -922,6 +1145,183 @@ python3 scripts/plot_fusion_training_curves.py \
 
 This writes PNG/PDF loss, mIoU, class-IoU, localization-loss, and auxiliary
 signal curves into the experiment `figures/` directory.
+
+### Selected TL16 Right-Lane 12k Fusion Training Run
+
+Validated merged dataset:
+
+```text
+fusion_training_data/parked_ego_tl16_spawn80_right7_fwd4_merged_12000_stride2
+```
+
+Validation summary:
+
+- `12000` samples from low/medium/crowded density profiles.
+- `114582` object rows: `58066` vehicle and `56516` person.
+- Split counts: train `8620`, val `1666`, test `1714`.
+- Class-aware target dry-run: PASS.
+- Expected target shapes: heatmap `(2, 432, 768)`, regression `(10, 432, 768)`.
+- `262` no-object samples are present, mostly from low traffic; keep them as
+  useful background/negative frames.
+
+Create the experiment folder and dataset link:
+
+```bash
+mkdir -p experiments/parked_ego_tl16_right7_fusion_train_20260612
+
+ln -s \
+  /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/fusion_training_data/parked_ego_tl16_spawn80_right7_fwd4_merged_12000_stride2 \
+  experiments/parked_ego_tl16_right7_fusion_train_20260612/dataset
+```
+
+Run this one-line CUDA check before launching overnight training:
+
+```bash
+python3 -c "import torch; print(torch.__version__); print(torch.cuda.is_available()); print(torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'no cuda')"
+```
+
+Optional 60-sample GPU training smoke:
+
+```bash
+mkdir -p experiments/parked_ego_tl16_right7_fusion_train_smoke_20260612
+
+ln -s \
+  /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/fusion_training_data/parked_ego_tl16_spawn80_right7_fwd4_smoke_60_stride2 \
+  experiments/parked_ego_tl16_right7_fusion_train_smoke_20260612/dataset
+
+PYTHONPATH=/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/pole_lraspp_multimodal_fusion:/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun \
+python3 -m pole_lraspp_multimodal_fusion.train_fusion \
+  --config pole_lraspp_multimodal_fusion/configs/fusion_full_run.yaml \
+  --experiment-dir /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/parked_ego_tl16_right7_fusion_train_smoke_20260612 \
+  --trial-json '{"name":"smoke_parked_right7_classaware_768x432_bs2","optimizer":"adamw","lr":0.0001,"weight_decay":0.0002,"augment_strength":"strong","input_size":[768,432],"batch_size":2}' \
+  --training-budget-hours 0.001
+```
+
+Smoke result on 2026-06-12: PASS. It trained on `cuda` and wrote `best.pt`,
+`last.pt`, `trial_summary.json`, and a metrics CSV.
+
+Full training command:
+
+```bash
+PYTHONPATH=/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/pole_lraspp_multimodal_fusion:/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun \
+python3 -m pole_lraspp_multimodal_fusion.train_fusion \
+  --config pole_lraspp_multimodal_fusion/configs/fusion_full_run.yaml \
+  --experiment-dir /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/parked_ego_tl16_right7_fusion_train_20260612 \
+  --trial-json '{"name":"parked_right7_lowmedcrowd_768x432_lr1e-4_bs2","optimizer":"adamw","lr":0.0001,"weight_decay":0.0002,"augment_strength":"strong","input_size":[768,432],"batch_size":2}' \
+  --training-budget-hours 9.0
+```
+
+Unattended version:
+
+```bash
+nohup env PYTHONPATH=/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/pole_lraspp_multimodal_fusion:/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun \
+python3 -m pole_lraspp_multimodal_fusion.train_fusion \
+  --config pole_lraspp_multimodal_fusion/configs/fusion_full_run.yaml \
+  --experiment-dir /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/parked_ego_tl16_right7_fusion_train_20260612 \
+  --trial-json '{"name":"parked_right7_lowmedcrowd_768x432_lr1e-4_bs2","optimizer":"adamw","lr":0.0001,"weight_decay":0.0002,"augment_strength":"strong","input_size":[768,432],"batch_size":2}' \
+  --training-budget-hours 9.0 \
+  > experiments/parked_ego_tl16_right7_fusion_train_20260612/train.log 2>&1 &
+```
+
+Monitor:
+
+```bash
+tail -f experiments/parked_ego_tl16_right7_fusion_train_20260612/train.log
+
+nvidia-smi
+```
+
+Plot curves after training:
+
+```bash
+python3 scripts/plot_fusion_training_curves.py \
+  experiments/parked_ego_tl16_right7_fusion_train_20260612/metrics/parked_right7_lowmedcrowd_768x432_lr1e-4_bs2_metrics.csv \
+  --prefix parked_right7_lowmedcrowd_768x432_lr1e-4_bs2
+```
+
+Evaluate the best checkpoint on the held-out test split:
+
+```bash
+MPLCONFIGDIR=/tmp/matplotlib-cache \
+PYTHONPATH=/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/pole_lraspp_multimodal_fusion:/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun \
+python3 -m pole_lraspp_multimodal_fusion.evaluate_fusion \
+  --config pole_lraspp_multimodal_fusion/configs/fusion_full_run.yaml \
+  --experiment-dir /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/parked_ego_tl16_right7_fusion_train_20260612 \
+  --checkpoint /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/parked_ego_tl16_right7_fusion_train_20260612/checkpoints/parked_right7_lowmedcrowd_768x432_lr1e-4_bs2/best.pt \
+  --split test
+```
+
+Optional sanity check on the validation split:
+
+```bash
+MPLCONFIGDIR=/tmp/matplotlib-cache \
+PYTHONPATH=/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/pole_lraspp_multimodal_fusion:/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun \
+python3 -m pole_lraspp_multimodal_fusion.evaluate_fusion \
+  --config pole_lraspp_multimodal_fusion/configs/fusion_full_run.yaml \
+  --experiment-dir /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/parked_ego_tl16_right7_fusion_train_20260612 \
+  --checkpoint /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/parked_ego_tl16_right7_fusion_train_20260612/checkpoints/parked_right7_lowmedcrowd_768x432_lr1e-4_bs2/best.pt \
+  --split val
+```
+
+Expected evaluation outputs:
+
+```text
+experiments/parked_ego_tl16_right7_fusion_train_20260612/metrics/test_fusion_evaluation_metrics.json
+experiments/parked_ego_tl16_right7_fusion_train_20260612/metrics/test_learned_object_metrics.csv
+experiments/parked_ego_tl16_right7_fusion_train_20260612/figures/test_fusion_confusion_matrix.png
+experiments/parked_ego_tl16_right7_fusion_train_20260612/figures/test_rgb_baseline_confusion_matrix.png
+```
+
+Analyze localization failures by traffic density, class, distance, object size,
+and radar support:
+
+```bash
+MPLCONFIGDIR=/tmp/matplotlib-cache \
+python3 scripts/analyze_fusion_localization_failures.py \
+  --experiment-dir experiments/parked_ego_tl16_right7_fusion_train_20260612 \
+  --output-dir analysis_outputs/parked_ego_fusion_v1
+```
+
+Expected analysis outputs:
+
+```text
+analysis_outputs/parked_ego_fusion_v1/fusion_localization_failure_summary.json
+analysis_outputs/parked_ego_fusion_v1/fusion_localization_gt_enriched.csv
+analysis_outputs/parked_ego_fusion_v1/localization_f1_by_density.png
+analysis_outputs/parked_ego_fusion_v1/localization_recall_by_distance.png
+analysis_outputs/parked_ego_fusion_v1/localization_recall_by_bbox_area.png
+analysis_outputs/parked_ego_fusion_v1/localization_recall_by_radar_support.png
+```
+
+Optional second-stage fine-tune, only if the best validation score is still at
+the final epoch and localization/object-head metrics need improvement. The
+trainer supports `resume_lr` in the trial JSON, which overrides the optimizer LR
+after loading `last.pt`; it also supports a trial-level `epochs` override:
+
+```bash
+PYTHONPATH=/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/pole_lraspp_multimodal_fusion:/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun \
+python3 -m pole_lraspp_multimodal_fusion.train_fusion \
+  --config pole_lraspp_multimodal_fusion/configs/fusion_full_run.yaml \
+  --experiment-dir /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/parked_ego_tl16_right7_fusion_train_20260612 \
+  --trial-json '{"name":"parked_right7_lowmedcrowd_768x432_lr1e-4_bs2","optimizer":"adamw","lr":0.0001,"resume_lr":0.00005,"weight_decay":0.0002,"augment_strength":"strong","input_size":[768,432],"batch_size":2,"epochs":80}' \
+  --training-budget-hours 4.0
+```
+
+Evaluation override examples for operating-point diagnosis:
+
+```bash
+# Stricter/lower object score threshold.
+python3 -m pole_lraspp_multimodal_fusion.evaluate_fusion ... \
+  --split val \
+  --object-score-threshold 0.10
+
+# Looser match distance, useful only for diagnosis; do not report as the strict
+# final metric unless the threshold is clearly stated.
+python3 -m pole_lraspp_multimodal_fusion.evaluate_fusion ... \
+  --split val \
+  --object-score-threshold 0.03 \
+  --match-distance-m 5.0
+```
 
 ## 4. Remote Sync, When Needed
 
