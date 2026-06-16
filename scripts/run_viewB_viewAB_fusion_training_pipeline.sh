@@ -13,6 +13,7 @@ TRAIN_STAGE1_BUDGET_HOURS="${TRAIN_STAGE1_BUDGET_HOURS:-6.0}"
 TRAIN_STAGE2_BUDGET_HOURS="${TRAIN_STAGE2_BUDGET_HOURS:-6.0}"
 RUN_EVAL="${RUN_EVAL:-1}"
 RUN_CROSS_EVAL="${RUN_CROSS_EVAL:-1}"
+EVAL_STRICT="${EVAL_STRICT:-0}"
 STOP_CARLA_BEFORE_TRAINING="${STOP_CARLA_BEFORE_TRAINING:-1}"
 CARLA_STOP_GRACE_S="${CARLA_STOP_GRACE_S:-15}"
 CARLA_TERM_GRACE_S="${CARLA_TERM_GRACE_S:-8}"
@@ -20,6 +21,7 @@ CARLA_TERM_GRACE_S="${CARLA_TERM_GRACE_S:-8}"
 PYTHONPATH_BASE="$ROOT_DIR/pole_lraspp_multimodal_fusion:$ROOT_DIR"
 CONFIG_PATH="$ROOT_DIR/pole_lraspp_multimodal_fusion/configs/fusion_full_run.yaml"
 MPLCONFIGDIR="${MPLCONFIGDIR:-/tmp/matplotlib-cache}"
+QT_QPA_PLATFORM="${QT_QPA_PLATFORM:-offscreen}"
 
 A_DATASET="$ROOT_DIR/fusion_training_data/parked_ego_tl16_spawn80_right7_fwd4_merged_12000_stride2"
 A_EXP="$ROOT_DIR/experiments/parked_ego_tl16_right7_fusion_train_20260612"
@@ -296,7 +298,8 @@ plot_curves() {
   if [[ ! -f "$metrics_csv" ]]; then
     die "Cannot plot; missing metrics CSV: $metrics_csv"
   fi
-  run env MPLCONFIGDIR="$MPLCONFIGDIR" python3 scripts/plot_fusion_training_curves.py "$metrics_csv" --prefix "$trial"
+  run env MPLCONFIGDIR="$MPLCONFIGDIR" QT_QPA_PLATFORM="$QT_QPA_PLATFORM" \
+    python3 scripts/plot_fusion_training_curves.py "$metrics_csv" --prefix "$trial"
 }
 
 eval_checkpoint_on_dataset() {
@@ -314,13 +317,22 @@ eval_checkpoint_on_dataset() {
   fi
   prepare_experiment "$eval_dir" "$dataset_dir"
   log "Evaluating $label"
-  run env MPLCONFIGDIR="$MPLCONFIGDIR" PYTHONPATH="$PYTHONPATH_BASE" python3 -m pole_lraspp_multimodal_fusion.evaluate_fusion \
+  if env MPLCONFIGDIR="$MPLCONFIGDIR" QT_QPA_PLATFORM="$QT_QPA_PLATFORM" PYTHONPATH="$PYTHONPATH_BASE" python3 -m pole_lraspp_multimodal_fusion.evaluate_fusion \
     --config "$CONFIG_PATH" \
     --experiment-dir "$eval_dir" \
     --checkpoint "$checkpoint" \
     --split test \
     --object-score-threshold 0.03 \
-    --match-distance-m 3.0
+    --match-distance-m 3.0; then
+    log "Evaluation completed: $label"
+  else
+    local rc="$?"
+    log "Warning: evaluation failed for '$label' with exit code $rc."
+    if [[ "$EVAL_STRICT" == "1" ]]; then
+      die "Stopping because EVAL_STRICT=1."
+    fi
+    log "Continuing because EVAL_STRICT=$EVAL_STRICT; training should not be blocked by evaluation/plotting failures."
+  fi
 }
 
 log "SceneSense View-B / View-A+B fusion training pipeline"

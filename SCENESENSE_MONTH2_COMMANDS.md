@@ -884,6 +884,17 @@ nohup bash scripts/run_viewB_viewAB_fusion_training_pipeline.sh \
 tail -f logs/viewB_viewAB_pipeline_20260612.log
 ```
 
+If the pipeline already completed View B collection/merge and stops during an
+offline evaluation/plotting step, resume training with evaluation disabled:
+
+```bash
+RUN_EVAL=0 \
+nohup bash scripts/run_viewB_viewAB_fusion_training_pipeline.sh \
+  > logs/viewB_viewAB_pipeline_resume_noeval_20260615.log 2>&1 &
+
+tail -f logs/viewB_viewAB_pipeline_resume_noeval_20260615.log
+```
+
 By default this collects `4000` samples for each View B density profile
 low/medium/crowded, giving `12000` View B samples and `24000` View A+B samples
 after merging with the existing View A dataset. The script stops the CARLA
@@ -902,6 +913,107 @@ nohup bash scripts/run_viewB_viewAB_fusion_training_pipeline.sh \
 
 Note: `6000` samples per density gives `18000` View B samples and `30000`
 combined View A+B samples, not `24000`.
+
+Evaluate View A / View B / combined A+B checkpoints after training:
+
+```bash
+mkdir -p logs
+
+nohup bash scripts/run_viewB_viewAB_fusion_eval_only.sh \
+  > logs/viewB_viewAB_eval_20260616.log 2>&1 &
+
+tail -f logs/viewB_viewAB_eval_20260616.log
+```
+
+Outputs:
+
+```text
+analysis_outputs/parked_ego_fusion_viewB_viewAB_eval_summary_20260612.csv
+analysis_outputs/parked_ego_fusion_viewpoint_eval/fusion_viewpoint_segmentation_bars.png
+analysis_outputs/parked_ego_fusion_viewpoint_eval/fusion_viewpoint_localization_bars.png
+analysis_outputs/parked_ego_fusion_viewpoint_eval/fusion_viewpoint_localization_precision_recall_bars.png
+analysis_outputs/parked_ego_fusion_viewpoint_eval/fusion_viewpoint_miou_matrix.png
+analysis_outputs/parked_ego_fusion_viewpoint_eval/fusion_viewpoint_vehicle_iou_matrix.png
+analysis_outputs/parked_ego_fusion_viewpoint_eval/fusion_viewpoint_localization_f1_matrix.png
+analysis_outputs/parked_ego_fusion_viewpoint_eval/fusion_viewpoint_xy_error_matrix.png
+```
+
+Live visual sanity check for the combined View A+B checkpoint on View A. Start
+CARLA first, then run without `--headless`:
+
+```bash
+python3 carla_split_inference_udp_fusion_object_ego_client.py \
+  --run-duration-s 120 \
+  --fusion-checkpoint experiments/parked_ego_tl16_viewAB_fusion_train_20260612/checkpoints/parked_viewAB_24000_768x432_lr1e-4_bs2/best.pt \
+  --ego-spawn-index 80 \
+  --ego-spawn-forward-offset-m 4.0 \
+  --ego-spawn-right-offset-m 7.0 \
+  --ego-spawn-yaw-offset-deg -28.414 \
+  --camera-resolution custom \
+  --camera-width 1280 \
+  --camera-height 720 \
+  --camera-fov 120 \
+  --ego-camera-x 1.8 \
+  --ego-camera-y 0.0 \
+  --ego-camera-z 1.55 \
+  --ego-camera-pitch -4.0 \
+  --ego-camera-yaw 0.0 \
+  --ego-radar-yaw 0.0 \
+  --radar-hfov 120 \
+  --radar-vfov 30 \
+  --radar-range 120 \
+  --fps 10 \
+  --npc-vehicles 35 \
+  --npc-pedestrians 45 \
+  --object-score-threshold 0.03 \
+  --result-timeout 1.5 \
+  --camera-source-port 53101 \
+  --remote-port 53102 \
+  --remote-source-port 53103 \
+  --camera-result-port 53104 \
+  --spatial-map-stream-id fusion_ab_viewA_visual \
+  --no-spatial-map-stream \
+  --run-group month2_ab_live_visual \
+  --transport-label loopback_ab_viewA_visual
+```
+
+Live visual sanity check for the combined View A+B checkpoint on View B:
+
+```bash
+python3 carla_split_inference_udp_fusion_object_ego_client.py \
+  --run-duration-s 120 \
+  --fusion-checkpoint experiments/parked_ego_tl16_viewAB_fusion_train_20260612/checkpoints/parked_viewAB_24000_768x432_lr1e-4_bs2/best.pt \
+  --ego-spawn-index 80 \
+  --ego-spawn-forward-offset-m 16.0 \
+  --ego-spawn-right-offset-m 8.0 \
+  --ego-spawn-yaw-offset-deg -28.414 \
+  --camera-resolution custom \
+  --camera-width 1280 \
+  --camera-height 720 \
+  --camera-fov 120 \
+  --ego-camera-x 1.8 \
+  --ego-camera-y 0.0 \
+  --ego-camera-z 1.55 \
+  --ego-camera-pitch -4.0 \
+  --ego-camera-yaw 0.0 \
+  --ego-radar-yaw 0.0 \
+  --radar-hfov 120 \
+  --radar-vfov 30 \
+  --radar-range 120 \
+  --fps 10 \
+  --npc-vehicles 35 \
+  --npc-pedestrians 45 \
+  --object-score-threshold 0.03 \
+  --result-timeout 1.5 \
+  --camera-source-port 53201 \
+  --remote-port 53202 \
+  --remote-source-port 53203 \
+  --camera-result-port 53204 \
+  --spatial-map-stream-id fusion_ab_viewB_visual \
+  --no-spatial-map-stream \
+  --run-group month2_ab_live_visual \
+  --transport-label loopback_ab_viewB_visual
+```
 
 Selected-view collector smoke:
 

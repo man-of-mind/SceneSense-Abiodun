@@ -379,7 +379,7 @@ parked-ego models are good enough to make task-quality comparisons meaningful.
   - [ ] Confirm with supervisor whether there is a separate true RGB+radar OD
     training workflow. Local scan found fusion SEG/localization training, but
     no separate Faster-R-CNN-style RGB+radar OD trainer yet.
-- [ ] Select the parked-ego training intersection:
+- [x] Select the parked-ego training intersection:
   - [x] Add a parked-ego training-view scout that ranks real CARLA spawn
     points by intersection/crosswalk coverage and emits repeatable collection
     commands.
@@ -399,12 +399,15 @@ parked-ego models are good enough to make task-quality comparisons meaningful.
     coverage before collecting a large dataset. Contact-sheet review: spawn85
     is cleaner/broader; spawn80 variants are stronger occlusion/near-vehicle
     views.
-  - [ ] Rerun/inspect the parked-ego scout with supervisor-preferred
+  - [x] Rerun/inspect the parked-ego scout with supervisor-preferred
     right-side-road placement so the ego is out of the active travel lane and
     the camera sees side-passing, oncoming, crossing, and pedestrian profiles
     before full collection.
     Selected candidate after visual inspection: TL16 spawn `80`, forward
     offset `4.0 m`, right offset `7.0 m`, yaw offset `-28.414 deg`.
+    A second plausible near-intersection parked view was selected at TL16
+    spawn `80`, forward offset `16.0 m`, right offset `8.0 m`, yaw offset
+    `-28.414 deg`, enabling View A / View B / combined A+B training.
 - [ ] Collect parked-ego RGB+radar training data:
   - [x] Smoke set: 30-100 samples, validator PASS. TL16/spawn80 smoke dataset
     `parked_ego_training_tl16_spawn80_60samp` has 60 samples, 3,493 actor rows,
@@ -414,13 +417,14 @@ parked-ego models are good enough to make task-quality comparisons meaningful.
     actor-label density. Three 300-sample pilots PASS validation and target
     dry-run: total 900 samples, 12,294 vehicle actor rows, and 15,367 person
     actor rows.
-  - [ ] Full overnight set: about 12k-18k saved samples for the first serious
+  - [x] Full overnight set: about 12k-18k saved samples for the first serious
     parked-ego SEG/localization training run, with train/val/test coverage and
     traffic-density variation where practical. Preferred first plan: 3 density
-    profiles x 4,000 saved samples with `--sample-stride 2`.
-  - [ ] Merge low/medium/crowded folders into one training dataset using
+    profiles x 4,000 saved samples with `--sample-stride 2`. Completed for
+    View A and View B; combined A+B dataset has 24,000 saved samples.
+  - [x] Merge low/medium/crowded folders into one training dataset using
     `scripts/merge_fusion_training_datasets.py`.
-  - [ ] Save RGB, radar tensor/points, semantic masks, actor boxes/classes,
+  - [x] Save RGB, radar tensor/points, semantic masks, actor boxes/classes,
     calibration, ego/camera/radar poses, split labels, and scenario metadata.
 - [ ] Validate dataset and target construction:
   - [x] `scripts/validate_fusion_training_dataset.py` PASS for
@@ -448,16 +452,20 @@ parked-ego models are good enough to make task-quality comparisons meaningful.
     CPU epoch on the 60-sample TL16 parked-ego dataset and wrote `best.pt` plus
     `last.pt`. Checkpoint metadata confirms `object_channels=12` and
     `object_class_names=['vehicle', 'person']`.
-  - [ ] Launch full training in `screen`/`nohup` when leaving the office.
-  - [ ] Evaluate held-out mIoU, vehicle IoU, person IoU, localization recall,
-    xy error, yaw error, payload, and latency.
+  - [x] Launch full training in `screen`/`nohup` when leaving the office.
+    Completed View A, View B, and combined View A+B runs.
+  - [x] Evaluate held-out mIoU, vehicle IoU, person IoU, localization recall,
+    xy error, yaw error, payload, and latency. Held-out viewpoint evaluation
+    completed for A-on-A, A-on-B, B-on-A, B-on-B, A+B-on-A, A+B-on-B, and
+    A+B-on-combined. Presentation plots are in
+    `analysis_outputs/parked_ego_fusion_viewpoint_eval/`.
 - [ ] Train or obtain true parked-ego RGB+radar OD:
   - [ ] Confirm target model family: Faster-R-CNN-style boxes/classes, CenterNet
     style, or extension of the current object-head targets.
   - [ ] Confirm class labels: vehicle/person at minimum.
   - [ ] Train/evaluate recall, precision, AP proxy, class recall, and payload.
 - [ ] Transfer tests after parked models are strong:
-  - [ ] Parked-trained SEG/localization on parked ego test set.
+  - [x] Parked-trained SEG/localization on parked ego test set.
   - [ ] Parked-trained SEG/localization on moving ego.
   - [ ] Parked-trained OD on parked ego test set.
   - [ ] Parked-trained OD on moving ego.
@@ -471,14 +479,15 @@ parked-ego models are good enough to make task-quality comparisons meaningful.
 
 Completion criteria:
 
-- [ ] One canonical parked-ego intersection/viewpoint is selected and documented.
-- [ ] Parked-ego RGB+radar dataset passes schema and target dry-run validation.
-- [ ] At least one parked-ego RGB+radar SEG/localization training run completes
+- [x] One canonical parked-ego intersection/viewpoint is selected and documented.
+- [x] Parked-ego RGB+radar dataset passes schema and target dry-run validation.
+- [x] At least one parked-ego RGB+radar SEG/localization training run completes
   and produces held-out metrics.
 - [ ] True RGB+radar OD training path is either located from the supervisor or
   specified clearly enough to implement.
 - [ ] A short report/slide explains model performance, visible-object coverage,
-  and whether parked-trained models transfer to moving ego.
+  and whether parked-trained models transfer to moving ego. Parked-viewpoint
+  report plots are complete; moving-ego transfer remains pending.
 
 ### 2. Freeze the Month 2 Experiment Matrix
 
