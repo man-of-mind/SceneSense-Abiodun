@@ -466,6 +466,12 @@ parked-ego models are good enough to make task-quality comparisons meaningful.
   - [ ] Train/evaluate recall, precision, AP proxy, class recall, and payload.
 - [ ] Transfer tests after parked models are strong:
   - [x] Parked-trained SEG/localization on parked ego test set.
+  - [x] Add dedicated moving-ego RGB+radar fusion collector:
+    `carla_collect_moving_ego_fusion_training_data.py`. The parked collector
+    remains parked-only; moving collection writes `route_progress.csv` and
+    `route_summary.json` for distance/loop diagnostics.
+  - [ ] Run and validate moving-ego collector smoke:
+    `moving_ego_tl16_spawn80_autopilot_smoke_300_stride2`.
   - [ ] Parked-trained SEG/localization on moving ego.
   - [ ] Parked-trained OD on parked ego test set.
   - [ ] Parked-trained OD on moving ego.

@@ -21,6 +21,7 @@ env/
 /metrics_logs/
 /experiments/
 /fusion_training_data/
+/lidar_diagnostic_runs/
 /phase3_logs/
 /phase3_logs_lowres/
 /remote_files/*

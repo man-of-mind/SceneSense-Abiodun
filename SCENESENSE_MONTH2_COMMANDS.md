@@ -932,6 +932,8 @@ analysis_outputs/parked_ego_fusion_viewB_viewAB_eval_summary_20260612.csv
 analysis_outputs/parked_ego_fusion_viewpoint_eval/fusion_viewpoint_segmentation_bars.png
 analysis_outputs/parked_ego_fusion_viewpoint_eval/fusion_viewpoint_localization_bars.png
 analysis_outputs/parked_ego_fusion_viewpoint_eval/fusion_viewpoint_localization_precision_recall_bars.png
+analysis_outputs/parked_ego_fusion_viewpoint_eval/fusion_viewpoint_class_localization_bars.png
+analysis_outputs/parked_ego_fusion_viewpoint_eval/fusion_viewpoint_class_precision_recall_bars.png
 analysis_outputs/parked_ego_fusion_viewpoint_eval/fusion_viewpoint_miou_matrix.png
 analysis_outputs/parked_ego_fusion_viewpoint_eval/fusion_viewpoint_vehicle_iou_matrix.png
 analysis_outputs/parked_ego_fusion_viewpoint_eval/fusion_viewpoint_localization_f1_matrix.png
@@ -1013,6 +1015,361 @@ python3 carla_split_inference_udp_fusion_object_ego_client.py \
   --no-spatial-map-stream \
   --run-group month2_ab_live_visual \
   --transport-label loopback_ab_viewB_visual
+```
+
+### Step 4: Moving-Ego RGB+Radar Fusion Dataset Smoke
+
+The parked View A/B datasets show that one fixed viewpoint does not generalize
+well to another fixed viewpoint. The next model-first step is to collect the
+same RGB+radar fusion schema from a moving ego so the model sees many road
+poses instead of one curbside pose.
+
+Run from the `abiodun/` folder. Moving collection now uses the dedicated
+`carla_collect_moving_ego_fusion_training_data.py` script so the parked
+collector remains parked-only.
+
+Visual autopilot probe first:
+
+```bash
+python3 carla_collect_moving_ego_fusion_training_data.py \
+  --experiment-id moving_ego_tl16_spawn80_autopilot_visual_probe_stride2 \
+  --preview \
+  --preview-width 1440 \
+  --preview-height 810 \
+  --no-ego-freeze \
+  --ego-autopilot-speed-difference-pct 35 \
+  --ego-follow-distance-m 18.0 \
+  --route-progress-every-s 1.0 \
+  --loop-return-radius-m 12.0 \
+  --loop-min-distance-m 250.0 \
+  --loop-min-elapsed-s 30.0 \
+  --stop-after-loops 1 \
+  --stop-on-stuck \
+  --stuck-speed-threshold-mps 0.20 \
+  --stuck-timeout-s 20.0 \
+  --stuck-min-elapsed-s 30.0 \
+  --max-samples 1200 \
+  --sample-stride 2 \
+  --warmup-ticks 30 \
+  --fps 10 \
+  --camera-width 1280 \
+  --camera-height 720 \
+  --camera-fov 120 \
+  --model-input-width 768 \
+  --model-input-height 432 \
+  --ego-spawn-index 80 \
+  --ego-spawn-forward-offset-m 0.0 \
+  --ego-spawn-right-offset-m 0.0 \
+  --ego-spawn-yaw-offset-deg 0.0 \
+  --ego-camera-x 1.8 \
+  --ego-camera-y 0.0 \
+  --ego-camera-z 1.55 \
+  --ego-camera-pitch -4.0 \
+  --ego-camera-yaw 0.0 \
+  --ego-radar-yaw 0.0 \
+  --radar-hfov 120 \
+  --radar-vfov 30 \
+  --radar-range 120 \
+  --radar-points-per-second 5000 \
+  --radar-raster-radius-px 2 \
+  --npc-vehicles 12 \
+  --npc-pedestrians 20 \
+  --npc-vehicle-speed-difference-pct 10 \
+  --npc-pedestrian-max-speed-mps 0.9 \
+  --npc-pedestrian-cross-factor 0.5 \
+  --spawn-radius 80 \
+  --gt-max-distance-m 140
+```
+
+Press `q` or `Esc` in the preview window to stop early. `loop_count=0` does not
+invalidate the moving dataset; if the car does not return near its starting
+point, plan collection by sample count, elapsed time, and distance traveled.
+
+If a visually good dynamic-autopilot probe completes a useful loop, reuse its
+`route_progress.csv` to pin later speed sweeps to the same path. This avoids the
+Traffic Manager choosing a different junction branch just because the speed
+profile changed:
+
+```bash
+python3 carla_collect_moving_ego_fusion_training_data.py \
+  --experiment-id moving_ego_tl16_spawn80_fixedroute_speed50_visual_probe_stride2 \
+  --seed 17 \
+  --preview \
+  --preview-width 1440 \
+  --preview-height 810 \
+  --no-ego-freeze \
+  --ego-autopilot-speed-difference-pct 50 \
+  --ego-follow-distance-m 18.0 \
+  --ego-fixed-path-progress-csv fusion_training_data/moving_ego_tl16_spawn80_autopilot_visual_probe_stride2/route_progress.csv \
+  --ego-fixed-path-min-spacing-m 8.0 \
+  --ego-disable-lane-change \
+  --route-progress-every-s 1.0 \
+  --loop-return-radius-m 12.0 \
+  --loop-min-distance-m 250.0 \
+  --loop-min-elapsed-s 30.0 \
+  --stop-after-loops 1 \
+  --stop-on-stuck \
+  --stuck-speed-threshold-mps 0.20 \
+  --stuck-timeout-s 20.0 \
+  --stuck-min-elapsed-s 30.0 \
+  --max-samples 1200 \
+  --sample-stride 2 \
+  --warmup-ticks 30 \
+  --fps 10 \
+  --camera-width 1280 \
+  --camera-height 720 \
+  --camera-fov 120 \
+  --model-input-width 768 \
+  --model-input-height 432 \
+  --ego-spawn-index 80 \
+  --ego-spawn-forward-offset-m 0.0 \
+  --ego-spawn-right-offset-m 0.0 \
+  --ego-spawn-yaw-offset-deg 0.0 \
+  --ego-camera-x 1.8 \
+  --ego-camera-y 0.0 \
+  --ego-camera-z 1.55 \
+  --ego-camera-pitch -4.0 \
+  --ego-camera-yaw 0.0 \
+  --ego-radar-yaw 0.0 \
+  --radar-hfov 120 \
+  --radar-vfov 30 \
+  --radar-range 120 \
+  --radar-points-per-second 5000 \
+  --radar-raster-radius-px 2 \
+  --npc-vehicles 12 \
+  --npc-pedestrians 20 \
+  --npc-vehicle-speed-difference-pct 10 \
+  --npc-pedestrian-max-speed-mps 0.9 \
+  --npc-pedestrian-cross-factor 0.5 \
+  --spawn-radius 80 \
+  --gt-max-distance-m 140
+```
+
+Alternative fixed-route input, if you want to define a route manually instead
+of replaying a previous probe:
+
+```bash
+  --ego-fixed-path-spawn-indices 80,85,91,94,99,80 \
+  --ego-fixed-path-loop
+```
+
+Headless collection smoke, using the same autopilot setup:
+
+```bash
+python3 carla_collect_moving_ego_fusion_training_data.py \
+  --experiment-id moving_ego_tl16_spawn80_autopilot_smoke_300_stride2 \
+  --no-ego-freeze \
+  --ego-autopilot-speed-difference-pct 35 \
+  --ego-follow-distance-m 18.0 \
+  --route-progress-every-s 1.0 \
+  --loop-return-radius-m 12.0 \
+  --loop-min-distance-m 250.0 \
+  --loop-min-elapsed-s 30.0 \
+  --stop-after-loops 0 \
+  --max-samples 300 \
+  --sample-stride 2 \
+  --warmup-ticks 30 \
+  --fps 10 \
+  --camera-width 1280 \
+  --camera-height 720 \
+  --camera-fov 120 \
+  --model-input-width 768 \
+  --model-input-height 432 \
+  --ego-spawn-index 80 \
+  --ego-spawn-forward-offset-m 0.0 \
+  --ego-spawn-right-offset-m 0.0 \
+  --ego-spawn-yaw-offset-deg 0.0 \
+  --ego-camera-x 1.8 \
+  --ego-camera-y 0.0 \
+  --ego-camera-z 1.55 \
+  --ego-camera-pitch -4.0 \
+  --ego-camera-yaw 0.0 \
+  --ego-radar-yaw 0.0 \
+  --radar-hfov 120 \
+  --radar-vfov 30 \
+  --radar-range 120 \
+  --radar-points-per-second 5000 \
+  --radar-raster-radius-px 2 \
+  --npc-vehicles 20 \
+  --npc-pedestrians 25 \
+  --npc-vehicle-speed-difference-pct 35 \
+  --npc-pedestrian-max-speed-mps 0.9 \
+  --npc-pedestrian-cross-factor 0.5 \
+  --spawn-radius 95 \
+  --gt-max-distance-m 140
+```
+
+Loop/route outputs written inside the dataset:
+
+```text
+fusion_training_data/moving_ego_tl16_spawn80_autopilot_smoke_300_stride2/route_progress.csv
+fusion_training_data/moving_ego_tl16_spawn80_autopilot_smoke_300_stride2/route_summary.json
+```
+
+Validate the smoke dataset:
+
+```bash
+python3 scripts/validate_fusion_training_dataset.py \
+  fusion_training_data/moving_ego_tl16_spawn80_autopilot_smoke_300_stride2 \
+  --max-samples 60
+
+python3 scripts/dry_run_fusion_training_targets.py \
+  fusion_training_data/moving_ego_tl16_spawn80_autopilot_smoke_300_stride2 \
+  --split all \
+  --max-samples 120 \
+  --object-classes vehicle,person \
+  --require-positive-target
+```
+
+If the smoke validates and the visuals/coverage look good, scale the same
+command to `--max-samples 12000` with `--sample-stride 2` for the first moving
+dataset. Use a new `--experiment-id`, for example:
+
+```bash
+moving_ego_tl16_spawn80_autopilot_12000_stride2
+```
+
+Full moving collection should keep the same route and camera/radar geometry,
+but sweep traffic density as separate datasets before merging:
+
+```text
+low:     npc-vehicles=15, npc-pedestrians=15, max-samples=4000
+medium:  npc-vehicles=35, npc-pedestrians=45, max-samples=4000
+crowded: npc-vehicles=55, npc-pedestrians=75, max-samples=4000
+
+Default traffic pacing for all three:
+npc-vehicle-speed-difference-pct=35
+npc-pedestrian-max-speed-mps=0.9
+npc-pedestrian-cross-factor=0.5
+```
+
+After the three datasets validate, merge them exactly like the parked View A/B
+datasets:
+
+```bash
+python3 scripts/merge_fusion_training_datasets.py \
+  fusion_training_data/moving_ego_tl16_spawn80_autopilot_merged_12000_stride2 \
+  fusion_training_data/moving_ego_tl16_spawn80_autopilot_low_4000_stride2 \
+  fusion_training_data/moving_ego_tl16_spawn80_autopilot_medium_4000_stride2 \
+  fusion_training_data/moving_ego_tl16_spawn80_autopilot_crowded_4000_stride2
+
+python3 scripts/validate_fusion_training_dataset.py \
+  fusion_training_data/moving_ego_tl16_spawn80_autopilot_merged_12000_stride2 \
+  --max-samples 120
+
+python3 scripts/dry_run_fusion_training_targets.py \
+  fusion_training_data/moving_ego_tl16_spawn80_autopilot_merged_12000_stride2 \
+  --split all \
+  --max-samples 300 \
+  --object-classes vehicle,person \
+  --require-positive-target
+```
+
+### Viewpoint-Matched Semantic-LiDAR Diagnostic
+
+Use this after shipping the patched diagnostic script to the remote visual
+machine. Run one of the live A+B visual commands above first so the scene has
+traffic and pedestrians, then run the diagnostic in a second terminal with
+`--asynch`.
+
+On the local machine, from `neu_collab`, ship the project-owned patched
+diagnostic script:
+
+```bash
+rsync -avh abiodun/radar_camera_lidar_data_collect_update_pedestrian_vizualizor_fusion.py \
+  shr_aisvcs@L10319.idcc.lab:/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/
+```
+
+Remote terminal:
+
+```bash
+cd /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab
+mkdir -p abiodun/lidar_diagnostic_runs
+cd abiodun/lidar_diagnostic_runs
+```
+
+View A diagnostic:
+
+```bash
+python3 ../radar_camera_lidar_data_collect_update_pedestrian_vizualizor_fusion.py \
+  --asynch \
+  --placement-mode parked_ego_camera \
+  --ego-spawn-index 80 \
+  --ego-spawn-forward-offset-m 4.0 \
+  --ego-spawn-right-offset-m 7.0 \
+  --ego-spawn-yaw-offset-deg -28.414 \
+  --ego-camera-x 1.8 \
+  --ego-camera-y 0.0 \
+  --ego-camera-z 1.55 \
+  --ego-camera-pitch -4.0 \
+  --ego-camera-yaw 0.0 \
+  --camera-w 1280 \
+  --camera-h 720 \
+  --camera-fov 120 \
+  --rgb-w 1280 \
+  --rgb-h 720 \
+  --rgb-fov 120 \
+  --use-semantic \
+  --semantic-w 1280 \
+  --semantic-h 720 \
+  --semantic-fov 120 \
+  --fusion-map \
+  --semantic-colorize \
+  --store-semantic-label \
+  --drop-semantic-ids "" \
+  --keep-semantic-ids "" \
+  --lidar-range 200 \
+  --lidar-upper-fov 30 \
+  --lidar-lower-fov -45 \
+  --lidar-channels 128 \
+  --lidar-pps 1200000 \
+  --lidar-rotation-frequency 10 \
+  --lidar-sensor-tick 0.05 \
+  --radar-range 120 \
+  --radar-hfov 120 \
+  --radar-vfov 30 \
+  --ped-candidate-tags 4,12,24,25 \
+  --veh-candidate-tags 10,14,15,16 \
+  --min-ped-points 2 \
+  --min-veh-points 5 \
+  --bbox-margin-xy 0.45 \
+  --bbox-margin-z-up 0.60 \
+  --bbox-margin-z-down 0.90 \
+  --draw-stride 2 \
+  --point-radius 1 \
+  --debug-every 50 \
+  --debug-nearest-walker \
+  --debug-walker-tag-hist \
+  --map-export-every 100 \
+  --voxel-size 0.20 \
+  --ply-axis meshlab
+```
+
+View B diagnostic: same command, but replace the parked-ego offsets with:
+
+```bash
+  --ego-spawn-forward-offset-m 16.0 \
+  --ego-spawn-right-offset-m 8.0 \
+```
+
+Copy the latest diagnostic run back to local, excluding bulky frame folders:
+
+```bash
+mkdir -p abiodun/lidar_diagnostic_runs
+
+LATEST=$(ssh shr_aisvcs@L10319.idcc.lab \
+  'cd /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/lidar_diagnostic_runs && ls -td sensor_log_* | head -1')
+
+rsync -avh \
+  --include='*/' \
+  --include='lidar_data.json' \
+  --include='pedestrian_detections.json' \
+  --include='vehicle_detections.json' \
+  --include='camera_data.json' \
+  --include='output_map_ply_final/***' \
+  --exclude='*' \
+  shr_aisvcs@L10319.idcc.lab:/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/lidar_diagnostic_runs/$LATEST/ \
+  abiodun/lidar_diagnostic_runs/$LATEST/
 ```
 
 Selected-view collector smoke:

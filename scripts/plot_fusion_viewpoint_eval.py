@@ -253,6 +253,117 @@ def save_precision_recall_bars(metrics: Dict[Tuple[str, str], Dict[str, float]],
     plt.close(fig)
 
 
+def _f1(precision: float, recall: float) -> float:
+    if precision + recall <= 0.0:
+        return 0.0
+    return 2.0 * precision * recall / (precision + recall)
+
+
+def _class_metric_value(data: Dict[str, float], cls: str, metric: str) -> float:
+    if metric == "precision":
+        return float(data.get(f"learned_{cls}_object_precision", np.nan))
+    if metric == "recall":
+        return float(data.get(f"learned_{cls}_object_recall", np.nan))
+    if metric == "f1":
+        precision = float(data.get(f"learned_{cls}_object_precision", 0.0))
+        recall = float(data.get(f"learned_{cls}_object_recall", 0.0))
+        return _f1(precision, recall)
+    if metric == "xy":
+        return float(data.get(f"learned_{cls}_global_xy_mae_m", np.nan))
+    raise KeyError(metric)
+
+
+def save_class_localization_bars(metrics: Dict[Tuple[str, str], Dict[str, float]], output: Path) -> None:
+    fields = (
+        ("vehicle", "f1", "Vehicle localization F1", "Higher is better"),
+        ("person", "f1", "Person localization F1", "Higher is better"),
+        ("vehicle", "xy", "Vehicle XY error (m)", "Lower is better"),
+        ("person", "xy", "Person XY error (m)", "Lower is better"),
+    )
+    fig, axes = plt.subplots(2, 2, figsize=(14.8, 9.2))
+    x = np.arange(len(VIEWS))
+    width = 0.22
+    for ax, (cls, metric_name, label, subtitle) in zip(axes.flat, fields):
+        max_val = 0.0
+        for idx, model in enumerate(MODELS):
+            vals = [_class_metric_value(metrics[(model, view)], cls, metric_name) for view in VIEWS]
+            max_val = max(max_val, *[v for v in vals if not np.isnan(v)])
+            positions = x + (idx - 1) * width
+            ax.bar(positions, vals, width, label=MODEL_LABELS[model], color=MODEL_COLORS[model])
+            for xpos, val in zip(positions, vals):
+                if not np.isnan(val):
+                    ax.text(xpos, val, f"{val:.2f}", ha="center", va="bottom", fontsize=10)
+        ax.set_xticks(x, [VIEW_LABELS[view] for view in VIEWS])
+        ax.set_title(label, weight="bold", fontsize=14, pad=12)
+        ax.text(0.0, 1.02, subtitle, transform=ax.transAxes, fontsize=10, color="#555555")
+        ax.grid(axis="y", color="#dddddd", linewidth=0.8, alpha=0.8)
+        ax.set_axisbelow(True)
+        if metric_name == "xy":
+            ax.set_ylim(0, max(0.1, max_val * 1.18))
+        else:
+            ax.set_ylim(0, 0.62)
+    handles, labels = axes.flat[0].get_legend_handles_labels()
+    fig.legend(
+        handles,
+        labels,
+        loc="upper center",
+        bbox_to_anchor=(0.5, 0.925),
+        ncol=3,
+        frameon=False,
+        title="Model training data",
+        title_fontsize=11,
+        fontsize=11,
+    )
+    fig.suptitle("Vehicle vs Person Localization Across Viewpoints", fontsize=17, weight="bold", y=0.985)
+    fig.subplots_adjust(top=0.82, bottom=0.08, left=0.07, right=0.98, hspace=0.46, wspace=0.22)
+    fig.savefig(output, dpi=220)
+    fig.savefig(output.with_suffix(".pdf"))
+    plt.close(fig)
+
+
+def save_class_precision_recall_bars(metrics: Dict[Tuple[str, str], Dict[str, float]], output: Path) -> None:
+    fields = (
+        ("vehicle", "precision", "Vehicle precision", "Correct vehicle predictions / all vehicle predictions"),
+        ("vehicle", "recall", "Vehicle recall", "Correct vehicle predictions / all GT vehicles"),
+        ("person", "precision", "Person precision", "Correct person predictions / all person predictions"),
+        ("person", "recall", "Person recall", "Correct person predictions / all GT persons"),
+    )
+    fig, axes = plt.subplots(2, 2, figsize=(14.8, 9.2))
+    x = np.arange(len(VIEWS))
+    width = 0.22
+    for ax, (cls, metric_name, label, subtitle) in zip(axes.flat, fields):
+        for idx, model in enumerate(MODELS):
+            vals = [_class_metric_value(metrics[(model, view)], cls, metric_name) for view in VIEWS]
+            positions = x + (idx - 1) * width
+            ax.bar(positions, vals, width, label=MODEL_LABELS[model], color=MODEL_COLORS[model])
+            for xpos, val in zip(positions, vals):
+                if not np.isnan(val):
+                    ax.text(xpos, val, f"{val:.2f}", ha="center", va="bottom", fontsize=10)
+        ax.set_xticks(x, [VIEW_LABELS[view] for view in VIEWS])
+        ax.set_ylim(0, 0.62)
+        ax.set_title(label, weight="bold", fontsize=14, pad=14)
+        ax.text(0.0, 1.02, subtitle, transform=ax.transAxes, fontsize=9.5, color="#555555")
+        ax.grid(axis="y", color="#dddddd", linewidth=0.8, alpha=0.8)
+        ax.set_axisbelow(True)
+    handles, labels = axes.flat[0].get_legend_handles_labels()
+    fig.legend(
+        handles,
+        labels,
+        loc="upper center",
+        bbox_to_anchor=(0.5, 0.925),
+        ncol=3,
+        frameon=False,
+        title="Model training data",
+        title_fontsize=11,
+        fontsize=11,
+    )
+    fig.suptitle("Class-Specific Localization Precision and Recall", fontsize=17, weight="bold", y=0.985)
+    fig.subplots_adjust(top=0.82, bottom=0.08, left=0.07, right=0.98, hspace=0.46, wspace=0.22)
+    fig.savefig(output, dpi=220)
+    fig.savefig(output.with_suffix(".pdf"))
+    plt.close(fig)
+
+
 def save_compact_summary(metrics: Dict[Tuple[str, str], Dict[str, float]], output: Path) -> None:
     fields = [
         "model",
@@ -268,6 +379,10 @@ def save_compact_summary(metrics: Dict[Tuple[str, str], Dict[str, float]], outpu
         "learned_global_xy_mae_m",
         "learned_vehicle_global_xy_mae_m",
         "learned_person_global_xy_mae_m",
+        "learned_vehicle_object_precision",
+        "learned_vehicle_object_recall",
+        "learned_person_object_precision",
+        "learned_person_object_recall",
     ]
     with output.open("w", newline="", encoding="utf-8") as fh:
         writer = csv.DictWriter(fh, fieldnames=fields)
@@ -356,6 +471,8 @@ def main() -> int:
         title="Object Localization Across Parked-Ego Viewpoints",
     )
     save_precision_recall_bars(metrics, out / "fusion_viewpoint_localization_precision_recall_bars.png")
+    save_class_localization_bars(metrics, out / "fusion_viewpoint_class_localization_bars.png")
+    save_class_precision_recall_bars(metrics, out / "fusion_viewpoint_class_precision_recall_bars.png")
     save_compact_summary(metrics, out / "fusion_viewpoint_eval_compact_summary.csv")
     print(out)
     return 0
