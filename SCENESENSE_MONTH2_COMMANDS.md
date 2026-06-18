@@ -1039,12 +1039,14 @@ python3 carla_collect_moving_ego_fusion_training_data.py \
   --no-ego-freeze \
   --ego-autopilot-speed-difference-pct 35 \
   --ego-follow-distance-m 18.0 \
+  --ego-ignore-lights-pct 0 \
   --route-progress-every-s 1.0 \
-  --loop-return-radius-m 12.0 \
+  --loop-return-radius-m 6.0 \
   --loop-min-distance-m 250.0 \
   --loop-min-elapsed-s 30.0 \
   --stop-after-loops 1 \
   --stop-on-stuck \
+  --stuck-ignore-traffic-light-waits \
   --stuck-speed-threshold-mps 0.20 \
   --stuck-timeout-s 20.0 \
   --stuck-min-elapsed-s 30.0 \
@@ -1085,30 +1087,95 @@ Press `q` or `Esc` in the preview window to stop early. `loop_count=0` does not
 invalidate the moving dataset; if the car does not return near its starting
 point, plan collection by sample count, elapsed time, and distance traveled.
 
-If a visually good dynamic-autopilot probe completes a useful loop, reuse its
-`route_progress.csv` to pin later speed sweeps to the same path. This avoids the
-Traffic Manager choosing a different junction branch just because the speed
-profile changed:
+For a reproducible moving-ego route probe, pin the ego to an explicit CARLA
+route while keeping realistic traffic-light behavior. The route should complete
+without the ego pushing through stopped traffic; if the ego gets blocked by a
+traffic jam, use the stuck detector and retry with fewer/slower NPC vehicles.
 
 ```bash
 python3 carla_collect_moving_ego_fusion_training_data.py \
-  --experiment-id moving_ego_tl16_spawn80_fixedroute_speed50_visual_probe_stride2 \
+  --experiment-id moving_ego_tl16_spawn80_fixed_spawnroute_visual_probe_2loops_stride2 \
   --seed 17 \
   --preview \
   --preview-width 1440 \
   --preview-height 810 \
   --no-ego-freeze \
-  --ego-autopilot-speed-difference-pct 50 \
-  --ego-follow-distance-m 18.0 \
-  --ego-fixed-path-progress-csv fusion_training_data/moving_ego_tl16_spawn80_autopilot_visual_probe_stride2/route_progress.csv \
-  --ego-fixed-path-min-spacing-m 8.0 \
+  --ego-autopilot-speed-difference-pct 55 \
+  --ego-follow-distance-m 28.0 \
+  --ego-ignore-lights-pct 0 \
+  --ego-fixed-path-spawn-indices 80,85,91,94,99,80 \
+  --ego-fixed-path-loop \
+  --ego-fixed-path-min-spacing-m 3.0 \
   --ego-disable-lane-change \
   --route-progress-every-s 1.0 \
-  --loop-return-radius-m 12.0 \
+  --loop-return-radius-m 6.0 \
+  --loop-min-distance-m 250.0 \
+  --loop-min-elapsed-s 30.0 \
+  --stop-after-loops 2 \
+  --stop-on-stuck \
+  --stuck-ignore-traffic-light-waits \
+  --stuck-speed-threshold-mps 0.20 \
+  --stuck-timeout-s 20.0 \
+  --stuck-min-elapsed-s 30.0 \
+  --max-samples 3600 \
+  --sample-stride 2 \
+  --warmup-ticks 30 \
+  --fps 10 \
+  --camera-width 1280 \
+  --camera-height 720 \
+  --camera-fov 120 \
+  --model-input-width 768 \
+  --model-input-height 432 \
+  --ego-spawn-index 80 \
+  --ego-spawn-forward-offset-m 0.0 \
+  --ego-spawn-right-offset-m 0.0 \
+  --ego-spawn-yaw-offset-deg 0.0 \
+  --ego-camera-x 1.8 \
+  --ego-camera-y 0.0 \
+  --ego-camera-z 1.55 \
+  --ego-camera-pitch -4.0 \
+  --ego-camera-yaw 0.0 \
+  --ego-radar-yaw 0.0 \
+  --radar-hfov 120 \
+  --radar-vfov 30 \
+  --radar-range 120 \
+  --radar-points-per-second 5000 \
+  --radar-raster-radius-px 2 \
+  --npc-vehicles 12 \
+  --npc-pedestrians 20 \
+  --npc-vehicle-speed-difference-pct 10 \
+  --npc-pedestrian-max-speed-mps 0.9 \
+  --npc-pedestrian-cross-factor 0.5 \
+  --spawn-radius 80 \
+  --gt-max-distance-m 140
+```
+
+If a visually good dynamic-autopilot probe completes a useful loop, reuse its
+`route_progress.csv` to pin later speed sweeps to the same observed path. This is
+secondary to the spawn-index route above, but useful when Traffic Manager finds a
+good branch sequence on its own:
+
+```bash
+python3 carla_collect_moving_ego_fusion_training_data.py \
+  --experiment-id moving_ego_tl16_spawn80_fixedroute_speed55_visual_probe_stride2 \
+  --seed 17 \
+  --preview \
+  --preview-width 1440 \
+  --preview-height 810 \
+  --no-ego-freeze \
+  --ego-autopilot-speed-difference-pct 55 \
+  --ego-follow-distance-m 28.0 \
+  --ego-ignore-lights-pct 0 \
+  --ego-fixed-path-progress-csv fusion_training_data/moving_ego_tl16_spawn80_autopilot_visual_probe_stride2/route_progress.csv \
+  --ego-fixed-path-min-spacing-m 3.0 \
+  --ego-disable-lane-change \
+  --route-progress-every-s 1.0 \
+  --loop-return-radius-m 6.0 \
   --loop-min-distance-m 250.0 \
   --loop-min-elapsed-s 30.0 \
   --stop-after-loops 1 \
   --stop-on-stuck \
+  --stuck-ignore-traffic-light-waits \
   --stuck-speed-threshold-mps 0.20 \
   --stuck-timeout-s 20.0 \
   --stuck-min-elapsed-s 30.0 \
@@ -1153,116 +1220,177 @@ of replaying a previous probe:
   --ego-fixed-path-loop
 ```
 
-Headless collection smoke, using the same autopilot setup:
+Before full headless collection, run 2-loop visual probes for all three traffic
+density levels. These use the same pinned route and camera/radar geometry as the
+headless pipeline:
 
 ```bash
-python3 carla_collect_moving_ego_fusion_training_data.py \
-  --experiment-id moving_ego_tl16_spawn80_autopilot_smoke_300_stride2 \
-  --no-ego-freeze \
-  --ego-autopilot-speed-difference-pct 35 \
-  --ego-follow-distance-m 18.0 \
-  --route-progress-every-s 1.0 \
-  --loop-return-radius-m 12.0 \
-  --loop-min-distance-m 250.0 \
-  --loop-min-elapsed-s 30.0 \
-  --stop-after-loops 0 \
-  --max-samples 300 \
-  --sample-stride 2 \
-  --warmup-ticks 30 \
-  --fps 10 \
-  --camera-width 1280 \
-  --camera-height 720 \
-  --camera-fov 120 \
-  --model-input-width 768 \
-  --model-input-height 432 \
-  --ego-spawn-index 80 \
-  --ego-spawn-forward-offset-m 0.0 \
-  --ego-spawn-right-offset-m 0.0 \
-  --ego-spawn-yaw-offset-deg 0.0 \
-  --ego-camera-x 1.8 \
-  --ego-camera-y 0.0 \
-  --ego-camera-z 1.55 \
-  --ego-camera-pitch -4.0 \
-  --ego-camera-yaw 0.0 \
-  --ego-radar-yaw 0.0 \
-  --radar-hfov 120 \
-  --radar-vfov 30 \
-  --radar-range 120 \
-  --radar-points-per-second 5000 \
-  --radar-raster-radius-px 2 \
-  --npc-vehicles 20 \
-  --npc-pedestrians 25 \
-  --npc-vehicle-speed-difference-pct 35 \
-  --npc-pedestrian-max-speed-mps 0.9 \
-  --npc-pedestrian-cross-factor 0.5 \
-  --spawn-radius 95 \
-  --gt-max-distance-m 140
+bash scripts/run_moving_ego_fusion_visual_probe.sh low
+bash scripts/run_moving_ego_fusion_visual_probe.sh medium
+bash scripts/run_moving_ego_fusion_visual_probe.sh crowded
 ```
 
-Loop/route outputs written inside the dataset:
+Default visual/full density levels:
 
 ```text
-fusion_training_data/moving_ego_tl16_spawn80_autopilot_smoke_300_stride2/route_progress.csv
-fusion_training_data/moving_ego_tl16_spawn80_autopilot_smoke_300_stride2/route_summary.json
+low:     npc-vehicles=8,  npc-pedestrians=10
+medium:  npc-vehicles=20, npc-pedestrians=25
+crowded: npc-vehicles=35, npc-pedestrians=45
+
+Ego: speed-difference=60, follow-distance=28m, obey traffic lights.
+NPC: speed-difference=10, pedestrian max speed=0.9m/s, cross-factor=0.5.
+Route guidance: fixed-path point spacing=3m. Keep this dense enough that
+Traffic Manager sees the intended turn branch at intersections.
 ```
 
-Validate the smoke dataset:
+The current route is a compact TL16 loop: the 2-loop probe measured roughly
+268m per loop and about 65s per loop. That is useful for first moving-view
+training around the intersection, but it is not a full-town route; once this
+model works, collect one or more longer routes for stronger generalization.
 
-```bash
-python3 scripts/validate_fusion_training_dataset.py \
-  fusion_training_data/moving_ego_tl16_spawn80_autopilot_smoke_300_stride2 \
-  --max-samples 60
+Changing `--loop-return-radius-m` does not make the route longer; it only
+changes when the logger decides the ego is close enough to the starting point to
+count a loop. The wrappers default to the tested `LOOP_RETURN_RADIUS_M=2`, which
+counts only when the ego returns very close to its start. If CARLA occasionally
+misses valid loops, loosen this to `4` or `6`. To make the route longer, use a
+longer `--ego-fixed-path-spawn-indices` sequence.
 
-python3 scripts/dry_run_fusion_training_targets.py \
-  fusion_training_data/moving_ego_tl16_spawn80_autopilot_smoke_300_stride2 \
-  --split all \
-  --max-samples 120 \
-  --object-classes vehicle,person \
-  --require-positive-target
-```
-
-If the smoke validates and the visuals/coverage look good, scale the same
-command to `--max-samples 12000` with `--sample-stride 2` for the first moving
-dataset. Use a new `--experiment-id`, for example:
-
-```bash
-moving_ego_tl16_spawn80_autopilot_12000_stride2
-```
-
-Full moving collection should keep the same route and camera/radar geometry,
-but sweep traffic density as separate datasets before merging:
+Route inspection on 2026-06-17 showed:
 
 ```text
-low:     npc-vehicles=15, npc-pedestrians=15, max-samples=4000
-medium:  npc-vehicles=35, npc-pedestrians=45, max-samples=4000
-crowded: npc-vehicles=55, npc-pedestrians=75, max-samples=4000
-
-Default traffic pacing for all three:
-npc-vehicle-speed-difference-pct=35
-npc-pedestrian-max-speed-mps=0.9
-npc-pedestrian-cross-factor=0.5
+80,85,91,94,99,80         -> planned route length 1258.7m
+80,85,91,94,99,110,137,80 -> planned route length 1906.8m
 ```
 
-After the three datasets validate, merge them exactly like the parked View A/B
-datasets:
+With dense 3m fixed-path points, the route now reliably returns to the starting
+area. Use `LOOP_MIN_DISTANCE_M=200` for visual probes so the compact repeatable
+cycle is counted when `start_gap` returns near zero. If a future route truly
+needs to ignore a short near-start pass, raise this threshold for that probe.
+
+To inspect candidate route lengths before running CARLA visuals:
 
 ```bash
-python3 scripts/merge_fusion_training_datasets.py \
-  fusion_training_data/moving_ego_tl16_spawn80_autopilot_merged_12000_stride2 \
-  fusion_training_data/moving_ego_tl16_spawn80_autopilot_low_4000_stride2 \
-  fusion_training_data/moving_ego_tl16_spawn80_autopilot_medium_4000_stride2 \
-  fusion_training_data/moving_ego_tl16_spawn80_autopilot_crowded_4000_stride2
+python3 scripts/inspect_moving_ego_route.py \
+  --list-spawns \
+  --route 80,85,91,94,99,80 \
+  --route 80,85,91,94,99,110,137,80 \
+  --output-dir analysis_outputs/moving_route_inspection
+```
 
-python3 scripts/validate_fusion_training_dataset.py \
-  fusion_training_data/moving_ego_tl16_spawn80_autopilot_merged_12000_stride2 \
-  --max-samples 120
+If a longer candidate looks promising, run the visual probes with that route:
 
-python3 scripts/dry_run_fusion_training_targets.py \
-  fusion_training_data/moving_ego_tl16_spawn80_autopilot_merged_12000_stride2 \
-  --split all \
-  --max-samples 300 \
-  --object-classes vehicle,person \
-  --require-positive-target
+```bash
+ROUTE_SPAWN_INDICES=80,85,91,94,99,110,137,80 \
+ROUTE_POINT_SPACING_M=3.0 \
+LOOP_RETURN_RADIUS_M=2 \
+LOOP_MIN_DISTANCE_M=200 \
+bash scripts/run_moving_ego_fusion_visual_probe.sh medium
+```
+
+In CARLA Traffic Manager, a larger speed-difference percentage makes the ego
+slower relative to the speed limit. Try `60` or `65` if `55` still feels too
+fast:
+
+```bash
+EGO_SPEED_DIFF=60 \
+ROUTE_SPAWN_INDICES=80,85,91,94,99,110,137,80 \
+ROUTE_POINT_SPACING_M=3.0 \
+LOOP_RETURN_RADIUS_M=2 \
+LOOP_MIN_DISTANCE_M=200 \
+STOP_AFTER_LOOPS=2 \
+MAX_SAMPLES=7000 \
+bash scripts/run_moving_ego_fusion_visual_probe.sh medium
+
+EGO_SPEED_DIFF=65 \
+ROUTE_SPAWN_INDICES=80,85,91,94,99,110,137,80 \
+ROUTE_POINT_SPACING_M=3.0 \
+LOOP_RETURN_RADIUS_M=2 \
+LOOP_MIN_DISTANCE_M=200 \
+STOP_AFTER_LOOPS=2 \
+MAX_SAMPLES=7000 \
+bash scripts/run_moving_ego_fusion_visual_probe.sh medium
+```
+
+If the longer route passes all density probes, use the same route for the full
+pipeline:
+
+```bash
+EGO_SPEED_DIFF=60 \
+ROUTE_SPAWN_INDICES=80,85,91,94,99,110,137,80 \
+ROUTE_POINT_SPACING_M=3.0 \
+LOOP_RETURN_RADIUS_M=2 \
+LOOP_MIN_DISTANCE_M=200 \
+COLLECT_BY_LOOPS=1 \
+LOOPS_PER_DENSITY=8 \
+MAX_SAMPLES_PER_DENSITY=6000 \
+MIN_SAMPLES_PER_DENSITY=3500 \
+nohup bash scripts/run_moving_ego_fusion_training_pipeline.sh \
+  > logs/moving_ego_fusion_pipeline_longroute_20260617.log 2>&1 &
+```
+
+If all three density probes look safe, run the full headless moving collection,
+merge, validation, training, and evaluation pipeline. This reuses the same
+`pole_lraspp_multimodal_fusion.train_fusion` path used for the parked-ego
+fusion model; only the dataset source changes to moving-ego RGB+radar samples.
+
+```bash
+mkdir -p logs
+
+nohup bash scripts/run_moving_ego_fusion_training_pipeline.sh \
+  > logs/moving_ego_fusion_pipeline_20260617.log 2>&1 &
+
+tail -f logs/moving_ego_fusion_pipeline_20260617.log
+
+***Full pipeline run**
+mkdir -p logs
+
+ROUTE_SPAWN_INDICES=80,85,91,94,99,110,137,80 \
+ROUTE_POINT_SPACING_M=3.0 \
+COLLECT_BY_LOOPS=1 \
+LOOPS_PER_DENSITY=8 \
+MAX_SAMPLES_PER_DENSITY=6000 \
+MIN_SAMPLES_PER_DENSITY=3500 \
+nohup bash scripts/run_moving_ego_fusion_training_pipeline.sh \
+  > logs/moving_ego_fusion_pipeline_speed60_8loops_20260617.log 2>&1 &
+
+tail -f logs/moving_ego_fusion_pipeline_speed60_8loops_20260617.log
+
+
+```
+
+By default, the pipeline now stops each density after `8` completed route loops
+instead of stopping mid-route at a fixed sample count. `MAX_SAMPLES_PER_DENSITY`
+is only a safety cap. This keeps low/medium/crowded datasets better balanced
+across the route views.
+
+The default loop-based pipeline merges into:
+
+```text
+fusion_training_data/moving_ego_tl16_spawn80_fixedroute_speed60_merged_8loops_cap6000_stride2
+```
+
+Then it trains:
+
+```text
+experiments/moving_ego_tl16_spawn80_fixedroute_speed55_fusion_train_20260617
+```
+
+To override loop count:
+
+```bash
+LOOPS_PER_DENSITY=12 \
+MAX_SAMPLES_PER_DENSITY=8000 \
+nohup bash scripts/run_moving_ego_fusion_training_pipeline.sh \
+  > logs/moving_ego_fusion_pipeline_12loops_20260617.log 2>&1 &
+```
+
+To use the older sample-count behavior instead:
+
+```bash
+COLLECT_BY_LOOPS=0 \
+SAMPLES_PER_DENSITY=4000 \
+nohup bash scripts/run_moving_ego_fusion_training_pipeline.sh \
+  > logs/moving_ego_fusion_pipeline_4000x3_20260617.log 2>&1 &
 ```
 
 ### Viewpoint-Matched Semantic-LiDAR Diagnostic

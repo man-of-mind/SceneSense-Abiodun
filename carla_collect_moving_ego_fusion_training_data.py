@@ -15,12 +15,26 @@ import csv
 import math
 import queue
 import random
+import sys
 import time
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
+
+PYTHONAPI_ROOT = Path(__file__).resolve().parents[2]
+CARLA_AGENTS_ROOT = PYTHONAPI_ROOT / "carla"
+if CARLA_AGENTS_ROOT.exists() and str(CARLA_AGENTS_ROOT) not in sys.path:
+    sys.path.insert(0, str(CARLA_AGENTS_ROOT))
+PY_VERSION = f"python{sys.version_info.major}.{sys.version_info.minor}"
+for root in Path(__file__).resolve().parents[:7]:
+    for site_packages in root.glob(f"**/lib/{PY_VERSION}/site-packages"):
+        if not list(site_packages.glob("carla*.so")):
+            continue
+        if str(site_packages) not in sys.path:
+            sys.path.insert(0, str(site_packages))
+        break
 
 import carla_collect_parked_ego_fusion_training_data as parked
 
@@ -97,6 +111,15 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--ego-autopilot-speed-difference-pct", type=float, default=35.0)
     parser.add_argument("--ego-follow-distance-m", type=float, default=18.0)
     parser.add_argument(
+        "--ego-ignore-lights-pct",
+        type=float,
+        default=0.0,
+        help=(
+            "Traffic Manager percentage for ego traffic-light ignoring. "
+            "Use 0 for realistic driving and 100 for SCAN-style continuous route probes."
+        ),
+    )
+    parser.add_argument(
         "--ego-fixed-path-spawn-indices",
         default="",
         help=(
@@ -165,6 +188,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--stuck-speed-threshold-mps", type=float, default=0.20)
     parser.add_argument("--stuck-timeout-s", type=float, default=20.0)
     parser.add_argument("--stuck-min-elapsed-s", type=float, default=20.0)
+    parser.add_argument(
+        "--stuck-ignore-traffic-light-waits",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Do not treat normal red/yellow traffic-light waiting as a stuck condition.",
+    )
     return parser.parse_args()
 
 
@@ -175,6 +204,19 @@ def clamp(value: float, low: float, high: float) -> float:
 def ego_speed_mps(actor: "carla.Actor") -> float:
     velocity = actor.get_velocity()
     return math.sqrt(float(velocity.x) ** 2 + float(velocity.y) ** 2 + float(velocity.z) ** 2)
+
+
+def ego_waiting_at_traffic_light(actor: "carla.Actor") -> bool:
+    try:
+        if not bool(actor.is_at_traffic_light()):
+            return False
+        traffic_light = actor.get_traffic_light()
+        if traffic_light is None:
+            return True
+        state = traffic_light.get_state()
+        return state in {carla.TrafficLightState.Red, carla.TrafficLightState.Yellow}
+    except Exception:
+        return False
 
 
 def world_timestamp_s(world: "carla.World") -> float:
@@ -477,7 +519,10 @@ def configure_ego_autopilot(
         pass
     try:
         ego_vehicle.set_autopilot(True, int(args.tm_port))
-        traffic_manager.ignore_lights_percentage(ego_vehicle, 0.0)
+        traffic_manager.ignore_lights_percentage(
+            ego_vehicle,
+            max(0.0, min(100.0, float(args.ego_ignore_lights_pct))),
+        )
         traffic_manager.vehicle_percentage_speed_difference(
             ego_vehicle,
             float(args.ego_autopilot_speed_difference_pct),
@@ -502,6 +547,7 @@ def configure_ego_autopilot(
         "Ego autopilot: "
         f"speed_diff={float(args.ego_autopilot_speed_difference_pct):.1f}%, "
         f"follow_distance={float(args.ego_follow_distance_m):.1f}m, "
+        f"ignore_lights={float(args.ego_ignore_lights_pct):.1f}%, "
         f"fixed_path_points={len(fixed_path)}"
     )
 
@@ -612,6 +658,8 @@ def write_moving_metadata(
         "ego_autopilot": {
             "speed_difference_pct": float(args.ego_autopilot_speed_difference_pct),
             "follow_distance_m": float(args.ego_follow_distance_m),
+            "ignore_lights_pct": float(args.ego_ignore_lights_pct),
+            "stuck_ignore_traffic_light_waits": bool(args.stuck_ignore_traffic_light_waits),
             "fixed_path_spawn_indices": parse_spawn_index_list(
                 str(args.ego_fixed_path_spawn_indices)
             ),
@@ -855,10 +903,14 @@ def main() -> int:
             elapsed_s = 0.0
             if monitor.start_timestamp_s is not None:
                 elapsed_s = float(timestamp_s) - float(monitor.start_timestamp_s)
+            traffic_light_wait = bool(args.stuck_ignore_traffic_light_waits) and ego_waiting_at_traffic_light(
+                ego_vehicle
+            )
             if (
                 bool(args.stop_on_stuck)
                 and elapsed_s >= float(args.stuck_min_elapsed_s)
                 and speed_mps <= float(args.stuck_speed_threshold_mps)
+                and not traffic_light_wait
             ):
                 if stuck_started_at_s is None:
                     stuck_started_at_s = float(timestamp_s)
