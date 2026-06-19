@@ -13,6 +13,12 @@ MAX_SAMPLES_PER_DENSITY="${MAX_SAMPLES_PER_DENSITY:-6000}"
 SAMPLE_STRIDE="${SAMPLE_STRIDE:-2}"
 EGO_SPEED_DIFF="${EGO_SPEED_DIFF:-60}"
 EGO_FOLLOW_DISTANCE_M="${EGO_FOLLOW_DISTANCE_M:-28.0}"
+LOW_NPC_VEHICLES="${LOW_NPC_VEHICLES:-8}"
+LOW_NPC_PEDESTRIANS="${LOW_NPC_PEDESTRIANS:-10}"
+MEDIUM_NPC_VEHICLES="${MEDIUM_NPC_VEHICLES:-20}"
+MEDIUM_NPC_PEDESTRIANS="${MEDIUM_NPC_PEDESTRIANS:-25}"
+CROWDED_NPC_VEHICLES="${CROWDED_NPC_VEHICLES:-28}"
+CROWDED_NPC_PEDESTRIANS="${CROWDED_NPC_PEDESTRIANS:-35}"
 ROUTE_SPAWN_INDICES="${ROUTE_SPAWN_INDICES:-80,85,91,94,99,80}"
 ROUTE_POINT_SPACING_M="${ROUTE_POINT_SPACING_M:-3.0}"
 LOOP_RETURN_RADIUS_M="${LOOP_RETURN_RADIUS_M:-2.0}"
@@ -21,8 +27,11 @@ TRAIN_STAGE1_EPOCHS="${TRAIN_STAGE1_EPOCHS:-40}"
 TRAIN_STAGE2_EPOCHS="${TRAIN_STAGE2_EPOCHS:-80}"
 TRAIN_STAGE1_BUDGET_HOURS="${TRAIN_STAGE1_BUDGET_HOURS:-6.0}"
 TRAIN_STAGE2_BUDGET_HOURS="${TRAIN_STAGE2_BUDGET_HOURS:-6.0}"
+RUN_COLLECTION="${RUN_COLLECTION:-1}"
+RUN_TRAIN="${RUN_TRAIN:-1}"
 RUN_EVAL="${RUN_EVAL:-1}"
 RUN_CROSS_EVAL="${RUN_CROSS_EVAL:-1}"
+RUN_PARKED_TO_MOVING_EVAL="${RUN_PARKED_TO_MOVING_EVAL:-0}"
 EVAL_STRICT="${EVAL_STRICT:-0}"
 STOP_CARLA_BEFORE_TRAINING="${STOP_CARLA_BEFORE_TRAINING:-1}"
 CARLA_STOP_GRACE_S="${CARLA_STOP_GRACE_S:-15}"
@@ -50,6 +59,8 @@ TRIAL="moving_fixedroute_${COLLECTION_TAG}_768x432_lr1e-4_bs2"
 CKPT="$EXP/checkpoints/$TRIAL/best.pt"
 
 AB_DATASET="$ROOT_DIR/fusion_training_data/parked_ego_tl16_viewA_viewB_merged_24000_stride2"
+VIEW_A_DATASET="$ROOT_DIR/fusion_training_data/parked_ego_tl16_spawn80_right7_fwd4_merged_12000_stride2"
+VIEW_B_DATASET="$ROOT_DIR/fusion_training_data/parked_ego_tl16_spawn80_right8_fwd16_merged_12000_stride2"
 AB_EXP="$ROOT_DIR/experiments/parked_ego_tl16_viewAB_fusion_train_20260612"
 AB_TRIAL="parked_viewAB_24000_768x432_lr1e-4_bs2"
 AB_CKPT="$AB_EXP/checkpoints/$AB_TRIAL/best.pt"
@@ -66,6 +77,47 @@ die() {
 run() {
   log "RUN: $*"
   "$@"
+}
+
+require_file() {
+  local path="$1"
+  if [[ ! -f "$path" ]]; then
+    die "Required file is missing: $path"
+  fi
+}
+
+config_value() {
+  local key="$1"
+  python3 -c '
+import sys
+config_path, key = sys.argv[1], sys.argv[2]
+prefix = key + ":"
+with open(config_path, "r", encoding="utf-8") as f:
+    for raw in f:
+        line = raw.strip()
+        if line.startswith(prefix):
+            print(line[len(prefix):].strip().strip("\"'\''"))
+' "$CONFIG_PATH" "$key" | tail -n 1
+}
+
+require_config_file() {
+  local key="$1"
+  local path
+  path="$(config_value "$key")"
+  if [[ -n "$path" && "$path" != "null" && "$path" != "None" ]]; then
+    require_file "$path"
+  fi
+}
+
+preflight() {
+  require_file "carla_collect_moving_ego_fusion_training_data.py"
+  require_file "scripts/merge_fusion_training_datasets.py"
+  require_file "scripts/validate_fusion_training_dataset.py"
+  require_file "scripts/dry_run_fusion_training_targets.py"
+  require_file "scripts/plot_fusion_training_curves.py"
+  require_file "$CONFIG_PATH"
+  require_config_file "init_rgb_checkpoint"
+  require_config_file "baseline_rgb_checkpoint"
 }
 
 manifest_rows() {
@@ -187,6 +239,7 @@ collect_density() {
     min_required_rows="$SAMPLES_PER_DENSITY"
   fi
 
+  set +e
   run python3 carla_collect_moving_ego_fusion_training_data.py \
     --experiment-id "$(basename "$dataset_dir")" \
     --seed "$seed" \
@@ -240,12 +293,20 @@ collect_density() {
     --spawn-radius 80 \
     --gt-max-distance-m 140 \
     --include-pedestrians
+  local collect_rc="$?"
+  set -e
 
   rows="$(manifest_rows "$dataset_dir")"
   loops="$(route_summary_loops "$dataset_dir")"
+  if [[ "$collect_rc" -ne 0 ]]; then
+    log "Warning: $label collector exited with code $collect_rc; checking whether dataset is complete before stopping."
+  fi
   require_complete_dataset "$dataset_dir" "$min_required_rows"
   if [[ "$COLLECT_BY_LOOPS" == "1" && "$loops" -lt "$LOOPS_PER_DENSITY" ]]; then
     die "Dataset $dataset_dir collected $loops loops; expected at least $LOOPS_PER_DENSITY. Rows=$rows, max_samples=$max_samples."
+  fi
+  if [[ "$collect_rc" -ne 0 ]]; then
+    log "Continuing after nonzero collector exit because $label dataset is complete: rows=$rows, loops=$loops."
   fi
 }
 
@@ -407,31 +468,52 @@ log "SceneSense moving-ego RGB+radar fusion training pipeline"
 log "Route spawn indices: $ROUTE_SPAWN_INDICES"
 log "Route point spacing: ${ROUTE_POINT_SPACING_M}m"
 log "Ego speed difference: $EGO_SPEED_DIFF%; follow distance: ${EGO_FOLLOW_DISTANCE_M}m"
+log "Density counts: low=${LOW_NPC_VEHICLES}v/${LOW_NPC_PEDESTRIANS}p, medium=${MEDIUM_NPC_VEHICLES}v/${MEDIUM_NPC_PEDESTRIANS}p, crowded=${CROWDED_NPC_VEHICLES}v/${CROWDED_NPC_PEDESTRIANS}p"
 log "Loop return radius: ${LOOP_RETURN_RADIUS_M}m"
 log "Loop min distance: ${LOOP_MIN_DISTANCE_M}m"
+log "Stages: collection=$RUN_COLLECTION train=$RUN_TRAIN eval=$RUN_EVAL cross_eval=$RUN_CROSS_EVAL"
 if [[ "$COLLECT_BY_LOOPS" == "1" ]]; then
   log "Collection mode: loops; loops per density: $LOOPS_PER_DENSITY; max samples cap: $MAX_SAMPLES_PER_DENSITY; min samples: $MIN_SAMPLES_PER_DENSITY"
 else
   log "Collection mode: samples; samples per density: $SAMPLES_PER_DENSITY"
 fi
 
-collect_density "moving low" "$LOW" 8 10 31
-collect_density "moving medium" "$MEDIUM" 20 25 41
-collect_density "moving crowded" "$CROWDED" 35 45 51
+preflight
 
-merge_dataset "$DATASET" "$MIN_TOTAL" "$LOW" "$MEDIUM" "$CROWDED"
-validate_dataset "$DATASET"
+if [[ "$RUN_COLLECTION" == "1" ]]; then
+  collect_density "moving low" "$LOW" "$LOW_NPC_VEHICLES" "$LOW_NPC_PEDESTRIANS" 31
+  collect_density "moving medium" "$MEDIUM" "$MEDIUM_NPC_VEHICLES" "$MEDIUM_NPC_PEDESTRIANS" 41
+  collect_density "moving crowded" "$CROWDED" "$CROWDED_NPC_VEHICLES" "$CROWDED_NPC_PEDESTRIANS" 51
 
-stop_carla_server
+  merge_dataset "$DATASET" "$MIN_TOTAL" "$LOW" "$MEDIUM" "$CROWDED"
+  validate_dataset "$DATASET"
+else
+  log "Skipping collection/merge/validation because RUN_COLLECTION=$RUN_COLLECTION."
+  require_complete_dataset "$DATASET" "$MIN_TOTAL"
+fi
 
-train_two_stage "$EXP" "$DATASET" "$TRIAL"
-plot_curves "$EXP" "$TRIAL"
+if [[ "$RUN_TRAIN" == "1" ]]; then
+  stop_carla_server
+  train_two_stage "$EXP" "$DATASET" "$TRIAL"
+  plot_curves "$EXP" "$TRIAL"
+else
+  log "Skipping training because RUN_TRAIN=$RUN_TRAIN."
+  if [[ ! -f "$CKPT" ]]; then
+    die "Moving checkpoint is missing, so evaluation-only mode cannot continue: $CKPT"
+  fi
+fi
 
 eval_checkpoint_on_dataset "moving model on moving test" "$CKPT" "$DATASET" "$EXP/eval_moving_model_on_moving"
 
 if [[ "$RUN_CROSS_EVAL" == "1" ]]; then
-  eval_checkpoint_on_dataset "parked A+B model on moving test" "$AB_CKPT" "$DATASET" "$EXP/eval_parked_AB_model_on_moving"
+  eval_checkpoint_on_dataset "moving model on parked View A test" "$CKPT" "$VIEW_A_DATASET" "$EXP/eval_moving_model_on_parked_viewA"
+  eval_checkpoint_on_dataset "moving model on parked View B test" "$CKPT" "$VIEW_B_DATASET" "$EXP/eval_moving_model_on_parked_viewB"
   eval_checkpoint_on_dataset "moving model on parked A+B test" "$CKPT" "$AB_DATASET" "$EXP/eval_moving_model_on_parked_AB"
+  if [[ "$RUN_PARKED_TO_MOVING_EVAL" == "1" ]]; then
+    eval_checkpoint_on_dataset "parked A+B model on moving test" "$AB_CKPT" "$DATASET" "$EXP/eval_parked_AB_model_on_moving"
+  else
+    log "Skipping parked A+B model on moving test because RUN_PARKED_TO_MOVING_EVAL=$RUN_PARKED_TO_MOVING_EVAL."
+  fi
 fi
 
 log "Pipeline complete."

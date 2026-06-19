@@ -476,6 +476,25 @@ parked-ego models are good enough to make task-quality comparisons meaningful.
   - [ ] Parked-trained OD on parked ego test set.
   - [ ] Parked-trained OD on moving ego.
   - [ ] Decide whether a separate moving-ego RGB+radar model is needed.
+- [ ] Study LiDAR/person-localization diagnostics and translate useful ideas to
+  radar:
+  - [x] Copy the supervisor LiDAR diagnostic into `abiodun/` before modifying;
+    do not edit the shared `neu_collab/` original.
+  - [ ] Document what the semantic-LiDAR script is doing beyond raw LiDAR:
+    semantic tags/object ids, high point density, actor-box association,
+    voxel accumulation, RGB/semantic colorization, and optional radar dynamic
+    filtering.
+  - [ ] Separate deployable ideas from CARLA-only oracle ideas. Semantic tags
+    and object ids are upper-bound/debug signals; point-density, temporal
+    accumulation, clustering, rasterization, and radar parameter sweeps can
+    inform the real radar pipeline.
+  - [ ] Run a controlled pedestrian-heavy diagnostic comparing radar support,
+    LiDAR support, and semantic-LiDAR upper-bound support for vehicle/person
+    localization.
+  - [ ] Test radar-processing upgrades inspired by the LiDAR path: higher
+    radar points-per-second, wider FoV where justified, multi-frame
+    accumulation, class-aware/actor-aware supervision analysis, and adjusted
+    raster splat radius/channels for sparse pedestrian returns.
 - [ ] Record controller-relevant static model/action profiles:
   - [ ] Baseline/high-quality model.
   - [ ] Lower-payload compression profile(s).

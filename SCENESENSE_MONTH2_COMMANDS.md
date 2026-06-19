@@ -1235,7 +1235,12 @@ Default visual/full density levels:
 ```text
 low:     npc-vehicles=8,  npc-pedestrians=10
 medium:  npc-vehicles=20, npc-pedestrians=25
-crowded: npc-vehicles=35, npc-pedestrians=45
+crowded: npc-vehicles=28, npc-pedestrians=35
+
+Earlier 35 vehicles / 45 pedestrians was too aggressive for this moving route
+and caused a CARLA gridlock after 2 loops near `(-45, -49)`. Use environment
+overrides if you want to retry a denser crowded profile:
+`CROWDED_NPC_VEHICLES=<n>` and `CROWDED_NPC_PEDESTRIANS=<n>`.
 
 Ego: speed-difference=60, follow-distance=28m, obey traffic lights.
 NPC: speed-difference=10, pedestrian max speed=0.9m/s, cross-factor=0.5.
@@ -1324,6 +1329,8 @@ COLLECT_BY_LOOPS=1 \
 LOOPS_PER_DENSITY=8 \
 MAX_SAMPLES_PER_DENSITY=6000 \
 MIN_SAMPLES_PER_DENSITY=3500 \
+CROWDED_NPC_VEHICLES=28 \
+CROWDED_NPC_PEDESTRIANS=35 \
 nohup bash scripts/run_moving_ego_fusion_training_pipeline.sh \
   > logs/moving_ego_fusion_pipeline_longroute_20260617.log 2>&1 &
 ```

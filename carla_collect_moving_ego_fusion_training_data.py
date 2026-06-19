@@ -552,6 +552,26 @@ def configure_ego_autopilot(
     )
 
 
+def destroy_actors_batch(client: "carla.Client", actors: Sequence["carla.Actor"]) -> None:
+    commands = []
+    seen_ids = set()
+    for actor in reversed(list(actors)):
+        try:
+            actor_id = int(actor.id)
+        except Exception:
+            continue
+        if actor_id in seen_ids:
+            continue
+        seen_ids.add(actor_id)
+        commands.append(carla.command.DestroyActor(actor_id))
+    if not commands:
+        return
+    try:
+        client.apply_batch(commands)
+    except RuntimeError as exc:
+        print(f"Warning: batched actor cleanup failed: {exc}")
+
+
 def configure_background_motion(
     *,
     world: "carla.World",
@@ -1058,11 +1078,7 @@ def main() -> int:
                 controller.stop()
             except RuntimeError:
                 pass
-        for actor in reversed(actors):
-            try:
-                actor.destroy()
-            except RuntimeError:
-                pass
+        destroy_actors_batch(client, actors)
         if bool(args.sync_world):
             try:
                 world.apply_settings(original_settings)

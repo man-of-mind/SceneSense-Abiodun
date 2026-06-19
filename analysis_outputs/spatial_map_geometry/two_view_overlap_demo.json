@@ -1,0 +1,245 @@
+{
+  "local_maps": [
+    {
+      "stream_id": "car_A",
+      "pose": {
+        "x": 0.0,
+        "y": 0.0,
+        "yaw_deg": 28.0,
+        "z": 0.0
+      },
+      "fov_polygon": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          44.382852069175414,
+          -7.427142263730495
+        ],
+        [
+          18.66119591953076,
+          40.94825718944445
+        ]
+      ],
+      "objects": [
+        {
+          "object_id": "a_vehicle_shared",
+          "class_name": "vehicle",
+          "x": 15.0,
+          "y": 7.5,
+          "z": 0.0,
+          "length": 4.6,
+          "width": 1.9,
+          "height": 1.0,
+          "yaw_deg": 5.0,
+          "confidence": 0.88,
+          "source_stream_id": "car_A",
+          "frame_id": null,
+          "timestamp_s": null,
+          "metadata": {}
+        },
+        {
+          "object_id": "a_ped_possible_occluded",
+          "class_name": "person",
+          "x": 18.0,
+          "y": -1.5,
+          "z": 0.0,
+          "length": 0.6,
+          "width": 0.6,
+          "height": 1.7,
+          "yaw_deg": 0.0,
+          "confidence": 0.76,
+          "source_stream_id": "car_A",
+          "frame_id": null,
+          "timestamp_s": null,
+          "metadata": {}
+        }
+      ],
+      "timestamp_s": null,
+      "frame_id": null,
+      "sensor_type": "rgb_radar",
+      "fov_deg": 75.0,
+      "range_m": 45.0,
+      "provenance": {
+        "demo": true
+      }
+    },
+    {
+      "stream_id": "car_B",
+      "pose": {
+        "x": 30.0,
+        "y": 1.0,
+        "yaw_deg": 152.0,
+        "z": 0.0
+      },
+      "fov_polygon": [
+        [
+          30.0,
+          1.0
+        ],
+        [
+          11.338804080469238,
+          41.94825718944445
+        ],
+        [
+          -14.382852069175414,
+          -6.427142263730499
+        ]
+      ],
+      "objects": [
+        {
+          "object_id": "b_vehicle_shared",
+          "class_name": "vehicle",
+          "x": 15.7,
+          "y": 7.2,
+          "z": 0.0,
+          "length": 4.5,
+          "width": 1.9,
+          "height": 1.0,
+          "yaw_deg": 7.0,
+          "confidence": 0.83,
+          "source_stream_id": "car_B",
+          "frame_id": null,
+          "timestamp_s": null,
+          "metadata": {}
+        },
+        {
+          "object_id": "b_vehicle_possible_occluded",
+          "class_name": "vehicle",
+          "x": 12.0,
+          "y": 12.0,
+          "z": 0.0,
+          "length": 4.3,
+          "width": 1.8,
+          "height": 1.0,
+          "yaw_deg": 40.0,
+          "confidence": 0.72,
+          "source_stream_id": "car_B",
+          "frame_id": null,
+          "timestamp_s": null,
+          "metadata": {}
+        }
+      ],
+      "timestamp_s": null,
+      "frame_id": null,
+      "sensor_type": "rgb_radar",
+      "fov_deg": 75.0,
+      "range_m": 45.0,
+      "provenance": {
+        "demo": true
+      }
+    }
+  ],
+  "overlap_area_m2": 529.7616539004612,
+  "associations": [
+    {
+      "canonical_id": "vehicle_001",
+      "class_name": "vehicle",
+      "members": [
+        {
+          "object_id": "a_vehicle_shared",
+          "class_name": "vehicle",
+          "x": 15.0,
+          "y": 7.5,
+          "z": 0.0,
+          "length": 4.6,
+          "width": 1.9,
+          "height": 1.0,
+          "yaw_deg": 5.0,
+          "confidence": 0.88,
+          "source_stream_id": "car_A",
+          "frame_id": null,
+          "timestamp_s": null,
+          "metadata": {}
+        },
+        {
+          "object_id": "b_vehicle_shared",
+          "class_name": "vehicle",
+          "x": 15.7,
+          "y": 7.2,
+          "z": 0.0,
+          "length": 4.5,
+          "width": 1.9,
+          "height": 1.0,
+          "yaw_deg": 7.0,
+          "confidence": 0.83,
+          "source_stream_id": "car_B",
+          "frame_id": null,
+          "timestamp_s": null,
+          "metadata": {}
+        }
+      ],
+      "centroid_x": 15.35,
+      "centroid_y": 7.35,
+      "max_pairwise_distance_m": 0.7615773105863901
+    },
+    {
+      "canonical_id": "person_001",
+      "class_name": "person",
+      "members": [
+        {
+          "object_id": "a_ped_possible_occluded",
+          "class_name": "person",
+          "x": 18.0,
+          "y": -1.5,
+          "z": 0.0,
+          "length": 0.6,
+          "width": 0.6,
+          "height": 1.7,
+          "yaw_deg": 0.0,
+          "confidence": 0.76,
+          "source_stream_id": "car_A",
+          "frame_id": null,
+          "timestamp_s": null,
+          "metadata": {}
+        }
+      ],
+      "centroid_x": 18.0,
+      "centroid_y": -1.5,
+      "max_pairwise_distance_m": 0.0
+    },
+    {
+      "canonical_id": "vehicle_002",
+      "class_name": "vehicle",
+      "members": [
+        {
+          "object_id": "b_vehicle_possible_occluded",
+          "class_name": "vehicle",
+          "x": 12.0,
+          "y": 12.0,
+          "z": 0.0,
+          "length": 4.3,
+          "width": 1.8,
+          "height": 1.0,
+          "yaw_deg": 40.0,
+          "confidence": 0.72,
+          "source_stream_id": "car_B",
+          "frame_id": null,
+          "timestamp_s": null,
+          "metadata": {}
+        }
+      ],
+      "centroid_x": 12.0,
+      "centroid_y": 12.0,
+      "max_pairwise_distance_m": 0.0
+    }
+  ],
+  "occlusion_hypotheses": [
+    {
+      "source_stream_id": "car_A",
+      "missing_from_stream_id": "car_B",
+      "object_id": "a_ped_possible_occluded",
+      "class_name": "person",
+      "x": 18.0,
+      "y": -1.5,
+      "reason": "object_in_overlap_but_missing_from_other_stream",
+      "confidence": 0.5319999999999999,
+      "overlap_area_m2": 529.7616539004612,
+      "notes": [
+        "Possible occlusion, detection miss, stale map, edge-of-FoV case, or source false positive.",
+        "This starter reasoner is intentionally conservative."
+      ]
+    }
+  ]
+}
