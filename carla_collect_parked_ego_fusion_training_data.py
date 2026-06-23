@@ -151,6 +151,33 @@ def parse_args() -> argparse.Namespace:
         default=1.0,
         help="Extra bbox margin used to count radar points supporting an object label.",
     )
+    parser.add_argument(
+        "--radar-person-support-mode",
+        choices=("bbox", "radius"),
+        default="radius",
+        help=(
+            "Geometry used when counting radar support for pedestrians. "
+            "Vehicles always use the oriented actor box plus --radar-support-margin-m."
+        ),
+    )
+    parser.add_argument(
+        "--radar-person-support-radius-m",
+        type=float,
+        default=1.5,
+        help="Ground-plane radius around the pedestrian box center for radar support.",
+    )
+    parser.add_argument(
+        "--radar-person-support-z-down-m",
+        type=float,
+        default=0.5,
+        help="Extra meters below the pedestrian box used by radius radar support.",
+    )
+    parser.add_argument(
+        "--radar-person-support-z-up-m",
+        type=float,
+        default=2.0,
+        help="Extra meters above the pedestrian box used by radius radar support.",
+    )
 
     parser.add_argument("--npc-vehicles", type=int, default=20)
     parser.add_argument("--npc-pedestrians", type=int, default=10)
@@ -318,8 +345,13 @@ def transform_world_to_actor_local(points_world: np.ndarray, actor: "carla.Actor
 def radar_support_count(
     *,
     actor: "carla.Actor",
+    label: str,
     radar_world_xyz: np.ndarray,
     margin_m: float,
+    person_support_mode: str = "radius",
+    person_radius_m: float = 1.5,
+    person_z_down_m: float = 0.5,
+    person_z_up_m: float = 2.0,
 ) -> int:
     if radar_world_xyz.size == 0:
         return 0
@@ -327,6 +359,16 @@ def radar_support_count(
     extent = bbox.extent
     center = np.asarray([bbox.location.x, bbox.location.y, bbox.location.z], dtype=np.float64)
     local = transform_world_to_actor_local(radar_world_xyz, actor) - center[None, :]
+    if str(label) == "person" and str(person_support_mode) == "radius":
+        radius = max(0.05, float(person_radius_m))
+        z_down = max(0.0, float(person_z_down_m))
+        z_up = max(0.0, float(person_z_up_m))
+        inside = (
+            (local[:, 0] * local[:, 0] + local[:, 1] * local[:, 1] <= radius * radius)
+            & (local[:, 2] >= -float(extent.z) - z_down)
+            & (local[:, 2] <= float(extent.z) + z_up)
+        )
+        return int(np.count_nonzero(inside))
     margin = max(0.0, float(margin_m))
     inside = (
         (np.abs(local[:, 0]) <= float(extent.x) + margin)
@@ -375,6 +417,10 @@ def project_actor_to_object_row(
     radar_world_xyz: np.ndarray,
     stationary_tracker: ActorStationaryTracker,
     radar_support_margin_m: float,
+    radar_person_support_mode: str,
+    radar_person_support_radius_m: float,
+    radar_person_support_z_down_m: float,
+    radar_person_support_z_up_m: float,
 ) -> Optional[Dict[str, object]]:
     try:
         transform = actor.get_transform()
@@ -401,6 +447,19 @@ def project_actor_to_object_row(
     stationary_age_s, stationary_label, parked_label = stationary_tracker.update(
         actor,
         float(sample_base["timestamp"]),
+    )
+    radar_support_mode = (
+        "person_radius" if label == "person" and radar_person_support_mode == "radius" else "bbox"
+    )
+    radar_support_points = radar_support_count(
+        actor=actor,
+        label=label,
+        radar_world_xyz=radar_world_xyz,
+        margin_m=float(radar_support_margin_m),
+        person_support_mode=radar_person_support_mode,
+        person_radius_m=float(radar_person_support_radius_m),
+        person_z_down_m=float(radar_person_support_z_down_m),
+        person_z_up_m=float(radar_person_support_z_up_m),
     )
     return {
         **sample_base,
@@ -430,10 +489,16 @@ def project_actor_to_object_row(
         "stationary_age_s": float(stationary_age_s),
         "stationary_label": int(stationary_label),
         "parked_label": int(parked_label),
-        "radar_support_points": radar_support_count(
-            actor=actor,
-            radar_world_xyz=radar_world_xyz,
-            margin_m=float(radar_support_margin_m),
+        "radar_support_points": radar_support_points,
+        "radar_support_mode": radar_support_mode,
+        "radar_support_radius_m": (
+            float(radar_person_support_radius_m) if radar_support_mode == "person_radius" else ""
+        ),
+        "radar_support_z_down_m": (
+            float(radar_person_support_z_down_m) if radar_support_mode == "person_radius" else ""
+        ),
+        "radar_support_z_up_m": (
+            float(radar_person_support_z_up_m) if radar_support_mode == "person_radius" else ""
         ),
     }
 
@@ -454,6 +519,10 @@ def build_object_rows(
     stationary_tracker: ActorStationaryTracker,
     include_pedestrians: bool,
     radar_support_margin_m: float,
+    radar_person_support_mode: str = "radius",
+    radar_person_support_radius_m: float = 1.5,
+    radar_person_support_z_down_m: float = 0.5,
+    radar_person_support_z_up_m: float = 2.0,
 ) -> List[Dict[str, object]]:
     rows: List[Dict[str, object]] = []
     patterns: List[Tuple[str, str]] = [("vehicle", "vehicle.*")]
@@ -478,6 +547,10 @@ def build_object_rows(
                 radar_world_xyz=radar_world_xyz,
                 stationary_tracker=stationary_tracker,
                 radar_support_margin_m=float(radar_support_margin_m),
+                radar_person_support_mode=str(radar_person_support_mode),
+                radar_person_support_radius_m=float(radar_person_support_radius_m),
+                radar_person_support_z_down_m=float(radar_person_support_z_down_m),
+                radar_person_support_z_up_m=float(radar_person_support_z_up_m),
             )
             if row is not None:
                 rows.append(row)
@@ -948,6 +1021,10 @@ def main() -> int:
                 stationary_tracker=actor_stationary_tracker,
                 include_pedestrians=bool(args.include_pedestrians),
                 radar_support_margin_m=float(args.radar_support_margin_m),
+                radar_person_support_mode=str(args.radar_person_support_mode),
+                radar_person_support_radius_m=float(args.radar_person_support_radius_m),
+                radar_person_support_z_down_m=float(args.radar_person_support_z_down_m),
+                radar_person_support_z_up_m=float(args.radar_person_support_z_up_m),
             )
             append_manifest_rows(manifest_path, [manifest_row])
             append_object_box_rows(object_boxes_path, object_rows)

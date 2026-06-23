@@ -1,0 +1,7 @@
+run,mode,actor_type,actor_observations,hits,recall,xy_error_mean_m,xy_error_median_m,points_per_actor_mean,points_per_actor_median
+curbside_lidar_clean_crossing,raw_bbox,vehicle,250,0,0.0,nan,nan,10.004,10.0
+curbside_lidar_clean_crossing,raw_bbox,person,250,0,0.0,nan,nan,0.0,0.0
+curbside_lidar_clean_crossing,semantic_tag_bbox,vehicle,250,0,0.0,nan,nan,10.0,10.0
+curbside_lidar_clean_crossing,semantic_tag_bbox,person,250,0,0.0,nan,nan,0.0,0.0
+curbside_lidar_clean_crossing,semantic_object_id,vehicle,250,250,1.0,1.94066321849823,1.94066321849823,86.0,86.0
+curbside_lidar_clean_crossing,semantic_object_id,person,250,210,0.84,0.2862257779354141,0.2906053513288498,11.224,14.0

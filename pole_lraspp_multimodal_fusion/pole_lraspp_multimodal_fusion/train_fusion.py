@@ -7,7 +7,7 @@ import json
 import math
 import time
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import cv2
 import numpy as np
@@ -179,6 +179,38 @@ def compute_losses(
     return total, parts, logits
 
 
+def _deep_merge_dicts(base: Dict[str, Any], override: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    merged: Dict[str, Any] = dict(base or {})
+    if not override:
+        return merged
+    for key, value in override.items():
+        if isinstance(value, dict) and isinstance(merged.get(key), dict):
+            merged[key] = _deep_merge_dicts(merged[key], value)
+        else:
+            merged[key] = value
+    return merged
+
+
+def _selection_score(metrics: Dict[str, float], mode: str) -> float:
+    mode = str(mode or "default").lower()
+    miou = float(metrics.get("miou", 0.0))
+    vehicle_iou = float(metrics.get("vehicle_iou", miou))
+    loc_loss = float(metrics.get("loc_loss", 0.0))
+    dim_loss = float(metrics.get("dim_loss", 0.0))
+    if mode == "default":
+        return float(miou - 0.05 * loc_loss - 0.05 * dim_loss)
+    if mode in {"miou", "segmentation"}:
+        return miou
+    if mode == "vehicle_iou":
+        return vehicle_iou
+    if mode == "vehicle_miou":
+        return float(0.7 * vehicle_iou + 0.3 * miou)
+    raise ValueError(
+        "Unsupported selection_score_mode "
+        f"{mode!r}; use default, miou, segmentation, vehicle_iou, or vehicle_miou."
+    )
+
+
 def evaluate_model(
     model: torch.nn.Module,
     loader: DataLoader,
@@ -186,6 +218,7 @@ def evaluate_model(
     num_classes: int,
     loss_weights: Dict[str, float],
     class_weights: Optional[torch.Tensor] = None,
+    selection_score_mode: str = "default",
 ) -> Dict[str, float]:
     model.eval()
     confusion = np.zeros((num_classes, num_classes), dtype=np.float64)
@@ -219,13 +252,7 @@ def evaluate_model(
         metrics[key] = float(value / max(1, batches))
     for idx, name in enumerate(CLASS_NAMES[:num_classes]):
         metrics[f"{name}_iou"] = float(ious[idx])
-    loc_loss = float(metrics.get("loc_loss", 0.0))
-    dim_loss = float(metrics.get("dim_loss", 0.0))
-    # Weights raised 10x / 5x from (0.005, 0.01) so a still-descending object
-    # regression keeps the selection score climbing past a miou plateau. This
-    # avoids the run-4 failure where early-stop fired on miou patience while
-    # loc_loss was still dropping ~22% over the stale-epoch window.
-    metrics["selection_score"] = float(miou - 0.05 * loc_loss - 0.05 * dim_loss)
+    metrics["selection_score"] = _selection_score(metrics, selection_score_mode)
     return metrics
 
 
@@ -317,8 +344,12 @@ def train(args: argparse.Namespace) -> int:
     else:
         raise ValueError(f"Unsupported optimizer: {optimizer_name}")
     scaler = torch.amp.GradScaler("cuda", enabled=bool(train_cfg.get("amp", True)) and device.type == "cuda")
-    loss_weights = train_cfg.get("loss_weights", {})
-    class_loss_weights_cfg = train_cfg.get("class_loss_weights")
+    loss_weights = _deep_merge_dicts(
+        dict(train_cfg.get("loss_weights", {})),
+        trial.get("loss_weights") if isinstance(trial.get("loss_weights"), dict) else None,
+    )
+    class_loss_weights_cfg = trial.get("class_loss_weights", train_cfg.get("class_loss_weights"))
+    selection_score_mode = str(trial.get("selection_score_mode", train_cfg.get("selection_score_mode", "default")))
     class_weights_tensor: Optional[torch.Tensor] = None
     if class_loss_weights_cfg is not None:
         class_weights_tensor = torch.tensor(
@@ -328,6 +359,10 @@ def train(args: argparse.Namespace) -> int:
             raise ValueError(
                 f"training.class_loss_weights has {class_weights_tensor.numel()} entries but num_classes={num_classes}"
             )
+    log(
+        f"{trial_name} objective: selection_score_mode={selection_score_mode}; "
+        f"class_loss_weights={class_loss_weights_cfg}; loss_weights={json.dumps(loss_weights, sort_keys=True)}"
+    )
 
     start_epoch = 0
     best_score = -math.inf
@@ -399,7 +434,15 @@ def train(args: argparse.Namespace) -> int:
             scaler.update()
             losses.append(float(loss.item()))
 
-        val_metrics = evaluate_model(model, val_loader, device, num_classes, loss_weights, class_weights=class_weights_tensor)
+        val_metrics = evaluate_model(
+            model,
+            val_loader,
+            device,
+            num_classes,
+            loss_weights,
+            class_weights=class_weights_tensor,
+            selection_score_mode=selection_score_mode,
+        )
         train_loss = float(np.mean(losses)) if losses else float("nan")
         row = {
             "trial": trial_name,
@@ -445,6 +488,9 @@ def train(args: argparse.Namespace) -> int:
                     "fuse_low_into_object_head": bool(fuse_low_into_object_head),
                     "class_names": CLASS_NAMES[:num_classes],
                     "init_rgb_checkpoint": init_checkpoint,
+                    "class_loss_weights": class_loss_weights_cfg,
+                    "loss_weights": loss_weights,
+                    "selection_score_mode": selection_score_mode,
                     "model_task": "segmentation_plus_learned_object_localization",
                 },
                 best_path,
@@ -466,6 +512,9 @@ def train(args: argparse.Namespace) -> int:
                 "object_class_names": list(object_class_names),
                 "fuse_low_into_object_head": bool(fuse_low_into_object_head),
                 "init_rgb_checkpoint": init_checkpoint,
+                "class_loss_weights": class_loss_weights_cfg,
+                "loss_weights": loss_weights,
+                "selection_score_mode": selection_score_mode,
                 "model_task": "segmentation_plus_learned_object_localization",
             },
             last_path,
@@ -489,6 +538,9 @@ def train(args: argparse.Namespace) -> int:
             "best_checkpoint": str(best_path),
             "updated_at": utc_iso(),
             "init_rgb_checkpoint": init_checkpoint,
+            "class_loss_weights": class_loss_weights_cfg,
+            "loss_weights": loss_weights,
+            "selection_score_mode": selection_score_mode,
             "model_task": "segmentation_plus_learned_object_localization",
         },
     )

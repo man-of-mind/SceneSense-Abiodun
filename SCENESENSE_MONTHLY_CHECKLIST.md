@@ -470,12 +470,25 @@ parked-ego models are good enough to make task-quality comparisons meaningful.
     `carla_collect_moving_ego_fusion_training_data.py`. The parked collector
     remains parked-only; moving collection writes `route_progress.csv` and
     `route_summary.json` for distance/loop diagnostics.
-  - [ ] Run and validate moving-ego collector smoke:
-    `moving_ego_tl16_spawn80_autopilot_smoke_300_stride2`.
-  - [ ] Parked-trained SEG/localization on moving ego.
+  - [x] Run and validate moving-ego collector smoke/probes. Final stable
+    collection mode uses CARLA autopilot with a fixed spawn-index route,
+    traffic-light waits excluded from stuck detection, lane changes disabled,
+    and loop-count stopping instead of mid-route sample-count stopping.
+  - [x] Parked-trained SEG/localization on moving ego. This is now treated as a
+    negative-control/domain-gap result, not the primary target: parked A+B on
+    moving test reached only about `mIoU=0.262`, `vehicle_iou=0.054`.
+  - [x] Train/evaluate moving-ego RGB+radar SEG/localization candidate models.
+    The 8-loop moving model is currently stronger on moving test
+    (`mIoU=0.825`, `vehicle_iou=0.874`, `person_iou=0.630`) than the 12-loop
+    repeated-route run (`mIoU=0.813`, `vehicle_iou=0.846`,
+    `person_iou=0.624`). Extra repeated loops alone did not improve model
+    quality; next improvement should target route/view diversity,
+    sensor-processing changes, or training/threshold tuning.
   - [ ] Parked-trained OD on parked ego test set.
   - [ ] Parked-trained OD on moving ego.
-  - [ ] Decide whether a separate moving-ego RGB+radar model is needed.
+  - [x] Decide whether a separate moving-ego RGB+radar model is needed. Yes:
+    moving-domain model training is the main path; parked A+B does not transfer
+    to moving data.
 - [ ] Study LiDAR/person-localization diagnostics and translate useful ideas to
   radar:
   - [x] Copy the supervisor LiDAR diagnostic into `abiodun/` before modifying;

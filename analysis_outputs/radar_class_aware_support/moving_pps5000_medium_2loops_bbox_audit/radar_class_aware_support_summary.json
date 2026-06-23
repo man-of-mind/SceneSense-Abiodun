@@ -1,0 +1,53 @@
+{
+  "created_at": "2026-06-22T20:51:31",
+  "dataset_dir": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/fusion_training_data/moving_ego_radar_pps5000_medium_2loops_stride2",
+  "missing_radar_point_files": 0,
+  "object_rows": 14890,
+  "output_dir": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/analysis_outputs/radar_class_aware_support/moving_pps5000_medium_2loops_bbox_audit",
+  "plots": [
+    "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/analysis_outputs/radar_class_aware_support/moving_pps5000_medium_2loops_bbox_audit/radar_class_aware_support_rate.png",
+    "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/analysis_outputs/radar_class_aware_support/moving_pps5000_medium_2loops_bbox_audit/radar_class_aware_mean_points.png"
+  ],
+  "processed_samples": 1459,
+  "schema": "scenesense_radar_class_aware_support.v1",
+  "settings": {
+    "min_support_points": 1,
+    "person_mode": "bbox",
+    "person_radius_m": 2.0,
+    "person_z_down_m": 0.5,
+    "person_z_up_m": 2.0,
+    "vehicle_box_margin_m": 1.0
+  },
+  "summary": [
+    {
+      "class_aware_mode": "bbox",
+      "class_aware_support_mean": 0.13920141186851975,
+      "class_aware_support_median": 0.0,
+      "class_aware_supported_rate": 0.08371939113170086,
+      "class_aware_supported_rows": 759,
+      "current_support_mean": 0.33322303110522833,
+      "current_support_median": 0.0,
+      "current_supported_rate": 0.15905581292742113,
+      "current_supported_rows": 1442,
+      "label": "person",
+      "object_rows": 9066,
+      "support_gain_rows": 0,
+      "support_loss_rows": 683
+    },
+    {
+      "class_aware_mode": "bbox",
+      "class_aware_support_mean": 7.006009615384615,
+      "class_aware_support_median": 0.0,
+      "class_aware_supported_rate": 0.49089972527472525,
+      "class_aware_supported_rows": 2859,
+      "current_support_mean": 7.004464285714286,
+      "current_support_median": 0.0,
+      "current_supported_rate": 0.49089972527472525,
+      "current_supported_rows": 2859,
+      "label": "vehicle",
+      "object_rows": 5824,
+      "support_gain_rows": 1,
+      "support_loss_rows": 1
+    }
+  ]
+}

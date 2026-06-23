@@ -165,6 +165,18 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--association-grid-m", type=float, default=1.5)
     parser.add_argument("--max-stale-s", type=float, default=2.0)
     parser.add_argument("--radar-support-margin-m", type=float, default=1.0)
+    parser.add_argument(
+        "--radar-person-support-mode",
+        choices=("bbox", "radius"),
+        default="radius",
+        help=(
+            "Geometry used when counting radar support for pedestrians. "
+            "Vehicles always use the oriented actor box plus --radar-support-margin-m."
+        ),
+    )
+    parser.add_argument("--radar-person-support-radius-m", type=float, default=1.5)
+    parser.add_argument("--radar-person-support-z-down-m", type=float, default=0.5)
+    parser.add_argument("--radar-person-support-z-up-m", type=float, default=2.0)
 
     parser.add_argument("--npc-vehicles", type=int, default=20)
     parser.add_argument("--npc-pedestrians", type=int, default=25)
@@ -1034,6 +1046,10 @@ def main() -> int:
                 stationary_tracker=actor_stationary_tracker,
                 include_pedestrians=bool(args.include_pedestrians),
                 radar_support_margin_m=float(args.radar_support_margin_m),
+                radar_person_support_mode=str(args.radar_person_support_mode),
+                radar_person_support_radius_m=float(args.radar_person_support_radius_m),
+                radar_person_support_z_down_m=float(args.radar_person_support_z_down_m),
+                radar_person_support_z_up_m=float(args.radar_person_support_z_up_m),
             )
             stop_requested = draw_preview(
                 args=args,

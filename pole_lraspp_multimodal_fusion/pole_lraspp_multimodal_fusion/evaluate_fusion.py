@@ -152,12 +152,35 @@ def maybe_classical_radar_diagnostic(row: Dict[str, str], boxes: Sequence[Dict[s
     return errors
 
 
+def resolve_device(args: argparse.Namespace) -> torch.device:
+    requested = str(getattr(args, "device", "auto")).lower()
+    cuda_available = torch.cuda.is_available()
+    if requested == "auto":
+        if getattr(args, "require_cuda", False) and not cuda_available:
+            raise RuntimeError("CUDA was required for evaluation, but torch.cuda.is_available() is false.")
+        return torch.device("cuda" if cuda_available else "cpu")
+    if requested == "cuda":
+        if not cuda_available:
+            raise RuntimeError("Evaluation was requested on CUDA, but torch.cuda.is_available() is false.")
+        return torch.device("cuda")
+    if requested == "cpu":
+        if getattr(args, "require_cuda", False):
+            raise RuntimeError("--require-cuda cannot be used with --device cpu.")
+        return torch.device("cpu")
+    raise ValueError(f"Unsupported device: {requested}")
+
+
 def evaluate_checkpoint(args: argparse.Namespace) -> int:
     config = load_config(args.config)
     exp_dir = Path(args.experiment_dir).expanduser().resolve()
     dataset_dir = exp_dir / "dataset"
     log = setup_logger(exp_dir / "supervisor.log")
+    device = resolve_device(args)
+    device_name = torch.cuda.get_device_name(device) if device.type == "cuda" else "cpu"
+    log(f"Evaluating on device={device} ({device_name})")
     rows = [row for row in read_manifest(dataset_dir / "manifest.csv") if row.get("split") == args.split]
+    if args.sample_id_contains:
+        rows = [row for row in rows if args.sample_id_contains in row.get("sample_id", "")]
     if not rows:
         raise RuntimeError(f"No rows found for split={args.split}.")
     train_cfg = config["training"]
@@ -175,7 +198,6 @@ def evaluate_checkpoint(args: argparse.Namespace) -> int:
     num_classes = int(train_cfg.get("num_classes", 3))
     class_names = list(CLASS_NAMES[:num_classes])
     input_size = tuple(int(v) for v in args.input_size) if args.input_size else tuple(int(v) for v in train_cfg.get("input_size", [512, 288]))
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     checkpoint_path = Path(args.checkpoint).expanduser()
     checkpoint = torch.load(checkpoint_path, map_location=device)
     object_class_names = tuple(
@@ -358,11 +380,14 @@ def evaluate_checkpoint(args: argparse.Namespace) -> int:
     f1 = float(2.0 * precision * recall / max(1e-9, precision + recall))
     metrics: Dict[str, object] = {
         "split": args.split,
+        "sample_id_contains": args.sample_id_contains or "",
         "checkpoint": str(checkpoint_path),
         "samples": len(rows),
         "miou": miou,
         "pixel_accuracy": pixel_acc,
         "generated_at": utc_iso(),
+        "device": str(device),
+        "device_name": device_name,
         "learned_object_tp": tp,
         "learned_object_fp": fp,
         "learned_object_fn": fn,
@@ -444,6 +469,9 @@ def main() -> None:
     parser.add_argument("--object-nms-radius-px", type=int, default=None)
     parser.add_argument("--topk-objects", type=int, default=None)
     parser.add_argument("--match-distance-m", type=float, default=None)
+    parser.add_argument("--device", choices=("auto", "cuda", "cpu"), default="auto")
+    parser.add_argument("--require-cuda", action="store_true")
+    parser.add_argument("--sample-id-contains", default="")
     args = parser.parse_args()
     raise SystemExit(evaluate_checkpoint(args))
 

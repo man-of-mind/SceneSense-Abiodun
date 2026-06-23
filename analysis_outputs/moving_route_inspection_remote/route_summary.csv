@@ -1,0 +1,3 @@
+route,route_points,route_length_m,keypoint_polyline_m,spacing_m,route_csv
+"80,85,91,94,99,80",102,1258.712,105.977,8.0,/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/analysis_outputs/moving_route_inspection/route_80_85_91_94_99_80.csv
+"80,85,91,94,99,110,137,80",160,1906.814,203.886,8.0,/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/analysis_outputs/moving_route_inspection/route_80_85_91_94_99_110_137_80.csv

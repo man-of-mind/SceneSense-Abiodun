@@ -127,6 +127,10 @@ OBJECT_BOX_FIELDS = (
     "stationary_label",
     "parked_label",
     "radar_support_points",
+    "radar_support_mode",
+    "radar_support_radius_m",
+    "radar_support_z_down_m",
+    "radar_support_z_up_m",
 )
 
 

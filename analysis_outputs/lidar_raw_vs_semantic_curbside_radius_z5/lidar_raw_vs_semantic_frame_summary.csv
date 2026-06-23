@@ -1,0 +1,2 @@
+run,frames,raw_points_mean,semantic_points_mean,raw_bytes_mean,semantic_bytes_est_mean
+curbside_lidar_clean_crossing_radius_z5,250,30391.08,55568.32,486257.28,1111366.4

@@ -1,0 +1,9 @@
+configuration,class,support_rate,supported_rows,object_rows,mean_support_points,median_support_points
+"5k radar, bbox person gate",person,0.08371939113170086,759,9066,0.13920141186851975,0.0
+"5k radar, bbox person gate",vehicle,0.49089972527472525,2859,5824,7.006009615384615,0.0
+"5k radar, radius person gate",person,0.15905581292742113,1442,9066,0.33322303110522833,0.0
+"5k radar, radius person gate",vehicle,0.49089972527472525,2859,5824,7.004464285714286,0.0
+"12k radar, bbox person gate",person,0.15354070152217075,1392,9066,0.33642179572027353,0.0
+"12k radar, bbox person gate",vehicle,0.5485304169514695,3210,5852,16.84688995215311,1.0
+"12k radar, radius person gate",person,0.2634017207147584,2388,9066,0.8144716523273771,0.0
+"12k radar, radius person gate",vehicle,0.5485304169514695,3210,5852,16.840738209159262,1.0

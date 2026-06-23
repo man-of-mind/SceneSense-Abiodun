@@ -1,0 +1,3 @@
+label,class_aware_mode,object_rows,current_supported_rows,current_supported_rate,class_aware_supported_rows,class_aware_supported_rate,support_gain_rows,support_loss_rows,current_support_mean,class_aware_support_mean,current_support_median,class_aware_support_median
+person,person_radius,2513,97,0.038599283724631915,358,0.1424592120970951,261,0,0.04297652208515718,0.21766812574612018,0.0,0.0
+vehicle,bbox,1806,730,0.40420819490586934,730,0.40420819490586934,0,0,3.7857142857142856,3.7879291251384273,0.0,0.0

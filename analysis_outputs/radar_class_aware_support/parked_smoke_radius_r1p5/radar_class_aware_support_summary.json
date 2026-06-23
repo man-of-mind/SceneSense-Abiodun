@@ -1,0 +1,49 @@
+{
+  "created_at": "2026-06-22T19:13:12",
+  "dataset_dir": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/fusion_training_data/parked_ego_tl16_spawn80_right7_fwd4_smoke_60_stride2",
+  "missing_radar_point_files": 0,
+  "object_rows": 1950,
+  "output_dir": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/analysis_outputs/radar_class_aware_support/parked_smoke_radius_r1p5",
+  "processed_samples": 60,
+  "schema": "scenesense_radar_class_aware_support.v1",
+  "settings": {
+    "min_support_points": 1,
+    "person_mode": "radius",
+    "person_radius_m": 1.5,
+    "person_z_down_m": 0.5,
+    "person_z_up_m": 2.0,
+    "vehicle_box_margin_m": 1.0
+  },
+  "summary": [
+    {
+      "class_aware_mode": "person_radius",
+      "class_aware_support_mean": 0.06762295081967214,
+      "class_aware_support_median": 0.0,
+      "class_aware_supported_rate": 0.045081967213114756,
+      "class_aware_supported_rows": 44,
+      "current_support_mean": 0.04405737704918033,
+      "current_support_median": 0.0,
+      "current_supported_rate": 0.03278688524590164,
+      "current_supported_rows": 32,
+      "label": "person",
+      "object_rows": 976,
+      "support_gain_rows": 13,
+      "support_loss_rows": 1
+    },
+    {
+      "class_aware_mode": "bbox",
+      "class_aware_support_mean": 1.202258726899384,
+      "class_aware_support_median": 0.0,
+      "class_aware_supported_rate": 0.3593429158110883,
+      "class_aware_supported_rows": 350,
+      "current_support_mean": 1.200205338809035,
+      "current_support_median": 0.0,
+      "current_supported_rate": 0.3593429158110883,
+      "current_supported_rows": 350,
+      "label": "vehicle",
+      "object_rows": 974,
+      "support_gain_rows": 0,
+      "support_loss_rows": 0
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+[
+  {
+    "keypoint_polyline_m": 105.977,
+    "route": "80,85,91,94,99,80",
+    "route_csv": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/analysis_outputs/moving_route_inspection/route_80_85_91_94_99_80.csv",
+    "route_length_m": 1258.712,
+    "route_points": 102,
+    "spacing_m": 8.0
+  },
+  {
+    "keypoint_polyline_m": 203.886,
+    "route": "80,85,91,94,99,110,137,80",
+    "route_csv": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/analysis_outputs/moving_route_inspection/route_80_85_91_94_99_110_137_80.csv",
+    "route_length_m": 1906.814,
+    "route_points": 160,
+    "spacing_m": 8.0
+  }
+]

@@ -1400,6 +1400,165 @@ nohup bash scripts/run_moving_ego_fusion_training_pipeline.sh \
   > logs/moving_ego_fusion_pipeline_4000x3_20260617.log 2>&1 &
 ```
 
+### Moving-Ego Fusion Evaluation Summary
+
+Current readout after the 8-loop and 12-loop moving-fusion runs:
+
+- 8-loop moving model on moving test:
+  `mIoU=0.825`, `vehicle_iou=0.874`, `person_iou=0.630`.
+- 12-loop repeated-route moving model on moving test:
+  `mIoU=0.813`, `vehicle_iou=0.846`, `person_iou=0.624`.
+- The 12-loop run slightly improved localization
+  (`F1 0.287 -> 0.307`, `XY error 1.430m -> 1.373m`) but did not improve
+  segmentation. More repeated loops on the same route are not enough by
+  themselves.
+- Parked A+B on moving test is a negative-control/domain-gap result, not the
+  main target (`mIoU=0.262`, `vehicle_iou=0.054`).
+
+Generate the clean comparison plots/summary from shipped local metrics:
+
+```bash
+python3 scripts/plot_moving_fusion_model_eval.py
+python3 scripts/analyze_moving_fusion_failures.py
+```
+
+Outputs:
+
+```text
+analysis_outputs/moving_ego_fusion_model_eval/moving_fusion_segmentation_8_vs_12loops.png
+analysis_outputs/moving_ego_fusion_model_eval/moving_fusion_localization_8_vs_12loops.png
+analysis_outputs/moving_ego_fusion_model_eval/moving_fusion_domain_gap_segmentation.png
+analysis_outputs/moving_ego_fusion_model_eval/moving_fusion_eval_summary.csv
+analysis_outputs/moving_ego_fusion_model_eval/moving_fusion_eval_summary.md
+analysis_outputs/moving_ego_fusion_failure_analysis/moving_fusion_failure_analysis.md
+analysis_outputs/moving_ego_fusion_failure_analysis/moving_fusion_localization_failure_summary.csv
+analysis_outputs/moving_ego_fusion_failure_analysis/moving_fusion_object_failures_by_class.png
+analysis_outputs/moving_ego_fusion_failure_analysis/moving12_localization_status_by_density.png
+analysis_outputs/moving_ego_fusion_failure_analysis/moving_fusion_training_failure_signals.png
+```
+
+For future evaluation on the remote GPU machine, use `--require-cuda` so the
+run fails immediately if PyTorch cannot see the GPU. The evaluator now logs the
+actual device into `supervisor.log` and the metrics JSON.
+
+```bash
+cd /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun
+
+mkdir -p experiments/moving_ego_tl16_spawn80_fixedroute_speed60_fusion_train_20260618_moredata/eval_moving_model_on_moving
+ln -sfn \
+  $PWD/fusion_training_data/moving_ego_tl16_spawn80_fixedroute_speed60_merged_12loops_cap9000_stride2 \
+  $PWD/experiments/moving_ego_tl16_spawn80_fixedroute_speed60_fusion_train_20260618_moredata/eval_moving_model_on_moving/dataset
+
+MPLCONFIGDIR=/tmp/matplotlib-cache \
+PYTHONPATH=$PWD/pole_lraspp_multimodal_fusion:$PWD \
+python3 -m pole_lraspp_multimodal_fusion.evaluate_fusion \
+  --config pole_lraspp_multimodal_fusion/configs/fusion_full_run.yaml \
+  --experiment-dir experiments/moving_ego_tl16_spawn80_fixedroute_speed60_fusion_train_20260618_moredata/eval_moving_model_on_moving \
+  --checkpoint experiments/moving_ego_tl16_spawn80_fixedroute_speed60_fusion_train_20260618_moredata/checkpoints/moving_fixedroute_12loops_cap9000_768x432_lr1e-4_bs2/best.pt \
+  --split test \
+  --object-score-threshold 0.03 \
+  --match-distance-m 3.0 \
+  --require-cuda
+```
+
+Per-density moving-model segmentation evaluation on the remote GPU terminal:
+
+```bash
+cd /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun
+
+for density in low medium crowded; do
+  eval_dir="experiments/moving_ego_tl16_spawn80_fixedroute_speed60_fusion_train_20260617/eval_moving_model_on_moving_${density}"
+  mkdir -p "${eval_dir}"
+  ln -sfn \
+    "$PWD/fusion_training_data/moving_ego_tl16_spawn80_fixedroute_speed60_merged_8loops_cap6000_stride2" \
+    "$PWD/${eval_dir}/dataset"
+  MPLCONFIGDIR=/tmp/matplotlib-cache \
+  PYTHONPATH=$PWD/pole_lraspp_multimodal_fusion:$PWD \
+  python3 -m pole_lraspp_multimodal_fusion.evaluate_fusion \
+    --config pole_lraspp_multimodal_fusion/configs/fusion_full_run.yaml \
+    --experiment-dir "${eval_dir}" \
+    --checkpoint experiments/moving_ego_tl16_spawn80_fixedroute_speed60_fusion_train_20260617/checkpoints/moving_fixedroute_8loops_cap6000_768x432_lr1e-4_bs2/best.pt \
+    --split test \
+    --sample-id-contains "_${density}_" \
+    --object-score-threshold 0.03 \
+    --match-distance-m 3.0 \
+    --require-cuda
+done
+```
+
+### Moving-Ego Vehicle-IoU Tuning
+
+Use this before collecting more repeated-route data. The current per-density
+result shows crowded traffic already reaches `vehicle_iou ~= 0.90`, while low
+and medium traffic are weaker. This script keeps the same moving dataset and
+base checkpoint, then tests whether vehicle-focused class weights, lower
+object-head pressure, and vehicle-IoU checkpoint selection improve the target
+metric.
+
+Ship the patched trainer and tuning runner to the remote GPU machine:
+
+```bash
+rsync -avh \
+  pole_lraspp_multimodal_fusion/pole_lraspp_multimodal_fusion/train_fusion.py \
+  shr_aisvcs@L10319.idcc.lab:/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/pole_lraspp_multimodal_fusion/pole_lraspp_multimodal_fusion/
+
+rsync -avh \
+  scripts/run_moving_fusion_segmentation_tuning.sh \
+  shr_aisvcs@L10319.idcc.lab:/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/scripts/
+```
+
+Remote GPU run:
+
+```bash
+cd /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun
+mkdir -p logs
+
+DATE_TAG=20260622 \
+EPOCHS=30 \
+TRAIN_BUDGET_HOURS=3.0 \
+STOP_CARLA_BEFORE_TRAINING=0 \
+nohup bash scripts/run_moving_fusion_segmentation_tuning.sh \
+  > logs/moving_fusion_seg_tuning_20260622.log 2>&1 &
+
+tail -f logs/moving_fusion_seg_tuning_20260622.log
+```
+
+Expected output folders:
+
+```text
+experiments/moving_ego_tl16_spawn80_fixedroute_speed60_seg_tuning_20260622/checkpoints/vehicle_weighted_obj025_vehicle_iou/
+experiments/moving_ego_tl16_spawn80_fixedroute_speed60_seg_tuning_20260622/checkpoints/vehicle_miou_obj025_vehicle_miou/
+experiments/moving_ego_tl16_spawn80_fixedroute_speed60_seg_tuning_20260622/checkpoints/vehicle_weighted_obj010_vehicle_iou/
+experiments/moving_ego_tl16_spawn80_fixedroute_speed60_seg_tuning_20260622/eval_vehicle_weighted_obj025_vehicle_iou_overall/metrics/test_fusion_evaluation_metrics.json
+experiments/moving_ego_tl16_spawn80_fixedroute_speed60_seg_tuning_20260622/eval_vehicle_weighted_obj025_vehicle_iou_low/metrics/test_fusion_evaluation_metrics.json
+experiments/moving_ego_tl16_spawn80_fixedroute_speed60_seg_tuning_20260622/eval_vehicle_weighted_obj025_vehicle_iou_medium/metrics/test_fusion_evaluation_metrics.json
+experiments/moving_ego_tl16_spawn80_fixedroute_speed60_seg_tuning_20260622/eval_vehicle_weighted_obj025_vehicle_iou_crowded/metrics/test_fusion_evaluation_metrics.json
+```
+
+Pull the tuning results back locally:
+
+```bash
+rsync -avh \
+  shr_aisvcs@L10319.idcc.lab:/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/moving_ego_tl16_spawn80_fixedroute_speed60_seg_tuning_20260622/ \
+  experiments/moving_ego_tl16_spawn80_fixedroute_speed60_seg_tuning_20260622/
+```
+
+Summarize baseline plus any copied tuning trials locally:
+
+```bash
+python3 scripts/summarize_moving_fusion_tuning.py
+```
+
+Outputs:
+
+```text
+analysis_outputs/moving_ego_fusion_tuning/moving_fusion_tuning_summary.md
+analysis_outputs/moving_ego_fusion_tuning/moving_fusion_tuning_summary.csv
+analysis_outputs/moving_ego_fusion_tuning/moving_fusion_tuning_vehicle_iou_by_density.png
+analysis_outputs/moving_ego_fusion_tuning/moving_fusion_tuning_miou_by_density.png
+analysis_outputs/moving_ego_fusion_tuning/moving_fusion_tuning_delta_vs_baseline.png
+```
+
 ### Viewpoint-Matched Semantic-LiDAR Diagnostic
 
 Use this after shipping the patched diagnostic script to the remote visual
@@ -1505,6 +1664,102 @@ rsync -avh \
   --exclude='*' \
   shr_aisvcs@L10319.idcc.lab:/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/lidar_diagnostic_runs/$LATEST/ \
   abiodun/lidar_diagnostic_runs/$LATEST/
+```
+
+### Controlled Curbside Raw-vs-Semantic LiDAR Diagnostic
+
+Use this controlled scenario first when studying what semantic LiDAR adds
+beyond raw LiDAR. It reuses the deterministic curbside pedestrian-crossing
+layout, but through a separate project-owned runner so the original curbside
+demo/harness stays untouched. This avoids the random pedestrian-placement issue
+we saw in the parked-intersection probes.
+
+Run from `neu_collab/abiodun` with a CARLA server already running:
+
+```bash
+EXPERIMENT_ID=curbside_raw_vs_semantic_lidar_clean_crossing \
+EGO_MOTION=stationary \
+bash scenesense_scenarios/run_curbside_lidar_raw_vs_semantic_diagnostic.sh
+```
+
+Equivalent direct command:
+
+```bash
+python3 carla_curbside_lidar_raw_vs_semantic_diagnostic.py \
+  --load-town \
+  --town Town10HD_Opt \
+  --experiment-id curbside_raw_vs_semantic_lidar_clean_crossing \
+  --duration-s 25 \
+  --fps 10 \
+  --preview \
+  --preview-width 1440 \
+  --preview-height 810 \
+  --camera-width 1280 \
+  --camera-height 720 \
+  --anchor-spawn-index 152 \
+  --ego-spawn-index 152 \
+  --ego-motion stationary \
+  --target-crossing-delay-s 3.0 \
+  --target-crossing-speed 26.5 \
+  --target-crossing-control-speed 26.5 \
+  --target-crossing-trigger-route-lead-m 24.0 \
+  --curbside-conflict-distance-m 31.0 \
+  --curbside-target-forward-offset-m -6.5 \
+  --curbside-target-start-lateral-offset-m 5.5 \
+  --curbside-target-end-lateral-offset-m 2.6 \
+  --curbside-occluder-lateral-offset-m 2.8 \
+  --curbside-occluder-count 1 \
+  --curbside-slot-1-forward-m -7.5 \
+  --curbside-occluder-blueprint vehicle.sprinter.mercedes \
+  --lidar-range 120 \
+  --lidar-channels 64 \
+  --lidar-pps 600000 \
+  --person-association-mode radius \
+  --person-association-radius-m 1.1 \
+  --person-association-z-down-m 0.4 \
+  --person-association-z-up-m 5.0 \
+  --min-person-points 2 \
+  --debug-every 20
+```
+
+Analyze one or more paired diagnostic runs:
+
+```bash
+MPLCONFIGDIR=/tmp/matplotlib-cache \
+python3 scripts/analyze_lidar_raw_vs_semantic.py \
+  lidar_diagnostic_runs/curbside_raw_vs_semantic_lidar_clean_crossing \
+  --output-dir analysis_outputs/lidar_raw_vs_semantic_curbside
+```
+
+Expected outputs:
+
+```text
+analysis_outputs/lidar_raw_vs_semantic_curbside/lidar_raw_vs_semantic_summary.md
+analysis_outputs/lidar_raw_vs_semantic_curbside/lidar_raw_vs_semantic_actor_summary.csv
+analysis_outputs/lidar_raw_vs_semantic_curbside/lidar_raw_vs_semantic_frame_summary.csv
+analysis_outputs/lidar_raw_vs_semantic_curbside/lidar_raw_vs_semantic_recall.png
+analysis_outputs/lidar_raw_vs_semantic_curbside/lidar_raw_vs_semantic_xy_error.png
+analysis_outputs/lidar_raw_vs_semantic_curbside/lidar_raw_vs_semantic_points_per_actor.png
+analysis_outputs/lidar_raw_vs_semantic_curbside/lidar_raw_vs_semantic_points_per_frame.png
+```
+
+If running on the remote visual machine, ship only the project-owned files:
+
+```bash
+rsync -avh \
+  abiodun/carla_lidar_raw_vs_semantic_diagnostic.py \
+  abiodun/carla_curbside_lidar_raw_vs_semantic_diagnostic.py \
+  abiodun/scripts/analyze_lidar_raw_vs_semantic.py \
+  abiodun/scenesense_scenarios/run_curbside_lidar_raw_vs_semantic_diagnostic.sh \
+  shr_aisvcs@L10319.idcc.lab:/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/
+```
+
+Copy a paired run back to local:
+
+```bash
+rsync -avh \
+  shr_aisvcs@L10319.idcc.lab:/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/lidar_diagnostic_runs/curbside_raw_vs_semantic_lidar_clean_crossing/ \
+  abiodun/lidar_diagnostic_runs/curbside_raw_vs_semantic_lidar_clean_crossing/
 ```
 
 Selected-view collector smoke:
@@ -1925,6 +2180,151 @@ python3 -m pole_lraspp_multimodal_fusion.evaluate_fusion ... \
   --split val \
   --object-score-threshold 0.03 \
   --match-distance-m 5.0
+```
+
+## 3.1 Radar Class-Aware Pedestrian Support Diagnostic
+
+Use this before recollecting/retraining to check whether pedestrian-specific
+radar geometry increases useful radar support rows. Vehicles remain box-based;
+pedestrians use a radius/cylinder gate.
+
+```bash
+python3 scripts/analyze_radar_class_aware_support.py \
+  fusion_training_data/parked_ego_tl16_spawn80_right7_fwd4_merged_12000_stride2 \
+  --output-dir analysis_outputs/radar_class_aware_support/parked_viewA_full_radius_r2p0 \
+  --person-radius-m 2.0 \
+  --person-z-down-m 0.5 \
+  --person-z-up-m 2.0
+
+python3 scripts/analyze_radar_class_aware_support.py \
+  fusion_training_data/parked_ego_tl16_spawn80_right8_fwd16_merged_12000_stride2 \
+  --output-dir analysis_outputs/radar_class_aware_support/parked_viewB_full_radius_r2p0 \
+  --person-radius-m 2.0 \
+  --person-z-down-m 0.5 \
+  --person-z-up-m 2.0
+```
+
+When collecting a new fusion dataset with the class-aware radar support logic,
+add these flags to the parked or moving collector command:
+
+```bash
+--radar-person-support-mode radius \
+--radar-person-support-radius-m 2.0 \
+--radar-person-support-z-down-m 0.5 \
+--radar-person-support-z-up-m 2.0
+```
+
+For point-density experiments, keep the same geometry and change only radar
+density first:
+
+```bash
+--radar-points-per-second 12000
+```
+
+## 3.2 Moving-Ego Radar-12k Pilot Model
+
+After the 5k-vs-12k diagnostic, run a small pilot model before committing to a
+full overnight training pass. This collects low/medium/crowded moving-ego data
+with:
+
+- class-aware pedestrian radar support
+- `12000` radar points/sec
+- `2` loops per density
+- short `30` epoch pilot training
+
+Start CARLA first, then run from `neu_collab/abiodun`:
+
+```bash
+mkdir -p logs
+
+DATE_TAG=20260622 \
+RADAR_PPS=12000 \
+LOOPS_PER_DENSITY=2 \
+MIN_SAMPLES_PER_DENSITY=1200 \
+MAX_SAMPLES_PER_DENSITY=2200 \
+TRAIN_EPOCHS=30 \
+TRAIN_BUDGET_HOURS=3.0 \
+STOP_CARLA_BEFORE_TRAINING=1 \
+nohup bash scripts/run_moving_radar12k_pilot_training_pipeline.sh \
+  > logs/moving_radar12k_pilot_20260622.log 2>&1 &
+
+tail -f logs/moving_radar12k_pilot_20260622.log
+```
+
+Expected outputs:
+
+```text
+fusion_training_data/moving_ego_radarpps12000_classaware_2loops_cap2200_low_stride2/
+fusion_training_data/moving_ego_radarpps12000_classaware_2loops_cap2200_medium_stride2/
+fusion_training_data/moving_ego_radarpps12000_classaware_2loops_cap2200_crowded_stride2/
+fusion_training_data/moving_ego_radarpps12000_classaware_2loops_cap2200_merged_stride2/
+experiments/moving_ego_radarpps12000_classaware_2loops_cap2200_fusion_train_20260622/
+analysis_outputs/radar_class_aware_support/moving_ego_radarpps12000_classaware_2loops_cap2200_low/
+analysis_outputs/radar_class_aware_support/moving_ego_radarpps12000_classaware_2loops_cap2200_medium/
+analysis_outputs/radar_class_aware_support/moving_ego_radarpps12000_classaware_2loops_cap2200_crowded/
+```
+
+To collect/validate only and train later:
+
+```bash
+RUN_TRAIN=0 RUN_EVAL=0 bash scripts/run_moving_radar12k_pilot_training_pipeline.sh
+```
+
+## 3.3 Controlled Moving-Ego Radar Model Ablation
+
+Use this after the support-level diagnostics to test whether radar point rate
+and pedestrian geometry improve the trained model, not just the support labels.
+This wrapper runs a controlled 2x2 study:
+
+- `5000:bbox`
+- `5000:radius`
+- `12000:bbox`
+- `12000:radius`
+
+It collects all datasets while CARLA is running, then shuts CARLA down once
+before training/evaluation so GPU memory is available.
+
+Start CARLA first, then run from `neu_collab/abiodun`:
+
+```bash
+mkdir -p logs
+
+# Reuses the existing 12000:radius pilot checkpoint from 20260622.
+# Change this tag only if you intentionally want to retrain all four cells.
+DATE_TAG=20260622
+export DATE_TAG
+
+ABLATION_CONFIGS="5000:bbox 5000:radius 12000:bbox 12000:radius" \
+LOOPS_PER_DENSITY=2 \
+MIN_SAMPLES_PER_DENSITY=1200 \
+MAX_SAMPLES_PER_DENSITY=2200 \
+TRAIN_EPOCHS=30 \
+TRAIN_BUDGET_HOURS=3.0 \
+REQUIRE_CUDA=1 \
+STOP_CARLA_BEFORE_TRAINING=1 \
+nohup bash scripts/run_moving_radar_model_ablation.sh \
+  > "logs/moving_radar_model_ablation_${DATE_TAG}.log" 2>&1 &
+
+tail -f "logs/moving_radar_model_ablation_${DATE_TAG}.log"
+```
+
+If collection is already complete and only training/evaluation is needed:
+
+```bash
+RUN_COLLECTION=0 \
+RUN_TRAIN=1 \
+RUN_EVAL=1 \
+REQUIRE_CUDA=1 \
+STOP_CARLA_BEFORE_TRAINING=1 \
+bash scripts/run_moving_radar_model_ablation.sh
+```
+
+After completion, summarize the four runs:
+
+```bash
+python3 scripts/summarize_moving_radar_model_ablation.py \
+  --date-tag "${DATE_TAG}" \
+  --output-dir analysis_outputs/radar_model_ablation/${DATE_TAG}
 ```
 
 ## 4. Remote Sync, When Needed
