@@ -22,6 +22,10 @@ env/
 /experiments/
 /fusion_training_data/
 /lidar_diagnostic_runs/
+/analysis_outputs/
+/radar_pedestrian_diagnostic_runs/
+/logs/
+/abiodun/analysis_outputs/
 /phase3_logs/
 /phase3_logs_lowres/
 /remote_files/*

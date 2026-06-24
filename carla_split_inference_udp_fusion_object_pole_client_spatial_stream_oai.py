@@ -527,6 +527,11 @@ def parse_args() -> argparse.Namespace:
         help="Segmentation mask overlay strength in [0, 1].",
     )
     parser.add_argument(
+        "--hide-segmentation-mask",
+        action="store_true",
+        help="Do not render the segmentation mask overlay; keep localization boxes/text visible.",
+    )
+    parser.add_argument(
         "--show-radar-points",
         action="store_true",
         help="Overlay a translucent dot for each projected radar return.",
@@ -553,6 +558,11 @@ def parse_args() -> argparse.Namespace:
         type=int,
         default=30,
         help="Cap how many object boxes are rendered per frame (sorted by score).",
+    )
+    parser.add_argument(
+        "--hide-object-labels",
+        action="store_true",
+        help="Do not render per-object score/world/dimension text over localization boxes.",
     )
     parser.add_argument(
         "--result-timeout",
@@ -1275,7 +1285,7 @@ def draw_fusion_overlay(
     traffic_light_id: str,
 ) -> np.ndarray:
     annotated = frame_bgr.copy()
-    if mask is not None:
+    if mask is not None and not bool(getattr(args, "hide_segmentation_mask", False)):
         if mask.shape[:2] != annotated.shape[:2]:
             mask = cv2.resize(
                 mask, (annotated.shape[1], annotated.shape[0]), interpolation=cv2.INTER_NEAREST
@@ -1299,14 +1309,25 @@ def draw_fusion_overlay(
 
     h, w = annotated.shape[:2]
     for obj in objects:
+        bbox_x1, bbox_y1, bbox_x2, bbox_y2 = _bbox_xyxy_values(obj.get("bbox_xyxy"))
+        if all(math.isfinite(v) for v in (bbox_x1, bbox_y1, bbox_x2, bbox_y2)):
+            x1 = int(np.clip(round(bbox_x1), 0, w - 1))
+            y1 = int(np.clip(round(bbox_y1), 0, h - 1))
+            x2 = int(np.clip(round(bbox_x2), 0, w - 1))
+            y2 = int(np.clip(round(bbox_y2), 0, h - 1))
+            if x2 > x1 and y2 > y1:
+                cv2.rectangle(annotated, (x1, y1), (x2, y2), VEHICLE_BBOX_COLOR_BGR, 2, cv2.LINE_AA)
         cx = int(np.clip(float(obj["center_x_px"]), 0, w - 1))
         cy = int(np.clip(float(obj["center_y_px"]), 0, h - 1))
         cv2.circle(annotated, (cx, cy), 5, VEHICLE_BBOX_COLOR_BGR, 2, cv2.LINE_AA)
+        if bool(getattr(args, "hide_object_labels", False)):
+            continue
         label_x = min(max(8, cx + 8), w - 1)
         label_y_top = max(18, cy - 30)
+        class_name = str(obj.get("class_name", "object"))
         _draw_overlay_text(
             annotated,
-            f"score {obj['score']:.2f} yaw {obj['yaw_deg']:+.0f}d "
+            f"{class_name} score {obj['score']:.2f} yaw {obj['yaw_deg']:+.0f}d "
             f"{('parked' if obj['parked_score'] >= 0.5 else 'moving')}",
             (label_x, label_y_top),
             fg=VEHICLE_BBOX_COLOR_BGR,
@@ -1327,7 +1348,14 @@ def draw_fusion_overlay(
     payload_bytes = max(1, int(front_stats["payload_bytes"]))
     payload_bytes_uncompressed = int(front_stats["payload_bytes_uncompressed"])
     compression_ratio = payload_bytes_uncompressed / payload_bytes
-    source_kind = "Parked ego RGB+Radar fusion" if str(getattr(args, "sensor_platform", "")) == "ego_vehicle" else "Pole RGB+Radar fusion"
+    if str(getattr(args, "sensor_platform", "")) == "ego_vehicle":
+        source_kind = (
+            "Moving ego RGB+Radar fusion"
+            if not bool(getattr(args, "ego_freeze", True))
+            else "Parked ego RGB+Radar fusion"
+        )
+    else:
+        source_kind = "Pole RGB+Radar fusion"
     lines = [
         f"{source_kind} | {traffic_light_id}",
         f"Front half: {float(front_stats['front_ms']):.1f} ms",
