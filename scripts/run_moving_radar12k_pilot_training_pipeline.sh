@@ -6,6 +6,8 @@ cd "$ROOT_DIR"
 
 DATE_TAG="${DATE_TAG:-20260622}"
 RADAR_PPS="${RADAR_PPS:-12000}"
+RADAR_RASTER_RADIUS_PX="${RADAR_RASTER_RADIUS_PX:-2}"
+RADAR_TEMPORAL_WINDOW_FRAMES="${RADAR_TEMPORAL_WINDOW_FRAMES:-1}"
 LOOPS_PER_DENSITY="${LOOPS_PER_DENSITY:-2}"
 MIN_SAMPLES_PER_DENSITY="${MIN_SAMPLES_PER_DENSITY:-1200}"
 MAX_SAMPLES_PER_DENSITY="${MAX_SAMPLES_PER_DENSITY:-2200}"
@@ -51,7 +53,7 @@ else
   die "RADAR_PERSON_SUPPORT_MODE must be radius or bbox, got: $RADAR_PERSON_SUPPORT_MODE"
 fi
 
-DATA_TAG="radarpps${RADAR_PPS}_${SUPPORT_TAG}_${LOOPS_PER_DENSITY}loops_cap${MAX_SAMPLES_PER_DENSITY}"
+DATA_TAG="radarpps${RADAR_PPS}_${SUPPORT_TAG}_r${RADAR_RASTER_RADIUS_PX}_tw${RADAR_TEMPORAL_WINDOW_FRAMES}_${LOOPS_PER_DENSITY}loops_cap${MAX_SAMPLES_PER_DENSITY}"
 PREFIX="moving_ego_${DATA_TAG}"
 LOW="$ROOT_DIR/fusion_training_data/${PREFIX}_low_stride${SAMPLE_STRIDE}"
 MEDIUM="$ROOT_DIR/fusion_training_data/${PREFIX}_medium_stride${SAMPLE_STRIDE}"
@@ -241,7 +243,8 @@ collect_density() {
     --radar-vfov 30 \
     --radar-range 120 \
     --radar-points-per-second "$RADAR_PPS" \
-    --radar-raster-radius-px 2 \
+    --radar-raster-radius-px "$RADAR_RASTER_RADIUS_PX" \
+    --radar-temporal-window-frames "$RADAR_TEMPORAL_WINDOW_FRAMES" \
     --radar-person-support-mode "$RADAR_PERSON_SUPPORT_MODE" \
     --radar-person-support-radius-m "$PERSON_RADIUS_M" \
     --radar-person-support-z-down-m "$PERSON_Z_DOWN_M" \
@@ -354,9 +357,10 @@ eval_pilot() {
       "${require_cuda_args[@]}"
 }
 
-log "Moving radar-12k class-aware pilot pipeline"
+log "Moving radar fusion pilot pipeline"
 log "Datasets: low=$LOW medium=$MEDIUM crowded=$CROWDED"
-log "RADAR_PPS=$RADAR_PPS loops=$LOOPS_PER_DENSITY min_rows=$MIN_SAMPLES_PER_DENSITY max_rows=$MAX_SAMPLES_PER_DENSITY"
+log "RADAR_PPS=$RADAR_PPS raster_radius=$RADAR_RASTER_RADIUS_PX temporal_window=$RADAR_TEMPORAL_WINDOW_FRAMES"
+log "loops=$LOOPS_PER_DENSITY min_rows=$MIN_SAMPLES_PER_DENSITY max_rows=$MAX_SAMPLES_PER_DENSITY sample_stride=$SAMPLE_STRIDE"
 log "Person radar support: mode=${RADAR_PERSON_SUPPORT_MODE} radius=${PERSON_RADIUS_M}m z_down=${PERSON_Z_DOWN_M}m z_up=${PERSON_Z_UP_M}m"
 log "Train epochs=$TRAIN_EPOCHS budget=${TRAIN_BUDGET_HOURS}h"
 

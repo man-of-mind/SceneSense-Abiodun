@@ -18,9 +18,13 @@ EXP="${EXP:-$ROOT_DIR/experiments/moving_ego_tl16_spawn80_fixedroute_speed60_seg
 
 RUN_TRAIN="${RUN_TRAIN:-1}"
 RUN_EVAL="${RUN_EVAL:-1}"
+TUNING_PRESET="${TUNING_PRESET:-vehicle}"
 TRAIN_BUDGET_HOURS="${TRAIN_BUDGET_HOURS:-3.0}"
 EPOCHS="${EPOCHS:-30}"
 BATCH_SIZE="${BATCH_SIZE:-2}"
+NUM_WORKERS="${NUM_WORKERS:-4}"
+PREFETCH_FACTOR="${PREFETCH_FACTOR:-2}"
+PERSISTENT_WORKERS="${PERSISTENT_WORKERS:-true}"
 LR="${LR:-0.00005}"
 WEIGHT_DECAY="${WEIGHT_DECAY:-0.0001}"
 OBJECT_SCORE_THRESHOLD="${OBJECT_SCORE_THRESHOLD:-0.03}"
@@ -155,8 +159,8 @@ train_trial() {
   fi
 
   local trial_json
-  trial_json="$(printf '{"name":"%s","optimizer":"adamw","lr":%s,"weight_decay":%s,"augment_strength":"strong","input_size":[768,432],"batch_size":%s,"epochs":%s,"init_rgb_checkpoint":"%s","selection_score_mode":"%s","class_loss_weights":%s,"loss_weights":{"object_total":%s}}' \
-    "$name" "$LR" "$WEIGHT_DECAY" "$BATCH_SIZE" "$EPOCHS" "$BASE_CKPT" "$selection_mode" "$class_weights" "$object_total")"
+  trial_json="$(printf '{"name":"%s","optimizer":"adamw","lr":%s,"weight_decay":%s,"augment_strength":"strong","input_size":[768,432],"batch_size":%s,"num_workers":%s,"prefetch_factor":%s,"persistent_workers":%s,"epochs":%s,"init_rgb_checkpoint":"%s","selection_score_mode":"%s","class_loss_weights":%s,"loss_weights":{"object_total":%s}}' \
+    "$name" "$LR" "$WEIGHT_DECAY" "$BATCH_SIZE" "$NUM_WORKERS" "$PREFETCH_FACTOR" "$PERSISTENT_WORKERS" "$EPOCHS" "$BASE_CKPT" "$selection_mode" "$class_weights" "$object_total")"
 
   run env PYTHONPATH="$PYTHONPATH_BASE" python3 -m pole_lraspp_multimodal_fusion.train_fusion \
     --config "$CONFIG_PATH" \
@@ -206,10 +210,78 @@ eval_trial() {
   done
 }
 
+train_selected_trials() {
+  case "$TUNING_PRESET" in
+    vehicle)
+      # Current baseline weights are [0.5, 1.0, 4.0] and object_total=1.0.
+      # These trials ask whether vehicle segmentation improves when checkpoint
+      # selection and the loss are aligned with the vehicle-IoU target.
+      train_trial "vehicle_weighted_obj025_vehicle_iou" "[0.35,2.50,3.00]" "0.25" "vehicle_iou"
+      train_trial "vehicle_miou_obj025_vehicle_miou" "[0.35,2.00,3.00]" "0.25" "vehicle_miou"
+      train_trial "vehicle_weighted_obj010_vehicle_iou" "[0.35,2.50,2.50]" "0.10" "vehicle_iou"
+      ;;
+    person)
+      # These trials test whether the person mask is being left behind because
+      # the checkpoint selector prefers whole-scene or vehicle-heavy behavior.
+      train_trial "person_weighted_obj025_person_iou" "[0.25,1.00,7.00]" "0.25" "person_iou"
+      train_trial "person_miou_obj025_person_miou" "[0.25,1.00,6.00]" "0.25" "person_miou"
+      train_trial "person_weighted_obj010_person_iou" "[0.25,1.25,8.00]" "0.10" "person_iou"
+      ;;
+    all)
+      TUNING_PRESET=vehicle train_selected_trials
+      TUNING_PRESET=person train_selected_trials
+      TUNING_PRESET=all
+      ;;
+    *)
+      die "Unsupported TUNING_PRESET=$TUNING_PRESET; use vehicle, person, or all."
+      ;;
+  esac
+}
+
+eval_selected_trials() {
+  local names=()
+  case "$TUNING_PRESET" in
+    vehicle)
+      names=(
+        "vehicle_weighted_obj025_vehicle_iou"
+        "vehicle_miou_obj025_vehicle_miou"
+        "vehicle_weighted_obj010_vehicle_iou"
+      )
+      ;;
+    person)
+      names=(
+        "person_weighted_obj025_person_iou"
+        "person_miou_obj025_person_miou"
+        "person_weighted_obj010_person_iou"
+      )
+      ;;
+    all)
+      names=(
+        "vehicle_weighted_obj025_vehicle_iou"
+        "vehicle_miou_obj025_vehicle_miou"
+        "vehicle_weighted_obj010_vehicle_iou"
+        "person_weighted_obj025_person_iou"
+        "person_miou_obj025_person_miou"
+        "person_weighted_obj010_person_iou"
+      )
+      ;;
+    *)
+      die "Unsupported TUNING_PRESET=$TUNING_PRESET; use vehicle, person, or all."
+      ;;
+  esac
+
+  local name
+  for name in "${names[@]}"; do
+    eval_trial "$name"
+  done
+}
+
 log "SceneSense moving-fusion segmentation tuning"
 log "Dataset: $DATASET ($(manifest_rows "$DATASET") rows)"
 log "Base checkpoint: $BASE_CKPT"
 log "Experiment: $EXP"
+log "Tuning preset: $TUNING_PRESET"
+log "Loader: batch_size=$BATCH_SIZE num_workers=$NUM_WORKERS prefetch_factor=$PREFETCH_FACTOR persistent_workers=$PERSISTENT_WORKERS"
 
 require_file "$CONFIG_PATH"
 require_file "$BASE_CKPT"
@@ -218,20 +290,13 @@ prepare_experiment "$EXP" "$DATASET"
 
 if [[ "$RUN_TRAIN" == "1" ]]; then
   stop_carla_server
-  # Current baseline weights are [0.5, 1.0, 4.0] and object_total=1.0.
-  # These trials ask whether vehicle segmentation improves when checkpoint
-  # selection and the loss are aligned with the vehicle-IoU target.
-  train_trial "vehicle_weighted_obj025_vehicle_iou" "[0.35,2.50,3.00]" "0.25" "vehicle_iou"
-  train_trial "vehicle_miou_obj025_vehicle_miou" "[0.35,2.00,3.00]" "0.25" "vehicle_miou"
-  train_trial "vehicle_weighted_obj010_vehicle_iou" "[0.35,2.50,2.50]" "0.10" "vehicle_iou"
+  train_selected_trials
 else
   log "Skipping training because RUN_TRAIN=$RUN_TRAIN."
 fi
 
 if [[ "$RUN_EVAL" == "1" ]]; then
-  eval_trial "vehicle_weighted_obj025_vehicle_iou"
-  eval_trial "vehicle_miou_obj025_vehicle_miou"
-  eval_trial "vehicle_weighted_obj010_vehicle_iou"
+  eval_selected_trials
 else
   log "Skipping evaluation because RUN_EVAL=$RUN_EVAL."
 fi

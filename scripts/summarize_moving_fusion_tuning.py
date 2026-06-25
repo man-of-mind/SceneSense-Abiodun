@@ -35,6 +35,7 @@ DEFAULT_OUTPUT = ROOT / "analysis_outputs/moving_ego_fusion_tuning"
 DENSITIES = ("overall", "low", "medium", "crowded")
 TARGET_VEHICLE_IOU = 0.90
 TARGET_MIOU = 0.85
+TARGET_PERSON_IOU = 0.70
 
 BASELINE_PATHS = {
     "overall": ROOT
@@ -342,6 +343,7 @@ def write_markdown(path: Path, rows: Sequence[Mapping[str, object]], tuning_coun
             "",
             "- `moving_fusion_tuning_summary.csv`",
             "- `moving_fusion_tuning_vehicle_iou_by_density.png`",
+            "- `moving_fusion_tuning_person_iou_by_density.png`",
             "- `moving_fusion_tuning_miou_by_density.png`",
             "- `moving_fusion_tuning_delta_vs_baseline.png`, created once tuning rows exist",
         ]
@@ -377,6 +379,15 @@ def main() -> None:
         ylabel="Vehicle IoU",
         target=TARGET_VEHICLE_IOU,
         filename="moving_fusion_tuning_vehicle_iou_by_density",
+    )
+    plot_metric_by_density(
+        rows,
+        output_dir,
+        field="person_iou",
+        title="Moving-Ego Fusion Person IoU by Density",
+        ylabel="Person IoU",
+        target=TARGET_PERSON_IOU,
+        filename="moving_fusion_tuning_person_iou_by_density",
     )
     plot_metric_by_density(
         rows,

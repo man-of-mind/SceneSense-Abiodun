@@ -141,6 +141,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--radar-points-per-second", type=int, default=5000)
     parser.add_argument("--radar-max-velocity", type=float, default=20.0)
     parser.add_argument("--radar-raster-radius-px", type=int, default=2)
+    parser.add_argument(
+        "--radar-temporal-window-frames",
+        type=int,
+        default=1,
+        help="Number of saved radar tensors combined by the collector. Current parked collector uses 1.",
+    )
     parser.add_argument("--stationary-velocity-mps", type=float, default=0.35)
     parser.add_argument("--parked-threshold-s", type=float, default=5.0)
     parser.add_argument("--association-grid-m", type=float, default=1.5)
@@ -683,6 +689,8 @@ def build_manifest_row(
         "radar_horizontal_fov": float(args.radar_hfov),
         "radar_vertical_fov": float(args.radar_vfov),
         "radar_range_m": float(args.radar_range),
+        "radar_raster_radius_px": int(getattr(args, "radar_raster_radius_px", 2)),
+        "radar_temporal_window_frames": int(getattr(args, "radar_temporal_window_frames", 1)),
         "radar_points": int(radar_summary.get("radar_points", 0)),
         "radar_stationary_points": int(radar_summary.get("radar_stationary_points", 0)),
         "radar_parked_evidence_points": int(radar_summary.get("radar_parked_evidence_points", 0)),
@@ -750,6 +758,8 @@ def write_metadata(
             "horizontal_fov": float(args.radar_hfov),
             "vertical_fov": float(args.radar_vfov),
             "points_per_second": int(args.radar_points_per_second),
+            "raster_radius_px": int(getattr(args, "radar_raster_radius_px", 2)),
+            "temporal_window_frames": int(getattr(args, "radar_temporal_window_frames", 1)),
         },
         "split_ratios": {
             "train": float(args.train_ratio),

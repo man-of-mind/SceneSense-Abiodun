@@ -46,6 +46,7 @@ class FusionPoleMultiTaskDataset(Dataset):
         input_size: Tuple[int, int],
         object_cfg: Dict,
         augment_strength: str = "off",
+        geometric_augment: bool = False,
     ) -> None:
         self.dataset_dir = dataset_dir
         self.rows = rows
@@ -54,6 +55,7 @@ class FusionPoleMultiTaskDataset(Dataset):
         self.object_cfg = object_cfg
         self.object_class_names = tuple(object_cfg.get("object_classes", OBJECT_CLASS_NAMES))
         self.augment_strength = str(augment_strength)
+        self.geometric_augment = bool(geometric_augment)
         self.rgb_mean = torch.tensor([0.485, 0.456, 0.406], dtype=torch.float32).view(3, 1, 1)
         self.rgb_std = torch.tensor([0.229, 0.224, 0.225], dtype=torch.float32).view(3, 1, 1)
 
@@ -63,14 +65,60 @@ class FusionPoleMultiTaskDataset(Dataset):
     def _augment(self, image: Image.Image, mask: Image.Image, radar: np.ndarray) -> Tuple[Image.Image, Image.Image, np.ndarray]:
         if self.augment_strength == "off":
             return image, mask, radar
-        # Keep geometric alignment intact for learned localization; use photometric augmentation only.
-        if self.augment_strength in {"light", "medium"}:
+        if self.geometric_augment and self.augment_strength in {"medium", "strong"}:
+            image, mask, radar = self._augment_geometric(image, mask, radar)
+        if self.augment_strength in {"light", "medium", "strong"}:
             if np.random.rand() < 0.35:
-                factor = float(np.random.uniform(0.85, 1.15) if self.augment_strength == "light" else np.random.uniform(0.75, 1.25))
+                if self.augment_strength == "light":
+                    factor = float(np.random.uniform(0.85, 1.15))
+                elif self.augment_strength == "medium":
+                    factor = float(np.random.uniform(0.75, 1.25))
+                else:
+                    factor = float(np.random.uniform(0.65, 1.35))
                 image = ImageEnhance.Brightness(image).enhance(factor)
             if np.random.rand() < 0.35:
-                factor = float(np.random.uniform(0.9, 1.1) if self.augment_strength == "light" else np.random.uniform(0.8, 1.2))
+                if self.augment_strength == "light":
+                    factor = float(np.random.uniform(0.9, 1.1))
+                elif self.augment_strength == "medium":
+                    factor = float(np.random.uniform(0.8, 1.2))
+                else:
+                    factor = float(np.random.uniform(0.7, 1.3))
                 image = ImageEnhance.Contrast(image).enhance(factor)
+        return image, mask, radar
+
+    def _augment_geometric(
+        self,
+        image: Image.Image,
+        mask: Image.Image,
+        radar: np.ndarray,
+    ) -> Tuple[Image.Image, Image.Image, np.ndarray]:
+        # Only enable this for segmentation-only trials. Object-box targets are
+        # built from original image geometry below, so geometric augmentation
+        # would misalign the learned localization head.
+        if np.random.rand() < 0.5:
+            image = image.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
+            mask = mask.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
+            radar = np.flip(radar, axis=2).copy()
+
+        if np.random.rand() < 0.75:
+            width, height = image.size
+            crop_scale = float(np.random.uniform(0.65, 1.0))
+            crop_w = max(16, int(width * crop_scale))
+            crop_h = max(16, int(height * crop_scale))
+            if crop_w < width or crop_h < height:
+                left = int(np.random.randint(0, max(1, width - crop_w + 1)))
+                top = int(np.random.randint(0, max(1, height - crop_h + 1)))
+                box = (left, top, left + crop_w, top + crop_h)
+                image = image.crop(box)
+                mask = mask.crop(box)
+                radar_h, radar_w = radar.shape[1], radar.shape[2]
+                r_left = int(round(left * radar_w / width))
+                r_top = int(round(top * radar_h / height))
+                r_right = int(round((left + crop_w) * radar_w / width))
+                r_bottom = int(round((top + crop_h) * radar_h / height))
+                r_right = max(r_left + 1, min(r_right, radar_w))
+                r_bottom = max(r_top + 1, min(r_bottom, radar_h))
+                radar = radar[:, r_top:r_bottom, r_left:r_right].copy()
         return image, mask, radar
 
     def _load_radar(self, row: Dict[str, str]) -> np.ndarray:
@@ -148,8 +196,119 @@ def save_split_files(exp_dir: Path, splits: Dict[str, List[Dict[str, str]]]) -> 
                 fh.write(str(row["sample_id"]) + "\n")
 
 
+def _freeze_batch_norm(module: torch.nn.Module) -> None:
+    for child in module.modules():
+        if isinstance(child, torch.nn.modules.batchnorm._BatchNorm):
+            child.eval()
+            for param in child.parameters():
+                param.requires_grad = False
+
+
+def _set_requires_grad(module: torch.nn.Module, requires_grad: bool) -> None:
+    for param in module.parameters():
+        param.requires_grad = bool(requires_grad)
+
+
+def _eval_frozen_modules(model: torch.nn.Module, *, freeze_backbone: bool, freeze_classifier: bool, freeze_object_head: bool) -> None:
+    if freeze_backbone:
+        model.backbone.eval()
+    if freeze_classifier:
+        model.classifier.eval()
+    if freeze_object_head:
+        model.object_head.eval()
+
+
+def _count_parameters(module: torch.nn.Module) -> Tuple[int, int]:
+    total = sum(int(param.numel()) for param in module.parameters())
+    trainable = sum(int(param.numel()) for param in module.parameters() if param.requires_grad)
+    return total, trainable
+
+
+def _checkpoint_state_dict(checkpoint: object) -> Dict[str, torch.Tensor]:
+    if isinstance(checkpoint, dict):
+        for key in ("model", "state_dict", "model_state_dict"):
+            value = checkpoint.get(key)
+            if isinstance(value, dict):
+                return value
+        return checkpoint
+    raise ValueError("Checkpoint did not contain a state_dict.")
+
+
+def _load_object_head_checkpoint(model: torch.nn.Module, checkpoint_path: str, *, device: torch.device) -> Dict[str, int]:
+    if not checkpoint_path:
+        return {"loaded": 0, "skipped": 0}
+    path = Path(checkpoint_path).expanduser()
+    if not path.exists():
+        raise FileNotFoundError(f"Object-head checkpoint not found: {path}")
+    source = _checkpoint_state_dict(torch.load(path, map_location=device))
+    current = model.state_dict()
+    compatible: Dict[str, torch.Tensor] = {}
+    skipped = 0
+    for key, tensor in source.items():
+        key2 = key[7:] if str(key).startswith("module.") else str(key)
+        if not key2.startswith("object_head."):
+            continue
+        if key2 in current and tuple(current[key2].shape) == tuple(tensor.shape):
+            compatible[key2] = tensor
+        else:
+            skipped += 1
+    model.load_state_dict(compatible, strict=False)
+    return {"loaded": len(compatible), "skipped": skipped}
+
+
 def _move_object_targets(targets: Dict[str, torch.Tensor], device: torch.device) -> Dict[str, torch.Tensor]:
     return {key: value.to(device, non_blocking=True) for key, value in targets.items()}
+
+
+def _lovasz_grad(gt_sorted: torch.Tensor) -> torch.Tensor:
+    positives = gt_sorted.sum()
+    intersection = positives - gt_sorted.float().cumsum(0)
+    union = positives + (1.0 - gt_sorted).float().cumsum(0)
+    jaccard = 1.0 - intersection / union.clamp_min(1e-6)
+    if jaccard.numel() > 1:
+        jaccard[1:] = jaccard[1:] - jaccard[:-1]
+    return jaccard
+
+
+def lovasz_softmax_loss(logits: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
+    """Multi-class Lovasz-Softmax loss for segmentation IoU optimization."""
+    probs = torch.softmax(logits, dim=1)
+    num_classes = probs.shape[1]
+    probs_flat = probs.permute(0, 2, 3, 1).reshape(-1, num_classes)
+    labels_flat = labels.reshape(-1)
+    losses: List[torch.Tensor] = []
+    for class_idx in range(num_classes):
+        foreground = (labels_flat == class_idx).to(probs_flat.dtype)
+        if foreground.sum() <= 0:
+            continue
+        class_prob = probs_flat[:, class_idx]
+        errors = (foreground - class_prob).abs()
+        errors_sorted, perm = torch.sort(errors, descending=True)
+        foreground_sorted = foreground[perm]
+        losses.append(torch.dot(errors_sorted, _lovasz_grad(foreground_sorted)))
+    if not losses:
+        return logits.new_zeros(())
+    return torch.stack(losses).mean()
+
+
+def _lr_multiplier(epoch: int, max_epochs: int, scheduler: str, warmup_epochs: int, min_lr_ratio: float, poly_power: float) -> float:
+    scheduler = str(scheduler or "none").lower()
+    if scheduler in {"none", "off", "constant"}:
+        return 1.0
+    if warmup_epochs > 0 and epoch < warmup_epochs:
+        return max(1e-3, float(epoch + 1) / float(warmup_epochs))
+    decay_epochs = max(1, max_epochs - max(0, warmup_epochs))
+    progress = min(1.0, max(0.0, float(epoch - warmup_epochs + 1) / float(decay_epochs)))
+    if scheduler == "cosine":
+        return float(min_lr_ratio + (1.0 - min_lr_ratio) * 0.5 * (1.0 + math.cos(math.pi * progress)))
+    if scheduler == "poly":
+        return float(min_lr_ratio + (1.0 - min_lr_ratio) * ((1.0 - progress) ** poly_power))
+    raise ValueError(f"Unsupported lr_scheduler {scheduler!r}; use none, cosine, or poly.")
+
+
+def _set_optimizer_lr(optimizer: torch.optim.Optimizer, base_lrs: List[float], multiplier: float) -> None:
+    for group, base_lr in zip(optimizer.param_groups, base_lrs):
+        group["lr"] = float(base_lr) * float(multiplier)
 
 
 def compute_losses(
@@ -160,22 +319,39 @@ def compute_losses(
     num_classes: int,
     loss_weights: Dict[str, float],
     class_weights: Optional[torch.Tensor] = None,
+    lovasz_weight: float = 0.0,
 ) -> Tuple[torch.Tensor, Dict[str, float], torch.Tensor]:
     outputs = model(tensors)
     logits = outputs["out"]
     if logits.shape[-2:] != masks.shape[-2:]:
         logits = F.interpolate(logits, size=masks.shape[-2:], mode="bilinear", align_corners=False)
-    seg_loss = F.cross_entropy(logits, masks, weight=class_weights)
+    ce_loss = F.cross_entropy(logits, masks, weight=class_weights)
+    lovasz_loss = lovasz_softmax_loss(logits.float(), masks) if float(lovasz_weight) > 0.0 else logits.new_zeros(())
+    seg_loss = ce_loss + float(lovasz_weight) * lovasz_loss
     # Run regression head losses in FP32 even when the surrounding context is AMP.
     # Smooth-L1 / BCE on small-magnitude regression targets are unstable in FP16
     # and can silently zero gradients into the object head.
-    with torch.cuda.amp.autocast(enabled=False):
-        object_logits_fp32 = outputs["object"].float()
-        object_loss, object_parts = multitask_object_loss(
-            object_logits_fp32, object_targets, loss_weights.get("object", {})
-        )
-    total = float(loss_weights.get("segmentation", 1.0)) * seg_loss + float(loss_weights.get("object_total", 1.0)) * object_loss
-    parts = {"seg_loss": float(seg_loss.detach().item()), "object_loss": float(object_loss.detach().item()), **object_parts}
+    object_total_weight = float(loss_weights.get("object_total", 1.0))
+    if object_total_weight > 0.0:
+        # Run regression head losses in FP32 even when the surrounding context is AMP.
+        # Smooth-L1 / BCE on small-magnitude regression targets are unstable in FP16
+        # and can silently zero gradients into the object head.
+        with torch.cuda.amp.autocast(enabled=False):
+            object_logits_fp32 = outputs["object"].float()
+            object_loss, object_parts = multitask_object_loss(
+                object_logits_fp32, object_targets, loss_weights.get("object", {})
+            )
+    else:
+        object_loss = seg_loss.detach().new_zeros(())
+        object_parts = {}
+    total = float(loss_weights.get("segmentation", 1.0)) * seg_loss + object_total_weight * object_loss
+    parts = {
+        "seg_loss": float(seg_loss.detach().item()),
+        "ce_loss": float(ce_loss.detach().item()),
+        "lovasz_loss": float(lovasz_loss.detach().item()),
+        "object_loss": float(object_loss.detach().item()),
+        **object_parts,
+    }
     return total, parts, logits
 
 
@@ -195,6 +371,7 @@ def _selection_score(metrics: Dict[str, float], mode: str) -> float:
     mode = str(mode or "default").lower()
     miou = float(metrics.get("miou", 0.0))
     vehicle_iou = float(metrics.get("vehicle_iou", miou))
+    person_iou = float(metrics.get("person_iou", miou))
     loc_loss = float(metrics.get("loc_loss", 0.0))
     dim_loss = float(metrics.get("dim_loss", 0.0))
     if mode == "default":
@@ -205,9 +382,20 @@ def _selection_score(metrics: Dict[str, float], mode: str) -> float:
         return vehicle_iou
     if mode == "vehicle_miou":
         return float(0.7 * vehicle_iou + 0.3 * miou)
+    if mode == "person_iou":
+        return person_iou
+    if mode == "person_miou":
+        return float(0.7 * person_iou + 0.3 * miou)
+    if mode in {"object_loss", "localization_loss"}:
+        return -float(metrics.get("object_loss", 0.0))
+    if mode in {"loc_loss", "xy_loss"}:
+        return -loc_loss
+    if mode in {"loc_dim_loss", "xy_dim_loss"}:
+        return -(loc_loss + 0.25 * dim_loss)
     raise ValueError(
         "Unsupported selection_score_mode "
-        f"{mode!r}; use default, miou, segmentation, vehicle_iou, or vehicle_miou."
+        f"{mode!r}; use default, miou, segmentation, vehicle_iou, vehicle_miou, "
+        "person_iou, person_miou, object_loss, loc_loss, or loc_dim_loss."
     )
 
 
@@ -219,6 +407,7 @@ def evaluate_model(
     loss_weights: Dict[str, float],
     class_weights: Optional[torch.Tensor] = None,
     selection_score_mode: str = "default",
+    lovasz_weight: float = 0.0,
 ) -> Dict[str, float]:
     model.eval()
     confusion = np.zeros((num_classes, num_classes), dtype=np.float64)
@@ -231,7 +420,16 @@ def evaluate_model(
             tensors = tensors.to(device, non_blocking=True)
             masks = masks.to(device, non_blocking=True)
             object_targets = _move_object_targets(object_targets, device)
-            loss, parts, logits = compute_losses(model, tensors, masks, object_targets, num_classes, loss_weights, class_weights=class_weights)
+            loss, parts, logits = compute_losses(
+                model,
+                tensors,
+                masks,
+                object_targets,
+                num_classes,
+                loss_weights,
+                class_weights=class_weights,
+                lovasz_weight=lovasz_weight,
+            )
             losses.append(float(loss.item()))
             batches += 1
             object_counts += int(object_targets["gt_count"].sum().item())
@@ -275,7 +473,10 @@ def train(args: argparse.Namespace) -> int:
     trial_name = str(trial.get("name", "trial"))
     train_cfg = config["training"]
     fusion_cfg = config.get("fusion", {})
-    object_cfg = config.get("object_heads", {})
+    object_cfg = _deep_merge_dicts(
+        dict(config.get("object_heads", {})),
+        trial.get("object_heads") if isinstance(trial.get("object_heads"), dict) else None,
+    )
     object_class_names = tuple(object_cfg.get("object_classes", OBJECT_CLASS_NAMES))
     input_width, input_height = [int(v) for v in trial.get("input_size", train_cfg.get("input_size", [512, 288]))]
     num_classes = int(train_cfg.get("num_classes", 3))
@@ -294,6 +495,15 @@ def train(args: argparse.Namespace) -> int:
     metrics_path = exp_dir / "metrics" / f"{trial_name}_metrics.csv"
     metrics_path.parent.mkdir(parents=True, exist_ok=True)
 
+    loss_weights = _deep_merge_dicts(
+        dict(train_cfg.get("loss_weights", {})),
+        trial.get("loss_weights") if isinstance(trial.get("loss_weights"), dict) else None,
+    )
+    object_total_weight = float(loss_weights.get("object_total", 1.0))
+    geometric_augment = bool(trial.get("geometric_augment", False))
+    if geometric_augment and object_total_weight > 0.0:
+        raise ValueError("geometric_augment=true is only supported for segmentation-only trials with object_total=0.")
+
     train_ds = FusionPoleMultiTaskDataset(
         dataset_dir,
         splits["train"],
@@ -301,26 +511,39 @@ def train(args: argparse.Namespace) -> int:
         (input_width, input_height),
         object_cfg,
         augment_strength=str(trial.get("augment_strength", "off")),
+        geometric_augment=geometric_augment,
     )
     val_ds = FusionPoleMultiTaskDataset(dataset_dir, splits["val"], object_rows, (input_width, input_height), object_cfg, augment_strength="off")
+    num_workers = int(trial.get("num_workers", train_cfg.get("num_workers", 4)))
+    persistent_workers = bool(trial.get("persistent_workers", train_cfg.get("persistent_workers", True))) and num_workers > 0
+    prefetch_factor = int(trial.get("prefetch_factor", train_cfg.get("prefetch_factor", 2)))
+    data_loader_kwargs = {
+        "num_workers": num_workers,
+        "pin_memory": torch.cuda.is_available(),
+        "persistent_workers": persistent_workers,
+    }
+    if num_workers > 0:
+        data_loader_kwargs["prefetch_factor"] = prefetch_factor
+
     train_loader = DataLoader(
         train_ds,
         batch_size=int(trial.get("batch_size", train_cfg.get("batch_size", 6))),
         shuffle=True,
-        num_workers=int(train_cfg.get("num_workers", 4)),
-        pin_memory=torch.cuda.is_available(),
         drop_last=False,
+        **data_loader_kwargs,
     )
     val_loader = DataLoader(
         val_ds,
         batch_size=int(trial.get("batch_size", train_cfg.get("batch_size", 6))),
         shuffle=False,
-        num_workers=int(train_cfg.get("num_workers", 4)),
-        pin_memory=torch.cuda.is_available(),
+        **data_loader_kwargs,
     )
 
     init_checkpoint = str(trial.get("init_rgb_checkpoint", train_cfg.get("init_rgb_checkpoint", "")))
     fuse_low_into_object_head = bool(object_cfg.get("fuse_low_feature", False))
+    object_head_arch = str(object_cfg.get("head_arch", "shared"))
+    object_use_coordconv = bool(object_cfg.get("use_coordconv", False))
+    object_head_depth = int(object_cfg.get("head_depth", 2))
     model = build_multitask_fusion_lraspp(
         num_classes=num_classes,
         radar_channels=radar_channels,
@@ -329,27 +552,66 @@ def train(args: argparse.Namespace) -> int:
         object_channels=int(object_cfg.get("output_channels", OBJECT_HEAD_CHANNELS)),
         object_hidden_channels=int(object_cfg.get("hidden_channels", 128)),
         fuse_low_into_object_head=fuse_low_into_object_head,
+        head_arch=object_head_arch,
+        use_coordconv=object_use_coordconv,
+        head_depth=object_head_depth,
         device=device,
     ).to(device)
+    init_object_checkpoint = str(trial.get("init_object_checkpoint", train_cfg.get("init_object_checkpoint", "")))
+    if init_object_checkpoint:
+        object_load_stats = _load_object_head_checkpoint(model, init_object_checkpoint, device=device)
+        log(
+            f"Loaded object head from {init_object_checkpoint}; "
+            f"loaded={object_load_stats['loaded']} skipped={object_load_stats['skipped']}."
+        )
+    freeze_backbone = bool(trial.get("freeze_backbone", train_cfg.get("freeze_backbone", False)))
+    freeze_classifier = bool(
+        trial.get(
+            "freeze_classifier",
+            trial.get("freeze_seg_head", train_cfg.get("freeze_classifier", train_cfg.get("freeze_seg_head", False))),
+        )
+    )
+    freeze_object_head = bool(trial.get("freeze_object_head", train_cfg.get("freeze_object_head", False)))
+    if freeze_backbone:
+        _set_requires_grad(model.backbone, False)
+    if freeze_classifier:
+        _set_requires_grad(model.classifier, False)
+    if freeze_object_head:
+        _set_requires_grad(model.object_head, False)
+    freeze_bn = bool(trial.get("freeze_bn", train_cfg.get("freeze_bn", False)))
+    if freeze_bn:
+        _freeze_batch_norm(model)
+    _eval_frozen_modules(
+        model,
+        freeze_backbone=freeze_backbone,
+        freeze_classifier=freeze_classifier,
+        freeze_object_head=freeze_object_head,
+    )
+    total_params, trainable_params = _count_parameters(model)
+    trainable_param_list = [param for param in model.parameters() if param.requires_grad]
+    if not trainable_param_list:
+        raise ValueError("No trainable parameters remain after applying freeze options.")
+    log(
+        f"Trainable parameters: {trainable_params:,}/{total_params:,}; "
+        f"freeze_backbone={freeze_backbone} freeze_classifier={freeze_classifier} "
+        f"freeze_object_head={freeze_object_head}."
+    )
     optimizer_name = str(trial.get("optimizer", train_cfg.get("optimizer", "adamw"))).lower()
     if optimizer_name == "sgd":
         optimizer = torch.optim.SGD(
-            model.parameters(),
+            trainable_param_list,
             lr=float(trial.get("lr", 1e-3)),
             momentum=float(trial.get("momentum", 0.9)),
             weight_decay=float(trial.get("weight_decay", 5e-4)),
         )
     elif optimizer_name == "adamw":
-        optimizer = torch.optim.AdamW(model.parameters(), lr=float(trial.get("lr", 2e-4)), weight_decay=float(trial.get("weight_decay", 1e-4)))
+        optimizer = torch.optim.AdamW(trainable_param_list, lr=float(trial.get("lr", 2e-4)), weight_decay=float(trial.get("weight_decay", 1e-4)))
     else:
         raise ValueError(f"Unsupported optimizer: {optimizer_name}")
     scaler = torch.amp.GradScaler("cuda", enabled=bool(train_cfg.get("amp", True)) and device.type == "cuda")
-    loss_weights = _deep_merge_dicts(
-        dict(train_cfg.get("loss_weights", {})),
-        trial.get("loss_weights") if isinstance(trial.get("loss_weights"), dict) else None,
-    )
     class_loss_weights_cfg = trial.get("class_loss_weights", train_cfg.get("class_loss_weights"))
     selection_score_mode = str(trial.get("selection_score_mode", train_cfg.get("selection_score_mode", "default")))
+    lovasz_weight = float(trial.get("lovasz_weight", train_cfg.get("lovasz_weight", 0.0)))
     class_weights_tensor: Optional[torch.Tensor] = None
     if class_loss_weights_cfg is not None:
         class_weights_tensor = torch.tensor(
@@ -361,7 +623,8 @@ def train(args: argparse.Namespace) -> int:
             )
     log(
         f"{trial_name} objective: selection_score_mode={selection_score_mode}; "
-        f"class_loss_weights={class_loss_weights_cfg}; loss_weights={json.dumps(loss_weights, sort_keys=True)}"
+        f"class_loss_weights={class_loss_weights_cfg}; loss_weights={json.dumps(loss_weights, sort_keys=True)}; "
+        f"lovasz_weight={lovasz_weight:g}; geometric_augment={geometric_augment}; freeze_bn={freeze_bn}"
     )
 
     start_epoch = 0
@@ -369,14 +632,21 @@ def train(args: argparse.Namespace) -> int:
     best_miou = -math.inf
     best_path = trial_dir / "best.pt"
     last_path = trial_dir / "last.pt"
+    base_lrs = [float(group["lr"]) for group in optimizer.param_groups]
+    lr_scheduler = str(trial.get("lr_scheduler", train_cfg.get("lr_scheduler", "none"))).lower()
+    lr_warmup_epochs = int(trial.get("lr_warmup_epochs", train_cfg.get("lr_warmup_epochs", 0)))
+    min_lr_ratio = float(trial.get("min_lr_ratio", train_cfg.get("min_lr_ratio", 0.05)))
+    poly_power = float(trial.get("poly_power", train_cfg.get("poly_power", 0.9)))
     if last_path.exists():
         ckpt = torch.load(last_path, map_location=device)
         model.load_state_dict(ckpt["model"])
         optimizer.load_state_dict(ckpt["optimizer"])
+        base_lrs = [float(v) for v in ckpt.get("base_lrs", base_lrs)]
         if "resume_lr" in trial:
             resume_lr = float(trial["resume_lr"])
             for group in optimizer.param_groups:
                 group["lr"] = resume_lr
+            base_lrs = [resume_lr for _ in optimizer.param_groups]
             log(f"Overrode resumed optimizer lr to {resume_lr:g}.")
         start_epoch = int(ckpt.get("epoch", -1)) + 1
         best_score = float(ckpt.get("best_selection_score", ckpt.get("best_miou", best_score)))
@@ -394,6 +664,8 @@ def train(args: argparse.Namespace) -> int:
         "person_iou",
         "pixel_accuracy",
         "seg_loss",
+        "ce_loss",
+        "lovasz_loss",
         "object_loss",
         "center_loss",
         "loc_loss",
@@ -410,14 +682,24 @@ def train(args: argparse.Namespace) -> int:
             csv.DictWriter(fh, fieldnames=fieldnames).writeheader()
 
     deadline = time.monotonic() + float(args.training_budget_hours) * 3600.0 if float(args.training_budget_hours) > 0 else math.inf
-    patience = int(train_cfg.get("early_stop_patience", 3))
+    patience = int(trial.get("early_stop_patience", train_cfg.get("early_stop_patience", 3)))
     stale_epochs = 0
     max_epochs = int(trial.get("epochs", train_cfg.get("epochs", 8)))
     for epoch in range(start_epoch, max_epochs):
         if time.monotonic() >= deadline:
             log(f"Training budget exhausted during {trial_name}; checkpointing and stopping.")
             break
+        lr_mult = _lr_multiplier(epoch, max_epochs, lr_scheduler, lr_warmup_epochs, min_lr_ratio, poly_power)
+        _set_optimizer_lr(optimizer, base_lrs, lr_mult)
         model.train()
+        _eval_frozen_modules(
+            model,
+            freeze_backbone=freeze_backbone,
+            freeze_classifier=freeze_classifier,
+            freeze_object_head=freeze_object_head,
+        )
+        if freeze_bn:
+            _freeze_batch_norm(model)
         losses: List[float] = []
         for tensors, masks, object_targets in train_loader:
             tensors = tensors.to(device, non_blocking=True)
@@ -428,6 +710,7 @@ def train(args: argparse.Namespace) -> int:
                 loss, _, _ = compute_losses(
                     model, tensors, masks, object_targets, num_classes, loss_weights,
                     class_weights=class_weights_tensor,
+                    lovasz_weight=lovasz_weight,
                 )
             scaler.scale(loss).backward()
             scaler.step(optimizer)
@@ -442,6 +725,7 @@ def train(args: argparse.Namespace) -> int:
             loss_weights,
             class_weights=class_weights_tensor,
             selection_score_mode=selection_score_mode,
+            lovasz_weight=lovasz_weight,
         )
         train_loss = float(np.mean(losses)) if losses else float("nan")
         row = {
@@ -455,6 +739,8 @@ def train(args: argparse.Namespace) -> int:
             "person_iou": val_metrics.get("person_iou", float("nan")),
             "pixel_accuracy": val_metrics["pixel_accuracy"],
             "seg_loss": val_metrics.get("seg_loss", float("nan")),
+            "ce_loss": val_metrics.get("ce_loss", float("nan")),
+            "lovasz_loss": val_metrics.get("lovasz_loss", float("nan")),
             "object_loss": val_metrics.get("object_loss", float("nan")),
             "center_loss": val_metrics.get("center_loss", float("nan")),
             "loc_loss": val_metrics.get("loc_loss", float("nan")),
@@ -486,11 +772,24 @@ def train(args: argparse.Namespace) -> int:
                     "object_channels": int(object_cfg.get("output_channels", OBJECT_HEAD_CHANNELS)),
                     "object_class_names": list(object_class_names),
                     "fuse_low_into_object_head": bool(fuse_low_into_object_head),
+                    "object_head_arch": object_head_arch,
+                    "object_use_coordconv": object_use_coordconv,
+                    "object_head_depth": object_head_depth,
                     "class_names": CLASS_NAMES[:num_classes],
                     "init_rgb_checkpoint": init_checkpoint,
+                    "init_object_checkpoint": init_object_checkpoint,
                     "class_loss_weights": class_loss_weights_cfg,
                     "loss_weights": loss_weights,
                     "selection_score_mode": selection_score_mode,
+                    "lovasz_weight": lovasz_weight,
+                    "lr_scheduler": lr_scheduler,
+                    "lr_warmup_epochs": lr_warmup_epochs,
+                    "min_lr_ratio": min_lr_ratio,
+                    "poly_power": poly_power,
+                    "early_stop_patience": patience,
+                    "freeze_backbone": freeze_backbone,
+                    "freeze_classifier": freeze_classifier,
+                    "freeze_object_head": freeze_object_head,
                     "model_task": "segmentation_plus_learned_object_localization",
                 },
                 best_path,
@@ -511,10 +810,24 @@ def train(args: argparse.Namespace) -> int:
                 "object_channels": int(object_cfg.get("output_channels", OBJECT_HEAD_CHANNELS)),
                 "object_class_names": list(object_class_names),
                 "fuse_low_into_object_head": bool(fuse_low_into_object_head),
+                "object_head_arch": object_head_arch,
+                "object_use_coordconv": object_use_coordconv,
+                "object_head_depth": object_head_depth,
                 "init_rgb_checkpoint": init_checkpoint,
+                "init_object_checkpoint": init_object_checkpoint,
                 "class_loss_weights": class_loss_weights_cfg,
                 "loss_weights": loss_weights,
                 "selection_score_mode": selection_score_mode,
+                "lovasz_weight": lovasz_weight,
+                "lr_scheduler": lr_scheduler,
+                "lr_warmup_epochs": lr_warmup_epochs,
+                "min_lr_ratio": min_lr_ratio,
+                "poly_power": poly_power,
+                "base_lrs": base_lrs,
+                "early_stop_patience": patience,
+                "freeze_backbone": freeze_backbone,
+                "freeze_classifier": freeze_classifier,
+                "freeze_object_head": freeze_object_head,
                 "model_task": "segmentation_plus_learned_object_localization",
             },
             last_path,
@@ -525,7 +838,7 @@ def train(args: argparse.Namespace) -> int:
             f"vehicle_iou={val_metrics.get('vehicle_iou', float('nan')):.4f} "
             f"loc_loss={val_metrics.get('loc_loss', float('nan')):.4f} dim_loss={val_metrics.get('dim_loss', float('nan')):.4f}"
         )
-        if stale_epochs >= patience:
+        if patience > 0 and stale_epochs >= patience:
             log(f"Early stopping {trial_name} after {stale_epochs} stale epochs.")
             break
 
@@ -538,9 +851,19 @@ def train(args: argparse.Namespace) -> int:
             "best_checkpoint": str(best_path),
             "updated_at": utc_iso(),
             "init_rgb_checkpoint": init_checkpoint,
+            "init_object_checkpoint": init_object_checkpoint,
             "class_loss_weights": class_loss_weights_cfg,
             "loss_weights": loss_weights,
             "selection_score_mode": selection_score_mode,
+            "lovasz_weight": lovasz_weight,
+            "lr_scheduler": lr_scheduler,
+            "lr_warmup_epochs": lr_warmup_epochs,
+            "min_lr_ratio": min_lr_ratio,
+            "poly_power": poly_power,
+            "early_stop_patience": patience,
+            "freeze_backbone": freeze_backbone,
+            "freeze_classifier": freeze_classifier,
+            "freeze_object_head": freeze_object_head,
             "model_task": "segmentation_plus_learned_object_localization",
         },
     )

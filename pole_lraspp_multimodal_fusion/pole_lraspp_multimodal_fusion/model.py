@@ -22,6 +22,9 @@ class MultiTaskFusionLRASPP(torch.nn.Module):
         object_channels: int = OBJECT_HEAD_CHANNELS,
         hidden_channels: int = 128,
         fuse_low_into_object_head: bool = False,
+        head_arch: str = "shared",
+        use_coordconv: bool = False,
+        head_depth: int = 2,
     ) -> None:
         super().__init__()
         self.backbone = base_model.backbone
@@ -40,33 +43,61 @@ class MultiTaskFusionLRASPP(torch.nn.Module):
         else:
             low_channels = 0
             object_in_channels = high_channels
-        self.object_head = torch.nn.Sequential(
-            torch.nn.Conv2d(int(object_in_channels), int(hidden_channels), kernel_size=3, padding=1, bias=False),
-            torch.nn.BatchNorm2d(int(hidden_channels)),
-            torch.nn.ReLU(inplace=True),
-            torch.nn.Conv2d(int(hidden_channels), int(hidden_channels), kernel_size=3, padding=1, bias=False),
-            torch.nn.BatchNorm2d(int(hidden_channels)),
-            torch.nn.ReLU(inplace=True),
-            torch.nn.Conv2d(int(hidden_channels), int(object_channels), kernel_size=1),
-        )
+
         self.object_channels = int(object_channels)
+        self.head_arch = str(head_arch).lower()
+        self.use_coordconv = bool(use_coordconv)
+        self.head_depth = max(1, int(head_depth))
+        self.heatmap_channels = max(1, int(self.object_channels) - OBJECT_REG_CHANNELS)
+        # CoordConv appends normalized (x, y) image-position channels so the head
+        # can exploit image-row -> ground-plane depth priors (key for pedestrians).
+        head_in = int(object_in_channels) + (2 if self.use_coordconv else 0)
+
+        if self.head_arch == "decoupled":
+            # Separate detection (heatmap) and metric-regression branches so the
+            # two objectives do not compete inside a single shallow trunk.
+            self.heatmap_head = self._make_head(head_in, int(hidden_channels), self.heatmap_channels, self.head_depth)
+            self.reg_head = self._make_head(head_in, int(hidden_channels), OBJECT_REG_CHANNELS, self.head_depth)
+            self.object_head = None
+        else:
+            self.object_head = self._make_head(head_in, int(hidden_channels), self.object_channels, self.head_depth)
+            self.heatmap_head = None
+            self.reg_head = None
         self._init_object_head()
 
+    @staticmethod
+    def _make_head(in_ch: int, hidden: int, out_ch: int, depth: int) -> torch.nn.Sequential:
+        layers = []
+        c = int(in_ch)
+        for _ in range(max(1, int(depth))):
+            layers.append(torch.nn.Conv2d(c, int(hidden), kernel_size=3, padding=1, bias=False))
+            layers.append(torch.nn.BatchNorm2d(int(hidden)))
+            layers.append(torch.nn.ReLU(inplace=True))
+            c = int(hidden)
+        layers.append(torch.nn.Conv2d(int(hidden), int(out_ch), kernel_size=1))
+        return torch.nn.Sequential(*layers)
+
     def _init_object_head(self) -> None:
-        for module in self.object_head.modules():
-            if isinstance(module, torch.nn.Conv2d):
-                torch.nn.init.kaiming_normal_(module.weight, mode="fan_out", nonlinearity="relu")
-                if module.bias is not None:
+        heads = [h for h in (self.object_head, self.heatmap_head, self.reg_head) if h is not None]
+        for head in heads:
+            for module in head.modules():
+                if isinstance(module, torch.nn.Conv2d):
+                    torch.nn.init.kaiming_normal_(module.weight, mode="fan_out", nonlinearity="relu")
+                    if module.bias is not None:
+                        torch.nn.init.zeros_(module.bias)
+                elif isinstance(module, torch.nn.BatchNorm2d):
+                    torch.nn.init.ones_(module.weight)
                     torch.nn.init.zeros_(module.bias)
-            elif isinstance(module, torch.nn.BatchNorm2d):
-                torch.nn.init.ones_(module.weight)
-                torch.nn.init.zeros_(module.bias)
-        final = self.object_head[-1]
+        # Bias the heatmap logits toward "no object" (focal-loss prior, p~0.01).
+        if self.head_arch == "decoupled":
+            final = self.heatmap_head[-1]
+            heatmap_channels = min(self.heatmap_channels, int(final.bias.numel())) if final.bias is not None else 0
+        else:
+            final = self.object_head[-1]
+            heatmap_channels = min(self.heatmap_channels, int(final.bias.numel())) if final.bias is not None else 0
         if isinstance(final, torch.nn.Conv2d) and final.bias is not None:
             with torch.no_grad():
                 final.bias.zero_()
-                heatmap_channels = max(1, int(self.object_channels) - OBJECT_REG_CHANNELS)
-                heatmap_channels = min(heatmap_channels, int(final.bias.numel()))
                 final.bias[:heatmap_channels] = -4.6
 
     def _high_feature(self, features: object) -> torch.Tensor:
@@ -91,18 +122,34 @@ class MultiTaskFusionLRASPP(torch.nn.Module):
     def _object_input(self, features: object) -> torch.Tensor:
         high = self._high_feature(features)
         if not self.fuse_low_into_object_head:
-            return high
-        low = self._low_feature(features)
-        if tuple(high.shape[-2:]) != tuple(low.shape[-2:]):
-            high = F.interpolate(high, size=low.shape[-2:], mode="bilinear", align_corners=False)
-        return torch.cat([low, high], dim=1)
+            base = high
+        else:
+            low = self._low_feature(features)
+            if tuple(high.shape[-2:]) != tuple(low.shape[-2:]):
+                high = F.interpolate(high, size=low.shape[-2:], mode="bilinear", align_corners=False)
+            base = torch.cat([low, high], dim=1)
+        if self.use_coordconv:
+            base = torch.cat([base, self._coord_channels(base)], dim=1)
+        return base
+
+    @staticmethod
+    def _coord_channels(ref: torch.Tensor) -> torch.Tensor:
+        n, _, h, w = ref.shape
+        ys = torch.linspace(-1.0, 1.0, h, device=ref.device, dtype=ref.dtype).view(1, 1, h, 1).expand(n, 1, h, w)
+        xs = torch.linspace(-1.0, 1.0, w, device=ref.device, dtype=ref.dtype).view(1, 1, 1, w).expand(n, 1, h, w)
+        return torch.cat([xs, ys], dim=1)
 
     def forward(self, x: torch.Tensor) -> Dict[str, torch.Tensor]:
         features = self.backbone(x)
         seg = self.classifier(features)
         if isinstance(seg, dict):
             seg = seg["out"]
-        object_logits = self.object_head(self._object_input(features))
+        obj_in = self._object_input(features)
+        if self.head_arch == "decoupled":
+            # Channel order stays [heatmap..., regression...] to match the loss/decoder.
+            object_logits = torch.cat([self.heatmap_head(obj_in), self.reg_head(obj_in)], dim=1)
+        else:
+            object_logits = self.object_head(obj_in)
         if tuple(object_logits.shape[-2:]) != tuple(x.shape[-2:]):
             object_logits = F.interpolate(object_logits, size=x.shape[-2:], mode="bilinear", align_corners=False)
         return {"out": seg, "object": object_logits}
@@ -236,6 +283,9 @@ def build_multitask_fusion_lraspp(
     object_channels: int = OBJECT_HEAD_CHANNELS,
     object_hidden_channels: int = 128,
     fuse_low_into_object_head: bool = False,
+    head_arch: str = "shared",
+    use_coordconv: bool = False,
+    head_depth: int = 2,
     device: Optional[torch.device] = None,
 ) -> MultiTaskFusionLRASPP:
     base = build_fusion_lraspp(
@@ -250,4 +300,7 @@ def build_multitask_fusion_lraspp(
         object_channels=int(object_channels),
         hidden_channels=int(object_hidden_channels),
         fuse_low_into_object_head=bool(fuse_low_into_object_head),
+        head_arch=str(head_arch),
+        use_coordconv=bool(use_coordconv),
+        head_depth=int(head_depth),
     )

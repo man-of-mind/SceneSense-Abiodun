@@ -17,6 +17,7 @@ import queue
 import random
 import sys
 import time
+from collections import deque
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Tuple
@@ -160,6 +161,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--radar-points-per-second", type=int, default=5000)
     parser.add_argument("--radar-max-velocity", type=float, default=20.0)
     parser.add_argument("--radar-raster-radius-px", type=int, default=2)
+    parser.add_argument(
+        "--radar-temporal-window-frames",
+        type=int,
+        default=1,
+        help=(
+            "Number of saved radar tensors to combine with per-channel max. "
+            "Use 1 for current-frame only. With 10 FPS and sample-stride 1, "
+            "2 frames keeps the oldest radar evidence near 100 ms."
+        ),
+    )
     parser.add_argument("--stationary-velocity-mps", type=float, default=0.35)
     parser.add_argument("--parked-threshold-s", type=float, default=5.0)
     parser.add_argument("--association-grid-m", type=float, default=1.5)
@@ -728,6 +739,8 @@ def write_moving_metadata(
             "horizontal_fov": float(args.radar_hfov),
             "vertical_fov": float(args.radar_vfov),
             "points_per_second": int(args.radar_points_per_second),
+            "raster_radius_px": int(args.radar_raster_radius_px),
+            "temporal_window_frames": int(args.radar_temporal_window_frames),
         },
         "background_motion": {
             "npc_vehicle_speed_difference_pct": float(args.npc_vehicle_speed_difference_pct),
@@ -911,6 +924,7 @@ def main() -> int:
         attempts = 0
         stop_reason = "max_samples"
         stuck_started_at_s: Optional[float] = None
+        radar_tensor_history = deque(maxlen=max(1, int(args.radar_temporal_window_frames)))
         while saved < int(args.max_samples):
             attempts += 1
             if bool(args.sync_world):
@@ -985,6 +999,11 @@ def main() -> int:
                 parked_threshold_s=float(args.parked_threshold_s),
                 point_radius_px=int(args.radar_raster_radius_px),
             )
+            radar_tensor_history.append(radar_tensor)
+            if int(args.radar_temporal_window_frames) > 1 and len(radar_tensor_history) > 1:
+                radar_tensor = np.maximum.reduce(list(radar_tensor_history)).astype(np.float32, copy=False)
+                radar_summary = dict(radar_summary)
+                radar_summary["radar_temporal_window_frames"] = int(len(radar_tensor_history))
 
             sample_id = f"{experiment_id}_{saved:06d}_frame{int(image.frame)}"
             split = parked.stable_split(sample_id, split_ratios, int(args.split_seed))

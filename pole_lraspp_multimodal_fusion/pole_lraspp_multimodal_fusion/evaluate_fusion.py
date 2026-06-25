@@ -211,6 +211,10 @@ def evaluate_checkpoint(args: argparse.Namespace) -> int:
     fuse_low_into_object_head = bool(
         checkpoint.get("fuse_low_into_object_head") if isinstance(checkpoint, dict) else None
     ) or bool(object_cfg.get("fuse_low_feature", False))
+    ckpt = checkpoint if isinstance(checkpoint, dict) else {}
+    object_head_arch = str(ckpt.get("object_head_arch") or object_cfg.get("head_arch", "shared"))
+    object_use_coordconv = bool(ckpt.get("object_use_coordconv")) or bool(object_cfg.get("use_coordconv", False))
+    object_head_depth = int(ckpt.get("object_head_depth") or object_cfg.get("head_depth", 2))
     model = build_multitask_fusion_lraspp(
         num_classes=num_classes,
         radar_channels=radar_channels,
@@ -218,6 +222,9 @@ def evaluate_checkpoint(args: argparse.Namespace) -> int:
         object_channels=object_channels,
         object_hidden_channels=int(object_cfg.get("hidden_channels", 128)),
         fuse_low_into_object_head=fuse_low_into_object_head,
+        head_arch=object_head_arch,
+        use_coordconv=object_use_coordconv,
+        head_depth=object_head_depth,
         device=device,
     ).to(device)
     model.load_state_dict(checkpoint["model"] if isinstance(checkpoint, dict) and "model" in checkpoint else checkpoint)

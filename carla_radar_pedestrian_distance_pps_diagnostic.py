@@ -54,6 +54,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--pps-list", default="5000,12000,24000,60000")
     parser.add_argument("--distance-list-m", default="2,5,10,15,20,30,40,60")
     parser.add_argument(
+        "--plot-min-distance-m",
+        type=float,
+        default=10.0,
+        help="Minimum distance included in generated distance plots.",
+    )
+    parser.add_argument(
         "--walker-physics-mode",
         choices=("default", "on", "off", "both", "all"),
         default="default",
@@ -496,7 +502,12 @@ def summarize_condition(rows: Sequence[Dict[str, object]]) -> Dict[str, object]:
     }
 
 
-def write_summary_outputs(output_dir: Path, frame_rows: Sequence[Dict[str, object]]) -> None:
+def write_summary_outputs(
+    output_dir: Path,
+    frame_rows: Sequence[Dict[str, object]],
+    *,
+    plot_min_distance_m: float = 10.0,
+) -> None:
     groups: Dict[Tuple[str, int, float], List[Dict[str, object]]] = {}
     for row in frame_rows:
         key = (str(row["walker_physics"]), int(row["radar_pps"]), float(row["target_distance_m"]))
@@ -538,11 +549,22 @@ def write_summary_outputs(output_dir: Path, frame_rows: Sequence[Dict[str, objec
     except Exception:
         plt = None  # type: ignore
     if plt is not None and summary_rows:
+        min_plot_distance = float(plot_min_distance_m)
         for physics in sorted({str(row["walker_physics"]) for row in summary_rows}):
             subset = [row for row in summary_rows if str(row["walker_physics"]) == physics]
             fig, ax = plt.subplots(figsize=(9.2, 5.2), constrained_layout=True)
             for pps in sorted({int(row["radar_pps"]) for row in subset}):
-                pts = sorted([row for row in subset if int(row["radar_pps"]) == pps], key=lambda row: float(row["target_distance_m"]))
+                pts = sorted(
+                    [
+                        row
+                        for row in subset
+                        if int(row["radar_pps"]) == pps
+                        and float(row["target_distance_m"]) >= min_plot_distance
+                    ],
+                    key=lambda row: float(row["target_distance_m"]),
+                )
+                if not pts:
+                    continue
                 ax.plot(
                     [float(row["target_distance_m"]) for row in pts],
                     [float(row["mean_radius_points"]) for row in pts],
@@ -553,6 +575,7 @@ def write_summary_outputs(output_dir: Path, frame_rows: Sequence[Dict[str, objec
             ax.set_title(f"Pedestrian radar points vs distance ({physics} physics)")
             ax.set_xlabel("Pedestrian distance from radar (m)")
             ax.set_ylabel("Mean radar points inside pedestrian radius")
+            ax.set_xlim(left=min_plot_distance)
             ax.grid(axis="y", alpha=0.25)
             ax.legend(frameon=False)
             fig.savefig(output_dir / f"mean_person_radar_points_vs_distance_{physics}.png", dpi=220)
@@ -561,7 +584,17 @@ def write_summary_outputs(output_dir: Path, frame_rows: Sequence[Dict[str, objec
 
             fig, ax = plt.subplots(figsize=(9.2, 5.2), constrained_layout=True)
             for pps in sorted({int(row["radar_pps"]) for row in subset}):
-                pts = sorted([row for row in subset if int(row["radar_pps"]) == pps], key=lambda row: float(row["target_distance_m"]))
+                pts = sorted(
+                    [
+                        row
+                        for row in subset
+                        if int(row["radar_pps"]) == pps
+                        and float(row["target_distance_m"]) >= min_plot_distance
+                    ],
+                    key=lambda row: float(row["target_distance_m"]),
+                )
+                if not pts:
+                    continue
                 ax.plot(
                     [float(row["target_distance_m"]) for row in pts],
                     [float(row["radius_support_rate"]) for row in pts],
@@ -572,6 +605,7 @@ def write_summary_outputs(output_dir: Path, frame_rows: Sequence[Dict[str, objec
             ax.set_title(f"Pedestrian radar support rate vs distance ({physics} physics)")
             ax.set_xlabel("Pedestrian distance from radar (m)")
             ax.set_ylabel("Frames with >=1 pedestrian radar point")
+            ax.set_xlim(left=min_plot_distance)
             ax.set_ylim(0.0, 1.02)
             ax.grid(axis="y", alpha=0.25)
             ax.legend(frameon=False)
@@ -875,7 +909,7 @@ def main() -> int:
             "walker_camera_visible",
         ]
         write_csv(output_dir / "frame_metrics.csv", frame_rows, frame_fields)
-        write_summary_outputs(output_dir, frame_rows)
+        write_summary_outputs(output_dir, frame_rows, plot_min_distance_m=float(args.plot_min_distance_m))
         summary = {
             "experiment_id": output_dir.name,
             "output_dir": str(output_dir.resolve()),
