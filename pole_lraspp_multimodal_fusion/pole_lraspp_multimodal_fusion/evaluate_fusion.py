@@ -215,6 +215,9 @@ def evaluate_checkpoint(args: argparse.Namespace) -> int:
     object_head_arch = str(ckpt.get("object_head_arch") or object_cfg.get("head_arch", "shared"))
     object_use_coordconv = bool(ckpt.get("object_use_coordconv")) or bool(object_cfg.get("use_coordconv", False))
     object_head_depth = int(ckpt.get("object_head_depth") or object_cfg.get("head_depth", 2))
+    object_use_groundplane = bool(ckpt.get("object_use_groundplane_prior")) or bool(object_cfg.get("use_groundplane_prior", False))
+    object_predict_bbox2d = bool(ckpt.get("object_predict_bbox2d")) or bool(object_cfg.get("predict_bbox2d", False))
+    object_groundplane_params = dict(ckpt.get("object_groundplane_params") or object_cfg.get("groundplane_params", {}) or {})
     model = build_multitask_fusion_lraspp(
         num_classes=num_classes,
         radar_channels=radar_channels,
@@ -225,6 +228,9 @@ def evaluate_checkpoint(args: argparse.Namespace) -> int:
         head_arch=object_head_arch,
         use_coordconv=object_use_coordconv,
         head_depth=object_head_depth,
+        predict_bbox2d=object_predict_bbox2d,
+        use_groundplane_prior=object_use_groundplane,
+        groundplane_params=object_groundplane_params,
         device=device,
     ).to(device)
     model.load_state_dict(checkpoint["model"] if isinstance(checkpoint, dict) and "model" in checkpoint else checkpoint)
@@ -290,6 +296,7 @@ def evaluate_checkpoint(args: argparse.Namespace) -> int:
                     score_threshold=float(eval_cfg.get("object_score_threshold", 0.25)),
                     nms_radius_px=int(eval_cfg.get("object_nms_radius_px", 5)),
                     object_class_names=object_class_names,
+                    predict_bbox2d=object_predict_bbox2d,
                 )
             matches = greedy_match_predictions(
                 predictions,
@@ -344,6 +351,26 @@ def evaluate_checkpoint(args: argparse.Namespace) -> int:
                         "gt_size_x": gt_obj["size_x"],
                         "gt_size_y": gt_obj["size_y"],
                         "gt_size_z": gt_obj["size_z"],
+                        **(
+                            {
+                                # pred box in input-image px; gt box in original-image px.
+                                # Stored with both frame sizes so 2D-IoU can be computed offline.
+                                "pred_bbox_x0": pred_obj.get("bbox_x0", float("nan")),
+                                "pred_bbox_y0": pred_obj.get("bbox_y0", float("nan")),
+                                "pred_bbox_x1": pred_obj.get("bbox_x1", float("nan")),
+                                "pred_bbox_y1": pred_obj.get("bbox_y1", float("nan")),
+                                "input_w": int(input_size[0]),
+                                "input_h": int(input_size[1]),
+                                "gt_center_x": gt_obj.get("center_x", float("nan")),
+                                "gt_center_y": gt_obj.get("center_y", float("nan")),
+                                "gt_bbox_w": gt_obj.get("bbox_w", float("nan")),
+                                "gt_bbox_h": gt_obj.get("bbox_h", float("nan")),
+                                "orig_w": int(original_size[0]),
+                                "orig_h": int(original_size[1]),
+                            }
+                            if object_predict_bbox2d
+                            else {}
+                        ),
                     }
                 )
             for pred_idx, pred_obj in enumerate(predictions):

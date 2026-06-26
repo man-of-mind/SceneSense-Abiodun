@@ -21,6 +21,14 @@ REG_DIMS = slice(3, 6)
 REG_YAW = slice(6, 8)
 REG_PARKED = 8
 REG_RADAR_SUPPORT = 9
+# Optional 2D-box (per-instance, normalized width/height) regression appended after
+# the base channels when predict_bbox2d=True. Center comes from the heatmap peak.
+OBJECT_REG_CHANNELS_BBOX = 12
+REG_BBOX_WH = slice(10, 12)
+
+
+def object_reg_channels(predict_bbox2d: bool = False) -> int:
+    return OBJECT_REG_CHANNELS_BBOX if predict_bbox2d else OBJECT_REG_CHANNELS
 
 
 def parse_matrix(value: str) -> Optional[np.ndarray]:
@@ -147,6 +155,19 @@ def draw_gaussian(heatmap: np.ndarray, cx: float, cy: float, radius: int) -> Non
     heatmap[y0:y1, x0:x1] = np.maximum(heatmap[y0:y1, x0:x1], values.astype(np.float32))
 
 
+def gaussian_radius(height: float, width: float, min_overlap: float = 0.7) -> float:
+    """CenterNet Gaussian radius: largest radius keeping IoU >= min_overlap for a
+    box of the given size. Scales the heatmap footprint to each object's size."""
+    h, w = float(height), float(width)
+    a1, b1, c1 = 1.0, (h + w), w * h * (1.0 - min_overlap) / (1.0 + min_overlap)
+    r1 = (b1 - math.sqrt(max(0.0, b1 * b1 - 4 * a1 * c1))) / (2 * a1)
+    a2, b2, c2 = 4.0, 2.0 * (h + w), (1.0 - min_overlap) * w * h
+    r2 = (b2 - math.sqrt(max(0.0, b2 * b2 - 4 * a2 * c2))) / (2 * a2)
+    a3, b3, c3 = 4.0 * min_overlap, -2.0 * min_overlap * (h + w), (min_overlap - 1.0) * w * h
+    r3 = (b3 + math.sqrt(max(0.0, b3 * b3 - 4 * a3 * c3))) / (2 * a3)
+    return max(0.0, min(r1, r2, r3))
+
+
 def build_object_targets(
     *,
     objects: Sequence[Dict[str, float]],
@@ -155,14 +176,17 @@ def build_object_targets(
     heatmap_radius_px: int,
     max_objects: int,
     object_class_names: Sequence[str] = OBJECT_CLASS_NAMES,
+    predict_bbox2d: bool = False,
+    adaptive_heatmap_radius: bool = False,
 ) -> Dict[str, torch.Tensor]:
     input_width, input_height = int(input_size[0]), int(input_size[1])
     original_width, original_height = int(original_size[0]), int(original_size[1])
     sx = input_width / max(1.0, float(original_width))
     sy = input_height / max(1.0, float(original_height))
+    reg_channels = object_reg_channels(predict_bbox2d)
     object_class_count = max(1, len(tuple(object_class_names)))
     heatmap = np.zeros((object_class_count, input_height, input_width), dtype=np.float32)
-    regression = np.zeros((OBJECT_REG_CHANNELS, input_height, input_width), dtype=np.float32)
+    regression = np.zeros((reg_channels, input_height, input_width), dtype=np.float32)
     reg_mask = np.zeros((1, input_height, input_width), dtype=np.float32)
     gt_objects = np.zeros((int(max_objects), 9), dtype=np.float32)
     gt_class_indices = np.zeros((int(max_objects),), dtype=np.int64)
@@ -177,7 +201,16 @@ def build_object_targets(
         iy = int(round(cy))
         if ix < 0 or iy < 0 or ix >= input_width or iy >= input_height:
             continue
-        draw_gaussian(heatmap[class_index], cx, cy, heatmap_radius_px)
+        if adaptive_heatmap_radius:
+            # Size-matched footprint: scale the Gaussian radius to this object's box
+            # (in input-image px). Far/small objects get a tight peak; near/large
+            # ones get a wider footprint -> better-calibrated positives for recall.
+            bw_in = float(obj.get("bbox_w", 0.0)) * sx
+            bh_in = float(obj.get("bbox_h", 0.0)) * sy
+            radius = int(max(2, round(gaussian_radius(bh_in, bw_in))))
+        else:
+            radius = int(heatmap_radius_px)
+        draw_gaussian(heatmap[class_index], cx, cy, radius)
         # The gaussian is evaluated at integer pixel coordinates; with a sub-pixel
         # (cx, cy) the peak pixel only reaches exp(-d^2/(2 sigma^2)) < 1.0. The
         # focal heatmap loss treats positives via target == 1.0, so without this
@@ -185,21 +218,23 @@ def build_object_targets(
         # never learned (learned_object_f1 = 0).
         heatmap[class_index, iy, ix] = 1.0
         if reg_mask[0, iy, ix] < 0.5:
-            regression[:, iy, ix] = np.array(
-                [
-                    obj["local_x"],
-                    obj["local_y"],
-                    obj["local_z"],
-                    obj["size_x"],
-                    obj["size_y"],
-                    obj["size_z"],
-                    obj["yaw_sin"],
-                    obj["yaw_cos"],
-                    obj["parked"],
-                    obj["radar_support"],
-                ],
-                dtype=np.float32,
-            )
+            values = [
+                obj["local_x"],
+                obj["local_y"],
+                obj["local_z"],
+                obj["size_x"],
+                obj["size_y"],
+                obj["size_z"],
+                obj["yaw_sin"],
+                obj["yaw_cos"],
+                obj["parked"],
+                obj["radar_support"],
+            ]
+            if predict_bbox2d:
+                # Normalized 2D-box width/height in input-image fraction (center = peak).
+                values.append(float(obj.get("bbox_w", 0.0)) * sx / max(1.0, float(input_width)))
+                values.append(float(obj.get("bbox_h", 0.0)) * sy / max(1.0, float(input_height)))
+            regression[:, iy, ix] = np.array(values, dtype=np.float32)
             reg_mask[0, iy, ix] = 1.0
         if gt_count < int(max_objects):
             gt_objects[gt_count] = np.array(
@@ -248,12 +283,14 @@ def multitask_object_loss(outputs: torch.Tensor, targets: Dict[str, torch.Tensor
     heatmap_channels = int(heatmap.shape[1])
     center_logits = outputs[:, :heatmap_channels]
     regs = outputs[:, heatmap_channels:]
-    if int(regs.shape[1]) != OBJECT_REG_CHANNELS:
+    if int(regs.shape[1]) not in (OBJECT_REG_CHANNELS, OBJECT_REG_CHANNELS_BBOX):
         raise ValueError(
-            f"Object head regression channels={int(regs.shape[1])}, expected {OBJECT_REG_CHANNELS}. "
+            f"Object head regression channels={int(regs.shape[1])}, expected "
+            f"{OBJECT_REG_CHANNELS} or {OBJECT_REG_CHANNELS_BBOX}. "
             f"Output channels={int(outputs.shape[1])}, heatmap channels={heatmap_channels}."
         )
     reg_target = targets["regression"].to(outputs.device)
+    has_bbox2d = int(regs.shape[1]) >= OBJECT_REG_CHANNELS_BBOX and int(reg_target.shape[1]) >= OBJECT_REG_CHANNELS_BBOX
     reg_mask = targets["regression_mask"].to(outputs.device)
     center_loss = focal_heatmap_loss(center_logits, heatmap)
     denom = reg_mask.sum().clamp(min=1.0)
@@ -274,6 +311,24 @@ def multitask_object_loss(outputs: torch.Tensor, targets: Dict[str, torch.Tensor
         weight=reg_mask,
         reduction="sum",
     ) / denom
+    if has_bbox2d:
+        # Scale-invariant GIoU loss on the 2D box. Pred/GT boxes share the cell
+        # center (center comes from the heatmap), so GIoU here supervises size.
+        # softplus keeps predicted w/h positive; gives real gradient on the tiny
+        # far-object boxes that smooth-L1 ignored.
+        eps = 1e-6
+        pw = F.softplus(regs[:, REG_BBOX_WH.start: REG_BBOX_WH.start + 1])
+        ph = F.softplus(regs[:, REG_BBOX_WH.start + 1: REG_BBOX_WH.start + 2])
+        gw = reg_target[:, REG_BBOX_WH.start: REG_BBOX_WH.start + 1].clamp(min=0.0)
+        gh = reg_target[:, REG_BBOX_WH.start + 1: REG_BBOX_WH.start + 2].clamp(min=0.0)
+        inter = torch.min(pw, gw) * torch.min(ph, gh)
+        union = pw * ph + gw * gh - inter + eps
+        iou = inter / union
+        enclose = torch.max(pw, gw) * torch.max(ph, gh) + eps
+        giou = iou - (enclose - union) / enclose
+        bbox_loss = ((1.0 - giou) * reg_mask).sum() / denom
+    else:
+        bbox_loss = center_loss.new_zeros(())
     total = (
         float(weights.get("center", 1.0)) * center_loss
         + float(weights.get("location", 0.05)) * loc_loss
@@ -281,6 +336,7 @@ def multitask_object_loss(outputs: torch.Tensor, targets: Dict[str, torch.Tensor
         + float(weights.get("yaw", 0.05)) * yaw_loss
         + float(weights.get("parked", 0.2)) * parked_loss
         + float(weights.get("radar_support", 0.1)) * radar_loss
+        + float(weights.get("bbox2d", 1.0)) * bbox_loss
     )
     parts = {
         "center_loss": float(center_loss.detach().item()),
@@ -289,6 +345,7 @@ def multitask_object_loss(outputs: torch.Tensor, targets: Dict[str, torch.Tensor
         "yaw_loss": float(yaw_loss.detach().item()),
         "parked_loss": float(parked_loss.detach().item()),
         "radar_support_loss": float(radar_loss.detach().item()),
+        "bbox2d_loss": float(bbox_loss.detach().item()),
     }
     return total, parts
 
@@ -301,10 +358,11 @@ def decode_objects(
     score_threshold: float,
     nms_radius_px: int,
     object_class_names: Sequence[str] = OBJECT_CLASS_NAMES,
+    predict_bbox2d: bool = False,
 ) -> List[Dict[str, float]]:
     if object_output.ndim == 4:
         object_output = object_output[0]
-    heatmap_channels = max(1, int(object_output.shape[0]) - OBJECT_REG_CHANNELS)
+    heatmap_channels = max(1, int(object_output.shape[0]) - object_reg_channels(predict_bbox2d))
     center = torch.sigmoid(object_output[:heatmap_channels]).detach().cpu()
     regs = object_output[heatmap_channels:].detach().cpu().numpy()
     flat = center.reshape(-1)
@@ -337,6 +395,21 @@ def decode_objects(
             if class_index < len(object_class_names)
             else f"object_{class_index}"
         )
+        bbox2d = {}
+        if predict_bbox2d and regs.shape[0] >= OBJECT_REG_CHANNELS_BBOX:
+            # softplus to match the GIoU-trained size encoding (stable for large logits).
+            def _softplus(v):
+                return float(np.log1p(np.exp(-abs(v))) + max(v, 0.0))
+            bw = _softplus(regs[REG_BBOX_WH.start, y, x]) * float(width)
+            bh = _softplus(regs[REG_BBOX_WH.start + 1, y, x]) * float(height)
+            bbox2d = {
+                "bbox_w_px": bw,
+                "bbox_h_px": bh,
+                "bbox_x0": float(x) - bw / 2.0,
+                "bbox_y0": float(y) - bh / 2.0,
+                "bbox_x1": float(x) + bw / 2.0,
+                "bbox_y1": float(y) + bh / 2.0,
+            }
         predictions.append(
             {
                 "class_index": float(class_index),
@@ -344,6 +417,7 @@ def decode_objects(
                 "score": score,
                 "center_x_px": float(x),
                 "center_y_px": float(y),
+                **bbox2d,
                 "local_x": float(local[0]),
                 "local_y": float(local[1]),
                 "local_z": float(local[2]),

@@ -27,12 +27,13 @@ from .common import (
     update_confusion,
     utc_iso,
 )
-from .model import OBJECT_HEAD_CHANNELS, build_multitask_fusion_lraspp
+from .model import OBJECT_HEAD_CHANNELS, build_fusion_lraspp, build_multitask_fusion_lraspp
 from .object_targets import (
     OBJECT_CLASS_NAMES,
     build_object_targets,
     load_object_boxes,
     multitask_object_loss,
+    object_reg_channels,
     valid_localization_objects,
 )
 
@@ -54,6 +55,8 @@ class FusionPoleMultiTaskDataset(Dataset):
         self.input_width, self.input_height = input_size
         self.object_cfg = object_cfg
         self.object_class_names = tuple(object_cfg.get("object_classes", OBJECT_CLASS_NAMES))
+        self.predict_bbox2d = bool(object_cfg.get("predict_bbox2d", False))
+        self.adaptive_heatmap_radius = bool(object_cfg.get("adaptive_heatmap_radius", False))
         self.augment_strength = str(augment_strength)
         self.geometric_augment = bool(geometric_augment)
         self.rgb_mean = torch.tensor([0.485, 0.456, 0.406], dtype=torch.float32).view(3, 1, 1)
@@ -175,6 +178,8 @@ class FusionPoleMultiTaskDataset(Dataset):
             heatmap_radius_px=int(self.object_cfg.get("heatmap_radius_px", 2)),
             max_objects=int(self.object_cfg.get("max_objects_per_frame", 64)),
             object_class_names=self.object_class_names,
+            predict_bbox2d=self.predict_bbox2d,
+            adaptive_heatmap_radius=self.adaptive_heatmap_radius,
         )
         return fused, mask_tensor, object_targets
 
@@ -244,16 +249,34 @@ def _load_object_head_checkpoint(model: torch.nn.Module, checkpoint_path: str, *
     current = model.state_dict()
     compatible: Dict[str, torch.Tensor] = {}
     skipped = 0
+    partial = 0
     for key, tensor in source.items():
         key2 = key[7:] if str(key).startswith("module.") else str(key)
         if not key2.startswith("object_head."):
             continue
-        if key2 in current and tuple(current[key2].shape) == tuple(tensor.shape):
+        if key2 not in current:
+            skipped += 1
+            continue
+        cur = current[key2]
+        if tuple(cur.shape) == tuple(tensor.shape):
             compatible[key2] = tensor
+        elif (
+            cur.ndim == tensor.ndim
+            and cur.shape[0] > tensor.shape[0]
+            and tuple(cur.shape[1:]) == tuple(tensor.shape[1:])
+        ):
+            # Output channels grew (e.g. appended 2D-box channels). Copy the
+            # overlapping leading channels (heatmap + existing regression, same
+            # order/meaning) and keep the new channels' fresh init. Preserves the
+            # warm-started detection/regression instead of cold-starting the layer.
+            merged = cur.clone()
+            merged[: tensor.shape[0]] = tensor.to(merged.dtype)
+            compatible[key2] = merged
+            partial += 1
         else:
             skipped += 1
     model.load_state_dict(compatible, strict=False)
-    return {"loaded": len(compatible), "skipped": skipped}
+    return {"loaded": len(compatible), "skipped": skipped, "partial": partial}
 
 
 def _move_object_targets(targets: Dict[str, torch.Tensor], device: torch.device) -> Dict[str, torch.Tensor]:
@@ -320,6 +343,9 @@ def compute_losses(
     loss_weights: Dict[str, float],
     class_weights: Optional[torch.Tensor] = None,
     lovasz_weight: float = 0.0,
+    teacher: Optional[torch.nn.Module] = None,
+    distill_weight: float = 0.0,
+    distill_temp: float = 2.0,
 ) -> Tuple[torch.Tensor, Dict[str, float], torch.Tensor]:
     outputs = model(tensors)
     logits = outputs["out"]
@@ -328,6 +354,22 @@ def compute_losses(
     ce_loss = F.cross_entropy(logits, masks, weight=class_weights)
     lovasz_loss = lovasz_softmax_loss(logits.float(), masks) if float(lovasz_weight) > 0.0 else logits.new_zeros(())
     seg_loss = ce_loss + float(lovasz_weight) * lovasz_loss
+    # Seg-preservation distillation: anchor the student's seg logits to a frozen
+    # teacher (the seg-only model) so a partially-unfrozen backbone cannot drift
+    # segmentation while it adapts for localization.
+    if teacher is not None and float(distill_weight) > 0.0:
+        with torch.no_grad(), torch.cuda.amp.autocast(enabled=False):
+            t_out = teacher(tensors.float())
+            t_logits = t_out["out"] if isinstance(t_out, dict) else t_out
+            if t_logits.shape[-2:] != logits.shape[-2:]:
+                t_logits = F.interpolate(t_logits.float(), size=logits.shape[-2:], mode="bilinear", align_corners=False)
+        T = max(1e-3, float(distill_temp))
+        s_log = F.log_softmax(logits.float() / T, dim=1)
+        t_prob = F.softmax(t_logits.float() / T, dim=1)
+        distill_loss = F.kl_div(s_log, t_prob, reduction="none").sum(dim=1).mean() * (T * T)
+        seg_loss = seg_loss + float(distill_weight) * distill_loss
+    else:
+        distill_loss = seg_loss.detach().new_zeros(())
     # Run regression head losses in FP32 even when the surrounding context is AMP.
     # Smooth-L1 / BCE on small-magnitude regression targets are unstable in FP16
     # and can silently zero gradients into the object head.
@@ -349,6 +391,7 @@ def compute_losses(
         "seg_loss": float(seg_loss.detach().item()),
         "ce_loss": float(ce_loss.detach().item()),
         "lovasz_loss": float(lovasz_loss.detach().item()),
+        "distill_loss": float(distill_loss.detach().item()),
         "object_loss": float(object_loss.detach().item()),
         **object_parts,
     }
@@ -544,17 +587,25 @@ def train(args: argparse.Namespace) -> int:
     object_head_arch = str(object_cfg.get("head_arch", "shared"))
     object_use_coordconv = bool(object_cfg.get("use_coordconv", False))
     object_head_depth = int(object_cfg.get("head_depth", 2))
+    object_use_groundplane = bool(object_cfg.get("use_groundplane_prior", False))
+    object_groundplane_params = dict(object_cfg.get("groundplane_params", {}) or {})
+    object_predict_bbox2d = bool(object_cfg.get("predict_bbox2d", False))
+    # Total object-head channels = #object-classes (heatmap) + regression channels.
+    object_channels_total = len(object_class_names) + object_reg_channels(object_predict_bbox2d)
     model = build_multitask_fusion_lraspp(
         num_classes=num_classes,
         radar_channels=radar_channels,
         pretrained=bool(train_cfg.get("pretrained", True)) and not init_checkpoint,
         init_checkpoint=init_checkpoint,
-        object_channels=int(object_cfg.get("output_channels", OBJECT_HEAD_CHANNELS)),
+        object_channels=object_channels_total,
         object_hidden_channels=int(object_cfg.get("hidden_channels", 128)),
         fuse_low_into_object_head=fuse_low_into_object_head,
         head_arch=object_head_arch,
         use_coordconv=object_use_coordconv,
         head_depth=object_head_depth,
+        predict_bbox2d=object_predict_bbox2d,
+        use_groundplane_prior=object_use_groundplane,
+        groundplane_params=object_groundplane_params,
         device=device,
     ).to(device)
     init_object_checkpoint = str(trial.get("init_object_checkpoint", train_cfg.get("init_object_checkpoint", "")))
@@ -562,7 +613,8 @@ def train(args: argparse.Namespace) -> int:
         object_load_stats = _load_object_head_checkpoint(model, init_object_checkpoint, device=device)
         log(
             f"Loaded object head from {init_object_checkpoint}; "
-            f"loaded={object_load_stats['loaded']} skipped={object_load_stats['skipped']}."
+            f"loaded={object_load_stats['loaded']} partial={object_load_stats.get('partial', 0)} "
+            f"skipped={object_load_stats['skipped']}."
         )
     freeze_backbone = bool(trial.get("freeze_backbone", train_cfg.get("freeze_backbone", False)))
     freeze_classifier = bool(
@@ -578,6 +630,16 @@ def train(args: argparse.Namespace) -> int:
         _set_requires_grad(model.classifier, False)
     if freeze_object_head:
         _set_requires_grad(model.object_head, False)
+    # Partial unfreeze: re-enable grads on only the last N backbone blocks so the
+    # high-feature / object pathway can adapt while the low-detail (person-boundary)
+    # pathway stays frozen. BN is re-frozen below regardless.
+    unfreeze_backbone_last_n = int(trial.get("unfreeze_backbone_last_n", 0))
+    if unfreeze_backbone_last_n > 0:
+        bb_children = list(model.backbone.named_children())
+        for name, child in bb_children[-unfreeze_backbone_last_n:]:
+            _set_requires_grad(child, True)
+        log(f"Partial unfreeze: last {unfreeze_backbone_last_n} backbone blocks "
+            f"({[n for n, _ in bb_children[-unfreeze_backbone_last_n:]]}) set trainable.")
     freeze_bn = bool(trial.get("freeze_bn", train_cfg.get("freeze_bn", False)))
     if freeze_bn:
         _freeze_batch_norm(model)
@@ -612,6 +674,24 @@ def train(args: argparse.Namespace) -> int:
     class_loss_weights_cfg = trial.get("class_loss_weights", train_cfg.get("class_loss_weights"))
     selection_score_mode = str(trial.get("selection_score_mode", train_cfg.get("selection_score_mode", "default")))
     lovasz_weight = float(trial.get("lovasz_weight", train_cfg.get("lovasz_weight", 0.0)))
+    # Seg-distillation teacher: a frozen copy of the seg model (from the distill
+    # checkpoint, defaulting to the seg init checkpoint) anchors the student's seg
+    # output while the backbone partially adapts for localization.
+    distill_weight = float(trial.get("distill_weight", 0.0))
+    distill_temp = float(trial.get("distill_temp", 2.0))
+    teacher_model = None
+    if distill_weight > 0.0:
+        teacher_ckpt = str(trial.get("distill_teacher_checkpoint", init_checkpoint))
+        teacher_model = build_fusion_lraspp(
+            num_classes=num_classes,
+            radar_channels=radar_channels,
+            pretrained=False,
+            init_checkpoint=teacher_ckpt,
+            device=device,
+        ).to(device)
+        teacher_model.eval()
+        _set_requires_grad(teacher_model, False)
+        log(f"Distillation enabled: weight={distill_weight:g} temp={distill_temp:g} teacher={teacher_ckpt}")
     class_weights_tensor: Optional[torch.Tensor] = None
     if class_loss_weights_cfg is not None:
         class_weights_tensor = torch.tensor(
@@ -711,6 +791,9 @@ def train(args: argparse.Namespace) -> int:
                     model, tensors, masks, object_targets, num_classes, loss_weights,
                     class_weights=class_weights_tensor,
                     lovasz_weight=lovasz_weight,
+                    teacher=teacher_model,
+                    distill_weight=distill_weight,
+                    distill_temp=distill_temp,
                 )
             scaler.scale(loss).backward()
             scaler.step(optimizer)
@@ -769,12 +852,15 @@ def train(args: argparse.Namespace) -> int:
                     "config": config,
                     "input_size": [input_width, input_height],
                     "radar_channels": radar_channels,
-                    "object_channels": int(object_cfg.get("output_channels", OBJECT_HEAD_CHANNELS)),
+                    "object_channels": object_channels_total,
+                    "object_predict_bbox2d": object_predict_bbox2d,
                     "object_class_names": list(object_class_names),
                     "fuse_low_into_object_head": bool(fuse_low_into_object_head),
                     "object_head_arch": object_head_arch,
                     "object_use_coordconv": object_use_coordconv,
                     "object_head_depth": object_head_depth,
+                    "object_use_groundplane_prior": object_use_groundplane,
+                    "object_groundplane_params": object_groundplane_params,
                     "class_names": CLASS_NAMES[:num_classes],
                     "init_rgb_checkpoint": init_checkpoint,
                     "init_object_checkpoint": init_object_checkpoint,
@@ -807,7 +893,8 @@ def train(args: argparse.Namespace) -> int:
                 "config": config,
                 "input_size": [input_width, input_height],
                 "radar_channels": radar_channels,
-                "object_channels": int(object_cfg.get("output_channels", OBJECT_HEAD_CHANNELS)),
+                "object_channels": object_channels_total,
+                    "object_predict_bbox2d": object_predict_bbox2d,
                 "object_class_names": list(object_class_names),
                 "fuse_low_into_object_head": bool(fuse_low_into_object_head),
                 "object_head_arch": object_head_arch,

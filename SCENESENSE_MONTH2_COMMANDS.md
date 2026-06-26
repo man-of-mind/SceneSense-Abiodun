@@ -2327,6 +2327,162 @@ python3 scripts/summarize_moving_radar_model_ablation.py \
   --output-dir analysis_outputs/radar_model_ablation/${DATE_TAG}
 ```
 
+## 3.4 Radar Pedestrian Motion + Model Utility Diagnostics
+
+Use these diagnostics to answer two supervisor questions:
+
+- Does pedestrian motion change the CARLA radar point returns?
+- How many radar points are actually useful for model localization?
+
+Run from `neu_collab/abiodun` with CARLA already running.
+
+### 3.4.0 Scout a clean crossing area
+
+Use this before the moving-pedestrian sweep if the current location makes the
+walker hit a median/slab. The scout ranks spawn/distance/amplitude combinations
+where the proposed crossing line stays close to a flat drivable road surface.
+
+```bash
+python3 scripts/scout_radar_pedestrian_crossing_area.py \
+  --distance-list-m 15,20,30,40,60 \
+  --amplitude-list-m 6,8 \
+  --top 12 \
+  --output-dir analysis_outputs/radar_pedestrian_crossing_scout/open_area_search_20260625
+```
+
+Then inspect the generated probe commands:
+
+```bash
+sed -n '1,120p' analysis_outputs/radar_pedestrian_crossing_scout/open_area_search_20260625/visual_probe_commands.sh
+```
+
+Run the first few visual probe commands until the pedestrian crosses from one
+edge of the ego view to the other without hitting a median/curb/slab.
+
+### 3.4.1 Visual smoke test: pedestrian crossing radar FOV
+
+```bash
+python3 carla_radar_pedestrian_distance_pps_diagnostic.py \
+  --experiment-id radar_ped_cross_visual_smoke_20260625 \
+  --walker-motion-mode cross \
+  --walker-motion-control walker_control_nudge \
+  --walker-motion-amplitude-m 8.0 \
+  --walker-motion-speed-mps 3.0 \
+  --walker-nudge-after-frames 8 \
+  --pps-list 48000 \
+  --distance-list-m 30 \
+  --frames-per-condition 1200 \
+  --warmup-frames 20 \
+  --walker-physics-mode default \
+  --plot-min-distance-m 10 \
+  --preview \
+  --preview-width 1280 \
+  --preview-height 720
+```
+
+Note: at this placement, `10m` intersects the raised median/slab and can make
+CARLA's walker controller get stuck. For this controlled radar diagnostic,
+`--walker-motion-control walker_control_nudge` uses normal CARLA walker control
+for the walking animation, then applies a small transform nudge only if the
+walker stalls on geometry for several frames. Amplitude `8.0` moves the walker
+from the left edge of the ego view toward the right edge, and the long
+`1200`-frame window is only for visual confirmation before running the shorter
+measurement sweep. If it still sticks in a bad area, use the kinematic fallback
+for the sensor-only diagnostic, but note that it will look more like sliding.
+
+Expected output:
+
+```text
+radar_pedestrian_diagnostic_runs/radar_ped_cross_visual_smoke_20260625/
+```
+
+### 3.4.2 Full sweep: crossing pedestrian
+
+```bash
+mkdir -p logs
+
+nohup python3 carla_radar_pedestrian_distance_pps_diagnostic.py \
+  --experiment-id radar_ped_cross_pps5k_to100k_dist5_to55_scaledamp_default_20260625 \
+  --walker-motion-mode cross \
+  --walker-motion-control walker_control_nudge \
+  --walker-motion-amplitude-list-m 8,10,10,12,14,16 \
+  --walker-motion-speed-mps 2.5 \
+  --walker-nudge-after-frames 8 \
+  --pps-list 5000,12000,24000,48000,60000,80000,100000 \
+  --distance-list-m 5,15,20,30,40,55 \
+  --frames-per-condition 500 \
+  --warmup-frames 20 \
+  --walker-physics-mode default \
+  --plot-min-distance-m 10 \
+  > logs/radar_ped_cross_pps_distance_20260625.log 2>&1 &
+
+tail -f logs/radar_ped_cross_pps_distance_20260625.log
+```
+
+Optional line-of-sight motion check:
+
+```bash
+nohup python3 carla_radar_pedestrian_distance_pps_diagnostic.py \
+  --experiment-id radar_ped_towardaway_pps5k_to100k_dist10_to100_default_20260625 \
+  --walker-motion-mode toward_away \
+  --walker-motion-control walker_control_nudge \
+  --walker-motion-amplitude-m 3.0 \
+  --walker-motion-speed-mps 1.2 \
+  --walker-nudge-after-frames 8 \
+  --pps-list 5000,12000,24000,48000,60000,80000,100000 \
+  --distance-list-m 10,15,20,30,40,60,80,100 \
+  --frames-per-condition 120 \
+  --warmup-frames 20 \
+  --walker-physics-mode default \
+  --plot-min-distance-m 10 \
+  > logs/radar_ped_towardaway_pps_distance_20260625.log 2>&1 &
+```
+
+Key output files:
+
+```text
+frame_metrics.csv
+summary_by_condition.csv
+mean_person_radar_points_vs_distance_default.png
+person_radar_support_rate_vs_distance_default.png
+```
+
+Important interpretation:
+
+- `radius_support_rate` means at least one point touched the pedestrian.
+- `radius_support_rate_ge5` and `radius_support_rate_ge10` are stricter and better for presentation.
+- Use mean/median points plus `>=5`/`>=10` support, not only binary support.
+
+### 3.4.3 Model utility vs radar points
+
+This joins evaluation TP/FN rows with `object_boxes.csv` and asks whether more
+radar points actually improve localization recall or XY error.
+
+Example using the current partial-unfreeze localization evaluation:
+
+```bash
+MPLCONFIGDIR=/tmp/matplotlib-cache \
+python3 scripts/analyze_model_utility_by_radar_points.py \
+  --object-metrics experiments/autonomous_arch_runs_20260625/archE_partialunfreeze2_distill5_lr5e5_r4/eval_last_thr030/metrics/test_learned_object_metrics.csv \
+  --dataset-dir experiments/autonomous_arch_runs_20260625/archE_partialunfreeze2_distill5_lr5e5_r4/dataset \
+  --output-dir analysis_outputs/model_utility_by_radar_points/archE_partialunfreeze_last_thr030
+```
+
+Key output files:
+
+```text
+model_utility_by_radar_points_summary.md
+localization_recall_by_radar_point_bin.png
+xy_error_by_radar_point_bin.png
+person_recall_distance_vs_radar_points.png
+```
+
+Presentation question answered by this script:
+
+```text
+At what radar-point bucket does recall improve without making XY error worse?
+```
+
 ## 4. Remote Sync, When Needed
 
 When moving the new coordinator to the remote machine:

@@ -19,15 +19,33 @@ RESULTS="${PARENT}/RESULTS.md"
 RUN_NAME="${RUN_NAME:?set RUN_NAME}"
 HEAD_ARCH="${HEAD_ARCH:-decoupled}"
 USE_COORDCONV="${USE_COORDCONV:-true}"
+USE_GROUNDPLANE_PRIOR="${USE_GROUNDPLANE_PRIOR:-false}"
+PREDICT_BBOX2D="${PREDICT_BBOX2D:-false}"
+ADAPTIVE_RADIUS="${ADAPTIVE_RADIUS:-false}"
 HEAD_DEPTH="${HEAD_DEPTH:-3}"
 HEATMAP_RADIUS_PX="${HEATMAP_RADIUS_PX:-4}"
 EPOCHS="${EPOCHS:-60}"
 LR="${LR:-0.0002}"
 WEIGHT_DECAY="${WEIGHT_DECAY:-0.0002}"
-BATCH_SIZE="${BATCH_SIZE:-24}"
+BATCH_SIZE="${BATCH_SIZE:-16}"
+NUM_WORKERS="${NUM_WORKERS:-4}"
+PREFETCH_FACTOR="${PREFETCH_FACTOR:-2}"
+PERSISTENT_WORKERS="${PERSISTENT_WORKERS:-false}"
 EARLY_STOP_PATIENCE="${EARLY_STOP_PATIENCE:-20}"
 SELECTION_SCORE_MODE="${SELECTION_SCORE_MODE:-loc_dim_loss}"
 TRAINING_BUDGET_HOURS="${TRAINING_BUDGET_HOURS:-4.0}"
+# Backbone-adaptation knobs (defaults reproduce the frozen-backbone stage-2 recipe).
+FREEZE_BACKBONE="${FREEZE_BACKBONE:-true}"
+FREEZE_CLASSIFIER="${FREEZE_CLASSIFIER:-true}"
+FREEZE_BN="${FREEZE_BN:-false}"
+SEG_LOSS_WEIGHT="${SEG_LOSS_WEIGHT:-0.0}"
+INIT_OBJECT_CHECKPOINT="${INIT_OBJECT_CHECKPOINT:-}"
+UNFREEZE_BACKBONE_LAST_N="${UNFREEZE_BACKBONE_LAST_N:-0}"
+DISTILL_WEIGHT="${DISTILL_WEIGHT:-0.0}"
+DISTILL_TEMP="${DISTILL_TEMP:-2.0}"
+DISTILL_TEACHER_CHECKPOINT="${DISTILL_TEACHER_CHECKPOINT:-${SEG_CHECKPOINT}}"
+# Optional per-component object-loss override (JSON). Empty -> use config defaults.
+OBJECT_LOSS_JSON="${OBJECT_LOSS_JSON:-}"
 PYTHON="${PYTHON:-python3}"
 
 export MPLCONFIGDIR="/tmp/matplotlib-cache"
@@ -38,6 +56,13 @@ export CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-0}"
 EXPERIMENT_DIR="${PARENT}/${RUN_NAME}"
 mkdir -p "${PARENT}" "${EXPERIMENT_DIR}"
 
+# Assemble loss_weights, optionally injecting the per-component object override.
+if [[ -n "${OBJECT_LOSS_JSON}" ]]; then
+  LOSS_WEIGHTS_JSON="{\"segmentation\":${SEG_LOSS_WEIGHT},\"object_total\":1.0,\"object\":${OBJECT_LOSS_JSON}}"
+else
+  LOSS_WEIGHTS_JSON="{\"segmentation\":${SEG_LOSS_WEIGHT},\"object_total\":1.0}"
+fi
+
 link_dataset() {  # $1 = dir
   local d="$1"
   if [[ -L "${d}/dataset" ]]; then unlink "${d}/dataset"; fi
@@ -46,8 +71,8 @@ link_dataset() {  # $1 = dir
 }
 link_dataset "${EXPERIMENT_DIR}"
 
-trial_json="$(printf '{"name":"%s","optimizer":"adamw","lr":%s,"weight_decay":%s,"augment_strength":"strong","input_size":[768,432],"batch_size":%s,"num_workers":8,"prefetch_factor":4,"persistent_workers":true,"epochs":%s,"init_rgb_checkpoint":"%s","init_object_checkpoint":"","freeze_backbone":true,"freeze_classifier":true,"freeze_object_head":false,"selection_score_mode":"%s","early_stop_patience":%s,"loss_weights":{"segmentation":0.0,"object_total":1.0},"object_heads":{"heatmap_radius_px":%s,"fuse_low_feature":true,"head_arch":"%s","use_coordconv":%s,"head_depth":%s}}' \
-  "${RUN_NAME}" "${LR}" "${WEIGHT_DECAY}" "${BATCH_SIZE}" "${EPOCHS}" "${SEG_CHECKPOINT}" "${SELECTION_SCORE_MODE}" "${EARLY_STOP_PATIENCE}" "${HEATMAP_RADIUS_PX}" "${HEAD_ARCH}" "${USE_COORDCONV}" "${HEAD_DEPTH}")"
+trial_json="$(printf '{"name":"%s","optimizer":"adamw","lr":%s,"weight_decay":%s,"augment_strength":"strong","input_size":[768,432],"batch_size":%s,"num_workers":%s,"prefetch_factor":%s,"persistent_workers":%s,"epochs":%s,"init_rgb_checkpoint":"%s","init_object_checkpoint":"%s","freeze_backbone":%s,"freeze_classifier":%s,"freeze_bn":%s,"freeze_object_head":false,"unfreeze_backbone_last_n":%s,"distill_weight":%s,"distill_temp":%s,"distill_teacher_checkpoint":"%s","selection_score_mode":"%s","early_stop_patience":%s,"loss_weights":%s,"object_heads":{"heatmap_radius_px":%s,"fuse_low_feature":true,"head_arch":"%s","use_coordconv":%s,"head_depth":%s,"use_groundplane_prior":%s,"predict_bbox2d":%s,"adaptive_heatmap_radius":%s}}' \
+  "${RUN_NAME}" "${LR}" "${WEIGHT_DECAY}" "${BATCH_SIZE}" "${NUM_WORKERS}" "${PREFETCH_FACTOR}" "${PERSISTENT_WORKERS}" "${EPOCHS}" "${SEG_CHECKPOINT}" "${INIT_OBJECT_CHECKPOINT}" "${FREEZE_BACKBONE}" "${FREEZE_CLASSIFIER}" "${FREEZE_BN}" "${UNFREEZE_BACKBONE_LAST_N}" "${DISTILL_WEIGHT}" "${DISTILL_TEMP}" "${DISTILL_TEACHER_CHECKPOINT}" "${SELECTION_SCORE_MODE}" "${EARLY_STOP_PATIENCE}" "${LOSS_WEIGHTS_JSON}" "${HEATMAP_RADIUS_PX}" "${HEAD_ARCH}" "${USE_COORDCONV}" "${HEAD_DEPTH}" "${USE_GROUNDPLANE_PRIOR}" "${PREDICT_BBOX2D}" "${ADAPTIVE_RADIUS}")"
 
 echo "=== TRAIN ${RUN_NAME} ==="
 echo "  arch=${HEAD_ARCH} coordconv=${USE_COORDCONV} depth=${HEAD_DEPTH} radius=${HEATMAP_RADIUS_PX}"

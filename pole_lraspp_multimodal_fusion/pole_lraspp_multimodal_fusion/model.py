@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from collections import OrderedDict
 from pathlib import Path
 from typing import Dict, Optional, Tuple
@@ -7,7 +8,7 @@ from typing import Dict, Optional, Tuple
 import torch
 import torch.nn.functional as F
 
-from .object_targets import OBJECT_OUTPUT_CHANNELS, OBJECT_REG_CHANNELS
+from .object_targets import OBJECT_OUTPUT_CHANNELS, OBJECT_REG_CHANNELS, object_reg_channels
 
 OBJECT_HEAD_CHANNELS = OBJECT_OUTPUT_CHANNELS
 
@@ -25,8 +26,24 @@ class MultiTaskFusionLRASPP(torch.nn.Module):
         head_arch: str = "shared",
         use_coordconv: bool = False,
         head_depth: int = 2,
+        predict_bbox2d: bool = False,
+        use_groundplane_prior: bool = False,
+        cam_fy: float = 369.5,
+        cam_cy: float = 360.0,
+        cam_height_m: float = 1.57,
+        cam_pitch_deg: float = -4.16,
+        cam_image_height: int = 720,
+        groundplane_max_range_m: float = 80.0,
     ) -> None:
         super().__init__()
+        # Camera geometry for the optional ground-plane depth prior (flat-ground IPM).
+        self.use_groundplane_prior = bool(use_groundplane_prior)
+        self.cam_fy = float(cam_fy)
+        self.cam_cy = float(cam_cy)
+        self.cam_height_m = float(cam_height_m)
+        self.cam_pitch_deg = float(cam_pitch_deg)
+        self.cam_image_height = int(cam_image_height)
+        self.groundplane_max_range_m = float(groundplane_max_range_m)
         self.backbone = base_model.backbone
         self.classifier = base_model.classifier
         try:
@@ -48,16 +65,20 @@ class MultiTaskFusionLRASPP(torch.nn.Module):
         self.head_arch = str(head_arch).lower()
         self.use_coordconv = bool(use_coordconv)
         self.head_depth = max(1, int(head_depth))
-        self.heatmap_channels = max(1, int(self.object_channels) - OBJECT_REG_CHANNELS)
+        self.predict_bbox2d = bool(predict_bbox2d)
+        self.reg_channels = object_reg_channels(self.predict_bbox2d)
+        self.heatmap_channels = max(1, int(self.object_channels) - self.reg_channels)
         # CoordConv appends normalized (x, y) image-position channels so the head
         # can exploit image-row -> ground-plane depth priors (key for pedestrians).
         head_in = int(object_in_channels) + (2 if self.use_coordconv else 0)
+        # Ground-plane prior appends one calibrated per-row depth channel.
+        head_in += (1 if self.use_groundplane_prior else 0)
 
         if self.head_arch == "decoupled":
             # Separate detection (heatmap) and metric-regression branches so the
             # two objectives do not compete inside a single shallow trunk.
             self.heatmap_head = self._make_head(head_in, int(hidden_channels), self.heatmap_channels, self.head_depth)
-            self.reg_head = self._make_head(head_in, int(hidden_channels), OBJECT_REG_CHANNELS, self.head_depth)
+            self.reg_head = self._make_head(head_in, int(hidden_channels), self.reg_channels, self.head_depth)
             self.object_head = None
         else:
             self.object_head = self._make_head(head_in, int(hidden_channels), self.object_channels, self.head_depth)
@@ -99,6 +120,13 @@ class MultiTaskFusionLRASPP(torch.nn.Module):
             with torch.no_grad():
                 final.bias.zero_()
                 final.bias[:heatmap_channels] = -4.6
+        # Bias the 2D-box (last two regression) logits so softplus(bias) ~ 0.05, a
+        # typical normalized object size, instead of softplus(0) ~ 0.69 (huge boxes).
+        if self.predict_bbox2d:
+            reg_final = self.reg_head[-1] if self.head_arch == "decoupled" else self.object_head[-1]
+            if isinstance(reg_final, torch.nn.Conv2d) and reg_final.bias is not None and reg_final.bias.numel() >= 2:
+                with torch.no_grad():
+                    reg_final.bias[-2:] = -3.0
 
     def _high_feature(self, features: object) -> torch.Tensor:
         if isinstance(features, torch.Tensor):
@@ -130,7 +158,27 @@ class MultiTaskFusionLRASPP(torch.nn.Module):
             base = torch.cat([low, high], dim=1)
         if self.use_coordconv:
             base = torch.cat([base, self._coord_channels(base)], dim=1)
+        if self.use_groundplane_prior:
+            base = torch.cat([base, self._groundplane_channel(base)], dim=1)
         return base
+
+    def _groundplane_channel(self, ref: torch.Tensor) -> torch.Tensor:
+        """Flat-ground IPM depth prior: per feature-map row, the ground distance a
+        ground-contact object at that row would be at, normalized to [0, 1]. Above
+        the horizon -> clamped to 1 (far). Constant across columns (roll ~ 0)."""
+        n, _, h, w = ref.shape
+        rows = torch.arange(h, device=ref.device, dtype=torch.float32)
+        v = (rows + 0.5) / float(h) * float(self.cam_image_height)  # feature row -> full-image row
+        a = torch.atan((v - self.cam_cy) / max(1e-3, self.cam_fy))  # angle below optical axis
+        pitch_down = math.radians(-self.cam_pitch_deg)              # CARLA neg pitch = looking down
+        total_down = pitch_down + a
+        depth = torch.where(
+            total_down > 1e-3,
+            self.cam_height_m / torch.tan(total_down.clamp(min=1e-3)),
+            torch.full_like(total_down, self.groundplane_max_range_m),
+        )
+        depth = depth.clamp(min=0.0, max=self.groundplane_max_range_m) / self.groundplane_max_range_m
+        return depth.view(1, 1, h, 1).expand(n, 1, h, w).to(ref.dtype)
 
     @staticmethod
     def _coord_channels(ref: torch.Tensor) -> torch.Tensor:
@@ -286,6 +334,9 @@ def build_multitask_fusion_lraspp(
     head_arch: str = "shared",
     use_coordconv: bool = False,
     head_depth: int = 2,
+    predict_bbox2d: bool = False,
+    use_groundplane_prior: bool = False,
+    groundplane_params: Optional[Dict[str, float]] = None,
     device: Optional[torch.device] = None,
 ) -> MultiTaskFusionLRASPP:
     base = build_fusion_lraspp(
@@ -295,6 +346,7 @@ def build_multitask_fusion_lraspp(
         init_checkpoint=init_checkpoint,
         device=device,
     )
+    gp = dict(groundplane_params or {})
     return MultiTaskFusionLRASPP(
         base,
         object_channels=int(object_channels),
@@ -303,4 +355,12 @@ def build_multitask_fusion_lraspp(
         head_arch=str(head_arch),
         use_coordconv=bool(use_coordconv),
         head_depth=int(head_depth),
+        predict_bbox2d=bool(predict_bbox2d),
+        use_groundplane_prior=bool(use_groundplane_prior),
+        cam_fy=float(gp.get("cam_fy", 369.5)),
+        cam_cy=float(gp.get("cam_cy", 360.0)),
+        cam_height_m=float(gp.get("cam_height_m", 1.57)),
+        cam_pitch_deg=float(gp.get("cam_pitch_deg", -4.16)),
+        cam_image_height=int(gp.get("cam_image_height", 720)),
+        groundplane_max_range_m=float(gp.get("groundplane_max_range_m", 80.0)),
     )

@@ -2,10 +2,10 @@
 """Controlled CARLA radar-vs-pedestrian diagnostic.
 
 This script isolates the radar sensor from the fusion model. It places one
-stationary pedestrian directly in front of an ego-mounted radar, then sweeps
-radar points-per-second and pedestrian distance. The goal is to measure whether
-CARLA radar returns disappear because of distance, point density, or pedestrian
-physics settings.
+pedestrian directly in front of an ego-mounted radar, then sweeps radar
+points-per-second and pedestrian distance. The pedestrian can remain stationary
+or walk across/toward the radar so we can measure whether CARLA radar returns
+change with pedestrian motion, distance, point density, or physics settings.
 """
 
 from __future__ import annotations
@@ -35,6 +35,19 @@ def parse_float_list(text: str) -> List[float]:
 
 def parse_int_list(text: str) -> List[int]:
     return [int(item.strip()) for item in text.split(",") if item.strip()]
+
+
+def amplitude_values_for_distances(args: argparse.Namespace, distances: Sequence[float]) -> List[float]:
+    text = str(getattr(args, "walker_motion_amplitude_list_m", "") or "").strip()
+    if not text:
+        return [float(getattr(args, "walker_motion_amplitude_m", 0.0)) for _ in distances]
+    values = parse_float_list(text)
+    if len(values) != len(distances):
+        raise SystemExit(
+            "--walker-motion-amplitude-list-m must have the same number of entries as --distance-list-m "
+            f"({len(values)} amplitudes for {len(distances)} distances)."
+        )
+    return values
 
 
 def parse_args() -> argparse.Namespace:
@@ -91,6 +104,52 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--walker-lateral-m", type=float, default=0.0)
     parser.add_argument("--walker-face-radar", action="store_true", default=True)
     parser.add_argument("--no-walker-face-radar", dest="walker_face_radar", action="store_false")
+    parser.add_argument(
+        "--walker-motion-mode",
+        choices=("stationary", "cross", "toward_away"),
+        default="stationary",
+        help=(
+            "stationary keeps the walker fixed; cross walks left-right across the radar FOV; "
+            "toward_away walks along the radar line of sight and reverses at the amplitude limits."
+        ),
+    )
+    parser.add_argument(
+        "--walker-motion-control",
+        choices=("walker_control", "walker_control_nudge", "kinematic"),
+        default="walker_control",
+        help=(
+            "walker_control uses CARLA WalkerControl and can get stuck on medians/bollards; "
+            "walker_control_nudge uses WalkerControl for animation and only nudges on stalls; "
+            "kinematic moves the actor by transform updates for controlled radar sweeps."
+        ),
+    )
+    parser.add_argument(
+        "--walker-motion-amplitude-m",
+        type=float,
+        default=3.0,
+        help="Half-width of the moving-walker path around each target distance.",
+    )
+    parser.add_argument(
+        "--walker-motion-amplitude-list-m",
+        default="",
+        help=(
+            "Optional comma-separated half-widths for moving-walker paths. "
+            "When provided, it must match --distance-list-m one-for-one and overrides "
+            "--walker-motion-amplitude-m for each distance."
+        ),
+    )
+    parser.add_argument(
+        "--walker-motion-speed-mps",
+        type=float,
+        default=1.2,
+        help="Walker control speed for moving diagnostic modes.",
+    )
+    parser.add_argument(
+        "--walker-nudge-after-frames",
+        type=int,
+        default=8,
+        help="For walker_control_nudge, nudge the actor after this many low-progress frames.",
+    )
     parser.add_argument(
         "--debug-placement",
         action="store_true",
@@ -261,11 +320,18 @@ def place_walker(
     args: argparse.Namespace,
     distance_m: float,
     reference_tf: Optional["carla.Transform"] = None,
+    lateral_offset_m: float = 0.0,
+    forward_offset_m: float = 0.0,
+    yaw_override_deg: Optional[float] = None,
 ) -> "carla.Transform":
     radar_tf = reference_tf if reference_tf is not None else radar_world_pose(ego, args)
     forward, right = transform_forward_right(radar_tf)
     origin = np.asarray([radar_tf.location.x, radar_tf.location.y, radar_tf.location.z], dtype=np.float64)
-    location_xyz = origin + forward * float(distance_m) + right * float(args.walker_lateral_m)
+    location_xyz = (
+        origin
+        + forward * (float(distance_m) + float(forward_offset_m))
+        + right * (float(args.walker_lateral_m) + float(lateral_offset_m))
+    )
     ground_z = float(ego.get_location().z)
     try:
         waypoint = walker.get_world().get_map().get_waypoint(
@@ -282,7 +348,10 @@ def place_walker(
         actor_z = ground_z + half_height + float(args.walker_z_offset_m)
     else:
         actor_z = ground_z + float(args.walker_z_offset_m)
-    yaw = radar_tf.rotation.yaw + 180.0 if bool(args.walker_face_radar) else radar_tf.rotation.yaw
+    if yaw_override_deg is not None:
+        yaw = float(yaw_override_deg)
+    else:
+        yaw = radar_tf.rotation.yaw + 180.0 if bool(args.walker_face_radar) else radar_tf.rotation.yaw
     tf = carla.Transform(
         carla.Location(
             x=float(location_xyz[0]),
@@ -323,6 +392,203 @@ def place_walker(
             f"z_mode={getattr(args, 'walker_z_mode', 'feet')}"
         )
     return tf
+
+
+def reset_walker_motion(
+    walker: "carla.Actor",
+    ego: "carla.Actor",
+    args: argparse.Namespace,
+    distance_m: float,
+    reference_tf: "carla.Transform",
+    amplitude_m: Optional[float] = None,
+) -> Dict[str, object]:
+    mode = str(getattr(args, "walker_motion_mode", "stationary"))
+    amplitude = max(
+        0.0,
+        float(getattr(args, "walker_motion_amplitude_m", 0.0) if amplitude_m is None else amplitude_m),
+    )
+    state: Dict[str, object] = {
+        "mode": mode,
+        "target_distance_m": float(distance_m),
+        "direction": 1.0,
+        "amplitude_m": amplitude,
+        "coordinate_m": -amplitude,
+        "last_coordinate_m": None,
+        "stuck_frames": 0,
+    }
+    if mode == "cross" and amplitude > 0.0:
+        _forward, right = transform_forward_right(reference_tf)
+        yaw = math.degrees(math.atan2(float(right[1]), float(right[0])))
+        place_walker(
+            walker,
+            ego,
+            args,
+            float(distance_m),
+            reference_tf=reference_tf,
+            lateral_offset_m=-amplitude,
+            yaw_override_deg=yaw,
+        )
+    elif mode == "toward_away" and amplitude > 0.0:
+        forward, _right = transform_forward_right(reference_tf)
+        yaw = math.degrees(math.atan2(float(forward[1]), float(forward[0])))
+        place_walker(
+            walker,
+            ego,
+            args,
+            float(distance_m),
+            reference_tf=reference_tf,
+            forward_offset_m=-amplitude,
+            yaw_override_deg=yaw,
+        )
+    else:
+        place_walker(walker, ego, args, float(distance_m), reference_tf=reference_tf)
+        state["mode"] = "stationary"
+    return state
+
+
+def update_walker_motion(
+    ego: "carla.Actor",
+    walker: "carla.Actor",
+    args: argparse.Namespace,
+    reference_tf: "carla.Transform",
+    state: Dict[str, object],
+) -> None:
+    mode = str(state.get("mode", "stationary"))
+    if mode == "stationary":
+        return
+    amplitude = max(0.0, float(state.get("amplitude_m", 0.0)))
+    speed = max(0.0, float(getattr(args, "walker_motion_speed_mps", 0.0)))
+    if amplitude <= 0.0 or speed <= 0.0:
+        return
+
+    forward, right = transform_forward_right(reference_tf)
+    if str(getattr(args, "walker_motion_control", "walker_control")) == "kinematic":
+        dt = 1.0 / max(0.1, float(getattr(args, "fps", 10.0)))
+        coordinate = float(state.get("coordinate_m", -amplitude))
+        direction = float(state.get("direction", 1.0))
+        coordinate += direction * speed * dt
+        if coordinate >= amplitude:
+            coordinate = amplitude
+            direction = -1.0
+        elif coordinate <= -amplitude:
+            coordinate = -amplitude
+            direction = 1.0
+        state["coordinate_m"] = coordinate
+        state["direction"] = direction
+        if mode == "cross":
+            yaw = math.degrees(math.atan2(float(right[1] * direction), float(right[0] * direction)))
+            place_walker(
+                walker,
+                ego,
+                args,
+                float(state.get("target_distance_m", 0.0)),
+                reference_tf=reference_tf,
+                lateral_offset_m=coordinate,
+                yaw_override_deg=yaw,
+            )
+            velocity_axis = right
+        else:
+            yaw = math.degrees(math.atan2(float(forward[1] * direction), float(forward[0] * direction)))
+            place_walker(
+                walker,
+                ego,
+                args,
+                float(state.get("target_distance_m", 0.0)),
+                reference_tf=reference_tf,
+                forward_offset_m=coordinate,
+                yaw_override_deg=yaw,
+            )
+            velocity_axis = forward
+        try:
+            walker.set_target_velocity(
+                carla.Vector3D(
+                    x=float(velocity_axis[0] * direction * speed),
+                    y=float(velocity_axis[1] * direction * speed),
+                    z=0.0,
+                )
+            )
+            walker.apply_control(
+                carla.WalkerControl(
+                    direction=carla.Vector3D(
+                        x=float(velocity_axis[0] * direction),
+                        y=float(velocity_axis[1] * direction),
+                        z=0.0,
+                    ),
+                    speed=float(speed),
+                    jump=False,
+                )
+            )
+        except Exception:
+            pass
+        return
+
+    walker_center = actor_bbox_center_world(walker)
+    walker_local = point_to_transform_local(walker_center, reference_tf)
+    if mode == "cross":
+        coordinate = float(walker_local[1]) - float(getattr(args, "walker_lateral_m", 0.0))
+        axis = right
+    else:
+        coordinate = float(walker_local[0]) - float(state.get("target_distance_m", 0.0))
+        axis = forward
+
+    direction = float(state.get("direction", 1.0))
+    if coordinate >= amplitude:
+        direction = -1.0
+    elif coordinate <= -amplitude:
+        direction = 1.0
+    state["direction"] = direction
+    control_mode = str(getattr(args, "walker_motion_control", "walker_control"))
+    previous_coordinate = state.get("last_coordinate_m")
+    if previous_coordinate is not None:
+        progress = abs(float(coordinate) - float(previous_coordinate))
+        if progress < max(0.01, float(speed) / max(1.0, float(getattr(args, "fps", 10.0))) * 0.15):
+            state["stuck_frames"] = int(state.get("stuck_frames", 0)) + 1
+        else:
+            state["stuck_frames"] = 0
+    state["last_coordinate_m"] = coordinate
+
+    if control_mode == "walker_control_nudge" and int(state.get("stuck_frames", 0)) >= int(args.walker_nudge_after_frames):
+        dt = 1.0 / max(0.1, float(getattr(args, "fps", 10.0)))
+        next_coordinate = max(-amplitude, min(amplitude, coordinate + direction * speed * dt))
+        if mode == "cross":
+            yaw = math.degrees(math.atan2(float(right[1] * direction), float(right[0] * direction)))
+            place_walker(
+                walker,
+                ego,
+                args,
+                float(state.get("target_distance_m", 0.0)),
+                reference_tf=reference_tf,
+                lateral_offset_m=next_coordinate,
+                yaw_override_deg=yaw,
+            )
+        else:
+            yaw = math.degrees(math.atan2(float(forward[1] * direction), float(forward[0] * direction)))
+            place_walker(
+                walker,
+                ego,
+                args,
+                float(state.get("target_distance_m", 0.0)),
+                reference_tf=reference_tf,
+                forward_offset_m=next_coordinate,
+                yaw_override_deg=yaw,
+            )
+        state["coordinate_m"] = next_coordinate
+        state["last_coordinate_m"] = next_coordinate
+        state["stuck_frames"] = 0
+
+    axis = axis * direction
+    try:
+        walker.apply_control(
+            carla.WalkerControl(
+                direction=carla.Vector3D(x=float(axis[0]), y=float(axis[1]), z=0.0),
+                speed=float(speed),
+                jump=False,
+            )
+        )
+    except Exception:
+        # Some CARLA builds ignore direct walker control when physics are off.
+        # The row-level motion fields make that visible in the resulting CSV.
+        pass
 
 
 def points_inside_person_radius(
@@ -445,7 +711,11 @@ def draw_preview(image_bgr: np.ndarray, row: Dict[str, object], args: argparse.N
         marker_visible = False
     lines = [
         "CARLA radar pedestrian PPS/distance diagnostic",
-        f"pps={row['radar_pps']} dist={float(row['target_distance_m']):.1f}m physics={row['walker_physics']}",
+        (
+            f"pps={row['radar_pps']} dist={float(row['target_distance_m']):.1f}m "
+            f"motion={row.get('walker_motion_mode', 'stationary')}/{row.get('walker_motion_control', 'walker_control')} "
+            f"physics={row['walker_physics']}"
+        ),
         f"radar pts/frame={row['total_radar_points']} radius_pts={row['person_radius_points']} bbox_pts={row['person_bbox_points']}",
         f"depth_window_pts={row['depth_window_points']} nearest_depth={row['nearest_depth_m']}",
         (
@@ -487,10 +757,17 @@ def summarize_condition(rows: Sequence[Dict[str, object]]) -> Dict[str, object]:
     def rate(values: Sequence[int]) -> float:
         return float(sum(1 for value in values if value > 0) / len(values)) if values else float("nan")
 
+    def threshold_rate(values: Sequence[int], threshold: int) -> float:
+        return float(sum(1 for value in values if value >= threshold) / len(values)) if values else float("nan")
+
     return {
         "frames": len(rows),
         "radius_support_rate": rate(radius_counts),
+        "radius_support_rate_ge5": threshold_rate(radius_counts, 5),
+        "radius_support_rate_ge10": threshold_rate(radius_counts, 10),
         "bbox_support_rate": rate(bbox_counts),
+        "bbox_support_rate_ge5": threshold_rate(bbox_counts, 5),
+        "bbox_support_rate_ge10": threshold_rate(bbox_counts, 10),
         "depth_window_support_rate": rate(depth_counts),
         "mean_radius_points": float(mean(radius_counts)) if radius_counts else float("nan"),
         "median_radius_points": float(median(radius_counts)) if radius_counts else float("nan"),
@@ -508,28 +785,45 @@ def write_summary_outputs(
     *,
     plot_min_distance_m: float = 10.0,
 ) -> None:
-    groups: Dict[Tuple[str, int, float], List[Dict[str, object]]] = {}
+    groups: Dict[Tuple[str, str, str, int, float, float], List[Dict[str, object]]] = {}
     for row in frame_rows:
-        key = (str(row["walker_physics"]), int(row["radar_pps"]), float(row["target_distance_m"]))
+        key = (
+            str(row.get("walker_motion_mode", "stationary")),
+            str(row.get("walker_motion_control", "walker_control")),
+            str(row["walker_physics"]),
+            int(row["radar_pps"]),
+            float(row["target_distance_m"]),
+            float(row.get("walker_motion_amplitude_m", 0.0)),
+        )
         groups.setdefault(key, []).append(row)
     summary_rows: List[Dict[str, object]] = []
-    for (physics, pps, distance), rows in sorted(groups.items(), key=lambda item: (item[0][0], item[0][1], item[0][2])):
+    for (motion, control, physics, pps, distance, amplitude), rows in sorted(groups.items(), key=lambda item: item[0]):
         summary = summarize_condition(rows)
         summary_rows.append(
             {
+                "walker_motion_mode": motion,
+                "walker_motion_control": control,
                 "walker_physics": physics,
                 "radar_pps": pps,
                 "target_distance_m": distance,
+                "walker_motion_amplitude_m": amplitude,
                 **summary,
             }
         )
     summary_fields = [
+        "walker_motion_mode",
+        "walker_motion_control",
         "walker_physics",
         "radar_pps",
         "target_distance_m",
+        "walker_motion_amplitude_m",
         "frames",
         "radius_support_rate",
+        "radius_support_rate_ge5",
+        "radius_support_rate_ge10",
         "bbox_support_rate",
+        "bbox_support_rate_ge5",
+        "bbox_support_rate_ge10",
         "depth_window_support_rate",
         "mean_radius_points",
         "median_radius_points",
@@ -732,6 +1026,7 @@ def main() -> int:
 
     pps_values = parse_int_list(str(args.pps_list))
     distances = parse_float_list(str(args.distance_list_m))
+    amplitudes = amplitude_values_for_distances(args, distances)
     if args.walker_physics_mode == "both":
         physics_modes = ["on", "off"]
     elif args.walker_physics_mode == "all":
@@ -784,16 +1079,37 @@ def main() -> int:
                 world.tick()
                 while not radar_queue.empty():
                     radar_queue.get_nowait()
-                for distance_m in distances:
-                    place_walker(walker, ego, args, float(distance_m), reference_tf=radar.get_transform())
+                for distance_m, amplitude_m in zip(distances, amplitudes):
+                    motion_state = reset_walker_motion(
+                        walker,
+                        ego,
+                        args,
+                        float(distance_m),
+                        reference_tf=radar.get_transform(),
+                        amplitude_m=float(amplitude_m),
+                    )
                     for _ in range(max(0, int(args.warmup_frames))):
+                        update_walker_motion(ego, walker, args, radar.get_transform(), motion_state)
                         world.tick()
                         while not radar_queue.empty():
                             radar_queue.get_nowait()
                         while not camera_queue.empty():
                             camera_queue.get_nowait()
+                    if str(motion_state.get("mode", "stationary")) != "stationary":
+                        # Warmup lets the sensors settle, but for moving-walker
+                        # diagnostics we want the measured condition to begin at
+                        # the path edge rather than halfway through the crossing.
+                        motion_state = reset_walker_motion(
+                            walker,
+                            ego,
+                            args,
+                            float(distance_m),
+                            reference_tf=radar.get_transform(),
+                            amplitude_m=float(amplitude_m),
+                        )
 
                     for local_frame in range(int(args.frames_per_condition)):
+                        update_walker_motion(ego, walker, args, radar.get_transform(), motion_state)
                         world_tick = int(world.tick())
                         try:
                             measurement = radar_queue.get(timeout=2.0)
@@ -826,13 +1142,40 @@ def main() -> int:
                                 int(args.camera_height),
                                 float(args.camera_fov),
                             )
+                        actual_ground_distance = float(math.sqrt(float(walker_radar[0]) ** 2 + float(walker_radar[1]) ** 2))
+                        motion_coordinate = (
+                            float(walker_radar[1]) - float(args.walker_lateral_m)
+                            if str(motion_state.get("mode", "stationary")) == "cross"
+                            else float(walker_radar[0]) - float(distance_m)
+                        )
+                        mean_radius_velocity = (
+                            float(np.mean(arrays["velocity_mps"][radius_mask]))
+                            if arrays["velocity_mps"].size and np.any(radius_mask)
+                            else ""
+                        )
+                        mean_abs_radius_velocity = (
+                            float(np.mean(np.abs(arrays["velocity_mps"][radius_mask])))
+                            if arrays["velocity_mps"].size and np.any(radius_mask)
+                            else ""
+                        )
                         row = {
                             "world_tick_frame": world_tick,
                             "radar_frame": int(getattr(measurement, "frame", -1)),
                             "local_condition_frame": int(local_frame),
+                            "walker_motion_mode": str(motion_state.get("mode", "stationary")),
+                            "walker_motion_control": str(getattr(args, "walker_motion_control", "walker_control")),
+                            "walker_motion_coordinate_m": float(motion_coordinate),
+                            "walker_motion_direction": float(motion_state.get("direction", 0.0)),
+                            "walker_motion_speed_mps": float(args.walker_motion_speed_mps)
+                            if str(motion_state.get("mode", "stationary")) != "stationary"
+                            else 0.0,
+                            "walker_motion_amplitude_m": float(motion_state.get("amplitude_m", 0.0)),
                             "walker_physics": physics_status,
                             "radar_pps": int(pps),
                             "target_distance_m": float(distance_m),
+                            "actual_ground_distance_m": actual_ground_distance,
+                            "actual_depth_m": float(walker_radar[0]),
+                            "actual_lateral_m": float(walker_radar[1]),
                             "walker_actor_id": int(walker.id),
                             "total_radar_points": int(world_xyz.shape[0]),
                             "person_radius_points": int(np.count_nonzero(radius_mask)),
@@ -852,11 +1195,8 @@ def main() -> int:
                             "mean_person_radius_depth_m": (
                                 float(np.mean(depth[radius_mask])) if depth.size and np.any(radius_mask) else ""
                             ),
-                            "mean_person_radius_velocity_mps": (
-                                float(np.mean(arrays["velocity_mps"][radius_mask]))
-                                if arrays["velocity_mps"].size and np.any(radius_mask)
-                                else ""
-                            ),
+                            "mean_person_radius_velocity_mps": mean_radius_velocity,
+                            "mean_abs_person_radius_velocity_mps": mean_abs_radius_velocity,
                         }
                         frame_rows.append(row)
 
@@ -886,9 +1226,18 @@ def main() -> int:
             "world_tick_frame",
             "radar_frame",
             "local_condition_frame",
+            "walker_motion_mode",
+            "walker_motion_control",
+            "walker_motion_coordinate_m",
+            "walker_motion_direction",
+            "walker_motion_speed_mps",
+            "walker_motion_amplitude_m",
             "walker_physics",
             "radar_pps",
             "target_distance_m",
+            "actual_ground_distance_m",
+            "actual_depth_m",
+            "actual_lateral_m",
             "walker_actor_id",
             "total_radar_points",
             "person_radius_points",
@@ -897,6 +1246,7 @@ def main() -> int:
             "nearest_depth_m",
             "mean_person_radius_depth_m",
             "mean_person_radius_velocity_mps",
+            "mean_abs_person_radius_velocity_mps",
             "walker_world_x",
             "walker_world_y",
             "walker_world_z",
@@ -922,6 +1272,7 @@ def main() -> int:
             "frames": len(frame_rows),
             "pps_values": pps_values,
             "distances_m": distances,
+            "walker_motion_amplitudes_m": amplitudes,
             "physics_modes": physics_modes,
         }
         (output_dir / "summary.json").write_text(json.dumps(summary, indent=2, sort_keys=True), encoding="utf-8")

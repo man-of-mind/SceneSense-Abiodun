@@ -207,6 +207,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--loop-min-distance-m", type=float, default=250.0)
     parser.add_argument("--loop-min-elapsed-s", type=float, default=30.0)
     parser.add_argument("--stop-after-loops", type=int, default=0)
+    # Safety: hard wall-clock cap per density so a deadlocked ego can never hang the
+    # run overnight (0 = disabled).
+    parser.add_argument("--max-wall-clock-s", type=float, default=0.0)
+    # Don't save near-duplicate frames while the ego is stuck (avoids wasting the
+    # sample budget on jam frames in crowded traffic).
+    parser.add_argument("--skip-save-when-stuck", action=argparse.BooleanOptionalAction, default=False)
     parser.add_argument("--stop-on-stuck", action=argparse.BooleanOptionalAction, default=False)
     parser.add_argument("--stuck-speed-threshold-mps", type=float, default=0.20)
     parser.add_argument("--stuck-timeout-s", type=float, default=20.0)
@@ -970,6 +976,20 @@ def main() -> int:
                     break
             else:
                 stuck_started_at_s = None
+            # Hard wall-clock safety cap: guarantees termination even if the ego is
+            # permanently deadlocked (prevents overnight hangs).
+            if float(args.max_wall_clock_s) > 0.0 and elapsed_s >= float(args.max_wall_clock_s):
+                stop_reason = f"wall_clock_{elapsed_s:.0f}s"
+                print(f"Stopping: wall-clock cap {float(args.max_wall_clock_s):.0f}s reached (saved={saved}).")
+                break
+            # Skip saving while stuck so the budget is not spent on duplicate jam frames.
+            if (
+                bool(args.skip_save_when_stuck)
+                and elapsed_s >= float(args.stuck_min_elapsed_s)
+                and speed_mps <= float(args.stuck_speed_threshold_mps)
+                and not traffic_light_wait
+            ):
+                continue
             if int(args.sample_stride) > 1 and attempts % int(args.sample_stride) != 0:
                 continue
 
