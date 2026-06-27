@@ -47,6 +47,7 @@ from pole_lraspp_multimodal_fusion.common import (  # noqa: E402
     append_manifest_rows,
     append_object_box_rows,
     carla_semantic_tags_to_training_mask,
+    rasterize_person_regions,
     save_json,
     stable_split,
 )
@@ -1038,6 +1039,19 @@ def main() -> int:
             )
             append_manifest_rows(manifest_path, [manifest_row])
             append_object_box_rows(object_boxes_path, object_rows)
+            # CARLA 0.10 does not render walker semantics -> synthesize the person mask from
+            # pedestrian actor boxes (full camera res, matching the saved 3-class mask).
+            person_boxes = [
+                (float(r["gt_bbox_x"]), float(r["gt_bbox_y"]),
+                 float(r["gt_bbox_x"]) + float(r["gt_bbox_w"]),
+                 float(r["gt_bbox_y"]) + float(r["gt_bbox_h"]))
+                for r in object_rows
+                if r.get("label") == "person"
+                and float(r.get("gt_bbox_w", 0.0)) > 0.0 and float(r.get("gt_bbox_h", 0.0)) > 0.0
+            ]
+            if person_boxes:
+                rasterize_person_regions(mask, person_boxes, shape="ellipse")
+                cv2.imwrite(str(file_paths["mask_path"]), mask)
             saved += 1
             if saved == 1 or saved % 10 == 0 or saved >= int(args.max_samples):
                 print(

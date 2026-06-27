@@ -1,0 +1,3 @@
+detections: 6 (thr 0.20)
+vehicle: GT=(45.6,-67.8) pred=(45.3,-77.2) xy_err=9.34m score=0.16 bearing_err=36.8deg
+person: GT=(49.6,-70.3) pred=(49.4,-67.6) xy_err=2.72m score=0.11 bearing_err=40.4deg

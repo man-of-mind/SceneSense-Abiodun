@@ -286,6 +286,7 @@ def evaluate_checkpoint(args: argparse.Namespace) -> int:
                 image_height=int(original_size[1]),
                 min_area_px=float(object_cfg.get("min_gt_area_px", 24.0)),
                 object_class_names=object_class_names,
+                max_distance_m=args.max_gt_distance_m,
             )
             predictions: List[Dict[str, float]] = []
             if matrix is not None:
@@ -298,6 +299,13 @@ def evaluate_checkpoint(args: argparse.Namespace) -> int:
                     object_class_names=object_class_names,
                     predict_bbox2d=object_predict_bbox2d,
                 )
+                # Operating-range gate on predictions: drop detections beyond range so
+                # far-field false positives are not scored (matches the GT gate above).
+                if args.max_gt_distance_m is not None and matrix is not None:
+                    cam_c = np.asarray(matrix)[:3, 3]
+                    predictions = [p for p in predictions
+                                   if math.hypot(float(p["world_x"]) - cam_c[0],
+                                                 float(p["world_y"]) - cam_c[1]) <= float(args.max_gt_distance_m)]
             matches = greedy_match_predictions(
                 predictions,
                 gt_objects,
@@ -503,6 +511,8 @@ def main() -> None:
     parser.add_argument("--object-nms-radius-px", type=int, default=None)
     parser.add_argument("--topk-objects", type=int, default=None)
     parser.add_argument("--match-distance-m", type=float, default=None)
+    parser.add_argument("--max-gt-distance-m", type=float, default=None,
+                        help="Operating-range gate: ignore GT and predictions beyond this range (m).")
     parser.add_argument("--device", choices=("auto", "cuda", "cpu"), default="auto")
     parser.add_argument("--require-cuda", action="store_true")
     parser.add_argument("--sample-id-contains", default="")

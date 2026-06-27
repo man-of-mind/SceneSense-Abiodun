@@ -1,0 +1,28 @@
+ego: z=0.75 pitch=0.0 roll=-0.0 yaw=180.0
+ego on driving lane: True
+camera frame: mean=36.7 std=57.1 (black if ~0)
+radar returns this frame: 9367
+car: world=(45.6,-67.8,0.0) dist_from_ego=12.02m pixel=640,417 in_view=True
+human: world=(49.6,-70.3,0.6) dist_from_ego=8.38m pixel=787,434 in_view=True
+raw semantic tag histogram (tag:count [->class]):
+    tag   1:  320850  -> bg
+    tag   3:  310558  -> bg
+    tag   9:   97300  -> bg
+    tag   2:   91147  -> bg
+    tag  11:   55403  -> bg
+    tag  14:   20151  -> VEHICLE
+    tag  24:    9001  -> bg
+    tag  15:    6432  -> VEHICLE
+    tag  20:    5998  -> bg
+    tag   6:    1614  -> bg
+    tag  23:     595  -> bg
+    tag  10:     595  -> bg
+    tag  19:     542  -> VEHICLE
+    tag  22:     524  -> bg
+tags in human region (tag:count):
+    tag   1:   7097
+    tag  24:    484
+    tag   2:    370
+    tag  23:     49
+training-mask person px: 2457  OK
+training-mask vehicle px: 27125

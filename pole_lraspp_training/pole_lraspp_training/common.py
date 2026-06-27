@@ -27,7 +27,10 @@ CLASS_PERSON = 2
 CLASS_NAMES = ("background", "vehicle", "person")
 
 VEHICLE_TAGS = {14, 15, 16, 17, 18, 19}
-PERSON_TAGS = {4, 12, 13, 24, 25}
+# CityScapes-aligned CARLA tags: 12=Pedestrian, 13=Rider.
+# Do not include 24/25: those are road-line/ground-like labels in this build and
+# were the source of invalid "person" masks in earlier runs.
+PERSON_TAGS = {12, 13}
 
 MANIFEST_FIELDS = (
     "experiment_id",

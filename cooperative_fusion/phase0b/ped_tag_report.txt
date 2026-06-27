@@ -1,0 +1,10 @@
+walker.semantic_tags (actor-declared) = [12]
+walker world=(49.6,-72.4,0.7) pixel=(906, 427)
+tags rendered in walker region (tag:count):
+    tag   2:   4925
+    tag   1:     75
+global tag histogram top: 1:326237, 3:310558, 9:97300, 2:91147, 11:55403, 14:14689, 24:9075, 15:6432, 20:5998, 6:1614
+INSTANCE-cam tags in walker region (tag:count):
+    tag   2:   4925
+    tag   1:     75
+INSTANCE-cam global top: 1:326237, 3:310558, 9:97300, 2:91147, 11:55403, 14:14689, 24:9075, 15:6432, 20:5998, 6:1614

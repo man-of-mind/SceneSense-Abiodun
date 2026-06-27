@@ -10,8 +10,8 @@ cd "${ABIODUN_DIR}"
 
 # ---- fixed assets ----
 CONFIG="${ABIODUN_DIR}/pole_lraspp_multimodal_fusion/configs/fusion_full_run.yaml"
-DATASET="${ABIODUN_DIR}/fusion_training_data/moving_ego_radarpps100000_bboxsupport_r4_tw2_2loops_cap3200_merged_stride1"
-SEG_CHECKPOINT="${ABIODUN_DIR}/experiments/moving_ego_radarpps100000_bboxsupport_r4_tw2_segonly_ablation_20260624_segonly_lovasz05_personselect_pat20_bs24/checkpoints/segonly_stronggeo_bnfreeze_bs24_lovasz05_cosine_personmiou_pat20/best.pt"
+DATASET="${DATASET:-${ABIODUN_DIR}/fusion_training_data/moving_ego_radarpps100000_bboxsupport_r4_tw2_2loops_cap3200_merged_stride1}"
+SEG_CHECKPOINT="${SEG_CHECKPOINT:-${ABIODUN_DIR}/experiments/moving_ego_radarpps100000_bboxsupport_r4_tw2_segonly_ablation_20260624_segonly_lovasz05_personselect_pat20_bs24/checkpoints/segonly_stronggeo_bnfreeze_bs24_lovasz05_cosine_personmiou_pat20/best.pt}"
 PARENT="${ABIODUN_DIR}/experiments/autonomous_arch_runs_20260625"
 RESULTS="${PARENT}/RESULTS.md"
 
@@ -24,6 +24,7 @@ PREDICT_BBOX2D="${PREDICT_BBOX2D:-false}"
 ADAPTIVE_RADIUS="${ADAPTIVE_RADIUS:-false}"
 HEAD_DEPTH="${HEAD_DEPTH:-3}"
 HEATMAP_RADIUS_PX="${HEATMAP_RADIUS_PX:-4}"
+MAX_GT_DISTANCE_M="${MAX_GT_DISTANCE_M:-0}"   # 0 = no range gate; >0 = operating-range gate (m)
 EPOCHS="${EPOCHS:-60}"
 LR="${LR:-0.0002}"
 WEIGHT_DECAY="${WEIGHT_DECAY:-0.0002}"
@@ -71,8 +72,8 @@ link_dataset() {  # $1 = dir
 }
 link_dataset "${EXPERIMENT_DIR}"
 
-trial_json="$(printf '{"name":"%s","optimizer":"adamw","lr":%s,"weight_decay":%s,"augment_strength":"strong","input_size":[768,432],"batch_size":%s,"num_workers":%s,"prefetch_factor":%s,"persistent_workers":%s,"epochs":%s,"init_rgb_checkpoint":"%s","init_object_checkpoint":"%s","freeze_backbone":%s,"freeze_classifier":%s,"freeze_bn":%s,"freeze_object_head":false,"unfreeze_backbone_last_n":%s,"distill_weight":%s,"distill_temp":%s,"distill_teacher_checkpoint":"%s","selection_score_mode":"%s","early_stop_patience":%s,"loss_weights":%s,"object_heads":{"heatmap_radius_px":%s,"fuse_low_feature":true,"head_arch":"%s","use_coordconv":%s,"head_depth":%s,"use_groundplane_prior":%s,"predict_bbox2d":%s,"adaptive_heatmap_radius":%s}}' \
-  "${RUN_NAME}" "${LR}" "${WEIGHT_DECAY}" "${BATCH_SIZE}" "${NUM_WORKERS}" "${PREFETCH_FACTOR}" "${PERSISTENT_WORKERS}" "${EPOCHS}" "${SEG_CHECKPOINT}" "${INIT_OBJECT_CHECKPOINT}" "${FREEZE_BACKBONE}" "${FREEZE_CLASSIFIER}" "${FREEZE_BN}" "${UNFREEZE_BACKBONE_LAST_N}" "${DISTILL_WEIGHT}" "${DISTILL_TEMP}" "${DISTILL_TEACHER_CHECKPOINT}" "${SELECTION_SCORE_MODE}" "${EARLY_STOP_PATIENCE}" "${LOSS_WEIGHTS_JSON}" "${HEATMAP_RADIUS_PX}" "${HEAD_ARCH}" "${USE_COORDCONV}" "${HEAD_DEPTH}" "${USE_GROUNDPLANE_PRIOR}" "${PREDICT_BBOX2D}" "${ADAPTIVE_RADIUS}")"
+trial_json="$(printf '{"name":"%s","optimizer":"adamw","lr":%s,"weight_decay":%s,"augment_strength":"strong","input_size":[768,432],"batch_size":%s,"num_workers":%s,"prefetch_factor":%s,"persistent_workers":%s,"epochs":%s,"init_rgb_checkpoint":"%s","init_object_checkpoint":"%s","freeze_backbone":%s,"freeze_classifier":%s,"freeze_bn":%s,"freeze_object_head":false,"unfreeze_backbone_last_n":%s,"distill_weight":%s,"distill_temp":%s,"distill_teacher_checkpoint":"%s","selection_score_mode":"%s","early_stop_patience":%s,"loss_weights":%s,"object_heads":{"heatmap_radius_px":%s,"fuse_low_feature":true,"head_arch":"%s","use_coordconv":%s,"head_depth":%s,"use_groundplane_prior":%s,"predict_bbox2d":%s,"adaptive_heatmap_radius":%s,"max_gt_distance_m":%s}}' \
+  "${RUN_NAME}" "${LR}" "${WEIGHT_DECAY}" "${BATCH_SIZE}" "${NUM_WORKERS}" "${PREFETCH_FACTOR}" "${PERSISTENT_WORKERS}" "${EPOCHS}" "${SEG_CHECKPOINT}" "${INIT_OBJECT_CHECKPOINT}" "${FREEZE_BACKBONE}" "${FREEZE_CLASSIFIER}" "${FREEZE_BN}" "${UNFREEZE_BACKBONE_LAST_N}" "${DISTILL_WEIGHT}" "${DISTILL_TEMP}" "${DISTILL_TEACHER_CHECKPOINT}" "${SELECTION_SCORE_MODE}" "${EARLY_STOP_PATIENCE}" "${LOSS_WEIGHTS_JSON}" "${HEATMAP_RADIUS_PX}" "${HEAD_ARCH}" "${USE_COORDCONV}" "${HEAD_DEPTH}" "${USE_GROUNDPLANE_PRIOR}" "${PREDICT_BBOX2D}" "${ADAPTIVE_RADIUS}" "${MAX_GT_DISTANCE_M}")"
 
 echo "=== TRAIN ${RUN_NAME} ==="
 echo "  arch=${HEAD_ARCH} coordconv=${USE_COORDCONV} depth=${HEAD_DEPTH} radius=${HEATMAP_RADIUS_PX}"
@@ -89,10 +90,12 @@ eval_one() {  # $1 = which (best/last), $2 = threshold
   [[ -f "${ckpt}" ]] || { echo "missing ${ckpt}"; return 0; }
   local edir="${EXPERIMENT_DIR}/eval_${which}_thr${thr//./}"
   mkdir -p "${edir}"; link_dataset "${edir}"
+  local range_gate=""
+  [[ "${MAX_GT_DISTANCE_M}" != "0" ]] && range_gate="--max-gt-distance-m ${MAX_GT_DISTANCE_M}"
   "${PYTHON}" -m pole_lraspp_multimodal_fusion.evaluate_fusion \
     --config "${CONFIG}" --experiment-dir "${edir}" --checkpoint "${ckpt}" \
     --split test --object-score-threshold "${thr}" --object-nms-radius-px 2 \
-    --topk-objects 120 --match-distance-m 5.0 --device cuda > "${edir}/eval.log" 2>&1 || true
+    --topk-objects 120 --match-distance-m 5.0 ${range_gate} --device cuda > "${edir}/eval.log" 2>&1 || true
 }
 for which in best last; do
   for thr in 0.10 0.20 0.30; do eval_one "${which}" "${thr}"; done

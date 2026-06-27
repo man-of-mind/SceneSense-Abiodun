@@ -2506,3 +2506,67 @@ rsync -avh \
   shr_aisvcs@L10319.idcc.lab:/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/metrics_logs/rgb_ego_transfer/ \
   metrics_logs/rgb_ego_transfer/
 ```
+
+## 5. Live Moving-Ego Fusion Deployment
+
+Use the current best single deploy model (`archK`) to visually inspect moving-ego
+RGB+radar fusion with SEG mask, learned 2D boxes, and compact distance labels.
+
+```bash
+python3 carla_split_inference_udp_fusion_object_ego_client.py \
+  --run-duration-s 280 \
+  --fusion-checkpoint experiments/autonomous_arch_runs_20260625/archK_giou_adaptiveradius/checkpoints/archK_giou_adaptiveradius/best.pt \
+  --ego-spawn-index 80 \
+  --ego-spawn-forward-offset-m 0.0 \
+  --ego-spawn-right-offset-m 0.0 \
+  --ego-spawn-yaw-offset-deg 0.0 \
+  --no-ego-freeze \
+  --ego-autopilot-speed-difference-pct 60 \
+  --ego-follow-distance-m 28.0 \
+  --ego-ignore-lights-pct 0 \
+  --ego-disable-lane-change \
+  --ego-fixed-path-spawn-indices 80,85,91,94,99,110,137,80 \
+  --ego-fixed-path-loop \
+  --ego-fixed-path-min-spacing-m 3.0 \
+  --camera-resolution custom \
+  --camera-width 1280 \
+  --camera-height 720 \
+  --camera-fov 120 \
+  --ego-camera-x 1.8 \
+  --ego-camera-y 0.0 \
+  --ego-camera-z 1.55 \
+  --ego-camera-pitch -4.0 \
+  --ego-camera-yaw 0.0 \
+  --ego-radar-yaw 0.0 \
+  --radar-hfov 120 \
+  --radar-vfov 30 \
+  --radar-range 120 \
+  --radar-points-per-second 100000 \
+  --radar-raster-radius-px 4 \
+  --fps 10 \
+  --npc-vehicles 35 \
+  --npc-pedestrians 45 \
+  --spawn-radius 95 \
+  --object-score-threshold 0.30 \
+  --object-nms-radius-px 8 \
+  --topk-objects 60 \
+  --max-objects-drawn 12 \
+  --mask-strength 0.55 \
+  --object-label-mode compact \
+  --result-timeout 1.5 \
+  --camera-source-port 53301 \
+  --remote-port 53302 \
+  --remote-source-port 53303 \
+  --camera-result-port 53304 \
+  --spatial-map-stream-id archK_moving_live_visual \
+  --no-spatial-map-stream \
+  --disable-semantic-gt \
+  --run-group month2_archK_live_visual \
+  --transport-label loopback_archK_moving_visual
+```
+
+Visual key:
+
+- SEG overlay: model segmentation for vehicle/person pixels.
+- Cyan rectangle: learned 2D image box from the archK object head.
+- Center marker + compact label: predicted class, object score, and distance from ego/camera.

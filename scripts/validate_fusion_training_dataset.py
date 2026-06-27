@@ -73,6 +73,9 @@ RADAR_POINT_KEYS = (
     "valid_projection",
 )
 
+ALLOWED_PERSON_TAGS = {12, 13}
+KNOWN_BAD_PERSON_TAGS = {4, 24, 25}
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -136,6 +139,8 @@ def validate_sample_files(
     mask_shapes = Counter()
     rgb_shapes = Counter()
     mask_classes = Counter()
+    person_mask_raw_tags = Counter()
+    person_mask_pixels_checked = 0
     for row in rows:
         inspected += 1
         sample_id = row.get("sample_id", f"row_{inspected}")
@@ -148,6 +153,11 @@ def validate_sample_files(
 
         rgb_path = path_from_row(dataset_dir, row, "rgb_path")
         mask_path = path_from_row(dataset_dir, row, "mask_path")
+        raw_path = (
+            path_from_row(dataset_dir, row, "instance_raw_path")
+            if str(row.get("instance_raw_path", "")).strip()
+            else None
+        )
         radar_tensor_path = path_from_row(dataset_dir, row, "radar_tensor_path")
         radar_points_path = path_from_row(dataset_dir, row, "radar_points_path")
 
@@ -171,6 +181,23 @@ def validate_sample_files(
                 unknown = [int(value) for value in np.unique(mask) if int(value) not in (0, 1, 2)]
                 if unknown:
                     errors.append(f"{sample_id}: mask has unknown classes {unknown}")
+                if raw_path is not None and raw_path.exists():
+                    raw = cv2.imread(str(raw_path), cv2.IMREAD_UNCHANGED)
+                    if raw is None:
+                        errors.append(f"{sample_id}: cv2 could not read instance_raw_path {raw_path}")
+                    else:
+                        tags = raw[:, :, 2] if raw.ndim == 3 else raw
+                        if tags.shape[:2] == mask.shape[:2]:
+                            person_pixels = mask == 2
+                            if np.count_nonzero(person_pixels):
+                                values, counts = np.unique(tags[person_pixels], return_counts=True)
+                                for value, count in zip(values, counts):
+                                    person_mask_raw_tags[int(value)] += int(count)
+                                    person_mask_pixels_checked += int(count)
+                        else:
+                            errors.append(
+                                f"{sample_id}: raw tag shape {tags.shape[:2]} does not match mask shape {mask.shape[:2]}"
+                            )
 
         if radar_tensor_path.exists():
             try:
@@ -192,12 +219,23 @@ def validate_sample_files(
             except Exception as exc:
                 errors.append(f"{sample_id}: could not load radar points: {exc}")
 
+    bad_person_pixels = sum(person_mask_raw_tags[tag] for tag in KNOWN_BAD_PERSON_TAGS)
+    true_person_pixels = sum(person_mask_raw_tags[tag] for tag in ALLOWED_PERSON_TAGS)
+    if person_mask_pixels_checked and bad_person_pixels > true_person_pixels:
+        errors.append(
+            "person mask raw-tag audit is suspicious: class-2 pixels are mostly "
+            f"known non-person tags {sorted(KNOWN_BAD_PERSON_TAGS)}. "
+            "Earlier runs with tags 24/25 as person are invalid for pedestrian SEG."
+        )
+
     return {
         "inspected_samples": inspected,
         "rgb_shapes": {str(key): value for key, value in rgb_shapes.items()},
         "mask_shapes": {str(key): value for key, value in mask_shapes.items()},
         "radar_tensor_shapes": {str(key): value for key, value in radar_shapes.items()},
         "mask_classes_seen": dict(mask_classes),
+        "person_mask_pixels_raw_tag_audit": person_mask_pixels_checked,
+        "person_mask_raw_tag_counts": dict(person_mask_raw_tags),
     }
 
 

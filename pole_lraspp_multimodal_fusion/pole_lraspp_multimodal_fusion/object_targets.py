@@ -76,6 +76,7 @@ def valid_localization_objects(
     image_height: int,
     min_area_px: float,
     object_class_names: Sequence[str] = OBJECT_CLASS_NAMES,
+    max_distance_m: float | None = None,
 ) -> List[Dict[str, float]]:
     class_to_index = {str(name): idx for idx, name in enumerate(object_class_names)}
     objects: List[Dict[str, float]] = []
@@ -87,6 +88,11 @@ def valid_localization_objects(
             continue
         area = _float(row, "gt_bbox_area_px")
         if area < float(min_area_px):
+            continue
+        # Operating-range gate: a sensor cannot reliably detect distant objects, so beyond
+        # this range they are neither trained as targets nor scored at eval. Removes the
+        # unfair >50 m "ghost" GT that dominated recall (~63% of GT was >50 m).
+        if max_distance_m is not None and _float(row, "gt_distance_m") > float(max_distance_m):
             continue
         cx = _float(row, "gt_center_x")
         cy = _float(row, "gt_center_y")

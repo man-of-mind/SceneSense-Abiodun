@@ -1,0 +1,11 @@
+GT car=(44.57,-67.84)  baseline(A-B)=8.6 m
+per-view single estimates:
+  A monocular-depth : (47.96,-68.92)  err=3.557 m
+  A radar-range     : (45.48,-69.65)  err=2.020 m
+  B monocular-depth : (47.76,-72.13)  err=5.349 m
+  B radar-range     : (45.39,-69.85)  err=2.167 m
+fused:
+  mean(monocular) : (47.86,-70.53)  err=4.247 m
+  TRIANGULATE(bbox-center bearings): (44.29,-69.22)  err=1.400 m
+  TRIANGULATE(bearings, no range): (43.61,-69.51)  err=1.923 m
+  mean(radar)     : (45.44,-69.75)  err=2.092 m  [accurate-sensor reference]

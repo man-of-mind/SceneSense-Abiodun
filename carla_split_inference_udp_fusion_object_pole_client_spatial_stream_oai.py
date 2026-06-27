@@ -100,6 +100,11 @@ from pole_lraspp_multimodal_fusion.split_runtime import (  # noqa: E402
     MultimodalLRASPPSplitModel,
 )
 
+try:
+    from agents.navigation.global_route_planner import GlobalRoutePlanner
+except Exception:  # pragma: no cover - depends on CARLA PythonAPI install layout.
+    GlobalRoutePlanner = None
+
 carla = trained_seg_demo.carla
 cv2 = trained_seg_demo.cv2
 
@@ -126,6 +131,8 @@ DEFAULT_EGO_RADAR_YAW = 0.0
 DEFAULT_EGO_RADAR_ROLL = 0.0
 
 VEHICLE_BBOX_COLOR_BGR = (0, 240, 255)
+PERSON_BBOX_COLOR_BGR = (255, 0, 255)
+LEARNED_BBOX_COLOR_BGR = (255, 255, 0)
 
 FUSION_METRICS_FIELDS = (
     "wall_time_iso",
@@ -141,6 +148,8 @@ FUSION_METRICS_FIELDS = (
     "front_ms",
     "back_ms",
     "round_trip_ms",
+    "transport_round_trip_ms_estimate",
+    "total_pipeline_ms_estimate",
     "feature_payload_bytes",
     "feature_payload_bytes_uncompressed",
     "feature_payload_chunks",
@@ -190,6 +199,7 @@ FUSION_OBJECT_PREDICTION_FIELDS = (
     "length_m",
     "width_m",
     "height_m",
+    "distance_m",
     "center_x_px",
     "center_y_px",
     "bbox_x1",
@@ -365,6 +375,50 @@ def parse_args() -> argparse.Namespace:
         help="Disable parked ego vehicle physics after spawn so it stays fixed.",
     )
     parser.add_argument(
+        "--ego-autopilot-speed-difference-pct",
+        type=float,
+        default=60.0,
+        help=(
+            "Traffic Manager speed reduction for a moving ego when --no-ego-freeze is used. "
+            "Higher values make the ego slower."
+        ),
+    )
+    parser.add_argument(
+        "--ego-follow-distance-m",
+        type=float,
+        default=28.0,
+        help="Traffic Manager following distance for a moving ego when --no-ego-freeze is used.",
+    )
+    parser.add_argument(
+        "--ego-ignore-lights-pct",
+        type=float,
+        default=0.0,
+        help="Percent chance the moving ego ignores traffic lights. Keep 0 for realistic visual tests.",
+    )
+    parser.add_argument(
+        "--ego-disable-lane-change",
+        action="store_true",
+        help="Disable Traffic Manager lane changes for the moving ego.",
+    )
+    parser.add_argument(
+        "--ego-fixed-path-spawn-indices",
+        default="",
+        help=(
+            "Optional comma-separated CARLA spawn indices for a pinned Traffic "
+            "Manager route, for example 80,85,91,94,99,110,137,80."
+        ),
+    )
+    parser.add_argument(
+        "--ego-fixed-path-progress-csv",
+        default="",
+        help=(
+            "Optional route_progress.csv from a previous good moving run. When set, "
+            "the ego reuses those recorded x/y/z points as its pinned path."
+        ),
+    )
+    parser.add_argument("--ego-fixed-path-loop", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--ego-fixed-path-min-spacing-m", type=float, default=3.0)
+    parser.add_argument(
         "--ego-spawn-forward-offset-m",
         type=float,
         default=0.0,
@@ -495,6 +549,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--object-score-threshold", type=float, default=0.05)
     parser.add_argument("--object-nms-radius-px", type=int, default=4)
     parser.add_argument("--topk-objects", type=int, default=80)
+    parser.add_argument(
+        "--draw-projected-obb-box",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Draw the projected-3D-OBB 2D box (from dims/yaw). Deprioritized in the "
+        "current model; use --no-draw-projected-obb-box to show only the learned 2D box.",
+    )
 
     # UDP transport.
     parser.add_argument("--camera-source-port", type=int, default=51001)
@@ -563,6 +624,15 @@ def parse_args() -> argparse.Namespace:
         "--hide-object-labels",
         action="store_true",
         help="Do not render per-object score/world/dimension text over localization boxes.",
+    )
+    parser.add_argument(
+        "--object-label-mode",
+        choices=("compact", "full", "none"),
+        default="compact",
+        help=(
+            "Object label verbosity. compact shows class/score/distance; full shows "
+            "world/dim/yaw details; none hides labels. --hide-object-labels is an alias for none."
+        ),
     )
     parser.add_argument(
         "--result-timeout",
@@ -938,6 +1008,7 @@ class FusionRemoteInferenceWorker(threading.Thread):
         nms_radius_px: int,
         topk: int,
         max_objects_drawn: int,
+        draw_projected_obb_box: bool = True,
         log_every: int = 0,
         label: str = "fusion-back",
     ) -> None:
@@ -953,6 +1024,7 @@ class FusionRemoteInferenceWorker(threading.Thread):
         self.nms_radius_px = int(nms_radius_px)
         self.topk = int(topk)
         self.max_objects_drawn = int(max_objects_drawn)
+        self.draw_projected_obb_box = bool(draw_projected_obb_box)
         self.log_every = max(0, int(log_every))
         self.label = str(label)
         self._processed = 0
@@ -1029,28 +1101,54 @@ class FusionRemoteInferenceWorker(threading.Thread):
                 topk=self.topk,
                 score_threshold=self.score_threshold,
                 nms_radius_px=self.nms_radius_px,
+                object_class_names=getattr(self.model, "object_class_names", ["vehicle", "person"]),
+                predict_bbox2d=bool(getattr(self.model, "object_predict_bbox2d", False)),
             )
             scale_x = float(display_w) / float(model_input_size[0])
             scale_y = float(display_h) / float(model_input_size[1])
             for prediction in raw_predictions[: self.max_objects_drawn]:
-                bbox_xyxy = self._project_obb_to_2d_bbox(
-                    prediction=prediction,
-                    camera_inverse_matrix=camera_inverse_matrix,
-                    intrinsics=camera_intrinsics_input,
-                    model_size=model_input_size,
-                    scale_x=scale_x,
-                    scale_y=scale_y,
-                )
+                # Projected-3D-OBB box is built from dims/yaw, which are deprioritized
+                # in the current model -> unreliable. Off by default; the learned 2D
+                # box is the trustworthy one.
+                if self.draw_projected_obb_box:
+                    bbox_xyxy = self._project_obb_to_2d_bbox(
+                        prediction=prediction,
+                        camera_inverse_matrix=camera_inverse_matrix,
+                        intrinsics=camera_intrinsics_input,
+                        model_size=model_input_size,
+                        scale_x=scale_x,
+                        scale_y=scale_y,
+                    )
+                else:
+                    bbox_xyxy = None
                 yaw_deg = math.degrees(
                     math.atan2(float(prediction["yaw_sin"]), float(prediction["yaw_cos"]))
                 )
                 center_display_x = float(prediction["center_x_px"]) * scale_x
                 center_display_y = float(prediction["center_y_px"]) * scale_y
+                learned_bbox_xyxy = None
+                if all(k in prediction for k in ("bbox_x0", "bbox_y0", "bbox_x1", "bbox_y1")):
+                    learned_bbox_xyxy = (
+                        float(prediction["bbox_x0"]) * scale_x,
+                        float(prediction["bbox_y0"]) * scale_y,
+                        float(prediction["bbox_x1"]) * scale_x,
+                        float(prediction["bbox_y1"]) * scale_y,
+                    )
+                distance_m = math.sqrt(
+                    float(prediction.get("local_x", 0.0)) ** 2
+                    + float(prediction.get("local_y", 0.0)) ** 2
+                    + float(prediction.get("local_z", 0.0)) ** 2
+                )
                 objects.append(
                     {
+                        "class_name": str(prediction.get("class_name", "object")),
                         "score": float(prediction["score"]),
                         "center_x_px": center_display_x,
                         "center_y_px": center_display_y,
+                        "distance_m": float(distance_m),
+                        "local_x": float(prediction.get("local_x", float("nan"))),
+                        "local_y": float(prediction.get("local_y", float("nan"))),
+                        "local_z": float(prediction.get("local_z", float("nan"))),
                         "world_x": float(prediction["world_x"]),
                         "world_y": float(prediction["world_y"]),
                         "world_z": float(prediction["world_z"]),
@@ -1061,6 +1159,7 @@ class FusionRemoteInferenceWorker(threading.Thread):
                         "parked_score": float(prediction["parked_score"]),
                         "radar_support_score": float(prediction["radar_support_score"]),
                         "bbox_xyxy": bbox_xyxy,
+                        "learned_bbox_xyxy": learned_bbox_xyxy,
                     }
                 )
 
@@ -1212,6 +1311,31 @@ def load_fusion_model(
     fuse_low_into_object_head = bool(
         checkpoint.get("fuse_low_into_object_head") if isinstance(checkpoint, dict) else False
     )
+    object_head_arch = str(
+        (checkpoint.get("object_head_arch") if isinstance(checkpoint, dict) else None)
+        or "shared"
+    )
+    object_use_coordconv = bool(
+        checkpoint.get("object_use_coordconv") if isinstance(checkpoint, dict) else False
+    )
+    object_head_depth = int(
+        (checkpoint.get("object_head_depth") if isinstance(checkpoint, dict) else None)
+        or 2
+    )
+    object_use_groundplane = bool(
+        checkpoint.get("object_use_groundplane_prior") if isinstance(checkpoint, dict) else False
+    )
+    object_predict_bbox2d = bool(
+        checkpoint.get("object_predict_bbox2d") if isinstance(checkpoint, dict) else False
+    )
+    object_groundplane_params = dict(
+        (checkpoint.get("object_groundplane_params") if isinstance(checkpoint, dict) else None)
+        or {}
+    )
+    object_class_names = list(
+        (checkpoint.get("object_class_names") if isinstance(checkpoint, dict) else None)
+        or ["vehicle", "person"]
+    )
     raw_input_size = (
         checkpoint.get("input_size") if isinstance(checkpoint, dict) else None
     ) or [768, 432]
@@ -1227,6 +1351,12 @@ def load_fusion_model(
         object_channels=object_channels,
         object_hidden_channels=int(args.object_hidden_channels),
         fuse_low_into_object_head=fuse_low_into_object_head,
+        head_arch=object_head_arch,
+        use_coordconv=object_use_coordconv,
+        head_depth=object_head_depth,
+        predict_bbox2d=object_predict_bbox2d,
+        use_groundplane_prior=object_use_groundplane,
+        groundplane_params=object_groundplane_params,
         device=device,
     ).to(device)
     state_dict = checkpoint["model"] if isinstance(checkpoint, dict) and "model" in checkpoint else checkpoint
@@ -1237,10 +1367,14 @@ def load_fusion_model(
         print(f"Fusion checkpoint had {len(unexpected)} unexpected keys (first: {unexpected[:3]})", file=sys.stderr)
     model.eval()
     split_model = MultimodalLRASPPSplitModel(model, device, input_size=input_size)
+    split_model.object_predict_bbox2d = object_predict_bbox2d  # type: ignore[attr-defined]
+    split_model.object_class_names = object_class_names  # type: ignore[attr-defined]
     print(
         f"Loaded fusion checkpoint {checkpoint_path} "
         f"(radar_channels={radar_channels}, object_channels={object_channels}, "
         f"fuse_low_into_object_head={fuse_low_into_object_head}, "
+        f"object_head_arch={object_head_arch}, "
+        f"predict_bbox2d={object_predict_bbox2d}, "
         f"input_size={input_size[0]}x{input_size[1]})"
     )
     return split_model, input_size
@@ -1271,6 +1405,13 @@ def _draw_overlay_text(
         cv2.LINE_AA,
     )
     cv2.putText(image, text, origin, cv2.FONT_HERSHEY_SIMPLEX, font_scale, fg, thickness, cv2.LINE_AA)
+
+
+def _object_color_bgr(obj: Dict[str, object]) -> Tuple[int, int, int]:
+    class_name = str(obj.get("class_name", "")).lower()
+    if class_name == "person":
+        return PERSON_BBOX_COLOR_BGR
+    return VEHICLE_BBOX_COLOR_BGR
 
 
 def draw_fusion_overlay(
@@ -1309,6 +1450,7 @@ def draw_fusion_overlay(
 
     h, w = annotated.shape[:2]
     for obj in objects:
+        color = _object_color_bgr(obj)
         bbox_x1, bbox_y1, bbox_x2, bbox_y2 = _bbox_xyxy_values(obj.get("bbox_xyxy"))
         if all(math.isfinite(v) for v in (bbox_x1, bbox_y1, bbox_x2, bbox_y2)):
             x1 = int(np.clip(round(bbox_x1), 0, w - 1))
@@ -1316,33 +1458,54 @@ def draw_fusion_overlay(
             x2 = int(np.clip(round(bbox_x2), 0, w - 1))
             y2 = int(np.clip(round(bbox_y2), 0, h - 1))
             if x2 > x1 and y2 > y1:
-                cv2.rectangle(annotated, (x1, y1), (x2, y2), VEHICLE_BBOX_COLOR_BGR, 2, cv2.LINE_AA)
+                cv2.rectangle(annotated, (x1, y1), (x2, y2), color, 1, cv2.LINE_AA)
+        learned_x1, learned_y1, learned_x2, learned_y2 = _bbox_xyxy_values(
+            obj.get("learned_bbox_xyxy")
+        )
+        if all(math.isfinite(v) for v in (learned_x1, learned_y1, learned_x2, learned_y2)):
+            x1 = int(np.clip(round(learned_x1), 0, w - 1))
+            y1 = int(np.clip(round(learned_y1), 0, h - 1))
+            x2 = int(np.clip(round(learned_x2), 0, w - 1))
+            y2 = int(np.clip(round(learned_y2), 0, h - 1))
+            if x2 > x1 and y2 > y1:
+                cv2.rectangle(annotated, (x1, y1), (x2, y2), LEARNED_BBOX_COLOR_BGR, 2, cv2.LINE_AA)
         cx = int(np.clip(float(obj["center_x_px"]), 0, w - 1))
         cy = int(np.clip(float(obj["center_y_px"]), 0, h - 1))
-        cv2.circle(annotated, (cx, cy), 5, VEHICLE_BBOX_COLOR_BGR, 2, cv2.LINE_AA)
+        cv2.circle(annotated, (cx, cy), 5, color, 2, cv2.LINE_AA)
+        label_mode = str(getattr(args, "object_label_mode", "compact") or "compact")
         if bool(getattr(args, "hide_object_labels", False)):
+            label_mode = "none"
+        if label_mode == "none":
             continue
         label_x = min(max(8, cx + 8), w - 1)
         label_y_top = max(18, cy - 30)
         class_name = str(obj.get("class_name", "object"))
+        if label_mode == "compact":
+            _draw_overlay_text(
+                annotated,
+                f"{class_name} {float(obj['score']):.2f} | {float(obj.get('distance_m', 0.0)):.1f}m",
+                (label_x, label_y_top),
+                fg=color,
+            )
+            continue
         _draw_overlay_text(
             annotated,
             f"{class_name} score {obj['score']:.2f} yaw {obj['yaw_deg']:+.0f}d "
             f"{('parked' if obj['parked_score'] >= 0.5 else 'moving')}",
             (label_x, label_y_top),
-            fg=VEHICLE_BBOX_COLOR_BGR,
+            fg=color,
         )
         _draw_overlay_text(
             annotated,
-            f"world ({obj['world_x']:+.1f}, {obj['world_y']:+.1f}) m",
+            f"dist {float(obj.get('distance_m', 0.0)):.1f}m | world ({obj['world_x']:+.1f}, {obj['world_y']:+.1f}) m",
             (label_x, label_y_top + 16),
-            fg=VEHICLE_BBOX_COLOR_BGR,
+            fg=color,
         )
         _draw_overlay_text(
             annotated,
             f"L {obj['size_x']:.1f}m W {obj['size_y']:.1f}m H {obj['size_z']:.1f}m",
             (label_x, label_y_top + 32),
-            fg=VEHICLE_BBOX_COLOR_BGR,
+            fg=color,
         )
 
     payload_bytes = max(1, int(front_stats["payload_bytes"]))
@@ -1658,7 +1821,7 @@ def _normalize_spatial_objects(
         normalized.append(
             {
                 "id": f"{stream_id}:{frame_id}:{index}",
-                "type": "Vehicle",
+                "type": str(obj.get("class_name", "vehicle")).title(),
                 "motion_state": motion_state,
                 "score": _safe_float(obj.get("score"), 0.0),
                 "location": {
@@ -1976,6 +2139,16 @@ class FusionRunLogger:
         now = datetime.now().isoformat(timespec="milliseconds")
         for index, obj in enumerate(objects):
             bbox_x1, bbox_y1, bbox_x2, bbox_y2 = _bbox_xyxy_values(obj.get("bbox_xyxy"))
+            learned_bbox_x1, learned_bbox_y1, learned_bbox_x2, learned_bbox_y2 = _bbox_xyxy_values(
+                obj.get("learned_bbox_xyxy")
+            )
+            if all(math.isfinite(v) for v in (learned_bbox_x1, learned_bbox_y1, learned_bbox_x2, learned_bbox_y2)):
+                bbox_x1, bbox_y1, bbox_x2, bbox_y2 = (
+                    learned_bbox_x1,
+                    learned_bbox_y1,
+                    learned_bbox_x2,
+                    learned_bbox_y2,
+                )
             row: Dict[str, object] = {
                 "wall_time_iso": now,
                 "elapsed_s": float(elapsed_s),
@@ -1984,7 +2157,7 @@ class FusionRunLogger:
                 "stream_id": self.stream_id,
                 "frame_id": int(frame_id),
                 "object_index": int(index),
-                "class_name": "vehicle",
+                "class_name": str(obj.get("class_name", "object")),
                 "score": _safe_float(obj.get("score"), float("nan")),
                 "world_x": _safe_float(obj.get("world_x"), float("nan")),
                 "world_y": _safe_float(obj.get("world_y"), float("nan")),
@@ -1993,6 +2166,7 @@ class FusionRunLogger:
                 "length_m": _safe_float(obj.get("size_x"), float("nan")),
                 "width_m": _safe_float(obj.get("size_y"), float("nan")),
                 "height_m": _safe_float(obj.get("size_z"), float("nan")),
+                "distance_m": _safe_float(obj.get("distance_m"), float("nan")),
                 "center_x_px": _safe_float(obj.get("center_x_px"), float("nan")),
                 "center_y_px": _safe_float(obj.get("center_y_px"), float("nan")),
                 "bbox_x1": bbox_x1,
@@ -2055,6 +2229,15 @@ def build_fusion_metrics_row(
     segmentation = _segmentation_summary(mask)
     quality = _segmentation_quality_columns(mask, gt_3class)
     remote_host = str(args.remote_host if args.remote_host is not None else args.bind_host)
+    front_ms = _safe_float(front_stats.get("front_ms"), 0.0)
+    back_ms = _safe_float((remote_stats or {}).get("server_ms"), float("nan"))
+    round_trip_ms = _safe_float((remote_stats or {}).get("round_trip_ms"), float("nan"))
+    transport_round_trip_ms = (
+        max(0.0, round_trip_ms - back_ms)
+        if math.isfinite(round_trip_ms) and math.isfinite(back_ms)
+        else float("nan")
+    )
+    total_pipeline_ms = front_ms + round_trip_ms if math.isfinite(round_trip_ms) else float("nan")
     return {
         "wall_time_iso": datetime.now().isoformat(timespec="milliseconds"),
         "elapsed_s": float(elapsed_s),
@@ -2066,9 +2249,11 @@ def build_fusion_metrics_row(
         "frame_id": int(frame_id),
         "carla_timestamp": float(carla_timestamp),
         "result_received": remote_stats is not None,
-        "front_ms": _safe_float(front_stats.get("front_ms"), 0.0),
-        "back_ms": _safe_float((remote_stats or {}).get("server_ms"), float("nan")),
-        "round_trip_ms": _safe_float((remote_stats or {}).get("round_trip_ms"), float("nan")),
+        "front_ms": front_ms,
+        "back_ms": back_ms,
+        "round_trip_ms": round_trip_ms,
+        "transport_round_trip_ms_estimate": transport_round_trip_ms,
+        "total_pipeline_ms_estimate": total_pipeline_ms,
         "feature_payload_bytes": _safe_int(front_stats.get("payload_bytes"), 0),
         "feature_payload_bytes_uncompressed": _safe_int(
             front_stats.get("payload_bytes_uncompressed"),
@@ -2460,6 +2645,127 @@ def _offset_spawn_transform(
     )
 
 
+def _parse_spawn_index_list(text: str) -> List[int]:
+    cleaned = str(text or "").replace(";", ",").replace(" ", ",")
+    values: List[int] = []
+    for token in cleaned.split(","):
+        token = token.strip()
+        if not token:
+            continue
+        values.append(int(token))
+    return values
+
+
+def _copy_location(location: "carla.Location") -> "carla.Location":
+    return carla.Location(x=float(location.x), y=float(location.y), z=float(location.z))
+
+
+def _append_spaced_location(
+    route: List["carla.Location"],
+    location: "carla.Location",
+    min_spacing_m: float,
+) -> None:
+    candidate = _copy_location(location)
+    if not route or route[-1].distance(candidate) >= float(min_spacing_m):
+        route.append(candidate)
+
+
+def _build_fixed_tm_path_from_progress_csv(args: argparse.Namespace) -> List["carla.Location"]:
+    progress_csv = str(getattr(args, "ego_fixed_path_progress_csv", "") or "").strip()
+    if not progress_csv:
+        return []
+    path = Path(progress_csv).expanduser()
+    if not path.is_absolute():
+        path = Path.cwd() / path
+    if not path.exists():
+        raise FileNotFoundError(f"Fixed route progress CSV not found: {path}")
+
+    min_spacing_m = max(1.0, float(args.ego_fixed_path_min_spacing_m))
+    route: List["carla.Location"] = []
+    with path.open("r", encoding="utf-8", newline="") as fh:
+        for row in csv.DictReader(fh):
+            try:
+                location = carla.Location(
+                    x=float(row["ego_x"]),
+                    y=float(row["ego_y"]),
+                    z=float(row.get("ego_z", 0.0)),
+                )
+            except (KeyError, TypeError, ValueError):
+                continue
+            _append_spaced_location(route, location, min_spacing_m)
+
+    if bool(args.ego_fixed_path_loop) and len(route) >= 2 and route[-1].distance(route[0]) > min_spacing_m:
+        route.append(_copy_location(route[0]))
+    print(
+        "Fixed Traffic Manager path: "
+        f"source={path}, route_points={len(route)}, min_spacing={min_spacing_m:.1f}m"
+    )
+    return route
+
+
+def _build_fixed_tm_path_from_spawn_indices(
+    *,
+    world: "carla.World",
+    args: argparse.Namespace,
+) -> List["carla.Location"]:
+    indices = _parse_spawn_index_list(str(getattr(args, "ego_fixed_path_spawn_indices", "") or ""))
+    if not indices:
+        return []
+
+    spawn_points = list(world.get_map().get_spawn_points())
+    if not spawn_points:
+        raise RuntimeError("Cannot build fixed Traffic Manager path: no map spawn points found.")
+
+    invalid = [idx for idx in indices if idx < 0 or idx >= len(spawn_points)]
+    if invalid:
+        raise ValueError(
+            "Invalid --ego-fixed-path-spawn-indices values "
+            f"{invalid}; available index range is 0..{len(spawn_points) - 1}."
+        )
+
+    if bool(args.ego_fixed_path_loop) and len(indices) >= 2 and indices[-1] != indices[0]:
+        indices = list(indices) + [indices[0]]
+
+    key_points = [spawn_points[idx].location for idx in indices]
+    min_spacing_m = max(1.0, float(args.ego_fixed_path_min_spacing_m))
+    route: List["carla.Location"] = []
+    if len(key_points) < 2:
+        return [_copy_location(point) for point in key_points]
+
+    if GlobalRoutePlanner is not None:
+        planner = GlobalRoutePlanner(world.get_map(), min_spacing_m)
+        for start, end in zip(key_points[:-1], key_points[1:]):
+            trace = planner.trace_route(start, end)
+            if not trace:
+                _append_spaced_location(route, start, min_spacing_m)
+                _append_spaced_location(route, end, min_spacing_m)
+                continue
+            for waypoint, _road_option in trace:
+                _append_spaced_location(route, waypoint.transform.location, min_spacing_m)
+            _append_spaced_location(route, end, min_spacing_m)
+    else:
+        for point in key_points:
+            _append_spaced_location(route, point, min_spacing_m)
+
+    print(
+        "Fixed Traffic Manager path: "
+        f"spawn_indices={indices}, route_points={len(route)}, "
+        f"planner={'yes' if GlobalRoutePlanner is not None else 'no'}"
+    )
+    return route
+
+
+def _build_fixed_tm_path(
+    *,
+    world: "carla.World",
+    args: argparse.Namespace,
+) -> List["carla.Location"]:
+    path_from_csv = _build_fixed_tm_path_from_progress_csv(args)
+    if path_from_csv:
+        return path_from_csv
+    return _build_fixed_tm_path_from_spawn_indices(world=world, args=args)
+
+
 def _spawn_parked_ego_vehicle(
     *,
     world: "carla.World",
@@ -2563,6 +2869,7 @@ def run_back_only(args: argparse.Namespace) -> None:
         nms_radius_px=int(args.object_nms_radius_px),
         topk=int(args.topk_objects),
         max_objects_drawn=int(args.max_objects_drawn),
+        draw_projected_obb_box=bool(args.draw_projected_obb_box),
         log_every=int(args.back_log_every),
         label=f"fusion-back:{args.remote_port}->{remote_host}:{args.camera_result_port}",
     )
@@ -2825,11 +3132,52 @@ def run_client(args: argparse.Namespace) -> None:
             anchor_location = ego_vehicle.get_location()
             camera_attach_to = ego_vehicle
             radar_attach_to = ego_vehicle
+            if not bool(args.ego_freeze):
+                try:
+                    try:
+                        traffic_manager.set_global_distance_to_leading_vehicle(
+                            max(2.0, float(args.ego_follow_distance_m))
+                        )
+                    except Exception:
+                        pass
+                    traffic_manager.ignore_lights_percentage(
+                        ego_vehicle,
+                        max(0.0, min(100.0, float(args.ego_ignore_lights_pct))),
+                    )
+                    traffic_manager.vehicle_percentage_speed_difference(
+                        ego_vehicle,
+                        float(args.ego_autopilot_speed_difference_pct),
+                    )
+                    try:
+                        traffic_manager.distance_to_leading_vehicle(
+                            ego_vehicle,
+                            max(2.0, float(args.ego_follow_distance_m)),
+                        )
+                    except Exception:
+                        pass
+                    if bool(args.ego_disable_lane_change):
+                        traffic_manager.auto_lane_change(ego_vehicle, False)
+                    ego_vehicle.set_autopilot(True, int(args.tm_port))
+                    fixed_path = _build_fixed_tm_path(world=world, args=args)
+                    if fixed_path:
+                        traffic_manager.set_path(ego_vehicle, list(fixed_path))
+                    print(
+                        "Moving ego autopilot enabled: "
+                        f"speed_diff={float(args.ego_autopilot_speed_difference_pct):.1f}%, "
+                        f"follow={float(args.ego_follow_distance_m):.1f}m, "
+                        f"ignore_lights={float(args.ego_ignore_lights_pct):.1f}%, "
+                        f"lane_change={not bool(args.ego_disable_lane_change)}, "
+                        f"fixed_path_points={len(fixed_path)}"
+                    )
+                except RuntimeError as exc:
+                    print(f"WARNING: Could not enable ego autopilot: {exc}", file=sys.stderr)
             print(
-                "Parked ego vehicle: "
+                ("Moving ego vehicle: " if not bool(args.ego_freeze) else "Parked ego vehicle: ")
+                + (
                 f"id={ego_vehicle.id}, type={ego_vehicle.type_id}, "
                 f"spawn_index={int(args.ego_spawn_index)}, "
                 f"freeze={bool(args.ego_freeze)}"
+                )
             )
 
         if anchor_actor is None or anchor_location is None:

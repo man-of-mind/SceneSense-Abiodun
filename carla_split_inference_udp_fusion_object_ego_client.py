@@ -29,6 +29,10 @@ def main() -> None:
         sys.argv.extend(["--npc-pedestrians", "0"])
     if not _has_option("--enable-semantic-gt") and not _has_option("--disable-semantic-gt"):
         sys.argv.append("--enable-semantic-gt")
+    # The projected-3D-OBB box uses deprioritized dims/yaw and is unreliable; default the
+    # ego deploy to the learned 2D box only (override with --draw-projected-obb-box).
+    if not _has_option("--draw-projected-obb-box") and not _has_option("--no-draw-projected-obb-box"):
+        sys.argv.append("--no-draw-projected-obb-box")
     fusion_runtime.main()
 
 

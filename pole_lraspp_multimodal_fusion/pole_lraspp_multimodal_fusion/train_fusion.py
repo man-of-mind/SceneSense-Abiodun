@@ -170,6 +170,9 @@ class FusionPoleMultiTaskDataset(Dataset):
             image_height=original_height,
             min_area_px=float(self.object_cfg.get("min_gt_area_px", 24.0)),
             object_class_names=self.object_class_names,
+            max_distance_m=(float(self.object_cfg["max_gt_distance_m"])
+                            if self.object_cfg.get("max_gt_distance_m") not in (None, "", 0)
+                            else None),
         )
         object_targets = build_object_targets(
             objects=objects,

@@ -28,8 +28,11 @@ CLASS_BACKGROUND = 0
 CLASS_VEHICLE = 1
 CLASS_PERSON = 2
 CLASS_NAMES = ("background", "vehicle", "person")
+# CityScapes-aligned CARLA tags: 12=Pedestrian, 13=Rider are the only person classes.
+# The previous set wrongly included 24=RoadLine, 25=Ground, 4=Wall, which labeled lane
+# markings + ground as "person" in every mask (cooperative_fusion findings, 2026-06-26).
 VEHICLE_TAGS = {14, 15, 16, 17, 18, 19}
-PERSON_TAGS = {4, 12, 13, 24, 25}
+PERSON_TAGS = {12, 13}
 
 MANIFEST_FIELDS = (
     "experiment_id",
@@ -286,6 +289,31 @@ def carla_semantic_tags_to_training_mask(tags: np.ndarray) -> np.ndarray:
     mask = np.zeros(tags.shape, dtype=np.uint8)
     mask[np.isin(tags, list(VEHICLE_TAGS))] = CLASS_VEHICLE
     mask[np.isin(tags, list(PERSON_TAGS))] = CLASS_PERSON
+    return mask
+
+
+def rasterize_person_regions(mask: np.ndarray, boxes_xyxy, shape: str = "ellipse") -> np.ndarray:
+    """Paint CLASS_PERSON into `mask` for each projected 2D person box.
+
+    CARLA 0.10's segmentation cameras do not render walker semantics, so pedestrian masks
+    are synthesized from actor boxes. These are approximate (box/ellipse, not silhouette),
+    which caps achievable person IoU -- a deliberate trade given the build limitation.
+    boxes_xyxy: iterable of (x0, y0, x1, y1) in mask pixel coords.
+    """
+    import cv2  # local import: common.py stays light for pure model paths
+    h, w = mask.shape[:2]
+    for box in boxes_xyxy:
+        x0, y0, x1, y1 = [int(round(float(v))) for v in box]
+        x0, x1 = max(0, min(x0, x1)), min(w - 1, max(x0, x1))
+        y0, y1 = max(0, min(y0, y1)), min(h - 1, max(y0, y1))
+        if x1 <= x0 or y1 <= y0:
+            continue
+        if shape == "box":
+            mask[y0:y1 + 1, x0:x1 + 1] = CLASS_PERSON
+        else:  # vertical ellipse better approximates a standing person than a full box
+            cx, cy = (x0 + x1) // 2, (y0 + y1) // 2
+            ax, ay = max(1, (x1 - x0) // 2), max(1, (y1 - y0) // 2)
+            cv2.ellipse(mask, (cx, cy), (ax, ay), 0, 0, 360, int(CLASS_PERSON), -1)
     return mask
 
 
