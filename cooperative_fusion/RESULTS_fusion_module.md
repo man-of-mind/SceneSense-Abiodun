@@ -52,3 +52,22 @@ person rasterization) + retrain archK recipe -> in-domain detecting model -> the
   partial unfreeze, distillation. => limit is ARCHITECTURAL (LR-ASPP/MobileNetV3 heatmap head is a
   weak detector), not tuning. If detection is needed: change backbone/head (discuss w/ supervisor);
   do NOT keep grinding calibration. Cooperative fusion (seg + radar bearings) is the productive path.
+
+## Phase A — detection FIXED for operating range (2026-06-27)
+Root cause was NOT architectural. Three fair, on-architecture fixes (no detector swap):
+- (1) Range gate: 63% of GT was >50 m (unresolvable). Eval-only gate @40 m: F1 0.357->0.465.
+- (2) Gated RETRAIN (40 m targets, from archK): F1->0.587 (thr0.2); recall 0.33->0.74 (thr0.1);
+  XY MAE 2.08->1.55 m. Near recall (thr0.1): 0-10 m 0.91, 10-20 m 0.78.
+- (3) NMS radius 2->6 px (FPs were duplicate peaks on full-res head): F1 0.518->0.707 @thr0.1,
+  precision 0.398->0.754. Vehicle: 0-10 m recall 0.90 / prec 0.83; 10-20 m 0.87. Person: 0-10 m 0.95.
+- Radar-gated decoding: only marginal (+0.02 prec); FPs were duplicates near real objects, not
+  radar-free phantoms (persons all had radar support). NMS, not radar gating, was the precision lever.
+- REMAINING GAP: persons at 10-40 m (0.56-0.66). Levers if needed: seg-CC+radar detection for persons,
+  person-distance loss weighting. Vehicles are at target near.
+- RECOMMENDED OPERATING POINT: 40 m gate, thr 0.10-0.20, NMS 6 px.
+
+## BEST MODEL: det_rangegated40_dimw05 (2026-06-27)
+Gated 40m + dim-loss weight 0.6 + yaw 0.3, from gated init. @ thr0.10 nms6 40m gate:
+F1 0.777, recall 0.790, precision 0.765, vehicle rec 0.832 / prec 0.848, single-view dim MAE 0.207 m.
+Best on detection AND dimensions. This is the recommended SEG-fusion checkpoint.
+Path: experiments/autonomous_arch_runs_20260625/det_rangegated40_dimw05/checkpoints/det_rangegated40_dimw05/best.pt

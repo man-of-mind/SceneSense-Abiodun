@@ -19,6 +19,14 @@ demo. Stay on this side of the SEG/OD phase line: no R-CNN/YOLO, no large data c
   do NOT re-architect or commit to retraining strategy beyond what's measured here.
 
 ## Phase B — cooperative-fusion demo (deliverable)
+- B0  DIMENSION FUSION (new — the front-view/side-view insight). The full deliverable is the fused
+  world-frame 3D box = centroid (triangulation) + DIMENSIONS + yaw. A single view can't observe the
+  extent along its own line of sight (front view sees W+H, not L; side view sees L+H, not W). Add
+  `fuse_dimensions(views)` to `fusion.py`: per box-axis, weight each view's size prediction by how
+  perpendicular that view's ray is to the axis (best-observed wins), combine -> full W x L x H.
+  Validate the fused 3D box (center + size + yaw) against CARLA GT size_x/y/z (offline self-test
+  first w/ synthetic two-view box, then live in the two-ego scene). Report dimension MAE: per-view
+  vs fused.
 - B1  Add the PEDESTRIAN to `phase2_two_view_fusion.py` (radar-cluster association for person, since
   seg-person is weak). Report XY error vs GT for car AND person, all estimators. (CARLA)
 - B2  Baseline sweep: ego B at ~3 / 8 / 15 m, log triangulation error vs baseline -> validates the

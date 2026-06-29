@@ -306,6 +306,24 @@ def evaluate_checkpoint(args: argparse.Namespace) -> int:
                     predictions = [p for p in predictions
                                    if math.hypot(float(p["world_x"]) - cam_c[0],
                                                  float(p["world_y"]) - cam_c[1]) <= float(args.max_gt_distance_m)]
+                # Radar-gated decoding: drop detections with no radar occupancy nearby (channel 0
+                # of the radar tensor = fused[3]). Heatmap false positives sit where no radar
+                # returns exist; true near objects do. Optionally class-restricted.
+                if int(args.radar_gate_px) > 0:
+                    occ = fused_tensor[0, 3].detach().cpu().numpy()  # radar occupancy @ input res
+                    oh, ow = occ.shape
+                    gate_cls = {c.strip() for c in args.radar_gate_classes.split(",") if c.strip()}
+                    w = int(args.radar_gate_px)
+                    kept = []
+                    for p in predictions:
+                        if gate_cls and p.get("class_name") not in gate_cls:
+                            kept.append(p); continue
+                        cx, cy = int(round(p["center_x_px"])), int(round(p["center_y_px"]))
+                        y0, y1 = max(0, cy - w), min(oh, cy + w + 1)
+                        x0, x1 = max(0, cx - w), min(ow, cx + w + 1)
+                        if y0 < y1 and x0 < x1 and float(occ[y0:y1, x0:x1].max()) > 0.0:
+                            kept.append(p)
+                    predictions = kept
             matches = greedy_match_predictions(
                 predictions,
                 gt_objects,
@@ -513,6 +531,12 @@ def main() -> None:
     parser.add_argument("--match-distance-m", type=float, default=None)
     parser.add_argument("--max-gt-distance-m", type=float, default=None,
                         help="Operating-range gate: ignore GT and predictions beyond this range (m).")
+    parser.add_argument("--radar-gate-px", type=int, default=0,
+                        help="If >0, drop decoded detections with no radar occupancy within this "
+                             "window (px) of the center -> kills heatmap false positives.")
+    parser.add_argument("--radar-gate-classes", type=str, default="",
+                        help="Comma-separated classes the radar gate applies to (empty = all). "
+                             "e.g. 'vehicle' to spare pedestrians (weak radar return).")
     parser.add_argument("--device", choices=("auto", "cuda", "cpu"), default="auto")
     parser.add_argument("--require-cuda", action="store_true")
     parser.add_argument("--sample-id-contains", default="")

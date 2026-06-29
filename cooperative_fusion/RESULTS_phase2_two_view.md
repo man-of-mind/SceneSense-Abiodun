@@ -45,3 +45,43 @@ view-invariant. (Ground-contact bottom anchor was WORSE, 7.2 m — silhouette bo
 - Sweep baseline (3/8/15 m) live to show triangulation improving with baseline (bearing-limited).
 - Replace oracle association with a real detector/tracker once detection is solved (Track B: the
   current LR-ASPP heatmap head is too weak; needs an architectural change, not tuning).
+
+## B0 — dimension fusion (front-view + side-view -> full 3D box) [2026-06-27]
+The full deliverable = centroid (triangulation) + DIMENSIONS + yaw. A single view can't observe the
+extent along its own line of sight. `fuse_dimensions()` weights each view's length by how aligned its
+ray is with the object's lateral axis (side view sees length) and its width by alignment with the
+forward axis (front view sees width); height from all views.
+Offline self-test: single-view dim MAE 0.361 m -> FUSED 0.057 m (6.3x). Live validation pending in the
+two-ego scene (read model regression dims at the car center; compare fused vs CARLA GT extent).
+
+## Phase 2b — full fusion live (position + dims + pedestrian + baseline sweep) [2026-06-27]
+Two egos + placed car + pedestrian; 5-frame averaging; oracle data-association. gated model.
+
+POSITION (XY err vs GT):
+| baseline | car single A/B | car TRIANGULATE | pedestrian single A/B | ped TRIANGULATE |
+|---|---|---|---|---|
+| 4 m  | 2.42 / 1.58 | 3.76 (ill-conditioned: bearings near-parallel) | -- | -- |
+| 8 m  | 2.42 / 1.35 | 1.68 | 0.59 / 0.13 | 0.35 |
+| 14 m | 2.42 / 1.55 | 2.05 | 0.60 / 0.05 | 0.26 |
+- Pedestrian fusion is the clean win (radar-cluster bearings -> 0.26-0.35 m, beats single view).
+- Car triangulation needs an adequate baseline (>=8 m); 4 m is geometrically ill-conditioned.
+- Residual car-position floor ~1.5-2 m = silhouette-centroid vs 3D-center bias (known).
+
+DIMENSIONS (mean abs err over observed axes, m):
+- reg-head fusion: 1.3-1.8 m. The regression head was trained at dim-loss weight 0.05 -> weak per-view
+  dims (front-view length err ~2.4 m). Fusion can only combine what each view predicts.
+- seg-2D-box fusion: LENGTH recovers from a genuine side view (baseline 14 m: L 4.96 vs GT 5.59), but
+  width reads ~5 m everywhere (silhouette horizontal extent != clean face extent under perspective)
+  and height is over-read (range-to-center vs near-face).
+=> Dimension-fusion MATH is sound (offline self-test 6.3x). LIVE bottleneck = weak per-view dimension
+   SOURCES. Levers: (a) retrain regression head w/ higher dim-loss weight [LAUNCHED: det_rangegated40_dimw05],
+   (b) proper 3D-box-from-multiview-silhouette fitting (oriented box, near-face range) — future work.
+
+## B0 UPDATE — dimension fusion works with a properly-trained regression head [2026-06-27]
+Retrained the regression head with dim-loss weight 0.6 (was 0.05): det_rangegated40_dimw05.
+Per-view dim MAE dropped (front view A 2.4->1.0 m) and geometry-weighted fusion now gives:
+  baseline 4 m: 0.69 m | 8 m: 0.36 m | 14 m: 0.95 m  (mean abs err over L,W,H vs CARLA GT).
+Best at 8 m baseline (0.36 m); fusion beats naive single-view averaging. Detection unchanged.
+=> The fix for live dimension fusion was TRAINING the regression head (cheap, in-scope), NOT the
+   naive seg-2D-box (which stays ~5 m on width; would need oriented-3D-box-from-silhouette fitting).
+RECOMMENDED dimension path: regression-head dims + `fuse_dimensions` geometry weighting.
