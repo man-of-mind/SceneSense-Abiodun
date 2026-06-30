@@ -317,6 +317,42 @@ def rasterize_person_regions(mask: np.ndarray, boxes_xyxy, shape: str = "ellipse
     return mask
 
 
+def rasterize_person_regions_depth(mask, boxes_xyxy, dists_m, depth_m,
+                                   *, near_pad_m: float = 1.5, far_pad_m: float = 1.0,
+                                   shape: str = "ellipse") -> np.ndarray:
+    """Engine-GT pedestrian mask: fill each projected person box, then CARVE to the real
+    silhouette using the DEPTH image -- keep only pixels whose depth is near the pedestrian's
+    distance (drops background behind and occluders in front). Much tighter than a box/ellipse
+    and handles occlusion. Falls back to the plain ellipse where depth is missing/degenerate.
+
+    boxes_xyxy: (x0,y0,x1,y1) px;  dists_m: per-box camera distance (m);  depth_m: HxW depth (m).
+    """
+    import cv2  # local import: common.py stays light for pure model paths
+    h, w = mask.shape[:2]
+    for box, dist in zip(boxes_xyxy, dists_m):
+        x0, y0, x1, y1 = [int(round(float(v))) for v in box]
+        x0, x1 = max(0, min(x0, x1)), min(w - 1, max(x0, x1))
+        y0, y1 = max(0, min(y0, y1)), min(h - 1, max(y0, y1))
+        if x1 <= x0 or y1 <= y0:
+            continue
+        region = np.zeros((h, w), dtype=np.uint8)
+        if shape == "box":
+            region[y0:y1 + 1, x0:x1 + 1] = 1
+        else:
+            cx, cy = (x0 + x1) // 2, (y0 + y1) // 2
+            ax, ay = max(1, (x1 - x0) // 2), max(1, (y1 - y0) // 2)
+            cv2.ellipse(region, (cx, cy), (ax, ay), 0, 0, 360, 1, -1)
+        carved = None
+        if depth_m is not None and dist is not None and float(dist) > 0.0:
+            d = float(dist)
+            keep = region.astype(bool) & (depth_m >= d - near_pad_m) & (depth_m <= d + far_pad_m)
+            # guard: if depth carving removes almost everything (bad/missing depth), fall back
+            if int(keep.sum()) >= max(1, int(0.12 * region.sum())):
+                carved = keep
+        mask[(carved if carved is not None else region.astype(bool))] = CLASS_PERSON
+    return mask
+
+
 def set_reproducible_seeds(seed: int) -> None:
     random.seed(seed)
     np.random.seed(seed)

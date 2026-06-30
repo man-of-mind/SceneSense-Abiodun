@@ -412,6 +412,8 @@ def evaluate_checkpoint(args: argparse.Namespace) -> int:
                             "class_name": pred_class,
                             "pred_class_name": pred_class,
                             "score": pred_obj["score"],
+                            "pred_world_x": pred_obj["world_x"],
+                            "pred_world_y": pred_obj["world_y"],
                         }
                     )
             for gt_idx, gt_obj in enumerate(gt_objects):

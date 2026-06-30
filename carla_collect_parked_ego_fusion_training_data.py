@@ -48,6 +48,7 @@ from pole_lraspp_multimodal_fusion.common import (  # noqa: E402
     append_object_box_rows,
     carla_semantic_tags_to_training_mask,
     rasterize_person_regions,
+    rasterize_person_regions_depth,
     save_json,
     stable_split,
 )
@@ -243,6 +244,16 @@ def semantic_tags_from_image(image: "carla.Image") -> np.ndarray:
         (int(image.height), int(image.width), 4)
     )
     return arr[:, :, 2].copy()
+
+
+def decode_carla_depth_m(image: "carla.Image") -> np.ndarray:
+    """Decode a CARLA depth-camera frame (BGRA, 24-bit packed) to metric depth in meters."""
+    arr = np.frombuffer(image.raw_data, dtype=np.uint8).reshape(
+        (int(image.height), int(image.width), 4)
+    ).astype(np.float32)
+    b, g, r = arr[:, :, 0], arr[:, :, 1], arr[:, :, 2]
+    normalized = (r + g * 256.0 + b * 256.0 * 256.0) / (256.0 ** 3 - 1.0)
+    return 1000.0 * normalized
 
 
 def wait_for_measurement(
@@ -810,6 +821,7 @@ def main() -> int:
     pedestrian_controllers: List["carla.Actor"] = []
     image_queue: "queue.Queue[object]" = queue.Queue(maxsize=4)
     semantic_queue: "queue.Queue[object]" = queue.Queue(maxsize=4)
+    depth_queue: "queue.Queue[object]" = queue.Queue(maxsize=4)
     radar_queue: "queue.Queue[object]" = queue.Queue(maxsize=4)
 
     try:
@@ -859,6 +871,13 @@ def main() -> int:
         semantic_bp.set_attribute("image_size_y", str(int(args.camera_height)))
         semantic_bp.set_attribute("fov", str(float(args.camera_fov)))
         semantic_bp.set_attribute("sensor_tick", str(1.0 / max(0.1, float(args.fps))))
+        # Depth camera (same pose/intrinsics) -> carves true pedestrian silhouettes from the
+        # engine-GT person boxes (CARLA 0.10's semantic camera does not render walkers).
+        depth_bp = bp_lib.find("sensor.camera.depth")
+        depth_bp.set_attribute("image_size_x", str(int(args.camera_width)))
+        depth_bp.set_attribute("image_size_y", str(int(args.camera_height)))
+        depth_bp.set_attribute("fov", str(float(args.camera_fov)))
+        depth_bp.set_attribute("sensor_tick", str(1.0 / max(0.1, float(args.fps))))
         radar_bp = bp_lib.find("sensor.other.radar")
         radar_bp.set_attribute("range", str(float(args.radar_range)))
         radar_bp.set_attribute("horizontal_fov", str(float(args.radar_hfov)))
@@ -876,14 +895,20 @@ def main() -> int:
             fusion_runtime._ego_camera_transform(args),
             attach_to=ego_vehicle,
         )
+        depth_camera = world.spawn_actor(
+            depth_bp,
+            fusion_runtime._ego_camera_transform(args),
+            attach_to=ego_vehicle,
+        )
         radar = world.spawn_actor(
             radar_bp,
             fusion_runtime._ego_radar_transform(args),
             attach_to=ego_vehicle,
         )
-        actors.extend([camera, semantic_camera, radar])
+        actors.extend([camera, semantic_camera, depth_camera, radar])
         camera.listen(lambda image: od_demo.put_latest(image_queue, image))
         semantic_camera.listen(lambda image: od_demo.put_latest(semantic_queue, image))
+        depth_camera.listen(lambda image: od_demo.put_latest(depth_queue, image))
         radar.listen(lambda measurement: od_demo.put_latest(radar_queue, measurement))
 
         write_metadata(
@@ -942,6 +967,11 @@ def main() -> int:
             )
             semantic_image = od_demo.wait_for_camera_frame(
                 semantic_queue,
+                frame_id,
+                float(args.sensor_timeout),
+            )
+            depth_image = od_demo.wait_for_camera_frame(
+                depth_queue,
                 frame_id,
                 float(args.sensor_timeout),
             )
@@ -1039,18 +1069,23 @@ def main() -> int:
             )
             append_manifest_rows(manifest_path, [manifest_row])
             append_object_box_rows(object_boxes_path, object_rows)
-            # CARLA 0.10 does not render walker semantics -> synthesize the person mask from
-            # pedestrian actor boxes (full camera res, matching the saved 3-class mask).
-            person_boxes = [
-                (float(r["gt_bbox_x"]), float(r["gt_bbox_y"]),
-                 float(r["gt_bbox_x"]) + float(r["gt_bbox_w"]),
-                 float(r["gt_bbox_y"]) + float(r["gt_bbox_h"]))
-                for r in object_rows
+            # Person GT = engine 3D-box -> filled 2D box (accurate 2D localization). CARLA 0.10
+            # cannot render pedestrian masks from any sensor (semantic/instance/depth all fail on
+            # walkers), and pixel silhouettes aren't the project focus. Vehicles keep the
+            # semantic-camera silhouette (renders correctly).
+            person_rows = [
+                r for r in object_rows
                 if r.get("label") == "person"
                 and float(r.get("gt_bbox_w", 0.0)) > 0.0 and float(r.get("gt_bbox_h", 0.0)) > 0.0
             ]
-            if person_boxes:
-                rasterize_person_regions(mask, person_boxes, shape="ellipse")
+            if person_rows:
+                person_boxes = [
+                    (float(r["gt_bbox_x"]), float(r["gt_bbox_y"]),
+                     float(r["gt_bbox_x"]) + float(r["gt_bbox_w"]),
+                     float(r["gt_bbox_y"]) + float(r["gt_bbox_h"]))
+                    for r in person_rows
+                ]
+                rasterize_person_regions(mask, person_boxes, shape="box")
                 cv2.imwrite(str(file_paths["mask_path"]), mask)
             saved += 1
             if saved == 1 or saved % 10 == 0 or saved >= int(args.max_samples):

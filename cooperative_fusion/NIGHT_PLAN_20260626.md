@@ -47,3 +47,35 @@ demo. Stay on this side of the SEG/OD phase line: no R-CNN/YOLO, no large data c
   /cooperative_fusion; never edit top-level scripts.
 - Each step writes its result to disk immediately so nothing is lost if interrupted.
 - I resume automatically when the A1 retrain notifies completion; then chain through A2->...->C.
+
+## Queued (supervisor discussion, 2026-06-29) — NOT started yet
+- METHODOLOGY: stop using the semantic camera as seg GT; derive GT from CARLA ENGINE LOGIC
+  (actor 3D box/pose) like detection already does. Recommended fidelity: box + DEPTH-camera
+  refinement (keep in-box pixels whose depth ~ actor distance) -> near-true silhouette + occlusion
+  handling; rendering-independent; unifies all classes. Supervisor uses engine-GT for his models.
+- PRESENTATION: deploy model live, capture car+pedestrian snapshots at 5/10/20/30/40 m with
+  prediction overlays (seg + boxes + predicted distance), plus a short moving video — qualitative
+  accuracy-vs-distance to pair with the F1-by-distance table.
+
+## Engine-GT prototype results (2026-06-29) — cooperative_fusion/engine_gt_prototype.py
+Figure: cooperative_fusion/figs/engine_gt_prototype.png (RGB | semantic-cam | box | depth-refined).
+- PEDESTRIAN: semantic-cam 0 px -> engine depth-refined silhouette 2572 px (clean person shape). WIN.
+- VEHICLE: semantic-cam 22025 px (tight) vs engine box 34853 (loose) vs depth-refined 10381 (patchy on
+  far/oblique parked cars). Semantic cam is better for vehicles.
+- Static map cars are NOT actors -> need world.get_environment_objects(Car/Truck/Bus) (74/47/2).
+- Semantic LIDAR DOES tag pedestrians (tag 12, 86 pts) -> camera-only bug; alt source.
+RECOMMENDATION: HYBRID GT -> semantic camera for VEHICLES (works, 0.94), engine-GT depth-refined
+silhouette for PEDESTRIANS (the only broken class). Next: wire into collector (add depth cam + engine
+pedestrian mask), re-collect, retrain -> first real person-seg IoU.
+
+## Hybrid engine-GT WIRED INTO COLLECTOR (2026-06-29) — DONE
+carla_collect_parked_ego_fusion_training_data.py now:
+- spawns a DEPTH camera (same pose/intrinsics as RGB/semantic).
+- VEHICLES: keep semantic-camera labels (correct, tight).
+- PEDESTRIANS: engine-GT -> project actor box -> CARVE silhouette with depth (common.py
+  rasterize_person_regions_depth: keep in-box pixels w/ depth in [dist-1.5, dist+1.0]); ellipse fallback.
+- decode_carla_depth_m() added; depth_queue + wait_for_camera_frame wired.
+Smoke test (engine_gt_depth_smoke_20260629, 12 frames): masks have person pixels (249-331), vehicles
+from semantic. Verified overlay (sample_mask_check.png). Close-range silhouette quality shown in
+engine_gt_prototype.png.
+NEXT: full collection (replace moving-ego dataset) + retrain -> first real person-seg IoU.

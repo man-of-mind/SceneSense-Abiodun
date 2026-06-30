@@ -11,6 +11,10 @@ LOOPS_PER_DENSITY="${LOOPS_PER_DENSITY:-8}"
 MIN_SAMPLES_PER_DENSITY="${MIN_SAMPLES_PER_DENSITY:-3500}"
 MAX_SAMPLES_PER_DENSITY="${MAX_SAMPLES_PER_DENSITY:-6000}"
 SAMPLE_STRIDE="${SAMPLE_STRIDE:-2}"
+# Radar params: match the dataset our model was trained on (100k pps, raster-4, temporal-window-2)
+RADAR_PPS="${RADAR_PPS:-100000}"
+RADAR_RASTER_RADIUS_PX="${RADAR_RASTER_RADIUS_PX:-4}"
+RADAR_TEMPORAL_WINDOW_FRAMES="${RADAR_TEMPORAL_WINDOW_FRAMES:-2}"
 EGO_SPEED_DIFF="${EGO_SPEED_DIFF:-60}"
 EGO_FOLLOW_DISTANCE_M="${EGO_FOLLOW_DISTANCE_M:-28.0}"
 LOW_NPC_VEHICLES="${LOW_NPC_VEHICLES:-8}"
@@ -283,8 +287,9 @@ collect_density() {
     --radar-hfov 120 \
     --radar-vfov 30 \
     --radar-range 120 \
-    --radar-points-per-second 5000 \
-    --radar-raster-radius-px 2 \
+    --radar-points-per-second "$RADAR_PPS" \
+    --radar-raster-radius-px "$RADAR_RASTER_RADIUS_PX" \
+    --radar-temporal-window-frames "$RADAR_TEMPORAL_WINDOW_FRAMES" \
     --npc-vehicles "$npc_vehicles" \
     --npc-pedestrians "$npc_pedestrians" \
     --npc-vehicle-speed-difference-pct 10 \

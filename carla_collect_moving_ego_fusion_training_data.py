@@ -801,6 +801,7 @@ def main() -> int:
     pedestrian_controllers: List["carla.Actor"] = []
     image_queue: "queue.Queue[object]" = queue.Queue(maxsize=4)
     semantic_queue: "queue.Queue[object]" = queue.Queue(maxsize=4)
+    depth_queue: "queue.Queue[object]" = queue.Queue(maxsize=4)
     radar_queue: "queue.Queue[object]" = queue.Queue(maxsize=4)
 
     try:
@@ -858,6 +859,11 @@ def main() -> int:
         semantic_bp.set_attribute("image_size_y", str(int(args.camera_height)))
         semantic_bp.set_attribute("fov", str(float(args.camera_fov)))
         semantic_bp.set_attribute("sensor_tick", str(1.0 / max(0.1, float(args.fps))))
+        depth_bp = bp_lib.find("sensor.camera.depth")  # carves engine-GT pedestrian silhouettes
+        depth_bp.set_attribute("image_size_x", str(int(args.camera_width)))
+        depth_bp.set_attribute("image_size_y", str(int(args.camera_height)))
+        depth_bp.set_attribute("fov", str(float(args.camera_fov)))
+        depth_bp.set_attribute("sensor_tick", str(1.0 / max(0.1, float(args.fps))))
         radar_bp = bp_lib.find("sensor.other.radar")
         radar_bp.set_attribute("range", str(float(args.radar_range)))
         radar_bp.set_attribute("horizontal_fov", str(float(args.radar_hfov)))
@@ -867,10 +873,12 @@ def main() -> int:
 
         camera = world.spawn_actor(camera_bp, parked.fusion_runtime._ego_camera_transform(args), attach_to=ego_vehicle)
         semantic_camera = world.spawn_actor(semantic_bp, parked.fusion_runtime._ego_camera_transform(args), attach_to=ego_vehicle)
+        depth_camera = world.spawn_actor(depth_bp, parked.fusion_runtime._ego_camera_transform(args), attach_to=ego_vehicle)
         radar = world.spawn_actor(radar_bp, parked.fusion_runtime._ego_radar_transform(args), attach_to=ego_vehicle)
-        actors.extend([camera, semantic_camera, radar])
+        actors.extend([camera, semantic_camera, depth_camera, radar])
         camera.listen(lambda image: parked.od_demo.put_latest(image_queue, image))
         semantic_camera.listen(lambda image: parked.od_demo.put_latest(semantic_queue, image))
+        depth_camera.listen(lambda image: parked.od_demo.put_latest(depth_queue, image))
         radar.listen(lambda measurement: parked.od_demo.put_latest(radar_queue, measurement))
 
         write_moving_metadata(
@@ -995,6 +1003,7 @@ def main() -> int:
 
             image = parked.od_demo.wait_for_camera_frame(image_queue, frame_id, float(args.sensor_timeout))
             semantic_image = parked.od_demo.wait_for_camera_frame(semantic_queue, frame_id, float(args.sensor_timeout))
+            depth_image = parked.od_demo.wait_for_camera_frame(depth_queue, frame_id, float(args.sensor_timeout))
             radar_measurement = parked.wait_for_measurement(radar_queue, frame_id, float(args.sensor_timeout))
             if image is None or semantic_image is None or radar_measurement is None:
                 print(f"Warning: missing synchronized sensors at frame {frame_id}; retrying.")
@@ -1090,6 +1099,24 @@ def main() -> int:
                 radar_person_support_z_down_m=float(args.radar_person_support_z_down_m),
                 radar_person_support_z_up_m=float(args.radar_person_support_z_up_m),
             )
+            # Person GT = engine 3D-box -> filled 2D box (accurate 2D localization). Pixel-perfect
+            # pedestrian silhouettes aren't the project focus and CARLA 0.10 can't render them from
+            # ANY sensor (semantic/instance/depth all fail on walkers). Vehicles keep the
+            # semantic-camera silhouette (renders correctly).
+            person_rows = [
+                r for r in object_rows
+                if r.get("label") == "person"
+                and float(r.get("gt_bbox_w", 0.0)) > 0.0 and float(r.get("gt_bbox_h", 0.0)) > 0.0
+            ]
+            if person_rows:
+                person_boxes = [
+                    (float(r["gt_bbox_x"]), float(r["gt_bbox_y"]),
+                     float(r["gt_bbox_x"]) + float(r["gt_bbox_w"]),
+                     float(r["gt_bbox_y"]) + float(r["gt_bbox_h"]))
+                    for r in person_rows
+                ]
+                parked.rasterize_person_regions(mask, person_boxes, shape="box")
+                cv2.imwrite(str(file_paths["mask_path"]), mask)
             stop_requested = draw_preview(
                 args=args,
                 image=image,
