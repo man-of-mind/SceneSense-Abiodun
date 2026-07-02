@@ -1,2 +1,0 @@
-walker_motion_mode,walker_physics,radar_pps,target_distance_m,frames,radius_support_rate,radius_support_rate_ge5,radius_support_rate_ge10,bbox_support_rate,bbox_support_rate_ge5,bbox_support_rate_ge10,depth_window_support_rate,mean_radius_points,median_radius_points,mean_bbox_points,median_bbox_points,mean_depth_window_points,mean_total_radar_points,median_nearest_depth_m
-cross,default,48000,10.0,300,1.0,1.0,1.0,1.0,1.0,1.0,1.0,41.96666666666667,42.0,53.016666666666666,53.0,248.71333333333334,4653.15,0.0017476081848144531

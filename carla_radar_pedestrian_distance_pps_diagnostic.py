@@ -115,12 +115,13 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--walker-motion-control",
-        choices=("walker_control", "walker_control_nudge", "kinematic"),
+        choices=("walker_control", "walker_control_nudge", "kinematic", "kinematic_cycle"),
         default="walker_control",
         help=(
             "walker_control uses CARLA WalkerControl and can get stuck on medians/bollards; "
             "walker_control_nudge uses WalkerControl for animation and only nudges on stalls; "
-            "kinematic moves the actor by transform updates for controlled radar sweeps."
+            "kinematic moves the actor by transform updates; kinematic_cycle forces a complete "
+            "left/right deterministic path across each condition."
         ),
     )
     parser.add_argument(
@@ -151,6 +152,15 @@ def parse_args() -> argparse.Namespace:
         help="For walker_control_nudge, nudge the actor after this many low-progress frames.",
     )
     parser.add_argument(
+        "--walker-kinematic-cycle-count",
+        type=float,
+        default=1.0,
+        help=(
+            "For kinematic_cycle, number of full triangular left-right-left cycles per condition. "
+            "Use 0.5 for a single left-to-right pass."
+        ),
+    )
+    parser.add_argument(
         "--debug-placement",
         action="store_true",
         help="Print the walker world/sensor position whenever the diagnostic places it.",
@@ -178,6 +188,28 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--person-z-up-m", type=float, default=2.0)
     parser.add_argument("--bbox-margin-m", type=float, default=0.35)
     parser.add_argument("--depth-window-m", type=float, default=1.0)
+    parser.add_argument(
+        "--cep-min-points-list",
+        default="1,5,10,20,25",
+        help=(
+            "Comma-separated radar-point thresholds used when summarizing CEP. "
+            "CEP is computed only on frames with at least this many associated pedestrian points."
+        ),
+    )
+    parser.add_argument(
+        "--cep-plot-min-points",
+        type=int,
+        default=10,
+        help="Associated-point threshold used by generated CEP presentation plots.",
+    )
+    parser.add_argument(
+        "--cep-control-valid-rate",
+        type=float,
+        default=0.8,
+        help=(
+            "Valid-frame-rate target for control-knob plots that choose the minimum PPS per distance."
+        ),
+    )
 
     parser.add_argument("--preview", action="store_true")
     parser.add_argument("--preview-width", type=int, default=1280)
@@ -413,6 +445,7 @@ def reset_walker_motion(
         "direction": 1.0,
         "amplitude_m": amplitude,
         "coordinate_m": -amplitude,
+        "cycle_frame_index": 0,
         "last_coordinate_m": None,
         "stuck_frames": 0,
     }
@@ -462,7 +495,78 @@ def update_walker_motion(
         return
 
     forward, right = transform_forward_right(reference_tf)
-    if str(getattr(args, "walker_motion_control", "walker_control")) == "kinematic":
+    control_mode = str(getattr(args, "walker_motion_control", "walker_control"))
+    if control_mode == "kinematic_cycle":
+        total_frames = max(1, int(getattr(args, "frames_per_condition", 1)) - 1)
+        frame_index = int(state.get("cycle_frame_index", 0))
+        cycle_count = max(0.0, float(getattr(args, "walker_kinematic_cycle_count", 1.0)))
+        progress = min(1.0, max(0.0, float(frame_index) / float(total_frames)))
+        phase = progress * cycle_count
+        if cycle_count <= 0.5:
+            # Single one-way pass: left edge to right edge.
+            t = min(1.0, max(0.0, phase / max(cycle_count, 1e-6)))
+            coordinate = -amplitude + 2.0 * amplitude * t
+            direction = 1.0
+        else:
+            # Triangular wave: left edge -> right edge -> left edge.
+            t = phase % 1.0
+            if t <= 0.5:
+                coordinate = -amplitude + 4.0 * amplitude * t
+                direction = 1.0
+            else:
+                coordinate = amplitude - 4.0 * amplitude * (t - 0.5)
+                direction = -1.0
+        state["coordinate_m"] = coordinate
+        state["direction"] = direction
+        state["cycle_frame_index"] = frame_index + 1
+        if mode == "cross":
+            yaw = math.degrees(math.atan2(float(right[1] * direction), float(right[0] * direction)))
+            place_walker(
+                walker,
+                ego,
+                args,
+                float(state.get("target_distance_m", 0.0)),
+                reference_tf=reference_tf,
+                lateral_offset_m=coordinate,
+                yaw_override_deg=yaw,
+            )
+            velocity_axis = right
+        else:
+            yaw = math.degrees(math.atan2(float(forward[1] * direction), float(forward[0] * direction)))
+            place_walker(
+                walker,
+                ego,
+                args,
+                float(state.get("target_distance_m", 0.0)),
+                reference_tf=reference_tf,
+                forward_offset_m=coordinate,
+                yaw_override_deg=yaw,
+            )
+            velocity_axis = forward
+        try:
+            walker.set_target_velocity(
+                carla.Vector3D(
+                    x=float(velocity_axis[0] * direction * speed),
+                    y=float(velocity_axis[1] * direction * speed),
+                    z=0.0,
+                )
+            )
+            walker.apply_control(
+                carla.WalkerControl(
+                    direction=carla.Vector3D(
+                        x=float(velocity_axis[0] * direction),
+                        y=float(velocity_axis[1] * direction),
+                        z=0.0,
+                    ),
+                    speed=float(speed),
+                    jump=False,
+                )
+            )
+        except Exception:
+            pass
+        return
+
+    if control_mode == "kinematic":
         dt = 1.0 / max(0.1, float(getattr(args, "fps", 10.0)))
         coordinate = float(state.get("coordinate_m", -amplitude))
         direction = float(state.get("direction", 1.0))
@@ -537,7 +641,6 @@ def update_walker_motion(
     elif coordinate <= -amplitude:
         direction = 1.0
     state["direction"] = direction
-    control_mode = str(getattr(args, "walker_motion_control", "walker_control"))
     previous_coordinate = state.get("last_coordinate_m")
     if previous_coordinate is not None:
         progress = abs(float(coordinate) - float(previous_coordinate))
@@ -744,6 +847,55 @@ def write_csv(path: Path, rows: Sequence[Dict[str, object]], fieldnames: Sequenc
             writer.writerow({field: row.get(field, "") for field in fieldnames})
 
 
+def radar_xy_estimate(
+    points_local: np.ndarray,
+    mask: np.ndarray,
+    gt_x_m: float,
+    gt_y_m: float,
+    prefix: str,
+) -> Dict[str, object]:
+    selected = points_local[mask]
+    if selected.size == 0:
+        return {
+            f"{prefix}_mean_x_m": "",
+            f"{prefix}_mean_y_m": "",
+            f"{prefix}_median_x_m": "",
+            f"{prefix}_median_y_m": "",
+            f"{prefix}_mean_xy_error_m": "",
+            f"{prefix}_median_xy_error_m": "",
+        }
+    xy = selected[:, :2].astype(np.float64)
+    mean_xy = np.mean(xy, axis=0)
+    median_xy = np.median(xy, axis=0)
+    gt_xy = np.asarray([float(gt_x_m), float(gt_y_m)], dtype=np.float64)
+    mean_error = float(np.linalg.norm(mean_xy - gt_xy))
+    median_error = float(np.linalg.norm(median_xy - gt_xy))
+    return {
+        f"{prefix}_mean_x_m": float(mean_xy[0]),
+        f"{prefix}_mean_y_m": float(mean_xy[1]),
+        f"{prefix}_median_x_m": float(median_xy[0]),
+        f"{prefix}_median_y_m": float(median_xy[1]),
+        f"{prefix}_mean_xy_error_m": mean_error,
+        f"{prefix}_median_xy_error_m": median_error,
+    }
+
+
+def finite_float(value: object) -> Optional[float]:
+    if value in ("", None):
+        return None
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    return number if math.isfinite(number) else None
+
+
+def percentile(values: Sequence[float], q: float) -> float:
+    if not values:
+        return float("nan")
+    return float(np.percentile(np.asarray(values, dtype=np.float64), float(q)))
+
+
 def summarize_condition(rows: Sequence[Dict[str, object]]) -> Dict[str, object]:
     radius_counts = [int(row["person_radius_points"]) for row in rows]
     bbox_counts = [int(row["person_bbox_points"]) for row in rows]
@@ -779,11 +931,48 @@ def summarize_condition(rows: Sequence[Dict[str, object]]) -> Dict[str, object]:
     }
 
 
+def summarize_cep_rows(
+    rows: Sequence[Dict[str, object]],
+    *,
+    association: str,
+    estimator: str,
+    min_points: int,
+) -> Dict[str, object]:
+    count_field = f"person_{association}_points"
+    error_field = f"{association}_{estimator}_xy_error_m"
+    valid_errors: List[float] = []
+    point_counts: List[int] = []
+    for row in rows:
+        try:
+            count = int(row.get(count_field, 0))
+        except (TypeError, ValueError):
+            count = 0
+        error = finite_float(row.get(error_field))
+        if count >= int(min_points) and error is not None:
+            point_counts.append(count)
+            valid_errors.append(error)
+    frames = len(rows)
+    return {
+        "frames": frames,
+        "valid_frames": len(valid_errors),
+        "valid_rate": float(len(valid_errors) / frames) if frames else float("nan"),
+        "mean_points_in_valid_frames": float(mean(point_counts)) if point_counts else "",
+        "median_points_in_valid_frames": float(median(point_counts)) if point_counts else "",
+        "mean_xy_error_m": float(mean(valid_errors)) if valid_errors else "",
+        "cep50_m": percentile(valid_errors, 50.0) if valid_errors else "",
+        "cep90_m": percentile(valid_errors, 90.0) if valid_errors else "",
+        "cep95_m": percentile(valid_errors, 95.0) if valid_errors else "",
+    }
+
+
 def write_summary_outputs(
     output_dir: Path,
     frame_rows: Sequence[Dict[str, object]],
     *,
     plot_min_distance_m: float = 10.0,
+    cep_min_points: Sequence[int] = (1, 5, 10, 20, 25),
+    cep_plot_min_points: int = 10,
+    cep_control_valid_rate: float = 0.8,
 ) -> None:
     groups: Dict[Tuple[str, str, str, int, float, float], List[Dict[str, object]]] = {}
     for row in frame_rows:
@@ -834,6 +1023,52 @@ def write_summary_outputs(
         "median_nearest_depth_m",
     ]
     write_csv(output_dir / "summary_by_condition.csv", summary_rows, summary_fields)
+
+    cep_rows: List[Dict[str, object]] = []
+    for (motion, control, physics, pps, distance, amplitude), rows in sorted(groups.items(), key=lambda item: item[0]):
+        for association in ("radius", "bbox"):
+            for estimator in ("mean", "median"):
+                for min_points in cep_min_points:
+                    cep_rows.append(
+                        {
+                            "walker_motion_mode": motion,
+                            "walker_motion_control": control,
+                            "walker_physics": physics,
+                            "radar_pps": pps,
+                            "target_distance_m": distance,
+                            "walker_motion_amplitude_m": amplitude,
+                            "association": association,
+                            "estimator": estimator,
+                            "min_points": int(min_points),
+                            **summarize_cep_rows(
+                                rows,
+                                association=association,
+                                estimator=estimator,
+                                min_points=int(min_points),
+                            ),
+                        }
+                    )
+    cep_fields = [
+        "walker_motion_mode",
+        "walker_motion_control",
+        "walker_physics",
+        "radar_pps",
+        "target_distance_m",
+        "walker_motion_amplitude_m",
+        "association",
+        "estimator",
+        "min_points",
+        "frames",
+        "valid_frames",
+        "valid_rate",
+        "mean_points_in_valid_frames",
+        "median_points_in_valid_frames",
+        "mean_xy_error_m",
+        "cep50_m",
+        "cep90_m",
+        "cep95_m",
+    ]
+    write_csv(output_dir / "cep_by_condition.csv", cep_rows, cep_fields)
 
     try:
         import matplotlib
@@ -906,6 +1141,146 @@ def write_summary_outputs(
             fig.savefig(output_dir / f"person_radar_support_rate_vs_distance_{physics}.png", dpi=220)
             fig.savefig(output_dir / f"person_radar_support_rate_vs_distance_{physics}.pdf")
             plt.close(fig)
+
+        for physics in sorted({str(row["walker_physics"]) for row in cep_rows}):
+            subset = [
+                row
+                for row in cep_rows
+                if str(row["walker_physics"]) == physics
+                and str(row["association"]) == "bbox"
+                and str(row["estimator"]) == "median"
+                and int(row["min_points"]) == int(cep_plot_min_points)
+            ]
+            if not subset:
+                continue
+            fig, ax = plt.subplots(figsize=(9.6, 5.4), constrained_layout=True)
+            for pps in sorted({int(row["radar_pps"]) for row in subset}):
+                pts = sorted(
+                    [
+                        row
+                        for row in subset
+                        if int(row["radar_pps"]) == pps
+                        and float(row["target_distance_m"]) >= min_plot_distance
+                        and finite_float(row.get("cep50_m")) is not None
+                    ],
+                    key=lambda row: float(row["target_distance_m"]),
+                )
+                if not pts:
+                    continue
+                ax.plot(
+                    [float(row["target_distance_m"]) for row in pts],
+                    [float(row["cep50_m"]) for row in pts],
+                    marker="o",
+                    linewidth=2,
+                    label=f"{pps} PPS",
+                )
+            ax.set_title(f"Radar-only pedestrian CEP50 vs distance ({physics} physics)")
+            ax.set_xlabel("Pedestrian distance from radar (m)")
+            ax.set_ylabel(f"CEP50 XY error (m), bbox median, >= {int(cep_plot_min_points)} pts")
+            ax.set_xlim(left=min_plot_distance)
+            ax.grid(axis="y", alpha=0.25)
+            ax.legend(frameon=False, ncols=2)
+            fig.savefig(output_dir / f"pedestrian_cep50_vs_distance_bbox_median_ge{int(cep_plot_min_points)}_{physics}.png", dpi=220)
+            fig.savefig(output_dir / f"pedestrian_cep50_vs_distance_bbox_median_ge{int(cep_plot_min_points)}_{physics}.pdf")
+            plt.close(fig)
+
+            fig, ax = plt.subplots(figsize=(9.6, 5.4), constrained_layout=True)
+            for pps in sorted({int(row["radar_pps"]) for row in subset}):
+                pts = sorted(
+                    [
+                        row
+                        for row in subset
+                        if int(row["radar_pps"]) == pps
+                        and float(row["target_distance_m"]) >= min_plot_distance
+                        and finite_float(row.get("valid_rate")) is not None
+                    ],
+                    key=lambda row: float(row["target_distance_m"]),
+                )
+                if not pts:
+                    continue
+                ax.plot(
+                    [float(row["target_distance_m"]) for row in pts],
+                    [float(row["valid_rate"]) for row in pts],
+                    marker="o",
+                    linewidth=2,
+                    label=f"{pps} PPS",
+                )
+            ax.set_title(f"Frames with enough pedestrian radar points ({physics} physics)")
+            ax.set_xlabel("Pedestrian distance from radar (m)")
+            ax.set_ylabel(f"Fraction of frames with >= {int(cep_plot_min_points)} bbox points")
+            ax.set_xlim(left=min_plot_distance)
+            ax.set_ylim(0.0, 1.02)
+            ax.grid(axis="y", alpha=0.25)
+            ax.legend(frameon=False, ncols=2)
+            fig.savefig(output_dir / f"pedestrian_cep_valid_rate_bbox_median_ge{int(cep_plot_min_points)}_{physics}.png", dpi=220)
+            fig.savefig(output_dir / f"pedestrian_cep_valid_rate_bbox_median_ge{int(cep_plot_min_points)}_{physics}.pdf")
+            plt.close(fig)
+
+            target_rate = float(cep_control_valid_rate)
+            rate_tag = int(round(target_rate * 100.0))
+            for metric, metric_label in (("cep50_m", "CEP50"), ("cep90_m", "CEP90")):
+                selected_distances: List[float] = []
+                selected_pps: List[int] = []
+                selected_metric: List[float] = []
+                for distance in sorted({float(row["target_distance_m"]) for row in subset}):
+                    if distance < min_plot_distance:
+                        continue
+                    candidates = []
+                    for row in subset:
+                        if float(row["target_distance_m"]) != distance:
+                            continue
+                        value = finite_float(row.get(metric))
+                        valid_rate = finite_float(row.get("valid_rate"))
+                        if value is None or valid_rate is None:
+                            continue
+                        if valid_rate >= target_rate:
+                            candidates.append((int(row["radar_pps"]), value))
+                    if not candidates:
+                        continue
+                    pps, value = sorted(candidates, key=lambda item: item[0])[0]
+                    selected_distances.append(distance)
+                    selected_pps.append(pps)
+                    selected_metric.append(value)
+                if not selected_distances:
+                    continue
+                fig, ax_pps = plt.subplots(figsize=(9.6, 5.4), constrained_layout=True)
+                ax_cep = ax_pps.twinx()
+                ax_pps.plot(
+                    selected_distances,
+                    selected_pps,
+                    marker="s",
+                    linewidth=2.4,
+                    color="#1f77b4",
+                    label=f"Minimum PPS for >= {rate_tag}% useful frames",
+                )
+                ax_cep.plot(
+                    selected_distances,
+                    selected_metric,
+                    marker="o",
+                    linewidth=2.4,
+                    color="#d62728",
+                    label=f"{metric_label} at selected PPS",
+                )
+                ax_pps.set_title(
+                    f"Radar PPS control knob vs pedestrian {metric_label} ({physics} physics)"
+                )
+                ax_pps.set_xlabel("Pedestrian distance from radar (m)")
+                ax_pps.set_ylabel("Minimum radar PPS", color="#1f77b4")
+                ax_cep.set_ylabel(f"{metric_label} XY error (m)", color="#d62728")
+                ax_pps.tick_params(axis="y", labelcolor="#1f77b4")
+                ax_cep.tick_params(axis="y", labelcolor="#d62728")
+                ax_pps.set_xlim(left=min_plot_distance)
+                ax_pps.grid(axis="y", alpha=0.25)
+                lines_pps, labels_pps = ax_pps.get_legend_handles_labels()
+                lines_cep, labels_cep = ax_cep.get_legend_handles_labels()
+                ax_pps.legend(lines_pps + lines_cep, labels_pps + labels_cep, frameon=False, loc="upper left")
+                filename = (
+                    f"pedestrian_{metric_label.lower()}_control_knob_bbox_median_ge"
+                    f"{int(cep_plot_min_points)}_vr{rate_tag}_{physics}"
+                )
+                fig.savefig(output_dir / f"{filename}.png", dpi=220)
+                fig.savefig(output_dir / f"{filename}.pdf")
+                plt.close(fig)
 
 
 def spawn_ego(world: "carla.World", args: argparse.Namespace) -> "carla.Actor":
@@ -1119,6 +1494,7 @@ def main() -> int:
                             measurement = radar_queue.get_nowait()
                         arrays = radar_measurement_to_arrays(measurement, radar.get_transform())
                         world_xyz = arrays["world_xyz"]
+                        local_xyz = arrays["local_xyz"]
                         radius_mask = points_inside_person_radius(
                             world_xyz,
                             walker,
@@ -1132,6 +1508,20 @@ def main() -> int:
                         nearest_depth = float(np.min(np.abs(depth - float(distance_m)))) if depth.size else ""
                         walker_center = actor_bbox_center_world(walker)
                         walker_radar = point_to_transform_local(walker_center, radar.get_transform())
+                        radius_xy = radar_xy_estimate(
+                            local_xyz,
+                            radius_mask,
+                            float(walker_radar[0]),
+                            float(walker_radar[1]),
+                            "radius",
+                        )
+                        bbox_xy = radar_xy_estimate(
+                            local_xyz,
+                            bbox_mask,
+                            float(walker_radar[0]),
+                            float(walker_radar[1]),
+                            "bbox",
+                        )
                         walker_camera_u = walker_camera_v = walker_camera_depth = float("nan")
                         walker_camera_visible = False
                         if camera is not None:
@@ -1197,6 +1587,8 @@ def main() -> int:
                             ),
                             "mean_person_radius_velocity_mps": mean_radius_velocity,
                             "mean_abs_person_radius_velocity_mps": mean_abs_radius_velocity,
+                            **radius_xy,
+                            **bbox_xy,
                         }
                         frame_rows.append(row)
 
@@ -1247,6 +1639,18 @@ def main() -> int:
             "mean_person_radius_depth_m",
             "mean_person_radius_velocity_mps",
             "mean_abs_person_radius_velocity_mps",
+            "radius_mean_x_m",
+            "radius_mean_y_m",
+            "radius_median_x_m",
+            "radius_median_y_m",
+            "radius_mean_xy_error_m",
+            "radius_median_xy_error_m",
+            "bbox_mean_x_m",
+            "bbox_mean_y_m",
+            "bbox_median_x_m",
+            "bbox_median_y_m",
+            "bbox_mean_xy_error_m",
+            "bbox_median_xy_error_m",
             "walker_world_x",
             "walker_world_y",
             "walker_world_z",
@@ -1259,7 +1663,14 @@ def main() -> int:
             "walker_camera_visible",
         ]
         write_csv(output_dir / "frame_metrics.csv", frame_rows, frame_fields)
-        write_summary_outputs(output_dir, frame_rows, plot_min_distance_m=float(args.plot_min_distance_m))
+        write_summary_outputs(
+            output_dir,
+            frame_rows,
+            plot_min_distance_m=float(args.plot_min_distance_m),
+            cep_min_points=parse_int_list(str(args.cep_min_points_list)),
+            cep_plot_min_points=int(args.cep_plot_min_points),
+            cep_control_valid_rate=float(args.cep_control_valid_rate),
+        )
         summary = {
             "experiment_id": output_dir.name,
             "output_dir": str(output_dir.resolve()),
