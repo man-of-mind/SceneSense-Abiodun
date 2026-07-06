@@ -375,11 +375,15 @@ def _follow_view_bounds(streams: Sequence[Dict[str, object]], now: float) -> Opt
             "warning": f"Follow stream '{follow_id}' not seen recently; showing full map.",
         }
 
+    # The moving-ego client ships its live sensor pose in the packet's "camera" block
+    # (location + rotation); fall back to an "anchor.transform" if a future client sends one.
+    cam = match.get("camera") or {}
     transform = (match.get("anchor") or {}).get("transform") or {}
-    loc = transform.get("location") or {}
+    loc = cam.get("location") or transform.get("location") or {}
+    rot = cam.get("rotation") or transform.get("rotation") or {}
     cx = _safe_float(loc.get("x"))
     cy = _safe_float(loc.get("y"))
-    yaw_deg = _safe_float((transform.get("rotation") or {}).get("yaw"))
+    yaw_deg = _safe_float(rot.get("yaw"))
 
     radius_m = max(1.0, float(cfg.focus_radius_m))
     padding_m = max(0.0, float(cfg.focus_padding_m))
@@ -450,6 +454,12 @@ def _refresh_static_map_context() -> Dict[str, object]:
             and static_map_cache.get("buildings") is not None
             and static_map_cache.get("traffic_lights") is not None
         )
+        # The town geometry is static within a run. Once real roads/buildings are loaded, NEVER re-query
+        # CARLA — the periodic re-query (default every 10s) is a 1-2s blocking round-trip on the request
+        # path that froze the live map. Only the throttled retry path below runs if the first build failed
+        # (empty geometry), so a transient CARLA hiccup can still recover.
+        if cache_ready and (static_map_cache.get("roads") or static_map_cache.get("buildings")):
+            return dict(static_map_cache)
         if cache_ready and now - float(static_map_cache["loaded_at"]) < float(cfg.static_map_refresh_s):
             return dict(static_map_cache)
 
@@ -528,6 +538,10 @@ def _normalize_object(
     elif object_type == "MovingVehicle":
         object_type = "Vehicle"
         motion_state = motion_state or "moving"
+    elif object_type in ("Person", "Walker"):
+        # model class name is "person"; map to the canonical map label so it gets the
+        # Pedestrian color/legend instead of falling through to white "Unknown".
+        object_type = "Pedestrian"
 
     model_yaw_deg = _safe_float(obj.get("model_yaw_deg", obj.get("yaw_deg")), 0.0)
 
@@ -1006,6 +1020,9 @@ def _build_spatial_map_snapshot() -> Dict[str, object]:
     raw_objects = []
     for stream in sorted(streams, key=lambda item: str(item["stream_id"])):
         age_s = now - float(stream["received_at"])
+        cam = stream.get("camera") or {}
+        cam_loc = cam.get("location") or {}
+        cam_rot = cam.get("rotation") or {}
         stream_info = {
             "stream_id": stream["stream_id"],
             "node_id": stream["node_id"],
@@ -1013,6 +1030,11 @@ def _build_spatial_map_snapshot() -> Dict[str, object]:
             "traffic_light_actor_id": stream["traffic_light_actor_id"],
             "traffic_light_opendrive_id": stream["traffic_light_opendrive_id"],
             "anchor": stream.get("anchor", {}),
+            # per-stream sensor pose + FoV (from the packet's camera block) — enables cooperative
+            # per-stream FoV polygons + occlusion reasoning on real data (not just the followed ego).
+            "sensor_pose": {"x": _safe_float(cam_loc.get("x")), "y": _safe_float(cam_loc.get("y")),
+                            "yaw_deg": _safe_float(cam_rot.get("yaw"))},
+            "fov_deg": _safe_float(cam.get("fov"), 90.0),
             "frame_id": stream["frame_id"],
             "age_s": age_s,
             "object_count": stream["object_count"],
@@ -1592,14 +1614,44 @@ def get_live_png():
         time.sleep(0.05)
 
 
-@app.route("/api/spatial_map/viewer", methods=["GET"])
-def get_live_viewer():
+@app.route("/api/spatial_map/static_geometry", methods=["GET"])
+def get_static_geometry():
+    """Static town backdrop (roads + building footprints) for the canvas viewer. Fetched once by
+    the viewer; the underlying geometry is cached in _refresh_static_map_context()."""
+    ctx = _refresh_static_map_context()
+
+    def _xy(p):
+        if isinstance(p, dict):
+            return [_safe_float(p.get("x")), _safe_float(p.get("y"))]
+        return [_safe_float(p[0]), _safe_float(p[1])]
+
+    roads = []
+    for polyline in (ctx.get("roads") or []):
+        pts = [_xy(p) for p in polyline]
+        if len(pts) >= 2:
+            roads.append(pts)
+    buildings = []
+    for building in (ctx.get("buildings") or []):
+        footprint = building.get("footprint") if isinstance(building, dict) else None
+        if not footprint:
+            continue
+        pts = [_xy(p) for p in footprint]
+        if len(pts) >= 3:
+            buildings.append(pts)
+    return jsonify(
+        {"map_name": ctx.get("map_name"), "error": ctx.get("error"), "roads": roads, "buildings": buildings}
+    )
+
+
+# Legacy matplotlib-PNG viewer kept as a fallback.
+@app.route("/api/spatial_map/viewer_png", methods=["GET"])
+def get_live_viewer_png():
     html = """
 <!doctype html>
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Multi-Client Fused Object Spatial Map</title>
+  <title>Multi-Client Fused Object Spatial Map (PNG)</title>
   <style>
     html, body { margin: 0; height: 100%; background: #080b10; }
     img { width: 100vw; height: 100vh; object-fit: contain; display: block; }
@@ -1609,15 +1661,114 @@ def get_live_viewer():
   <img id="map" alt="Multi-client fused object spatial map">
   <script>
     const img = document.getElementById("map");
-    function refresh() {
-      img.src = "/api/spatial_map/live.png?wait=1&t=" + Date.now();
-    }
+    function refresh() { img.src = "/api/spatial_map/live.png?wait=1&t=" + Date.now(); }
     img.onload = () => setTimeout(refresh, 250);
     img.onerror = () => setTimeout(refresh, 500);
     refresh();
   </script>
 </body>
 </html>
+"""
+    return Response(html, mimetype="text/html")
+
+
+# Fast client-side canvas viewer: static backdrop fetched once, objects+ego polled from JSON at ~10Hz
+# and drawn ego-centered (car fixed at center, world scrolls under it -> smooth "moving map").
+@app.route("/api/spatial_map/viewer", methods=["GET"])
+def get_live_viewer():
+    html = """
+<!doctype html><html><head><meta charset="utf-8">
+<title>Cooperative Spatial Map (live)</title>
+<style>
+ html,body{margin:0;height:100%;background:#080b10;overflow:hidden;font-family:system-ui,Arial,sans-serif}
+ #c{display:block;width:100vw;height:100vh}
+ #hud{position:fixed;top:8px;left:10px;color:#cbd3dc;font-size:13px;line-height:1.6;text-shadow:0 1px 2px #000;pointer-events:none}
+ #hud b{color:#fff}.v{color:#00d1ff}.p{color:#ff5fd1}.w{color:#ffcf66}
+</style></head><body>
+<canvas id="c"></canvas><div id="hud">connecting…</div>
+<script>
+const cv=document.getElementById('c'),ctx=cv.getContext('2d'),hud=document.getElementById('hud');
+let DPR=Math.max(1,window.devicePixelRatio||1);
+let statics={roads:[],buildings:[]},snap=null;
+function resize(){cv.width=innerWidth*DPR;cv.height=innerHeight*DPR;}
+addEventListener('resize',resize);resize();
+async function loadStatic(){try{statics=await(await fetch('/api/spatial_map/static_geometry')).json();}catch(e){setTimeout(loadStatic,2000);}}
+async function poll(){try{snap=await(await fetch('/api/spatial_map/latest')).json();}catch(e){}setTimeout(poll,100);}
+function ego(){const fv=snap&&snap.metadata&&snap.metadata.focus_view;if(fv&&fv.ego_pose)return{x:fv.ego_pose.x,y:fv.ego_pose.y,yaw:fv.ego_pose.yaw_deg,r:(fv.radius_m||40)+(fv.padding_m||10)};return null;}
+let disp=null;            // smoothed display pose (interpolated toward target each frame)
+function draw(){
+ requestAnimationFrame(draw);
+ const W=cv.width,H=cv.height;ctx.fillStyle='#080b10';ctx.fillRect(0,0,W,H);
+ const tgt=ego();          // latest published pose (may be null during a gap)
+ if(!tgt&&!disp){hud.innerHTML='<b class=w>waiting for ego stream…</b>';return;}
+ if(tgt){                  // ease toward the target; the ~1Hz data glides instead of jumping
+  if(!disp)disp=Object.assign({},tgt);
+  const k=0.18;disp.x+=(tgt.x-disp.x)*k;disp.y+=(tgt.y-disp.y)*k;
+  let dyaw=((tgt.yaw-disp.yaw+540)%360)-180;disp.yaw+=dyaw*k;disp.r=tgt.r;
+ }
+ const e=disp,stale=!tgt;  // hold last pose during a gap instead of blanking
+ const R=e.r,scale=Math.min(W,H)/2/R;
+ const T=(wx,wy)=>[W/2+(wx-e.x)*scale,H/2+(wy-e.y)*scale]; // ego-centered, world y down
+ // buildings
+ ctx.fillStyle='#20242b';ctx.strokeStyle='#333a44';ctx.lineWidth=1*DPR;
+ for(const b of statics.buildings){ctx.beginPath();b.forEach((p,i)=>{const s=T(p[0],p[1]);i?ctx.lineTo(s[0],s[1]):ctx.moveTo(s[0],s[1]);});ctx.closePath();ctx.fill();ctx.stroke();}
+ // roads
+ ctx.strokeStyle='#4a525c';ctx.lineWidth=2*DPR;ctx.lineCap='round';ctx.lineJoin='round';
+ for(const pl of statics.roads){ctx.beginPath();pl.forEach((p,i)=>{const s=T(p[0],p[1]);i?ctx.lineTo(s[0],s[1]):ctx.moveTo(s[0],s[1]);});ctx.stroke();}
+ // traffic-light anchors
+ ctx.fillStyle='#8a8f98';for(const a of (snap.traffic_light_anchors||[])){const l=a.location||{};const s=T(l.x,l.y);ctx.beginPath();ctx.moveTo(s[0],s[1]-5*DPR);ctx.lineTo(s[0]-5*DPR,s[1]+4*DPR);ctx.lineTo(s[0]+5*DPR,s[1]+4*DPR);ctx.closePath();ctx.fill();}
+ // ROI box
+ const bb=snap.metadata.focus_view.bounds;
+ if(bb){const a=T(bb.x_min,bb.y_min),c=T(bb.x_max,bb.y_max);ctx.strokeStyle='rgba(120,180,255,.35)';ctx.lineWidth=1.5*DPR;ctx.strokeRect(Math.min(a[0],c[0]),Math.min(a[1],c[1]),Math.abs(c[0]-a[0]),Math.abs(c[1]-a[1]));}
+ // objects — Stage 2: color by SOURCE stream when >1 car is streaming; else by type (Stage 1)
+ const objs=snap.raw_spatial_map_objects||[];
+ const actStreams=snap.active_streams||[];
+ const srcs=[...new Set([...actStreams.map(s=>s.stream_id),...objs.map(o=>o.source_stream_id)].filter(Boolean))].sort();
+ const bySource=srcs.length>1;
+ const PAL=['#00d1ff','#ff9f43','#8aff80','#c780ff','#ffd166','#ff5fd1'];
+ const srcColor={};srcs.forEach((s,i)=>srcColor[s]=PAL[i%PAL.length]);
+ // canonical class footprints (model dims are unreliable) + nearest-road orientation (fixes model-yaw slant)
+ const CANON={Vehicle:[4.6,2.0],Pedestrian:[0.8,0.8],Cyclist:[1.8,0.7]};
+ const roadHdg=(x,y)=>{let bd=1e18,bh=null;for(const pl of (statics.roads||[])){for(let i=0;i<pl.length-1;i++){const ax=pl[i][0],ay=pl[i][1],dx=pl[i+1][0]-ax,dy=pl[i+1][1]-ay,s2=dx*dx+dy*dy;if(s2<1e-9)continue;let t=Math.max(0,Math.min(1,((x-ax)*dx+(y-ay)*dy)/s2));const px=ax+t*dx,py=ay+t*dy,d2=(x-px)*(x-px)+(y-py)*(y-py);if(d2<bd){bd=d2;bh=Math.atan2(dy,dx);}}}return (bh!==null&&bd<=225)?bh:null;};
+ let nv=0,np=0;const perSrc={};
+ for(const o of objs){
+  const l=o.location||{},d=o.dimensions||{},ped=(o.type==='Pedestrian');ped?np++:nv++;
+  const sid=o.source_stream_id;perSrc[sid]=(perSrc[sid]||0)+1;
+  const col=bySource?(srcColor[sid]||'#ffffff'):(ped?'#ff5fd1':'#00d1ff');
+  const s=T(l.x,l.y),cs=CANON[o.type]||[(d.length||1),(d.width||1)];
+  const L=Math.max(3,cs[0]*scale),Wd=Math.max(3,cs[1]*scale);
+  let yaw=((o.map_yaw_deg!=null?o.map_yaw_deg:o.yaw_deg)||0)*Math.PI/180;
+  if(!ped){const rh=roadHdg(l.x,l.y);if(rh!==null)yaw=rh;} // vehicles: snap to road orientation
+  ctx.save();ctx.translate(s[0],s[1]);ctx.rotate(yaw);ctx.strokeStyle=col;ctx.lineWidth=2*DPR;ctx.strokeRect(-L/2,-Wd/2,L,Wd);
+  if(ped){ctx.fillStyle=col;ctx.globalAlpha=0.35;ctx.fillRect(-L/2,-Wd/2,L,Wd);ctx.globalAlpha=1;} // fill peds so they read at small size
+  ctx.restore();
+  ctx.fillStyle=col;ctx.beginPath();ctx.arc(s[0],s[1],3*DPR,0,7);ctx.fill();
+ }
+ // legend (top-right) when coloring by source
+ if(bySource){let ly=12*DPR;ctx.font=(13*DPR)+'px system-ui,Arial';ctx.textAlign='left';
+  for(const sid of srcs){ctx.fillStyle=srcColor[sid];ctx.fillRect(W-190*DPR,ly,12*DPR,12*DPR);
+   ctx.fillStyle='#cbd3dc';ctx.fillText(sid+' ('+(perSrc[sid]||0)+')',W-172*DPR,ly+11*DPR);ly+=20*DPR;}}
+ // ego markers — draw EVERY streaming car at its own sensor pose, colored by source, so both egos
+ // show relative to the objects they detect (the followed car sits near center).
+ let egoDrawn=0;
+ for(const s of actStreams){
+  const sp=s.sensor_pose; if(!sp||sp.x==null) continue;
+  const p=T(sp.x,sp.y),col=srcColor[s.stream_id]||'#ffcf66';
+  ctx.save();ctx.translate(p[0],p[1]);ctx.rotate((sp.yaw_deg||0)*Math.PI/180);
+  ctx.fillStyle=col;ctx.strokeStyle='#fff';ctx.lineWidth=1.5*DPR;
+  ctx.beginPath();ctx.moveTo(13*DPR,0);ctx.lineTo(-8*DPR,-8*DPR);ctx.lineTo(-8*DPR,8*DPR);ctx.closePath();ctx.fill();ctx.stroke();
+  ctx.restore();
+  ctx.fillStyle=col;ctx.font='bold '+(12*DPR)+'px system-ui,Arial';ctx.textAlign='left';
+  ctx.fillText('▲ '+s.stream_id,p[0]+12*DPR,p[1]-10*DPR);
+  egoDrawn++;
+ }
+ if(!egoDrawn){ // fallback (old data w/o per-stream pose): followed ego at center
+  ctx.save();ctx.translate(W/2,H/2);ctx.rotate(e.yaw*Math.PI/180);ctx.fillStyle='#ffcf66';ctx.beginPath();ctx.moveTo(10*DPR,0);ctx.lineTo(-7*DPR,-7*DPR);ctx.lineTo(-7*DPR,7*DPR);ctx.closePath();ctx.fill();ctx.restore();
+ }
+ hud.innerHTML='<b>ego</b> ('+e.x.toFixed(1)+', '+e.y.toFixed(1)+') yaw '+e.yaw.toFixed(0)+'&deg; &middot; <span class=v>'+nv+' veh</span> <span class=p>'+np+' ped</span> &middot; ROI '+R.toFixed(0)+' m &middot; frame '+(snap.frame_id==null?'—':snap.frame_id)+(stale?' &middot; <span class=w>holding…</span>':'');
+}
+loadStatic();poll();draw();
+</script></body></html>
 """
     return Response(html, mimetype="text/html")
 

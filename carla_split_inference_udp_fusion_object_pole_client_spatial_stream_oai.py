@@ -3001,6 +3001,7 @@ def run_client(args: argparse.Namespace) -> None:
             nms_radius_px=int(args.object_nms_radius_px),
             topk=int(args.topk_objects),
             max_objects_drawn=int(args.max_objects_drawn),
+            draw_projected_obb_box=bool(args.draw_projected_obb_box),
             log_every=int(args.back_log_every),
             label=f"fusion-loopback:{args.remote_port}->{remote_host}:{args.camera_result_port}",
         )
