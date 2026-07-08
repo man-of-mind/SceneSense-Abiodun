@@ -1,0 +1,27 @@
+{
+  "name": "static_sweep_quant_entropy",
+  "_note": "Workstream A, first sweep: quantization x entropy on the fusion loopback split client (the knobs it natively supports). ROI + AE variants are added once wired into the fusion client (D/E). Needs CARLA running. Base model = 200k-pps fusion checkpoint (swap to the moving-ego fusion model once confirmed).",
+  "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun",
+  "env": {
+    "MPLCONFIGDIR": "/tmp/matplotlib-cache",
+    "QT_QPA_PLATFORM": "offscreen",
+    "PYTHONPATH": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/pole_lraspp_multimodal_fusion:/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun"
+  },
+  "command_template": "python3 carla_split_inference_udp_fusion_object_pole_client_spatial_stream_oai.py --role loopback --headless --no-spatial-map-stream --sensor-platform ego_vehicle --no-ego-freeze --ego-spawn-index 80 --ego-fixed-path-spawn-indices 80,85,91,94,99,80 --ego-fixed-path-loop --fusion-checkpoint {ckpt} --host 127.0.0.1 --seed 31 --npc-vehicles 28 --npc-pedestrians 35 --spawn-radius 80 --quantization-mode {quant} --entropy-coder {entropy} --result-timeout 1.5 --max-frames {frames} --metrics-run-dir {run_dir}",
+  "run_dir_template": "metrics_logs/rl_static_sweep/{variant}",
+  "max_parallel": 1,
+  "defaults": {
+    "ckpt": "experiments/autonomous_arch_runs_20260625/det_pps200000_v2/checkpoints/det_pps200000_v2/best.pt",
+    "frames": 300
+  },
+  "variants": [
+    {"name": "q_ptensor_u8_zlib",  "params": {"quant": "per_tensor_uint8",  "entropy": "zlib"}},
+    {"name": "q_ptensor_u8_none",  "params": {"quant": "per_tensor_uint8",  "entropy": "none"}},
+    {"name": "q_pchan_u8_zlib",    "params": {"quant": "per_channel_uint8", "entropy": "zlib"}},
+    {"name": "q_pchan_u8_none",    "params": {"quant": "per_channel_uint8", "entropy": "none"}},
+    {"name": "q_pchan_u4_zlib",    "params": {"quant": "per_channel_uint4", "entropy": "zlib"}},
+    {"name": "q_pchan_u4_none",    "params": {"quant": "per_channel_uint4", "entropy": "none"}},
+    {"name": "q_pchan_u8_zstd",    "params": {"quant": "per_channel_uint8", "entropy": "zstd"}},
+    {"name": "q_pchan_u4_zstd",    "params": {"quant": "per_channel_uint4", "entropy": "zstd"}}
+  ]
+}

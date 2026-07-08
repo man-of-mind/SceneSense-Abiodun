@@ -73,7 +73,7 @@ the interesting map work begins.
 - **Why radar + camera:** camera gives rich appearance; radar gives **range** (depth). Radar is what lets the
   model place a pedestrian in 3D. Our earlier study showed **more radar points → better pedestrian
   detection, up to ~200k points/sec, then it plateaus** — so we run the **200k-pps model** (accuracy sweet
-  spot; costs nothing extra on the wire).
+  spot; costs nothing extra on the wire). **→ full study in Appendix A.**
 
 ### 3.2 Split inference (front half on car, back half on edge)
 - **What:** the network is cut in two. The **front half** runs on the car and produces compact intermediate
@@ -117,7 +117,7 @@ objects (`world x/y`, class, size, score). Hundreds of bytes, not megabytes. Sen
 
 ### 3.7 The detection representation (how objects are drawn — and what we trust)
 - **Position (centroid): trusted (~1.4 m error).** It's the model's prioritized, trained output; the whole
-  map rests on it.
+  map rests on it. *(→ why, and the model study, in Appendix A.5.)*
 - **Size & heading: NOT trusted** — de-prioritized during training. So instead of the model's noisy box, we
   draw **canonical sizes** (a car ≈ 4.6×2.0 m, a pedestrian ≈ 0.8 m) and **snap orientation to the nearest
   road**. Result: clean, realistic, road-aligned boxes.
@@ -199,8 +199,102 @@ behind a parked vehicle) for the compelling demo.
 4. **Why object-level sharing** — the bandwidth argument, backed by our measurements (§4).
 5. **Live demo** — the moving ego-map, two cars, clean boxes (§5). *(show the running viewer / a screenshot)*
 6. **What we trust and don't** — centroid yes, size/heading no → canonical + road-snap (§3.7).
+6b. **The model study** — how we picked **200k pps** (pedestrian sweet spot, cost-flat) & why we trust only
+   the centroid; show the accuracy-vs-pps table + pedestrian-recall-by-distance (Appendix A).
+6c. **Localization accuracy (CEP)** — CEP heatmap (pps × distance): position error ~1–2 m, grows with
+   distance, ~flat across pps → *pps buys recall, fusion buys precision* (Appendix B).
 7. **The roadmap** — association → fusion (triangulation) → occlusion → alerts (§6).
 8. **The novelty & next step** — geometric/visibility-grid occlusion deduction + how we'll validate it (§7).
+
+---
+
+---
+
+## Appendix A — The radar-pps model study: how we chose 200k & what to trust
+*(Present this alongside §3.1 & §3.7. Full detail: `../PPS_STUDY_SUMMARY.md`,
+`../PPS_ABLATION_ANALYSIS_20260702.md`; figures in `../cooperative_fusion/pps_study_figs/`.)*
+
+### A.1 The question
+Radar gives the model depth. **How many radar points per second (pps) do we actually need?** More points =
+richer radar, but is there a point of diminishing returns? We trained **five identical models** — the only
+difference is radar density: **100k / 150k / 200k / 250k / 300k pps** — using the **same recipe, same driving
+route, same seed** (a controlled ablation), and evaluated them the same way.
+
+### A.2 Results — accuracy vs. radar pps
+| radar pps | vehicle seg IoU | mIoU | vehicle det F1 | **pedestrian F1** | **pedestrian near-recall** | payload (KB) |
+|---|---|---|---|---|---|---|
+| 100k | 0.910 | 0.827 | 0.875 | 0.718 | 0.86 | 1074 |
+| 150k | 0.943 | 0.837 | 0.850 | 0.742 | 0.75 | 1041 |
+| **200k** | 0.934 | 0.837 | 0.870 | **0.806** | **0.91** | 1048 |
+| 250k | 0.925 | 0.835 | 0.851 | 0.783 | 0.85 | 1032 |
+| 300k | 0.939 | 0.849 | 0.856 | 0.790 | 0.89 | 1060 |
+
+**Pedestrian recall by distance** (the radar-limited class):
+| radar pps | 0–10 m | 10–20 m | 20–30 m | 30–40 m |
+|---|---|---|---|---|
+| 150k | 0.76 | 0.74 | 0.82 | 0.75 |
+| **200k** | **0.94** | **0.88** | 0.87 | 0.80 |
+| 250k | 0.85 | 0.85 | 0.87 | 0.78 |
+| 300k | 0.90 | 0.88 | 0.88 | 0.76 |
+
+### A.3 What the numbers say
+- **Vehicles & segmentation are already saturated** — flat across all pps (veh seg IoU 0.91–0.94, veh F1
+  0.85–0.88). Big objects reliably produce radar returns, so more points don't help them.
+- **Pedestrians are the radar-limited class** — small, radar-sparse. Their detection **improves sharply up to
+  ~200k** (near-field recall 0.74 → 0.91; F1 0.72 → 0.81) then **plateaus**. Pedestrians are exactly the
+  safety-critical class our whole project is about.
+- **Transport cost is flat** — the intermediate-tensor payload is essentially identical across pps (radar is
+  rasterized to a fixed-size channel before the network), so higher pps costs **nothing** on the wire.
+
+### A.4 Verdict → **200k pps**
+> Best pedestrian detection, plateaus right after, and **zero extra bandwidth/latency**. Below it we lose
+> pedestrians; above it we gain nothing. **200k is the accuracy sweet spot at no cost** — that's the model
+> deployed in the spatial map.
+
+### A.5 Why we only trust the centroid (not size or heading)
+This ties directly to §3.7 (how objects are drawn). The detection head was trained in a way that
+**deliberately prioritizes *where* and *what*, not exact shape**:
+- The loss was weighted to nail the **center point** (object location) and **class** (vehicle/pedestrian),
+  with **segmentation** as a strong co-task.
+- **Box dimensions and heading (yaw) were given low priority** in the loss — so those outputs come out
+  **noisy/unreliable** (you saw this as slanted, wrong-sized boxes on the raw map).
+
+**Why that's the right tradeoff for us:** for a cooperative *map*, the thing that matters is **position** —
+*where* is the pedestrian? We get that reliably (~1.4 m). Size and heading we don't need from the model: we
+supply **size from canonical priors** (a car is ~4.6×2.0 m) and **heading from the road geometry** (cars run
+along roads). So the map shows clean, correct, road-aligned boxes at trustworthy positions — and the model's
+weak outputs are simply not used. Later, **cooperative fusion (two-view triangulation)** tightens the
+position further; that's where a second car earns its keep.
+
+**One-line for the slide:** *We trust the model for **location and class**; we get **size from priors** and
+**orientation from the road** — because that's what the training optimized for, and it's all a shared map
+needs.*
+
+---
+
+## Appendix B — Localization accuracy: CEP vs distance
+*(Figures: `../cooperative_fusion/pps_study_figs/cep_heatmap_{person,vehicle}.png`,
+`cep_lines_{person,vehicle}.png`; tables: `../CEP_SUMMARY.md`.)*
+
+**What CEP is:** *Circular Error Probability* — the radius within which **50% of detections land** (CEP50 =
+median radial error; CEP95 = 95th percentile). Plain-English: "how far off is the model's position,
+typically?" We compute it **per distance-to-object and per radar-pps model** by reusing each model's
+per-detection eval error (`global_xy_error_m`) joined to the object's true distance.
+
+**How to read the heatmap:** y = radar pps, x = distance to object, color/number = CEP50 (m). Example:
+**a pedestrian at ~15 m, 250k model → CEP50 ≈ 1.9 m** (200k ≈ 1.7 m). Vehicles are tighter than pedestrians
+(bigger radar returns): ~0.4 m at 0–5 m, ~1.2 m by 20 m.
+
+**The key insight (great talking point):**
+- **CEP grows with distance** (near objects ~0.4–1 m; by 20–25 m ~1.5–2.3 m) — expected, and it sets the
+  ROI/uncertainty budget for the map.
+- **CEP is ~flat across radar pps** — i.e., more radar improves **detection (recall)**, *finding* the
+  pedestrian, but **not** the *precision* of the ones found. This dovetails with Appendix A: **pps buys
+  recall, not localization accuracy.** So the lever to *sharpen position* is **cooperative fusion
+  (two-view triangulation)**, not more radar — motivating the next build step.
+
+*(Note: 100k is omitted here — its prior-collection dataset needed for the distance join is no longer on
+disk; 150k–300k is the clean, same-route comparison set, consistent with Appendix A.)*
 
 ---
 
