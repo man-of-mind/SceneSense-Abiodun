@@ -187,8 +187,33 @@ class MultiTaskFusionLRASPP(torch.nn.Module):
         xs = torch.linspace(-1.0, 1.0, w, device=ref.device, dtype=ref.dtype).view(1, 1, 1, w).expand(n, 1, h, w)
         return torch.cat([xs, ys], dim=1)
 
-    def forward(self, x: torch.Tensor) -> Dict[str, torch.Tensor]:
+    def _objectness_drop(self, features: object, q: float) -> object:
+        """Opt-in drop-aware training: zero the lowest-objectness fraction q of backbone-feature cells,
+        using the model's OWN objectness (detached) — consistent with the inference-time ROI gate. Makes the
+        model robust to ROI dropping across the range (train with q~U(0,q_max)). Default off (q=0 -> no-op)."""
+        obj_in = self._object_input(features)
+        with torch.no_grad():
+            if self.head_arch == "decoupled":
+                heat = self.heatmap_head(obj_in)
+            else:
+                heat = self.object_head(obj_in)[:, : self.heatmap_channels]
+            objness = torch.sigmoid(heat).amax(dim=1, keepdim=True)  # (B,1,h,w)
+
+        def gate(feat: torch.Tensor) -> torch.Tensor:
+            pooled = F.adaptive_max_pool2d(objness, feat.shape[-2:])          # objectness at this feat res
+            b = pooled.shape[0]
+            thr = torch.quantile(pooled.reshape(b, -1), float(q), dim=1, keepdim=True)  # per-sample
+            keep = (pooled.reshape(b, -1) >= thr).reshape(b, 1, feat.shape[-2], feat.shape[-1]).to(feat.dtype)
+            return feat * keep
+
+        if isinstance(features, dict):
+            return type(features)((k, gate(v)) for k, v in features.items())
+        return gate(features)
+
+    def forward(self, x: torch.Tensor, feature_drop_fraction: float = 0.0) -> Dict[str, torch.Tensor]:
         features = self.backbone(x)
+        if float(feature_drop_fraction) > 0.0:
+            features = self._objectness_drop(features, float(feature_drop_fraction))
         seg = self.classifier(features)
         if isinstance(seg, dict):
             seg = seg["out"]

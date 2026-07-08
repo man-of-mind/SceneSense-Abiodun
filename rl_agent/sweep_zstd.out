@@ -1,0 +1,5 @@
+sweep 'static_sweep_quant_entropy': 2 job(s), max_parallel=1, cwd=/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun
+  [OK] q_pchan_u8_zstd (423.6s) -> /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/metrics_logs/rl_static_sweep/q_pchan_u8_zstd
+  [OK] q_pchan_u4_zstd (42.1s) -> /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/metrics_logs/rl_static_sweep/q_pchan_u4_zstd
+
+2/2 OK. manifest: /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/metrics_logs/rl_static_sweep/static_sweep_quant_entropy_manifest.json

@@ -349,8 +349,9 @@ def compute_losses(
     teacher: Optional[torch.nn.Module] = None,
     distill_weight: float = 0.0,
     distill_temp: float = 2.0,
+    feature_drop_fraction: float = 0.0,
 ) -> Tuple[torch.Tensor, Dict[str, float], torch.Tensor]:
-    outputs = model(tensors)
+    outputs = model(tensors, feature_drop_fraction=feature_drop_fraction)
     logits = outputs["out"]
     if logits.shape[-2:] != masks.shape[-2:]:
         logits = F.interpolate(logits, size=masks.shape[-2:], mode="bilinear", align_corners=False)
@@ -677,6 +678,10 @@ def train(args: argparse.Namespace) -> int:
     class_loss_weights_cfg = trial.get("class_loss_weights", train_cfg.get("class_loss_weights"))
     selection_score_mode = str(trial.get("selection_score_mode", train_cfg.get("selection_score_mode", "default")))
     lovasz_weight = float(trial.get("lovasz_weight", train_cfg.get("lovasz_weight", 0.0)))
+    # Drop-aware training (opt-in): per batch, drop a random objectness-ranked feature
+    # fraction q ~ Uniform(0, feature_drop_max) so ONE model generalizes across ROI drop
+    # thresholds. Default 0.0 => structural no-op, leaves the 200k recipe byte-identical.
+    feature_drop_max = float(trial.get("feature_drop_max", train_cfg.get("feature_drop_max", 0.0)))
     # Seg-distillation teacher: a frozen copy of the seg model (from the distill
     # checkpoint, defaulting to the seg init checkpoint) anchors the student's seg
     # output while the backbone partially adapts for localization.
@@ -789,6 +794,7 @@ def train(args: argparse.Namespace) -> int:
             masks = masks.to(device, non_blocking=True)
             object_targets = _move_object_targets(object_targets, device)
             optimizer.zero_grad(set_to_none=True)
+            q_drop = float(torch.rand(1).item()) * feature_drop_max if feature_drop_max > 0.0 else 0.0
             with torch.autocast(device_type=device.type, enabled=scaler.is_enabled()):
                 loss, _, _ = compute_losses(
                     model, tensors, masks, object_targets, num_classes, loss_weights,
@@ -797,6 +803,7 @@ def train(args: argparse.Namespace) -> int:
                     teacher=teacher_model,
                     distill_weight=distill_weight,
                     distill_temp=distill_temp,
+                    feature_drop_fraction=q_drop,
                 )
             scaler.scale(loss).backward()
             scaler.step(optimizer)

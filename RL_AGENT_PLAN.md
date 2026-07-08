@@ -200,6 +200,40 @@ Baseline = uncompressed (default training) = accuracy ceiling; every knob measur
 5. **`rd_ae_b128` provenance** — confirm with supervisor whether a matching AE class/trainer exists in his
    own workspace (not this repo) before we rebuild the module + trainer from the checkpoint shapes.
 
+## 6b. Training jobs (the "train models in parallel" track) + findings so far
+Post-hoc knobs (quant) need no training. Two model-training jobs feed the action space — and they must be
+**ORDERED**, because ROI + AE **compose** at inference (`ROI-drop → AE-encode → quant → AE-decode → heads`):
+1. **Drop-aware ROI model M′ FIRST** — fine-tune from the 200k model with **objectness-guided
+   feature-dropout, `q ~ Uniform(0, 0.8)`** per batch (importance = objectness/GT-object cells; q=fraction).
+   Range includes q=0 → M′ handles BOTH full and dropped features → generalizes across all ROI thresholds
+   (not per-threshold). *Motivation (validated):* base model tolerates only mild informed drop (30% free,
+   50% ~1–2 pt); aggressive ROI is OOD → needs this.
+2. **AE codecs {128,64,32} SECOND, trained on M′ with ROI-drop in the loop** — task-aware (output-distill
+   M′), so the AE compresses the *dropped-feature* distribution it will actually face, against a teacher
+   (M′) that behaves well on drops. **Training the AE on the plain 200k model first is premature** — it
+   would compress full features it won't see and distill a broken teacher on dropped features (2026-07
+   design catch). *(AE module `feature_ae/ae_model.py` is built + reused as-is; only teacher + in-loop drop change.)*
+Deployed thing the agent controls = **one drop-aware M′ + AE decoders**; `{ROI, AE, quant}` compose on M′.
+*(Advanced alt: a single JOINT fine-tune of M+AE with ROI/AE/quant all randomized in the loop.)*
+
+**M′ = FULL-model fine-tune (backbone+heads)** — decided 2026-07 for long-term robustness ceiling + one
+strong base for all RL analysis (over the faster head-only). **Reuse the exact 200k recipe** (borrow the
+techniques so accuracy holds): Stage-1 seg AdamW lr1.5e-4 wd1e-4, strong+geometric aug, freeze_bn, bs24,
+50ep, Lovász0.5, class-weights[0.5,1,4], person_miou selection, cosine+warmup, `object_total=0`; Stage-2
+detection frozen-backbone, object-loss `{center:4,location:1.5,dim:0.6,yaw:0.3,parked:0.2,radar:0.1,bbox2d:1}`,
+gated≤40m, NMS-6. **Add:** an opt-in objectness-guided feature-dropout hook in the editable `train_fusion.py`
+(drop lowest-objectness `q~U(0,0.8)` per batch; default recipe unchanged when off). Heatmap-collapse
+safeguards: warm head init + verify peaks. **ACCEPTANCE: M′ at q=0 ≥ 200k targets (mIoU 0.837 / veh 0.934 /
+recall 0.775 / ped-loc 1.38m) + live peaks**, plus graceful drop-robustness.
+**Then RE-RUN all sweeps (quant {8,6,4}×{none,zlib,zstd}, ROI, accuracy) on M′** — current results are the
+plain-200k pre-robustness baseline; M′'s become the RL agent's action-cost model.
+
+**Sweep findings locked (2026-07):** quantization {8,6,4} near-lossless (per-channel; per_tensor dominated;
+uint4≈lossless, 7.4–7.9× w/ zlib/zstd, best delivery); ROI importance-drop free to ~30%, mild at 50%;
+entropy coder is a free payload win (lossless, zero accuracy effect). ROI = quantile importance-drop (not
+absolute threshold — the fusion objectness scale differs from the OD path); add an **objectness floor** as
+the guardrail so aggressive fractions never drop true-object cells.
+
 ## 7. Runtime / deployment clarifications (from 2026-07 supervisor discussion)
 - **ROI threshold = same model, post-hoc.** No per-threshold models. Optional later: ONE drop-aware model
   trained with region-dropout to degrade gracefully — still not one-per-threshold.

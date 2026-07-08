@@ -2354,10 +2354,12 @@ def make_entropy_coder(name: str, *, zstd_level: int = 3) -> EntropyCoder:
 
 QUANT_MODE_PER_TENSOR_UINT8 = "per_tensor_uint8"
 QUANT_MODE_PER_CHANNEL_UINT8 = "per_channel_uint8"
+QUANT_MODE_PER_CHANNEL_UINT6 = "per_channel_uint6"
 QUANT_MODE_PER_CHANNEL_UINT4 = "per_channel_uint4"
 QUANT_MODE_CHOICES = (
     QUANT_MODE_PER_TENSOR_UINT8,
     QUANT_MODE_PER_CHANNEL_UINT8,
+    QUANT_MODE_PER_CHANNEL_UINT6,
     QUANT_MODE_PER_CHANNEL_UINT4,
 )
 
@@ -2377,6 +2379,29 @@ def _unpack_uint4(buf: bytes, total: int) -> np.ndarray:
     out[0::2] = (raw >> 4) & 0x0F
     out[1::2] = raw & 0x0F
     return out[:total]
+
+
+def _pack_uint6(values: np.ndarray) -> bytes:
+    """Pack 6-bit values 4-at-a-time into 3 bytes (4*6 = 24 bits)."""
+    flat = (values.reshape(-1).astype(np.uint32)) & 0x3F
+    pad = (-flat.size) % 4
+    if pad:
+        flat = np.concatenate([flat, np.zeros(pad, dtype=np.uint32)])
+    g = flat.reshape(-1, 4)
+    packed = (g[:, 0] << 18) | (g[:, 1] << 12) | (g[:, 2] << 6) | g[:, 3]
+    out = np.stack([(packed >> 16) & 0xFF, (packed >> 8) & 0xFF, packed & 0xFF], axis=1)
+    return out.astype(np.uint8).tobytes()
+
+
+def _unpack_uint6(buf: bytes, total: int) -> np.ndarray:
+    raw = np.frombuffer(buf, dtype=np.uint8).reshape(-1, 3).astype(np.uint32)
+    packed = (raw[:, 0] << 16) | (raw[:, 1] << 8) | raw[:, 2]
+    out = np.empty((raw.shape[0], 4), dtype=np.uint8)
+    out[:, 0] = (packed >> 18) & 0x3F
+    out[:, 1] = (packed >> 12) & 0x3F
+    out[:, 2] = (packed >> 6) & 0x3F
+    out[:, 3] = packed & 0x3F
+    return out.reshape(-1)[:total]
 
 
 class SimpleFeatureCodec:
@@ -2429,13 +2454,12 @@ class PerChannelFeatureCodec:
     """Track min/max per FPN channel and pack at uint8 or uint4."""
 
     def __init__(self, device: torch.device, *, bitdepth: int) -> None:
-        if bitdepth not in (4, 8):
-            raise ValueError(f"PerChannelFeatureCodec supports 4 or 8 bits, got {bitdepth}")
+        if bitdepth not in (4, 6, 8):
+            raise ValueError(f"PerChannelFeatureCodec supports 4, 6 or 8 bits, got {bitdepth}")
         self.device = device
         self.bitdepth = int(bitdepth)
-        self.KIND = (
-            QUANT_MODE_PER_CHANNEL_UINT4 if bitdepth == 4 else QUANT_MODE_PER_CHANNEL_UINT8
-        )
+        self.KIND = {4: QUANT_MODE_PER_CHANNEL_UINT4, 6: QUANT_MODE_PER_CHANNEL_UINT6,
+                     8: QUANT_MODE_PER_CHANNEL_UINT8}[bitdepth]
 
     def encode(self, features: torch.Tensor) -> Dict[str, bytes]:
         features = features.detach().to(device=self.device, dtype=torch.float32)
@@ -2457,6 +2481,8 @@ class PerChannelFeatureCodec:
 
         if self.bitdepth == 8:
             data_bytes = quantized_np.tobytes()
+        elif self.bitdepth == 6:
+            data_bytes = _pack_uint6(quantized_np)
         else:
             data_bytes = _pack_uint4(quantized_np)
 
@@ -2487,6 +2513,8 @@ class PerChannelFeatureCodec:
         total = channels * height * width
         if self.bitdepth == 8:
             quantized_np = np.frombuffer(wire["data"], dtype=np.uint8)[:total].copy()
+        elif self.bitdepth == 6:
+            quantized_np = _unpack_uint6(wire["data"], total)
         else:
             quantized_np = _unpack_uint4(wire["data"], total)
         quantized = torch.from_numpy(quantized_np).to(self.device).reshape(channels, height, width)
@@ -2501,6 +2529,8 @@ def _make_codec_for_mode(mode: str, device: torch.device) -> object:
         return SimpleFeatureCodec(device=device)
     if mode == QUANT_MODE_PER_CHANNEL_UINT8:
         return PerChannelFeatureCodec(device=device, bitdepth=8)
+    if mode == QUANT_MODE_PER_CHANNEL_UINT6:
+        return PerChannelFeatureCodec(device=device, bitdepth=6)
     if mode == QUANT_MODE_PER_CHANNEL_UINT4:
         return PerChannelFeatureCodec(device=device, bitdepth=4)
     raise ValueError(f"Unknown quantization mode {mode!r}")

@@ -119,6 +119,20 @@ redundancy=off
 5. Compare learned or heuristic action choices against static baselines:
    payload, latency, timeout rate, and task utility.
 
+## Update (2026-07) — from the compression sweeps + supervisor discussion
+- **New state feature (optional, cheap, model-free): Sobel edge-density** as a *scene-complexity* proxy,
+  computable on the raw image on the UE **without running the model** — lets the policy modulate how
+  aggressively to compress ("empty road → compress hard; cluttered intersection → conservative").
+  Complements object-count / foreground-fraction. NB: this is a STATE input, *not* a drop signal.
+- **ROI action = objectness-guided *quantile* importance-drop** (drop the lowest-objectness fraction `q`),
+  not an absolute objectness threshold (the fusion object-head heatmap is focal-biased, so absolute
+  thresholds don't transfer). `q` in [0, ~0.8]. Importance = the object-head objectness map (task-aware).
+- **Drop-aware model:** to use aggressive `q`, fine-tune ONE model with objectness-guided feature-dropout
+  at `q ~ Uniform(0, 0.8)` (generalizes across thresholds — not per-threshold). Guardrail: an **objectness
+  floor** so real-object cells are never dropped even under budget pressure.
+- **Action-cost model measured:** quant {8,6,4} near-lossless; ROI drop free to ~30%, mild at 50%; entropy
+  coder free (lossless). AEs (esp. 32-ch) are expected to be the first genuinely lossy action.
+
 ## Month 1 Boundary
 
 Month 1 ends with this schema and logged trace compatibility. Training a policy,

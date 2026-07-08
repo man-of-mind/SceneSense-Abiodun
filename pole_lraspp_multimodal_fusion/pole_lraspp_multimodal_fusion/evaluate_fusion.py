@@ -236,6 +236,48 @@ def evaluate_checkpoint(args: argparse.Namespace) -> int:
     model.load_state_dict(checkpoint["model"] if isinstance(checkpoint, dict) and "model" in checkpoint else checkpoint)
     model.eval()
 
+    # Optional split-inference codec round-trip (accuracy-vs-compression). Only the intermediate features
+    # are quantized between encode and decode; ALL matching/IoU/recall/loc code below is reused unchanged,
+    # so numbers are directly comparable to the uncompressed baseline (quantization_mode="").
+    split_codec = None
+    if getattr(args, "quantization_mode", ""):
+        import carla_split_inference_udp_data_collect as od_collect
+        from .split_runtime import (MultimodalLRASPPSplitModel, serialize_backbone_features,
+                                    deserialize_backbone_features)
+        split_codec = {
+            "split": MultimodalLRASPPSplitModel(model, device, input_size=input_size),
+            "transport": od_collect.TransportConfig(
+                quantization_mode=str(args.quantization_mode),
+                entropy_coder_name=str(getattr(args, "entropy_coder", "zlib")),
+                zstd_level=int(getattr(args, "zstd_level", 3)),
+                roi_objectness_threshold=0.0, bypass_rcnn_transform=False),
+            "codecs": {},
+            "serialize": serialize_backbone_features,
+            "deserialize": deserialize_backbone_features,
+            "out_hw": (int(input_size[1]), int(input_size[0])),  # decode at input resolution to match model()
+            "roi_threshold": float(getattr(args, "roi_threshold", 0.0) or 0.0),
+            "n_heat": int(getattr(model, "heatmap_channels", len(object_class_names))),
+        }
+
+    def _roi_gate(feats):
+        """Front-side ROI drop: drop the lowest-objectness fraction of backbone-feature cells (importance-
+        based). roi_threshold is a DROP FRACTION in [0,1) — quantile-based, robust to the object head's
+        focal-biased (sparse) objectness scale. Conservative: max-pool keeps a cell if any high-objectness
+        pixel falls in it, so real detections survive."""
+        q = split_codec["roi_threshold"]
+        if q <= 0:
+            return feats
+        obj_maps = split_codec["split"].decode_object_maps(feats, split_codec["out_hw"])
+        objness = torch.sigmoid(obj_maps[:, :split_codec["n_heat"]]).amax(dim=1, keepdim=True)  # (1,1,H,W)
+        from collections import OrderedDict as _OD
+        gated = _OD()
+        for name, feat in feats.items():
+            pooled = F.adaptive_max_pool2d(objness, feat.shape[-2:])  # objectness at this feature's res
+            thr = torch.quantile(pooled.flatten(), float(q))  # drop bottom-q fraction of cells
+            keep = (pooled >= thr).to(feat.dtype)
+            gated[name] = feat * keep
+        return gated
+
     baseline_model = None
     baseline_input_size = input_size
     baseline_checkpoint_path = str(train_cfg.get("baseline_rgb_checkpoint", ""))
@@ -267,7 +309,16 @@ def evaluate_checkpoint(args: argparse.Namespace) -> int:
     with torch.inference_mode():
         for row in rows:
             fused_tensor, output_hw, original_size = load_fused_tensor(row, dataset_dir, input_size, device)
-            outputs = model(fused_tensor)
+            if split_codec is not None:
+                feats = split_codec["split"].encode(fused_tensor)
+                feats = _roi_gate(feats)
+                serialized, _ = split_codec["serialize"](feats, split_codec["transport"], split_codec["codecs"])
+                feats_rt = split_codec["deserialize"](serialized, device=device,
+                                                      transport=split_codec["transport"],
+                                                      feature_codecs=split_codec["codecs"])
+                outputs = split_codec["split"].decode_outputs(feats_rt, split_codec["out_hw"])
+            else:
+                outputs = model(fused_tensor)
             logits = F.interpolate(outputs["out"], size=output_hw, mode="bilinear", align_corners=False)
             pred = logits.argmax(dim=1).squeeze(0).detach().cpu().numpy().astype(np.int64)
             gt = load_mask(dataset_dir / row["mask_path"])
@@ -442,6 +493,9 @@ def evaluate_checkpoint(args: argparse.Namespace) -> int:
     f1 = float(2.0 * precision * recall / max(1e-9, precision + recall))
     metrics: Dict[str, object] = {
         "split": args.split,
+        "quantization_mode": str(getattr(args, "quantization_mode", "") or "uncompressed"),
+        "entropy_coder": str(getattr(args, "entropy_coder", "") if getattr(args, "quantization_mode", "") else ""),
+        "roi_threshold": float(getattr(args, "roi_threshold", 0.0) or 0.0),
         "sample_id_contains": args.sample_id_contains or "",
         "checkpoint": str(checkpoint_path),
         "samples": len(rows),
@@ -542,6 +596,17 @@ def main() -> None:
     parser.add_argument("--device", choices=("auto", "cuda", "cpu"), default="auto")
     parser.add_argument("--require-cuda", action="store_true")
     parser.add_argument("--sample-id-contains", default="")
+    parser.add_argument("--quantization-mode", default="",
+                        help="If set, route inference through the split-inference codec round-trip at this "
+                             "quantization (per_tensor_uint8 / per_channel_uint8 / per_channel_uint4) to "
+                             "measure accuracy-vs-compression. Empty = uncompressed baseline.")
+    parser.add_argument("--entropy-coder", default="zlib", choices=("zlib", "zstd", "none"))
+    parser.add_argument("--zstd-level", type=int, default=3)
+    parser.add_argument("--roi-threshold", type=float, default=0.0,
+                        help="ROI drop FRACTION in [0,1) (with --quantization-mode set): drop the lowest-"
+                             "objectness fraction of backbone-feature cells before the codec (quantile-based, "
+                             "importance drop). e.g. 0.3 = drop bottom 30%%. Needs a quant mode active (use "
+                             "per_channel_uint8 to isolate the ROI effect).")
     args = parser.parse_args()
     raise SystemExit(evaluate_checkpoint(args))
 

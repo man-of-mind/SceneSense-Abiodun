@@ -1,0 +1,11 @@
+sweep 'static_sweep_quant_entropy': 8 job(s), max_parallel=1, cwd=/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun
+  [OK] q_ptensor_u8_zlib (438.3s) -> /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/metrics_logs/rl_static_sweep/q_ptensor_u8_zlib
+  [OK] q_ptensor_u8_none (453.3s) -> /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/metrics_logs/rl_static_sweep/q_ptensor_u8_none
+  [OK] q_pchan_u8_zlib (456.4s) -> /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/metrics_logs/rl_static_sweep/q_pchan_u8_zlib
+  [OK] q_pchan_u8_none (441.7s) -> /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/metrics_logs/rl_static_sweep/q_pchan_u8_none
+  [OK] q_pchan_u4_zlib (45.3s) -> /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/metrics_logs/rl_static_sweep/q_pchan_u4_zlib
+  [OK] q_pchan_u4_none (352.8s) -> /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/metrics_logs/rl_static_sweep/q_pchan_u4_none
+  [FAIL(rc=1)] q_pchan_u8_zstd (2.8s) -> /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/metrics_logs/rl_static_sweep/q_pchan_u8_zstd
+  [FAIL(rc=1)] q_pchan_u4_zstd (2.5s) -> /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/metrics_logs/rl_static_sweep/q_pchan_u4_zstd
+
+6/8 OK. manifest: /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/metrics_logs/rl_static_sweep/static_sweep_quant_entropy_manifest.json
