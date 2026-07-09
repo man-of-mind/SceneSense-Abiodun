@@ -202,8 +202,17 @@ class MultiTaskFusionLRASPP(torch.nn.Module):
         def gate(feat: torch.Tensor) -> torch.Tensor:
             pooled = F.adaptive_max_pool2d(objness, feat.shape[-2:])          # objectness at this feat res
             b = pooled.shape[0]
-            thr = torch.quantile(pooled.reshape(b, -1), float(q), dim=1, keepdim=True)  # per-sample
-            keep = (pooled.reshape(b, -1) >= thr).reshape(b, 1, feat.shape[-2], feat.shape[-1]).to(feat.dtype)
+            flat = pooled.reshape(b, -1).float()                             # per-sample, fp32 (AMP -> half)
+            n = flat.shape[1]
+            k = int(round(float(q) * n))                                      # cells to drop (by rank)
+            if k <= 0:
+                return feat
+            # Drop the k LOWEST-objectness cells by RANK, not a value threshold: the focal-biased
+            # objectness is floor-dominated (most cells ~sigmoid(-4.6)), so a quantile threshold ties on
+            # the floor and keeps everything. Rank-drop guarantees exactly fraction q is removed.
+            drop_idx = flat.argsort(dim=1)[:, :k]
+            keep = torch.ones_like(flat).scatter_(1, drop_idx, 0.0)
+            keep = keep.reshape(b, 1, feat.shape[-2], feat.shape[-1]).to(feat.dtype)
             return feat * keep
 
         if isinstance(features, dict):

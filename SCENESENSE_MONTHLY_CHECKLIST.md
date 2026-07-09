@@ -331,6 +331,24 @@ Month 2 goal is not to claim a final RL policy. The goal is to produce the
 parked-ego perception base models, data/metrics pipeline, and static baselines
 that any learned policy must beat.
 
+Status snapshot for the last week of Month 2, updated 2026-07-09:
+
+- **Overall Month 2 progress:** about **90-95%** complete. The perception,
+  radar diagnostic, static knob characterization, and RL-agent measurement
+  infrastructure are in place. The remaining Month 2 closure item is the
+  offline controller replay/harness over the completed action-cost matrix.
+- **RL/controller groundwork:** about **95%** complete for the Month 2 offline
+  objective. `rl_agent/` now contains the sweep runner, static
+  quantization/entropy/ROI/AE action profiles, deterministic payload and
+  latency aggregation, offline accuracy-vs-compression evaluation, M-prime
+  drop-aware training pipeline, Gate-A acceptance check, loopback transport
+  sweep, and `COMPLETE_KNOB_MATRIX.md` with 19 candidate actions.
+- **Priority for the remainder of Month 2:** run the offline controller
+  harness over the completed matrix: compare always-safe, always-low-byte,
+  best-fixed, simple heuristic, and LinUCB/contextual-bandit policies; report
+  guardrail accept/clamp/reject decisions; then freeze the Month 2 summary
+  before moving deeper into OAI/Sionna/QoS or online learned-policy training.
+
 Month 2 preflight / terminology correction completed:
 
 - [x] Corrected model taxonomy: current RGB+radar fusion checkpoint is
@@ -493,25 +511,45 @@ parked-ego models are good enough to make task-quality comparisons meaningful.
   radar:
   - [x] Copy the supervisor LiDAR diagnostic into `abiodun/` before modifying;
     do not edit the shared `neu_collab/` original.
-  - [ ] Document what the semantic-LiDAR script is doing beyond raw LiDAR:
+  - [x] Document what the semantic-LiDAR script is doing beyond raw LiDAR:
     semantic tags/object ids, high point density, actor-box association,
     voxel accumulation, RGB/semantic colorization, and optional radar dynamic
     filtering.
-  - [ ] Separate deployable ideas from CARLA-only oracle ideas. Semantic tags
+  - [x] Separate deployable ideas from CARLA-only oracle ideas. Semantic tags
     and object ids are upper-bound/debug signals; point-density, temporal
     accumulation, clustering, rasterization, and radar parameter sweeps can
     inform the real radar pipeline.
-  - [ ] Run a controlled pedestrian-heavy diagnostic comparing radar support,
+  - [x] Run a controlled pedestrian-heavy diagnostic comparing radar support,
     LiDAR support, and semantic-LiDAR upper-bound support for vehicle/person
-    localization.
-  - [ ] Test radar-processing upgrades inspired by the LiDAR path: higher
+    localization. The useful result became radar-focused: static/moving
+    pedestrian PPS-vs-distance sweeps, model-utility-by-radar-points analysis,
+    and controlled CEP diagnostics.
+  - [x] Test radar-processing upgrades inspired by the LiDAR path: higher
     radar points-per-second, wider FoV where justified, multi-frame
     accumulation, class-aware/actor-aware supervision analysis, and adjusted
-    raster splat radius/channels for sparse pedestrian returns.
-- [ ] Record controller-relevant static model/action profiles:
-  - [ ] Baseline/high-quality model.
-  - [ ] Lower-payload compression profile(s).
-  - [ ] Frame-rate/send-rate profile(s).
+    raster splat radius/channels for sparse pedestrian returns. Completed
+    diagnostics include PPS sweeps up to 300k, raster-radius tradeoff,
+    temporal-accumulation tradeoff, and CEP50/CEP90 control-knob plots for
+    moving pedestrians.
+- [x] Record controller-relevant static model/action profiles for the current
+  fusion route:
+  - [x] Baseline/high-quality model. Current static analysis uses the M-prime
+    ROI-robust RGB+radar fusion model as the controller-ready baseline.
+    Gate-A comparison against the 200k reference preserves segmentation and
+    localization (`mIoU=0.841`, `vehicle_iou=0.933`, localization about
+    `1.21 m`), with a small object-recall cost handled by guardrails.
+  - [x] Lower-payload compression profile(s). `COMPLETE_KNOB_MATRIX.md`
+    records 19 profiles over quantization, entropy coding, ROI drop, and AE
+    bottlenecks. Per-channel 4-bit + zstd is the best reliable loopback
+    all-rounder at about `365 KB/frame`, near-baseline task quality, and 100%
+    result delivery in the loopback sweep.
+  - [x] Robust/action-cost evidence. `LOOPBACK_LATENCY.md` captures the
+    payload-to-delivery cliff: roughly <=400 KB/frame delivers reliably, while
+    ~700 KB and larger profiles return results only about 10-30% of the time
+    on the CARLA loopback transport.
+  - [ ] Frame-rate/send-rate profile(s). Defer unless needed for the first
+    controller replay; payload/action selection is now the stronger Month 2
+    static-control evidence.
   - [ ] Scene complexity metadata: visible vehicle/person pixels, actor counts,
     occlusion/density proxies, ego/traffic speed.
 
@@ -574,27 +612,49 @@ must beat.
   - [ ] Segmentation input size sweep.
   - [ ] Saliency/drop sweep if using the route with `--saliency-drop-q`.
   - [ ] Mask output size: model vs camera, where relevant.
-- [ ] Run RGB+radar fusion static sweeps:
-  - [ ] Quantization: `per_tensor_uint8`, `per_channel_uint8`, `per_channel_uint4`
-    where supported.
-  - [ ] Entropy coder: `zlib`, `zstd` if installed, and `none` for diagnosis.
+- [x] Run RGB+radar fusion static sweeps:
+  - [x] Quantization: `per_tensor_uint8`, `per_channel_uint8`,
+    `per_channel_uint6`, and `per_channel_uint4` where supported.
+  - [x] Entropy coder: `zlib`, `zstd`, and `none` for diagnosis.
   - [ ] Object score threshold / top-k sweep for fusion_as_od.
-  - [ ] Semantic-GT enabled sweep for fusion_as_seg.
-- [ ] For each accepted static profile, collect:
-  - [ ] Application metrics CSV.
-  - [ ] Run manifest/resolved config.
-  - [ ] Task-quality summary: OD recall/precision or fusion OD recall/localization.
-  - [ ] SEG summary: mIoU, foreground IoU, vehicle/person IoU where visible.
-  - [ ] Payload summary: bytes/frame, chunks/frame, compression ratio.
-  - [ ] Latency summary: front, back, RTT, timeout/no-result rate.
+  - [x] Offline task-quality sweep for fusion SEG/localization under codec
+    round-trip. `rl_agent/analysis/accuracy_vs_compression.md` shows
+    per-channel 8/6/4-bit profiles preserve the 200k model almost exactly:
+    baseline `mIoU=0.837`, `vehicle_iou=0.934`, `person_iou=0.579`, object
+    recall `0.775`; per-channel 4-bit remains close at `mIoU=0.836`,
+    object recall `0.770`.
+  - [x] M-prime action matrix: `rl_agent/COMPLETE_KNOB_MATRIX.md` combines
+    offline task utility, payload bytes, loopback front latency, RTT, and
+    delivery for 19 actions. AE profiles are included but flagged because they
+    preserve segmentation while collapsing object detection/localization.
+- [x] For each accepted static profile, collect:
+  - [x] Application metrics CSV.
+  - [x] Run manifest/resolved config.
+  - [x] Task-quality summary: fusion object recall/localization and
+    segmentation utility for accepted fusion profiles.
+  - [x] SEG/localization summary: mIoU, vehicle/person IoU, object recall, and
+    vehicle/person localization MAE for the evaluated fusion profiles.
+  - [x] Payload summary: bytes/frame, chunks/frame, compression ratio.
+  - [x] Front-latency and result-return summary for loopback static sweep.
+    Loopback RTT and result-delivery are now recorded; OAI/Sionna channel loss
+    remains Month 3 follow-up.
 
 Completion criteria:
 
-- [ ] At least one static Pareto plot exists per priority route:
+- [x] At least one static Pareto plot exists per priority route:
   payload vs latency vs task utility.
-- [ ] A "best fixed static policy" is identified for each priority route.
-- [ ] A "lowest-byte unsafe policy" is identified to motivate guardrails.
-- [ ] Runs that saturate or time out are labeled as saturation evidence, not
+- [x] A "best fixed static policy" is identified for the current priority
+  route. Current all-rounder: per-channel 4-bit + zstd, because it gives
+  near-baseline task utility at about 25-26% payload and 100% loopback result
+  delivery. Current Pareto task-quality pick: per-channel 6-bit + zlib/zstd,
+  about 51% payload with nearly lossless task utility but weaker loopback
+  delivery at this payload size.
+- [x] A "lowest-byte unsafe policy" is identified to motivate guardrails.
+  AE bottleneck profiles are unsafe as currently trained: segmentation remains
+  high, but object recall/localization collapse. Large uncompressed or weakly
+  compressed payloads are also unsafe under loopback transport because
+  delivery falls to about 10-30%.
+- [x] Runs that saturate or time out are labeled as saturation evidence, not
   valid task-quality samples.
 
 ### 4. OAI 5QI/QoS Experiments
@@ -663,28 +723,58 @@ Completion criteria:
 This is the first bridge from measurement to control. It should replay logged
 traces and score decisions offline before any online RL touches CARLA/OAI.
 
+- [x] Create dedicated RL-agent workspace under `rl_agent/` with clear stage
+  documentation and scripts for static sweeps, accuracy aggregation,
+  M-prime training, and action-cost matrix construction.
+- [x] Build generic static sweep runner:
+  `rl_agent/sweep_runner.py` with config fan-out under
+  `rl_agent/configs/static_sweep_quant_entropy.json`.
+- [x] Build deterministic sweep analyzer:
+  `rl_agent/sweep_analyze.py`, `rl_agent/overnight_analyze.sh`, and
+  `rl_agent/analysis/static_sweep_summary.md`.
+- [x] Build deterministic offline accuracy aggregator:
+  `rl_agent/accuracy_aggregate.py` and
+  `rl_agent/analysis/accuracy_vs_compression.md`.
+- [x] Build M-prime drop-aware robustness pipeline:
+  `rl_agent/run_pipeline_m_prime.sh`, `rl_agent/m_prime/stage1_seg_drop.json`,
+  `rl_agent/m_prime/stage2_obj_drop.json`, and `rl_agent/gate_a_check.py`.
+  Status as of 2026-07-09: M-prime is accepted as the robust controller
+  baseline. It preserves clean segmentation/localization against the 200k
+  reference (`mIoU=0.841`, `vehicle_iou=0.933`, localization about `1.21 m`);
+  object recall has a small residual cost that should be protected by the
+  controller guardrail rather than blocking the matrix.
+- [x] Build action-cost matrix scaffold:
+  `rl_agent/build_knob_matrix.py`; `rl_agent/COMPLETE_KNOB_MATRIX.md` now
+  aggregates 19 M-prime actions with task utility, payload, front latency, RTT,
+  and loopback delivery.
 - [ ] Implement trace loader that joins:
-  - [ ] Application metrics by run group / stream / frame or timestamp window.
-  - [ ] Network sampler metrics.
-  - [ ] T-tracer / gNB metrics where available.
+  - [x] Application metrics by run group / stream / frame or timestamp window
+    for static loopback sweep outputs.
+  - [x] Loopback latency/reliability metrics for static action profiles.
+  - [ ] Network sampler metrics for OAI/Sionna phase.
+  - [ ] T-tracer / gNB metrics where available for OAI/Sionna phase.
   - [ ] Scenario metadata.
-  - [ ] Task-quality summaries.
+  - [x] Task-quality summaries for offline fusion SEG/localization metrics.
 - [ ] Implement action-profile catalog:
-  - [ ] Safe/high-quality profile.
-  - [ ] Balanced profile.
-  - [ ] Low-byte profile.
-  - [ ] Hazard/guarded profile.
-  - [ ] Route-specific unsupported actions are masked.
+  - [x] Safe/high-quality profile.
+  - [x] Balanced profile.
+  - [x] Low-byte profile.
+  - [x] Hazard/guarded profile. AE bottleneck actions are currently flagged as
+    unsafe because object recall/localization collapse even when segmentation
+    remains high.
+  - [ ] Route-specific unsupported actions are masked in the replay harness.
 - [ ] Implement reward scorer:
-  - [ ] Task utility retained.
-  - [ ] Minus payload cost.
-  - [ ] Minus latency cost.
-  - [ ] Minus timeout/loss cost.
+  - [x] Task utility retained.
+  - [x] Minus payload cost.
+  - [x] Minus loopback latency cost.
+  - [x] Minus loopback timeout/result-delivery cost.
   - [ ] Minus stale-map or vulnerable-object penalty where available.
 - [ ] Implement first non-RL baselines:
   - [ ] Always-safe/send-everything.
   - [ ] Always-low-byte.
-  - [ ] Best fixed profile.
+  - [ ] Best fixed profile. Candidate from M-prime matrix: per-channel 4-bit +
+    zstd as the reliable all-rounder; per-channel 6-bit as the higher-accuracy
+    Pareto pick when transport can carry it.
   - [ ] Network-only rule.
   - [ ] Task-only rule.
   - [ ] Simple heuristic rule using scene + network state.
@@ -711,22 +801,28 @@ enough for controller replay.
 - [ ] Draft route-specific task floors:
   - [ ] Camera OD recall/precision or AP proxy floor.
   - [ ] Camera SEG foreground IoU / mIoU floor.
-  - [ ] Fusion_as_od recall/localization floor.
-  - [ ] Fusion_as_seg foreground/vehicle/person IoU floor.
+  - [x] Fusion localization recall/error floor drafted through Gate-A and
+    static compression metrics: current M-prime gate compares against the
+    det_pps200000_v2 reference on mIoU, vehicle/person IoU, object/person
+    recall, global/person XY MAE, and dimension MAE.
+  - [x] Fusion SEG foreground/vehicle/person IoU floor drafted through the
+    200k baseline and Gate-A acceptance checks.
 - [ ] Draft vulnerable-object rules:
   - [ ] No frame skip when pedestrian/cyclist/hidden-hazard flag is active.
   - [ ] No aggressive saliency/ROI drop when vulnerable-object confidence is low
     or uncertainty is high.
   - [ ] Safer fallback when map freshness is stale.
 - [ ] Draft network fallback rules:
-  - [ ] If timeout/no-result rate rises, prefer smaller payload before dropping
+  - [x] If timeout/no-result rate rises, prefer smaller payload before dropping
     safety-critical frames.
   - [ ] If UE tunnel drops/errors rise, reduce payload detail or send compact
     hazard messages.
 
 Completion criteria:
 
-- [ ] Guardrail thresholds are written in config or a replay script, not only in prose.
+- [x] Guardrail thresholds are written in config or a replay script, not only in prose.
+  Current implementation lives in `rl_agent/gate_a_check.py`; controller-level
+  accept/clamp/reject reporting still needs the replay harness.
 - [ ] Replay reports accepted, clamped, and rejected actions separately.
 - [ ] Fallback cost is measurable in bytes/latency/task utility.
 
@@ -736,12 +832,12 @@ The full map-sharing RL agent is Month 5, but Month 2 should make the closed-loo
 case study measurable.
 
 - [ ] Define spatial-map utility fields needed by the future map-sharing agent:
-  - [ ] Object class.
-  - [ ] Pose / velocity.
-  - [ ] Confidence / uncertainty.
-  - [ ] Provenance stream id.
-  - [ ] Freshness / age.
-  - [ ] Occlusion or hazard flag.
+  - [x] Object class.
+  - [x] Pose / velocity.
+  - [x] Confidence / uncertainty.
+  - [x] Provenance stream id.
+  - [x] Freshness / age.
+  - [x] Occlusion or hazard flag.
   - [ ] Intended recipient or affected ego vehicle.
 - [ ] Define curbside hidden-hazard utility metrics:
   - [ ] Warning lead time before collision / near-miss.
@@ -767,22 +863,27 @@ Completion criteria:
 
 ### Month 2 Definition of Done
 
-- [ ] Parked-ego RGB+radar training viewpoint is selected and documented with
+- [x] Parked-ego RGB+radar training viewpoint is selected and documented with
   visual evidence.
-- [ ] Parked-ego RGB+radar dataset collection and validation are repeatable.
-- [ ] Parked-ego RGB+radar SEG/localization model is trained and evaluated on a
+- [x] Parked-ego RGB+radar dataset collection and validation are repeatable.
+- [x] Parked-ego RGB+radar SEG/localization model is trained and evaluated on a
   held-out test split.
-- [ ] True RGB+radar OD training path is located or its missing architecture/
+- [x] True RGB+radar OD training path is located or its missing architecture/
   label requirements are documented.
-- [ ] At least one static payload/latency/task profile is collected using the
+- [x] At least one static payload/latency/task profile is collected using the
   new parked-ego model or the best available substitute.
 - [ ] Offline controller replay can score simple static policies once at least
   two valid action/model profiles exist.
-- [ ] A Month 2 slide/report summarizes:
-  - [ ] Chosen parked-ego scene and dataset coverage.
-  - [ ] SEG/localization and OD model performance.
-  - [ ] Payload/latency/task tradeoffs for available profiles.
-  - [ ] Remaining gap before OAI/QoS and online RL.
+  Status: action-cost inputs are now ready in
+  `rl_agent/COMPLETE_KNOB_MATRIX.md` and `rl_agent/LOOPBACK_LATENCY.md`;
+  final replay comparison is the main remaining Month 2 closure item.
+- [x] A Month 2 slide/report summarizes:
+  - [x] Chosen parked-ego scene and dataset coverage.
+  - [x] SEG/localization and OD-model-status performance.
+  - [x] Payload/latency/task tradeoffs for available profiles.
+  - [x] Remaining gap before OAI/QoS and online RL. Current next-step summary:
+    finish offline controller replay in Month 2, then replace the loopback
+    transport column with OAI + Sionna ray-traced channel metrics in Month 3.
 
 ## Month 3: Guardrail Stress Tests
 

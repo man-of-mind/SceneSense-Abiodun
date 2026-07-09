@@ -576,6 +576,14 @@ def parse_args() -> argparse.Namespace:
         help="Entropy coder applied to pickled UDP payloads. Default: zlib.",
     )
     parser.add_argument("--zstd-level", type=int, default=3)
+    parser.add_argument(
+        "--roi-threshold", type=float, default=0.0,
+        help="Front-side ROI drop FRACTION in [0,1): zero the lowest-objectness fraction of "
+             "backbone-feature cells (rank-based) before the codec. 0 = off.")
+    parser.add_argument(
+        "--ae-checkpoint", default="",
+        help="Feature-AE checkpoint (ae_bN.pt). If set, the 'high' feature is AE-encoded to the "
+             "bottleneck on the front half and AE-decoded on the back half. Composes after ROI drop.")
 
     # Devices + UI.
     parser.add_argument("--front-device", default="auto", help="Head-side device.")
@@ -954,6 +962,7 @@ class CameraSideFusionInference:
                 rgb_std=self.rgb_std,
             )
             features = self.model.encode(fused)
+            features = _front_compress(self.model, features, tuple(int(v) for v in fused.shape[-2:]))
 
         (
             serialized_features,
@@ -1071,6 +1080,7 @@ class FusionRemoteInferenceWorker(threading.Thread):
             feature_codecs=self.feature_codecs,
             quantization_mode=self.transport.quantization_mode,
         )
+        features = _back_decompress(self.model, features)  # AE-decode bottleneck -> full 'high'
         model_input_size = tuple(int(v) for v in payload["model_input_size"])
         display_w, display_h = (int(v) for v in payload["display_size"])
         camera_matrix = np.asarray(payload["camera_matrix"], dtype=np.float64)
@@ -1293,6 +1303,41 @@ def _resolve_fusion_checkpoint_path(args: argparse.Namespace) -> Path:
     raise ValueError("Provide --fusion-checkpoint PATH or --fusion-experiment-dir PATH.")
 
 
+def _front_compress(split_model, features, out_hw):
+    """Front-half split compression, matching training + offline eval:
+    (1) rank-based objectness ROI drop of fraction `_roi_threshold`, then (2) AE-encode the 'high'
+    feature to the bottleneck. No-op if neither action is configured."""
+    import torch.nn.functional as F
+    q = float(getattr(split_model, "_roi_threshold", 0.0) or 0.0)
+    ae = getattr(split_model, "_ae", None)
+    if q <= 0.0 and ae is None:
+        return features
+    if q > 0.0:
+        obj_maps = split_model.decode_object_maps(features, out_hw)
+        objness = torch.sigmoid(obj_maps[:, : split_model._n_heat]).amax(dim=1, keepdim=True)
+        gated = type(features)()
+        for name, feat in features.items():
+            pooled = F.adaptive_max_pool2d(objness, feat.shape[-2:]).reshape(-1).float()
+            n = pooled.numel()
+            k = int(round(q * n))
+            keep = torch.ones_like(pooled)
+            if k > 0:
+                keep[pooled.argsort()[:k]] = 0.0  # drop the k lowest-objectness cells by rank
+            gated[name] = feat * keep.reshape(1, 1, feat.shape[-2], feat.shape[-1]).to(feat.dtype)
+        features = gated
+    if ae is not None:
+        features = type(features)((k, (ae.encode(v) if k == "high" else v)) for k, v in features.items())
+    return features
+
+
+def _back_decompress(split_model, features):
+    """Back-half: AE-decode the bottleneck 'high' feature to full channels before decode_outputs."""
+    ae = getattr(split_model, "_ae", None)
+    if ae is None:
+        return features
+    return type(features)((k, (ae.decode(v) if k == "high" else v)) for k, v in features.items())
+
+
 def load_fusion_model(
     args: argparse.Namespace, device: torch.device
 ) -> Tuple[MultimodalLRASPPSplitModel, Tuple[int, int]]:
@@ -1369,6 +1414,21 @@ def load_fusion_model(
     split_model = MultimodalLRASPPSplitModel(model, device, input_size=input_size)
     split_model.object_predict_bbox2d = object_predict_bbox2d  # type: ignore[attr-defined]
     split_model.object_class_names = object_class_names  # type: ignore[attr-defined]
+    # ROI drop + feature-AE actions (measured on the loopback transport, matching the offline eval).
+    split_model._roi_threshold = float(getattr(args, "roi_threshold", 0.0) or 0.0)  # type: ignore[attr-defined]
+    split_model._n_heat = int(getattr(model, "heatmap_channels", len(object_class_names)))  # type: ignore[attr-defined]
+    split_model._ae = None  # type: ignore[attr-defined]
+    ae_ckpt_path = str(getattr(args, "ae_checkpoint", "") or "")
+    if ae_ckpt_path:
+        import sys as _sys
+        _sys.path.insert(0, str(Path(__file__).resolve().parent / "rl_agent" / "feature_ae"))
+        from ae_model import build_ae
+        _ck = torch.load(Path(ae_ckpt_path).expanduser(), map_location=device)
+        _ae = build_ae(_ck.get("arch", "v1"), int(_ck["in_channels"]), int(_ck["bottleneck"])).to(device)
+        _ae.load_state_dict(_ck["ae_state"])
+        _ae.eval()
+        split_model._ae = _ae  # type: ignore[attr-defined]
+        print(f"Loaded feature-AE (bottleneck={_ck['bottleneck']}) for split compression: {ae_ckpt_path}")
     print(
         f"Loaded fusion checkpoint {checkpoint_path} "
         f"(radar_channels={radar_channels}, object_channels={object_channels}, "

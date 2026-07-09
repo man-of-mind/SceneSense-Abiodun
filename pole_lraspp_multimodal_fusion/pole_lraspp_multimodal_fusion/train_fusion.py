@@ -455,6 +455,7 @@ def evaluate_model(
     class_weights: Optional[torch.Tensor] = None,
     selection_score_mode: str = "default",
     lovasz_weight: float = 0.0,
+    feature_drop_fraction: float = 0.0,
 ) -> Dict[str, float]:
     model.eval()
     confusion = np.zeros((num_classes, num_classes), dtype=np.float64)
@@ -476,6 +477,7 @@ def evaluate_model(
                 loss_weights,
                 class_weights=class_weights,
                 lovasz_weight=lovasz_weight,
+                feature_drop_fraction=feature_drop_fraction,
             )
             losses.append(float(loss.item()))
             batches += 1
@@ -682,6 +684,10 @@ def train(args: argparse.Namespace) -> int:
     # fraction q ~ Uniform(0, feature_drop_max) so ONE model generalizes across ROI drop
     # thresholds. Default 0.0 => structural no-op, leaves the 200k recipe byte-identical.
     feature_drop_max = float(trial.get("feature_drop_max", train_cfg.get("feature_drop_max", 0.0)))
+    # Validation/selection drop level: for a drop-aware run, select the checkpoint that is best at a
+    # representative operating point (default q_max/2) instead of clean q=0 -> otherwise selection keeps
+    # the least drop-adapted epoch. Clean q=0 is guarded separately at GATE A. 0 => clean val (default).
+    feature_drop_val = float(trial.get("feature_drop_val", feature_drop_max * 0.5))
     # Seg-distillation teacher: a frozen copy of the seg model (from the distill
     # checkpoint, defaulting to the seg init checkpoint) anchors the student's seg
     # output while the backbone partially adapts for localization.
@@ -819,7 +825,22 @@ def train(args: argparse.Namespace) -> int:
             class_weights=class_weights_tensor,
             selection_score_mode=selection_score_mode,
             lovasz_weight=lovasz_weight,
+            feature_drop_fraction=feature_drop_val,
         )
+        # Maximin selection for drop-aware runs: also evaluate clean (q=0) and select the checkpoint
+        # on the WORST of {clean, drop} so robustness cannot be bought by regressing clean accuracy
+        # (and vice-versa). val_metrics keeps the drop-pass metrics for logging; clean is added alongside.
+        if feature_drop_val > 0.0:
+            clean_metrics = evaluate_model(
+                model, val_loader, device, num_classes, loss_weights,
+                class_weights=class_weights_tensor, selection_score_mode=selection_score_mode,
+                lovasz_weight=lovasz_weight, feature_drop_fraction=0.0,
+            )
+            val_metrics["drop_selection_score"] = val_metrics["selection_score"]
+            val_metrics["clean_selection_score"] = clean_metrics["selection_score"]
+            val_metrics["clean_miou"] = clean_metrics["miou"]
+            val_metrics["selection_score"] = min(
+                float(val_metrics["selection_score"]), float(clean_metrics["selection_score"]))
         train_loss = float(np.mean(losses)) if losses else float("nan")
         row = {
             "trial": trial_name,
@@ -931,7 +952,8 @@ def train(args: argparse.Namespace) -> int:
         )
         log(
             f"{trial_name} epoch={epoch} train_loss={train_loss:.4f} "
-            f"val_score={val_metrics['selection_score']:.4f} val_miou={val_metrics['miou']:.4f} "
+            f"val_score(maximin)={val_metrics['selection_score']:.4f} val_miou@drop={val_metrics['miou']:.4f} "
+            f"clean_miou={val_metrics.get('clean_miou', float('nan')):.4f} "
             f"vehicle_iou={val_metrics.get('vehicle_iou', float('nan')):.4f} "
             f"loc_loss={val_metrics.get('loc_loss', float('nan')):.4f} dim_loss={val_metrics.get('dim_loss', float('nan')):.4f}"
         )

@@ -183,6 +183,8 @@ def evaluate_checkpoint(args: argparse.Namespace) -> int:
         rows = [row for row in rows if args.sample_id_contains in row.get("sample_id", "")]
     if not rows:
         raise RuntimeError(f"No rows found for split={args.split}.")
+    if int(getattr(args, "limit_rows", 0) or 0) > 0:
+        rows = rows[: int(args.limit_rows)]  # smoke-test / quick subset
     train_cfg = config["training"]
     fusion_cfg = config.get("fusion", {})
     object_cfg = config.get("object_heads", {})
@@ -259,11 +261,25 @@ def evaluate_checkpoint(args: argparse.Namespace) -> int:
             "n_heat": int(getattr(model, "heatmap_channels", len(object_class_names))),
         }
 
+    # Optional feature-AE: compress the 'high' feature to the bottleneck (payload accounted on the
+    # bottleneck), composing AFTER ROI drop and BEFORE the codec quantization.
+    ae = None
+    if getattr(args, "ae_checkpoint", ""):
+        import sys as _sys
+        _sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "rl_agent" / "feature_ae"))
+        from ae_model import build_ae
+        ae_ckpt = torch.load(Path(args.ae_checkpoint).expanduser(), map_location=device)
+        ae = build_ae(ae_ckpt.get("arch", "v1"), int(ae_ckpt["in_channels"]), int(ae_ckpt["bottleneck"])).to(device)
+        ae.load_state_dict(ae_ckpt["ae_state"])
+        ae.eval()
+        args.ae_bottleneck = int(ae_ckpt["bottleneck"])
+
     def _roi_gate(feats):
-        """Front-side ROI drop: drop the lowest-objectness fraction of backbone-feature cells (importance-
-        based). roi_threshold is a DROP FRACTION in [0,1) — quantile-based, robust to the object head's
-        focal-biased (sparse) objectness scale. Conservative: max-pool keeps a cell if any high-objectness
-        pixel falls in it, so real detections survive."""
+        """Front-side ROI drop: zero the lowest-objectness fraction q of backbone-feature cells by RANK
+        (drop the k=round(q*N) lowest-objectness cells). MUST match the training-time drop
+        (model._objectness_drop): a quantile VALUE threshold ties on the focal-biased objectness floor
+        (~sigmoid(-4.6)) and keeps everything, so it must be rank-based. Max-pool keeps a cell if any
+        high-objectness pixel falls in it, so real detections survive."""
         q = split_codec["roi_threshold"]
         if q <= 0:
             return feats
@@ -272,10 +288,13 @@ def evaluate_checkpoint(args: argparse.Namespace) -> int:
         from collections import OrderedDict as _OD
         gated = _OD()
         for name, feat in feats.items():
-            pooled = F.adaptive_max_pool2d(objness, feat.shape[-2:])  # objectness at this feature's res
-            thr = torch.quantile(pooled.flatten(), float(q))  # drop bottom-q fraction of cells
-            keep = (pooled >= thr).to(feat.dtype)
-            gated[name] = feat * keep
+            pooled = F.adaptive_max_pool2d(objness, feat.shape[-2:]).reshape(-1).float()
+            n = pooled.numel()
+            k = int(round(float(q) * n))
+            keep = torch.ones_like(pooled)
+            if k > 0:
+                keep[pooled.argsort()[:k]] = 0.0  # drop the k lowest-objectness cells by rank
+            gated[name] = feat * keep.reshape(1, 1, feat.shape[-2], feat.shape[-1]).to(feat.dtype)
         return gated
 
     baseline_model = None
@@ -294,6 +313,7 @@ def evaluate_checkpoint(args: argparse.Namespace) -> int:
     baseline_confusion = np.zeros((num_classes, num_classes), dtype=np.float64)
     object_boxes = load_object_boxes(dataset_dir / "object_boxes.csv")
     object_metric_rows: List[Dict[str, object]] = []
+    payload_bytes: List[float] = []  # offline payload size = serialized codec bytes per frame (no CARLA)
     loc_errors: List[float] = []
     loc_sq_errors: List[float] = []
     dim_abs_errors: List[float] = []
@@ -311,11 +331,33 @@ def evaluate_checkpoint(args: argparse.Namespace) -> int:
             fused_tensor, output_hw, original_size = load_fused_tensor(row, dataset_dir, input_size, device)
             if split_codec is not None:
                 feats = split_codec["split"].encode(fused_tensor)
-                feats = _roi_gate(feats)
+                feats = _roi_gate(feats)                                   # ROI drop on the 960-ch 'high'
+                if ae is not None:                                         # then AE-encode 'high' -> bottleneck
+                    feats = type(feats)((k, (ae.encode(v) if k == "high" else v)) for k, v in feats.items())
                 serialized, _ = split_codec["serialize"](feats, split_codec["transport"], split_codec["codecs"])
+                # On-wire payload = entropy-coded size of the quantized buffers. Entropy coding is what
+                # turns ROI-drop's zeros into fewer bytes, so we must measure POST-entropy (the raw
+                # quantized size is invariant to zeroing). Captures all axes: quant (buffer size),
+                # entropy coder, ROI (zero-compressibility), AE (bottleneck channel count).
+                _blob = b"".join(
+                    _b for _entry in serialized.values()
+                    for _b in (_entry.values() if isinstance(_entry, dict) else [_entry])
+                    if isinstance(_b, (bytes, bytearray)))
+                _ec = str(getattr(args, "entropy_coder", "zlib") or "zlib")
+                if _ec == "zlib":
+                    import zlib as _zlib
+                    _nb = len(_zlib.compress(_blob, 6))
+                elif _ec == "zstd":
+                    import zstandard as _zstd
+                    _nb = len(_zstd.ZstdCompressor(level=int(getattr(args, "zstd_level", 3))).compress(_blob))
+                else:
+                    _nb = len(_blob)
+                payload_bytes.append(float(_nb))
                 feats_rt = split_codec["deserialize"](serialized, device=device,
                                                       transport=split_codec["transport"],
                                                       feature_codecs=split_codec["codecs"])
+                if ae is not None:                                         # AE-decode bottleneck -> 960-ch 'high'
+                    feats_rt = type(feats_rt)((k, (ae.decode(v) if k == "high" else v)) for k, v in feats_rt.items())
                 outputs = split_codec["split"].decode_outputs(feats_rt, split_codec["out_hw"])
             else:
                 outputs = model(fused_tensor)
@@ -517,6 +559,14 @@ def evaluate_checkpoint(args: argparse.Namespace) -> int:
         "learned_yaw_mae_deg": float(np.mean(yaw_errors)) if yaw_errors else float("nan"),
         "learned_parked_accuracy": float(parked_correct / max(1, parked_total)) if parked_total else float("nan"),
         "learned_localization_method": "neural_object_head_direct_regression",
+        # --- split-inference knob settings + offline payload (bytes), for the knob matrix ---
+        "quantization_mode": str(getattr(args, "quantization_mode", "") or ""),
+        "entropy_coder": str(getattr(args, "entropy_coder", "") or ""),
+        "roi_threshold": float(getattr(args, "roi_threshold", 0.0) or 0.0),
+        "ae_bottleneck": int(getattr(args, "ae_bottleneck", 0) or 0),
+        "payload_bytes_mean": float(np.mean(payload_bytes)) if payload_bytes else float("nan"),
+        "payload_bytes_p95": float(np.percentile(payload_bytes, 95)) if payload_bytes else float("nan"),
+        "payload_frames": int(len(payload_bytes)),
     }
     for class_name, stats in per_class_stats.items():
         class_tp = int(stats.get("tp", 0))
@@ -607,6 +657,12 @@ def main() -> None:
                              "objectness fraction of backbone-feature cells before the codec (quantile-based, "
                              "importance drop). e.g. 0.3 = drop bottom 30%%. Needs a quant mode active (use "
                              "per_channel_uint8 to isolate the ROI effect).")
+    parser.add_argument("--ae-checkpoint", default="",
+                        help="Feature-AE checkpoint (ae_bN.pt). If set, the 'high' feature is AE-encoded to the "
+                             "bottleneck before the codec (payload = quantized bottleneck bytes) and AE-decoded "
+                             "after, matching deployment. Composes after ROI drop.")
+    parser.add_argument("--ae-bottleneck", type=int, default=0, help="recorded in metrics; auto-set from checkpoint")
+    parser.add_argument("--limit-rows", type=int, default=0, help="evaluate only the first N rows (smoke/subset)")
     args = parser.parse_args()
     raise SystemExit(evaluate_checkpoint(args))
 
