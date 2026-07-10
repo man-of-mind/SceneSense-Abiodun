@@ -21,8 +21,10 @@ correct (payload does drop to ~24%, seg does survive) — this is a modeling lim
 
 ## Attempts
 1. **Loss reweighting** (object-weighted, heat×8/reg×5/seg×0.3) — FAILED (recall 0.09→0.18, still unusable).
-2. **Milder bottleneck b256 (v1)** — IN PROGRESS. Data point only: concedes compression to buy detail;
-   not the "aggressive compression preserved" win we want.
+2. **Milder bottleneck b256 (v1)** — DONE, FAILED. Even at 256ch (49% payload, milder than b128's 24%),
+   v1 still collapses detection: ped recall 0.079, loc 3.69m (250-frame subset) — no better than b128, and
+   at higher payload. CONCLUSION: it is the linear architecture, not the bottleneck size. Backing off
+   compression is not the fix.
 3. **Better codec, same rate: AE v2 (nonlinear + spatial)** — IN PROGRESS (the uncompromised attempt).
    Same 128/64 bottleneck → identical payload, but 3×3 spatial conv + hidden layer + GELU (5.3M vs 263k
    params). If detection recovers here, the AE becomes a usable action at aggressive compression.
@@ -39,6 +41,15 @@ correct (payload does drop to ~24%, seg does survive) — this is a modeling lim
 - **D. Question the premise:** does a learned AE earn its place given quant-u4's 25%/100%-delivery? The AE
   must beat that *and* preserve detection to be worth the complexity — a fair cost/benefit for the paper.
 
-## Recommendation
-Pending the v2 result. If v2 recovers detection at aggressive bottleneck → AE is in, cleanly. If not →
-Option A (ship quant×ROI now, AE as characterized future work) is the honest, non-workaround path.
+4. **AE v2 (nonlinear+spatial), properly trained (NO drop-in-loop, 40ep, lr3e-4)** — SUCCESS. Same 250-frame
+   subset: ped recall 0.00→**0.575** (b128), **0.567** (b64); seg fully preserved (mIoU 0.80, veh 0.80); loc
+   2.33-2.35m (vs clean 1.59m). Payload 9-12%. So the earlier collapse was the drop-in-loop + undertraining,
+   NOT the architecture. **The AE is now a usable action.**
+
+## RESOLUTION (2026-07-09): AE is viable — folding it in
+The AE v2-clean is the AGGRESSIVE-compression action: smallest payload (9% at b64, < u4's 13%) at a bounded
+accuracy cost (recall ~0.57 vs clean 0.84, loc ~2.3m). It is NOT lossless like quant/ROI and does not need to
+be — it is a distinct operating point the RL agent selects under heavy bandwidth pressure, gated by the
+pedestrian-recall floor. Fold v2-clean (b64, b128) into the loopback + matrix as the AE action.
+Remaining upside (optional, not blocking): more epochs and/or Option C (co-adapt the back-half heads to AE
+reconstructions) to close the recall gap toward clean — but the action is usable as-is.

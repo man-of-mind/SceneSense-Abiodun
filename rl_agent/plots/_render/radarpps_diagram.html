@@ -1,0 +1,50 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+:root{--bg:#f7f8f5;--ink:#17212f;--muted:#5d6875;--line:#c8d0d9;--panel:#fff;
+--sensor:#e9f5ee;--sensorb:#3e8f69;--split:#fff4df;--splitb:#bf802b;--good:#3e8f69;--bad:#b3562d;}
+*{box-sizing:border-box;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+body{margin:0;padding:26px;background:var(--bg);color:var(--ink)}
+.row{display:flex;gap:20px;justify-content:center;align-items:stretch}
+.col{background:var(--panel);border:1.5px solid var(--line);border-radius:14px;padding:16px 18px;width:300px;text-align:center}
+.pps{font-size:22px;font-weight:800;margin-bottom:2px}.ppssub{color:var(--muted);font-size:12px;margin-bottom:12px}
+.cloud{position:relative;height:118px;background:#0e1b2a;border-radius:10px;margin-bottom:6px;overflow:hidden}
+.dot{position:absolute;width:4px;height:4px;border-radius:50%;background:#57d6a0}
+.rawbar{height:12px;background:var(--sensorb);border-radius:6px;margin:8px 0 2px}
+.rawlbl{font-size:12px;color:var(--muted)}
+.arrow{font-size:22px;color:var(--muted);margin:8px 0}
+.grid{display:grid;grid-template-columns:repeat(6,1fr);gap:2px;width:120px;margin:4px auto}
+.g{height:14px;background:#cfe6db;border-radius:2px}
+.chip{background:var(--split);border:1.5px solid var(--splitb);color:var(--splitb);border-radius:8px;
+padding:2px 10px;font-weight:700;font-size:12px;display:inline-block;margin-top:6px}
+.acc{font-weight:800;font-size:16px;margin-top:8px}
+.arrowright{display:flex;align-items:center;font-size:30px;color:var(--muted);font-weight:700}
+.foot{max-width:1180px;margin:20px auto 0;background:var(--panel);border:1.5px solid var(--line);
+border-radius:12px;padding:14px 20px;font-size:15px}
+code{background:#eef1f4;border-radius:5px;padding:1px 6px;font-size:13px}
+h2{text-align:center;margin:0 0 18px;font-size:22px}
+</style></head><body>
+<h2>Radar density (points/sec) enriches the input &amp; accuracy &mdash; <span style="color:var(--splitb)">not the payload</span></h2>
+<div class="row" id="row"></div>
+<div class="foot"><b>Why payload is flat:</b> however many radar points arrive, they are rasterized onto a
+<b>fixed <code>4 &times; H &times; W</code> grid</b> (occupancy, inverse-range, velocity, stationary-age), and the
+backbone emits a <b>fixed-shape feature tensor</b> regardless. So higher pps means a <b>denser, more informative
+input</b> &mdash; not more bytes on the wire. <b>Effect:</b> pedestrian detection improves with radar density up to
+~200k pps, then saturates; vehicles/segmentation are already saturated. More sensor data &rarr; better accuracy at
+<b>constant payload</b>.</div>
+<script>
+const cols=[{pps:"100k pps",sub:"sparse radar",n:26,raw:35,acc:"recall 0.66",ac:"var(--bad)"},
+{pps:"200k pps",sub:"denser radar",n:70,raw:70,acc:"recall 0.78",ac:"var(--good)"},
+{pps:"300k pps",sub:"dense radar",n:120,raw:100,acc:"recall 0.79 (saturates)",ac:"var(--good)"}];
+const row=document.getElementById("row");
+cols.forEach((c,i)=>{
+ let dots="";for(let k=0;k<c.n;k++){dots+=`<div class="dot" style="left:${5+Math.random()*90}%;top:${5+Math.random()*90}%"></div>`}
+ const html=`<div class="col"><div class="pps">${c.pps}</div><div class="ppssub">${c.sub}</div>
+ <div class="cloud">${dots}</div><div class="rawbar" style="width:${c.raw}%"></div>
+ <div class="rawlbl">raw radar data volume</div>
+ <div class="arrow">&darr; rasterize (fixed grid)</div>
+ <div class="grid">${"<div class='g'></div>".repeat(24)}</div>
+ <div class="chip">payload: [4&times;H&times;W] &mdash; FIXED</div>
+ <div class="acc" style="color:${c.ac}">${c.acc}</div></div>`;
+ row.insertAdjacentHTML("beforeend",html);
+ if(i<cols.length-1) row.insertAdjacentHTML("beforeend",'<div class="arrowright">&rarr;</div>');
+});
+</script></body></html>

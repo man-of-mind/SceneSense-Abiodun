@@ -49,25 +49,41 @@ def main():
             lb = json.load(open(sys.argv[3]))  # {"quant|entropy": {front_ms, rtt_ms, delivery_rate, ...}}
         except Exception:
             lb = {}
+    # RAW uncompressed feature-transmit size (fp16, both levels) = the honest "no-compression" split
+    # baseline (100%). Passed in KB as argv[4] (input-size dependent; 768x432 -> 2835 KB). Everything
+    # else is a fraction of THIS, so the compression story is not understated.
+    raw_fp16_kb = float(sys.argv[4]) if len(sys.argv) > 4 else 0.0
     rows = load(parent)
     if not rows:
         Path(out).write_text("# COMPLETE KNOB MATRIX\n\n(no eval metrics found)\n"); return
-    # clean baseline = the config with no compression at all (or largest payload / no quant)
+    # accuracy-ceiling baseline = M' with no compression at all (clean_noquant, monolithic forward)
     clean = None
     for r in rows:
         if r["quant"] in ("none", "") and r["ae"] == 0 and r["roi"] == 0.0:
             clean = r; break
-    if clean is None:  # fall back to the largest-payload row
+    if clean is None:
         clean = max(rows, key=lambda r: (r["payload_kb"] if r["payload_kb"] == r["payload_kb"] else -1))
     base_miou, base_ped = clean["miou"], clean["ped_recall"]
-    # payload baseline = the largest MEASURED payload (least-compressed config), a robust denominator
-    # even if the accuracy-clean row has no payload (non-split path).
+    # Synthesize the uncompressed-fp16 TRANSMIT baseline row: M' clean accuracy + the raw transmit payload
+    # (the cost of naive split inference with no compression). This is the 100% payload anchor.
+    if raw_fp16_kb > 0:
+        base = dict(clean); base.update(name="uncompressed_fp16", quant="none(fp16)", entropy="-",
+                                        roi=0.0, ae=0, payload_kb=raw_fp16_kb)
+        rows.append(base)
+    # lossless-transmit profile: no quantization, entropy-code the raw fp16 (accuracy == clean, since
+    # fp16 round-trip + entropy coding is lossless). payload passed in KB as argv[5].
+    lossless_kb = float(sys.argv[5]) if len(sys.argv) > 5 else 0.0
+    if lossless_kb > 0:
+        r = dict(clean); r.update(name="fp16_zstd_lossless", quant="none(fp16)", entropy="zstd",
+                                  roi=0.0, ae=0, payload_kb=lossless_kb)
+        rows.append(r)
     finite_pay = [r["payload_kb"] for r in rows if r["payload_kb"] == r["payload_kb"]]
-    base_pay = max(finite_pay) if finite_pay else float("nan")
+    base_pay = raw_fp16_kb if raw_fp16_kb > 0 else (max(finite_pay) if finite_pay else float("nan"))
     TOL = 0.02  # accuracy tolerance for "acceptable" profiles
     # payload -> {front_ms, delivery} curve from the measured loopback profiles, for interpolating the
     # ROI/AE rows (which the loopback client can't run natively). Sorted by payload.
-    curve = sorted(({"p": v["payload_kb"], "front": v["front_ms"], "deliv": v["delivery_rate"]}
+    curve = sorted(({"p": v["payload_kb"], "front": v.get("front_ms"), "back": v.get("back_ms"),
+                     "transport": v.get("transport_ms"), "deliv": v.get("delivery_rate")}
                     for v in lb.values() if v.get("payload_kb") is not None), key=lambda x: x["p"])
     def interp(p, field):
         if not curve or p is None or p != p:
@@ -89,39 +105,43 @@ def main():
         r["payload_frac"] = (r["payload_kb"] / base_pay) if base_pay else float("nan")
         # measured loopback latency/reliability (direct match for pure quant x entropy configs);
         # ROI/AE rows get INTERPOLATED estimates from the payload curve (rendered with a leading ~).
-        k = f"{r['quant']}|{r['entropy']}"
-        m = lb.get(k) if (r["roi"] == 0.0 and r["ae"] == 0) else None
+        k = f"{r['quant']}|{r['roi']}|{r['ae']}"   # full action profile (matches agg_loopback jmap key)
+        m = lb.get(k)
         if m:
-            r["front_ms"], r["rtt_ms"], r["delivery"], r["est"] = m["front_ms"], m["rtt_ms"], m["delivery_rate"], False
+            r["front_ms"], r["back_ms"], r["transport_ms"], r["est"] = m.get("front_ms"), m.get("back_ms"), m.get("transport_ms"), False
         else:
-            r["front_ms"], r["rtt_ms"], r["delivery"], r["est"] = interp(r["payload_kb"], "front"), None, interp(r["payload_kb"], "deliv"), True
+            r["front_ms"], r["back_ms"], r["transport_ms"], r["est"] = interp(r["payload_kb"], "front"), interp(r["payload_kb"], "back"), interp(r["payload_kb"], "transport"), True
     # Pareto: acceptable configs with a real (finite) payload, minimal payload
     accept = [r for r in rows if r["accept"]]
     accept_pay = [r for r in accept if r["payload_kb"] == r["payload_kb"]]  # drop nan-payload (clean) row
     best = min(accept_pay, key=lambda r: r["payload_kb"]) if accept_pay else None
 
     rows.sort(key=lambda r: (r["payload_kb"] if r["payload_kb"] == r["payload_kb"] else 1e18))
-    L = ["# COMPLETE KNOB MATRIX (M', offline: accuracy + payload)",
+    L = ["# COMPLETE KNOB MATRIX (M', Month-2 static knobs)",
          "",
-         "Action profiles vs task accuracy and on-wire payload (entropy-coded bytes). "
-         "Latency / delivery-rate / reliability under channel = OAI/network phase (not here).",
+         "Action profiles vs **accuracy**, **payload** (entropy-coded bytes), and **latency** (front=UE compute, "
+         "back=edge compute, transport=localhost round-trip). Transport is an **IDEAL local link** (8 MB socket "
+         "buffers, NO bandwidth cap / no Linux tc shaping), so delivery is ~100% and not a differentiator here. "
+         "**Reliability + latency under a real channel (bandwidth, RF loss) = OAI + Sionna, Month 3.** "
+         "`~` latency = interpolated from the measured payload->latency curve (loopback client runs quant x "
+         "entropy natively; ROI/AE latency inferred by payload).",
          "",
          f"Clean baseline: **{clean['name']}** payload={fnum(base_pay,1)}KB mIoU={fnum(base_miou)} "
          f"ped-recall={fnum(base_ped)}  (accept tol = {TOL:.0%})",
          "",
-         "| profile | quant | entropy | ROI q | AE | payload KB | payload % | mIoU | veh IoU | ped recall | obj recall | loc m | ped-loc m | front ms | RTT ms | delivery | accept |",
+         "| profile | quant | entropy | ROI q | AE | payload KB | payload % | mIoU | veh IoU | ped recall | obj recall | loc m | ped-loc m | front ms | back ms | transport ms | accept |",
          "|---|---|---|---|---|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|:--:|"]
     def _o(x, est, d=1):
         if x is None:
             return "-"
-        return ("~" if est else "") + fnum(x, d)   # ~ prefix = interpolated from the payload curve
+        return ("~" if est else "") + fnum(x, d)   # ~ prefix = interpolated from the payload->latency curve
     for r in rows:
-        L.append("| {name} | {q} | {e} | {roi} | {ae} | {pay} | {pf} | {mi} | {vi} | {pr} | {orr} | {loc} | {ploc} | {fm} | {rt} | {dl} | {acc} |".format(
+        L.append("| {name} | {q} | {e} | {roi} | {ae} | {pay} | {pf} | {mi} | {vi} | {pr} | {orr} | {loc} | {ploc} | {fm} | {bk} | {tr} | {acc} |".format(
             name=r["name"], q=r["quant"], e=r["entropy"], roi=fnum(r["roi"],2), ae=(r["ae"] or "-"),
             pay=fnum(r["payload_kb"],1), pf=fnum(100*r["payload_frac"],0)+"%",
             mi=fnum(r["miou"]), vi=fnum(r["veh_iou"]), pr=fnum(r["ped_recall"]), orr=fnum(r["obj_recall"]),
             loc=fnum(r["loc_m"],2), ploc=fnum(r["ped_loc_m"],2),
-            fm=_o(r["front_ms"], r["est"]), rt=_o(r["rtt_ms"], r["est"]), dl=_o(r["delivery"], r["est"], 3),
+            fm=_o(r["front_ms"], r["est"]), bk=_o(r["back_ms"], r["est"]), tr=_o(r["transport_ms"], r["est"]),
             acc=("Y" if r["accept"] else "-")))
     L += ["", "## Pareto pick (min payload within accuracy tolerance)"]
     if best:

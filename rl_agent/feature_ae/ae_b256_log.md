@@ -13,3 +13,13 @@ b256 ep=7 train_loss=1.6062 val_loss=1.2550 (seg=0.0270 heat=0.05121 reg=0.1129 
 b256 ep=8 train_loss=0.7649 val_loss=0.6310 (seg=0.0140 heat=0.02989 reg=0.0614 recon=1.6140) 225s
 b256 ep=9 train_loss=1.0045 val_loss=0.9836 (seg=0.0151 heat=0.04575 reg=0.0998 recon=2.2828) 224s
 b256 ep=10 train_loss=0.7945 val_loss=0.6239 (seg=0.0110 heat=0.02987 reg=0.0631 recon=1.3277) 220s
+b256 ep=11 train_loss=0.9725 val_loss=0.7674 (seg=0.0113 heat=0.03752 reg=0.0757 recon=1.7124) 223s
+b256 ep=12 train_loss=0.6756 val_loss=0.7558 (seg=0.0253 heat=0.03345 reg=0.0758 recon=2.0288) 221s
+b256 ep=13 train_loss=1.1080 val_loss=0.8152 (seg=0.0143 heat=0.03768 reg=0.0778 recon=2.4113) 220s
+b256 ep=14 train_loss=0.8652 val_loss=1.0353 (seg=0.0117 heat=0.04949 reg=0.1073 recon=1.9860) 225s
+b256 ep=15 train_loss=0.6588 val_loss=0.6485 (seg=0.0112 heat=0.03105 reg=0.0667 recon=1.2668) 222s
+b256 ep=16 train_loss=1.0795 val_loss=0.9124 (seg=0.0222 heat=0.03854 reg=0.1007 recon=1.8756) 213s
+b256 ep=17 train_loss=1.3160 val_loss=1.6001 (seg=0.0297 heat=0.07215 reg=0.1673 recon=3.5544) 221s
+DONE b256: best val_loss=0.6239 -> /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/feature_ae/checkpoints/ae_b256_obj.pt
+AE_B256_DONE
+[2026-07-09 17:35:44] b256 END

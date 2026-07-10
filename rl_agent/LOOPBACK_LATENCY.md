@@ -1,14 +1,15 @@
-# Loopback latency / reliability sweep (M', CARLA transport)
+# Loopback latency sweep (M') — IDEAL transport
 
-Real split-inference transport metrics per quant x entropy profile. `delivery_rate` = fraction of frames whose result returned within the timeout (loopback reliability = payload/fragmentation-driven; true channel loss arrives with OAI). This establishes the **payload -> {latency, reliability}** curve; ROI/AE configs move along it by their (offline-measured) payload.
+Split-inference latency per profile under an **ideal local transport** (8 MB socket buffers via net.core.rmem_max/wmem_max; NO bandwidth cap / no Linux tc shaping). Columns: front (UE compute), back (edge compute), transport (localhost round-trip), RTT (total). delivery ~1.0 by design here — REAL reliability under bandwidth/RF-loss is the OAI + Sionna phase (Month 3).
 
-| profile | quant | entropy | payload KB | front ms | RTT ms | delivery | frames |
-|---|---|---|--:|--:|--:|--:|--:|
-| q_pchan_u4_zstd | per_channel_uint4 | zstd | 366.1 | 28.0 | 12.5 | 1.0 | 300 |
-| q_pchan_u4_zlib | per_channel_uint4 | zlib | 385.3 | 35.6 | 21.7 | 1.0 | 300 |
-| q_pchan_u4_none | per_channel_uint4 | none | 717.2 | 27.7 | 15.2 | 0.24 | 300 |
-| q_pchan_u6_zstd | per_channel_uint6 | zstd | 730.9 | 32.0 | 18.2 | 0.317 | 300 |
-| q_pchan_u6_zlib | per_channel_uint6 | zlib | 761.0 | 47.7 | 39.9 | 0.117 | 300 |
-| q_pchan_u8_zstd | per_channel_uint8 | zstd | 982.9 | 31.6 | 21.5 | 0.107 | 300 |
-| q_pchan_u8_zlib | per_channel_uint8 | zlib | 1016.4 | 50.5 | 46.6 | 0.11 | 300 |
-| q_pchan_u8_none | per_channel_uint8 | none | 1426.0 | 28.2 | 16.6 | 0.127 | 300 |
+| profile | quant | entropy | payload KB | front ms | back ms | transport ms | RTT ms | delivery | frames |
+|---|---|---|--:|--:|--:|--:|--:|--:|--:|
+| ae_b64_u8_zstd | per_channel_uint8 | zstd | 269.2 | 24.9 | 11.0 | 2.0 | 13.0 | 1.0 | 300 |
+| ae_b128_u8_zstd | per_channel_uint8 | zstd | 342.6 | 25.5 | 9.3 | 2.2 | 11.5 | 1.0 | 300 |
+| q_u4_zstd | per_channel_uint4 | zstd | 367.2 | 27.6 | 9.2 | 4.6 | 13.9 | 1.0 | 300 |
+| roi0.5_u8_zstd | per_channel_uint8 | zstd | 555.3 | 30.5 | 7.6 | 6.2 | 13.8 | 1.0 | 300 |
+| roi0.3_u8_zstd | per_channel_uint8 | zstd | 717.5 | 31.0 | 7.8 | 6.8 | 14.6 | 1.0 | 300 |
+| q_u6_zstd | per_channel_uint6 | zstd | 730.3 | 31.2 | 11.0 | 6.3 | 17.3 | 1.0 | 300 |
+| roi0.1_u8_zstd | per_channel_uint8 | zstd | 893.9 | 31.4 | 7.7 | 7.4 | 15.0 | 1.0 | 300 |
+| q_u8_zstd | per_channel_uint8 | zstd | 982.1 | 29.8 | 7.6 | 7.4 | 15.0 | 1.0 | 300 |
+| q_u8_zlib | per_channel_uint8 | zlib | 1016.5 | 47.5 | 9.9 | 31.0 | 40.9 | 1.0 | 300 |

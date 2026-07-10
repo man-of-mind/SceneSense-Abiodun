@@ -1,0 +1,3 @@
+[2026-07-09 18:19:02] v2 CLEAN test START (drop_max=0, 40ep, lr3e-4) b128,b64
+AE_V2CLEAN_DONE
+[2026-07-09 19:46:53] v2 CLEAN test END
