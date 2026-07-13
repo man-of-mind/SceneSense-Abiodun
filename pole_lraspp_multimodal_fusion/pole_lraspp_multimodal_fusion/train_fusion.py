@@ -622,6 +622,23 @@ def train(args: argparse.Namespace) -> int:
             f"loaded={object_load_stats['loaded']} partial={object_load_stats.get('partial', 0)} "
             f"skipped={object_load_stats['skipped']}."
         )
+    # INTEGRATED feature-AE (end-to-end): attach after warm-start load, before the optimizer, so its
+    # params train jointly with the backbone + heads (the whole model co-adapts to the bottleneck).
+    ae_bottleneck = int(trial.get("ae_bottleneck", 0))
+    if ae_bottleneck > 0:
+        import sys as _sys
+        _sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "rl_agent" / "feature_ae"))
+        from ae_model import build_ae
+        hi_ch = int(model.classifier.cbr[0].in_channels)
+        ae = build_ae(str(trial.get("ae_arch", "v2")), hi_ch, ae_bottleneck).to(device)
+        ae_init = str(trial.get("ae_init_checkpoint", ""))
+        if ae_init and Path(ae_init).exists():
+            _aeck = torch.load(ae_init, map_location=device)
+            ae.load_state_dict(_aeck["ae_state"])
+            log(f"AE warm-started from {ae_init}")
+        model.feature_ae = ae
+        log(f"Integrated feature-AE: arch={trial.get('ae_arch','v2')} bottleneck={ae_bottleneck} "
+            f"in={hi_ch} params={sum(p.numel() for p in ae.parameters()):,}")
     freeze_backbone = bool(trial.get("freeze_backbone", train_cfg.get("freeze_backbone", False)))
     freeze_classifier = bool(
         trial.get(

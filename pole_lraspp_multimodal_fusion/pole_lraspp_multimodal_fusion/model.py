@@ -62,6 +62,10 @@ class MultiTaskFusionLRASPP(torch.nn.Module):
             object_in_channels = high_channels
 
         self.object_channels = int(object_channels)
+        # Optional INTEGRATED feature-AE: when set, the 'high' feature is AE-compressed+reconstructed in
+        # forward (after ROI drop, before the heads) so the AE trains END-TO-END with the task losses and
+        # the whole model co-adapts to the bottleneck (fixes the frozen-head localization collapse).
+        self.feature_ae = None
         self.head_arch = str(head_arch).lower()
         self.use_coordconv = bool(use_coordconv)
         self.head_depth = max(1, int(head_depth))
@@ -219,10 +223,21 @@ class MultiTaskFusionLRASPP(torch.nn.Module):
             return type(features)((k, gate(v)) for k, v in features.items())
         return gate(features)
 
+    def _apply_feature_ae(self, features: object) -> object:
+        """Compress+reconstruct the 'high' feature through the integrated AE (trained end-to-end)."""
+        ae = self.feature_ae
+        hi = self._high_feature(features)
+        hi_hat = ae.decode(ae.encode(hi))
+        if isinstance(features, dict):
+            return type(features)((k, (hi_hat if k == "high" else v)) for k, v in features.items())
+        return hi_hat
+
     def forward(self, x: torch.Tensor, feature_drop_fraction: float = 0.0) -> Dict[str, torch.Tensor]:
         features = self.backbone(x)
         if float(feature_drop_fraction) > 0.0:
             features = self._objectness_drop(features, float(feature_drop_fraction))
+        if getattr(self, "feature_ae", None) is not None:
+            features = self._apply_feature_ae(features)
         seg = self.classifier(features)
         if isinstance(seg, dict):
             seg = seg["out"]

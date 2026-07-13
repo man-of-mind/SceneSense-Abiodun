@@ -235,6 +235,16 @@ def evaluate_checkpoint(args: argparse.Namespace) -> int:
         groundplane_params=object_groundplane_params,
         device=device,
     ).to(device)
+    # INTEGRATED feature-AE checkpoints carry the AE inside model weights; attach a matching AE before load
+    # so its params load and it runs in forward. Bottleneck read from the saved trial metadata.
+    _ae_bn = int((ckpt.get("trial") or {}).get("ae_bottleneck", 0)) if isinstance(ckpt, dict) else 0
+    if _ae_bn > 0:
+        import sys as _sys
+        _sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "rl_agent" / "feature_ae"))
+        from ae_model import build_ae
+        _hi = int(model.classifier.cbr[0].in_channels)
+        model.feature_ae = build_ae(str((ckpt.get("trial") or {}).get("ae_arch", "v2")), _hi, _ae_bn).to(device)
+        print(f"[eval] integrated feature-AE attached: bottleneck={_ae_bn}")
     model.load_state_dict(checkpoint["model"] if isinstance(checkpoint, dict) and "model" in checkpoint else checkpoint)
     model.eval()
 
