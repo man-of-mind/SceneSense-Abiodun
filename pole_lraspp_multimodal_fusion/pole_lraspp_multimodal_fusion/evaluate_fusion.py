@@ -283,6 +283,14 @@ def evaluate_checkpoint(args: argparse.Namespace) -> int:
         ae.load_state_dict(ae_ckpt["ae_state"])
         ae.eval()
         args.ae_bottleneck = int(ae_ckpt["bottleneck"])
+    elif split_codec is not None and getattr(model, "feature_ae", None) is not None:
+        # INTEGRATED-AE model: use the model's own trained AE as the split codec (encode 'high' -> bottleneck,
+        # quantize/serialize the bottleneck for payload, decode -> heads). The split path runs the heads via
+        # decode_outputs (NOT model.forward), so the integrated AE is applied exactly once here. This makes
+        # the quant x ROI sweep operate on the integrated model's bottleneck.
+        ae = model.feature_ae
+        args.ae_bottleneck = int(getattr(ae, "bottleneck", 0))
+        print(f"[eval] using integrated model AE as split codec (bottleneck={args.ae_bottleneck})")
 
     def _roi_gate(feats):
         """Front-side ROI drop: zero the lowest-objectness fraction q of backbone-feature cells by RANK
