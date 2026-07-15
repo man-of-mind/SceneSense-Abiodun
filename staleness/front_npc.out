@@ -1,0 +1,25 @@
+Loaded fusion checkpoint /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/ae_integrated_20260710/noae_baseline/checkpoints/mprime_joint_noae/best.pt (radar_channels=4, object_channels=14, fuse_low_into_object_head=True, object_head_arch=shared, predict_bbox2d=True, input_size=768x432)
+Connected to CARLA at 127.0.0.1:2000
+World: Carla/Maps/Town10HD_Opt
+Sensor platform: ego_vehicle
+Parked ego relative camera transform: loc=(1.80, 0.00, 1.55), pitch=-4.0, yaw=0.0, roll=0.0
+Parked ego relative radar transform: loc=(2.00, 0.00, 1.00), pitch=0.0, yaw=0.0, roll=0.0
+Camera resolution: 854x480 (custom 854x480)
+Model input: 768x432
+Front device: cuda, back device: cuda
+Entropy coder: zlib | Quantization: per_channel_uint8
+Role: front | bind-host: 127.0.0.1 | remote-host: 127.0.0.1
+UDP ports: camera 51001 -> remote 51002, remote 51003 -> camera 51004
+Parked ego vehicle: id=53, type=vehicle.lincoln.mkz, spawn_index=-1, freeze=True
+Spawned 29 background vehicles instead of requested 30.
+Spawned 29 background vehicles.
+Spawned 19 background pedestrians instead of requested 20.
+Spawned 19 background pedestrians.
+Parked ego RGB camera ready on frame 588274.
+[Metrics] Run directory: /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/staleness/metrics_logs/scenesense_runs/20260714_221545_front_fusion_ego_53
+[Metrics] Run group: parked_npc
+[Metrics] Stream CSV: /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/staleness/metrics_logs/scenesense_runs/20260714_221545_front_fusion_ego_53/streams/fusion_ego_53_metrics.csv
+Headless run active. Press Ctrl+C to stop.
+Warning: camera frame not received within 5.0s; retrying.
+Reached --max-frames=200; stopping run.
+[Metrics] Saved stream CSV to /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/staleness/metrics_logs/scenesense_runs/20260714_221545_front_fusion_ego_53/streams/fusion_ego_53_metrics.csv

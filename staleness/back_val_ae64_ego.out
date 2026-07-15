@@ -1,0 +1,1 @@
+Fusion checkpoint had 12 unexpected keys (first: ['feature_ae.encoder.0.weight', 'feature_ae.encoder.0.bias', 'feature_ae.encoder.2.weight'])

@@ -1,0 +1,31 @@
+Fusion checkpoint had 12 unexpected keys (first: ['feature_ae.encoder.0.weight', 'feature_ae.encoder.0.bias', 'feature_ae.encoder.2.weight'])
+ERROR: failed to destroy actor 977 : std::exception 
+ERROR: failed to destroy actor 974 : std::exception 
+ERROR: failed to destroy actor 969 : std::exception 
+ERROR: failed to destroy actor 957 : std::exception 
+Loaded feature-AE (bottleneck=32) for split compression: rl_agent/feature_ae/ae_split_ae32.pt
+Loaded fusion checkpoint /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/ae_integrated_20260710/ae32/checkpoints/ae32_integrated/best.pt (radar_channels=4, object_channels=14, fuse_low_into_object_head=True, object_head_arch=shared, predict_bbox2d=True, input_size=768x432)
+Connected to CARLA at 127.0.0.1:2000
+World: Carla/Maps/Town10HD_Opt
+Sensor platform: ego_vehicle
+Parked ego relative camera transform: loc=(1.80, 0.00, 1.55), pitch=-4.0, yaw=0.0, roll=0.0
+Parked ego relative radar transform: loc=(2.00, 0.00, 1.00), pitch=0.0, yaw=0.0, roll=0.0
+Camera resolution: 854x480 (custom 854x480)
+Model input: 768x432
+Front device: cuda, back device: cuda
+Entropy coder: zlib | Quantization: per_channel_uint8
+Role: front | bind-host: 127.0.0.1 | remote-host: 127.0.0.1
+UDP ports: camera 51001 -> remote 51002, remote 51003 -> camera 51004
+Moving ego autopilot enabled: speed_diff=60.0%, follow=28.0m, ignore_lights=0.0%, lane_change=True, fixed_path_points=0
+Moving ego vehicle: id=888, type=vehicle.lincoln.mkz, spawn_index=-1, freeze=False
+Spawned 59 background vehicles instead of requested 60.
+Spawned 59 background vehicles.
+Spawned 20 background pedestrians.
+Parked ego RGB camera ready on frame 1284786.
+[Metrics] Run directory: /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/staleness/metrics_logs/scenesense_runs/20260715_002708_front_fusion_ego_888
+[Metrics] Run group: val_ae32_ego
+[Metrics] Stream CSV: /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/staleness/metrics_logs/scenesense_runs/20260715_002708_front_fusion_ego_888/streams/fusion_ego_888_metrics.csv
+Headless run active. Press Ctrl+C to stop.
+Warning: camera frame not received within 5.0s; retrying.
+Reached --max-frames=600; stopping run.
+[Metrics] Saved stream CSV to /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/staleness/metrics_logs/scenesense_runs/20260715_002708_front_fusion_ego_888/streams/fusion_ego_888_metrics.csv

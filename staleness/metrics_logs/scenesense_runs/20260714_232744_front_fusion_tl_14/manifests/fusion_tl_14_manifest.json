@@ -1,0 +1,101 @@
+{
+  "schema": "scenesense_fusion_run.v1",
+  "created_at": "2026-07-14T23:27:44",
+  "run_id": "20260714_232744_front_fusion_tl_14",
+  "run_group": "fps_5",
+  "stream_id": "fusion_tl_14",
+  "transport_label": "front",
+  "script": "carla_fusion_staleness_scenario.py",
+  "git_status_note": "?? ../rl_agent/REQUIREMENTS_AND_RL_DESIGN.md\n?? ../rl_agent/STANDARDS_ANCHORS.md\n?? ./",
+  "role": "front",
+  "town": "Carla/Maps/Town10HD_Opt",
+  "checkpoint_path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/ae_integrated_20260710/noae_baseline/checkpoints/mprime_joint_noae/best.pt",
+  "front_device": "cuda",
+  "back_device": "cuda",
+  "sensor_placement": "traffic_light_pole",
+  "anchor": {
+    "label": "traffic_light_14",
+    "actor_id": 14,
+    "type_id": "traffic.traffic_light",
+    "transform": {
+      "location": {
+        "x": -31.93084144592285,
+        "y": 20.30195426940918,
+        "z": 0.2542538344860077
+      },
+      "rotation": {
+        "pitch": 0.0,
+        "yaw": -3.099999958067201e-05,
+        "roll": 0.0
+      }
+    }
+  },
+  "camera": {
+    "width": 854,
+    "height": 480,
+    "fov": 100.0,
+    "traffic_light_id": "14",
+    "traffic_light_actor_id": 14,
+    "ego_vehicle_actor_id": null,
+    "x": 9.0,
+    "y": 2.0,
+    "z": 6.0,
+    "pitch": -30.0,
+    "yaw": null,
+    "yaw_offset": 50.0,
+    "roll": 0.0,
+    "ego_relative_transform": {
+      "x": 1.8,
+      "y": 0.0,
+      "z": 1.55,
+      "pitch": -4.0,
+      "yaw": 0.0,
+      "roll": 0.0
+    }
+  },
+  "radar": {
+    "relative_transform": {
+      "x": 2.0,
+      "y": 0.0,
+      "z": 1.0,
+      "pitch": 0.0,
+      "yaw": 0.0,
+      "roll": 0.0
+    },
+    "range_m": 120.0,
+    "hfov": 100.0,
+    "vfov": 30.0,
+    "points_per_second": 5000
+  },
+  "semantic_gt": {
+    "enabled": false,
+    "metrics": [
+      "miou_binary",
+      "miou_3class_macro",
+      "miou_vehicle_iou",
+      "miou_person_iou"
+    ]
+  },
+  "model_input_size": [
+    768,
+    432
+  ],
+  "transport": {
+    "bind_host": "127.0.0.1",
+    "remote_host": "127.0.0.1",
+    "camera_source_port": 51001,
+    "remote_port": 51002,
+    "remote_source_port": 51003,
+    "camera_result_port": 51004,
+    "quantization_mode": "per_channel_uint8",
+    "entropy_coder": "zlib",
+    "chunk_bytes": 60000
+  },
+  "output_files": {
+    "metrics_csv": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/staleness/metrics_logs/scenesense_runs/20260714_232744_front_fusion_tl_14/streams/fusion_tl_14_metrics.csv",
+    "object_predictions_csv": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/staleness/metrics_logs/scenesense_runs/20260714_232744_front_fusion_tl_14/streams/fusion_tl_14_object_predictions.csv",
+    "object_ground_truth_csv": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/staleness/metrics_logs/scenesense_runs/20260714_232744_front_fusion_tl_14/streams/fusion_tl_14_object_ground_truth.csv",
+    "manifest": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/staleness/metrics_logs/scenesense_runs/20260714_232744_front_fusion_tl_14/manifests/fusion_tl_14_manifest.json",
+    "resolved_config": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/staleness/metrics_logs/scenesense_runs/20260714_232744_front_fusion_tl_14/manifests/fusion_tl_14_resolved_config.json"
+  }
+}

@@ -1,0 +1,27 @@
+WARNING: synchronous mode and substepping are enabled but the values for the simulation are not valid. The values should fulfil fixed_delta_seconds <= max_substep_delta_time * max_substeps. Be very careful about that, the time deltas are not guaranteed. 
+ERROR: failed to destroy actor 342 : std::exception 
+Loaded fusion checkpoint /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/ae_integrated_20260710/noae_baseline/checkpoints/mprime_joint_noae/best.pt (radar_channels=4, object_channels=14, fuse_low_into_object_head=True, object_head_arch=shared, predict_bbox2d=True, input_size=768x432)
+Connected to CARLA at 127.0.0.1:2000
+World: Carla/Maps/Town10HD_Opt
+Sensor platform: pole
+Traffic light actor id: 14
+Traffic light OpenDRIVE id: 950
+Pole sensor transform: loc=(-22.93, 22.30, 6.25), pitch=-30.0, yaw=50.0, roll=0.0
+Camera resolution: 854x480 (custom 854x480)
+Model input: 768x432
+Front device: cuda, back device: cuda
+Entropy coder: zlib | Quantization: per_channel_uint8
+Role: front | bind-host: 127.0.0.1 | remote-host: 127.0.0.1
+UDP ports: camera 51001 -> remote 51002, remote 51003 -> camera 51004
+Spawned 38 background vehicles instead of requested 40.
+Spawned 38 background vehicles.
+Spawned 19 background pedestrians instead of requested 20.
+Spawned 19 background pedestrians.
+Pole RGB camera ready on frame 1006423.
+[Metrics] Run directory: /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/staleness/metrics_logs/scenesense_runs/20260714_232744_front_fusion_tl_14
+[Metrics] Run group: fps_5
+[Metrics] Stream CSV: /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/staleness/metrics_logs/scenesense_runs/20260714_232744_front_fusion_tl_14/streams/fusion_tl_14_metrics.csv
+Headless run active. Press Ctrl+C to stop.
+Warning: camera frame not received within 5.0s; retrying.
+Reached --max-frames=125; stopping run.
+[Metrics] Saved stream CSV to /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/staleness/metrics_logs/scenesense_runs/20260714_232744_front_fusion_tl_14/streams/fusion_tl_14_metrics.csv
