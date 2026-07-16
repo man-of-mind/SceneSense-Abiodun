@@ -87,6 +87,7 @@ for bi,(lo,hi,lab,c) in enumerate(BINS):
 ax1.set_xlabel("latency Y (ms) = capture→inference"); ax1.set_ylabel("measured localization error (m)")
 ax1.set_title("Error ↓ as latency ↓", fontweight="bold", fontsize=13)
 ax1.legend(fontsize=9.5, frameon=False, loc="upper left"); ax1.grid(alpha=0.25); ax1.set_ylim(0,None)
+ax1.set_xlim(0, LAGS[-1]*1000); ax1.margins(x=0)
 ax1.annotate("Y=0: model's own error\n(pedestrian slow → flat;\ncars rise with latency)", (150, 0.3), fontsize=8.5, color="#555")
 # Overlay our MEASURED operating points (Y = capture->inference = front+uplink+back). SAME model curve,
 # different transport Y -> reads which scenarios each config meets (transport isolated from model accuracy).
@@ -105,6 +106,7 @@ ax2.axvspan(15,30, color="#eeeeee", zorder=0); ax2.annotate("plateau:\n>~15 FPS 
 ax2.set_xlabel("camera FPS  (at low latency)"); ax2.set_ylabel("measured localization error (m)")
 ax2.set_title("Error ↓ as FPS ↑, then plateaus (~10–15 FPS)", fontweight="bold", fontsize=13)
 ax2.legend(fontsize=9.5, frameon=False, loc="upper right"); ax2.grid(alpha=0.25); ax2.set_ylim(0,None)
+ax2.set_xlim(0, FPS[-1]); ax2.margins(x=0)
 fig.suptitle("Localization error minimizes as latency ↓ and FPS ↑ (FPS with diminishing returns past ~10–15 FPS)", fontsize=12, y=1.02)
 fig.tight_layout(); fig.savefig(OUT/"staleness_requirement.pdf",bbox_inches="tight"); fig.savefig(OUT/"staleness_requirement.png",dpi=200,bbox_inches="tight")
 print(f"wrote {OUT}/staleness_requirement.pdf/.png")

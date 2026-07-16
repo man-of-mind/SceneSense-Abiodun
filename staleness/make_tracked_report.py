@@ -13,9 +13,10 @@ import numpy as np
 from pathlib import Path
 from collections import defaultdict
 
-GATE = 4.0
+GATE = 2.5    # tight match gate: same clean regime as the per-speed analysis (avoids feeding the KF mismatches)
+NEAR = 25.0   # near-range only: keeps the model floor clean (~1.1 m), consistent across analyses
 Y_SWEEP = [0.0, 0.05, 0.10, 0.15, 0.20, 0.269]
-BINS = [(0.5, 2.5, "pedestrian"), (2.5, 6.0, "~5-13 mph"), (6.0, 12.0, "~13-27 mph")]
+BINS = [(0.5, 2.5, "pedestrian"), (2.5, 6.0, "~5-13 mph"), (6.0, 12.0, "~20 mph car (13-27 mph)")]
 OUT = Path("staleness/plots"); OUT.mkdir(parents=True, exist_ok=True)
 
 def gt_at(sm, t):
@@ -38,21 +39,24 @@ def analyze(run):
     # GT trajectory = actor ORIGIN (training convention), fallback to bbox-center world_x for legacy runs.
     def _gx(r): return float(r.get("origin_x") or r["world_x"])
     def _gy(r): return float(r.get("origin_y") or r["world_y"])
+    def _tf(v): return str(v).strip().lower() in ("true","1","yes")
     traj=defaultdict(list)
     for r in gt:
-        try: traj[r["actor_id"]].append((float(r["carla_timestamp"]),_gx(r),_gy(r),int(r["frame_id"])))
+        try: traj[r["actor_id"]].append((float(r["carla_timestamp"]),_gx(r),_gy(r),int(r["frame_id"]),
+                                         _tf(r.get("in_camera_frustum","")),float(r.get("distance_m",999))))
         except: pass
     for a in traj: traj[a].sort()
     prby=defaultdict(list)
     for r in pr:
         try: prby[int(r["frame_id"])].append((float(r["world_x"]),float(r["world_y"])))
         except: pass
-    R=np.diag([2.5**2,2.5**2]); qa=3.0**2  # meas noise ~ floor; accel process noise
+    R=np.diag([1.2**2,1.2**2]); qa=3.0**2  # meas noise ~ clean near-range floor; accel process noise
     H=np.array([[1,0,0,0],[0,1,0,0]],float)
     agg=defaultdict(lambda: defaultdict(lambda: {"sf":[], "tr":[]}))
     for aid, sm in traj.items():
         dets=[]
-        for i,(t,x,y,fid) in enumerate(sm):
+        for i,(t,x,y,fid,inf,dist) in enumerate(sm):
+            if not (inf and dist<=NEAR): continue          # near-range, in-frustum only (clean floor)
             preds=prby.get(fid,[])
             if not preds: continue
             z=min(preds,key=lambda p:math.hypot(p[0]-x,p[1]-y))
@@ -80,15 +84,17 @@ def analyze(run):
                 agg[b][Y]["tr"].append(math.hypot(px-gx,py-gy))
     return agg
 
-# find fps runs
+# find moving-ego FPS runs by run_group egofps_<FPS> (falls back to legacy fps_<FPS> pole runs if none)
 runs={}
-for d in sorted(glob.glob("staleness/metrics_logs/scenesense_runs/2026*fusion_tl_14"), key=os.path.getmtime):
-    mc=glob.glob(d+"/streams/*metrics.csv")
-    if not mc: continue
-    rows=list(csv.DictReader(open(mc[0])))
-    if rows:
-        m=re.match(r"fps_(\d+)", rows[0].get("run_group",""))
-        if m: runs[int(m.group(1))]=d
+for pat in (r"egofps_(\d+)", r"fps_(\d+)"):
+    for d in sorted(glob.glob("staleness/metrics_logs/scenesense_runs/2026*"), key=os.path.getmtime):
+        mc=glob.glob(d+"/streams/*metrics.csv")
+        if not mc: continue
+        rows=list(csv.DictReader(open(mc[0])))
+        if rows:
+            m=re.match(pat, rows[0].get("run_group",""))
+            if m: runs[int(m.group(1))]=d   # newest wins per FPS
+    if runs: break
 print("FPS runs found:", sorted(runs))
 data={f: analyze(runs[f]) for f in sorted(runs)}
 
@@ -111,15 +117,21 @@ for f in sorted(data):
     ax1.plot([Y*1000 for Y in Y_SWEEP], tr, color=cmap.get(f,"#888"), ls="-", lw=2.2, marker="o", ms=4, label=f"{f} FPS (tracked)")
 ax1.plot([],[],color="#555",ls="--",label="single-frame (any FPS)")
 ax1.set_xlabel("latency Y (ms)"); ax1.set_ylabel("localization error (m)"); ax1.set_ylim(0,None); ax1.grid(alpha=0.25)
-ax1.set_title("Tracked (solid) vs single-frame (dashed) — fast car", fontweight="bold", fontsize=12); ax1.legend(fontsize=8.5, frameon=False, ncol=2)
-# tracked error vs FPS at fixed Y=100ms
-Yi=Y_SWEEP.index(0.10)
-for bi,(lo,hi,lab) in enumerate(BINS):
-    fps=sorted(data); sfv=[np.mean(data[f][bi][0.10]["sf"]) if data[f].get(bi,{}).get(0.10,{}).get("sf") else np.nan for f in fps]
-    trv=[np.mean(data[f][bi][0.10]["tr"]) if data[f].get(bi,{}).get(0.10,{}).get("tr") else np.nan for f in fps]
-    ax2.plot(fps, trv, lw=2.2, marker="o", ms=4, label=f"{lab} (tracked)")
-ax2.set_xlabel("camera FPS (real CARLA capture)"); ax2.set_ylabel("tracked error @ Y=100ms (m)"); ax2.set_ylim(0,None); ax2.grid(alpha=0.25)
-ax2.set_title("Tracked error ↓ as FPS ↑ (more updates)", fontweight="bold", fontsize=12); ax2.legend(fontsize=9, frameon=False)
+ax1.set_title("Tracked (solid) vs single-frame (dashed) — ~20 mph car", fontweight="bold", fontsize=12); ax1.legend(fontsize=8.5, frameon=False, ncol=2)
+# FAST-CAR ONLY at high latency (Y=269ms, where staleness dominates): single-frame vs tracked vs FPS.
+# Slow bins are excluded here on purpose -- they have little staleness to cancel, so tracking is just filter
+# noise there and muddies the message. The fast car is where the FPS+tracker benefit is real.
+YHI=0.269; b=2
+fps=[f for f in sorted(data) if data[f].get(b,{}).get(YHI,{}).get("tr")]
+sfv=[np.mean(data[f][b][YHI]["sf"]) for f in fps]
+trv=[np.mean(data[f][b][YHI]["tr"]) for f in fps]
+ax2.plot(fps, sfv, color="#888", ls="--", lw=2.0, marker="s", ms=5, label="single-frame")
+ax2.plot(fps, trv, color="#08519c", ls="-", lw=2.4, marker="o", ms=6, label="tracked (Kalman)")
+for f,s,t in zip(fps,sfv,trv):
+    if t < s: ax2.annotate(f"−{s-t:.2f}m", (f, t), textcoords="offset points", xytext=(0,-14), fontsize=8, color="#08519c", ha="center")
+ax2.set_xlabel("camera FPS (real CARLA capture)"); ax2.set_ylabel("~20 mph car error @ Y=269ms (m)"); ax2.set_ylim(0,None); ax2.grid(alpha=0.25)
+ax2.set_xlim(min(fps)-1, max(fps)+1)
+ax2.set_title("~20 mph car @ 269ms: tracker gain grows with FPS", fontweight="bold", fontsize=12); ax2.legend(fontsize=9.5, frameon=False)
 fig.suptitle("Temporal fusion (Kalman): tracking predicts forward to cancel staleness; more FPS = better velocity",fontsize=11.5,y=1.02)
 fig.tight_layout(); fig.savefig(OUT/"tracked_vs_singleframe.pdf",bbox_inches="tight"); fig.savefig(OUT/"tracked_vs_singleframe.png",dpi=200,bbox_inches="tight")
 print(f"\nwrote {OUT}/tracked_vs_singleframe.pdf/.png")

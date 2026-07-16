@@ -1,102 +1,121 @@
-# Staleness / latency-FPS requirement — first results (2026-07-14)
+# Latency & FPS requirement for localization — results (2026-07-16)
 
-Supervisor's takeaway experiment: localization error vs latency (Y) and FPS, per object speed, to define
-quantified latency+FPS thresholds. Method: **natural traffic** (any car that drives through the sensor view) —
-static pole sensor + background NPCs, loopback (clean model output, full delivery). Per-object analysis
-(`analyze_staleness.py`): track each GT actor, match to predictions (gate 4 m), compute
-`error(Y)=||inferred(t) − GT_actor(t+Y)||` (supervisor's method) and `pure staleness=||GT(t+Y)−GT(t)||=v*Y`.
-Run: `20260714_221836_front_fusion_tl_14` (30 vehicles, 19 peds, 200 frames; 52 matched detections).
+Supervisor's ask: quantify how localization error depends on **end-to-end latency** and **camera FPS**, per
+object speed (pedestrian vs 20/30 mph car), by comparing the inferred position to the true position *at a
+timestamp*. Error should shrink as latency drops and FPS rises.
 
-## Total localization error vs latency (supervisor's method)
-| speed | n | Y=0 | 50 | 100 | 150 | 200 | 269 ms |
-|---|--:|--:|--:|--:|--:|--:|--:|
-| ~5–13 mph | 14 | 2.69 | 2.73 | 2.79 | 2.88 | 2.98 | 3.17 m |
-| ~13–22 mph | 37 | 2.47 | 2.53 | 2.63 | 2.77 | 2.96 | 3.27 m |
-(Y=0 = model-error floor; here ~2.5 m — high due to far detections + loose 4 m match gate. Total error =
-model floor ⊕ staleness combined vectorially, so growth looks sub-linear.)
+> Supersedes the earlier pole-based numbers (the pole is out-of-domain; those were scrapped). All results here
+> are on the **validated in-domain setup**: moving **car-height ego** (z=1.55 m, pitch −4°, FOV 120° — matches
+> training), RGB+radar fusion, **loopback no-AE** (clean, 100% delivery), **origin GT convention** (see below).
 
-## Pure staleness = target displacement v*Y (the clean, model-independent budget driver)
-| speed | Y=50 | 100 | 150 | 200 | 269 ms |
-|---|--:|--:|--:|--:|--:|
-| ped ~1.5 m/s | 0.09 | 0.18 | 0.29 | 0.40 | 0.58 m |
-| ~5–13 mph (~4 m/s) | 0.24 | 0.48 | 0.74 | 1.01 | 1.40 m |
-| ~13–22 mph (~8 m/s) | 0.40 | 0.80 | 1.20 | 1.61 | 2.17 m |
-Matches v*Y exactly (8 m/s × 0.269 s = 2.15 ≈ 2.17) → measurement validated.
+## Method
+- **Opportunity windows:** the ego drives among traffic; any vehicle that enters good range (in camera frustum,
+  ≤25 m) and matches a prediction (tight 2 m gate) is an observation. Each is binned by its **measured
+  instantaneous world speed**. NPC speed regime is swept per run (ignore-lights) to populate walk → ~32 mph.
+- **Latency Y = capture → inference** (front + uplink + back). *Not* the downlink return (map is built at edge).
+  Y is swept synthetically on one clean recording (same model, same detections — only Y varies → fair isolation).
+- **GT convention fix (critical):** training regresses `actor.get_location()` = actor **origin**; the live GT
+  logger had been recording the bbox **center**. That mismatch inflated live error ~1 m. Fixed — GT now logs
+  `origin_x/y` and the analysis compares against it. (This also resolved the earlier model-validation scare.)
+- **Single-frame vs temporal fusion:** the model is *single-frame* — each frame decoded independently, no
+  accumulation, so per-detection accuracy is FPS-independent. To turn "more frames" into "more accuracy" you
+  must **fuse** — a recursive constant-velocity Kalman filter accumulates past frames and **predicts forward by
+  Y** to cancel staleness. Higher FPS → fresher, more frequent updates → better velocity → better prediction.
 
-## Quantified thresholds (Y ≤ ε/v) — the benchmarking basis
-| object | ε=0.5 m | ε=1.0 m |
-|---|--:|--:|
-| pedestrian (1.5 m/s) | 333 ms | 667 ms |
-| city car (8 m/s) | 63 ms | 125 ms |
-| suburban (14 m/s) | 36 ms | 71 ms |
-| highway (30 m/s) | 17 ms | 33 ms |
-FPS adds an inter-frame term: total lag = Y + 1/FPS, so `v*(Y + 1/FPS) ≤ ε` (10 FPS adds up to v*0.1 m).
+## Result 1 — localization error vs latency, per target speed
+Plot: `plots/speed_error_requirement.pdf` (single-frame; 829 observations, walk→32 mph). Measured (uses real GT
+positions at t+Y), and it tracks √(floor² + (v·Y)²) — e.g. 32 mph @269 ms predicted 3.59 m vs measured 4.36 m.
 
-## Ties to OAI + standards
-- no-AE u8 over OAI (Y≈267 ms) → city staleness **2.1 m** → fails 0.5 m badly.
-- AE-128 u4 over OAI (Y≈105 ms) → city staleness **0.84 m** → meets 1.0 m, misses 0.5 m → motivates OAI config tuning.
-- Standards anchor (`../rl_agent/STANDARDS_ANCHORS.md`): ~100 ms / ~0.5 m lane-level — our derived city budget (63 ms @ 0.5 m) is *tighter* than the 100 ms anchor, i.e. car speeds are demanding.
+| target speed | Y=0 (floor) | 105 ms (AE-128) | 267 ms (no-AE) |
+|---|--:|--:|--:|
+| pedestrian / walk | 1.15 | 1.16 | 1.18 |
+| ~6 mph | 1.10 | 1.12 | 1.30 |
+| ~10 mph | 1.07 | 1.21 | 1.75 |
+| ~14 mph | 1.09 | 1.43 | 2.25 |
+| ~18 mph | 1.11 | 1.39 | 2.41 |
+| ~28 mph | 1.19 | 1.61 | 3.17 |
+| ~32 mph | 1.29 | ~2.0 | **4.36** |
 
-## FINAL — purely MEASURED trend (no formula), per supervisor + Abiodun's steer
-Latency Y = **capture → inference (front + uplink + back)**; downlink return to the car is NOT counted
-(the map is built at the edge). `error(lag) = ‖inferred(t) − true(t+lag)‖`, measured directly, per speed bin.
-FPS is the *same* curve: it adds inter-frame lag, so effective lag = Y + 1/(2·FPS) (definitional, not a fit).
-Run `20260714_223011` (38 veh + 24 ped, 400 fr), gate 4 m, 70 matches. Plot: `plots/staleness_requirement.pdf`.
+- **Model floor ~1.1 m at every speed** (the model's own error, latency-independent) — matches offline (veh 0.88 m).
+- **Pedestrians are latency-immune; fast cars are not.** At the no-AE operating latency (267 ms) a 32 mph car
+  is **4.4 m** off vs ~1.2 m for a pedestrian. Compression (AE-128, 105 ms) roughly halves the fast-car error.
 
-| speed bin | 0 | 50 | 100 | 150 | 200 | 269 ms |
-|---|--:|--:|--:|--:|--:|--:|
-| pedestrian ~1.5 m/s (n=6) | 2.96 | 2.97 | 2.99 | 3.01 | 3.03 | 3.06 |
-| ~5–13 mph (n=17) | 2.49 | 2.53 | 2.58 | 2.65 | 2.74 | 2.90 |
-| ~13–24 mph (n=47) | 2.51 | 2.47 | 2.47 | 2.51 | 2.59 | 2.79 |
-
-**Measured trend (the deliverable):** pedestrian FLAT (+0.1 m over 269 ms), cars RISE with latency (faster = steeper)
-→ latency matters for fast objects, not slow ones. Error vs FPS: drops then plateaus ~10–15 FPS.
-**Y=0 = the model's own error** (no staleness) — pedestrians ~3.0 m (harder to localize), cars ~2.5 m. This is
-the accuracy ceiling the network cannot beat (a tighter target needs a better model, not just lower latency).
-Caveat: absolute error is high (~2.5–3 m) because these are pole detections at range + a loose 4 m match gate;
-more/closer samples would lower it, but the *trend* (the requirement signal) is what matters and is clear.
-
-## (superseded) earlier model-formula version — kept for reference
-Denser run (`20260714_223011`, 38 veh + 24 ped, 400 frames), tight 2 m gate, near-range floor:
-- **Model-error FLOOR = 1.37 m** (near <20 m, n=19). Validated: measured 1.42 m @ Y=0 ≈ model 1.37 m.
-- **Total-error model (validated): `error = √(floor² + (v·(Y + 1/(2·FPS)))²)`** — floor measured, staleness law
-  (v·Y) measured, sqrt-combination checked on the ~8 m/s bin (model slightly conservative vs measured).
-- **Plot:** `staleness/plots/staleness_requirement.pdf` — error-vs-Y and error-vs-FPS, one line per speed
-  (pedestrian / 20 / 30 / 40 mph), with the floor, ε bands, and our OAI Y points (AE-128 u4 105 ms, no-AE 267 ms).
-
-**Max latency Y (ms) to keep error ≤ ε, at 10 FPS** (— = model floor already exceeds ε):
-| speed | ε=1.0 | ε=1.5 | ε=2.0 | ε=3.0 m |
+### Requirement table — max latency Y (ms) to keep error ≤ ε (— = model floor already exceeds ε)
+| speed | ε≤1.5 m | ε≤2.0 m | ε≤2.5 m | ε≤3.0 m |
 |---|--:|--:|--:|--:|
-| pedestrian 1.5 m/s | — | 357 | 921 | 1729 |
-| car 20 mph | — | 19 | 114 | 250 |
-| car 30 mph | — | <0 | 59 | 149 |
-| car 40 mph | — | <0 | 31 | 99 |
+| walk / ~6 mph | >269 | >269 | >269 | >269 |
+| ~10 mph | 187 | >269 | >269 | >269 |
+| ~14–18 mph | ~125 | ~215 | >269 | >269 |
+| ~28 mph | 112 | 166 | 212 | 255 |
+| ~32 mph | 45 | 98 | 137 | 173 |
 
-**Two-bottleneck lesson (the headline):**
-1. **Model accuracy sets the achievable floor (~1.4 m).** ε below ~1.4 m is **model-limited, not latency-limited** —
-   no amount of latency/FPS reduction reaches it (so the lane-level ~0.5 m standard needs a *better model*, not just faster network).
-2. **Above the floor, latency+FPS add staleness = v·(Y+1/(2·FPS)), tight for fast objects.** e.g. at ε=2 m:
-   pedestrian tolerates ~920 ms, a 30 mph car only ~59 ms → our AE-128 u4 (105 ms) is already over for 30 mph
-   → **motivates OAI config tuning** (and/or higher FPS). no-AE (267 ms) fails everything but slow pedestrians.
+Lane-level (~0.5 m) is **model-limited** (floor ~1.1 m) — unreachable by any latency/FPS; needs a better model.
 
-## Earlier caveats (now largely addressed) / remaining
-- Model floor high (~2.5 m): tighten match gate to ~2 m + focus near-range → cleaner floor.
-- Sparse (52 matches; pedestrian n=1): longer run / denser traffic for more samples, esp. pedestrians.
-- Speeds capped ~10 m/s (natural Town10): 50/80 mph need a controlled target (harness has it; ego-mode
-  world-projection bug to fix first — pred coords use pole reference, not the ego pose).
-- FPS sweep (subsample) to be added alongside the Y sweep.
+## Result 1b — detection distance & road-state breakdown
+Post-hoc on the same speed-sweep observations (829 matched, `make_roadstate_breakdown.py`; road state from the
+CARLA Town10 map at each target's position). No re-capture.
 
-## TRACKER (temporal fusion) + real multi-FPS captures (2026-07-14)
-Built a per-object constant-velocity Kalman tracker (staleness/make_tracked_report.py) and ran REAL CARLA
-captures at 5/10/20/30 FPS (staleness/run_fps_captures.sh, equal ~25s sim). Two results:
-- **Model is FPS-robust (verified, not assumed):** per-frame single-frame floor ~flat across real FPS
-  (10→2.56m, 20→2.74m, 30→2.68m). Running off the 10-FPS training does not degrade per-frame accuracy
-  (time-based radar stationary-age confirmed).
-- **Tracking + higher FPS reduces error (confirms the "more frames → better" intuition):** fast-car bin,
-  single-frame/tracked: 10FPS 2.56/2.60 (no gain), 20FPS 2.74/2.41, 30FPS 2.68/2.37 @ Y=0; and at Y=269ms
-  20FPS 3.31/3.00, 30FPS 3.37/3.02 — tracking lowers the floor (noise averaging) AND cancels latency
-  (velocity forward-prediction). Needs ≥~15-20 FPS to pay off (at 10 FPS too few updates).
-- **Single-frame FPS plateaus; temporal fusion is what makes FPS worthwhile** -> "why we need a tracker"
-  (single-frame vs tracked = a clean paper comparison). Plot: staleness/plots/tracked_vs_singleframe.pdf.
-- Caveat: pedestrian tracked bin is noisy/anomalous (near-stationary + CV-KF over-fit + sparse samples);
-  irrelevant since pedestrians are staleness-tolerant. Car bins are the meaningful result.
+**Detection distance (ego camera → tracked car):** close-range by design.
+| min | p25 | median | p75 | p90 | max |
+|--:|--:|--:|--:|--:|--:|
+| 3.3 | 8.0 | **13.1** | 17.7 | 21.4 | 24.9 m |
+The analysis gates to ≤25 m (clean localization floor); the model *sees* cars out to ~60 m (all-in-view median
+34 m) but we deliberately localize the close ones. So: **cars are tracked within 25 m, typically ~13 m away.**
+
+**Road-state mix:** 70% straight road, 30% intersection (no distinct standalone-curve component — Town10 curves
+are gentle / inside junctions). So the headline result is a **mixture, straight-dominated**.
+
+**Per-speed error(Y), split by road state** — the two plots `plots/roadstate_straight_speed.pdf` and
+`plots/roadstate_intersection_speed.pdf` (each = the Result-1 per-speed family, but filtered to that road state).
+**The speed/latency story is identical in both**: walk ≈ flat, faster = steeper, ~28–32 mph reaches ~3.8 m at
+267 ms on *both* straight roads and at intersections. Aggregated (`plots/roadstate_error_latency.pdf`):
+| road state | n | Y=0 | 105 ms | 267 ms |
+|---|--:|--:|--:|--:|
+| straight | 584 | 1.12 | 1.25 | 1.78 |
+| intersection | 245 | 1.17 | 1.33 | **2.00** |
+So road state does **not** change the trend — it mainly nudges the *floor* (intersections ~0.1–0.2 m worse:
+cars turn → breaks the constant-velocity assumption, and views are more oblique). Next: *target* specific road
+states (dwell the ego at an intersection vs a straight) for even cleaner per-state curves.
+
+## Result 2 — FPS & temporal accumulation
+Plot: `plots/fps_fusion_22mph.pdf` (fast bin; also `fps_fusion_pedestrian.pdf` as the flat control). Real CARLA
+captures at 5/10/20/30 FPS. "Temporal accumulation" = a recursive constant-velocity Kalman that fuses **all past
+frames** of an object's track (recent-weighted) and predicts forward by Y to cancel staleness — vs "single-frame"
+(memoryless). Accumulation DEPTH = track length: at 30 FPS ~9–64 frames fused per track (speed-dependent), at
+10 FPS only ~3–5 (fast objects leave the near-zone fast, so they fuse fewer frames).
+
+- **Single-frame accuracy is FPS-independent** (each frame is its own snapshot): floor flat across 10/20/30 FPS
+  → the **model is FPS-robust** (running off its 10-FPS training does not degrade it).
+- **Temporal accumulation + higher FPS lowers error for fast objects, and the gain grows with FPS** (~22 mph car,
+  @269 ms): single-frame flat ~2.8–3.0 m; accumulated **2.59 → 2.33 → 1.99 m at 10 → 20 → 30 FPS** (gain −0.40 →
+  −0.91 m). Higher FPS fuses more frames over a *fresher* window → better velocity → better forward prediction.
+- **Takeaway:** raw per-frame perception does **not** get more accurate with FPS — you realize the "more FPS =
+  less error" expectation only with **temporal accumulation**. → motivates (a) a tracker in the pipeline, (b) camera ≥ ~20 FPS.
+- **30 mph can't be swept across FPS** (only 30 FPS has enough sustained tracks) — itself a finding: fast objects
+  need high FPS just to *stay tracked*. ~22 mph is the honest fast bin.
+
+## Ties to OAI + the headline
+Same model, different transport Y (per-frame accuracy is channel-invariant — proven in the OAI A/B):
+- **no-AE (267 ms):** fast objects badly hurt (32 mph → 4.4 m single-frame).
+- **AE-128 (105 ms):** ~halves fast-object error; meets ε≈2 m for most speeds.
+- **+ fusion at ≥20 FPS:** recovers another ~0.3–0.6 m on fast objects.
+So the levers are complementary: **compression cuts latency**, **fusion + FPS cancels residual staleness**,
+**model accuracy sets the ~1.1 m floor**.
+
+## Honesty / caveats
+- **Idealized data association:** the tracker uses ground-truth to assign detections to tracks (clean
+  measurement); a deployed tracker must solve association itself, so real gains would be somewhat lower.
+- **~22 mph is a Town10 occupancy valley** (cars cruise ~18 or jump to 26+); captured as a wider ~23 mph band.
+- **Pinned fast-speed × per-FPS matrix not feasible** with natural traffic: a 30 mph car crosses the near zone
+  in ~1–2 s, so low FPS can't sustain a track on it (**itself a finding**: fast objects need high FPS just to
+  stay tracked). A clean pinned-speed accumulation sweep would need a sustained controlled target (deferred;
+  convoy and controlled-target both drift out of view — a target-generation issue, not a model issue).
+- **Offline vs fresh-scene:** floor here (~1.1 m) is ~0.2 m above the offline held-out estimate (0.88 m) —
+  fresh-drive scenes are slightly harder; the ranking/knob-effects hold.
+
+## Repro
+- Speed sweep: `run_speed_sweep.sh` + `run_speed_targeted.sh` → `make_speed_error_report.py`.
+- FPS captures: `run_fps_captures_ego.sh` (+ `run_fps_fast.sh`) → `make_fps_fusion_report.py` (per-speed,
+  temporal-accumulation vs single-frame, accumulation-depth report). Legacy: `make_tracked_report.py`.
+- Requirement/latency curve: `make_staleness_report.py <run> 2.0`.
+- Scenario knobs added: `--npc-speed-difference-pct`, `--npc-ignore-lights-pct`; GT now logs `origin_*`.

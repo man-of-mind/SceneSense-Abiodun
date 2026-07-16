@@ -1,0 +1,4 @@
+config	run_group	frames	rtt_mean_ms	rtt_p95_ms	payload_kb	frag_per_frame	delivery_pct	ping_rtt_ms	status
+tdd_7dl_2ul	oaicfg_tdd_7dl_2ul	300	173.8	207.4	1114.6	19.6	78.0	19.27	OK
+tdd_4dl_5ul	oaicfg_tdd_4dl_5ul	300	181.8	200.1	1114.5	19.6	80.7	18.06	OK
+5qi_1_gbr_tdd72	oaicfg_5qi_1_gbr	300	191.1	210.8	1112.7	19.3	79.3	NA	OK

@@ -512,6 +512,14 @@ def parse_args() -> argparse.Namespace:
     # Background NPCs.
     parser.add_argument("--npc-vehicles", type=int, default=20)
     parser.add_argument("--npc-pedestrians", type=int, default=30)
+    # Control the SPEED DISTRIBUTION of background NPC traffic per run (opportunity-window method): sweep this
+    # across runs to populate different target-speed regimes. Negative = faster than the limit (TM convention).
+    parser.add_argument("--npc-speed-difference-pct", type=float, default=None,
+                        help="TM percentage speed difference applied to every background NPC vehicle "
+                             "(negative = faster than limit). None = TM default.")
+    parser.add_argument("--npc-ignore-lights-pct", type=float, default=0.0,
+                        help="Ignore-traffic-lights percentage for background NPC vehicles, so they sustain "
+                             "speed instead of stopping (per-observation speed is still logged and binned).")
     parser.add_argument("--spawn-radius", type=float, default=DEFAULT_SPAWN_RADIUS_METERS)
 
     # Controlled single target for the staleness / FPS requirement experiment.
@@ -3005,7 +3013,14 @@ def _spawn_lead_target(*, world, ego_vehicle, traffic_manager, tm_port, gap_m, s
             traffic_manager.auto_lane_change(actor, False)
         except Exception:
             pass
-        print(f"[tracked-lead] vehicle {actor.type_id} id={actor.id} ~{gap_m:.0f}m ahead @ {speed_mps:.1f} m/s")
+        try:
+            # Ignore traffic lights so the lead never stops -> convoy stays together (matched-speed ego keeps
+            # the gap). Without this the lead halts at lights and the gap blows open (seen previously).
+            traffic_manager.ignore_lights_percentage(actor, 100.0)
+            traffic_manager.ignore_signs_percentage(actor, 100.0)
+        except Exception:
+            pass
+        print(f"[tracked-lead] vehicle {actor.type_id} id={actor.id} ~{gap_m:.0f}m ahead @ {speed_mps:.1f} m/s (ignore-lights)")
         return actor
     else:
         bp = bl.filter("walker.pedestrian.*")[0]
@@ -3425,6 +3440,19 @@ def run_client(args: argparse.Namespace) -> None:
             actors.extend(background_vehicles)
             if background_vehicles:
                 print(f"Spawned {len(background_vehicles)} background vehicles.")
+                # Control NPC traffic speed regime + light-stopping for the opportunity-window speed sweep.
+                _npc_spd = getattr(args, "npc_speed_difference_pct", None)
+                _npc_ign = float(getattr(args, "npc_ignore_lights_pct", 0.0) or 0.0)
+                for _v in background_vehicles:
+                    try:
+                        if _npc_spd is not None:
+                            traffic_manager.vehicle_percentage_speed_difference(_v, float(_npc_spd))
+                        if _npc_ign > 0.0:
+                            traffic_manager.ignore_lights_percentage(_v, max(0.0, min(100.0, _npc_ign)))
+                    except Exception:
+                        pass
+                if _npc_spd is not None or _npc_ign > 0.0:
+                    print(f"NPC traffic: speed_diff={_npc_spd}%  ignore_lights={_npc_ign:.0f}%")
 
             pedestrians, pedestrian_controllers = pole_client.spawn_background_pedestrians_near(
                 client,
