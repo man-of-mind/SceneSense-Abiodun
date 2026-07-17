@@ -1,5 +1,9 @@
 # COMPLETE KNOB MATRIX (M', Month-2 static knobs)
 
+> **Historical snapshot (pre-integrated AE).** Keep this table for experiment provenance, but do not use it
+> as the current controller action catalog. The authoritative 42-profile matrix across the separately trained
+> no-AE/AE-128/AE-64/AE-32 models is `PERMODEL_KNOB_MATRIX.md` (reconciled 2026-07-16).
+
 Action profiles vs **accuracy**, **payload** (entropy-coded bytes), and **latency** (front=UE compute, back=edge compute, transport=localhost round-trip). Transport is an **IDEAL local link** (8 MB socket buffers, NO bandwidth cap / no Linux tc shaping), so delivery is ~100% and not a differentiator here. **Reliability + latency under a real channel (bandwidth, RF loss) = OAI + Sionna, Month 3.** `~` latency = interpolated from the measured payload->latency curve (loopback client runs quant x entropy natively; ROI/AE latency inferred by payload).
 
 Clean baseline: **clean_noquant** payload=2835.0KB mIoU=0.841 ped-recall=0.787  (accept tol = 2%)

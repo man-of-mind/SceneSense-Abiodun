@@ -2,7 +2,26 @@
 
 Living checklist aligned with `2026_SceneSense-Agent_Research_Proposal_6Month_DRAFT.docx`.
 
+Last reconciled with repository evidence: **2026-07-16**.
+
 Use this file to keep the work tied to the proposal: every experiment should answer either a baseline, metric, controller, guardrail, spatial-map, or demo question.
+
+## Current Status Snapshot
+
+- **Month 1:** core baselines, transport paths, scenarios, logging, metrics,
+  and schema are complete.
+- **Month 2:** fusion-route static characterization is complete, including
+  integrated AE-128/64/32 models and a 42-profile AE/quantization/ROI sweep.
+  The offline controller replay is still the uncompleted Month-2 exit item.
+- **Month 3 started early:** OAI compression/config measurements and
+  speed/latency/FPS staleness requirements are complete. Controlled impairment
+  plus policy/guardrail stress is not complete.
+- **Month 4 groundwork started early:** moving-ego/two-source map display,
+  record/replay, and synthetic FoV occlusion reasoning work. Formal map-GT,
+  freshness, false-hazard, recipient, and warning metrics remain open.
+- **Critical distinction:** the repository has a measured action menu and
+  model-level acceptance gates, but no implemented offline policy comparison,
+  learned controller, or controller-level accept/clamp/reject guardrail yet.
 
 ## Project North Star
 
@@ -644,24 +663,26 @@ Completion criteria:
 - [x] At least one static Pareto plot exists per priority route:
   payload vs latency vs task utility.
 - [x] A "best fixed static policy" is identified for the current priority
-  route. Current all-rounder: per-channel 4-bit + zstd, because it gives
-  near-baseline task utility at about 25-26% payload and 100% loopback result
-  delivery. Current Pareto task-quality pick: per-channel 6-bit + zlib/zstd,
-  about 51% payload with nearly lossless task utility but weaker loopback
-  delivery at this payload size.
+  route. The current per-model Pareto pick is integrated AE-128 + per-channel
+  u4 + ROI off: about `127 KB` in the offline matrix, `mIoU=0.819`, pedestrian
+  recall `0.887`, and localization about `0.88 m`. Its OAI deployment is the
+  strongest cross-layer point measured so far: about `142 KB`, `77 ms` mean
+  RTT, and `99%` result delivery.
 - [x] A "lowest-byte unsafe policy" is identified to motivate guardrails.
-  AE bottleneck profiles are unsafe as currently trained: segmentation remains
-  high, but object recall/localization collapse. Large uncompressed or weakly
-  compressed payloads are also unsafe under loopback transport because
-  delivery falls to about 10-30%.
+  Integrated AE models are no longer categorically unsafe; the earlier
+  standalone-AE object-head collapse was resolved by joint/integrated
+  training. Aggressive ROI+AE combinations remain unsafe for segmentation,
+  while large no-AE payloads are unsafe for OAI availability/latency.
 - [x] Runs that saturate or time out are labeled as saturation evidence, not
   valid task-quality samples.
 
 ### 4. OAI 5QI/QoS Experiments
 
-Status: deferred until the parked-ego perception models are strong enough.
-Keep the checklist so the network thread is not lost, but do not block the
-model-first Month 2 definition of done on 5QI results.
+Status update 2026-07-16: a limited single-UE, no-impairment RFsim study is
+complete. TDD `7:2` vs `4:5` and 5QI `9` vs `1` changed RTT/delivery only
+slightly; payload reduction was the effective lever. The full QoS matrix,
+background load, multi-UE contention, channel impairment, and clean QFI/DRB
+evidence remain deferred. See `oai_config_sweep/OAI_CONFIG_FINDINGS.md`.
 
 Hypothesis: the current default OAI QoS path is too close to best-effort/eMBB
 behavior for safety-critical cooperative perception. Month 2 should test
@@ -744,31 +765,35 @@ traces and score decisions offline before any online RL touches CARLA/OAI.
   object recall has a small residual cost that should be protected by the
   controller guardrail rather than blocking the matrix.
 - [x] Build action-cost matrix scaffold:
-  `rl_agent/build_knob_matrix.py`; `rl_agent/COMPLETE_KNOB_MATRIX.md` now
-  aggregates 19 M-prime actions with task utility, payload, front latency, RTT,
-  and loopback delivery.
+  `rl_agent/build_knob_matrix.py`. The current authoritative action table is
+  `rl_agent/PERMODEL_KNOB_MATRIX.md`: 42 profiles across integrated AE-128/64/32,
+  no-AE, quantization 8/6/4, and ROI 0/0.3/0.5. The older
+  `COMPLETE_KNOB_MATRIX.md` is a pre-integrated-AE snapshot.
 - [ ] Implement trace loader that joins:
-  - [x] Application metrics by run group / stream / frame or timestamp window
-    for static loopback sweep outputs.
-  - [x] Loopback latency/reliability metrics for static action profiles.
+  - [ ] Application metrics by run group / stream / frame or timestamp window.
+    Source metrics and matrix aggregators exist, but no controller trace-loader
+    module exists yet.
+  - [ ] Loopback/OAI latency and reliability metrics for action profiles.
+    Measurements exist; controller-level joining does not.
   - [ ] Network sampler metrics for OAI/Sionna phase.
   - [ ] T-tracer / gNB metrics where available for OAI/Sionna phase.
   - [ ] Scenario metadata.
-  - [x] Task-quality summaries for offline fusion SEG/localization metrics.
+  - [ ] Task-quality summaries. Offline summaries exist; the replay join does not.
 - [ ] Implement action-profile catalog:
-  - [x] Safe/high-quality profile.
-  - [x] Balanced profile.
-  - [x] Low-byte profile.
-  - [x] Hazard/guarded profile. AE bottleneck actions are currently flagged as
-    unsafe because object recall/localization collapse even when segmentation
-    remains high.
+  - [ ] Safe/high-quality profile.
+  - [ ] Balanced profile.
+  - [ ] Low-byte profile.
+  - [ ] Hazard/guarded profile.
   - [ ] Route-specific unsupported actions are masked in the replay harness.
+  Candidate rows exist in the matrices, but there is no executable action
+  catalog or route mask yet.
 - [ ] Implement reward scorer:
-  - [x] Task utility retained.
-  - [x] Minus payload cost.
-  - [x] Minus loopback latency cost.
-  - [x] Minus loopback timeout/result-delivery cost.
+  - [ ] Task utility retained.
+  - [ ] Minus payload cost.
+  - [ ] Minus latency cost.
+  - [ ] Minus timeout/result-delivery cost.
   - [ ] Minus stale-map or vulnerable-object penalty where available.
+  Reward terms are defined in `SCENESENSE_RL_SCHEMA.md`; the scorer is not coded.
 - [ ] Implement first non-RL baselines:
   - [ ] Always-safe/send-everything.
   - [ ] Always-low-byte.
@@ -820,9 +845,10 @@ enough for controller replay.
 
 Completion criteria:
 
-- [x] Guardrail thresholds are written in config or a replay script, not only in prose.
-  Current implementation lives in `rl_agent/gate_a_check.py`; controller-level
-  accept/clamp/reject reporting still needs the replay harness.
+- [ ] Guardrail thresholds are written in controller config or a replay script,
+  not only in prose. `rl_agent/gate_a_check.py` is a model-acceptance gate, not
+  the proposed runtime action guardrail. Controller-level thresholds and
+  accept/clamp/reject behavior still need the replay harness.
 - [ ] Replay reports accepted, clamped, and rejected actions separately.
 - [ ] Fallback cost is measurable in bytes/latency/task utility.
 
@@ -875,17 +901,29 @@ Completion criteria:
 - [ ] Offline controller replay can score simple static policies once at least
   two valid action/model profiles exist.
   Status: action-cost inputs are now ready in
-  `rl_agent/COMPLETE_KNOB_MATRIX.md` and `rl_agent/LOOPBACK_LATENCY.md`;
-  final replay comparison is the main remaining Month 2 closure item.
+  `rl_agent/PERMODEL_KNOB_MATRIX.md`, `rl_agent/OAI_AB_RESULTS.md`, and the
+  staleness results; final replay comparison is the main remaining Month 2
+  closure item.
 - [x] A Month 2 slide/report summarizes:
   - [x] Chosen parked-ego scene and dataset coverage.
   - [x] SEG/localization and OD-model-status performance.
   - [x] Payload/latency/task tradeoffs for available profiles.
   - [x] Remaining gap before OAI/QoS and online RL. Current next-step summary:
-    finish offline controller replay in Month 2, then replace the loopback
-    transport column with OAI + Sionna ray-traced channel metrics in Month 3.
+    finish offline controller replay, then add controlled impairment and
+    multi-UE contention. The single-UE OAI compression/config baseline is now
+    measured; Sionna/channel-stress integration remains open.
 
 ## Month 3: Guardrail Stress Tests
+
+Requirements groundwork completed before the policy stress campaign:
+
+- [x] Validate live model accuracy and fix the actor-origin vs bounding-box-
+  center ground-truth mismatch.
+- [x] Measure localization error vs object speed and analytical latency.
+- [x] Measure held-map staleness vs FPS and combined `Y + 1/FPS` age.
+- [x] Split the latency result by straight/curve/intersection road state.
+- [ ] Complete the controlled radar/camera FoV-position diagnostic.
+- [ ] Add object speed, road state, and map age to the executable controller state.
 
 - [ ] Add controlled stress profiles: jitter, delay, queueing, packet loss, or bandwidth limits.
 - [ ] Test whether byte-minimizing choices damage AP/mIoU/class recall.
@@ -894,6 +932,13 @@ Completion criteria:
 - [ ] Produce plots showing guardrail rejection rate, fallback cost, and protected task metrics.
 
 ## Month 4: Physical-AI Spatial Map Ingestion
+
+Groundwork completed early (does not satisfy the formal Month-4 exit criterion):
+
+- [x] Live moving-ego follow-map and two-source color-by-source view.
+- [x] Offline record/replay and synthetic two-view scenes.
+- [x] Synthetic FoV-membership occlusion prototype with known toy ground truth.
+- [ ] Real-data ray/visibility-grid occlusion disambiguation and warning path.
 
 - [ ] Convert accepted split-model outputs into spatial-map entries.
 - [ ] Store class, pose, velocity, confidence, provenance, freshness, and occlusion state.

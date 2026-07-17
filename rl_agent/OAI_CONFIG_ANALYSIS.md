@@ -1,5 +1,9 @@
 # OAI config — current settings, why latency is high, and what to tune next
 
+> **Pre-sweep analysis (historical).** The configuration description remains useful, but its tuning
+> expectations have now been tested. Current conclusion: TDD 7:2→4:5 and 5QI 9→1 barely move single-UE
+> RFsim transport; compression is the effective lever. See `../oai_config_sweep/OAI_CONFIG_FINDINGS.md`.
+
 Single-UE OAI 5G, rfsim, **no channel impairment**. This is the "network side" the UE agent will eventually
 negotiate against. Companion to `OAI_AB_RESULTS.md` (the compression A/B).
 

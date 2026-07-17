@@ -1,5 +1,9 @@
 # Making the feature-AE a usable RL action — problem, attempts, options (2026-07-09)
 
+> **Historical problem log.** The standalone post-hoc AE collapse described below was real, but the current
+> integrated AE-128/64/32 models resolve it sufficiently to form the measured action family. Use
+> `PERMODEL_KNOB_MATRIX.md` and `MONTH2_SUMMARY.md` for current results; retain this file as design provenance.
+
 **Goal:** the feature-AE must be a real compression *action* — shrink the 960-ch split-point feature
 while preserving BOTH segmentation AND object detection (recall + localization). No workaround: either
 it works uncompromised, or we bring options to the supervisor.

@@ -1,6 +1,10 @@
 # Cooperative Spatial Map — Architecture, Progress & Plan
 *Team briefing · cooperative-perception spatial map · 2026-07*
 
+> **Status note (2026-07-16):** Sections 5–7 remain the implementation boundary. Moving-ego and
+> two-source visualization, replay, and the synthetic FoV occlusion baseline work. Cross-source
+> association/fusion, real occlusion disambiguation and metrics, and the warning loop remain unbuilt.
+
 ---
 
 ## 0. One-line pitch

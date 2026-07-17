@@ -66,7 +66,7 @@ import sys
 import threading
 import time
 import zlib
-from collections import OrderedDict
+from collections import OrderedDict, deque
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Tuple
@@ -166,6 +166,14 @@ FUSION_METRICS_FIELDS = (
     "gt_person_pixels",
     "object_count",
     "radar_projected_points",
+    "ego_speed_mps",
+    "tracked_target_actor_id",
+    "tracked_target_speed_mps",
+    "tracked_gap_m",
+    "diagnostic_target_actor_id",
+    "diagnostic_target_forward_m",
+    "diagnostic_target_lateral_m",
+    "diagnostic_target_radar_points",
     "spatial_map_enabled",
     "spatial_map_dropped_packets",
     "bind_host",
@@ -495,6 +503,15 @@ def parse_args() -> argparse.Namespace:
         help="Disk radius painted at each projected radar point.",
     )
     parser.add_argument(
+        "--radar-temporal-window-frames",
+        type=int,
+        default=1,
+        help=(
+            "Max-pool this many recent radar rasters. Default 1 preserves existing live behavior; "
+            "the 200k training collection used 2."
+        ),
+    )
+    parser.add_argument(
         "--stationary-velocity-mps",
         type=float,
         default=0.35,
@@ -532,6 +549,58 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--overlay-save-dir", default="", help="If set, periodically save RGB frames here for spawn/tracking sanity-check.")
     parser.add_argument("--overlay-save-every", type=int, default=15, help="Save a sanity frame every N processed frames.")
 
+    # Experiment 3: parked ego with one deterministically placed vehicle. This is
+    # deliberately separate from --controlled-target (a free-running crossing
+    # used by the older speed/staleness experiments) and --tracked-lead (convoy).
+    parser.add_argument(
+        "--experiment3-target-profile",
+        choices=("none", "centered", "lateral_cycle"),
+        default="none",
+        help=(
+            "Spawn one tagged vehicle relative to a parked ego. centered holds a fixed lateral "
+            "offset; lateral_cycle kinematically translates it left-right-left while preserving "
+            "forward depth and yaw."
+        ),
+    )
+    parser.add_argument(
+        "--experiment3-target-forward-m",
+        type=float,
+        default=15.0,
+        help="Target actor-origin distance ahead of the parked ego origin.",
+    )
+    parser.add_argument(
+        "--experiment3-target-lateral-m",
+        type=float,
+        default=0.0,
+        help="Fixed signed lateral offset for the centered profile (positive = ego-right).",
+    )
+    parser.add_argument(
+        "--experiment3-target-amplitude-m",
+        type=float,
+        default=8.0,
+        help="Half-width of the lateral_cycle path around zero lateral offset.",
+    )
+    parser.add_argument(
+        "--experiment3-target-cycle-frames",
+        type=int,
+        default=120,
+        help="Measured frames in one deterministic left-right-left lateral cycle.",
+    )
+    parser.add_argument(
+        "--experiment3-target-role-name",
+        default="scenesense_experiment3_target",
+        help="CARLA role_name used to isolate the diagnostic target in GT logs.",
+    )
+    parser.add_argument(
+        "--experiment3-settle-ticks",
+        type=int,
+        default=30,
+        help=(
+            "Physics-settling ticks before freezing the Experiment-3 ego and target. "
+            "The moving training collector used 30 warm-up ticks before driving."
+        ),
+    )
+
     # Convoy scenario: moving ego (use --no-ego-freeze) FOLLOWING one tracked target ahead on its lane, both
     # at the same speed (constant gap -> target stays in view). Staleness = tracked-target speed * Y.
     parser.add_argument("--tracked-lead", choices=["none", "vehicle", "walker"], default="none",
@@ -539,6 +608,20 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--tracked-speed-mps", type=float, default=8.9, help="Tracked target (and matched ego) speed (m/s).")
     parser.add_argument("--tracked-gap-m", type=float, default=15.0, help="Initial gap of the tracked target ahead of the ego (m).")
     parser.add_argument("--tracked-vehicle-filter", default="vehicle.lincoln.mkz", help="Blueprint for the tracked lead vehicle.")
+    parser.add_argument(
+        "--tracked-motion-control",
+        choices=("traffic_manager", "exact"),
+        default="traffic_manager",
+        help=(
+            "Lead/ego motion controller. 'traffic_manager' follows the road; 'exact' gives both "
+            "vehicles the same actor-local constant velocity for a short, straight, fixed-gap baseline."
+        ),
+    )
+    parser.add_argument(
+        "--tracked-role-name",
+        default="scenesense_tracked_lead",
+        help="CARLA role_name assigned to the tracked lead so target-only validation can isolate it.",
+    )
 
     # Fusion checkpoint.
     parser.add_argument(
@@ -900,6 +983,9 @@ class PoleRadarPipeline:
         self.max_abs_velocity = float(args.radar_max_velocity)
         self.parked_threshold_s = float(args.parked_threshold_s)
         self.point_radius_px = int(args.radar_raster_radius_px)
+        self.tensor_history = deque(
+            maxlen=max(1, int(getattr(args, "radar_temporal_window_frames", 1)))
+        )
 
     def get_latest(self, timeout: float) -> Optional["carla.RadarMeasurement"]:
         try:
@@ -931,6 +1017,11 @@ class PoleRadarPipeline:
             parked_threshold_s=self.parked_threshold_s,
             point_radius_px=self.point_radius_px,
         )
+        self.tensor_history.append(tensor)
+        if self.tensor_history.maxlen > 1 and len(self.tensor_history) > 1:
+            tensor = np.maximum.reduce(list(self.tensor_history)).astype(
+                np.float32, copy=False
+            )
         return tensor, points
 
     def destroy(self) -> None:
@@ -2100,6 +2191,10 @@ class FusionRunLogger:
         front_device: torch.device,
         back_device: torch.device,
         checkpoint_path: Path,
+        tracked_lead_actor: Optional["carla.Actor"] = None,
+        experiment3_target_actor: Optional["carla.Actor"] = None,
+        camera_actor: Optional["carla.Actor"] = None,
+        radar_actor: Optional["carla.Actor"] = None,
     ) -> None:
         try:
             town = world.get_map().name
@@ -2126,6 +2221,44 @@ class FusionRunLogger:
                 "type_id": str(getattr(anchor_actor, "type_id", "")),
                 "transform": _carla_transform_payload(anchor_actor.get_transform()),
             },
+            "tracked_lead": (
+                {
+                    "actor_id": int(tracked_lead_actor.id),
+                    "type_id": str(getattr(tracked_lead_actor, "type_id", "")),
+                    "role_name": str(tracked_lead_actor.attributes.get("role_name", "")),
+                    "transform": _carla_transform_payload(tracked_lead_actor.get_transform()),
+                    "motion_control": str(getattr(self.args, "tracked_motion_control", "")),
+                    "commanded_speed_mps": float(getattr(self.args, "tracked_speed_mps", 0.0)),
+                    "commanded_gap_m": float(getattr(self.args, "tracked_gap_m", 0.0)),
+                }
+                if tracked_lead_actor is not None
+                else None
+            ),
+            "experiment3_target": (
+                {
+                    "actor_id": int(experiment3_target_actor.id),
+                    "type_id": str(getattr(experiment3_target_actor, "type_id", "")),
+                    "role_name": str(experiment3_target_actor.attributes.get("role_name", "")),
+                    "initial_transform": _carla_transform_payload(
+                        experiment3_target_actor.get_transform()
+                    ),
+                    "profile": str(getattr(self.args, "experiment3_target_profile", "none")),
+                    "commanded_forward_m": float(
+                        getattr(self.args, "experiment3_target_forward_m", 0.0)
+                    ),
+                    "commanded_lateral_m": float(
+                        getattr(self.args, "experiment3_target_lateral_m", 0.0)
+                    ),
+                    "commanded_amplitude_m": float(
+                        getattr(self.args, "experiment3_target_amplitude_m", 0.0)
+                    ),
+                    "commanded_cycle_frames": int(
+                        getattr(self.args, "experiment3_target_cycle_frames", 0)
+                    ),
+                }
+                if experiment3_target_actor is not None
+                else None
+            ),
             "camera": {
                 "width": int(camera_width),
                 "height": int(camera_height),
@@ -2160,6 +2293,11 @@ class FusionRunLogger:
                     "yaw": float(getattr(self.args, "ego_camera_yaw", 0.0)),
                     "roll": float(getattr(self.args, "ego_camera_roll", 0.0)),
                 },
+                "actual_world_transform": (
+                    _carla_transform_payload(camera_actor.get_transform())
+                    if camera_actor is not None
+                    else None
+                ),
             },
             "radar": {
                 "relative_transform": {
@@ -2174,6 +2312,15 @@ class FusionRunLogger:
                 "hfov": float(self.args.radar_hfov),
                 "vfov": float(self.args.radar_vfov),
                 "points_per_second": int(self.args.radar_points_per_second),
+                "raster_radius_px": int(self.args.radar_raster_radius_px),
+                "temporal_window_frames": int(
+                    getattr(self.args, "radar_temporal_window_frames", 1)
+                ),
+                "actual_world_transform": (
+                    _carla_transform_payload(radar_actor.get_transform())
+                    if radar_actor is not None
+                    else None
+                ),
             },
             "semantic_gt": {
                 "enabled": bool(getattr(self.args, "enable_semantic_gt", False)),
@@ -2317,9 +2464,13 @@ def build_fusion_metrics_row(
         radar_projected_points: int,
         gt_3class: Optional[np.ndarray],
         spatial_publisher: Optional["SpatialMapResultPublisher"],
-        camera_width: int,
+    camera_width: int,
     camera_height: int,
     model_input_size: Tuple[int, int],
+    anchor_actor: Optional["carla.Actor"] = None,
+    tracked_lead_actor: Optional["carla.Actor"] = None,
+    experiment3_target_actor: Optional["carla.Actor"] = None,
+    experiment3_target_radar_points: int = 0,
 ) -> Dict[str, object]:
     segmentation = _segmentation_summary(mask)
     quality = _segmentation_quality_columns(mask, gt_3class)
@@ -2333,6 +2484,30 @@ def build_fusion_metrics_row(
         else float("nan")
     )
     total_pipeline_ms = front_ms + round_trip_ms if math.isfinite(round_trip_ms) else float("nan")
+    ego_speed_mps = float("nan")
+    tracked_target_speed_mps = float("nan")
+    tracked_gap_m = float("nan")
+    diagnostic_target_forward_m = float("nan")
+    diagnostic_target_lateral_m = float("nan")
+    try:
+        if anchor_actor is not None and str(args.sensor_platform) == "ego_vehicle":
+            velocity = anchor_actor.get_velocity()
+            ego_speed_mps = math.sqrt(velocity.x ** 2 + velocity.y ** 2 + velocity.z ** 2)
+        if tracked_lead_actor is not None:
+            velocity = tracked_lead_actor.get_velocity()
+            tracked_target_speed_mps = math.sqrt(
+                velocity.x ** 2 + velocity.y ** 2 + velocity.z ** 2
+            )
+            if anchor_actor is not None:
+                tracked_gap_m = anchor_actor.get_location().distance(
+                    tracked_lead_actor.get_location()
+                )
+        if experiment3_target_actor is not None and anchor_actor is not None:
+            diagnostic_target_forward_m, diagnostic_target_lateral_m = (
+                _experiment3_target_coordinates(anchor_actor, experiment3_target_actor)
+            )
+    except RuntimeError:
+        pass
     return {
         "wall_time_iso": datetime.now().isoformat(timespec="milliseconds"),
         "elapsed_s": float(elapsed_s),
@@ -2368,6 +2543,18 @@ def build_fusion_metrics_row(
         **quality,
         "object_count": len(objects),
         "radar_projected_points": int(radar_projected_points),
+        "ego_speed_mps": ego_speed_mps,
+        "tracked_target_actor_id": (
+            int(tracked_lead_actor.id) if tracked_lead_actor is not None else ""
+        ),
+        "tracked_target_speed_mps": tracked_target_speed_mps,
+        "tracked_gap_m": tracked_gap_m,
+        "diagnostic_target_actor_id": (
+            int(experiment3_target_actor.id) if experiment3_target_actor is not None else ""
+        ),
+        "diagnostic_target_forward_m": diagnostic_target_forward_m,
+        "diagnostic_target_lateral_m": diagnostic_target_lateral_m,
+        "diagnostic_target_radar_points": int(experiment3_target_radar_points),
         "spatial_map_enabled": spatial_publisher is not None,
         "spatial_map_dropped_packets": (
             int(spatial_publisher.dropped_packets) if spatial_publisher is not None else 0
@@ -2906,12 +3093,210 @@ def _spawn_parked_ego_vehicle(
             pass
         if bool(args.ego_freeze):
             try:
+                if str(getattr(args, "experiment3_target_profile", "none")) != "none":
+                    # The moving training collector leaves ego physics enabled for
+                    # 30 warm-up ticks. Freezing immediately at the elevated CARLA
+                    # spawn transform raises the camera by ~0.7 m at spawn 80 and
+                    # breaks visual parity. Let the identical Lincoln settle first.
+                    actor.set_simulate_physics(True)
+                    for _ in range(max(0, int(args.experiment3_settle_ticks))):
+                        world.tick()
                 actor.set_simulate_physics(False)
             except RuntimeError:
                 pass
         return actor
 
     raise RuntimeError("Unable to spawn parked ego vehicle at any available spawn point.")
+
+
+def _experiment3_target_transform(
+    *,
+    world: "carla.World",
+    ego_transform: "carla.Transform",
+    forward_m: float,
+    lateral_m: float,
+) -> "carla.Transform":
+    """Return the fixed-pose Experiment-3 target transform.
+
+    Forward/lateral placement is actor-origin to actor-origin in the ego frame.
+    X/Y are never road-snapped because doing so would silently change the
+    independent variable. The nearest road waypoint is used only for ground Z.
+    Target yaw remains equal to ego yaw so lateral position does not change the
+    visible vehicle aspect.
+    """
+    forward = ego_transform.get_forward_vector()
+    right = ego_transform.get_right_vector()
+    x = (
+        float(ego_transform.location.x)
+        + float(forward_m) * float(forward.x)
+        + float(lateral_m) * float(right.x)
+    )
+    y = (
+        float(ego_transform.location.y)
+        + float(forward_m) * float(forward.y)
+        + float(lateral_m) * float(right.y)
+    )
+    ground_z = float(ego_transform.location.z) - 0.15
+    try:
+        waypoint = world.get_map().get_waypoint(
+            carla.Location(x=x, y=y, z=float(ego_transform.location.z) + 2.0),
+            project_to_road=True,
+            lane_type=carla.LaneType.Any,
+        )
+        if waypoint is not None:
+            ground_z = float(waypoint.transform.location.z)
+    except Exception:
+        pass
+    return carla.Transform(
+        carla.Location(x=x, y=y, z=ground_z + 0.30),
+        carla.Rotation(
+            pitch=float(ego_transform.rotation.pitch),
+            yaw=float(ego_transform.rotation.yaw),
+            roll=float(ego_transform.rotation.roll),
+        ),
+    )
+
+
+def _experiment3_target_coordinates(
+    ego_vehicle: "carla.Actor",
+    target_actor: "carla.Actor",
+) -> Tuple[float, float]:
+    ego_transform = ego_vehicle.get_transform()
+    ego_location = ego_transform.location
+    target_location = target_actor.get_location()
+    dx = float(target_location.x) - float(ego_location.x)
+    dy = float(target_location.y) - float(ego_location.y)
+    forward = ego_transform.get_forward_vector()
+    right = ego_transform.get_right_vector()
+    return (
+        dx * float(forward.x) + dy * float(forward.y),
+        dx * float(right.x) + dy * float(right.y),
+    )
+
+
+def _place_experiment3_target(
+    *,
+    world: "carla.World",
+    ego_vehicle: "carla.Actor",
+    target_actor: "carla.Actor",
+    forward_m: float,
+    lateral_m: float,
+) -> None:
+    target_actor.set_transform(
+        _experiment3_target_transform(
+            world=world,
+            ego_transform=ego_vehicle.get_transform(),
+            forward_m=float(forward_m),
+            lateral_m=float(lateral_m),
+        )
+    )
+
+
+def _spawn_experiment3_target(
+    *,
+    world: "carla.World",
+    ego_vehicle: "carla.Actor",
+    vehicle_filter: str,
+    role_name: str,
+    forward_m: float,
+    lateral_m: float,
+    settle_ticks: int,
+) -> "carla.Actor":
+    library = world.get_blueprint_library()
+    candidates = list(library.filter(str(vehicle_filter))) or list(library.filter("vehicle.*"))
+    if not candidates:
+        raise RuntimeError(f"No vehicle blueprint matches {vehicle_filter!r}")
+    blueprint = candidates[0]
+    if blueprint.has_attribute("role_name"):
+        blueprint.set_attribute("role_name", str(role_name))
+    target_transform = _experiment3_target_transform(
+        world=world,
+        ego_transform=ego_vehicle.get_transform(),
+        forward_m=float(forward_m),
+        lateral_m=float(lateral_m),
+    )
+    actor = world.try_spawn_actor(blueprint, target_transform)
+    if actor is None:
+        raise RuntimeError(
+            "Experiment-3 target spawn failed at "
+            f"forward={float(forward_m):.2f}m lateral={float(lateral_m):.2f}m"
+        )
+    try:
+        actor.set_autopilot(False)
+        actor.apply_control(carla.VehicleControl(throttle=0.0, brake=1.0, hand_brake=True))
+        actor.set_simulate_physics(True)
+    except RuntimeError:
+        pass
+    for _ in range(max(0, int(settle_ticks))):
+        world.tick()
+    # Preserve the physics-settled road height, then restore the exact requested
+    # X/Y/yaw before freezing. This matches the training warm-up without allowing
+    # the independent forward/lateral variables to drift.
+    settled_z = float(actor.get_location().z)
+    try:
+        actor.set_simulate_physics(False)
+        actor.set_transform(
+            carla.Transform(
+                carla.Location(
+                    x=float(target_transform.location.x),
+                    y=float(target_transform.location.y),
+                    z=settled_z,
+                ),
+                target_transform.rotation,
+            )
+        )
+    except RuntimeError:
+        pass
+    world.tick()
+    actual_forward, actual_lateral = _experiment3_target_coordinates(ego_vehicle, actor)
+    if abs(actual_forward - float(forward_m)) > 0.25 or abs(actual_lateral - float(lateral_m)) > 0.25:
+        actor.destroy()
+        raise RuntimeError(
+            "Experiment-3 target placement verification failed: "
+            f"requested=({float(forward_m):.2f},{float(lateral_m):.2f})m "
+            f"actual=({actual_forward:.2f},{actual_lateral:.2f})m"
+        )
+    print(
+        "[experiment3-target] "
+        f"vehicle {actor.type_id} id={actor.id} role={role_name} "
+        f"forward={actual_forward:.3f}m lateral={actual_lateral:.3f}m "
+        f"z={actor.get_location().z:.3f}m yaw={actor.get_transform().rotation.yaw:.2f}deg "
+        f"physics=settled_then_frozen"
+    )
+    return actor
+
+
+def _experiment3_cycle_lateral_offset(args: argparse.Namespace, frame_index: int) -> float:
+    """Deterministic left -> right -> left triangular path for measured frames."""
+    amplitude = max(0.0, float(args.experiment3_target_amplitude_m))
+    total_frames = max(2, int(args.experiment3_target_cycle_frames))
+    progress = min(1.0, max(0.0, float(frame_index) / float(total_frames - 1)))
+    if progress <= 0.5:
+        return -amplitude + 4.0 * amplitude * progress
+    return amplitude - 4.0 * amplitude * (progress - 0.5)
+
+
+def _radar_points_inside_actor_box(
+    points_world: np.ndarray,
+    actor: Optional["carla.Actor"],
+    margin_m: float = 0.35,
+) -> int:
+    if actor is None or points_world.size == 0:
+        return 0
+    try:
+        inverse = np.asarray(actor.get_transform().get_inverse_matrix(), dtype=np.float64)
+        points_h = np.concatenate(
+            [np.asarray(points_world, dtype=np.float64), np.ones((points_world.shape[0], 1))],
+            axis=1,
+        )
+        local = (inverse @ points_h.T).T[:, :3]
+        bbox = actor.bounding_box
+        center = np.asarray([bbox.location.x, bbox.location.y, bbox.location.z], dtype=np.float64)
+        extent = np.asarray([bbox.extent.x, bbox.extent.y, bbox.extent.z], dtype=np.float64)
+        inside = np.all(np.abs(local - center[None, :]) <= extent[None, :] + float(margin_m), axis=1)
+        return int(np.count_nonzero(inside))
+    except RuntimeError:
+        return 0
 
 
 def _spawn_controlled_target(*, world, anchor_location, camera_transform, kind, speed_mps,
@@ -2982,9 +3367,25 @@ def _spawn_controlled_target(*, world, anchor_location, camera_transform, kind, 
         return actor, cross
 
 
-def _spawn_lead_target(*, world, ego_vehicle, traffic_manager, tm_port, gap_m, speed_mps, kind, vehicle_filter):
-    """Spawn ONE tracked target ahead of the ego on its lane (convoy). Vehicle -> TM autopilot + desired speed;
-    walker -> WalkerControl. Ego speed is matched separately so the gap stays ~constant (target stays in view)."""
+def _spawn_lead_target(
+    *,
+    world,
+    ego_vehicle,
+    traffic_manager,
+    tm_port,
+    gap_m,
+    speed_mps,
+    kind,
+    vehicle_filter,
+    motion_control="traffic_manager",
+    role_name="scenesense_tracked_lead",
+):
+    """Spawn one tagged target ahead of the ego on its lane.
+
+    Traffic-manager mode follows the road. Exact vehicle mode is intentionally for
+    short straight baselines: ego and lead receive the same actor-local constant
+    velocity so their relative pose does not drift while perception is measured.
+    """
     import carla, math
     bl = world.get_blueprint_library()
     ego_wp = world.get_map().get_waypoint(ego_vehicle.get_location())
@@ -2993,34 +3394,91 @@ def _spawn_lead_target(*, world, ego_vehicle, traffic_manager, tm_port, gap_m, s
     tf = wp.transform
     if kind == "vehicle":
         bp = (list(bl.filter(vehicle_filter)) or list(bl.filter("vehicle.*")))[0]
+        if bp.has_attribute("role_name"):
+            bp.set_attribute("role_name", str(role_name))
+        exact_motion = str(motion_control) == "exact"
+        ego_transform = ego_vehicle.get_transform()
+        exact_rotation = ego_transform.rotation
         actor = None
-        for extra in (0.0, 6.0, 12.0, -4.0):
-            nx = wp.next(max(1.0, extra)) if extra > 0 else [wp]
-            cand = nx[0] if nx else wp
-            loc = carla.Location(cand.transform.location.x, cand.transform.location.y, cand.transform.location.z + 0.3)
-            actor = world.try_spawn_actor(bp, carla.Transform(loc, cand.transform.rotation))
-            if actor is not None:
-                break
+        if exact_motion:
+            # Do not use waypoint.next() for the strict baseline: near junctions it
+            # can select a branch that is path-distance-correct but not centered on
+            # the ego's current heading. Place the lead exactly gap_m along the
+            # ego forward vector, then use the road only to recover ground height.
+            forward = ego_transform.get_forward_vector()
+            desired = carla.Location(
+                x=ego_transform.location.x + float(gap_m) * forward.x,
+                y=ego_transform.location.y + float(gap_m) * forward.y,
+                z=ego_transform.location.z,
+            )
+            ground_wp = world.get_map().get_waypoint(desired, project_to_road=True)
+            loc = carla.Location(
+                x=desired.x,
+                y=desired.y,
+                z=ground_wp.transform.location.z + 0.3,
+            )
+            actor = world.try_spawn_actor(bp, carla.Transform(loc, exact_rotation))
+        else:
+            for extra in (0.0, 6.0, 12.0, -4.0):
+                nx = wp.next(max(1.0, extra)) if extra > 0 else [wp]
+                cand = nx[0] if nx else wp
+                loc = carla.Location(
+                    cand.transform.location.x,
+                    cand.transform.location.y,
+                    cand.transform.location.z + 0.3,
+                )
+                actor = world.try_spawn_actor(bp, carla.Transform(loc, cand.transform.rotation))
+                if actor is not None:
+                    break
         if actor is None:
             raise RuntimeError("tracked lead vehicle spawn failed (lane occupied)")
+        if exact_motion:
+            # Freeze immediately so the first initialization tick cannot apply a
+            # collision/physics impulse before the paired velocity is installed.
+            actor.set_simulate_physics(False)
         world.tick()
-        actor.set_autopilot(True, int(tm_port))
-        try:
-            traffic_manager.set_desired_speed(actor, float(speed_mps) * 3.6)
-        except Exception:
-            pass
-        try:
-            traffic_manager.auto_lane_change(actor, False)
-        except Exception:
-            pass
-        try:
-            # Ignore traffic lights so the lead never stops -> convoy stays together (matched-speed ego keeps
-            # the gap). Without this the lead halts at lights and the gap blows open (seen previously).
-            traffic_manager.ignore_lights_percentage(actor, 100.0)
-            traffic_manager.ignore_signs_percentage(actor, 100.0)
-        except Exception:
-            pass
-        print(f"[tracked-lead] vehicle {actor.type_id} id={actor.id} ~{gap_m:.0f}m ahead @ {speed_mps:.1f} m/s (ignore-lights)")
+        if exact_motion:
+            spawn_gap = ego_vehicle.get_location().distance(actor.get_location())
+            if abs(spawn_gap - float(gap_m)) > 0.75:
+                ego_loc = ego_vehicle.get_location()
+                actor_loc = actor.get_location()
+                actor.destroy()
+                raise RuntimeError(
+                    f"exact tracked-lead placement failed: expected {float(gap_m):.2f}m, "
+                    f"got {spawn_gap:.2f}m; "
+                    f"ego=({ego_loc.x:.2f},{ego_loc.y:.2f},{ego_loc.z:.2f}) "
+                    f"requested=({loc.x:.2f},{loc.y:.2f},{loc.z:.2f}) "
+                    f"actor=({actor_loc.x:.2f},{actor_loc.y:.2f},{actor_loc.z:.2f})"
+                )
+            actor.set_autopilot(False)
+            actor.set_simulate_physics(True)
+            actor.apply_control(carla.VehicleControl(throttle=0.0, brake=0.0, hand_brake=False))
+            actor.enable_constant_velocity(carla.Vector3D(x=float(speed_mps), y=0.0, z=0.0))
+            print(
+                f"[tracked-lead] exact vehicle {actor.type_id} id={actor.id} "
+                f"~{gap_m:.0f}m ahead @ {speed_mps:.1f} m/s"
+            )
+        else:
+            actor.set_autopilot(True, int(tm_port))
+            try:
+                traffic_manager.set_desired_speed(actor, float(speed_mps) * 3.6)
+            except Exception:
+                pass
+            try:
+                traffic_manager.auto_lane_change(actor, False)
+            except Exception:
+                pass
+            try:
+                # Ignore traffic lights so the lead never stops -> convoy stays together (matched-speed ego keeps
+                # the gap). Without this the lead halts at lights and the gap blows open (seen previously).
+                traffic_manager.ignore_lights_percentage(actor, 100.0)
+                traffic_manager.ignore_signs_percentage(actor, 100.0)
+            except Exception:
+                pass
+            print(
+                f"[tracked-lead] vehicle {actor.type_id} id={actor.id} "
+                f"~{gap_m:.0f}m ahead @ {speed_mps:.1f} m/s (ignore-lights)"
+            )
         return actor
     else:
         bp = bl.filter("walker.pedestrian.*")[0]
@@ -3240,8 +3698,32 @@ def run_client(args: argparse.Namespace) -> None:
     actors: List["carla.Actor"] = []
     checkpoint_path = _resolve_fusion_checkpoint_path(args)
     sensor_platform = str(args.sensor_platform)
+    exact_tracked_convoy = (
+        str(getattr(args, "tracked_lead", "none")) != "none"
+        and str(getattr(args, "tracked_motion_control", "traffic_manager")) == "exact"
+    )
+    experiment3_profile = str(getattr(args, "experiment3_target_profile", "none"))
+    if exact_tracked_convoy and sensor_platform != "ego_vehicle":
+        raise ValueError("--tracked-motion-control exact requires --sensor-platform ego_vehicle")
+    if exact_tracked_convoy and bool(args.ego_freeze):
+        raise ValueError("--tracked-motion-control exact requires --no-ego-freeze")
+    if exact_tracked_convoy and str(args.tracked_lead) != "vehicle":
+        raise ValueError("--tracked-motion-control exact currently supports --tracked-lead vehicle only")
+    if experiment3_profile != "none" and sensor_platform != "ego_vehicle":
+        raise ValueError("--experiment3-target-profile requires --sensor-platform ego_vehicle")
+    if experiment3_profile != "none" and not bool(args.ego_freeze):
+        raise ValueError("--experiment3-target-profile requires a parked ego (keep --ego-freeze)")
+    if experiment3_profile != "none" and (
+        str(getattr(args, "controlled_target", "none")) != "none"
+        or str(getattr(args, "tracked_lead", "none")) != "none"
+    ):
+        raise ValueError(
+            "--experiment3-target-profile is mutually exclusive with --controlled-target/--tracked-lead"
+        )
     traffic_light: Optional["carla.Actor"] = None
     ego_vehicle: Optional["carla.Actor"] = None
+    tracked_lead_actor: Optional["carla.Actor"] = None
+    experiment3_target_actor: Optional["carla.Actor"] = None
     anchor_actor: Optional["carla.Actor"] = None
     anchor_location: Optional["carla.Location"] = None
     camera_attach_to: Optional["carla.Actor"] = None
@@ -3345,11 +3827,15 @@ def run_client(args: argparse.Namespace) -> None:
         if sensor_platform == "ego_vehicle":
             ego_vehicle = _spawn_parked_ego_vehicle(world=world, args=args)
             actors.append(ego_vehicle)
+            # CARLA may report an actor transform at (0,0,0) until the first
+            # world tick after spawn. Initialize it before reading anchor
+            # position or placing a tracked lead relative to the ego.
+            world.tick()
             anchor_actor = ego_vehicle
             anchor_location = ego_vehicle.get_location()
             camera_attach_to = ego_vehicle
             radar_attach_to = ego_vehicle
-            if not bool(args.ego_freeze):
+            if not bool(args.ego_freeze) and not exact_tracked_convoy:
                 try:
                     try:
                         traffic_manager.set_global_distance_to_leading_vehicle(
@@ -3388,6 +3874,11 @@ def run_client(args: argparse.Namespace) -> None:
                     )
                 except RuntimeError as exc:
                     print(f"WARNING: Could not enable ego autopilot: {exc}", file=sys.stderr)
+            elif exact_tracked_convoy:
+                print(
+                    "Moving ego exact-velocity mode selected; Traffic Manager is disabled "
+                    "for the ego/lead pair."
+                )
             print(
                 ("Moving ego vehicle: " if not bool(args.ego_freeze) else "Parked ego vehicle: ")
                 + (
@@ -3407,15 +3898,57 @@ def run_client(args: argparse.Namespace) -> None:
                     world=world, ego_vehicle=ego_vehicle, traffic_manager=traffic_manager,
                     tm_port=int(args.tm_port), gap_m=float(args.tracked_gap_m),
                     speed_mps=float(args.tracked_speed_mps), kind=str(args.tracked_lead),
-                    vehicle_filter=str(args.tracked_vehicle_filter))
+                    vehicle_filter=str(args.tracked_vehicle_filter),
+                    motion_control=str(args.tracked_motion_control),
+                    role_name=str(args.tracked_role_name))
                 actors.append(tracked_lead_actor)
+                if exact_tracked_convoy:
+                    ego_vehicle.set_autopilot(False)
+                    ego_vehicle.set_simulate_physics(True)
+                    ego_vehicle.apply_control(
+                        carla.VehicleControl(throttle=0.0, brake=0.0, hand_brake=False)
+                    )
+                    ego_vehicle.enable_constant_velocity(
+                        carla.Vector3D(x=float(args.tracked_speed_mps), y=0.0, z=0.0)
+                    )
+                    world.tick()
+                    gap_now = ego_vehicle.get_location().distance(tracked_lead_actor.get_location())
+                    if abs(gap_now - float(args.tracked_gap_m)) > 0.75:
+                        raise RuntimeError(
+                            "exact convoy preflight failed after velocity enable: "
+                            f"expected {float(args.tracked_gap_m):.2f}m, got {gap_now:.2f}m"
+                        )
+                    print(
+                        f"[tracked-convoy] exact ego/lead velocity={float(args.tracked_speed_mps):.2f}m/s "
+                        f"initial_gap={gap_now:.2f}m"
+                    )
+
+            if experiment3_profile != "none":
+                initial_lateral_m = (
+                    _experiment3_cycle_lateral_offset(args, 0)
+                    if experiment3_profile == "lateral_cycle"
+                    else float(args.experiment3_target_lateral_m)
+                )
+                experiment3_target_actor = _spawn_experiment3_target(
+                    world=world,
+                    ego_vehicle=ego_vehicle,
+                    vehicle_filter=str(args.target_vehicle_filter),
+                    role_name=str(args.experiment3_target_role_name),
+                    forward_m=float(args.experiment3_target_forward_m),
+                    lateral_m=float(initial_lateral_m),
+                    settle_ticks=int(args.experiment3_settle_ticks),
+                )
+                actors.append(experiment3_target_actor)
 
         if anchor_actor is None or anchor_location is None:
             raise RuntimeError("Sensor anchor was not initialized.")
 
         controlled_target_actor = None
-        _skip_background = (str(getattr(args, "controlled_target", "none")) != "none"
-                            or str(getattr(args, "tracked_lead", "none")) != "none")
+        _skip_background = (
+            str(getattr(args, "controlled_target", "none")) != "none"
+            or str(getattr(args, "tracked_lead", "none")) != "none"
+            or experiment3_profile != "none"
+        )
         if str(getattr(args, "controlled_target", "none")) != "none":
             controlled_target_actor, _ = _spawn_controlled_target(
                 world=world,
@@ -3562,6 +4095,10 @@ def run_client(args: argparse.Namespace) -> None:
                 front_device=front_device,
                 back_device=back_device,
                 checkpoint_path=checkpoint_path,
+                tracked_lead_actor=tracked_lead_actor,
+                experiment3_target_actor=experiment3_target_actor,
+                camera_actor=camera,
+                radar_actor=radar_pipeline.sensor,
             )
             print(f"[Metrics] Run directory: {metrics_logger.run_dir}")
             print(f"[Metrics] Run group: {metrics_logger.run_group}")
@@ -3596,6 +4133,7 @@ def run_client(args: argparse.Namespace) -> None:
 
         start_perf = time.perf_counter()
         processed_frames = 0
+        experiment3_cycle_frame_index = 0
         max_measurement_frames = max(0, int(args.max_frames))
         run_duration_s = max(0.0, float(args.run_duration_s))
 
@@ -3612,6 +4150,22 @@ def run_client(args: argparse.Namespace) -> None:
             if run_duration_elapsed():
                 break
             if bool(args.sync_world):
+                if (
+                    experiment3_profile == "lateral_cycle"
+                    and experiment3_target_actor is not None
+                    and ego_vehicle is not None
+                ):
+                    _place_experiment3_target(
+                        world=world,
+                        ego_vehicle=ego_vehicle,
+                        target_actor=experiment3_target_actor,
+                        forward_m=float(args.experiment3_target_forward_m),
+                        lateral_m=_experiment3_cycle_lateral_offset(
+                            args,
+                            experiment3_cycle_frame_index,
+                        ),
+                    )
+                    experiment3_cycle_frame_index += 1
                 world_frame = int(world.tick())
                 image = od_demo.wait_for_camera_frame(
                     image_queue,
@@ -3720,6 +4274,10 @@ def run_client(args: argparse.Namespace) -> None:
                     )
                 except Exception:
                     radar_projected_points = 0
+                experiment3_target_radar_points = _radar_points_inside_actor_box(
+                    np.asarray(radar_points.get("world_xyz", np.zeros((0, 3))), dtype=np.float32),
+                    experiment3_target_actor,
+                )
                 metrics_logger.append(
                     build_fusion_metrics_row(
                         args=args,
@@ -3738,6 +4296,10 @@ def run_client(args: argparse.Namespace) -> None:
                         camera_width=int(camera_width),
                         camera_height=int(camera_height),
                         model_input_size=model_input_size,
+                        anchor_actor=anchor_actor,
+                        tracked_lead_actor=tracked_lead_actor,
+                        experiment3_target_actor=experiment3_target_actor,
+                        experiment3_target_radar_points=experiment3_target_radar_points,
                     )
                 )
                 metrics_logger.append_object_predictions(
@@ -3767,7 +4329,10 @@ def run_client(args: argparse.Namespace) -> None:
             if run_duration_elapsed():
                 break
 
-            if gui_enabled:
+            save_annotated = bool(str(getattr(args, "overlay_save_dir", ""))) and (
+                processed_frames % max(1, int(args.overlay_save_every)) == 0
+            )
+            if gui_enabled or save_annotated:
                 radar_uv = None
                 if bool(args.show_radar_points) and radar_points["valid_projection"].size:
                     valid = radar_points["valid_projection"].astype(bool)
@@ -3796,10 +4361,19 @@ def run_client(args: argparse.Namespace) -> None:
                         else f"ego vehicle {anchor_actor.id}"
                     ),
                 )
-                cv2.imshow(DEFAULT_WINDOW_NAME, annotated)
-                key = cv2.waitKey(1) & 0xFF
-                if key in (27, ord("q")):
-                    break
+                if save_annotated:
+                    cv2.imwrite(
+                        str(
+                            Path(args.overlay_save_dir)
+                            / f"annotated_{int(image.frame):06d}.jpg"
+                        ),
+                        annotated,
+                    )
+                if gui_enabled:
+                    cv2.imshow(DEFAULT_WINDOW_NAME, annotated)
+                    key = cv2.waitKey(1) & 0xFF
+                    if key in (27, ord("q")):
+                        break
 
     finally:
         stop_event.set()
@@ -3827,6 +4401,15 @@ def run_client(args: argparse.Namespace) -> None:
             except Exception:
                 pass
             actors = [a for a in actors if a is not radar_pipeline.sensor]
+
+        if exact_tracked_convoy:
+            for convoy_actor in (ego_vehicle, tracked_lead_actor):
+                if convoy_actor is None:
+                    continue
+                try:
+                    convoy_actor.disable_constant_velocity()
+                except RuntimeError:
+                    pass
 
         pole_client._destroy_actors(actors)
         _close_split_runtime(

@@ -1,5 +1,9 @@
 # Cooperative Spatial Map — moving-ego build (incremental)
 
+**Status reconciled 2026-07-16.** The moving-ego view, two-source live display, offline replay,
+and a synthetic field-of-view occlusion baseline are working. The map is still a per-source
+visualization: it does not yet perform real multi-view association/fusion or issue validated warnings.
+
 Building the cooperative-perception spatial map **bit by bit**, retiring risk in order.
 Fancy algorithms (JPDA / EKF / covariance-intersection fusion, frustum occlusion deduction,
 alert feedback) are deliberately deferred until the plain multi-car map works.
@@ -8,14 +12,19 @@ Model: **200k-pps RGB+radar fusion** (accuracy sweet spot; zero extra transport 
 `../PPS_STUDY_SUMMARY.md`).
 
 ## Stages
-1. **Moving-ego dynamic ROI** *(current)* — one ego drives; the top-down map ROI follows the car
+
+1. **Moving-ego dynamic ROI — complete.** One ego drives; the top-down map ROI follows the car
    instead of cropping to a fixed traffic-light pole. Objects placed as today (no fusion changes).
    - Open question — ROI size: start with a **fixed box = the model's detection range (~40 m,
      the ≤40 m detection gate)**, optionally forward-biased along heading (`--focus-follow-forward-bias`).
      Speed-adaptive ROI is a later refinement.
-2. **Two egos, no fusion** — spawn a second ego behind the first, same area, both drive. Render
+2. **Two egos, no fusion — complete.** Spawn a second ego behind the first, same area, both drive. Render
    each car's detections in its **own color** (Car A blue, Car B another), no association/fusion yet.
-3. **Geometry fusion / frustum / occlusion** — only after 1–2 are solid.
+3. **Replay + synthetic occlusion baseline — complete.** Recorded/synthetic scenes can be replayed
+   offline; FoV-membership reasoning passes the known synthetic truck/pedestrian scene.
+4. **Real cooperative reasoning — current research gap.** Add cross-source association and fusion,
+   ray/visibility-grid occlusion disambiguation, real CARLA ground truth, precision/recall evaluation,
+   then the vehicle warning/feedback loop.
 
 ## What changed vs the baseline server
 `spatial_map_server_moving_ego.py` is a copy of `../../real_time_spatial_map_server_fusion_object_v2.py`

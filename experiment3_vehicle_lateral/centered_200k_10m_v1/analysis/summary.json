@@ -1,0 +1,109 @@
+{
+  "run_dir": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiment3_vehicle_lateral/centered_200k_10m_v1",
+  "target_role_name": "scenesense_experiment3_target",
+  "target_actor_id": 26,
+  "score_threshold": 0.2,
+  "expected": {
+    "forward_m": 10.0,
+    "lateral_m": 0.0,
+    "center_mean_max_m": 1.3,
+    "center_median_max_m": 1.2,
+    "tight_availability_min": 0.8
+  },
+  "opportunities": 60,
+  "result_received": 60,
+  "target_gt_present": 60,
+  "target_visible": 60,
+  "frames_with_scored_vehicle_prediction": 52,
+  "tight": {
+    "gate_m": 2.0,
+    "matches": 20,
+    "availability": 0.3333333333333333,
+    "mean_error_m": 1.2392016539727335,
+    "median_error_m": 1.2506579986828503,
+    "p90_error_m": 1.3358092871562413
+  },
+  "diagnostic": {
+    "gate_m": 5.0,
+    "matches": 52,
+    "availability": 0.8666666666666667,
+    "mean_error_m": 2.215261175553725,
+    "median_error_m": 2.657041051784384,
+    "p90_error_m": 3.0163729084774187
+  },
+  "nearest_prediction_all": {
+    "count": 52,
+    "mean_error_m": 2.215261175553725,
+    "median_error_m": 2.657041051784384,
+    "p90_error_m": 3.0163729084774187
+  },
+  "error_vector_all": {
+    "forward_mean_m": 1.6971576583858605,
+    "forward_median_m": 1.9907436499844182,
+    "lateral_mean_m": -1.4122194603201985,
+    "lateral_median_m": -1.7156659831127186,
+    "matched_score_mean": 0.25561292698750127,
+    "matched_score_median": 0.23251809924840927,
+    "learned_radar_support_mean": 0.9999989294088804
+  },
+  "placement": {
+    "forward_mean_m": 9.999926484184147,
+    "forward_min_m": 9.999926484184147,
+    "forward_max_m": 9.999926484184147,
+    "lateral_mean_m": -0.00015292465530691857,
+    "lateral_min_m": -0.00015292465530691857,
+    "lateral_max_m": -0.00015292465530691857,
+    "pixel_offset_mean_px": -0.0018998928486553268,
+    "pixel_offset_min_px": -0.0018998928486553268,
+    "pixel_offset_max_px": -0.0018998928486553268,
+    "ego_origin_z_m": 0.02011004090309143,
+    "target_origin_z_m": 0.00016300914285238832,
+    "camera_world_z_m": 1.5651222467422485
+  },
+  "radar": {
+    "target_points_mean": 3354.016666666667,
+    "target_points_median": 3351.5,
+    "target_support_frame_rate": 1.0
+  },
+  "protocol_checks": {
+    "profile_centered": true,
+    "parked_ego": true,
+    "spawn_80": true,
+    "settle_30_ticks": true,
+    "training_camera_world_height": true,
+    "same_road_height": true,
+    "expected_forward_distance": true,
+    "expected_lateral_offset": true,
+    "loopback": true,
+    "uint8": true,
+    "zlib": true,
+    "roi0": true,
+    "noae_checkpoint": true,
+    "score_decode_floor_005": true,
+    "nms_radius_2": true,
+    "topk_120": true,
+    "camera_1280x720_fov120": true,
+    "model_768x432": true,
+    "camera_mount_training": true,
+    "radar_mount_training": true,
+    "no_background_actors": true,
+    "pps_200k": true,
+    "radar_hfov_120": true,
+    "raster_radius_4": true,
+    "temporal_window_2": true,
+    "exact_frame_count": true,
+    "complete_delivery": true,
+    "target_gt_every_frame": true,
+    "target_visible_every_frame": true,
+    "placement_forward": true,
+    "placement_lateral": true
+  },
+  "center_accuracy_checks": {
+    "tight_availability": false,
+    "conditional_mean": true,
+    "conditional_median": false
+  },
+  "protocol_pass": true,
+  "accuracy_pass": false,
+  "center_gate_pass": false
+}

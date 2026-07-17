@@ -1,8 +1,18 @@
 # Autonomous run — progress log
 
-Scope (agreed): **Stage 2 + infra only** (replay/synthetic harness, color-by-source hardening, gallery).
-No Stage 3. Data: CARLA left running; capture real traces when the pipeline is up, else synthetic.
+**Status reconciled 2026-07-16.** The original autonomous scope was Stage 2 + infrastructure
+(replay/synthetic harness, color-by-source hardening, gallery). It was later expanded only far enough
+to establish a **synthetic Stage-3 FoV baseline**; it did not implement or validate real-data occlusion.
+Data policy: capture real traces when the pipeline is up, otherwise use synthetic scenes.
 Read this file first, then `GALLERY.md`.
+
+## Current handoff
+
+- Stage-2 replay and source-colored rendering are complete.
+- Synthetic FoV-membership occlusion is complete and passes its known scene.
+- FoV membership alone over-flags real scenes; ray/occluder or visibility-grid disambiguation is open.
+- Real CARLA occlusion ground truth, formal precision/recall, association/fusion, and warnings are open.
+- The daemon log below is historical evidence of its capture window, not a currently running monitor.
 
 ## Done (offline, verified) — 2026-07-02
 - `record_trace.py` — standalone recorder (polls the live API → JSONL; captures static geometry once).

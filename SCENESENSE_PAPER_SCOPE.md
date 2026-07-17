@@ -4,7 +4,7 @@ Living outline for turning the project into a focused MobiSys-style systems pape
 
 This document should evolve as experiments produce evidence. The goal is to keep the research story sharp while the engineering work grows.
 
-Last updated: 2026-06-05.
+Last updated: 2026-07-16.
 
 ## Working Title
 
@@ -55,6 +55,33 @@ The paper-critical gap is still the controller: the current evidence proves the
 measurement problem is real; the final paper needs a system intervention that
 improves outcomes over static baselines.
 
+## Current Evidence And Gap After Month 2 / Early Month 3
+
+The project now has the measurement arc needed to motivate the controller:
+
+- A strong moving-ego RGB+radar model and a selected `200k pps` operating
+  point establish the perception baseline.
+- A 42-profile resident-model/action sweep covers AE-128/64/32, no-AE,
+  quantization 8/6/4, and ROI drop. The action menu contains both
+  high-accuracy and very-low-payload operating points.
+- The OAI A/B isolates the system intervention: reducing payload from about
+  `1141 KB` to `142 KB` reduces mean RTT from `209 ms` to `77 ms` and raises
+  result availability from `75%` to `99%` in the single-UE RFsim setup.
+- A first OAI configuration sweep shows that TDD/5QI changes barely move this
+  single-flow result; compression is the active lever until contention or
+  channel impairment is introduced.
+- Live staleness experiments connect transport/update delay to task utility.
+  Fast-object localization degrades sharply with latency, and a map holding
+  the latest detection adds up to `1/FPS` of age. This gives the controller a
+  defensible dynamics-aware requirement rather than an arbitrary RTT target.
+- Live two-source map visualization, record/replay tooling, and a synthetic
+  occlusion scaffold exist as the closed-loop case-study foundation.
+
+The paper still cannot claim an adaptive-agent contribution. The offline
+controller, simple-policy baselines, LinUCB/DQN result, controller-level
+guardrail outcomes, and closed-loop warning benefit have not been implemented
+or measured. This is now the critical path.
+
 ## Primary Scope
 
 - Split-inference payload control for object detection and segmentation.
@@ -102,13 +129,17 @@ Evidence we need before claiming an agent is useful:
 - Scene density or occlusion causing harder perception outcomes.
 - Spatial-map freshness and stale-object behavior.
 
-Month 1 measurement figures already available or near-ready:
+Measurement figures available as of 2026-07-16:
 
 - Camera-only OD loopback vs OAI latency and OD quality.
 - Camera-only SEG loopback vs OAI latency and SEG quality.
 - RGB+radar fusion OAI vs loopback latency/receive-rate comparison.
 - Fusion pole-vs-parked-ego transferability for SEG and OD.
 - Curbside evidence pack demonstrating hidden-pedestrian failure geometry.
+- Fusion-model and radar-PPS accuracy characterization.
+- Per-model AE/quantization/ROI payload-versus-task matrices.
+- OAI compression A/B for payload, RTT, transport, and result availability.
+- Object-speed/latency requirements and FPS/map-staleness coupling.
 
 ### 4. SceneSense Agent Design
 
@@ -238,6 +269,20 @@ Likely weak shape:
 - Spatial-map visualization without downstream utility metrics.
 
 ## Month-by-Month Evidence Needed
+
+Current execution status as of 2026-07-16:
+
+- **Month 1:** complete for the core routes, transport, scenarios, logging, and
+  schemas.
+- **Month 2:** static action/model characterization is complete and OAI
+  evidence has advanced beyond the original exit criterion; the offline
+  controller comparison remains open.
+- **Month 3:** staleness requirements and a limited OAI configuration study are
+  complete. Controlled impairment, policy/guardrail stress, and learned-vs-
+  static results remain open.
+- **Month 4 groundwork:** the map can follow a moving ego, display two sources,
+  replay traces, and run a synthetic FoV-based occlusion prototype. Formal map
+  ingestion/GT/freshness/false-hazard criteria remain open.
 
 Month 1:
 

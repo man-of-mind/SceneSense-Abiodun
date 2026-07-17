@@ -1,5 +1,38 @@
 # UE-Side RL Agent — Plan of Attack (Month 2 catch-up → Month 3)
-*Pivot 2026-07: pause spatial map, deliver the network-aware split-inference controller.*
+*Original plan written 2026-07-08; current status overlaid 2026-07-16.*
+
+> Sections below preserve the workstream rationale and design decisions from
+> the original plan. This status overlay is authoritative when an older status
+> statement conflicts with later evidence.
+
+## Current status overlay (2026-07-16)
+
+- **H — sweep orchestration: complete.** Static and per-model jobs are
+  reproducible and aggregated.
+- **A/D — action/model characterization: complete for the priority fusion
+  route.** M-prime plus integrated AE-128/64/32/no-AE models were evaluated
+  across quantization 8/6/4 and ROI 0/0.3/0.5. The authoritative 42-profile
+  table is `rl_agent/PERMODEL_KNOB_MATRIX.md`.
+- **AE resolution:** the early standalone AE collapsed object localization;
+  integrated joint training recovered it. Integrated AE models preserve
+  useful segmentation, recall, and localization and are valid resident actions.
+- **F — network baseline: partially complete.** The OAI compression A/B and a
+  limited TDD/5QI configuration study are complete. Controlled impairment,
+  background load, and multi-UE contention are not.
+- **Requirements work: complete for the current staleness question.** Live
+  results now quantify object-speed/latency and held-map `1/FPS` error. Object
+  dynamics and `Y + 1/FPS` belong in state/reward/guardrails.
+- **B — offline controller harness: not implemented.** There is no executable
+  trace join, action catalog, reward scorer, baseline replay, or LinUCB result.
+- **C — controller guardrails: not implemented.** `gate_a_check.py` is a model
+  acceptance gate; it is not the proposed runtime accept/clamp/reject layer.
+- **E/G — per-tensor packet priority and Sionna coupling: open.** They must not
+  displace controller closure.
+
+Current critical path: **B → C → simple baselines → LinUCB → controlled network
+stress**. The spatial-map work is no longer paused globally, but its next
+research step is real-data freshness/occlusion/warning evaluation rather than
+additional visualization.
 
 ---
 

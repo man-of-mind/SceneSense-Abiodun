@@ -1,5 +1,9 @@
 # OAI config sweep — overnight run status (launched 2026-07-16 ~01:15)
 
+> **Run log, superseded by results.** The sweep is no longer merely “launched.” Read
+> `OAI_CONFIG_FINDINGS.md` for completed points, diagnosed failures, and the current conclusion.
+> The planned matrix below is retained to explain what the automation attempted.
+
 Autonomous sweep of the OAI network config, **model fixed at no-AE u8** (1141 KB) so the *config* is the only
 variable. Phases in the order you asked: **TDD → 5QI → bandwidth**.
 

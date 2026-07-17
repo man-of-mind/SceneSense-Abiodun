@@ -10,7 +10,7 @@ AB = "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/Pytho
 NEAR = 25.0; GATE = 2.0; SCORE = 0.2
 Y_KEYS = [0.0, 0.05, 0.10, 0.15, 0.20, 0.269]   # full latency sweep for the split plot
 OPS = [("loopback ~50ms", 50, "#009E73"), ("AE-128 ~105ms", 105, "#0072B2"), ("no-AE ~267ms", 267, "#D55E00")]
-CURVE_DEG_PER_5M = 8.0   # |yaw change| over 5 m above this = "curve"; below = "straight" (non-junction)
+CURVE_DEG_PER_5M = 4.0   # |yaw change| over 5 m above this = "curve"; below = "straight" (non-junction)
 
 def truthy(v): return str(v).strip().lower() in ("true","1","yes")
 def gt_at(sm, t):
@@ -108,7 +108,7 @@ try:
             continue
         curves[st]=[at(L,Y) for Y in Y_KEYS]
         print(f"  {st:12s} {len(L):>4d}  " + " ".join(f"{v:>5.2f}" for v in curves[st]))
-    print("\n(Note: 'curve' vs 'straight' from lane yaw-change > 8 deg / 5 m; 'junction' = waypoint.is_junction.)")
+    print(f"\n(Note: 'curve' vs 'straight' from lane yaw-change > {CURVE_DEG_PER_5M} deg / 5 m; 'junction' = waypoint.is_junction.)")
 
     # ---- plot: error(Y) for straight vs intersection ----
     import matplotlib; matplotlib.use("Agg"); import matplotlib.pyplot as plt

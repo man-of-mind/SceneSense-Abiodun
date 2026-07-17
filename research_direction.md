@@ -1,6 +1,6 @@
 # Research Direction — Network-Aware Selective Feature Transmission for Multi-UE Cooperative Perception
 
-> **Status:** Living document. Last updated 2026-06-05.
+> **Status:** Living document. Last updated 2026-07-16.
 > **Target venue:** ACM MobiSys.
 > **Owner:** Abiodun (under Subhramoy's track in the IDCC × NEU collaboration).
 >
@@ -48,6 +48,44 @@ Evidence already in hand:
 The missing paper-critical piece is a **design intervention**: a policy or
 controller that improves payload/latency/reliability while preserving task
 utility, compared against strong static and V2X baselines.
+
+## 1.6. Current thesis after Month 2 / early Month 3 evidence [FIRM — updated 2026-07-16]
+
+The design space is now measured well enough to implement the first controller.
+The project has moved from asking whether compression matters to quantifying
+which actions are safe, how the OAI uplink reacts to their payloads, and when
+latency/update rate makes otherwise-correct detections stale.
+
+Evidence now in hand:
+
+- A moving-ego RGB+radar fusion model provides strong vehicle segmentation and
+  detection with an approximately `1.1 m` live localization floor. The
+  radar-PPS ablation selects about `200k pps` as the pedestrian-recall sweet
+  spot without increasing split-feature payload.
+- The drop-aware M-prime model and integrated AE-128/64/32 models provide a
+  resident action family. A 42-profile per-model sweep measures AE choice,
+  quantization, and ROI drop against payload and task utility.
+- In the single-UE OAI A/B, no-AE u8 sends about `1141 KB/frame`, reaches
+  `209 ms` mean RTT, and returns `75%` of results. AE-128 u4 reduces this to
+  about `142 KB/frame`, `77 ms`, and `99%` delivery while preserving useful
+  task quality.
+- Single-UE RFsim TDD/5QI tuning barely changes transport. Under the current
+  no-impairment setup, payload reduction is the effective lever; network
+  configuration should be revisited under contention or channel impairment.
+- Staleness is now a task-level requirement, not only a transport metric.
+  Faster objects have sharply tighter latency budgets, and the map's held
+  position adds an update-age term of up to `1/FPS`. The controller state must
+  therefore include object/ego dynamics and reason about `Y + 1/FPS`.
+- A live moving-ego spatial map, two-source visualization, record/replay path,
+  and synthetic occlusion-reasoning scaffold exist. Real occlusion
+  disambiguation, ground-truth evaluation, targeted alerting, and downstream
+  vehicle action remain open.
+
+The paper-critical gap remains the **controller itself**. The repository does
+not yet contain the offline trace-join/action-catalog/reward/baseline/LinUCB
+harness or controller-level accept/clamp/reject guardrail reporting. Until
+that comparison exists, SceneSense has a strong measurement foundation and
+action menu, but not yet the learned-policy result promised by the proposal.
 
 ---
 
@@ -180,7 +218,19 @@ guardrail or parked-ego fine-tuning before making strong spatial-map claims.
 
 ---
 
-## 6. Proposed phased approach [FIRM at Phase 0-2, soft thereafter]
+## 6. Proposed phased approach [historical sequence; current status overlaid 2026-07-16]
+
+Current execution status relative to this original sequence:
+
+- Foundation and the core fusion-route static characterization are complete.
+- Importance-aware ROI, quantization, entropy coding, and integrated AE actions
+  have been characterized; camera-only route coverage is less complete.
+- OAI A/B and initial network-configuration measurements are complete for a
+  single UE with no intentional impairment.
+- The adaptive policy, simple-policy baselines, and controller-level
+  guardrails are not implemented yet.
+- Staleness requirements and spatial-map groundwork have started ahead of full
+  controller closure.
 
 ### Phase 0 — Foundation (DONE / DOING)
 - Understand the codebase (split inference detection + segmentation, multi-sensor streaming) ✓
@@ -471,7 +521,7 @@ as Month-1 measurement only.**
 
 ---
 
-## 13. Notes from supervisor (2026-05-21 sync — *latest*) [FIRM]
+## 13. Notes from supervisor (2026-05-21 sync — historical) [FIRM]
 
 - **Strategy: gap-finding, not solution-first.** Read SOTA, find drawbacks, address them. See §2.5.
 - **CoDriving (2024-25) is likely the strongest baseline / SOTA reference point.** Install V2Xverse, run their reference solution, document limitations.
@@ -493,33 +543,39 @@ as Month-1 measurement only.**
 
 ---
 
-## 14. Next actions [FIRM — updated 2026-06-05]
+## 14. Next actions [FIRM — updated 2026-07-16]
 
-1. **Present Month 1 evidence** to supervisor: OAI-vs-loopback latency,
-   camera-only OD/SEG metrics, fusion_as_seg/OD transferability, parked-ego
-   data-collection path, and curbside evidence scenario.
-2. **Ask for thesis choice:** measurement+controller MobiSys paper now, or hold
-   for a stronger learned/RL agent later.
-3. **Finish CoDriving/V2Xverse differentiation.** If V2Xverse remains blocked
-   locally, document the compatibility blocker and use paper/repo-level
-   baselines until a compatible machine is available.
-4. **Run static policy sweeps** for payload-vs-task curves: camera SEG saliency
-   drop, camera OD compression/quality knobs, and fusion payload settings where
-   available.
-5. **Build first controller baseline:** start with rule-based or contextual
-   bandit before RL. Inputs: scene density/foreground, model confidence or
-   uncertainty, RTT/loss/receive-rate, payload bytes/chunks.
-6. **Define closed-loop utility metric** for the curbside hazard: warning lead
-   time, vulnerable-object recall before collision, stale-map rate, and network
-   cost.
-7. **Decide parked-ego training plan:** if supervisor wants parked-ego as the
-   primary viewpoint, use the saved training-schema pipeline to fine-tune or at
-   least build a larger dataset.
+1. **Close the remaining staleness diagnostics.** Run the controlled
+   radar/camera FoV-position experiment and carry object speed, road state, and
+   `Y + 1/FPS` into the controller state/requirements.
+2. **Build the offline controller harness.** Join scenario/application/network
+   traces, define the route-masked action catalog, score reward terms, and
+   compare send-everything, lowest-byte, best-fixed, network-only, task-only,
+   and scene+network heuristic policies.
+3. **Add the first learned baseline.** Use LinUCB over the discrete resident
+   model/quantization/ROI profiles; use DQN only if a contextual bandit cannot
+   represent the required temporal behavior.
+4. **Make guardrails executable at controller level.** Report accepted,
+   clamped, and rejected actions and measure their task, byte, latency, and
+   availability cost.
+5. **Run controlled network stress after replay sanity passes.** Add
+   impairment/background load and multi-UE contention; revisit TDD/5QI only in
+   conditions where scheduling priority can matter.
+6. **Turn spatial-map groundwork into measured utility.** Add real-data
+   occlusion disambiguation, CARLA-GT validation, freshness/stale-object/false-
+   hazard metrics, intended-recipient selection, and warning lead time.
+7. **Keep the paper comparison honest.** Finish the CoDriving/V2Xverse and
+   Where2comm differentiation and do not claim RL value until the learned
+   policy beats the strongest simple heuristic.
 
 ---
 
 ## Change log
 
+- **2026-07-16** — Reconciled the roadmap with the integrated AE/per-model
+  action sweep, OAI compression and configuration results, staleness/FPS
+  requirements, and spatial-map groundwork. Made the missing offline
+  controller/guardrail comparison explicit.
 - **2026-06-05** — Month 1 consolidation. Added current thesis/evidence,
   RQ9/RQ10, expanded baselines, updated differentiation table, MobiSys fit
   assessment, and new next actions before supervisor discussion.
