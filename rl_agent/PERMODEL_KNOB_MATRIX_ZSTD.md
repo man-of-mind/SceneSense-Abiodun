@@ -1,6 +1,16 @@
-# COMPLETE KNOB MATRIX (M', Month-2 static knobs)
+# PER-MODEL KNOB MATRIX — **latency column = zstd** (M', Month-2 static knobs)
 
-Action profiles vs **accuracy**, **payload** (entropy-coded bytes), and **latency** (front=UE compute, back=edge compute, transport=localhost round-trip). Transport is an **IDEAL local link** (8 MB socket buffers, NO bandwidth cap / no Linux tc shaping), so delivery is ~100% and not a differentiator here. **Reliability + latency under a real channel (bandwidth, RF loss) = OAI + Sionna, Month 3.** `~` latency = interpolated from the measured payload->latency curve (loopback client runs quant x entropy natively; ROI/AE latency inferred by payload).
+> ⚠️ **Codec provenance (2026-07-20).** The **latency columns (front / back / transport ms) in this file are
+> measured with `--entropy-coder zstd`** (see `loopback_latency_zstd.json`). The **deployed live pipeline defaults
+> to `zlib`**, which is ~4× slower to (de)compress large (~1 MB no-AE) payloads — e.g. no-AE u8 transport is
+> ~7 ms (zstd, here) vs ~31 ms (zlib, live). The zlib-latency counterpart is `PERMODEL_KNOB_MATRIX_ZLIB.md`.
+> **Accuracy is codec-invariant** (entropy coding is lossless → identical decoded tensors → identical mIoU/loc).
+> **Payload is mildly codec-dependent** (different lossless compression ratios: measured zlib vs zstd differ −3.5%…+6.6%
+> across profiles). ⚠️ The accuracy **and payload** columns in this file come from the per-model offline eval
+> (`sweeps_permodel`), which was run with **zlib** — so the payload here is the *zlib* payload (~±5% off true zstd).
+> A dedicated zstd offline eval would be needed to give this matrix its own zstd payload; accuracy would be unchanged.
+
+Action profiles vs **accuracy**, **payload** (entropy-coded bytes), and **latency** (front=UE compute, back=edge compute, transport=localhost round-trip; **zstd**). Transport is an **IDEAL local link** (8 MB socket buffers, NO bandwidth cap / no Linux tc shaping), so delivery is ~100% and not a differentiator here. **Reliability + latency under a real channel (bandwidth, RF loss) = OAI + Sionna, Month 3.** `~` latency = interpolated from the measured payload->latency curve (loopback client runs quant x entropy natively; ROI/AE latency inferred by payload).
 
 Clean baseline: **ae128__clean** payload=2835.0KB mIoU=0.819 ped-recall=0.883  (accept tol = 2%)
 

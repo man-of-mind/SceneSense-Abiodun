@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np, re, sys
 from pathlib import Path
 
-SRC = Path("rl_agent/PERMODEL_KNOB_MATRIX.md")
+SRC = Path("rl_agent/PERMODEL_KNOB_MATRIX_ZSTD.md")  # accuracy/payload codec-invariant; latency=zstd
 OUT = Path("rl_agent/plots"); OUT.mkdir(exist_ok=True)
 MODEL_C = {"128": "#0072B2", "64": "#E69F00", "32": "#009E73", "-": "#D55E00"}
 MODEL_L = {"128": "AE-128", "64": "AE-64", "32": "AE-32", "-": "no-AE"}

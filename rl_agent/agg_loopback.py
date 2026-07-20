@@ -17,8 +17,8 @@ QMAP = {"u8": "per_channel_uint8", "u6": "per_channel_uint6", "u4": "per_channel
 
 def parse_variant(name):
     """Extract the full action profile (quant, entropy, roi, ae) from the variant dir name, e.g.
-    'q_u8_zstd', 'roi0.3_u8_zstd', 'ae_b64_u8_zstd'. Keyed on (quant,roi,ae) downstream so ROI/AE
-    variants (which share quant|entropy) don't collide."""
+    'q_u8_zstd', 'roi0.3_u8_zstd', 'ae_b64_u8_zstd'. Keyed on (quant,roi,ae,entropy) downstream so
+    ROI/AE variants and zlib/zstd variants cannot silently collide."""
     quant = next((full for tag, full in QMAP.items() if f"_{tag}_" in name or name.endswith(f"_{tag}")), "")
     entropy = next((e for e in ("zlib", "zstd", "none") if name.endswith(e) or f"_{e}" in name), "")
     mroi = re.search(r"roi([0-9.]+)", name)
@@ -73,7 +73,10 @@ def main():
         }
         rows_out.append(rec)
         if quant:
-            jmap[f"{quant}|{roi}|{ae}"] = rec  # profile key: quant x ROI x AE (entropy is a minor latency knob)
+            # Codec-specific key: entropy is NOT a minor latency knob at large payloads
+            # (zlib ~4x slower than zstd to (de)compress ~1MB; small payloads ~2ms either way).
+            # Keep zstd/zlib as distinct keys so one cannot silently overwrite the other.
+            jmap[f"{quant}|{roi}|{ae}|{entropy}"] = rec
     rows_out.sort(key=lambda r: (r["payload_kb"] is None, r["payload_kb"] or 0))
     L = ["# Loopback latency sweep (M') — IDEAL transport",
          "",

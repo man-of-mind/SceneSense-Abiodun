@@ -1,7 +1,7 @@
 # UE-Side SceneSense Agent Workspace
 
 Status: **action/model characterization complete; controller harness not yet
-implemented**. Last reconciled 2026-07-16.
+implemented**. Last reconciled 2026-07-20.
 
 See `../RL_AGENT_PLAN.md`, `../SCENESENSE_RL_SCHEMA.md`, and
 `../SCENESENSE_MONTHLY_CHECKLIST.md` for the research plan and exit criteria.
@@ -15,17 +15,23 @@ See `../RL_AGENT_PLAN.md`, `../SCENESENSE_RL_SCHEMA.md`, and
 - `feature_ae/` — earlier standalone feature-AE experiments. Their historical
   object-head collapse is superseded by the integrated models.
 - `ae_integrated/` — integrated AE-128/64/32 and no-AE model training/evaluation.
-- `PERMODEL_KNOB_MATRIX.md` and `PERMODEL_KNOB_MATRIX_GROUPED.md` — current
-  authoritative 42-profile AE/quantization/ROI action tables.
+- `PERMODEL_KNOB_MATRIX_ZLIB.md`, `PERMODEL_KNOB_MATRIX_ZLIB_GROUPED.md`, and
+  `PERMODEL_KNOB_MATRIX_ZLIB_BYMODEL.md` — current authoritative 42-profile
+  AE/quantization/ROI action tables for the deployed zlib codec.
+- `PERMODEL_KNOB_MATRIX_ZSTD.md` and `CODEC_LATENCY_AB.md` — zstd comparison
+  artifacts; use these only if the deployed entropy codec is switched to zstd.
+- `LOOPBACK_LATENCY_ZLIB.md` and `loopback_latency_zlib.json` — ideal-loopback
+  latency curve for zlib, with codec-specific keys to avoid zlib/zstd collision.
 - `OAI_AB_RESULTS.md` — live single-UE OAI compression A/B.
 - `OAI_CONFIG_ANALYSIS.md` — pre-sweep configuration hypothesis; final outcome
   is in `../oai_config_sweep/OAI_CONFIG_FINDINGS.md`.
 - `REQUIREMENTS_AND_RL_DESIGN.md` — current dynamics/staleness-aware controller
   requirements.
 
-`COMPLETE_KNOB_MATRIX.md`, `MONTH2_LOG.md`, and `AE_ACTION_OPTIONS.md` are useful
-historical snapshots, but their pre-integrated-AE conclusions are not the
-current action-model truth.
+`COMPLETE_KNOB_MATRIX.md`, `PERMODEL_KNOB_MATRIX_GROUPED.md`, `MONTH2_LOG.md`,
+and `AE_ACTION_OPTIONS.md` are useful historical snapshots, but their
+pre-integrated-AE or pre-codec-correction conclusions are not the current
+action-model truth.
 
 ## What does not exist yet
 

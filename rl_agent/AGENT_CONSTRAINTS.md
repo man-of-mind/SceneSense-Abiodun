@@ -71,7 +71,8 @@ capture-to-map budget.
 **Discrete latency anchors (keep transport labels explicit):**
 | condition / action | latency anchor | meets ε=2 m up to | notes |
 |---|---:|--:|---|
-| ideal loopback / 8 MB buffers | no-AE u8/zlib capture→result ~88–90 ms; post-send RTT ~43 ms; result downlink ~5 ms | ~32 mph | clean local software/transport floor; current host state |
+| ideal loopback / 8 MB buffers (**zlib**) | no-AE u8/zlib capture→result ~88–90 ms; post-send RTT ~43 ms; result downlink ~5 ms | ~32 mph | clean local floor for the **deployed zlib** codec |
+| ideal loopback / 8 MB buffers (**zstd**) | same no-AE u8 payload ~45 ms capture→result (transport ~7 ms, front ~30 ms) | higher | **codec is a latency lever**: zstd ~4× faster (de)compress, same accuracy, payload ~±5%; live A/B confirmed (`CODEC_LATENCY_AB.md`) |
 | bounded-buffer loopback | not a clean latency anchor; no-AE 200k calibration delivered 1/100 frames | n/a | use only as buffer/reliability artifact |
 | AE-128 compression over OAI | ~105 ms | ~28 mph | ~8× payload cut; meets ε=2 m for most speeds |
 | no-AE baseline over default OAI | ~267 ms | ~10 mph | fails anything >~18 mph at ε=2 m |

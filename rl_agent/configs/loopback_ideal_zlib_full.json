@@ -1,0 +1,307 @@
+{
+  "name": "loopback_ideal_zlib_FULL",
+  "_note": "FULL zlib latency sweep: all 36 AE x quant x ROI action profiles the agent will use, deployed codec zlib, ideal 8MB loopback. Removes the interpolated (~) latencies. accuracy/payload already come from sweeps_permodel (zlib).",
+  "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun",
+  "env": {
+    "MPLCONFIGDIR": "/tmp/matplotlib-cache",
+    "QT_QPA_PLATFORM": "offscreen",
+    "PYTHONPATH": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/pole_lraspp_multimodal_fusion:/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun"
+  },
+  "command_template": "/home/shr_aisvcs/workarea/carla_0_10_env/carla_0_10_venv/bin/python carla_split_inference_udp_fusion_object_pole_client_spatial_stream_oai.py --role loopback --headless --no-spatial-map-stream --sensor-platform ego_vehicle --no-ego-freeze --ego-spawn-index 80 --ego-fixed-path-spawn-indices 80,85,91,94,99,80 --ego-fixed-path-loop --fusion-checkpoint {ckpt} --host 127.0.0.1 --seed 31 --npc-vehicles 28 --npc-pedestrians 35 --spawn-radius 80 --quantization-mode {quant} --entropy-coder zlib --roi-threshold {roi} {ae_flag} --result-timeout 1.5 --max-frames {frames} --metrics-run-dir {run_dir}",
+  "run_dir_template": "experiments/mprime_dropaware_20260708/sweeps_loopback_ideal_zlib_full/{variant}",
+  "max_parallel": 1,
+  "defaults": {
+    "ckpt": "experiments/mprime_dropaware_20260708/stage2_obj_drop/checkpoints/mprime_stage2_obj_drop/best.pt",
+    "frames": 300
+  },
+  "variants": [
+    {
+      "name": "noae_u4_roi0.0_zlib",
+      "params": {
+        "quant": "per_channel_uint4",
+        "roi": "0.0",
+        "ae_flag": ""
+      }
+    },
+    {
+      "name": "noae_u4_roi0.3_zlib",
+      "params": {
+        "quant": "per_channel_uint4",
+        "roi": "0.3",
+        "ae_flag": ""
+      }
+    },
+    {
+      "name": "noae_u4_roi0.5_zlib",
+      "params": {
+        "quant": "per_channel_uint4",
+        "roi": "0.5",
+        "ae_flag": ""
+      }
+    },
+    {
+      "name": "noae_u6_roi0.0_zlib",
+      "params": {
+        "quant": "per_channel_uint6",
+        "roi": "0.0",
+        "ae_flag": ""
+      }
+    },
+    {
+      "name": "noae_u6_roi0.3_zlib",
+      "params": {
+        "quant": "per_channel_uint6",
+        "roi": "0.3",
+        "ae_flag": ""
+      }
+    },
+    {
+      "name": "noae_u6_roi0.5_zlib",
+      "params": {
+        "quant": "per_channel_uint6",
+        "roi": "0.5",
+        "ae_flag": ""
+      }
+    },
+    {
+      "name": "noae_u8_roi0.0_zlib",
+      "params": {
+        "quant": "per_channel_uint8",
+        "roi": "0.0",
+        "ae_flag": ""
+      }
+    },
+    {
+      "name": "noae_u8_roi0.3_zlib",
+      "params": {
+        "quant": "per_channel_uint8",
+        "roi": "0.3",
+        "ae_flag": ""
+      }
+    },
+    {
+      "name": "noae_u8_roi0.5_zlib",
+      "params": {
+        "quant": "per_channel_uint8",
+        "roi": "0.5",
+        "ae_flag": ""
+      }
+    },
+    {
+      "name": "ae_b32_u4_roi0.0_zlib",
+      "params": {
+        "quant": "per_channel_uint4",
+        "roi": "0.0",
+        "ae_flag": "--ae-checkpoint rl_agent/feature_ae/checkpoints/ae_b32_v2clean.pt"
+      }
+    },
+    {
+      "name": "ae_b32_u4_roi0.3_zlib",
+      "params": {
+        "quant": "per_channel_uint4",
+        "roi": "0.3",
+        "ae_flag": "--ae-checkpoint rl_agent/feature_ae/checkpoints/ae_b32_v2clean.pt"
+      }
+    },
+    {
+      "name": "ae_b32_u4_roi0.5_zlib",
+      "params": {
+        "quant": "per_channel_uint4",
+        "roi": "0.5",
+        "ae_flag": "--ae-checkpoint rl_agent/feature_ae/checkpoints/ae_b32_v2clean.pt"
+      }
+    },
+    {
+      "name": "ae_b32_u6_roi0.0_zlib",
+      "params": {
+        "quant": "per_channel_uint6",
+        "roi": "0.0",
+        "ae_flag": "--ae-checkpoint rl_agent/feature_ae/checkpoints/ae_b32_v2clean.pt"
+      }
+    },
+    {
+      "name": "ae_b32_u6_roi0.3_zlib",
+      "params": {
+        "quant": "per_channel_uint6",
+        "roi": "0.3",
+        "ae_flag": "--ae-checkpoint rl_agent/feature_ae/checkpoints/ae_b32_v2clean.pt"
+      }
+    },
+    {
+      "name": "ae_b32_u6_roi0.5_zlib",
+      "params": {
+        "quant": "per_channel_uint6",
+        "roi": "0.5",
+        "ae_flag": "--ae-checkpoint rl_agent/feature_ae/checkpoints/ae_b32_v2clean.pt"
+      }
+    },
+    {
+      "name": "ae_b32_u8_roi0.0_zlib",
+      "params": {
+        "quant": "per_channel_uint8",
+        "roi": "0.0",
+        "ae_flag": "--ae-checkpoint rl_agent/feature_ae/checkpoints/ae_b32_v2clean.pt"
+      }
+    },
+    {
+      "name": "ae_b32_u8_roi0.3_zlib",
+      "params": {
+        "quant": "per_channel_uint8",
+        "roi": "0.3",
+        "ae_flag": "--ae-checkpoint rl_agent/feature_ae/checkpoints/ae_b32_v2clean.pt"
+      }
+    },
+    {
+      "name": "ae_b32_u8_roi0.5_zlib",
+      "params": {
+        "quant": "per_channel_uint8",
+        "roi": "0.5",
+        "ae_flag": "--ae-checkpoint rl_agent/feature_ae/checkpoints/ae_b32_v2clean.pt"
+      }
+    },
+    {
+      "name": "ae_b64_u4_roi0.0_zlib",
+      "params": {
+        "quant": "per_channel_uint4",
+        "roi": "0.0",
+        "ae_flag": "--ae-checkpoint rl_agent/feature_ae/checkpoints/ae_b64_v2clean.pt"
+      }
+    },
+    {
+      "name": "ae_b64_u4_roi0.3_zlib",
+      "params": {
+        "quant": "per_channel_uint4",
+        "roi": "0.3",
+        "ae_flag": "--ae-checkpoint rl_agent/feature_ae/checkpoints/ae_b64_v2clean.pt"
+      }
+    },
+    {
+      "name": "ae_b64_u4_roi0.5_zlib",
+      "params": {
+        "quant": "per_channel_uint4",
+        "roi": "0.5",
+        "ae_flag": "--ae-checkpoint rl_agent/feature_ae/checkpoints/ae_b64_v2clean.pt"
+      }
+    },
+    {
+      "name": "ae_b64_u6_roi0.0_zlib",
+      "params": {
+        "quant": "per_channel_uint6",
+        "roi": "0.0",
+        "ae_flag": "--ae-checkpoint rl_agent/feature_ae/checkpoints/ae_b64_v2clean.pt"
+      }
+    },
+    {
+      "name": "ae_b64_u6_roi0.3_zlib",
+      "params": {
+        "quant": "per_channel_uint6",
+        "roi": "0.3",
+        "ae_flag": "--ae-checkpoint rl_agent/feature_ae/checkpoints/ae_b64_v2clean.pt"
+      }
+    },
+    {
+      "name": "ae_b64_u6_roi0.5_zlib",
+      "params": {
+        "quant": "per_channel_uint6",
+        "roi": "0.5",
+        "ae_flag": "--ae-checkpoint rl_agent/feature_ae/checkpoints/ae_b64_v2clean.pt"
+      }
+    },
+    {
+      "name": "ae_b64_u8_roi0.0_zlib",
+      "params": {
+        "quant": "per_channel_uint8",
+        "roi": "0.0",
+        "ae_flag": "--ae-checkpoint rl_agent/feature_ae/checkpoints/ae_b64_v2clean.pt"
+      }
+    },
+    {
+      "name": "ae_b64_u8_roi0.3_zlib",
+      "params": {
+        "quant": "per_channel_uint8",
+        "roi": "0.3",
+        "ae_flag": "--ae-checkpoint rl_agent/feature_ae/checkpoints/ae_b64_v2clean.pt"
+      }
+    },
+    {
+      "name": "ae_b64_u8_roi0.5_zlib",
+      "params": {
+        "quant": "per_channel_uint8",
+        "roi": "0.5",
+        "ae_flag": "--ae-checkpoint rl_agent/feature_ae/checkpoints/ae_b64_v2clean.pt"
+      }
+    },
+    {
+      "name": "ae_b128_u4_roi0.0_zlib",
+      "params": {
+        "quant": "per_channel_uint4",
+        "roi": "0.0",
+        "ae_flag": "--ae-checkpoint rl_agent/feature_ae/checkpoints/ae_b128_v2clean.pt"
+      }
+    },
+    {
+      "name": "ae_b128_u4_roi0.3_zlib",
+      "params": {
+        "quant": "per_channel_uint4",
+        "roi": "0.3",
+        "ae_flag": "--ae-checkpoint rl_agent/feature_ae/checkpoints/ae_b128_v2clean.pt"
+      }
+    },
+    {
+      "name": "ae_b128_u4_roi0.5_zlib",
+      "params": {
+        "quant": "per_channel_uint4",
+        "roi": "0.5",
+        "ae_flag": "--ae-checkpoint rl_agent/feature_ae/checkpoints/ae_b128_v2clean.pt"
+      }
+    },
+    {
+      "name": "ae_b128_u6_roi0.0_zlib",
+      "params": {
+        "quant": "per_channel_uint6",
+        "roi": "0.0",
+        "ae_flag": "--ae-checkpoint rl_agent/feature_ae/checkpoints/ae_b128_v2clean.pt"
+      }
+    },
+    {
+      "name": "ae_b128_u6_roi0.3_zlib",
+      "params": {
+        "quant": "per_channel_uint6",
+        "roi": "0.3",
+        "ae_flag": "--ae-checkpoint rl_agent/feature_ae/checkpoints/ae_b128_v2clean.pt"
+      }
+    },
+    {
+      "name": "ae_b128_u6_roi0.5_zlib",
+      "params": {
+        "quant": "per_channel_uint6",
+        "roi": "0.5",
+        "ae_flag": "--ae-checkpoint rl_agent/feature_ae/checkpoints/ae_b128_v2clean.pt"
+      }
+    },
+    {
+      "name": "ae_b128_u8_roi0.0_zlib",
+      "params": {
+        "quant": "per_channel_uint8",
+        "roi": "0.0",
+        "ae_flag": "--ae-checkpoint rl_agent/feature_ae/checkpoints/ae_b128_v2clean.pt"
+      }
+    },
+    {
+      "name": "ae_b128_u8_roi0.3_zlib",
+      "params": {
+        "quant": "per_channel_uint8",
+        "roi": "0.3",
+        "ae_flag": "--ae-checkpoint rl_agent/feature_ae/checkpoints/ae_b128_v2clean.pt"
+      }
+    },
+    {
+      "name": "ae_b128_u8_roi0.5_zlib",
+      "params": {
+        "quant": "per_channel_uint8",
+        "roi": "0.5",
+        "ae_flag": "--ae-checkpoint rl_agent/feature_ae/checkpoints/ae_b128_v2clean.pt"
+      }
+    }
+  ]
+}

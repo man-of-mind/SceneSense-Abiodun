@@ -38,6 +38,12 @@ python3 downlink_latency_fps/analyze_downlink_fps.py downlink_latency_fps/runs -
 
 ## Interpretation
 
+> ⚠️ **Codec caveat (2026-07-20): these figures are `--entropy-coder zlib`.** The ~31 ms uplink payload-handling and
+> the ~44 ms front are **zlib compress/decompress of the ~1.1 MB no-AE payload**, not wire time. The knob matrix's
+> `q_u8_zstd` point puts the same ~1 MB payload at **transport ~7.4 ms / front ~29.8 ms**, i.e. the same no-AE recipe
+> under **zstd** should land at **~45 ms capture→result, not ~88 ms**. So the ~88–90 ms below is the *zlib* floor;
+> the *zstd* floor (~45 ms) is being confirmed with a live A/B. Codec is a real latency lever, channel-independent.
+
 - Report the Step-1 ideal-loopback headline as **capture/front-start → car result receive ≈ 88–90 ms p50**. The
   `43 ms` value is the subpath from the front's feature-send timestamp to result receive, not the full capture-to-result
   budget.

@@ -44,9 +44,17 @@ def fnum(x, d=3):
 def main():
     parent, out = sys.argv[1], sys.argv[2]
     lb = {}
+    lb_ref = "LOOPBACK_LATENCY.md"
     if len(sys.argv) > 3 and Path(sys.argv[3]).exists():
+        lb_path = Path(sys.argv[3])
+        if lb_path.name == "loopback_latency_zlib.json":
+            lb_ref = "LOOPBACK_LATENCY_ZLIB.md / loopback_latency_zlib.json"
+        elif lb_path.name == "loopback_latency_zstd.json":
+            lb_ref = "LOOPBACK_LATENCY.md / loopback_latency_zstd.json"
+        else:
+            lb_ref = f"LOOPBACK_LATENCY.md / {lb_path.name}"
         try:
-            lb = json.load(open(sys.argv[3]))  # {"quant|entropy": {front_ms, rtt_ms, delivery_rate, ...}}
+            lb = json.load(open(sys.argv[3]))
         except Exception:
             lb = {}
     # RAW uncompressed feature-transmit size (fp16, both levels) = the honest "no-compression" split
@@ -105,8 +113,11 @@ def main():
         r["payload_frac"] = (r["payload_kb"] / base_pay) if base_pay else float("nan")
         # measured loopback latency/reliability (direct match for pure quant x entropy configs);
         # ROI/AE rows get INTERPOLATED estimates from the payload curve (rendered with a leading ~).
-        k = f"{r['quant']}|{r['roi']}|{r['ae']}"   # full action profile (matches agg_loopback jmap key)
-        m = lb.get(k)
+        # Codec-specific key first (quant|roi|ae|entropy); fall back to the pre-codec-key
+        # json (quant|roi|ae) so older aggregations still resolve.
+        k_ent = f"{r['quant']}|{r['roi']}|{r['ae']}|{r['entropy']}"
+        k_old = f"{r['quant']}|{r['roi']}|{r['ae']}"
+        m = lb.get(k_ent) or lb.get(k_old)
         if m:
             r["front_ms"], r["back_ms"], r["transport_ms"], r["est"] = m.get("front_ms"), m.get("back_ms"), m.get("transport_ms"), False
         else:
@@ -155,7 +166,7 @@ def main():
           "reward terms (task utility) and the payload/latency/reliability cost.",
           "- **front ms / RTT ms / delivery** are measured on the loopback (CARLA transport) for the pure "
           "quant x entropy profiles; `~` marks ROI/AE profiles whose latency/reliability follow the same "
-          "**payload -> {latency, reliability}** curve (see LOOPBACK_LATENCY.md) via their payload column.",
+          f"**payload -> {{latency, reliability}}** curve (see {lb_ref}) via their payload column.",
           "- Loopback delivery reflects payload/fragmentation; TRUE channel loss + variable latency arrive with "
           "the OAI/Sionna network phase, which replaces the loopback transport column.",
           ""]

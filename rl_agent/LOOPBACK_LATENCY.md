@@ -1,5 +1,13 @@
 # Loopback latency sweep (M') — IDEAL transport
 
+> ⚠️ **Codec matters (2026-07-20).** The `transport ms` column bundles receive-side reassembly **+ decompression**,
+> and the entropy codec dominates it at large payloads. Compare the last two rows: `q_u8_zstd` (982 KB → **7.4 ms**)
+> vs `q_u8_zlib` (1016 KB → **31.0 ms**) — same payload, **zlib ~4× slower than zstd** both directions (front too:
+> 29.8 vs 47.5 ms). All other rows here are **zstd**. The **deployed pipeline defaults to zlib**, so the knob-matrix
+> latency built from the mostly-zstd `loopback_latency_zstd.json` under-predicts live no-AE latency by ~4×. The
+> zlib-measured counterpart is `loopback_latency_zlib.json` / `PERMODEL_KNOB_MATRIX_ZLIB.md`. Accuracy + payload are
+> codec-invariant (lossless).
+
 Split-inference latency per profile under an **ideal local transport** (8 MB socket buffers via net.core.rmem_max/wmem_max; NO bandwidth cap / no Linux tc shaping). Columns: front (UE compute), back (edge compute), transport (localhost round-trip), RTT (total). delivery ~1.0 by design here — REAL reliability under bandwidth/RF-loss is the OAI + Sionna phase (Month 3).
 
 | profile | quant | entropy | payload KB | front ms | back ms | transport ms | RTT ms | delivery | frames |

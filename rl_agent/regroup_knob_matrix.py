@@ -7,7 +7,7 @@ Writes PERMODEL_KNOB_MATRIX_GROUPED.md (leaves the payload-sorted original intac
 import sys, re
 from pathlib import Path
 
-SRC = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("rl_agent/PERMODEL_KNOB_MATRIX.md")
+SRC = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("rl_agent/PERMODEL_KNOB_MATRIX_ZSTD.md")
 OUT = Path(sys.argv[2]) if len(sys.argv) > 2 else Path("rl_agent/PERMODEL_KNOB_MATRIX_GROUPED.md")
 
 QORD = {"per_channel_uint4": 0, "per_channel_uint6": 1, "per_channel_uint8": 2}
