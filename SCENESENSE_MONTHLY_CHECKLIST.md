@@ -2,7 +2,7 @@
 
 Living checklist aligned with `2026_SceneSense-Agent_Research_Proposal_6Month_DRAFT.docx`.
 
-Last reconciled with repository evidence: **2026-07-16**.
+Last reconciled with repository evidence: **2026-07-17**.
 
 Use this file to keep the work tied to the proposal: every experiment should answer either a baseline, metric, controller, guardrail, spatial-map, or demo question.
 
@@ -14,14 +14,17 @@ Use this file to keep the work tied to the proposal: every experiment should ans
   integrated AE-128/64/32 models and a 42-profile AE/quantization/ROI sweep.
   The offline controller replay is still the uncompleted Month-2 exit item.
 - **Month 3 started early:** OAI compression/config measurements and
-  speed/latency/FPS staleness requirements are complete. Controlled impairment
-  plus policy/guardrail stress is not complete.
+  speed/latency/FPS staleness requirements are complete. The next required
+  work is ordered as: downlink/result-return logging, FPS-buffer reliability,
+  controlled FOV continuation if baseline parity passes, then Sionna/channel
+  realism. Controlled impairment plus policy/guardrail stress is not complete.
 - **Month 4 groundwork started early:** moving-ego/two-source map display,
   record/replay, and synthetic FoV occlusion reasoning work. Formal map-GT,
   freshness, false-hazard, recipient, and warning metrics remain open.
 - **Critical distinction:** the repository has a measured action menu and
   model-level acceptance gates, but no implemented offline policy comparison,
-  learned controller, or controller-level accept/clamp/reject guardrail yet.
+  learned controller, controller-level accept/clamp/reject guardrail, or
+  measured downlink/map-sharing freshness budget yet.
 
 ## Project North Star
 
@@ -200,9 +203,19 @@ Network/split metrics:
 - [x] Front-half inference time.
 - [x] Back-half inference time.
 - [x] Round-trip time.
+- [ ] Explicit downlink/result-return latency split:
+  - [ ] Edge tail-result ready timestamp.
+  - [ ] Result serialization/send timestamp.
+  - [ ] Ego/recipient result-receive timestamp.
+  - [ ] Display-ready timestamp for segmentation/localization overlays.
+  - [ ] Downlink result payload bytes by result type.
 - [x] Timeout/missed-result count.
 - [x] Approximate FPS.
 - [x] Packet-loss or missing-frame indicators where available.
+- [ ] Fresh-delivery indicators: generated frames, queued frames, sent frames,
+  edge-received frames, tail-completed frames, downlink-received frames,
+  displayed frames, stale displayed frames, queue wait, drop reason, and
+  fresh-delivered FPS.
 - [x] UE tunnel RX/TX bitrate, packet counters, drops/errors, and optional ping RTT/loss.
 - [x] UE decoded grant metrics via `NRUE_MAC_DCI_GRANT`: UL/DL MCS, RBs, symbols, TBS, HARQ, NDI/RV.
 - [x] Clean UE T-tracer profile that excludes legacy/suspicious UE PHY files by default.
@@ -722,6 +735,12 @@ receive rate, and task utility under fixed payloads.
   - [ ] No background load.
   - [ ] Fixed iperf uplink/downlink load.
   - [ ] Optional two-UE competing perception load.
+- [ ] Run reliability/delivery stress before learned policy training:
+  - [ ] FPS sweep: 5, 10, 15, 20, 30 FPS.
+  - [ ] Buffer policy/size sweep: latest-only/1, 2, 4, 8, 16.
+  - [ ] Payload profiles: no-AE u8 ROI0 and AE-128 u4 ROI0.
+  - [ ] Network modes: loopback, clean OAI, later Sionna-varying channel.
+  - [ ] Report delivered FPS and fresh-delivered FPS separately.
 - [ ] Analyze 5QI effects:
   - [ ] RTT median/p95/p99.
   - [ ] Timeout/no-result rate.
@@ -920,9 +939,26 @@ Requirements groundwork completed before the policy stress campaign:
 - [x] Validate live model accuracy and fix the actor-origin vs bounding-box-
   center ground-truth mismatch.
 - [x] Measure localization error vs object speed and analytical latency.
-- [x] Measure held-map staleness vs FPS and combined `Y + 1/FPS` age.
+- [x] Measure held-map staleness vs FPS and combined `Y_up + 1/FPS` age.
 - [x] Split the latency result by straight/curve/intersection road state.
-- [ ] Complete the controlled radar/camera FoV-position diagnostic.
+- [x] Complete natural-scene post-hoc radar/camera FoV-position split for
+  range-aware edge risk. Controlled lateral diagnostic remains optional and
+  must pass centered-baseline parity before any sweep.
+- [ ] Log downlink/result-return latency and payload using existing loopback/OAI
+  split-inference path.
+  - [x] Ideal-loopback no-AE 200k FPS sweep complete:
+    `downlink_latency_fps/IDEAL_LOOPBACK_RESULTS.md`.
+  - [x] Bounded/default-buffer loopback calibration complete and classified as
+    a reliability/buffer-failure condition:
+    `downlink_latency_fps/BOUNDED_LOOPBACK_CALIBRATION.md`.
+  - [ ] Default OAI sweep pending; first health check found OAI core healthy but
+    `oaitun_ue1` absent, so UE/RAN/back-half bring-up is needed.
+- [ ] Extend freshness constraint from `Y_up + 1/FPS` to
+  `Y_up + 1/FPS + Y_down + Y_map_share` after downlink logging.
+- [ ] Measure FPS × buffer size × payload reliability, including delivered FPS,
+  fresh-delivered FPS, queue wait, stale-result age, drops, and timeout rate.
+- [ ] Integrate Sionna/ray-traced channel traces after the logging schema is
+  stable.
 - [ ] Add object speed, road state, and map age to the executable controller state.
 
 - [ ] Add controlled stress profiles: jitter, delay, queueing, packet loss, or bandwidth limits.

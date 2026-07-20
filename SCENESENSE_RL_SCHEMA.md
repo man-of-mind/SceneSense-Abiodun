@@ -1,7 +1,7 @@
 # SceneSense RL Schema Draft
 
 Originally drafted in Month 1; reconciled with the July action, OAI, and
-staleness evidence on 2026-07-16. The first controller must still be evaluated
+staleness evidence on 2026-07-17. The first controller must still be evaluated
 offline against logged traces before any online policy touches CARLA or OAI.
 
 ## Control Objective
@@ -23,9 +23,9 @@ actions before the action reaches the runtime.
 | Object/ego dynamics | Object speed bin, ego speed, acceleration, turning, road state | CARLA trajectories, vehicle telemetry, map waypoint geometry. |
 | Confidence/uncertainty | Mean/max detection confidence, object-head support confidence, segmentation entropy/probability margin | Model output tensors and result payloads. |
 | Payload pressure | Payload bytes, uncompressed bytes, chunk count, compression profile, send/skip history | Application metrics CSV. |
-| Latency pressure | Front time, back time, RTT, timeout count, stale-result age | Application metrics CSV. |
+| Latency pressure | Front time, back time, uplink age, downlink/result-return age, RTT, timeout count, stale-result age | Application metrics CSV. |
 | Network health | UE tunnel bitrate, packet counters, ping RTT/loss, gNB/UE MCS/RB/TBS/HARQ/BLER where available | Network sampler, T-tracer, gNB stdout parser. |
-| Map freshness | Capture-to-map latency `Y`, update FPS, held age, `Y + 1/FPS`, track freshness | Application timestamps, spatial-map snapshot, staleness analysis. |
+| Map freshness | Capture-to-map latency `Y_up`, update FPS, held age, `Y_up + 1/FPS`, round-trip age `Y_up + 1/FPS + Y_down + Y_map_share`, track freshness | Application timestamps, spatial-map snapshot, staleness analysis. |
 
 Minimum Month 1 offline state vector:
 
@@ -43,11 +43,15 @@ Minimum Month 1 offline state vector:
   vulnerable_object_present,
   mean_confidence,
   payload_bytes,
+  downlink_payload_bytes,
   payload_chunks,
   round_trip_ms,
+  uplink_age_ms,
+  downlink_age_ms,
   timeout_or_missing_result,
   update_fps,
   map_age_ms,
+  fresh_delivery_rate,
   ue_tx_mbps,
   ue_rx_mbps,
   grant_mcs_ul,
@@ -90,8 +94,10 @@ Suggested task utility terms:
 - SEG: foreground IoU or mIoU proxy, with extra weight for person/vehicle IoU.
 - Fusion object head: object recall, XY localization error, yaw/dimension error.
 - Fusion segmentation head: foreground IoU, vehicle/person IoU.
-- Spatial-map freshness: speed-conditioned error at age `Y + 1/FPS`, stale
-  update rate, and vulnerable-object warning timeliness.
+- Spatial-map freshness: speed-conditioned error at age `Y_up + 1/FPS` for
+  capture-to-map experiments, then `Y_up + 1/FPS + Y_down + Y_map_share` for
+  cooperative use, stale update rate, fresh-delivered FPS, and vulnerable-object
+  warning timeliness.
 
 For Month 1, keep the weights fixed in configuration. Do not learn the reward
 weights yet.
@@ -106,7 +112,7 @@ The guardrail runs before action execution and after offline scoring:
 | Vulnerable-object floor | Reject aggressive compression, frame skip, or ROI drop when pedestrian/cyclist/hidden-hazard presence is true. |
 | Confidence floor | Fall back to safer settings when model confidence drops or uncertainty rises. |
 | Network timeout floor | If timeout/missing-result rate rises, prefer smaller payload actions before frame skipping. |
-| Dynamics/freshness floor | Tighten the allowed `Y + 1/FPS` budget as object speed rises; reject actions predicted to exceed the configured localization-error envelope. |
+| Dynamics/freshness floor | Tighten the allowed `Y_up + 1/FPS` budget as object speed rises; after downlink logging, tighten the round-trip `Y_up + 1/FPS + Y_down + Y_map_share` budget. Reject actions predicted to exceed the configured localization-error envelope. |
 | Route support | Clamp unsupported AE/ROI/quantization choices to that route's safest supported profile. |
 
 There is no single universally safe fallback: no-AE u8 maximizes per-frame
@@ -154,11 +160,30 @@ frame_skip = 0 when a vulnerable object or stale-map hazard is active
   contention or impairment shows a measurable effect.
 - **Dynamics requirement:** live measurements show a roughly `1.1 m` model
   floor, sharply increasing latency error for fast vehicles, and held-map age
-  up to `1/FPS`. Object speed and `Y + 1/FPS` are required state/reward inputs.
+  up to `1/FPS`. Object speed and `Y_up + 1/FPS` are required state/reward inputs; downlink logging extends this
+  to `Y_up + 1/FPS + Y_down + Y_map_share`.
+
+## Update (2026-07-17) — round-trip and reliability instrumentation before RL
+
+- **Downlink/result-return is now a required trace field.** The current
+  staleness requirement is a Stage-1 capture/front/uplink/edge-tail/map-update
+  budget. The cooperative use case also needs result/map return to the
+  recipient vehicle and eventual spatial-map sharing operation time.
+- **Freshness equation for replay:** keep scoring the measured Stage-1 term
+  `Y_up + 1/FPS`, but add fields for the full operational term
+  `Y_up + 1/FPS + Y_down + Y_map_share`.
+- **Reliability is not just packet loss.** The controller needs delivered FPS,
+  fresh-delivered FPS, queue wait, stale-result age, buffer drops, timeout rate,
+  and exact downlink payload bytes. Late frames should be counted separately
+  from useful fresh frames.
+- **Sionna/channel realism comes after instrumentation.** Ray-traced channel
+  state should feed the same replay schema rather than creating a separate,
+  non-comparable experiment.
 
 ## Current Implementation Boundary
 
 The schema, action measurements, OAI measurements, and staleness requirements
-exist. The trace join, executable action catalog, reward scorer, simple-policy
-replay, LinUCB/DQN policy, and controller-level guardrail are not implemented.
+exist. Downlink/result-return logging, fresh-delivery reliability traces, the
+trace join, executable action catalog, reward scorer, simple-policy replay,
+LinUCB/DQN policy, and controller-level guardrail are not implemented.
 No online action execution should be enabled until those offline checks pass.

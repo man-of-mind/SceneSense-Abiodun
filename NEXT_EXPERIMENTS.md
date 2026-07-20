@@ -1,9 +1,10 @@
-# Next experiments — pick-up plan (written 2026-07-16)
+# Next experiments — pick-up plan (written 2026-07-16; updated 2026-07-17)
 
 **Exp 1 & 2 consolidated into agent guardrails → `rl_agent/AGENT_CONSTRAINTS.md`** (floor ~1.1 m; latency caps &
-FPS floors per speed; master constraint `v·(Y+1/FPS) ≤ √(ε²−1.1²)`; speed-gated policy). **Experiment 3 is PARKED**
-(the FOV/parked-car diagnostic — resolved that parked-ego is NOT the cause; the artificial single-target scene is;
-revisit another day with a training-like scene).
+FPS floors per speed; Stage-1 master constraint `v·(Y_up+1/FPS) ≤ √(ε²−1.1²)`; next extension adds
+`Y_down + Y_map_share`; speed-gated policy). **Experiment 3 is PARKED** (the FOV/parked-car diagnostic — resolved
+that parked-ego is NOT the cause; the artificial single-target scene is; revisit another day with a training-like
+scene).
 
 **Status reconciled 2026-07-16 (after correcting the Experiment-3 protocol):**
 - **Exp 2 (FPS staleness): SOUND** — corrected framing applied correctly, numbers physically right (v×1/FPS).
@@ -38,6 +39,147 @@ revisit another day with a training-like scene).
   frozen score >=0.20 gate: only 20/60 matches within 2 m. Lower analysis thresholds recover accurate 10 m peaks,
   so the next issue is score calibration / duplicate peak selection, not visibility or radar support. See
   `experiment3_vehicle_lateral/README.md`.
+
+## 2026-07-17 meeting action order — do these before agent training
+
+The next work should proceed in this order. The goal is to turn the current capture-to-edge freshness constraint
+into a full operational constraint that includes result return, queueing, delivery, and realistic channel behavior.
+
+### Step 1 — Downlink latency and result-payload logging
+
+Repeat a small Experiment-1/2-style run, but instrument the return path from the edge tail model back to the ego/car
+display. This should answer how much budget is consumed after the edge result is ready.
+
+Minimum timestamps/fields:
+
+- `frame_id`
+- `t_capture`
+- `t_front_send`
+- `t_edge_recv`
+- `t_tail_done`
+- `t_result_send`
+- `t_car_result_recv`
+- `t_display_ready`
+- `uplink_payload_bytes`
+- `downlink_payload_bytes`
+- `result_type` (`boxes`, `seg_mask`, `overlay`, or combined)
+
+Recommended first profiles:
+
+1. Loopback no-AE, 200k radar recipe — debug baseline.
+2. OAI no-AE u8 ROI0 — large-payload / latency-heavy case.
+3. OAI AE-128 u4 ROI0 — current deployable compressed case.
+4. Optional AE-128 u8 ROI0 — middle point if needed.
+
+**2026-07-17 update:** Step-1 instrumentation is implemented in `staleness/carla_fusion_staleness_scenario.py`
+and a clean experiment folder now exists at `downlink_latency_fps/`. The ideal-loopback FPS sweep completed under
+batch `20260717_ideal_one_loop` using the no-AE 200k moving-ego recipe. Summary:
+
+- delivery: 100% at 5/10/20/30 FPS;
+- feature payload: ~1.08–1.09 MB, 19 UDP chunks;
+- result payload: ~8–12 KB, 1 UDP chunk;
+- capture/front-start → car result receive: ~88–90 ms p50;
+- post-send feature-send-stamp → result-receive subpath: ~43 ms p50, ~54 ms p95;
+- feature-upload payload-handling residual: ~31 ms p50; treat this as channel-independent payload handling
+  (send burst/reassembly/deserialization/runtime), not RF/channel latency;
+- result downlink/result-send to car receive: ~5 ms p50 for boxes/compact results;
+- caveat: the training-route ego obeyed lights/traffic, so many frames are stopped; the route/autopilot did engage,
+  but report speed distribution alongside latency.
+
+Artifact: `downlink_latency_fps/IDEAL_LOOPBACK_RESULTS.md`.
+
+**Bounded/default-buffer calibration:** the clean short 10 FPS / 100-frame rerun under
+`net.core.rmem_max/wmem_max=212992` delivered only **3/100** frames with the no-AE 200k payload (~1.1 MB,
+19 UDP chunks). This supersedes the first 1/100 calibration, which was useful diagnostically but had stale-port
+and cleanup-trap hygiene issues. The bounded result confirms the old loopback setting is a UDP receive-buffer
+reliability cliff, not a clean ~50 ms transport point for the current no-AE recipe. Treat it as Step-2
+reliability/buffer evidence, not as a full Step-1 latency sweep. The high first-frame `back_ms` is a sparse-delivery
+warm-up/outlier; later delivered frames returned to ~9–18 ms back compute. Artifact:
+`downlink_latency_fps/BOUNDED_LOOPBACK_CALIBRATION.md`.
+
+Post-cleanup validation: a stale local back-half on `51002` was stopped, the runner now fails fast when the back-half
+port is already occupied, and a 100-frame post-cleanup ideal smoke (`smoke2_portclear_20260717`) reproduced the
+same healthy ideal behavior (100/100 delivery, ~88 ms capture/front-start→result p50 estimate, ~43 ms post-send
+subpath p50, ~5 ms tail/send-to-receive).
+
+Pending: default OAI sweep. First OAI health check found the OAI core containers healthy, but `oaitun_ue1` was absent,
+so UE/RAN/back-half bring-up is required before the OAI run.
+
+This extends the Stage-1 constraint from `Y_up + 1/FPS` to the round-trip form:
+
+> `L_total = Y_up + 1/FPS + Y_down + Y_map_share`
+
+For now, `Y_map_share` can be a fixed placeholder. Do not claim final cooperative-perception compliance until
+`Y_down` and map-sharing latency are measured.
+
+### Step 2 — FPS × buffer size × reliability/delivery-rate experiment
+
+After downlink logging is in place, test whether high requested FPS actually arrives fresh. Raw delivery count is
+not enough: a frame that arrives after its speed-conditioned freshness deadline should be treated as stale.
+
+Measure per run:
+
+- generated frames
+- queued frames
+- sent frames
+- edge-received frames
+- tail-completed frames
+- downlink-received frames
+- displayed frames
+- delivered FPS
+- fresh-delivered FPS
+- queue wait time
+- end-to-end age
+- dropped frames and `drop_reason`
+- timeout/no-result rate
+
+Suggested sweep:
+
+| variable | values |
+|---|---|
+| FPS | 5, 10, 15, 20, 30 |
+| buffer policy/size | latest-only/1, 2, 4, 8, 16 |
+| payload profile | no-AE u8 ROI0, AE-128 u4 ROI0 |
+| network mode | loopback, clean OAI, later Sionna-varying |
+
+Key metric for the controller:
+
+> `fresh_delivery_rate = frames displayed before their freshness deadline / frames generated`
+
+This will tell us whether the guardrail should prefer latest-only dropping over stale queue accumulation for fast
+objects.
+
+### Step 3 — Experiment 3 / vehicle FOV measurement continuation
+
+Keep this separate from the network guardrail work. The valid FOV evidence today is the natural-scene post-hoc split
+in `staleness/fov_posthoc/`: edge position mainly hurts availability and medium/far localization, not near-field
+localization. A controlled lateral sweep should only resume if the centered baseline passes under a deliberately
+frozen threshold/target-selection rule in a training-like scene.
+
+Stop/go rule before any controlled lateral sweep:
+
+- center target visible and within 40 m;
+- radar support and loopback delivery complete;
+- score/confidence looks like the normal deployed regime;
+- centered localization returns to the expected ~0.9–1.2 m range;
+- threshold and target-selection rule are frozen before offsets begin.
+
+If this gate fails again, report the controlled scene as an artificial-scene diagnostic and rely on the natural-scene
+post-hoc FOV analysis for RL risk shaping.
+
+### Step 4 — Sionna ray-traced channel realism
+
+Do this after Steps 1–2 stabilize the logging schema. The Sionna work should reuse the same per-frame metrics, then
+add position-dependent channel state:
+
+- RSRP/SNR/SINR/path loss;
+- LOS/NLOS/blockage regions;
+- retransmission/HARQ proxies where available;
+- delivery/drop/latency variation;
+- buffer behavior under channel dips.
+
+The intended output is not just a channel plot; it is a controller replay trace where the agent can see how realistic
+channel variation changes payload feasibility, freshness, and reliability.
 
 ## 🚦 GUARDRAILS — read before running anything (this is the recurring failure mode)
 A prior session shipped an Experiment-3 summary full of "findings" and "RL implications" built on **~46,000 m
@@ -107,7 +249,7 @@ Context: `staleness/make_roadstate_speed_plots.py` splits the per-speed error(Y)
 ## Experiment 2 — COMPLETE: FPS as spatial-map staleness
 
 **Result:** `staleness/make_fps_speed_report.py` computes the worst-case held-map error at
-`t + 1/FPS` and the coupled lag `Y + 1/FPS` from the existing speed sweep. At ~32 mph, zero-network-
+`t + 1/FPS` and the coupled lag `Y_up + 1/FPS` from the existing speed sweep. At ~32 mph, zero-network-
 latency error drops from **15.02 m at 1 FPS** to **2.02 m at 10 FPS**, **1.52 m at 20 FPS**, and
 **1.41 m at 30 FPS**. With AE-128 latency (105 ms), the corresponding 32-mph values are about
 3.0 m at 10 FPS, 1.7 m at 20 FPS, and 1.5 m at 30 FPS. Main output:
@@ -128,7 +270,7 @@ Original corrected protocol retained for provenance:
 - **Plot:** loc error (y) vs object speed (x), **one line per FPS** — shows error flat for static, exploding at
   low FPS for fast cars, collapsing toward the model floor (~1.1 m) at high FPS. Worst-case line is the headline;
   optionally add the average-case.
-- **Then:** repeat with added network latency Y → error at lag `Y + 1/FPS` (FPS+latency coupling). Overlay the
+- **Then:** repeat with added network latency `Y_up` → error at lag `Y_up + 1/FPS` (FPS+latency coupling). Overlay the
   real operating Y (loopback ~50, AE-128 ~105, no-AE ~267 ms).
 - **Build from:** `staleness/make_speed_error_report.py` / `make_roadstate_speed_plots.py` (same collection loop;
   just set the lookahead lag = 1/FPS instead of a fixed Y, and make FPS the line variable).
@@ -283,7 +425,7 @@ tensors under bandwidth limits. Also separate localization-head error vs radar-s
 - **OAI config sweep (paused):** findings in `oai_config_sweep/OAI_CONFIG_FINDINGS.md` — config barely moves
   transport in single-UE; compression is the lever. Gotcha: automated rfsim gNB↔UE restarts are flaky → use a
   full cold-restart per config; extreme UL TDD not achievable (gNB K2 + UE DCI limits). Revisit under multi-UE /
-  channel impairment (SIONA-RT).
+  channel impairment (Sionna-RT).
 - **Meeting framing that landed:** cars tracked ≤25 m (median 13 m); high speeds via NPC over-speed; latency swept
   analytically on live captures. The speed/latency trend persists on straight roads and at intersections;
   intersections are worse at 267 ms. Curves remain under-sampled and speed-confounded. The zero-latency floor

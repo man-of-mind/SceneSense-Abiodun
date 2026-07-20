@@ -148,8 +148,22 @@ FUSION_METRICS_FIELDS = (
     "front_ms",
     "back_ms",
     "round_trip_ms",
+    "round_trip_result_recv_ms",
     "transport_round_trip_ms_estimate",
     "total_pipeline_ms_estimate",
+    "result_wait_ms",
+    "result_queue_wait_ms",
+    "tail_done_to_result_recv_ms",
+    "result_send_to_recv_ms_perf",
+    "result_send_to_recv_ms_wall",
+    "result_recv_to_display_ms",
+    "tail_done_to_display_ms",
+    "t_front_send_wall_s",
+    "t_edge_recv_wall_s",
+    "t_tail_done_wall_s",
+    "t_result_send_wall_s",
+    "t_car_result_recv_wall_s",
+    "t_display_ready_wall_s",
     "feature_payload_bytes",
     "feature_payload_bytes_uncompressed",
     "feature_payload_chunks",
@@ -1096,6 +1110,8 @@ class CameraSideFusionInference:
             per_level_compress_probe=False,
             entropy_coder=self._probe_coder,
         )
+        front_send_perf = time.perf_counter()
+        front_send_wall_s = time.time()
         payload = {
             "frame_id": int(frame_id),
             "batch_size": int(fused.shape[0]),
@@ -1107,7 +1123,11 @@ class CameraSideFusionInference:
             "features": serialized_features,
             "camera_matrix": camera_matrix.astype(np.float64),
             "camera_intrinsics_input": camera_intrinsics_input.astype(np.float64),
-            "camera_sent_perf": time.perf_counter(),
+            # Step-1 round-trip/downlink instrumentation.
+            # `perf_counter` gives stable same-host deltas; wall time is useful when
+            # comparing front/back containers whose clocks are synchronized.
+            "camera_sent_perf": front_send_perf,
+            "camera_sent_wall_s": front_send_wall_s,
         }
         payload_bytes, payload_chunks = self.sender.send(payload)
         return {
@@ -1169,8 +1189,33 @@ class FusionRemoteInferenceWorker(threading.Thread):
                         print(f"[{self.label}] waiting for feature tensors...")
                         self._last_wait_log = now
                 continue
+            edge_recv_perf = time.perf_counter()
+            edge_recv_wall_s = time.time()
             try:
                 result = self._run_back_half(payload)
+                result["edge_recv_perf"] = float(edge_recv_perf)
+                result["edge_recv_wall_s"] = float(edge_recv_wall_s)
+                result["camera_sent_wall_s"] = float(payload.get("camera_sent_wall_s", float("nan")))
+                result["result_send_start_perf"] = time.perf_counter()
+                result["result_send_start_wall_s"] = time.time()
+                # Make the payload estimate include the timing fields and its own
+                # estimate columns. A few iterations are enough for stable digit
+                # lengths in the serialized dictionary.
+                result["result_payload_bytes_estimate"] = 0
+                result["result_payload_chunks_estimate"] = 0
+                for _ in range(4):
+                    result_payload_bytes, result_payload_chunks = _estimate_udp_payload(
+                        result,
+                        chunk_bytes=self.sender.chunk_bytes,
+                        transport=self.transport,
+                    )
+                    if (
+                        int(result.get("result_payload_bytes_estimate", -1)) == int(result_payload_bytes)
+                        and int(result.get("result_payload_chunks_estimate", -1)) == int(result_payload_chunks)
+                    ):
+                        break
+                    result["result_payload_bytes_estimate"] = int(result_payload_bytes)
+                    result["result_payload_chunks_estimate"] = int(result_payload_chunks)
                 result_payload_bytes, result_payload_chunks = _estimate_udp_payload(
                     result,
                     chunk_bytes=self.sender.chunk_bytes,
@@ -1293,10 +1338,14 @@ class FusionRemoteInferenceWorker(threading.Thread):
                     }
                 )
 
+        tail_done_perf = time.perf_counter()
+        tail_done_wall_s = time.time()
         return {
             "frame_id": int(payload["frame_id"]),
             "camera_sent_perf": float(payload["camera_sent_perf"]),
-            "server_ms": (time.perf_counter() - started) * 1000.0,
+            "server_ms": (tail_done_perf - started) * 1000.0,
+            "tail_done_perf": float(tail_done_perf),
+            "tail_done_wall_s": float(tail_done_wall_s),
             "mask": mask_display,
             "objects": objects,
         }
@@ -1395,6 +1444,35 @@ class CameraResultReceiver(threading.Thread):
             payload = self.receiver.receive()
             if payload is None:
                 continue
+            recv_perf = time.perf_counter()
+            recv_wall_s = time.time()
+            if isinstance(payload, dict):
+                payload["car_result_recv_perf"] = float(recv_perf)
+                payload["car_result_recv_wall_s"] = float(recv_wall_s)
+                try:
+                    payload["round_trip_result_recv_ms"] = (
+                        recv_perf - float(payload["camera_sent_perf"])
+                    ) * 1000.0
+                except (KeyError, TypeError, ValueError):
+                    payload["round_trip_result_recv_ms"] = float("nan")
+                try:
+                    payload["result_send_to_recv_ms_perf"] = (
+                        recv_perf - float(payload["result_send_start_perf"])
+                    ) * 1000.0
+                except (KeyError, TypeError, ValueError):
+                    payload["result_send_to_recv_ms_perf"] = float("nan")
+                try:
+                    payload["result_send_to_recv_ms_wall"] = (
+                        recv_wall_s - float(payload["result_send_start_wall_s"])
+                    ) * 1000.0
+                except (KeyError, TypeError, ValueError):
+                    payload["result_send_to_recv_ms_wall"] = float("nan")
+                try:
+                    payload["tail_done_to_result_recv_ms"] = (
+                        recv_perf - float(payload["tail_done_perf"])
+                    ) * 1000.0
+                except (KeyError, TypeError, ValueError):
+                    payload["tail_done_to_result_recv_ms"] = float("nan")
             self.result_store.put(int(payload["frame_id"]), payload)
 
 
@@ -2461,9 +2539,9 @@ def build_fusion_metrics_row(
     remote_stats: Optional[Dict[str, object]],
     mask: Optional[np.ndarray],
     objects: Sequence[Dict[str, object]],
-        radar_projected_points: int,
-        gt_3class: Optional[np.ndarray],
-        spatial_publisher: Optional["SpatialMapResultPublisher"],
+    radar_projected_points: int,
+    gt_3class: Optional[np.ndarray],
+    spatial_publisher: Optional["SpatialMapResultPublisher"],
     camera_width: int,
     camera_height: int,
     model_input_size: Tuple[int, int],
@@ -2471,6 +2549,11 @@ def build_fusion_metrics_row(
     tracked_lead_actor: Optional["carla.Actor"] = None,
     experiment3_target_actor: Optional["carla.Actor"] = None,
     experiment3_target_radar_points: int = 0,
+    result_wait_ms: float = float("nan"),
+    result_consumed_perf: float = float("nan"),
+    result_consumed_wall_s: float = float("nan"),
+    display_ready_perf: float = float("nan"),
+    display_ready_wall_s: float = float("nan"),
 ) -> Dict[str, object]:
     segmentation = _segmentation_summary(mask)
     quality = _segmentation_quality_columns(mask, gt_3class)
@@ -2478,12 +2561,36 @@ def build_fusion_metrics_row(
     front_ms = _safe_float(front_stats.get("front_ms"), 0.0)
     back_ms = _safe_float((remote_stats or {}).get("server_ms"), float("nan"))
     round_trip_ms = _safe_float((remote_stats or {}).get("round_trip_ms"), float("nan"))
+    round_trip_result_recv_ms = _safe_float(
+        (remote_stats or {}).get("round_trip_result_recv_ms"),
+        float("nan"),
+    )
     transport_round_trip_ms = (
         max(0.0, round_trip_ms - back_ms)
         if math.isfinite(round_trip_ms) and math.isfinite(back_ms)
         else float("nan")
     )
     total_pipeline_ms = front_ms + round_trip_ms if math.isfinite(round_trip_ms) else float("nan")
+    car_result_recv_perf = _safe_float(
+        (remote_stats or {}).get("car_result_recv_perf"),
+        float("nan"),
+    )
+    tail_done_perf = _safe_float((remote_stats or {}).get("tail_done_perf"), float("nan"))
+    result_queue_wait_ms = (
+        max(0.0, (float(result_consumed_perf) - car_result_recv_perf) * 1000.0)
+        if math.isfinite(float(result_consumed_perf)) and math.isfinite(car_result_recv_perf)
+        else float("nan")
+    )
+    result_recv_to_display_ms = (
+        max(0.0, (float(display_ready_perf) - car_result_recv_perf) * 1000.0)
+        if math.isfinite(float(display_ready_perf)) and math.isfinite(car_result_recv_perf)
+        else float("nan")
+    )
+    tail_done_to_display_ms = (
+        max(0.0, (float(display_ready_perf) - tail_done_perf) * 1000.0)
+        if math.isfinite(float(display_ready_perf)) and math.isfinite(tail_done_perf)
+        else float("nan")
+    )
     ego_speed_mps = float("nan")
     tracked_target_speed_mps = float("nan")
     tracked_gap_m = float("nan")
@@ -2522,8 +2629,46 @@ def build_fusion_metrics_row(
         "front_ms": front_ms,
         "back_ms": back_ms,
         "round_trip_ms": round_trip_ms,
+        "round_trip_result_recv_ms": round_trip_result_recv_ms,
         "transport_round_trip_ms_estimate": transport_round_trip_ms,
         "total_pipeline_ms_estimate": total_pipeline_ms,
+        "result_wait_ms": _safe_float(result_wait_ms, float("nan")),
+        "result_queue_wait_ms": result_queue_wait_ms,
+        "tail_done_to_result_recv_ms": _safe_float(
+            (remote_stats or {}).get("tail_done_to_result_recv_ms"),
+            float("nan"),
+        ),
+        "result_send_to_recv_ms_perf": _safe_float(
+            (remote_stats or {}).get("result_send_to_recv_ms_perf"),
+            float("nan"),
+        ),
+        "result_send_to_recv_ms_wall": _safe_float(
+            (remote_stats or {}).get("result_send_to_recv_ms_wall"),
+            float("nan"),
+        ),
+        "result_recv_to_display_ms": result_recv_to_display_ms,
+        "tail_done_to_display_ms": tail_done_to_display_ms,
+        "t_front_send_wall_s": _safe_float(
+            (remote_stats or {}).get("camera_sent_wall_s"),
+            float("nan"),
+        ),
+        "t_edge_recv_wall_s": _safe_float(
+            (remote_stats or {}).get("edge_recv_wall_s"),
+            float("nan"),
+        ),
+        "t_tail_done_wall_s": _safe_float(
+            (remote_stats or {}).get("tail_done_wall_s"),
+            float("nan"),
+        ),
+        "t_result_send_wall_s": _safe_float(
+            (remote_stats or {}).get("result_send_start_wall_s"),
+            float("nan"),
+        ),
+        "t_car_result_recv_wall_s": _safe_float(
+            (remote_stats or {}).get("car_result_recv_wall_s"),
+            float("nan"),
+        ),
+        "t_display_ready_wall_s": _safe_float(display_ready_wall_s, float("nan")),
         "feature_payload_bytes": _safe_int(front_stats.get("payload_bytes"), 0),
         "feature_payload_bytes_uncompressed": _safe_int(
             front_stats.get("payload_bytes_uncompressed"),
@@ -4228,19 +4373,71 @@ def run_client(args: argparse.Namespace) -> None:
                 display_size=(int(camera_width), int(camera_height)),
             )
 
+            result_wait_start_perf = time.perf_counter()
             result = result_store.wait_for(
                 int(image.frame),
                 float(args.result_timeout),
                 tick_callback=None,
                 tick_hz=max(0.1, float(args.fps)),
             )
+            result_consumed_perf = time.perf_counter()
+            result_consumed_wall_s = time.time()
+            result_wait_ms = (result_consumed_perf - result_wait_start_perf) * 1000.0
             remote_stats = None
             mask: Optional[np.ndarray] = None
             objects: Sequence[Dict[str, object]] = ()
             if result is not None:
                 remote_stats = {
                     "server_ms": float(result["server_ms"]),
-                    "round_trip_ms": (time.perf_counter() - float(result["camera_sent_perf"])) * 1000.0,
+                    "round_trip_ms": (
+                        result_consumed_perf - float(result["camera_sent_perf"])
+                    ) * 1000.0,
+                    "round_trip_result_recv_ms": _safe_float(
+                        result.get("round_trip_result_recv_ms"),
+                        float("nan"),
+                    ),
+                    "camera_sent_wall_s": _safe_float(
+                        result.get("camera_sent_wall_s"),
+                        float("nan"),
+                    ),
+                    "edge_recv_perf": _safe_float(result.get("edge_recv_perf"), float("nan")),
+                    "edge_recv_wall_s": _safe_float(
+                        result.get("edge_recv_wall_s"),
+                        float("nan"),
+                    ),
+                    "tail_done_perf": _safe_float(result.get("tail_done_perf"), float("nan")),
+                    "tail_done_wall_s": _safe_float(
+                        result.get("tail_done_wall_s"),
+                        float("nan"),
+                    ),
+                    "result_send_start_perf": _safe_float(
+                        result.get("result_send_start_perf"),
+                        float("nan"),
+                    ),
+                    "result_send_start_wall_s": _safe_float(
+                        result.get("result_send_start_wall_s"),
+                        float("nan"),
+                    ),
+                    "car_result_recv_perf": _safe_float(
+                        result.get("car_result_recv_perf"),
+                        float("nan"),
+                    ),
+                    "car_result_recv_wall_s": _safe_float(
+                        result.get("car_result_recv_wall_s"),
+                        float("nan"),
+                    ),
+                    "tail_done_to_result_recv_ms": _safe_float(
+                        result.get("tail_done_to_result_recv_ms"),
+                        float("nan"),
+                    ),
+                    "result_send_to_recv_ms_perf": _safe_float(
+                        result.get("result_send_to_recv_ms_perf"),
+                        float("nan"),
+                    ),
+                    "result_send_to_recv_ms_wall": _safe_float(
+                        result.get("result_send_to_recv_ms_wall"),
+                        float("nan"),
+                    ),
                     "result_payload_bytes_estimate": int(
                         result.get("result_payload_bytes_estimate", 0)
                     ),
@@ -4266,69 +4463,9 @@ def run_client(args: argparse.Namespace) -> None:
 
             processed_frames += 1
             elapsed_s = time.perf_counter() - start_perf
-            if metrics_logger is not None:
-                radar_projected_points = 0
-                try:
-                    radar_projected_points = int(
-                        np.count_nonzero(radar_points["valid_projection"].astype(bool))
-                    )
-                except Exception:
-                    radar_projected_points = 0
-                experiment3_target_radar_points = _radar_points_inside_actor_box(
-                    np.asarray(radar_points.get("world_xyz", np.zeros((0, 3))), dtype=np.float32),
-                    experiment3_target_actor,
-                )
-                metrics_logger.append(
-                    build_fusion_metrics_row(
-                        args=args,
-                        run_logger=metrics_logger,
-                        elapsed_s=elapsed_s,
-                        stream_id=spatial_stream_id,
-                        frame_id=int(image.frame),
-                        carla_timestamp=float(image.timestamp),
-                        front_stats=front_stats,
-                        remote_stats=remote_stats,
-                        mask=mask,
-                        objects=objects,
-                        radar_projected_points=radar_projected_points,
-                        gt_3class=gt_3class,
-                        spatial_publisher=spatial_publisher,
-                        camera_width=int(camera_width),
-                        camera_height=int(camera_height),
-                        model_input_size=model_input_size,
-                        anchor_actor=anchor_actor,
-                        tracked_lead_actor=tracked_lead_actor,
-                        experiment3_target_actor=experiment3_target_actor,
-                        experiment3_target_radar_points=experiment3_target_radar_points,
-                    )
-                )
-                metrics_logger.append_object_predictions(
-                    elapsed_s=elapsed_s,
-                    frame_id=int(image.frame),
-                    objects=objects,
-                )
-                metrics_logger.append_object_ground_truth(
-                    build_vehicle_ground_truth_rows(
-                        world=world,
-                        frame_id=int(image.frame),
-                        elapsed_s=elapsed_s,
-                        carla_timestamp=float(image.timestamp),
-                        camera_transform=camera.get_transform(),
-                        camera_inverse_matrix=camera_inverse_matrix,
-                        intrinsics=intrinsics_display,
-                        camera_width=int(camera_width),
-                        camera_height=int(camera_height),
-                        exclude_actor_ids=(
-                            [int(anchor_actor.id)] if sensor_platform == "ego_vehicle" else []
-                        ),
-                    )
-                )
-            if max_measurement_frames > 0 and processed_frames >= max_measurement_frames:
-                print(f"Reached --max-frames={max_measurement_frames}; stopping run.")
-                break
-            if run_duration_elapsed():
-                break
-
+            display_ready_perf = float("nan")
+            display_ready_wall_s = float("nan")
+            requested_exit = False
             save_annotated = bool(str(getattr(args, "overlay_save_dir", ""))) and (
                 processed_frames % max(1, int(args.overlay_save_every)) == 0
             )
@@ -4369,11 +4506,84 @@ def run_client(args: argparse.Namespace) -> None:
                         ),
                         annotated,
                     )
+                    display_ready_perf = time.perf_counter()
+                    display_ready_wall_s = time.time()
                 if gui_enabled:
                     cv2.imshow(DEFAULT_WINDOW_NAME, annotated)
+                    display_ready_perf = time.perf_counter()
+                    display_ready_wall_s = time.time()
                     key = cv2.waitKey(1) & 0xFF
                     if key in (27, ord("q")):
-                        break
+                        requested_exit = True
+            if metrics_logger is not None:
+                radar_projected_points = 0
+                try:
+                    radar_projected_points = int(
+                        np.count_nonzero(radar_points["valid_projection"].astype(bool))
+                    )
+                except Exception:
+                    radar_projected_points = 0
+                experiment3_target_radar_points = _radar_points_inside_actor_box(
+                    np.asarray(radar_points.get("world_xyz", np.zeros((0, 3))), dtype=np.float32),
+                    experiment3_target_actor,
+                )
+                metrics_logger.append(
+                    build_fusion_metrics_row(
+                        args=args,
+                        run_logger=metrics_logger,
+                        elapsed_s=elapsed_s,
+                        stream_id=spatial_stream_id,
+                        frame_id=int(image.frame),
+                        carla_timestamp=float(image.timestamp),
+                        front_stats=front_stats,
+                        remote_stats=remote_stats,
+                        mask=mask,
+                        objects=objects,
+                        radar_projected_points=radar_projected_points,
+                        gt_3class=gt_3class,
+                        spatial_publisher=spatial_publisher,
+                        camera_width=int(camera_width),
+                        camera_height=int(camera_height),
+                        model_input_size=model_input_size,
+                        anchor_actor=anchor_actor,
+                        tracked_lead_actor=tracked_lead_actor,
+                        experiment3_target_actor=experiment3_target_actor,
+                        experiment3_target_radar_points=experiment3_target_radar_points,
+                        result_wait_ms=result_wait_ms,
+                        result_consumed_perf=result_consumed_perf,
+                        result_consumed_wall_s=result_consumed_wall_s,
+                        display_ready_perf=display_ready_perf,
+                        display_ready_wall_s=display_ready_wall_s,
+                    )
+                )
+                metrics_logger.append_object_predictions(
+                    elapsed_s=elapsed_s,
+                    frame_id=int(image.frame),
+                    objects=objects,
+                )
+                metrics_logger.append_object_ground_truth(
+                    build_vehicle_ground_truth_rows(
+                        world=world,
+                        frame_id=int(image.frame),
+                        elapsed_s=elapsed_s,
+                        carla_timestamp=float(image.timestamp),
+                        camera_transform=camera.get_transform(),
+                        camera_inverse_matrix=camera_inverse_matrix,
+                        intrinsics=intrinsics_display,
+                        camera_width=int(camera_width),
+                        camera_height=int(camera_height),
+                        exclude_actor_ids=(
+                            [int(anchor_actor.id)] if sensor_platform == "ego_vehicle" else []
+                        ),
+                    )
+                )
+            if requested_exit:
+                break
+            if max_measurement_frames > 0 and processed_frames >= max_measurement_frames:
+                print(f"Reached --max-frames={max_measurement_frames}; stopping run.")
+                break
+            if run_duration_elapsed():
+                break
 
     finally:
         stop_event.set()

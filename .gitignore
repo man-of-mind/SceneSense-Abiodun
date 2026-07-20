@@ -25,6 +25,10 @@ env/
 /analysis_outputs/
 /radar_pedestrian_diagnostic_runs/
 /logs/
+/downlink_latency_fps/logs/
+/downlink_latency_fps/runs/**
+!/downlink_latency_fps/runs/
+!/downlink_latency_fps/runs/*.csv
 /abiodun/analysis_outputs/
 /phase3_logs/
 /phase3_logs_lowres/
@@ -34,6 +38,7 @@ env/
 latest_fusion_object_spatial_map*.png
 *.log
 *.trace
+*.raw
 *.pcap
 *.pcapng
 /pole_lraspp_multimodal_fusion/latest_*.txt
