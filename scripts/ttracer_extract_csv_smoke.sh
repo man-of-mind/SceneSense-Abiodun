@@ -29,7 +29,7 @@ Options:
   --output-root DIR       Output root; default: metrics_logs/scenesense_ttracer.
   --replay-port PORT      Local replay port; defaults to 2201 for gNB, 2203 for UE.
   --timeout-s SECONDS     Per-event CSV extraction timeout; default: 20.
-  --profile NAME          Extraction profile. UE: clean, payload, legacy/full.
+  --profile NAME          Extraction profile. UE: clean, payload, queue, legacy/full.
                           gNB: clean/full. Defaults to clean for UE, full for gNB.
   --clean-output          Remove existing CSVs in the output csv/ folder first.
   --event EVENT_ID        Extract only this event; can be repeated.
@@ -177,6 +177,14 @@ if [[ "${#EVENTS[@]}" -eq 0 ]]; then
           UE_PHY_UL_PAYLOAD_TX_BITS
         )
         ;;
+      queue)
+        EVENTS=(
+          NRUE_MAC_DCI_GRANT
+          UE_PHY_UL_PAYLOAD_TX_BITS
+          NRUE_MAC_RLC_BUFFER_STATUS
+          NRUE_MAC_BSR_STATUS
+        )
+        ;;
       legacy|full)
         EVENTS=(
           NRUE_MAC_DCI_GRANT
@@ -188,7 +196,7 @@ if [[ "${#EVENTS[@]}" -eq 0 ]]; then
         ;;
       *)
         echo "[ttracer_extract_csv_smoke] unsupported UE profile: ${PROFILE}" >&2
-        echo "[ttracer_extract_csv_smoke] supported UE profiles: clean, payload, legacy, full" >&2
+        echo "[ttracer_extract_csv_smoke] supported UE profiles: clean, payload, queue, legacy, full" >&2
         exit 2
         ;;
     esac
@@ -220,6 +228,12 @@ fields_for_event() {
       ;;
     NRUE_MAC_DCI_GRANT)
       echo "time direction dci_format rnti_type rnti dci_frame dci_slot sched_frame sched_slot mcs mcs_table rb_start rb_size start_symbol nr_symbols tbs harq_pid ndi rv round qam_mod_order target_code_rate tpc n_cce N_cce"
+      ;;
+    NRUE_MAC_RLC_BUFFER_STATUS)
+      echo "time rnti ue_id frame slot lcid lcgid bytes_in_buffer bj pbr priority"
+      ;;
+    NRUE_MAC_BSR_STATUS)
+      echo "time rnti ue_id frame slot bsr_type trigger_mask bsr_sent padding_len num_sdus sdu_bytes lcg0_bytes lcg1_bytes lcg2_bytes lcg3_bytes lcg4_bytes lcg5_bytes lcg6_bytes lcg7_bytes bsr_lcg_id bsr_index bsr_long0_index bsr_long1_index bsr_long2_index bsr_long3_index bsr_long4_index bsr_long5_index bsr_long6_index bsr_long7_index"
       ;;
     UE_PHY_MEAS)
       echo "time eNB_ID frame subframe rsrp rssi snr rx_power noise_power w_cqi freq_offset"

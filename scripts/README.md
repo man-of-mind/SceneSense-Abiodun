@@ -24,6 +24,7 @@ anything moves.
 | [analyze_scenesense_app_metrics.py](analyze_scenesense_app_metrics.py) | summarizes and plots SceneSense application metrics, plus matching network metrics, by `run_group` |
 | [parse_oai_gnb_mac_stats.py](parse_oai_gnb_mac_stats.py) | parses gNB MAC stdout summaries into BLER/HARQ/SNR/MAC-byte CSVs |
 | [analyze_nrue_grant_metrics.py](analyze_nrue_grant_metrics.py) | summarizes `NRUE_MAC_DCI_GRANT.csv` into per-RNTI/window UE network-state features |
+| [analyze_nrue_queue_metrics.py](analyze_nrue_queue_metrics.py) | summarizes UE-side RLC buffer / MAC BSR queue traces from the `queue` T-tracer profile |
 | [compare_nrue_gnb_grants.py](compare_nrue_gnb_grants.py) | validates UE decoded grants against gNB MAC/PHY T-tracer totals |
 | [validate_nrue_grant_payload.py](validate_nrue_grant_payload.py) | validates UE decoded UL grant `tbs*8` against OAI's existing UE payload-bits trace |
 | [run_logging_validation_analysis.sh](run_logging_validation_analysis.sh) | one-command post-processing for app, tunnel, UE grant, gNB, and validation outputs |
@@ -288,8 +289,9 @@ This writes raw traces and extracted CSVs under
 
 The default UE profile is intentionally clean: it records/extracts only the
 local SceneSense event `NRUE_MAC_DCI_GRANT`. Use `--profile payload` if you
-also want `UE_PHY_UL_PAYLOAD_TX_BITS` for validation, or `--profile legacy` if
-you intentionally want the older UE PHY measurement/DCI CSVs. Rebuild the UE
+also want `UE_PHY_UL_PAYLOAD_TX_BITS` for validation, `--profile queue` for
+UE-side RLC buffer / MAC BSR queue diagnostics, or `--profile legacy` if you
+intentionally want the older UE PHY measurement/DCI CSVs. Rebuild the UE
 softmodem after changing `common/utils/T/T_messages.txt`; the CSV will stay
 empty or the event will be unknown until the generated T headers are refreshed
 in the OAI build.

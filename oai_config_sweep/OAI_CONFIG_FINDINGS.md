@@ -1,5 +1,14 @@
 # OAI config sweep — findings (2026-07-16)
 
+> **2026-07-20 update.** These findings are from the earlier live-stream sweep. A later true-paced replay
+> diagnostic showed OAI config sensitivity under forced ~92 Mbps offered load, but the corrected live CARLA
+> frontend runs are more conservative: UL-heavy TDD improved latency but not delivery, while the manual validated
+> 273PRB run slightly improved delivery but worsened p50 latency. The earlier automated `prb_273` sweep failure is
+> still invalid/non-reportable because its UE center-frequency/SSB bring-up did not match the working manual
+> recipe. Compression remains the strongest UE-side lever; OAI config is a secondary/contextual network lever in
+> the current single-UE RFsim setup. See
+> `../downlink_latency_fps/OAI_CONFIG_CARLA_FRONTEND_RESULTS.md` and `../rl_agent/OAI_CONFIG_ANALYSIS.md`.
+
 Model FIXED at no-AE u8 (1141 KB) so the network config is the only variable. Single-UE, rfsim, no channel
 impairment. 300 frames/config. Metrics from the front stream CSV. Raw: `oai_config_results.tsv`.
 
@@ -27,8 +36,10 @@ Why config barely helps (reasoned + evidenced):
   at K2=6 with 2 DL slots); lowering `min_rxtxtime` to 2 lets the *gNB* start (3 DL : 8 UL), but then the *UE*
   crashes in `nr_ue_process_dci_dl_10` (`_Assert_Exit_`). So the analysis's "best-case UL-favored TDD" is blocked
   by both a gNB (K2) and a UE (DCI) constraint — would need deeper protocol work.
-- **Bandwidth / PRB 162/217/273 — deferred.** RIV auto-corrected (275*(L-1) for L≤138, else 275*(276-L)+274),
-  but wide PRB also needs SSB/PointA/coreset0 re-derivation (not automated) → UE won't attach. A focused pass.
+- **Automated bandwidth / PRB 162/217/273 sweep — deferred/invalid.** RIV auto-corrected
+  (275*(L-1) for L≤138, else 275*(276-L)+274), but wide PRB also needs matching SSB/PointA/coreset0 and UE
+  center-frequency/SSB settings. The automated `prb_273` attempt did not complete a usable tunnel. Separately,
+  the later manual `bw273_mu1` 273PRB recipe did attach and is reportable in the 2026-07-20 replay/live CARLA docs.
 - **The overnight run only yielded 2 points** because (a) 2:7 crashed the gNB and (b) I'd mistakenly based the
   5QI phase on that broken 2:7 conf. Both fixed in the re-run; the re-run also exposed that repeated automated
   rfsim gNB↔UE restarts are flaky (UE sometimes can't reconnect to :4043), so the clean points above were taken
@@ -40,4 +51,6 @@ Why config barely helps (reasoned + evidenced):
 - Config tuning may matter more (a) under a **realistic channel** (impairment/fading) or (b) with **multiple UEs
   contending** (then 5QI priority + TDD split bite) — that's the SIONA-RT stress-test phase, where these knobs
   become the RL controller's "network action menu."
-- If a clean bandwidth sweep is wanted, derive SSB/PointA/coreset0 per PRB (or use OAI's shipped wider-PRB templates).
+- If a clean automated bandwidth sweep is wanted, derive SSB/PointA/coreset0 per PRB and launch the UE with the
+  matching working center-frequency/SSB recipe. The known-good manual 273PRB recipe used
+  `-r 273 -C 3649260000 --ssb 516` with `gnb.sa.band78.fr1.273PRB.scenesense_rfsim.conf`.

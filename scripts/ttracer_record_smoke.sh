@@ -27,7 +27,7 @@ Options:
   --ip HOST               Trace source IP; default: 127.0.0.1.
   --port PORT             Override tracer port.
   --output-root DIR       Output root; default: metrics_logs/scenesense_ttracer.
-  --profile NAME          Trace profile. UE: clean, payload, legacy/full.
+  --profile NAME          Trace profile. UE: clean, payload, queue, legacy/full.
                           gNB: clean/full. Defaults to clean for UE, full for gNB.
   --trace EVENT_ID        Add an extra event to the default smoke profile.
   -h, --help              Show this help.
@@ -160,6 +160,14 @@ else
         UE_PHY_UL_PAYLOAD_TX_BITS
       )
       ;;
+    queue)
+      DEFAULT_TRACES=(
+        NRUE_MAC_DCI_GRANT
+        UE_PHY_UL_PAYLOAD_TX_BITS
+        NRUE_MAC_RLC_BUFFER_STATUS
+        NRUE_MAC_BSR_STATUS
+      )
+      ;;
     legacy|full)
       DEFAULT_TRACES=(
         NRUE_MAC_DCI_GRANT
@@ -172,7 +180,7 @@ else
       ;;
     *)
       echo "[ttracer_record_smoke] unsupported UE profile: ${PROFILE}" >&2
-      echo "[ttracer_record_smoke] supported UE profiles: clean, payload, legacy, full" >&2
+      echo "[ttracer_record_smoke] supported UE profiles: clean, payload, queue, legacy, full" >&2
       exit 2
       ;;
   esac

@@ -33,6 +33,7 @@ if [ -z "${FUSION_BACK_REMOTE_HOST_2:-}" ]; then
     fi
 fi
 export FUSION_BACK_DEVICE="${FUSION_BACK_DEVICE:-cuda}"
+export FUSION_BACK_SCRIPT="${FUSION_BACK_SCRIPT:-/work/abiodun/carla_split_inference_udp_fusion_object_pole_client_spatial_stream_oai.py}"
 export FUSION_BACK_CHECKPOINT="${FUSION_BACK_CHECKPOINT:-/work/abiodun/checkpoints/fusion_object_best.pt}"
 export FUSION_QUANTIZATION_MODE="${FUSION_QUANTIZATION_MODE:-per_channel_uint8}"
 export FUSION_ENTROPY_CODER="${FUSION_ENTROPY_CODER:-zlib}"
@@ -50,6 +51,8 @@ echo "[fusion_back_up] docker compose up -d --build (RGB+radar fusion back-half,
 echo "[fusion_back_up] remote UE IP worker 1: ${FUSION_BACK_REMOTE_HOST_1}"
 echo "[fusion_back_up] remote UE IP worker 2: ${FUSION_BACK_REMOTE_HOST_2}"
 echo "[fusion_back_up] dual workers: ${FUSION_BACK_DUAL}"
+echo "[fusion_back_up] script: ${FUSION_BACK_SCRIPT}"
+echo "[fusion_back_up] checkpoint: ${FUSION_BACK_CHECKPOINT}"
 echo "[fusion_back_up] back log every: ${FUSION_BACK_LOG_EVERY}"
 echo "[fusion_back_up] worker 1 ports: recv ${FUSION_REMOTE_PORT_1}, send ${FUSION_REMOTE_SOURCE_PORT_1}->${FUSION_CAMERA_RESULT_PORT_1}"
 echo "[fusion_back_up] worker 2 ports: recv ${FUSION_REMOTE_PORT_2}, send ${FUSION_REMOTE_SOURCE_PORT_2}->${FUSION_CAMERA_RESULT_PORT_2}"
@@ -58,6 +61,7 @@ sudo FUSION_BACK_BIND_HOST="${FUSION_BACK_BIND_HOST}" \
     FUSION_BACK_REMOTE_HOST_1="${FUSION_BACK_REMOTE_HOST_1}" \
     FUSION_BACK_REMOTE_HOST_2="${FUSION_BACK_REMOTE_HOST_2}" \
     FUSION_BACK_DEVICE="${FUSION_BACK_DEVICE}" \
+    FUSION_BACK_SCRIPT="${FUSION_BACK_SCRIPT}" \
     FUSION_BACK_CHECKPOINT="${FUSION_BACK_CHECKPOINT}" \
     FUSION_QUANTIZATION_MODE="${FUSION_QUANTIZATION_MODE}" \
     FUSION_ENTROPY_CODER="${FUSION_ENTROPY_CODER}" \

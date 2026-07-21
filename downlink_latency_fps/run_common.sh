@@ -28,6 +28,9 @@ FPS_LIST="${FPS_LIST:-5 10 20 30}"
 DURATION_S="${DURATION_S:-130}"
 RESULT_TIMEOUT="${RESULT_TIMEOUT:-1.5}"
 SEED="${SEED:-7}"
+QUEUE_PROBE_MODE="${QUEUE_PROBE_MODE:-0}"
+QUEUE_PROBE_IDLE_BEFORE_S="${QUEUE_PROBE_IDLE_BEFORE_S:-10}"
+QUEUE_PROBE_COOLDOWN_S="${QUEUE_PROBE_COOLDOWN_S:-120}"
 
 NPC_VEHICLES="${NPC_VEHICLES:-60}"
 NPC_PEDESTRIANS="${NPC_PEDESTRIANS:-20}"
@@ -122,6 +125,14 @@ run_front_point() {
   local run_group="downlink_${CONDITION}_fps${fps}_${BATCH_ID}"
   local run_dir="$RUN_ROOT/$CONDITION/fps_${fps}_${BATCH_ID}"
   local front_log="$LOG_ROOT/$CONDITION/front_fps${fps}_${BATCH_ID}.log"
+  local queue_probe_args=()
+  if [[ "$QUEUE_PROBE_MODE" == "1" ]]; then
+    queue_probe_args=(
+      --queue-probe-mode
+      --queue-probe-idle-before-s "$QUEUE_PROBE_IDLE_BEFORE_S"
+      --queue-probe-cooldown-s "$QUEUE_PROBE_COOLDOWN_S"
+    )
+  fi
   mkdir -p "$run_dir"
 
   say "front run: condition=$CONDITION fps=$fps frames=$frames run_dir=$run_dir"
@@ -175,6 +186,7 @@ run_front_point() {
     --headless \
     --max-frames "$frames" \
     --result-timeout "$RESULT_TIMEOUT" \
+    "${queue_probe_args[@]}" \
     --run-group "$run_group" \
     --run-id "$run_group" \
     --transport-label "$TRANSPORT_LABEL" \

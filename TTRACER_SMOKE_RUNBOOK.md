@@ -156,6 +156,12 @@ Optional UE CSVs:
 - `UE_PHY_UL_PAYLOAD_TX_BITS.csv`: UL `rb_size`, `mcs_index`,
   `number_of_bits`. Use `--profile payload` when you want to validate
   `NRUE_MAC_DCI_GRANT.tbs * 8` against the existing OAI payload trace.
+- `NRUE_MAC_RLC_BUFFER_STATUS.csv`: UE MAC's per-LCID view of RLC
+  bytes-in-buffer before BSR update. Use `--profile queue` for the
+  RLC/MAC/BSR bottleneck diagnostic.
+- `NRUE_MAC_BSR_STATUS.csv`: UE MAC's per-slot LCG byte totals after logical
+  channel multiplexing, plus BSR type/index and SDU bytes drained. Use
+  `--profile queue`.
 - `UE_PHY_MEAS.csv`: RSRP, RSSI, SNR, wideband CQI.
 - `UE_PHY_ULSCH_UE_DCI.csv`: UL grant MCS, RB range, TBS, HARQ round.
 - `UE_PHY_DLSCH_UE_DCI.csv`: DL grant MCS and TBS.
@@ -164,6 +170,22 @@ Use `--profile legacy` only when you intentionally want the older UE PHY
 measurement/DCI files for debugging. In current rfsim runs they can be empty or
 carry sentinel-like measurement values, so they are not part of the clean
 SceneSense UE metric panel.
+
+For the queue diagnostic, record and extract the UE with:
+
+```bash
+./ttracer_record_smoke.sh \
+  --run-group exp02_ttracer_smoke \
+  --source ue \
+  --profile queue \
+  --duration-s 60
+
+./ttracer_extract_csv_smoke.sh \
+  --run-group exp02_ttracer_smoke \
+  --source ue \
+  --profile queue \
+  --clean-output
+```
 
 To convert the clean UE grant CSV into per-RNTI/window features:
 
@@ -179,6 +201,22 @@ This writes:
 metrics_logs/scenesense_ttracer/<run_group>/ue/analysis/nrue_grant_windows.csv
 metrics_logs/scenesense_ttracer/<run_group>/ue/analysis/nrue_grant_summary.csv
 metrics_logs/scenesense_ttracer/<run_group>/ue/analysis/nrue_grant_summary.md
+```
+
+To convert the UE queue CSVs into per-window RLC/MAC/BSR drain metrics:
+
+```bash
+python3 scripts/analyze_nrue_queue_metrics.py \
+  --run-group exp02_ttracer_smoke \
+  --window-s 1.0
+```
+
+This writes:
+
+```text
+metrics_logs/scenesense_ttracer/<run_group>/ue/analysis/nrue_queue_windows.csv
+metrics_logs/scenesense_ttracer/<run_group>/ue/analysis/nrue_queue_summary.csv
+metrics_logs/scenesense_ttracer/<run_group>/ue/analysis/nrue_queue_summary.md
 ```
 
 For a complete logging-validation run where application metrics, tunnel

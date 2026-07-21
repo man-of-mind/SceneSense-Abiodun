@@ -204,51 +204,6 @@ FUSION_METRICS_FIELDS = (
     "entropy_coder",
 )
 
-QUEUE_PROBE_SEND_FIELDS = (
-    "wall_time_iso",
-    "elapsed_s",
-    "run_id",
-    "run_group",
-    "stream_id",
-    "transport_label",
-    "frame_id",
-    "carla_timestamp",
-    "scheduled_elapsed_s",
-    "send_lag_ms",
-    "front_ms",
-    "camera_sent_perf",
-    "camera_sent_wall_s",
-    "feature_payload_bytes",
-    "feature_payload_bytes_uncompressed",
-    "feature_payload_chunks",
-    "radar_projected_points",
-    "ego_speed_mps",
-)
-
-QUEUE_PROBE_RESULT_FIELDS = (
-    "wall_time_iso",
-    "elapsed_s",
-    "run_id",
-    "run_group",
-    "stream_id",
-    "transport_label",
-    "frame_id",
-    "server_ms",
-    "round_trip_result_recv_ms",
-    "tail_done_to_result_recv_ms",
-    "result_send_to_recv_ms_perf",
-    "result_send_to_recv_ms_wall",
-    "t_front_send_wall_s",
-    "t_edge_recv_wall_s",
-    "t_tail_done_wall_s",
-    "t_result_send_wall_s",
-    "t_car_result_recv_wall_s",
-    "result_payload_bytes_estimate",
-    "result_payload_chunks_estimate",
-    "object_count",
-    "mask_present",
-)
-
 FUSION_OBJECT_PREDICTION_FIELDS = (
     "wall_time_iso",
     "elapsed_s",
@@ -820,29 +775,6 @@ def parse_args() -> argparse.Namespace:
         help="Seconds to wait for the tail-side result for each frame before skipping it.",
     )
     parser.add_argument(
-        "--queue-probe-mode",
-        action="store_true",
-        help=(
-            "Diagnostic mode for OAI queue/backlog experiments: send frames at fixed "
-            "--fps without waiting for each result, and log send/result event CSVs."
-        ),
-    )
-    parser.add_argument(
-        "--queue-probe-idle-before-s",
-        type=float,
-        default=0.0,
-        help="Optional idle baseline, in wall-clock seconds, before queue-probe sends begin.",
-    )
-    parser.add_argument(
-        "--queue-probe-cooldown-s",
-        type=float,
-        default=60.0,
-        help=(
-            "Wall-clock seconds to keep the result receiver alive after the last queue-probe "
-            "send so delayed results and UE queue drain can be captured."
-        ),
-    )
-    parser.add_argument(
         "--role",
         choices=("loopback", "front", "back"),
         default="loopback",
@@ -1200,8 +1132,6 @@ class CameraSideFusionInference:
         payload_bytes, payload_chunks = self.sender.send(payload)
         return {
             "front_ms": (time.perf_counter() - started) * 1000.0,
-            "camera_sent_perf": float(front_send_perf),
-            "camera_sent_wall_s": float(front_send_wall_s),
             "payload_bytes": int(payload_bytes),
             "payload_bytes_uncompressed": int(payload_bytes_uncompressed),
             "payload_chunks": int(payload_chunks),
@@ -1503,13 +1433,11 @@ class CameraResultReceiver(threading.Thread):
         receiver: "od_collect.UDPMessageSocket",
         result_store: seg_demo.SegmentationResultStore,
         stop_event: threading.Event,
-        queue_probe_logger: Optional["QueueProbeEventLogger"] = None,
     ) -> None:
         super().__init__(daemon=True)
         self.receiver = receiver
         self.result_store = result_store
         self.stop_event = stop_event
-        self.queue_probe_logger = queue_probe_logger
 
     def run(self) -> None:
         while not self.stop_event.is_set():
@@ -1545,8 +1473,6 @@ class CameraResultReceiver(threading.Thread):
                     ) * 1000.0
                 except (KeyError, TypeError, ValueError):
                     payload["tail_done_to_result_recv_ms"] = float("nan")
-                if self.queue_probe_logger is not None:
-                    self.queue_probe_logger.log_result(payload)
             self.result_store.put(int(payload["frame_id"]), payload)
 
 
@@ -2599,154 +2525,6 @@ class FusionRunLogger:
         self._prediction_file.close()
         self._ground_truth_file.flush()
         self._ground_truth_file.close()
-
-
-class QueueProbeEventLogger:
-    """Thread-safe diagnostic CSV logger for fixed-offered-load queue probes."""
-
-    def __init__(
-        self,
-        *,
-        run_logger: FusionRunLogger,
-        run_start_perf: float,
-    ) -> None:
-        self.run_logger = run_logger
-        self.run_start_perf = float(run_start_perf)
-        prefix = f"{run_logger.stream_token}_queue_probe"
-        self.send_path = run_logger.stream_dir / f"{prefix}_send_events.csv"
-        self.result_path = run_logger.stream_dir / f"{prefix}_result_events.csv"
-        self._lock = threading.Lock()
-        self._send_file = self.send_path.open("w", newline="", encoding="utf-8")
-        self._send_writer = csv.DictWriter(
-            self._send_file,
-            fieldnames=QUEUE_PROBE_SEND_FIELDS,
-        )
-        self._send_writer.writeheader()
-        self._result_file = self.result_path.open("w", newline="", encoding="utf-8")
-        self._result_writer = csv.DictWriter(
-            self._result_file,
-            fieldnames=QUEUE_PROBE_RESULT_FIELDS,
-        )
-        self._result_writer.writeheader()
-
-    def _base_row(self) -> Dict[str, object]:
-        return {
-            "wall_time_iso": datetime.now().isoformat(timespec="milliseconds"),
-            "elapsed_s": time.perf_counter() - self.run_start_perf,
-            "run_id": self.run_logger.run_id,
-            "run_group": self.run_logger.run_group,
-            "stream_id": self.run_logger.stream_id,
-            "transport_label": self.run_logger.transport_label,
-        }
-
-    def log_send(
-        self,
-        *,
-        frame_id: int,
-        carla_timestamp: float,
-        scheduled_elapsed_s: float,
-        front_stats: Dict[str, object],
-        radar_projected_points: int,
-        ego_speed_mps: float,
-    ) -> None:
-        elapsed_s = time.perf_counter() - self.run_start_perf
-        row = {
-            **self._base_row(),
-            "elapsed_s": elapsed_s,
-            "frame_id": int(frame_id),
-            "carla_timestamp": float(carla_timestamp),
-            "scheduled_elapsed_s": float(scheduled_elapsed_s),
-            "send_lag_ms": (elapsed_s - float(scheduled_elapsed_s)) * 1000.0,
-            "front_ms": _safe_float(front_stats.get("front_ms"), float("nan")),
-            "camera_sent_perf": _safe_float(
-                front_stats.get("camera_sent_perf"),
-                float("nan"),
-            ),
-            "camera_sent_wall_s": _safe_float(
-                front_stats.get("camera_sent_wall_s"),
-                float("nan"),
-            ),
-            "feature_payload_bytes": _safe_int(front_stats.get("payload_bytes"), 0),
-            "feature_payload_bytes_uncompressed": _safe_int(
-                front_stats.get("payload_bytes_uncompressed"),
-                0,
-            ),
-            "feature_payload_chunks": _safe_int(front_stats.get("payload_chunks"), 0),
-            "radar_projected_points": int(radar_projected_points),
-            "ego_speed_mps": float(ego_speed_mps),
-        }
-        with self._lock:
-            self._send_writer.writerow(
-                {field: row.get(field, "") for field in QUEUE_PROBE_SEND_FIELDS}
-            )
-            self._send_file.flush()
-
-    def log_result(self, payload: Dict[str, object]) -> None:
-        row = {
-            **self._base_row(),
-            "frame_id": _safe_int(payload.get("frame_id"), 0),
-            "server_ms": _safe_float(payload.get("server_ms"), float("nan")),
-            "round_trip_result_recv_ms": _safe_float(
-                payload.get("round_trip_result_recv_ms"),
-                float("nan"),
-            ),
-            "tail_done_to_result_recv_ms": _safe_float(
-                payload.get("tail_done_to_result_recv_ms"),
-                float("nan"),
-            ),
-            "result_send_to_recv_ms_perf": _safe_float(
-                payload.get("result_send_to_recv_ms_perf"),
-                float("nan"),
-            ),
-            "result_send_to_recv_ms_wall": _safe_float(
-                payload.get("result_send_to_recv_ms_wall"),
-                float("nan"),
-            ),
-            "t_front_send_wall_s": _safe_float(
-                payload.get("camera_sent_wall_s"),
-                float("nan"),
-            ),
-            "t_edge_recv_wall_s": _safe_float(
-                payload.get("edge_recv_wall_s"),
-                float("nan"),
-            ),
-            "t_tail_done_wall_s": _safe_float(
-                payload.get("tail_done_wall_s"),
-                float("nan"),
-            ),
-            "t_result_send_wall_s": _safe_float(
-                payload.get("result_send_start_wall_s"),
-                float("nan"),
-            ),
-            "t_car_result_recv_wall_s": _safe_float(
-                payload.get("car_result_recv_wall_s"),
-                float("nan"),
-            ),
-            "result_payload_bytes_estimate": _safe_int(
-                payload.get("result_payload_bytes_estimate"),
-                0,
-            ),
-            "result_payload_chunks_estimate": _safe_int(
-                payload.get("result_payload_chunks_estimate"),
-                0,
-            ),
-            "object_count": len(payload.get("objects", []))
-            if isinstance(payload.get("objects"), list)
-            else 0,
-            "mask_present": isinstance(payload.get("mask"), np.ndarray),
-        }
-        with self._lock:
-            self._result_writer.writerow(
-                {field: row.get(field, "") for field in QUEUE_PROBE_RESULT_FIELDS}
-            )
-            self._result_file.flush()
-
-    def close(self) -> None:
-        with self._lock:
-            self._send_file.flush()
-            self._send_file.close()
-            self._result_file.flush()
-            self._result_file.close()
 
 
 def build_fusion_metrics_row(
@@ -4062,7 +3840,6 @@ def run_client(args: argparse.Namespace) -> None:
     radar_pipeline: Optional[PoleRadarPipeline] = None
     spatial_publisher: Optional[SpatialMapResultPublisher] = None
     metrics_logger: Optional[FusionRunLogger] = None
-    queue_probe_logger: Optional[QueueProbeEventLogger] = None
     actors: List["carla.Actor"] = []
     checkpoint_path = _resolve_fusion_checkpoint_path(args)
     sensor_platform = str(args.sensor_platform)
@@ -4081,8 +3858,6 @@ def run_client(args: argparse.Namespace) -> None:
         raise ValueError("--experiment3-target-profile requires --sensor-platform ego_vehicle")
     if experiment3_profile != "none" and not bool(args.ego_freeze):
         raise ValueError("--experiment3-target-profile requires a parked ego (keep --ego-freeze)")
-    if bool(getattr(args, "queue_probe_mode", False)) and not bool(args.run_logging):
-        raise ValueError("--queue-probe-mode requires --enable-run-logging")
     if experiment3_profile != "none" and (
         str(getattr(args, "controlled_target", "none")) != "none"
         or str(getattr(args, "tracked_lead", "none")) != "none"
@@ -4441,7 +4216,6 @@ def run_client(args: argparse.Namespace) -> None:
         else:
             spatial_stream_id = f"fusion_ego_{anchor_actor.id}"
         transport_label = _default_transport_label(args)
-        start_perf = time.perf_counter()
 
         if bool(args.run_logging):
             metrics_logger = FusionRunLogger.from_args(
@@ -4474,14 +4248,6 @@ def run_client(args: argparse.Namespace) -> None:
             print(f"[Metrics] Run directory: {metrics_logger.run_dir}")
             print(f"[Metrics] Run group: {metrics_logger.run_group}")
             print(f"[Metrics] Stream CSV: {metrics_logger.csv_path}")
-            if bool(getattr(args, "queue_probe_mode", False)):
-                queue_probe_logger = QueueProbeEventLogger(
-                    run_logger=metrics_logger,
-                    run_start_perf=start_perf,
-                )
-                result_receiver.queue_probe_logger = queue_probe_logger
-                print(f"[QueueProbe] Send events CSV: {queue_probe_logger.send_path}")
-                print(f"[QueueProbe] Result events CSV: {queue_probe_logger.result_path}")
 
         if bool(args.spatial_map_stream):
             spatial_publisher = SpatialMapResultPublisher(
@@ -4510,36 +4276,16 @@ def run_client(args: argparse.Namespace) -> None:
         else:
             print("Headless run active. Press Ctrl+C to stop.")
 
+        start_perf = time.perf_counter()
         processed_frames = 0
         experiment3_cycle_frame_index = 0
         max_measurement_frames = max(0, int(args.max_frames))
         run_duration_s = max(0.0, float(args.run_duration_s))
-        queue_probe_mode = bool(getattr(args, "queue_probe_mode", False))
-        queue_probe_frame_period_s = 1.0 / max(0.1, float(args.fps))
-        queue_probe_send_start_perf = start_perf
-
-        if queue_probe_mode:
-            idle_before_s = max(0.0, float(getattr(args, "queue_probe_idle_before_s", 0.0)))
-            if idle_before_s > 0.0:
-                print(f"[QueueProbe] Idle baseline for {idle_before_s:.1f}s before first send.")
-                idle_deadline = time.perf_counter() + idle_before_s
-                while time.perf_counter() < idle_deadline:
-                    time.sleep(min(0.5, max(0.0, idle_deadline - time.perf_counter())))
-            queue_probe_send_start_perf = time.perf_counter()
-            print(
-                "[QueueProbe] Fixed-rate send mode active: "
-                f"fps={float(args.fps):.2f}, "
-                f"max_frames={max_measurement_frames if max_measurement_frames > 0 else 'unlimited'}, "
-                f"run_duration_s={run_duration_s if run_duration_s > 0.0 else 'unlimited'}, "
-                f"cooldown_s={max(0.0, float(getattr(args, 'queue_probe_cooldown_s', 0.0))):.1f}"
-            )
 
         def run_duration_elapsed() -> bool:
             if run_duration_s <= 0.0:
                 return False
-            elapsed = time.perf_counter() - (
-                queue_probe_send_start_perf if queue_probe_mode else start_perf
-            )
+            elapsed = time.perf_counter() - start_perf
             if elapsed < run_duration_s:
                 return False
             print(f"Reached --run-duration-s={run_duration_s:.1f}; stopping run.")
@@ -4548,17 +4294,6 @@ def run_client(args: argparse.Namespace) -> None:
         while True:
             if run_duration_elapsed():
                 break
-            current_scheduled_elapsed_s = time.perf_counter() - start_perf
-            if queue_probe_mode:
-                current_scheduled_elapsed_s = (
-                    queue_probe_send_start_perf
-                    - start_perf
-                    + (processed_frames * queue_probe_frame_period_s)
-                )
-                scheduled_perf = start_perf + current_scheduled_elapsed_s
-                sleep_s = scheduled_perf - time.perf_counter()
-                if sleep_s > 0.0:
-                    time.sleep(sleep_s)
             if bool(args.sync_world):
                 if (
                     experiment3_profile == "lateral_cycle"
@@ -4637,39 +4372,6 @@ def run_client(args: argparse.Namespace) -> None:
                 camera_intrinsics_input=intrinsics_input,
                 display_size=(int(camera_width), int(camera_height)),
             )
-
-            if queue_probe_mode:
-                processed_frames += 1
-                radar_projected_points = 0
-                try:
-                    radar_projected_points = int(
-                        np.count_nonzero(radar_points["valid_projection"].astype(bool))
-                    )
-                except Exception:
-                    radar_projected_points = 0
-                ego_speed_mps = float("nan")
-                try:
-                    velocity = anchor_actor.get_velocity()
-                    ego_speed_mps = math.sqrt(
-                        velocity.x ** 2 + velocity.y ** 2 + velocity.z ** 2
-                    )
-                except RuntimeError:
-                    ego_speed_mps = float("nan")
-                if queue_probe_logger is not None:
-                    queue_probe_logger.log_send(
-                        frame_id=int(image.frame),
-                        carla_timestamp=float(image.timestamp),
-                        scheduled_elapsed_s=current_scheduled_elapsed_s,
-                        front_stats=front_stats,
-                        radar_projected_points=radar_projected_points,
-                        ego_speed_mps=ego_speed_mps,
-                    )
-                if max_measurement_frames > 0 and processed_frames >= max_measurement_frames:
-                    print(f"Reached --max-frames={max_measurement_frames}; stopping sends.")
-                    break
-                if run_duration_elapsed():
-                    break
-                continue
 
             result_wait_start_perf = time.perf_counter()
             result = result_store.wait_for(
@@ -4883,17 +4585,6 @@ def run_client(args: argparse.Namespace) -> None:
             if run_duration_elapsed():
                 break
 
-        if queue_probe_mode:
-            cooldown_s = max(0.0, float(getattr(args, "queue_probe_cooldown_s", 0.0)))
-            if cooldown_s > 0.0:
-                print(
-                    "[QueueProbe] Send phase complete; keeping result receiver alive for "
-                    f"{cooldown_s:.1f}s cooldown/drain."
-                )
-                cooldown_deadline = time.perf_counter() + cooldown_s
-                while time.perf_counter() < cooldown_deadline:
-                    time.sleep(min(0.5, max(0.0, cooldown_deadline - time.perf_counter())))
-
     finally:
         stop_event.set()
         if metrics_logger is not None:
@@ -4937,10 +4628,6 @@ def run_client(args: argparse.Namespace) -> None:
             remote_worker=remote_worker,
             result_receiver=result_receiver,
         )
-        if queue_probe_logger is not None:
-            queue_probe_logger.close()
-            print(f"[QueueProbe] Saved send events CSV to {queue_probe_logger.send_path}")
-            print(f"[QueueProbe] Saved result events CSV to {queue_probe_logger.result_path}")
         if gui_enabled:
             cv2.destroyAllWindows()
 
