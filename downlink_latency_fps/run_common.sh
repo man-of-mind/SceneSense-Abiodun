@@ -27,13 +27,17 @@ START_LOCAL_BACK="${START_LOCAL_BACK:-1}"
 FPS_LIST="${FPS_LIST:-5 10 20 30}"
 DURATION_S="${DURATION_S:-130}"
 RESULT_TIMEOUT="${RESULT_TIMEOUT:-1.5}"
-SEED="${SEED:-7}"
+SEED="${SEED:-31}"
+ENTROPY_CODER="${ENTROPY_CODER:-zlib}"
+ZSTD_LEVEL="${ZSTD_LEVEL:-3}"
 QUEUE_PROBE_MODE="${QUEUE_PROBE_MODE:-0}"
 QUEUE_PROBE_IDLE_BEFORE_S="${QUEUE_PROBE_IDLE_BEFORE_S:-10}"
 QUEUE_PROBE_COOLDOWN_S="${QUEUE_PROBE_COOLDOWN_S:-120}"
 
-NPC_VEHICLES="${NPC_VEHICLES:-60}"
-NPC_PEDESTRIANS="${NPC_PEDESTRIANS:-20}"
+NPC_VEHICLES="${NPC_VEHICLES:-28}"
+NPC_PEDESTRIANS="${NPC_PEDESTRIANS:-35}"
+EGO_IGNORE_LIGHTS_PCT="${EGO_IGNORE_LIGHTS_PCT:-50}"
+EGO_SPAWN_INDICES="${EGO_SPAWN_INDICES:-80,85,91,94,99,80}"
 SPAWN_RADIUS="${SPAWN_RADIUS:-80}"
 NPC_SPEED_DIFFERENCE_PCT="${NPC_SPEED_DIFFERENCE_PCT:-10}"
 EGO_SPEED_DIFFERENCE_PCT="${EGO_SPEED_DIFFERENCE_PCT:-60}"
@@ -91,7 +95,8 @@ start_local_back() {
     --remote-host "$BACK_RESULT_REMOTE_HOST" \
     --fusion-checkpoint "$CKPT" \
     --quantization-mode per_channel_uint8 \
-    --entropy-coder zlib \
+    --entropy-coder "$ENTROPY_CODER" \
+    --zstd-level "$ZSTD_LEVEL" \
     --roi-threshold 0.0 \
     --remote-port "$REMOTE_PORT" \
     --remote-source-port "$BACK_SOURCE_PORT" \
@@ -145,17 +150,14 @@ run_front_point() {
     --seed "$SEED" \
     --sensor-platform ego_vehicle \
     --no-ego-freeze \
-    --ego-autopilot-speed-difference-pct "$EGO_SPEED_DIFFERENCE_PCT" \
-    --ego-follow-distance-m "$EGO_FOLLOW_DISTANCE_M" \
-    --ego-ignore-lights-pct 0 \
+    --ego-ignore-lights-pct "$EGO_IGNORE_LIGHTS_PCT" \
     --ego-disable-lane-change \
-    --ego-fixed-path-progress-csv "$ROUTE_PROGRESS_CSV" \
+    --ego-fixed-path-spawn-indices "$EGO_SPAWN_INDICES" \
     --ego-fixed-path-loop \
-    --ego-fixed-path-min-spacing-m 3.0 \
     --ego-spawn-index 80 \
     --ego-spawn-forward-offset-m 0.0 \
     --ego-spawn-right-offset-m 0.0 \
-    --ego-spawn-yaw-offset-deg 0.0 \
+    --ego-spawn-z-offset-m 0.15 \
     --camera-resolution custom \
     --camera-width 1280 \
     --camera-height 720 \
@@ -180,7 +182,8 @@ run_front_point() {
     --npc-speed-difference-pct "$NPC_SPEED_DIFFERENCE_PCT" \
     --fusion-checkpoint "$CKPT" \
     --quantization-mode per_channel_uint8 \
-    --entropy-coder zlib \
+    --entropy-coder "$ENTROPY_CODER" \
+    --zstd-level "$ZSTD_LEVEL" \
     --roi-threshold 0.0 \
     --no-spatial-map-stream \
     --headless \

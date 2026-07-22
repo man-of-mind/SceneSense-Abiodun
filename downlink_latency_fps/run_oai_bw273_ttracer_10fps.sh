@@ -196,6 +196,8 @@ postprocess() {
   UE_RECORD_PID=""
   kill_pid "${GNB_RECORD_PID}" "gNB T-tracer recorder"
   GNB_RECORD_PID=""
+  kill_pid "${SAMPLER_PID}" "network sampler"
+  SAMPLER_PID=""
 
   say "extracting UE T-tracer CSV"
   scripts/ttracer_extract_csv_smoke.sh \
@@ -212,6 +214,10 @@ postprocess() {
     > "${LOG_ROOT}/analyze_nrue_grant_metrics_stdout.log" 2>&1
 
   say "preparing compact plot artifacts"
+  printf "Validated 273PRB CARLA/T-tracer run.\n\ngNB config: %s\nUE launch: -r 273 -C %s --ssb %s\nRun group: %s\n" \
+    "${GNB_CONF_273}" "${UE_DL_FREQ_273}" "${UE_SSB_273}" "${RUN_GROUP}" \
+    > "${CAP_ROOT}/VALIDATED_273PRB_TTRACER.ok"
+
   "${PY}" downlink_latency_fps/prepare_ttracer_grant_artifacts.py \
     --run-group "${RUN_GROUP}" \
     > "${LOG_ROOT}/prepare_ttracer_grant_artifacts_stdout.log" 2>&1

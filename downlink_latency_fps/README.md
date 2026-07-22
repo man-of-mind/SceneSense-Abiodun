@@ -108,6 +108,10 @@ python3 downlink_latency_fps/plot_downlink_fps.py
 
 Outputs:
 
-- `plots/ideal_loopback_latency_breakdown.png` / `.pdf`
-- `plots/delivery_ideal_vs_bounded.png` / `.pdf`
-- `plots/ideal_loopback_payloads.png` / `.pdf`
+- `plots/oai_bottleneck/oai_106prb_drivable_zlib_vs_zstd.png` / `.pdf`
+- `plots/oai_bottleneck/oai_106prb_drivable_zlib_vs_zstd_accuracy.png` / `.pdf`
+
+The older ideal-loopback/bounded-loopback plots were generated from the
+obsolete 60-vehicle frontend command and were removed on 2026-07-22. Regenerate
+those plots only after rerunning the loopback sweeps with the corrected
+drivable-scene command.

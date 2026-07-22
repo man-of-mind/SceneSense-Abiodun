@@ -39,6 +39,10 @@ RUN python3 -m pip install --upgrade pip setuptools wheel \
     && python3 -m pip install --pre torch torchvision torchaudio \
         --index-url https://download.pytorch.org/whl/nightly/cu128
 
+# Keep optional entropy codecs in their own layer so codec-only edits do not
+# invalidate the large PyTorch nightly layer above.
+RUN python3 -m pip install zstandard
+
 WORKDIR /work
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
