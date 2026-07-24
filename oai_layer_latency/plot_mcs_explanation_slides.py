@@ -54,6 +54,7 @@ OUT_DIR = ROOT / "oai_layer_latency/plots"
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
 CARLA_ADAPTIVE_RUN = TRACE_ROOT / "downlink_oai_bw273_mu1_ttracer_fps10_layerinstr_20260723_145921"
+CARLA_FIXED_MCS28_RUN = TRACE_ROOT / "downlink_oai_bw273_mu1_ttracer_forcemcs28_fps10_forcemcs28_bw273_20260723"
 OAI_MCS_SOURCE = ROOT / "OAI/openairinterface5g/openair2/LAYER2/NR_MAC_COMMON/nr_mac_common.c"
 
 CARLA_RED = "#D1495B"
@@ -101,7 +102,7 @@ def load_rlc_lcid4(run_dir: Path) -> pd.DataFrame:
     return df[["t", "kb"]]
 
 
-def find_clean_decay(df: pd.DataFrame) -> pd.DataFrame:
+def find_clean_decay(df: pd.DataFrame, target_ms: float = 150.0) -> pd.DataFrame:
     t = df["t"].to_numpy()
     b = df["kb"].to_numpy()
     starts = np.where((b > 950) & (np.r_[True, b[:-1] < 500]))[0]
@@ -116,8 +117,8 @@ def find_clean_decay(df: pd.DataFrame) -> pd.DataFrame:
         segment = b[start : end + 1]
         large_increases = int(np.sum(np.diff(segment) > 50))
         duration_ms = (t[end] - t[start]) * 1000
-        # Prefer a simple monotonic-looking decay around 150 ms.
-        score = (large_increases, abs(duration_ms - 150), start)
+        # Prefer a simple monotonic-looking decay around the expected drain time.
+        score = (large_increases, abs(duration_ms - target_ms), start)
         if best_score is None or score < best_score:
             best_score = score
             best = (start, end)
@@ -132,13 +133,50 @@ def find_clean_decay(df: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
+def extract_decay_window(df: pd.DataFrame, target_ms: float, pre_ms: float = 5.0, post_ms: float = 28.0) -> tuple[pd.DataFrame, dict[str, float]]:
+    """Find one clean ~1 MB -> <100 KB drain window and align to burst start."""
+    t = df["t"].to_numpy()
+    b = df["kb"].to_numpy()
+    starts = np.where((b > 950) & (np.r_[True, b[:-1] < 500]))[0]
+    best = None
+    best_score = None
+    for start in starts:
+        end = start
+        while end < len(b) - 1 and t[end] - t[start] < 0.5 and b[end] > 100:
+            end += 1
+        if end <= start or b[end] > 120:
+            continue
+        segment = b[start : end + 1]
+        large_increases = int(np.sum(np.diff(segment) > 50))
+        duration_ms = (t[end] - t[start]) * 1000
+        score = (large_increases, abs(duration_ms - target_ms), start)
+        if best_score is None or score < best_score:
+            best_score = score
+            best = (start, end)
+    if best is None:
+        raise RuntimeError("Could not find a clean RLC decay window")
+    start, end = best
+    t_start = t[start]
+    t0 = t_start - pre_ms / 1000.0
+    t1 = t[end] + post_ms / 1000.0
+    out = df[df["t"].between(t0, t1)].copy()
+    out["since_queued_ms"] = (out["t"] - t_start) * 1000
+    stats = {
+        "start_kb": float(b[start]),
+        "end_kb": float(b[end]),
+        "drain_ms": float((t[end] - t_start) * 1000),
+        "burst_slope_mbps": float((b[start] - b[end]) * 1024 * 8 / ((t[end] - t_start)) / 1e6),
+    }
+    return out, stats
+
+
 def load_grant_summary(run_dir: Path) -> dict[str, float]:
     md = run_dir / "layer_latency/uplink_layer_latency.md"
     text = md.read_text()
     out: dict[str, float] = {}
     for key, pattern in {
         "mcs_p50": r"grant MCS: p50=([0-9.]+)",
-        "mcs_p95": r"grant MCS: p50=[0-9.]+\\s+p95=([0-9.]+)",
+        "mcs_p95": r"grant MCS: p50=[0-9.]+\s+p95=([0-9.]+)",
         "prb_p50": r"grant PRB: p50=([0-9.]+)",
         "tbs_p50": r"grant TBS: p50=([0-9.]+) B",
     }.items():
@@ -150,7 +188,7 @@ def load_grant_summary(run_dir: Path) -> dict[str, float]:
 
 def plot_observed_low_mcs_drain() -> None:
     df = load_rlc_lcid4(CARLA_ADAPTIVE_RUN)
-    win = find_clean_decay(df)
+    win = find_clean_decay(df, target_ms=150.0)
     grants = load_grant_summary(CARLA_ADAPTIVE_RUN)
 
     above = win[win["kb"].gt(950)]
@@ -183,11 +221,11 @@ def plot_observed_low_mcs_drain() -> None:
         bbox={"facecolor": "white", "edgecolor": "none", "alpha": 0.82, "pad": 2},
     )
     ax.annotate(
-        f"Observed drain: {drain_ms:.0f} ms\\n"
-        f"{kb_start:.0f} KB → {kb_end:.0f} KB\\n"
+        f"Observed drain: {drain_ms:.0f} ms\n"
+        f"{kb_start:.0f} KB → {kb_end:.0f} KB\n"
         f"burst-slope ≈ {inst_mbps:.0f} Mbps",
         xy=((t_start + t_end) / 2, (kb_start + kb_end) / 2),
-        xytext=(0.56, 0.58),
+        xytext=(0.61, 0.62),
         textcoords="axes fraction",
         ha="left",
         va="center",
@@ -242,6 +280,132 @@ def plot_observed_low_mcs_drain() -> None:
             }
         ]
     ).to_csv(OUT_DIR / "carla_low_mcs_observed_rlc_drain_summary.csv", index=False)
+
+
+def plot_adaptive_vs_fixed_observed_drain() -> None:
+    adaptive_df = load_rlc_lcid4(CARLA_ADAPTIVE_RUN)
+    fixed_df = load_rlc_lcid4(CARLA_FIXED_MCS28_RUN)
+    adaptive_win, adaptive_stats = extract_decay_window(adaptive_df, target_ms=150.0, pre_ms=5.0, post_ms=25.0)
+    fixed_win, fixed_stats = extract_decay_window(fixed_df, target_ms=25.0, pre_ms=5.0, post_ms=25.0)
+    adaptive_grants = load_grant_summary(CARLA_ADAPTIVE_RUN)
+    fixed_grants = load_grant_summary(CARLA_FIXED_MCS28_RUN)
+
+    fig, ax = plt.subplots(figsize=(12.8, 6.5))
+    fig.subplots_adjust(left=0.105, right=0.975, top=0.84, bottom=0.17)
+    fig.suptitle("Fixed MCS28 drains the same CARLA-sized RLC burst much faster", y=0.965, fontweight="bold")
+
+    ax.plot(
+        adaptive_win["since_queued_ms"],
+        adaptive_win["kb"],
+        color=CARLA_RED,
+        linewidth=3.2,
+        label=(
+            f"adaptive MCS p50={adaptive_grants.get('mcs_p50', float('nan')):.0f} "
+            f"(~{adaptive_stats['drain_ms']:.0f} ms drain)"
+        ),
+        solid_capstyle="round",
+    )
+    ax.plot(
+        fixed_win["since_queued_ms"],
+        fixed_win["kb"],
+        color=BLUE,
+        linewidth=3.2,
+        label=(
+            f"fixed MCS28 "
+            f"(~{fixed_stats['drain_ms']:.0f} ms drain)"
+        ),
+        solid_capstyle="round",
+    )
+    ax.fill_between(adaptive_win["since_queued_ms"], 0, adaptive_win["kb"], color=CARLA_RED, alpha=0.10)
+    ax.fill_between(fixed_win["since_queued_ms"], 0, fixed_win["kb"], color=BLUE, alpha=0.12)
+    ax.axhline(1024, color=NOTE, linestyle="--", linewidth=1.7, alpha=0.75)
+    ax.text(
+        0.985,
+        0.91,
+        "~1 MB feature frame",
+        transform=ax.transAxes,
+        ha="right",
+        va="center",
+        fontsize=12,
+        fontweight="bold",
+        color=NOTE,
+        bbox={"facecolor": "white", "edgecolor": "none", "alpha": 0.82, "pad": 2},
+    )
+    ax.annotate(
+        f"adaptive low MCS\n{adaptive_stats['start_kb']:.0f}→{adaptive_stats['end_kb']:.0f} KB\n"
+        f"{adaptive_stats['drain_ms']:.0f} ms, ~{adaptive_stats['burst_slope_mbps']:.0f} Mbps",
+        xy=(adaptive_stats["drain_ms"] * 0.62, 560),
+        xytext=(0.48, 0.56),
+        textcoords="axes fraction",
+        ha="left",
+        va="center",
+        fontsize=11.5,
+        fontweight="bold",
+        color=TEXT,
+        bbox={"boxstyle": "round,pad=0.35", "facecolor": "white", "edgecolor": CARLA_RED, "alpha": 0.92},
+        arrowprops={"arrowstyle": "->", "color": CARLA_RED, "linewidth": 2.0},
+    )
+    ax.annotate(
+        f"fixed MCS28\n{fixed_stats['start_kb']:.0f}→{fixed_stats['end_kb']:.0f} KB\n"
+        f"{fixed_stats['drain_ms']:.0f} ms, ~{fixed_stats['burst_slope_mbps']:.0f} Mbps",
+        xy=(fixed_stats["drain_ms"], 120),
+        xytext=(0.19, 0.34),
+        textcoords="axes fraction",
+        ha="left",
+        va="center",
+        fontsize=11.5,
+        fontweight="bold",
+        color=TEXT,
+        bbox={"boxstyle": "round,pad=0.35", "facecolor": "white", "edgecolor": BLUE, "alpha": 0.92},
+        arrowprops={"arrowstyle": "->", "color": BLUE, "linewidth": 2.0},
+    )
+    ax.text(
+        0.03,
+        0.12,
+        "Same ~1 MB CARLA payload, same 273PRB RFsim path.\n"
+        "Only the MCS policy changes: adaptive low MCS vs diagnostic fixed MCS28.",
+        transform=ax.transAxes,
+        ha="left",
+        va="center",
+        fontsize=11.5,
+        fontweight="bold",
+        color=TEXT,
+        bbox={"facecolor": "white", "edgecolor": GRID, "alpha": 0.9, "pad": 4},
+    )
+    ax.set_xlabel("Time since ~1 MB became queued in UE RLC (ms)")
+    ax.set_ylabel("UE RLC LCID4 occupancy (KB)")
+    ax.set_xlim(-7, 185)
+    ax.set_ylim(0, 1160)
+    ax.legend(
+        loc="upper center",
+        bbox_to_anchor=(0.5, 1.03),
+        ncol=2,
+        frameon=True,
+        facecolor="white",
+        framealpha=0.94,
+        fontsize=11.5,
+    )
+    style_axis(ax)
+    fig.text(
+        0.5,
+        0.055,
+        "This plot isolates the drain slope. The BSR/RLC timeseries slide then shows the run-level effect: persistent RLC backlog disappears under fixed MCS28.",
+        ha="center",
+        va="center",
+        fontsize=11.5,
+        fontweight="bold",
+        color=NOTE,
+    )
+    for ext in ("png", "pdf"):
+        fig.savefig(OUT_DIR / f"adaptive_vs_fixed_mcs_observed_rlc_drain.{ext}", bbox_inches="tight")
+    plt.close(fig)
+
+    pd.DataFrame(
+        [
+            {"condition": "adaptive_low_mcs", **adaptive_stats, **{f"grant_{k}": v for k, v in adaptive_grants.items()}},
+            {"condition": "fixed_mcs28", **fixed_stats, **{f"grant_{k}": v for k, v in fixed_grants.items()}},
+        ]
+    ).to_csv(OUT_DIR / "adaptive_vs_fixed_mcs_observed_rlc_drain_summary.csv", index=False)
 
 
 def load_oai_mcs_table() -> pd.DataFrame:
@@ -361,11 +525,11 @@ def plot_mcs_table_and_ceiling() -> None:
         ax_bar.text(i, v + 8, f"{v:.0f}", ha="center", va="bottom", fontsize=11, fontweight="bold")
     ax_bar.set_xticks(x)
     ax_bar.set_xticklabels([f"MCS {int(m)}" for m in selected["mcs"]], rotation=0)
-    ax_bar.set_ylabel("Estimated UL ceiling at same PRB-time (Mbps)")
+    ax_bar.set_ylabel("Estimated UL ceiling\nsame PRB-time (Mbps)", labelpad=8)
     ax_bar.set_title("B. Same 273 PRBs, different MCS → different drain ceiling", loc="left", pad=12)
     ax_bar.annotate(
         f"MCS28 is {selected.loc[selected['mcs'].eq(28), 'spectral_eff_bits_per_re'].iloc[0] / selected.loc[selected['mcs'].eq(4), 'spectral_eff_bits_per_re'].iloc[0]:.1f}× "
-        "MCS4\\nin bits/RE",
+        "MCS4\nin bits/RE",
         xy=(5, selected["ceiling_mbps"].iloc[-1]),
         xytext=(2.65, selected["ceiling_mbps"].iloc[-1] * 0.77),
         ha="center",
@@ -397,9 +561,11 @@ def plot_mcs_table_and_ceiling() -> None:
 
 def main() -> None:
     plot_observed_low_mcs_drain()
+    plot_adaptive_vs_fixed_observed_drain()
     plot_mcs_table_and_ceiling()
     for path in [
         OUT_DIR / "carla_low_mcs_observed_rlc_drain.pdf",
+        OUT_DIR / "adaptive_vs_fixed_mcs_observed_rlc_drain.pdf",
         OUT_DIR / "mcs_table_throughput_ceiling.pdf",
         OUT_DIR / "mcs_table_throughput_ceiling.csv",
     ]:
