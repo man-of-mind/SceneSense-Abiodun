@@ -56,15 +56,31 @@ payload reduction beyond entropy coding is still likely needed.
 
 ## Conditions to rerun with corrected command
 
-The following previously measured conditions were intentionally removed and
-should be rerun before being reported:
+The following conditions have now been rerun with the corrected drivable-scene
+command:
 
 - ideal loopback FPS sweep;
-- default OAI FPS sweep;
-- OAI queue/backlog probes;
-- UL-heavy 106PRB;
-- 273PRB wider-bandwidth live CARLA run;
-- 273PRB T-tracer live CARLA run.
+- UL-heavy 106PRB, 4DL/5UL TDD, 10 FPS, T-tracer enabled;
+- 273PRB wider-bandwidth live CARLA run, 10 FPS, T-tracer enabled.
+
+The corrected default OAI full FPS sweep and queue/backlog probes remain
+optional follow-up runs. The current reportable 10 FPS OAI comparison is:
+
+| Condition | RAN config | Frames | Returned | Delivery | RTT p50 | RTT p95 | Front p50 | Back p50 | Downlink p50 | Feature/uplink handling p50 | Capture→result p50 |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| Corrected default OAI, zstd | 106 PRB, mu=1, default TDD | 1300 | 1087 | 83.6% | 162.2 ms | 175.3 ms | 25.2 ms | 6.9 ms | 3.0 ms | 151.1 ms | 188.0 ms |
+| Corrected UL-heavy OAI, zstd | 106 PRB, mu=1, 4DL/5UL TDD | 1300 | 1103 | 84.8% | 152.1 ms | 165.2 ms | 25.0 ms | 7.1 ms | 2.9 ms | 140.8 ms | 177.3 ms |
+| Corrected wider-BW OAI, zstd | 273 PRB, mu=1 | 1300 | 1110 | 85.4% | 186.1 ms | 202.6 ms | 26.0 ms | 7.4 ms | 3.0 ms | 174.2 ms | 212.7 ms |
+
+Interpretation:
+
+- UL-heavy 106PRB is the best OAI latency point so far: about `10 ms` lower RTT
+  and capture→result latency than the corrected default 106PRB zstd run.
+- 273PRB improves delivery only slightly but worsens latency. T-tracer shows it
+  uses many more PRBs, but with lower MCS, so scheduled throughput does not
+  increase enough to help the application.
+- Downlink remains cheap in all OAI conditions because the return payload is
+  only compact boxes/scores/centroids, not the dense feature tensor.
 
 ## Artifacts
 
@@ -78,5 +94,18 @@ should be rerun before being reported:
   `plots/oai_bottleneck/oai_106prb_drivable_zlib_vs_zstd.pdf`
 - Corrected OAI zlib-vs-zstd accuracy plot:
   `plots/oai_bottleneck/oai_106prb_drivable_zlib_vs_zstd_accuracy.pdf`
+- Corrected OAI config latency/reliability plots:
+  `plots/oai_bottleneck/corrected_transport_latency_breakdown.pdf`
+  `plots/oai_bottleneck/corrected_transport_reliability_rtt.pdf`
+- Corrected UL-heavy 106PRB T-tracer plots:
+  `plots/oai_ttracer/ttracer_ul_mcs_prb_timeseries_ulheavy106.pdf`
+  `plots/oai_ttracer/ttracer_tunnel_tx_rx_timeseries_ulheavy106.pdf`
+- Corrected 273PRB T-tracer plots:
+  `plots/oai_ttracer/ttracer_ul_mcs_prb_timeseries_bw273.pdf`
+  `plots/oai_ttracer/ttracer_tunnel_tx_rx_timeseries_bw273.pdf`
 - Repeatable codec runner:
   `run_oai_default_codec_10fps.sh`
+- UL-heavy 106PRB T-tracer runner:
+  `run_oai_ulheavy106_ttracer_10fps.sh`
+- 273PRB T-tracer runner:
+  `run_oai_bw273_ttracer_10fps.sh`

@@ -11,13 +11,20 @@ source "$(dirname "$0")/config.env"
 export FUSION_BACK_DUAL="${FUSION_BACK_DUAL:-0}"
 export FUSION_BACK_SCRIPT="${FUSION_BACK_SCRIPT:-/work/abiodun/staleness/carla_fusion_staleness_scenario.py}"
 export FUSION_BACK_CHECKPOINT="${FUSION_BACK_CHECKPOINT:-/work/abiodun/experiments/ae_integrated_20260710/noae_baseline/checkpoints/mprime_joint_noae/best.pt}"
-export FUSION_QUANTIZATION_MODE="${FUSION_QUANTIZATION_MODE:-per_channel_uint8}"
-export FUSION_ENTROPY_CODER="${FUSION_ENTROPY_CODER:-zlib}"
+export FUSION_QUANTIZATION_MODE="${FUSION_QUANTIZATION_MODE:-${QUANTIZATION_MODE:-per_channel_uint8}}"
+export FUSION_ENTROPY_CODER="${FUSION_ENTROPY_CODER:-${ENTROPY_CODER:-zstd}}"  # must match the front codec; zstd is deployed (2026-07-22)
 export FUSION_BACK_LOG_EVERY="${FUSION_BACK_LOG_EVERY:-100}"
 export FUSION_BACK_REMOTE_HOST="${FUSION_BACK_REMOTE_HOST:-${OAI_UE_IP}}"
 export FUSION_BACK_REMOTE_HOST_1="${FUSION_BACK_REMOTE_HOST_1:-${FUSION_BACK_REMOTE_HOST}}"
 export FUSION_REMOTE_PORT_1="${FUSION_REMOTE_PORT_1:-51002}"
 export FUSION_REMOTE_SOURCE_PORT_1="${FUSION_REMOTE_SOURCE_PORT_1:-51003}"
 export FUSION_CAMERA_RESULT_PORT_1="${FUSION_CAMERA_RESULT_PORT_1:-51004}"
+BACK_EXTRA_ARGS="${FUSION_BACK_EXTRA_ARGS:-} --zstd-level ${ZSTD_LEVEL:-3} --roi-threshold ${ROI_THRESHOLD:-0.0}"
+if [[ -n "${AE_CHECKPOINT_CONTAINER:-}" ]]; then
+    BACK_EXTRA_ARGS="${BACK_EXTRA_ARGS} --ae-checkpoint ${AE_CHECKPOINT_CONTAINER}"
+elif [[ -n "${AE_CHECKPOINT:-}" ]]; then
+    BACK_EXTRA_ARGS="${BACK_EXTRA_ARGS} --ae-checkpoint ${AE_CHECKPOINT}"
+fi
+export FUSION_BACK_EXTRA_ARGS="${BACK_EXTRA_ARGS}"
 
 "$(dirname "$0")/receiver_container_fusion_back_up.sh"

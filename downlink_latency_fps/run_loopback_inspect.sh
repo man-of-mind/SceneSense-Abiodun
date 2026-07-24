@@ -17,7 +17,7 @@ FRAMES="${FRAMES:-600}"
 
 echo "[inspect] starting local back-half on 127.0.0.1:51002"
 "$PY" "$SCEN" --role back --bind-host 127.0.0.1 --remote-host 127.0.0.1 \
-  --fusion-checkpoint "$CKPT" --quantization-mode per_channel_uint8 --entropy-coder zlib --zstd-level 3 \
+  --fusion-checkpoint "$CKPT" --quantization-mode per_channel_uint8 --entropy-coder zstd --zstd-level 3 \
   --roi-threshold 0.0 --remote-port 51002 --remote-source-port 51013 --camera-result-port 51004 \
   --front-device cuda --back-device cuda --back-log-every 100 > "$LOG/back.log" 2>&1 &
 BACK_PID=$!
@@ -38,7 +38,7 @@ echo "[inspect] back ready pid=$BACK_PID; starting front ($FRAMES frames, overla
   --ego-radar-yaw 0.0 --radar-hfov 120 --radar-vfov 30 --radar-range 120 \
   --radar-points-per-second 200000 --radar-raster-radius-px 4 --radar-temporal-window-frames 2 \
   --npc-vehicles 28 --npc-pedestrians 35 --spawn-radius 80 --npc-speed-difference-pct 10 \
-  --fusion-checkpoint "$CKPT" --quantization-mode per_channel_uint8 --entropy-coder zlib --zstd-level 3 \
+  --fusion-checkpoint "$CKPT" --quantization-mode per_channel_uint8 --entropy-coder zstd --zstd-level 3 \
   --roi-threshold 0.0 --no-spatial-map-stream --headless --max-frames "$FRAMES" --result-timeout 1.5 \
   --overlay-save-dir "$OVR" --overlay-save-every 10 \
   --run-group loopback_inspect --run-id loopback_inspect --transport-label loopback_inspect \

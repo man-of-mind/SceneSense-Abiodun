@@ -71,8 +71,14 @@ capture-to-map budget.
 **Discrete latency anchors (keep transport labels explicit):**
 | condition / action | latency anchor | meets ε=2 m up to | notes |
 |---|---:|--:|---|
-| ideal loopback / 8 MB buffers (**zlib**) | no-AE u8/zlib capture→result ~88–90 ms; post-send RTT ~43 ms; result downlink ~5 ms | ~32 mph | clean local floor for the **deployed zlib** codec |
-| ideal loopback / 8 MB buffers (**zstd**) | same no-AE u8 payload ~45 ms capture→result (transport ~7 ms, front ~30 ms) | higher | **codec is a latency lever**: zstd ~4× faster (de)compress, same accuracy, payload ~±5%; live A/B confirmed (`CODEC_LATENCY_AB.md`) |
+| ideal loopback / 8 MB buffers (**zstd, DEPLOYED**) | no-AE u8 capture→result ~45 ms (transport ~7 ms, front ~30 ms); downlink ~5 ms | higher | **zstd is the deployed codec (2026-07-22).** Train the agent on `PERMODEL_KNOB_MATRIX_ZSTD.md`. |
+| ideal loopback / 8 MB buffers (zlib, legacy) | same no-AE u8 payload ~88–90 ms (transport ~31 ms, front ~46 ms) | ~32 mph | pre-2026-07-22 codec; ~4× slower (de)compress at large payloads, **same accuracy**, payload ~±5% (`CODEC_LATENCY_AB.md`) |
+
+> **Deployed codec = zstd (2026-07-22).** Entropy coding is lossless, so accuracy is codec-invariant (offline exact
+> profile identical; live drivable A/B confirms). zstd cuts front+transport ~2–4× vs zlib and improves OAI delivery
+> (72→84%) at no accuracy cost. Use **`PERMODEL_KNOB_MATRIX_ZSTD.md`** as the action-cost model. zstd is a free
+> baseline win, NOT a fix for the OAI uplink bottleneck (delivery still ~84%, uplink handling ~151 ms for the ~1 MB
+> no-AE burst) — the AE/quant/ROI payload knobs are still what the agent needs for reliable low-latency delivery.
 | bounded-buffer loopback | not a clean latency anchor; no-AE 200k calibration delivered 1/100 frames | n/a | use only as buffer/reliability artifact |
 | AE-128 compression over OAI | ~105 ms | ~28 mph | ~8× payload cut; meets ε=2 m for most speeds |
 | no-AE baseline over default OAI | ~267 ms | ~10 mph | fails anything >~18 mph at ε=2 m |

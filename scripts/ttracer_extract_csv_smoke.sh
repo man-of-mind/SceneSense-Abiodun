@@ -141,7 +141,7 @@ fi
 if [[ "${#EVENTS[@]}" -eq 0 ]]; then
   if [[ "${SOURCE}" == "gnb" ]]; then
     case "${PROFILE}" in
-      clean|full)
+      clean|full|latency)
         EVENTS=(
           GNB_MAC_UL
           GNB_MAC_DL
@@ -157,10 +157,14 @@ if [[ "${#EVENTS[@]}" -eq 0 ]]; then
           ENB_PDCP_DL
           GNB_PHY_UL_PAYLOAD_RX_BITS
         )
+        # scenesense layer-latency: add gNB per-layer timestamp events
+        if [[ "${PROFILE}" == "latency" ]]; then
+          EVENTS+=(GNB_MAC_RX_SDU GNB_PDCP_RX_DELIVER GNB_MAC_UL_MCS_DECISION GNB_MAC_BLER_MCS_DECISION)
+        fi
         ;;
       *)
         echo "[ttracer_extract_csv_smoke] unsupported gNB profile: ${PROFILE}" >&2
-        echo "[ttracer_extract_csv_smoke] supported gNB profiles: clean, full" >&2
+        echo "[ttracer_extract_csv_smoke] supported gNB profiles: clean, full, latency" >&2
         exit 2
         ;;
     esac
@@ -185,6 +189,18 @@ if [[ "${#EVENTS[@]}" -eq 0 ]]; then
           NRUE_MAC_BSR_STATUS
         )
         ;;
+      latency)
+        # scenesense layer-latency: queue events + UE per-layer timestamp events
+        EVENTS=(
+          NRUE_MAC_DCI_GRANT
+          UE_PHY_UL_PAYLOAD_TX_BITS
+          NRUE_MAC_RLC_BUFFER_STATUS
+          NRUE_MAC_BSR_STATUS
+          NR_PDCP_TX_SDU
+          NR_RLC_TX_SDU
+          NR_RLC_TX_DEQUEUE
+        )
+        ;;
       legacy|full)
         EVENTS=(
           NRUE_MAC_DCI_GRANT
@@ -196,7 +212,7 @@ if [[ "${#EVENTS[@]}" -eq 0 ]]; then
         ;;
       *)
         echo "[ttracer_extract_csv_smoke] unsupported UE profile: ${PROFILE}" >&2
-        echo "[ttracer_extract_csv_smoke] supported UE profiles: clean, payload, queue, legacy, full" >&2
+        echo "[ttracer_extract_csv_smoke] supported UE profiles: clean, payload, queue, latency, legacy, full" >&2
         exit 2
         ;;
     esac
@@ -207,6 +223,12 @@ fields_for_event() {
   case "$1" in
     GNB_MAC_UL|GNB_MAC_DL)
       echo "time rnti frame slot mcs tbs"
+      ;;
+    GNB_MAC_UL_MCS_DECISION)
+      echo "time rnti frame slot sched_frame sched_slot avg_snr_x10 mcs_table ul_bler_mcs_before selected_mcs pre_phr_mcs post_phr_mcs final_mcs estimated_ul_buffer sched_ul_bytes B min_rb available_rb_before available_rb_after ph pcmax rb_size_final tbs_final force_ul_mcs"
+      ;;
+    GNB_MAC_BLER_MCS_DECISION)
+      echo "time direction rnti frame diff old_mcs new_mcs max_mcs_input max_mcs_applied min_mcs opt_max_mcs num_sched num_retx bler_window_ppm bler_before_ppm bler_after_ppm lower_ppm upper_ppm branch updated"
       ;;
     GNB_MAC_LCID_UL)
       echo "time rnti frame slot lcid data_size"
@@ -234,6 +256,15 @@ fields_for_event() {
       ;;
     NRUE_MAC_BSR_STATUS)
       echo "time rnti ue_id frame slot bsr_type trigger_mask bsr_sent padding_len num_sdus sdu_bytes lcg0_bytes lcg1_bytes lcg2_bytes lcg3_bytes lcg4_bytes lcg5_bytes lcg6_bytes lcg7_bytes bsr_lcg_id bsr_index bsr_long0_index bsr_long1_index bsr_long2_index bsr_long3_index bsr_long4_index bsr_long5_index bsr_long6_index bsr_long7_index"
+      ;;
+    NR_PDCP_TX_SDU|NR_RLC_TX_SDU|GNB_PDCP_RX_DELIVER)
+      echo "time mono_sec mono_nsec ue_id rb_id sdu_bytes"
+      ;;
+    NR_RLC_TX_DEQUEUE)
+      echo "time mono_sec mono_nsec ue_id lcid pdu_bytes"
+      ;;
+    GNB_MAC_RX_SDU)
+      echo "time mono_sec mono_nsec rnti frame slot sdu_bytes"
       ;;
     UE_PHY_MEAS)
       echo "time eNB_ID frame subframe rsrp rssi snr rx_power noise_power w_cqi freq_offset"

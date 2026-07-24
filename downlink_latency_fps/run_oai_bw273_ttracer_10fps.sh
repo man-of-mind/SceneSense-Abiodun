@@ -26,7 +26,10 @@ GNB_MIN_RXTXTIME="${GNB_MIN_RXTXTIME:-6}"
 WAIT_TUNNEL_TRIES="${WAIT_TUNNEL_TRIES:-60}"
 ENABLE_SOFTMODEM_TTRACER="${ENABLE_SOFTMODEM_TTRACER:-1}"
 ATTACH_ONLY="${ATTACH_ONLY:-0}"
-RECORD_GNB="${RECORD_GNB:-0}"
+RECORD_GNB="${RECORD_GNB:-1}"
+TTRACER_UE_PROFILE="${TTRACER_UE_PROFILE:-full}"
+TTRACER_GNB_PROFILE="${TTRACER_GNB_PROFILE:-full}"
+FORCE_UL_MCS="${FORCE_UL_MCS:-}"
 
 mkdir -p "${LOG_ROOT}"
 
@@ -86,13 +89,17 @@ restart_core() {
 
 start_gnb_273() {
   local t_args=()
+  local sudo_env=()
   if [[ "${ENABLE_SOFTMODEM_TTRACER}" == "1" ]]; then
     t_args=(--T_stdout "${OAI_T_STDOUT:-2}" --T_nowait --T_port "${OAI_GNB_T_PORT:-2021}")
   fi
-  say "starting gNB: ${GNB_CONF_273}, min_rxtxtime=${GNB_MIN_RXTXTIME}, ttracer=${ENABLE_SOFTMODEM_TTRACER}"
+  if [[ -n "${FORCE_UL_MCS}" ]]; then
+    sudo_env=(env SCENESENSE_FORCE_UL_MCS="${FORCE_UL_MCS}")
+  fi
+  say "starting gNB: ${GNB_CONF_273}, min_rxtxtime=${GNB_MIN_RXTXTIME}, ttracer=${ENABLE_SOFTMODEM_TTRACER}, force_ul_mcs=${FORCE_UL_MCS:-adaptive}"
   (
     cd "${OAI_RAN_BUILD}" &&
-      setsid nohup sudo ./nr-softmodem \
+      setsid nohup sudo "${sudo_env[@]}" ./nr-softmodem \
         -O "${OAI_RAN_CONF}/${GNB_CONF_273}" \
         --gNBs.[0].min_rxtxtime "${GNB_MIN_RXTXTIME}" \
         --rfsim \
@@ -156,20 +163,21 @@ start_network_sampler() {
 }
 
 start_ttracer_recorders() {
-  say "starting UE clean T-tracer recorder for ${TTRACER_DURATION_S}s"
+  say "starting UE ${TTRACER_UE_PROFILE} T-tracer recorder for ${TTRACER_DURATION_S}s"
   scripts/ttracer_record_smoke.sh \
     --run-group "${RUN_GROUP}" \
     --source ue \
-    --profile clean \
+    --profile "${TTRACER_UE_PROFILE}" \
     --duration-s "${TTRACER_DURATION_S}" \
     > "${LOG_ROOT}/ttracer_record_ue_stdout.log" 2>&1 &
   UE_RECORD_PID=$!
 
   if [[ "${RECORD_GNB}" == "1" ]]; then
-    say "starting optional gNB T-tracer recorder for ${TTRACER_DURATION_S}s"
+    say "starting optional gNB ${TTRACER_GNB_PROFILE} T-tracer recorder for ${TTRACER_DURATION_S}s"
     scripts/ttracer_record_smoke.sh \
       --run-group "${RUN_GROUP}" \
       --source gnb \
+      --profile "${TTRACER_GNB_PROFILE}" \
       --duration-s "${TTRACER_DURATION_S}" \
       > "${LOG_ROOT}/ttracer_record_gnb_stdout.log" 2>&1 &
     GNB_RECORD_PID=$!
@@ -203,9 +211,19 @@ postprocess() {
   scripts/ttracer_extract_csv_smoke.sh \
     --run-group "${RUN_GROUP}" \
     --source ue \
-    --profile clean \
+    --profile "${TTRACER_UE_PROFILE}" \
     --clean-output \
     > "${LOG_ROOT}/ttracer_extract_ue_stdout.log" 2>&1
+
+  if [[ "${RECORD_GNB}" == "1" ]]; then
+    say "extracting gNB T-tracer CSV"
+    scripts/ttracer_extract_csv_smoke.sh \
+      --run-group "${RUN_GROUP}" \
+      --source gnb \
+      --profile "${TTRACER_GNB_PROFILE}" \
+      --clean-output \
+      > "${LOG_ROOT}/ttracer_extract_gnb_stdout.log" 2>&1
+  fi
 
   say "analyzing UE grant windows"
   "${PY}" scripts/analyze_nrue_grant_metrics.py \
@@ -228,7 +246,7 @@ postprocess() {
 }
 
 say "===== START 273PRB CARLA/T-tracer run ${RUN_GROUP} ====="
-say "config: gNB=${GNB_CONF_273}, UE_PRB=273, UE_FREQ=${UE_DL_FREQ_273}, UE_SSB=${UE_SSB_273}, min_rxtxtime=${GNB_MIN_RXTXTIME}, softmodem_ttracer=${ENABLE_SOFTMODEM_TTRACER}, T_ports gNB=${OAI_GNB_T_PORT:-2021}, UE=${OAI_UE_T_PORT:-2023}"
+say "config: gNB=${GNB_CONF_273}, UE_PRB=273, UE_FREQ=${UE_DL_FREQ_273}, UE_SSB=${UE_SSB_273}, min_rxtxtime=${GNB_MIN_RXTXTIME}, softmodem_ttracer=${ENABLE_SOFTMODEM_TTRACER}, UE_profile=${TTRACER_UE_PROFILE}, gNB_profile=${TTRACER_GNB_PROFILE}, record_gNB=${RECORD_GNB}, force_ul_mcs=${FORCE_UL_MCS:-adaptive}, quant=${QUANTIZATION_MODE:-per_channel_uint8}, roi=${ROI_THRESHOLD:-0.0}, entropy=${ENTROPY_CODER:-zstd}, T_ports gNB=${OAI_GNB_T_PORT:-2021}, UE=${OAI_UE_T_PORT:-2023}"
 
 if [[ ! -f "${OAI_RAN_CONF}/${GNB_CONF_273}" ]]; then
   say "ERROR: missing gNB config ${OAI_RAN_CONF}/${GNB_CONF_273}"

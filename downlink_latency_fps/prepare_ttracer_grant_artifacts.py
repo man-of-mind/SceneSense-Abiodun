@@ -9,6 +9,7 @@ default OAI bottleneck plots.
 from __future__ import annotations
 
 import argparse
+import shutil
 import math
 from pathlib import Path
 
@@ -44,6 +45,32 @@ def q(series: pd.Series, percent: float) -> float:
 
 def finite_or_blank(value: float) -> float | str:
     return value if math.isfinite(value) else ""
+
+
+def parse_clock_series(series: pd.Series) -> pd.Series:
+    text = series.astype(str).str.strip()
+    parsed = pd.to_datetime(text, format="%H:%M:%S.%f", errors="coerce")
+    seconds = (
+        parsed.dt.hour * 3600.0
+        + parsed.dt.minute * 60.0
+        + parsed.dt.second
+        + parsed.dt.microsecond / 1_000_000.0
+    )
+    # Handle midnight wrap if present.
+    out = []
+    offset = 0.0
+    prev = None
+    for value in seconds:
+        if pd.isna(value):
+            out.append(float("nan"))
+            continue
+        v = float(value) + offset
+        if prev is not None and v + 12 * 3600 < prev:
+            offset += 24 * 3600
+            v = float(value) + offset
+        out.append(v)
+        prev = v
+    return pd.Series(out, index=series.index, dtype="float64")
 
 
 def find_metrics_csv(run_group: str, explicit: str) -> Path:
@@ -102,6 +129,70 @@ def load_network_summary(run_group: str, network_dir: str) -> dict[str, float]:
     }
 
 
+def copy_network_artifacts(run_group: str, network_dir: str, out_dir: Path) -> None:
+    base = Path(network_dir).expanduser().resolve() if network_dir else ABIODUN / "metrics_logs" / "scenesense_network" / run_group
+    for name in ("network_timeseries.csv", "network_summary.csv", "network_manifest.json"):
+        src = base / name
+        if src.exists():
+            shutil.copy2(src, out_dir / name)
+
+
+def write_ue_phy_meas(run_group: str, ttracer_root: Path, out_dir: Path) -> pd.DataFrame:
+    path = ttracer_root / run_group / "ue" / "csv" / "UE_PHY_MEAS.csv"
+    if not path.exists() or path.stat().st_size == 0:
+        return pd.DataFrame()
+    data = pd.read_csv(path)
+    if data.empty or "time" not in data.columns:
+        return pd.DataFrame()
+    data["time_s"] = parse_clock_series(data["time"])
+    data["t_norm"] = data["time_s"] - float(data["time_s"].min())
+    keep = [
+        "time",
+        "time_s",
+        "t_norm",
+        "rsrp",
+        "rssi",
+        "snr",
+        "rx_power",
+        "noise_power",
+        "w_cqi",
+        "freq_offset",
+    ]
+    compact = data[[c for c in keep if c in data.columns]].copy()
+    compact.to_csv(out_dir / "ue_phy_meas_compact.csv", index=False)
+    return compact
+
+
+def write_gnb_pusch_power(run_group: str, ttracer_root: Path, out_dir: Path) -> pd.DataFrame:
+    path = ttracer_root / run_group / "gnb" / "csv" / "GNB_MAC_PUSCH_POWER_CONTROL.csv"
+    if not path.exists() or path.stat().st_size == 0:
+        return pd.DataFrame()
+    data = pd.read_csv(path)
+    if data.empty or "time" not in data.columns:
+        return pd.DataFrame()
+    data["time_s"] = parse_clock_series(data["time"])
+    data["t_norm"] = data["time_s"] - float(data["time_s"].min())
+    if "snrx10" in data.columns:
+        data["snr_db"] = num(data["snrx10"]) / 10.0
+    keep = [
+        "time",
+        "time_s",
+        "t_norm",
+        "snrx10",
+        "snr_db",
+        "phr",
+        "tpc",
+        "tb_size",
+        "txpower_calc",
+        "rbSize",
+        "mcs",
+        "rssi",
+    ]
+    compact = data[[c for c in keep if c in data.columns]].copy()
+    compact.to_csv(out_dir / "gnb_pusch_power_compact.csv", index=False)
+    return compact
+
+
 def write_compact_grants(run_group: str, ttracer_root: Path, out_dir: Path) -> pd.DataFrame:
     windows_path = ttracer_root / run_group / "ue" / "analysis" / "nrue_grant_windows.csv"
     if not windows_path.exists():
@@ -146,6 +237,9 @@ def main() -> int:
     received = metrics[num(metrics["result_received"]).fillna(0).astype(bool)].copy()
     app_rates = frontend_rates_1s(metrics)
     compact = write_compact_grants(run_group, ttracer_root, out_dir)
+    ue_phy = write_ue_phy_meas(run_group, ttracer_root, out_dir)
+    gnb_pusch = write_gnb_pusch_power(run_group, ttracer_root, out_dir)
+    copy_network_artifacts(run_group, args.network_dir, out_dir)
     network = load_network_summary(run_group, args.network_dir)
 
     if not received.empty:
@@ -177,6 +271,12 @@ def main() -> int:
         "ul_avg_mcs_p50_window": q(compact["avg_mcs"], 50),
         "ul_p95_mcs_p50_window": q(compact["p95_mcs"], 50),
         "ul_retx_rate_mean": float(num(compact["retx_rate"]).mean()),
+        "ue_rsrp_p50": q(ue_phy["rsrp"], 50) if "rsrp" in ue_phy.columns else float("nan"),
+        "ue_snr_p50": q(ue_phy["snr"], 50) if "snr" in ue_phy.columns else float("nan"),
+        "ue_cqi_p50": q(ue_phy["w_cqi"], 50) if "w_cqi" in ue_phy.columns else float("nan"),
+        "gnb_pusch_snr_db_p50": q(gnb_pusch["snr_db"], 50) if "snr_db" in gnb_pusch.columns else float("nan"),
+        "gnb_pusch_mcs_p50": q(gnb_pusch["mcs"], 50) if "mcs" in gnb_pusch.columns else float("nan"),
+        "gnb_pusch_rssi_p50": q(gnb_pusch["rssi"], 50) if "rssi" in gnb_pusch.columns else float("nan"),
         "ego_speed_mean_mps": float(num(metrics["ego_speed_mps"]).mean()),
         "moving_gt0p5_frac": float((num(metrics["ego_speed_mps"]).fillna(0.0) > 0.5).mean()),
     }
@@ -191,6 +291,9 @@ def main() -> int:
                 "",
                 f"- Frontend metrics: `{metrics_path}`",
                 f"- Compact UL grants: `{out_dir / 'nrue_ul_grant_windows_compact.csv'}`",
+                f"- UE PHY measurements, if emitted: `{out_dir / 'ue_phy_meas_compact.csv'}`",
+                f"- gNB PUSCH power-control measurements, if emitted: `{out_dir / 'gnb_pusch_power_compact.csv'}`",
+                f"- Network sampler timeseries, if available: `{out_dir / 'network_timeseries.csv'}`",
                 f"- Summary: `{out_dir / 'CARLA10_OAI_TTRACER_SUMMARY.csv'}`",
                 "",
                 "These artifacts are generated from the live CARLA frontend plus UE-side `NRUE_MAC_DCI_GRANT` traces.",

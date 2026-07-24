@@ -123,11 +123,11 @@ fi
 
 if [[ "${SOURCE}" == "gnb" ]]; then
   case "${PROFILE}" in
-    clean|full)
+    clean|full|latency)
       ;;
     *)
       echo "[ttracer_record_smoke] unsupported gNB profile: ${PROFILE}" >&2
-      echo "[ttracer_record_smoke] supported gNB profiles: clean, full" >&2
+      echo "[ttracer_record_smoke] supported gNB profiles: clean, full, latency" >&2
       exit 2
       ;;
   esac
@@ -147,6 +147,10 @@ if [[ "${SOURCE}" == "gnb" ]]; then
     GNB_PHY_UL_PAYLOAD_RX_BITS
     GNB_PHY_UL_TICK
   )
+  # scenesense layer-latency: add gNB per-layer timestamp events
+  if [[ "${PROFILE}" == "latency" ]]; then
+    DEFAULT_TRACES+=(GNB_MAC_RX_SDU GNB_PDCP_RX_DELIVER GNB_MAC_UL_MCS_DECISION GNB_MAC_BLER_MCS_DECISION)
+  fi
 else
   case "${PROFILE}" in
     clean)
@@ -168,6 +172,18 @@ else
         NRUE_MAC_BSR_STATUS
       )
       ;;
+    latency)
+      # scenesense layer-latency: queue events + UE per-layer timestamp events
+      DEFAULT_TRACES=(
+        NRUE_MAC_DCI_GRANT
+        UE_PHY_UL_PAYLOAD_TX_BITS
+        NRUE_MAC_RLC_BUFFER_STATUS
+        NRUE_MAC_BSR_STATUS
+        NR_PDCP_TX_SDU
+        NR_RLC_TX_SDU
+        NR_RLC_TX_DEQUEUE
+      )
+      ;;
     legacy|full)
       DEFAULT_TRACES=(
         NRUE_MAC_DCI_GRANT
@@ -180,7 +196,7 @@ else
       ;;
     *)
       echo "[ttracer_record_smoke] unsupported UE profile: ${PROFILE}" >&2
-      echo "[ttracer_record_smoke] supported UE profiles: clean, payload, queue, legacy, full" >&2
+      echo "[ttracer_record_smoke] supported UE profiles: clean, payload, queue, latency, legacy, full" >&2
       exit 2
       ;;
   esac

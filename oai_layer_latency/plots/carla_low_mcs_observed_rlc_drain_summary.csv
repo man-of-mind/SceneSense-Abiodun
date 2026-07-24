@@ -1,0 +1,2 @@
+run,start_kb,end_kb,drain_ms,burst_slope_mbps,mcs_p50,prb_p50,tbs_p50
+downlink_oai_bw273_mu1_ttracer_fps10_layerinstr_20260723_145921,1033.736328125,95.8115234375,150.01099999790313,51.21944390816274,4.0,273.0,1633.0

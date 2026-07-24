@@ -9,7 +9,9 @@ This study uses the validated moving-ego no-AE deployment recipe:
 - route: 200k training route replay from `fusion_training_data/moving_ego_pps200000_crowded_8loops_stride2/route_progress.csv`
 - camera/radar geometry: car-height ego, camera z `1.55`, pitch `-4`, FoV `120`
 - radar recipe: `200000` PPS, radar HFOV `120`, raster radius `4`, temporal window `2`
-- payload profile: no-AE, per-channel uint8, zlib, ROI `0.0`
+- payload profile: no-AE, per-channel uint8, ROI `0.0` for the baseline rows;
+  current corrected reruns use lossless zstd unless a zlib-vs-zstd A/B is
+  explicitly named. Reduced-payload follow-ups may set AE/quant/ROI explicitly.
 - spatial-map stream: disabled for this stage, so the measured path is model result return only
 
 ## Transport conditions
@@ -19,8 +21,13 @@ This study uses the validated moving-ego no-AE deployment recipe:
 | `ideal_loopback` | `run_ideal_loopback_fps.sh` | current raised-buffer local loopback; clean software/transport floor |
 | `bounded_loopback` | `run_bounded_loopback_fps.sh` | temporary old/default UDP buffer cap; bounded-buffer stress / historical comparison |
 | `oai_default` | `run_oai_default_fps.sh` | current default OAI path, no OAI config tuning |
+| `oai_default106_ttracer` | `run_oai_default106_ttracer_10fps.sh` | default 106PRB 7DL/2UL OAI with T-tracer capture; supports explicit AE/quant/ROI payload probes |
+| `oai_ulheavy_106_ttracer` | `run_oai_ulheavy106_ttracer_10fps.sh` | 106PRB OAI with 4DL/5UL TDD and T-tracer capture |
+| `oai_bw273_mu1_ttracer` | `run_oai_bw273_ttracer_10fps.sh` | validated 273PRB OAI wider-bandwidth recipe with T-tracer capture |
 
-Do not mix OAI tuning into this folder. TDD pattern, 5QI/QoS, PRB/bandwidth, and Sionna varying-channel work belong in later network-condition studies.
+The folder now contains the first corrected OAI config probes needed for Step 1
+(UL-heavy 106PRB and 273PRB). Broader OAI tuning such as 5QI/QoS sweeps and
+Sionna varying-channel work still belong in later network-condition studies.
 
 ## Metrics to report
 
@@ -90,8 +97,27 @@ The 200k crowded training route completed 8 loops in about 1030 seconds, so `DUR
    bash downlink_latency_fps/run_oai_default_fps.sh
    ```
 
-   Current OAI status from the first setup check: OAI core containers were healthy, but `oaitun_ue1` did not exist,
-   so the default OAI sweep still needs UE/RAN/back-half bring-up before running.
+   Bring up CN/RAN/UE first and confirm `oaitun_ue1` exists before running the
+   frontend. The corrected 10 FPS default OAI zlib-vs-zstd A/B has already
+   been rerun; a full corrected default OAI FPS sweep is optional follow-up.
+
+5. Corrected 106PRB UL-heavy T-tracer probe:
+
+   ```bash
+   BATCH_ID=drivable_rerun_YYYYMMDD_ulheavy106 \
+     FRONT_DURATION_S=130 TTRACER_DURATION_S=1800 \
+     TTRACER_UE_PROFILE=full TTRACER_GNB_PROFILE=full RECORD_GNB=1 \
+     bash downlink_latency_fps/run_oai_ulheavy106_ttracer_10fps.sh
+   ```
+
+6. Corrected 273PRB T-tracer probe:
+
+   ```bash
+   BATCH_ID=drivable_rerun_YYYYMMDD_bw273 \
+     FRONT_DURATION_S=130 TTRACER_DURATION_S=1800 \
+     TTRACER_UE_PROFILE=full TTRACER_GNB_PROFILE=full RECORD_GNB=1 \
+     bash downlink_latency_fps/run_oai_bw273_ttracer_10fps.sh
+   ```
 
 ## Safety checks added
 
@@ -110,8 +136,14 @@ Outputs:
 
 - `plots/oai_bottleneck/oai_106prb_drivable_zlib_vs_zstd.png` / `.pdf`
 - `plots/oai_bottleneck/oai_106prb_drivable_zlib_vs_zstd_accuracy.png` / `.pdf`
+- `plots/oai_bottleneck/corrected_ideal_loopback_fps_sweep.png` / `.pdf`
+- `plots/oai_bottleneck/corrected_transport_latency_breakdown.png` / `.pdf`
+- `plots/oai_bottleneck/corrected_transport_reliability_rtt.png` / `.pdf`
+- `plots/oai_ttracer/ttracer_ul_mcs_prb_timeseries_ulheavy106.png` / `.pdf`
+- `plots/oai_ttracer/ttracer_ul_mcs_prb_timeseries_bw273.png` / `.pdf`
+- `plots/oai_ttracer/ttracer_tunnel_tx_rx_timeseries_ulheavy106.png` / `.pdf`
+- `plots/oai_ttracer/ttracer_tunnel_tx_rx_timeseries_bw273.png` / `.pdf`
 
-The older ideal-loopback/bounded-loopback plots were generated from the
-obsolete 60-vehicle frontend command and were removed on 2026-07-22. Regenerate
-those plots only after rerunning the loopback sweeps with the corrected
-drivable-scene command.
+Do not present SNR/CQI/RSRP plots from the current RFsim T-tracer extraction;
+those fields are sentinel/placeholder-like. The valid T-tracer plots are PRB,
+MCS, scheduled-rate, app-offered rate, and tunnel TX/RX.

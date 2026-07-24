@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import argparse
 import csv
 import os
 from pathlib import Path
@@ -22,6 +23,13 @@ def load_summary(path: Path) -> list[dict[str, str]]:
         rows = list(csv.DictReader(f))
     rows.sort(key=lambda r: float(r["fps"]))
     return rows
+
+
+def newest_summary(pattern: str) -> Path:
+    matches = sorted(RUNS.glob(pattern), key=lambda p: p.stat().st_mtime)
+    if not matches:
+        raise FileNotFoundError(f"no summary CSV matched {RUNS / pattern}")
+    return matches[-1]
 
 
 def f(row: dict[str, str], key: str) -> float:
@@ -132,15 +140,28 @@ def plot_payloads(rows: list[dict[str, str]]) -> None:
 
 
 def main() -> int:
-    ideal = load_summary(RUNS / "downlink_fps_summary_20260717_ideal_one_loop.csv")
-    bounded_path = RUNS / "downlink_fps_summary_calib2_clean_20260718_bounded.csv"
-    if not bounded_path.exists():
-        bounded_path = RUNS / "downlink_fps_summary_calib_20260717_bounded.csv"
-    bounded = load_summary(bounded_path) if bounded_path.exists() else []
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--ideal-summary",
+        default="",
+        help="Corrected ideal-loopback summary CSV. Defaults to newest downlink_fps_summary_*loopback*.csv.",
+    )
+    parser.add_argument(
+        "--bounded-summary",
+        default="",
+        help="Optional bounded-loopback summary CSV. Omit to skip bounded comparison.",
+    )
+    args = parser.parse_args()
+
+    ideal_path = Path(args.ideal_summary) if args.ideal_summary else newest_summary("downlink_fps_summary_*loopback*.csv")
+    bounded_path = Path(args.bounded_summary) if args.bounded_summary else None
+
+    ideal = load_summary(ideal_path)
+    bounded = load_summary(bounded_path) if bounded_path and bounded_path.exists() else []
     plot_ideal_latency_breakdown(ideal)
     plot_delivery_comparison(ideal, bounded)
     plot_payloads(ideal)
-    print(f"Wrote plots to {PLOTS}")
+    print(f"Wrote plots to {PLOTS} using ideal_summary={ideal_path}")
     return 0
 
 

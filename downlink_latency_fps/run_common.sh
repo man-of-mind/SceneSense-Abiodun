@@ -28,8 +28,11 @@ FPS_LIST="${FPS_LIST:-5 10 20 30}"
 DURATION_S="${DURATION_S:-130}"
 RESULT_TIMEOUT="${RESULT_TIMEOUT:-1.5}"
 SEED="${SEED:-31}"
-ENTROPY_CODER="${ENTROPY_CODER:-zlib}"
+ENTROPY_CODER="${ENTROPY_CODER:-zstd}"  # 2026-07-22: zstd is the deployed codec (lossless, ~4x faster than zlib, +delivery)
 ZSTD_LEVEL="${ZSTD_LEVEL:-3}"
+QUANTIZATION_MODE="${QUANTIZATION_MODE:-per_channel_uint8}"
+ROI_THRESHOLD="${ROI_THRESHOLD:-0.0}"
+AE_CHECKPOINT="${AE_CHECKPOINT:-}"
 QUEUE_PROBE_MODE="${QUEUE_PROBE_MODE:-0}"
 QUEUE_PROBE_IDLE_BEFORE_S="${QUEUE_PROBE_IDLE_BEFORE_S:-10}"
 QUEUE_PROBE_COOLDOWN_S="${QUEUE_PROBE_COOLDOWN_S:-120}"
@@ -89,15 +92,20 @@ start_local_back() {
     return 1
   fi
   say "starting local back-half for fps=$fps on ${BACK_BIND_HOST}:${REMOTE_PORT}"
+  local ae_args=()
+  if [[ -n "$AE_CHECKPOINT" ]]; then
+    ae_args=(--ae-checkpoint "$AE_CHECKPOINT")
+  fi
   "$PY" "$SCEN" \
     --role back \
     --bind-host "$BACK_BIND_HOST" \
     --remote-host "$BACK_RESULT_REMOTE_HOST" \
     --fusion-checkpoint "$CKPT" \
-    --quantization-mode per_channel_uint8 \
+    --quantization-mode "$QUANTIZATION_MODE" \
     --entropy-coder "$ENTROPY_CODER" \
     --zstd-level "$ZSTD_LEVEL" \
-    --roi-threshold 0.0 \
+    --roi-threshold "$ROI_THRESHOLD" \
+    "${ae_args[@]}" \
     --remote-port "$REMOTE_PORT" \
     --remote-source-port "$BACK_SOURCE_PORT" \
     --camera-result-port "$CAMERA_RESULT_PORT" \
@@ -131,12 +139,16 @@ run_front_point() {
   local run_dir="$RUN_ROOT/$CONDITION/fps_${fps}_${BATCH_ID}"
   local front_log="$LOG_ROOT/$CONDITION/front_fps${fps}_${BATCH_ID}.log"
   local queue_probe_args=()
+  local ae_args=()
   if [[ "$QUEUE_PROBE_MODE" == "1" ]]; then
     queue_probe_args=(
       --queue-probe-mode
       --queue-probe-idle-before-s "$QUEUE_PROBE_IDLE_BEFORE_S"
       --queue-probe-cooldown-s "$QUEUE_PROBE_COOLDOWN_S"
     )
+  fi
+  if [[ -n "$AE_CHECKPOINT" ]]; then
+    ae_args=(--ae-checkpoint "$AE_CHECKPOINT")
   fi
   mkdir -p "$run_dir"
 
@@ -181,10 +193,11 @@ run_front_point() {
     --spawn-radius "$SPAWN_RADIUS" \
     --npc-speed-difference-pct "$NPC_SPEED_DIFFERENCE_PCT" \
     --fusion-checkpoint "$CKPT" \
-    --quantization-mode per_channel_uint8 \
+    --quantization-mode "$QUANTIZATION_MODE" \
     --entropy-coder "$ENTROPY_CODER" \
     --zstd-level "$ZSTD_LEVEL" \
-    --roi-threshold 0.0 \
+    --roi-threshold "$ROI_THRESHOLD" \
+    "${ae_args[@]}" \
     --no-spatial-map-stream \
     --headless \
     --max-frames "$frames" \
