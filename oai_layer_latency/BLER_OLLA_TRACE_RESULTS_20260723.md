@@ -6,6 +6,7 @@ This is the final scheduler-side check requested after the advisor discussion. I
 
 - The low-MCS behavior is visible inside the BLER/OLLA MCS selector itself, before the later PHR/RB helper.
 - The decisive difference is scheduling cadence/sample availability: sparse closed-loop-style bursts repeatedly hit the `num_sched <= 3` branch, while dense open-loop traffic gives the selector enough high-sample windows to keep ratcheting MCS upward.
+- In the uplink BLER-update rows used by this selector, filtered BLER stayed at 0%; the high-BLER decrement branch was never selected.
 - This explains why iperf/open-loop UDP can ramp to high MCS while the CARLA closed-loop app remains stuck near QPSK despite high RFsim PUSCH SNR.
 
 ## Summary table
@@ -35,3 +36,6 @@ This is the final scheduler-side check requested after the advisor discussion. I
 - Plot: `/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/oai_layer_latency/plots/bler_olla_mcs_timeseries.pdf`
 - Plot: `/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/oai_layer_latency/plots/bler_olla_num_sched_timeseries.png`
 - Plot: `/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/oai_layer_latency/plots/bler_olla_num_sched_timeseries.pdf`
+- Plot: `/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/oai_layer_latency/plots/bler_zero_evidence.png`
+- Plot: `/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/oai_layer_latency/plots/bler_zero_evidence.pdf`
+- CSV: `/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/oai_layer_latency/plots/bler_zero_evidence_summary.csv`

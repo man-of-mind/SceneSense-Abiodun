@@ -1,0 +1,141 @@
+{
+  "derived_from": "E1_raw.json",
+  "idle_gpu_W": 29.635424242424243,
+  "target_fps": 10.0,
+  "gpu_energy": {
+    "FULL": {
+      "active_power_W": 254.36,
+      "p50_latency_ms": 1.8518,
+      "throughput_fwd_s": 618.0,
+      "energy_per_frame_J_via_latency": 0.47103,
+      "energy_per_frame_J_via_rate": 0.41158,
+      "energy_per_frame_J_mean": 0.4413,
+      "sustained_W_at_10fps": 4.413
+    },
+    "FRONT": {
+      "active_power_W": 217.92,
+      "p50_latency_ms": 1.3021,
+      "throughput_fwd_s": 737.7,
+      "energy_per_frame_J_via_latency": 0.28375,
+      "energy_per_frame_J_via_rate": 0.29541,
+      "energy_per_frame_J_mean": 0.28958,
+      "sustained_W_at_10fps": 2.896
+    },
+    "BACK": {
+      "active_power_W": 279.53,
+      "p50_latency_ms": 0.518,
+      "throughput_fwd_s": 1838.3,
+      "energy_per_frame_J_via_latency": 0.14481,
+      "energy_per_frame_J_via_rate": 0.15206,
+      "energy_per_frame_J_mean": 0.14843,
+      "sustained_W_at_10fps": 1.484
+    }
+  },
+  "gpu_additivity_check": {
+    "front_plus_back_J": 0.43801,
+    "full_J": 0.4413,
+    "pct_diff": 0.75
+  },
+  "gpu_energy_saving_pct_by_split": 34.4,
+  "cpu_core_ms_per_frame": {
+    "24": {
+      "FULL": 571.74,
+      "FRONT": 309.14,
+      "BACK": 262.81
+    },
+    "8": {
+      "FULL": 262.69,
+      "FRONT": 117.18,
+      "BACK": 145.07
+    },
+    "4": {
+      "FULL": 217.71,
+      "FRONT": 87.25,
+      "BACK": 129.25
+    },
+    "2": {
+      "FULL": 195.45,
+      "FRONT": 75.17,
+      "BACK": 119.7
+    },
+    "1": {
+      "FULL": 178.69,
+      "FRONT": 64.8,
+      "BACK": 113.79
+    }
+  },
+  "cpu_work_saving_ratio_1thread": 2.758,
+  "cpu_work_saving_pct_1thread": 63.7,
+  "jetson_budgets": {
+    "Jetson Orin Nano 8GB": {
+      "modes_W": [
+        7,
+        15
+      ],
+      "min_mode_W": 7,
+      "full_local_gpu_compute_W_at_10fps": 4.413,
+      "split_front_gpu_compute_W_at_10fps": 2.896,
+      "delta_W": 1.517,
+      "delta_pct_of_min_mode": 21.7
+    },
+    "Jetson Orin NX 8GB": {
+      "modes_W": [
+        10,
+        15,
+        20
+      ],
+      "min_mode_W": 10,
+      "full_local_gpu_compute_W_at_10fps": 4.413,
+      "split_front_gpu_compute_W_at_10fps": 2.896,
+      "delta_W": 1.517,
+      "delta_pct_of_min_mode": 15.2
+    },
+    "Jetson Orin NX 16GB": {
+      "modes_W": [
+        10,
+        15,
+        25
+      ],
+      "min_mode_W": 10,
+      "full_local_gpu_compute_W_at_10fps": 4.413,
+      "split_front_gpu_compute_W_at_10fps": 2.896,
+      "delta_W": 1.517,
+      "delta_pct_of_min_mode": 15.2
+    },
+    "Jetson AGX Orin 32GB": {
+      "modes_W": [
+        15,
+        30,
+        40
+      ],
+      "min_mode_W": 15,
+      "full_local_gpu_compute_W_at_10fps": 4.413,
+      "split_front_gpu_compute_W_at_10fps": 2.896,
+      "delta_W": 1.517,
+      "delta_pct_of_min_mode": 10.1
+    },
+    "Jetson AGX Orin 64GB": {
+      "modes_W": [
+        15,
+        30,
+        50,
+        60
+      ],
+      "min_mode_W": 15,
+      "full_local_gpu_compute_W_at_10fps": 4.413,
+      "split_front_gpu_compute_W_at_10fps": 2.896,
+      "delta_W": 1.517,
+      "delta_pct_of_min_mode": 10.1
+    }
+  },
+  "cpu_energy_measurement": {
+    "attempted": true,
+    "available": false,
+    "reason": "RAPL /sys/class/powercap/intel-rapl:0/energy_uj not readable (root-only); perf 'power' PMU unavailable (perf_event_paranoid=4). core-ms/frame used as the CPU energy proxy instead."
+  },
+  "caveats": [
+    "Measured on RTX 5090 + Core Ultra 9 285K, NOT a vehicle SoC. Ratios transfer; absolute W does not.",
+    "Jetson TDP figures are quoted product specs, not measured here - verify against the current NVIDIA Jetson Orin Series Modules Data Sheet before publication.",
+    "sustained_W_at_10fps is GPU COMPUTE power only (idle-subtracted); it is not whole-module power and is therefore not directly comparable to a Jetson module TDP."
+  ]
+}

@@ -1,0 +1,4 @@
+config,params_M,size_fp32_MB,size_int8_MB,gmacs,gpu_lat_mean_ms,gpu_lat_p50_ms,gpu_lat_p95_ms,gpu_fps_p50,gpu_util_pct_maxrate,gpu_fwd_per_s_maxrate,gpu_peak_alloc_MB,gpu_activation_MB,gpu_power_W_maxrate,gpu_power_active_W_maxrate,energy_per_frame_J,gpu_power_W_at10fps,gpu_power_active_W_at10fps,cpu_lat_mean_ms,cpu_lat_p50_ms,cpu_lat_p95_ms,cpu_fps_p50,meets_10fps_gpu,meets_10fps_cpu
+FULL,4.6685,18.674,4.669,10.1639,1.8691,1.8518,1.921,540.0,82.9,618.0,150.7,73.6,283.99,254.36,0.47103,74.67,45.03,26.711,23.499,27.81,42.554,True,True
+FRONT,2.9725,11.89,2.973,2.4451,1.3094,1.3021,1.3658,767.98,66.54,737.7,124.8,47.8,247.55,217.92,0.28375,71.89,42.25,13.549,12.712,15.858,78.663,True,True
+BACK,1.696,6.784,1.696,7.7188,0.5323,0.518,0.6205,1930.38,94.13,1838.3,144.9,67.8,309.17,279.53,0.14481,,,13.777,10.898,14.548,91.759,True,True

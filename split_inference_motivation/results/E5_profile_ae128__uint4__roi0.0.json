@@ -1,0 +1,175 @@
+{
+  "profile": "ae128__uint4__roi0.0",
+  "model": "ae128",
+  "bits": 4,
+  "roi": 0.0,
+  "payload_kb": 129.2,
+  "miou": 0.819,
+  "ped_recall": 0.887,
+  "loc_m": 0.88,
+  "accept": true,
+  "note": "PARETO PICK - min payload within accuracy tolerance",
+  "ae_bottleneck": 128,
+  "wire_low_ch": 40,
+  "wire_high_ch": 128,
+  "wire_elems": 373248,
+  "attack": {
+    "psnr_db": 24.865,
+    "ssim": 0.7246,
+    "steps": 18193,
+    "minutes": 15.24,
+    "train_frames": 6000
+  },
+  "history": [
+    {
+      "epoch": 1,
+      "step": 750,
+      "psnr": 21.612,
+      "ssim": 0.5986
+    },
+    {
+      "epoch": 2,
+      "step": 1500,
+      "psnr": 22.415,
+      "ssim": 0.6296
+    },
+    {
+      "epoch": 3,
+      "step": 2250,
+      "psnr": 22.82,
+      "ssim": 0.6529
+    },
+    {
+      "epoch": 4,
+      "step": 3000,
+      "psnr": 23.087,
+      "ssim": 0.6629
+    },
+    {
+      "epoch": 5,
+      "step": 3750,
+      "psnr": 23.351,
+      "ssim": 0.6731
+    },
+    {
+      "epoch": 6,
+      "step": 4500,
+      "psnr": 23.495,
+      "ssim": 0.6779
+    },
+    {
+      "epoch": 7,
+      "step": 5250,
+      "psnr": 23.559,
+      "ssim": 0.6842
+    },
+    {
+      "epoch": 8,
+      "step": 6000,
+      "psnr": 23.779,
+      "ssim": 0.6891
+    },
+    {
+      "epoch": 9,
+      "step": 6750,
+      "psnr": 23.896,
+      "ssim": 0.6942
+    },
+    {
+      "epoch": 10,
+      "step": 7500,
+      "psnr": 23.934,
+      "ssim": 0.6975
+    },
+    {
+      "epoch": 11,
+      "step": 8250,
+      "psnr": 23.943,
+      "ssim": 0.6981
+    },
+    {
+      "epoch": 12,
+      "step": 9000,
+      "psnr": 24.096,
+      "ssim": 0.7004
+    },
+    {
+      "epoch": 13,
+      "step": 9750,
+      "psnr": 24.229,
+      "ssim": 0.7056
+    },
+    {
+      "epoch": 14,
+      "step": 10500,
+      "psnr": 24.291,
+      "ssim": 0.708
+    },
+    {
+      "epoch": 15,
+      "step": 11250,
+      "psnr": 24.236,
+      "ssim": 0.7086
+    },
+    {
+      "epoch": 16,
+      "step": 12000,
+      "psnr": 24.313,
+      "ssim": 0.7086
+    },
+    {
+      "epoch": 17,
+      "step": 12750,
+      "psnr": 24.446,
+      "ssim": 0.7122
+    },
+    {
+      "epoch": 18,
+      "step": 13500,
+      "psnr": 24.397,
+      "ssim": 0.7107
+    },
+    {
+      "epoch": 19,
+      "step": 14250,
+      "psnr": 24.462,
+      "ssim": 0.7148
+    },
+    {
+      "epoch": 20,
+      "step": 15000,
+      "psnr": 24.496,
+      "ssim": 0.7157
+    },
+    {
+      "epoch": 21,
+      "step": 15750,
+      "psnr": 24.542,
+      "ssim": 0.718
+    },
+    {
+      "epoch": 22,
+      "step": 16500,
+      "psnr": 24.639,
+      "ssim": 0.719
+    },
+    {
+      "epoch": 23,
+      "step": 17250,
+      "psnr": 24.641,
+      "ssim": 0.7196
+    },
+    {
+      "epoch": 24,
+      "step": 18000,
+      "psnr": 24.641,
+      "ssim": 0.7215
+    },
+    {
+      "epoch": 25,
+      "step": 18193,
+      "psnr": 24.66,
+      "ssim": 0.7207
+    }
+  ]
+}

@@ -1,0 +1,131 @@
+{
+  "target_fps": 10.0,
+  "oai_ul_capacity_Mbps_measured": 10.9,
+  "k2_grant_ms": 3.0,
+  "architectures": {
+    "A_full_local": {
+      "name": "A. Full-local + share detections (late fusion)",
+      "car_compute_ms_cpu8": 32.84,
+      "car_compute_ms_gpu": 1.852,
+      "uplink_payload_KB": 2.27,
+      "uplink_Mbps_at_10fps": 0.177,
+      "uplink_latency_ms": 4.6,
+      "uplink_latency_basis": "measured, small-packet regime [2]",
+      "edge_compute_ms": 0.0,
+      "edge_note": "no edge inference; edge/peer only fuses detection lists",
+      "downlink_ms": 4.6,
+      "fits_UL_capacity": true
+    },
+    "B_full_offload": {
+      "name": "B. Full-offload raw (send RGB+radar, whole model on edge)",
+      "car_compute_ms_cpu8": 0.0,
+      "car_compute_ms_gpu": 0.0,
+      "car_note": "encode-only on car (JPEG); no inference",
+      "uplink_payload_KB": 383.13,
+      "uplink_payload_KB_q75": 228.08,
+      "uplink_Mbps_at_10fps": 29.93,
+      "uplink_Mbps_at_10fps_q75": 17.82,
+      "uplink_latency_ms": null,
+      "uplink_latency_basis": "NOT MEASURED - no OAI run for this payload; see md",
+      "edge_compute_ms": 1.852,
+      "downlink_ms": 4.6,
+      "fits_UL_capacity": false,
+      "fits_UL_capacity_q75": false
+    },
+    "C_split_noae": {
+      "name": "C. Split + feature fusion, no-AE u8+zstd (OURS, as first deployed)",
+      "car_compute_ms_cpu8": 14.65,
+      "car_compute_ms_gpu": 1.302,
+      "uplink_payload_KB": 1045.54,
+      "uplink_Mbps_at_10fps": 81.68,
+      "uplink_latency_ms": 151.1,
+      "uplink_latency_basis": "measured live over OAI [1]",
+      "edge_compute_ms": 6.9,
+      "downlink_ms": 3.0,
+      "rtt_p50_ms": 162.2,
+      "capture_to_result_ms": 188.0,
+      "delivery_pct": 83.6,
+      "fits_UL_capacity": false
+    },
+    "C_split_ae128": {
+      "name": "C'. Split + feature fusion, AE-128 uint6 ROI0.5 (OURS, compressed)",
+      "car_compute_ms_cpu8": 14.65,
+      "car_compute_ms_gpu": 1.302,
+      "uplink_payload_KB": 152.7,
+      "uplink_Mbps_at_10fps": 11.93,
+      "uplink_latency_ms": 52.6,
+      "uplink_latency_basis": "measured live over OAI [1]",
+      "edge_compute_ms": 7.5,
+      "downlink_ms": 3.2,
+      "rtt_p50_ms": 64.2,
+      "capture_to_result_ms": 86.5,
+      "delivery_pct": 99.8,
+      "fits_UL_capacity": false
+    }
+  },
+  "oai_rows_cited": {
+    "C_noae_106PRB_zstd": {
+      "source": "[1] Corrected drivable OAI, 106PRB, zstd",
+      "uplink_payload_KB": 1055.2,
+      "chunks": 19,
+      "delivery_pct": 83.6,
+      "front_ms": 25.2,
+      "uplink_ms": 151.1,
+      "edge_ms": 6.9,
+      "downlink_ms": 3.0,
+      "rtt_p50_ms": 162.2,
+      "rtt_p95_ms": 175.3,
+      "capture_to_result_ms": 188.0,
+      "downlink_payload_KB": 2.2
+    },
+    "C_ae128_u6_roi05_106PRB_zstd": {
+      "source": "[1] Corrected default OAI, 106PRB, AE-128 uint6 ROI0.5, zstd",
+      "uplink_payload_KB": 152.7,
+      "chunks": 3,
+      "delivery_pct": 99.8,
+      "front_ms": 21.9,
+      "uplink_ms": 52.6,
+      "edge_ms": 7.5,
+      "downlink_ms": 3.2,
+      "rtt_p50_ms": 64.2,
+      "rtt_p95_ms": 76.8,
+      "capture_to_result_ms": 86.5,
+      "downlink_payload_KB": 2.3
+    },
+    "C_ideal_loopback_zstd": {
+      "source": "[1] Corrected ideal loopback, zstd (NO radio - upper bound)",
+      "uplink_payload_KB": 1053.9,
+      "chunks": 18,
+      "delivery_pct": 100.0,
+      "front_ms": 26.7,
+      "uplink_ms": 7.6,
+      "edge_ms": 8.3,
+      "downlink_ms": 1.6,
+      "rtt_p50_ms": 18.3,
+      "rtt_p95_ms": 39.2,
+      "capture_to_result_ms": 46.1,
+      "downlink_payload_KB": 2.4
+    }
+  },
+  "oai_per_sdu_cited": {
+    "smooth_small_packets_iperf": {
+      "source": "[2] Phase-2 iperf-validated: UE PDCP-ingress -> gNB PDCP-deliver",
+      "mean_ms": 4.6,
+      "p50_ms": 3.1,
+      "p95_ms": 8.4,
+      "max_ms": 83.6,
+      "note": "smooth small-packet traffic - the regime architecture A operates in"
+    },
+    "carla_1MB_feature_bursts": {
+      "source": "[2] Phase-2b instrumented CARLA run, 918409 matched SDUs",
+      "mean_ms": 105.2,
+      "p50_ms": 112.0,
+      "p95_ms": 163.0,
+      "p99_ms": 173.0,
+      "max_ms": 225.0,
+      "note": "1 MB feature bursts - the regime architecture C operates in; dominated by UE RLC queue-wait at UL MCS ~4 (~10.9 Mbps drain)"
+    }
+  },
+  "payload_source": "E3_payloads.json (measured this study, 25 real test frames)",
+  "compute_source": "E1_raw.json (measured this study)"
+}

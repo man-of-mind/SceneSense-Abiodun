@@ -1,0 +1,3 @@
+label,rows,bler_median_pct,bler_p95_pct,bler_max_pct,high_bler_branch_rows,few_sample_branch_rows
+Observed CARLA-paced burst,9028,0.0,0.0,0.0,0,7588
+Open-loop 10 FPS burst,9585,0.0,0.0,0.0,0,6586

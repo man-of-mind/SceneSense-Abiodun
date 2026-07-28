@@ -30,6 +30,9 @@ RECORD_GNB="${RECORD_GNB:-1}"
 TTRACER_UE_PROFILE="${TTRACER_UE_PROFILE:-full}"
 TTRACER_GNB_PROFILE="${TTRACER_GNB_PROFILE:-full}"
 FORCE_UL_MCS="${FORCE_UL_MCS:-}"
+HOLD_MCS_FEW_SAMPLES="${HOLD_MCS_FEW_SAMPLES:-0}"
+RFSIM_CHANMOD="${RFSIM_CHANMOD:-0}"
+CHANNELMOD_MODELLIST="${CHANNELMOD_MODELLIST:-}"
 
 mkdir -p "${LOG_ROOT}"
 
@@ -90,19 +93,28 @@ restart_core() {
 start_gnb_273() {
   local t_args=()
   local sudo_env=()
+  local chanmod_args=()
   if [[ "${ENABLE_SOFTMODEM_TTRACER}" == "1" ]]; then
     t_args=(--T_stdout "${OAI_T_STDOUT:-2}" --T_nowait --T_port "${OAI_GNB_T_PORT:-2021}")
   fi
-  if [[ -n "${FORCE_UL_MCS}" ]]; then
-    sudo_env=(env SCENESENSE_FORCE_UL_MCS="${FORCE_UL_MCS}")
+  if [[ "${RFSIM_CHANMOD}" == "1" ]]; then
+    chanmod_args=(--rfsimulator.[0].options chanmod)
+    if [[ -n "${CHANNELMOD_MODELLIST}" ]]; then
+      chanmod_args+=(--channelmod.modellist "${CHANNELMOD_MODELLIST}")
+    fi
   fi
-  say "starting gNB: ${GNB_CONF_273}, min_rxtxtime=${GNB_MIN_RXTXTIME}, ttracer=${ENABLE_SOFTMODEM_TTRACER}, force_ul_mcs=${FORCE_UL_MCS:-adaptive}"
+  sudo_env=(env SCENESENSE_HOLD_MCS_FEW_SAMPLES="${HOLD_MCS_FEW_SAMPLES}")
+  if [[ -n "${FORCE_UL_MCS}" ]]; then
+    sudo_env+=(SCENESENSE_FORCE_UL_MCS="${FORCE_UL_MCS}")
+  fi
+  say "starting gNB: ${GNB_CONF_273}, min_rxtxtime=${GNB_MIN_RXTXTIME}, ttracer=${ENABLE_SOFTMODEM_TTRACER}, hold_mcs_few_samples=${HOLD_MCS_FEW_SAMPLES}, force_ul_mcs=${FORCE_UL_MCS:-adaptive}, rfsim_chanmod=${RFSIM_CHANMOD}, channelmod_list=${CHANNELMOD_MODELLIST:-config-default}"
   (
     cd "${OAI_RAN_BUILD}" &&
       setsid nohup sudo "${sudo_env[@]}" ./nr-softmodem \
         -O "${OAI_RAN_CONF}/${GNB_CONF_273}" \
         --gNBs.[0].min_rxtxtime "${GNB_MIN_RXTXTIME}" \
         --rfsim \
+        "${chanmod_args[@]}" \
         "${t_args[@]}" \
         > "${LOG_ROOT}/gnb_273_ttracer_stdout.log" 2>&1 &
   )
@@ -110,15 +122,23 @@ start_gnb_273() {
 
 start_ue_273() {
   local t_args=()
+  local chanmod_args=()
   if [[ "${ENABLE_SOFTMODEM_TTRACER}" == "1" ]]; then
     t_args=(--T_stdout "${OAI_T_STDOUT:-2}" --T_nowait --T_port "${OAI_UE_T_PORT:-2023}")
   fi
-  say "starting single-UE softmodem: PRB=273, conf=${UE_CONF_273}, freq=${UE_DL_FREQ_273}, ssb=${UE_SSB_273}, ttracer=${ENABLE_SOFTMODEM_TTRACER}"
+  if [[ "${RFSIM_CHANMOD}" == "1" ]]; then
+    chanmod_args=(--rfsimulator.[0].options chanmod)
+    if [[ -n "${CHANNELMOD_MODELLIST}" ]]; then
+      chanmod_args+=(--channelmod.modellist "${CHANNELMOD_MODELLIST}")
+    fi
+  fi
+  say "starting single-UE softmodem: PRB=273, conf=${UE_CONF_273}, freq=${UE_DL_FREQ_273}, ssb=${UE_SSB_273}, ttracer=${ENABLE_SOFTMODEM_TTRACER}, rfsim_chanmod=${RFSIM_CHANMOD}, channelmod_list=${CHANNELMOD_MODELLIST:-config-default}"
   (
     cd "${OAI_RAN_BUILD}" &&
       setsid nohup sudo ./nr-uesoftmodem \
         --rfsim \
         --rfsimulator.[0].serveraddr "${UE_RFSIM_SERVER:-127.0.0.1}" \
+        "${chanmod_args[@]}" \
         -r 273 \
         --numerology "${UE_NUMEROLOGY}" \
         --band "${UE_BAND}" \
@@ -232,8 +252,8 @@ postprocess() {
     > "${LOG_ROOT}/analyze_nrue_grant_metrics_stdout.log" 2>&1
 
   say "preparing compact plot artifacts"
-  printf "Validated 273PRB CARLA/T-tracer run.\n\ngNB config: %s\nUE launch: -r 273 -C %s --ssb %s\nRun group: %s\n" \
-    "${GNB_CONF_273}" "${UE_DL_FREQ_273}" "${UE_SSB_273}" "${RUN_GROUP}" \
+  printf "Validated 273PRB CARLA/T-tracer run.\n\ngNB config: %s\nUE config: %s\nUE launch: -r 273 -C %s --ssb %s\nRFsim chanmod: %s\nChannelmod list: %s\nRun group: %s\n" \
+    "${GNB_CONF_273}" "${UE_CONF_273}" "${UE_DL_FREQ_273}" "${UE_SSB_273}" "${RFSIM_CHANMOD}" "${CHANNELMOD_MODELLIST:-config-default}" "${RUN_GROUP}" \
     > "${CAP_ROOT}/VALIDATED_273PRB_TTRACER.ok"
 
   "${PY}" downlink_latency_fps/prepare_ttracer_grant_artifacts.py \
@@ -246,7 +266,7 @@ postprocess() {
 }
 
 say "===== START 273PRB CARLA/T-tracer run ${RUN_GROUP} ====="
-say "config: gNB=${GNB_CONF_273}, UE_PRB=273, UE_FREQ=${UE_DL_FREQ_273}, UE_SSB=${UE_SSB_273}, min_rxtxtime=${GNB_MIN_RXTXTIME}, softmodem_ttracer=${ENABLE_SOFTMODEM_TTRACER}, UE_profile=${TTRACER_UE_PROFILE}, gNB_profile=${TTRACER_GNB_PROFILE}, record_gNB=${RECORD_GNB}, force_ul_mcs=${FORCE_UL_MCS:-adaptive}, quant=${QUANTIZATION_MODE:-per_channel_uint8}, roi=${ROI_THRESHOLD:-0.0}, entropy=${ENTROPY_CODER:-zstd}, T_ports gNB=${OAI_GNB_T_PORT:-2021}, UE=${OAI_UE_T_PORT:-2023}"
+say "config: gNB=${GNB_CONF_273}, UE_CONF=${UE_CONF_273}, UE_PRB=273, UE_FREQ=${UE_DL_FREQ_273}, UE_SSB=${UE_SSB_273}, min_rxtxtime=${GNB_MIN_RXTXTIME}, softmodem_ttracer=${ENABLE_SOFTMODEM_TTRACER}, UE_profile=${TTRACER_UE_PROFILE}, gNB_profile=${TTRACER_GNB_PROFILE}, record_gNB=${RECORD_GNB}, hold_mcs_few_samples=${HOLD_MCS_FEW_SAMPLES}, force_ul_mcs=${FORCE_UL_MCS:-adaptive}, rfsim_chanmod=${RFSIM_CHANMOD}, channelmod_list=${CHANNELMOD_MODELLIST:-config-default}, quant=${QUANTIZATION_MODE:-per_channel_uint8}, roi=${ROI_THRESHOLD:-0.0}, entropy=${ENTROPY_CODER:-zstd}, T_ports gNB=${OAI_GNB_T_PORT:-2021}, UE=${OAI_UE_T_PORT:-2023}"
 
 if [[ ! -f "${OAI_RAN_CONF}/${GNB_CONF_273}" ]]; then
   say "ERROR: missing gNB config ${OAI_RAN_CONF}/${GNB_CONF_273}"

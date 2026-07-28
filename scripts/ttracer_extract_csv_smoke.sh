@@ -29,7 +29,7 @@ Options:
   --output-root DIR       Output root; default: metrics_logs/scenesense_ttracer.
   --replay-port PORT      Local replay port; defaults to 2201 for gNB, 2203 for UE.
   --timeout-s SECONDS     Per-event CSV extraction timeout; default: 20.
-  --profile NAME          Extraction profile. UE: clean, payload, queue, legacy/full.
+  --profile NAME          Extraction profile. UE: clean, payload, queue, latency, legacy/full, all.
                           gNB: clean/full. Defaults to clean for UE, full for gNB.
   --clean-output          Remove existing CSVs in the output csv/ folder first.
   --event EVENT_ID        Extract only this event; can be repeated.
@@ -210,9 +210,23 @@ if [[ "${#EVENTS[@]}" -eq 0 ]]; then
           UE_PHY_UL_PAYLOAD_TX_BITS
         )
         ;;
+      all)
+        EVENTS=(
+          NRUE_MAC_DCI_GRANT
+          UE_PHY_MEAS
+          UE_PHY_ULSCH_UE_DCI
+          UE_PHY_DLSCH_UE_DCI
+          UE_PHY_UL_PAYLOAD_TX_BITS
+          NRUE_MAC_RLC_BUFFER_STATUS
+          NRUE_MAC_BSR_STATUS
+          NR_PDCP_TX_SDU
+          NR_RLC_TX_SDU
+          NR_RLC_TX_DEQUEUE
+        )
+        ;;
       *)
         echo "[ttracer_extract_csv_smoke] unsupported UE profile: ${PROFILE}" >&2
-        echo "[ttracer_extract_csv_smoke] supported UE profiles: clean, payload, queue, latency, legacy, full" >&2
+        echo "[ttracer_extract_csv_smoke] supported UE profiles: clean, payload, queue, latency, legacy, full, all" >&2
         exit 2
         ;;
     esac

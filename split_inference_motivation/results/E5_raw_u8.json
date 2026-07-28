@@ -1,0 +1,147 @@
+{
+  "variant": "u8",
+  "attack": {
+    "psnr_db": 25.204,
+    "ssim": 0.7357,
+    "decoder_params_M": 0.928,
+    "steps": 15168,
+    "train_frames": 6000,
+    "minutes": 15.38
+  },
+  "floor_mean_image": {
+    "psnr_db": 12.688,
+    "ssim": 0.3262
+  },
+  "ceiling_architecture_B_jpeg92": {
+    "psnr_db": 38.936,
+    "ssim": 0.979
+  },
+  "history": [
+    {
+      "epoch": 1,
+      "step": 750,
+      "psnr": 21.906,
+      "ssim": 0.604
+    },
+    {
+      "epoch": 2,
+      "step": 1500,
+      "psnr": 22.687,
+      "ssim": 0.6408
+    },
+    {
+      "epoch": 3,
+      "step": 2250,
+      "psnr": 23.094,
+      "ssim": 0.6605
+    },
+    {
+      "epoch": 4,
+      "step": 3000,
+      "psnr": 23.426,
+      "ssim": 0.6717
+    },
+    {
+      "epoch": 5,
+      "step": 3750,
+      "psnr": 23.469,
+      "ssim": 0.6749
+    },
+    {
+      "epoch": 6,
+      "step": 4500,
+      "psnr": 23.899,
+      "ssim": 0.6893
+    },
+    {
+      "epoch": 7,
+      "step": 5250,
+      "psnr": 24.044,
+      "ssim": 0.6935
+    },
+    {
+      "epoch": 8,
+      "step": 6000,
+      "psnr": 24.21,
+      "ssim": 0.6996
+    },
+    {
+      "epoch": 9,
+      "step": 6750,
+      "psnr": 24.285,
+      "ssim": 0.7039
+    },
+    {
+      "epoch": 10,
+      "step": 7500,
+      "psnr": 24.433,
+      "ssim": 0.7092
+    },
+    {
+      "epoch": 11,
+      "step": 8250,
+      "psnr": 24.547,
+      "ssim": 0.7126
+    },
+    {
+      "epoch": 12,
+      "step": 9000,
+      "psnr": 24.55,
+      "ssim": 0.7159
+    },
+    {
+      "epoch": 13,
+      "step": 9750,
+      "psnr": 24.694,
+      "ssim": 0.717
+    },
+    {
+      "epoch": 14,
+      "step": 10500,
+      "psnr": 24.736,
+      "ssim": 0.7214
+    },
+    {
+      "epoch": 15,
+      "step": 11250,
+      "psnr": 24.776,
+      "ssim": 0.723
+    },
+    {
+      "epoch": 16,
+      "step": 12000,
+      "psnr": 24.835,
+      "ssim": 0.7251
+    },
+    {
+      "epoch": 17,
+      "step": 12750,
+      "psnr": 24.884,
+      "ssim": 0.7269
+    },
+    {
+      "epoch": 18,
+      "step": 13500,
+      "psnr": 24.87,
+      "ssim": 0.7297
+    },
+    {
+      "epoch": 19,
+      "step": 14250,
+      "psnr": 24.949,
+      "ssim": 0.7301
+    },
+    {
+      "epoch": 20,
+      "step": 15000,
+      "psnr": 25.058,
+      "ssim": 0.7319
+    },
+    {
+      "epoch": 21,
+      "step": 15168,
+      "psnr": 25.003,
+      "ssim": 0.7318
+    }
+  ]
+}

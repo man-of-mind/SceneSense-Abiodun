@@ -1,0 +1,8 @@
+locked_mhz,actual_mhz,power_W,full_fps,full_p50_ms,full_p95_ms,front_fps,front_p50_ms,front_p95_ms,back_fps,back_p50_ms,speedup_front_vs_full,full_meets_10fps,full_meets_20fps,full_meets_30fps,front_meets_10fps,front_meets_20fps,front_meets_30fps
+3090,2872.0,314.96,539.06,1.842,1.933,757.58,1.31,1.375,1868.67,0.518,1.405,True,True,True,True,True,True
+2100,2085.0,180.7,498.32,1.979,2.098,760.15,1.296,1.432,1447.79,0.667,1.525,True,True,True,True,True,True
+1400,1395.0,125.99,359.69,2.881,3.154,592.96,1.696,1.834,976.58,0.969,1.649,True,True,True,True,True,True
+900,892.0,93.44,236.38,4.176,4.925,372.46,2.727,3.207,627.66,1.621,1.576,True,True,True,True,True,True
+600,592.0,71.88,159.98,6.299,7.509,264.39,3.787,4.594,435.97,2.279,1.653,True,True,True,True,True,True
+405,397.0,64.37,113.4,8.98,10.626,185.59,5.593,6.458,285.07,3.689,1.637,True,True,True,True,True,True
+210,210.0,50.67,54.82,18.418,22.215,91.66,10.504,14.122,133.78,7.575,1.672,True,True,True,True,True,True

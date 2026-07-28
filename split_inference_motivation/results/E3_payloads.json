@@ -1,0 +1,90 @@
+{
+  "A_det_json_raw": {
+    "mean_bytes": 2326.6,
+    "mean_KB": 2.27,
+    "p50_KB": 2.22,
+    "min_KB": 1.91,
+    "max_KB": 2.84
+  },
+  "A_det_json_zstd": {
+    "mean_bytes": 594.5,
+    "mean_KB": 0.58,
+    "p50_KB": 0.58,
+    "min_KB": 0.52,
+    "max_KB": 0.67
+  },
+  "A_n_detections": {
+    "mean": 7.16,
+    "min": 6,
+    "max": 9
+  },
+  "B_jpeg92": {
+    "mean_bytes": 355490.7,
+    "mean_KB": 347.16,
+    "p50_KB": 353.33,
+    "min_KB": 300.96,
+    "max_KB": 357.54
+  },
+  "B_jpeg75": {
+    "mean_bytes": 196706.5,
+    "mean_KB": 192.1,
+    "p50_KB": 195.81,
+    "min_KB": 166.33,
+    "max_KB": 198.58
+  },
+  "B_png": {
+    "mean_bytes": 1445624.6,
+    "mean_KB": 1411.74,
+    "p50_KB": 1432.55,
+    "min_KB": 1260.72,
+    "max_KB": 1443.01
+  },
+  "B_radar_npy_zstd": {
+    "mean_bytes": 36838.7,
+    "mean_KB": 35.98,
+    "p50_KB": 27.37,
+    "min_KB": 25.47,
+    "max_KB": 66.76
+  },
+  "B_jpeg92_plus_radar": {
+    "mean_bytes": 392329.4,
+    "mean_KB": 383.13,
+    "p50_KB": 381.96,
+    "min_KB": 366.2,
+    "max_KB": 417.84
+  },
+  "C_feat_fp32_raw": {
+    "mean_bytes": 5806080,
+    "mean_KB": 5670.0,
+    "p50_KB": 5670.0,
+    "min_KB": 5670.0,
+    "max_KB": 5670.0
+  },
+  "C_feat_u8_raw": {
+    "mean_bytes": 1459546,
+    "mean_KB": 1425.34,
+    "p50_KB": 1425.34,
+    "min_KB": 1425.34,
+    "max_KB": 1425.34
+  },
+  "C_feat_u8_zstd": {
+    "mean_bytes": 1070632.1,
+    "mean_KB": 1045.54,
+    "p50_KB": 1045.96,
+    "min_KB": 1037.38,
+    "max_KB": 1054.89
+  },
+  "C_feat_fp16_uncompressed": {
+    "mean_bytes": 2903040,
+    "mean_KB": 2835.0,
+    "p50_KB": 2835.0,
+    "min_KB": 2835.0,
+    "max_KB": 2835.0
+  },
+  "_meta": {
+    "frames": 25,
+    "zstd_level": 3,
+    "native_frame": "1280x720",
+    "model_input": "768x432 (7ch)"
+  }
+}

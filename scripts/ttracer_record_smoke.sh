@@ -27,7 +27,7 @@ Options:
   --ip HOST               Trace source IP; default: 127.0.0.1.
   --port PORT             Override tracer port.
   --output-root DIR       Output root; default: metrics_logs/scenesense_ttracer.
-  --profile NAME          Trace profile. UE: clean, payload, queue, legacy/full.
+  --profile NAME          Trace profile. UE: clean, payload, queue, latency, legacy/full, all.
                           gNB: clean/full. Defaults to clean for UE, full for gNB.
   --trace EVENT_ID        Add an extra event to the default smoke profile.
   -h, --help              Show this help.
@@ -194,9 +194,27 @@ else
         UE_PHY_UL_TICK
       )
       ;;
+    all)
+      # Union of the legacy/full PHY-side panel plus queue/latency events.
+      # Use this when diagnosing end-to-end CARLA latency, so we do not have
+      # to choose between RF/MCS evidence and UE backlog/timestamp evidence.
+      DEFAULT_TRACES=(
+        NRUE_MAC_DCI_GRANT
+        UE_PHY_MEAS
+        UE_PHY_ULSCH_UE_DCI
+        UE_PHY_DLSCH_UE_DCI
+        UE_PHY_UL_PAYLOAD_TX_BITS
+        UE_PHY_UL_TICK
+        NRUE_MAC_RLC_BUFFER_STATUS
+        NRUE_MAC_BSR_STATUS
+        NR_PDCP_TX_SDU
+        NR_RLC_TX_SDU
+        NR_RLC_TX_DEQUEUE
+      )
+      ;;
     *)
       echo "[ttracer_record_smoke] unsupported UE profile: ${PROFILE}" >&2
-      echo "[ttracer_record_smoke] supported UE profiles: clean, payload, queue, latency, legacy, full" >&2
+      echo "[ttracer_record_smoke] supported UE profiles: clean, payload, queue, latency, legacy, full, all" >&2
       exit 2
       ;;
   esac

@@ -1,0 +1,27 @@
+{
+ "domain": "package-0",
+ "idle_W": 87.93,
+ "threads": 1,
+ "results": {
+  "FULL (whole model)": {
+   "frames": 76,
+   "wall_s": 15.2,
+   "pkg_J": 1553.2,
+   "busy_W": 102.2,
+   "latency_ms": 200.0,
+   "fps": 5.0,
+   "J_per_frame": 20.437,
+   "active_J_per_frame": 2.851
+  },
+  "FRONT (split: backbone only)": {
+   "frames": 93,
+   "wall_s": 15.1,
+   "pkg_J": 1468.1,
+   "busy_W": 97.5,
+   "latency_ms": 161.9,
+   "fps": 6.18,
+   "J_per_frame": 15.786,
+   "active_J_per_frame": 1.549
+  }
+ }
+}

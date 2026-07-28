@@ -1,0 +1,173 @@
+{
+  "host_cpu": "Intel Core Ultra 9 285K (8 P-cores 5.0-5.1GHz + 16 E-cores 4.6GHz)",
+  "logical_cpus": 24,
+  "torch": "2.12.0+cu130",
+  "sustained_window_s": 20.0,
+  "warmup_s": 3.0,
+  "input_shape": [
+    1,
+    7,
+    432,
+    768
+  ],
+  "sample_id": "moving_ego_pps200000_low_8loops_stride2_000002_frame82048",
+  "front_back_maxdiff": 0.0,
+  "gmacs": {
+    "full": 10.164,
+    "front": 2.445,
+    "back": 7.719
+  },
+  "deadlines_fps": [
+    10.0,
+    20.0,
+    30.0
+  ],
+  "rows": [
+    {
+      "threads": 1,
+      "pinned_cpus": 1,
+      "full_fps": 5.489,
+      "full_p50_ms": 182.022,
+      "full_p95_ms": 184.202,
+      "front_fps": 15.679,
+      "front_p50_ms": 63.459,
+      "front_p95_ms": 66.125,
+      "back_fps": 8.464,
+      "back_p50_ms": 118.072,
+      "speedup_front_vs_full": 2.857,
+      "full_meets_10fps": false,
+      "full_meets_20fps": false,
+      "full_meets_30fps": false,
+      "front_meets_10fps": true,
+      "front_meets_20fps": false,
+      "front_meets_30fps": false
+    },
+    {
+      "threads": 2,
+      "pinned_cpus": 2,
+      "full_fps": 9.963,
+      "full_p50_ms": 100.265,
+      "full_p95_ms": 101.524,
+      "front_fps": 25.905,
+      "front_p50_ms": 38.598,
+      "front_p95_ms": 39.166,
+      "back_fps": 16.241,
+      "back_p50_ms": 61.475,
+      "speedup_front_vs_full": 2.6,
+      "full_meets_10fps": false,
+      "full_meets_20fps": false,
+      "full_meets_30fps": false,
+      "front_meets_10fps": true,
+      "front_meets_20fps": true,
+      "front_meets_30fps": false
+    },
+    {
+      "threads": 4,
+      "pinned_cpus": 4,
+      "full_fps": 17.786,
+      "full_p50_ms": 56.172,
+      "full_p95_ms": 56.869,
+      "front_fps": 44.318,
+      "front_p50_ms": 22.522,
+      "front_p95_ms": 23.122,
+      "back_fps": 30.03,
+      "back_p50_ms": 33.265,
+      "speedup_front_vs_full": 2.492,
+      "full_meets_10fps": true,
+      "full_meets_20fps": false,
+      "full_meets_30fps": false,
+      "front_meets_10fps": true,
+      "front_meets_20fps": true,
+      "front_meets_30fps": true
+    },
+    {
+      "threads": 8,
+      "pinned_cpus": 8,
+      "full_fps": 29.494,
+      "full_p50_ms": 33.781,
+      "full_p95_ms": 34.532,
+      "front_fps": 65.187,
+      "front_p50_ms": 15.313,
+      "front_p95_ms": 15.684,
+      "back_fps": 52.518,
+      "back_p50_ms": 19.005,
+      "speedup_front_vs_full": 2.21,
+      "full_meets_10fps": true,
+      "full_meets_20fps": true,
+      "full_meets_30fps": false,
+      "front_meets_10fps": true,
+      "front_meets_20fps": true,
+      "front_meets_30fps": true
+    },
+    {
+      "threads": 16,
+      "pinned_cpus": 16,
+      "full_fps": 29.886,
+      "full_p50_ms": 33.397,
+      "full_p95_ms": 34.718,
+      "front_fps": 58.58,
+      "front_p50_ms": 17.035,
+      "front_p95_ms": 17.375,
+      "back_fps": 61.722,
+      "back_p50_ms": 16.186,
+      "speedup_front_vs_full": 1.96,
+      "full_meets_10fps": true,
+      "full_meets_20fps": true,
+      "full_meets_30fps": false,
+      "front_meets_10fps": true,
+      "front_meets_20fps": true,
+      "front_meets_30fps": true
+    },
+    {
+      "threads": 24,
+      "pinned_cpus": 24,
+      "full_fps": 4.339,
+      "full_p50_ms": 30.237,
+      "full_p95_ms": 1945.261,
+      "front_fps": 3.5,
+      "front_p50_ms": 16.292,
+      "front_p95_ms": 1699.034,
+      "back_fps": 4.366,
+      "back_p50_ms": 251.935,
+      "speedup_front_vs_full": 0.807,
+      "full_meets_10fps": false,
+      "full_meets_20fps": false,
+      "full_meets_30fps": false,
+      "front_meets_10fps": false,
+      "front_meets_20fps": false,
+      "front_meets_30fps": false
+    }
+  ],
+  "crossover": {
+    "10": {
+      "full_needs_threads": 4,
+      "front_needs_threads": 1,
+      "crossover_band_threads": [
+        1,
+        2
+      ]
+    },
+    "20": {
+      "full_needs_threads": 8,
+      "front_needs_threads": 2,
+      "crossover_band_threads": [
+        2,
+        4
+      ]
+    },
+    "30": {
+      "full_needs_threads": null,
+      "front_needs_threads": 4,
+      "crossover_band_threads": [
+        4,
+        8,
+        16
+      ]
+    }
+  },
+  "gpu_clock_sweep": {
+    "attempted": true,
+    "available": false,
+    "reason": "nvidia-smi -lgc requires root: 'The current user does not have permission to change clocks'. CPU sweep only."
+  }
+}

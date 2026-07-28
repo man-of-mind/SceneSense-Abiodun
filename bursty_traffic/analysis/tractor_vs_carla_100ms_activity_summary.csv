@@ -1,0 +1,4 @@
+key,run_group,bin_s,window_s,active_bin_fraction,active_bin_count,total_bins,active_mbps_p50,all_bins_mbps_p95
+tractor_onedrive,tractor_replay_bw273_vanilla_embb0303a_off100_60s_tcpdump_20260727_210512,0.1,70.0,0.8242857142857143,577,700,4.03264,21.49635199999999
+tractor_meet,tractor_replay_bw273_vanilla_urllc0303_off240_60s_tcpdump_20260727_210842,0.1,70.0,0.8357142857142857,585,700,0.98016,1.9012479999999996
+carla_split,downlink_oai_bw273_mu1_ttracer_fps10_layerbaseline_20260722_183259,0.1,70.0,0.15428571428571428,108,700,86.29876,86.703436
