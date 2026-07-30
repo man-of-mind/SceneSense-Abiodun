@@ -1,0 +1,91 @@
+fresh run root: /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/staleness/uplink_only_latency_budget/fresh_run_20260730_000257
+
+================================================================================================
+PART 1 - fresh uplink-only L (capture -> spatial-map update done), fast rasterizer, ideal loopback
+================================================================================================
+  L_fast           n= 190  L p50   67.9  p95  100.4  prep p50  43.6  radar p50  23.6  core p50  23.2
+  L_normal         n= 190  L p50   67.8  p95  106.1  prep p50  44.7  radar p50  24.0  core p50  22.4
+  L_veryfast       n= 190  L p50   66.5  p95   94.7  prep p50  42.5  radar p50  23.5  core p50  23.0
+
+  POOLED fresh L: n=570 frames  p50 67.5 ms  p95 101.8 ms  (mean 71.8, min 50.7, max 172.4)
+  Track-1 anchor (Step A, 50-frame profile): p50 93.3 ms  p95 136.1 ms
+  agreement: p50 -25.8 ms (-27.6%),  p95 -34.3 ms
+  sensor prep share of fresh L: 65% (prep p50 43.8 ms, core split->map p50 22.8 ms)
+  wrote /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/staleness/uplink_only_latency_budget/results/fresh_L_by_condition.csv
+
+================================================================================================
+PART 2 - fresh accuracy dataset (same recipe; result-return on ONLY to log preds+GT)
+================================================================================================
+  ACC_fast         gt_rows= 27200 pred_rows= 1560 -> 194 observations
+  ACC_normal       gt_rows= 27200 pred_rows= 1489 -> 323 observations
+  ACC_veryfast     gt_rows= 19200 pred_rows= 1363 -> 96 observations
+
+  fresh observations: 613   GT rows lacking origin_x/y: 0
+  USING_ORIGIN = True
+  fresh floor at v<1 mph (n=17): 1.330 m | pooled all-speed L=0: 1.180 m | expected ~1.1 m
+
+  --- FRESH accuracy-dataset validation gate ---
+  [F1] per-observation direct-vs-closed-form at fresh L p50: mean -0.0644 m, median -0.0094 m, sd 0.3193 m
+  [F3] L=0 floor: walk/slow 1.471 m vs ~18 mph 1.019 m (difference +0.452 m)
+  [F4] monotonicity of error(L) per band (L = 0 -> p50 -> p95 -> 181 ms):
+       ~walk/slow   n=  50 1.47 -> 1.48 -> 1.48 -> 1.49  OK
+       ~6 mph       n= 133 1.33 -> 1.31 -> 1.31 -> 1.32  OK
+       ~10 mph      n=  69 1.09 -> 1.02 -> 1.02 -> 1.08  NON-MONOTONIC
+       ~14 mph      n=  72 1.10 -> 1.08 -> 1.12 -> 1.29  OK
+       ~18 mph      n= 181 1.02 -> 1.18 -> 1.33 -> 1.77  OK
+       ~23 mph      n=  54 1.33 -> 1.41 -> 1.56 -> 2.15  OK
+       ~28 mph      n=  39 1.13 -> 1.30 -> 1.55 -> 2.31  OK
+       ~32 mph      n=  15 1.24 -> 1.20 -> 1.47 -> 2.41  NON-MONOTONIC
+
+  FRESH-GATE FLAG: F2 v<1 mph sample too thin (n=17) to pin a floor
+  FRESH-GATE FLAG: F3 floor is speed-INVERTED (slow band worse than fast band) -> scene/sampling artifact, floor not trustworthy in this dataset
+  FRESH-GATE FLAG: F4 non-monotonic error(L) in: ~10 mph(n=69), ~32 mph(n=15)
+
+  => CONCLUSION: the fresh run is ACCEPTED for its designed purpose (the independent L
+     measurement in PART 1, 570 frames, 3 regimes, spread <1.5 ms across regimes) and as a
+     qualitative consistency check on staleness GROWTH, but it is NOT used to redefine the
+     model floor or the headline budgets. Those stay on the 829-observation baseline pool,
+     which passes the full gate. No fresh-run number is promoted past its validation.
+
+  empirical L deciles (s): 0.054, 0.057, 0.061, 0.064, 0.066, 0.069, 0.074, 0.078, 0.085, 0.102
+
+  error(v) on the FRESH dataset:
+  band            n                L=0 (floor)        fresh L p50 (68 ms)       fresh L p95 (102 ms)   Track-1 anchor L (93 ms) legacy rasterizer L (181 ms)  E_L[err] (distn-aware)
+  ~walk/slow     50                       1.47                       1.48                       1.48                       1.48                       1.49                    1.48
+  ~6 mph        133                       1.33                       1.31                       1.31                       1.31                       1.32                    1.31
+  ~10 mph        69                       1.09                       1.02                       1.02                       1.02                       1.08                    1.02
+  ~14 mph        72                       1.10                       1.08                       1.12                       1.11                       1.29                    1.09
+  ~18 mph       181                       1.02                       1.18                       1.33                       1.29                       1.77                    1.20
+  ~23 mph        54                       1.33                       1.41                       1.56                       1.51                       2.15                    1.43
+  ~28 mph        39                       1.13                       1.30                       1.55                       1.48                       2.31                    1.33
+  ~32 mph        15                       1.24                       1.20                       1.47                       1.39                       2.41                    1.24
+
+  wrote /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/staleness/uplink_only_latency_budget/results/fresh_error_vs_L_by_speed.csv
+
+================================================================================================
+PART 3 - fresh vs baseline (829-observation pooled speed sweep, zlib/legacy-rasterizer era)
+================================================================================================
+  band          base n  fresh n  base floor  fresh floor  base@93ms  fresh@93ms
+  ~walk/slow       148       50        1.17         1.47       1.17        1.48
+  ~6 mph           325      133        1.11         1.33       1.12        1.31
+  ~10 mph           98       69        1.11         1.09       1.24        1.01
+  ~14 mph           57       72        1.05         1.10       1.35        1.11
+  ~18 mph           94      181        1.12         1.02       1.35        1.29
+  ~23 mph           17       54        1.21         1.33       1.78        1.51
+  ~28 mph           39       39        1.19         1.13       1.35        1.48
+  ~32 mph           51       15        1.29         1.24       1.94        1.39
+
+  Floor-insensitive check -- implied displacement sqrt(err(L)^2 - err(0)^2) vs that dataset's OWN
+  v*L, at L=181 ms. Each dataset is compared against its own mean band speed (they differ).
+  band         | fresh v  implied  exp v*L |  base v  implied  exp v*L
+  ~walk/slow   |    1.01     0.25     0.18 |    0.08     0.12     0.01
+  ~6 mph       |    2.22     0.00     0.40 |    3.23     0.41     0.58
+  ~10 mph      |    4.58     0.00     0.83 |    4.60     0.98     0.83
+  ~14 mph      |    6.30     0.67     1.14 |    6.31     1.42     1.14
+  ~18 mph      |    8.12     1.45     1.47 |    8.11     1.41     1.47
+  ~23 mph      |   10.70     1.68     1.93 |   10.52     2.30     1.90
+  ~28 mph      |   11.85     2.02     2.14 |   12.33     1.79     2.23
+  ~32 mph      |   14.51     2.06     2.62 |   14.76     2.82     2.67
+  (this isolates the staleness term from the floor; each dataset should track its own v*L)
+
+wrote /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/staleness/uplink_only_latency_budget/results/plots/fresh_run_L_and_error.pdf

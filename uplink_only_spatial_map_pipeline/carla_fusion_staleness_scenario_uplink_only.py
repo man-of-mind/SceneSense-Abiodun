@@ -2389,6 +2389,23 @@ def load_fusion_model(
         groundplane_params=object_groundplane_params,
         device=device,
     ).to(device)
+    integrated_ae_bottleneck = int(
+        ((checkpoint.get("trial") or {}).get("ae_bottleneck", 0) if isinstance(checkpoint, dict) else 0)
+        or 0
+    )
+    if integrated_ae_bottleneck > 0:
+        import sys as _sys
+
+        _sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "rl_agent" / "feature_ae"))
+        from ae_model import build_ae
+
+        integrated_ae_arch = str((checkpoint.get("trial") or {}).get("ae_arch", "v2"))
+        high_channels = int(model.classifier.cbr[0].in_channels)
+        model.feature_ae = build_ae(integrated_ae_arch, high_channels, integrated_ae_bottleneck).to(device)
+        print(
+            f"Attached integrated feature-AE before checkpoint load "
+            f"(arch={integrated_ae_arch}, bottleneck={integrated_ae_bottleneck})"
+        )
     state_dict = checkpoint["model"] if isinstance(checkpoint, dict) and "model" in checkpoint else checkpoint
     missing, unexpected = model.load_state_dict(state_dict, strict=False)
     if missing:
@@ -2406,14 +2423,23 @@ def load_fusion_model(
     ae_ckpt_path = str(getattr(args, "ae_checkpoint", "") or "")
     if ae_ckpt_path:
         import sys as _sys
-        _sys.path.insert(0, str(Path(__file__).resolve().parent / "rl_agent" / "feature_ae"))
+
+        _sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "rl_agent" / "feature_ae"))
         from ae_model import build_ae
+
         _ck = torch.load(Path(ae_ckpt_path).expanduser(), map_location=device)
         _ae = build_ae(_ck.get("arch", "v1"), int(_ck["in_channels"]), int(_ck["bottleneck"])).to(device)
         _ae.load_state_dict(_ck["ae_state"])
         _ae.eval()
         split_model._ae = _ae  # type: ignore[attr-defined]
         print(f"Loaded feature-AE (bottleneck={_ck['bottleneck']}) for split compression: {ae_ckpt_path}")
+    elif getattr(model, "feature_ae", None) is not None:
+        model.feature_ae.eval()
+        split_model._ae = model.feature_ae  # type: ignore[attr-defined]
+        print(
+            f"Using integrated model feature-AE as split codec "
+            f"(bottleneck={integrated_ae_bottleneck})"
+        )
     print(
         f"Loaded fusion checkpoint {checkpoint_path} "
         f"(radar_channels={radar_channels}, object_channels={object_channels}, "

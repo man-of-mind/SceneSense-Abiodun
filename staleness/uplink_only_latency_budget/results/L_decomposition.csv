@@ -1,0 +1,16 @@
+stage_key,stage,bucket,legacy_p50_ms,legacy_p95_ms,fast_p50_ms,fast_p95_ms,delta_p50_ms
+sync_world_tick_ms,CARLA sync tick,sensorprep,32.46,95.5,33.41,86.52,0.94
+camera_frame_wait_ms,camera frame wait,sensorprep,33.57,47.62,34.66,46.86,1.09
+radar_wait_ms,radar packet wait,sensorprep,0.01,0.02,0.01,0.04,0.0
+rgb_convert_ms,RGB convert,sensorprep,2.5,4.95,3.85,7.6,1.36
+radar_tensor_build_ms,radar tensor build,sensorprep,139.26,180.29,32.64,52.78,-106.62
+model_preprocess_ms,model preprocess,sensorprep,11.32,18.35,13.08,23.04,1.76
+capture_to_backbone_input_ms,Y_sensorprep (total),rollup,152.88,198.43,53.61,82.15,-99.28
+front_backbone_ms,front backbone (split enc),front,3.19,6.14,5.14,10.39,1.95
+feature_serialize_ms,feature serialize (zstd),front,0.72,1.52,1.06,3.71,0.33
+front_to_edge_ms,Y_uplink (front->edge),uplink,6.67,9.33,7.78,13.36,1.11
+tail_ms,Y_tail (edge tail),tail,7.79,11.34,10.24,21.44,2.45
+map_queue_ms,map UDP ingest/queue,mapinsert,8.22,18.44,8.34,59.99,0.12
+map_service_ms,map service (update apply),mapinsert,0.01,0.02,0.01,0.02,0.0
+backbone_input_to_map_update_done_ms,core split->map (NOT L),rollup,28.51,44.57,37.72,80.17,9.2
+capture_to_map_update_done_ms,L = capture->map update,rollup,180.69,247.53,93.28,136.07,-87.4

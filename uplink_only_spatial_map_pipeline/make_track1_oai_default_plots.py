@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Summarize and plot the Track-1 uplink-only default-OAI run.
 
-This script intentionally reads only run artifacts that were produced by the
-Track-1 uplink-only pipeline.  It does not synthesize comparison traces.
+The main latency summary reads Track-1 artifacts.  The 100 ms traffic-shape
+figure also overlays the optimized closed-loop OAI 106PRB no-AE run as an
+observed baseline for the return-wait deployment.
 """
 
 from __future__ import annotations
@@ -36,6 +37,11 @@ LOOPBACK_RUN_DIR = Path(
 TTRACER_DIR = Path("abiodun/metrics_logs/scenesense_ttracer") / RUN_GROUP
 NETWORK_DIR = Path("abiodun/metrics_logs/scenesense_network") / RUN_GROUP
 OUT_DIR = Path("abiodun/uplink_only_spatial_map_pipeline/plots/track1_oai_default106")
+CLOSED_LOOP_OAI_DEFAULT106_METRICS = Path(
+    "abiodun/downlink_latency_fps/runs/oai_default106_ttracer/"
+    "fps_10_drivable_fast_20260730_default106_noae/streams/"
+    "downlink_oai_default106_ttracer_fps10_drivable_fast_20260730_default106_noae_metrics.csv"
+)
 
 
 def _q(series: pd.Series, q: float) -> float:
@@ -415,6 +421,68 @@ def _bin_100ms_front(front: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
+def _bin_100ms_front_relative(front: pd.DataFrame) -> pd.DataFrame:
+    """100 ms app offered-load bins using same-process perf timestamps."""
+    t = pd.to_numeric(front["camera_sent_perf"], errors="coerce")
+    t0 = float(t.dropna().min())
+    bins = np.floor((t - t0) * 10.0).astype("Int64")
+    out = (
+        pd.DataFrame(
+            {
+                "bin": bins,
+                "bytes": pd.to_numeric(front["feature_payload_bytes"], errors="coerce").fillna(0.0),
+                "frames": 1,
+            }
+        )
+        .dropna(subset=["bin"])
+        .groupby("bin", as_index=False)
+        .sum()
+    )
+    out["bin"] = out["bin"].astype(int)
+    out["t_s"] = out["bin"] / 10.0
+    out["mbit_per_100ms"] = out["bytes"] * 8.0 / 1e6
+    out["mbps_equiv"] = out["mbit_per_100ms"] / 0.1
+    return out
+
+
+def _bin_100ms_closed_loop_app() -> pd.DataFrame:
+    """Closed-loop feature-send bins from the OAI 106PRB no-AE run.
+
+    Use actual front-send wall timestamps when available. This is the correct
+    OAI-vs-OAI comparator for the traffic-shape panel. It uses the same fast
+    radar-rasterizer path as the Track-1 optimized frontend, so the remaining
+    sparse cadence is the closed-loop result-wait/OAI return effect.
+    """
+    df = pd.read_csv(CLOSED_LOOP_OAI_DEFAULT106_METRICS)
+    send_wall = pd.to_numeric(df.get("t_front_send_wall_s"), errors="coerce")
+    if send_wall.notna().any():
+        send_rel = send_wall - float(send_wall.dropna().min())
+    else:
+        elapsed = pd.to_numeric(df["elapsed_s"], errors="coerce")
+        wait_s = pd.to_numeric(df["result_wait_ms"], errors="coerce") / 1000.0
+        send = (elapsed - wait_s).dropna()
+        send_rel = elapsed - wait_s - float(send.min())
+
+    bins = np.floor(send_rel * 10.0).astype("Int64")
+    out = (
+        pd.DataFrame(
+            {
+                "bin": bins,
+                "bytes": pd.to_numeric(df["feature_payload_bytes"], errors="coerce").fillna(0.0),
+                "frames": 1,
+            }
+        )
+        .dropna(subset=["bin"])
+        .groupby("bin", as_index=False)
+        .sum()
+    )
+    out["bin"] = out["bin"].astype(int)
+    out["t_s"] = out["bin"] / 10.0
+    out["mbit_per_100ms"] = out["bytes"] * 8.0 / 1e6
+    out["mbps_equiv"] = out["mbit_per_100ms"] / 0.1
+    return out
+
+
 def _complete_100ms_grid(dfs: Iterable[pd.DataFrame], end_s: float = 250.0) -> pd.DataFrame:
     max_bin = int(end_s * 10.0)
     grid = pd.DataFrame({"bin": np.arange(0, max_bin + 1)})
@@ -493,7 +561,8 @@ def _extract_track1_rlc_decay(target_ms: float) -> Tuple[pd.DataFrame, Dict[str,
 
 
 def plot_100ms_volume_and_drain(oai_front: pd.DataFrame) -> Dict[str, float]:
-    app = _bin_100ms_front(oai_front)
+    app = _bin_100ms_front_relative(oai_front)
+    closed_app = _bin_100ms_closed_loop_app()
 
     grant = pd.read_csv(TTRACER_DIR / "ue" / "csv" / "NRUE_MAC_DCI_GRANT.csv")
     grant = grant[grant["direction"] == 1].copy()
@@ -509,6 +578,13 @@ def plot_100ms_volume_and_drain(oai_front: pd.DataFrame) -> Dict[str, float]:
     bsr["lcg1_kib"] = pd.to_numeric(bsr["lcg1_bytes"], errors="coerce").fillna(0.0) / 1024.0
     bsr_bin = bsr.groupby("bin", as_index=False).agg(lcg1_p50_kib=("lcg1_kib", "median"), lcg1_p95_kib=("lcg1_kib", lambda x: x.quantile(0.95)))
     bsr_bin["t_s"] = bsr_bin["bin"] / 10.0
+    bsr["bin1s"] = np.floor(bsr["sec"]).astype(int)
+    bsr_1s = bsr.groupby("bin1s", as_index=False).agg(
+        lcg1_p50_kib=("lcg1_kib", "median"),
+        lcg1_p95_kib=("lcg1_kib", lambda x: x.quantile(0.95)),
+        lcg1_max_kib=("lcg1_kib", "max"),
+    )
+    bsr_1s["t_s"] = bsr_1s["bin1s"].astype(float)
 
     rlc_occ = pd.read_csv(TTRACER_DIR / "ue" / "csv" / "NRUE_MAC_RLC_BUFFER_STATUS.csv")
     rlc_occ = rlc_occ[rlc_occ["lcid"] == 4].copy()
@@ -517,6 +593,13 @@ def plot_100ms_volume_and_drain(oai_front: pd.DataFrame) -> Dict[str, float]:
     rlc_occ["lcid4_kib"] = pd.to_numeric(rlc_occ["bytes_in_buffer"], errors="coerce").fillna(0.0) / 1024.0
     rlc_occ_bin = rlc_occ.groupby("bin", as_index=False).agg(lcid4_p50_kib=("lcid4_kib", "median"), lcid4_p95_kib=("lcid4_kib", lambda x: x.quantile(0.95)))
     rlc_occ_bin["t_s"] = rlc_occ_bin["bin"] / 10.0
+    rlc_occ["bin1s"] = np.floor(rlc_occ["sec"]).astype(int)
+    rlc_occ_1s = rlc_occ.groupby("bin1s", as_index=False).agg(
+        lcid4_p50_kib=("lcid4_kib", "median"),
+        lcid4_p95_kib=("lcid4_kib", lambda x: x.quantile(0.95)),
+        lcid4_max_kib=("lcid4_kib", "max"),
+    )
+    rlc_occ_1s["t_s"] = rlc_occ_1s["bin1s"].astype(float)
 
     grid = _complete_100ms_grid([app, mac, rlc_drain], end_s=250.0)
     for name, df in [("app", app), ("mac", mac), ("rlc", rlc_drain)]:
@@ -532,11 +615,19 @@ def plot_100ms_volume_and_drain(oai_front: pd.DataFrame) -> Dict[str, float]:
         )
     grid = grid.fillna(0.0)
 
-    queue_1s = pd.read_csv(TTRACER_DIR / "ue" / "analysis" / "nrue_queue_windows.csv")
-
     frame_mbit = _q(oai_front["feature_payload_bytes"], 0.50) * 8.0 / 1e6
     active = grid[(grid["t_s"] >= 20.0) & (grid["t_s"] <= 205.0)].copy()
+    closed_grid = _complete_100ms_grid([closed_app], end_s=max(250.0, float(closed_app["t_s"].max()) + 1.0))
+    closed_grid = closed_grid.merge(
+        closed_app[["bin", "mbit_per_100ms", "mbps_equiv"]].rename(
+            columns={"mbit_per_100ms": "app_mbit_100ms", "mbps_equiv": "app_mbps"}
+        ),
+        on="bin",
+        how="left",
+    ).fillna(0.0)
+    closed_active = closed_grid[(closed_grid["t_s"] >= 0.0) & (closed_grid["t_s"] <= 205.0)].copy()
     app_active_bins_pct = 100.0 * float((active["app_mbit_100ms"] > 0).mean())
+    closed_app_active_bins_pct = 100.0 * float((closed_active["app_mbit_100ms"] > 0).mean())
     mac_active_bins_pct = 100.0 * float((active["mac_mbit_100ms"] > 0).mean())
     rlc_active_bins_pct = 100.0 * float((active["rlc_mbit_100ms"] > 0).mean())
     rlc_mbit_100ms_p50_all = _q(active["rlc_mbit_100ms"], 0.50)
@@ -579,12 +670,12 @@ def plot_100ms_volume_and_drain(oai_front: pd.DataFrame) -> Dict[str, float]:
     fig.subplots_adjust(hspace=0.44, wspace=0.24)
     barw = 0.075
     ax_app = axes[0, 0]
-    ax_drain = axes[0, 1]
+    ax_closed = axes[0, 1]
     ax_cum = axes[1, 0]
     ax_backlog = axes[1, 1]
 
-    zoom_start_s = 120.0
-    zoom_end_s = 140.0
+    zoom_start_s = 0.0
+    zoom_end_s = 20.0
     zoom = grid[(grid["t_s"] >= zoom_start_s) & (grid["t_s"] <= zoom_end_s)].copy()
     zoom_app_active_pct = 100.0 * float((zoom["app_mbit_100ms"] > 0).mean()) if len(zoom) else float("nan")
 
@@ -607,14 +698,14 @@ def plot_100ms_volume_and_drain(oai_front: pd.DataFrame) -> Dict[str, float]:
     )
     ax_app.set_xlim(zoom_start_s, zoom_end_s)
     ax_app.set_ylim(0, max(18.0, zoom["app_mbit_100ms"].quantile(0.995) * 1.08))
-    ax_app.set_title("A. Application feature bursts, 100 ms bins")
-    ax_app.set_xlabel("Time since t-tracer start (s)")
+    ax_app.set_title("A. Track-1 uplink-only app bursts, 100 ms bins")
+    ax_app.set_xlabel("Time since first feature send (s)")
     ax_app.set_ylabel("Mbits offered per 100 ms\n(×10 = Mbps)")
     ax_app.legend(loc="upper right", frameon=True, framealpha=0.95)
     ax_app.text(
         0.02,
         0.90,
-        f"One nonzero bin ≈ one frame\nZoom app idle: {100.0 - zoom_app_active_pct:.0f}% of 100 ms bins",
+        f"One nonzero bin ≈ one frame\n20 s window idle: {100.0 - zoom_app_active_pct:.0f}% of 100 ms bins",
         transform=ax_app.transAxes,
         va="top",
         ha="left",
@@ -623,28 +714,44 @@ def plot_100ms_volume_and_drain(oai_front: pd.DataFrame) -> Dict[str, float]:
         bbox=dict(boxstyle="round,pad=0.35", facecolor="white", edgecolor="#B8C7D9", alpha=0.95),
     )
 
-    ax_drain.plot(
-        zoom["t_s"],
-        zoom["mac_mbit_100ms"],
-        color="#E45756",
-        linewidth=1.7,
-        label="MAC scheduled TBS",
+    closed_zoom = closed_grid[(closed_grid["t_s"] >= zoom_start_s) & (closed_grid["t_s"] <= zoom_end_s)].copy()
+    closed_zoom_active_pct = (
+        100.0 * float((closed_zoom["app_mbit_100ms"] > 0).mean()) if len(closed_zoom) else float("nan")
     )
-    ax_drain.plot(
-        zoom["t_s"],
-        zoom["rlc_mbit_100ms"],
-        color="#54A24B",
-        linewidth=1.7,
-        label="RLC LCID4 dequeue",
+    ax_closed.bar(
+        closed_zoom["t_s"],
+        closed_zoom["app_mbit_100ms"],
+        width=barw,
+        color="#F58518",
+        alpha=0.48,
+        label="Closed-loop app offered",
+        align="edge",
     )
-    ax_drain.axhline(frame_mbit, color="#333333", linewidth=1.4, linestyle="--", alpha=0.75, label="one frame")
-    ax_drain.axhline(rlc_mbit_100ms_p50_all, color="#54A24B", linewidth=1.2, linestyle=":", alpha=0.9, label=f"RLC p50 {rlc_mbit_100ms_p50_all:.1f} Mbit/100 ms")
-    ax_drain.set_xlim(zoom_start_s, zoom_end_s)
-    ax_drain.set_ylim(0, max(16.0, zoom[["mac_mbit_100ms", "rlc_mbit_100ms"]].quantile(0.995).max() * 1.08))
-    ax_drain.set_title("B. Radio drain, 100 ms bins")
-    ax_drain.set_xlabel("Time since t-tracer start (s)")
-    ax_drain.set_ylabel("Mbits drained per 100 ms\n(×10 = Mbps)")
-    ax_drain.legend(loc="upper right", frameon=True, framealpha=0.95)
+    ax_closed.axhline(
+        frame_mbit,
+        color="#333333",
+        linewidth=1.4,
+        linestyle="--",
+        alpha=0.75,
+        label=f"one feature frame ≈ {frame_mbit:.1f} Mbit",
+    )
+    ax_closed.set_xlim(zoom_start_s, zoom_end_s)
+    ax_closed.set_ylim(0, max(18.0, closed_zoom["app_mbit_100ms"].quantile(0.995) * 1.08))
+    ax_closed.set_title("B. Optimized closed-loop OAI app bursts, 100 ms bins")
+    ax_closed.set_xlabel("Time since first feature send (s)")
+    ax_closed.set_ylabel("Mbits offered per 100 ms\n(×10 = Mbps)")
+    ax_closed.legend(loc="upper right", frameon=True, framealpha=0.95)
+    ax_closed.text(
+        0.02,
+        0.90,
+        f"OAI return-wait cadence\n20 s window idle: {100.0 - closed_zoom_active_pct:.0f}% of 100 ms bins",
+        transform=ax_closed.transAxes,
+        va="top",
+        ha="left",
+        fontsize=10,
+        fontweight="bold",
+        bbox=dict(boxstyle="round,pad=0.35", facecolor="white", edgecolor="#B8C7D9", alpha=0.95),
+    )
 
     ax_cum.plot(
         decay_win["since_queued_ms"],
@@ -667,7 +774,7 @@ def plot_100ms_volume_and_drain(oai_front: pd.DataFrame) -> Dict[str, float]:
         fontweight="bold",
         bbox=dict(boxstyle="round,pad=0.35", facecolor="white", edgecolor="#D1495B", alpha=0.95),
     )
-    ax_cum.set_xlim(0, 250)
+    ax_cum.set_xlim(-10, max(125.0, decay_stats["drain_ms"] + 25.0))
     ax_cum.set_ylim(0, max(1200.0, decay_win["kb"].max() * 1.08))
     ax_cum.set_title("C. RLC occupancy drain: one feature burst sits in UE RLC")
     ax_cum.set_xlabel(f"Time within selected burst window near t={decay_stats['window_start_s']:.0f}s (ms)")
@@ -686,43 +793,51 @@ def plot_100ms_volume_and_drain(oai_front: pd.DataFrame) -> Dict[str, float]:
     )
 
     ax_backlog.plot(
-        queue_1s["window_start_s"],
-        queue_1s["sdu_mbps"],
-        color="#54A24B",
-        linewidth=1.8,
-        label="RLC SDU drain, 1 s",
+        rlc_occ_1s["t_s"],
+        rlc_occ_1s["lcid4_p95_kib"],
+        color="#374151",
+        linewidth=2.0,
+        label="RLC LCID4 buffer p95",
     )
-    axb = ax_backlog.twinx()
-    axb.plot(
-        queue_1s["window_start_s"],
-        queue_1s["bsr_total_lcg_p50_bytes"] / 1024.0,
-        color="#B279A2",
-        linewidth=1.6,
-        label="BSR backlog p50",
+    ax_backlog.plot(
+        rlc_occ_1s["t_s"],
+        rlc_occ_1s["lcid4_max_kib"],
+        color="#111827",
+        linewidth=1.2,
+        linestyle=":",
+        alpha=0.80,
+        label="RLC LCID4 buffer max",
     )
-    axb.plot(
-        queue_1s["window_start_s"],
-        queue_1s["bsr_total_lcg_p95_bytes"] / 1024.0,
+    ax_backlog.plot(
+        bsr_1s["t_s"],
+        bsr_1s["lcg1_p95_kib"],
         color="#B279A2",
-        linewidth=1.1,
-        linestyle="--",
-        alpha=0.85,
-        label="BSR backlog p95",
+        linewidth=2.0,
+        label="UE BSR LCG1 p95",
+    )
+    ax_backlog.plot(
+        bsr_1s["t_s"],
+        bsr_1s["lcg1_max_kib"],
+        color="#7C3F73",
+        linewidth=1.2,
+        linestyle=":",
+        alpha=0.80,
+        label="UE BSR LCG1 max",
     )
     ax_backlog.set_xlim(20, 205)
-    ax_backlog.set_title("D. Backlog context")
+    ax_backlog.set_title("D. Backlog context: UE RLC buffer and BSR")
     ax_backlog.set_xlabel("Time since t-tracer start (s)")
-    ax_backlog.set_ylabel("RLC drain\n(Mbps)")
-    axb.set_ylabel("BSR backlog (KiB)", fontweight="bold", color="#B279A2")
-    axb.tick_params(axis="y", labelcolor="#B279A2")
-    lines1, labels1 = ax_backlog.get_legend_handles_labels()
-    lines2, labels2 = axb.get_legend_handles_labels()
-    ax_backlog.legend(lines1 + lines2, labels1 + labels2, loc="upper right", frameon=True, framealpha=0.95)
+    ax_backlog.set_ylabel("Backlog / buffer (KiB)")
+    ax_backlog.set_ylim(bottom=0)
+    ax_backlog.legend(loc="upper right", frameon=True, framealpha=0.95, ncol=2)
     _save(fig, "track1_oai_100ms_volume_drain_backlog")
 
     return {
         "frame_mbit_p50": frame_mbit,
         "app_active_bins_pct": app_active_bins_pct,
+        "closed_loop_app_active_bins_pct": closed_app_active_bins_pct,
+        "track1_example20s_app_active_pct": zoom_app_active_pct,
+        "closed_loop_example20s_app_active_pct": closed_zoom_active_pct,
         "app_nonzero_bin_mbit_p50": _q(active.loc[active["app_mbit_100ms"] > 0, "app_mbit_100ms"], 0.50),
         "app_nonzero_bin_mbit_p95": _q(active.loc[active["app_mbit_100ms"] > 0, "app_mbit_100ms"], 0.95),
         "app_nonzero_bin_mbit_max": _q(active.loc[active["app_mbit_100ms"] > 0, "app_mbit_100ms"], 1.00),
@@ -807,11 +922,49 @@ def plot_track1_observed_rlc_drain(burst_summary: Dict[str, float]) -> None:
         bbox=dict(boxstyle="square,pad=0.35", facecolor="white", edgecolor="#CBD5E1", alpha=0.98),
     )
 
-    ax.set_xlim(-15, 230)
+    ax.set_xlim(-10, max(125.0, stats["drain_ms"] + 25.0))
     ax.set_ylim(0, max(1200.0, decay_win["kb"].max() * 1.12))
     ax.set_xlabel("Time within selected burst window (ms)")
     ax.set_ylabel("UE RLC LCID4 occupancy (KiB)")
     _save(fig, "track1_oai_observed_rlc_drain")
+
+
+def _optimized_closed_loop_oai_summary() -> Dict[str, float]:
+    """Summary for the optimized closed-loop OAI comparator."""
+    metrics = pd.read_csv(CLOSED_LOOP_OAI_DEFAULT106_METRICS)
+    received = pd.to_numeric(metrics["result_received"], errors="coerce").fillna(0.0)
+    send_wall = pd.to_numeric(metrics["t_front_send_wall_s"], errors="coerce")
+    send = send_wall.dropna()
+    actual_fps = float((len(send) - 1) / (send.max() - send.min())) if len(send) > 1 else float("nan")
+    summary_csv = pd.read_csv(
+        "abiodun/metrics_logs/carla_oai_ttracer/"
+        "downlink_oai_default106_ttracer_fps10_drivable_fast_20260730_default106_noae/"
+        "CARLA10_OAI_TTRACER_SUMMARY.csv"
+    ).iloc[0]
+    grant_summary = pd.read_csv(
+        "abiodun/metrics_logs/scenesense_ttracer/"
+        "downlink_oai_default106_ttracer_fps10_drivable_fast_20260730_default106_noae/"
+        "ue/analysis/nrue_grant_summary.csv"
+    )
+    ul = grant_summary[grant_summary["direction_label"].eq("ul")].iloc[0]
+    return {
+        "sent_frames": float(len(metrics)),
+        "received_frames": float(received.sum()),
+        "delivery_pct": float(100.0 * received.sum() / len(metrics)),
+        "actual_send_fps": actual_fps,
+        "payload_kib_p50": float(_q(metrics["feature_payload_bytes"], 0.50) / 1024.0),
+        "rtt_p50_ms": float(summary_csv["rtt_recv_ms_p50"]),
+        "rtt_p95_ms": float(summary_csv["rtt_recv_ms_p95"]),
+        "front_p50_ms": float(summary_csv["front_ms_p50"]),
+        "back_p50_ms": float(summary_csv["back_ms_p50"]),
+        "feature_uplink_p50_ms": float(summary_csv["feature_upload_payload_handling_ms_p50"]),
+        "downlink_p50_ms": float(summary_csv["downlink_ms_p50"]),
+        "scheduled_mbps": float(ul["scheduled_mbps"]),
+        "mcs_avg": float(ul["avg_mcs"]),
+        "mcs_p50": float(ul["p50_mcs"]),
+        "mcs_p95": float(ul["p95_mcs"]),
+        "prb_p50": float(ul["p50_rb_size"]),
+    }
 
 
 def write_markdown(summary: pd.DataFrame, burst_summary: Dict[str, float] | None = None) -> None:
@@ -820,6 +973,7 @@ def write_markdown(summary: pd.DataFrame, burst_summary: Dict[str, float] | None
     loop = summary[summary["condition"] == "Ideal loopback"].iloc[0]
     grant_summary = pd.read_csv(TTRACER_DIR / "ue" / "analysis" / "nrue_grant_summary.csv")
     ul = grant_summary[grant_summary["direction_label"] == "ul"].iloc[0]
+    closed = _optimized_closed_loop_oai_summary()
     layer_md = (TTRACER_DIR / "layer_latency" / "uplink_layer_latency.md").read_text()
     layer_lines = []
     for needle in [
@@ -879,19 +1033,31 @@ Cross-layer notes from `uplink_layer_latency.md`:
 
 {chr(10).join(layer_lines)}
 
+## Optimized closed-loop OAI comparator
+
+Both rows below use default OAI 106PRB / 7DL-2UL, no-AE, ROI 0, per-channel uint8, zstd, 200k radar PPS, corrected drivable route, and the fast radar rasterizer.
+
+| Path | Vehicle waits for result? | Sent / received | Delivery | Actual send FPS | Payload p50 | 20 s idle bins | Uplink/feature handling p50 | Result RTT p50/p95 | UL MCS avg / p50 / p95 | Scheduled UL |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| Track-1 uplink-only OAI | no | {int(oai.sent_frames)} / {int(oai.processed_frames)} | {oai.delivery_pct:.1f}% | {oai.actual_send_fps:.2f} | {oai.uplink_payload_p50_kib:.1f} KiB | {100.0 - burst_summary["track1_example20s_app_active_pct"]:.0f}% | {oai.uplink_transport_p50_ms:.1f} ms | n/a | {ul.avg_mcs:.1f} / {ul.p50_mcs:.0f} / {ul.p95_mcs:.0f} | {ul.scheduled_mbps:.1f} Mbps |
+| Optimized closed-loop OAI | yes | {int(closed["sent_frames"])} / {int(closed["received_frames"])} | {closed["delivery_pct"]:.1f}% | {closed["actual_send_fps"]:.2f} | {closed["payload_kib_p50"]:.1f} KiB | {100.0 - burst_summary["closed_loop_example20s_app_active_pct"]:.0f}% | {closed["feature_uplink_p50_ms"]:.1f} ms | {closed["rtt_p50_ms"]:.1f}/{closed["rtt_p95_ms"]:.1f} ms | {closed["mcs_avg"]:.1f} / {closed["mcs_p50"]:.0f} / {closed["mcs_p95"]:.0f} | {closed["scheduled_mbps"]:.1f} Mbps |
+
 ## 100 ms traffic-shape check
 
 {(
 f'''- Median compressed feature frame: {burst_summary["frame_mbit_p50"]:.2f} Mbit. One full frame in a 100 ms bin is therefore {burst_summary["frame_mbit_p50"] / 0.1:.1f} Mbps equivalent.
-- App offered data appears in {burst_summary["app_active_bins_pct"]:.1f}% of active 100 ms bins; nonzero app bins are usually one frame ({burst_summary["app_nonzero_bin_mbit_p50"]:.2f} Mbit p50), with occasional two-frame bins ({burst_summary["app_nonzero_bin_mbit_max"]:.2f} Mbit max in the active window).
+- Track-1 OAI uplink-only app offered data appears in {burst_summary["app_active_bins_pct"]:.1f}% of active 100 ms bins. The optimized closed-loop **OAI** no-AE run appears in {burst_summary["closed_loop_app_active_bins_pct"]:.1f}% of comparable 100 ms bins.
+- In the displayed 20 s zoom window, Track-1 OAI is active in {burst_summary["track1_example20s_app_active_pct"]:.1f}% of 100 ms bins, while closed-loop OAI is active in {burst_summary["closed_loop_example20s_app_active_pct"]:.1f}%.
+- Nonzero Track-1 app bins are usually one frame ({burst_summary["app_nonzero_bin_mbit_p50"]:.2f} Mbit p50), with occasional two-frame bins ({burst_summary["app_nonzero_bin_mbit_max"]:.2f} Mbit max in the active window).
 - MAC scheduling is active in {burst_summary["mac_active_bins_pct"]:.1f}% of active bins and RLC dequeue in {burst_summary["rlc_active_bins_pct"]:.1f}%. Median drain over all active-window bins is {burst_summary["rlc_mbit_100ms_p50_all"]:.2f} Mbit/100 ms, or {burst_summary["rlc_mbps_equiv_p50_all"]:.1f} Mbps equivalent.
-- Interpretation: uplink-only removes the large closed-loop idle periods, but the app is still frame-bursty because actual send rate is ~7 FPS, not true 10 FPS. RLC/MAC smooth that into a near-continuous drain, but BSR backlog still sits around one feature frame.
+- RLC occupancy-drain view: one clean observed burst drains from {burst_summary["representative_rlc_start_kib"]:.0f} KiB to {burst_summary["representative_rlc_end_kib"]:.0f} KiB in {burst_summary["representative_rlc_one_frame_drain_ms"]:.0f} ms, with burst-slope about {burst_summary["representative_rlc_burst_slope_mbps"]:.0f} Mbps.
+- Interpretation: this is now an optimized OAI-vs-OAI traffic-shape comparison. Track-1 removes the result-return wait from the vehicle, while the optimized closed-loop OAI run still shows the return-wait/timeout cadence that makes feature bursts sparse.
 ''' if burst_summary else '- See the 100 ms plot for app/radio microburst behavior.'
 )}
 
 ## Interpretation
 
-Track 1 behaves differently from the earlier closed-loop return-to-car deployment. Removing the result wait makes the application traffic more continuous, and default OAI schedules a much healthier MCS than the old closed-loop burst/idle pattern. The median OAI front-to-edge transport-only time is now about {oai.uplink_transport_p50_ms:.1f} ms, not the ~200 ms closed-loop symptom.
+Track 1 behaves differently from the earlier OAI closed-loop return-to-car deployment. The OAI traffic-shape panel now compares Track-1 uplink-only OAI against closed-loop OAI, so it isolates the effect of removing result-return waiting from the vehicle-side pacing. The median Track-1 OAI front-to-edge transport-only time is now about {oai.uplink_transport_p50_ms:.1f} ms, not the ~200 ms closed-loop symptom.
 
 However, the 1 MB no-AE feature stream is still close to or above the sustained uplink drain rate. The front offers roughly one 1 MB feature frame every ~140 ms in this run, while the measured RLC/air drain is about 38--42 Mbps. That creates BSR/RLC backlog bursts and explains why capture→tail rises from loopback's {loop.capture_to_tail_p50_ms:.1f} ms p50 to OAI's {oai.capture_to_tail_p50_ms:.1f} ms p50.
 

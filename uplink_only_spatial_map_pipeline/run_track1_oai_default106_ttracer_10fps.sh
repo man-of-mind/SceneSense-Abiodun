@@ -14,8 +14,8 @@ cd "${AB}" || exit 2
 source scripts/config.env
 
 CLIENT="${AB}/uplink_only_spatial_map_pipeline/carla_fusion_staleness_scenario_uplink_only.py"
-CHECKPOINT="${AB}/experiments/ae_integrated_20260710/noae_baseline/checkpoints/mprime_joint_noae/best.pt"
-CHECKPOINT_CONTAINER="/work/abiodun/experiments/ae_integrated_20260710/noae_baseline/checkpoints/mprime_joint_noae/best.pt"
+CHECKPOINT="${CHECKPOINT:-${AB}/experiments/ae_integrated_20260710/noae_baseline/checkpoints/mprime_joint_noae/best.pt}"
+CHECKPOINT_CONTAINER="${CHECKPOINT_CONTAINER:-/work/abiodun/experiments/ae_integrated_20260710/noae_baseline/checkpoints/mprime_joint_noae/best.pt}"
 
 CONDITION="${CONDITION:-track1_oai_default106_ttracer}"
 BATCH_ID="${BATCH_ID:-$(date +%Y%m%d_%H%M%S)}"

@@ -1,0 +1,4 @@
+condition,n_frames,L_p50_ms,L_p95_ms,sensorprep_p50_ms,radar_build_p50_ms,core_split_to_map_p50_ms,uplink_p50_ms,tail_p50_ms,map_queue_p50_ms
+L_fast,190,67.86,100.43,43.6,23.64,23.23,6.29,6.48,3.09
+L_normal,190,67.83,106.08,44.73,23.96,22.38,6.31,5.79,2.63
+L_veryfast,190,66.51,94.67,42.52,23.54,22.98,6.49,6.29,3.01

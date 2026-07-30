@@ -1,0 +1,65 @@
+band,v_ms,L_ms,L_anchor,eps_m,v_times_L_m,remaining_budget_m
+~walk/slow,0.076,67.5,fresh best-estimate,1.5,0.005,1.015
+~walk/slow,0.076,67.5,fresh best-estimate,2.0,0.005,1.665
+~walk/slow,0.076,67.5,fresh best-estimate,2.5,0.005,2.24
+~walk/slow,0.076,67.5,fresh best-estimate,3.0,0.005,2.786
+~6 mph,3.227,67.5,fresh best-estimate,1.5,0.218,0.802
+~6 mph,3.227,67.5,fresh best-estimate,2.0,0.218,1.453
+~6 mph,3.227,67.5,fresh best-estimate,2.5,0.218,2.027
+~6 mph,3.227,67.5,fresh best-estimate,3.0,0.218,2.573
+~10 mph,4.596,67.5,fresh best-estimate,1.5,0.31,0.71
+~10 mph,4.596,67.5,fresh best-estimate,2.0,0.31,1.36
+~10 mph,4.596,67.5,fresh best-estimate,2.5,0.31,1.935
+~10 mph,4.596,67.5,fresh best-estimate,3.0,0.31,2.481
+~14 mph,6.313,67.5,fresh best-estimate,1.5,0.426,0.594
+~14 mph,6.313,67.5,fresh best-estimate,2.0,0.426,1.244
+~14 mph,6.313,67.5,fresh best-estimate,2.5,0.426,1.819
+~14 mph,6.313,67.5,fresh best-estimate,3.0,0.426,2.365
+~18 mph,8.114,67.5,fresh best-estimate,1.5,0.548,0.472
+~18 mph,8.114,67.5,fresh best-estimate,2.0,0.548,1.123
+~18 mph,8.114,67.5,fresh best-estimate,2.5,0.548,1.697
+~18 mph,8.114,67.5,fresh best-estimate,3.0,0.548,2.243
+~23 mph,10.519,67.5,fresh best-estimate,1.5,0.71,0.31
+~23 mph,10.519,67.5,fresh best-estimate,2.0,0.71,0.96
+~23 mph,10.519,67.5,fresh best-estimate,2.5,0.71,1.535
+~23 mph,10.519,67.5,fresh best-estimate,3.0,0.71,2.081
+~28 mph,12.331,67.5,fresh best-estimate,1.5,0.832,0.187
+~28 mph,12.331,67.5,fresh best-estimate,2.0,0.832,0.838
+~28 mph,12.331,67.5,fresh best-estimate,2.5,0.832,1.413
+~28 mph,12.331,67.5,fresh best-estimate,3.0,0.832,1.959
+~32 mph,14.756,67.5,fresh best-estimate,1.5,0.996,0.024
+~32 mph,14.756,67.5,fresh best-estimate,2.0,0.996,0.674
+~32 mph,14.756,67.5,fresh best-estimate,2.5,0.996,1.249
+~32 mph,14.756,67.5,fresh best-estimate,3.0,0.996,1.795
+~walk/slow,0.076,93.3,conservative design anchor,1.5,0.007,1.013
+~walk/slow,0.076,93.3,conservative design anchor,2.0,0.007,1.663
+~walk/slow,0.076,93.3,conservative design anchor,2.5,0.007,2.238
+~walk/slow,0.076,93.3,conservative design anchor,3.0,0.007,2.784
+~6 mph,3.227,93.3,conservative design anchor,1.5,0.301,0.719
+~6 mph,3.227,93.3,conservative design anchor,2.0,0.301,1.369
+~6 mph,3.227,93.3,conservative design anchor,2.5,0.301,1.944
+~6 mph,3.227,93.3,conservative design anchor,3.0,0.301,2.49
+~10 mph,4.596,93.3,conservative design anchor,1.5,0.429,0.591
+~10 mph,4.596,93.3,conservative design anchor,2.0,0.429,1.241
+~10 mph,4.596,93.3,conservative design anchor,2.5,0.429,1.816
+~10 mph,4.596,93.3,conservative design anchor,3.0,0.429,2.362
+~14 mph,6.313,93.3,conservative design anchor,1.5,0.589,0.431
+~14 mph,6.313,93.3,conservative design anchor,2.0,0.589,1.081
+~14 mph,6.313,93.3,conservative design anchor,2.5,0.589,1.656
+~14 mph,6.313,93.3,conservative design anchor,3.0,0.589,2.202
+~18 mph,8.114,93.3,conservative design anchor,1.5,0.757,0.263
+~18 mph,8.114,93.3,conservative design anchor,2.0,0.757,0.913
+~18 mph,8.114,93.3,conservative design anchor,2.5,0.757,1.488
+~18 mph,8.114,93.3,conservative design anchor,3.0,0.757,2.034
+~23 mph,10.519,93.3,conservative design anchor,1.5,0.981,0.038
+~23 mph,10.519,93.3,conservative design anchor,2.0,0.981,0.689
+~23 mph,10.519,93.3,conservative design anchor,2.5,0.981,1.264
+~23 mph,10.519,93.3,conservative design anchor,3.0,0.981,1.81
+~28 mph,12.331,93.3,conservative design anchor,1.5,1.15,-0.131
+~28 mph,12.331,93.3,conservative design anchor,2.0,1.15,0.52
+~28 mph,12.331,93.3,conservative design anchor,2.5,1.15,1.095
+~28 mph,12.331,93.3,conservative design anchor,3.0,1.15,1.641
+~32 mph,14.756,93.3,conservative design anchor,1.5,1.377,-0.357
+~32 mph,14.756,93.3,conservative design anchor,2.0,1.377,0.294
+~32 mph,14.756,93.3,conservative design anchor,2.5,1.377,0.868
+~32 mph,14.756,93.3,conservative design anchor,3.0,1.377,1.414

@@ -33,6 +33,7 @@ ZSTD_LEVEL="${ZSTD_LEVEL:-3}"
 QUANTIZATION_MODE="${QUANTIZATION_MODE:-per_channel_uint8}"
 ROI_THRESHOLD="${ROI_THRESHOLD:-0.0}"
 AE_CHECKPOINT="${AE_CHECKPOINT:-}"
+RADAR_RASTERIZER="${RADAR_RASTERIZER:-legacy}"
 QUEUE_PROBE_MODE="${QUEUE_PROBE_MODE:-0}"
 QUEUE_PROBE_IDLE_BEFORE_S="${QUEUE_PROBE_IDLE_BEFORE_S:-10}"
 QUEUE_PROBE_COOLDOWN_S="${QUEUE_PROBE_COOLDOWN_S:-120}"
@@ -187,6 +188,7 @@ run_front_point() {
     --radar-range 120 \
     --radar-points-per-second 200000 \
     --radar-raster-radius-px 4 \
+    --radar-rasterizer "$RADAR_RASTERIZER" \
     --radar-temporal-window-frames 2 \
     --npc-vehicles "$NPC_VEHICLES" \
     --npc-pedestrians "$NPC_PEDESTRIANS" \

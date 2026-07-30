@@ -220,10 +220,15 @@ Latest completed baseline:
    enabled. Results are in `TRACK1_OAI_DEFAULT106_RESULTS.md`; clean plots are
    under `plots/track1_oai_default106/`.
 
+Latest closeout:
+
+10. Repeated Track-1 over OAI with reduced feature payload knobs:
+    no-AE uint4 ROI0 (~394 KiB) and AE-128 uint6 ROI0.5 (~157 KiB), plus one
+    20 FPS AE capacity probe. Results are in `TRACK1_CLOSEOUT_RESULTS.md`;
+    plots are under `plots/track1_oai_reduced_payload/`.
+
 Next:
 
-10. Repeat Track-1 over OAI with reduced feature payload knobs to test whether
-    the RLC/BSR backlog and incomplete multi-chunk UDP reassembly drops shrink.
 11. Add a real map-worker processing stage when we are ready to replace the
     current explicit `+30 ms` assumed map-compute budget.
 

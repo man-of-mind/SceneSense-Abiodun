@@ -48,17 +48,29 @@ Cross-layer notes from `uplink_layer_latency.md`:
 - **UE PDCP-ingress -> gNB PDCP-deliver (whole RAN UL transit):** mean=38.4 ms  p50=37.0  p95=75.1  p99=98.2  max=235.1 ms
 - **=> RLC queue-wait is ~89% of the uplink transit**; remainder (air K2 + gNB PHY/MAC/reassembly/PDCP) ~4 ms
 
+## Optimized closed-loop OAI comparator
+
+Both rows below use default OAI 106PRB / 7DL-2UL, no-AE, ROI 0, per-channel uint8, zstd, 200k radar PPS, corrected drivable route, and the fast radar rasterizer.
+
+| Path | Vehicle waits for result? | Sent / received | Delivery | Actual send FPS | Payload p50 | 20 s idle bins | Uplink/feature handling p50 | Result RTT p50/p95 | UL MCS avg / p50 / p95 | Scheduled UL |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| Track-1 uplink-only OAI | no | 1299 / 1239 | 95.4% | 7.08 | 1048.9 KiB | 38% | 65.6 ms | n/a | 15.3 / 16 / 21 | 42.2 Mbps |
+| Optimized closed-loop OAI | yes | 1300 / 1183 | 91.0% | 2.21 | 1045.7 KiB | 79% | 145.0 ms | 156.8/173.9 ms | 7.3 / 7 / 13 | 20.2 Mbps |
+
 ## 100 ms traffic-shape check
 
 - Median compressed feature frame: 8.59 Mbit. One full frame in a 100 ms bin is therefore 85.9 Mbps equivalent.
-- App offered data appears in 68.2% of active 100 ms bins; nonzero app bins are usually one frame (8.59 Mbit p50), with occasional two-frame bins (17.62 Mbit max in the active window).
+- Track-1 OAI uplink-only app offered data appears in 62.8% of active 100 ms bins. The optimized closed-loop **OAI** no-AE run appears in 21.2% of comparable 100 ms bins.
+- In the displayed 20 s zoom window, Track-1 OAI is active in 61.7% of 100 ms bins, while closed-loop OAI is active in 21.4%.
+- Nonzero Track-1 app bins are usually one frame (8.60 Mbit p50), with occasional two-frame bins (17.57 Mbit max in the active window).
 - MAC scheduling is active in 100.0% of active bins and RLC dequeue in 94.9%. Median drain over all active-window bins is 6.76 Mbit/100 ms, or 67.6 Mbps equivalent.
-- Interpretation: uplink-only removes the large closed-loop idle periods, but the app is still frame-bursty because actual send rate is ~7 FPS, not true 10 FPS. RLC/MAC smooth that into a near-continuous drain, but BSR backlog still sits around one feature frame.
+- RLC occupancy-drain view: one clean observed burst drains from 1069 KiB to 117 KiB in 98 ms, with burst-slope about 80 Mbps.
+- Interpretation: this is now an optimized OAI-vs-OAI traffic-shape comparison. Track-1 removes the result-return wait from the vehicle, while the optimized closed-loop OAI run still shows the return-wait/timeout cadence that makes feature bursts sparse.
 
 
 ## Interpretation
 
-Track 1 behaves differently from the earlier closed-loop return-to-car deployment. Removing the result wait makes the application traffic more continuous, and default OAI schedules a much healthier MCS than the old closed-loop burst/idle pattern. The median OAI front-to-edge transport-only time is now about 65.6 ms, not the ~200 ms closed-loop symptom.
+Track 1 behaves differently from the earlier OAI closed-loop return-to-car deployment. The OAI traffic-shape panel now compares Track-1 uplink-only OAI against closed-loop OAI, so it isolates the effect of removing result-return waiting from the vehicle-side pacing. The median Track-1 OAI front-to-edge transport-only time is now about 65.6 ms, not the ~200 ms closed-loop symptom.
 
 However, the 1 MB no-AE feature stream is still close to or above the sustained uplink drain rate. The front offers roughly one 1 MB feature frame every ~140 ms in this run, while the measured RLC/air drain is about 38--42 Mbps. That creates BSR/RLC backlog bursts and explains why capture→tail rises from loopback's 72.2 ms p50 to OAI's 154.8 ms p50.
 
@@ -71,6 +83,7 @@ Reliability is the main caveat: edge processed 1239 of 1299 frames (95.4%). Edge
 - `plots/track1_oai_default106/track1_oai_radio_backlog_timeseries.pdf`
 - `plots/track1_oai_default106/track1_oai_delivery_reassembly.pdf`
 - `plots/track1_oai_default106/track1_oai_100ms_volume_drain_backlog.pdf`
+- `plots/track1_oai_default106/track1_oai_observed_rlc_drain.pdf`
 
 ## Next actions
 

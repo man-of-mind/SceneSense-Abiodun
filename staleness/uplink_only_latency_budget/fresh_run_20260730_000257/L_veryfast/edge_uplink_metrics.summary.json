@@ -1,0 +1,11 @@
+{
+  "edge_receive_queue_depth": 0,
+  "edge_receive_queue_dropped": 0,
+  "edge_receive_queue_size": 32,
+  "label": "fusion-loopback:51322->127.0.0.1:51324",
+  "processed_frames": 200,
+  "result_mode": "none",
+  "udp_partial_messages_dropped": 0,
+  "udp_pending_messages": 0,
+  "written_at": "2026-07-30T00:05:23.239"
+}

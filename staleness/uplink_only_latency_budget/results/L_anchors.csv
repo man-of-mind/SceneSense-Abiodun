@@ -1,0 +1,4 @@
+anchor,L_p50_ms,L_p95_ms,note
+fast rasterizer (conservative design anchor; 40-frame profile),93.3,136.1,"ideal loopback, uplink-only, no-AE u8, zstd, 200k PPS"
+legacy rasterizer (pre-optimization),180.7,247.5,"same recipe, python per-point radar raster"
+core split->map (NOT the staleness lag),37.7,80.2,backbone_input->map_update_done; excludes sensor prep

@@ -1,0 +1,1 @@
+wall_time_iso,elapsed_s,run_id,run_group,stream_id,frame_id,carla_timestamp,actor_id,type_id,role_name,class_name,world_x,world_y,world_z,origin_x,origin_y,origin_z,yaw_deg,length_m,width_m,height_m,distance_m,in_camera_frustum,projected_x,projected_y,bbox_x1,bbox_y1,bbox_x2,bbox_y2
