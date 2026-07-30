@@ -229,6 +229,15 @@ def parse_args() -> argparse.Namespace:
         help="Disk radius painted at each projected radar point.",
     )
     parser.add_argument(
+        "--radar-rasterizer",
+        choices=["legacy", "fast"],
+        default="legacy",
+        help=(
+            "Radar tensor rasterizer. 'legacy' preserves the historical Python "
+            "point-paint loop; 'fast' uses the validated vectorized equivalent."
+        ),
+    )
+    parser.add_argument(
         "--stationary-velocity-mps",
         type=float,
         default=0.35,
@@ -477,6 +486,7 @@ class PoleRadarPipeline:
         self.max_abs_velocity = float(args.radar_max_velocity)
         self.parked_threshold_s = float(args.parked_threshold_s)
         self.point_radius_px = int(args.radar_raster_radius_px)
+        self.rasterizer = str(getattr(args, "radar_rasterizer", "legacy"))
 
     def get_latest(self, timeout: float) -> Optional["carla.RadarMeasurement"]:
         try:
@@ -507,6 +517,7 @@ class PoleRadarPipeline:
             max_abs_velocity_mps=self.max_abs_velocity,
             parked_threshold_s=self.parked_threshold_s,
             point_radius_px=self.point_radius_px,
+            rasterizer=self.rasterizer,
         )
         return tensor, points
 

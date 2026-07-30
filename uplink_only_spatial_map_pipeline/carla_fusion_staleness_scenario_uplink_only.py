@@ -71,6 +71,13 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Tuple
 
+_TRACK1_DIR = Path(__file__).resolve().parent
+_ABIODUN_ROOT = _TRACK1_DIR.parent
+_NEU_COLLAB_ROOT = _ABIODUN_ROOT.parent
+for _path in (str(_NEU_COLLAB_ROOT), str(_ABIODUN_ROOT)):
+    if _path not in sys.path:
+        sys.path.insert(0, _path)
+
 import numpy as np
 import torch
 
@@ -80,12 +87,10 @@ import carla_split_inference_udp_segmentation_demo as seg_demo
 import carla_split_inference_udp_segmentation_trained_lraspp_demo as trained_seg_demo
 import carla_split_inference_udp_segmentation_trained_lraspp_pole_client as pole_client
 
-# Late imports from the fusion workflow package. These need PYTHONPATH to
-# include the workflow root, which the launcher script already arranges.
-sys.path.insert(
-    0,
-    str(Path(__file__).resolve().parent / "pole_lraspp_multimodal_fusion"),
-)
+# Late imports from the fusion workflow package.
+_FUSION_WORKFLOW_ROOT = _ABIODUN_ROOT / "pole_lraspp_multimodal_fusion"
+if str(_FUSION_WORKFLOW_ROOT) not in sys.path:
+    sys.path.insert(0, str(_FUSION_WORKFLOW_ROOT))
 from pole_lraspp_multimodal_fusion.model import (  # noqa: E402
     OBJECT_HEAD_CHANNELS,
     build_multitask_fusion_lraspp,
@@ -94,7 +99,12 @@ from pole_lraspp_multimodal_fusion.object_targets import decode_objects  # noqa:
 from pole_lraspp_multimodal_fusion.radar_fusion import (  # noqa: E402
     StationaryTrackAccumulator,
     build_radar_sample,
+    project_camera_points,
+    radar_spherical_to_world,
     radar_raw_to_alt_az_depth_velocity,
+    rasterize_radar_channels,
+    rasterize_radar_channels_fast,
+    world_to_camera_points,
 )
 from pole_lraspp_multimodal_fusion.split_runtime import (  # noqa: E402
     MultimodalLRASPPSplitModel,
@@ -215,14 +225,70 @@ QUEUE_PROBE_SEND_FIELDS = (
     "carla_timestamp",
     "scheduled_elapsed_s",
     "send_lag_ms",
+    "capture_pipeline_queue_wait_ms",
+    "capture_pipeline_queue_depth",
     "front_ms",
     "camera_sent_perf",
     "camera_sent_wall_s",
+    "t_front_start_perf",
+    "t_backbone_input_perf",
+    "t_front_model_done_perf",
+    "t_front_payload_ready_perf",
+    "capture_to_backbone_input_ms",
+    "sync_world_tick_ms",
+    "camera_frame_wait_ms",
+    "radar_wait_ms",
+    "rgb_convert_ms",
+    "camera_inverse_matrix_ms",
+    "radar_tensor_build_ms",
+    "camera_matrix_ms",
+    "camera_transform_payload_ms",
+    "pre_model_other_ms",
+    "capture_pipeline_queue_wait_ms",
+    "capture_pipeline_queue_depth",
+    "model_preprocess_ms",
+    "front_backbone_ms",
+    "feature_serialize_ms",
+    "backbone_input_to_front_send_ms",
+    "send_call_ms",
     "feature_payload_bytes",
     "feature_payload_bytes_uncompressed",
     "feature_payload_chunks",
     "radar_projected_points",
     "ego_speed_mps",
+)
+
+RADAR_RASTERIZER_SHADOW_FIELDS = (
+    "wall_time_iso",
+    "frame_id",
+    "carla_timestamp",
+    "active_rasterizer",
+    "radar_points",
+    "valid_projection_points",
+    "legacy_valid_projection_points",
+    "fast_valid_projection_points",
+    "tensor_max_abs_diff",
+    "tensor_mean_abs_diff",
+    "tensor_nonzero_diff_gt_1e_minus_9",
+    "tensor_nonzero_diff_gt_1e_minus_6",
+    "tensor_nonzero_diff_gt_1e_minus_4",
+    "occupancy_changed_px",
+    "range_max_abs_diff",
+    "velocity_max_abs_diff",
+    "age_max_abs_diff",
+    "seg_logits_max_abs_diff",
+    "object_map_max_abs_diff",
+    "legacy_object_count",
+    "fast_object_count",
+    "object_count_delta",
+    "object_match_count",
+    "legacy_unmatched_count",
+    "fast_unmatched_count",
+    "matched_score_max_abs_diff",
+    "matched_center_px_max_dist",
+    "matched_world_xy_max_dist_m",
+    "matched_world_xy_mean_dist_m",
+    "shadow_decode_ms",
 )
 
 QUEUE_PROBE_RESULT_FIELDS = (
@@ -243,10 +309,65 @@ QUEUE_PROBE_RESULT_FIELDS = (
     "t_tail_done_wall_s",
     "t_result_send_wall_s",
     "t_car_result_recv_wall_s",
+    "t_backbone_input_perf",
+    "backbone_input_to_car_result_recv_ms",
     "result_payload_bytes_estimate",
     "result_payload_chunks_estimate",
     "object_count",
     "mask_present",
+)
+
+EDGE_UPLINK_METRICS_FIELDS = (
+    "wall_time_iso",
+    "frame_id",
+    "stream_id",
+    "carla_timestamp",
+    "result_mode",
+    "object_count",
+    "uplink_payload_bytes",
+    "uplink_payload_bytes_uncompressed",
+    "uplink_payload_chunks",
+    "result_payload_bytes",
+    "result_payload_chunks",
+    "edge_receive_queue_depth",
+    "edge_receive_queue_dropped",
+    "udp_pending_messages",
+    "udp_partial_messages_dropped",
+    "spatial_publisher_queue",
+    "spatial_publisher_dropped",
+    "t_capture_perf",
+    "t_front_start_perf",
+    "t_backbone_input_perf",
+    "t_front_model_done_perf",
+    "t_front_payload_ready_perf",
+    "t_front_send_perf",
+    "t_edge_recv_perf",
+    "t_tail_start_perf",
+    "t_tail_done_perf",
+    "t_map_publish_perf",
+    "capture_to_backbone_input_ms",
+    "sync_world_tick_ms",
+    "camera_frame_wait_ms",
+    "radar_wait_ms",
+    "rgb_convert_ms",
+    "camera_inverse_matrix_ms",
+    "radar_tensor_build_ms",
+    "camera_matrix_ms",
+    "camera_transform_payload_ms",
+    "pre_model_other_ms",
+    "model_preprocess_ms",
+    "front_backbone_ms",
+    "feature_serialize_ms",
+    "backbone_input_to_front_send_ms",
+    "front_to_edge_ms",
+    "edge_queue_ms",
+    "tail_ms",
+    "edge_to_map_publish_ms",
+    "backbone_input_to_edge_recv_ms",
+    "backbone_input_to_tail_done_ms",
+    "backbone_input_to_map_publish_ms",
+    "capture_to_tail_done_ms",
+    "capture_to_map_publish_ms",
 )
 
 FUSION_OBJECT_PREDICTION_FIELDS = (
@@ -413,6 +534,15 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--camera-height", type=int, default=480)
     parser.add_argument("--fps", type=float, default=10.0, help="Synchronous sensor tick rate.")
     parser.add_argument(
+        "--sensor-every-tick",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help=(
+            "Set RGB/radar sensor_tick to 0.0 so sensors emit every synchronous "
+            "world tick. Default keeps explicit sensor_tick=1/fps."
+        ),
+    )
+    parser.add_argument(
         "--camera-timeout",
         type=float,
         default=5.0,
@@ -559,15 +689,58 @@ def parse_args() -> argparse.Namespace:
         "--radar-raster-radius-px",
         type=int,
         default=2,
-        help="Disk radius painted at each projected radar point.",
+        help="Square half-width painted at each projected radar point.",
     )
     parser.add_argument(
         "--radar-rasterizer",
-        choices=["legacy", "fast"],
+        choices=("legacy", "fast"),
         default="legacy",
         help=(
-            "Radar tensor rasterizer. 'legacy' preserves the historical Python "
-            "point-paint loop; 'fast' uses the validated vectorized equivalent."
+            "Radar tensor rasterizer implementation. 'legacy' preserves the "
+            "original Python point-paint loop. 'fast' uses vectorized scatter "
+            "+ max-filter dilation with the same square support."
+        ),
+    )
+    parser.add_argument(
+        "--radar-rasterizer-shadow-csv",
+        default="",
+        help=(
+            "Optional CSV path for same-frame legacy-vs-fast radar rasterizer "
+            "validation. When set, both tensors are built from the same radar "
+            "measurement/tracker update and compared frame-by-frame."
+        ),
+    )
+    parser.add_argument(
+        "--radar-rasterizer-shadow-decode",
+        action="store_true",
+        help=(
+            "With --radar-rasterizer-shadow-csv, also run both same-frame tensors "
+            "through the local model and compare decoded objects/logits. Slower; "
+            "use only for short validation runs."
+        ),
+    )
+    parser.add_argument(
+        "--capture-pipeline",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help=(
+            "Experimental uplink-only no-wait mode: decouple CARLA capture/prep from "
+            "front encode/send with a bounded in-process queue. Default is off."
+        ),
+    )
+    parser.add_argument(
+        "--capture-pipeline-queue-size",
+        type=int,
+        default=2,
+        help="Prepared-frame queue depth for --capture-pipeline.",
+    )
+    parser.add_argument(
+        "--capture-pipeline-drop-oldest",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help=(
+            "When the capture pipeline queue is full, drop the oldest prepared frame "
+            "instead of blocking the CARLA producer. Default blocks to preserve no-loss timing."
         ),
     )
     parser.add_argument(
@@ -829,6 +1002,59 @@ def parse_args() -> argparse.Namespace:
         help="Seconds to wait for the tail-side result for each frame before skipping it.",
     )
     parser.add_argument(
+        "--uplink-only-spatial-map",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help=(
+            "Track-1 mode: send split features uplink without waiting for returned "
+            "detections; the edge/back half publishes decoded detections directly "
+            "to the spatial-map server."
+        ),
+    )
+    parser.add_argument(
+        "--edge-result-mode",
+        choices=("auto", "full", "ack", "none"),
+        default="auto",
+        help=(
+            "Back-half result behavior. auto=full normally and none in uplink-only "
+            "mode. full preserves the closed-loop result payload, ack sends tiny "
+            "timing-only feedback, none sends no result downlink."
+        ),
+    )
+    parser.add_argument(
+        "--uplink-wait-for-ack",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help=(
+            "Track-1 diagnostic: in --uplink-only-spatial-map mode, wait for the "
+            "tiny edge ACK/result before sending the next frame. This restores "
+            "closed-loop-style backpressure without returning full detections."
+        ),
+    )
+    parser.add_argument(
+        "--edge-metrics-csv",
+        default="",
+        help="Optional CSV path for edge-side uplink/map-publish timing.",
+    )
+    parser.add_argument(
+        "--edge-receive-queue-size",
+        type=int,
+        default=-1,
+        help=(
+            "Bounded edge receive queue between UDP assembly and tail inference. "
+            "-1=auto (32 in uplink-only, 0 otherwise), 0=legacy receive/process."
+        ),
+    )
+    parser.add_argument(
+        "--uplink-drain-grace-s",
+        type=float,
+        default=0.0,
+        help=(
+            "Optional shutdown grace after front sends stop, allowing already "
+            "assembled feature frames to drain through tail/map in short tests."
+        ),
+    )
+    parser.add_argument(
         "--queue-probe-mode",
         action="store_true",
         help=(
@@ -1058,7 +1284,10 @@ class PoleRadarPipeline:
         bp.set_attribute("horizontal_fov", str(float(args.radar_hfov)))
         bp.set_attribute("vertical_fov", str(float(args.radar_vfov)))
         bp.set_attribute("points_per_second", str(int(args.radar_points_per_second)))
-        bp.set_attribute("sensor_tick", str(1.0 / max(0.1, float(args.fps))))
+        radar_sensor_tick = 0.0 if bool(getattr(args, "sensor_every_tick", False)) else (
+            1.0 / max(0.1, float(args.fps))
+        )
+        bp.set_attribute("sensor_tick", str(float(radar_sensor_tick)))
         self.sensor: "carla.Actor" = world.spawn_actor(bp, transform, attach_to=attach_to)
         self.queue: "queue.Queue[carla.RadarMeasurement]" = queue.Queue(maxsize=2)
         self.sensor.listen(lambda measurement: od_demo.put_latest(self.queue, measurement))
@@ -1074,10 +1303,14 @@ class PoleRadarPipeline:
         self.max_abs_velocity = float(args.radar_max_velocity)
         self.parked_threshold_s = float(args.parked_threshold_s)
         self.point_radius_px = int(args.radar_raster_radius_px)
-        self.rasterizer = str(getattr(args, "radar_rasterizer", "legacy"))
+        self.radar_rasterizer = str(getattr(args, "radar_rasterizer", "legacy") or "legacy")
         self.tensor_history = deque(
             maxlen=max(1, int(getattr(args, "radar_temporal_window_frames", 1)))
         )
+        self.shadow_tensor_histories = {
+            "legacy": deque(maxlen=max(1, int(getattr(args, "radar_temporal_window_frames", 1)))),
+            "fast": deque(maxlen=max(1, int(getattr(args, "radar_temporal_window_frames", 1)))),
+        }
 
     def get_latest(self, timeout: float) -> Optional["carla.RadarMeasurement"]:
         try:
@@ -1108,7 +1341,7 @@ class PoleRadarPipeline:
             max_abs_velocity_mps=self.max_abs_velocity,
             parked_threshold_s=self.parked_threshold_s,
             point_radius_px=self.point_radius_px,
-            rasterizer=self.rasterizer,
+            rasterizer=self.radar_rasterizer,
         )
         self.tensor_history.append(tensor)
         if self.tensor_history.maxlen > 1 and len(self.tensor_history) > 1:
@@ -1116,6 +1349,88 @@ class PoleRadarPipeline:
                 np.float32, copy=False
             )
         return tensor, points
+
+    def build_tensor_pair(
+        self,
+        *,
+        measurement: "carla.RadarMeasurement",
+        camera_intrinsics: np.ndarray,
+        camera_inverse_matrix: np.ndarray,
+        frame_time_s: float,
+    ) -> Tuple[Dict[str, np.ndarray], Dict[str, np.ndarray]]:
+        detections = radar_raw_to_alt_az_depth_velocity(bytes(measurement.raw_data))
+        sensor_matrix = np.array(self.sensor.get_transform().get_matrix(), dtype=np.float64)
+        world_velocity = radar_spherical_to_world(detections, sensor_matrix)
+        ages = self.tracker.update(world_velocity, float(frame_time_s))
+        points_cam = (
+            world_to_camera_points(world_velocity[:, :3], camera_inverse_matrix)
+            if world_velocity.size
+            else np.zeros((0, 3), dtype=np.float64)
+        )
+        u, v, depth, valid = project_camera_points(points_cam, camera_intrinsics)
+        velocities = (
+            world_velocity[:, 3].astype(np.float32)
+            if world_velocity.size
+            else np.zeros((0,), dtype=np.float32)
+        )
+
+        tensors = {
+            "legacy": rasterize_radar_channels(
+                width=self.model_w,
+                height=self.model_h,
+                u=u,
+                v=v,
+                depth_m=depth,
+                velocity_mps=velocities,
+                stationary_age_s=ages,
+                valid_mask=valid,
+                max_range_m=self.range_m,
+                max_abs_velocity_mps=self.max_abs_velocity,
+                parked_threshold_s=self.parked_threshold_s,
+                point_radius_px=self.point_radius_px,
+            ),
+            "fast": rasterize_radar_channels_fast(
+                width=self.model_w,
+                height=self.model_h,
+                u=u,
+                v=v,
+                depth_m=depth,
+                velocity_mps=velocities,
+                stationary_age_s=ages,
+                valid_mask=valid,
+                max_range_m=self.range_m,
+                max_abs_velocity_mps=self.max_abs_velocity,
+                parked_threshold_s=self.parked_threshold_s,
+                point_radius_px=self.point_radius_px,
+            ),
+        }
+        for key, tensor in list(tensors.items()):
+            history = self.shadow_tensor_histories[key]
+            history.append(tensor)
+            if history.maxlen > 1 and len(history) > 1:
+                tensors[key] = np.maximum.reduce(list(history)).astype(
+                    np.float32,
+                    copy=False,
+                )
+        points = {
+            "world_xyz": (
+                world_velocity[:, :3].astype(np.float32)
+                if world_velocity.size
+                else np.zeros((0, 3), dtype=np.float32)
+            ),
+            "camera_xyz": (
+                points_cam.astype(np.float32)
+                if points_cam.size
+                else np.zeros((0, 3), dtype=np.float32)
+            ),
+            "velocity_mps": velocities.astype(np.float32),
+            "u": u.astype(np.float32),
+            "v": v.astype(np.float32),
+            "camera_depth_m": depth.astype(np.float32),
+            "stationary_age_s": ages.astype(np.float32),
+            "valid_projection": valid.astype(np.uint8),
+        }
+        return tensors, points
 
     def destroy(self) -> None:
         try:
@@ -1131,6 +1446,52 @@ class PoleRadarPipeline:
 # ---------------------------------------------------------------------------
 # Head-side split inference
 # ---------------------------------------------------------------------------
+
+
+class EdgeUplinkMetricsLogger:
+    """Thread-safe CSV logger for edge-side uplink-only timing."""
+
+    def __init__(self, path: Path) -> None:
+        self.path = Path(path)
+        self.summary_path = self.path.with_suffix(".summary.json")
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self._fp = self.path.open("w", newline="", encoding="utf-8")
+        self._writer = csv.DictWriter(self._fp, fieldnames=list(EDGE_UPLINK_METRICS_FIELDS))
+        self._writer.writeheader()
+        self._lock = threading.Lock()
+
+    def append(self, row: Dict[str, object]) -> None:
+        clean = {key: row.get(key, "") for key in EDGE_UPLINK_METRICS_FIELDS}
+        with self._lock:
+            self._writer.writerow(clean)
+            self._fp.flush()
+
+    def write_summary(self, summary: Dict[str, object]) -> None:
+        enriched = {
+            "written_at": datetime.now().isoformat(timespec="milliseconds"),
+            **summary,
+        }
+        self.summary_path.write_text(
+            json.dumps(enriched, indent=2, sort_keys=True),
+            encoding="utf-8",
+        )
+
+    def close(self) -> None:
+        with self._lock:
+            try:
+                self._fp.flush()
+            finally:
+                self._fp.close()
+
+
+def _default_edge_metrics_csv_path(args: argparse.Namespace) -> Path:
+    raw = str(getattr(args, "edge_metrics_csv", "") or "").strip()
+    if raw:
+        return Path(raw)
+    stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    label = str(getattr(args, "transport_label", "") or getattr(args, "role", "loopback") or "loopback")
+    safe_label = "".join(ch if ch.isalnum() or ch in ("-", "_") else "_" for ch in label).strip("_")
+    return _TRACK1_DIR / "runs" / f"edge_uplink_metrics_{safe_label}_{stamp}.csv"
 
 
 class CameraSideFusionInference:
@@ -1163,7 +1524,16 @@ class CameraSideFusionInference:
         camera_matrix: np.ndarray,
         camera_intrinsics_input: np.ndarray,
         display_size: Tuple[int, int],
+        carla_timestamp: float = 0.0,
+        camera_transform_payload: Optional[Dict[str, object]] = None,
+        stream_id: str = "",
+        capture_perf: Optional[float] = None,
+        capture_wall_s: Optional[float] = None,
+        prep_timing: Optional[Dict[str, object]] = None,
     ) -> Dict[str, object]:
+        capture_perf_value = float(capture_perf) if capture_perf is not None else time.perf_counter()
+        capture_wall_s_value = float(capture_wall_s) if capture_wall_s is not None else time.time()
+        prep_timing = prep_timing if isinstance(prep_timing, dict) else {}
         started = time.perf_counter()
         with torch.inference_mode():
             fused = prepare_fusion_input(
@@ -1174,8 +1544,10 @@ class CameraSideFusionInference:
                 rgb_mean=self.rgb_mean,
                 rgb_std=self.rgb_std,
             )
+            backbone_input_perf = time.perf_counter()
             features = self.model.encode(fused)
             features = _front_compress(self.model, features, tuple(int(v) for v in fused.shape[-2:]))
+            front_model_done_perf = time.perf_counter()
 
         (
             serialized_features,
@@ -1189,7 +1561,8 @@ class CameraSideFusionInference:
             per_level_compress_probe=False,
             entropy_coder=self._probe_coder,
         )
-        front_send_perf = time.perf_counter()
+        front_payload_ready_perf = time.perf_counter()
+        front_send_perf = front_payload_ready_perf
         front_send_wall_s = time.time()
         payload = {
             "frame_id": int(frame_id),
@@ -1200,19 +1573,63 @@ class CameraSideFusionInference:
                 name: tuple(int(v) for v in tensor.shape) for name, tensor in features.items()
             },
             "features": serialized_features,
+            "payload_bytes_uncompressed": int(payload_bytes_uncompressed),
             "camera_matrix": camera_matrix.astype(np.float64),
             "camera_intrinsics_input": camera_intrinsics_input.astype(np.float64),
+            "camera_transform": camera_transform_payload if isinstance(camera_transform_payload, dict) else {},
+            "stream_id": str(stream_id or ""),
+            "carla_timestamp": float(carla_timestamp),
             # Step-1 round-trip/downlink instrumentation.
             # `perf_counter` gives stable same-host deltas; wall time is useful when
             # comparing front/back containers whose clocks are synchronized.
             "camera_sent_perf": front_send_perf,
             "camera_sent_wall_s": front_send_wall_s,
+            "timing": {
+                **prep_timing,
+                "t_capture_perf": float(capture_perf_value),
+                "t_capture_wall_s": float(capture_wall_s_value),
+                "t_front_start_perf": float(started),
+                "t_backbone_input_perf": float(backbone_input_perf),
+                "t_front_model_done_perf": float(front_model_done_perf),
+                "t_front_payload_ready_perf": float(front_payload_ready_perf),
+                "t_front_send_perf": float(front_send_perf),
+                "front_compute_ms": float((front_send_perf - started) * 1000.0),
+                "capture_to_front_send_ms": float((front_send_perf - capture_perf_value) * 1000.0),
+                "capture_to_backbone_input_ms": float(
+                    (backbone_input_perf - capture_perf_value) * 1000.0
+                ),
+                "model_preprocess_ms": float((backbone_input_perf - started) * 1000.0),
+                "front_backbone_ms": float((front_model_done_perf - backbone_input_perf) * 1000.0),
+                "feature_serialize_ms": float((front_payload_ready_perf - front_model_done_perf) * 1000.0),
+                "backbone_input_to_front_send_ms": float(
+                    (front_send_perf - backbone_input_perf) * 1000.0
+                ),
+            },
         }
         payload_bytes, payload_chunks = self.sender.send(payload)
+        front_send_done_perf = time.perf_counter()
         return {
             "front_ms": (time.perf_counter() - started) * 1000.0,
             "camera_sent_perf": float(front_send_perf),
             "camera_sent_wall_s": float(front_send_wall_s),
+            "capture_perf": float(capture_perf_value),
+            "capture_wall_s": float(capture_wall_s_value),
+            "t_front_start_perf": float(started),
+            "t_backbone_input_perf": float(backbone_input_perf),
+            "t_front_model_done_perf": float(front_model_done_perf),
+            "t_front_payload_ready_perf": float(front_payload_ready_perf),
+            "capture_to_front_send_ms": float((front_send_perf - capture_perf_value) * 1000.0),
+            "capture_to_backbone_input_ms": float(
+                (backbone_input_perf - capture_perf_value) * 1000.0
+            ),
+            **prep_timing,
+            "model_preprocess_ms": float((backbone_input_perf - started) * 1000.0),
+            "front_backbone_ms": float((front_model_done_perf - backbone_input_perf) * 1000.0),
+            "feature_serialize_ms": float((front_payload_ready_perf - front_model_done_perf) * 1000.0),
+            "backbone_input_to_front_send_ms": float(
+                (front_send_perf - backbone_input_perf) * 1000.0
+            ),
+            "send_call_ms": float((front_send_done_perf - front_send_perf) * 1000.0),
             "payload_bytes": int(payload_bytes),
             "payload_bytes_uncompressed": int(payload_bytes_uncompressed),
             "payload_chunks": int(payload_chunks),
@@ -1241,6 +1658,10 @@ class FusionRemoteInferenceWorker(threading.Thread):
         draw_projected_obb_box: bool = True,
         log_every: int = 0,
         label: str = "fusion-back",
+        spatial_publisher: Optional["SpatialMapResultPublisher"] = None,
+        result_mode: str = "full",
+        edge_metrics_logger: Optional[EdgeUplinkMetricsLogger] = None,
+        receive_queue_size: int = 0,
     ) -> None:
         super().__init__(daemon=True)
         self.model = model
@@ -1257,10 +1678,76 @@ class FusionRemoteInferenceWorker(threading.Thread):
         self.draw_projected_obb_box = bool(draw_projected_obb_box)
         self.log_every = max(0, int(log_every))
         self.label = str(label)
+        self.spatial_publisher = spatial_publisher
+        self.result_mode = str(result_mode)
+        self.edge_metrics_logger = edge_metrics_logger
+        self.receive_queue_size = max(0, int(receive_queue_size))
+        self._payload_queue: Optional["queue.Queue[Tuple[Dict[str, object], float, float]]"] = (
+            queue.Queue(maxsize=self.receive_queue_size) if self.receive_queue_size > 0 else None
+        )
+        self._receive_dropped = 0
+        self._udp_partial_messages_dropped = 0
+        self._wrap_receiver_drop_counter()
         self._processed = 0
         self._last_wait_log = 0.0
 
+    def attach_spatial_publisher(self, publisher: Optional["SpatialMapResultPublisher"]) -> None:
+        self.spatial_publisher = publisher
+
+    def summary(self) -> Dict[str, object]:
+        return {
+            "label": self.label,
+            "processed_frames": int(self._processed),
+            "edge_receive_queue_size": int(self.receive_queue_size),
+            "edge_receive_queue_depth": (
+                int(self._payload_queue.qsize()) if self._payload_queue is not None else 0
+            ),
+            "edge_receive_queue_dropped": int(self._receive_dropped),
+            "udp_pending_messages": len(getattr(self.receiver, "_pending", {}) or {}),
+            "udp_partial_messages_dropped": int(self._udp_partial_messages_dropped),
+            "result_mode": self.result_mode,
+        }
+
+    def _wrap_receiver_drop_counter(self) -> None:
+        pending = getattr(self.receiver, "_pending", None)
+        drop_fn = getattr(self.receiver, "_drop_stale_buffers", None)
+        if not isinstance(pending, dict) or not callable(drop_fn):
+            return
+
+        def counted_drop(now: Optional[float] = None) -> None:
+            before = len(pending)
+            drop_fn(now)
+            after = len(pending)
+            if after < before:
+                self._udp_partial_messages_dropped += before - after
+
+        self.receiver._drop_stale_buffers = counted_drop  # type: ignore[attr-defined]
+
     def run(self) -> None:
+        if self._payload_queue is not None:
+            rx_thread = threading.Thread(target=self._receive_loop, daemon=True)
+            rx_thread.start()
+            try:
+                while not self.stop_event.is_set():
+                    try:
+                        payload, edge_recv_perf, edge_recv_wall_s = self._payload_queue.get(timeout=0.2)
+                    except queue.Empty:
+                        if self.log_every > 0:
+                            now = time.time()
+                            if now - self._last_wait_log >= 5.0:
+                                pending_count = len(getattr(self.receiver, "_pending", {}) or {})
+                                print(
+                                    f"[{self.label}] waiting for queued feature tensors... "
+                                    f"udp_pending={pending_count} "
+                                    f"udp_partial_dropped={self._udp_partial_messages_dropped}"
+                                )
+                                self._last_wait_log = now
+                        continue
+                    self._process_payload(payload, edge_recv_perf, edge_recv_wall_s)
+            finally:
+                rx_thread.join(timeout=1.0)
+            return
+
         while not self.stop_event.is_set():
             payload = self.receiver.receive()
             if payload is None:
@@ -1272,50 +1759,265 @@ class FusionRemoteInferenceWorker(threading.Thread):
                 continue
             edge_recv_perf = time.perf_counter()
             edge_recv_wall_s = time.time()
+            self._process_payload(payload, edge_recv_perf, edge_recv_wall_s)
+
+    def _receive_loop(self) -> None:
+        assert self._payload_queue is not None
+        while not self.stop_event.is_set():
+            payload = self.receiver.receive()
+            edge_recv_perf = time.perf_counter()
+            edge_recv_wall_s = time.time()
+            if payload is None:
+                continue
             try:
-                result = self._run_back_half(payload)
-                result["edge_recv_perf"] = float(edge_recv_perf)
-                result["edge_recv_wall_s"] = float(edge_recv_wall_s)
-                result["camera_sent_wall_s"] = float(payload.get("camera_sent_wall_s", float("nan")))
-                result["result_send_start_perf"] = time.perf_counter()
-                result["result_send_start_wall_s"] = time.time()
-                # Make the payload estimate include the timing fields and its own
-                # estimate columns. A few iterations are enough for stable digit
-                # lengths in the serialized dictionary.
-                result["result_payload_bytes_estimate"] = 0
-                result["result_payload_chunks_estimate"] = 0
+                self._payload_queue.put_nowait((payload, edge_recv_perf, edge_recv_wall_s))
+            except queue.Full:
+                try:
+                    self._payload_queue.get_nowait()
+                    self._receive_dropped += 1
+                except queue.Empty:
+                    pass
+                try:
+                    self._payload_queue.put_nowait((payload, edge_recv_perf, edge_recv_wall_s))
+                except queue.Full:
+                    self._receive_dropped += 1
+
+    def _process_payload(
+        self,
+        payload: Dict[str, object],
+        edge_recv_perf: float,
+        edge_recv_wall_s: float,
+    ) -> None:
+        try:
+            tail_start_perf = time.perf_counter()
+            result = self._run_back_half(payload)
+            tail_done_perf = _safe_float(result.get("tail_done_perf"), time.perf_counter())
+            payload_timing = payload.get("timing") if isinstance(payload.get("timing"), dict) else {}
+            t_capture_perf = _safe_float(payload_timing.get("t_capture_perf"), 0.0)
+            t_front_send_perf = _safe_float(
+                payload_timing.get("t_front_send_perf"),
+                _safe_float(payload.get("camera_sent_perf"), 0.0),
+            )
+            t_backbone_input_perf = _safe_float(
+                payload_timing.get("t_backbone_input_perf"),
+                0.0,
+            )
+            result_timing = {
+                **payload_timing,
+                "t_edge_recv_perf": float(edge_recv_perf),
+                "t_tail_start_perf": float(tail_start_perf),
+                "t_tail_done_perf": float(tail_done_perf),
+                "tail_ms": _safe_float(result.get("server_ms"), 0.0),
+                "front_to_edge_ms": (
+                    float((edge_recv_perf - t_front_send_perf) * 1000.0)
+                    if t_front_send_perf > 0.0
+                    else ""
+                ),
+                "backbone_input_to_edge_recv_ms": (
+                    float((edge_recv_perf - t_backbone_input_perf) * 1000.0)
+                    if t_backbone_input_perf > 0.0
+                    else ""
+                ),
+                "backbone_input_to_tail_done_ms": (
+                    float((tail_done_perf - t_backbone_input_perf) * 1000.0)
+                    if t_backbone_input_perf > 0.0
+                    else ""
+                ),
+                "capture_to_tail_done_ms": (
+                    float((tail_done_perf - t_capture_perf) * 1000.0)
+                    if t_capture_perf > 0.0
+                    else ""
+                ),
+            }
+            result["timing"] = result_timing
+            result["edge_recv_perf"] = float(edge_recv_perf)
+            result["edge_recv_wall_s"] = float(edge_recv_wall_s)
+            result["camera_sent_wall_s"] = float(payload.get("camera_sent_wall_s", float("nan")))
+
+            map_publish_perf = 0.0
+            spatial_queue_size = ""
+            spatial_dropped = ""
+            if self.spatial_publisher is not None:
+                map_publish_perf = time.perf_counter()
+                result_timing["t_map_publish_perf"] = float(map_publish_perf)
+                if t_backbone_input_perf > 0.0:
+                    result_timing["backbone_input_to_map_publish_ms"] = float(
+                        (map_publish_perf - t_backbone_input_perf) * 1000.0
+                    )
+                self.spatial_publisher.publish_from_payload(
+                    source_payload=payload,
+                    result=result,
+                    timing=result_timing,
+                )
+                spatial_queue_size = self.spatial_publisher.queue.qsize()
+                spatial_dropped = int(self.spatial_publisher.dropped_packets)
+
+            send_payload: Optional[Dict[str, object]]
+            if self.result_mode == "none":
+                send_payload = None
+            elif self.result_mode == "ack":
+                send_payload = {
+                    "frame_id": int(result["frame_id"]),
+                    "camera_sent_perf": float(result["camera_sent_perf"]),
+                    "camera_sent_wall_s": float(result.get("camera_sent_wall_s", float("nan"))),
+                    "server_ms": float(result["server_ms"]),
+                    "edge_recv_perf": float(edge_recv_perf),
+                    "edge_recv_wall_s": float(edge_recv_wall_s),
+                    "tail_done_perf": float(result.get("tail_done_perf", float("nan"))),
+                    "tail_done_wall_s": float(result.get("tail_done_wall_s", float("nan"))),
+                    "ack": True,
+                    "objects": [],
+                    "timing": result_timing,
+                }
+            else:
+                send_payload = result
+
+            result_bytes = 0
+            result_chunks = 0
+            result_payload_bytes = 0
+            result_payload_chunks = 0
+            if send_payload is not None:
+                send_payload["result_send_start_perf"] = time.perf_counter()
+                send_payload["result_send_start_wall_s"] = time.time()
+                send_payload["result_payload_bytes_estimate"] = 0
+                send_payload["result_payload_chunks_estimate"] = 0
                 for _ in range(4):
                     result_payload_bytes, result_payload_chunks = _estimate_udp_payload(
-                        result,
+                        send_payload,
                         chunk_bytes=self.sender.chunk_bytes,
                         transport=self.transport,
                     )
                     if (
-                        int(result.get("result_payload_bytes_estimate", -1)) == int(result_payload_bytes)
-                        and int(result.get("result_payload_chunks_estimate", -1)) == int(result_payload_chunks)
+                        int(send_payload.get("result_payload_bytes_estimate", -1)) == int(result_payload_bytes)
+                        and int(send_payload.get("result_payload_chunks_estimate", -1)) == int(result_payload_chunks)
                     ):
                         break
-                    result["result_payload_bytes_estimate"] = int(result_payload_bytes)
-                    result["result_payload_chunks_estimate"] = int(result_payload_chunks)
+                    send_payload["result_payload_bytes_estimate"] = int(result_payload_bytes)
+                    send_payload["result_payload_chunks_estimate"] = int(result_payload_chunks)
                 result_payload_bytes, result_payload_chunks = _estimate_udp_payload(
-                    result,
+                    send_payload,
                     chunk_bytes=self.sender.chunk_bytes,
                     transport=self.transport,
                 )
-                result["result_payload_bytes_estimate"] = int(result_payload_bytes)
-                result["result_payload_chunks_estimate"] = int(result_payload_chunks)
-                result_bytes, result_chunks = self.sender.send(result)
-                self._processed += 1
-                if self.log_every > 0 and (
-                    self._processed == 1 or self._processed % self.log_every == 0
-                ):
-                    print(
-                        f"[{self.label}] frame={int(payload.get('frame_id', -1))} "
-                        f"server_ms={float(result.get('server_ms', 0.0)):.1f} "
-                        f"result_bytes={int(result_bytes)} chunks={int(result_chunks)}"
-                    )
-            except Exception as exc:  # pragma: no cover - runtime path
-                print(f"Fusion remote worker error: {exc}", file=sys.stderr)
+                send_payload["result_payload_bytes_estimate"] = int(result_payload_bytes)
+                send_payload["result_payload_chunks_estimate"] = int(result_payload_chunks)
+                result_bytes, result_chunks = self.sender.send(send_payload)
+
+            self._processed += 1
+            edge_queue_depth = self._payload_queue.qsize() if self._payload_queue is not None else 0
+            udp_pending_messages = len(getattr(self.receiver, "_pending", {}) or {})
+            if self.edge_metrics_logger is not None:
+                self.edge_metrics_logger.append(
+                    {
+                        "wall_time_iso": datetime.now().isoformat(timespec="milliseconds"),
+                        "frame_id": int(payload.get("frame_id", -1)),
+                        "stream_id": str(payload.get("stream_id") or ""),
+                        "carla_timestamp": _safe_float(payload.get("carla_timestamp"), 0.0),
+                        "result_mode": self.result_mode,
+                        "object_count": len(result.get("objects", []) or []),
+                        "uplink_payload_bytes": _safe_int(payload.get("payload_bytes"), 0),
+                        "uplink_payload_bytes_uncompressed": _safe_int(
+                            payload.get("payload_bytes_uncompressed"),
+                            0,
+                        ),
+                        "uplink_payload_chunks": _safe_int(payload.get("payload_chunks"), 0),
+                        "result_payload_bytes": int(result_payload_bytes),
+                        "result_payload_chunks": int(result_payload_chunks),
+                        "edge_receive_queue_depth": int(edge_queue_depth),
+                        "edge_receive_queue_dropped": int(self._receive_dropped),
+                        "udp_pending_messages": int(udp_pending_messages),
+                        "udp_partial_messages_dropped": int(self._udp_partial_messages_dropped),
+                        "spatial_publisher_queue": spatial_queue_size,
+                        "spatial_publisher_dropped": spatial_dropped,
+                        "t_capture_perf": t_capture_perf if t_capture_perf > 0.0 else "",
+                        "t_front_start_perf": result_timing.get("t_front_start_perf", ""),
+                        "t_backbone_input_perf": t_backbone_input_perf if t_backbone_input_perf > 0.0 else "",
+                        "t_front_model_done_perf": result_timing.get("t_front_model_done_perf", ""),
+                        "t_front_payload_ready_perf": result_timing.get("t_front_payload_ready_perf", ""),
+                        "t_front_send_perf": t_front_send_perf if t_front_send_perf > 0.0 else "",
+                        "t_edge_recv_perf": float(edge_recv_perf),
+                        "t_tail_start_perf": float(tail_start_perf),
+                        "t_tail_done_perf": float(tail_done_perf),
+                        "t_map_publish_perf": map_publish_perf if map_publish_perf > 0.0 else "",
+                        "capture_to_backbone_input_ms": result_timing.get(
+                            "capture_to_backbone_input_ms",
+                            "",
+                        ),
+                        "sync_world_tick_ms": result_timing.get("sync_world_tick_ms", ""),
+                        "camera_frame_wait_ms": result_timing.get("camera_frame_wait_ms", ""),
+                        "radar_wait_ms": result_timing.get("radar_wait_ms", ""),
+                        "rgb_convert_ms": result_timing.get("rgb_convert_ms", ""),
+                        "camera_inverse_matrix_ms": result_timing.get(
+                            "camera_inverse_matrix_ms",
+                            "",
+                        ),
+                        "radar_tensor_build_ms": result_timing.get(
+                            "radar_tensor_build_ms",
+                            "",
+                        ),
+                        "camera_matrix_ms": result_timing.get("camera_matrix_ms", ""),
+                        "camera_transform_payload_ms": result_timing.get(
+                            "camera_transform_payload_ms",
+                            "",
+                        ),
+                        "pre_model_other_ms": result_timing.get("pre_model_other_ms", ""),
+                        "capture_pipeline_queue_wait_ms": result_timing.get(
+                            "capture_pipeline_queue_wait_ms",
+                            "",
+                        ),
+                        "capture_pipeline_queue_depth": result_timing.get(
+                            "capture_pipeline_queue_depth",
+                            "",
+                        ),
+                        "model_preprocess_ms": result_timing.get("model_preprocess_ms", ""),
+                        "front_backbone_ms": result_timing.get("front_backbone_ms", ""),
+                        "feature_serialize_ms": result_timing.get("feature_serialize_ms", ""),
+                        "backbone_input_to_front_send_ms": result_timing.get(
+                            "backbone_input_to_front_send_ms",
+                            "",
+                        ),
+                        "front_to_edge_ms": result_timing.get("front_to_edge_ms", ""),
+                        "edge_queue_ms": float((tail_start_perf - edge_recv_perf) * 1000.0),
+                        "tail_ms": result_timing.get("tail_ms", ""),
+                        "edge_to_map_publish_ms": (
+                            float((map_publish_perf - edge_recv_perf) * 1000.0)
+                            if map_publish_perf > 0.0
+                            else ""
+                        ),
+                        "backbone_input_to_edge_recv_ms": result_timing.get(
+                            "backbone_input_to_edge_recv_ms",
+                            "",
+                        ),
+                        "backbone_input_to_tail_done_ms": result_timing.get(
+                            "backbone_input_to_tail_done_ms",
+                            "",
+                        ),
+                        "backbone_input_to_map_publish_ms": result_timing.get(
+                            "backbone_input_to_map_publish_ms",
+                            "",
+                        ),
+                        "capture_to_tail_done_ms": result_timing.get("capture_to_tail_done_ms", ""),
+                        "capture_to_map_publish_ms": (
+                            float((map_publish_perf - t_capture_perf) * 1000.0)
+                            if map_publish_perf > 0.0 and t_capture_perf > 0.0
+                            else ""
+                        ),
+                    }
+                )
+            if self.log_every > 0 and (
+                self._processed == 1 or self._processed % self.log_every == 0
+            ):
+                print(
+                    f"[{self.label}] frame={int(payload.get('frame_id', -1))} "
+                    f"server_ms={float(result.get('server_ms', 0.0)):.1f} "
+                    f"result_mode={self.result_mode} "
+                    f"edge_q={int(edge_queue_depth)} dropped={int(self._receive_dropped)} "
+                    f"udp_pending={int(udp_pending_messages)} "
+                    f"udp_partial_dropped={int(self._udp_partial_messages_dropped)} "
+                    f"result_bytes={int(result_bytes)} chunks={int(result_chunks)}"
+                )
+        except Exception as exc:  # pragma: no cover - runtime path
+            print(f"Fusion remote worker error: {exc}", file=sys.stderr)
 
     def _run_back_half(self, payload: Dict[str, object]) -> Dict[str, object]:
         started = time.perf_counter()
@@ -2476,6 +3178,7 @@ class FusionRunLogger:
                 "vfov": float(self.args.radar_vfov),
                 "points_per_second": int(self.args.radar_points_per_second),
                 "raster_radius_px": int(self.args.radar_raster_radius_px),
+                "rasterizer": str(getattr(self.args, "radar_rasterizer", "legacy")),
                 "temporal_window_frames": int(
                     getattr(self.args, "radar_temporal_window_frames", 1)
                 ),
@@ -2677,6 +3380,90 @@ class QueueProbeEventLogger:
                 front_stats.get("camera_sent_wall_s"),
                 float("nan"),
             ),
+            "t_front_start_perf": _safe_float(
+                front_stats.get("t_front_start_perf"),
+                float("nan"),
+            ),
+            "t_backbone_input_perf": _safe_float(
+                front_stats.get("t_backbone_input_perf"),
+                float("nan"),
+            ),
+            "t_front_model_done_perf": _safe_float(
+                front_stats.get("t_front_model_done_perf"),
+                float("nan"),
+            ),
+            "t_front_payload_ready_perf": _safe_float(
+                front_stats.get("t_front_payload_ready_perf"),
+                float("nan"),
+            ),
+            "capture_to_backbone_input_ms": _safe_float(
+                front_stats.get("capture_to_backbone_input_ms"),
+                float("nan"),
+            ),
+            "sync_world_tick_ms": _safe_float(
+                front_stats.get("sync_world_tick_ms"),
+                float("nan"),
+            ),
+            "camera_frame_wait_ms": _safe_float(
+                front_stats.get("camera_frame_wait_ms"),
+                float("nan"),
+            ),
+            "radar_wait_ms": _safe_float(
+                front_stats.get("radar_wait_ms"),
+                float("nan"),
+            ),
+            "rgb_convert_ms": _safe_float(
+                front_stats.get("rgb_convert_ms"),
+                float("nan"),
+            ),
+            "camera_inverse_matrix_ms": _safe_float(
+                front_stats.get("camera_inverse_matrix_ms"),
+                float("nan"),
+            ),
+            "radar_tensor_build_ms": _safe_float(
+                front_stats.get("radar_tensor_build_ms"),
+                float("nan"),
+            ),
+            "camera_matrix_ms": _safe_float(
+                front_stats.get("camera_matrix_ms"),
+                float("nan"),
+            ),
+            "camera_transform_payload_ms": _safe_float(
+                front_stats.get("camera_transform_payload_ms"),
+                float("nan"),
+            ),
+            "pre_model_other_ms": _safe_float(
+                front_stats.get("pre_model_other_ms"),
+                float("nan"),
+            ),
+            "capture_pipeline_queue_wait_ms": _safe_float(
+                front_stats.get("capture_pipeline_queue_wait_ms"),
+                float("nan"),
+            ),
+            "capture_pipeline_queue_depth": _safe_int(
+                front_stats.get("capture_pipeline_queue_depth"),
+                0,
+            ),
+            "model_preprocess_ms": _safe_float(
+                front_stats.get("model_preprocess_ms"),
+                float("nan"),
+            ),
+            "front_backbone_ms": _safe_float(
+                front_stats.get("front_backbone_ms"),
+                float("nan"),
+            ),
+            "feature_serialize_ms": _safe_float(
+                front_stats.get("feature_serialize_ms"),
+                float("nan"),
+            ),
+            "backbone_input_to_front_send_ms": _safe_float(
+                front_stats.get("backbone_input_to_front_send_ms"),
+                float("nan"),
+            ),
+            "send_call_ms": _safe_float(
+                front_stats.get("send_call_ms"),
+                float("nan"),
+            ),
             "feature_payload_bytes": _safe_int(front_stats.get("payload_bytes"), 0),
             "feature_payload_bytes_uncompressed": _safe_int(
                 front_stats.get("payload_bytes_uncompressed"),
@@ -2693,6 +3480,9 @@ class QueueProbeEventLogger:
             self._send_file.flush()
 
     def log_result(self, payload: Dict[str, object]) -> None:
+        timing = payload.get("timing") if isinstance(payload.get("timing"), dict) else {}
+        t_backbone_input_perf = _safe_float(timing.get("t_backbone_input_perf"), 0.0)
+        car_result_recv_perf = _safe_float(payload.get("car_result_recv_perf"), 0.0)
         row = {
             **self._base_row(),
             "frame_id": _safe_int(payload.get("frame_id"), 0),
@@ -2733,6 +3523,14 @@ class QueueProbeEventLogger:
                 payload.get("car_result_recv_wall_s"),
                 float("nan"),
             ),
+            "t_backbone_input_perf": (
+                t_backbone_input_perf if t_backbone_input_perf > 0.0 else ""
+            ),
+            "backbone_input_to_car_result_recv_ms": (
+                float((car_result_recv_perf - t_backbone_input_perf) * 1000.0)
+                if car_result_recv_perf > 0.0 and t_backbone_input_perf > 0.0
+                else ""
+            ),
             "result_payload_bytes_estimate": _safe_int(
                 payload.get("result_payload_bytes_estimate"),
                 0,
@@ -2758,6 +3556,227 @@ class QueueProbeEventLogger:
             self._send_file.close()
             self._result_file.flush()
             self._result_file.close()
+
+
+class RadarRasterizerShadowLogger:
+    """CSV logger for same-frame legacy-vs-fast radar rasterizer validation."""
+
+    def __init__(self, path: Path) -> None:
+        self.path = Path(path)
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self._file = self.path.open("w", newline="", encoding="utf-8")
+        self._writer = csv.DictWriter(
+            self._file,
+            fieldnames=list(RADAR_RASTERIZER_SHADOW_FIELDS),
+        )
+        self._writer.writeheader()
+
+    def append(self, row: Dict[str, object]) -> None:
+        self._writer.writerow(
+            {field: row.get(field, "") for field in RADAR_RASTERIZER_SHADOW_FIELDS}
+        )
+        self._file.flush()
+
+    def close(self) -> None:
+        self._file.flush()
+        self._file.close()
+
+
+def _radar_tensor_shadow_stats(
+    *,
+    frame_id: int,
+    carla_timestamp: float,
+    active_rasterizer: str,
+    tensors: Dict[str, np.ndarray],
+    points: Dict[str, np.ndarray],
+) -> Dict[str, object]:
+    legacy = np.asarray(tensors["legacy"], dtype=np.float32)
+    fast = np.asarray(tensors["fast"], dtype=np.float32)
+    diff = np.abs(legacy - fast)
+    valid_projection = np.asarray(points.get("valid_projection", np.zeros((0,), dtype=np.uint8)))
+    valid_count = int(np.count_nonzero(valid_projection.astype(bool))) if valid_projection.size else 0
+    return {
+        "wall_time_iso": datetime.now().isoformat(timespec="milliseconds"),
+        "frame_id": int(frame_id),
+        "carla_timestamp": float(carla_timestamp),
+        "active_rasterizer": str(active_rasterizer),
+        "radar_points": int(np.asarray(points.get("world_xyz", np.zeros((0, 3)))).shape[0]),
+        "valid_projection_points": valid_count,
+        "legacy_valid_projection_points": valid_count,
+        "fast_valid_projection_points": valid_count,
+        "tensor_max_abs_diff": float(diff.max()) if diff.size else 0.0,
+        "tensor_mean_abs_diff": float(diff.mean()) if diff.size else 0.0,
+        "tensor_nonzero_diff_gt_1e_minus_9": int(np.count_nonzero(diff > 1e-9)),
+        "tensor_nonzero_diff_gt_1e_minus_6": int(np.count_nonzero(diff > 1e-6)),
+        "tensor_nonzero_diff_gt_1e_minus_4": int(np.count_nonzero(diff > 1e-4)),
+        "occupancy_changed_px": int(np.count_nonzero(diff[0] > 1e-6)) if diff.ndim == 3 and diff.shape[0] > 0 else 0,
+        "range_max_abs_diff": float(diff[1].max()) if diff.ndim == 3 and diff.shape[0] > 1 else 0.0,
+        "velocity_max_abs_diff": float(diff[2].max()) if diff.ndim == 3 and diff.shape[0] > 2 else 0.0,
+        "age_max_abs_diff": float(diff[3].max()) if diff.ndim == 3 and diff.shape[0] > 3 else 0.0,
+    }
+
+
+def _shadow_decode_objects_for_tensor(
+    *,
+    model: MultimodalLRASPPSplitModel,
+    frame_bgr: np.ndarray,
+    radar_tensor: np.ndarray,
+    camera_matrix: np.ndarray,
+    camera_intrinsics_input: np.ndarray,
+    model_input_size: Tuple[int, int],
+    device: torch.device,
+    rgb_mean: torch.Tensor,
+    rgb_std: torch.Tensor,
+    args: argparse.Namespace,
+) -> Tuple[Dict[str, torch.Tensor], List[Dict[str, float]]]:
+    fused = prepare_fusion_input(
+        frame_bgr=frame_bgr,
+        radar_tensor_chw=radar_tensor,
+        model_size=model_input_size,
+        device=device,
+        rgb_mean=rgb_mean,
+        rgb_std=rgb_std,
+    )
+    with torch.inference_mode():
+        features = model.encode(fused)
+        outputs = model.decode_outputs(
+            features,
+            output_size=(int(model_input_size[1]), int(model_input_size[0])),
+        )
+    objects: List[Dict[str, float]] = []
+    if "object" in outputs:
+        raw_predictions = decode_objects(
+            outputs["object"],
+            camera_matrix=camera_matrix,
+            topk=int(args.topk_objects),
+            score_threshold=float(args.object_score_threshold),
+            nms_radius_px=int(args.object_nms_radius_px),
+            object_class_names=getattr(model, "object_class_names", ["vehicle", "person"]),
+            predict_bbox2d=bool(getattr(model, "object_predict_bbox2d", False)),
+        )
+        for pred in raw_predictions:
+            objects.append(
+                {
+                    "class_name": str(pred.get("class_name", "object")),
+                    "score": float(pred.get("score", float("nan"))),
+                    "center_x_px": float(pred.get("center_x_px", float("nan"))),
+                    "center_y_px": float(pred.get("center_y_px", float("nan"))),
+                    "world_x": float(pred.get("world_x", float("nan"))),
+                    "world_y": float(pred.get("world_y", float("nan"))),
+                }
+            )
+    return outputs, objects
+
+
+def _object_shadow_stats(
+    legacy_objects: Sequence[Dict[str, float]],
+    fast_objects: Sequence[Dict[str, float]],
+) -> Dict[str, object]:
+    candidates: List[Tuple[float, int, int]] = []
+    for legacy_idx, legacy_obj in enumerate(legacy_objects):
+        legacy_class = str(legacy_obj.get("class_name", "object"))
+        lx = _safe_float(legacy_obj.get("center_x_px"), float("nan"))
+        ly = _safe_float(legacy_obj.get("center_y_px"), float("nan"))
+        for fast_idx, fast_obj in enumerate(fast_objects):
+            if str(fast_obj.get("class_name", "object")) != legacy_class:
+                continue
+            fx = _safe_float(fast_obj.get("center_x_px"), float("nan"))
+            fy = _safe_float(fast_obj.get("center_y_px"), float("nan"))
+            if not all(math.isfinite(v) for v in (lx, ly, fx, fy)):
+                continue
+            candidates.append((math.hypot(lx - fx, ly - fy), legacy_idx, fast_idx))
+
+    matched: List[Tuple[Dict[str, float], Dict[str, float], float]] = []
+    used_legacy: set[int] = set()
+    used_fast: set[int] = set()
+    for center_dist, legacy_idx, fast_idx in sorted(candidates):
+        if legacy_idx in used_legacy or fast_idx in used_fast:
+            continue
+        used_legacy.add(legacy_idx)
+        used_fast.add(fast_idx)
+        matched.append((legacy_objects[legacy_idx], fast_objects[fast_idx], center_dist))
+
+    score_diffs: List[float] = []
+    center_dists: List[float] = []
+    xy_dists: List[float] = []
+    for legacy_obj, fast_obj, center_dist in matched:
+        score_diffs.append(
+            abs(
+                _safe_float(legacy_obj.get("score"), float("nan"))
+                - _safe_float(fast_obj.get("score"), float("nan"))
+            )
+        )
+        center_dists.append(float(center_dist))
+        lx = _safe_float(legacy_obj.get("world_x"), float("nan"))
+        ly = _safe_float(legacy_obj.get("world_y"), float("nan"))
+        fx = _safe_float(fast_obj.get("world_x"), float("nan"))
+        fy = _safe_float(fast_obj.get("world_y"), float("nan"))
+        if all(math.isfinite(v) for v in (lx, ly, fx, fy)):
+            xy_dists.append(math.hypot(lx - fx, ly - fy))
+
+    return {
+        "legacy_object_count": int(len(legacy_objects)),
+        "fast_object_count": int(len(fast_objects)),
+        "object_count_delta": int(len(fast_objects) - len(legacy_objects)),
+        "object_match_count": int(len(matched)),
+        "legacy_unmatched_count": int(len(legacy_objects) - len(used_legacy)),
+        "fast_unmatched_count": int(len(fast_objects) - len(used_fast)),
+        "matched_score_max_abs_diff": float(max(score_diffs)) if score_diffs else 0.0,
+        "matched_center_px_max_dist": float(max(center_dists)) if center_dists else 0.0,
+        "matched_world_xy_max_dist_m": float(max(xy_dists)) if xy_dists else 0.0,
+        "matched_world_xy_mean_dist_m": float(np.mean(xy_dists)) if xy_dists else 0.0,
+    }
+
+
+def _radar_shadow_decode_stats(
+    *,
+    model: MultimodalLRASPPSplitModel,
+    frame_bgr: np.ndarray,
+    tensors: Dict[str, np.ndarray],
+    camera_matrix: np.ndarray,
+    camera_intrinsics_input: np.ndarray,
+    model_input_size: Tuple[int, int],
+    device: torch.device,
+    rgb_mean: torch.Tensor,
+    rgb_std: torch.Tensor,
+    args: argparse.Namespace,
+) -> Dict[str, object]:
+    started = time.perf_counter()
+    legacy_outputs, legacy_objects = _shadow_decode_objects_for_tensor(
+        model=model,
+        frame_bgr=frame_bgr,
+        radar_tensor=tensors["legacy"],
+        camera_matrix=camera_matrix,
+        camera_intrinsics_input=camera_intrinsics_input,
+        model_input_size=model_input_size,
+        device=device,
+        rgb_mean=rgb_mean,
+        rgb_std=rgb_std,
+        args=args,
+    )
+    fast_outputs, fast_objects = _shadow_decode_objects_for_tensor(
+        model=model,
+        frame_bgr=frame_bgr,
+        radar_tensor=tensors["fast"],
+        camera_matrix=camera_matrix,
+        camera_intrinsics_input=camera_intrinsics_input,
+        model_input_size=model_input_size,
+        device=device,
+        rgb_mean=rgb_mean,
+        rgb_std=rgb_std,
+        args=args,
+    )
+    stats = _object_shadow_stats(legacy_objects, fast_objects)
+    if "out" in legacy_outputs and "out" in fast_outputs:
+        stats["seg_logits_max_abs_diff"] = float(
+            torch.max(torch.abs(legacy_outputs["out"] - fast_outputs["out"])).detach().cpu().item()
+        )
+    if "object" in legacy_outputs and "object" in fast_outputs:
+        stats["object_map_max_abs_diff"] = float(
+            torch.max(torch.abs(legacy_outputs["object"] - fast_outputs["object"])).detach().cpu().item()
+        )
+    stats["shadow_decode_ms"] = float((time.perf_counter() - started) * 1000.0)
+    return stats
 
 
 def build_fusion_metrics_row(
@@ -3041,6 +4060,70 @@ class SpatialMapResultPublisher:
             },
         }
 
+        self._enqueue(payload, int(frame_id))
+
+    def publish_from_payload(
+        self,
+        *,
+        source_payload: Dict[str, object],
+        result: Dict[str, object],
+        timing: Dict[str, object],
+    ) -> None:
+        frame_id = int(source_payload.get("frame_id", result.get("frame_id", 0)))
+        camera_transform = (
+            source_payload.get("camera_transform")
+            if isinstance(source_payload.get("camera_transform"), dict)
+            else {}
+        )
+        camera_matrix = np.asarray(source_payload.get("camera_matrix"), dtype=np.float64)
+        objects = result.get("objects") if isinstance(result.get("objects"), list) else []
+        mask = result.get("mask") if isinstance(result.get("mask"), np.ndarray) else None
+        t_capture_perf = _safe_float(timing.get("t_capture_perf"), 0.0)
+        t_tail_done_perf = _safe_float(timing.get("t_tail_done_perf"), 0.0)
+        stream_id = str(source_payload.get("stream_id") or self.stream_id)
+        payload = {
+            "schema": SPATIAL_STREAM_SCHEMA,
+            "source_script": Path(__file__).name,
+            "stream_id": stream_id,
+            "node_id": stream_id,
+            "traffic_light_id": self.traffic_light_id,
+            "traffic_light_actor_id": self.traffic_light_actor_id,
+            "traffic_light_opendrive_id": self.traffic_light_opendrive_id,
+            "frame_id": frame_id,
+            "timestamp": time.time(),
+            "carla_timestamp": _safe_float(source_payload.get("carla_timestamp"), 0.0),
+            "camera": {
+                **camera_transform,
+                "width": self.camera_width,
+                "height": self.camera_height,
+                "fov": self.camera_fov,
+                "matrix": camera_matrix.tolist(),
+            },
+            "segmentation": _segmentation_summary(mask),
+            "objects": _normalize_spatial_objects(objects, stream_id=stream_id, frame_id=frame_id),
+            "latency": {
+                "front_ms": _safe_float(timing.get("front_compute_ms"), 0.0),
+                "back_ms": _safe_float(result.get("server_ms"), 0.0),
+                "round_trip_ms": 0.0,
+                "payload_bytes": _safe_int(source_payload.get("payload_bytes"), 0),
+                "payload_bytes_uncompressed": _safe_int(
+                    source_payload.get("payload_bytes_uncompressed"),
+                    0,
+                ),
+                "payload_chunks": _safe_int(source_payload.get("payload_chunks"), 0),
+                "front_to_edge_ms": _safe_float(timing.get("front_to_edge_ms"), 0.0),
+                "capture_to_tail_done_ms": (
+                    float((t_tail_done_perf - t_capture_perf) * 1000.0)
+                    if t_capture_perf > 0.0 and t_tail_done_perf > 0.0
+                    else 0.0
+                ),
+            },
+            "timing": dict(timing),
+        }
+
+        self._enqueue(payload, frame_id)
+
+    def _enqueue(self, payload: Dict[str, object], frame_id: int) -> None:
         try:
             self.queue.put_nowait(payload)
         except queue.Full:
@@ -3881,6 +4964,20 @@ def _transport_config_from_args(args: argparse.Namespace) -> "od_collect.Transpo
     )
 
 
+def _effective_edge_result_mode(args: argparse.Namespace) -> str:
+    requested = str(getattr(args, "edge_result_mode", "auto") or "auto")
+    if requested != "auto":
+        return requested
+    return "none" if bool(getattr(args, "uplink_only_spatial_map", False)) else "full"
+
+
+def _effective_edge_receive_queue_size(args: argparse.Namespace) -> int:
+    requested = int(getattr(args, "edge_receive_queue_size", -1))
+    if requested >= 0:
+        return requested
+    return 32 if bool(getattr(args, "uplink_only_spatial_map", False)) else 0
+
+
 def run_back_only(args: argparse.Namespace) -> None:
     """Run only the fusion model back half for the OAI receiver container."""
     back_device = od_demo.resolve_device(args.back_device)
@@ -3890,6 +4987,31 @@ def run_back_only(args: argparse.Namespace) -> None:
     back_split_model, _model_input_size = load_fusion_model(args, back_device)
     transport_cfg = _transport_config_from_args(args)
     remote_host = args.remote_host if args.remote_host is not None else args.bind_host
+    edge_result_mode = _effective_edge_result_mode(args)
+    edge_receive_queue_size = _effective_edge_receive_queue_size(args)
+    edge_metrics_logger: Optional[EdgeUplinkMetricsLogger] = None
+    if bool(args.uplink_only_spatial_map):
+        edge_metrics_logger = EdgeUplinkMetricsLogger(_default_edge_metrics_csv_path(args))
+        print(f"[fusion-back] Edge uplink metrics CSV: {edge_metrics_logger.path}")
+    spatial_publisher: Optional[SpatialMapResultPublisher] = None
+    if bool(args.uplink_only_spatial_map) and bool(args.spatial_map_stream):
+        camera_width, camera_height, _camera_resolution_label = od_demo.resolve_camera_dimensions(args)
+        spatial_stream_id = str(args.spatial_map_stream_id or "fusion_uplink_edge").strip()
+        spatial_publisher = SpatialMapResultPublisher(
+            host=str(args.spatial_map_host),
+            port=int(args.spatial_map_port),
+            stream_id=spatial_stream_id,
+            traffic_light_id=str(args.traffic_light_id),
+            traffic_light_actor_id=-1,
+            traffic_light_opendrive_id="",
+            camera_width=int(camera_width),
+            camera_height=int(camera_height),
+            camera_fov=float(args.camera_fov),
+        )
+        print(
+            "[fusion-back] Uplink-only spatial-map publish -> "
+            f"{args.spatial_map_host}:{args.spatial_map_port}"
+        )
 
     remote_receiver = od_collect.UDPMessageSocket(
         bind_port=args.remote_port,
@@ -3924,6 +5046,10 @@ def run_back_only(args: argparse.Namespace) -> None:
         draw_projected_obb_box=bool(args.draw_projected_obb_box),
         log_every=int(args.back_log_every),
         label=f"fusion-back:{args.remote_port}->{remote_host}:{args.camera_result_port}",
+        spatial_publisher=spatial_publisher,
+        result_mode=edge_result_mode,
+        edge_metrics_logger=edge_metrics_logger,
+        receive_queue_size=edge_receive_queue_size,
     )
     remote_worker.start()
 
@@ -3936,6 +5062,8 @@ def run_back_only(args: argparse.Namespace) -> None:
         f"[fusion-back] entropy={args.entropy_coder} "
         f"quantization={args.quantization_mode}"
     )
+    print(f"[fusion-back] result_mode={edge_result_mode}")
+    print(f"[fusion-back] edge_receive_queue_size={edge_receive_queue_size}")
     print("[fusion-back] Press Ctrl+C to stop.")
 
     try:
@@ -3951,6 +5079,13 @@ def run_back_only(args: argparse.Namespace) -> None:
             except OSError:
                 pass
         remote_worker.join(timeout=2.0)
+        if spatial_publisher is not None:
+            spatial_publisher.close()
+        if edge_metrics_logger is not None:
+            edge_metrics_logger.write_summary(remote_worker.summary())
+            edge_metrics_logger.close()
+            print(f"[fusion-back] Saved edge metrics CSV to {edge_metrics_logger.path}")
+            print(f"[fusion-back] Saved edge metrics summary to {edge_metrics_logger.summary_path}")
         print("[fusion-back] Done.")
 
 
@@ -3988,6 +5123,21 @@ def run_client(args: argparse.Namespace) -> None:
 
     transport_cfg = _transport_config_from_args(args)
     remote_host = args.remote_host if args.remote_host is not None else args.bind_host
+    edge_result_mode = _effective_edge_result_mode(args)
+    edge_receive_queue_size = _effective_edge_receive_queue_size(args)
+    uplink_wait_for_ack = (
+        bool(getattr(args, "uplink_wait_for_ack", False))
+        and bool(getattr(args, "uplink_only_spatial_map", False))
+    )
+    if bool(getattr(args, "uplink_wait_for_ack", False)):
+        if not bool(getattr(args, "uplink_only_spatial_map", False)):
+            raise ValueError("--uplink-wait-for-ack requires --uplink-only-spatial-map")
+        if edge_result_mode == "none":
+            raise ValueError("--uplink-wait-for-ack requires --edge-result-mode ack or full")
+    edge_metrics_logger: Optional[EdgeUplinkMetricsLogger] = None
+    if bool(args.uplink_only_spatial_map):
+        edge_metrics_logger = EdgeUplinkMetricsLogger(_default_edge_metrics_csv_path(args))
+        print(f"[UplinkOnly] Edge metrics CSV: {edge_metrics_logger.path}")
 
     camera_sender = od_collect.UDPMessageSocket(
         bind_port=args.camera_source_port,
@@ -4056,6 +5206,10 @@ def run_client(args: argparse.Namespace) -> None:
             draw_projected_obb_box=bool(args.draw_projected_obb_box),
             log_every=int(args.back_log_every),
             label=f"fusion-loopback:{args.remote_port}->{remote_host}:{args.camera_result_port}",
+            spatial_publisher=None,
+            result_mode=edge_result_mode,
+            edge_metrics_logger=edge_metrics_logger,
+            receive_queue_size=edge_receive_queue_size,
         )
         if args.role == "loopback"
         else None
@@ -4074,6 +5228,7 @@ def run_client(args: argparse.Namespace) -> None:
     spatial_publisher: Optional[SpatialMapResultPublisher] = None
     metrics_logger: Optional[FusionRunLogger] = None
     queue_probe_logger: Optional[QueueProbeEventLogger] = None
+    radar_shadow_logger: Optional[RadarRasterizerShadowLogger] = None
     actors: List["carla.Actor"] = []
     checkpoint_path = _resolve_fusion_checkpoint_path(args)
     sensor_platform = str(args.sensor_platform)
@@ -4092,8 +5247,11 @@ def run_client(args: argparse.Namespace) -> None:
         raise ValueError("--experiment3-target-profile requires --sensor-platform ego_vehicle")
     if experiment3_profile != "none" and not bool(args.ego_freeze):
         raise ValueError("--experiment3-target-profile requires a parked ego (keep --ego-freeze)")
-    if bool(getattr(args, "queue_probe_mode", False)) and not bool(args.run_logging):
-        raise ValueError("--queue-probe-mode requires --enable-run-logging")
+    if (
+        bool(getattr(args, "queue_probe_mode", False))
+        or bool(getattr(args, "uplink_only_spatial_map", False))
+    ) and not bool(args.run_logging):
+        raise ValueError("--queue-probe-mode/--uplink-only-spatial-map requires --enable-run-logging")
     if experiment3_profile != "none" and (
         str(getattr(args, "controlled_target", "none")) != "none"
         or str(getattr(args, "tracked_lead", "none")) != "none"
@@ -4183,9 +5341,14 @@ def run_client(args: argparse.Namespace) -> None:
         )
     print(f"Camera resolution: {camera_width}x{camera_height} ({camera_resolution_label})")
     print(f"Model input: {model_input_size[0]}x{model_input_size[1]}")
+    print(f"Sensor tick mode: {'every world tick (sensor_tick=0.0)' if bool(getattr(args, 'sensor_every_tick', False)) else 'explicit 1/fps'}")
     print(f"Front device: {front_device}, back device: {back_device}")
     print(f"Entropy coder: {args.entropy_coder} | Quantization: {args.quantization_mode}")
     print(f"Role: {args.role} | bind-host: {args.bind_host} | remote-host: {remote_host}")
+    print(f"Edge result mode: {edge_result_mode} | uplink-only spatial map: {bool(args.uplink_only_spatial_map)}")
+    print(f"Edge receive queue size: {edge_receive_queue_size}")
+    if bool(args.uplink_only_spatial_map):
+        print(f"Uplink wait for ACK/backpressure: {uplink_wait_for_ack}")
     print(
         "UDP ports: "
         f"camera {args.camera_source_port} -> remote {args.remote_port}, "
@@ -4380,8 +5543,17 @@ def run_client(args: argparse.Namespace) -> None:
             if pedestrians:
                 print(f"Spawned {len(pedestrians)} background pedestrians.")
 
+        camera_bp = pole_client._camera_blueprint(
+            world,
+            camera_width,
+            camera_height,
+            args.camera_fov,
+            args.fps,
+        )
+        if bool(getattr(args, "sensor_every_tick", False)):
+            camera_bp.set_attribute("sensor_tick", "0.0")
         camera = world.spawn_actor(
-            pole_client._camera_blueprint(world, camera_width, camera_height, args.camera_fov, args.fps),
+            camera_bp,
             camera_transform,
             attach_to=camera_attach_to,
         )
@@ -4408,7 +5580,10 @@ def run_client(args: argparse.Namespace) -> None:
             gt_bp.set_attribute("image_size_x", str(int(camera_width)))
             gt_bp.set_attribute("image_size_y", str(int(camera_height)))
             gt_bp.set_attribute("fov", str(float(args.camera_fov)))
-            gt_bp.set_attribute("sensor_tick", str(1.0 / max(0.1, float(args.fps))))
+            gt_sensor_tick = 0.0 if bool(getattr(args, "sensor_every_tick", False)) else (
+                1.0 / max(0.1, float(args.fps))
+            )
+            gt_bp.set_attribute("sensor_tick", str(float(gt_sensor_tick)))
             gt_camera = world.spawn_actor(gt_bp, camera_transform, attach_to=camera_attach_to)
             actors.append(gt_camera)
             gt_queue = queue.Queue(maxsize=2)
@@ -4454,6 +5629,13 @@ def run_client(args: argparse.Namespace) -> None:
         transport_label = _default_transport_label(args)
         start_perf = time.perf_counter()
 
+        shadow_csv_raw = str(getattr(args, "radar_rasterizer_shadow_csv", "") or "").strip()
+        if shadow_csv_raw:
+            radar_shadow_logger = RadarRasterizerShadowLogger(Path(shadow_csv_raw))
+            print(f"[RadarShadow] Same-frame rasterizer CSV: {radar_shadow_logger.path}")
+            if bool(getattr(args, "radar_rasterizer_shadow_decode", False)):
+                print("[RadarShadow] Local legacy-vs-fast decode comparison enabled.")
+
         if bool(args.run_logging):
             metrics_logger = FusionRunLogger.from_args(
                 args=args,
@@ -4485,7 +5667,7 @@ def run_client(args: argparse.Namespace) -> None:
             print(f"[Metrics] Run directory: {metrics_logger.run_dir}")
             print(f"[Metrics] Run group: {metrics_logger.run_group}")
             print(f"[Metrics] Stream CSV: {metrics_logger.csv_path}")
-            if bool(getattr(args, "queue_probe_mode", False)):
+            if bool(getattr(args, "queue_probe_mode", False)) or bool(args.uplink_only_spatial_map):
                 queue_probe_logger = QueueProbeEventLogger(
                     run_logger=metrics_logger,
                     run_start_perf=start_perf,
@@ -4515,6 +5697,9 @@ def run_client(args: argparse.Namespace) -> None:
                 f"{args.spatial_map_host}:{args.spatial_map_port} "
                 f"as stream_id={spatial_stream_id}"
             )
+            if bool(args.uplink_only_spatial_map) and remote_worker is not None:
+                remote_worker.attach_spatial_publisher(spatial_publisher)
+                print("[UplinkOnly] Edge/back half will publish detections directly to spatial map.")
 
         if gui_enabled:
             cv2.namedWindow(DEFAULT_WINDOW_NAME, cv2.WINDOW_AUTOSIZE)
@@ -4525,7 +5710,12 @@ def run_client(args: argparse.Namespace) -> None:
         experiment3_cycle_frame_index = 0
         max_measurement_frames = max(0, int(args.max_frames))
         run_duration_s = max(0.0, float(args.run_duration_s))
-        queue_probe_mode = bool(getattr(args, "queue_probe_mode", False))
+        explicit_queue_probe_mode = bool(getattr(args, "queue_probe_mode", False))
+        uplink_only_mode = bool(args.uplink_only_spatial_map)
+        uplink_wait_for_ack = (
+            bool(getattr(args, "uplink_wait_for_ack", False)) and uplink_only_mode
+        )
+        queue_probe_mode = explicit_queue_probe_mode or uplink_only_mode
         queue_probe_frame_period_s = 1.0 / max(0.1, float(args.fps))
         queue_probe_send_start_perf = start_perf
 
@@ -4537,12 +5727,20 @@ def run_client(args: argparse.Namespace) -> None:
                 while time.perf_counter() < idle_deadline:
                     time.sleep(min(0.5, max(0.0, idle_deadline - time.perf_counter())))
             queue_probe_send_start_perf = time.perf_counter()
+            no_wait_cooldown_s = max(
+                max(0.0, float(getattr(args, "queue_probe_cooldown_s", 0.0)))
+                if explicit_queue_probe_mode
+                else 0.0,
+                max(0.0, float(getattr(args, "uplink_drain_grace_s", 0.0)))
+                if uplink_only_mode
+                else 0.0,
+            )
             print(
-                "[QueueProbe] Fixed-rate send mode active: "
+                "[NoWait] Fixed-rate send mode active: "
                 f"fps={float(args.fps):.2f}, "
                 f"max_frames={max_measurement_frames if max_measurement_frames > 0 else 'unlimited'}, "
                 f"run_duration_s={run_duration_s if run_duration_s > 0.0 else 'unlimited'}, "
-                f"cooldown_s={max(0.0, float(getattr(args, 'queue_probe_cooldown_s', 0.0))):.1f}"
+                f"cooldown_s={no_wait_cooldown_s:.1f}"
             )
 
         def run_duration_elapsed() -> bool:
@@ -4556,20 +5754,22 @@ def run_client(args: argparse.Namespace) -> None:
             print(f"Reached --run-duration-s={run_duration_s:.1f}; stopping run.")
             return True
 
-        while True:
-            if run_duration_elapsed():
-                break
-            current_scheduled_elapsed_s = time.perf_counter() - start_perf
-            if queue_probe_mode:
-                current_scheduled_elapsed_s = (
-                    queue_probe_send_start_perf
-                    - start_perf
-                    + (processed_frames * queue_probe_frame_period_s)
-                )
-                scheduled_perf = start_perf + current_scheduled_elapsed_s
-                sleep_s = scheduled_perf - time.perf_counter()
-                if sleep_s > 0.0:
-                    time.sleep(sleep_s)
+        capture_pipeline_enabled = bool(getattr(args, "capture_pipeline", False))
+        if capture_pipeline_enabled:
+            if not queue_probe_mode or not uplink_only_mode:
+                raise ValueError("--capture-pipeline is currently supported only with --uplink-only-spatial-map")
+            if not bool(args.sync_world):
+                raise ValueError("--capture-pipeline requires --sync-world for deterministic producer ticks")
+            if gt_queue is not None:
+                raise ValueError("--capture-pipeline does not currently support --enable-semantic-gt")
+            if radar_shadow_logger is not None:
+                raise ValueError("--capture-pipeline does not currently support radar rasterizer shadow logging")
+
+        def _prepare_capture_pipeline_frame(scheduled_elapsed_s: float) -> Optional[Dict[str, object]]:
+            nonlocal experiment3_cycle_frame_index
+
+            sync_world_tick_ms: object = ""
+            camera_frame_wait_ms: object = ""
             if bool(args.sync_world):
                 if (
                     experiment3_profile == "lateral_cycle"
@@ -4587,22 +5787,319 @@ def run_client(args: argparse.Namespace) -> None:
                         ),
                     )
                     experiment3_cycle_frame_index += 1
+                world_tick_start_perf = time.perf_counter()
                 world_frame = int(world.tick())
+                world_tick_done_perf = time.perf_counter()
+                sync_world_tick_ms = float((world_tick_done_perf - world_tick_start_perf) * 1000.0)
+                camera_wait_start_perf = time.perf_counter()
                 image = od_demo.wait_for_camera_frame(
                     image_queue,
                     world_frame,
                     float(args.camera_timeout),
                 )
+                camera_frame_wait_ms = float((time.perf_counter() - camera_wait_start_perf) * 1000.0)
             else:
+                camera_wait_start_perf = time.perf_counter()
                 try:
                     image = image_queue.get(timeout=float(args.camera_timeout))
                 except queue.Empty:
                     image = None
+                camera_frame_wait_ms = float((time.perf_counter() - camera_wait_start_perf) * 1000.0)
+            if image is None:
+                print(f"Warning: camera frame not received within {args.camera_timeout:.1f}s; retrying.")
+                return None
+
+            capture_perf = time.perf_counter()
+            capture_wall_s = time.time()
+
+            radar_wait_start_perf = time.perf_counter()
+            radar_measurement = radar_pipeline.get_latest(timeout=float(args.camera_timeout))
+            radar_wait_ms = float((time.perf_counter() - radar_wait_start_perf) * 1000.0)
+            if radar_measurement is None:
+                print(
+                    f"Warning: radar measurement not received within {args.camera_timeout:.1f}s; "
+                    "skipping frame."
+                )
+                return None
+
+            rgb_convert_start_perf = time.perf_counter()
+            frame_bgr = od_demo.camera_image_to_bgr(image)
+            rgb_convert_ms = float((time.perf_counter() - rgb_convert_start_perf) * 1000.0)
+            camera_inverse_start_perf = time.perf_counter()
+            camera_inverse_matrix = actor_world_inverse_matrix(camera)
+            camera_inverse_matrix_ms = float(
+                (time.perf_counter() - camera_inverse_start_perf) * 1000.0
+            )
+            radar_tensor_start_perf = time.perf_counter()
+            radar_tensor, radar_points = radar_pipeline.build_tensor(
+                measurement=radar_measurement,
+                camera_intrinsics=intrinsics_input,
+                camera_inverse_matrix=camera_inverse_matrix,
+                frame_time_s=float(image.timestamp),
+            )
+            radar_tensor_build_ms = float((time.perf_counter() - radar_tensor_start_perf) * 1000.0)
+            camera_matrix_start_perf = time.perf_counter()
+            camera_matrix = actor_world_matrix(camera)
+            camera_matrix_ms = float((time.perf_counter() - camera_matrix_start_perf) * 1000.0)
+            camera_transform_payload_start_perf = time.perf_counter()
+            camera_transform_payload = _carla_transform_payload(camera.get_transform())
+            camera_transform_payload_ms = float(
+                (time.perf_counter() - camera_transform_payload_start_perf) * 1000.0
+            )
+            process_call_start_perf = time.perf_counter()
+            measured_pre_model_ms = (
+                radar_wait_ms
+                + rgb_convert_ms
+                + camera_inverse_matrix_ms
+                + radar_tensor_build_ms
+                + camera_matrix_ms
+                + camera_transform_payload_ms
+            )
+            pre_model_other_ms = max(
+                0.0,
+                float((process_call_start_perf - capture_perf) * 1000.0) - measured_pre_model_ms,
+            )
+            prep_timing = {
+                "sync_world_tick_ms": sync_world_tick_ms,
+                "camera_frame_wait_ms": camera_frame_wait_ms,
+                "radar_wait_ms": radar_wait_ms,
+                "rgb_convert_ms": rgb_convert_ms,
+                "camera_inverse_matrix_ms": camera_inverse_matrix_ms,
+                "radar_tensor_build_ms": radar_tensor_build_ms,
+                "camera_matrix_ms": camera_matrix_ms,
+                "camera_transform_payload_ms": camera_transform_payload_ms,
+                "pre_model_other_ms": pre_model_other_ms,
+            }
+
+            radar_projected_points = 0
+            try:
+                radar_projected_points = int(
+                    np.count_nonzero(radar_points["valid_projection"].astype(bool))
+                )
+            except Exception:
+                radar_projected_points = 0
+            ego_speed_mps = float("nan")
+            try:
+                velocity = anchor_actor.get_velocity()
+                ego_speed_mps = math.sqrt(velocity.x ** 2 + velocity.y ** 2 + velocity.z ** 2)
+            except RuntimeError:
+                ego_speed_mps = float("nan")
+
+            return {
+                "frame_id": int(image.frame),
+                "carla_timestamp": float(image.timestamp),
+                "frame_bgr": frame_bgr,
+                "radar_tensor": radar_tensor,
+                "camera_matrix": camera_matrix,
+                "camera_transform_payload": camera_transform_payload,
+                "capture_perf": float(capture_perf),
+                "capture_wall_s": float(capture_wall_s),
+                "prep_timing": prep_timing,
+                "scheduled_elapsed_s": float(scheduled_elapsed_s),
+                "prepared_perf": float(process_call_start_perf),
+                "radar_projected_points": int(radar_projected_points),
+                "ego_speed_mps": float(ego_speed_mps),
+            }
+
+        def _run_capture_pipeline() -> None:
+            nonlocal processed_frames
+
+            pipeline_queue: "queue.Queue[object]" = queue.Queue(
+                maxsize=max(1, int(getattr(args, "capture_pipeline_queue_size", 2)))
+            )
+            pipeline_stop_event = threading.Event()
+            sentinel = object()
+            producer_errors: List[BaseException] = []
+            stats = {"attempted": 0, "prepared": 0, "skipped": 0, "dropped": 0}
+            drop_oldest = bool(getattr(args, "capture_pipeline_drop_oldest", False))
+
+            print(
+                "[CapturePipeline] Enabled: "
+                f"queue_size={pipeline_queue.maxsize}, "
+                f"drop_oldest={drop_oldest}, "
+                f"fps={float(args.fps):.2f}, "
+                f"max_frames={max_measurement_frames if max_measurement_frames > 0 else 'unlimited'}"
+            )
+
+            def _put_pipeline_item(item: object) -> None:
+                while not pipeline_stop_event.is_set():
+                    try:
+                        pipeline_queue.put(item, timeout=0.05)
+                        return
+                    except queue.Full:
+                        if not drop_oldest:
+                            continue
+                        try:
+                            pipeline_queue.get_nowait()
+                            pipeline_queue.task_done()
+                            stats["dropped"] += 1
+                        except queue.Empty:
+                            pass
+
+            def _producer() -> None:
+                try:
+                    scheduled_index = 0
+                    while not pipeline_stop_event.is_set():
+                        if max_measurement_frames > 0 and scheduled_index >= max_measurement_frames:
+                            break
+                        if run_duration_elapsed():
+                            break
+                        scheduled_elapsed_s = (
+                            queue_probe_send_start_perf
+                            - start_perf
+                            + (scheduled_index * queue_probe_frame_period_s)
+                        )
+                        scheduled_perf = start_perf + scheduled_elapsed_s
+                        sleep_s = scheduled_perf - time.perf_counter()
+                        if sleep_s > 0.0:
+                            time.sleep(sleep_s)
+                        prepared = _prepare_capture_pipeline_frame(scheduled_elapsed_s)
+                        scheduled_index += 1
+                        stats["attempted"] += 1
+                        if prepared is None:
+                            stats["skipped"] += 1
+                            continue
+                        _put_pipeline_item(prepared)
+                        stats["prepared"] += 1
+                except BaseException as exc:  # pragma: no cover - runtime diagnostics
+                    producer_errors.append(exc)
+                finally:
+                    _put_pipeline_item(sentinel)
+
+            producer = threading.Thread(
+                target=_producer,
+                name="capture-pipeline-producer",
+                daemon=True,
+            )
+            producer.start()
+            try:
+                while True:
+                    item = pipeline_queue.get()
+                    try:
+                        if item is sentinel:
+                            break
+                        if not isinstance(item, dict):
+                            continue
+                        prep_timing = dict(item.get("prep_timing", {}) or {})
+                        prep_timing["capture_pipeline_queue_wait_ms"] = float(
+                            (time.perf_counter() - float(item.get("prepared_perf", time.perf_counter())))
+                            * 1000.0
+                        )
+                        prep_timing["capture_pipeline_queue_depth"] = int(pipeline_queue.qsize())
+                        front_stats = head_inference.process(
+                            frame_id=int(item["frame_id"]),
+                            frame_bgr=item["frame_bgr"],
+                            radar_tensor=item["radar_tensor"],
+                            camera_matrix=item["camera_matrix"],
+                            camera_intrinsics_input=intrinsics_input,
+                            display_size=(int(camera_width), int(camera_height)),
+                            carla_timestamp=float(item["carla_timestamp"]),
+                            camera_transform_payload=item["camera_transform_payload"],
+                            stream_id=spatial_stream_id,
+                            capture_perf=float(item["capture_perf"]),
+                            capture_wall_s=float(item["capture_wall_s"]),
+                            prep_timing=prep_timing,
+                        )
+                        processed_frames += 1
+                        if queue_probe_logger is not None:
+                            queue_probe_logger.log_send(
+                                frame_id=int(item["frame_id"]),
+                                carla_timestamp=float(item["carla_timestamp"]),
+                                scheduled_elapsed_s=float(item["scheduled_elapsed_s"]),
+                                front_stats=front_stats,
+                                radar_projected_points=int(item["radar_projected_points"]),
+                                ego_speed_mps=float(item["ego_speed_mps"]),
+                            )
+                        if uplink_wait_for_ack:
+                            ack_wait_start_perf = time.perf_counter()
+                            ack_payload = result_store.wait_for(
+                                int(item["frame_id"]),
+                                float(args.result_timeout),
+                                tick_callback=None,
+                                tick_hz=max(0.1, float(args.fps)),
+                            )
+                            ack_wait_ms = (time.perf_counter() - ack_wait_start_perf) * 1000.0
+                            if ack_payload is None:
+                                print(
+                                    "[UplinkOnly] ACK wait timeout for frame "
+                                    f"{int(item['frame_id'])} after {ack_wait_ms:.1f} ms"
+                                )
+                    finally:
+                        pipeline_queue.task_done()
+            finally:
+                pipeline_stop_event.set()
+                producer.join(timeout=5.0)
+                print(
+                    "[CapturePipeline] Finished: "
+                    f"attempted={stats['attempted']} prepared={stats['prepared']} "
+                    f"sent={processed_frames} skipped={stats['skipped']} dropped={stats['dropped']}"
+                )
+            if producer_errors:
+                raise RuntimeError("capture pipeline producer failed") from producer_errors[0]
+
+        if capture_pipeline_enabled:
+            _run_capture_pipeline()
+
+        while True:
+            if capture_pipeline_enabled:
+                break
+            if run_duration_elapsed():
+                break
+            current_scheduled_elapsed_s = time.perf_counter() - start_perf
+            if queue_probe_mode:
+                current_scheduled_elapsed_s = (
+                    queue_probe_send_start_perf
+                    - start_perf
+                    + (processed_frames * queue_probe_frame_period_s)
+                )
+                scheduled_perf = start_perf + current_scheduled_elapsed_s
+                sleep_s = scheduled_perf - time.perf_counter()
+                if sleep_s > 0.0:
+                    time.sleep(sleep_s)
+            sync_world_tick_ms: object = ""
+            camera_frame_wait_ms: object = ""
+            if bool(args.sync_world):
+                if (
+                    experiment3_profile == "lateral_cycle"
+                    and experiment3_target_actor is not None
+                    and ego_vehicle is not None
+                ):
+                    _place_experiment3_target(
+                        world=world,
+                        ego_vehicle=ego_vehicle,
+                        target_actor=experiment3_target_actor,
+                        forward_m=float(args.experiment3_target_forward_m),
+                        lateral_m=_experiment3_cycle_lateral_offset(
+                            args,
+                            experiment3_cycle_frame_index,
+                        ),
+                    )
+                    experiment3_cycle_frame_index += 1
+                world_tick_start_perf = time.perf_counter()
+                world_frame = int(world.tick())
+                world_tick_done_perf = time.perf_counter()
+                sync_world_tick_ms = float((world_tick_done_perf - world_tick_start_perf) * 1000.0)
+                camera_wait_start_perf = time.perf_counter()
+                image = od_demo.wait_for_camera_frame(
+                    image_queue,
+                    world_frame,
+                    float(args.camera_timeout),
+                )
+                camera_frame_wait_ms = float((time.perf_counter() - camera_wait_start_perf) * 1000.0)
+            else:
+                camera_wait_start_perf = time.perf_counter()
+                try:
+                    image = image_queue.get(timeout=float(args.camera_timeout))
+                except queue.Empty:
+                    image = None
+                camera_frame_wait_ms = float((time.perf_counter() - camera_wait_start_perf) * 1000.0)
             if image is None:
                 print(f"Warning: camera frame not received within {args.camera_timeout:.1f}s; retrying.")
                 if run_duration_elapsed():
                     break
                 continue
+            capture_perf = time.perf_counter()
+            capture_wall_s = time.time()
 
             gt_3class: Optional[np.ndarray] = None
             if gt_queue is not None:
@@ -4621,7 +6118,9 @@ def run_client(args: argparse.Namespace) -> None:
                     gt_tags = trained_seg_demo.carla_semantic_image_to_tags(gt_image)
                     gt_3class = trained_seg_demo.map_carla_tags_to_3class(gt_tags)
 
+            radar_wait_start_perf = time.perf_counter()
             radar_measurement = radar_pipeline.get_latest(timeout=float(args.camera_timeout))
+            radar_wait_ms = float((time.perf_counter() - radar_wait_start_perf) * 1000.0)
             if radar_measurement is None:
                 print(
                     f"Warning: radar measurement not received within {args.camera_timeout:.1f}s; "
@@ -4631,15 +6130,89 @@ def run_client(args: argparse.Namespace) -> None:
                     break
                 continue
 
+            rgb_convert_start_perf = time.perf_counter()
             frame_bgr = od_demo.camera_image_to_bgr(image)
+            rgb_convert_ms = float((time.perf_counter() - rgb_convert_start_perf) * 1000.0)
+            camera_inverse_start_perf = time.perf_counter()
             camera_inverse_matrix = actor_world_inverse_matrix(camera)
-            radar_tensor, radar_points = radar_pipeline.build_tensor(
-                measurement=radar_measurement,
-                camera_intrinsics=intrinsics_input,
-                camera_inverse_matrix=camera_inverse_matrix,
-                frame_time_s=float(image.timestamp),
+            camera_inverse_matrix_ms = float(
+                (time.perf_counter() - camera_inverse_start_perf) * 1000.0
             )
+            radar_tensor_start_perf = time.perf_counter()
+            shadow_tensors: Optional[Dict[str, np.ndarray]] = None
+            if radar_shadow_logger is not None:
+                shadow_tensors, radar_points = radar_pipeline.build_tensor_pair(
+                    measurement=radar_measurement,
+                    camera_intrinsics=intrinsics_input,
+                    camera_inverse_matrix=camera_inverse_matrix,
+                    frame_time_s=float(image.timestamp),
+                )
+                active_rasterizer = str(getattr(args, "radar_rasterizer", "legacy") or "legacy")
+                radar_tensor = shadow_tensors.get(active_rasterizer, shadow_tensors["legacy"])
+            else:
+                radar_tensor, radar_points = radar_pipeline.build_tensor(
+                    measurement=radar_measurement,
+                    camera_intrinsics=intrinsics_input,
+                    camera_inverse_matrix=camera_inverse_matrix,
+                    frame_time_s=float(image.timestamp),
+                )
+            radar_tensor_build_ms = float((time.perf_counter() - radar_tensor_start_perf) * 1000.0)
+            camera_matrix_start_perf = time.perf_counter()
             camera_matrix = actor_world_matrix(camera)
+            camera_matrix_ms = float((time.perf_counter() - camera_matrix_start_perf) * 1000.0)
+            camera_transform_payload_start_perf = time.perf_counter()
+            camera_transform_payload = _carla_transform_payload(camera.get_transform())
+            camera_transform_payload_ms = float(
+                (time.perf_counter() - camera_transform_payload_start_perf) * 1000.0
+            )
+            if radar_shadow_logger is not None and shadow_tensors is not None:
+                shadow_row = _radar_tensor_shadow_stats(
+                    frame_id=int(image.frame),
+                    carla_timestamp=float(image.timestamp),
+                    active_rasterizer=str(getattr(args, "radar_rasterizer", "legacy") or "legacy"),
+                    tensors=shadow_tensors,
+                    points=radar_points,
+                )
+                if bool(getattr(args, "radar_rasterizer_shadow_decode", False)):
+                    shadow_row.update(
+                        _radar_shadow_decode_stats(
+                            model=head_inference.model,
+                            frame_bgr=frame_bgr,
+                            tensors=shadow_tensors,
+                            camera_matrix=camera_matrix,
+                            camera_intrinsics_input=intrinsics_input,
+                            model_input_size=model_input_size,
+                            device=head_inference.device,
+                            rgb_mean=head_inference.rgb_mean,
+                            rgb_std=head_inference.rgb_std,
+                            args=args,
+                        )
+                    )
+                radar_shadow_logger.append(shadow_row)
+            process_call_start_perf = time.perf_counter()
+            measured_pre_model_ms = (
+                radar_wait_ms
+                + rgb_convert_ms
+                + camera_inverse_matrix_ms
+                + radar_tensor_build_ms
+                + camera_matrix_ms
+                + camera_transform_payload_ms
+            )
+            pre_model_other_ms = max(
+                0.0,
+                float((process_call_start_perf - capture_perf) * 1000.0) - measured_pre_model_ms,
+            )
+            prep_timing = {
+                "sync_world_tick_ms": sync_world_tick_ms,
+                "camera_frame_wait_ms": camera_frame_wait_ms,
+                "radar_wait_ms": radar_wait_ms,
+                "rgb_convert_ms": rgb_convert_ms,
+                "camera_inverse_matrix_ms": camera_inverse_matrix_ms,
+                "radar_tensor_build_ms": radar_tensor_build_ms,
+                "camera_matrix_ms": camera_matrix_ms,
+                "camera_transform_payload_ms": camera_transform_payload_ms,
+                "pre_model_other_ms": pre_model_other_ms,
+            }
             front_stats = head_inference.process(
                 frame_id=int(image.frame),
                 frame_bgr=frame_bgr,
@@ -4647,6 +6220,12 @@ def run_client(args: argparse.Namespace) -> None:
                 camera_matrix=camera_matrix,
                 camera_intrinsics_input=intrinsics_input,
                 display_size=(int(camera_width), int(camera_height)),
+                carla_timestamp=float(image.timestamp),
+                camera_transform_payload=camera_transform_payload,
+                stream_id=spatial_stream_id,
+                capture_perf=capture_perf,
+                capture_wall_s=capture_wall_s,
+                prep_timing=prep_timing,
             )
 
             if queue_probe_mode:
@@ -4675,6 +6254,20 @@ def run_client(args: argparse.Namespace) -> None:
                         radar_projected_points=radar_projected_points,
                         ego_speed_mps=ego_speed_mps,
                     )
+                if uplink_wait_for_ack:
+                    ack_wait_start_perf = time.perf_counter()
+                    ack_payload = result_store.wait_for(
+                        int(image.frame),
+                        float(args.result_timeout),
+                        tick_callback=None,
+                        tick_hz=max(0.1, float(args.fps)),
+                    )
+                    ack_wait_ms = (time.perf_counter() - ack_wait_start_perf) * 1000.0
+                    if ack_payload is None:
+                        print(
+                            "[UplinkOnly] ACK wait timeout for frame "
+                            f"{int(image.frame)} after {ack_wait_ms:.1f} ms"
+                        )
                 if max_measurement_frames > 0 and processed_frames >= max_measurement_frames:
                     print(f"Reached --max-frames={max_measurement_frames}; stopping sends.")
                     break
@@ -4895,10 +6488,17 @@ def run_client(args: argparse.Namespace) -> None:
                 break
 
         if queue_probe_mode:
-            cooldown_s = max(0.0, float(getattr(args, "queue_probe_cooldown_s", 0.0)))
+            cooldown_s = max(
+                max(0.0, float(getattr(args, "queue_probe_cooldown_s", 0.0)))
+                if explicit_queue_probe_mode
+                else 0.0,
+                max(0.0, float(getattr(args, "uplink_drain_grace_s", 0.0)))
+                if uplink_only_mode
+                else 0.0,
+            )
             if cooldown_s > 0.0:
                 print(
-                    "[QueueProbe] Send phase complete; keeping result receiver alive for "
+                    "[NoWait] Send phase complete; keeping edge/result receiver alive for "
                     f"{cooldown_s:.1f}s cooldown/drain."
                 )
                 cooldown_deadline = time.perf_counter() + cooldown_s
@@ -4907,11 +6507,12 @@ def run_client(args: argparse.Namespace) -> None:
 
     finally:
         stop_event.set()
+        if radar_shadow_logger is not None:
+            radar_shadow_logger.close()
+            print(f"[RadarShadow] Saved same-frame rasterizer CSV to {radar_shadow_logger.path}")
         if metrics_logger is not None:
             metrics_logger.close()
             print(f"[Metrics] Saved stream CSV to {metrics_logger.csv_path}")
-        if spatial_publisher is not None:
-            spatial_publisher.close()
         if bool(args.sync_world):
             # Only the --sync-world owner restores the shared TM + world sync
             # state; an --async-world client must not toggle TM here either,
@@ -4948,6 +6549,14 @@ def run_client(args: argparse.Namespace) -> None:
             remote_worker=remote_worker,
             result_receiver=result_receiver,
         )
+        if spatial_publisher is not None:
+            spatial_publisher.close()
+        if edge_metrics_logger is not None:
+            if remote_worker is not None:
+                edge_metrics_logger.write_summary(remote_worker.summary())
+            edge_metrics_logger.close()
+            print(f"[UplinkOnly] Saved edge metrics CSV to {edge_metrics_logger.path}")
+            print(f"[UplinkOnly] Saved edge metrics summary to {edge_metrics_logger.summary_path}")
         if queue_probe_logger is not None:
             queue_probe_logger.close()
             print(f"[QueueProbe] Saved send events CSV to {queue_probe_logger.send_path}")

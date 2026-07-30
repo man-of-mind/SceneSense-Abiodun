@@ -74,6 +74,18 @@ from typing import Dict, List, Optional, Sequence, Tuple
 import numpy as np
 import torch
 
+# This copied Track-1 script lives under abiodun/uplink_only_spatial_map_pipeline/
+# but reuses root-level split-inference helpers from neu_collab/.
+_NEU_COLLAB_ROOT = os.path.abspath(
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir, os.pardir)
+)
+if _NEU_COLLAB_ROOT not in sys.path:
+    sys.path.insert(0, _NEU_COLLAB_ROOT)
+_ABIODUN_ROOT = os.path.join(_NEU_COLLAB_ROOT, "abiodun")
+_FUSION_PACKAGE_ROOT = os.path.join(_ABIODUN_ROOT, "pole_lraspp_multimodal_fusion")
+if _FUSION_PACKAGE_ROOT not in sys.path:
+    sys.path.insert(0, _FUSION_PACKAGE_ROOT)
+
 import carla_split_inference_udp_demo as od_demo
 import carla_split_inference_udp_data_collect as od_collect
 import carla_split_inference_udp_segmentation_demo as seg_demo
@@ -658,6 +670,57 @@ def parse_args() -> argparse.Namespace:
         help="Seconds to wait for the tail-side result for each frame before skipping it.",
     )
     parser.add_argument(
+        "--uplink-only-spatial-map",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help=(
+            "Track-1 mode: the edge/back half publishes detections directly to the "
+            "spatial-map server and the CARLA front end does not wait for the result "
+            "payload before processing the next frame."
+        ),
+    )
+    parser.add_argument(
+        "--edge-result-mode",
+        choices=("auto", "full", "ack", "none"),
+        default="auto",
+        help=(
+            "Back-half result behavior. 'auto' uses 'full' for old closed-loop runs and "
+            "'none' for --uplink-only-spatial-map. 'full' returns the old mask/object "
+            "payload, 'ack' sends only a tiny timing acknowledgment, and 'none' sends no "
+            "downlink result."
+        ),
+    )
+    parser.add_argument(
+        "--edge-metrics-csv",
+        default="",
+        help=(
+            "Optional CSV path for edge-side uplink/map-publish timing. If omitted in "
+            "--uplink-only-spatial-map loopback mode, a timestamped CSV is written under "
+            "abiodun/uplink_only_spatial_map_pipeline/runs/."
+        ),
+    )
+    parser.add_argument(
+        "--edge-receive-queue-size",
+        type=int,
+        default=-1,
+        help=(
+            "Bounded edge receive queue between UDP assembly and tail inference. "
+            "-1 = auto (32 in uplink-only mode, 0 otherwise), 0 = old single-thread "
+            "receive/process behavior. When full, oldest frames are dropped to keep "
+            "the spatial map fresh."
+        ),
+    )
+    parser.add_argument(
+        "--uplink-drain-grace-s",
+        type=float,
+        default=0.0,
+        help=(
+            "Optional shutdown grace period after the front loop stops sending, before "
+            "stopping the edge worker. Useful for short smoke tests to flush already "
+            "received frames to the map."
+        ),
+    )
+    parser.add_argument(
         "--role",
         choices=("loopback", "front", "back"),
         default="loopback",
@@ -961,7 +1024,14 @@ class CameraSideFusionInference:
         camera_matrix: np.ndarray,
         camera_intrinsics_input: np.ndarray,
         display_size: Tuple[int, int],
+        carla_timestamp: float = 0.0,
+        camera_transform_payload: Optional[Dict[str, object]] = None,
+        stream_id: str = "",
+        capture_perf: Optional[float] = None,
+        capture_wall: Optional[float] = None,
     ) -> Dict[str, object]:
+        capture_perf_value = float(capture_perf) if capture_perf is not None else time.perf_counter()
+        capture_wall_value = float(capture_wall) if capture_wall is not None else time.time()
         started = time.perf_counter()
         with torch.inference_mode():
             fused = prepare_fusion_input(
@@ -996,9 +1066,22 @@ class CameraSideFusionInference:
                 name: tuple(int(v) for v in tensor.shape) for name, tensor in features.items()
             },
             "features": serialized_features,
+            "payload_bytes_uncompressed": int(payload_bytes_uncompressed),
             "camera_matrix": camera_matrix.astype(np.float64),
             "camera_intrinsics_input": camera_intrinsics_input.astype(np.float64),
-            "camera_sent_perf": time.perf_counter(),
+            "camera_transform": camera_transform_payload if isinstance(camera_transform_payload, dict) else {},
+            "stream_id": str(stream_id or ""),
+            "carla_timestamp": float(carla_timestamp),
+        }
+        front_send_perf = time.perf_counter()
+        payload["camera_sent_perf"] = float(front_send_perf)
+        payload["timing"] = {
+            "t_capture_perf": float(capture_perf_value),
+            "t_capture_wall": float(capture_wall_value),
+            "t_front_start_perf": float(started),
+            "t_front_send_perf": float(front_send_perf),
+            "front_compute_ms": float((front_send_perf - started) * 1000.0),
+            "capture_to_front_send_ms": float((front_send_perf - capture_perf_value) * 1000.0),
         }
         payload_bytes, payload_chunks = self.sender.send(payload)
         return {
@@ -1006,12 +1089,91 @@ class CameraSideFusionInference:
             "payload_bytes": int(payload_bytes),
             "payload_bytes_uncompressed": int(payload_bytes_uncompressed),
             "payload_chunks": int(payload_chunks),
+            "capture_to_front_send_ms": float((front_send_perf - capture_perf_value) * 1000.0),
+            "camera_sent_perf": float(front_send_perf),
+            "capture_perf": float(capture_perf_value),
         }
 
 
 # ---------------------------------------------------------------------------
 # Tail-side worker
 # ---------------------------------------------------------------------------
+
+
+EDGE_UPLINK_METRICS_FIELDS: Tuple[str, ...] = (
+    "wall_time",
+    "frame_id",
+    "stream_id",
+    "carla_timestamp",
+    "result_mode",
+    "object_count",
+    "uplink_payload_bytes",
+    "uplink_payload_bytes_uncompressed",
+    "uplink_payload_chunks",
+    "result_payload_bytes",
+    "result_payload_chunks",
+    "edge_receive_queue_depth",
+    "edge_receive_queue_dropped",
+    "udp_pending_messages",
+    "udp_partial_messages_dropped",
+    "spatial_publisher_queue",
+    "spatial_publisher_dropped",
+    "t_capture_perf",
+    "t_front_send_perf",
+    "t_edge_recv_perf",
+    "t_tail_start_perf",
+    "t_tail_done_perf",
+    "t_map_publish_perf",
+    "front_to_edge_ms",
+    "edge_queue_ms",
+    "tail_ms",
+    "edge_to_map_publish_ms",
+    "capture_to_tail_done_ms",
+    "capture_to_map_publish_ms",
+)
+
+
+class EdgeUplinkMetricsLogger:
+    """Thread-safe CSV logger for edge-side uplink-only timing."""
+
+    def __init__(self, path: Path) -> None:
+        self.path = Path(path)
+        self.summary_path = self.path.with_suffix(".summary.json")
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self._fp = self.path.open("w", newline="", encoding="utf-8")
+        self._writer = csv.DictWriter(self._fp, fieldnames=list(EDGE_UPLINK_METRICS_FIELDS))
+        self._writer.writeheader()
+        self._lock = threading.Lock()
+
+    def append(self, row: Dict[str, object]) -> None:
+        clean = {key: row.get(key, "") for key in EDGE_UPLINK_METRICS_FIELDS}
+        with self._lock:
+            self._writer.writerow(clean)
+            self._fp.flush()
+
+    def write_summary(self, summary: Dict[str, object]) -> None:
+        enriched = {
+            "written_at": datetime.now().isoformat(timespec="milliseconds"),
+            **summary,
+        }
+        self.summary_path.write_text(json.dumps(enriched, indent=2, sort_keys=True), encoding="utf-8")
+
+    def close(self) -> None:
+        with self._lock:
+            try:
+                self._fp.flush()
+            finally:
+                self._fp.close()
+
+
+def _default_edge_metrics_csv_path(args: argparse.Namespace) -> Path:
+    raw = str(getattr(args, "edge_metrics_csv", "") or "").strip()
+    if raw:
+        return Path(raw)
+    stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    label = str(getattr(args, "transport_label", "") or getattr(args, "role", "loopback") or "loopback")
+    safe_label = "".join(ch if ch.isalnum() or ch in ("-", "_") else "_" for ch in label).strip("_")
+    return Path(__file__).resolve().parent / "runs" / f"edge_uplink_metrics_{safe_label}_{stamp}.csv"
 
 
 class FusionRemoteInferenceWorker(threading.Thread):
@@ -1031,6 +1193,10 @@ class FusionRemoteInferenceWorker(threading.Thread):
         draw_projected_obb_box: bool = True,
         log_every: int = 0,
         label: str = "fusion-back",
+        spatial_publisher: Optional["SpatialMapResultPublisher"] = None,
+        result_mode: str = "full",
+        edge_metrics_logger: Optional[EdgeUplinkMetricsLogger] = None,
+        receive_queue_size: int = 0,
     ) -> None:
         super().__init__(daemon=True)
         self.model = model
@@ -1047,12 +1213,79 @@ class FusionRemoteInferenceWorker(threading.Thread):
         self.draw_projected_obb_box = bool(draw_projected_obb_box)
         self.log_every = max(0, int(log_every))
         self.label = str(label)
+        self.spatial_publisher = spatial_publisher
+        self.result_mode = str(result_mode)
+        self.edge_metrics_logger = edge_metrics_logger
+        self.receive_queue_size = max(0, int(receive_queue_size))
+        self._payload_queue: Optional["queue.Queue[Tuple[Dict[str, object], float]]"] = (
+            queue.Queue(maxsize=self.receive_queue_size) if self.receive_queue_size > 0 else None
+        )
+        self._receive_dropped = 0
+        self._udp_partial_messages_dropped = 0
+        self._wrap_receiver_drop_counter()
         self._processed = 0
         self._last_wait_log = 0.0
 
+    def attach_spatial_publisher(self, publisher: Optional["SpatialMapResultPublisher"]) -> None:
+        self.spatial_publisher = publisher
+
+    def summary(self) -> Dict[str, object]:
+        return {
+            "label": self.label,
+            "processed_frames": int(self._processed),
+            "edge_receive_queue_size": int(self.receive_queue_size),
+            "edge_receive_queue_depth": (
+                int(self._payload_queue.qsize()) if self._payload_queue is not None else 0
+            ),
+            "edge_receive_queue_dropped": int(self._receive_dropped),
+            "udp_pending_messages": len(getattr(self.receiver, "_pending", {}) or {}),
+            "udp_partial_messages_dropped": int(self._udp_partial_messages_dropped),
+            "result_mode": self.result_mode,
+        }
+
+    def _wrap_receiver_drop_counter(self) -> None:
+        pending = getattr(self.receiver, "_pending", None)
+        drop_fn = getattr(self.receiver, "_drop_stale_buffers", None)
+        if not isinstance(pending, dict) or not callable(drop_fn):
+            return
+
+        def counted_drop(now: Optional[float] = None) -> None:
+            before = len(pending)
+            drop_fn(now)
+            after = len(pending)
+            if after < before:
+                self._udp_partial_messages_dropped += before - after
+
+        self.receiver._drop_stale_buffers = counted_drop  # type: ignore[attr-defined]
+
     def run(self) -> None:
+        if self._payload_queue is not None:
+            rx_thread = threading.Thread(target=self._receive_loop, daemon=True)
+            rx_thread.start()
+            try:
+                while not self.stop_event.is_set():
+                    try:
+                        payload, t_edge_recv_perf = self._payload_queue.get(timeout=0.2)
+                    except queue.Empty:
+                        if self.log_every > 0:
+                            now = time.time()
+                            if now - self._last_wait_log >= 5.0:
+                                pending_count = len(getattr(self.receiver, "_pending", {}) or {})
+                                print(
+                                    f"[{self.label}] waiting for queued feature tensors... "
+                                    f"udp_pending={pending_count} "
+                                    f"udp_partial_dropped={self._udp_partial_messages_dropped}"
+                                )
+                                self._last_wait_log = now
+                        continue
+                    self._process_payload(payload, t_edge_recv_perf)
+            finally:
+                rx_thread.join(timeout=1.0)
+            return
+
         while not self.stop_event.is_set():
             payload = self.receiver.receive()
+            t_edge_recv_perf = time.perf_counter()
             if payload is None:
                 if self.log_every > 0:
                     now = time.time()
@@ -1060,27 +1293,163 @@ class FusionRemoteInferenceWorker(threading.Thread):
                         print(f"[{self.label}] waiting for feature tensors...")
                         self._last_wait_log = now
                 continue
+            self._process_payload(payload, t_edge_recv_perf)
+
+    def _receive_loop(self) -> None:
+        assert self._payload_queue is not None
+        while not self.stop_event.is_set():
+            payload = self.receiver.receive()
+            t_edge_recv_perf = time.perf_counter()
+            if payload is None:
+                continue
             try:
-                result = self._run_back_half(payload)
+                self._payload_queue.put_nowait((payload, t_edge_recv_perf))
+            except queue.Full:
+                try:
+                    self._payload_queue.get_nowait()
+                    self._receive_dropped += 1
+                except queue.Empty:
+                    pass
+                try:
+                    self._payload_queue.put_nowait((payload, t_edge_recv_perf))
+                except queue.Full:
+                    self._receive_dropped += 1
+
+    def _process_payload(self, payload: Dict[str, object], t_edge_recv_perf: float) -> None:
+        try:
+            t_tail_start_perf = time.perf_counter()
+            result = self._run_back_half(payload)
+            t_tail_done_perf = time.perf_counter()
+            payload_timing = payload.get("timing") if isinstance(payload.get("timing"), dict) else {}
+            t_capture_perf = _safe_float(payload_timing.get("t_capture_perf"), 0.0)
+            t_front_send_perf = _safe_float(
+                payload_timing.get("t_front_send_perf"),
+                _safe_float(payload.get("camera_sent_perf"), 0.0),
+            )
+            result_timing = {
+                **payload_timing,
+                "t_edge_recv_perf": float(t_edge_recv_perf),
+                "t_tail_start_perf": float(t_tail_start_perf),
+                "t_tail_done_perf": float(t_tail_done_perf),
+                "tail_ms": float((t_tail_done_perf - t_tail_start_perf) * 1000.0),
+                "front_to_edge_ms": (
+                    float((t_edge_recv_perf - t_front_send_perf) * 1000.0)
+                    if t_front_send_perf > 0.0
+                    else ""
+                ),
+                "capture_to_tail_done_ms": (
+                    float((t_tail_done_perf - t_capture_perf) * 1000.0)
+                    if t_capture_perf > 0.0
+                    else ""
+                ),
+            }
+            result["timing"] = result_timing
+
+            t_map_publish_perf = 0.0
+            spatial_queue_size = ""
+            spatial_dropped = ""
+            if self.spatial_publisher is not None:
+                t_map_publish_perf = time.perf_counter()
+                result_timing["t_map_publish_perf"] = float(t_map_publish_perf)
+                self.spatial_publisher.publish_from_payload(
+                    source_payload=payload,
+                    result=result,
+                    timing=result_timing,
+                )
+                spatial_queue_size = self.spatial_publisher.queue.qsize()
+                spatial_dropped = int(self.spatial_publisher.dropped_packets)
+
+            send_payload: Optional[Dict[str, object]]
+            result_payload_bytes = 0
+            result_payload_chunks = 0
+            result_bytes = 0
+            result_chunks = 0
+            if self.result_mode == "none":
+                send_payload = None
+            elif self.result_mode == "ack":
+                send_payload = {
+                    "frame_id": int(result["frame_id"]),
+                    "camera_sent_perf": float(result["camera_sent_perf"]),
+                    "server_ms": float(result["server_ms"]),
+                    "ack": True,
+                    "objects": [],
+                    "timing": result_timing,
+                }
+            else:
+                send_payload = result
+
+            if send_payload is not None:
                 result_payload_bytes, result_payload_chunks = _estimate_udp_payload(
-                    result,
+                    send_payload,
                     chunk_bytes=self.sender.chunk_bytes,
                     transport=self.transport,
                 )
-                result["result_payload_bytes_estimate"] = int(result_payload_bytes)
-                result["result_payload_chunks_estimate"] = int(result_payload_chunks)
-                result_bytes, result_chunks = self.sender.send(result)
-                self._processed += 1
-                if self.log_every > 0 and (
-                    self._processed == 1 or self._processed % self.log_every == 0
-                ):
-                    print(
-                        f"[{self.label}] frame={int(payload.get('frame_id', -1))} "
-                        f"server_ms={float(result.get('server_ms', 0.0)):.1f} "
-                        f"result_bytes={int(result_bytes)} chunks={int(result_chunks)}"
-                    )
-            except Exception as exc:  # pragma: no cover - runtime path
-                print(f"Fusion remote worker error: {exc}", file=sys.stderr)
+                send_payload["result_payload_bytes_estimate"] = int(result_payload_bytes)
+                send_payload["result_payload_chunks_estimate"] = int(result_payload_chunks)
+                result_bytes, result_chunks = self.sender.send(send_payload)
+
+            self._processed += 1
+            edge_queue_depth = self._payload_queue.qsize() if self._payload_queue is not None else 0
+            udp_pending_messages = len(getattr(self.receiver, "_pending", {}) or {})
+            if self.edge_metrics_logger is not None:
+                self.edge_metrics_logger.append(
+                    {
+                        "wall_time": datetime.now().isoformat(timespec="milliseconds"),
+                        "frame_id": int(payload.get("frame_id", -1)),
+                        "stream_id": str(payload.get("stream_id") or ""),
+                        "carla_timestamp": _safe_float(payload.get("carla_timestamp"), 0.0),
+                        "result_mode": self.result_mode,
+                        "object_count": len(result.get("objects", []) or []),
+                        "uplink_payload_bytes": _safe_int(payload.get("payload_bytes"), 0),
+                        "uplink_payload_bytes_uncompressed": _safe_int(
+                            payload.get("payload_bytes_uncompressed"),
+                            0,
+                        ),
+                        "uplink_payload_chunks": _safe_int(payload.get("payload_chunks"), 0),
+                        "result_payload_bytes": int(result_payload_bytes),
+                        "result_payload_chunks": int(result_payload_chunks),
+                        "edge_receive_queue_depth": int(edge_queue_depth),
+                        "edge_receive_queue_dropped": int(self._receive_dropped),
+                        "udp_pending_messages": int(udp_pending_messages),
+                        "udp_partial_messages_dropped": int(self._udp_partial_messages_dropped),
+                        "spatial_publisher_queue": spatial_queue_size,
+                        "spatial_publisher_dropped": spatial_dropped,
+                        "t_capture_perf": t_capture_perf if t_capture_perf > 0.0 else "",
+                        "t_front_send_perf": t_front_send_perf if t_front_send_perf > 0.0 else "",
+                        "t_edge_recv_perf": float(t_edge_recv_perf),
+                        "t_tail_start_perf": float(t_tail_start_perf),
+                        "t_tail_done_perf": float(t_tail_done_perf),
+                        "t_map_publish_perf": t_map_publish_perf if t_map_publish_perf > 0.0 else "",
+                        "front_to_edge_ms": result_timing.get("front_to_edge_ms", ""),
+                        "edge_queue_ms": float((t_tail_start_perf - t_edge_recv_perf) * 1000.0),
+                        "tail_ms": result_timing.get("tail_ms", ""),
+                        "edge_to_map_publish_ms": (
+                            float((t_map_publish_perf - t_edge_recv_perf) * 1000.0)
+                            if t_map_publish_perf > 0.0
+                            else ""
+                        ),
+                        "capture_to_tail_done_ms": result_timing.get("capture_to_tail_done_ms", ""),
+                        "capture_to_map_publish_ms": (
+                            float((t_map_publish_perf - t_capture_perf) * 1000.0)
+                            if t_map_publish_perf > 0.0 and t_capture_perf > 0.0
+                            else ""
+                        ),
+                    }
+                )
+            if self.log_every > 0 and (
+                self._processed == 1 or self._processed % self.log_every == 0
+            ):
+                print(
+                    f"[{self.label}] frame={int(payload.get('frame_id', -1))} "
+                    f"server_ms={float(result.get('server_ms', 0.0)):.1f} "
+                    f"result_mode={self.result_mode} "
+                    f"edge_q={int(edge_queue_depth)} dropped={int(self._receive_dropped)} "
+                    f"udp_pending={int(udp_pending_messages)} "
+                    f"udp_partial_dropped={int(self._udp_partial_messages_dropped)} "
+                    f"result_bytes={int(result_bytes)} chunks={int(result_chunks)}"
+                )
+        except Exception as exc:  # pragma: no cover - runtime path
+            print(f"Fusion remote worker error: {exc}", file=sys.stderr)
 
     def _run_back_half(self, payload: Dict[str, object]) -> Dict[str, object]:
         started = time.perf_counter()
@@ -2452,6 +2821,74 @@ class SpatialMapResultPublisher:
             },
         }
 
+        self._enqueue(payload, int(frame_id))
+
+    def publish_from_payload(
+        self,
+        *,
+        source_payload: Dict[str, object],
+        result: Dict[str, object],
+        timing: Dict[str, object],
+    ) -> None:
+        """Publish edge-side detections directly to the spatial-map server."""
+        frame_id = int(source_payload.get("frame_id", result.get("frame_id", 0)))
+        camera_transform = (
+            source_payload.get("camera_transform")
+            if isinstance(source_payload.get("camera_transform"), dict)
+            else {}
+        )
+        camera_matrix = np.asarray(source_payload.get("camera_matrix"), dtype=np.float64)
+        objects = result.get("objects") if isinstance(result.get("objects"), list) else []
+        mask = result.get("mask") if isinstance(result.get("mask"), np.ndarray) else None
+        t_capture_perf = _safe_float(timing.get("t_capture_perf"), 0.0)
+        t_tail_done_perf = _safe_float(timing.get("t_tail_done_perf"), 0.0)
+        payload = {
+            "schema": SPATIAL_STREAM_SCHEMA,
+            "source_script": Path(__file__).name,
+            "stream_id": str(source_payload.get("stream_id") or self.stream_id),
+            "node_id": str(source_payload.get("stream_id") or self.stream_id),
+            "traffic_light_id": self.traffic_light_id,
+            "traffic_light_actor_id": self.traffic_light_actor_id,
+            "traffic_light_opendrive_id": self.traffic_light_opendrive_id,
+            "frame_id": frame_id,
+            "timestamp": time.time(),
+            "carla_timestamp": _safe_float(source_payload.get("carla_timestamp"), 0.0),
+            "camera": {
+                **camera_transform,
+                "width": self.camera_width,
+                "height": self.camera_height,
+                "fov": self.camera_fov,
+                "matrix": camera_matrix.tolist(),
+            },
+            "segmentation": _segmentation_summary(mask),
+            "objects": _normalize_spatial_objects(
+                objects,
+                stream_id=str(source_payload.get("stream_id") or self.stream_id),
+                frame_id=frame_id,
+            ),
+            "latency": {
+                "front_ms": _safe_float(timing.get("front_compute_ms"), 0.0),
+                "back_ms": _safe_float(result.get("server_ms"), 0.0),
+                "round_trip_ms": 0.0,
+                "payload_bytes": _safe_int(source_payload.get("payload_bytes"), 0),
+                "payload_bytes_uncompressed": _safe_int(
+                    source_payload.get("payload_bytes_uncompressed"),
+                    0,
+                ),
+                "payload_chunks": _safe_int(source_payload.get("payload_chunks"), 0),
+                "front_to_edge_ms": _safe_float(timing.get("front_to_edge_ms"), 0.0),
+                "capture_to_tail_done_ms": (
+                    float((t_tail_done_perf - t_capture_perf) * 1000.0)
+                    if t_capture_perf > 0.0 and t_tail_done_perf > 0.0
+                    else 0.0
+                ),
+            },
+            "timing": dict(timing),
+        }
+
+        self._enqueue(payload, frame_id)
+
+    def _enqueue(self, payload: Dict[str, object], frame_id: int) -> None:
         try:
             self.queue.put_nowait(payload)
         except queue.Full:
@@ -2900,6 +3337,31 @@ def _transport_config_from_args(args: argparse.Namespace) -> "od_collect.Transpo
     )
 
 
+def _udp_socket_set_remote(
+    sock: "od_collect.UDPMessageSocket",
+    *,
+    remote_host: str,
+    remote_port: int,
+) -> "od_collect.UDPMessageSocket":
+    """Patch peer IP onto the shared UDP helper without changing global code."""
+    sock.remote = (str(remote_host), int(remote_port))
+    return sock
+
+
+def _effective_edge_result_mode(args: argparse.Namespace) -> str:
+    requested = str(getattr(args, "edge_result_mode", "auto") or "auto")
+    if requested != "auto":
+        return requested
+    return "none" if bool(getattr(args, "uplink_only_spatial_map", False)) else "full"
+
+
+def _effective_edge_receive_queue_size(args: argparse.Namespace) -> int:
+    requested = int(getattr(args, "edge_receive_queue_size", -1))
+    if requested >= 0:
+        return requested
+    return 32 if bool(getattr(args, "uplink_only_spatial_map", False)) else 0
+
+
 def run_back_only(args: argparse.Namespace) -> None:
     """Run only the fusion model back half for the OAI receiver container."""
     back_device = od_demo.resolve_device(args.back_device)
@@ -2909,6 +3371,32 @@ def run_back_only(args: argparse.Namespace) -> None:
     back_split_model, _model_input_size = load_fusion_model(args, back_device)
     transport_cfg = _transport_config_from_args(args)
     remote_host = args.remote_host if args.remote_host is not None else args.bind_host
+    edge_result_mode = _effective_edge_result_mode(args)
+    edge_receive_queue_size = _effective_edge_receive_queue_size(args)
+    edge_metrics_logger: Optional[EdgeUplinkMetricsLogger] = None
+    if bool(args.uplink_only_spatial_map):
+        edge_metrics_logger = EdgeUplinkMetricsLogger(_default_edge_metrics_csv_path(args))
+        print(f"[fusion-back] Edge uplink metrics CSV: {edge_metrics_logger.path}")
+
+    spatial_publisher: Optional[SpatialMapResultPublisher] = None
+    if bool(args.uplink_only_spatial_map) and bool(args.spatial_map_stream):
+        camera_width, camera_height, _camera_resolution_label = od_demo.resolve_camera_dimensions(args)
+        spatial_stream_id = str(args.spatial_map_stream_id or "fusion_uplink_edge").strip()
+        spatial_publisher = SpatialMapResultPublisher(
+            host=str(args.spatial_map_host),
+            port=int(args.spatial_map_port),
+            stream_id=spatial_stream_id,
+            traffic_light_id=str(args.traffic_light_id),
+            traffic_light_actor_id=-1,
+            traffic_light_opendrive_id="",
+            camera_width=int(camera_width),
+            camera_height=int(camera_height),
+            camera_fov=float(args.camera_fov),
+        )
+        print(
+            "[fusion-back] Uplink-only spatial-map publish -> "
+            f"{args.spatial_map_host}:{args.spatial_map_port}"
+        )
 
     remote_receiver = od_collect.UDPMessageSocket(
         bind_port=args.remote_port,
@@ -2918,14 +3406,17 @@ def run_back_only(args: argparse.Namespace) -> None:
         host=args.bind_host,
         entropy_coder=transport_cfg.make_entropy_coder(),
     )
-    remote_sender = od_collect.UDPMessageSocket(
-        bind_port=args.remote_source_port,
-        remote_port=args.camera_result_port,
-        chunk_bytes=args.chunk_bytes,
-        socket_timeout=args.socket_timeout,
-        host=args.bind_host,
+    remote_sender = _udp_socket_set_remote(
+        od_collect.UDPMessageSocket(
+            bind_port=args.remote_source_port,
+            remote_port=args.camera_result_port,
+            chunk_bytes=args.chunk_bytes,
+            socket_timeout=args.socket_timeout,
+            host=args.bind_host,
+            entropy_coder=transport_cfg.make_entropy_coder(),
+        ),
         remote_host=remote_host,
-        entropy_coder=transport_cfg.make_entropy_coder(),
+        remote_port=int(args.camera_result_port),
     )
 
     stop_event = threading.Event()
@@ -2943,6 +3434,10 @@ def run_back_only(args: argparse.Namespace) -> None:
         draw_projected_obb_box=bool(args.draw_projected_obb_box),
         log_every=int(args.back_log_every),
         label=f"fusion-back:{args.remote_port}->{remote_host}:{args.camera_result_port}",
+        spatial_publisher=spatial_publisher,
+        result_mode=edge_result_mode,
+        edge_metrics_logger=edge_metrics_logger,
+        receive_queue_size=edge_receive_queue_size,
     )
     remote_worker.start()
 
@@ -2955,6 +3450,8 @@ def run_back_only(args: argparse.Namespace) -> None:
         f"[fusion-back] entropy={args.entropy_coder} "
         f"quantization={args.quantization_mode}"
     )
+    print(f"[fusion-back] result_mode={edge_result_mode}")
+    print(f"[fusion-back] edge_receive_queue_size={edge_receive_queue_size}")
     print("[fusion-back] Press Ctrl+C to stop.")
 
     try:
@@ -2970,6 +3467,14 @@ def run_back_only(args: argparse.Namespace) -> None:
             except OSError:
                 pass
         remote_worker.join(timeout=2.0)
+        if spatial_publisher is not None:
+            spatial_publisher.close()
+        if edge_metrics_logger is not None:
+            if remote_worker is not None:
+                edge_metrics_logger.write_summary(remote_worker.summary())
+            edge_metrics_logger.close()
+            print(f"[fusion-back] Saved edge metrics CSV to {edge_metrics_logger.path}")
+            print(f"[fusion-back] Saved edge metrics summary to {edge_metrics_logger.summary_path}")
         print("[fusion-back] Done.")
 
 
@@ -3007,15 +3512,24 @@ def run_client(args: argparse.Namespace) -> None:
 
     transport_cfg = _transport_config_from_args(args)
     remote_host = args.remote_host if args.remote_host is not None else args.bind_host
+    edge_result_mode = _effective_edge_result_mode(args)
+    edge_receive_queue_size = _effective_edge_receive_queue_size(args)
+    edge_metrics_logger: Optional[EdgeUplinkMetricsLogger] = None
+    if bool(args.uplink_only_spatial_map):
+        edge_metrics_logger = EdgeUplinkMetricsLogger(_default_edge_metrics_csv_path(args))
+        print(f"[UplinkOnly] Edge metrics CSV: {edge_metrics_logger.path}")
 
-    camera_sender = od_collect.UDPMessageSocket(
-        bind_port=args.camera_source_port,
-        remote_port=args.remote_port,
-        chunk_bytes=args.chunk_bytes,
-        socket_timeout=args.socket_timeout,
-        host=args.bind_host,
+    camera_sender = _udp_socket_set_remote(
+        od_collect.UDPMessageSocket(
+            bind_port=args.camera_source_port,
+            remote_port=args.remote_port,
+            chunk_bytes=args.chunk_bytes,
+            socket_timeout=args.socket_timeout,
+            host=args.bind_host,
+            entropy_coder=transport_cfg.make_entropy_coder(),
+        ),
         remote_host=remote_host,
-        entropy_coder=transport_cfg.make_entropy_coder(),
+        remote_port=int(args.remote_port),
     )
     remote_receiver = (
         od_collect.UDPMessageSocket(
@@ -3030,14 +3544,17 @@ def run_client(args: argparse.Namespace) -> None:
         else None
     )
     remote_sender = (
-        od_collect.UDPMessageSocket(
-            bind_port=args.remote_source_port,
-            remote_port=args.camera_result_port,
-            chunk_bytes=args.chunk_bytes,
-            socket_timeout=args.socket_timeout,
-            host=args.bind_host,
+        _udp_socket_set_remote(
+            od_collect.UDPMessageSocket(
+                bind_port=args.remote_source_port,
+                remote_port=args.camera_result_port,
+                chunk_bytes=args.chunk_bytes,
+                socket_timeout=args.socket_timeout,
+                host=args.bind_host,
+                entropy_coder=transport_cfg.make_entropy_coder(),
+            ),
             remote_host=remote_host,
-            entropy_coder=transport_cfg.make_entropy_coder(),
+            remote_port=int(args.camera_result_port),
         )
         if args.role == "loopback"
         else None
@@ -3075,6 +3592,10 @@ def run_client(args: argparse.Namespace) -> None:
             draw_projected_obb_box=bool(args.draw_projected_obb_box),
             log_every=int(args.back_log_every),
             label=f"fusion-loopback:{args.remote_port}->{remote_host}:{args.camera_result_port}",
+            spatial_publisher=None,
+            result_mode=edge_result_mode,
+            edge_metrics_logger=edge_metrics_logger,
+            receive_queue_size=edge_receive_queue_size,
         )
         if args.role == "loopback"
         else None
@@ -3178,6 +3699,8 @@ def run_client(args: argparse.Namespace) -> None:
     print(f"Front device: {front_device}, back device: {back_device}")
     print(f"Entropy coder: {args.entropy_coder} | Quantization: {args.quantization_mode}")
     print(f"Role: {args.role} | bind-host: {args.bind_host} | remote-host: {remote_host}")
+    print(f"Edge result mode: {edge_result_mode} | uplink-only spatial map: {bool(args.uplink_only_spatial_map)}")
+    print(f"Edge receive queue size: {edge_receive_queue_size}")
     print(
         "UDP ports: "
         f"camera {args.camera_source_port} -> remote {args.remote_port}, "
@@ -3386,6 +3909,9 @@ def run_client(args: argparse.Namespace) -> None:
                 f"{args.spatial_map_host}:{args.spatial_map_port} "
                 f"as stream_id={spatial_stream_id}"
             )
+            if bool(args.uplink_only_spatial_map) and remote_worker is not None:
+                remote_worker.attach_spatial_publisher(spatial_publisher)
+                print("[UplinkOnly] Edge/back half will publish detections directly to spatial map.")
 
         if gui_enabled:
             cv2.namedWindow(DEFAULT_WINDOW_NAME, cv2.WINDOW_AUTOSIZE)
@@ -3426,6 +3952,8 @@ def run_client(args: argparse.Namespace) -> None:
                 if run_duration_elapsed():
                     break
                 continue
+            capture_perf = time.perf_counter()
+            capture_wall = time.time()
 
             gt_3class: Optional[np.ndarray] = None
             if gt_queue is not None:
@@ -3470,43 +3998,49 @@ def run_client(args: argparse.Namespace) -> None:
                 camera_matrix=camera_matrix,
                 camera_intrinsics_input=intrinsics_input,
                 display_size=(int(camera_width), int(camera_height)),
+                carla_timestamp=float(image.timestamp),
+                camera_transform_payload=_carla_transform_payload(camera.get_transform()),
+                stream_id=spatial_stream_id,
+                capture_perf=capture_perf,
+                capture_wall=capture_wall,
             )
 
-            result = result_store.wait_for(
-                int(image.frame),
-                float(args.result_timeout),
-                tick_callback=None,
-                tick_hz=max(0.1, float(args.fps)),
-            )
             remote_stats = None
             mask: Optional[np.ndarray] = None
             objects: Sequence[Dict[str, object]] = ()
-            if result is not None:
-                remote_stats = {
-                    "server_ms": float(result["server_ms"]),
-                    "round_trip_ms": (time.perf_counter() - float(result["camera_sent_perf"])) * 1000.0,
-                    "result_payload_bytes_estimate": int(
-                        result.get("result_payload_bytes_estimate", 0)
-                    ),
-                    "result_payload_chunks_estimate": int(
-                        result.get("result_payload_chunks_estimate", 0)
-                    ),
-                }
-                mask = result.get("mask") if isinstance(result.get("mask"), np.ndarray) else None
-                if isinstance(result.get("objects"), list):
-                    objects = result["objects"]
+            if not bool(args.uplink_only_spatial_map):
+                result = result_store.wait_for(
+                    int(image.frame),
+                    float(args.result_timeout),
+                    tick_callback=None,
+                    tick_hz=max(0.1, float(args.fps)),
+                )
+                if result is not None:
+                    remote_stats = {
+                        "server_ms": float(result["server_ms"]),
+                        "round_trip_ms": (time.perf_counter() - float(result["camera_sent_perf"])) * 1000.0,
+                        "result_payload_bytes_estimate": int(
+                            result.get("result_payload_bytes_estimate", 0)
+                        ),
+                        "result_payload_chunks_estimate": int(
+                            result.get("result_payload_chunks_estimate", 0)
+                        ),
+                    }
+                    mask = result.get("mask") if isinstance(result.get("mask"), np.ndarray) else None
+                    if isinstance(result.get("objects"), list):
+                        objects = result["objects"]
 
-                if spatial_publisher is not None:
-                    spatial_publisher.publish(
-                        frame_id=int(image.frame),
-                        carla_timestamp=float(image.timestamp),
-                        camera_transform=camera.get_transform(),
-                        camera_matrix=camera_matrix,
-                        objects=objects,
-                        mask=mask,
-                        front_stats=front_stats,
-                        remote_stats=remote_stats,
-                    )
+                    if spatial_publisher is not None:
+                        spatial_publisher.publish(
+                            frame_id=int(image.frame),
+                            carla_timestamp=float(image.timestamp),
+                            camera_transform=camera.get_transform(),
+                            camera_matrix=camera_matrix,
+                            objects=objects,
+                            mask=mask,
+                            front_stats=front_stats,
+                            remote_stats=remote_stats,
+                        )
 
             processed_frames += 1
             elapsed_s = time.perf_counter() - start_perf
@@ -3600,12 +4134,17 @@ def run_client(args: argparse.Namespace) -> None:
                     break
 
     finally:
+        drain_grace_s = max(0.0, float(getattr(args, "uplink_drain_grace_s", 0.0)))
+        if bool(args.uplink_only_spatial_map) and drain_grace_s > 0.0 and remote_worker is not None:
+            print(
+                f"[UplinkOnly] Waiting {drain_grace_s:.1f}s for edge receive/tail/map drain "
+                "before shutdown."
+            )
+            time.sleep(drain_grace_s)
         stop_event.set()
         if metrics_logger is not None:
             metrics_logger.close()
             print(f"[Metrics] Saved stream CSV to {metrics_logger.csv_path}")
-        if spatial_publisher is not None:
-            spatial_publisher.close()
         if bool(args.sync_world):
             # Only the --sync-world owner restores the shared TM + world sync
             # state; an --async-world client must not toggle TM here either,
@@ -3633,6 +4172,14 @@ def run_client(args: argparse.Namespace) -> None:
             remote_worker=remote_worker,
             result_receiver=result_receiver,
         )
+        if spatial_publisher is not None:
+            spatial_publisher.close()
+        if edge_metrics_logger is not None:
+            if remote_worker is not None:
+                edge_metrics_logger.write_summary(remote_worker.summary())
+            edge_metrics_logger.close()
+            print(f"[UplinkOnly] Saved edge metrics CSV to {edge_metrics_logger.path}")
+            print(f"[UplinkOnly] Saved edge metrics summary to {edge_metrics_logger.summary_path}")
         if gui_enabled:
             cv2.destroyAllWindows()
 

@@ -158,6 +158,146 @@ def rasterize_radar_channels(
     return channels
 
 
+def rasterize_radar_channels_fast(
+    *,
+    width: int,
+    height: int,
+    u: np.ndarray,
+    v: np.ndarray,
+    depth_m: np.ndarray,
+    velocity_mps: np.ndarray,
+    stationary_age_s: np.ndarray,
+    valid_mask: np.ndarray,
+    max_range_m: float,
+    max_abs_velocity_mps: float,
+    parked_threshold_s: float,
+    point_radius_px: int = 2,
+) -> np.ndarray:
+    """Vectorized equivalent of :func:`rasterize_radar_channels`.
+
+    The legacy implementation paints a square patch around each projected radar
+    point in Python.  For the high-PPS live deployment recipe, that means tens
+    of thousands of Python loop iterations per frame.  This version first
+    scatters per-point values onto center-pixel images, then uses max-filter
+    dilation with the same square support.  Occupancy, inverse range, and
+    stationary age are exact max-pooling equivalents.  The signed velocity
+    channel is represented as positive/negative magnitude pools and then
+    recombined; only exact equal-magnitude positive-vs-negative ties can differ
+    from legacy order-dependent behavior.
+    """
+
+    channels = np.zeros((4, int(height), int(width)), dtype=np.float32)
+    if u.size == 0:
+        return channels
+
+    in_image = (
+        valid_mask
+        & (u >= 0.0)
+        & (u < float(width))
+        & (v >= 0.0)
+        & (v < float(height))
+        & np.isfinite(depth_m)
+    )
+    if not np.any(in_image):
+        return channels
+
+    px = np.rint(u[in_image]).astype(np.int32, copy=False)
+    py = np.rint(v[in_image]).astype(np.int32, copy=False)
+
+    max_range = max(1.0, float(max_range_m))
+    max_velocity = max(0.1, float(max_abs_velocity_mps))
+    parked_threshold = max(0.1, float(parked_threshold_s))
+
+    depth = depth_m[in_image]
+    velocity = velocity_mps[in_image]
+    age = stationary_age_s[in_image]
+
+    range_score = (1.0 - np.clip(depth.astype(np.float32, copy=False), 0.0, max_range) / max_range).astype(
+        np.float32, copy=False
+    )
+    vel_score = np.clip(velocity.astype(np.float32, copy=False) / max_velocity, -1.0, 1.0).astype(
+        np.float32, copy=False
+    )
+    age_score = (np.clip(age.astype(np.float32, copy=False), 0.0, parked_threshold) / parked_threshold).astype(
+        np.float32, copy=False
+    )
+
+    radius = max(0, int(point_radius_px))
+    if radius > 0:
+        # The legacy loop allows rounded centers at exactly width/height and
+        # paints the in-bounds part of their patch.  Scatter into a padded image
+        # so dilation reproduces those truncated border patches before cropping.
+        pad = radius
+        scatter_h = int(height) + 2 * pad
+        scatter_w = int(width) + 2 * pad
+        scatter_y = py + pad
+        scatter_x = px + pad
+        center_valid = (
+            (scatter_x >= 0)
+            & (scatter_x < scatter_w)
+            & (scatter_y >= 0)
+            & (scatter_y < scatter_h)
+        )
+    else:
+        pad = 0
+        scatter_h = int(height)
+        scatter_w = int(width)
+        scatter_y = py
+        scatter_x = px
+        center_valid = (
+            (scatter_x >= 0)
+            & (scatter_x < scatter_w)
+            & (scatter_y >= 0)
+            & (scatter_y < scatter_h)
+        )
+    if not np.any(center_valid):
+        return channels
+
+    scatter_x = scatter_x[center_valid]
+    scatter_y = scatter_y[center_valid]
+    range_score = range_score[center_valid]
+    vel_score = vel_score[center_valid]
+    age_score = age_score[center_valid]
+
+    occ = np.zeros((scatter_h, scatter_w), dtype=np.uint8)
+    range_img = np.zeros((scatter_h, scatter_w), dtype=np.float32)
+    age_img = np.zeros((scatter_h, scatter_w), dtype=np.float32)
+    vel_pos = np.zeros((scatter_h, scatter_w), dtype=np.float32)
+    vel_neg = np.zeros((scatter_h, scatter_w), dtype=np.float32)
+
+    np.maximum.at(occ, (scatter_y, scatter_x), 1)
+    np.maximum.at(range_img, (scatter_y, scatter_x), range_score)
+    np.maximum.at(age_img, (scatter_y, scatter_x), age_score)
+    np.maximum.at(vel_pos, (scatter_y, scatter_x), np.maximum(vel_score, 0.0))
+    np.maximum.at(vel_neg, (scatter_y, scatter_x), np.maximum(-vel_score, 0.0))
+
+    if radius > 0:
+        try:
+            import cv2  # type: ignore
+        except Exception as exc:  # pragma: no cover - environment dependent.
+            raise RuntimeError(
+                "radar fast rasterizer requires OpenCV/cv2; use rasterizer='legacy' "
+                "if cv2 is unavailable"
+            ) from exc
+        kernel = np.ones((2 * radius + 1, 2 * radius + 1), dtype=np.uint8)
+        y_slice = slice(pad, pad + int(height))
+        x_slice = slice(pad, pad + int(width))
+        channels[0] = cv2.dilate(occ, kernel, iterations=1)[y_slice, x_slice].astype(np.float32, copy=False)
+        channels[1] = cv2.dilate(range_img, kernel, iterations=1)[y_slice, x_slice]
+        pos = cv2.dilate(vel_pos, kernel, iterations=1)[y_slice, x_slice]
+        neg = cv2.dilate(vel_neg, kernel, iterations=1)[y_slice, x_slice]
+        channels[3] = cv2.dilate(age_img, kernel, iterations=1)[y_slice, x_slice]
+    else:
+        channels[0] = occ.astype(np.float32, copy=False)
+        channels[1] = range_img
+        pos = vel_pos
+        neg = vel_neg
+        channels[3] = age_img
+
+    channels[2] = np.where(pos >= neg, pos, -neg).astype(np.float32, copy=False)
+    return channels
+
+
 def build_radar_sample(
     *,
     detections: np.ndarray,
@@ -172,13 +312,21 @@ def build_radar_sample(
     max_abs_velocity_mps: float,
     parked_threshold_s: float,
     point_radius_px: int,
+    rasterizer: str = "legacy",
 ) -> Tuple[np.ndarray, Dict[str, np.ndarray], Dict[str, float]]:
     world_velocity = radar_spherical_to_world(detections, sensor_matrix)
     ages = tracker.update(world_velocity, frame_time_s)
     points_cam = world_to_camera_points(world_velocity[:, :3], camera_inverse_matrix) if world_velocity.size else np.zeros((0, 3), dtype=np.float64)
     u, v, depth, valid = project_camera_points(points_cam, camera_intrinsics)
     velocities = world_velocity[:, 3].astype(np.float32) if world_velocity.size else np.zeros((0,), dtype=np.float32)
-    tensor = rasterize_radar_channels(
+    rasterizer_name = str(rasterizer or "legacy").strip().lower()
+    if rasterizer_name in ("legacy", "python"):
+        rasterize_fn = rasterize_radar_channels
+    elif rasterizer_name in ("fast", "vectorized"):
+        rasterize_fn = rasterize_radar_channels_fast
+    else:
+        raise ValueError(f"unknown radar rasterizer {rasterizer!r}; expected 'legacy' or 'fast'")
+    tensor = rasterize_fn(
         width=width,
         height=height,
         u=u,
