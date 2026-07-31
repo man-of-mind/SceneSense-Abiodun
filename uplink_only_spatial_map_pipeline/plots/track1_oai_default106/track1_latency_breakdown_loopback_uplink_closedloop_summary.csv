@@ -1,0 +1,7 @@
+condition,front_feature_build_ms,feature_uplink_ms,edge_tail_ms,result_downlink_ms,measured_total_ms,total_label
+"Ideal loopback
+uplink-only",51.40437898808159,7.734265003819019,7.579700992209837,0.0,72.23456699284725,capture→tail
+"OAI 106PRB
+uplink-only",61.48565199691802,71.99914002558216,10.638936015311629,0.0,154.75959499599412,capture→tail
+"OAI 106PRB
+closed-loop",57.01276697800495,144.84786987304688,7.383342977846041,3.18410198087804,215.05973697640002,capture→result

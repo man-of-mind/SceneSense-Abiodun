@@ -1,0 +1,69 @@
+road_state,speed_band,n,L_ms,loc_error_m
+straight,walk/slow,58,0,1.002
+straight,walk/slow,58,67,1.002
+straight,walk/slow,58,93,1.001
+straight,walk/slow,58,136,1.001
+straight,~6 mph,147,0,1.067
+straight,~6 mph,147,67,1.089
+straight,~6 mph,147,93,1.108
+straight,~6 mph,147,136,1.151
+straight,~10 mph,76,0,1.155
+straight,~10 mph,76,67,1.245
+straight,~10 mph,76,93,1.296
+straight,~10 mph,76,136,1.403
+straight,~14 mph,28,0,1.165
+straight,~14 mph,28,67,1.371
+straight,~14 mph,28,93,1.475
+straight,~14 mph,28,136,1.664
+straight,~18 mph,29,0,1.084
+straight,~18 mph,29,67,1.201
+straight,~18 mph,29,93,1.304
+straight,~18 mph,29,136,1.519
+straight,~28-32 mph,38,0,1.24
+straight,~28-32 mph,38,67,1.547
+straight,~28-32 mph,38,93,1.786
+straight,~28-32 mph,38,136,2.267
+curve,walk/slow,13,0,1.064
+curve,walk/slow,13,67,1.1
+curve,walk/slow,13,93,1.115
+curve,walk/slow,13,136,1.144
+curve,~6 mph,142,0,1.155
+curve,~6 mph,142,67,1.145
+curve,~6 mph,142,93,1.149
+curve,~6 mph,142,136,1.162
+curve,~18 mph,24,0,1.221
+curve,~18 mph,24,67,1.277
+curve,~18 mph,24,93,1.349
+curve,~18 mph,24,136,1.522
+curve,~28-32 mph,21,0,1.053
+curve,~28-32 mph,21,67,1.235
+curve,~28-32 mph,21,93,1.456
+curve,~28-32 mph,21,136,1.947
+junction,walk/slow,77,0,1.304
+junction,walk/slow,77,67,1.302
+junction,walk/slow,77,93,1.302
+junction,walk/slow,77,136,1.3
+junction,~6 mph,36,0,1.067
+junction,~6 mph,36,67,1.024
+junction,~6 mph,36,93,1.022
+junction,~6 mph,36,136,1.029
+junction,~10 mph,21,0,0.937
+junction,~10 mph,21,67,0.983
+junction,~10 mph,21,93,1.025
+junction,~10 mph,21,136,1.132
+junction,~14 mph,27,0,0.879
+junction,~14 mph,27,67,1.075
+junction,~14 mph,27,93,1.184
+junction,~14 mph,27,136,1.385
+junction,~18 mph,41,0,1.098
+junction,~18 mph,41,67,1.276
+junction,~18 mph,41,93,1.382
+junction,~18 mph,41,136,1.595
+junction,~23 mph,12,0,1.287
+junction,~23 mph,12,67,1.578
+junction,~23 mph,12,93,1.728
+junction,~23 mph,12,136,2.063
+junction,~28-32 mph,31,0,1.391
+junction,~28-32 mph,31,67,1.517
+junction,~28-32 mph,31,93,1.709
+junction,~28-32 mph,31,136,2.125

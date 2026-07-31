@@ -55,13 +55,13 @@ Both rows below use default OAI 106PRB / 7DL-2UL, no-AE, ROI 0, per-channel uint
 | Path | Vehicle waits for result? | Sent / received | Delivery | Actual send FPS | Payload p50 | 20 s idle bins | Uplink/feature handling p50 | Result RTT p50/p95 | UL MCS avg / p50 / p95 | Scheduled UL |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
 | Track-1 uplink-only OAI | no | 1299 / 1239 | 95.4% | 7.08 | 1048.9 KiB | 38% | 65.6 ms | n/a | 15.3 / 16 / 21 | 42.2 Mbps |
-| Optimized closed-loop OAI | yes | 1300 / 1183 | 91.0% | 2.21 | 1045.7 KiB | 79% | 145.0 ms | 156.8/173.9 ms | 7.3 / 7 / 13 | 20.2 Mbps |
+| Optimized closed-loop OAI | yes | 1300 / 1194 | 91.8% | 2.28 | 1046.0 KiB | 78% | 144.8 ms | 156.8/174.7 ms | 7.2 / 7 / 13 | 20.6 Mbps |
 
 ## 100 ms traffic-shape check
 
 - Median compressed feature frame: 8.59 Mbit. One full frame in a 100 ms bin is therefore 85.9 Mbps equivalent.
-- Track-1 OAI uplink-only app offered data appears in 62.8% of active 100 ms bins. The optimized closed-loop **OAI** no-AE run appears in 21.2% of comparable 100 ms bins.
-- In the displayed 20 s zoom window, Track-1 OAI is active in 61.7% of 100 ms bins, while closed-loop OAI is active in 21.4%.
+- Track-1 OAI uplink-only app offered data appears in 62.8% of active 100 ms bins. The optimized closed-loop **OAI** no-AE run appears in 25.0% of comparable 100 ms bins.
+- In the displayed 20 s zoom window, Track-1 OAI is active in 61.7% of 100 ms bins, while closed-loop OAI is active in 22.4%.
 - Nonzero Track-1 app bins are usually one frame (8.60 Mbit p50), with occasional two-frame bins (17.57 Mbit max in the active window).
 - MAC scheduling is active in 100.0% of active bins and RLC dequeue in 94.9%. Median drain over all active-window bins is 6.76 Mbit/100 ms, or 67.6 Mbps equivalent.
 - RLC occupancy-drain view: one clean observed burst drains from 1069 KiB to 117 KiB in 98 ms, with burst-slope about 80 Mbps.
@@ -80,7 +80,7 @@ Reliability is the main caveat: edge processed 1239 of 1299 frames (95.4%). Edge
 
 - `plots/track1_oai_default106/track1_latency_breakdown_loopback_vs_oai.pdf`
 - `plots/track1_oai_default106/track1_oai_traffic_rates_1s.pdf`
-- `plots/track1_oai_default106/track1_oai_radio_backlog_timeseries.pdf`
+- `plots/track1_oai_default106/track1_oai_radio_scheduler_comparison.pdf`
 - `plots/track1_oai_default106/track1_oai_delivery_reassembly.pdf`
 - `plots/track1_oai_default106/track1_oai_100ms_volume_drain_backlog.pdf`
 - `plots/track1_oai_default106/track1_oai_observed_rlc_drain.pdf`

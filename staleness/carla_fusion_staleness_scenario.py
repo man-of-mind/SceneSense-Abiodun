@@ -158,6 +158,28 @@ FUSION_METRICS_FIELDS = (
     "result_send_to_recv_ms_wall",
     "result_recv_to_display_ms",
     "tail_done_to_display_ms",
+    "t_capture_perf",
+    "t_capture_wall_s",
+    "t_front_start_perf",
+    "t_backbone_input_perf",
+    "t_front_model_done_perf",
+    "t_front_payload_ready_perf",
+    "capture_to_front_send_ms",
+    "capture_to_backbone_input_ms",
+    "sync_world_tick_ms",
+    "camera_frame_wait_ms",
+    "radar_wait_ms",
+    "rgb_convert_ms",
+    "camera_inverse_matrix_ms",
+    "radar_tensor_build_ms",
+    "camera_matrix_ms",
+    "camera_transform_payload_ms",
+    "pre_model_other_ms",
+    "model_preprocess_ms",
+    "front_backbone_ms",
+    "feature_serialize_ms",
+    "backbone_input_to_front_send_ms",
+    "send_call_ms",
     "t_front_send_wall_s",
     "t_edge_recv_wall_s",
     "t_tail_done_wall_s",
@@ -218,6 +240,25 @@ QUEUE_PROBE_SEND_FIELDS = (
     "front_ms",
     "camera_sent_perf",
     "camera_sent_wall_s",
+    "t_front_start_perf",
+    "t_backbone_input_perf",
+    "t_front_model_done_perf",
+    "t_front_payload_ready_perf",
+    "capture_to_backbone_input_ms",
+    "sync_world_tick_ms",
+    "camera_frame_wait_ms",
+    "radar_wait_ms",
+    "rgb_convert_ms",
+    "camera_inverse_matrix_ms",
+    "radar_tensor_build_ms",
+    "camera_matrix_ms",
+    "camera_transform_payload_ms",
+    "pre_model_other_ms",
+    "model_preprocess_ms",
+    "front_backbone_ms",
+    "feature_serialize_ms",
+    "backbone_input_to_front_send_ms",
+    "send_call_ms",
     "feature_payload_bytes",
     "feature_payload_bytes_uncompressed",
     "feature_payload_chunks",
@@ -1163,8 +1204,17 @@ class CameraSideFusionInference:
         camera_matrix: np.ndarray,
         camera_intrinsics_input: np.ndarray,
         display_size: Tuple[int, int],
+        carla_timestamp: Optional[float] = None,
+        camera_transform_payload: Optional[Dict[str, Dict[str, float]]] = None,
+        stream_id: Optional[str] = None,
+        capture_perf: Optional[float] = None,
+        capture_wall_s: Optional[float] = None,
+        prep_timing: Optional[Dict[str, object]] = None,
     ) -> Dict[str, object]:
         started = time.perf_counter()
+        capture_perf_value = float(capture_perf) if capture_perf is not None else float(started)
+        capture_wall_s_value = float(capture_wall_s) if capture_wall_s is not None else time.time()
+        prep_timing = prep_timing if isinstance(prep_timing, dict) else {}
         with torch.inference_mode():
             fused = prepare_fusion_input(
                 frame_bgr=frame_bgr,
@@ -1174,8 +1224,10 @@ class CameraSideFusionInference:
                 rgb_mean=self.rgb_mean,
                 rgb_std=self.rgb_std,
             )
+            backbone_input_perf = time.perf_counter()
             features = self.model.encode(fused)
             features = _front_compress(self.model, features, tuple(int(v) for v in fused.shape[-2:]))
+            front_model_done_perf = time.perf_counter()
 
         (
             serialized_features,
@@ -1189,7 +1241,8 @@ class CameraSideFusionInference:
             per_level_compress_probe=False,
             entropy_coder=self._probe_coder,
         )
-        front_send_perf = time.perf_counter()
+        front_payload_ready_perf = time.perf_counter()
+        front_send_perf = front_payload_ready_perf
         front_send_wall_s = time.time()
         payload = {
             "frame_id": int(frame_id),
@@ -1200,19 +1253,63 @@ class CameraSideFusionInference:
                 name: tuple(int(v) for v in tensor.shape) for name, tensor in features.items()
             },
             "features": serialized_features,
+            "payload_bytes_uncompressed": int(payload_bytes_uncompressed),
             "camera_matrix": camera_matrix.astype(np.float64),
             "camera_intrinsics_input": camera_intrinsics_input.astype(np.float64),
+            "camera_transform": camera_transform_payload if isinstance(camera_transform_payload, dict) else {},
+            "stream_id": str(stream_id or ""),
+            "carla_timestamp": float(carla_timestamp) if carla_timestamp is not None else float("nan"),
             # Step-1 round-trip/downlink instrumentation.
             # `perf_counter` gives stable same-host deltas; wall time is useful when
             # comparing front/back containers whose clocks are synchronized.
             "camera_sent_perf": front_send_perf,
             "camera_sent_wall_s": front_send_wall_s,
+            "timing": {
+                **prep_timing,
+                "t_capture_perf": float(capture_perf_value),
+                "t_capture_wall_s": float(capture_wall_s_value),
+                "t_front_start_perf": float(started),
+                "t_backbone_input_perf": float(backbone_input_perf),
+                "t_front_model_done_perf": float(front_model_done_perf),
+                "t_front_payload_ready_perf": float(front_payload_ready_perf),
+                "t_front_send_perf": float(front_send_perf),
+                "front_compute_ms": float((front_send_perf - started) * 1000.0),
+                "capture_to_front_send_ms": float((front_send_perf - capture_perf_value) * 1000.0),
+                "capture_to_backbone_input_ms": float(
+                    (backbone_input_perf - capture_perf_value) * 1000.0
+                ),
+                "model_preprocess_ms": float((backbone_input_perf - started) * 1000.0),
+                "front_backbone_ms": float((front_model_done_perf - backbone_input_perf) * 1000.0),
+                "feature_serialize_ms": float((front_payload_ready_perf - front_model_done_perf) * 1000.0),
+                "backbone_input_to_front_send_ms": float(
+                    (front_send_perf - backbone_input_perf) * 1000.0
+                ),
+            },
         }
         payload_bytes, payload_chunks = self.sender.send(payload)
+        front_send_done_perf = time.perf_counter()
         return {
             "front_ms": (time.perf_counter() - started) * 1000.0,
             "camera_sent_perf": float(front_send_perf),
             "camera_sent_wall_s": float(front_send_wall_s),
+            "capture_perf": float(capture_perf_value),
+            "capture_wall_s": float(capture_wall_s_value),
+            "t_front_start_perf": float(started),
+            "t_backbone_input_perf": float(backbone_input_perf),
+            "t_front_model_done_perf": float(front_model_done_perf),
+            "t_front_payload_ready_perf": float(front_payload_ready_perf),
+            "capture_to_front_send_ms": float((front_send_perf - capture_perf_value) * 1000.0),
+            "capture_to_backbone_input_ms": float(
+                (backbone_input_perf - capture_perf_value) * 1000.0
+            ),
+            **prep_timing,
+            "model_preprocess_ms": float((backbone_input_perf - started) * 1000.0),
+            "front_backbone_ms": float((front_model_done_perf - backbone_input_perf) * 1000.0),
+            "feature_serialize_ms": float((front_payload_ready_perf - front_model_done_perf) * 1000.0),
+            "backbone_input_to_front_send_ms": float(
+                (front_send_perf - backbone_input_perf) * 1000.0
+            ),
+            "send_call_ms": float((front_send_done_perf - front_send_perf) * 1000.0),
             "payload_bytes": int(payload_bytes),
             "payload_bytes_uncompressed": int(payload_bytes_uncompressed),
             "payload_chunks": int(payload_chunks),
@@ -2677,6 +2774,82 @@ class QueueProbeEventLogger:
                 front_stats.get("camera_sent_wall_s"),
                 float("nan"),
             ),
+            "t_front_start_perf": _safe_float(
+                front_stats.get("t_front_start_perf"),
+                float("nan"),
+            ),
+            "t_backbone_input_perf": _safe_float(
+                front_stats.get("t_backbone_input_perf"),
+                float("nan"),
+            ),
+            "t_front_model_done_perf": _safe_float(
+                front_stats.get("t_front_model_done_perf"),
+                float("nan"),
+            ),
+            "t_front_payload_ready_perf": _safe_float(
+                front_stats.get("t_front_payload_ready_perf"),
+                float("nan"),
+            ),
+            "capture_to_backbone_input_ms": _safe_float(
+                front_stats.get("capture_to_backbone_input_ms"),
+                float("nan"),
+            ),
+            "sync_world_tick_ms": _safe_float(
+                front_stats.get("sync_world_tick_ms"),
+                float("nan"),
+            ),
+            "camera_frame_wait_ms": _safe_float(
+                front_stats.get("camera_frame_wait_ms"),
+                float("nan"),
+            ),
+            "radar_wait_ms": _safe_float(
+                front_stats.get("radar_wait_ms"),
+                float("nan"),
+            ),
+            "rgb_convert_ms": _safe_float(
+                front_stats.get("rgb_convert_ms"),
+                float("nan"),
+            ),
+            "camera_inverse_matrix_ms": _safe_float(
+                front_stats.get("camera_inverse_matrix_ms"),
+                float("nan"),
+            ),
+            "radar_tensor_build_ms": _safe_float(
+                front_stats.get("radar_tensor_build_ms"),
+                float("nan"),
+            ),
+            "camera_matrix_ms": _safe_float(
+                front_stats.get("camera_matrix_ms"),
+                float("nan"),
+            ),
+            "camera_transform_payload_ms": _safe_float(
+                front_stats.get("camera_transform_payload_ms"),
+                float("nan"),
+            ),
+            "pre_model_other_ms": _safe_float(
+                front_stats.get("pre_model_other_ms"),
+                float("nan"),
+            ),
+            "model_preprocess_ms": _safe_float(
+                front_stats.get("model_preprocess_ms"),
+                float("nan"),
+            ),
+            "front_backbone_ms": _safe_float(
+                front_stats.get("front_backbone_ms"),
+                float("nan"),
+            ),
+            "feature_serialize_ms": _safe_float(
+                front_stats.get("feature_serialize_ms"),
+                float("nan"),
+            ),
+            "backbone_input_to_front_send_ms": _safe_float(
+                front_stats.get("backbone_input_to_front_send_ms"),
+                float("nan"),
+            ),
+            "send_call_ms": _safe_float(
+                front_stats.get("send_call_ms"),
+                float("nan"),
+            ),
             "feature_payload_bytes": _safe_int(front_stats.get("payload_bytes"), 0),
             "feature_payload_bytes_uncompressed": _safe_int(
                 front_stats.get("payload_bytes_uncompressed"),
@@ -2881,6 +3054,88 @@ def build_fusion_metrics_row(
         ),
         "result_recv_to_display_ms": result_recv_to_display_ms,
         "tail_done_to_display_ms": tail_done_to_display_ms,
+        "t_capture_perf": _safe_float(front_stats.get("capture_perf"), float("nan")),
+        "t_capture_wall_s": _safe_float(front_stats.get("capture_wall_s"), float("nan")),
+        "t_front_start_perf": _safe_float(
+            front_stats.get("t_front_start_perf"),
+            float("nan"),
+        ),
+        "t_backbone_input_perf": _safe_float(
+            front_stats.get("t_backbone_input_perf"),
+            float("nan"),
+        ),
+        "t_front_model_done_perf": _safe_float(
+            front_stats.get("t_front_model_done_perf"),
+            float("nan"),
+        ),
+        "t_front_payload_ready_perf": _safe_float(
+            front_stats.get("t_front_payload_ready_perf"),
+            float("nan"),
+        ),
+        "capture_to_front_send_ms": _safe_float(
+            front_stats.get("capture_to_front_send_ms"),
+            float("nan"),
+        ),
+        "capture_to_backbone_input_ms": _safe_float(
+            front_stats.get("capture_to_backbone_input_ms"),
+            float("nan"),
+        ),
+        "sync_world_tick_ms": _safe_float(
+            front_stats.get("sync_world_tick_ms"),
+            float("nan"),
+        ),
+        "camera_frame_wait_ms": _safe_float(
+            front_stats.get("camera_frame_wait_ms"),
+            float("nan"),
+        ),
+        "radar_wait_ms": _safe_float(
+            front_stats.get("radar_wait_ms"),
+            float("nan"),
+        ),
+        "rgb_convert_ms": _safe_float(
+            front_stats.get("rgb_convert_ms"),
+            float("nan"),
+        ),
+        "camera_inverse_matrix_ms": _safe_float(
+            front_stats.get("camera_inverse_matrix_ms"),
+            float("nan"),
+        ),
+        "radar_tensor_build_ms": _safe_float(
+            front_stats.get("radar_tensor_build_ms"),
+            float("nan"),
+        ),
+        "camera_matrix_ms": _safe_float(
+            front_stats.get("camera_matrix_ms"),
+            float("nan"),
+        ),
+        "camera_transform_payload_ms": _safe_float(
+            front_stats.get("camera_transform_payload_ms"),
+            float("nan"),
+        ),
+        "pre_model_other_ms": _safe_float(
+            front_stats.get("pre_model_other_ms"),
+            float("nan"),
+        ),
+        "model_preprocess_ms": _safe_float(
+            front_stats.get("model_preprocess_ms"),
+            float("nan"),
+        ),
+        "front_backbone_ms": _safe_float(
+            front_stats.get("front_backbone_ms"),
+            float("nan"),
+        ),
+        "feature_serialize_ms": _safe_float(
+            front_stats.get("feature_serialize_ms"),
+            float("nan"),
+        ),
+        "backbone_input_to_front_send_ms": _safe_float(
+            front_stats.get("backbone_input_to_front_send_ms"),
+            float("nan"),
+        ),
+        "send_call_ms": _safe_float(
+            front_stats.get("send_call_ms"),
+            float("nan"),
+        ),
         "t_front_send_wall_s": _safe_float(
             (remote_stats or {}).get("camera_sent_wall_s"),
             float("nan"),
@@ -4570,6 +4825,8 @@ def run_client(args: argparse.Namespace) -> None:
                 sleep_s = scheduled_perf - time.perf_counter()
                 if sleep_s > 0.0:
                     time.sleep(sleep_s)
+            sync_world_tick_ms: object = ""
+            camera_frame_wait_ms: object = ""
             if bool(args.sync_world):
                 if (
                     experiment3_profile == "lateral_cycle"
@@ -4587,22 +4844,31 @@ def run_client(args: argparse.Namespace) -> None:
                         ),
                     )
                     experiment3_cycle_frame_index += 1
+                world_tick_start_perf = time.perf_counter()
                 world_frame = int(world.tick())
+                world_tick_done_perf = time.perf_counter()
+                sync_world_tick_ms = float((world_tick_done_perf - world_tick_start_perf) * 1000.0)
+                camera_wait_start_perf = time.perf_counter()
                 image = od_demo.wait_for_camera_frame(
                     image_queue,
                     world_frame,
                     float(args.camera_timeout),
                 )
+                camera_frame_wait_ms = float((time.perf_counter() - camera_wait_start_perf) * 1000.0)
             else:
+                camera_wait_start_perf = time.perf_counter()
                 try:
                     image = image_queue.get(timeout=float(args.camera_timeout))
                 except queue.Empty:
                     image = None
+                camera_frame_wait_ms = float((time.perf_counter() - camera_wait_start_perf) * 1000.0)
             if image is None:
                 print(f"Warning: camera frame not received within {args.camera_timeout:.1f}s; retrying.")
                 if run_duration_elapsed():
                     break
                 continue
+            capture_perf = time.perf_counter()
+            capture_wall_s = time.time()
 
             gt_3class: Optional[np.ndarray] = None
             if gt_queue is not None:
@@ -4621,7 +4887,9 @@ def run_client(args: argparse.Namespace) -> None:
                     gt_tags = trained_seg_demo.carla_semantic_image_to_tags(gt_image)
                     gt_3class = trained_seg_demo.map_carla_tags_to_3class(gt_tags)
 
+            radar_wait_start_perf = time.perf_counter()
             radar_measurement = radar_pipeline.get_latest(timeout=float(args.camera_timeout))
+            radar_wait_ms = float((time.perf_counter() - radar_wait_start_perf) * 1000.0)
             if radar_measurement is None:
                 print(
                     f"Warning: radar measurement not received within {args.camera_timeout:.1f}s; "
@@ -4631,15 +4899,54 @@ def run_client(args: argparse.Namespace) -> None:
                     break
                 continue
 
+            rgb_convert_start_perf = time.perf_counter()
             frame_bgr = od_demo.camera_image_to_bgr(image)
+            rgb_convert_ms = float((time.perf_counter() - rgb_convert_start_perf) * 1000.0)
+            camera_inverse_start_perf = time.perf_counter()
             camera_inverse_matrix = actor_world_inverse_matrix(camera)
+            camera_inverse_matrix_ms = float(
+                (time.perf_counter() - camera_inverse_start_perf) * 1000.0
+            )
+            radar_tensor_start_perf = time.perf_counter()
             radar_tensor, radar_points = radar_pipeline.build_tensor(
                 measurement=radar_measurement,
                 camera_intrinsics=intrinsics_input,
                 camera_inverse_matrix=camera_inverse_matrix,
                 frame_time_s=float(image.timestamp),
             )
+            radar_tensor_build_ms = float((time.perf_counter() - radar_tensor_start_perf) * 1000.0)
+            camera_matrix_start_perf = time.perf_counter()
             camera_matrix = actor_world_matrix(camera)
+            camera_matrix_ms = float((time.perf_counter() - camera_matrix_start_perf) * 1000.0)
+            camera_transform_payload_start_perf = time.perf_counter()
+            camera_transform_payload = _carla_transform_payload(camera.get_transform())
+            camera_transform_payload_ms = float(
+                (time.perf_counter() - camera_transform_payload_start_perf) * 1000.0
+            )
+            process_call_start_perf = time.perf_counter()
+            measured_pre_model_ms = (
+                radar_wait_ms
+                + rgb_convert_ms
+                + camera_inverse_matrix_ms
+                + radar_tensor_build_ms
+                + camera_matrix_ms
+                + camera_transform_payload_ms
+            )
+            pre_model_other_ms = max(
+                0.0,
+                float((process_call_start_perf - capture_perf) * 1000.0) - measured_pre_model_ms,
+            )
+            prep_timing = {
+                "sync_world_tick_ms": sync_world_tick_ms,
+                "camera_frame_wait_ms": camera_frame_wait_ms,
+                "radar_wait_ms": radar_wait_ms,
+                "rgb_convert_ms": rgb_convert_ms,
+                "camera_inverse_matrix_ms": camera_inverse_matrix_ms,
+                "radar_tensor_build_ms": radar_tensor_build_ms,
+                "camera_matrix_ms": camera_matrix_ms,
+                "camera_transform_payload_ms": camera_transform_payload_ms,
+                "pre_model_other_ms": pre_model_other_ms,
+            }
             front_stats = head_inference.process(
                 frame_id=int(image.frame),
                 frame_bgr=frame_bgr,
@@ -4647,6 +4954,12 @@ def run_client(args: argparse.Namespace) -> None:
                 camera_matrix=camera_matrix,
                 camera_intrinsics_input=intrinsics_input,
                 display_size=(int(camera_width), int(camera_height)),
+                carla_timestamp=float(image.timestamp),
+                camera_transform_payload=camera_transform_payload,
+                stream_id=spatial_stream_id,
+                capture_perf=capture_perf,
+                capture_wall_s=capture_wall_s,
+                prep_timing=prep_timing,
             )
 
             if queue_probe_mode:

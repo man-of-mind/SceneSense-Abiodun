@@ -1,0 +1,5 @@
+density_bin,n_frames,best_profile,model,quant,roi_q,payload_kb,transport_ms_derived,recall,recall_veh,recall_ped,loc_m,fp_per_frame
+0,483,ae32/u4/q0.98,ae32,per_channel_uint4,0.98,6.8,1.13,,,,,0.056
+1-2,1091,ae32/u4/q0.9,ae32,per_channel_uint4,0.9,16.7,1.22,0.9272,0.9524,0.8629,0.807,1.295
+3-4,453,ae64/u4/q0.9,ae64,per_channel_uint4,0.9,23.4,1.28,0.8914,0.9053,0.869,0.977,2.545
+5+,135,ae64/u4/q0.7,ae64,per_channel_uint4,0.7,43.7,1.47,0.8535,0.8782,0.8291,1.101,3.281

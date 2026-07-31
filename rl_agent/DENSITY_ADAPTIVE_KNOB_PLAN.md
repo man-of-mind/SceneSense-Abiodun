@@ -72,10 +72,20 @@ density-conditioned, and why density belongs in the agent's state.
 4. **GT = actor origin**, not bbox-center (the ~1 m offset bug). Anchor the model floor to the offline knob-matrix
    no-AE u8 ≈ 0.95 m, not any loose-matcher live number.
 5. **Uplink-only, loopback** for payload→latency mapping; label it; OAI is a separate radio study.
+6. **Do NOT export `PYTHONPATH` for any CARLA client** (Session-A lesson, memory `dont_set_pythonpath_for_carla_client`):
+   exporting it shadows `abiodun/` with the stale `neu_collab/` copy → `UDPMessageSocket ... unexpected keyword
+   'remote_host'`. Analysis/eval scripts that only `import carla` are fine; a CARLA *client* (front/back/loopback) must
+   run WITHOUT the export. If a fresh capture is needed: check the machine is idle first (`/proc/loadavg`, no
+   OAI/CARLA hogging), reuse a running CARLA rather than launching a duplicate, and don't kill others' processes.
+7. **Validate + demote, don't rescue** (Session-A discipline): gate the accuracy data (origin-GT hard-fail; sane
+   floor ~1.1 m at v≈0; per-obs direct-vs-closed-form agreement). If a condition fails its gate, demote it and say so;
+   salvage only the parts that don't depend on the broken quantity — do not report a rescued number.
 
 ## Reuse / outputs / model
 - Reuse: `PERMODEL_KNOB_MATRIX_ZSTD.md`, `build_knob_matrix.py`, `../experiments/ae_integrated_20260710/sweeps_permodel`,
-  `evaluate_fusion`, and the in-view GT counting from the staleness/eval GT CSVs.
+  `evaluate_fusion`, and the in-view GT counting from the staleness/eval GT CSVs. The completed uplink-only staleness
+  run (`../staleness/uplink_only_latency_budget/`) is a good reference for the obs-loading + origin-GT + gate pattern
+  (floor confirmed ~1.1 m; anchor accuracy to the offline knob-matrix 0.95 m, never a loose-matcher live number).
 - Outputs → `rl_agent/density_knob/`: `DENSITY_KNOB_RESULTS.md` (density×profile payload/accuracy tables + best-knob
   lookup + Pareto plots per bin), raw CSVs, and a one-line agent-state/policy note for `AGENT_CONSTRAINTS.md`.
 - **Model: Opus 4.8** for the analysis; Haiku-high acceptable only for mechanical plotting afterward.

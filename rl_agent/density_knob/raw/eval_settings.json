@@ -1,0 +1,18 @@
+{
+  "eval_knobs": {
+    "object_score_threshold": 0.2,
+    "object_nms_radius_px": 2,
+    "topk_objects": 120,
+    "match_distance_m": 5.0,
+    "max_gt_distance_m": 40.0
+  },
+  "entropy_coder": "zstd",
+  "zstd_level": 3,
+  "min_gt_area_px": 12.0,
+  "dataset": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/fusion_training_data/moving_ego_pps200000_merged_8loops_stride2",
+  "split": "test",
+  "models": "noae,ae32,ae64,ae128",
+  "quants": "uint8,uint6,uint4",
+  "rois": "0.0,0.3,0.5,0.7,0.9,0.98",
+  "gt_convention": "object_world_x/y (bbox-centre-in-world) == the column train_fusion.py regresses"
+}

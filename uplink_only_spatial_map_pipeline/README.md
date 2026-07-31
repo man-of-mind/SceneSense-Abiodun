@@ -227,9 +227,17 @@ Latest closeout:
     20 FPS AE capacity probe. Results are in `TRACK1_CLOSEOUT_RESULTS.md`;
     plots are under `plots/track1_oai_reduced_payload/`.
 
+Latest loopback reporting anchor:
+
+11. Ran a current fixed-route, one-loop, ideal-loopback Track-1 baseline with
+    the optimized radar rasterizer and 1300 frames. Use
+    `TRACK1_CURRENT_LOOPBACK_ONE_LOOP_RESULTS.md` as the current loopback
+    latency-breakdown anchor for presentations. The older 50-frame profile is
+    now provenance/conservative sensitivity, not the primary number.
+
 Next:
 
-11. Add a real map-worker processing stage when we are ready to replace the
+12. Add a real map-worker processing stage when we are ready to replace the
     current explicit `+30 ms` assumed map-compute budget.
 
 ## First loopback run recipe

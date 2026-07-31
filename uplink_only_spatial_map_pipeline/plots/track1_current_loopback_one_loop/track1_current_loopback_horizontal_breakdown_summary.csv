@@ -1,0 +1,15 @@
+stage,definition,p50_ms,p95_ms
+Sensor prep,sensor_prep_ms,25.039317493792623,38.03629493922926
+Front compute,front_compute_ms,19.229151454055682,29.82212333299685
+Uplink handling,uplink_handling_ms,6.225376506336033,10.25520081166178
+Tail latency,tail_latency_ms,6.345588539261371,11.243548421771266
+Result→map app,result_to_map_app_ms,6.70818448998034,24.33227967121638
+Legacy front_ms total: front compute + UDP send-call,front_ms,24.298981501488015,36.486645869445056
+UDP send-call component,send_call_ms,4.674288997193798,8.553246344672516
+Model preprocess component,model_preprocess_ms,15.570396004477516,24.756700918078423
+Front backbone component,front_backbone_ms,2.0310989930294454,5.264869148959405
+Feature serialize component,feature_serialize_ms,0.6346454902086407,4.648140291101298
+Map packet bytes,packet_bytes,1955.0,2701.0
+Uplink feature compressed bytes,feature_payload_bytes,1069602.0,1095275.6
+Map apply only,map_apply_ms,0.17274005222134292,1.9910050352336837
+Measured full L: capture→map update,full_L_ms,67.85492348717526,103.64351208263543

@@ -120,3 +120,32 @@ delivered FPS, queue wait, drops, and result age as a function of FPS × buffer 
 - Floor ~1.1 m is a same-distribution estimate; fresh-scene ~+0.2 m. Config levers (TDD/5QI) don't move transport
   in single-UE clear-channel (`oai_config_sweep/OAI_CONFIG_FINDINGS.md`); compression is the effective latency lever.
 - These are BOUNDS for the controller, to be re-validated under a realistic channel / multi-UE (Sionna-RT phase).
+
+---
+
+## 8. Scene density — second state variable (2026-07-31)
+
+**One-line policy note:** *scene density belongs in the agent state alongside object speed — not because it
+changes what a knob COSTS in bytes (the tensor is fixed-size and the ROI drop is rank-based, so payload
+varies ≤2% with density at usable q) but because it changes the ACCURACY COST of that knob: the same q=0.98
+ROI drop costs −2.2 recall points with 1–2 objects in view and −4.5 points with 3+.*
+
+| in-view objects (≤40 m) | knob | payload | in-view recall | loc MAE |
+|---|---|--:|--:|--:|
+| 0 | `ae32 / u4 / q=0.98` | 6.8 KB | n/a (FP/frame 0.056) | n/a |
+| 1–2 | `ae32 / u4 / q=0.9` | 16.7 KB | 0.927 | 0.81 m |
+| 3–4 | `ae64 / u4 / q=0.9` | 23.4 KB | 0.891 | 0.98 m |
+| 5+ | `ae64 / u4 / q=0.7` | 43.7 KB | 0.854 | 1.10 m |
+
+- **u4 at every density** (u8 costs 2.0–2.4× the payload for ≤0.45 recall points); **no-AE is
+  Pareto-dominated everywhere** (0 of 72 no-AE profiles accepted in any bin).
+- Drive-average **17.6 KB/frame adaptive vs 43.7 KB/frame** for one fixed conservative knob = **60% uplink
+  saving at equal accuracy**.
+- **Observability caveat:** the agent cannot see the current frame's density before it sends; it must use a
+  proxy (detection count from the last map update / previous frame), which lags one control period and is
+  worst exactly when density changes fastest (entering an intersection). Prefer a **hysteretic two-level**
+  policy (q=0.9 sparse / q=0.7 dense) — the measured cost gradient saturates above 3–4 objects, so the extra
+  levels buy little and are more exposed to proxy error.
+- Caveats: ideal loopback / uplink-only, in-domain Town10; bin 5+ is n=135 frames (±2.5 pts recall at 95%);
+  density correlates with object proximity (nearest object 20.0 m sparse → 12.2 m dense) so this is not a
+  pure density effect. Full analysis: `density_knob/DENSITY_KNOB_RESULTS.md` (8/8 gates pass).

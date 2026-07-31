@@ -1,0 +1,2 @@
+sent_frames,processed_edge_frames,map_frames,post_warmup_frames,delivery_pct,actual_front_send_fps,actual_map_update_fps,sim_fps,feature_payload_p50_kib,feature_payload_p95_kib,feature_payload_uncompressed_kib,feature_chunks_p50,radar_points_p50,map_packet_p50_bytes,map_packet_p95_bytes,object_count_p50,udp_partial_messages_dropped_max,edge_receive_queue_dropped_max,spatial_publisher_dropped_max
+1300,1300,1300,1290,100.0,9.03147813131599,9.032123867721513,9.99999985098839,1044.533203125,1069.605078125,2835.0,18.0,19468.5,1955.0,2701.0,3.0,0,0,0

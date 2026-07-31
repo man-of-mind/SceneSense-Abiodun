@@ -1,4 +1,4 @@
-# RL agent — UPLINK-ONLY constraint spec (2026-07-30)
+# RL agent — UPLINK-ONLY staleness-budget constraint spec (2026-07-30)
 
 Citable constraint spec for the network-aware split-inference controller, **for the uplink-only Track-1
 architecture** (`car → split features → edge tail → edge publishes to spatial map`; the car receives only a
@@ -6,7 +6,7 @@ tiny async warning, never full detections).
 
 > **This does NOT overwrite `../../../rl_agent/AGENT_CONSTRAINTS.md`.** That document remains the record of
 > the Stage-1 round-trip framing. **For any uplink-only work, this document supersedes it** on three points:
-> the definition of the lag, the removal of `Y_down`, and the inclusion of sensor prep. Where the two
+> the definition of the staleness budget, the removal of `Y_down`, and the inclusion of sensor prep. Where the two
 > disagree about uplink-only numbers, this one is current.
 >
 > Evidence: `UPLINK_ONLY_STALENESS_RESULTS.md` (same folder). All numbers are **ideal loopback, uplink-only**.
@@ -18,6 +18,7 @@ tiny async warning, never full detections).
 
 | | old (Stage-1 round-trip framing) | **new (uplink-only)** |
 |---|---|---|
+| budget variable | old name: uplink/round-trip latency | **new name: staleness budget / freshness age** |
 | lag | `L = Y_up + 1/FPS`, extended to `L_total = Y_up + 1/FPS + Y_down + Y_map_share` | **`L = Y_sensorprep + Y_front + Y_uplink + Y_tail + Y_mapinsert` (+ `s/FPS`)** |
 | `Y_down` | present, to be measured before training | **deleted — the architecture has no result return** |
 | sensor prep | not a term (lag was essentially transport) | **first-class, and the LARGEST term (57–65 % of L)** |
@@ -28,17 +29,22 @@ tiny async warning, never full detections).
 
 ---
 
-## 1. The one-line model
+## 1. The one-line staleness model
 
 > **error(v) ≈ √( floor² + (v · (L + s/FPS))² )**,  floor ≈ **1.1 m**
 >
-> `L = Y_sensorprep + Y_front + Y_uplink + Y_tail + Y_mapinsert`  — capture → map-update-done. **No `Y_down`.**
+> `L = Y_sensorprep + Y_front + Y_uplink + Y_tail + Y_mapinsert`  — **frame capture → map-update-done**. **No `Y_down`.**
 > `s` = 0.5 (average map-query timing) or 1 (worst case). `v` = tracked object world speed (m/s).
+
+The agent should treat this as a **staleness budget**, not merely an uplink latency budget. The object keeps
+moving from the moment the camera/radar frame is captured, so sensor preparation, front compute, uplink,
+edge tail inference, and map insertion all age the detection. The controllable uplink may be only one term
+inside the budget.
 
 Validated on 829 real opportunity-window observations: per-observation direct-`GT(t+L)` vs this closed form
 agrees to mean **−0.022 m**, median **0.000 m**, sd 0.341 m.
 
-**Feasible staleness budget:** `B(ε) = √(ε² − 1.1²)` → ε=1.5 → **1.02 m**, ε=2.0 → **1.67 m**,
+**Feasible motion budget:** `B(ε) = √(ε² − 1.1²)` → ε=1.5 → **1.02 m**, ε=2.0 → **1.67 m**,
 ε=2.5 → **2.24 m**, ε=3.0 → **2.79 m**.
 
 ## 2. Hard floor — feasibility LOWER bound
@@ -49,10 +55,10 @@ agrees to mean **−0.022 m**, median **0.000 m**, sd 0.341 m.
   lane-level (~0.5 m) as needing a **better model**, not a network action.
 - Do **not** anchor the floor to loose-matcher live numbers (~3 m at a 5 m gate). Those are not the floor.
 
-## 3. The lag `L` — what the agent must know
+## 3. The staleness age `L` — what the agent must know
 
-**`L` is dominated by sensor preparation, not by the network.** At the measured operating point (p50, ideal
-loopback, fast rasterizer):
+**`L` starts at frame capture and is dominated by sensor preparation, not by the network.** At the measured operating point (p50, ideal
+loopback, optimized pipeline):
 
 | term | fresh p50 | share |
 |---|--:|--:|
@@ -66,6 +72,13 @@ loopback, fast rasterizer):
 (Shares are each stage's p50 over L's p50, so they sum to ~91 % rather than 100 % — medians of a sum are not
 the sum of medians. Per-*frame* the decomposition is exact: residual 0.000 ms on every frame.)
 
+**Map-insert definition:** for the additive staleness budget, `Y_mapinsert` is measured from
+`edge tail done → map update done`. In the fresh run this is about **3 ms p50**. Do not add
+`edge_to_map_publish_ms` to this term: that column starts at edge receive and therefore already includes
+edge-tail work. The map packet is small, but the measured term still includes Python UDP receive scheduling,
+zlib/JSON parsing/normalization, queue admission, and the trivial current update apply. It does **not** yet
+include future Hungarian/JPDA association, occlusion reasoning, cooperative fusion, or warning selection.
+
 Consequences for the controller:
 
 1. **The compression knobs the agent controls (AE / quant / ROI) act on a small slice of `L` on loopback.**
@@ -78,11 +91,11 @@ Consequences for the controller:
    observed `L` (or its components) in the agent STATE**; do not hard-code a constant.
 3. **`L` is insensitive to traffic speed regime** — 66.5–67.9 ms p50 across walk→32 mph traffic (spread
    1.4 ms). The agent does not need to model `L` as a function of scene speed.
-4. **A frontend compute optimization is an accuracy action.** Cutting the radar rasterizer cost took `L` from
-   181 → 93 ms and reduced 32 mph localization error by a measured **1.16 m** at identical model weights. If
-   the action space is ever extended beyond compression, frontend compute belongs in it.
+4. **A frontend compute optimization is an accuracy action.** Reducing sensor-prep cost lowers `L`, which
+   directly lowers motion-induced localization error for fast objects at identical model weights. If the
+   action space is ever extended beyond compression, frontend compute belongs in it.
 
-## 4. Latency UPPER bound per speed — max `L` (ms) to hold error ≤ ε
+## 4. Staleness UPPER bound per speed — max capture→map `L` (ms) to hold error ≤ ε
 
 Measured (interpolated from the direct `GT(t+L)` curve). `—` = floor already exceeds ε.
 
@@ -123,11 +136,12 @@ Note how violently these cells move for a 25 ms change in `L` — another reason
 *freshness*: the map holds the last detection between updates, so staleness ≈ `v·(s/FPS)`. Do **not** reward
 FPS as if it improved per-frame perception.
 
-## 6. MASTER constraint (the agent must satisfy this)
+## 6. MASTER staleness constraint (the agent must satisfy this)
 
 > **`v · (L + s/FPS) ≤ √(ε² − 1.1²)`**
 >
-> `L = Y_sensorprep + Y_front + Y_uplink + Y_tail + Y_mapinsert`. **NO `Y_down`. NO `Y_map_share`** until a
+> `L = Y_sensorprep + Y_front + Y_uplink + Y_tail + Y_mapinsert`, from **frame capture** to **map update done**.
+> **NO `Y_down`. NO `Y_map_share`** until a
 > cooperative map-fusion stage actually exists and is instrumented (`map_service_ms` is currently 0.0 ms —
 > the map does ingest and apply, not association/occlusion/fusion yet).
 
@@ -139,7 +153,8 @@ FPS as if it improved per-frame perception.
 
 ## 7. Policy insight — still speed-gated, but now prep-gated too
 
-- **Slow / pedestrian (≤~10 mph):** latency- and FPS-immune (1.16 → 1.18 m across 0→248 ms). Compress hard,
+- **Slow / pedestrian (≤~10 mph):** latency- and FPS-immune across the current optimized reporting range
+  (roughly 0→136 ms). Compress hard,
   drop FPS, save bandwidth.
 - **Fast (≥~28 mph):** needs both low `L` and high update rate, and still cannot beat ~1.1 m. At `L`=93 ms,
   ε=1.5 m is infeasible at *any* FPS.
@@ -154,9 +169,8 @@ FPS as if it improved per-frame perception.
 
 | condition | `L` p50 / p95 | meets ε=2 m up to | notes |
 |---|--:|--:|---|
-| **ideal loopback, uplink-only, fast rasterizer (fresh, 570 f)** | **67.5 / 101.8 ms** | ~32 mph | current best estimate; deployed recipe (no-AE u8, zstd, 200k PPS) |
-| ideal loopback, uplink-only, fast rasterizer (Track-1, 40 f) | 93.3 / 136.1 ms | ~28 mph (32 marginal) | **conservative design anchor** |
-| ideal loopback, uplink-only, legacy rasterizer | 180.7 / 247.5 ms | ~18 mph | pre-optimization; superseded |
+| **ideal loopback, uplink-only, optimized pipeline (fresh, 570 f)** | **67.5 / 101.8 ms** | ~32 mph | current best estimate; deployed recipe (no-AE u8, zstd, 200k PPS) |
+| ideal loopback, uplink-only, optimized pipeline (Track-1, 40 f) | 93.3 / 136.1 ms | ~28 mph (32 marginal) | **conservative design anchor** |
 | core split→map only (**not a staleness lag**) | 37.7 / 80.2 ms | — | omits sensor prep; understates 32 mph error by 0.50 m. **Never use as `L`.** |
 
 Achievable live update rate is **~7–10 FPS, CARLA/testbed-bound** (sim/render + sensor prep), not a split-

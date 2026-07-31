@@ -25,6 +25,8 @@ import pandas as pd
 
 
 RUN_GROUP = "track1_track1_oai_default106_ttracer_fps10_track1_default106_20260729_204536"
+DEFAULT_CLOSED_LOOP_RUN_GROUP = "downlink_oai_default106_ttracer_fps10_drivable_fast_20260730_default106_noae"
+CLOSED_LOOP_RUN_GROUP = os.environ.get("CLOSED_LOOP_RUN_GROUP", DEFAULT_CLOSED_LOOP_RUN_GROUP)
 OAI_RUN_DIR = Path(
     "abiodun/uplink_only_spatial_map_pipeline/runs/"
     "track1_oai_default106_ttracer/fps_10_track1_default106_20260729_204536"
@@ -36,11 +38,16 @@ LOOPBACK_RUN_DIR = Path(
 )
 TTRACER_DIR = Path("abiodun/metrics_logs/scenesense_ttracer") / RUN_GROUP
 NETWORK_DIR = Path("abiodun/metrics_logs/scenesense_network") / RUN_GROUP
+CLOSED_LOOP_TTRACER_DIR = Path("abiodun/metrics_logs/scenesense_ttracer") / CLOSED_LOOP_RUN_GROUP
+CLOSED_LOOP_NETWORK_DIR = Path("abiodun/metrics_logs/scenesense_network") / CLOSED_LOOP_RUN_GROUP
 OUT_DIR = Path("abiodun/uplink_only_spatial_map_pipeline/plots/track1_oai_default106")
 CLOSED_LOOP_OAI_DEFAULT106_METRICS = Path(
-    "abiodun/downlink_latency_fps/runs/oai_default106_ttracer/"
-    "fps_10_drivable_fast_20260730_default106_noae/streams/"
-    "downlink_oai_default106_ttracer_fps10_drivable_fast_20260730_default106_noae_metrics.csv"
+    os.environ.get(
+        "CLOSED_LOOP_METRICS_CSV",
+        "abiodun/downlink_latency_fps/runs/oai_default106_ttracer/"
+        "fps_10_drivable_fast_20260730_default106_noae/streams/"
+        "downlink_oai_default106_ttracer_fps10_drivable_fast_20260730_default106_noae_metrics.csv",
+    )
 )
 
 
@@ -150,10 +157,10 @@ def _time_to_seconds(series: pd.Series) -> pd.Series:
     return td.dt.total_seconds()
 
 
-def _first_ttracer_second() -> float:
+def _first_ttracer_second(ttracer_dir: Path = TTRACER_DIR) -> float:
     candidates = [
-        TTRACER_DIR / "ue" / "csv" / "NRUE_MAC_DCI_GRANT.csv",
-        TTRACER_DIR / "gnb" / "csv" / "GNB_MAC_UL_MCS_DECISION.csv",
+        ttracer_dir / "ue" / "csv" / "NRUE_MAC_DCI_GRANT.csv",
+        ttracer_dir / "gnb" / "csv" / "GNB_MAC_UL_MCS_DECISION.csv",
     ]
     vals = []
     for path in candidates:
@@ -193,45 +200,98 @@ def _save(fig: plt.Figure, stem: str) -> None:
     plt.close(fig)
 
 
+def _save_multi(fig: plt.Figure, stems: Iterable[str]) -> None:
+    OUT_DIR.mkdir(parents=True, exist_ok=True)
+    for stem in stems:
+        for ext in ("png", "pdf"):
+            fig.savefig(OUT_DIR / f"{stem}.{ext}", bbox_inches="tight")
+    plt.close(fig)
+
+
 def plot_latency(summary: pd.DataFrame) -> None:
+    """Audience-facing p50 latency breakdown.
+
+    Uplink-only runs have richer front-side instrumentation, so their
+    `front_feature_build` term folds together sensor prep, front model,
+    serialization, and UDP send-call time.  The closed-loop run uses its native
+    `front_ms` + RTT decomposition from the downlink-latency experiment.
+    """
+    loop = summary[summary["condition"].eq("Ideal loopback")].iloc[0]
+    oai = summary[summary["condition"].eq("OAI default 106PRB")].iloc[0]
+    closed = _optimized_closed_loop_oai_summary()
+
+    rows = [
+        {
+            "condition": "Ideal loopback\nuplink-only",
+            "front_feature_build_ms": loop.sensor_prep_p50_ms
+            + loop.front_model_p50_ms
+            + loop.serialize_p50_ms,
+            "feature_uplink_ms": loop.send_call_p50_ms + loop.uplink_transport_p50_ms,
+            "edge_tail_ms": loop.edge_queue_p50_ms + loop.tail_p50_ms,
+            "result_downlink_ms": 0.0,
+            "measured_total_ms": loop.capture_to_tail_p50_ms,
+            "total_label": "capture→tail",
+        },
+        {
+            "condition": "OAI 106PRB\nuplink-only",
+            "front_feature_build_ms": oai.sensor_prep_p50_ms
+            + oai.front_model_p50_ms
+            + oai.serialize_p50_ms,
+            "feature_uplink_ms": oai.send_call_p50_ms + oai.uplink_transport_p50_ms,
+            "edge_tail_ms": oai.edge_queue_p50_ms + oai.tail_p50_ms,
+            "result_downlink_ms": 0.0,
+            "measured_total_ms": oai.capture_to_tail_p50_ms,
+            "total_label": "capture→tail",
+        },
+        {
+            "condition": "OAI 106PRB\nclosed-loop",
+            "front_feature_build_ms": closed["front_p50_ms"],
+            "feature_uplink_ms": closed["feature_uplink_p50_ms"],
+            "edge_tail_ms": closed["back_p50_ms"],
+            "result_downlink_ms": closed["downlink_p50_ms"],
+            "measured_total_ms": closed["capture_to_result_p50_ms"],
+            "total_label": "capture→result",
+        },
+    ]
+    plot_df = pd.DataFrame(rows)
+    plot_df.to_csv(OUT_DIR / "track1_latency_breakdown_loopback_uplink_closedloop_summary.csv", index=False)
+
     components = [
-        ("sensor_prep_p50_ms", "Sensor prep"),
-        ("front_model_p50_ms", "Front model"),
-        ("serialize_p50_ms", "Serialize"),
-        ("send_call_p50_ms", "UDP send"),
-        ("uplink_transport_p50_ms", "Uplink transport"),
-        ("edge_queue_p50_ms", "Edge queue"),
-        ("tail_p50_ms", "Tail infer"),
+        ("front_feature_build_ms", "Front feature build"),
+        ("feature_uplink_ms", "Feature uplink handling"),
+        ("edge_tail_ms", "Edge tail"),
+        ("result_downlink_ms", "Result downlink"),
     ]
-    colors = [
-        "#4C78A8",
-        "#F58518",
-        "#54A24B",
-        "#B279A2",
-        "#E45756",
-        "#72B7B2",
-        "#FF9DA6",
-    ]
-    labels = summary["condition"].tolist()
-    x = np.arange(len(labels))
-    fig, ax = plt.subplots(figsize=(9.0, 5.0))
-    bottom = np.zeros(len(labels))
+    colors = ["#4C78A8", "#E45756", "#72B7B2", "#F58518"]
+    x = np.arange(len(plot_df))
+    fig, ax = plt.subplots(figsize=(10.6, 5.4))
+    bottom = np.zeros(len(plot_df))
     for (col, name), color in zip(components, colors):
-        vals = summary[col].to_numpy(dtype=float)
-        ax.bar(x, vals, bottom=bottom, label=name, color=color, edgecolor="white", linewidth=0.7)
+        vals = plot_df[col].to_numpy(dtype=float)
+        ax.bar(x, vals, bottom=bottom, label=name, color=color, edgecolor="white", linewidth=0.8)
         bottom += vals
-    total = summary["capture_to_tail_p50_ms"].to_numpy(dtype=float)
-    plus30 = summary["capture_to_map_plus30_p50_ms"].to_numpy(dtype=float)
-    ax.scatter(x, total, marker="D", s=58, color="black", label="Measured capture→tail p50", zorder=5)
-    ax.scatter(x, plus30, marker="^", s=68, color="#6F4E37", label="+30 ms assumed map", zorder=5)
-    for xi, val in zip(x, total):
-        ax.text(xi, val + 7, f"{val:.0f} ms", ha="center", va="bottom", fontweight="bold")
+
+    total = plot_df["measured_total_ms"].to_numpy(dtype=float)
+    ax.scatter(x, total, marker="D", s=64, color="black", label="Measured p50 total", zorder=5)
+    for xi, val, label in zip(x, total, plot_df["total_label"]):
+        ax.text(xi, val + 6.5, f"{val:.0f} ms\n{label}", ha="center", va="bottom", fontweight="bold")
+
     ax.set_xticks(x)
-    ax.set_xticklabels(labels)
+    ax.set_xticklabels(plot_df["condition"], fontweight="bold")
     ax.set_ylabel("Latency (ms)")
-    ax.set_title("Track-1 uplink-only latency breakdown, p50")
-    ax.legend(ncol=2, loc="upper left", bbox_to_anchor=(1.01, 1.0), frameon=False)
-    _save(fig, "track1_latency_breakdown_loopback_vs_oai")
+    ax.set_title("Latency breakdown: loopback, uplink-only OAI, and closed-loop OAI")
+    ax.set_ylim(0, max(total) * 1.30)
+    ax.legend(ncol=2, loc="upper left", bbox_to_anchor=(1.01, 1.0), frameon=False, prop={"weight": "bold", "size": 9})
+    ax.text(
+        0.01,
+        -0.18,
+        "Feature uplink handling uses the reportable front-send/payload-ready → edge-receive convention. Closed-loop includes result downlink; uplink-only stops at edge-tail output for map ingestion.",
+        transform=ax.transAxes,
+        fontsize=9.5,
+        fontweight="bold",
+        color="#374151",
+    )
+    _save_multi(fig, ["track1_latency_breakdown_loopback_vs_oai", "track1_latency_breakdown_loopback_uplink_closedloop"])
 
 
 def _app_rate_1s(front: pd.DataFrame, t0_abs_s: float) -> pd.DataFrame:
@@ -248,29 +308,125 @@ def _app_rate_1s(front: pd.DataFrame, t0_abs_s: float) -> pd.DataFrame:
     return out
 
 
-def plot_traffic_rates(oai_front: pd.DataFrame) -> None:
-    t0 = _first_ttracer_second()
-    app = _app_rate_1s(oai_front, t0)
-    grant = pd.read_csv(TTRACER_DIR / "ue" / "analysis" / "nrue_grant_windows.csv")
+def _closed_loop_send_seconds(metrics: pd.DataFrame) -> pd.Series:
+    """Feature-send times for the optimized closed-loop comparator.
+
+    Returned rows do have `t_front_send_wall_s`, but timed-out rows often do
+    not.  `elapsed_s - result_wait_ms` recovers the send instant for both,
+    so use it as the primary source.
+    """
+    elapsed = pd.to_numeric(metrics["elapsed_s"], errors="coerce")
+    wait_s = pd.to_numeric(metrics["result_wait_ms"], errors="coerce") / 1000.0
+    send_s = elapsed - wait_s
+    wall = pd.to_numeric(metrics.get("t_front_send_wall_s"), errors="coerce")
+    if send_s.notna().sum() < len(metrics) * 0.8 and wall.notna().any():
+        send_s = wall - float(wall.dropna().min())
+    return send_s
+
+
+def _closed_loop_app_rate_1s() -> pd.DataFrame:
+    metrics = pd.read_csv(CLOSED_LOOP_OAI_DEFAULT106_METRICS)
+    send_s = _closed_loop_send_seconds(metrics)
+    bins = np.floor(send_s).astype("Int64")
+    out = (
+        pd.DataFrame(
+            {
+                "t": bins,
+                "bytes": pd.to_numeric(metrics["feature_payload_bytes"], errors="coerce").fillna(0.0),
+                "frames": 1,
+            }
+        )
+        .dropna(subset=["t"])
+        .groupby("t", as_index=False)
+        .sum()
+    )
+    out["t"] = out["t"].astype(int)
+    out["app_offered_mbps"] = out["bytes"] * 8.0 / 1e6
+    return out
+
+
+def _rlc_sdu_rate_1s(ttracer_dir: Path) -> pd.DataFrame:
+    queue = ttracer_dir / "ue" / "analysis" / "nrue_queue_windows.csv"
+    if queue.exists():
+        qdf = pd.read_csv(queue)
+        if "sdu_mbps" in qdf.columns:
+            return qdf[["window_start_s", "sdu_mbps"]].copy()
+    raw = ttracer_dir / "ue" / "csv" / "NR_RLC_TX_DEQUEUE.csv"
+    if not raw.exists():
+        return pd.DataFrame(columns=["window_start_s", "sdu_mbps"])
+    df = pd.read_csv(raw, usecols=["time", "lcid", "pdu_bytes"])
+    df = df[pd.to_numeric(df["lcid"], errors="coerce").eq(4)].copy()
+    if df.empty:
+        return pd.DataFrame(columns=["window_start_s", "sdu_mbps"])
+    sec = _time_to_seconds(df["time"]) - _first_ttracer_second(ttracer_dir)
+    bins = np.floor(sec).astype(int)
+    out = (
+        pd.DataFrame({"window_start_s": bins, "bytes": pd.to_numeric(df["pdu_bytes"], errors="coerce").fillna(0.0)})
+        .groupby("window_start_s", as_index=False)
+        .sum()
+    )
+    out["sdu_mbps"] = out["bytes"] * 8.0 / 1e6
+    return out
+
+
+def _traffic_rate_inputs(
+    label: str,
+    app: pd.DataFrame,
+    ttracer_dir: Path,
+    network_dir: Path,
+) -> Dict[str, pd.DataFrame | str]:
+    grant = pd.read_csv(ttracer_dir / "ue" / "analysis" / "nrue_grant_windows.csv")
     grant = grant[grant["direction_label"] == "ul"].copy()
-    queue = pd.read_csv(TTRACER_DIR / "ue" / "analysis" / "nrue_queue_windows.csv")
-    net = pd.read_csv(NETWORK_DIR / "network_timeseries.csv")
+    queue = _rlc_sdu_rate_1s(ttracer_dir)
+    net = pd.read_csv(network_dir / "network_timeseries.csv")
     net = net[(net["iface"] == "oaitun_ue1") & (net["iface_up"] == True)].copy()
-    fig, ax = plt.subplots(figsize=(10.5, 4.8))
-    ax.plot(app["t"], app["app_offered_mbps"], color="#4C78A8", linewidth=2.2, label="App feature offered load")
+    return {"label": label, "app": app, "grant": grant, "queue": queue, "net": net}
+
+
+def _plot_one_rate_panel(ax: plt.Axes, data: Dict[str, pd.DataFrame | str], title: str) -> None:
+    app = data["app"]
+    grant = data["grant"]
+    queue = data["queue"]
+    net = data["net"]
+    assert isinstance(app, pd.DataFrame)
+    assert isinstance(grant, pd.DataFrame)
+    assert isinstance(queue, pd.DataFrame)
+    assert isinstance(net, pd.DataFrame)
+    ax.plot(app["t"], app["app_offered_mbps"], color="#4C78A8", linewidth=2.25, label="App feature offered")
     ax.plot(net["elapsed_s"], net["tx_bitrate_mbps"], color="#F58518", linewidth=2.0, label="UE tunnel TX")
-    ax.plot(grant["window_start_s"], grant["scheduled_mbps"], color="#E45756", linewidth=1.9, label="MAC scheduled UL")
-    ax.plot(queue["window_start_s"], queue["sdu_mbps"], color="#54A24B", linewidth=1.9, label="RLC SDU drain")
+    ax.plot(grant["window_start_s"], grant["scheduled_mbps"], color="#E45756", linewidth=1.95, label="MAC scheduled UL")
+    if not queue.empty:
+        ax.plot(queue["window_start_s"], queue["sdu_mbps"], color="#54A24B", linewidth=1.95, label="RLC SDU drain")
     ax.set_xlim(0, 250)
     ax.set_ylim(bottom=0)
-    ax.set_xlabel("Time since first front send (s)")
-    ax.set_ylabel("Rate (Mbps, 1 s window)")
-    ax.set_title("Track-1 OAI traffic rate over time")
-    ax.legend(loc="upper right", frameon=True, framealpha=0.95)
+    ax.set_ylabel("Rate (Mbps)\n1 s window")
+    ax.set_title(title)
+    ax.legend(loc="upper right", frameon=True, framealpha=0.95, ncol=2, prop={"weight": "bold", "size": 9})
+
+
+def plot_traffic_rates(oai_front: pd.DataFrame) -> None:
+    track_app = _app_rate_1s(oai_front, _first_ttracer_second(TTRACER_DIR))
+    closed_app = _closed_loop_app_rate_1s()
+    track = _traffic_rate_inputs("Uplink-only", track_app, TTRACER_DIR, NETWORK_DIR)
+    closed = _traffic_rate_inputs("Closed-loop", closed_app, CLOSED_LOOP_TTRACER_DIR, CLOSED_LOOP_NETWORK_DIR)
+
+    fig, axes = plt.subplots(2, 1, figsize=(12.2, 8.2), sharex=True, sharey=True)
+    _plot_one_rate_panel(axes[0], track, "A. Uplink-only OAI: denser feature stream")
+    _plot_one_rate_panel(axes[1], closed, "B. Closed-loop OAI: return-wait creates sparse bursts")
+    axes[0].set_ylim(0, 95)
+    axes[1].set_ylim(0, 95)
+    axes[1].set_xlabel("Time since OAI trace start (s)")
+    fig.suptitle("OAI traffic rate over time: uplink-only vs closed-loop", y=0.98, fontweight="bold")
+    fig.subplots_adjust(hspace=0.25, top=0.91)
     _save(fig, "track1_oai_traffic_rates_1s")
 
 
-def _aggregate_raw_timeseries(path: Path, value_cols: Iterable[str], filters: Dict[str, int] | None = None) -> pd.DataFrame:
+def _aggregate_raw_timeseries(
+    path: Path,
+    value_cols: Iterable[str],
+    filters: Dict[str, int] | None = None,
+    ttracer_dir: Path | None = None,
+) -> pd.DataFrame:
     df = pd.read_csv(path)
     if filters:
         for col, val in filters.items():
@@ -278,7 +434,7 @@ def _aggregate_raw_timeseries(path: Path, value_cols: Iterable[str], filters: Di
     if df.empty:
         return pd.DataFrame()
     sec = _time_to_seconds(df["time"])
-    t0 = _first_ttracer_second()
+    t0 = _first_ttracer_second(ttracer_dir or path.parents[2])
     df = df.copy()
     df["window_start_s"] = np.floor(sec - t0).astype(int)
     agg = df.groupby("window_start_s").agg({col: ["median", "mean", "max"] for col in value_cols})
@@ -287,72 +443,130 @@ def _aggregate_raw_timeseries(path: Path, value_cols: Iterable[str], filters: Di
     return agg
 
 
-def plot_radio_backlog() -> None:
-    grant = pd.read_csv(TTRACER_DIR / "ue" / "analysis" / "nrue_grant_windows.csv")
-    ul = grant[grant["direction_label"] == "ul"].copy()
-    queue = pd.read_csv(TTRACER_DIR / "ue" / "analysis" / "nrue_queue_windows.csv")
-    power = _aggregate_raw_timeseries(
-        TTRACER_DIR / "gnb" / "csv" / "GNB_MAC_PUSCH_POWER_CONTROL.csv",
+def _ul_grant_windows(ttracer_dir: Path) -> pd.DataFrame:
+    grant = pd.read_csv(ttracer_dir / "ue" / "analysis" / "nrue_grant_windows.csv")
+    return grant[grant["direction_label"] == "ul"].copy()
+
+
+def _snr_windows(ttracer_dir: Path) -> pd.DataFrame:
+    return _aggregate_raw_timeseries(
+        ttracer_dir / "gnb" / "csv" / "GNB_MAC_PUSCH_POWER_CONTROL.csv",
         ["snrx10"],
-    )
-    rlc = _aggregate_raw_timeseries(
-        TTRACER_DIR / "ue" / "csv" / "NRUE_MAC_RLC_BUFFER_STATUS.csv",
-        ["bytes_in_buffer"],
-        filters={"lcid": 4},
+        ttracer_dir=ttracer_dir,
     )
 
-    fig, axes = plt.subplots(4, 1, figsize=(10.5, 9.2), sharex=True)
-    axes[0].plot(ul["window_start_s"], ul["scheduled_mbps"], color="#E45756", linewidth=2.0)
-    axes[0].set_ylabel("Sched UL\n(Mbps)")
-    axes[0].set_title("Track-1 OAI scheduler/backlog time series")
 
-    axes[1].plot(ul["window_start_s"], ul["avg_mcs"], color="#4C78A8", linewidth=2.0, label="avg MCS")
-    axes[1].plot(ul["window_start_s"], ul["p50_mcs"], color="#4C78A8", linewidth=1.2, linestyle="--", alpha=0.75, label="p50 MCS")
-    if not power.empty:
-        ax2 = axes[1].twinx()
-        ax2.plot(power["window_start_s"], power["snrx10_median"] / 10.0, color="#54A24B", linewidth=1.4, alpha=0.75, label="SNR")
-        ax2.set_ylabel("SNR (dB)", fontweight="bold", color="#54A24B")
-        ax2.tick_params(axis="y", labelcolor="#54A24B")
-    axes[1].set_ylabel("MCS")
-    axes[1].legend(loc="upper left", frameon=False)
+def plot_radio_backlog() -> None:
+    track_ul = _ul_grant_windows(TTRACER_DIR)
+    closed_ul = _ul_grant_windows(CLOSED_LOOP_TTRACER_DIR)
+    track_snr = _snr_windows(TTRACER_DIR)
+    closed_snr = _snr_windows(CLOSED_LOOP_TTRACER_DIR)
 
-    axes[2].plot(ul["window_start_s"], ul["avg_rb_size"], color="#F58518", linewidth=2.0, label="avg PRB")
-    axes[2].plot(ul["window_start_s"], ul["p50_rb_size"], color="#F58518", linewidth=1.2, linestyle="--", alpha=0.75, label="p50 PRB")
+    def _active_stop_s(df: pd.DataFrame) -> float:
+        active = df[
+            (pd.to_numeric(df["scheduled_mbps"], errors="coerce").fillna(0.0) > 1.0)
+            | (pd.to_numeric(df["avg_mcs"], errors="coerce").fillna(0.0) > 0.5)
+            | (pd.to_numeric(df["avg_rb_size"], errors="coerce").fillna(0.0) > 10.0)
+        ].copy()
+        if active.empty:
+            return 250.0
+        return float(active["window_start_s"].max())
+
+    common_stop_s = min(250.0, _active_stop_s(track_ul), _active_stop_s(closed_ul))
+    track_ul = track_ul[track_ul["window_start_s"].between(0.0, common_stop_s)].copy()
+    closed_ul = closed_ul[closed_ul["window_start_s"].between(0.0, common_stop_s)].copy()
+    if not track_snr.empty:
+        track_snr = track_snr[track_snr["window_start_s"].between(0.0, common_stop_s)].copy()
+    if not closed_snr.empty:
+        closed_snr = closed_snr[closed_snr["window_start_s"].between(0.0, common_stop_s)].copy()
+
+    colors = {"Uplink-only": "#2563EB", "Closed-loop": "#DC2626"}
+    fig, axes = plt.subplots(4, 1, figsize=(12.2, 9.2), sharex=True)
+    fig.suptitle("OAI scheduler comparison: uplink-only vs closed-loop", y=0.985, fontweight="bold")
+
+    axes[0].plot(
+        track_ul["window_start_s"],
+        track_ul["scheduled_mbps"],
+        color=colors["Uplink-only"],
+        linewidth=2.2,
+        label="Uplink-only",
+    )
+    axes[0].plot(
+        closed_ul["window_start_s"],
+        closed_ul["scheduled_mbps"],
+        color=colors["Closed-loop"],
+        linewidth=2.0,
+        label="Closed-loop",
+        alpha=0.88,
+    )
+    axes[0].set_ylabel("Scheduled UL\n(Mbps)")
+    axes[0].set_title("A. Scheduled uplink throughput")
+    axes[0].legend(loc="upper right", frameon=True, framealpha=0.95, prop={"weight": "bold", "size": 9})
+
+    axes[1].plot(
+        track_ul["window_start_s"],
+        track_ul["avg_mcs"],
+        color=colors["Uplink-only"],
+        linewidth=2.2,
+        label="Uplink-only avg MCS",
+    )
+    axes[1].plot(
+        closed_ul["window_start_s"],
+        closed_ul["avg_mcs"],
+        color=colors["Closed-loop"],
+        linewidth=2.0,
+        label="Closed-loop avg MCS",
+        alpha=0.88,
+    )
+    axes[1].set_ylabel("Avg MCS")
+    axes[1].set_title("B. MCS assigned by OAI link adaptation")
+    axes[1].legend(loc="upper right", frameon=True, framealpha=0.95, prop={"weight": "bold", "size": 9})
+
+    axes[2].plot(
+        track_ul["window_start_s"],
+        track_ul["avg_rb_size"],
+        color=colors["Uplink-only"],
+        linewidth=2.2,
+        label="Uplink-only avg PRB",
+    )
+    axes[2].plot(
+        closed_ul["window_start_s"],
+        closed_ul["avg_rb_size"],
+        color=colors["Closed-loop"],
+        linewidth=2.0,
+        label="Closed-loop avg PRB",
+        alpha=0.88,
+    )
     axes[2].set_ylabel("Allocated\nPRB")
-    axes[2].legend(loc="lower right", frameon=False)
+    axes[2].set_title("C. PRB allocation stays near the 106PRB ceiling")
+    axes[2].legend(loc="lower right", frameon=True, framealpha=0.95, prop={"weight": "bold", "size": 9})
 
-    axes[3].plot(
-        queue["window_start_s"],
-        queue["bsr_total_lcg_p50_bytes"] / 1024.0,
-        color="#B279A2",
-        linewidth=1.9,
-        label="BSR LCG p50",
-    )
-    axes[3].plot(
-        queue["window_start_s"],
-        queue["bsr_total_lcg_p95_bytes"] / 1024.0,
-        color="#B279A2",
-        linewidth=1.2,
-        linestyle="--",
-        alpha=0.85,
-        label="BSR LCG p95",
-    )
-    if not rlc.empty:
+    if not track_snr.empty:
         axes[3].plot(
-            rlc["window_start_s"],
-            rlc["bytes_in_buffer_median"] / 1024.0,
-            color="#333333",
-            linewidth=1.2,
-            alpha=0.75,
-            label="RLC LCID4 median",
+            track_snr["window_start_s"],
+            track_snr["snrx10_median"] / 10.0,
+            color=colors["Uplink-only"],
+            linewidth=2.2,
+            label="Uplink-only SNR",
         )
-    axes[3].set_ylabel("Backlog\n(KiB)")
+    if not closed_snr.empty:
+        axes[3].plot(
+            closed_snr["window_start_s"],
+            closed_snr["snrx10_median"] / 10.0,
+            color=colors["Closed-loop"],
+            linewidth=2.0,
+            label="Closed-loop SNR",
+            alpha=0.88,
+        )
+    axes[3].set_ylabel("SNR (dB)")
+    axes[3].set_title("D. Reported SNR is high in both runs")
     axes[3].set_xlabel("Time since t-tracer start (s)")
-    axes[3].legend(loc="upper right", frameon=True, framealpha=0.95, ncol=2)
+    axes[3].legend(loc="upper right", frameon=True, framealpha=0.95, prop={"weight": "bold", "size": 9})
 
     for ax in axes:
-        ax.set_xlim(0, 250)
-    _save(fig, "track1_oai_radio_backlog_timeseries")
+        ax.set_xlim(0, common_stop_s)
+    fig.subplots_adjust(hspace=0.35, top=0.92)
+    _save_multi(fig, ["track1_oai_radio_backlog_timeseries", "track1_oai_radio_scheduler_comparison"])
 
 
 def plot_delivery(front: pd.DataFrame, edge: pd.DataFrame) -> None:
@@ -454,14 +668,8 @@ def _bin_100ms_closed_loop_app() -> pd.DataFrame:
     sparse cadence is the closed-loop result-wait/OAI return effect.
     """
     df = pd.read_csv(CLOSED_LOOP_OAI_DEFAULT106_METRICS)
-    send_wall = pd.to_numeric(df.get("t_front_send_wall_s"), errors="coerce")
-    if send_wall.notna().any():
-        send_rel = send_wall - float(send_wall.dropna().min())
-    else:
-        elapsed = pd.to_numeric(df["elapsed_s"], errors="coerce")
-        wait_s = pd.to_numeric(df["result_wait_ms"], errors="coerce") / 1000.0
-        send = (elapsed - wait_s).dropna()
-        send_rel = elapsed - wait_s - float(send.min())
+    send = _closed_loop_send_seconds(df)
+    send_rel = send - float(send.dropna().min())
 
     bins = np.floor(send_rel * 10.0).astype("Int64")
     out = (
@@ -698,7 +906,7 @@ def plot_100ms_volume_and_drain(oai_front: pd.DataFrame) -> Dict[str, float]:
     )
     ax_app.set_xlim(zoom_start_s, zoom_end_s)
     ax_app.set_ylim(0, max(18.0, zoom["app_mbit_100ms"].quantile(0.995) * 1.08))
-    ax_app.set_title("A. Track-1 uplink-only app bursts, 100 ms bins")
+    ax_app.set_title("A. Uplink-only app bursts, 100 ms bins")
     ax_app.set_xlabel("Time since first feature send (s)")
     ax_app.set_ylabel("Mbits offered per 100 ms\n(×10 = Mbps)")
     ax_app.legend(loc="upper right", frameon=True, framealpha=0.95)
@@ -737,14 +945,14 @@ def plot_100ms_volume_and_drain(oai_front: pd.DataFrame) -> Dict[str, float]:
     )
     ax_closed.set_xlim(zoom_start_s, zoom_end_s)
     ax_closed.set_ylim(0, max(18.0, closed_zoom["app_mbit_100ms"].quantile(0.995) * 1.08))
-    ax_closed.set_title("B. Optimized closed-loop OAI app bursts, 100 ms bins")
+    ax_closed.set_title("B. Closed-loop OAI app bursts, 100 ms bins")
     ax_closed.set_xlabel("Time since first feature send (s)")
     ax_closed.set_ylabel("Mbits offered per 100 ms\n(×10 = Mbps)")
     ax_closed.legend(loc="upper right", frameon=True, framealpha=0.95)
     ax_closed.text(
         0.02,
         0.90,
-        f"OAI return-wait cadence\n20 s window idle: {100.0 - closed_zoom_active_pct:.0f}% of 100 ms bins",
+        f"Return-wait cadence\n20 s window idle: {100.0 - closed_zoom_active_pct:.0f}% of 100 ms bins",
         transform=ax_closed.transAxes,
         va="top",
         ha="left",
@@ -871,7 +1079,7 @@ def plot_track1_observed_rlc_drain(burst_summary: Dict[str, float]) -> None:
     fig, ax = plt.subplots(figsize=(12.4, 6.3))
     fig.subplots_adjust(left=0.105, right=0.975, top=0.84, bottom=0.16)
     fig.suptitle(
-        "Track-1 OAI RLC drain: one feature burst sits in UE RLC",
+        "Uplink-only OAI RLC drain: one feature burst sits in UE RLC",
         y=0.965,
         fontweight="bold",
     )
@@ -936,34 +1144,94 @@ def _optimized_closed_loop_oai_summary() -> Dict[str, float]:
     send_wall = pd.to_numeric(metrics["t_front_send_wall_s"], errors="coerce")
     send = send_wall.dropna()
     actual_fps = float((len(send) - 1) / (send.max() - send.min())) if len(send) > 1 else float("nan")
-    summary_csv = pd.read_csv(
-        "abiodun/metrics_logs/carla_oai_ttracer/"
-        "downlink_oai_default106_ttracer_fps10_drivable_fast_20260730_default106_noae/"
-        "CARLA10_OAI_TTRACER_SUMMARY.csv"
-    ).iloc[0]
-    grant_summary = pd.read_csv(
-        "abiodun/metrics_logs/scenesense_ttracer/"
-        "downlink_oai_default106_ttracer_fps10_drivable_fast_20260730_default106_noae/"
-        "ue/analysis/nrue_grant_summary.csv"
+    summary_path = (
+        Path("abiodun/metrics_logs/carla_oai_ttracer")
+        / CLOSED_LOOP_RUN_GROUP
+        / "CARLA10_OAI_TTRACER_SUMMARY.csv"
     )
-    ul = grant_summary[grant_summary["direction_label"].eq("ul")].iloc[0]
+    summary_csv = pd.read_csv(summary_path).iloc[0] if summary_path.exists() else None
+    grant_path = (
+        Path("abiodun/metrics_logs/scenesense_ttracer")
+        / CLOSED_LOOP_RUN_GROUP
+        / "ue/analysis/nrue_grant_summary.csv"
+    )
+    if grant_path.exists():
+        grant_summary = pd.read_csv(grant_path)
+        ul = grant_summary[grant_summary["direction_label"].eq("ul")].iloc[0]
+    else:
+        ul = pd.Series(dtype=float)
+
+    detailed_cols = {
+        "capture_to_backbone_input_ms",
+        "model_preprocess_ms",
+        "front_backbone_ms",
+        "feature_serialize_ms",
+        "send_call_ms",
+        "t_front_send_wall_s",
+        "t_edge_recv_wall_s",
+    }
+    has_detailed_timing = detailed_cols.issubset(metrics.columns) and _q(
+        metrics["capture_to_backbone_input_ms"], 0.50
+    ) == _q(metrics["capture_to_backbone_input_ms"], 0.50)
+    if has_detailed_timing:
+        capture_to_backbone = pd.to_numeric(
+            metrics["capture_to_backbone_input_ms"], errors="coerce"
+        )
+        front_backbone = pd.to_numeric(metrics["front_backbone_ms"], errors="coerce")
+        feature_serialize = pd.to_numeric(metrics["feature_serialize_ms"], errors="coerce")
+        front_feature_build = capture_to_backbone + front_backbone + feature_serialize
+        uplink_wall = (
+            pd.to_numeric(metrics["t_edge_recv_wall_s"], errors="coerce")
+            - pd.to_numeric(metrics["t_front_send_wall_s"], errors="coerce")
+        ) * 1000.0
+        uplink_wall = uplink_wall.where(uplink_wall >= 0.0)
+        downlink = pd.to_numeric(metrics["result_send_to_recv_ms_perf"], errors="coerce")
+        back = pd.to_numeric(metrics["back_ms"], errors="coerce")
+        rtt = pd.to_numeric(metrics["round_trip_result_recv_ms"], errors="coerce")
+        capture_to_result = (
+            pd.to_numeric(metrics["capture_to_front_send_ms"], errors="coerce") + rtt
+        )
+        timing_schema = "detailed"
+        front_p50_ms = _q(front_feature_build, 0.50)
+        feature_uplink_p50_ms = _q(uplink_wall, 0.50)
+        back_p50_ms = _q(back, 0.50)
+        downlink_p50_ms = _q(downlink, 0.50)
+        rtt_p50_ms = _q(rtt, 0.50)
+        rtt_p95_ms = _q(rtt, 0.95)
+        capture_to_result_p50_ms = _q(capture_to_result, 0.50)
+    else:
+        if summary_csv is None:
+            raise FileNotFoundError(
+                f"closed-loop detailed timing is absent and summary CSV is missing: {summary_path}"
+            )
+        timing_schema = "legacy"
+        front_p50_ms = float(summary_csv["front_ms_p50"])
+        feature_uplink_p50_ms = float(summary_csv["feature_upload_payload_handling_ms_p50"])
+        back_p50_ms = float(summary_csv["back_ms_p50"])
+        downlink_p50_ms = float(summary_csv["downlink_ms_p50"])
+        rtt_p50_ms = float(summary_csv["rtt_recv_ms_p50"])
+        rtt_p95_ms = float(summary_csv["rtt_recv_ms_p95"])
+        capture_to_result_p50_ms = front_p50_ms + rtt_p50_ms
+
     return {
         "sent_frames": float(len(metrics)),
         "received_frames": float(received.sum()),
         "delivery_pct": float(100.0 * received.sum() / len(metrics)),
         "actual_send_fps": actual_fps,
         "payload_kib_p50": float(_q(metrics["feature_payload_bytes"], 0.50) / 1024.0),
-        "rtt_p50_ms": float(summary_csv["rtt_recv_ms_p50"]),
-        "rtt_p95_ms": float(summary_csv["rtt_recv_ms_p95"]),
-        "front_p50_ms": float(summary_csv["front_ms_p50"]),
-        "back_p50_ms": float(summary_csv["back_ms_p50"]),
-        "feature_uplink_p50_ms": float(summary_csv["feature_upload_payload_handling_ms_p50"]),
-        "downlink_p50_ms": float(summary_csv["downlink_ms_p50"]),
-        "scheduled_mbps": float(ul["scheduled_mbps"]),
-        "mcs_avg": float(ul["avg_mcs"]),
-        "mcs_p50": float(ul["p50_mcs"]),
-        "mcs_p95": float(ul["p95_mcs"]),
-        "prb_p50": float(ul["p50_rb_size"]),
+        "rtt_p50_ms": float(rtt_p50_ms),
+        "rtt_p95_ms": float(rtt_p95_ms),
+        "front_p50_ms": float(front_p50_ms),
+        "back_p50_ms": float(back_p50_ms),
+        "feature_uplink_p50_ms": float(feature_uplink_p50_ms),
+        "downlink_p50_ms": float(downlink_p50_ms),
+        "capture_to_result_p50_ms": float(capture_to_result_p50_ms),
+        "timing_schema": timing_schema,
+        "scheduled_mbps": float(ul.get("scheduled_mbps", float("nan"))),
+        "mcs_avg": float(ul.get("avg_mcs", float("nan"))),
+        "mcs_p50": float(ul.get("p50_mcs", float("nan"))),
+        "mcs_p95": float(ul.get("p95_mcs", float("nan"))),
+        "prb_p50": float(ul.get("p50_rb_size", float("nan"))),
     }
 
 
@@ -1067,7 +1335,7 @@ Reliability is the main caveat: edge processed {int(oai.processed_frames)} of {i
 
 - `plots/track1_oai_default106/track1_latency_breakdown_loopback_vs_oai.pdf`
 - `plots/track1_oai_default106/track1_oai_traffic_rates_1s.pdf`
-- `plots/track1_oai_default106/track1_oai_radio_backlog_timeseries.pdf`
+- `plots/track1_oai_default106/track1_oai_radio_scheduler_comparison.pdf`
 - `plots/track1_oai_default106/track1_oai_delivery_reassembly.pdf`
 - `plots/track1_oai_default106/track1_oai_100ms_volume_drain_backlog.pdf`
 - `plots/track1_oai_default106/track1_oai_observed_rlc_drain.pdf`

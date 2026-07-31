@@ -18,11 +18,10 @@ Plan followed: `../PLAN.md`. Every guardrail in its 🚦 section was checked; se
 | | |
 |---|---|
 | **Staleness lag** | `L = Y_sensorprep + Y_front + Y_uplink + Y_tail + Y_mapinsert` = full **capture → map-update-done** age. **No `Y_down`.** |
-| **Measured L (ideal loopback, fast rasterizer)** | **67.5 ms p50 / 101.8 ms p95** (fresh, 570 frames) — **93.3 / 136.1 ms** (Track-1 50-frame profile, kept as the conservative design anchor) |
+| **Measured L (ideal loopback, optimized pipeline)** | **67.5 ms p50 / 101.8 ms p95** (fresh, 570 frames) — **93.3 / 136.1 ms** (Track-1 50-frame profile, kept as the conservative design anchor) |
 | **Sensor prep share of L** | **57–65 %** — the single largest term. Not the network, not the model. |
 | **Model floor** | **≈ 1.1 m**, latency- and FPS-independent. `ε < ~1.1 m` is infeasible by any latency/FPS action. |
 | **Master constraint** | **`v · (L + s/FPS) ≤ √(ε² − 1.1²)`**, `s` = 0.5 (average query) or 1 (worst case). No `Y_down`. |
-| **Fast-rasterizer win** | L 181 → 93 ms cuts fast-car staleness error by **up to 1.16 m** (measured, ~32 mph). |
 
 The single most consequential correction: using the **core split→map latency (38 ms)** instead of the full
 capture→map age would understate a 32 mph car's error by **0.50 m** (1.44 m vs 1.94 m at L=93 ms). The object
@@ -32,41 +31,50 @@ keeps moving during sensor preparation, so sensor prep is part of the staleness 
 
 ## 1. Where the freshness age goes (Step A)
 
-Re-derived from the **per-frame** `map_ingest_metrics.csv` of the legacy and fast rasterizer profile runs
-(`../../../uplink_only_spatial_map_pipeline/runs/live_front_prep_profile{,_fast}_50f/`), first 10 frames
-excluded as warm-up. Reproduces the published table exactly; per-frame additivity residual
-`(prep + core − L)` is **0.000 ms** on every frame, so the decomposition is exact, not approximate.
+Current reporting uses the **optimized Track-1 pipeline** as the default. The older legacy-rasterizer
+comparison is retired from the report/plots because that computation path was buggy and should not be used as
+a presentation claim. Raw legacy artifacts remain in the folder only as provenance.
 
-Plot: `plots/freshness_age_breakdown.pdf` · CSV: `L_decomposition.csv`, `L_anchors.csv`
+Re-derived from the **per-frame** `map_ingest_metrics.csv` of the optimized profile run
+(`../../../uplink_only_spatial_map_pipeline/runs/live_front_prep_profile_fast_50f/`), first 10 frames excluded
+as warm-up. The per-frame additivity residual `(prep + core − L)` is **0.000 ms** on every frame, so the
+decomposition is exact, not approximate.
 
-| Component | bucket | legacy p50 / p95 | fast p50 / p95 | Δ p50 |
-|---|---|--:|--:|--:|
-| CARLA sync tick | sensor prep | 32.5 / 95.5 | 33.4 / 86.5 | +0.9 |
-| camera frame wait | sensor prep | 33.6 / 47.6 | 34.7 / 46.9 | +1.1 |
-| radar packet wait | sensor prep | 0.0 / 0.0 | 0.0 / 0.0 | 0.0 |
-| RGB convert | sensor prep | 2.5 / 4.9 | 3.9 / 7.6 | +1.4 |
-| **radar tensor build** | sensor prep | **139.3 / 180.3** | **32.6 / 52.8** | **−106.6** |
-| model preprocess | sensor prep | 11.3 / 18.3 | 13.1 / 23.0 | +1.8 |
-| **`Y_sensorprep`** (capture→backbone input) | rollup | **152.9 / 198.4** | **53.6 / 82.1** | **−99.3** |
-| front backbone (split encoder) | `Y_front` | 3.2 / 6.1 | 5.1 / 10.4 | +1.9 |
-| feature serialize (zstd) | `Y_front` | 0.7 / 1.5 | 1.1 / 3.7 | +0.3 |
-| `Y_uplink` (front→edge, loopback) | `Y_uplink` | 6.7 / 9.3 | 7.8 / 13.4 | +1.1 |
-| `Y_tail` (edge tail inference) | `Y_tail` | 7.8 / 11.3 | 10.2 / 21.4 | +2.5 |
-| map UDP ingest/queue | `Y_mapinsert` | 8.2 / 18.4 | 8.3 / 60.0 | +0.1 |
-| map service (update apply) | `Y_mapinsert` | 0.0 / 0.0 | 0.0 / 0.0 | 0.0 |
-| core split→map (**NOT the staleness lag**) | rollup | 28.5 / 44.6 | 37.7 / 80.2 | +9.2 |
-| **`L` = capture → map update done** | **rollup** | **180.7 / 247.5** | **93.3 / 136.1** | **−87.4** |
+Presentation plot: `plots/presentation/presentation_staleness_budget_breakdown.pdf` · summary CSV:
+`plots/presentation/presentation_latency_breakdown_summary.csv`
 
-**Sensor prep is 85 % of legacy L and 57 % of fast L.** The uplink itself is ~8 ms and the edge tail ~10 ms:
-on ideal loopback the split/network path is a minor term. Radar rasterization was the dominant cost and the
-vectorized replacement removed 106.6 ms of it (behaviour-preserving: same-frame shadow test, tensor max abs
-diff `5.96e-08`, zero object-count deltas — `RADAR_RASTERIZER_SHADOW_VALIDATION.md`).
+Presentation-ready versions of the main story plots are in `plots/presentation/`. These use the
+"staleness budget" wording, fold radar tensor build into the total sensor-prep block, and use additive
+stage definitions so the map term is `edge tail done → map update done` rather than a double-counted
+edge-receive-to-map-publish interval.
+
+| Component | bucket | optimized p50 / p95 |
+|---|---|--:|
+| CARLA sync tick | sensor prep | 33.4 / 86.5 |
+| camera frame wait | sensor prep | 34.7 / 46.9 |
+| radar packet wait | sensor prep | 0.0 / 0.0 |
+| RGB convert | sensor prep | 3.9 / 7.6 |
+| **radar tensor build** | sensor prep | **32.6 / 52.8** |
+| model preprocess | sensor prep | 13.1 / 23.0 |
+| **`Y_sensorprep`** (capture→backbone input) | rollup | **53.6 / 82.1** |
+| front backbone (split encoder) | `Y_front` | 5.1 / 10.4 |
+| feature serialize (zstd) | `Y_front` | 1.1 / 3.7 |
+| `Y_uplink` (front→edge, loopback) | `Y_uplink` | 7.8 / 13.4 |
+| `Y_tail` (edge tail inference) | `Y_tail` | 10.2 / 21.4 |
+| map UDP ingest/queue | `Y_mapinsert` | 8.3 / 60.0 |
+| map service (update apply) | `Y_mapinsert` | 0.0 / 0.0 |
+| core split→map (**NOT the staleness lag**) | rollup | 37.7 / 80.2 |
+| **`L` = capture → map update done** | **rollup** | **93.3 / 136.1** |
+
+**Sensor prep is 57 % of conservative-anchor L.** The uplink itself is ~8 ms and the edge tail ~10 ms: on
+ideal loopback the split/network path is a minor term. The important current takeaway is that frontend sensor
+preparation is part of map staleness and must be included in the agent budget.
 
 ### 1a. Fresh independent measurement of L
 
 A fresh uplink-only loopback run was made for this analysis (2026-07-30, reusing the running CARLA server):
 3 traffic regimes × 200 frames, true uplink-only (`--edge-result-mode none`, edge publishes to the map),
-fast rasterizer, deployed recipe. **570 post-warm-up frames** vs 40 in the Track-1 profile.
+optimized deployed recipe. **570 post-warm-up frames** vs 40 in the Track-1 profile.
 
 CSV: `fresh_L_by_condition.csv` · plot: `plots/fresh_run_L_and_error.pdf` (left panel)
 
@@ -116,50 +124,31 @@ Post-hoc on the **existing** speed-sweep opportunity-window captures (`../../met
 method is the original one re-parameterized with the new `L`: `error(v) = ‖pred(t) − GT_origin(t + L)‖`,
 moving car-height ego, ≤25 m, 2 m match gate, score ≥0.2. No new captures were needed for this table.
 
-Plots: `plots/error_vs_speed_by_L.pdf`, `plots/error_vs_L_by_speed.pdf` · CSV: `error_vs_L_by_speed.csv`
+Presentation plot: `plots/presentation/presentation_error_vs_speed_by_staleness.pdf` · CSV:
+`error_vs_L_by_speed.csv`
 
 Localization error (m) vs uplink-only `L`:
 
-| speed band | n | L=0 (floor) | 38 ms *(core only — understates)* | **67 ms** (fresh p50) | **93 ms** (design anchor) | 136 ms (p95) | 181 ms (legacy) | 248 ms (legacy p95) |
-|---|--:|--:|--:|--:|--:|--:|--:|--:|
-| ~walk/slow | 148 | 1.16 | 1.17 | 1.17 | 1.17 | 1.17 | 1.17 | 1.18 |
-| ~6 mph | 325 | 1.11 | 1.10 | 1.11 | 1.12 | 1.14 | 1.18 | 1.26 |
-| ~10 mph | 98 | 1.11 | 1.15 | 1.19 | 1.24 | 1.35 | 1.48 | 1.71 |
-| ~14 mph | 57 | 1.05 | 1.14 | 1.25 | 1.35 | 1.54 | 1.77 | 2.13 |
-| ~18 mph | 94 | 1.13 | 1.17 | 1.25 | 1.35 | 1.55 | 1.81 | 2.25 |
-| ~23 mph | 17 | 1.21 | 1.41 | 1.60 | 1.78 | 2.15 | 2.60 | 3.29 |
-| ~28 mph | 39 | 1.19 | 1.12 | 1.20 | 1.35 | 1.69 | 2.15 | 2.91 |
-| **~32 mph** | 51 | 1.29 | 1.44 | **1.67** | **1.94** | 2.49 | 3.10 | 4.05 |
+| speed band | n | L=0 (floor) | 38 ms *(core only — understates)* | **67 ms** (fresh p50) | **93 ms** (design anchor) | 136 ms (p95) |
+|---|--:|--:|--:|--:|--:|--:|
+| ~walk/slow | 148 | 1.16 | 1.17 | 1.17 | 1.17 | 1.17 |
+| ~6 mph | 325 | 1.11 | 1.10 | 1.11 | 1.12 | 1.14 |
+| ~10 mph | 98 | 1.11 | 1.15 | 1.19 | 1.24 | 1.35 |
+| ~14 mph | 57 | 1.05 | 1.14 | 1.25 | 1.35 | 1.54 |
+| ~18 mph | 94 | 1.13 | 1.17 | 1.25 | 1.35 | 1.55 |
+| ~23 mph | 17 | 1.21 | 1.41 | 1.60 | 1.78 | 2.15 |
+| ~28 mph | 39 | 1.19 | 1.12 | 1.20 | 1.35 | 1.69 |
+| **~32 mph** | 51 | 1.29 | 1.44 | **1.67** | **1.94** | 2.49 |
 
 - **Model floor ≈ 1.1 m at every speed** (1.16 m at v<1 mph, n=139; 1.13 m pooled). Anchored to the offline
   knob-matrix no-AE u8 result of **0.95 m** (`../../../rl_agent/PERMODEL_KNOB_MATRIX_ZSTD.md`); fresh-drive
   scenes run ~0.2 m above the offline held-out estimate, consistent with the earlier validation. The ~3 m
   loose-matcher numbers in `FAST_RASTERIZER_ACCURACY_AB.md` are **not** the floor and are not used here.
-- **Pedestrians and slow traffic are latency-immune.** ~walk/slow moves 1.16 → 1.18 m across the whole
-  0→248 ms range. Fast cars are not: at the design anchor a 32 mph car is 1.94 m off vs 1.17 m for a pedestrian.
+- **Pedestrians and slow traffic are latency-immune.** ~walk/slow stays near 1.16–1.17 m across the current
+  optimized-anchor range. Fast cars are not: at the design anchor a 32 mph car is 1.94 m off vs 1.17 m for a
+  pedestrian.
 - **Using the core 38 ms instead of the full age understates fast-car error by 0.50 m** (1.44 vs 1.94 m at
   32 mph). This is exactly the trap guardrail 1 warns about.
-
-### 2a. The fast rasterizer as a staleness reduction
-
-Cutting L from 181 → 93 ms (−87.4 ms of age) buys, per band — measured directly, and compared against the
-kinematic prediction `v × 0.0874 s`:
-
-| band | v (m/s) | err @181 ms | err @93 ms | measured gain | predicted `v·Δt` |
-|---|--:|--:|--:|--:|--:|
-| ~walk/slow | 0.08 | 1.17 | 1.17 | 0.00 | 0.01 |
-| ~6 mph | 3.23 | 1.18 | 1.12 | 0.06 | 0.28 |
-| ~10 mph | 4.60 | 1.48 | 1.24 | 0.24 | 0.40 |
-| ~14 mph | 6.31 | 1.77 | 1.35 | 0.42 | 0.55 |
-| ~18 mph | 8.11 | 1.81 | 1.35 | 0.46 | 0.71 |
-| ~23 mph | 10.52 | 2.60 | 1.78 | 0.82 | 0.92 |
-| ~28 mph | 12.33 | 2.15 | 1.35 | 0.80 | 1.08 |
-| **~32 mph** | 14.76 | 3.10 | **1.94** | **1.16** | 1.29 |
-
-Measured gains sit slightly below the constant-velocity prediction because the gain enters in quadrature with
-the 1.1 m floor and because real targets accelerate/brake within the window. **A frontend compute optimization
-is an accuracy improvement for moving objects** — 1.16 m on a fast car, for free, at identical model weights.
-CSV: `fast_rasterizer_staleness_gain.csv`.
 
 ---
 
@@ -168,8 +157,8 @@ CSV: `fast_rasterizer_staleness_gain.csv`.
 **Corrected framing (guardrail 5):** the spatial map holds the last detection between updates, so at update
 rate FPS the held position is up to `1/FPS` stale → error ≈ `v·(1/FPS)` even at `L=0`. This is *not*
 single-frame-vs-accumulation; per-frame accuracy is FPS-independent because the model is single-frame.
-`s=0.5` = average query timing, `s=1` = worst case. Full tables in `error_vs_fps.csv`;
-plot `plots/fps_x_L_budget.pdf`.
+`s=0.5` = average query timing, `s=1` = worst case. Full tables in `error_vs_fps.csv`; presentation plot
+`plots/presentation/presentation_fps_requirement_by_speed.pdf`.
 
 Worst case (`s=1`) at the design anchor `L=93 ms`:
 
@@ -186,7 +175,7 @@ At 1 FPS a 32 mph car moves ~14.3 m between updates and the map is unusable rega
 Gains saturate by ~20 FPS for everything up to ~18 mph; 32 mph is still improving at 30 FPS.
 
 **Achievable FPS is CARLA/testbed-bound, not split-inference-bound (guardrail 7).** The live frontend tops out
-at ~7–10 FPS after the fast rasterizer (8.72 FPS measured in the fresh run), limited by CARLA
+at ~7–10 FPS after the optimization (8.72 FPS measured in the fresh run), limited by CARLA
 simulation/render/sensor production plus sensor prep — a no-background diagnostic reached 11.84 FPS with CARLA
 tick p50 falling 71.6 → 27.0 ms. The **map path itself sustains a true 30 FPS** when fed by the
 model-boundary offered-load replay with no map compute. So FPS operating points above ~10 are *analytically*
@@ -266,14 +255,54 @@ Feasibility map: `plots/feasibility_L_fps.pdf` (ε=2 m boundary in `(L, FPS)` fo
 
 ---
 
+## 4e. Error split by road state (straight / curve / intersection) — added 2026-07-30
+
+Reproduces the original Result 1a for the **uplink-only lag**, on the **same 829 observations** (origin GT,
+202800/202800 origin rows), road state from the Town10 map at each target's GT position (`is_junction`; curve =
+yaw-change >4°/5 m; else straight), evaluated at L ∈ {0, 67, 93, 136} ms.
+Script: `../make_roadstate_speed_uplink_only.py` · plots: `plots/uplink_roadstate_{straight,curve,intersection}_speed.pdf`
+· CSV: `roadstate_error_by_speed.csv`.
+
+**Confound check (why this must be read per-speed).** Road state correlates with speed — the count matrix:
+
+| speed band | straight | curve | junction |
+|---|--:|--:|--:|
+| walk/slow | 58 | 13 | 77 |
+| ~6 mph | 147 | **142** | 36 |
+| ~10 mph | 76 | **1** | 21 |
+| ~14 mph | 28 | **2** | 27 |
+| ~18 mph | 29 | 24 | 41 |
+| ~23 mph | 5 | 0 | 12 |
+| ~28–32 mph | 38 | 21 | 31 |
+
+The **curve bin is 70 % ~6 mph** (142/203) with ~10/14 mph at n=1/2 — cars slow on curves. So the *pooled* curve
+aggregate is speed-confounded; only straight-vs-intersection are comparable across speed (same limitation the
+original flagged).
+
+**At a fixed speed and the operating lag, road state has little independent effect.** Loc error (m) at L=93 ms:
+
+| speed | straight | curve | intersection |
+|---|--:|--:|--:|
+| ~6 mph | 1.11 | 1.15 | 1.02 |
+| ~18 mph | 1.30 | 1.35 | 1.38 |
+| ~28–32 mph | 1.79 | 1.46 *(n=21, thin+confounded)* | 1.71 |
+
+The spread across road states at a given speed is ≲0.1–0.3 m — within sampling/thin-bin noise. The dominant drivers
+remain **object speed and L**, not road geometry. Curve's lower ~28–32 mph value rests on a thin, confounded bin and
+must **not** be read as "curves are easier."
+
+**Conclusion:** the uplink-only run confirms the original — road state is **not an independent staleness driver**; it
+matters only through the speed distribution it correlates with. **No change to the agent constraints: condition on
+speed and L, not road type.**
+
 ## 5. What was reused vs re-measured
 
 | | |
 |---|---|
 | **Reused as-is** | The 6 `speedsweep_*` opportunity-window captures (829 observations) for all error(v), FPS and budget tables. The `RADAR_RASTERIZER_SHADOW_VALIDATION.md` equivalence result. The offline knob-matrix no-AE u8 floor anchor (0.95 m). The offered-load replay evidence that the map path sustains 30 FPS. |
-| **Re-derived from raw data** | The whole `L` decomposition — computed from the per-frame `map_ingest_metrics.csv` of both profile runs rather than quoted from the summary table (reproduces it exactly; per-frame additivity residual 0.000 ms). |
+| **Re-derived from raw data** | The current `L` decomposition — computed from the per-frame `map_ingest_metrics.csv` of the optimized profile run rather than quoted from the summary table (per-frame additivity residual 0.000 ms). |
 | **Newly measured (fresh run, 2026-07-30)** | `fresh_run_20260730_000257/` — 6 conditions on the already-running CARLA server: 3 × 200-frame true-uplink-only conditions for `L` (570 post-warm-up frames) and 3 × 400-frame accuracy-instrumented conditions (613 matched observations). |
-| **Newly computed** | Uplink-only error(v) at L∈{0, 38, 67, 93, 136, 181, 248} ms, both FPS tables (`s`=0.5 and 1) at two L anchors, all three budget tables, six plots, and the distribution-averaged staleness `E_L[err]`. |
+| **Newly computed** | Uplink-only error(v) at the current reporting anchors L∈{0, 38, 67, 93, 136} ms, both FPS tables (`s`=0.5 and 1) at the 67/93 ms L anchors, all three budget tables, presentation plots, and the distribution-averaged staleness `E_L[err]`. |
 
 ### 5a. The fresh run — what it is and is not used for
 
@@ -306,7 +335,8 @@ parked ones — harder to localize. The bins hold different content, so the abso
 Consequently **no headline number is taken from the fresh accuracy dataset.** The floor, error(v) curves and
 all budgets stay on the 829-observation baseline pool, which passes the full gate. The fresh accuracy data is
 used only as a floor-insensitive consistency check on staleness *growth*, via the implied displacement
-`√(err(L)² − err(0)²)` which should equal `v·L` regardless of each dataset's floor (at L=181 ms):
+`√(err(L)² − err(0)²)` which should equal `v·L` regardless of each dataset's floor. The table below is a
+validation stress check only; it is not part of the active reporting anchors:
 
 Each dataset is compared against **its own** mean band speed, since the same nominal bin holds different
 content in the two runs:
@@ -333,7 +363,7 @@ reproduces independently at speed on a fresh run; the fresh run's slow-speed flo
 
 | # | Guardrail | Status |
 |---|---|---|
-| 1 | `L` = full capture→map age (fast rasterizer), not core split→map | **Held.** L=67/93 ms used throughout; the 38 ms core column is shown *only* labelled "understates", and the 0.50 m error it would hide at 32 mph is quantified. |
+| 1 | `L` = full capture→map age (optimized pipeline), not core split→map | **Held.** L=67/93 ms used throughout; the 38 ms core column is shown *only* labelled "understates", and the 0.50 m error it would hide at 32 mph is quantified. |
 | 2 | No downlink term | **Held.** No `Y_down` anywhere. The one condition family with a result-return exists solely for GT/prediction logging and its downlink is excluded from `L`; the `L` numbers come only from true uplink-only conditions where the *edge* publishes. |
 | 3 | GT = actor origin, not bbox centre | **Held.** `USING_ORIGIN=True` on both datasets, 0 rows missing `origin_x/y`; the loader *hard-fails* instead of falling back to `world_x/world_y`. Conventions verified to genuinely differ (‖origin−centre‖ p50 0.041 m, max 0.841 m). |
 | 4 | Loopback only; label everything | **Held.** No OAI numbers used; every table and plot says "ideal loopback, uplink-only". |
