@@ -14,5 +14,12 @@
   "models": "noae,ae32,ae64,ae128",
   "quants": "uint8,uint6,uint4",
   "rois": "0.0,0.3,0.5,0.7,0.9,0.98",
-  "gt_convention": "object_world_x/y (bbox-centre-in-world) == the column train_fusion.py regresses"
+  "gt_convention": "object_world_x/y (bbox-centre-in-world) == the column train_fusion.py regresses",
+  "seg_num_classes": 3,
+  "seg_class_names": [
+    "background",
+    "vehicle",
+    "person"
+  ],
+  "seg_recipe": "outputs['out'] -> interp full-res -> argmax -> update_confusion vs GT mask (identical to evaluate_fusion); per-frame 3x3 confusion summed per density bin"
 }

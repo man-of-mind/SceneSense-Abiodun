@@ -1,5 +1,9 @@
-density_bin,n_frames,best_profile,model,quant,roi_q,payload_kb,transport_ms_derived,recall,recall_veh,recall_ped,loc_m,fp_per_frame
-0,483,ae32/u4/q0.98,ae32,per_channel_uint4,0.98,6.8,1.13,,,,,0.056
-1-2,1091,ae32/u4/q0.9,ae32,per_channel_uint4,0.9,16.7,1.22,0.9272,0.9524,0.8629,0.807,1.295
-3-4,453,ae64/u4/q0.9,ae64,per_channel_uint4,0.9,23.4,1.28,0.8914,0.9053,0.869,0.977,2.545
-5+,135,ae64/u4/q0.7,ae64,per_channel_uint4,0.7,43.7,1.47,0.8535,0.8782,0.8291,1.101,3.281
+density_bin,n_frames,policy,best_profile,model,quant,roi_q,payload_kb,transport_ms_derived,recall,recall_veh,recall_ped,loc_m,miou,veh_iou,fp_per_frame
+0,483,detection_only,ae32/u4/q0.98,ae32,per_channel_uint4,0.98,6.8,1.32,,,,,0.3098,0.015,0.056
+0,483,seg_aware,ae32/u6/q0.9,ae32,per_channel_uint6,0.9,26.6,1.49,,,,,0.5448,0.5625,0.054
+1-2,1091,detection_only,ae32/u4/q0.9,ae32,per_channel_uint4,0.9,16.7,1.41,0.9272,0.9524,0.8629,0.807,0.3981,0.1889,1.295
+1-2,1091,seg_aware,ae32/u4/q0,ae32,per_channel_uint4,0.0,90.0,2.05,0.9329,0.9489,0.8921,0.754,0.8123,0.9184,1.236
+3-4,453,detection_only,ae64/u4/q0.9,ae64,per_channel_uint4,0.9,23.4,1.47,0.8914,0.9053,0.869,0.977,0.4654,0.2368,2.545
+3-4,453,seg_aware,ae32/u4/q0,ae32,per_channel_uint4,0.0,89.5,2.04,0.8894,0.9085,0.8588,0.922,0.8222,0.9317,2.508
+5+,135,detection_only,ae64/u4/q0.7,ae64,per_channel_uint4,0.7,43.7,1.64,0.8535,0.8782,0.8291,1.101,0.6527,0.3952,3.281
+5+,135,seg_aware,ae32/u4/q0,ae32,per_channel_uint4,0.0,89.3,2.04,0.8561,0.8883,0.8241,1.078,0.848,0.8963,3.459

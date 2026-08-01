@@ -1,13 +1,15 @@
 {
   "transport_fit": {
-    "intercept_ms": 1.0667777676716863,
-    "slope_ms_per_kb": 0.009123763190884647,
-    "r2": 0.8441141244238484,
-    "n_measured": 36
+    "intercept_ms": 1.2598898191996126,
+    "slope_ms_per_kb": 0.008766007961540017,
+    "r2": 0.8435827349434524,
+    "n_measured": 48
   },
   "tolerances": {
     "recall_pts": 0.02,
     "loc_m": 0.1,
-    "fp_per_frame": 0.05
-  }
+    "fp_per_frame": 0.05,
+    "miou": 0.02
+  },
+  "seg_accept": "mIoU >= (model's own roi0 mIoU in same bin) - TOL_MIOU; joint accept = detection AND seg"
 }

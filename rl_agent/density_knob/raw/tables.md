@@ -97,61 +97,86 @@
 | 0.9 | 4.83% | 8.26% | denser = SMALLER payload in 6/12 profiles |
 | 0.98 | 9.12% | 16.90% | denser = SMALLER payload in 3/12 profiles |
 
-### T3 — cheapest accepted profiles per density bin
+### T3 — cheapest accepted profiles per density bin (joint detection + seg)
 
 
-**bin 0** — n=483 frames, 0 in-view GT objects  (recall degenerate: no objects → metric is FP/frame)
+**bin 0** — n=483 frames, 0 in-view GT objects  (recall degenerate: no objects → detection metric is FP/frame)
 
-| profile | payload KB | uplink ms (derived) | in-view recall | veh | ped | loc MAE m | FP/frame |
-|---|--:|--:|--:|--:|--:|--:|--:|
-| ae32/u4/q0.98 **←chosen** | 6.8 | 1.1 | n/a | n/a | n/a | n/a | 0.06 |
-| ae64/u4/q0.98 | 9.5 | 1.2 | n/a | n/a | n/a | n/a | 0.05 |
-| ae32/u6/q0.98 | 9.6 | 1.2 | n/a | n/a | n/a | n/a | 0.06 |
-| ae32/u8/q0.98 | 10.9 | 1.2 | n/a | n/a | n/a | n/a | 0.05 |
-| ae64/u6/q0.98 | 13.5 | 1.2 | n/a | n/a | n/a | n/a | 0.05 |
-| ae128/u4/q0.98 | 14.2 | 1.2 | n/a | n/a | n/a | n/a | 0.05 |
+| profile | payload KB | uplink ms | in-view recall | loc MAE m | FP/frame | **mIoU** | **veh IoU** | accepts |
+|---|--:|--:|--:|--:|--:|--:|--:|:--|
+| ae32/u4/q0.98 **←det-only pick** | 6.8 | 1.3 | n/a | n/a | 0.06 | 0.310 | 0.015 | **det only (seg fails)** |
+| ae64/u4/q0.98  | 9.5 | 1.3 | n/a | n/a | 0.05 | 0.333 | 0.015 | **det only (seg fails)** |
+| ae32/u6/q0.98  | 9.6 | 1.3 | n/a | n/a | 0.06 | 0.484 | 0.411 | **det only (seg fails)** |
+| ae32/u8/q0.98  | 10.9 | 1.4 | n/a | n/a | 0.05 | 0.485 | 0.412 | **det only (seg fails)** |
+| ae64/u6/q0.98  | 13.5 | 1.4 | n/a | n/a | 0.05 | 0.474 | 0.359 | **det only (seg fails)** |
+| ae128/u4/q0.98  | 14.2 | 1.4 | n/a | n/a | 0.05 | 0.085 | 0.003 | **det only (seg fails)** |
+| ae64/u8/q0.98  | 15.7 | 1.4 | n/a | n/a | 0.05 | 0.481 | 0.378 | **det only (seg fails)** |
+| ae32/u4/q0.9  | 16.1 | 1.4 | n/a | n/a | 0.06 | 0.340 | 0.028 | **det only (seg fails)** |
 
 **bin 1-2** — n=1091 frames, 1579 in-view GT objects
 
-| profile | payload KB | uplink ms (derived) | in-view recall | veh | ped | loc MAE m | FP/frame |
-|---|--:|--:|--:|--:|--:|--:|--:|
-| ae32/u4/q0.9 **←chosen** | 16.7 | 1.2 | 0.927 | 0.952 | 0.863 | 0.807 | 1.30 |
-| ae32/u6/q0.9 | 27.3 | 1.3 | 0.930 | 0.951 | 0.876 | 0.803 | 1.30 |
-| ae32/u8/q0.9 | 33.8 | 1.4 | 0.929 | 0.952 | 0.870 | 0.804 | 1.30 |
-| ae32/u4/q0.7 | 33.9 | 1.4 | 0.928 | 0.951 | 0.872 | 0.813 | 1.28 |
-| ae64/u6/q0.9 | 37.8 | 1.4 | 0.920 | 0.939 | 0.870 | 0.805 | 1.31 |
-| ae64/u4/q0.7 | 44.6 | 1.5 | 0.922 | 0.936 | 0.888 | 0.808 | 1.29 |
+| profile | payload KB | uplink ms | in-view recall | loc MAE m | FP/frame | **mIoU** | **veh IoU** | accepts |
+|---|--:|--:|--:|--:|--:|--:|--:|:--|
+| ae32/u4/q0.9 **←det-only pick** | 16.7 | 1.4 | 0.927 | 0.807 | 1.30 | 0.398 | 0.189 | **det only (seg fails)** |
+| ae32/u6/q0.9  | 27.3 | 1.5 | 0.930 | 0.803 | 1.30 | 0.669 | 0.535 | **det only (seg fails)** |
+| ae32/u8/q0.9  | 33.8 | 1.6 | 0.929 | 0.804 | 1.30 | 0.694 | 0.601 | **det only (seg fails)** |
+| ae32/u4/q0.7  | 33.9 | 1.6 | 0.928 | 0.813 | 1.28 | 0.627 | 0.416 | **det only (seg fails)** |
+| ae64/u6/q0.9  | 37.8 | 1.6 | 0.920 | 0.805 | 1.31 | 0.680 | 0.553 | **det only (seg fails)** |
+| ae64/u4/q0.7  | 44.6 | 1.7 | 0.922 | 0.808 | 1.29 | 0.636 | 0.427 | **det only (seg fails)** |
+| ae64/u8/q0.9  | 46.7 | 1.7 | 0.920 | 0.803 | 1.31 | 0.716 | 0.652 | **det only (seg fails)** |
+| ae32/u4/q0.5  | 49.4 | 1.7 | 0.928 | 0.812 | 1.28 | 0.652 | 0.479 | **det only (seg fails)** |
 
 **bin 3-4** — n=453 frames, 1528 in-view GT objects
 
-| profile | payload KB | uplink ms (derived) | in-view recall | veh | ped | loc MAE m | FP/frame |
-|---|--:|--:|--:|--:|--:|--:|--:|
-| ae64/u4/q0.9 **←chosen** | 23.4 | 1.3 | 0.891 | 0.905 | 0.869 | 0.977 | 2.55 |
-| ae32/u4/q0.7 | 34.5 | 1.4 | 0.889 | 0.904 | 0.866 | 0.975 | 2.59 |
-| ae64/u6/q0.9 | 38.2 | 1.4 | 0.895 | 0.914 | 0.866 | 0.983 | 2.55 |
-| ae64/u4/q0.7 | 44.9 | 1.5 | 0.898 | 0.909 | 0.881 | 0.964 | 2.51 |
-| ae64/u8/q0.9 | 47.1 | 1.5 | 0.895 | 0.914 | 0.864 | 0.983 | 2.55 |
-| ae32/u4/q0.5 | 49.5 | 1.5 | 0.890 | 0.905 | 0.866 | 0.973 | 2.59 |
+| profile | payload KB | uplink ms | in-view recall | loc MAE m | FP/frame | **mIoU** | **veh IoU** | accepts |
+|---|--:|--:|--:|--:|--:|--:|--:|:--|
+| ae64/u4/q0.9 **←det-only pick** | 23.4 | 1.5 | 0.891 | 0.977 | 2.55 | 0.465 | 0.237 | **det only (seg fails)** |
+| ae32/u4/q0.7  | 34.5 | 1.6 | 0.889 | 0.975 | 2.59 | 0.629 | 0.438 | **det only (seg fails)** |
+| ae64/u6/q0.9  | 38.2 | 1.6 | 0.895 | 0.983 | 2.55 | 0.664 | 0.503 | **det only (seg fails)** |
+| ae64/u4/q0.7  | 44.9 | 1.7 | 0.898 | 0.964 | 2.51 | 0.681 | 0.545 | **det only (seg fails)** |
+| ae64/u8/q0.9  | 47.1 | 1.7 | 0.895 | 0.983 | 2.55 | 0.714 | 0.633 | **det only (seg fails)** |
+| ae32/u4/q0.5  | 49.5 | 1.7 | 0.890 | 0.973 | 2.59 | 0.671 | 0.534 | **det only (seg fails)** |
+| ae128/u4/q0.7  | 61.0 | 1.8 | 0.903 | 0.988 | 2.61 | 0.606 | 0.393 | **det only (seg fails)** |
+| ae64/u4/q0.5  | 61.1 | 1.8 | 0.897 | 0.975 | 2.47 | 0.723 | 0.653 | **det only (seg fails)** |
 
 **bin 5+** — n=135 frames, 792 in-view GT objects
 
-| profile | payload KB | uplink ms (derived) | in-view recall | veh | ped | loc MAE m | FP/frame |
-|---|--:|--:|--:|--:|--:|--:|--:|
-| ae64/u4/q0.7 **←chosen** | 43.7 | 1.5 | 0.854 | 0.878 | 0.829 | 1.101 | 3.28 |
-| ae64/u4/q0.3 | 73.9 | 1.7 | 0.851 | 0.881 | 0.822 | 1.051 | 3.33 |
-| ae32/u4/q0 | 89.3 | 1.9 | 0.856 | 0.888 | 0.824 | 1.078 | 3.46 |
-| ae32/u6/q0.3 | 124.0 | 2.2 | 0.855 | 0.881 | 0.829 | 1.052 | 3.47 |
-| ae128/u4/q0 | 127.9 | 2.2 | 0.866 | 0.868 | 0.864 | 1.092 | 3.42 |
-| ae32/u6/q0 | 174.6 | 2.7 | 0.852 | 0.876 | 0.829 | 1.056 | 3.45 |
+| profile | payload KB | uplink ms | in-view recall | loc MAE m | FP/frame | **mIoU** | **veh IoU** | accepts |
+|---|--:|--:|--:|--:|--:|--:|--:|:--|
+| ae64/u4/q0.7 **←det-only pick** | 43.7 | 1.6 | 0.854 | 1.101 | 3.28 | 0.653 | 0.395 | **det only (seg fails)** |
+| ae64/u4/q0.3  | 73.9 | 1.9 | 0.851 | 1.051 | 3.33 | 0.783 | 0.708 | **det only (seg fails)** |
+| ae32/u4/q0 **←seg-aware pick** | 89.3 | 2.0 | 0.856 | 1.078 | 3.46 | 0.848 | 0.896 | det+seg |
+| ae32/u6/q0.3  | 124.0 | 2.3 | 0.855 | 1.052 | 3.47 | 0.825 | 0.828 | **det only (seg fails)** |
+| ae128/u4/q0  | 127.9 | 2.4 | 0.866 | 1.092 | 3.42 | 0.848 | 0.898 | det+seg |
+| ae32/u6/q0  | 174.6 | 2.8 | 0.852 | 1.056 | 3.45 | 0.849 | 0.897 | det+seg |
+| ae128/u6/q0.3  | 192.1 | 2.9 | 0.865 | 1.098 | 3.51 | 0.798 | 0.759 | **det only (seg fails)** |
+| ae32/u8/q0  | 229.1 | 3.3 | 0.851 | 1.052 | 3.48 | 0.849 | 0.897 | det+seg |
 
-### T4 — density → best-knob lookup (the deliverable)
+### T4 — density → best-knob lookup: detection-only vs seg-aware (the deliverable)
 
-| density (in-view objects) | n frames | best knob | payload KB | uplink ms (derived) | in-view recall | loc MAE m | FP/frame |
-|---|--:|---|--:|--:|--:|--:|--:|
-| 0 | 483 | `ae32/u4/q0.98` | 6.8 | 1.13 | n/a | n/a | 0.056 |
-| 1-2 | 1091 | `ae32/u4/q0.9` | 16.7 | 1.22 | 0.9272 | 0.807 | 1.295 |
-| 3-4 | 453 | `ae64/u4/q0.9` | 23.4 | 1.28 | 0.8914 | 0.977 | 2.545 |
-| 5+ | 135 | `ae64/u4/q0.7` | 43.7 | 1.47 | 0.8535 | 1.101 | 3.281 |
+| density | n frames | policy | best knob | payload KB | uplink ms | in-view recall | loc MAE m | mIoU | veh IoU | FP/frame |
+|---|--:|---|---|--:|--:|--:|--:|--:|--:|--:|
+| 0 | 483 | detection_only | `ae32/u4/q0.98` | 6.8 | 1.32 | n/a | n/a | 0.3098 | 0.015 | 0.056 |
+| 0 | 483 | seg_aware | `ae32/u6/q0.9` | 26.6 | 1.49 | n/a | n/a | 0.5448 | 0.5625 | 0.054 |
+| 1-2 | 1091 | detection_only | `ae32/u4/q0.9` | 16.7 | 1.41 | 0.9272 | 0.807 | 0.3981 | 0.1889 | 1.295 |
+| 1-2 | 1091 | seg_aware | `ae32/u4/q0` | 90.0 | 2.05 | 0.9329 | 0.754 | 0.8123 | 0.9184 | 1.236 |
+| 3-4 | 453 | detection_only | `ae64/u4/q0.9` | 23.4 | 1.47 | 0.8914 | 0.977 | 0.4654 | 0.2368 | 2.545 |
+| 3-4 | 453 | seg_aware | `ae32/u4/q0` | 89.5 | 2.04 | 0.8894 | 0.922 | 0.8222 | 0.9317 | 2.508 |
+| 5+ | 135 | detection_only | `ae64/u4/q0.7` | 43.7 | 1.64 | 0.8535 | 1.101 | 0.6527 | 0.3952 | 3.281 |
+| 5+ | 135 | seg_aware | `ae32/u4/q0` | 89.3 | 2.04 | 0.8561 | 1.078 | 0.848 | 0.8963 | 3.459 |
+
+### T3b — segmentation vs ROI drop q, per density bin (why ROI is not a free knob)
+
+Averaged over all four AE variants at u4 (the detection-cheapest quant). mIoU / vehicle-IoU; ROI drop keeps only object cells, so dense seg between objects dies.
+
+| ROI drop q | bin 0 mIoU / vehIoU | bin 1-2 mIoU / vehIoU | bin 3-4 mIoU / vehIoU | bin 5+ mIoU / vehIoU |
+|--:|--:|--:|--:|--:|
+| 0 | 0.564 / 0.595 | 0.816 / 0.922 | 0.827 / 0.934 | 0.853 / 0.902 |
+| 0.3 | 0.462 / 0.294 | 0.703 / 0.602 | 0.725 / 0.656 | 0.752 / 0.640 |
+| 0.5 | 0.423 / 0.189 | 0.635 / 0.442 | 0.665 / 0.523 | 0.665 / 0.421 |
+| 0.7 | 0.412 / 0.159 | 0.588 / 0.354 | 0.619 / 0.420 | 0.624 / 0.347 |
+| 0.9 | 0.373 / 0.137 | 0.455 / 0.174 | 0.457 / 0.232 | 0.485 / 0.212 |
+| 0.98 | 0.285 / 0.053 | 0.377 / 0.112 | 0.405 / 0.129 | 0.438 / 0.125 |
 
 ### T5.ae128 — in-view recall vs ROI drop q, per density bin (ae128, u8)
 
@@ -197,7 +222,7 @@
 | 0.9 | 0.892 | 0.855 | 0.827 | 0.07 | 187.1 |
 | 0.98 | 0.888 | 0.825 | 0.766 | 0.08 | 66.0 |
 
-### Uplink-latency derivation
+### Uplink-latency fit (fully measured)
 
-`transport_ms = 1.067 + 0.00912 x payload_KB`, least-squares fit on the 36 MEASURED ideal-loopback profiles in `loopback_latency_zstd.json` (R²=0.844). Values at q>0.5 are DERIVED from this fit, not measured — ideal loopback, uplink-only.
+`transport_ms = 1.260 + 0.00877 x payload_KB`, least-squares fit on the 48 MEASURED ideal-loopback profiles in `loopback_latency_zstd.json` (R²=0.844). As of 2026-07-31 this includes the high-ROI q=0.7/0.9/0.98 profiles, so the whole ROI range is measured (front ~25 ms flat, transport 1.3–4.1 ms, delivery 1.00) — no extrapolation. Ideal loopback, uplink-only.
 

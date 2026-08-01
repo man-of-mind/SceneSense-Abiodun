@@ -1,0 +1,6 @@
+# Track 2 policy summary
+
+| label | run_group | frames | returned | delivery_pct | payload_p50_kib | payload_p95_kib | front_build_p50_ms | front_build_p95_ms | uplink_p50_ms | uplink_p95_ms | capture_to_result_p50_ms | capture_to_result_p95_ms | edge_tail_p50_ms | downlink_p50_ms | rtt_p50_ms | send_call_p50_ms | ul_scheduled_mbps | ul_mcs_avg | ul_mcs_p50 | ul_mcs_p95 | ul_prb_p50 | ul_prb_p95 | ul_avg_tbs_bytes | ul_p95_tbs_bytes | ul_retx_rate |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| P0 | downlink_oai_default106_ttracer_fps10_drivable_fast_timingfix_20260731_default106_noae | 1300.000 | 1194.000 | 91.846 | 1046.040 | 1072.736 | 57.013 | 89.253 | 144.848 | 157.834 | 215.060 | 256.235 | 7.383 | 3.184 | 156.816 | 5.344 | 20.571 | 7.250 | 7.000 | 13.000 | 106.000 | 106.000 | 1381.850 | 3521.000 | 0.000 |
+| P2_holdfew | downlink_oai_default106_ttracer_fps10_track2_holdfew_20260801_default106_noae | 1300.000 | 1196.000 | 92.000 | 1048.979 | 1071.983 | 56.378 | 93.678 | 37.531 | 44.032 | 105.244 | 148.661 | 7.540 | 2.267 | 48.318 | 5.405 | 27.589 | 27.729 | 28.000 | 28.000 | 106.000 | 106.000 | 6132.080 | 10247.000 | 0.000 |

@@ -1,244 +1,255 @@
 # Density-adaptive knob selection — RESULTS
 
-**Date:** 2026-07-31 · **Plan:** [`../DENSITY_ADAPTIVE_KNOB_PLAN.md`](../DENSITY_ADAPTIVE_KNOB_PLAN.md) ·
-**Run log:** [`RUN_LOG.md`](RUN_LOG.md) · **Gates:** 8/8 PASS ([`raw/gate_report.txt`](raw/gate_report.txt))
+**Date:** 2026-07-31 (seg-inclusive re-run) · **Plan:** [`../DENSITY_ADAPTIVE_KNOB_PLAN.md`](../DENSITY_ADAPTIVE_KNOB_PLAN.md) ·
+**Run log:** [`RUN_LOG.md`](RUN_LOG.md) · **Gates:** 9/9 PASS ([`raw/gate_report.txt`](raw/gate_report.txt))
 **Scope label:** offline per-model eval on the corrected-drivable moving-ego capture; payload→latency is
 **ideal loopback, uplink-only**. OAI radio is a separate study.
 
 **Measured:** 4 AE {none, 32, 64, 128} × 3 quant {u8, u6, u4} × 6 ROI drop fractions
 {0, 0.3, 0.5, 0.7, 0.9, 0.98} = **72 profiles × 2162 test frames = 155 664 profile-frames**, each with its
-own payload bytes, in-view GT count, and per-class tp/fp/fn/loc. ROI q ∈ {0.7, 0.9, 0.98} are **new** —
-the published knob matrix stopped at 0.5.
+own payload bytes, in-view GT count, per-class tp/fp/fn/loc, **and a per-frame 3×3 segmentation confusion**
+(background / vehicle / person), so **both** object detection **and** dense segmentation are scored per
+density bin. ROI q ∈ {0.7, 0.9, 0.98} are **new** — the published knob matrix stopped at 0.5.
+
+> **What changed vs the first run.** The first density run scored **detection only** (recall + loc). This
+> re-run adds **segmentation** (mIoU + per-class IoU), because the shared cooperative map needs the dense
+> semantic layer — drivable surface, lane geometry, the vehicle/person pixel masks *between* the object
+> boxes — not just object dots. Adding seg **flips the headline conclusion** (§1). Everything the detection-
+> only run reported is still true *for detection*; it was just answering the wrong question for a map that
+> carries segmentation.
 
 ---
 
 ## 1. Answer
 
-**The best knob does shift hard with density, and the shift is worth ~6.4× in payload.**
+**Once segmentation is part of the deliverable, the density-adaptive-ROI story collapses. The best knob is
+`ae32 / u4 / ROI 0` at ~90 KB, and it is essentially the SAME at every non-empty density.**
 
-| density (in-view objects) | n frames | best knob | payload | uplink ms *(derived)* | in-view recall | loc MAE | FP/frame |
-|---|--:|---|--:|--:|--:|--:|--:|
-| **0** (empty) | 483 | `ae32 / u4 / q=0.98` | **6.8 KB** | 1.1 | n/a (no objects) | n/a | 0.056 |
-| **1–2** (sparse) | 1091 | `ae32 / u4 / q=0.9` | **16.7 KB** | 1.2 | 0.927 ± 0.013 | 0.81 m | 1.30 |
-| **3–4** (busy) | 453 | `ae64 / u4 / q=0.9` | **23.4 KB** | 1.3 | 0.891 ± 0.016 | 0.98 m | 2.55 |
-| **5+** (dense) | 135 | `ae64 / u4 / q=0.7` | **43.7 KB** | 1.5 | 0.854 ± 0.025 | 1.10 m | 3.28 |
+Joint accept rule: minimum payload subject to **(detection)** `recall ≥ bin-best − 0.02` **and**
+`loc ≤ bin-best + 0.10 m`, **AND (segmentation)** `mIoU ≥ (that model's own ROI-0 mIoU in the same bin) − 0.02`.
 
-(± = binomial 95 % CI on recall. Rule: **minimum payload** subject to `recall ≥ bin-best − 0.02` **and**
-`loc ≤ bin-best + 0.10 m`; in the empty bin recall is degenerate so the criterion is
-`FP/frame ≤ bin-best + 0.05`.)
+| density (in-view objects) | n frames | **seg-aware best knob** | payload | uplink ms | in-view recall | loc MAE | **mIoU** | **veh IoU** |
+|---|--:|---|--:|--:|--:|--:|--:|--:|
+| **0** (empty) | 483 | `ae32 / u6 / q0.9` * | 26.6 KB | ~13 † | n/a (no objects) | n/a | 0.545 * | 0.563 * |
+| **1–2** (sparse) | 1091 | `ae32 / u4 / ROI 0` | **90.0 KB** | **~39** ‡ | 0.933 | 0.75 m | 0.812 | 0.918 |
+| **3–4** (busy) | 453 | `ae32 / u4 / ROI 0` | **89.5 KB** | ~39 ‡ | 0.889 | 0.92 m | 0.822 | 0.932 |
+| **5+** (dense) | 135 | `ae32 / u4 / ROI 0` | **89.3 KB** | ~39 ‡ | 0.856 | 1.08 m | 0.848 | 0.896 |
 
-The knob relaxes monotonically as the scene empties: **q 0.7 → 0.9 → 0.98**, AE bottleneck **64 → 32**,
-and the number of *affordable* profiles collapses with density — **71 of 72 profiles are acceptable in an
-empty scene, only 11 of 72 in a 5+ scene.** Weighting each bin by how much of the drive it occupies, a
-density-adaptive policy averages **17.6 KB/frame vs 43.7 KB/frame** for the single conservative knob you
-would otherwise have to run everywhere — a **60 % uplink saving at equal accuracy**.
+`*` bin-0 seg is **degenerate** — with no in-view vehicles/pedestrians the vehicle/person IoUs are computed
+on a handful of far pixels, so the mIoU there is dominated by unstable object classes, not by the drivable-
+surface layer (background IoU stays ~0.99 at every q). Read the empty-bin pick as "some ROI drop is
+tolerable when the scene is truly empty," not as a reliable 0.545 mIoU. See §5.
+`‡` **measured**: `ae32/u4/ROI0` capture→result ≈ 24.7 ms front + 12.1 ms back + 2.0 ms transport
+(`loopback_latency_zstd.json`, ideal 8 MB loopback). `†` bin-0 q0.9 latency now also **measured**
+(high-ROI sweep, 2026-07-31): front ~25 ms, transport ~1.5 ms — the whole ROI range is measured (§6).
+
+**The three non-empty bins pick the identical knob.** Density does not move the seg-aware choice: `ae32/u4/
+ROI0` is the cheapest profile that holds segmentation at every density, and it *also* holds detection recall
+(0.93/0.89/0.86, within tolerance of the bin-best) with *better* localisation than the aggressive-ROI
+alternatives. **Scene density is therefore not a useful knob-selection variable when the map carries
+segmentation** — the policy is flat at ~90 KB.
 
 ![Pareto per density bin](plots/pareto_per_density_bin.png)
 
 ---
 
-## 2. ⚠️ The mechanism is NOT the one the plan hypothesised — correct this before it reaches the agent
+## 2. Why ROI drop is not a free knob — it is a detection-only compression that destroys segmentation
 
-The plan's physics recap says: *"Clear scene → few cells exceed any τ → small payload regardless. Dense
-scene → many cells kept."* **That describes a value-threshold ROI gate, which is not what the code does.**
-The deployed front end (`evaluate_fusion._roi_gate`, matching training's `model._objectness_drop`) uses a
-**rank-based drop**: it zeroes the `k = round(q·N)` *lowest-objectness* cells. This was deliberate — the
-quantile-**value** gate was found to be a no-op and was replaced (memory `dropaware_mprime_build`).
+This is the mechanism, and it is the whole story. The ROI gate zeroes the `k = round(q·N)` lowest-
+objectness feature cells (rank-based drop, matching training's `model._objectness_drop`). Those low-
+objectness cells are exactly the **background between objects** — which detection does not need but the
+dense segmentation head does. So raising q is nearly free for object recall and **catastrophic for seg**:
 
-Consequence: **the number of cells dropped is fixed by q and is identical at every density.** So:
+**T3b — mIoU / vehicle-IoU vs ROI drop q (u4, mean over the four AE variants):**
 
-| ROI drop q | payload spread across the 4 density bins | direction |
-|--:|--:|---|
-| 0 | **1.3 %** | denser = slightly *smaller* |
-| 0.3 | 1.4 % | denser = slightly smaller |
-| 0.5 | 1.6 % | denser = slightly smaller |
-| 0.7 | 2.8 % | mixed |
-| 0.9 | 4.8 % | mixed |
-| 0.98 | **9.1 %** (max 16.9 %) | mixed |
+| ROI drop q | bin 0 | bin 1–2 | bin 3–4 | bin 5+ |
+|--:|--:|--:|--:|--:|
+| **0** | 0.564 / 0.595 | **0.816 / 0.922** | **0.827 / 0.934** | **0.853 / 0.902** |
+| 0.3 | 0.462 / 0.294 | 0.703 / 0.602 | 0.725 / 0.656 | 0.752 / 0.640 |
+| 0.5 | 0.423 / 0.189 | 0.635 / 0.442 | 0.665 / 0.523 | 0.665 / 0.421 |
+| 0.7 | 0.412 / 0.159 | 0.588 / 0.354 | 0.619 / 0.420 | 0.624 / 0.347 |
+| 0.9 | 0.373 / 0.137 | 0.455 / 0.174 | 0.457 / 0.232 | 0.485 / 0.212 |
+| **0.98** | 0.285 / 0.053 | **0.377 / 0.112** | 0.405 / 0.129 | 0.438 / 0.125 |
 
-**Density moves the payload by ~1–2 % at usable operating points, and never more than ~17 %.** And where
-the no-AE models do show a trend, it runs *opposite* to the hypothesis: an **empty** frame is slightly
-**more** expensive (`noae/u8/q0`: 1062 KB empty vs 1034 KB at 5+), because open road is dominated by
-textured background while a near vehicle presents large smooth regions that entropy-code better.
+Vehicle-segmentation IoU falls off a cliff — in the sparse bin, **0.922 → 0.112** as q goes 0 → 0.98, an
+88 % loss — while in-view **detection recall over the same sweep barely moves** (0.94 → 0.90). That
+divergence is the entire reason the two analyses disagree.
 
-So the correct statement of the physics, which is what should go into the agent's model:
+![segmentation collapse vs ROI](plots/seg_collapse_vs_roi.png)
 
-> The uplink tensor is fixed-size. **Density barely moves what a knob COSTS in bytes — it moves what that
-> knob COSTS IN ACCURACY.** The policy is density-conditioned because the *accuracy budget* is
-> density-conditioned, not because empty scenes are intrinsically cheap to send.
+---
 
-Measured accuracy cost of raising q, relative to q=0, averaged over all 12 model×quant combinations:
+## 3. The density-adaptive-ROI policy was an artifact of ignoring segmentation
 
-| ROI drop q | bin 1–2 | bin 3–4 | bin 5+ |
-|--:|--:|--:|--:|
-| 0.5 | −0.80 pts | −0.20 pts | −0.51 pts |
-| 0.9 | −0.79 pts | −1.08 pts | −0.90 pts |
-| **0.98** | **−2.22 pts** | **−4.51 pts** | **−4.49 pts** |
-| 0.98 (loc) | +0.230 m | +0.270 m | +0.286 m |
+The first run's picks, re-scored on seg, show what the aggressive-ROI compression was actually costing:
 
-![cost of ROI drop](plots/density_cost_of_roi_drop.png)
+| density | detection-only pick (first run) | payload | recall | **mIoU** | **veh IoU** | seg verdict |
+|---|---|--:|--:|--:|--:|---|
+| 1–2 | `ae32/u4/q0.9` | 16.7 KB | 0.927 | **0.398** | **0.189** | seg destroyed (−52 %/−80 %) |
+| 3–4 | `ae64/u4/q0.9` | 23.4 KB | 0.891 | **0.465** | **0.237** | seg destroyed |
+| 5+ | `ae64/u4/q0.7` | 43.7 KB | 0.854 | **0.653** | **0.395** | seg badly degraded |
 
-The recall cost of the most aggressive drop roughly **doubles** from sparse to busy (−2.2 → −4.5 pts) and
-the localisation cost rises monotonically with density (+0.23 → +0.29 m). Note the gradient **saturates**
-between 3–4 and 5+ — the cost does not keep growing, so a two-level policy captures most of the benefit.
+The "6.4× payload span / 60 % uplink saving from density adaptation" that the detection-only run reported
+was **bought entirely by throwing away segmentation.** At equal detection accuracy, keeping seg costs the
+extra payload: 16.7 → 90 KB in the sparse bin. The saving was real for an **object-only** map and is
+**not** real for a map that carries the semantic layer.
+
+**How many profiles survive each objective (out of 72):**
+
+| bin | pass detection | pass detection **+ seg** |
+|---|--:|--:|
+| 0 (empty) | 71 | 39 |
+| 1–2 | 41 | **9** |
+| 3–4 | 38 | **9** |
+| 5+ | 11 | **6** |
+
+The seg constraint removes ~80 % of the detection-affordable profiles in populated scenes, and every
+survivor is **ROI 0** (plus AE + u4). This reproduces, from an independent code path, what the seg-aware
+knob matrix already implied: its `accept` column marks essentially only ROI-0 rows.
+
+---
+
+## 4. Payload physics (unchanged and still important): density barely moves the bytes
+
+The uplink tensor is fixed-size, and the ROI drop is rank-based, so **density moves the payload by ~1–2 %
+at usable operating points** — it never was the lever:
+
+| ROI drop q | payload spread across the 4 density bins |
+|--:|--:|
+| 0 | 1.3 % |
+| 0.5 | 1.6 % |
+| 0.9 | 4.8 % |
+| 0.98 | 9.1 % (max 16.9 %) |
+
+So the correct one-line physics for the agent is unchanged from the first run — only its *consequence*
+changes:
+
+> Density barely moves what a knob COSTS in bytes. In the detection-only framing it moved what a knob costs
+> in *detection accuracy*; in the seg-inclusive framing the binding constraint is **segmentation**, and seg
+> is destroyed by the ROI knob at **every** density. So the seg-aware knob is density-invariant.
 
 ![payload spread](plots/payload_spread_by_density.png)
 
 ---
 
-## 3. Empty scenes: the honest metric is false positives, and it is *not* free
+## 5. Empty scenes: the one place ROI drop survives, and why it is degenerate
 
-Guardrail 1 requires this, because with zero in-view objects every profile trivially "passes" recall.
+In the empty bin (0 in-view objects) the joint rule accepts `ae32/u6/q0.9` at 26.6 KB — i.e. some ROI drop
+*is* tolerated. But this is a metric artefact, not a licence to compress hard when empty:
 
-| ROI drop q *(ae32/u4)* | payload | FP/frame in empty frames |
-|--:|--:|--:|
-| 0 | 90.4 KB | 0.043 |
-| 0.5 | 49.4 KB | 0.058 |
-| 0.9 | 16.1 KB | 0.058 |
-| 0.98 | 6.8 KB | 0.056 |
-| lowest-FP of all 72 profiles | 61.8 KB (`ae64/u4/q0.5`) | **0.027** |
+- With no in-view vehicles/pedestrians, the **vehicle and person IoUs are computed on a few far/edge
+  pixels** and are noisy; the reported bin-0 mIoU (0.545 at q0.9) is dominated by those degenerate classes.
+- The **background / drivable-surface IoU stays ≈ 0.99 across all q** — the part of segmentation that
+  actually matters in an empty scene is essentially q-insensitive.
+- The empty-bin pick is also the **most FP-sensitive** result: raising q roughly doubles spurious detections
+  (best-achievable 0.027 FP/frame → 0.054–0.058, one phantom every ~37 → ~18 frames). If the map is
+  FP-sensitive, prefer a lower q here too.
 
-Cranking q up in an empty scene costs **no recall (there is nothing to recall) but roughly doubles spurious
-detections — from a best-achievable 0.027 FP/frame to 0.056–0.058, i.e. one phantom object every ~37 frames
-becomes one every ~18.** Note the FP penalty is already fully paid by q=0.5 and does **not** keep growing to
-q=0.98, so the extra payload saving from 0.5→0.98 (49 → 7 KB) is genuinely free of FP cost.
-Tiny in absolute terms, but it is a real cost, and it makes the empty-bin pick **the most
-tolerance-sensitive result in this study**:
-
-| FP tolerance | cheapest acceptable profile | payload |
-|---|---|--:|
-| +0.005 / +0.01 | `ae64/u4/q0.9` | 23.1 KB |
-| +0.02 | `ae64/u4/q0.98` | 9.5 KB |
-| **+0.05 (used here)** | `ae32/u4/q0.98` | **6.8 KB** |
-
-**Read this as: "empty ⇒ q≈0.9–0.98, 7–23 KB", not as a hard 6.8 KB.** If the downstream map is
-FP-sensitive (phantom objects in a spatial map are worse than a missed distant one), take `ae64/u4/q0.9` at
-23.1 KB and the policy span becomes 1.9× instead of 6.4×. That choice belongs to the map consumer, not to
-this analysis.
+**Honest reading:** in a *truly empty* scene the drivable-surface layer tolerates aggressive ROI, so the
+agent may compress hard — but the moment even one object is in view the seg constraint snaps back to ROI 0.
+Given the observability caveat (§9), the safe default is to treat empty the same as sparse (ROI 0) unless
+the map explicitly does not consume segmentation.
 
 ---
 
-## 4. What the hypothesis got right and wrong
+## 6. Latency status — now fully MEASURED across the whole ROI range
 
-| plan hypothesis | verdict |
-|---|---|
-| empty → τ→1.0 maximal ROI drop | ✅ **confirmed** — q=0.98 is acceptable when empty, and is not acceptable at 5+ |
-| empty → tiny payload, "nothing to keep" | ❌ **wrong mechanism** — payload is set by q, not by content; empty frames are if anything slightly *larger* (§2) |
-| empty → no accuracy loss | ⚠️ **mostly** — zero recall loss, but FP/frame roughly doubles (§3) |
-| dense → low ROI τ | ✅ **confirmed** — q must drop to 0.7; q≥0.9 fails the accuracy gate at 5+ |
-| dense → **u8 bits** | ❌ **wrong** — **u4 wins at every density.** Bits are the cheapest axis to give up: at matched model+q, u8 costs **2.0–2.4× the payload** and buys between −0.12 and **+0.44** recall points |
-| dense → no aggressive AE | ❌ **inverted** — the AE *helps*. Dense scenes want a **larger** bottleneck (64 vs 32), and **not one no-AE profile is accepted in any bin** (0 of 41, 0 of 38, 0 of 11): the best no-AE profile needs **9–33× the payload** and still lands **1.5–2.1 recall points lower** than the chosen AE knob |
-
-The single biggest practical finding is the last one: **the AE is not a compression concession, it is an
-accuracy improvement.** `ae128/u8/q0` reaches 0.939 in-view recall in bin 1–2 at 341 KB where `noae/u8/q0`
-reaches only 0.908 at 1050 KB. Every entry in the density→knob table is an AE profile at u4, and the
-no-AE family is Pareto-dominated at every density.
+- **The seg-aware pick is ROI 0, latency MEASURED** in `loopback_latency_zstd.json`:
+  `ae32/u4/ROI0` ≈ 24.7 ms front + 12.1 ms back + 2.0 ms transport ≈ **39 ms** capture→result, ideal 8 MB
+  loopback. The §1 deliverable rests on a measured number.
+- **The high-ROI regime (q 0.7/0.9/0.98) is now MEASURED too** (2026-07-31, 12-profile loopback sweep,
+  `run_ideal_loopback_zstd_highroi.sh`, merged into `loopback_latency_zstd.json` → 48 profiles). The
+  measurement **confirms the earlier extrapolation was accurate and conservative**: front compute is flat
+  and backbone-dominated (**24.5–26 ms** for the AE profiles, rising only for the large-payload no-AE ones),
+  transport is **1.3–4.1 ms** (tracking payload), and **delivery is 1.00** at every point. The fit is now
+  `transport_ms = 1.260 + 0.00877 × payload_KB` on 48 measured profiles (R²=0.844) — negligibly different
+  from the earlier 36-profile fit (`1.067 + 0.00912`), and **no policy pick changed** (detection-only or
+  seg-aware): latency was never the deciding axis, payload/accuracy is. So the object-only comparison in §3
+  is now on measured latency, not a derivation.
+- **Over OAI**, the byte axis matters ~14× more than on loopback (≈0.13 ms/KB vs ≈0.009 ms/KB) plus a
+  delivery-rate effect (75 % → 99 %); the seg-aware ~90 KB point sits well below the 142 KB that already
+  achieved 99 % delivery (memory `oai_compression_ab`), so it should be comfortably inside the good regime.
+  Belongs with the pending uplink-only-over-OAI run.
 
 ---
 
-## 5. Confounds and limits (state these when quoting the table)
+## 7. GT convention (guardrail 4) — resolved with a measurement, and detection + seg both reproduce the matrix
 
-- **Density correlates with proximity.** The nearest in-view object is at 20.0 m in sparse frames but
-  12.2 m in busy/dense ones (mean GT distance is roughly flat, 22.8 → 25.9 m). Some of the "dense scenes
-  are harder" effect is therefore a near-object effect. Mean GT speed does not co-vary (1.6 / 1.8 /
-  1.3 m/s), so the density effect is **not** a speed confound — that axis is already covered by the
-  speed-gated results in `AGENT_CONSTRAINTS.md`. This is the same location confound the road-state
-  analysis carried; do not claim a pure density effect.
-- **Bin 5+ is the thinnest**: 135 frames / 792 objects, ±2.5 pts recall at 95 %. It passes the ≥100-frame
-  gate and its ordering is consistent, but the 2-pt accept tolerance sits close to its own noise floor.
-  The 5+ row is directionally sound and should not be over-fitted; **no denser NPC re-capture was needed**
-  (all four bins populated), so this remains the honest natural-drive number rather than an artificial one.
-- **Recall/loc trade-off inside the accept rule.** In bin 5+, `ae128/u4/q0.9` is *cheaper* (35.7 KB) with
-  *higher* recall (0.859) but was rejected on localisation (1.25 m vs the 1.11 m cap). If the map cares
-  about recall more than about a 0.15 m loc penalty, that is the better pick and the 5+ payload drops to
-  35.7 KB. Stated so the rule is auditable rather than hidden.
-- **Uplink latency is derived, not measured, above q=0.5**:
-  `transport_ms = 1.067 + 0.00912 × payload_KB` (least squares on the 36 measured ideal-loopback profiles,
-  R²=0.844). At these payloads transport is 1–2 ms and irrelevant next to the 25–30 ms front-end compute —
-  **payload, not loopback latency, is the axis that matters here**, and it is the axis that matters over
-  OAI, where the same byte reduction is worth far more (memory `oai_compression_ab`).
-- **Front/back compute was not re-measured** at q>0.5. The ROI gate itself is cheap, but a formal
-  front-ms number for q ∈ {0.7, 0.9, 0.98} requires a loopback latency run (CARLA) — deliberately not run
-  this session, see §7.
-- **In-domain only**: Town10, single ego, same distribution the M' models were trained on.
+Same as the first run, now with a segmentation reproduction check added (gate **G7**). Gate G1 established:
+`object_world_x/y` present on **27 239/27 239** scored GT rows; it is the exact column `train_fusion.py`
+regresses (self-consistent — scoring against actor origin would *inject* an offset); and the residual is
+**measured**: over 73 600 live GT rows with both columns, origin-vs-bbox-centre XY delta is
+**mean 0.124 m, median 0.039 m, p95 0.511 m, max 0.995 m** (worst `vehicle.fuso.mitsubishi`, 0.51 m).
 
-## 6. GT convention (guardrail 4) — resolved with a measurement, not an assumption
-
-The plan says *GT = actor origin, hard-fail if `origin_x/y` is absent*. That rule was written for the
-**live capture** CSVs, which carry `world_x` (bbox centre) **and** `origin_x` (actor origin) side by side —
-that is where the two conventions got mixed. This is the **offline** eval, and it has exactly one GT
-column, `object_world_x/y`. So instead of a blind assert, gate G1 established three things:
-
-1. `object_world_x/y` is present on **27 239/27 239** scored GT rows (no silent fallback).
-2. That column is **the one `train_fusion.py` regresses** (both go through
-   `valid_localization_objects → world_x = object_world_x`). On this dataset that column is the
-   bbox-centre-in-world, so **scoring against the actor origin here would *inject* a convention offset
-   rather than remove one** — self-consistency is the property the guardrail exists to protect.
-3. The residual is **measured, not assumed**: over 73 600 live GT rows carrying both columns, the
-   origin-vs-bbox-centre XY delta is **mean 0.124 m, median 0.039 m, p95 0.511 m, max 0.995 m** (worst
-   asset `vehicle.fuso.mitsubishi`, 0.51 m mean). It is a z-axis offset for most assets, so the horizontal
-   impact is well under the 0.95 m model floor for all but a couple of large vehicles.
-
-And the check that actually proves no convention/matcher bug slipped in: this driver **reproduces the
-published `PERMODEL_KNOB_MATRIX_ZSTD.md`** on all 36 overlapping profiles × 4 metrics. The anchor row:
+This driver **reproduces the published `PERMODEL_KNOB_MATRIX_ZSTD.md`** on all 36 overlapping profiles, now
+on **both** detection and segmentation:
 
 | noae__uint8__roi0.0 | this driver | published | Δ |
 |---|--:|--:|--:|
 | payload KB | 1050.26 | 1050.30 | −0.04 |
 | obj recall | 0.879 | 0.879 | −0.000 |
-| ped recall | 0.855 | 0.855 | −0.000 |
-| **loc MAE m** | **0.951** | **0.950** | **+0.001** |
+| loc MAE m | 0.951 | 0.950 | +0.001 |
+| **mIoU** | **0.840** | **0.840** | **−0.000** |
+| **veh IoU** | **0.931** | **0.931** | **+0.000** |
 
-The floor is anchored at the offline **0.95 m**, never a loose-matcher live number (~3 m at a 5 m gate).
-
-## 7. Guardrail self-check
-
-| # | guardrail | status |
-|--:|---|---|
-| — | **Physics: payload measured across ROI/compression profiles, not no-AE alone** | ✅ all 72 profiles × 4 bins (`raw/payload_vs_density.csv`). Conclusion is the *opposite* of the plan's and is reported as such (§2). Never claimed density grows the raw tensor. |
-| — | **Binning: post-hoc GT label on the realistic drivable route** | ✅ 2162 continuous test frames labelled after the fact by in-view GT count; bins {0, 1–2, 3–4, 5+} = 483/1091/453/135 frames, all ≥100 → no bin demoted, no denser re-capture needed. No artificial fixed-ego spawn sweep was run (Experiment-3 trap avoided entirely, §8). |
-| 1 | Accuracy on the IN-VIEW objects; empty bin ⇒ FP + payload | ✅ density label and accuracy denominator are the **same object set**, verified frame-by-frame on all 155 664 rows (gate G6). Empty bin reported as FP/frame with a tolerance-sensitivity table (§3). |
-| 2 | Prefer natural route over controlled spawns | ✅ natural route only. |
-| 3 | ROI is content-adaptive ⇒ frame as choosing q per density | ✅ and refined: the deployed gate is **rank-based**, so q sets the drop fraction outright (§2). |
-| 4 | GT = actor origin / anchor 0.95 m | ✅ resolved with measurements + matrix reproduction (§6). |
-| 5 | Loopback only for payload→latency, labelled | ✅ labelled throughout; latency fit marked derived above q=0.5. |
-| 6 | No `PYTHONPATH` for CARLA clients; don't disturb others | ✅ **no CARLA client was started at all** — pure offline GPU work. Another session's CARLA + OAI gNB/UE + `fusion-back` container were running and were left untouched. |
-| 7 | Validate + demote, don't rescue | ✅ 8/8 gates pass (`raw/gate_report.txt`); nothing needed demoting. The one misleading artefact found — a recall-only Pareto frontier that made the bin-5+ pick look dominated — was **fixed rather than explained away** (the plot now shows the two-criteria accept region). |
-
-## 8. Not run, and why
-
-- **Controlled fixed-ego density sweep** (spawn exactly N objects). The plan lists it as optional
-  clean-isolation confirmation. Skipped: all four natural bins are adequately populated, so it would add
-  no statistical power, and it is precisely the artificial-scene setup that produced the Experiment-3
-  F1≈0.35 trap. If it is ever wanted, it must be reported as confirmation-only with that caveat.
-- **Loopback latency measurement at q ∈ {0.7, 0.9, 0.98}** (front/back/transport ms). Needs a CARLA
-  loopback run; the machine was busy with another session's CARLA + OAI + fusion-back. Payload is measured
-  and is the Pareto axis, so nothing in §1 depends on it. This is the natural next 30-minute job.
-- **Uplink-only-over-OAI validation of the density policy.** Belongs with the pending
-  uplink-only-over-OAI run, and is where the 6.4× payload span will actually pay off. From
-  `OAI_AB_RESULTS.md`, over OAI a 1141 → 142 KB payload cut moved RTT 209 → 77 ms, i.e. ≈0.13 ms per KB
-  against the ≈0.009 ms per KB measured on ideal loopback — a **~14× steeper payload→latency slope**, plus a
-  delivery-rate effect (75 % → 99 %) that loopback cannot show at all. All four knobs in §1 sit below the
-  142 KB point that already achieved 99 % delivery, so the density policy should be comfortably inside the
-  good regime; that still needs measuring, not assuming.
+The floor is anchored at the offline **0.95 m**; the seg head reproduces the matrix exactly, so the seg-
+aware conclusion is not an artefact of a mis-wired head.
 
 ---
 
-## 9. Agent state / policy note (for `AGENT_CONSTRAINTS.md`)
+## 8. Reconciliation with the knob matrix, confounds, limits
 
-> **Scene density belongs in the agent state alongside object speed.** It does not change the payload of a
-> knob (fixed-size tensor; rank-based ROI drop ⇒ ≤2 % payload variation at usable q) — it changes the
-> *accuracy cost* of that knob: the same q=0.98 drop costs −2.2 recall pts with 1–2 objects in view but
-> −4.5 pts with 3+. Policy: **q = 0.98 → 0.9 → 0.9 → 0.7 and AE 32 → 32 → 64 → 64 as the in-view count
-> goes 0 → 1–2 → 3–4 → 5+, with u4 bits at every density** (`raw/best_knob_lookup.csv`); that is 6.8 → 43.7
-> KB/frame, a 60 % drive-average uplink saving over the fixed conservative knob at equal accuracy.
-> **Observability caveat:** the agent cannot see the current frame's density before it sends, so it must
-> use a proxy — the detection count from the last returned map update / previous frame — which lags by one
-> control period and degrades exactly when density changes fastest (entering an intersection). Prefer a
-> hysteretic two-level policy (`q=0.9` sparse / `q=0.7` dense) over the four-level table: the measured
-> cost gradient saturates above 3–4 objects, so the extra levels buy little and are more exposed to
-> proxy error.
+- **Consistent with the matrix.** The seg-aware knob matrix's `accept` column already marked essentially
+  only ROI-0 profiles as passing (its 2 % mIoU gate rejects ROI drop). This density study rediscovers that
+  independently and adds the per-density breakdown. The one difference: the matrix uses a **global** clean
+  reference (best ped-recall = ae128 clean), which rejects `ae32/u4/ROI0` on ped-recall and pushes its
+  Pareto pick to `ae128/u4/ROI0` (129 KB); this study uses the plan-mandated **per-bin in-view** recall
+  reference, under which `ae32/u4/ROI0` (90 KB) qualifies. If you apply the stricter global ped-recall gate,
+  the seg-aware pick tightens to `ae128/u4/ROI0` at 129 KB — still ROI 0, still density-invariant.
+- **u4 and the AE are still the right axes.** At ROI 0, u4 is seg-lossless (ae32/u4/ROI0 mIoU 0.822 =
+  ae32 clean) and the AE *improves* accuracy while shrinking payload; no-AE is Pareto-dominated everywhere.
+  Density adaptation, to the extent any exists, lives in the AE-bottleneck / quant axes — which move payload
+  by ≤2 % with density, i.e. effectively not at all. **Bits and bottleneck, not ROI, and not density.**
+- **Density correlates with proximity** (nearest object 20.0 m sparse → 12.2 m dense); not a speed confound
+  (mean GT speed flat 1.6/1.8/1.3 m/s). Same location confound the road-state analysis carried.
+- **Bin 5+ is thinnest** (135 frames / 792 objects, ±2.5 pts recall); directionally sound, do not over-fit.
+- **In-domain only**: Town10, single ego, same distribution the M′ models were trained on; ideal loopback.
 
-**Full tables** (T1 bins/confounds, T2 payload×density for all 72 profiles, T3 accepted sets per bin,
-T4 lookup, T5 recall-vs-q per model): [`raw/tables.md`](raw/tables.md). Raw per-frame data:
-`raw/perframe_*.csv`.
+## 9. Agent state / policy note (supersedes the first run's note in `AGENT_CONSTRAINTS.md §8`)
+
+> **If the shared map carries segmentation (drivable surface / lane / dense semantics), scene density is
+> NOT a useful knob-selection state variable, and the ROI-drop knob must not be used for compression.** The
+> ROI gate keeps only high-objectness cells, which is nearly free for object recall but destroys the dense
+> seg between objects (vehicle IoU 0.92 → 0.11 as q 0 → 0.98, at every density). The seg-safe operating
+> point is **ROI 0 + AE bottleneck + u4**, ≈ 90 KB (`ae32/u4/ROI0`; 129 KB `ae128/u4/ROI0` under the
+> stricter global recall gate), and it is **density-invariant** — the same knob is optimal from 1 to 5+
+> objects in view. Compression must come from the **AE bottleneck and quantisation bits**, not from ROI and
+> not from density. Object speed remains the live state variable (latency/FPS budget); density can be
+> dropped from the knob-selection state.
+>
+> **Object-only exception:** if a deployment consumes *only* object detections (no segmentation layer),
+> then the earlier detection-only density-adaptive policy applies (ROI q 0.98→0.9→0.9→0.7, AE 32/32/64/64,
+> u4; 6.8 → 43.7 KB, ~60 % drive-average saving) — but it must be labelled "object map only; segmentation
+> is not preserved," and it carries the empty-bin FP caveat (§5).
+>
+> **Observability caveat** (either regime): the agent cannot see the current frame's density before it
+> sends; it must use a lagged proxy (detection count from the last map update), worst exactly when density
+> changes fastest (entering an intersection). With the seg-aware policy this is moot (the knob is flat), a
+> further reason to prefer it when segmentation is on the map.
+
+## 10. Not run, and why
+
+- **High-ROI loopback latency measurement** (q 0.7/0.9/0.98, 12 profiles) — ✅ **DONE 2026-07-31**
+  (`run_ideal_loopback_zstd_highroi.sh`, merged → 48 measured profiles). Confirmed the earlier
+  extrapolation; no policy pick changed (§6). The whole ROI range is now measured.
+- **Controlled fixed-ego density sweep** — skipped (all four natural bins populated; avoids the
+  Experiment-3 artificial-scene F1≈0.35 trap). Would add no statistical power.
+- **Uplink-only-over-OAI validation** — belongs with the pending OAI run.
+
+---
+
+**Full tables** (T1 bins/confounds, T2 payload×density all 72 profiles, T3 accepted sets per bin with seg,
+T3b seg-vs-q collapse, T4 detection-only-vs-seg-aware lookup, T5 recall-vs-q per model):
+[`raw/tables.md`](raw/tables.md). Both-policy lookup: [`raw/best_knob_lookup.csv`](raw/best_knob_lookup.csv).
+Raw per-frame data (now with seg confusion): `raw/perframe_*.csv`. Detection-only backup:
+`raw/detonly_backup/`.

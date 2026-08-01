@@ -20,6 +20,9 @@ G3  FLOOR ANCHOR. loc MAE at no-AE u8 roi0.0 must sit at the offline anchor ~0.9
     live number ~3 m, never implausibly low).
 G4  BIN SAMPLE SIZE. every density bin used for a policy needs enough frames; thin bins are demoted.
 G5  ROI MONOTONICITY. payload must fall as the ROI drop fraction rises, for every quant.
+G6  DENSITY LABEL AGREEMENT. the density label and the per-frame accuracy denominator must agree.
+G7  SEG REPRODUCTION. the NEW seg columns (mIoU + vehicle IoU) must reproduce the published matrix on
+    roi 0/0.3/0.5, the anti-bug check for the seg head exactly like G2 is for detection.
 """
 from __future__ import annotations
 
@@ -122,8 +125,27 @@ def load_perframe():
                           "tp_ped", "fp_ped", "fn_ped", "n_pred", "n_inview"):
                     a[f] += int(r[f])
                 a["loc_err_sum"] += float(r["loc_err_sum"])
+                for ci in range(3):  # seg confusion (row=GT, col=pred); absent in detection-only CSVs
+                    for cj in range(3):
+                        key = f"conf_{ci}{cj}"
+                        if key in r and r[key] != "":
+                            a[key] += int(r[key])
                 frames[k] += 1
     return agg, frames
+
+
+def seg_iou(a) -> dict:
+    """mIoU + per-class IoU from the summed 3x3 confusion, identical to class_iou_from_confusion."""
+    ious = []
+    for c in range(3):
+        tp = a[f"conf_{c}{c}"]
+        fp = sum(a[f"conf_{r}{c}"] for r in range(3)) - tp   # predicted c, GT != c
+        fn = sum(a[f"conf_{c}{cj}"] for cj in range(3)) - tp  # GT c, predicted != c
+        d = tp + fp + fn
+        ious.append(tp / d if d > 0 else float("nan"))
+    valid = [v for v in ious if not math.isnan(v)]
+    return {"miou": (sum(valid) / len(valid)) if valid else float("nan"),
+            "iou_bg": ious[0], "veh_iou": ious[1], "person_iou": ious[2]}
 
 
 def prof_metrics(a, nframes):
@@ -151,7 +173,8 @@ def parse_matrix_rows() -> dict:
             continue
         try:
             out[c[0]] = {"payload_kb": float(c[5]), "obj_recall": float(c[10]),
-                         "ped_recall": float(c[9]), "loc_m": float(c[11])}
+                         "ped_recall": float(c[9]), "loc_m": float(c[11]),
+                         "miou": float(c[7]), "veh_iou": float(c[8])}
         except ValueError:
             continue
     return out
@@ -190,6 +213,42 @@ def g2_reproduce(agg, frames):
     gate("G2 matrix reproduction", all_ok and checked >= 24,
          f"{checked} published profiles cross-checked on 4 metrics, all within tolerance"
          if all_ok else f"{checked} checked, at least one metric out of tolerance (see above)")
+    return all_ok
+
+
+# ---------------------------------------------------------------- G7 seg reproduction
+def g7_seg_reproduce(agg, frames):
+    """The seg columns are NEW in this driver (the first density run was detection-only). They must
+    reproduce the published matrix mIoU + vehicle IoU on the roi 0/0.3/0.5 profiles, exactly like G2
+    does for detection -- otherwise the seg head is wired wrong and the seg-aware policy is invalid."""
+    print("\nG7  seg reproduction (mIoU + vehicle IoU vs PERMODEL_KNOB_MATRIX_ZSTD.md)")
+    pub = parse_matrix_rows()
+    have_seg = any(agg[k].get("conf_11", 0) for k in agg)
+    if not have_seg:
+        return gate("G7 seg reproduction", False,
+                    "no seg confusion in per-frame CSVs -- re-run density_knob_eval.py with seg")
+    tol = {"miou": 0.02, "veh_iou": 0.02}  # absolute IoU tolerance (matrix accept tol was 2%)
+    checked, all_ok = 0, True
+    print(f"    {'profile':<24}{'metric':<10}{'mine':>9}{'published':>11}{'delta':>9}")
+    for (model, quant, roi), a in sorted(agg.items()):
+        if roi not in (0.0, 0.3, 0.5):
+            continue
+        name = f"{model}__{quant.replace('per_channel_', '')}__roi{roi}"
+        if name not in pub:
+            continue
+        s = seg_iou(a)
+        checked += 1
+        for k in ("miou", "veh_iou"):
+            mine, ref = s[k], pub[name][k]
+            d = mine - ref
+            ok = abs(d) <= tol[k]
+            all_ok &= ok
+            flag = "  <-- OUT OF TOL" if not ok else ""
+            if not ok or name == "noae__uint8__roi0.0":
+                print(f"    {name:<24}{k:<10}{mine:>9.3f}{ref:>11.3f}{d:>+9.3f}{flag}")
+    gate("G7 seg reproduction", all_ok and checked >= 24,
+         f"{checked} profiles cross-checked on mIoU+vehIoU, all within {tol['miou']} IoU"
+         if all_ok else f"{checked} checked, at least one seg metric out of tolerance (see above)")
     return all_ok
 
 
@@ -271,6 +330,7 @@ def main() -> int:
         return 2
     print(f"\nloaded {len(agg)} profiles x {max(frames.values())} frames")
     g2_reproduce(agg, frames)
+    g7_seg_reproduce(agg, frames)
     g3_floor(agg, frames)
     g4_bins()
     g5_monotonic(agg, frames)

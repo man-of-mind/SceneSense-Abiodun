@@ -48,8 +48,14 @@ for p in (str(AB / "pole_lraspp_multimodal_fusion"), str(AB), str(AB / "rl_agent
     if p not in sys.path:
         sys.path.insert(0, p)
 
-from pole_lraspp_multimodal_fusion.common import load_config, read_manifest  # noqa: E402
-from pole_lraspp_multimodal_fusion.evaluate_fusion import load_fused_tensor  # noqa: E402
+from pole_lraspp_multimodal_fusion.common import (  # noqa: E402
+    CLASS_NAMES,
+    class_iou_from_confusion,
+    load_config,
+    read_manifest,
+    update_confusion,
+)
+from pole_lraspp_multimodal_fusion.evaluate_fusion import load_fused_tensor, load_mask  # noqa: E402
 from pole_lraspp_multimodal_fusion.model import OBJECT_HEAD_CHANNELS, build_multitask_fusion_lraspp  # noqa: E402
 from pole_lraspp_multimodal_fusion.object_targets import (  # noqa: E402
     OBJECT_CLASS_NAMES,
@@ -81,7 +87,12 @@ ENTROPY_CODER, ZSTD_LEVEL = "zstd", 3
 FIELDS = ["model", "ae_bottleneck", "quant", "roi", "sample_id", "frame_id",
           "n_inview", "n_inview_veh", "n_inview_ped", "payload_bytes", "n_pred",
           "tp", "fp", "fn", "tp_veh", "fp_veh", "fn_veh", "tp_ped", "fp_ped", "fn_ped",
-          "loc_err_sum", "loc_err_sq_sum", "loc_err_sum_veh", "loc_err_sum_ped"]
+          "loc_err_sum", "loc_err_sq_sum", "loc_err_sum_veh", "loc_err_sum_ped",
+          # --- segmentation: per-frame 3x3 confusion (row=GT class, col=pred class), so mIoU and
+          # per-class (background/vehicle/person) IoU are a pure post-hoc SUM within each density bin,
+          # identical to how PERMODEL_KNOB_MATRIX computes mIoU (class_iou_from_confusion on the sum).
+          "conf_00", "conf_01", "conf_02", "conf_10", "conf_11", "conf_12",
+          "conf_20", "conf_21", "conf_22"]
 
 
 def build_model(ckpt_path: Path, device: torch.device, config: dict):
@@ -161,6 +172,8 @@ def main() -> int:
     config = load_config(str(CFG))
     object_cfg = config.get("object_heads", {})
     min_gt_area_px = float(object_cfg.get("min_gt_area_px", 24.0))
+    num_classes = int(config["training"].get("num_classes", 3))  # seg classes: background/vehicle/person
+    seg_class_names = list(CLASS_NAMES[:num_classes])
 
     rows = [r for r in read_manifest(DS / "manifest.csv") if r.get("split") == a.split]
     if a.limit_rows:
@@ -220,7 +233,7 @@ def main() -> int:
                 n_ped = len(gt_objects) - n_veh
                 cam_c = np.asarray(matrix)[:3, 3]
 
-                # ---- shared per-frame work: backbone encode + objectness ranking ----
+                # ---- shared per-frame work: backbone encode + objectness ranking + GT seg mask ----
                 feats = split.encode(fused)
                 obj_maps = split.decode_object_maps(feats, out_hw)
                 objness = torch.sigmoid(obj_maps[:, :n_heat]).amax(dim=1, keepdim=True)
@@ -229,6 +242,7 @@ def main() -> int:
                     if feat.shape[-2:] not in keep_order:
                         pooled = F.adaptive_max_pool2d(objness, feat.shape[-2:]).reshape(-1).float()
                         keep_order[feat.shape[-2:]] = pooled.argsort()
+                gt_mask = load_mask(DS / row["mask_path"])  # (H, W) at original resolution, once per frame
 
                 for prof in profiles:
                     gated = roi_gate(feats, keep_order, prof["roi"])
@@ -242,6 +256,14 @@ def main() -> int:
                     if ae is not None:
                         feats_rt = OrderedDict((k, (ae.decode(v) if k == "high" else v)) for k, v in feats_rt.items())
                     outputs = split.decode_outputs(feats_rt, out_hw)
+
+                    # ---- segmentation: same recipe as evaluate_fusion (interp to full res, argmax,
+                    # confusion vs GT mask). outputs["out"] was already produced above, just unused. ----
+                    seg_logits = F.interpolate(outputs["out"], size=output_hw, mode="bilinear",
+                                               align_corners=False)
+                    seg_pred = seg_logits.argmax(dim=1).squeeze(0).detach().cpu().numpy().astype(np.int64)
+                    conf = np.zeros((num_classes, num_classes), dtype=np.int64)
+                    update_confusion(conf, seg_pred, gt_mask, num_classes)
 
                     preds = decode_objects(
                         outputs["object"], camera_matrix=matrix,
@@ -266,6 +288,9 @@ def main() -> int:
                            "tp_veh": 0, "fp_veh": 0, "fn_veh": 0, "tp_ped": 0, "fp_ped": 0, "fn_ped": 0,
                            "loc_err_sum": 0.0, "loc_err_sq_sum": 0.0,
                            "loc_err_sum_veh": 0.0, "loc_err_sum_ped": 0.0}
+                    for ci in range(num_classes):
+                        for cj in range(num_classes):
+                            rec[f"conf_{ci}{cj}"] = int(conf[ci, cj])
                     mp, mg = set(), set()
                     for pi, gi, dist in matches:
                         mp.add(pi); mg.add(gi)
@@ -298,6 +323,9 @@ def main() -> int:
         "min_gt_area_px": min_gt_area_px, "dataset": str(DS), "split": a.split,
         "models": a.models, "quants": a.quants, "rois": a.rois,
         "gt_convention": "object_world_x/y (bbox-centre-in-world) == the column train_fusion.py regresses",
+        "seg_num_classes": num_classes, "seg_class_names": seg_class_names,
+        "seg_recipe": "outputs['out'] -> interp full-res -> argmax -> update_confusion vs GT mask "
+                      "(identical to evaluate_fusion); per-frame 3x3 confusion summed per density bin",
     }, indent=2))
     return 0
 

@@ -31,6 +31,8 @@ TTRACER_UE_PROFILE="${TTRACER_UE_PROFILE:-full}"
 TTRACER_GNB_PROFILE="${TTRACER_GNB_PROFILE:-full}"
 FORCE_UL_MCS="${FORCE_UL_MCS:-}"
 HOLD_MCS_FEW_SAMPLES="${HOLD_MCS_FEW_SAMPLES:-0}"
+MCS_POLICY="${MCS_POLICY:-${SCENESENSE_MCS_POLICY:-}}"
+AIMD_MAX_DROP="${AIMD_MAX_DROP:-${SCENESENSE_AIMD_MAX_DROP:-}}"
 RFSIM_CHANMOD="${RFSIM_CHANMOD:-0}"
 CHANNELMOD_MODELLIST="${CHANNELMOD_MODELLIST:-}"
 
@@ -104,10 +106,16 @@ start_gnb_273() {
     fi
   fi
   sudo_env=(env SCENESENSE_HOLD_MCS_FEW_SAMPLES="${HOLD_MCS_FEW_SAMPLES}")
+  if [[ -n "${MCS_POLICY}" ]]; then
+    sudo_env+=(SCENESENSE_MCS_POLICY="${MCS_POLICY}")
+  fi
+  if [[ -n "${AIMD_MAX_DROP}" ]]; then
+    sudo_env+=(SCENESENSE_AIMD_MAX_DROP="${AIMD_MAX_DROP}")
+  fi
   if [[ -n "${FORCE_UL_MCS}" ]]; then
     sudo_env+=(SCENESENSE_FORCE_UL_MCS="${FORCE_UL_MCS}")
   fi
-  say "starting gNB: ${GNB_CONF_273}, min_rxtxtime=${GNB_MIN_RXTXTIME}, ttracer=${ENABLE_SOFTMODEM_TTRACER}, hold_mcs_few_samples=${HOLD_MCS_FEW_SAMPLES}, force_ul_mcs=${FORCE_UL_MCS:-adaptive}, rfsim_chanmod=${RFSIM_CHANMOD}, channelmod_list=${CHANNELMOD_MODELLIST:-config-default}"
+  say "starting gNB: ${GNB_CONF_273}, min_rxtxtime=${GNB_MIN_RXTXTIME}, ttracer=${ENABLE_SOFTMODEM_TTRACER}, hold_mcs_few_samples=${HOLD_MCS_FEW_SAMPLES}, mcs_policy=${MCS_POLICY:-legacy}, aimd_max_drop=${AIMD_MAX_DROP:-uncapped}, force_ul_mcs=${FORCE_UL_MCS:-adaptive}, rfsim_chanmod=${RFSIM_CHANMOD}, channelmod_list=${CHANNELMOD_MODELLIST:-config-default}"
   (
     cd "${OAI_RAN_BUILD}" &&
       setsid nohup sudo "${sudo_env[@]}" ./nr-softmodem \
@@ -252,8 +260,8 @@ postprocess() {
     > "${LOG_ROOT}/analyze_nrue_grant_metrics_stdout.log" 2>&1
 
   say "preparing compact plot artifacts"
-  printf "Validated 273PRB CARLA/T-tracer run.\n\ngNB config: %s\nUE config: %s\nUE launch: -r 273 -C %s --ssb %s\nRFsim chanmod: %s\nChannelmod list: %s\nRun group: %s\n" \
-    "${GNB_CONF_273}" "${UE_CONF_273}" "${UE_DL_FREQ_273}" "${UE_SSB_273}" "${RFSIM_CHANMOD}" "${CHANNELMOD_MODELLIST:-config-default}" "${RUN_GROUP}" \
+  printf "Validated 273PRB CARLA/T-tracer run.\n\ngNB config: %s\nUE config: %s\nUE launch: -r 273 -C %s --ssb %s\nRFsim chanmod: %s\nChannelmod list: %s\nMCS policy: %s\nAIMD max drop: %s\nRun group: %s\n" \
+    "${GNB_CONF_273}" "${UE_CONF_273}" "${UE_DL_FREQ_273}" "${UE_SSB_273}" "${RFSIM_CHANMOD}" "${CHANNELMOD_MODELLIST:-config-default}" "${MCS_POLICY:-legacy}" "${AIMD_MAX_DROP:-uncapped}" "${RUN_GROUP}" \
     > "${CAP_ROOT}/VALIDATED_273PRB_TTRACER.ok"
 
   "${PY}" downlink_latency_fps/prepare_ttracer_grant_artifacts.py \
@@ -266,7 +274,7 @@ postprocess() {
 }
 
 say "===== START 273PRB CARLA/T-tracer run ${RUN_GROUP} ====="
-say "config: gNB=${GNB_CONF_273}, UE_CONF=${UE_CONF_273}, UE_PRB=273, UE_FREQ=${UE_DL_FREQ_273}, UE_SSB=${UE_SSB_273}, min_rxtxtime=${GNB_MIN_RXTXTIME}, softmodem_ttracer=${ENABLE_SOFTMODEM_TTRACER}, UE_profile=${TTRACER_UE_PROFILE}, gNB_profile=${TTRACER_GNB_PROFILE}, record_gNB=${RECORD_GNB}, hold_mcs_few_samples=${HOLD_MCS_FEW_SAMPLES}, force_ul_mcs=${FORCE_UL_MCS:-adaptive}, rfsim_chanmod=${RFSIM_CHANMOD}, channelmod_list=${CHANNELMOD_MODELLIST:-config-default}, quant=${QUANTIZATION_MODE:-per_channel_uint8}, roi=${ROI_THRESHOLD:-0.0}, entropy=${ENTROPY_CODER:-zstd}, T_ports gNB=${OAI_GNB_T_PORT:-2021}, UE=${OAI_UE_T_PORT:-2023}"
+say "config: gNB=${GNB_CONF_273}, UE_CONF=${UE_CONF_273}, UE_PRB=273, UE_FREQ=${UE_DL_FREQ_273}, UE_SSB=${UE_SSB_273}, min_rxtxtime=${GNB_MIN_RXTXTIME}, softmodem_ttracer=${ENABLE_SOFTMODEM_TTRACER}, UE_profile=${TTRACER_UE_PROFILE}, gNB_profile=${TTRACER_GNB_PROFILE}, record_gNB=${RECORD_GNB}, hold_mcs_few_samples=${HOLD_MCS_FEW_SAMPLES}, mcs_policy=${MCS_POLICY:-legacy}, aimd_max_drop=${AIMD_MAX_DROP:-uncapped}, force_ul_mcs=${FORCE_UL_MCS:-adaptive}, rfsim_chanmod=${RFSIM_CHANMOD}, channelmod_list=${CHANNELMOD_MODELLIST:-config-default}, quant=${QUANTIZATION_MODE:-per_channel_uint8}, roi=${ROI_THRESHOLD:-0.0}, entropy=${ENTROPY_CODER:-zstd}, T_ports gNB=${OAI_GNB_T_PORT:-2021}, UE=${OAI_UE_T_PORT:-2023}"
 
 if [[ ! -f "${OAI_RAN_CONF}/${GNB_CONF_273}" ]]; then
   say "ERROR: missing gNB config ${OAI_RAN_CONF}/${GNB_CONF_273}"

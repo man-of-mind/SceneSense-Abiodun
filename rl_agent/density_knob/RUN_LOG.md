@@ -87,3 +87,38 @@ window. Flagging it rather than asserting a cause.
 ## Timing
 `build_frame_density.py` ~5 s · `density_knob_eval.py` **54 min** GPU (noae 15.9, ae32 12.4, ae64 11.5,
 ae128 12.6 min; 2162 frames × 18 profiles each) · gates ~20 s · analysis + plots ~15 s.
+
+---
+
+## Addendum — SEG-INCLUSIVE RE-RUN (2026-07-31, same day)
+
+**Trigger.** Supervisor/colleague review: the first run scored **detection only**. The shared map also
+needs the **segmentation** layer (drivable surface / lane / dense vehicle-person masks between objects), so
+the density policy had to be re-derived with seg in the objective.
+
+**What was added (not re-collected):**
+- `density_knob_eval.py` now also evaluates the seg head — `outputs["out"]` (already produced, previously
+  discarded) → interp to full res → argmax → per-frame 3×3 confusion (bg/vehicle/person), emitted as
+  `conf_00..conf_22`. mIoU + per-class IoU bin by density with a post-hoc SUM, exactly as the matrix does.
+- `gate_density_eval.py`: new **G7** — the seg columns must reproduce the published matrix mIoU + veh IoU
+  on the ROI 0/0.3/0.5 profiles (anti-bug check for the seg head). Result: exact (noae/u8/ROI0 mIoU
+  0.840=0.840, veh IoU 0.931=0.931).
+- `analyze_density_knob.py`: Pareto accept is now **JOINT** (detection recall/loc AND seg mIoU within 2 pts
+  of the model's own ROI-0 seg in the same bin). Reports both the detection-only pick and the seg-aware
+  pick; new table T3b (seg-vs-q collapse) and plot `seg_collapse_vs_roi.png`.
+
+**Re-run.** Fully offline GPU again (the CARLA server was killed mid-session by another user — irrelevant,
+this eval never touches CARLA). All 72 profiles re-evaluated (~57 min). Detection numbers reproduce the
+first run exactly (determinism check) and G2 still reproduces the matrix; seg is new. **9/9 gates PASS.**
+The detection-only raw CSVs were moved to `raw/detonly_backup/`; `raw/perframe_*.csv` now carry seg.
+
+**Result (flips the headline).** With seg required, the ROI knob is unusable — it destroys seg at every
+density (veh IoU 0.92→0.11 as q 0→0.98). The seg-aware policy is **`ae32/u4/ROI 0`, ~90 KB, IDENTICAL at
+every non-empty density** (bins 1-2 / 3-4 / 5+ all pick it). Density adaptation via ROI was an artifact of
+ignoring seg. ROI-0 latency is already **measured** (~39 ms). See `DENSITY_KNOB_RESULTS.md` §1–§3.
+
+**High-ROI latency sweep — DONE 2026-07-31 19:17–19:26** (`run_ideal_loopback_zstd_highroi.sh`, 12 profiles
+q=0.7/0.9/0.98, reused the restarted CARLA, ~45 s/profile, 12/12 OK, delivery 1.00). Merged into
+`loopback_latency_zstd.json` (36→48 profiles). Confirms the earlier extrapolation: front flat 24.5–26 ms
+(AE profiles), transport 1.3–4.1 ms; fit `1.260 + 0.00877·kB` ≈ the old `1.067 + 0.00912`. **No policy
+pick changed** — latency was never the deciding axis. The whole ROI range is now measured, not derived.

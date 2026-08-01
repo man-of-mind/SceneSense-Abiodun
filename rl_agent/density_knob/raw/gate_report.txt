@@ -2,6 +2,7 @@
 [PASS] G1b train/eval GT self-consistent: train_fusion.py -> valid_localization_objects -> world_x = object_world_x (same column this eval scores against)
 [PASS] G1c convention delta measured: origin-vs-bbox-centre XY delta over 73600 live GT rows: mean 0.124 m, p50 0.039 m, p95 0.511 m, max 0.995 m (worst asset vehicle.fuso.mitsubishi 0.51 m)
 [PASS] G2 matrix reproduction: 36 published profiles cross-checked on 4 metrics, all within tolerance
+[PASS] G7 seg reproduction: 36 profiles cross-checked on mIoU+vehIoU, all within 0.02 IoU
 [PASS] G3 floor anchor: no-AE u8 roi0.0 loc MAE = 0.951 m vs offline knob-matrix anchor 0.95 m (NOT a live loose-matcher number)
 [PASS] G4 bin sample size: all four bins >= 100 frames (min 135)
 [PASS] G5 ROI monotonicity: payload falls strictly with the ROI drop fraction for every model x quant

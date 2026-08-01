@@ -41,7 +41,18 @@ WINDOW_FIELDS = (
     "avg_target_code_rate",
     "retx_grants",
     "retx_rate",
+    "retx_tbs_bytes",
+    "retx_mbps",
+    "first_tx_grants",
+    "first_tx_grant_rate_hz",
+    "first_tx_tbs_bytes",
+    "first_tx_mbps",
     "new_data_grants",
+    "new_data_grant_rate_hz",
+    "new_data_tbs_bytes",
+    "new_data_mbps",
+    "full_prb_grants",
+    "full_prb_grant_pct",
     "avg_tpc",
     "avg_n_cce",
 )
@@ -70,7 +81,18 @@ SUMMARY_FIELDS = (
     "avg_target_code_rate",
     "retx_grants",
     "retx_rate",
+    "retx_tbs_bytes",
+    "retx_mbps",
+    "first_tx_grants",
+    "first_tx_grant_rate_hz",
+    "first_tx_tbs_bytes",
+    "first_tx_mbps",
     "new_data_grants",
+    "new_data_grant_rate_hz",
+    "new_data_tbs_bytes",
+    "new_data_mbps",
+    "full_prb_grants",
+    "full_prb_grant_pct",
     "avg_tpc",
     "avg_n_cce",
 )
@@ -223,8 +245,17 @@ def summarize_rows(rows: List[Dict[str, int]], duration_s: float, run_group: str
     cce_values = [row["n_cce"] for row in rows]
     total_tbs = sum(tbs_values)
     safe_duration = duration_s if duration_s > 0 else 1.0
-    retx_grants = sum(1 for row in rows if row["round"] > 0 or row["rv"] > 0)
+    retx_rows = [row for row in rows if row["round"] > 0 or row["rv"] > 0]
+    first_tx_rows = [row for row in rows if not (row["round"] > 0 or row["rv"] > 0)]
+    new_data_rows = [row for row in rows if row["ndi"] > 0]
+    retx_grants = len(retx_rows)
+    first_tx_grants = len(first_tx_rows)
     new_data_grants = sum(1 for row in rows if row["ndi"] > 0)
+    retx_tbs = sum(row["tbs"] for row in retx_rows)
+    first_tx_tbs = sum(row["tbs"] for row in first_tx_rows)
+    new_data_tbs = sum(row["tbs"] for row in new_data_rows)
+    max_rb = max(rb_values) if rb_values else 0
+    full_prb_grants = sum(1 for row in rows if max_rb > 0 and row["rb_size"] == max_rb)
 
     return {
         "run_group": run_group,
@@ -250,7 +281,18 @@ def summarize_rows(rows: List[Dict[str, int]], duration_s: float, run_group: str
         "avg_target_code_rate": fmt(mean(code_rate_values)),
         "retx_grants": str(retx_grants),
         "retx_rate": fmt(retx_grants / grants if grants else float("nan")),
+        "retx_tbs_bytes": fmt_count(retx_tbs),
+        "retx_mbps": fmt((retx_tbs * 8.0) / safe_duration / 1_000_000.0),
+        "first_tx_grants": str(first_tx_grants),
+        "first_tx_grant_rate_hz": fmt(first_tx_grants / safe_duration),
+        "first_tx_tbs_bytes": fmt_count(first_tx_tbs),
+        "first_tx_mbps": fmt((first_tx_tbs * 8.0) / safe_duration / 1_000_000.0),
         "new_data_grants": str(new_data_grants),
+        "new_data_grant_rate_hz": fmt(new_data_grants / safe_duration),
+        "new_data_tbs_bytes": fmt_count(new_data_tbs),
+        "new_data_mbps": fmt((new_data_tbs * 8.0) / safe_duration / 1_000_000.0),
+        "full_prb_grants": str(full_prb_grants),
+        "full_prb_grant_pct": fmt(100.0 * full_prb_grants / grants if grants else float("nan")),
         "avg_tpc": fmt(mean(tpc_values)),
         "avg_n_cce": fmt(mean(cce_values)),
     }
@@ -313,18 +355,20 @@ def write_markdown(path: Path, summary_rows: Sequence[Dict[str, str]], window_s:
         handle.write("# NR UE Grant Summary\n\n")
         handle.write(f"- Input CSV: `{input_csv}`\n")
         handle.write(f"- Window size: `{window_s:g}s`\n\n")
-        handle.write("| RNTI | Direction | Grants | Scheduled Mbps | Avg MCS | Avg RBs | Avg symbols | Avg TBS bytes | Retx rate |\n")
-        handle.write("| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |\n")
+        handle.write("| RNTI | Direction | Grants/s | Scheduled Mbps | First-TX Mbps | Retx Mbps | Avg MCS | Avg RBs | Full-PRB grants | Avg TBS bytes | Retx rate |\n")
+        handle.write("| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |\n")
         for row in summary_rows:
             handle.write(
-                "| {rnti} | {direction_label} | {grants} | {scheduled_mbps} | "
-                "{avg_mcs} | {avg_rb_size} | {avg_nr_symbols} | "
-                "{avg_tbs_bytes} | {retx_rate} |\n".format(**row)
+                "| {rnti} | {direction_label} | {grant_rate_hz} | {scheduled_mbps} | "
+                "{first_tx_mbps} | {retx_mbps} | {avg_mcs} | {avg_rb_size} | "
+                "{full_prb_grant_pct}% | {avg_tbs_bytes} | {retx_rate} |\n".format(**row)
             )
         handle.write(
             "\n`scheduled_mbps` is derived from decoded TBS grants, not from an IP-layer "
             "throughput counter. It is the UE-visible scheduled data budget for that "
-            "window/direction.\n"
+            "window/direction. `first_tx_mbps` excludes HARQ retransmission grants "
+            "(identified by non-zero HARQ round or RV); it is not guaranteed goodput, "
+            "but it helps separate fresh scheduled bytes from retransmission airtime.\n"
         )
 
 

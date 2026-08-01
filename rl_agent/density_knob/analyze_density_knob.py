@@ -33,6 +33,29 @@ BINS = ["0", "1-2", "3-4", "5+"]
 TOL_RECALL = 0.02       # absolute recall points
 TOL_LOC_M = 0.10        # metres of extra localisation error
 TOL_FP_PER_FRAME = 0.05  # bin-0 metric: extra spurious detections per frame
+TOL_MIOU = 0.02         # seg mIoU points below the model's OWN no-drop (roi0) seg (matches matrix 2%)
+
+
+def seg_ref_by_model_bin(cells, frames, profs, bins):
+    """The seg reference for a profile is that model's OWN no-ROI-drop (roi 0.0) mIoU IN THE SAME
+    density bin -- i.e. how good seg is before any ROI drop, holding density fixed. This isolates the
+    ROI-drop cost from density and reproduces the matrix's per-model-clean 2% accept semantics.
+    Returns {(model, bin): ref_miou} using the best (max mIoU) roi0.0 profile of that model."""
+    ref = {}
+    for b in bins:
+        for model in {p[0] for p in profs}:
+            vals = []
+            for prof in profs:
+                if prof[0] != model or prof[2] != 0.0:
+                    continue
+                k = (prof, b)
+                if k in cells:
+                    mi = seg_metrics(cells[k])["miou"]
+                    if mi == mi:
+                        vals.append(mi)
+            if vals:
+                ref[(model, b)] = max(vals)
+    return ref
 
 
 def short(model: str, quant: str, roi: float) -> str:
@@ -60,8 +83,31 @@ def load():
                 c["loc_err_sum"] += float(r["loc_err_sum"])
                 c["loc_err_sq_sum"] += float(r["loc_err_sq_sum"])
                 c["payload_sq"] += int(r["payload_bytes"]) ** 2
+                for ci in range(3):  # seg confusion (row=GT class, col=pred): sum per (prof,bin)
+                    for cj in range(3):
+                        kk = f"conf_{ci}{cj}"
+                        if kk in r and r[kk] != "":
+                            c[kk] += int(r[kk])
                 frames[k] += 1
     return cells, frames
+
+
+def seg_metrics(c) -> dict:
+    """mIoU + per-class IoU from the summed 3x3 confusion (background/vehicle/person), identical to
+    the matrix's class_iou_from_confusion. Returns NaNs if the CSV had no seg columns."""
+    if not any(c.get(f"conf_{i}{j}", 0) for i in range(3) for j in range(3)):
+        return {"miou": float("nan"), "iou_bg": float("nan"),
+                "veh_iou": float("nan"), "person_iou": float("nan")}
+    ious = []
+    for cls in range(3):
+        tp = c[f"conf_{cls}{cls}"]
+        fp = sum(c[f"conf_{r}{cls}"] for r in range(3)) - tp
+        fn = sum(c[f"conf_{cls}{cj}"] for cj in range(3)) - tp
+        d = tp + fp + fn
+        ious.append(tp / d if d > 0 else float("nan"))
+    valid = [v for v in ious if v == v]
+    return {"miou": (sum(valid) / len(valid)) if valid else float("nan"),
+            "iou_bg": ious[0], "veh_iou": ious[1], "person_iou": ious[2]}
 
 
 def metrics(c, n):
@@ -77,12 +123,14 @@ def metrics(c, n):
         "loc_m": c["loc_err_sum"] / tp if tp else float("nan"),
         "fp_per_frame": fp / max(1, n),
         "pred_per_frame": c["n_pred"] / max(1, n),
+        **seg_metrics(c),
     }
 
 
 def transport_fit():
-    """Derive uplink transport ms from payload, calibrated on the 36 MEASURED ideal-loopback points
-    (loopback_latency_zstd.json). Values at ROI>0.5 are DERIVED, not measured -- labelled as such."""
+    """Uplink transport ms vs payload, calibrated on the MEASURED ideal-loopback points
+    (loopback_latency_zstd.json). As of 2026-07-31 this includes the high-ROI q=0.7/0.9/0.98 profiles
+    (48 measured total), so the whole ROI range is measured -- no extrapolation."""
     d = json.load((AB / "rl_agent" / "loopback_latency_zstd.json").open())
     x = np.array([v["payload_kb"] for v in d.values()])
     y = np.array([v["transport_ms"] for v in d.values()])
@@ -150,62 +198,97 @@ def main() -> int:
         print(f"    q={q:<5g} mean spread = {sum(by_roi[q])/len(by_roi[q]):5.2f}%   "
               f"max = {max(by_roi[q]):5.2f}%")
 
-    # ---------------- per-bin Pareto + best knob ----------------
+    # ---------------- per-bin Pareto + best knob (JOINT detection + segmentation) ----------------
+    # The accuracy deliverable of the shared map is BOTH object detections AND the dense semantic
+    # segmentation (drivable surface, lane, vehicle/person pixel masks). ROI-drop keeps only high-
+    # objectness cells, so it is nearly free for detection but destroys the dense seg between objects.
+    # The accept rule is therefore JOINT: a profile is only affordable if it holds detection recall/loc
+    # AND holds seg mIoU within TOL_MIOU of that model's own no-drop (roi0) seg in the same bin.
+    # We report BOTH the detection-only pick (what the first run chose) and the seg-aware pick so the
+    # cost of ignoring seg is explicit.
     print("\n" + "=" * 100)
-    print("PARETO PICK PER DENSITY BIN")
+    print("PARETO PICK PER DENSITY BIN  (detection-only vs seg-aware joint)")
     print("=" * 100)
+    seg_ref = seg_ref_by_model_bin(cells, frames, profs, BINS)
+    have_seg = any(v == v for v in (metrics(cells[k], frames[k])["miou"] for k in cells))
     lookup = []
     pareto_sets = {}
+
+    def lookrow(b, nfr, p, m, kind):
+        return {"density_bin": b, "n_frames": nfr, "policy": kind,
+                "best_profile": short(*p), "model": p[0], "quant": p[1], "roi_q": p[2],
+                "payload_kb": round(m["payload_kb"], 1),
+                "transport_ms_derived": round(tms(m["payload_kb"]), 2),
+                "recall": round(m["recall"], 4) if m["recall"] == m["recall"] else "",
+                "recall_veh": round(m["recall_veh"], 4) if m["recall_veh"] == m["recall_veh"] else "",
+                "recall_ped": round(m["recall_ped"], 4) if m["recall_ped"] == m["recall_ped"] else "",
+                "loc_m": round(m["loc_m"], 3) if m["loc_m"] == m["loc_m"] else "",
+                "miou": round(m["miou"], 4) if m["miou"] == m["miou"] else "",
+                "veh_iou": round(m["veh_iou"], 4) if m["veh_iou"] == m["veh_iou"] else "",
+                "fp_per_frame": round(m["fp_per_frame"], 3)}
+
     for b in BINS:
         cand = []
         for prof in profs:
             k = (prof, b)
             if k not in cells:
                 continue
-            m = metrics(cells[k], frames[k])
-            cand.append((prof, m))
+            cand.append((prof, metrics(cells[k], frames[k])))
         if not cand:
             continue
+        # detection accept
         if b == "0":
             ref_fp = min(m["fp_per_frame"] for _, m in cand)
-            ok = [(p, m) for p, m in cand if m["fp_per_frame"] <= ref_fp + TOL_FP_PER_FRAME]
-            crit = f"FP/frame <= {ref_fp:.3f}+{TOL_FP_PER_FRAME} (recall is degenerate: 0 in-view objects)"
+            det_ok = lambda m: m["fp_per_frame"] <= ref_fp + TOL_FP_PER_FRAME
+            det_crit = f"FP/frame <= {ref_fp:.3f}+{TOL_FP_PER_FRAME} (recall degenerate: 0 in-view objects)"
         else:
             ref_recall = max(m["recall"] for _, m in cand)
             ref_loc = min(m["loc_m"] for _, m in cand)
-            ok = [(p, m) for p, m in cand
-                  if m["recall"] >= ref_recall - TOL_RECALL and m["loc_m"] <= ref_loc + TOL_LOC_M]
-            crit = (f"recall >= {ref_recall:.3f}-{TOL_RECALL} and loc <= {ref_loc:.2f}+{TOL_LOC_M} m")
-        best = min(ok, key=lambda pm: pm[1]["payload_kb"]) if ok else None
-        # Pareto frontier (payload vs recall / vs -FP) for the plot
+            det_ok = lambda m: m["recall"] >= ref_recall - TOL_RECALL and m["loc_m"] <= ref_loc + TOL_LOC_M
+            det_crit = f"recall >= {ref_recall:.3f}-{TOL_RECALL} and loc <= {ref_loc:.2f}+{TOL_LOC_M} m"
+        # seg accept: mIoU within TOL_MIOU of that model's OWN roi0 seg in this bin
+        def seg_ok(prof, m):
+            if not have_seg or m["miou"] != m["miou"]:
+                return True  # no seg data -> seg constraint inactive (detection-only fallback)
+            ref = seg_ref.get((prof[0], b))
+            return ref is None or m["miou"] >= ref - TOL_MIOU
+
+        ok_det = [(p, m) for p, m in cand if det_ok(m)]
+        ok_joint = [(p, m) for p, m in ok_det if seg_ok(p, m)]
+        best_det = min(ok_det, key=lambda pm: pm[1]["payload_kb"]) if ok_det else None
+        best_joint = min(ok_joint, key=lambda pm: pm[1]["payload_kb"]) if ok_joint else None
+        # frontier over JOINT-accepted (for the plot)
         front = []
-        for p, m in sorted(cand, key=lambda pm: pm[1]["payload_kb"]):
+        for p, m in sorted(ok_joint, key=lambda pm: pm[1]["payload_kb"]):
             key = -m["fp_per_frame"] if b == "0" else m["recall"]
             if not front or key > front[-1][2]:
                 front.append((p, m, key))
-        pareto_sets[b] = (cand, front, best)
+        pareto_sets[b] = {"cand": cand, "front": front, "best_joint": best_joint,
+                          "best_det": best_det, "seg_ref": seg_ref.get((None, b)),
+                          "ok_det": ok_det, "ok_joint": ok_joint, "det_crit": det_crit}
         n_frames = frames[(profs[0], b)]
         print(f"\nbin {b}  (n={n_frames} frames, {cells[(profs[0], b)]['n_inview']} in-view GT objects)")
-        print(f"  accept criterion: {crit}")
-        print(f"  {len(ok)}/{len(cand)} profiles accepted")
-        if best:
-            p, m = best
-            lookup.append({"density_bin": b, "n_frames": n_frames,
-                           "best_profile": short(*p), "model": p[0], "quant": p[1], "roi_q": p[2],
-                           "payload_kb": round(m["payload_kb"], 1),
-                           "transport_ms_derived": round(tms(m["payload_kb"]), 2),
-                           "recall": round(m["recall"], 4) if m["recall"] == m["recall"] else "",
-                           "recall_veh": round(m["recall_veh"], 4) if m["recall_veh"] == m["recall_veh"] else "",
-                           "recall_ped": round(m["recall_ped"], 4) if m["recall_ped"] == m["recall_ped"] else "",
-                           "loc_m": round(m["loc_m"], 3) if m["loc_m"] == m["loc_m"] else "",
-                           "fp_per_frame": round(m["fp_per_frame"], 3)})
-            print(f"  BEST = {short(*p):<22} payload {m['payload_kb']:7.1f} KB  "
-                  f"(uplink {tms(m['payload_kb']):.1f} ms derived)  recall {m['recall']:.3f}  "
-                  f"loc {m['loc_m']:.2f} m  FP/frame {m['fp_per_frame']:.2f}")
-        # top-5 cheapest accepted, for the results doc
-        for p, m in sorted(ok, key=lambda pm: pm[1]["payload_kb"])[:5]:
-            print(f"      {short(*p):<22}{m['payload_kb']:8.1f} KB  recall {m['recall']:.3f}  "
-                  f"loc {m['loc_m']:.2f}  FP/f {m['fp_per_frame']:.2f}")
+        print(f"  detection accept: {det_crit}")
+        print(f"  seg accept: mIoU >= (model's own roi0 mIoU) - {TOL_MIOU}")
+        print(f"  {len(ok_det)}/{len(cand)} pass detection;  {len(ok_joint)}/{len(cand)} pass BOTH")
+        if best_det:
+            p, m = best_det
+            print(f"  detection-only BEST = {short(*p):<20} {m['payload_kb']:7.1f} KB  "
+                  f"recall {m['recall']:.3f}  loc {m['loc_m'] if m['loc_m']==m['loc_m'] else float('nan'):.2f}  "
+                  f"mIoU {m['miou']:.3f}  vehIoU {m['veh_iou']:.3f}  <- seg may be wrecked")
+            lookup.append(lookrow(b, n_frames, p, m, "detection_only"))
+        if best_joint:
+            p, m = best_joint
+            print(f"  SEG-AWARE   BEST = {short(*p):<20} {m['payload_kb']:7.1f} KB  "
+                  f"(uplink {tms(m['payload_kb']):.1f} ms)  recall "
+                  f"{m['recall'] if m['recall']==m['recall'] else float('nan'):.3f}  "
+                  f"loc {m['loc_m'] if m['loc_m']==m['loc_m'] else float('nan'):.2f}  "
+                  f"mIoU {m['miou']:.3f}  vehIoU {m['veh_iou']:.3f}")
+            lookup.append(lookrow(b, n_frames, p, m, "seg_aware"))
+        # cheapest joint-accepted, for the doc
+        for p, m in sorted(ok_joint, key=lambda pm: pm[1]["payload_kb"])[:5]:
+            rc = f"{m['recall']:.3f}" if m["recall"] == m["recall"] else " n/a "
+            print(f"      {short(*p):<20}{m['payload_kb']:8.1f} KB  recall {rc}  mIoU {m['miou']:.3f}")
     with (RAW / "best_knob_lookup.csv").open("w", newline="") as fh:
         w = csv.DictWriter(fh, fieldnames=list(lookup[0].keys()))
         w.writeheader()
@@ -242,7 +325,9 @@ def main() -> int:
     json.dump({"transport_fit": {"intercept_ms": fit_a, "slope_ms_per_kb": fit_b, "r2": fit_r2,
                                  "n_measured": fit_n},
                "tolerances": {"recall_pts": TOL_RECALL, "loc_m": TOL_LOC_M,
-                              "fp_per_frame": TOL_FP_PER_FRAME}},
+                              "fp_per_frame": TOL_FP_PER_FRAME, "miou": TOL_MIOU},
+               "seg_accept": "mIoU >= (model's own roi0 mIoU in same bin) - TOL_MIOU; "
+                             "joint accept = detection AND seg"},
               (RAW / "analysis_settings.json").open("w"), indent=2)
     return 0
 
@@ -297,40 +382,63 @@ def write_tables(cells, frames, profs, pareto_sets, tms, phys, lookup, fit):
         out.append(f"| {q:g} | {sum(by_roi[q])/len(by_roi[q]):.2f}% | {max(by_roi[q]):.2f}% | "
                    f"denser = SMALLER payload in {denser_smaller}/{len(sub)} profiles |")
 
-    # T3 per-bin Pareto (cheapest accepted)
-    out.append("\n### T3 — cheapest accepted profiles per density bin\n")
+    # T3 per-bin Pareto (cheapest joint-accepted) — now with seg columns
+    out.append("\n### T3 — cheapest accepted profiles per density bin (joint detection + seg)\n")
     for b in BINS:
-        cand, front, best = pareto_sets[b]
+        ps = pareto_sets[b]
         nfr = frames[(profs[0], b)]
         empty = b == "0"
+        bd = ps["best_det"]
+        bj = ps["best_joint"]
         out.append(f"\n**bin {b}** — n={nfr} frames, {cells[(profs[0], b)]['n_inview']} in-view GT objects"
-                   + ("  (recall degenerate: no objects → metric is FP/frame)" if empty else ""))
-        out.append("\n| profile | payload KB | uplink ms (derived) | in-view recall | veh | ped | "
-                   "loc MAE m | FP/frame |")
-        out.append("|---|--:|--:|--:|--:|--:|--:|--:|")
-        if empty:
-            ref_fp = min(m["fp_per_frame"] for _, m in cand)
-            ok = [(p, m) for p, m in cand if m["fp_per_frame"] <= ref_fp + TOL_FP_PER_FRAME]
-        else:
-            rr = max(m["recall"] for _, m in cand)
-            rl = min(m["loc_m"] for _, m in cand)
-            ok = [(p, m) for p, m in cand if m["recall"] >= rr - TOL_RECALL and m["loc_m"] <= rl + TOL_LOC_M]
+                   + ("  (recall degenerate: no objects → detection metric is FP/frame)" if empty else ""))
+        out.append("\n| profile | payload KB | uplink ms | in-view recall | loc MAE m | FP/frame | "
+                   "**mIoU** | **veh IoU** | accepts |")
+        out.append("|---|--:|--:|--:|--:|--:|--:|--:|:--|")
         f = lambda x: "n/a" if x != x else f"{x:.3f}"
-        for p, m in sorted(ok, key=lambda pm: pm[1]["payload_kb"])[:6]:
-            mark = " **←chosen**" if best and p == best[0] else ""
-            out.append(f"| {short(*p)}{mark} | {m['payload_kb']:.1f} | {tms(m['payload_kb']):.1f} | "
-                       f"{f(m['recall'])} | {f(m['recall_veh'])} | {f(m['recall_ped'])} | "
-                       f"{f(m['loc_m'])} | {m['fp_per_frame']:.2f} |")
+        # show the cheapest few that pass detection, flag whether they ALSO pass seg
+        for p, m in sorted(ps["ok_det"], key=lambda pm: pm[1]["payload_kb"])[:8]:
+            passes_seg = any(p == pp for pp, _ in ps["ok_joint"])
+            tag = []
+            if bd and p == bd[0]:
+                tag.append("**←det-only pick**")
+            if bj and p == bj[0]:
+                tag.append("**←seg-aware pick**")
+            acc = "det+seg" if passes_seg else "**det only (seg fails)**"
+            out.append(f"| {short(*p)} {' '.join(tag)} | {m['payload_kb']:.1f} | {tms(m['payload_kb']):.1f} | "
+                       f"{f(m['recall'])} | {f(m['loc_m'])} | {m['fp_per_frame']:.2f} | "
+                       f"{f(m['miou'])} | {f(m['veh_iou'])} | {acc} |")
 
-    # T4 lookup
-    out.append("\n### T4 — density → best-knob lookup (the deliverable)\n")
-    out.append("| density (in-view objects) | n frames | best knob | payload KB | uplink ms (derived) | "
-               "in-view recall | loc MAE m | FP/frame |")
-    out.append("|---|--:|---|--:|--:|--:|--:|--:|")
+    # T4 lookup — BOTH policies side by side (the cost of ignoring seg)
+    out.append("\n### T4 — density → best-knob lookup: detection-only vs seg-aware (the deliverable)\n")
+    out.append("| density | n frames | policy | best knob | payload KB | uplink ms | in-view recall | "
+               "loc MAE m | mIoU | veh IoU | FP/frame |")
+    out.append("|---|--:|---|---|--:|--:|--:|--:|--:|--:|--:|")
     for r in lookup:
-        out.append(f"| {r['density_bin']} | {r['n_frames']} | `{r['best_profile']}` | {r['payload_kb']} | "
-                   f"{r['transport_ms_derived']} | {r['recall'] or 'n/a'} | {r['loc_m'] or 'n/a'} | "
+        out.append(f"| {r['density_bin']} | {r['n_frames']} | {r['policy']} | `{r['best_profile']}` | "
+                   f"{r['payload_kb']} | {r['transport_ms_derived']} | {r['recall'] or 'n/a'} | "
+                   f"{r['loc_m'] or 'n/a'} | {r['miou'] or 'n/a'} | {r['veh_iou'] or 'n/a'} | "
                    f"{r['fp_per_frame']} |")
+
+    # T3b — SEG COLLAPSE: mIoU + veh IoU vs ROI drop q, per density bin (the headline seg evidence)
+    out.append("\n### T3b — segmentation vs ROI drop q, per density bin (why ROI is not a free knob)\n")
+    out.append("Averaged over all four AE variants at u4 (the detection-cheapest quant). "
+               "mIoU / vehicle-IoU; ROI drop keeps only object cells, so dense seg between objects dies.\n")
+    rois = sorted({p[2] for p in profs})
+    out.append("| ROI drop q | " + " | ".join(f"bin {b} mIoU / vehIoU" for b in BINS) + " |")
+    out.append("|--:|" + "--:|" * len(BINS))
+    for roi in rois:
+        cellsr = []
+        for b in BINS:
+            mis, vis = [], []
+            for model in {p[0] for p in profs}:
+                k = ((model, "per_channel_uint4", roi), b)
+                if k in cells:
+                    s = seg_metrics(cells[k])
+                    if s["miou"] == s["miou"]:
+                        mis.append(s["miou"]); vis.append(s["veh_iou"])
+            cellsr.append(f"{sum(mis)/len(mis):.3f} / {sum(vis)/len(vis):.3f}" if mis else "n/a")
+        out.append(f"| {roi:g} | " + " | ".join(cellsr) + " |")
 
     # T5 accuracy cost of aggression
     rois = sorted({p[2] for p in profs})
@@ -350,11 +458,12 @@ def write_tables(cells, frames, profs, pareto_sets, tms, phys, lookup, fit):
             kb = f"{metrics(cells[k12], frames[k12])['payload_kb']:.1f}" if k12 in cells else "-"
             out.append(f"| {roi:g} | " + " | ".join(cellsr) + f" | {fp0} | {kb} |")
 
-    out.append(f"\n### Uplink-latency derivation\n")
+    out.append(f"\n### Uplink-latency fit (fully measured)\n")
     out.append(f"`transport_ms = {fit_a:.3f} + {fit_b:.5f} x payload_KB`, least-squares fit on the "
                f"{fit_n} MEASURED ideal-loopback profiles in `loopback_latency_zstd.json` "
-               f"(R²={fit_r2:.3f}). Values at q>0.5 are DERIVED from this fit, not measured — "
-               f"ideal loopback, uplink-only.\n")
+               f"(R²={fit_r2:.3f}). As of 2026-07-31 this includes the high-ROI q=0.7/0.9/0.98 profiles, "
+               f"so the whole ROI range is measured (front ~25 ms flat, transport 1.3–4.1 ms, delivery "
+               f"1.00) — no extrapolation. Ideal loopback, uplink-only.\n")
     (RAW / "tables.md").write_text("\n".join(out) + "\n")
     print(f"wrote {RAW/'tables.md'}")
 
@@ -384,36 +493,39 @@ def make_plots(cells, frames, profs, pareto_sets, tms, phys):
     fig, axes = plt.subplots(2, 2, figsize=(11.5, 8.6), constrained_layout=True)
     for ax, b in zip(axes.ravel(), BINS):
         style(ax)
-        cand, _front, best = pareto_sets[b]
+        ps = pareto_sets[b]
+        cand = ps["cand"]
         empty = (b == "0")
-        if empty:
-            ref_fp = min(m["fp_per_frame"] for _, m in cand)
-            acc = {id(m) for _, m in cand if m["fp_per_frame"] <= ref_fp + TOL_FP_PER_FRAME}
-            crit = f"accept: FP/frame ≤ {ref_fp:.3f}+{TOL_FP_PER_FRAME}"
-        else:
-            rr = max(m["recall"] for _, m in cand)
-            rl = min(m["loc_m"] for _, m in cand)
-            acc = {id(m) for _, m in cand
-                   if m["recall"] >= rr - TOL_RECALL and m["loc_m"] <= rl + TOL_LOC_M}
-            crit = f"accept: recall ≥ {rr-TOL_RECALL:.3f} AND loc ≤ {rl+TOL_LOC_M:.2f} m"
+        det_ids = {id(m) for _, m in ps["ok_det"]}
+        joint_ids = {id(m) for _, m in ps["ok_joint"]}
+        crit = ("accept: FP/frame ok AND seg mIoU held" if empty
+                else "accept: recall+loc ok AND seg mIoU held")
         yof = lambda m: (m["fp_per_frame"] if empty else m["recall"])
-        rej = [m for _, m in cand if id(m) not in acc]
-        okm = [m for _, m in cand if id(m) in acc]
+        rej = [m for _, m in cand if id(m) not in det_ids]                      # fails detection
+        det_only = [m for _, m in cand if id(m) in det_ids and id(m) not in joint_ids]  # passes det, seg fails
+        both = [m for _, m in cand if id(m) in joint_ids]                        # passes both
         ax.scatter([m["payload_kb"] for m in rej], [yof(m) for m in rej],
-                   s=20, c="#c3ced6", alpha=0.9, lw=0, label="rejected (accuracy)")
-        ax.scatter([m["payload_kb"] for m in okm], [yof(m) for m in okm],
-                   s=30, c=CB[b], alpha=0.95, lw=0, label="accepted")
+                   s=18, c="#c3ced6", alpha=0.9, lw=0, label="fails detection")
+        ax.scatter([m["payload_kb"] for m in det_only], [yof(m) for m in det_only],
+                   s=34, facecolor="none", edgecolor="#d98a2b", lw=1.3, label="detection ok, SEG fails")
+        ax.scatter([m["payload_kb"] for m in both], [yof(m) for m in both],
+                   s=30, c=CB[b], alpha=0.95, lw=0, label="detection + seg ok")
         fr = []
-        for m in sorted(okm, key=lambda m: m["payload_kb"]):
+        for m in sorted(both, key=lambda m: m["payload_kb"]):
             key = -m["fp_per_frame"] if empty else m["recall"]
             if not fr or key > fr[-1][1]:
                 fr.append((m, key))
-        ax.plot([m["payload_kb"] for m, _ in fr], [yof(m) for m, _ in fr],
-                "-", color=CB[b], lw=1.6, alpha=0.85, label="frontier (accepted)")
-        if best:
-            p, m = best
-            ax.scatter([m["payload_kb"]], [yof(m)], s=160, facecolor="none",
-                       edgecolor="#b0343c", lw=2.0, zorder=5, label="chosen (min payload)")
+        if fr:
+            ax.plot([m["payload_kb"] for m, _ in fr], [yof(m) for m, _ in fr],
+                    "-", color=CB[b], lw=1.6, alpha=0.85, label="frontier (seg-aware)")
+        if ps["best_det"]:
+            p, m = ps["best_det"]
+            ax.scatter([m["payload_kb"]], [yof(m)], s=150, marker="X",
+                       c="#d98a2b", lw=0, zorder=4, label="detection-only pick")
+        if ps["best_joint"]:
+            p, m = ps["best_joint"]
+            ax.scatter([m["payload_kb"]], [yof(m)], s=170, facecolor="none",
+                       edgecolor="#b0343c", lw=2.2, zorder=5, label="seg-aware pick")
             ax.annotate(f"{short(*p)}\n{m['payload_kb']:.1f} KB", (m["payload_kb"], yof(m)),
                         textcoords="offset points", xytext=(11, -14), fontsize=8.5, color="#b0343c")
         ax.set_xscale("log")
@@ -491,6 +603,36 @@ def make_plots(cells, frames, profs, pareto_sets, tms, phys):
                  "mean over all 12 model×quant combinations — the tensor is fixed-size,\n"
                  "so this is purely content-adaptive compression", fontsize=10.5, color=INK)
     fig.savefig(PLOTS / "payload_spread_by_density.png", dpi=170, facecolor="white")
+    plt.close(fig)
+
+    # ---- 4. SEG COLLAPSE: mIoU + vehicle IoU vs ROI drop q (why ROI is not a free knob) ----
+    # This is the plot that reconciles the density run with the seg-aware knob matrix: detection
+    # recall barely moves with q, but seg mIoU / vehicle IoU fall off a cliff as soon as q>0.
+    fig, axes = plt.subplots(1, 2, figsize=(11.5, 4.4), constrained_layout=True)
+    style(axes[0]); style(axes[1])
+    rois = sorted({p[2] for p in profs})
+    for ax, (metric, title) in zip(axes, [("miou", "Segmentation mIoU"),
+                                          ("recall", "Object-detection recall")]):
+        for b in BINS:
+            ys = []
+            for roi in rois:
+                vals = []
+                for model in {p[0] for p in profs}:
+                    k = ((model, "per_channel_uint4", roi), b)
+                    if k in cells:
+                        v = metrics(cells[k], frames[k])[metric]
+                        if v == v:
+                            vals.append(v)
+                ys.append(sum(vals) / len(vals) if vals else float("nan"))
+            ax.plot(rois, ys, "-o", color=CB[b], lw=1.9, ms=5, label=f"bin {b}")
+        ax.set_xlabel("ROI drop fraction q", fontsize=9.5, color=INK)
+        ax.set_ylabel(title + (" (in-view)" if metric == "recall" else ""), fontsize=9.5, color=INK)
+        ax.set_title(title + " vs ROI drop", fontsize=10.5, color=INK)
+        ax.legend(frameon=False, fontsize=8.5)
+    fig.suptitle("ROI drop is nearly free for detection but destroys segmentation "
+                 "(u4, mean over AE variants)\nthis is why the seg-aware policy cannot use the ROI knob",
+                 fontsize=11, color=INK)
+    fig.savefig(PLOTS / "seg_collapse_vs_roi.png", dpi=170, facecolor="white")
     plt.close(fig)
     print(f"\nwrote plots -> {PLOTS}")
 

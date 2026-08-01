@@ -123,29 +123,93 @@ delivered FPS, queue wait, drops, and result age as a function of FPS × buffer 
 
 ---
 
-## 8. Scene density — second state variable (2026-07-31)
+## 8. Scene density + the segmentation constraint (2026-07-31, seg-inclusive re-run)
 
-**One-line policy note:** *scene density belongs in the agent state alongside object speed — not because it
-changes what a knob COSTS in bytes (the tensor is fixed-size and the ROI drop is rank-based, so payload
-varies ≤2% with density at usable q) but because it changes the ACCURACY COST of that knob: the same q=0.98
-ROI drop costs −2.2 recall points with 1–2 objects in view and −4.5 points with 3+.*
+**One-line policy note (SUPERSEDES the earlier detection-only note):** *If the shared map carries
+segmentation (drivable surface / lane / dense semantics), scene density is NOT a useful knob-selection
+state variable and the ROI-drop knob must not be used for compression. The seg-safe operating point is
+**ROI 0 + AE bottleneck + u4**, ≈90 KB, and it is **density-invariant** — the same knob is optimal from 1 to
+5+ objects in view. Compression comes from the AE bottleneck and quant bits, not ROI and not density.*
 
-| in-view objects (≤40 m) | knob | payload | in-view recall | loc MAE |
-|---|---|--:|--:|--:|
-| 0 | `ae32 / u4 / q=0.98` | 6.8 KB | n/a (FP/frame 0.056) | n/a |
-| 1–2 | `ae32 / u4 / q=0.9` | 16.7 KB | 0.927 | 0.81 m |
-| 3–4 | `ae64 / u4 / q=0.9` | 23.4 KB | 0.891 | 0.98 m |
-| 5+ | `ae64 / u4 / q=0.7` | 43.7 KB | 0.854 | 1.10 m |
+**Why the flip.** The first density run scored **detection only** and found a density-adaptive ROI policy
+(q 0.98→0.7, 6.8→43.7 KB, ~60% saving). Re-scoring with **segmentation** (mIoU + per-class IoU, gate G7
+reproduces the matrix exactly) shows that policy was destroying seg: the ROI gate keeps only high-objectness
+cells, so raising q is nearly free for object recall but **collapses the dense seg between objects** —
+vehicle IoU **0.92 → 0.11** as q 0 → 0.98, at every density (`density_knob/DENSITY_KNOB_RESULTS.md` §2/§3).
 
-- **u4 at every density** (u8 costs 2.0–2.4× the payload for ≤0.45 recall points); **no-AE is
-  Pareto-dominated everywhere** (0 of 72 no-AE profiles accepted in any bin).
-- Drive-average **17.6 KB/frame adaptive vs 43.7 KB/frame** for one fixed conservative knob = **60% uplink
-  saving at equal accuracy**.
-- **Observability caveat:** the agent cannot see the current frame's density before it sends; it must use a
-  proxy (detection count from the last map update / previous frame), which lags one control period and is
-  worst exactly when density changes fastest (entering an intersection). Prefer a **hysteretic two-level**
-  policy (q=0.9 sparse / q=0.7 dense) — the measured cost gradient saturates above 3–4 objects, so the extra
-  levels buy little and are more exposed to proxy error.
-- Caveats: ideal loopback / uplink-only, in-domain Town10; bin 5+ is n=135 frames (±2.5 pts recall at 95%);
-  density correlates with object proximity (nearest object 20.0 m sparse → 12.2 m dense) so this is not a
-  pure density effect. Full analysis: `density_knob/DENSITY_KNOB_RESULTS.md` (8/8 gates pass).
+**Seg-aware knob (the deliverable), joint detection+seg accept:**
+
+| in-view objects (≤40 m) | knob | payload | uplink ms | in-view recall | loc MAE | mIoU | veh IoU |
+|---|---|--:|--:|--:|--:|--:|--:|
+| 1–2 | `ae32 / u4 / ROI 0` | 90.0 KB | ~39 (measured) | 0.933 | 0.75 m | 0.812 | 0.918 |
+| 3–4 | `ae32 / u4 / ROI 0` | 89.5 KB | ~39 (measured) | 0.889 | 0.92 m | 0.822 | 0.932 |
+| 5+  | `ae32 / u4 / ROI 0` | 89.3 KB | ~39 (measured) | 0.856 | 1.08 m | 0.848 | 0.896 |
+| 0 (empty) | ROI drop tolerable* | — | — | n/a | n/a | * degenerate | * |
+
+`*` empty-bin seg is degenerate (no in-view objects ⇒ noisy veh/person IoU; drivable-surface IoU ~0.99 at
+all q). Safe default: treat empty as sparse (ROI 0) unless the map does not consume seg. Under the stricter
+global ped-recall gate the matrix uses, the seg-aware pick tightens to `ae128/u4/ROI0` (129 KB) — still
+ROI 0, still density-invariant.
+
+- **Object-only exception:** if a deployment consumes ONLY object detections (no seg layer), the earlier
+  detection-only density-adaptive policy applies (ROI q 0.98/0.9/0.9/0.7, AE 32/32/64/64, u4; 6.8→43.7 KB,
+  ~60% saving) — but label it "object map only; segmentation not preserved" and carry the empty-bin FP
+  caveat.
+- **u4 at every density; no-AE Pareto-dominated everywhere** (0 of 72 no-AE profiles accepted). The AE
+  *improves* accuracy while shrinking payload — it is not a compression concession.
+- **State-variable consequence:** object **speed** stays in the agent state (latency/FPS budget); **density
+  can be dropped** from the knob-selection state under the seg-aware policy (the knob is flat). The
+  observability caveat (agent sees only a lagged density proxy) is therefore moot for knob selection when
+  seg is on the map — a further reason to prefer the flat policy.
+- Caveats: ideal loopback / uplink-only, in-domain Town10; bin 5+ n=135 (±2.5 pts recall); density
+  correlates with proximity (20.0 m sparse → 12.2 m dense), not a pure density effect. Latency is
+  **measured across the whole ROI range** (`loopback_latency_zstd.json`, 48 profiles incl. high-ROI
+  sweep 2026-07-31): front ~25 ms flat, transport 1.3–4.1 ms, delivery 1.00; no policy pick depended on it.
+  Full analysis: `density_knob/DENSITY_KNOB_RESULTS.md` (9/9 gates pass, incl. G7 seg).
+
+---
+
+## 9. LOCKED RL design synthesis (2026-07-31)
+
+One sentence: **object speed sets the freshness budget; the channel sets the affordable payload; the knobs
+spend payload to buy accuracy within that budget; scene-emptiness is a send-gate, not a knob.** This is the
+distillation of every measured result above; treat it as the design spec for the SAC/PPO controller.
+
+### 9.1 STATE
+| variable | why | source / status |
+|---|---|---|
+| **object speed** (+ uncertainty) | dominant; sets the whole latency/FPS budget via the master inequality | §1–§5, MEASURED |
+| **channel state** — CQI/SNR→achievable rate, UE buffer occupancy | sets affordable payload + delivery reliability; the binding constraint over OAI | **NOT yet measured — the channel sweep (`channel_condition_sweep/`)** |
+| **scene-empty gate** — max/count objectness on the CURRENT frame (pre-transmit) | decides send / skip; computed by the front backbone before compression, so NOT lagged | §8 (density-seg), available on the UE |
+| ~~scene density (graded)~~ | **dropped** — the seg-aware knob is density-invariant | §8 |
+
+### 9.2 ACTION — payload levers, in cost order (cheapest first)
+1. **Quant bits u8→u4** — nearly free (seg-lossless at ROI 0), ~2.0–2.4× payload cut. Use first.
+2. **AE bottleneck** (none→128→64→32) — *improves* accuracy while compressing; no-AE is Pareto-dominated.
+   The seg-safe payload floor with current models is **`ae32/u4/ROI0` ≈ 90 KB**.
+3. **FPS** — buys freshness only (per-frame accuracy is FPS-independent); relax for slow objects.
+4. **ROI drop q** — the big payload lever BUT it **destroys segmentation** (veh IoU 0.92→0.11). Two legitimate
+   uses only: (a) **send-gate** — q→1 / skip when the dynamic scene is empty (the static seg layer is
+   already mapped, so no new information is lost); (b) **channel-pressure escalation of LAST resort** — when
+   a bad channel cannot deliver the ~90 KB seg-safe floor in the freshness budget AND the object is too fast
+   to drop FPS, trade seg quality for delivery (q 0.3/0.5), paying the measured mIoU penalty explicitly. It
+   is NOT a routine or density-indexed knob.
+
+### 9.3 REWARD
+- **Hard constraint:** `v·(L+1/FPS) ≤ √(ε²−1.1²)` with **L measured over OAI** (not loopback). Penalize
+  violation; do not reward chasing ε < ~1.1 m (model floor, §1).
+- **Accuracy term:** joint — detection recall + loc AND seg mIoU held (the §8 joint-accept). ROI's mIoU cost
+  enters here, which is what makes lever 4 self-limiting.
+- **Cost term:** minimize **airtime / PRB occupancy** (payload × FPS × retransmissions), NOT raw bytes —
+  and this is where compression/gating earns its keep, most of all under a **bad channel** and under
+  **multi-UE contention** (the scarce shared resource). On a single clean channel with the budget already
+  met, there is little reason to compress; the value shows up exactly in the conditions the channel sweep
+  (and eventually multi-UE) will create.
+- **Reliability:** reward **fresh-delivered** frames, not sent frames.
+
+### 9.4 What is transport-invariant vs must be re-measured over OAI
+- **Invariant (reuse the loopback/offline knob matrix as-is):** accuracy-vs-knob (recall/loc/mIoU) and
+  payload-vs-knob. Lossless codec ⇒ the entire seg/density accuracy story holds byte-for-byte over OAI.
+- **Transport-dependent (the channel sweep must supply):** payload→latency→**delivery**. Loopback is linear
+  and ~free; OAI is ~14× steeper, nonlinear near capacity, with a delivery cliff (75→99%). This is the
+  reward's constraint + cost terms. → `channel_condition_sweep/CHANNEL_SWEEP_PLAN.md`.
