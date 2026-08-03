@@ -4,7 +4,7 @@
 # This is the fair counterpart to the 106PRB clear-channel Track 2 runs:
 # keep PRB/TDD/UE launch/model/payload fixed and vary only:
 #   - RFsim channel condition: AWGN enabled here
-#   - MCS policy: vanilla, hold-few, uncapped AIMD, capped AIMD
+#   - MCS policy: vanilla, hold-few, uncapped AIMD, capped AIMD, SINR-driven
 #
 # Default is a short diagnostic: 300 requested frames at 10 FPS. The CARLA
 # frontend is closed-loop, so wall-clock runtime is longer than 30 seconds.
@@ -21,6 +21,7 @@ UE_TRACE_PROFILE="${TTRACER_UE_PROFILE:-all}"
 GNB_TRACE_PROFILE="${TTRACER_GNB_PROFILE:-latency}"
 AIMD_CAP_DROP="${AIMD_CAP_DROP:-3}"
 AWGN_PROFILE="${AWGN_PROFILE:-mild}"
+DRY_RUN="${DRY_RUN:-0}"
 
 case "${AWGN_PROFILE}" in
   mild)
@@ -101,8 +102,12 @@ run_one() {
       mcs_policy="aimd"
       aimd_max_drop="${AIMD_CAP_DROP}"
       ;;
+    sinr)
+      hold="0"
+      mcs_policy="sinr"
+      ;;
     *)
-      echo "[track2-awgn106] ERROR: unknown policy '${label}' (use vanilla, hold, aimd, aimd_cap)" >&2
+      echo "[track2-awgn106] ERROR: unknown policy '${label}' (use vanilla, hold, aimd, aimd_cap, sinr)" >&2
       return 2
       ;;
   esac
@@ -111,6 +116,9 @@ run_one() {
   local batch="${BASE_BATCH_ID}_${label}"
 
   echo "[track2-awgn106] ===== ${label}: HOLD_MCS_FEW_SAMPLES=${hold}, MCS_POLICY=${mcs_policy:-legacy}, AIMD_MAX_DROP=${aimd_max_drop:-uncapped}, condition=${condition}, batch=${batch} ====="
+  if [[ "${DRY_RUN}" == "1" ]]; then
+    return 0
+  fi
   env "${COMMON_ENV[@]}" \
     CONDITION="${condition}" \
     BATCH_ID="${batch}" \

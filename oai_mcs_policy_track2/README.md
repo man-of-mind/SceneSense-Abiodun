@@ -46,6 +46,7 @@ The OAI source includes SceneSense instrumentation and policy hooks:
 - `SCENESENSE_HOLD_MCS_FEW_SAMPLES=1` for holding MCS when the update window has too few scheduled samples
 - `SCENESENSE_MCS_POLICY=aimd` for the BLER-aware AIMD/TCP-Reno-like diagnostic policy
 - `SCENESENSE_AIMD_MAX_DROP=<N>` for capping each AIMD bad-window MCS decrease
+- `SCENESENSE_MCS_POLICY=sinr` for the SINR-driven UL MCS policy. This uses `get_mcs_from_SINRx10(pusch_pc.avg_snr)` for new-data MCS selection while keeping HARQ/retransmissions enabled.
 
 The baseline above used vanilla-compatible behavior:
 
@@ -77,15 +78,16 @@ Run each policy on the same workload unless explicitly noted:
 | P4 | Capped AIMD | `MCS_POLICY=aimd`, `AIMD_MAX_DROP=3` | Same AIMD logic, but caps one bad-window decrease to avoid overreacting |
 | P5 | 106PRB AWGN policy gate | same P0/P2/P3/P4 policies with AWGN channel enabled | Official bad-channel comparison; same 106PRB config as clear-channel runs |
 | P6 | 106PRB AWGN ladder | mild/medium/harsh AWGN profiles with selected policies | Tests whether stronger sustained BLER makes OAI lower MCS, or whether backoff remains too weak/slow |
+| P7 | SINR-driven MCS | `MCS_POLICY=sinr` | Candidate fix for controlled channel sweeps: drive MCS from measured/injected SNR instead of sparse BLER windows |
 
 Suggested order:
 
 1. P0 current vanilla adaptive, already completed and validated.
 2. P2 hold-few-samples, already completed and validated as the high-MCS/good-channel reference.
-3. P3 AIMD after rebuilding OAI with the new policy source.
-4. P4 capped AIMD on the same clear-channel 106PRB path.
-5. P5 official AWGN bad-channel gate on the same 106PRB path.
-6. P6 AWGN ladder if mild AWGN only barely crosses the 15% BLER threshold and does not decisively test bad-channel behavior.
+3. P7 SINR-driven MCS on the clear-channel closed-loop CARLA run. This is the current best candidate because it should map clean 50 dB SNR directly to MCS 28 without being affected by CARLA's burst/sparse-window pacing.
+4. P7 SINR-driven MCS on an AWGN ladder (`mild medium strong`) to confirm MCS follows the injected channel quality monotonically while HARQ/retransmission metrics remain available.
+5. P3/P4 AIMD only as secondary diagnostics if the SINR policy does not behave as expected or if we need a purely BLER-reactive comparison.
+6. P5/P6 legacy/hold/AIMD AWGN comparisons remain useful background, but should not be treated as the main proposed fix after the SINR path is validated.
 7. P1 fixed MCS28 only if we still want a pure upper-bound comparator under the same timing.
 
 ## AWGN ladder guardrail
@@ -97,7 +99,7 @@ Default ladder:
 ```bash
 BASE_BATCH_ID=track2_awgn_ladder_20260801 \
 PROFILES="mild medium strong" \
-POLICIES="vanilla hold aimd_cap" \
+POLICIES="vanilla sinr" \
 FRONT_DURATION_S=30 \
 AIMD_CAP_DROP=3 \
 bash abiodun/oai_mcs_policy_track2/run_awgn_106prb_ladder.sh
@@ -109,8 +111,14 @@ Summarize:
 python3 abiodun/oai_mcs_policy_track2/summarize_awgn_ladder.py \
   --base-batch track2_awgn_ladder_20260801 \
   --profiles "mild medium strong" \
-  --policies "vanilla hold aimd_cap"
+  --policies "vanilla sinr"
 ```
+
+SINR policy guardrail:
+
+- The SINR policy is only valid if `GNB_MAC_UL_MCS_DECISION.avg_snr_x10` moves monotonically with the AWGN profile.
+- Expected rough mapping from the current OAI table: clear `~50 dB -> MCS 28`, mild `~19.5 dB -> MCS 24`, medium `~9.8 dB -> MCS 13`.
+- Keep HARQ enabled; do not set `ul_harq_round_max=1`, because that would remove retransmission behavior needed for reliability measurements.
 
 Important cleanup note: earlier 273PRB AWGN runs are diagnostic-only and have been moved under `results/diagnostic_273prb_awgn/`. Do not use them as the official bad-channel comparison against the 106PRB clear-channel baseline.
 

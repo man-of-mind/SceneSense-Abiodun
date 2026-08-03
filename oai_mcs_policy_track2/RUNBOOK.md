@@ -35,6 +35,8 @@ env CCACHE_DISABLE=1 ninja nr-softmodem nr-uesoftmodem
 
 For P3/P4, the expected binary must include `SCENESENSE_MCS_POLICY=aimd` support. For capped AIMD, it must also include `SCENESENSE_AIMD_MAX_DROP`.
 
+For the SINR policy, the expected binary must include `SCENESENSE_MCS_POLICY=sinr` support in `gNB_scheduler_ulsch.c`. This policy keeps HARQ enabled but selects the new-data UL MCS from `get_mcs_from_SINRx10(pusch_pc.avg_snr)`.
+
 The first P3 rebuild completed successfully with:
 
 - command: `env CCACHE_DISABLE=1 ninja nr-softmodem nr-uesoftmodem`
@@ -168,6 +170,59 @@ Expected `run.log` should include:
 - `mcs_policy=aimd`
 - `aimd_max_drop=3`
 
+## P7: SINR-driven MCS policy
+
+This is the current candidate fix for the controlled channel-sweep study.
+Unlike hold-few/AIMD, it does not infer channel quality from sparse BLER windows.
+It directly maps the gNB's tracked PUSCH SNR to MCS through OAI's existing `get_mcs_from_SINRx10()` table, while leaving HARQ/retransmissions enabled.
+
+Run only after rebuilding OAI.
+
+Clear-channel closed-loop gate:
+
+```bash
+BASE_BATCH_ID=track2_sinr_clear_20260803 \
+FRONT_DURATION_S=130 \
+RUNS="clear_vanilla clear_sinr" \
+bash abiodun/oai_mcs_policy_track2/run_fair_mcs_grant_rerun.sh
+```
+
+Expected `run.log` for the SINR run should include:
+
+`mcs_policy=sinr`
+
+Expected clear-channel behavior:
+
+- `avg_snr_x10` should remain near the clean-channel value (`~505`, i.e. `~50.5 dB`).
+- selected/final UL MCS should stay near 28 instead of falling to ~7.
+- feature uplink handling latency should move toward the HOLD/AIMD/fixed-MCS diagnostic range, not the vanilla ~142 ms range.
+- retransmission rate should remain near zero.
+
+AWGN SNR-ladder gate:
+
+```bash
+BASE_BATCH_ID=track2_sinr_awgn_ladder_20260803 \
+PROFILES="mild medium strong" \
+POLICIES="vanilla sinr" \
+FRONT_DURATION_S=30 \
+bash abiodun/oai_mcs_policy_track2/run_awgn_106prb_ladder.sh
+```
+
+Summarize:
+
+```bash
+python3 abiodun/oai_mcs_policy_track2/summarize_awgn_ladder.py \
+  --base-batch track2_sinr_awgn_ladder_20260803 \
+  --profiles "mild medium strong" \
+  --policies "vanilla sinr"
+```
+
+Expected ladder behavior:
+
+- `avg_snr_x10` should move monotonically with AWGN profile.
+- SINR policy MCS should follow that SNR movement: mild should be lower than clear, medium lower than mild, and strong lower than medium if attach remains stable.
+- HARQ retransmission metrics should still be present because HARQ is not disabled.
+
 ## Post-run checks
 
 After each run:
@@ -221,12 +276,22 @@ AIMD_CAP_DROP=3 \
 bash abiodun/oai_mcs_policy_track2/run_awgn_106prb_policies.sh
 ```
 
+For the SINR candidate, use:
+
+```bash
+AWGN_PROFILE=mild \
+BASE_BATCH_ID=track2_sinr_awgn_mild_20260803 \
+FRONT_DURATION_S=30 \
+POLICIES="vanilla sinr" \
+bash abiodun/oai_mcs_policy_track2/run_awgn_106prb_policies.sh
+```
+
 Run the default ladder:
 
 ```bash
 BASE_BATCH_ID=track2_awgn_ladder_20260801 \
 PROFILES="mild medium strong" \
-POLICIES="vanilla hold aimd_cap" \
+POLICIES="vanilla sinr" \
 FRONT_DURATION_S=30 \
 AIMD_CAP_DROP=3 \
 bash abiodun/oai_mcs_policy_track2/run_awgn_106prb_ladder.sh
@@ -238,7 +303,7 @@ Summarize the ladder:
 python3 abiodun/oai_mcs_policy_track2/summarize_awgn_ladder.py \
   --base-batch track2_awgn_ladder_20260801 \
   --profiles "mild medium strong" \
-  --policies "vanilla hold aimd_cap"
+  --policies "vanilla sinr"
 ```
 
 Expected `run.log` checks:
@@ -251,6 +316,7 @@ Expected `run.log` checks:
 - P2 hold run: `hold_mcs_few_samples=1`, `mcs_policy=legacy`
 - P3 AIMD run: `hold_mcs_few_samples=0`, `mcs_policy=aimd`, `aimd_max_drop=uncapped`
 - P4 capped AIMD run: `mcs_policy=aimd`, `aimd_max_drop=3`
+- P7 SINR run: `mcs_policy=sinr`
 
 Pass/fail interpretation:
 
