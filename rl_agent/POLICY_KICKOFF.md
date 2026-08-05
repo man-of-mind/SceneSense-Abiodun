@@ -28,7 +28,7 @@ No fusion-model re-run required.
   FPS · ROI/spatial-crop (accuracy-risky, LAST RESORT).
 - **§9.3 REWARD:** + fresh-delivered map update + localization accuracy/low staleness error − network-resource
   cost (PRB-time, not raw bytes) − dropped/stale frames. Hard-constrained (see below).
-- State/action/reward MDP diagram: the Mermaid source is in the team brief (this chat) — render at mermaid.live.
+- State/action/reward MDP diagram: **`rl_agent/state_diagram.md`** (Mermaid — render at mermaid.live / VS Code / GitHub).
 
 ### Constraints (safety) — enforce in the reward/policy
 - **C1** payload ≤ `budget(SNR) = capacity(SNR)/fps` — fits the channel (violate → congestion collapse:

@@ -181,7 +181,12 @@ distillation of every measured result above; treat it as the design spec for the
 | **object speed** (+ uncertainty) | dominant; sets the whole latency/FPS budget via the master inequality | §1–§5, MEASURED |
 | **channel state** — CQI/SNR→achievable rate, UE buffer occupancy | sets affordable payload + delivery reliability; the binding constraint over OAI | **MEASURED (2026-08-04, clean 12-cell grid on fresh CARLA)** (`channel_condition_sweep/CHANNEL_SWEEP_RESULTS.md` + plots). Uplink-only, SINR, retx=0 everywhere; sharp payload-ordered knee (offered ~6 fps): **1 MB** survives only clear (97.5%), collapses at ≤19.5 dB (22%→4.6%, 6–15 s); **400 KB** holds to 15.6 dB (100%, ≤251 ms), collapses at 8.2 dB (31.5%); **90 KB (ae32/u4/ROI0 seg-safe floor) = 100% at EVERY rung, ≤175 ms.** Collapse = congestion (BSR pins at the ~48 MiB ceiling), not radio errors. Rule: `payload_budget(SNR)=capacity(SNR)/target_fps × margin`; budget @10 fps ≈ {clear 448, mild 339, mid 241, **strong 127**} KB → **the 90 KB floor fits everywhere; at ~8 dB even 400 KB doesn't fit (ROI-escalation region)**. CAVEAT: offered fps was ~6 (live-front, CARLA-render limited); capacity estimated from delivered ceilings (±~30%); a shaped-burst @10 fps re-run (Mode A, no CARLA) will pin the absolute knee — not blocking. Fast objects (32 mph) still need FPS ≥15 for the 2.0 m staleness budget. |
 | **scene-empty gate** — max/count objectness on the CURRENT frame (pre-transmit) | decides send / skip; computed by the front backbone before compression, so NOT lagged | §8 (density-seg), available on the UE |
+| **previous action + outcome** — last payload/FPS, last latency/delivery | channel telemetry is lagged, so the agent needs its last decision + result to act sensibly (POMDP) | added 2026-08-04 (POLICY_KICKOFF + state diagram) |
 | ~~scene density (graded)~~ | **dropped** — the seg-aware knob is density-invariant | §8 |
+
+> **Authoritative current spec:** `rl_agent/POLICY_KICKOFF.md` + the MDP state diagram supersede this table
+> where they differ — they add **previous-action+outcome** (above) and make **send/skip** an explicit action.
+> Constraints C1–C4 and reward cautions: see `collab/REVIEW_NOTES.md` (2026-08-05).
 
 ### 9.2 ACTION — payload levers, in cost order (cheapest first)
 1. **Quant bits u8→u4** — nearly free (seg-lossless at ROI 0), ~2.0–2.4× payload cut. Use first.
