@@ -24,8 +24,10 @@ RSYNC="rsync -aHz --partial --info=progress2 $NFLAG"
 
 echo ">>> [1/3] abiodun code+docs+configs+checkpoints+OAI-source -> ${DEST_HOST}"
 echo "    (excludes: $ABI/.rsync-transfer-excludes)"
+# NOTE: source needs a TRAILING SLASH so the leading-slash excludes anchor to abiodun/ (fixed 2026-08-04).
+# Without it, the transfer root is the parent and `/metrics_logs/` etc. never match -> 654 GB of junk ships.
 $RSYNC --exclude-from="$ABI/.rsync-transfer-excludes" \
-  "$ABI" "${DEST_HOST}:${DEST_PARENT}/"
+  "$ABI/" "${DEST_HOST}:${DEST_PARENT}/abiodun/"
 
 echo ">>> [2/3] Claude project memory (durable session context) -> same path on new box"
 ssh "$DEST_HOST" "mkdir -p '$CLAUDE_PROJ'" 2>/dev/null || true
