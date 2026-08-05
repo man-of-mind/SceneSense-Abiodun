@@ -1,0 +1,26 @@
+# rsync exclude list for shipping abiodun/ to a new system.
+# Patterns are anchored to the abiodun/ transfer root (leading / = top-level only).
+# Everything NOT listed here IS shipped (all code, docs, configs, checkpoints, OAI source, .git).
+
+# --- Giant regenerable capture data (~360 GB) — regenerate via CARLA if ever needed ---
+/fusion_training_data/
+
+# --- Raw run streams (~159 GB) — the small summaries live in the study folders (shipped) ---
+/metrics_logs/
+
+# --- CoDriving platform (~11 GB) — re-clone from github.com/CollaborativePerception/V2Xverse ---
+/V2Xverse/
+
+# --- Torch cache (regenerated on first run) ---
+/torch_cache/
+
+# --- OAI compiled build tree — MUST be rebuilt on the new machine anyway (T-tracer) ---
+/OAI/openairinterface5g/cmake_targets/ran_build/build/
+
+# --- Python / editor noise ---
+__pycache__/
+*.pyc
+*.pyo
+.DS_Store
+*.swp
+*.swo

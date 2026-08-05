@@ -263,7 +263,13 @@ def summarize_run(profile: str, policy: str, run_group: str) -> Dict[str, object
             "p95_tbs_bytes": float(ul.get("p95_tbs_bytes", float("nan"))),
         }
     )
-    row.update(bler_decision_summary(run_group))
+    bler_summary = bler_decision_summary(run_group)
+    row.update(bler_summary)
+    row["olla_bler_status"] = (
+        "not_applicable_sinr_policy"
+        if policy == "sinr"
+        else ("available" if bler_summary else "missing")
+    )
     row.update(snr_summary(run_group))
     row.update(layer_latency_summary(run_group))
     row["hypothesis_read"] = hypothesis_read(row)
@@ -280,6 +286,10 @@ def hypothesis_read(row: Dict[str, object]) -> str:
 
     if math.isfinite(delivery) and delivery < 50.0:
         return "boundary/failure regime; do not use for fair policy ranking"
+    if policy == "sinr":
+        if math.isfinite(mcs_p50):
+            return "SINR-driven: MCS follows avg_snr; OLLA BLER columns are N/A by design"
+        return "missing SINR MCS evidence"
     if not math.isfinite(filtered_above) or not math.isfinite(mcs_p50):
         return "missing BLER/MCS evidence"
     if profile != "mild" and policy in {"aimd", "aimd_cap"} and filtered_above < 5.0 and filtered_p95 < 18.0:
@@ -317,7 +327,7 @@ def format_float(v: object) -> str:
     except (TypeError, ValueError):
         return str(v)
     if not math.isfinite(f):
-        return ""
+        return "N/A"
     return f"{f:.3f}"
 
 
@@ -393,6 +403,7 @@ def main() -> None:
         "mcs_p95",
         "ul_sched_mbps",
         "retx_rate_pct",
+        "olla_bler_status",
         "filtered_bler_p50_pct",
         "filtered_bler_p95_pct",
         "filtered_above_upper_pct",
@@ -431,8 +442,39 @@ def main() -> None:
             for item in missing:
                 f.write(f"- {item}\n")
 
+    compact_cols = [
+        "profile",
+        "policy",
+        "noise_power_dB",
+        "snr_p50_db",
+        "mcs_p50",
+        "mcs_p95",
+        "ul_sched_mbps",
+        "retx_rate_pct",
+        "delivery_pct",
+        "uplink_p50_ms",
+        "uplink_p95_ms",
+        "capture_result_p50_ms",
+        "capture_result_p95_ms",
+        "olla_bler_status",
+        "hypothesis_read",
+        "run_group",
+    ]
+    compact = df[[c for c in compact_cols if c in df.columns]]
+    compact_csv_path = OUT_DIR / f"{suffix}_compact.csv"
+    compact_md_path = OUT_DIR / f"{suffix}_compact.md"
+    compact.to_csv(compact_csv_path, index=False)
+    with compact_md_path.open("w", encoding="utf-8") as f:
+        f.write("# 106PRB AWGN ladder compact summary\n\n")
+        if args.base_batch:
+            f.write(f"Base batch: `{args.base_batch}`\n\n")
+        f.write(to_markdown(compact))
+        f.write("\n")
+
     print(csv_path)
     print(md_path)
+    print(compact_csv_path)
+    print(compact_md_path)
     print(df.round(3).to_string(index=False))
 
 

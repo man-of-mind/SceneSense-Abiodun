@@ -30,6 +30,7 @@ LOG_ROOT="${CAP_ROOT}/logs"
 
 TTRACER_DURATION_S="${TTRACER_DURATION_S:-420}"
 GNB_CONF_DEFAULT="${GNB_CONF_DEFAULT:-${GNB_CONF}}"
+UE_CONF_DEFAULT="${UE_CONF_DEFAULT:-${UE_CONF}}"
 GNB_MIN_RXTXTIME="${GNB_MIN_RXTXTIME:-6}"
 WAIT_TUNNEL_TRIES="${WAIT_TUNNEL_TRIES:-60}"
 ENABLE_SOFTMODEM_TTRACER="${ENABLE_SOFTMODEM_TTRACER:-1}"
@@ -38,7 +39,14 @@ RECORD_GNB="${RECORD_GNB:-1}"
 TTRACER_UE_PROFILE="${TTRACER_UE_PROFILE:-all}"
 TTRACER_GNB_PROFILE="${TTRACER_GNB_PROFILE:-latency}"
 FORCE_UL_MCS="${FORCE_UL_MCS:-}"
-HOLD_MCS_FEW_SAMPLES="${HOLD_MCS_FEW_SAMPLES:-0}"
+HOLD_MCS_FEW_SAMPLES="${HOLD_MCS_FEW_SAMPLES:-${SCENESENSE_HOLD_MCS_FEW_SAMPLES:-0}}"
+MCS_POLICY="${MCS_POLICY:-${SCENESENSE_MCS_POLICY:-}}"
+AIMD_MAX_DROP="${AIMD_MAX_DROP:-${SCENESENSE_AIMD_MAX_DROP:-}}"
+RFSIM_CHANMOD="${RFSIM_CHANMOD:-0}"
+CHANNELMOD_MODELLIST="${CHANNELMOD_MODELLIST:-}"
+AWGN_PROFILE="${AWGN_PROFILE:-none}"
+AWGN_NOISE_POWER_DB="${AWGN_NOISE_POWER_DB:-}"
+AWGN_PLOSS_DB="${AWGN_PLOSS_DB:-}"
 
 QUANTIZATION_MODE="${QUANTIZATION_MODE:-per_channel_uint8}"
 ENTROPY_CODER="${ENTROPY_CODER:-zstd}"
@@ -132,22 +140,39 @@ restart_core() {
 start_gnb_106_default() {
   local t_args=()
   local sudo_env=()
+  local chanmod_args=()
   if [[ "${ENABLE_SOFTMODEM_TTRACER}" == "1" ]]; then
     t_args=(--T_stdout "${OAI_T_STDOUT:-2}" --T_nowait --T_port "${OAI_GNB_T_PORT:-2021}")
   fi
-  if [[ -n "${FORCE_UL_MCS}" ]]; then
-    sudo_env+=(SCENESENSE_FORCE_UL_MCS="${FORCE_UL_MCS}")
+  if [[ "${RFSIM_CHANMOD}" == "1" ]]; then
+    chanmod_args=(--rfsimulator.[0].options chanmod)
+    if [[ -n "${CHANNELMOD_MODELLIST}" ]]; then
+      chanmod_args+=(--channelmod.modellist "${CHANNELMOD_MODELLIST}")
+    fi
   fi
-  if [[ "${HOLD_MCS_FEW_SAMPLES}" == "1" ]]; then
-    sudo_env+=(SCENESENSE_HOLD_MCS_FEW_SAMPLES=1)
+  if [[ -n "${FORCE_UL_MCS}" || -n "${MCS_POLICY}" || -n "${AIMD_MAX_DROP}" || "${HOLD_MCS_FEW_SAMPLES}" == "1" ]]; then
+    sudo_env=(env)
+    if [[ -n "${FORCE_UL_MCS}" ]]; then
+      sudo_env+=(SCENESENSE_FORCE_UL_MCS="${FORCE_UL_MCS}")
+    fi
+    if [[ -n "${MCS_POLICY}" ]]; then
+      sudo_env+=(SCENESENSE_MCS_POLICY="${MCS_POLICY}")
+    fi
+    if [[ -n "${AIMD_MAX_DROP}" ]]; then
+      sudo_env+=(SCENESENSE_AIMD_MAX_DROP="${AIMD_MAX_DROP}")
+    fi
+    if [[ "${HOLD_MCS_FEW_SAMPLES}" == "1" ]]; then
+      sudo_env+=(SCENESENSE_HOLD_MCS_FEW_SAMPLES=1)
+    fi
   fi
-  say "starting default gNB: ${GNB_CONF_DEFAULT}, min_rxtxtime=${GNB_MIN_RXTXTIME}, ttracer=${ENABLE_SOFTMODEM_TTRACER}, force_ul_mcs=${FORCE_UL_MCS:-adaptive}, hold_mcs=${HOLD_MCS_FEW_SAMPLES}"
+  say "starting default gNB: ${GNB_CONF_DEFAULT}, min_rxtxtime=${GNB_MIN_RXTXTIME}, ttracer=${ENABLE_SOFTMODEM_TTRACER}, force_ul_mcs=${FORCE_UL_MCS:-adaptive}, mcs_policy=${MCS_POLICY:-legacy}, aimd_max_drop=${AIMD_MAX_DROP:-uncapped}, hold_mcs=${HOLD_MCS_FEW_SAMPLES}, rfsim_chanmod=${RFSIM_CHANMOD}, channelmod_list=${CHANNELMOD_MODELLIST:-config-default}, awgn_profile=${AWGN_PROFILE}, awgn_noise_power_db=${AWGN_NOISE_POWER_DB:-config}, awgn_ploss_db=${AWGN_PLOSS_DB:-config}"
   (
     cd "${OAI_RAN_BUILD}" &&
-      setsid nohup sudo env "${sudo_env[@]}" ./nr-softmodem \
+      setsid nohup sudo "${sudo_env[@]}" ./nr-softmodem \
         -O "${OAI_RAN_CONF}/${GNB_CONF_DEFAULT}" \
         --gNBs.[0].min_rxtxtime "${GNB_MIN_RXTXTIME}" \
         --rfsim \
+        "${chanmod_args[@]}" \
         "${t_args[@]}" \
         > "${LOG_ROOT}/gnb_106_default_ttracer_stdout.log" 2>&1 &
   )
@@ -155,20 +180,28 @@ start_gnb_106_default() {
 
 start_ue_106() {
   local t_args=()
+  local chanmod_args=()
   if [[ "${ENABLE_SOFTMODEM_TTRACER}" == "1" ]]; then
     t_args=(--T_stdout "${OAI_T_STDOUT:-2}" --T_nowait --T_port "${OAI_UE_T_PORT:-2023}")
   fi
-  say "starting single-UE softmodem: PRB=${UE_PRB}, conf=${UE_CONF}, freq=${UE_DL_FREQ}, ttracer=${ENABLE_SOFTMODEM_TTRACER}"
+  if [[ "${RFSIM_CHANMOD}" == "1" ]]; then
+    chanmod_args=(--rfsimulator.[0].options chanmod)
+    if [[ -n "${CHANNELMOD_MODELLIST}" ]]; then
+      chanmod_args+=(--channelmod.modellist "${CHANNELMOD_MODELLIST}")
+    fi
+  fi
+  say "starting single-UE softmodem: PRB=${UE_PRB}, conf=${UE_CONF_DEFAULT}, freq=${UE_DL_FREQ}, ttracer=${ENABLE_SOFTMODEM_TTRACER}, rfsim_chanmod=${RFSIM_CHANMOD}, channelmod_list=${CHANNELMOD_MODELLIST:-config-default}, awgn_profile=${AWGN_PROFILE}, awgn_noise_power_db=${AWGN_NOISE_POWER_DB:-config}, awgn_ploss_db=${AWGN_PLOSS_DB:-config}"
   (
     cd "${OAI_RAN_BUILD}" &&
       setsid nohup sudo ./nr-uesoftmodem \
         --rfsim \
         --rfsimulator.[0].serveraddr "${UE_RFSIM_SERVER:-127.0.0.1}" \
+        "${chanmod_args[@]}" \
         -r "${UE_PRB}" \
         --numerology "${UE_NUMEROLOGY}" \
         --band "${UE_BAND}" \
         -C "${UE_DL_FREQ}" \
-        -O "${OAI_RAN_CONF}/${UE_CONF}" \
+        -O "${OAI_RAN_CONF}/${UE_CONF_DEFAULT}" \
         "${t_args[@]}" \
         > "${LOG_ROOT}/ue_106_default_ttracer_stdout.log" 2>&1 &
   )
@@ -414,8 +447,10 @@ postprocess() {
 
 - run_group: \`${RUN_GROUP}\`
 - gNB config: \`${GNB_CONF_DEFAULT}\`
+- UE config: \`${UE_CONF_DEFAULT}\`
 - UE launch: \`-r ${UE_PRB} -C ${UE_DL_FREQ}\`
-- default OAI behavior: force_ul_mcs=\`${FORCE_UL_MCS:-adaptive}\`, hold_mcs=\`${HOLD_MCS_FEW_SAMPLES}\`
+- OAI behavior: force_ul_mcs=\`${FORCE_UL_MCS:-adaptive}\`, mcs_policy=\`${MCS_POLICY:-legacy}\`, aimd_max_drop=\`${AIMD_MAX_DROP:-uncapped}\`, hold_mcs=\`${HOLD_MCS_FEW_SAMPLES}\`
+- RFsim channelmod: \`${RFSIM_CHANMOD}\`, profile=\`${AWGN_PROFILE}\`, noise_power_dB=\`${AWGN_NOISE_POWER_DB:-config}\`, ploss_dB=\`${AWGN_PLOSS_DB:-config}\`
 - target FPS: ${TARGET_FPS}
 - max frames: ${MAX_FRAMES}
 - front duration budget: ${FRONT_DURATION_S}s
@@ -429,10 +464,14 @@ EOF
 }
 
 say "===== START Track-1 default 106PRB OAI/T-tracer run ${RUN_GROUP} ====="
-say "config: gNB=${GNB_CONF_DEFAULT}, UE_PRB=${UE_PRB}, UE_FREQ=${UE_DL_FREQ}, min_rxtxtime=${GNB_MIN_RXTXTIME}, softmodem_ttracer=${ENABLE_SOFTMODEM_TTRACER}, UE_profile=${TTRACER_UE_PROFILE}, gNB_profile=${TTRACER_GNB_PROFILE}, record_gNB=${RECORD_GNB}, force_ul_mcs=${FORCE_UL_MCS:-adaptive}, hold_mcs=${HOLD_MCS_FEW_SAMPLES}, quant=${QUANTIZATION_MODE}, roi=${ROI_THRESHOLD}, entropy=${ENTROPY_CODER}, ae=${AE_CHECKPOINT:-none}"
+say "config: gNB=${GNB_CONF_DEFAULT}, UE_CONF=${UE_CONF_DEFAULT}, UE_PRB=${UE_PRB}, UE_FREQ=${UE_DL_FREQ}, min_rxtxtime=${GNB_MIN_RXTXTIME}, softmodem_ttracer=${ENABLE_SOFTMODEM_TTRACER}, UE_profile=${TTRACER_UE_PROFILE}, gNB_profile=${TTRACER_GNB_PROFILE}, record_gNB=${RECORD_GNB}, force_ul_mcs=${FORCE_UL_MCS:-adaptive}, mcs_policy=${MCS_POLICY:-legacy}, aimd_max_drop=${AIMD_MAX_DROP:-uncapped}, hold_mcs=${HOLD_MCS_FEW_SAMPLES}, rfsim_chanmod=${RFSIM_CHANMOD}, channelmod_list=${CHANNELMOD_MODELLIST:-config-default}, awgn_profile=${AWGN_PROFILE}, awgn_noise_power_db=${AWGN_NOISE_POWER_DB:-config}, awgn_ploss_db=${AWGN_PLOSS_DB:-config}, quant=${QUANTIZATION_MODE}, roi=${ROI_THRESHOLD}, entropy=${ENTROPY_CODER}, ae=${AE_CHECKPOINT:-none}"
 
 if [[ ! -f "${OAI_RAN_CONF}/${GNB_CONF_DEFAULT}" ]]; then
   say "ERROR: missing gNB config ${OAI_RAN_CONF}/${GNB_CONF_DEFAULT}"
+  exit 1
+fi
+if [[ ! -f "${OAI_RAN_CONF}/${UE_CONF_DEFAULT}" ]]; then
+  say "ERROR: missing UE config ${OAI_RAN_CONF}/${UE_CONF_DEFAULT}"
   exit 1
 fi
 
