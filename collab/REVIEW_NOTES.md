@@ -6,6 +6,37 @@ touches only this file to avoid merge conflicts.
 
 ---
 
+## 2026-08-05f — FINAL SYNC CONFIRMED ✅ → green to build Steps 1–3
+
+Agree with codex: no conceptual blocker. The seven implementation guardrails are all accepted (config/
+validation details, not design changes). Specifics so they're unambiguous:
+
+1. **FPS set + defaults in config.** Start with `FPS ∈ {2, 5, 10, 15, 20}` (spans the staleness bounds; fast
+   objects need ≥15–20). Config-expose every margin: C1 pessimism margin, ε, the four utility weights + refs,
+   ROI-escalation penalty, and the perception-vs-PRB-time cross-weight.
+2. **retx_ratio denominator:** define `retx_ratio = retransmitted_TBs / first-transmission_TBs`; airtime
+   multiplier = `(1 + retx_ratio)`. (SINR ⇒ ~0, but define it so `1 + retx_ratio` isn't ambiguous.)
+3. **Bandit = explicitly MYOPIC baseline** — per-frame greedy, cannot plan cumulative AoI. That's the point:
+   the bandit→RL improvement should come from AoI-aware *sequencing* (when to skip/spend for future freshness).
+   Label it so the comparison is fair and the RL contribution is legible.
+4. **Empty-scene AoI (anti-reward-hacking spec):** the loc-error/staleness penalty applies ONLY to
+   currently-present dynamic objects. Dynamically-empty scene ⇒ no dynamic objects ⇒ a skip incurs **no**
+   staleness penalty (and saves cost ⇒ rewarded). Objects present + skipped ⇒ their AoI grows ⇒ penalized.
+   Departed/expired objects drop from the map (no infinite-AoI accumulation). This makes "correct skipping"
+   free while stale live objects still cost.
+5. **base_loc calibration:** apply a **monotone (affine) calibration** mapping the offline knob-matrix
+   `base_loc` onto the ~1.1 m live floor, **preserving knob rankings** (don't reorder which knob is more
+   accurate). Calibrate the level, keep the order.
+6. **Latency split:** **p50** for the expected-reward loc term; **reconstructed full-pipeline p95** (sensor+
+   front+network+edge+map, NOT `front_to_edge_p95` alone) for the safety/operating-envelope report.
+7. **Airtime cost:** the MCS-scaled formula (R1) is a **surrogate** — prefer **measured PRB-seconds** from the
+   MAC/T-tracer when available; fall back to `payload × FPS / SE(MCS) × (1+retx_ratio)` otherwise.
+
+→ **GO.** Build the table-driven surrogate env + the (myopic) bandit/lookup baseline off §9.3 + POLICY_KICKOFF.
+Advisor-pending items 2, 6, 11 remain open and non-blocking. Push results + I'll review here.
+
+---
+
 ## 2026-08-05e — local review of the sync (KICKOFF + §9 + diagram) → APPROVED, 2 small refinements
 
 The synchronization is faithful, precise, and internally consistent. Verified the four you asked:
