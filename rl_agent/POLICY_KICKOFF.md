@@ -11,36 +11,51 @@ from three tables and train in it. OAI/CARLA are only needed later, for the *liv
 ### The surrogate environment = these three inputs
 1. **Transport surface** — `channel_condition_sweep/combined_surface.csv` (+ `CHANNEL_SWEEP_RESULTS.md`, plots):
    payload × SNR → delivery, capture→map latency, BSR backlog, app-offered vs scheduled-UL. Gives
-   `capacity(SNR)` and the congestion knee.
+   the environment's measured `capacity(SNR)` surface and congestion knee. The policy does not observe this
+   true surface directly; it receives a lagged/noisy achievable-capacity estimate.
 2. **Accuracy ↔ knob ↔ payload** — `rl_agent/PERMODEL_KNOB_MATRIX_ZSTD.md` (+ `density_knob/`). Transport-
    invariant (lossless codec), so it holds byte-for-byte over OAI. Gives per-frame accuracy for each action.
 3. **Staleness model** — `staleness/STALENESS_RESULTS.md` (+ `uplink_only_latency_budget/`). The master
    inequality and the capture→map latency decomposition. Turns latency+delivery+speed → localization error.
 
-End-to-end reward signal = compose( knob accuracy [2] ⊕ staleness from latency/delivery [1,3] ⊕ object speed ).
-No fusion-model re-run required.
+End-to-end reward signal = compose( knob accuracy [2] ⊕ AoI transition from latency/delivery [1,3] ⊕ object
+speed ). AoI is `now − capture_timestamp` of the newest successfully published update: delivery resets it to
+capture→map latency, while skip/drop continues accumulating it. No fusion-model re-run required.
 
 ## Locked design (do not re-derive) — `AGENT_CONSTRAINTS.md §9`
-- **§9.1 STATE:** channel state (SNR/CQI, MCS, BLER/HARQ, sched-UL rate, UE BSR/RLC — *observed with lag*);
-  object speed (+σ); scene-emptiness/urgency gate (current frame, pre-transmit); **+ previous action+outcome**
-  (last payload/FPS, last latency/delivery — needed because channel is lagged).
+- **§9.1 STATE:** lagged/noisy channel telemetry + achievable-capacity estimate/confidence; object speed (+σ);
+  current scene-emptiness/urgency; **AoI**; and previous action+outcome. Estimate capacity from either
+  full-resource `TBS_per_grant × attainable_grant_rate` or MCS spectral efficiency × configured available UL
+  resources/time, corroborated by backlogged BSR/RLC drain and outcomes. Raw scheduled throughput and actual
+  light-load allocations are demand-censored lower bounds, not capacity.
 - **§9.2 ACTION** (cheap→costly): send/skip · quant u8→u4 (free) · AE bottleneck (main accuracy↔bytes dial) ·
   FPS · ROI/spatial-crop (accuracy-risky, LAST RESORT).
-- **§9.3 REWARD:** + fresh-delivered map update + localization accuracy/low staleness error − network-resource
-  cost (PRB-time, not raw bytes) − dropped/stale frames. Hard-constrained (see below).
+- **§9.3 REWARD:** one AoI-composed localization term + segmentation/recall utility − PRB-time cost. Explicit
+  delivery/drop terms are light diagnostics only, so a delivery outcome is not counted again at full strength.
+  C1 is action-masked; C2 is a soft target.
 - State/action/reward MDP diagram: **`rl_agent/state_diagram.md`** (Mermaid — render at mermaid.live / VS Code / GitHub).
 
-### Constraints (safety) — enforce in the reward/policy
-- **C1** payload ≤ `budget(SNR) = capacity(SNR)/fps` — fits the channel (violate → congestion collapse:
-  BSR→48 MiB, latency→seconds, delivery cliff).
-- **C2** `v × total_staleness ≤ sqrt(ε² − floor²)`, floor ≈ 1.1 m; total_staleness = sensor prep + front +
-  uplink + edge/map.
-- **C3** keep the seg-safe floor (≥ 90 KB, `ae32/u4/ROI0`) unless truly forced.
-- **C4** object range ≤ 40 m (perception-valid region — M′ trained/eval'd with `max_gt_distance_m=40`).
+### Constraints (safety) — enforce in the mask/reward
+- **C1 (hard vs observation):** action-mask any send with
+  `payload × fps > pessimistic(lagged/noisy achievable-capacity estimate)`; skip remains admissible. Hidden
+  true-capacity misses caused by lag are logged and fed back to the estimator, not oracle-prevented.
+- **C2 (soft):** `loc_error = sqrt(base_loc(knob)^2 + (speed × AoI)^2)`, with configurable ε (default 2.0 m)
+  as the target. AoI already includes pipeline and inter-update age; do not add separate latency, `1/FPS`, or
+  staleness penalties. Use the generic 1.1 m floor only for operating-envelope reporting.
+- **C3:** prefer the 90 KB `ae32/u4/ROI0` segmentation-safe floor. Sub-90 KB ROI actions are last-resort and
+  pay their measured mIoU loss plus a configurable escalation penalty.
+- **C4:** score only objects within 40 m (M′ validity); headline localization remains ≤25 m pending advisor
+  confirmation.
+
+Initial configurable perception prior:
+`−0.50·loc_error/ε + 0.25·mIoU/mIoU_ref + 0.125·ped_recall/ped_ref + 0.125·obj_recall/obj_ref`.
+Define the references from uncompressed/best-achievable measurements and ablate both these weights and the
+perception-vs-PRB-time cross-weight.
 
 ## Build sequence
 1. **Surrogate env** from the three tables (interpolate `capacity(SNR)`, staleness, accuracy).
-2. **Bandit / lookup baseline** off `payload_budget(SNR)` — the number to beat (near-static feedforward).
+2. **Bandit / lookup baseline** off `payload_budget = pessimistic_estimated_capacity/fps` — the number to beat
+   (near-static feedforward; no oracle access to current true capacity).
 3. **Reward + constraint check** — sanity vs reward-hacking (empty-scene skip good, real-object skip penalized;
    seg vs ROI).
 4. **Constrained RL** in the surrogate: Lagrangian-PPO or small DQN/Rainbow (discrete actions); model-based/

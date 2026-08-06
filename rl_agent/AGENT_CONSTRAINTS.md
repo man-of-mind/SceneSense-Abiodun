@@ -96,6 +96,10 @@ the edge/downlink drops results. The next reliability experiment should measure 
 delivered FPS, queue wait, drops, and result age as a function of FPS × buffer size × payload profile.
 
 ## 6. Suggested reward / constraint shaping
+> **Historical derivation only — superseded for policy implementation by §9.3.** This section predates the
+> uplink-only AoI formulation. Do not implement a separate `L+1/FPS` term or downlink term; use the composed
+> AoI localization objective and C1 observation-based mask in §9.3.
+
 - **Hard constraint:** reject/penalize any action whose predicted `v·(Y_up+1/FPS) > B(ε)` for the current tracked speed;
   after downlink instrumentation, use `v·(Y_up+1/FPS+Y_down+Y_map_share) > B(ε)`.
 - **Cost side:** minimize bandwidth (payload × FPS) subject to the constraint → the agent naturally compresses
@@ -179,11 +183,11 @@ distillation of every measured result above; treat it as the design spec for the
 | variable | why | source / status |
 |---|---|---|
 | **object speed** (+ uncertainty) | dominant; sets the whole latency/FPS budget via the master inequality | §1–§5, MEASURED |
-| **channel state** — CQI/SNR→achievable rate, UE buffer occupancy | sets affordable payload + delivery reliability; the binding constraint over OAI | **MEASURED (2026-08-04, clean 12-cell grid on fresh CARLA)** (`channel_condition_sweep/CHANNEL_SWEEP_RESULTS.md` + plots). Uplink-only, SINR, retx=0 everywhere; sharp payload-ordered knee (offered ~6 fps): **1 MB** survives only clear (97.5%), collapses at ≤19.5 dB (22%→4.6%, 6–15 s); **400 KB** holds to 15.6 dB (100%, ≤251 ms), collapses at 8.2 dB (31.5%); **90 KB (ae32/u4/ROI0 seg-safe floor) = 100% at EVERY rung, ≤175 ms.** Collapse = congestion (BSR pins at the ~48 MiB ceiling), not radio errors. Rule: `payload_budget(SNR)=capacity(SNR)/target_fps × margin`; budget @10 fps ≈ {clear 448, mild 339, mid 241, **strong 127**} KB → **the 90 KB floor fits everywhere; at ~8 dB even 400 KB doesn't fit (ROI-escalation region)**. CAVEAT: offered fps was ~6 (live-front, CARLA-render limited); capacity estimated from delivered ceilings (±~30%); a shaped-burst @10 fps re-run (Mode A, no CARLA) will pin the absolute knee — not blocking. Fast objects (32 mph) still need FPS ≥15 for the 2.0 m staleness budget. |
+| **channel state** — CQI/SNR→achievable rate, UE buffer occupancy | sets affordable payload + delivery reliability; the binding constraint over OAI | **MEASURED (2026-08-04, clean 12-cell grid on fresh CARLA)** (`channel_condition_sweep/CHANNEL_SWEEP_RESULTS.md` + plots). Uplink-only, SINR, retx=0 everywhere; sharp payload-ordered knee (offered ~6 fps): **1 MB** survives only clear (97.5%), collapses at ≤19.5 dB (22%→4.6%, 6–15 s); **400 KB** holds to 15.6 dB (100%, ≤251 ms), collapses at 8.2 dB (31.5%); **90 KB (ae32/u4/ROI0 seg-safe floor) = 100% at EVERY rung, ≤175 ms.** Collapse = congestion (BSR pins at the ~48 MiB ceiling), not radio errors. Measured-grid rule: `payload_budget=capacity(SNR)/target_fps × margin`; budget @10 fps ≈ {clear 448, mild 339, mid 241, **strong 127**} KB. The deployed policy instead uses its **lagged/noisy achievable-capacity estimate**, not a hard-coded SNR→payload map. The 90 KB floor fits every measured rung; at ~8 dB even 400 KB does not fit in the tested config. CAVEAT: offered fps was ~6 (live-front, CARLA-render limited); capacity estimated from delivered ceilings (±~30%); a shaped-burst @10 fps re-run (Mode A, no CARLA) will pin the absolute knee — not blocking. Fast objects (32 mph) still need FPS ≥15 for the 2.0 m target. |
 | **scene-empty gate** — max/count objectness on the CURRENT frame (pre-transmit) | decides send / skip; computed by the front backbone before compression, so NOT lagged | §8 (density-seg), available on the UE |
 | **previous action + outcome** — last payload/FPS, last latency/delivery | channel telemetry is lagged, so the agent needs its last decision + result to act sensibly (POMDP) | added 2026-08-04 (POLICY_KICKOFF + state diagram) |
-| **age-of-information (AoI)** — time since the last SUCCESSFUL (delivered) map update | true map staleness after skips/drops ≠ L+1/FPS; drives the composed loc-error and makes send/skip sequential | added 2026-08-05 (`collab/REVIEW_NOTES.md` item 17) |
-| **estimated achievable UL capacity (+ confidence)** — from MCS × PRB/TBS × grant rate (load-independent), NOT raw scheduled throughput | the C1 mask + policy budget key off this lagged/noisy estimate, never the sim's true SNR; raw throughput under light load ≠ capacity (censored-observation trap) | added 2026-08-05 (`REVIEW_NOTES.md` items 15/A, 21) |
+| **age-of-information (AoI)** — `now − capture_timestamp` of the newest successfully published map update | at delivery AoI resets to that update's capture→map latency; after skips/drops it continues to accumulate. It drives composed loc-error and makes send/skip sequential | added 2026-08-05 (`collab/REVIEW_NOTES.md` item 17) |
+| **estimated achievable UL capacity (+ confidence)** — derive from either full-resource `TBS_per_grant × attainable_grant_rate` or `spectral_efficiency(MCS) × configured_available_UL_resources/time`; corroborate with BSR/RLC drain and outcomes | the C1 mask + policy budget use this lagged/noisy estimate, never hidden true capacity. Raw scheduled throughput and actually allocated PRB/TBS under light load are demand-censored lower bounds, not capacity | added 2026-08-05 (`REVIEW_NOTES.md` items 15/A, 21) |
 | ~~scene density (graded)~~ | **dropped** — the seg-aware knob is density-invariant | §8 |
 
 > **Authoritative current spec:** `rl_agent/POLICY_KICKOFF.md` + the MDP state diagram supersede this table
@@ -203,16 +207,32 @@ distillation of every measured result above; treat it as the design spec for the
    is NOT a routine or density-indexed knob.
 
 ### 9.3 REWARD
-- **Hard constraint:** `v·(L+1/FPS) ≤ √(ε²−1.1²)` with **L measured over OAI** (not loopback). Penalize
-  violation; do not reward chasing ε < ~1.1 m (model floor, §1).
-- **Accuracy term:** joint — detection recall + loc AND seg mIoU held (the §8 joint-accept). ROI's mIoU cost
-  enters here, which is what makes lever 4 self-limiting.
+- **C1 — hard action mask on the observation:** admit a send action only when
+  `payload × FPS ≤ pessimistic(lagged/noisy achievable-capacity estimate)`; skip is always admissible. The
+  environment retains hidden true capacity. If the estimate is stale and the admitted load exceeds truth,
+  record a C1 estimate-miss/congestion diagnostic and feed the outcome back to the estimator; do not expose
+  oracle state to the policy.
+- **C2 — soft localization target:**
+  `loc_error(knob,speed,AoI) = sqrt(base_loc(knob)^2 + (speed × AoI)^2)`, with configurable `ε` (default
+  **2.0 m**) as the target/reference line. `base_loc(knob)` comes from the knob matrix. AoI already accumulates
+  capture→map latency and inter-update time, so do **not** add a separate `L`, `1/FPS`, or staleness penalty.
+  Use the generic 1.1 m floor only for the operating-envelope report and do not reward chasing below it.
+- **Perception utility:** normalized initial prior
+  `−0.50·loc_error/ε + 0.25·mIoU/mIoU_ref + 0.125·ped_recall/ped_ref + 0.125·obj_recall/obj_ref`, with all
+  weights and references declared in config. Calibrate/ablate them; the pending advisor decision may harden
+  the pedestrian-recall requirement.
+- **C3/C4:** prefer the 90 KB ROI0 segmentation-safe floor. Sub-90 KB ROI escalation pays its measured mIoU
+  loss plus a configurable last-resort penalty. Score only objects within the 40 m perception-valid region;
+  headline localization remains ≤25 m pending advisor confirmation.
 - **Cost term:** minimize **airtime / PRB occupancy** (payload × FPS × retransmissions), NOT raw bytes —
   and this is where compression/gating earns its keep, most of all under a **bad channel** and under
   **multi-UE contention** (the scarce shared resource). On a single clean channel with the budget already
-  met, there is little reason to compress; the value shows up exactly in the conditions the channel sweep
-  (and eventually multi-UE) will create.
-- **Reliability:** reward **fresh-delivered** frames, not sent frames.
+  met, there is little reason to compress. The perception-vs-PRB-time cross-weight is a required ablation.
+- **Delivery/reliability:** AoI-driven `loc_error` is the primary freshness signal. Any explicit delivered
+  bonus, drop penalty, or stale-frame penalty must be **light/diagnostic or folded into that term**; do not
+  score the same delivery event again at full strength.
+- **Graceful degradation:** if no C1-admissible action meets C2, choose the admissible action with minimum
+  composed localization error (including ROI escalation when justified), act, and flag the frame over-budget.
 
 ### 9.4 What is transport-invariant vs must be re-measured over OAI
 - **Invariant (reuse the loopback/offline knob matrix as-is):** accuracy-vs-knob (recall/loc/mIoU) and
