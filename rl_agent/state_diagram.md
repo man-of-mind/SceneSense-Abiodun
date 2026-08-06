@@ -6,10 +6,11 @@ config:
 flowchart LR
  subgraph S["STATE  s(t) — observation"]
     direction TB
-        ch["Channel state (observed WITH LAG):<br>SNR/CQI, MCS, BLER/HARQ,<br>scheduled UL rate, UE BSR/RLC buffer"]
+        ch["Channel state (observed WITH LAG + NOISE):<br>SNR/CQI, MCS, BLER/HARQ, PRB/TBS/grant rate,<br>scheduled UL rate, UE BSR/RLC buffer,<br>estimated achievable UL capacity + confidence"]
         sp["Object speed (+ uncertainty)"]
         em["Scene-emptiness / urgency gate<br>(current frame, not lagged)"]
         prev["Previous action + outcome<br>last payload/FPS, last latency/delivery"]
+        age["Age-of-Information (AoI)<br>time since last SUCCESSFUL map update"]
   end
  subgraph A["ACTION  a(t) — cheap to costly"]
     direction TB
@@ -22,46 +23,67 @@ flowchart LR
  subgraph ENV["ENVIRONMENT — 5G uplink + edge (transition)"]
     direction TB
         off["offered load = payload × FPS"]
+        truth["HIDDEN true current link capacity<br>depends on channel + PRB/TDD config<br>(never exposed directly to policy/mask)"]
         oai["OAI uplink:<br>delivery, latency, BSR backlog, MCS/BLER"]
         mp["edge fuses to shared map<br>(freshness / staleness)"]
   end
-    src1(["gNB / UE MAC + T-tracer<br>MCS, BLER, BSR, RLC occupancy, UL sched rate"]) --> ch
+    src1(["gNB / UE MAC + T-tracer<br>MCS, BLER, BSR/RLC, PRB/TBS,<br>grant rate + scheduled UL rate"]) --> est["Lagged/noisy capacity estimator<br>uses telemetry + offered load + prior outcomes<br>(scheduled throughput alone ≠ capacity)"]
+    est --> ch
     src2(["Front perception / tracker<br>object speed + uncertainty"]) --> sp
     src3(["UE front backbone, pre-transmit<br>frame objectness / urgency<br>(near object, occlusion risk)"]) --> em
     src4(["Agent memory (t-1)<br>last action + outcome"]) --> prev
-    S --> POL{{"Policy π(a|s) — RL, safety-constrained<br>chooses payload / FPS / send under ESTIMATED UL budget<br><i>intuition: payload × FPS ≤ estimated UL budget</i>"}}
+    src5(["Map-update clock<br>last successful publish time"]) --> age
+    S --> MASK{{"C1 ACTION MASK (observation only)<br>admit payload × FPS ≤ pessimistic<br>estimated UL capacity<br>skip is always admissible"}}
+    MASK --> POL{{"Policy π(a|s) — RL, safety-constrained<br>chooses payload / FPS / send<br>from the C1-admissible action set"}}
     POL --> A
-    A --> C{{"CONSTRAINTS (safety)<br>C1 payload × FPS ≤ channel budget — HARD (never congest)<br>C2 v × total_staleness ≤ sqrt(eps² - floor²) — SOFT (best-effort)<br>&nbsp;&nbsp;&nbsp;&nbsp;total_staleness = sensor prep + front + uplink + edge/map; floor ≈ 1.1 m<br>C3 keep seg-safe floor ≥ 90 KB (ae32/u4/ROI0) unless forced<br>C4 object range ≤ ~40 m (perception-valid region)"}}
+    A --> C{{"CONSTRAINTS / OPERATING RULES<br>C1 mask is HARD vs observed pessimistic capacity;<br>&nbsp;&nbsp;&nbsp;&nbsp;true-capacity estimate misses are logged outcomes<br>C2 composed loc_error ≤ epsilon (default 2.0 m) — SOFT / best-effort<br>C3 prefer seg-safe ROI0 floor = 90 KB (ae32/u4/ROI0);<br>&nbsp;&nbsp;&nbsp;&nbsp;allow sub-90 KB ROI only when forced<br>C4 object range ≤ 40 m — validity/scoring FILTER, not an action"}}
     off --> oai
+    truth --> oai
     oai --> mp
-    C -- payload & FPS admitted --> ENV
-    ENV --> S2["NEXT STATE  s(t+1)"] & R["REWARD r(t)<br>+ fresh-delivered map update<br>+ localization accuracy / low staleness error<br>- network-resource cost (PRB-time / payload)<br>- dropped or stale frames"]
-    S2 --> POL
-    mp -. delivery / latency / BSR / MCS → next channel obs .-> ch
-    mp -. staleness × speed → localization error .-> sp
-    ENV -. "feeds back as (t-1) memory" .-> prev
-    C -. if C1 violated: CONGESTION COLLAPSE<br>BSR → 48 MiB, latency → seconds, delivery cliff .-> oai
-    C -. "no action meets C2 (fast object + deep fade)" .-> DEG["GRACEFUL DEGRADATION<br>emit min-localization-error action (ROI-escalate),<br>flag frame over-budget<br>= operating-envelope result, NOT a deadlock"]
-    DEG -.-> ENV
+    C -- admitted action --> off
+    ENV --> AOI["AoI TRANSITION<br>delivered → pipeline latency<br>skip/drop → previous AoI + control interval"]
+    A --> AOI
+    AOI --> LOC["ONE composed localization term<br>loc_error = sqrt(base_loc(knob)² + (speed × AoI)²)<br>generic 1.1 m floor only for operating-envelope reporting"]
+    sp --> LOC
+    A --> LOC
+    ENV --> S2["NEXT STATE  s(t+1)<br>updated AoI, lagged channel observation,<br>previous action/outcome, scene state"]
+    LOC --> R["REWARD r(t)<br>+ fresh-delivered map update<br>+ segmentation mIoU + pedestrian/object recall<br>- ONE composed loc_error term (no separate staleness penalty)<br>- network-resource cost (PRB-time)<br>- dropped/stale frames + C1 estimate-miss diagnostic"]
+    ENV --> R
+    S2 --> MASK
+    oai -. telemetry at t+lag plus noise .-> est
+    mp -. successful publish time / delivery latency .-> AOI
+    ENV -. "feeds back as (t-1) action + outcome" .-> prev
+    oai -. "if admitted offered load > hidden true capacity:<br>estimate-miss congestion (BSR → 48 MiB,<br>latency → seconds, delivery cliff)" .-> MISS["C1 ESTIMATE-MISS DIAGNOSTIC<br>not oracle-preventable; log + feed estimator"]
+    MISS -.-> est
+    C -. "no action meets C2 (fast object + deep fade)" .-> DEG["GRACEFUL DEGRADATION<br>emit min-localization-error C1-admissible action (ROI-escalate),<br>flag frame over-budget<br>= operating-envelope result, NOT a deadlock"]
+    DEG -.-> off
     R -. learn .-> POL
 
      ch
      sp
      em
      prev
+     age
      gate
      quant
      ae
      fps
      roi
      off
+     truth
      oai
      mp
      src1
      src2
      src3
      src4
+     src5
+     est
+     MASK
      POL
      C
+     AOI
+     LOC
      S2
      R
+     MISS
