@@ -6,6 +6,84 @@ touches only this file to avoid merge conflicts.
 
 ---
 
+## 2026-08-06b — reward formulation doc + verdict on codex's response
+
+Drafted **`rl_agent/REWARD_FORMULATION.md`** as the consensus spec. **Verdict: I agree with codex's response in
+full** — it improves my earlier draft in four places (LOCAL compute-feasibility mask + headroom state; split
+localization into a feasibility-aware `r_safety` with `e*` regret; discrete/categorical SAC not
+continuous-SAC+round; oracle-first validation before RL). Adopted all.
+
+My additions (in §10 of the doc): `e*` is training/surrogate-only (not needed live); offer a smooth `r_safety`
+if the binary `1[e≤ε]` step hurts value learning; keep SCAN-AI **FiLM** conditioning regardless of algo;
+**normalize every term before the weights mean anything**; and **LOCAL stays provisional until its measured
+4th surrogate table exists** (the 2.27 KB is detections-only — need the seg/map-inclusive local profile).
+
+One factual note for the record: the SCAN-AI paper does **not** explicitly say DQN was tried — it says
+"discrete bitrate levels" caused I-frame instability. That reason is codec-specific and doesn't transfer to
+our discrete/mixed catalog, which is why we land on discrete-SAC / DQN, not continuous SAC.
+
+Net: reward spec is converged. Suggested next build step = the **ORACLE** (enumerate admitted actions, pick
+reward-max) and validate it picks LOCAL in deep-fade/high-speed and rejects it when SPLIT is cheaper — that
+gates the RL. Advisor-pending items unchanged + the fusion-side coverage question (does LOCAL retain multi-ego
+coverage?).
+
+---
+
+## 2026-08-06 — supervisor round: local-inference fallback, reward ranking, algorithm (grounded in SCAN-AI + split-inference study)
+
+**1. Local-inference fallback (supervisor's idea) — ADOPT as a first-class MODE action.** Strongly agree, and
+our own split-inference study already quantifies it (`split_inference_motivation/results/`):
+- **Split / cooperative (current default):** send features → edge intermediate-fusion. On co-visible objects
+  this refines localization (E4 triangulation 0.36–1.06 m at moderate baseline) vs single-view ~1–2.9 m. Cost:
+  90 KB–1 MB payload + staleness (speed×AoI) under a bad channel.
+- **Local (Arch A):** run the FULL model on the car (E1/E6: feasible, ~33 ms CPU / ~2 ms GPU) → send the
+  **RESULT (2.27 KB, E2E ~42 ms, always delivers)** → single-view localization (~1–2.9 m), no edge feature
+  fusion. Add a top-level action/mode **`{split (send features), local (send 2.27 KB result)}`**.
+- Corner case (deep fade + fast car) → switch to LOCAL: a *fresh single-view* result beats a 6–15 s-stale
+  cooperative one. **This replaces the "emit degraded stale feature + flag" DEG path** — there is now a real
+  feasible fresh action, so the agent is **not wrongly punished** (supervisor's concern resolved): the corner
+  case is scored by local's *achievable* loc, not by an impossible split target.
+- Reward models each mode's `loc_error = base_loc(mode,knob) ⊕ (speed × AoI)`: split has the better co-visible
+  `base_loc` but large AoI under bad channel; local has worse `base_loc` but AoI ≈ 42 ms always. Agent picks
+  min → **"inappropriate local when channel is fine / object slow" is automatically dominated** (split's lower
+  base_loc wins there). Prefer this model-driven switch over a hand-coded penalty; add a mild on-car
+  compute/energy cost (E1/E2) so local isn't free.
+- ⚑ **Confirm with the fusion side:** does local (late-fusion detection-sharing across multiple egos) retain
+  multi-ego map *coverage*, or is the cooperative advantage mainly the triangulation *loc refinement*? If the
+  former, coverage is ~mode-invariant and the reward driver is purely `base_loc` vs AoI (cleanest). If local
+  also loses coverage, add a **map-coverage/completeness** term so the agent isn't blind to dropped objects.
+- Diagram/§9 TODO (codex): add the split/local mode action; make local the graceful-degradation path; add the
+  coverage term if the fusion-side answer requires it.
+
+**2. Reward ranking + justification (the "formulate reward first" task).** Mirror SCAN-AI's own template
+(paper §4.2.3: `R = alignment − λ2·PLR − λ3·smoothness`, with **λ2 ≫ λ1 ≫ λ3**, justified as reliability >
+fidelity > smoothness for safety-critical). Proposed for us:
+- **(0) HARD constraint, not a reward term:** C1 congestion mask — never congest.
+- **(1) PRIMARY — shared-map accuracy:** composed `loc_error` (base_loc ⊕ speed×AoI) [+ coverage if item 1
+  requires]. This IS the product → highest weight.
+- **(2) freshness/reliability:** already inside loc via AoI → any explicit delivery/drop term stays LIGHT
+  (no double-count).
+- **(3) resource cost:** airtime/PRB-time (MCS-scaled) — matters under bad channel + multi-UE contention;
+  near-zero on a clean single-UE channel with budget met. Where compression earns its keep.
+- **(4) mode/escalation cost:** small on-car compute/energy (local) + ROI-escalation seg penalty.
+- Weight order **accuracy ≫ cost ≫ compute/smoothness** (SCAN-AI's λ ordering, justified analogously).
+  **Ablate the accuracy-vs-cost cross-weight** — it sets compression aggressiveness.
+
+**3. Algorithm — SAC, grounded in the paper.** SCAN-AI (§4.2.2 / §4.4) used SAC because its action was a
+**single CONTINUOUS bitrate**, and **discrete bitrate levels caused H.265 I-frame spikes → unstable
+allocation**; continuous SAC smoothed that. **That reason is codec-specific and does NOT transfer to us** — our
+action is a small DISCRETE/MIXED set (mode + pruned knobs + FPS + send/skip), no I-frame dynamics. So:
+- Trying SAC first (supervisor's call) is cheap on the surrogate + keeps group continuity — but do it with a
+  **continuous target-payload + target-FPS parameterization** (snap to nearest knob) plus a discrete head/gate
+  for split-vs-local. If the discrete mode/snapping fights SAC → **discrete-SAC / DQN-Rainbow / PPO** fit our
+  action more naturally (and we don't inherit the I-frame instability that forced SCAN-AI continuous).
+- **Adopt SCAN-AI's FiLM conditioning regardless of the RL algo:** network state (budget estimate, SNR)
+  **modulates (γ,β-gates)** the perception/speed features instead of being concatenated as a peer — this
+  exactly matches our "channel gates the payload decision" structure and is proven in the sibling paper.
+- Keep the **myopic bandit** as the baseline (it can't plan AoI/mode — that's the RL's job).
+
+---
+
 ## 2026-08-05f — FINAL SYNC CONFIRMED ✅ → green to build Steps 1–3
 
 Agree with codex: no conceptual blocker. The seven implementation guardrails are all accepted (config/
