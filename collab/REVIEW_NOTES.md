@@ -124,6 +124,46 @@ into the agent** — that overfits to this one config.
 - Net: the constraints are not "hard on 8 dB" — they're "payload ≤ what the link currently affords," which
   8 dB @ 106PRB happens to make small. Change the config → same rule yields a bigger budget.
 
-**Bottom line: you're clear to build STEPS 1–3 now** with items 1, 3, 4, 5, 7, 8, 9, 15 as decided; items 2,
-6, 11 use the stated defaults pending advisor sign-off. Build the surrogate config-agnostically (item 15).
-Commit + push the surrogate env + bandit baseline and I'll review here.
+## 2026-08-05b — reward/MDP hardening (codex round 2 — all ACCEPTED)
+Settle these before finalizing the reward/MDP (bandit baseline can start now; these shape reward + RL env):
+
+### 16. C1 enforcement = capacity-aware ACTION MASK, not Lagrangian alone ✅
+Mask out any action with `payload×fps > pessimistic capacity estimate` → the agent literally cannot pick a
+congesting action. Keep a small diagnostic penalty for logging. A soft/Lagrangian penalty alone still teaches
+occasional congestion during exploration — masking is the true-hard mechanism. (C2/ε stays soft per item 1.)
+
+### 17. Add Age-of-Information (map age) to the STATE ✅ — important, changes the MDP
+State must include **current spatial-map age = time since the last SUCCESSFUL (delivered) update.** After
+skips/drops, staleness ≠ L + 1/FPS — it's the actual accumulated AoI. Drive the staleness term from AoI. This
+also makes send/skip genuinely sequential (a skip grows AoI) → it's a real reason RL beats a stateless bandit.
+**Add AoI to `AGENT_CONSTRAINTS §9.1` state + the state diagram when you formalize the MDP** (don't let those
+two drift again).
+
+### 18. Localization composition — quadrature, no double-counting ✅
+`loc_error(knob, speed, AoI) = sqrt( base_loc(knob)² + (speed × total_staleness)² )`, where `base_loc(knob)`
+= that knob row's localization error from the matrix (the per-knob floor at v≈0), and total_staleness is
+AoI-based (item 17). Use this **single composed loc_error** as the reward's accuracy/staleness term — do NOT
+add a separate accuracy penalty AND a separate staleness penalty (that double-counts). Use the generic 1.1 m
+floor only for the ε=2.0 operating-envelope constraint.
+
+### 19. p95 latency — front_to_edge_p95 is only the NETWORK segment, not capture→map ✅
+Build total latency from components: `sensor_prep + front_compute(knob) + network(payload,SNR) [p95 here for
+the safety constraint] + edge_compute + map_publish`. Take the ~fixed compute terms from the
+`staleness/STALENESS_RESULTS.md` capture→map decomposition; use p95 only for the variable network term. Do
+NOT treat `front_to_edge_p95_ms` as the whole pipeline.
+
+### 20. ⚑ Pareto pruning — declare the accuracy dominance rule / utility weights explicitly [needs a decision]
+"Accuracy" is multi-objective (det recall, ped recall, seg mIoU, loc). Define EITHER (a) a multi-objective
+dominance rule (keep a knob if not dominated on ALL of {recall, mIoU, loc} at its payload) OR (b) a scalar
+accuracy-utility with DECLARED weights, consistent with the reward's accuracy term. **New session: propose the
+rule/weights and I'll review** — otherwise the frontier silently shifts with whichever metric is favored.
+
+### 21. No oracle channel info — mask + policy use the LAGGED/noisy observation, not true SNR ✅ critical
+The surrogate holds true capacity (to compute outcomes) but exposes only a **lagged/noisy observation** to the
+policy; the C1 mask (item 16) and action selection use the OBSERVATION, never the sim's true current
+SNR/capacity. Enforces the POMDP realism and ties to item 15 (key off observed rate).
+
+**Bottom line: build STEPS 1–3 now.** Decided: items 1, 3, 4, 5, 7, 8, 9, 15, 16, 18, 19, 21. Defaults pending
+advisor: items 2, 6, 11. Needs your proposal for review: item 20 (accuracy utility). Before finalizing the
+reward/MDP, wire in item 17 (map age/AoI) — that's the one structural change. Build config-agnostically
+(item 15). Commit + push the surrogate env + bandit baseline and I'll review here.
