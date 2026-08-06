@@ -1,10 +1,11 @@
-# Reward formulation — network-aware split/local-inference controller (v3)
+# Reward formulation — network-aware split/local-inference controller (v4)
 
-**Status:** consensus draft **v3** (local Claude + codex, 2026-08-06). v2 fixed the first correction round;
-v3 applies round 2 (live safety *shield* vs training-only; tail-risk `E_risk` forms the band vs `E_expected`
-for the reward; §8a demoted to hypotheses-vs-measured-oracle; RL-vs-bandit = *anticipatory* effects). Builds on
-`AGENT_CONSTRAINTS.md §9`, `POLICY_KICKOFF.md`, `state_diagram.md`, `collab/REVIEW_NOTES.md`. Advisor-pending:
-ε (default 2.0 m), ped-recall hard-floor?, 25 vs 40 m. **Not RL-ready until §7's LOCAL 4th table is measured.**
+**Status:** consensus draft **v4** (local Claude + codex, 2026-08-06). v4 makes the live shield
+observation-only and uncertainty-aware, makes the small expected-error margin mandatory, fixes the
+multi-object/tail operation order, requires one shared shield across deployable baselines, and adds dual
+oracles + MPC to test whether RL is needed at all. Builds on `AGENT_CONSTRAINTS.md §9`, `POLICY_KICKOFF.md`,
+`state_diagram.md`, `collab/REVIEW_NOTES.md`. Advisor-pending: ε (default 2.0 m), ped-recall hard-floor?, 25
+vs 40 m. **Not RL-ready until §7's LOCAL 4th table is measured.**
 
 ## 1. Decision each control step
 `mode ∈ {SPLIT, LOCAL, SKIP}`
@@ -17,54 +18,81 @@ for the reward; §8a demoted to hypotheses-vs-measured-oracle; RL-vs-bandit = *a
 ## 2. State (adds to §9.1)
 Channel-budget estimate (+confidence), object speed (+σ), front-side urgency, **AoI**, previous
 action+outcome, **local-compute headroom** (available CPU/GPU / load, or ≥ measured max sustainable full-local
-FPS for the device).
+FPS for the device). Denote this lagged/noisy observable state `s_obs`; the live shield and every deployable
+controller receive the same `s_obs`. Latent simulator truth is retained only for outcome generation and the
+separately-labelled clairvoyant upper bound (§8).
 
 ## 3. Feasibility masks (HARD, before the policy)
 - **C1 channel mask — EVERY sending action (SPLIT *and* LOCAL):** `payload(mode,profile) × fps ≤
-  pessimistic(channel-budget estimate)`. LOCAL's result is small but **not network-free**.
+  pessimistic(channel-budget estimate from s_obs)`. LOCAL's result is small but **not network-free**. Neither
+  the mask nor the live shield may read the simulator's true current channel/capacity.
 - **Local-compute mask — LOCAL only:** admit only if the device sustains full-local at the required FPS
   (E1/E2/E6: full-local ≈ 5.5 FPS @1 core / 10 @2 vs split front 15.7 / 25.9 — LOCAL is not auto-feasible).
-- **SKIP** always admissible. `A_m(s)` = admitted set.
+- **SKIP** always admissible. `A_m(s_obs)` = admitted set.
 
-## 4. Localization error — post-action AoI, multi-object, TWO statistics
+## 4. Localization error — post-action AoI, multi-object, ORDERED statistics
 Each action is evaluated at its *resulting* AoI (outcome `o` = delivered / dropped):
 ```
 AoI_{t+1}(a,o) = { capture→map latency(a)   if delivered ;  AoI_t + Δt(a)  if skip / drop }
 e_j(a,s,o)     = sqrt( base_loc(a)² + (v_j · AoI_{t+1}(a,o))² )         for object j
-E(a,s,o)       = aggregate over currently-present dynamic objects: worst-case max_j e_j (default) or CVaR_α
-                 (empty scene ⇒ 0 penalty)
+G(a,s,o)       = aggregate over currently-present dynamic objects: max_j e_j (default; object-tail aggregate
+                 is a configured robustness alternative); empty scene ⇒ G=0
+E_expected(a,s)= E_o[G(a,s,o)] (use a labelled p50 proxy only when an outcome mean cannot be reconstructed)
+E_risk(a,s)    = p95_o[G(a,s,o)] or CVaR_{α,o}[G(a,s,o)]
 ```
 `base_loc(a)` from the knob matrix via the **monotone (affine) calibration** onto the ~1.1 m live floor
 (level shifted, rankings preserved). Each object uses its own speed and the AoI of its most-recent update.
 
-**Two statistics — do NOT conflate (codex round 2):**
-- **`E_expected`** = p50 / expected over delivery outcomes → the **reward** (`R_inner`).
-- **`E_risk`** = reconstructed full-pipeline **p95** (sensor+front+network+edge+map, not `front_to_edge_p95`
-  alone) or outcome-CVaR → forms the **safety band `A_safe`** (§5) and the operating-envelope report.
-  **Safety is a TAIL property, not a median.**
+**The operation order is normative:** aggregate objects for each outcome first (`G`), then take expectation,
+p95, or outcome-CVaR. In general `p95_o[max_j e_j] != max_j p95_o[e_j]`; implementations must not swap the
+operations.
 
-The sampled RL reward uses the *realized* outcome; the oracle/bandit use *expected* over the delivery
-distribution. Let `E_risk*(s) = min_{a∈A_m(s)} E_risk(a,s)`; `F(s)=1` iff some admitted action meets
-`E_risk ≤ ε`.
+**Two statistics — do NOT conflate:**
+- **`E_expected`** = expected `G` over delivery outcomes (p50 only as a labelled proxy) → a small mandatory
+  within-band reward margin (§5).
+- **`E_risk`** = reconstructed full-pipeline **p95** (sensor+front+network+edge+map, not `front_to_edge_p95`
+  alone) or outcome-CVaR → the target tail statistic. Its conservative observable-state bound `B` forms the
+  live **safety band `A_safe`** (§5); true `E_risk` supports the operating-envelope report. **Safety is a
+  TAIL property, not a median.**
+
+The sampled RL reward uses realized `G(a,s,o)`; oracle/bandit/MPC expected scoring uses `E_expected`. True
+`E_risk` and `E_risk* = min_{a∈A_m} E_risk` are evaluation quantities; the deployable shield uses the
+conservative observable-state estimates below.
 
 ## 5. Safety as a LIVE shield (structural), not a big weight
 A large weight can't guarantee safety dominance (two actions' safety gap can be tiny → a cost term overturns
-it). So safety is structural — a **live model-based safety shield** after the hard masks: the **onboard
-surrogate enumerates the small catalog, predicts `E_risk` per action, and admits**
+it). So safety is structural — a **live model-based safety shield** after the hard masks: the onboard
+surrogate enumerates the small catalog using only `s_obs`. For each action, form a calibrated conservative
+bound (UCB shown; conformal/quantile bounds are acceptable):
 ```
-A_safe(s) = { a ∈ A_m(s) : E_risk(a,s) ≤ ε }                 if F(s)=1   (meet ε on the TAIL)
-          = { a ∈ A_m(s) : E_risk(a,s) ≤ E_risk*(s) + δ_loc } if F(s)=0   (near-best band; flag over-budget)
+B(a,s_obs) = E_hat_risk(a,s_obs) + k·sigma_hat(a,s_obs)       # E_risk^UCB
+B*(s_obs)  = min_{a∈A_m(s_obs)} B(a,s_obs)
+F_hat(s_obs)=1 iff some a∈A_m(s_obs) has B(a,s_obs) ≤ ε
+
+A_safe(s_obs) = { a ∈ A_m : B(a,s_obs) ≤ ε }                 if F_hat=1
+              = { a ∈ A_m : B(a,s_obs) ≤ B*(s_obs)+δ_loc }   if F_hat=0 (flag over-budget)
 ```
-`δ_loc` ≈ localization measurement noise. **The shield runs LIVE** (≈10-action catalog → cheap onboard);
-`E_risk*` is needed by the shield *at inference* — distinct from the reward signal (see §10). **The policy/RL
-optimizes the inner objective (using `E_expected`) only within `A_safe`:**
+Calibrate `k`, `sigma_hat`, and `δ_loc` on held-out traces; `δ_loc` covers the jointly measured
+localization + surrogate/tail-model uncertainty without double-counting the UCB margin. Report shield
+**false-admission** and **false-rejection** rates. If an action/state is outside the surrogate's calibrated
+support, reject actions without a valid conservative bound. If none can be bounded, enter a flagged
+`shield_ood` degraded mode and use a fixed worst-case-risk fallback over `A_m` (do not assume SKIP or LOCAL is
+always safest).
+
+**The shield runs LIVE** (≈10-action catalog → cheap onboard). The policy optimizes only within `A_safe`.
+`U_task` and physical costs are the main drivers; `w_E>0` is a declared, mandatory small within-band margin
+bias:
 ```
-R_inner(a,s) = w_task·U_task(a) − C_UE(a) − C_PRB(a) − 0.5·C_ROI(a) − 0.1·C_switch(a)
-             (optionally − small·E_expected(a,s)/ε to prefer margin inside the band)
+R_inner_sample(a,s,o) = w_task·U_task(a) − C_UE(a) − C_PRB(a) − 0.5·C_ROI(a) − 0.1·C_switch(a)
+                        − w_E·G(a,s,o)/ε                       # sampled RL transition
+R_inner_expected(a,s) = w_task·U_task(a) − C_UE(a) − C_PRB(a) − 0.5·C_ROI(a) − 0.1·C_switch(a)
+                        − w_E·E_expected(a,s)/ε                # oracle/bandit/MPC scoring
 ```
-This makes safety **lexicographically dominant** and graceful degradation structural (F=0 → optimize inside
-the near-best-tail band + flag). *Scalar-weight ablation to compare:* `R = 10·r_safety + 2·U_task − …` (v1) —
-only a soft preference, so validate its safety/resource Pareto.
+This makes safety **lexicographically dominant** and graceful degradation structural (`F_hat=0` → optimize
+inside the near-best conservative band + flag). Every deployable controller in §8 must call the **same mask
+and shield implementation** with the same catalog, `s_obs`, surrogate, calibration, and `δ_loc`.
+*Scalar-weight ablation to compare:* `R = 10·r_safety + 2·U_task − …` (v1) — only a soft preference, so
+validate its safety/resource Pareto.
 
 ### 5a. `U_task`
 `U_task = w_mIoU·(mIoU/mIoU_ref) + w_ped·(ped_recall/ped_ref) + w_obj·(obj_recall/obj_ref)`, refs from
@@ -91,12 +119,30 @@ The 2.27 KB / ~42 ms is **detections-only**; OAI delivery **unmeasured**; featur
 **(a) LOCAL's real result payload incl. seg/map, (b) its OAI delivery, (c) LOCAL-vs-SPLIT accuracy.** Mark
 LOCAL **provisional** until then. LOCAL expands the feasible set but does **not** remove graceful degradation.
 
-## 8. Algorithm ladder + architecture
-1. **ORACLE** (enumerate `A_m`→`A_safe`, pick `R_inner`-max) — upper bound + reward sanity.
-2. **Myopic bandit** — reactive baseline.
-3. **Masked Double/Dueling DQN.**
-4. **Masked discrete/categorical SAC** over the flattened, mask-filtered catalog — **not** continuous-SAC+round.
-5. **Maskable PPO** only if both value-based are unstable.
+## 8. Controller ladder + architecture — simplest that works
+1. **Clairvoyant true-state oracle (non-deployable):** true latent state/outcome model; upper bound only.
+2. **Shielded observation-based one-step oracle (deployable benchmark):** enumerate the shared
+   `A_m→A_safe` using `s_obs`, then maximize `R_inner_expected`. The gap to the clairvoyant oracle is the
+   price of observability, telemetry lag, and conservative uncertainty.
+3. **Hand-written rule/greedy baseline:** explicit capacity/AoI thresholds; no fitted policy and no full
+   reward enumeration. This is distinct from the learned contextual bandit.
+4. **Contextual bandit:** learned one-step/reactive policy; no transition lookahead.
+5. **Shielded MPC / receding-horizon controller:** short-horizon lookahead over the surrogate's channel, AoI,
+   switch-cost, and compute-headroom dynamics; replan from `s_obs` each step and pass every proposed action
+   through the shared live shield. This is the interpretable anticipatory baseline.
+6. **Masked Double/Dueling DQN.**
+7. **Masked discrete/categorical SAC** over the flattened, mask-filtered catalog — **not**
+   continuous-SAC+round.
+8. **Maskable PPO** only if both value-based methods are unstable.
+
+Except for the explicitly clairvoyant upper bound, **all controllers share exactly the same action catalog,
+observable inputs, C1/local-compute masks, risk surrogate, uncertainty calibration, `δ_loc`, and `A_safe`
+implementation.** Controller comparisons must isolate action selection, not safety handling.
+
+- **Adoption rule:** use the simplest controller that captures the value. Prefer shield + rule/MPC if it
+  matches RL, because it is easier to inspect and certify. Adopt RL as the proposed controller only if it
+  beats both the contextual bandit **and MPC** on held-out §9 anticipatory metrics with comparable safety.
+  Either outcome is publishable: “RL adds sequential value” or “a model-based controller suffices.”
 - **Architecture:** baseline = concat MLP; **FiLM (network γ,β-gates app features) as an ABLATION** (proven for
   video bitrate, not this controller — keep separable so a policy failure isn't blamed on architecture).
 - **SAC context:** SCAN-AI used continuous SAC because its action was a continuous bitrate and *discrete
@@ -116,28 +162,33 @@ preset SPLIT preference.** With that caveat, the *hypothesized* pattern to check
 | bad channel, AoI nearing budget, fast object, LOCAL feasible | LOCAL | LOCAL's measured fresh loc beats stale SPLIT |
 | bad channel, fast object, LOCAL infeasible (compute) | least-bad admitted + flag | graceful degradation |
 
-**RL vs bandit (corrected):** a contextual bandit that observes AoI can ALREADY do the *reactive* threshold
-(skip while fresh, update near ε) — that alone does **not** justify RL. RL earns its keep on genuinely
-**anticipatory/sequential** effects: sending *before* a predicted fade; planning around mode-switch cost and
-changing compute headroom; and avoiding future **AoI dead-ends** (states from which no admitted action can
-recover ε). Those are the bandit-beating behaviors to demonstrate.
+**RL vs bandit vs MPC:** a contextual bandit that observes AoI can already implement the *reactive* threshold
+(skip while fresh, update near ε). MPC can also capture the principal **anticipatory/sequential** effects:
+sending before a predicted fade, planning around mode-switch cost and changing compute headroom, and avoiding
+future **AoI dead-ends** (states from which no admitted action can recover ε). RL is justified only by a
+measured advantage beyond both reactive bandit and short-horizon MPC, not by hold-then-act alone.
 
 ## 9. Eval metrics (converged ≠ just reward)
-C2 success rate where ε feasible · regret vs `E_risk*` where infeasible · LOCAL-fallback precision/recall vs
-the measured oracle · LOCAL-misuse rate (vs oracle, not a preset preference) · mode-switch frequency ·
-PRB-time + UE-compute cost · seg/recall retention · generalization across unseen speed × channel × compute
-traces · (RL-specific) advantage on anticipatory traces (pre-fade sends, AoI-dead-end avoidance).
+C2 success rate where ε is truly feasible · regret vs true `E_risk*` where infeasible · shield false-admit /
+false-reject rates on held-out traces · `shield_ood` rate · clairvoyant-vs-shielded-oracle gap · LOCAL-fallback
+precision/recall vs the measured shielded oracle · LOCAL-misuse rate (vs oracle, not a preset preference) ·
+mode-switch frequency · PRB-time + UE-compute cost · seg/recall retention · generalization across unseen
+speed × channel × compute traces · controller regret · anticipatory-trace performance (pre-fade sends,
+AoI-dead-end avoidance). Report bandit-vs-MPC-vs-RL with the identical shield; RL adoption requires a
+statistically supported gain over both bandit and MPC at comparable safety.
 
-## 10. Two distinct uses of `E_risk*` (resolves the §5-vs-§10 apparent contradiction)
-(i) The **live safety shield** (§5) needs `E_risk*` *at inference* — the onboard surrogate computes it by
-enumerating the ≈10-action catalog (cheap). (ii) The **reward/training signal** does not need it live. So the
-deployed policy DOES run the shield (with `E_risk*`) but does not need `E_risk*` for reward updates. Caveat:
-if **live online policy updates** are later required, the counterfactual regret in the scalar-ablation
-`r_safety` isn't directly observable online — but the shield (action admission) still works.
+## 10. Live conservative `B*` vs evaluation-only true `E_risk*`
+(i) The **live safety shield** (§5) enumerates the ≈10-action catalog on `s_obs` and computes the conservative
+`B* = min_a B(a,s_obs)` at inference. It never receives true current capacity or true counterfactual risks.
+(ii) True `E_risk* = min_a E_risk(a,s)` is available in the surrogate/evaluation harness for feasibility,
+regret, false-admit/false-reject scoring, and the clairvoyant oracle; it is **not a deployment input**.
+(iii) The sampled reward needs realized `G`, not either minimum. If live online policy updates are later
+required, counterfactual regret remains unobservable online, but the observation-based shield still works.
 
 ## 11. Multi-object / AoI precision
 AoI is per successfully-published update; with per-object update times, use per-object AoI in `e_j`, else the
-map-level AoI is the tractable approximation. Aggregate over *currently-present* dynamic objects only.
+map-level AoI is the tractable approximation. Aggregate over *currently-present* dynamic objects only. The
+required order is per-outcome object aggregation `G` first, then expectation/p95/outcome-CVaR (§4).
 
 ## 12. Changelog & consensus
 - **v2 (round 1, all codex corrections):** post-action AoI [bug]; C1 mask covers LOCAL [bug]; LOCAL provisional;
@@ -153,5 +204,15 @@ map-level AoI is the tractable approximation. Aggregate over *currently-present*
      Claude over-claimed "correct & emergent" — conceded]
   4. **RL-vs-bandit justification = anticipatory/sequential effects**, since a bandit CAN do reactive
      hold-then-act given observable AoI. [local Claude over-claimed — conceded]
-- Local Claude concurs with all four; no open disagreement. **Next: measure the LOCAL 4th table → build the
-  oracle (settle live-shield semantics + tail statistic first) → bandit → DQN/discrete-SAC.**
+- **v4 (final non-blocking guardrails + controller-family framing):**
+  1. Mandatory small normalized `w_E>0` margin: realized `G` for sampled RL, `E_expected` for expected
+     controller scoring; task utility + physical costs remain the main inner-reward drivers.
+  2. Live shield is observation-only and uncertainty-aware (`B=E_hat_risk+k·sigma_hat` or calibrated
+     equivalent), with OOD degraded mode and held-out false-admit/false-reject evaluation.
+  3. Multi-object aggregation order fixed: build per-outcome `G` first, then p95/CVaR across outcomes.
+  4. Every deployable baseline uses the identical masks + shield; clairvoyant and shielded oracles are
+     separately labelled.
+  5. Added hand-written rule, contextual bandit, and shielded MPC before RL; adopt the simplest controller
+     that works, and require RL to beat both bandit and MPC on anticipatory metrics.
+- Local Claude and codex concur; no open disagreement. **Next: measure the LOCAL 4th table → build both
+  oracles + rule/bandit → MPC → DQN/discrete-SAC only if the simpler controllers leave sequential value.**
