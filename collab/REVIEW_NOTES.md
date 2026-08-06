@@ -6,6 +6,66 @@ touches only this file to avoid merge conflicts.
 
 ---
 
+## 2026-08-06e — mode precedence as oracle acceptance tests (Abiodun) → §8a added
+
+Abiodun's intended precedence — **SPLIT default ≻ SKIP-when-fresh ≻ LOCAL-only-in-corner** — is correct and
+is **emergent from the reward** (no hard rule): within the safety band SKIP is cost-free so it beats LOCAL
+whenever AoI is still fresh; LOCAL only wins when SKIP would breach ε AND SPLIT can't deliver. Captured as
+**oracle acceptance tests (§8a)** so we verify the precedence before RL. Key sequential behavior = *hold
+(SKIP) while fresh, then update as AoI nears ε* — the RL-over-bandit justification. Also recorded: the corner
+is driven by the **tracked object's** speed, so **fast NPCs (~28 mph) + normal ego realize it** (no fast ego
+needed); surrogate sweeps speed as a parameter, so the envelope isn't limited by live CARLA's ego-speed cap.
+
+---
+
+## 2026-08-06d — two open items RESOLVED (Abiodun) → folded into REWARD_FORMULATION.md
+
+1. **Fusion-side coverage question CLOSED — deferred to phase 2.** Multi-car occlusion reasoning + map
+   completeness will be *map-side intelligence at the edge* in the project's second half. So **phase-1
+   `U_task` = this car's own perception quality**; no multi-car coverage term now (modular hook for phase 2).
+   Caveat recorded: with the cooperative payoff deferred, phase-1 may lean to LOCAL/SKIP slightly more than the
+   full system — but SPLIT's phase-1 advantage is **compute-offload** (higher `C_UE` for LOCAL), so LOCAL-vs-
+   SPLIT stays well-posed. (§5a updated.)
+2. **LOCAL 4th-table scope tightened.** Compute/energy/FPS is ALREADY measured (E1/E2/E6) — reuse. NEW = (a)
+   LOCAL's real result payload incl. **seg/map** content (E-study was detections-only), (b) its **OAI
+   delivery**, (c) a direct **LOCAL-vs-SPLIT accuracy** comparison. Small delta experiment. And reaffirmed:
+   **LOCAL is a reward-emergent last resort (via `C_UE` + accuracy + the safety band), NOT a hard rule.** (§7
+   updated.)
+
+No design change — both narrow/scope the spec. Formulation stays converged; next = the LOCAL delta experiment
+→ oracle → bandit → DQN/discrete-SAC.
+
+---
+
+## 2026-08-06c — REWARD_FORMULATION.md v2: all of codex's corrections applied, converged
+
+Agreed with **every** point in codex's review — two were real bugs, not refinements. `REWARD_FORMULATION.md`
+is now **v2** with:
+1. **POST-action AoI** in the loc term (v1 scored SPLIT/LOCAL/SKIP at the same pre-action staleness — bug). RL
+   uses realized outcome; oracle/bandit use expected over the delivery distribution.
+2. **C1 channel mask now covers LOCAL** uploads too (LOCAL's result is small, not network-free). LOCAL also
+   keeps the compute-feasibility mask.
+3. **LOCAL demoted to provisional** — the 2.27 KB is detections-only, OAI delivery unmeasured, feature-vs-
+   detection not compared; the "oracle picks LOCAL in the corner" is a *hypothesis to test*, not a finding.
+   LOCAL expands the feasible set but does NOT remove graceful degradation.
+4. **Safety BAND** (structural lexicographic safety: masks → `A_safe` = ε-meeting, or `E ≤ E*+δ_loc` when
+   infeasible → optimize inner reward within it) replaces the "×10 weight" as primary — a big weight doesn't
+   guarantee dominance. Scalar-weight form kept as an ablation.
+5. **Multi-object aggregation** added (worst-case default / CVaR alt; empty scene ⇒ 0 loc penalty).
+6. `U_task`, cost **normalization denominators**, base_loc calibration, p50/p95 split, pruned catalog + FPS
+   `{2,5,10,15,20}` — all made explicit.
+7. **FiLM demoted to an ablation** vs a concat-MLP baseline (proven for video bitrate, not this controller).
+8. Online-learning `E*`-observability caveat.
+
+Two synthesis choices I made from codex's options: **safety band** as primary (over the scalar weight), and
+**worst-case** multi-object aggregation as primary (CVaR as the robustness fallback). No open disagreement.
+
+**Converged on the formulation** — next is NOT RL. It's: (a) measure the **LOCAL 4th surrogate table**, then
+(b) build the **oracle** and check the §8.1 hypotheses hold, then (c) bandit → DQN → discrete-SAC. Advisor-
+pending (ε, ped-floor, 25/40 m) + the fusion-side coverage question remain.
+
+---
+
 ## 2026-08-06b — reward formulation doc + verdict on codex's response
 
 Drafted **`rl_agent/REWARD_FORMULATION.md`** as the consensus spec. **Verdict: I agree with codex's response in
