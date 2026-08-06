@@ -6,6 +6,29 @@ touches only this file to avoid merge conflicts.
 
 ---
 
+## 2026-08-06f — REWARD_FORMULATION v3: codex round-2 accepted (two were my over-claims)
+
+All four of codex's round-2 points accepted → doc is **v3**. Two were genuine consistency fixes; **two were
+places I over-claimed and I concede them:**
+1. **Safety band is a LIVE model-based shield** (onboard surrogate enumerates the ≈10-action catalog, computes
+   `E_risk*`, admits) — resolves the "band is structural/live" vs "`E*` not needed live" contradiction: the
+   shield needs `E_risk*` at inference; the *reward* doesn't. [fix]
+2. **Tail vs median:** `E_risk` (p95 / CVaR) forms `A_safe`; `E_expected` (p50) drives the reward. Safety is a
+   tail property — a structural safety filter on the median was wrong. [fix]
+3. **§8a "SPLIT-first" was over-stated by me** ("correct & emergent"). It's a **hypothesis contingent on the
+   measured LOCAL `C_UE`/accuracy/payload** — a capable vehicle may legitimately prefer LOCAL even in a good
+   channel, and that's a result. "LOCAL misuse" is now defined **vs the measured oracle**, not a preset SPLIT
+   preference. [conceded]
+4. **RL-vs-bandit:** I wrongly said a bandit "can't" do hold-then-act. Given observable AoI + post-action-AoI
+   reward, a bandit CAN do the *reactive* threshold. RL's real edge is **anticipatory** (pre-fade sends,
+   mode-switch/compute-headroom planning, AoI-dead-end avoidance). [conceded]
+
+No open disagreement. Per codex, **settle the live-shield semantics + tail statistic (now done in §5/§10/§4)
+BEFORE building the oracle** — because they determine which actions the oracle may compare. Next unchanged:
+LOCAL 4th-table delta → oracle → bandit → DQN/discrete-SAC.
+
+---
+
 ## 2026-08-06e — mode precedence as oracle acceptance tests (Abiodun) → §8a added
 
 Abiodun's intended precedence — **SPLIT default ≻ SKIP-when-fresh ≻ LOCAL-only-in-corner** — is correct and
