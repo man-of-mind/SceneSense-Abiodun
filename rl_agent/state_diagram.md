@@ -47,7 +47,7 @@ flowchart LR
     sp --> LOC
     A --> LOC
     ENV --> S2["NEXT STATE  s(t+1)<br>updated AoI, lagged channel observation,<br>previous action/outcome, scene state"]
-    LOC --> R["REWARD r(t)<br>PRIMARY freshness signal: − ONE composed loc_error<br>+ segmentation mIoU + pedestrian/object recall<br>- network-resource cost (PRB-time)<br>- configurable last-resort ROI penalty<br>± LIGHT delivery/drop + C1 estimate-miss diagnostics only"]
+    LOC --> R["REWARD r(t)<br>PRIMARY freshness signal: − ONE composed loc_error<br>+ segmentation mIoU + pedestrian/object recall<br>- realized PRB-time ∝ payload × FPS × (1+retx) / SE(MCS)<br>- configurable last-resort ROI penalty<br>± LIGHT delivery/drop + C1 estimate-miss diagnostics only"]
     ENV --> R
     S2 --> MASK
     oai -. telemetry at t+lag plus noise .-> est

@@ -30,9 +30,9 @@ capture→map latency, while skip/drop continues accumulating it. No fusion-mode
   light-load allocations are demand-censored lower bounds, not capacity.
 - **§9.2 ACTION** (cheap→costly): send/skip · quant u8→u4 (free) · AE bottleneck (main accuracy↔bytes dial) ·
   FPS · ROI/spatial-crop (accuracy-risky, LAST RESORT).
-- **§9.3 REWARD:** one AoI-composed localization term + segmentation/recall utility − PRB-time cost. Explicit
-  delivery/drop terms are light diagnostics only, so a delivery outcome is not counted again at full strength.
-  C1 is action-masked; C2 is a soft target.
+- **§9.3 REWARD:** one AoI-composed localization term + segmentation/recall utility − MCS-scaled PRB-time
+  cost. Explicit delivery/drop terms are light diagnostics only, so a delivery outcome is not counted again
+  at full strength. C1 is action-masked; C2 is a soft target.
 - State/action/reward MDP diagram: **`rl_agent/state_diagram.md`** (Mermaid — render at mermaid.live / VS Code / GitHub).
 
 ### Constraints (safety) — enforce in the mask/reward
@@ -51,6 +51,12 @@ Initial configurable perception prior:
 `−0.50·loc_error/ε + 0.25·mIoU/mIoU_ref + 0.125·ped_recall/ped_ref + 0.125·obj_recall/obj_ref`.
 Define the references from uncompressed/best-achievable measurements and ablate both these weights and the
 perception-vs-PRB-time cross-weight.
+
+Resource cost is
+`airtime_cost ∝ payload_bits × fps × tx_attempt_factor / spectral_efficiency(MCS)`, with
+`tx_attempt_factor = 1 + retransmission_ratio` (or measured mean transmissions per original block). Prefer
+measured PRB-seconds when present. Use the environment's realized MCS/resource outcome for reward accounting;
+it is not exposed as oracle current state before the action. Thus identical bytes cost more under low MCS.
 
 ## Build sequence
 1. **Surrogate env** from the three tables (interpolate `capacity(SNR)`, staleness, accuracy).

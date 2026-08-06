@@ -55,7 +55,12 @@ Map holds the last detection between frames → worst-case staleness 1/FPS → e
 Closed form: **FPS_min(v,ε) = v / (B(ε) − v·Y_up)** (worst-case; use B/√ with 1/(2·FPS) for average query timing).
 Per-frame accuracy is FPS-independent (model is FPS-robust) — FPS only buys *freshness*.
 
-## 4. MASTER constraint (the agent must satisfy this)
+## 4. MASTER physical constraint derivation (Stage 1; policy implementation uses §9.3)
+> **Physical evidence/derivation, not the controller implementation form.** Preserve the inequality and tables
+> below as the source of the speed/freshness relationship, but implement C2 with AoI-composed localization in
+> §9.3. Do not code a second `L+1/FPS` term: AoI already contains pipeline latency and inter-update age. The
+> round-trip/downlink extension below is historical; the current spatial-map architecture is uplink-only.
+
 > **v · (Y_up + 1/FPS) ≤ √(ε² − 1.1²)**
 The agent controls **Y_up** (via compression: AE bottleneck / quant / ROI → payload → latency) and can request **FPS**.
 Both must be tight for fast objects; for slow objects both can be relaxed to save bandwidth.
@@ -224,10 +229,13 @@ distillation of every measured result above; treat it as the design spec for the
 - **C3/C4:** prefer the 90 KB ROI0 segmentation-safe floor. Sub-90 KB ROI escalation pays its measured mIoU
   loss plus a configurable last-resort penalty. Score only objects within the 40 m perception-valid region;
   headline localization remains ≤25 m pending advisor confirmation.
-- **Cost term:** minimize **airtime / PRB occupancy** (payload × FPS × retransmissions), NOT raw bytes —
-  and this is where compression/gating earns its keep, most of all under a **bad channel** and under
-  **multi-UE contention** (the scarce shared resource). On a single clean channel with the budget already
-  met, there is little reason to compress. The perception-vs-PRB-time cross-weight is a required ablation.
+- **Cost term:** minimize realized **airtime / PRB occupancy**, not raw bytes. In the surrogate use
+  `airtime_cost ∝ payload_bits × FPS × tx_attempt_factor / spectral_efficiency(MCS)`, where
+  `tx_attempt_factor = 1 + retransmission_ratio` (or the measured mean transmissions per original block).
+  Prefer measured PRB-seconds when available. Compute reward cost from the environment's realized MCS/resource
+  use after the action; the policy still sees only lagged/noisy telemetry before choosing. The same bytes are
+  therefore more expensive at low MCS, producing physically correct bad-channel compression pressure even
+  before C1 binds. The perception-vs-PRB-time cross-weight is a required ablation.
 - **Delivery/reliability:** AoI-driven `loc_error` is the primary freshness signal. Any explicit delivered
   bonus, drop penalty, or stale-frame penalty must be **light/diagnostic or folded into that term**; do not
   score the same delivery event again at full strength.
