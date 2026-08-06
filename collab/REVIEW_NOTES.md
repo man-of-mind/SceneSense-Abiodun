@@ -6,6 +6,39 @@ touches only this file to avoid merge conflicts.
 
 ---
 
+## 2026-08-05e — local review of the sync (KICKOFF + §9 + diagram) → APPROVED, 2 small refinements
+
+The synchronization is faithful, precise, and internally consistent. Verified the four you asked:
+- **AoI timing** ✅ `now − capture_ts(newest delivered update)`; delivery resets to that frame's capture→map
+  latency, skip/drop accumulates. §9.3 C2 correctly states "AoI already includes pipeline + inter-update age
+  → no separate L / 1/FPS / staleness term." Clean.
+- **Capacity estimator** ✅ the load-independent form (`TBS_per_grant × attainable_grant_rate` OR
+  `SE(MCS) × available_UL_resources/time`, corroborated by BSR-drain) with the "raw throughput / light-load
+  allocation = demand-censored lower bound" caveat is exactly right. Keep it *attainable* (config-derived)
+  grant-rate/resources — the *observed* grant rate is itself demand-censored.
+- **Reward semantics** ✅ C1 hard mask on the observation, C2 soft AoI-quadrature, configurable perception
+  prior, airtime cost, delivery-as-light-diagnostic (no triple-count), graceful degradation → min-loc-error
+  admissible action + flag. All consistent; no double counting.
+- **Diagram consistency** ✅ §9 now matches the diagram (AoI, obs-only mask, hidden true capacity, single
+  composed loc term, degradation, estimate-miss diagnostic).
+
+**R1 (worth incorporating) — make the airtime cost MCS-scaled.** §9.3 cost is "payload × FPS × retx." Real
+PRB-time scales *inversely* with spectral efficiency — the SAME bytes cost MORE airtime at low MCS (bad
+channel). Use `cost ≈ payload × FPS / spectral_efficiency(MCS) × retx` (≈ PRB-seconds). Then bytes are
+intrinsically dearer under a poor channel, so the agent compresses more when the channel is bad **without the
+constraint forcing it** — physically accurate and it sharpens exactly the behavior we want. `payload × FPS`
+alone is channel-blind.
+
+**R2 (minor doc consistency) — point §4 to §9.3.** §6 is marked "superseded by §9.3," but §4's master
+inequality `v·(Y_up+1/FPS) ≤ √(ε²−1.1²)` still reads as "the agent must satisfy this." Add a one-line note to
+§4 (like §6's) that it is the Stage-1 physical *derivation* and the *implementation* form is the AoI-composed
+C2 in §9.3, so no one codes `L+1/FPS` from §4. Keep the §2–§4 tables as evidence.
+
+Neither blocks building. Everything else: green — build the surrogate reward/MDP off §9.3 + POLICY_KICKOFF.
+Advisor-pending 2/6/11 unchanged.
+
+---
+
 ## 2026-08-05d — local Claude review of the 05c proposal → APPROVED (with refinements)
 
 Diagram: **approved** — it correctly encodes AoI-as-state, the observation-only C1 mask, hidden true capacity,
