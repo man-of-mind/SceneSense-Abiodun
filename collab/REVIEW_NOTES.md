@@ -107,6 +107,23 @@ git restore metrics_logs/scenesense_analysis/
 ```
 The `OAI/openairinterface5g` "modified content" is the Track-2 MCS patch — expected, leave it.
 
-**Bottom line: you're clear to build STEPS 1–3 now** with items 1, 3, 4, 5, 7, 8, 9 as decided; items 2, 6,
-11 use the stated defaults pending advisor sign-off. Commit + push the surrogate env + bandit baseline and
-I'll review here.
+### 15. Config-generalization — key off OBSERVED capacity, do NOT hard-code SNR→payload  (Abiodun's question, 2026-08-05)  ★ important build principle
+The sweep is ONE OAI config (106 PRB, 7/2 TDD, SINR). Changing PRB (106→273) or TDD (7/2→4/5) raises capacity
+at a given SNR, so at 8 dB the budget could jump and 400 KB / 1 MB might fit. **Do NOT bake "8 dB ⇒ 90 KB"
+into the agent** — that overfits to this one config.
+- Constraint FORM is universal: **C1 `payload×fps ≤ capacity`** (capacity is a STATE INPUT); C2 staleness =
+  speed/latency; **C3 seg-floor + C4 range are perception-MODEL properties → config-independent.** Only the
+  capacity NUMBER is config-dependent.
+- **The agent must key off the observed/estimated achievable UL rate** (scheduled-UL rate, BSR-drain, MCS —
+  already in the state), NOT raw SNR. Then 273PRB/4-5 → agent observes higher rate → bigger payload budget
+  automatically, no retraining. Raw-SNR-keyed = the trap (overfits to 106PRB/7-2).
+- Build the surrogate with **capacity as a parameter `capacity(SNR, PRB, TDD)`** and **domain-randomize across
+  a few configs** in training → robustness + a paper result ("config-robust via observed-rate state"). 106PRB/
+  7-2 is the primary deployment point; add ≥1–2 more capacity curves (a quick extra sweep or coarse estimate)
+  for the randomization.
+- Net: the constraints are not "hard on 8 dB" — they're "payload ≤ what the link currently affords," which
+  8 dB @ 106PRB happens to make small. Change the config → same rule yields a bigger budget.
+
+**Bottom line: you're clear to build STEPS 1–3 now** with items 1, 3, 4, 5, 7, 8, 9, 15 as decided; items 2,
+6, 11 use the stated defaults pending advisor sign-off. Build the surrogate config-agnostically (item 15).
+Commit + push the surrogate env + bandit baseline and I'll review here.
