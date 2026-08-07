@@ -6,6 +6,32 @@ touches only this file to avoid merge conflicts.
 
 ---
 
+## ▶ ALSO: sync `state_diagram.md` to v4 (codex fold — it's stale at the 05c structure)  [2026-08-06l]
+
+The diagram predates the mode/shield discussion. Fold these v4 deltas (Mermaid; local Claude can supply the
+full source if preferred):
+1. **ACTION → `mode ∈ {SPLIT, LOCAL, SKIP}`.** SPLIT node holds the sub-knobs (quant u8→u4 · AE bottleneck ·
+   ROI = last resort) × FPS; **NEW LOCAL node** ("full model on-car → upload small result; FPS only"); SKIP =
+   only network-free action.
+2. **STATE → add `local-compute headroom`** (avail CPU/GPU / max sustainable full-local FPS), with an
+   on-device compute-monitor source. Keep ch/sp/em/prev/AoI (ch already carries the budget estimate+conf).
+3. **Replace the old "C1 mask" + "CONSTRAINTS" nodes with the v4 shield stack (obs-only, `s_obs`):**
+   - HARD MASKS: C1 `payload×FPS ≤ pessimistic budget` (**SPLIT & LOCAL**) + local-compute mask (LOCAL);
+     SKIP always admissible → `A_m`.
+   - LIVE SHIELD: conservative bound `B = Ê_risk + k·σ̂` (UCB/conformal) → `A_safe = {B ≤ ε}`, or
+     `{B ≤ B*+δ_loc}` if infeasible; **OOD → `shield_ood` worst-case fallback** (don't assume SKIP/LOCAL safe).
+4. **Two statistics on the loc/reward path:** `E_risk` (tail p95/CVaR) → forms `A_safe` (shield);
+   `E_expected` (mean) → small mandatory margin `−w_E·E_expected/ε` in `R_inner`. Reward node = `U_task −
+   C_UE − C_PRB − 0.5·C_ROI − 0.1·C_switch − w_E·E_expected/ε`.
+5. **ENV → show both transitions:** SPLIT (features → edge fusion → map) and **LOCAL (small result upload
+   over the channel → map)**; keep `truth` = hidden true UL capacity (never to policy/shield).
+6. **DEG node → "F̂=0 (no action meets ε): optimize within near-best band {B ≤ B*+δ_loc} + flag over-budget."**
+   LOCAL is now a first-class mode, not the degradation itself.
+7. Keep `est` (budget estimator), `MISS` (estimate-miss diagnostic), and the effect edges. Preserve raw
+   Mermaid (no linter reformat); render-check at mermaid.live after.
+
+---
+
 ## ▶ NEXT ACTION (codex / new box) — kick off Track A: surrogate env + shielded oracle  [2026-08-06k]
 
 Design is converged (v4). **Start here — table-driven, NO OAI/CARLA needed.** Build SPLIT+SKIP first; LOCAL
