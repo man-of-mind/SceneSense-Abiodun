@@ -6,6 +6,63 @@ touches only this file to avoid merge conflicts.
 
 ---
 
+## ▶ NEXT ACTION (codex / new box) — kick off Track A: surrogate env + shielded oracle  [2026-08-06k]
+
+Design is converged (v4). **Start here — table-driven, NO OAI/CARLA needed.** Build SPLIT+SKIP first; LOCAL
+slots in after Track B. Work in `rl_agent/policy/`.
+
+1. **Surrogate env.** Load the 3 tables: `channel_condition_sweep/combined_surface.csv` (capacity/delivery/
+   latency by payload×SNR, ±30% band), `rl_agent/PERMODEL_KNOB_MATRIX_ZSTD.md` (parse the ε-pruned catalog:
+   2 ROI0 {ae32/u4 90 KB, ae128/u4 129 KB} + 5 sub-90 KB ROI-escalation), `staleness/STALENESS_RESULTS.md`
+   (base_loc affine-calibrated to the 1.1 m live floor, rankings preserved). State = `s_obs` (§2); actions =
+   SPLIT knob × FPS {2,5,10,15,20} + SKIP (§1). Transition (§4): **capacity-threshold delivery** (delivered
+   iff offered ≤ capacity; sharp cliff, not smooth), **post-action AoI** (deliver→capture→map latency;
+   skip/drop→AoI+Δt), multi-object loc in the **normative order** (`G=max_j e_j` per outcome, THEN
+   E_expected / p95 / CVaR). Episode channel = Markov/trace over the SNR rungs (dwell ≈ coherence); telemetry
+   lag 1–2 steps.
+2. **Masks + ONE shared shield** (§3, §5): C1 (`payload×fps ≤ pessimistic budget` from `s_obs`; SKIP free),
+   compute-mask (LOCAL, later), and the uncertainty-aware shield forming `A_safe` on the conservative bound
+   `B` (start with a simple `k·σ̂` or fixed margin until `σ̂` is calibrated; add the `shield_ood` degraded
+   fallback). Every controller must call this same impl.
+3. **Two oracles** (§8): the **deployable shielded** oracle (enumerate `A_m→A_safe` from `s_obs`, argmax
+   `R_inner_expected`) and a **separately-labelled clairvoyant true-state** oracle (upper bound).
+4. **Validation checks — the POINT of this step (write to `rl_agent/policy/POLICY_RESULTS.md`):**
+   - reward sanity / no reward-hacking: empty scene → SKIP chosen & free; live objects + skip → penalized;
+     ROI-escalation only under pressure;
+   - §8a mode hypotheses **vs the measured oracle** (SPLIT default when channel OK; SKIP≻ when AoI fresh;
+     LOCAL corner after Track B);
+   - shield **false-admit / false-reject** on held-out channel traces;
+   - report the **clairvoyant − shielded** oracle gap (price of observability/lag).
+
+**In parallel — Track B (needs the OAI stack):** the LOCAL 4th-table delta (§7) — seg-inclusive result
+payload + OAI delivery + LOCAL-vs-SPLIT accuracy (reuse E1/E2/E6 for compute/energy). When it lands, add
+LOCAL to the catalog + the compute-mask.
+
+**Do NOT yet:** any RL training — that's only after the oracle validates the reward. Advisor-pending (still
+non-blocking): ε=2.0, ped-recall hard-floor?, 25 vs 40 m. Commit + push `rl_agent/policy/` + `POLICY_RESULTS.md`;
+local reviews here.
+
+---
+
+## 2026-08-06j — local Claude: v4 reviewed → APPROVED, design phase converged
+
+Reviewed `REWARD_FORMULATION.md` v4 (pulled). Faithful fold of all four guardrails + MPC/necessity; **no
+objections.** codex's additions are good — the `shield_ood` degraded mode with a worst-case-risk fallback
+(explicitly *not* assuming SKIP/LOCAL is safest) and the `B` (live conservative bound) vs eval-only `E_risk*`
+separation. **The reward/MDP DESIGN is now converged — no open disagreement.**
+
+**Important distinction for Abiodun:** design-converged ≠ empirically validated. The spec is ready; it has NOT
+been run. **Validation IS the next step** (the shielded oracle is the reward's test harness). Next work, two
+tracks in parallel:
+- **(needs the stack) LOCAL 4th-table delta:** LOCAL's seg-inclusive result payload + OAI delivery +
+  LOCAL-vs-SPLIT accuracy (reuse E1/E2/E6 for compute/energy). Gates LOCAL mode.
+- **(table-driven, can start NOW) surrogate env + shielded oracle** from the 3 existing tables, SPLIT+SKIP
+  first (LOCAL slots in when its table lands). Then validate: reward sanity / no reward-hacking, the §8a
+  hypotheses vs the measured oracle, and shield false-admit/reject on held-out traces.
+Then rule/greedy → bandit → MPC → DQN/discrete-SAC (shared shield; §9 metrics). Adopt the simplest that works.
+
+---
+
 ## 2026-08-06i — codex synchronization COMPLETE: REWARD_FORMULATION v4
 
 Folded local Claude's accepted 08-06h decisions into `rl_agent/REWARD_FORMULATION.md` v4:
