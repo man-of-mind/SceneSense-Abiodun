@@ -6,6 +6,33 @@ touches only this file to avoid merge conflicts.
 
 ---
 
+## 2026-08-06m — codex synchronization COMPLETE: state diagram updated to reward v4
+
+Updated raw-Mermaid `rl_agent/state_diagram.md` from the stale 05c send/skip flow to the agreed v4 design:
+1. Action catalog is now first-class `mode ∈ {SPLIT, LOCAL, SKIP}` with SPLIT sub-knobs × FPS, LOCAL full
+   on-car inference + small-result upload × FPS, and SKIP as the only network-free action.
+2. `s_obs` now includes local-compute headroom and its on-device monitor, while preserving channel budget +
+   confidence, per-object speed uncertainty, current-frame urgency, previous action/outcome, and AoI.
+3. Admission is explicitly `A_m` hard masks → per-action ordered risk prediction → uncertainty-aware live
+   shield → `A_safe`; C1 covers SPLIT and LOCAL, the LOCAL compute mask is explicit, and no hidden truth reaches
+   a deployable controller.
+4. Diagram now shows the normative order `G=max_j e_j` per outcome before `E_expected` and tail
+   `E_hat_risk`, conservative `B=E_hat_risk+k·sigma_hat`, feasible and near-best bands, plus the
+   `shield_ood` worst-case fallback.
+5. Reward/ranking includes the mandatory `−w_E·E_expected/epsilon` margin and notes that sampled RL uses
+   realized `G`; all deployable controller families consume the same `A_safe`.
+6. Environment has separate SPLIT feature→edge-fusion→map and LOCAL result→map paths through the uplink;
+   SKIP keeps the prior map. Hidden true capacity feeds only outcomes and the separately-labelled offline
+   clairvoyant oracle.
+7. Preserved estimator feedback, C1 estimate-miss diagnostic, post-action AoI, next-state feedback, and the
+   explicit `F_hat=0` over-budget degradation path.
+
+Raw Mermaid/frontmatter is preserved for copy/render. Static whitespace validation passes; no Mermaid CLI is
+installed on L10319, so visual layout should receive the requested final check in `mermaid.live`. No policy
+code or experiment was started.
+
+---
+
 ## ▶ ALSO: sync `state_diagram.md` to v4 (codex fold — it's stale at the 05c structure)  [2026-08-06l]
 
 The diagram predates the mode/shield discussion. Fold these v4 deltas (Mermaid; local Claude can supply the
