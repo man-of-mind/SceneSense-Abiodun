@@ -7,7 +7,7 @@ flowchart LR
  subgraph S["STATE  s_obs(t) — lagged / noisy observation only"]
     direction TB
         ch["Channel state:<br>SNR/CQI, MCS, BLER/HARQ, PRB/TBS/grant telemetry,<br>scheduled UL rate, UE BSR/RLC buffer,<br>estimated sustainable UL budget + confidence"]
-        sp["Dynamic objects inside C4 validity range ≤ 40 m:<br>per-object speed + uncertainty<br>(headline loc regime ≤ 25 m pending advisor)"]
+        sp["Dynamic objects inside C4 validity range ≤ 40 m:<br>per-object speed + uncertainty<br>(primary reporting subset: near-field objects)"]
         em["Front-side urgency proxy:<br>current-frame objectness + radar/range cue<br>+ tracker prior, not lagged"]
         prev["Previous action + outcome:<br>mode/profile/FPS, latency/delivery"]
         age["Age-of-Information (AoI):<br>now − capture timestamp of newest<br>successfully published map update"]
@@ -36,9 +36,9 @@ flowchart LR
         skip --> cand
   end
 
- subgraph SAFE["SHARED v4 ADMISSION STACK — every deployable controller"]
+ subgraph SAFE["SHARED ADMISSION / SAFETY STACK — every deployable controller"]
     direction TB
-        masks{{"HARD MASKS on s_obs<br>C1 for SPLIT + LOCAL: payload × FPS ≤ pessimistic UL budget<br>LOCAL: required FPS ≤ measured compute headroom<br>SKIP always admissible"}}
+        masks{{"HARD MASKS on s_obs<br>C1 for SPLIT + LOCAL: payload × FPS ≤ pessimistic UL budget<br>LOCAL: required FPS ≤ measured compute headroom<br>SKIP always C1-admissible"}}
         am["A_m(s_obs) — hard-admitted actions"]
         pred["Per-action surrogate prediction on s_obs<br>post-action AoI for each delivery/drop outcome o<br>e_j = sqrt(base_loc(a)² + (v_j × AoI_next)²)<br>G(a,s,o) = max_j e_j FIRST; empty scene → G=0"]
         exp["E_expected = mean_o[G]<br>small mandatory within-band reward margin"]
@@ -70,8 +70,8 @@ flowchart LR
     obs --> masks
     cand --> masks
     obs --> pred
-    exp --> rin["INNER REWARD / RANKING<br>w_task × U_task − C_UE − C_PRB<br>− 0.5 × C_ROI − 0.1 × C_switch<br>− w_E × E_expected / epsilon, with w_E > 0<br>sampled RL transition substitutes realized G for E_expected"]
-    asafe --> ctrl{{"SHARED-SHIELD CONTROLLER<br>shielded one-step oracle / rule / contextual bandit / MPC /<br>masked DQN / discrete SAC / PPO fallback<br>selects only from A_safe"}}
+    exp --> rin["UTILITY / TRAINING SIGNAL<br>w_task × U_task − C_UE − C_PRB<br>− λ_ROI C_ROI − λ_switch C_switch<br>− w_E × E_expected / epsilon, with w_E > 0<br>RL update substitutes realized G for E_expected"]
+    asafe --> ctrl{{"SHARED-SHIELD CONTROLLER<br>rule / contextual bandit / MPC / masked RL<br>selects only from A_safe"}}
     rin -. "rank / train" .-> ctrl
     ctrl --> act["SELECTED ACTION  a(t)"]
     ood --> act
@@ -115,7 +115,7 @@ flowchart LR
     mp -. "published frame metadata" .-> age
     act -. "mode/profile/FPS" .-> prev
     oai -. "latency/delivery outcome" .-> prev
-    oai -. "admitted offered load exceeds hidden capacity:<br>congestion / estimate miss" .-> miss["C1 ESTIMATE-MISS DIAGNOSTIC<br>log + feed estimator; not oracle-preventable"]
+    oai -. "admitted offered load exceeds hidden UL service budget:<br>congestion / estimate miss" .-> miss["C1 ESTIMATE-MISS DIAGNOSTIC<br>log + feed estimator; not oracle-preventable"]
     miss -.-> est
     truth -. "offline evaluation only" .-> clair["CLAIRVOYANT TRUE-STATE ORACLE<br>non-deployable upper bound;<br>never feeds policy / masks / live shield"]
 
