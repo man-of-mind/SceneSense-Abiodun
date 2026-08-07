@@ -143,14 +143,14 @@ Important roles:
 - main UL scheduling path;
 - chooses `selected_mcs` for new UL data;
 - calls either BLER/OLLA-based MCS or SINR-based MCS;
-- contains the env-gated `SCENESENSE_MCS_POLICY=sinr` branch in our tree;
+- contains the env-gated `SCENESENSE_MCS_POLICY=sinr` branch in the patched tree;
 - contains fixed-MCS diagnostic override `SCENESENSE_FORCE_UL_MCS`;
 - emits `T_GNB_MAC_UL_MCS_DECISION`.
 
 Important code idea:
 
 ```c
-if (bo->harq_round_max == 1 || scenesense_use_sinr_mcs_policy()) {
+if (bo->harq_round_max == 1 || use_sinr_mcs_policy()) {
   selected_mcs = get_mcs_from_SINRx10(
       current_BWP->mcs_table,
       sched_ctrl->pusch_pc.avg_snr * 10,
@@ -232,13 +232,24 @@ Important warning:
 > `nr-uesoftmodem`. T-tracer verifies the runtime binary against the T database
 > and can abort if the database and binary are mismatched.
 
+Some event names above are custom instrumentation from our patched OAI tree. If
+they are absent in a colleague's tree, either port the event definitions/emits or
+use the closest existing OAI events. The minimum required observability is:
+
+- selected/final UL MCS;
+- PUSCH SNR or equivalent channel-quality signal;
+- TBS/RB/grant rate;
+- UE RLC occupancy;
+- UE BSR/LCG backlog;
+- BLER/HARQ/retransmission counts.
+
 ### UE queue / BSR instrumentation
 
 ```text
 openair2/LAYER2/NR_MAC_UE/nr_ue_scheduler.c
 ```
 
-Important events in our tree:
+Important events in the patched tree:
 
 - `NRUE_MAC_RLC_BUFFER_STATUS`;
 - `NRUE_MAC_BSR_STATUS`.
@@ -249,6 +260,9 @@ These are essential for proving whether bytes are actually stuck at UE RLC.
 
 These are read by the patched OAI gNB process at startup. Set them before
 launching `nr-softmodem`.
+
+The names below are the names we used in our patch. They can be renamed in
+another tree; what matters is the behavior.
 
 | Env var | Meaning | Use |
 |---|---|---|
@@ -270,12 +284,6 @@ sudo env SCENESENSE_MCS_POLICY=sinr ./nr-softmodem \
   --T_port 2021
 ```
 
-For our wrapper scripts, the short form was:
-
-```bash
-MCS_POLICY=sinr bash abiodun/downlink_latency_fps/run_oai_default106_ttracer_10fps.sh
-```
-
 Vanilla baseline:
 
 ```bash
@@ -286,7 +294,7 @@ unset SCENESENSE_AIMD_MAX_DROP
 ```
 
 If the colleague is using a fresh upstream OAI tree, these env vars will do
-nothing until the SceneSense hooks are ported into the source files listed in
+nothing until the custom hooks are ported into the source files listed in
 Section 4. The minimum useful port is:
 
 1. add `SCENESENSE_MCS_POLICY=sinr` parsing in `gNB_scheduler_ulsch.c`;
@@ -336,31 +344,66 @@ sudo ./nr-softmodem ... --T_stdout 2 --T_nowait --T_port 2021
 sudo ./nr-uesoftmodem ... --T_stdout 2 --T_nowait --T_port 2023
 ```
 
-In this repository, the helper scripts are:
+Use OAI's native T-tracer tools directly. From the OAI root:
 
 ```bash
-abiodun/scripts/gnb_start_ttracer.sh
-abiodun/scripts/ue_multi_start_ttracer.sh
-abiodun/scripts/ttracer_record_smoke.sh
-abiodun/scripts/ttracer_extract_csv_smoke.sh
+export OAI_ROOT=/path/to/openairinterface5g
+export TDB=$OAI_ROOT/common/utils/T/T_messages.txt
+export TRACER=$OAI_ROOT/common/utils/T/tracer
 ```
 
-Example record/extract pattern:
+Record selected gNB events while the experiment is running:
 
 ```bash
-# record during the run
-bash abiodun/scripts/ttracer_record_smoke.sh \
-  --source gnb --profile latency --run-group <run_group> --duration-s 180
+$TRACER/record -d "$TDB" -o gnb.raw -ip 127.0.0.1 -p 2021 \
+  -on GNB_MAC_UL \
+  -on GNB_MAC_UL_MCS_DECISION \
+  -on GNB_MAC_BLER_MCS_DECISION \
+  -on GNB_MAC_PUSCH_POWER_CONTROL \
+  -on GNB_MAC_LCID_UL \
+  -on GNB_MAC_RX_SDU \
+  -on GNB_PDCP_RX_DELIVER
+```
 
-bash abiodun/scripts/ttracer_record_smoke.sh \
-  --source ue --profile queue --run-group <run_group> --duration-s 180
+Record selected UE events while the experiment is running:
 
-# extract CSVs after the run
-bash abiodun/scripts/ttracer_extract_csv_smoke.sh \
-  --source gnb --profile latency --run-group <run_group> --clean-output
+```bash
+$TRACER/record -d "$TDB" -o ue.raw -ip 127.0.0.1 -p 2023 \
+  -on NRUE_MAC_DCI_GRANT \
+  -on NRUE_MAC_RLC_BUFFER_STATUS \
+  -on NRUE_MAC_BSR_STATUS \
+  -on NR_RLC_TX_SDU \
+  -on NR_RLC_TX_DEQUEUE
+```
 
-bash abiodun/scripts/ttracer_extract_csv_smoke.sh \
-  --source ue --profile queue --run-group <run_group> --clean-output
+Stop `record` with Ctrl-C after the run.
+
+To extract CSV for one event, replay the raw file on a local port, then connect
+`csv` to that replay stream. Example for gNB UL MCS decisions:
+
+```bash
+# terminal A
+$TRACER/replay -i gnb.raw -p 2201
+
+# terminal B
+$TRACER/csv -d "$TDB" -ip 127.0.0.1 -p 2201 \
+  GNB_MAC_UL_MCS_DECISION \
+  frame slot avg_snr_x10 selected_mcs pre_phr_mcs post_phr_mcs final_mcs \
+  rb_size_final tbs_final estimated_ul_buffer B force_ul_mcs \
+  > GNB_MAC_UL_MCS_DECISION.csv
+```
+
+Example for UE RLC buffer occupancy:
+
+```bash
+# terminal A
+$TRACER/replay -i ue.raw -p 2203
+
+# terminal B
+$TRACER/csv -d "$TDB" -ip 127.0.0.1 -p 2203 \
+  NRUE_MAC_RLC_BUFFER_STATUS \
+  frame slot lcid lcgid bytes_in_buffer bj pbr priority \
+  > NRUE_MAC_RLC_BUFFER_STATUS.csv
 ```
 
 For the MCS/link-adaptation diagnosis, make sure the gNB trace includes:
@@ -415,12 +458,6 @@ Run:
 
 ```bash
 sudo env SCENESENSE_FORCE_UL_MCS=28 ./nr-softmodem ...
-```
-
-or through our wrapper:
-
-```bash
-FORCE_UL_MCS=28 bash abiodun/downlink_latency_fps/run_oai_default106_ttracer_10fps.sh
 ```
 
 Interpretation:
@@ -510,17 +547,14 @@ targets/PROJECTS/GENERIC-NR-5GC/CONF/ue.conf
 ```
 
 AWGN/channel configs in our tree:
+For RFsim AWGN/channel tests, keep a matched gNB config, UE config, and
+channel-model config for each SNR/noise profile. The exact filenames can differ
+by tree. A useful naming pattern is:
 
 ```text
-targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb.sa.band78.fr1.106PRB.scenesense_rfsim.awgn_mild.conf
-targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb.sa.band78.fr1.106PRB.scenesense_rfsim.awgn_mid15.conf
-targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb.sa.band78.fr1.106PRB.scenesense_rfsim.awgn_strong.conf
-targets/PROJECTS/GENERIC-NR-5GC/CONF/ue.awgn_mild.conf
-targets/PROJECTS/GENERIC-NR-5GC/CONF/ue.awgn_mid15.conf
-targets/PROJECTS/GENERIC-NR-5GC/CONF/ue.awgn_strong.conf
-targets/PROJECTS/GENERIC-NR-5GC/CONF/channelmod_rfsimu_awgn_mild.conf
-targets/PROJECTS/GENERIC-NR-5GC/CONF/channelmod_rfsimu_awgn_mid15.conf
-targets/PROJECTS/GENERIC-NR-5GC/CONF/channelmod_rfsimu_awgn_strong.conf
+targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb.<band>.<prb>.rfsim.awgn_<profile>.conf
+targets/PROJECTS/GENERIC-NR-5GC/CONF/ue.awgn_<profile>.conf
+targets/PROJECTS/GENERIC-NR-5GC/CONF/channelmod_rfsimu_awgn_<profile>.conf
 ```
 
 Core-network files are usually not the MCS problem, but keep the UE DNN/IP
