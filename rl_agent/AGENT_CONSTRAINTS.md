@@ -191,7 +191,7 @@ distillation of every measured result above; treat it as the design spec for the
 | **channel state** — CQI/SNR→achievable rate, UE buffer occupancy | sets affordable payload + delivery reliability; the binding constraint over OAI | **MEASURED (2026-08-04, clean 12-cell grid on fresh CARLA)** (`channel_condition_sweep/CHANNEL_SWEEP_RESULTS.md` + plots). Uplink-only, SINR, retx=0 everywhere; sharp payload-ordered knee (offered ~6 fps): **1 MB** survives only clear (97.5%), collapses at ≤19.5 dB (22%→4.6%, 6–15 s); **400 KB** holds to 15.6 dB (100%, ≤251 ms), collapses at 8.2 dB (31.5%); **90 KB (ae32/u4/ROI0 seg-safe floor) = 100% at EVERY rung, ≤175 ms.** Collapse = congestion (BSR pins at the ~48 MiB ceiling), not radio errors. Measured-grid rule: `payload_budget=capacity(SNR)/target_fps × margin`; budget @10 fps ≈ {clear 448, mild 339, mid 241, **strong 127**} KB. The deployed policy instead uses its **lagged/noisy achievable-capacity estimate**, not a hard-coded SNR→payload map. The 90 KB floor fits every measured rung; at ~8 dB even 400 KB does not fit in the tested config. CAVEAT: offered fps was ~6 (live-front, CARLA-render limited); capacity estimated from delivered ceilings (±~30%); a shaped-burst @10 fps re-run (Mode A, no CARLA) will pin the absolute knee — not blocking. Fast objects (32 mph) still need FPS ≥15 for the 2.0 m target. |
 | **scene-empty gate** — max/count objectness on the CURRENT frame (pre-transmit) | decides send / skip; computed by the front backbone before compression, so NOT lagged | §8 (density-seg), available on the UE |
 | **previous action + outcome** — last payload/FPS, last latency/delivery | channel telemetry is lagged, so the agent needs its last decision + result to act sensibly (POMDP) | added 2026-08-04 (POLICY_KICKOFF + state diagram) |
-| **age-of-information (AoI)** — `now − capture_timestamp` of the newest successfully published map update | at delivery AoI resets to that update's capture→map latency; after skips/drops it continues to accumulate. It drives composed loc-error and makes send/skip sequential | added 2026-08-05 (`collab/REVIEW_NOTES.md` item 17) |
+| **per-object shared-map age-of-information** — `AoI_map,j = now − capture_timestamp(newest valid contribution for object j, any source)` | phase 1 normally resets every included object's age on a delivered frame; skip/drop increments each age. Preserve repeatable contribution provenance per `PHASE2_FORWARD_COMPAT.md`; a scalar is only a derived single-UE summary. It drives composed loc-error and makes send/skip sequential | added 2026-08-05; per-object schema clarified 2026-08-07 |
 | **estimated achievable UL capacity (+ confidence)** — derive from either full-resource `TBS_per_grant × attainable_grant_rate` or `spectral_efficiency(MCS) × configured_available_UL_resources/time`; corroborate with BSR/RLC drain and outcomes | the C1 mask + policy budget use this lagged/noisy estimate, never hidden true capacity. Raw scheduled throughput and actually allocated PRB/TBS under light load are demand-censored lower bounds, not capacity | added 2026-08-05 (`REVIEW_NOTES.md` items 15/A, 21) |
 | ~~scene density (graded)~~ | **dropped** — the seg-aware knob is density-invariant | §8 |
 
@@ -217,11 +217,12 @@ distillation of every measured result above; treat it as the design spec for the
   environment retains hidden true capacity. If the estimate is stale and the admitted load exceeds truth,
   record a C1 estimate-miss/congestion diagnostic and feed the outcome back to the estimator; do not expose
   oracle state to the policy.
-- **C2 — soft localization target:**
-  `loc_error(knob,speed,AoI) = sqrt(base_loc(knob)^2 + (speed × AoI)^2)`, with configurable `ε` (default
-  **2.0 m**) as the target/reference line. `base_loc(knob)` comes from the knob matrix. AoI already accumulates
-  capture→map latency and inter-update time, so do **not** add a separate `L`, `1/FPS`, or staleness penalty.
-  Use the generic 1.1 m floor only for the operating-envelope report and do not reward chasing below it.
+- **C2 — soft localization target:** for each object `j`,
+  `loc_error_j = sqrt(base_loc(knob)^2 + (speed_j × AoI_map,j)^2)`, with configurable `ε` (default **2.0 m**)
+  as the target/reference line; aggregate objects in the normative order from `REWARD_FORMULATION.md §4`.
+  `base_loc(knob)` comes from the knob matrix. Per-object AoI already accumulates capture→map latency and
+  inter-update time, so do **not** add a separate `L`, `1/FPS`, or staleness penalty. Use the generic 1.1 m
+  floor only for the operating-envelope report and do not reward chasing below it.
 - **Perception utility:** normalized initial prior
   `−0.50·loc_error/ε + 0.25·mIoU/mIoU_ref + 0.125·ped_recall/ped_ref + 0.125·obj_recall/obj_ref`, with all
   weights and references declared in config. Calibrate/ablate them; the pending advisor decision may harden

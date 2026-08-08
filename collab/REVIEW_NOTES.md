@@ -6,6 +6,29 @@ touches only this file to avoid merge conflicts.
 
 ---
 
+## 2026-08-07a — codex schema clarification COMPLETE: per-object map state without a Phase-2 rebuild
+
+Applied the final forward-compatibility cleanup before Track A:
+1. Canonical freshness is now consistently `AoI_map,j` across `PHASE2_FORWARD_COMPAT.md`, reward v4,
+   `POLICY_KICKOFF.md`, locked `AGENT_CONSTRAINTS.md §9`, and both raw/presentation Mermaid diagrams. It is
+   derived from the newest valid contribution for object `j`, from any source; a scalar is only a phase-1
+   derived summary and must not replace the per-object environment records.
+2. Provenance is genuinely multi-source without a schema migration:
+   `object_state{track_id,speed,speed_sigma,range_m,AoI_map_j,contributions[]}`, where every contribution has
+   `source_ue_id`, capture/publish timestamps, and confidence. Phase 1 writes one contribution; phase 2 may
+   write several. Raw records are preserved even if the phase-1 controller consumes fixed-size summaries.
+3. Corrected the action semantics: `SKIP` remains **whole-frame**. A fresh peer contribution means object
+   `j` no longer binds the aggregate `G=max_j e_j` safety decision; it does not create an object-selective
+   skip action. Whole-frame SKIP is available only when the shared aggregate shield admits it.
+4. Per-object AoI transition is explicit: a valid published contribution resets only its object's age;
+   otherwise that object's age increments. Phase 1 normally updates all objects included in the delivered
+   frame together.
+
+Documentation/schema only; no surrogate, oracle, OAI/CARLA run, LOCAL experiment, or RL work started. Ready
+to discuss the Track-A implementation contract.
+
+---
+
 ## 2026-08-06m — codex synchronization COMPLETE: state diagram updated to reward v4
 
 Updated raw-Mermaid `rl_agent/state_diagram.md` from the stale 05c send/skip flow to the agreed v4 design:

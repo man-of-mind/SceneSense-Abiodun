@@ -19,12 +19,15 @@ from three tables and train in it. OAI/CARLA are only needed later, for the *liv
    inequality and the capture→map latency decomposition. Turns latency+delivery+speed → localization error.
 
 End-to-end reward signal = compose( knob accuracy [2] ⊕ AoI transition from latency/delivery [1,3] ⊕ object
-speed ). AoI is `now − capture_timestamp` of the newest successfully published update: delivery resets it to
-capture→map latency, while skip/drop continues accumulating it. No fusion-model re-run required.
+speed ). Canonical AoI is per-object shared-map age:
+`AoI_map,j = now − capture_timestamp(newest valid contribution for object j, any source)`. In phase 1,
+delivery normally resets every included object's age to capture→map latency, while skip/drop continues each
+age. Keep repeatable contribution provenance per `PHASE2_FORWARD_COMPAT.md`; a scalar is only a derived
+single-UE summary. No fusion-model re-run required.
 
 ## Locked design (do not re-derive) — `AGENT_CONSTRAINTS.md §9`
 - **§9.1 STATE:** lagged/noisy channel telemetry + achievable-capacity estimate/confidence; object speed (+σ);
-  current scene-emptiness/urgency; **AoI**; and previous action+outcome. Estimate capacity from either
+  current scene-emptiness/urgency; **per-object shared-map AoI**; and previous action+outcome. Estimate capacity from either
   full-resource `TBS_per_grant × attainable_grant_rate` or MCS spectral efficiency × configured available UL
   resources/time, corroborated by backlogged BSR/RLC drain and outcomes. Raw scheduled throughput and actual
   light-load allocations are demand-censored lower bounds, not capacity.
@@ -39,9 +42,11 @@ capture→map latency, while skip/drop continues accumulating it. No fusion-mode
 - **C1 (hard vs observation):** action-mask any send with
   `payload × fps > pessimistic(lagged/noisy achievable-capacity estimate)`; skip remains admissible. Hidden
   true-capacity misses caused by lag are logged and fed back to the estimator, not oracle-prevented.
-- **C2 (soft):** `loc_error = sqrt(base_loc(knob)^2 + (speed × AoI)^2)`, with configurable ε (default 2.0 m)
-  as the target. AoI already includes pipeline and inter-update age; do not add separate latency, `1/FPS`, or
-  staleness penalties. Use the generic 1.1 m floor only for operating-envelope reporting.
+- **C2 (soft):** for each object `j`,
+  `loc_error_j = sqrt(base_loc(knob)^2 + (speed_j × AoI_map,j)^2)`, with configurable ε (default 2.0 m) as the
+  target; aggregate objects as specified in `REWARD_FORMULATION.md`. AoI already includes pipeline and
+  inter-update age; do not add separate latency, `1/FPS`, or staleness penalties. Use the generic 1.1 m floor
+  only for operating-envelope reporting.
 - **C3:** prefer the 90 KB `ae32/u4/ROI0` segmentation-safe floor. Sub-90 KB ROI actions are last-resort and
   pay their measured mIoU loss plus a configurable escalation penalty.
 - **C4:** score only objects within 40 m (M′ validity); headline localization remains ≤25 m pending advisor
@@ -79,5 +84,6 @@ it is not exposed as oracle current state before the action. Thus identical byte
   runner — uplink-only only.
 
 ## Pointers
-`AGENT_CONSTRAINTS.md` (§9 design, §1–5 staleness bounds) · `channel_condition_sweep/CHANNEL_SWEEP_RESULTS.md`
+`AGENT_CONSTRAINTS.md` (§9 design, §1–5 staleness bounds) · `PHASE2_FORWARD_COMPAT.md` (per-object map-AoI +
+repeatable provenance contract) · `channel_condition_sweep/CHANNEL_SWEEP_RESULTS.md`
 + `plots/` · `PERMODEL_KNOB_MATRIX_ZSTD.md` · `staleness/STALENESS_RESULTS.md` · `CLAUDE.md` (project state).
