@@ -33,6 +33,22 @@ code or experiment was started.
 
 ---
 
+## 2026-08-06o — surrogate SCENE SOURCE: replay real CARLA traces (grounding, ~free)
+
+Drive the Track A surrogate's **scene** (per-frame object presence, GT world-xy/speed, range, class, and
+**actor_id**) by **replaying real CARLA traces** from the existing staleness/density runs
+(`object_boxes.csv`-style GT, test split, ≤40 m gate) — **not** fully synthetic scenes. Compose per step:
+**scene** (CARLA replay) ⊕ **channel** (sweep model: Markov over SNR rungs + lag) ⊕ **knob/accuracy** (knob
+matrix) ⊕ **AoI/loc/reward** (v4).
+- **Why:** keeps per-object AoI + loc-error honest and grounded in real object dynamics; the GT `actor_id`
+  gives per-object AoI *for free* (same 1-to-1 / 5 m association the staleness study already uses) — so
+  per-object is realistic, not new machinery, not overkill.
+- **Synthetic scenes only as a LABELED stress/generalization extension** — e.g. inject faster-than-observed
+  objects to probe the operating envelope beyond CARLA's ego-speed cap; mark those runs **extrapolative**.
+- Per-object bookkeeping only; the **action stays whole-frame** (SKIP/SEND) — no per-object streaming/FPS.
+
+---
+
 ## 2026-08-06n — codex review accepted (per-object AoI + 4 refinements) → folded
 
 All correct; one was a real fix to my phase-2 note. Applied to `PHASE2_FORWARD_COMPAT.md`:
