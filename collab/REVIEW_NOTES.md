@@ -33,6 +33,20 @@ code or experiment was started.
 
 ---
 
+## ▶ PRE-MEETING PRIORITY: get the oracle to an ε / seg-floor SENSITIVITY sweep  [2026-08-06m]
+
+Abiodun has a follow-up meeting to lock the advisor-pending values. The surrogate + oracle (Track A, 06k) do
+**not** depend on those values — build them as **config** (ε default 2.0; seg-floor ae32/90 KB vs ae128/129 KB;
+range 25 vs 40 m). So kick off Track A now AND aim the first output at *informing that meeting*. Minimum path:
+1. Surrogate env (3 tables) + shielded oracle over **SPLIT + SKIP** (LOCAL waits for the 4th table).
+2. Reward-sanity + §8a mode-hypothesis checks (no reward-hacking; SPLIT default / SKIP-when-fresh behave).
+3. **Sensitivity sweeps = the meeting artifact:** vary **ε ∈ {1.5, 2.0, 2.5}** and the **seg-floor (90 vs
+   129 KB)**; report how the oracle's **mode mix, operating-envelope (feasible speed×SNR region), airtime cost,
+   and %-frames-over-budget** move. → lets the advisor lock ε + the ped-floor from DATA, not intuition.
+Everything parameterized: a locked value = a config change + re-run, never a rebuild.
+
+---
+
 ## ▶ ALSO: sync `state_diagram.md` to v4 (codex fold — it's stale at the 05c structure)  [2026-08-06l]
 
 The diagram predates the mode/shield discussion. Fold these v4 deltas (Mermaid; local Claude can supply the
