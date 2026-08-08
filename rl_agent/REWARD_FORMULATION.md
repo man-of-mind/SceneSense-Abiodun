@@ -16,10 +16,12 @@ vs 40 m. **Not RL-ready until §7's LOCAL 4th table is measured.**
 - **FPS set (config):** `{2, 5, 10, 15, 20}`. All weights/margins/denominators in config.
 
 ## 2. State (adds to §9.1)
-Channel-budget estimate (+confidence), object speed (+σ), front-side urgency, **AoI**, previous
-action+outcome, **local-compute headroom** (available CPU/GPU / load, or ≥ measured max sustainable full-local
-FPS for the device). Denote this lagged/noisy observable state `s_obs`; the live shield and every deployable
-controller receive the same `s_obs`. Latent simulator truth is retained only for outcome generation and the
+Channel-budget estimate (+confidence), object speed (+σ), front-side urgency, **per-object shared-map AoI**,
+previous action+outcome, **local-compute headroom** (available CPU/GPU / load, or ≥ measured max sustainable
+full-local FPS for the device). Preserve repeatable per-object contribution provenance as specified in
+`PHASE2_FORWARD_COMPAT.md`; a phase-1 controller may consume fixed-size summaries without discarding the raw
+records. Denote the lagged/noisy observable state `s_obs`; the live shield and every deployable controller
+receive the same `s_obs`. Latent simulator truth is retained only for outcome generation and the
 separately-labelled clairvoyant upper bound (§8).
 
 ## 3. Feasibility masks (HARD, before the policy)
@@ -31,17 +33,21 @@ separately-labelled clairvoyant upper bound (§8).
 - **SKIP** always admissible. `A_m(s_obs)` = admitted set.
 
 ## 4. Localization error — post-action AoI, multi-object, ORDERED statistics
-Each action is evaluated at its *resulting* AoI (outcome `o` = delivered / dropped):
+Each action is evaluated at its *resulting per-object shared-map AoI*. In phase 1, outcome `o` is the UE's
+delivery/drop result; the same publication normally updates every object included in that frame. The schema
+already permits phase-2 peer contributions to update objects independently:
 ```
-AoI_{t+1}(a,o) = { capture→map latency(a)   if delivered ;  AoI_t + Δt(a)  if skip / drop }
-e_j(a,s,o)     = sqrt( base_loc(a)² + (v_j · AoI_{t+1}(a,o))² )         for object j
+AoI_{map,j,t+1}(a,o) = { capture→map latency of newest valid contribution for j, if one is published
+                       { AoI_{map,j,t} + Δt(a), otherwise
+e_j(a,s,o)     = sqrt( base_loc(a)² + (v_j · AoI_{map,j,t+1}(a,o))² )   for object j
 G(a,s,o)       = aggregate over currently-present dynamic objects: max_j e_j (default; object-tail aggregate
                  is a configured robustness alternative); empty scene ⇒ G=0
 E_expected(a,s)= E_o[G(a,s,o)] (use a labelled p50 proxy only when an outcome mean cannot be reconstructed)
 E_risk(a,s)    = p95_o[G(a,s,o)] or CVaR_{α,o}[G(a,s,o)]
 ```
 `base_loc(a)` from the knob matrix via the **monotone (affine) calibration** onto the ~1.1 m live floor
-(level shifted, rankings preserved). Each object uses its own speed and the AoI of its most-recent update.
+(level shifted, rankings preserved). Each object uses its own speed and the age of its newest valid map
+contribution; a fresh update for object A never resets object B.
 
 **The operation order is normative:** aggregate objects for each outcome first (`G`), then take expectation,
 p95, or outcome-CVaR. In general `p95_o[max_j e_j] != max_j p95_o[e_j]`; implementations must not swap the
@@ -186,9 +192,12 @@ regret, false-admit/false-reject scoring, and the clairvoyant oracle; it is **no
 required, counterfactual regret remains unobservable online, but the observation-based shield still works.
 
 ## 11. Multi-object / AoI precision
-AoI is per successfully-published update; with per-object update times, use per-object AoI in `e_j`, else the
-map-level AoI is the tractable approximation. Aggregate over *currently-present* dynamic objects only. The
-required order is per-outcome object aggregation `G` first, then expectation/p95/outcome-CVaR (§4).
+The canonical state stores `AoI_map,j` per tracked object, derived from that object's repeatable contribution
+records (`PHASE2_FORWARD_COMPAT.md`). In phase 1, a derived scalar summary may be convenient because one
+frame normally refreshes all included objects, but it must not replace the per-object records or become the
+environment API. Aggregate over *currently-present* dynamic objects only. The required order is per-outcome
+object aggregation `G` first, then expectation/p95/outcome-CVaR (§4). `SKIP` remains frame-level: a fresh peer
+contribution can stop object *j* from binding, but whole-frame `SKIP` must still pass the aggregate shield.
 
 ## 12. Changelog & consensus
 - **v2 (round 1, all codex corrections):** post-action AoI [bug]; C1 mask covers LOCAL [bug]; LOCAL provisional;
@@ -214,5 +223,7 @@ required order is per-outcome object aggregation `G` first, then expectation/p95
      separately labelled.
   5. Added hand-written rule, contextual bandit, and shielded MPC before RL; adopt the simplest controller
      that works, and require RL to beat both bandit and MPC on anticipatory metrics.
+  6. Forward-compatible schema clarification: canonical AoI is per-object shared-map age with repeatable
+     contribution provenance; scalar AoI is only a phase-1 derived summary, and `SKIP` remains frame-level.
 - Local Claude and codex concur; no open disagreement. **Next: measure the LOCAL 4th table → build both
   oracles + rule/bandit → MPC → DQN/discrete-SAC only if the simpler controllers leave sequential value.**

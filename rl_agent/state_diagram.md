@@ -7,10 +7,10 @@ flowchart LR
  subgraph S["STATE  s_obs(t) — lagged / noisy observation only"]
     direction TB
         ch["Channel state:<br>SNR/CQI, MCS, BLER/HARQ, PRB/TBS/grant telemetry,<br>scheduled UL rate, UE BSR/RLC buffer,<br>estimated sustainable UL budget + confidence"]
-        sp["Dynamic objects inside C4 validity range ≤ 40 m:<br>per-object speed + uncertainty<br>(primary reporting subset: near-field objects)"]
+        sp["Dynamic objects inside C4 validity range ≤ 40 m:<br>track_id, per-object speed + uncertainty, range<br>+ repeatable contributions[] provenance<br>(primary reporting subset: near-field objects)"]
         em["Front-side urgency proxy:<br>current-frame objectness + radar/range cue<br>+ tracker prior, not lagged"]
         prev["Previous action + outcome:<br>mode/profile/FPS, latency/delivery"]
-        age["Age-of-Information (AoI):<br>now − capture timestamp of newest<br>successfully published map update"]
+        age["Per-object shared-map AoI:<br>AoI_map,j = now − capture time of newest VALID<br>contribution for object j, from any source<br>scalar summary is derived only"]
         comp["Local-compute headroom:<br>available CPU/GPU load + confidence /<br>max sustainable full-local FPS"]
         obs(("s_obs"))
         ch --> obs
@@ -26,7 +26,7 @@ flowchart LR
         mode["mode ∈ {SPLIT, LOCAL, SKIP}"]
         split["SPLIT:<br>front backbone → quant u8→u4 → AE bottleneck<br>→ ROI / spatial crop LAST RESORT → FPS<br>send features for edge fusion"]
         local["LOCAL (provisional until fourth table):<br>run full model on-car → upload small result<br>FPS only; compute-bound; still uses uplink"]
-        skip["SKIP:<br>send nothing<br>only network-free action"]
+        skip["SKIP (whole frame):<br>send nothing<br>only network-free action"]
         cand["Flattened discrete candidate catalog"]
         mode --> split
         mode --> local
@@ -40,7 +40,7 @@ flowchart LR
     direction TB
         masks{{"HARD MASKS on s_obs<br>C1 for SPLIT + LOCAL: payload × FPS ≤ pessimistic UL budget<br>LOCAL: required FPS ≤ measured compute headroom<br>SKIP always C1-admissible"}}
         am["A_m(s_obs) — hard-admitted actions"]
-        pred["Per-action surrogate prediction on s_obs<br>post-action AoI for each delivery/drop outcome o<br>e_j = sqrt(base_loc(a)² + (v_j × AoI_next)²)<br>G(a,s,o) = max_j e_j FIRST; empty scene → G=0"]
+        pred["Per-action surrogate prediction on s_obs<br>post-action AoI_map,j for each delivery/drop outcome o<br>e_j = sqrt(base_loc(a)² + (v_j × AoI_map,j,next)²)<br>G(a,s,o) = max_j e_j FIRST; empty scene → G=0"]
         exp["E_expected = mean_o[G]<br>small mandatory within-band reward margin"]
         bound["Tail safety statistic + uncertainty<br>E_hat_risk = p95_o[G] or CVaR_alpha,o[G]<br>B = E_hat_risk + k × sigma_hat<br>(or calibrated conformal / quantile bound)"]
         shield{{"LIVE SHIELD<br>F_hat=1 when some action has B ≤ epsilon<br>B* = min over A_m of B"}}
@@ -64,7 +64,7 @@ flowchart LR
     src2(["Front perception / tracker<br>object locations, speed + uncertainty"]) --> sp
     src3(["UE front-side urgency monitor<br>front features + radar/range cue<br>+ tracker/map prior"]) --> em
     src4(["Agent memory (t−1)<br>last action + outcome"]) --> prev
-    src5(["Map feedback / ACK clock<br>latest published frame_id<br>+ capture timestamp"]) --> age
+    src5(["Map feedback / ACK clock<br>per-object map records + contributions[]<br>source UE, capture/publish time, confidence"]) --> age
     src6(["On-device compute monitor<br>CPU/GPU availability, load,<br>sustainable full-local FPS"]) --> comp
 
     obs --> masks
@@ -98,8 +98,8 @@ flowchart LR
     act -- SPLIT --> splitx
     act -- LOCAL --> localx
     act -- SKIP --> skipx
-    oai --> aoi2["AoI TRANSITION<br>delivered → capture→map pipeline latency<br>drop → previous AoI + control interval"]
-    mp -. "delivered capture timestamp / publish time" .-> aoi2
+    oai --> aoi2["PER-OBJECT AoI TRANSITION<br>valid contribution for j published → its capture→map latency<br>otherwise → previous AoI_map,j + control interval<br>phase 1 normally updates all objects included in one frame"]
+    mp -. "per-object contributions[]:<br>source, capture/publish time, confidence" .-> aoi2
     skipx --> aoi2
     aoi2 --> greal["REALIZED per-outcome localization<br>compute per-object e_j, then G = max_j e_j<br>(same normative object-first order)"]
     sp --> greal
@@ -107,7 +107,7 @@ flowchart LR
     greal -- "realized G" --> rin
     oai -- "realized PRB / delivery cost" --> rin
 
-    act --> s2["NEXT STATE  s_obs(t+1)<br>updated AoI, lagged channel observation,<br>previous action/outcome, scene state,<br>local-compute headroom"]
+    act --> s2["NEXT STATE  s_obs(t+1)<br>updated per-object AoI_map,j + provenance summaries,<br>lagged channel observation, previous action/outcome,<br>scene state, local-compute headroom"]
     aoi2 --> s2
     oai --> s2
     s2 -. "next control step" .-> obs

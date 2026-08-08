@@ -9,22 +9,32 @@ that revisit is **additive (new inputs + retrain), not a rebuild.**
    object j, from ANY source)`. **Not** this UE's own last transmit, and **not** a single global map-update age
    — a peer update for object A must not make object B look fresh. In phase 1 (single UE, per-frame send) it
    reduces to this UE's per-object update ages; in phase 2 a peer's fresh contribution to object *j* lowers
-   *this UE's* `AoI_j`, so **"a peer keeps object j fresh → I can skip object j"** emerges per-object with no
-   redesign. Matches v4 §4/§11 per-object semantics — keep it per-object; the map-level scalar is only a
-   single-UE approximation, not the design.
+   *this UE's* `AoI_j`, so object *j* no longer drives the **frame-level** send decision. The current `SKIP`
+   action remains whole-frame: it is safe only when the aggregate criterion over all relevant objects admits
+   it. Matches v4 §4/§11 per-object semantics — keep AoI per-object; a map-level scalar is only a derived
+   single-UE convenience, not the stored design.
 2. **Modular urgency/state interface** — leave a clean slot to add a **per-object peer/map-feedback signal**
    later ("is my view valuable for object j?", "is a peer already covering it?"). The reward, shield, mode
    set, and safety structure should not need to change to accept it.
-3. **Preserve per-object PROVENANCE now (codex)** — record, per tracked object: `track_id`, source UE,
-   capture + publish timestamps, `AoI_j`, speed (+σ), range, and contribution confidence. Phase 1 populates
-   single-source defaults, so phase 2 adds multi-source fusion **without a data-model change.**
+3. **Preserve repeatable per-object PROVENANCE now (codex)** — use one object record with a repeated
+   contribution collection, not singular source/timestamp fields:
+   ```text
+   object_state:
+     track_id, speed, speed_sigma, range_m, AoI_map_j
+     contributions[]:
+       source_ue_id, capture_timestamp, publish_timestamp, confidence
+   ```
+   `AoI_map_j` is derived from the newest **valid** entry in `contributions[]`. Phase 1 writes a one-element
+   collection; phase 2 can write several contributions without changing the data model. Keep the raw
+   collection even when the phase-1 policy consumes only fixed-size summaries.
 
 Corollary: **do not bake single-UE assumptions into the reward** (e.g. "this UE must cover every object").
 The per-object-AoI framing already avoids that.
 
 ## Parked phase-2 questions (revisit at map-sharing — design NONE of these now)
-- **Redundancy-aware deferral** — skip object j when a peer provides a fresher/more-accurate contribution for
-  j (nearly free given **per-object** AoI; just needs the per-object map-feedback signal).
+- **Redundancy-aware deferral** — a fresher/more-accurate peer contribution prevents object *j* from forcing a
+  send. Whole-frame `SKIP` is selected only if the aggregate safety criterion over all relevant objects
+  admits it. Object-selective transmission would be a future action-space extension, not current behavior.
 - **Per-object contribution value** — the fusion side decides whose view is best for which object; feeds the
   UE's urgency as a new input.
 - **Multi-agent training / contention** — the tragedy-of-commons + non-stationarity when every UE runs the

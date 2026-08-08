@@ -16,10 +16,10 @@ flowchart LR
   subgraph S["STATE  s_obs(t) — lagged / noisy observation"]
     direction TB
       ch["Channel state + UL budget<br/>SNR/CQI, MCS, BLER/HARQ,<br/>scheduled UL rate, UE BSR/RLC buffer,<br/>estimated sustainable UL budget + confidence"]:::state
-      sp["Dynamic objects ≤ 40 m<br/>per-object speed + uncertainty"]:::state
+      sp["Dynamic objects ≤ 40 m<br/>track_id, speed + uncertainty, range<br/>+ contributions[] provenance"]:::state
       em["Front-side urgency<br/>objectness + radar/range cue<br/>+ tracker prior, current frame"]:::state
       prev["Previous action + outcome<br/>mode/profile/FPS, latency/delivery"]:::state
-      age["Map freshness / AoI<br/>now − capture time of newest<br/>published map update"]:::state
+      age["Per-object shared-map AoI<br/>AoI_map,j = now − capture time of newest valid<br/>contribution for object j, any source"]:::state
       comp["Local-compute headroom<br/>available CPU/GPU load<br/>sustainable full-local FPS"]:::state
   end
 
@@ -36,14 +36,14 @@ flowchart LR
     direction TB
       split["SPLIT<br/>front features → quant / AE / ROI / FPS<br/>send features for edge fusion"]:::act
       local["LOCAL<br/>full on-car inference → small result upload<br/>FPS limited by compute"]:::act
-      skip["SKIP<br/>send nothing; map keeps prior update"]:::act
+      skip["SKIP (whole frame)<br/>send nothing; map keeps prior updates"]:::act
   end
 
   %% ===== admission + controller =====
   S --> MASK{{"C1 HARD ACTION MASK<br/>SPLIT/LOCAL: payload × FPS ≤ pessimistic UL budget<br/>LOCAL: FPS ≤ compute headroom<br/>SKIP is C1-admissible"}}:::con
   A --> MASK
 
-  MASK --> SHIELD{{"LIVE SAFETY SHIELD<br/>predict AoI_next and localization risk for each action<br/>G = max_j sqrt(base_loc(a)² + (v_j × AoI_next)²)<br/>safe if tail-risk bound B ≤ ε"}}:::con
+  MASK --> SHIELD{{"LIVE SAFETY SHIELD<br/>predict AoI_map,j,next and localization risk for each action<br/>G = max_j sqrt(base_loc(a)² + (v_j × AoI_map,j,next)²)<br/>safe if tail-risk bound B ≤ ε"}}:::con
 
   SHIELD --> POL{{"Shielded controller / policy<br/>rule, bandit, MPC, or masked RL<br/>selects only from A_safe"}}:::pol
 
@@ -68,7 +68,7 @@ flowchart LR
   ACT -- "SPLIT / LOCAL" --> off
   ACT -- "SKIP" --> AOI
 
-  ENV --> AOI["AoI TRANSITION<br/>delivered → capture→map latency<br/>drop/skip → previous AoI + control interval"]:::state
+  ENV --> AOI["PER-OBJECT AoI TRANSITION<br/>valid contribution for j → its capture→map latency<br/>otherwise → previous AoI_map,j + control interval"]:::state
 
   AOI --> LOC["REALIZED localization term<br/>G = max object error<br/>uses selected action's base_loc<br/>+ object speed × AoI"]:::state
 
@@ -78,7 +78,7 @@ flowchart LR
   ENV --> FB["NEXT-STEP FEEDBACK<br/>lagged RAN telemetry + delivery/latency<br/>map ACK timestamp + previous action/outcome<br/>estimate-miss diagnostics update UL-budget estimator"]:::state
   AOI --> FB
   ACT -. "previous mode/profile/FPS" .-> FB
-  FB --> S2["NEXT STATE  s_obs(t+1)<br/>updated AoI, lagged channel obs,<br/>previous outcome, scene state,<br/>local-compute headroom"]:::state
+  FB --> S2["NEXT STATE  s_obs(t+1)<br/>updated per-object AoI + provenance summaries,<br/>lagged channel obs, previous outcome,<br/>scene state, local-compute headroom"]:::state
   S2 --> MASK
 
   %% ===== learning feedback =====
