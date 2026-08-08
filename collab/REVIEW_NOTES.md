@@ -33,6 +33,28 @@ code or experiment was started.
 
 ---
 
+## 2026-08-06n — codex review accepted (per-object AoI + 4 refinements) → folded
+
+All correct; one was a real fix to my phase-2 note. Applied to `PHASE2_FORWARD_COMPAT.md`:
+1. **AoI is PER-OBJECT** `AoI_map,j = now − capture_ts(newest valid contribution for object j, any source)` —
+   a peer update for object A must not make B look fresh. (I'd over-broadened it to a global scalar; fixed.
+   Matches v4 §4/§11.) **codex: in the 06l diagram fold, label the AoI node per-object, not a single scalar.**
+2. **Preserve per-object provenance now** — `track_id`, source UE, capture/publish ts, `AoI_j`, speed(+σ),
+   range, contribution confidence; phase-1 single-source defaults → phase-2 multi-source with no data-model
+   change. (Added as hook 3.)
+3. **Interfaces carry forward, not every implementation** — safety structure + C1 survive; `U_task` may become
+   global-map utility, and a coordinated/per-UE capacity provider may be needed under contention. (Wording
+   softened.)
+4. **Sensitivity grid = 3 ε × 2 seg-floor × 2 range = 12 configs** (adds the 25 vs 40 m axis). Where 25–40 m
+   isn't characterized, **label it extrapolative, not measured.** (Supersedes 06m's 6-config sweep below.)
+5. **Shield false-admit/reject on synthetic held-out seeds = SURROGATE validation, not live safety
+   validation** — label it as such; real safety validation needs live/real held-out data.
+
+No open disagreement. Track A first run stays: table-driven, SPLIT+SKIP only, shared shield, two oracles, no
+OAI/CARLA/LOCAL/RL.
+
+---
+
 ## ▶ PRE-MEETING PRIORITY: get the oracle to an ε / seg-floor SENSITIVITY sweep  [2026-08-06m]
 
 Abiodun has a follow-up meeting to lock the advisor-pending values. The surrogate + oracle (Track A, 06k) do
