@@ -56,6 +56,45 @@ code or experiment was started.
 
 ---
 
+## 2026-08-06p — local Claude: codex's 7 pre-sweep contracts → APPROVE all + 2 decisions + meeting caveat
+
+Agree with the conditional go: build loaders / event-driven env / unit tests / 4 deterministic episodes /
+1-config pilot now; **freeze all 7 contracts (documented + tested) before the 12-config sweep.** All 7 are the
+right contracts. Verdict per item:
+1. **20 Hz event-driven clock** ✅ (rate accumulator, in-flight transmissions, newer-capture-wins, no
+   out-of-order overwrite). The key temporal contract — freeze first.
+2. **U_task = POST-action MAP utility** ✅ (real hole). Parallel the AoI logic: delivered→delivered quality;
+   drop/skip→retain prior contribution's quality; new object w/ no contribution→unobserved (SKIP unsafe);
+   empty→0. **Contributions must store a quality/profile_id snapshot** — extend the provenance schema; fold
+   into REWARD §5a + PHASE2.
+3. **Make v4 authoritative + declare weights** ✅ — POLICY_KICKOFF + §9 still carry the OLD `−0.50·loc/ε`
+   prior; **sync them to v4** (loc is structural via the shield + `w_E` margin; `U_task` = seg+recall only).
+   Accept codex's pilot defaults (mIoU/ped/obj = 0.50/0.25/0.25; `w_task`=1, `w_E`=0.05; `C_PRB` =
+   offered/true_capacity — env-side cost, fine, not policy-observable; keep ROI/switch coeffs) and run the
+   one-at-a-time weight sensitivity BEFORE the 12-grid.
+4. **Channel = documented PROJECTION** ✅ — Track A payloads (49–129 KB) / FPS (≤20) are OUTSIDE the measured
+   12 cells → most outcomes are projections. Freeze the reproducible formula (capacity-threshold + ±30% band;
+   rungs by condition/MCS not exact SNR; stated p50/p95 reconstruction) and **label projected vs measured.**
+   Shield calibrated on synthetic train seeds, evaluated on disjoint seeds = **surrogate** validation.
+5. **Replay hygiene** ✅ — grouped split by scenario family (never random frames); tracks keyed by
+   `(episode_id, actor_id)`; reject header-only traces; resample to the 20 Hz clock; **GT hidden from the
+   deployable oracle** — derive `s_obs` from predictions + a declared observation-noise model (only the
+   clairvoyant oracle sees truth).
+6. **DECISION — seg-floor = PREFERRED CORE, not a hard floor** (endorse codex's rec): 129 KB preferred;
+   90 KB / sub-90 ROI admitted in a **flagged degraded tier** (a hard 129 floor would leave only SKIP on a bad
+   channel → breaks graceful degradation). PLUS a separate **hard-floor feasibility diagnostic** to show what a
+   strict floor costs. Present both to the advisor.
+7. **DECISION/CAVEAT — pedestrians (affects the meeting):** the replay corpus is **all vehicles ≤ 40 m, zero
+   pedestrians.** So the sweep can inform **ε and the vehicle-side seg-floor cost**, but the **ped-recall floor
+   (the 90-vs-129 *safety* case) CANNOT be settled by the replay** — it rests on the OFFLINE ped-recall matrix
+   + a **labeled synthetic pedestrian stress trace** (addable without CARLA). Label every ped-driven
+   conclusion accordingly.
+
+Freeze order (codex): document 1–7 → canonical CSV/JSON action catalog → unit tests → 4 deterministic episodes
+→ 1-config pilot → THEN the 12-grid. Still no RL / CARLA / OAI.
+
+---
+
 ## 2026-08-06o — surrogate SCENE SOURCE: replay real CARLA traces (grounding, ~free)
 
 Drive the Track A surrogate's **scene** (per-frame object presence, GT world-xy/speed, range, class, and
