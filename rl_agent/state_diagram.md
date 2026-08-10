@@ -11,6 +11,7 @@ flowchart LR
         em["Front-side urgency proxy:<br>current-frame objectness + radar/range cue<br>+ tracker prior, not lagged"]
         prev["Previous action + outcome:<br>mode/profile/FPS, latency/delivery"]
         age["Per-object shared-map AoI:<br>AoI_map,j = now − capture time of newest VALID<br>contribution for object j, from any source<br>scalar summary is derived only"]
+        sched["20 Hz scheduler + observable pending state:<br>active profile/FPS, fractional send credit,<br>in-flight count + newest pending capture/expected arrival"]
         comp["Local-compute headroom:<br>available CPU/GPU load + confidence /<br>max sustainable full-local FPS"]
         obs(("s_obs"))
         ch --> obs
@@ -18,6 +19,7 @@ flowchart LR
         em --> obs
         prev --> obs
         age --> obs
+        sched --> obs
         comp --> obs
   end
 
@@ -65,12 +67,13 @@ flowchart LR
     src3(["UE front-side urgency monitor<br>front features + radar/range cue<br>+ tracker/map prior"]) --> em
     src4(["Agent memory (t−1)<br>last action + outcome"]) --> prev
     src5(["Map feedback / ACK clock<br>per-object map records + contributions[]<br>source UE, capture/publish time, confidence"]) --> age
+    src7(["Local send scheduler / ACK memory<br>20 Hz phase + locally observable pending sends"]) --> sched
     src6(["On-device compute monitor<br>CPU/GPU availability, load,<br>sustainable full-local FPS"]) --> comp
 
     obs --> masks
     cand --> masks
     obs --> pred
-    exp --> rin["UTILITY / TRAINING SIGNAL<br>w_task × U_task − C_UE − C_PRB<br>− λ_ROI C_ROI − λ_switch C_switch<br>− w_E × E_expected / epsilon, with w_E > 0<br>RL update substitutes realized G for E_expected"]
+    exp --> rin["POST-ACTION MAP UTILITY / TRAINING SIGNAL<br>w_task × E[U_task_post] − C_UE − C_PRB<br>− λ_ROI C_ROI − λ_switch C_switch<br>− w_E × E_expected / epsilon, with w_E > 0<br>drop/SKIP retain prior map quality; RL uses realized outcome"]
     asafe --> ctrl{{"SHARED-SHIELD CONTROLLER<br>rule / contextual bandit / MPC / masked RL<br>selects only from A_safe"}}
     rin -. "rank / train" .-> ctrl
     ctrl --> act["SELECTED ACTION  a(t)"]
@@ -84,11 +87,13 @@ flowchart LR
         offered["offered load = payload × FPS"]
         truth["HIDDEN true current UL service capacity<br>channel + PRB/TDD config + scheduler/link adaptation<br>NEVER exposed to policy, masks, or live shield"]
         oai["5G / OAI uplink outcome:<br>delivery/drop, latency, PRB-time,<br>BSR backlog, MCS/BLER"]
+        flight["20 Hz rate accumulator + in-flight event queue<br>action change/SKIP resets credit;<br>newer capture wins over late arrival"]
         edge["SPLIT delivered features:<br>edge intermediate fusion"]
         mp["publish result to shared spatial map"]
         splitx --> offered
         localx --> offered
-        offered --> oai
+        offered --> flight
+        flight --> oai
         truth --> oai
         oai -- "delivered SPLIT features" --> edge
         edge --> mp
@@ -99,7 +104,7 @@ flowchart LR
     act -- LOCAL --> localx
     act -- SKIP --> skipx
     oai --> aoi2["PER-OBJECT AoI TRANSITION<br>valid contribution for j published → its capture→map latency<br>otherwise → previous AoI_map,j + control interval<br>phase 1 normally updates all objects included in one frame"]
-    mp -. "per-object contributions[]:<br>source, capture/publish time, confidence" .-> aoi2
+    mp -. "per-object contributions[]:<br>source, capture/publish time, confidence,<br>profile_id + task-quality snapshot" .-> aoi2
     skipx --> aoi2
     aoi2 --> greal["REALIZED per-outcome localization<br>compute per-object e_j, then G = max_j e_j<br>(same normative object-first order)"]
     sp --> greal
@@ -107,7 +112,7 @@ flowchart LR
     greal -- "realized G" --> rin
     oai -- "realized PRB / delivery cost" --> rin
 
-    act --> s2["NEXT STATE  s_obs(t+1)<br>updated per-object AoI_map,j + provenance summaries,<br>lagged channel observation, previous action/outcome,<br>scene state, local-compute headroom"]
+    act --> s2["NEXT STATE  s_obs(t+1)<br>updated per-object AoI_map,j + provenance summaries,<br>lagged channel observation, previous action/outcome,<br>scheduler/pending summary, scene state, compute headroom"]
     aoi2 --> s2
     oai --> s2
     s2 -. "next control step" .-> obs
@@ -124,6 +129,7 @@ flowchart LR
     em
     prev
     age
+    sched
     comp
     obs
     mode

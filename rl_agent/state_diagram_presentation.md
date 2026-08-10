@@ -20,6 +20,7 @@ flowchart LR
       em["Front-side urgency<br/>objectness + radar/range cue<br/>+ tracker prior, current frame"]:::state
       prev["Previous action + outcome<br/>mode/profile/FPS, latency/delivery"]:::state
       age["Per-object shared-map AoI<br/>AoI_map,j = now − capture time of newest valid<br/>contribution for object j, any source"]:::state
+      sched["20 Hz scheduler + pending summary<br/>active profile/FPS, send credit,<br/>in-flight count / expected arrival"]:::state
       comp["Local-compute headroom<br/>available CPU/GPU load<br/>sustainable full-local FPS"]:::state
   end
 
@@ -29,6 +30,7 @@ flowchart LR
   src3 --> em
   src4 --> prev
   src5 --> age
+  src4 --> sched
   src6 --> comp
 
   %% ===== ACTION catalog =====
@@ -57,10 +59,11 @@ flowchart LR
     direction TB
       off["offered load = payload × FPS"]:::env
       truth["HIDDEN true UL service capacity<br/>channel + PRB/TDD config<br/>+ scheduler/link adaptation<br/>(not visible to policy/shield)"]:::env
+      flight["rate accumulator + in-flight event queue<br/>newer capture wins"]:::env
       oai["5G / OAI uplink outcome<br/>delivery/drop, latency, PRB-time,<br/>BSR backlog, MCS/BLER"]:::env
       edge["edge/map processing<br/>SPLIT: edge feature fusion<br/>LOCAL: publish small result"]:::env
       mp["shared spatial map update<br/>freshness / staleness"]:::env
-      off --> oai
+      off --> flight --> oai
       truth --> oai
       oai --> edge --> mp
   end
@@ -72,13 +75,13 @@ flowchart LR
 
   AOI --> LOC["REALIZED localization term<br/>G = max object error<br/>uses selected action's base_loc<br/>+ object speed × AoI"]:::state
 
-  LOC --> R["UTILITY / TRAINING SIGNAL<br/>w_task U_task − w_E E[G]/ε<br/>− C_UE − C_PRB<br/>− λ_ROI C_ROI − λ_switch C_switch<br/>RL update uses realized G"]:::rew
+  LOC --> R["POST-ACTION MAP UTILITY / TRAINING SIGNAL<br/>w_task E[U_task_post] − w_E E[G]/ε<br/>− C_UE − C_PRB<br/>− λ_ROI C_ROI − λ_switch C_switch<br/>drop/SKIP retain prior map quality"]:::rew
   oai --> R
 
   ENV --> FB["NEXT-STEP FEEDBACK<br/>lagged RAN telemetry + delivery/latency<br/>map ACK timestamp + previous action/outcome<br/>estimate-miss diagnostics update UL-budget estimator"]:::state
   AOI --> FB
   ACT -. "previous mode/profile/FPS" .-> FB
-  FB --> S2["NEXT STATE  s_obs(t+1)<br/>updated per-object AoI + provenance summaries,<br/>lagged channel obs, previous outcome,<br/>scene state, local-compute headroom"]:::state
+  FB --> S2["NEXT STATE  s_obs(t+1)<br/>updated per-object AoI + provenance summaries,<br/>lagged channel obs, previous outcome,<br/>scheduler/pending state, scene + compute state"]:::state
   S2 --> MASK
 
   %% ===== learning feedback =====

@@ -13,11 +13,13 @@ vs 40 m. **Not RL-ready until §7's LOCAL 4th table is measured.**
   (2 ROI0 seg-safe {ae32/u4 90 KB, ae128/u4 129 KB} + 5 sub-90 KB ROI-escalation) × FPS.
 - **LOCAL** — full model on the vehicle → upload result → shared map. Sub-choice = FPS (compute-bound).
 - **SKIP** — send nothing (only network-free action).
-- **FPS set (config):** `{2, 5, 10, 15, 20}`. All weights/margins/denominators in config.
+- **FPS set (config):** `{2, 5, 10, 15, 20}`. Track A has **35 SPLIT actions + one whole-frame SKIP = 36
+  actions**. All weights/margins/denominators are declared in config.
 
 ## 2. State (adds to §9.1)
 Channel-budget estimate (+confidence), object speed (+σ), front-side urgency, **per-object shared-map AoI**,
-previous action+outcome, **local-compute headroom** (available CPU/GPU / load, or ≥ measured max sustainable
+previous action+outcome, **scheduler phase + observable in-flight summary**, **local-compute headroom**
+(available CPU/GPU / load, or ≥ measured max sustainable
 full-local FPS for the device). Preserve repeatable per-object contribution provenance as specified in
 `PHASE2_FORWARD_COMPAT.md`; a phase-1 controller may consume fixed-size summaries without discarding the raw
 records. Denote the lagged/noisy observable state `s_obs`; the live shield and every deployable controller
@@ -65,6 +67,12 @@ The sampled RL reward uses realized `G(a,s,o)`; oracle/bandit/MPC expected scori
 `E_risk` and `E_risk* = min_{a∈A_m} E_risk` are evaluation quantities; the deployable shield uses the
 conservative observable-state estimates below.
 
+The same outcome discipline applies to task quality. Define `U_task_post(a,s,o)` from the resulting **map**:
+a delivered result installs the selected profile's quality for captured objects; a drop or SKIP retains each
+object's prior valid contribution quality; a new object without a contribution is unobserved; empty scene is
+zero. A dropped send must never earn the selected profile's accuracy. Contributions therefore retain a
+`profile_id` and task-quality snapshot in addition to their provenance fields.
+
 ## 5. Safety as a LIVE shield (structural), not a big weight
 A large weight can't guarantee safety dominance (two actions' safety gap can be tiny → a cost term overturns
 it). So safety is structural — a **live model-based safety shield** after the hard masks: the onboard
@@ -85,13 +93,14 @@ support, reject actions without a valid conservative bound. If none can be bound
 `shield_ood` degraded mode and use a fixed worst-case-risk fallback over `A_m` (do not assume SKIP or LOCAL is
 always safest).
 
-**The shield runs LIVE** (≈10-action catalog → cheap onboard). The policy optimizes only within `A_safe`.
+**The shield runs LIVE** (36-action Track A catalog → still cheap onboard). The policy optimizes only within
+`A_safe`.
 `U_task` and physical costs are the main drivers; `w_E>0` is a declared, mandatory small within-band margin
 bias:
 ```
-R_inner_sample(a,s,o) = w_task·U_task(a) − C_UE(a) − C_PRB(a) − 0.5·C_ROI(a) − 0.1·C_switch(a)
+R_inner_sample(a,s,o) = w_task·U_task_post(a,s,o) − C_UE(a) − C_PRB(a) − 0.5·C_ROI(a) − 0.1·C_switch(a)
                         − w_E·G(a,s,o)/ε                       # sampled RL transition
-R_inner_expected(a,s) = w_task·U_task(a) − C_UE(a) − C_PRB(a) − 0.5·C_ROI(a) − 0.1·C_switch(a)
+R_inner_expected(a,s) = w_task·E_o[U_task_post(a,s,o)] − C_UE(a) − C_PRB(a) − 0.5·C_ROI(a) − 0.1·C_switch(a)
                         − w_E·E_expected(a,s)/ε                # oracle/bandit/MPC scoring
 ```
 This makes safety **lexicographically dominant** and graceful degradation structural (`F_hat=0` → optimize
@@ -101,15 +110,18 @@ and shield implementation** with the same catalog, `s_obs`, surrogate, calibrati
 validate its safety/resource Pareto.
 
 ### 5a. `U_task`
-`U_task = w_mIoU·(mIoU/mIoU_ref) + w_ped·(ped_recall/ped_ref) + w_obj·(obj_recall/obj_ref)`, refs from
+For each installed contribution, its quality snapshot is
+`U_profile = w_mIoU·(mIoU/mIoU_ref) + w_ped·(ped_recall/ped_ref) + w_obj·(obj_recall/obj_ref)`, refs from
 uncompressed/best-achievable. **Localization is NOT here — it's the safety term/band.** **Map coverage /
 cooperative fusion — DEFERRED to phase 2** (map-side edge intelligence): phase-1 `U_task` = this car's own
-perception quality; modular hook for phase 2. Caveat: with the cooperative payoff deferred, SPLIT's phase-1
+post-action map perception quality averaged over currently present objects; modular hook for phase 2. Caveat:
+with the cooperative payoff deferred, SPLIT's phase-1
 reason to exist is **compute-offload** (LOCAL runs the full model → higher `C_UE`) + the payload/freshness
 trade — see §8a for why "SPLIT-first" is a *hypothesis*, not a given.
 
 ### 5b. Cost normalization (denominators matter as much as weights)
-`C_PRB = PRB-seconds(a) / PRB-second-budget` (measured PRB-time preferred; else `payload×fps×(1+retx)/SE(MCS)`);
+`C_PRB = PRB-seconds(a) / PRB-second-budget` (measured PRB-time preferred; Track A uses the dimensionless
+realized airtime fraction `offered_rate/true_capacity`; later use `payload×fps×(1+retx)/SE(MCS)` when needed);
 `C_UE = compute-or-energy(a) / device-budget`; `C_ROI` = ROI-escalation last-resort cost; `C_switch` =
 mode-switch hysteresis. Normalize all to comparable ranges before weighting; grid-search safety-band δ/ε and
 UE-compute-vs-PRB.

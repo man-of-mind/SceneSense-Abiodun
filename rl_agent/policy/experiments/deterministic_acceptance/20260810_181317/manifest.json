@@ -1,0 +1,48 @@
+{
+  "checks": {
+    "empty_scene_all_skip": true,
+    "fade_visits_all_four_rungs": true,
+    "fast_strong_flags_infeasibility": true,
+    "no_ood_in_supported_scenarios": true,
+    "safe_only_clairvoyant_gap_nonnegative": true,
+    "slow_scene_attempts_updates": true
+  },
+  "controllers": [
+    "shielded",
+    "clairvoyant"
+  ],
+  "created_utc": "2026-08-10T18:13:26.720557+00:00",
+  "files": {
+    "ACCEPTANCE_RESULTS.md": {
+      "bytes": 6522,
+      "sha256": "a2a1053aeb47b17ebce1b367b32fd949fb985bf46d0e69df8a0d2350d0004737"
+    },
+    "figures/acceptance_mode_and_risk.pdf": {
+      "bytes": 16371,
+      "sha256": "900b04d61180b011f55f113d2379adf54d5f5cfc2ba9da7d9d395e927c8c31d7"
+    },
+    "figures/acceptance_mode_and_risk.png": {
+      "bytes": 119324,
+      "sha256": "b60946a3184380c673da765821065239085da2ba4217e02dc0fc0a3743b23c3c"
+    },
+    "per_frame_metrics.csv": {
+      "bytes": 617926,
+      "sha256": "5db9aac27132e71bac311816f51a64b19357202b5c1a533a64491b052468183e"
+    },
+    "resolved_config.yaml": {
+      "bytes": 2843,
+      "sha256": "2b2efdad7a6a0726b1239583ddd83761a8b02bbda620129dd053e153b127363a"
+    },
+    "summary.csv": {
+      "bytes": 2341,
+      "sha256": "62eca7ffe5bdc35781f4b7c94d4c5a8e830b43b1bf4acc77af7cbcbb2c916beb"
+    }
+  },
+  "run_directory": "rl_agent/policy/experiments/deterministic_acceptance/20260810_181317",
+  "run_type": "deterministic_acceptance",
+  "schema_version": 1,
+  "source_hashes": {
+    "channel_condition_sweep/combined_surface.csv": "c48c44667dec980d6a5a62abb4a081cb33ac70bdf33e9536187a8fd62007e5a1",
+    "uplink_only_spatial_map_pipeline/results/chsweep_full_p3ae_.csv": "0f0d6ca3528878dbf27100592d8c34e9b7725cec98968e65ff14a855ca782cfc"
+  }
+}

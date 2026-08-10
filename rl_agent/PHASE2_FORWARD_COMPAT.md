@@ -23,8 +23,11 @@ that revisit is **additive (new inputs + retrain), not a rebuild.**
      track_id, speed, speed_sigma, range_m, AoI_map_j
      contributions[]:
        source_ue_id, capture_timestamp, publish_timestamp, confidence
+       profile_id, task_quality_snapshot
    ```
-   `AoI_map_j` is derived from the newest **valid** entry in `contributions[]`. Phase 1 writes a one-element
+   `AoI_map_j` and the current post-action map utility are derived from the newest **valid** entry in
+   `contributions[]`. The profile/quality snapshot prevents a dropped or skipped action from receiving credit
+   for perception quality that never reached the map. Phase 1 writes a one-element
    collection; phase 2 can write several contributions without changing the data model. Keep the raw
    collection even when the phase-1 policy consumes only fixed-size summaries.
 

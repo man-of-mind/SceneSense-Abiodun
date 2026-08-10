@@ -1,0 +1,25 @@
+# Track A deterministic acceptance
+
+All structural acceptance checks passed.
+
+## Checks
+
+- `empty_scene_all_skip`: **PASS**
+- `slow_scene_attempts_updates`: **PASS**
+- `fast_strong_flags_infeasibility`: **PASS**
+- `fade_visits_all_four_rungs`: **PASS**
+- `no_ood_in_supported_scenarios`: **PASS**
+- `safe_only_clairvoyant_gap_nonnegative`: **PASS**
+
+## Summary
+
+| scenario      | controller   |   frames |   split_pct |   skip_pct |   degraded_tier_pct |   over_budget_pct |   shield_ood_pct |   selected_true_safe_pct |   false_admit_selected_pct |   false_reject_frame_pct |   mean_bound_m |   p95_true_risk_m |   mean_reward |   mean_prb_cost |   mean_oracle_reward_gap_safe_only |   oracle_action_set_mismatch_pct |   attempts |   delivery_pct_attempted |   truth_objects |   observed_objects |   observation_coverage_pct |
+|:--------------|:-------------|---------:|------------:|-----------:|--------------------:|------------------:|-----------------:|-------------------------:|---------------------------:|-------------------------:|---------------:|------------------:|--------------:|----------------:|-----------------------------------:|---------------------------------:|-----------:|-------------------------:|----------------:|-------------------:|---------------------------:|
+| clear_to_fade | clairvoyant  |      240 |     99.5833 |   0.416667 |             32.9167 |           33.3333 |                0 |                  66.6667 |                       0    |                        0 |        1.83454 |           2.05408 |      0.751051 |       0.068919  |                                  0 |                             0    |         23 |                      100 |             240 |                240 |                        100 |
+| clear_to_fade | shielded     |      240 |    100      |   0        |             32.0833 |           32.0833 |                0 |                  66.6667 |                       1.25 |                        0 |        1.82868 |           2.05408 |      0.752661 |       0.0713115 |                                  0 |                             1.25 |         23 |                      100 |             240 |                240 |                        100 |
+| empty_clear   | clairvoyant  |      120 |      0      | 100        |              0      |            0      |                0 |                 100      |                       0    |                        0 |        0       |           0       |      0        |       0         |                                  0 |                             0    |          0 |                      nan |               0 |                  0 |                        nan |
+| empty_clear   | shielded     |      120 |      0      | 100        |              0      |            0      |                0 |                 100      |                       0    |                        0 |        0       |           0       |      0        |       0         |                                  0 |                             0    |          0 |                      nan |               0 |                  0 |                        nan |
+| fast_strong   | clairvoyant  |      240 |    100      |   0        |            100      |          100      |                0 |                   0      |                       0    |                        0 |        3.11377 |           3.11377 |      0.234497 |       0.080937  |                                  0 |                             0    |         24 |                      100 |             240 |                240 |                        100 |
+| fast_strong   | shielded     |      240 |    100      |   0        |            100      |          100      |                0 |                   0      |                       0    |                        0 |        3.11377 |           3.11377 |      0.230794 |       0.08464   |                                  0 |                             0    |         24 |                      100 |             240 |                240 |                        100 |
+| slow_clear    | clairvoyant  |      240 |    100      |   0        |              0      |            0      |                0 |                 100      |                       0    |                        0 |        1.15498 |           1.15498 |      0.91093  |       0.039853  |                                  0 |                             0    |         24 |                      100 |             240 |                240 |                        100 |
+| slow_clear    | shielded     |      240 |    100      |   0        |              0      |            0      |                0 |                 100      |                       0    |                        0 |        1.15498 |           1.15498 |      0.909036 |       0.0417477 |                                  0 |                             0    |         24 |                      100 |             240 |                240 |                        100 |

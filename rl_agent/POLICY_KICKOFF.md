@@ -27,7 +27,8 @@ single-UE summary. No fusion-model re-run required.
 
 ## Locked design (do not re-derive) — `AGENT_CONSTRAINTS.md §9`
 - **§9.1 STATE:** lagged/noisy channel telemetry + achievable-capacity estimate/confidence; object speed (+σ);
-  current scene-emptiness/urgency; **per-object shared-map AoI**; and previous action+outcome. Estimate capacity from either
+  current scene-emptiness/urgency; **per-object shared-map AoI**; previous action+outcome; and the locally known
+  **scheduler phase + observable in-flight summary**. Estimate capacity from either
   full-resource `TBS_per_grant × attainable_grant_rate` or MCS spectral efficiency × configured available UL
   resources/time, corroborated by backlogged BSR/RLC drain and outcomes. Raw scheduled throughput and actual
   light-load allocations are demand-censored lower bounds, not capacity.
@@ -49,13 +50,16 @@ single-UE summary. No fusion-model re-run required.
   only for operating-envelope reporting.
 - **C3:** prefer the 90 KB `ae32/u4/ROI0` segmentation-safe floor. Sub-90 KB ROI actions are last-resort and
   pay their measured mIoU loss plus a configurable escalation penalty.
-- **C4:** score only objects within 40 m (M′ validity); headline localization remains ≤25 m pending advisor
-  confirmation.
+- **C4:** score only objects in the measured M′ validity region (`in_camera_frustum` and within 40 m); headline
+  localization remains ≤25 m pending advisor confirmation. Off-FOV actors are outside this single-view Track A
+  metric, not shield false admissions.
 
-Initial configurable perception prior:
-`−0.50·loc_error/ε + 0.25·mIoU/mIoU_ref + 0.125·ped_recall/ped_ref + 0.125·obj_recall/obj_ref`.
-Define the references from uncompressed/best-achievable measurements and ablate both these weights and the
-perception-vs-PRB-time cross-weight.
+Reward v4 is authoritative: localization is enforced structurally by the tail-risk shield plus the small
+mandatory `−w_E·E_expected/ε` margin; do **not** retain the old `−0.50·loc_error/ε` utility term. Post-action map
+quality uses `0.50·mIoU/mIoU_ref + 0.25·ped_recall/ped_ref + 0.25·obj_recall/obj_ref` in the Track A pilot.
+Delivery installs the selected profile quality; drop/SKIP retains prior valid map quality; a new unobserved
+object has zero map quality. Define references from best-achievable measurements and run the pre-registered
+one-at-a-time weight sensitivity before the 12-condition sweep.
 
 Resource cost is
 `airtime_cost ∝ payload_bits × fps × tx_attempt_factor / spectral_efficiency(MCS)`, with
@@ -73,6 +77,13 @@ it is not exposed as oracle current state before the action. Thus identical byte
    offline is natural since we have the transition+reward tables. Then **validate live over OAI**.
 5. **Generalization eval:** replay channel traces (step + realistic SNR patterns) — proves state-conditioned
    policy, not a schedule.
+
+### Frozen Track A temporal contract
+The surrogate uses a fixed 20 Hz event clock, a target-FPS rate accumulator, in-flight publish events, and
+newer-capture-wins ordering. Changing the selected schedule or selecting SKIP resets fractional send credit.
+The policy observes scheduler phase and locally observable pending-send summaries, never hidden delivery truth.
+Exact projection, reward, replay-split, preferred-core, and pilot defaults are frozen in
+`rl_agent/policy/IMPLEMENTATION_CONTRACT.md` and `rl_agent/policy/configs/track_a_pilot.yaml`.
 
 ## Open items to carry forward (none block starting)
 - **Shaped-burst @ fixed 10 fps** (Mode A, no CARLA) to pin the *absolute* knee — current knee is empirical at

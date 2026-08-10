@@ -1,0 +1,98 @@
+{
+  "controllers": [
+    "shielded",
+    "clairvoyant"
+  ],
+  "created_utc": "2026-08-10T18:16:32.835134+00:00",
+  "files": {
+    "PILOT_RESULTS.md": {
+      "bytes": 9607,
+      "sha256": "48bf07ce8e91dcdf99093b5958e6740a89f7c240fbc3a963bc87e6a9b00fa385"
+    },
+    "figures/pilot_mode_and_risk.pdf": {
+      "bytes": 18369,
+      "sha256": "48d7369d3c3435683bcd643054c00be57ce22be9c9b9d0a2b6dd4ffbf2073a8b"
+    },
+    "figures/pilot_mode_and_risk.png": {
+      "bytes": 141704,
+      "sha256": "a7e7298751966347911da0a38b496d0f461b69b1dcd248b3521bcf032762031e"
+    },
+    "per_frame_metrics.csv": {
+      "bytes": 1431105,
+      "sha256": "79715d3f4b919659f926abd92e79bb33b480eaa5280749171b05c65431e223d8"
+    },
+    "replay_registry.csv": {
+      "bytes": 18914,
+      "sha256": "f501d112cf410db1093f8614d1967d7bb4560a26884c6fadb009149c42ac2a40"
+    },
+    "resolved_config.yaml": {
+      "bytes": 2843,
+      "sha256": "2b2efdad7a6a0726b1239583ddd83761a8b02bbda620129dd053e153b127363a"
+    },
+    "summary.csv": {
+      "bytes": 3172,
+      "sha256": "8f20ec0baff74168d52bbcfc81c780fad63a99dfa552bd8ec8b3fb47961ed6aa"
+    }
+  },
+  "limitations": [
+    "synthetic Markov channel composed with real CARLA scene replay",
+    "vehicle-only replay ground truth",
+    "channel payload/FPS projection outside measured anchors",
+    "surrogate validation only"
+  ],
+  "projection": {
+    "attempted_frames": 170,
+    "fps_projection_pct": 100.0,
+    "payload_projection_pct": 57.647058823529406
+  },
+  "run_directory": "rl_agent/policy/experiments/pilot/20260810_181615",
+  "run_type": "one_config_real_replay_pilot",
+  "schema_version": 1,
+  "selected_replays": [
+    {
+      "episode_id": "20260715_214558_front_fusion_ego_1433",
+      "frame_count": 499,
+      "ground_truth_path": "staleness/metrics_logs/scenesense_runs/20260715_214558_front_fusion_ego_1433/streams/fusion_ego_1433_object_ground_truth.csv",
+      "ground_truth_sha256": "a368c0072a3a86f194cf702d0a65baf721158cc64569ebece64a21a84f2d69fe",
+      "prediction_path": "staleness/metrics_logs/scenesense_runs/20260715_214558_front_fusion_ego_1433/streams/fusion_ego_1433_object_predictions.csv",
+      "prediction_sha256": "c02964d93cf0dee4ae9fb3bb74d82649984b3d8729e88683f31dda128841c1aa",
+      "run_group": "oppwin_fast_test",
+      "scenario_family": "oppwin_fast_test",
+      "split": "test"
+    },
+    {
+      "episode_id": "20260716_214839_front_fusion_ego_117",
+      "frame_count": 600,
+      "ground_truth_path": "staleness/metrics_logs/scenesense_runs/20260716_214839_front_fusion_ego_117/streams/fusion_ego_117_object_ground_truth.csv",
+      "ground_truth_sha256": "52ad439e355a3d9eb2b612168a3524284420c507a4eb2324b0a18085f6fe8365",
+      "prediction_path": "staleness/metrics_logs/scenesense_runs/20260716_214839_front_fusion_ego_117/streams/fusion_ego_117_object_predictions.csv",
+      "prediction_sha256": "39ecd210a9b1566292096097662edd46f8bcfb8cb6acfb05b4d5758f90587932",
+      "run_group": "ctrl_obeylight_200k",
+      "scenario_family": "ctrl_obeylight_200k",
+      "split": "test"
+    },
+    {
+      "episode_id": "20260716_215808_front_fusion_ego_209",
+      "frame_count": 600,
+      "ground_truth_path": "staleness/metrics_logs/scenesense_runs/20260716_215808_front_fusion_ego_209/streams/fusion_ego_209_object_ground_truth.csv",
+      "ground_truth_sha256": "cdd3f66689ed58c44ba7e67153f5fa6e91d5468f7b6b76bfe9328cb0499ae779",
+      "prediction_path": "staleness/metrics_logs/scenesense_runs/20260716_215808_front_fusion_ego_209/streams/fusion_ego_209_object_predictions.csv",
+      "prediction_sha256": "31093e072e957930c9d72cd7efcae0615d98d67593efc21c6a4dfb96a16a03d1",
+      "run_group": "ctrl_busylight_200k",
+      "scenario_family": "ctrl_busylight_200k",
+      "split": "test"
+    }
+  ],
+  "source_hashes": {
+    "base_loc_calibration": "1.10 + raw - min(retained_raw)",
+    "catalog_file": "rl_agent/policy/data/action_catalog.csv",
+    "catalog_sha256": "93fce009924ab8ac227726eebb3613e61139ff401c801f57d2de94ee15f18d6a",
+    "channel_condition_sweep/combined_surface.csv": "c48c44667dec980d6a5a62abb4a081cb33ac70bdf33e9536187a8fd62007e5a1",
+    "flattened_action_count": 36,
+    "profile_count": 7,
+    "schema_version": 1,
+    "source_file": "rl_agent/PERMODEL_KNOB_MATRIX_ZSTD.md",
+    "source_sha256": "35cd80016383b80c61371ab4f75b986eb2cf0e8098c622f437f1c3679f1ae9ed",
+    "uplink_only_spatial_map_pipeline/results/chsweep_full_p3ae_.csv": "0f0d6ca3528878dbf27100592d8c34e9b7725cec98968e65ff14a855ca782cfc"
+  }
+}

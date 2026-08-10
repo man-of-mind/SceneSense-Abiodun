@@ -1,0 +1,86 @@
+schema_version: 1
+experiment_name: track_a_split_skip_pilot
+seed: 20260807
+
+clock:
+  hz: 20
+  reset_credit_on_action_change: true
+
+actions:
+  fps: [2, 5, 10, 15, 20]
+  preferred_core_kib: 90
+  strict_floor_diagnostic: false
+  catalog_csv: rl_agent/policy/data/action_catalog.csv
+
+safety:
+  epsilon_m: 2.0
+  range_m: 25.0
+  aggregation: max
+  risk_statistic: p95
+  c1_pessimism_factor: 0.70
+  ucb_k: 1.0
+  delta_loc_m: 0.05
+  capacity_sample_multipliers: [0.70, 0.80, 0.90, 1.00, 1.10, 1.20, 1.30]
+
+reward:
+  task_metric_weights:
+    miou: 0.50
+    pedestrian_recall: 0.25
+    object_recall: 0.25
+  task_metric_references:
+    miou: 0.840
+    pedestrian_recall: 0.887
+    object_recall: 0.910
+  w_task: 1.0
+  w_error: 0.05
+  lambda_prb: 1.0
+  lambda_roi: 0.50
+  lambda_switch: 0.10
+  one_at_a_time_sensitivity:
+    w_error: [0.025, 0.10]
+    lambda_prb: [0.50, 2.00]
+    w_task: [0.50, 2.00]
+
+channel:
+  telemetry_lag_steps: 2
+  estimate_noise_fraction: 0.05
+  capacity_uncertainty_fraction: 0.30
+  initial_rung: mild
+  rungs:
+    clear: {mcs: 28, representative_snr_db: 50.35, capacity_mbps: 37.0}
+    mild: {mcs: 24, representative_snr_db: 19.55, capacity_mbps: 28.0}
+    mid: {mcs: 19, representative_snr_db: 15.65, capacity_mbps: 20.0}
+    strong: {mcs: 9, representative_snr_db: 8.20, capacity_mbps: 10.0}
+  transition_matrix:
+    clear:  {clear: 0.92, mild: 0.08, mid: 0.00, strong: 0.00}
+    mild:   {clear: 0.04, mild: 0.90, mid: 0.06, strong: 0.00}
+    mid:    {clear: 0.00, mild: 0.05, mid: 0.90, strong: 0.05}
+    strong: {clear: 0.00, mild: 0.00, mid: 0.08, strong: 0.92}
+
+latency_projection:
+  anchor_payload_kib: 90.0
+  fast_full_pipeline_p95_ms: 136.07
+  fast_uplink_p95_ms: 13.36
+  reference_front_plus_back_ms: 36.8
+  p50_serialization_factors: {clear: 0.26, mild: 0.87, mid: 0.83, strong: 0.83}
+  p95_serialization_factors: {clear: 0.24, mild: 0.86, mid: 0.86, strong: 0.86}
+
+replay:
+  roots: [staleness]
+  gt_glob: "**/*_object_ground_truth.csv"
+  prediction_suffix: "_object_predictions.csv"
+  association_gate_m: 5.0
+  prediction_score_min: 0.20
+  require_in_camera_frustum: true
+  interpolation_max_gap_s: 0.25
+  observation_track_hold_s: 0.50
+  split_seed: 20260807
+  split_ratios: {train: 0.60, validation: 0.20, test: 0.20}
+  observation_speed_sigma_floor_mps: 0.50
+  max_episode_steps: 600
+
+pilot:
+  split: test
+  episode_count: 3
+  channel_seeds: [1101, 2202, 3303]
+  synthetic_pedestrian_stress: false

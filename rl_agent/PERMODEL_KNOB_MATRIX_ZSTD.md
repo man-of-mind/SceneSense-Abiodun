@@ -1,4 +1,4 @@
-# PER-MODEL KNOB MATRIX — **latency = zstd (reference codec (deployed = zlib)), ALL 36 profiles MEASURED** (M', Month-2)
+# PER-MODEL KNOB MATRIX — **latency/payload = zstd (deployed codec), ALL 36 profiles MEASURED** (M', Month-2)
 
 > ✅ **Codec + provenance (2026-07-20).** Latency (front/back/transport) measured live with `--entropy-coder zstd`
 > under ideal 8 MB-buffer loopback, **100% delivery on all 36 AE×quant×ROI profiles**

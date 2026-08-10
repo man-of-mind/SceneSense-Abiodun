@@ -193,6 +193,7 @@ distillation of every measured result above; treat it as the design spec for the
 | **previous action + outcome** — last payload/FPS, last latency/delivery | channel telemetry is lagged, so the agent needs its last decision + result to act sensibly (POMDP) | added 2026-08-04 (POLICY_KICKOFF + state diagram) |
 | **per-object shared-map age-of-information** — `AoI_map,j = now − capture_timestamp(newest valid contribution for object j, any source)` | phase 1 normally resets every included object's age on a delivered frame; skip/drop increments each age. Preserve repeatable contribution provenance per `PHASE2_FORWARD_COMPAT.md`; a scalar is only a derived single-UE summary. It drives composed loc-error and makes send/skip sequential | added 2026-08-05; per-object schema clarified 2026-08-07 |
 | **estimated achievable UL capacity (+ confidence)** — derive from either full-resource `TBS_per_grant × attainable_grant_rate` or `spectral_efficiency(MCS) × configured_available_UL_resources/time`; corroborate with BSR/RLC drain and outcomes | the C1 mask + policy budget use this lagged/noisy estimate, never hidden true capacity. Raw scheduled throughput and actually allocated PRB/TBS under light load are demand-censored lower bounds, not capacity | added 2026-08-05 (`REVIEW_NOTES.md` items 15/A, 21) |
+| **scheduler phase + observable in-flight summary** | fixed-20-Hz target-FPS scheduling and delayed/out-of-order publishes affect the next transition; hiding these locally known values would make equal observations transition differently | Track A contract, 2026-08-10 |
 | ~~scene density (graded)~~ | **dropped** — the seg-aware knob is density-invariant | §8 |
 
 > **Authoritative current spec:** `rl_agent/POLICY_KICKOFF.md` + the MDP state diagram supersede this table
@@ -223,13 +224,16 @@ distillation of every measured result above; treat it as the design spec for the
   `base_loc(knob)` comes from the knob matrix. Per-object AoI already accumulates capture→map latency and
   inter-update time, so do **not** add a separate `L`, `1/FPS`, or staleness penalty. Use the generic 1.1 m
   floor only for the operating-envelope report and do not reward chasing below it.
-- **Perception utility:** normalized initial prior
-  `−0.50·loc_error/ε + 0.25·mIoU/mIoU_ref + 0.125·ped_recall/ped_ref + 0.125·obj_recall/obj_ref`, with all
-  weights and references declared in config. Calibrate/ablate them; the pending advisor decision may harden
-  the pedestrian-recall requirement.
+- **Perception utility (reward v4 authoritative):** localization is not repeated inside task utility. The Track
+  A pilot uses post-action map quality
+  `0.50·mIoU/mIoU_ref + 0.25·ped_recall/ped_ref + 0.25·obj_recall/obj_ref`. Delivery installs the selected
+  profile's quality snapshot; drop/SKIP retains prior valid map quality; a new unobserved object has zero.
+  The shield supplies structural localization dominance and `−w_E·E_expected/ε` is the small mandatory margin.
+  All weights/references are declared and ablated in config.
 - **C3/C4:** prefer the 90 KB ROI0 segmentation-safe floor. Sub-90 KB ROI escalation pays its measured mIoU
-  loss plus a configurable last-resort penalty. Score only objects within the 40 m perception-valid region;
-  headline localization remains ≤25 m pending advisor confirmation.
+  loss plus a configurable last-resort penalty. Score only objects in the measured M′ validity region
+  (`in_camera_frustum` and within 40 m); headline localization remains ≤25 m pending advisor confirmation.
+  Off-FOV actors are outside the single-view Track A metric, not shield false admissions.
 - **Cost term:** minimize realized **airtime / PRB occupancy**, not raw bytes. In the surrogate use
   `airtime_cost ∝ payload_bits × FPS × tx_attempt_factor / spectral_efficiency(MCS)`, where
   `tx_attempt_factor = 1 + retransmission_ratio` (or the measured mean transmissions per original block).

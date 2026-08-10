@@ -1,0 +1,10 @@
+{
+  "base_loc_calibration": "1.10 + raw - min(retained_raw)",
+  "catalog_file": "rl_agent/policy/data/action_catalog.csv",
+  "catalog_sha256": "93fce009924ab8ac227726eebb3613e61139ff401c801f57d2de94ee15f18d6a",
+  "flattened_action_count": 36,
+  "profile_count": 7,
+  "schema_version": 1,
+  "source_file": "rl_agent/PERMODEL_KNOB_MATRIX_ZSTD.md",
+  "source_sha256": "35cd80016383b80c61371ab4f75b986eb2cf0e8098c622f437f1c3679f1ae9ed"
+}
