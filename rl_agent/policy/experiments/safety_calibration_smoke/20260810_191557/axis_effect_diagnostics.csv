@@ -1,0 +1,7 @@
+varied_knob,fixed_knob,fixed_value,cell_count,frames,selected_action_variation_count,selected_action_variation_pct,raw_safe_set_variation_count,raw_safe_set_variation_pct,max_selected_risk_sigma_m,split_pct_span_pp,capture_attempt_pct_span_pp,over_budget_pct_span_pp,matched_false_admit_conditional_pct_span_pp,false_reject_conditional_pct_span_pp,c1_estimate_miss_pct_attempted_span_pp
+ucb_k,c1_pessimism_factor,0.6,1,1699,0,0.0,0,0.0,7.105427357601002e-15,0.0,0.0,0.0,0.0,0.0,0.0
+ucb_k,c1_pessimism_factor,0.7,1,1699,0,0.0,0,0.0,1.4210854715202004e-14,0.0,0.0,0.0,0.0,0.0,0.0
+ucb_k,c1_pessimism_factor,1.0,1,1699,0,0.0,0,0.0,1.4210854715202004e-14,0.0,0.0,0.0,0.0,0.0,0.0
+c1_pessimism_factor,ucb_k,0.0,1,1699,0,0.0,0,0.0,1.4210854715202004e-14,0.0,0.0,0.0,0.0,0.0,0.0
+c1_pessimism_factor,ucb_k,1.0,1,1699,0,0.0,0,0.0,1.4210854715202004e-14,0.0,0.0,0.0,0.0,0.0,0.0
+c1_pessimism_factor,ucb_k,2.0,1,1699,0,0.0,0,0.0,7.105427357601002e-15,0.0,0.0,0.0,0.0,0.0,0.0

@@ -135,4 +135,15 @@ The configurable segmentation floor is a preference tier, not a hard safety clai
 4. Four hand-checkable deterministic episodes pass their invariants.
 5. The `epsilon=2.0`, 90 KB preferred-core, 25 m pilot completes and its reward/risk decomposition is reviewed.
 
-Only after all five gates pass may the 3 epsilon x 2 preferred-core x 2 range sweep start.
+Only after all five gates pass may safety calibration begin. Before the 3 epsilon x 2 preferred-core x 2 range
+sweep, separately characterize `ucb_k` and the C1 pessimism factor at the fixed pilot point using:
+
+- the raw `{B<=epsilon}` shield-safe set before preferred-core/reward narrowing;
+- conditional false-admit and false-reject rates with explicit counts and descriptive Wilson intervals;
+- schedule-selection and actual capture-attempt rates as distinct quantities;
+- tracked, strict end-to-end, and finite/non-sentinel true-scored rewards as separately labelled quantities;
+- common latency random numbers indexed by episode/control tick, alongside the already paired channel seeds;
+- an explicit identifiability check on raw safe sets and selected actions for each swept axis.
+
+Stop after calibration for human review. A flat/non-identifiable surface is a result, not authority to select an
+operating point or proceed automatically.

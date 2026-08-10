@@ -4,6 +4,8 @@ Experiment directories are immutable siblings. Canonical runs for the current im
 
 - `deterministic_acceptance/20260810_182018` — current four-scenario acceptance run.
 - `pilot/20260810_182039` — current corrected real-replay pilot and source of `../../POLICY_RESULTS.md`.
+- `safety_calibration/20260810_191739` — canonical paired 5x5 fixed-point characterization and source of
+  `../../SAFETY_CALIBRATION_RESULTS.md`; no operating point was selected because the surface is degenerate.
 
 Earlier diagnostic runs are intentionally retained for provenance:
 
@@ -20,5 +22,8 @@ Earlier diagnostic runs are intentionally retained for provenance:
   C1 estimate-miss reporting and changing the figure to the tracked-object C2 population.
 - `deterministic_acceptance/20260810_181557` and `pilot/20260810_181615` — superseded after fixing the exact
   two-step telemetry-lag index and preventing hidden GT objects from seeding delivered map contributions.
+- `safety_calibration_smoke/20260810_191325` — superseded before adding the tracked/non-sentinel true-reward
+  separation and axis-identifiability diagnostics.
+- `safety_calibration_smoke/20260810_191557` — final three-cell smoke check preceding the canonical 25 cells.
 
 Do not combine or average superseded and canonical runs.

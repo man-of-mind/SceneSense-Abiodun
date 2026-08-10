@@ -38,7 +38,8 @@ class ActionEvaluation:
 class ShieldDecision:
     selected: ActionEvaluation
     evaluations: Sequence[ActionEvaluation]
-    safe_action_ids: frozenset[str]
+    raw_safe_action_ids: frozenset[str]
+    candidate_action_ids: frozenset[str]
     hard_admitted_action_ids: frozenset[str]
     feasible: bool
     over_budget: bool
@@ -255,7 +256,8 @@ class SharedShield:
             return ShieldDecision(
                 selected=fallback,
                 evaluations=evaluations,
-                safe_action_ids=frozenset({fallback.action.action_id}),
+                raw_safe_action_ids=frozenset(),
+                candidate_action_ids=frozenset({fallback.action.action_id}),
                 hard_admitted_action_ids=hard_ids,
                 feasible=False,
                 over_budget=True,
@@ -263,6 +265,7 @@ class SharedShield:
                 degraded_tier_used=not fallback.action.core_tier and fallback.action.mode == "SPLIT",
             )
         safe = [item for item in bounded if item.bound_m <= self.epsilon]
+        raw_safe_ids = frozenset(item.action.action_id for item in safe)
         feasible = bool(safe)
         if feasible:
             core_sends = [item for item in safe if item.action.mode == "SPLIT" and item.action.core_tier]
@@ -278,7 +281,8 @@ class SharedShield:
         return ShieldDecision(
             selected=selected,
             evaluations=evaluations,
-            safe_action_ids=frozenset(item.action.action_id for item in candidates),
+            raw_safe_action_ids=raw_safe_ids,
+            candidate_action_ids=frozenset(item.action.action_id for item in candidates),
             hard_admitted_action_ids=hard_ids,
             feasible=feasible,
             over_budget=not feasible,

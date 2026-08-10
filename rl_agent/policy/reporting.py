@@ -7,7 +7,7 @@ import json
 import os
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, Iterable, Mapping, Sequence
+from typing import Dict, Iterable, Mapping, Optional, Sequence
 
 os.environ.setdefault("MPLCONFIGDIR", "/tmp/codex_matplotlib_cache")
 
@@ -30,15 +30,56 @@ def new_run_directory(kind: str) -> Path:
     return path
 
 
-def summarize_frames(frame: pd.DataFrame) -> pd.DataFrame:
+def wilson_interval(successes: int, trials: int, z: float = 1.959963984540054) -> tuple[float, float]:
+    """Return a two-sided Wilson score interval in percentage points."""
+    if trials <= 0:
+        return np.nan, np.nan
+    proportion = successes / trials
+    denominator = 1.0 + z * z / trials
+    center = (proportion + z * z / (2.0 * trials)) / denominator
+    radius = (
+        z
+        * np.sqrt(proportion * (1.0 - proportion) / trials + z * z / (4.0 * trials * trials))
+        / denominator
+    )
+    return 100.0 * max(0.0, center - radius), 100.0 * min(1.0, center + radius)
+
+
+def summarize_frames(
+    frame: pd.DataFrame,
+    group_keys: Optional[Sequence[str]] = None,
+) -> pd.DataFrame:
     rows = []
-    keys = ["scenario", "controller"] if "scenario" in frame.columns else ["episode_id", "controller"]
+    keys = list(group_keys) if group_keys is not None else (
+        ["scenario", "controller"] if "scenario" in frame.columns else ["episode_id", "controller"]
+    )
     for group_values, group in frame.groupby(keys, dropna=False):
         if not isinstance(group_values, tuple):
             group_values = (group_values,)
         row = dict(zip(keys, group_values))
         attempts = group["actual_delivery"].notna()
         deliveries = group.loc[attempts, "actual_delivery"].astype("boolean").fillna(False).astype(bool)
+        admitted_sends = group["selected_admitted_split"].astype(bool)
+        matched_false_admits = admitted_sends & group["false_admit_selected_matched"].astype(bool)
+        true_feasible = group["true_feasible_frame"].astype(bool)
+        false_rejects = true_feasible & group["false_reject_frame"].astype(bool)
+        matched_true_feasible = group["matched_true_feasible_frame"].astype(bool)
+        matched_false_rejects = matched_true_feasible & group["false_reject_frame_matched"].astype(bool)
+        matched_fa_count = int(matched_false_admits.sum())
+        admitted_send_count = int(admitted_sends.sum())
+        false_reject_count = int(false_rejects.sum())
+        true_feasible_count = int(true_feasible.sum())
+        matched_false_reject_count = int(matched_false_rejects.sum())
+        matched_true_feasible_count = int(matched_true_feasible.sum())
+        fa_ci_low, fa_ci_high = wilson_interval(matched_fa_count, admitted_send_count)
+        fr_ci_low, fr_ci_high = wilson_interval(false_reject_count, true_feasible_count)
+        matched_fr_ci_low, matched_fr_ci_high = wilson_interval(
+            matched_false_reject_count, matched_true_feasible_count
+        )
+        attempt_count = int(attempts.sum())
+        c1_miss_count = int(group["c1_estimate_miss"].sum())
+        c1_ci_low, c1_ci_high = wilson_interval(c1_miss_count, attempt_count)
+        matched_reward_finite = ~group["matched_true_unobserved_sentinel"].astype(bool)
         row.update(
             {
                 "frames": int(len(group)),
@@ -54,22 +95,64 @@ def summarize_frames(frame: pd.DataFrame) -> pd.DataFrame:
                 "false_admit_selected_matched_pct": 100.0
                 * float(group["false_admit_selected_matched"].mean()),
                 "false_reject_frame_pct": 100.0 * float(group["false_reject_frame"].mean()),
+                "false_reject_frame_matched_pct": 100.0
+                * float(group["false_reject_frame_matched"].mean()),
+                "matched_false_admit_count": matched_fa_count,
+                "admitted_send_count": admitted_send_count,
+                "matched_false_admit_conditional_pct": (
+                    100.0 * matched_fa_count / admitted_send_count if admitted_send_count else np.nan
+                ),
+                "matched_false_admit_ci95_low_pct": fa_ci_low,
+                "matched_false_admit_ci95_high_pct": fa_ci_high,
+                "false_reject_count": false_reject_count,
+                "true_feasible_frame_count": true_feasible_count,
+                "false_reject_conditional_pct": (
+                    100.0 * false_reject_count / true_feasible_count if true_feasible_count else np.nan
+                ),
+                "false_reject_ci95_low_pct": fr_ci_low,
+                "false_reject_ci95_high_pct": fr_ci_high,
+                "matched_false_reject_count": matched_false_reject_count,
+                "matched_true_feasible_frame_count": matched_true_feasible_count,
+                "matched_false_reject_conditional_pct": (
+                    100.0 * matched_false_reject_count / matched_true_feasible_count
+                    if matched_true_feasible_count
+                    else np.nan
+                ),
+                "matched_false_reject_ci95_low_pct": matched_fr_ci_low,
+                "matched_false_reject_ci95_high_pct": matched_fr_ci_high,
                 "mean_bound_m": float(group["shield_bound_m"].replace([np.inf, -np.inf], np.nan).mean()),
+                "mean_risk_sigma_m": float(
+                    group["shield_risk_sigma_m"].replace([np.inf, -np.inf], np.nan).mean()
+                ),
+                "max_risk_sigma_m": float(
+                    group["shield_risk_sigma_m"].replace([np.inf, -np.inf], np.nan).max()
+                ),
                 "p95_true_risk_m": float(group["true_risk_p95_m"].replace([np.inf, -np.inf], np.nan).quantile(0.95)),
                 "p95_matched_true_risk_m": float(
                     group["matched_true_risk_p95_m"].replace([np.inf, -np.inf], np.nan).quantile(0.95)
                 ),
                 "mean_reward": float(group["shield_expected_reward"].mean()),
+                "mean_predicted_reward": float(group["shield_expected_reward"].mean()),
+                "mean_true_scored_reward": float(group["true_expected_reward"].mean()),
+                "mean_matched_true_scored_reward": float(group["matched_true_expected_reward"].mean()),
+                "mean_matched_true_scored_reward_finite": float(
+                    group.loc[matched_reward_finite, "matched_true_expected_reward"].mean()
+                ),
+                "matched_true_reward_finite_frame_count": int(matched_reward_finite.sum()),
                 "mean_prb_cost": float(group["shield_prb_cost"].mean()),
                 "mean_oracle_reward_gap_safe_only": float(group["oracle_reward_gap_safe_only"].mean()),
                 "oracle_action_set_mismatch_pct": 100.0 * float(group["oracle_action_set_mismatch"].mean()),
-                "attempts": int(attempts.sum()),
+                "shield_skip_clairvoyant_split_pct": 100.0
+                * float(group["shield_skip_clairvoyant_split"].mean()),
+                "attempts": attempt_count,
                 "capture_attempt_pct": 100.0 * float(attempts.mean()),
                 "delivery_pct_attempted": 100.0 * float(deliveries.mean()) if len(deliveries) else np.nan,
-                "c1_estimate_miss_count": int(group["c1_estimate_miss"].sum()),
+                "c1_estimate_miss_count": c1_miss_count,
                 "c1_estimate_miss_pct_attempted": (
                     100.0 * float(group.loc[attempts, "c1_estimate_miss"].mean()) if attempts.any() else np.nan
                 ),
+                "c1_estimate_miss_ci95_low_pct": c1_ci_low,
+                "c1_estimate_miss_ci95_high_pct": c1_ci_high,
                 "truth_objects": int(group["truth_object_count"].sum()),
                 "observed_objects": int(group["observed_object_count"].sum()),
                 "unobserved_gt_objects": int(group["unobserved_gt_object_count"].sum()),

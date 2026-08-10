@@ -1,0 +1,222 @@
+{
+  "common_random_latency_by_tick": true,
+  "controllers": [
+    "shielded"
+  ],
+  "created_utc": "2026-08-10T19:23:10.529569+00:00",
+  "files": {
+    "SAFETY_CALIBRATION_RESULTS.md": {
+      "bytes": 28590,
+      "sha256": "410c54f056823587280ad30b3e52f1fe80384c734360071c52ef06ccf5f79ade"
+    },
+    "axis_effect_diagnostics.csv": {
+      "bytes": 1761,
+      "sha256": "fa4709bc065c726b05de599eb9f543d4cd98caf12089b2ba8da9032f34b272c5"
+    },
+    "figures/operating_surface.pdf": {
+      "bytes": 26583,
+      "sha256": "8724e8c290daf0da9272d44715b6a6523808ad57b2da505530b9c101a3debbc2"
+    },
+    "figures/operating_surface.png": {
+      "bytes": 197661,
+      "sha256": "2a19a290914e9d43d907273c04d33e1661d6ba148e7abd8d3ab8f0640e959e84"
+    },
+    "figures/safety_tradeoff.pdf": {
+      "bytes": 24286,
+      "sha256": "9107fa326edb424783c34d95439b0fb80c7f654c2302bde18956a036ad77f3e2"
+    },
+    "figures/safety_tradeoff.png": {
+      "bytes": 228594,
+      "sha256": "6a1706f56e50addd3ab13df7cebc5bbacfc0a7aaddba9bd1690d3ef552356a7d"
+    },
+    "per_frame_metrics.csv": {
+      "bytes": 42931256,
+      "sha256": "39548c3ac1d6e5943db1478e2e382224a2e3897dabc7fd91cc102c45a636e751"
+    },
+    "per_replay_summary.csv": {
+      "bytes": 55941,
+      "sha256": "d81ff2a0dbd504f33c6af25b9c1b7910c36bd7bf6239394fcbb5c946089bdf20"
+    },
+    "replay_registry.csv": {
+      "bytes": 18914,
+      "sha256": "f501d112cf410db1093f8614d1967d7bb4560a26884c6fadb009149c42ac2a40"
+    },
+    "resolved_config.yaml": {
+      "bytes": 3106,
+      "sha256": "cce98f3f2d22397619a5c8ce5dc50cdfd8abb9b49f641df5a07e8791d3b99c6d"
+    },
+    "summary.csv": {
+      "bytes": 20209,
+      "sha256": "6984b69969f7b67d6d45a9d088e175cc18850bd2bd87d7e457f4c5aed2baceb5"
+    }
+  },
+  "fixed_point": {
+    "epsilon_m": 2.0,
+    "preferred_core_kib": 90,
+    "range_m": 25.0
+  },
+  "grid_cells": [
+    {
+      "c1_pessimism_factor": 0.6,
+      "ucb_k": 0.0
+    },
+    {
+      "c1_pessimism_factor": 0.6,
+      "ucb_k": 0.5
+    },
+    {
+      "c1_pessimism_factor": 0.6,
+      "ucb_k": 1.0
+    },
+    {
+      "c1_pessimism_factor": 0.6,
+      "ucb_k": 1.5
+    },
+    {
+      "c1_pessimism_factor": 0.6,
+      "ucb_k": 2.0
+    },
+    {
+      "c1_pessimism_factor": 0.7,
+      "ucb_k": 0.0
+    },
+    {
+      "c1_pessimism_factor": 0.7,
+      "ucb_k": 0.5
+    },
+    {
+      "c1_pessimism_factor": 0.7,
+      "ucb_k": 1.0
+    },
+    {
+      "c1_pessimism_factor": 0.7,
+      "ucb_k": 1.5
+    },
+    {
+      "c1_pessimism_factor": 0.7,
+      "ucb_k": 2.0
+    },
+    {
+      "c1_pessimism_factor": 0.8,
+      "ucb_k": 0.0
+    },
+    {
+      "c1_pessimism_factor": 0.8,
+      "ucb_k": 0.5
+    },
+    {
+      "c1_pessimism_factor": 0.8,
+      "ucb_k": 1.0
+    },
+    {
+      "c1_pessimism_factor": 0.8,
+      "ucb_k": 1.5
+    },
+    {
+      "c1_pessimism_factor": 0.8,
+      "ucb_k": 2.0
+    },
+    {
+      "c1_pessimism_factor": 0.9,
+      "ucb_k": 0.0
+    },
+    {
+      "c1_pessimism_factor": 0.9,
+      "ucb_k": 0.5
+    },
+    {
+      "c1_pessimism_factor": 0.9,
+      "ucb_k": 1.0
+    },
+    {
+      "c1_pessimism_factor": 0.9,
+      "ucb_k": 1.5
+    },
+    {
+      "c1_pessimism_factor": 0.9,
+      "ucb_k": 2.0
+    },
+    {
+      "c1_pessimism_factor": 1.0,
+      "ucb_k": 0.0
+    },
+    {
+      "c1_pessimism_factor": 1.0,
+      "ucb_k": 0.5
+    },
+    {
+      "c1_pessimism_factor": 1.0,
+      "ucb_k": 1.0
+    },
+    {
+      "c1_pessimism_factor": 1.0,
+      "ucb_k": 1.5
+    },
+    {
+      "c1_pessimism_factor": 1.0,
+      "ucb_k": 2.0
+    }
+  ],
+  "limitations": [
+    "synthetic Markov channel composed with real CARLA scene replay",
+    "vehicle-only replay ground truth",
+    "temporally correlated frame-level Wilson intervals",
+    "channel payload/FPS projection outside measured anchors",
+    "surrogate validation only"
+  ],
+  "metric_denominators": {
+    "c1_estimate_miss_pct_attempted": "actual capture attempts",
+    "false_reject_conditional_pct": "full-GT clairvoyant-feasible frames",
+    "matched_false_admit_conditional_pct": "selected raw-safe SPLIT schedules"
+  },
+  "run_directory": "rl_agent/policy/experiments/safety_calibration/20260810_191739",
+  "run_type": "safety_calibration_5x5",
+  "schema_version": 1,
+  "selected_replays": [
+    {
+      "episode_id": "20260715_214558_front_fusion_ego_1433",
+      "frame_count": 499,
+      "ground_truth_path": "staleness/metrics_logs/scenesense_runs/20260715_214558_front_fusion_ego_1433/streams/fusion_ego_1433_object_ground_truth.csv",
+      "ground_truth_sha256": "a368c0072a3a86f194cf702d0a65baf721158cc64569ebece64a21a84f2d69fe",
+      "prediction_path": "staleness/metrics_logs/scenesense_runs/20260715_214558_front_fusion_ego_1433/streams/fusion_ego_1433_object_predictions.csv",
+      "prediction_sha256": "c02964d93cf0dee4ae9fb3bb74d82649984b3d8729e88683f31dda128841c1aa",
+      "run_group": "oppwin_fast_test",
+      "scenario_family": "oppwin_fast_test",
+      "split": "test"
+    },
+    {
+      "episode_id": "20260716_214839_front_fusion_ego_117",
+      "frame_count": 600,
+      "ground_truth_path": "staleness/metrics_logs/scenesense_runs/20260716_214839_front_fusion_ego_117/streams/fusion_ego_117_object_ground_truth.csv",
+      "ground_truth_sha256": "52ad439e355a3d9eb2b612168a3524284420c507a4eb2324b0a18085f6fe8365",
+      "prediction_path": "staleness/metrics_logs/scenesense_runs/20260716_214839_front_fusion_ego_117/streams/fusion_ego_117_object_predictions.csv",
+      "prediction_sha256": "39ecd210a9b1566292096097662edd46f8bcfb8cb6acfb05b4d5758f90587932",
+      "run_group": "ctrl_obeylight_200k",
+      "scenario_family": "ctrl_obeylight_200k",
+      "split": "test"
+    },
+    {
+      "episode_id": "20260716_215808_front_fusion_ego_209",
+      "frame_count": 600,
+      "ground_truth_path": "staleness/metrics_logs/scenesense_runs/20260716_215808_front_fusion_ego_209/streams/fusion_ego_209_object_ground_truth.csv",
+      "ground_truth_sha256": "cdd3f66689ed58c44ba7e67153f5fa6e91d5468f7b6b76bfe9328cb0499ae779",
+      "prediction_path": "staleness/metrics_logs/scenesense_runs/20260716_215808_front_fusion_ego_209/streams/fusion_ego_209_object_predictions.csv",
+      "prediction_sha256": "31093e072e957930c9d72cd7efcae0615d98d67593efc21c6a4dfb96a16a03d1",
+      "run_group": "ctrl_busylight_200k",
+      "scenario_family": "ctrl_busylight_200k",
+      "split": "test"
+    }
+  ],
+  "source_hashes": {
+    "base_loc_calibration": "1.10 + raw - min(retained_raw)",
+    "catalog_file": "rl_agent/policy/data/action_catalog.csv",
+    "catalog_sha256": "93fce009924ab8ac227726eebb3613e61139ff401c801f57d2de94ee15f18d6a",
+    "channel_condition_sweep/combined_surface.csv": "c48c44667dec980d6a5a62abb4a081cb33ac70bdf33e9536187a8fd62007e5a1",
+    "flattened_action_count": 36,
+    "profile_count": 7,
+    "schema_version": 1,
+    "source_file": "rl_agent/PERMODEL_KNOB_MATRIX_ZSTD.md",
+    "source_sha256": "35cd80016383b80c61371ab4f75b986eb2cf0e8098c622f437f1c3679f1ae9ed",
+    "uplink_only_spatial_map_pipeline/results/chsweep_full_p3ae_.csv": "0f0d6ca3528878dbf27100592d8c34e9b7725cec98968e65ff14a855ca782cfc"
+  }
+}

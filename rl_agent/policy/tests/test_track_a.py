@@ -26,7 +26,16 @@ class TrackATestCase(unittest.TestCase):
         cls.surface = ChannelSurface(cls.config)
         cls.latency = LatencyProjector(cls.config, cls.surface)
 
-    def make_env(self, frames, seed=1, rung="clear", multiplier=1.0, config=None, latency_mode="p50"):
+    def make_env(
+        self,
+        frames,
+        seed=1,
+        rung="clear",
+        multiplier=1.0,
+        config=None,
+        latency_mode="p50",
+        latency_crn_by_tick=False,
+    ):
         config = config or self.config
         actions = flatten_actions(
             self.profiles, config["actions"]["fps"], config["actions"]["preferred_core_kib"]
@@ -38,7 +47,16 @@ class TrackATestCase(unittest.TestCase):
             fixed_rungs=[rung] * len(frames),
             fixed_capacity_multiplier=multiplier,
         )
-        return SurrogateEnv(config, frames, actions, channel, self.surface, seed + 1, latency_mode)
+        return SurrogateEnv(
+            config,
+            frames,
+            actions,
+            channel,
+            self.surface,
+            seed + 1,
+            latency_mode,
+            latency_crn_by_tick=latency_crn_by_tick,
+        )
 
     def test_catalog_hash_and_action_count(self):
         self.assertEqual(len(self.profiles), 7)
@@ -144,6 +162,68 @@ class TrackATestCase(unittest.TestCase):
         decision = env.shielded_decision()
         self.assertEqual(decision.selected.action.mode, "SKIP")
         self.assertEqual(decision.selected.expected_reward, 0.0)
+
+    def test_raw_safe_set_is_not_preference_narrowed(self):
+        env = self.make_env(synthetic_episode("empty_sets", [], 2))
+        decision = env.shielded_decision()
+        self.assertTrue(decision.candidate_action_ids.issubset(decision.raw_safe_action_ids))
+        self.assertGreater(len(decision.raw_safe_action_ids), len(decision.candidate_action_ids))
+        self.assertTrue(
+            any(
+                action_id.startswith("SPLIT::ae32__uint4__roi0.5")
+                for action_id in decision.raw_safe_action_ids
+            )
+        )
+
+    def test_safety_knob_sets_are_monotone_for_fixed_observation(self):
+        frames = synthetic_episode("monotone", [3.0], 3)
+        base_env = self.make_env(frames, multiplier=0.85)
+        observation = base_env.observation()
+
+        low_k_config = copy.deepcopy(self.config)
+        low_k_config["safety"]["ucb_k"] = 0.0
+        high_k_config = copy.deepcopy(self.config)
+        high_k_config["safety"]["ucb_k"] = 2.0
+        low_k = SharedShield(low_k_config, self.latency).decide(
+            self.actions, observation, "clear", base_env.time_to_next_capture
+        )
+        high_k = SharedShield(high_k_config, self.latency).decide(
+            self.actions, observation, "clear", base_env.time_to_next_capture
+        )
+        self.assertTrue(high_k.raw_safe_action_ids.issubset(low_k.raw_safe_action_ids))
+
+        low_c1_config = copy.deepcopy(self.config)
+        low_c1_config["safety"]["c1_pessimism_factor"] = 0.6
+        high_c1_config = copy.deepcopy(self.config)
+        high_c1_config["safety"]["c1_pessimism_factor"] = 1.0
+        low_c1 = SharedShield(low_c1_config, self.latency).decide(
+            self.actions, observation, "clear", base_env.time_to_next_capture
+        )
+        high_c1 = SharedShield(high_c1_config, self.latency).decide(
+            self.actions, observation, "clear", base_env.time_to_next_capture
+        )
+        self.assertTrue(low_c1.hard_admitted_action_ids.issubset(high_c1.hard_admitted_action_ids))
+
+    def test_per_tick_latency_crn_is_action_history_independent(self):
+        frames = synthetic_episode("crn", [2.0], 3)
+        env_every_tick = self.make_env(
+            frames, seed=31, latency_mode="sample", latency_crn_by_tick=True
+        )
+        env_second_tick = self.make_env(
+            frames, seed=31, latency_mode="sample", latency_crn_by_tick=True
+        )
+        action = next(
+            item
+            for item in env_every_tick.actions
+            if item.profile_id == "ae32__uint4__roi0.0" and item.target_fps == 20
+        )
+        skip = next(item for item in env_every_tick.actions if item.mode == "SKIP")
+        env_every_tick.step(action)
+        second_a = env_every_tick.step(action)
+        env_second_tick.step(skip)
+        second_b = env_second_tick.step(action)
+        self.assertTrue(second_a["captured"] and second_b["captured"])
+        self.assertAlmostEqual(second_a["actual_latency_ms"], second_b["actual_latency_ms"], places=12)
 
     def test_new_unobserved_object_makes_skip_unsafe(self):
         env = self.make_env(synthetic_episode("new", [4.0], 2))

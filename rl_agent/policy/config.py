@@ -45,6 +45,25 @@ def validate_config(config: Dict[str, Any]) -> None:
     ratios = config["replay"]["split_ratios"]
     if abs(sum(float(value) for value in ratios.values()) - 1.0) > 1e-9:
         raise ValueError("replay.split_ratios must sum to 1")
+    calibration = config.get("safety_calibration")
+    if calibration is not None:
+        ucb_values = [float(value) for value in calibration["ucb_k_values"]]
+        c1_values = [float(value) for value in calibration["c1_pessimism_factor_values"]]
+        if ucb_values != sorted(set(ucb_values)) or any(value < 0.0 for value in ucb_values):
+            raise ValueError("safety_calibration.ucb_k_values must be unique, sorted, and nonnegative")
+        if c1_values != sorted(set(c1_values)) or any(not 0.0 < value <= 1.0 for value in c1_values):
+            raise ValueError(
+                "safety_calibration.c1_pessimism_factor_values must be unique, sorted, and in (0, 1]"
+            )
+        if 1.0 not in ucb_values or 0.7 not in c1_values:
+            raise ValueError("safety calibration must retain the current-pilot anchor (ucb_k=1, c1=0.7)")
+        fixed = calibration["fixed_point"]
+        if (
+            float(fixed["epsilon_m"]) != 2.0
+            or int(fixed["preferred_core_kib"]) != 90
+            or float(fixed["range_m"]) != 25.0
+        ):
+            raise ValueError("Track A safety calibration fixed point must remain epsilon=2, core=90, range=25")
 
 
 def load_config(path: str | Path | None = None) -> Dict[str, Any]:

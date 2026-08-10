@@ -1,0 +1,161 @@
+schema_version: 1
+experiment_name: track_a_split_skip_pilot
+seed: 20260807
+clock:
+  hz: 20
+  reset_credit_on_action_change: true
+actions:
+  fps:
+  - 2
+  - 5
+  - 10
+  - 15
+  - 20
+  preferred_core_kib: 90
+  strict_floor_diagnostic: false
+  catalog_csv: rl_agent/policy/data/action_catalog.csv
+safety:
+  epsilon_m: 2.0
+  range_m: 25.0
+  aggregation: max
+  risk_statistic: p95
+  c1_pessimism_factor: 0.7
+  ucb_k: 1.0
+  delta_loc_m: 0.05
+  capacity_sample_multipliers:
+  - 0.7
+  - 0.8
+  - 0.9
+  - 1.0
+  - 1.1
+  - 1.2
+  - 1.3
+reward:
+  task_metric_weights:
+    miou: 0.5
+    pedestrian_recall: 0.25
+    object_recall: 0.25
+  task_metric_references:
+    miou: 0.84
+    pedestrian_recall: 0.887
+    object_recall: 0.91
+  w_task: 1.0
+  w_error: 0.05
+  lambda_prb: 1.0
+  lambda_roi: 0.5
+  lambda_switch: 0.1
+  one_at_a_time_sensitivity:
+    w_error:
+    - 0.025
+    - 0.1
+    lambda_prb:
+    - 0.5
+    - 2.0
+    w_task:
+    - 0.5
+    - 2.0
+channel:
+  telemetry_lag_steps: 2
+  estimate_noise_fraction: 0.05
+  capacity_uncertainty_fraction: 0.3
+  initial_rung: mild
+  rungs:
+    clear:
+      mcs: 28
+      representative_snr_db: 50.35
+      capacity_mbps: 37.0
+    mild:
+      mcs: 24
+      representative_snr_db: 19.55
+      capacity_mbps: 28.0
+    mid:
+      mcs: 19
+      representative_snr_db: 15.65
+      capacity_mbps: 20.0
+    strong:
+      mcs: 9
+      representative_snr_db: 8.2
+      capacity_mbps: 10.0
+  transition_matrix:
+    clear:
+      clear: 0.92
+      mild: 0.08
+      mid: 0.0
+      strong: 0.0
+    mild:
+      clear: 0.04
+      mild: 0.9
+      mid: 0.06
+      strong: 0.0
+    mid:
+      clear: 0.0
+      mild: 0.05
+      mid: 0.9
+      strong: 0.05
+    strong:
+      clear: 0.0
+      mild: 0.0
+      mid: 0.08
+      strong: 0.92
+latency_projection:
+  anchor_payload_kib: 90.0
+  fast_full_pipeline_p95_ms: 136.07
+  fast_uplink_p95_ms: 13.36
+  reference_front_plus_back_ms: 36.8
+  p50_serialization_factors:
+    clear: 0.26
+    mild: 0.87
+    mid: 0.83
+    strong: 0.83
+  p95_serialization_factors:
+    clear: 0.24
+    mild: 0.86
+    mid: 0.86
+    strong: 0.86
+replay:
+  roots:
+  - staleness
+  gt_glob: '**/*_object_ground_truth.csv'
+  prediction_suffix: _object_predictions.csv
+  association_gate_m: 5.0
+  prediction_score_min: 0.2
+  require_in_camera_frustum: true
+  interpolation_max_gap_s: 0.25
+  observation_track_hold_s: 0.5
+  split_seed: 20260807
+  split_ratios:
+    train: 0.6
+    validation: 0.2
+    test: 0.2
+  observation_speed_sigma_floor_mps: 0.5
+  max_episode_steps: 600
+pilot:
+  split: test
+  episode_count: 3
+  channel_seeds:
+  - 1101
+  - 2202
+  - 3303
+  synthetic_pedestrian_stress: false
+safety_calibration:
+  fixed_point:
+    epsilon_m: 2.0
+    preferred_core_kib: 90
+    range_m: 25.0
+  ucb_k_values:
+  - 0.0
+  - 0.5
+  - 1.0
+  - 1.5
+  - 2.0
+  c1_pessimism_factor_values:
+  - 0.6
+  - 0.7
+  - 0.8
+  - 0.9
+  - 1.0
+  common_random_latency_by_tick: true
+_meta:
+  config_path: rl_agent/policy/configs/track_a_pilot.yaml
+  config_sha256: 9ad4b024d7f35c48c4bc86b2181ffe4712aaaac1bd004ccbd08ee38ad7694929
+  resolved_sha256: 16a426f06bc5b5d529e141cbe7955e11a2ac0a6a49b52fc92d99926d1a1d26b4

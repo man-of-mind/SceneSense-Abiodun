@@ -84,3 +84,9 @@ pilot:
   episode_count: 3
   channel_seeds: [1101, 2202, 3303]
   synthetic_pedestrian_stress: false
+
+safety_calibration:
+  fixed_point: {epsilon_m: 2.0, preferred_core_kib: 90, range_m: 25.0}
+  ucb_k_values: [0.0, 0.5, 1.0, 1.5, 2.0]
+  c1_pessimism_factor_values: [0.6, 0.7, 0.8, 0.9, 1.0]
+  common_random_latency_by_tick: true

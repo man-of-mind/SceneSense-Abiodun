@@ -19,6 +19,9 @@ From the repository root:
 
 /home/shr_aisvcs/workarea/carla_0_10_env/carla_0_10_venv/bin/python3 \
   -m rl_agent.policy.run_pilot
+
+/home/shr_aisvcs/workarea/carla_0_10_env/carla_0_10_venv/bin/python3 \
+  -m rl_agent.policy.run_safety_calibration
 ```
 
 Each experiment writes a new timestamped directory containing the resolved config, per-frame CSV, summary,
@@ -32,11 +35,13 @@ figures, and a SHA-256 manifest. Do not overwrite a prior experiment directory.
 - `channel.py`, `latency.py`, `replay.py` — measured input adapters and declared projections.
 - `env.py` — fixed-20-Hz scheduler, in-flight event queue, and per-object contribution map.
 - `shield.py`, `oracles.py` — one shared observation-based shield and the true-state upper bound.
+- `run_safety_calibration.py` — paired 5x5 UCB/C1 fixed-point characterization with conditional metrics.
 - `tests/` — standard-library unit/contract tests; no pytest dependency.
 - `POLICY_RESULTS.md` — latest gated pilot report.
+- `SAFETY_CALIBRATION_RESULTS.md` — latest fixed-point calibration report and identifiability verdict.
 
 ## Current gate
 
-The deterministic acceptance and one-configuration pilot are complete. The 12-condition advisor sensitivity
-sweep has deliberately not started. The current pilot must be reviewed first, especially the distinction
-between tracked-object C2 safety and end-to-end GT exposure from upstream perception misses.
+The deterministic acceptance, one-configuration pilot, and fixed-point 5x5 safety characterization are
+complete. The requested calibration surface is degenerate under the current surrogate, so no operating point
+was selected and the 12-condition advisor sweep remains deliberately paused.

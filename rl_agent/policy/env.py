@@ -25,6 +25,7 @@ class SurrogateEnv:
         surface: ChannelSurface,
         seed: int,
         latency_mode: str = "sample",
+        latency_crn_by_tick: bool = False,
     ) -> None:
         if not frames:
             raise ValueError("surrogate environment requires at least one scene frame")
@@ -40,6 +41,10 @@ class SurrogateEnv:
         self.shield = SharedShield(config, self.latency)
         self.rng = np.random.default_rng(seed)
         self.latency_mode = latency_mode
+        self.latency_crn_by_tick = bool(latency_crn_by_tick)
+        self.latency_standard_normals = (
+            self.rng.standard_normal(len(self.frames)) if self.latency_crn_by_tick else None
+        )
         self.dt = 1.0 / float(config["clock"]["hz"])
         self.step_index = 0
         self.map_state: Dict[tuple[str, int], MapObjectState] = {}
@@ -160,6 +165,16 @@ class SurrogateEnv:
             true_capacity_mbps=self.last_channel_snapshot.true_capacity_mbps,
         )
 
+    def matched_truth_decision(self):
+        observation = self.matched_truth_observation()
+        return self.shield.decide(
+            self.actions,
+            observation,
+            self.last_channel_snapshot.rung,
+            self.time_to_next_capture,
+            true_capacity_mbps=self.last_channel_snapshot.true_capacity_mbps,
+        )
+
     def time_to_next_capture(self, action: Action) -> float:
         if action.mode == "SKIP":
             return self.dt
@@ -209,6 +224,9 @@ class SurrogateEnv:
         if p50_ms <= 0 or p95_ms <= p50_ms:
             return max(p50_ms, p95_ms)
         sigma = np.log(p95_ms / p50_ms) / 1.6448536269514722
+        if self.latency_standard_normals is not None:
+            standard_normal = float(self.latency_standard_normals[self.step_index])
+            return float(np.exp(np.log(p50_ms) + sigma * standard_normal))
         return float(self.rng.lognormal(np.log(p50_ms), sigma))
 
     def _scheduler_attempts_capture(self, action: Action) -> bool:

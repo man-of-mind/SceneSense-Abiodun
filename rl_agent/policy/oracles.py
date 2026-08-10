@@ -20,14 +20,26 @@ def run_oracle(env: SurrogateEnv, controller: str) -> OracleRun:
     rows: List[Dict[str, object]] = []
     while not env.done:
         decision = env.shielded_decision() if controller == "shielded" else env.clairvoyant_decision()
-        selected_true = env.true_evaluation(decision.selected.action)
-        selected_matched_true = env.matched_truth_evaluation(decision.selected.action)
         true_decision = env.clairvoyant_decision()
+        matched_true_decision = env.matched_truth_decision()
+        selected_action_id = decision.selected.action.action_id
+        selected_true = next(
+            item for item in true_decision.evaluations if item.action.action_id == selected_action_id
+        )
+        selected_matched_true = next(
+            item for item in matched_true_decision.evaluations if item.action.action_id == selected_action_id
+        )
         selected_is_true_safe = selected_true.risk_p95_m <= float(env.config["safety"]["epsilon_m"])
         selected_is_matched_true_safe = selected_matched_true.risk_p95_m <= float(
             env.config["safety"]["epsilon_m"]
         )
-        selected_in_true_candidate_set = decision.selected.action.action_id in true_decision.safe_action_ids
+        selected_in_true_candidate_set = selected_action_id in true_decision.candidate_action_ids
+        selected_raw_safe = selected_action_id in decision.raw_safe_action_ids
+        selected_admitted_split = selected_raw_safe and decision.selected.action.mode == "SPLIT"
+        true_safe_overlap = bool(decision.raw_safe_action_ids & true_decision.raw_safe_action_ids)
+        matched_true_safe_overlap = bool(
+            decision.raw_safe_action_ids & matched_true_decision.raw_safe_action_ids
+        )
         safe_only_gap = (
             max(0.0, true_decision.selected.expected_reward - selected_true.expected_reward)
             if selected_in_true_candidate_set
@@ -46,27 +58,35 @@ def run_oracle(env: SurrogateEnv, controller: str) -> OracleRun:
                 "degraded_tier_used": decision.degraded_tier_used,
                 "shield_bound_m": decision.selected.bound_m,
                 "shield_expected_g_m": decision.selected.expected_g_m,
+                "shield_risk_sigma_m": decision.selected.risk_sigma_m,
                 "shield_expected_task_utility": decision.selected.expected_task_utility,
                 "shield_prb_cost": decision.selected.prb_cost,
                 "shield_expected_reward": decision.selected.expected_reward,
+                "matched_true_expected_reward": selected_matched_true.expected_reward,
                 "selected_true_safe": selected_is_true_safe,
                 "matched_true_risk_p95_m": selected_matched_true.risk_p95_m,
                 "selected_matched_true_safe": selected_is_matched_true_safe,
-                "false_admit_selected": decision.selected.bound_m <= float(env.config["safety"]["epsilon_m"])
-                and not selected_is_true_safe,
-                "false_admit_selected_matched": decision.selected.bound_m
-                <= float(env.config["safety"]["epsilon_m"])
-                and not selected_is_matched_true_safe,
-                "false_reject_frame": bool(
-                    true_decision.feasible
-                    and not any(
-                        evaluation.action.action_id in decision.safe_action_ids
-                        for evaluation in true_decision.evaluations
-                        if evaluation.hard_admitted
-                        and evaluation.risk_p95_m <= float(env.config["safety"]["epsilon_m"])
-                    )
+                "matched_true_unobserved_sentinel": selected_matched_true.risk_p95_m >= 500_000.0,
+                "selected_raw_safe": selected_raw_safe,
+                "selected_admitted_split": selected_admitted_split,
+                "raw_safe_action_count": len(decision.raw_safe_action_ids),
+                "candidate_action_count": len(decision.candidate_action_ids),
+                "raw_safe_action_ids": "|".join(sorted(decision.raw_safe_action_ids)),
+                "candidate_action_ids": "|".join(sorted(decision.candidate_action_ids)),
+                "false_admit_selected": selected_raw_safe and not selected_is_true_safe,
+                "false_admit_selected_matched": selected_raw_safe and not selected_is_matched_true_safe,
+                "true_feasible_frame": true_decision.feasible,
+                "matched_true_feasible_frame": matched_true_decision.feasible,
+                "false_reject_frame": bool(true_decision.feasible and not true_safe_overlap),
+                "false_reject_frame_matched": bool(
+                    matched_true_decision.feasible and not matched_true_safe_overlap
                 ),
                 "clairvoyant_best_action_id": true_decision.selected.action.action_id,
+                "clairvoyant_best_mode": true_decision.selected.action.mode,
+                "shield_skip_clairvoyant_split": (
+                    decision.selected.action.mode == "SKIP"
+                    and true_decision.selected.action.mode == "SPLIT"
+                ),
                 "clairvoyant_best_reward": true_decision.selected.expected_reward,
                 "selected_in_true_candidate_set": selected_in_true_candidate_set,
                 "oracle_reward_gap_safe_only": safe_only_gap,
