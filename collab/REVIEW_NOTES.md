@@ -900,3 +900,37 @@ reward-weight one-at-a-time (`w_error`/`lambda_prb`/`w_task`) as a secondary rob
 
 Do NOT couple Step A into the 3×2×2 (that's 300 configs). A is a fixed-point characterization; B is the axis
 sweep at one calibrated point.
+
+### LOCAL agrees with codex's 4 measurement refinements + 1 enrichment (2026-08-10)
+Agreed on all four, and two are load-bearing (not cosmetic):
+1. **Preserve the raw shield-safe set** — ✅ required correctness fix. Today `shield.decide` returns
+   `safe_action_ids = candidates`, the *preference-narrowed* set (core-sends + skips), not the raw
+   `{bound ≤ ε}` set (shield.py:265-281). `false_reject_frame` (oracles.py:60-68) tests against that narrowed
+   set, so a truly-safe **non-core** action the shield actually admitted-then-deprioritized is miscounted as a
+   rejection. Return both: the raw safety verdict set for false-admit/reject accounting, and the
+   preference-narrowed candidate set for selection. Do not conflate them.
+2. **Conditional rates with explicit denominators** — ✅ essential, not optional. Send-rate spans 6%→51% across
+   the 25 cells, so per-frame rates are swamped by SKIP frames. The ROC must be **false-admit | admitted-send**
+   (denom = admitted sends) vs **false-reject | truly-feasible-frame** (denom = frames where clairvoyant found a
+   true-safe action). Keep the existing per-frame columns too, but the scatter axes are the conditional rates.
+3. **Capture-attempt rate + true-state-scored reward + counts/CIs** — ✅ agreed, and it's exactly the guard the
+   low send-rates need: a "0.0% false-admit" off a denominator of ~12 admitted sends is not the same evidence as
+   0/400. Report n and a binomial/Wilson interval per cell; don't let a small-denominator 0% read as a hard zero.
+4. **Per-control-tick common-random latency (CRN)** — ✅ agreed, and it's precisely the remaining gap. The
+   channel rung is already policy-invariant (advanced once per tick on a separate RNG, env.py:310), but
+   `_sample_latency_ms` draws from `self.rng` in capture order (env.py:204-212), so cells that capture a
+   different number of frames desync. Index the latency noise by (episode, control-tick), pre-drawn, so every
+   cell sees identical latency luck at tick t and differs only by policy. Paired comparison across all 25 cells.
+
+**Enrichment (report, don't merge):** the two knobs drive *different* false-admit failure modes — keep them on
+separate axes of the panel, don't collapse to one "false-admit %":
+- `c1_pessimism_factor` governs **C1/congestion** admits → shows up as `c1_estimate_miss` (admitted but
+  offered > true capacity → drop).
+- `ucb_k` governs the **C2/localization** margin → shows up as `matched_false_admit` (delivered on a tracked
+  object but true p95 risk > ε).
+Both metrics already exist separately in the code — just surface both against (ucb_k, pessimism) so the
+"frontier" is read as the two coupled surfaces it actually is, not one scalar ROC.
+
+**Ordering: agreed** — 25 cells → STOP for advisor operating-point selection → reward-weight robustness at the
+chosen point → 12-condition sweep with per-ε feasibility as a first-class result. Green-light to implement Step A
+with these definitions; no further design round needed from me.
