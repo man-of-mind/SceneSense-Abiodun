@@ -934,3 +934,46 @@ Both metrics already exist separately in the code — just surface both against 
 **Ordering: agreed** — 25 cells → STOP for advisor operating-point selection → reward-weight robustness at the
 chosen point → 12-condition sweep with per-ε feasibility as a first-class result. Green-light to implement Step A
 with these definitions; no further design round needed from me.
+
+### LOCAL review of Step A safety-calibration result (SAFETY_CALIBRATION_RESULTS.md, run 20260810_191739) — 2026-08-10
+**Verdict: the grid is a valid NEGATIVE result — it falsifies `(ucb_k, pessimism)` as the safety dial in this
+surrogate. Do NOT select an operating point from it. Recommendation below; codex's option 1 vs 2 is a false
+binary — take neither verbatim.** Confirmed root cause from the tables (not just the summary):
+- **ucb_k is structurally inert** (`max_selected_risk_sigma_m = 0` in all 25 cells). σ̂ = std of max-object risk
+  across the 7 capacity multipliers `[0.70..1.30]`, but (a) latency/localization are capacity-invariant in the
+  projector (only the binary delivery flag moves), and (b) the C1 floor `pessimism=0.70` equals the min
+  multiplier, so every admitted SPLIT delivers in all 7 outcomes → identical risks → σ=0. Plus a σ=0 fallback
+  (SKIP / certain-delivery SPLIT) always exists, so the `k·σ` term is never pivotal. `ucb_k=1.0` pretends a
+  margin that does nothing.
+- **pessimism moves the admitted set (39.49% of frames) but not selection (0.94%)** — the binding constraint on
+  selection is `B≤ε` + reward preferring SKIP, not C1 admission. Behavior flat across [0.6,1.0].
+- **The 42% false-reject is estimator-driven, not knob-driven** — flat across the whole grid because it comes
+  from the 2-step rung lag + capacity noise (deployable `B>ε` when true `B≤ε`), which neither knob touches.
+- **Safety evidence is denominator-starved**: 0/15 admitted SPLIT → Wilson upper 20.4%. The vehicle-only,
+  ~94%-SKIP corpus barely exercises the send path; no "calibrated zero" is claimable here regardless of knobs.
+
+**Recommendation (proceed, don't rebuild speculatively):**
+1. **`ucb_k = 0` (honest value), `pessimism = 0.7`** (justified by the 1.25% C1-miss + flat behavior). Document
+   the phase-1 shield as **hard C1 mask + deterministic p95 tail** (speed via 1.645σ, latency-p95), NOT a tunable
+   UCB. Keep the UCB machinery in code — it activates once a real residual/conformal σ̂ exists (live validation).
+2. **Do NOT gate Step B on this.** Proceed to the 3×2×2 advisor sweep at `(ucb_k=0, pessimism=0.7)`, per-ε
+   feasibility first-class. Report the Step A grid as a documented negative result + the shield's honest basis.
+3. **Replace the dead ucb/pessimism grid with an estimator-quality sensitivity** at the fixed point:
+   `telemetry_lag_steps ∈ {0,1,2,4}` × `estimate_noise_fraction ∈ {0,0.05,0.10}`. That knob IS identifiable and
+   drives the 42% false-reject → decomposes recoverable-utility-via-better-estimation vs irreducible
+   (speed-σ + 45% coverage). Same cost as the grid just run, real paper figure. Run alongside or right after B.
+4. **Defer conformal/residual σ̂ (codex option 2) to live validation** — the surrogate loc model is a
+   deterministic composition, so there is no honest residual to calibrate against in-surrogate yet.
+
+### ▶ NEXT ACTION for codex (2026-08-10, pending Abiodun/advisor OK on the direction above)
+1. Set pilot/sweep shield config to `ucb_k=0.0`, `c1_pessimism_factor=0.70`; update
+   `IMPLEMENTATION_CONTRACT.md` + `SAFETY_CALIBRATION_RESULTS.md` to state the shield basis is hard-C1-mask +
+   deterministic-p95 tail, with UCB machinery retained but inert until a validated residual model exists.
+2. Run **Step B**: the 3 ε × 2 preferred-core × 2 range sweep at that fixed shield point. Make **per-ε
+   feasibility/over-budget the headline** (achievability frontier); name worst-object `max` aggregation as the
+   per-frame feasibility bottleneck and object-selective TX as the phase-2 relief. Keep the reward-weight
+   one-at-a-time as a secondary robustness check. Carry ALL the pilot caveats (vehicle-only, thin SPLIT
+   denominator, 90 KB-anchored projections, 25 m).
+3. Add the **estimator-quality sensitivity** grid (lag × noise) at the fixed point; report false-reject and
+   recovered-utility vs lag/noise as the identifiable substitute for the dead calibration grid.
+Nothing here needs OAI/CARLA. Hold conformal σ̂ for the live-validation phase.

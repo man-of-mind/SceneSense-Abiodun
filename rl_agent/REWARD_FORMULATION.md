@@ -126,6 +126,27 @@ realized airtime fraction `offered_rate/true_capacity`; later use `payload×fps�
 mode-switch hysteresis. Normalize all to comparable ranges before weighting; grid-search safety-band δ/ε and
 UE-compute-vs-PRB.
 
+### 5c. Phase-1 in-surrogate shield basis — UCB is INERT here (2026-08-10, Step-A safety-calibration result)
+The `B = E_hat_risk + k·sigma_hat` UCB above is the **design** and stays in code, but in the phase-1 **surrogate**
+it carries no leverage and must not be presented as a calibrated live margin:
+- The Step-A grid (`policy/SAFETY_CALIBRATION_RESULTS.md`, 25 cells) showed `sigma_hat ≡ 0` for every selected
+  action (`max_selected_risk_sigma_m = 0` in all cells) → varying `ucb_k ∈ [0,2]` changed **no** safe set or
+  action on any of 1,699 frames. Cause: `sigma_hat` is built from the capacity-multiplier ensemble, but latency
+  and localization are capacity-invariant in the projector (only the binary delivery flag moves), and the C1
+  floor equals the min multiplier, so every admitted send delivers in all outcomes → zero spread. A `sigma=0`
+  fallback (SKIP / certain-delivery SPLIT) always exists, so the margin is never pivotal.
+- **Phase-1 operating values: `ucb_k = 0`, `c1_pessimism_factor = 0.70`.** The honest phase-1 shield basis is the
+  **hard C1 mask + the deterministic p95 localization tail** (speed via 1.645σ, latency-p95) — NOT a tunable UCB.
+  `ucb_k = 1.0` would pretend an inert margin; use `0`.
+- The UCB/`sigma_hat` machinery activates only once a **validated residual/conformal** uncertainty model exists
+  (a real prediction residual — i.e., **live validation**, not the deterministic surrogate composition). Defer
+  `k`/`sigma_hat` calibration to that phase; the §5 interface is unchanged.
+- Corollary: the dominant deployable-vs-true gap in-surrogate is **estimator lag/noise** (2-step rung lag +
+  capacity noise → ~42% false-reject, flat across both knobs), not the safety margin. Characterize that with an
+  estimator-quality sensitivity (`telemetry_lag_steps × estimate_noise_fraction`), which IS identifiable.
+- **Evidence caveat:** the vehicle-only, ~94%-SKIP replay yields a thin SPLIT denominator (Wilson upper ~20%),
+  so no "calibrated-zero false-admit" is claimable in-surrogate regardless of knobs.
+
 ## 6. No arbitrary LOCAL penalty — physical opportunity cost only
 LOCAL's disincentive = `C_UE` + compute mask + `C_switch` + its worse `base_loc`/lost cooperative-seg quality.
 LOCAL is a reward-**emergent** last resort, **not a hard rule** — if a capable vehicle legitimately prefers it,

@@ -57,6 +57,14 @@ single-UE summary. No fusion-model re-run required.
 Reward v4 is authoritative: localization is enforced structurally by the tail-risk shield plus the small
 mandatory `−w_E·E_expected/ε` margin; do **not** retain the old `−0.50·loc_error/ε` utility term. Post-action map
 quality uses `0.50·mIoU/mIoU_ref + 0.25·ped_recall/ped_ref + 0.25·obj_recall/obj_ref` in the Track A pilot.
+
+**Phase-1 shield basis (2026-08-10, Step-A result — see REWARD_FORMULATION §5c):** in the *surrogate* the tail
+shield is realized as the **hard C1 mask + the deterministic p95 localization tail**, with the UCB margin
+**inert** (`ucb_k = 0`, `c1_pessimism_factor = 0.70`). The `B = E_hat_risk + k·sigma_hat` UCB stays in code as
+the design but `sigma_hat ≡ 0` in the surrogate (capacity-invariant latency + C1 floor = min multiplier), so it
+carries no leverage; it activates only with a validated residual/conformal model at **live validation**. Do not
+present `ucb_k` as a calibrated knob in phase-1 results. The identifiable in-surrogate knob is estimator quality
+(`telemetry_lag_steps × estimate_noise_fraction`), which drives the ~42% false-reject.
 Delivery installs the selected profile quality; drop/SKIP retains prior valid map quality; a new unobserved
 object has zero map quality. Define references from best-achievable measurements and run the pre-registered
 one-at-a-time weight sensitivity before the 12-condition sweep.
