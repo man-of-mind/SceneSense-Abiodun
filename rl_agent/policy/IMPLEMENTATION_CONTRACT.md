@@ -1,7 +1,8 @@
 # Track A implementation contract
 
-Status: frozen for the SPLIT+SKIP surrogate/oracle pilot. This contract implements the decisions in
-`collab/REVIEW_NOTES.md` entry `2026-08-06p`. It does not authorize LOCAL, RL training, CARLA, or OAI runs.
+Status: frozen for the SPLIT+SKIP surrogate/oracle experiments. This contract implements the decisions in
+`collab/REVIEW_NOTES.md`, including the 2026-08-10 post-calibration review. It does not authorize LOCAL, RL
+training, CARLA, or OAI runs.
 
 ## 1. Clock, scheduler, and delivery ordering
 
@@ -81,8 +82,12 @@ tail factors conservatively inherit/scale the last stable behavior rather than i
 90 KB anchor or a payload/FPS projection. Only the 90 KB, roughly 6-8 FPS source cells are measured.
 
 The observation-based shield evaluates deterministic capacity multipliers around `s_obs`, forms outcome-level
-`G=max_j(e_j)` first, then computes expected and p95 risk and `B=E_hat_risk+k*sigma_hat`. Calibration and held-out
-seed scoring are surrogate validation only.
+`G=max_j(e_j)` first, then computes expected and p95 risk and `B=E_hat_risk+k*sigma_hat`. Phase 1 fixes
+`ucb_k=0` and `c1_pessimism_factor=0.70`: the honest basis is the hard C1 mask plus deterministic p95
+localization tail. At that C1 floor, ensemble sigma is numerical zero for C1-admitted/raw-safe/selected actions,
+though it can be nonzero for C1-rejected candidates. The 0.70 value matches the modeled -30% capacity floor as
+a conservative engineering convention; it is not statistically calibrated. Residual/conformal calibration is
+deferred to live validation. All current scoring remains surrogate validation only.
 
 For a delivered candidate, C2 covers the **entire interval**, not only the fresh state after publication. For
 an object with a prior map contribution, use the worse of (a) the old contribution's error immediately before
@@ -145,5 +150,13 @@ sweep, separately characterize `ucb_k` and the C1 pessimism factor at the fixed 
 - common latency random numbers indexed by episode/control tick, alongside the already paired channel seeds;
 - an explicit identifiability check on raw safe sets and selected actions for each swept axis.
 
-Stop after calibration for human review. A flat/non-identifiable surface is a result, not authority to select an
-operating point or proceed automatically.
+The completed calibration was reviewed and found flat/non-identifiable for operating-point selection. The
+approved follow-on experiments keep `(ucb_k=0, c1_pessimism_factor=0.70)` fixed and independently run:
+
+1. estimator quality: telemetry lag `{0,1,2,4}` x capacity-estimate noise `{0,0.05,0.10}` at the pilot point;
+2. reward one-at-a-time robustness: baseline plus low/high `w_error`, `lambda_prb`, and `w_task`;
+3. advisor characterization: epsilon `{1.5,2.0,2.5}` x preferred core `{90,129}` KiB x range `{25,40}` m.
+
+All three use the same replay split, paired channel seeds, and latency common random numbers indexed by episode
+and control tick. The 40 m cells are explicitly extrapolative. Per-epsilon over-budget/feasibility is the
+advisor sweep's headline result; no script automatically chooses advisor-pending values.

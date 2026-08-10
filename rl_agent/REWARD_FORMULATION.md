@@ -129,21 +129,25 @@ UE-compute-vs-PRB.
 ### 5c. Phase-1 in-surrogate shield basis — UCB is INERT here (2026-08-10, Step-A safety-calibration result)
 The `B = E_hat_risk + k·sigma_hat` UCB above is the **design** and stays in code, but in the phase-1 **surrogate**
 it carries no leverage and must not be presented as a calibrated live margin:
-- The Step-A grid (`policy/SAFETY_CALIBRATION_RESULTS.md`, 25 cells) showed `sigma_hat ≡ 0` for every selected
-  action (`max_selected_risk_sigma_m = 0` in all cells) → varying `ucb_k ∈ [0,2]` changed **no** safe set or
-  action on any of 1,699 frames. Cause: `sigma_hat` is built from the capacity-multiplier ensemble, but latency
-  and localization are capacity-invariant in the projector (only the binary delivery flag moves), and the C1
-  floor equals the min multiplier, so every admitted send delivers in all outcomes → zero spread. A `sigma=0`
-  fallback (SKIP / certain-delivery SPLIT) always exists, so the margin is never pivotal.
+- The Step-A grid (`policy/SAFETY_CALIBRATION_RESULTS.md`, 25 cells) showed numerical-zero `sigma_hat` for every
+  C1-admitted/raw-safe/selected action at the adopted 0.70 floor (`max_selected_risk_sigma_m` was numerical zero)
+  → varying `ucb_k ∈ [0,2]` changed **no** safe set or action on any of 1,699 frames. Some C1-rejected
+  candidates do have nonzero ensemble spread, so `sigma_hat` is not globally zero. It is inert after C1 because
+  the floor equals the minimum capacity multiplier: every admitted send delivers in all modeled outcomes, and
+  a zero-spread fallback (SKIP / certain-delivery SPLIT) always exists.
 - **Phase-1 operating values: `ucb_k = 0`, `c1_pessimism_factor = 0.70`.** The honest phase-1 shield basis is the
   **hard C1 mask + the deterministic p95 localization tail** (speed via 1.645σ, latency-p95) — NOT a tunable UCB.
+  The 0.70 C1 value is a conservative engineering convention matching the modeled -30% capacity floor, not a
+  statistically calibrated optimum; its observed 1/80 miss count has a wide descriptive Wilson interval.
   `ucb_k = 1.0` would pretend an inert margin; use `0`.
 - The UCB/`sigma_hat` machinery activates only once a **validated residual/conformal** uncertainty model exists
   (a real prediction residual — i.e., **live validation**, not the deterministic surrogate composition). Defer
   `k`/`sigma_hat` calibration to that phase; the §5 interface is unchanged.
-- Corollary: the dominant deployable-vs-true gap in-surrogate is **estimator lag/noise** (2-step rung lag +
-  capacity noise → ~42% false-reject, flat across both knobs), not the safety margin. Characterize that with an
-  estimator-quality sensitivity (`telemetry_lag_steps × estimate_noise_fraction`), which IS identifiable.
+- The completed 4×3 estimator-quality sensitivity **falsified estimator lag/noise as the driver** of the ~42%
+  full-GT false-reject rate at this fixed point: `(lag=0, noise=0)` recovered 0.00 percentage points versus the
+  baseline, and the entire grid spanned only 0.10 points. Raw-safe sets changed on as many as 332/1,699 frames,
+  but selections changed on at most 13. The remaining gap mixes speed uncertainty, observation mismatch,
+  worst-object aggregation, and map-state trajectory; it is not yet attributable or irreducible.
 - **Evidence caveat:** the vehicle-only, ~94%-SKIP replay yields a thin SPLIT denominator (Wilson upper ~20%),
   so no "calibrated-zero false-admit" is claimable in-surrogate regardless of knobs.
 

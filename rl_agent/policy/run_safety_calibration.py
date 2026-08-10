@@ -313,7 +313,7 @@ def run(config_path: Path | None = None, smoke: bool = False) -> Path:
         "roc_nondominated",
     ]
     anchor = summary[
-        np.isclose(summary["ucb_k"], 1.0)
+        np.isclose(summary["ucb_k"], 0.0)
         & np.isclose(summary["c1_pessimism_factor"], 0.7)
     ]
     report_lines = [
@@ -341,7 +341,7 @@ def run(config_path: Path | None = None, smoke: bool = False) -> Path:
         "- Latency shocks are common random numbers indexed by episode and control tick, so policy-dependent "
         "capture counts do not desynchronize cells.",
         "",
-        "## Current-pilot configuration anchor",
+        "## Adopted phase-1 convention anchor",
         "",
         _markdown_table(anchor[display_columns].round(4)),
         "",
@@ -364,7 +364,10 @@ def run(config_path: Path | None = None, smoke: bool = False) -> Path:
         "- Matched/tracked C2 and strict end-to-end GT exposure remain distinct; observation coverage is not "
         "reinterpreted as shield error.",
         "- The corpus is vehicle-only and all payload/FPS projection caveats from the pilot remain in force.",
-        "- Stop here for Abiodun/advisor review; do not launch the reward or 3x2x2 sweeps yet.",
+        "- The post-review phase-1 convention is `ucb_k=0`, `c1_pessimism_factor=0.70`. This is an engineering "
+        "convention matching the modeled -30% capacity floor, not a calibrated optimum.",
+        "- Residual/conformal uncertainty is deferred to live validation; the estimator-quality, reward, and "
+        "advisor sweeps are separate experiments and do not retroactively select a Step-A cell.",
         "",
         "## Artifacts",
         "",

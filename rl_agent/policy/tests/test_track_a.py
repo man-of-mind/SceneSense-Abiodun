@@ -11,6 +11,9 @@ from rl_agent.policy.config import REPO_ROOT, load_config
 from rl_agent.policy.env import SurrogateEnv
 from rl_agent.policy.latency import LatencyProjector
 from rl_agent.policy.replay import discover_trace_registry, synthetic_episode
+from rl_agent.policy.run_advisor_sweep import _grid_cells as advisor_grid_cells
+from rl_agent.policy.run_estimator_sensitivity import _grid_cells as estimator_grid_cells
+from rl_agent.policy.run_reward_sensitivity import _grid_cells as reward_grid_cells
 from rl_agent.policy.shield import SharedShield, UNOBSERVED_ERROR_M, profile_quality
 from rl_agent.policy.types import Contribution, MapObjectState, Observation, SceneFrame, SceneObject
 
@@ -67,6 +70,14 @@ class TrackATestCase(unittest.TestCase):
         self.assertEqual(hashlib.sha256(catalog_path.read_bytes()).hexdigest(), metadata["catalog_sha256"])
         source_path = REPO_ROOT / metadata["source_file"]
         self.assertEqual(hashlib.sha256(source_path.read_bytes()).hexdigest(), metadata["source_sha256"])
+
+    def test_phase1_convention_and_follow_on_grid_cardinalities(self):
+        self.assertEqual(float(self.config["safety"]["ucb_k"]), 0.0)
+        self.assertEqual(float(self.config["safety"]["c1_pessimism_factor"]), 0.70)
+        self.assertTrue(self.config["pilot"]["common_random_latency_by_tick"])
+        self.assertEqual(len(estimator_grid_cells(self.config)), 12)
+        self.assertEqual(len(reward_grid_cells(self.config)), 7)
+        self.assertEqual(len(advisor_grid_cells(self.config)), 12)
 
     def test_latency_90k_measured_anchor_and_tail_reconstruction(self):
         action = next(

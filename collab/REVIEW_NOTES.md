@@ -977,3 +977,38 @@ binary — take neither verbatim.** Confirmed root cause from the tables (not ju
 3. Add the **estimator-quality sensitivity** grid (lag × noise) at the fixed point; report false-reject and
    recovered-utility vs lag/noise as the identifiable substitute for the dead calibration grid.
 Nothing here needs OAI/CARLA. Hold conformal σ̂ for the live-validation phase.
+
+## 2026-08-10 — CODEX follow-on execution: estimator hypothesis falsified; reward robust; 40 m boundary exposed
+
+All authorized work remained table-driven SPLIT+SKIP. No CARLA, OAI, LOCAL, RL training, or model training ran.
+The config and baseline now use `ucb_k=0`, C1 factor `0.70`, and per-control-tick latency common random numbers.
+The refreshed 1,699-frame pilot reproduces Step A: matched false admission 0/15 (descriptive Wilson upper
+20.39%), full-GT conditional false rejection 414/986 = 41.99%, over-budget 56.56%, and C1 miss 1/80 = 1.25%
+(descriptive Wilson 95% CI 0.22–6.75%).
+
+**Estimator 4×3 result (`policy/experiments/estimator_sensitivity/20260810_205951`): the prior causal claim is
+falsified in this surrogate.** The ideal `(lag=0, noise=0)` cell remains at 41.99% full-GT conditional false
+rejection, recovering 0.00 percentage points from `(lag=2, noise=0.05)`. All 12 cells span only 41.93–42.03%.
+Estimator settings change up to 332/1,699 raw-safe sets but at most 13 selected actions, so reward/preference
+narrowing absorbs almost all availability changes. The remaining gap is not called irreducible; it still mixes
+observation mismatch/coverage, speed uncertainty, worst-object `max`, and map-state trajectory. A separate
+attribution diagnostic is needed before changing the shield/reward or starting RL.
+
+**Reward OAT result (`policy/experiments/reward_sensitivity/20260810_210255`): robust at the tested values.**
+Across baseline plus low/high `w_error`, `lambda_prb`, and `w_task`, SPLIT, capture, and over-budget spans are
+all 0.000 percentage points. The largest action difference is 17/1,699 frames (`lambda_prb=2`); matched false
+admission remains 0/15. Absolute scalar rewards are intentionally not compared across changed reward units.
+
+**Advisor 3×2×2 result (`policy/experiments/advisor_sweep/20260810_210613`): do not select a value
+automatically.** Looser epsilon improves pooled shielded feasibility (34.26% at 1.5 m, 36.60% at 2.0 m,
+40.19% at 2.5 m), but the dominant result is range. Pooled across epsilon/core, 25 m has 2/119 matched false
+admits (1.68%) and 56.17% over-budget; extrapolative 40 m has 63/168 (37.50%) and 69.81% over-budget. Retain
+25 m as the headline operating region. The 40 m cells are a diagnostic failure boundary, not evidence for a
+wider operating claim. Worst-object `max` remains the per-frame feasibility bottleneck; object-selective TX is
+the phase-2 relief.
+
+**Codex recommendation for joint review:** accept the reward robustness result and the phase-1 `(0,0.70)`
+engineering convention, but do not proceed directly to RL on the assumption that estimator quality explains
+the oracle gap. First add a read-only attribution decomposition at 25 m that independently removes tracker
+position/speed error, speed sigma, and observation-coverage mismatch while preserving paired trajectories.
+Keep 40 m and all advisor-pending value selection out of the training baseline until that review is complete.

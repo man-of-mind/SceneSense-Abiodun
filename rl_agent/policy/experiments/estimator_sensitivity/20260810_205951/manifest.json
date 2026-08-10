@@ -1,0 +1,167 @@
+{
+  "baseline_cell": {
+    "estimate_noise_fraction": 0.05,
+    "telemetry_lag_steps": 2
+  },
+  "common_random_latency_by_tick": true,
+  "controllers": [
+    "shielded"
+  ],
+  "created_utc": "2026-08-10T21:02:30.763792+00:00",
+  "files": {
+    "ESTIMATOR_SENSITIVITY_RESULTS.md": {
+      "bytes": 8923,
+      "sha256": "4e81ff2e3cb3f0f19479e5e5b622a48c7df0c8227fab6d78566e288292c12846"
+    },
+    "figures/estimator_quality_surface.pdf": {
+      "bytes": 29890,
+      "sha256": "61f797549f61d6dbff1a04e3838a13ce21253e90d5aa6013a34501579fc9c5e5"
+    },
+    "figures/estimator_quality_surface.png": {
+      "bytes": 381436,
+      "sha256": "712f15e943eb5bd626ed2ef2e743ea2beed989a1aec8948188cbf34c8798689b"
+    },
+    "per_frame_metrics.csv": {
+      "bytes": 20183645,
+      "sha256": "f78630879a5fc3e11d6fd0cea596545738f86c72b8f274786f4f2601090e5f8e"
+    },
+    "per_replay_summary.csv": {
+      "bytes": 27006,
+      "sha256": "cbf75fef4f9129e4594fc0449cabfb69911d8a8152eeae704a7e1d106f91eeca"
+    },
+    "replay_registry.csv": {
+      "bytes": 18914,
+      "sha256": "f501d112cf410db1093f8614d1967d7bb4560a26884c6fadb009149c42ac2a40"
+    },
+    "resolved_config.yaml": {
+      "bytes": 3859,
+      "sha256": "4d3442826f911a78e19caf49830f0045b2c4d558085090974e8493c9f17a6796"
+    },
+    "summary.csv": {
+      "bytes": 11385,
+      "sha256": "4c98a584643d3a0d58593d032b66aa9c0f0a7123875fab8162df9da7ecb1d956"
+    }
+  },
+  "fixed_point": {
+    "c1_pessimism_factor": 0.7,
+    "epsilon_m": 2.0,
+    "preferred_core_kib": 90,
+    "range_m": 25.0,
+    "ucb_k": 0.0
+  },
+  "grid_cells": [
+    {
+      "estimate_noise_fraction": 0.0,
+      "telemetry_lag_steps": 0
+    },
+    {
+      "estimate_noise_fraction": 0.05,
+      "telemetry_lag_steps": 0
+    },
+    {
+      "estimate_noise_fraction": 0.1,
+      "telemetry_lag_steps": 0
+    },
+    {
+      "estimate_noise_fraction": 0.0,
+      "telemetry_lag_steps": 1
+    },
+    {
+      "estimate_noise_fraction": 0.05,
+      "telemetry_lag_steps": 1
+    },
+    {
+      "estimate_noise_fraction": 0.1,
+      "telemetry_lag_steps": 1
+    },
+    {
+      "estimate_noise_fraction": 0.0,
+      "telemetry_lag_steps": 2
+    },
+    {
+      "estimate_noise_fraction": 0.05,
+      "telemetry_lag_steps": 2
+    },
+    {
+      "estimate_noise_fraction": 0.1,
+      "telemetry_lag_steps": 2
+    },
+    {
+      "estimate_noise_fraction": 0.0,
+      "telemetry_lag_steps": 4
+    },
+    {
+      "estimate_noise_fraction": 0.05,
+      "telemetry_lag_steps": 4
+    },
+    {
+      "estimate_noise_fraction": 0.1,
+      "telemetry_lag_steps": 4
+    }
+  ],
+  "limitations": [
+    "synthetic Markov channel composed with real CARLA scene replay",
+    "vehicle-only replay ground truth",
+    "three held-out replay episodes",
+    "channel payload/FPS projection outside measured anchors",
+    "surrogate validation only"
+  ],
+  "metric_denominators": {
+    "false_reject_conditional_pct": "full-GT clairvoyant-feasible frames",
+    "matched_false_admit_conditional_pct": "selected raw-safe SPLIT schedules",
+    "matched_false_reject_conditional_pct": "tracked-object clairvoyant-feasible frames"
+  },
+  "run_directory": "rl_agent/policy/experiments/estimator_sensitivity/20260810_205951",
+  "run_type": "estimator_sensitivity_4x3",
+  "schema_version": 1,
+  "selected_replays": [
+    {
+      "episode_id": "20260715_214558_front_fusion_ego_1433",
+      "frame_count": 499,
+      "ground_truth_path": "staleness/metrics_logs/scenesense_runs/20260715_214558_front_fusion_ego_1433/streams/fusion_ego_1433_object_ground_truth.csv",
+      "ground_truth_sha256": "a368c0072a3a86f194cf702d0a65baf721158cc64569ebece64a21a84f2d69fe",
+      "prediction_path": "staleness/metrics_logs/scenesense_runs/20260715_214558_front_fusion_ego_1433/streams/fusion_ego_1433_object_predictions.csv",
+      "prediction_sha256": "c02964d93cf0dee4ae9fb3bb74d82649984b3d8729e88683f31dda128841c1aa",
+      "range_m": 25.0,
+      "run_group": "oppwin_fast_test",
+      "scenario_family": "oppwin_fast_test",
+      "split": "test"
+    },
+    {
+      "episode_id": "20260716_214839_front_fusion_ego_117",
+      "frame_count": 600,
+      "ground_truth_path": "staleness/metrics_logs/scenesense_runs/20260716_214839_front_fusion_ego_117/streams/fusion_ego_117_object_ground_truth.csv",
+      "ground_truth_sha256": "52ad439e355a3d9eb2b612168a3524284420c507a4eb2324b0a18085f6fe8365",
+      "prediction_path": "staleness/metrics_logs/scenesense_runs/20260716_214839_front_fusion_ego_117/streams/fusion_ego_117_object_predictions.csv",
+      "prediction_sha256": "39ecd210a9b1566292096097662edd46f8bcfb8cb6acfb05b4d5758f90587932",
+      "range_m": 25.0,
+      "run_group": "ctrl_obeylight_200k",
+      "scenario_family": "ctrl_obeylight_200k",
+      "split": "test"
+    },
+    {
+      "episode_id": "20260716_215808_front_fusion_ego_209",
+      "frame_count": 600,
+      "ground_truth_path": "staleness/metrics_logs/scenesense_runs/20260716_215808_front_fusion_ego_209/streams/fusion_ego_209_object_ground_truth.csv",
+      "ground_truth_sha256": "cdd3f66689ed58c44ba7e67153f5fa6e91d5468f7b6b76bfe9328cb0499ae779",
+      "prediction_path": "staleness/metrics_logs/scenesense_runs/20260716_215808_front_fusion_ego_209/streams/fusion_ego_209_object_predictions.csv",
+      "prediction_sha256": "31093e072e957930c9d72cd7efcae0615d98d67593efc21c6a4dfb96a16a03d1",
+      "range_m": 25.0,
+      "run_group": "ctrl_busylight_200k",
+      "scenario_family": "ctrl_busylight_200k",
+      "split": "test"
+    }
+  ],
+  "source_hashes": {
+    "base_loc_calibration": "1.10 + raw - min(retained_raw)",
+    "catalog_file": "rl_agent/policy/data/action_catalog.csv",
+    "catalog_sha256": "93fce009924ab8ac227726eebb3613e61139ff401c801f57d2de94ee15f18d6a",
+    "channel_condition_sweep/combined_surface.csv": "c48c44667dec980d6a5a62abb4a081cb33ac70bdf33e9536187a8fd62007e5a1",
+    "flattened_action_count": 36,
+    "profile_count": 7,
+    "schema_version": 1,
+    "source_file": "rl_agent/PERMODEL_KNOB_MATRIX_ZSTD.md",
+    "source_sha256": "35cd80016383b80c61371ab4f75b986eb2cf0e8098c622f437f1c3679f1ae9ed",
+    "uplink_only_spatial_map_pipeline/results/chsweep_full_p3ae_.csv": "0f0d6ca3528878dbf27100592d8c34e9b7725cec98968e65ff14a855ca782cfc"
+  }
+}

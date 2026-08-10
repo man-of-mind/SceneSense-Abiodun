@@ -55,8 +55,8 @@ def validate_config(config: Dict[str, Any]) -> None:
             raise ValueError(
                 "safety_calibration.c1_pessimism_factor_values must be unique, sorted, and in (0, 1]"
             )
-        if 1.0 not in ucb_values or 0.7 not in c1_values:
-            raise ValueError("safety calibration must retain the current-pilot anchor (ucb_k=1, c1=0.7)")
+        if 0.0 not in ucb_values or 1.0 not in ucb_values or 0.7 not in c1_values:
+            raise ValueError("safety calibration must retain ucb_k=0/1 and c1=0.7 reference cells")
         fixed = calibration["fixed_point"]
         if (
             float(fixed["epsilon_m"]) != 2.0
@@ -64,6 +64,54 @@ def validate_config(config: Dict[str, Any]) -> None:
             or float(fixed["range_m"]) != 25.0
         ):
             raise ValueError("Track A safety calibration fixed point must remain epsilon=2, core=90, range=25")
+
+    def validate_fixed_point(name: str, fixed: Dict[str, Any]) -> None:
+        if (
+            float(fixed["epsilon_m"]) != 2.0
+            or int(fixed["preferred_core_kib"]) != 90
+            or float(fixed["range_m"]) != 25.0
+            or float(fixed["ucb_k"]) != 0.0
+            or float(fixed["c1_pessimism_factor"]) != 0.7
+        ):
+            raise ValueError(f"{name}.fixed_point must remain epsilon=2, core=90, range=25, ucb=0, c1=0.7")
+
+    estimator = config["estimator_sensitivity"]
+    validate_fixed_point("estimator_sensitivity", estimator["fixed_point"])
+    lag_values = [int(value) for value in estimator["telemetry_lag_steps_values"]]
+    noise_values = [float(value) for value in estimator["estimate_noise_fraction_values"]]
+    if lag_values != sorted(set(lag_values)) or any(value < 0 for value in lag_values):
+        raise ValueError("estimator_sensitivity telemetry lags must be unique, sorted, and nonnegative")
+    if noise_values != sorted(set(noise_values)) or any(value < 0.0 for value in noise_values):
+        raise ValueError("estimator_sensitivity noise fractions must be unique, sorted, and nonnegative")
+    if 2 not in lag_values or 0.05 not in noise_values or 0 not in lag_values or 0.0 not in noise_values:
+        raise ValueError("estimator grid must retain both the baseline (2, 0.05) and idealized (0, 0) cells")
+
+    reward_sensitivity = config["reward_sensitivity"]
+    validate_fixed_point("reward_sensitivity", reward_sensitivity["fixed_point"])
+    expected_reward_knobs = {"w_error", "lambda_prb", "w_task"}
+    reward_knobs = set(config["reward"]["one_at_a_time_sensitivity"])
+    if reward_knobs != expected_reward_knobs:
+        raise ValueError("reward one-at-a-time sensitivity must contain w_error, lambda_prb, and w_task")
+    if any(len(config["reward"]["one_at_a_time_sensitivity"][name]) != 2 for name in reward_knobs):
+        raise ValueError("each reward one-at-a-time knob must declare exactly low/high values")
+
+    advisor = config["advisor_sweep"]
+    epsilon_values = [float(value) for value in advisor["epsilon_m_values"]]
+    core_values = [int(value) for value in advisor["preferred_core_kib_values"]]
+    range_values = [float(value) for value in advisor["range_m_values"]]
+    if epsilon_values != [1.5, 2.0, 2.5]:
+        raise ValueError("advisor_sweep epsilon grid must be [1.5, 2.0, 2.5]")
+    if core_values != [90, 129]:
+        raise ValueError("advisor_sweep preferred-core grid must be [90, 129]")
+    if range_values != [25.0, 40.0]:
+        raise ValueError("advisor_sweep range grid must be [25, 40]")
+    fixed_shield = advisor["fixed_shield"]
+    if float(fixed_shield["ucb_k"]) != 0.0 or float(fixed_shield["c1_pessimism_factor"]) != 0.7:
+        raise ValueError("advisor_sweep fixed shield must remain ucb=0, c1=0.7")
+
+    for section in ("pilot", "safety_calibration", "estimator_sensitivity", "reward_sensitivity", "advisor_sweep"):
+        if not isinstance(config[section]["common_random_latency_by_tick"], bool):
+            raise ValueError(f"{section}.common_random_latency_by_tick must be boolean")
 
 
 def load_config(path: str | Path | None = None) -> Dict[str, Any]:

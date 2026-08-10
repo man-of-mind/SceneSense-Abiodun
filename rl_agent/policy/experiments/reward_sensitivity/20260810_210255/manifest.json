@@ -1,0 +1,151 @@
+{
+  "baseline_reward_weights": {
+    "lambda_prb": 1.0,
+    "w_error": 0.05,
+    "w_task": 1.0
+  },
+  "cells": [
+    {
+      "cell_id": "baseline",
+      "varied_knob": "baseline",
+      "varied_value": 0.0
+    },
+    {
+      "cell_id": "w_error_low",
+      "varied_knob": "w_error",
+      "varied_value": 0.025
+    },
+    {
+      "cell_id": "w_error_high",
+      "varied_knob": "w_error",
+      "varied_value": 0.1
+    },
+    {
+      "cell_id": "lambda_prb_low",
+      "varied_knob": "lambda_prb",
+      "varied_value": 0.5
+    },
+    {
+      "cell_id": "lambda_prb_high",
+      "varied_knob": "lambda_prb",
+      "varied_value": 2.0
+    },
+    {
+      "cell_id": "w_task_low",
+      "varied_knob": "w_task",
+      "varied_value": 0.5
+    },
+    {
+      "cell_id": "w_task_high",
+      "varied_knob": "w_task",
+      "varied_value": 2.0
+    }
+  ],
+  "common_random_latency_by_tick": true,
+  "comparison_guardrail": "absolute scalar rewards are not comparable across changed reward weights",
+  "controllers": [
+    "shielded"
+  ],
+  "created_utc": "2026-08-10T21:04:27.730797+00:00",
+  "files": {
+    "REWARD_SENSITIVITY_RESULTS.md": {
+      "bytes": 6164,
+      "sha256": "caa3d359ec7f1ed9af565cf6916cc18a8d0f2726347b38290131ce3ce49ff6f5"
+    },
+    "figures/reward_oat_behavior.pdf": {
+      "bytes": 19403,
+      "sha256": "bc9d59743f084444c08c9c5a820fcad7762c86acdd8ba375bcbdccf6d3e4061d"
+    },
+    "figures/reward_oat_behavior.png": {
+      "bytes": 190302,
+      "sha256": "ffe895671fca7de3b02bf6a38c2749e664d16149c30d06c749b08b13839e631b"
+    },
+    "per_frame_metrics.csv": {
+      "bytes": 11998892,
+      "sha256": "30a7d4978e1278294ad7d94aeb61c78c8bc636af488a2fd59b9379896497daf3"
+    },
+    "per_replay_summary.csv": {
+      "bytes": 16787,
+      "sha256": "5dea0fafa428b426864269ef600845cdd0450505614d306e70edd3da7d1a4980"
+    },
+    "replay_registry.csv": {
+      "bytes": 18914,
+      "sha256": "f501d112cf410db1093f8614d1967d7bb4560a26884c6fadb009149c42ac2a40"
+    },
+    "resolved_config.yaml": {
+      "bytes": 3859,
+      "sha256": "4d3442826f911a78e19caf49830f0045b2c4d558085090974e8493c9f17a6796"
+    },
+    "summary.csv": {
+      "bytes": 7206,
+      "sha256": "094b951d31fba443034cb87046ad2429a54ebd67ecebda9d07a8b5280cec6002"
+    }
+  },
+  "fixed_point": {
+    "c1_pessimism_factor": 0.7,
+    "epsilon_m": 2.0,
+    "preferred_core_kib": 90,
+    "range_m": 25.0,
+    "ucb_k": 0.0
+  },
+  "limitations": [
+    "synthetic Markov channel composed with real CARLA scene replay",
+    "vehicle-only replay ground truth",
+    "three held-out replay episodes",
+    "channel payload/FPS projection outside measured anchors",
+    "surrogate validation only"
+  ],
+  "run_directory": "rl_agent/policy/experiments/reward_sensitivity/20260810_210255",
+  "run_type": "reward_one_at_a_time_7_cell",
+  "schema_version": 1,
+  "selected_replays": [
+    {
+      "episode_id": "20260715_214558_front_fusion_ego_1433",
+      "frame_count": 499,
+      "ground_truth_path": "staleness/metrics_logs/scenesense_runs/20260715_214558_front_fusion_ego_1433/streams/fusion_ego_1433_object_ground_truth.csv",
+      "ground_truth_sha256": "a368c0072a3a86f194cf702d0a65baf721158cc64569ebece64a21a84f2d69fe",
+      "prediction_path": "staleness/metrics_logs/scenesense_runs/20260715_214558_front_fusion_ego_1433/streams/fusion_ego_1433_object_predictions.csv",
+      "prediction_sha256": "c02964d93cf0dee4ae9fb3bb74d82649984b3d8729e88683f31dda128841c1aa",
+      "range_m": 25.0,
+      "run_group": "oppwin_fast_test",
+      "scenario_family": "oppwin_fast_test",
+      "split": "test"
+    },
+    {
+      "episode_id": "20260716_214839_front_fusion_ego_117",
+      "frame_count": 600,
+      "ground_truth_path": "staleness/metrics_logs/scenesense_runs/20260716_214839_front_fusion_ego_117/streams/fusion_ego_117_object_ground_truth.csv",
+      "ground_truth_sha256": "52ad439e355a3d9eb2b612168a3524284420c507a4eb2324b0a18085f6fe8365",
+      "prediction_path": "staleness/metrics_logs/scenesense_runs/20260716_214839_front_fusion_ego_117/streams/fusion_ego_117_object_predictions.csv",
+      "prediction_sha256": "39ecd210a9b1566292096097662edd46f8bcfb8cb6acfb05b4d5758f90587932",
+      "range_m": 25.0,
+      "run_group": "ctrl_obeylight_200k",
+      "scenario_family": "ctrl_obeylight_200k",
+      "split": "test"
+    },
+    {
+      "episode_id": "20260716_215808_front_fusion_ego_209",
+      "frame_count": 600,
+      "ground_truth_path": "staleness/metrics_logs/scenesense_runs/20260716_215808_front_fusion_ego_209/streams/fusion_ego_209_object_ground_truth.csv",
+      "ground_truth_sha256": "cdd3f66689ed58c44ba7e67153f5fa6e91d5468f7b6b76bfe9328cb0499ae779",
+      "prediction_path": "staleness/metrics_logs/scenesense_runs/20260716_215808_front_fusion_ego_209/streams/fusion_ego_209_object_predictions.csv",
+      "prediction_sha256": "31093e072e957930c9d72cd7efcae0615d98d67593efc21c6a4dfb96a16a03d1",
+      "range_m": 25.0,
+      "run_group": "ctrl_busylight_200k",
+      "scenario_family": "ctrl_busylight_200k",
+      "split": "test"
+    }
+  ],
+  "source_hashes": {
+    "base_loc_calibration": "1.10 + raw - min(retained_raw)",
+    "catalog_file": "rl_agent/policy/data/action_catalog.csv",
+    "catalog_sha256": "93fce009924ab8ac227726eebb3613e61139ff401c801f57d2de94ee15f18d6a",
+    "channel_condition_sweep/combined_surface.csv": "c48c44667dec980d6a5a62abb4a081cb33ac70bdf33e9536187a8fd62007e5a1",
+    "flattened_action_count": 36,
+    "profile_count": 7,
+    "schema_version": 1,
+    "source_file": "rl_agent/PERMODEL_KNOB_MATRIX_ZSTD.md",
+    "source_sha256": "35cd80016383b80c61371ab4f75b986eb2cf0e8098c622f437f1c3679f1ae9ed",
+    "uplink_only_spatial_map_pipeline/results/chsweep_full_p3ae_.csv": "0f0d6ca3528878dbf27100592d8c34e9b7725cec98968e65ff14a855ca782cfc"
+  }
+}

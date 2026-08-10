@@ -18,7 +18,7 @@ safety:
   aggregation: max
   risk_statistic: p95
   c1_pessimism_factor: 0.70
-  ucb_k: 1.0
+  ucb_k: 0.0
   delta_loc_m: 0.05
   capacity_sample_multipliers: [0.70, 0.80, 0.90, 1.00, 1.10, 1.20, 1.30]
 
@@ -84,9 +84,27 @@ pilot:
   episode_count: 3
   channel_seeds: [1101, 2202, 3303]
   synthetic_pedestrian_stress: false
+  common_random_latency_by_tick: true
 
 safety_calibration:
   fixed_point: {epsilon_m: 2.0, preferred_core_kib: 90, range_m: 25.0}
   ucb_k_values: [0.0, 0.5, 1.0, 1.5, 2.0]
   c1_pessimism_factor_values: [0.6, 0.7, 0.8, 0.9, 1.0]
+  common_random_latency_by_tick: true
+
+estimator_sensitivity:
+  fixed_point: {epsilon_m: 2.0, preferred_core_kib: 90, range_m: 25.0, ucb_k: 0.0, c1_pessimism_factor: 0.70}
+  telemetry_lag_steps_values: [0, 1, 2, 4]
+  estimate_noise_fraction_values: [0.00, 0.05, 0.10]
+  common_random_latency_by_tick: true
+
+reward_sensitivity:
+  fixed_point: {epsilon_m: 2.0, preferred_core_kib: 90, range_m: 25.0, ucb_k: 0.0, c1_pessimism_factor: 0.70}
+  common_random_latency_by_tick: true
+
+advisor_sweep:
+  epsilon_m_values: [1.5, 2.0, 2.5]
+  preferred_core_kib_values: [90, 129]
+  range_m_values: [25.0, 40.0]
+  fixed_shield: {ucb_k: 0.0, c1_pessimism_factor: 0.70}
   common_random_latency_by_tick: true

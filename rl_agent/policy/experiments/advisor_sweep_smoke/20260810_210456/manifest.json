@@ -1,0 +1,163 @@
+{
+  "common_random_latency_by_tick": true,
+  "controllers": [
+    "shielded",
+    "clairvoyant"
+  ],
+  "created_utc": "2026-08-10T21:05:48.815101+00:00",
+  "files": {
+    "ADVISOR_SWEEP_SMOKE_RESULTS.md": {
+      "bytes": 6244,
+      "sha256": "b77495066d6741c74e8de96f5e62ea1ead0263f5a05687b48215d5dd0dd39276"
+    },
+    "figures/advisor_achievability_frontier.pdf": {
+      "bytes": 19570,
+      "sha256": "880a086fd7fc13ea57731facb020ea1c4904411a328de096ac1a652af3ee0533"
+    },
+    "figures/advisor_achievability_frontier.png": {
+      "bytes": 197783,
+      "sha256": "35d2cfaf15605d52d5c44ce55716ace5cc354d2f1f5cd0ec3f3846b818cbca1e"
+    },
+    "per_epsilon_summary.csv": {
+      "bytes": 4125,
+      "sha256": "575b9a21d3bf0d94891d1cb6ca1f3ee0d7a32a71cdf838beaafee34f083d1dfb"
+    },
+    "per_frame_metrics.csv": {
+      "bytes": 7412506,
+      "sha256": "7924aad72fab221b25571b3b575fba6ab806f0395afec11279108ef2cd133717"
+    },
+    "per_replay_summary.csv": {
+      "bytes": 9802,
+      "sha256": "4a0b24c0f7f18bf4ed08f6a054e9455b5aec585f525843eb05d8ed2e1ce997ad"
+    },
+    "replay_registry.csv": {
+      "bytes": 18914,
+      "sha256": "f501d112cf410db1093f8614d1967d7bb4560a26884c6fadb009149c42ac2a40"
+    },
+    "resolved_config.yaml": {
+      "bytes": 3859,
+      "sha256": "4d3442826f911a78e19caf49830f0045b2c4d558085090974e8493c9f17a6796"
+    },
+    "summary.csv": {
+      "bytes": 4334,
+      "sha256": "f4d2b5d053220e9648da6d184be6348f8ef06a0717f20126997d468dee06c28d"
+    }
+  },
+  "fixed_shield": {
+    "c1_pessimism_factor": 0.7,
+    "ucb_k": 0.0
+  },
+  "grid_cells": [
+    {
+      "epsilon_m": 1.5,
+      "preferred_core_kib": 90,
+      "range_extrapolative": false,
+      "range_m": 25.0
+    },
+    {
+      "epsilon_m": 2.5,
+      "preferred_core_kib": 129,
+      "range_extrapolative": true,
+      "range_m": 40.0
+    }
+  ],
+  "headline_metric": "per-epsilon over_budget_pct and feasible_pct",
+  "limitations": [
+    "synthetic Markov channel composed with real CARLA scene replay",
+    "vehicle-only replay ground truth",
+    "three held-out replay episodes",
+    "40 m cells are extrapolative sensitivity",
+    "channel payload/FPS projection outside measured anchors",
+    "surrogate validation only"
+  ],
+  "run_directory": "rl_agent/policy/experiments/advisor_sweep_smoke/20260810_210456",
+  "run_type": "advisor_sweep_smoke",
+  "schema_version": 1,
+  "selected_replays": [
+    {
+      "episode_id": "20260715_214558_front_fusion_ego_1433",
+      "frame_count": 499,
+      "ground_truth_path": "staleness/metrics_logs/scenesense_runs/20260715_214558_front_fusion_ego_1433/streams/fusion_ego_1433_object_ground_truth.csv",
+      "ground_truth_sha256": "a368c0072a3a86f194cf702d0a65baf721158cc64569ebece64a21a84f2d69fe",
+      "prediction_path": "staleness/metrics_logs/scenesense_runs/20260715_214558_front_fusion_ego_1433/streams/fusion_ego_1433_object_predictions.csv",
+      "prediction_sha256": "c02964d93cf0dee4ae9fb3bb74d82649984b3d8729e88683f31dda128841c1aa",
+      "range_m": 25.0,
+      "run_group": "oppwin_fast_test",
+      "scenario_family": "oppwin_fast_test",
+      "split": "test"
+    },
+    {
+      "episode_id": "20260716_214839_front_fusion_ego_117",
+      "frame_count": 600,
+      "ground_truth_path": "staleness/metrics_logs/scenesense_runs/20260716_214839_front_fusion_ego_117/streams/fusion_ego_117_object_ground_truth.csv",
+      "ground_truth_sha256": "52ad439e355a3d9eb2b612168a3524284420c507a4eb2324b0a18085f6fe8365",
+      "prediction_path": "staleness/metrics_logs/scenesense_runs/20260716_214839_front_fusion_ego_117/streams/fusion_ego_117_object_predictions.csv",
+      "prediction_sha256": "39ecd210a9b1566292096097662edd46f8bcfb8cb6acfb05b4d5758f90587932",
+      "range_m": 25.0,
+      "run_group": "ctrl_obeylight_200k",
+      "scenario_family": "ctrl_obeylight_200k",
+      "split": "test"
+    },
+    {
+      "episode_id": "20260716_215808_front_fusion_ego_209",
+      "frame_count": 600,
+      "ground_truth_path": "staleness/metrics_logs/scenesense_runs/20260716_215808_front_fusion_ego_209/streams/fusion_ego_209_object_ground_truth.csv",
+      "ground_truth_sha256": "cdd3f66689ed58c44ba7e67153f5fa6e91d5468f7b6b76bfe9328cb0499ae779",
+      "prediction_path": "staleness/metrics_logs/scenesense_runs/20260716_215808_front_fusion_ego_209/streams/fusion_ego_209_object_predictions.csv",
+      "prediction_sha256": "31093e072e957930c9d72cd7efcae0615d98d67593efc21c6a4dfb96a16a03d1",
+      "range_m": 25.0,
+      "run_group": "ctrl_busylight_200k",
+      "scenario_family": "ctrl_busylight_200k",
+      "split": "test"
+    },
+    {
+      "episode_id": "20260715_214558_front_fusion_ego_1433",
+      "frame_count": 499,
+      "ground_truth_path": "staleness/metrics_logs/scenesense_runs/20260715_214558_front_fusion_ego_1433/streams/fusion_ego_1433_object_ground_truth.csv",
+      "ground_truth_sha256": "a368c0072a3a86f194cf702d0a65baf721158cc64569ebece64a21a84f2d69fe",
+      "prediction_path": "staleness/metrics_logs/scenesense_runs/20260715_214558_front_fusion_ego_1433/streams/fusion_ego_1433_object_predictions.csv",
+      "prediction_sha256": "c02964d93cf0dee4ae9fb3bb74d82649984b3d8729e88683f31dda128841c1aa",
+      "range_m": 40.0,
+      "run_group": "oppwin_fast_test",
+      "scenario_family": "oppwin_fast_test",
+      "split": "test"
+    },
+    {
+      "episode_id": "20260716_214839_front_fusion_ego_117",
+      "frame_count": 600,
+      "ground_truth_path": "staleness/metrics_logs/scenesense_runs/20260716_214839_front_fusion_ego_117/streams/fusion_ego_117_object_ground_truth.csv",
+      "ground_truth_sha256": "52ad439e355a3d9eb2b612168a3524284420c507a4eb2324b0a18085f6fe8365",
+      "prediction_path": "staleness/metrics_logs/scenesense_runs/20260716_214839_front_fusion_ego_117/streams/fusion_ego_117_object_predictions.csv",
+      "prediction_sha256": "39ecd210a9b1566292096097662edd46f8bcfb8cb6acfb05b4d5758f90587932",
+      "range_m": 40.0,
+      "run_group": "ctrl_obeylight_200k",
+      "scenario_family": "ctrl_obeylight_200k",
+      "split": "test"
+    },
+    {
+      "episode_id": "20260716_215808_front_fusion_ego_209",
+      "frame_count": 600,
+      "ground_truth_path": "staleness/metrics_logs/scenesense_runs/20260716_215808_front_fusion_ego_209/streams/fusion_ego_209_object_ground_truth.csv",
+      "ground_truth_sha256": "cdd3f66689ed58c44ba7e67153f5fa6e91d5468f7b6b76bfe9328cb0499ae779",
+      "prediction_path": "staleness/metrics_logs/scenesense_runs/20260716_215808_front_fusion_ego_209/streams/fusion_ego_209_object_predictions.csv",
+      "prediction_sha256": "31093e072e957930c9d72cd7efcae0615d98d67593efc21c6a4dfb96a16a03d1",
+      "range_m": 40.0,
+      "run_group": "ctrl_busylight_200k",
+      "scenario_family": "ctrl_busylight_200k",
+      "split": "test"
+    }
+  ],
+  "selection_made": false,
+  "source_hashes": {
+    "base_loc_calibration": "1.10 + raw - min(retained_raw)",
+    "catalog_file": "rl_agent/policy/data/action_catalog.csv",
+    "catalog_sha256": "93fce009924ab8ac227726eebb3613e61139ff401c801f57d2de94ee15f18d6a",
+    "channel_condition_sweep/combined_surface.csv": "c48c44667dec980d6a5a62abb4a081cb33ac70bdf33e9536187a8fd62007e5a1",
+    "flattened_action_count": 36,
+    "profile_count": 7,
+    "schema_version": 1,
+    "source_file": "rl_agent/PERMODEL_KNOB_MATRIX_ZSTD.md",
+    "source_sha256": "35cd80016383b80c61371ab4f75b986eb2cf0e8098c622f437f1c3679f1ae9ed",
+    "uplink_only_spatial_map_pipeline/results/chsweep_full_p3ae_.csv": "0f0d6ca3528878dbf27100592d8c34e9b7725cec98968e65ff14a855ca782cfc"
+  }
+}

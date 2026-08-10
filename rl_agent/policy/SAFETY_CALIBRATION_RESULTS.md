@@ -21,10 +21,17 @@ The requested grid is **degenerate under the current surrogate and cannot suppor
   37.24-37.30%. Shield over-budget stayed at 56.56%.
 
 Therefore `roc_nondominated` must not be used to select `(ucb_k, c1_pessimism_factor)`: its tiny differences
-are trajectory/count effects, not a meaningful safety frontier. The next decision is whether to retain the
-current `(1.0, 0.7)` values as explicitly uncalibrated placeholders for the advisor sweep, or first replace
-the ineffective `sigma` construction with a separately validated residual/conformal uncertainty estimate and
-rerun Step A. No choice is made here.
+are trajectory/count effects, not a meaningful safety frontier. Post-review, phase 1 adopts `(0.0, 0.70)` as
+an explicit engineering convention: zero honestly represents the inert UCB margin, while 0.70 matches the
+modeled -30% capacity floor. This is not a calibrated optimum. Residual/conformal uncertainty is deferred to
+live validation. The subsequently completed lag x noise grid found that estimator quality explains none of the
+headline gap at its ideal corner (0.00 percentage-point recovery; 0.10-point span across all 12 cells), so the
+remaining false rejection requires observation/speed/aggregation/map-trajectory attribution instead.
+
+The ensemble `sigma_hat` is not globally zero: 434 of 61,164 candidate evaluations had nonzero spread in a
+read-only audit of the 1,699 reference frames. It was numerical zero for every C1-admitted/raw-safe candidate
+at the 0.70 floor and for every selected action. That narrower fact is why `ucb_k` had no safe-set or selection
+effect in this experiment.
 
 ## Metric contract
 
@@ -36,7 +43,7 @@ rerun Step A. No choice is made here.
 - `mean_matched_true_scored_reward` evaluates the selected action with tracked-object hidden truth; `mean_true_scored_reward` is the strict end-to-end GT score and may be dominated by unobserved objects; `mean_matched_true_scored_reward_finite` excludes the explicit unobserved sentinel for interpretability; `mean_predicted_reward` is the deployable model's score.
 - Latency shocks are common random numbers indexed by episode and control tick, so policy-dependent capture counts do not desynchronize cells.
 
-## Current-pilot configuration anchor
+## Historical current-pilot anchor (`ucb_k=1.0` at run time)
 
 | cell_id       |   matched_false_admit_count |   admitted_send_count |   matched_false_admit_conditional_pct |   matched_false_admit_ci95_high_pct |   false_reject_count |   true_feasible_frame_count |   false_reject_conditional_pct |   split_pct |   capture_attempt_pct |   over_budget_pct |   c1_estimate_miss_count |   attempts |   c1_estimate_miss_pct_attempted |   mean_true_scored_reward |   mean_matched_true_scored_reward |   mean_matched_true_scored_reward_finite |   matched_true_reward_finite_frame_count |   mean_predicted_reward |   mean_prb_cost |   max_risk_sigma_m |   oracle_action_set_mismatch_pct |   shield_skip_clairvoyant_split_pct | roc_nondominated   |
 |:--------------|----------------------------:|----------------------:|--------------------------------------:|------------------------------------:|---------------------:|----------------------------:|-------------------------------:|------------:|----------------------:|------------------:|-------------------------:|-----------:|---------------------------------:|--------------------------:|----------------------------------:|-----------------------------------------:|-----------------------------------------:|------------------------:|----------------:|-------------------:|---------------------------------:|------------------------------------:|:-------------------|
@@ -94,7 +101,10 @@ rerun Step A. No choice is made here.
 - Wilson intervals treat frames as binomial trials and are descriptive only because replay frames are temporally correlated.
 - Matched/tracked C2 and strict end-to-end GT exposure remain distinct; observation coverage is not reinterpreted as shield error.
 - The corpus is vehicle-only and all payload/FPS projection caveats from the pilot remain in force.
-- Stop here for Abiodun/advisor review; do not launch the reward or 3x2x2 sweeps yet.
+- Post-review phase-1 convention: `ucb_k=0`, `c1_pessimism_factor=0.70`; the 0.70 value is an engineering
+  convention matching the modeled capacity floor, not a statistically calibrated choice.
+- Residual/conformal uncertainty remains deferred to live validation. Follow-on estimator-quality, reward,
+  and advisor sweeps are separate characterizations and do not retroactively select a Step-A cell.
 
 ## Artifacts
 

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 from pathlib import Path
 from typing import List, Tuple
@@ -87,6 +86,7 @@ def run(config_path: Path | None = None) -> Path:
                 surface,
                 seed + 10_000,
                 latency_mode="sample",
+                latency_crn_by_tick=bool(config["pilot"]["common_random_latency_by_tick"]),
             )
             result = run_oracle(env, controller)
             for row in result.rows:
@@ -125,13 +125,24 @@ def run(config_path: Path | None = None) -> Path:
             "skip_pct",
             "capture_attempt_pct",
             "delivery_pct_attempted",
+            "c1_estimate_miss_count",
+            "attempts",
             "c1_estimate_miss_pct_attempted",
+            "c1_estimate_miss_ci95_low_pct",
+            "c1_estimate_miss_ci95_high_pct",
             "over_budget_pct",
             "selected_true_safe_pct",
             "selected_matched_true_safe_pct",
             "false_admit_selected_pct",
             "false_admit_selected_matched_pct",
-            "false_reject_frame_pct",
+            "matched_false_admit_conditional_pct",
+            "matched_false_admit_ci95_high_pct",
+            "false_reject_conditional_pct",
+            "matched_false_reject_count",
+            "matched_true_feasible_frame_count",
+            "matched_false_reject_conditional_pct",
+            "matched_false_reject_ci95_low_pct",
+            "matched_false_reject_ci95_high_pct",
             "mean_prb_cost",
             "mean_oracle_reward_gap_safe_only",
             "oracle_action_set_mismatch_pct",
@@ -151,22 +162,33 @@ def run(config_path: Path | None = None) -> Path:
         "- Contract tests: PASS",
         "- Four deterministic acceptance episodes: PASS",
         "- One-config real-replay pilot: COMPLETE",
-        "- Twelve-condition advisor sweep: NOT STARTED (still gated on review of this pilot)",
+        "- Twelve-condition advisor sweep: authorized as a separate advisor-facing characterization",
         "",
         "## Pre-sweep verdict",
         "",
-        "The implementation and pilot gates pass, but the 12-condition advisor sweep remains intentionally "
-        "paused until the pre-registered weight sensitivity and metric-scope review are complete.",
+        "The implementation and pilot gates pass. This refreshed baseline uses the agreed phase-1 shield "
+        "convention and paired per-tick latency shocks; separate sensitivity reports carry the causal claims.",
         "",
-        f"- Matched/tracked-object false admission: "
-        f"{shield_overall['false_admit_selected_matched_pct']:.2f}%.",
-        f"- Matched/tracked-object false rejection: {shield_overall['false_reject_frame_pct']:.2f}%.",
+        f"- Matched/tracked-object false admission conditional on admitted SPLIT: "
+        f"{shield_overall['matched_false_admit_conditional_pct']:.2f}% "
+        f"({int(shield_overall['matched_false_admit_count'])}/{int(shield_overall['admitted_send_count'])}; "
+        f"descriptive Wilson upper {shield_overall['matched_false_admit_ci95_high_pct']:.2f}%).",
+        f"- Full-GT false rejection conditional on a truly feasible frame: "
+        f"{shield_overall['false_reject_conditional_pct']:.2f}% "
+        f"({int(shield_overall['false_reject_count'])}/{int(shield_overall['true_feasible_frame_count'])}).",
+        f"- Matched/tracked-object false rejection conditional on a truly feasible frame: "
+        f"{shield_overall['matched_false_reject_conditional_pct']:.2f}% "
+        f"({int(shield_overall['matched_false_reject_count'])}/"
+        f"{int(shield_overall['matched_true_feasible_frame_count'])}).",
         f"- Strict end-to-end GT false admission: {shield_overall['false_admit_selected_pct']:.2f}% "
         f"with {shield_overall['observation_coverage_pct']:.2f}% observation coverage; this includes upstream "
         "perception misses and must not be attributed solely to the channel/AoI shield.",
         f"- Frames flagged over budget by the shield: {shield_overall['over_budget_pct']:.2f}%.",
         f"- C1 estimate misses among attempted captures: "
-        f"{shield_overall['c1_estimate_miss_pct_attempted']:.2f}%.",
+        f"{shield_overall['c1_estimate_miss_pct_attempted']:.2f}% "
+        f"({int(shield_overall['c1_estimate_miss_count'])}/{int(shield_overall['attempts'])}; "
+        f"descriptive Wilson 95% CI {shield_overall['c1_estimate_miss_ci95_low_pct']:.2f}-"
+        f"{shield_overall['c1_estimate_miss_ci95_high_pct']:.2f}%).",
         "",
         "## Overall pilot summary",
         "",
@@ -185,6 +207,10 @@ def run(config_path: Path | None = None) -> Path:
         "`capture_attempt_pct` is the actual transmitted-frame fraction.",
         "- Shield false-admit/reject values are surrogate validation against replay GT + synthetic channel truth, "
         "not live safety validation.",
+        "- The phase-1 convention `ucb_k=0`, `c1_pessimism_factor=0.70` is an engineering choice matching "
+        "the modeled -30% capacity floor, not a statistically calibrated operating point.",
+        "- The 0.70 C1 convention produced only a thin attempted-send denominator in prior calibration; "
+        "its descriptive miss interval must be carried with the point estimate.",
         "- `false_admit_selected_matched_pct` isolates localization-shield failures on matched/tracked objects, "
         "matching the staleness study's C2 domain. `false_admit_selected_pct` is the stricter end-to-end GT "
         "exposure and includes upstream perception misses. Observation coverage is reported separately.",
@@ -217,6 +243,7 @@ def run(config_path: Path | None = None) -> Path:
             "selected_replays": selected_manifest,
             "source_hashes": {**surface.source_hashes, **catalog_meta},
             "projection": projection,
+            "common_random_latency_by_tick": bool(config["pilot"]["common_random_latency_by_tick"]),
             "limitations": [
                 "synthetic Markov channel composed with real CARLA scene replay",
                 "vehicle-only replay ground truth",

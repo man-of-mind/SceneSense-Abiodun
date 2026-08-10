@@ -61,10 +61,16 @@ quality uses `0.50·mIoU/mIoU_ref + 0.25·ped_recall/ped_ref + 0.25·obj_recall/
 **Phase-1 shield basis (2026-08-10, Step-A result — see REWARD_FORMULATION §5c):** in the *surrogate* the tail
 shield is realized as the **hard C1 mask + the deterministic p95 localization tail**, with the UCB margin
 **inert** (`ucb_k = 0`, `c1_pessimism_factor = 0.70`). The `B = E_hat_risk + k·sigma_hat` UCB stays in code as
-the design but `sigma_hat ≡ 0` in the surrogate (capacity-invariant latency + C1 floor = min multiplier), so it
-carries no leverage; it activates only with a validated residual/conformal model at **live validation**. Do not
-present `ucb_k` as a calibrated knob in phase-1 results. The identifiable in-surrogate knob is estimator quality
-(`telemetry_lag_steps × estimate_noise_fraction`), which drives the ~42% false-reject.
+the design. At the 0.70 C1 floor it is numerical zero for every C1-admitted/raw-safe/selected action; some
+C1-rejected candidates can still have nonzero ensemble spread, so `sigma_hat` is not globally zero. The margin
+therefore has no leverage on phase-1 safe sets or selections and activates only with a validated
+residual/conformal model at **live validation**. Do not present `ucb_k` or the 0.70 floor as statistically
+calibrated phase-1 knobs: 0.70 is a conservative engineering convention matching the modeled -30% capacity
+floor. The completed 4×3 estimator grid **falsified** lag/noise as the driver of the ~42% full-GT false-reject
+rate at this fixed point: the ideal `(lag=0, noise=0)` cell recovered 0.00 percentage points and all 12 cells
+spanned only 0.10 points. Lag/noise changed raw-safe sets but almost never the selected action. Attribute the
+remaining gap among observation mismatch/coverage, speed uncertainty, worst-object aggregation, and map-state
+trajectory before changing the shield or reward; do not label it irreducible.
 Delivery installs the selected profile quality; drop/SKIP retains prior valid map quality; a new unobserved
 object has zero map quality. Define references from best-achievable measurements and run the pre-registered
 one-at-a-time weight sensitivity before the 12-condition sweep.
