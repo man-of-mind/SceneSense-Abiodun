@@ -978,6 +978,115 @@ binary — take neither verbatim.** Confirmed root cause from the tables (not ju
    recovered-utility vs lag/noise as the identifiable substitute for the dead calibration grid.
 Nothing here needs OAI/CARLA. Hold conformal σ̂ for the live-validation phase.
 
+### LOCAL review of the full Track A sequence (estimator grid + advisor sweep + refreshed pilot) — 2026-08-10
+**Accept all four runs. My lag/noise hypothesis is cleanly FALSIFIED — good, that's what the experiment was for.
+Endorse 25 m as headline. One more read-only attribution pass (with an added ablation I specify), then PIVOT to
+the controller ladder — we are at diminishing returns on shield diagnostics.**
+
+What the data actually shows:
+- **Estimator grid falsifies lag/noise:** ideal (lag0/noise0) recovers 0.00 pp of the ~42% false-reject; whole
+  grid spans 0.10 pp. Correctly not labelled irreducible. My hypothesis was wrong; accepted.
+- **25 m is sound, 40 m is not:** pooled matched false-admit 1.68% (2/119) at 25 m vs **37.5% (63/168) at 40 m**,
+  and per-cell at range25 it's ~0 across ε (0/15 at ε2). 40 m false-admits because base_loc is extrapolated past
+  the knob-matrix's measured validity → the shield trusts a wrong risk estimate. Keep 25 m headline, 40 m
+  diagnostic-only until live-validated. Fully agree with codex.
+- **Achievability frontier is a real result:** even the clairvoyant is only ~54% feasible at ε=2.0 (46.8/53.9/60.3
+  for ε=1.5/2.0/2.5). The ε target is often *physically* infeasible given speeds+latency — this MOTIVATES the
+  adaptive/graceful-degradation design and is publishable as-is.
+
+**Diagnosis of the still-unexplained ~42% false-reject (my leading suspect, add it to the decomposition):** with
+lag/noise ruled out, the dominant deployable-vs-clairvoyant asymmetry is the **±30% capacity risk ENSEMBLE
+itself** — the deployable p95 is taken over 7 capacity multipliers `[0.70..1.30]` (shield.py:139-143), so any
+SPLIT whose offered rate sits in that band gets drop-outcomes → prior_error(stale) → inflated p95 → rejected;
+the clairvoyant scores a single true-capacity outcome. This is the SAME degenerate ensemble that made ucb inert,
+now revealed as the thing inflating the bound even at ucb_k=0. Co-suspects: speed-σ inflation (1.645σ, 0.5 floor)
+on observed objects, worst-object `max` aggregation, and the 45%-coverage object-set mismatch (clairvoyant scores
+all truth objects incl. the 55% unobserved; deployable scores only observed).
+
+### ▶ NEXT ACTION for codex — ONE read-only attribution pass, then pivot (2026-08-10)
+Read-only, reuse the ε2/core90/range25 pilot trajectory, no retrain. Toggle ONE mechanism at a time and report
+the false-reject delta so we can attribute the observability cost:
+1. **Capacity risk-ensemble width → 0** (deployable uses point-estimate single outcome, like clairvoyant). If
+   false-reject collapses, the ±30% band is the driver. *(This is the ablation I most want — it's the analog of
+   the inert-ucb finding.)*
+2. **Speed-σ inflation off** (set 1.645σ term to 0 / σ-floor to 0) — isolates tracker speed-uncertainty cost.
+3. **Aggregation max → object-tail/quantile** — isolates worst-object bottleneck.
+4. **Score deployable on matched-truth object set** (remove the coverage mismatch) — isolates the 55%-unobserved
+   effect. (matched_false_reject is already ~37% vs 42% full-GT, so coverage is ~5 pp of it; confirm.)
+Emit a single `ATTRIBUTION_RESULTS.md` with per-toggle false-reject deltas + a stacked-bar figure. This is the
+LAST shield-diagnostic pass regardless of outcome — do not open new shield sweeps after it.
+
+**Then pivot to the controller ladder (§8):** rule/greedy → contextual bandit → shielded MPC, all on the same
+surrogate + shield, measuring the anticipatory/sequential gap. That ladder — not more shield analysis — is where
+the research contribution lives. Presentation nit for the advisor sweep: report per-ε feasibility **at
+range=25 only** as the headline; the current per-ε table pools 40 m and inflates matched-false-admit.
+
+**Strategic note (for Abiodun + advisor, not codex):** three shield dials in a row (ucb_k, pessimism, lag/noise)
+are now falsified/inert; the residual variance is structural (ensemble/aggregation/coverage), and the corpus is
+send-sparse (~5% SPLIT, thin denominators, vehicle-only). Shield diagnostics are near saturation. After the
+attribution pass, the two highest-value moves are (a) build the controller ladder, and (b) **enrich the replay
+corpus** (denser/faster scenes and/or the labelled synthetic-pedestrian stress) so the SPLIT/safety evidence
+stops being denominator-starved. (a) is unblocked now; (b) is a corpus decision for the advisor.
+
+### DECISION (Abiodun, 2026-08-10): ENRICH CORPUS FIRST, then controllers. Revised ordering:
+**attribution pass → corpus enrichment → controller ladder.** Rationale: building rule/bandit/MPC on the current
+send-sparse, 45%-coverage, vehicle-only corpus would propagate thin denominators into the controller comparison
+too. Enrich once, up front, so both the safety numbers and the controller results are credible.
+
+### ▶ CORPUS ENRICHMENT SPEC (codex; after the attribution pass) — bounded, do NOT expand beyond this
+Real CARLA vehicle traces stay the **primary grounded corpus**. Add a **separately-labelled synthetic stress
+extension** (NO CARLA needed — programmatic, controllable GT) that emits the exact staleness schema the surrogate
+already parses (`<name>_object_ground_truth.csv` + `<name>_object_predictions.csv`; actor `origin_x/origin_y`,
+class, per-object speed, `in_camera_frustum`, range; predictions carry score ≥0.20). Keep it clearly labelled
+synthetic — it is a stress extension, never presented as real-replay validation (matches the pilot caveat).
+Three scenario families only:
+1. **`ped_crossing`** — 5–15 pedestrians @ 1–2 m/s crossing, within 25 m. Unblocks the `ped_recall` reward term
+   and the advisor's pedestrian-floor question, both of which currently have **zero** data.
+2. **`fast_vehicles`** — vehicles @ 13–22 m/s (30–50 mph), within 25 m. AoI binds fast → forces frequent SPLIT →
+   fixes the thin SPLIT denominator and exercises localization-under-latency where ε actually binds.
+3. **`dense_mixed`** — 15–25 mixed veh+ped objects. Stresses worst-object `max` aggregation and raises per-frame
+   binding frequency.
+One **declared** perception/tracker noise model: prediction = GT + position noise (calibrated to the ~1.1 m
+matcher floor), speed = finite-difference + σ, a detection-miss rate giving ~70–90% coverage (higher than the
+real 45% ON PURPOSE, so coverage is a controlled variable, not a confound). Document the model in a header; it is
+not a black box. Split scenario families into train/val/test like the real corpus. Re-run the ε2/core90/range25
+pilot on real + synthetic to show the SPLIT/safety denominators are no longer starved.
+
+**Deferred (advisor call, NOT for codex now):** generating fresh *real* CARLA dense/fast scenes as a real-data
+anchor for the synthetic stress. Bigger cost (CARLA box + render-contention/GPU-pin care per CLAUDE.md); only if
+the advisor wants a real corroboration of the synthetic stress. The synthetic labelled extension is sufficient to
+unblock the controller ladder.
+
+### UPDATE (Abiodun, 2026-08-10): PIVOT to REAL CARLA data (not synthetic-first). Internship extended +3 months.
+Abiodun wants "more accurate data to build the environment cleanly" and no compromise. So **real CARLA collection
+with pedestrians is now the PRIMARY enrichment**, and the synthetic labelled stress is demoted to an optional
+supplement (or dropped). Two artifacts written for review:
+- `rl_agent/PRESENTATION_STORY.md` — plain-language talk track + shared north star + "we are here" marker + the
+  3-safety-dials thought-process table for the upcoming meeting. **codex: sanity-check the framing for accuracy;
+  it's the alignment doc.**
+- `rl_agent/policy/DATA_COLLECTION_PLAN.md` — the corpus spec. **codex: review this bit-by-bit before anyone
+  runs CARLA.**
+
+Data inspection (2026-08-10) that motivates it: the staleness traces are physically sound (real sizes/positions,
+actor-origin convention) but **GT is vehicles-only** — the detector already emits `person` predictions, but with
+no pedestrian GT we cannot score pedestrian localization/recall at all. Plus sends are ~5% (thin denominators)
+and coverage ~45%. The corpus is the binding limit, so we fix it before building controllers.
+
+### ▶ NEXT ACTION for codex (2026-08-10)
+1. **Review `DATA_COLLECTION_PLAN.md`** — is the reuse (staleness collector + existing walker-spawn scripts)
+   right, are the 3 scenario families + verification gates sufficient and not overkill, and is the pedestrian-GT
+   logging delta correctly scoped (actor-origin convention, same schema)? Record verdict here.
+2. **Own the collector edit + verifier AND run it on L10319** (decided 2026-08-10): L10319 also has CARLA
+   0.10.0, and since codex runs the whole downstream chain (environment → controllers → eval) there, collecting
+   on the same box/version keeps one provenance chain (no cross-version drift). Copy the base collector into
+   `abiodun/data_collection/`, add walker spawn + pedestrian GT logging (actor-origin, same schema), write the
+   `CORPUS_VERIFICATION.md` checker (§5), then run. **Prereq check first:** detector weights present + perception
+   runs on L10319, same 0.10.0/Town10HD_Opt, GPU free enough to avoid the render-throttle bug.
+3. **Optional, low-priority sidecar:** the read-only attribution pass (capacity-ensemble / aggregation / coverage
+   toggles) is now DEFERRED — with the corpus being rebuilt, the 42% false-reject will be re-measured anyway.
+   Run it only if idle; it does not gate the data work.
+Everything shield-side is on hold; the corpus is the critical path.
+
 ## 2026-08-10 — CODEX follow-on execution: estimator hypothesis falsified; reward robust; 40 m boundary exposed
 
 All authorized work remained table-driven SPLIT+SKIP. No CARLA, OAI, LOCAL, RL training, or model training ran.
