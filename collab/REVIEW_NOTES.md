@@ -827,3 +827,76 @@ SNR/capacity. Enforces the POMDP realism and ties to item 15 (key off observed r
 advisor: items 2, 6, 11. Needs your proposal for review: item 20 (accuracy utility). Before finalizing the
 reward/MDP, wire in item 17 (map age/AoI) — that's the one structural change. Build config-agnostically
 (item 15). Commit + push the surrogate env + bandit baseline and I'll review here.
+
+## 2026-08-10 — LOCAL review of the Track A SPLIT+SKIP pilot (commit 6f466b9) — VERDICT: PASS, sweep may proceed with 2 additions
+Reviewed bit-by-bit against v4 + the frozen contract: `POLICY_RESULTS.md`, `ACCEPTANCE_RESULTS.md`,
+`IMPLEMENTATION_CONTRACT.md`, `configs/track_a_pilot.yaml`, and the three safety-critical modules
+`shield.py` / `oracles.py` / `env.py`. **The implementation is faithful.** Verified concretely:
+- Tail-risk shield: `bound = risk_p95 + ucb_k·sigma` deployable, `= risk_p95` clairvoyant (shield.py:199-201). Not median. ✓
+- G ordering: per-outcome `max_j e_j` FIRST (`_aggregate`), THEN p95 across the 7 capacity multipliers (shield.py:193-199). ✓ matches the object-first normative order.
+- Interval-covering C2: delivered object w/ prior contribution charges `max(delivered_error, prepublish_error)`; newly observed uses recovery risk over `capture_delay+latency` (shield.py:171-186). ✓ matches contract §4 — prevents 2 FPS looking safe via its eventual fresh frame.
+- Hidden-truth separation: deployable path uses `estimated_capacity`+`observed_rung`; `true_evaluation`/`clairvoyant` use true capacity+true rung and are used ONLY for scoring, never for the shielded controller's selection (env.py:174-202, oracles.py:22-24). Map is seeded only by `observed_objects`, never GT (env.py:266). ✓
+- C1 mask, empty-scene G=0, per-object AoI aging by one control tick on SKIP: all correct.
+
+**Reframe of the headline safety number (important — don't over-read it).** `false_admit_selected_matched = 0.00%`
+on tracked objects is **sound-by-construction, not a surprising empirical win**: the deployable bound inflates
+risk three ways vs the matched-truth check (pessimism 0.70 on capacity, `+ucb_k·σ`, and speed `+1.645σ` on both
+sides) so `bound ≤ ε ⇒ true p95 risk ≤ ε` almost by design. That is exactly what a sound shield should show — but
+its **cost** is the real story: `false_reject_frame = 8.77%` and the SPLIT rate collapsing from clairvoyant 51.0%
+→ shielded **6.1%** (oracle_action_set_mismatch 28.7%, almost all "shield skipped where clairvoyant would send").
+The 0%/6% operating point is a **direct consequence of `ucb_k=1.0` + `pessimism=0.70`**, nothing else.
+
+**⇒ Addition 1 (required before the 12-config sweep): put the safety-conservativeness knobs in the sensitivity
+axis.** The pre-registered one-at-a-time currently varies only `w_error`, `lambda_prb`, `w_task` — reward-shaping
+terms that barely move behavior while the shield is the binding gate. Add `ucb_k ∈ {0.5, 1.5}` and
+`c1_pessimism_factor ∈ {0.6, 0.8}`. The single most valuable output is a **false-admit vs false-reject (ROC-style)
+curve over `ucb_k`** — that curve *is* the safety/utility story for the paper, and right now it's un-swept.
+
+**Addition 2 (framing, not code): report over-budget/feasibility rate per ε as a headline, not a footnote.**
+`over_budget = 56.7%` shielded / **39.2% clairvoyant** is NOT a bug — even with true capacity, in ~39% of ticks
+no action meets ε=2.0 at the tail. Root cause is **`aggregation: max` over objects**: one fast or stale object
+sets the whole-frame bound. Since ε is already a swept axis (3 values), the per-ε feasibility rate is the
+"safety-achievability frontier" and is one of the most informative results the sweep can produce. Name explicitly
+that per-frame feasibility is bottlenecked by the worst object, and that object-selective transmission (parked
+phase-2) is the structural relief — don't quietly absorb it.
+
+**Honest caveats already stated correctly, no action needed:** strict E2E false-admit 11.83% is contaminated by
+45.18% observation coverage (upstream perception misses, not shield failures) and is labelled as such; vehicles-only
+corpus (no pedestrian claims); 25–40 m extrapolative and unused; projections stay within ~1.4× of the 90 KB
+measured anchor (payload-projected 58.4% of attempts). Acceptance episodes pass all six structural invariants;
+their high over-budget (fast_strong 100%, clear_to_fade 98%) is by construction of the stress scenarios.
+
+**Nothing here blocks the sweep.** Recommend codex: (1) extend the one-at-a-time to include `ucb_k` +
+`c1_pessimism_factor` and emit the false-admit/false-reject-vs-`ucb_k` curve; (2) make per-ε feasibility a
+first-class reported result; then run the 3×2×2. LOCAL 4th table + synthetic-pedestrian stress remain separately
+gated (need OAI stack / labelled trace) and are correctly out of this pilot.
+
+### ▶ NEXT ACTION for codex — safety-calibration grid BEFORE the 3×2×2 advisor sweep (2026-08-10)
+Abiodun's steer: don't pre-fix `ucb_k`/`pessimism` — sweep realistic values, produce the curve, pick the
+operating point afterward (with the advisor). Do this as a **separate, decoupled** characterization at the FIXED
+pilot point so it stays a small grid, not a 300-config explosion.
+
+**Step A — safety-calibration grid (new, run first).** Hold ε=2.0, `preferred_core_kib=90`, `range_m=25`, and the
+same test split (3 episodes × channel seeds `[1101,2202,3303]`). Grid the two shield knobs only:
+- `ucb_k ∈ {0.0, 0.5, 1.0, 1.5, 2.0}`  (0.0 = pure p95, no extra margin; 1.0 = current pilot)
+- `c1_pessimism_factor ∈ {0.6, 0.7, 0.8, 0.9, 1.0}`  (1.0 = trust the estimate, no capacity haircut)
+
+25 cells, surrogate-only, cheap. These are proposed *realistic* ranges — adjust the endpoints if you think they
+clip something interesting, but keep 1.0/0.7 in the grid as the current-pilot anchor.
+
+Per cell, emit into a `safety_calibration/` table + figure:
+`matched_false_admit_pct`, `false_reject_frame_pct`, `split_pct`, `over_budget_pct`, `c1_estimate_miss_pct`,
+`mean_reward`, `mean_prb_cost`, `oracle_action_set_mismatch_pct`. Primary artifact = an **ROC-style scatter:
+matched-false-admit (x) vs false-reject (y)**, each point annotated `(ucb_k, pessimism)`, with the send-rate and
+over-budget as a second panel. **Then STOP and surface the curve here — do NOT pick the operating point
+unilaterally.** Abiodun + advisor choose `(ucb_k, pessimism)` from it; that chosen point becomes the fixed shield
+config for Step B.
+
+**Step B — the advisor sweep, at the chosen operating point.** Once the point is picked, run the 3 ε × 2
+preferred-core × 2 range grid as already gated. Make **per-ε feasibility/over-budget rate a first-class reported
+result** (the safety-achievability frontier), and state plainly that per-frame feasibility is bottlenecked by the
+worst object under `aggregation: max` — object-selective TX is the named phase-2 relief. Keep the existing
+reward-weight one-at-a-time (`w_error`/`lambda_prb`/`w_task`) as a secondary robustness check.
+
+Do NOT couple Step A into the 3×2×2 (that's 300 configs). A is a fixed-point characterization; B is the axis
+sweep at one calibrated point.
