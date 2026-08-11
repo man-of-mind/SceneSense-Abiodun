@@ -1,9 +1,10 @@
 # Data-collection plan — richer CARLA corpus to build the environment cleanly
 
-**Current status (2026-08-11):** candidate v1 is immutable and quarantined for policy use. Detection
-reconciliation found a collection-recipe regression (5,000 radar points/s and NMS-4/top-80 versus the validated
-200,000 points/s and NMS-2/top-120 recipe). The authorized next step is the gated three-arm smoke in §11. A
-corrected full collection may start only if the separate vehicle, pedestrian, and fast-in-view gates all pass.
+**Current status (2026-08-11):** candidate v1 is immutable and quarantined for policy use. The matched gate
+confirmed that its vehicle-detection deficit was a 5,000-points/s collection regression: the corrected 200,000
+points/s recipe restored 93–97% target coverage and the exact convoy held 13.37 m/s in view for 8.0 s. Work is
+now split: the versioned Track A vehicle-only collection in §13 may proceed independently, while Track B fixes
+and re-runs the still-invalid pedestrian realization before any pedestrian corpus or claim is admitted.
 
 **Why:** the current replay corpus (staleness study) is the binding limit on the policy environment. Inspection
 (2026-08-10) confirmed the traces are physically sound BUT: (a) **ground truth is vehicles only — no pedestrian
@@ -279,3 +280,62 @@ The earlier partial/failed setup batches remain diagnostic artifacts only. The f
 review. Any next attempt must first fix the controlled pedestrian world placement in the derived collector,
 add a genuinely crowded pedestrian realization, and pre-register whether more matched frames are needed for
 the vehicle CI; it must not weaken the accepted gates after observing this result.
+
+## 13. Authorized Track A vehicle corpus — version 2 (prepared 2026-08-11)
+
+The vehicle result in §12 is accepted as confirmation of the detector fix despite the pre-registered Arm-3
+lift CI grazing zero: Arm 2 isolated a +15 pp PPS lift with a positive CI, both 200k arms reached 93–97%
+absolute coverage, and the fast-in-view realization passed. This does not convert the invalid pedestrian arm
+into evidence. Track B remains a separate, unchanged-gate experiment.
+
+Track A is registered in `data_collection/configs/policy_corpus_vehicle_v2.yaml`, with a distinct immutable
+output root `data_collection/experiments/policy_corpus_vehicle_v2/`. It locks 200,000 radar points/s, the FAST
+rasterizer, two-frame radar history, score threshold 0.05, NMS radius 2, top-120, the exact no-AE checkpoint,
+and actor-origin matching/replay coordinates. The runner rejects any per-run override that drifts these values
+or requests pedestrians. It also refuses to start if the shared CARLA world already contains dynamic actors;
+it never cleans up actors owned by another process.
+
+The corpus has four vehicle-only regimes, each independently represented by 4 train / 2 validation / 2 test
+trajectories (32 runs total): slow urban flow, typical urban flow, dense urban flow, and a controlled exact
+13.4 m/s convoy at an 18 m gap. The first three request 500 processed frames. Exact constant velocity is a
+short straight-road instrument, so those episodes are limited to 100 frames; each is accepted only from GT if
+the tagged target actually sustains at least 10 m/s while in-frustum and within 25 m for at least 5 continuous
+seconds. Thus target arguments and requested counts never substitute for realized-regime evidence.
+
+Verification uses `verify_policy_corpus.py` with the resolved v2 collection config. It keeps schema, position,
+prediction/result, actor-cleanup, timing, vehicle replay-coverage, runtime top-k, and exact-fast realization
+gates. It reports decoder saturation by regime. Pedestrian denominators are explicitly out of scope, and the
+old send-needed/selected-action thresholds are diagnostics rather than collection gates under the corrected
+phase-1 goal. A failed batch remains quarantined. A `PASS` batch then receives the controller-independent
+freshness analysis using `configs/freshness_rescore_vehicle_v2.yaml`; controller training must use whole-
+trajectory splits from the verifier and preserve validation/test as held-out data.
+
+The exact preparation and execution commands are in `data_collection/README.md`. Configuration and dry-run
+validation do not launch CARLA. The live sequence remains smoke, inspect manifest/realized conditions, full
+collection, verifier, then freshness rescore. Track A results and Track B re-smoke results are reported
+separately; pedestrians may be folded into a later version only after Track B passes its unchanged gates.
+
+## 14. Parallel execution outcome — 2026-08-11
+
+Track A completed independently. The 32-run vehicle-v2 batch is
+`data_collection/experiments/policy_corpus_vehicle_v2/20260811_110400_full`; verification
+`20260811_185731` is **`PASS`**. Vehicle replay observation coverage is 54.86% versus the 45.18% legacy floor,
+all decoder/timing/cleanup gates pass, and each exact-fast run realizes about 13.38 m/s with at least 9.9 s
+in scope. Freshness analysis `20260811_185940` confirms slow and sustained-fast regimes in every split; its
+`HUMAN_REVIEW_REQUIRED` label is the declared human admission step, not a corpus-verification failure.
+
+The pre-RL ladder completed on the verifier's immutable grouped split at
+`rl_agent/policy/experiments/controller_ladder/20260811_190816`. Greedy and three-step shielded MPC are
+effectively tied on held-out matched-true reward (0.4872/0.4875) and matched safety, while LinUCB and the
+hand-written rule are lower. Therefore no sequential-value case for DQN/discrete SAC has yet been established;
+the locked simplest-controller/adoption rule holds RL pending joint review rather than manufacturing a run.
+
+Track B is a separate **`FAIL_HOLD`** at
+`data_collection/experiments/detection_ab_gate_v2/20260811_191600_smoke/gate_analysis/20260811_191556`.
+World placement, target eligibility, 96-walker crowd realization, top-80 saturation, timing, pairing, and
+cleanup all pass. The unchanged pedestrian gate does not: Arm-1/2/3 target coverage is 17.20/16.80/15.60%,
+and Arm-3 lift is -1.60 pp with 95% CI [-8.00, 4.80]. The 250-frame vehicle gate also lacks the required lift
+(69.54/69.54/70.86%; Arm-3 +1.32 pp, CI [-8.61, 11.92]), although its first 80 eligible frames reproduce the
+earlier 82.50/96.25/96.25% result before a later fast-tail collapse. Do not collect or fold a pedestrian corpus
+from this gate. Preserve both tracks and await joint review; do not shorten the horizon or tune thresholds
+after observing the outcome.

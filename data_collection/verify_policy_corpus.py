@@ -75,6 +75,38 @@ def _quantile(values: pd.Series, q: float) -> float | None:
     return float(clean.quantile(q)) if len(clean) else None
 
 
+def _longest_true_dwell(mask: Sequence[bool], timestamps: Sequence[float]) -> float:
+    values = np.asarray(mask, dtype=bool)
+    times = np.asarray(timestamps, dtype=float)
+    if not len(values):
+        return 0.0
+    finite_deltas = np.diff(times)
+    finite_deltas = finite_deltas[np.isfinite(finite_deltas) & (finite_deltas > 0.0)]
+    nominal_dt = float(np.median(finite_deltas)) if len(finite_deltas) else 0.0
+    longest = 0.0
+    start: int | None = None
+    previous: int | None = None
+    for index, enabled in enumerate(values):
+        contiguous = (
+            previous is None
+            or nominal_dt <= 0.0
+            or times[index] - times[previous] <= 1.5 * nominal_dt
+        )
+        if enabled:
+            if start is None or not contiguous:
+                if start is not None and previous is not None:
+                    longest = max(longest, times[previous] - times[start] + nominal_dt)
+                start = index
+        elif start is not None:
+            assert previous is not None
+            longest = max(longest, times[previous] - times[start] + nominal_dt)
+            start = None
+        previous = index
+    if start is not None and previous is not None:
+        longest = max(longest, times[previous] - times[start] + nominal_dt)
+    return float(longest)
+
+
 def _inspect_run(
     run_spec: Mapping[str, object],
     run_dir: Path,
@@ -186,7 +218,12 @@ def _inspect_run(
             failures.append("implausible_pedestrian_height")
         if (~width.between(width_low, width_high)).any():
             failures.append("implausible_pedestrian_width")
-    requires_pedestrian = str(run_spec["scenario_family"]) in {"ped_crossing", "mixed_urban"}
+    requires_pedestrian = bool(
+        verify.get(
+            "require_pedestrian_gt_per_run",
+            str(run_spec["scenario_family"]) in {"ped_crossing", "mixed_urban"},
+        )
+    )
     pedestrian_matches = 0 if matches.empty else int((matches["class_name"] == "pedestrian").sum())
     if requires_pedestrian and pedestrian_eligible.empty:
         failures.append("no_in_range_in_frustum_pedestrian_gt")
@@ -217,6 +254,67 @@ def _inspect_run(
     vehicle_speed = pd.to_numeric(
         gt.loc[gt["class_name"] == "vehicle", "derived_speed_mps"], errors="coerce"
     ).dropna()
+    diagnostics_present = pd.to_numeric(
+        metrics.get("decode_diagnostics_present", pd.Series(0, index=metrics.index)),
+        errors="coerce",
+    ).fillna(0).astype(bool)
+    diagnostics_fraction = float(diagnostics_present.mean()) if len(metrics) else 0.0
+    minimum_diagnostics = float(verify.get("minimum_decoder_diagnostics_fraction", 0.0))
+    if diagnostics_fraction < minimum_diagnostics:
+        failures.append("decoder_diagnostics_below_minimum")
+    pre_topk = pd.to_numeric(
+        metrics.get(
+            "decode_pre_topk_above_threshold_count", pd.Series(dtype=float)
+        ),
+        errors="coerce",
+    ).dropna()
+    expected_topk = collection_config.get("collection_contract", {}).get(
+        "required_effective_args", {}
+    ).get("--topk-objects")
+    if expected_topk is not None:
+        runtime_topk = pd.to_numeric(
+            metrics.get("decode_topk_limit", pd.Series(dtype=float)), errors="coerce"
+        ).where(diagnostics_present).dropna()
+        observed_limits = set(runtime_topk.astype(int))
+        if diagnostics_present.any() and observed_limits != {int(expected_topk)}:
+            failures.append("decoder_topk_runtime_mismatch")
+
+    exact_target_rows = pd.DataFrame()
+    exact_target_in_scope_fast = pd.Series(dtype=bool)
+    exact_target_speed = pd.Series(dtype=float)
+    exact_fast_dwell_s: float | None = None
+    exact_role_name = str(verify.get("exact_fast_role_name", ""))
+    is_exact_fast = (
+        bool(exact_role_name)
+        and str(run_spec.get("scenario_family")) == "exact_fast_convoy"
+    )
+    if is_exact_fast:
+        if "role_name" not in gt.columns:
+            failures.append("missing_role_name_for_exact_fast_gate")
+            exact_target_rows = gt.iloc[0:0].copy()
+        else:
+            exact_target_rows = gt[gt["role_name"].astype(str) == exact_role_name].copy()
+        exact_target_rows = exact_target_rows.sort_values("carla_timestamp")
+        exact_target_speed = pd.to_numeric(
+            exact_target_rows["derived_speed_mps"], errors="coerce"
+        )
+        exact_target_in_scope_fast = (
+            _truthy(exact_target_rows["in_camera_frustum"])
+            & (
+                pd.to_numeric(exact_target_rows["distance_m"], errors="coerce")
+                <= float(verify["exact_fast_range_max_m"])
+            )
+            & (exact_target_speed >= float(verify["exact_fast_speed_min_mps"]))
+        )
+        exact_fast_dwell_s = _longest_true_dwell(
+            exact_target_in_scope_fast.tolist(),
+            pd.to_numeric(exact_target_rows["carla_timestamp"], errors="coerce").tolist(),
+        )
+        if exact_target_rows.empty:
+            failures.append("missing_exact_fast_target_gt")
+        elif exact_fast_dwell_s < float(verify["exact_fast_dwell_min_s"]):
+            failures.append("exact_fast_target_dwell_below_minimum")
+
     summary: Dict[str, object] = {
         "episode_id": str(run_spec["episode_id"]),
         "run_group": str(run_spec["run_group"]),
@@ -242,6 +340,18 @@ def _inspect_run(
         "in_scope_vehicle_frame_pct": _safe_pct(in_scope_vehicle_frames, requested),
         "vehicle_speed_p50_mps": _quantile(vehicle_speed, 0.50),
         "vehicle_speed_p95_mps": _quantile(vehicle_speed, 0.95),
+        "decoder_diagnostics_fraction": diagnostics_fraction,
+        "decode_pre_topk_max": int(pre_topk.max()) if len(pre_topk) else None,
+        "decode_topk_saturated_frames": int(
+            pd.to_numeric(
+                metrics.get("decode_topk_saturated", pd.Series(0, index=metrics.index)),
+                errors="coerce",
+            ).fillna(0).astype(bool).sum()
+        ),
+        "exact_fast_target_gt_rows": int(len(exact_target_rows)),
+        "exact_fast_target_speed_p50_mps": _quantile(exact_target_speed, 0.50),
+        "exact_fast_target_in_scope_fast_rows": int(exact_target_in_scope_fast.sum()),
+        "exact_fast_target_dwell_s": exact_fast_dwell_s,
         "result_received_pct": result_received_pct,
         "camera_frame_wait_median_ms": _quantile(wait, 0.50),
         "camera_frame_wait_p95_ms": _quantile(wait, 0.95),
@@ -428,10 +538,10 @@ def verify(batch_dir: Path, skip_surrogate: bool = False) -> Path:
     )
     verify_config = collection_config["verification"]
     ped_coverage = aggregate_coverage[aggregate_coverage["class_name"] == "pedestrian"]
-    expects_pedestrian = any(
+    expects_pedestrian = bool(verify_config.get("require_pedestrian_replay", any(
         str(run_spec["scenario_family"]) in {"ped_crossing", "mixed_urban"}
         for run_spec in run_specs
-    )
+    )))
     if expects_pedestrian and (
         ped_coverage.empty or int(ped_coverage.iloc[0]["matched_rows"]) == 0
     ):
@@ -482,22 +592,30 @@ def verify(batch_dir: Path, skip_surrogate: bool = False) -> Path:
                 verify_config.get("legacy_observation_coverage_pct", 45.18),
             )
         )
-        if vehicle_replay_coverage <= legacy_vehicle_coverage:
+        if bool(verify_config.get("require_vehicle_replay_above_legacy", True)) and (
+            vehicle_replay_coverage <= legacy_vehicle_coverage
+        ):
             gate_failures.append("vehicle_replay_observation_coverage_not_above_legacy")
-        if int(surrogate["truth_pedestrian_objects"].sum()) == 0:
+        if expects_pedestrian and int(surrogate["truth_pedestrian_objects"].sum()) == 0:
             gate_failures.append("no_pedestrian_truth_in_replay")
-        if int(surrogate["observed_pedestrian_objects"].sum()) == 0:
+        if expects_pedestrian and int(surrogate["observed_pedestrian_objects"].sum()) == 0:
             gate_failures.append("no_observed_pedestrian_in_replay")
-        if overall_send <= float(verify_config["legacy_send_needed_pct"]):
+        if bool(verify_config.get("require_send_needed_above_legacy", True)) and (
+            overall_send <= float(verify_config["legacy_send_needed_pct"])
+        ):
             gate_failures.append("send_needed_not_above_legacy")
-        if overall_split <= float(verify_config["legacy_selected_split_pct"]):
+        if bool(verify_config.get("require_selected_split_above_legacy", True)) and (
+            overall_split <= float(verify_config["legacy_selected_split_pct"])
+        ):
             gate_failures.append("selected_split_not_above_legacy")
         fast_convoy = surrogate_summary[
             (surrogate_summary["scenario_family"] == "dense_fast")
             & (surrogate_summary["scenario_variant"] == "fast_convoy")
         ]
-        if fast_convoy.empty or float(fast_convoy.iloc[0]["send_needed_pct"]) <= float(
-            verify_config["legacy_send_needed_pct"]
+        if bool(verify_config.get("require_fast_convoy_send_needed_above_legacy", True)) and (
+            fast_convoy.empty
+            or float(fast_convoy.iloc[0]["send_needed_pct"])
+            <= float(verify_config["legacy_send_needed_pct"])
         ):
             gate_failures.append("fast_convoy_send_needed_not_above_legacy")
 
@@ -513,6 +631,11 @@ def verify(batch_dir: Path, skip_surrogate: bool = False) -> Path:
         active_pedestrian_speed_p95_mps=("active_pedestrian_speed_p95_mps", "median"),
         pedestrian_speed_max_mps=("pedestrian_speed_max_mps", "max"),
         pedestrian_speed_rows_above_max=("pedestrian_speed_rows_above_max", "sum"),
+        decoder_diagnostics_fraction=("decoder_diagnostics_fraction", "mean"),
+        decode_pre_topk_max=("decode_pre_topk_max", "max"),
+        decode_topk_saturated_frames=("decode_topk_saturated_frames", "sum"),
+        exact_fast_target_speed_p50_mps=("exact_fast_target_speed_p50_mps", "median"),
+        exact_fast_target_dwell_s=("exact_fast_target_dwell_s", "min"),
         camera_wait_median_ms=("camera_frame_wait_median_ms", "median"),
         camera_wait_p95_ms=("camera_frame_wait_p95_ms", "median"),
     )
@@ -529,23 +652,31 @@ def verify(batch_dir: Path, skip_surrogate: bool = False) -> Path:
         "",
         "## Gate summary",
         "",
-        f"- Run-level schema, pedestrian, position, speed, and timing gates: {'PASS' if bool(runs['pass'].all()) else 'FAIL'}",
+        f"- Corpus scope: `{verify_config.get('corpus_scope', 'multiclass')}`.",
+        f"- Run-level schema, position, realized-regime, decoder-telemetry, and timing gates: {'PASS' if bool(runs['pass'].all()) else 'FAIL'}",
         f"- Direct same-frame object-row match coverage: {direct_match_coverage:.2f}% (reported diagnostically; not compared to held-track replay coverage)",
-        f"- Pedestrian matched rows: {int(ped_coverage.iloc[0]['matched_rows']) if not ped_coverage.empty else 0}",
     ]
+    if expects_pedestrian:
+        report.append(
+            f"- Pedestrian matched rows: {int(ped_coverage.iloc[0]['matched_rows']) if not ped_coverage.empty else 0}"
+        )
     if not skip_surrogate:
         overall_frames = int(surrogate["frames"].sum())
-        report.extend(
-            [
+        surrogate_lines = [
                 f"- Send-needed: {_safe_pct(int(surrogate['send_needed_frames'].sum()), overall_frames):.2f}% (legacy 14.66%)",
                 f"- Selected SPLIT: {_safe_pct(int(surrogate['selected_split_frames'].sum()), overall_frames):.2f}% (legacy 5.83%)",
                 f"- Infeasible/over-budget frames: {_safe_pct(int(surrogate['infeasible_frames'].sum()), overall_frames):.2f}%",
                 f"- Shield OOD frames: {_safe_pct(int(surrogate['shield_ood_frames'].sum()), overall_frames):.2f}%",
                 f"- Capture attempts: {_safe_pct(int(surrogate['capture_attempt_frames'].sum()), overall_frames):.2f}%",
                 f"- Vehicle replay observation coverage: {_safe_pct(int(surrogate['observed_vehicle_objects'].sum()), int(surrogate['truth_vehicle_objects'].sum())):.2f}% (vehicle-only legacy 45.18%)",
-                f"- Pedestrian replay observation coverage: {_safe_pct(int(surrogate['observed_pedestrian_objects'].sum()), int(surrogate['truth_pedestrian_objects'].sum())):.2f}% ({int(surrogate['observed_pedestrian_objects'].sum())} observed object-frames)",
-            ]
-        )
+        ]
+        if expects_pedestrian:
+            surrogate_lines.append(
+                f"- Pedestrian replay observation coverage: {_safe_pct(int(surrogate['observed_pedestrian_objects'].sum()), int(surrogate['truth_pedestrian_objects'].sum())):.2f}% ({int(surrogate['observed_pedestrian_objects'].sum())} observed object-frames)"
+            )
+        if not bool(verify_config.get("require_send_needed_above_legacy", True)):
+            surrogate_lines.append("- Send-needed and selected-action rates are diagnostics, not collection gates for this scope.")
+        report.extend(surrogate_lines)
     if gate_failures:
         report.extend(["", "Failures: " + ", ".join(gate_failures)])
     failed_runs = runs.loc[
@@ -590,7 +721,7 @@ def verify(batch_dir: Path, skip_surrogate: bool = False) -> Path:
             "",
             "## Interpretation guardrail",
             "",
-            "This is corpus and surrogate verification, not a live safety guarantee. A failed batch is quarantined and must not be used for policy training or headline evaluation.",
+            "This is corpus and surrogate verification, not a live safety guarantee. Actor-origin fields are the matching/replay coordinates; bbox-center world fields remain diagnostics. A failed batch is quarantined and must not be used for policy training or headline evaluation.",
             "",
         ]
     )

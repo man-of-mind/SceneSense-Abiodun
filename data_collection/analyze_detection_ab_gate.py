@@ -199,6 +199,18 @@ def _target_actor_id(
         if isinstance(diagnostic, dict):
             return int(diagnostic["actor_id"])
         raise RuntimeError("vehicle arm is missing controlled-target provenance")
+    controlled = run_manifest.get("controlled_target")
+    if isinstance(controlled, dict) and controlled.get("actor_id") is not None:
+        actor_id = int(controlled["actor_id"])
+        matching_rows = gt[
+            (gt["class_name"] == "pedestrian")
+            & (pd.to_numeric(gt["actor_id"], errors="coerce") == actor_id)
+        ]
+        if not matching_rows.empty:
+            return actor_id
+        raise RuntimeError(
+            f"controlled pedestrian actor {actor_id} from manifest has no ground-truth rows"
+        )
     pedestrians = gt[gt["class_name"] == "pedestrian"]
     counts = pedestrians.groupby("actor_id").size().sort_values(ascending=False)
     if counts.empty:

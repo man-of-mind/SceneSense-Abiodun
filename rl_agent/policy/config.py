@@ -13,6 +13,9 @@ import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_CONFIG = Path(__file__).resolve().parent / "configs" / "track_a_pilot.yaml"
+DEFAULT_CONTROLLER_LADDER_CONFIG = (
+    Path(__file__).resolve().parent / "configs" / "controller_ladder.yaml"
+)
 
 
 def _canonical_json(data: Dict[str, Any]) -> str:
@@ -137,3 +140,90 @@ def public_config(config: Dict[str, Any]) -> Dict[str, Any]:
     if "_meta" in result:
         result["_meta"].pop("repo_root", None)
     return result
+
+
+def _validate_controller_ladder_spec(spec: Dict[str, Any]) -> None:
+    if spec.get("schema_version") != 1:
+        raise ValueError("controller ladder config schema_version must be 1")
+    ladder = spec["controller_ladder"]
+    known = {"fixed", "rule", "greedy", "linucb", "mpc"}
+    enabled = [str(value) for value in ladder["enabled_controllers"]]
+    if not enabled or len(enabled) != len(set(enabled)) or not set(enabled).issubset(known):
+        raise ValueError("enabled_controllers must be a unique non-empty subset of the approved ladder")
+    for key in ("training_split", "evaluation_split"):
+        if ladder[key] not in {"train", "validation", "test"}:
+            raise ValueError(f"controller_ladder.{key} must be train, validation, or test")
+    if ladder["training_split"] == ladder["evaluation_split"]:
+        raise ValueError("controller training and evaluation splits must differ")
+    for key in ("training_episode_count", "evaluation_episode_count"):
+        value = ladder.get(key)
+        if value is not None and int(value) <= 0:
+            raise ValueError(f"controller_ladder.{key} must be null or positive")
+    if not ladder["channel_seeds"]:
+        raise ValueError("controller_ladder.channel_seeds cannot be empty")
+    if ladder["bandit_feedback_source"] != "matched_true_expected_reward":
+        raise ValueError("unsupported bandit feedback source")
+    if not str(ladder["corpus_id"]).strip():
+        raise ValueError("controller_ladder.corpus_id cannot be empty")
+    if not isinstance(ladder["require_verified_corpus"], bool):
+        raise ValueError("controller_ladder.require_verified_corpus must be boolean")
+    controllers = ladder["controllers"]
+    rule = controllers["rule"]
+    if not 0.0 <= float(rule["fresh_skip_fraction"]) < float(rule["urgent_risk_fraction"]):
+        raise ValueError("rule risk fractions must satisfy 0 <= fresh < urgent")
+    if [int(rule[key]) for key in ("low_fps", "medium_fps", "high_fps")] != sorted(
+        int(rule[key]) for key in ("low_fps", "medium_fps", "high_fps")
+    ):
+        raise ValueError("rule FPS thresholds must be nondecreasing")
+    bandit = controllers["linucb"]
+    if float(bandit["alpha"]) < 0.0 or float(bandit["ridge"]) <= 0.0:
+        raise ValueError("LinUCB alpha must be nonnegative and ridge must be positive")
+    reward_clip = [float(value) for value in bandit["reward_clip"]]
+    if len(reward_clip) != 2 or reward_clip[0] >= reward_clip[1]:
+        raise ValueError("LinUCB reward_clip must be [low, high]")
+    mpc = controllers["mpc"]
+    for key in ("horizon_steps", "future_branch_width", "beam_width_per_root"):
+        if int(mpc[key]) <= 0:
+            raise ValueError(f"MPC {key} must be positive")
+    if not 0.0 < float(mpc["discount"]) <= 1.0:
+        raise ValueError("MPC discount must be in (0, 1]")
+    if not 0.0 <= float(mpc["delivery_probability_threshold"]) <= 1.0:
+        raise ValueError("MPC delivery_probability_threshold must be in [0, 1]")
+    if mpc["forecast"] != "markov_expected_capacity_modal_latency":
+        raise ValueError("unsupported MPC channel forecast")
+    if mpc["existing_inflight_policy"] != "summary_only_no_hidden_install":
+        raise ValueError("unsupported MPC existing-inflight policy")
+
+
+def load_controller_ladder_config(path: str | Path | None = None) -> Dict[str, Any]:
+    """Load the frozen surrogate config plus the controller-only ladder spec."""
+
+    ladder_path = Path(path) if path is not None else DEFAULT_CONTROLLER_LADDER_CONFIG
+    if not ladder_path.is_absolute():
+        ladder_path = REPO_ROOT / ladder_path
+    with ladder_path.open("r", encoding="utf-8") as stream:
+        specification = yaml.safe_load(stream)
+    _validate_controller_ladder_spec(specification)
+    base_path = Path(specification["base_config"])
+    if not base_path.is_absolute():
+        base_path = REPO_ROOT / base_path
+    resolved = load_config(base_path)
+    resolved["controller_ladder"] = copy.deepcopy(specification["controller_ladder"])
+    replay_roots = resolved["controller_ladder"].get("replay_roots")
+    if replay_roots:
+        resolved["replay"]["roots"] = [str(value) for value in replay_roots]
+    split_manifest = str(resolved["controller_ladder"].get("split_manifest_csv", "")).strip()
+    if split_manifest:
+        resolved["replay"]["split_manifest_csv"] = split_manifest
+    resolved["_meta"].update(
+        {
+            "controller_ladder_config_path": str(ladder_path.relative_to(REPO_ROOT)),
+            "controller_ladder_config_sha256": hashlib.sha256(ladder_path.read_bytes()).hexdigest(),
+            "base_config_path": str(base_path.relative_to(REPO_ROOT)),
+        }
+    )
+    payload = {key: value for key, value in resolved.items() if key != "_meta"}
+    resolved["_meta"]["resolved_sha256"] = hashlib.sha256(
+        _canonical_json(payload).encode("utf-8")
+    ).hexdigest()
+    return resolved

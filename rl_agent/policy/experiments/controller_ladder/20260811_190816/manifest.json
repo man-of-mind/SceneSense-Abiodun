@@ -1,0 +1,342 @@
+{
+  "common_random_latency_by_tick": true,
+  "controllers": [
+    "fixed",
+    "rule",
+    "greedy",
+    "linucb",
+    "mpc"
+  ],
+  "corpus_id": "policy_corpus_vehicle_v2",
+  "created_utc": "2026-08-11T19:08:16.929999+00:00",
+  "evaluation_split": "test",
+  "files": {
+    "CONTROLLER_LADDER_RESULTS.md": {
+      "bytes": 3582,
+      "sha256": "27be96a4f4cb70452a5a3d3490805f30a3e89abc95dc21d70bf993273c53dffb"
+    },
+    "controller_states.json": {
+      "bytes": 161362,
+      "sha256": "31e266fa7ecd3a3d76072d60091907dab39441aa36a5b2ec8360c2618af9b415"
+    },
+    "figures/controller_ladder_mode_and_risk.pdf": {
+      "bytes": 18477,
+      "sha256": "ee7d21572234f301b5b71f2d6d808a97f1fb666393a060cecb42228cb26459eb"
+    },
+    "figures/controller_ladder_mode_and_risk.png": {
+      "bytes": 130817,
+      "sha256": "de7e3a985e3871d0bda51b3ef34931d40b966e1619a18a8e459530fbddee4c1d"
+    },
+    "per_frame_metrics.csv": {
+      "bytes": 18500585,
+      "sha256": "2b5d88e7a4d02b3549fd866c2de5691d0cd022c3e9727adfc35315ab644cb4a8"
+    },
+    "replay_registry.csv": {
+      "bytes": 16073,
+      "sha256": "83b9f4e5f47ef8dca3408d4349473b6f30f7cb8ad04d18a0c93c0d0d39380e8c"
+    },
+    "resolved_config.yaml": {
+      "bytes": 5709,
+      "sha256": "050b66a107c801b72a4b8f74eed0fd549cb1a9f8a8f11e79f9f8deb6c676f086"
+    },
+    "summary.csv": {
+      "bytes": 31144,
+      "sha256": "74532e3beea34955910bc1be013ad453752ef81526110c1dd4131fdb1b652e07"
+    },
+    "training_metrics.csv": {
+      "bytes": 10461672,
+      "sha256": "729fcb6a3636adad035862b2eab0997bb6d1c3116c96b0895aeff4a5c7e2e1c4"
+    }
+  },
+  "implementation_status": "completed_surrogate_controller_evaluation",
+  "limitations": [
+    "SPLIT+SKIP only; LOCAL table remains pending",
+    "synthetic Markov channel composed with real corrected-vehicle replay",
+    "MPC uses a declared observable-state modal forecast",
+    "no pedestrian claims until Track B passes",
+    "surrogate validation only"
+  ],
+  "run_directory": "rl_agent/policy/experiments/controller_ladder/20260811_190816",
+  "run_type": "track_a_pre_rl_controller_ladder",
+  "schema_version": 1,
+  "selected_replays": [
+    {
+      "episode_id": "pcvv2_dense_tr01",
+      "frame_count": 600,
+      "ground_truth_path": "data_collection/experiments/policy_corpus_vehicle_v2/20260811_110400_full/runs/pcvv2_dense_tr01/streams/fusion_ego_622_object_ground_truth.csv",
+      "ground_truth_sha256": "cd5ab625b9a000b769010dcb020077d48716075d7f581a3c9bf9f763b3c4aa3e",
+      "prediction_path": "data_collection/experiments/policy_corpus_vehicle_v2/20260811_110400_full/runs/pcvv2_dense_tr01/streams/fusion_ego_622_object_predictions.csv",
+      "prediction_sha256": "7412a750044e87b0460676961cd6d8b8bafe1f7b4205123c5a8ba7faed66f70a",
+      "run_group": "policy_corpus_vehicle_v2__train__dense__01",
+      "scenario_family": "dense_urban",
+      "split": "train"
+    },
+    {
+      "episode_id": "pcvv2_dense_tr02",
+      "frame_count": 600,
+      "ground_truth_path": "data_collection/experiments/policy_corpus_vehicle_v2/20260811_110400_full/runs/pcvv2_dense_tr02/streams/fusion_ego_684_object_ground_truth.csv",
+      "ground_truth_sha256": "8c956aeac23582e0a8583fd5b7520c99d24b28ff54769756f5756d82c639709c",
+      "prediction_path": "data_collection/experiments/policy_corpus_vehicle_v2/20260811_110400_full/runs/pcvv2_dense_tr02/streams/fusion_ego_684_object_predictions.csv",
+      "prediction_sha256": "9165cb88a7c882b21eb4faafbf5708fe039911bdddc3f44ef798496aeeb38103",
+      "run_group": "policy_corpus_vehicle_v2__train__dense__02",
+      "scenario_family": "dense_urban",
+      "split": "train"
+    },
+    {
+      "episode_id": "pcvv2_dense_tr03",
+      "frame_count": 600,
+      "ground_truth_path": "data_collection/experiments/policy_corpus_vehicle_v2/20260811_110400_full/runs/pcvv2_dense_tr03/streams/fusion_ego_745_object_ground_truth.csv",
+      "ground_truth_sha256": "e7e26e4dd70efe6d048cd7e902f163d7babf853e7b0f888f830976dcf8bf52b9",
+      "prediction_path": "data_collection/experiments/policy_corpus_vehicle_v2/20260811_110400_full/runs/pcvv2_dense_tr03/streams/fusion_ego_745_object_predictions.csv",
+      "prediction_sha256": "f1bdcad32d4da0558d76edab60b2b65875a4c06e2bb2f61e88e8f303c6c29a0c",
+      "run_group": "policy_corpus_vehicle_v2__train__dense__03",
+      "scenario_family": "dense_urban",
+      "split": "train"
+    },
+    {
+      "episode_id": "pcvv2_dense_tr04",
+      "frame_count": 600,
+      "ground_truth_path": "data_collection/experiments/policy_corpus_vehicle_v2/20260811_110400_full/runs/pcvv2_dense_tr04/streams/fusion_ego_806_object_ground_truth.csv",
+      "ground_truth_sha256": "ecfd301192db40329f7d9c1d7a33293ddf61932189b871acd34f739f2f951388",
+      "prediction_path": "data_collection/experiments/policy_corpus_vehicle_v2/20260811_110400_full/runs/pcvv2_dense_tr04/streams/fusion_ego_806_object_predictions.csv",
+      "prediction_sha256": "e42d5199ac2028fb6552385216610c89dfa2db779480b2108b596eade4b54694",
+      "run_group": "policy_corpus_vehicle_v2__train__dense__04",
+      "scenario_family": "dense_urban",
+      "split": "train"
+    },
+    {
+      "episode_id": "pcvv2_fast_tr01",
+      "frame_count": 199,
+      "ground_truth_path": "data_collection/experiments/policy_corpus_vehicle_v2/20260811_110400_full/runs/pcvv2_fast_tr01/streams/fusion_ego_1118_object_ground_truth.csv",
+      "ground_truth_sha256": "99a67387f7de18d9b0a11bbec025fe01a0d3d71b691817b288a39a0ed82a2715",
+      "prediction_path": "data_collection/experiments/policy_corpus_vehicle_v2/20260811_110400_full/runs/pcvv2_fast_tr01/streams/fusion_ego_1118_object_predictions.csv",
+      "prediction_sha256": "4cf7696e47d60328a9dad917f6c1d3ff59bdc88010c36b5bc139e242c88b0d4a",
+      "run_group": "policy_corpus_vehicle_v2__train__exact_fast__01",
+      "scenario_family": "exact_fast_convoy",
+      "split": "train"
+    },
+    {
+      "episode_id": "pcvv2_fast_tr02",
+      "frame_count": 199,
+      "ground_truth_path": "data_collection/experiments/policy_corpus_vehicle_v2/20260811_110400_full/runs/pcvv2_fast_tr02/streams/fusion_ego_1122_object_ground_truth.csv",
+      "ground_truth_sha256": "2881d46747efc49e0fbcebaaedc7d7ea69316d882af1c2f5d39d2d098cca5720",
+      "prediction_path": "data_collection/experiments/policy_corpus_vehicle_v2/20260811_110400_full/runs/pcvv2_fast_tr02/streams/fusion_ego_1122_object_predictions.csv",
+      "prediction_sha256": "52fc100cc9065b40513a49f8a8e6f1e44b01b3394b529b28bb39a07b6c38a18d",
+      "run_group": "policy_corpus_vehicle_v2__train__exact_fast__02",
+      "scenario_family": "exact_fast_convoy",
+      "split": "train"
+    },
+    {
+      "episode_id": "pcvv2_fast_tr03",
+      "frame_count": 199,
+      "ground_truth_path": "data_collection/experiments/policy_corpus_vehicle_v2/20260811_110400_full/runs/pcvv2_fast_tr03/streams/fusion_ego_1126_object_ground_truth.csv",
+      "ground_truth_sha256": "4a9c4e00f63de10a0f902eac1d5d24f2b17d08ba12a53a376c242d7ccd3e731f",
+      "prediction_path": "data_collection/experiments/policy_corpus_vehicle_v2/20260811_110400_full/runs/pcvv2_fast_tr03/streams/fusion_ego_1126_object_predictions.csv",
+      "prediction_sha256": "a4f6f84b4a4a10096b3344f5f3c30213b738c9b337c9c046e0d6ef2d4048fe93",
+      "run_group": "policy_corpus_vehicle_v2__train__exact_fast__03",
+      "scenario_family": "exact_fast_convoy",
+      "split": "train"
+    },
+    {
+      "episode_id": "pcvv2_fast_tr04",
+      "frame_count": 199,
+      "ground_truth_path": "data_collection/experiments/policy_corpus_vehicle_v2/20260811_110400_full/runs/pcvv2_fast_tr04/streams/fusion_ego_1130_object_ground_truth.csv",
+      "ground_truth_sha256": "8e7d2638bf9dfe4cf08f3ea790eff124e18bb6086edf0095ef3c2dfdc79b7520",
+      "prediction_path": "data_collection/experiments/policy_corpus_vehicle_v2/20260811_110400_full/runs/pcvv2_fast_tr04/streams/fusion_ego_1130_object_predictions.csv",
+      "prediction_sha256": "69b0cd0023c4f794893286d13bc6b7c33a67f1b5def1853d7690ddf13a771530",
+      "run_group": "policy_corpus_vehicle_v2__train__exact_fast__04",
+      "scenario_family": "exact_fast_convoy",
+      "split": "train"
+    },
+    {
+      "episode_id": "pcvv2_slow_tr01",
+      "frame_count": 600,
+      "ground_truth_path": "data_collection/experiments/policy_corpus_vehicle_v2/20260811_110400_full/runs/pcvv2_slow_tr01/streams/fusion_ego_71_object_ground_truth.csv",
+      "ground_truth_sha256": "d1898cd5e0a78064b874842962c58ece75c661086b1d52dc4d3cc70d6f3c2147",
+      "prediction_path": "data_collection/experiments/policy_corpus_vehicle_v2/20260811_110400_full/runs/pcvv2_slow_tr01/streams/fusion_ego_71_object_predictions.csv",
+      "prediction_sha256": "481158bf0039a9e44c1bf687527914deb2203f71d79a67f9466a1566b2f8af61",
+      "run_group": "policy_corpus_vehicle_v2__train__slow__01",
+      "scenario_family": "slow_urban",
+      "split": "train"
+    },
+    {
+      "episode_id": "pcvv2_slow_tr02",
+      "frame_count": 600,
+      "ground_truth_path": "data_collection/experiments/policy_corpus_vehicle_v2/20260811_110400_full/runs/pcvv2_slow_tr02/streams/fusion_ego_98_object_ground_truth.csv",
+      "ground_truth_sha256": "f011a6c18c4c8611b28c5ca83970b514d937e2110f24b04f918a21593a07da77",
+      "prediction_path": "data_collection/experiments/policy_corpus_vehicle_v2/20260811_110400_full/runs/pcvv2_slow_tr02/streams/fusion_ego_98_object_predictions.csv",
+      "prediction_sha256": "a5f62e92bc44cb7351fc239d07b72f7086fdcae8514be30ced3a99e23e74002a",
+      "run_group": "policy_corpus_vehicle_v2__train__slow__02",
+      "scenario_family": "slow_urban",
+      "split": "train"
+    },
+    {
+      "episode_id": "pcvv2_slow_tr03",
+      "frame_count": 600,
+      "ground_truth_path": "data_collection/experiments/policy_corpus_vehicle_v2/20260811_110400_full/runs/pcvv2_slow_tr03/streams/fusion_ego_125_object_ground_truth.csv",
+      "ground_truth_sha256": "9c859609e8643278e0a6ffc39ef04362747b2a9066a01bb5baf5dc0ecd75d94e",
+      "prediction_path": "data_collection/experiments/policy_corpus_vehicle_v2/20260811_110400_full/runs/pcvv2_slow_tr03/streams/fusion_ego_125_object_predictions.csv",
+      "prediction_sha256": "41593d694b8e0023ac3c078399e4c29fb79da47df9f50820c3075c96276d44c5",
+      "run_group": "policy_corpus_vehicle_v2__train__slow__03",
+      "scenario_family": "slow_urban",
+      "split": "train"
+    },
+    {
+      "episode_id": "pcvv2_slow_tr04",
+      "frame_count": 600,
+      "ground_truth_path": "data_collection/experiments/policy_corpus_vehicle_v2/20260811_110400_full/runs/pcvv2_slow_tr04/streams/fusion_ego_152_object_ground_truth.csv",
+      "ground_truth_sha256": "44dd78867b5cc41878c653a9ee381582804b7e2bbc918c431e6549fb2d7bd562",
+      "prediction_path": "data_collection/experiments/policy_corpus_vehicle_v2/20260811_110400_full/runs/pcvv2_slow_tr04/streams/fusion_ego_152_object_predictions.csv",
+      "prediction_sha256": "566610b7e95020759ef97140ede1770001062cceb9b1a7466e0865c469573a23",
+      "run_group": "policy_corpus_vehicle_v2__train__slow__04",
+      "scenario_family": "slow_urban",
+      "split": "train"
+    },
+    {
+      "episode_id": "pcvv2_typical_tr01",
+      "frame_count": 600,
+      "ground_truth_path": "data_collection/experiments/policy_corpus_vehicle_v2/20260811_110400_full/runs/pcvv2_typical_tr01/streams/fusion_ego_285_object_ground_truth.csv",
+      "ground_truth_sha256": "01e7f37e7d68356dd895275c85c19c2f821655eb6ffb69689c8700ed41ddef85",
+      "prediction_path": "data_collection/experiments/policy_corpus_vehicle_v2/20260811_110400_full/runs/pcvv2_typical_tr01/streams/fusion_ego_285_object_predictions.csv",
+      "prediction_sha256": "a527f06dd7b04d2c843ddfb60b818d6d3a95daad7dfc9292d82be02873857d5c",
+      "run_group": "policy_corpus_vehicle_v2__train__typical__01",
+      "scenario_family": "typical_urban",
+      "split": "train"
+    },
+    {
+      "episode_id": "pcvv2_typical_tr02",
+      "frame_count": 600,
+      "ground_truth_path": "data_collection/experiments/policy_corpus_vehicle_v2/20260811_110400_full/runs/pcvv2_typical_tr02/streams/fusion_ego_327_object_ground_truth.csv",
+      "ground_truth_sha256": "032231a18382024e0a51ae24a707e0b9e96d62bdb37044270fcf3f1a4d2bfafa",
+      "prediction_path": "data_collection/experiments/policy_corpus_vehicle_v2/20260811_110400_full/runs/pcvv2_typical_tr02/streams/fusion_ego_327_object_predictions.csv",
+      "prediction_sha256": "e83d2504418191f432a5aaca3bdaab1d3be0aaf4e5f67fd24fbad00bd1d42b3b",
+      "run_group": "policy_corpus_vehicle_v2__train__typical__02",
+      "scenario_family": "typical_urban",
+      "split": "train"
+    },
+    {
+      "episode_id": "pcvv2_typical_tr03",
+      "frame_count": 600,
+      "ground_truth_path": "data_collection/experiments/policy_corpus_vehicle_v2/20260811_110400_full/runs/pcvv2_typical_tr03/streams/fusion_ego_370_object_ground_truth.csv",
+      "ground_truth_sha256": "3bd0fe5e8cb02e5716be05d5a72a209a16144ff7607ac65ff421a87517212502",
+      "prediction_path": "data_collection/experiments/policy_corpus_vehicle_v2/20260811_110400_full/runs/pcvv2_typical_tr03/streams/fusion_ego_370_object_predictions.csv",
+      "prediction_sha256": "e8971b2764732664ea093bfb9554c79f470f47492c27f58e987b024efd40e7a9",
+      "run_group": "policy_corpus_vehicle_v2__train__typical__03",
+      "scenario_family": "typical_urban",
+      "split": "train"
+    },
+    {
+      "episode_id": "pcvv2_typical_tr04",
+      "frame_count": 600,
+      "ground_truth_path": "data_collection/experiments/policy_corpus_vehicle_v2/20260811_110400_full/runs/pcvv2_typical_tr04/streams/fusion_ego_411_object_ground_truth.csv",
+      "ground_truth_sha256": "172bdcf33f8d5994d94fd640c22909c8f4fd01503445867c5c363ebc1445ce7a",
+      "prediction_path": "data_collection/experiments/policy_corpus_vehicle_v2/20260811_110400_full/runs/pcvv2_typical_tr04/streams/fusion_ego_411_object_predictions.csv",
+      "prediction_sha256": "da1310cb0dff0362895f3feb56916f0eb4e7d6d4bbdad0c8d3d07ad9eed36329",
+      "run_group": "policy_corpus_vehicle_v2__train__typical__04",
+      "scenario_family": "typical_urban",
+      "split": "train"
+    },
+    {
+      "episode_id": "pcvv2_dense_te01",
+      "frame_count": 600,
+      "ground_truth_path": "data_collection/experiments/policy_corpus_vehicle_v2/20260811_110400_full/runs/pcvv2_dense_te01/streams/fusion_ego_994_object_ground_truth.csv",
+      "ground_truth_sha256": "4934f36d6d509b7a2fa47302d6fdf0c65c935bf666cf9b2c17a7646f13d3a429",
+      "prediction_path": "data_collection/experiments/policy_corpus_vehicle_v2/20260811_110400_full/runs/pcvv2_dense_te01/streams/fusion_ego_994_object_predictions.csv",
+      "prediction_sha256": "e79a2a461e65cae3971d4bd2e7b1a87f80b3fb353d89c684e268eb3683572330",
+      "run_group": "policy_corpus_vehicle_v2__test__dense__01",
+      "scenario_family": "dense_urban",
+      "split": "test"
+    },
+    {
+      "episode_id": "pcvv2_dense_te02",
+      "frame_count": 600,
+      "ground_truth_path": "data_collection/experiments/policy_corpus_vehicle_v2/20260811_110400_full/runs/pcvv2_dense_te02/streams/fusion_ego_1057_object_ground_truth.csv",
+      "ground_truth_sha256": "6401bee8946e26adedf14170fbd122959eb89ac7c2d1830e5ef18619d62ea44e",
+      "prediction_path": "data_collection/experiments/policy_corpus_vehicle_v2/20260811_110400_full/runs/pcvv2_dense_te02/streams/fusion_ego_1057_object_predictions.csv",
+      "prediction_sha256": "1bc728ed64c44bbfc01c34b24970eb4ba09330e7d1a80eada45c0f4984a09142",
+      "run_group": "policy_corpus_vehicle_v2__test__dense__02",
+      "scenario_family": "dense_urban",
+      "split": "test"
+    },
+    {
+      "episode_id": "pcvv2_fast_te01",
+      "frame_count": 199,
+      "ground_truth_path": "data_collection/experiments/policy_corpus_vehicle_v2/20260811_110400_full/runs/pcvv2_fast_te01/streams/fusion_ego_1142_object_ground_truth.csv",
+      "ground_truth_sha256": "164fc98b8f12f18bb5e43fd6312cebb5f331b1958e22b6fc32924cfbd4925520",
+      "prediction_path": "data_collection/experiments/policy_corpus_vehicle_v2/20260811_110400_full/runs/pcvv2_fast_te01/streams/fusion_ego_1142_object_predictions.csv",
+      "prediction_sha256": "da6284cb7ede9cc09c7c885bd83b34a2b0a9a067bd7ef8ff27d6c002b17e4784",
+      "run_group": "policy_corpus_vehicle_v2__test__exact_fast__01",
+      "scenario_family": "exact_fast_convoy",
+      "split": "test"
+    },
+    {
+      "episode_id": "pcvv2_fast_te02",
+      "frame_count": 199,
+      "ground_truth_path": "data_collection/experiments/policy_corpus_vehicle_v2/20260811_110400_full/runs/pcvv2_fast_te02/streams/fusion_ego_1146_object_ground_truth.csv",
+      "ground_truth_sha256": "67c02c42de76c8a54cc1c3f3c8d8f66ed4e8a6a7ca59bbd26e740d30dee967df",
+      "prediction_path": "data_collection/experiments/policy_corpus_vehicle_v2/20260811_110400_full/runs/pcvv2_fast_te02/streams/fusion_ego_1146_object_predictions.csv",
+      "prediction_sha256": "4f2c36d23c0f81aed2445f6e1016fdb4d78f457dc86a4a3aa5b79839baf8b1ac",
+      "run_group": "policy_corpus_vehicle_v2__test__exact_fast__02",
+      "scenario_family": "exact_fast_convoy",
+      "split": "test"
+    },
+    {
+      "episode_id": "pcvv2_slow_te01",
+      "frame_count": 600,
+      "ground_truth_path": "data_collection/experiments/policy_corpus_vehicle_v2/20260811_110400_full/runs/pcvv2_slow_te01/streams/fusion_ego_232_object_ground_truth.csv",
+      "ground_truth_sha256": "fc860eeee7155502c3758a3b0ecb7a3fa3e4be8cd77a80f80929b858191fdbf6",
+      "prediction_path": "data_collection/experiments/policy_corpus_vehicle_v2/20260811_110400_full/runs/pcvv2_slow_te01/streams/fusion_ego_232_object_predictions.csv",
+      "prediction_sha256": "8caae9e7bdd4778321c75277e1e4f89d064462d5e560d8c1819fa36cf024aef6",
+      "run_group": "policy_corpus_vehicle_v2__test__slow__01",
+      "scenario_family": "slow_urban",
+      "split": "test"
+    },
+    {
+      "episode_id": "pcvv2_slow_te02",
+      "frame_count": 600,
+      "ground_truth_path": "data_collection/experiments/policy_corpus_vehicle_v2/20260811_110400_full/runs/pcvv2_slow_te02/streams/fusion_ego_259_object_ground_truth.csv",
+      "ground_truth_sha256": "bb0357b81182771e2a21d889f2d49b4f4be17ec400bf9c0c7c0477c635ebcbc9",
+      "prediction_path": "data_collection/experiments/policy_corpus_vehicle_v2/20260811_110400_full/runs/pcvv2_slow_te02/streams/fusion_ego_259_object_predictions.csv",
+      "prediction_sha256": "771d1edb8c6024dec8b415f2e849162b758afa2581f3b2404aefefe94b4ff79f",
+      "run_group": "policy_corpus_vehicle_v2__test__slow__02",
+      "scenario_family": "slow_urban",
+      "split": "test"
+    },
+    {
+      "episode_id": "pcvv2_typical_te01",
+      "frame_count": 600,
+      "ground_truth_path": "data_collection/experiments/policy_corpus_vehicle_v2/20260811_110400_full/runs/pcvv2_typical_te01/streams/fusion_ego_538_object_ground_truth.csv",
+      "ground_truth_sha256": "0275c67805edf7473d09f97fc4ec700a9d52e76acd71db9c947027047293aa6a",
+      "prediction_path": "data_collection/experiments/policy_corpus_vehicle_v2/20260811_110400_full/runs/pcvv2_typical_te01/streams/fusion_ego_538_object_predictions.csv",
+      "prediction_sha256": "2e4d4bcc0e90b365ee2bdb83d5fe6ce465391a7582b6d86fce874026f95ca240",
+      "run_group": "policy_corpus_vehicle_v2__test__typical__01",
+      "scenario_family": "typical_urban",
+      "split": "test"
+    },
+    {
+      "episode_id": "pcvv2_typical_te02",
+      "frame_count": 600,
+      "ground_truth_path": "data_collection/experiments/policy_corpus_vehicle_v2/20260811_110400_full/runs/pcvv2_typical_te02/streams/fusion_ego_579_object_ground_truth.csv",
+      "ground_truth_sha256": "ff44e01fc65dda4e140168a71eb3d282527b4a8eb5e08e1221f0014421deca10",
+      "prediction_path": "data_collection/experiments/policy_corpus_vehicle_v2/20260811_110400_full/runs/pcvv2_typical_te02/streams/fusion_ego_579_object_predictions.csv",
+      "prediction_sha256": "a53d5f6deb19aab45c60cc7b58df41a5ccd16141f13758d27c5d3c9f9e9dcb6e",
+      "run_group": "policy_corpus_vehicle_v2__test__typical__02",
+      "scenario_family": "typical_urban",
+      "split": "test"
+    }
+  ],
+  "source_hashes": {
+    "base_loc_calibration": "1.10 + raw - min(retained_raw)",
+    "catalog_file": "rl_agent/policy/data/action_catalog.csv",
+    "catalog_sha256": "93fce009924ab8ac227726eebb3613e61139ff401c801f57d2de94ee15f18d6a",
+    "channel_condition_sweep/combined_surface.csv": "c48c44667dec980d6a5a62abb4a081cb33ac70bdf33e9536187a8fd62007e5a1",
+    "flattened_action_count": 36,
+    "profile_count": 7,
+    "schema_version": 1,
+    "source_file": "rl_agent/PERMODEL_KNOB_MATRIX_ZSTD.md",
+    "source_sha256": "35cd80016383b80c61371ab4f75b986eb2cf0e8098c622f437f1c3679f1ae9ed",
+    "uplink_only_spatial_map_pipeline/results/chsweep_full_p3ae_.csv": "0f0d6ca3528878dbf27100592d8c34e9b7725cec98968e65ff14a855ca782cfc"
+  },
+  "training_feedback_source": "matched_true_expected_reward",
+  "training_split": "train"
+}

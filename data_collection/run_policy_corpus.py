@@ -36,14 +36,107 @@ def _resolve_repo_path(value: str) -> Path:
     return path if path.is_absolute() else REPO_ROOT / path
 
 
+def _resolved_run_args(
+    config: Mapping[str, object], run_spec: Mapping[str, object]
+) -> List[str]:
+    family = str(run_spec["scenario_family"])
+    if family not in config["family_args"]:
+        raise ValueError(
+            f"unknown scenario_family {family!r} for {run_spec.get('episode_id', '<unknown>')}"
+        )
+    return [
+        *(str(value) for value in config["common_args"]),
+        *(str(value) for value in config["family_args"][family]),
+        *(str(value) for value in run_spec.get("extra_args", [])),
+    ]
+
+
+def _effective_options(arguments: Sequence[str]) -> Dict[str, str]:
+    """Return argparse-style last-option-wins values for config validation."""
+
+    options: Dict[str, str] = {}
+    index = 0
+    while index < len(arguments):
+        token = str(arguments[index])
+        if not token.startswith("--"):
+            index += 1
+            continue
+        if index + 1 < len(arguments) and not str(arguments[index + 1]).startswith("--"):
+            options[token] = str(arguments[index + 1])
+            index += 2
+        else:
+            options[token] = "true"
+            index += 1
+    return options
+
+
+def _validate_collection_contract(config: Mapping[str, object]) -> None:
+    contract = config.get("collection_contract")
+    if not isinstance(contract, Mapping):
+        return
+
+    all_runs = [*config.get("smoke_runs", []), *config.get("runs", [])]
+    required = {
+        str(option): str(value)
+        for option, value in contract.get("required_effective_args", {}).items()
+    }
+    for run_spec in all_runs:
+        episode_id = str(run_spec["episode_id"])
+        options = _effective_options(_resolved_run_args(config, run_spec))
+        for option, expected in required.items():
+            actual = options.get(option)
+            if actual != expected:
+                raise ValueError(
+                    f"{episode_id} must resolve {option}={expected!r}, found {actual!r}"
+                )
+        if str(contract.get("scope", "")) == "vehicle_only":
+            if options.get("--npc-pedestrians") != "0":
+                raise ValueError(f"{episode_id} vehicle-only run must request zero pedestrians")
+            if options.get("--controlled-target") == "walker":
+                raise ValueError(f"{episode_id} vehicle-only run cannot use a walker target")
+        if bool(contract.get("require_requested_frames_match_max_frames", False)):
+            requested = str(run_spec.get("requested_frames", config["requested_frames"]))
+            if options.get("--max-frames") != requested:
+                raise ValueError(
+                    f"{episode_id} requested_frames={requested} but resolves "
+                    f"--max-frames={options.get('--max-frames')!r}"
+                )
+
+    expected_counts = contract.get("required_family_split_counts", {})
+    if expected_counts:
+        observed: Dict[str, Dict[str, int]] = {}
+        for run_spec in config.get("runs", []):
+            family = str(run_spec["scenario_family"])
+            split = str(run_spec["split"])
+            family_counts = observed.setdefault(family, {})
+            family_counts[split] = family_counts.get(split, 0) + 1
+        normalized_expected = {
+            str(family): {str(split): int(count) for split, count in counts.items()}
+            for family, counts in expected_counts.items()
+        }
+        if observed != normalized_expected:
+            raise ValueError(
+                "full-run family/split counts differ from collection contract: "
+                f"expected={normalized_expected}, observed={observed}"
+            )
+    if bool(contract.get("require_unique_full_run_seeds", False)):
+        seeds = [int(run_spec["seed"]) for run_spec in config.get("runs", [])]
+        if len(seeds) != len(set(seeds)):
+            raise ValueError("full-run seeds must be unique across whole-trajectory splits")
+
+
 def _load_config(path: Path) -> Dict[str, object]:
     with path.open("r", encoding="utf-8") as stream:
         config = yaml.safe_load(stream)
     if int(config.get("schema_version", 0)) != 1:
         raise ValueError("collection config schema_version must be 1")
-    run_ids = [str(item["episode_id"]) for item in config["runs"]]
+    all_runs = [*config.get("smoke_runs", []), *config.get("runs", [])]
+    run_ids = [str(item["episode_id"]) for item in all_runs]
     if len(run_ids) != len(set(run_ids)):
         raise ValueError("collection episode_id values must be unique")
+    for item in all_runs:
+        _resolved_run_args(config, item)
+    _validate_collection_contract(config)
     return config
 
 
@@ -75,7 +168,12 @@ def _live_carla_preflight(config: Mapping[str, object]) -> Dict[str, object]:
     )
     payload: Dict[str, object] | None = None
     last_error = ""
-    for _attempt in range(5):
+    # CARLA can transiently abort RPC handshakes for a few seconds while the
+    # renderer is warming or while ``nvidia-smi`` releases its driver query.
+    # Treat that as startup backpressure, not as evidence that the world is
+    # unavailable; the bounded retry still fails closed before any run starts.
+    attempts = 10
+    for _attempt in range(attempts):
         result = subprocess.run(
             [
                 sys.executable,
@@ -94,9 +192,12 @@ def _live_carla_preflight(config: Mapping[str, object]) -> Dict[str, object]:
             payload = json.loads(result.stdout.strip())
             break
         last_error = result.stderr.strip() or result.stdout.strip()
-        time.sleep(0.5)
+        if _attempt + 1 < attempts:
+            time.sleep(1.0)
     if payload is None:
-        raise RuntimeError(f"CARLA get_world failed after five attempts: {last_error}")
+        raise RuntimeError(
+            f"CARLA get_world failed after {attempts} attempts: {last_error}"
+        )
     town = str(payload["town"])
     server_version = str(payload["server_version"])
     expected_town = str(connection["expected_town"])
@@ -107,13 +208,27 @@ def _live_carla_preflight(config: Mapping[str, object]) -> Dict[str, object]:
         raise RuntimeError(
             f"expected CARLA server {expected_version}, found {server_version}"
         )
+    actor_counts = {
+        str(name): int(count)
+        for name, count in payload["dynamic_actor_counts"].items()
+    }
+    required_empty = [
+        str(value) for value in connection.get("require_empty_dynamic_actor_patterns", [])
+    ]
+    occupied = {
+        name: actor_counts.get(name, 0)
+        for name in required_empty
+        if actor_counts.get(name, 0)
+    }
+    if occupied:
+        raise RuntimeError(
+            "collection requires an uncontaminated CARLA world; dynamic actors already exist: "
+            f"{occupied}"
+        )
     return {
         "town": town,
         "server_version": server_version,
-        "dynamic_actor_counts": {
-            str(name): int(count)
-            for name, count in payload["dynamic_actor_counts"].items()
-        },
+        "dynamic_actor_counts": actor_counts,
     }
 
 
@@ -374,8 +489,28 @@ def main() -> None:
     parser.add_argument("--mode", choices=("smoke", "full"), default="smoke")
     parser.add_argument("--batch-dir", type=Path)
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument(
+        "--validate-config",
+        action="store_true",
+        help="Validate the config/collection contract and exit without preflight or filesystem output.",
+    )
     parser.add_argument("--only-episode", action="append", default=[])
     args = parser.parse_args()
+    if args.validate_config:
+        config = _load_config(args.config.resolve())
+        print(
+            json.dumps(
+                {
+                    "experiment_name": str(config["experiment_name"]),
+                    "output_root": str(config["output_root"]),
+                    "smoke_runs": len(config.get("smoke_runs", [])),
+                    "full_runs": len(config.get("runs", [])),
+                    "status": "VALID",
+                },
+                sort_keys=True,
+            )
+        )
+        return
     output = run_batch(
         args.config.resolve(), args.mode, args.batch_dir, args.dry_run, args.only_episode
     )

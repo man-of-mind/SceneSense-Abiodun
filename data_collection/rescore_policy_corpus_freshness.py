@@ -727,6 +727,7 @@ def rescore(batch_dir: Path, config_path: Path, output_dir: Path | None = None) 
     speed_config = config["speed"]
     matching = config["matching"]
     heuristic = config["human_heuristic"]
+    vehicle_only = str(config.get("corpus_scope", "")) == "vehicle_only_track_a"
     batch_manifest_path = batch_dir / "batch_manifest.json"
     batch_manifest = json.loads(batch_manifest_path.read_text(encoding="utf-8"))
     split_frame = _split_manifest(batch_manifest)
@@ -871,7 +872,11 @@ def rescore(batch_dir: Path, config_path: Path, output_dir: Path | None = None) 
         f"Batch: `{batch_dir}`",
         f"Prior immutable verification: `{prior_report}` (`{config['provenance']['prior_verification_status']}`)",
         "",
-        "This report supersedes the old send-needed metric only for the corpus salvage/top-up disposition. It does not rewrite the prior report or its pre-registered result.",
+        (
+            "This is the controller-independent motion and detection companion to the verified Track A vehicle corpus. It does not add pedestrian evidence or replace the corpus verifier."
+            if vehicle_only
+            else "This report supersedes the old send-needed metric only for the corpus salvage/top-up disposition. It does not rewrite the prior report or its pre-registered result."
+        ),
         "",
         "## Locked counterfactual",
         "",
@@ -898,7 +903,11 @@ def rescore(batch_dir: Path, config_path: Path, output_dir: Path | None = None) 
         "",
         _markdown_table(corpus_coverage),
         "",
-        "Pedestrian coverage is an independent gating concern for any pedestrian-freshness claim; no post-hoc automatic threshold is applied here.",
+        (
+            "Pedestrians are intentionally out of scope for this Track A batch; Track B supplies separate evidence before any pedestrian-freshness claim."
+            if vehicle_only
+            else "Pedestrian coverage is an independent gating concern for any pedestrian-freshness claim; no post-hoc automatic threshold is applied here."
+        ),
         "",
         "## Human salvage/top-up heuristic (not an automatic verdict)",
         "",
@@ -933,18 +942,27 @@ def rescore(batch_dir: Path, config_path: Path, output_dir: Path | None = None) 
         "## Per-run pressure and vehicle fast tail",
         "",
         _markdown_table(per_run_report),
-        "",
-        "## Raw pedestrian QC flags",
-        "",
-        f"Raw flags: {len(raw_qc)}; inside the <=25 m headline scope: {int(raw_qc['inside_headline_scope'].sum()) if len(raw_qc) else 0}. Raw source rows were not edited.",
-        "",
-        _markdown_table(raw_qc),
-        "",
-        "## Interpretation guardrail",
-        "",
-        "The skip-only reference is an idealized controller-independent motion diagnostic, not an executable policy and not a safety guarantee. Abiodun and local Claude make the salvage-versus-targeted-top-up decision from these distributions.",
-        "",
     ]
+    if not vehicle_only:
+        report.extend(
+            [
+                "",
+                "## Raw pedestrian QC flags",
+                "",
+                f"Raw flags: {len(raw_qc)}; inside the <=25 m headline scope: {int(raw_qc['inside_headline_scope'].sum()) if len(raw_qc) else 0}. Raw source rows were not edited.",
+                "",
+                _markdown_table(raw_qc),
+            ]
+        )
+    report.extend(
+        [
+            "",
+            "## Interpretation guardrail",
+            "",
+            "The skip-only reference is an idealized controller-independent motion diagnostic, not an executable policy and not a safety guarantee. Review the realized regime, concentration, and detection tables before admitting the batch to controller training.",
+            "",
+        ]
+    )
     report_path = output_dir / "FRESHNESS_RESCORE.md"
     report_path.write_text("\n".join(report), encoding="utf-8")
     resolved_config = output_dir / "resolved_freshness_rescore_config.yaml"

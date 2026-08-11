@@ -160,3 +160,25 @@ approved follow-on experiments keep `(ucb_k=0, c1_pessimism_factor=0.70)` fixed 
 All three use the same replay split, paired channel seeds, and latency common random numbers indexed by episode
 and control tick. The 40 m cells are explicitly extrapolative. Per-epsilon over-budget/feasibility is the
 advisor sweep's headline result; no script automatically chooses advisor-pending values.
+
+## 8. Pre-RL controller-ladder execution contract
+
+- The fixed schedule, explicit threshold rule, observation-based greedy oracle, contextual bandit, and MPC all
+  receive the same observable `Observation` and the same `ShieldDecision`. Their selected action must belong to
+  that decision's `candidate_action_ids`; the common runner rejects any bypass.
+- The rule uses declared capacity, map-age/risk, and speed thresholds and does not fit data or enumerate the
+  full expected reward. Greedy is the separately labelled one-step expected-reward oracle.
+- The disjoint LinUCB controller fits only on the grouped training split. Its environment feedback is the
+  selected action's matched/tracked-object expected reward, supplied only after selection; evaluation is
+  frozen. True channel capacity and replay truth never enter its context features.
+- MPC replans from observable state each 20 Hz tick. Phase-1 planning propagates Markov expected capacity,
+  uses the modal rung for latency, and holds observed object kinematics constant; scheduler-credit rules and
+  planned contribution arrivals are explicit. Existing
+  in-flight traffic is available only as the deployable summary and cannot secretly install hidden objects in
+  the planner. Every future branch is re-masked and re-shielded by the shared implementation.
+- Controller comparisons use paired channel seeds and per-tick latency random numbers. A verified corrected-
+  vehicle corpus root and episode-level grouped split manifest are mandatory; the runner refuses the legacy
+  replay as a headline input. It also requires the verifier's `PASS` manifest and checks the full-batch mode,
+  corpus identity, and recorded batch/config/split hashes before loading replay.
+- A one-episode `--scaffold-smoke` is labelled plumbing validation. Only a complete configured run is labelled
+  a surrogate controller evaluation. Neither is live safety validation, and no DQN/SAC/PPO result exists yet.
