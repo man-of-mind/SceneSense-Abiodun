@@ -1212,26 +1212,47 @@ collection-pipeline config regression.** Evidence: checkpoint SHA matches; no-AE
 ped / 0.893 veh (the 0.883/0.910 I cited was AE128 — wrong baseline, my error); old validated corpus scores
 44.70–54.95% vehicle coverage under the identical live metric vs the new 34.66% → real degradation; zero
 timeouts; empty-result <0.25 pp. **Root cause: new runs used radar 5,000 pps vs validated 200,000 (40×; radar
-density drives ped detection per [[pps_ablation_finding]]) + NMS-4/top-80 vs offline NMS-2/top-120.** The
-collector inherited the FAST/low-density rasterizer meant for the live latency pipeline, not the
-detection-quality config the model was validated under. The MODEL and all prior validated work are unaffected.
+density drives ped detection per [[pps_ablation_finding]]) + NMS-4/top-80 vs offline NMS-2/top-120.** PPS is the
+leading cause (existing 200k/fast/NMS-4/top-80 ACC traces already reached 54.95% vehicle coverage), NMS/top-k
+secondary. **CORRECTION (codex, ACCEPTED — my earlier framing was wrong): the FAST rasterizer is NOT the
+regression.** pps and rasterizer are INDEPENDENT knobs; the fast rasterizer was validated at 200k with equivalent
+tensors (zero unmatched decoded objects), and reverting to the legacy/slow rasterizer would REINTRODUCE the
+render-throttle risk. **Corrected recipe = 200k pps + FAST rasterizer + NMS-2/top-120** (do NOT revert to legacy).
+The MODEL and all prior validated work are unaffected.
 
-### ▶ NEXT ACTION (agreed): matched detector A/B to confirm the fix, THEN one corrected re-collection
-1. **Matched A/B — prefer OFFLINE re-detect if raw sensors were saved.** If the collection saved raw radar point
-   clouds + camera frames, re-rasterize at 200k pps + NMS-2/top-120 and re-run the detector on the SAME frames
-   (perfectly matched, NO CARLA). If only detections were saved, run a small fresh CARLA smoke at both configs.
-   Report vehicle (and pedestrian where truth exists) coverage at 5k/NMS-4/top-80 vs 200k/NMS-2/top-120 on
-   matched scenes — confirm the corrected config restores vehicle coverage toward the ~45–55% live-metric range
-   and lifts pedestrians materially. **codex: state up front whether raw sensors were saved — it decides A/B vs
-   CARLA.**
-2. **Lock the corrected detection-quality collection config** (200k pps, NMS-2, top-120, actor-origin GT) as the
-   standard for any corpus feeding detection/freshness metrics. The fast rasterizer stays ONLY for live-latency
-   experiments, never for corpus ground-truth quality.
+### ▶ NEXT ACTION (agreed, codex-refined): 3-arm matched CARLA smoke, THEN one corrected re-collection
+1. **3-arm CARLA smoke (offline A/B IMPOSSIBLE — codex confirmed v1 saved only 72 CSV/48 JSON/24 logs, no raw
+   RGB/radar/tensors; and 5k pps cannot be "re-rasterized" to 200k because the missing returns were never
+   sampled).** Matched seeds + controlled in-view actors (one vehicle case, one pedestrian case):
+   - Arm 1: **5k + fast + NMS-4/top-80** — reproduce v1.
+   - Arm 2: **200k + fast + NMS-4/top-80** — isolate PPS.
+   - Arm 3: **200k + fast + NMS-2/top-120** — the final collection recipe.
+   Before interpreting: verify matched GT trajectories/dwell, adequate eligible rows, actual projected radar
+   density, 100% result receipt, camera-wait timing, actor cleanup. Report object-row/frame/range coverage +
+   controlled-target coverage. **Pre-registered criterion:** Arm 3 vehicle coverage ≥45% AND a meaningful lift
+   over the Arm 1 low baseline.
+2. **Lock the corrected detection-quality collection recipe = 200k pps + FAST rasterizer + NMS-2/top-120 +
+   actor-origin GT.** NOT legacy rasterizer (fast is validated at 200k and avoids the render-throttle risk). This
+   is the standard for any corpus feeding detection/freshness metrics.
 3. **One corrected re-collection** that fixes BOTH problems at once: (a) the detector config above, and (b) the
    scenario-realization lessons (controlled fast-in-view target, smoke-first, per-family/per-split coverage of
    slow + sustained-fast). Not a blind redo — the corrected config + the freshness/verify tooling already exist.
 4. Pedestrian-scope decision + controller ladder remain held until the A/B confirms the fix and the corrected
    corpus passes the freshness re-score. v1 corpus is retired; all collector/verifier/re-score CODE is reused.
+
+### ▶ OVERNIGHT AUTHORIZATION (Abiodun, 2026-08-11 late) — GATED chain, no blind full run
+codex may run this chain autonomously overnight, stopping at the first gate that fails (report + hold, do NOT
+push past a failing gate — a blind full re-collect risks a 3rd wasted 2-hour run):
+1. **3-arm CARLA smoke** (offline impossible — no raw sensors saved): Arm1 5k/fast/NMS4/top80 (reproduce v1),
+   Arm2 200k/fast/NMS4/top80 (isolate pps), Arm3 200k/fast/NMS2/top120 (final recipe); matched seeds + controlled
+   in-view vehicle & pedestrian; run the validity checks. GATE: Arm3 vehicle coverage ≥45% AND meaningful lift
+   over Arm1. Recipe = 200k pps + FAST rasterizer + NMS-2/top-120 (keep fast rasterizer — it is NOT the regression).
+2. **Scenario realization** folds into the smoke: the controlled fast-in-view target (learn from v1 — the TM lead
+   left frame 89%); GATE: a fast target stays ≤25 m + in-frustum for a sustained dwell.
+3. **Full corrected re-collection** ONLY IF gates 1–2 both pass — fixes detector config + scenario realization in
+   one run. Then run the freshness re-score + verifier and report.
+If any gate fails: stop, report the gate + numbers, hold for joint review. Either way Abiodun wakes to a clean
+state (good corrected corpus, or a documented hold) — never a silent wasted run.
 
 ## 2026-08-10 — CODEX follow-on execution: estimator hypothesis falsified; reward robust; 40 m boundary exposed
 
