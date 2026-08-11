@@ -1087,6 +1087,64 @@ and coverage ~45%. The corpus is the binding limit, so we fix it before building
    Run it only if idle; it does not gate the data work.
 Everything shield-side is on hold; the corpus is the critical path.
 
+### LOCAL review of corpus v1 (quarantined) — 2026-08-10. VERDICT: trust the quarantine; fix scenario realization, smoke-first.
+Reviewed the collector/config/verifier code on this box (corpus data + verification report stayed on L10319 —
+git-ignored, correctly; only code+docs shipped). **The engineering succeeded** (pedestrian GT now logs — 470k
+rows; clean 12k-frame run; no throttle; tests pass) and codex **correctly failed the pre-registered gates and
+did NOT game them.** I trust the fail/quarantine.
+
+**Root cause is scenario realization, not the pipeline.** send-needed requires a FAST object IN VIEW: a 1.4 m/s
+pedestrian takes ~1.3 s to drift past ε=2 m, so slow objects essentially never need a send. The tracked lead
+(traffic-manager, 15 m gap) was in scope only 11.4% of frames — urban Town10 + narrow FOV lets a TM-driven lead
+wander out of frame. Net: corpus dominated by slow-in-view (peds) + fast-out-of-view → send-needed 0.99%.
+
+**Strategic point (for Abiodun + advisor):** single-ego send-pressure is intrinsically WEAK — a car already sees
+its own objects; map staleness only bites a *consumer* of the map (a phase-2 multi-agent/occlusion phenomenon).
+In single-ego phase 1 the only honest source of send-pressure is **fast objects deliberately kept in view**
+(car-following on a fast straight segment), NOT scattered urban traffic. Worth a sentence to the advisor.
+
+### ▶ NEXT ACTION for codex — SMOKE-FIRST, do NOT re-run 24 episodes yet (2026-08-10)
+1. Use the existing `--controlled-target` mechanism with a **FAST** target (vehicle ~13–20 m/s, or a fast
+   crossing/passing actor) held in the ego FOV on a straight segment — the TM-lead approach failed to keep it
+   framed. Consider ego-frozen or ego-follow on a straight road so the target stays in view.
+2. **Prove it on the 80–150-frame smoke runs FIRST:** the fast smoke must clear send-needed AND vehicle coverage
+   above baseline before any full collection. If a smoke can't, iterate the smoke — never scale a failing config.
+3. **Gate per purpose, not pooled:** fast/dense scenes carry the send-pressure gate; ped_crossing scenes are for
+   the pedestrian safety-soundness axis and must NOT be judged on send-needed (slow peds legitimately never need
+   a send). Report send-needed per family.
+4. Fix the 7 pedestrian >3.5 m/s displacement samples (likely walker respawn/teleport artifacts) — keep the gate.
+Only after a smoke passes all gates do we authorize the next full collection. This bounds cost to minutes.
+The LOCAL-table point (high infeasible rate → LOCAL may be the safe action) is noted but NOT in scope now —
+don't expand the action space mid-corpus-fix.
+
+### COURSE-CORRECTION (Abiodun clarified the phase-1 goal, 2026-08-11) — RE-SCORE v1, do NOT redo yet
+Abiodun's clarified framing (agreed): **phase 1 = keep the shared map FRESH (localization ≤ ε) for ALL objects;
+occlusion is phase 2. The knob/FPS adapts to object speed; SKIP is correct only when (a) the map is still fresh
+(AoI within budget) or (b) the channel is too bad to send well.** Two consequences that change the corpus plan:
+1. **The "skip because bad channel" half is ALREADY supplied by the measured surrogate channel model — not CARLA.**
+   So the CARLA corpus's only job is realistic **object motion** (a spread of speeds + appearances). It must NOT
+   be engineered to maximize send-pressure, and it does not need network stress.
+2. **The `send_needed` gate that quarantined v1 was mis-specified for this goal.** It counts SKIP-unsafe-but-SPLIT-
+   safe frames **along the shielded controller's own trajectory** — but a competent controller sends *before*
+   staleness accrues, so it suppresses exactly those frames. Low send-needed there partly means "the controller
+   kept the map fresh," not "no pressure." A realistic drive where skipping is usually fine is the NORMAL case,
+   and skip-when-safe is the agent's value — not a broken corpus.
+
+**Therefore: re-score the existing v1 (no new CARLA) under a freshness lens, then decide salvage-vs-top-up.**
+Report per-corpus AND per-family/variant:
+- **Object speed distribution per class** (vehicle/pedestrian; p10/p50/p90/max) — is there a usable fast tail?
+- **Counterfactual send-pressure (controller-independent):** run a **skip-only reference** (map each object at
+  first detection, then never re-send) through the surrogate; report the fraction of scored object-frames whose
+  localization error exceeds ε=2.0. THIS is "how much the corpus inherently demands sending," free of controller
+  competence. Also report the per-object **time-to-ε-breach** distribution (given measured speed + base_loc).
+- **Decision-liveness:** fraction of frames with ≥1 in-scope object within a small margin of its ε-breach
+  (e.g. time-to-breach ≤ 3 control ticks) → genuinely live send/skip decisions the agent can learn from.
+- **Per-class detection coverage** (object-row + frame) — already computed; keep.
+**Drop the "beat legacy send-needed" pass/fail gate** — report distributions for a human salvage-vs-top-up call,
+don't auto-quarantine. Data hygiene (regardless): filter/flag the 7 pedestrian >3.5 m/s samples (respawn
+teleports). Only if the distributions show a missing regime do we collect a SMALL targeted supplement — not a
+24-run redo. Corpus data lives on L10319; codex runs the re-score there and reports the numbers here.
+
 ## 2026-08-10 — CODEX follow-on execution: estimator hypothesis falsified; reward robust; 40 m boundary exposed
 
 All authorized work remained table-driven SPLIT+SKIP. No CARLA, OAI, LOCAL, RL training, or model training ran.
