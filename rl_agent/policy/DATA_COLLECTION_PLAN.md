@@ -1,5 +1,10 @@
 # Data-collection plan — richer CARLA corpus to build the environment cleanly
 
+**Current status (2026-08-11):** candidate v1 is immutable and quarantined for policy use. Detection
+reconciliation found a collection-recipe regression (5,000 radar points/s and NMS-4/top-80 versus the validated
+200,000 points/s and NMS-2/top-120 recipe). The authorized next step is the gated three-arm smoke in §11. A
+corrected full collection may start only if the separate vehicle, pedestrian, and fast-in-view gates all pass.
+
 **Why:** the current replay corpus (staleness study) is the binding limit on the policy environment. Inspection
 (2026-08-10) confirmed the traces are physically sound BUT: (a) **ground truth is vehicles only — no pedestrian
 GT**, so pedestrian localization/recall cannot be scored at all; (b) the shield selected a SPLIT schedule on
@@ -9,9 +14,10 @@ of the three current replay trajectories. We collect a purpose-built corpus that
 environment covers the safety-critical cases it is currently blind to. Real CARLA data is the primary path
 (internship extended +3 months → do it properly, not a synthetic stub).
 
-**Scope discipline:** this is a *data* task, not a new pipeline. Reuse the existing staleness collector; background
-pedestrian spawning already exists, so the only perception-path delta is logging pedestrian ground truth. Scenario
-arguments, batch orchestration, replay class preservation, and verification are support work. Do NOT expand beyond the scenarios
+**Scope discipline:** this is a *data* task, not a new pipeline. Reuse the existing staleness collector and keep
+the FAST rasterizer. The corpus wrapper adds pedestrian ground truth and decoder-saturation telemetry; the
+corrected collection recipe also restores 200,000 radar points/s and NMS-2/top-120. Scenario arguments, batch
+orchestration, replay class preservation, and verification are support work. Do NOT expand beyond the scenarios
 below without a note here.
 
 ## 1. Reuse, don't rebuild
@@ -23,9 +29,9 @@ below without a note here.
   to the shared collector and replaces only its GT-row builder. This avoids a divergent ~6,500-line copy while
   preserving the "never edit the shared original" constraint.
 
-## 2. The only functional change: log pedestrian ground truth
-The detector already emits `person` predictions (confirmed in the current prediction CSVs), so perception needs
-no change. The gap is purely on the GT side:
+## 2. Functional deltas: pedestrian truth + corrected validated detector recipe
+The detector already emits `person` predictions, so no model/checkpoint change is needed. Candidate v1 did,
+however, expose a collection-configuration regression; therefore the corrected run has two bounded changes:
 - Use the existing controllable **walker** count and CARLA walker AI. Requested spawn counts are inputs, not proof
   of usable data: a smoke run must confirm walkers actually enter the ego field of view and ≤25 m; adjust only the
   pre-registered scenario arguments if this realization gate fails.
@@ -34,6 +40,11 @@ no change. The gap is purely on the GT side:
   `in_camera_frustum`, size fields). Do not switch to bbox-center (reintroduces the known 1–1.3 m bias).
 - Everything else (frame cadence ~8–10 fps, ego autopilot, vehicle spawns, streams layout) stays as in the base
   collector.
+- Restore the validated input/decode recipe: **200,000 radar points/s + FAST rasterizer + NMS radius 2 +
+  top-120**, with the exact no-AE checkpoint and its recorded SHA-256 unchanged. FAST and radar PPS are
+  independent knobs; do not revert to the legacy rasterizer.
+- Log, per processed frame, the number of above-threshold heatmap candidates before top-k/NMS, the post-NMS
+  count, and whether the configured top-k was saturated. These are diagnostics only and do not alter decoding.
 
 ## 3. Scenarios and locked split (24 runs, 500 processed frames each at 10 Hz)
 Three scenario archetypes, eight independent CARLA trajectories each. The batch config pre-registers unique seeds
@@ -209,6 +220,62 @@ is not evidence that the checkpoint weights changed. It is a collection-recipe r
 NMS-2/top-120. All 12,000 results arrived, so CPU timeouts did not create false misses. Existing tables cannot
 causally separate input density, decoder capacity, and harder scenes.
 
-Hold the pedestrian-scope call, fast-tail supplement, and controller ladder. After joint review, the smallest
-admissible next experiment is a matched, pre-registered detector A/B (5k versus 200k first; decoder settings only
-if still needed), not a 24-run recollection.
+Hold the pedestrian-scope call, fast-tail supplement, and controller ladder. Joint review selected the bounded
+three-arm matched smoke in §11; do not start a corrected full collection directly.
+
+## 11. Gated corrected-collection chain — current authoritative execution contract
+
+Run six matched 80-frame smokes: one controlled fast vehicle and one close controlled pedestrian under each
+detector arm. Seeds and target trajectories are identical within a class.
+
+1. **Arm 1:** 5k PPS + FAST + NMS-4/top-80 (reproduce candidate-v1 recipe).
+2. **Arm 2:** 200k PPS + FAST + NMS-4/top-80 (isolate radar density).
+3. **Arm 3:** 200k PPS + FAST + NMS-2/top-120 (corrected collection recipe).
+
+All runs must have matched target trajectories/dwell, at least 50 eligible target rows, the intended realized
+radar density, 100% result receipt, healthy camera timing, and complete actor cleanup before their coverage is
+interpreted. Coverage lifts use matched within-run frame indices and a paired moving-block-bootstrap 95% CI.
+
+- **Vehicle gate (hard):** Arm-3 target row coverage ≥45%; Arm-3 minus Arm-1 ≥+10 percentage points; paired
+  95% CI lower bound >0. Report Arm 2 separately; most lift appearing there supports PPS as the primary cause.
+- **Pedestrian gate (hard and independent):** Arm-3 controlled-pedestrian row coverage ≥50%; Arm-3 minus Arm-1
+  paired 95% CI lower bound >0. Vehicle success never substitutes for this gate.
+- **Fast-in-view gate (hard):** Arm-3 vehicle speed ≥10 m/s and continuous in-frustum/≤25 m dwell ≥5 s.
+- **Saturation interpretation:** report maximum pre-top-k/pre-NMS candidates and saturated-frame counts. Credit
+  an NMS/top-k benefit only where top-80 actually saturates. If it does not, Arm 2 approximately equalling Arm 3
+  is expected; retain NMS-2/top-120 as the conservative validated default without claiming a measured NMS gain.
+
+Stop at the first failed hard or validity gate and preserve the report. Only a complete pass authorizes one new,
+versioned corrected corpus using 200k/FAST/NMS-2/top-120 and controlled exact fast-in-view trajectories. Never
+rewrite or delete candidate v1 or its `FAIL_QUARANTINED` report. After a successful corrected collection, run
+the corpus verifier and corrected-goal freshness re-score before adding it to replay roots or starting the
+controller ladder.
+
+## 12. Three-arm execution outcome — 2026-08-11 (immutable hold)
+
+The complete matched smoke is
+`data_collection/experiments/detection_ab_gate_v1/20260811_043117_smoke`; its gate report is under
+`gate_analysis/20260811_043501/`. All six runs completed 80/80 frames with 100% results, healthy camera timing,
+matched trajectories, expected 5k-versus-200k radar density, and zero leaked actors. The exact convoy achieved
+13.37 m/s, an 18.00 m gap, and 8.0 s continuously in scope. Pre-top-k telemetry was present on every frame and
+top-80 saturated in the vehicle scene (maximum 218 candidates). The packaged offscreen server twice hit UE5's
+60 s render-thread startup timeout; the completed smoke used an 800×600 window on the existing display. CARLA
+0.10.0/Town10HD_Opt and the 854×480 sensor/model configuration were unchanged, and camera timing passed.
+
+Status is **`FAIL_HOLD`**; no corrected full collection was started:
+
+- Vehicle Arm 1/2/3 target coverage was 82.50/97.50/93.75%. Arm 3 cleared the ≥45% and +10 pp point gates, but
+  its paired block-bootstrap 95% lift CI was `[0.00, 23.75]` pp, so the pinned lower-bound `>0` gate failed.
+  Arm 2 was the clearer PPS result: +15.00 pp with CI `[3.75, 27.50]`.
+- The pedestrian experiment was not a detector result: all 80 GT rows were visually in-frustum but recorded at
+  about 102 m, so none met the ≤25 m eligibility gate. Read-only inspection found the inherited controlled-walker
+  helper used the ego-relative camera transform as a world transform, spawning at world `(13.8, 0)` while the
+  actual camera was near `(-85.5, 24.4)`. This is a scenario-realization/coordinate bug; do not interpret the
+  `NaN` pedestrian coverage as a model miss.
+- The pedestrian scene never saturated top-80 (pre-top-k maxima 20/5/18), so it also did not satisfy the intended
+  crowded saturation diagnostic. No NMS benefit is claimed from that arm.
+
+The earlier partial/failed setup batches remain diagnostic artifacts only. The full chain is held for joint
+review. Any next attempt must first fix the controlled pedestrian world placement in the derived collector,
+add a genuinely crowded pedestrian realization, and pre-register whether more matched frames are needed for
+the vehicle CI; it must not weaken the accepted gates after observing this result.

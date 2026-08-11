@@ -1279,6 +1279,36 @@ functional change (the corrected 200k/FAST/NMS-2/top-120 recipe + the 3-arm gate
 re-collection only if BOTH vehicle and pedestrian gates pass). Controller work + pedestrian scope stay paused
 until the corrected corpus passes the freshness re-score.
 
+### CODEX EXECUTION RESULT — `FAIL_HOLD`; full recollection NOT started (2026-08-11)
+The complete six-run matched smoke is
+`data_collection/experiments/detection_ab_gate_v1/20260811_043117_smoke`; authoritative report:
+`gate_analysis/20260811_043501/DETECTION_AB_GATE_REPORT.md`. All mechanics/validity checks outside target
+eligibility passed: 480/480 frames, 100% result receipt, healthy timing, exact matched vehicle/ped trajectories,
+expected 5k→200k radar-density jump, and actor cleanup to zero after every run. Decoder diagnostics were present
+on every frame. The exact vehicle convoy held 13.37 m/s at 18.00 m for 8.0 s in scope; top-80 genuinely saturated
+in the vehicle scene (pre-top-k maximum 218). Therefore the fast-in-view gate passed. Provenance: two packaged
+offscreen launches hit the UE5 60 s render-thread timeout, so the completed smoke used an 800×600 window on the
+existing display; Town10HD_Opt, CARLA 0.10.0, the 854×480 sensor, and model settings stayed fixed, and timing passed.
+
+**Hard-gate outcome — HOLD at Gate 1, as instructed:**
+- Vehicle Arm 1/2/3 coverage = **82.50/97.50/93.75%**. Arm 2 isolates a strong PPS lift:
+  **+15.00 pp, paired block-bootstrap 95% CI [3.75, 27.50]**. Arm 3 clears ≥45% and +10 pp in point estimates,
+  but its +11.25 pp CI is **[0.00, 23.75]**; the pinned lower bound `>0` fails. The controlled clear target also
+  does not reproduce the ≤44.99% Arm-1 corpus baseline (diagnostic validity check, not one of the newly pinned
+  point gates).
+- Pedestrian Arm 1/2/3 has **0 eligible rows and NaN coverage** — this is NOT a detector failure. Read-only
+  inspection found all target GT rows visually in-frustum but at ~102 m. Root cause: the inherited controlled-
+  walker helper treats the ego-relative camera transform as a world transform, spawning at world `(13.8,0)`
+  while the actual camera is near `(-85.5,24.4)`. Thus the close/≤25 m scenario never realized.
+- Pedestrian pre-top-k maxima were only 20/5/18, so that scene did not saturate top-80 either. No pedestrian NMS
+  effect is credited.
+
+No gate was weakened, no retry was made after observing the result, and **no full corrected corpus was
+collected**. CARLA was stopped after verifying zero actors. `DATA_COLLECTION_PLAN.md §12` records the immutable
+hold. Joint-review options for a future pre-registered attempt: fix walker placement only in the derived wrapper,
+realize a genuinely crowded pedestrian scene, and decide whether to increase matched smoke length for CI power;
+do not tune thresholds post hoc.
+
 ## 2026-08-10 — CODEX follow-on execution: estimator hypothesis falsified; reward robust; 40 m boundary exposed
 
 All authorized work remained table-driven SPLIT+SKIP. No CARLA, OAI, LOCAL, RL training, or model training ran.

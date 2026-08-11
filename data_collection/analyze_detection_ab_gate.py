@@ -56,6 +56,59 @@ def _pct(numerator: float, denominator: float) -> float:
     return 100.0 * float(numerator) / float(denominator) if denominator else float("nan")
 
 
+def _paired_block_bootstrap_lift(
+    baseline: Sequence[bool],
+    candidate: Sequence[bool],
+    *,
+    replicates: int,
+    block_length: int,
+    seed: int,
+) -> Dict[str, object]:
+    """Return a paired percentage-point lift and moving-block 95% CI.
+
+    Frames are paired by within-run sequence index. Circular moving blocks retain
+    short temporal runs of detections instead of treating every video frame as
+    independent.
+    """
+
+    left = np.asarray(baseline, dtype=np.int8)
+    right = np.asarray(candidate, dtype=np.int8)
+    if len(left) != len(right):
+        raise ValueError("paired coverage arrays must have equal length")
+    if len(left) == 0:
+        return {
+            "paired_rows": 0,
+            "baseline_matched_rows": 0,
+            "candidate_matched_rows": 0,
+            "candidate_only_rows": 0,
+            "baseline_only_rows": 0,
+            "lift_pp": float("nan"),
+            "ci95_lower_pp": float("nan"),
+            "ci95_upper_pp": float("nan"),
+        }
+    differences = right - left
+    rng = np.random.default_rng(int(seed))
+    n = len(differences)
+    width = max(1, min(int(block_length), n))
+    block_count = int(math.ceil(n / width))
+    samples = np.empty(max(1, int(replicates)), dtype=np.float64)
+    offsets = np.arange(width, dtype=int)
+    for index in range(len(samples)):
+        starts = rng.integers(0, n, size=block_count)
+        indices = ((starts[:, None] + offsets[None, :]) % n).reshape(-1)[:n]
+        samples[index] = float(differences[indices].mean()) * 100.0
+    return {
+        "paired_rows": n,
+        "baseline_matched_rows": int(left.sum()),
+        "candidate_matched_rows": int(right.sum()),
+        "candidate_only_rows": int(((left == 0) & (right == 1)).sum()),
+        "baseline_only_rows": int(((left == 1) & (right == 0)).sum()),
+        "lift_pp": float(differences.mean()) * 100.0,
+        "ci95_lower_pp": float(np.quantile(samples, 0.025)),
+        "ci95_upper_pp": float(np.quantile(samples, 0.975)),
+    }
+
+
 def _longest_true_dwell(mask: Sequence[bool], timestamps: Sequence[float]) -> float:
     if not len(mask):
         return 0.0
@@ -174,12 +227,15 @@ def _load_run(
         pd.to_numeric(target["distance_m"], errors="coerce")
         <= float(thresholds["headline_range_m"])
     )
-    eligible = denominator_rows(target, "current_in_frustum_le25", 854, 480)
-    marked = mark_matches(eligible, predictions)
-    matched_frames = marked.loc[marked["matched"], "frame_id"].nunique()
-
     metric_index = metrics[["frame_id", "carla_timestamp"]].copy()
     metric_index["sequence_index"] = np.arange(len(metric_index), dtype=int)
+    eligible = denominator_rows(target, "current_in_frustum_le25", 854, 480)
+    marked = mark_matches(eligible, predictions)
+    marked = marked.merge(
+        metric_index[["frame_id", "sequence_index"]], on="frame_id", how="left"
+    ).sort_values("sequence_index").reset_index(drop=True)
+    matched_frames = marked.loc[marked["matched"], "frame_id"].nunique()
+
     trajectory = target.merge(metric_index, on="frame_id", how="left", suffixes=("", "_metric"))
     trajectory = trajectory.sort_values("sequence_index", na_position="last").reset_index(drop=True)
     trajectory["in_scope"] = _truthy(trajectory["in_camera_frustum"]) & (
@@ -216,8 +272,23 @@ def _load_run(
     }
 
     radar_points = pd.to_numeric(metrics["radar_projected_points"], errors="coerce")
-    target_speed = pd.to_numeric(metrics.get("tracked_target_speed_mps"), errors="coerce")
-    if target_class != "vehicle" or not isinstance(target_speed, pd.Series):
+    def numeric_metric(name: str) -> pd.Series:
+        if name not in metrics:
+            return pd.Series(np.nan, index=metrics.index, dtype=float)
+        return pd.to_numeric(metrics[name], errors="coerce")
+
+    pre_topk = numeric_metric("decode_pre_topk_above_threshold_count")
+    post_nms = numeric_metric("decode_post_topk_nms_count")
+    saturated = numeric_metric("decode_topk_saturated")
+    diagnostics_present = numeric_metric("decode_diagnostics_present")
+    run_checks["decoder_diagnostics"] = bool(
+        len(pre_topk)
+        and pre_topk.notna().all()
+        and post_nms.notna().all()
+        and (diagnostics_present == 1).all()
+    )
+    target_speed = numeric_metric("tracked_target_speed_mps")
+    if target_class != "vehicle":
         target_speed = pd.Series(np.nan, index=metrics.index)
     metric_fast = (
         metrics[["frame_id", "carla_timestamp"]]
@@ -245,6 +316,13 @@ def _load_run(
         "object_nms_radius_px": int(resolved["object_nms_radius_px"]),
         "topk_objects": int(resolved["topk_objects"]),
         "radar_projected_points_p50": float(radar_points.median()),
+        "decode_pre_topk_max": float(pre_topk.max()) if pre_topk.notna().any() else float("nan"),
+        "decode_post_topk_nms_max": float(post_nms.max())
+        if post_nms.notna().any()
+        else float("nan"),
+        "decode_topk_saturated_frames": int((saturated == 1).sum())
+        if saturated.notna().any()
+        else 0,
         "target_rows": len(target),
         "eligible_target_rows": len(eligible),
         "matched_target_rows": int(marked["matched"].sum()),
@@ -306,11 +384,22 @@ def _report(
         "## Headline gates",
         "",
         f"- Gate 1 detection: **{'PASS' if gates['gate1_pass'] else 'FAIL'}**",
+        f"- Vehicle gate: **{'PASS' if gates['vehicle_gate_pass'] else 'FAIL'}**",
+        f"- Pedestrian gate: **{'PASS' if gates['pedestrian_gate_pass'] else 'FAIL'}**",
         f"- Gate 2 controlled fast-in-view realization: **{'PASS' if gates['gate2_pass'] else 'FAIL'}**",
         f"- Arm-1 vehicle low baseline: {gates['arm1_vehicle_coverage_pct']:.2f}%",
         f"- Arm-3 vehicle coverage: {gates['arm3_vehicle_coverage_pct']:.2f}%",
-        f"- Arm-3 lift over Arm 1: {gates['arm3_vehicle_lift_pp']:.2f} percentage points",
+        f"- Arm-2 vehicle lift over Arm 1: {gates['arm2_vehicle_lift_pp']:.2f} pp "
+        f"(95% CI {gates['arm2_vehicle_ci95_lower_pp']:.2f}, {gates['arm2_vehicle_ci95_upper_pp']:.2f})",
+        f"- Arm-3 vehicle lift over Arm 1: {gates['arm3_vehicle_lift_pp']:.2f} pp "
+        f"(95% CI {gates['arm3_vehicle_ci95_lower_pp']:.2f}, {gates['arm3_vehicle_ci95_upper_pp']:.2f})",
+        f"- Arm-3 pedestrian coverage: {gates['arm3_pedestrian_coverage_pct']:.2f}%",
+        f"- Arm-2 pedestrian lift over Arm 1: {gates['arm2_pedestrian_lift_pp']:.2f} pp "
+        f"(95% CI {gates['arm2_pedestrian_ci95_lower_pp']:.2f}, {gates['arm2_pedestrian_ci95_upper_pp']:.2f})",
+        f"- Arm-3 pedestrian lift over Arm 1: {gates['arm3_pedestrian_lift_pp']:.2f} pp "
+        f"(95% CI {gates['arm3_pedestrian_ci95_lower_pp']:.2f}, {gates['arm3_pedestrian_ci95_upper_pp']:.2f})",
         f"- Arm-3 fast in-scope dwell: {gates['arm3_fast_dwell_s']:.2f} s",
+        f"- Top-80 saturation observed in matched scenes: **{'YES' if gates['top80_saturation_observed'] else 'NO'}**",
         "",
         "## Per-arm target coverage and validity",
         "",
@@ -318,6 +407,8 @@ def _report(
             [
                 "target_class", "arm", "eligible_target_rows", "target_object_row_coverage_pct",
                 "target_frame_coverage_pct", "radar_projected_points_p50",
+                "decode_pre_topk_max", "decode_post_topk_nms_max",
+                "decode_topk_saturated_frames",
                 "camera_wait_median_ms", "camera_wait_p95_ms", "result_received_pct",
                 "fast_in_scope_dwell_s", "run_valid", "run_failures",
             ]
@@ -326,6 +417,10 @@ def _report(
         "## Matched-trajectory checks",
         "",
         pairing.to_markdown(index=False, floatfmt=".3f"),
+        "",
+        "## Decoder saturation interpretation",
+        "",
+        str(gates["saturation_interpretation"]),
         "",
         "## Decision",
         "",
@@ -366,12 +461,14 @@ def analyze(batch_dir: Path, config_path: Path = DEFAULT_CONFIG) -> Tuple[Path, 
 
     summaries = []
     trajectories: Dict[Tuple[str, str], pd.DataFrame] = {}
+    marked_targets: Dict[Tuple[str, str], pd.DataFrame] = {}
     range_rows = []
     for record in records:
         row, trajectory, marked = _load_run(record, thresholds, timing)
         summaries.append(row)
         key = (str(record["target_class"]), str(record["ab_arm"]))
         trajectories[key] = trajectory
+        marked_targets[key] = marked
         range_rows.extend(_range_rows(marked, key[0], key[1]))
     summary = pd.DataFrame(summaries).sort_values(["target_class", "arm"])
     ranges = pd.DataFrame(range_rows)
@@ -388,13 +485,55 @@ def analyze(batch_dir: Path, config_path: Path = DEFAULT_CONFIG) -> Tuple[Path, 
             )
     pairing = pd.DataFrame(pair_rows)
 
+    bootstrap_replicates = int(thresholds.get("paired_bootstrap_replicates", 10000))
+    bootstrap_block = int(thresholds.get("paired_bootstrap_block_length_frames", 5))
+    bootstrap_seed = int(thresholds.get("paired_bootstrap_seed", 20260811))
+    lift_rows = []
+    for class_index, target_class in enumerate(("vehicle", "pedestrian")):
+        baseline = marked_targets[(target_class, ARMS[0])][
+            ["sequence_index", "matched"]
+        ].rename(columns={"matched": "baseline_matched"})
+        for arm_index, arm in enumerate(ARMS[1:], start=1):
+            candidate = marked_targets[(target_class, arm)][
+                ["sequence_index", "matched"]
+            ].rename(columns={"matched": "candidate_matched"})
+            paired = baseline.merge(candidate, on="sequence_index", how="inner")
+            result = _paired_block_bootstrap_lift(
+                paired["baseline_matched"].astype(bool).to_numpy(),
+                paired["candidate_matched"].astype(bool).to_numpy(),
+                replicates=bootstrap_replicates,
+                block_length=bootstrap_block,
+                seed=bootstrap_seed + 100 * class_index + arm_index,
+            )
+            lift_rows.append(
+                {
+                    "target_class": target_class,
+                    "baseline_arm": ARMS[0],
+                    "candidate_arm": arm,
+                    "bootstrap_replicates": bootstrap_replicates,
+                    "bootstrap_block_length_frames": bootstrap_block,
+                    **result,
+                }
+            )
+    lifts = pd.DataFrame(lift_rows)
+
     indexed = summary.set_index(["target_class", "arm"])
     vehicle1 = indexed.loc[("vehicle", ARMS[0])]
+    vehicle2 = indexed.loc[("vehicle", ARMS[1])]
     vehicle3 = indexed.loc[("vehicle", ARMS[2])]
+    pedestrian1 = indexed.loc[("pedestrian", ARMS[0])]
+    pedestrian2 = indexed.loc[("pedestrian", ARMS[1])]
+    pedestrian3 = indexed.loc[("pedestrian", ARMS[2])]
     arm1_coverage = float(vehicle1["target_object_row_coverage_pct"])
     arm3_coverage = float(vehicle3["target_object_row_coverage_pct"])
     arm3_lift = arm3_coverage - arm1_coverage
     arm3_dwell = float(vehicle3["fast_in_scope_dwell_s"])
+    lift_indexed = lifts.set_index(["target_class", "candidate_arm"])
+    vehicle2_lift = lift_indexed.loc[("vehicle", ARMS[1])]
+    vehicle3_lift = lift_indexed.loc[("vehicle", ARMS[2])]
+    pedestrian2_lift = lift_indexed.loc[("pedestrian", ARMS[1])]
+    pedestrian3_lift = lift_indexed.loc[("pedestrian", ARMS[2])]
+    pedestrian3_coverage = float(pedestrian3["target_object_row_coverage_pct"])
 
     density_checks = []
     for target_class in ("vehicle", "pedestrian"):
@@ -413,7 +552,7 @@ def analyze(batch_dir: Path, config_path: Path = DEFAULT_CONFIG) -> Tuple[Path, 
                 ),
             ]
         )
-    checks = [
+    validity_checks = [
         ("all_runs_valid", bool(summary["run_valid"].all())),
         ("all_pairs_valid", bool(pairing["pair_valid"].all())),
         *density_checks,
@@ -421,6 +560,8 @@ def analyze(batch_dir: Path, config_path: Path = DEFAULT_CONFIG) -> Tuple[Path, 
             "arm1_vehicle_is_low_baseline",
             arm1_coverage <= float(thresholds["arm1_vehicle_low_baseline_max_pct"]),
         ),
+    ]
+    vehicle_checks = [
         (
             "arm3_vehicle_coverage",
             arm3_coverage >= float(thresholds["arm3_vehicle_coverage_min_pct"]),
@@ -429,8 +570,31 @@ def analyze(batch_dir: Path, config_path: Path = DEFAULT_CONFIG) -> Tuple[Path, 
             "arm3_vehicle_lift",
             arm3_lift >= float(thresholds["arm3_vehicle_lift_min_pp"]),
         ),
+        (
+            "arm3_vehicle_lift_ci_lower",
+            float(vehicle3_lift["ci95_lower_pp"])
+            > float(thresholds.get("paired_ci_lower_min_pp", 0.0)),
+        ),
     ]
-    gate1_pass = all(passed for _, passed in checks)
+    pedestrian_checks = [
+        (
+            "arm3_pedestrian_coverage",
+            pedestrian3_coverage
+            >= float(thresholds["arm3_pedestrian_coverage_min_pct"]),
+        ),
+        (
+            "arm3_pedestrian_lift_ci_lower",
+            float(pedestrian3_lift["ci95_lower_pp"])
+            > float(thresholds.get("paired_ci_lower_min_pp", 0.0)),
+        ),
+    ]
+    vehicle_gate_pass = all(passed for _, passed in vehicle_checks)
+    pedestrian_gate_pass = all(passed for _, passed in pedestrian_checks)
+    gate1_pass = (
+        all(passed for _, passed in validity_checks)
+        and vehicle_gate_pass
+        and pedestrian_gate_pass
+    )
     gate2_checks = [
         (
             "arm3_fast_target_speed",
@@ -443,15 +607,47 @@ def analyze(batch_dir: Path, config_path: Path = DEFAULT_CONFIG) -> Tuple[Path, 
         ),
     ]
     gate2_pass = all(passed for _, passed in gate2_checks)
-    all_checks = checks + gate2_checks
+    all_checks = validity_checks + vehicle_checks + pedestrian_checks + gate2_checks
+    top80_saturation_observed = bool(
+        (summary["decode_pre_topk_max"] >= 80).fillna(False).any()
+    )
+    if top80_saturation_observed:
+        saturation_interpretation = (
+            "At least one matched scene exceeded 80 above-threshold pre-top-k candidates; "
+            "the Arm-2/Arm-3 NMS/top-k contrast is interpretable only for those saturated frames."
+        )
+    else:
+        saturation_interpretation = (
+            "No matched scene saturated top-80. Arm 2 approximately equalling Arm 3 is therefore "
+            "expected; retain NMS-2/top-120 as the validated conservative default without claiming "
+            "that this smoke measured an NMS benefit."
+        )
     gates: Dict[str, object] = {
         "status": "PASS_GATE_1_2" if gate1_pass and gate2_pass else "FAIL_HOLD",
         "gate1_pass": gate1_pass,
+        "vehicle_gate_pass": vehicle_gate_pass,
+        "pedestrian_gate_pass": pedestrian_gate_pass,
         "gate2_pass": gate2_pass,
         "arm1_vehicle_coverage_pct": arm1_coverage,
         "arm3_vehicle_coverage_pct": arm3_coverage,
-        "arm3_vehicle_lift_pp": arm3_lift,
+        "arm2_vehicle_lift_pp": float(vehicle2_lift["lift_pp"]),
+        "arm2_vehicle_ci95_lower_pp": float(vehicle2_lift["ci95_lower_pp"]),
+        "arm2_vehicle_ci95_upper_pp": float(vehicle2_lift["ci95_upper_pp"]),
+        "arm3_vehicle_lift_pp": float(vehicle3_lift["lift_pp"]),
+        "arm3_vehicle_ci95_lower_pp": float(vehicle3_lift["ci95_lower_pp"]),
+        "arm3_vehicle_ci95_upper_pp": float(vehicle3_lift["ci95_upper_pp"]),
+        "arm1_pedestrian_coverage_pct": float(pedestrian1["target_object_row_coverage_pct"]),
+        "arm2_pedestrian_coverage_pct": float(pedestrian2["target_object_row_coverage_pct"]),
+        "arm3_pedestrian_coverage_pct": pedestrian3_coverage,
+        "arm2_pedestrian_lift_pp": float(pedestrian2_lift["lift_pp"]),
+        "arm2_pedestrian_ci95_lower_pp": float(pedestrian2_lift["ci95_lower_pp"]),
+        "arm2_pedestrian_ci95_upper_pp": float(pedestrian2_lift["ci95_upper_pp"]),
+        "arm3_pedestrian_lift_pp": float(pedestrian3_lift["lift_pp"]),
+        "arm3_pedestrian_ci95_lower_pp": float(pedestrian3_lift["ci95_lower_pp"]),
+        "arm3_pedestrian_ci95_upper_pp": float(pedestrian3_lift["ci95_upper_pp"]),
         "arm3_fast_dwell_s": arm3_dwell,
+        "top80_saturation_observed": top80_saturation_observed,
+        "saturation_interpretation": saturation_interpretation,
         "checks": {name: passed for name, passed in all_checks},
         "failures": [name for name, passed in all_checks if not passed],
     }
@@ -460,6 +656,7 @@ def analyze(batch_dir: Path, config_path: Path = DEFAULT_CONFIG) -> Tuple[Path, 
     output_dir.mkdir(parents=True, exist_ok=False)
     summary.to_csv(output_dir / "run_summary.csv", index=False)
     pairing.to_csv(output_dir / "trajectory_pairing.csv", index=False)
+    lifts.to_csv(output_dir / "paired_coverage_lifts.csv", index=False)
     ranges.to_csv(output_dir / "coverage_by_range.csv", index=False)
     _report(output_dir, summary, pairing, ranges, gates, batch_dir)
     artifacts = {}
