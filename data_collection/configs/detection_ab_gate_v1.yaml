@@ -38,6 +38,11 @@ detection_ab_gate:
   arm1_vehicle_low_baseline_max_pct: 44.99
   arm3_vehicle_coverage_min_pct: 45.0
   arm3_vehicle_lift_min_pp: 10.0
+  arm3_pedestrian_coverage_min_pct: 50.0
+  paired_ci_lower_min_pp: 0.0
+  paired_bootstrap_replicates: 10000
+  paired_bootstrap_block_length_frames: 5
+  paired_bootstrap_seed: 20260811
   fast_target_speed_min_mps: 10.0
   fast_target_dwell_min_s: 5.0
 
@@ -95,71 +100,71 @@ smoke_runs:
   - episode_id: detab_vehicle_arm1_5k_nms4
     run_group: detection_ab_gate_v1__vehicle__arm1
     scenario_family: controlled_fast_vehicle
-    scenario_variant: centered_boundary_vehicle_24p8m
+    scenario_variant: exact_fast_convoy_18m
     target_class: vehicle
     ab_arm: arm1_5k_nms4_top80
     split: smoke
     seed: 5101
     extra_args: [--radar-points-per-second, 5000, --object-nms-radius-px, 4, --topk-objects, 80,
-                 --ego-freeze, --experiment3-target-profile, centered,
-                 --experiment3-target-forward-m, 26.6,
-                 --experiment3-target-role-name, detection_ab_vehicle]
+                 --tracked-lead, vehicle, --tracked-motion-control, exact,
+                 --tracked-speed-mps, 13.4, --tracked-gap-m, 18,
+                 --tracked-role-name, detection_ab_vehicle]
   - episode_id: detab_vehicle_arm2_200k_nms4
     run_group: detection_ab_gate_v1__vehicle__arm2
     scenario_family: controlled_fast_vehicle
-    scenario_variant: centered_boundary_vehicle_24p8m
+    scenario_variant: exact_fast_convoy_18m
     target_class: vehicle
     ab_arm: arm2_200k_nms4_top80
     split: smoke
     seed: 5101
     extra_args: [--radar-points-per-second, 200000, --object-nms-radius-px, 4, --topk-objects, 80,
-                 --ego-freeze, --experiment3-target-profile, centered,
-                 --experiment3-target-forward-m, 26.6,
-                 --experiment3-target-role-name, detection_ab_vehicle]
+                 --tracked-lead, vehicle, --tracked-motion-control, exact,
+                 --tracked-speed-mps, 13.4, --tracked-gap-m, 18,
+                 --tracked-role-name, detection_ab_vehicle]
   - episode_id: detab_vehicle_arm3_200k_nms2
     run_group: detection_ab_gate_v1__vehicle__arm3
     scenario_family: controlled_fast_vehicle
-    scenario_variant: centered_boundary_vehicle_24p8m
+    scenario_variant: exact_fast_convoy_18m
     target_class: vehicle
     ab_arm: arm3_200k_nms2_top120
     split: smoke
     seed: 5101
     extra_args: [--radar-points-per-second, 200000, --object-nms-radius-px, 2, --topk-objects, 120,
-                 --ego-freeze, --experiment3-target-profile, centered,
-                 --experiment3-target-forward-m, 26.6,
-                 --experiment3-target-role-name, detection_ab_vehicle]
+                 --tracked-lead, vehicle, --tracked-motion-control, exact,
+                 --tracked-speed-mps, 13.4, --tracked-gap-m, 18,
+                 --tracked-role-name, detection_ab_vehicle]
   - episode_id: detab_pedestrian_arm1_5k_nms4
     run_group: detection_ab_gate_v1__pedestrian__arm1
     scenario_family: controlled_pedestrian
-    scenario_variant: lateral_crossing_18m
+    scenario_variant: close_lateral_crossing_12m
     target_class: pedestrian
     ab_arm: arm1_5k_nms4_top80
     split: smoke
     seed: 5201
     extra_args: [--radar-points-per-second, 5000, --object-nms-radius-px, 4, --topk-objects, 80,
                  --ego-freeze, --controlled-target, walker, --target-speed-mps, 1.4,
-                 --target-fwd-dist-m, 18, --target-span-m, 18]
+                 --target-fwd-dist-m, 12, --target-span-m, 18]
   - episode_id: detab_pedestrian_arm2_200k_nms4
     run_group: detection_ab_gate_v1__pedestrian__arm2
     scenario_family: controlled_pedestrian
-    scenario_variant: lateral_crossing_18m
+    scenario_variant: close_lateral_crossing_12m
     target_class: pedestrian
     ab_arm: arm2_200k_nms4_top80
     split: smoke
     seed: 5201
     extra_args: [--radar-points-per-second, 200000, --object-nms-radius-px, 4, --topk-objects, 80,
                  --ego-freeze, --controlled-target, walker, --target-speed-mps, 1.4,
-                 --target-fwd-dist-m, 18, --target-span-m, 18]
+                 --target-fwd-dist-m, 12, --target-span-m, 18]
   - episode_id: detab_pedestrian_arm3_200k_nms2
     run_group: detection_ab_gate_v1__pedestrian__arm3
     scenario_family: controlled_pedestrian
-    scenario_variant: lateral_crossing_18m
+    scenario_variant: close_lateral_crossing_12m
     target_class: pedestrian
     ab_arm: arm3_200k_nms2_top120
     split: smoke
     seed: 5201
     extra_args: [--radar-points-per-second, 200000, --object-nms-radius-px, 2, --topk-objects, 120,
                  --ego-freeze, --controlled-target, walker, --target-speed-mps, 1.4,
-                 --target-fwd-dist-m, 18, --target-span-m, 18]
+                 --target-fwd-dist-m, 12, --target-span-m, 18]
 
 runs: []

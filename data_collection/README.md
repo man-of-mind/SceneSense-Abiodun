@@ -19,6 +19,10 @@ This directory owns the L10319 collection loop described in
 - `reconcile_detection_coverage.py` applies the identical live direct-coverage
   score to old and new traces, reports range/denominator sensitivity, and audits
   detector configuration plus timeout/empty-result accounting. It is table-only.
+- `configs/detection_ab_gate_v1.yaml` defines the six-run matched three-arm gate;
+  `analyze_detection_ab_gate.py` computes the hard vehicle/pedestrian gates,
+  paired moving-block confidence intervals, fast-in-view dwell, and decoder
+  top-80 saturation diagnostics.
 - `configs/policy_corpus_v1.yaml` is the single pre-registered experiment
   definition: scenario arguments, 24 seeds, splits, provenance, and gates.
 - `configs/freshness_rescore_v1.yaml` locks the table-driven re-score constants
@@ -61,3 +65,18 @@ The current v1 corpus is additionally held by
 `rl_agent/policy/DETECTION_RECONCILIATION.md`: do not make the pedestrian-scope
 call, collect a fast-car supplement, or start the controller ladder until the
 detector recipe is reconciled.
+
+The current authorized reconciliation command is:
+
+```bash
+/home/shr_aisvcs/workarea/carla_0_10_env/carla_0_10_venv/bin/python3 \
+  data_collection/run_policy_corpus.py \
+  --config data_collection/configs/detection_ab_gate_v1.yaml --mode smoke
+
+/home/shr_aisvcs/workarea/carla_0_10_env/carla_0_10_venv/bin/python3 \
+  -m data_collection.analyze_detection_ab_gate \
+  data_collection/experiments/detection_ab_gate_v1/<batch_timestamp>_smoke
+```
+
+The analyzer exits non-zero at any failed gate. Do not start a corrected full
+collection unless its status is `PASS_GATE_1_2`.

@@ -4,6 +4,7 @@ import pandas as pd
 
 from data_collection.analyze_detection_ab_gate import (
     _longest_true_dwell,
+    _paired_block_bootstrap_lift,
     _trajectory_comparison,
 )
 
@@ -62,6 +63,30 @@ class DetectionABGateTests(unittest.TestCase):
             },
         )
         self.assertFalse(result["pair_valid"])
+
+    def test_paired_bootstrap_reports_positive_lift(self):
+        baseline = [False] * 80
+        candidate = [False] * 40 + [True] * 40
+        result = _paired_block_bootstrap_lift(
+            baseline,
+            candidate,
+            replicates=2000,
+            block_length=5,
+            seed=7,
+        )
+        self.assertEqual(result["paired_rows"], 80)
+        self.assertAlmostEqual(result["lift_pp"], 50.0)
+        self.assertGreater(result["ci95_lower_pp"], 0.0)
+
+    def test_paired_bootstrap_rejects_unpaired_arrays(self):
+        with self.assertRaises(ValueError):
+            _paired_block_bootstrap_lift(
+                [False, True],
+                [True],
+                replicates=100,
+                block_length=2,
+                seed=7,
+            )
 
 
 if __name__ == "__main__":
