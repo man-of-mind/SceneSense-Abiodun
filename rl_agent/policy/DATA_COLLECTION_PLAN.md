@@ -191,4 +191,24 @@ Observed corpus distributions:
 Human call structure: (i) judge whether the observed slow-to-sustained-fast spread is usable, (ii) judge whether
 47.59% GT pressure is materially above zero, and (iii) decide whether the one validation and one test fast-tail
 run require a small targeted supplement. If supplementing, collect only the missing regime; do not redo all 24
-runs. Pedestrian detection adequacy is a separate decision for any phase-1 pedestrian-freshness claim.
+runs. Pedestrian detection adequacy is a separate decision for any phase-1 pedestrian-freshness claim. This call
+is now held by the §10 reconciliation; do not act on the supplement recommendation yet.
+
+## 10. Detection reconciliation hold — 2026-08-11
+
+The table-only analysis in `rl_agent/policy/DETECTION_RECONCILIATION.md` gives the disposition
+**HOLD_DETECTION_CONFIG_RECONCILIATION**. Applying the identical direct-coverage metric to old traces proves
+that offline curated recall and live actor-appearance coverage are different metrics, but does not dissolve the
+problem: old vehicle cohorts score 44.70–54.95% versus 34.66% in the new corpus. An offline-visibility proxy and
+timeout audit do not remove the deficit.
+
+The earlier 0.883/0.910 reference was also the wrong model family (AE128). The exact no-AE collection checkpoint
+has validated pedestrian/vehicle/overall recall of 0.855/0.893/0.879 and an identical recorded SHA-256, so this
+is not evidence that the checkpoint weights changed. It is a collection-recipe regression: all new runs used
+5,000 radar points/s while the validated dataset used 200,000, and live NMS-4/top-80 differs from offline
+NMS-2/top-120. All 12,000 results arrived, so CPU timeouts did not create false misses. Existing tables cannot
+causally separate input density, decoder capacity, and harder scenes.
+
+Hold the pedestrian-scope call, fast-tail supplement, and controller ladder. After joint review, the smallest
+admissible next experiment is a matched, pre-registered detector A/B (5k versus 200k first; decoder settings only
+if still needed), not a 24-run recollection.

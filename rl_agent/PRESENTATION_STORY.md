@@ -71,23 +71,26 @@ pointed us at the real limiter.*
   physics (speed + delay) simply will not allow it.
   **This is exactly why an adaptive, graceful-degradation controller is needed** — you must choose the least-bad
   action when the ideal is impossible.
-- ⚠️ **The next limiter is the DATA:** the richer CARLA candidate fixed the missing-pedestrian-truth problem and
-  has substantial controller-independent freshness pressure, but pedestrian detection is weak and sustained
-  ≥10 m/s vehicle motion is split-thin. We therefore cannot yet make strong phase-1 pedestrian-freshness claims.
+- ⚠️ **The next limiter is detector provenance:** the richer CARLA candidate fixed missing pedestrian truth and
+  has substantial controller-independent freshness pressure, but its detector path inherited 5k radar pps while
+  the validated recipe used 200k. The exact live score is also below old live traces, so this is not purely an
+  offline-versus-live metric mismatch. The checkpoint weights are unchanged; the collection recipe must be
+  reconciled before judging pedestrian scope or the fast tail.
 
 ## Slide 9 — Where we are, and the plan  ← WE ARE HERE
 1. ✅ Design (state/actions/reward) + shield + fast environment + validation that the pieces are sound.
 2. ✅ The first richer CARLA candidate was collected end-to-end and added pedestrian truth. Its original
    `FAIL_QUARANTINED` report is preserved, but the shield-trajectory send-needed gate was later found to be the
    wrong test for phase-1 corpus motion.
-3. 🔄 The corrected table-driven freshness re-score shows abundant slow cases, 47.59% GT-seeded skip-only
+3. ✅ The corrected table-driven freshness re-score shows abundant slow cases, 47.59% GT-seeded skip-only
    pressure, and a real fast tail—but sustained ≥10 m/s motion is only in 2/1/1 train/validation/test runs, while
    pedestrian replay observation coverage is only 20.75%. Corpus disposition is **HUMAN_REVIEW_REQUIRED**.
-4. ⏭ Abiodun + Claude decide salvage versus a small missing-regime supplement; then build the controller
-   comparison and finally validate live over real CARLA + OAI 5G. Do not repeat the full 24-run collection.
+4. 🔄 Detection reconciliation found both a metric-definition gap and a genuine collection-recipe mismatch:
+   old live vehicle coverage is 44.70–54.95% versus 34.66% new; all new runs used 5k rather than validated 200k
+   radar pps; checkpoint SHA matches; and no timeouts occurred. **Hold pedestrian scope, top-up, and controller
+   training** pending review of a small matched detector A/B—not a full 24-run repeat.
 
 ## One-line summary for the talk
 > We designed a network-aware decision-maker, built a fast environment from real 5G + driving measurements,
-> found that the target is not always physically achievable, collected the missing pedestrian truth, and used a
-> controller-independent freshness re-score to isolate the remaining data questions—split-thin fast motion and
-> weak pedestrian detection—before controller training.
+> found that the target is not always physically achievable, collected the missing pedestrian truth, and then
+> caught a detector-recipe mismatch before it could contaminate the corpus decision or controller training.

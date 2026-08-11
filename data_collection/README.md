@@ -16,6 +16,9 @@ This directory owns the L10319 collection loop described in
   freshness re-score over an existing immutable batch. It emits GT-seeded and
   detection-seeded views, speed/dwell distributions, right-censored breach times,
   liveness bands, detection coverage, and per-run/split concentration tables.
+- `reconcile_detection_coverage.py` applies the identical live direct-coverage
+  score to old and new traces, reports range/denominator sensitivity, and audits
+  detector configuration plus timeout/empty-result accounting. It is table-only.
 - `configs/policy_corpus_v1.yaml` is the single pre-registered experiment
   definition: scenario arguments, 24 seeds, splits, provenance, and gates.
 - `configs/freshness_rescore_v1.yaml` locks the table-driven re-score constants
@@ -44,9 +47,17 @@ placement if it violates `camera_frame_wait`.
 /home/shr_aisvcs/workarea/carla_0_10_env/carla_0_10_venv/bin/python3 \
   data_collection/rescore_policy_corpus_freshness.py \
   data_collection/experiments/policy_corpus_v1/<batch_timestamp>_full
+
+/home/shr_aisvcs/workarea/carla_0_10_env/carla_0_10_venv/bin/python3 \
+  data_collection/reconcile_detection_coverage.py
 ```
 
 Never rewrite a `FAIL_QUARANTINED` verification. A later, explicitly versioned
 analysis may supersede only its use/disposition under a corrected goal; keep the
 batch and both reports immutable. Do not add the batch to replay roots until the
 documented human salvage/top-up decision is made.
+
+The current v1 corpus is additionally held by
+`rl_agent/policy/DETECTION_RECONCILIATION.md`: do not make the pedestrian-scope
+call, collect a fast-car supplement, or start the controller ladder until the
+detector recipe is reconciled.
