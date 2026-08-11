@@ -1,0 +1,30 @@
+schema_version: 1
+analysis_name: policy_corpus_freshness_rescore_v1
+
+freshness:
+  epsilon_m: 2.0
+  headline_range_m: 25.0
+  clock_hz: 20.0
+  reference_profile_id: ae32__uint4__roi0.0
+  reference_base_loc_m: 1.11
+  liveness_ticks: [3, 5, 10]
+
+matching:
+  prediction_score_min: 0.20
+  association_gate_m: 5.0
+
+speed:
+  pedestrian_qc_max_mps: 3.5
+  slow_max_mps: 2.0
+  fast_thresholds_mps: [5.0, 10.0, 13.0]
+  descriptive_regime_min_dwell_s: 0.5
+
+human_heuristic:
+  minimum_runs_per_split: 2
+  sustained_fast_threshold_mps: 10.0
+  # "Non-trivial" fast fraction and "material" pressure remain human calls.
+  # Do not turn them into post-hoc automatic gates.
+
+provenance:
+  action_catalog_csv: rl_agent/policy/data/action_catalog.csv
+  prior_verification_status: FAIL_QUARANTINED

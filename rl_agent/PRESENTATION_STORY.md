@@ -71,22 +71,23 @@ pointed us at the real limiter.*
   physics (speed + delay) simply will not allow it.
   **This is exactly why an adaptive, graceful-degradation controller is needed** — you must choose the least-bad
   action when the ideal is impossible.
-- ⚠️ **The real limiter is the DATA:** the current trace ground truth has **no pedestrian labels** (only vehicles),
-  observation coverage is about 45%, and admitted-send denominators are thin. We therefore cannot yet make strong
-  safety claims, especially for the safety-critical class.
+- ⚠️ **The next limiter is the DATA:** the richer CARLA candidate fixed the missing-pedestrian-truth problem and
+  has substantial controller-independent freshness pressure, but pedestrian detection is weak and sustained
+  ≥10 m/s vehicle motion is split-thin. We therefore cannot yet make strong phase-1 pedestrian-freshness claims.
 
 ## Slide 9 — Where we are, and the plan  ← WE ARE HERE
 1. ✅ Design (state/actions/reward) + shield + fast environment + validation that the pieces are sound.
-2. ⚠️ The first richer CARLA candidate corpus was collected end-to-end and successfully added pedestrian truth,
-   but it is **quarantined**: vehicle replay coverage fell below the legacy baseline and the intended send-needed
-   band was not exercised. This is a useful failed experiment, not training data.
-3. 🔄 Redesign and smoke-test scenario realization (persistent in-view motion/urgency), then collect a new sibling
-   corpus. Do not repeat the same 24-run configuration.
-4. ⏭ Build the controller comparison only after a replacement corpus passes every gate, then validate live over
-   real CARLA + OAI 5G.
+2. ✅ The first richer CARLA candidate was collected end-to-end and added pedestrian truth. Its original
+   `FAIL_QUARANTINED` report is preserved, but the shield-trajectory send-needed gate was later found to be the
+   wrong test for phase-1 corpus motion.
+3. 🔄 The corrected table-driven freshness re-score shows abundant slow cases, 47.59% GT-seeded skip-only
+   pressure, and a real fast tail—but sustained ≥10 m/s motion is only in 2/1/1 train/validation/test runs, while
+   pedestrian replay observation coverage is only 20.75%. Corpus disposition is **HUMAN_REVIEW_REQUIRED**.
+4. ⏭ Abiodun + Claude decide salvage versus a small missing-regime supplement; then build the controller
+   comparison and finally validate live over real CARLA + OAI 5G. Do not repeat the full 24-run collection.
 
 ## One-line summary for the talk
 > We designed a network-aware decision-maker, built a fast environment from real 5G + driving measurements,
-> obtained encouraging but denominator-limited safety evidence within its validity range, found that hitting the target isn't always
-> physically possible (which is *why* adaptation matters), and learned from a quarantined first collection exactly
-> which scenario conditions the replacement corpus must realize before controller training begins.
+> found that the target is not always physically achievable, collected the missing pedestrian truth, and used a
+> controller-independent freshness re-score to isolate the remaining data questions—split-thin fast motion and
+> weak pedestrian detection—before controller training.

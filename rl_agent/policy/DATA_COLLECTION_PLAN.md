@@ -77,7 +77,14 @@ be compared to the held-track replay baseline.
   CARLA/OAI. Town10HD_Opt for consistency with prior work.
 - This is uplink/collection only — no OAI closed-loop needed for the corpus itself.
 
-## 5. Verification gates (must pass before the corpus is used — the "are the frames sane" check)
+## 5. Original pre-registered verification gates (historical contract)
+These gates remain here unchanged as the contract under which candidate v1 was collected and first graded.
+After Abiodun clarified that phase 1 is fresh-map control for all in-scope objects, gate 4's shield-trajectory
+`send_needed` comparison was found to be mis-specified for the corpus-motion question. The immutable original
+verification remains valid as a record of that test; §9 documents the versioned freshness re-score that
+supersedes only the salvage/top-up disposition. The other collection-health and detection diagnostics remain
+useful evidence.
+
 Emit a `CORPUS_VERIFICATION.md` per collection batch with:
 1. **Pedestrian GT present:** every `ped_crossing`/`mixed_urban` run has in-frustum, ≤25 m
    `class_name=pedestrian` rows. Allow stopped/starting walkers: all finite-difference speeds must be plausible
@@ -117,15 +124,16 @@ manifest and collect a new sibling batch or documented replacement run.
 - Who runs CARLA: **decided — codex runs the full loop on L10319** (its CARLA 0.10.0), so collection and
   consumption share one box/version. local Claude reviews the plan + verification output.
 
-## 8. Execution outcome — 2026-08-10 (candidate v1 is quarantined)
+## 8. Original execution outcome — 2026-08-10 (immutable historical result)
 The exact 24-run batch completed on L10319 at
 `data_collection/experiments/policy_corpus_v1/20260811_002551_full`. All 12,000 requested frames were written,
 all 24 runs passed the online prediction/GT/result/timing gates, all CARLA actor counts returned to baseline, and
 camera wait stayed healthy (run medians 24.38–35.12 ms; worst run p95 38.34 ms). One run preserved the known
 post-flush CARLA 0.10 client-destructor warning; its files and actor cleanup passed before acceptance.
 
-The immutable verification at `verification/20260811_011702/` is **FAIL_QUARANTINED**. Do not add this batch to
-training/evaluation replay roots:
+The immutable verification at `verification/20260811_011702/` is **FAIL_QUARANTINED** under the original gates.
+This status and report were not rewritten. Its corpus-use disposition is now superseded by the corrected-goal
+analysis in §9 and awaits the documented human decision:
 
 - Pedestrian truth/matchability was achieved (11,648 eligible object-rows; 2,191 direct matches), but seven
   finite-difference samples across three runs exceeded the pre-registered 3.5 m/s all-samples ceiling. The p99
@@ -139,8 +147,48 @@ training/evaluation replay roots:
   overlapped. The richer corpus therefore added pedestrians but did not populate the narrow state band where a
   SPLIT is safe and SKIP is unsafe.
 
-Before another expensive collection, use short smokes to (1) hold a maneuvering/accelerating target in view for
-≥95% of requested frames, (2) demonstrate send-needed above baseline on the smoke replay, and (3) demonstrate
-vehicle replay coverage above baseline. Separately decide prospectively whether collision-induced pedestrian
-displacement belongs in the locomotion-speed gate. The 53% infeasible rate also strengthens the case for measuring
-the provisional LOCAL fourth table in `REWARD_FORMULATION.md`; it does not authorize inventing LOCAL parameters.
+The replacement recommendation above was made under the original send-needed framing and is retained only as
+historical context. Do not execute a 24-run replacement from it. Use the §9 distributions to make a
+salvage-versus-small-targeted-supplement call. The infeasible-rate observation remains relevant to eventual LOCAL
+measurement, but does not authorize inventing LOCAL parameters.
+
+## 9. Corrected-goal freshness re-score — 2026-08-11
+Phase 1 is to keep localization error ≤ epsilon for **all objects in the ≤25 m/C4 scope**; phase-2 occlusion is
+out of scope. The channel/forced-skip side already comes from the measured surrogate channel tables, so the CARLA
+corpus is graded here for realistic motion and detection rather than engineered network/send pressure.
+
+The table-driven re-score is at
+`freshness_rescore/20260811_023817/FRESHNESS_RESCORE.md` under the immutable v1 batch. Its status is
+**HUMAN_REVIEW_REQUIRED**. It uses epsilon=2 m, 20 Hz, the measured `ae32__uint4__roi0.0` base localization of
+1.11 m, an instantaneous first seed, no later resend, and the locked
+`sqrt(base_loc^2 + (speed * AoI)^2)` error. It reports GT-seeded motion-only and detection-seeded deployable
+views separately; unmapped truth is unsafe only in the latter. Already-breached frames are separate from 3/5/10
+tick near-breach frames, and breach-time estimates retain right-censored tracks.
+
+Observed corpus distributions:
+
+- **Speed:** pedestrians have p10/p50/p90/max 0.98/1.58/1.70/1.79 m/s; vehicles have
+  0.00/~0.00/7.44/14.68 m/s. Slow (≤2 m/s) object-frames are 100% of pedestrians and 73.35% of vehicles.
+  Vehicle object-frame fractions at ≥5/≥10/≥13 m/s are 16.20%/0.470%/0.086%; maximum continuous in-scope
+  dwells are 4.60/1.55/0.50 s.
+- **Controller-independent pressure:** GT-seeded skip-only pressure is 47.59% across all 61,372 object-frames
+  (vehicles 29.21%, pedestrians 78.14%). Across the 432 seeded tracks, 359 breach and 73 are right-censored;
+  Kaplan-Meier time-to-breach p10/p50/p90 is 0.25/1.00/2.05 s. Near-breach liveness at three ticks is 4.41%
+  of in-scope frames, reported separately from the 72.09% of frames containing an already-breached object.
+- **Deployable view:** 20,664 truth object-frames occur before detection or on never-detected tracks. Its strict
+  unsafe fraction is 61.23% overall (44.39% vehicle, 89.21% pedestrian), while pressure among mapped frames is
+  41.55%.
+- **Detection remains a gating concern:** direct pedestrian object-row/frame coverage is 18.81%/45.60%, replay
+  observation coverage is 20.75%, and 124/225 pedestrian tracks are ever detected. Vehicle values are
+  34.66%/63.24%, 38.79%, and 142/207 respectively. No post-hoc pass threshold was invented.
+- **Split robustness:** slow ≥0.5 s dwell appears in 10/5/4 train/validation/test runs for pedestrians and
+  10/5/5 for vehicles. Sustained vehicle ≥10 m/s appears in only 2/1/1 runs; the 180 fast object-frames are
+  concentrated in four fast-convoy runs (top one 46.11%, top two 71.67%). Thus validation and test each miss the
+  agreed descriptive two-runs-per-split heuristic. Per-run and per-family tables are in the report/CSVs.
+- **Pedestrian QC:** the same seven >3.5 m/s finite-difference samples are flagged in raw QC; all are outside
+  25 m. Raw rows were preserved, and none enter the in-scope scored table.
+
+Human call structure: (i) judge whether the observed slow-to-sustained-fast spread is usable, (ii) judge whether
+47.59% GT pressure is materially above zero, and (iii) decide whether the one validation and one test fast-tail
+run require a small targeted supplement. If supplementing, collect only the missing regime; do not redo all 24
+runs. Pedestrian detection adequacy is a separate decision for any phase-1 pedestrian-freshness claim.
