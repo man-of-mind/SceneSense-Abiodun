@@ -1,0 +1,147 @@
+schema_version: 1
+experiment_name: policy_corpus_v1
+collector: data_collection/carla_fusion_policy_corpus_collector.py
+output_root: data_collection/experiments/policy_corpus_v1
+requested_frames: 500
+
+carla:
+  host: 127.0.0.1
+  port: 2000
+  timeout_s: 10
+  expected_server_version: 0.10.0
+  expected_town: Town10HD_Opt
+
+provenance:
+  checkpoint: experiments/ae_integrated_20260710/noae_baseline/checkpoints/mprime_joint_noae/best.pt
+  checkpoint_sha256: f319e2a5e8fb134e74c24c0822233e17368df6e4c733add658026603e131d4fa
+  carla_version_file: VERSION
+  town_umap: CarlaUnreal/Content/Carla/Maps/Town10HD_Opt.umap
+  town_uexp: CarlaUnreal/Content/Carla/Maps/Town10HD_Opt.uexp
+
+timing_gate:
+  minimum_processed_fraction: 0.95
+  minimum_result_received_pct: 95.0
+  median_max_ms: 60.0
+  p95_max_ms: 100.0
+
+verification:
+  headline_range_m: 25.0
+  prediction_score_min: 0.20
+  association_gate_m: 5.0
+  town_coordinate_abs_max_m: 1000.0
+  pedestrian_speed_max_mps: 3.5
+  pedestrian_height_range_m: [0.8, 2.2]
+  pedestrian_width_range_m: [0.2, 1.0]
+  legacy_vehicle_observation_coverage_pct: 45.18
+  legacy_send_needed_pct: 14.66
+  legacy_selected_split_pct: 5.83
+
+common_args:
+  - --role
+  - loopback
+  - --host
+  - 127.0.0.1
+  - --port
+  - 2000
+  - --tm-port
+  - 8000
+  - --sensor-platform
+  - ego_vehicle
+  - --no-ego-freeze
+  - --ego-spawn-index
+  - 80
+  - --ego-fixed-path-spawn-indices
+  - 80,85,91,94,99,80
+  - --ego-fixed-path-loop
+  - --ego-follow-distance-m
+  - 12
+  - --ego-disable-lane-change
+  - --camera-width
+  - 854
+  - --camera-height
+  - 480
+  - --fps
+  - 10
+  - --radar-rasterizer
+  - fast
+  - --radar-temporal-window-frames
+  - 2
+  - --fusion-checkpoint
+  - experiments/ae_integrated_20260710/noae_baseline/checkpoints/mprime_joint_noae/best.pt
+  - --front-device
+  - cuda:0
+  - --back-device
+  - cpu
+  - --result-timeout
+  - 2.0
+  - --headless
+  - --no-spatial-map-stream
+  - --disable-semantic-gt
+  - --max-frames
+  - 500
+  - --transport-label
+  - policy_corpus_loopback
+
+family_args:
+  ped_crossing:
+    [--npc-vehicles, 24, --npc-pedestrians, 80, --spawn-radius, 35,
+     --ego-autopilot-speed-difference-pct, 25, --npc-speed-difference-pct, 10]
+  dense_fast:
+    [--npc-vehicles, 60, --npc-pedestrians, 12, --spawn-radius, 180,
+     --ego-autopilot-speed-difference-pct, -10, --npc-speed-difference-pct, -20,
+     --npc-ignore-lights-pct, 10]
+  mixed_urban:
+    [--npc-vehicles, 40, --npc-pedestrians, 35, --spawn-radius, 140,
+     --ego-autopilot-speed-difference-pct, 20, --npc-speed-difference-pct, 0]
+
+smoke_runs:
+  - {episode_id: smoke_gpu_front, run_group: policy_corpus_v1__smoke__gpu_front, scenario_family: ped_crossing,
+     split: smoke, seed: 4001, requested_frames: 80, extra_args: [--max-frames, 80]}
+  - {episode_id: smoke_gpu_back, run_group: policy_corpus_v1__smoke__gpu_back, scenario_family: ped_crossing,
+     split: smoke, seed: 4002, requested_frames: 80,
+     extra_args: [--front-device, cpu, --back-device, cuda:0, --max-frames, 80]}
+  - {episode_id: smoke_controlled_ped, run_group: policy_corpus_v1__smoke__controlled_ped, scenario_family: ped_crossing,
+     split: smoke, seed: 4003, requested_frames: 80,
+     extra_args: [--ego-freeze, --controlled-target, walker, --target-speed-mps, 1.4,
+                  --target-fwd-dist-m, 12, --target-span-m, 18, --max-frames, 80]}
+  - {episode_id: smoke_close_random_ped, run_group: policy_corpus_v1__smoke__close_random_ped, scenario_family: ped_crossing,
+     split: smoke, seed: 4004, requested_frames: 80,
+     extra_args: [--npc-pedestrians, 80, --spawn-radius, 35, --max-frames, 80]}
+  - {episode_id: smoke_close_random_ped_mprime, run_group: policy_corpus_v1__smoke__close_random_ped_mprime, scenario_family: ped_crossing,
+     split: smoke, seed: 4005, requested_frames: 80,
+     extra_args: [--npc-pedestrians, 80, --spawn-radius, 35, --max-frames, 80]}
+  - {episode_id: smoke_dense_fast_mprime, run_group: policy_corpus_v1__smoke__dense_fast_mprime, scenario_family: dense_fast,
+     split: smoke, seed: 4006, requested_frames: 80, extra_args: [--max-frames, 80]}
+  - {episode_id: smoke_mixed_mprime, run_group: policy_corpus_v1__smoke__mixed_mprime, scenario_family: mixed_urban,
+     split: smoke, seed: 4007, requested_frames: 80, extra_args: [--max-frames, 80]}
+  - {episode_id: smoke_fast_convoy_mprime, run_group: policy_corpus_v1__smoke__fast_convoy_mprime, scenario_family: dense_fast,
+     scenario_variant: fast_convoy, split: smoke, seed: 4008, requested_frames: 150,
+     extra_args: [--tracked-lead, vehicle, --tracked-motion-control, traffic_manager,
+                  --tracked-speed-mps, 13.4, --tracked-gap-m, 15,
+                  --ego-ignore-lights-pct, 100, --max-frames, 150]}
+
+runs:
+  - {episode_id: pcv1_ped_tr01, run_group: policy_corpus_v1__train__ped_crossing__01, scenario_family: ped_crossing, split: train, seed: 4101}
+  - {episode_id: pcv1_ped_tr02, run_group: policy_corpus_v1__train__ped_crossing__02, scenario_family: ped_crossing, split: train, seed: 4102}
+  - {episode_id: pcv1_ped_tr03, run_group: policy_corpus_v1__train__ped_crossing__03, scenario_family: ped_crossing, split: train, seed: 4103}
+  - {episode_id: pcv1_ped_tr04, run_group: policy_corpus_v1__train__ped_crossing__04, scenario_family: ped_crossing, split: train, seed: 4104}
+  - {episode_id: pcv1_ped_va01, run_group: policy_corpus_v1__validation__ped_crossing__01, scenario_family: ped_crossing, split: validation, seed: 4151}
+  - {episode_id: pcv1_ped_va02, run_group: policy_corpus_v1__validation__ped_crossing__02, scenario_family: ped_crossing, split: validation, seed: 4152}
+  - {episode_id: pcv1_ped_te01, run_group: policy_corpus_v1__test__ped_crossing__01, scenario_family: ped_crossing, split: test, seed: 4191}
+  - {episode_id: pcv1_ped_te02, run_group: policy_corpus_v1__test__ped_crossing__02, scenario_family: ped_crossing, split: test, seed: 4192}
+  - {episode_id: pcv1_fast_tr01, run_group: policy_corpus_v1__train__dense_fast__dense01, scenario_family: dense_fast, scenario_variant: dense, split: train, seed: 4201}
+  - {episode_id: pcv1_fast_tr02, run_group: policy_corpus_v1__train__dense_fast__dense02, scenario_family: dense_fast, scenario_variant: dense, split: train, seed: 4202}
+  - {episode_id: pcv1_fast_tr03, run_group: policy_corpus_v1__train__dense_fast__convoy01, scenario_family: dense_fast, scenario_variant: fast_convoy, split: train, seed: 4203, extra_args: [--tracked-lead, vehicle, --tracked-motion-control, traffic_manager, --tracked-speed-mps, 13.4, --tracked-gap-m, 15, --ego-ignore-lights-pct, 100]}
+  - {episode_id: pcv1_fast_tr04, run_group: policy_corpus_v1__train__dense_fast__convoy02, scenario_family: dense_fast, scenario_variant: fast_convoy, split: train, seed: 4204, extra_args: [--tracked-lead, vehicle, --tracked-motion-control, traffic_manager, --tracked-speed-mps, 17.9, --tracked-gap-m, 15, --ego-ignore-lights-pct, 100]}
+  - {episode_id: pcv1_fast_va01, run_group: policy_corpus_v1__validation__dense_fast__dense01, scenario_family: dense_fast, scenario_variant: dense, split: validation, seed: 4251}
+  - {episode_id: pcv1_fast_va02, run_group: policy_corpus_v1__validation__dense_fast__convoy01, scenario_family: dense_fast, scenario_variant: fast_convoy, split: validation, seed: 4252, extra_args: [--tracked-lead, vehicle, --tracked-motion-control, traffic_manager, --tracked-speed-mps, 15.6, --tracked-gap-m, 15, --ego-ignore-lights-pct, 100]}
+  - {episode_id: pcv1_fast_te01, run_group: policy_corpus_v1__test__dense_fast__dense01, scenario_family: dense_fast, scenario_variant: dense, split: test, seed: 4291}
+  - {episode_id: pcv1_fast_te02, run_group: policy_corpus_v1__test__dense_fast__convoy01, scenario_family: dense_fast, scenario_variant: fast_convoy, split: test, seed: 4292, extra_args: [--tracked-lead, vehicle, --tracked-motion-control, traffic_manager, --tracked-speed-mps, 20.0, --tracked-gap-m, 15, --ego-ignore-lights-pct, 100]}
+  - {episode_id: pcv1_mix_tr01, run_group: policy_corpus_v1__train__mixed_urban__01, scenario_family: mixed_urban, split: train, seed: 4301}
+  - {episode_id: pcv1_mix_tr02, run_group: policy_corpus_v1__train__mixed_urban__02, scenario_family: mixed_urban, split: train, seed: 4302}
+  - {episode_id: pcv1_mix_tr03, run_group: policy_corpus_v1__train__mixed_urban__03, scenario_family: mixed_urban, split: train, seed: 4303}
+  - {episode_id: pcv1_mix_tr04, run_group: policy_corpus_v1__train__mixed_urban__04, scenario_family: mixed_urban, split: train, seed: 4304}
+  - {episode_id: pcv1_mix_va01, run_group: policy_corpus_v1__validation__mixed_urban__01, scenario_family: mixed_urban, split: validation, seed: 4351}
+  - {episode_id: pcv1_mix_va02, run_group: policy_corpus_v1__validation__mixed_urban__02, scenario_family: mixed_urban, split: validation, seed: 4352}
+  - {episode_id: pcv1_mix_te01, run_group: policy_corpus_v1__test__mixed_urban__01, scenario_family: mixed_urban, split: test, seed: 4391}
+  - {episode_id: pcv1_mix_te02, run_group: policy_corpus_v1__test__mixed_urban__02, scenario_family: mixed_urban, split: test, seed: 4392}

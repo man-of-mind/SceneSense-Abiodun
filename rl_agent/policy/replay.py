@@ -63,7 +63,31 @@ def _family_splits(families: Sequence[str], ratios: Mapping[str, float], seed: i
 
 def discover_trace_registry(config: Mapping[str, object]) -> List[TraceRecord]:
     spec = config["replay"]
-    candidates: List[Tuple[Path, str, str, str, Optional[Path]]] = []
+    explicit_by_episode: Dict[str, Tuple[str, str]] = {}
+    split_manifest_value = str(spec.get("split_manifest_csv", "")).strip()
+    if split_manifest_value:
+        split_manifest_path = Path(split_manifest_value).expanduser()
+        if not split_manifest_path.is_absolute():
+            split_manifest_path = REPO_ROOT / split_manifest_path
+        split_frame = pd.read_csv(split_manifest_path)
+        required_split_columns = {"episode_id", "scenario_family", "split"}
+        if not required_split_columns.issubset(split_frame.columns):
+            raise ValueError(
+                f"split manifest must contain {sorted(required_split_columns)}: {split_manifest_path}"
+            )
+        if split_frame["episode_id"].astype(str).duplicated().any():
+            raise ValueError(f"duplicate episode_id in split manifest: {split_manifest_path}")
+        invalid_splits = sorted(
+            set(split_frame["split"].astype(str)) - {"train", "validation", "test"}
+        )
+        if invalid_splits:
+            raise ValueError(f"invalid split labels {invalid_splits}: {split_manifest_path}")
+        explicit_by_episode = {
+            str(row.episode_id): (str(row.scenario_family), str(row.split))
+            for row in split_frame.itertuples(index=False)
+        }
+
+    candidates: List[Tuple[Path, str, str, str, Optional[Path], Optional[str]]] = []
     for root_name in spec["roots"]:
         root = REPO_ROOT / str(root_name)
         for path in sorted(root.glob(str(spec["gt_glob"]))):
@@ -78,23 +102,41 @@ def discover_trace_registry(config: Mapping[str, object]) -> List[TraceRecord]:
                 continue
             episode_id = str(first.iloc[0]["run_id"])
             run_group = str(first.iloc[0]["run_group"])
-            family = normalize_scenario_family(run_group)
+            explicit = explicit_by_episode.get(episode_id)
+            family = explicit[0] if explicit is not None else normalize_scenario_family(run_group)
+            explicit_split = explicit[1] if explicit is not None else None
             prediction_name = path.name.replace("_object_ground_truth.csv", str(spec["prediction_suffix"]))
             prediction_path = path.with_name(prediction_name)
             if not prediction_path.exists() or prediction_path.stat().st_size == 0:
                 prediction_path = None
-            candidates.append((path, episode_id, run_group, family, prediction_path))
-    split_map = _family_splits(
-        [entry[3] for entry in candidates], spec["split_ratios"], int(spec["split_seed"])
-    )
+            candidates.append((path, episode_id, run_group, family, prediction_path, explicit_split))
+    if explicit_by_episode:
+        discovered_ids = {entry[1] for entry in candidates}
+        missing_assignments = sorted(discovered_ids - set(explicit_by_episode))
+        if missing_assignments:
+            raise ValueError(
+                "split manifest has no assignment for discovered episodes: "
+                + ", ".join(missing_assignments[:10])
+            )
+        unused_assignments = sorted(set(explicit_by_episode) - discovered_ids)
+        if unused_assignments:
+            raise ValueError(
+                "split manifest references undiscovered episodes: "
+                + ", ".join(unused_assignments[:10])
+            )
+        split_map: Dict[str, str] = {}
+    else:
+        split_map = _family_splits(
+            [entry[3] for entry in candidates], spec["split_ratios"], int(spec["split_seed"])
+        )
     registry = []
-    for path, episode_id, run_group, family, prediction_path in candidates:
+    for path, episode_id, run_group, family, prediction_path, explicit_split in candidates:
         registry.append(
             TraceRecord(
                 episode_id=episode_id,
                 run_group=run_group,
                 scenario_family=family,
-                split=split_map[family],
+                split=str(explicit_split or split_map[family]),
                 ground_truth_path=path,
                 prediction_path=prediction_path,
                 ground_truth_sha256=hashlib.sha256(path.read_bytes()).hexdigest(),
@@ -153,10 +195,10 @@ def _greedy_prediction_matches(gt: pd.DataFrame, predictions: pd.DataFrame, gate
                     continue
                 distance = float(np.hypot(gt_row["world_x"] - pred_row["world_x"], gt_row["world_y"] - pred_row["world_y"]))
                 if distance <= gate_m:
-                    pairs.append((distance, gt_index, pred_index))
+                    pairs.append((distance, gt_index, pred_index, gt_class))
         used_gt = set()
         used_pred = set()
-        for distance, gt_index, pred_index in sorted(pairs):
+        for distance, gt_index, pred_index, gt_class in sorted(pairs):
             if gt_index in used_gt or pred_index in used_pred:
                 continue
             used_gt.add(gt_index)
@@ -166,6 +208,7 @@ def _greedy_prediction_matches(gt: pd.DataFrame, predictions: pd.DataFrame, gate
             matches.append(
                 {
                     "actor_id": int(gt_row["actor_id"]),
+                    "class_name": gt_class,
                     "timestamp": float(gt_row["carla_timestamp"]),
                     "world_x": float(pred_row["world_x"]),
                     "world_y": float(pred_row["world_y"]),
@@ -260,7 +303,6 @@ def load_trace_episode(
         ].copy()
         matches = _greedy_prediction_matches(gt, predictions, float(spec["association_gate_m"]))
         if not matches.empty:
-            matches["class_name"] = "vehicle"
             pred_tracks = _track_arrays(matches, "timestamp")
     start = float(gt["carla_timestamp"].min())
     end = float(gt["carla_timestamp"].max())

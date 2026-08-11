@@ -12,16 +12,17 @@ everything, all the time.
 
 ## Slide 2 — The decision, many times per second
 Every frame the car must choose one of:
-- **SEND** the full detail (most accurate, most network),
+- **SEND** the highest-fidelity supported split representation (most accurate available action, most network),
 - **COMPRESS** then send (less accurate, less network),
 - **SKIP** this frame (free, but the map goes stale).
 Send too much → the link congests and everything arrives late. Send too little → the map's object positions
 drift out of date. **There is a real trade-off, and the right choice changes with the situation.**
 
 ## Slide 3 — Why a *smart* (adaptive) decision-maker
-A fixed rule fails: "always send" congests; "always compress" loses accuracy. The right choice depends on
+A fixed rule can fail: "always send" can congest; "always compress" can lose accuracy. The right choice depends on
 **how good the link is right now, how fast the objects are moving, and how stale the map already is.** We want a
-decision-maker that **adapts to the situation** — that is what a learned controller (an RL "agent") gives us.
+decision-maker that **adapts to the situation**. RL is one candidate, to be compared against rules, a contextual
+bandit, and model-predictive control rather than assumed to be the answer.
 The research question in one line:
 > *Does a network-aware adaptive policy keep the shared map safe while using the 5G link efficiently — and beat
 > simple fixed strategies?*
@@ -37,49 +38,55 @@ This design is stable. Everything since has been about **testing it properly bef
 We cannot train on live CARLA + live 5G (far too slow). So we built a fast **environment** (a.k.a. surrogate) —
 a stand-in world — out of **measurements we already collected**:
 1. **Real driving traces** — CARLA drives logging every object's true position each frame + what the detector saw.
-2. **Real 5G table** — from the OAI sweep: send X bytes at signal quality Y → delivered? how late?
+2. **5G table** — measured OAI anchors plus explicitly labelled payload/FPS projections: send X bytes at a
+   channel rung → delivered? how late?
 3. **Accuracy table** — how much accuracy survives each compression level.
 4. **Staleness model** — how location error grows with delay × object speed.
 *(We inspected the driving traces to confirm they are physically real — correct object sizes, plausible
 positions, the validated position convention. They are sound.)*
 
 ## Slide 6 — Safety first: the "shield"
-Before the agent's preference matters, a **shield** blocks any decision that would let an object's position get
-more wrong than the safety budget ε. Safety is **structural** (a hard gate), not just a reward term you hope wins.
+Before the controller's preference matters, an **observation-based deterministic surrogate shield** blocks actions
+whose estimated p95 localization bound exceeds ε. If none meets ε, it enters a flagged graceful-degradation band
+and chooses the least-bad admissible action. This is a structural model gate, not a live safety guarantee.
 
 ## Slide 7 — The thought process: we tested 3 safety dials (don't hide this — it's the science)
 We turned three plausible safety dials to learn which actually carries weight:
 
 | Dial | What it controls | What we found | Lesson |
 |---|---|---|---|
-| **Safety margin** | Extra buffer on the worst-case estimate, to hedge uncertainty | Did nothing in the simulator | The simulator's estimate is deterministic — no uncertainty to hedge. This buffer earns its keep only against *live* uncertainty → turn on at live validation. |
+| **Safety margin** | Extra buffer on the worst-case estimate, to hedge uncertainty | Did nothing to selected actions at the admitted fixed point | Candidate uncertainty is not globally zero, but it is effectively inert on selected/raw-safe actions after the C1=0.70 gate. Residual/conformal calibration belongs in live validation. |
 | **Network caution** | How much to under-trust the bandwidth estimate before allowing a send | Changed which sends were *allowed*, rarely which was *chosen* | The choice is driven by the accuracy-vs-staleness trade, not the bandwidth cushion → a conservative default is fine. |
-| **Estimator quality** | How stale/noisy the car's view of the network is | A *perfect* estimator fixed **0%** of the over-caution | Our hypothesis was wrong (cleanly). The over-caution is **structural**, not an estimation error. |
+| **Estimator quality** | How stale/noisy the car's view of the network is | A *perfect* estimator recovered **0.00 percentage points** of full-GT false rejection, although raw-safe sets moved | At this fixed point, estimator quality did not explain the headline gap; this is not a universal estimator result. |
 
 **Takeaway slide line:** *we tried three plausible levers; each taught us something; none was the lever — which
 pointed us at the real limiter.*
 
 ## Slide 8 — What we actually learned (the results)
-- ✅ **The shield is sound where we measured it** (objects within 25 m): it does not wave through unsafe
-  decisions. Beyond 25 m the perception model is extrapolated and the guarantee breaks — so **25 m is the honest
-  operating region.**
+- ✅ **Within the measured 25 m operating region, we observed no matched-object false admissions in the
+  core90 fixed-point pilot** (0/15 admitted sends). The denominator is thin, and pooled advisor cells did include
+  false admissions, so this is evidence to expand—not a proof or guarantee. Beyond 25 m is extrapolative.
 - ✅ **Achievability frontier (a real result):** even with *perfect* information, the safety budget is only
-  reachable ~half the time at ε = 2 m — because sometimes the physics (speed + delay) simply won't allow it.
+  reachable about 61% of frames at ε = 2 m, core90, and 25 m—about 39% are infeasible—because sometimes the
+  physics (speed + delay) simply will not allow it.
   **This is exactly why an adaptive, graceful-degradation controller is needed** — you must choose the least-bad
   action when the ideal is impossible.
-- ⚠️ **The real limiter is the DATA:** our traces contain **no pedestrians** (only vehicles), and the car rarely
-  needs to send in them — so we cannot yet prove strong safety numbers, especially for the safety-critical class.
+- ⚠️ **The real limiter is the DATA:** the current trace ground truth has **no pedestrian labels** (only vehicles),
+  observation coverage is about 45%, and admitted-send denominators are thin. We therefore cannot yet make strong
+  safety claims, especially for the safety-critical class.
 
 ## Slide 9 — Where we are, and the plan  ← WE ARE HERE
 1. ✅ Design (state/actions/reward) + shield + fast environment + validation that the pieces are sound.
-2. ▶ **Collect proper CARLA data** — with **pedestrians** and denser/faster traffic — so the environment covers
-   the safety-critical cases it is currently blind to. *(This is the immediate next step.)*
-3. ⏭ Build the comparison: two simple baselines vs the adaptive agent, scored on safety + efficiency.
-4. ⏭ **Validate live** over real CARLA + OAI 5G.
-*(Internship extended +3 months → time to do steps 2–4 properly, no shortcuts.)*
+2. ⚠️ The first richer CARLA candidate corpus was collected end-to-end and successfully added pedestrian truth,
+   but it is **quarantined**: vehicle replay coverage fell below the legacy baseline and the intended send-needed
+   band was not exercised. This is a useful failed experiment, not training data.
+3. 🔄 Redesign and smoke-test scenario realization (persistent in-view motion/urgency), then collect a new sibling
+   corpus. Do not repeat the same 24-run configuration.
+4. ⏭ Build the controller comparison only after a replacement corpus passes every gate, then validate live over
+   real CARLA + OAI 5G.
 
 ## One-line summary for the talk
 > We designed a network-aware decision-maker, built a fast environment from real 5G + driving measurements,
-> proved the safety mechanism is sound within its validity range, found that hitting the target isn't always
-> physically possible (which is *why* adaptation matters), and identified richer data (with pedestrians) as the
-> next thing we need to build the environment cleanly.
+> obtained encouraging but denominator-limited safety evidence within its validity range, found that hitting the target isn't always
+> physically possible (which is *why* adaptation matters), and learned from a quarantined first collection exactly
+> which scenario conditions the replacement corpus must realize before controller training begins.

@@ -5,12 +5,14 @@ import hashlib
 import json
 import unittest
 
+import pandas as pd
+
 from rl_agent.policy.catalog import Action, flatten_actions, load_profile_catalog
 from rl_agent.policy.channel import ChannelProcess, ChannelSurface
 from rl_agent.policy.config import REPO_ROOT, load_config
 from rl_agent.policy.env import SurrogateEnv
 from rl_agent.policy.latency import LatencyProjector
-from rl_agent.policy.replay import discover_trace_registry, synthetic_episode
+from rl_agent.policy.replay import _greedy_prediction_matches, discover_trace_registry, synthetic_episode
 from rl_agent.policy.run_advisor_sweep import _grid_cells as advisor_grid_cells
 from rl_agent.policy.run_estimator_sensitivity import _grid_cells as estimator_grid_cells
 from rl_agent.policy.run_reward_sensitivity import _grid_cells as reward_grid_cells
@@ -101,6 +103,51 @@ class TrackATestCase(unittest.TestCase):
         self.assertTrue(all(len(value) == 1 for value in family_splits.values()))
         self.assertTrue(any(record.split == "test" and record.prediction_path for record in registry))
         self.assertTrue(all(record.ground_truth_path.stat().st_size > 0 for record in registry))
+
+    def test_prediction_matching_preserves_normalized_pedestrian_class(self):
+        gt = pd.DataFrame(
+            [
+                {
+                    "frame_id": 10,
+                    "actor_id": 11,
+                    "carla_timestamp": 1.0,
+                    "class_name": "vehicle",
+                    "world_x": 0.0,
+                    "world_y": 0.0,
+                },
+                {
+                    "frame_id": 10,
+                    "actor_id": 77,
+                    "carla_timestamp": 1.0,
+                    "class_name": "pedestrian",
+                    "world_x": 3.0,
+                    "world_y": 4.0,
+                }
+            ]
+        )
+        predictions = pd.DataFrame(
+            [
+                {
+                    "frame_id": 10,
+                    "class_name": "vehicle",
+                    "world_x": 0.1,
+                    "world_y": 0.0,
+                    "distance_m": 0.1,
+                    "score": 0.8,
+                },
+                {
+                    "frame_id": 10,
+                    "class_name": "person",
+                    "world_x": 3.2,
+                    "world_y": 4.1,
+                    "distance_m": 5.0,
+                    "score": 0.9,
+                }
+            ]
+        )
+        matches = _greedy_prediction_matches(gt, predictions, gate_m=5.0)
+        classes = matches.set_index("actor_id")["class_name"].to_dict()
+        self.assertEqual(classes, {11: "vehicle", 77: "pedestrian"})
 
     def test_channel_telemetry_lag_is_exactly_two_steps(self):
         config = copy.deepcopy(self.config)
