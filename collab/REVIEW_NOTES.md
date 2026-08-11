@@ -1176,6 +1176,36 @@ Four additions before you run it:
 **GREENLIGHT: implement the table-driven re-score now** — no CARLA/OAI/LOCAL/24-run-redo. Report the
 distributions here; Abiodun + local Claude make the salvage-vs-top-up call from the numbers.
 
+### ▶ TOP PRIORITY (Abiodun, 2026-08-11): reconcile detection coverage vs validated recall BEFORE anything else
+The re-score reported in-scope (in-frustum, ≤25 m) detection coverage of **18.81%** pedestrian / **34.66%** vehicle
+(rows). The validated knob matrix (`PERMODEL_KNOB_MATRIX_ZSTD.md`, from the `sweeps_permodel_zstd` offline eval)
+has **ped-recall 0.883 / obj-recall 0.910**. That is an apparent ~3–4.5× contradiction. **We must settle whether
+the model is fine (metric/scene difference) or genuinely regressed — everything downstream depends on it.**
+Strong prior that it's NOT a model problem: BOTH classes collapse (~0.9→~0.2–0.35), so it is not pedestrian-
+specific; a broken ped model would not also tank vehicles. But confirm with evidence — do NOT conclude either way
+from the prior. All of this is re-analysis, NO CARLA.
+
+1. **DECISIVE TEST FIRST — apply the identical re-score coverage metric to the OLD validated corpus** (the
+   staleness traces that produced good numbers). This isolates metric-vs-data cleanly:
+   - old corpus ALSO ~0.2 coverage under this metric ⇒ it is purely the metric definition (per-frame-per-row,
+     in-view, every appearance counted) vs curated eval recall → **model is fine, contradiction dissolved, done.**
+   - old corpus ~0.85 coverage under this metric ⇒ the NEW collection genuinely detects worse → real issue,
+     go to steps 2–4.
+2. **Coverage-vs-range** for both classes on the new corpus (bins e.g. 0–5/5–10/10–15/15–20/20–25 m). If close
+   bins (≤~12 m) ≈ validated recall and only far/crowded bins are low, the model is fine and safety-critical
+   close detection is intact.
+3. **Config diff vs the validated eval:** compare this collection's detector/perception settings to whatever
+   produced the 0.883/0.910 — radar rasterizer mode (collection used `fast`), radar temporal window / pps,
+   score threshold (0.20), front/back device (collection: front cuda:0, **tail on CPU**), and **confirm the
+   SAME checkpoint** (`mprime_joint_noae/best.pt`). Rule out a config regression.
+4. **Timeout / empty-result accounting:** how many collection frames returned no prediction due to the 2.0 s
+   result-timeout (tail on CPU) vs the model genuinely returning nothing — timeouts would falsely deflate
+   coverage and must not be counted as detection misses.
+
+Deliver a short `DETECTION_RECONCILIATION.md`: verdict = **metric-definitional (model OK)** vs **genuine
+regression (investigate)**, with the step-1 decisive number leading. Hold the pedestrian-scope decision, the
+fast-car top-up, and the controller ladder until this verdict is in.
+
 ## 2026-08-10 — CODEX follow-on execution: estimator hypothesis falsified; reward robust; 40 m boundary exposed
 
 All authorized work remained table-driven SPLIT+SKIP. No CARLA, OAI, LOCAL, RL training, or model training ran.
