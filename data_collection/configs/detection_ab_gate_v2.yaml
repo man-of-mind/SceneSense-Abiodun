@@ -1,0 +1,208 @@
+schema_version: 1
+experiment_name: detection_ab_gate_v2
+collector: data_collection/carla_fusion_policy_corpus_collector.py
+output_root: data_collection/experiments/detection_ab_gate_v2
+requested_frames: 250
+
+carla:
+  host: 127.0.0.1
+  port: 2000
+  timeout_s: 10
+  expected_server_version: 0.10.0
+  expected_town: Town10HD_Opt
+
+provenance:
+  checkpoint: experiments/ae_integrated_20260710/noae_baseline/checkpoints/mprime_joint_noae/best.pt
+  checkpoint_sha256: f319e2a5e8fb134e74c24c0822233e17368df6e4c733add658026603e131d4fa
+  carla_version_file: VERSION
+  town_umap: CarlaUnreal/Content/Carla/Maps/Town10HD_Opt.umap
+  town_uexp: CarlaUnreal/Content/Carla/Maps/Town10HD_Opt.uexp
+
+timing_gate:
+  minimum_processed_fraction: 0.95
+  minimum_result_received_pct: 100.0
+  median_max_ms: 60.0
+  p95_max_ms: 100.0
+
+# Detection gates are intentionally byte-for-byte equivalent in value to v1.
+# The v2 delta is scenario validity and CI power, not a weaker acceptance rule.
+detection_ab_gate:
+  headline_range_m: 25.0
+  prediction_score_min: 0.20
+  association_gate_m: 5.0
+  minimum_target_eligible_rows: 50
+  minimum_density_ratio_vs_5k: 20.0
+  maximum_200k_density_ratio_delta_fraction: 0.25
+  maximum_target_row_delta_fraction: 0.10
+  minimum_in_scope_sequence_agreement: 0.90
+  maximum_median_distance_delta_m: 0.75
+  maximum_median_projection_delta_px: 10.0
+  arm1_vehicle_low_baseline_max_pct: 44.99
+  arm3_vehicle_coverage_min_pct: 45.0
+  arm3_vehicle_lift_min_pp: 10.0
+  arm3_pedestrian_coverage_min_pct: 50.0
+  paired_ci_lower_min_pp: 0.0
+  paired_bootstrap_replicates: 10000
+  paired_bootstrap_block_length_frames: 5
+  paired_bootstrap_seed: 20260811
+  fast_target_speed_min_mps: 10.0
+  fast_target_dwell_min_s: 5.0
+
+common_args:
+  - --role
+  - loopback
+  - --host
+  - 127.0.0.1
+  - --port
+  - 2000
+  - --tm-port
+  - 8000
+  - --sensor-platform
+  - ego_vehicle
+  - --no-ego-freeze
+  - --ego-spawn-index
+  - 80
+  - --camera-width
+  - 854
+  - --camera-height
+  - 480
+  - --fps
+  - 10
+  - --radar-rasterizer
+  - fast
+  - --radar-temporal-window-frames
+  - 2
+  - --object-score-threshold
+  - 0.05
+  - --quantization-mode
+  - per_channel_uint8
+  - --entropy-coder
+  - zlib
+  - --fusion-checkpoint
+  - experiments/ae_integrated_20260710/noae_baseline/checkpoints/mprime_joint_noae/best.pt
+  - --front-device
+  - cuda:0
+  - --back-device
+  - cpu
+  - --result-timeout
+  - 2.0
+  - --headless
+  - --no-spatial-map-stream
+  - --disable-semantic-gt
+  - --max-frames
+  - 250
+  - --transport-label
+  - detection_ab_gate_v2_loopback
+
+family_args:
+  controlled_fast_vehicle: []
+  controlled_pedestrian: []
+
+smoke_runs:
+  - episode_id: detab_v2_vehicle_arm1_5k_nms4
+    run_group: detection_ab_gate_v2__vehicle__arm1
+    scenario_family: controlled_fast_vehicle
+    scenario_variant: exact_fast_convoy_18m_250f
+    target_class: vehicle
+    ab_arm: arm1_5k_nms4_top80
+    split: smoke
+    requested_frames: 250
+    seed: 5101
+    extra_args: [--radar-points-per-second, 5000, --object-nms-radius-px, 4, --topk-objects, 80,
+                 --tracked-lead, vehicle, --tracked-motion-control, exact,
+                 --tracked-speed-mps, 13.4, --tracked-gap-m, 18,
+                 --tracked-role-name, detection_ab_vehicle]
+  - episode_id: detab_v2_vehicle_arm2_200k_nms4
+    run_group: detection_ab_gate_v2__vehicle__arm2
+    scenario_family: controlled_fast_vehicle
+    scenario_variant: exact_fast_convoy_18m_250f
+    target_class: vehicle
+    ab_arm: arm2_200k_nms4_top80
+    split: smoke
+    requested_frames: 250
+    seed: 5101
+    extra_args: [--radar-points-per-second, 200000, --object-nms-radius-px, 4, --topk-objects, 80,
+                 --tracked-lead, vehicle, --tracked-motion-control, exact,
+                 --tracked-speed-mps, 13.4, --tracked-gap-m, 18,
+                 --tracked-role-name, detection_ab_vehicle]
+  - episode_id: detab_v2_vehicle_arm3_200k_nms2
+    run_group: detection_ab_gate_v2__vehicle__arm3
+    scenario_family: controlled_fast_vehicle
+    scenario_variant: exact_fast_convoy_18m_250f
+    target_class: vehicle
+    ab_arm: arm3_200k_nms2_top120
+    split: smoke
+    requested_frames: 250
+    seed: 5101
+    extra_args: [--radar-points-per-second, 200000, --object-nms-radius-px, 2, --topk-objects, 120,
+                 --tracked-lead, vehicle, --tracked-motion-control, exact,
+                 --tracked-speed-mps, 13.4, --tracked-gap-m, 18,
+                 --tracked-role-name, detection_ab_vehicle]
+  - episode_id: detab_v2_pedestrian_arm1_5k_nms4
+    run_group: detection_ab_gate_v2__pedestrian__arm1
+    scenario_family: controlled_pedestrian
+    scenario_variant: crowded_close_crossing_12m_250f
+    target_class: pedestrian
+    ab_arm: arm1_5k_nms4_top80
+    split: smoke
+    requested_frames: 250
+    seed: 5201
+    extra_args: [--radar-points-per-second, 5000, --object-nms-radius-px, 4, --topk-objects, 80,
+                 --ego-freeze, --controlled-target, walker, --target-speed-mps, 1.4,
+                 --target-fwd-dist-m, 12, --target-span-m, 18,
+                 --controlled-pedestrian-target-start-lateral-m, -12,
+                 --controlled-pedestrian-crowd-count, 96,
+                 --controlled-pedestrian-crowd-min-spawned, 81,
+                 --controlled-pedestrian-crowd-depth-min-m, 16,
+                 --controlled-pedestrian-crowd-depth-max-m, 22,
+                 --controlled-pedestrian-crowd-depth-step-m, 2,
+                 --controlled-pedestrian-crowd-lateral-spacing-m, 0.85,
+                 --controlled-pedestrian-crowd-speed-mps, 0,
+                 --controlled-pedestrian-horizontal-fov-deg, 100,
+                 --controlled-pedestrian-headline-range-m, 25]
+  - episode_id: detab_v2_pedestrian_arm2_200k_nms4
+    run_group: detection_ab_gate_v2__pedestrian__arm2
+    scenario_family: controlled_pedestrian
+    scenario_variant: crowded_close_crossing_12m_250f
+    target_class: pedestrian
+    ab_arm: arm2_200k_nms4_top80
+    split: smoke
+    requested_frames: 250
+    seed: 5201
+    extra_args: [--radar-points-per-second, 200000, --object-nms-radius-px, 4, --topk-objects, 80,
+                 --ego-freeze, --controlled-target, walker, --target-speed-mps, 1.4,
+                 --target-fwd-dist-m, 12, --target-span-m, 18,
+                 --controlled-pedestrian-target-start-lateral-m, -12,
+                 --controlled-pedestrian-crowd-count, 96,
+                 --controlled-pedestrian-crowd-min-spawned, 81,
+                 --controlled-pedestrian-crowd-depth-min-m, 16,
+                 --controlled-pedestrian-crowd-depth-max-m, 22,
+                 --controlled-pedestrian-crowd-depth-step-m, 2,
+                 --controlled-pedestrian-crowd-lateral-spacing-m, 0.85,
+                 --controlled-pedestrian-crowd-speed-mps, 0,
+                 --controlled-pedestrian-horizontal-fov-deg, 100,
+                 --controlled-pedestrian-headline-range-m, 25]
+  - episode_id: detab_v2_pedestrian_arm3_200k_nms2
+    run_group: detection_ab_gate_v2__pedestrian__arm3
+    scenario_family: controlled_pedestrian
+    scenario_variant: crowded_close_crossing_12m_250f
+    target_class: pedestrian
+    ab_arm: arm3_200k_nms2_top120
+    split: smoke
+    requested_frames: 250
+    seed: 5201
+    extra_args: [--radar-points-per-second, 200000, --object-nms-radius-px, 2, --topk-objects, 120,
+                 --ego-freeze, --controlled-target, walker, --target-speed-mps, 1.4,
+                 --target-fwd-dist-m, 12, --target-span-m, 18,
+                 --controlled-pedestrian-target-start-lateral-m, -12,
+                 --controlled-pedestrian-crowd-count, 96,
+                 --controlled-pedestrian-crowd-min-spawned, 81,
+                 --controlled-pedestrian-crowd-depth-min-m, 16,
+                 --controlled-pedestrian-crowd-depth-max-m, 22,
+                 --controlled-pedestrian-crowd-depth-step-m, 2,
+                 --controlled-pedestrian-crowd-lateral-spacing-m, 0.85,
+                 --controlled-pedestrian-crowd-speed-mps, 0,
+                 --controlled-pedestrian-horizontal-fov-deg, 100,
+                 --controlled-pedestrian-headline-range-m, 25]
+
+runs: []

@@ -1371,3 +1371,60 @@ B. **IN PARALLEL — do not block controller progress on pedestrians:** the corr
    contribution; fold them in once (A) passes. This turns "still stuck" into real forward motion.
 Rationale: vehicles-detection is settled; pedestrians are one bug + a power bump away. Decoupling lets the
 controller work (the actual research) begin while the pedestrian corpus is finished in parallel.
+
+## 2026-08-11 — CODEX parallel execution result: Track A `PASS`; Track B `FAIL_HOLD`
+
+The two authorized tracks were developed in parallel and executed serially on the single CARLA/GPU instance.
+CARLA 0.10.0/Town10HD_Opt ran windowed at 800x600 while the configured sensor stayed 854x480. The server was
+stopped after the final gate and the world was verified at zero vehicles, walkers, sensors, and walker
+controllers.
+
+### Track A — corrected vehicle corpus and pre-RL controller ladder
+
+- Smoke: `data_collection/experiments/policy_corpus_vehicle_v2/20260811_110500_smoke`. Both registered episodes
+  completed 80/80 frames with 100% result delivery, healthy timing, and clean teardown. The exact convoy
+  realized 13.38 m/s and 7.8 s continuously in-frustum/within 25 m.
+- Full corpus: `data_collection/experiments/policy_corpus_vehicle_v2/20260811_110400_full`. All 32 versioned
+  whole-trajectory episodes completed: slow, typical, dense, and exact-fast each have 4 train / 2 validation /
+  2 test runs. The first three families have 500 processed frames/run; exact-fast has 100/run. All online
+  delivery, timing, decoder-telemetry, and actor-cleanup gates passed.
+- Authoritative verification:
+  `verification/20260811_185731/CORPUS_VERIFICATION.md` is **`PASS`** with no gate failures. Direct vehicle
+  object-row coverage is 52.02%; replay vehicle observation coverage is **54.86% versus the 45.18% legacy
+  floor**. Decoder telemetry is present on 100% of frames. Every exact-fast run realizes about 13.38 m/s and
+  at least 9.9 s in scope.
+- Freshness companion: `freshness_rescore/20260811_185940/FRESHNESS_RESCORE.md` is deliberately labelled
+  `HUMAN_REVIEW_REQUIRED`, not a failed verifier. Its admission heuristics are satisfied: sustained >=10 m/s
+  motion occurs in 4/2/2 train/validation/test runs, the slow regime appears in at least 11/5/6 runs, and
+  GT-seeded pressure is non-zero. This supports using the immutable verifier split for controller work; it
+  does not add pedestrian evidence.
+- Controller scaffold and full pre-RL comparison are under
+  `rl_agent/policy/experiments/controller_ladder_smoke/20260811_190139` and
+  `rl_agent/policy/experiments/controller_ladder/20260811_190816`. All deployable controllers use the identical
+  catalog, masks, and shield. On 3,998 held-out test ticks, greedy and MPC are effectively tied: finite
+  matched-true reward 0.4872 versus 0.4875, identical 79.84% selected matched-true-safe rate, 0% conditional
+  matched false admission, and identical 65.74% conditional matched false rejection. LinUCB (0.4755) and the
+  rule (0.4426) trail them. The fixed schedule scores 0.3961.
+- **RL disposition:** no DQN/SAC/PPO result was fabricated. The locked adoption rule requires evidence of
+  sequential value beyond both bandit and MPC before starting/adopting RL. MPC did not materially improve on
+  the observable one-step greedy controller here, while the shared shield/coverage gap dominates. Review this
+  result before authorizing an RL rung or changing the shield/reward.
+
+### Track B — corrected pedestrian placement and unchanged six-arm gate
+
+- Batch: `data_collection/experiments/detection_ab_gate_v2/20260811_191600_smoke`; report:
+  `gate_analysis/20260811_191556/DETECTION_AB_GATE_REPORT.md`.
+- The placement bug is fixed. Every pedestrian arm spawned the explicit controlled target plus all 96 close
+  crowd walkers; the target supplied 250/250 eligible in-frustum rows at 15.8-17.0 m. All six runs completed
+  250/250 frames with 100% result receipt, healthy timing, matched trajectories/radar densities, and zero actor
+  leaks. The crowded scene genuinely saturated top-80 (Arm-1 pre-top-k max 193; 116 saturated frames), so the
+  NMS/top-k comparison is now exercised.
+- **Pedestrian hard gate fails:** Arm-1/2/3 controlled-target coverage is 17.20/16.80/15.60%. Arm 3 is below the
+  50% floor and its lift over Arm 1 is -1.60 pp with paired 95% CI [-8.00, 4.80]. Crowding fixed validity and
+  saturation but did not produce a pedestrian detector lift.
+- **The unchanged 250-frame vehicle gate also fails:** Arm-1/2/3 coverage is 69.54/69.54/70.86%; Arm-3 lift is
+  +1.32 pp with CI [-8.61, 11.92]. The first 80 eligible frames reproduce the earlier detector win
+  (82.50/96.25/96.25%), but the later 71 eligible fast frames fall to 54.93/39.44/42.25%, erasing the lift over
+  the preregistered longer horizon. The fast realization itself passes at 13.2 s dwell.
+- Status remains **`FAIL_HOLD`** with the gates unchanged. No pedestrian-inclusive corpus was collected or
+  folded into Track A, and no post-result retry or threshold change was made.

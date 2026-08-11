@@ -1,0 +1,200 @@
+schema_version: 1
+experiment_name: policy_corpus_vehicle_v2
+collector: data_collection/carla_fusion_policy_corpus_collector.py
+output_root: data_collection/experiments/policy_corpus_vehicle_v2
+requested_frames: 500
+
+carla:
+  host: 127.0.0.1
+  port: 2000
+  timeout_s: 10
+  expected_server_version: 0.10.0
+  expected_town: Town10HD_Opt
+  # Refuse to collect over actors left by another experiment. The runner never
+  # destroys pre-existing actors; it holds until the shared world is clear.
+  require_empty_dynamic_actor_patterns:
+    [vehicle.*, walker.pedestrian.*, sensor.*, controller.ai.walker]
+
+provenance:
+  checkpoint: experiments/ae_integrated_20260710/noae_baseline/checkpoints/mprime_joint_noae/best.pt
+  checkpoint_sha256: f319e2a5e8fb134e74c24c0822233e17368df6e4c733add658026603e131d4fa
+  carla_version_file: VERSION
+  town_umap: CarlaUnreal/Content/Carla/Maps/Town10HD_Opt.umap
+  town_uexp: CarlaUnreal/Content/Carla/Maps/Town10HD_Opt.uexp
+
+timing_gate:
+  minimum_processed_fraction: 0.95
+  minimum_result_received_pct: 100.0
+  median_max_ms: 60.0
+  p95_max_ms: 100.0
+
+verification:
+  corpus_scope: vehicle_only
+  headline_range_m: 25.0
+  prediction_score_min: 0.20
+  association_gate_m: 5.0
+  town_coordinate_abs_max_m: 1000.0
+  pedestrian_speed_max_mps: 3.5
+  pedestrian_height_range_m: [0.8, 2.2]
+  pedestrian_width_range_m: [0.2, 1.0]
+  require_pedestrian_replay: false
+  require_vehicle_replay_above_legacy: true
+  require_send_needed_above_legacy: false
+  require_selected_split_above_legacy: false
+  require_fast_convoy_send_needed_above_legacy: false
+  minimum_decoder_diagnostics_fraction: 0.95
+  exact_fast_role_name: policy_corpus_vehicle_v2_exact_fast
+  exact_fast_speed_min_mps: 10.0
+  exact_fast_dwell_min_s: 5.0
+  exact_fast_range_max_m: 25.0
+  legacy_vehicle_observation_coverage_pct: 45.18
+  legacy_send_needed_pct: 14.66
+  legacy_selected_split_pct: 5.83
+
+# The runner validates these values after common/family/per-run override
+# resolution. A drifted run is rejected before CARLA is contacted.
+collection_contract:
+  scope: vehicle_only
+  require_unique_full_run_seeds: true
+  require_requested_frames_match_max_frames: true
+  required_effective_args:
+    --npc-pedestrians: 0
+    --radar-points-per-second: 200000
+    --radar-rasterizer: fast
+    --radar-temporal-window-frames: 2
+    --object-score-threshold: 0.05
+    --object-nms-radius-px: 2
+    --topk-objects: 120
+  required_family_split_counts:
+    slow_urban: {train: 4, validation: 2, test: 2}
+    typical_urban: {train: 4, validation: 2, test: 2}
+    dense_urban: {train: 4, validation: 2, test: 2}
+    exact_fast_convoy: {train: 4, validation: 2, test: 2}
+
+common_args:
+  - --role
+  - loopback
+  - --host
+  - 127.0.0.1
+  - --port
+  - 2000
+  - --tm-port
+  - 8000
+  - --sensor-platform
+  - ego_vehicle
+  - --no-ego-freeze
+  - --ego-spawn-index
+  - 80
+  - --ego-fixed-path-spawn-indices
+  - 80,85,91,94,99,80
+  - --ego-fixed-path-loop
+  - --ego-follow-distance-m
+  - 12
+  - --ego-disable-lane-change
+  - --camera-width
+  - 854
+  - --camera-height
+  - 480
+  - --fps
+  - 10
+  - --radar-points-per-second
+  - 200000
+  - --radar-rasterizer
+  - fast
+  - --radar-temporal-window-frames
+  - 2
+  - --object-score-threshold
+  - 0.05
+  - --object-nms-radius-px
+  - 2
+  - --topk-objects
+  - 120
+  - --quantization-mode
+  - per_channel_uint8
+  - --entropy-coder
+  - zlib
+  - --fusion-checkpoint
+  - experiments/ae_integrated_20260710/noae_baseline/checkpoints/mprime_joint_noae/best.pt
+  - --front-device
+  - cuda:0
+  - --back-device
+  - cpu
+  - --result-timeout
+  - 2.0
+  - --headless
+  - --no-spatial-map-stream
+  - --disable-semantic-gt
+  - --npc-pedestrians
+  - 0
+  - --max-frames
+  - 500
+  - --transport-label
+  - policy_corpus_vehicle_v2_loopback
+
+family_args:
+  slow_urban:
+    [--npc-vehicles, 24, --spawn-radius, 100,
+     --ego-autopilot-speed-difference-pct, 55, --npc-speed-difference-pct, 45,
+     --npc-ignore-lights-pct, 0]
+  typical_urban:
+    [--npc-vehicles, 40, --spawn-radius, 140,
+     --ego-autopilot-speed-difference-pct, 20, --npc-speed-difference-pct, 0,
+     --npc-ignore-lights-pct, 0]
+  dense_urban:
+    [--npc-vehicles, 60, --spawn-radius, 180,
+     --ego-autopilot-speed-difference-pct, 10, --npc-speed-difference-pct, -20,
+     --npc-ignore-lights-pct, 10]
+  exact_fast_convoy:
+    [--npc-vehicles, 0, --spawn-radius, 180,
+     --tracked-lead, vehicle, --tracked-motion-control, exact,
+     --tracked-speed-mps, 13.4, --tracked-gap-m, 18,
+     --tracked-role-name, policy_corpus_vehicle_v2_exact_fast,
+     --ego-ignore-lights-pct, 100]
+
+smoke_runs:
+  - {episode_id: pcvv2_smoke_typical, run_group: policy_corpus_vehicle_v2__smoke__typical,
+     scenario_family: typical_urban, scenario_variant: typical_flow, split: smoke,
+     seed: 6001, requested_frames: 80, extra_args: [--max-frames, 80]}
+  - {episode_id: pcvv2_smoke_exact_fast, run_group: policy_corpus_vehicle_v2__smoke__exact_fast,
+     scenario_family: exact_fast_convoy, scenario_variant: exact_fast_convoy_18m, split: smoke,
+     seed: 6002, requested_frames: 80, extra_args: [--max-frames, 80]}
+
+# Whole-trajectory, seed-disjoint 4/2/2 split for every regime. The exact-fast
+# realization is intentionally 100 frames (10 s): exact constant velocity is a
+# short straight-road instrument, and acceptance uses realized >=5 s GT dwell.
+runs:
+  - {episode_id: pcvv2_slow_tr01, run_group: policy_corpus_vehicle_v2__train__slow__01, scenario_family: slow_urban, scenario_variant: slow_flow, split: train, seed: 6101}
+  - {episode_id: pcvv2_slow_tr02, run_group: policy_corpus_vehicle_v2__train__slow__02, scenario_family: slow_urban, scenario_variant: slow_flow, split: train, seed: 6102}
+  - {episode_id: pcvv2_slow_tr03, run_group: policy_corpus_vehicle_v2__train__slow__03, scenario_family: slow_urban, scenario_variant: slow_flow, split: train, seed: 6103}
+  - {episode_id: pcvv2_slow_tr04, run_group: policy_corpus_vehicle_v2__train__slow__04, scenario_family: slow_urban, scenario_variant: slow_flow, split: train, seed: 6104}
+  - {episode_id: pcvv2_slow_va01, run_group: policy_corpus_vehicle_v2__validation__slow__01, scenario_family: slow_urban, scenario_variant: slow_flow, split: validation, seed: 6151}
+  - {episode_id: pcvv2_slow_va02, run_group: policy_corpus_vehicle_v2__validation__slow__02, scenario_family: slow_urban, scenario_variant: slow_flow, split: validation, seed: 6152}
+  - {episode_id: pcvv2_slow_te01, run_group: policy_corpus_vehicle_v2__test__slow__01, scenario_family: slow_urban, scenario_variant: slow_flow, split: test, seed: 6191}
+  - {episode_id: pcvv2_slow_te02, run_group: policy_corpus_vehicle_v2__test__slow__02, scenario_family: slow_urban, scenario_variant: slow_flow, split: test, seed: 6192}
+
+  - {episode_id: pcvv2_typical_tr01, run_group: policy_corpus_vehicle_v2__train__typical__01, scenario_family: typical_urban, scenario_variant: typical_flow, split: train, seed: 6201}
+  - {episode_id: pcvv2_typical_tr02, run_group: policy_corpus_vehicle_v2__train__typical__02, scenario_family: typical_urban, scenario_variant: typical_flow, split: train, seed: 6202}
+  - {episode_id: pcvv2_typical_tr03, run_group: policy_corpus_vehicle_v2__train__typical__03, scenario_family: typical_urban, scenario_variant: typical_flow, split: train, seed: 6203}
+  - {episode_id: pcvv2_typical_tr04, run_group: policy_corpus_vehicle_v2__train__typical__04, scenario_family: typical_urban, scenario_variant: typical_flow, split: train, seed: 6204}
+  - {episode_id: pcvv2_typical_va01, run_group: policy_corpus_vehicle_v2__validation__typical__01, scenario_family: typical_urban, scenario_variant: typical_flow, split: validation, seed: 6251}
+  - {episode_id: pcvv2_typical_va02, run_group: policy_corpus_vehicle_v2__validation__typical__02, scenario_family: typical_urban, scenario_variant: typical_flow, split: validation, seed: 6252}
+  - {episode_id: pcvv2_typical_te01, run_group: policy_corpus_vehicle_v2__test__typical__01, scenario_family: typical_urban, scenario_variant: typical_flow, split: test, seed: 6291}
+  - {episode_id: pcvv2_typical_te02, run_group: policy_corpus_vehicle_v2__test__typical__02, scenario_family: typical_urban, scenario_variant: typical_flow, split: test, seed: 6292}
+
+  - {episode_id: pcvv2_dense_tr01, run_group: policy_corpus_vehicle_v2__train__dense__01, scenario_family: dense_urban, scenario_variant: dense_flow, split: train, seed: 6301}
+  - {episode_id: pcvv2_dense_tr02, run_group: policy_corpus_vehicle_v2__train__dense__02, scenario_family: dense_urban, scenario_variant: dense_flow, split: train, seed: 6302}
+  - {episode_id: pcvv2_dense_tr03, run_group: policy_corpus_vehicle_v2__train__dense__03, scenario_family: dense_urban, scenario_variant: dense_flow, split: train, seed: 6303}
+  - {episode_id: pcvv2_dense_tr04, run_group: policy_corpus_vehicle_v2__train__dense__04, scenario_family: dense_urban, scenario_variant: dense_flow, split: train, seed: 6304}
+  - {episode_id: pcvv2_dense_va01, run_group: policy_corpus_vehicle_v2__validation__dense__01, scenario_family: dense_urban, scenario_variant: dense_flow, split: validation, seed: 6351}
+  - {episode_id: pcvv2_dense_va02, run_group: policy_corpus_vehicle_v2__validation__dense__02, scenario_family: dense_urban, scenario_variant: dense_flow, split: validation, seed: 6352}
+  - {episode_id: pcvv2_dense_te01, run_group: policy_corpus_vehicle_v2__test__dense__01, scenario_family: dense_urban, scenario_variant: dense_flow, split: test, seed: 6391}
+  - {episode_id: pcvv2_dense_te02, run_group: policy_corpus_vehicle_v2__test__dense__02, scenario_family: dense_urban, scenario_variant: dense_flow, split: test, seed: 6392}
+
+  - {episode_id: pcvv2_fast_tr01, run_group: policy_corpus_vehicle_v2__train__exact_fast__01, scenario_family: exact_fast_convoy, scenario_variant: exact_fast_convoy_18m, split: train, seed: 6401, requested_frames: 100, extra_args: [--max-frames, 100]}
+  - {episode_id: pcvv2_fast_tr02, run_group: policy_corpus_vehicle_v2__train__exact_fast__02, scenario_family: exact_fast_convoy, scenario_variant: exact_fast_convoy_18m, split: train, seed: 6402, requested_frames: 100, extra_args: [--max-frames, 100]}
+  - {episode_id: pcvv2_fast_tr03, run_group: policy_corpus_vehicle_v2__train__exact_fast__03, scenario_family: exact_fast_convoy, scenario_variant: exact_fast_convoy_18m, split: train, seed: 6403, requested_frames: 100, extra_args: [--max-frames, 100]}
+  - {episode_id: pcvv2_fast_tr04, run_group: policy_corpus_vehicle_v2__train__exact_fast__04, scenario_family: exact_fast_convoy, scenario_variant: exact_fast_convoy_18m, split: train, seed: 6404, requested_frames: 100, extra_args: [--max-frames, 100]}
+  - {episode_id: pcvv2_fast_va01, run_group: policy_corpus_vehicle_v2__validation__exact_fast__01, scenario_family: exact_fast_convoy, scenario_variant: exact_fast_convoy_18m, split: validation, seed: 6451, requested_frames: 100, extra_args: [--max-frames, 100]}
+  - {episode_id: pcvv2_fast_va02, run_group: policy_corpus_vehicle_v2__validation__exact_fast__02, scenario_family: exact_fast_convoy, scenario_variant: exact_fast_convoy_18m, split: validation, seed: 6452, requested_frames: 100, extra_args: [--max-frames, 100]}
+  - {episode_id: pcvv2_fast_te01, run_group: policy_corpus_vehicle_v2__test__exact_fast__01, scenario_family: exact_fast_convoy, scenario_variant: exact_fast_convoy_18m, split: test, seed: 6491, requested_frames: 100, extra_args: [--max-frames, 100]}
+  - {episode_id: pcvv2_fast_te02, run_group: policy_corpus_vehicle_v2__test__exact_fast__02, scenario_family: exact_fast_convoy, scenario_variant: exact_fast_convoy_18m, split: test, seed: 6492, requested_frames: 100, extra_args: [--max-frames, 100]}

@@ -1,0 +1,100 @@
+{
+  "common_random_latency_by_tick": true,
+  "controllers": [
+    "fixed",
+    "rule",
+    "greedy",
+    "linucb",
+    "mpc"
+  ],
+  "corpus_id": "policy_corpus_vehicle_v2",
+  "created_utc": "2026-08-11T19:01:40.128305+00:00",
+  "evaluation_split": "test",
+  "files": {
+    "CONTROLLER_LADDER_RESULTS.md": {
+      "bytes": 3566,
+      "sha256": "c004998cd20b1a425db1b49a3d7c5998763f26215b3fafe548c8ff1c4dabe891"
+    },
+    "controller_states.json": {
+      "bytes": 147096,
+      "sha256": "0344b5e2ebe75d601508ddc22631c3b0eb923704195b7c891295117eea6b186f"
+    },
+    "figures/controller_ladder_mode_and_risk.pdf": {
+      "bytes": 18003,
+      "sha256": "b771f5f2c447833e075f9270cf6d5bebca1ae4b381f4f6092e3b98dea3c80e03"
+    },
+    "figures/controller_ladder_mode_and_risk.png": {
+      "bytes": 125447,
+      "sha256": "dc443b29d98813fdea137ceecfe6928430782f27f4622963e553fdd11528a87e"
+    },
+    "per_frame_metrics.csv": {
+      "bytes": 2024571,
+      "sha256": "25caf79d0d2353aa2d6450d5cb6250bf8d4280db5029cf95818613b24ce5407f"
+    },
+    "replay_registry.csv": {
+      "bytes": 16073,
+      "sha256": "83b9f4e5f47ef8dca3408d4349473b6f30f7cb8ad04d18a0c93c0d0d39380e8c"
+    },
+    "resolved_config.yaml": {
+      "bytes": 5709,
+      "sha256": "050b66a107c801b72a4b8f74eed0fd549cb1a9f8a8f11e79f9f8deb6c676f086"
+    },
+    "summary.csv": {
+      "bytes": 8357,
+      "sha256": "7ee492c5e37afd2d226b6bb6da92592ff905bbbcad992dca2cbb8b937d7848d4"
+    },
+    "training_metrics.csv": {
+      "bytes": 954267,
+      "sha256": "e42bb14177710af0ffd855f158f4ab6dbfe0e28bcc42c41f3fc8a51561c485a0"
+    }
+  },
+  "implementation_status": "scaffold_validation",
+  "limitations": [
+    "SPLIT+SKIP only; LOCAL table remains pending",
+    "synthetic Markov channel composed with real corrected-vehicle replay",
+    "MPC uses a declared observable-state modal forecast",
+    "no pedestrian claims until Track B passes",
+    "surrogate validation only"
+  ],
+  "run_directory": "rl_agent/policy/experiments/controller_ladder_smoke/20260811_190139",
+  "run_type": "track_a_pre_rl_controller_ladder",
+  "schema_version": 1,
+  "selected_replays": [
+    {
+      "episode_id": "pcvv2_dense_tr01",
+      "frame_count": 600,
+      "ground_truth_path": "data_collection/experiments/policy_corpus_vehicle_v2/20260811_110400_full/runs/pcvv2_dense_tr01/streams/fusion_ego_622_object_ground_truth.csv",
+      "ground_truth_sha256": "cd5ab625b9a000b769010dcb020077d48716075d7f581a3c9bf9f763b3c4aa3e",
+      "prediction_path": "data_collection/experiments/policy_corpus_vehicle_v2/20260811_110400_full/runs/pcvv2_dense_tr01/streams/fusion_ego_622_object_predictions.csv",
+      "prediction_sha256": "7412a750044e87b0460676961cd6d8b8bafe1f7b4205123c5a8ba7faed66f70a",
+      "run_group": "policy_corpus_vehicle_v2__train__dense__01",
+      "scenario_family": "dense_urban",
+      "split": "train"
+    },
+    {
+      "episode_id": "pcvv2_dense_te01",
+      "frame_count": 600,
+      "ground_truth_path": "data_collection/experiments/policy_corpus_vehicle_v2/20260811_110400_full/runs/pcvv2_dense_te01/streams/fusion_ego_994_object_ground_truth.csv",
+      "ground_truth_sha256": "4934f36d6d509b7a2fa47302d6fdf0c65c935bf666cf9b2c17a7646f13d3a429",
+      "prediction_path": "data_collection/experiments/policy_corpus_vehicle_v2/20260811_110400_full/runs/pcvv2_dense_te01/streams/fusion_ego_994_object_predictions.csv",
+      "prediction_sha256": "e79a2a461e65cae3971d4bd2e7b1a87f80b3fb353d89c684e268eb3683572330",
+      "run_group": "policy_corpus_vehicle_v2__test__dense__01",
+      "scenario_family": "dense_urban",
+      "split": "test"
+    }
+  ],
+  "source_hashes": {
+    "base_loc_calibration": "1.10 + raw - min(retained_raw)",
+    "catalog_file": "rl_agent/policy/data/action_catalog.csv",
+    "catalog_sha256": "93fce009924ab8ac227726eebb3613e61139ff401c801f57d2de94ee15f18d6a",
+    "channel_condition_sweep/combined_surface.csv": "c48c44667dec980d6a5a62abb4a081cb33ac70bdf33e9536187a8fd62007e5a1",
+    "flattened_action_count": 36,
+    "profile_count": 7,
+    "schema_version": 1,
+    "source_file": "rl_agent/PERMODEL_KNOB_MATRIX_ZSTD.md",
+    "source_sha256": "35cd80016383b80c61371ab4f75b986eb2cf0e8098c622f437f1c3679f1ae9ed",
+    "uplink_only_spatial_map_pipeline/results/chsweep_full_p3ae_.csv": "0f0d6ca3528878dbf27100592d8c34e9b7725cec98968e65ff14a855ca782cfc"
+  },
+  "training_feedback_source": "matched_true_expected_reward",
+  "training_split": "train"
+}
