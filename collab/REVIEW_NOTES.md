@@ -1313,3 +1313,31 @@ engineering convention, but do not proceed directly to RL on the assumption that
 the oracle gap. First add a read-only attribution decomposition at 25 m that independently removes tracker
 position/speed error, speed sigma, and observation-coverage mismatch while preserving paired trajectories.
 Keep 40 m and all advisor-pending value selection out of the training baseline until that review is complete.
+
+## 2026-08-11 — LOCAL read of the 3-arm gate result (FAIL_HOLD) — the FIX IS CONFIRMED; hold is technical
+codex correctly stopped at Gate 1. But the substantive result is a WIN, not a failure:
+- **Detector fix CONFIRMED:** vehicle coverage 82.5/97.5/93.75% (Arm1 5k / Arm2 200k-NMS4 / Arm3 200k-NMS2-top120).
+  Arm2 pps lift +15 pp, CI [3.75, 27.50] — clean. **200k pps restores vehicle detection to 93–97%; the v1 34.66%
+  was the pps regression (+ scene difficulty). Model confirmed fine again.**
+- **Fast-in-view scenario SOLVED:** 13.37 m/s, 18 m gap, 8.0 s dwell (v1's fast lead left frame 89%).
+- **Hold reason 1 (technical):** Arm3−Arm1 vehicle-lift CI lower bound = exactly 0.00 (needed >0). This is
+  small-n power + a CEILING effect — Arm1 (single close controlled vehicle) is already 82.5%, so the lift to
+  93.75% is small by construction and its CI grazes 0. My "Arm3−Arm1 CI>0" sub-clause was mis-specified for a
+  controlled-close-vehicle baseline; the real question (does 200k restore detection) is answered YES by Arm2 +
+  the 93–97% absolutes. Note Arm3 (NMS2/top120) ≈ Arm2 (NMS4) for vehicles → NMS change doesn't help vehicles;
+  its value (if any) is in crowded pedestrian scenes, which didn't run validly.
+- **Hold reason 2 (bug):** pedestrian gate INVALID — the derived wrapper spawned the walker ~102 m away (treated
+  an ego-relative camera transform as world coords) → 0 eligible ≤25 m rows. Fixable code bug, not detection.
+
+### ▶ NEXT ACTIONS — unblock in PARALLEL (recommended; pending Abiodun's pace confirm)
+A. **Fix + re-smoke (pedestrian arm):** correct the walker world-placement bug in the derived wrapper; use a
+   genuinely crowded + close (≤25 m, in-frustum) pedestrian scene so top-k saturates; bump matched frames per arm
+   80 → ~250 for CI power (also fixes the vehicle CI). Keep the gates as written (do NOT weaken). If both gates
+   then pass cleanly → proceed to the full corrected re-collection.
+B. **IN PARALLEL — do not block controller progress on pedestrians:** the corrected VEHICLE recipe
+   (200k pps + FAST rasterizer + NMS-2/top-120, actor-origin GT) is CONFIRMED and fast-in-view now works, so
+   authorize collecting the corrected **vehicle corpus** now and START the controller ladder (rule → bandit →
+   MPC → RL) on it. Pedestrians strengthen the safety story but are not required for the adaptive-controller
+   contribution; fold them in once (A) passes. This turns "still stuck" into real forward motion.
+Rationale: vehicles-detection is settled; pedestrians are one bug + a power bump away. Decoupling lets the
+controller work (the actual research) begin while the pedestrian corpus is finished in parallel.
