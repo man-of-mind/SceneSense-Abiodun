@@ -264,3 +264,20 @@ contribution can stop object *j* from binding, but whole-frame `SKIP` must still
      contribution provenance; scalar AoI is only a phase-1 derived summary, and `SKIP` remains frame-level.
 - Local Claude and codex concur; no open disagreement. **Next: measure the LOCAL 4th table → build both
   oracles + rule/bandit → MPC → DQN/discrete-SAC only if the simpler controllers leave sequential value.**
+
+## 13. v5 DIRECTION (advisor-endorsed, 2026-08-11) — to formalize
+Agreed with Abiodun's advisor; not yet rewritten into the equations above. See `REWARD_EXPLAINER.md`
+(post-meeting consensus) and `REWARD_LOOP_DIAGRAM.md`.
+- **(a) U_task split into explicit classes:** `0.35*seg + 0.40*ped_recall + 0.25*vehicle_recall` (replaces the
+  lumped `obj_recall`; pedestrians >= vehicles, safety-critical).
+- **(b) Drop the explicit `C_ROI` term** — ROI-crop downside already appears as lower U_task (density study:
+  ROI-drop destroys segmentation), so `-lambda_ROI*C_ROI` double-counts. Let the agent learn it implicitly.
+- **(c) Localization stays on the safety side only** (already true in v4 — reaffirmed, do not add to U_task).
+- **Naming:** call `G` the **"freshness-driving object"** (the object whose position goes stale fastest and
+  sets when the map must be refreshed), not "worst object".
+- **Open (future meeting):** pedestrian *hard* protection — tighter `epsilon_pedestrian` and/or a hard
+  ped-recall floor — as the real accident-avoidance lever beyond a soft weight. Gated by pedestrian detection,
+  which is still ~17% (perception-limited) per the 2026-08-11 gate.
+- **codex to propagate** (a)-(c) + the G rename into the equations here, `AGENT_CONSTRAINTS.md §9`, and
+  `state_diagram.md` when v5 is cut. Baselines confirmed = MPC + bandit (the meeting's "NPC" was a transcription
+  error for MPC).

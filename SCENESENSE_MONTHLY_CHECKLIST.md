@@ -2,29 +2,60 @@
 
 Living checklist aligned with `2026_SceneSense-Agent_Research_Proposal_6Month_DRAFT.docx`.
 
-Last reconciled with repository evidence: **2026-07-17**.
+Last reconciled with repository evidence: **2026-08-11**.
 
 Use this file to keep the work tied to the proposal: every experiment should answer either a baseline, metric, controller, guardrail, spatial-map, or demo question.
 
 ## Current Status Snapshot
 
-- **Month 1:** core baselines, transport paths, scenarios, logging, metrics,
-  and schema are complete.
-- **Month 2:** fusion-route static characterization is complete, including
-  integrated AE-128/64/32 models and a 42-profile AE/quantization/ROI sweep.
-  The offline controller replay is still the uncompleted Month-2 exit item.
-- **Month 3 started early:** OAI compression/config measurements and
-  speed/latency/FPS staleness requirements are complete. The next required
-  work is ordered as: downlink/result-return logging, FPS-buffer reliability,
-  controlled FOV continuation if baseline parity passes, then Sionna/channel
-  realism. Controlled impairment plus policy/guardrail stress is not complete.
+- **Month 1:** complete (baselines, transport, scenarios, logging, metrics, schema).
+- **Month 2:** complete. Fusion-route static characterization + the 42-profile
+  AE/quant/ROI knob matrix, AND the previously-open exit item — the **offline
+  controller replay** — is now DONE: a full policy ladder (rule / greedy /
+  LinUCB bandit / shielded MPC) was evaluated against static baselines on the
+  surrogate environment (`rl_agent/policy/`, controller_ladder run 2026-08-11).
+- **Month 3 largely in place:** OAI compression/config + speed/latency/FPS
+  staleness requirements complete; uplink-only staleness redo + downlink/result
+  logging done; the **channel-condition sweep is the controlled-impairment
+  axis**; and a **live model-based safety shield (guardrail layer)** with accept
+  / graceful-degradation / OOD behavior is implemented and validated on the
+  surrogate. Remaining: package the guardrail-stress campaign (jitter/delay/loss
+  profiles + rejection/fallback plots) and Sionna channel realism.
 - **Month 4 groundwork started early:** moving-ego/two-source map display,
-  record/replay, and synthetic FoV occlusion reasoning work. Formal map-GT,
+  record/replay, and synthetic FoV occlusion reasoning. Formal map-GT,
   freshness, false-hazard, recipient, and warning metrics remain open.
-- **Critical distinction:** the repository has a measured action menu and
-  model-level acceptance gates, but no implemented offline policy comparison,
-  learned controller, controller-level accept/clamp/reject guardrail, or
-  measured downlink/map-sharing freshness budget yet.
+- **Policy/reward (the RL-agent core):** surrogate environment built from the 3
+  measured tables; reward matured through adversarial review (v4 locked; v5
+  direction advisor-endorsed 2026-08-11 — REWARD_FORMULATION §13, REWARD_EXPLAINER,
+  REWARD_LOOP_DIAGRAM). Honest headline: on the current single-ego vehicle corpus
+  a **shielded greedy controller ties MPC and beats the learned bandit, so RL is
+  not yet justified** (adoption rule respected; no fabricated RL). Regime-
+  dependent (73% shield-dominated infeasibility) — RL's expected home is richer
+  scenarios / the multi-agent phase.
+- **Critical distinction (updated):** offline policy comparison + the shield
+  guardrail now EXIST and are evaluated. Still open: a trained RL policy that
+  beats the simple controllers, the packaged guardrail-stress campaign, a
+  pedestrian-solid corpus (detection ~17% is perception-limited; being rebuilt
+  with the advisor's CARLA scenario scripts), and the measured
+  downlink/map-sharing freshness budget.
+
+## 2026-08-11 reconciliation note (arc since 2026-07-17)
+- Built the table-driven **policy surrogate environment** (`rl_agent/policy/`) from the channel sweep + knob
+  matrix + staleness model; dual oracles (clairvoyant + shielded) + rule/greedy/LinUCB/MPC ladder.
+- **Reward** hardened v2->v4 (two-layer: hard C1 mask + live tail-risk shield; per-object AoI localization;
+  post-action map utility; normalized costs). **v5 direction (advisor 2026-08-11):** `U_task = 0.35 seg /
+  0.40 ped / 0.25 vehicle`; drop explicit `C_ROI` (learn implicitly); localization stays safety-side; rename
+  `G` -> "freshness-driving object".
+- **Shield safety calibration:** ucb_k / channel-pessimism / estimator-lag all found inert in the deterministic
+  surrogate (calibrated uncertainty is a live-validation item); shield sound at <=25 m, unsound at 40 m;
+  achievability frontier ~54% feasible at eps=2 m even with perfect info.
+- **Corpus saga (honest):** a metric artifact (send-needed measured along a competent controller) and a
+  collection-config regression (radar 5k vs validated 200k pps) were caught and fixed; MODEL confirmed intact
+  (checkpoint SHA matches, validates 0.855 ped / 0.893 veh); pedestrian detection genuinely ~17%
+  (perception-limited, range-dependent). Advisor's Town10HD_Opt CARLA scenario scripts received to rebuild the
+  corpus properly (close crossing pedestrians + routed egos) — `rl_agent/advisor_helper_scripts/codes/`.
+- **Advisor plan for the rest of this week:** (1) nail the cost<->action relationship + a solid reward
+  formulation (the block diagram), (2) evaluate the baselines; **next week: begin RL agent training.**
 
 ## Project North Star
 
@@ -829,13 +860,16 @@ traces and score decisions offline before any online RL touches CARLA/OAI.
 
 Completion criteria:
 
-- [ ] Controller replay produces a CSV/JSON summary for every baseline policy.
-- [ ] Baseline policy comparison plot exists:
-  task utility vs bytes vs latency/timeout.
-- [ ] The best simple heuristic is identified as the first policy the learned
-  controller must beat.
-- [ ] No online action execution is enabled until offline replay passes sanity
-  checks.
+- [x] Controller replay produces a CSV/JSON summary for every baseline policy.
+  Done 2026-08-11: `rl_agent/policy/experiments/controller_ladder/...` (summary.csv +
+  per_frame_metrics.csv + figures) for fixed/rule/greedy/LinUCB/MPC.
+- [x] Baseline policy comparison plot exists:
+  task utility vs bytes vs latency/timeout. (controller_ladder figures.)
+- [x] The best simple heuristic is identified as the first policy the learned
+  controller must beat. Greedy (matched reward 0.487) ties MPC (0.4875) and beats LinUCB (0.476);
+  so the bar for RL is greedy≈MPC, and RL is not yet justified in this regime.
+- [x] No online action execution is enabled until offline replay passes sanity
+  checks. (Surrogate-only; no CARLA/OAI execution.)
 
 ### 6. Guardrail Threshold Draft
 
@@ -917,12 +951,12 @@ Completion criteria:
   label requirements are documented.
 - [x] At least one static payload/latency/task profile is collected using the
   new parked-ego model or the best available substitute.
-- [ ] Offline controller replay can score simple static policies once at least
-  two valid action/model profiles exist.
-  Status: action-cost inputs are now ready in
-  `rl_agent/PERMODEL_KNOB_MATRIX.md`, `rl_agent/OAI_AB_RESULTS.md`, and the
-  staleness results; final replay comparison is the main remaining Month 2
-  closure item.
+- [x] Offline controller replay can score simple static policies once at least
+  two valid action/model profiles exist. **DONE 2026-08-11:** the controller
+  ladder (rule/greedy/LinUCB/MPC vs static baselines) ran on the surrogate
+  environment; this closes the last Month-2 exit item. Caveat: the corpus it ran
+  on is being upgraded (advisor CARLA scripts) and will be re-scored before the
+  numbers are treated as final.
 - [x] A Month 2 slide/report summarizes:
   - [x] Chosen parked-ego scene and dataset coverage.
   - [x] SEG/localization and OD-model-status performance.

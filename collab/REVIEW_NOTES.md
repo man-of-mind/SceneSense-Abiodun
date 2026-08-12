@@ -1428,3 +1428,57 @@ controllers.
   the preregistered longer horizon. The fast realization itself passes at 13.2 s dwell.
 - Status remains **`FAIL_HOLD`** with the gates unchanged. No pedestrian-inclusive corpus was collected or
   folded into Track A, and no post-result retry or threshold change was made.
+
+## 2026-08-11 — Advisor meeting outcomes (reward v5 direction + presentation asks)
+Abiodun met the advisor. Baselines confirmed = **MPC + bandit** (the meeting AI-summary's "NPC" was a
+transcription error for MPC — no new baseline). Two new presentation docs added by local Claude:
+`rl_agent/REWARD_LOOP_DIAGRAM.md` (advisor-requested state->actions->outcomes->costs->reward block diagram + a
+worked 2-3 object frame explaining G and where E_expected/E_risk come from) and the updated
+`rl_agent/REWARD_EXPLAINER.md`.
+**Reward v5 direction (advisor-endorsed; recorded in REWARD_FORMULATION §13, NOT yet in the equations):**
+- (a) `U_task = 0.35*seg + 0.40*ped_recall + 0.25*vehicle_recall` (split obj_recall; ped >= vehicle).
+- (b) Drop explicit `C_ROI` — double-counts U_task's accuracy drop; learn it implicitly.
+- (c) Localization stays on the safety side only (reaffirmed).
+- Rename `G` -> **"freshness-driving object"** (not "worst object").
+- Open for a later meeting: pedestrian HARD protection (tighter epsilon_ped / recall floor) — the real
+  accident-avoidance lever; gated by pedestrian detection (~17%, perception-limited).
+**▶ codex:** when we cut v5, propagate (a)-(c) + the G rename into REWARD_FORMULATION equations,
+`AGENT_CONSTRAINTS §9`, and `state_diagram.md`. Not now — Abiodun is still gathering the advisor's CARLA
+scenario scripts (vehicle/ped spawning + routing), which will likely replace our derived collector for corpus
+generation. Hold corpus re-collection until those scripts are in and reviewed.
+
+## 2026-08-11 — Advisor CARLA scripts received: integration plan (local Claude review)
+Advisor's scripts are in `rl_agent/advisor_helper_scripts/codes/` (generate_traffic_v1, spawn_blocker_v4,
+manual_control_ar_v7, pedestrian_head_camera_client_v7, physical_ai_scenario_controller_ui_v2 (+v1)). Reviewed:
+they are **scenario-CONTROL scripts, not a detector/logging pipeline** — they populate diverse traffic +
+pedestrians and can create a reactive crossing pedestrian, using CARLA GT boxes + the semantic-seg sensor for
+viz. **They do NOT run our fusion detector or emit our `*_object_ground_truth.csv` / `*_object_predictions.csv`.**
+
+**Integration = decouple, don't graft:** his populators create the world; OUR collector is the ego that detects
++ logs it. Confirmed feasible because our collector reads `world.get_actors().filter("vehicle.*"/"walker.*")`
+(observe-existing, does not need to spawn traffic itself).
+```
+generate_traffic_v1  (diverse vehicles + pedestrians)        ─┐  same CARLA world
+spawn_blocker_v4     (controlled CLOSE crossing pedestrian)  ─┤  (sync, fixed_delta 0.05 = our 20 Hz)
+our corpus collector (ego + fusion detector @200k + GT/pred logging) ─┘
+```
+**Why this likely fixes pedestrians:** the ~17% coverage came from a DISTANT 80-walker crowd (far/occluded =
+where detection collapses). spawn_blocker puts a pedestrian CLOSE + in-frustum + crossing = where detection
+works (~96% close). Same scenario also creates the fast crossing freshness-driving object -> send-pressure. One
+scenario type fixes pedestrian coverage AND send-pressure.
+
+**▶ codex — coordination details to handle when wiring (on L10319, do NOT edit the advisor originals; build the
+orchestration in `abiodun/data_collection/`, treat his scripts as read-only reference):**
+1. **Single sync ticker.** All clients share one sync-mode world (fixed_delta 0.05). Exactly ONE process may
+   tick. Decide the ticker (likely the collector-ego) and run populators as non-ticking observers/maintainers.
+2. **Collector in observe-existing mode:** run with `--npc-vehicles 0 --npc-pedestrians 0` so the advisor's
+   generate_traffic owns the population; the collector only spawns the ego + sensors and logs existing actors.
+   Verify the ego-only path works and GT picks up the advisor's walkers as `pedestrian`.
+3. **TM port align:** advisor uses `--tm-port 8010`; our collector default 8000. Use one TM.
+4. **Pedestrian speed units:** advisor's `--walk-speed 30 --run-speed 40` look non-physical as m/s for walkers —
+   verify the unit/scale and set REALISTIC corpus speeds (~1-2 m/s walk, ~3-4 m/s run) for the GT to be honest.
+5. **Ego route:** reuse the corrected detector recipe (200k/FAST/NMS-2/top-120, actor-origin GT). Ego spawn +
+   destination can be borrowed from `manual_control_ar_v7` coords / the UI.
+6. Keep the freshness re-score + verification gates unchanged; re-score the new corpus before use.
+Still gated behind the reward-v5 formalization pause; this is the corpus-generation replacement, to run when
+Abiodun greenlights.

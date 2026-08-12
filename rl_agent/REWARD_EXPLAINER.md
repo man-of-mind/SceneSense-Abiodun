@@ -95,33 +95,47 @@ U_task = 0.50*(mIoU/mIoU_ref) + 0.25*(ped_recall/ped_ref) + 0.25*(obj_recall/obj
 5. **Credit this car's contribution, or the map's overall quality?** The latter is the phase-2 multi-car
    framing — confirm the phase-1 choice.
 
-## Proposed revision UNDER DISCUSSION (2026-08-11) — pedestrian weighting + hard protection
-Not locked; a proposal to take to the advisor. Motivation (Abiodun): pedestrians are safety-critical
-("we do not want to cause accidents"), so they should weigh at least as much as vehicles, and the object term
-should be split into explicit classes.
+## Post-meeting consensus (2026-08-11, advisor-endorsed) — v5 direction
+Discussed with the advisor; these are the agreed changes to fold into a formal v5. (v4 stays the locked formal
+spec until v5 is written.)
 
-**Proposed U_task (benefit side):**
+**(a) U_task split into explicit classes, pedestrians >= vehicles:**
 ```
 U_task = 0.35 * segmentation_quality
        + 0.40 * pedestrian_recall
        + 0.25 * vehicle_recall
 ```
-- Split the old lumped `obj_recall` into explicit `pedestrian_recall` + `vehicle_recall`, pedestrians highest.
-- **Localization deliberately NOT added to U_task.** It is already handled on the safety side
-  (`e_j = sqrt(base_loc^2 + (v_j*AoI)^2)`, the shield, and the small `w_E*(G/epsilon)` nudge). Putting it in
-  U_task too would DOUBLE-COUNT the same physical quantity — the exact thing v4 removed. Loc stays on the
-  safety side (where it is arguably the most-protected quantity), not in the benefit.
+Split the old lumped `obj_recall` into explicit `pedestrian_recall` + `vehicle_recall`, pedestrians highest
+(safety-critical). Advisor listed exactly these three map-quality components.
 
-**The stronger safety lever (the real point):** a bigger *soft weight* is only a preference — a large enough
-network-cost saving can still outvote it. For an accident-avoidance guarantee, protect pedestrians on the
-*hard-constraint* side, not (only) the benefit side:
-- **Tighter budget for pedestrians:** e.g. `epsilon_pedestrian = 1.0-1.5 m` vs `epsilon_general = 2.0 m`. The
-  shield then structurally refuses to let a pedestrian go stale — it cannot be traded for airtime.
-- **And/or a hard pedestrian-recall floor:** a constraint ("ped recall >= X"), not a reward term.
-- Difference: soft weight = "agent *prefers* to protect pedestrians"; hard constraint = "agent *cannot* neglect
-  pedestrians." For "don't cause accidents," you want the second.
+**(b) Drop the explicit ROI-cost term; let the agent learn it implicitly (advisor).** Remove
+`- lambda_ROI * C_ROI` from the reward. Reason (same logic as localization): ROI-cropping's downside already
+shows up as lower `U_task` (worse segmentation/recall — our density study proved ROI-drop destroys segmentation),
+so a separate C_ROI penalty double-counts it. The agent learns to avoid ROI because it tanks U_task.
 
-**Practical caveat:** heavy `pedestrian_recall` weighting only bites once pedestrian detection is solid (the
-current 200k-pps detector-config fix). Land that first, or the term is near-zero and gives little signal.
+**(c) Localization stays on the safety side (confirmed).** NOT in U_task — the shield
+(`e_j = sqrt(base_loc^2 + (v_j*AoI)^2)`, plus the small `w_E*(G/epsilon)` nudge) already carries it. Adding it to
+U_task would double-count.
+
+**Revised reward (v5 direction):**
+```
+R =    w_task       * U_task            (map quality: 0.35 seg / 0.40 ped / 0.25 vehicle)
+     -               C_PRB              (airtime / network)
+     -               C_UE               (on-car compute / energy; penalizes not using SPLIT)
+     - lambda_switch * C_switch         (anti-thrashing)
+     - w_E         * (G / epsilon)      (small nudge toward lower error; G = freshness-driving object)
+```
+(ROI cost removed vs v4.)
+
+**Naming: G = the "freshness-driving object" (not "worst object").** The object whose position goes stale
+fastest, so it sets when the map must be refreshed — see `REWARD_LOOP_DIAGRAM.md` for the 2-3 object worked frame.
+
+**The stronger safety lever (open, for a future meeting):** a bigger *soft weight* is only a preference — a
+large enough cost saving can outvote it. For an accident-avoidance *guarantee*, protect pedestrians on the
+*hard-constraint* side: a tighter `epsilon_pedestrian` (e.g. 1.0-1.5 m vs 2.0 m general) and/or a hard
+pedestrian-recall floor. Soft weight = "prefers to protect"; hard constraint = "cannot neglect."
+
+**Practical caveat:** heavy `pedestrian_recall` weighting only bites once pedestrian detection is solid — and the
+2026-08-11 gate showed pedestrian detection is still ~17% even at 200k pps, so this is perception-limited for now.
 
 > Formal spec + changelog: `REWARD_FORMULATION.md` (v4, authoritative). MDP diagram: `state_diagram.md`.
