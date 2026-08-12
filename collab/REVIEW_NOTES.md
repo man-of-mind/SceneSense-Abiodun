@@ -1647,3 +1647,31 @@ Operational note: `generate_traffic_v1` completed actor destruction, printed `do
 final passive `wait_for_tick()` with the known CARLA `std::exception` during orchestrated shutdown. The runner
 verified zero dynamic actors and restored asynchronous mode, so this is a cleanup-only warning, not scene or
 measurement contamination.
+
+## 2026-08-12 — HALT LIFTED. Verdict B confirmed: M' is FINE, no retrain. Pedestrian saga resolved.
+On-contract diagnostic (10 Hz / 1280×720 / FOV 120 / raster 4): pedestrian recall **82.84% (111/134) @0.20**,
+CI [75.56, 88.28], vs 85.5% reference (within CI). Confidence recovered to median **0.551** (was 0.06-0.12),
+loc error 0.666 m, radar density **18,592/frame** (matches ~18,584 training). Live logits / split replay /
+monolithic replay all = exactly 111/134, zero frame disagreement. **Root cause 100% confirmed = live collector
+sensor-contract mismatch, NOT the model. M' must NOT be retrained.**
+
+**▶ codex — HALT is lifted; resume the pipeline in order:**
+1. **Align the production corpus collector to the EXACT training sensor contract** — 10 Hz sampling, 1280×720,
+   camera/radar FOV 120°, radar raster radius 4, temporal window 2. This is the one required fix. NOTE: the
+   whole prior live corpus (incl. vehicle-v2) was off-contract (854×480/FOV100/raster2/20Hz), so this re-collect
+   fixes BOTH classes, not just pedestrians. (The 20 Hz *policy control* clock is separate from the model's
+   10 Hz sensor/detection contract — keep them distinct.)
+2. Re-collect the richer corpus on-contract (advisor populators + our collector-ego, pedestrians now detectable),
+   run the freshness re-score + verification (gates unchanged).
+3. Re-run the baseline controller ladder (rule/greedy/LinUCB/MPC, reward v5) on the corrected corpus → the RL
+   go/no-go.
+Pedestrian scope is now back IN for phase 1 (~83% on-contract recall). Reward v5's 0.40 pedestrian weight sits on
+a real signal again.
+4. **Traffic-realism check (Abiodun observed NPC vehicles crashing/colliding in the collector runs).** Before
+   the full re-collect, confirm the NPCs behave naturally — no collisions, pile-ups, stalls, or sluggish
+   jams. Investigate whether the advisor route (start/end/waypoints) or the spawn/blocker placement is causing
+   it (e.g. NPCs spawned too close / on the ego route / around the blocker, or Traffic-Manager settings). Use the
+   collision-avoidance / safe-spawn options (`generate_traffic --safe`, TM distance-to-leading-vehicle, seed
+   spacing) and log NPC collision events. Add a light "traffic sane" check to the smoke gate: NPC collision count
+   ~0 and no persistent gridlock. A corpus full of crashed/stuck NPCs would distort the speed + freshness
+   distributions the controller learns from.
