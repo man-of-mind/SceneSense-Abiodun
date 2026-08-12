@@ -13,6 +13,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 import signal
 import subprocess
 import sys
@@ -621,8 +622,29 @@ def _validate_advisor_contract(config: Mapping[str, object]) -> None:
         raise ValueError("minimum pedestrian speed is invalid")
     if int(integration["tm_port"]) != 8010:
         raise ValueError("advisor integration Traffic Manager port must be 8010")
-    if not math.isclose(float(integration["fixed_delta_seconds"]), 0.05, abs_tol=1e-12):
-        raise ValueError("advisor integration fixed delta must be 0.05 s")
+    diagnostic = config.get("diagnostic_contract")
+    if diagnostic is not None and not isinstance(diagnostic, Mapping):
+        raise ValueError("diagnostic_contract must be a mapping")
+    expected_delta = 0.1 if isinstance(diagnostic, Mapping) else 0.05
+    expected_update_hz = 10 if isinstance(diagnostic, Mapping) else 20
+    if not math.isclose(
+        float(integration["fixed_delta_seconds"]), expected_delta, abs_tol=1e-12
+    ):
+        raise ValueError(
+            f"advisor integration fixed delta must be {expected_delta:.2f} s"
+        )
+    if int(integration["update_hz"]) != expected_update_hz:
+        raise ValueError(
+            f"advisor integration update_hz must be {expected_update_hz}"
+        )
+    if isinstance(diagnostic, Mapping):
+        if config.get("runs"):
+            raise ValueError("on-contract diagnostic must not define full corpus runs")
+        smoke_runs = list(config.get("smoke_runs", []))
+        if len(smoke_runs) != 1 or str(smoke_runs[0]["scenario_family"]) != "ped_crossing":
+            raise ValueError(
+                "on-contract diagnostic must contain exactly one pedestrian smoke run"
+            )
     pedestrian_locations = integration.get("pedestrian_locations", [])
     if len(pedestrian_locations) != 1 or any(
         len(location) != 4 for location in pedestrian_locations
@@ -787,7 +809,11 @@ def run_batch(
         if dry_run:
             continue
         assert client is not None and world is not None
-        print(f"[{episode_id}] configuring single 20 Hz sync master", flush=True)
+        print(
+            f"[{episode_id}] configuring single "
+            f"{int(integration['update_hz'])} Hz sync master",
+            flush=True,
+        )
         run_dir.mkdir(parents=True, exist_ok=False)
         processes: List[Tuple[str, subprocess.Popen, object]] = []
         ego_reservations: List[carla.Actor] = []
@@ -882,7 +908,16 @@ def run_batch(
 
         assert collector_result is not None
         log_path = run_dir / "run.log"
-        record["basic_gate"] = base_runner._basic_run_gate(run_dir, run_spec, config)
+        try:
+            record["basic_gate"] = base_runner._basic_run_gate(
+                run_dir, run_spec, config
+            )
+        except Exception as exc:
+            record["status"] = "basic_gate_error"
+            record["basic_gate_error"] = f"{type(exc).__name__}: {exc}"
+            manifest["status"] = "failed"
+            base_runner._write_manifest(manifest_path, manifest)
+            raise
         log_tail = log_path.read_text(encoding="utf-8", errors="replace")[-4096:]
         known_teardown_abort = (
             collector_result.returncode == -6
@@ -918,6 +953,9 @@ def run_batch(
         base_runner._write_manifest(manifest_path, manifest)
         if not smoke_gate["pass"]:
             raise RuntimeError("advisor-rich smoke gate failed: " + ", ".join(smoke_gate["failures"]))
+    elif isinstance(config.get("diagnostic_contract"), Mapping):
+        manifest["status"] = "diagnostic_capture_complete_pending_replay"
+        base_runner._write_manifest(manifest_path, manifest)
     else:
         manifest["status"] = "collection_complete_pending_verification"
         base_runner._write_manifest(manifest_path, manifest)
@@ -961,16 +999,16 @@ def main() -> None:
 
 if __name__ == "__main__":
     # This shipping libcarla aborts its first RPC when a CARLA-owning module is
-    # loaded directly by runpy.  A clean ``python -c`` dispatcher is reliable
-    # on L10319 and keeps the implementation importable for tests.
-    raise SystemExit(
-        subprocess.call(
-            [
-                sys.executable,
-                "-c",
-                "from data_collection.run_advisor_policy_corpus import main; main()",
-                *sys.argv[1:],
-            ],
-            cwd=REPO_ROOT,
-        )
+    # loaded directly by runpy. Replace the runpy process rather than keeping
+    # that libcarla-loaded parent alive; on L10319 the parent/child form can
+    # make every RPC in the child fail with ``Operation aborted``.
+    os.chdir(REPO_ROOT)
+    os.execv(
+        sys.executable,
+        [
+            sys.executable,
+            "-c",
+            "from data_collection.run_advisor_policy_corpus import main; main()",
+            *sys.argv[1:],
+        ],
     )

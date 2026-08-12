@@ -171,3 +171,33 @@ The output contains pooled/per-run coverage, range tables, timeout tables, live 
 offline reference, and a hashed `analysis_manifest.json`. The manifest status is `ANALYSIS_COMPLETE`; generated
 experiment output remains ignored, while this report and the analyzer are tracked review artifacts.
 
+## 7. 2026-08-12 retained on-contract diagnostic — Verdict B confirmed
+
+This supersedes the prospective 5k/200k A/B proposed above. The later advisor close-crossing smoke showed that
+distance alone did not explain the pedestrian deficit; its full sensor contract still differed from training.
+The decisive run therefore retained the exact live inputs and logits while restoring the full training contract:
+
+- 10 Hz synchronous capture, 1280×720 RGB, camera and radar HFOV 120°;
+- 200,000 radar pps, legacy training rasterizer, radius 4, two-frame temporal maximum;
+- score 0.20, NMS radius 2, top-120; actor-origin XY association at 5 m;
+- 140/140 lossless RGB, exact radar tensor/raw projected points/calibration, and live logits retained.
+
+On 134 close, in-frustum controlled-pedestrian opportunities, the live logits matched **111/134 = 82.84%**
+(Wilson 95% CI [75.56%, 88.28%]). The old 0.855 reference lies inside that interval. A fresh replay of the
+same tensors through the per-channel-u8 split path and a fresh monolithic replay both produced the identical
+111/134 result, with zero per-frame decision disagreements across all three paths. Median matched confidence is
+0.551 and median localization error is 0.666 m.
+
+Radar density also reproduces training: median 18,592.5 raw returns/frame versus the ~18,584 reference. All
+eligible frames have raw returns inside the target's projected GT box (median 1,686). The target remains
+in-frustum at 3.07–8.42 m and reaches 1.076 m/s.
+
+The evidence confirms **B: the prior 10% result was caused by the live sensor-contract mismatch, not broken M′
+weights, bad pedestrian localization labels, the center/origin metric, or the split runtime. Do not retrain M′.**
+Before any new corpus or controller result is admissible, align its collector to the training contract and review
+the resolved manifest. The corpus, freshness, baseline, and RL jobs were not run as part of this diagnostic.
+
+Reproducible artifacts are under
+`data_collection/experiments/pedestrian_on_contract_diagnostic_v1/20260812_213148_smoke/`; the decisive files are
+`retained_inputs/retention_manifest.json`, `on_contract_replay/summary.json`, and
+`on_contract_replay/per_frame_replay.csv` within the single run directory.

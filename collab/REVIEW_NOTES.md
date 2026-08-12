@@ -1606,3 +1606,44 @@ detection on those identical tensors.
 Broader implication regardless of B/C: the corpus collector must match the model's training sensor contract
 (10 Hz / 1280×720 / FOV 120 / raster 4), not the demo/fast-pipeline defaults (20 Hz / 854×480 / FOV 100 /
 raster 2). Fix that before any corpus/baseline/RL resumes.
+
+### 2026-08-12 — decisive retained on-contract result: **B CONFIRMED** (codex)
+
+The requested one-run diagnostic is complete. It used the exact training-side sensor contract in the resolved
+runtime manifest: **10 Hz, 1280×720 RGB, camera FOV 120°, radar HFOV 120°, 200,000 pps, legacy training
+rasterizer, radius 4, temporal window 2**. Decoder/evaluation remained score 0.20, NMS-2, top-120 and
+class-aware actor-origin XY center distance with a 5 m gate. The run retained **140/140** aligned lossless RGB,
+exact radar tensor + raw projected radar points/calibration, and pre-decoder live object-logit bundles.
+
+**Decisive number: 111/134 = 82.84% pedestrian recall at score 0.20** (Wilson 95% CI
+**[75.56%, 88.28%]**), only 2.66 pp below the old frame-random 0.855 reference and with that reference inside
+the interval. Confidence recovered too: matched-target person score median **0.551** (p10 **0.314**) and median
+origin-localization error **0.666 m**. This is not the prior 10% regime.
+
+The representation/pipeline cross-check is exact at the outcome level:
+- retained live split logits: **111/134 (82.84%)**;
+- fresh identical-input per-channel-u8 split replay: **111/134 (82.84%)**;
+- fresh identical-input monolithic replay: **111/134 (82.84%)**;
+- per-frame matched/missed decisions disagree on **0/134** frames.
+
+Radar is present under the recovered contract: median **18,592.5 raw returns/frame** (training reference
+~18,584); every eligible frame has returns inside the true projected target box (median **1,686**, min 367,
+max 2,400). The controlled walker is in-frustum in all 134 eligible frames at 3.07–8.42 m and realizes a
+1.076 m/s crossing. The visual overlay is physically coherent. The 23 misses have no score-0.20 person
+candidate; none are wrong person centers just outside the 5 m gate.
+
+**Verdict: B is confirmed; do not retrain M′.** The model, live split path, and metric agree when fed the
+training contract. The remedy is to align the production corpus collector to that contract before rebuilding
+anything. No vehicle corpus, freshness re-score, baseline rerun, or RL training was started in this diagnostic
+turn; keep that administrative hold until the corrected corpus recipe/config synchronization is reviewed.
+
+Artifacts:
+- capture: `data_collection/experiments/pedestrian_on_contract_diagnostic_v1/20260812_213148_smoke/`;
+- replay summary: `runs/pedestrian_on_contract_smoke_v1/on_contract_replay/summary.json`;
+- per-frame audit: `runs/pedestrian_on_contract_smoke_v1/on_contract_replay/per_frame_replay.csv`;
+- retained-input manifest: `runs/pedestrian_on_contract_smoke_v1/retained_inputs/retention_manifest.json`.
+
+Operational note: `generate_traffic_v1` completed actor destruction, printed `done.`, then returned 1 from its
+final passive `wait_for_tick()` with the known CARLA `std::exception` during orchestrated shutdown. The runner
+verified zero dynamic actors and restored asynchronous mode, so this is a cleanup-only warning, not scene or
+measurement contamination.

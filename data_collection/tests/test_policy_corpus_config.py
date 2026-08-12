@@ -5,6 +5,8 @@ import math
 import unittest
 from pathlib import Path
 
+import numpy as np
+
 from data_collection.run_policy_corpus import (
     _effective_options,
     _load_config,
@@ -22,12 +24,21 @@ from data_collection.run_advisor_policy_corpus import (
     _validate_advisor_contract,
 )
 from data_collection.run_advisor_spawn_blocker import _poll_for_tick
+from data_collection.replay_on_contract_pedestrian_diagnostic import (
+    target_radar_hit_count,
+)
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 CONFIG_PATH = REPO_ROOT / "data_collection" / "configs" / "policy_corpus_vehicle_v2.yaml"
 ADVISOR_CONFIG_PATH = (
     REPO_ROOT / "data_collection" / "configs" / "policy_corpus_advisor_rich_v3.yaml"
+)
+ON_CONTRACT_CONFIG_PATH = (
+    REPO_ROOT
+    / "data_collection"
+    / "configs"
+    / "pedestrian_on_contract_diagnostic_v1.yaml"
 )
 
 
@@ -100,6 +111,44 @@ class VehicleCorpusConfigTests(unittest.TestCase):
 
 
 class AdvisorRichCorpusConfigTests(unittest.TestCase):
+    def test_on_contract_diagnostic_is_exact_and_cannot_schedule_a_full_corpus(self):
+        config = _load_advisor_config(ON_CONTRACT_CONFIG_PATH)
+
+        self.assertEqual(config["runs"], [])
+        self.assertEqual(len(config["smoke_runs"]), 1)
+        run = config["smoke_runs"][0]
+        options = _effective_options(_resolved_run_args(config, run))
+        expected = {
+            "--fps": "10",
+            "--camera-width": "1280",
+            "--camera-height": "720",
+            "--camera-fov": "120",
+            "--radar-hfov": "120",
+            "--radar-points-per-second": "200000",
+            "--radar-rasterizer": "legacy",
+            "--radar-raster-radius-px": "4",
+            "--radar-temporal-window-frames": "2",
+            "--max-objects-drawn": "120",
+            "--retain-diagnostic-inputs": "true",
+        }
+        self.assertEqual({key: options.get(key) for key in expected}, expected)
+        self.assertEqual(
+            float(config["advisor_integration"]["fixed_delta_seconds"]), 0.1
+        )
+        self.assertEqual(int(config["advisor_integration"]["update_hz"]), 10)
+
+    def test_target_radar_hits_use_model_scaled_actor_box(self):
+        gt = {"bbox_x1": 100.0, "bbox_y1": 50.0, "bbox_x2": 300.0, "bbox_y2": 150.0}
+        radar = {
+            "display_size": np.asarray([1000, 500]),
+            "model_size": np.asarray([500, 250]),
+            "points_u": np.asarray([49.0, 50.0, 100.0, 150.0, 151.0]),
+            "points_v": np.asarray([50.0, 25.0, 50.0, 75.0, 50.0]),
+            "points_valid_projection": np.asarray([1, 1, 0, 1, 1]),
+        }
+
+        self.assertEqual(target_radar_hit_count(gt, radar), 2)
+
     def test_advisor_rich_config_locks_observe_existing_recipe_and_splits(self):
         config = _load_advisor_config(ADVISOR_CONFIG_PATH)
 

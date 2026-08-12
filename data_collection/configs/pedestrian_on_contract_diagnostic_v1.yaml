@@ -1,0 +1,230 @@
+schema_version: 1
+experiment_name: pedestrian_on_contract_diagnostic_v1
+collector: data_collection/carla_fusion_on_contract_diagnostic.py
+output_root: data_collection/experiments/pedestrian_on_contract_diagnostic_v1
+requested_frames: 140
+
+carla:
+  host: 127.0.0.1
+  port: 2000
+  timeout_s: 10
+  expected_server_version: 0.10.0
+  expected_town: Town10HD_Opt
+  require_empty_dynamic_actor_patterns:
+    [vehicle.*, walker.pedestrian.*, sensor.*, controller.ai.walker]
+
+provenance:
+  checkpoint: experiments/ae_integrated_20260710/noae_baseline/checkpoints/mprime_joint_noae/best.pt
+  checkpoint_sha256: f319e2a5e8fb134e74c24c0822233e17368df6e4c733add658026603e131d4fa
+  carla_version_file: VERSION
+  town_umap: CarlaUnreal/Content/Carla/Maps/Town10HD_Opt.umap
+  town_uexp: CarlaUnreal/Content/Carla/Maps/Town10HD_Opt.uexp
+
+timing_gate:
+  minimum_processed_fraction: 0.95
+  minimum_result_received_pct: 100.0
+  median_max_ms: 120.0
+  p95_max_ms: 220.0
+
+verification:
+  corpus_scope: pedestrian_on_contract_diagnostic_only
+  headline_range_m: 25.0
+  prediction_score_min: 0.20
+  association_gate_m: 5.0
+
+diagnostic_contract:
+  status: global_halt_exception
+  training_reference_recall: 0.855
+  recovery_tolerance_pp: 10.0
+  retained_inputs_required: [rgb, radar_tensor, radar_points, object_logits]
+  required_sensor_contract:
+    fps: 10
+    camera_resolution: [1280, 720]
+    camera_fov_deg: 120
+    radar_hfov_deg: 120
+    radar_points_per_second: 200000
+    radar_rasterizer: legacy
+    radar_raster_radius_px: 4
+    radar_temporal_window_frames: 2
+
+collection_contract:
+  scope: pedestrian_on_contract_diagnostic_only
+  require_requested_frames_match_max_frames: true
+  required_effective_args:
+    --tm-port: 8010
+    --npc-vehicles: 0
+    --npc-pedestrians: 0
+    --fps: 10
+    --sensor-every-tick: 'true'
+    --camera-width: 1280
+    --camera-height: 720
+    --camera-fov: 120
+    --radar-hfov: 120
+    --radar-points-per-second: 200000
+    --radar-rasterizer: legacy
+    --radar-raster-radius-px: 4
+    --radar-temporal-window-frames: 2
+    --object-nms-radius-px: 2
+    --topk-objects: 120
+    --max-objects-drawn: 120
+    --retain-diagnostic-inputs: 'true'
+    --retained-input-every: 1
+    --retained-input-max-frames: 140
+
+advisor_integration:
+  generate_traffic_script: rl_agent/advisor_helper_scripts/codes/generate_traffic_v1.py
+  spawn_blocker_script: rl_agent/advisor_helper_scripts/codes/spawn_blocker_v4.py
+  spawn_blocker_entrypoint: data_collection/run_advisor_spawn_blocker.py
+  scenario_ui_v2: rl_agent/advisor_helper_scripts/codes/physical_ai_scenario_controller_ui_v2.py
+  scenario_config_v2: rl_agent/advisor_helper_scripts/codes/physical_ai_scenario_config_v2.yaml
+  ego_route_config_module: rl_agent/advisor_helper_scripts/codes/ego_route_config.py
+  pole_camera_client: rl_agent/advisor_helper_scripts/codes/traffic_light_pole_camera_ui_client_v1.py
+  traffic_light_data: traffic_lights_data.json
+  route_config: data_collection/routes/town10hd_opt_advisor_demo_loop_v1.json
+  route_progress_csv: data_collection/routes/town10hd_opt_advisor_demo_loop_v1.progress.csv
+  tm_port: 8010
+  ego_role_name: scenesense_fusion_ego
+  ego_spawn_index: 55
+  ego_reservation_spawn_indices: [53, 55, 56]
+  fixed_delta_seconds: 0.10
+  update_hz: 10
+  tick_timeout_s: 2.0
+  pedestrian_speed_mps: 2.0
+  minimum_pedestrian_speed_mps: 1.0
+  pedestrian_locations:
+    - [19.791866, 30.700000, 0.005668, -89.580742]
+  maximum_pedestrian_route_offset_m: 3.0
+  walker_seed_offset: 100000
+  replenish_interval_s: 1.0
+  population_log_interval_s: 10.0
+  population_start_timeout_s: 45.0
+  population_shutdown_timeout_s: 20.0
+  collector_timeout_s: 900.0
+  common_traffic_args: [--safe]
+  common_blocker_args: [--vehicle-z-offset, 0.60]
+  families:
+    ped_crossing:
+      number_of_vehicles: 26
+      number_of_walkers: 36
+      minimum_autopilot_vehicles: 22
+      minimum_ready_actor_counts:
+        vehicle.*: 25
+        walker.pedestrian.*: 30
+      minimum_blocker_role_prefix_counts:
+        static_blocker_v4: 1
+        pedestrian_blocker_v4: 1
+      blocker_args: [--braking-margin, 6.0]
+      traffic_args: []
+  smoke_gate:
+    headline_range_m: 25.0
+    prediction_score_min: 0.20
+    association_gate_m: 5.0
+    pedestrian_role_prefix: pedestrian_blocker_v4
+    minimum_controlled_pedestrian_coverage_pct: 50.0
+    minimum_controlled_pedestrian_active_speed_mps: 0.5
+    minimum_controlled_pedestrian_active_rows: 5
+    pedestrian_speed_max_mps: 3.5
+    route_ego_speed_p95_min_mps: 2.0
+    legacy_pedestrian_coverage_pct: 17.0
+    exact_fast_role_name: unused_in_diagnostic
+    fast_speed_min_mps: 10.0
+    fast_range_max_m: 25.0
+    fast_dwell_min_s: 5.0
+    minimum_overlay_images: 1
+
+common_args:
+  - --role
+  - loopback
+  - --host
+  - 127.0.0.1
+  - --port
+  - 2000
+  - --tm-port
+  - 8010
+  - --sensor-platform
+  - ego_vehicle
+  - --no-ego-freeze
+  - --ego-spawn-index
+  - 55
+  - --ego-fixed-path-progress-csv
+  - data_collection/routes/town10hd_opt_advisor_demo_loop_v1.progress.csv
+  - --ego-fixed-path-loop
+  - --ego-fixed-path-min-spacing-m
+  - 3
+  - --ego-follow-distance-m
+  - 8
+  - --ego-disable-lane-change
+  - --camera-width
+  - 1280
+  - --camera-height
+  - 720
+  - --camera-fov
+  - 120
+  - --fps
+  - 10
+  - --sensor-every-tick
+  - --radar-hfov
+  - 120
+  - --radar-points-per-second
+  - 200000
+  - --radar-rasterizer
+  - legacy
+  - --radar-raster-radius-px
+  - 4
+  - --radar-temporal-window-frames
+  - 2
+  - --object-score-threshold
+  - 0.05
+  - --object-nms-radius-px
+  - 2
+  - --topk-objects
+  - 120
+  - --max-objects-drawn
+  - 120
+  - --quantization-mode
+  - per_channel_uint8
+  - --entropy-coder
+  - zlib
+  - --fusion-checkpoint
+  - experiments/ae_integrated_20260710/noae_baseline/checkpoints/mprime_joint_noae/best.pt
+  - --front-device
+  - cuda:0
+  - --back-device
+  - cpu
+  - --result-timeout
+  - 3.0
+  - --headless
+  - --no-spatial-map-stream
+  - --disable-semantic-gt
+  - --npc-vehicles
+  - 0
+  - --npc-pedestrians
+  - 0
+  - --max-frames
+  - 140
+  - --transport-label
+  - pedestrian_on_contract_diagnostic_v1_loopback
+  - --retain-diagnostic-inputs
+  - --retained-input-every
+  - 1
+  - --retained-input-max-frames
+  - 140
+
+family_args:
+  ped_crossing:
+    [--ego-route-control, direct, --ego-direct-route-speed-mps, 3.5,
+     --ego-spawn-forward-offset-m, 14.0,
+     --ego-direct-yield-to-controlled-pedestrian, --ego-direct-yield-hold-s, 5.0,
+     --ego-autopilot-speed-difference-pct, 10, --ego-ignore-lights-pct, 100,
+     --ego-ignore-walkers-pct, 100]
+
+smoke_runs:
+  - episode_id: pedestrian_on_contract_smoke_v1
+    run_group: pedestrian_on_contract_diagnostic_v1__smoke
+    scenario_family: ped_crossing
+    scenario_variant: close_reactive_crossing_exact_training_sensor_contract
+    split: smoke
+    seed: 7402
+    requested_frames: 140
+
+runs: []
