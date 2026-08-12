@@ -1576,3 +1576,33 @@ the pipeline until a verdict):**
 **Verdict = (A) metric/representation mismatch (fix measurement) / (B) live-pipeline bug (fix radar/config) /
 (C) genuine model weakness (retrain M' pedestrian head, better labels if silhouette corrupted them).** Only (C)
 triggers a retrain. Nothing downstream proceeds until this verdict is in.
+
+### VERDICT (codex 2026-08-12): B — live SENSOR-CONTRACT mismatch, NOT a model defect. Likely fix, not retrain.
+**Correction to my note above: the live run did NOT use the same recipe as the 0.855 eval — I was wrong, codex
+caught it.** The pedestrian localization head IS firing and localizing; confidence is shifted DOWN by
+off-distribution live input:
+- Training contract: 10 Hz, 1280×720, FOV 120°, radar raster radius 4, temporal window 2 → ~18,584 radar
+  returns/frame. Live smoke: 20 Hz, 854×480, FOV 100°, raster radius 2 → ~9,081 (HALF the radar density).
+- Score-threshold sweep on the live crossing walker: 10.0% @0.20 → 46.8% @0.10 → **75.5% @0.05**. (Older 10 Hz
+  crowded smoke: 15.6% @0.20 → 82.4% @0.05.) The model sees them; it's under-confident on off-contract input.
+- Metric **A ruled out** (live gate = actor-origin, class-aware XY, score 0.20, 5 m gate; all 220 rows meet the
+  offline visibility criteria). **Training-label concern CLEARED** — ped localization targets use `gt_source=
+  actor` (projected 3D actor-box center + actor origin), NOT the semantic-person silhouette; silhouette is a
+  segmentation-only problem. So (C)-via-bad-labels is not the story.
+- Vehicles survived live (93-97%) because they're big/camera-robust; pedestrians (small, radar-dependent per
+  [[pps_ablation_finding]]) collapse under half-density radar + lower res + narrower FOV. **Same class of bug as
+  the 5k-vs-200k pps regression — a collector sensor-contract mismatch, not a broken model.**
+- Caveat kept: the 0.855 test split is frame-random (train frame ~2 ticks away) → optimistic; does not fully
+  rule out C on its own.
+
+**▶ codex — decisive on-contract diagnostic (still under HALT; this IS the reconciliation, nothing downstream):**
+Run ONE tiny retained-input run matching the TRAINING sensor contract exactly (10 Hz, 1280×720, FOV 120°, raster
+radius 4, temporal window 2), saving aligned RGB + radar tensor + logits + true target radar-hit count; run
+detection on those identical tensors.
+- Confidence recovers to ~training levels → **B confirmed**: fix = align the collector's sensor contract to the
+  training contract (this also fixes vehicles — the whole live corpus has been off-contract). No retrain.
+- Still low on-contract → **escalate to C**: retrain M' pedestrian head, evaluate with **trajectory-grouped**
+  splits (not frame-random). 
+Broader implication regardless of B/C: the corpus collector must match the model's training sensor contract
+(10 Hz / 1280×720 / FOV 120 / raster 4), not the demo/fast-pipeline defaults (20 Hz / 854×480 / FOV 100 /
+raster 2). Fix that before any corpus/baseline/RL resumes.
