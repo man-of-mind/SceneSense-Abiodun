@@ -224,14 +224,15 @@ distillation of every measured result above; treat it as the design spec for the
   `base_loc(knob)` comes from the knob matrix. Per-object AoI already accumulates capture→map latency and
   inter-update time, so do **not** add a separate `L`, `1/FPS`, or staleness penalty. Use the generic 1.1 m
   floor only for the operating-envelope report and do not reward chasing below it.
-- **Perception utility (reward v4 authoritative):** localization is not repeated inside task utility. The Track
-  A pilot uses post-action map quality
-  `0.50·mIoU/mIoU_ref + 0.25·ped_recall/ped_ref + 0.25·obj_recall/obj_ref`. Delivery installs the selected
-  profile's quality snapshot; drop/SKIP retains prior valid map quality; a new unobserved object has zero.
-  The shield supplies structural localization dominance and `−w_E·E_expected/ε` is the small mandatory margin.
-  All weights/references are declared and ablated in config.
-- **C3/C4:** prefer the 90 KB ROI0 segmentation-safe floor. Sub-90 KB ROI escalation pays its measured mIoU
-  loss plus a configurable last-resort penalty. Score only objects in the measured M′ validity region
+- **Perception utility (reward v5 authoritative):** localization is not repeated inside task utility. Use
+  post-action map quality
+  `0.35·mIoU/mIoU_ref + 0.40·ped_recall/ped_ref + 0.25·vehicle_recall/vehicle_ref`. Delivery installs the
+  selected profile's quality snapshot; drop/SKIP retains prior valid map quality; a new unobserved object has
+  zero. The shield supplies structural localization dominance and `−w_E·E_expected/ε` is the small mandatory
+  margin. All weights/references are declared and ablated in config.
+- **C3/C4:** prefer the 90 KB ROI0 segmentation-safe floor. Sub-90 KB ROI escalation is learned implicitly
+  through its measured segmentation/recall loss in `U_task`; reward v5 has no explicit `C_ROI` penalty. Score
+  only objects in the measured M′ validity region
   (`in_camera_frustum` and within 40 m); headline localization remains ≤25 m pending advisor confirmation.
   Off-FOV actors are outside the single-view Track A metric, not shield false admissions.
 - **Cost term:** minimize realized **airtime / PRB occupancy**, not raw bytes. In the surrogate use

@@ -11,8 +11,8 @@ flowchart LR
   S["STATE s_obs<br>channel estimate (+confidence)<br>per-object AoI + speed<br>scene, previous action"]
   A["ACTIONS a<br>SPLIT (profile x FPS)<br>LOCAL (FPS)<br>SKIP"]
   O["OUTCOMES o (uncertain)<br>delivered @ some latency<br>OR dropped<br>probabilities from channel uncertainty"]
-  SAFE{"SAFETY SHIELD<br>per object: e_j = sqrt(base_loc^2 + (v_j*AoI)^2)<br>G = the freshness-driving object (max e_j)<br>E_risk = p95_o[G]; keep actions with E_risk <= epsilon"}
-  R["REWARD (within safe set)<br>+ w_task * U_task (map quality)<br>- airtime - compute - switch"]
+  SAFE{"SAFETY SHIELD<br>per object: e_j = sqrt(base_loc^2 + (v_j*AoI)^2)<br>j_G = freshness-driving object; G = max e_j<br>E_risk = p95_o[G]; keep actions with E_risk <= epsilon"}
+  R["REWARD v5 (within safe set)<br>+ w_task * U_task (0.35 seg / 0.40 ped / 0.25 vehicle)<br>- airtime - compute - switch - small freshness margin<br>no explicit ROI cost"]
   ACT["chosen action"]
   ENV["5G UPLINK + EDGE FUSION<br>real delivery / latency / map publish"]
   NS["NEXT STATE<br>AoI resets to ~0 on delivery,<br>grows on skip/drop;<br>channel + scene advance"]
@@ -38,7 +38,7 @@ One frame, three objects in view (epsilon = 2.0 m, base_loc = 1.11 m):
 | pedestrian | 1.5 m/s | 0.8 s | 1.63 m | fine |
 | crossing car | 8 m/s | 0.3 s | **2.64 m** | **over budget** |
 
-`G = max over objects = 2.64 m`, set by the **crossing car**. Say it as: *"the crossing car is the
+`G = max over objects = 2.64 m`, set by the **crossing car** (`j_G`). Say it as: *"the crossing car is the
 **freshness-driving object** — it is the one whose position goes stale fastest, so it sets when the map must be
 refreshed."* The parked car and pedestrian are already fresh enough; skipping does not hurt them. It is the
 fast object that forces a send. (Not "worst" in a pejorative sense — it is the **budget-binding** object.)
@@ -58,7 +58,7 @@ know the true current capacity, only a noisy estimate, so we sample a spread of 
 - deliver if `payload x fps <= that capacity`, else drop (the measured sharp threshold);
 - if delivered, the object's age at publish = the measured latency, so `e_j = sqrt(base_loc^2 + (v*latency)^2)`;
   if dropped, it keeps aging;
-- take `G = the freshness-driving object` across the frame.
+- take `G = max_j e_j` across the frame; its argmax `j_G` is the freshness-driving object.
 
 So you get a *set* of G values, one per sampled channel — e.g. for the crossing car:
 

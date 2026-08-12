@@ -1482,3 +1482,33 @@ orchestration in `abiodun/data_collection/`, treat his scripts as read-only refe
 6. Keep the freshness re-score + verification gates unchanged; re-score the new corpus before use.
 Still gated behind the reward-v5 formalization pause; this is the corpus-generation replacement, to run when
 Abiodun greenlights.
+
+## 2026-08-11 — CODEX reward-v5 sync complete; advisor-script dependency gate HOLD
+
+Reward v5 is now formal rather than directional. `REWARD_FORMULATION.md` equations and §13,
+`AGENT_CONSTRAINTS.md` §9, `state_diagram.md`, `REWARD_EXPLAINER.md`, and `REWARD_LOOP_DIAGRAM.md` agree on:
+`U_task = 0.35 seg + 0.40 pedestrian recall + 0.25 vehicle recall`; no explicit `C_ROI`; localization only in
+the shield plus the small `w_E` margin; and `j_G` = the freshness-driving object while `G` is its binding error.
+The monthly checklist now treats the earlier 73%-infeasible replay as a diagnostic, not the RL go/no-go result.
+
+The required **dependency-first check failed before orchestration or CARLA smoke**, so execution is held without
+inventing replacements:
+
+- `generate_traffic_v1.py` and `spawn_blocker_v4.py` compile and their `--help` entry points pass in the project
+  venv. `spawn_blocker_v4.py` embeds the captured Town10HD_Opt locations; `blocker_locations_v1.json` is provenance
+  in a comment, not a runtime input.
+- The repository-root `traffic_lights_data.json` exists, parses, and can be supplied through the UI's
+  `--traffic-light-data`; the copy expected beside the advisor script is absent.
+- `physical_ai_scenario_controller_ui_v2.py --help` fails while importing v1 because
+  `traffic_light_pole_camera_ui_client_v1.py` is absent. The bundle also lacks `ego_route_config.py` and the
+  required `physical_ai_scenario_config_v2.yaml`. `ego_vehicle_route_v1.json` is expected to be authored by the
+  UI, so its initial absence is not itself a defect.
+- The measured per-profile JSONs already contain `learned_vehicle_object_recall` for every retained action, so
+  v5's vehicle term is recoverable without a new model experiment. Before the richer-corpus baseline rerun, the
+  action catalog/config must be regenerated with that explicit field and the ROI penalty removed.
+
+**HOLD / requested handoff:** add the three missing UI bundle files from the advisor
+(`traffic_light_pole_camera_ui_client_v1.py`, `ego_route_config.py`, `physical_ai_scenario_config_v2.yaml`). Then
+codex can validate the UI, author and freeze an ego route, build the single-ticker/TM-8010 orchestration under
+`data_collection/`, and run the smoke. No controller rerun or RL training starts before a richer corpus passes
+verification and freshness re-score.

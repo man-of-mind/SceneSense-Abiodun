@@ -25,27 +25,26 @@ Use this file to keep the work tied to the proposal: every experiment should ans
   record/replay, and synthetic FoV occlusion reasoning. Formal map-GT,
   freshness, false-hazard, recipient, and warning metrics remain open.
 - **Policy/reward (the RL-agent core):** surrogate environment built from the 3
-  measured tables; reward matured through adversarial review (v4 locked; v5
-  direction advisor-endorsed 2026-08-11 — REWARD_FORMULATION §13, REWARD_EXPLAINER,
-  REWARD_LOOP_DIAGRAM). Honest headline: on the current single-ego vehicle corpus
-  a **shielded greedy controller ties MPC and beats the learned bandit, so RL is
-  not yet justified** (adoption rule respected; no fabricated RL). Regime-
-  dependent (73% shield-dominated infeasibility) — RL's expected home is richer
-  scenarios / the multi-agent phase.
+  measured tables; reward v5 is now formalized and advisor-endorsed
+  (`REWARD_FORMULATION` §13, `REWARD_EXPLAINER`, `REWARD_LOOP_DIAGRAM`). On the
+  earlier single-ego vehicle corpus, shielded greedy tied MPC and beat the learned
+  bandit, but that replay was 73% shield-dominated/infeasible. Treat it as a
+  degenerate-corpus diagnostic, not the RL go/no-go result. The decision signal is
+  the preregistered bandit-vs-MPC rerun on the richer verified Town10HD_Opt corpus.
 - **Critical distinction (updated):** offline policy comparison + the shield
   guardrail now EXIST and are evaluated. Still open: a trained RL policy that
-  beats the simple controllers, the packaged guardrail-stress campaign, a
-  pedestrian-solid corpus (detection ~17% is perception-limited; being rebuilt
-  with the advisor's CARLA scenario scripts), and the measured
+  beats the simple controllers, the richer-corpus baseline go/no-go rerun, the
+  packaged guardrail-stress campaign, a pedestrian-solid corpus (the prior distant
+  crowd measured ~17%; being rebuilt with the advisor's CARLA scenario scripts), and the measured
   downlink/map-sharing freshness budget.
 
 ## 2026-08-11 reconciliation note (arc since 2026-07-17)
 - Built the table-driven **policy surrogate environment** (`rl_agent/policy/`) from the channel sweep + knob
   matrix + staleness model; dual oracles (clairvoyant + shielded) + rule/greedy/LinUCB/MPC ladder.
-- **Reward** hardened v2->v4 (two-layer: hard C1 mask + live tail-risk shield; per-object AoI localization;
-  post-action map utility; normalized costs). **v5 direction (advisor 2026-08-11):** `U_task = 0.35 seg /
-  0.40 ped / 0.25 vehicle`; drop explicit `C_ROI` (learn implicitly); localization stays safety-side; rename
-  `G` -> "freshness-driving object".
+- **Reward** hardened v2->v5 (two-layer: hard C1 mask + live tail-risk shield; per-object AoI localization;
+  post-action map utility; normalized costs). **v5 (advisor 2026-08-11):** `U_task = 0.35 seg / 0.40 ped /
+  0.25 vehicle`; explicit `C_ROI` removed (learned implicitly); localization remains safety-side; `j_G` is the
+  freshness-driving object and `G` is its budget-binding error.
 - **Shield safety calibration:** ucb_k / channel-pessimism / estimator-lag all found inert in the deterministic
   surrogate (calibrated uncertainty is a live-validation item); shield sound at <=25 m, unsound at 40 m;
   achievability frontier ~54% feasible at eps=2 m even with perfect info.
@@ -56,6 +55,10 @@ Use this file to keep the work tied to the proposal: every experiment should ans
   corpus properly (close crossing pedestrians + routed egos) — `rl_agent/advisor_helper_scripts/codes/`.
 - **Advisor plan for the rest of this week:** (1) nail the cost<->action relationship + a solid reward
   formulation (the block diagram), (2) evaluate the baselines; **next week: begin RL agent training.**
+- **Current execution gate (2026-08-11):** reward v5 is formalized. Richer-corpus orchestration is held before
+  smoke because the received route-authoring UI bundle is missing `traffic_light_pole_camera_ui_client_v1.py`,
+  `ego_route_config.py`, and `physical_ai_scenario_config_v2.yaml`. Standalone traffic/blocker scripts pass
+  static entry-point checks; no substitute route or premature RL run is authorized.
 
 ## Project North Star
 

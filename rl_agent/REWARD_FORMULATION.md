@@ -1,11 +1,11 @@
-# Reward formulation — network-aware split/local-inference controller (v4)
+# Reward formulation — network-aware split/local-inference controller (v5)
 
-**Status:** consensus draft **v4** (local Claude + codex, 2026-08-06). v4 makes the live shield
-observation-only and uncertainty-aware, makes the small expected-error margin mandatory, fixes the
-multi-object/tail operation order, requires one shared shield across deployable baselines, and adds dual
-oracles + MPC to test whether RL is needed at all. Builds on `AGENT_CONSTRAINTS.md §9`, `POLICY_KICKOFF.md`,
-`state_diagram.md`, `collab/REVIEW_NOTES.md`. Advisor-pending: ε (default 2.0 m), ped-recall hard-floor?, 25
-vs 40 m. **Not RL-ready until §7's LOCAL 4th table is measured.**
+**Status:** advisor-endorsed consensus **v5** (2026-08-11). v5 retains v4's observation-only live shield,
+mandatory small expected-error margin, object-first/tail-second aggregation, and shared safety stack across
+deployable baselines. It splits task utility into segmentation, pedestrian recall, and vehicle recall; removes
+the explicit ROI penalty because ROI damage is already measured by task utility; and keeps localization on the
+safety side. Builds on `AGENT_CONSTRAINTS.md §9`, `POLICY_KICKOFF.md`, `state_diagram.md`, and
+`collab/REVIEW_NOTES.md`. Advisor-pending: ε (default 2.0 m), pedestrian hard protection, and 25 vs 40 m.
 
 ## 1. Decision each control step
 `mode ∈ {SPLIT, LOCAL, SKIP}`
@@ -42,8 +42,9 @@ already permits phase-2 peer contributions to update objects independently:
 AoI_{map,j,t+1}(a,o) = { capture→map latency of newest valid contribution for j, if one is published
                        { AoI_{map,j,t} + Δt(a), otherwise
 e_j(a,s,o)     = sqrt( base_loc(a)² + (v_j · AoI_{map,j,t+1}(a,o))² )   for object j
-G(a,s,o)       = aggregate over currently-present dynamic objects: max_j e_j (default; object-tail aggregate
-                 is a configured robustness alternative); empty scene ⇒ G=0
+G(a,s,o)       = freshness-driving-object error: max_j e_j over currently-present dynamic objects (default;
+                 object-tail aggregate is a configured robustness alternative); empty scene ⇒ G=0
+j_G(a,s,o)     = argmax_j e_j, the freshness-driving object that binds the frame's freshness budget
 E_expected(a,s)= E_o[G(a,s,o)] (use a labelled p50 proxy only when an outcome mean cannot be reconstructed)
 E_risk(a,s)    = p95_o[G(a,s,o)] or CVaR_{α,o}[G(a,s,o)]
 ```
@@ -98,9 +99,9 @@ always safest).
 `U_task` and physical costs are the main drivers; `w_E>0` is a declared, mandatory small within-band margin
 bias:
 ```
-R_inner_sample(a,s,o) = w_task·U_task_post(a,s,o) − C_UE(a) − C_PRB(a) − 0.5·C_ROI(a) − 0.1·C_switch(a)
+R_inner_sample(a,s,o) = w_task·U_task_post(a,s,o) − C_UE(a) − C_PRB(a) − 0.1·C_switch(a)
                         − w_E·G(a,s,o)/ε                       # sampled RL transition
-R_inner_expected(a,s) = w_task·E_o[U_task_post(a,s,o)] − C_UE(a) − C_PRB(a) − 0.5·C_ROI(a) − 0.1·C_switch(a)
+R_inner_expected(a,s) = w_task·E_o[U_task_post(a,s,o)] − C_UE(a) − C_PRB(a) − 0.1·C_switch(a)
                         − w_E·E_expected(a,s)/ε                # oracle/bandit/MPC scoring
 ```
 This makes safety **lexicographically dominant** and graceful degradation structural (`F_hat=0` → optimize
@@ -111,8 +112,10 @@ validate its safety/resource Pareto.
 
 ### 5a. `U_task`
 For each installed contribution, its quality snapshot is
-`U_profile = w_mIoU·(mIoU/mIoU_ref) + w_ped·(ped_recall/ped_ref) + w_obj·(obj_recall/obj_ref)`, refs from
-uncompressed/best-achievable. **Localization is NOT here — it's the safety term/band.** **Map coverage /
+`U_profile = 0.35·(mIoU/mIoU_ref) + 0.40·(ped_recall/ped_ref) +
+0.25·(vehicle_recall/vehicle_ref)`, refs from uncompressed/best-achievable. The weights are config-exposed for
+ablation but these are the v5 primary values. **Localization is NOT here — it is the safety term/band.**
+**Map coverage /
 cooperative fusion — DEFERRED to phase 2** (map-side edge intelligence): phase-1 `U_task` = this car's own
 post-action map perception quality averaged over currently present objects; modular hook for phase 2. Caveat:
 with the cooperative payoff deferred, SPLIT's phase-1
@@ -122,9 +125,9 @@ trade — see §8a for why "SPLIT-first" is a *hypothesis*, not a given.
 ### 5b. Cost normalization (denominators matter as much as weights)
 `C_PRB = PRB-seconds(a) / PRB-second-budget` (measured PRB-time preferred; Track A uses the dimensionless
 realized airtime fraction `offered_rate/true_capacity`; later use `payload×fps×(1+retx)/SE(MCS)` when needed);
-`C_UE = compute-or-energy(a) / device-budget`; `C_ROI` = ROI-escalation last-resort cost; `C_switch` =
-mode-switch hysteresis. Normalize all to comparable ranges before weighting; grid-search safety-band δ/ε and
-UE-compute-vs-PRB.
+`C_UE = compute-or-energy(a) / device-budget`; `C_switch` = mode-switch hysteresis. Normalize all to comparable
+ranges before weighting; grid-search safety-band δ/ε and UE-compute-vs-PRB. There is no explicit `C_ROI` in
+v5: ROI escalation remains an action, but its measured segmentation/recall damage lowers `U_task` directly.
 
 ### 5c. Phase-1 in-surrogate shield basis — UCB is INERT here (2026-08-10, Step-A safety-calibration result)
 The `B = E_hat_risk + k·sigma_hat` UCB above is the **design** and stays in code, but in the phase-1 **surrogate**
@@ -147,7 +150,7 @@ it carries no leverage and must not be presented as a calibrated live margin:
   full-GT false-reject rate at this fixed point: `(lag=0, noise=0)` recovered 0.00 percentage points versus the
   baseline, and the entire grid spanned only 0.10 points. Raw-safe sets changed on as many as 332/1,699 frames,
   but selections changed on at most 13. The remaining gap mixes speed uncertainty, observation mismatch,
-  worst-object aggregation, and map-state trajectory; it is not yet attributable or irreducible.
+  freshness-driving-object aggregation, and map-state trajectory; it is not yet attributable or irreducible.
 - **Evidence caveat:** the vehicle-only, ~94%-SKIP replay yields a thin SPLIT denominator (Wilson upper ~20%),
   so no "calibrated-zero false-admit" is claimable in-surrogate regardless of knobs.
 
@@ -262,22 +265,20 @@ contribution can stop object *j* from binding, but whole-frame `SKIP` must still
      that works, and require RL to beat both bandit and MPC on anticipatory metrics.
   6. Forward-compatible schema clarification: canonical AoI is per-object shared-map age with repeatable
      contribution provenance; scalar AoI is only a phase-1 derived summary, and `SKIP` remains frame-level.
-- Local Claude and codex concur; no open disagreement. **Next: measure the LOCAL 4th table → build both
-  oracles + rule/bandit → MPC → DQN/discrete-SAC only if the simpler controllers leave sequential value.**
 
-## 13. v5 DIRECTION (advisor-endorsed, 2026-08-11) — to formalize
-Agreed with Abiodun's advisor; not yet rewritten into the equations above. See `REWARD_EXPLAINER.md`
-(post-meeting consensus) and `REWARD_LOOP_DIAGRAM.md`.
-- **(a) U_task split into explicit classes:** `0.35*seg + 0.40*ped_recall + 0.25*vehicle_recall` (replaces the
-  lumped `obj_recall`; pedestrians >= vehicles, safety-critical).
-- **(b) Drop the explicit `C_ROI` term** — ROI-crop downside already appears as lower U_task (density study:
-  ROI-drop destroys segmentation), so `-lambda_ROI*C_ROI` double-counts. Let the agent learn it implicitly.
-- **(c) Localization stays on the safety side only** (already true in v4 — reaffirmed, do not add to U_task).
-- **Naming:** call `G` the **"freshness-driving object"** (the object whose position goes stale fastest and
-  sets when the map must be refreshed), not "worst object".
-- **Open (future meeting):** pedestrian *hard* protection — tighter `epsilon_pedestrian` and/or a hard
-  ped-recall floor — as the real accident-avoidance lever beyond a soft weight. Gated by pedestrian detection,
-  which is still ~17% (perception-limited) per the 2026-08-11 gate.
-- **codex to propagate** (a)-(c) + the G rename into the equations here, `AGENT_CONSTRAINTS.md §9`, and
-  `state_diagram.md` when v5 is cut. Baselines confirmed = MPC + bandit (the meeting's "NPC" was a transcription
-  error for MPC).
+## 13. v5 formalization (advisor-endorsed, 2026-08-11)
+
+The equations and definitions above now implement the advisor-endorsed direction:
+
+1. `U_task = 0.35·seg + 0.40·ped_recall + 0.25·vehicle_recall`; the former lumped object-recall term is
+   replaced by explicit pedestrian and vehicle terms.
+2. Removed explicit `C_ROI`; ROI damage is learned through its measured reduction in `U_task`, avoiding
+   double counting.
+3. Reaffirmed that localization belongs only in the structural safety shield plus the small `w_E` margin,
+   not in `U_task`.
+4. Named `j_G` the **freshness-driving object** and `G` its budget-binding localization error.
+5. Confirmed the pre-RL baselines are contextual bandit and MPC ("NPC" was a transcription error).
+
+- **Open after v5:** decide whether pedestrians need a tighter class-specific ε and/or a hard recall floor once
+  pedestrian perception is validated. **Do not start RL merely because the earlier degenerate corpus made MPC
+  tie greedy; rerun bandit and MPC on the richer verified corpus first.**

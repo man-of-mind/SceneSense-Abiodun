@@ -42,7 +42,7 @@ flowchart LR
     direction TB
         masks{{"HARD MASKS on s_obs<br>C1 for SPLIT + LOCAL: payload × FPS ≤ pessimistic UL budget<br>LOCAL: required FPS ≤ measured compute headroom<br>SKIP always C1-admissible"}}
         am["A_m(s_obs) — hard-admitted actions"]
-        pred["Per-action surrogate prediction on s_obs<br>post-action AoI_map,j for each delivery/drop outcome o<br>e_j = sqrt(base_loc(a)² + (v_j × AoI_map,j,next)²)<br>G(a,s,o) = max_j e_j FIRST; empty scene → G=0"]
+        pred["Per-action surrogate prediction on s_obs<br>post-action AoI_map,j for each delivery/drop outcome o<br>e_j = sqrt(base_loc(a)² + (v_j × AoI_map,j,next)²)<br>G(a,s,o) = max_j e_j FIRST; j_G is the freshness-driving object<br>empty scene → G=0"]
         exp["E_expected = mean_o[G]<br>small mandatory within-band reward margin"]
         bound["Tail safety statistic + uncertainty<br>E_hat_risk = p95_o[G] or CVaR_alpha,o[G]<br>B = E_hat_risk + k × sigma_hat<br>(or calibrated conformal / quantile bound)"]
         shield{{"LIVE SHIELD<br>F_hat=1 when some action has B ≤ epsilon<br>B* = min over A_m of B"}}
@@ -73,7 +73,7 @@ flowchart LR
     obs --> masks
     cand --> masks
     obs --> pred
-    exp --> rin["POST-ACTION MAP UTILITY / TRAINING SIGNAL<br>w_task × E[U_task_post] − C_UE − C_PRB<br>− λ_ROI C_ROI − λ_switch C_switch<br>− w_E × E_expected / epsilon, with w_E > 0<br>drop/SKIP retain prior map quality; RL uses realized outcome"]
+    exp --> rin["POST-ACTION MAP UTILITY / TRAINING SIGNAL<br>U_task = 0.35 seg + 0.40 pedestrian recall + 0.25 vehicle recall<br>w_task × E[U_task_post] − C_UE − C_PRB − λ_switch C_switch<br>− w_E × E_expected / epsilon, with w_E > 0<br>no explicit C_ROI; drop/SKIP retain prior map quality; RL uses realized outcome"]
     asafe --> ctrl{{"SHARED-SHIELD CONTROLLER<br>rule / contextual bandit / MPC / masked RL<br>selects only from A_safe"}}
     rin -. "rank / train" .-> ctrl
     ctrl --> act["SELECTED ACTION  a(t)"]
@@ -106,7 +106,7 @@ flowchart LR
     oai --> aoi2["PER-OBJECT AoI TRANSITION<br>valid contribution for j published → its capture→map latency<br>otherwise → previous AoI_map,j + control interval<br>phase 1 normally updates all objects included in one frame"]
     mp -. "per-object contributions[]:<br>source, capture/publish time, confidence,<br>profile_id + task-quality snapshot" .-> aoi2
     skipx --> aoi2
-    aoi2 --> greal["REALIZED per-outcome localization<br>compute per-object e_j, then G = max_j e_j<br>(same normative object-first order)"]
+    aoi2 --> greal["REALIZED per-outcome localization<br>compute per-object e_j, then G = max_j e_j<br>j_G is the freshness-driving object<br>(same normative object-first order)"]
     sp --> greal
     act --> greal
     greal -- "realized G" --> rin
