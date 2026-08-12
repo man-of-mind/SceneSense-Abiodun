@@ -600,6 +600,19 @@ def verify(batch_dir: Path, skip_surrogate: bool = False) -> Path:
             gate_failures.append("no_pedestrian_truth_in_replay")
         if expects_pedestrian and int(surrogate["observed_pedestrian_objects"].sum()) == 0:
             gate_failures.append("no_observed_pedestrian_in_replay")
+        pedestrian_replay_coverage = _safe_pct(
+            int(surrogate["observed_pedestrian_objects"].sum()),
+            int(surrogate["truth_pedestrian_objects"].sum()),
+        )
+        minimum_pedestrian_coverage = verify_config.get(
+            "minimum_pedestrian_replay_observation_coverage_pct"
+        )
+        if (
+            expects_pedestrian
+            and minimum_pedestrian_coverage is not None
+            and pedestrian_replay_coverage < float(minimum_pedestrian_coverage)
+        ):
+            gate_failures.append("pedestrian_replay_observation_coverage_below_minimum")
         if bool(verify_config.get("require_send_needed_above_legacy", True)) and (
             overall_send <= float(verify_config["legacy_send_needed_pct"])
         ):
@@ -672,7 +685,7 @@ def verify(batch_dir: Path, skip_surrogate: bool = False) -> Path:
         ]
         if expects_pedestrian:
             surrogate_lines.append(
-                f"- Pedestrian replay observation coverage: {_safe_pct(int(surrogate['observed_pedestrian_objects'].sum()), int(surrogate['truth_pedestrian_objects'].sum())):.2f}% ({int(surrogate['observed_pedestrian_objects'].sum())} observed object-frames)"
+                f"- Pedestrian replay observation coverage: {_safe_pct(int(surrogate['observed_pedestrian_objects'].sum()), int(surrogate['truth_pedestrian_objects'].sum())):.2f}% ({int(surrogate['observed_pedestrian_objects'].sum())} observed object-frames; configured minimum {verify_config.get('minimum_pedestrian_replay_observation_coverage_pct', 'nonzero only')}%)"
             )
         if not bool(verify_config.get("require_send_needed_above_legacy", True)):
             surrogate_lines.append("- Send-needed and selected-action rates are diagnostics, not collection gates for this scope.")

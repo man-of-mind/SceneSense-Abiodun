@@ -30,25 +30,36 @@ confidence, `profile_id`, and a task-quality snapshot. For a candidate outcome:
 `U_task` is the mean post-action map quality across currently present objects, not credit for merely selecting a
 profile. Thus a dropped transmission cannot earn the selected profile's accuracy.
 
-## 3. Reward v4 and pilot defaults
+## 3. Reward v5 and pilot defaults
 
-Reward v4 is authoritative. Localization is structural through the tail-risk shield and the small normalized
-margin; it is not repeated as the old `-0.50*loc_error/epsilon` utility term.
+Reward v5 is authoritative. Localization stays on the safety side through the tail-risk shield and the small
+normalized margin; it is not repeated as the old `-0.50*loc_error/epsilon` utility term. The task utility is
+class explicit:
+
+```text
+U_task = 0.35 * (mIoU / 0.840)
+         + 0.40 * (pedestrian_recall / 0.887)
+         + 0.25 * (vehicle_recall / 0.927)
+```
+
+Per-profile vehicle recall comes from `learned_vehicle_object_recall` in the measured
+`sweeps_permodel_zstd/<profile>/metrics/test_fusion_evaluation_metrics.json` files. The action-catalog metadata
+pins every source file and SHA-256 digest; the `0.927` reference is the rounded best measured retained-profile
+value.
 
 ```text
 R_inner_expected = w_task * E[U_task_post]
                    - lambda_prb * C_PRB
-                   - lambda_roi * C_ROI
                    - lambda_switch * C_switch
                    - w_E * E_expected / epsilon
 ```
 
-Pilot defaults are declared in `configs/track_a_pilot.yaml`: task metric proportions `0.50/0.25/0.25`,
-`w_task=1`, `w_E=0.05`, `lambda_prb=1`, `lambda_roi=0.5`, and `lambda_switch=0.1`. References are the
-best-achievable measured matrix values. `C_PRB=offered_rate/true_capacity` is environment-side realized cost;
-the deployable controller never observes true current capacity. ROI cost is normalized `roi_q/0.5`. Switching
-cost is one only when the top-level mode changes. Low/high one-at-a-time variants are pre-registered in config
-and must run before the 12-condition advisor sweep.
+Pilot defaults are declared in `configs/track_a_pilot.yaml`: `w_task=1`, `w_E=0.05`, `lambda_prb=1`, and
+`lambda_switch=0.1`. `C_PRB=offered_rate/true_capacity` is environment-side realized cost; the deployable
+controller never observes true current capacity. Reward v5 has no explicit `C_ROI`: ROI quality loss is learned
+implicitly through the measured task metrics. Switching cost is one only when the top-level mode changes.
+Low/high one-at-a-time variants are pre-registered in config and must run before the 12-condition advisor
+sweep.
 
 ## 4. Channel and latency projection
 
@@ -127,7 +138,7 @@ The configurable segmentation floor is a preference tier, not a hard safety clai
 - `preferred_core_kib=90`: both ROI0 profiles (90 and 129 KB) are core; sub-90 ROI profiles are degraded.
 - `preferred_core_kib=129`: only the 129 KB ROI0 profile is core; 90 KB and sub-90 profiles are degraded.
 - The controller considers degraded profiles only when no core action is C1-admissible and shield-safe. Their use
-  is flagged and pays measured quality loss plus ROI cost where applicable.
+  is flagged and pays its measured task-quality loss.
 - A separate strict-floor diagnostic masks below-floor actions and reports the resulting infeasibility; it does
   not replace graceful degradation in the primary controller.
 

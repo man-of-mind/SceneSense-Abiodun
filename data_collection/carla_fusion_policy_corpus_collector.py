@@ -11,6 +11,7 @@ copy of the real-time perception path.
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import math
 import sys
@@ -51,6 +52,7 @@ _BUILD_VEHICLE_ROWS = base.build_vehicle_ground_truth_rows
 _BUILD_FUSION_METRICS_ROW = base.build_fusion_metrics_row
 _DECODE_OBJECTS = base.decode_objects
 _RUN_BACK_HALF = base.FusionRemoteInferenceWorker._run_back_half
+_SPAWN_PARKED_EGO = base._spawn_parked_ego_vehicle
 _SPAWN_LEAD_TARGET = base._spawn_lead_target
 _SPAWN_CONTROLLED_TARGET = base._spawn_controlled_target
 _WRITE_MANIFEST = base.FusionRunLogger.write_manifest
@@ -73,11 +75,17 @@ class ControlledPedestrianOverlay:
     target_start_lateral_m: float = 0.0
     horizontal_fov_deg: float = 100.0
     headline_range_m: float = 25.0
+    ego_ignore_walkers_pct: float = 0.0
+    ego_route_control: str = "traffic_manager"
+    ego_direct_route_speed_mps: float = 6.0
+    ego_direct_yield_to_controlled_pedestrian: bool = False
+    ego_direct_yield_hold_s: float = 5.0
 
 
 _PEDESTRIAN_OVERLAY = ControlledPedestrianOverlay()
 _OVERLAY_ACTORS: List[object] = []
 _CONTROLLED_TARGET_INFO: Optional[Dict[str, object]] = None
+_DIRECT_ROUTE_STATE: Dict[str, object] = {}
 
 
 def _parse_overlay_args(
@@ -96,6 +104,17 @@ def _parse_overlay_args(
     parser.add_argument("--controlled-pedestrian-target-start-lateral-m", type=float, default=0.0)
     parser.add_argument("--controlled-pedestrian-horizontal-fov-deg", type=float, default=100.0)
     parser.add_argument("--controlled-pedestrian-headline-range-m", type=float, default=25.0)
+    parser.add_argument("--ego-ignore-walkers-pct", type=float, default=0.0)
+    parser.add_argument(
+        "--ego-route-control",
+        choices=("traffic_manager", "direct"),
+        default="traffic_manager",
+    )
+    parser.add_argument("--ego-direct-route-speed-mps", type=float, default=6.0)
+    parser.add_argument(
+        "--ego-direct-yield-to-controlled-pedestrian", action="store_true"
+    )
+    parser.add_argument("--ego-direct-yield-hold-s", type=float, default=5.0)
     parsed, remaining = parser.parse_known_args(list(argv))
     overlay = ControlledPedestrianOverlay(
         crowd_count=int(parsed.controlled_pedestrian_crowd_count),
@@ -108,6 +127,13 @@ def _parse_overlay_args(
         target_start_lateral_m=float(parsed.controlled_pedestrian_target_start_lateral_m),
         horizontal_fov_deg=float(parsed.controlled_pedestrian_horizontal_fov_deg),
         headline_range_m=float(parsed.controlled_pedestrian_headline_range_m),
+        ego_ignore_walkers_pct=float(parsed.ego_ignore_walkers_pct),
+        ego_route_control=str(parsed.ego_route_control),
+        ego_direct_route_speed_mps=float(parsed.ego_direct_route_speed_mps),
+        ego_direct_yield_to_controlled_pedestrian=bool(
+            parsed.ego_direct_yield_to_controlled_pedestrian
+        ),
+        ego_direct_yield_hold_s=float(parsed.ego_direct_yield_hold_s),
     )
     if overlay.crowd_count < 0:
         raise ValueError("controlled pedestrian crowd count must be non-negative")
@@ -123,7 +149,183 @@ def _parse_overlay_args(
         raise ValueError("controlled pedestrian horizontal FOV must be within (1, 179) degrees")
     if overlay.headline_range_m <= overlay.crowd_depth_min_m:
         raise ValueError("controlled pedestrian headline range must exceed minimum depth")
+    if not 0.0 <= overlay.ego_ignore_walkers_pct <= 100.0:
+        raise ValueError("ego walker-ignore percentage must be within [0, 100]")
+    if overlay.ego_direct_route_speed_mps <= 0.0:
+        raise ValueError("direct ego route speed must be positive")
+    if overlay.ego_direct_yield_hold_s <= 0.0:
+        raise ValueError("direct ego pedestrian-yield hold must be positive")
     return overlay, remaining
+
+
+def _load_direct_route(args: argparse.Namespace) -> List[Tuple[float, float]]:
+    path = Path(str(args.ego_fixed_path_progress_csv)).expanduser().resolve()
+    if not path.is_file():
+        raise FileNotFoundError(f"direct ego route CSV not found: {path}")
+    points: List[Tuple[float, float]] = []
+    with path.open("r", encoding="utf-8", newline="") as stream:
+        for row in csv.DictReader(stream):
+            points.append((float(row["ego_x"]), float(row["ego_y"])))
+    if len(points) < 2:
+        raise ValueError("direct ego route requires at least two points")
+    return points
+
+
+def _wrap_angle_radians(angle: float) -> float:
+    return (float(angle) + math.pi) % (2.0 * math.pi) - math.pi
+
+
+def _apply_direct_ego_route_control(
+    actor: object,
+    args: argparse.Namespace,
+) -> Tuple[int, float, bool]:
+    """Follow the UI-authored loop with deterministic per-tick vehicle control."""
+
+    actor_id = int(actor.id)
+    if int(_DIRECT_ROUTE_STATE.get("actor_id", -1)) != actor_id:
+        points = _load_direct_route(args)
+        location = actor.get_location()
+        start_index = min(
+            range(len(points)),
+            key=lambda index: math.hypot(
+                points[index][0] - float(location.x),
+                points[index][1] - float(location.y),
+            ),
+        )
+        actor.set_autopilot(False, int(args.tm_port))
+        _DIRECT_ROUTE_STATE.clear()
+        _DIRECT_ROUTE_STATE.update(
+            actor_id=actor_id,
+            points=points,
+            waypoint_index=int(start_index),
+        )
+        print(
+            "Policy-overlay direct ego route controller enabled: "
+            f"ego_actor_id={actor_id}, route_points={len(points)}, "
+            f"target_speed={_PEDESTRIAN_OVERLAY.ego_direct_route_speed_mps:.1f} m/s"
+        )
+
+    points = _DIRECT_ROUTE_STATE["points"]
+    index = int(_DIRECT_ROUTE_STATE["waypoint_index"])
+    transform = actor.get_transform()
+    location = transform.location
+    for _unused in range(len(points)):
+        target_x, target_y = points[index]
+        if math.hypot(target_x - float(location.x), target_y - float(location.y)) >= 4.0:
+            break
+        index = (index + 1) % len(points)
+    # One additional path point is a small look-ahead that damps waypoint
+    # oscillation without cutting across the UI route at intersections.
+    target_index = (index + 1) % len(points)
+    target_x, target_y = points[target_index]
+    desired_yaw = math.atan2(
+        target_y - float(location.y), target_x - float(location.x)
+    )
+    heading_error = _wrap_angle_radians(
+        desired_yaw - math.radians(float(transform.rotation.yaw))
+    )
+    velocity = actor.get_velocity()
+    speed_mps = math.sqrt(
+        float(velocity.x) ** 2 + float(velocity.y) ** 2 + float(velocity.z) ** 2
+    )
+    target_speed = float(_PEDESTRIAN_OVERLAY.ego_direct_route_speed_mps)
+    turn_scale = max(0.35, 1.0 - abs(heading_error) / math.pi)
+    commanded_speed = target_speed * turn_scale
+    speed_error = commanded_speed - speed_mps
+    throttle = max(0.0, min(0.75, 0.30 * speed_error))
+    brake = max(0.0, min(0.65, -0.35 * speed_error))
+    steer = max(-0.70, min(0.70, heading_error / math.radians(45.0)))
+    control_step = int(_DIRECT_ROUTE_STATE.get("control_step", 0)) + 1
+    _DIRECT_ROUTE_STATE["control_step"] = control_step
+    if _PEDESTRIAN_OVERLAY.ego_direct_yield_to_controlled_pedestrian:
+        forward = transform.get_forward_vector()
+        for walker in actor.get_world().get_actors().filter("walker.pedestrian.*"):
+            try:
+                role_name = str(walker.attributes.get("role_name", ""))
+                if not role_name.startswith("pedestrian_blocker_v4"):
+                    continue
+                walker_location = walker.get_location()
+                relative_x = float(walker_location.x) - float(location.x)
+                relative_y = float(walker_location.y) - float(location.y)
+                forward_m = relative_x * float(forward.x) + relative_y * float(forward.y)
+                lateral_m = abs(
+                    -relative_x * float(forward.y) + relative_y * float(forward.x)
+                )
+                walker_velocity = walker.get_velocity()
+                walker_speed = math.hypot(
+                    float(walker_velocity.x), float(walker_velocity.y)
+                )
+            except (AttributeError, RuntimeError):
+                continue
+            moving_crossing = walker_speed >= 0.2
+            cautious_close_approach = forward_m <= 7.0 and speed_mps >= 2.0
+            if (
+                0.0 < forward_m <= 10.0
+                and lateral_m <= 3.0
+                and (moving_crossing or cautious_close_approach)
+            ):
+                hold_frames = int(
+                    math.ceil(
+                        _PEDESTRIAN_OVERLAY.ego_direct_yield_hold_s
+                        * float(args.fps)
+                    )
+                )
+                _DIRECT_ROUTE_STATE["yield_until_step"] = control_step + hold_frames
+                break
+    yielding = control_step <= int(_DIRECT_ROUTE_STATE.get("yield_until_step", -1))
+    if yielding:
+        throttle = 0.0
+        brake = 1.0
+    actor.apply_control(
+        base.carla.VehicleControl(
+            throttle=float(throttle),
+            steer=float(steer),
+            brake=float(brake),
+            hand_brake=False,
+        )
+    )
+    _DIRECT_ROUTE_STATE["waypoint_index"] = int(index)
+    return int(index), float(heading_error), bool(yielding)
+
+
+def spawn_parked_ego_with_tm_overrides(
+    *,
+    world: object,
+    args: argparse.Namespace,
+) -> object:
+    """Apply the explicitly configured pedestrian-smoke TM exception.
+
+    The advisor crossing trigger requires the ego to approach a stationary
+    walker.  Traffic Manager otherwise brakes before the trigger distance is
+    reached.  Keep this exception in the derived collector, disabled by
+    default, and destroy the actor if the configured override cannot be
+    applied so an invalid run cannot continue silently.
+    """
+
+    actor = _SPAWN_PARKED_EGO(world=world, args=args)
+    percentage = float(_PEDESTRIAN_OVERLAY.ego_ignore_walkers_pct)
+    if percentage <= 0.0:
+        return actor
+    try:
+        client = base.carla.Client(str(args.host), int(args.port))
+        client.set_timeout(10.0)
+        traffic_manager = client.get_trafficmanager(int(args.tm_port))
+        traffic_manager.ignore_walkers_percentage(actor, percentage)
+    except Exception as exc:
+        try:
+            actor.destroy()
+        except Exception:
+            pass
+        raise RuntimeError(
+            "configured ego walker-ignore override could not be applied: "
+            f"percentage={percentage:.1f}, tm_port={int(args.tm_port)}"
+        ) from exc
+    print(
+        "Policy-overlay Traffic Manager override applied: "
+        f"ego_actor_id={int(actor.id)}, ignore_walkers={percentage:.1f}%, "
+        f"tm_port={int(args.tm_port)}"
+    )
+    return actor
 
 
 def _compose_camera_world_matrix(
@@ -505,6 +707,21 @@ def build_policy_corpus_metrics_row(*args: object, **kwargs: object) -> Dict[str
     row["decode_topk_saturated"] = base._safe_int(
         diagnostics.get("decode_topk_saturated"), 0
     )
+    row["ego_route_control_mode"] = _PEDESTRIAN_OVERLAY.ego_route_control
+    row["ego_route_waypoint_index"] = ""
+    row["ego_route_heading_error_deg"] = ""
+    row["ego_route_yielding"] = ""
+    if _PEDESTRIAN_OVERLAY.ego_route_control == "direct":
+        actor = kwargs.get("anchor_actor")
+        inherited_args = kwargs.get("args")
+        if actor is None or not isinstance(inherited_args, argparse.Namespace):
+            raise RuntimeError("direct ego route controller requires the ego actor and arguments")
+        waypoint_index, heading_error, yielding = _apply_direct_ego_route_control(
+            actor, inherited_args
+        )
+        row["ego_route_waypoint_index"] = int(waypoint_index)
+        row["ego_route_heading_error_deg"] = math.degrees(heading_error)
+        row["ego_route_yielding"] = int(yielding)
     return row
 
 
@@ -634,6 +851,7 @@ def main() -> None:
     original_argv = list(sys.argv)
     sys.argv = [sys.argv[0], *inherited_argv]
     _CONTROLLED_TARGET_INFO = None
+    _DIRECT_ROUTE_STATE.clear()
     base.build_vehicle_ground_truth_rows = build_object_ground_truth_rows
     added_metrics_fields = (
         "camera_frame_wait_ms",
@@ -642,6 +860,10 @@ def main() -> None:
         "decode_post_topk_nms_count",
         "decode_topk_limit",
         "decode_topk_saturated",
+        "ego_route_control_mode",
+        "ego_route_waypoint_index",
+        "ego_route_heading_error_deg",
+        "ego_route_yielding",
     )
     base.FUSION_METRICS_FIELDS = (
         *base.FUSION_METRICS_FIELDS,
@@ -650,6 +872,7 @@ def main() -> None:
     base.build_fusion_metrics_row = build_policy_corpus_metrics_row
     base.decode_objects = decode_objects_with_diagnostics
     base.FusionRemoteInferenceWorker._run_back_half = run_back_half_with_diagnostics
+    base._spawn_parked_ego_vehicle = spawn_parked_ego_with_tm_overrides
     base._spawn_lead_target = spawn_lead_target_with_synchronized_exact_start
     base._spawn_controlled_target = spawn_controlled_target_in_world_frame
     base.FusionRunLogger.write_manifest = write_manifest_with_overlay_provenance

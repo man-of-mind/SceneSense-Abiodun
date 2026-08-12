@@ -23,18 +23,20 @@ safety:
   capacity_sample_multipliers: [0.70, 0.80, 0.90, 1.00, 1.10, 1.20, 1.30]
 
 reward:
+  formulation_version: 5
   task_metric_weights:
-    miou: 0.50
-    pedestrian_recall: 0.25
-    object_recall: 0.25
+    miou: 0.35
+    pedestrian_recall: 0.40
+    vehicle_recall: 0.25
   task_metric_references:
     miou: 0.840
     pedestrian_recall: 0.887
-    object_recall: 0.910
+    # Rounded best learned_vehicle_object_recall across the measured per-profile
+    # sweeps_permodel_zstd evaluations; exact per-action values are catalogued.
+    vehicle_recall: 0.927
   w_task: 1.0
   w_error: 0.05
   lambda_prb: 1.0
-  lambda_roi: 0.50
   lambda_switch: 0.10
   one_at_a_time_sensitivity:
     w_error: [0.025, 0.10]

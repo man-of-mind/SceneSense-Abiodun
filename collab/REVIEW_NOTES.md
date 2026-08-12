@@ -1512,3 +1512,31 @@ inventing replacements:
 codex can validate the UI, author and freeze an ego route, build the single-ticker/TM-8010 orchestration under
 `data_collection/`, and run the smoke. No controller rerun or RL training starts before a richer corpus passes
 verification and freshness re-score.
+
+## 2026-08-11 — CODEX advisor-rich execution: dependency PASS, pedestrian `FAIL_HOLD`
+
+- The newly supplied UI bundle compiles/imports end to end (v2 -> v1 -> pole-camera client,
+  `ego_route_config`, and the v2 YAML); no further local module is missing. The root
+  `traffic_lights_data.json` is present and valid. Advisor originals remain read-only.
+- Reward-v5 executable policy code now matches the docs: the action catalog carries separately sourced
+  vehicle recall, `U_task = 0.35 seg + 0.40 pedestrian recall + 0.25 vehicle recall`, and there is no explicit
+  ROI cost. The regenerated catalog records the per-profile JSON provenance.
+- The UI v2 planner authored the frozen Town10HD_Opt loop in
+  `data_collection/routes/town10hd_opt_advisor_demo_loop_v1.json` (252 planner points; loop=true), with the
+  companion deterministic-controller CSV. The route passes all advisor blocker stations.
+- `data_collection/run_advisor_policy_corpus.py` now supplies the single 20 Hz ticker, TM 8010 traffic,
+  observe-existing collector, corrected detector recipe, actor-origin multiclass GT, deterministic route
+  control, populator readiness/cleanup, and fail-closed smoke gates. The derived blocker launcher replaces
+  only unreliable secondary-client `wait_for_tick` with read-only snapshot polling.
+- Staged runtime debugging established a physically valid pedestrian case without weakening gates. In the
+  final diagnostic `data_collection/experiments/policy_corpus_advisor_rich_v3/20260812_031904_smoke`, the ego
+  yielded and stopped 4.91 m before/near L2; the controlled walker completed the crossing through bounded
+  recovery with 45 active rows and max derived speed 1.044 m/s. Ego speed p95 was 2.371 m/s. The pedestrian
+  is visually prominent and centered in the saved overlays.
+- **Hard pedestrian gate fails:** only 22/220 controlled eligible rows match at score >=0.20 and <=5 m error:
+  **10.0% coverage**, below the unchanged >=50% gate and below the prior ~17% result. Close-view model scores
+  are commonly 0.06-0.12, so the close-crossing hypothesis does not repair confidence at the locked threshold.
+- An earlier complete three-family smoke confirmed exact-fast dwell 6.95 s and both GT classes, but the final
+  pedestrian hard-gate failure is already terminal. Per the ordered plan, no full rich corpus, verification,
+  freshness re-score, baseline rerun, or RL training was started. The previous vehicle-v2 baseline result is
+  not reinterpreted as the richer-corpus RL go/no-go signal.

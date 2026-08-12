@@ -1,0 +1,296 @@
+schema_version: 1
+experiment_name: policy_corpus_advisor_rich_v3
+collector: data_collection/carla_fusion_policy_corpus_collector.py
+output_root: data_collection/experiments/policy_corpus_advisor_rich_v3
+requested_frames: 500
+
+carla:
+  host: 127.0.0.1
+  port: 2000
+  timeout_s: 10
+  expected_server_version: 0.10.0
+  expected_town: Town10HD_Opt
+  require_empty_dynamic_actor_patterns:
+    [vehicle.*, walker.pedestrian.*, sensor.*, controller.ai.walker]
+
+provenance:
+  checkpoint: experiments/ae_integrated_20260710/noae_baseline/checkpoints/mprime_joint_noae/best.pt
+  checkpoint_sha256: f319e2a5e8fb134e74c24c0822233e17368df6e4c733add658026603e131d4fa
+  carla_version_file: VERSION
+  town_umap: CarlaUnreal/Content/Carla/Maps/Town10HD_Opt.umap
+  town_uexp: CarlaUnreal/Content/Carla/Maps/Town10HD_Opt.uexp
+
+timing_gate:
+  minimum_processed_fraction: 0.95
+  minimum_result_received_pct: 100.0
+  median_max_ms: 60.0
+  p95_max_ms: 100.0
+
+verification:
+  corpus_scope: multiclass_advisor_rich
+  headline_range_m: 25.0
+  prediction_score_min: 0.20
+  association_gate_m: 5.0
+  town_coordinate_abs_max_m: 1000.0
+  pedestrian_speed_max_mps: 3.5
+  pedestrian_height_range_m: [0.8, 2.2]
+  pedestrian_width_range_m: [0.2, 1.0]
+  require_pedestrian_replay: true
+  minimum_pedestrian_replay_observation_coverage_pct: 50.0
+  require_vehicle_replay_above_legacy: true
+  require_send_needed_above_legacy: false
+  require_selected_split_above_legacy: false
+  require_fast_convoy_send_needed_above_legacy: false
+  minimum_decoder_diagnostics_fraction: 0.95
+  exact_fast_role_name: policy_corpus_advisor_rich_v3_exact_fast
+  exact_fast_speed_min_mps: 10.0
+  exact_fast_dwell_min_s: 5.0
+  exact_fast_range_max_m: 25.0
+  legacy_vehicle_observation_coverage_pct: 45.18
+  legacy_send_needed_pct: 14.66
+  legacy_selected_split_pct: 5.83
+
+collection_contract:
+  scope: multiclass_advisor_rich
+  require_unique_full_run_seeds: true
+  require_requested_frames_match_max_frames: true
+  required_effective_args:
+    --tm-port: 8010
+    --npc-vehicles: 0
+    --npc-pedestrians: 0
+    --fps: 20
+    --sensor-every-tick: 'true'
+    --radar-points-per-second: 200000
+    --radar-rasterizer: fast
+    --radar-temporal-window-frames: 2
+    --object-score-threshold: 0.05
+    --object-nms-radius-px: 2
+    --topk-objects: 120
+  required_family_split_counts:
+    mixed_urban: {train: 4, validation: 2, test: 2}
+    ped_crossing: {train: 4, validation: 2, test: 2}
+    exact_fast_convoy: {train: 4, validation: 2, test: 2}
+
+advisor_integration:
+  generate_traffic_script: rl_agent/advisor_helper_scripts/codes/generate_traffic_v1.py
+  spawn_blocker_script: rl_agent/advisor_helper_scripts/codes/spawn_blocker_v4.py
+  spawn_blocker_entrypoint: data_collection/run_advisor_spawn_blocker.py
+  scenario_ui_v2: rl_agent/advisor_helper_scripts/codes/physical_ai_scenario_controller_ui_v2.py
+  scenario_config_v2: rl_agent/advisor_helper_scripts/codes/physical_ai_scenario_config_v2.yaml
+  ego_route_config_module: rl_agent/advisor_helper_scripts/codes/ego_route_config.py
+  pole_camera_client: rl_agent/advisor_helper_scripts/codes/traffic_light_pole_camera_ui_client_v1.py
+  traffic_light_data: traffic_lights_data.json
+  route_config: data_collection/routes/town10hd_opt_advisor_demo_loop_v1.json
+  route_progress_csv: data_collection/routes/town10hd_opt_advisor_demo_loop_v1.progress.csv
+  tm_port: 8010
+  ego_role_name: scenesense_fusion_ego
+  ego_spawn_index: 55
+  # Reserve the four same-direction spawn slots around the first crossing so
+  # generate_traffic cannot park the initial randomized population directly
+  # in front of the not-yet-created collector ego. Reservations are removed
+  # before the collector starts.
+  # Spawn 57 overlaps the pinned near-curb pedestrian; the blocker itself is
+  # created before traffic and reserves that site. These three protect the ego
+  # lanes without falsely putting the walker into pre-ego collision HOLDING.
+  ego_reservation_spawn_indices: [53, 55, 56]
+  fixed_delta_seconds: 0.05
+  update_hz: 20
+  tick_timeout_s: 2.0
+  pedestrian_speed_mps: 2.0
+  minimum_pedestrian_speed_mps: 1.0
+  # The advisor's demo captures are ~3.8-4.0 m lateral to this route and were
+  # tuned for 30/40 m/s walkers. At the required 1-2 m/s walking speed their
+  # braking-envelope intercept is infeasible. Keep their route stations and
+  # use one unambiguous curb-width crossing ~2.5 m off the UI path. Ambient
+  # walkers provide density without adding a remote fallback blocker whose
+  # post-relocation physics jitter would invalidate the speed gate.
+  pedestrian_locations:
+    - [19.791866, 30.700000, 0.005668, -89.580742]
+  maximum_pedestrian_route_offset_m: 3.0
+  walker_seed_offset: 100000
+  replenish_interval_s: 1.0
+  population_log_interval_s: 10.0
+  population_start_timeout_s: 45.0
+  population_shutdown_timeout_s: 20.0
+  collector_timeout_s: 900.0
+  common_traffic_args: [--safe]
+  # The advisor captures store ground Z near zero, but this packaged
+  # Town10HD_Opt spawns road vehicles at z~0.6 m. Keep captured XY/yaw and use
+  # the script's supported offset so all three static blockers materialize.
+  common_blocker_args: [--vehicle-z-offset, 0.60]
+  families:
+    mixed_urban:
+      number_of_vehicles: 18
+      number_of_walkers: 24
+      minimum_autopilot_vehicles: 15
+      minimum_ready_actor_counts:
+        vehicle.*: 18
+        walker.pedestrian.*: 20
+      minimum_blocker_role_prefix_counts:
+        # This packaged Town accepts one of the advisor's three captured bus
+        # transforms; diverse moving traffic supplies the remaining vehicles.
+        static_blocker_v4: 1
+        pedestrian_blocker_v4: 1
+      blocker_args: []
+      traffic_args: []
+    ped_crossing:
+      number_of_vehicles: 26
+      number_of_walkers: 36
+      minimum_autopilot_vehicles: 22
+      minimum_ready_actor_counts:
+        vehicle.*: 25
+        walker.pedestrian.*: 30
+      minimum_blocker_role_prefix_counts:
+        static_blocker_v4: 1
+        pedestrian_blocker_v4: 1
+      # A conservative arming margin gives the 3.5 m/s ego enough room to
+      # yield after the advisor selects a feasible 1-2 m/s intercept.
+      blocker_args: [--braking-margin, 6.0]
+      traffic_args: []
+    exact_fast_convoy:
+      number_of_vehicles: 0
+      number_of_walkers: 12
+      minimum_autopilot_vehicles: 0
+      minimum_ready_actor_counts:
+        vehicle.*: 0
+        walker.pedestrian.*: 8
+      minimum_blocker_role_prefix_counts:
+        pedestrian_blocker_v4: 1
+      blocker_args: [--no-vehicle-blockers]
+      traffic_args: []
+  smoke_gate:
+    headline_range_m: 25.0
+    prediction_score_min: 0.20
+    association_gate_m: 5.0
+    pedestrian_role_prefix: pedestrian_blocker_v4
+    minimum_controlled_pedestrian_coverage_pct: 50.0
+    minimum_controlled_pedestrian_active_speed_mps: 0.5
+    minimum_controlled_pedestrian_active_rows: 5
+    pedestrian_speed_max_mps: 3.5
+    route_ego_speed_p95_min_mps: 2.0
+    legacy_pedestrian_coverage_pct: 17.0
+    exact_fast_role_name: policy_corpus_advisor_rich_v3_exact_fast
+    fast_speed_min_mps: 10.0
+    fast_range_max_m: 25.0
+    fast_dwell_min_s: 5.0
+    minimum_overlay_images: 12
+
+common_args:
+  - --role
+  - loopback
+  - --host
+  - 127.0.0.1
+  - --port
+  - 2000
+  - --tm-port
+  - 8010
+  - --sensor-platform
+  - ego_vehicle
+  - --no-ego-freeze
+  - --ego-spawn-index
+  - 55
+  - --ego-fixed-path-progress-csv
+  - data_collection/routes/town10hd_opt_advisor_demo_loop_v1.progress.csv
+  - --ego-fixed-path-loop
+  - --ego-fixed-path-min-spacing-m
+  - 3
+  - --ego-follow-distance-m
+  - 8
+  - --ego-disable-lane-change
+  - --camera-width
+  - 854
+  - --camera-height
+  - 480
+  - --fps
+  - 20
+  - --sensor-every-tick
+  - --radar-points-per-second
+  - 200000
+  - --radar-rasterizer
+  - fast
+  - --radar-temporal-window-frames
+  - 2
+  - --object-score-threshold
+  - 0.05
+  - --object-nms-radius-px
+  - 2
+  - --topk-objects
+  - 120
+  - --quantization-mode
+  - per_channel_uint8
+  - --entropy-coder
+  - zlib
+  - --fusion-checkpoint
+  - experiments/ae_integrated_20260710/noae_baseline/checkpoints/mprime_joint_noae/best.pt
+  - --front-device
+  - cuda:0
+  - --back-device
+  - cpu
+  - --result-timeout
+  - 2.0
+  - --headless
+  - --no-spatial-map-stream
+  - --disable-semantic-gt
+  - --npc-vehicles
+  - 0
+  - --npc-pedestrians
+  - 0
+  - --max-frames
+  - 500
+  - --transport-label
+  - policy_corpus_advisor_rich_v3_loopback
+
+family_args:
+  mixed_urban:
+    [--ego-route-control, direct, --ego-direct-route-speed-mps, 6.0,
+     --ego-autopilot-speed-difference-pct, 30, --ego-ignore-lights-pct, 0]
+  ped_crossing:
+    [--ego-route-control, direct, --ego-direct-route-speed-mps, 3.5,
+     --ego-spawn-forward-offset-m, 14.0,
+     --ego-direct-yield-to-controlled-pedestrian, --ego-direct-yield-hold-s, 5.0,
+     --ego-autopilot-speed-difference-pct, 10, --ego-ignore-lights-pct, 100,
+     --ego-ignore-walkers-pct, 100]
+  exact_fast_convoy:
+    [--tracked-lead, vehicle, --tracked-motion-control, exact,
+     --tracked-speed-mps, 13.4, --tracked-gap-m, 18,
+     --tracked-role-name, policy_corpus_advisor_rich_v3_exact_fast,
+     --ego-ignore-lights-pct, 100]
+
+smoke_runs:
+  - {episode_id: pcarv3_smoke_mixed, run_group: policy_corpus_advisor_rich_v3__smoke__mixed,
+     scenario_family: mixed_urban, scenario_variant: advisor_route_mixed, split: smoke,
+     seed: 7001, requested_frames: 160, extra_args: [--max-frames, 160]}
+  - {episode_id: pcarv3_smoke_ped, run_group: policy_corpus_advisor_rich_v3__smoke__ped,
+     scenario_family: ped_crossing, scenario_variant: close_reactive_crossing, split: smoke,
+     seed: 7002, requested_frames: 220, extra_args: [--max-frames, 220]}
+  - {episode_id: pcarv3_smoke_fast, run_group: policy_corpus_advisor_rich_v3__smoke__fast,
+     scenario_family: exact_fast_convoy, scenario_variant: exact_fast_with_advisor_walkers, split: smoke,
+     seed: 7003, requested_frames: 140, extra_args: [--max-frames, 140]}
+
+runs:
+  - {episode_id: pcarv3_mixed_tr01, run_group: policy_corpus_advisor_rich_v3__train__mixed__01, scenario_family: mixed_urban, scenario_variant: advisor_route_mixed, split: train, seed: 7101}
+  - {episode_id: pcarv3_mixed_tr02, run_group: policy_corpus_advisor_rich_v3__train__mixed__02, scenario_family: mixed_urban, scenario_variant: advisor_route_mixed, split: train, seed: 7102}
+  - {episode_id: pcarv3_mixed_tr03, run_group: policy_corpus_advisor_rich_v3__train__mixed__03, scenario_family: mixed_urban, scenario_variant: advisor_route_mixed, split: train, seed: 7103}
+  - {episode_id: pcarv3_mixed_tr04, run_group: policy_corpus_advisor_rich_v3__train__mixed__04, scenario_family: mixed_urban, scenario_variant: advisor_route_mixed, split: train, seed: 7104}
+  - {episode_id: pcarv3_mixed_va01, run_group: policy_corpus_advisor_rich_v3__validation__mixed__01, scenario_family: mixed_urban, scenario_variant: advisor_route_mixed, split: validation, seed: 7151}
+  - {episode_id: pcarv3_mixed_va02, run_group: policy_corpus_advisor_rich_v3__validation__mixed__02, scenario_family: mixed_urban, scenario_variant: advisor_route_mixed, split: validation, seed: 7152}
+  - {episode_id: pcarv3_mixed_te01, run_group: policy_corpus_advisor_rich_v3__test__mixed__01, scenario_family: mixed_urban, scenario_variant: advisor_route_mixed, split: test, seed: 7191}
+  - {episode_id: pcarv3_mixed_te02, run_group: policy_corpus_advisor_rich_v3__test__mixed__02, scenario_family: mixed_urban, scenario_variant: advisor_route_mixed, split: test, seed: 7192}
+
+  - {episode_id: pcarv3_ped_tr01, run_group: policy_corpus_advisor_rich_v3__train__ped__01, scenario_family: ped_crossing, scenario_variant: close_reactive_crossing, split: train, seed: 7201}
+  - {episode_id: pcarv3_ped_tr02, run_group: policy_corpus_advisor_rich_v3__train__ped__02, scenario_family: ped_crossing, scenario_variant: close_reactive_crossing, split: train, seed: 7202}
+  - {episode_id: pcarv3_ped_tr03, run_group: policy_corpus_advisor_rich_v3__train__ped__03, scenario_family: ped_crossing, scenario_variant: close_reactive_crossing, split: train, seed: 7203}
+  - {episode_id: pcarv3_ped_tr04, run_group: policy_corpus_advisor_rich_v3__train__ped__04, scenario_family: ped_crossing, scenario_variant: close_reactive_crossing, split: train, seed: 7204}
+  - {episode_id: pcarv3_ped_va01, run_group: policy_corpus_advisor_rich_v3__validation__ped__01, scenario_family: ped_crossing, scenario_variant: close_reactive_crossing, split: validation, seed: 7251}
+  - {episode_id: pcarv3_ped_va02, run_group: policy_corpus_advisor_rich_v3__validation__ped__02, scenario_family: ped_crossing, scenario_variant: close_reactive_crossing, split: validation, seed: 7252}
+  - {episode_id: pcarv3_ped_te01, run_group: policy_corpus_advisor_rich_v3__test__ped__01, scenario_family: ped_crossing, scenario_variant: close_reactive_crossing, split: test, seed: 7291}
+  - {episode_id: pcarv3_ped_te02, run_group: policy_corpus_advisor_rich_v3__test__ped__02, scenario_family: ped_crossing, scenario_variant: close_reactive_crossing, split: test, seed: 7292}
+
+  - {episode_id: pcarv3_fast_tr01, run_group: policy_corpus_advisor_rich_v3__train__fast__01, scenario_family: exact_fast_convoy, scenario_variant: exact_fast_with_advisor_walkers, split: train, seed: 7301, requested_frames: 160, extra_args: [--max-frames, 160]}
+  - {episode_id: pcarv3_fast_tr02, run_group: policy_corpus_advisor_rich_v3__train__fast__02, scenario_family: exact_fast_convoy, scenario_variant: exact_fast_with_advisor_walkers, split: train, seed: 7302, requested_frames: 160, extra_args: [--max-frames, 160]}
+  - {episode_id: pcarv3_fast_tr03, run_group: policy_corpus_advisor_rich_v3__train__fast__03, scenario_family: exact_fast_convoy, scenario_variant: exact_fast_with_advisor_walkers, split: train, seed: 7303, requested_frames: 160, extra_args: [--max-frames, 160]}
+  - {episode_id: pcarv3_fast_tr04, run_group: policy_corpus_advisor_rich_v3__train__fast__04, scenario_family: exact_fast_convoy, scenario_variant: exact_fast_with_advisor_walkers, split: train, seed: 7304, requested_frames: 160, extra_args: [--max-frames, 160]}
+  - {episode_id: pcarv3_fast_va01, run_group: policy_corpus_advisor_rich_v3__validation__fast__01, scenario_family: exact_fast_convoy, scenario_variant: exact_fast_with_advisor_walkers, split: validation, seed: 7351, requested_frames: 160, extra_args: [--max-frames, 160]}
+  - {episode_id: pcarv3_fast_va02, run_group: policy_corpus_advisor_rich_v3__validation__fast__02, scenario_family: exact_fast_convoy, scenario_variant: exact_fast_with_advisor_walkers, split: validation, seed: 7352, requested_frames: 160, extra_args: [--max-frames, 160]}
+  - {episode_id: pcarv3_fast_te01, run_group: policy_corpus_advisor_rich_v3__test__fast__01, scenario_family: exact_fast_convoy, scenario_variant: exact_fast_with_advisor_walkers, split: test, seed: 7391, requested_frames: 160, extra_args: [--max-frames, 160]}
+  - {episode_id: pcarv3_fast_te02, run_group: policy_corpus_advisor_rich_v3__test__fast__02, scenario_family: exact_fast_convoy, scenario_variant: exact_fast_with_advisor_walkers, split: test, seed: 7392, requested_frames: 160, extra_args: [--max-frames, 160]}

@@ -1,0 +1,48 @@
+schema_version: 1
+base_config: rl_agent/policy/configs/track_a_pilot.yaml
+
+controller_ladder:
+  seed: 20260811
+  corpus_id: policy_corpus_advisor_rich_v3
+  require_verified_corpus: true
+  enabled_controllers: [fixed, rule, greedy, linucb, mpc]
+  training_split: train
+  evaluation_split: test
+  training_episode_count: null
+  evaluation_episode_count: null
+  channel_seeds: [1101, 2202, 3303]
+  common_random_latency_by_tick: true
+  bandit_feedback_source: matched_true_expected_reward
+
+  replay_roots: []
+  split_manifest_csv: ''
+  verification_manifest_json: ''
+
+  controllers:
+    fixed:
+      action_id: SPLIT::ae32__uint4__roi0.0::10fps
+
+    rule:
+      default_profile_id: ae32__uint4__roi0.0
+      high_capacity_profile_id: ae128__uint4__roi0.0
+      high_capacity_mbps: 30.0
+      fresh_skip_fraction: 0.70
+      urgent_risk_fraction: 0.90
+      fast_speed_mps: 10.0
+      low_fps: 5
+      medium_fps: 10
+      high_fps: 20
+
+    linucb:
+      alpha: 0.75
+      ridge: 1.0
+      reward_clip: [-2.0, 2.0]
+
+    mpc:
+      horizon_steps: 3
+      discount: 0.98
+      future_branch_width: 4
+      beam_width_per_root: 3
+      delivery_probability_threshold: 0.999
+      forecast: markov_expected_capacity_modal_latency
+      existing_inflight_policy: summary_only_no_hidden_install

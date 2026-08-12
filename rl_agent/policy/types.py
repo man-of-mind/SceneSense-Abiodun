@@ -35,6 +35,7 @@ class QualitySnapshot:
     profile_id: str
     miou: float
     pedestrian_recall: float
+    vehicle_recall: float
     object_recall: float
     normalized_utility: float
     base_loc_m: float

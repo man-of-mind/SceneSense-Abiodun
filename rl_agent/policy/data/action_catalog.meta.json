@@ -1,10 +1,45 @@
 {
   "base_loc_calibration": "1.10 + raw - min(retained_raw)",
   "catalog_file": "rl_agent/policy/data/action_catalog.csv",
-  "catalog_sha256": "93fce009924ab8ac227726eebb3613e61139ff401c801f57d2de94ee15f18d6a",
+  "catalog_sha256": "e6d95fbbd0cec30ea131ce50274ba6b9b858622021ac6067602c5f505b48228d",
   "flattened_action_count": 36,
   "profile_count": 7,
   "schema_version": 1,
   "source_file": "rl_agent/PERMODEL_KNOB_MATRIX_ZSTD.md",
-  "source_sha256": "35cd80016383b80c61371ab4f75b986eb2cf0e8098c622f437f1c3679f1ae9ed"
+  "source_sha256": "35cd80016383b80c61371ab4f75b986eb2cf0e8098c622f437f1c3679f1ae9ed",
+  "vehicle_recall_field": "learned_vehicle_object_recall",
+  "vehicle_recall_reference": {
+    "definition": "rounded best measured profile recall in sweeps_permodel_zstd",
+    "value": 0.927
+  },
+  "vehicle_recall_sources": {
+    "ae128__uint4__roi0.0": {
+      "file": "experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae128__uint4__roi0.0/metrics/test_fusion_evaluation_metrics.json",
+      "sha256": "52747d24e733ef35e4d8aa779f1a505d4801ded797b308977ffae706c70d1203"
+    },
+    "ae128__uint4__roi0.5": {
+      "file": "experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae128__uint4__roi0.5/metrics/test_fusion_evaluation_metrics.json",
+      "sha256": "dcae408fb4bffb0e8e125d2e55e2cd938508c468ebb30520b08041baf8f84a3e"
+    },
+    "ae32__uint4__roi0.0": {
+      "file": "experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae32__uint4__roi0.0/metrics/test_fusion_evaluation_metrics.json",
+      "sha256": "cef176f57a585d03304e6ca04cccb3c0c7631e82dfa0a7c0bfa6151a36ff46f8"
+    },
+    "ae32__uint4__roi0.3": {
+      "file": "experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae32__uint4__roi0.3/metrics/test_fusion_evaluation_metrics.json",
+      "sha256": "36162561d5deb29c70213670cc633ef300feb7734e2a4d21740ed91e21ad2320"
+    },
+    "ae32__uint4__roi0.5": {
+      "file": "experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae32__uint4__roi0.5/metrics/test_fusion_evaluation_metrics.json",
+      "sha256": "7932a2b257cff9895d859db486eb9417703e5bb74f0794e3bd7893d40c41173d"
+    },
+    "ae64__uint4__roi0.3": {
+      "file": "experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae64__uint4__roi0.3/metrics/test_fusion_evaluation_metrics.json",
+      "sha256": "bc53d695ba6bacf594ee318d99669e074e5b048446173127dd20f4735b718e43"
+    },
+    "ae64__uint4__roi0.5": {
+      "file": "experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae64__uint4__roi0.5/metrics/test_fusion_evaluation_metrics.json",
+      "sha256": "ed903f23156179167392acbbc596282acc8b200b3ba5c13e2a568e4ef94611e7"
+    }
+  }
 }

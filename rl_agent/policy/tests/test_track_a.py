@@ -72,6 +72,34 @@ class TrackATestCase(unittest.TestCase):
         self.assertEqual(hashlib.sha256(catalog_path.read_bytes()).hexdigest(), metadata["catalog_sha256"])
         source_path = REPO_ROOT / metadata["source_file"]
         self.assertEqual(hashlib.sha256(source_path.read_bytes()).hexdigest(), metadata["source_sha256"])
+        self.assertEqual(metadata["vehicle_recall_field"], "learned_vehicle_object_recall")
+        self.assertAlmostEqual(metadata["vehicle_recall_reference"]["value"], 0.927)
+        self.assertEqual(set(metadata["vehicle_recall_sources"]), set(self.profiles["profile_id"]))
+        for source in metadata["vehicle_recall_sources"].values():
+            path = REPO_ROOT / source["file"]
+            self.assertEqual(hashlib.sha256(path.read_bytes()).hexdigest(), source["sha256"])
+
+    def test_reward_v5_uses_explicit_class_recall_and_no_roi_penalty(self):
+        reward = self.config["reward"]
+        self.assertEqual(int(reward["formulation_version"]), 5)
+        self.assertEqual(
+            reward["task_metric_weights"],
+            {"miou": 0.35, "pedestrian_recall": 0.40, "vehicle_recall": 0.25},
+        )
+        self.assertNotIn("lambda_roi", reward)
+        action = next(item for item in self.actions if item.profile_id == "ae32__uint4__roi0.5")
+        quality = profile_quality(action, reward)
+        expected = (
+            0.35 * action.miou / float(reward["task_metric_references"]["miou"])
+            + 0.40
+            * action.pedestrian_recall
+            / float(reward["task_metric_references"]["pedestrian_recall"])
+            + 0.25
+            * action.vehicle_recall
+            / float(reward["task_metric_references"]["vehicle_recall"])
+        )
+        self.assertAlmostEqual(quality.normalized_utility, expected)
+        self.assertAlmostEqual(quality.vehicle_recall, action.vehicle_recall)
 
     def test_phase1_convention_and_follow_on_grid_cardinalities(self):
         self.assertEqual(float(self.config["safety"]["ucb_k"]), 0.0)

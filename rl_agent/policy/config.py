@@ -35,9 +35,23 @@ def validate_config(config: Dict[str, Any]) -> None:
         raise ValueError("preferred_core_kib must be 90 or 129")
     if float(config["safety"]["epsilon_m"]) <= 0:
         raise ValueError("safety.epsilon_m must be positive")
-    weights = config["reward"]["task_metric_weights"]
+    reward = config["reward"]
+    if int(reward.get("formulation_version", 0)) != 5:
+        raise ValueError("reward.formulation_version must be 5")
+    weights = reward["task_metric_weights"]
+    expected_metrics = {"miou", "pedestrian_recall", "vehicle_recall"}
+    if set(weights) != expected_metrics:
+        raise ValueError(f"task_metric_weights must contain exactly {sorted(expected_metrics)}")
     if abs(sum(float(value) for value in weights.values()) - 1.0) > 1e-9:
         raise ValueError("task_metric_weights must sum to 1")
+    expected_weights = {"miou": 0.35, "pedestrian_recall": 0.40, "vehicle_recall": 0.25}
+    if any(abs(float(weights[key]) - value) > 1e-9 for key, value in expected_weights.items()):
+        raise ValueError("reward v5 task weights must be 0.35/0.40/0.25")
+    references = reward["task_metric_references"]
+    if set(references) != expected_metrics or any(float(value) <= 0.0 for value in references.values()):
+        raise ValueError("reward v5 task references must be positive and class-explicit")
+    if "lambda_roi" in reward:
+        raise ValueError("reward v5 must not contain an explicit lambda_roi term")
     rungs = config["channel"]["rungs"]
     matrix = config["channel"]["transition_matrix"]
     if set(rungs) != set(matrix):

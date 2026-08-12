@@ -25,7 +25,6 @@ class ActionEvaluation:
     bound_m: float
     expected_task_utility: float
     prb_cost: float
-    roi_cost: float
     switch_cost: float
     expected_reward: float
     delivery_probability: float
@@ -55,12 +54,15 @@ def profile_quality(action: Action, reward_config: Mapping[str, object]) -> Qual
         + float(weights["pedestrian_recall"])
         * action.pedestrian_recall
         / float(refs["pedestrian_recall"])
-        + float(weights["object_recall"]) * action.object_recall / float(refs["object_recall"])
+        + float(weights["vehicle_recall"])
+        * action.vehicle_recall
+        / float(refs["vehicle_recall"])
     )
     return QualitySnapshot(
         profile_id=action.profile_id or "none",
         miou=action.miou,
         pedestrian_recall=action.pedestrian_recall,
+        vehicle_recall=action.vehicle_recall,
         object_recall=action.object_recall,
         normalized_utility=utility,
         base_loc_m=action.base_loc_m,
@@ -202,12 +204,10 @@ class SharedShield:
         bound = risk_p95 if clairvoyant else risk_p95 + self.ucb_k * risk_sigma
         expected_task = float(np.mean(utility_values))
         prb_cost = float(np.mean(prb_values))
-        roi_cost = action.roi_q / 0.5 if action.mode == "SPLIT" else 0.0
         switch_cost = float(_mode(observation.previous_action_id) not in {"NONE", action.mode})
         expected_reward = (
             float(self.reward["w_task"]) * expected_task
             - float(self.reward["lambda_prb"]) * prb_cost
-            - float(self.reward["lambda_roi"]) * roi_cost
             - float(self.reward["lambda_switch"]) * switch_cost
             - float(self.reward["w_error"]) * expected_g / self.epsilon
         )
@@ -220,7 +220,6 @@ class SharedShield:
             bound_m=bound,
             expected_task_utility=expected_task,
             prb_cost=prb_cost,
-            roi_cost=roi_cost,
             switch_cost=switch_cost,
             expected_reward=expected_reward,
             delivery_probability=float(np.mean(delivered_values)),

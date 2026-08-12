@@ -1,3 +1,4 @@
+import argparse
 import math
 import unittest
 from pathlib import Path
@@ -17,8 +18,10 @@ from data_collection.analyze_detection_ab_gate import (
 from data_collection.carla_fusion_policy_corpus_collector import (
     ControlledPedestrianOverlay,
     _compose_camera_world_matrix,
+    _apply_direct_ego_route_control,
     _parse_overlay_args,
     _pedestrian_crowd_offsets,
+    spawn_parked_ego_with_tm_overrides,
 )
 
 
@@ -177,13 +180,70 @@ class DetectionABGateTests(unittest.TestCase):
                 "96",
                 "--controlled-pedestrian-crowd-min-spawned",
                 "81",
+                "--ego-ignore-walkers-pct",
+                "100",
                 "--max-frames",
                 "250",
             ]
         )
         self.assertEqual(overlay.crowd_count, 96)
         self.assertEqual(overlay.crowd_min_spawned, 81)
+        self.assertEqual(overlay.ego_ignore_walkers_pct, 100.0)
         self.assertEqual(remaining, ["--fps", "10", "--max-frames", "250"])
+
+    def test_ego_walker_ignore_override_uses_configured_tm(self):
+        actor = mock.Mock(id=42)
+        args = argparse.Namespace(host="127.0.0.1", port=2000, tm_port=8010)
+        traffic_manager = mock.Mock()
+        client = mock.Mock()
+        client.get_trafficmanager.return_value = traffic_manager
+        overlay = ControlledPedestrianOverlay(ego_ignore_walkers_pct=100.0)
+        with mock.patch.object(collector, "_PEDESTRIAN_OVERLAY", overlay), \
+             mock.patch.object(collector, "_SPAWN_PARKED_EGO", return_value=actor), \
+             mock.patch.object(collector.base.carla, "Client", return_value=client):
+            returned = spawn_parked_ego_with_tm_overrides(world=mock.Mock(), args=args)
+        self.assertIs(returned, actor)
+        client.get_trafficmanager.assert_called_once_with(8010)
+        traffic_manager.ignore_walkers_percentage.assert_called_once_with(actor, 100.0)
+
+    def test_ego_walker_ignore_override_destroys_actor_on_failure(self):
+        actor = mock.Mock(id=42)
+        args = argparse.Namespace(host="127.0.0.1", port=2000, tm_port=8010)
+        client = mock.Mock()
+        client.get_trafficmanager.side_effect = RuntimeError("TM unavailable")
+        overlay = ControlledPedestrianOverlay(ego_ignore_walkers_pct=100.0)
+        with mock.patch.object(collector, "_PEDESTRIAN_OVERLAY", overlay), \
+             mock.patch.object(collector, "_SPAWN_PARKED_EGO", return_value=actor), \
+             mock.patch.object(collector.base.carla, "Client", return_value=client):
+            with self.assertRaisesRegex(RuntimeError, "walker-ignore override"):
+                spawn_parked_ego_with_tm_overrides(world=mock.Mock(), args=args)
+        actor.destroy.assert_called_once_with()
+
+    def test_direct_route_controller_disables_tm_and_commands_vehicle(self):
+        actor = mock.Mock(id=77)
+        actor.get_location.return_value = mock.Mock(x=0.0, y=0.0)
+        actor.get_transform.return_value = mock.Mock(
+            location=mock.Mock(x=0.0, y=0.0),
+            rotation=mock.Mock(yaw=0.0),
+        )
+        actor.get_velocity.return_value = mock.Mock(x=0.0, y=0.0, z=0.0)
+        args = argparse.Namespace(tm_port=8010)
+        overlay = ControlledPedestrianOverlay(
+            ego_route_control="direct", ego_direct_route_speed_mps=6.0
+        )
+        with mock.patch.object(collector, "_PEDESTRIAN_OVERLAY", overlay), \
+             mock.patch.object(collector, "_DIRECT_ROUTE_STATE", {}), \
+             mock.patch.object(
+                 collector, "_load_direct_route", return_value=[(5.0, 0.0), (10.0, 0.0)]
+             ):
+            index, heading_error, yielding = _apply_direct_ego_route_control(actor, args)
+        self.assertEqual(index, 0)
+        self.assertAlmostEqual(heading_error, 0.0)
+        self.assertFalse(yielding)
+        actor.set_autopilot.assert_called_once_with(False, 8010)
+        control = actor.apply_control.call_args.args[0]
+        self.assertGreater(float(control.throttle), 0.0)
+        self.assertAlmostEqual(float(control.steer), 0.0)
 
     def test_overlay_cleanup_releases_all_owned_crowd_actors(self):
         actors = [object(), object(), object()]

@@ -32,6 +32,7 @@ class Action:
     roi_q: float = 0.0
     miou: float = 0.0
     pedestrian_recall: float = 0.0
+    vehicle_recall: float = 0.0
     object_recall: float = 0.0
     base_loc_m: float = 0.0
     front_ms: float = 0.0
@@ -84,6 +85,7 @@ def flatten_actions(
                     roi_q=float(row["roi_q"]),
                     miou=float(row["miou"]),
                     pedestrian_recall=float(row["pedestrian_recall"]),
+                    vehicle_recall=float(row["vehicle_recall"]),
                     object_recall=float(row["object_recall"]),
                     base_loc_m=float(row["base_loc_calibrated_m"]),
                     front_ms=float(row["front_ms"]),
