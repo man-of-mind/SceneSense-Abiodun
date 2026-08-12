@@ -1,0 +1,205 @@
+# Physical AI scenario preset for the v2 coordinate-aware map selector UI.
+world:
+  # This UI is the sole CARLA synchronous master while it is running. Do not
+  # run generate_traffic.py (or another world.tick() owner) at the same time.
+  master_clock: true
+  fixed_delta_seconds: 0.05
+  restore_settings_on_exit: true
+
+scenario:
+  name: physical_ai_occlusion_demo_v2
+  seed: 20260731
+  npc_vehicles: 18
+  npc_pedestrians: 24
+
+  ego_vehicle:
+    blueprint_id: "vehicle.lincoln.mkz"
+    blueprint_filter: "vehicle.*"
+    start_spawn_index: 0
+    end_spawn_index: 12
+    # Ordered indices into the two-meter driving-lane samples shown on the map.
+    route_waypoint_indices: []
+    # UI "Vehicle autonomous": true/ON follows the ordered route; false/OFF
+    # enables WASD vehicle control. The switch can also be changed while live.
+    scripted_route: true
+    route_sampling_resolution_m: 2.0
+    # Target speed for the Python BasicAgent that executes the ordered route.
+    # The sidebar "Vehicle speed (km/h)" stepper changes this live and scales
+    # scripted_curve_speed_kmh by the same ratio it has here.
+    scripted_speed_kmh: 18.0
+    scripted_curve_speed_kmh: 10.0
+    # Speed the throttle is allowed to reach under WASD control. 0 means "use
+    # scripted_speed_kmh", so one stepper governs both AUTO and MANUAL.
+    manual_speed_limit_kmh: 0.0
+    # Local-planner look-ahead: the controller aims at the first queued waypoint
+    # further than waypoint_purge_base_m + waypoint_purge_speed_ratio * speed.
+    # These are CARLA's proven defaults. Shortening them (an earlier revision
+    # used 1.0 / 0.10) makes the lateral PID chase a point ~1.5 m ahead, which
+    # oscillates and eventually steers the ego off the carriageway.
+    waypoint_purge_base_m: 3.0
+    waypoint_purge_speed_ratio: 0.5
+    max_throttle: 0.60
+    max_steering: 0.70
+    lateral_k_p: 1.30
+    lateral_k_i: 0.03
+    lateral_k_d: 0.20
+    # Bounded self-rescue: after a stall with no hazard, reverse straight for a
+    # moment and re-plan from the recovered pose. 0 disables it.
+    stuck_recovery_attempts: 3
+    # Limit throttle once the vehicle center leaves this multiple of the usable
+    # half-lane width (0.73 m for the MKZ in a 3.5 m lane). Measured PID
+    # tracking error is 0.1-0.9 m, so values <= 1.0 fire during normal driving;
+    # the guard exists for real 2-3 m excursions off the carriageway. The guard
+    # never brakes a stopped vehicle: with throttle forced to zero the lateral
+    # PID has no authority to steer back, which used to deadlock the route after
+    # an ordinary junction exit.
+    lane_center_guard_fraction: 1.60
+    # Only scrub speed for a lane-edge excursion above this speed; below it the
+    # guard grants lane_guard_recovery_throttle so the ego can steer back.
+    lane_guard_brake_speed_mps: 2.0
+    lane_guard_recovery_throttle: 0.30
+    # Report in the UI and the event log when an autonomous ego stays stopped
+    # this long, together with the hazard the agent reported.
+    stall_warning_seconds: 6.0
+    # Set either to true to let the ego traverse the demo route without waiting
+    # at infrastructure signals.
+    ignore_traffic_lights: false
+    ignore_stop_signs: false
+    # Progress is logged when the agent enters this radius on the selected
+    # directed lane, or once it has driven past the gate; the complete ordered
+    # plan is installed before motion.
+    waypoint_reach_threshold_m: 8.0
+    camera_mount: [0.80, 0.0, 1.70]
+
+  ego_pedestrian:
+    blueprint_filter: "walker.pedestrian.*"
+    start_spawn_index: 0
+    end_spawn_index: 12
+    # Ordered indices into the deterministic navigation samples shown on the map.
+    route_waypoint_indices: []
+    # UI "Ped autonomous": true/ON follows the ordered route; false/OFF
+    # enables WASD pedestrian control. The switch can also be changed live.
+    scripted_route: true
+    # The sidebar "Ped speed (m/s)" stepper changes walk_speed_mps live, scales
+    # run_speed_mps by the ratio it has here, and re-applies the AI walker
+    # controller's max speed, so it governs both AUTO and WASD walking.
+    walk_speed_mps: 2.5
+    run_speed_mps: 5.0
+    scripted_speed_mps: 2.0
+    # CARLA 0.10 does not honour WalkerControl.speed directly: measured on this
+    # build it delivers speed/20.5 and saturates near 2 m/s, while the AI walker
+    # controller reaches ~15 m/s. Manual walking therefore has two paths.
+    #   direct : WalkerControl, pre-scaled so the sidebar number is real m/s.
+    #            Most responsive, but cannot exceed direct_speed_cap_mps.
+    #   guided : CARLA's walker controller is aimed a few metres ahead in the
+    #            WASD heading, which reaches the high speeds and stays on the
+    #            navigation mesh.
+    #   auto   : direct below the cap, guided above it (default).
+    manual_control_mode: auto
+    walker_control_speed_scale: 20.5
+    direct_speed_cap_mps: 2.0
+    guided_lookahead_m: 12.0
+    waypoint_reach_threshold_m: 1.5
+    # x is clamped forward of the walker mesh at runtime so the head does not
+    # occlude its own feed, matching pedestrian_head_camera_client_v1.py.
+    camera_mount: [0.25, 0.0, 1.65]
+
+  occluder:
+    # If this CARLA package has no literal bus, v2 deterministically substitutes
+    # its largest available van/truck and reports the resolved blueprint.
+    type: bus
+    route_fraction: 0.50
+    # 0.0 means "on the lane centerline". With blocks_ego_lane false the offset
+    # is widened at runtime to park the occluder clear of the ego lane, so it
+    # still breaks line of sight without holding the ego in a permanent
+    # emergency stop, and the ego route agent ignores it as an obstacle.
+    lateral_offset_m: 0.0
+    blocks_ego_lane: false
+    half_width_m: 1.30
+    min_ego_lane_clearance_m: 0.40
+
+  ground_truth:
+    enabled: true
+    max_distance_m: 80.0
+    nlos_overlap_threshold: 0.35
+
+camera:
+  # Shared by the two dedicated ego sensors and the relocatable pole sensor.
+  # This is the RENDER resolution, not the window size: the windows stay at
+  # ui.video_window_size and OpenCV scales the frame up to fill them. Two 1080p
+  # render targets halved the simulation rate on this GPU (7.9 Hz instead of
+  # 20 Hz), which made every actor move in slow motion, so 720p is the default.
+  # Raise to [1920, 1080] for a 1:1 picture if the clock holds.
+  resolution: [1280, 720]
+  fov_deg: 90.0
+  gamma: 2.2
+  sensor_tick_s: 0.05
+  vehicle_default_yaw_deg: 0.0
+  vehicle_default_pitch_deg: -5.0
+  pedestrian_default_yaw_deg: 0.0
+  pedestrian_default_pitch_deg: 0.0
+  pole_height_m: 5.0
+  pole_yaw_offset_deg: 90.0
+  pole_pitch_deg: -20.0
+
+radar:
+  enabled: true
+  range_m: 60.0
+  horizontal_fov_deg: 60.0
+  vertical_fov_deg: 15.0
+  points_per_second: 2500
+  sensor_tick_s: 0.05
+
+traffic_manager:
+  port: 8000
+  global_distance_to_leading_vehicle_m: 2.5
+  hybrid_physics: false
+
+ui:
+  # auto: fit the desktop work area reported by _NET_WORKAREA, so the window
+  # never covers the Ubuntu dock or the top bar. A [width, height] pair is also
+  # accepted and is then used verbatim.
+  window_size: auto
+  # windowed keeps the title bar and leaves the dock reachable. borderless and
+  # fullscreen cover the screen instead.
+  window_mode: windowed
+  # Subtracted from the work area in windowed mode: a margin the window manager
+  # can place the window within, plus room for the title bar.
+  window_margin_px: 24
+  title_bar_allowance_px: 44
+  # auto derives the sidebar, font and widget scale from the window height so
+  # the UI grows with the screen instead of shrinking into one corner. A number
+  # overrides it (1.0 reproduces the original 1440x900 proportions).
+  scale: auto
+  fps: 60
+  # How often the scenario window repaints. Control and the simulation tick run
+  # every loop iteration regardless; repainting a 2442x1505 window is expensive
+  # enough that doing it at fps would starve the 20 Hz simulation clock.
+  redraw_hz: 10
+  # Two-meter lane sampling keeps curves and short junction lanes visible.
+  map_waypoint_spacing_m: 2.0
+  map_max_zoom: 8.0
+  # The camera feeds are separate desktop windows, not panes in this window:
+  # the scenario window always shows the top-down map. Each feed window opens at
+  # this size when the demo starts and can be moved or resized freely.
+  video_window_size: [1920, 1080]
+  # Two 1080p windows cannot both fit un-overlapped on one laptop panel. They
+  # are right-aligned so the sidebar stays uncovered and cascaded downward by
+  # this offset. Override any entry with explicit [x, y] pixels, e.g. to send
+  # one to a second display.
+  video_window_cascade_x: 0
+  video_window_cascade_y: 300
+  video_window_positions: {}
+  # Sidebar speed steppers, as [minimum, maximum, step]. The pedestrian range
+  # goes to 20 m/s for fast-traversal demo runs; the step keeps the click count
+  # sane over that span.
+  vehicle_speed_range_kmh: [5.0, 90.0, 2.0]
+  ped_speed_range_mps: [0.5, 20.0, 0.5]
+  # true: F1 / the WASD button also takes the newly selected ego actor off AUTO,
+  # so the keys do something immediately. The actor being released keeps the
+  # mode it already had -- handing WASD over never switches the other actor's
+  # autonomous mode on. Use F2 / F3 to put an actor back on its route.
+  control_switch_takes_manual: true
+
+logging:
+  output_root: experiments/physical_ai_demo

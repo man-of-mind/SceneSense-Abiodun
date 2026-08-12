@@ -1,0 +1,68 @@
+# Deterministic Physical AI demo scenario preset for Town10HD.
+# The UI can adjust the fields marked "UI" before each run/replay.
+scenario:
+  name: physical_ai_occlusion_demo_v1
+  seed: 20260731                 # UI
+  npc_vehicles: 18              # UI
+  npc_pedestrians: 24           # UI
+
+  ego_vehicle:
+    blueprint_filter: "vehicle.*"
+    start_spawn_index: 0         # UI; wraps to available map spawn points
+    end_spawn_index: 12          # UI; wraps to available map spawn points
+    scripted_route: true         # UI; false enables keyboard driving
+    route_sampling_resolution_m: 3.0
+    camera_mount: [0.80, 0.0, 1.70]
+
+  ego_pedestrian:
+    blueprint_filter: "walker.pedestrian.*"
+    start_spawn_index: 0         # UI; index into deterministic sidewalk samples
+    end_spawn_index: 12          # UI; index into deterministic sidewalk samples
+    scripted_route: true         # UI; false enables keyboard walking
+    walk_speed_mps: 2.5          # Increase this to make manual walking faster.
+    run_speed_mps: 5.0           # Shift speed in manual pedestrian mode.
+    scripted_speed_mps: 2.0
+    camera_mount: [0.20, 0.0, 1.65]
+
+  occluder:
+    type: bus                    # UI: none, bus, or truck
+    route_fraction: 0.50         # UI: 0.0=start, 1.0=end
+    lateral_offset_m: 0.0        # UI
+
+  ground_truth:
+    enabled: true                # UI; CARLA GT boxes plus LOS overlap estimate
+    max_distance_m: 80.0
+    nlos_overlap_threshold: 0.35
+
+camera:
+  resolution: [960, 540]
+  fov_deg: 90.0
+  gamma: 2.2
+  sensor_tick_s: 0.05
+  vehicle_default_yaw_deg: 0.0
+  vehicle_default_pitch_deg: -5.0
+  pedestrian_default_yaw_deg: 0.0
+  pedestrian_default_pitch_deg: 0.0
+  pole_height_m: 5.0
+  pole_yaw_offset_deg: 90.0
+  pole_pitch_deg: -20.0
+
+radar:
+  enabled: true
+  range_m: 60.0
+  horizontal_fov_deg: 60.0
+  vertical_fov_deg: 15.0
+  points_per_second: 2500
+  sensor_tick_s: 0.05
+
+traffic_manager:
+  port: 8000
+  global_distance_to_leading_vehicle_m: 2.5
+  hybrid_physics: false
+
+ui:
+  window_size: [1440, 900]
+  fps: 60
+
+logging:
+  output_root: experiments/physical_ai_demo
