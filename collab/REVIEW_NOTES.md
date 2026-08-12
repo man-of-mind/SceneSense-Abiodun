@@ -1540,3 +1540,39 @@ verification and freshness re-score.
   pedestrian hard-gate failure is already terminal. Per the ordered plan, no full rich corpus, verification,
   freshness re-score, baseline rerun, or RL training was started. The previous vehicle-v2 baseline result is
   not reinterpreted as the richer-corpus RL go/no-go signal.
+
+## 2026-08-12 — HALT everything until the pedestrian-detection issue is ROOT-CAUSED (Abiodun directive)
+The close-crossing smoke was executed correctly (walker crossed @1.04 m/s, ego yielded/stopped 4.91 m short) and
+returned an honest **10% pedestrian match (22/220), conf 0.06-0.12 @0.20**. This FALSIFIES the "distant crowd
+was the problem" hypothesis. Reconciliation so far (local Claude): the validated ped-recall 0.855/0.883 was on
+`moving_ego_pps200000_merged_8loops` test split at **score 0.20, nms-2, top-120, 200k pps** — SAME domain, SAME
+threshold, SAME recipe as the live gate. So NOT a parked-vs-moving domain gap and NOT a threshold mismatch. And
+vehicles detect fine live (93-97%) → the failure is **pedestrian-specific and live-specific.**
+
+**Abiodun's call: do NOT proceed** (no vehicle corpus, no freshness re-score, no baseline rerun, no RL) until we
+root-cause whether M' is genuinely broken on pedestrians (possible **retrain**). Representation clarity to avoid
+chasing the wrong head:
+- Pedestrian model output = class-aware **center-localization heatmap** (2 center + 10 regression channels),
+  matched by **center-distance (origin, 5 m gate)** — NOT a 2D box, NOT a silhouette.
+- The silhouette issue Abiodun recalls is on a DIFFERENT head — **pedestrian SEGMENTATION** (CARLA gives no
+  clean person pixels → person seg IoU unmeasurable/zero in several views). Feeds `U_task` seg, separate from
+  the localization recall that just failed. Do not conflate them.
+
+**▶ codex — pedestrian-detection reconciliation (ALL offline/cheap on existing smoke data + eval harness; HALT
+the pipeline until a verdict):**
+1. **Metric/representation consistency:** confirm the live gate matched pedestrians the SAME way the offline
+   0.855 was defined (center/origin, 5 m, score 0.20). A live-side mismatch (2D-box IoU, different gate/threshold,
+   different origin convention) would alone explain 10% vs 0.855.
+2. **Offline harness on the LIVE crossing frames (decisive):** run the exact live frames through the offline
+   eval that produced 0.855. Offline also ~10% → the test split was optimistic / this geometry is genuinely hard;
+   offline high → a **live-pipeline bug**.
+3. **Radar support:** `radar_support_score`/`count` for the crossing pedestrian in the live predictions — is
+   radar hitting it at all? (ped detection is radar-dependent per [[pps_ablation_finding]].)
+4. **Recall vs score threshold** on the live pedestrian (conf 0.06-0.12): does 0.05/0.01 recover it, or is the
+   head not firing?
+5. **Silhouette → training-label connection (Abiodun's concern):** were the pedestrian CENTER-head training
+   labels derived cleanly (actor origin/center), or contaminated by the poor CARLA person seg/silhouette? I.e.
+   is the localization head under-trained on pedestrians due to label quality?
+**Verdict = (A) metric/representation mismatch (fix measurement) / (B) live-pipeline bug (fix radar/config) /
+(C) genuine model weakness (retrain M' pedestrian head, better labels if silhouette corrupted them).** Only (C)
+triggers a retrain. Nothing downstream proceeds until this verdict is in.
