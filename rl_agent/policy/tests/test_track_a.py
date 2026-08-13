@@ -12,7 +12,12 @@ from rl_agent.policy.channel import ChannelProcess, ChannelSurface
 from rl_agent.policy.config import REPO_ROOT, load_config
 from rl_agent.policy.env import SurrogateEnv
 from rl_agent.policy.latency import LatencyProjector
-from rl_agent.policy.replay import _greedy_prediction_matches, discover_trace_registry, synthetic_episode
+from rl_agent.policy.replay import (
+    _greedy_prediction_matches,
+    _prediction_score_mask,
+    discover_trace_registry,
+    synthetic_episode,
+)
 from rl_agent.policy.run_advisor_sweep import _grid_cells as advisor_grid_cells
 from rl_agent.policy.run_estimator_sensitivity import _grid_cells as estimator_grid_cells
 from rl_agent.policy.run_reward_sensitivity import _grid_cells as reward_grid_cells
@@ -176,6 +181,25 @@ class TrackATestCase(unittest.TestCase):
         matches = _greedy_prediction_matches(gt, predictions, gate_m=5.0)
         classes = matches.set_index("actor_id")["class_name"].to_dict()
         self.assertEqual(classes, {11: "vehicle", 77: "pedestrian"})
+
+    def test_replay_applies_frozen_per_class_score_thresholds(self):
+        predictions = pd.DataFrame(
+            {
+                "class_name": ["person", "vehicle", "pedestrian", "vehicle"],
+                "score": [0.18, 0.18, 0.12, 0.12],
+            }
+        )
+        mask = _prediction_score_mask(
+            predictions,
+            {
+                "prediction_score_min": 0.20,
+                "prediction_score_min_by_class": {
+                    "pedestrian": 0.15,
+                    "vehicle": 0.10,
+                },
+            },
+        )
+        self.assertEqual(mask.tolist(), [True, True, False, True])
 
     def test_channel_telemetry_lag_is_exactly_two_steps(self):
         config = copy.deepcopy(self.config)

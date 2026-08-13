@@ -25,6 +25,7 @@ from rl_agent.policy.config import load_config
 from rl_agent.policy.replay import (
     _greedy_prediction_matches,
     _normalize_class,
+    _prediction_score_mask,
     discover_trace_registry,
     load_trace_episode,
 )
@@ -118,11 +119,22 @@ def _split_manifest(batch_manifest: Mapping[str, object]) -> pd.DataFrame:
     return frame
 
 
-def _policy_records(batch_dir: Path, split_path: Path, range_m: float) -> Dict[str, Tuple[object, List[SceneFrame]]]:
+def _policy_records(
+    batch_dir: Path,
+    split_path: Path,
+    range_m: float,
+    matching: Mapping[str, object],
+) -> Dict[str, Tuple[object, List[SceneFrame]]]:
     policy_config = copy.deepcopy(load_config())
     policy_config["replay"]["roots"] = [str(batch_dir / "runs")]
     policy_config["replay"]["split_manifest_csv"] = str(split_path)
     policy_config["replay"]["max_episode_steps"] = 2000
+    policy_config["replay"]["prediction_score_min"] = float(
+        matching.get("prediction_score_min", 0.20)
+    )
+    policy_config["replay"]["prediction_score_min_by_class"] = dict(
+        matching.get("prediction_score_min_by_class", {})
+    )
     records = discover_trace_registry(policy_config)
     return {
         record.episode_id: (
@@ -511,6 +523,7 @@ def _direct_coverage(
     metadata: Mapping[str, object],
     range_m: float,
     score_min: float,
+    score_min_by_class: Mapping[str, float],
     association_gate_m: float,
     pedestrian_speed_max_mps: float,
 ) -> Tuple[List[Dict[str, object]], List[Dict[str, object]]]:
@@ -524,10 +537,15 @@ def _direct_coverage(
     eligible = gt[_truthy(gt["in_camera_frustum"])].copy()
     eligible = eligible[pd.to_numeric(eligible["distance_m"], errors="coerce") <= range_m].copy()
     predictions["class_name"] = predictions["class_name"].map(_normalize_class)
-    scores = pd.to_numeric(
-        predictions.get("score", pd.Series(1.0, index=predictions.index)), errors="coerce"
-    )
-    predictions = predictions[scores >= score_min].copy()
+    predictions = predictions[
+        _prediction_score_mask(
+            predictions,
+            {
+                "prediction_score_min": score_min,
+                "prediction_score_min_by_class": score_min_by_class,
+            },
+        )
+    ].copy()
     matches = _greedy_prediction_matches(eligible, predictions, association_gate_m)
     coverage: List[Dict[str, object]] = []
     for class_name in sorted(set(eligible["class_name"]) | {"vehicle", "pedestrian"}):
@@ -741,8 +759,30 @@ def rescore(batch_dir: Path, config_path: Path, output_dir: Path | None = None) 
     prior_dir = _latest_prior_verification(
         batch_dir, str(config["provenance"]["prior_verification_status"])
     )
+    if bool(matching.get("use_verification_thresholds", False)):
+        verification_manifest = json.loads(
+            (prior_dir / "verification_manifest.json").read_text(encoding="utf-8")
+        )
+        frozen_thresholds = verification_manifest.get(
+            "prediction_score_min_by_class", {}
+        )
+        if set(frozen_thresholds) != {"pedestrian", "vehicle"}:
+            raise ValueError(
+                "PASS verification does not contain both frozen per-class thresholds"
+            )
+        matching = copy.deepcopy(dict(matching))
+        matching["prediction_score_min_by_class"] = {
+            str(class_name): float(threshold)
+            for class_name, threshold in frozen_thresholds.items()
+        }
+        config["matching"] = matching
 
-    records = _policy_records(batch_dir, split_path, float(freshness["headline_range_m"]))
+    records = _policy_records(
+        batch_dir,
+        split_path,
+        float(freshness["headline_range_m"]),
+        matching,
+    )
     object_frames: List[pd.DataFrame] = []
     resampled_exclusions: List[pd.DataFrame] = []
     direct_rows: List[Dict[str, object]] = []
@@ -761,7 +801,13 @@ def rescore(batch_dir: Path, config_path: Path, output_dir: Path | None = None) 
         coverage, qc = _direct_coverage(
             Path(str(item["run_dir"])), item,
             float(freshness["headline_range_m"]),
-            float(matching["prediction_score_min"]),
+            float(matching.get("prediction_score_min", 0.20)),
+            {
+                str(class_name): float(threshold)
+                for class_name, threshold in matching.get(
+                    "prediction_score_min_by_class", {}
+                ).items()
+            },
             float(matching["association_gate_m"]),
             float(speed_config["pedestrian_qc_max_mps"]),
         )

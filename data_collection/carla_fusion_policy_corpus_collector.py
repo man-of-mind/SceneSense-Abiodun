@@ -175,6 +175,42 @@ def _wrap_angle_radians(angle: float) -> float:
     return (float(angle) + math.pi) % (2.0 * math.pi) - math.pi
 
 
+def _vehicle_in_swept_forward_corridor(
+    *,
+    forward_m: float,
+    lateral_m: float,
+    maximum_forward_m: float,
+) -> bool:
+    """Cover the widening path swept while following a curved route.
+
+    A fixed same-lane lateral bound is unsafe on a bend: a stopped lead can be
+    several metres off the ego's instantaneous heading while still lying on
+    the route immediately ahead.  Keep the near field selective, then widen
+    toward a six-metre cap over the braking look-ahead.
+    """
+
+    lateral_limit_m = min(6.0, 2.6 + 0.35 * max(0.0, float(forward_m)))
+    return bool(
+        0.0 < float(forward_m) <= float(maximum_forward_m)
+        and float(lateral_m) <= lateral_limit_m
+    )
+
+
+def _walker_in_ego_forward_corridor(
+    *,
+    forward_m: float,
+    lateral_m: float,
+    walker_speed_mps: float,
+) -> bool:
+    """Protect the direct-route ego from ambient as well as scripted walkers."""
+
+    lateral_limit_m = 3.5 if float(walker_speed_mps) >= 0.2 else 2.2
+    return bool(
+        0.0 < float(forward_m) <= 15.0
+        and float(lateral_m) <= lateral_limit_m
+    )
+
+
 def _apply_direct_ego_route_control(
     actor: object,
     args: argparse.Namespace,
@@ -237,8 +273,36 @@ def _apply_direct_ego_route_control(
     steer = max(-0.70, min(0.70, heading_error / math.radians(45.0)))
     control_step = int(_DIRECT_ROUTE_STATE.get("control_step", 0)) + 1
     _DIRECT_ROUTE_STATE["control_step"] = control_step
+    # The mixed family contains advisor-managed ambient walkers. They require
+    # the same short-horizon collision shield as the controlled crossing; the
+    # older role-filtered logic let an ambient walker enter the ego footprint.
+    forward = transform.get_forward_vector()
+    for walker in actor.get_world().get_actors().filter("walker.pedestrian.*"):
+        try:
+            walker_location = walker.get_location()
+            relative_x = float(walker_location.x) - float(location.x)
+            relative_y = float(walker_location.y) - float(location.y)
+            forward_m = relative_x * float(forward.x) + relative_y * float(forward.y)
+            lateral_m = abs(
+                -relative_x * float(forward.y) + relative_y * float(forward.x)
+            )
+            walker_velocity = walker.get_velocity()
+            walker_speed = math.hypot(
+                float(walker_velocity.x), float(walker_velocity.y)
+            )
+        except (AttributeError, RuntimeError):
+            continue
+        if _walker_in_ego_forward_corridor(
+            forward_m=forward_m,
+            lateral_m=lateral_m,
+            walker_speed_mps=walker_speed,
+        ):
+            _DIRECT_ROUTE_STATE["yield_until_step"] = max(
+                int(_DIRECT_ROUTE_STATE.get("yield_until_step", -1)),
+                control_step + 2,
+            )
+            break
     if _PEDESTRIAN_OVERLAY.ego_direct_yield_to_controlled_pedestrian:
-        forward = transform.get_forward_vector()
         for walker in actor.get_world().get_actors().filter("walker.pedestrian.*"):
             try:
                 role_name = str(walker.attributes.get("role_name", ""))
@@ -274,8 +338,9 @@ def _apply_direct_ego_route_control(
                 break
     # Direct route control deliberately bypasses Traffic Manager, so retain a
     # small observable car-following shield rather than rear-ending advisor
-    # traffic that shares the UI route. This is evaluated every 20 Hz control
-    # tick and refreshed while a same-lane lead remains close.
+    # traffic that shares the UI route. This is evaluated every synchronous
+    # control tick and refreshed while a lead remains inside the route's swept
+    # forward corridor, including leads around a bend.
     forward = transform.get_forward_vector()
     for vehicle in actor.get_world().get_actors().filter("vehicle.*"):
         if int(vehicle.id) == actor_id:
@@ -298,7 +363,11 @@ def _apply_direct_ego_route_control(
             10.0,
             7.0 + max(0.0, speed_mps ** 2 - other_speed_mps ** 2) / 7.0,
         )
-        if 0.0 < forward_m <= stopping_margin_m and lateral_m <= 2.6:
+        if _vehicle_in_swept_forward_corridor(
+            forward_m=forward_m,
+            lateral_m=lateral_m,
+            maximum_forward_m=stopping_margin_m,
+        ):
             _DIRECT_ROUTE_STATE["yield_until_step"] = max(
                 int(_DIRECT_ROUTE_STATE.get("yield_until_step", -1)),
                 control_step + 2,

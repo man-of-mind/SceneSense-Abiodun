@@ -1,4 +1,6 @@
 import unittest
+import json
+import tempfile
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -10,9 +12,20 @@ from data_collection.analyze_evaluation_contract import (
     _match_array_count,
     choose_validation_thresholds,
 )
+from data_collection.verify_policy_corpus import verify
 
 
 class EvaluationContractAnalysisTests(unittest.TestCase):
+    def test_verifier_rejects_incomplete_full_batch_before_analysis(self):
+        with tempfile.TemporaryDirectory() as directory:
+            batch_dir = Path(directory)
+            (batch_dir / "batch_manifest.json").write_text(
+                json.dumps({"mode": "full", "status": "running"}),
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(ValueError, "not complete"):
+                verify(batch_dir, skip_surrogate=True)
+
     def test_matching_is_one_to_one_inside_center_gate(self):
         gt_xy = np.asarray([[0.0, 0.0], [0.5, 0.0]], dtype=float)
         prediction_xy = np.asarray([[0.25, 0.0]], dtype=float)

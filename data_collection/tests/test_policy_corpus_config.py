@@ -23,10 +23,14 @@ from data_collection.rescore_policy_corpus_freshness import (
 from data_collection.verify_policy_corpus import _longest_true_dwell
 from data_collection.run_advisor_policy_corpus import (
     _controlled_pedestrian_gate_rows,
+    _exact_fast_scenario_summary,
     _in_forward_corridor,
+    _vehicle_requires_yield,
     _walker_requires_yield,
     _load_config as _load_advisor_config,
     _population_commands,
+    _pedestrian_motion_summary,
+    _radar_density_summary,
     _tick_until_empty,
     _traffic_sanity_summary,
     _validate_advisor_contract,
@@ -44,6 +48,9 @@ ADVISOR_CONFIG_PATH = (
 )
 ADVISOR_V4_CONFIG_PATH = (
     REPO_ROOT / "data_collection" / "configs" / "policy_corpus_advisor_rich_v4.yaml"
+)
+ADVISOR_V5_CONFIG_PATH = (
+    REPO_ROOT / "data_collection" / "configs" / "policy_corpus_advisor_rich_v5.yaml"
 )
 ON_CONTRACT_CONFIG_PATH = (
     REPO_ROOT
@@ -122,6 +129,142 @@ class VehicleCorpusConfigTests(unittest.TestCase):
 
 
 class AdvisorRichCorpusConfigTests(unittest.TestCase):
+    def test_advisor_v5_uses_native_training_clock_and_observed_density_gate(self):
+        config = _load_advisor_config(ADVISOR_V5_CONFIG_PATH)
+
+        self.assertEqual(config["experiment_name"], "policy_corpus_advisor_rich_v5")
+        self.assertEqual(len(config["smoke_runs"]), 3)
+        self.assertEqual(len(config["runs"]), 24)
+        for run in [*config["smoke_runs"], *config["runs"]]:
+            options = _effective_options(_resolved_run_args(config, run))
+            expected = {
+                "--fps": "10",
+                "--world-tick-hz": "10",
+                "--sensor-every-tick": "true",
+                "--radar-points-per-second": "200000",
+                "--camera-width": "1280",
+                "--camera-height": "720",
+                "--camera-fov": "120",
+                "--radar-hfov": "120",
+                "--radar-rasterizer": "legacy",
+                "--radar-raster-radius-px": "4",
+                "--radar-temporal-window-frames": "2",
+            }
+            self.assertEqual({key: options.get(key) for key in expected}, expected)
+            self.assertNotIn("--no-sensor-every-tick", options)
+            if run["scenario_family"] == "exact_fast_convoy":
+                self.assertEqual(int(run["requested_frames"]), 60)
+                self.assertEqual(options["--max-frames"], "60")
+        integration = config["advisor_integration"]
+        self.assertTrue(str(integration["spawn_blocker_script"]).endswith("spawn_blocker_v4.py"))
+        self.assertEqual(
+            integration["smoke_gate"]["pedestrian_role_prefix"],
+            "pedestrian_blocker_v4",
+        )
+        self.assertEqual(float(integration["fixed_delta_seconds"]), 0.1)
+        self.assertEqual(int(integration["update_hz"]), 10)
+        self.assertEqual(
+            float(integration["radar_density_gate"]["reference_projected_points_median"]),
+            18591.5,
+        )
+        self.assertEqual(
+            int(integration["smoke_gate"]["control_ticks_per_sensor_frame"]), 1
+        )
+        self.assertEqual(
+            float(integration["smoke_gate"]["exact_fast_max_route_offset_m"]),
+            4.0,
+        )
+
+    def test_exact_fast_scenario_gate_rejects_route_departure_and_walker_impact(self):
+        route = pd.DataFrame({"ego_x": [0.0, 10.0], "ego_y": [0.0, 0.0]})
+        ground_truth = pd.DataFrame(
+            [
+                {
+                    "actor_id": 1,
+                    "role_name": "exact",
+                    "class_name": "vehicle",
+                    "carla_timestamp": 0.0,
+                    "origin_x": 0.0,
+                    "origin_y": 0.0,
+                },
+                {
+                    "actor_id": 1,
+                    "role_name": "exact",
+                    "class_name": "vehicle",
+                    "carla_timestamp": 0.1,
+                    "origin_x": 10.0,
+                    "origin_y": 8.0,
+                },
+                {
+                    "actor_id": 2,
+                    "role_name": "walker",
+                    "class_name": "pedestrian",
+                    "carla_timestamp": 0.0,
+                    "origin_x": 1.0,
+                    "origin_y": 1.0,
+                },
+                {
+                    "actor_id": 2,
+                    "role_name": "walker",
+                    "class_name": "pedestrian",
+                    "carla_timestamp": 0.1,
+                    "origin_x": 2.0,
+                    "origin_y": 1.0,
+                },
+            ]
+        )
+
+        summary = _exact_fast_scenario_summary(
+            ground_truth,
+            route,
+            role_name="exact",
+            maximum_route_offset_m=4.0,
+            pedestrian_speed_max_mps=3.5,
+        )
+
+        self.assertFalse(summary["pass"])
+        self.assertIn("exact_fast_target_left_authored_route", summary["failures"])
+        self.assertIn("exact_fast_pedestrian_impact_signature", summary["failures"])
+
+    def test_all_family_pedestrian_motion_gate_rejects_ego_push_signature(self):
+        ground_truth = pd.DataFrame(
+            {
+                "class_name": ["pedestrian", "pedestrian"],
+                "actor_id": [7, 7],
+                "carla_timestamp": [0.0, 0.1],
+                "origin_x": [0.0, 0.0],
+                "origin_y": [0.0, 0.43],
+            }
+        )
+        summary = _pedestrian_motion_summary(
+            ground_truth, maximum_speed_mps=3.5
+        )
+        self.assertFalse(summary["pass"])
+        self.assertEqual(summary["pedestrian_speed_rows_above_max"], 1)
+        self.assertIn("pedestrian_impact_signature", summary["failures"])
+
+    def test_radar_density_gate_accepts_reference_and_rejects_half_density(self):
+        gate = {
+            "reference_projected_points_median": 18591.5,
+            "relative_tolerance": 0.10,
+            "minimum_metric_frames": 3,
+        }
+        accepted = _radar_density_summary(
+            pd.DataFrame({"radar_projected_points": [18300, 18500, 18700]}),
+            gate,
+        )
+        rejected = _radar_density_summary(
+            pd.DataFrame({"radar_projected_points": [9500, 9700, 9900]}),
+            gate,
+        )
+
+        self.assertTrue(accepted["pass"])
+        self.assertFalse(rejected["pass"])
+        self.assertIn(
+            "radar_projected_points_median_outside_contract",
+            rejected["failures"],
+        )
+
     def test_npc_shield_forward_corridor_includes_crossing_walker_not_sidewalk(self):
         transform = SimpleNamespace(
             location=SimpleNamespace(x=0.0, y=0.0),
@@ -142,6 +285,20 @@ class AdvisorRichCorpusConfigTests(unittest.TestCase):
                 SimpleNamespace(x=10.0, y=5.0),
                 maximum_forward_m=15.0,
                 maximum_lateral_m=3.5,
+            )
+        )
+        self.assertTrue(
+            _vehicle_requires_yield(
+                transform,
+                SimpleNamespace(x=9.0, y=5.0),
+                maximum_forward_m=12.0,
+            )
+        )
+        self.assertFalse(
+            _vehicle_requires_yield(
+                transform,
+                SimpleNamespace(x=9.0, y=7.0),
+                maximum_forward_m=12.0,
             )
         )
 
@@ -510,12 +667,13 @@ class AdvisorRichCorpusConfigTests(unittest.TestCase):
 
     def test_advisor_freshness_config_is_multiclass_v5_input(self):
         config = _load_freshness_config(
-            ADVISOR_CONFIG_PATH.parent / "freshness_rescore_advisor_rich_v3.yaml"
+            ADVISOR_CONFIG_PATH.parent / "freshness_rescore_advisor_rich_v5.yaml"
         )
         _validate_reference(config)
 
         self.assertEqual(config["corpus_scope"], "multiclass_advisor_rich")
         self.assertEqual(config["provenance"]["prior_verification_status"], "PASS")
+        self.assertTrue(config["matching"]["use_verification_thresholds"])
 
 
 if __name__ == "__main__":

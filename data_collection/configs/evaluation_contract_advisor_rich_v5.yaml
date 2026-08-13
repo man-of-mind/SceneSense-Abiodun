@@ -1,0 +1,19 @@
+schema_version: 1
+contract_name: advisor_rich_v5_trajectory_held_out
+
+# Choose one score threshold per class on complete validation trajectories,
+# freeze it, and evaluate the untouched test trajectories. The implementation
+# uses maximum validation F1 on the decoder-retained 0.05:0.005:1.0 grid and
+# breaks exact ties toward the stricter threshold.
+threshold_selection: validation_max_f1
+near_field_range_m: 12.0
+minimum_test_near_recall:
+  pedestrian: 0.80
+  vehicle: 0.90
+trajectory_bootstrap_samples: 10000
+trajectory_bootstrap_seed: 20260813
+
+# The retained-input reconciliation is the empirical sensor reference. This
+# gate is evaluated before the near-field coverage decision.
+radar_reference_run: data_collection/experiments/pedestrian_on_contract_diagnostic_v1/20260812_213148_smoke/runs/pedestrian_on_contract_smoke_v1
+radar_relative_tolerance: 0.10

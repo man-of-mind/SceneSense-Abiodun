@@ -1782,6 +1782,7 @@ F1, freeze them before test, and gate direct actor-origin <=12 m test recall at 
 vehicle, with trajectory-grouped CIs reported. Full 0-25 m and six-bin range coverage remain diagnostics.
 Traffic realism remains a valid 24/24 result.
 
+<<<<<<< HEAD
 ## 2026-08-13 — DECISION (local Claude + Abiodun): ACCEPT the v5 corpus. STOP re-collecting. The gates are wrong for a controller corpus.
 The COLLECTION succeeded: 24/24, 8,480 frames, radar density **on-contract (19,412/frame)**, zero traffic
 collisions, zero leaks. The density + traffic drifts that cost two days are SOLVED and smoke-gated. Verification
@@ -1810,3 +1811,42 @@ to be on-contract + clean + populated with realistic detection — which it now 
    the RL go/no-go. THIS is the milestone; the corpus saga ends here.
 Re-collecting again would produce the same recall (frozen model, on-contract density) — it is the real waste now.
 Pedestrian detection ~70% is an honest reported limitation, not a blocker.
+=======
+## 2026-08-12 local / 2026-08-13 UTC — native-10-Hz v5 result: density PASS, evaluation `FAIL_QUARANTINED`
+
+Codex resumed after two VS Code crashes and completed the authorized native-10-Hz chain. The final smoke
+`policy_corpus_advisor_rich_v5/20260813_044353_smoke` passed: radar medians 18,614--19,384.5/frame, controlled
+pedestrian coverage 73.88% at the unchanged smoke threshold, exact-fast dwell 5.9 s, zero traffic collisions,
+and zero leaked actors. An initial full attempt correctly stopped when the ego rear-ended a stationary NPC on
+a route bend; a distance-scaled curved-route vehicle shield was added, and the exact failed seed then passed
+500 frames with zero collisions before scale resumed.
+
+The authoritative full batch is
+`data_collection/experiments/policy_corpus_advisor_rich_v5/20260813_045142_full`: 24/24 runs and
+8,480/8,480 frames completed. All online density/basic/traffic/exact-fast/cleanup gates passed. Per-run radar
+medians are 19,339--19,532, there are zero NPC collision rows, maximum gridlock dwell is 2.4 s (<5 s), every
+exact-fast route/impact gate passes, and all postflight actor counts are zero.
+
+The accepted trajectory-held-out verification at `verification/20260813_055323` is nevertheless
+**`FAIL_QUARANTINED`**; full details are in `data_collection/EVALUATION_CONTRACT_DECISION_V5.md`:
+
+- The sensor root cause is fixed: corpus radar median **19,412/frame = 104.41%** of the retained 18,591.5
+  reference, inside the +/-10% contract.
+- Validation-F1 thresholds freeze at **0.180 pedestrian / 0.270 vehicle**. Held-out <=12 m pedestrian recall is
+  **251/389 = 64.52%** (trajectory-bootstrap CI 43.75--66.80%), below 80%. Even decoder-floor 0.05 gives only
+  **296/389 = 76.09%** for the all-pedestrian denominator.
+- The held-out test split has **zero <=12 m vehicle rows**, so the >=90% vehicle gate is not evaluable. The
+  corpus needs genuine close-vehicle validation/test support before that claim can be made.
+- `pcarv5_mixed_va01` contains a real ego/ambient-walker impact: ten speed rows above 3.5 m/s, max 4.317 m/s,
+  with the walker 0.35--1.10 m from ego. The prior online collision monitor covered managed NPC vehicles, not
+  ego/walker contact.
+
+The code-side collision repair is prepared but no further CARLA run was launched: direct-route ego now shields
+all ambient walkers, and pedestrian impact-speed gating is fail-fast in every family. Focused tests pass.
+
+**HOLD:** no freshness rescore, baseline rerun, or RL training. Advisor/Abiodun must first freeze (1) whether
+the pedestrian hard denominator is all near actor pedestrians or the registered controlled target with
+all-object coverage descriptive, and (2) a near-vehicle validation/test scenario plus the known static-object
+annotation caveat for PR threshold selection. Do not dilute the gate by averaging in easy top-ups. Preserve
+the 23 unaffected trajectories; any replacement/top-up must be versioned rather than mutating this batch.
+>>>>>>> 81ff1d603d66c6e9d59c169c41ad7802f8792ea4

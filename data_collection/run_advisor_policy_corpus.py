@@ -35,7 +35,7 @@ from rl_agent.policy.replay import _greedy_prediction_matches, _normalize_class
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CONFIG = (
-    Path(__file__).resolve().parent / "configs" / "policy_corpus_advisor_rich_v4.yaml"
+    Path(__file__).resolve().parent / "configs" / "policy_corpus_advisor_rich_v5.yaml"
 )
 DYNAMIC_PATTERNS = (
     "vehicle.*",
@@ -52,7 +52,12 @@ def _truthy(series: pd.Series) -> pd.Series:
 def _connect(config: Mapping[str, object]) -> Tuple[carla.Client, carla.World]:
     connection = config["carla"]
     last_error = ""
-    for _attempt in range(10):
+    # The packaged renderer can reject RPC handshakes briefly after the static
+    # preflight's GPU inventory query. Direct probes recover immediately after
+    # the old 10 s window, so keep the retry bounded but long enough to cross
+    # that observed startup/backpressure interval.
+    attempts = 30
+    for _attempt in range(attempts):
         try:
             client = carla.Client(str(connection["host"]), int(connection["port"]))
             client.set_timeout(float(connection.get("timeout_s", 10.0)))
@@ -75,7 +80,9 @@ def _connect(config: Mapping[str, object]) -> Tuple[carla.Client, carla.World]:
         except RuntimeError as exc:
             last_error = str(exc)
             time.sleep(1.0)
-    raise RuntimeError(f"CARLA connection failed after 10 attempts: {last_error}")
+    raise RuntimeError(
+        f"CARLA connection failed after {attempts} attempts: {last_error}"
+    )
 
 
 def _actor_inventory(world: carla.World) -> Dict[str, int]:
@@ -210,6 +217,152 @@ def _traffic_sanity_summary(
     }
 
 
+def _radar_density_summary(
+    metrics: pd.DataFrame, gate: Mapping[str, object]
+) -> Dict[str, object]:
+    """Gate the realized radar evidence, not only requested blueprint args."""
+
+    values = pd.to_numeric(
+        metrics.get("radar_projected_points", pd.Series(dtype=float)),
+        errors="coerce",
+    ).dropna()
+    reference = float(gate["reference_projected_points_median"])
+    tolerance = float(gate["relative_tolerance"])
+    lower = reference * (1.0 - tolerance)
+    upper = reference * (1.0 + tolerance)
+    median = float(values.median()) if len(values) else None
+    failures: List[str] = []
+    if len(values) < int(gate["minimum_metric_frames"]):
+        failures.append("insufficient_radar_density_frames")
+    if median is None:
+        failures.append("missing_radar_projected_points")
+    elif not lower <= median <= upper:
+        failures.append("radar_projected_points_median_outside_contract")
+    return {
+        "pass": not failures,
+        "failures": failures,
+        "frames": int(len(values)),
+        "reference_projected_points_median": reference,
+        "relative_tolerance": tolerance,
+        "minimum_projected_points_median": lower,
+        "maximum_projected_points_median": upper,
+        "radar_projected_points_median": median,
+        "median_fraction_of_reference": (
+            median / reference if median is not None and reference > 0.0 else None
+        ),
+        "radar_projected_points_p05": (
+            float(values.quantile(0.05)) if len(values) else None
+        ),
+        "radar_projected_points_p95": (
+            float(values.quantile(0.95)) if len(values) else None
+        ),
+    }
+
+
+def _exact_fast_scenario_summary(
+    ground_truth: pd.DataFrame,
+    route: pd.DataFrame,
+    *,
+    role_name: str,
+    maximum_route_offset_m: float,
+    pedestrian_speed_max_mps: float,
+) -> Dict[str, object]:
+    """Reject off-route exact convoys and lead/walker impact signatures."""
+
+    exact = ground_truth[ground_truth["role_name"].astype(str) == role_name].copy()
+    failures: List[str] = []
+    maximum_offset = None
+    if exact.empty:
+        failures.append("missing_exact_fast_target_gt")
+    else:
+        route_xy = route[["ego_x", "ego_y"]].to_numpy(dtype=float)
+        exact_xy = exact[["origin_x", "origin_y"]].apply(
+            pd.to_numeric, errors="coerce"
+        ).to_numpy(dtype=float)
+        finite = np.isfinite(exact_xy).all(axis=1)
+        offsets = [
+            float(np.hypot(route_xy[:, 0] - x, route_xy[:, 1] - y).min())
+            for x, y in exact_xy[finite]
+        ]
+        maximum_offset = max(offsets) if offsets else None
+        if maximum_offset is None or maximum_offset > maximum_route_offset_m:
+            failures.append("exact_fast_target_left_authored_route")
+
+    pedestrian = ground_truth[
+        ground_truth["class_name"].map(_normalize_class) == "pedestrian"
+    ].copy()
+    pedestrian_speed_parts = []
+    for _actor_id, group in pedestrian.groupby("actor_id"):
+        group = group.sort_values("carla_timestamp")
+        timestamp = pd.to_numeric(group["carla_timestamp"], errors="coerce")
+        dx = pd.to_numeric(group["origin_x"], errors="coerce").diff()
+        dy = pd.to_numeric(group["origin_y"], errors="coerce").diff()
+        dt = timestamp.diff()
+        pedestrian_speed_parts.append(pd.Series(np.hypot(dx, dy) / dt))
+    pedestrian_speed = (
+        pd.concat(pedestrian_speed_parts, ignore_index=True)
+        .replace([np.inf, -np.inf], np.nan)
+        .dropna()
+        if pedestrian_speed_parts
+        else pd.Series(dtype=float)
+    )
+    pedestrian_speed_max = (
+        float(pedestrian_speed.max()) if len(pedestrian_speed) else None
+    )
+    pedestrian_speed_rows_above_max = int(
+        (pedestrian_speed > pedestrian_speed_max_mps).sum()
+    )
+    if pedestrian_speed_rows_above_max:
+        failures.append("exact_fast_pedestrian_impact_signature")
+    return {
+        "applicable": True,
+        "pass": not failures,
+        "failures": failures,
+        "exact_fast_target_rows": int(len(exact)),
+        "maximum_route_offset_m": maximum_offset,
+        "maximum_route_offset_gate_m": float(maximum_route_offset_m),
+        "pedestrian_rows": int(len(pedestrian)),
+        "pedestrian_speed_max_mps": pedestrian_speed_max,
+        "pedestrian_speed_gate_mps": float(pedestrian_speed_max_mps),
+        "pedestrian_speed_rows_above_max": pedestrian_speed_rows_above_max,
+    }
+
+
+def _pedestrian_motion_summary(
+    ground_truth: pd.DataFrame,
+    *,
+    maximum_speed_mps: float,
+) -> Dict[str, object]:
+    """Detect walker impact/push signatures in every scenario family."""
+
+    pedestrian = ground_truth[
+        ground_truth["class_name"].map(_normalize_class) == "pedestrian"
+    ].copy()
+    speed_parts = []
+    for _actor_id, group in pedestrian.groupby("actor_id"):
+        group = group.sort_values("carla_timestamp")
+        timestamp = pd.to_numeric(group["carla_timestamp"], errors="coerce")
+        dx = pd.to_numeric(group["origin_x"], errors="coerce").diff()
+        dy = pd.to_numeric(group["origin_y"], errors="coerce").diff()
+        dt = timestamp.diff()
+        speed_parts.append(pd.Series(np.hypot(dx, dy) / dt))
+    speeds = (
+        pd.concat(speed_parts, ignore_index=True)
+        .replace([np.inf, -np.inf], np.nan)
+        .dropna()
+        if speed_parts else pd.Series(dtype=float)
+    )
+    rows_above = int((speeds > float(maximum_speed_mps)).sum())
+    return {
+        "pass": rows_above == 0,
+        "failures": ["pedestrian_impact_signature"] if rows_above else [],
+        "pedestrian_rows": int(len(pedestrian)),
+        "pedestrian_speed_max_mps": float(speeds.max()) if len(speeds) else None,
+        "pedestrian_speed_gate_mps": float(maximum_speed_mps),
+        "pedestrian_speed_rows_above_max": rows_above,
+    }
+
+
 def _in_forward_corridor(
     transform: object,
     other_location: object,
@@ -241,6 +394,27 @@ def _walker_requires_yield(
         walker_location,
         maximum_forward_m=15.0,
         maximum_lateral_m=lateral_limit,
+    )
+
+
+def _vehicle_requires_yield(
+    transform: object,
+    vehicle_location: object,
+    *,
+    maximum_forward_m: float = 12.0,
+) -> bool:
+    """Use a widening forward corridor for vehicles on curved loop segments."""
+
+    location = transform.location
+    forward = transform.get_forward_vector()
+    dx = float(vehicle_location.x) - float(location.x)
+    dy = float(vehicle_location.y) - float(location.y)
+    forward_m = dx * float(forward.x) + dy * float(forward.y)
+    lateral_m = abs(-dx * float(forward.y) + dy * float(forward.x))
+    lateral_limit_m = min(6.0, 2.8 + 0.35 * max(0.0, forward_m))
+    return bool(
+        0.0 < forward_m <= float(maximum_forward_m)
+        and lateral_m <= lateral_limit_m
     )
 
 
@@ -464,7 +638,7 @@ class TrafficSanityMonitor:
         return (float(angle) + math.pi) % (2.0 * math.pi) - math.pi
 
     def _apply_direct_route_controls(self) -> None:
-        """Apply bounded 20 Hz waypoint control to all managed NPCs."""
+        """Apply bounded synchronous waypoint control to all managed NPCs."""
 
         actors = {
             int(actor.id): actor
@@ -514,11 +688,10 @@ class TrafficSanityMonitor:
                 if other_id == actor_id:
                     continue
                 other_location = other.get_location()
-                if _in_forward_corridor(
+                if _vehicle_requires_yield(
                     transform,
                     other_location,
                     maximum_forward_m=12.0,
-                    maximum_lateral_m=2.8,
                 ):
                     throttle = 0.0
                     brake = 1.0
@@ -1142,6 +1315,21 @@ def _run_smoke_gate(batch_dir: Path, config: Mapping[str, object]) -> Dict[str, 
     if failed_traffic:
         failures.append("traffic_sanity_gate_failed")
 
+    # This is intentionally evaluated before any detection-coverage matching.
+    # Requested pps/fps arguments did not catch CARLA's half-density dual-clock
+    # behavior, so observed tensor support is the scale-up prerequisite.
+    radar_gate = config["advisor_integration"].get("radar_density_gate")
+    radar_density_by_episode: Dict[str, Dict[str, object]] = {}
+    if isinstance(radar_gate, Mapping):
+        for episode_id, episode_metrics in metrics_all.groupby("episode_id"):
+            radar_density_by_episode[str(episode_id)] = _radar_density_summary(
+                episode_metrics, radar_gate
+            )
+        if not radar_density_by_episode or not all(
+            bool(summary["pass"]) for summary in radar_density_by_episode.values()
+        ):
+            failures.append("radar_density_contract_failed")
+
     cadence_by_episode: Dict[str, Dict[str, object]] = {}
     expected_sensor_period_s = 1.0 / float(gate["sensor_detection_hz"])
     expected_frame_step = int(gate["control_ticks_per_sensor_frame"])
@@ -1288,6 +1476,23 @@ def _run_smoke_gate(batch_dir: Path, config: Mapping[str, object]) -> Dict[str, 
         failures.append("missing_exact_fast_target_gt")
     elif fast_dwell < float(gate["fast_dwell_min_s"]):
         failures.append("exact_fast_target_dwell_below_gate")
+    exact_fast_scenario = (
+        _exact_fast_scenario_summary(
+            gt_all[gt_all["scenario_family"] == "exact_fast_convoy"],
+            pd.read_csv(
+                base_runner._resolve_repo_path(
+                    str(config["advisor_integration"]["route_progress_csv"])
+                )
+            ),
+            role_name=str(gate["exact_fast_role_name"]),
+            maximum_route_offset_m=float(gate["exact_fast_max_route_offset_m"]),
+            pedestrian_speed_max_mps=float(gate["pedestrian_speed_max_mps"]),
+        )
+        if "exact_fast_max_route_offset_m" in gate
+        else {"applicable": False, "pass": True, "failures": []}
+    )
+    if not bool(exact_fast_scenario["pass"]):
+        failures.append("exact_fast_scenario_validity_failed")
     if overlay_count < int(gate["minimum_overlay_images"]):
         failures.append("insufficient_visual_overlays")
     summary = {
@@ -1312,8 +1517,10 @@ def _run_smoke_gate(batch_dir: Path, config: Mapping[str, object]) -> Dict[str, 
         "legacy_pedestrian_coverage_pct": float(gate["legacy_pedestrian_coverage_pct"]),
         "exact_fast_target_rows": int(len(exact)),
         "exact_fast_dwell_s": fast_dwell,
+        "exact_fast_scenario": exact_fast_scenario,
         "overlay_images": overlay_count,
         "clock_contract_by_episode": cadence_by_episode,
+        "radar_density_by_episode": radar_density_by_episode,
         "traffic_sanity_by_episode": traffic_summaries,
     }
     (batch_dir / "smoke_gate.json").write_text(
@@ -1338,19 +1545,19 @@ def _validate_advisor_contract(config: Mapping[str, object]) -> None:
     diagnostic = config.get("diagnostic_contract")
     if diagnostic is not None and not isinstance(diagnostic, Mapping):
         raise ValueError("diagnostic_contract must be a mapping")
-    expected_delta = 0.1 if isinstance(diagnostic, Mapping) else 0.05
-    expected_update_hz = 10 if isinstance(diagnostic, Mapping) else 20
+    expected_update_hz = int(integration["update_hz"])
+    if expected_update_hz not in {10, 20}:
+        raise ValueError("advisor integration update_hz must be 10 or 20")
+    expected_delta = 1.0 / float(expected_update_hz)
     if not math.isclose(
         float(integration["fixed_delta_seconds"]), expected_delta, abs_tol=1e-12
     ):
         raise ValueError(
-            f"advisor integration fixed delta must be {expected_delta:.2f} s"
-        )
-    if int(integration["update_hz"]) != expected_update_hz:
-        raise ValueError(
-            f"advisor integration update_hz must be {expected_update_hz}"
+            f"advisor integration fixed delta must be 1/update_hz ({expected_delta:.2f} s)"
         )
     if isinstance(diagnostic, Mapping):
+        if expected_update_hz != 10:
+            raise ValueError("on-contract diagnostic must run at 10 Hz")
         if config.get("runs"):
             raise ValueError("on-contract diagnostic must not define full corpus runs")
         smoke_runs = list(config.get("smoke_runs", []))
@@ -1391,6 +1598,27 @@ def _validate_advisor_contract(config: Mapping[str, object]) -> None:
                 "traffic_sanity_gate is missing fields: "
                 + ", ".join(missing_traffic_fields)
             )
+        if expected_update_hz == 10:
+            radar_gate = integration.get("radar_density_gate")
+            if not isinstance(radar_gate, Mapping):
+                raise ValueError("10 Hz corpus requires an observed radar_density_gate")
+            required_radar_fields = {
+                "reference_projected_points_median",
+                "relative_tolerance",
+                "minimum_metric_frames",
+            }
+            missing_radar_fields = sorted(required_radar_fields - set(radar_gate))
+            if missing_radar_fields:
+                raise ValueError(
+                    "radar_density_gate is missing fields: "
+                    + ", ".join(missing_radar_fields)
+                )
+            if float(radar_gate["reference_projected_points_median"]) <= 0.0:
+                raise ValueError("radar density reference must be positive")
+            if not 0.0 < float(radar_gate["relative_tolerance"]) <= 0.20:
+                raise ValueError("radar density tolerance must be within (0, 0.20]")
+            if int(radar_gate["minimum_metric_frames"]) <= 0:
+                raise ValueError("radar density minimum frame count must be positive")
     pedestrian_locations = integration.get("pedestrian_locations", [])
     if len(pedestrian_locations) != 1 or any(
         len(location) != 4 for location in pedestrian_locations
@@ -1428,6 +1656,17 @@ def _validate_advisor_contract(config: Mapping[str, object]) -> None:
             raise ValueError(
                 f"{run_spec['episode_id']} collector world/control clock is not aligned"
             )
+        if expected_update_hz == 10 and not isinstance(diagnostic, Mapping):
+            if options.get("--fps") != "10":
+                raise ValueError(f"{run_spec['episode_id']} sensor clock must be 10 Hz")
+            if options.get("--sensor-every-tick") != "true":
+                raise ValueError(
+                    f"{run_spec['episode_id']} must emit sensors on every 10 Hz world tick"
+                )
+            if "--no-sensor-every-tick" in options:
+                raise ValueError(
+                    f"{run_spec['episode_id']} cannot use the dual-clock sensor skip mode"
+                )
         if options.get("--ego-fixed-path-progress-csv") != str(integration["route_progress_csv"]):
             raise ValueError(f"{run_spec['episode_id']} does not use the frozen advisor route")
         if options.get("--ego-spawn-index") != str(integration["ego_spawn_index"]):
@@ -1711,6 +1950,48 @@ def run_batch(
             record["basic_gate"] = base_runner._basic_run_gate(
                 run_dir, run_spec, config
             )
+            metrics = pd.read_csv(base_runner._single_csv(run_dir, "_metrics.csv"))
+            radar_gate = config["advisor_integration"].get("radar_density_gate")
+            record["radar_density_gate"] = (
+                _radar_density_summary(metrics, radar_gate)
+                if isinstance(radar_gate, Mapping)
+                else {"applicable": False, "pass": True, "failures": []}
+            )
+            smoke_gate = config["advisor_integration"]["smoke_gate"]
+            ground_truth = pd.read_csv(
+                base_runner._single_csv(run_dir, "_object_ground_truth.csv")
+            )
+            record["pedestrian_motion_gate"] = _pedestrian_motion_summary(
+                ground_truth,
+                maximum_speed_mps=float(smoke_gate["pedestrian_speed_max_mps"]),
+            )
+            if (
+                family == "exact_fast_convoy"
+                and "exact_fast_max_route_offset_m" in smoke_gate
+            ):
+                record["exact_fast_scenario_gate"] = _exact_fast_scenario_summary(
+                    ground_truth,
+                    pd.read_csv(
+                        base_runner._resolve_repo_path(
+                            str(integration["route_progress_csv"])
+                        )
+                    ),
+                    role_name=str(
+                        smoke_gate["exact_fast_role_name"]
+                    ),
+                    maximum_route_offset_m=float(
+                        smoke_gate["exact_fast_max_route_offset_m"]
+                    ),
+                    pedestrian_speed_max_mps=float(
+                        smoke_gate["pedestrian_speed_max_mps"]
+                    ),
+                )
+            else:
+                record["exact_fast_scenario_gate"] = {
+                    "applicable": False,
+                    "pass": True,
+                    "failures": [],
+                }
         except Exception as exc:
             record["status"] = "basic_gate_error"
             record["basic_gate_error"] = f"{type(exc).__name__}: {exc}"
@@ -1731,12 +2012,28 @@ def run_batch(
         # to every collected trajectory. Fail immediately so a collision cannot
         # enter a corpus and be discovered only after all remaining runs finish.
         traffic_sane = bool(record.get("traffic_sanity", {}).get("pass", True))
-        if record["basic_gate"]["pass"] and accepted and traffic_sane:
+        radar_dense = bool(record["radar_density_gate"]["pass"])
+        exact_fast_valid = bool(record["exact_fast_scenario_gate"]["pass"])
+        pedestrian_motion_valid = bool(record["pedestrian_motion_gate"]["pass"])
+        if (
+            record["basic_gate"]["pass"]
+            and accepted
+            and traffic_sane
+            and radar_dense
+            and exact_fast_valid
+            and pedestrian_motion_valid
+        ):
             record["status"] = (
                 "complete" if collector_result.returncode == 0 else "complete_with_teardown_warning"
             )
         else:
-            if not record["basic_gate"]["pass"] or not traffic_sane:
+            if (
+                not record["basic_gate"]["pass"]
+                or not traffic_sane
+                or not radar_dense
+                or not exact_fast_valid
+                or not pedestrian_motion_valid
+            ):
                 record["status"] = "gate_failed"
             else:
                 record["status"] = "collector_failed"
@@ -1745,6 +2042,9 @@ def run_batch(
             raise RuntimeError(
                 f"{episode_id} failed: returncode={collector_result.returncode}, "
                 f"basic_gate={record['basic_gate']}, "
+                f"radar_density_gate={record['radar_density_gate']}, "
+                f"exact_fast_scenario_gate={record['exact_fast_scenario_gate']}, "
+                f"pedestrian_motion_gate={record['pedestrian_motion_gate']}, "
                 f"traffic_sanity={record.get('traffic_sanity')}"
             )
         base_runner._write_manifest(manifest_path, manifest)

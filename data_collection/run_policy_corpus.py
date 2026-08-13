@@ -213,6 +213,40 @@ def _load_config(path: Path) -> Dict[str, object]:
         }
     else:
         config = dict(raw)
+    run_overrides = raw.get("run_overrides_by_family", {})
+    if not isinstance(run_overrides, Mapping):
+        raise ValueError("run_overrides_by_family must be a mapping")
+    if run_overrides:
+        for run_list_name in ("smoke_runs", "runs"):
+            revised_runs = []
+            for original in config.get(run_list_name, []):
+                item = dict(original)
+                family_override = run_overrides.get(str(item["scenario_family"]), {})
+                if not isinstance(family_override, Mapping):
+                    raise ValueError(
+                        "run_overrides_by_family entries must be mappings"
+                    )
+                unknown = set(family_override) - {
+                    "requested_frames",
+                    "argument_overrides",
+                }
+                if unknown:
+                    raise ValueError(
+                        "unsupported family run override fields: "
+                        + ", ".join(sorted(unknown))
+                    )
+                if "requested_frames" in family_override:
+                    item["requested_frames"] = int(
+                        family_override["requested_frames"]
+                    )
+                argument_overrides = family_override.get("argument_overrides", {})
+                if not isinstance(argument_overrides, Mapping):
+                    raise ValueError("family argument_overrides must be a mapping")
+                item["extra_args"] = _apply_common_argument_overrides(
+                    item.get("extra_args", []), argument_overrides
+                )
+                revised_runs.append(item)
+            config[run_list_name] = revised_runs
     if int(config.get("schema_version", 0)) != 1:
         raise ValueError("collection config schema_version must be 1")
     all_runs = [*config.get("smoke_runs", []), *config.get("runs", [])]

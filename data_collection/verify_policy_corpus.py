@@ -28,9 +28,11 @@ from rl_agent.policy.env import SurrogateEnv
 from rl_agent.policy.replay import (
     _greedy_prediction_matches,
     _normalize_class,
+    _prediction_score_mask,
     discover_trace_registry,
     load_trace_episode,
 )
+from data_collection import analyze_evaluation_contract as evaluation_contract
 
 def _sha256(path: Path) -> str:
     digest = hashlib.sha256()
@@ -111,6 +113,7 @@ def _inspect_run(
     run_spec: Mapping[str, object],
     run_dir: Path,
     collection_config: Mapping[str, object],
+    prediction_score_min_by_class: Mapping[str, float] | None = None,
 ) -> Tuple[Dict[str, object], List[Dict[str, object]]]:
     verify = collection_config["verification"]
     timing = collection_config["timing_gate"]
@@ -150,10 +153,16 @@ def _inspect_run(
     gt_match["world_y"] = pd.to_numeric(gt_match["origin_y"], errors="coerce")
     predictions = predictions.copy()
     predictions["class_name"] = predictions["class_name"].map(_normalize_class)
-    scores = pd.to_numeric(
-        predictions.get("score", pd.Series(1.0, index=predictions.index)), errors="coerce"
-    )
-    predictions = predictions[scores >= float(verify["prediction_score_min"])].copy()
+    prediction_score_min_by_class = dict(prediction_score_min_by_class or {})
+    predictions = predictions[
+        _prediction_score_mask(
+            predictions,
+            {
+                "prediction_score_min": float(verify["prediction_score_min"]),
+                "prediction_score_min_by_class": prediction_score_min_by_class,
+            },
+        )
+    ].copy()
     matches = _greedy_prediction_matches(
         gt_match, predictions, float(verify["association_gate_m"])
     )
@@ -227,7 +236,11 @@ def _inspect_run(
     pedestrian_matches = 0 if matches.empty else int((matches["class_name"] == "pedestrian").sum())
     if requires_pedestrian and pedestrian_eligible.empty:
         failures.append("no_in_range_in_frustum_pedestrian_gt")
-    if requires_pedestrian and pedestrian_matches == 0:
+    if (
+        requires_pedestrian
+        and pedestrian_matches == 0
+        and not prediction_score_min_by_class
+    ):
         failures.append("no_pedestrian_prediction_match")
 
     wait = pd.to_numeric(metrics["camera_frame_wait_ms"], errors="coerce").dropna()
@@ -324,7 +337,7 @@ def _inspect_run(
         "seed": int(run_spec["seed"]),
         "processed_frames": int(len(metrics)),
         "gt_rows": int(len(gt)),
-        "prediction_rows_score_ge_0_20": int(len(predictions)),
+        "prediction_rows_at_operating_threshold": int(len(predictions)),
         "in_scope_gt_rows": int(len(gt_match)),
         "mean_in_scope_actors_per_frame": float(in_scope.mean()) if len(in_scope) else 0.0,
         "max_in_scope_actors_per_frame": int(in_scope.max()) if len(in_scope) else 0,
@@ -370,11 +383,15 @@ def _inspect_run(
 def _run_surrogate_gate(
     batch_dir: Path,
     split_manifest_path: Path,
+    prediction_score_min_by_class: Mapping[str, float] | None = None,
 ) -> pd.DataFrame:
     config = copy.deepcopy(load_config())
     config["replay"]["roots"] = [str(batch_dir / "runs")]
     config["replay"]["split_manifest_csv"] = str(split_manifest_path)
     config["replay"]["max_episode_steps"] = 1200
+    config["replay"]["prediction_score_min_by_class"] = dict(
+        prediction_score_min_by_class or {}
+    )
     config["safety"]["epsilon_m"] = 2.0
     config["safety"]["range_m"] = 25.0
     config["actions"]["preferred_core_kib"] = 90
@@ -481,25 +498,167 @@ def _markdown_table(frame: pd.DataFrame) -> str:
         return "```text\n" + frame.to_string(index=False) + "\n```"
 
 
-def verify(batch_dir: Path, skip_surrogate: bool = False) -> Path:
+def _trajectory_bootstrap_near_recall(
+    per_run: pd.DataFrame,
+    *,
+    range_m: float,
+    samples: int,
+    seed: int,
+) -> pd.DataFrame:
+    rows: List[Dict[str, object]] = []
+    rng = np.random.default_rng(seed)
+    for class_name in ("pedestrian", "vehicle"):
+        selected = per_run[
+            (per_run["split"] == "test")
+            & (per_run["contract"] == "validation_f1")
+            & (per_run["class_name"] == class_name)
+        ].copy()
+        eligible_column = f"eligible_gt_rows_le{range_m:g}m"
+        matched_column = f"matched_gt_rows_le{range_m:g}m"
+        selected = selected[pd.to_numeric(selected[eligible_column], errors="coerce") > 0]
+        recalls: List[float] = []
+        if len(selected):
+            eligible = selected[eligible_column].to_numpy(dtype=float)
+            matched = selected[matched_column].to_numpy(dtype=float)
+            for _unused in range(samples):
+                indices = rng.integers(0, len(selected), size=len(selected))
+                denominator = float(eligible[indices].sum())
+                if denominator:
+                    recalls.append(float(matched[indices].sum()) / denominator)
+        point_denominator = int(selected[eligible_column].sum()) if len(selected) else 0
+        point_numerator = int(selected[matched_column].sum()) if len(selected) else 0
+        rows.append(
+            {
+                "split": "test",
+                "class_name": class_name,
+                "range_upper_m": range_m,
+                "trajectory_count": int(len(selected)),
+                "eligible_gt_rows": point_denominator,
+                "matched_gt_rows": point_numerator,
+                "recall": (
+                    float(point_numerator) / point_denominator
+                    if point_denominator else float("nan")
+                ),
+                "bootstrap_samples": samples,
+                "ci95_lower": float(np.quantile(recalls, 0.025)) if recalls else None,
+                "ci95_upper": float(np.quantile(recalls, 0.975)) if recalls else None,
+            }
+        )
+    return pd.DataFrame(rows)
+
+
+def verify(
+    batch_dir: Path,
+    skip_surrogate: bool = False,
+    evaluation_contract_path: Path | None = None,
+) -> Path:
     batch_dir = batch_dir.resolve()
     batch_manifest_path = batch_dir / "batch_manifest.json"
     batch_manifest = json.loads(batch_manifest_path.read_text(encoding="utf-8"))
+    if str(batch_manifest.get("mode")) != "full":
+        raise ValueError("corpus verification requires a full collection batch")
+    if str(batch_manifest.get("status")) != "collection_complete_pending_verification":
+        raise ValueError(
+            "corpus batch is not complete and pending verification: "
+            f"{batch_manifest.get('status')}"
+        )
     config_path = batch_dir / "resolved_collection_config.yaml"
     with config_path.open("r", encoding="utf-8") as stream:
         collection_config = yaml.safe_load(stream)
+    evaluation_spec: Mapping[str, object] | None = None
+    if evaluation_contract_path is not None:
+        evaluation_contract_path = evaluation_contract_path.resolve()
+        with evaluation_contract_path.open("r", encoding="utf-8") as stream:
+            loaded_evaluation_spec = yaml.safe_load(stream)
+        if int(loaded_evaluation_spec.get("schema_version", 0)) != 1:
+            raise ValueError("evaluation contract schema_version must be 1")
+        evaluation_spec = loaded_evaluation_spec
     run_specs: Sequence[Mapping[str, object]] = batch_manifest["runs"]
     verification_dir = batch_dir / "verification" / datetime.now(timezone.utc).strftime(
         "%Y%m%d_%H%M%S"
     )
     verification_dir.mkdir(parents=True, exist_ok=False)
 
+    selected_thresholds: Dict[str, float] = {}
+    selected_metrics = pd.DataFrame()
+    cumulative_coverage = pd.DataFrame()
+    near_recall_ci = pd.DataFrame()
+    radar_summary = pd.DataFrame()
+    if evaluation_spec is not None:
+        evaluation_runs, _items = evaluation_contract.load_runs(batch_dir, [])
+        match_cache = evaluation_contract.prepare_match_cache(evaluation_runs)
+        pr_curves = evaluation_contract.build_pr_curves(evaluation_runs, match_cache)
+        selected = evaluation_contract.choose_validation_thresholds(pr_curves)
+        selected_thresholds = {
+            str(row.class_name): float(row.score_threshold)
+            for row in selected.itertuples(index=False)
+        }
+        by_range, cumulative_coverage, per_run_coverage = (
+            evaluation_contract.build_range_coverage(
+                evaluation_runs, selected_thresholds
+            )
+        )
+        selected_metrics = pd.DataFrame(
+            [
+                evaluation_contract.score_threshold(
+                    evaluation_runs,
+                    match_cache,
+                    class_name,
+                    threshold,
+                    split,
+                )
+                for class_name, threshold in selected_thresholds.items()
+                for split in ("validation", "test", "all")
+            ]
+        )
+        near_range_m = float(evaluation_spec["near_field_range_m"])
+        near_recall_ci = _trajectory_bootstrap_near_recall(
+            per_run_coverage,
+            range_m=near_range_m,
+            samples=int(evaluation_spec.get("trajectory_bootstrap_samples", 10000)),
+            seed=int(evaluation_spec.get("trajectory_bootstrap_seed", 20260813)),
+        )
+        reference_run = REPO_ROOT / str(evaluation_spec["radar_reference_run"])
+        radar_per_run, radar_summary = evaluation_contract.build_radar_audit(
+            evaluation_runs, reference_run
+        )
+        pr_curves.to_csv(verification_dir / "precision_recall_curve.csv", index=False)
+        selected.to_csv(
+            verification_dir / "validation_selected_thresholds.csv", index=False
+        )
+        selected_metrics.to_csv(
+            verification_dir / "selected_threshold_metrics.csv", index=False
+        )
+        by_range.to_csv(verification_dir / "coverage_by_range.csv", index=False)
+        cumulative_coverage.to_csv(
+            verification_dir / "coverage_cumulative_range.csv", index=False
+        )
+        per_run_coverage.to_csv(
+            verification_dir / "coverage_per_run.csv", index=False
+        )
+        near_recall_ci.to_csv(
+            verification_dir / "near_field_trajectory_bootstrap_ci.csv", index=False
+        )
+        radar_per_run.to_csv(
+            verification_dir / "radar_density_per_run.csv", index=False
+        )
+        radar_summary.to_csv(
+            verification_dir / "radar_density_summary.csv", index=False
+        )
+        evaluation_contract.plot_pr_curves(pr_curves, selected, verification_dir)
+        evaluation_contract.plot_range_coverage(by_range, verification_dir)
+
     run_rows: List[Dict[str, object]] = []
     coverage_rows: List[Dict[str, object]] = []
     split_rows: List[Dict[str, object]] = []
     for run_spec in run_specs:
         run_dir = Path(str(run_spec["run_dir"]))
-        summary, coverage = _inspect_run(run_spec, run_dir, collection_config)
+        summary, coverage = _inspect_run(
+            run_spec,
+            run_dir,
+            collection_config,
+            selected_thresholds,
+        )
         run_rows.append(summary)
         coverage_rows.extend(coverage)
         split_rows.append(
@@ -546,11 +705,37 @@ def verify(batch_dir: Path, skip_surrogate: bool = False) -> Path:
         ped_coverage.empty or int(ped_coverage.iloc[0]["matched_rows"]) == 0
     ):
         gate_failures.append("no_pedestrian_match_denominator")
+    if evaluation_spec is not None:
+        near_minimums = {
+            str(class_name): float(value)
+            for class_name, value in evaluation_spec["minimum_test_near_recall"].items()
+        }
+        for class_name, minimum in near_minimums.items():
+            row = near_recall_ci[near_recall_ci["class_name"] == class_name]
+            if row.empty or not math.isfinite(float(row.iloc[0]["recall"])):
+                gate_failures.append(f"{class_name}_test_near_recall_missing")
+            elif float(row.iloc[0]["recall"]) < minimum:
+                gate_failures.append(f"{class_name}_test_near_recall_below_minimum")
+        corpus_radar = radar_summary[
+            radar_summary["source"].str.startswith("policy_corpus")
+        ]
+        density_ratio = (
+            float(corpus_radar.iloc[0]["median_fraction_of_reference"])
+            if len(corpus_radar) else float("nan")
+        )
+        density_tolerance = float(evaluation_spec["radar_relative_tolerance"])
+        if (
+            not math.isfinite(density_ratio)
+            or abs(density_ratio - 1.0) > density_tolerance
+        ):
+            gate_failures.append("corpus_radar_density_outside_contract")
 
     surrogate = pd.DataFrame()
     surrogate_summary = pd.DataFrame()
     if not skip_surrogate:
-        surrogate = _run_surrogate_gate(batch_dir, split_manifest_path)
+        surrogate = _run_surrogate_gate(
+            batch_dir, split_manifest_path, selected_thresholds
+        )
         surrogate.to_csv(verification_dir / "surrogate_send_path.csv", index=False)
         surrogate_summary = surrogate.groupby(
             ["scenario_family", "scenario_variant"], as_index=False
@@ -592,8 +777,12 @@ def verify(batch_dir: Path, skip_surrogate: bool = False) -> Path:
                 verify_config.get("legacy_observation_coverage_pct", 45.18),
             )
         )
-        if bool(verify_config.get("require_vehicle_replay_above_legacy", True)) and (
+        if (
+            evaluation_spec is None
+            and bool(verify_config.get("require_vehicle_replay_above_legacy", True))
+            and (
             vehicle_replay_coverage <= legacy_vehicle_coverage
+            )
         ):
             gate_failures.append("vehicle_replay_observation_coverage_not_above_legacy")
         if expects_pedestrian and int(surrogate["truth_pedestrian_objects"].sum()) == 0:
@@ -608,6 +797,8 @@ def verify(batch_dir: Path, skip_surrogate: bool = False) -> Path:
             "minimum_pedestrian_replay_observation_coverage_pct"
         )
         if (
+            evaluation_spec is None
+            and
             expects_pedestrian
             and minimum_pedestrian_coverage is not None
             and pedestrian_replay_coverage < float(minimum_pedestrian_coverage)
@@ -669,6 +860,16 @@ def verify(batch_dir: Path, skip_surrogate: bool = False) -> Path:
         f"- Run-level schema, position, realized-regime, decoder-telemetry, and timing gates: {'PASS' if bool(runs['pass'].all()) else 'FAIL'}",
         f"- Direct same-frame object-row match coverage: {direct_match_coverage:.2f}% (reported diagnostically; not compared to held-track replay coverage)",
     ]
+    if evaluation_spec is not None:
+        report.extend(
+            [
+                f"- Frozen per-class thresholds selected by validation F1: {selected_thresholds}.",
+                f"- Held-out near-field actor-origin recall and trajectory-bootstrap 95% CIs:",
+                _markdown_table(near_recall_ci),
+                f"- Radar density relative to retained on-contract reference:",
+                _markdown_table(radar_summary),
+            ]
+        )
     if expects_pedestrian:
         report.append(
             f"- Pedestrian matched rows: {int(ped_coverage.iloc[0]['matched_rows']) if not ped_coverage.empty else 0}"
@@ -751,6 +952,13 @@ def verify(batch_dir: Path, skip_surrogate: bool = False) -> Path:
         "gate_failures": gate_failures,
         "batch_manifest_sha256": _sha256(batch_manifest_path),
         "collection_config_sha256": _sha256(config_path),
+        "evaluation_contract_path": (
+            str(evaluation_contract_path) if evaluation_contract_path else None
+        ),
+        "evaluation_contract_sha256": (
+            _sha256(evaluation_contract_path) if evaluation_contract_path else None
+        ),
+        "prediction_score_min_by_class": selected_thresholds,
         "artifacts": artifacts,
     }
     manifest_path = verification_dir / "verification_manifest.json"
@@ -764,8 +972,15 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("batch_dir", type=Path)
     parser.add_argument("--skip-surrogate", action="store_true")
+    parser.add_argument("--evaluation-contract", type=Path)
     args = parser.parse_args()
-    print(verify(args.batch_dir, args.skip_surrogate))
+    print(
+        verify(
+            args.batch_dir,
+            args.skip_surrogate,
+            args.evaluation_contract,
+        )
+    )
 
 
 if __name__ == "__main__":

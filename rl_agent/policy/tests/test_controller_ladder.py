@@ -92,6 +92,20 @@ class ControllerLadderTestCase(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "verified corrected-vehicle corpus root"):
             _verify_corpus_contract(self.config)
 
+    def test_advisor_rich_ladder_targets_v5_reward_and_corpus(self):
+        config = load_controller_ladder_config(
+            "rl_agent/policy/configs/controller_ladder_advisor_rich_v5.yaml"
+        )
+        self.assertEqual(
+            config["controller_ladder"]["corpus_id"],
+            "policy_corpus_advisor_rich_v5",
+        )
+        self.assertEqual(config["reward"]["formulation_version"], 5)
+        self.assertEqual(
+            config["reward"]["task_metric_weights"],
+            {"miou": 0.35, "pedestrian_recall": 0.40, "vehicle_recall": 0.25},
+        )
+
     def test_verified_corpus_contract_checks_pass_manifest_and_hashes(self):
         with tempfile.TemporaryDirectory() as temporary:
             batch_dir = Path(temporary) / "vehicle_v2_full"
@@ -113,6 +127,10 @@ class ControllerLadderTestCase(unittest.TestCase):
                 "schema": "policy_corpus_verification.v1",
                 "status": "PASS",
                 "gate_failures": [],
+                "prediction_score_min_by_class": {
+                    "pedestrian": 0.15,
+                    "vehicle": 0.10,
+                },
                 "batch_manifest_sha256": hashlib.sha256(batch_path.read_bytes()).hexdigest(),
                 "collection_config_sha256": hashlib.sha256(
                     collection_path.read_bytes()
@@ -128,10 +146,18 @@ class ControllerLadderTestCase(unittest.TestCase):
             config = copy.deepcopy(self.config)
             config["replay"]["roots"] = [str(batch_dir)]
             config["replay"]["split_manifest_csv"] = str(split_path)
+            config["replay"]["prediction_score_min_by_class"] = {
+                "pedestrian": 0.15,
+                "vehicle": 0.10,
+            }
             config["controller_ladder"]["verification_manifest_json"] = str(
                 verification_path
             )
             _verify_corpus_contract(config)
+            drifted = copy.deepcopy(config)
+            drifted["replay"]["prediction_score_min_by_class"]["vehicle"] = 0.20
+            with self.assertRaisesRegex(ValueError, "per-class thresholds"):
+                _verify_corpus_contract(drifted)
             split_path.write_text(
                 "episode_id,scenario_family,split\ne1,family,test\n", encoding="utf-8"
             )

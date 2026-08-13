@@ -50,6 +50,22 @@ def _apply_corpus_overrides(
             else split_manifest.relative_to(REPO_ROOT)
         )
     if verification_manifest is not None:
+        verification_path = (
+            verification_manifest
+            if verification_manifest.is_absolute()
+            else REPO_ROOT / verification_manifest
+        )
+        verification_payload = json.loads(
+            verification_path.read_text(encoding="utf-8")
+        )
+        frozen_thresholds = verification_payload.get(
+            "prediction_score_min_by_class", {}
+        )
+        if frozen_thresholds:
+            resolved["replay"]["prediction_score_min_by_class"] = {
+                str(class_name): float(threshold)
+                for class_name, threshold in frozen_thresholds.items()
+            }
         resolved["controller_ladder"]["verification_manifest_json"] = str(
             verification_manifest
             if not verification_manifest.is_absolute()
@@ -94,6 +110,22 @@ def _verify_corpus_contract(config: Mapping[str, object]) -> None:
         raise ValueError("unexpected corpus verification manifest schema")
     if verification.get("status") != "PASS" or verification.get("gate_failures"):
         raise ValueError("controller ladder requires a PASS corpus verification with no gate failures")
+    verified_thresholds = {
+        str(class_name): float(threshold)
+        for class_name, threshold in verification.get(
+            "prediction_score_min_by_class", {}
+        ).items()
+    }
+    replay_thresholds = {
+        str(class_name): float(threshold)
+        for class_name, threshold in config["replay"].get(
+            "prediction_score_min_by_class", {}
+        ).items()
+    }
+    if verified_thresholds and replay_thresholds != verified_thresholds:
+        raise ValueError(
+            "replay per-class thresholds do not match the PASS verification"
+        )
     split_artifact = verification.get("artifacts", {}).get("replay_split_manifest.csv")
     if not split_artifact or split_artifact.get("sha256") != hashlib.sha256(
         split_path.read_bytes()
