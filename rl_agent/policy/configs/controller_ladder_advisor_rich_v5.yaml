@@ -2,8 +2,8 @@ schema_version: 1
 base_config: rl_agent/policy/configs/track_a_pilot.yaml
 
 controller_ladder:
-  seed: 20260811
-  corpus_id: policy_corpus_advisor_rich_v3
+  seed: 20260813
+  corpus_id: policy_corpus_advisor_rich_v5
   require_verified_corpus: true
   enabled_controllers: [fixed, rule, greedy, linucb, mpc]
   training_split: train
@@ -14,6 +14,9 @@ controller_ladder:
   common_random_latency_by_tick: true
   bandit_feedback_source: matched_true_expected_reward
 
+  # The CLI pins the accepted full batch, split artifact, and PASS manifest.
+  # The runner installs the validation-frozen per-class thresholds from that
+  # manifest into replay and rejects any mismatch before evaluating baselines.
   replay_roots: []
   split_manifest_csv: ''
   verification_manifest_json: ''

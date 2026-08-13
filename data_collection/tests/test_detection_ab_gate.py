@@ -21,6 +21,8 @@ from data_collection.carla_fusion_policy_corpus_collector import (
     _apply_direct_ego_route_control,
     _parse_overlay_args,
     _pedestrian_crowd_offsets,
+    _vehicle_in_swept_forward_corridor,
+    _walker_in_ego_forward_corridor,
     spawn_parked_ego_with_tm_overrides,
 )
 
@@ -247,6 +249,41 @@ class DetectionABGateTests(unittest.TestCase):
         control = actor.apply_control.call_args.args[0]
         self.assertGreater(float(control.throttle), 0.0)
         self.assertAlmostEqual(float(control.steer), 0.0)
+
+    def test_direct_route_vehicle_shield_covers_lead_around_bend(self):
+        # This geometry reproduces the v5 full-batch hold: at roughly ten
+        # metres range, the stopped lead was visible around a route bend but
+        # fell outside the old fixed 2.6 m same-lane strip.
+        self.assertTrue(
+            _vehicle_in_swept_forward_corridor(
+                forward_m=9.0,
+                lateral_m=5.0,
+                maximum_forward_m=10.0,
+            )
+        )
+        self.assertFalse(
+            _vehicle_in_swept_forward_corridor(
+                forward_m=9.0,
+                lateral_m=6.5,
+                maximum_forward_m=10.0,
+            )
+        )
+
+    def test_direct_route_walker_shield_includes_ambient_crossing(self):
+        self.assertTrue(
+            _walker_in_ego_forward_corridor(
+                forward_m=8.0,
+                lateral_m=3.0,
+                walker_speed_mps=1.2,
+            )
+        )
+        self.assertFalse(
+            _walker_in_ego_forward_corridor(
+                forward_m=8.0,
+                lateral_m=4.0,
+                walker_speed_mps=1.2,
+            )
+        )
 
     def test_overlay_cleanup_releases_all_owned_crowd_actors(self):
         actors = [object(), object(), object()]

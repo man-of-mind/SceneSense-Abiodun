@@ -1,0 +1,57 @@
+schema_version: 1
+
+# v5 preserves the v4 scenarios, grouped splits, route, seeds, traffic-sanity
+# controls, and exact training-time perception recipe. It fixes the realized
+# radar contract by collecting natively at the training clock: one 10 Hz world
+# tick per 10 Hz sensor frame at 200k pps. The offline policy surrogate remains
+# responsible for interpolating these observations onto its 20 Hz decision
+# clock; CARLA collection does not emulate that policy clock.
+extends: policy_corpus_advisor_rich_v4.yaml
+revision_replace: {from: v4, to: v5}
+
+overrides:
+  collection_contract:
+    required_effective_args:
+      --fps: 10
+      --world-tick-hz: 10
+      --sensor-every-tick: 'true'
+      --no-sensor-every-tick: null
+      --radar-points-per-second: 200000
+
+  advisor_integration:
+    # revision_replace versions our corpus artifacts, but the advisor helper is
+    # an immutable v4 reference and continues to emit pedestrian_blocker_v4_*.
+    spawn_blocker_script: rl_agent/advisor_helper_scripts/codes/spawn_blocker_v4.py
+    fixed_delta_seconds: 0.1
+    update_hz: 10
+    # The decisive retained-input diagnostic measured 18,591.5 valid projected
+    # radar returns/frame. Gate the observed tensor support before accepting
+    # each episode and before smoke coverage is evaluated. The +/-10% band is
+    # wide enough for projection variance and excludes the v4 half-density
+    # ceiling (~10,000) by a large margin.
+    radar_density_gate:
+      reference_projected_points_median: 18591.5
+      relative_tolerance: 0.10
+      minimum_metric_frames: 50
+    smoke_gate:
+      pedestrian_role_prefix: pedestrian_blocker_v4
+      world_control_tick_hz: 10
+      sensor_detection_hz: 10
+      control_ticks_per_sensor_frame: 1
+      sensor_period_tolerance_s: 0.005
+      # Exact constant velocity is a short straight-road perception
+      # instrument. At this Town10 route it remains on the authored corridor
+      # for six seconds, then the road bends. Reject any tail that leaves it.
+      exact_fast_max_route_offset_m: 4.0
+
+common_argument_overrides:
+  --fps: 10
+  --world-tick-hz: 10
+  --sensor-every-tick: true
+  --no-sensor-every-tick: null
+
+run_overrides_by_family:
+  exact_fast_convoy:
+    requested_frames: 60
+    argument_overrides:
+      --max-frames: 60

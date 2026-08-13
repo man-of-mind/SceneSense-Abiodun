@@ -464,7 +464,10 @@ def build_radar_audit(
     ).dropna()
     summary_rows = [
         {
-            "source": "policy_corpus_advisor_rich_v4_excluding_invalid_episode",
+            "source": (
+                f"{runs[0].run_dir.parents[2].name}_included_runs"
+                if runs else "policy_corpus_included_runs"
+            ),
             **_numeric_summary(corpus),
             "sensor_detection_hz": float(per_run_rows[0]["sensor_detection_hz"]),
             "world_control_hz": float(per_run_rows[0]["world_control_hz"]),
@@ -689,7 +692,7 @@ def main() -> None:
     parser.add_argument("--reference-run", type=Path, default=DEFAULT_REFERENCE_RUN)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument(
-        "--exclude-episode", action="append", default=["pcarv4_fast_te01"]
+        "--exclude-episode", action="append", default=[]
     )
     args = parser.parse_args()
     print(run(args.batch_dir, args.reference_run, args.output_dir, args.exclude_episode))

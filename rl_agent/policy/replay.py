@@ -177,6 +177,29 @@ def _normalize_class(value: str) -> str:
     return "vehicle" if "vehicle" in value else value
 
 
+def _prediction_score_mask(
+    predictions: pd.DataFrame,
+    replay_spec: Mapping[str, object],
+) -> pd.Series:
+    """Apply the validation-frozen operating threshold for each class."""
+
+    default = float(replay_spec.get("prediction_score_min", 0.20))
+    raw_by_class = replay_spec.get("prediction_score_min_by_class", {})
+    by_class = {
+        _normalize_class(class_name): float(threshold)
+        for class_name, threshold in (
+            raw_by_class.items() if isinstance(raw_by_class, Mapping) else []
+        )
+    }
+    scores = pd.to_numeric(
+        predictions.get("score", pd.Series(1.0, index=predictions.index)),
+        errors="coerce",
+    )
+    classes = predictions["class_name"].map(_normalize_class)
+    thresholds = classes.map(lambda class_name: by_class.get(class_name, default))
+    return scores >= thresholds
+
+
 def _truthy(value: object) -> bool:
     return str(value).strip().lower() in {"1", "true", "yes", "y"}
 
@@ -297,10 +320,7 @@ def load_trace_episode(
     if record.prediction_path is not None:
         predictions = pd.read_csv(record.prediction_path)
         predictions = predictions.dropna(subset=["frame_id", "world_x", "world_y", "distance_m"]).copy()
-        predictions = predictions[
-            predictions.get("score", pd.Series(1.0, index=predictions.index)).astype(float)
-            >= float(spec.get("prediction_score_min", 0.20))
-        ].copy()
+        predictions = predictions[_prediction_score_mask(predictions, spec)].copy()
         matches = _greedy_prediction_matches(gt, predictions, float(spec["association_gate_m"]))
         if not matches.empty:
             pred_tracks = _track_arrays(matches, "timestamp")
