@@ -2620,3 +2620,35 @@ finding supersedes the note above.
   Cheaper and better-targeted than my note — proceed with this.
 - Unchanged: stop at the gate; no DG-B / campaign; and fixing attach does NOT prejudge the science — DG-A may
   still be greedy≈central (NO-GO) at 2 UEs.
+
+## 2026-08-13 — LOCAL: smoke falsified "channel-object-alone"; evidence points to STRONG-CHANNEL as the 2-UE attach blocker. One decisive cheap test, then a bounded fix + STOPPING RULE.
+
+- **Smoke result:** the `rfsimu_channel_ue1` fix is confirmed working (all four RFsim models load, no fallback) —
+  **necessary but not sufficient.** Same symptom, consistent across both runs: UE1→`oaitun_ue2` attaches; UE0's
+  RACH fails, `oaitun_ue1` never appears (always index-0 that loses).
+- **New local evidence:** `FUSION_OAI_MULTI_UE_RUNBOOK.md` documents a WORKING 2-UE bring-up — both
+  `oaitun_ue1`(10.0.0.2) + `oaitun_ue2`(10.0.0.3) — with **no `chanmod`/awgn anywhere** (clean/default RFsim).
+  codex's audit agrees the known-good path is `--num-ues 2` on **clean** RFsim. UEs are distinctly provisioned
+  (uicc0/imsi…001, uicc1/imsi…002). So the delta between known-good-works and our-fails is the **`awgn_strong`
+  channel at attach**, not identity/config.
+- **Leading hypothesis (grounded, but CONFIRM before fixing — local Claude has over-called twice this thread):**
+  under `awgn_strong` both UEs RACH near-simultaneously (shared PRACH pool, single `--num-ues 2` process) and the
+  harsh SNR makes one UE's preamble/RAR marginal → UE0 loses. 2-UE attach is fine on clean; strong is the blocker.
+- **Decisive cheap diagnostics — do BOTH before any more fix-and-run:**
+  1. *(free)* Extract the RACH signature from the logs you already have (`ue_stdout.log:9571`, `gnb_stdout.log:141`):
+     does the gNB detect UE0's preamble at all? same or different preamble index vs UE1? is it contention-resolution
+     failure (collision) vs preamble-undetected (UL) vs RAR-decode-fail (DL)?
+  2. *(~4 min)* Run the KNOWN-GOOD **clean-channel** 2-UE bring-up (runbook / `ue_multi_start.sh`, NO awgn/chanmod)
+     and confirm 2/2 tunnels. This isolates channel-harshness vs a 2-UE-RACH problem.
+- **Fix — conditional on the test:**
+  - *If clean = 2/2 (expected):* strong-channel blocker confirmed → **attach on clean, then switch to `awgn_strong`
+    at runtime via OAI telnet `channelmod modify`** before D0/calibrate; keep `--num-ues 2`. FIRST verify the telnet
+    channelmod interface is compiled in / functional in this build (the channel-sweep plan noted it exists but was
+    deferred/unvalidated). This preserves the strong operating point DG-A gates on (SNR 8.2 / MCS 9).
+  - *If clean ALSO fails 2/2 (would contradict the runbook):* deeper 2-UE RACH issue → stagger / distinct PRACH
+    resources; revisit the separate-process interface-naming problem.
+- **STOPPING RULE (advisor away; cost-sensitive):** this is the LAST cheap diagnostic+fix cycle we spend blind.
+  If clean-2/2 + runtime-switch reaches **3/3** attach → proceed to DG-A. If the runtime-switch proves
+  fiddly/unreliable, **PAUSE** live multi-UE OAI and either fall back to the table-driven **N=50 DG-A.1 sim screen**
+  for the coordination question, or wait for the advisor. Do NOT open-ended-grind on OAI RACH internals — the
+  scientific payoff is still uncertain (DG-A may be NO-GO), so the infra spend must stay bounded.
