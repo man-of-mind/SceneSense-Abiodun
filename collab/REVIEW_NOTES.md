@@ -2548,3 +2548,51 @@ partial frame, checksum failure, or local send error. Long execution is detached
 writes either `COMPLETED.json` or `FAILED.json`; failure also writes a HOLD summary. Neither outcome launches a
 later stage. The frozen launch is `rl_agent/multiue_oai/launch_dg_a_detached.sh --run-id
 dg_a_20260813_1335_pdt`; review only after its completion/failure sentinel appears.
+
+## 2026-08-13 — LOCAL: DG-A FAILED at attach (INFRASTRUCTURE, not science). Diagnosis + repair before any relaunch.
+
+Run `dg_a_20260813_1335_pdt` → `FAILED_HOLD` at `wait_tunnels` (240 s attach gate). **No DG-A scientific
+result** — D0 and A1–A9 never started. This is NOT a coordination GO/NO-GO; nothing about greedy-vs-central was
+measured. The fail-fast worked correctly (refused to fabricate a result from a half-attached RAN). Cleanup was
+clean.
+
+**Symptom (from codex):** UE1 completed registration + PDU-session (so the **gNB was up and serving**); UE0
+repeatedly failed random access ("RAR reception failed"), so `oaitun_ue1` never appeared. Exactly one of two
+tunnels came up.
+
+**Root cause — high confidence, evidence-based: two UEs doing RACH *simultaneously* under the strong-AWGN
+channel is marginal.** Three facts triangulate it:
+1. **Single-UE cold attach under `awgn_strong` is PROVEN** — the DONE channel sweep measured the strong rung with
+   one nr-uesoftmodem, cold. Harsh-channel attach itself is fine.
+2. **The known-good `scripts/ue_multi_start.sh` attaches 2 UEs — but only ever on a CLEAN rfsim channel** (no
+   `chanmod`/awgn). 2-UE attach itself is fine.
+3. **`runner.py` is the first thing to combine BOTH** — `--num-ues 2` (both RACH together) *and*
+   `awgn_strong + chanmod` from cold (`start_ran`, lines ~388/393). That intersection is the fragile part: under
+   low SNR one UE's preamble/RAR loses the race and never recovers while the other wins. (gNB-off would drop
+   BOTH UEs — getting exactly one is the marginal-RACH signature, not a dead gNB.)
+
+**Do NOT blind-relaunch the same config.** It's ~a coin-flip which UE wins RACH under the harsh channel, so a
+plain retry may attach both by luck or fail again — burning another ~40–80 min. Fix the attach path first.
+
+**Requested of codex (repair — your box, your call on implementation):**
+1. **First, check how we did 2-UE attach before, and reuse it — don't reinvent.** Read `scripts/ue_multi_start.sh`,
+   `scripts/ue_multi_start_ttracer.sh`, `scripts/ue_start.sh`, `FUSION_OAI_MULTI_UE_RUNBOOK.md`, and how
+   `channel_condition_sweep` launched under the strong rung. **Report back:** did any known-good path ever attach
+   ≥2 UEs *under a channel model* (chanmod/awgn), or only clean? If the proven pattern is "attach clean, then
+   apply the channel," reuse that rather than the runner's cold-under-strong attach.
+2. **Recommended fix — stagger the attach** so the two UEs don't RACH simultaneously: start UE0, wait for its
+   tunnel, then start UE1 (equivalently, separate `nr-uesoftmodem` processes — the original spec's "separate
+   processes" instinct, which the single-process `--num-ues 2` gave up). Keeps `awgn_strong` throughout;
+   two sequential single-UE attaches, each of which is already proven to work under strong.
+   - *Fallback if stagger is insufficient:* attach both on a clean channel, then OAI telnet `channelmod modify`
+     to `awgn_strong` before D0/calibrate. (The channel-sweep plan notes this telnet interface exists but was
+     deferred — more integration risk, so prefer stagger first.)
+   - *Rejected:* attaching/calibrating at a milder rung — DG-A validity gates pin the strong rung (SNR 8.2 /
+     MCS 9); changing it changes the experiment.
+3. **Front-load the long run with a cheap attach-only smoke:** gNB + staggered 2-UE under `awgn_strong`, ~2–3 min,
+   confirm BOTH tunnels come up — **run it 2–3× to prove it's reliable, not lucky.** Report the smoke result
+   BEFORE committing the full DG-A relaunch. Only relaunch once attach is reliably 2/2.
+
+**Honest caveat:** fixing attach does NOT prejudge the science. DG-A may still come back greedy≈central (NO-GO)
+at 2 UEs. We're repairing plumbing to *get* a reading, not to get a particular one. Stop at the gate as before;
+do not chain DG-B or the campaign.
