@@ -2505,3 +2505,25 @@ toward it, leaving exactly 55 after a GO: 24 N=1/2 fit cells, 12 N=4 validation 
 cells. Payload transfer, synchronized-arrival refinement, mid15, and full second-block completeness are now
 explicitly deferred. All prior instrumentation, byte-domain, causal-observation, traffic-generation, and
 invalid-versus-bad-performance gates remain in force.
+
+## 2026-08-13 — LOCAL APPROVAL of spec v1.1 (measurement design). Ready for advisor priority-decision, then run DG-A only.
+The revision addresses every review point and is approved as a design:
+- **Two-tier fail-fast gate:** DG-A (9-trial N=2, existing infra, strong/400 KiB, ~50-80 min) → DG-A.1 cheap
+  N=50/100 sim screen (3 pre-registered service families, physics-capped) → conditional DG-B (9-trial N=4,
+  ~60-95 min) → full 6-8 hr campaign ONLY on a surviving gap. Worst-case-before-first-decision ≈ 50-80 min.
+- **C1-greedy strawman fixed:** hard-C1, causal one-tick-lag view, no freshness override; the paired
+  greedy-vs-observable-central-admission comparison (same margin/telemetry/catalog/demand) isolates coordination
+  value cleanly (not greedy-vs-oracle).
+- **Anti-gaming:** all registered arrivals count in deadline denominators (SKIP/obsolete/timeout = not
+  delivered), so low latency can't be manufactured by admitting little. Pre-registered smallest-effect-of-interest
+  thresholds, required in BOTH restart blocks, no >5% goodput loss.
+- **Scale-aware + honest:** N=50 model-only gap must exceed 2× the N=4 validation error and hold sign across both
+  blocks; model uncertainty is a HOLD, never an "RL opportunity"; fit N=1/2, N=4 strictly held out.
+- **Load-to-contend enforced** (rho=1.30 must exceed measured ceiling or the screen is invalid-to-repair).
+- Both outcomes are clean results: gap → RL/coordination direction confirmed; no gap → "simple decentralized
+  C1-admission suffices under contention and at scale" (a strong systems finding on its own).
+
+**No further design iteration needed from local Claude.** Remaining is a human PRIORITY decision (Abiodun +
+advisor): is multi-UE worth the ~50-80 min first screen now, given both outcomes are publishable? If yes → codex
+runs **DG-A only** (after freezing the estimator window/EWMA + obsolete-frame rule + thresholds in preflight),
+stops at the gate, reports. Do NOT run DG-B or the campaign without a surviving gate.
