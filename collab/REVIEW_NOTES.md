@@ -1723,3 +1723,29 @@ autonomous fix. The fast pedestrian collision is an independent scenario-validit
 **HOLD:** no freshness re-score, controller-ladder rerun, or RL training was run from this quarantined batch.
 Next review must decide the score/evaluation contract and require collision sensing/shielding for collector ego
 and exact-fast lead actors before authorizing any replacement collection. Gates were not weakened.
+
+## 2026-08-13 — INTERVENTION (local Claude, Abiodun agreeing): STOP re-collecting. The blocker is the EVALUATION CONTRACT, not the data.
+Traffic realism is SOLVED (24/24 clean) and the radar-seed nondeterminism is fixed — real wins. But the corpus
+keeps failing VERIFICATION on coverage (`veh 26% / ped 41% @ score 0.20`), and lowering to 0.05 recovers it to
+`62.6% / 53%`. This is the SAME "0.20 too strict, 0.05 recovers" pattern from the first reconciliation and the
+on-contract diagnostic (close pedestrian 82.84% @0.20). **We have been re-collecting to pass an inherited,
+mis-specified acceptance gate** (`≥45.18% veh / ≥50% ped coverage @ score 0.20`) — a number taken from an
+optimistic training-split, applied to a diverse fresh corpus with more far/occluded objects, at a threshold that
+doesn't match this detector's actual operating confidence. **Do NOT authorize another collection to chase it.**
+
+**▶ codex — DESK analysis only (NO CARLA, on the corpus already collected `20260813_014501_full`):**
+1. **Decisive sanity check — coverage-vs-range per class** on the new corpus. If close-range (≤~12 m) coverage
+   matches the on-contract diagnostic (~80% ped, ~90%+ veh) and only far/occluded objects are low, the DATA IS
+   FINE and the flat coverage gate is the problem. If close-range is ALSO low, confirm the corpus sensor
+   contract (radar returns/frame vs the ~18,584 on-contract reference) — a contract drift would be a real data
+   bug.
+2. **Precision-recall curve per class** on the new corpus → choose a PRINCIPLED operating score threshold from
+   the PR knee, not the inherited 0.20. Report the threshold + the PR operating point.
+3. **Re-specify the acceptance contract:** replace the flat "≥X% coverage @0.20" gate with (a) the PR-chosen
+   threshold and (b) coverage reported per-range, gated on the safety-relevant near field — NOT a single diverse-
+   scene coverage % benchmarked against a different scene distribution. Exclude the 1 genuinely bad run
+   (`fast_te01`, real lead-walker collision) rather than re-collecting all 24.
+4. **If the data is sound under the principled contract → LIFT the quarantine and proceed** to freshness
+   re-score + baseline ladder re-run (reward v5). Only re-collect if step 1 shows a genuine contract drift.
+Deliver a short `EVALUATION_CONTRACT_DECISION.md` with the PR curves, coverage-vs-range, chosen threshold, and
+the accept/re-collect verdict. This breaks the fail-rerun loop with analysis, not more CARLA time.
