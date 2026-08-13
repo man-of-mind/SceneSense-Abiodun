@@ -51,3 +51,146 @@
 {"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:41:44.926502+00:00"}
 {"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:41:44.939846+00:00"}
 {"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:41:47.943509+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:41:47.963014+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:41:50.966546+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:41:50.980899+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:41:53.984803+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:41:53.987382+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:41:56.991523+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:41:57.011084+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:42:00.015093+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:42:00.028398+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:42:03.031501+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:42:03.045360+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:42:06.048513+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:42:06.061773+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:42:09.065495+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:42:09.078778+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:42:12.082492+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:42:12.095687+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:42:15.098644+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:42:15.111954+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:42:18.115499+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:42:18.118283+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:42:21.121498+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:42:21.124087+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:42:24.127675+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:42:24.141433+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:42:27.144512+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:42:27.158706+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:42:30.161592+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:42:30.174797+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:42:33.178489+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:42:33.191979+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:42:36.195619+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:42:36.208863+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:42:39.212488+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:42:39.231727+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:42:42.234514+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:42:42.247652+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:42:45.250648+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:42:45.263804+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:42:48.267599+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:42:48.281218+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:42:51.285206+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:42:51.298490+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:42:54.302489+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:42:54.316877+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:42:57.320580+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:42:57.340749+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:43:00.345871+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:43:00.358966+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:43:03.362488+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:43:03.375715+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:43:06.379490+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:43:06.392639+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:43:09.395523+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:43:09.408832+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:43:12.412495+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:43:12.427116+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:43:15.430957+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:43:15.444048+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:43:18.447502+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:43:18.461121+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:43:21.464944+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:43:21.478121+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:43:24.481648+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:43:24.494704+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:43:27.497506+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:43:27.511010+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:43:30.514616+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:43:30.517359+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:43:33.520590+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:43:33.533877+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:43:36.537780+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:43:36.551255+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:43:39.554718+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:43:39.568213+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:43:42.571489+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:43:42.574224+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:43:45.577501+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:43:45.598521+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:43:48.601488+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:43:48.603475+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:43:51.606500+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:43:51.608792+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:43:54.612499+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:43:54.615005+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:43:57.618660+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:43:57.621661+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:44:00.624497+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:44:00.627232+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:44:03.630497+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:44:03.633054+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:44:06.636494+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:44:06.645031+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:44:09.648590+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:44:09.651588+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:44:12.654502+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:44:12.657568+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:44:15.660654+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:44:15.663732+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:44:18.667501+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:44:18.670567+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:44:21.673502+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:44:21.675799+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:44:24.679501+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:44:24.682162+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:44:27.685498+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:44:27.688106+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:44:30.692604+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:44:30.695807+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:44:33.699649+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:44:33.702305+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:44:36.705745+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:44:36.708413+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:44:39.711592+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:44:39.724885+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:44:42.728647+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:44:42.742779+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:44:45.746795+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:44:45.761425+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:44:48.765004+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:44:48.778531+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:44:51.782408+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:44:51.796322+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:44:54.800206+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:44:54.813544+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:44:57.817374+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:44:57.830789+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:45:00.834492+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:45:00.848102+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:45:03.851493+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:45:03.864516+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:45:06.867565+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:45:06.880964+00:00"}
+{"argv": ["ip", "-4", "-br", "addr", "show", "oaitun_ue1"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:45:09.884580+00:00"}
+{"argv0": "ip", "event": "command_output", "output": "Device \"oaitun_ue1\" does not exist.\n", "timestamp": "2026-08-13T22:45:09.897777+00:00"}
+{"event": "ran_stop", "timestamp": "2026-08-13T22:45:12.901785+00:00"}
+{"argv": ["sudo", "-n", "pkill", "-INT", "-x", "nr-uesoftmodem"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:45:12.914216+00:00"}
+{"argv": ["sudo", "-n", "pkill", "-INT", "-x", "nr-softmodem"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:45:12.933764+00:00"}
+{"argv": ["sudo", "-n", "pkill", "-TERM", "-x", "nr-uesoftmodem"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:45:15.960778+00:00"}
+{"argv": ["sudo", "-n", "pkill", "-TERM", "-x", "nr-softmodem"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun", "event": "command", "timestamp": "2026-08-13T22:45:15.989010+00:00"}
+{"argv": ["sudo", "-n", "docker", "compose", "down"], "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/OAI/oai-cn5g", "event": "command", "timestamp": "2026-08-13T22:45:16.005119+00:00"}
+{"argv0": "sudo", "event": "command_output", "output": " Container oai-ext-dn Stopping \n Container oai-upf Stopping \n Container ims Stopping \n Container oai-ext-dn Stopped \n Container oai-ext-dn Removing \n Container oai-ext-dn Removed \n Container ims Stopped \n Container ims Removing \n Container ims Removed \n Container oai-upf Stopped \n Container oai-upf Removing \n Container oai-upf Removed \n Container oai-smf Stopping \n Container oai-smf Stopped \n Container oai-smf Removing \n Container oai-smf Removed \n Container oai-amf Stopping \n Container oai-amf Stopped \n Container oai-amf Removing \n Container oai-amf Removed \n Container oai-ausf Stopping \n Container oai-ausf Stopped \n Container oai-ausf Removing \n Container oai-ausf Removed \n Container oai-udm Stopping \n Container oai-udm Stopped \n Container oai-udm Removing \n Container oai-udm Removed \n Container oai-udr Stopping \n Container oai-udr Stopped \n Container oai-udr Removing \n Container oai-udr Removed \n Container mysql Stopping \n Container oai-nrf Stopping \n Container oai-nrf Stopped \n Container oai-nrf Removing \n Container oai-nrf Removed \n Container mysql Stopped \n Container mysql Removing \n Container mysql Removed \n Network oai-cn5g-public-net Removing \n Network oai-cn5g-public-net Removed \n", "timestamp": "2026-08-13T22:45:29.088868+00:00"}
+{"error": "both expected UE tunnels did not attach", "error_type": "StageFailure", "event": "stage_failed", "timestamp": "2026-08-13T22:45:29.089894+00:00"}
