@@ -58,12 +58,33 @@ class ConfigContractTest(unittest.TestCase):
             attach_smoke_repeats=3,
         )
         self.assertEqual(runner.attach_smoke_repeats, 3)
+        self.assertEqual(runner.attach_channel_mode, "strong")
+        clean = Runner(
+            DEFAULT_CONFIG,
+            Path("/tmp/not-created"),
+            dry_run=True,
+            attach_smoke_repeats=1,
+            attach_channel_mode="clean",
+        )
+        self.assertEqual(clean.attach_channel_mode, "clean")
+        clean._materialize_ue_config()
+        self.assertEqual(
+            clean.runtime_ue_config,
+            clean.paths["oai_ran_conf"] / clean.config["radio"]["ue_base_config"],
+        )
         with self.assertRaises(ValueError):
             Runner(
                 DEFAULT_CONFIG,
                 Path("/tmp/not-created"),
                 dry_run=True,
                 attach_smoke_repeats=-1,
+            )
+        with self.assertRaises(ValueError):
+            Runner(
+                DEFAULT_CONFIG,
+                Path("/tmp/not-created"),
+                dry_run=True,
+                attach_channel_mode="clean",
             )
 
     def test_dry_run_writes_completion_without_oai(self) -> None:

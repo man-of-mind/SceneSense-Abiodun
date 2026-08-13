@@ -113,6 +113,7 @@ class Runner:
         dry_run: bool = False,
         preflight_only: bool = False,
         attach_smoke_repeats: int = 0,
+        attach_channel_mode: str = "strong",
     ) -> None:
         self.config_path = config_path.resolve()
         self.config = load_config(self.config_path)
@@ -122,6 +123,11 @@ class Runner:
         self.attach_smoke_repeats = int(attach_smoke_repeats)
         if self.attach_smoke_repeats < 0:
             raise ValueError("attach_smoke_repeats cannot be negative")
+        self.attach_channel_mode = str(attach_channel_mode)
+        if self.attach_channel_mode not in {"strong", "clean"}:
+            raise ValueError("attach_channel_mode must be 'strong' or 'clean'")
+        if self.attach_channel_mode != "strong" and self.attach_smoke_repeats <= 0:
+            raise ValueError("clean channel mode is restricted to attach-only smoke runs")
         self.paths = {
             name: resolve(ROOT, value) if name != "python" else Path(value)
             for name, value in self.config["paths"].items()
@@ -173,6 +179,12 @@ class Runner:
         return result
 
     def preflight(self) -> None:
+        radio = self.config["radio"]
+        active_gnb_config = (
+            radio["clean_gnb_config"]
+            if self.attach_channel_mode == "clean"
+            else radio["gnb_config"]
+        )
         required = [
             self.paths["python"],
             self.paths["oai_ran_build"] / "nr-softmodem",
@@ -181,10 +193,11 @@ class Runner:
             self.paths["ttracer_dir"] / "csv",
             self.paths["ttracer_dir"] / "replay",
             self.paths["t_messages"],
-            self.paths["oai_ran_conf"] / self.config["radio"]["gnb_config"],
-            self.paths["oai_ran_conf"] / self.config["radio"]["ue_base_config"],
-            self.paths["oai_ran_conf"] / self.config["radio"]["channel_config"],
+            self.paths["oai_ran_conf"] / active_gnb_config,
+            self.paths["oai_ran_conf"] / radio["ue_base_config"],
         ]
+        if self.attach_channel_mode == "strong":
+            required.append(self.paths["oai_ran_conf"] / radio["channel_config"])
         missing = [str(path) for path in required if not path.exists()]
         if missing:
             raise StageFailure(f"preflight missing paths: {missing}")
@@ -229,8 +242,13 @@ class Runner:
             "dry_run": self.dry_run,
             "preflight_only": self.preflight_only,
             "attach_smoke_repeats": self.attach_smoke_repeats,
-            "channel_config_sha256": sha256(
-                self.paths["oai_ran_conf"] / self.config["radio"]["channel_config"]
+            "attach_channel_mode": self.attach_channel_mode,
+            "active_gnb_config": active_gnb_config,
+            "active_ue_config": radio["ue_base_config"],
+            "channel_config_sha256": (
+                sha256(self.paths["oai_ran_conf"] / radio["channel_config"])
+                if self.attach_channel_mode == "strong"
+                else None
             ),
         }
         atomic_json(self.output_dir / "run_manifest.json", manifest)
@@ -240,6 +258,12 @@ class Runner:
 
     def _materialize_ue_config(self) -> None:
         base_path = self.paths["oai_ran_conf"] / self.config["radio"]["ue_base_config"]
+        if self.attach_channel_mode == "clean":
+            # Reuse the known-good multi-UE contract verbatim. Without the
+            # chanmod command-line option, the included model list is not
+            # activated by RFsim.
+            self.runtime_ue_config = base_path
+            return
         channel_path = self.paths["oai_ran_conf"] / self.config["radio"]["channel_config"]
         base = base_path.read_text(encoding="utf-8")
         channel = channel_path.read_text(encoding="utf-8")
@@ -377,8 +401,13 @@ class Runner:
     def start_ran(self, block: str) -> None:
         self.stop_ran()
         block_dir = self.output_dir / "blocks" / block
-        gnb_conf = self.paths["oai_ran_conf"] / self.config["radio"]["gnb_config"]
         radio = self.config["radio"]
+        gnb_config = (
+            radio["clean_gnb_config"]
+            if self.attach_channel_mode == "clean"
+            else radio["gnb_config"]
+        )
+        gnb_conf = self.paths["oai_ran_conf"] / gnb_config
         gnb_cmd = [
             "sudo",
             "-n",
@@ -390,14 +419,17 @@ class Runner:
             "--gNBs.[0].min_rxtxtime",
             "6",
             "--rfsim",
-            "--rfsimulator.[0].options",
-            "chanmod",
             "--T_stdout",
             str(radio["t_stdout"]),
             "--T_nowait",
             "--T_port",
             str(radio["gnb_ttracer_port"]),
         ]
+        if self.attach_channel_mode == "strong":
+            gnb_cmd[gnb_cmd.index("--T_stdout"):gnb_cmd.index("--T_stdout")] = [
+                "--rfsimulator.[0].options",
+                "chanmod",
+            ]
         self.event("ran_start", block=block, component="gnb", argv=gnb_cmd)
         self.gnb_proc = self._popen_log(gnb_cmd, block_dir / "gnb_stdout.log")
         time.sleep(5)
@@ -410,8 +442,6 @@ class Runner:
             str(radio["ue_count"]),
             "--rfsimulator.[0].serveraddr",
             "127.0.0.1",
-            "--rfsimulator.[0].options",
-            "chanmod",
             "-r",
             str(radio["prb"]),
             "--numerology",
@@ -428,6 +458,11 @@ class Runner:
             "--T_port",
             str(radio["ue_ttracer_port"]),
         ]
+        if self.attach_channel_mode == "strong":
+            ue_cmd[ue_cmd.index("-r"):ue_cmd.index("-r")] = [
+                "--rfsimulator.[0].options",
+                "chanmod",
+            ]
         self.event("ran_start", block=block, component="ue", argv=ue_cmd)
         self.ue_proc = self._popen_log(ue_cmd, block_dir / "ue_stdout.log")
         self.ran_active = True
@@ -570,20 +605,33 @@ class Runner:
             self._wait_for_cold_ran()
             gnb_log = self.output_dir / "blocks" / block / "gnb_stdout.log"
             gnb_text = gnb_log.read_text(encoding="utf-8", errors="replace")
-            missing_model_lines = [
-                line for line in gnb_text.splitlines() if "Model rfsimu_channel_" in line and "not found" in line
+            evidence["attach_channel_mode"] = self.attach_channel_mode
+            activated_models = [
+                line for line in gnb_text.splitlines() if "Random channel rfsimu_channel_" in line
             ]
-            if missing_model_lines:
-                raise StageFailure(f"{block} used RFsim model fallback: {missing_model_lines}")
-            evidence["explicit_uplink_models_seen"] = {
-                name: f"Random channel {name} in rfsimulator activated" in gnb_text
-                for name in ("rfsimu_channel_ue0", "rfsimu_channel_ue1")
-            }
-            if not all(evidence["explicit_uplink_models_seen"].values()):
+            if self.attach_channel_mode == "strong":
+                missing_model_lines = [
+                    line
+                    for line in gnb_text.splitlines()
+                    if "Model rfsimu_channel_" in line and "not found" in line
+                ]
+                if missing_model_lines:
+                    raise StageFailure(f"{block} used RFsim model fallback: {missing_model_lines}")
+                evidence["explicit_uplink_models_seen"] = {
+                    name: f"Random channel {name} in rfsimulator activated" in gnb_text
+                    for name in ("rfsimu_channel_ue0", "rfsimu_channel_ue1")
+                }
+                if not all(evidence["explicit_uplink_models_seen"].values()):
+                    raise StageFailure(
+                        f"{block} did not activate both explicit uplink models: "
+                        f"{evidence['explicit_uplink_models_seen']}"
+                    )
+            elif activated_models:
                 raise StageFailure(
-                    f"{block} did not activate both explicit uplink models: "
-                    f"{evidence['explicit_uplink_models_seen']}"
+                    f"{block} was registered clean but activated channel models: {activated_models}"
                 )
+            else:
+                evidence["chanmod_activation_absent"] = True
             repetitions.append(evidence)
             atomic_json(
                 self.output_dir / "attach_smoke_partial.json",
@@ -595,6 +643,7 @@ class Runner:
             "status": "ATTACH_SMOKE_PASS",
             "decision": "DG_A_NOT_RUN_AWAIT_HUMAN_REVIEW",
             "requested_repeats": self.attach_smoke_repeats,
+            "attach_channel_mode": self.attach_channel_mode,
             "passed_repeats": len(repetitions),
             "all_passed": len(repetitions) == self.attach_smoke_repeats,
             "repetitions": repetitions,
@@ -1386,6 +1435,7 @@ class Runner:
             stage=self.config["stage"],
             run_mode=run_mode,
             attach_smoke_repeats=self.attach_smoke_repeats,
+            attach_channel_mode=self.attach_channel_mode,
             pid=os.getpid(),
         )
         def interrupted(signum: int, _frame: object) -> None:
@@ -1434,6 +1484,7 @@ class Runner:
                     completion_event = {
                         "decision": summary["decision"],
                         "run_mode": "attach_smoke",
+                        "attach_channel_mode": self.attach_channel_mode,
                     }
                 else:
                     self.run_dg_a()
@@ -1468,6 +1519,7 @@ class Runner:
         if failure is not None:
             record = failure_record(failure, status="FAILED_HOLD")
             record["run_mode"] = run_mode
+            record["attach_channel_mode"] = self.attach_channel_mode
             record["d0_launched"] = False if self.attach_smoke_repeats else None
             record["dg_a_launched"] = False if self.attach_smoke_repeats else None
             atomic_json(self.output_dir / "results_summary.json", record)
@@ -1493,6 +1545,12 @@ def parse_args() -> argparse.Namespace:
         default=0,
         help="Run only this many cold two-UE attachment repetitions; never launch D0/DG-A.",
     )
+    parser.add_argument(
+        "--attach-channel-mode",
+        choices=("strong", "clean"),
+        default="strong",
+        help="RFsim channel used by attach-only smoke; clean mode never enables chanmod.",
+    )
     return parser.parse_args()
 
 
@@ -1506,6 +1564,7 @@ def main() -> int:
             dry_run=args.dry_run,
             preflight_only=args.preflight_only,
             attach_smoke_repeats=args.attach_smoke_repeats,
+            attach_channel_mode=args.attach_channel_mode,
         ).run()
     except BaseException as exc:
         output.mkdir(parents=True, exist_ok=True)

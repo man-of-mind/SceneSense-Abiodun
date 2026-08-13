@@ -11,10 +11,11 @@ OUTPUT_ROOT="${SCRIPT_DIR}/experiments"
 DRY_RUN=0
 PREFLIGHT_ONLY=0
 ATTACH_SMOKE_REPEATS=0
+ATTACH_CHANNEL_MODE="strong"
 RUN_ID=""
 
 usage() {
-  echo "Usage: $0 [--dry-run|--preflight-only|--attach-smoke-repeats N] [--run-id ID] [--config PATH] [--output-root DIR]"
+  echo "Usage: $0 [--dry-run|--preflight-only|--attach-smoke-repeats N] [--attach-channel-mode strong|clean] [--run-id ID] [--config PATH] [--output-root DIR]"
 }
 
 while [[ $# -gt 0 ]]; do
@@ -29,6 +30,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --attach-smoke-repeats)
       ATTACH_SMOKE_REPEATS="$2"
+      shift 2
+      ;;
+    --attach-channel-mode)
+      ATTACH_CHANNEL_MODE="$2"
       shift 2
       ;;
     --run-id)
@@ -57,6 +62,14 @@ done
 
 if [[ ! "${ATTACH_SMOKE_REPEATS}" =~ ^[0-9]+$ ]]; then
   echo "attach smoke repeat count must be a non-negative integer" >&2
+  exit 2
+fi
+if [[ "${ATTACH_CHANNEL_MODE}" != "strong" && "${ATTACH_CHANNEL_MODE}" != "clean" ]]; then
+  echo "attach channel mode must be strong or clean" >&2
+  exit 2
+fi
+if [[ "${ATTACH_CHANNEL_MODE}" != "strong" && "${ATTACH_SMOKE_REPEATS}" -eq 0 ]]; then
+  echo "clean channel mode is restricted to attach-only smoke runs" >&2
   exit 2
 fi
 MODE_COUNT=$((DRY_RUN + PREFLIGHT_ONLY + (ATTACH_SMOKE_REPEATS > 0 ? 1 : 0)))
@@ -104,7 +117,10 @@ if [[ "${PREFLIGHT_ONLY}" -eq 1 ]]; then
   RUNNER_ARGS+=(--preflight-only)
 fi
 if [[ "${ATTACH_SMOKE_REPEATS}" -gt 0 ]]; then
-  RUNNER_ARGS+=(--attach-smoke-repeats "${ATTACH_SMOKE_REPEATS}")
+  RUNNER_ARGS+=(
+    --attach-smoke-repeats "${ATTACH_SMOKE_REPEATS}"
+    --attach-channel-mode "${ATTACH_CHANNEL_MODE}"
+  )
 fi
 
 cd "${ABIODUN_DIR}"
@@ -118,7 +134,7 @@ if ! kill -0 "${LAUNCH_PID}" 2>/dev/null && [[ ! -e "${RUN_DIR}/COMPLETED.json" 
 fi
 
 if [[ "${ATTACH_SMOKE_REPEATS}" -gt 0 ]]; then
-  echo "Attach-only smoke detached launch accepted (${ATTACH_SMOKE_REPEATS} cold repetitions; D0/DG-A disabled)."
+  echo "Attach-only smoke detached launch accepted (${ATTACH_SMOKE_REPEATS} cold repetitions; channel=${ATTACH_CHANNEL_MODE}; D0/DG-A disabled)."
 else
   echo "DG-A detached launch accepted."
 fi

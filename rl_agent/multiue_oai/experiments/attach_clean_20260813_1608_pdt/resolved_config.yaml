@@ -1,9 +1,17 @@
 schema_version: scenesense.multiue_oai.dg_a.v1
 stage: DG-A+DG-A.1
 authorization_boundary:
-  allowed: [D0, DG-A, DG-A.1]
-  forbidden: [DG-B, D1, D2, D3, controller_ladder, RL]
-
+  allowed:
+  - D0
+  - DG-A
+  - DG-A.1
+  forbidden:
+  - DG-B
+  - D1
+  - D2
+  - D3
+  - controller_ladder
+  - RL
 paths:
   python: /home/shr_aisvcs/workarea/carla_0_10_env/carla_0_10_venv/bin/python3
   output_root: rl_agent/multiue_oai/experiments
@@ -12,7 +20,6 @@ paths:
   oai_ran_conf: OAI/openairinterface5g/targets/PROJECTS/GENERIC-NR-5GC/CONF
   ttracer_dir: OAI/openairinterface5g/common/utils/T/tracer
   t_messages: OAI/openairinterface5g/common/utils/T/T_messages.txt
-
 radio:
   ue_count: 2
   prb: 106
@@ -33,11 +40,14 @@ radio:
   t_stdout: 2
   attach_timeout_s: 240
   expected_tunnels:
-    - {ue_id: 0, iface: oaitun_ue1, ip: 10.0.0.2}
-    - {ue_id: 1, iface: oaitun_ue2, ip: 10.0.0.3}
+  - ue_id: 0
+    iface: oaitun_ue1
+    ip: 10.0.0.2
+  - ue_id: 1
+    iface: oaitun_ue2
+    ip: 10.0.0.3
   ext_dn_container: oai-ext-dn
   ext_dn_ip: 192.168.70.135
-
 transport:
   udp_port: 56100
   payload_bytes: 409600
@@ -51,59 +61,128 @@ transport:
   drain_timeout_s: 90
   drain_threshold_bytes: 65536
   drain_stable_s: 5
-
 instrumentation:
   smoke_s: 20
   perturbation_s: 30
   trace_service_tolerance_fraction: 0.05
-  trace_latency_tolerance_fraction: 0.10
+  trace_latency_tolerance_fraction: 0.1
   recorder_lead_s: 2
   recorder_tail_s: 5
   extraction_timeout_s: 30
   sender_rate_tolerance_fraction: 0.02
   ue_gnb_tbs_tolerance_fraction: 0.05
-
 calibration:
   prior_ceiling_mbps: 10.4
-  offer_multiplier: 1.30
+  offer_multiplier: 1.3
   traffic_s: 30
   service_window_s: 20
   minimum_achieved_rho: 1.25
   minimum_backlogged_s: 5
-
 c1:
-  pessimism_factor: 0.70
+  pessimism_factor: 0.7
   estimator_window_s: 1.0
-  estimator_ewma_alpha: 0.20
+  estimator_ewma_alpha: 0.2
   estimator_lag_ticks: 1
   obsolete_frame_rule: newest_replaces_unsent
   initial_share: equal_mu_over_n
-
 decision:
-  deadline_s: [0.25, 0.50]
+  deadline_s:
+  - 0.25
+  - 0.5
   minimum_deadline_lift_pp: 5.0
-  minimum_latency_relative_reduction: 0.20
+  minimum_latency_relative_reduction: 0.2
   minimum_latency_absolute_ms: 50.0
-  minimum_starvation_relative_reduction: 0.20
+  minimum_starvation_relative_reduction: 0.2
   minimum_starvation_absolute_ms: 100.0
   maximum_goodput_loss_fraction: 0.05
   scheduler_aggregate_floor_fraction: 0.95
-  scheduler_residual_to_heavy_floor_fraction: 0.90
-  large_n: [50, 100]
-  large_n_service_families: [constant_ceiling, saturating, power_law]
-  large_n_demands: [equal, hot20_traffic80, synchronized_burst]
+  scheduler_residual_to_heavy_floor_fraction: 0.9
+  large_n:
+  - 50
+  - 100
+  large_n_service_families:
+  - constant_ceiling
+  - saturating
+  - power_law
+  large_n_demands:
+  - equal
+  - hot20_traffic80
+  - synchronized_burst
   physical_service_cap_mbps: 36.7
-  physical_service_cap_source: channel_condition_sweep/combined_surface.csv clear/1MB scheduled UL
+  physical_service_cap_source: channel_condition_sweep/combined_surface.csv clear/1MB
+    scheduled UL
   historical_n1_strong_sched_mbps: 10.4
   historical_n1_source: channel_condition_sweep/combined_surface.csv
-
 trials:
-  - {id: A1, block: A, kind: equal, rho: 0.75, duration_s: 60}
-  - {id: A2, block: A, kind: equal, rho: 1.00, duration_s: 60}
-  - {id: A3, block: A, kind: equal, rho: 1.30, duration_s: 60}
-  - {id: A4, block: A, kind: asymmetric, fractions: [0.90, 0.20], duration_s: 60}
-  - {id: A5, block: A, kind: burst, phases: [[0, 20, 0.60], [20, 50, 1.30], [50, 110, 0.60]], duration_s: 110}
-  - {id: A6, block: A, kind: controlled, controller: decentralized_c1, fractions: [0.90, 0.20], duration_s: 60, demand_seed: 61301}
-  - {id: A7, block: A, kind: controlled, controller: centralized_observable, fractions: [0.90, 0.20], duration_s: 60, demand_seed: 61301}
-  - {id: A8, block: B, kind: controlled, controller: decentralized_c1, fractions: [0.20, 0.90], duration_s: 60, demand_seed: 61302}
-  - {id: A9, block: B, kind: controlled, controller: centralized_observable, fractions: [0.20, 0.90], duration_s: 60, demand_seed: 61302}
+- id: A1
+  block: A
+  kind: equal
+  rho: 0.75
+  duration_s: 60
+- id: A2
+  block: A
+  kind: equal
+  rho: 1.0
+  duration_s: 60
+- id: A3
+  block: A
+  kind: equal
+  rho: 1.3
+  duration_s: 60
+- id: A4
+  block: A
+  kind: asymmetric
+  fractions:
+  - 0.9
+  - 0.2
+  duration_s: 60
+- id: A5
+  block: A
+  kind: burst
+  phases:
+  - - 0
+    - 20
+    - 0.6
+  - - 20
+    - 50
+    - 1.3
+  - - 50
+    - 110
+    - 0.6
+  duration_s: 110
+- id: A6
+  block: A
+  kind: controlled
+  controller: decentralized_c1
+  fractions:
+  - 0.9
+  - 0.2
+  duration_s: 60
+  demand_seed: 61301
+- id: A7
+  block: A
+  kind: controlled
+  controller: centralized_observable
+  fractions:
+  - 0.9
+  - 0.2
+  duration_s: 60
+  demand_seed: 61301
+- id: A8
+  block: B
+  kind: controlled
+  controller: decentralized_c1
+  fractions:
+  - 0.2
+  - 0.9
+  duration_s: 60
+  demand_seed: 61302
+- id: A9
+  block: B
+  kind: controlled
+  controller: centralized_observable
+  fractions:
+  - 0.2
+  - 0.9
+  duration_s: 60
+  demand_seed: 61302
