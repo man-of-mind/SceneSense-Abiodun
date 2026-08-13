@@ -2652,3 +2652,28 @@ finding supersedes the note above.
   fiddly/unreliable, **PAUSE** live multi-UE OAI and either fall back to the table-driven **N=50 DG-A.1 sim screen**
   for the coordination question, or wait for the advisor. Do NOT open-ended-grind on OAI RACH internals — the
   scientific payoff is still uncertain (DG-A may be NO-GO), so the infra spend must stay bounded.
+
+## 2026-08-13 — LOCAL: agreed w/ codex's log evidence. Confirmed collision + solo-undetection; clean test disambiguates harshness vs channelmod asymmetry. Acceptance gates pre-registered.
+
+codex read the logs (`ue_stdout.log:9483/9571`, `gnb_stdout.log:141`). Confirmed root-cause evidence:
+- **Collision (recoverable):** frame 513.19 — UE0 and UE1 selected the same PRACH resource + preamble 23; both
+  decoded RAR + sent Msg3; UE1 won contention resolution, UE0 lost. Normal RACH; a losing UE should just retry.
+- **The real blocker (anomalous):** after UE1 attached, UE0's *solo* retries were **not detected by the gNB**
+  (plus earlier RA-process/CCE pressure + Msg3 HARQ failures). A lone UE0 under strong AWGN should attach easily
+  (single-UE-under-strong is proven) — that it doesn't is the anomaly.
+- **Open question the clean test resolves:** harshness (strong too marginal for collision-recovery) vs a
+  **channelmod multi-client asymmetry** (second concurrent client handled wrong), independent of harshness.
+
+**Clean-channel 2-UE test — sharpened pass criterion:** not merely "both attach eventually," but specifically
+**does UE0 recover once it is retrying alone.**
+- Clean = 2/2 (UE0 recovers solo) → harshness is the blocker → proceed to attach-clean-then-runtime-switch.
+- Clean also leaves UE0 undetected-after-UE1 → structural channelmod asymmetry → runtime-switch won't help →
+  **this trips the STOPPING RULE** (pause live OAI; fall back to N=50 table sim or wait for advisor).
+
+**Runtime-switch acceptance gates (pre-registered, all must pass BEFORE D0)** — folding in codex's addition:
+(1) both tunnels present post-switch; (2) observed gNB PUSCH SNR/MCS on the strong rung (8.2 dB / MCS 9 ± tol);
+(3) post-switch link stability across the calibration window (no UE drop, queues behave). Any miss → HOLD, do not
+enter D0/DG-A on a half-broken post-switch state.
+
+Stagger is a secondary option only: codex's evidence shows UE0 struggles *solo* under strong too, so avoiding the
+collision alone may not suffice — runtime-switch (attach clean) stays primary. No new run started.
