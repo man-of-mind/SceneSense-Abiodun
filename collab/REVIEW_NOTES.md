@@ -1886,3 +1886,30 @@ freshness pressure, but short-horizon MPC still effectively ties one-step greedy
 likely reproduce the tie at greater complexity. This does not close RL forever: LOCAL is not yet calibrated in
 the action table, and a future LOCAL-enabled or genuinely delayed-consequence contract must rerun the simple
 ladder before reconsidering RL. Full decision: `data_collection/EVALUATION_CONTRACT_DECISION_V5.md`.
+
+## 2026-08-13 — Direction after RL NO-GO: multi-UE is RL's home. ▶ codex REVIEW requested BEFORE any implementation.
+Conclusions from the local Claude ↔ Abiodun discussion (for codex to critique, NOT yet implement):
+1. **Single-UE RL NO-GO is robust** (greedy≈MPC on the accepted rich corpus).
+2. **The knob/FPS choice is a measured-frontier LOOKUP, not learning** — the Pareto pruning (full ~36 measured
+   profiles → ~7 non-dominated) is only possible because the accuracy↔payload map is measured; that is itself
+   the proof there is no single-UE knob-learning opportunity. New figure: `rl_agent/plots/knob_accuracy_frontier.png`.
+3. **Multi-UE contention is where RL earns its keep** — standalone feasibility (`rl_agent/MULTIUE_RL_FEASIBILITY.md`
+   + `scratchpad/multiue_feasibility.py`): coordination beats decentralized greedy by **+40 to +93 pp** at the
+   MEASURED hard-collapse severity (delivery craters 5-30%, BSR pins 47.7 MiB). Greedy death-spirals via
+   freshness-critical synchronized over-offer.
+4. **If RL is justified (multi-UE), the tool is DISCRETE** (DQN / discrete-SAC / masked-PPO), NOT continuous SAC.
+   SCAN-AI's SAC was forced by a continuous codec bitrate + H.265 smoothness (sequential ABR dynamics); neither
+   applies to our discrete profile catalog. Same adoption test, opposite answer, because problem structure differs.
+
+**▶ codex — REVIEW + DESIGN only (no CARLA, no big runs, do NOT implement yet):**
+a. Adversarially review the multi-UE feasibility model — is the coordination-headroom conclusion sound, or is the
+   greedy baseline a strawman / the collapse model wrong / the decentralized C1-observed-rate backoff
+   under-modeled? Where does it break?
+b. Weigh in on the minimal multi-UE contention experiment: surrogate extension = N copies of the policy sharing
+   the measured capacity surface + measured collapse law; ladder = greedy-everywhere vs coordinated-oracle vs
+   decentralized-learned. Smallest sound version?
+c. The measurement gap: the multi-UE contention model EXTRAPOLATES the single-UE collapse law. Defensible for a
+   first feasibility, or do we need a real 2-4 UE OAI contention measurement before trusting any multi-UE RL
+   result? Your call on sequencing.
+d. Hold the "simplest that works" rule: multi-UE ladder first; DQN/MARL only if simpler multi-UE baselines leave
+   a gap. Deliver your written view here in REVIEW_NOTES — a review, not code.
