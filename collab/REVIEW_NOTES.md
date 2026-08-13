@@ -2324,3 +2324,46 @@ review the queue model -> build the four-rung non-learning coordination ladder.*
 No RL implementation or training is authorized by this measurement, even if coordination-looking behavior is
 observed. Learning is reconsidered only after the validated queue model and simple ladder leave a material,
 held-out gap.
+
+## 2026-08-13 — LOCAL review of the measurement spec: rigorous, but INSERT A DECISION GATE before the full campaign
+The spec is genuinely well-designed (fit/holdout, byte-domain discipline, D0 instrumentation smoke, causal
+controller-view logging, asymmetric share-probes, invalid-vs-bad-result validity gates). Accept the methodology.
+**But it front-loads a 64-trial model-ID campaign before the actual go/no-go**, and the decision (coordination vs
+decentralized C1-greedy) only happens later on the surrogate. Given codex's own deflation (hard-C1 greedy + the
+scheduler's redistribution likely handle contention), there is a real risk of spending a multi-hour OAI campaign
+to fit a model for a direction that turns out to have little headroom. Abiodun's explicit ask: no more
+wild-goose cycles; design carefully; don't invest in something that may not help.
+
+**Required changes before authorizing any run:**
+1. **Add an explicit SCIENTIFIC decision gate (not just the D0 instrumentation smoke).** Run a minimal
+   **decision core** first: D0 + `N=4, mild, rho∈{0.75,1.0,1.3}` staggered + ONE asymmetric share-probe + ONE
+   burst/recovery (~6–10 trials). From the RAW data (no surrogate needed) answer: does the scheduler redistribute
+   unused capacity to backlogged UEs, and does hard-C1-greedy keep worst-UE latency/starvation bounded under
+   over-offer? **If no meaningful gap → STOP and report a cheap NO (decentralized C1-greedy suffices); do NOT run
+   the remaining ~55 trials.** If a clear gap → the full campaign is justified.
+2. **Wall-clock estimate per stage** (decision core vs D1 vs D2 vs D3, including RAN restarts) so Abiodun knows
+   exactly what each gate commits to before it starts.
+3. **Identify the MINIMUM trials needed for the DECISION vs model-completeness nice-to-haves** — e.g., are the
+   payload-transfer (D3.1) and both restart-block replicates required to make the go/no-go call, or are they
+   refinements that can be deferred until after the direction survives the decision core?
+4. Keep every existing fail-fast/validity gate.
+
+**STRATEGIC (Abiodun + advisor, before committing OAI time):** codex's deflation suggests multi-UE coordination
+headroom may be modest. Is multi-UE the right investment NOW, or do we consolidate the strong single-UE result +
+honest findings and scope multi-UE as clearly-defined future work? Decide priority before the campaign, not after.
+codex: revise the spec with the decision gate + wall-clock + min-decisive subset; still DO NOT run anything.
+
+### Measurement-planning refinements (Abiodun, 2026-08-13) — fold into the spec revision
+1. **Implement the decision core on the EXISTING 2-UE OAI containers** (no new infra) driven by the production
+   feature-stream shape (rate-controlled replay of corpus frames = codex's "shaped sender"). Start N=2, extend to
+   3-4 only if the gap appears.
+2. **Load-to-contend is mandatory or the measurement is trivial:** two 90 KB@10 fps streams ≈ 15 Mbps fit under
+   mild (28 Mbps) → no contention. Push aggregate over the knee via **strong rung (~10 Mbps) and/or 400 KB
+   and/or higher FPS** to sweep ρ≈0.75/1.0/1.3. Contention must be real for the gate to mean anything.
+3. **The measurement's purpose is to GROUND a contention model we EXTRAPOLATE to large N in the surrogate**
+   (N=50/100) — you cannot run 50 real UEs. Fit on N=1,2; **hold out N=4 to bound extrapolation error**; report
+   large-N as "under the fitted+validated model," not measured fact. This is the scalability story AND the
+   regime where RL most plausibly earns its keep (max contention).
+4. **Decision gate spans scale:** go/no-go = coordination gap at N=4 (raw) OR in the **N=50 sim-extrapolation** of
+   the fitted model. A gap absent at N=2-4 may emerge at scale; the (cheap, table-driven) large-N sim is how we
+   check without 50 radios. Do NOT kill the direction on raw small-N alone without the at-scale extrapolation.
