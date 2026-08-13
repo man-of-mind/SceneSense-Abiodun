@@ -1913,3 +1913,149 @@ c. The measurement gap: the multi-UE contention model EXTRAPOLATES the single-UE
    result? Your call on sequencing.
 d. Hold the "simplest that works" rule: multi-UE ladder first; DQN/MARL only if simpler multi-UE baselines leave
    a gap. Deliver your written view here in REVIEW_NOTES — a review, not code.
+
+## 2026-08-13 — CODEX adversarial review: coordination hypothesis `GO`; multi-UE RL still `HOLD`
+
+**Bottom line:** the proposed direction is worth pursuing, but the current feasibility note overstates what has
+been established. The evidence supports **“multi-UE admission/queue coordination may have large value; measure
+and model it next.”** It does **not** yet support **“multi-UE RL is GO”** or the quantitative +40--93 pp claim.
+The next gate should be a small shaped-traffic 2--4 UE OAI contention measurement followed by a non-learning
+multi-UE ladder. RL remains behind that gate.
+
+### 1. Claims that survive, with scope corrections
+
+- **Single-UE result:** agree with the `NO-GO` inside the current accepted-corpus, reward-v5, SPLIT+SKIP
+  surrogate. Greedy and MPC were paired and effectively tied. Call it robust **within that contract**, not a
+  universal single-UE theorem: LOCAL is still uncalibrated and the channel is a synthetic Markov composition.
+- **Measured knob frontier:** agree that the stationary action-to-payload/quality mapping should be a table
+  lookup, not relearned. Pareto pruning is a sound way to shrink the discrete catalog. But the existence of a
+  measured map is not by itself proof that no sequential single-UE learning opportunity exists; uncertainty,
+  delayed outcomes, AoI, and queues could still create one. The actual no-learning evidence is the held-out
+  greedy-vs-MPC result. Also, `knob_accuracy_frontier.png` shows two marginal payload/metric frontiers, not a
+  single joint Pareto proof over mIoU, both class recalls, localization, and the declared reward weights. Its
+  “monotone” title is stronger than the pedestrian scatter supports. Use the figure to explain action pruning,
+  not to prove the RL verdict.
+- **Algorithm family:** agree that the present action is categorical (profile x FPS plus SKIP), so continuous
+  SAC is the wrong default. DQN, categorical/masked PPO, or discrete SAC are structurally compatible. Do not
+  choose among them until the information topology and action factorization are fixed; flat joint DQN scales as
+  `|A|^N` and becomes the wrong representation quickly.
+
+### 2. Adversarial audit of the standalone feasibility model
+
+The **coordination mechanism is plausible**, but the reported magnitude is not presently defensible.
+
+1. **The collapse law confuses application delivery with retained cell throughput.** The measured collapse
+   rows do not show the cell retaining only 5--30% of its service capacity. At the 1 MB mild/mid/strong cells,
+   scheduled UL is 27.8/19.7/9.2 Mbps against the 28/20/10 Mbps capacity anchors: roughly **99/99/92% of
+   service capacity is still used**. What collapses is timely application delivery (22.2/10.7/4.6%) because
+   excess offered traffic accumulates in the 47.7 MiB queue and capture-to-map latency reaches 6--15 s. The
+   400 KB strong cell is similar: 10.4 Mbps is served against a ~10 Mbps anchor while only 31.5% arrives in the
+   application window. Multiplying total capacity by `collapse_frac=0.05--0.30` therefore double-counts the
+   harm and can manufacture a “nobody delivers” death spiral. The proper abstraction is a finite-service queue
+   with deadlines/AoI, not a multiplicative destruction of physical throughput.
+2. **The decentralized baseline violates the locked C1/C2 priority.** The feasibility note says a
+   freshness-critical UE overrides backoff because it “cannot defer.” In the locked design, C1 is a hard
+   observation-side admission mask, SKIP is always admissible, and C2 is soft with flagged graceful
+   degradation. Criticality must not override the capacity mask. Letting every critical UE send regardless is
+   a deliberately unstable policy, so the resulting greedy baseline is a strawman relative to the project’s
+   own controller contract.
+3. **Per-UE capacity estimation/backoff is under-modeled.** A competent decentralized UE should budget against
+   a pessimistic estimate of **its achievable share**, using recent grants/RLC drain/BSR, not repeatedly assume
+   ownership of full cell capacity. Once queues are saturated, scheduled rate is informative rather than
+   demand-censored. Add randomized phase/jitter and bounded token/AIMD backoff; one synchronized miss need not
+   remain a death spiral. Whether the real lag is still too slow is an empirical question.
+4. **The oracle gap mixes coordination, observability, and clairvoyance.** A clairvoyant central admission
+   policy with every UE’s urgency and true capacity is a useful upper bound, but its advantage does not imply a
+   decentralized learned policy can recover it. Compare controllers under matched observations. Keep a
+   clairvoyant oracle as a separate ceiling, not the only coordinated baseline.
+5. **Synchronization may be constructed rather than representative.** If N copies start with the same trace,
+   scheduler phase, AoI, and object-speed transition, synchronized critical rushes are guaranteed. The main
+   evaluation must independently sample whole trajectories and phase offsets. Report synchronized bursts as a
+   stress case alongside randomized and correlated-but-not-identical arrivals.
+6. **Several transition details determine the answer:** OAI per-UE scheduling/fairness, FIFO versus another
+   discipline, head-of-line blocking, whether obsolete queued updates can be cancelled/superseded, buffer
+   limits, recovery after overload, heterogeneous per-UE MCS, and whether an ACK means radio service or spatial-
+   map installation. A scalar `collapse_frac` hides all of these.
+7. **Reproducibility is currently incomplete.** `scratchpad/multiue_feasibility.py` is referenced but is absent
+   from `origin/master` at commit `846fa7f`; the latest commit contains only the narrative and plot. Therefore
+   the +40--93 pp table cannot presently be audited for seeds, episode length, initial AoI, update size/FPS,
+   queue semantics, or aggregation. Preserve it as exploratory sensitivity, not a result, until the exact
+   generator and resolved inputs are versioned.
+
+Consequently, I would replace the current feasibility verdict **“GO -- multi-UE RL”** with **“GO -- measure
+multi-UE contention and test coordination; RL undecided.”**
+
+### 3. Smallest sound multi-UE surrogate
+
+Start table-only and make **N=1 a regression test** that reproduces the accepted single-UE ladder. Use N=2 for
+the first decision and N=4 only as a scale/generalization check.
+
+Minimum transition model:
+
+- 20 Hz policy clock and 10 Hz perception/update availability remain distinct.
+- Each UE owns per-object AoI/slack, current map contribution quality, scheduler credit, previous action/outcome,
+  a bounded byte queue, and timestamped in-flight updates. A delivered update installs its **capture-time**
+  quality; queued obsolete frames retain their age and may expire only under an explicitly declared policy.
+- Each action enqueues the measured payload for one of the seven retained profiles at a discrete FPS, or SKIPs.
+  Do not relearn the profile-quality table. LOCAL stays absent until it has a measured cost/quality row.
+- One shared cell provides finite service each tick. Service is allocated per UE by a declared scheduler model
+  fitted to multi-UE OAI measurements; latency/delivery emerge from queue service rather than an imposed
+  collapse fraction. Model per-UE MCS/channel observations and the lag/confidence available to C1.
+- Each UE’s C1 uses its observable conservative share estimate. The coordinator, where allowed, masks on the
+  aggregate offered load. Hidden true service is available only to the environment and the explicitly labelled
+  clairvoyant oracle.
+- Compose independently sampled, trajectory-grouped v5 replay episodes with randomized phase offsets for the
+  headline; add synchronized and correlated-event stress cells. Use paired seeds across controllers.
+- Score the declared global task utility, localization/AoI, realized PRB-time, violations, and per-UE outcomes.
+  Report mean **and** tail/worst-UE freshness or fairness so a high-throughput policy cannot win by starving one
+  UE. Do not make freshness percentage the only reward or headline.
+
+### 4. Minimal sound ladder -- the proposed three rungs are not enough
+
+`greedy-everywhere -> coordinated oracle -> decentralized learned` skips the strongest simple alternatives and
+would attribute an information/architecture advantage to learning. The smallest defensible ladder is:
+
+1. **Decentralized local greedy + locked C1:** every UE uses its own pessimistic share estimate, with no
+   critical override. This is the direct multi-UE extension of the accepted controller.
+2. **Decentralized non-learning congestion control:** the same policy plus phase jitter/token bucket and a
+   declared AIMD/backpressure rule using only local grants, BSR, outcomes, and any deployment-realistic broadcast
+   load signal. This is the baseline the current feasibility note is missing.
+3. **Centralized observable EDF/max-weight/knapsack admission:** prioritize freshness slack/value per PRB using
+   exactly the state a deployable coordinator could obtain. This tests whether ordinary scheduling solves the
+   problem. A short observable-state MPC is warranted only if delayed queue consequences remain after this rung.
+4. **Clairvoyant coordinator:** true capacity/future-state upper bound, clearly separated from deployable
+   baselines.
+
+Only if (2) leaves a material held-out gap to (3), and deployment truly forbids or cannot tolerate centralized
+coordination, add a decentralized learned rung. If (3) already closes the oracle gap, the publishable result is
+again “simple control suffices.” If learning is reached: begin with parameter sharing and centralized training /
+decentralized execution; categorical masked PPO is a natural POMDP baseline, DQN is reasonable only for the
+small N/factorized case, and discrete SAC is an optional comparison rather than the default. A centralized
+joint action should be factorized or assigned sequentially, not represented as a flat `36^N` action.
+
+### 5. Measurement sequencing -- real multi-UE OAI comes before any RL claim
+
+The single-UE extrapolation is defensible only as a **hypothesis/sensitivity sweep** that asks whether queue
+coordination could matter. It is not a transport model on which to train or headline multi-UE RL. Multi-UE OAI
+changes PRB allocation, per-UE grants/MCS, fairness, BSR evolution, and recovery; none is identified by a
+single saturated UE.
+
+Before building the learning environment, run a small CARLA-free shaped-traffic gate:
+
+- N = 1/2/4 UEs; at minimum mild and strong channel cells;
+- measured 90/129/400 KB payloads with fixed, timestamped 10 Hz offers;
+- aggregate offered/service ratios bracketing the knee (for example ~0.8, 1.0, 1.2, 1.5);
+- synchronized versus staggered starts, plus an overload-on/off step to measure recovery;
+- per-UE and aggregate scheduled goodput, grants/PRBs/MCS, BSR/RLC queue, deadline delivery, capture-to-map
+  latency, fairness, and post-overload drain time.
+
+Include one static non-learning admission/token schedule as a positive control. These measurements decide
+whether the shared service remains work-conserving (my expectation from the existing table), whether queues are
+fair, and how much coordination improves **timely freshness** without inventing capacity loss. Fit the minimal
+queue-service model to those results, hold out at least one N/load/channel cell for validation, then run the
+non-learning ladder.
+
+**Final sequencing call:** measurement -> validated queue surrogate -> simple multi-UE ladder -> review the
+held-out coordination gap -> DQN/MARL only if that gap survives. This preserves the advisor’s “simplest that
+works” principle and turns multi-UE contention into a defensible RL motivation if, and only if, ordinary
+congestion control and observable scheduling cannot close it.
