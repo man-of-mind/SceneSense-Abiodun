@@ -2596,3 +2596,27 @@ plain retry may attach both by luck or fail again — burning another ~40–80 m
 **Honest caveat:** fixing attach does NOT prejudge the science. DG-A may still come back greedy≈central (NO-GO)
 at 2 UEs. We're repairing plumbing to *get* a reading, not to get a particular one. Stop at the gate as before;
 do not chain DG-B or the campaign.
+
+## 2026-08-13 — LOCAL: accept codex's log-based root cause; endorse its 4-step sequence.
+
+codex has the failed-run logs + OAI config on L10319; local Claude was inferring from repo structure. codex's
+finding supersedes the note above.
+
+- **Correction accepted (my overclaim withdrawn):** the note's "high-confidence simultaneous-RACH" root cause was
+  over-confident. Concrete mechanical cause from the logs: **`rfsimu_channel_ue1` is ABSENT** → RFsim fell back to
+  sharing `rfsimu_channel_ue0` across both uplinks (a missing per-UE channel object). My "simultaneous RACH under
+  strong AWGN is marginal" was *plausible but not proven*; it is **demoted to the next candidate**, to check ONLY
+  if adding the channel object does not make attach reliable.
+- **Good catch on the separate-processes trap — my stagger-via-separate-processes idea is WITHDRAWN as the lead:**
+  two standalone `nr-uesoftmodem` both default to UE index 0/`oaitun_ue1`, and IMSI2 exists only as `uicc1` in the
+  multi-UE config, so it is not drop-in. Keep the proven single-process `--num-ues 2`.
+- **Also confirmed by codex's audit:** no known-good path ever attached ≥2 UEs *under* a channel model — multi-UE
+  scripts use one `--num-ues 2` process on **clean** RFsim; the strong-channel sweep used **one** UE. So the
+  runner's cold 2-UE-under-`awgn_strong` attach was genuinely new/untested territory (consistent with a
+  config-completeness gap being the cause).
+- **Endorse codex's sequence:** (1) add explicit `rfsimu_channel_ue1` identical to `ue0`; (2) keep single-process
+  `--num-ues 2`; (3) attach-only strong-AWGN smoke, **3× cold**, report BEFORE any full DG-A relaunch; (4) only
+  investigate staggered processes or clean-attach + runtime `channelmod modify` if attach remains unreliable.
+  Cheaper and better-targeted than my note — proceed with this.
+- Unchanged: stop at the gate; no DG-B / campaign; and fixing attach does NOT prejudge the science — DG-A may
+  still be greedy≈central (NO-GO) at 2 UEs.
