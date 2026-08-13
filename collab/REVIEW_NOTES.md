@@ -2060,9 +2060,9 @@ held-out coordination gap -> DQN/MARL only if that gap survives. This preserves 
 works” principle and turns multi-UE contention into a defensible RL motivation if, and only if, ordinary
 congestion control and observable scheduling cannot close it.
 
-## 2026-08-13 — DRAFT FOR REVIEW: CARLA-free 1/2/4-UE OAI shaped-contention measurement v1
+## 2026-08-13 — REVISED FOR REVIEW: CARLA-free 1/2/4-UE OAI shaped-contention measurement v1.1
 
-**Status: specification only. Do not bring up OAI or generate traffic until this section is jointly accepted.**
+**Status: revised specification only; pending joint acceptance. Do not bring up OAI or generate traffic.**
 This experiment identifies a shared-cell **queue-service model**; it does not test a controller, perception,
 CARLA, or RL. The output must separate (1) physical service capacity, (2) per-UE scheduler allocation/fairness,
 (3) queue growth/drain, and (4) complete application-frame latency/delivery. It must never infer destroyed
@@ -2078,7 +2078,10 @@ The measurement must answer:
    deadline delivery, and recovery time evolve?
 3. Does frame payload/chunk count add behavior beyond total offered bytes, and does synchronized arrival create
    materially worse tails than the same staggered byte rate?
-4. Can a compact model predict a held-out channel/load cell without a scalar `collapse_frac`?
+4. Can a compact model fitted on N=1/2 predict truly held-out N=4 cells without a scalar `collapse_frac`?
+5. Under explicit structural assumptions and the N=4 error bound, does extrapolation to N=50/100 expose a
+   coordination gap that is absent at small N? Large-N outputs are model-based sensitivity results, never
+   relabeled as measurements.
 
 Fit at the 50 ms policy tick:
 
@@ -2104,7 +2107,9 @@ recorded here.
 
 ### B. Locked radio/core topology
 
-- CARLA-free; one gNB, OAI core/DN, and **separate `nr-uesoftmodem` processes** for N = 1, 2, or 4.
+- CARLA-free; one gNB, OAI core/DN, and **separate `nr-uesoftmodem` processes** for N = 1, 2, or 4. Begin with
+  the **existing two-UE containers** on L10319; N=1 is obtained by disabling one of those UEs. Do not provision
+  UE3/UE4 unless the first decision tier authorizes the N=4 scale check.
 - Use the locked **106 PRB, 7DL/2UL RFsim** configuration and `SCENESENSE_MCS_POLICY=sinr`; do not use 273 PRB,
   vanilla/forced MCS, TCP, or Linux `tc` as the headline path.
 - Fit on the official homogeneous **mild** (~19.5 dB, MCS ~24, old ceiling ~28 Mbps) and **strong** (~8.2 dB,
@@ -2121,23 +2126,32 @@ recorded here.
   one-way latency by subtracting unrelated wall clocks.
 - Phase v1 uses homogeneous RF conditions among UEs. Per-UE heterogeneous SNR is a later validation axis, not
   silently mixed into this service-identification run.
+- Fit all service/share/queue parameters on N=1/2 only. N=4 is never used to tune parameters: the first N=4
+  block is the registered scientific-gate holdout and the second is the confirmatory model-validation block.
+  Extrapolation beyond N=4 must preserve this provenance and carry the measured N=4 residual as uncertainty.
 
 ### C. Shaped application traffic
 
 Use a purpose-built frame sender/receiver when implementation is authorized; **iperf is only an optional
-capacity sanity check and cannot supply the headline frame/AoI measurements**.
+capacity sanity check and cannot supply the headline frame/AoI measurements**. Drive it with a deterministic,
+rate-controlled replay of retained production feature payloads. If exact payload blobs are unavailable, use
+hash-verified byte surrogates with the same post-compression size and chunk-count sequence; no CARLA is needed.
 
 - Reuse the production transport shape: UDP, 60,000-byte datagram cap, the existing `!IHH` message/chunk header,
   production socket-buffer settings, no application retransmission, and receiver-side full-message reassembly.
-- Each application frame carries `experiment_id`, `ue_id`, `frame_seq`, scheduled capture/enqueue timestamp,
-  nominal payload bytes, total chunks, and a deterministic content checksum. Use deterministic incompressible
-  bytes already sized *after* compression; do not send compressible zeros and call them a 90 KB feature.
+- Each application frame carries `experiment_id`, `ue_id`, `frame_seq`, source-payload ID, scheduled
+  capture/enqueue timestamp, nominal payload bytes, total chunks, and a deterministic content checksum. Payload
+  sizing is *after* compression; do not send compressible zeros and call them a 90 KB feature.
 - Exact nominal feature sizes: **90 KiB (92,160 B)** segmentation-safe floor, **129.2 KiB (132,301 B)**
   accuracy-preferred point, and **400 KiB (409,600 B)** prior channel-knee anchor. Count actual UDP/IP/header
   overhead and use **on-wire bits**, not nominal feature bytes, when computing offered load.
 - Primary steady-load payload: 400 KiB on mild and 90 KiB on strong. This keeps the required per-UE frame rates
   inside a practical shaped range while reconnecting to the measured single-UE knee. The 129.2 KiB point and
   the alternate endpoint payloads are transfer checks, not extra accuracy experiments.
+- **Decision-core override:** use **strong / 400 KiB** on N=2, with cadence chosen from the fresh `mu_hat`, so
+  rho=1.30 genuinely exceeds the cell knee. The conditional N=4 tier uses **mild / 400 KiB**, again shaped by
+  rho rather than a fixed low FPS. Two 90 KiB streams at 10 fps on mild are explicitly forbidden as a gate
+  cell because their ~15 Mbps aggregate offer fits below the old ~28 Mbps ceiling and tests no contention.
 - The shaper runs from a 20 Hz clock with a fractional/token accumulator. Given the block's calibrated service
   `mu_hat`, set equal per-UE target rate `r_i = rho * mu_hat / N`; derive frame cadence from the measured on-wire
   frame size. The manifest records requested and achieved rate/FPS for every UE. No sender is allowed to claim
@@ -2163,75 +2177,175 @@ the just-measured `mu_hat` and on-wire bytes:
 
 These cadences identify transport; they are not proposed policy actions or sensor rates.
 
-### D. Staged matrix and stop gates
+### D. Staged matrix, scientific decision gate, and stop gates
 
-#### D0 — topology/instrumentation smoke (stop on first failure)
+The 64-cell identification matrix is **not** authorized up front. Execution is split into a cheap N=2 screen,
+a conditional N=4 scale screen, and only then the remaining model-completeness campaign. This reconciles the
+original N=4/mild decision-core sketch with the later instruction to start on the existing two-UE deployment.
 
-For N=1, then 2, then 4: attach all UEs, send a low-load 90 KiB staggered stream for 20 s, and verify unique
-identity, correct receiver reconstruction, per-RNTI UE/gNB grant agreement, BSR/RLC visibility for every UE,
+#### D0 — existing-two-UE topology/instrumentation smoke (stop on first failure)
+
+Bring up the existing N=2 containers first. Send a low-load 90 KiB staggered stream for 20 s and verify unique
+identity, correct receiver reconstruction, per-RNTI UE/gNB grant agreement, BSR/RLC visibility for both UEs,
 and stable timing. Also run the receiver/generator over a non-OAI local path at the maximum planned aggregate
-rate; it must complete 100% of frames without growing its own queue. Do not continue if instrumentation cannot
-distinguish all four UEs or materially changes throughput/latency.
+rate; it must complete 100% of frames without growing its own queue.
 
-Measure that last clause rather than assuming it: for N=1/mild near rho=1, compare registered 30 s A/B trials
-with only minimal aggregate service counters enabled versus the full per-slot/per-queue trace profile. Full
-tracing must change scheduled service by <=5%, add no more than 10% to application p95 latency, and create no
-sender deadline misses, softnet drops, or receiver queue growth. If it fails, reduce/buffer the trace profile
+Measure instrumentation perturbation rather than assuming it: for N=2/strong near rho=1, compare registered
+30 s A/B trials with only minimal aggregate service counters versus the full per-slot/per-queue trace profile.
+Full tracing must change scheduled service by <=5%, add no more than 10% to application p95 latency, and create
+no sender deadline misses, softnet drops, or receiver queue growth. If it fails, reduce/buffer the trace profile
 and repeat D0; do not correct the result after the fact.
 
-#### D1 — service calibration
+Before any decision trial, perform the block service calibration defined below. The rho=1.30 strong/400 KiB
+cell must achieve at least 1.25 `mu_hat` of application offer, keep both UEs backlogged for a measurable interval,
+and show scheduled service pinned near `mu_hat`. Failure means **the generator did not create contention**; it
+is an invalid screen to repair, never evidence that coordination is unnecessary.
 
-For each `(N in {1,2,4}, channel in {mild,strong})` block, offer roughly 1.3x the old single-cell ceiling with
-all UEs equally backlogged for 30 s, then stop arrivals and drain. Define `mu_hat` as the median aggregate
-**new-data service rate in the queue model's byte domain** over the final 20 s in which every UE is backlogged.
-Also report scheduled first-transmission TBS as the raw PHY-side ceiling; do not use raw TBS as the denominator
-for application on-wire rho without the registered byte-domain conversion. Record per-UE shares and Jain
-fairness. If the queue does not drain below 64 KiB per UE for five consecutive seconds within 90 s, restart the
-RAN before another cell and flag the recovery failure. Calibration is repeated after each independent RAN
-restart; it is data, not an unlogged tuning step.
+#### D0.1 — block service calibration (applies to every later stage)
 
-#### D2 — minimum steady load-response fit set
+For each `(N, channel, restart block)`, offer roughly 1.3x the prior ceiling with all UEs equally backlogged for
+30 s, then stop arrivals and drain. Define `mu_hat` as the median aggregate **new-data service rate in the queue
+model's byte domain** over the final 20 s in which every UE is backlogged. Also report scheduled
+first-transmission TBS as the raw PHY-side ceiling; do not use raw TBS as the denominator for application
+on-wire rho without the registered conversion. Record per-UE shares and Jain fairness. If the queue does not
+drain below 64 KiB per UE for five consecutive seconds within 90 s, restart before another cell and flag the
+recovery failure. Repeat calibration after every independent RAN restart; it is data, not tuning.
 
-- N = 1, 2, 4;
-- channel = mild, strong;
-- aggregate load `rho = offered_on_wire / mu_hat` = **0.75, 1.00, 1.30**;
-- primary payload from section C; staggered phases;
-- two independent RAN-restart blocks, with load order randomized inside each `(N, channel)` block.
+#### DG-A — minimum scientific decision core, tier A (N=2, existing infrastructure)
 
-Equal loading alone cannot identify work-conserving redistribution, so add one registered asymmetric trial to
-each N=2 and N=4 block at aggregate rho=1.10:
+Use **strong / 400 KiB** traffic and two RAN-restart blocks. Tier A contains exactly nine scientific trials:
 
-- N=2: per-UE offered fractions of `mu_hat` are `[0.90, 0.20]`;
-- N=4: per-UE offered fractions are `[0.80, 0.10, 0.10, 0.10]`.
+| Trial(s) | Traffic/controller | Purpose |
+|---|---|---|
+| A1-A3 | equal, staggered, rho = 0.75 / 1.00 / 1.30 | locate the queue/latency knee |
+| A4 | asymmetric rho=1.10, fractions `[0.90, 0.20]` | test work-conserving redistribution |
+| A5 | staggered `rho=0.60 (20 s) -> 1.30 (30 s) -> 0.60 (60 s)` | queue growth and recovery |
+| A6-A7 | paired decentralized hard-C1 greedy and observable centralized admission | direct coordination-gap test |
+| A8-A9 | repeat that paired comparison after a full RAN restart | block-level replication |
 
-Rotate the heavy UE between the two restart blocks; do not select it after seeing performance. These eight
-share-probe trials are the minimum check that unused capacity moves to a backlogged UE and that the fitted share
-law is not merely an equal-load lookup.
+A1-A5 run in the first block with registered randomized order except that A5 runs last after a verified drain.
+Rotate which UE is heavy in the second comparison block. A6-A9 consume the same deterministic asymmetric
+demand trace and phase seed within each pair; only admission differs.
 
-This is **36 equal-load + 8 asymmetric-share = 44 steady trials**, plus 12 block calibrations. Each trial has
-10 s pre-idle, 60 s shaped traffic, then a measured drain. Report the two restart blocks as the independent
-replicates; frames are not independent replicates. Add a third block only when aggregate service differs by
->5%, p95 complete-frame latency differs by >15%, or a validity failure leaves fewer than two clean blocks.
+For this gate, **decentralized hard-C1 greedy** means: at each 50 ms tick, each UE independently admits the
+newest pending frame only when its rolling offered rate remains within `0.70 * c_hat_i(t)`; otherwise it SKIPs
+and may replace an obsolete unsent frame with the newest one. `c_hat_i` is initialized to `mu_hat/N` and then
+updated from the registered one-tick-lag causal view of that UE's own backlogged new-data service, grants, BSR,
+MCS, and delivery outcomes. It has no global queue/load signal and no freshness override. The exact estimator
+window/EWMA constant and obsolete-frame rule must be frozen in the implementation preflight, not tuned on A6.
 
-#### D3 — transfer and transient checks (only after D2 is valid)
+The paired **observable centralized admission reference is not the later ladder**. It applies the same 0.70
+aggregate margin, causal telemetry, action catalog, and demand trace, but work-conservingly reallocates unused
+UE budget to the oldest/highest-slack-risk pending update. It receives neither true instantaneous capacity nor
+future arrivals. This pair isolates the value of coordination without comparing greedy to an oracle.
 
-1. **Payload/chunk transfer:** at N=4 and rho=1.00, repeat each channel with the other two payload sizes. Two
-   restart blocks give 8 additional trials. This tests whether bytes alone suffice or the model needs a
-   payload/chunk term.
-2. **Burst/recovery:** at N=4 on mild and strong, run paired staggered and synchronized traffic with
-   `rho=0.60 for 20 s -> rho=1.30 for 30 s -> rho=0.60 for 60 s`, twice each (8 trials). Measure queue onset,
-   drain slope, hysteresis, maximum starvation interval, and time back to the pre-overload latency band.
-3. **Held-out channel:** after fitting on mild/strong, run mid15 at N=4, staggered, rho=1.00 and 1.30, two
-   restart blocks (4 trials). These cells are validation only and must not change parameters before their
-   prediction error is reported.
+From A4, call scheduler redistribution present only if, while the heavy UE is backlogged, aggregate new-data
+service remains >=95% of `mu_hat` and the heavy UE receives >=90% of the residual after serving the light UE.
+This deliberately over-offered open-loop cell identifies the plant; it is not a policy action and is not
+claimed to satisfy C1. From A6-A9, count **all registered demand arrivals** in deadline-delivery denominators:
+a SKIP, locally replaced obsolete frame, timeout, or incomplete frame is not delivered within deadline. This
+prevents a controller from manufacturing low latency by admitting almost nothing.
+From A6-A9, define a **meaningful raw coordination gap** in advance as either:
 
-Within D3, the payload-transfer and transient trials for one `(channel, restart block)` may share the same fresh
-N=4 calibration, with their order registered in advance. Mid15 has its own two restart-block calibrations.
+- >=5 percentage points improvement in the worst-UE fraction of complete frames delivered within **both**
+  0.25 s and 0.50 s; or
+- >=20% and >=50 ms reduction in worst-UE p95 complete-frame latency, or >=20% and >=100 ms reduction in the
+  maximum inter-delivery starvation interval,
 
-Initial scientific matrix: 44 steady/share + 8 payload-transfer + 8 transient + 4 held-out = **64 trials**, plus
-**18 short block calibrations** (12 in D2, 4 for mild/strong D3, 2 for mid15) and the three topology smokes.
-Conditional third repeats are targeted, not an excuse to rerun the whole matrix. This is the complete v1 scope;
-do not add clear, N=3/8, heterogeneous SNR, CARLA, or controller comparisons during execution.
+in the same direction in both restart blocks, with no >5% loss of aggregate complete-frame goodput. Always
+report continuous effects and both blocks even when this smallest-effect-of-interest threshold is missed.
+
+#### DG-A.1 — provisional N=50/100 screen before deciding whether to provision N=4
+
+Map the accepted historical N=1 single-UE measurements into the new byte domain and combine them with DG-A to
+fit the pre-registered smallest queue/share law on N=1/2. If retained N=1 logs cannot support that mapping, add
+one N=1 strong block with rho=0.75/1.00/1.30; label those three trials as required gate anchors, not optional
+model-completeness work.
+
+Run a cheap table-driven sensitivity calculation at N=50 and N=100 with equal, 20%-hot/80%-traffic, and
+synchronized-burst demand. With only N=1/2 measured, this is a **candidate-gap screen**, not validation. It must
+span both restart-block fits and these pre-registered work-conserving aggregate-service families: (S0) constant
+cell ceiling `mu_N=mu_2` for N>=2; (S1) saturating `mu_N=mu_inf+(mu_1-mu_inf)/N`, with
+`mu_inf=2*mu_2-mu_1`; and (S2) power-law efficiency `mu_N=mu_2*(N/2)^beta`, with
+`beta=log2(mu_2/mu_1)`. Pre-register `mu_phy_max` from configured PRBs/MCS and the measured byte-domain
+conversion and cap S1/S2 at that physical maximum; this is a physics bound, not a post-result fit. Reject a
+physically non-positive family rather than clipping it after seeing a gap. For each service family, use both
+ideal max-min redistribution and the measured asymmetric-share residual as allocation envelopes. After DG-B,
+widen every family by the signed N=4 prediction residual. A single point extrapolation cannot unlock N=4 or the
+full campaign. Report all large-N claims as "under the fitted model."
+
+- If the replicated N=2 comparison is below threshold and the N=50 effect does not meet threshold across
+  **all** registered sensitivity families, **STOP and report the cheap NO**. State explicitly that N=4 was not
+  measured; do not run D1-D3.
+- If a raw N=2 gap exists **or** the N=50 gap survives the full provisional sensitivity envelope, provision
+  UE3/UE4 and continue to DG-B. N=3 is not required.
+- An invalid D0/DG-A or an unidentifiable provisional model is a HOLD/repair outcome, not a GO or NO.
+
+#### DG-B — conditional scale decision core (N=4 gate holdout)
+
+After an N=4 D0 identity/instrumentation smoke, freeze the provisional model form and gate thresholds before
+opening N=4 results. Use **mild / 400 KiB** shaped by fresh rho (so rho=1.30 exceeds the measured ceiling), and
+repeat the same nine-trial structure as DG-A with asymmetric fractions `[0.80, 0.10, 0.10, 0.10]`. Rotate the
+heavy UE across restart blocks. The first N=4 block is a gate holdout; N=4 data never enter parameter fitting.
+
+The final scientific gate is scale-aware:
+
+- **GO to the remaining identification campaign** only if the meaningful gap appears in replicated raw N=4
+  results **or** remains at N=50 across the conservative envelope after incorporating N=4 prediction error.
+  A model-only large-N gap must exceed twice the relevant N=4 validation error and retain its sign under both
+  restart-block fits.
+- **STOP and report NO** if hard-C1 greedy stays below the effect threshold at N=4 and the error-inflated N=50
+  gap also stays below it. This is the inexpensive "simple decentralized admission suffices" result.
+- If the N=4 prediction error is too large to bound the large-N result, HOLD for model-form review; do not call
+  that uncertainty an RL opportunity and do not launch the rest of the matrix automatically.
+
+#### D1 — N=1/2 model-fit completion (only after DG-B GO)
+
+Complete the equal-load rho=0.75/1.00/1.30 cells for N=1/2 on mild/strong, two restart blocks each. Add the
+N=2 asymmetric rho=1.10 share probe in every block and rotate the heavy UE. This is 28 identification trials in
+the original matrix; four DG-A steady/share cells already count, leaving **24** after the decision gate. Fit
+service/share/queue parameters only from these N=1/2 blocks.
+
+#### D2 — N=4 held-out scale validation (never fit)
+
+Run equal-load rho=0.75/1.00/1.30 plus the asymmetric share probe on N=4 for mild/strong in two restart blocks.
+This is 16 original identification trials; four DG-B steady/share cells already count, leaving **12**. Score
+predictions on the already-opened gate block and the untouched confirmatory block separately. Do not revise
+parameters after seeing either N=4 block; a revised model requires a newly registered validation block.
+
+#### D3 — model-completeness transfer checks (nice-to-have until the direction survives)
+
+1. **Payload/chunk transfer:** N=4, rho=1.00, both channels, the other two payload sizes, two blocks (8 trials).
+2. **Burst/recovery:** N=4 mild/strong, paired staggered/synchronized
+   `rho=0.60 (20 s) -> 1.30 (30 s) -> 0.60 (60 s)`, twice each (8 trials). One DG-B mild burst counts, leaving
+   seven.
+3. **Held-out channel:** mid15, N=4, staggered rho=1.00/1.30, two blocks (4 trials).
+
+D3 therefore has **19 remaining trials** after the gate. Payload transfer, synchronized-arrival refinement,
+mid15, and second-block completeness are not needed for the initial go/no-go; they are run only after DG-B GO
+to make the surrogate defensible. Across D1-D3, the post-gate remainder is exactly **24 + 12 + 19 = 55
+identification trials**. Conditional third repeats remain targeted; do not add clear, N=3/8, heterogeneous SNR,
+CARLA, or learning/controller-ladder experiments during measurement.
+
+#### D4 — wall-clock planning envelope (not measured timing)
+
+These are planning ranges, not promises. They assume 10 s pre-idle + 60 s traffic + 30-90 s drain for a steady
+trial, 120-210 s for a burst trial including pre-idle/drain, 60-120 s for calibration+drain, and **10-15 min per
+full RAN restart/reattach/identity check**. Replace the restart allowance with the observed D0 value before
+authorizing subsequent stages; analysis/reporting time is included below.
+
+| Stage | Minimum contents | Planning wall clock | Commitment |
+|---|---|---:|---|
+| D0 + DG-A | existing N=2 smoke, 2 calibrations/restart blocks, 9 trials, provisional fit/N=50 screen | **50-80 min** | minimum cheap decision |
+| conditional DG-B | N=4 smoke, 2 calibrations/restart blocks, 9 trials, error-inflated N=50 recheck | **60-95 min**, plus one-time UE3/4 setup | minimum scale-aware decision |
+| D1 remainder | 24 N=1/2 fit trials, approximately 7 fresh restart/calibration blocks | **2.3-3.6 h** | model fit, only after GO |
+| D2 remainder | 12 N=4 validation trials, approximately 3 fresh restart/calibration blocks | **1.2-1.8 h** | confirmatory scale bound |
+| D3 remainder | 19 payload/transient/mid15 trials, approximately 6 restart/calibration blocks | **2.2-3.0 h** | model-completeness nice-to-have |
+
+Thus a cheap NO should cost roughly one hour on the existing deployment; a scale-aware gate roughly two to
+three hours including N=4; and the remaining full campaign roughly six to eight additional hours. Any manual
+debugging, new UE3/UE4 container creation, failed validity cells, or conditional third block is outside these
+ranges and must be reported separately rather than hidden as experiment runtime.
 
 ### E. Required logging and schemas
 
@@ -2245,7 +2359,9 @@ frame/slot. Preserve raw logs and emit these aligned tables:
 2. **Application frame table (one row per scheduled frame per UE):** scheduled capture time, actual enqueue and
    send start/end, payload and on-wire bytes, chunk count, local lateness/drop/error, receiver first/last chunk,
    reassembly completion/timeout, missing/duplicate chunks, complete-frame latency, and deadline indicators for
-   several descriptive budgets. Keep deadline choice out of the queue-model fit.
+   several descriptive budgets. For decision trials also log demand arrival, pending/replaced frame, controller
+   label, `c_hat_i`, C1 budget, admit/SKIP reason, and eventual inter-delivery interval. Keep deadline choice out
+   of the queue-model fit.
 3. **Chunk/pcap evidence:** UE/frame/chunk ID, byte size, sender and receiver timestamps, source IP/port, duplicate
    and checksum status. This distinguishes radio queueing from UDP reassembly loss.
 4. **UE queue telemetry:** raw `NRUE_MAC_RLC_BUFFER_STATUS` and `NRUE_MAC_BSR_STATUS` per UE/LCID/LCG, including
@@ -2260,7 +2376,8 @@ frame/slot. Preserve raw logs and emit these aligned tables:
 7. **Causal controller-view table:** at every 50 ms boundary, record both event time and the time each queue,
    grant, achieved-rate, SNR/MCS, and delivery summary would actually have become available to a controller.
    Emit the registered one-tick-lag observation separately from omniscient offline telemetry. Model fitting may
-   use raw state to identify the plant; every later decentralized baseline must use only this causal view.
+   use raw state to identify the plant; DG-A/DG-B and every later baseline must use only this causal view. Log a
+   hash of the paired demand trace and every admission decision so the hard-C1/central comparison is auditable.
 
 Primary derived metrics by UE and aggregate:
 
@@ -2277,31 +2394,37 @@ Primary derived metrics by UE and aggregate:
 A trial is invalid, not a bad performance result, if any of these holds:
 
 - wrong UE count, detach/reconnect, duplicate identity/IP/RNTI, or missing per-UE application/queue/grant logs;
-- achieved aggregate or any per-UE offered rate differs from target by >2% after warm-up, or sender-local drops /
-  blocking explain the deficit;
+- in open-loop cells, achieved aggregate or any per-UE offered rate differs from target by >2% after warm-up,
+  or sender-local drops/blocking explain the deficit; in closed-loop decision cells, the registered **demand**
+  trace must match target while admitted rate, SKIPs, and replacements remain measured policy outcomes;
 - observed channel is off rung (median PUSCH SNR differs by >2 dB or median MCS by >2 indices from the registered
   rung) without a documented channel-control explanation;
 - UE-decoded versus gNB grant/TBS reconciliation differs by >5% for any RNTI;
 - non-OAI sender/receiver control is not lossless at maximum rate, DN receiver queue grows, or host CPU/softnet
   saturation overlaps the measured interval;
 - a prior cell's queue was not drained/reset before this cell.
+- paired decision trials do not have identical registered demand/phase hashes, a controller reads telemetry
+  before its logged availability time, or the implemented C1 budget/estimator differs from the frozen preflight.
 
 Retransmissions and UDP partial frames are **measurements**, not automatic failures, when all instrumentation
 gates pass. Report them and let the fitted model decide whether an explicit residual loss term is needed.
 
 ### G. Fit/validation acceptance before the coordination ladder
 
-Pre-register restart block A from D1/D2 and one D3 payload-transfer block per channel as the fitting set.
-Evaluate without refitting on complete restart block B, the D3 transient cells, and then the untouched mid15
-cells. A block swap may be reported as sensitivity only; it is not a second independent success. After the
-acceptance decision, a final deployment model may be refit on all valid mild/strong identification data while
-mid15 remains untouched. At minimum report:
+The scientific go/no-go in DG-A/DG-B precedes model-completeness acceptance. If it says GO, fit parameters on
+N=1/2 D1 data only. Use restart block A for fitting and block B as a within-scale sensitivity check; a block
+swap may be reported but is not an independent success. Evaluate N-scaling without refitting on the registered
+N=4 gate block and then on the untouched N=4 confirmatory block. D3 mid15 remains a channel holdout. After all
+predictions are reported, a final deployment model may be refit on valid N=1/2 mild/strong data, but N=4 and
+mid15 remain validation-only. At minimum report:
 
 - aggregate service-ceiling MAPE and per-UE service-share MAPE;
 - queue trajectory error and growth/drain-slope error;
 - complete-frame latency p50/p95 prediction error by N/load/payload;
 - complete-delivery/deadline calibration and fairness/starvation error;
 - residual plots versus N, rho, payload/chunks, SNR/MCS, and phase synchronization.
+- N=50/100 sensitivity across every registered large-N service/share family, with the N=4 residual propagated;
+  label these curves model-based and never attach measurement confidence language to them.
 
 Proposed pass targets for review: aggregate service MAPE <=10%, per-UE service MAPE <=15%, p50 latency within
 `max(25 ms, 15%)`, p95 within `max(50 ms, 20%)`, queue-trajectory NRMSE <=15% of the observed p95 queue range,
@@ -2316,10 +2439,11 @@ experiment directory must contain the resolved config, manifests, raw applicatio
 aligned 50 ms and 1 s tables, processed metrics, model-fit parameters, held-out predictions, figures, and a
 SHA-256 artifact manifest. Preserve failed/invalid trials; replacements get new run IDs.
 
-Required decision sequence remains:
+Required decision sequence is now:
 
-**accept this spec -> implement + dry-run/preflight review -> D0 -> D1/D2 -> fit -> D3 held-out validation ->
-review the queue model -> build the four-rung non-learning coordination ladder.**
+**accept v1.1 -> implement + dry-run/preflight review -> D0/DG-A on existing N=2 -> provisional N=50/100
+screen -> cheap NO or conditional DG-B N=4 -> scale-aware NO or GO -> D1 N=1/2 fit -> D2 N=4 validation ->
+D3 completeness -> review the queue model -> build the four-rung non-learning coordination ladder.**
 
 No RL implementation or training is authorized by this measurement, even if coordination-looking behavior is
 observed. Learning is reconsidered only after the validated queue model and simple ladder leave a material,
@@ -2367,3 +2491,17 @@ codex: revise the spec with the decision gate + wall-clock + min-decisive subset
 4. **Decision gate spans scale:** go/no-go = coordination gap at N=4 (raw) OR in the **N=50 sim-extrapolation** of
    the fitted model. A gap absent at N=2-4 may emerge at scale; the (cheap, table-driven) large-N sim is how we
    check without 50 radios. Do NOT kill the direction on raw small-N alone without the at-scale extrapolation.
+
+## 2026-08-13 — codex v1.1 revision response (DESIGN ONLY; no OAI run)
+
+The measurement spec above is revised accordingly. The apparent N=2/N=4 sequencing conflict is resolved with
+two nine-trial gates: DG-A starts on the existing N=2 containers under strong/400 KiB load; only a replicated
+raw gap or a robust provisional N=50 gap authorizes DG-B on N=4/mild. DG-B then supplies the raw scale result
+and the first N=4 model-error bound. A final GO requires a raw N=4 gap or an N=50 gap that survives that error.
+
+The minimum decision work is D0 + DG-A (about 50-80 min); DG-B is conditional (another 60-95 min plus UE3/4
+setup). The original 64-cell identification design remains intact, but nine gate identification cells count
+toward it, leaving exactly 55 after a GO: 24 N=1/2 fit cells, 12 N=4 validation cells, and 19 D3 completeness
+cells. Payload transfer, synchronized-arrival refinement, mid15, and full second-block completeness are now
+explicitly deferred. All prior instrumentation, byte-domain, causal-observation, traffic-generation, and
+invalid-versus-bad-performance gates remain in force.
