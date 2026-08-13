@@ -132,16 +132,19 @@ and gates remain separate until that experiment passes.
 `run_advisor_policy_corpus.py` composes the read-only advisor traffic/blocker
 logic with the fusion collector. The collector is the sole 20 Hz world ticker,
 all traffic shares TM port 8010, and the collector uses observe-existing mode.
-Version 4 matches the model-training sensor contract: 10 Hz detection,
-1280x720, camera/radar FOV 120 degrees, 200k radar pps, legacy training
-rasterizer radius 4, temporal window 2, NMS-2, and top-120. Policy/vehicle
-control remains 20 Hz. The safe UI-authored loop is stored as
+Version 4 requests the model-training arguments: 10 Hz detection, 1280x720,
+camera/radar FOV 120 degrees, 200k radar pps, legacy training rasterizer radius
+4, temporal window 2, NMS-2, and top-120. Policy/vehicle control remains 20 Hz.
+A later observed-density audit found that this is **not** an exact realized
+sensor contract: CARLA budgets radar returns from the 20 Hz physics delta, so
+each 10 Hz v4 tensor contains about half the retained 10 Hz training reference.
+The safe UI-authored loop is stored as
 `routes/town10hd_opt_advisor_safe_perimeter_loop_v3.json`; its companion CSV is
 the deterministic ego/NPC controller input. The derived wrappers preserve the
 advisor sources as read-only, use one-shot reactive crossings only in the
 pedestrian family, and never take a second world-ticker role.
 
-Validate and smoke with:
+The historical v4 validation/smoke commands were:
 
 ```bash
 /home/shr_aisvcs/workarea/carla_0_10_env/carla_0_10_venv/bin/python3 \
@@ -155,11 +158,18 @@ Validate and smoke with:
   --mode smoke
 ```
 
+Do **not** launch those v4 commands again unchanged. The next collection must be
+versioned separately and pass the observed radar-density smoke gate documented
+in `EVALUATION_CONTRACT_DECISION.md`.
+
 The final v4 smoke is
 `experiments/policy_corpus_advisor_rich_v4/20260813_012506_smoke` and passed all perception, fast-dwell, clock, traffic,
 and cleanup gates. The resulting 24-run batch is `20260813_014501_full`, but
 verification `20260813_023541` is `FAIL_QUARANTINED`: vehicle replay coverage
 is 26.14% versus 45.18%, pedestrian replay coverage is 41.41% versus 50%, and
-three run-level pedestrian validity/match gates failed. Do not run freshness,
-the controller ladder, or RL from this batch. See `collab/REVIEW_NOTES.md` for
-the score-threshold diagnostic and exact-fast pedestrian-collision audit.
+three run-level pedestrian validity/match gates failed. Desk analysis then
+confirmed a global input drift: median projected radar density is 9,721/frame,
+only 52.29% of the retained 18,591.5/frame reference. Do not run freshness, the
+controller ladder, or RL from this batch. See `EVALUATION_CONTRACT_DECISION.md`
+for the PR/range analysis, replacement acceptance contract, and re-collect
+verdict; `collab/REVIEW_NOTES.md` retains the chronological record.

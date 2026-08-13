@@ -361,3 +361,33 @@ confidence-calibration component on the richer scenes, but it does not authorize
 The exact-fast pedestrian impact independently requires broader collision monitoring/shielding than the current
 NPC-only monitor. Freshness, the reward-v5 baseline ladder, and RL remain blocked pending joint review; no
 artifact from this batch may be used as a verified replay root.
+
+## 16. Evaluation-contract desk audit — 2026-08-12 local / 2026-08-13 UTC
+
+The intervention's desk-only test is complete in
+`data_collection/EVALUATION_CONTRACT_DECISION.md`; no CARLA run was launched.
+`pcarv4_fast_te01` was excluded before analysis. Per-class maximum-validation-
+F1 score thresholds are 0.195 pedestrian and 0.115 vehicle, confirming that a
+single inherited 0.20 threshold is not a valid operating contract. However,
+the threshold correction does not clear v4: at the decoder floor 0.05, held-out
+test recall at <=12 m is only 72.32% pedestrian and 58.33% vehicle.
+
+The decisive audit found a realized sensor-contract drift across the full
+batch. V4's median valid projected radar density is 9,721/frame, versus
+18,591.5/frame in the retained on-contract diagnostic. Although both request
+200k pps, CARLA 0.10 budgets the measurement from the 20 Hz physics delta; the
+10 Hz `sensor_tick` skips alternate emissions without integrating their radar
+point budget. V4 therefore supplies about 52.29% of the training-reference
+density to both frames in the temporal window.
+
+V4 remains quarantined and may not be freshness-rescored or used by the
+controller ladder/RL. The next corpus must use a new version and first pass a
+tiny observed-density smoke: every run median within +/-10% of 18,591.5
+(16,732-20,451), while retaining the separate 20 Hz policy-control and 10 Hz
+detection clocks. Thresholds must then be re-selected per class on complete
+validation trajectories, frozen before test, and used for direct actor-origin
+<=12 m test gates of at least 80% pedestrian and 90% vehicle. Report
+trajectory-grouped confidence intervals and all six range bins; full 0-25 m
+coverage is descriptive. The new collection is justified by global radar
+density drift, not by the single invalid collision run or by chasing the old
+flat coverage gate.

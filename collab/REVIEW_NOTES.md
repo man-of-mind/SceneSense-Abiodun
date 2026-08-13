@@ -1749,3 +1749,35 @@ doesn't match this detector's actual operating confidence. **Do NOT authorize an
    re-score + baseline ladder re-run (reward v5). Only re-collect if step 1 shows a genuine contract drift.
 Deliver a short `EVALUATION_CONTRACT_DECISION.md` with the PR curves, coverage-vs-range, chosen threshold, and
 the accept/re-collect verdict. This breaks the fail-rerun loop with analysis, not more CARLA time.
+
+## 2026-08-12 local / 2026-08-13 UTC — desk evaluation-contract verdict (codex): RE-COLLECT, real radar-density drift
+
+The requested desk-only analysis is complete; **no CARLA process was launched**. It used the immutable
+`policy_corpus_advisor_rich_v4/20260813_014501_full` batch, excluded only the independently invalid
+`pcarv4_fast_te01`, selected score thresholds on whole validation trajectories, and held test trajectories out.
+The complete decision and reproducible artifacts are in
+`data_collection/EVALUATION_CONTRACT_DECISION.md` and the batch's
+`evaluation_contract/20260813_035529_desk_v4/` directory.
+
+The flat 0.20 contract is indeed wrong: maximum-validation-F1 operating points differ by class (**0.195
+pedestrian, 0.115 vehicle**). However, changing the threshold does **not** make this corpus acceptable. At those
+thresholds, cumulative <=12 m recall is only **53.33%/61.35% pedestrian** and **22.64%/29.17% vehicle** on
+validation/test. Even at the decoder floor 0.05, test <=12 m recall is only **72.32% pedestrian** and **58.33%
+vehicle**, below the ~80%/~90% on-contract expectations. The 0-5 m pedestrian bin is strong, but degradation
+already appears inside 5-12 m; it is not confined to far/occluded objects.
+
+The decisive contract audit found a real input drift. Across 9,120 saved corpus frames the median valid
+projected radar count is **9,721/frame**, only **52.29%** of the retained diagnostic's **18,591.5/frame**. Both
+runs requested 200k pps. The reference advanced the world and sensor together at 10 Hz; v4 advances physics at
+20 Hz and emits sensors at 10 Hz. CARLA 0.10 budgets radar points from the 20 Hz fixed delta (the observed v4
+ceiling is exactly 200,000/20 = 10,000), while `sensor_tick=0.1` skips the intervening emission rather than
+integrating its points. Thus every v4 radar tensor—and its two-frame history—is approximately half-density.
+Requested-config validation missed this because it did not gate observed returns.
+
+**Decision:** quarantine remains. Do not freshness-rescore, rerun baselines, or train RL on v4. The next
+collection is justified by this global sensor drift, not by `fast_te01` or by chasing the inherited gate. First
+fix the dual-clock radar sampling and run a tiny smoke with an observed-density gate: each run median within
++/-10% of 18,591.5 (16,732-20,451). On the corrected validation set, re-select per-class thresholds by maximum
+F1, freeze them before test, and gate direct actor-origin <=12 m test recall at >=80% pedestrian / >=90%
+vehicle, with trajectory-grouped CIs reported. Full 0-25 m and six-bin range coverage remain diagnostics.
+Traffic realism remains a valid 24/24 result.
