@@ -42,6 +42,30 @@ class ConfigContractTest(unittest.TestCase):
         self.assertIn("DG-B", config["authorization_boundary"]["forbidden"])
         self.assertEqual([row["id"] for row in config["trials"]], [f"A{i}" for i in range(1, 10)])
 
+    def test_strong_channel_has_explicit_models_for_both_ues(self) -> None:
+        runner = Runner(DEFAULT_CONFIG, Path("/tmp/not-created"), dry_run=True)
+        channel_path = runner.paths["oai_ran_conf"] / runner.config["radio"]["channel_config"]
+        channel = channel_path.read_text(encoding="utf-8")
+        for index in range(2):
+            self.assertIn(f'model_name     = "rfsimu_channel_enB{index}"', channel)
+            self.assertIn(f'model_name     = "rfsimu_channel_ue{index}"', channel)
+
+    def test_attach_smoke_mode_is_explicit_and_cannot_be_negative(self) -> None:
+        runner = Runner(
+            DEFAULT_CONFIG,
+            Path("/tmp/not-created"),
+            dry_run=True,
+            attach_smoke_repeats=3,
+        )
+        self.assertEqual(runner.attach_smoke_repeats, 3)
+        with self.assertRaises(ValueError):
+            Runner(
+                DEFAULT_CONFIG,
+                Path("/tmp/not-created"),
+                dry_run=True,
+                attach_smoke_repeats=-1,
+            )
+
     def test_dry_run_writes_completion_without_oai(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             output = Path(temp) / "dry"
@@ -84,4 +108,3 @@ class DecisionContractTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

@@ -42,6 +42,21 @@ after one of these files exists:
 `COMPLETED.json` always says `next_stage_launched=false`. Even a candidate GO requires human review and a
 separate authorization before DG-B.
 
+## Attach-only reliability smoke
+
+After an attachment-path repair, validate it without spending the DG-A runtime:
+
+```bash
+sudo -v
+rl_agent/multiue_oai/launch_dg_a_detached.sh --attach-smoke-repeats 3
+```
+
+This mode performs three cold gNB/two-UE RAN starts on strong AWGN while keeping the existing core deployment.
+Each repetition requires both explicit per-UE uplink channel models, both expected tunnel/IP mappings, three
+stability samples with successful ext-DN pings, clean softmodem teardown, and no RFsim model fallback. It writes
+the same progress, summary, and terminal sentinels as DG-A, but cannot launch D0, A1-A9, DG-A.1, or any later
+stage. A passing smoke still requires human review before a separate full DG-A launch.
+
 ## Frozen comparison
 
 - Estimator window: 1.0 s.

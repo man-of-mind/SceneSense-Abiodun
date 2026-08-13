@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Launch DG-A + DG-A.1 as one detached, self-logging stage. Never chains DG-B.
+# Launch an attach-only smoke or DG-A + DG-A.1 as a detached, self-logging stage.
+# Neither mode chains DG-B.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -9,10 +10,11 @@ CONFIG="${SCRIPT_DIR}/configs/dg_a_v1.yaml"
 OUTPUT_ROOT="${SCRIPT_DIR}/experiments"
 DRY_RUN=0
 PREFLIGHT_ONLY=0
+ATTACH_SMOKE_REPEATS=0
 RUN_ID=""
 
 usage() {
-  echo "Usage: $0 [--dry-run|--preflight-only] [--run-id ID] [--config PATH] [--output-root DIR]"
+  echo "Usage: $0 [--dry-run|--preflight-only|--attach-smoke-repeats N] [--run-id ID] [--config PATH] [--output-root DIR]"
 }
 
 while [[ $# -gt 0 ]]; do
@@ -24,6 +26,10 @@ while [[ $# -gt 0 ]]; do
     --preflight-only)
       PREFLIGHT_ONLY=1
       shift
+      ;;
+    --attach-smoke-repeats)
+      ATTACH_SMOKE_REPEATS="$2"
+      shift 2
       ;;
     --run-id)
       RUN_ID="$2"
@@ -49,13 +55,22 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-if [[ "${DRY_RUN}" -eq 1 && "${PREFLIGHT_ONLY}" -eq 1 ]]; then
-  echo "choose at most one of --dry-run and --preflight-only" >&2
+if [[ ! "${ATTACH_SMOKE_REPEATS}" =~ ^[0-9]+$ ]]; then
+  echo "attach smoke repeat count must be a non-negative integer" >&2
+  exit 2
+fi
+MODE_COUNT=$((DRY_RUN + PREFLIGHT_ONLY + (ATTACH_SMOKE_REPEATS > 0 ? 1 : 0)))
+if [[ "${MODE_COUNT}" -gt 1 ]]; then
+  echo "choose at most one of --dry-run, --preflight-only, and --attach-smoke-repeats" >&2
   exit 2
 fi
 
 if [[ -z "${RUN_ID}" ]]; then
-  RUN_ID="dg_a_$(date +%Y%m%d_%H%M%S)"
+  if [[ "${ATTACH_SMOKE_REPEATS}" -gt 0 ]]; then
+    RUN_ID="attach_smoke_$(date +%Y%m%d_%H%M%S)"
+  else
+    RUN_ID="dg_a_$(date +%Y%m%d_%H%M%S)"
+  fi
 fi
 if [[ ! "${RUN_ID}" =~ ^[A-Za-z0-9._-]+$ ]]; then
   echo "run id must contain only letters, digits, dot, underscore, or dash" >&2
@@ -88,6 +103,9 @@ fi
 if [[ "${PREFLIGHT_ONLY}" -eq 1 ]]; then
   RUNNER_ARGS+=(--preflight-only)
 fi
+if [[ "${ATTACH_SMOKE_REPEATS}" -gt 0 ]]; then
+  RUNNER_ARGS+=(--attach-smoke-repeats "${ATTACH_SMOKE_REPEATS}")
+fi
 
 cd "${ABIODUN_DIR}"
 setsid nohup flock -n "${LOCK_PATH}" "${PYTHON}" "${RUNNER_ARGS[@]}" \
@@ -99,7 +117,11 @@ if ! kill -0 "${LAUNCH_PID}" 2>/dev/null && [[ ! -e "${RUN_DIR}/COMPLETED.json" 
   exit 1
 fi
 
-echo "DG-A detached launch accepted."
+if [[ "${ATTACH_SMOKE_REPEATS}" -gt 0 ]]; then
+  echo "Attach-only smoke detached launch accepted (${ATTACH_SMOKE_REPEATS} cold repetitions; D0/DG-A disabled)."
+else
+  echo "DG-A detached launch accepted."
+fi
 echo "pid=${LAUNCH_PID}"
 echo "run_dir=${RUN_DIR}"
 echo "launcher_log=${LAUNCH_LOG}"

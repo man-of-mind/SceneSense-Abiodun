@@ -112,12 +112,16 @@ class Runner:
         *,
         dry_run: bool = False,
         preflight_only: bool = False,
+        attach_smoke_repeats: int = 0,
     ) -> None:
         self.config_path = config_path.resolve()
         self.config = load_config(self.config_path)
         self.output_dir = output_dir.resolve()
         self.dry_run = dry_run
         self.preflight_only = preflight_only
+        self.attach_smoke_repeats = int(attach_smoke_repeats)
+        if self.attach_smoke_repeats < 0:
+            raise ValueError("attach_smoke_repeats cannot be negative")
         self.paths = {
             name: resolve(ROOT, value) if name != "python" else Path(value)
             for name, value in self.config["paths"].items()
@@ -223,6 +227,11 @@ class Runner:
             },
             "authorization_boundary": self.config["authorization_boundary"],
             "dry_run": self.dry_run,
+            "preflight_only": self.preflight_only,
+            "attach_smoke_repeats": self.attach_smoke_repeats,
+            "channel_config_sha256": sha256(
+                self.paths["oai_ran_conf"] / self.config["radio"]["channel_config"]
+            ),
         }
         atomic_json(self.output_dir / "run_manifest.json", manifest)
         self._materialize_ue_config()
@@ -233,10 +242,22 @@ class Runner:
         base_path = self.paths["oai_ran_conf"] / self.config["radio"]["ue_base_config"]
         channel_path = self.paths["oai_ran_conf"] / self.config["radio"]["channel_config"]
         base = base_path.read_text(encoding="utf-8")
+        channel = channel_path.read_text(encoding="utf-8")
+        expected_models = {
+            *(f'rfsimu_channel_enB{index}' for index in range(int(self.config["radio"]["ue_count"]))),
+            *(f'rfsimu_channel_ue{index}' for index in range(int(self.config["radio"]["ue_count"]))),
+        }
+        missing_models = sorted(
+            model for model in expected_models if f'model_name     = "{model}"' not in channel
+        )
+        if missing_models:
+            raise StageFailure(
+                f"channel config lacks explicit per-UE RFsim models: {missing_models}"
+            )
         marker = '@include "channelmod_rfsimu_LEO_satellite.conf"'
         if marker not in base:
             raise StageFailure(f"expected channel include missing from {base_path}")
-        resolved = base.replace(marker, channel_path.read_text(encoding="utf-8"))
+        resolved = base.replace(marker, channel)
         runtime = self.output_dir / "runtime" / "ue.multi2.awgn_strong.conf"
         runtime.parent.mkdir(parents=True, exist_ok=True)
         runtime.write_text(resolved, encoding="utf-8")
@@ -469,6 +490,120 @@ class Runner:
                 if handle is not None:
                     handle.close()
         self.ran_active = False
+
+    def _wait_for_cold_ran(self, timeout_s: float = 20.0) -> None:
+        """Verify a repetition starts without old softmodems or tunnel devices."""
+        deadline = time.monotonic() + timeout_s
+        expected_ifaces = [str(row["iface"]) for row in self.config["radio"]["expected_tunnels"]]
+        last_state: dict = {}
+        while time.monotonic() < deadline:
+            processes = {
+                name: self.command(["pgrep", "-x", name], check=False).stdout.splitlines()
+                for name in ("nr-softmodem", "nr-uesoftmodem")
+            }
+            interfaces = {
+                iface: self.command(["ip", "link", "show", iface], check=False).returncode == 0
+                for iface in expected_ifaces
+            }
+            last_state = {"processes": processes, "interfaces_present": interfaces}
+            if not any(processes.values()) and not any(interfaces.values()):
+                return
+            time.sleep(1)
+        raise StageFailure(f"RAN did not return to a cold state: {last_state}")
+
+    def _attach_stability_evidence(self, block: str) -> dict:
+        samples = []
+        for sample_index in range(3):
+            if self.gnb_proc.poll() is not None or self.ue_proc.poll() is not None:
+                raise StageFailure(f"{block} softmodem exited during attach stability hold")
+            per_ue = []
+            for ue in self.config["radio"]["expected_tunnels"]:
+                address = self.command(
+                    ["ip", "-4", "-br", "addr", "show", str(ue["iface"])], check=False
+                )
+                ping = self.command(
+                    [
+                        "ping",
+                        "-I",
+                        str(ue["iface"]),
+                        "-c",
+                        "3",
+                        "-W",
+                        "2",
+                        str(self.config["radio"]["ext_dn_ip"]),
+                    ],
+                    check=False,
+                )
+                valid_address = address.returncode == 0 and str(ue["ip"]) in address.stdout
+                if not valid_address or ping.returncode != 0:
+                    raise StageFailure(
+                        f"{block} lost UE{ue['ue_id']} during stability hold: "
+                        f"address_ok={valid_address}, ping_rc={ping.returncode}"
+                    )
+                per_ue.append(
+                    {
+                        "ue_id": int(ue["ue_id"]),
+                        "iface": str(ue["iface"]),
+                        "ip": str(ue["ip"]),
+                        "address": address.stdout.strip(),
+                        "ping_pass": True,
+                    }
+                )
+            samples.append({"sample_index": sample_index, "ues": per_ue})
+            if sample_index < 2:
+                time.sleep(3)
+        return {"block": block, "samples": samples}
+
+    def run_attach_smoke(self) -> dict:
+        """Run only repeated cold two-UE attachment; never launch D0 or DG-A."""
+        if self.attach_smoke_repeats <= 0:
+            raise StageFailure("attach-only mode requires a positive repeat count")
+        repetitions = []
+        for repeat in range(1, self.attach_smoke_repeats + 1):
+            block = f"ATTACH_R{repeat}"
+            self._wait_for_cold_ran()
+            started = time.monotonic()
+            self.start_ran(block)
+            evidence = self._attach_stability_evidence(block)
+            evidence["attach_and_hold_elapsed_s"] = time.monotonic() - started
+            self.stop_ran()
+            self._wait_for_cold_ran()
+            gnb_log = self.output_dir / "blocks" / block / "gnb_stdout.log"
+            gnb_text = gnb_log.read_text(encoding="utf-8", errors="replace")
+            missing_model_lines = [
+                line for line in gnb_text.splitlines() if "Model rfsimu_channel_" in line and "not found" in line
+            ]
+            if missing_model_lines:
+                raise StageFailure(f"{block} used RFsim model fallback: {missing_model_lines}")
+            evidence["explicit_uplink_models_seen"] = {
+                name: f"Random channel {name} in rfsimulator activated" in gnb_text
+                for name in ("rfsimu_channel_ue0", "rfsimu_channel_ue1")
+            }
+            if not all(evidence["explicit_uplink_models_seen"].values()):
+                raise StageFailure(
+                    f"{block} did not activate both explicit uplink models: "
+                    f"{evidence['explicit_uplink_models_seen']}"
+                )
+            repetitions.append(evidence)
+            atomic_json(
+                self.output_dir / "attach_smoke_partial.json",
+                {"requested_repeats": self.attach_smoke_repeats, "passed": repetitions},
+            )
+            self.event("attach_smoke_repeat_pass", repeat=repeat, evidence=evidence)
+        summary = {
+            "schema_version": "scenesense.multiue_oai.attach_smoke.v1",
+            "status": "ATTACH_SMOKE_PASS",
+            "decision": "DG_A_NOT_RUN_AWAIT_HUMAN_REVIEW",
+            "requested_repeats": self.attach_smoke_repeats,
+            "passed_repeats": len(repetitions),
+            "all_passed": len(repetitions) == self.attach_smoke_repeats,
+            "repetitions": repetitions,
+            "d0_launched": False,
+            "dg_a_launched": False,
+            "next_stage_launched": False,
+        }
+        atomic_json(self.output_dir / "results_summary.json", summary)
+        return summary
 
     def _ext_dn_pid(self) -> str:
         return self.command(
@@ -1245,12 +1380,22 @@ class Runner:
 
     def run(self) -> int:
         self.output_dir.mkdir(parents=True, exist_ok=False)
-        self.event("stage_start", stage=self.config["stage"], pid=os.getpid())
+        run_mode = "attach_smoke" if self.attach_smoke_repeats else "dg_a"
+        self.event(
+            "stage_start",
+            stage=self.config["stage"],
+            run_mode=run_mode,
+            attach_smoke_repeats=self.attach_smoke_repeats,
+            pid=os.getpid(),
+        )
         def interrupted(signum: int, _frame: object) -> None:
             raise StageFailure(f"received signal {signum}")
 
         signal.signal(signal.SIGTERM, interrupted)
         signal.signal(signal.SIGINT, interrupted)
+        completion: Optional[dict] = None
+        completion_event: Optional[dict] = None
+        failure: Optional[BaseException] = None
         try:
             self.preflight()
             if self.dry_run or self.preflight_only:
@@ -1265,43 +1410,75 @@ class Runner:
                         "next_stage_launched": False,
                     },
                 )
-                atomic_json(
-                    self.output_dir / "COMPLETED.json",
-                    {
-                        "status": mode_status,
-                        "completed_at": utc_now(),
-                        "oai_started": False,
-                        "summary": str(self.output_dir / "results_summary.json"),
-                        "next_stage_launched": False,
-                    },
-                )
-                return 0
-            self.start_core()
-            self.run_dg_a()
-            summary_path = self.output_dir / "results_summary.json"
-            if not summary_path.exists():
-                raise StageFailure("DG-A.1 analyzer did not write results_summary.json")
-            summary = json.loads(summary_path.read_text())
-            atomic_json(
-                self.output_dir / "COMPLETED.json",
-                {
-                    "status": "DG_A_COMPLETE_HUMAN_REVIEW_REQUIRED",
-                    "decision": summary.get("decision"),
+                completion = {
+                    "status": mode_status,
                     "completed_at": utc_now(),
-                    "summary": str(summary_path),
+                    "oai_started": False,
+                    "summary": str(self.output_dir / "results_summary.json"),
                     "next_stage_launched": False,
-                },
-            )
-            self.event("stage_complete", decision=summary.get("decision"))
-            return 0
+                }
+                completion_event = {"decision": "NOT_RUN", "run_mode": run_mode}
+            else:
+                self.start_core()
+                if self.attach_smoke_repeats:
+                    summary = self.run_attach_smoke()
+                    completion = {
+                        "status": "ATTACH_SMOKE_COMPLETE_HUMAN_REVIEW_REQUIRED",
+                        "decision": summary["decision"],
+                        "completed_at": utc_now(),
+                        "summary": str(self.output_dir / "results_summary.json"),
+                        "d0_launched": False,
+                        "dg_a_launched": False,
+                        "next_stage_launched": False,
+                    }
+                    completion_event = {
+                        "decision": summary["decision"],
+                        "run_mode": "attach_smoke",
+                    }
+                else:
+                    self.run_dg_a()
+                    summary_path = self.output_dir / "results_summary.json"
+                    if not summary_path.exists():
+                        raise StageFailure("DG-A.1 analyzer did not write results_summary.json")
+                    summary = json.loads(summary_path.read_text())
+                    completion = {
+                        "status": "DG_A_COMPLETE_HUMAN_REVIEW_REQUIRED",
+                        "decision": summary.get("decision"),
+                        "completed_at": utc_now(),
+                        "summary": str(summary_path),
+                        "next_stage_launched": False,
+                    }
+                    completion_event = {
+                        "decision": summary.get("decision"),
+                        "run_mode": "dg_a",
+                    }
         except BaseException as exc:
-            failure = failure_record(exc, status="FAILED_HOLD")
-            atomic_json(self.output_dir / "results_summary.json", failure)
-            atomic_json(self.output_dir / "FAILED.json", failure)
-            self.event("stage_failed", error_type=type(exc).__name__, error=str(exc))
-            return 1
+            failure = exc
         finally:
-            self.cleanup()
+            try:
+                self.cleanup()
+            except BaseException as cleanup_exc:
+                if failure is None:
+                    failure = cleanup_exc
+                else:
+                    failure = StageFailure(
+                        f"{type(failure).__name__}: {failure}; cleanup also failed: "
+                        f"{type(cleanup_exc).__name__}: {cleanup_exc}"
+                    )
+        if failure is not None:
+            record = failure_record(failure, status="FAILED_HOLD")
+            record["run_mode"] = run_mode
+            record["d0_launched"] = False if self.attach_smoke_repeats else None
+            record["dg_a_launched"] = False if self.attach_smoke_repeats else None
+            atomic_json(self.output_dir / "results_summary.json", record)
+            atomic_json(self.output_dir / "FAILED.json", record)
+            self.event("stage_failed", error_type=type(failure).__name__, error=str(failure))
+            return 1
+        if completion is None or completion_event is None:
+            raise RuntimeError("runner reached terminal state without completion metadata")
+        atomic_json(self.output_dir / "COMPLETED.json", completion)
+        self.event("stage_complete", **completion_event)
+        return 0
 
 
 def parse_args() -> argparse.Namespace:
@@ -1310,6 +1487,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output-dir", required=True)
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--preflight-only", action="store_true")
+    parser.add_argument(
+        "--attach-smoke-repeats",
+        type=int,
+        default=0,
+        help="Run only this many cold two-UE attachment repetitions; never launch D0/DG-A.",
+    )
     return parser.parse_args()
 
 
@@ -1322,6 +1505,7 @@ def main() -> int:
             output,
             dry_run=args.dry_run,
             preflight_only=args.preflight_only,
+            attach_smoke_repeats=args.attach_smoke_repeats,
         ).run()
     except BaseException as exc:
         output.mkdir(parents=True, exist_ok=True)
