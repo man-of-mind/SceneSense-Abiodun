@@ -388,6 +388,9 @@ def _run_surrogate_gate(
     config = copy.deepcopy(load_config())
     config["replay"]["roots"] = [str(batch_dir / "runs")]
     config["replay"]["split_manifest_csv"] = str(split_manifest_path)
+    # The verification split is the accepted corpus inventory and may omit a
+    # predeclared invalid trajectory that remains immutable on disk.
+    config["replay"]["allow_unlisted_episodes"] = True
     config["replay"]["max_episode_steps"] = 1200
     config["replay"]["prediction_score_min_by_class"] = dict(
         prediction_score_min_by_class or {}
@@ -498,16 +501,17 @@ def _markdown_table(frame: pd.DataFrame) -> str:
         return "```text\n" + frame.to_string(index=False) + "\n```"
 
 
-def _trajectory_bootstrap_near_recall(
+def _trajectory_bootstrap_recall(
     per_run: pd.DataFrame,
     *,
-    range_m: float,
+    range_by_class: Mapping[str, float],
     samples: int,
     seed: int,
 ) -> pd.DataFrame:
     rows: List[Dict[str, object]] = []
     rng = np.random.default_rng(seed)
     for class_name in ("pedestrian", "vehicle"):
+        range_m = float(range_by_class[class_name])
         selected = per_run[
             (per_run["split"] == "test")
             & (per_run["contract"] == "validation_f1")
@@ -547,6 +551,55 @@ def _trajectory_bootstrap_near_recall(
     return pd.DataFrame(rows)
 
 
+def _localization_error_summary(
+    runs: Sequence[evaluation_contract.RunData],
+    thresholds: Mapping[str, float],
+    range_by_class: Mapping[str, float],
+) -> pd.DataFrame:
+    rows: List[Dict[str, object]] = []
+    for class_name in ("pedestrian", "vehicle"):
+        threshold = float(thresholds[class_name])
+        range_m = float(range_by_class[class_name])
+        errors: List[float] = []
+        for run in runs:
+            if run.split != "test":
+                continue
+            gt = run.gt[
+                (run.gt["class_name"] == class_name)
+                & (run.gt["distance_m"] <= range_m)
+            ].copy()
+            predictions = run.predictions[
+                (run.predictions["class_name"] == class_name)
+                & (run.predictions["score"] >= threshold - 1e-12)
+            ].copy()
+            matches = _greedy_prediction_matches(
+                gt, predictions, evaluation_contract.MATCH_GATE_M
+            )
+            if len(matches):
+                errors.extend(
+                    pd.to_numeric(matches["match_error_m"], errors="coerce")
+                    .dropna()
+                    .tolist()
+                )
+        series = pd.Series(errors, dtype=float)
+        rows.append(
+            {
+                "split": "test",
+                "class_name": class_name,
+                "range_upper_m": range_m,
+                "score_threshold": threshold,
+                "matched_rows": int(len(series)),
+                "localization_error_median_m": (
+                    float(series.median()) if len(series) else None
+                ),
+                "localization_error_p95_m": (
+                    float(series.quantile(0.95)) if len(series) else None
+                ),
+            }
+        )
+    return pd.DataFrame(rows)
+
+
 def verify(
     batch_dir: Path,
     skip_surrogate: bool = False,
@@ -573,7 +626,24 @@ def verify(
         if int(loaded_evaluation_spec.get("schema_version", 0)) != 1:
             raise ValueError("evaluation contract schema_version must be 1")
         evaluation_spec = loaded_evaluation_spec
-    run_specs: Sequence[Mapping[str, object]] = batch_manifest["runs"]
+    all_run_specs: Sequence[Mapping[str, object]] = batch_manifest["runs"]
+    excluded_episode_ids = (
+        [str(value) for value in evaluation_spec.get("excluded_episode_ids", [])]
+        if evaluation_spec is not None else []
+    )
+    all_episode_ids = {str(item["episode_id"]) for item in all_run_specs}
+    missing_exclusions = set(excluded_episode_ids) - all_episode_ids
+    if missing_exclusions:
+        raise ValueError(
+            "excluded episodes are absent from the batch: "
+            + ", ".join(sorted(missing_exclusions))
+        )
+    run_specs = [
+        item for item in all_run_specs
+        if str(item["episode_id"]) not in set(excluded_episode_ids)
+    ]
+    if not run_specs:
+        raise ValueError("evaluation contract excludes every corpus episode")
     verification_dir = batch_dir / "verification" / datetime.now(timezone.utc).strftime(
         "%Y%m%d_%H%M%S"
     )
@@ -582,10 +652,13 @@ def verify(
     selected_thresholds: Dict[str, float] = {}
     selected_metrics = pd.DataFrame()
     cumulative_coverage = pd.DataFrame()
-    near_recall_ci = pd.DataFrame()
+    diagnostic_recall_ci = pd.DataFrame()
+    localization_error = pd.DataFrame()
     radar_summary = pd.DataFrame()
     if evaluation_spec is not None:
-        evaluation_runs, _items = evaluation_contract.load_runs(batch_dir, [])
+        evaluation_runs, _items = evaluation_contract.load_runs(
+            batch_dir, excluded_episode_ids
+        )
         match_cache = evaluation_contract.prepare_match_cache(evaluation_runs)
         pr_curves = evaluation_contract.build_pr_curves(evaluation_runs, match_cache)
         selected = evaluation_contract.choose_validation_thresholds(pr_curves)
@@ -611,12 +684,24 @@ def verify(
                 for split in ("validation", "test", "all")
             ]
         )
-        near_range_m = float(evaluation_spec["near_field_range_m"])
-        near_recall_ci = _trajectory_bootstrap_near_recall(
+        diagnostic_ranges = {
+            str(class_name): float(range_m)
+            for class_name, range_m in evaluation_spec[
+                "diagnostic_recall_range_m_by_class"
+            ].items()
+        }
+        if set(diagnostic_ranges) != {"pedestrian", "vehicle"}:
+            raise ValueError(
+                "diagnostic_recall_range_m_by_class must define pedestrian and vehicle"
+            )
+        diagnostic_recall_ci = _trajectory_bootstrap_recall(
             per_run_coverage,
-            range_m=near_range_m,
+            range_by_class=diagnostic_ranges,
             samples=int(evaluation_spec.get("trajectory_bootstrap_samples", 10000)),
             seed=int(evaluation_spec.get("trajectory_bootstrap_seed", 20260813)),
+        )
+        localization_error = _localization_error_summary(
+            evaluation_runs, selected_thresholds, diagnostic_ranges
         )
         reference_run = REPO_ROOT / str(evaluation_spec["radar_reference_run"])
         radar_per_run, radar_summary = evaluation_contract.build_radar_audit(
@@ -636,8 +721,12 @@ def verify(
         per_run_coverage.to_csv(
             verification_dir / "coverage_per_run.csv", index=False
         )
-        near_recall_ci.to_csv(
-            verification_dir / "near_field_trajectory_bootstrap_ci.csv", index=False
+        diagnostic_recall_ci.to_csv(
+            verification_dir / "diagnostic_recall_trajectory_bootstrap_ci.csv",
+            index=False,
+        )
+        localization_error.to_csv(
+            verification_dir / "diagnostic_localization_error.csv", index=False
         )
         radar_per_run.to_csv(
             verification_dir / "radar_density_per_run.csv", index=False
@@ -679,6 +768,29 @@ def verify(
     split_manifest.to_csv(split_manifest_path, index=False)
 
     gate_failures: List[str] = []
+    structural_failures: List[str] = []
+    for run_spec in run_specs:
+        episode_id = str(run_spec["episode_id"])
+        if str(run_spec.get("status")) not in {
+            "complete", "complete_with_teardown_warning"
+        }:
+            structural_failures.append(f"{episode_id}:collection_status")
+        for name in (
+            "basic_gate", "radar_density_gate", "traffic_sanity",
+            "exact_fast_scenario_gate",
+        ):
+            value = run_spec.get(name, {})
+            if not isinstance(value, Mapping) or not bool(value.get("pass", False)):
+                structural_failures.append(f"{episode_id}:{name}")
+        if int(run_spec.get("traffic_sanity", {}).get("collision_events", 0)) != 0:
+            structural_failures.append(f"{episode_id}:traffic_collision")
+        postflight = run_spec.get("postflight_dynamic_actor_counts", {})
+        if not isinstance(postflight, Mapping) or any(
+            int(value) != 0 for value in postflight.values()
+        ):
+            structural_failures.append(f"{episode_id}:postflight_actor_leak")
+    if structural_failures:
+        gate_failures.append("one_or_more_structural_collection_gates_failed")
     if not bool(runs["pass"].all()):
         gate_failures.append("one_or_more_run_level_gates_failed")
     aggregate_coverage = (
@@ -706,16 +818,24 @@ def verify(
     ):
         gate_failures.append("no_pedestrian_match_denominator")
     if evaluation_spec is not None:
-        near_minimums = {
-            str(class_name): float(value)
-            for class_name, value in evaluation_spec["minimum_test_near_recall"].items()
-        }
-        for class_name, minimum in near_minimums.items():
-            row = near_recall_ci[near_recall_ci["class_name"] == class_name]
-            if row.empty or not math.isfinite(float(row.iloc[0]["recall"])):
-                gate_failures.append(f"{class_name}_test_near_recall_missing")
-            elif float(row.iloc[0]["recall"]) < minimum:
-                gate_failures.append(f"{class_name}_test_near_recall_below_minimum")
+        recall_gate_mode = str(evaluation_spec.get("recall_gate_mode", "hard"))
+        if recall_gate_mode not in {"hard", "report_only"}:
+            raise ValueError("recall_gate_mode must be hard or report_only")
+        if recall_gate_mode == "hard":
+            near_minimums = {
+                str(class_name): float(value)
+                for class_name, value in evaluation_spec[
+                    "minimum_test_near_recall"
+                ].items()
+            }
+            for class_name, minimum in near_minimums.items():
+                row = diagnostic_recall_ci[
+                    diagnostic_recall_ci["class_name"] == class_name
+                ]
+                if row.empty or not math.isfinite(float(row.iloc[0]["recall"])):
+                    gate_failures.append(f"{class_name}_test_recall_missing")
+                elif float(row.iloc[0]["recall"]) < minimum:
+                    gate_failures.append(f"{class_name}_test_recall_below_minimum")
         corpus_radar = radar_summary[
             radar_summary["source"].str.startswith("policy_corpus")
         ]
@@ -729,6 +849,10 @@ def verify(
             or abs(density_ratio - 1.0) > density_tolerance
         ):
             gate_failures.append("corpus_radar_density_outside_contract")
+    for class_name in ("pedestrian", "vehicle"):
+        row = aggregate_coverage[aggregate_coverage["class_name"] == class_name]
+        if row.empty or int(row.iloc[0]["eligible_gt_rows"]) == 0:
+            gate_failures.append(f"missing_{class_name}_ground_truth_population")
 
     surrogate = pd.DataFrame()
     surrogate_summary = pd.DataFrame()
@@ -857,6 +981,8 @@ def verify(
         "## Gate summary",
         "",
         f"- Corpus scope: `{verify_config.get('corpus_scope', 'multiclass')}`.",
+        f"- Accepted trajectories: {len(run_specs)}/{len(all_run_specs)}; excluded before threshold selection and replay: {excluded_episode_ids or 'none'}.",
+        f"- Online structural gates (sensor contract, traffic, completion, cleanup): {'PASS' if not structural_failures else 'FAIL'}.",
         f"- Run-level schema, position, realized-regime, decoder-telemetry, and timing gates: {'PASS' if bool(runs['pass'].all()) else 'FAIL'}",
         f"- Direct same-frame object-row match coverage: {direct_match_coverage:.2f}% (reported diagnostically; not compared to held-track replay coverage)",
     ]
@@ -864,8 +990,10 @@ def verify(
         report.extend(
             [
                 f"- Frozen per-class thresholds selected by validation F1: {selected_thresholds}.",
-                f"- Held-out near-field actor-origin recall and trajectory-bootstrap 95% CIs:",
-                _markdown_table(near_recall_ci),
+                f"- Held-out actor-origin recall is `{evaluation_spec.get('recall_gate_mode', 'hard')}` and reported with trajectory-bootstrap 95% CIs:",
+                _markdown_table(diagnostic_recall_ci),
+                "- Localization error among matched held-out objects:",
+                _markdown_table(localization_error),
                 f"- Radar density relative to retained on-contract reference:",
                 _markdown_table(radar_summary),
             ]
@@ -958,6 +1086,14 @@ def verify(
         "evaluation_contract_sha256": (
             _sha256(evaluation_contract_path) if evaluation_contract_path else None
         ),
+        "acceptance_basis": "structural_collection_gates",
+        "accepted_run_count": int(len(run_specs)),
+        "excluded_episode_ids": excluded_episode_ids,
+        "recall_gate_mode": (
+            str(evaluation_spec.get("recall_gate_mode", "hard"))
+            if evaluation_spec is not None else None
+        ),
+        "structural_failures": structural_failures,
         "prediction_score_min_by_class": selected_thresholds,
         "artifacts": artifacts,
     }

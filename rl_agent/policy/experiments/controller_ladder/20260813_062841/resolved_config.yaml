@@ -1,0 +1,261 @@
+schema_version: 1
+experiment_name: track_a_split_skip_pilot
+seed: 20260807
+clock:
+  hz: 20
+  reset_credit_on_action_change: true
+actions:
+  fps:
+  - 2
+  - 5
+  - 10
+  - 15
+  - 20
+  preferred_core_kib: 90
+  strict_floor_diagnostic: false
+  catalog_csv: rl_agent/policy/data/action_catalog.csv
+safety:
+  epsilon_m: 2.0
+  range_m: 25.0
+  aggregation: max
+  risk_statistic: p95
+  c1_pessimism_factor: 0.7
+  ucb_k: 0.0
+  delta_loc_m: 0.05
+  capacity_sample_multipliers:
+  - 0.7
+  - 0.8
+  - 0.9
+  - 1.0
+  - 1.1
+  - 1.2
+  - 1.3
+reward:
+  formulation_version: 5
+  task_metric_weights:
+    miou: 0.35
+    pedestrian_recall: 0.4
+    vehicle_recall: 0.25
+  task_metric_references:
+    miou: 0.84
+    pedestrian_recall: 0.887
+    vehicle_recall: 0.927
+  w_task: 1.0
+  w_error: 0.05
+  lambda_prb: 1.0
+  lambda_switch: 0.1
+  one_at_a_time_sensitivity:
+    w_error:
+    - 0.025
+    - 0.1
+    lambda_prb:
+    - 0.5
+    - 2.0
+    w_task:
+    - 0.5
+    - 2.0
+channel:
+  telemetry_lag_steps: 2
+  estimate_noise_fraction: 0.05
+  capacity_uncertainty_fraction: 0.3
+  initial_rung: mild
+  rungs:
+    clear:
+      mcs: 28
+      representative_snr_db: 50.35
+      capacity_mbps: 37.0
+    mild:
+      mcs: 24
+      representative_snr_db: 19.55
+      capacity_mbps: 28.0
+    mid:
+      mcs: 19
+      representative_snr_db: 15.65
+      capacity_mbps: 20.0
+    strong:
+      mcs: 9
+      representative_snr_db: 8.2
+      capacity_mbps: 10.0
+  transition_matrix:
+    clear:
+      clear: 0.92
+      mild: 0.08
+      mid: 0.0
+      strong: 0.0
+    mild:
+      clear: 0.04
+      mild: 0.9
+      mid: 0.06
+      strong: 0.0
+    mid:
+      clear: 0.0
+      mild: 0.05
+      mid: 0.9
+      strong: 0.05
+    strong:
+      clear: 0.0
+      mild: 0.0
+      mid: 0.08
+      strong: 0.92
+latency_projection:
+  anchor_payload_kib: 90.0
+  fast_full_pipeline_p95_ms: 136.07
+  fast_uplink_p95_ms: 13.36
+  reference_front_plus_back_ms: 36.8
+  p50_serialization_factors:
+    clear: 0.26
+    mild: 0.87
+    mid: 0.83
+    strong: 0.83
+  p95_serialization_factors:
+    clear: 0.24
+    mild: 0.86
+    mid: 0.86
+    strong: 0.86
+replay:
+  roots:
+  - data_collection/experiments/policy_corpus_advisor_rich_v5/20260813_045142_full
+  gt_glob: '**/*_object_ground_truth.csv'
+  prediction_suffix: _object_predictions.csv
+  association_gate_m: 5.0
+  prediction_score_min: 0.2
+  require_in_camera_frustum: true
+  interpolation_max_gap_s: 0.25
+  observation_track_hold_s: 0.5
+  split_seed: 20260807
+  split_ratios:
+    train: 0.6
+    validation: 0.2
+    test: 0.2
+  observation_speed_sigma_floor_mps: 0.5
+  max_episode_steps: 600
+  split_manifest_csv: data_collection/experiments/policy_corpus_advisor_rich_v5/20260813_045142_full/verification/20260813_061952/replay_split_manifest.csv
+  prediction_score_min_by_class:
+    pedestrian: 0.165
+    vehicle: 0.205
+  allow_unlisted_episodes: true
+pilot:
+  split: test
+  episode_count: 3
+  channel_seeds:
+  - 1101
+  - 2202
+  - 3303
+  synthetic_pedestrian_stress: false
+  common_random_latency_by_tick: true
+safety_calibration:
+  fixed_point:
+    epsilon_m: 2.0
+    preferred_core_kib: 90
+    range_m: 25.0
+  ucb_k_values:
+  - 0.0
+  - 0.5
+  - 1.0
+  - 1.5
+  - 2.0
+  c1_pessimism_factor_values:
+  - 0.6
+  - 0.7
+  - 0.8
+  - 0.9
+  - 1.0
+  common_random_latency_by_tick: true
+estimator_sensitivity:
+  fixed_point:
+    epsilon_m: 2.0
+    preferred_core_kib: 90
+    range_m: 25.0
+    ucb_k: 0.0
+    c1_pessimism_factor: 0.7
+  telemetry_lag_steps_values:
+  - 0
+  - 1
+  - 2
+  - 4
+  estimate_noise_fraction_values:
+  - 0.0
+  - 0.05
+  - 0.1
+  common_random_latency_by_tick: true
+reward_sensitivity:
+  fixed_point:
+    epsilon_m: 2.0
+    preferred_core_kib: 90
+    range_m: 25.0
+    ucb_k: 0.0
+    c1_pessimism_factor: 0.7
+  common_random_latency_by_tick: true
+advisor_sweep:
+  epsilon_m_values:
+  - 1.5
+  - 2.0
+  - 2.5
+  preferred_core_kib_values:
+  - 90
+  - 129
+  range_m_values:
+  - 25.0
+  - 40.0
+  fixed_shield:
+    ucb_k: 0.0
+    c1_pessimism_factor: 0.7
+  common_random_latency_by_tick: true
+_meta:
+  config_path: rl_agent/policy/configs/track_a_pilot.yaml
+  config_sha256: 27e23e8d82353be86db6b478ddeb050070698d94b6fbedbf47d4d554e2ebdae3
+  resolved_sha256: 5e7dae84b1ba67cffae93d7915c062d959fea979e24123744c5a6a5bb0bf9dd6
+  controller_ladder_config_path: rl_agent/policy/configs/controller_ladder_advisor_rich_v5.yaml
+  controller_ladder_config_sha256: c51a72aaf40b64ee3f284ad61c9d1c01fce0ca7d8c3a5a5ddf5aba0eeaf8fbe8
+  base_config_path: rl_agent/policy/configs/track_a_pilot.yaml
+  runtime_corpus_override: true
+controller_ladder:
+  seed: 20260813
+  corpus_id: policy_corpus_advisor_rich_v5
+  require_verified_corpus: true
+  enabled_controllers:
+  - fixed
+  - rule
+  - greedy
+  - linucb
+  - mpc
+  training_split: train
+  evaluation_split: test
+  training_episode_count: null
+  evaluation_episode_count: null
+  channel_seeds:
+  - 1101
+  - 2202
+  - 3303
+  common_random_latency_by_tick: true
+  bandit_feedback_source: matched_true_expected_reward
+  replay_roots: []
+  split_manifest_csv: ''
+  verification_manifest_json: data_collection/experiments/policy_corpus_advisor_rich_v5/20260813_045142_full/verification/20260813_061952/verification_manifest.json
+  controllers:
+    fixed:
+      action_id: SPLIT::ae32__uint4__roi0.0::10fps
+    rule:
+      default_profile_id: ae32__uint4__roi0.0
+      high_capacity_profile_id: ae128__uint4__roi0.0
+      high_capacity_mbps: 30.0
+      fresh_skip_fraction: 0.7
+      urgent_risk_fraction: 0.9
+      fast_speed_mps: 10.0
+      low_fps: 5
+      medium_fps: 10
+      high_fps: 20
+    linucb:
+      alpha: 0.75
+      ridge: 1.0
+      reward_clip:
+      - -2.0
+      - 2.0
+    mpc:
+      horizon_steps: 3
+      discount: 0.98
+      future_branch_width: 4
+      beam_width_per_root: 3
+      delivery_probability_threshold: 0.999
+      forecast: markov_expected_capacity_modal_latency
+      existing_inflight_policy: summary_only_no_hidden_install

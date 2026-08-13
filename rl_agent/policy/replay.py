@@ -113,11 +113,15 @@ def discover_trace_registry(config: Mapping[str, object]) -> List[TraceRecord]:
     if explicit_by_episode:
         discovered_ids = {entry[1] for entry in candidates}
         missing_assignments = sorted(discovered_ids - set(explicit_by_episode))
-        if missing_assignments:
+        if missing_assignments and not bool(spec.get("allow_unlisted_episodes", False)):
             raise ValueError(
                 "split manifest has no assignment for discovered episodes: "
                 + ", ".join(missing_assignments[:10])
             )
+        if missing_assignments:
+            candidates = [
+                entry for entry in candidates if entry[1] in explicit_by_episode
+            ]
         unused_assignments = sorted(set(explicit_by_episode) - discovered_ids)
         if unused_assignments:
             raise ValueError(

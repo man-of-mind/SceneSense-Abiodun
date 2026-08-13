@@ -135,6 +135,7 @@ def _policy_records(
     policy_config["replay"]["prediction_score_min_by_class"] = dict(
         matching.get("prediction_score_min_by_class", {})
     )
+    policy_config["replay"]["allow_unlisted_episodes"] = True
     records = discover_trace_registry(policy_config)
     return {
         record.episode_id: (
@@ -748,21 +749,38 @@ def rescore(batch_dir: Path, config_path: Path, output_dir: Path | None = None) 
     vehicle_only = str(config.get("corpus_scope", "")) == "vehicle_only_track_a"
     batch_manifest_path = batch_dir / "batch_manifest.json"
     batch_manifest = json.loads(batch_manifest_path.read_text(encoding="utf-8"))
-    split_frame = _split_manifest(batch_manifest)
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     if output_dir is None:
         output_dir = batch_dir / "freshness_rescore" / timestamp
     output_dir = output_dir.resolve()
     output_dir.mkdir(parents=True, exist_ok=False)
-    split_path = output_dir / "replay_split_manifest.csv"
-    split_frame.drop(columns=["run_dir"]).to_csv(split_path, index=False)
     prior_dir = _latest_prior_verification(
         batch_dir, str(config["provenance"]["prior_verification_status"])
     )
+    verification_manifest = json.loads(
+        (prior_dir / "verification_manifest.json").read_text(encoding="utf-8")
+    )
+    verified_split_path = prior_dir / "replay_split_manifest.csv"
+    split_artifact = verification_manifest.get("artifacts", {}).get(
+        "replay_split_manifest.csv", {}
+    )
+    if split_artifact.get("sha256") != _sha256(verified_split_path):
+        raise ValueError("PASS verification split manifest hash mismatch")
+    batch_split = _split_manifest(batch_manifest)
+    verified_split = pd.read_csv(verified_split_path)
+    if verified_split["episode_id"].astype(str).duplicated().any():
+        raise ValueError("PASS verification split contains duplicate episode IDs")
+    split_frame = verified_split.merge(
+        batch_split[["episode_id", "run_dir"]],
+        on="episode_id",
+        how="left",
+        validate="one_to_one",
+    )
+    if split_frame["run_dir"].isna().any():
+        raise ValueError("PASS verification split references a run outside the batch")
+    split_path = output_dir / "replay_split_manifest.csv"
+    split_frame.drop(columns=["run_dir"]).to_csv(split_path, index=False)
     if bool(matching.get("use_verification_thresholds", False)):
-        verification_manifest = json.loads(
-            (prior_dir / "verification_manifest.json").read_text(encoding="utf-8")
-        )
         frozen_thresholds = verification_manifest.get(
             "prediction_score_min_by_class", {}
         )

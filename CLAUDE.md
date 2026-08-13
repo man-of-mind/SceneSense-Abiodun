@@ -31,20 +31,23 @@ the authoritative detail lives in the docs below (read them before acting on the
   `staleness/uplink_only_latency_budget/`.
 - **Papers:** `SCAN_AI_03_13_26_2.pdf` (single-UE foundation), `V2X_for_AD.pdf` (CoDriving).
 
-## Current status / next (2026-08-12 local)
+## Current status / next (2026-08-12 local / 2026-08-13 UTC)
 - Density+seg study, RL design lock, measured loopback latency, and the **channel-condition sweep: DONE**
   (`channel_condition_sweep/CHANNEL_SWEEP_RESULTS.md` + `combined_surface.csv` + `plots/`). Knee: 1 MB→clear
   only, 400 KB→to 15.6 dB, 90 KB seg-safe floor→every rung. `AGENT_CONSTRAINTS §9.1` holds the measured
   channel_state + `payload_budget=capacity/fps` rule.
-- Reward v5 and the shielded pre-RL controller ladder are implemented. The last accepted vehicle-v2 baseline
-  found greedy approximately equal to MPC, but that comparison used the earlier corpus and is not the final RL
-  go/no-go.
-- **Current HOLD:** the on-contract advisor-rich v4 smoke passed, and 24/24 full runs completed, but immutable
-  verification is `FAIL_QUARANTINED` at `data_collection/experiments/policy_corpus_advisor_rich_v4/
-  20260813_014501_full/verification/20260813_023541`. Vehicle replay coverage is 26.14% (<45.18%), pedestrian
-  replay coverage is 41.41% (<50%), and an exact-fast lead struck an ambient walker. Do not run freshness,
-  baselines, or RL from this batch. See the latest `collab/REVIEW_NOTES.md` entry for the score-threshold audit
-  and required joint-review decisions.
+- The native-10-Hz advisor-rich v5 corpus is accepted. Collection completed 24/24 runs; verification
+  `data_collection/experiments/policy_corpus_advisor_rich_v5/20260813_045142_full/verification/20260813_061952`
+  is `PASS` on structural controller-corpus gates after excluding only impact run `pcarv5_mixed_va01` (23/24
+  retained). Recall is report-only: held-out pedestrian <=12 m is 67.87% and vehicle <=25 m is 67.20%, with
+  trajectory-grouped CIs. Accepted-run radar density is 19,404.5/frame; traffic and cleanup are clean.
+- Freshness re-score `freshness_rescore/20260813_062203` has no QC exclusions and confirms both slow pedestrian
+  and sustained >=10 m/s vehicle regimes, with 54.43% GT-seeded mapped freshness pressure.
+- The authoritative reward-v5 pre-RL ladder is
+  `rl_agent/policy/experiments/controller_ladder/20260813_063514`. Greedy reward is 0.19655 and MPC is 0.19834
+  with identical 91.13% matched-safe rate; they disagree on only 2.54% of finite frames. **Current RL decision:
+  NO-GO** for SAC/DQN/PPO under the present SPLIT+SKIP surrogate. LOCAL remains uncalibrated; if it is added,
+  rerun the simple ladder before reconsidering RL. See `data_collection/EVALUATION_CONTRACT_DECISION_V5.md`.
 
 > The `~/.claude` memory cache was wiped by a retention cleanup on 2026-08-03 (harness, not us). This
 > repo-tracked file exists so project state is never lost that way again. Keep it updated as work advances.

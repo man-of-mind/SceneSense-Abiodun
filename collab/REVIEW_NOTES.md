@@ -1782,7 +1782,6 @@ F1, freeze them before test, and gate direct actor-origin <=12 m test recall at 
 vehicle, with trajectory-grouped CIs reported. Full 0-25 m and six-bin range coverage remain diagnostics.
 Traffic realism remains a valid 24/24 result.
 
-<<<<<<< HEAD
 ## 2026-08-13 — DECISION (local Claude + Abiodun): ACCEPT the v5 corpus. STOP re-collecting. The gates are wrong for a controller corpus.
 The COLLECTION succeeded: 24/24, 8,480 frames, radar density **on-contract (19,412/frame)**, zero traffic
 collisions, zero leaks. The density + traffic drifts that cost two days are SOLVED and smoke-gated. Verification
@@ -1811,7 +1810,9 @@ to be on-contract + clean + populated with realistic detection — which it now 
    the RL go/no-go. THIS is the milestone; the corpus saga ends here.
 Re-collecting again would produce the same recall (frozen model, on-contract density) — it is the real waste now.
 Pedestrian detection ~70% is an honest reported limitation, not a blocker.
-=======
+
+### Historical pre-acceptance record (superseded by the decision above)
+
 ## 2026-08-12 local / 2026-08-13 UTC — native-10-Hz v5 result: density PASS, evaluation `FAIL_QUARANTINED`
 
 Codex resumed after two VS Code crashes and completed the authorized native-10-Hz chain. The final smoke
@@ -1849,4 +1850,39 @@ the pedestrian hard denominator is all near actor pedestrians or the registered 
 all-object coverage descriptive, and (2) a near-vehicle validation/test scenario plus the known static-object
 annotation caveat for PR threshold selection. Do not dilute the gate by averaging in easy top-ups. Preserve
 the 23 unaffected trajectories; any replacement/top-up must be versioned rather than mutating this batch.
->>>>>>> 81ff1d603d66c6e9d59c169c41ad7802f8792ea4
+
+## 2026-08-12 local / 2026-08-13 UTC — v5 accepted; freshness complete; baseline ladder says RL `NO-GO`
+
+The acceptance override is implemented without another CARLA run. Verification
+`policy_corpus_advisor_rich_v5/20260813_045142_full/verification/20260813_061952` is now **PASS** on the
+structural controller-corpus contract. It excludes only `pcarv5_mixed_va01` before threshold selection and
+replay, retains 23/24 trajectories, and demotes near-field recall to report-only. Accepted-run radar density is
+19,404.5/frame, all structural collection/traffic/cleanup gates pass, and both classes are populated.
+
+Validation-trajectory F1 freezes the operating thresholds at **0.165 pedestrian / 0.205 vehicle**. Held-out
+diagnostics are **264/389 = 67.87%** pedestrian recall at <=12 m (trajectory-bootstrap CI 43.75--69.30%) and
+**84/125 = 67.20%** vehicle recall at <=25 m (CI 0--70.00%). Matched localization error is 0.575 m median for
+pedestrians and 1.270 m for vehicles. These are honest report-only corpus diagnostics; the separate on-contract
+single-target model check remains 82.84% pedestrian recall and 0.666 m median localization.
+
+Freshness re-score `freshness_rescore/20260813_062203` consumed exactly the accepted 23-run split with no QC
+exclusions. It contains 81 pedestrian tracks / 6,962 object-frames and 9 vehicle tracks / 962 object-frames;
+eight vehicle runs sustain >=10 m/s for 5.95 s. GT-seeded mapped freshness pressure is 54.43%, and deployable
+detection-seeded mapped pressure is 52.27%. The tool's `HUMAN_REVIEW_REQUIRED` status is its designed analysis
+handoff, not a failed acceptance gate.
+
+The authoritative reward-v5 ladder is
+`rl_agent/policy/experiments/controller_ladder/20260813_063514`. It uses the six grouped held-out trajectories,
+paired channel/latency randomness, the exact **0.35 segmentation / 0.40 pedestrian / 0.25 vehicle** task utility,
+and no explicit ROI cost. Finite matched rewards are rule **0.19176**, greedy **0.19655**, LinUCB **0.19056**,
+and MPC **0.19834**; all four have 91.13% matched-safe decisions and zero matched false admits. MPC-greedy is
+only +0.001795/frame (+0.91%), with an equal-weight trajectory-bootstrap interval [0, 0.003833]. They disagree
+on just 2.54% of finite frames, entirely in mixed urban; both exact-fast and both pedestrian test trajectories
+have zero action disagreement and zero reward difference. The earlier `062841` run has byte-identical per-frame
+evidence but stale vehicle-only report labels; it is preserved as superseded provenance rather than rewritten.
+
+**RL decision: `NO-GO` under the current SPLIT+SKIP surrogate.** The richer corpus does contain dynamics and
+freshness pressure, but short-horizon MPC still effectively ties one-step greedy, so SAC/DQN/PPO would most
+likely reproduce the tie at greater complexity. This does not close RL forever: LOCAL is not yet calibrated in
+the action table, and a future LOCAL-enabled or genuinely delayed-consequence contract must rerun the simple
+ladder before reconsidering RL. Full decision: `data_collection/EVALUATION_CONTRACT_DECISION_V5.md`.

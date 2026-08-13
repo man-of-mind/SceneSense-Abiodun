@@ -1,4 +1,4 @@
-"""Train/evaluate the pre-RL Track A controller ladder on a verified corpus."""
+"""Train/evaluate the pre-RL controller ladder on a verified corpus."""
 
 from __future__ import annotations
 
@@ -66,6 +66,8 @@ def _apply_corpus_overrides(
                 str(class_name): float(threshold)
                 for class_name, threshold in frozen_thresholds.items()
             }
+        if verification_payload.get("excluded_episode_ids"):
+            resolved["replay"]["allow_unlisted_episodes"] = True
         resolved["controller_ladder"]["verification_manifest_json"] = str(
             verification_manifest
             if not verification_manifest.is_absolute()
@@ -88,7 +90,7 @@ def _verify_corpus_contract(config: Mapping[str, object]) -> None:
     base_roots = {"staleness"}
     if not roots or set(roots) == base_roots:
         raise ValueError(
-            "verified corrected-vehicle corpus root is required; pass --replay-root or pin replay_roots"
+            "verified corpus root is required; pass --replay-root or pin replay_roots"
         )
     if not split_manifest:
         raise ValueError(
@@ -304,7 +306,7 @@ def run(
     metrics = pd.DataFrame(rows)
     training_metrics = pd.DataFrame(training_rows)
     per_scenario = summarize_frames(metrics)
-    overall = summarize_frames(metrics.assign(scenario="ALL_VERIFIED_VEHICLE_REPLAY"))
+    overall = summarize_frames(metrics.assign(scenario="ALL_VERIFIED_REPLAY"))
     summary = pd.concat([overall, per_scenario], ignore_index=True)
     kind = "controller_ladder_smoke" if scaffold_smoke else "controller_ladder"
     run_dir = new_run_directory(kind)
@@ -322,7 +324,7 @@ def run(
     save_mode_and_risk_figure(
         metrics,
         run_dir / "figures" / "controller_ladder_mode_and_risk",
-        "Track A pre-RL controller ladder on verified vehicle replay",
+        "Pre-RL controller ladder on verified replay",
     )
     status = "scaffold_validation" if scaffold_smoke else "completed_surrogate_controller_evaluation"
     display_columns = [
@@ -341,11 +343,11 @@ def run(
     ]
     report = "\n".join(
         [
-            "# Track A controller ladder results",
+            "# Pre-RL controller ladder results",
             "",
             f"**Implementation status:** `{status}`.",
             "",
-            "This is a table-driven SPLIT+SKIP surrogate comparison on the explicitly pinned corrected-vehicle "
+            f"This is a table-driven SPLIT+SKIP surrogate comparison on the explicitly pinned `{ladder['corpus_id']}` "
             "corpus. It is not a CARLA/OAI run, LOCAL evaluation, live safety validation, or RL result.",
             "",
             "## Shared comparison contract",
@@ -388,7 +390,7 @@ def run(
         metrics,
         summary,
         {
-            "run_type": "track_a_pre_rl_controller_ladder",
+            "run_type": "pre_rl_controller_ladder",
             "implementation_status": status,
             "corpus_id": ladder["corpus_id"],
             "controllers": list(controllers),
@@ -402,9 +404,9 @@ def run(
             "common_random_latency_by_tick": bool(ladder["common_random_latency_by_tick"]),
             "limitations": [
                 "SPLIT+SKIP only; LOCAL table remains pending",
-                "synthetic Markov channel composed with real corrected-vehicle replay",
+                "synthetic Markov channel composed with real accepted-corpus replay",
                 "MPC uses a declared observable-state modal forecast",
-                "no pedestrian claims until Track B passes",
+                "perception quality is frozen to the accepted corpus and includes missed objects",
                 "surrogate validation only",
             ],
         },

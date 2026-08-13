@@ -173,3 +173,22 @@ only 52.29% of the retained 18,591.5/frame reference. Do not run freshness, the
 controller ladder, or RL from this batch. See `EVALUATION_CONTRACT_DECISION.md`
 for the PR/range analysis, replacement acceptance contract, and re-collect
 verdict; `collab/REVIEW_NOTES.md` retains the chronological record.
+
+## Advisor-rich native-10-Hz corpus (v5, accepted)
+
+The replacement v5 collection is complete; **do not collect again**. Its
+immutable batch is
+`experiments/policy_corpus_advisor_rich_v5/20260813_045142_full`. Native 10 Hz
+world/sensor sampling restores on-contract radar density, and 24/24 runs pass
+the online collection, traffic, and cleanup checks.
+
+The authoritative structural acceptance is `verification/20260813_061952`
+with status `PASS`. It excludes only impact run `pcarv5_mixed_va01`, freezes
+validation-selected class thresholds, and admits the remaining 23 trajectories.
+Near-field recall and trajectory-grouped CIs are report-only diagnostics for
+this controller-training corpus; see `EVALUATION_CONTRACT_DECISION_V5.md`.
+
+The accepted inventory has already been freshness-rescored at
+`freshness_rescore/20260813_062203` and evaluated by the reward-v5 controller
+ladder. Do not rerun CARLA or weaken/restore the old perception-QA gates. The
+next decision is the documented RL go/no-go, not another collection.

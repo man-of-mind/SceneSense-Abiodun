@@ -1,4 +1,4 @@
-# Track A — table-driven SPLIT+SKIP surrogate and controller ladder
+# Table-driven SPLIT+SKIP surrogate and controller ladder
 
 This directory contains the gated Track A implementation. It uses existing CARLA replay files and measured
 tables only; it does not launch CARLA/OAI, LOCAL inference, or RL.
@@ -36,16 +36,16 @@ From the repository root:
 Each experiment writes a new timestamped directory containing the resolved config, per-frame CSV, summary,
 figures, and a SHA-256 manifest. Do not overwrite a prior experiment directory.
 
-## Controller ladder on the corrected vehicle-v2 corpus
+## Controller ladder on a verified corpus
 
-`configs/controller_ladder.yaml` deliberately does not point at the legacy `staleness` replay. Pin the final
-vehicle-v2 root and its episode-level grouped split manifest in that file, or pass both explicitly:
+`configs/controller_ladder.yaml` deliberately does not point at the legacy `staleness` replay. Pin a verified
+corpus root and its episode-level grouped split manifest in that file, or pass all three artifacts explicitly:
 
 ```bash
 /home/shr_aisvcs/workarea/carla_0_10_env/carla_0_10_venv/bin/python3 \
   -m rl_agent.policy.run_controller_ladder \
   --config rl_agent/policy/configs/controller_ladder.yaml \
-  --replay-root <verified-corrected-vehicle-v2-root> \
+  --replay-root <verified-corpus-root> \
   --split-manifest <verification-dir>/replay_split_manifest.csv \
   --verification-manifest <verification-dir>/verification_manifest.json
 ```
@@ -85,14 +85,17 @@ loading an episode.
 
 ## Current gate
 
-The fixed-point 5x5 safety characterization was a valid negative result. Phase 1 therefore uses the reviewed
-engineering convention `ucb_k=0`, C1 factor `0.70`; this is not a statistically calibrated optimum. The
-authorized follow-on runs are complete. Estimator lag/noise did not explain the approximately 42% baseline
-false-reject rate; reward one-at-a-time behavior was stable; and the 3x2x2 advisor grid exposed a strong 40 m
-false-admission/feasibility boundary. No advisor-pending value has been selected. LOCAL, RL, CARLA, and OAI
-remain out of scope. The corrected vehicle-v2 corpus passed verification at
-`data_collection/experiments/policy_corpus_vehicle_v2/20260811_110400_full/verification/20260811_185731`, and
-the completed pre-RL ladder is under `experiments/controller_ladder/20260811_190816`. Greedy and MPC are
-effectively tied on held-out replay, so the locked sequential-value gate does not yet justify an RL result.
-Track B pedestrian evidence remains held by its separate failed unchanged-gate re-smoke; see
-`collab/REVIEW_NOTES.md` for the separate disposition.
+The accepted multiclass corpus is
+`data_collection/experiments/policy_corpus_advisor_rich_v5/20260813_045142_full`;
+its structural verifier is `verification/20260813_061952`, with impact run
+`pcarv5_mixed_va01` excluded. The authoritative reward-v5 ladder is
+`experiments/controller_ladder/20260813_063514`.
+
+On six held-out trajectories, finite matched reward is 0.19655 for greedy and
+0.19834 for MPC (+0.91%), with the same 91.13% matched-safe rate. They disagree
+on only 2.54% of finite frames. The richer corpus therefore preserves the
+earlier greedy approximately-equals-MPC result: **RL training is a NO-GO under
+the present SPLIT+SKIP surrogate.** LOCAL remains pending. If LOCAL is
+calibrated or the state/action contract gains genuine delayed consequences,
+rerun this non-RL ladder before reconsidering SAC/DQN/PPO. Full evidence and
+limitations are in `data_collection/EVALUATION_CONTRACT_DECISION_V5.md`.

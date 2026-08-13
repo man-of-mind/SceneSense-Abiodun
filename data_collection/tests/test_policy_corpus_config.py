@@ -8,6 +8,7 @@ from types import SimpleNamespace
 
 import numpy as np
 import pandas as pd
+import yaml
 
 from data_collection import run_advisor_spawn_blocker as blocker_wrapper
 from data_collection.run_policy_corpus import (
@@ -674,6 +675,19 @@ class AdvisorRichCorpusConfigTests(unittest.TestCase):
         self.assertEqual(config["corpus_scope"], "multiclass_advisor_rich")
         self.assertEqual(config["provenance"]["prior_verification_status"], "PASS")
         self.assertTrue(config["matching"]["use_verification_thresholds"])
+
+    def test_advisor_v5_evaluation_accepts_structural_gates_only(self):
+        with (
+            ADVISOR_CONFIG_PATH.parent
+            / "evaluation_contract_advisor_rich_v5.yaml"
+        ).open("r", encoding="utf-8") as stream:
+            contract = yaml.safe_load(stream)
+        self.assertEqual(contract["recall_gate_mode"], "report_only")
+        self.assertEqual(contract["excluded_episode_ids"], ["pcarv5_mixed_va01"])
+        self.assertEqual(
+            contract["diagnostic_recall_range_m_by_class"],
+            {"pedestrian": 12.0, "vehicle": 25.0},
+        )
 
 
 if __name__ == "__main__":

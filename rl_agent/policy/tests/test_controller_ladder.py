@@ -89,7 +89,7 @@ class ControllerLadderTestCase(unittest.TestCase):
         )
         self.assertTrue(self.ladder["require_verified_corpus"])
         self.assertNotIn("dqn", self.ladder["enabled_controllers"])
-        with self.assertRaisesRegex(ValueError, "verified corrected-vehicle corpus root"):
+        with self.assertRaisesRegex(ValueError, "verified corpus root"):
             _verify_corpus_contract(self.config)
 
     def test_advisor_rich_ladder_targets_v5_reward_and_corpus(self):
