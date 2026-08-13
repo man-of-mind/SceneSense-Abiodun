@@ -127,33 +127,39 @@ verifier also checks runtime decoder telemetry and reports pre-top-k saturation.
 Only a `PASS` full batch may become a replay root. Track B pedestrian artifacts
 and gates remain separate until that experiment passes.
 
-## Advisor-rich Town10HD_Opt corpus (v3, `FAIL_HOLD`)
+## Advisor-rich Town10HD_Opt corpus (v4, `FAIL_QUARANTINED`)
 
 `run_advisor_policy_corpus.py` composes the read-only advisor traffic/blocker
 logic with the fusion collector. The collector is the sole 20 Hz world ticker,
-all traffic shares TM port 8010, and the collector uses observe-existing mode
-with the corrected 200k/FAST/NMS-2/top-120 recipe. The v2 UI-authored loop is
-stored as `routes/town10hd_opt_advisor_demo_loop_v1.json`; its companion CSV is
-the deterministic ego controller input. `run_advisor_spawn_blocker.py` changes
-only the advisor blocker's passive frame wait to snapshot polling for this
-CARLA build and never advances the world clock.
+all traffic shares TM port 8010, and the collector uses observe-existing mode.
+Version 4 matches the model-training sensor contract: 10 Hz detection,
+1280x720, camera/radar FOV 120 degrees, 200k radar pps, legacy training
+rasterizer radius 4, temporal window 2, NMS-2, and top-120. Policy/vehicle
+control remains 20 Hz. The safe UI-authored loop is stored as
+`routes/town10hd_opt_advisor_safe_perimeter_loop_v3.json`; its companion CSV is
+the deterministic ego/NPC controller input. The derived wrappers preserve the
+advisor sources as read-only, use one-shot reactive crossings only in the
+pedestrian family, and never take a second world-ticker role.
 
 Validate and smoke with:
 
 ```bash
 /home/shr_aisvcs/workarea/carla_0_10_env/carla_0_10_venv/bin/python3 \
-  -m data_collection.run_advisor_policy_corpus --validate-config
+  -m data_collection.run_advisor_policy_corpus \
+  --config data_collection/configs/policy_corpus_advisor_rich_v4.yaml \
+  --validate-config
 
 /home/shr_aisvcs/workarea/carla_0_10_env/carla_0_10_venv/bin/python3 \
-  -c "from data_collection.run_advisor_policy_corpus import main; main()" \
+  -m data_collection.run_advisor_policy_corpus \
+  --config data_collection/configs/policy_corpus_advisor_rich_v4.yaml \
   --mode smoke
 ```
 
-The 2026-08-11 staged smoke stopped at the unchanged pedestrian hard gate. The
-final valid pedestrian diagnostic is
-`experiments/policy_corpus_advisor_rich_v3/20260812_031904_smoke`: the controlled
-walker completed a realistic crossing with max derived speed 1.044 m/s, the ego yielded, and the
-close pedestrian was visually prominent, but score>=0.20 association coverage
-was only 22/220 (10.0%) versus the required 50%. Do not run `--mode full`, the
-freshness re-score, or the controller ladder from this config until a new
-reviewed perception hypothesis passes the same smoke gate.
+The final v4 smoke is
+`experiments/policy_corpus_advisor_rich_v4/20260813_012506_smoke` and passed all perception, fast-dwell, clock, traffic,
+and cleanup gates. The resulting 24-run batch is `20260813_014501_full`, but
+verification `20260813_023541` is `FAIL_QUARANTINED`: vehicle replay coverage
+is 26.14% versus 45.18%, pedestrian replay coverage is 41.41% versus 50%, and
+three run-level pedestrian validity/match gates failed. Do not run freshness,
+the controller ladder, or RL from this batch. See `collab/REVIEW_NOTES.md` for
+the score-threshold diagnostic and exact-fast pedestrian-collision audit.

@@ -1,0 +1,125 @@
+schema_version: 1
+
+# v4 preserves the registered v3 scenario families, trajectory-grouped split
+# matrix, seeds, route, and gates. It changes only the sensor/control contract
+# and adds the traffic-sanity safeguards accepted after the on-contract
+# pedestrian reconciliation. The runner writes a fully expanded resolved YAML
+# into every batch, so results do not depend on this inheritance at analysis time.
+extends: policy_corpus_advisor_rich_v3.yaml
+revision_replace: {from: v3, to: v4}
+
+overrides:
+  collection_contract:
+    required_effective_args:
+      --fps: 10
+      --world-tick-hz: 20
+      --sensor-every-tick: null
+      --no-sensor-every-tick: 'true'
+      --camera-width: 1280
+      --camera-height: 720
+      --camera-fov: 120
+      --radar-hfov: 120
+      --radar-rasterizer: legacy
+      --radar-raster-radius-px: 4
+
+  advisor_integration:
+    # This packaged server ignores weather RPCs while its lighting changes
+    # with accumulated simulator time. Reloading the map resets both time and
+    # dynamic state, so every trajectory starts from the same rendered world.
+    reload_world_before_run: true
+    generate_traffic_entrypoint: data_collection/run_advisor_generate_traffic.py
+    route_config: data_collection/routes/town10hd_opt_advisor_safe_perimeter_loop_v3.json
+    route_progress_csv: data_collection/routes/town10hd_opt_advisor_safe_perimeter_loop_v3.progress.csv
+    # The advisor population clients remain passive. The collection runner
+    # applies this global and per-NPC following distance after population
+    # readiness, before yielding sole tick ownership to the collector.
+    tm_distance_to_leading_vehicle_m: 12.0
+    # The advisor default (30%) let Town10HD_Opt NPCs reach ~19 m/s before
+    # constrained demo-region turns and produced reproducible road departures.
+    # A 65% reduction retains moving urban traffic while limiting peak speed.
+    tm_speed_difference_pct: 65.0
+    tm_desired_speed_mps: 8.0
+    # The v3 UI-authored perimeter turns before all static-map obstructions
+    # identified by the isolated route diagnostic. The older compound loop and
+    # unconstrained TM routes both continued into obstructed road extensions.
+    npc_route_mode: direct_loop
+    npc_direct_route_speed_mps: 6.0
+    npc_loop_route_progress_csv: data_collection/routes/town10hd_opt_advisor_safe_perimeter_loop_v3.progress.csv
+    npc_loop_repetitions: 3
+    common_traffic_args:
+      [--safe,
+       --vehicle-spawn-clearance-m, 35.0,
+       --route-progress-csv, data_collection/routes/town10hd_opt_advisor_safe_perimeter_loop_v3.progress.csv,
+       --maximum-route-offset-m, 2.0,
+       --maximum-route-heading-error-deg, 35.0,
+       --minimum-filtered-spawn-points, 13,
+       --traffic-leading-distance-m, 12.0,
+       --traffic-speed-difference-pct, 65.0,
+       --traffic-desired-speed-mps, 8.0,
+       --defer-vehicle-control-to-runner]
+    traffic_sanity_gate:
+      maximum_collision_incidents: 0
+      minimum_actor_observation_fraction: 0.95
+      stopped_speed_max_mps: 0.5
+      gridlock_minimum_npc_count: 4
+      gridlock_stopped_fraction: 0.75
+      persistent_gridlock_min_s: 5.0
+    # The only static vehicle that materializes in this packaged Town is on an
+    # active lane and caused sustained hard contact plus a pile-up. The richer
+    # policy corpus keeps the advisor's close crossing pedestrian and ambient
+    # traffic, but excludes this incompatible demo-only vehicle blocker.
+    # Each policy episode needs one realized close crossing. Repeated blocker
+    # generations add no policy state coverage and exposed a CARLA 0.10 actor-
+    # proxy failure after the first successful recycle. Preserve the advisor's
+    # normal five-second post-event visibility, then have the derived wrapper
+    # retire the completed crossing without respawn or a persistent road block.
+    common_blocker_args:
+      [--vehicle-z-offset, 0.60, --no-vehicle-blockers,
+       --one-shot-pedestrians]
+    families:
+      mixed_urban:
+        number_of_vehicles: 4
+        minimum_autopilot_vehicles: 4
+        minimum_ready_actor_counts:
+          vehicle.*: 7
+        minimum_blocker_role_prefix_counts:
+          static_blocker_v4: null
+          pedestrian_blocker_v4: null
+        # Mixed scenes already contain 24 advisor-managed ambient walkers.
+        # The reactive blocker is reserved for the registered crossing family.
+        blocker_args: [--no-pedestrian-blockers]
+      ped_crossing:
+        number_of_vehicles: 4
+        minimum_autopilot_vehicles: 4
+        minimum_ready_actor_counts:
+          vehicle.*: 7
+        minimum_blocker_role_prefix_counts:
+          static_blocker_v4: null
+      exact_fast_convoy:
+        minimum_blocker_role_prefix_counts:
+          pedestrian_blocker_v4: null
+        # Fast-target validity comes from the exact lead vehicle; ambient
+        # advisor walkers retain pedestrian context without a reactive blocker.
+        blocker_args: [--no-vehicle-blockers, --no-pedestrian-blockers]
+    smoke_gate:
+      # The hard pedestrian gate is evaluated on its registered realization
+      # arm, not incidental blocker rows used to populate other scenario arms.
+      pedestrian_gate_scenario_family: ped_crossing
+      world_control_tick_hz: 20
+      sensor_detection_hz: 10
+      control_ticks_per_sensor_frame: 2
+      sensor_period_tolerance_s: 0.005
+
+common_argument_overrides:
+  --fps: 10
+  --world-tick-hz: 20
+  --sensor-every-tick: null
+  --no-sensor-every-tick: true
+  --camera-width: 1280
+  --camera-height: 720
+  --camera-fov: 120
+  --radar-hfov: 120
+  --radar-rasterizer: legacy
+  --radar-raster-radius-px: 4
+  --controlled-pedestrian-horizontal-fov-deg: 120
+  --ego-fixed-path-progress-csv: data_collection/routes/town10hd_opt_advisor_safe_perimeter_loop_v3.progress.csv

@@ -125,9 +125,94 @@ def _validate_collection_contract(config: Mapping[str, object]) -> None:
             raise ValueError("full-run seeds must be unique across whole-trajectory splits")
 
 
+def _deep_merge_config(
+    base: Mapping[str, object], overrides: Mapping[str, object]
+) -> Dict[str, object]:
+    merged: Dict[str, object] = dict(base)
+    for key, value in overrides.items():
+        if value is None:
+            merged.pop(key, None)
+            continue
+        if isinstance(value, Mapping) and isinstance(merged.get(key), Mapping):
+            merged[key] = _deep_merge_config(merged[key], value)
+        else:
+            merged[key] = value
+    return merged
+
+
+def _replace_config_strings(value: object, old: str, new: str) -> object:
+    if isinstance(value, str):
+        return value.replace(old, new)
+    if isinstance(value, list):
+        return [_replace_config_strings(item, old, new) for item in value]
+    if isinstance(value, Mapping):
+        return {
+            str(key): _replace_config_strings(item, old, new)
+            for key, item in value.items()
+        }
+    return value
+
+
+def _apply_common_argument_overrides(
+    arguments: Sequence[object], overrides: Mapping[str, object]
+) -> List[str]:
+    tokens = [str(value) for value in arguments]
+    for option, value in overrides.items():
+        option = str(option)
+        retained: List[str] = []
+        index = 0
+        while index < len(tokens):
+            if tokens[index] != option:
+                retained.append(tokens[index])
+                index += 1
+                continue
+            index += 1
+            if index < len(tokens) and not tokens[index].startswith("--"):
+                index += 1
+        tokens = retained
+        if value is None or value is False:
+            continue
+        tokens.append(option)
+        if value is not True:
+            tokens.append(str(value))
+    return tokens
+
+
 def _load_config(path: Path) -> Dict[str, object]:
     with path.open("r", encoding="utf-8") as stream:
-        config = yaml.safe_load(stream)
+        raw = yaml.safe_load(stream)
+    if not isinstance(raw, Mapping):
+        raise ValueError("collection config must be a YAML mapping")
+    extends = raw.get("extends")
+    if extends:
+        base_path = Path(str(extends)).expanduser()
+        if not base_path.is_absolute():
+            base_path = path.parent / base_path
+        config = _load_config(base_path.resolve())
+        revision = raw.get("revision_replace", {})
+        if revision:
+            if not isinstance(revision, Mapping) or set(revision) != {"from", "to"}:
+                raise ValueError("revision_replace must contain exactly from/to")
+            config = _replace_config_strings(
+                config, str(revision["from"]), str(revision["to"])
+            )
+        overrides = raw.get("overrides", {})
+        if not isinstance(overrides, Mapping):
+            raise ValueError("collection config overrides must be a mapping")
+        config = _deep_merge_config(config, overrides)
+        argument_overrides = raw.get("common_argument_overrides", {})
+        if not isinstance(argument_overrides, Mapping):
+            raise ValueError("common_argument_overrides must be a mapping")
+        config["common_args"] = _apply_common_argument_overrides(
+            config["common_args"], argument_overrides
+        )
+        config["config_lineage"] = {
+            "extends": str(base_path.resolve()),
+            "revision_replace": dict(revision),
+            "source_config": str(path.resolve()),
+        }
+    else:
+        config = dict(raw)
     if int(config.get("schema_version", 0)) != 1:
         raise ValueError("collection config schema_version must be 1")
     all_runs = [*config.get("smoke_runs", []), *config.get("runs", [])]

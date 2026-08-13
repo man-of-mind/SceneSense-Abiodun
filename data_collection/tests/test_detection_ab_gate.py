@@ -222,11 +222,14 @@ class DetectionABGateTests(unittest.TestCase):
     def test_direct_route_controller_disables_tm_and_commands_vehicle(self):
         actor = mock.Mock(id=77)
         actor.get_location.return_value = mock.Mock(x=0.0, y=0.0)
-        actor.get_transform.return_value = mock.Mock(
+        transform = mock.Mock(
             location=mock.Mock(x=0.0, y=0.0),
             rotation=mock.Mock(yaw=0.0),
         )
+        transform.get_forward_vector.return_value = mock.Mock(x=1.0, y=0.0)
+        actor.get_transform.return_value = transform
         actor.get_velocity.return_value = mock.Mock(x=0.0, y=0.0, z=0.0)
+        actor.get_world.return_value.get_actors.return_value.filter.return_value = []
         args = argparse.Namespace(tm_port=8010)
         overlay = ControlledPedestrianOverlay(
             ego_route_control="direct", ego_direct_route_speed_mps=6.0

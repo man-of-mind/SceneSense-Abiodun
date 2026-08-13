@@ -4,9 +4,12 @@ import json
 import math
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
+import pandas as pd
 
+from data_collection import run_advisor_spawn_blocker as blocker_wrapper
 from data_collection.run_policy_corpus import (
     _effective_options,
     _load_config,
@@ -19,8 +22,13 @@ from data_collection.rescore_policy_corpus_freshness import (
 )
 from data_collection.verify_policy_corpus import _longest_true_dwell
 from data_collection.run_advisor_policy_corpus import (
+    _controlled_pedestrian_gate_rows,
+    _in_forward_corridor,
+    _walker_requires_yield,
     _load_config as _load_advisor_config,
     _population_commands,
+    _tick_until_empty,
+    _traffic_sanity_summary,
     _validate_advisor_contract,
 )
 from data_collection.run_advisor_spawn_blocker import _poll_for_tick
@@ -33,6 +41,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 CONFIG_PATH = REPO_ROOT / "data_collection" / "configs" / "policy_corpus_vehicle_v2.yaml"
 ADVISOR_CONFIG_PATH = (
     REPO_ROOT / "data_collection" / "configs" / "policy_corpus_advisor_rich_v3.yaml"
+)
+ADVISOR_V4_CONFIG_PATH = (
+    REPO_ROOT / "data_collection" / "configs" / "policy_corpus_advisor_rich_v4.yaml"
 )
 ON_CONTRACT_CONFIG_PATH = (
     REPO_ROOT
@@ -111,6 +122,219 @@ class VehicleCorpusConfigTests(unittest.TestCase):
 
 
 class AdvisorRichCorpusConfigTests(unittest.TestCase):
+    def test_npc_shield_forward_corridor_includes_crossing_walker_not_sidewalk(self):
+        transform = SimpleNamespace(
+            location=SimpleNamespace(x=0.0, y=0.0),
+            get_forward_vector=lambda: SimpleNamespace(x=1.0, y=0.0),
+        )
+
+        self.assertTrue(
+            _in_forward_corridor(
+                transform,
+                SimpleNamespace(x=10.0, y=2.0),
+                maximum_forward_m=15.0,
+                maximum_lateral_m=3.5,
+            )
+        )
+        self.assertFalse(
+            _in_forward_corridor(
+                transform,
+                SimpleNamespace(x=10.0, y=5.0),
+                maximum_forward_m=15.0,
+                maximum_lateral_m=3.5,
+            )
+        )
+
+        stationary = SimpleNamespace(x=0.0, y=0.0)
+        moving = SimpleNamespace(x=0.0, y=-1.0)
+        curb = SimpleNamespace(x=10.0, y=2.7)
+        self.assertFalse(_walker_requires_yield(transform, curb, stationary))
+        self.assertTrue(_walker_requires_yield(transform, curb, moving))
+        self.assertFalse(
+            _in_forward_corridor(
+                transform,
+                SimpleNamespace(x=-1.0, y=0.0),
+                maximum_forward_m=15.0,
+                maximum_lateral_m=3.5,
+            )
+        )
+
+    def test_pedestrian_gate_excludes_incidental_blockers_in_other_families(self):
+        truth = pd.DataFrame(
+            {
+                "scenario_family": ["mixed_urban", "ped_crossing", "exact_fast_convoy"],
+                "class_name": ["pedestrian"] * 3,
+                "role_name": ["pedestrian_blocker_v4_1"] * 3,
+                "in_camera_frustum": [True] * 3,
+                "distance_m": [8.0] * 3,
+                "origin_x": [1.0, 2.0, 3.0],
+                "origin_y": [4.0, 5.0, 6.0],
+            }
+        )
+        gate = {
+            "headline_range_m": 25.0,
+            "pedestrian_gate_scenario_family": "ped_crossing",
+            "pedestrian_role_prefix": "pedestrian_blocker_v4",
+        }
+
+        scoped = _controlled_pedestrian_gate_rows(truth, gate)
+
+        self.assertEqual(len(scoped), 1)
+        self.assertEqual(scoped.iloc[0]["scenario_family"], "ped_crossing")
+
+    def test_advisor_v4_inherits_splits_and_locks_on_contract_dual_clock(self):
+        config = _load_advisor_config(ADVISOR_V4_CONFIG_PATH)
+
+        self.assertEqual(config["experiment_name"], "policy_corpus_advisor_rich_v4")
+        self.assertEqual(len(config["smoke_runs"]), 3)
+        self.assertEqual(len(config["runs"]), 24)
+        for run in [*config["smoke_runs"], *config["runs"]]:
+            options = _effective_options(_resolved_run_args(config, run))
+            expected = {
+                "--fps": "10",
+                "--world-tick-hz": "20",
+                "--no-sensor-every-tick": "true",
+                "--camera-width": "1280",
+                "--camera-height": "720",
+                "--camera-fov": "120",
+                "--radar-hfov": "120",
+                "--radar-points-per-second": "200000",
+                "--radar-rasterizer": "legacy",
+                "--radar-raster-radius-px": "4",
+                "--radar-temporal-window-frames": "2",
+                "--object-nms-radius-px": "2",
+                "--topk-objects": "120",
+            }
+            self.assertEqual({key: options.get(key) for key in expected}, expected)
+            self.assertNotIn("--sensor-every-tick", options)
+        integration = config["advisor_integration"]
+        self.assertIs(integration["reload_world_before_run"], True)
+        self.assertIn("--safe", integration["common_traffic_args"])
+        self.assertEqual(float(integration["tm_distance_to_leading_vehicle_m"]), 12.0)
+        self.assertEqual(float(integration["tm_speed_difference_pct"]), 65.0)
+        self.assertEqual(float(integration["tm_desired_speed_mps"]), 8.0)
+        self.assertEqual(integration["npc_route_mode"], "direct_loop")
+        self.assertEqual(float(integration["npc_direct_route_speed_mps"]), 6.0)
+        self.assertEqual(
+            int(integration["traffic_sanity_gate"]["maximum_collision_incidents"]), 0
+        )
+        self.assertEqual(
+            integration["smoke_gate"]["pedestrian_gate_scenario_family"],
+            "ped_crossing",
+        )
+        mixed = next(
+            run for run in config["smoke_runs"] if run["scenario_family"] == "mixed_urban"
+        )
+        blocker, traffic = _population_commands(config, mixed)
+        self.assertEqual(blocker, [])
+        self.assertTrue(
+            any(value.endswith("run_advisor_generate_traffic.py") for value in traffic)
+        )
+        self.assertEqual(
+            traffic[traffic.index("--vehicle-spawn-clearance-m") + 1], "35.0"
+        )
+        self.assertEqual(traffic[traffic.index("--maximum-route-offset-m") + 1], "2.0")
+        self.assertEqual(
+            traffic[traffic.index("--maximum-route-heading-error-deg") + 1], "35.0"
+        )
+        self.assertEqual(
+            traffic[traffic.index("--traffic-speed-difference-pct") + 1], "65.0"
+        )
+        self.assertEqual(
+            traffic[traffic.index("--traffic-desired-speed-mps") + 1], "8.0"
+        )
+        self.assertIn("--defer-vehicle-control-to-runner", traffic)
+        self.assertEqual(
+            config["advisor_integration"]["families"]["mixed_urban"][
+                "number_of_vehicles"
+            ],
+            4,
+        )
+        self.assertIn(
+            "--one-shot-pedestrians",
+            config["advisor_integration"]["common_blocker_args"],
+        )
+        for family in ("mixed_urban", "exact_fast_convoy"):
+            family_spec = config["advisor_integration"]["families"][family]
+            self.assertIn("--no-pedestrian-blockers", family_spec["blocker_args"])
+            self.assertNotIn(
+                "pedestrian_blocker_v4",
+                family_spec["minimum_blocker_role_prefix_counts"],
+            )
+
+    def test_one_shot_blocker_retires_completed_crossing_without_respawn(self):
+        advisor = blocker_wrapper.advisor_blocker
+        original_request = advisor.request_respawn
+        original_retire = advisor.retire_state_actors
+        original_reset = advisor.reset_activation_fields
+        calls = []
+        state = SimpleNamespace(
+            index=1,
+            generation=1,
+            actor=SimpleNamespace(id=42),
+            state="HOLDING",
+            respawn_due=None,
+        )
+
+        def retire(fake_state, registry):
+            calls.append((fake_state.actor.id, registry))
+            fake_state.actor = None
+
+        try:
+            advisor.retire_state_actors = retire
+            advisor.reset_activation_fields = lambda _state: None
+            blocker_wrapper._install_one_shot_pedestrian_lifecycle()
+            advisor.request_respawn(
+                state,
+                12.0,
+                "post-event hold completed after near miss",
+                object(),
+                SimpleNamespace(),
+            )
+        finally:
+            advisor.request_respawn = original_request
+            advisor.retire_state_actors = original_retire
+            advisor.reset_activation_fields = original_reset
+
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(state.state, advisor.STATE_RESPAWN_PENDING)
+        self.assertTrue(math.isinf(state.respawn_due))
+
+    def test_traffic_sanity_gate_deduplicates_collision_and_detects_gridlock(self):
+        trajectories = []
+        for frame_id in range(1, 81):
+            for actor_id in range(1, 7):
+                trajectories.append(
+                    {
+                        "frame_id": frame_id,
+                        "carla_timestamp": frame_id * 0.05,
+                        "actor_id": actor_id,
+                        "speed_mps": 0.1,
+                    }
+                )
+        collisions = [
+            {"frame_id": 10, "npc_actor_id": 1, "other_actor_id": 2},
+            {"frame_id": 10, "npc_actor_id": 2, "other_actor_id": 1},
+            {"frame_id": 11, "npc_actor_id": 1, "other_actor_id": 2},
+        ]
+        gate = {
+            "maximum_collision_incidents": 0,
+            "minimum_actor_observation_fraction": 0.95,
+            "stopped_speed_max_mps": 0.5,
+            "gridlock_minimum_npc_count": 5,
+            "gridlock_stopped_fraction": 0.8,
+            "persistent_gridlock_min_s": 3.0,
+        }
+
+        summary = _traffic_sanity_summary(
+            pd.DataFrame(trajectories), pd.DataFrame(collisions), list(range(1, 7)), gate
+        )
+
+        self.assertEqual(summary["collision_events"], 1)
+        self.assertGreaterEqual(summary["persistent_gridlock_dwell_s"], 3.0)
+        self.assertIn("npc_collision_incidents_above_gate", summary["failures"])
+        self.assertIn("persistent_network_gridlock", summary["failures"])
+
     def test_on_contract_diagnostic_is_exact_and_cannot_schedule_a_full_corpus(self):
         config = _load_advisor_config(ON_CONTRACT_CONFIG_PATH)
 
@@ -202,6 +426,34 @@ class AdvisorRichCorpusConfigTests(unittest.TestCase):
 
         snapshot = _poll_for_tick(FakeWorld(), 0.1)
         self.assertEqual(snapshot.frame, 11)
+
+    def test_postflight_waits_passively_for_deferred_async_destruction(self):
+        class FakeActors:
+            def __init__(self, count):
+                self.count = count
+
+            def filter(self, _pattern):
+                return [object()] * self.count
+
+        class FakeWorld:
+            def __init__(self):
+                self.snapshots = iter((FakeActors(1), FakeActors(0)))
+
+            def get_actors(self):
+                return next(self.snapshots)
+
+            def tick(self, *_args):
+                raise AssertionError("postflight must not tick the world")
+
+        self.assertEqual(
+            _tick_until_empty(FakeWorld(), 0.2),
+            {
+                "vehicle.*": 0,
+                "walker.pedestrian.*": 0,
+                "sensor.*": 0,
+                "controller.ai.walker": 0,
+            },
+        )
 
     def test_route_is_ui_compatible_loop_through_advisor_blockers(self):
         route_path = (

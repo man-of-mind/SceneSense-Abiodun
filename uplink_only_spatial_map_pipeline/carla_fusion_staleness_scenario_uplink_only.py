@@ -534,6 +534,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--camera-height", type=int, default=480)
     parser.add_argument("--fps", type=float, default=10.0, help="Synchronous sensor tick rate.")
     parser.add_argument(
+        "--world-tick-hz",
+        type=float,
+        default=None,
+        help=(
+            "Synchronous CARLA/TM control tick rate. Omit to preserve the legacy "
+            "one-world-tick-per-sensor-frame behavior (world tick rate = --fps). "
+            "When this is higher than --fps, the rates must have an integral ratio."
+        ),
+    )
+    parser.add_argument(
         "--sensor-every-tick",
         action=argparse.BooleanOptionalAction,
         default=False,
@@ -679,6 +689,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--radar-hfov", type=float, default=100.0, help="Radar horizontal FoV in degrees.")
     parser.add_argument("--radar-vfov", type=float, default=30.0, help="Radar vertical FoV in degrees.")
     parser.add_argument("--radar-points-per-second", type=int, default=5000)
+    parser.add_argument(
+        "--radar-noise-seed",
+        type=int,
+        default=None,
+        help="CARLA radar RNG seed; defaults to the frozen trajectory --seed.",
+    )
     parser.add_argument(
         "--radar-max-velocity",
         type=float,
@@ -1262,6 +1278,12 @@ def prepare_fusion_input(
 # ---------------------------------------------------------------------------
 
 
+def resolved_radar_noise_seed(args: argparse.Namespace) -> int:
+    """Resolve the CARLA radar RNG seed from the trajectory contract."""
+
+    return int(args.seed if args.radar_noise_seed is None else args.radar_noise_seed)
+
+
 class PoleRadarPipeline:
     """Wraps the CARLA radar sensor + stationary tracker + per-frame raster build.
 
@@ -1284,6 +1306,14 @@ class PoleRadarPipeline:
         bp.set_attribute("horizontal_fov", str(float(args.radar_hfov)))
         bp.set_attribute("vertical_fov", str(float(args.radar_vfov)))
         bp.set_attribute("points_per_second", str(int(args.radar_points_per_second)))
+        radar_noise_seed = resolved_radar_noise_seed(args)
+        if not bp.has_attribute("noise_seed"):
+            raise RuntimeError(
+                "CARLA radar blueprint lacks noise_seed; deterministic corpus collection "
+                "cannot continue"
+            )
+        bp.set_attribute("noise_seed", str(radar_noise_seed))
+        args.radar_noise_seed = radar_noise_seed
         radar_sensor_tick = 0.0 if bool(getattr(args, "sensor_every_tick", False)) else (
             1.0 / max(0.1, float(args.fps))
         )
@@ -1312,11 +1342,22 @@ class PoleRadarPipeline:
             "fast": deque(maxlen=max(1, int(getattr(args, "radar_temporal_window_frames", 1)))),
         }
 
-    def get_latest(self, timeout: float) -> Optional["carla.RadarMeasurement"]:
-        try:
-            return self.queue.get(timeout=float(timeout))
-        except queue.Empty:
-            return None
+    def get_latest(
+        self,
+        timeout: float,
+        minimum_frame: Optional[int] = None,
+    ) -> Optional["carla.RadarMeasurement"]:
+        deadline = time.time() + float(timeout)
+        while True:
+            remaining = deadline - time.time()
+            if remaining <= 0.0:
+                return None
+            try:
+                measurement = self.queue.get(timeout=remaining)
+            except queue.Empty:
+                return None
+            if minimum_frame is None or int(measurement.frame) >= int(minimum_frame):
+                return measurement
 
     def build_tensor(
         self,
@@ -3203,6 +3244,7 @@ class FusionRunLogger:
                 "hfov": float(self.args.radar_hfov),
                 "vfov": float(self.args.radar_vfov),
                 "points_per_second": int(self.args.radar_points_per_second),
+                "noise_seed": int(self.args.radar_noise_seed),
                 "raster_radius_px": int(self.args.radar_raster_radius_px),
                 "rasterizer": str(getattr(self.args, "radar_rasterizer", "legacy")),
                 "temporal_window_frames": int(
@@ -5115,6 +5157,88 @@ def run_back_only(args: argparse.Namespace) -> None:
         print("[fusion-back] Done.")
 
 
+def resolved_world_tick_hz(args: argparse.Namespace) -> float:
+    """Return and validate the synchronous physics/control clock."""
+
+    sensor_hz = float(args.fps)
+    world_hz_raw = getattr(args, "world_tick_hz", None)
+    world_hz = sensor_hz if world_hz_raw is None else float(world_hz_raw)
+    if not math.isfinite(sensor_hz) or sensor_hz <= 0.0:
+        raise ValueError("--fps must be a positive finite sensor rate")
+    if not math.isfinite(world_hz) or world_hz <= 0.0:
+        raise ValueError("--world-tick-hz must be a positive finite control rate")
+    ratio = world_hz / sensor_hz
+    rounded_ratio = round(ratio)
+    if bool(getattr(args, "sensor_every_tick", False)):
+        if not math.isclose(ratio, 1.0, rel_tol=0.0, abs_tol=1e-9):
+            raise ValueError(
+                "--sensor-every-tick requires --world-tick-hz to equal --fps"
+            )
+    elif ratio < 1.0 or not math.isclose(
+        ratio, float(rounded_ratio), rel_tol=0.0, abs_tol=1e-9
+    ):
+        raise ValueError(
+            "--world-tick-hz/--fps must be a positive integral ratio in synchronous mode"
+        )
+    return world_hz
+
+
+def synchronous_ticks_per_sensor_frame(args: argparse.Namespace) -> int:
+    return int(round(resolved_world_tick_hz(args) / float(args.fps)))
+
+
+def on_synchronous_world_tick(
+    *,
+    world: "carla.World",
+    anchor_actor: Optional["carla.Actor"],
+    args: argparse.Namespace,
+    frame_id: int,
+) -> None:
+    """Derived collectors may install a lightweight per-control-tick hook."""
+
+    del world, anchor_actor, args, frame_id
+
+
+def tick_for_sensor_frame(
+    *,
+    world: "carla.World",
+    image_queue: "queue.Queue[carla.Image]",
+    anchor_actor: Optional["carla.Actor"],
+    args: argparse.Namespace,
+) -> Tuple[Optional["carla.Image"], Dict[str, object]]:
+    """Advance the control clock until exactly one sensor period has elapsed."""
+
+    tick_count = synchronous_ticks_per_sensor_frame(args)
+    first_frame: Optional[int] = None
+    last_frame: Optional[int] = None
+    tick_start_perf = time.perf_counter()
+    for _unused in range(tick_count):
+        last_frame = int(world.tick())
+        if first_frame is None:
+            first_frame = last_frame
+        on_synchronous_world_tick(
+            world=world,
+            anchor_actor=anchor_actor,
+            args=args,
+            frame_id=last_frame,
+        )
+    tick_ms = (time.perf_counter() - tick_start_perf) * 1000.0
+    wait_start_perf = time.perf_counter()
+    image = od_demo.wait_for_camera_frame(
+        image_queue,
+        int(first_frame if first_frame is not None else 0),
+        float(args.camera_timeout),
+    )
+    wait_ms = (time.perf_counter() - wait_start_perf) * 1000.0
+    return image, {
+        "sync_world_tick_ms": float(tick_ms),
+        "camera_frame_wait_ms": float(wait_ms),
+        "control_ticks_per_sensor_frame": int(tick_count),
+        "first_control_frame_id": first_frame,
+        "last_control_frame_id": last_frame,
+    }
+
+
 def run_client(args: argparse.Namespace) -> None:
     if args.role == "back":
         run_back_only(args)
@@ -5368,6 +5492,12 @@ def run_client(args: argparse.Namespace) -> None:
     print(f"Camera resolution: {camera_width}x{camera_height} ({camera_resolution_label})")
     print(f"Model input: {model_input_size[0]}x{model_input_size[1]}")
     print(f"Sensor tick mode: {'every world tick (sensor_tick=0.0)' if bool(getattr(args, 'sensor_every_tick', False)) else 'explicit 1/fps'}")
+    print(
+        "Clock contract: "
+        f"world/control={resolved_world_tick_hz(args):.2f} Hz, "
+        f"sensor/detection={float(args.fps):.2f} Hz, "
+        f"control_ticks_per_sensor_frame={synchronous_ticks_per_sensor_frame(args)}"
+    )
     print(f"Front device: {front_device}, back device: {back_device}")
     print(f"Entropy coder: {args.entropy_coder} | Quantization: {args.quantization_mode}")
     print(f"Role: {args.role} | bind-host: {args.bind_host} | remote-host: {remote_host}")
@@ -5385,7 +5515,7 @@ def run_client(args: argparse.Namespace) -> None:
         if bool(args.sync_world):
             settings = world.get_settings()
             settings.synchronous_mode = True
-            settings.fixed_delta_seconds = 1.0 / max(0.1, float(args.fps))
+            settings.fixed_delta_seconds = 1.0 / resolved_world_tick_hz(args)
             world.apply_settings(settings)
             traffic_manager.set_synchronous_mode(True)
             world.tick()
@@ -5626,12 +5756,20 @@ def run_client(args: argparse.Namespace) -> None:
         actors.append(radar_pipeline.sensor)
 
         if bool(args.sync_world):
-            first_image = od_demo.warmup_camera_stream(
-                world,
-                image_queue,
-                args.camera_warmup_ticks,
-                args.camera_timeout,
-            )
+            first_image = None
+            for _unused in range(max(1, int(args.camera_warmup_ticks))):
+                first_image, _warmup_timing = tick_for_sensor_frame(
+                    world=world,
+                    image_queue=image_queue,
+                    anchor_actor=anchor_actor,
+                    args=args,
+                )
+                if first_image is not None:
+                    break
+            if first_image is None:
+                raise RuntimeError(
+                    "RGB camera did not produce any frames during synchronous startup"
+                )
         else:
             first_image = image_queue.get(timeout=max(1.0, float(args.camera_timeout)))
         sensor_label = "Pole" if sensor_platform == "pole" else "Parked ego"
@@ -5813,17 +5951,14 @@ def run_client(args: argparse.Namespace) -> None:
                         ),
                     )
                     experiment3_cycle_frame_index += 1
-                world_tick_start_perf = time.perf_counter()
-                world_frame = int(world.tick())
-                world_tick_done_perf = time.perf_counter()
-                sync_world_tick_ms = float((world_tick_done_perf - world_tick_start_perf) * 1000.0)
-                camera_wait_start_perf = time.perf_counter()
-                image = od_demo.wait_for_camera_frame(
-                    image_queue,
-                    world_frame,
-                    float(args.camera_timeout),
+                image, sensor_tick_timing = tick_for_sensor_frame(
+                    world=world,
+                    image_queue=image_queue,
+                    anchor_actor=anchor_actor,
+                    args=args,
                 )
-                camera_frame_wait_ms = float((time.perf_counter() - camera_wait_start_perf) * 1000.0)
+                sync_world_tick_ms = sensor_tick_timing["sync_world_tick_ms"]
+                camera_frame_wait_ms = sensor_tick_timing["camera_frame_wait_ms"]
             else:
                 camera_wait_start_perf = time.perf_counter()
                 try:
@@ -5839,7 +5974,10 @@ def run_client(args: argparse.Namespace) -> None:
             capture_wall_s = time.time()
 
             radar_wait_start_perf = time.perf_counter()
-            radar_measurement = radar_pipeline.get_latest(timeout=float(args.camera_timeout))
+            radar_measurement = radar_pipeline.get_latest(
+                timeout=float(args.camera_timeout),
+                minimum_frame=int(image.frame),
+            )
             radar_wait_ms = float((time.perf_counter() - radar_wait_start_perf) * 1000.0)
             if radar_measurement is None:
                 print(
@@ -5888,6 +6026,11 @@ def run_client(args: argparse.Namespace) -> None:
             prep_timing = {
                 "sync_world_tick_ms": sync_world_tick_ms,
                 "camera_frame_wait_ms": camera_frame_wait_ms,
+                "control_ticks_per_sensor_frame": (
+                    sensor_tick_timing.get("control_ticks_per_sensor_frame", "")
+                    if bool(args.sync_world)
+                    else ""
+                ),
                 "radar_wait_ms": radar_wait_ms,
                 "rgb_convert_ms": rgb_convert_ms,
                 "camera_inverse_matrix_ms": camera_inverse_matrix_ms,
@@ -6101,17 +6244,14 @@ def run_client(args: argparse.Namespace) -> None:
                         ),
                     )
                     experiment3_cycle_frame_index += 1
-                world_tick_start_perf = time.perf_counter()
-                world_frame = int(world.tick())
-                world_tick_done_perf = time.perf_counter()
-                sync_world_tick_ms = float((world_tick_done_perf - world_tick_start_perf) * 1000.0)
-                camera_wait_start_perf = time.perf_counter()
-                image = od_demo.wait_for_camera_frame(
-                    image_queue,
-                    world_frame,
-                    float(args.camera_timeout),
+                image, sensor_tick_timing = tick_for_sensor_frame(
+                    world=world,
+                    image_queue=image_queue,
+                    anchor_actor=anchor_actor,
+                    args=args,
                 )
-                camera_frame_wait_ms = float((time.perf_counter() - camera_wait_start_perf) * 1000.0)
+                sync_world_tick_ms = sensor_tick_timing["sync_world_tick_ms"]
+                camera_frame_wait_ms = sensor_tick_timing["camera_frame_wait_ms"]
             else:
                 camera_wait_start_perf = time.perf_counter()
                 try:
@@ -6145,7 +6285,10 @@ def run_client(args: argparse.Namespace) -> None:
                     gt_3class = trained_seg_demo.map_carla_tags_to_3class(gt_tags)
 
             radar_wait_start_perf = time.perf_counter()
-            radar_measurement = radar_pipeline.get_latest(timeout=float(args.camera_timeout))
+            radar_measurement = radar_pipeline.get_latest(
+                timeout=float(args.camera_timeout),
+                minimum_frame=int(image.frame),
+            )
             radar_wait_ms = float((time.perf_counter() - radar_wait_start_perf) * 1000.0)
             if radar_measurement is None:
                 print(
@@ -6231,6 +6374,11 @@ def run_client(args: argparse.Namespace) -> None:
             prep_timing = {
                 "sync_world_tick_ms": sync_world_tick_ms,
                 "camera_frame_wait_ms": camera_frame_wait_ms,
+                "control_ticks_per_sensor_frame": (
+                    sensor_tick_timing.get("control_ticks_per_sensor_frame", "")
+                    if bool(args.sync_world)
+                    else ""
+                ),
                 "radar_wait_ms": radar_wait_ms,
                 "rgb_convert_ms": rgb_convert_ms,
                 "camera_inverse_matrix_ms": camera_inverse_matrix_ms,

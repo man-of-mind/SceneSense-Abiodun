@@ -1675,3 +1675,51 @@ a real signal again.
    spacing) and log NPC collision events. Add a light "traffic sane" check to the smoke gate: NPC collision count
    ~0 and no persistent gridlock. A corpus full of crashed/stuck NPCs would distort the speed + freshness
    distributions the controller learns from.
+
+## 2026-08-12 local / 2026-08-13 UTC — on-contract v4 execution: full batch QUARANTINED at verification
+
+The production collector is now aligned to the confirmed training contract: **10 Hz detection, 1280x720,
+camera/radar FOV 120 degrees, legacy training rasterizer radius 4, temporal window 2**, with a distinct **20 Hz
+policy/control clock** (two world ticks per sensor frame). Advisor traffic remains observe-existing on TM port
+8010. The derived orchestration uses four safely spaced route vehicles, the UI-authored perimeter loop, direct
+bounded 20 Hz control, realistic 1-2 m/s walkers, per-NPC collision sensors, and hard zero-collision/no-persistent-
+gridlock gates. The read-only advisor sources were not modified.
+
+The final pre-scale smoke is
+`data_collection/experiments/policy_corpus_advisor_rich_v4/20260813_012506_smoke` and is a clean **PASS**:
+
+- controlled pedestrian score-0.20 coverage **94/134 = 70.15%**;
+- exact-fast target dwell **7.4 s** at >=10 m/s, <=25 m, and in-frustum;
+- every arm has median CARLA frame step 2 and sensor period 0.100 s;
+- both object classes are in GT; all traffic arms have **0 collision incidents**, gridlock dwell 0.05-0.20 s,
+  and zero postflight actors.
+
+CARLA 0.10 exposed two lifecycle issues during the gated chain. The derived blocker wrapper now keeps the normal
+five-second post-event visibility and retires a completed crossing without respawning it; mixed/fast arms do not
+launch the reactive blocker because they already contain ambient walkers. Postflight restores asynchronous mode
+before bounded passive actor polling because this CARLA build can defer attached sensor/ego destruction until an
+async frame. Cleanup still fails closed if actors persist. Offline validation is **48/48 collection tests** and
+**32/32 policy tests**.
+
+The complete immutable batch is
+`data_collection/experiments/policy_corpus_advisor_rich_v4/20260813_014501_full`: 24/24 runs completed, all
+per-run online/basic traffic gates passed, and all postflight actor counts were zero. Verification at
+`verification/20260813_023541` is nevertheless **FAIL_QUARANTINED** under the unchanged gates:
+
+- vehicle held-track replay observation coverage **26.14%**, below legacy **45.18%**;
+- pedestrian held-track replay observation coverage **41.41%**, below the hard **50%** minimum;
+- `mixed_va02` has two ambient-walker speed samples above 3.5 m/s (max **3.891 m/s**);
+- `mixed_te01` has 22 eligible pedestrian rows but no score-0.20 match;
+- `fast_te01` has 22 implausible pedestrian-speed rows (max **11.889 m/s**). Read-only trajectory audit shows
+  the exact-fast lead only 2.35 m behind that walker at spike onset, i.e. the lead struck/pushed an ambient
+  pedestrian. The NPC-vehicle collision monitor did not cover ego/exact-lead-to-walker contacts.
+
+The score-threshold diagnostic is informative but does **not** change the registered gate: direct same-frame
+coverage at score 0.20 is 20.34% vehicle / 38.83% pedestrian; at score 0.10 it is 51.84% / 47.90%; at the live
+decoder floor 0.05 it is **62.64% / 52.96%**. Thus confidence calibration on the richer moving/crowded scenes is
+a major contributor, but accepting score 0.05 would be a new advisor-reviewed evaluation contract, not an
+autonomous fix. The fast pedestrian collision is an independent scenario-validity defect.
+
+**HOLD:** no freshness re-score, controller-ladder rerun, or RL training was run from this quarantined batch.
+Next review must decide the score/evaluation contract and require collision sensing/shielding for collector ego
+and exact-fast lead actors before authorizing any replacement collection. Gates were not weakened.

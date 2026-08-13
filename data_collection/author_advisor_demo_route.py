@@ -221,7 +221,7 @@ def author_route(args: argparse.Namespace) -> tuple[Path, Path]:
         route_data = {
             "schema_version": ego_route_config.ROUTE_SCHEMA_VERSION,
             "type": ego_route_config.ROUTE_CONFIG_TYPE,
-            "name": "Town10HD_Opt advisor demo loop v1",
+            "name": str(args.route_name),
             "map": map_name,
             "coordinate_system": ego_route_config.ROUTE_COORDINATE_SYSTEM,
             "route_sampling_resolution_m": float(args.sampling_resolution_m),
@@ -296,6 +296,7 @@ def main() -> None:
     parser.add_argument("--traffic-light-data", type=Path, default=DEFAULT_TRAFFIC_LIGHT_DATA)
     parser.add_argument("--route-config", type=Path, default=DEFAULT_ROUTE)
     parser.add_argument("--progress-csv", type=Path, default=DEFAULT_PROGRESS)
+    parser.add_argument("--route-name", default="Town10HD_Opt advisor demo loop v1")
     parser.add_argument("--start-spawn-index", type=int, default=55)
     parser.add_argument("--end-spawn-index", type=int, default=53)
     parser.add_argument(

@@ -267,11 +267,43 @@ def _apply_direct_ego_route_control(
                 hold_frames = int(
                     math.ceil(
                         _PEDESTRIAN_OVERLAY.ego_direct_yield_hold_s
-                        * float(args.fps)
+                        * float(base.resolved_world_tick_hz(args))
                     )
                 )
                 _DIRECT_ROUTE_STATE["yield_until_step"] = control_step + hold_frames
                 break
+    # Direct route control deliberately bypasses Traffic Manager, so retain a
+    # small observable car-following shield rather than rear-ending advisor
+    # traffic that shares the UI route. This is evaluated every 20 Hz control
+    # tick and refreshed while a same-lane lead remains close.
+    forward = transform.get_forward_vector()
+    for vehicle in actor.get_world().get_actors().filter("vehicle.*"):
+        if int(vehicle.id) == actor_id:
+            continue
+        try:
+            other_location = vehicle.get_location()
+            relative_x = float(other_location.x) - float(location.x)
+            relative_y = float(other_location.y) - float(location.y)
+            forward_m = relative_x * float(forward.x) + relative_y * float(forward.y)
+            lateral_m = abs(
+                -relative_x * float(forward.y) + relative_y * float(forward.x)
+            )
+            other_velocity = vehicle.get_velocity()
+            other_speed_mps = math.hypot(
+                float(other_velocity.x), float(other_velocity.y)
+            )
+        except (AttributeError, RuntimeError):
+            continue
+        stopping_margin_m = max(
+            10.0,
+            7.0 + max(0.0, speed_mps ** 2 - other_speed_mps ** 2) / 7.0,
+        )
+        if 0.0 < forward_m <= stopping_margin_m and lateral_m <= 2.6:
+            _DIRECT_ROUTE_STATE["yield_until_step"] = max(
+                int(_DIRECT_ROUTE_STATE.get("yield_until_step", -1)),
+                control_step + 2,
+            )
+            break
     yielding = control_step <= int(_DIRECT_ROUTE_STATE.get("yield_until_step", -1))
     if yielding:
         throttle = 0.0
@@ -285,7 +317,27 @@ def _apply_direct_ego_route_control(
         )
     )
     _DIRECT_ROUTE_STATE["waypoint_index"] = int(index)
+    _DIRECT_ROUTE_STATE["heading_error"] = float(heading_error)
+    _DIRECT_ROUTE_STATE["yielding"] = bool(yielding)
     return int(index), float(heading_error), bool(yielding)
+
+
+def on_policy_control_tick(
+    *,
+    world: object,
+    anchor_actor: object,
+    args: argparse.Namespace,
+    frame_id: int,
+) -> None:
+    """Run the UI-route ego controller on the 20 Hz control clock."""
+
+    del world
+    if _PEDESTRIAN_OVERLAY.ego_route_control != "direct":
+        return
+    if anchor_actor is None:
+        raise RuntimeError("direct ego route controller requires an ego actor")
+    _apply_direct_ego_route_control(anchor_actor, args)
+    _DIRECT_ROUTE_STATE["last_control_frame_id"] = int(frame_id)
 
 
 def spawn_parked_ego_with_tm_overrides(
@@ -630,11 +682,19 @@ def write_manifest_with_overlay_provenance(
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     manifest["controlled_target"] = _CONTROLLED_TARGET_INFO
     manifest["policy_corpus_overlay"] = asdict(_PEDESTRIAN_OVERLAY)
+    manifest["clock_contract"] = {
+        "world_control_hz": float(base.resolved_world_tick_hz(logger.args)),
+        "sensor_detection_hz": float(logger.args.fps),
+        "control_ticks_per_sensor_frame": int(
+            base.synchronous_ticks_per_sensor_frame(logger.args)
+        ),
+    }
     manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
 
     config_path = Path(logger.config_path)
     resolved = json.loads(config_path.read_text(encoding="utf-8"))
     resolved["policy_corpus_overlay"] = asdict(_PEDESTRIAN_OVERLAY)
+    resolved["clock_contract"] = manifest["clock_contract"]
     config_path.write_text(json.dumps(resolved, indent=2), encoding="utf-8")
 
 
@@ -711,17 +771,21 @@ def build_policy_corpus_metrics_row(*args: object, **kwargs: object) -> Dict[str
     row["ego_route_waypoint_index"] = ""
     row["ego_route_heading_error_deg"] = ""
     row["ego_route_yielding"] = ""
+    row["world_control_tick_hz"] = float(base.resolved_world_tick_hz(kwargs["args"]))
+    row["sensor_detection_hz"] = float(kwargs["args"].fps)
+    row["control_ticks_per_sensor_frame"] = base._safe_int(
+        front_stats.get("control_ticks_per_sensor_frame"), 0
+    )
     if _PEDESTRIAN_OVERLAY.ego_route_control == "direct":
-        actor = kwargs.get("anchor_actor")
-        inherited_args = kwargs.get("args")
-        if actor is None or not isinstance(inherited_args, argparse.Namespace):
-            raise RuntimeError("direct ego route controller requires the ego actor and arguments")
-        waypoint_index, heading_error, yielding = _apply_direct_ego_route_control(
-            actor, inherited_args
+        row["ego_route_waypoint_index"] = int(
+            _DIRECT_ROUTE_STATE.get("waypoint_index", -1)
         )
-        row["ego_route_waypoint_index"] = int(waypoint_index)
-        row["ego_route_heading_error_deg"] = math.degrees(heading_error)
-        row["ego_route_yielding"] = int(yielding)
+        row["ego_route_heading_error_deg"] = math.degrees(
+            float(_DIRECT_ROUTE_STATE.get("heading_error", float("nan")))
+        )
+        row["ego_route_yielding"] = int(
+            bool(_DIRECT_ROUTE_STATE.get("yielding", False))
+        )
     return row
 
 
@@ -864,6 +928,9 @@ def main() -> None:
         "ego_route_waypoint_index",
         "ego_route_heading_error_deg",
         "ego_route_yielding",
+        "world_control_tick_hz",
+        "sensor_detection_hz",
+        "control_ticks_per_sensor_frame",
     )
     base.FUSION_METRICS_FIELDS = (
         *base.FUSION_METRICS_FIELDS,
@@ -875,6 +942,7 @@ def main() -> None:
     base._spawn_parked_ego_vehicle = spawn_parked_ego_with_tm_overrides
     base._spawn_lead_target = spawn_lead_target_with_synchronized_exact_start
     base._spawn_controlled_target = spawn_controlled_target_in_world_frame
+    base.on_synchronous_world_tick = on_policy_control_tick
     base.FusionRunLogger.write_manifest = write_manifest_with_overlay_provenance
     # Make the inherited manifest name the actual collection entry point.
     base.__file__ = __file__

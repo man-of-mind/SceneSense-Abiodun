@@ -339,3 +339,25 @@ and Arm-3 lift is -1.60 pp with 95% CI [-8.00, 4.80]. The 250-frame vehicle gate
 earlier 82.50/96.25/96.25% result before a later fast-tail collapse. Do not collect or fold a pedestrian corpus
 from this gate. Preserve both tracks and await joint review; do not shorten the horizon or tune thresholds
 after observing the outcome.
+
+## 15. Advisor-rich on-contract v4 outcome — 2026-08-12 local / 2026-08-13 UTC
+
+Verdict B's sensor-contract remedy was implemented without retraining M-prime. The final three-family smoke at
+`data_collection/experiments/policy_corpus_advisor_rich_v4/20260813_012506_smoke` passed: controlled-pedestrian
+coverage was 70.15% at score 0.20, exact-fast dwell was 7.4 s, every arm realized the locked 20 Hz control / 10 Hz
+detection clock, traffic collision count was zero, gridlock was not persistent, and every episode cleaned all
+actors. This authorized one full collection.
+
+The 24-run full batch `20260813_014501_full` completed all online/basic and traffic gates, but immutable
+verification `verification/20260813_023541` is **`FAIL_QUARANTINED`**. Vehicle replay observation coverage is
+26.14% versus the unchanged 45.18% legacy gate; pedestrian replay observation coverage is 41.41% versus the
+unchanged 50% minimum. Three run-level gates also fail: two marginal ambient-walker speed spikes in
+`mixed_va02`, no score-0.20 pedestrian match in `mixed_te01`, and a genuine exact-fast vehicle-to-walker impact
+in `fast_te01` that pushes the walker to 11.89 m/s.
+
+An offline threshold diagnostic leaves the registered gate untouched: direct same-frame vehicle/pedestrian
+coverage is 20.34%/38.83% at score 0.20, 51.84%/47.90% at 0.10, and 62.64%/52.96% at 0.05. This identifies a
+confidence-calibration component on the richer scenes, but it does not authorize post-hoc threshold changes.
+The exact-fast pedestrian impact independently requires broader collision monitoring/shielding than the current
+NPC-only monitor. Freshness, the reward-v5 baseline ladder, and RL remain blocked pending joint review; no
+artifact from this batch may be used as a verified replay root.

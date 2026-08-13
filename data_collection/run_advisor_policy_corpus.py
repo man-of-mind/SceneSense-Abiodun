@@ -11,12 +11,14 @@ collector is always launched in observe-existing mode by the resolved config.
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import math
 import os
 import signal
 import subprocess
 import sys
+import threading
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -33,7 +35,7 @@ from rl_agent.policy.replay import _greedy_prediction_matches, _normalize_class
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CONFIG = (
-    Path(__file__).resolve().parent / "configs" / "policy_corpus_advisor_rich_v3.yaml"
+    Path(__file__).resolve().parent / "configs" / "policy_corpus_advisor_rich_v4.yaml"
 )
 DYNAMIC_PATTERNS = (
     "vehicle.*",
@@ -95,6 +97,526 @@ def _role_inventory(world: carla.World) -> Dict[str, int]:
 
 def _matching_role_count(roles: Mapping[str, int], prefix: str) -> int:
     return sum(count for role, count in roles.items() if role.startswith(prefix))
+
+
+def _longest_mask_dwell_s(mask: pd.Series, timestamps: pd.Series) -> float:
+    if mask.empty:
+        return 0.0
+    return _longest_true_dwell(
+        mask.astype(bool).tolist(),
+        pd.to_numeric(timestamps, errors="coerce").tolist(),
+    )
+
+
+def _traffic_sanity_summary(
+    trajectories: pd.DataFrame,
+    collisions: pd.DataFrame,
+    expected_actor_ids: Sequence[int],
+    gate: Mapping[str, object],
+) -> Dict[str, object]:
+    """Summarize NPC collisions and sustained network-wide gridlock."""
+
+    expected_ids = {int(value) for value in expected_actor_ids}
+    if not expected_ids:
+        return {
+            "applicable": False,
+            "pass": True,
+            "failures": [],
+            "monitored_npc_vehicles": 0,
+            "collision_events": 0,
+            "persistent_gridlock_dwell_s": 0.0,
+        }
+
+    trajectories = trajectories.copy()
+    collisions = collisions.copy()
+    observed_ids = set(
+        pd.to_numeric(trajectories.get("actor_id", pd.Series(dtype=float)), errors="coerce")
+        .dropna()
+        .astype(int)
+    )
+    observation_fraction = len(expected_ids & observed_ids) / len(expected_ids)
+
+    collision_incidents = 0
+    if not collisions.empty:
+        collision_rows = collisions.copy()
+        collision_rows["frame_id"] = pd.to_numeric(
+            collision_rows["frame_id"], errors="coerce"
+        ).fillna(-1).astype(int)
+        first = pd.to_numeric(collision_rows["npc_actor_id"], errors="coerce").fillna(-1).astype(int)
+        second = pd.to_numeric(collision_rows["other_actor_id"], errors="coerce").fillna(-1).astype(int)
+        collision_rows["pair_low"] = np.minimum(first, second)
+        collision_rows["pair_high"] = np.maximum(first, second)
+        collision_rows = collision_rows.sort_values(
+            ["pair_low", "pair_high", "frame_id"]
+        )
+        previous_frame = collision_rows.groupby(["pair_low", "pair_high"])[
+            "frame_id"
+        ].shift()
+        collision_incidents = int(
+            (previous_frame.isna() | ((collision_rows["frame_id"] - previous_frame) > 2)).sum()
+        )
+
+    persistent_gridlock_dwell_s = 0.0
+    npc_speed_p50_mps = None
+    stopped_fraction_p95 = None
+    if not trajectories.empty:
+        trajectories["speed_mps"] = pd.to_numeric(
+            trajectories["speed_mps"], errors="coerce"
+        )
+        valid_speed = trajectories["speed_mps"].dropna()
+        if len(valid_speed):
+            npc_speed_p50_mps = float(valid_speed.quantile(0.50))
+        per_frame = trajectories.groupby("frame_id").agg(
+            carla_timestamp=("carla_timestamp", "median"),
+            npc_count=("actor_id", "nunique"),
+            stopped_fraction=(
+                "speed_mps",
+                lambda values: float(
+                    (values <= float(gate["stopped_speed_max_mps"])).mean()
+                ),
+            ),
+        ).sort_index()
+        if len(per_frame):
+            stopped_fraction_p95 = float(per_frame["stopped_fraction"].quantile(0.95))
+            gridlocked = (
+                per_frame["npc_count"] >= int(gate["gridlock_minimum_npc_count"])
+            ) & (
+                per_frame["stopped_fraction"]
+                >= float(gate["gridlock_stopped_fraction"])
+            )
+            persistent_gridlock_dwell_s = _longest_mask_dwell_s(
+                gridlocked, per_frame["carla_timestamp"]
+            )
+
+    failures: List[str] = []
+    if observation_fraction < float(gate["minimum_actor_observation_fraction"]):
+        failures.append("insufficient_npc_trajectory_observation")
+    if collision_incidents > int(gate["maximum_collision_incidents"]):
+        failures.append("npc_collision_incidents_above_gate")
+    if persistent_gridlock_dwell_s >= float(gate["persistent_gridlock_min_s"]):
+        failures.append("persistent_network_gridlock")
+    return {
+        "applicable": True,
+        "pass": not failures,
+        "failures": failures,
+        "monitored_npc_vehicles": int(len(expected_ids)),
+        "observed_npc_vehicles": int(len(expected_ids & observed_ids)),
+        "actor_observation_fraction": float(observation_fraction),
+        "collision_callback_rows": int(len(collisions)),
+        "collision_events": int(collision_incidents),
+        "persistent_gridlock_dwell_s": float(persistent_gridlock_dwell_s),
+        "npc_speed_p50_mps": npc_speed_p50_mps,
+        "stopped_fraction_p95": stopped_fraction_p95,
+    }
+
+
+def _in_forward_corridor(
+    transform: object,
+    other_location: object,
+    *,
+    maximum_forward_m: float,
+    maximum_lateral_m: float,
+) -> bool:
+    location = transform.location
+    forward = transform.get_forward_vector()
+    dx = float(other_location.x) - float(location.x)
+    dy = float(other_location.y) - float(location.y)
+    forward_m = dx * float(forward.x) + dy * float(forward.y)
+    lateral_m = abs(-dx * float(forward.y) + dy * float(forward.x))
+    return bool(
+        0.0 < forward_m <= float(maximum_forward_m)
+        and lateral_m <= float(maximum_lateral_m)
+    )
+
+
+def _walker_requires_yield(
+    transform: object,
+    walker_location: object,
+    walker_velocity: object,
+) -> bool:
+    speed_mps = math.hypot(float(walker_velocity.x), float(walker_velocity.y))
+    lateral_limit = 3.5 if speed_mps >= 0.2 else 2.2
+    return _in_forward_corridor(
+        transform,
+        walker_location,
+        maximum_forward_m=15.0,
+        maximum_lateral_m=lateral_limit,
+    )
+
+
+class TrafficSanityMonitor:
+    """Passive trajectory logger plus per-NPC CARLA collision sensors."""
+
+    def __init__(
+        self,
+        *,
+        world: carla.World,
+        traffic_manager: object,
+        output_dir: Path,
+        integration: Mapping[str, object],
+    ) -> None:
+        self.world = world
+        self.traffic_manager = traffic_manager
+        self.output_dir = output_dir
+        self.integration = integration
+        self.actor_ids: List[int] = []
+        self.actor_metadata: Dict[int, Dict[str, object]] = {}
+        self.collision_sensors: List[carla.Actor] = []
+        self.trajectory_rows: List[Dict[str, object]] = []
+        self.collision_rows: List[Dict[str, object]] = []
+        self._tick_callback_id = None
+        self._lock = threading.Lock()
+        self.initial_geometry: Dict[str, object] = {}
+        self._direct_route_state: Dict[int, Dict[str, object]] = {}
+
+    @staticmethod
+    def _actor_role(actor: carla.Actor) -> str:
+        try:
+            return str(actor.attributes.get("role_name", ""))
+        except (AttributeError, RuntimeError):
+            return ""
+
+    def _npc_vehicles(self) -> List[carla.Actor]:
+        vehicles = []
+        for actor in self.world.get_actors().filter("vehicle.*"):
+            role = self._actor_role(actor)
+            if role.startswith("autopilot") or role == "hero":
+                vehicles.append(actor)
+        return vehicles
+
+    def _npc_loop_route(self) -> List[carla.Location]:
+        path = base_runner._resolve_repo_path(
+            str(self.integration["npc_loop_route_progress_csv"])
+        )
+        locations: List[carla.Location] = []
+        with path.open("r", encoding="utf-8", newline="") as stream:
+            for row in csv.DictReader(stream):
+                locations.append(
+                    carla.Location(
+                        x=float(row["ego_x"]),
+                        y=float(row["ego_y"]),
+                        z=float(row.get("ego_z", 0.0)),
+                    )
+                )
+        if len(locations) < 2:
+            raise RuntimeError(f"NPC loop route is invalid: {path}")
+        return locations
+
+    @staticmethod
+    def _rotated_loop_path(
+        actor: carla.Actor,
+        route: Sequence[carla.Location],
+        repetitions: int,
+    ) -> List[carla.Location]:
+        actor_location = actor.get_location()
+        index = min(
+            range(len(route)),
+            key=lambda route_index: actor_location.distance(route[route_index]),
+        )
+        one_loop = [*route[index + 1 :], *route[: index + 1]]
+        return one_loop * max(1, int(repetitions))
+
+    @staticmethod
+    def _minimum_pairwise_distance(actors: Sequence[carla.Actor]) -> float | None:
+        locations = [actor.get_location() for actor in actors]
+        if len(locations) < 2:
+            return None
+        return float(
+            min(
+                locations[left].distance(locations[right])
+                for left in range(len(locations))
+                for right in range(left + 1, len(locations))
+            )
+        )
+
+    def start(self) -> None:
+        vehicles = self._npc_vehicles()
+        blockers = [
+            actor
+            for actor in self.world.get_actors().filter("vehicle.*")
+            if self._actor_role(actor).startswith("static_blocker_v4")
+        ]
+        self.actor_ids = [int(actor.id) for actor in vehicles]
+        self.actor_metadata = {
+            int(actor.id): {
+                "role_name": self._actor_role(actor),
+                "type_id": str(actor.type_id),
+            }
+            for actor in vehicles
+        }
+        leading_distance = float(self.integration["tm_distance_to_leading_vehicle_m"])
+        speed_difference = float(self.integration["tm_speed_difference_pct"])
+        desired_speed = float(self.integration["tm_desired_speed_mps"])
+        route_mode = str(self.integration.get("npc_route_mode", "fixed_loop"))
+        if route_mode not in {"fixed_loop", "tm_autonomous", "direct_loop"}:
+            raise ValueError(f"unsupported NPC route mode: {route_mode}")
+        loop_route = (
+            self._npc_loop_route()
+            if route_mode in {"fixed_loop", "direct_loop"}
+            else []
+        )
+        loop_repetitions = int(self.integration.get("npc_loop_repetitions", 1))
+        self.traffic_manager.set_global_distance_to_leading_vehicle(leading_distance)
+        self.traffic_manager.global_percentage_speed_difference(speed_difference)
+        tm_failures = []
+        for actor in vehicles:
+            try:
+                self.traffic_manager.distance_to_leading_vehicle(actor, leading_distance)
+                self.traffic_manager.vehicle_percentage_speed_difference(
+                    actor, speed_difference
+                )
+                self.traffic_manager.set_desired_speed(actor, desired_speed)
+                self.traffic_manager.auto_lane_change(actor, False)
+                if route_mode == "fixed_loop":
+                    self.traffic_manager.set_path(
+                        actor,
+                        self._rotated_loop_path(actor, loop_route, loop_repetitions),
+                    )
+                elif route_mode == "direct_loop":
+                    actor.set_autopilot(False, int(self.integration["tm_port"]))
+                    actor_location = actor.get_location()
+                    route_index = min(
+                        range(len(loop_route)),
+                        key=lambda index: actor_location.distance(loop_route[index]),
+                    )
+                    self._direct_route_state[int(actor.id)] = {
+                        "waypoint_index": int(route_index),
+                        "route": loop_route,
+                    }
+                for blocker in blockers:
+                    self.traffic_manager.collision_detection(actor, blocker, True)
+                for other in vehicles:
+                    if int(other.id) != int(actor.id):
+                        self.traffic_manager.collision_detection(actor, other, True)
+            except RuntimeError as exc:
+                tm_failures.append({"actor_id": int(actor.id), "error": str(exc)})
+        if tm_failures:
+            raise RuntimeError(f"could not apply NPC Traffic Manager safety profile: {tm_failures}")
+
+        minimum_blocker_distance = None
+        if vehicles and blockers:
+            minimum_blocker_distance = float(
+                min(
+                    vehicle.get_location().distance(blocker.get_location())
+                    for vehicle in vehicles
+                    for blocker in blockers
+                )
+            )
+        self.initial_geometry = {
+            "npc_vehicle_count": int(len(vehicles)),
+            "static_blocker_count": int(len(blockers)),
+            "minimum_npc_pairwise_distance_m": self._minimum_pairwise_distance(vehicles),
+            "minimum_npc_to_static_blocker_distance_m": minimum_blocker_distance,
+            "tm_distance_to_leading_vehicle_m": leading_distance,
+            "tm_speed_difference_pct": speed_difference,
+            "tm_desired_speed_mps": desired_speed,
+            "npc_route_mode": route_mode,
+            "npc_loop_route_points": int(len(loop_route)),
+            "npc_loop_repetitions": (
+                int(loop_repetitions)
+                if route_mode in {"fixed_loop", "direct_loop"}
+                else None
+            ),
+            "safe_blueprint_filter_enabled": True,
+        }
+
+        collision_bp = self.world.get_blueprint_library().find("sensor.other.collision")
+        for actor in vehicles:
+            sensor = self.world.spawn_actor(collision_bp, carla.Transform(), attach_to=actor)
+            sensor.listen(
+                lambda event, npc_id=int(actor.id): self._on_collision(npc_id, event)
+            )
+            self.collision_sensors.append(sensor)
+        self._tick_callback_id = self.world.on_tick(self._on_tick)
+
+    def _on_tick(self, snapshot: object) -> None:
+        rows = []
+        timestamp = float(snapshot.timestamp.elapsed_seconds)
+        if self._direct_route_state:
+            self._apply_direct_route_controls()
+        for actor_id in self.actor_ids:
+            actor_snapshot = snapshot.find(int(actor_id))
+            if actor_snapshot is None:
+                continue
+            transform = actor_snapshot.get_transform()
+            velocity = actor_snapshot.get_velocity()
+            metadata = self.actor_metadata[actor_id]
+            rows.append(
+                {
+                    "frame_id": int(snapshot.frame),
+                    "carla_timestamp": timestamp,
+                    "actor_id": int(actor_id),
+                    "role_name": metadata["role_name"],
+                    "type_id": metadata["type_id"],
+                    "world_x": float(transform.location.x),
+                    "world_y": float(transform.location.y),
+                    "world_z": float(transform.location.z),
+                    "speed_mps": float(
+                        math.sqrt(velocity.x ** 2 + velocity.y ** 2 + velocity.z ** 2)
+                    ),
+                }
+            )
+        with self._lock:
+            self.trajectory_rows.extend(rows)
+
+    @staticmethod
+    def _wrap_angle(angle: float) -> float:
+        return (float(angle) + math.pi) % (2.0 * math.pi) - math.pi
+
+    def _apply_direct_route_controls(self) -> None:
+        """Apply bounded 20 Hz waypoint control to all managed NPCs."""
+
+        actors = {
+            int(actor.id): actor
+            for actor in self.world.get_actors(self.actor_ids)
+            if actor is not None
+        }
+        all_vehicles = {
+            int(actor.id): actor
+            for actor in self.world.get_actors().filter("vehicle.*")
+        }
+        all_walkers = list(self.world.get_actors().filter("walker.pedestrian.*"))
+        target_speed = float(self.integration["npc_direct_route_speed_mps"])
+        for actor_id, state in self._direct_route_state.items():
+            actor = actors.get(actor_id)
+            if actor is None:
+                continue
+            route = state["route"]
+            index = int(state["waypoint_index"])
+            transform = actor.get_transform()
+            location = transform.location
+            for _unused in range(len(route)):
+                target = route[index]
+                if location.distance(target) >= 4.0:
+                    break
+                index = (index + 1) % len(route)
+            lookahead = route[(index + 1) % len(route)]
+            desired_yaw = math.atan2(
+                float(lookahead.y) - float(location.y),
+                float(lookahead.x) - float(location.x),
+            )
+            heading_error = self._wrap_angle(
+                desired_yaw - math.radians(float(transform.rotation.yaw))
+            )
+            velocity = actor.get_velocity()
+            speed_mps = math.sqrt(
+                float(velocity.x) ** 2
+                + float(velocity.y) ** 2
+                + float(velocity.z) ** 2
+            )
+            turn_scale = max(0.30, 1.0 - abs(heading_error) / math.pi)
+            speed_error = target_speed * turn_scale - speed_mps
+            throttle = max(0.0, min(0.65, 0.30 * speed_error))
+            brake = max(0.0, min(0.75, -0.40 * speed_error))
+            steer = max(-0.70, min(0.70, heading_error / math.radians(45.0)))
+
+            for other_id, other in all_vehicles.items():
+                if other_id == actor_id:
+                    continue
+                other_location = other.get_location()
+                if _in_forward_corridor(
+                    transform,
+                    other_location,
+                    maximum_forward_m=12.0,
+                    maximum_lateral_m=2.8,
+                ):
+                    throttle = 0.0
+                    brake = 1.0
+                    break
+            if brake < 1.0:
+                for walker in all_walkers:
+                    try:
+                        walker_location = walker.get_location()
+                        walker_velocity = walker.get_velocity()
+                    except RuntimeError:
+                        continue
+                    if _walker_requires_yield(
+                        transform,
+                        walker_location,
+                        walker_velocity,
+                    ):
+                        throttle = 0.0
+                        brake = 1.0
+                        break
+            actor.apply_control(
+                carla.VehicleControl(
+                    throttle=float(throttle),
+                    steer=float(steer),
+                    brake=float(brake),
+                    hand_brake=False,
+                )
+            )
+            state["waypoint_index"] = int(index)
+
+    def _on_collision(self, npc_actor_id: int, event: object) -> None:
+        other = getattr(event, "other_actor", None)
+        impulse = getattr(event, "normal_impulse", None)
+        row = {
+            "frame_id": int(getattr(event, "frame", -1)),
+            "carla_timestamp": float(getattr(event, "timestamp", float("nan"))),
+            "npc_actor_id": int(npc_actor_id),
+            "npc_role_name": self.actor_metadata.get(npc_actor_id, {}).get("role_name", ""),
+            "other_actor_id": int(getattr(other, "id", -1)),
+            "other_type_id": str(getattr(other, "type_id", "")),
+            "other_role_name": self._actor_role(other) if other is not None else "",
+            "normal_impulse_x": float(getattr(impulse, "x", 0.0)),
+            "normal_impulse_y": float(getattr(impulse, "y", 0.0)),
+            "normal_impulse_z": float(getattr(impulse, "z", 0.0)),
+        }
+        with self._lock:
+            self.collision_rows.append(row)
+
+    @staticmethod
+    def _write_csv(path: Path, rows: Sequence[Mapping[str, object]], fields: Sequence[str]) -> None:
+        with path.open("w", encoding="utf-8", newline="") as stream:
+            writer = csv.DictWriter(stream, fieldnames=list(fields))
+            writer.writeheader()
+            writer.writerows(rows)
+
+    def stop(self) -> Dict[str, object]:
+        if self._tick_callback_id is not None:
+            try:
+                self.world.remove_on_tick(self._tick_callback_id)
+            except RuntimeError:
+                pass
+            self._tick_callback_id = None
+        for sensor in reversed(self.collision_sensors):
+            try:
+                sensor.stop()
+            except RuntimeError:
+                pass
+            try:
+                if sensor.is_alive:
+                    sensor.destroy()
+            except RuntimeError:
+                pass
+        self.collision_sensors.clear()
+        with self._lock:
+            trajectory_rows = list(self.trajectory_rows)
+            collision_rows = list(self.collision_rows)
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+        trajectory_fields = (
+            "frame_id", "carla_timestamp", "actor_id", "role_name", "type_id",
+            "world_x", "world_y", "world_z", "speed_mps",
+        )
+        collision_fields = (
+            "frame_id", "carla_timestamp", "npc_actor_id", "npc_role_name",
+            "other_actor_id", "other_type_id", "other_role_name",
+            "normal_impulse_x", "normal_impulse_y", "normal_impulse_z",
+        )
+        self._write_csv(self.output_dir / "npc_trajectories.csv", trajectory_rows, trajectory_fields)
+        self._write_csv(self.output_dir / "npc_collision_events.csv", collision_rows, collision_fields)
+        summary = _traffic_sanity_summary(
+            pd.DataFrame(trajectory_rows, columns=trajectory_fields),
+            pd.DataFrame(collision_rows, columns=collision_fields),
+            self.actor_ids,
+            self.integration["traffic_sanity_gate"],
+        )
+        summary["initial_geometry"] = self.initial_geometry
+        (self.output_dir / "traffic_sanity_summary.json").write_text(
+            json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        )
+        return summary
 
 
 def _require_empty_async(world: carla.World) -> Dict[str, object]:
@@ -191,11 +713,16 @@ def _population_commands(
     host = str(config["carla"]["host"])
     port = str(config["carla"]["port"])
     tm_port = str(integration["tm_port"])
+    blocker_overrides = [
+        *(str(value) for value in integration.get("common_blocker_args", [])),
+        *(str(value) for value in family_spec.get("blocker_args", [])),
+    ]
+    pedestrian_blockers_enabled = "--no-pedestrian-blockers" not in blocker_overrides
     pedestrian_location_args = [
         str(value)
         for location in integration["pedestrian_locations"]
         for value in ("--pedestrian-location", *location)
-    ]
+    ] if pedestrian_blockers_enabled else []
     blocker = [
         sys.executable,
         "-u",
@@ -216,13 +743,26 @@ def _population_commands(
         str(integration["tick_timeout_s"]),
         "--no-intercept-debug",
         *pedestrian_location_args,
-        *(str(value) for value in integration.get("common_blocker_args", [])),
-        *(str(value) for value in family_spec.get("blocker_args", [])),
+        *blocker_overrides,
     ]
+    if (
+        "--no-pedestrian-blockers" in blocker_overrides
+        and "--no-vehicle-blockers" in blocker_overrides
+    ):
+        blocker = []
     traffic = [
         sys.executable,
         "-u",
-        str(base_runner._resolve_repo_path(str(integration["generate_traffic_script"]))),
+        str(
+            base_runner._resolve_repo_path(
+                str(
+                    integration.get(
+                        "generate_traffic_entrypoint",
+                        integration["generate_traffic_script"],
+                    )
+                )
+            )
+        ),
         "--host",
         host,
         "--port",
@@ -349,15 +889,57 @@ def _stop_processes(
 
 
 def _tick_until_empty(world: carla.World, timeout_s: float) -> Dict[str, int]:
+    """Wait for populator cleanup without advancing a stale sync world.
+
+    A leaked actor can make ``World.tick`` block indefinitely during teardown,
+    which previously left a failed corpus runner alive after both populators
+    had exited.  Actor destruction is an RPC and does not require a new frame,
+    so poll the inventory passively.  If the ownership-scoped clients still
+    leak actors, destroy only the exact remaining dynamic actors as recovery
+    and fail the episode so recovered state is never accepted as clean data.
+    """
+
     deadline = time.monotonic() + float(timeout_s)
     inventory = _actor_inventory(world)
     while time.monotonic() < deadline:
         if not any(inventory.values()):
             return inventory
-        world.tick(2.0)
         time.sleep(0.02)
         inventory = _actor_inventory(world)
-    raise RuntimeError(f"dynamic actors leaked after advisor episode: {inventory}")
+
+    leaked_actors: Dict[int, carla.Actor] = {}
+    for pattern in DYNAMIC_PATTERNS:
+        for actor in world.get_actors().filter(pattern):
+            leaked_actors[int(actor.id)] = actor
+    leaked_descriptions = [
+        {
+            "actor_id": int(actor.id),
+            "type_id": str(actor.type_id),
+            "role_name": str(actor.attributes.get("role_name", "")),
+        }
+        for actor in leaked_actors.values()
+    ]
+    for actor in reversed(list(leaked_actors.values())):
+        try:
+            if hasattr(actor, "stop"):
+                actor.stop()
+        except (AttributeError, RuntimeError):
+            pass
+        try:
+            if actor.is_alive:
+                actor.destroy()
+        except (AttributeError, RuntimeError):
+            pass
+
+    recovery_deadline = time.monotonic() + min(3.0, max(0.5, float(timeout_s)))
+    recovery_inventory = _actor_inventory(world)
+    while time.monotonic() < recovery_deadline and any(recovery_inventory.values()):
+        time.sleep(0.02)
+        recovery_inventory = _actor_inventory(world)
+    raise RuntimeError(
+        "dynamic actors leaked after advisor episode; exact-ID recovery was "
+        f"attempted: leaked={leaked_descriptions}, remaining={recovery_inventory}"
+    )
 
 
 def _static_preflight(config: Mapping[str, object]) -> Dict[str, object]:
@@ -393,6 +975,10 @@ def _static_preflight(config: Mapping[str, object]) -> Dict[str, object]:
             str(integration["traffic_light_data"])
         ),
     }
+    if integration.get("generate_traffic_entrypoint"):
+        files["generate_traffic_entrypoint"] = base_runner._resolve_repo_path(
+            str(integration["generate_traffic_entrypoint"])
+        )
     missing = [str(path) for path in files.values() if not path.is_file()]
     if missing:
         raise FileNotFoundError("missing advisor integration prerequisites: " + ", ".join(missing))
@@ -412,6 +998,36 @@ def _static_preflight(config: Mapping[str, object]) -> Dict[str, object]:
         raise ValueError("minimum pedestrian speed is invalid")
     if int(integration["tm_port"]) != 8010:
         raise ValueError("advisor integration Traffic Manager port must be 8010")
+    if "traffic_sanity_gate" in integration:
+        if "--safe" not in [str(value) for value in integration.get("common_traffic_args", [])]:
+            raise ValueError("advisor traffic generation must enable the --safe blueprint filter")
+        if float(integration["tm_distance_to_leading_vehicle_m"]) < 2.5:
+            raise ValueError("Traffic Manager following distance must be at least 2.5 m")
+        if not 0.0 <= float(integration["tm_speed_difference_pct"]) <= 80.0:
+            raise ValueError("Traffic Manager speed difference must be within 0-80 percent")
+        if not 3.0 <= float(integration["tm_desired_speed_mps"]) <= 12.0:
+            raise ValueError("Traffic Manager desired speed must be within 3-12 m/s")
+        if integration.get("reload_world_before_run") is not True:
+            raise ValueError("advisor-rich corpus must reload Town10HD_Opt before every run")
+        route_mode = str(integration.get("npc_route_mode", "fixed_loop"))
+        if route_mode not in {"fixed_loop", "tm_autonomous", "direct_loop"}:
+            raise ValueError(
+                "NPC route mode must be fixed_loop, tm_autonomous, or direct_loop"
+            )
+        if route_mode in {"fixed_loop", "direct_loop"}:
+            if str(integration["npc_loop_route_progress_csv"]) != str(
+                integration["route_progress_csv"]
+            ):
+                raise ValueError("NPC and ego loop routes must use the same frozen progress CSV")
+            if int(integration["npc_loop_repetitions"]) < 2:
+                raise ValueError("NPC loop route must repeat at least twice")
+        if route_mode == "direct_loop" and not 2.0 <= float(
+            integration["npc_direct_route_speed_mps"]
+        ) <= 10.0:
+            raise ValueError("direct NPC route speed must be within 2-10 m/s")
+        traffic_gate = integration.get("traffic_sanity_gate")
+        if not isinstance(traffic_gate, Mapping):
+            raise ValueError("advisor integration traffic_sanity_gate mapping is required")
     preflight["advisor_integration"] = {
         "files": {
             name: {
@@ -451,11 +1067,36 @@ def _longest_true_dwell(mask: Sequence[bool], timestamps: Sequence[float]) -> fl
     return float(longest)
 
 
+def _controlled_pedestrian_gate_rows(
+    ground_truth: pd.DataFrame, gate: Mapping[str, object]
+) -> pd.DataFrame:
+    """Select only the registered close-crossing realization arm."""
+
+    in_scope = _truthy(ground_truth["in_camera_frustum"]) & (
+        pd.to_numeric(ground_truth["distance_m"], errors="coerce")
+        <= float(gate["headline_range_m"])
+    )
+    role_name = ground_truth.get(
+        "role_name", pd.Series("", index=ground_truth.index)
+    ).astype(str)
+    pedestrian_gate_family = str(gate["pedestrian_gate_scenario_family"])
+    controlled = ground_truth[
+        in_scope
+        & (ground_truth["scenario_family"] == pedestrian_gate_family)
+        & (ground_truth["class_name"] == "pedestrian")
+        & role_name.str.startswith(str(gate["pedestrian_role_prefix"]))
+    ].copy()
+    controlled["world_x"] = pd.to_numeric(controlled["origin_x"], errors="coerce")
+    controlled["world_y"] = pd.to_numeric(controlled["origin_y"], errors="coerce")
+    return controlled
+
+
 def _run_smoke_gate(batch_dir: Path, config: Mapping[str, object]) -> Dict[str, object]:
     gate = config["advisor_integration"]["smoke_gate"]
     gt_frames: List[pd.DataFrame] = []
     prediction_frames: List[pd.DataFrame] = []
     metric_frames: List[pd.DataFrame] = []
+    traffic_summaries: List[Dict[str, object]] = []
     overlay_count = 0
     for run_spec in config["smoke_runs"]:
         run_dir = batch_dir / "runs" / str(run_spec["episode_id"])
@@ -463,12 +1104,27 @@ def _run_smoke_gate(batch_dir: Path, config: Mapping[str, object]) -> Dict[str, 
         pred = pd.read_csv(base_runner._single_csv(run_dir, "_object_predictions.csv"))
         metrics = pd.read_csv(base_runner._single_csv(run_dir, "_metrics.csv"))
         gt["episode_id"] = str(run_spec["episode_id"])
+        gt["scenario_family"] = str(run_spec["scenario_family"])
         pred["episode_id"] = str(run_spec["episode_id"])
+        pred["scenario_family"] = str(run_spec["scenario_family"])
         metrics["episode_id"] = str(run_spec["episode_id"])
         metrics["scenario_family"] = str(run_spec["scenario_family"])
         gt_frames.append(gt)
         prediction_frames.append(pred)
         metric_frames.append(metrics)
+        traffic_summary_path = run_dir / "traffic_sanity" / "traffic_sanity_summary.json"
+        if not traffic_summary_path.is_file():
+            traffic_summaries.append(
+                {
+                    "episode_id": str(run_spec["episode_id"]),
+                    "pass": False,
+                    "failures": ["missing_traffic_sanity_summary"],
+                }
+            )
+        else:
+            traffic_summary = json.loads(traffic_summary_path.read_text(encoding="utf-8"))
+            traffic_summary["episode_id"] = str(run_spec["episode_id"])
+            traffic_summaries.append(traffic_summary)
         overlay_count += len(list((run_dir / "overlays").glob("*.png")))
     gt_all = pd.concat(gt_frames, ignore_index=True)
     predictions_all = pd.concat(prediction_frames, ignore_index=True)
@@ -480,19 +1136,73 @@ def _run_smoke_gate(batch_dir: Path, config: Mapping[str, object]) -> Dict[str, 
     for class_name in ("vehicle", "pedestrian"):
         if class_name not in classes:
             failures.append(f"missing_{class_name}_ground_truth")
+    failed_traffic = [
+        summary for summary in traffic_summaries if not bool(summary.get("pass", False))
+    ]
+    if failed_traffic:
+        failures.append("traffic_sanity_gate_failed")
 
-    in_scope = _truthy(gt_all["in_camera_frustum"]) & (
-        pd.to_numeric(gt_all["distance_m"], errors="coerce")
-        <= float(gate["headline_range_m"])
-    )
+    cadence_by_episode: Dict[str, Dict[str, object]] = {}
+    expected_sensor_period_s = 1.0 / float(gate["sensor_detection_hz"])
+    expected_frame_step = int(gate["control_ticks_per_sensor_frame"])
+    for episode_id, episode_metrics in metrics_all.groupby("episode_id"):
+        episode_metrics = episode_metrics.sort_values("carla_timestamp")
+        timestamp_steps = pd.to_numeric(
+            episode_metrics["carla_timestamp"], errors="coerce"
+        ).diff().dropna()
+        frame_steps = pd.to_numeric(
+            episode_metrics["frame_id"], errors="coerce"
+        ).diff().dropna()
+        median_period = float(timestamp_steps.median()) if len(timestamp_steps) else None
+        median_frame_step = float(frame_steps.median()) if len(frame_steps) else None
+        contract_fields_ok = (
+            len(episode_metrics)
+            and np.allclose(
+                pd.to_numeric(episode_metrics["world_control_tick_hz"], errors="coerce"),
+                float(gate["world_control_tick_hz"]),
+            )
+            and np.allclose(
+                pd.to_numeric(episode_metrics["sensor_detection_hz"], errors="coerce"),
+                float(gate["sensor_detection_hz"]),
+            )
+            and (
+                pd.to_numeric(
+                    episode_metrics["control_ticks_per_sensor_frame"], errors="coerce"
+                )
+                == expected_frame_step
+            ).all()
+        )
+        cadence_ok = (
+            median_period is not None
+            and math.isclose(
+                median_period,
+                expected_sensor_period_s,
+                rel_tol=0.0,
+                abs_tol=float(gate["sensor_period_tolerance_s"]),
+            )
+            and median_frame_step is not None
+            and math.isclose(
+                median_frame_step,
+                float(expected_frame_step),
+                rel_tol=0.0,
+                abs_tol=0.01,
+            )
+            and bool(contract_fields_ok)
+        )
+        cadence_by_episode[str(episode_id)] = {
+            "pass": bool(cadence_ok),
+            "median_sensor_period_s": median_period,
+            "median_carla_frame_step": median_frame_step,
+            "contract_fields_ok": bool(contract_fields_ok),
+        }
+    if not cadence_by_episode or not all(
+        bool(summary["pass"]) for summary in cadence_by_episode.values()
+    ):
+        failures.append("sensor_control_clock_contract_failed")
+
     role_name = gt_all.get("role_name", pd.Series("", index=gt_all.index)).astype(str)
-    controlled = gt_all[
-        in_scope
-        & (gt_all["class_name"] == "pedestrian")
-        & role_name.str.startswith(str(gate["pedestrian_role_prefix"]))
-    ].copy()
-    controlled["world_x"] = pd.to_numeric(controlled["origin_x"], errors="coerce")
-    controlled["world_y"] = pd.to_numeric(controlled["origin_y"], errors="coerce")
+    pedestrian_gate_family = str(gate["pedestrian_gate_scenario_family"])
+    controlled = _controlled_pedestrian_gate_rows(gt_all, gate)
     scores = pd.to_numeric(
         predictions_all.get("score", pd.Series(1.0, index=predictions_all.index)),
         errors="coerce",
@@ -585,6 +1295,7 @@ def _run_smoke_gate(batch_dir: Path, config: Mapping[str, object]) -> Dict[str, 
         "failures": failures,
         "gt_classes": sorted(classes),
         "controlled_pedestrian_eligible_rows": int(len(controlled)),
+        "controlled_pedestrian_scenario_family": pedestrian_gate_family,
         "controlled_pedestrian_matched_rows": matched_rows,
         "controlled_pedestrian_coverage_pct": pedestrian_coverage,
         "controlled_pedestrian_active_rows": controlled_active_rows,
@@ -602,6 +1313,8 @@ def _run_smoke_gate(batch_dir: Path, config: Mapping[str, object]) -> Dict[str, 
         "exact_fast_target_rows": int(len(exact)),
         "exact_fast_dwell_s": fast_dwell,
         "overlay_images": overlay_count,
+        "clock_contract_by_episode": cadence_by_episode,
+        "traffic_sanity_by_episode": traffic_summaries,
     }
     (batch_dir / "smoke_gate.json").write_text(
         json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8"
@@ -645,6 +1358,39 @@ def _validate_advisor_contract(config: Mapping[str, object]) -> None:
             raise ValueError(
                 "on-contract diagnostic must contain exactly one pedestrian smoke run"
             )
+    elif any(
+        "--world-tick-hz" in base_runner._effective_options(
+            base_runner._resolved_run_args(config, run_spec)
+        )
+        for run_spec in [*config.get("smoke_runs", []), *config.get("runs", [])]
+    ):
+        if "--safe" not in [
+            str(value) for value in integration.get("common_traffic_args", [])
+        ]:
+            raise ValueError("advisor traffic generation must enable the --safe blueprint filter")
+        if float(integration["tm_distance_to_leading_vehicle_m"]) < 2.5:
+            raise ValueError("Traffic Manager following distance must be at least 2.5 m")
+        if not 0.0 <= float(integration["tm_speed_difference_pct"]) <= 80.0:
+            raise ValueError("Traffic Manager speed difference must be within 0-80 percent")
+        if not 3.0 <= float(integration["tm_desired_speed_mps"]) <= 12.0:
+            raise ValueError("Traffic Manager desired speed must be within 3-12 m/s")
+        traffic_gate = integration.get("traffic_sanity_gate")
+        if not isinstance(traffic_gate, Mapping):
+            raise ValueError("advisor integration traffic_sanity_gate mapping is required")
+        required_traffic_gate_fields = {
+            "maximum_collision_incidents",
+            "minimum_actor_observation_fraction",
+            "stopped_speed_max_mps",
+            "gridlock_minimum_npc_count",
+            "gridlock_stopped_fraction",
+            "persistent_gridlock_min_s",
+        }
+        missing_traffic_fields = sorted(required_traffic_gate_fields - set(traffic_gate))
+        if missing_traffic_fields:
+            raise ValueError(
+                "traffic_sanity_gate is missing fields: "
+                + ", ".join(missing_traffic_fields)
+            )
     pedestrian_locations = integration.get("pedestrian_locations", [])
     if len(pedestrian_locations) != 1 or any(
         len(location) != 4 for location in pedestrian_locations
@@ -673,6 +1419,15 @@ def _validate_advisor_contract(config: Mapping[str, object]) -> None:
                 raise ValueError(f"{run_spec['episode_id']} must use observe-existing {option}=0")
         if options.get("--tm-port") != str(integration["tm_port"]):
             raise ValueError(f"{run_spec['episode_id']} collector TM port is not aligned")
+        if not math.isclose(
+            float(options.get("--world-tick-hz", options.get("--fps", "nan"))),
+            float(integration["update_hz"]),
+            rel_tol=0.0,
+            abs_tol=1e-12,
+        ):
+            raise ValueError(
+                f"{run_spec['episode_id']} collector world/control clock is not aligned"
+            )
         if options.get("--ego-fixed-path-progress-csv") != str(integration["route_progress_csv"]):
             raise ValueError(f"{run_spec['episode_id']} does not use the frozen advisor route")
         if options.get("--ego-spawn-index") != str(integration["ego_spawn_index"]):
@@ -817,9 +1572,16 @@ def run_batch(
         run_dir.mkdir(parents=True, exist_ok=False)
         processes: List[Tuple[str, subprocess.Popen, object]] = []
         ego_reservations: List[carla.Actor] = []
+        traffic_monitor: TrafficSanityMonitor | None = None
         original_settings = None
         collector_result = None
         try:
+            if integration.get("reload_world_before_run") is True:
+                world = client.load_world(str(config["carla"]["expected_town"]), True)
+                record["world_reload"] = {
+                    "requested_map": str(config["carla"]["expected_town"]),
+                    "resolved_map": str(world.get_map().name),
+                }
             _require_empty_async(world)
             original_settings = _set_sync_master(
                 client,
@@ -837,24 +1599,35 @@ def run_batch(
                     int(value) for value in integration["ego_reservation_spawn_indices"]
                 ],
             }
-            blocker, blocker_stream = _start_process(
-                blocker_command, run_dir / "spawn_blocker.log"
-            )
-            processes.append(("spawn_blocker_v4", blocker, blocker_stream))
-            record["blocker_ready"] = _tick_until(
-                world,
-                [blocker],
-                lambda inventory, roles: _blocker_ready(inventory, roles, family_spec),
-                float(integration["population_start_timeout_s"]),
-                "spawn_blocker_v4 readiness",
-            )
+            populator_processes: List[subprocess.Popen] = []
+            if blocker_command:
+                blocker, blocker_stream = _start_process(
+                    blocker_command, run_dir / "spawn_blocker.log"
+                )
+                processes.append(("spawn_blocker_v4", blocker, blocker_stream))
+                populator_processes.append(blocker)
+                record["blocker_ready"] = _tick_until(
+                    world,
+                    [blocker],
+                    lambda inventory, roles: _blocker_ready(
+                        inventory, roles, family_spec
+                    ),
+                    float(integration["population_start_timeout_s"]),
+                    "spawn_blocker_v4 readiness",
+                )
+            else:
+                record["blocker_ready"] = {
+                    "applicable": False,
+                    "reason": "all blocker categories disabled for scenario family",
+                }
             traffic, traffic_stream = _start_process(
                 traffic_command, run_dir / "generate_traffic.log"
             )
             processes.append(("generate_traffic_v1", traffic, traffic_stream))
+            populator_processes.append(traffic)
             record["population_ready"] = _tick_until(
                 world,
-                [blocker, traffic],
+                populator_processes,
                 lambda inventory, roles: _population_ready(inventory, roles, family_spec),
                 float(integration["population_start_timeout_s"]),
                 "advisor traffic population",
@@ -862,6 +1635,15 @@ def run_batch(
             _destroy_ego_reservations(world, ego_reservations)
             ego_reservations = []
             record["ego_spawn_reservation"]["released_before_collector"] = True
+            if not isinstance(config.get("diagnostic_contract"), Mapping):
+                traffic_monitor = TrafficSanityMonitor(
+                    world=world,
+                    traffic_manager=client.get_trafficmanager(int(integration["tm_port"])),
+                    output_dir=run_dir / "traffic_sanity",
+                    integration=integration,
+                )
+                traffic_monitor.start()
+                record["traffic_sanity_initial_geometry"] = traffic_monitor.initial_geometry
             print(
                 f"[{episode_id}] population ready; yielding sole tick ownership to collector",
                 flush=True,
@@ -884,25 +1666,42 @@ def run_batch(
             raise
         finally:
             if original_settings is not None:
+                restored_async = False
                 try:
                     _destroy_ego_reservations(world, ego_reservations)
                     ego_reservations = []
+                    if traffic_monitor is not None:
+                        record["traffic_sanity"] = traffic_monitor.stop()
+                        traffic_monitor = None
                     client.get_trafficmanager(int(integration["tm_port"])).set_synchronous_mode(True)
                     record["populator_shutdown"] = _stop_processes(
                         world,
                         processes,
                         float(integration["population_shutdown_timeout_s"]),
                     )
-                    record["postflight_dynamic_actor_counts"] = _tick_until_empty(
-                        world, float(integration["population_shutdown_timeout_s"])
-                    )
-                finally:
+                    # CARLA 0.10 can defer destruction of a returned collector's
+                    # attached sensors/ego until the next asynchronous frame.
+                    # Restore the clock before passive postflight polling; the
+                    # previous sync-first ordering misclassified this bounded
+                    # teardown latency as a leak while the world was frozen.
                     _restore_async(
                         client,
                         world,
                         int(integration["tm_port"]),
                         original_settings,
                     )
+                    restored_async = True
+                    record["postflight_dynamic_actor_counts"] = _tick_until_empty(
+                        world, float(integration["population_shutdown_timeout_s"])
+                    )
+                finally:
+                    if not restored_async:
+                        _restore_async(
+                            client,
+                            world,
+                            int(integration["tm_port"]),
+                            original_settings,
+                        )
                     record["restored_world"] = _require_empty_async(world)
             base_runner._write_manifest(manifest_path, manifest)
 
@@ -928,17 +1727,25 @@ def run_batch(
         accepted = collector_result.returncode == 0 or (
             known_teardown_abort and record["basic_gate"]["pass"]
         )
-        if record["basic_gate"]["pass"] and accepted:
+        # The smoke authorizes scale-up; the same traffic contract still applies
+        # to every collected trajectory. Fail immediately so a collision cannot
+        # enter a corpus and be discovered only after all remaining runs finish.
+        traffic_sane = bool(record.get("traffic_sanity", {}).get("pass", True))
+        if record["basic_gate"]["pass"] and accepted and traffic_sane:
             record["status"] = (
                 "complete" if collector_result.returncode == 0 else "complete_with_teardown_warning"
             )
         else:
-            record["status"] = "gate_failed" if not record["basic_gate"]["pass"] else "collector_failed"
+            if not record["basic_gate"]["pass"] or not traffic_sane:
+                record["status"] = "gate_failed"
+            else:
+                record["status"] = "collector_failed"
             manifest["status"] = "failed"
             base_runner._write_manifest(manifest_path, manifest)
             raise RuntimeError(
                 f"{episode_id} failed: returncode={collector_result.returncode}, "
-                f"basic_gate={record['basic_gate']}"
+                f"basic_gate={record['basic_gate']}, "
+                f"traffic_sanity={record.get('traffic_sanity')}"
             )
         base_runner._write_manifest(manifest_path, manifest)
         print(f"[{episode_id}] complete and actor-clean", flush=True)
