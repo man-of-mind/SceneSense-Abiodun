@@ -2059,3 +2059,268 @@ non-learning ladder.
 held-out coordination gap -> DQN/MARL only if that gap survives. This preserves the advisor’s “simplest that
 works” principle and turns multi-UE contention into a defensible RL motivation if, and only if, ordinary
 congestion control and observable scheduling cannot close it.
+
+## 2026-08-13 — DRAFT FOR REVIEW: CARLA-free 1/2/4-UE OAI shaped-contention measurement v1
+
+**Status: specification only. Do not bring up OAI or generate traffic until this section is jointly accepted.**
+This experiment identifies a shared-cell **queue-service model**; it does not test a controller, perception,
+CARLA, or RL. The output must separate (1) physical service capacity, (2) per-UE scheduler allocation/fairness,
+(3) queue growth/drain, and (4) complete application-frame latency/delivery. It must never infer destroyed
+throughput from late application delivery.
+
+### A. Questions and fitted model
+
+The measurement must answer:
+
+1. For N = 1/2/4 active UEs at a fixed channel rung, what is the work-conserving aggregate UL service ceiling
+   and how is it divided among continuously backlogged UEs?
+2. As aggregate offered load crosses that ceiling, how do each UE's RLC queue, BSR, complete-frame latency,
+   deadline delivery, and recovery time evolve?
+3. Does frame payload/chunk count add behavior beyond total offered bytes, and does synchronized arrival create
+   materially worse tails than the same staggered byte rate?
+4. Can a compact model predict a held-out channel/load cell without a scalar `collapse_frac`?
+
+Fit at the 50 ms policy tick:
+
+`q_i(t+1) = max(0, q_i(t) + a_i(t) - s_i(t))`
+
+where `a_i` is measured new-data bytes admitted to the UE's RLC queue and `s_i` is new-data bytes removed from
+that queue. Keep both in the **same byte domain**. PHY TBS, MAC/RLC overhead, padding, and retransmission bytes
+are explanatory telemetry, not silently interchangeable with application bytes. If direct RLC dequeue bytes
+are unavailable, derive new-data service from first-transmission grants with measured protocol overhead and
+require the reconstructed `a_i - s_i` balance to track the observed RLC queue before accepting the model.
+If a material queue forms in the UE host/socket/TUN path before RLC admission, retain it as a second measured
+ingress queue; do not relabel that delay as radio queueing or hide it in `L0`.
+The first model is intentionally small:
+
+- `mu(channel_state, N_active)` = aggregate work-conserving service ceiling;
+- `share_i(observable radio state, backlogged set)` = per-UE service allocation/fairness law;
+- `L_complete = L0(payload, chunks) + queue_ahead/service_share + residual`;
+- a separate complete-reassembly/drop model only if loss remains after queue state is included.
+
+Do not fit policy behavior, freshness reward, or an artificial capacity multiplier in this phase. Hidden true
+service may exist in the future environment, but the future policy will receive only the same lagged telemetry
+recorded here.
+
+### B. Locked radio/core topology
+
+- CARLA-free; one gNB, OAI core/DN, and **separate `nr-uesoftmodem` processes** for N = 1, 2, or 4.
+- Use the locked **106 PRB, 7DL/2UL RFsim** configuration and `SCENESENSE_MCS_POLICY=sinr`; do not use 273 PRB,
+  vanilla/forced MCS, TCP, or Linux `tc` as the headline path.
+- Fit on the official homogeneous **mild** (~19.5 dB, MCS ~24, old ceiling ~28 Mbps) and **strong** (~8.2 dB,
+  MCS ~9, old ceiling ~10 Mbps) static AWGN rungs. Reserve **mid15** (~15.6 dB) for validation; do not use it
+  to tune the model. Clear is optional plumbing only, not part of the fit.
+- Every UE must have a unique IMSI/SUPI, core subscription, PDU-session IP, RFsim endpoint/instance, T-tracer
+  port, application source identity, and observed gNB RNTI. Write the complete UE-ID <-> IP <-> RNTI mapping
+  into the run manifest. A 4-UE result is invalid if fewer than four remain attached for the entire traffic
+  interval.
+- Keep scheduler/TDD/PRB configuration, bearer/QoS, socket buffers, chunk size, CPU affinity, and OAI binaries
+  fixed across N. Do not add a special scheduler or admission rule during identification.
+- All processes are on L10319 and therefore share one kernel monotonic clock. Use `CLOCK_MONOTONIC_RAW` for
+  application timestamps and record the mapping to wall time plus NR frame/slot at run start/end. Never derive
+  one-way latency by subtracting unrelated wall clocks.
+- Phase v1 uses homogeneous RF conditions among UEs. Per-UE heterogeneous SNR is a later validation axis, not
+  silently mixed into this service-identification run.
+
+### C. Shaped application traffic
+
+Use a purpose-built frame sender/receiver when implementation is authorized; **iperf is only an optional
+capacity sanity check and cannot supply the headline frame/AoI measurements**.
+
+- Reuse the production transport shape: UDP, 60,000-byte datagram cap, the existing `!IHH` message/chunk header,
+  production socket-buffer settings, no application retransmission, and receiver-side full-message reassembly.
+- Each application frame carries `experiment_id`, `ue_id`, `frame_seq`, scheduled capture/enqueue timestamp,
+  nominal payload bytes, total chunks, and a deterministic content checksum. Use deterministic incompressible
+  bytes already sized *after* compression; do not send compressible zeros and call them a 90 KB feature.
+- Exact nominal feature sizes: **90 KiB (92,160 B)** segmentation-safe floor, **129.2 KiB (132,301 B)**
+  accuracy-preferred point, and **400 KiB (409,600 B)** prior channel-knee anchor. Count actual UDP/IP/header
+  overhead and use **on-wire bits**, not nominal feature bytes, when computing offered load.
+- Primary steady-load payload: 400 KiB on mild and 90 KiB on strong. This keeps the required per-UE frame rates
+  inside a practical shaped range while reconnecting to the measured single-UE knee. The 129.2 KiB point and
+  the alternate endpoint payloads are transfer checks, not extra accuracy experiments.
+- The shaper runs from a 20 Hz clock with a fractional/token accumulator. Given the block's calibrated service
+  `mu_hat`, set equal per-UE target rate `r_i = rho * mu_hat / N`; derive frame cadence from the measured on-wire
+  frame size. The manifest records requested and achieved rate/FPS for every UE. No sender is allowed to claim
+  target load from a requested rate if send-call blocking or local drops reduced the achieved offer.
+- **Staggered headline:** UE phases are evenly distributed over the frame period. **Synchronized stress:** all
+  UE phases are zero. Do not initialize all headline UEs with an identical burst.
+- Preserve scheduled-send time separately from actual enqueue/send-call times. Use nonblocking/bounded producer
+  queues and log local late/drop/EAGAIN events; a generator bottleneck is a failed cell, not radio congestion.
+- The DN receiver must log partial, duplicate, late, out-of-order, timed-out, and complete messages by UE/frame.
+  Retain raw chunk events or a pcap so complete-message accounting can be independently reconstructed.
+
+At the old nominal ceilings, the primary payloads imply approximately these per-UE rates; the actual run uses
+the just-measured `mu_hat` and on-wire bytes:
+
+| Rung / payload | N | rho=0.75 | rho=1.00 | rho=1.30 |
+|---|---:|---:|---:|---:|
+| mild / 400 KiB | 1 | 6.4 fps | 8.5 fps | 11.1 fps |
+| mild / 400 KiB | 2 | 3.2 fps | 4.3 fps | 5.6 fps |
+| mild / 400 KiB | 4 | 1.6 fps | 2.1 fps | 2.8 fps |
+| strong / 90 KiB | 1 | 10.2 fps | 13.6 fps | 17.6 fps |
+| strong / 90 KiB | 2 | 5.1 fps | 6.8 fps | 8.8 fps |
+| strong / 90 KiB | 4 | 2.5 fps | 3.4 fps | 4.4 fps |
+
+These cadences identify transport; they are not proposed policy actions or sensor rates.
+
+### D. Staged matrix and stop gates
+
+#### D0 — topology/instrumentation smoke (stop on first failure)
+
+For N=1, then 2, then 4: attach all UEs, send a low-load 90 KiB staggered stream for 20 s, and verify unique
+identity, correct receiver reconstruction, per-RNTI UE/gNB grant agreement, BSR/RLC visibility for every UE,
+and stable timing. Also run the receiver/generator over a non-OAI local path at the maximum planned aggregate
+rate; it must complete 100% of frames without growing its own queue. Do not continue if instrumentation cannot
+distinguish all four UEs or materially changes throughput/latency.
+
+Measure that last clause rather than assuming it: for N=1/mild near rho=1, compare registered 30 s A/B trials
+with only minimal aggregate service counters enabled versus the full per-slot/per-queue trace profile. Full
+tracing must change scheduled service by <=5%, add no more than 10% to application p95 latency, and create no
+sender deadline misses, softnet drops, or receiver queue growth. If it fails, reduce/buffer the trace profile
+and repeat D0; do not correct the result after the fact.
+
+#### D1 — service calibration
+
+For each `(N in {1,2,4}, channel in {mild,strong})` block, offer roughly 1.3x the old single-cell ceiling with
+all UEs equally backlogged for 30 s, then stop arrivals and drain. Define `mu_hat` as the median aggregate
+**new-data service rate in the queue model's byte domain** over the final 20 s in which every UE is backlogged.
+Also report scheduled first-transmission TBS as the raw PHY-side ceiling; do not use raw TBS as the denominator
+for application on-wire rho without the registered byte-domain conversion. Record per-UE shares and Jain
+fairness. If the queue does not drain below 64 KiB per UE for five consecutive seconds within 90 s, restart the
+RAN before another cell and flag the recovery failure. Calibration is repeated after each independent RAN
+restart; it is data, not an unlogged tuning step.
+
+#### D2 — minimum steady load-response fit set
+
+- N = 1, 2, 4;
+- channel = mild, strong;
+- aggregate load `rho = offered_on_wire / mu_hat` = **0.75, 1.00, 1.30**;
+- primary payload from section C; staggered phases;
+- two independent RAN-restart blocks, with load order randomized inside each `(N, channel)` block.
+
+Equal loading alone cannot identify work-conserving redistribution, so add one registered asymmetric trial to
+each N=2 and N=4 block at aggregate rho=1.10:
+
+- N=2: per-UE offered fractions of `mu_hat` are `[0.90, 0.20]`;
+- N=4: per-UE offered fractions are `[0.80, 0.10, 0.10, 0.10]`.
+
+Rotate the heavy UE between the two restart blocks; do not select it after seeing performance. These eight
+share-probe trials are the minimum check that unused capacity moves to a backlogged UE and that the fitted share
+law is not merely an equal-load lookup.
+
+This is **36 equal-load + 8 asymmetric-share = 44 steady trials**, plus 12 block calibrations. Each trial has
+10 s pre-idle, 60 s shaped traffic, then a measured drain. Report the two restart blocks as the independent
+replicates; frames are not independent replicates. Add a third block only when aggregate service differs by
+>5%, p95 complete-frame latency differs by >15%, or a validity failure leaves fewer than two clean blocks.
+
+#### D3 — transfer and transient checks (only after D2 is valid)
+
+1. **Payload/chunk transfer:** at N=4 and rho=1.00, repeat each channel with the other two payload sizes. Two
+   restart blocks give 8 additional trials. This tests whether bytes alone suffice or the model needs a
+   payload/chunk term.
+2. **Burst/recovery:** at N=4 on mild and strong, run paired staggered and synchronized traffic with
+   `rho=0.60 for 20 s -> rho=1.30 for 30 s -> rho=0.60 for 60 s`, twice each (8 trials). Measure queue onset,
+   drain slope, hysteresis, maximum starvation interval, and time back to the pre-overload latency band.
+3. **Held-out channel:** after fitting on mild/strong, run mid15 at N=4, staggered, rho=1.00 and 1.30, two
+   restart blocks (4 trials). These cells are validation only and must not change parameters before their
+   prediction error is reported.
+
+Within D3, the payload-transfer and transient trials for one `(channel, restart block)` may share the same fresh
+N=4 calibration, with their order registered in advance. Mid15 has its own two restart-block calibrations.
+
+Initial scientific matrix: 44 steady/share + 8 payload-transfer + 8 transient + 4 held-out = **64 trials**, plus
+**18 short block calibrations** (12 in D2, 4 for mild/strong D3, 2 for mid15) and the three topology smokes.
+Conditional third repeats are targeted, not an excuse to rerun the whole matrix. This is the complete v1 scope;
+do not add clear, N=3/8, heterogeneous SNR, CARLA, or controller comparisons during execution.
+
+### E. Required logging and schemas
+
+Every row must carry `experiment_id`, `run_id`, `phase`, `ue_id`, `rnti`, and a monotonic timestamp or NR
+frame/slot. Preserve raw logs and emit these aligned tables:
+
+1. **Run manifest / resolved YAML:** git commit and dirty state; gNB/UE binary and config hashes; T database hash;
+   OAI/core container images; N and UE identity map; channelmod parameters; observed SNR/MCS; PRB/TDD/MCS policy;
+   bearer and IP/port map; payload/chunk/socket settings; requested rho/rates/phases; calibration `mu_hat` and
+   interval; seeds; process CPU affinity; start/end/traffic intervals; file hashes and exit/cleanup status.
+2. **Application frame table (one row per scheduled frame per UE):** scheduled capture time, actual enqueue and
+   send start/end, payload and on-wire bytes, chunk count, local lateness/drop/error, receiver first/last chunk,
+   reassembly completion/timeout, missing/duplicate chunks, complete-frame latency, and deadline indicators for
+   several descriptive budgets. Keep deadline choice out of the queue-model fit.
+3. **Chunk/pcap evidence:** UE/frame/chunk ID, byte size, sender and receiver timestamps, source IP/port, duplicate
+   and checksum status. This distinguishes radio queueing from UDP reassembly loss.
+4. **UE queue telemetry:** raw `NRUE_MAC_RLC_BUFFER_STATUS` and `NRUE_MAC_BSR_STATUS` per UE/LCID/LCG, including
+   exact RLC bytes, BSR index/quantized bytes, enqueue/dequeue where available, socket/TUN counters, and local
+   interface drops. Derive both 50 ms and 1 s aligned summaries; do not discard raw slot events.
+5. **UE/gNB service telemetry:** per-RNTI grants, TBS bytes, PRBs, symbols, MCS/table, NDI/RV/HARQ round,
+   first-transmission versus retransmission bytes, PUSCH SNR, BLER/CRC, available PRBs, and scheduled first-TX
+   Mbps. Retain the UE-vs-gNB grant reconciliation output for every RNTI.
+6. **System health:** per-process CPU/RSS, host load, softnet/socket drops, DN receiver queue depth/service time,
+   attach/reconnect events, and core/RAN errors. This is required to rule out CPU or receiver contention being
+   mislabeled as radio contention.
+7. **Causal controller-view table:** at every 50 ms boundary, record both event time and the time each queue,
+   grant, achieved-rate, SNR/MCS, and delivery summary would actually have become available to a controller.
+   Emit the registered one-tick-lag observation separately from omniscient offline telemetry. Model fitting may
+   use raw state to identify the plant; every later decentralized baseline must use only this causal view.
+
+Primary derived metrics by UE and aggregate:
+
+- achieved offered on-wire Mbps; scheduled first-TX and total TBS Mbps; DN complete-frame goodput;
+- RLC/BSR queue p50/p95/max, queue growth and drain slopes, area under queue, and time pinned;
+- complete-frame latency p50/p90/p95/p99, timeout/partial/out-of-order rates, and delivery within descriptive
+  0.15/0.25/0.5/1/2 s budgets;
+- PRB-time per delivered frame, grants/s, MCS/SNR/retx distributions;
+- Jain service/freshness fairness, minimum-to-mean service ratio, worst-UE p95 latency, and maximum per-UE
+  starvation interval.
+
+### F. Validity gates
+
+A trial is invalid, not a bad performance result, if any of these holds:
+
+- wrong UE count, detach/reconnect, duplicate identity/IP/RNTI, or missing per-UE application/queue/grant logs;
+- achieved aggregate or any per-UE offered rate differs from target by >2% after warm-up, or sender-local drops /
+  blocking explain the deficit;
+- observed channel is off rung (median PUSCH SNR differs by >2 dB or median MCS by >2 indices from the registered
+  rung) without a documented channel-control explanation;
+- UE-decoded versus gNB grant/TBS reconciliation differs by >5% for any RNTI;
+- non-OAI sender/receiver control is not lossless at maximum rate, DN receiver queue grows, or host CPU/softnet
+  saturation overlaps the measured interval;
+- a prior cell's queue was not drained/reset before this cell.
+
+Retransmissions and UDP partial frames are **measurements**, not automatic failures, when all instrumentation
+gates pass. Report them and let the fitted model decide whether an explicit residual loss term is needed.
+
+### G. Fit/validation acceptance before the coordination ladder
+
+Pre-register restart block A from D1/D2 and one D3 payload-transfer block per channel as the fitting set.
+Evaluate without refitting on complete restart block B, the D3 transient cells, and then the untouched mid15
+cells. A block swap may be reported as sensitivity only; it is not a second independent success. After the
+acceptance decision, a final deployment model may be refit on all valid mild/strong identification data while
+mid15 remains untouched. At minimum report:
+
+- aggregate service-ceiling MAPE and per-UE service-share MAPE;
+- queue trajectory error and growth/drain-slope error;
+- complete-frame latency p50/p95 prediction error by N/load/payload;
+- complete-delivery/deadline calibration and fairness/starvation error;
+- residual plots versus N, rho, payload/chunks, SNR/MCS, and phase synchronization.
+
+Proposed pass targets for review: aggregate service MAPE <=10%, per-UE service MAPE <=15%, p50 latency within
+`max(25 ms, 15%)`, p95 within `max(50 ms, 20%)`, queue-trajectory NRMSE <=15% of the observed p95 queue range,
+and overload drain/recovery time within 20% on held-out cells. If a simple finite-service queue misses these,
+refine the service/allocation or fragmentation residual and revalidate; do **not** compensate with
+`collapse_frac` and do not start the controller ladder.
+
+### H. Outputs and sequencing lock
+
+When implementation is later authorized, one versioned YAML must generate the complete matrix. Each timestamped
+experiment directory must contain the resolved config, manifests, raw application/chunk/T-tracer/system logs,
+aligned 50 ms and 1 s tables, processed metrics, model-fit parameters, held-out predictions, figures, and a
+SHA-256 artifact manifest. Preserve failed/invalid trials; replacements get new run IDs.
+
+Required decision sequence remains:
+
+**accept this spec -> implement + dry-run/preflight review -> D0 -> D1/D2 -> fit -> D3 held-out validation ->
+review the queue model -> build the four-rung non-learning coordination ladder.**
+
+No RL implementation or training is authorized by this measurement, even if coordination-looking behavior is
+observed. Learning is reconsidered only after the validated queue model and simple ladder leave a material,
+held-out gap.
