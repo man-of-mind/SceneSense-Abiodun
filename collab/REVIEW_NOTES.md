@@ -2677,3 +2677,32 @@ enter D0/DG-A on a half-broken post-switch state.
 
 Stagger is a secondary option only: codex's evidence shows UE0 struggles *solo* under strong too, so avoiding the
 collision alone may not suffice — runtime-switch (attach clean) stays primary. No new run started.
+
+## 2026-08-13 — LOCAL: clean 2-UE attach SUCCEEDED 2/2 (good fork). "FAILED_HOLD" was a false failure from a hardcoded iface↔IP mapping. Fix scope + next sequence.
+
+**Decisive result:** clean-channel two-UE attach = **2/2**, incl. **UE0 recovering after UE1**. So both UEs can
+attach and recover from a RACH collision — the blocker is the **strong channel at attach**, NOT a structural
+channelmod multi-client asymmetry. Fork resolved to the **runtime-switch path** (NOT the stopping rule).
+
+**Root cause of the false "FAILED_HOLD":** tunnels came up with a **reversed interface-name binding**
+(`oaitun_ue2`→10.0.0.2, `oaitun_ue1`→10.0.0.3), and `wait_tunnels` expects fixed `{ue_id,iface,ip}` triples.
+Why it flips: **IP↔identity is fixed** by the subscription DB (10.0.0.2 = IMSI…001 = UE-idx 0; 10.0.0.3 =
+IMSI…002 = UE-idx 1), but **interface-name↔IP is a race** (assigned in PDU-session-completion order). So IP is
+the stable identity key; the interface *name* is not.
+
+**Fix — bigger than the gate; key ALL per-UE attribution off IP, discovered dynamically each run:**
+- `wait_tunnels`: find which `oaitun_ueX` currently holds each expected IP; ping/stability-gate by IP, not by a
+  fixed iface pairing. (the false-failure fix codex proposed)
+- **Also fix the network sampler** (`runner.py` ~L808): it is launched `--interface oaitun_ue1:ue0
+  --interface oaitun_ue2:ue1` (hardcoded). Under reversal this **swaps per-UE tunnel-health/rate stats** — labels
+  UE0's health onto UE1. On asymmetric trials (0.90/0.20) that corrupts the coordination read. Derive the
+  iface→ue_id label from the live iface↔IP↔identity map.
+- Sender (addresses by IP) and RNTI map (keyed by trace ue_id) are already identity-correct — leave them.
+- Recommend a quick audit of `analyze.py` too: confirm its per-UE metrics come from the receiver/IP-keyed data,
+  not from any iface-name assumption.
+
+**Next sequence (bounded):** (1) fix the gate + sampler labeling (IP-keyed dynamic discovery); (2) re-run the
+clean attach smoke → confirm it now PASSES 2/2 with the gate green; (3) attach clean → **runtime `channelmod
+modify` to `awgn_strong`**, enforcing the pre-registered acceptance gates (both tunnels post-switch + strong-rung
+SNR/MCS + post-switch stability, all before D0); (4) require 3× reliability before DG-A. **Stopping rule stays in
+force for step 3** — if runtime switching is unreliable, pause live OAI (→ N=50 table sim or advisor).
