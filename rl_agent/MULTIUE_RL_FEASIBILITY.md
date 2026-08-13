@@ -48,3 +48,25 @@ contribution lives.
 Build the proper multi-UE surrogate (N copies sharing the measured capacity surface + the measured collapse law)
 and run the real ladder there: greedy-everywhere vs coordinated-oracle vs decentralized-learned (RL/MARL). Ground
 `collapse_frac`/delivery from the over-capacity cells of `combined_surface.csv`.
+
+## ⚠️ 2026-08-13 codex review — this toy OVERSTATES the headroom; corrected plan below (ACCEPTED)
+The toy (`multiue_feasibility_toy.py`) is directional only and its +40–93 pp is an **overstated upper bound.**
+Two accepted corrections:
+1. **Wrong collapse abstraction.** `collapse_frac` treats over-subscription as *lost cell throughput*. The
+   measured OAI reality: throughput stays ~at the service ceiling while **queues back up (BSR pins) and latency
+   explodes (6–15 s)** — i.e. delivery is *late*, not *lost*. The freshness hit comes via latency/staleness, not
+   destroyed throughput. A **queue-service model** is the correct abstraction, and it yields a smaller, subtler
+   coordination advantage than throughput-destruction did.
+2. **Strawman greedy.** The toy lets freshness-critical UEs OVERRIDE backoff and over-offer — which violates the
+   LOCKED design (C1 capacity admission is HARD; C2 staleness is soft). A correct C1-respecting decentralized
+   greedy *cannot* over-offer beyond its observed budget, so it does not death-spiral the way the toy showed →
+   less headroom.
+Both push the same way: real coordination headroom is **modest and hinges on observation quality + lag +
+fairness**, not a death-spiral. **Verdict: GO investigate multi-UE contention; HOLD multi-UE RL.**
+
+**Corrected sequencing:** (a) run a small **CARLA-free 1/2/4-UE OAI shaped-traffic measurement**; (b) **fit a
+queue-service model** from it (throughput-ceiling + queue-latency) — do NOT train against the extrapolated
+`collapse_frac`; (c) ladder = **decentralized C1-greedy → decentralized token/AIMD → observable centralized
+EDF/max-weight admission → clairvoyant oracle**, all before any learned controller; (d) only if learning survives
+that ladder, **masked categorical PPO** is the natural first POMDP baseline (DQN only if the action space is
+small/factorized; continuous SAC inappropriate). Full review: `collab/REVIEW_NOTES.md` (2026-08-13, codex).
