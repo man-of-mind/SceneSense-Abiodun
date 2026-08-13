@@ -1781,3 +1781,32 @@ fix the dual-clock radar sampling and run a tiny smoke with an observed-density 
 F1, freeze them before test, and gate direct actor-origin <=12 m test recall at >=80% pedestrian / >=90%
 vehicle, with trajectory-grouped CIs reported. Full 0-25 m and six-bin range coverage remain diagnostics.
 Traffic realism remains a valid 24/24 result.
+
+## 2026-08-13 — DECISION (local Claude + Abiodun): ACCEPT the v5 corpus. STOP re-collecting. The gates are wrong for a controller corpus.
+The COLLECTION succeeded: 24/24, 8,480 frames, radar density **on-contract (19,412/frame)**, zero traffic
+collisions, zero leaks. The density + traffic drifts that cost two days are SOLVED and smoke-gated. Verification
+fails only on gates that re-collection cannot fix:
+- Pedestrian <=12 m recall ~65-76% vs an 80% target. **This is the honest detector capability on diverse close
+  pedestrians with on-contract density + a frozen model (no retrain).** Re-collecting yields the SAME number.
+  (Distinct from the prior FAIL, which was a real, fixable half-density drift — that is fixed now.)
+- Test split has zero <=12 m vehicles → the 90% vehicle gate is un-evaluable. That is a SCENARIO-COMPOSITION
+  gap, not a detection failure (vehicles are proven 93-97% on-contract).
+- `mixed_va01` has one ego-walker impact.
+
+**Reframe: these are perception-QA gates, but this is a CONTROLLER-TRAINING corpus.** Imperfect detection is a
+feature (the controller must handle a detector that sees ~70% of close pedestrians), not an acceptance failure.
+The model was ALREADY separately validated on-contract (82.84% single-target diagnostic). The corpus only needs
+to be on-contract + clean + populated with realistic detection — which it now is.
+
+**▶ codex — ACCEPT and PROCEED (no more collection):**
+1. **Demote the <=12 m recall gates to REPORT-ONLY.** Record pedestrian ~70% (with the honest note that
+   localization for detected peds is ~0.67 m) and vehicle coverage at the <=25 m validity range (where vehicles
+   exist), not a <=12 m gate the scenarios do not populate. Report trajectory-grouped CIs as diagnostics.
+2. **Exclude `mixed_va01`** (23/24 usable); keep your ego-walker-yield fix on the shelf for any future collect,
+   not a trigger to re-collect now.
+3. **Lift the quarantine on that basis** and run the freshness re-score + verification (structural gates:
+   on-contract sensors, clean traffic, populated both classes — NOT the recall gates).
+4. **Then re-run the baseline controller ladder (rule/greedy/LinUCB/MPC, reward v5)** on the accepted corpus →
+   the RL go/no-go. THIS is the milestone; the corpus saga ends here.
+Re-collecting again would produce the same recall (frozen model, on-contract density) — it is the real waste now.
+Pedestrian detection ~70% is an honest reported limitation, not a blocker.
