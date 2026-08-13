@@ -1,0 +1,74 @@
+{
+  "authorization_boundary": {
+    "allowed": [
+      "D0",
+      "DG-A",
+      "DG-A.1"
+    ],
+    "forbidden": [
+      "DG-B",
+      "D1",
+      "D2",
+      "D3",
+      "controller_ladder",
+      "RL"
+    ]
+  },
+  "binaries": {
+    "gnb": {
+      "path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/OAI/openairinterface5g/cmake_targets/ran_build/build/nr-softmodem",
+      "sha256": "01489dfb141f6e67ecfb9423a75f5c83a90b5df3c06d3aca318b43db3f554a35"
+    },
+    "ue": {
+      "path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/OAI/openairinterface5g/cmake_targets/ran_build/build/nr-uesoftmodem",
+      "sha256": "7cdeee94de55da8b2ae1bf76fd934136f2140133d4c35a1fe345b0cb097be807"
+    }
+  },
+  "config_sha256": "11f01688b0fe705db725dc4a524d736bf623e06da243ed795d0a46d15dddbc05",
+  "created_at": "2026-08-13T20:35:17.324068+00:00",
+  "dry_run": false,
+  "oai_commit": "7473cdb52e1cf3c40e1e1f189f03b2785bf15610",
+  "oai_status": [
+    " M common/utils/T/T_messages.txt",
+    " M openair2/LAYER2/NR_MAC_UE/nr_ue_scheduler.c",
+    " M openair2/LAYER2/NR_MAC_gNB/gNB_scheduler_dlsch.c",
+    " M openair2/LAYER2/NR_MAC_gNB/gNB_scheduler_primitives.c",
+    " M openair2/LAYER2/NR_MAC_gNB/gNB_scheduler_ulsch.c",
+    " M openair2/LAYER2/NR_MAC_gNB/mac_proto.h",
+    " M openair2/LAYER2/nr_pdcp/nr_pdcp_oai_api.c",
+    " M openair2/LAYER2/nr_rlc/nr_rlc_oai_api.c",
+    "?? targets/PROJECTS/GENERIC-NR-5GC/CONF/channelmod_rfsimu_awgn_edge.conf",
+    "?? targets/PROJECTS/GENERIC-NR-5GC/CONF/channelmod_rfsimu_awgn_harsh.conf",
+    "?? targets/PROJECTS/GENERIC-NR-5GC/CONF/channelmod_rfsimu_awgn_medium.conf",
+    "?? targets/PROJECTS/GENERIC-NR-5GC/CONF/channelmod_rfsimu_awgn_mid15.conf",
+    "?? targets/PROJECTS/GENERIC-NR-5GC/CONF/channelmod_rfsimu_awgn_mild.conf",
+    "?? targets/PROJECTS/GENERIC-NR-5GC/CONF/channelmod_rfsimu_awgn_strong.conf",
+    "?? targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb.sa.band78.fr1.106PRB.scenesense_rfsim.awgn.conf",
+    "?? targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb.sa.band78.fr1.106PRB.scenesense_rfsim.awgn_edge.conf",
+    "?? targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb.sa.band78.fr1.106PRB.scenesense_rfsim.awgn_harsh.conf",
+    "?? targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb.sa.band78.fr1.106PRB.scenesense_rfsim.awgn_medium.conf",
+    "?? targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb.sa.band78.fr1.106PRB.scenesense_rfsim.awgn_mid15.conf",
+    "?? targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb.sa.band78.fr1.106PRB.scenesense_rfsim.awgn_mild.conf",
+    "?? targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb.sa.band78.fr1.106PRB.scenesense_rfsim.awgn_strong.conf",
+    "?? targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb.sa.band78.fr1.106PRB.ulheavy.scenesense_rfsim.conf",
+    "?? targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb.sa.band78.fr1.273PRB.scenesense_rfsim.awgn.conf",
+    "?? targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb.sa.band78.fr1.273PRB.scenesense_rfsim.conf",
+    "?? targets/PROJECTS/GENERIC-NR-5GC/CONF/ue.awgn.conf",
+    "?? targets/PROJECTS/GENERIC-NR-5GC/CONF/ue.awgn_edge.conf",
+    "?? targets/PROJECTS/GENERIC-NR-5GC/CONF/ue.awgn_harsh.conf",
+    "?? targets/PROJECTS/GENERIC-NR-5GC/CONF/ue.awgn_medium.conf",
+    "?? targets/PROJECTS/GENERIC-NR-5GC/CONF/ue.awgn_mid15.conf",
+    "?? targets/PROJECTS/GENERIC-NR-5GC/CONF/ue.awgn_mild.conf",
+    "?? targets/PROJECTS/GENERIC-NR-5GC/CONF/ue.awgn_strong.conf",
+    "?? targets/PROJECTS/GENERIC-NR-5GC/CONF/ue.scenesense_base.conf"
+  ],
+  "repo_commit": "c0678c914e2f17712027a489d4fca7f5592ae65f",
+  "repo_status": [
+    " m OAI/openairinterface5g",
+    " M collab/REVIEW_NOTES.md",
+    "?? rl_agent/multiue_oai/"
+  ],
+  "schema_version": "scenesense.multiue_oai.dg_a.v1",
+  "stage": "DG-A+DG-A.1",
+  "t_messages_sha256": "2f4945814ad2f47197816756819afc0d087156c499e8c746cf0d9a81653005c5"
+}

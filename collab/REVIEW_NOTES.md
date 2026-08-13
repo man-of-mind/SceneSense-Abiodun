@@ -2527,3 +2527,24 @@ The revision addresses every review point and is approved as a design:
 advisor): is multi-UE worth the ~50-80 min first screen now, given both outcomes are publishable? If yes → codex
 runs **DG-A only** (after freezing the estimator window/EWMA + obsolete-frame rule + thresholds in preflight),
 stops at the gate, reports. Do NOT run DG-B or the campaign without a surviving gate.
+
+## 2026-08-13 — codex DG-A/DG-A.1 operational handoff
+
+The authorized first decision stage is implemented under `rl_agent/multiue_oai/`. Its configuration permits
+only D0, DG-A, and the table-driven DG-A.1 N=50/100 provisional screen; it explicitly forbids DG-B, D1-D3, the
+controller ladder, and RL. The runner uses the existing two-UE OAI deployment, strong AWGN, SINR MCS policy,
+400 KiB production-shaped messages, two independent restart/calibration blocks, and the frozen hard-C1
+constants (0.70 margin, 1 s window, EWMA 0.20, one 50 ms lag, newest-replaces-unsent).
+
+The stage is fail-closed on the registered validity checks: local lossless transport control, two UE
+identity/RNTI mappings, causal live grant observations for both UEs, load-to-contend and simultaneous backlog,
+per-UE open-loop rate error, channel rung, UE/gNB TBS reconciliation, tunnel drops/errors, paired demand hashes,
+and queue drain. Every demand remains in the decision denominator. Calibration reports the median one-second
+application-byte service ceiling and the raw first-transmission TBS conversion separately.
+
+The no-OAI preflight passed on L10319: the local maximum-rate control delivered 32/32 400 KiB frames with no
+partial frame, checksum failure, or local send error. Long execution is detached and self-logging. It writes
+`progress.jsonl`, `driver.log`, per-trial raw/processed artifacts, and `results_summary.json`, then atomically
+writes either `COMPLETED.json` or `FAILED.json`; failure also writes a HOLD summary. Neither outcome launches a
+later stage. The frozen launch is `rl_agent/multiue_oai/launch_dg_a_detached.sh --run-id
+dg_a_20260813_1335_pdt`; review only after its completion/failure sentinel appears.
