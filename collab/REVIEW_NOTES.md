@@ -2680,6 +2680,10 @@ collision alone may not suffice — runtime-switch (attach clean) stays primary.
 
 ## 2026-08-13 — LOCAL: clean 2-UE attach SUCCEEDED 2/2 (good fork). "FAILED_HOLD" was a false failure from a hardcoded iface↔IP mapping. Fix scope + next sequence.
 
+> ⚠️ **The IP-keyed fix in this entry is WRONG — superseded by the "LOCAL CORRECTION" entry below.** Interface
+> NAME is the stable UE identity (`oaitun_ue{idx+1}`); the IP swaps by attach order. Do NOT relabel the sampler by
+> IP and do NOT key attribution off IP. The decisive-result and false-failure diagnosis remain valid.
+
 **Decisive result:** clean-channel two-UE attach = **2/2**, incl. **UE0 recovering after UE1**. So both UEs can
 attach and recover from a RACH collision — the blocker is the **strong channel at attach**, NOT a structural
 channelmod multi-client asymmetry. Fork resolved to the **runtime-switch path** (NOT the stopping rule).
@@ -2706,3 +2710,29 @@ clean attach smoke → confirm it now PASSES 2/2 with the gate green; (3) attach
 modify` to `awgn_strong`**, enforcing the pre-registered acceptance gates (both tunnels post-switch + strong-rung
 SNR/MCS + post-switch stability, all before D0); (4) require 3× reliability before DG-A. **Stopping rule stays in
 force for step 3** — if runtime switching is unreliable, pause live OAI (→ N=50 table sim or advisor).
+
+## 2026-08-13 — LOCAL CORRECTION (supersedes the IP-keying above): interface NAME is the stable UE identity, IP swaps. codex right; local Claude had it backwards.
+
+Verified codex's evidence in-source: `create_ue_ip_if(ipv4, …, ue_id, …)` (nr_sdap.c:165) takes IP and `ue_id`
+as SEPARATE args; the interface name is generated from `ue_id` (`tuntap_generate_ue_ifname(… ue_id …)`, suffix =
+ue_id+1, per the L174 comment), while IPv4 arrives independently from the CN pool by PDU-session-completion order.
+Runtime evidence agrees: failed strong run UE1→`oaitun_ue2` but got `.2`; clean run first-attacher got `.2`. So:
+- **Stable:** UE index → tunnel name — `oaitun_ue1`=UE0, `oaitun_ue2`=UE1. Always.
+- **Swaps:** IP (`.2`/`.3`) allocated by attach order, NOT by IMSI. (My earlier "IP↔IMSI fixed by subscription"
+  was wrong — the `ue.multi2.conf` comment is the typical-order case, not a binding.)
+
+**Correct identity chain: UE index → fixed tunnel name → dynamically discovered IP.**
+
+**Corrected fix scope (replaces the IP-keyed version):**
+- **Network sampler labels are ALREADY CORRECT** (`oaitun_ue1:ue0, oaitun_ue2:ue1`) — do NOT relabel by IP.
+- `wait_tunnels`: wait for both FIXED interface names, discover + record each interface's current IP, ping through
+  each interface.
+- **The SENDER is the real repair:** it targets fixed IPs (ue_id 0→`.2`, 1→`.3`). After a swap it would send a
+  logical UE's traffic to the WRONG radio UE (frame tagged UE0 but traversing UE1's radio) → corrupts the
+  asymmetric-load trials. Fix: route each logical UE to the DISCOVERED IP of its fixed tunnel (UE0 →
+  `oaitun_ue1`'s current IP).
+- `analyze.py` identity-safe (primary metrics use embedded frame `ue_id`); valid once sender routing is fixed.
+
+Bounded sequence + stopping rule unchanged; only the identity-keying is corrected: **anchor on interface name /
+ue_id, discover IP per run.** (Local Claude's 3rd over-called claim this thread corrected by codex's ground-truth
+source+logs — the pattern is settled: on OAI internals, codex's evidence wins.)
