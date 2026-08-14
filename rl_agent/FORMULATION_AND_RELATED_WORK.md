@@ -2,7 +2,8 @@
 
 **Purpose.** Capture the mathematics of the controller we actually run, the structural result that explains the
 RL NO-GO, the baseline suite a reviewer will ask for, and an honest novelty assessment. Written 2026-08-14 after
-`EXPANDED_SURROGATE_NO_GO_STOP`. Notation is plain-text on purpose (no LaTeX macros).
+`EXPANDED_SURROGATE_NO_GO_STOP`; §8 revised the same day after Abiodun correctly rejected a
+findings-as-contributions framing. Notation is plain-text on purpose (no LaTeX macros).
 
 > **Stance:** we do NOT claim the controller as a novel algorithm. We state that we apply a constrained
 > threshold/lookup policy, show it is near-optimal against a measured ceiling, and explain why via known theory.
@@ -37,10 +38,10 @@ Ties break deterministically on `(reward, -bound_m, action_id)`. `C_PRB = offere
 This is **not** greedy in the knapsack/incremental sense. It is a **myopic constrained argmax over a finite
 measured catalog**, one action per epoch.
 
-Key measured property (see §5 of this doc and `PERMODEL_KNOB_MATRIX_ZSTD.md`): `U_hat_task(a)` is a **constant
-per action** — `policy/shield.py:49 profile_quality(action, reward_config)` takes **no observation argument**.
-Perception utility therefore cannot depend on scene content in the current implementation. This is the scoping
-limit of the NO-GO, not a finding about the world.
+Key measured property: `U_hat_task(a)` is a **constant per action** — `policy/shield.py:49
+profile_quality(action, reward_config)` takes **no observation argument**. Perception utility therefore cannot
+depend on scene content in the current implementation. This is the scoping limit of the NO-GO, not a finding about
+the world.
 
 ---
 
@@ -144,61 +145,114 @@ than hand-fitted. Note the pre-registration discipline: freeze before evaluating
 - **Task-oriented / machine-centric compression:** Choi & Bajic, deep feature compression for collaborative
   intelligence; the Video Coding for Machines (VCM) line; semantic/task-oriented communication surveys
   (e.g. Gunduz et al.).
-- **Cooperative perception:** the V2X CoDriving paper in this repo (`V2X_for_AD.pdf`) plus the SCAN-AI
-  single-UE foundation (`SCAN_AI_03_13_26_2.pdf`).
+- **Cooperative perception (the line we are differentiating from):** V2VNet, OPV2V, V2X-ViT, DiscoNet and
+  successors — these assume idealized/abstract channels. Plus the V2X CoDriving paper in this repo
+  (`V2X_for_AD.pdf`) and the SCAN-AI single-UE foundation (`SCAN_AI_03_13_26_2.pdf`).
 
 ---
 
-## 7. Honest novelty assessment
+## 7. Honest novelty assessment (controller only)
 
 **Not novel:** the constrained argmax itself; RDO; AoI; split computing. Do not claim these.
 
-**Plausibly novel and sufficient for a systems/measurement paper:**
-1. The **coupling** of a *measured* task-RDO surface with AoI/freshness under a *measured* 5G uplink — RDO work
-   ignores freshness; AoI work uses abstract packet models rather than measured task utility.
-2. The **measured design surfaces** (knob x channel rung x payload x deadline x N) for RGB+radar fusion
-   cooperative perception over a real OAI 5G stack.
-3. The **deadline-feasibility frontier** as a design rule (7/200 feasible cells at 400 KiB -> 58/200 at 90 KB ->
-   89/200 at 49.4 KB; note even the smallest payload leaves ~55% infeasible).
-4. A **falsification with a measured achievability ceiling** — rare in a field dominated by "we applied RL and it
-   improved things".
+**Novel enough to state:** the *coupling* of a measured task-RDO surface with AoI/freshness under a *measured* 5G
+uplink — RDO work ignores freshness; AoI work uses abstract packet models rather than measured task utility. But
+this is a supporting result, not the paper's contribution. See §8.
 
 ---
 
-## 8. Paper framing for MobiSys / MobiCom
+## 8. Paper framing — the Month-6 target
 
-**Ordering matters: lead with the measurement findings, not the falsification.**
+**Thesis-level gap.** Cooperative-perception research (V2VNet, OPV2V, V2X-ViT, DiscoNet, ...) almost universally
+assumes an idealized or abstract channel: feature sharing "just works." Our claim:
 
-- **C1 — The radio is not the bottleneck.** Capture-to-map latency decomposition: sensor preparation is 57-65% of
-  the budget while the uplink is only ~9% (`staleness/uplink_only_latency_budget/`, L = 67-93 ms p50). Plus the
-  deadline-feasibility frontier: feasibility is governed by **payload choice**, not by coordination or scheduling
-  cleverness. This overturns the common framing that cooperative perception is radio-limited.
-- **C2 — Stack-level uplink findings with fixes.** (a) Root cause of UE uplink latency: RLC queue-wait driven by
-  the QPSK/MCS cap in the gNB UL scheduler (`gNB_scheduler_ulsch.c`); a SINR-driven UL MCS policy cuts RTT
-  186 -> 48 ms. (b) Task-aware feature compression erases the ~5x transport penalty (RTT 209 -> 77 ms, delivery
-  75% -> 99%). Concrete, actionable, reproducible.
-- **C3 — Measured task-utility/rate/freshness surfaces + a design rule.** The knob matrix (accuracy <-> payload <->
-  latency, transport-invariant), the channel sweep, the staleness/FPS localization requirement, and the
-  segmentation finding (ROI drop destroys segmentation, so the seg-aware knob is density-invariant at
-  ae32/u4/ROI0 ~90 KB). Deliverable: the `budget -> profile` breakpoint table.
-- **C4 — Adaptive/learned control is unnecessary here, and we prove the ceiling.** A threshold/hull lookup is
-  within **1.38%** of a clairvoyant oracle (below a pre-registered 5% bar); at N=2 there is no coordination gap
-  because the MAC scheduler already operates at the capacity ceiling (6.090 vs 6.077 Mbps). Explained by RDO +
-  AoI index-policy theory. Pre-registered gates and an oracle upper bound make this a *result*, not an absence.
+> **Cooperative perception's design assumptions do not survive contact with a real 5G uplink.** We build the
+> end-to-end multi-modal system over a real 5G stack, show what is actually achievable, and derive the design
+> rules and safety guarantees that follow.
 
-**Limitations to disclose up front (reviewers will find them anyway):**
+Everything in §8.3 below is **evidence for that thesis, not the contribution itself.** An earlier draft of this
+section listed those measurements as the top-line contributions; that was wrong — they are process findings from
+building the system, and a paper spined on them reads as "here is what we measured while debugging."
+
+### 8.1 Target contributions (Month 6)
+
+- **C1 — The system.** An end-to-end, safety-shielded, network-aware cooperative perception pipeline: multi-modal
+  (RGB + radar) feature sharing over a real 5G stack, producing a shared spatial map, at real-time rates. The novel
+  combination is split inference + multi-modal fusion + real 5G transport + an explicit safety constraint + a
+  shared map. No prior system puts all five together.
+- **C2 — The cooperation gain, quantified under real network conditions.** What cooperation buys that a single
+  vehicle cannot obtain: occlusion recovery, extended effective range, and localization improvement (two-view
+  triangulation at 1.40 m, beating radar) — measured under *real transport*, not an ideal channel. This is the
+  "why cooperate at all" evidence, which the literature reports only in simulation.
+- **C3 — A safety-and-network-aware guarantee.** The system guarantees localization error <= eps, or degrades
+  gracefully / abstains, and we characterise exactly when that is achievable (the feasibility envelope).
+  Cooperative-perception papers report mAP; almost none answer *"can I guarantee my error is under eps in time to
+  act on it?"* That framing is ours.
+- **C4 — Design rules that make it deployable.** The `budget -> profile` breakpoint table, payload/FPS/knob-vs-
+  channel rules, and the demonstration that a **measured lookup suffices** — with the oracle ceiling showing we
+  are not leaving performance on the table.
+
+### 8.2 Banked vs pending (as of 2026-08-14)
+
+| Component | Status |
+|---|---|
+| C1 system spine (split inference, 5G transport, shield, map) | **Largely banked** |
+| C2 cooperation gain — two-view triangulation (1.40 m) | **Banked** |
+| C2 occlusion recovery | **Phase 2 — not built** |
+| C3 guarantee + feasibility envelope | **Banked** (shield + frontier) |
+| C4 design rules + lookup sufficiency + oracle ceiling | **Banked** |
+| Phase-2 map sharing (recipient-specific, warning timeliness) | **Not built** |
+| Navigation override (Month 6) | **Not built** |
+| Multi-vehicle end-to-end integration | **Not built** |
+| Scene-conditioned knob selection (Phase-1 hypothesis) | **Untested** — Task A pending |
+| Vulnerable-object guardrails | **Partially missing** — Task B |
+
+**The gap to a strong paper is Phase 2 + end-to-end integration** — which is what months 4-6 are for. The plan is
+sound; we are not off-track.
+
+### 8.3 Supporting findings (evidence and design rationale, NOT headline contributions)
+
+- **The radio is not the bottleneck.** Capture-to-map decomposition: sensor preparation is 57-65% of the budget,
+  uplink only ~9% (`staleness/uplink_only_latency_budget/`, L = 67-93 ms p50). Motivates C4 and reframes where
+  optimisation effort belongs.
+- **Stack-level uplink root cause + fix.** UE RLC queue-wait driven by the QPSK/MCS cap in the gNB UL scheduler
+  (`gNB_scheduler_ulsch.c`); SINR-driven UL MCS policy cuts RTT 186 -> 48 ms. Evidence that the "real stack"
+  claim in the thesis is load-bearing.
+- **Task-aware compression erases the transport penalty.** RTT 209 -> 77 ms, delivery 75% -> 99%.
+- **Measured design surfaces.** Knob matrix (accuracy <-> payload <-> latency, transport-invariant), channel sweep,
+  staleness/FPS localization requirement, and the segmentation finding (ROI drop destroys segmentation, so the
+  seg-aware knob is density-invariant at ae32/u4/ROI0 ~90 KB).
+- **Deadline-feasibility frontier.** 7/200 feasible cells at 400 KiB -> 58/200 at 90 KB -> 89/200 at 49.4 KB; even
+  the smallest payload leaves ~55% infeasible. Directly supports C3/C4.
+- **Falsification with a measured ceiling.** Lookup within 1.38% of a clairvoyant oracle; no N=2 coordination gap
+  (MAC scheduler already at the capacity ceiling, 6.090 vs 6.077 Mbps).
+
+### 8.4 Why the RL NO-GO helps a systems paper
+
+For a systems venue, "a measured lookup suffices" is **stronger** than "we trained an RL agent": the controller is
+simple, explainable, deterministic, and deployable, with a proof that it is within 1.38% of optimal. The
+falsification becomes a design justification rather than a disappointment. Do not bury it, and do not apologise
+for it.
+
+### 8.5 Limitations to disclose up front (reviewers will find them anyway)
+
 - **RFsim PHY, not over-the-air.** Real OAI protocol stack, real scheduler, measured channel models — but not a
-  real radio. This is the single biggest risk at MobiSys/MobiCom, which strongly prefer real hardware.
+  real radio. **This is the single biggest acceptance risk at MobiSys/MobiCom**, which strongly prefer real hardware.
 - CARLA simulation rather than physical vehicles/sensors.
-- Measured contention only at **N=2**; N=50/100 is modelled (and the model's first version had a
-  max-min contract bug, corrected).
+- Measured contention only at **N=2**; N=50/100 is modelled (and the model's first version had a max-min contract
+  bug, since corrected).
 - The oracle gate ran on a **queue-free** surrogate.
 - Evaluation is segmentation + pedestrian/vehicle recall & localization, **not true OD AP**; cyclists and small
   objects are not covered.
-- **Scene-conditioned perception utility is untested** (`profile_quality` has no scene argument) — Task A pending.
+- **Scene-conditioned perception utility is untested** (`profile_quality` has no scene argument).
 
-**Venue judgement (honest).** The measurement contributions are MobiSys/MobiCom-shaped, but the absence of an
-over-the-air component is a real acceptance risk at those venues. Two paths: (a) add an OTA leg (USRP/real gNB) to
-make C1/C2 hardware-backed, or (b) target a venue better matched to a simulation-plus-real-stack measurement study
-(e.g. MSWiM, SECON, WoWMoM, VNC, or TMC/IoT-J for the journal route) and keep MobiSys/MobiCom for the version with
-OTA. Decide this with the advisor before writing, because it changes how much of C1/C2 needs new experiments.
+### 8.6 Venue judgement (honest) — decide with the advisor BEFORE writing
+
+The contributions are MobiSys/MobiCom-shaped, but the absence of an over-the-air component is a real acceptance
+risk there. Two paths:
+- **(a)** Add an OTA leg (USRP / real gNB) so C1/C2 are hardware-backed. New experimental work, but it is exactly
+  what makes C1/C2 top-tier.
+- **(b)** Target a venue matched to a simulation-plus-real-stack measurement study (MSWiM, SECON, WoWMoM, VNC; or
+  TMC / IoT-J for the journal route) and reserve MobiSys/MobiCom for the OTA version.
+
+This decides whether months 4-6 must include new hardware experiments, so it is the first thing to settle.

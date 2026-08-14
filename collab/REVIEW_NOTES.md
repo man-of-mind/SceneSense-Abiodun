@@ -3366,3 +3366,55 @@ payload / feasibility terms. This is a deliverable regardless of how A turns out
 (gated on A inconclusive + an explicit cost decision), deadline-aware max-weight / queue-aware MPC, any RL, any
 queue-coupled surrogate, DG-B/N=4/campaign. **Also queued but lower priority:** `SCENESENSE_MONTHLY_CHECKLIST.md`
 reconciliation pass before the advisor meeting.
+
+## 2026-08-14 — PAPER REFRAME + alignment request for codex. New doc: `rl_agent/FORMULATION_AND_RELATED_WORK.md`.
+
+**Context.** Abiodun rejected a first framing that listed our measurement results as the paper's top-line
+contributions — correctly: those are **process findings from building the system**, not the project's contribution.
+A paper spined on them reads as "here is what we measured while debugging." The project's Month-6 target is an
+end-to-end Phase-1+Phase-2 system (multi-modal sensing, network- and safety-aware coordination, integration).
+New doc captures the formulation + the reframe; §8 is the paper section.
+
+**Thesis-level claim we are now organising around:**
+> Cooperative perception's design assumptions do not survive contact with a real 5G uplink. We build the end-to-end
+> multi-modal system over a real 5G stack, show what is actually achievable, and derive the design rules and safety
+> guarantees that follow.
+The V2VNet / OPV2V / V2X-ViT / DiscoNet line assumes idealized or abstract channels; that is the gap.
+
+**Target contributions (full detail in §8.1 of the new doc):** C1 the end-to-end safety-shielded network-aware
+multi-modal cooperative-perception system; C2 the cooperation gain quantified under real transport (occlusion
+recovery, extended range, two-view triangulation 1.40 m); C3 a safety-and-network-aware guarantee (loc error <= eps
+or graceful degrade/abstain, plus the feasibility envelope); C4 deployable design rules (`budget -> profile`
+breakpoint table, lookup sufficiency with the oracle ceiling). Measurement results (radio-not-bottleneck, MCS-cap
+root cause + fix, compression erasing the transport penalty, measured surfaces, feasibility frontier, the
+falsification) are **demoted to §8.3 supporting evidence** — still load-bearing, no longer the spine.
+
+**Also in the new doc:** the precise constrained-argmax formulation we actually run (§1); the derived
+**hull + staircase/breakpoint** structural result R1/R2 (§2); the **RDO + AoI index-policy** explanation of why
+greedy ~= oracle is theory-predicted rather than an anticlimax (§3); the missing principled baselines (§4).
+
+### Requested from codex — VIEW FIRST, then work. Please review and push back where wrong.
+1. **Do you agree with the reframe?** Specifically: (a) is the thesis-level claim defensible and correctly
+   attributed to a real gap in the cooperative-perception literature; (b) are C1-C4 the right four; (c) is demoting
+   the measurement findings to supporting evidence right, or does any of them deserve headline status on its own
+   (my candidate if any: the radio-not-bottleneck latency decomposition).
+2. **Critical path to Month 6.** Given the banked-vs-pending table in §8.2, what is the *binding* constraint —
+   Phase-2 map sharing, multi-vehicle end-to-end integration, or the OTA question? What would you sequence first,
+   and what is the realistic wall-clock?
+3. **Check my §1-§3 claims against the code.** I derived R1/R2 and the RDO/AoI framing from
+   `shield.py`/`catalog.py`/`controllers.py`. You have been right and I have been wrong repeatedly on internals
+   this week — please verify rather than assume, especially the claim that the budget constraint collapses to a
+   single scalar and that only hull points are selectable.
+4. **Related-work refs are recalled from memory and flagged `VERIFY`.** Please confirm or correct venues/years
+   before any of it reaches a draft.
+
+### Next actions (unchanged unless codex objects)
+- **Task A** (argmax-stability / rank-reversal screen) and **Task B** (vulnerable-object shield guardrails) as
+  authorized above — still the immediate work, both desk-only.
+- **NEW Task C (cheap, paper-strengthening):** add **lambda-RDO / Lagrangian hull lookup** and an **AoI /
+  Whittle-index policy** to the controller ladder as principled baselines from the two literatures our formulation
+  sits in (§4). If our greedy turns out *equivalent* to lambda-RDO, that is a result (R1/R2), not a weakness.
+- **Human/advisor decision, blocking the writing plan:** OTA leg vs venue choice (§8.6). This determines whether
+  months 4-6 need new hardware experiments.
+- Still gated: 3-way contextual ladder (on Task A positive), per-frame seg re-eval (on Task A inconclusive + cost
+  decision), max-weight/MPC, any RL, queue-coupled surrogate, DG-B/N=4/campaign.
