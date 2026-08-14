@@ -3798,3 +3798,42 @@ deck stays self-contained if forwarded. The ~97% abstention is **not** presented
 only as one line of *rationale* for the design going forward — "analysis showed the 400 KiB operating point makes
 sending rarely feasible, which is why we move to the ~90 KB seg-safe point and hazard-triggered sharing." Honest,
 decision-relevant, and forward-looking, without dwelling on a controller we are replacing.
+
+## 2026-08-14 — ❗CORRECTION: the "400 KiB operating point" does NOT apply to the controller. Payload stays a learned/selected decision. One decision-relevant check replaces the cancelled Task E.
+
+**My error, retracted.** I attributed the ~97% abstention to a "400 KiB operating point." That is wrong:
+`payload_bytes: 409600` is **only** the DG-A multi-UE measurement setting. The **controller's own catalog spans
+49.4-129.2 KB** (`catalog.py RETAINED_PROFILES`), and the shield's support window is
+`49.0 <= payload_kib <= 130.0` (`shield.py:173`). **The controller abstains ~97% of the time with 90 KB already
+available every frame** — so payload feasibility is NOT the cause, and "re-run the ladder at 90 KB" is meaningless.
+The slide rationale line proposed in the previous entry is **withdrawn**; do not use it.
+
+**Abiodun's design point is correct and already implemented — do NOT hardcode 90 KB.** Payload is a per-epoch
+decision, penalised exactly as intended: `C_PRB` charges `offered/capacity`, C1 hard-rejects over-budget actions,
+undelivered frames earn no task utility, and ROI damage is priced inside `U_task` (mIoU **0.656** at roi0.5 vs
+**0.822** at roi0.0). This is the same principle the advisor applied to ROI — the damage shows up in the task term,
+so no explicit penalty is needed and the selector learns/looks up the tradeoff. Fixing the payload would delete the
+core decision.
+
+**Where 90 KB legitimately belongs (and only here):** (a) as a *finding* — the seg-safe floor, since ROI0 is
+required for segmentation; (b) as the *measurement payload* for any future multi-UE run, replacing the 400 KiB that
+made the deadline serialization-infeasible (~540 ms vs a 500 ms deadline). **Never as a controller constraint.**
+
+### The single decision-relevant check that survives (replaces cancelled Task E)
+**HYPOTHESIS (not a claim): the safety bound is unreachable for fast objects at the corpus frame rate, so SKIP is
+the shield's FALLBACK rather than a preference.** With `base_loc ~= 0.88 m` and `eps = 2.0 m`, the budget allows
+`v*AoI <= 1.76 m`, so a 10 m/s vehicle needs **AoI <= 176 ms**. The prior staleness work found 32 mph @ 267 ms ->
+**4.4 m** error and that **fusion + >=20 FPS** is required to cancel it. **The corpus is 10 Hz**, so the controller
+structurally cannot reach that rate — every SPLIT would fail the bound for fast objects.
+
+**Check (cheap, existing data, no new runs):** of the SKIP decisions, what fraction had **no shield-admissible
+SPLIT** (safety-infeasible) versus a reward-preferred SKIP? Break it down by **object speed band**. If
+safety-infeasibility dominates for fast objects, the abstention is **structural (corpus FPS vs eps)**, not reward
+mis-calibration.
+
+**Why this passes the name-the-contribution/name-the-decision rule:**
+- **C3** — if `eps = 2.0 m` is unachievable for fast objects at 10 Hz, the safety contract must be *stated with that
+  limit*, and "graceful degradation/abstention" becomes a **characterised regime** rather than an unexplained 97%.
+- **Phase 2** — tells the hazard-triggered design it must treat fast objects differently (higher FPS, or accept a
+  larger eps for them, or explicitly abstain and say so). That is a design input, not a post-mortem.
+- Everything else from Task D/E stays **cancelled**.
