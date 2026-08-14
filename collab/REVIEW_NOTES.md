@@ -2769,3 +2769,21 @@ advisor review on return (re-registering a registered gate is exactly what anti-
 
 **Next:** codex confirms snrx10 equivalence → document the re-registration → DG-A proceeds. The "failed" run's
 post-switch state is already a valid strong-contention operating point — the collapse data is what DG-A is for.
+
+**DECISION (Abiodun, 2026-08-13, advisor away): PROCEED with documented re-registration.** codex, in order:
+1. **Confirm `snrx10` is the consistent observable** (the clean-baseline match 50.5≈50.3 is the supporting
+   evidence). If it is NOT consistent, STOP and reconcile before re-registering.
+2. **Prefer config-invariance over SNR-invariance:** keep the strong channel config at −4 on both uplinks; do NOT
+   soften the channel to chase 8.2 (that would run the 2-UE experiment on an easier channel and understate
+   contention). Re-register the strong-rung gate to the **honestly-measured 2-UE value (≈6.0 dB / MCS 8)**.
+3. **Document it as a re-registration, not a tolerance-widen:** inline justification comment at the config gate +
+   this REVIEW_NOTES record (channel config unchanged; SNR is emergent + UE-count-dependent; the collapse —
+   19.45 s p95 / 12.48 MB queued — independently confirms the strong regime). Keep the gate as a real check
+   against the re-registered value; do not just loosen bounds.
+4. **Run DG-A**, stop at the gate, report. Do NOT chain DG-B or the campaign.
+5. **Flag the gate change for advisor review on return.**
+
+After DG-A: we are back to the actual science — greedy-C1 vs observable-central admission (A6/A7, A8/A9), same
+asymmetric load. A gap past the pre-registered thresholds = coordination/RL direction; a tie = "simple
+decentralized C1-admission suffices under 2-UE contention" (still a clean systems finding). DG-A may be NO-GO;
+re-registering the SNR gate does not prejudge that.
