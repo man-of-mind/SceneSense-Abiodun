@@ -1,8 +1,13 @@
 # abiodun/ — project state for Claude (repo-tracked; survives ~/.claude cache wipes)
 
-Abiodun Ganiyu (IDCC). Research: a **UE-side, network-aware split-inference RL controller** for RGB+radar
-fusion cooperative perception (CARLA 0.10 / Town10HD_Opt → OAI 5G edge). This file is the durable index —
-the authoritative detail lives in the docs below (read them before acting on their topic).
+Abiodun Ganiyu (IDCC). Research: an **instrumented, network- and safety-aware multi-modal cooperative-perception
+system** (RGB+radar split inference, CARLA 0.10 / Town10HD_Opt → OAI 5G edge over RFsim). This file is the durable
+index — the authoritative detail lives in the docs below (read them before acting on their topic).
+
+> **Direction change (2026-08-14): this is no longer an RL project.** Learned control was falsified for the
+> evaluated contract (see status below). The Month-6 deliverable is an **end-to-end system paper**. Read
+> `rl_agent/FORMULATION_AND_RELATED_WORK.md` §8 before any paper, planning, or controller work — it holds the
+> thesis, contributions C1-C4, banked-vs-pending status, limitations, critical path, and the open venue/OTA decision.
 
 ## Conventions (do not violate)
 - Work only in `abiodun/`; never edit top-level shared scripts (copy into an `abiodun/` subfolder).
@@ -45,9 +50,38 @@ the authoritative detail lives in the docs below (read them before acting on the
   and sustained >=10 m/s vehicle regimes, with 54.43% GT-seeded mapped freshness pressure.
 - The authoritative reward-v5 pre-RL ladder is
   `rl_agent/policy/experiments/controller_ladder/20260813_063514`. Greedy reward is 0.19655 and MPC is 0.19834
-  with identical 91.13% matched-safe rate; they disagree on only 2.54% of finite frames. **Current RL decision:
-  NO-GO** for SAC/DQN/PPO under the present SPLIT+SKIP surrogate. LOCAL remains uncalibrated; if it is added,
-  rerun the simple ladder before reconsidering RL. See `data_collection/EVALUATION_CONTRACT_DECISION_V5.md`.
+  with identical 91.13% matched-safe rate; they disagree on only 2.54% of finite frames. See
+  `data_collection/EVALUATION_CONTRACT_DECISION_V5.md`.
+
+## RL decision: NO-GO (2026-08-14) — three independent gates, scope stated honestly
+1. **Single-UE ladder:** greedy ~= MPC (above), bootstrap interval covers zero.
+2. **Expanded action space** (`rl_agent/policy/experiments/expanded_action_gate/20260813_233947_pdt`):
+   greedy 0.192625 vs oracle 0.195290 = **+1.383%**, below the registered +5%/+0.01 bar →
+   `EXPANDED_SURROGATE_NO_GO_STOP`. **Scope:** the oracle is **one-step, on greedy-visited states, matched-support**
+   (`policy/expanded_gate.py:581`) — it does **NOT** bound sequential policies. Claim only *"no useful one-step
+   headroom within the static-quality, queue-free, matched-support contract."*
+3. **Multi-UE contention** (`rl_agent/multiue_oai/`): measured N=2 shows **no coordination gap** — the MAC scheduler
+   already sits at the capacity ceiling (6.090 vs 6.077 Mbps). Corrected N=50/100 screen: 0/216 cells survive
+   (`STOP_CHEAP_NO`). DG-B / N=4 / the campaign / the ladder / RL are all **stopped**.
+
+**Untested, therefore NOT falsified:** scene-conditioned knob selection (`policy/shield.py:49 profile_quality()`
+takes no observation → the Phase-1 hypothesis was unrepresentable, not rejected); queue-coupled surrogates;
+calibrated LOCAL actions; Phase-2 object-selective map sharing. Reopening RL requires a *new* pre-registered gap on
+an expanded contract, not a retune of these gates.
+
+## Current work (2026-08-14)
+- **Positive result:** load-shaping deadline-feasibility frontier — 7/200 feasible cells at 400 KiB → 58/200 at
+  90 KB → 89/200 at 49.4 KB (even the smallest payload leaves ~55% infeasible).
+- **Binding gap: C2, the transport-conditioned cooperation gain, does not exist yet.** The 1.40 m two-view
+  triangulation result is groundwork only — static egos, oracle association, **no OAI transport**.
+- **Critical path:** Phase-2 recipient-specific map sharing integrated end-to-end (= multi-vehicle integration when
+  scoped to one helper + one recipient). ~7-10 weeks, 9-12 with contingency. OTA is a parallel venue risk.
+- **In flight (desk-only):** Task A argmax-stability/rank-reversal screen (a detection-only null is **INCONCLUSIVE**,
+  not a closure — per-frame segmentation metrics are missing and seg is the most profile-sensitive term);
+  Task B vulnerable-object shield guardrails (protect only *observed* pedestrians); Task C exact budgeted
+  enumerator + lambda-RDO supported-hull lookup (report action agreement / reward gap / duality gap; the AoI
+  heuristic is **not** a Whittle index).
+- `SCENESENSE_MONTHLY_CHECKLIST.md` still predates these results and needs a reconciliation pass.
 
 > The `~/.claude` memory cache was wiped by a retention cleanup on 2026-08-03 (harness, not us). This
 > repo-tracked file exists so project state is never lost that way again. Keep it updated as work advances.

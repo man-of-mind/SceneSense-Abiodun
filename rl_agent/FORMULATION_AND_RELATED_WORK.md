@@ -277,8 +277,11 @@ and a parallel risk, not the first dependency** — stabilise Phase 2 over RFsim
 *only* if a known-good USRP/gNB/UE setup and experienced support already exist; otherwise 6-10+ weeks and high
 schedule risk.
 
-> **OPEN QUESTION FOR ABIODUN — schedule feasibility.** The repo/context records the IDCC x NEU collaboration as
-> ending **2026-08-29**, which is ~2 weeks from this revision, against a 7-12 week critical path. Either the
-> collaboration window has been extended, or the 6-month proposal covers a *forthcoming* period, or the scope must
-> be cut hard to fit. **This must be resolved before committing to the plan above** — it changes what is
-> achievable more than any technical decision in this document.
+> **RESOLVED 2026-08-14 (Abiodun).** The previously-recorded **2026-08-29 end date is STALE** — the collaboration
+> window has been extended and the 6-month proposal is **forward-looking**. The 7-12 week critical path above is
+> therefore feasible as scoped, and the plan stands. Do not plan against 2026-08-29.
+>
+> **Still open (human/advisor):** the **venue/OTA decision** (§8.6). MobiSys/MobiCom likely require an OTA leg for
+> C1/C2; MSWiM / SECON / WoWMoM / VNC (or TMC / IoT-J for the journal route) fit a real-stack-plus-simulation study.
+> Settle before writing, but per codex it is a *parallel* risk — stabilise Phase 2 over RFsim first either way, so
+> it does not block starting.

@@ -3472,3 +3472,29 @@ changes feasibility more than any technical decision here.
 
 **Immediate work (unchanged):** Tasks A and B as registered; Task C in its corrected form (enumerator + lambda-RDO
 first, AoI-index-inspired heuristic labelled honestly, genuine Whittle deferred). Everything else stays gated.
+
+## 2026-08-14 — BLOCKER RESOLVED: schedule is fine. Tasks A/B/C are GO. CLAUDE.md reconciled.
+
+**Abiodun confirms the 2026-08-29 date is STALE** — the collaboration window is extended and the 6-month proposal
+is forward-looking. codex's **7-10 week (9-12 with contingency)** critical path is therefore feasible as scoped.
+`FORMULATION_AND_RELATED_WORK.md` §8.6 updated; nothing needs cutting.
+
+**Still open, non-blocking:** the venue/OTA decision (advisor). Per codex it is a parallel risk — stabilise Phase 2
+over RFsim first either way, so it does not gate starting.
+
+**codex: proceed now, in this order.**
+1. **Task A** — argmax-stability / rank-reversal screen. Pre-register buckets + lift threshold + the **asymmetric
+   interpretation** (detection-only null = `INCONCLUSIVE`, never "Phase-1 closed"; report the per-frame-segmentation
+   re-eval cost so Abiodun can decide whether to fund it).
+2. **Task B** — vulnerable-object shield guardrails, stating explicitly that they protect only **observed**
+   pedestrians/cyclists; detector misses remain outside the shield's knowledge.
+3. **Task C (corrected)** — exact measured-table budgeted enumerator + lambda-RDO supported-hull lookup; report
+   **action agreement, reward gap, and Lagrangian duality gap**. This is the test of H1/H2 (§2), which are
+   hypotheses, not results. Label the freshness baseline an **AoI-index-inspired heuristic**, not Whittle; defer a
+   genuine Whittle baseline to Phase-2 object-selective sharing where objects are natural arms.
+4. Then the **Phase-2 critical path** (§8.6 steps 3-5). Nothing else is unlocked.
+
+`abiodun/CLAUDE.md` has been reconciled to reflect all three RL gates with their honest scope, the load-shaping
+positive result, the C2 gap, and the in-flight tasks — it previously described the project as an RL controller
+effort and predated the expanded gate and the multi-UE results. `SCENESENSE_MONTHLY_CHECKLIST.md` still needs its
+own reconciliation pass (codex, low priority, before the advisor meeting).
