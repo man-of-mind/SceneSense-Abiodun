@@ -3880,3 +3880,41 @@ Not publishing means the recipient does not know the object **exists**. Stale-bu
 **Priority note:** F1 is the only item that could change current numbers and it is a cheap question (does the map
 extrapolate?). Items 1-3 are Phase-2 design decisions for the advisor, not work to start now. Phase-2 paired
 evaluation remains the only P0.
+
+## 2026-08-14 — DESIGN (F1 refined, Abiodun's point): we MEASURE velocity and then discard it. The error term should be prediction RESIDUAL, not displacement.
+
+Abiodun's question — *"we can infer object speed from radar, so why are we extrapolating / what am I missing?"* —
+sharpens F1 correctly. **Nothing is missing: knowing v and using v are different things.** The model reads the
+measured speed and then assumes the map leaves the object at its last reported position, so error accumulates as
+raw displacement `v * age`. Perfect constant-velocity extrapolation would make that term vanish; the fact that it
+equals `v * age` is precisely the signature of **no prediction**.
+
+**Concrete proposal (design only — do not implement without advisor sign-off):**
+```
+current:    e_j = hypot( base_loc,  speed_j * age )                              # displacement / freeze
+proposed:   e_j = hypot( base_loc,  sigma_v_j * age,  0.5 * a_max * age^2 )      # prediction residual
+```
+The velocity-uncertainty term **already exists in the observation** — `obj.speed_sigma_mps`, currently used only in
+the risk path (`1.645 * speed_sigma`, `shield.py:147,151`). So the quantity that should multiply `age` is the
+**velocity estimate error**, not the velocity. With sigma_v ~ 0.5 m/s against a 10 m/s vehicle that is a **~20x**
+reduction in the age-dependent term — which would move most of the currently-infeasible region into feasibility.
+
+**Honest constraints on dead reckoning (state these, do not over-promise):**
+1. **Radar Doppler is radial-only** — closing speed along the beam, not a full 2D velocity vector. Correct-direction
+   extrapolation needs camera tracking or a second viewpoint. Partial limitation.
+2. **Requires track association** — `track_key` exists in the code, so some tracking is present; whether the *map*
+   uses it for extrapolation is the open question.
+3. **Pedestrians are less predictable than vehicles** — constant velocity is weaker for stop/turn behaviour, though
+   over 100-200 ms the deviation is small.
+
+**THE ONE QUESTION FOR CODEX (code inspection, not an experiment):** does the shared map — current or intended
+Phase-2 — extrapolate object positions between updates? Three outcomes, all useful:
+- **It does** -> the error model is mis-specified and every feasibility/abstention number we have quoted is
+  **too pessimistic**; they must be re-stated before any of them reaches a slide or paper.
+- **It does not, but could** -> dead reckoning is the cheapest design lever available, far cheaper than any
+  controller change, and it should be a Phase-2 design decision.
+- **It cannot** (association or radial-velocity limits) -> "freeze" is honest, and that becomes a genuine finding:
+  *cooperative perception at this update rate is bounded by prediction capability, not by the network* — which is a
+  more interesting claim than anything the controller work produced.
+
+Still design-only. No experiments authorised. Phase-2 paired evaluation remains the only P0.
