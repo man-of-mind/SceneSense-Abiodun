@@ -183,50 +183,48 @@ the gate should be re-run at a payload where sending is routinely feasible (e.g.
 
 ---
 
-### 7b. 🔴 The open finding we surfaced ourselves: the policy is degenerate (~97% abstention)
+### 7b. ⚠️ RETRACTED AND REPLACED — the "97% abstention" diagnosis was wrong (codex audit, 2026-08-14)
 
-**Present this honestly on its own slide.** Abiodun's question — *if 96-98% of frames are skipped, only 2-4% of
-information reaches the map, so what is the agent for and is AoI even in play?* — exposed a real problem.
+**An earlier version of this section claimed the controller "abstains ~97% of the time" because of reward
+mis-calibration at a "400 KiB operating point." Both claims are false. Retained here, corrected, because the
+corrected version is the more interesting finding.**
 
-**Effective sharing rate.** `split_pct` = 3.98% of a 10 Hz corpus → ~**0.4 sends/s** (map refresh every ~2.5 s).
-`capture_attempt_pct` is **1.55%**, *lower* still, implying ~0.16/s (refresh every ~6 s). That split-vs-capture gap
-is unexplained and is being investigated.
+**What was wrong:**
+- The ladder ran at a **20 Hz policy clock over 49-129 KiB profiles (90 KiB preferred core)** — *not* 400 KiB.
+  400 KiB belongs to the separate contention/frontier study.
+- `split_pct` is **schedule-active time, not packets sent**. The scheduler accrues credit per target FPS and
+  attempts capture only when credit reaches 1 (`policy/env.py:232`).
+- Realized rates: 2,638 ticks at 20 Hz = **131.9 s**; greedy made **41 attempts / 40 deliveries** =
+  **0.303 deliveries/s**, about **one delivered update every 3.3 s** (not the 0.16/s previously stated).
+- `over_budget_pct` is **misnamed**: it flags *no localization-safe action exists*, **not** C1 capacity rejection
+  (`policy/shield.py:334`).
+- **Abstention is NOT trivially safe.** For an observed object SKIP retains the map state, AoI keeps growing, and
+  **SKIP must itself stay below the localization bound.**
 
-**Measured against our own staleness model** (`base_loc ≈ 0.9 m`, `eps = 2.0 m`, so `v·AoI ≤ 1.76 m`):
+**The actual SKIP decomposition (greedy, 2,638 frames):**
 
-| object | max tolerable AoI | required refresh |
-|---|---|---|
-| pedestrian @ 1.4 m/s | 1.26 s | ~0.8 Hz |
-| vehicle @ 10 m/s | **0.18 s** | **~5.7 Hz** |
-| car @ 14 m/s (32 mph) | **0.13 s** | **~8 Hz** |
+| SKIP cause | frames |
+|---|---:|
+| No observed object — SKIP legitimately cheaper | 1,828 |
+| Observed objects, but **no localization-safe action exists** | **693** |
+| Observed objects, SKIP the only safe candidate | 11 |
+| Observed objects, a safe SPLIT existed but reward chose SKIP | **1** |
 
-At a 2.5-6 s refresh interval, a 10 m/s vehicle's map entry carries **~25 m of error**. **The shared map cannot be
-serving moving vehicles** — precisely the objects the freshness argument was built for.
+**One frame.** Reward mis-calibration is not the story, so a `w_error` sweep would have been wasted effort.
 
-**Why AoI went inert:** `w_error = 0.05` against `w_task = 1.0`. Staleness is nearly free while sending carries a
-real `C_PRB` cost, so skipping dominates. AoI is in the equation but not in the behaviour — and the sweep only
-spanned `w_error ∈ [0.025, 0.10]`.
+**The real structural concern — STALE-LOCKOUT (codex).** When the map is already stale and nothing satisfies eps,
+the degraded shield minimizes the *immediate peak* bound. SKIP is evaluated over a one-tick horizon while sending
+carries capture wait + network latency — so **SKIP looks less bad right now even though sending is the only path to
+recovery**, and the map gets staler, repeating. Much of the 693 is likely this. It needs a desk-level counterexample
+analysis, not a weight sweep.
 
-**The structural flaw:** safety is satisfied **trivially by abstention**. There is no minimum coverage or
-participation floor in the contract, so "safe" was never coupled to "useful."
+**Also note:** Task B's vulnerable guardrail already raised SPLIT from **3.98% -> 29.38%**, so the old number
+describes the *unguarded baseline*, not the current design.
 
-**What this does to the NO-GO:** comparing controllers that all abstain ~97% of the time compares them on ~3% of the
-problem — "greedy ≈ oracle" substantially means *they agree about doing nothing*. The NO-GO may still hold, but as
-measured it is plausibly an **operating-point / reward-calibration** result rather than a **learnability** result.
-
-**Pending (Task E, blocking):** decompose skip causes (forced vs chosen); explain the split-vs-capture gap; report
-**map coverage** (fraction of objects with a within-eps fresh entry) as a first-class metric; **re-run the ladder and
-gate at the 90 KB seg-safe point** where delivery is 100% at every rung; **sweep `w_error` beyond 0.10** to find
-where the policy starts participating; then the conditional-on-choice oracle analysis. Possibly add an explicit
-**minimum-coverage / must-send-on-staleness constraint** so trivial abstention is inadmissible by construction
-(design question for the advisor).
-
-**Until then, state the NO-GO as:** *"no useful one-step headroom **at the 400 KiB operating point, where the
-shielded policy abstains ~97% of the time**; a participating-regime re-run is pending."*
-
-**The silver lining, and it is real:** if the physics simply do not permit cooperative perception at 400 KiB, that
-*is* the load-shaping thesis with teeth — and it points straight at the ~90 KB operating point the knob work already
-identified.
+**And a genuine environment/perception issue:** only **743** frames contain observed objects (1,895 do not), while
+a further **427** frames contain GT objects the **detector missed** — i.e. ~36% of GT-object frames are lost before
+the controller ever sees them. That is a perception-coverage gap the controller cannot solve, and it means
+whole-corpus percentages dilute the informative subset.
 
 ---
 
