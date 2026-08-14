@@ -1,0 +1,29 @@
+{
+  "absolute_reward_lift": 0.002664502201566217,
+  "checks": {
+    "absolute_lift_pass": false,
+    "bootstrap_lower_pass": true,
+    "n2_and_n4_positive_pass": true,
+    "queue_free_c1_validity_pass": true,
+    "relative_lift_pass": false,
+    "worst_ue_regression_pass": true
+  },
+  "cluster_bootstrap_95ci": [
+    0.0019293440969829097,
+    0.003451771478300706
+  ],
+  "gate_schema": "scenesense.policy.expanded_action_gate.v3",
+  "group_equal_greedy_mean_reward_v5": 0.1926252637735426,
+  "group_equal_oracle_mean_reward_v5": 0.19528976597510883,
+  "interpretation_boundary": "Queue-free held-out replay upper-bound gate; no shared queue, OAI, CARLA, LOCAL, MPC, or RL.",
+  "maximum_greedy_aggregate_c1_miss_fraction": 0.008403361344537815,
+  "mean_reward_lift_by_ue_count": {
+    "2": 0.0028136389220889684,
+    "4": 0.001620545157906957
+  },
+  "minimum_paired_worst_ue_reward_lift": 8.596498946349552e-06,
+  "primary_metric": "group_equal_mean_matched_truth_reward_v5",
+  "relative_reward_lift": 0.013832568736667399,
+  "schema": "scenesense.policy.expanded_action_gate.decision.v1",
+  "verdict": "EXPANDED_SURROGATE_NO_GO_STOP"
+}

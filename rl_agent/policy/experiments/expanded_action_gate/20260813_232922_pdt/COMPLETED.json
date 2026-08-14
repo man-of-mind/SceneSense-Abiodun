@@ -1,0 +1,7 @@
+{
+  "decision_sha256": "1e7d1bc01741eaa7e4f42fe3820704b98bfaea9a0f40cb5605cc516bb22c3986",
+  "manifest_sha256": "f6bc847eda5dfdb2245f4063baf8dcb5a9fe343fa53ebfddf3ff32620d9416ca",
+  "schema": "scenesense.policy.expanded_action_gate.completed.v1",
+  "status": "COMPLETED",
+  "verdict": "EXPANDED_SURROGATE_NO_GO_STOP"
+}

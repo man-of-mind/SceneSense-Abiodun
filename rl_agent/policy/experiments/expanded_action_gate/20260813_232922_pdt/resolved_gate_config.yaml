@@ -1,0 +1,153 @@
+schema: scenesense.policy.expanded_action_gate.v2
+experiment_name: expanded_split_skip_oracle_gate
+seed: 20260814
+authorization:
+  allowed:
+  - desk_frontier
+  - expanded_decentralized_greedy
+  - expanded_joint_true_state_one_step_oracle
+  forbidden:
+  - OAI
+  - CARLA
+  - LOCAL
+  - max_weight
+  - MPC
+  - RL
+sources:
+  accepted_controller_run: rl_agent/policy/experiments/controller_ladder/20260813_063514
+  resolved_config:
+    path: rl_agent/policy/experiments/controller_ladder/20260813_063514/resolved_config.yaml
+    sha256: dd6f65c27b907815a6457944ab98b3dbcd5ebec16176b36ba518a512cd23d41c
+  replay_registry:
+    path: rl_agent/policy/experiments/controller_ladder/20260813_063514/replay_registry.csv
+    sha256: 5deb3f489c32d6dad8d576366a8cce6bb6bbb1af977dccc78832526f790c8eda
+  action_catalog:
+    path: rl_agent/policy/data/action_catalog.csv
+    sha256: e6d95fbbd0cec30ea131ce50274ba6b9b858622021ac6067602c5f505b48228d
+  combined_surface:
+    path: channel_condition_sweep/combined_surface.csv
+    sha256: c48c44667dec980d6a5a62abb4a081cb33ac70bdf33e9536187a8fd62007e5a1
+  dg_a_stage_manifest:
+    path: rl_agent/multiue_oai/experiments/dg_a_ipcontract_20260813_2118_pdt/stage_manifest.json
+    sha256: 373a6afa8354e5d7f5abe2eeef45f331f2f18e53051206fe037b5c173ee17761
+  dg_a_results_summary:
+    path: rl_agent/multiue_oai/experiments/dg_a_ipcontract_20260813_2118_pdt/results_summary.json
+    sha256: 61e62c63826eedaea16842b7c92b0791791682e1f8327e8dd30d1ef666d26e6c
+frontier:
+  ue_counts:
+  - 1
+  - 2
+  - 4
+  - 50
+  - 100
+  deadlines_s:
+  - 0.25
+  - 0.5
+  fps:
+  - 2
+  - 5
+  - 10
+  - 15
+  - 20
+  stress_payload_kib:
+  - 400.0
+  chunk_bytes: 60000
+  c1_factor: 0.7
+  capacity_statistic: max_sched_ul_mbps_per_mcs
+  share_envelopes:
+  - whole_cell_optimistic
+  - equal_raw
+  - equal_c1
+  nonnetwork_p95_method: accepted_v5_fast_nonuplink_plus_profile_compute_delta
+evaluation:
+  split: test
+  controllers:
+  - expanded_decentralized_greedy
+  - expanded_joint_true_state_one_step_oracle
+  action_modes:
+  - SPLIT
+  - SKIP
+  local_status: excluded_uncalibrated
+  channel_seeds:
+  - 1101
+  - 2202
+  - 3303
+  latency_mode: sample
+  common_random_latency_by_tick: true
+  groups:
+  - group_id: n2_fast
+    ue_count: 2
+    episodes:
+    - pcarv5_fast_te01
+    - pcarv5_fast_te02
+  - group_id: n2_mixed
+    ue_count: 2
+    episodes:
+    - pcarv5_mixed_te01
+    - pcarv5_mixed_te02
+  - group_id: n2_ped
+    ue_count: 2
+    episodes:
+    - pcarv5_ped_te01
+    - pcarv5_ped_te02
+  - group_id: n2_cross_a
+    ue_count: 2
+    episodes:
+    - pcarv5_mixed_te01
+    - pcarv5_ped_te01
+  - group_id: n2_cross_b
+    ue_count: 2
+    episodes:
+    - pcarv5_mixed_te02
+    - pcarv5_ped_te02
+  - group_id: n2_cross_c
+    ue_count: 2
+    episodes:
+    - pcarv5_mixed_te01
+    - pcarv5_ped_te02
+  - group_id: n2_cross_d
+    ue_count: 2
+    episodes:
+    - pcarv5_mixed_te02
+    - pcarv5_ped_te01
+  - group_id: n4_diverse
+    ue_count: 4
+    episodes:
+    - pcarv5_mixed_te01
+    - pcarv5_mixed_te02
+    - pcarv5_ped_te01
+    - pcarv5_ped_te02
+  hard_c1:
+    greedy_per_ue_budget: 0.70 * observed_cell_capacity / N
+    oracle_joint_budget: 0.70 * true_cell_capacity
+  expired_work_policy: no_application_queue_latest_schedule_only
+  shared_queue_model: absent_queue_free_upper_bound
+  maximum_greedy_aggregate_true_capacity_miss_fraction: 0.01
+  primary_metric: group_equal_mean_matched_truth_reward_v5
+  secondary_deadlines_s:
+  - 0.25
+  - 0.5
+  oracle_truth_scope: matched_deployable_track_keys_with_true_kinematics_and_capacity
+decision_gate:
+  bootstrap_seed: 20260814
+  bootstrap_replicates: 10000
+  cluster_unit: scenario_group_mean_over_channel_seeds
+  minimum_absolute_reward_lift: 0.01
+  minimum_relative_reward_lift: 0.05
+  maximum_worst_ue_mean_reward_regression: 0.005
+  require_bootstrap_95ci_lower_above_zero: true
+  require_positive_mean_lift_at_n2_and_n4: true
+  positive_result: CANDIDATE_HEADROOM_BUILD_MAX_WEIGHT_NEXT
+  negative_result: EXPANDED_SURROGATE_NO_GO_STOP
+  invalid_result: HOLD_INVALID_QUEUE_FREE_C1_ENVELOPE
+correction:
+  reason: oracle_selection_objective_must_match_registered_matched_truth_metric
+  oracle_truth_scope: matched_deployable_track_keys_with_true_kinematics_and_capacity
+  unchanged_fields:
+  - sources
+  - frontier
+  - groups
+  - seeds
+  - actions
+  - reward
+  - thresholds

@@ -1,0 +1,7 @@
+{
+  "error": "Detached child exited with the sandbox process namespace before runner initialization; no progress event or scientific output was produced.",
+  "error_type": "LauncherLifecycleError",
+  "schema": "scenesense.policy.expanded_action_gate.failed.v1",
+  "scientific_status": "NO_OUTCOME_PRODUCED",
+  "status": "FAILED"
+}

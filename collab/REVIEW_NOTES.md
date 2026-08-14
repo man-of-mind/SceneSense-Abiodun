@@ -3225,3 +3225,59 @@ substantive part of the redesign:** (a) the deadline-feasibility frontier; (b) d
 expanded action space and the graded objective; (c) calibrate LOCAL (prerequisite for the joint space); (d) run
 expanded-greedy vs expanded-oracle on held-out trajectories. No OAI, no CARLA, no radio time. The heavy controller
 machinery (max-weight, queue-aware MPC) is what waits on (d) — not the redesign itself.
+
+## 2026-08-14 — CODEX: expanded-action feasibility frontier + valid common-state oracle gate complete — scoped `EXPANDED_SURROGATE_NO_GO_STOP`.
+
+The accepted artifact is
+`rl_agent/policy/experiments/expanded_action_gate/20260813_233947_pdt`. It is a desk-only reward-v5 run over the
+immutable accepted replay and measured profile/channel tables. `COMPLETED.json` matches the decision and manifest
+SHA-256 values; all six frozen source hashes are identical before/after. It launched no OAI or CARLA and contains
+no LOCAL, max-weight, MPC, or RL.
+
+**Validity correction audit (do not use the earlier v1/v2 outcomes):** v1 failed before completion after its
+per-UE degradation filter removed `SKIP`. V2 completed technically, but its scientific `NO_GO` is invalid for two
+independent reasons. First, local `best_bound + delta` pruning occurred before joint allocation: for two new fast
+objects it removed the jointly feasible two-at-10-FPS choice and forced one 20-FPS send plus one `SKIP`, invoking
+the deliberate −25,000 unobserved-object sentinel. Second, greedy and the one-step oracle advanced different map
+states, so the latter could not upper-bound the former's sequential rollout. Both artifacts are preserved for
+audit but are superseded; neither is evidence about RL.
+
+V3 freezes the direction-independent repair in `EXPANDED_ACTION_GATE_V3_SPEC.md`: advance only greedy, evaluate
+both choices on the exact same greedy-visited state, expose true capacity/kinematics only to the matched-support
+oracle, and apply graceful degradation after joint feasibility is known. If a joint-safe combination exists,
+the oracle ranks it; otherwise all supported hard-C1 payload/FPS actions plus `SKIP` remain available and graded
+reward-v5 selects the least-bad joint choice. Frames where greedy misses true aggregate C1—and greedy safety
+violations when a joint-safe choice exists—are excluded symmetrically from the primary comparison. The inherited
+1% C1 validity ceiling remains unchanged.
+
+**Registered result:** expanded decentralized greedy scores **0.192625** and the exact common-state oracle
+**0.195290**. Oracle lift is **+0.002665 absolute / +1.383% relative**, with group-cluster bootstrap 95% CI
+**[+0.001929, +0.003452]**. Lift has the correct positive sign at both N=2 (**+0.002814**) and N=4
+(**+0.001621**); the minimum paired worst-UE lift is positive (**+0.0000086**); and the maximum greedy true-C1
+miss fraction is **0.840%**, inside the frozen 1% ceiling. The exact upper-bound invariant holds on every one of
+**12,955** eligible group/seed/step states: minimum oracle−greedy summed reward is 0 and there are zero negative
+violations. The oracle changes only **461/29,510 UE-frame actions (1.562%)**; the 75th and 95th percentile
+per-step lifts are both zero.
+
+The effect is statistically detectable but fails both pre-registered practical-headroom gates: **0.002665 <
+0.01 absolute** and **1.383% < 5% relative**. Therefore the correct registered verdict is
+**`EXPANDED_SURROGATE_NO_GO_STOP`**. Do not build max-weight, queue-aware MPC, or RL for this current surrogate
+contract. This is stronger than the earlier greedy≈MPC result: after restoring all 35 measured
+profile/FPS choices plus `SKIP`, an exact true-state one-step allocator finds only a small residual on the same
+states.
+
+**Positive engineering result — the feasibility frontier:** exact production UDP overhead and reward-v5
+non-network p95 produce **487/1,600** necessary-feasible equal-C1 cells. The smaller measured profiles matter:
+400 KiB has only **7/200** feasible cells versus **58/200** at 90 KiB and **89/200** at 49.4 KiB. At N=2 the
+counts are **2/40, 19/40, and 32/40**, respectively; at N=4 they are **0/40, 7/40, and 19/40**. No tested payload
+is feasible under equal C1 share at N=50/100, even at 2 FPS. This supports the scoped system conclusion that
+measured payload/FPS load shaping—not learned knob choice—is the effective first lever. It is a necessary
+queue-free frontier, not a queue-delay guarantee, and it is not a direct reward comparison with the old 400 KiB
+controller.
+
+**Claim boundary:** this oracle is exact only for one-step reward on greedy-visited matched-support states. It is
+not future-perfect, does not bound policies that intentionally visit different states, and the replay has no
+shared queue. LOCAL remains uncalibrated. Thus this closes the **current expanded queue-free surrogate direction**,
+not project-wide RL. Reopening requires a genuinely new measured contract—e.g. calibrated LOCAL, an empirical
+shared-queue/object-cooperation model, or phase-2 scheduling—with a new pre-registered gap; it is not justified by
+retuning this gate. Validation is **41/41 policy tests**, Python compilation, and `git diff --check`.

@@ -1,0 +1,58 @@
+{
+  "artifact_hashes": {
+    "rl_agent/policy/experiments/expanded_action_gate/20260813_233947_pdt/EXPANDED_ACTION_GATE_RESULTS.md": "691883057a39c909bc27a7beb6036ec8ea2b0fe4546b3afcbf5c1fea3528249b",
+    "rl_agent/policy/experiments/expanded_action_gate/20260813_233947_pdt/LAUNCHED.json": "2e4dc5b1439d0361ce3bd079e76abde4a55196ee1832b43905a16286140412de",
+    "rl_agent/policy/experiments/expanded_action_gate/20260813_233947_pdt/decision.json": "35358a7312a3d1df5a3f56a46a7dfafca3135afb92396f2a795732026ffb355d",
+    "rl_agent/policy/experiments/expanded_action_gate/20260813_233947_pdt/feasibility_frontier.csv": "568cffe3a47578e25d11faa5fc027f0e84c6114ccc434ab68ab0e776a09ea6de",
+    "rl_agent/policy/experiments/expanded_action_gate/20260813_233947_pdt/figures/expanded_reward_comparison.pdf": "ab01a5d95fec1ea74a7e490b1897e254df0b401c37cb22c4a86a7a8fc7e77bd8",
+    "rl_agent/policy/experiments/expanded_action_gate/20260813_233947_pdt/figures/expanded_reward_comparison.png": "92a56a8249a586bc4ecb940a15d2118050a66cee7d8a990d886e607aae269e41",
+    "rl_agent/policy/experiments/expanded_action_gate/20260813_233947_pdt/figures/feasibility_frontier_n2.pdf": "c9bb4f824432383cc15a880070f95360fa2e0ac10e996eba790e4d80c074600f",
+    "rl_agent/policy/experiments/expanded_action_gate/20260813_233947_pdt/figures/feasibility_frontier_n2.png": "a215aed11d61f1bfafcbcb160432d144ca1971467dc174fd242bee1b3bb111c6",
+    "rl_agent/policy/experiments/expanded_action_gate/20260813_233947_pdt/group_seed_summary.csv": "293b29b6e5037978e8668e37eed4ca700d9fe91dcd160190953d3ee3cab43895",
+    "rl_agent/policy/experiments/expanded_action_gate/20260813_233947_pdt/per_frame_metrics.csv": "13faade17055eae79517ef642fab2555702aeb701ca6824f12658daf36379eb2",
+    "rl_agent/policy/experiments/expanded_action_gate/20260813_233947_pdt/progress.jsonl": "aa4848d2a3b49d60edcec5945128ba4c9623dfbdcd674ccd49a027b659a47e27",
+    "rl_agent/policy/experiments/expanded_action_gate/20260813_233947_pdt/resolved_gate_config.yaml": "a590bc73cc8e6d63b329abb79aa386e62b05bb27d389b506c2e2c3da7e800185",
+    "rl_agent/policy/experiments/expanded_action_gate/20260813_233947_pdt/run.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "authorization": {
+    "allowed": [
+      "desk_frontier",
+      "expanded_decentralized_greedy",
+      "expanded_joint_true_state_one_step_oracle"
+    ],
+    "forbidden": [
+      "OAI",
+      "CARLA",
+      "LOCAL",
+      "max_weight",
+      "MPC",
+      "RL"
+    ]
+  },
+  "code_hashes": {
+    "rl_agent/policy/EXPANDED_ACTION_GATE_V3_SPEC.md": "b6b1478c16940cc9209e6314dc6c121697e849928bf0904618ee28fd07746a03",
+    "rl_agent/policy/configs/expanded_action_gate_v3.yaml": "795bbf081dfdc86ad4c719b29ab998a0748e3c145ff87f5657c83bdc4b872ed0",
+    "rl_agent/policy/expanded_gate.py": "a6d7dbbf60bb7fab130bb8b9900ed75650b38c5242ba806b743eaea5bc514ddf",
+    "rl_agent/policy/run_expanded_action_gate.py": "411938230bc7d11fb4624240e1254c3dade486ed4c2b52a821f56f26ab969d98"
+  },
+  "implementation_status": "completed_desk_only_expanded_surrogate_gate",
+  "output_dir": "rl_agent/policy/experiments/expanded_action_gate/20260813_233947_pdt",
+  "schema": "scenesense.policy.expanded_action_gate.manifest.v1",
+  "source_hashes_after": {
+    "channel_condition_sweep/combined_surface.csv": "c48c44667dec980d6a5a62abb4a081cb33ac70bdf33e9536187a8fd62007e5a1",
+    "rl_agent/multiue_oai/experiments/dg_a_ipcontract_20260813_2118_pdt/results_summary.json": "61e62c63826eedaea16842b7c92b0791791682e1f8327e8dd30d1ef666d26e6c",
+    "rl_agent/multiue_oai/experiments/dg_a_ipcontract_20260813_2118_pdt/stage_manifest.json": "373a6afa8354e5d7f5abe2eeef45f331f2f18e53051206fe037b5c173ee17761",
+    "rl_agent/policy/data/action_catalog.csv": "e6d95fbbd0cec30ea131ce50274ba6b9b858622021ac6067602c5f505b48228d",
+    "rl_agent/policy/experiments/controller_ladder/20260813_063514/replay_registry.csv": "5deb3f489c32d6dad8d576366a8cce6bb6bbb1af977dccc78832526f790c8eda",
+    "rl_agent/policy/experiments/controller_ladder/20260813_063514/resolved_config.yaml": "dd6f65c27b907815a6457944ab98b3dbcd5ebec16176b36ba518a512cd23d41c"
+  },
+  "source_hashes_before": {
+    "channel_condition_sweep/combined_surface.csv": "c48c44667dec980d6a5a62abb4a081cb33ac70bdf33e9536187a8fd62007e5a1",
+    "rl_agent/multiue_oai/experiments/dg_a_ipcontract_20260813_2118_pdt/results_summary.json": "61e62c63826eedaea16842b7c92b0791791682e1f8327e8dd30d1ef666d26e6c",
+    "rl_agent/multiue_oai/experiments/dg_a_ipcontract_20260813_2118_pdt/stage_manifest.json": "373a6afa8354e5d7f5abe2eeef45f331f2f18e53051206fe037b5c173ee17761",
+    "rl_agent/policy/data/action_catalog.csv": "e6d95fbbd0cec30ea131ce50274ba6b9b858622021ac6067602c5f505b48228d",
+    "rl_agent/policy/experiments/controller_ladder/20260813_063514/replay_registry.csv": "5deb3f489c32d6dad8d576366a8cce6bb6bbb1af977dccc78832526f790c8eda",
+    "rl_agent/policy/experiments/controller_ladder/20260813_063514/resolved_config.yaml": "dd6f65c27b907815a6457944ab98b3dbcd5ebec16176b36ba518a512cd23d41c"
+  },
+  "verdict": "EXPANDED_SURROGATE_NO_GO_STOP"
+}

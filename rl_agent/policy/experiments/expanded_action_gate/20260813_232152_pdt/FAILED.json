@@ -1,0 +1,8 @@
+{
+  "error": "name '_resolve' is not defined during manifest finalization",
+  "error_type": "NameError",
+  "schema": "scenesense.policy.expanded_action_gate.failed.v1",
+  "scientific_reason": "Oracle selected on all hidden GT objects while execution and the primary metric were restricted to deployable tracker keys; it was not an upper bound on the registered metric.",
+  "scientific_status": "INVALID_NOT_ACCEPTED",
+  "status": "FAILED"
+}

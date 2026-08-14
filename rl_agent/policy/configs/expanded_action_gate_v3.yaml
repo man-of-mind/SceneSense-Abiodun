@@ -1,0 +1,11 @@
+schema: scenesense.policy.expanded_action_gate.v3
+base_config:
+  path: rl_agent/policy/configs/expanded_action_gate_v2.yaml
+  sha256: c8cc76659f63dd42b421f800dd7675de0222f2a2eacbfdae29653966943dbfec
+correction:
+  reason: one_step_upper_bound_requires_common_state_and_system_level_degradation
+  evaluation_mode: common_greedy_state_counterfactual
+  system_degradation: all_supported_actions_ranked_by_graded_reward_when_no_joint_safe_combination
+  primary_frame_filter: exclude_true_c1_misses_and_greedy_safety_violations_when_joint_safe_exists
+  oracle_interpretation: exact_matched_support_true_state_one_step_upper_bound_not_sequential_oracle
+  unchanged_fields: [sources, frontier, groups, seeds, actions, reward, thresholds]

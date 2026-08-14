@@ -1,0 +1,18 @@
+{
+  "command": [
+    "/home/shr_aisvcs/workarea/carla_0_10_env/carla_0_10_venv/bin/python3",
+    "-m",
+    "rl_agent.policy.run_expanded_action_gate",
+    "--config",
+    "rl_agent/policy/configs/expanded_action_gate_v2.yaml",
+    "--output-dir",
+    "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/policy/experiments/expanded_action_gate/20260813_232808_pdt",
+    "--detached-child"
+  ],
+  "completion_sentinel": "COMPLETED.json",
+  "failure_sentinel": "FAILED.json",
+  "pid": 26,
+  "progress_log": "progress.jsonl",
+  "schema": "scenesense.policy.expanded_action_gate.launched.v1",
+  "status": "RUNNING"
+}

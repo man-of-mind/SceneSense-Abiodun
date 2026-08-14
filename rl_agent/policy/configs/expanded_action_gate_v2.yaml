@@ -1,0 +1,9 @@
+schema: scenesense.policy.expanded_action_gate.v2
+base_config:
+  path: rl_agent/policy/configs/expanded_action_gate_v1.yaml
+  sha256: f5b45534e8273ecafa2fc52f54af948c5f9cdbbf03d341b4526a9f615e8734da
+correction:
+  reason: oracle_selection_objective_must_match_registered_matched_truth_metric
+  oracle_truth_scope: matched_deployable_track_keys_with_true_kinematics_and_capacity
+  unchanged_fields: [sources, frontier, groups, seeds, actions, reward, thresholds]
+

@@ -1,0 +1,6 @@
+{
+  "error": "joint oracle found no aggregate-C1 action combination",
+  "error_type": "RuntimeError",
+  "schema": "scenesense.policy.expanded_action_gate.failed.v1",
+  "status": "FAILED"
+}
