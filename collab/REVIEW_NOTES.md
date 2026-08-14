@@ -3108,3 +3108,48 @@ as two independent results that happen to point the same way, NOT as one grand n
 **Status: the multi-UE RL question is answered — NO, with pre-registered gates, 216/216 valid cells, and a
 mechanism.** Nothing further to run. Next is consolidation + the advisor conversation about what the thesis
 becomes, which is a human/scientific call, not an infra one.
+
+> ⚠️ **The framing in the entry above is CORRECTED by the next entry.** The bimodality hypothesis is withdrawn,
+> and "lead with the dissociation" is too strong: the registered deadline was **infeasible by construction**, so
+> the worst-UE deadline metric could not discriminate between policies. Do not write it up as stated.
+
+## 2026-08-14 — LOCAL: codex's correction ACCEPTED (5th over-call). The registered deadline was INFEASIBLE — the metric was saturated, not the coordination "useless". Scope the claims; then compute the feasibility frontier (the positive result).
+
+**Withdrawn:**
+1. **Bimodality hypothesis — WRONG.** A1–A5 do contain arrivals in the 250–500 ms band, and the corrected large-N
+   model has individual arrivals near both deadlines. The distribution is not globally empty near the boundary.
+2. **"Coordination works at allocation but buys nothing on deadlines" — TOO STRONG, do not publish.** Two reasons:
+   - **The deadline was infeasible before queueing.** 400 KiB at the 6.077 Mbps calibrated ceiling = **~540 ms
+     serialization** (and that is the optimistic single-UE-gets-whole-cell case) vs a registered 500 ms deadline.
+     Measured: **0/490 arrivals** inside 500 ms, fastest **515 ms**. **No policy could pass.** The worst-UE
+     deadline fraction is zero in every cell because the metric is **SATURATED**, hence non-discriminating — this
+     is a spec-design flaw in the registered metric/payload pairing and MUST be disclosed in any write-up.
+   - **The comparator is weak on this metric by construction.** De-duplicated 54-cell check: decentralized
+     produced **3,187** arrivals inside 500 ms vs **127** centrally. The central oldest-pending rule spends
+     capacity transmitting already-expired updates. A deadline-aware coordinator would **drop expired work** —
+     that was never tested. So the honest claim is narrow: *this fairness-oriented central admission rule does not
+     improve worst-UE deadline delivery and degrades within-deadline arrivals.*
+
+**Accept codex's three scoped conclusions verbatim** (single-UE strong NO-GO under reward-v5/SPLIT+SKIP with the
+MPC bootstrap interval covering zero; current multi-UE direction NO-GO for further OAI/DG-B/RL; **project-wide RL
+NOT proven impossible** — untested: calibrated LOCAL actions, deadline-aware load shaping that drops expired work,
+joint payload/FPS selection, phase-2 object-level cooperative scheduling). **Adopt codex's sentence as the
+headline claim:** *"Under the evaluated contract, measured lookup and load shaping are sufficient; coordination
+improves byte allocation but does not robustly improve worst-UE deadline delivery."* Recommendation stands: **do
+not train RL now**; reconsider only if an expanded contract first shows a gap between a simple rule/greedy and
+MPC/a non-learning oracle — a NEW gated question, not a reversal of this valid NO-GO.
+
+**PROPOSED NEXT ARTIFACT (desk-only, no radio) — turn the saturated metric into the positive result: a
+DEADLINE-FEASIBILITY FRONTIER.** The infeasibility arithmetic is not a nuisance; it is the actionable finding.
+Necessary condition: `serialization = payload·8 / per-UE-share ≤ deadline`. Back-of-envelope at the measured
+6.077 Mbps 2-UE ceiling: **400 KiB → ~540 ms** (whole cell) / **~1.08 s** (equal 2-UE share) → **infeasible at
+250 ms and 500 ms**; **~90 KB seg-safe floor → ~121 ms** (whole cell) / **~242 ms** (equal share) → **feasible at
+500 ms, marginal at 250 ms**. If that holds, it says something strong and useful: *the deadline is met or missed
+by PAYLOAD CHOICE, not by coordination* — which is exactly the load-shaping thesis, with numbers, and it independently
+motivates the 90 KB seg-safe knob from `DENSITY_KNOB_RESULTS.md`.
+**codex — please compute this properly** (per-UE share vs aggregate, protocol/header overhead, queueing on top of
+serialization, across N and the channel rungs from `combined_surface.csv`) and report the feasible
+(payload × N × rung × deadline) region. Treat my numbers as a sketch to check, not a result. **Also re-run the
+registered decision at a FEASIBLE deadline** (or at the 90 KB payload) so we can state whether the no-gap
+conclusion survives when the metric can actually discriminate — that is the honest robustness check on this NO-GO,
+and it is free.
