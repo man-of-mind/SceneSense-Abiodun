@@ -1,0 +1,54 @@
+schema_version: scenesense.multiue_oai.dg_a_reanalysis.v2
+source_schema_version: scenesense.multiue_oai.dg_a.v1
+tick_s: 0.05
+chunk_bytes: 60000
+payload_bytes: [92160, 132301, 409600]
+large_n: [50, 100]
+service_families: [constant_ceiling, saturating, power_law]
+demand_patterns: [equal, hot20_traffic80, synchronized_burst]
+steady_rho: 1.10
+synchronized_rho: 1.30
+minimum_arrivals_per_ue: 8
+maximum_generated_demands_per_cell: 10000
+demand_seed: 71401
+
+# Both registered envelopes remain explicit even when the A4 residual clips
+# to 1.0 and is numerically identical to ideal work conservation.
+allocation_envelopes:
+  - name: ideal_max_min
+    efficiency_source: constant_one
+  - name: measured_residual_max_min
+    efficiency_source: a4_heavy_residual_fraction_clipped_0_1
+
+controller_model:
+  decentralized: hard_c1_equal_initial_share
+  centralized: aggregate_hard_c1_oldest_pending
+  pessimism_factor: 0.70
+  token_capacity_frames: 1
+  obsolete_frame_rule: newest_replaces_unsent
+  estimator_scope: frozen_equal_mu_over_n_provisional_screen
+
+network_model:
+  discipline: fluid_max_min_across_backlogged_ue_queues
+  per_ue_queue: fifo
+  admitted_frames_drain_after_demand_horizon: true
+
+decision:
+  deadline_s: [0.25, 0.50]
+  minimum_deadline_lift_pp: 5.0
+  minimum_latency_relative_reduction: 0.20
+  minimum_latency_absolute_ms: 50.0
+  minimum_starvation_relative_reduction: 0.20
+  minimum_starvation_absolute_ms: 100.0
+  maximum_goodput_loss_fraction: 0.05
+
+# Additional conservative review condition, explicitly post-registration.
+pareto_review:
+  maximum_deadline_regression_pp: 0.0
+  maximum_latency_regression_fraction: 0.05
+  maximum_starvation_regression_fraction: 0.05
+  maximum_goodput_loss_fraction: 0.05
+
+physical_service_cap_mbps: 36.7
+historical_n1_strong_sched_mbps: 10.4
+

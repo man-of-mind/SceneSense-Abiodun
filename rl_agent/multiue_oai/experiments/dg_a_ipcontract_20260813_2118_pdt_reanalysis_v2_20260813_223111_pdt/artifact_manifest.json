@@ -1,0 +1,25 @@
+{
+  "artifacts": {
+    "DG_A_REANALYSIS_DECISION.md": {
+      "bytes": 639,
+      "sha256": "b765049460b6ecc03508ac28e56574315cde6dce3413e620c13cb008103e6e31"
+    },
+    "large_n_sensitivity.csv": {
+      "bytes": 82585,
+      "sha256": "9b1ef998c42998ce3d5aa2db5e70142eaea6fc26c6b26ef8b58e8d518e583d29"
+    },
+    "resolved_model_config.yaml": {
+      "bytes": 1567,
+      "sha256": "4d025ee566ff4e186973bbc19a9a9a9a18c950e33c7956a51fa70288a8eaba54"
+    },
+    "results_summary.json": {
+      "bytes": 15508338,
+      "sha256": "7413521f7039b4450941aad344498c465e965a6bfe2415bb166f007e83e3fa13"
+    },
+    "source_provenance.json": {
+      "bytes": 8842,
+      "sha256": "0933eedda270858e573211119d4b632bd1703b0dbddff8b90563a87ba6fbba78"
+    }
+  },
+  "schema_version": "scenesense.multiue_oai.dg_a_reanalysis.artifacts.v2"
+}

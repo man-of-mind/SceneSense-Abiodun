@@ -1,0 +1,9 @@
+{
+  "decision": "STOP_CHEAP_NO",
+  "next_stage_launched": false,
+  "oai_started": false,
+  "schema_version": "scenesense.multiue_oai.dg_a_reanalysis.completion.v2",
+  "source_hashes_verified_unchanged": true,
+  "source_mutated": false,
+  "status": "DG_A_REANALYSIS_COMPLETE_HUMAN_REVIEW_REQUIRED"
+}

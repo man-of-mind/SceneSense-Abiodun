@@ -12,8 +12,18 @@ import unittest
 from pathlib import Path
 from unittest.mock import Mock, call, patch
 
+import yaml
+
 from rl_agent.multiue_oai.analyze import main as analyze_main
 from rl_agent.multiue_oai.analyze import pair_effect, service_family
+from rl_agent.multiue_oai.analyze_v2 import (
+    SimDemand,
+    arrival_blueprint,
+    main as analyze_v2_main,
+    max_min_allocate,
+    simulated_trial_metrics,
+    validate_model_config,
+)
 from rl_agent.multiue_oai.endpoint import (
     FRAME_HEADER,
     GrantObserver,
@@ -923,6 +933,88 @@ class DecisionContractTest(unittest.TestCase):
             self.assertIn(summary["decision"], {"STOP_CHEAP_NO", "CANDIDATE_GO_DG_B_HUMAN_REVIEW_REQUIRED"})
             self.assertFalse(summary["next_stage_launched"])
             self.assertTrue((run_dir / "DG_A_DECISION.md").exists())
+
+
+class CorrectedReanalysisContractTest(unittest.TestCase):
+    def test_max_min_serves_cold_demand_before_sharing_hot_residual(self) -> None:
+        demand = [0.088] * 10 + [0.0055] * 40
+        central = max_min_allocate(demand, 0.70)
+        local = [min(value, 0.70 / 50) for value in demand]
+
+        for value in central[:10]:
+            self.assertAlmostEqual(value, 0.048)
+        for value in central[10:]:
+            self.assertAlmostEqual(value, 0.0055)
+        self.assertAlmostEqual(sum(central), 0.70)
+        self.assertAlmostEqual(min(value / need for value, need in zip(local, demand)), 0.1590909091)
+        self.assertAlmostEqual(min(value / need for value, need in zip(central, demand)), 0.5454545455)
+        self.assertTrue(all(new + 1e-12 >= old for old, new in zip(local, central)))
+
+    def test_arrival_blueprint_matches_tick_credit_with_multiple_frames(self) -> None:
+        blueprint, end_tick = arrival_blueprint(
+            [0.8],
+            onwire_bytes=1000,
+            tick_s=0.05,
+            minimum_arrivals_per_ue=8,
+            demand_seed=1,
+            synchronized=True,
+            maximum_demands=100,
+        )
+
+        self.assertEqual(end_tick, 1)
+        self.assertEqual([tick for tick, _ue, _demand in blueprint], [0] * 5 + [1] * 5)
+
+    def test_deadline_denominator_includes_replaced_and_end_skipped(self) -> None:
+        demands = [
+            SimDemand(0, 0, 0, status="replaced"),
+            SimDemand(1, 0, 0, status="admitted", admitted_tick=0, completion_s=0.10),
+            SimDemand(2, 0, 1, status="skipped_end"),
+        ]
+
+        metrics = simulated_trial_metrics(
+            demands,
+            controller="decentralized_c1",
+            tick_s=0.05,
+            end_tick=1,
+            onwire_bytes=1000,
+            deadlines=[0.25, 0.50],
+        )
+
+        self.assertEqual(metrics["per_ue"]["0"]["demand_frames"], 3)
+        self.assertAlmostEqual(metrics["worst_deadline_0.25s_fraction"], 1 / 3)
+        self.assertAlmostEqual(metrics["worst_deadline_0.50s_fraction"], 1 / 3)
+
+    def test_v2_config_is_locked_to_source_decision_contract(self) -> None:
+        source = load_config(DEFAULT_CONFIG)
+        model_path = DEFAULT_CONFIG.with_name("dg_a_reanalysis_v2.yaml")
+        model = yaml.safe_load(model_path.read_text(encoding="utf-8"))
+
+        validate_model_config(model, source)
+        self.assertEqual(
+            [row["name"] for row in model["allocation_envelopes"]],
+            ["ideal_max_min", "measured_residual_max_min"],
+        )
+
+    def test_v2_analyzer_refuses_output_inside_immutable_source(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            source = Path(temp) / "source"
+            child = source / "reanalysis"
+            with patch(
+                "sys.argv",
+                [
+                    "analyze_v2",
+                    "--run-dir",
+                    str(source),
+                    "--config",
+                    str(DEFAULT_CONFIG),
+                    "--model-config",
+                    str(DEFAULT_CONFIG.with_name("dg_a_reanalysis_v2.yaml")),
+                    "--output-dir",
+                    str(child),
+                ],
+            ):
+                with self.assertRaisesRegex(SystemExit, "new sibling"):
+                    analyze_v2_main()
 
 
 if __name__ == "__main__":

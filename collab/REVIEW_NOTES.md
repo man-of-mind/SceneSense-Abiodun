@@ -3036,3 +3036,42 @@ no-OAI preflight at `experiments/ipcontract_preflight_20260813_2117_pdt` complet
 `PREFLIGHT_ONLY_PASS`, exercised all sender commands plus receiver/sampler finalization, and did not start OAI.
 The fresh detached target is `experiments/dg_a_ipcontract_20260813_2118_pdt`. It remains bounded to
 D0 -> DG-A -> DG-A.1 and cannot launch DG-B, the campaign, a controller ladder, or RL.
+
+## 2026-08-13 — CODEX: corrected immutable DG-A.1 queue/deadline reanalysis complete — `STOP_CHEAP_NO`.
+
+The accepted DG-A source remains unchanged at
+`rl_agent/multiue_oai/experiments/dg_a_ipcontract_20260813_2118_pdt`. The corrected analysis is a versioned,
+desk-only sibling at
+`rl_agent/multiue_oai/experiments/dg_a_ipcontract_20260813_2118_pdt_reanalysis_v2_20260813_223111_pdt`.
+It started neither OAI nor CARLA, launched no later stage, and verified matching before/after SHA-256 values for
+all 34 consumed source/config/code inputs before writing `COMPLETED.json`.
+
+**Correction frozen before the full matrix:** `analyze_v2.py`, `configs/dg_a_reanalysis_v2.yaml`, and
+`DG_A_REANALYSIS_V2_SPEC.md` replace the invalid uniform-ratio proxy with work-conserving max-min; generate
+deterministic 50 ms arrivals in the production byte domain; retain every replaced/SKIP/end-unserved arrival in
+the deadline denominator; model newest-pending admission, per-UE FIFO queues, payload serialization, and
+arrival-to-completion latency; and keep ideal plus measured-residual allocation envelopes explicit. The static
+N=50 hot-20% audit now has the expected values: worst allocation fraction rises from **15.91%** under equal
+local C1 shares to **54.55%** under max-min, with no UE allocated less than the local arm. A4's measured heavy
+residual is **1.0026**, so its clipped envelope is numerically equal to ideal; this is reported, not hidden.
+
+**Result:** the measured A6/A7 and A8/A9 comparisons still have **no replicated N=2 meaningful gap**. A4 still
+confirms scheduler redistribution (**6.0898 Mbps** aggregate versus **6.0774 Mbps** calibrated; residual ratio
+**1.0026**). Across the corrected provisional N=50/100 matrix, all **216/216** cells are valid. Static asymmetric
+allocation headroom does **not** become registered deadline headroom: lift is **0 pp at both 0.25 s and 0.50 s
+in every cell**. Seventy-two cells meet a registered alternative through modeled latency, only eight are also
+Pareto-safe, and those eight occur only for the power-law/132301-byte hot case; **zero scenarios** survive both
+restart blocks, all three service families, and both envelopes. Therefore robust N=50 gap = false and the
+scientific decision is **`STOP_CHEAP_NO`**.
+
+**Interpretation and boundary:** the original sibling's `CANDIDATE_GO_DG_B_HUMAN_REVIEW_REQUIRED` is preserved
+for audit but superseded for scientific use. The large-N result remains explicitly model-based and freezes the
+decentralized causal estimate at equal `mu_N/N`; that is a conservative simplification that tends to favor the
+central arm under asymmetric load, not a basis for claiming an RL opportunity. DG-B, an N=4 attach smoke, the
+remaining identification campaign, a coordination ladder, and RL are **not authorized**. The clean finding is
+that the registered evidence does not justify more radio time; the separately measured N=2 scheduler
+redistribution mechanism remains reportable.
+
+**Verification:** Python compilation, `git diff --check`, and the multi-UE contract suite pass (35 tests run;
+34 pass and the sandbox-only real loopback relay test is skipped). The corrected screen completed in 7.43 s and
+the sibling artifact manifest and source-hash audit are present.

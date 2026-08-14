@@ -3,6 +3,27 @@
 This package implements only the approved `D0 -> DG-A -> DG-A.1` stage. It cannot launch DG-B, the
 identification campaign, a coordination ladder, or RL.
 
+## Scientific status after the corrected DG-A.1 reanalysis
+
+The embedded v1 DG-A.1 calculation in `analyze.py` used uniform proportional scaling for the centralized arm,
+not the registered work-conserving max-min allocation, and evaluated an admitted-rate proxy rather than
+arrival-to-completion deadlines. Its `CANDIDATE_GO_DG_B_HUMAN_REVIEW_REQUIRED` output is retained only as an
+immutable audit artifact and must not be used scientifically.
+
+The corrected desk-only contract is frozen in `DG_A_REANALYSIS_V2_SPEC.md` and
+`configs/dg_a_reanalysis_v2.yaml`; `analyze_v2.py` writes a new sibling directory and verifies hashes of every
+consumed source artifact before completion. The accepted reanalysis of
+`experiments/dg_a_ipcontract_20260813_2118_pdt` is
+`experiments/dg_a_ipcontract_20260813_2118_pdt_reanalysis_v2_20260813_223111_pdt`. Its decision is
+`STOP_CHEAP_NO`: the measured N=2 comparison has no replicated gap, and the model-based N=50 screen has no
+scenario that survives both restart blocks, all three service families, both registered allocation envelopes,
+and the post-registration Pareto check. DG-B, the N=4 attach smoke, the identification campaign, the
+coordination ladder, and RL remain stopped.
+
+This does not erase the mechanism measurement: A4 confirms work-conserving scheduler redistribution at
+6.090 Mbps against a 6.077 Mbps calibrated ceiling. It means only that the corrected queue/deadline screen does
+not justify another OAI stage under the registered gate.
+
 The runner uses the existing two-UE OAI setup, strong AWGN, SINR-based MCS, 400 KiB production-shaped UDP
 messages, the production `!IHH` chunk header, per-UE RLC/BSR/grant traces, and the frozen hard-C1 comparison.
 It writes one timestamped experiment directory with raw logs, extracted traces, manifests, progress JSONL,
