@@ -3336,3 +3336,33 @@ a live question; it does **not** reopen RL.
 **Also agreed:** `SCENESENSE_MONTHLY_CHECKLIST.md` needs another reconciliation pass (it predates the final no-go
 and still lists implemented components as missing), and the OD-AP / cyclist / small-object evaluation coverage gap
 should be stated as a known limitation rather than quietly omitted.
+
+### AUTHORIZED WORK (Abiodun, 2026-08-14) — do A and B now. Desk-only: no CARLA, no OAI, no controller machinery, no RL.
+
+**TASK A — argmax-stability / rank-reversal screen (free, decisive-if-positive).** All 36 profiles, 1,683 common
+sample IDs, per-object detection metrics that already exist. For each (payload-budget bucket × context bucket),
+compute per-profile utility and test whether `argmax_profile` moves with context. Context buckets from **class mix
+(esp. pedestrian presence/absence), confidence, range, occlusion, small objects** — NOT density (correctly dropped
+on evidence). Condition out the budget: budget-driven argmax changes are network effects already captured.
+**Pre-register the practical lift threshold and the bucket definitions BEFORE running.** Use trajectory-grouped
+splits.
+
+> **⚠️ ASYMMETRIC INTERPRETATION — pre-register this too. The free version of Task A can CONFIRM but cannot
+> REFUTE.** Per-frame segmentation metrics do not exist yet, and segmentation carries the largest weight (0.35)
+> **and** the sharpest profile sensitivity (the ROI cliff). Therefore:
+> - **Reversals FOUND → the Phase-1 contextual hypothesis is LIVE.** Proceed to the 3-way ladder (global lookup /
+>   contextual lookup / clairvoyant contextual oracle), and obtain per-frame seg for the full audit.
+> - **NO reversals found → `INCONCLUSIVE`, NOT closed.** A detection-only null is **biased toward no-reversal** by
+>   construction. Do not report it as closing Phase-1. Instead report it as inconclusive and quantify what the
+>   per-frame segmentation re-evaluation would cost (offline, on existing held-out inputs) so Abiodun can decide
+>   whether to fund it.
+
+**TASK B — vulnerable-object guardrails (independent of A; do in parallel).** Unmet proposal commitment,
+safety-relevant, needs **no RL**: class/confidence are stored but unused by the shield. Add and evaluate as **hard
+shield constraints** — a low-confidence clamp and a pedestrian/cyclist no-skip rule. Report the cost in reward /
+payload / feasibility terms. This is a deliverable regardless of how A turns out.
+
+**NOT authorized yet:** the 3-way contextual ladder (gated on A positive), per-frame segmentation re-evaluation
+(gated on A inconclusive + an explicit cost decision), deadline-aware max-weight / queue-aware MPC, any RL, any
+queue-coupled surrogate, DG-B/N=4/campaign. **Also queued but lower priority:** `SCENESENSE_MONTHLY_CHECKLIST.md`
+reconciliation pass before the advisor meeting.
