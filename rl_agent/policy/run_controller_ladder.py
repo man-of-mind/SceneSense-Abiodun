@@ -341,6 +341,19 @@ def run(
         "mean_matched_true_scored_reward_finite",
         "mean_prb_cost",
     ]
+    controller_descriptions = {
+        "fixed": "fixed schedule with deterministic shield fallback",
+        "rule": "explicit capacity/AoI/speed threshold rule",
+        "greedy": "one-step full-candidate expected-reward argmax",
+        "linucb": "disjoint observable-state LinUCB",
+        "mpc": "short-horizon observable-state MPC",
+        "budgeted_enumerator": "exact finite expected-reward enumerator over shield candidates",
+        "lambda_rdo": "measured-profile lambda-RDO supported-hull lookup",
+        "aoi_index": "AoI-index-inspired freshness-risk-per-PRB heuristic (not Whittle)",
+    }
+    enabled_description = "; ".join(
+        controller_descriptions[name] for name in controllers
+    )
     report = "\n".join(
         [
             "# Pre-RL controller ladder results",
@@ -352,13 +365,11 @@ def run(
             "",
             "## Shared comparison contract",
             "",
-            "- Fixed, threshold rule, one-step greedy, fitted LinUCB, and shielded MPC use the identical "
-            "canonical action catalog and live `A_m -> A_safe` implementation.",
-            "- LinUCB trains only on the grouped training split, using matched/tracked environment reward "
-            "feedback, and is frozen on the evaluation split.",
-            "- MPC replans each tick from observable state with declared Markov-expected capacity, modal-rung "
-            "latency, and constant-kinematics projections; it receives neither future replay frames nor true "
-            "channel capacity.",
+            f"- Enabled baselines: {enabled_description}.",
+            "- Every baseline uses the identical canonical action catalog and live `A_m -> A_safe` shield; "
+            "the runner rejects candidate-set bypasses.",
+            "- If enabled, LinUCB trains only on the grouped training split and is frozen for evaluation; MPC "
+            "uses only its declared observable-state projection.",
             "- DQN/SAC/PPO are intentionally absent until the simpler ladder is reviewed.",
             "",
             "## Evaluation summary",

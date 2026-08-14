@@ -1,0 +1,54 @@
+schema_version: 1
+analysis_id: task_a_argmax_stability_v1
+seed: 20260814
+bootstrap_replicates: 5000
+
+inputs:
+  matrix_markdown: rl_agent/PERMODEL_KNOB_MATRIX_ZSTD.md
+  perframe_glob: rl_agent/density_knob/raw/perframe_*.csv
+  frame_context_csv: rl_agent/density_knob/raw/frame_density.csv
+  per_object_root: experiments/ae_integrated_20260710/sweeps_permodel_zstd
+  reference_profile: noae__uint8__roi0.0
+  expected_common_sample_ids: 1683
+  allowed_roi_q: [0.0, 0.3, 0.5]
+
+utility:
+  weights:
+    miou: 0.35
+    pedestrian_recall: 0.40
+    vehicle_recall: 0.25
+  references:
+    miou: 0.840
+    pedestrian_recall: 0.887
+    vehicle_recall: 0.927
+  absent_class_policy: inactive_and_renormalize
+
+contexts:
+  primary_families: [class_mix, nearest_range]
+  supporting_families:
+    - vulnerable_present
+    - reference_low_confidence_or_miss
+    - small_object_present
+    - edge_truncated_present
+  nearest_range_edges_m: [12.0, 25.0]
+  low_confidence_threshold: 0.30
+  small_object_area_px2: 1024.0
+  edge_margin_px: 2.0
+
+split:
+  declared_loops_per_regime: 8
+  discovery_loop_parity: even
+  confirmation_loop_parity: odd
+
+positive_gate:
+  minimum_confirmation_frames: 30
+  minimum_confirmation_trajectory_groups: 4
+  minimum_action_change_fraction: 0.05
+  minimum_absolute_utility_lift: 0.010
+  cluster_bootstrap_ci: 0.95
+  holm_familywise_alpha: 0.05
+
+segmentation_recompute_cost:
+  incremental_for_checked_in_artifacts_gpu_minutes: 0
+  clean_36_profile_estimate_gpu_minutes: [35, 45]
+  evidence: rl_agent/density_knob/RUN_LOG.md

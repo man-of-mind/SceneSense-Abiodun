@@ -35,6 +35,21 @@ def validate_config(config: Dict[str, Any]) -> None:
         raise ValueError("preferred_core_kib must be 90 or 129")
     if float(config["safety"]["epsilon_m"]) <= 0:
         raise ValueError("safety.epsilon_m must be positive")
+    guardrail = config["safety"].get("vulnerable_object_guardrails")
+    # Historical resolved configs predate Task B and remain replayable with the
+    # shield's disabled-by-default compatibility behavior.
+    if guardrail is not None:
+        if not isinstance(guardrail, dict):
+            raise ValueError("safety.vulnerable_object_guardrails must be a mapping")
+        if not isinstance(guardrail.get("enabled"), bool):
+            raise ValueError("vulnerable_object_guardrails.enabled must be boolean")
+        classes = [str(value).strip().lower() for value in guardrail.get("classes", ())]
+        if not classes or len(classes) != len(set(classes)):
+            raise ValueError("vulnerable_object_guardrails.classes must be unique and non-empty")
+        if not 0.0 <= float(guardrail["low_confidence_threshold"]) <= 1.0:
+            raise ValueError("vulnerable-object low-confidence threshold must be in [0, 1]")
+        if not 0.0 <= float(guardrail["low_confidence_max_roi_q"]) <= 1.0:
+            raise ValueError("vulnerable-object ROI clamp must be in [0, 1]")
     reward = config["reward"]
     if int(reward.get("formulation_version", 0)) != 5:
         raise ValueError("reward.formulation_version must be 5")
@@ -160,7 +175,16 @@ def _validate_controller_ladder_spec(spec: Dict[str, Any]) -> None:
     if spec.get("schema_version") != 1:
         raise ValueError("controller ladder config schema_version must be 1")
     ladder = spec["controller_ladder"]
-    known = {"fixed", "rule", "greedy", "linucb", "mpc"}
+    known = {
+        "fixed",
+        "rule",
+        "greedy",
+        "linucb",
+        "mpc",
+        "budgeted_enumerator",
+        "lambda_rdo",
+        "aoi_index",
+    }
     enabled = [str(value) for value in ladder["enabled_controllers"]]
     if not enabled or len(enabled) != len(set(enabled)) or not set(enabled).issubset(known):
         raise ValueError("enabled_controllers must be a unique non-empty subset of the approved ladder")
@@ -207,6 +231,12 @@ def _validate_controller_ladder_spec(spec: Dict[str, Any]) -> None:
         raise ValueError("unsupported MPC channel forecast")
     if mpc["existing_inflight_policy"] != "summary_only_no_hidden_install":
         raise ValueError("unsupported MPC existing-inflight policy")
+    if "aoi_index" in enabled:
+        aoi = controllers["aoi_index"]
+        if float(aoi["prb_floor"]) <= 0.0:
+            raise ValueError("AoI-index-inspired prb_floor must be positive")
+        if float(aoi["minimum_positive_index"]) < 0.0:
+            raise ValueError("AoI-index-inspired minimum_positive_index must be nonnegative")
 
 
 def load_controller_ladder_config(path: str | Path | None = None) -> Dict[str, Any]:

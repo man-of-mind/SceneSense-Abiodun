@@ -1,0 +1,21 @@
+{
+  "artifact_sha256": {
+    "RESULTS.md": "895fad6e5bb4a8552b4112ba9f5c5f13ffb2f483a05d92d7f07877100e206e45",
+    "adapter_events.csv": "96ed3af6ea65f205b13288fc1d40710eef3f3af0c8342336a0e5077fb531e260",
+    "resolved_config.yaml": "532462dff60b844e06ba34b5c14bcd15cc3858cae9e246b4319844d415003a19",
+    "summary.json": "545fd94b82f423e95f48fddde0db6c35c8d0acae8f024e3c0d8a39b80fdee823"
+  },
+  "created_at_utc": "2026-08-14T22:23:54.660125+00:00",
+  "experiment_id": "20260814_222354",
+  "implementation_status": "recorded_snapshot_adapter_validation",
+  "source_sha256": {
+    "phase2_map_sharing/adapters.py": "1fe6022dea2ae9978f9179c948f6e2d8d7574dbb524bab70e78abe2d278584b7",
+    "phase2_map_sharing/configs/recorded_snapshot_smoke_v1.yaml": "1cdb0f18669f7d52b3d82bc04b07a3543d7b36ad739ebaca3cef52dc4b15de96",
+    "phase2_map_sharing/run_recorded_snapshot_smoke.py": "d1225e40f7b023472953b710f84e8b7be17eef4485e4ca587b29d376e2034435",
+    "phase2_map_sharing/schemas.py": "7086fc79e7911a04541f0f71fffaf4319b541ec6bae83bc93e9401691e06dcee",
+    "phase2_map_sharing/transport.py": "c8d8d0b253356c11776e9c35b7d6b1bef009bfc980e4cecfcbba84ae95734a6e",
+    "spatial_map_coop/recordings/two_ego_live.jsonl": "0fcc8990981316bee0bb39076192bb425b8c352e34a562adc097e2593dbe795d",
+    "spatial_map_coop/recordings/two_ego_occl.jsonl": "218dca68066d89979fe062ad8c1b0d6d977b07005ea30de68ee5574d8818a016"
+  },
+  "verdict": "PASS"
+}

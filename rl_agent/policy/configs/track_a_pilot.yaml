@@ -21,6 +21,11 @@ safety:
   ucb_k: 0.0
   delta_loc_m: 0.05
   capacity_sample_multipliers: [0.70, 0.80, 0.90, 1.00, 1.10, 1.20, 1.30]
+  vulnerable_object_guardrails:
+    enabled: true
+    classes: [pedestrian, cyclist]
+    low_confidence_threshold: 0.30
+    low_confidence_max_roi_q: 0.0
 
 reward:
   formulation_version: 5

@@ -65,8 +65,9 @@ loading an episode.
 - `channel.py`, `latency.py`, `replay.py` — measured input adapters and declared projections.
 - `env.py` — fixed-20-Hz scheduler, in-flight event queue, and per-object contribution map.
 - `shield.py`, `oracles.py` — one shared observation-based shield and the true-state upper bound.
-- `controllers.py`, `ladder.py` — common deployable interface plus fixed, rule, greedy, LinUCB, and MPC rungs;
-  every selected action must belong to the shared shield's candidate set.
+- `controllers.py`, `ladder.py` — common deployable interface plus fixed, rule,
+  greedy, LinUCB, MPC, exact-enumerator, lambda-RDO, and AoI-index-inspired
+  rungs; every selected action must belong to the shared shield's candidate set.
 - `run_controller_ladder.py` — grouped train/evaluation runner with frozen bandit evaluation, common channel/
   latency seeds, fitted-state serialization, and explicit scaffold-vs-result status.
 - `configs/controller_ladder.yaml` — controller thresholds, bandit fit settings, MPC projection, and verified-
@@ -99,3 +100,16 @@ the present SPLIT+SKIP surrogate.** LOCAL remains pending. If LOCAL is
 calibrated or the state/action contract gains genuine delayed consequences,
 rerun this non-RL ladder before reconsidering SAC/DQN/PPO. Full evidence and
 limitations are in `data_collection/EVALUATION_CONTRACT_DECISION_V5.md`.
+
+Tasks A-C are complete:
+
+- scene-context stability: `../contextual_knob/experiments/20260814_214749`;
+- observed-vulnerable guardrail ablation:
+  `experiments/vulnerable_guardrail/20260814_215337`;
+- exact-enumerator/lambda-RDO/AoI baseline audit:
+  `experiments/task_c/20260814_220006`.
+
+The full 36-profile scalar RDO problem is not exactly represented by its
+supported hull, while lambda-RDO is exactly equivalent to full enumeration on
+the retained runtime catalog for the current held-out replay. This is a
+conditional design rule, not a universal convex-hull claim.

@@ -115,6 +115,20 @@ def run_deployable_controller(
                 "candidate_action_count": len(decision.candidate_action_ids),
                 "raw_safe_action_ids": "|".join(sorted(decision.raw_safe_action_ids)),
                 "candidate_action_ids": "|".join(sorted(decision.candidate_action_ids)),
+                "observed_vulnerable_count": decision.observed_vulnerable_count,
+                "observed_low_confidence_vulnerable_count": (
+                    decision.observed_low_confidence_vulnerable_count
+                ),
+                "vulnerable_guardrail_applied": decision.vulnerable_guardrail_applied,
+                "vulnerable_guardrail_unachievable": (
+                    decision.vulnerable_guardrail_unachievable
+                ),
+                "vulnerable_guardrail_removed_action_count": len(
+                    decision.vulnerable_guardrail_removed_action_ids
+                ),
+                "vulnerable_guardrail_removed_action_ids": "|".join(
+                    sorted(decision.vulnerable_guardrail_removed_action_ids)
+                ),
                 "false_admit_selected": selected_raw_safe and not selected_true_safe,
                 "false_admit_selected_matched": (
                     selected_raw_safe and not selected_matched_true_safe

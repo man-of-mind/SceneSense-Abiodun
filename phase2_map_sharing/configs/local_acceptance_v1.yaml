@@ -1,0 +1,27 @@
+schema_version: 1
+experiment_name: phase2_local_acceptance_v1
+recipient_ue_id: ego_ue
+helper_ue_id: helper_ue
+association_gate_m: 3.0
+track_ttl_s: 5.0
+max_transport_age_s: 1.0
+warning_horizon_s: 5.0
+confidence_floor: 0.15
+safety_radius_m_by_class:
+  pedestrian: 2.5
+  cyclist: 3.0
+  vehicle: 3.0
+synthetic_fixture:
+  ego_speed_mps: 5.0
+  hazard_x_m: 20.0
+  hazard_y_m: 0.5
+  benign_y_m: 10.0
+  helper_publish_s: 0.10
+  ego_first_observation_s: 2.00
+transport:
+  chunk_bytes: 60000
+acceptance:
+  minimum_warning_lead_gain_s: 1.5
+  maximum_false_warnings: 0
+  require_wrong_recipient_rejection: true
+  require_stale_and_sequence_rejection: true

@@ -1,0 +1,19 @@
+schema_version: 1
+experiment_name: phase2_recorded_snapshot_adapter_smoke_v1
+recordings:
+- spatial_map_coop/recordings/two_ego_live.jsonl
+- spatial_map_coop/recordings/two_ego_occl.jsonl
+source_stream_id: fusion_ego_b
+recipient_ue_id: fusion_ego
+association_gate_m: 4.0
+track_ttl_s: 2.0
+max_transport_age_s: 1.0
+warning_horizon_s: 5.0
+confidence_floor: 0.1
+chunk_bytes: 60000
+acceptance:
+  minimum_two_active_snapshots: 20
+  minimum_accepted_contributions: 10
+  require_pedestrian_and_vehicle: true
+  require_exact_round_trip: true
+  require_no_runtime_actor_identity: true

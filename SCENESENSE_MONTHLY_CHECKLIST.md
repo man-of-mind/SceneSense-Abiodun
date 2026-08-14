@@ -2,41 +2,60 @@
 
 Living checklist aligned with `2026_SceneSense-Agent_Research_Proposal_6Month_DRAFT.docx`.
 
-Last reconciled with repository evidence: **2026-08-11**.
+Last reconciled with repository evidence: **2026-08-14**.
 
 Use this file to keep the work tied to the proposal: every experiment should answer either a baseline, metric, controller, guardrail, spatial-map, or demo question.
 
 ## Current Status Snapshot
 
 - **Month 1:** complete (baselines, transport, scenarios, logging, metrics, schema).
-- **Month 2:** complete. Fusion-route static characterization + the 42-profile
-  AE/quant/ROI knob matrix, AND the previously-open exit item — the **offline
-  controller replay** — is now DONE: a full policy ladder (rule / greedy /
-  LinUCB bandit / shielded MPC) was evaluated against static baselines on the
-  surrogate environment (`rl_agent/policy/`, controller_ladder run 2026-08-11).
-- **Month 3 largely in place:** OAI compression/config + speed/latency/FPS
-  staleness requirements complete; uplink-only staleness redo + downlink/result
-  logging done; the **channel-condition sweep is the controlled-impairment
-  axis**; and a **live model-based safety shield (guardrail layer)** with accept
-  / graceful-degradation / OOD behavior is implemented and validated on the
-  surrogate. Remaining: package the guardrail-stress campaign (jitter/delay/loss
-  profiles + rejection/fallback plots) and Sionna channel realism.
+- **Month 2:** complete. The accepted 36-profile zstd table, executable seven-
+  profile catalog, reward-v5 scorer, grouped replay loader, and non-RL ladder
+  (fixed/rule/greedy/LinUCB/MPC) all exist. The authoritative richer-corpus
+  rerun is `rl_agent/policy/experiments/controller_ladder/20260813_063514`.
+- **Month 3:** the native-10-Hz advisor-rich corpus is accepted (23 clean runs
+  after one impact exclusion), freshness is re-scored, and the baseline ladder
+  gives a scoped single-UE RL NO-GO (greedy approximately equals MPC). Task B's
+  observed-pedestrian/cyclist hard guardrails are implemented and paired-tested;
+  the remaining stress work is queue/jitter/loss packaging and Sionna realism.
 - **Month 4 groundwork started early:** moving-ego/two-source map display,
-  record/replay, and synthetic FoV occlusion reasoning. Formal map-GT,
-  freshness, false-hazard, recipient, and warning metrics remain open.
-- **Policy/reward (the RL-agent core):** surrogate environment built from the 3
-  measured tables; reward v5 is now formalized and advisor-endorsed
-  (`REWARD_FORMULATION` §13, `REWARD_EXPLAINER`, `REWARD_LOOP_DIAGRAM`). On the
-  earlier single-ego vehicle corpus, shielded greedy tied MPC and beat the learned
-  bandit, but that replay was 73% shield-dominated/infeasible. Treat it as a
-  degenerate-corpus diagnostic, not the RL go/no-go result. The decision signal is
-  the preregistered bandit-vs-MPC rerun on the richer verified Town10HD_Opt corpus.
-- **Critical distinction (updated):** offline policy comparison + the shield
-  guardrail now EXIST and are evaluated. Still open: a trained RL policy that
-  beats the simple controllers, the richer-corpus baseline go/no-go rerun, the
-  packaged guardrail-stress campaign, a pedestrian-solid corpus (the prior distant
-  crowd measured ~17%; being rebuilt with the advisor's CARLA scenario scripts), and the measured
-  downlink/map-sharing freshness budget.
+  record/replay, synthetic FoV occlusion reasoning, and the recipient-specific
+  Phase-2 local contract. The latter passes synthetic plumbing acceptance;
+  real CARLA map-GT, freshness, false-hazard, and warning-gain evaluation remain
+  open.
+- **Policy/reward:** reward v5 and the table-driven surrogate are implemented.
+  Task A found no practical seg-inclusive class/range rank reversal; Task C
+  found that lambda-RDO is exactly equivalent to full enumeration on the
+  retained runtime catalog, but not on the full 36-profile scalar design space.
+  No Phase-1 RL training is justified under the tested contract.
+- **Binding path now:** recipient-specific Phase-2 map sharing from one helper
+  to one ego, first locally and then over the existing two-UE OAI RFsim path,
+  followed by warning/override evaluation. OTA/venue is an open parallel risk,
+  not a blocker for the RFsim path.
+
+## 2026-08-14 reconciliation note (post-corpus, RL gates, and paper reframe)
+
+- Accepted corpus: `policy_corpus_advisor_rich_v5/20260813_045142_full`, 23/24
+  structurally valid runs, on-contract radar density, both classes populated,
+  clean traffic; `pcarv5_mixed_va01` excluded for the ego-walker impact.
+- Single-UE, expanded-action, and measured N=2/modeled-large-N contention gates
+  do not justify RL under their registered contracts. This is a scoped result,
+  not a claim that sequential control can never matter.
+- **Task A complete:** 36 profiles x exact 1,683 common frames, with per-frame
+  segmentation. Verdict `NO_PRACTICAL_REVERSAL_ON_AVAILABLE_CONTEXTS`; the
+  strongest class/range cells miss the registered +0.010 utility gate.
+- **Task B complete:** observed vulnerable objects remove SKIP; low-confidence
+  vulnerable objects clamp ROI to zero. It improves matched-safe rate by 1.63 pp
+  but costs 0.0477 finite matched reward and +1.10 Mbps. Detector misses and
+  absent cyclist examples remain outside empirical protection.
+- **Task C complete:** the 36-profile scalar problem has four lambda-supported
+  profiles and only 80.56% budget-breakpoint agreement with exact enumeration;
+  the retained seven-profile runtime ladder has 100% lambda-RDO agreement. The
+  freshness baseline is AoI-index-inspired, not Whittle.
+- The paper/system north star is the end-to-end multi-modal cooperative-
+  perception system over OAI RFsim, with transport-conditioned cooperation gain,
+  a qualified safety contract, and deployable design rules. Measurement findings
+  support those contributions; they are not themselves the paper spine.
 
 ## 2026-08-11 reconciliation note (arc since 2026-07-17)
 - Built the table-driven **policy surrogate environment** (`rl_agent/policy/`) from the channel sweep + knob
@@ -62,7 +81,11 @@ Use this file to keep the work tied to the proposal: every experiment should ans
 
 ## Project North Star
 
-Learn a network-aware split-inference control policy that reduces payload/latency while preserving task utility.
+Build and evaluate an instrumented, network- and safety-aware multi-modal
+cooperative-perception system whose helper observations reach a recipient's
+spatial map over the OAI 5G stack (RFsim), with quantified cooperation gain,
+freshness/safety limits, and deployable control rules. Learned control is used
+only if a pre-registered gap remains after exact and simple baselines.
 
 The controller should eventually choose operating points such as:
 
@@ -822,42 +845,42 @@ traces and score decisions offline before any online RL touches CARLA/OAI.
   `rl_agent/PERMODEL_KNOB_MATRIX.md`: 42 profiles across integrated AE-128/64/32,
   no-AE, quantization 8/6/4, and ROI 0/0.3/0.5. The older
   `COMPLETE_KNOB_MATRIX.md` is a pre-integrated-AE snapshot.
-- [ ] Implement trace loader that joins:
-  - [ ] Application metrics by run group / stream / frame or timestamp window.
-    Source metrics and matrix aggregators exist, but no controller trace-loader
-    module exists yet.
-  - [ ] Loopback/OAI latency and reliability metrics for action profiles.
-    Measurements exist; controller-level joining does not.
+- [x] Implement trace loader that joins:
+  - [x] Application metrics by run group / stream / frame or timestamp window.
+    `rl_agent/policy/replay.py` discovers paired accepted-corpus GT/prediction
+    traces, applies the frozen class thresholds, and resamples them to the
+    controller clock with episode-grouped splits.
+  - [x] Loopback/OAI latency and reliability metrics for action profiles.
+    `latency.py` joins the measured 90-KiB channel anchors to the profile table
+    and flags projected payload/rate cells; it does not pretend all cells were
+    directly measured.
   - [ ] Network sampler metrics for OAI/Sionna phase.
   - [ ] T-tracer / gNB metrics where available for OAI/Sionna phase.
-  - [ ] Scenario metadata.
-  - [ ] Task-quality summaries. Offline summaries exist; the replay join does not.
-- [ ] Implement action-profile catalog:
-  - [ ] Safe/high-quality profile.
-  - [ ] Balanced profile.
-  - [ ] Low-byte profile.
-  - [ ] Hazard/guarded profile.
-  - [ ] Route-specific unsupported actions are masked in the replay harness.
-  Candidate rows exist in the matrices, but there is no executable action
-  catalog or route mask yet.
-- [ ] Implement reward scorer:
-  - [ ] Task utility retained.
-  - [ ] Minus payload cost.
-  - [ ] Minus latency cost.
-  - [ ] Minus timeout/result-delivery cost.
-  - [ ] Minus stale-map or vulnerable-object penalty where available.
-  Reward terms are defined in `SCENESENSE_RL_SCHEMA.md`; the scorer is not coded.
-- [ ] Implement first non-RL baselines:
-  - [ ] Always-safe/send-everything.
-  - [ ] Always-low-byte.
-  - [ ] Best fixed profile. Candidate from M-prime matrix: per-channel 4-bit +
-    zstd as the reliable all-rounder; per-channel 6-bit as the higher-accuracy
-    Pareto pick when transport can carry it.
-  - [ ] Network-only rule.
-  - [ ] Task-only rule.
-  - [ ] Simple heuristic rule using scene + network state.
-- [ ] Optional learning baseline:
-  - [ ] Contextual bandit or DQN over discrete action profiles.
+  - [x] Scenario metadata via run group, family, variant, episode, and split.
+  - [x] Task-quality summaries via the action catalog plus per-frame observed/
+    truth replay state.
+- [x] Implement action-profile catalog:
+  - [x] Segmentation-safe/core profiles (90 and 129.2 KiB).
+  - [x] Balanced and low-byte ROI-escalation profiles.
+  - [x] SKIP plus five target-FPS choices per retained profile.
+  - [x] Unsupported/out-of-support and C1-inadmissible actions are masked by the
+    shared shield; vulnerable-object clamps are separately logged.
+- [x] Implement reward scorer:
+  - [x] Reward-v5 task utility retained after delivery/map update.
+  - [x] Minus PRB/load cost and mode-switch cost.
+  - [x] Latency/delivery cost enters through map AoI and localization error;
+    drops retain prior map quality rather than receiving selected-profile credit.
+  - [x] Localization remains in the safety contract plus a small normalized
+    margin; explicit ROI cost is intentionally absent in v5.
+- [x] Implement first non-RL baselines:
+  - [x] Fixed action with shield fallback.
+  - [x] Explicit network/AoI/speed rule.
+  - [x] Exact one-step measured-table enumerator.
+  - [x] Short-horizon MPC.
+  - [x] Lambda-RDO supported-hull lookup and AoI-index-inspired heuristic.
+- [x] Optional learning baseline:
+  - [x] Disjoint LinUCB over the discrete action catalog; it does not beat the
+    simpler greedy/MPC references.
   - [ ] Do not use SAC unless continuous knobs are introduced and simple
     baselines are already beaten.
 
@@ -868,9 +891,9 @@ Completion criteria:
   per_frame_metrics.csv + figures) for fixed/rule/greedy/LinUCB/MPC.
 - [x] Baseline policy comparison plot exists:
   task utility vs bytes vs latency/timeout. (controller_ladder figures.)
-- [x] The best simple heuristic is identified as the first policy the learned
-  controller must beat. Greedy (matched reward 0.487) ties MPC (0.4875) and beats LinUCB (0.476);
-  so the bar for RL is greedy≈MPC, and RL is not yet justified in this regime.
+- [x] The best simple reference is identified. On the accepted richer corpus,
+  greedy finite matched reward is 0.19655 and MPC is 0.19834 (+0.91%) at the
+  same 91.13% matched-safe rate. The scoped Phase-1 decision is RL NO-GO.
 - [x] No online action execution is enabled until offline replay passes sanity
   checks. (Surrogate-only; no CARLA/OAI execution.)
 
@@ -888,11 +911,14 @@ enough for controller replay.
     recall, global/person XY MAE, and dimension MAE.
   - [x] Fusion SEG foreground/vehicle/person IoU floor drafted through the
     200k baseline and Gate-A acceptance checks.
-- [ ] Draft vulnerable-object rules:
-  - [ ] No frame skip when pedestrian/cyclist/hidden-hazard flag is active.
-  - [ ] No aggressive saliency/ROI drop when vulnerable-object confidence is low
-    or uncertainty is high.
-  - [ ] Safer fallback when map freshness is stale.
+- [x] Draft vulnerable-object rules:
+  - [x] No SKIP when an **observed** pedestrian/cyclist is active. No hidden-
+    hazard signal exists yet, and detector misses remain outside this rule.
+  - [x] No aggressive saliency/ROI drop when observed vulnerable-object confidence is low.
+    A separately calibrated uncertainty signal is not yet available.
+  - [x] Stale/unmapped objects are handled by the localization shield; if the
+    vulnerable rule conflicts with every C1-admitted action, the conflict is
+    surfaced rather than hidden.
 - [ ] Draft network fallback rules:
   - [x] If timeout/no-result rate rises, prefer smaller payload before dropping
     safety-critical frames.
@@ -901,12 +927,12 @@ enough for controller replay.
 
 Completion criteria:
 
-- [ ] Guardrail thresholds are written in controller config or a replay script,
-  not only in prose. `rl_agent/gate_a_check.py` is a model-acceptance gate, not
-  the proposed runtime action guardrail. Controller-level thresholds and
-  accept/clamp/reject behavior still need the replay harness.
-- [ ] Replay reports accepted, clamped, and rejected actions separately.
-- [ ] Fallback cost is measurable in bytes/latency/task utility.
+- [x] Guardrail thresholds are executable in
+  `rl_agent/policy/configs/track_a_pilot.yaml` and enforced by `shield.py`.
+- [x] Replay reports guardrail application, removed actions, opportunity counts,
+  and unachievable conflicts separately.
+- [x] Fallback cost is measured in reward, offered load, selected payload, and
+  safety in `experiments/vulnerable_guardrail/20260814_215337`.
 
 ### 7. Spatial-Map Sharing Groundwork
 
@@ -920,19 +946,21 @@ case study measurable.
   - [x] Provenance stream id.
   - [x] Freshness / age.
   - [x] Occlusion or hazard flag.
-  - [ ] Intended recipient or affected ego vehicle.
+  - [x] Intended recipient or affected ego vehicle (`recipient_ue_id` is a
+    required runtime field and maps are recipient-isolated).
 - [ ] Define curbside hidden-hazard utility metrics:
-  - [ ] Warning lead time before collision / near-miss.
+  - [x] Warning lead time before collision / near-miss defined as paired first-
+    warning lead on the same evaluation truth trajectory; real estimate pending.
   - [ ] Vulnerable-object recall before collision.
-  - [ ] Stale-object rate.
-  - [ ] False hazard rate.
-  - [ ] Bytes per useful warning.
-- [ ] Create a local-only vs cooperative comparison plan:
-  - [ ] Ego-only evidence.
-  - [ ] Helper/observer evidence.
-  - [ ] Spatial-map shared warning.
-  - [ ] Send-everything map update baseline.
-  - [ ] Compact hazard-only update baseline.
+  - [x] Stale-object rejection/rate field defined; real estimate pending.
+  - [x] False hazard rate defined via evaluation-only truth association; real estimate pending.
+  - [x] Exact application/on-wire bytes per advanced warning defined; real estimate pending.
+- [x] Create a local-only vs cooperative comparison plan:
+  - [x] Ego-only evidence.
+  - [x] Helper/observer evidence.
+  - [x] Spatial-map shared warning.
+  - [x] Send-everything map update baseline.
+  - [x] Compact recipient-hazard-only update baseline.
 
 Completion criteria:
 
@@ -997,12 +1025,19 @@ Requirements groundwork completed before the policy stress campaign:
 - [ ] Integrate Sionna/ray-traced channel traces after the logging schema is
   stable.
 - [ ] Add object speed, road state, and map age to the executable controller state.
+  Speed and map AoI are implemented; road state remains missing from the
+  observation, so this compound item is intentionally still open.
 
 - [ ] Add controlled stress profiles: jitter, delay, queueing, packet loss, or bandwidth limits.
-- [ ] Test whether byte-minimizing choices damage AP/mIoU/class recall.
-- [ ] Add deterministic guardrail layer.
-- [ ] Compare learned/proposed actions with and without guardrails.
-- [ ] Produce plots showing guardrail rejection rate, fallback cost, and protected task metrics.
+- [x] Test whether byte-minimizing choices damage mIoU/class recall. The
+  36-profile Task A analysis includes per-frame segmentation and both class
+  recalls; true OD AP remains outside the fusion-head claim.
+- [x] Add deterministic guardrail layer for C1, localization, OOD, graceful
+  degradation, and observed vulnerable objects.
+- [x] Compare the exact proposed controller with and without observed-
+  vulnerable-object guardrails on paired held-out replay.
+- [x] Produce guardrail application/fallback cost plots and structured metrics:
+  `rl_agent/policy/experiments/vulnerable_guardrail/20260814_215337`.
 
 ## Month 4: Physical-AI Spatial Map Ingestion
 
@@ -1011,12 +1046,28 @@ Groundwork completed early (does not satisfy the formal Month-4 exit criterion):
 - [x] Live moving-ego follow-map and two-source color-by-source view.
 - [x] Offline record/replay and synthetic two-view scenes.
 - [x] Synthetic FoV-membership occlusion prototype with known toy ground truth.
+- [x] Recipient-specific contribution schema, source-snapshot adapter, causal
+  hazard-only selector, map engine, warning baseline, separate truth join, and
+  production-header-compatible chunk/reassembly contract. Offline acceptance:
+  `phase2_map_sharing/experiments/20260814_222111` (synthetic only). Existing-
+  recording adapter smoke also passes at
+  `phase2_map_sharing/experiments/snapshot_adapter/20260814_222354` (37 paired-
+  active snapshots; 26 fresh accepted, 11 stale rejected; no hazard truth).
 - [ ] Real-data ray/visibility-grid occlusion disambiguation and warning path.
 
-- [ ] Convert accepted split-model outputs into spatial-map entries.
-- [ ] Store class, pose, velocity, confidence, provenance, freshness, and occlusion state.
+- [x] Add an offline adapter from existing raw split-model spatial-map outputs
+  to recipient contributions; live CARLA validation remains pending.
+- [x] Store class, pose, velocity, confidence, provenance, freshness, recipient,
+  occlusion state, and causal hazard score in the Phase-2 contract.
 - [ ] Validate map entries against CARLA ground truth.
 - [ ] Measure map freshness, stale-object rate, false hazard rate, and localization error.
+
+**2026-08-14 critical-path contract:** scope the first formal Phase-2 path to
+one helper/source and one recipient ego. Define target association, recipient
+selection, contribution publication, warning timing, and GT joins locally
+before inserting the existing two-UE OAI RFsim transport. This is the binding
+C1/C2 path; do not start map-sharing RL before periodic/send-everything and
+hazard-only baselines establish a residual gap.
 
 ## Month 5: Learned Map Sharing
 
@@ -1043,5 +1094,10 @@ Groundwork completed early (does not satisfy the formal Month-4 exit criterion):
 - [ ] Final location for metrics logs and schemas.
 - [ ] Whether RGB+radar fusion over 5G uses one combined client process first or separate front/back roles immediately.
 - [ ] Whether the spatial-map server runs on the UE/front host, the OAI/core host, or a third machine.
-- [ ] Whether parked ego retraining uses the existing fusion model unchanged or a smaller first-pass model.
-- [ ] Which task metric thresholds become hard guardrails.
+- [x] Keep the frozen M-prime model; the on-contract diagnostic cleared the
+  pedestrian head and no retraining is warranted for the accepted corpus.
+- [ ] Which task metric thresholds become hard guardrails. C1, localization,
+  observed-vulnerable no-skip, and low-confidence ROI0 are executable; route-
+  specific OD/SEG floors and hidden-hazard semantics remain open.
+- [ ] Target venue and whether an OTA leg is required. This is a parallel paper-
+  acceptance risk, not a blocker for stabilizing Phase 2 over RFsim.

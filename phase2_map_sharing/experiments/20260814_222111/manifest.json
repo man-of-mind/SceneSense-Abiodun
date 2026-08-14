@@ -1,0 +1,25 @@
+{
+  "artifacts": {
+    "RESULTS.md": "78baf47cbbe941a95498923b6e912cfe81247aea3e5a971992306d02afdfba66",
+    "event_log.csv": "a109d435bd0938eb74599913140405a9dce346936669d0a2798d6d861dfa2625",
+    "figures/warning_lead_and_payload.pdf": "5fcdc9d904c24cd67ddb6d216e78012a06b8046dea5b06da67111af9a5b48f1d",
+    "figures/warning_lead_and_payload.png": "11ada70addeb745ef95030445b9cb6e0436457ac59eed9a79e286960aaed602a",
+    "resolved_config.yaml": "43c454f2145690ccb614daad2e1047703b41ea5489471d5a729497e06d482949",
+    "summary.json": "018cfa37be547cf993bf0a468de873815d0d17547514837475dd832fe3c3af42"
+  },
+  "created_at_utc": "2026-08-14T22:21:11.293393+00:00",
+  "experiment_id": "20260814_222111",
+  "implementation_status": "synthetic_contract_validation",
+  "source_config": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/phase2_map_sharing/configs/local_acceptance_v1.yaml",
+  "source_sha256": {
+    "phase2_map_sharing/adapters.py": "1fe6022dea2ae9978f9179c948f6e2d8d7574dbb524bab70e78abe2d278584b7",
+    "phase2_map_sharing/configs/local_acceptance_v1.yaml": "c9d084c066fee72ff84d698e0812ee66ccccd9f46dac47742f8ad04cec31a1a2",
+    "phase2_map_sharing/engine.py": "32494deb3fade4dcf30d6d9a02a04182643d162d806703b21ba3e56a2baddfc2",
+    "phase2_map_sharing/evaluation.py": "2ee994255a9ba7616cc1be2d71e2e67571e264716569b698c57b1fd42cc83c20",
+    "phase2_map_sharing/run_local_acceptance.py": "80db6c0924bc24aee66635601ba86858ef0b8eb566af70643539aa83e49909e1",
+    "phase2_map_sharing/schemas.py": "7086fc79e7911a04541f0f71fffaf4319b541ec6bae83bc93e9401691e06dcee",
+    "phase2_map_sharing/selection.py": "2068f0df90cdb12a1fdfe2ea2f26db90c491b9b507b12480d7065db3b993a15e",
+    "phase2_map_sharing/transport.py": "c8d8d0b253356c11776e9c35b7d6b1bef009bfc980e4cecfcbba84ae95734a6e"
+  },
+  "verdict": "PASS"
+}

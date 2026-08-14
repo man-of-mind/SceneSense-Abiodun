@@ -1,0 +1,92 @@
+{
+  "analysis_id": "task_a_argmax_stability_v1",
+  "common_sample_ids": 1683,
+  "config_sha256": "f29e5890d964a8372cb7d97e21f4250aa72f37460af28213db4d6600745ae671",
+  "created_utc": "2026-08-14T21:47:49.972904+00:00",
+  "files": {
+    "TASK_A_RESULTS.md": {
+      "bytes": 2572,
+      "sha256": "49afbb6b75880e49fdda0cda424f5351ebec1d29cee1a63554c63d4c8727e982"
+    },
+    "budget_context_results.csv": {
+      "bytes": 90790,
+      "sha256": "b28a831be3f7bf8f670a24f9a718ac0c98f956892c27ebdcdad376e55e6e4d98"
+    },
+    "context_winners.csv": {
+      "bytes": 115285,
+      "sha256": "accdc22af6675cd33e045effe0bfecbb1f74f88a7d2c9bc4846e76e610199035"
+    },
+    "figures/contextual_lookup_lift.pdf": {
+      "bytes": 18236,
+      "sha256": "188d7c5f184c6295b6259a7ff8c181142aaaf2dccd29e20e1274e4f01259908b"
+    },
+    "figures/contextual_lookup_lift.png": {
+      "bytes": 174060,
+      "sha256": "17b0b9de8823b924f96d5b967d7a4e583f182e33cf3614d95c9be46a2ed4df2f"
+    },
+    "frame_context.csv": {
+      "bytes": 579354,
+      "sha256": "39d8cfb8dcbf44ed4357fe30250e82119c2017918e4aeecb2d75ffb65f5d9ffe"
+    },
+    "profile_costs.csv": {
+      "bytes": 961,
+      "sha256": "a415a32e38973b8dddeb0c50c9323ab241dd4099730f4ce073923b370fe1c342"
+    },
+    "resolved_config.yaml": {
+      "bytes": 1537,
+      "sha256": "082ab12eed13674e2efd02053a78535c169db0ef183a8b4d7946d49732c6b8a5"
+    }
+  },
+  "preregistration_file": "rl_agent/contextual_knob/TASK_A_PREREGISTRATION.md",
+  "preregistration_sha256": "2aba926275a2289d35514b29aad9cb619f727c8635c21e9cd80ede088e5f47d9",
+  "primary_practical_reversal_cells": 0,
+  "profile_count": 36,
+  "schema_version": 1,
+  "source_hashes": {
+    "experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae128__uint4__roi0.0/metrics/test_learned_object_metrics.csv": "1937138ec7e8cfdc166ae0773fb8f64a51e7ae96001771caec4c97a0e2f287da",
+    "experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae128__uint4__roi0.3/metrics/test_learned_object_metrics.csv": "b3aa3ff7d8254246e173372bf0e8070e59dd8504415174b578b9fbfdacbcb26d",
+    "experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae128__uint4__roi0.5/metrics/test_learned_object_metrics.csv": "0fab1d19061c87fd6810547fecf0f35cb8149e826d00cd6b03816589cd3dafad",
+    "experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae128__uint6__roi0.0/metrics/test_learned_object_metrics.csv": "1e833f8fb426f35e48f262d1fad6e78f87eb0332576fafdf2eadf369088605ff",
+    "experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae128__uint6__roi0.3/metrics/test_learned_object_metrics.csv": "2b2c1abe78b24809fe9fc21046421c013071c97db4bb1c6b4b2b4d554e66b51e",
+    "experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae128__uint6__roi0.5/metrics/test_learned_object_metrics.csv": "9cacb43eee894732d3feaa4c4f089ee82829201005dcb95cd1bc73898460d32b",
+    "experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae128__uint8__roi0.0/metrics/test_learned_object_metrics.csv": "c7b209a6d951513c7989a027dd6f608e8a9301247e5d6b37fa58553eb2f3b16f",
+    "experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae128__uint8__roi0.3/metrics/test_learned_object_metrics.csv": "5a92f293f732ae366a1a50525cf1e1dbbf20ff2c67e76086b8f95f57f44fb438",
+    "experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae128__uint8__roi0.5/metrics/test_learned_object_metrics.csv": "26115b3e5f9742c3835433c9d60bcc6f18908d059608ceaff992939cfa0dd417",
+    "experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae32__uint4__roi0.0/metrics/test_learned_object_metrics.csv": "b1589eade9265de4a7d12897f487df97043db576ae67e554b36cb1d94dfdfa5d",
+    "experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae32__uint4__roi0.3/metrics/test_learned_object_metrics.csv": "62508803382794f9fc2ae5c8159f4e5fe61973e3fb23bb048e55a0a573bdf026",
+    "experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae32__uint4__roi0.5/metrics/test_learned_object_metrics.csv": "71ea8930f88c99dce39c930cdbd90adb75a1a793e812920e229cd8af1b9c61c8",
+    "experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae32__uint6__roi0.0/metrics/test_learned_object_metrics.csv": "6952ba1ddf8d060b8f4b8447f8b70682fa9e9361667f48b9e788207cbfedbe16",
+    "experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae32__uint6__roi0.3/metrics/test_learned_object_metrics.csv": "fe95c89b5000bf67bd6237231a8fb6d1cf2dc2c240674f618fcb33697e67bab2",
+    "experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae32__uint6__roi0.5/metrics/test_learned_object_metrics.csv": "05acec2665f6cbaf80ef34007beabc62a4633ee9f94b611dc15213dfb2121b12",
+    "experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae32__uint8__roi0.0/metrics/test_learned_object_metrics.csv": "c3cf417cd44176322c42f2e2f8e020b2a0db6d88bcc8a81c4834eaa46cb53ea4",
+    "experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae32__uint8__roi0.3/metrics/test_learned_object_metrics.csv": "962fcdb35a3a9f619bd1ddae1335f4184f600645ec45716ec236643959e8cf71",
+    "experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae32__uint8__roi0.5/metrics/test_learned_object_metrics.csv": "fbb01d649c182da98711d133f734253c0eb693f48989b9ee34dcf3c035654aed",
+    "experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae64__uint4__roi0.0/metrics/test_learned_object_metrics.csv": "2d2731386d203b8fbe75d9f4778ebb3fd82c13081ef46ad6f8d1fa5142b5954f",
+    "experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae64__uint4__roi0.3/metrics/test_learned_object_metrics.csv": "dc693137b7b82ae1af328620ed0da81bcad25a8927668f3e08dffb7b25c79aae",
+    "experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae64__uint4__roi0.5/metrics/test_learned_object_metrics.csv": "7a29e52219addbc1b4de397de2f940910ce5877c28c092fc26384ebad66a2109",
+    "experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae64__uint6__roi0.0/metrics/test_learned_object_metrics.csv": "83712369d67482c0a386093fbeb6bae442169d0959bd96f74d0eafbcba444222",
+    "experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae64__uint6__roi0.3/metrics/test_learned_object_metrics.csv": "9d805cfd48ae018af5be583ab443e8d5b64f76ff3997c19f001a8fabf9c122b5",
+    "experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae64__uint6__roi0.5/metrics/test_learned_object_metrics.csv": "4028993b449d4a5ea14ab7615ce3e7ca7750967c08a766fab9d0b4e70481144b",
+    "experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae64__uint8__roi0.0/metrics/test_learned_object_metrics.csv": "39fb7e94e1947052cbdd71b8ea7b90b93832af325a5a6b94c759436a19bb0b64",
+    "experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae64__uint8__roi0.3/metrics/test_learned_object_metrics.csv": "8239d8ad431e9d311dbd10a1d2cf55f06a8a5306d264260c35487787a75f10f4",
+    "experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae64__uint8__roi0.5/metrics/test_learned_object_metrics.csv": "d52bbb59db0f446b497e1d0fcfaab72bbc41680bfc3ca98cd5fa32c4a1921e40",
+    "experiments/ae_integrated_20260710/sweeps_permodel_zstd/noae__uint4__roi0.0/metrics/test_learned_object_metrics.csv": "7b594bc61739a2a54c919c79edc284cd5c166d0198bc53c03aa7c9beac23a9b6",
+    "experiments/ae_integrated_20260710/sweeps_permodel_zstd/noae__uint4__roi0.3/metrics/test_learned_object_metrics.csv": "ec087b0d981d1cfc95288b0f29ea1df518923e33557a6fa700538f3828c8eae8",
+    "experiments/ae_integrated_20260710/sweeps_permodel_zstd/noae__uint4__roi0.5/metrics/test_learned_object_metrics.csv": "5f7fea758df00b9b7372102a1d4a50fdb4e5b4528b9b1c90ccc623797d9550d9",
+    "experiments/ae_integrated_20260710/sweeps_permodel_zstd/noae__uint6__roi0.0/metrics/test_learned_object_metrics.csv": "a21a3584b1864fe52c9c59f6c3e1e96275ded4f47efecdf4ae17f93327288298",
+    "experiments/ae_integrated_20260710/sweeps_permodel_zstd/noae__uint6__roi0.3/metrics/test_learned_object_metrics.csv": "921a0c21994aca19280b1b7cc22968d130986d30f0d8d3010b677659ff37bc7f",
+    "experiments/ae_integrated_20260710/sweeps_permodel_zstd/noae__uint6__roi0.5/metrics/test_learned_object_metrics.csv": "439f31d6f5844b9193471d00eb6af9c4e7699fcac21ed335f7f4454adc810b2c",
+    "experiments/ae_integrated_20260710/sweeps_permodel_zstd/noae__uint8__roi0.0/metrics/test_learned_object_metrics.csv": "77f1207cf2bdc717b2b90bdc93d33a3d29c18849b014758a08f8d3c4be8d6cc5",
+    "experiments/ae_integrated_20260710/sweeps_permodel_zstd/noae__uint8__roi0.3/metrics/test_learned_object_metrics.csv": "0dabfb17f79314f7b53041bdebe08c145f144d14bfe1cdca380b89d8c78872d2",
+    "experiments/ae_integrated_20260710/sweeps_permodel_zstd/noae__uint8__roi0.5/metrics/test_learned_object_metrics.csv": "58587a488d4a74c6aee6e9ef52992b0ab9fefc9b524bd888e98c24822224ffc1",
+    "rl_agent/PERMODEL_KNOB_MATRIX_ZSTD.md": "35cd80016383b80c61371ab4f75b986eb2cf0e8098c622f437f1c3679f1ae9ed",
+    "rl_agent/contextual_knob/argmax_stability_v1.py": "eb405409be8147462964fc09b19325e2de5f7a30e5cd00bb1bfbd155e6f0bdf6",
+    "rl_agent/contextual_knob/configs/argmax_stability_v1.yaml": "f29e5890d964a8372cb7d97e21f4250aa72f37460af28213db4d6600745ae671",
+    "rl_agent/density_knob/raw/frame_density.csv": "3bc3e116c9afd94a5078531b140f5ddf5c2a372cae038c9c2173a9c5f47bff09",
+    "rl_agent/density_knob/raw/perframe_ae128.csv": "f6a63b4ed640057b0b9e2ef64b52ed1155b0f4780bc83944a40740c9b3a988f4",
+    "rl_agent/density_knob/raw/perframe_ae32.csv": "c4ca439bdbce4af57be5b6299efcbd22ed2bfd4bfd067fce240518577a0cd9bc",
+    "rl_agent/density_knob/raw/perframe_ae64.csv": "e09d2384bae52f030e4616ffb3beba0fa8804983eede109b3de795d33e47a2d4",
+    "rl_agent/density_knob/raw/perframe_noae.csv": "86417d7ca5898576fdd36b48683e411d34df6eee3ebd2d218e1e91027d3dcd7f"
+  },
+  "verdict": "NO_PRACTICAL_REVERSAL_ON_AVAILABLE_CONTEXTS"
+}

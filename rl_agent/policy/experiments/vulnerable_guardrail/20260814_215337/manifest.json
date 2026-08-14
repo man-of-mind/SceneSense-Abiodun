@@ -1,0 +1,135 @@
+{
+  "created_utc": "2026-08-14T21:53:37.943846+00:00",
+  "files": {
+    "TASK_B_RESULTS.md": {
+      "bytes": 2741,
+      "sha256": "bc0237da7f848f83b69df1c400d7140b14b88d79753bbea05dca0f88d0518f13"
+    },
+    "figures/guardrail_cost.pdf": {
+      "bytes": 15562,
+      "sha256": "649af1829eb2329729b0b89cd8e67eefe3c69f458a548d67c1539d3e55895fb1"
+    },
+    "figures/guardrail_cost.png": {
+      "bytes": 147490,
+      "sha256": "44e25955e7af7ad7fa2ae77d967a8cfc46096607fa7ab6fefd4f301d10b173a8"
+    },
+    "paired_primary_deltas.csv": {
+      "bytes": 122134,
+      "sha256": "f169078f6f7a033babcaa7b6497d93da03e3fc4033c940163b82c9f2080dfe27"
+    },
+    "per_frame_metrics.csv": {
+      "bytes": 15869487,
+      "sha256": "69730ba6123783a25a98ecff937b76a4321e2887b973ec5ef15c1efb6673239e"
+    },
+    "replay_registry.csv": {
+      "bytes": 11912,
+      "sha256": "5deb3f489c32d6dad8d576366a8cce6bb6bbb1af977dccc78832526f790c8eda"
+    },
+    "resolved_config.yaml": {
+      "bytes": 6023,
+      "sha256": "9a6f3cdaf28bb2c4c976983ef8af8d7b4410e5cef7560a51130ff66e9433a7dc"
+    },
+    "summary.csv": {
+      "bytes": 952,
+      "sha256": "653d857fab3e42b7935aa5e0dffa97f27ea65e81e61833395a7dac056cddd601"
+    }
+  },
+  "implementation_status": "completed_surrogate_guardrail_evaluation",
+  "limitations": [
+    "guardrail sees only objects emitted by the deployed detector/tracker",
+    "accepted replay has pedestrians but no cyclists or hidden-hazard flag",
+    "confidence thresholds are engineering sensitivity points, not calibrated risk probabilities",
+    "table-driven surrogate evaluation only"
+  ],
+  "primary_paired_statistics": {
+    "action_change_pct": 26.04245640636846,
+    "matched_safe_pp_delta": 1.6300227445034117,
+    "mean_offered_mbps_delta": 1.0994235390447307,
+    "mean_payload_kib_delta": 21.90401819560273,
+    "mean_reward_delta": -0.047676908537305274,
+    "reward_delta_ci95_high": -0.007371208451660389,
+    "reward_delta_ci95_low": -0.0717195544125164
+  },
+  "run_directory": "rl_agent/policy/experiments/vulnerable_guardrail/20260814_215337",
+  "run_type": "vulnerable_object_guardrail_ablation",
+  "schema_version": 1,
+  "scope": "observed pedestrians/cyclists only",
+  "selected_replays": [
+    {
+      "episode_id": "pcarv5_fast_te01",
+      "frame_count": 119,
+      "ground_truth_path": "data_collection/experiments/policy_corpus_advisor_rich_v5/20260813_045142_full/runs/pcarv5_fast_te01/streams/fusion_ego_5714_object_ground_truth.csv",
+      "ground_truth_sha256": "ddb1e84de312a372646c20cae728e3e6e03151795bb2841abb4fceefee363312",
+      "prediction_path": "data_collection/experiments/policy_corpus_advisor_rich_v5/20260813_045142_full/runs/pcarv5_fast_te01/streams/fusion_ego_5714_object_predictions.csv",
+      "prediction_sha256": "ab2e70c7d0bcb6b1c64ce06d916554e2c335e78bde38b919c0d1d96b8f9e612a",
+      "run_group": "policy_corpus_advisor_rich_v5__test__fast__01",
+      "scenario_family": "exact_fast_convoy",
+      "split": "test"
+    },
+    {
+      "episode_id": "pcarv5_fast_te02",
+      "frame_count": 119,
+      "ground_truth_path": "data_collection/experiments/policy_corpus_advisor_rich_v5/20260813_045142_full/runs/pcarv5_fast_te02/streams/fusion_ego_5769_object_ground_truth.csv",
+      "ground_truth_sha256": "1466446515bc06263da7e8a3b3d9ee5f3744668d3997e1b71348d8fd569d11e0",
+      "prediction_path": "data_collection/experiments/policy_corpus_advisor_rich_v5/20260813_045142_full/runs/pcarv5_fast_te02/streams/fusion_ego_5769_object_predictions.csv",
+      "prediction_sha256": "147657b925b3a9debd5966f16b047a10db1d5873934994c5cb312924b2d1ba7c",
+      "run_group": "policy_corpus_advisor_rich_v5__test__fast__02",
+      "scenario_family": "exact_fast_convoy",
+      "split": "test"
+    },
+    {
+      "episode_id": "pcarv5_mixed_te01",
+      "frame_count": 600,
+      "ground_truth_path": "data_collection/experiments/policy_corpus_advisor_rich_v5/20260813_045142_full/runs/pcarv5_mixed_te01/streams/fusion_ego_4348_object_ground_truth.csv",
+      "ground_truth_sha256": "b27b4c7f6efd1a398c87c05f05bb15e4cb141d4a15cac2cfc2519f64fc9faa5e",
+      "prediction_path": "data_collection/experiments/policy_corpus_advisor_rich_v5/20260813_045142_full/runs/pcarv5_mixed_te01/streams/fusion_ego_4348_object_predictions.csv",
+      "prediction_sha256": "07451a9a2eb10d80913befd79cf6250a7fa5f138631e01d09cd3f7cdc71dffad",
+      "run_group": "policy_corpus_advisor_rich_v5__test__mixed__01",
+      "scenario_family": "mixed_urban",
+      "split": "test"
+    },
+    {
+      "episode_id": "pcarv5_mixed_te02",
+      "frame_count": 600,
+      "ground_truth_path": "data_collection/experiments/policy_corpus_advisor_rich_v5/20260813_045142_full/runs/pcarv5_mixed_te02/streams/fusion_ego_4434_object_ground_truth.csv",
+      "ground_truth_sha256": "a05728d79693699f9f87c1a07c1adeffe4f61167bd0e8543b7822df16e65ec35",
+      "prediction_path": "data_collection/experiments/policy_corpus_advisor_rich_v5/20260813_045142_full/runs/pcarv5_mixed_te02/streams/fusion_ego_4434_object_predictions.csv",
+      "prediction_sha256": "2d088e46cc58f589816d49653f19949f5a92e6e0f187a25dbc719b64f35b9190",
+      "run_group": "policy_corpus_advisor_rich_v5__test__mixed__02",
+      "scenario_family": "mixed_urban",
+      "split": "test"
+    },
+    {
+      "episode_id": "pcarv5_ped_te01",
+      "frame_count": 600,
+      "ground_truth_path": "data_collection/experiments/policy_corpus_advisor_rich_v5/20260813_045142_full/runs/pcarv5_ped_te01/streams/fusion_ego_5218_object_ground_truth.csv",
+      "ground_truth_sha256": "12eb2b2062c66af42ae5fdf2f00795399066dad36efae904fec8cff562a0db24",
+      "prediction_path": "data_collection/experiments/policy_corpus_advisor_rich_v5/20260813_045142_full/runs/pcarv5_ped_te01/streams/fusion_ego_5218_object_predictions.csv",
+      "prediction_sha256": "185f48821635d0fc10101cbf3e3e1d6f12b6bc710b8c2203021a7587cd90b9af",
+      "run_group": "policy_corpus_advisor_rich_v5__test__ped__01",
+      "scenario_family": "ped_crossing",
+      "split": "test"
+    },
+    {
+      "episode_id": "pcarv5_ped_te02",
+      "frame_count": 600,
+      "ground_truth_path": "data_collection/experiments/policy_corpus_advisor_rich_v5/20260813_045142_full/runs/pcarv5_ped_te02/streams/fusion_ego_5330_object_ground_truth.csv",
+      "ground_truth_sha256": "2ad509e06ec49a0e8d3995d94c08d8d88292935a83bb56b497eed0ee57cbe14b",
+      "prediction_path": "data_collection/experiments/policy_corpus_advisor_rich_v5/20260813_045142_full/runs/pcarv5_ped_te02/streams/fusion_ego_5330_object_predictions.csv",
+      "prediction_sha256": "7576bcf413a210f097560cf9086fae5c4187ca7d1223d0b00de0061e223edd94",
+      "run_group": "policy_corpus_advisor_rich_v5__test__ped__02",
+      "scenario_family": "ped_crossing",
+      "split": "test"
+    }
+  ],
+  "source_hashes": {
+    "runner_sha256": "e99e0fbbb269ee75dd53a6eb021cf1d051c143371f0b1922ff16764d1ef280a2",
+    "shield_sha256": "40d684046c3f59dc79b646ba105459a36d282893a1be773269d3e692f9461ac2"
+  },
+  "variants": {
+    "disabled": null,
+    "enabled_conf_0.20": 0.2,
+    "enabled_conf_0.30_primary": 0.3,
+    "enabled_conf_0.40": 0.4
+  }
+}

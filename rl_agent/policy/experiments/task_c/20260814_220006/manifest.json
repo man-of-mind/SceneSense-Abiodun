@@ -1,0 +1,55 @@
+{
+  "created_utc": "2026-08-14T22:00:06.830768+00:00",
+  "files": {
+    "TASK_C_RESULTS.md": {
+      "bytes": 1729,
+      "sha256": "26ce78f9290f827698251fc547b1ac22d86b7dd73131317c433d4247c5591c96"
+    },
+    "figures/task_c_rdo_and_runtime.pdf": {
+      "bytes": 18988,
+      "sha256": "eb436454d607fc9a37d81e7c6dc20af676fb05a35707165c89dc2c9e1abc8f8b"
+    },
+    "figures/task_c_rdo_and_runtime.png": {
+      "bytes": 203452,
+      "sha256": "c433877c874b69f7ecce23a58428246109ca73ad5d800b302859db629448f88f"
+    },
+    "measured_profiles_36.csv": {
+      "bytes": 9499,
+      "sha256": "df90cc79ba8b10fe860afda7d6e8c1dde3496ff6841fe66ed699775a727f931f"
+    },
+    "runtime_baseline_comparison.csv": {
+      "bytes": 518,
+      "sha256": "fdab5acc065bce2068476c2a2a6b56608ab62bd45ca74df7336128e6107e1407"
+    },
+    "runtime_paired_deltas.csv": {
+      "bytes": 223599,
+      "sha256": "cff47a93fe51e1cd5fb231edca4cc03cd1408c13bed62b7178cd0dab95672aa3"
+    },
+    "static_budget_rdo.csv": {
+      "bytes": 5421,
+      "sha256": "958ff0c9a6e09a8f013ac84f6bd10589a168818d96bcb5818c59878ead65e1a8"
+    }
+  },
+  "implementation_status": "completed_table_driven_evaluation",
+  "limitations": [
+    "static duality gap is normalized task utility, not full sequential reward",
+    "runtime ladder uses the epsilon-dominance-pruned seven-profile catalog",
+    "lambda-RDO uses measured mean profile utility and has no scene conditioning",
+    "AoI heuristic is not a Whittle index and carries no indexability claim",
+    "table-driven surrogate only; no CARLA, OAI, OTA, or RL"
+  ],
+  "linked_controller_ladder": "rl_agent/policy/experiments/controller_ladder/20260814_220006",
+  "run_type": "task_c_rdo_structural_and_runtime",
+  "schema_version": 1,
+  "source_hashes": {
+    "matrix": "35cd80016383b80c61371ab4f75b986eb2cf0e8098c622f437f1c3679f1ae9ed",
+    "rdo": "1a4e2c89c57e700104ffe58d4af830fbddd0a41746ead80c3ecb03e6af7202a3",
+    "runner": "5ffc7fe59559fd6a1367c28a008a7a294a3596b68467fafbdadd5a1299c3e9b0"
+  },
+  "supported_profiles": [
+    "ae32__uint4__roi0.5",
+    "ae64__uint4__roi0.5",
+    "ae32__uint4__roi0.0",
+    "ae128__uint4__roi0.0"
+  ]
+}

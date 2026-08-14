@@ -3498,3 +3498,93 @@ over RFsim first either way, so it does not gate starting.
 positive result, the C2 gap, and the in-flight tasks — it previously described the project as an RL controller
 effort and predated the expanded gate and the multi-UE results. `SCENESENSE_MONTHLY_CHECKLIST.md` still needs its
 own reconciliation pass (codex, low priority, before the advisor meeting).
+
+## 2026-08-14 — codex execution report: Tasks A/B/C complete; checklist reconciled
+
+All work was table-driven/offline. No CARLA, OAI, or RL training was run.
+
+**Task A — scoped null, with segmentation included.** Pre-registration is
+`rl_agent/contextual_knob/TASK_A_PREREGISTRATION.md`; canonical artifact is
+`rl_agent/contextual_knob/experiments/20260814_214749`. The exact 36 profiles and exact 1,683 common sample IDs
+pass the input gates. Per-frame segmentation was already checked in, so incremental re-evaluation cost was zero;
+a clean 36-profile regeneration is estimated at 35-45 GPU-minutes from the recorded 72-profile runtime. Verdict:
+`NO_PRACTICAL_REVERSAL_ON_AVAILABLE_CONTEXTS`. The strongest nearest-range cell at 64.1 KiB changes 42.84% of
+actions but lifts utility only +0.00813 (below +0.010; Holm p=0.05039). This does not close true occlusion,
+cyclists, or broader unseen contexts.
+
+**Task B — effective, materially costly guardrail.** Implemented hard observed-pedestrian/cyclist no-SKIP and a
+confidence<0.30 ROI0 clamp in the shared shield, with C1 dominant and an explicit unachievable-conflict flag.
+Paired accepted-corpus artifact: `rl_agent/policy/experiments/vulnerable_guardrail/20260814_215337`. Primary
+cost: 26.04% action changes, finite matched-reward delta -0.047677 (trajectory-cluster 95% CI
+[-0.071720,-0.007371]), +1.0994 Mbps offered load, +21.904 KiB selected payload, and +1.630 pp matched-safe rate.
+It removes all 535 observed-vulnerable SKIPs and all low-confidence ROI drops, with zero C1 conflicts. The
+0.20/0.30/0.40 sensitivity shows no-SKIP dominates the cost. This is a deliberate safety policy, not free
+post-processing; detector misses, hidden hazards, and empirical cyclist coverage remain outside scope.
+
+**Task C — the boundary is more interesting than a blanket yes/no.** Canonical artifact:
+`rl_agent/policy/experiments/task_c/20260814_220006`; linked held-out ladder:
+`rl_agent/policy/experiments/controller_ladder/20260814_220006`. On the full 36-profile scalar problem, only four
+profiles are lambda-supported. Supported-hull lookup agrees with exact budgeted enumeration at 80.56% of payload
+breakpoints, loses utility at seven, has max reward-v5 utility gap 0.011686, and max Lagrangian duality gap
+0.017359. H2 equivalence is therefore false in the full measured design space. On the retained seven-profile
+stateful ladder, lambda-RDO agrees with exact enumeration on 100% of held-out own-state actions and has zero
+predicted/realized reward gap. The AoI-index-inspired heuristic has 86.47% own-state agreement and no positive
+reward result (-0.006981, CI [-0.014058,+0.003618]); it is not Whittle. H1's static staircase does not prove the
+full controller is scalar because FPS/AoI/speed/latency/map/pending/safety/switching remain active.
+
+**Reconciliation complete.** `CLAUDE.md`, `SCENESENSE_MONTHLY_CHECKLIST.md`,
+`FORMULATION_AND_RELATED_WORK.md`, and the policy contract/README now reflect the accepted v5 corpus, the scoped
+NO-GO, A/B/C evidence, and the Phase-2 helper-to-recipient critical path. Next work is §8.6 steps 3-5: canonical
+local Phase-2 map publication/recipient/warning path, then the same over two-UE OAI RFsim, then warning/override
+evaluation. Learning remains gated on a new residual gap against periodic/send-everything/hazard-only baselines.
+
+## 2026-08-14 — codex contribution: Phase-2 contract and local acceptance core
+
+I agree that C2 is the binding contribution, but I do **not** think the right endpoint is merely “the shared map
+has more objects.” I propose a stricter causal endpoint: **marginal actionable warning lead for a named recipient**.
+A helper receives credit only when delivered evidence advances that ego's first warning on the same separately
+scored truth trajectory. The companion efficiency metric is exact application/on-wire bytes per advanced warning.
+This turns Phase 2 into intent-conditioned cooperation rather than generic broadcast saliency, and it gives the
+paper a falsifiable safety outcome.
+
+Implemented under `phase2_map_sharing/`:
+
+- `scenesense.map_contribution.v1`: one source, one recipient, source-local track IDs, world kinematics,
+  confidence, freshness, occlusion/hazard provenance, and profile/byte metadata. Runtime decoding rejects CARLA
+  actor/ground-truth IDs.
+- Recipient-isolated map engine with per-source sequence rejection, transport-age and TTL guards, class-consistent
+  predicted-XY association, canonical tracks, live provenance, and constant-velocity closest-approach warnings.
+- A **causal recipient-hazard-only baseline**. It filters from observed object kinematics plus the named ego's
+  current state; it does not use a future collision label. Send-everything and ego-only remain paired comparators.
+- Evaluation-only truth matching is a separate module. That separation is essential: runtime association may be
+  imperfect while scoring can still identify which real trajectory received an earlier warning.
+- Exact self-consistent JSON byte accounting and the production `!IHH` UDP chunk header, including out-of-order
+  reassembly. I removed an initial illustrative 90 KiB/2 KiB shortcut because it would have overstated efficiency.
+
+Canonical offline artifact: `phase2_map_sharing/experiments/20260814_222111`. All contract gates pass; the fixture
+constructs ego-only warning at 2.0 s and cooperative warning at 0.1 s (+1.9 s lead), with zero benign warnings.
+Actual serialized payload is 754 B for two-object send-everything versus 560 B for one-object hazard-only (25.73%
+reduction; 790 B versus 596 B including one UDP/IP datagram). **These numbers validate plumbing only and are not C2
+evidence.** Twelve focused tests pass, including the existing-recording adapter contract.
+
+The adapter was then exercised on the existing `two_ego_live.jsonl` and `two_ego_occl.jsonl` recordings. Artifact:
+`phase2_map_sharing/experiments/snapshot_adapter/20260814_222354`. PASS: 37 snapshots had both streams active; 26
+fresh contributions were accepted and 11 were correctly rejected above the strict 1 s age gate. The accepted wire
+path contains 106 pedestrian and 91 vehicle observations, exact chunk round-trips, and no runtime actor identity.
+This is stronger than a toy-only schema check, but still not C2: the recordings have no synchronized hazard-truth
+stream, so warning lead cannot be scored honestly.
+
+Step status is deliberately conservative:
+
+1. **Step 3 started, not complete.** Schema, adapter, map/warning path, baselines, truth separation, logging, and
+   synthetic acceptance exist. Still required: paired controlled CARLA occlusion replay using real M-prime outputs.
+2. **Step 4 prepared, not run.** The contribution uses the existing production chunk header. Still required:
+   discovered-tunnel routing over the stable two-UE OAI RFsim path and causal capture-to-warning timing.
+3. **Step 5 specified, not run.** Warning-only comes first; braking override stays blocked until warning lead,
+   misses, false warnings, stale behavior, and payload cost pass on paired positive/benign scenes.
+
+My strongest design recommendation is to keep “recipient-specific usefulness” as the organizing abstraction. The
+same object can be urgent for one ego and irrelevant for another; this gives a principled future action space for
+deadline-aware/object-selective scheduling and a natural place to test a genuine Whittle formulation later. RL is
+still gated: if periodic/send-everything, causal hazard-only, and deadline-aware priority leave no sequential gap,
+the simple system wins.

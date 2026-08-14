@@ -4,8 +4,9 @@ Abiodun Ganiyu (IDCC). Research: an **instrumented, network- and safety-aware mu
 system** (RGB+radar split inference, CARLA 0.10 / Town10HD_Opt → OAI 5G edge over RFsim). This file is the durable
 index — the authoritative detail lives in the docs below (read them before acting on their topic).
 
-> **Direction change (2026-08-14): this is no longer an RL project.** Learned control was falsified for the
-> evaluated contract (see status below). The Month-6 deliverable is an **end-to-end system paper**. Read
+> **Direction change (2026-08-14): this is no longer an RL-first project.** Learned control was not justified for
+> the evaluated Phase-1 contract (see status below). The Month-6 deliverable is an **end-to-end system paper**;
+> Phase-2 learning remains gated on a measured residual gap after simple baselines. Read
 > `rl_agent/FORMULATION_AND_RELATED_WORK.md` §8 before any paper, planning, or controller work — it holds the
 > thesis, contributions C1-C4, banked-vs-pending status, limitations, critical path, and the open venue/OTA decision.
 
@@ -76,12 +77,22 @@ an expanded contract, not a retune of these gates.
   triangulation result is groundwork only — static egos, oracle association, **no OAI transport**.
 - **Critical path:** Phase-2 recipient-specific map sharing integrated end-to-end (= multi-vehicle integration when
   scoped to one helper + one recipient). ~7-10 weeks, 9-12 with contingency. OTA is a parallel venue risk.
-- **In flight (desk-only):** Task A argmax-stability/rank-reversal screen (a detection-only null is **INCONCLUSIVE**,
-  not a closure — per-frame segmentation metrics are missing and seg is the most profile-sensitive term);
-  Task B vulnerable-object shield guardrails (protect only *observed* pedestrians); Task C exact budgeted
-  enumerator + lambda-RDO supported-hull lookup (report action agreement / reward gap / duality gap; the AoI
-  heuristic is **not** a Whittle index).
-- `SCENESENSE_MONTHLY_CHECKLIST.md` still predates these results and needs a reconciliation pass.
+- **Task A complete:** the exact 36-profile/1,683-frame screen includes the already-available per-frame
+  segmentation metrics and finds no practical class/range reversal under the registered gate. True occlusion and
+  cyclists remain outside scope. Artifact: `rl_agent/contextual_knob/experiments/20260814_214749`.
+- **Task B complete:** hard observed-vulnerable no-skip + low-confidence ROI0 clamp, with an explicit C1-conflict
+  flag. Paired replay improves matched-safe rate +1.63 pp at a finite-reward cost of -0.0477 and +1.10 Mbps;
+  detector misses are not protected. Artifact: `rl_agent/policy/experiments/vulnerable_guardrail/20260814_215337`.
+- **Task C complete:** full-36 lambda-RDO agrees with exact enumeration at 80.56% of payload breakpoints (max
+  utility gap 0.011686; max duality gap 0.017359), while the retained-catalog runtime ladder agrees 100% with zero
+  reward gap. The AoI baseline is explicitly index-inspired, not Whittle. Artifact:
+  `rl_agent/policy/experiments/task_c/20260814_220006`.
+- `SCENESENSE_MONTHLY_CHECKLIST.md` was reconciled on 2026-08-14. **Phase-2 Step 3 has started:**
+  `phase2_map_sharing/` passes synthetic contract validation for recipient isolation, causal hazard-only selection,
+  association, warning provenance, exact byte accounting, and production-header chunk reassembly. This is plumbing,
+  not C2 evidence. Its adapter also passes the existing two-stream recordings (26 fresh accepted, 11 stale rejected),
+  which lack synchronized hazard truth. **Next:** paired CARLA local evidence, then identical messages over two-UE OAI RFsim, then
+  warning/override evaluation; no RL before a new gap.
 
 > The `~/.claude` memory cache was wiped by a retention cleanup on 2026-08-03 (harness, not us). This
 > repo-tracked file exists so project state is never lost that way again. Keep it updated as work advances.

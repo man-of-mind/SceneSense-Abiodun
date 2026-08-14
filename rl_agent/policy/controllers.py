@@ -15,6 +15,7 @@ import numpy as np
 
 from .catalog import Action
 from .shield import ActionEvaluation, SharedShield, ShieldDecision, profile_quality
+from .rdo import supported_action_profiles
 from .types import Observation, QualitySnapshot
 
 
@@ -201,6 +202,132 @@ class GreedyController(DeployableController):
             decision.selected.action.action_id,
             {"greedy_expected_reward": decision.selected.expected_reward},
         )
+
+
+class BudgetedEnumeratorController(DeployableController):
+    """Exact finite argmax over every candidate admitted by the shared shield."""
+
+    name = "budgeted_enumerator"
+
+    def select(self, observation: Observation, decision: ShieldDecision) -> ControllerSelection:
+        del observation
+        return ControllerSelection(
+            decision.selected.action.action_id,
+            {
+                "enumerator_exact_candidate_count": len(decision.candidate_action_ids),
+                "enumerator_expected_reward": decision.selected.expected_reward,
+            },
+        )
+
+
+class LambdaRDOController(DeployableController):
+    """Restrict profiles to max(U-lambda*payload) supported hull points."""
+
+    name = "lambda_rdo"
+
+    def __init__(self, actions: Sequence[Action], reward_config: Mapping[str, object]) -> None:
+        self.supported_profiles = frozenset(
+            supported_action_profiles(actions, reward_config)
+        )
+
+    def select(self, observation: Observation, decision: ShieldDecision) -> ControllerSelection:
+        del observation
+        candidates = _candidate_evaluations(decision)
+        supported = {
+            action_id: item
+            for action_id, item in candidates.items()
+            if item.action.mode == "SKIP" or item.action.profile_id in self.supported_profiles
+        }
+        if not supported:
+            selected = _risk_first_fallback(candidates)
+            fallback = True
+        else:
+            selected = max(
+                supported.values(),
+                key=lambda item: (item.expected_reward, -item.bound_m, item.action.action_id),
+            )
+            fallback = False
+        return ControllerSelection(
+            selected.action.action_id,
+            {
+                "lambda_rdo_supported_profile_count": len(self.supported_profiles),
+                "lambda_rdo_supported_profiles": "|".join(sorted(self.supported_profiles)),
+                "lambda_rdo_fallback": fallback,
+                "lambda_rdo_full_enumerator_action_id": decision.selected.action.action_id,
+                "lambda_rdo_full_enumerator_reward_gap": (
+                    decision.selected.expected_reward - selected.expected_reward
+                ),
+            },
+        )
+
+    def state_dict(self) -> Mapping[str, object]:
+        return {
+            "controller": self.name,
+            "algorithm": "measured_profile_supported_hull_lookup",
+            "objective": "max(profile_utility - lambda * payload_kib), lambda >= 0",
+            "supported_profiles": sorted(self.supported_profiles),
+        }
+
+
+class AoIIndexInspiredController(DeployableController):
+    """Freshness-risk reduction per PRB heuristic; not a Whittle index."""
+
+    name = "aoi_index"
+
+    def __init__(self, epsilon_m: float, prb_floor: float, minimum_positive_index: float) -> None:
+        self.epsilon_m = float(epsilon_m)
+        self.prb_floor = float(prb_floor)
+        self.minimum_positive_index = float(minimum_positive_index)
+
+    def select(self, observation: Observation, decision: ShieldDecision) -> ControllerSelection:
+        del observation
+        candidates = _candidate_evaluations(decision)
+        skip_any = next(
+            (item for item in decision.evaluations if item.action.mode == "SKIP"), None
+        )
+        skip_candidate = next(
+            (item for item in candidates.values() if item.action.mode == "SKIP"), None
+        )
+        sends = [item for item in candidates.values() if item.action.mode == "SPLIT"]
+        if skip_any is None or not sends:
+            selected = skip_candidate or _risk_first_fallback(candidates)
+            return ControllerSelection(
+                selected.action.action_id,
+                {"aoi_index_value": 0.0, "aoi_index_reason": "no_send_comparison"},
+            )
+        capped_skip = min(skip_any.bound_m, 2.0 * self.epsilon_m)
+        scored = []
+        for item in sends:
+            capped_send = min(item.bound_m, 2.0 * self.epsilon_m)
+            normalized_gain = max(0.0, capped_skip - capped_send) / self.epsilon_m
+            index = normalized_gain / max(item.prb_cost, self.prb_floor)
+            scored.append((index, item.expected_task_utility, -item.prb_cost, item.action.action_id, item))
+        best = max(scored, key=lambda value: value[:4])
+        if skip_candidate is not None and best[0] <= self.minimum_positive_index:
+            selected = skip_candidate
+            reason = "no_positive_freshness_value"
+        else:
+            selected = best[4]
+            reason = "freshness_risk_reduction_per_prb"
+        return ControllerSelection(
+            selected.action.action_id,
+            {
+                "aoi_index_value": best[0],
+                "aoi_index_reference_skip_bound_m": skip_any.bound_m,
+                "aoi_index_reason": reason,
+                "aoi_index_is_whittle": False,
+            },
+        )
+
+    def state_dict(self) -> Mapping[str, object]:
+        return {
+            "controller": self.name,
+            "algorithm": "aoi_index_inspired_freshness_risk_reduction_per_prb",
+            "is_whittle_index": False,
+            "epsilon_m": self.epsilon_m,
+            "prb_floor": self.prb_floor,
+            "minimum_positive_index": self.minimum_positive_index,
+        }
 
 
 FEATURE_NAMES = (
@@ -592,6 +719,17 @@ def build_controller(
         return RuleController(config, spec["rule"])
     if name == "greedy":
         return GreedyController()
+    if name == "budgeted_enumerator":
+        return BudgetedEnumeratorController()
+    if name == "lambda_rdo":
+        return LambdaRDOController(actions, config["reward"])
+    if name == "aoi_index":
+        values = spec["aoi_index"]
+        return AoIIndexInspiredController(
+            epsilon_m=float(config["safety"]["epsilon_m"]),
+            prb_floor=float(values["prb_floor"]),
+            minimum_positive_index=float(values["minimum_positive_index"]),
+        )
     if name == "linucb":
         values = spec["linucb"]
         return LinUCBController(

@@ -44,6 +44,11 @@ class ShieldDecision:
     over_budget: bool
     shield_ood: bool
     degraded_tier_used: bool
+    observed_vulnerable_count: int
+    observed_low_confidence_vulnerable_count: int
+    vulnerable_guardrail_applied: bool
+    vulnerable_guardrail_unachievable: bool
+    vulnerable_guardrail_removed_action_ids: frozenset[str]
 
 
 def profile_quality(action: Action, reward_config: Mapping[str, object]) -> QualitySnapshot:
@@ -86,6 +91,46 @@ class SharedShield:
             float(value) for value in config["safety"]["capacity_sample_multipliers"]
         ]
         self.reward = config["reward"]
+        guardrail = config["safety"].get("vulnerable_object_guardrails", {})
+        self.vulnerable_guardrail_enabled = bool(guardrail.get("enabled", False))
+        self.vulnerable_classes = frozenset(
+            str(value).strip().lower() for value in guardrail.get("classes", ())
+        )
+        self.vulnerable_low_confidence = float(
+            guardrail.get("low_confidence_threshold", 0.30)
+        )
+        self.vulnerable_max_roi_q = float(
+            guardrail.get("low_confidence_max_roi_q", 0.0)
+        )
+
+    def _guardrail_context(self, observation: Observation) -> tuple[int, int]:
+        vulnerable = [
+            obj
+            for obj in observation.objects
+            if str(obj.class_name).strip().lower() in self.vulnerable_classes
+        ]
+        low_confidence = [
+            obj for obj in vulnerable if obj.confidence < self.vulnerable_low_confidence
+        ]
+        return len(vulnerable), len(low_confidence)
+
+    def _guardrail_admits(
+        self,
+        item: ActionEvaluation,
+        vulnerable_count: int,
+        low_confidence_count: int,
+    ) -> bool:
+        if not self.vulnerable_guardrail_enabled:
+            return True
+        if vulnerable_count and item.action.mode == "SKIP":
+            return False
+        if (
+            low_confidence_count
+            and item.action.mode == "SPLIT"
+            and item.action.roi_q > self.vulnerable_max_roi_q + 1e-12
+        ):
+            return False
+        return True
 
     def _prior_error(
         self,
@@ -248,10 +293,28 @@ class SharedShield:
             and (not strict_floor or item.action.mode == "SKIP" or item.action.core_tier)
         ]
         hard_ids = frozenset(item.action.action_id for item in hard)
-        bounded = [item for item in hard if not item.out_of_support]
+        vulnerable_count, low_confidence_count = self._guardrail_context(observation)
+        guarded_hard = [
+            item
+            for item in hard
+            if self._guardrail_admits(item, vulnerable_count, low_confidence_count)
+        ]
+        removed_ids = frozenset(
+            item.action.action_id for item in hard if item not in guarded_hard
+        )
+        guardrail_applied = bool(removed_ids)
+        guardrail_unachievable = bool(hard and not guarded_hard)
+        # C1 remains dominant. If the vulnerable-object rule conflicts with the
+        # entire C1-admitted set, retain C1's least-risk action and flag the
+        # guardrail violation rather than silently sending over capacity.
+        active_hard = guarded_hard if guarded_hard else hard
+        bounded = [item for item in active_hard if not item.out_of_support]
         shield_ood = not bounded
         if shield_ood:
-            fallback = min(hard, key=lambda item: (item.bound_m, -item.expected_reward, item.action.action_id))
+            fallback = min(
+                active_hard,
+                key=lambda item: (item.bound_m, -item.expected_reward, item.action.action_id),
+            )
             return ShieldDecision(
                 selected=fallback,
                 evaluations=evaluations,
@@ -262,6 +325,11 @@ class SharedShield:
                 over_budget=True,
                 shield_ood=True,
                 degraded_tier_used=not fallback.action.core_tier and fallback.action.mode == "SPLIT",
+                observed_vulnerable_count=vulnerable_count,
+                observed_low_confidence_vulnerable_count=low_confidence_count,
+                vulnerable_guardrail_applied=guardrail_applied,
+                vulnerable_guardrail_unachievable=guardrail_unachievable,
+                vulnerable_guardrail_removed_action_ids=removed_ids,
             )
         safe = [item for item in bounded if item.bound_m <= self.epsilon]
         raw_safe_ids = frozenset(item.action.action_id for item in safe)
@@ -287,4 +355,9 @@ class SharedShield:
             over_budget=not feasible,
             shield_ood=False,
             degraded_tier_used=selected.action.mode == "SPLIT" and not selected.action.core_tier,
+            observed_vulnerable_count=vulnerable_count,
+            observed_low_confidence_vulnerable_count=low_confidence_count,
+            vulnerable_guardrail_applied=guardrail_applied,
+            vulnerable_guardrail_unachievable=guardrail_unachievable,
+            vulnerable_guardrail_removed_action_ids=removed_ids,
         )

@@ -91,6 +91,30 @@ The connection to **rate-distortion optimization** — task utility (mIoU, recal
 axis instead of MSE, coupled to an AoI/freshness penalty — is a legitimate *framing*, and lambda-RDO is the right
 baseline. It is not a proof about our controller.
 
+### Task-C result (2026-08-14)
+
+The hypotheses were tested at both levels rather than collapsed into one claim
+(`policy/experiments/task_c/20260814_220006`):
+
+- On the **full 36-profile static scalar problem**, only four profiles are
+  lambda-supported. Supported-hull lookup agrees with exact budgeted enumeration
+  at **80.56%** of the 36 payload breakpoints and loses utility at seven; the
+  maximum exact-minus-lambda utility gap is **0.011686** and the maximum
+  Lagrangian duality gap is **0.017359**. Therefore H2 equivalence is false for
+  the full measured design space.
+- On the **retained seven-profile stateful ladder**, lambda-RDO agrees with the
+  full shield-candidate enumerator on **100%** of held-out own-state actions,
+  with zero predicted or realized reward gap. Hull lookup is sufficient for
+  this deployed catalog/replay contract, not universally.
+- H1's static budget staircase exists under its scalar assumptions, but the
+  full policy still does not collapse to one scalar: FPS, AoI, speed, latency,
+  prior map state, pending frames, safety, and switching remain active.
+
+Task A independently found no pre-registered practical scene-conditioned
+rank reversal over the available class-mix/range contexts with per-frame
+segmentation (`contextual_knob/experiments/20260814_214749`). This is a scoped
+null, not evidence about true occlusion or cyclists.
+
 ---
 
 ## 3. What the NO-GO does and does not establish
@@ -122,17 +146,19 @@ conditioning), queue-free surrogate, matched-support/one-step evaluation, epsilo
 
 ## 4. Baseline suite
 
-Implemented (`policy/controllers.py`): `fixed`, `rule`, `greedy`, `linucb`, `mpc`, plus the expanded-gate oracle.
+Implemented (`policy/controllers.py`): `fixed`, `rule`, `greedy`, `linucb`,
+`mpc`, exact `budgeted_enumerator`, `lambda_rdo`, and `aoi_index`, plus the
+expanded-gate oracle.
 
 **`[v3 correction]` Task C redesigned per codex — measure, do not assume:**
 
 | Baseline | Purpose |
 |---|---|
-| **Exact measured-table budgeted enumerator** | Ground truth for "what does full enumeration pick?" — the reference H2 must be tested against. |
-| **lambda-RDO supported-hull lookup** | The canonical coding-theory baseline. Compare against the enumerator and report **action agreement, reward gap, and any Lagrangian duality gap.** |
+| **Exact measured-table budgeted enumerator** | **Implemented/evaluated.** Ground truth for "what does full enumeration pick?" |
+| **lambda-RDO supported-hull lookup** | **Implemented/evaluated.** Full-36 equivalence fails; retained-catalog runtime equivalence holds on current replay. |
 | **max-rate-that-fits** (utility-blind) | Isolates what the utility *shape* buys over "send as much as fits". |
-| **AoI-index-inspired heuristic** | **Do NOT call this "Whittle-index"** unless indexability and per-object arm decomposition are established. A genuine Whittle baseline belongs in **Phase-2 object-selective map sharing**, where individual objects are natural scheduling arms. |
-| **contextual lookup** (class-mix keyed) | Only if the argmax-stability screen (Task A) finds rank reversals. |
+| **AoI-index-inspired heuristic** | **Implemented/evaluated; no positive reward gap. Do NOT call this "Whittle-index"** unless indexability and per-object arm decomposition are established. A genuine Whittle baseline belongs in **Phase-2 object-selective map sharing**, where individual objects are natural scheduling arms. |
+| **contextual lookup** (class-mix keyed) | Not unlocked: Task A found no practical reversal on the available seg-inclusive contexts. |
 
 ---
 
@@ -204,9 +230,9 @@ scheduler, queues, attach/routing failures, and application-to-map timing togeth
   enforces a conservative, model-based action contract and quantifies violations, abstention, and graceful
   degradation.* C1-estimate misses, `ucb_k=0`, detector misses, and limited object scope preclude an unconditional
   localization guarantee (cf. shield sound @25 m / unsound @40 m).
-- **C4 — Deployable design rules.** A **measured policy table / feasibility envelope**. Call it a compact
-  `budget -> profile` breakpoint lookup only once Tasks A/C establish when that is equivalent to the full
-  enumerator (see H1/H2, §2).
+- **C4 — Deployable design rules.** A **measured policy table / feasibility envelope**. Task C now establishes a
+  precise boundary: supported-hull lookup is equivalent to the enumerator on the retained runtime catalog/replay,
+  but not across all 36 measured profiles. State that conditional result; do not claim universal hull sufficiency.
 
 ### 8.2 Banked vs pending (2026-08-14, corrected)
 
@@ -215,13 +241,13 @@ scheduler, queues, attach/routing failures, and application-to-map timing togeth
 | Instrumented pipeline spine (split inference, OAI transport, shield, map) | **Largely built**, not end-to-end complete |
 | Two-view triangulation 1.40 m | **Groundwork only** — static egos, oracle association, no transport |
 | C3 action contract + feasibility envelope | **Built**, with quantified unsoundness regions |
-| C4 measured policy table + one-step reference gap | **Built** (scope-limited per §3) |
-| Phase-2 recipient-specific map sharing, end-to-end | **Not built — BINDING CONSTRAINT** |
+| C4 measured policy table + one-step reference gap | **Built**; Task C conditions hull sufficiency on the retained catalog |
+| Phase-2 recipient-specific map sharing, end-to-end | **Local contract/scaffold passes synthetic acceptance; real CARLA + OAI path remains the BINDING CONSTRAINT** |
 | Multi-vehicle end-to-end integration | **Not built** (same path as Phase 2 if scoped to one helper + one recipient) |
 | Occlusion recovery | **Not built** |
-| Navigation warning/override | **Not built** |
-| Scene-conditioned knob selection | **Untested** — Task A |
-| Vulnerable-object guardrails | **Partially missing** — Task B (protects only *observed* pedestrians; detector misses stay outside shield knowledge) |
+| Navigation warning/override | **Deterministic warning contract built and synthetic-tested; real warning and any override remain unbuilt** |
+| Scene-conditioned knob selection | **Task A complete:** no practical reversal on available class/range contexts; true occlusion/cyclists untested |
+| Vulnerable-object guardrails | **Built/evaluated for observed pedestrians/cyclists**; detector misses and hidden hazards stay outside shield knowledge |
 
 ### 8.3 Supporting results (evidence for C1-C4, not contributions)
 
@@ -256,7 +282,8 @@ it — but state its scope every time (§3).
 - Measured contention at **N=2** only; N=50/100 modelled (first model version had a max-min contract bug, corrected).
 - Oracle gate: **queue-free, one-step, matched-support**.
 - Segmentation + pedestrian/vehicle recall & localization; **not true OD AP**; cyclists and small objects uncovered.
-- Scene-conditioned perception utility untested.
+- Scene-conditioned class/range utility tested with no practical reversal;
+  true occlusion, cyclists, and broader scenario contexts remain untested.
 - Shield soundness is **regional** (sound @25 m, unsound @40 m), not unconditional.
 
 ### 8.6 Critical path and schedule (codex estimate, 2026-08-14)
@@ -272,6 +299,20 @@ and a parallel risk, not the first dependency** — stabilise Phase 2 over RFsim
 4. Same path over the existing two-UE OAI RFsim system — **1-2 weeks**
 5. Navigation warning/override evaluation, no RL — **1-2 weeks**
 6. Replicates, ablations, figures, packaging — **2-3 weeks**
+
+**2026-08-14 Step-3 start:** `phase2_map_sharing/` now defines the recipient-
+scoped wire schema, exact application/on-wire byte accounting, causal
+recipient-hazard-only selection, non-oracle class/kinematic association,
+freshness/order/isolation guards, a closest-approach warning baseline, and a
+strictly separate truth matcher. Synthetic acceptance passes at
+`phase2_map_sharing/experiments/20260814_222111`; its constructed +1.9 s lead is
+plumbing validation, **not C2 evidence**. The next evidence-bearing gate is
+paired CARLA ego-only/send-everything/hazard-only replay, followed by identical
+JSON over the existing two-UE OAI RFsim route.
+The adapter additionally passes 37 paired-active snapshots from the existing
+two-stream recordings (`snapshot_adapter/20260814_222354`): 26 are accepted and
+11 are correctly rejected by the 1 s freshness gate. They lack synchronized
+hazard truth, so they still cannot establish C2.
 
 **Realistic RFsim-backed completion: 7-10 weeks; 9-12 weeks with integration contingency.** OTA adds ~2-4 weeks
 *only* if a known-good USRP/gNB/UE setup and experienced support already exist; otherwise 6-10+ weeks and high

@@ -1,0 +1,15 @@
+{
+  "artifacts": {
+    "RESULTS.md": "50a7e4ea2aa7f731c62cda1101d685b93f9f4869f6e183f9e58429facb3d823d",
+    "event_log.csv": "2d355d883c5d195708064a724e5472ae550462d61e0ba5bf326d8661e79776e6",
+    "figures/warning_lead_and_payload.pdf": "2f31a4a0e690f0c3f4ddc6051df32fab111748ad6e8ed428ef1015b78d6bb148",
+    "figures/warning_lead_and_payload.png": "32c4bbb63fa31162b2f054ecdf89bf9c74cb571d62c2eb8585bc225505c0142f",
+    "resolved_config.yaml": "173fe53e5d49b716774ce944af09a3d6cf2420dc45b9ebf20e7c1b2fde605435",
+    "summary.json": "99c9e2179ce792d7eae569f173dbab93b839b28a397e5172875b97a7595bbd63"
+  },
+  "created_at_utc": "2026-08-14T22:12:34.112676+00:00",
+  "experiment_id": "20260814_221233",
+  "implementation_status": "synthetic_contract_validation",
+  "source_config": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/phase2_map_sharing/configs/local_acceptance_v1.yaml",
+  "verdict": "PASS"
+}

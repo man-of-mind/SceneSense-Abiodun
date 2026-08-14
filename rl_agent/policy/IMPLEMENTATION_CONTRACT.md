@@ -122,14 +122,16 @@ its eventual delivered frame is fresh.
   at capture time; hidden GT must never seed map state. Only the clairvoyant oracle receives current truth for
   action selection and upper-bound evaluation.
 - Replay matching mirrors the validated staleness convention: use actor `origin_x/origin_y` when present,
-  prediction score at least 0.20, greedy one-to-one same-class association, and a 5 m gate. Using logged
+  the validation-frozen per-class threshold (pedestrian 0.165 / vehicle 0.205 for the accepted v5 corpus),
+  greedy one-to-one same-class association, and a 5 m gate. Using logged
   bounding-box centers would reintroduce the known 1-1.3 m GT-convention error.
 - The observable tracker may bridge matched-prediction gaps for at most 0.50 s. Report two safety views:
   **tracked-object C2** (the localization domain used by the staleness study) and strict **end-to-end GT
   exposure** (which also counts never-observed in-scope objects). Report observation coverage/object recall
   separately so upstream perception misses are not misattributed to the channel/AoI shield.
-- The current real replay contains vehicles only. Pedestrian results require a separately labelled synthetic
-  stress trace and cannot be presented as real-replay validation.
+- The accepted v5 replay contains vehicles and pedestrians. It contains no
+  cyclist class, so cyclist behavior is contract-tested but not an empirical
+  cyclist result.
 
 ## 6. Preferred-core segmentation tiers
 
@@ -174,7 +176,8 @@ advisor sweep's headline result; no script automatically chooses advisor-pending
 
 ## 8. Pre-RL controller-ladder execution contract
 
-- The fixed schedule, explicit threshold rule, observation-based greedy oracle, contextual bandit, and MPC all
+- The fixed schedule, explicit threshold rule, observation-based greedy oracle, contextual bandit, MPC, exact
+  enumerator, lambda-RDO lookup, and AoI-index-inspired heuristic all
   receive the same observable `Observation` and the same `ShieldDecision`. Their selected action must belong to
   that decision's `candidate_action_ids`; the common runner rejects any bypass.
 - The rule uses declared capacity, map-age/risk, and speed thresholds and does not fit data or enumerate the
@@ -193,3 +196,16 @@ advisor sweep's headline result; no script automatically chooses advisor-pending
   corpus identity, and recorded batch/config/split hashes before loading replay.
 - A one-episode `--scaffold-smoke` is labelled plumbing validation. Only a complete configured run is labelled
   a surrogate controller evaluation. Neither is live safety validation, and no DQN/SAC/PPO result exists yet.
+
+## 9. Observed vulnerable-object guardrails
+
+- An observed pedestrian or cyclist removes SKIP. If any such object has
+  confidence below 0.30, ROI-drop actions are also removed (`roi_q=0` is
+  required). The threshold is an engineering sensitivity point, not a
+  calibrated probability.
+- C1 capacity admission remains dominant. If no C1-admitted action can satisfy
+  the vulnerable rule, the shield takes the least-risk C1 action and sets
+  `vulnerable_guardrail_unachievable`; it never silently over-offers traffic.
+- These rules protect only detector/tracker observations. They cannot protect a
+  missed pedestrian, an unimplemented hidden-hazard signal, or empirically
+  validate cyclists absent from replay.

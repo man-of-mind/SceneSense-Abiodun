@@ -1,0 +1,50 @@
+{
+  "analysis_id": "task_a_argmax_stability_v1",
+  "common_sample_ids": 1683,
+  "config_sha256": "f29e5890d964a8372cb7d97e21f4250aa72f37460af28213db4d6600745ae671",
+  "created_utc": "2026-08-14T21:45:57.078914+00:00",
+  "files": {
+    "TASK_A_RESULTS.md": {
+      "bytes": 2572,
+      "sha256": "49afbb6b75880e49fdda0cda424f5351ebec1d29cee1a63554c63d4c8727e982"
+    },
+    "budget_context_results.csv": {
+      "bytes": 90790,
+      "sha256": "b28a831be3f7bf8f670a24f9a718ac0c98f956892c27ebdcdad376e55e6e4d98"
+    },
+    "context_winners.csv": {
+      "bytes": 115285,
+      "sha256": "accdc22af6675cd33e045effe0bfecbb1f74f88a7d2c9bc4846e76e610199035"
+    },
+    "figures/contextual_lookup_lift.pdf": {
+      "bytes": 18236,
+      "sha256": "cc2600d93c9e1ba7ad26b4299e0430db2399fa8518a4bfd9a5c33ed7b1d0d7c8"
+    },
+    "figures/contextual_lookup_lift.png": {
+      "bytes": 174060,
+      "sha256": "17b0b9de8823b924f96d5b967d7a4e583f182e33cf3614d95c9be46a2ed4df2f"
+    },
+    "frame_context.csv": {
+      "bytes": 579354,
+      "sha256": "39d8cfb8dcbf44ed4357fe30250e82119c2017918e4aeecb2d75ffb65f5d9ffe"
+    },
+    "profile_costs.csv": {
+      "bytes": 961,
+      "sha256": "a415a32e38973b8dddeb0c50c9323ab241dd4099730f4ce073923b370fe1c342"
+    },
+    "resolved_config.yaml": {
+      "bytes": 1537,
+      "sha256": "082ab12eed13674e2efd02053a78535c169db0ef183a8b4d7946d49732c6b8a5"
+    }
+  },
+  "preregistration_file": "rl_agent/contextual_knob/TASK_A_PREREGISTRATION.md",
+  "preregistration_sha256": "2aba926275a2289d35514b29aad9cb619f727c8635c21e9cd80ede088e5f47d9",
+  "primary_practical_reversal_cells": 0,
+  "profile_count": 36,
+  "schema_version": 1,
+  "source_hashes": {
+    "rl_agent/PERMODEL_KNOB_MATRIX_ZSTD.md": "35cd80016383b80c61371ab4f75b986eb2cf0e8098c622f437f1c3679f1ae9ed",
+    "rl_agent/contextual_knob/configs/argmax_stability_v1.yaml": "f29e5890d964a8372cb7d97e21f4250aa72f37460af28213db4d6600745ae671"
+  },
+  "verdict": "NO_PRACTICAL_REVERSAL_ON_AVAILABLE_CONTEXTS"
+}

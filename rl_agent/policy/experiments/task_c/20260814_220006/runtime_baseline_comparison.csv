@@ -1,0 +1,3 @@
+controller,frames,own_state_exact_action_agreement_pct,cross_trajectory_action_agreement_pct,mean_matched_reward_delta_vs_exact,reward_delta_ci95_low,reward_delta_ci95_high,matched_safe_pct,mean_offered_mbps,mean_own_state_predicted_reward_gap,max_own_state_predicted_reward_gap
+lambda_rdo,2638,100.0,100.0,0.0,0.0,0.0,92.75966641394996,1.254618153146323,0.0,0.0
+aoi_index,2638,86.46702047005307,77.02805155420774,-0.0069808236093089875,-0.014058455904678897,0.003617989526895448,92.7975739196361,1.4131081995451098,,

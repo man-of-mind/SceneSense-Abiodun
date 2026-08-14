@@ -305,6 +305,7 @@ class SurrogateEnv:
             "mode": action.mode,
             "profile_id": action.profile_id or "",
             "target_fps": action.target_fps,
+            "payload_kib": action.payload_kib,
             "channel_rung_true": self.last_channel_snapshot.rung,
             "channel_rung_observed": self.last_channel_snapshot.observed_rung,
             "true_capacity_mbps": self.last_channel_snapshot.true_capacity_mbps,

@@ -1,0 +1,34 @@
+{
+  "application_bytes_per_advanced_warning": {
+    "hazard_only": 560,
+    "send_everything": 754
+  },
+  "false_warning_count": 0,
+  "first_warning_at_s": {
+    "ego_only": 2.0,
+    "hazard_only": 0.1,
+    "send_everything": 0.1
+  },
+  "gates": {
+    "no_false_warning": true,
+    "positive_full_warning_lead": true,
+    "positive_hazard_warning_lead": true,
+    "recipient_isolation": true,
+    "sequence_rejection": true,
+    "stale_rejection": true
+  },
+  "implementation_status": "synthetic_contract_validation",
+  "integrity_status": {
+    "duplicate_sequence": "rejected_sequence",
+    "first_sequence": "accepted",
+    "stale": "rejected_transport_stale",
+    "wrong_recipient": "rejected_wrong_recipient"
+  },
+  "payload_reduction_pct_hazard_vs_full": 25.72944297082228,
+  "research_evidence": false,
+  "verdict": "PASS",
+  "warning_lead_gain_vs_ego_only_s": {
+    "hazard_only": 1.9,
+    "send_everything": 1.9
+  }
+}

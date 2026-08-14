@@ -1,0 +1,20 @@
+{
+  "accepted_contributions": 26,
+  "class_observation_counts": {
+    "pedestrian": 106,
+    "vehicle": 91
+  },
+  "eligible_two_active_snapshots": 37,
+  "gates": {
+    "enough_accepted_contributions": true,
+    "enough_two_active_snapshots": true,
+    "exact_chunk_round_trip": true,
+    "no_runtime_actor_identity": true,
+    "pedestrian_and_vehicle_present": true
+  },
+  "implementation_status": "recorded_snapshot_adapter_validation",
+  "mean_application_payload_bytes": 1780.6216216216217,
+  "rejected_contributions": 11,
+  "research_evidence": false,
+  "verdict": "PASS"
+}
