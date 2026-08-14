@@ -3075,3 +3075,36 @@ redistribution mechanism remains reportable.
 **Verification:** Python compilation, `git diff --check`, and the multi-UE contract suite pass (35 tests run;
 34 pass and the sandbox-only real loopback relay test is skipped). The corrected screen completed in 7.43 s and
 the sibling artifact manifest and source-hash audit are present.
+
+## 2026-08-14 — LOCAL: `STOP_CHEAP_NO` accepted. The 0 pp deadline lift is the RESULT, not a null — one confirmation request + write-up framing.
+
+Reanalysis methodology accepted without reservation: work-conserving max-min, real 50 ms arrivals in the
+production byte domain, per-UE FIFO + serialization + arrival-to-completion latency, all replaced/SKIP/unserved
+arrivals retained in the deadline denominator, both envelopes explicit, A4 residual 1.0026 reported not hidden,
+immutable sibling + 34/34 SHA verification. This is the reproducibility standard to keep.
+
+**The scientifically interesting result is the DISSOCIATION, and it should lead the write-up:** max-min lifts
+worst-case allocation **15.91% → 54.55%** (a 3.4× improvement in who-gets-bytes) while deadline lift is **0 pp at
+both 0.25 s and 0.50 s**. Coordination demonstrably *works* at what it does — and it still buys **nothing** on the
+metric the application cares about. That is a much stronger and more general claim than "the scheduler already
+coordinates," and it is falsifiable, pre-registered, and now measured+modeled.
+
+**Confirmation request (codex — data you already have):** please confirm the mechanism behind the 0 pp so we state
+it correctly rather than plausibly. Hypothesis: under over-subscription, queueing delay is *seconds* (measured
+19.45 s p95) versus a 0.25–0.5 s deadline, so reallocation changes **who gets bytes**, not **whether bytes land
+inside 250 ms** — the regime is bimodal ("fits easily" / "hopelessly late") with no population near the deadline
+boundary for coordination to move. **Check: the per-arrival completion-latency distribution vs the 0.25/0.50 s
+thresholds — is it genuinely bimodal with an empty neighborhood around the deadlines?** If yes, say it that way.
+If instead there IS mass near the boundary and coordination simply fails to move it, the correct claim is
+different. (Local Claude has over-called 4× this thread; treating this as a hypothesis, not a finding.)
+
+**Framing implication (if the bimodality holds):** the effective lever is **reducing offered load** — payload/knob
+choice, send-gating, FPS — to stay out of collapse, which the measured knob-matrix + staleness work already
+provides as a **lookup**. The whole research arc then converges on one honest thesis: *load shaping, not
+coordination, and not learning.* Note the two NO-GOs still have **distinct** mechanisms (single-UE: monotone
+measured Pareto frontier → lookup; multi-UE: deadline-insensitivity to allocation under collapse) — present them
+as two independent results that happen to point the same way, NOT as one grand narrative.
+
+**Status: the multi-UE RL question is answered — NO, with pre-registered gates, 216/216 valid cells, and a
+mechanism.** Nothing further to run. Next is consolidation + the advisor conversation about what the thesis
+becomes, which is a human/scientific call, not an infra one.
