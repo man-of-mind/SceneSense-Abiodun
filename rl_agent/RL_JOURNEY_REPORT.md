@@ -183,6 +183,53 @@ the gate should be re-run at a payload where sending is routinely feasible (e.g.
 
 ---
 
+### 7b. 🔴 The open finding we surfaced ourselves: the policy is degenerate (~97% abstention)
+
+**Present this honestly on its own slide.** Abiodun's question — *if 96-98% of frames are skipped, only 2-4% of
+information reaches the map, so what is the agent for and is AoI even in play?* — exposed a real problem.
+
+**Effective sharing rate.** `split_pct` = 3.98% of a 10 Hz corpus → ~**0.4 sends/s** (map refresh every ~2.5 s).
+`capture_attempt_pct` is **1.55%**, *lower* still, implying ~0.16/s (refresh every ~6 s). That split-vs-capture gap
+is unexplained and is being investigated.
+
+**Measured against our own staleness model** (`base_loc ≈ 0.9 m`, `eps = 2.0 m`, so `v·AoI ≤ 1.76 m`):
+
+| object | max tolerable AoI | required refresh |
+|---|---|---|
+| pedestrian @ 1.4 m/s | 1.26 s | ~0.8 Hz |
+| vehicle @ 10 m/s | **0.18 s** | **~5.7 Hz** |
+| car @ 14 m/s (32 mph) | **0.13 s** | **~8 Hz** |
+
+At a 2.5-6 s refresh interval, a 10 m/s vehicle's map entry carries **~25 m of error**. **The shared map cannot be
+serving moving vehicles** — precisely the objects the freshness argument was built for.
+
+**Why AoI went inert:** `w_error = 0.05` against `w_task = 1.0`. Staleness is nearly free while sending carries a
+real `C_PRB` cost, so skipping dominates. AoI is in the equation but not in the behaviour — and the sweep only
+spanned `w_error ∈ [0.025, 0.10]`.
+
+**The structural flaw:** safety is satisfied **trivially by abstention**. There is no minimum coverage or
+participation floor in the contract, so "safe" was never coupled to "useful."
+
+**What this does to the NO-GO:** comparing controllers that all abstain ~97% of the time compares them on ~3% of the
+problem — "greedy ≈ oracle" substantially means *they agree about doing nothing*. The NO-GO may still hold, but as
+measured it is plausibly an **operating-point / reward-calibration** result rather than a **learnability** result.
+
+**Pending (Task E, blocking):** decompose skip causes (forced vs chosen); explain the split-vs-capture gap; report
+**map coverage** (fraction of objects with a within-eps fresh entry) as a first-class metric; **re-run the ladder and
+gate at the 90 KB seg-safe point** where delivery is 100% at every rung; **sweep `w_error` beyond 0.10** to find
+where the policy starts participating; then the conditional-on-choice oracle analysis. Possibly add an explicit
+**minimum-coverage / must-send-on-staleness constraint** so trivial abstention is inadmissible by construction
+(design question for the advisor).
+
+**Until then, state the NO-GO as:** *"no useful one-step headroom **at the 400 KiB operating point, where the
+shielded policy abstains ~97% of the time**; a participating-regime re-run is pending."*
+
+**The silver lining, and it is real:** if the physics simply do not permit cooperative perception at 400 KiB, that
+*is* the load-shaping thesis with teeth — and it points straight at the ~90 KB operating point the knob work already
+identified.
+
+---
+
 ## 8. Result 2 — expanding the action space, then measuring the ceiling
 
 **A fair objection to Result 1:** maybe greedy ≈ MPC only because the action space was too small — the controller
