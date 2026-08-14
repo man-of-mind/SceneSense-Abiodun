@@ -1,0 +1,213 @@
+{
+  "completed_at": "2026-08-14T04:30:50.558023+00:00",
+  "created_at": "2026-08-14T04:29:10.446069+00:00",
+  "gnb_trace_profile": "latency",
+  "metrics": {
+    "achieved_rho": 0.9980915548207393,
+    "checksum_failures": 0,
+    "complete_frames": 110,
+    "demand_trace_sha256": "d6a517d826871b3701d176ed8f3788ee477ff84ed00b72e8d4a292e9c40231bd",
+    "drained_rlc_bytes": {
+      "0": 0,
+      "1": 0
+    },
+    "latency_p50_ms": 1191.5204655,
+    "latency_p95_ms": 1376.6452225,
+    "local_errors": 0,
+    "offered_mbps": 6.0658096,
+    "open_loop_rate_gate": {
+      "0": {
+        "absolute_deviation_mbps": 0.03312266666666641,
+        "actual_mbps": 3.0055813333333337,
+        "allowed_absolute_mbps": 0.06077408,
+        "deviation_fraction": 0.010900260988456398,
+        "frame_rate_quantum_mbps": 0.054646933333333335,
+        "pass": true,
+        "target_mbps": 3.038704
+      },
+      "1": {
+        "absolute_deviation_mbps": 0.021524266666666403,
+        "actual_mbps": 3.0602282666666665,
+        "allowed_absolute_mbps": 0.06077408,
+        "deviation_fraction": 0.007083370629935131,
+        "frame_rate_quantum_mbps": 0.054646933333333335,
+        "pass": true,
+        "target_mbps": 3.038704
+      }
+    },
+    "partial_frames": 1,
+    "radio_validity": {
+      "enforce_strong_rung": true,
+      "median_pusch_snr_db": 6.0,
+      "median_ul_mcs": 8.0,
+      "per_ue": {
+        "0": {
+          "median_pusch_snr_db": 6.0,
+          "median_ul_mcs": 8.0,
+          "rnti": 960,
+          "sample_count": 14958
+        },
+        "1": {
+          "median_pusch_snr_db": 6.0,
+          "median_ul_mcs": 8.0,
+          "rnti": 3836,
+          "sample_count": 15206
+        }
+      },
+      "require_per_ue_radio": true,
+      "ue_gnb_tbs_ratios": {
+        "0x03c0": 0.999996,
+        "0x0efc": 1.0
+      }
+    },
+    "receiver_identity_gate": {
+      "expected_nat_sources": [
+        "192.168.70.134"
+      ],
+      "expected_ues": [
+        0,
+        1
+      ],
+      "identity_basis": "message_id_ue_prefix_after_upf_snat",
+      "invalid_message_id_count": 0,
+      "invalid_message_id_examples": [],
+      "missing_ues": [],
+      "observed_sources": {
+        "0": [
+          "192.168.70.134"
+        ],
+        "1": [
+          "192.168.70.134"
+        ]
+      },
+      "unexpected_nat_sources": [],
+      "unexpected_ues": []
+    },
+    "receiver_onwire_mbps": 6.0578058666666665,
+    "sender_route_gate": {
+      "identity_basis": "socket_bind_then_fixed_tunnel_tx_counters_before_upf_snat",
+      "pass": true,
+      "per_ue": {
+        "0": {
+          "actual_local_ip": "10.0.0.2",
+          "actual_local_port": 56624,
+          "binding_pass": true,
+          "byte_accounting_pass": true,
+          "expected_bind_ip": "10.0.0.2",
+          "iface": "oaitun_ue1",
+          "pass": true,
+          "requested_bind_ip": "10.0.0.2",
+          "sent_onwire_bytes": 22541860,
+          "tunnel_tx_bytes_delta": 22842160,
+          "tunnel_tx_to_sender_ratio": 1.013321882045226
+        },
+        "1": {
+          "actual_local_ip": "10.0.0.3",
+          "actual_local_port": 39645,
+          "binding_pass": true,
+          "byte_accounting_pass": true,
+          "expected_bind_ip": "10.0.0.3",
+          "iface": "oaitun_ue2",
+          "pass": true,
+          "requested_bind_ip": "10.0.0.3",
+          "sent_onwire_bytes": 22951712,
+          "tunnel_tx_bytes_delta": 23257472,
+          "tunnel_tx_to_sender_ratio": 1.013321882045226
+        }
+      },
+      "tx_ratio_bounds": [
+        1.0,
+        1.08
+      ]
+    },
+    "tunnel_health": {
+      "ue0": {
+        "drops_or_errors": 0,
+        "duration_s": 80.0012,
+        "iface": "oaitun_ue1",
+        "samples": 81,
+        "tx_bytes_delta": 22842160,
+        "tx_packets_delta": 15400
+      },
+      "ue1": {
+        "drops_or_errors": 0,
+        "duration_s": 80.0012,
+        "iface": "oaitun_ue2",
+        "samples": 81,
+        "tx_bytes_delta": 23257472,
+        "tx_packets_delta": 15680
+      }
+    }
+  },
+  "mu_hat_mbps": 6.077408,
+  "rnti_map": {
+    "0": 960,
+    "1": 3836
+  },
+  "sender_argv": [
+    "/home/shr_aisvcs/workarea/carla_0_10_env/carla_0_10_venv/bin/python3",
+    "-m",
+    "rl_agent.multiue_oai.endpoint",
+    "send",
+    "--remote-host",
+    "192.168.70.135",
+    "--remote-port",
+    "56100",
+    "--run-dir",
+    "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/multiue_oai/experiments/dg_a_ipcontract_20260813_2118_pdt/runs/A2",
+    "--kind",
+    "equal",
+    "--controller",
+    "open_loop",
+    "--mu-hat-mbps",
+    "6.077408",
+    "--duration-s",
+    "60.0",
+    "--payload-bytes",
+    "409600",
+    "--chunk-bytes",
+    "60000",
+    "--tick-s",
+    "0.05",
+    "--socket-send-buffer-bytes",
+    "8388608",
+    "--pessimism-factor",
+    "0.7",
+    "--estimator-window-s",
+    "1.0",
+    "--estimator-ewma-alpha",
+    "0.2",
+    "--service-conversion",
+    "0.9843135219888036",
+    "--ue",
+    "0,10.0.0.2,0.5",
+    "--ue",
+    "1,10.0.0.3,0.5"
+  ],
+  "service_conversion": 0.9843135219888036,
+  "trial": {
+    "block": "A",
+    "duration_s": 60,
+    "id": "A2",
+    "kind": "equal",
+    "rho": 1.0
+  },
+  "ue_network_map": [
+    {
+      "iface": "oaitun_ue1",
+      "ip": "10.0.0.2",
+      "ue_id": 0
+    },
+    {
+      "iface": "oaitun_ue2",
+      "ip": "10.0.0.3",
+      "ue_id": 1
+    }
+  ],
+  "ue_trace_profile": "all",
+  "ue_trace_relay": {
+    "persistent_for_ran_block": true,
+    "relay_port": 2033,
+    "source_port": 2023
+  }
+}

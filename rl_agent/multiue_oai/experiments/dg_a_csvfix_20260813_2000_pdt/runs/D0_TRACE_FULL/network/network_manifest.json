@@ -1,0 +1,23 @@
+{
+  "schema": "scenesense_oai_network_metrics.v1",
+  "created_at": "2026-08-13T20:03:15",
+  "run_group": "D0_TRACE_FULL",
+  "interfaces": [
+    {
+      "iface": "oaitun_ue1",
+      "label": "ue0"
+    },
+    {
+      "iface": "oaitun_ue2",
+      "label": "ue1"
+    }
+  ],
+  "interval_s": 1.0,
+  "duration_s": 51.00008368003182,
+  "ping_host": "",
+  "direction_note": "On UE tunnel interfaces, tx is approximately UE uplink and rx is return/downlink traffic.",
+  "output_files": {
+    "network_timeseries_csv": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/multiue_oai/experiments/dg_a_csvfix_20260813_2000_pdt/runs/D0_TRACE_FULL/network/network_timeseries.csv",
+    "network_summary_csv": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/multiue_oai/experiments/dg_a_csvfix_20260813_2000_pdt/runs/D0_TRACE_FULL/network/network_summary.csv"
+  }
+}

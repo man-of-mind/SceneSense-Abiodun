@@ -1,0 +1,24 @@
+{
+  "schema": "scenesense_oai_network_metrics.v1",
+  "created_at": "2026-08-13T20:36:28",
+  "run_group": "PREFLIGHT_LOCAL_TRANSPORT",
+  "interfaces": [
+    {
+      "iface": "lo",
+      "label": "ue0"
+    },
+    {
+      "iface": "lo",
+      "label": "ue1"
+    }
+  ],
+  "interval_s": 1.0,
+  "duration_s": 10.003159550018609,
+  "ping_host": "",
+  "stop_file": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/multiue_oai/experiments/dg_a_lifecycle_20260813_2040_pdt/preflight/local_transport/network_sampler_stop.request.json",
+  "direction_note": "On UE tunnel interfaces, tx is approximately UE uplink and rx is return/downlink traffic.",
+  "output_files": {
+    "network_timeseries_csv": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/multiue_oai/experiments/dg_a_lifecycle_20260813_2040_pdt/preflight/local_transport/network/network_timeseries.csv",
+    "network_summary_csv": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/multiue_oai/experiments/dg_a_lifecycle_20260813_2040_pdt/preflight/local_transport/network/network_summary.csv"
+  }
+}

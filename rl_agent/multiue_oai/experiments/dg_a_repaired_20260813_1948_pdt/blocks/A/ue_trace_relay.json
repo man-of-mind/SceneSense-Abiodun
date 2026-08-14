@@ -1,0 +1,10 @@
+{
+  "binary_sha256": "455ff3083dfb30f82ffee941dac01f888b39705f9d3ffab2b019ff5430da9542",
+  "block": "A",
+  "pid": 3142354,
+  "relay_port": 2033,
+  "schema_version": "scenesense.multiue_oai.trace_relay.v1",
+  "source_port": 2023,
+  "started_at": "2026-08-14T02:44:42.630840+00:00",
+  "upstream_connected": true
+}

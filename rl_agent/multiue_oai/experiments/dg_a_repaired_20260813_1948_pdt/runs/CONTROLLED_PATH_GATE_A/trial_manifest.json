@@ -1,0 +1,92 @@
+{
+  "created_at": "2026-08-14T02:45:34.279374+00:00",
+  "gnb_trace_profile": "latency",
+  "mu_hat_mbps": 10.4,
+  "rnti_map": {
+    "0": 57405,
+    "1": 23716
+  },
+  "sender_argv": [
+    "/home/shr_aisvcs/workarea/carla_0_10_env/carla_0_10_venv/bin/python3",
+    "-m",
+    "rl_agent.multiue_oai.endpoint",
+    "send",
+    "--remote-host",
+    "192.168.70.135",
+    "--remote-port",
+    "56100",
+    "--run-dir",
+    "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/multiue_oai/experiments/dg_a_repaired_20260813_1948_pdt/runs/CONTROLLED_PATH_GATE_A",
+    "--kind",
+    "controlled",
+    "--controller",
+    "decentralized_c1",
+    "--mu-hat-mbps",
+    "10.4",
+    "--duration-s",
+    "8.0",
+    "--payload-bytes",
+    "409600",
+    "--chunk-bytes",
+    "60000",
+    "--tick-s",
+    "0.05",
+    "--socket-send-buffer-bytes",
+    "8388608",
+    "--pessimism-factor",
+    "0.7",
+    "--estimator-window-s",
+    "1.0",
+    "--estimator-ewma-alpha",
+    "0.2",
+    "--service-conversion",
+    "1.0",
+    "--ue",
+    "0,10.0.0.2,0.2",
+    "--ue",
+    "1,10.0.0.3,0.2",
+    "--demand-seed",
+    "61290",
+    "--rnti-map",
+    "0,57405",
+    "--rnti-map",
+    "1,23716",
+    "--ttracer-csv",
+    "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/OAI/openairinterface5g/common/utils/T/tracer/csv",
+    "--t-messages",
+    "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/OAI/openairinterface5g/common/utils/T/T_messages.txt",
+    "--ttracer-port",
+    "2033"
+  ],
+  "service_conversion": 1.0,
+  "trial": {
+    "block": "A",
+    "controller": "decentralized_c1",
+    "demand_seed": 61290,
+    "duration_s": 8.0,
+    "fractions": [
+      0.2,
+      0.2
+    ],
+    "id": "CONTROLLED_PATH_GATE_A",
+    "kind": "controlled"
+  },
+  "ue_network_map": [
+    {
+      "iface": "oaitun_ue1",
+      "ip": "10.0.0.2",
+      "ue_id": 0
+    },
+    {
+      "iface": "oaitun_ue2",
+      "ip": "10.0.0.3",
+      "ue_id": 1
+    }
+  ],
+  "ue_trace_profile": "all",
+  "ue_trace_relay": {
+    "persistent_for_ran_block": true,
+    "relay_port": 2033,
+    "source_port": 2023
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "decision": "NOT_RUN",
+  "next_stage_launched": false,
+  "oai_started": false,
+  "schema_version": "scenesense.multiue_oai.dg_a.preflight.v1",
+  "status": "PREFLIGHT_ONLY_PASS"
+}

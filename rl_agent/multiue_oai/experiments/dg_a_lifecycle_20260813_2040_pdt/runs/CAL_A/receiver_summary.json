@@ -1,0 +1,15 @@
+{
+  "checksum_failures": 0,
+  "chunks": 486,
+  "complete_frames": 68,
+  "duplicates": 0,
+  "end_raw_ns": 893635329617233,
+  "identity_failures": 0,
+  "invalid": 0,
+  "last_receive_raw_ns": 893635328775202,
+  "latency_p50_ms": 11430.3423185,
+  "latency_p95_ms": 20271.7954715,
+  "mode": "receiver",
+  "partial_frames": 2,
+  "start_raw_ns": 893586832396922
+}

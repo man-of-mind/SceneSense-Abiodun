@@ -1,0 +1,13 @@
+{
+  "attach_channel_mode": "strong",
+  "d0_launched": false,
+  "decision": "HOLD_REPAIR",
+  "dg_a_launched": false,
+  "error": "sender failed for CONTROLLED_PATH_GATE_A with 2: {\"chunks_per_frame\": 7, \"controller\": \"decentralized_c1\", \"demand_count\": 10, \"demand_seed\": 61290, \"demand_trace_sha256\": \"b2ad4f0d2703bc0e571070c0f03f16175c402217ae760a2f7380ad50316d5acc\", \"duration_target_s\": 8.0, \"elapsed_from_start_s\": 7.950638405, \"end_raw_ns\": 890189230985861, \"initial_arrival_credit\": {\"0\": 0.8910174667746326, \"1\": 0.39101746677463245}, \"kind\": \"controlled\", \"local_errors\": 0, \"mode\": \"sender\", \"observer\": {\"latest_event_raw_ns\": {\"0\": 0, \"1\": 0}, \"service_event_count\": {\"0\": 0, \"1\": 0}}, \"onwire_bytes_per_frame\": 409852, \"payload_bytes\": 409600, \"per_ue\": {\"0\": {\"sent_frames\": 5, \"sent_onwire_bytes\": 2049260}, \"1\": {\"sent_frames\": 5, \"sent_onwire_bytes\": 2049260}}, \"socket_bindings\": {\"0\": {\"actual_local_ip\": \"10.0.0.2\", \"actual_local_port\": 35661, \"requested_bind_ip\": \"10.0.0.2\"}, \"1\": {\"actual_local_ip\": \"10.0.0.3\", \"actual_local_port\": 51263, \"requested_bind_ip\": \"10.0.0.3\"}}, \"start_raw_ns\": 890181280344027}\n",
+  "error_type": "StageFailure",
+  "failed_at": "2026-08-14T02:46:20.753355+00:00",
+  "next_stage_launched": false,
+  "run_mode": "dg_a",
+  "schema_version": "scenesense.multiue_oai.dg_a.failure.v1",
+  "status": "FAILED_HOLD"
+}

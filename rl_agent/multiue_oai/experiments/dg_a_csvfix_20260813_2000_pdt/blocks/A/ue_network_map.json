@@ -1,0 +1,18 @@
+{
+  "block": "A",
+  "discovered_at": "2026-08-14T02:58:02.344104+00:00",
+  "identity_chain": "ue_id_to_fixed_tunnel_to_dynamic_ip",
+  "schema_version": "scenesense.multiue_oai.ue_network_map.v1",
+  "ues": [
+    {
+      "iface": "oaitun_ue1",
+      "ip": "10.0.0.2",
+      "ue_id": 0
+    },
+    {
+      "iface": "oaitun_ue2",
+      "ip": "10.0.0.3",
+      "ue_id": 1
+    }
+  ]
+}

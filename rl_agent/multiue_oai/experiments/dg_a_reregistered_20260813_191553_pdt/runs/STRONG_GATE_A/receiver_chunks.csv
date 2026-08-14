@@ -1,0 +1,1 @@
+recv_raw_ns,recv_wall_ns,source_ip,ue_id,message_id,chunk_index,total_chunks,udp_payload_bytes,onwire_bytes,duplicate

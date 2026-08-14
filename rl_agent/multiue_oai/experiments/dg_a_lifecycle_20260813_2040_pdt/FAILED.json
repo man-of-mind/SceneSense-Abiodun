@@ -1,0 +1,13 @@
+{
+  "attach_channel_mode": "strong",
+  "d0_launched": true,
+  "decision": "HOLD_REPAIR",
+  "dg_a_launched": true,
+  "error": "B attached outside registered UE IP pool: expected=['10.0.0.2', '10.0.0.3'], actual=['10.0.0.4', '10.0.0.5']",
+  "error_type": "StageFailure",
+  "failed_at": "2026-08-14T03:56:52.204758+00:00",
+  "next_stage_launched": false,
+  "run_mode": "dg_a",
+  "schema_version": "scenesense.multiue_oai.dg_a.failure.v1",
+  "status": "FAILED_HOLD"
+}

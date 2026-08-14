@@ -35,6 +35,8 @@ MAGIC = b"SSDGAV1\0"
 VERSION = 1
 IP_UDP_OVERHEAD_BYTES = 28
 CLOCK_RAW = getattr(time, "CLOCK_MONOTONIC_RAW", time.CLOCK_MONOTONIC)
+SEND_KINDS = ("equal", "asymmetric", "burst", "controlled", "smoke", "calibration")
+CONTROLLERS = ("open_loop", "decentralized_c1", "centralized_observable")
 
 DEMAND_FIELDS = (
     "ue_id",
@@ -89,6 +91,56 @@ FRAME_FIELDS = (
 )
 
 
+def build_ttracer_csv_command(
+    csv_binary: str,
+    t_messages: str,
+    port: int,
+    event: str,
+    fields: Sequence[str],
+) -> List[str]:
+    """Build the OAI ``csv`` CLI, which selects its event without record flags."""
+    if not event or not fields:
+        raise ValueError("T-tracer CSV requires an event and at least one field")
+    return [
+        csv_binary,
+        "-d",
+        t_messages,
+        "-ip",
+        "127.0.0.1",
+        "-p",
+        str(port),
+        "-f",
+        "-s",
+        ",",
+        "-t",
+        "time",
+        event,
+        *fields,
+    ]
+
+
+def parse_ul_new_data_grant(
+    line: str, rnti_to_ue: Mapping[int, int]
+) -> Optional[tuple[int, int]]:
+    """Return UE ID and TBS for a first-transmission uplink grant."""
+    parts = [part.strip() for part in line.strip().split(",")]
+    if len(parts) < 7:
+        return None
+    try:
+        direction = int(parts[-6])
+        rnti = int(parts[-5], 0)
+        tbs = int(float(parts[-4]))
+        rv = int(float(parts[-2]))
+        round_index = int(float(parts[-1]))
+    except ValueError:
+        return None
+    ue_id = rnti_to_ue.get(rnti)
+    # nr_ue_procedures.c emits direction=1 for PUSCH and 0 for PDSCH.
+    if direction != 1 or ue_id is None or rv > 0 or round_index > 0:
+        return None
+    return ue_id, tbs
+
+
 def raw_ns() -> int:
     return time.clock_gettime_ns(CLOCK_RAW)
 
@@ -122,6 +174,19 @@ def chunks_per_frame(payload_bytes: int, chunk_bytes: int) -> int:
 def frame_onwire_bytes(payload_bytes: int, chunk_bytes: int) -> int:
     chunks = chunks_per_frame(payload_bytes, chunk_bytes)
     return payload_bytes + chunks * (CHUNK_HEADER.size + IP_UDP_OVERHEAD_BYTES)
+
+
+def staggered_arrival_credits(ue_ids: Sequence[int], demand_seed: int) -> Dict[int, float]:
+    """Return deterministic, evenly staggered phases with a seed-controlled offset."""
+    ordered = [int(value) for value in ue_ids]
+    if not ordered or len(ordered) != len(set(ordered)):
+        raise ValueError("arrival credits require unique UE IDs")
+    digest = hashlib.sha256(f"scenesense-dga-phase-{int(demand_seed)}".encode()).digest()
+    base = int.from_bytes(digest[:8], "big") / float(1 << 64)
+    return {
+        ue_id: (base + index / len(ordered)) % 1.0
+        for index, ue_id in enumerate(ordered)
+    }
 
 
 def deterministic_body(size: int, ue_id: int) -> bytes:
@@ -205,30 +270,13 @@ class GrantObserver:
         self.lock = threading.Lock()
         self.stop_event = threading.Event()
         self.log_handle = log_path.open("w", encoding="utf-8")
-        command = [
+        command = build_ttracer_csv_command(
             csv_binary,
-            "-d",
             t_messages,
-            "-ip",
-            "127.0.0.1",
-            "-p",
-            str(port),
-            "-f",
-            "-s",
-            ",",
-            "-t",
-            "time",
-            "-OFF",
-            "-on",
+            port,
             "NRUE_MAC_DCI_GRANT",
-            "NRUE_MAC_DCI_GRANT",
-            "time",
-            "rnti",
-            "tbs",
-            "ndi",
-            "rv",
-            "round",
-        ]
+            ("time", "direction", "rnti", "tbs", "ndi", "rv", "round"),
+        )
         self.process = subprocess.Popen(
             command,
             stdout=subprocess.PIPE,
@@ -246,19 +294,10 @@ class GrantObserver:
                 break
             self.log_handle.write(line)
             self.log_handle.flush()
-            parts = [part.strip() for part in line.strip().split(",")]
-            if len(parts) < 6:
+            parsed = parse_ul_new_data_grant(line, self.rnti_to_ue)
+            if parsed is None:
                 continue
-            try:
-                rnti = int(parts[-5], 0)
-                tbs = int(float(parts[-4]))
-                rv = int(float(parts[-2]))
-                round_index = int(float(parts[-1]))
-            except ValueError:
-                continue
-            ue_id = self.rnti_to_ue.get(rnti)
-            if ue_id is None or rv > 0 or round_index > 0:
-                continue
+            ue_id, tbs = parsed
             now = raw_ns()
             service_bytes = float(tbs) * self.conversion
             with self.lock:
@@ -301,6 +340,13 @@ class GrantObserver:
                 },
             }
 
+    def health(self) -> dict:
+        return {
+            "process_alive": self.process.poll() is None,
+            "process_returncode": self.process.returncode,
+            "reader_thread_alive": self.thread.is_alive(),
+        }
+
     def close(self) -> None:
         self.stop_event.set()
         if self.process.poll() is None:
@@ -309,6 +355,11 @@ class GrantObserver:
                 self.process.wait(timeout=3)
             except subprocess.TimeoutExpired:
                 self.process.terminate()
+                try:
+                    self.process.wait(timeout=2)
+                except subprocess.TimeoutExpired:
+                    self.process.kill()
+                    self.process.wait(timeout=2)
         self.thread.join(timeout=2)
         self.log_handle.close()
 
@@ -329,12 +380,16 @@ class TrafficSender:
         self.demands: List[Demand] = []
         self.pending: Dict[int, Optional[Demand]] = {ue.ue_id: None for ue in self.ues}
         self.next_frame_id = {ue.ue_id: (ue.ue_id + 1) * 100_000_000 for ue in self.ues}
-        self.arrival_credit = {ue.ue_id: (ue.ue_id / max(1, len(self.ues))) for ue in self.ues}
+        self.initial_arrival_credit = staggered_arrival_credits(
+            [ue.ue_id for ue in self.ues], int(args.demand_seed)
+        )
+        self.arrival_credit = dict(self.initial_arrival_credit)
         self.tokens = {ue.ue_id: float(self.onwire_bytes) for ue in self.ues}
         self.aggregate_tokens = float(self.onwire_bytes)
         self.sent_onwire = defaultdict(int)
         self.local_errors = 0
         self.observer: Optional[GrantObserver] = None
+        self.observer_failure: Optional[dict] = None
 
     @staticmethod
     def _parse_ues(values: Iterable[str]) -> List[UEConfig]:
@@ -506,6 +561,13 @@ class TrafficSender:
                 time.sleep(wait_s)
             elapsed_s = (next_tick - start_ns) / 1e9
             if self.observer is not None:
+                health = self.observer.health()
+                if not health["process_alive"] or not health["reader_thread_alive"]:
+                    self.observer_failure = {
+                        "detected_raw_ns": raw_ns(),
+                        **health,
+                    }
+                    break
                 estimates = self.observer.tick()
             self._emit_arrivals(next_tick, start_ns, elapsed_s)
             if self.args.controller != "open_loop":
@@ -532,6 +594,14 @@ class TrafficSender:
                 demand.admit_reason = "trial_end"
         if self.observer is not None:
             observer_summary = self.observer.summary()
+            health_before_close = self.observer.health()
+            observer_summary["health_before_close"] = health_before_close
+            observer_summary["unexpected_failure"] = self.observer_failure
+            observer_summary["alive_through_sender"] = bool(
+                self.observer_failure is None
+                and health_before_close["process_alive"]
+                and health_before_close["reader_thread_alive"]
+            )
             self.observer.close()
         socket_bindings = {
             str(ue.ue_id): {
@@ -577,6 +647,10 @@ class TrafficSender:
             "mode": "sender",
             "kind": self.args.kind,
             "controller": self.args.controller,
+            "demand_seed": int(self.args.demand_seed),
+            "initial_arrival_credit": {
+                str(ue_id): value for ue_id, value in sorted(self.initial_arrival_credit.items())
+            },
             "start_raw_ns": start_ns,
             "end_raw_ns": raw_ns(),
             "duration_target_s": float(self.args.duration_s),
@@ -605,6 +679,8 @@ class TrafficSender:
             int(value) <= 0 for value in observer_summary["service_event_count"].values()
         ):
             return 2
+        if observer_summary is not None and not observer_summary["alive_through_sender"]:
+            return 2
         return 1 if self.local_errors else 0
 
 
@@ -613,6 +689,7 @@ class TrafficReceiver:
         self.args = args
         self.run_dir = Path(args.run_dir).resolve()
         self.run_dir.mkdir(parents=True, exist_ok=True)
+        self.stop_file = Path(args.stop_file).resolve() if args.stop_file else None
         self.stop_event = threading.Event()
         self.partial: MutableMapping[tuple[str, int], Dict[str, object]] = {}
         self.frames: List[Dict[str, object]] = []
@@ -637,6 +714,8 @@ class TrafficReceiver:
             start_ns = raw_ns()
             last_recv_ns = start_ns
             while not self.stop_event.is_set():
+                if self.stop_file is not None and self.stop_file.exists():
+                    break
                 if float(self.args.max_duration_s) > 0 and raw_ns() - start_ns > float(self.args.max_duration_s) * 1e9:
                     break
                 try:
@@ -759,6 +838,10 @@ def build_parser() -> argparse.ArgumentParser:
     receive.add_argument("--bind-host", required=True)
     receive.add_argument("--port", type=int, required=True)
     receive.add_argument("--run-dir", required=True)
+    receive.add_argument(
+        "--stop-file",
+        help="graceful-stop request file checked across sudo/nsenter boundaries",
+    )
     receive.add_argument("--socket-receive-buffer-bytes", type=int, default=16 * 1024 * 1024)
     receive.add_argument("--max-duration-s", type=float, default=0.0)
 
@@ -767,8 +850,8 @@ def build_parser() -> argparse.ArgumentParser:
     send.add_argument("--remote-port", type=int, required=True)
     send.add_argument("--run-dir", required=True)
     send.add_argument("--ue", action="append", default=[], metavar="ID,IP,FRACTION")
-    send.add_argument("--kind", choices=("equal", "asymmetric", "burst", "controlled", "smoke", "calibration"), required=True)
-    send.add_argument("--controller", choices=("open_loop", "decentralized_c1", "centralized_observable"), default="open_loop")
+    send.add_argument("--kind", choices=SEND_KINDS, required=True)
+    send.add_argument("--controller", choices=CONTROLLERS, default="open_loop")
     send.add_argument("--mu-hat-mbps", type=float, required=True)
     send.add_argument("--duration-s", type=float, required=True)
     send.add_argument("--start-delay-s", type=float, default=0.5)
@@ -790,12 +873,74 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def validate_send_args(args: argparse.Namespace) -> None:
+    """Validate sender semantics before sockets, recorders, or OAI traffic start."""
+    ues = TrafficSender._parse_ues(args.ue)
+    if float(args.mu_hat_mbps) <= 0 or float(args.duration_s) <= 0:
+        raise ValueError("sender service estimate and duration must be positive")
+    if float(args.start_delay_s) < 0 or float(args.tick_s) <= 0:
+        raise ValueError("sender start delay must be non-negative and tick must be positive")
+    if int(args.payload_bytes) < FRAME_HEADER.size:
+        raise ValueError("sender payload is too small for the metadata header")
+    chunks_per_frame(int(args.payload_bytes), int(args.chunk_bytes))
+    if int(args.socket_send_buffer_bytes) <= 0 or float(args.send_timeout_s) <= 0:
+        raise ValueError("sender socket buffer and timeout must be positive")
+
+    controlled = str(args.controller) != "open_loop"
+    if str(args.kind) == "controlled" and not controlled:
+        raise ValueError("controlled traffic requires a non-open-loop controller")
+    if str(args.kind) != "controlled" and controlled:
+        raise ValueError("non-open-loop controllers require kind=controlled")
+    if controlled and (not args.ttracer_csv or not args.t_messages):
+        raise ValueError("controlled traffic requires --ttracer-csv and --t-messages")
+
+    mappings: Dict[int, int] = {}
+    for raw in args.rnti_map:
+        try:
+            ue_text, rnti_text = raw.split(",", 1)
+            ue_id = int(ue_text)
+            rnti = int(rnti_text, 0)
+        except (AttributeError, ValueError) as exc:
+            raise ValueError(f"invalid --rnti-map value: {raw}") from exc
+        if ue_id in mappings:
+            raise ValueError(f"duplicate RNTI mapping for UE{ue_id}")
+        mappings[ue_id] = rnti
+    expected_ues = {ue.ue_id for ue in ues}
+    if controlled and set(mappings) != expected_ues:
+        raise ValueError("controlled traffic RNTI map must cover every configured UE")
+    if not controlled and mappings:
+        raise ValueError("open-loop traffic must not receive an RNTI map")
+
+    if str(args.kind) == "burst":
+        phases = []
+        for raw in args.phase:
+            try:
+                start, end, rho = (float(value) for value in raw.split(","))
+            except (AttributeError, ValueError) as exc:
+                raise ValueError(f"invalid burst phase: {raw}") from exc
+            if start < 0 or end <= start or rho < 0:
+                raise ValueError(f"invalid burst phase bounds/rho: {raw}")
+            phases.append((start, end, rho))
+        if not phases:
+            raise ValueError("burst traffic requires at least one --phase")
+        phases.sort()
+        if abs(phases[0][0]) > 1e-9 or abs(phases[-1][1] - float(args.duration_s)) > 1e-9:
+            raise ValueError("burst phases must span the complete sender duration")
+        if any(abs(left[1] - right[0]) > 1e-9 for left, right in zip(phases, phases[1:])):
+            raise ValueError("burst phases must be contiguous")
+    elif args.phase:
+        raise ValueError("only burst traffic may define --phase")
+
+
 def main() -> int:
-    args = build_parser().parse_args()
+    parser = build_parser()
+    args = parser.parse_args()
     if args.command == "receive":
         return TrafficReceiver(args).run()
-    if args.controller != "open_loop" and (not args.ttracer_csv or not args.t_messages):
-        raise SystemExit("controlled traffic requires --ttracer-csv and --t-messages")
+    try:
+        validate_send_args(args)
+    except ValueError as exc:
+        parser.error(str(exc))
     return TrafficSender(args).run()
 
 

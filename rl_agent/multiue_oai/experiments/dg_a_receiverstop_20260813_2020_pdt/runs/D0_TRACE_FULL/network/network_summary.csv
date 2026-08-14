@@ -1,0 +1,3 @@
+run_group,iface,iface_label,samples,duration_s,avg_tx_mbps,p95_tx_mbps,max_tx_mbps,avg_rx_mbps,p95_rx_mbps,max_rx_mbps,tx_bytes_delta,rx_bytes_delta,tx_packets_delta,rx_packets_delta,tx_drops_delta,rx_drops_delta,tx_errors_delta,rx_errors_delta,ping_attempts,ping_success_rate,avg_ping_rtt_ms,p95_ping_rtt_ms
+D0_TRACE_FULL,oaitun_ue1,ue0,51,50.0005,3.12318,6.64685,6.64844,0.000276515,0,0.0138257,19519664,1728,13160,3,0,0,0,0,0,,,
+D0_TRACE_FULL,oaitun_ue2,ue1,51,50.0005,3.18949,6.64557,6.64702,0.000368674,0,0.0138257,19934976,2304,13440,4,0,0,0,0,0,,,

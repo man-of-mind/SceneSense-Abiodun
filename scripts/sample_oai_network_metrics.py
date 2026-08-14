@@ -129,6 +129,11 @@ def parse_args() -> argparse.Namespace:
         help="Optional run duration. 0 means run until Ctrl+C.",
     )
     parser.add_argument(
+        "--stop-file",
+        default="",
+        help="Optional graceful-stop request file checked once per sampling loop.",
+    )
+    parser.add_argument(
         "--output-root",
         default=str(DEFAULT_OUTPUT_ROOT),
         help="Root for network metrics grouped by run_group.",
@@ -385,6 +390,7 @@ def write_manifest(
     ping_host: str,
     csv_path: Path,
     summary_path: Path,
+    stop_file: Optional[Path],
 ) -> None:
     manifest = {
         "schema": "scenesense_oai_network_metrics.v1",
@@ -394,6 +400,7 @@ def write_manifest(
         "interval_s": interval_s,
         "duration_s": duration_s,
         "ping_host": ping_host,
+        "stop_file": str(stop_file) if stop_file is not None else None,
         "direction_note": "On UE tunnel interfaces, tx is approximately UE uplink and rx is return/downlink traffic.",
         "output_files": {
             "network_timeseries_csv": str(csv_path),
@@ -473,6 +480,7 @@ def main() -> int:
     csv_path = output_dir / "network_timeseries.csv"
     summary_path = output_dir / "network_summary.csv"
     manifest_path = output_dir / "network_manifest.json"
+    stop_file = Path(args.stop_file).expanduser().resolve() if args.stop_file else None
 
     rows: List[Dict[str, object]] = []
     previous_stats: Dict[str, Optional[Dict[str, int]]] = {}
@@ -501,6 +509,8 @@ def main() -> int:
         sample_index = 0
         try:
             while not stop_requested:
+                if stop_file is not None and stop_file.exists():
+                    break
                 now = time.monotonic()
                 if args.duration_s > 0 and now - start_time >= args.duration_s:
                     break
@@ -551,6 +561,7 @@ def main() -> int:
         ping_host=args.ping_host,
         csv_path=csv_path,
         summary_path=summary_path,
+        stop_file=stop_file,
     )
 
     print(f"[network] samples={len(rows)} duration_s={duration_s:.1f}")

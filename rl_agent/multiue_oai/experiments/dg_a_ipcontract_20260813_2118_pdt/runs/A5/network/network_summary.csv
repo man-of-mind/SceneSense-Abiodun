@@ -1,0 +1,3 @@
+run_group,iface,iface_label,samples,duration_s,avg_tx_mbps,p95_tx_mbps,max_tx_mbps,avg_rx_mbps,p95_rx_mbps,max_rx_mbps,tx_bytes_delta,rx_bytes_delta,tx_packets_delta,rx_packets_delta,tx_drops_delta,rx_drops_delta,tx_errors_delta,rx_errors_delta,ping_attempts,ping_success_rate,avg_ping_rtt_ms,p95_ping_rtt_ms
+A5,oaitun_ue1,ue0,131,130,2.04458,3.32539,6.65158,0,0,0,33224960,0,22400,0,0,0,0,0,0,,,
+A5,oaitun_ue2,ue1,131,130,2.07019,3.32636,6.645,0,0,0,33640272,0,22680,0,0,0,0,0,0,,,

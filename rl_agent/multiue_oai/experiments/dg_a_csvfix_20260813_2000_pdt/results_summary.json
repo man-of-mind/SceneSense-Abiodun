@@ -1,0 +1,13 @@
+{
+  "attach_channel_mode": "strong",
+  "d0_launched": true,
+  "decision": "HOLD_REPAIR",
+  "dg_a_launched": true,
+  "error": "[Errno 2] No such file or directory: '/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/multiue_oai/experiments/dg_a_csvfix_20260813_2000_pdt/runs/A3/receiver_summary.json'",
+  "error_type": "FileNotFoundError",
+  "failed_at": "2026-08-14T03:06:59.038645+00:00",
+  "next_stage_launched": false,
+  "run_mode": "dg_a",
+  "schema_version": "scenesense.multiue_oai.dg_a.failure.v1",
+  "status": "FAILED_HOLD"
+}

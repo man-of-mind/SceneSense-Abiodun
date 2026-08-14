@@ -2787,3 +2787,183 @@ After DG-A: we are back to the actual science — greedy-C1 vs observable-centra
 asymmetric load. A gap past the pre-registered thresholds = coordination/RL direction; a tie = "simple
 decentralized C1-admission suffices under 2-UE contention" (still a clean systems finding). DG-A may be NO-GO;
 re-registering the SNR gate does not prejudge that.
+
+## 2026-08-13 — CODEX: two-UE strong-rung re-registration applied; DG-A runtime entry repaired and launch authorized.
+
+**Observable reconciliation:** the retained channel-sweep summarizer derives its SNR column from
+`GNB_MAC_UL_MCS_DECISION.avg_snr_x10 / 10`; the new per-UE validity gate derives SNR from
+`GNB_MAC_PUSCH_POWER_CONTROL.snrx10 / 10`, mapped to UE index through the UE RLC/RNTI trace. These are distinct
+T-tracer events, not literally the same CSV field, but they are consistent measurements of the same OAI uplink
+SNR state. In the retained valid runtime-switch run, the clean medians are 50.5 dB in both fields (versus
+50.3–50.4 dB in the historical sweep summaries); at the strong two-UE point they are 5.8 dB (`avg_snr_x10`)
+and 6.0 dB (`snrx10`) with MCS 8 in both events. `snrx10` is also stable and independently observable for both
+UEs: 14,896 UE0 samples and 5,480 UE1 samples, each with median 6.0 dB/MCS 8.
+
+**Audit-sensitive gate correction applied:** `configs/dg_a_v1.yaml` now registers the two-UE per-PUSCH point at
+6.0 dB/MCS 8 and records the source run/trial and observable inline. The physical strong setting remains
+`noise_power_dB=-4` on **both** uplinks. SNR tolerance remains 2.0 dB and MCS tolerance remains 2; neither was
+widened. Replaying the retained `SWITCH_STRONG_ASYMMETRIC` telemetry against the corrected gate passes both UEs.
+The previous 8.2/MCS9 label remains correctly described as the one-UE sweep operating point. **Advisor review of
+the re-registration is explicitly required on return.**
+
+**Full-path repair before launch:** the default DG-A path no longer attempts the failed cold two-UE attach on
+strong AWGN. For each independently restarted RAN block (A and B), it now (1) starts both explicit per-UE channel
+objects at -50 dB, (2) attaches both UEs and verifies tunnel stability, (3) modifies both live uplink objects to
+-4 dB, and (4) sends 15 s of real, correctly bound per-UE traffic before D0/calibration. That pre-D0 gate checks
+the per-UE `snrx10`/MCS registration, sender route/tunnel-byte evidence, both model states, and post-switch tunnel
+stability. A silent/partial switch or an off-rung UE fails closed before scientific trials.
+
+**Verification:** 14/14 multi-UE contract tests pass; Python compilation, shell syntax, and `git diff --check`
+pass. The retained valid two-UE trace passes the corrected gate for both UEs. The authorized detached target is
+`rl_agent/multiue_oai/experiments/dg_a_reregistered_20260813_191553_pdt`. Stop remains mandatory at the DG-A
+decision sentinel: **no DG-B, campaign, controller ladder, or RL is launched.**
+
+## 2026-08-13 — CODEX: failed DG-A repaired after full path audit; trace concurrency front-loaded.
+
+**Observed failure:** `dg_a_reregistered_20260813_191553_pdt` attached both UEs, held both tunnels, modified both
+uplink models from -50 to -4, and then stopped before D0. The immediate failure was deterministic code/config
+drift: the runner generated `kind=strong_rung_gate`, while the endpoint parser accepts `smoke` for that gate.
+The sender exited 2 before sending traffic. This was not another OAI attach or runtime-switch failure.
+
+**Immediate repair:** the production strong-rung trial now uses the endpoint's validated `smoke` kind. Preflight
+constructs every exact sender argv that the stage can issue and runs it through the real endpoint parser plus
+semantic validator. The set is 18 commands: both strong gates, both new controlled-path gates, both
+calibrations, D0's three trials, and A1--A9. A future parser/config drift therefore fails before Docker or RAN
+startup.
+
+**Adversarial audit finding:** OAI's `local_tracer.c` accepts exactly one remote client. A6--A9 previously would
+have connected both the raw recorder and the causal grant observer directly to UE port 2023, causing a late
+telemetry failure or silently incomplete evidence. The runner now uses OAI's shipped `multi` utility as the one
+persistent upstream client per RAN block and exposes port 2033 to every UE telemetry consumer (recorder, queue
+probe, and controller observer). The binary is built and hashed in the run manifest. A loopback integration
+test proved that the relay accepts two real OAI `record` clients concurrently.
+
+**Failure moved forward:** immediately after each real-traffic strong-rung gate, an 8 s decentralized-C1
+controlled-path gate freezes the two observed RNTIs and runs the raw recorder plus live grant observer together.
+It requires nonzero service events for both UEs, correct discovered-IP sender routing, UE/gNB grant
+reconciliation, registered per-UE SNR/MCS, and clean drain. Thus the exact telemetry path needed by A6--A9 is
+exercised before D0 and before spending time on A1--A5.
+
+**Other latent repairs from the same audit:** `demand_seed` now deterministically staggers per-UE arrival phase
+(it was parsed but unused), so A6/A7 and A8/A9 truly replay paired offered-demand timing. Sender commands are
+validated before trial side effects. Receiver/recorder/sampler partial-launch failures now clean up every process
+and file handle; the grant observer escalates INT -> TERM -> KILL rather than leaving a tracer client alive.
+Failure sentinels now record boolean `d0_launched` and `dg_a_launched` fields.
+
+**Verification before relaunch:** 21/21 contract tests pass outside the restricted sandbox, including the real
+two-client relay test; Python compilation, shell syntax, and `git diff --check` pass. The retained-input analyzer
+contract still filters A1--A9 and refuses paired hash mismatch. The no-OAI preflight at
+`experiments/dg_a_preflight_relay_20260813_1945_pdt` completed `PREFLIGHT_ONLY_PASS`: all 18 sender commands
+validated and local production-shaped transport delivered 33/33 400 KiB frames with zero partial frames,
+checksum failures, or identity failures. The next detached target is
+`experiments/dg_a_repaired_20260813_1948_pdt`; it remains bounded to D0 -> DG-A -> DG-A.1 and cannot chain DG-B.
+
+## 2026-08-13 — CODEX: controlled-path gate failure root-caused to an OAI CLI mismatch; telemetry itself is sound.
+
+`dg_a_repaired_20260813_1948_pdt` again stopped before D0, but the front-loaded gate did exactly its job. Block A
+attached both UEs, switched both uplinks to -4, and completed `STRONG_GATE_A` with 6.0 dB/MCS 8 for both RNTIs,
+correct discovered-IP routing, 19 complete frames, zero partial/checksum/identity errors, and exact UE/gNB grant
+ratios. `CONTROLLED_PATH_GATE_A` then sent five frames per UE without local errors but reported zero live service
+events and failed closed.
+
+**Exact root cause:** both `GrantObserver` and the fallback live queue probe passed `-OFF -on EVENT` to OAI's
+`csv` binary. Those are `record` options; `csv.c` does not parse them. It interpreted `-OFF` as the event name
+and crashed before connecting, leaving an empty observer log. This is independent of the relay and radio path.
+The retained controlled-gate raw trace is 12.9 MB and offline extraction produced 3,790
+`NRUE_MAC_DCI_GRANT` rows, including 1,580 qualifying new-data **uplink** grants for each RNTI. Thus both
+UEs had abundant valid service telemetry; only the live CSV invocation was broken.
+
+**Repair and evidence:** a single `build_ttracer_csv_command` now owns the external CLI contract for both the
+grant observer and live queue probe. It uses `csv`'s actual syntax—options followed directly by event and field
+names—and cannot emit record-only flags. Replaying the exact failed raw trace through the corrected command
+emitted the expected `time,direction,rnti,tbs,ndi,rv,round` schema and all 3,790 rows instead of dumping core.
+The observer now explicitly filters `direction=1` (PUSCH, confirmed at the trace call site) so downlink grants
+cannot inflate the uplink-service estimate. The relay
+integration regression now uses one real `record` client plus one real `csv` client concurrently (the previous
+two-record test could not expose the interface mismatch). All 23/23 contract tests pass outside the sandbox;
+Python compilation and `git diff --check` pass. No scientific gate or threshold changed.
+
+## 2026-08-13 — CODEX: A3 receiver-finalization failure repaired with an explicit cross-namespace handshake.
+
+`dg_a_csvfix_20260813_2000_pdt` proved that the corrected CSV observer works and progressed through D0,
+instrumentation reconciliation, and block-A calibration. The controlled-path gate recorded 1,145/1,074 live
+uplink service events, and D0 plus calibration completed with valid routing, radio, grant, and checksum evidence.
+The first registered decision trial was `A3`. Its sender completed all 145 scheduled frames and both UE/gNB raw
+traces extracted, but the receiver did not produce `receiver_frames.csv` or `receiver_summary.json`.
+
+**Root cause:** the runner treated a process-group `SIGTERM` sent to the `sudo nsenter` wrapper as a reliable
+graceful-stop API. On A3 that signal did not reach/stop the Python endpoint; after the fixed eight-second wait the
+runner sent `SIGKILL`, terminating it before its final frame table and summary flush. The subsequent bare
+`receiver_summary.json` read raised `FileNotFoundError`. The retained evidence is unambiguous: A3 wrote 800 chunk
+rows and a complete sender summary, then the progress log records TERM, an eight-second gap, KILL, and only then
+the missing-file exception. This was not an attach, radio, sender, trace, or scientific-gate failure.
+
+**Repair:** every receiver now receives an explicit `--stop-file` path. After the post-idle window the runner
+atomically writes that request, waits for a normal zero exit, and requires all three receiver artifacts
+(`receiver_chunks.csv`, `receiver_frames.csv`, `receiver_summary.json`) before extraction or metrics. TERM/KILL
+remains cleanup-only after a configurable handshake timeout, and that timeout is itself a named fail-closed
+lifecycle error. Sender outputs, grant-reconciliation output, and calibration RLC/grant inputs also have explicit
+existence gates, so a child failure can no longer surface later as an unqualified `FileNotFoundError`.
+
+**Cross-check before relaunch:** 26/26 contract tests pass outside the sandbox, including real concurrent OAI
+`record + csv` relay clients and injected clean/missing/timeout receiver outcomes. The exact preflight at
+`experiments/receiverstop_preflight_20260813_2015_pdt` ran the receiver through `sudo nsenter`, delivered 33/33
+production-shaped 400 KiB frames, observed the stop request, and wrote/validated all three final artifacts in
+about 0.1 s. Python compilation and `git diff --check` pass. No reward, controller, channel, decision threshold,
+or scientific gate changed. The fresh bounded target is `experiments/dg_a_receiverstop_20260813_2020_pdt`; it
+still cannot chain DG-B or any later campaign.
+
+## 2026-08-13 — CODEX: A1 sampler false failure repaired; all remaining child lifecycles audited.
+
+`dg_a_receiverstop_20260813_2020_pdt` confirms the receiver handshake repair: every completed trial, including
+the previously failing A3 and the subsequent A1, wrote and passed the receiver stop/artifact contract. The run
+then stopped on `A1 network sampler failure: returncode=-2` before trace extraction.
+
+**This was another orchestration false negative, not a data failure.** A1's sampler was configured for 81 s and
+wrote all 162 per-interface samples, `network_summary.csv`, and `network_manifest.json`; its log ends with the
+normal summary. A1 also has 84/84 complete application frames, zero partial/checksum/identity failures, complete
+81 s UE/gNB raw traces, and correct per-tunnel byte counts. At cleanup, the runner observed the sampler process
+as still present, sent `SIGINT`, and then rejected the resulting `-2` return code. The signal landed in the narrow
+post-summary process-exit window. The failed stage is not promoted as the official result—A1/A3 remain valid
+diagnostics—because mixing them with trials from a restarted block would weaken the single-calibration block
+contract.
+
+**Repair:** `sample_oai_network_metrics.py` now accepts an optional stop-file. The DG-A runner atomically requests
+sampler shutdown, waits for a zero exit, and validates the time series, two-UE summary, manifest, labels, and
+sample counts. TERM/KILL is failure cleanup only. The exact preflight now runs receiver and sampler together, so
+both lifecycle contracts execute before Docker/RAN startup. The live grant observer was also audited: controlled
+senders now require both its CSV process and reader thread to stay alive through the complete sender horizon; a
+mid-trial sidecar exit is recorded and fails the sender instead of leaving a stale capacity estimate.
+
+**Verification:** 29/29 unsandboxed contracts pass, including the real OAI `record + csv` relay test, injected
+sampler signal-exit rejection, and receiver lifecycle cases. The no-OAI exact preflight at
+`experiments/lifecycle_preflight_20260813_2035_pdt` delivered 33/33 400 KiB frames, finalized the root
+`sudo nsenter` receiver in about 0.1 s, finalized the concurrent sampler in under 1 s, and validated every
+required artifact. Compilation and `git diff --check` pass. No scientific threshold or controller changed. The
+next fresh bounded target is `experiments/dg_a_lifecycle_20260813_2040_pdt`; it cannot chain DG-B.
+
+## 2026-08-13 — CODEX: Block-B lease rollover exposed a false exact-IP gate; subscriber/subnet contract repaired.
+
+`dg_a_lifecycle_20260813_2040_pdt` completed the strong-rung entry, D0, calibration, and all seven Block-A
+trials. It then stopped before any Block-B traffic because the restarted UEs received `10.0.0.4/.5` instead of
+the runner's pinned `10.0.0.2/.3`. This was not a wrong-UE attach: Block-B's softmodem log proves the same
+intended subscribers (`IMSI 001010000000001` and `...002`) initialized in the same internal-UE order, and the
+core config declares the `oai` DNN as `10.0.0.0/24`. A RAN-only restart occurred while the prior PDU-session
+leases were still retained, so the core issued new valid addresses. The old gate incorrectly used the first two
+leases as subscriber identity.
+
+The replacement is narrower than "accept any IP." Config and preflight now pin the expected
+IMSI -> internal UE ID -> fixed tunnel chain, parse both `uiccN` profiles, verify that both request the `oai`
+DNN, and cross-check the expected subnet against the live core configuration file. Every RAN attach then
+requires the same two IMSIs in the softmodem log, the exact `oaitun_ue1/oaitun_ue2` identities, two unique
+usable IPv4 addresses inside `10.0.0.0/24`, and ext-DN ping reachability. Each traffic trial still independently
+requires the sender socket to bind the address discovered from its fixed tunnel and the matching tunnel TX-byte
+delta, with message-ID identity checked after UPF SNAT. Thus `.4/.5` lease rollover passes, while a wrong IMSI,
+tunnel, subnet, duplicate address, broken route, or misbound sender still fails closed.
+
+Validation before relaunch: all **30/30** contract tests pass outside the sandbox, including the real concurrent
+OAI `record + csv` relay test; Python compilation, launcher shell syntax, and `git diff --check` pass. The exact
+no-OAI preflight at `experiments/ipcontract_preflight_20260813_2117_pdt` completed
+`PREFLIGHT_ONLY_PASS`, exercised all sender commands plus receiver/sampler finalization, and did not start OAI.
+The fresh detached target is `experiments/dg_a_ipcontract_20260813_2118_pdt`. It remains bounded to
+D0 -> DG-A -> DG-A.1 and cannot launch DG-B, the campaign, a controller ladder, or RL.

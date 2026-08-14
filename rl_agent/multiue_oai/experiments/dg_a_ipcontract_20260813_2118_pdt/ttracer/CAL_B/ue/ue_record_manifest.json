@@ -1,0 +1,11 @@
+{
+  "created_at": "2026-08-13T21:40:51-07:00",
+  "run_group": "CAL_B",
+  "source": "ue",
+  "ip": "127.0.0.1",
+  "port": 2033,
+  "duration_s": 51.0,
+  "raw_path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/multiue_oai/experiments/dg_a_ipcontract_20260813_2118_pdt/ttracer/CAL_B/ue/ue.raw",
+  "profile": "all",
+  "trace_profile": "NRUE_MAC_DCI_GRANT UE_PHY_MEAS UE_PHY_ULSCH_UE_DCI UE_PHY_DLSCH_UE_DCI UE_PHY_UL_PAYLOAD_TX_BITS UE_PHY_UL_TICK NRUE_MAC_RLC_BUFFER_STATUS NRUE_MAC_BSR_STATUS NR_PDCP_TX_SDU NR_RLC_TX_SDU NR_RLC_TX_DEQUEUE "
+}

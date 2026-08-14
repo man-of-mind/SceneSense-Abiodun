@@ -24,20 +24,34 @@ radio:
   ue_base_config: ue.multi2.conf
   channel_config: channelmod_rfsimu_awgn_strong.conf
   mcs_policy: sinr
-  expected_snr_db: 8.2
+  # Re-registered 2026-08-13 from the first valid two-UE runtime-switch
+  # measurement at the unchanged -4 dB channel setting. The inherited
+  # 8.2/MCS9 point came from the single-UE sweep; the per-UE two-UE PUSCH
+  # gate measured 6.0/MCS8 on both UEs. Tolerances remain unchanged.
+  attach_strategy: clean_then_runtime_strong
+  expected_snr_db: 6.0
   snr_tolerance_db: 2.0
-  expected_mcs: 9
+  expected_mcs: 8
   mcs_tolerance: 2
+  strong_rung_registration:
+    observable: GNB_MAC_PUSCH_POWER_CONTROL.snrx10_div_10
+    registered_ue_count: 2
+    channel_noise_power_db: -4
+    source_run: runtime_switch_smoke_fix2_20260813_1709_pdt
+    source_trial: SWITCH_STRONG_ASYMMETRIC
+    advisor_review_required: true
   gnb_ttracer_port: 2021
   ue_ttracer_port: 2023
   t_stdout: 2
   attach_timeout_s: 240
-  # Tunnel names are stable UE identities. IP assignment is discovered from
-  # these fixed interfaces after every attach; expected_ip_pool is unordered.
+  # Subscriber + internal-UE + tunnel is the stable identity chain. The core
+  # may lease a different address after a RAN-only restart while the prior PDU
+  # session ages out, so addresses are discovered and subnet-gated, not pinned.
   expected_tunnels:
-    - {ue_id: 0, iface: oaitun_ue1}
-    - {ue_id: 1, iface: oaitun_ue2}
-  expected_ip_pool: [10.0.0.2, 10.0.0.3]
+    - {ue_id: 0, iface: oaitun_ue1, imsi: "001010000000001"}
+    - {ue_id: 1, iface: oaitun_ue2, imsi: "001010000000002"}
+  expected_dnn: oai
+  expected_ue_subnet: 10.0.0.0/24
   ext_dn_container: oai-ext-dn
   ext_dn_ip: 192.168.70.135
   # OAI UPF has enable_snat=yes, so ext-DN sees the UPF N6 address for both UEs.
@@ -58,6 +72,10 @@ transport:
   drain_stable_s: 5
 
 instrumentation:
+  # OAI local_tracer accepts one client.  The persistent relay is that sole
+  # client and multiplexes UE telemetry to the recorder, queue probe, and
+  # controlled-traffic grant observer.
+  ue_trace_relay_port: 2033
   smoke_s: 20
   perturbation_s: 30
   trace_service_tolerance_fraction: 0.05
@@ -65,6 +83,10 @@ instrumentation:
   recorder_lead_s: 2
   recorder_tail_s: 5
   extraction_timeout_s: 30
+  # The receiver exits on an explicit file request; signals are cleanup-only.
+  receiver_finalize_timeout_s: 10
+  # Same contract for the tunnel sampler; avoids signal/exit races after summary flush.
+  network_sampler_finalize_timeout_s: 10
   sender_rate_tolerance_fraction: 0.02
   ue_gnb_tbs_tolerance_fraction: 0.05
   # Linux tunnel TX includes IPv4 fragmentation headers omitted from the
@@ -80,10 +102,11 @@ calibration:
   minimum_achieved_rho: 1.25
   minimum_backlogged_s: 5
 
-# Bounded runtime-control diagnostic only. RFsim starts with both per-UE
-# channel objects active but effectively clean, then the gNB telnet control
-# changes both UL objects to the measured strong profile. This mode cannot
-# launch D0 or DG-A.
+# RFsim starts with both per-UE channel objects active but effectively clean,
+# then the gNB telnet control changes both UL objects to the measured strong
+# profile. The bounded diagnostic and the full DG-A path share this mechanism;
+# full DG-A additionally runs a real-traffic strong-rung gate before D0 in each
+# RAN block.
 runtime_switch:
   telnet_host: 127.0.0.1
   telnet_port: 9090
@@ -93,6 +116,12 @@ runtime_switch:
   strong_traffic_s: 30
   baseline_fractions: [0.20, 0.20]
   strong_fractions: [0.90, 0.20]
+  production_gate_traffic_s: 15
+  production_gate_fractions: [0.20, 0.20]
+  # Front-load the recorder + live-observer concurrency check so the
+  # controlled path cannot first fail after A1--A5 have already run.
+  controlled_gate_traffic_s: 8
+  controlled_gate_fractions: [0.20, 0.20]
   minimum_snr_movement_db: 3.0
   minimum_mcs_movement: 2.0
 

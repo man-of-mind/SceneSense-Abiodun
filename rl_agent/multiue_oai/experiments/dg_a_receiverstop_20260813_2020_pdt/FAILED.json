@@ -1,0 +1,13 @@
+{
+  "attach_channel_mode": "strong",
+  "d0_launched": true,
+  "decision": "HOLD_REPAIR",
+  "dg_a_launched": true,
+  "error": "A1 network sampler failure: returncode=-2",
+  "error_type": "StageFailure",
+  "failed_at": "2026-08-14T03:28:38.814709+00:00",
+  "next_stage_launched": false,
+  "run_mode": "dg_a",
+  "schema_version": "scenesense.multiue_oai.dg_a.failure.v1",
+  "status": "FAILED_HOLD"
+}

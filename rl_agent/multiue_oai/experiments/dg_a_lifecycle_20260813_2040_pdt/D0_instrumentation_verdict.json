@@ -1,0 +1,6 @@
+{
+  "demand_hash_match": true,
+  "latency_delta_fraction": 0.008504222154316114,
+  "pass": true,
+  "service_delta_fraction": 0.004141321527793609
+}

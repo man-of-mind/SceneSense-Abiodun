@@ -1,0 +1,2984 @@
+{
+  "decision": "CANDIDATE_GO_DG_B_HUMAN_REVIEW_REQUIRED",
+  "large_n_screen": {
+    "central_efficiency_envelope": [
+      1.0
+    ],
+    "mu1_mapped_mbps": 9.996664425827209,
+    "mu2_block_mbps": [
+      6.077408,
+      6.077408
+    ],
+    "provenance": "MODEL-BASED provisional N=50/100 screen fitted on N=1 historical + N=2 DG-A; not measured",
+    "robust_n50_gap": true,
+    "robust_scenarios": [
+      {
+        "central_efficiency": 1.0,
+        "demand": "hot20_traffic80",
+        "minimum_delivery_lift_pp": 47.727272727272705,
+        "minimum_starvation_reduction_ms": -127221.4464681398,
+        "n": 50,
+        "payload_bytes": 92160
+      },
+      {
+        "central_efficiency": 1.0,
+        "demand": "hot20_traffic80",
+        "minimum_delivery_lift_pp": 47.727272727272705,
+        "minimum_starvation_reduction_ms": -182640.1303820791,
+        "n": 50,
+        "payload_bytes": 132301
+      },
+      {
+        "central_efficiency": 1.0,
+        "demand": "hot20_traffic80",
+        "minimum_delivery_lift_pp": 47.727272727272705,
+        "minimum_starvation_reduction_ms": -565334.8542573081,
+        "n": 50,
+        "payload_bytes": 409600
+      },
+      {
+        "central_efficiency": 1.0,
+        "demand": "hot20_traffic80",
+        "minimum_delivery_lift_pp": 47.72727272727253,
+        "minimum_starvation_reduction_ms": -418530.4353797997,
+        "n": 100,
+        "payload_bytes": 92160
+      },
+      {
+        "central_efficiency": 1.0,
+        "demand": "hot20_traffic80",
+        "minimum_delivery_lift_pp": 47.72727272727253,
+        "minimum_starvation_reduction_ms": -600845.6546340086,
+        "n": 100,
+        "payload_bytes": 132301
+      },
+      {
+        "central_efficiency": 1.0,
+        "demand": "hot20_traffic80",
+        "minimum_delivery_lift_pp": 47.72727272727253,
+        "minimum_starvation_reduction_ms": -1859826.6979061682,
+        "n": 100,
+        "payload_bytes": 409600
+      }
+    ],
+    "rows": [
+      {
+        "block": "A",
+        "central": {
+          "aggregate_admitted_mbps": 4.254185599999995,
+          "worst_delivery_fraction": 0.6363636363636358,
+          "worst_inter_delivery_ms": 8672.118113511557
+        },
+        "central_efficiency": 1.0,
+        "demand": "equal",
+        "family": "constant_ceiling",
+        "local": {
+          "aggregate_admitted_mbps": 4.254185599999999,
+          "worst_delivery_fraction": 0.6363636363636362,
+          "worst_inter_delivery_ms": 8672.11811351155
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 6.077408,
+        "n": 50,
+        "payload_bytes": 92160,
+        "starvation_reduction_fraction": -8.390058252143911e-16,
+        "starvation_reduction_ms": -7.275957614183426e-12,
+        "valid": true,
+        "worst_delivery_lift_pp": -4.440892098500626e-14
+      },
+      {
+        "block": "A",
+        "central": {
+          "aggregate_admitted_mbps": 4.254185599999995,
+          "worst_delivery_fraction": 0.6363636363636358,
+          "worst_inter_delivery_ms": 12449.762417511838
+        },
+        "central_efficiency": 1.0,
+        "demand": "equal",
+        "family": "constant_ceiling",
+        "local": {
+          "aggregate_admitted_mbps": 4.254185599999999,
+          "worst_delivery_fraction": 0.6363636363636362,
+          "worst_inter_delivery_ms": 12449.762417511827
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 6.077408,
+        "n": 50,
+        "payload_bytes": 132301,
+        "starvation_reduction_fraction": -8.766381281239233e-16,
+        "starvation_reduction_ms": -1.0913936421275139e-11,
+        "valid": true,
+        "worst_delivery_lift_pp": -4.440892098500626e-14
+      },
+      {
+        "block": "A",
+        "central": {
+          "aggregate_admitted_mbps": 4.254185599999995,
+          "worst_delivery_fraction": 0.6363636363636358,
+          "worst_inter_delivery_ms": 38536.353467982255
+        },
+        "central_efficiency": 1.0,
+        "demand": "equal",
+        "family": "constant_ceiling",
+        "local": {
+          "aggregate_admitted_mbps": 4.254185599999999,
+          "worst_delivery_fraction": 0.6363636363636362,
+          "worst_inter_delivery_ms": 38536.35346798222
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 6.077408,
+        "n": 50,
+        "payload_bytes": 409600,
+        "starvation_reduction_fraction": -9.4403815610481e-16,
+        "starvation_reduction_ms": -3.637978807091713e-11,
+        "valid": true,
+        "worst_delivery_lift_pp": -4.440892098500626e-14
+      },
+      {
+        "block": "A",
+        "central": {
+          "aggregate_admitted_mbps": 4.254185600000002,
+          "worst_delivery_fraction": 0.6363636363636377,
+          "worst_inter_delivery_ms": 34688.472454046125
+        },
+        "central_efficiency": 1.0,
+        "demand": "hot20_traffic80",
+        "family": "constant_ceiling",
+        "local": {
+          "aggregate_admitted_mbps": 2.1878668800000027,
+          "worst_delivery_fraction": 0.15909090909090906,
+          "worst_inter_delivery_ms": 22074.48247075667
+        },
+        "meaningful_gap": true,
+        "mu_mbps": 6.077408,
+        "n": 50,
+        "payload_bytes": 92160,
+        "starvation_reduction_fraction": -0.5714285714285683,
+        "starvation_reduction_ms": -12613.989983289455,
+        "valid": true,
+        "worst_delivery_lift_pp": 47.72727272727286
+      },
+      {
+        "block": "A",
+        "central": {
+          "aggregate_admitted_mbps": 4.254185600000002,
+          "worst_delivery_fraction": 0.6363636363636377,
+          "worst_inter_delivery_ms": 49799.04967004721
+        },
+        "central_efficiency": 1.0,
+        "demand": "hot20_traffic80",
+        "family": "constant_ceiling",
+        "local": {
+          "aggregate_admitted_mbps": 2.1878668800000027,
+          "worst_delivery_fraction": 0.15909090909090906,
+          "worst_inter_delivery_ms": 31690.30433548465
+        },
+        "meaningful_gap": true,
+        "mu_mbps": 6.077408,
+        "n": 50,
+        "payload_bytes": 132301,
+        "starvation_reduction_fraction": -0.5714285714285683,
+        "starvation_reduction_ms": -18108.745334562558,
+        "valid": true,
+        "worst_delivery_lift_pp": 47.72727272727286
+      },
+      {
+        "block": "A",
+        "central": {
+          "aggregate_admitted_mbps": 4.254185600000002,
+          "worst_delivery_fraction": 0.6363636363636377,
+          "worst_inter_delivery_ms": 154145.41387192855
+        },
+        "central_efficiency": 1.0,
+        "demand": "hot20_traffic80",
+        "family": "constant_ceiling",
+        "local": {
+          "aggregate_admitted_mbps": 2.1878668800000027,
+          "worst_delivery_fraction": 0.15909090909090906,
+          "worst_inter_delivery_ms": 98092.53610031836
+        },
+        "meaningful_gap": true,
+        "mu_mbps": 6.077408,
+        "n": 50,
+        "payload_bytes": 409600,
+        "starvation_reduction_fraction": -0.5714285714285683,
+        "starvation_reduction_ms": -56052.87777161019,
+        "valid": true,
+        "worst_delivery_lift_pp": 47.72727272727286
+      },
+      {
+        "block": "A",
+        "central": {
+          "aggregate_admitted_mbps": 4.2541856,
+          "worst_delivery_fraction": 0.5384615384615385,
+          "worst_inter_delivery_ms": 8672.118113511546
+        },
+        "central_efficiency": 1.0,
+        "demand": "synchronized_burst",
+        "family": "constant_ceiling",
+        "local": {
+          "aggregate_admitted_mbps": 4.254185599999999,
+          "worst_delivery_fraction": 0.5384615384615383,
+          "worst_inter_delivery_ms": 8672.11811351155
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 6.077408,
+        "n": 50,
+        "payload_bytes": 92160,
+        "starvation_reduction_fraction": 4.1950291260719553e-16,
+        "starvation_reduction_ms": 3.637978807091713e-12,
+        "valid": true,
+        "worst_delivery_lift_pp": 2.220446049250313e-14
+      },
+      {
+        "block": "A",
+        "central": {
+          "aggregate_admitted_mbps": 4.2541856,
+          "worst_delivery_fraction": 0.5384615384615385,
+          "worst_inter_delivery_ms": 12449.762417511822
+        },
+        "central_efficiency": 1.0,
+        "demand": "synchronized_burst",
+        "family": "constant_ceiling",
+        "local": {
+          "aggregate_admitted_mbps": 4.254185599999999,
+          "worst_delivery_fraction": 0.5384615384615383,
+          "worst_inter_delivery_ms": 12449.762417511827
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 6.077408,
+        "n": 50,
+        "payload_bytes": 132301,
+        "starvation_reduction_fraction": 4.3831906406196166e-16,
+        "starvation_reduction_ms": 5.4569682106375694e-12,
+        "valid": true,
+        "worst_delivery_lift_pp": 2.220446049250313e-14
+      },
+      {
+        "block": "A",
+        "central": {
+          "aggregate_admitted_mbps": 4.2541856,
+          "worst_delivery_fraction": 0.5384615384615385,
+          "worst_inter_delivery_ms": 38536.353467982204
+        },
+        "central_efficiency": 1.0,
+        "demand": "synchronized_burst",
+        "family": "constant_ceiling",
+        "local": {
+          "aggregate_admitted_mbps": 4.254185599999999,
+          "worst_delivery_fraction": 0.5384615384615383,
+          "worst_inter_delivery_ms": 38536.35346798222
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 6.077408,
+        "n": 50,
+        "payload_bytes": 409600,
+        "starvation_reduction_fraction": 3.7761526244192394e-16,
+        "starvation_reduction_ms": 1.4551915228366852e-11,
+        "valid": true,
+        "worst_delivery_lift_pp": 2.220446049250313e-14
+      },
+      {
+        "block": "A",
+        "central": {
+          "aggregate_admitted_mbps": 4.254185599999982,
+          "worst_delivery_fraction": 0.6363636363636351,
+          "worst_inter_delivery_ms": 17344.23622702313
+        },
+        "central_efficiency": 1.0,
+        "demand": "equal",
+        "family": "constant_ceiling",
+        "local": {
+          "aggregate_admitted_mbps": 4.254185600000005,
+          "worst_delivery_fraction": 0.6363636363636362,
+          "worst_inter_delivery_ms": 17344.2362270231
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 6.077408,
+        "n": 100,
+        "payload_bytes": 92160,
+        "starvation_reduction_fraction": -1.88776310673238e-15,
+        "starvation_reduction_ms": -3.2741809263825417e-11,
+        "valid": true,
+        "worst_delivery_lift_pp": -1.1102230246251565e-13
+      },
+      {
+        "block": "A",
+        "central": {
+          "aggregate_admitted_mbps": 4.254185599999982,
+          "worst_delivery_fraction": 0.6363636363636351,
+          "worst_inter_delivery_ms": 24899.5248350237
+        },
+        "central_efficiency": 1.0,
+        "demand": "equal",
+        "family": "constant_ceiling",
+        "local": {
+          "aggregate_admitted_mbps": 4.254185600000005,
+          "worst_delivery_fraction": 0.6363636363636362,
+          "worst_inter_delivery_ms": 24899.524835023654
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 6.077408,
+        "n": 100,
+        "payload_bytes": 132301,
+        "starvation_reduction_fraction": -1.8993826109351674e-15,
+        "starvation_reduction_ms": -4.729372449219227e-11,
+        "valid": true,
+        "worst_delivery_lift_pp": -1.1102230246251565e-13
+      },
+      {
+        "block": "A",
+        "central": {
+          "aggregate_admitted_mbps": 4.254185599999982,
+          "worst_delivery_fraction": 0.6363636363636351,
+          "worst_inter_delivery_ms": 77072.70693596457
+        },
+        "central_efficiency": 1.0,
+        "demand": "equal",
+        "family": "constant_ceiling",
+        "local": {
+          "aggregate_admitted_mbps": 4.254185600000005,
+          "worst_delivery_fraction": 0.6363636363636362,
+          "worst_inter_delivery_ms": 77072.70693596444
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 6.077408,
+        "n": 100,
+        "payload_bytes": 409600,
+        "starvation_reduction_fraction": -1.6992686809886578e-15,
+        "starvation_reduction_ms": -1.3096723705530167e-10,
+        "valid": true,
+        "worst_delivery_lift_pp": -1.1102230246251565e-13
+      },
+      {
+        "block": "A",
+        "central": {
+          "aggregate_admitted_mbps": 4.254185599999983,
+          "worst_delivery_fraction": 0.6363636363636344,
+          "worst_inter_delivery_ms": 69376.94490809261
+        },
+        "central_efficiency": 1.0,
+        "demand": "hot20_traffic80",
+        "family": "constant_ceiling",
+        "local": {
+          "aggregate_admitted_mbps": 2.1878668800000014,
+          "worst_delivery_fraction": 0.15909090909090906,
+          "worst_inter_delivery_ms": 44148.96494151334
+        },
+        "meaningful_gap": true,
+        "mu_mbps": 6.077408,
+        "n": 100,
+        "payload_bytes": 92160,
+        "starvation_reduction_fraction": -0.5714285714285765,
+        "starvation_reduction_ms": -25227.979966579274,
+        "valid": true,
+        "worst_delivery_lift_pp": 47.72727272727253
+      },
+      {
+        "block": "A",
+        "central": {
+          "aggregate_admitted_mbps": 4.254185599999983,
+          "worst_delivery_fraction": 0.6363636363636344,
+          "worst_inter_delivery_ms": 99598.09934009494
+        },
+        "central_efficiency": 1.0,
+        "demand": "hot20_traffic80",
+        "family": "constant_ceiling",
+        "local": {
+          "aggregate_admitted_mbps": 2.1878668800000014,
+          "worst_delivery_fraction": 0.15909090909090906,
+          "worst_inter_delivery_ms": 63380.6086709693
+        },
+        "meaningful_gap": true,
+        "mu_mbps": 6.077408,
+        "n": 100,
+        "payload_bytes": 132301,
+        "starvation_reduction_fraction": -0.5714285714285766,
+        "starvation_reduction_ms": -36217.49066912564,
+        "valid": true,
+        "worst_delivery_lift_pp": 47.72727272727253
+      },
+      {
+        "block": "A",
+        "central": {
+          "aggregate_admitted_mbps": 4.254185599999983,
+          "worst_delivery_fraction": 0.6363636363636344,
+          "worst_inter_delivery_ms": 308290.8277438587
+        },
+        "central_efficiency": 1.0,
+        "demand": "hot20_traffic80",
+        "family": "constant_ceiling",
+        "local": {
+          "aggregate_admitted_mbps": 2.1878668800000014,
+          "worst_delivery_fraction": 0.15909090909090906,
+          "worst_inter_delivery_ms": 196185.07220063673
+        },
+        "meaningful_gap": true,
+        "mu_mbps": 6.077408,
+        "n": 100,
+        "payload_bytes": 409600,
+        "starvation_reduction_fraction": -0.5714285714285764,
+        "starvation_reduction_ms": -112105.75554322195,
+        "valid": true,
+        "worst_delivery_lift_pp": 47.72727272727253
+      },
+      {
+        "block": "A",
+        "central": {
+          "aggregate_admitted_mbps": 4.254185600000005,
+          "worst_delivery_fraction": 0.5384615384615385,
+          "worst_inter_delivery_ms": 17344.23622702309
+        },
+        "central_efficiency": 1.0,
+        "demand": "synchronized_burst",
+        "family": "constant_ceiling",
+        "local": {
+          "aggregate_admitted_mbps": 4.254185600000005,
+          "worst_delivery_fraction": 0.5384615384615383,
+          "worst_inter_delivery_ms": 17344.2362270231
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 6.077408,
+        "n": 100,
+        "payload_bytes": 92160,
+        "starvation_reduction_fraction": 4.1950291260719553e-16,
+        "starvation_reduction_ms": 7.275957614183426e-12,
+        "valid": true,
+        "worst_delivery_lift_pp": 2.220446049250313e-14
+      },
+      {
+        "block": "A",
+        "central": {
+          "aggregate_admitted_mbps": 4.254185600000005,
+          "worst_delivery_fraction": 0.5384615384615385,
+          "worst_inter_delivery_ms": 24899.524835023643
+        },
+        "central_efficiency": 1.0,
+        "demand": "synchronized_burst",
+        "family": "constant_ceiling",
+        "local": {
+          "aggregate_admitted_mbps": 4.254185600000005,
+          "worst_delivery_fraction": 0.5384615384615383,
+          "worst_inter_delivery_ms": 24899.524835023654
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 6.077408,
+        "n": 100,
+        "payload_bytes": 132301,
+        "starvation_reduction_fraction": 4.3831906406196166e-16,
+        "starvation_reduction_ms": 1.0913936421275139e-11,
+        "valid": true,
+        "worst_delivery_lift_pp": 2.220446049250313e-14
+      },
+      {
+        "block": "A",
+        "central": {
+          "aggregate_admitted_mbps": 4.254185600000005,
+          "worst_delivery_fraction": 0.5384615384615385,
+          "worst_inter_delivery_ms": 77072.70693596441
+        },
+        "central_efficiency": 1.0,
+        "demand": "synchronized_burst",
+        "family": "constant_ceiling",
+        "local": {
+          "aggregate_admitted_mbps": 4.254185600000005,
+          "worst_delivery_fraction": 0.5384615384615383,
+          "worst_inter_delivery_ms": 77072.70693596444
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 6.077408,
+        "n": 100,
+        "payload_bytes": 409600,
+        "starvation_reduction_fraction": 3.7761526244192394e-16,
+        "starvation_reduction_ms": 2.9103830456733704e-11,
+        "valid": true,
+        "worst_delivery_lift_pp": 2.220446049250313e-14
+      },
+      {
+        "block": "A",
+        "central": {
+          "aggregate_admitted_mbps": 1.6204452818441157,
+          "worst_delivery_fraction": 0.6363636363636358,
+          "worst_inter_delivery_ms": 22767.075453491958
+        },
+        "central_efficiency": 1.0,
+        "demand": "equal",
+        "family": "saturating",
+        "local": {
+          "aggregate_admitted_mbps": 1.6204452818441175,
+          "worst_delivery_fraction": 0.6363636363636362,
+          "worst_inter_delivery_ms": 22767.07545349194
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 2.3149218312058797,
+        "n": 50,
+        "payload_bytes": 92160,
+        "starvation_reduction_fraction": -7.989561097830269e-16,
+        "starvation_reduction_ms": -1.8189894035458565e-11,
+        "valid": true,
+        "worst_delivery_lift_pp": -4.440892098500626e-14
+      },
+      {
+        "block": "A",
+        "central": {
+          "aggregate_admitted_mbps": 1.6204452818441157,
+          "worst_delivery_fraction": 0.6363636363636358,
+          "worst_inter_delivery_ms": 32684.596384350512
+        },
+        "central_efficiency": 1.0,
+        "demand": "equal",
+        "family": "saturating",
+        "local": {
+          "aggregate_admitted_mbps": 1.6204452818441175,
+          "worst_delivery_fraction": 0.6363636363636362,
+          "worst_inter_delivery_ms": 32684.59638435049
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 2.3149218312058797,
+        "n": 50,
+        "payload_bytes": 132301,
+        "starvation_reduction_fraction": -6.678336359387184e-16,
+        "starvation_reduction_ms": -2.1827872842550278e-11,
+        "valid": true,
+        "worst_delivery_lift_pp": -4.440892098500626e-14
+      },
+      {
+        "block": "A",
+        "central": {
+          "aggregate_admitted_mbps": 1.6204452818441157,
+          "worst_delivery_fraction": 0.6363636363636358,
+          "worst_inter_delivery_ms": 101170.21650581779
+        },
+        "central_efficiency": 1.0,
+        "demand": "equal",
+        "family": "saturating",
+        "local": {
+          "aggregate_admitted_mbps": 1.6204452818441175,
+          "worst_delivery_fraction": 0.6363636363636362,
+          "worst_inter_delivery_ms": 101170.21650581772
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 2.3149218312058797,
+        "n": 50,
+        "payload_bytes": 409600,
+        "starvation_reduction_fraction": -7.191798006842288e-16,
+        "starvation_reduction_ms": -7.275957614183426e-11,
+        "valid": true,
+        "worst_delivery_lift_pp": -4.440892098500626e-14
+      },
+      {
+        "block": "A",
+        "central": {
+          "aggregate_admitted_mbps": 1.6204452818441162,
+          "worst_delivery_fraction": 0.6363636363636372,
+          "worst_inter_delivery_ms": 91068.30181396763
+        },
+        "central_efficiency": 1.0,
+        "demand": "hot20_traffic80",
+        "family": "saturating",
+        "local": {
+          "aggregate_admitted_mbps": 0.8333718592341172,
+          "worst_delivery_fraction": 0.15909090909090906,
+          "worst_inter_delivery_ms": 57952.55569979766
+        },
+        "meaningful_gap": true,
+        "mu_mbps": 2.3149218312058797,
+        "n": 50,
+        "payload_bytes": 92160,
+        "starvation_reduction_fraction": -0.5714285714285693,
+        "starvation_reduction_ms": -33115.74611416997,
+        "valid": true,
+        "worst_delivery_lift_pp": 47.72727272727282
+      },
+      {
+        "block": "A",
+        "central": {
+          "aggregate_admitted_mbps": 1.6204452818441162,
+          "worst_delivery_fraction": 0.6363636363636372,
+          "worst_inter_delivery_ms": 130738.38553740174
+        },
+        "central_efficiency": 1.0,
+        "demand": "hot20_traffic80",
+        "family": "saturating",
+        "local": {
+          "aggregate_admitted_mbps": 0.8333718592341172,
+          "worst_delivery_fraction": 0.15909090909090906,
+          "worst_inter_delivery_ms": 83197.15443289214
+        },
+        "meaningful_gap": true,
+        "mu_mbps": 2.3149218312058797,
+        "n": 50,
+        "payload_bytes": 132301,
+        "starvation_reduction_fraction": -0.5714285714285691,
+        "starvation_reduction_ms": -47541.2311045096,
+        "valid": true,
+        "worst_delivery_lift_pp": 47.72727272727282
+      },
+      {
+        "block": "A",
+        "central": {
+          "aggregate_admitted_mbps": 1.6204452818441162,
+          "worst_delivery_fraction": 0.6363636363636372,
+          "worst_inter_delivery_ms": 404680.8660232702
+        },
+        "central_efficiency": 1.0,
+        "demand": "hot20_traffic80",
+        "family": "saturating",
+        "local": {
+          "aggregate_admitted_mbps": 0.8333718592341172,
+          "worst_delivery_fraction": 0.15909090909090906,
+          "worst_inter_delivery_ms": 257524.1874693541
+        },
+        "meaningful_gap": true,
+        "mu_mbps": 2.3149218312058797,
+        "n": 50,
+        "payload_bytes": 409600,
+        "starvation_reduction_fraction": -0.5714285714285693,
+        "starvation_reduction_ms": -147156.67855391608,
+        "valid": true,
+        "worst_delivery_lift_pp": 47.72727272727282
+      },
+      {
+        "block": "A",
+        "central": {
+          "aggregate_admitted_mbps": 1.6204452818441177,
+          "worst_delivery_fraction": 0.5384615384615388,
+          "worst_inter_delivery_ms": 22767.075453491925
+        },
+        "central_efficiency": 1.0,
+        "demand": "synchronized_burst",
+        "family": "saturating",
+        "local": {
+          "aggregate_admitted_mbps": 1.6204452818441175,
+          "worst_delivery_fraction": 0.5384615384615384,
+          "worst_inter_delivery_ms": 22767.07545349194
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 2.3149218312058797,
+        "n": 50,
+        "payload_bytes": 92160,
+        "starvation_reduction_fraction": 6.391648878264216e-16,
+        "starvation_reduction_ms": 1.4551915228366852e-11,
+        "valid": true,
+        "worst_delivery_lift_pp": 3.3306690738754696e-14
+      },
+      {
+        "block": "A",
+        "central": {
+          "aggregate_admitted_mbps": 1.6204452818441177,
+          "worst_delivery_fraction": 0.5384615384615388,
+          "worst_inter_delivery_ms": 32684.596384350472
+        },
+        "central_efficiency": 1.0,
+        "demand": "synchronized_burst",
+        "family": "saturating",
+        "local": {
+          "aggregate_admitted_mbps": 1.6204452818441175,
+          "worst_delivery_fraction": 0.5384615384615384,
+          "worst_inter_delivery_ms": 32684.59638435049
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 2.3149218312058797,
+        "n": 50,
+        "payload_bytes": 132301,
+        "starvation_reduction_fraction": 5.565280299489321e-16,
+        "starvation_reduction_ms": 1.8189894035458565e-11,
+        "valid": true,
+        "worst_delivery_lift_pp": 3.3306690738754696e-14
+      },
+      {
+        "block": "A",
+        "central": {
+          "aggregate_admitted_mbps": 1.6204452818441177,
+          "worst_delivery_fraction": 0.5384615384615388,
+          "worst_inter_delivery_ms": 101170.21650581766
+        },
+        "central_efficiency": 1.0,
+        "demand": "synchronized_burst",
+        "family": "saturating",
+        "local": {
+          "aggregate_admitted_mbps": 1.6204452818441175,
+          "worst_delivery_fraction": 0.5384615384615384,
+          "worst_inter_delivery_ms": 101170.21650581772
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 2.3149218312058797,
+        "n": 50,
+        "payload_bytes": 409600,
+        "starvation_reduction_fraction": 5.75343840547383e-16,
+        "starvation_reduction_ms": 5.820766091346741e-11,
+        "valid": true,
+        "worst_delivery_lift_pp": 3.3306690738754696e-14
+      },
+      {
+        "block": "A",
+        "central": {
+          "aggregate_admitted_mbps": 1.5655756918825365,
+          "worst_delivery_fraction": 0.6363636363636365,
+          "worst_inter_delivery_ms": 47130.01126842745
+        },
+        "central_efficiency": 1.0,
+        "demand": "equal",
+        "family": "saturating",
+        "local": {
+          "aggregate_admitted_mbps": 1.5655756918825365,
+          "worst_delivery_fraction": 0.6363636363636362,
+          "worst_inter_delivery_ms": 47130.01126842747
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 2.2365367026893352,
+        "n": 100,
+        "payload_bytes": 92160,
+        "starvation_reduction_fraction": 4.631416852041542e-16,
+        "starvation_reduction_ms": 2.1827872842550278e-11,
+        "valid": true,
+        "worst_delivery_lift_pp": 2.220446049250313e-14
+      },
+      {
+        "block": "A",
+        "central": {
+          "aggregate_admitted_mbps": 1.5655756918825365,
+          "worst_delivery_fraction": 0.6363636363636365,
+          "worst_inter_delivery_ms": 67660.22272141134
+        },
+        "central_efficiency": 1.0,
+        "demand": "equal",
+        "family": "saturating",
+        "local": {
+          "aggregate_admitted_mbps": 1.5655756918825365,
+          "worst_delivery_fraction": 0.6363636363636362,
+          "worst_inter_delivery_ms": 67660.22272141137
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 2.2365367026893352,
+        "n": 100,
+        "payload_bytes": 132301,
+        "starvation_reduction_fraction": 4.3014683201040766e-16,
+        "starvation_reduction_ms": 2.9103830456733704e-11,
+        "valid": true,
+        "worst_delivery_lift_pp": 2.220446049250313e-14
+      },
+      {
+        "block": "A",
+        "central": {
+          "aggregate_admitted_mbps": 1.5655756918825365,
+          "worst_delivery_fraction": 0.6363636363636365,
+          "worst_inter_delivery_ms": 209431.9691472323
+        },
+        "central_efficiency": 1.0,
+        "demand": "equal",
+        "family": "saturating",
+        "local": {
+          "aggregate_admitted_mbps": 1.5655756918825365,
+          "worst_delivery_fraction": 0.6363636363636362,
+          "worst_inter_delivery_ms": 209431.9691472324
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 2.2365367026893352,
+        "n": 100,
+        "payload_bytes": 409600,
+        "starvation_reduction_fraction": 4.1689667401646986e-16,
+        "starvation_reduction_ms": 8.731149137020111e-11,
+        "valid": true,
+        "worst_delivery_lift_pp": 2.220446049250313e-14
+      },
+      {
+        "block": "A",
+        "central": {
+          "aggregate_admitted_mbps": 1.565575691882533,
+          "worst_delivery_fraction": 0.6363636363636377,
+          "worst_inter_delivery_ms": 188520.0450737095
+        },
+        "central_efficiency": 1.0,
+        "demand": "hot20_traffic80",
+        "family": "saturating",
+        "local": {
+          "aggregate_admitted_mbps": 0.8051532129681617,
+          "worst_delivery_fraction": 0.15909090909090906,
+          "worst_inter_delivery_ms": 119967.30141054264
+        },
+        "meaningful_gap": true,
+        "mu_mbps": 2.2365367026893352,
+        "n": 100,
+        "payload_bytes": 92160,
+        "starvation_reduction_fraction": -0.5714285714285685,
+        "starvation_reduction_ms": -68552.74366316687,
+        "valid": true,
+        "worst_delivery_lift_pp": 47.72727272727286
+      },
+      {
+        "block": "A",
+        "central": {
+          "aggregate_admitted_mbps": 1.565575691882533,
+          "worst_delivery_fraction": 0.6363636363636377,
+          "worst_inter_delivery_ms": 270640.89088564494
+        },
+        "central_efficiency": 1.0,
+        "demand": "hot20_traffic80",
+        "family": "saturating",
+        "local": {
+          "aggregate_admitted_mbps": 0.8051532129681617,
+          "worst_delivery_fraction": 0.15909090909090906,
+          "worst_inter_delivery_ms": 172226.02147268347
+        },
+        "meaningful_gap": true,
+        "mu_mbps": 2.2365367026893352,
+        "n": 100,
+        "payload_bytes": 132301,
+        "starvation_reduction_fraction": -0.5714285714285685,
+        "starvation_reduction_ms": -98414.86941296147,
+        "valid": true,
+        "worst_delivery_lift_pp": 47.72727272727286
+      },
+      {
+        "block": "A",
+        "central": {
+          "aggregate_admitted_mbps": 1.565575691882533,
+          "worst_delivery_fraction": 0.6363636363636377,
+          "worst_inter_delivery_ms": 837727.8765889278
+        },
+        "central_efficiency": 1.0,
+        "demand": "hot20_traffic80",
+        "family": "saturating",
+        "local": {
+          "aggregate_admitted_mbps": 0.8051532129681617,
+          "worst_delivery_fraction": 0.15909090909090906,
+          "worst_inter_delivery_ms": 533099.5578293188
+        },
+        "meaningful_gap": true,
+        "mu_mbps": 2.2365367026893352,
+        "n": 100,
+        "payload_bytes": 409600,
+        "starvation_reduction_fraction": -0.5714285714285682,
+        "starvation_reduction_ms": -304628.318759609,
+        "valid": true,
+        "worst_delivery_lift_pp": 47.72727272727286
+      },
+      {
+        "block": "A",
+        "central": {
+          "aggregate_admitted_mbps": 1.5655756918825352,
+          "worst_delivery_fraction": 0.5384615384615377,
+          "worst_inter_delivery_ms": 47130.01126842755
+        },
+        "central_efficiency": 1.0,
+        "demand": "synchronized_burst",
+        "family": "saturating",
+        "local": {
+          "aggregate_admitted_mbps": 1.5655756918825365,
+          "worst_delivery_fraction": 0.5384615384615384,
+          "worst_inter_delivery_ms": 47130.01126842747
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 2.2365367026893352,
+        "n": 100,
+        "payload_bytes": 92160,
+        "starvation_reduction_fraction": -1.6981861790818988e-15,
+        "starvation_reduction_ms": -8.003553375601768e-11,
+        "valid": true,
+        "worst_delivery_lift_pp": -7.771561172376096e-14
+      },
+      {
+        "block": "A",
+        "central": {
+          "aggregate_admitted_mbps": 1.5655756918825352,
+          "worst_delivery_fraction": 0.5384615384615377,
+          "worst_inter_delivery_ms": 67660.22272141148
+        },
+        "central_efficiency": 1.0,
+        "demand": "synchronized_burst",
+        "family": "saturating",
+        "local": {
+          "aggregate_admitted_mbps": 1.5655756918825365,
+          "worst_delivery_fraction": 0.5384615384615384,
+          "worst_inter_delivery_ms": 67660.22272141137
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 2.2365367026893352,
+        "n": 100,
+        "payload_bytes": 132301,
+        "starvation_reduction_fraction": -1.7205873280416306e-15,
+        "starvation_reduction_ms": -1.1641532182693481e-10,
+        "valid": true,
+        "worst_delivery_lift_pp": -7.771561172376096e-14
+      },
+      {
+        "block": "A",
+        "central": {
+          "aggregate_admitted_mbps": 1.5655756918825352,
+          "worst_delivery_fraction": 0.5384615384615377,
+          "worst_inter_delivery_ms": 209431.96914723274
+        },
+        "central_efficiency": 1.0,
+        "demand": "synchronized_burst",
+        "family": "saturating",
+        "local": {
+          "aggregate_admitted_mbps": 1.5655756918825365,
+          "worst_delivery_fraction": 0.5384615384615384,
+          "worst_inter_delivery_ms": 209431.9691472324
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 2.2365367026893352,
+        "n": 100,
+        "payload_bytes": 409600,
+        "starvation_reduction_fraction": -1.6675866960658794e-15,
+        "starvation_reduction_ms": -3.4924596548080444e-10,
+        "valid": true,
+        "worst_delivery_lift_pp": -7.771561172376096e-14
+      },
+      {
+        "block": "A",
+        "central": {
+          "aggregate_admitted_mbps": 0.4218019526990143,
+          "worst_delivery_fraction": 0.6363636363636357,
+          "worst_inter_delivery_ms": 87464.7444468461
+        },
+        "central_efficiency": 1.0,
+        "demand": "equal",
+        "family": "power_law",
+        "local": {
+          "aggregate_admitted_mbps": 0.42180195269901555,
+          "worst_delivery_fraction": 0.6363636363636364,
+          "worst_inter_delivery_ms": 87464.744446846
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 0.6025742181414504,
+        "n": 50,
+        "payload_bytes": 92160,
+        "starvation_reduction_fraction": -1.1646224686618995e-15,
+        "starvation_reduction_ms": -1.0186340659856796e-10,
+        "valid": true,
+        "worst_delivery_lift_pp": -6.661338147750939e-14
+      },
+      {
+        "block": "A",
+        "central": {
+          "aggregate_admitted_mbps": 0.4218019526990143,
+          "worst_delivery_fraction": 0.6363636363636357,
+          "worst_inter_delivery_ms": 125565.08963767938
+        },
+        "central_efficiency": 1.0,
+        "demand": "equal",
+        "family": "power_law",
+        "local": {
+          "aggregate_admitted_mbps": 0.42180195269901555,
+          "worst_delivery_fraction": 0.6363636363636364,
+          "worst_inter_delivery_ms": 125565.08963767925
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 0.6025742181414504,
+        "n": 50,
+        "payload_bytes": 132301,
+        "starvation_reduction_fraction": -1.0430226859488607e-15,
+        "starvation_reduction_ms": -1.3096723705530167e-10,
+        "valid": true,
+        "worst_delivery_lift_pp": -6.661338147750939e-14
+      },
+      {
+        "block": "A",
+        "central": {
+          "aggregate_admitted_mbps": 0.4218019526990143,
+          "worst_delivery_fraction": 0.6363636363636357,
+          "worst_inter_delivery_ms": 388667.7123018992
+        },
+        "central_efficiency": 1.0,
+        "demand": "equal",
+        "family": "power_law",
+        "local": {
+          "aggregate_admitted_mbps": 0.42180195269901555,
+          "worst_delivery_fraction": 0.6363636363636364,
+          "worst_inter_delivery_ms": 388667.7123018988
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 0.6025742181414504,
+        "n": 50,
+        "payload_bytes": 409600,
+        "starvation_reduction_fraction": -1.048334125778323e-15,
+        "starvation_reduction_ms": -4.0745362639427185e-10,
+        "valid": true,
+        "worst_delivery_lift_pp": -6.661338147750939e-14
+      },
+      {
+        "block": "A",
+        "central": {
+          "aggregate_admitted_mbps": 0.4218019526990158,
+          "worst_delivery_fraction": 0.6363636363636361,
+          "worst_inter_delivery_ms": 349858.9777873842
+        },
+        "central_efficiency": 1.0,
+        "demand": "hot20_traffic80",
+        "family": "power_law",
+        "local": {
+          "aggregate_admitted_mbps": 0.21692671853092238,
+          "worst_delivery_fraction": 0.1590909090909091,
+          "worst_inter_delivery_ms": 222637.5313192444
+        },
+        "meaningful_gap": true,
+        "mu_mbps": 0.6025742181414504,
+        "n": 50,
+        "payload_bytes": 92160,
+        "starvation_reduction_fraction": -0.5714285714285721,
+        "starvation_reduction_ms": -127221.4464681398,
+        "valid": true,
+        "worst_delivery_lift_pp": 47.727272727272705
+      },
+      {
+        "block": "A",
+        "central": {
+          "aggregate_admitted_mbps": 0.4218019526990158,
+          "worst_delivery_fraction": 0.6363636363636361,
+          "worst_inter_delivery_ms": 502260.35855071724
+        },
+        "central_efficiency": 1.0,
+        "demand": "hot20_traffic80",
+        "family": "power_law",
+        "local": {
+          "aggregate_admitted_mbps": 0.21692671853092238,
+          "worst_delivery_fraction": 0.1590909090909091,
+          "worst_inter_delivery_ms": 319620.22816863813
+        },
+        "meaningful_gap": true,
+        "mu_mbps": 0.6025742181414504,
+        "n": 50,
+        "payload_bytes": 132301,
+        "starvation_reduction_fraction": -0.571428571428572,
+        "starvation_reduction_ms": -182640.1303820791,
+        "valid": true,
+        "worst_delivery_lift_pp": 47.727272727272705
+      },
+      {
+        "block": "A",
+        "central": {
+          "aggregate_admitted_mbps": 0.4218019526990158,
+          "worst_delivery_fraction": 0.6363636363636361,
+          "worst_inter_delivery_ms": 1554670.849207596
+        },
+        "central_efficiency": 1.0,
+        "demand": "hot20_traffic80",
+        "family": "power_law",
+        "local": {
+          "aggregate_admitted_mbps": 0.21692671853092238,
+          "worst_delivery_fraction": 0.1590909090909091,
+          "worst_inter_delivery_ms": 989335.9949502879
+        },
+        "meaningful_gap": true,
+        "mu_mbps": 0.6025742181414504,
+        "n": 50,
+        "payload_bytes": 409600,
+        "starvation_reduction_fraction": -0.5714285714285722,
+        "starvation_reduction_ms": -565334.8542573081,
+        "valid": true,
+        "worst_delivery_lift_pp": 47.727272727272705
+      },
+      {
+        "block": "A",
+        "central": {
+          "aggregate_admitted_mbps": 0.42180195269901566,
+          "worst_delivery_fraction": 0.5384615384615384,
+          "worst_inter_delivery_ms": 87464.74444684599
+        },
+        "central_efficiency": 1.0,
+        "demand": "synchronized_burst",
+        "family": "power_law",
+        "local": {
+          "aggregate_admitted_mbps": 0.42180195269901555,
+          "worst_delivery_fraction": 0.5384615384615383,
+          "worst_inter_delivery_ms": 87464.744446846
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 0.6025742181414504,
+        "n": 50,
+        "payload_bytes": 92160,
+        "starvation_reduction_fraction": 1.6637463838027138e-16,
+        "starvation_reduction_ms": 1.4551915228366852e-11,
+        "valid": true,
+        "worst_delivery_lift_pp": 1.1102230246251565e-14
+      },
+      {
+        "block": "A",
+        "central": {
+          "aggregate_admitted_mbps": 0.42180195269901566,
+          "worst_delivery_fraction": 0.5384615384615384,
+          "worst_inter_delivery_ms": 125565.08963767924
+        },
+        "central_efficiency": 1.0,
+        "demand": "synchronized_burst",
+        "family": "power_law",
+        "local": {
+          "aggregate_admitted_mbps": 0.42180195269901555,
+          "worst_delivery_fraction": 0.5384615384615383,
+          "worst_inter_delivery_ms": 125565.08963767925
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 0.6025742181414504,
+        "n": 50,
+        "payload_bytes": 132301,
+        "starvation_reduction_fraction": 1.1589140954987342e-16,
+        "starvation_reduction_ms": 1.4551915228366852e-11,
+        "valid": true,
+        "worst_delivery_lift_pp": 1.1102230246251565e-14
+      },
+      {
+        "block": "A",
+        "central": {
+          "aggregate_admitted_mbps": 0.42180195269901566,
+          "worst_delivery_fraction": 0.5384615384615384,
+          "worst_inter_delivery_ms": 388667.71230189875
+        },
+        "central_efficiency": 1.0,
+        "demand": "synchronized_burst",
+        "family": "power_law",
+        "local": {
+          "aggregate_admitted_mbps": 0.42180195269901555,
+          "worst_delivery_fraction": 0.5384615384615383,
+          "worst_inter_delivery_ms": 388667.7123018988
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 0.6025742181414504,
+        "n": 50,
+        "payload_bytes": 409600,
+        "starvation_reduction_fraction": 1.4976201796833185e-16,
+        "starvation_reduction_ms": 5.820766091346741e-11,
+        "valid": true,
+        "worst_delivery_lift_pp": 1.1102230246251565e-14
+      },
+      {
+        "block": "A",
+        "central": {
+          "aggregate_admitted_mbps": 0.2564317909007433,
+          "worst_delivery_fraction": 0.6363636363636369,
+          "worst_inter_delivery_ms": 287739.67432361044
+        },
+        "central_efficiency": 1.0,
+        "demand": "equal",
+        "family": "power_law",
+        "local": {
+          "aggregate_admitted_mbps": 0.2564317909007433,
+          "worst_delivery_fraction": 0.6363636363636362,
+          "worst_inter_delivery_ms": 287739.6743236107
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 0.3663311298582041,
+        "n": 100,
+        "payload_bytes": 92160,
+        "starvation_reduction_fraction": 1.0114639395887285e-15,
+        "starvation_reduction_ms": 2.9103830456733704e-10,
+        "valid": true,
+        "worst_delivery_lift_pp": 6.661338147750939e-14
+      },
+      {
+        "block": "A",
+        "central": {
+          "aggregate_admitted_mbps": 0.2564317909007433,
+          "worst_delivery_fraction": 0.6363636363636369,
+          "worst_inter_delivery_ms": 413081.38756087836
+        },
+        "central_efficiency": 1.0,
+        "demand": "equal",
+        "family": "power_law",
+        "local": {
+          "aggregate_admitted_mbps": 0.2564317909007433,
+          "worst_delivery_fraction": 0.6363636363636362,
+          "worst_inter_delivery_ms": 413081.3875608788
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 0.3663311298582041,
+        "n": 100,
+        "payload_bytes": 132301,
+        "starvation_reduction_fraction": 1.1272870221951391e-15,
+        "starvation_reduction_ms": 4.656612873077393e-10,
+        "valid": true,
+        "worst_delivery_lift_pp": 6.661338147750939e-14
+      },
+      {
+        "block": "A",
+        "central": {
+          "aggregate_admitted_mbps": 0.2564317909007433,
+          "worst_delivery_fraction": 0.6363636363636369,
+          "worst_inter_delivery_ms": 1278630.8548104821
+        },
+        "central_efficiency": 1.0,
+        "demand": "equal",
+        "family": "power_law",
+        "local": {
+          "aggregate_admitted_mbps": 0.2564317909007433,
+          "worst_delivery_fraction": 0.6363636363636362,
+          "worst_inter_delivery_ms": 1278630.8548104835
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 0.3663311298582041,
+        "n": 100,
+        "payload_bytes": 409600,
+        "starvation_reduction_fraction": 1.0925622955737888e-15,
+        "starvation_reduction_ms": 1.3969838619232178e-09,
+        "valid": true,
+        "worst_delivery_lift_pp": 6.661338147750939e-14
+      },
+      {
+        "block": "A",
+        "central": {
+          "aggregate_admitted_mbps": 0.25643179090074286,
+          "worst_delivery_fraction": 0.636363636363635,
+          "worst_inter_delivery_ms": 1150958.697294445
+        },
+        "central_efficiency": 1.0,
+        "demand": "hot20_traffic80",
+        "family": "power_law",
+        "local": {
+          "aggregate_admitted_mbps": 0.1318792067489533,
+          "worst_delivery_fraction": 0.15909090909090906,
+          "worst_inter_delivery_ms": 732428.2619146453
+        },
+        "meaningful_gap": true,
+        "mu_mbps": 0.3663311298582041,
+        "n": 100,
+        "payload_bytes": 92160,
+        "starvation_reduction_fraction": -0.5714285714285746,
+        "starvation_reduction_ms": -418530.4353797997,
+        "valid": true,
+        "worst_delivery_lift_pp": 47.7272727272726
+      },
+      {
+        "block": "A",
+        "central": {
+          "aggregate_admitted_mbps": 0.25643179090074286,
+          "worst_delivery_fraction": 0.636363636363635,
+          "worst_inter_delivery_ms": 1652325.550243518
+        },
+        "central_efficiency": 1.0,
+        "demand": "hot20_traffic80",
+        "family": "power_law",
+        "local": {
+          "aggregate_admitted_mbps": 0.1318792067489533,
+          "worst_delivery_fraction": 0.15909090909090906,
+          "worst_inter_delivery_ms": 1051479.8956095094
+        },
+        "meaningful_gap": true,
+        "mu_mbps": 0.3663311298582041,
+        "n": 100,
+        "payload_bytes": 132301,
+        "starvation_reduction_fraction": -0.5714285714285745,
+        "starvation_reduction_ms": -600845.6546340086,
+        "valid": true,
+        "worst_delivery_lift_pp": 47.7272727272726
+      },
+      {
+        "block": "A",
+        "central": {
+          "aggregate_admitted_mbps": 0.25643179090074286,
+          "worst_delivery_fraction": 0.636363636363635,
+          "worst_inter_delivery_ms": 5114523.419241943
+        },
+        "central_efficiency": 1.0,
+        "demand": "hot20_traffic80",
+        "family": "power_law",
+        "local": {
+          "aggregate_admitted_mbps": 0.1318792067489533,
+          "worst_delivery_fraction": 0.15909090909090906,
+          "worst_inter_delivery_ms": 3254696.721335775
+        },
+        "meaningful_gap": true,
+        "mu_mbps": 0.3663311298582041,
+        "n": 100,
+        "payload_bytes": 409600,
+        "starvation_reduction_fraction": -0.5714285714285747,
+        "starvation_reduction_ms": -1859826.6979061682,
+        "valid": true,
+        "worst_delivery_lift_pp": 47.7272727272726
+      },
+      {
+        "block": "A",
+        "central": {
+          "aggregate_admitted_mbps": 0.2564317909007433,
+          "worst_delivery_fraction": 0.538461538461539,
+          "worst_inter_delivery_ms": 287739.67432361044
+        },
+        "central_efficiency": 1.0,
+        "demand": "synchronized_burst",
+        "family": "power_law",
+        "local": {
+          "aggregate_admitted_mbps": 0.2564317909007433,
+          "worst_delivery_fraction": 0.5384615384615384,
+          "worst_inter_delivery_ms": 287739.6743236107
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 0.3663311298582041,
+        "n": 100,
+        "payload_bytes": 92160,
+        "starvation_reduction_fraction": 1.0114639395887285e-15,
+        "starvation_reduction_ms": 2.9103830456733704e-10,
+        "valid": true,
+        "worst_delivery_lift_pp": 5.551115123125783e-14
+      },
+      {
+        "block": "A",
+        "central": {
+          "aggregate_admitted_mbps": 0.2564317909007433,
+          "worst_delivery_fraction": 0.538461538461539,
+          "worst_inter_delivery_ms": 413081.38756087836
+        },
+        "central_efficiency": 1.0,
+        "demand": "synchronized_burst",
+        "family": "power_law",
+        "local": {
+          "aggregate_admitted_mbps": 0.2564317909007433,
+          "worst_delivery_fraction": 0.5384615384615384,
+          "worst_inter_delivery_ms": 413081.3875608788
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 0.3663311298582041,
+        "n": 100,
+        "payload_bytes": 132301,
+        "starvation_reduction_fraction": 1.1272870221951391e-15,
+        "starvation_reduction_ms": 4.656612873077393e-10,
+        "valid": true,
+        "worst_delivery_lift_pp": 5.551115123125783e-14
+      },
+      {
+        "block": "A",
+        "central": {
+          "aggregate_admitted_mbps": 0.2564317909007433,
+          "worst_delivery_fraction": 0.538461538461539,
+          "worst_inter_delivery_ms": 1278630.8548104821
+        },
+        "central_efficiency": 1.0,
+        "demand": "synchronized_burst",
+        "family": "power_law",
+        "local": {
+          "aggregate_admitted_mbps": 0.2564317909007433,
+          "worst_delivery_fraction": 0.5384615384615384,
+          "worst_inter_delivery_ms": 1278630.8548104835
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 0.3663311298582041,
+        "n": 100,
+        "payload_bytes": 409600,
+        "starvation_reduction_fraction": 1.0925622955737888e-15,
+        "starvation_reduction_ms": 1.3969838619232178e-09,
+        "valid": true,
+        "worst_delivery_lift_pp": 5.551115123125783e-14
+      },
+      {
+        "block": "B",
+        "central": {
+          "aggregate_admitted_mbps": 4.254185599999995,
+          "worst_delivery_fraction": 0.6363636363636358,
+          "worst_inter_delivery_ms": 8672.118113511557
+        },
+        "central_efficiency": 1.0,
+        "demand": "equal",
+        "family": "constant_ceiling",
+        "local": {
+          "aggregate_admitted_mbps": 4.254185599999999,
+          "worst_delivery_fraction": 0.6363636363636362,
+          "worst_inter_delivery_ms": 8672.11811351155
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 6.077408,
+        "n": 50,
+        "payload_bytes": 92160,
+        "starvation_reduction_fraction": -8.390058252143911e-16,
+        "starvation_reduction_ms": -7.275957614183426e-12,
+        "valid": true,
+        "worst_delivery_lift_pp": -4.440892098500626e-14
+      },
+      {
+        "block": "B",
+        "central": {
+          "aggregate_admitted_mbps": 4.254185599999995,
+          "worst_delivery_fraction": 0.6363636363636358,
+          "worst_inter_delivery_ms": 12449.762417511838
+        },
+        "central_efficiency": 1.0,
+        "demand": "equal",
+        "family": "constant_ceiling",
+        "local": {
+          "aggregate_admitted_mbps": 4.254185599999999,
+          "worst_delivery_fraction": 0.6363636363636362,
+          "worst_inter_delivery_ms": 12449.762417511827
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 6.077408,
+        "n": 50,
+        "payload_bytes": 132301,
+        "starvation_reduction_fraction": -8.766381281239233e-16,
+        "starvation_reduction_ms": -1.0913936421275139e-11,
+        "valid": true,
+        "worst_delivery_lift_pp": -4.440892098500626e-14
+      },
+      {
+        "block": "B",
+        "central": {
+          "aggregate_admitted_mbps": 4.254185599999995,
+          "worst_delivery_fraction": 0.6363636363636358,
+          "worst_inter_delivery_ms": 38536.353467982255
+        },
+        "central_efficiency": 1.0,
+        "demand": "equal",
+        "family": "constant_ceiling",
+        "local": {
+          "aggregate_admitted_mbps": 4.254185599999999,
+          "worst_delivery_fraction": 0.6363636363636362,
+          "worst_inter_delivery_ms": 38536.35346798222
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 6.077408,
+        "n": 50,
+        "payload_bytes": 409600,
+        "starvation_reduction_fraction": -9.4403815610481e-16,
+        "starvation_reduction_ms": -3.637978807091713e-11,
+        "valid": true,
+        "worst_delivery_lift_pp": -4.440892098500626e-14
+      },
+      {
+        "block": "B",
+        "central": {
+          "aggregate_admitted_mbps": 4.254185600000002,
+          "worst_delivery_fraction": 0.6363636363636377,
+          "worst_inter_delivery_ms": 34688.472454046125
+        },
+        "central_efficiency": 1.0,
+        "demand": "hot20_traffic80",
+        "family": "constant_ceiling",
+        "local": {
+          "aggregate_admitted_mbps": 2.1878668800000027,
+          "worst_delivery_fraction": 0.15909090909090906,
+          "worst_inter_delivery_ms": 22074.48247075667
+        },
+        "meaningful_gap": true,
+        "mu_mbps": 6.077408,
+        "n": 50,
+        "payload_bytes": 92160,
+        "starvation_reduction_fraction": -0.5714285714285683,
+        "starvation_reduction_ms": -12613.989983289455,
+        "valid": true,
+        "worst_delivery_lift_pp": 47.72727272727286
+      },
+      {
+        "block": "B",
+        "central": {
+          "aggregate_admitted_mbps": 4.254185600000002,
+          "worst_delivery_fraction": 0.6363636363636377,
+          "worst_inter_delivery_ms": 49799.04967004721
+        },
+        "central_efficiency": 1.0,
+        "demand": "hot20_traffic80",
+        "family": "constant_ceiling",
+        "local": {
+          "aggregate_admitted_mbps": 2.1878668800000027,
+          "worst_delivery_fraction": 0.15909090909090906,
+          "worst_inter_delivery_ms": 31690.30433548465
+        },
+        "meaningful_gap": true,
+        "mu_mbps": 6.077408,
+        "n": 50,
+        "payload_bytes": 132301,
+        "starvation_reduction_fraction": -0.5714285714285683,
+        "starvation_reduction_ms": -18108.745334562558,
+        "valid": true,
+        "worst_delivery_lift_pp": 47.72727272727286
+      },
+      {
+        "block": "B",
+        "central": {
+          "aggregate_admitted_mbps": 4.254185600000002,
+          "worst_delivery_fraction": 0.6363636363636377,
+          "worst_inter_delivery_ms": 154145.41387192855
+        },
+        "central_efficiency": 1.0,
+        "demand": "hot20_traffic80",
+        "family": "constant_ceiling",
+        "local": {
+          "aggregate_admitted_mbps": 2.1878668800000027,
+          "worst_delivery_fraction": 0.15909090909090906,
+          "worst_inter_delivery_ms": 98092.53610031836
+        },
+        "meaningful_gap": true,
+        "mu_mbps": 6.077408,
+        "n": 50,
+        "payload_bytes": 409600,
+        "starvation_reduction_fraction": -0.5714285714285683,
+        "starvation_reduction_ms": -56052.87777161019,
+        "valid": true,
+        "worst_delivery_lift_pp": 47.72727272727286
+      },
+      {
+        "block": "B",
+        "central": {
+          "aggregate_admitted_mbps": 4.2541856,
+          "worst_delivery_fraction": 0.5384615384615385,
+          "worst_inter_delivery_ms": 8672.118113511546
+        },
+        "central_efficiency": 1.0,
+        "demand": "synchronized_burst",
+        "family": "constant_ceiling",
+        "local": {
+          "aggregate_admitted_mbps": 4.254185599999999,
+          "worst_delivery_fraction": 0.5384615384615383,
+          "worst_inter_delivery_ms": 8672.11811351155
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 6.077408,
+        "n": 50,
+        "payload_bytes": 92160,
+        "starvation_reduction_fraction": 4.1950291260719553e-16,
+        "starvation_reduction_ms": 3.637978807091713e-12,
+        "valid": true,
+        "worst_delivery_lift_pp": 2.220446049250313e-14
+      },
+      {
+        "block": "B",
+        "central": {
+          "aggregate_admitted_mbps": 4.2541856,
+          "worst_delivery_fraction": 0.5384615384615385,
+          "worst_inter_delivery_ms": 12449.762417511822
+        },
+        "central_efficiency": 1.0,
+        "demand": "synchronized_burst",
+        "family": "constant_ceiling",
+        "local": {
+          "aggregate_admitted_mbps": 4.254185599999999,
+          "worst_delivery_fraction": 0.5384615384615383,
+          "worst_inter_delivery_ms": 12449.762417511827
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 6.077408,
+        "n": 50,
+        "payload_bytes": 132301,
+        "starvation_reduction_fraction": 4.3831906406196166e-16,
+        "starvation_reduction_ms": 5.4569682106375694e-12,
+        "valid": true,
+        "worst_delivery_lift_pp": 2.220446049250313e-14
+      },
+      {
+        "block": "B",
+        "central": {
+          "aggregate_admitted_mbps": 4.2541856,
+          "worst_delivery_fraction": 0.5384615384615385,
+          "worst_inter_delivery_ms": 38536.353467982204
+        },
+        "central_efficiency": 1.0,
+        "demand": "synchronized_burst",
+        "family": "constant_ceiling",
+        "local": {
+          "aggregate_admitted_mbps": 4.254185599999999,
+          "worst_delivery_fraction": 0.5384615384615383,
+          "worst_inter_delivery_ms": 38536.35346798222
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 6.077408,
+        "n": 50,
+        "payload_bytes": 409600,
+        "starvation_reduction_fraction": 3.7761526244192394e-16,
+        "starvation_reduction_ms": 1.4551915228366852e-11,
+        "valid": true,
+        "worst_delivery_lift_pp": 2.220446049250313e-14
+      },
+      {
+        "block": "B",
+        "central": {
+          "aggregate_admitted_mbps": 4.254185599999982,
+          "worst_delivery_fraction": 0.6363636363636351,
+          "worst_inter_delivery_ms": 17344.23622702313
+        },
+        "central_efficiency": 1.0,
+        "demand": "equal",
+        "family": "constant_ceiling",
+        "local": {
+          "aggregate_admitted_mbps": 4.254185600000005,
+          "worst_delivery_fraction": 0.6363636363636362,
+          "worst_inter_delivery_ms": 17344.2362270231
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 6.077408,
+        "n": 100,
+        "payload_bytes": 92160,
+        "starvation_reduction_fraction": -1.88776310673238e-15,
+        "starvation_reduction_ms": -3.2741809263825417e-11,
+        "valid": true,
+        "worst_delivery_lift_pp": -1.1102230246251565e-13
+      },
+      {
+        "block": "B",
+        "central": {
+          "aggregate_admitted_mbps": 4.254185599999982,
+          "worst_delivery_fraction": 0.6363636363636351,
+          "worst_inter_delivery_ms": 24899.5248350237
+        },
+        "central_efficiency": 1.0,
+        "demand": "equal",
+        "family": "constant_ceiling",
+        "local": {
+          "aggregate_admitted_mbps": 4.254185600000005,
+          "worst_delivery_fraction": 0.6363636363636362,
+          "worst_inter_delivery_ms": 24899.524835023654
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 6.077408,
+        "n": 100,
+        "payload_bytes": 132301,
+        "starvation_reduction_fraction": -1.8993826109351674e-15,
+        "starvation_reduction_ms": -4.729372449219227e-11,
+        "valid": true,
+        "worst_delivery_lift_pp": -1.1102230246251565e-13
+      },
+      {
+        "block": "B",
+        "central": {
+          "aggregate_admitted_mbps": 4.254185599999982,
+          "worst_delivery_fraction": 0.6363636363636351,
+          "worst_inter_delivery_ms": 77072.70693596457
+        },
+        "central_efficiency": 1.0,
+        "demand": "equal",
+        "family": "constant_ceiling",
+        "local": {
+          "aggregate_admitted_mbps": 4.254185600000005,
+          "worst_delivery_fraction": 0.6363636363636362,
+          "worst_inter_delivery_ms": 77072.70693596444
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 6.077408,
+        "n": 100,
+        "payload_bytes": 409600,
+        "starvation_reduction_fraction": -1.6992686809886578e-15,
+        "starvation_reduction_ms": -1.3096723705530167e-10,
+        "valid": true,
+        "worst_delivery_lift_pp": -1.1102230246251565e-13
+      },
+      {
+        "block": "B",
+        "central": {
+          "aggregate_admitted_mbps": 4.254185599999983,
+          "worst_delivery_fraction": 0.6363636363636344,
+          "worst_inter_delivery_ms": 69376.94490809261
+        },
+        "central_efficiency": 1.0,
+        "demand": "hot20_traffic80",
+        "family": "constant_ceiling",
+        "local": {
+          "aggregate_admitted_mbps": 2.1878668800000014,
+          "worst_delivery_fraction": 0.15909090909090906,
+          "worst_inter_delivery_ms": 44148.96494151334
+        },
+        "meaningful_gap": true,
+        "mu_mbps": 6.077408,
+        "n": 100,
+        "payload_bytes": 92160,
+        "starvation_reduction_fraction": -0.5714285714285765,
+        "starvation_reduction_ms": -25227.979966579274,
+        "valid": true,
+        "worst_delivery_lift_pp": 47.72727272727253
+      },
+      {
+        "block": "B",
+        "central": {
+          "aggregate_admitted_mbps": 4.254185599999983,
+          "worst_delivery_fraction": 0.6363636363636344,
+          "worst_inter_delivery_ms": 99598.09934009494
+        },
+        "central_efficiency": 1.0,
+        "demand": "hot20_traffic80",
+        "family": "constant_ceiling",
+        "local": {
+          "aggregate_admitted_mbps": 2.1878668800000014,
+          "worst_delivery_fraction": 0.15909090909090906,
+          "worst_inter_delivery_ms": 63380.6086709693
+        },
+        "meaningful_gap": true,
+        "mu_mbps": 6.077408,
+        "n": 100,
+        "payload_bytes": 132301,
+        "starvation_reduction_fraction": -0.5714285714285766,
+        "starvation_reduction_ms": -36217.49066912564,
+        "valid": true,
+        "worst_delivery_lift_pp": 47.72727272727253
+      },
+      {
+        "block": "B",
+        "central": {
+          "aggregate_admitted_mbps": 4.254185599999983,
+          "worst_delivery_fraction": 0.6363636363636344,
+          "worst_inter_delivery_ms": 308290.8277438587
+        },
+        "central_efficiency": 1.0,
+        "demand": "hot20_traffic80",
+        "family": "constant_ceiling",
+        "local": {
+          "aggregate_admitted_mbps": 2.1878668800000014,
+          "worst_delivery_fraction": 0.15909090909090906,
+          "worst_inter_delivery_ms": 196185.07220063673
+        },
+        "meaningful_gap": true,
+        "mu_mbps": 6.077408,
+        "n": 100,
+        "payload_bytes": 409600,
+        "starvation_reduction_fraction": -0.5714285714285764,
+        "starvation_reduction_ms": -112105.75554322195,
+        "valid": true,
+        "worst_delivery_lift_pp": 47.72727272727253
+      },
+      {
+        "block": "B",
+        "central": {
+          "aggregate_admitted_mbps": 4.254185600000005,
+          "worst_delivery_fraction": 0.5384615384615385,
+          "worst_inter_delivery_ms": 17344.23622702309
+        },
+        "central_efficiency": 1.0,
+        "demand": "synchronized_burst",
+        "family": "constant_ceiling",
+        "local": {
+          "aggregate_admitted_mbps": 4.254185600000005,
+          "worst_delivery_fraction": 0.5384615384615383,
+          "worst_inter_delivery_ms": 17344.2362270231
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 6.077408,
+        "n": 100,
+        "payload_bytes": 92160,
+        "starvation_reduction_fraction": 4.1950291260719553e-16,
+        "starvation_reduction_ms": 7.275957614183426e-12,
+        "valid": true,
+        "worst_delivery_lift_pp": 2.220446049250313e-14
+      },
+      {
+        "block": "B",
+        "central": {
+          "aggregate_admitted_mbps": 4.254185600000005,
+          "worst_delivery_fraction": 0.5384615384615385,
+          "worst_inter_delivery_ms": 24899.524835023643
+        },
+        "central_efficiency": 1.0,
+        "demand": "synchronized_burst",
+        "family": "constant_ceiling",
+        "local": {
+          "aggregate_admitted_mbps": 4.254185600000005,
+          "worst_delivery_fraction": 0.5384615384615383,
+          "worst_inter_delivery_ms": 24899.524835023654
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 6.077408,
+        "n": 100,
+        "payload_bytes": 132301,
+        "starvation_reduction_fraction": 4.3831906406196166e-16,
+        "starvation_reduction_ms": 1.0913936421275139e-11,
+        "valid": true,
+        "worst_delivery_lift_pp": 2.220446049250313e-14
+      },
+      {
+        "block": "B",
+        "central": {
+          "aggregate_admitted_mbps": 4.254185600000005,
+          "worst_delivery_fraction": 0.5384615384615385,
+          "worst_inter_delivery_ms": 77072.70693596441
+        },
+        "central_efficiency": 1.0,
+        "demand": "synchronized_burst",
+        "family": "constant_ceiling",
+        "local": {
+          "aggregate_admitted_mbps": 4.254185600000005,
+          "worst_delivery_fraction": 0.5384615384615383,
+          "worst_inter_delivery_ms": 77072.70693596444
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 6.077408,
+        "n": 100,
+        "payload_bytes": 409600,
+        "starvation_reduction_fraction": 3.7761526244192394e-16,
+        "starvation_reduction_ms": 2.9103830456733704e-11,
+        "valid": true,
+        "worst_delivery_lift_pp": 2.220446049250313e-14
+      },
+      {
+        "block": "B",
+        "central": {
+          "aggregate_admitted_mbps": 1.6204452818441157,
+          "worst_delivery_fraction": 0.6363636363636358,
+          "worst_inter_delivery_ms": 22767.075453491958
+        },
+        "central_efficiency": 1.0,
+        "demand": "equal",
+        "family": "saturating",
+        "local": {
+          "aggregate_admitted_mbps": 1.6204452818441175,
+          "worst_delivery_fraction": 0.6363636363636362,
+          "worst_inter_delivery_ms": 22767.07545349194
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 2.3149218312058797,
+        "n": 50,
+        "payload_bytes": 92160,
+        "starvation_reduction_fraction": -7.989561097830269e-16,
+        "starvation_reduction_ms": -1.8189894035458565e-11,
+        "valid": true,
+        "worst_delivery_lift_pp": -4.440892098500626e-14
+      },
+      {
+        "block": "B",
+        "central": {
+          "aggregate_admitted_mbps": 1.6204452818441157,
+          "worst_delivery_fraction": 0.6363636363636358,
+          "worst_inter_delivery_ms": 32684.596384350512
+        },
+        "central_efficiency": 1.0,
+        "demand": "equal",
+        "family": "saturating",
+        "local": {
+          "aggregate_admitted_mbps": 1.6204452818441175,
+          "worst_delivery_fraction": 0.6363636363636362,
+          "worst_inter_delivery_ms": 32684.59638435049
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 2.3149218312058797,
+        "n": 50,
+        "payload_bytes": 132301,
+        "starvation_reduction_fraction": -6.678336359387184e-16,
+        "starvation_reduction_ms": -2.1827872842550278e-11,
+        "valid": true,
+        "worst_delivery_lift_pp": -4.440892098500626e-14
+      },
+      {
+        "block": "B",
+        "central": {
+          "aggregate_admitted_mbps": 1.6204452818441157,
+          "worst_delivery_fraction": 0.6363636363636358,
+          "worst_inter_delivery_ms": 101170.21650581779
+        },
+        "central_efficiency": 1.0,
+        "demand": "equal",
+        "family": "saturating",
+        "local": {
+          "aggregate_admitted_mbps": 1.6204452818441175,
+          "worst_delivery_fraction": 0.6363636363636362,
+          "worst_inter_delivery_ms": 101170.21650581772
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 2.3149218312058797,
+        "n": 50,
+        "payload_bytes": 409600,
+        "starvation_reduction_fraction": -7.191798006842288e-16,
+        "starvation_reduction_ms": -7.275957614183426e-11,
+        "valid": true,
+        "worst_delivery_lift_pp": -4.440892098500626e-14
+      },
+      {
+        "block": "B",
+        "central": {
+          "aggregate_admitted_mbps": 1.6204452818441162,
+          "worst_delivery_fraction": 0.6363636363636372,
+          "worst_inter_delivery_ms": 91068.30181396763
+        },
+        "central_efficiency": 1.0,
+        "demand": "hot20_traffic80",
+        "family": "saturating",
+        "local": {
+          "aggregate_admitted_mbps": 0.8333718592341172,
+          "worst_delivery_fraction": 0.15909090909090906,
+          "worst_inter_delivery_ms": 57952.55569979766
+        },
+        "meaningful_gap": true,
+        "mu_mbps": 2.3149218312058797,
+        "n": 50,
+        "payload_bytes": 92160,
+        "starvation_reduction_fraction": -0.5714285714285693,
+        "starvation_reduction_ms": -33115.74611416997,
+        "valid": true,
+        "worst_delivery_lift_pp": 47.72727272727282
+      },
+      {
+        "block": "B",
+        "central": {
+          "aggregate_admitted_mbps": 1.6204452818441162,
+          "worst_delivery_fraction": 0.6363636363636372,
+          "worst_inter_delivery_ms": 130738.38553740174
+        },
+        "central_efficiency": 1.0,
+        "demand": "hot20_traffic80",
+        "family": "saturating",
+        "local": {
+          "aggregate_admitted_mbps": 0.8333718592341172,
+          "worst_delivery_fraction": 0.15909090909090906,
+          "worst_inter_delivery_ms": 83197.15443289214
+        },
+        "meaningful_gap": true,
+        "mu_mbps": 2.3149218312058797,
+        "n": 50,
+        "payload_bytes": 132301,
+        "starvation_reduction_fraction": -0.5714285714285691,
+        "starvation_reduction_ms": -47541.2311045096,
+        "valid": true,
+        "worst_delivery_lift_pp": 47.72727272727282
+      },
+      {
+        "block": "B",
+        "central": {
+          "aggregate_admitted_mbps": 1.6204452818441162,
+          "worst_delivery_fraction": 0.6363636363636372,
+          "worst_inter_delivery_ms": 404680.8660232702
+        },
+        "central_efficiency": 1.0,
+        "demand": "hot20_traffic80",
+        "family": "saturating",
+        "local": {
+          "aggregate_admitted_mbps": 0.8333718592341172,
+          "worst_delivery_fraction": 0.15909090909090906,
+          "worst_inter_delivery_ms": 257524.1874693541
+        },
+        "meaningful_gap": true,
+        "mu_mbps": 2.3149218312058797,
+        "n": 50,
+        "payload_bytes": 409600,
+        "starvation_reduction_fraction": -0.5714285714285693,
+        "starvation_reduction_ms": -147156.67855391608,
+        "valid": true,
+        "worst_delivery_lift_pp": 47.72727272727282
+      },
+      {
+        "block": "B",
+        "central": {
+          "aggregate_admitted_mbps": 1.6204452818441177,
+          "worst_delivery_fraction": 0.5384615384615388,
+          "worst_inter_delivery_ms": 22767.075453491925
+        },
+        "central_efficiency": 1.0,
+        "demand": "synchronized_burst",
+        "family": "saturating",
+        "local": {
+          "aggregate_admitted_mbps": 1.6204452818441175,
+          "worst_delivery_fraction": 0.5384615384615384,
+          "worst_inter_delivery_ms": 22767.07545349194
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 2.3149218312058797,
+        "n": 50,
+        "payload_bytes": 92160,
+        "starvation_reduction_fraction": 6.391648878264216e-16,
+        "starvation_reduction_ms": 1.4551915228366852e-11,
+        "valid": true,
+        "worst_delivery_lift_pp": 3.3306690738754696e-14
+      },
+      {
+        "block": "B",
+        "central": {
+          "aggregate_admitted_mbps": 1.6204452818441177,
+          "worst_delivery_fraction": 0.5384615384615388,
+          "worst_inter_delivery_ms": 32684.596384350472
+        },
+        "central_efficiency": 1.0,
+        "demand": "synchronized_burst",
+        "family": "saturating",
+        "local": {
+          "aggregate_admitted_mbps": 1.6204452818441175,
+          "worst_delivery_fraction": 0.5384615384615384,
+          "worst_inter_delivery_ms": 32684.59638435049
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 2.3149218312058797,
+        "n": 50,
+        "payload_bytes": 132301,
+        "starvation_reduction_fraction": 5.565280299489321e-16,
+        "starvation_reduction_ms": 1.8189894035458565e-11,
+        "valid": true,
+        "worst_delivery_lift_pp": 3.3306690738754696e-14
+      },
+      {
+        "block": "B",
+        "central": {
+          "aggregate_admitted_mbps": 1.6204452818441177,
+          "worst_delivery_fraction": 0.5384615384615388,
+          "worst_inter_delivery_ms": 101170.21650581766
+        },
+        "central_efficiency": 1.0,
+        "demand": "synchronized_burst",
+        "family": "saturating",
+        "local": {
+          "aggregate_admitted_mbps": 1.6204452818441175,
+          "worst_delivery_fraction": 0.5384615384615384,
+          "worst_inter_delivery_ms": 101170.21650581772
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 2.3149218312058797,
+        "n": 50,
+        "payload_bytes": 409600,
+        "starvation_reduction_fraction": 5.75343840547383e-16,
+        "starvation_reduction_ms": 5.820766091346741e-11,
+        "valid": true,
+        "worst_delivery_lift_pp": 3.3306690738754696e-14
+      },
+      {
+        "block": "B",
+        "central": {
+          "aggregate_admitted_mbps": 1.5655756918825365,
+          "worst_delivery_fraction": 0.6363636363636365,
+          "worst_inter_delivery_ms": 47130.01126842745
+        },
+        "central_efficiency": 1.0,
+        "demand": "equal",
+        "family": "saturating",
+        "local": {
+          "aggregate_admitted_mbps": 1.5655756918825365,
+          "worst_delivery_fraction": 0.6363636363636362,
+          "worst_inter_delivery_ms": 47130.01126842747
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 2.2365367026893352,
+        "n": 100,
+        "payload_bytes": 92160,
+        "starvation_reduction_fraction": 4.631416852041542e-16,
+        "starvation_reduction_ms": 2.1827872842550278e-11,
+        "valid": true,
+        "worst_delivery_lift_pp": 2.220446049250313e-14
+      },
+      {
+        "block": "B",
+        "central": {
+          "aggregate_admitted_mbps": 1.5655756918825365,
+          "worst_delivery_fraction": 0.6363636363636365,
+          "worst_inter_delivery_ms": 67660.22272141134
+        },
+        "central_efficiency": 1.0,
+        "demand": "equal",
+        "family": "saturating",
+        "local": {
+          "aggregate_admitted_mbps": 1.5655756918825365,
+          "worst_delivery_fraction": 0.6363636363636362,
+          "worst_inter_delivery_ms": 67660.22272141137
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 2.2365367026893352,
+        "n": 100,
+        "payload_bytes": 132301,
+        "starvation_reduction_fraction": 4.3014683201040766e-16,
+        "starvation_reduction_ms": 2.9103830456733704e-11,
+        "valid": true,
+        "worst_delivery_lift_pp": 2.220446049250313e-14
+      },
+      {
+        "block": "B",
+        "central": {
+          "aggregate_admitted_mbps": 1.5655756918825365,
+          "worst_delivery_fraction": 0.6363636363636365,
+          "worst_inter_delivery_ms": 209431.9691472323
+        },
+        "central_efficiency": 1.0,
+        "demand": "equal",
+        "family": "saturating",
+        "local": {
+          "aggregate_admitted_mbps": 1.5655756918825365,
+          "worst_delivery_fraction": 0.6363636363636362,
+          "worst_inter_delivery_ms": 209431.9691472324
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 2.2365367026893352,
+        "n": 100,
+        "payload_bytes": 409600,
+        "starvation_reduction_fraction": 4.1689667401646986e-16,
+        "starvation_reduction_ms": 8.731149137020111e-11,
+        "valid": true,
+        "worst_delivery_lift_pp": 2.220446049250313e-14
+      },
+      {
+        "block": "B",
+        "central": {
+          "aggregate_admitted_mbps": 1.565575691882533,
+          "worst_delivery_fraction": 0.6363636363636377,
+          "worst_inter_delivery_ms": 188520.0450737095
+        },
+        "central_efficiency": 1.0,
+        "demand": "hot20_traffic80",
+        "family": "saturating",
+        "local": {
+          "aggregate_admitted_mbps": 0.8051532129681617,
+          "worst_delivery_fraction": 0.15909090909090906,
+          "worst_inter_delivery_ms": 119967.30141054264
+        },
+        "meaningful_gap": true,
+        "mu_mbps": 2.2365367026893352,
+        "n": 100,
+        "payload_bytes": 92160,
+        "starvation_reduction_fraction": -0.5714285714285685,
+        "starvation_reduction_ms": -68552.74366316687,
+        "valid": true,
+        "worst_delivery_lift_pp": 47.72727272727286
+      },
+      {
+        "block": "B",
+        "central": {
+          "aggregate_admitted_mbps": 1.565575691882533,
+          "worst_delivery_fraction": 0.6363636363636377,
+          "worst_inter_delivery_ms": 270640.89088564494
+        },
+        "central_efficiency": 1.0,
+        "demand": "hot20_traffic80",
+        "family": "saturating",
+        "local": {
+          "aggregate_admitted_mbps": 0.8051532129681617,
+          "worst_delivery_fraction": 0.15909090909090906,
+          "worst_inter_delivery_ms": 172226.02147268347
+        },
+        "meaningful_gap": true,
+        "mu_mbps": 2.2365367026893352,
+        "n": 100,
+        "payload_bytes": 132301,
+        "starvation_reduction_fraction": -0.5714285714285685,
+        "starvation_reduction_ms": -98414.86941296147,
+        "valid": true,
+        "worst_delivery_lift_pp": 47.72727272727286
+      },
+      {
+        "block": "B",
+        "central": {
+          "aggregate_admitted_mbps": 1.565575691882533,
+          "worst_delivery_fraction": 0.6363636363636377,
+          "worst_inter_delivery_ms": 837727.8765889278
+        },
+        "central_efficiency": 1.0,
+        "demand": "hot20_traffic80",
+        "family": "saturating",
+        "local": {
+          "aggregate_admitted_mbps": 0.8051532129681617,
+          "worst_delivery_fraction": 0.15909090909090906,
+          "worst_inter_delivery_ms": 533099.5578293188
+        },
+        "meaningful_gap": true,
+        "mu_mbps": 2.2365367026893352,
+        "n": 100,
+        "payload_bytes": 409600,
+        "starvation_reduction_fraction": -0.5714285714285682,
+        "starvation_reduction_ms": -304628.318759609,
+        "valid": true,
+        "worst_delivery_lift_pp": 47.72727272727286
+      },
+      {
+        "block": "B",
+        "central": {
+          "aggregate_admitted_mbps": 1.5655756918825352,
+          "worst_delivery_fraction": 0.5384615384615377,
+          "worst_inter_delivery_ms": 47130.01126842755
+        },
+        "central_efficiency": 1.0,
+        "demand": "synchronized_burst",
+        "family": "saturating",
+        "local": {
+          "aggregate_admitted_mbps": 1.5655756918825365,
+          "worst_delivery_fraction": 0.5384615384615384,
+          "worst_inter_delivery_ms": 47130.01126842747
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 2.2365367026893352,
+        "n": 100,
+        "payload_bytes": 92160,
+        "starvation_reduction_fraction": -1.6981861790818988e-15,
+        "starvation_reduction_ms": -8.003553375601768e-11,
+        "valid": true,
+        "worst_delivery_lift_pp": -7.771561172376096e-14
+      },
+      {
+        "block": "B",
+        "central": {
+          "aggregate_admitted_mbps": 1.5655756918825352,
+          "worst_delivery_fraction": 0.5384615384615377,
+          "worst_inter_delivery_ms": 67660.22272141148
+        },
+        "central_efficiency": 1.0,
+        "demand": "synchronized_burst",
+        "family": "saturating",
+        "local": {
+          "aggregate_admitted_mbps": 1.5655756918825365,
+          "worst_delivery_fraction": 0.5384615384615384,
+          "worst_inter_delivery_ms": 67660.22272141137
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 2.2365367026893352,
+        "n": 100,
+        "payload_bytes": 132301,
+        "starvation_reduction_fraction": -1.7205873280416306e-15,
+        "starvation_reduction_ms": -1.1641532182693481e-10,
+        "valid": true,
+        "worst_delivery_lift_pp": -7.771561172376096e-14
+      },
+      {
+        "block": "B",
+        "central": {
+          "aggregate_admitted_mbps": 1.5655756918825352,
+          "worst_delivery_fraction": 0.5384615384615377,
+          "worst_inter_delivery_ms": 209431.96914723274
+        },
+        "central_efficiency": 1.0,
+        "demand": "synchronized_burst",
+        "family": "saturating",
+        "local": {
+          "aggregate_admitted_mbps": 1.5655756918825365,
+          "worst_delivery_fraction": 0.5384615384615384,
+          "worst_inter_delivery_ms": 209431.9691472324
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 2.2365367026893352,
+        "n": 100,
+        "payload_bytes": 409600,
+        "starvation_reduction_fraction": -1.6675866960658794e-15,
+        "starvation_reduction_ms": -3.4924596548080444e-10,
+        "valid": true,
+        "worst_delivery_lift_pp": -7.771561172376096e-14
+      },
+      {
+        "block": "B",
+        "central": {
+          "aggregate_admitted_mbps": 0.4218019526990143,
+          "worst_delivery_fraction": 0.6363636363636357,
+          "worst_inter_delivery_ms": 87464.7444468461
+        },
+        "central_efficiency": 1.0,
+        "demand": "equal",
+        "family": "power_law",
+        "local": {
+          "aggregate_admitted_mbps": 0.42180195269901555,
+          "worst_delivery_fraction": 0.6363636363636364,
+          "worst_inter_delivery_ms": 87464.744446846
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 0.6025742181414504,
+        "n": 50,
+        "payload_bytes": 92160,
+        "starvation_reduction_fraction": -1.1646224686618995e-15,
+        "starvation_reduction_ms": -1.0186340659856796e-10,
+        "valid": true,
+        "worst_delivery_lift_pp": -6.661338147750939e-14
+      },
+      {
+        "block": "B",
+        "central": {
+          "aggregate_admitted_mbps": 0.4218019526990143,
+          "worst_delivery_fraction": 0.6363636363636357,
+          "worst_inter_delivery_ms": 125565.08963767938
+        },
+        "central_efficiency": 1.0,
+        "demand": "equal",
+        "family": "power_law",
+        "local": {
+          "aggregate_admitted_mbps": 0.42180195269901555,
+          "worst_delivery_fraction": 0.6363636363636364,
+          "worst_inter_delivery_ms": 125565.08963767925
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 0.6025742181414504,
+        "n": 50,
+        "payload_bytes": 132301,
+        "starvation_reduction_fraction": -1.0430226859488607e-15,
+        "starvation_reduction_ms": -1.3096723705530167e-10,
+        "valid": true,
+        "worst_delivery_lift_pp": -6.661338147750939e-14
+      },
+      {
+        "block": "B",
+        "central": {
+          "aggregate_admitted_mbps": 0.4218019526990143,
+          "worst_delivery_fraction": 0.6363636363636357,
+          "worst_inter_delivery_ms": 388667.7123018992
+        },
+        "central_efficiency": 1.0,
+        "demand": "equal",
+        "family": "power_law",
+        "local": {
+          "aggregate_admitted_mbps": 0.42180195269901555,
+          "worst_delivery_fraction": 0.6363636363636364,
+          "worst_inter_delivery_ms": 388667.7123018988
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 0.6025742181414504,
+        "n": 50,
+        "payload_bytes": 409600,
+        "starvation_reduction_fraction": -1.048334125778323e-15,
+        "starvation_reduction_ms": -4.0745362639427185e-10,
+        "valid": true,
+        "worst_delivery_lift_pp": -6.661338147750939e-14
+      },
+      {
+        "block": "B",
+        "central": {
+          "aggregate_admitted_mbps": 0.4218019526990158,
+          "worst_delivery_fraction": 0.6363636363636361,
+          "worst_inter_delivery_ms": 349858.9777873842
+        },
+        "central_efficiency": 1.0,
+        "demand": "hot20_traffic80",
+        "family": "power_law",
+        "local": {
+          "aggregate_admitted_mbps": 0.21692671853092238,
+          "worst_delivery_fraction": 0.1590909090909091,
+          "worst_inter_delivery_ms": 222637.5313192444
+        },
+        "meaningful_gap": true,
+        "mu_mbps": 0.6025742181414504,
+        "n": 50,
+        "payload_bytes": 92160,
+        "starvation_reduction_fraction": -0.5714285714285721,
+        "starvation_reduction_ms": -127221.4464681398,
+        "valid": true,
+        "worst_delivery_lift_pp": 47.727272727272705
+      },
+      {
+        "block": "B",
+        "central": {
+          "aggregate_admitted_mbps": 0.4218019526990158,
+          "worst_delivery_fraction": 0.6363636363636361,
+          "worst_inter_delivery_ms": 502260.35855071724
+        },
+        "central_efficiency": 1.0,
+        "demand": "hot20_traffic80",
+        "family": "power_law",
+        "local": {
+          "aggregate_admitted_mbps": 0.21692671853092238,
+          "worst_delivery_fraction": 0.1590909090909091,
+          "worst_inter_delivery_ms": 319620.22816863813
+        },
+        "meaningful_gap": true,
+        "mu_mbps": 0.6025742181414504,
+        "n": 50,
+        "payload_bytes": 132301,
+        "starvation_reduction_fraction": -0.571428571428572,
+        "starvation_reduction_ms": -182640.1303820791,
+        "valid": true,
+        "worst_delivery_lift_pp": 47.727272727272705
+      },
+      {
+        "block": "B",
+        "central": {
+          "aggregate_admitted_mbps": 0.4218019526990158,
+          "worst_delivery_fraction": 0.6363636363636361,
+          "worst_inter_delivery_ms": 1554670.849207596
+        },
+        "central_efficiency": 1.0,
+        "demand": "hot20_traffic80",
+        "family": "power_law",
+        "local": {
+          "aggregate_admitted_mbps": 0.21692671853092238,
+          "worst_delivery_fraction": 0.1590909090909091,
+          "worst_inter_delivery_ms": 989335.9949502879
+        },
+        "meaningful_gap": true,
+        "mu_mbps": 0.6025742181414504,
+        "n": 50,
+        "payload_bytes": 409600,
+        "starvation_reduction_fraction": -0.5714285714285722,
+        "starvation_reduction_ms": -565334.8542573081,
+        "valid": true,
+        "worst_delivery_lift_pp": 47.727272727272705
+      },
+      {
+        "block": "B",
+        "central": {
+          "aggregate_admitted_mbps": 0.42180195269901566,
+          "worst_delivery_fraction": 0.5384615384615384,
+          "worst_inter_delivery_ms": 87464.74444684599
+        },
+        "central_efficiency": 1.0,
+        "demand": "synchronized_burst",
+        "family": "power_law",
+        "local": {
+          "aggregate_admitted_mbps": 0.42180195269901555,
+          "worst_delivery_fraction": 0.5384615384615383,
+          "worst_inter_delivery_ms": 87464.744446846
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 0.6025742181414504,
+        "n": 50,
+        "payload_bytes": 92160,
+        "starvation_reduction_fraction": 1.6637463838027138e-16,
+        "starvation_reduction_ms": 1.4551915228366852e-11,
+        "valid": true,
+        "worst_delivery_lift_pp": 1.1102230246251565e-14
+      },
+      {
+        "block": "B",
+        "central": {
+          "aggregate_admitted_mbps": 0.42180195269901566,
+          "worst_delivery_fraction": 0.5384615384615384,
+          "worst_inter_delivery_ms": 125565.08963767924
+        },
+        "central_efficiency": 1.0,
+        "demand": "synchronized_burst",
+        "family": "power_law",
+        "local": {
+          "aggregate_admitted_mbps": 0.42180195269901555,
+          "worst_delivery_fraction": 0.5384615384615383,
+          "worst_inter_delivery_ms": 125565.08963767925
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 0.6025742181414504,
+        "n": 50,
+        "payload_bytes": 132301,
+        "starvation_reduction_fraction": 1.1589140954987342e-16,
+        "starvation_reduction_ms": 1.4551915228366852e-11,
+        "valid": true,
+        "worst_delivery_lift_pp": 1.1102230246251565e-14
+      },
+      {
+        "block": "B",
+        "central": {
+          "aggregate_admitted_mbps": 0.42180195269901566,
+          "worst_delivery_fraction": 0.5384615384615384,
+          "worst_inter_delivery_ms": 388667.71230189875
+        },
+        "central_efficiency": 1.0,
+        "demand": "synchronized_burst",
+        "family": "power_law",
+        "local": {
+          "aggregate_admitted_mbps": 0.42180195269901555,
+          "worst_delivery_fraction": 0.5384615384615383,
+          "worst_inter_delivery_ms": 388667.7123018988
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 0.6025742181414504,
+        "n": 50,
+        "payload_bytes": 409600,
+        "starvation_reduction_fraction": 1.4976201796833185e-16,
+        "starvation_reduction_ms": 5.820766091346741e-11,
+        "valid": true,
+        "worst_delivery_lift_pp": 1.1102230246251565e-14
+      },
+      {
+        "block": "B",
+        "central": {
+          "aggregate_admitted_mbps": 0.2564317909007433,
+          "worst_delivery_fraction": 0.6363636363636369,
+          "worst_inter_delivery_ms": 287739.67432361044
+        },
+        "central_efficiency": 1.0,
+        "demand": "equal",
+        "family": "power_law",
+        "local": {
+          "aggregate_admitted_mbps": 0.2564317909007433,
+          "worst_delivery_fraction": 0.6363636363636362,
+          "worst_inter_delivery_ms": 287739.6743236107
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 0.3663311298582041,
+        "n": 100,
+        "payload_bytes": 92160,
+        "starvation_reduction_fraction": 1.0114639395887285e-15,
+        "starvation_reduction_ms": 2.9103830456733704e-10,
+        "valid": true,
+        "worst_delivery_lift_pp": 6.661338147750939e-14
+      },
+      {
+        "block": "B",
+        "central": {
+          "aggregate_admitted_mbps": 0.2564317909007433,
+          "worst_delivery_fraction": 0.6363636363636369,
+          "worst_inter_delivery_ms": 413081.38756087836
+        },
+        "central_efficiency": 1.0,
+        "demand": "equal",
+        "family": "power_law",
+        "local": {
+          "aggregate_admitted_mbps": 0.2564317909007433,
+          "worst_delivery_fraction": 0.6363636363636362,
+          "worst_inter_delivery_ms": 413081.3875608788
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 0.3663311298582041,
+        "n": 100,
+        "payload_bytes": 132301,
+        "starvation_reduction_fraction": 1.1272870221951391e-15,
+        "starvation_reduction_ms": 4.656612873077393e-10,
+        "valid": true,
+        "worst_delivery_lift_pp": 6.661338147750939e-14
+      },
+      {
+        "block": "B",
+        "central": {
+          "aggregate_admitted_mbps": 0.2564317909007433,
+          "worst_delivery_fraction": 0.6363636363636369,
+          "worst_inter_delivery_ms": 1278630.8548104821
+        },
+        "central_efficiency": 1.0,
+        "demand": "equal",
+        "family": "power_law",
+        "local": {
+          "aggregate_admitted_mbps": 0.2564317909007433,
+          "worst_delivery_fraction": 0.6363636363636362,
+          "worst_inter_delivery_ms": 1278630.8548104835
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 0.3663311298582041,
+        "n": 100,
+        "payload_bytes": 409600,
+        "starvation_reduction_fraction": 1.0925622955737888e-15,
+        "starvation_reduction_ms": 1.3969838619232178e-09,
+        "valid": true,
+        "worst_delivery_lift_pp": 6.661338147750939e-14
+      },
+      {
+        "block": "B",
+        "central": {
+          "aggregate_admitted_mbps": 0.25643179090074286,
+          "worst_delivery_fraction": 0.636363636363635,
+          "worst_inter_delivery_ms": 1150958.697294445
+        },
+        "central_efficiency": 1.0,
+        "demand": "hot20_traffic80",
+        "family": "power_law",
+        "local": {
+          "aggregate_admitted_mbps": 0.1318792067489533,
+          "worst_delivery_fraction": 0.15909090909090906,
+          "worst_inter_delivery_ms": 732428.2619146453
+        },
+        "meaningful_gap": true,
+        "mu_mbps": 0.3663311298582041,
+        "n": 100,
+        "payload_bytes": 92160,
+        "starvation_reduction_fraction": -0.5714285714285746,
+        "starvation_reduction_ms": -418530.4353797997,
+        "valid": true,
+        "worst_delivery_lift_pp": 47.7272727272726
+      },
+      {
+        "block": "B",
+        "central": {
+          "aggregate_admitted_mbps": 0.25643179090074286,
+          "worst_delivery_fraction": 0.636363636363635,
+          "worst_inter_delivery_ms": 1652325.550243518
+        },
+        "central_efficiency": 1.0,
+        "demand": "hot20_traffic80",
+        "family": "power_law",
+        "local": {
+          "aggregate_admitted_mbps": 0.1318792067489533,
+          "worst_delivery_fraction": 0.15909090909090906,
+          "worst_inter_delivery_ms": 1051479.8956095094
+        },
+        "meaningful_gap": true,
+        "mu_mbps": 0.3663311298582041,
+        "n": 100,
+        "payload_bytes": 132301,
+        "starvation_reduction_fraction": -0.5714285714285745,
+        "starvation_reduction_ms": -600845.6546340086,
+        "valid": true,
+        "worst_delivery_lift_pp": 47.7272727272726
+      },
+      {
+        "block": "B",
+        "central": {
+          "aggregate_admitted_mbps": 0.25643179090074286,
+          "worst_delivery_fraction": 0.636363636363635,
+          "worst_inter_delivery_ms": 5114523.419241943
+        },
+        "central_efficiency": 1.0,
+        "demand": "hot20_traffic80",
+        "family": "power_law",
+        "local": {
+          "aggregate_admitted_mbps": 0.1318792067489533,
+          "worst_delivery_fraction": 0.15909090909090906,
+          "worst_inter_delivery_ms": 3254696.721335775
+        },
+        "meaningful_gap": true,
+        "mu_mbps": 0.3663311298582041,
+        "n": 100,
+        "payload_bytes": 409600,
+        "starvation_reduction_fraction": -0.5714285714285747,
+        "starvation_reduction_ms": -1859826.6979061682,
+        "valid": true,
+        "worst_delivery_lift_pp": 47.7272727272726
+      },
+      {
+        "block": "B",
+        "central": {
+          "aggregate_admitted_mbps": 0.2564317909007433,
+          "worst_delivery_fraction": 0.538461538461539,
+          "worst_inter_delivery_ms": 287739.67432361044
+        },
+        "central_efficiency": 1.0,
+        "demand": "synchronized_burst",
+        "family": "power_law",
+        "local": {
+          "aggregate_admitted_mbps": 0.2564317909007433,
+          "worst_delivery_fraction": 0.5384615384615384,
+          "worst_inter_delivery_ms": 287739.6743236107
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 0.3663311298582041,
+        "n": 100,
+        "payload_bytes": 92160,
+        "starvation_reduction_fraction": 1.0114639395887285e-15,
+        "starvation_reduction_ms": 2.9103830456733704e-10,
+        "valid": true,
+        "worst_delivery_lift_pp": 5.551115123125783e-14
+      },
+      {
+        "block": "B",
+        "central": {
+          "aggregate_admitted_mbps": 0.2564317909007433,
+          "worst_delivery_fraction": 0.538461538461539,
+          "worst_inter_delivery_ms": 413081.38756087836
+        },
+        "central_efficiency": 1.0,
+        "demand": "synchronized_burst",
+        "family": "power_law",
+        "local": {
+          "aggregate_admitted_mbps": 0.2564317909007433,
+          "worst_delivery_fraction": 0.5384615384615384,
+          "worst_inter_delivery_ms": 413081.3875608788
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 0.3663311298582041,
+        "n": 100,
+        "payload_bytes": 132301,
+        "starvation_reduction_fraction": 1.1272870221951391e-15,
+        "starvation_reduction_ms": 4.656612873077393e-10,
+        "valid": true,
+        "worst_delivery_lift_pp": 5.551115123125783e-14
+      },
+      {
+        "block": "B",
+        "central": {
+          "aggregate_admitted_mbps": 0.2564317909007433,
+          "worst_delivery_fraction": 0.538461538461539,
+          "worst_inter_delivery_ms": 1278630.8548104821
+        },
+        "central_efficiency": 1.0,
+        "demand": "synchronized_burst",
+        "family": "power_law",
+        "local": {
+          "aggregate_admitted_mbps": 0.2564317909007433,
+          "worst_delivery_fraction": 0.5384615384615384,
+          "worst_inter_delivery_ms": 1278630.8548104835
+        },
+        "meaningful_gap": false,
+        "mu_mbps": 0.3663311298582041,
+        "n": 100,
+        "payload_bytes": 409600,
+        "starvation_reduction_fraction": 1.0925622955737888e-15,
+        "starvation_reduction_ms": 1.3969838619232178e-09,
+        "valid": true,
+        "worst_delivery_lift_pp": 5.551115123125783e-14
+      }
+    ]
+  },
+  "next_stage_launched": false,
+  "raw_pairs": [
+    {
+      "aggregate_goodput_loss_fraction": -0.1632653061224491,
+      "central_trial": "A7",
+      "deadline_lift_pp": {
+        "0.25": 0.0,
+        "0.50": 0.0
+      },
+      "deadline_pass": false,
+      "demand_hash_match": true,
+      "greedy_trial": "A6",
+      "latency_pass": false,
+      "latency_reduction_fraction": -0.4927763619361571,
+      "latency_reduction_ms": -692.3138844,
+      "meaningful_gap": false,
+      "no_goodput_regression": true,
+      "starvation_pass": false,
+      "starvation_reduction_fraction": -0.1520920906652598,
+      "starvation_reduction_ms": -479.05090500000006
+    },
+    {
+      "aggregate_goodput_loss_fraction": -1.0,
+      "central_trial": "A9",
+      "deadline_lift_pp": {
+        "0.25": 0.0,
+        "0.50": 0.0
+      },
+      "deadline_pass": false,
+      "demand_hash_match": true,
+      "greedy_trial": "A8",
+      "latency_pass": false,
+      "latency_reduction_fraction": -0.15764368425420422,
+      "latency_reduction_ms": -163.08543214999986,
+      "meaningful_gap": false,
+      "no_goodput_regression": true,
+      "starvation_pass": false,
+      "starvation_reduction_fraction": 0.026584797479783213,
+      "starvation_reduction_ms": 1567.5853629999983
+    }
+  ],
+  "raw_replicated_gap": false,
+  "scheduler_redistribution": {
+    "aggregate_service_mbps": 6.089820799999999,
+    "aggregate_to_mu_fraction": 1.0020424496759144,
+    "heavy_residual_fraction": 1.002554511389604,
+    "per_ue_service_mbps": {
+      "0": 4.871580799999999,
+      "1": 1.21824
+    },
+    "redistribution_present": true
+  },
+  "schema_version": "scenesense.multiue_oai.dg_a.decision.v1",
+  "trial_metrics": {
+    "A1": {
+      "aggregate_complete_goodput_mbps": 4.535695466666667,
+      "controller": "open_loop",
+      "demand_trace_sha256": "c9db9c541f6e4292b69dd689bb8fd1849e23bc40e3585664564db0f0a9c6e423",
+      "per_ue": {
+        "0": {
+          "complete_frames": 42,
+          "complete_latency_p95_ms": 676.6367435000001,
+          "complete_ratio": 1.0,
+          "deadline_0.25s_fraction": 0.0,
+          "deadline_0.50s_fraction": 0.047619047619047616,
+          "demand_frames": 42,
+          "max_starvation_ms": 1592.895381
+        },
+        "1": {
+          "complete_frames": 41,
+          "complete_latency_p95_ms": 708.690986,
+          "complete_ratio": 0.9761904761904762,
+          "deadline_0.25s_fraction": 0.0,
+          "deadline_0.50s_fraction": 0.047619047619047616,
+          "demand_frames": 42,
+          "max_starvation_ms": 2909.950415
+        }
+      },
+      "trial_id": "A1",
+      "worst_complete_latency_p95_ms": 708.690986,
+      "worst_deadline_0.25s_fraction": 0.0,
+      "worst_deadline_0.50s_fraction": 0.047619047619047616,
+      "worst_max_starvation_ms": 2909.950415
+    },
+    "A2": {
+      "aggregate_complete_goodput_mbps": 6.011162666666667,
+      "controller": "open_loop",
+      "demand_trace_sha256": "d6a517d826871b3701d176ed8f3788ee477ff84ed00b72e8d4a292e9c40231bd",
+      "per_ue": {
+        "0": {
+          "complete_frames": 54,
+          "complete_latency_p95_ms": 1396.9287691999998,
+          "complete_ratio": 0.9818181818181818,
+          "deadline_0.25s_fraction": 0.0,
+          "deadline_0.50s_fraction": 0.0,
+          "demand_frames": 55,
+          "max_starvation_ms": 2178.829208
+        },
+        "1": {
+          "complete_frames": 56,
+          "complete_latency_p95_ms": 1316.771882,
+          "complete_ratio": 1.0,
+          "deadline_0.25s_fraction": 0.0,
+          "deadline_0.50s_fraction": 0.0,
+          "demand_frames": 56,
+          "max_starvation_ms": 1276.245736
+        }
+      },
+      "trial_id": "A2",
+      "worst_complete_latency_p95_ms": 1396.9287691999998,
+      "worst_deadline_0.25s_fraction": 0.0,
+      "worst_deadline_0.50s_fraction": 0.0,
+      "worst_max_starvation_ms": 2178.829208
+    },
+    "A3": {
+      "aggregate_complete_goodput_mbps": 6.776219733333334,
+      "controller": "open_loop",
+      "demand_trace_sha256": "c1ab9699b0903a1b4baff9148cd251f3190cb9002dedb171b55cc955fe1e0276",
+      "per_ue": {
+        "0": {
+          "complete_frames": 62,
+          "complete_latency_p95_ms": 15210.24469325,
+          "complete_ratio": 0.8611111111111112,
+          "deadline_0.25s_fraction": 0.0,
+          "deadline_0.50s_fraction": 0.0,
+          "demand_frames": 72,
+          "max_starvation_ms": 1538.994817
+        },
+        "1": {
+          "complete_frames": 62,
+          "complete_latency_p95_ms": 15521.891416849998,
+          "complete_ratio": 0.8493150684931506,
+          "deadline_0.25s_fraction": 0.0,
+          "deadline_0.50s_fraction": 0.0,
+          "demand_frames": 73,
+          "max_starvation_ms": 2108.90248
+        }
+      },
+      "trial_id": "A3",
+      "worst_complete_latency_p95_ms": 15521.891416849998,
+      "worst_deadline_0.25s_fraction": 0.0,
+      "worst_deadline_0.50s_fraction": 0.0,
+      "worst_max_starvation_ms": 2108.90248
+    },
+    "A4": {
+      "aggregate_complete_goodput_mbps": 6.7215728,
+      "controller": "open_loop",
+      "demand_trace_sha256": "2592fad8855d5edfd7bc1302faace7a90955bbdb79bc162a20a6e6895fcfbc12",
+      "per_ue": {
+        "0": {
+          "complete_frames": 100,
+          "complete_latency_p95_ms": 6726.867098199999,
+          "complete_ratio": 1.0,
+          "deadline_0.25s_fraction": 0.0,
+          "deadline_0.50s_fraction": 0.0,
+          "demand_frames": 100,
+          "max_starvation_ms": 1509.025058
+        },
+        "1": {
+          "complete_frames": 23,
+          "complete_latency_p95_ms": 1131.1485077999998,
+          "complete_ratio": 1.0,
+          "deadline_0.25s_fraction": 0.0,
+          "deadline_0.50s_fraction": 0.0,
+          "demand_frames": 23,
+          "max_starvation_ms": 2843.799276
+        }
+      },
+      "trial_id": "A4",
+      "worst_complete_latency_p95_ms": 6726.867098199999,
+      "worst_deadline_0.25s_fraction": 0.0,
+      "worst_deadline_0.50s_fraction": 0.0,
+      "worst_max_starvation_ms": 2843.799276
+    },
+    "A5": {
+      "aggregate_complete_goodput_mbps": 4.798994327272728,
+      "controller": "open_loop",
+      "demand_trace_sha256": "e2a0204549f239b73e48e83ef2e9a784516aa53111f7a9870f330c15e71d2620",
+      "per_ue": {
+        "0": {
+          "complete_frames": 80,
+          "complete_latency_p95_ms": 9617.052635,
+          "complete_ratio": 1.0,
+          "deadline_0.25s_fraction": 0.0,
+          "deadline_0.50s_fraction": 0.025,
+          "demand_frames": 80,
+          "max_starvation_ms": 1908.893835
+        },
+        "1": {
+          "complete_frames": 81,
+          "complete_latency_p95_ms": 9764.362581,
+          "complete_ratio": 1.0,
+          "deadline_0.25s_fraction": 0.0,
+          "deadline_0.50s_fraction": 0.0,
+          "demand_frames": 81,
+          "max_starvation_ms": 2049.656054
+        }
+      },
+      "trial_id": "A5",
+      "worst_complete_latency_p95_ms": 9764.362581,
+      "worst_deadline_0.25s_fraction": 0.0,
+      "worst_deadline_0.50s_fraction": 0.0,
+      "worst_max_starvation_ms": 2049.656054
+    },
+    "A6": {
+      "aggregate_complete_goodput_mbps": 2.677699733333333,
+      "controller": "decentralized_c1",
+      "demand_trace_sha256": "3384a0ead171818da827caa0f29b71e74a5774ee4d39dca687d682ce94a8b600",
+      "per_ue": {
+        "0": {
+          "complete_frames": 27,
+          "complete_latency_p95_ms": 1404.9251098,
+          "complete_ratio": 0.27,
+          "deadline_0.25s_fraction": 0.0,
+          "deadline_0.50s_fraction": 0.0,
+          "demand_frames": 100,
+          "max_starvation_ms": 2707.352303
+        },
+        "1": {
+          "complete_frames": 22,
+          "complete_latency_p95_ms": 1106.16832415,
+          "complete_ratio": 1.0,
+          "deadline_0.25s_fraction": 0.0,
+          "deadline_0.50s_fraction": 0.0,
+          "demand_frames": 22,
+          "max_starvation_ms": 3149.742389
+        }
+      },
+      "trial_id": "A6",
+      "worst_complete_latency_p95_ms": 1404.9251098,
+      "worst_deadline_0.25s_fraction": 0.0,
+      "worst_deadline_0.50s_fraction": 0.0,
+      "worst_max_starvation_ms": 3149.742389
+    },
+    "A7": {
+      "aggregate_complete_goodput_mbps": 3.1148752,
+      "controller": "centralized_observable",
+      "demand_trace_sha256": "3384a0ead171818da827caa0f29b71e74a5774ee4d39dca687d682ce94a8b600",
+      "per_ue": {
+        "0": {
+          "complete_frames": 35,
+          "complete_latency_p95_ms": 1209.7533998,
+          "complete_ratio": 0.35,
+          "deadline_0.25s_fraction": 0.0,
+          "deadline_0.50s_fraction": 0.0,
+          "demand_frames": 100,
+          "max_starvation_ms": 2483.816229
+        },
+        "1": {
+          "complete_frames": 22,
+          "complete_latency_p95_ms": 2097.2389942,
+          "complete_ratio": 1.0,
+          "deadline_0.25s_fraction": 0.0,
+          "deadline_0.50s_fraction": 0.0,
+          "demand_frames": 22,
+          "max_starvation_ms": 3628.793294
+        }
+      },
+      "trial_id": "A7",
+      "worst_complete_latency_p95_ms": 2097.2389942,
+      "worst_deadline_0.25s_fraction": 0.0,
+      "worst_deadline_0.50s_fraction": 0.0,
+      "worst_max_starvation_ms": 3628.793294
+    },
+    "A8": {
+      "aggregate_complete_goodput_mbps": 0.10929386666666667,
+      "controller": "decentralized_c1",
+      "demand_trace_sha256": "0deafe98346ca328cd87470c6b936c9d637d807a642a7426e0681e21e252ac4c",
+      "per_ue": {
+        "0": {
+          "complete_frames": 1,
+          "complete_latency_p95_ms": 1034.519289,
+          "complete_ratio": 0.043478260869565216,
+          "deadline_0.25s_fraction": 0.0,
+          "deadline_0.50s_fraction": 0.0,
+          "demand_frames": 23,
+          "max_starvation_ms": 58965.480711
+        },
+        "1": {
+          "complete_frames": 1,
+          "complete_latency_p95_ms": 871.310253,
+          "complete_ratio": 0.01,
+          "deadline_0.25s_fraction": 0.0,
+          "deadline_0.50s_fraction": 0.0,
+          "demand_frames": 100,
+          "max_starvation_ms": 58828.689747
+        }
+      },
+      "trial_id": "A8",
+      "worst_complete_latency_p95_ms": 1034.519289,
+      "worst_deadline_0.25s_fraction": 0.0,
+      "worst_deadline_0.50s_fraction": 0.0,
+      "worst_max_starvation_ms": 58965.480711
+    },
+    "A9": {
+      "aggregate_complete_goodput_mbps": 0.21858773333333334,
+      "controller": "centralized_observable",
+      "demand_trace_sha256": "0deafe98346ca328cd87470c6b936c9d637d807a642a7426e0681e21e252ac4c",
+      "per_ue": {
+        "0": {
+          "complete_frames": 2,
+          "complete_latency_p95_ms": 1197.60472115,
+          "complete_ratio": 0.08695652173913043,
+          "deadline_0.25s_fraction": 0.0,
+          "deadline_0.50s_fraction": 0.0,
+          "demand_frames": 23,
+          "max_starvation_ms": 31766.456087
+        },
+        "1": {
+          "complete_frames": 2,
+          "complete_latency_p95_ms": 1074.50646715,
+          "complete_ratio": 0.02,
+          "deadline_0.25s_fraction": 0.0,
+          "deadline_0.50s_fraction": 0.0,
+          "demand_frames": 100,
+          "max_starvation_ms": 57397.895348
+        }
+      },
+      "trial_id": "A9",
+      "worst_complete_latency_p95_ms": 1197.60472115,
+      "worst_deadline_0.25s_fraction": 0.0,
+      "worst_deadline_0.50s_fraction": 0.0,
+      "worst_max_starvation_ms": 57397.895348
+    }
+  }
+}

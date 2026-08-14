@@ -1,0 +1,109 @@
+{
+  "active_gnb_config": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/multiue_oai/experiments/dg_a_reregistered_20260813_191553_pdt/runtime/gnb.runtime_switch_initial_clean.conf",
+  "active_ue_config": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/multiue_oai/experiments/dg_a_reregistered_20260813_191553_pdt/runtime/ue.multi2.runtime_switch_initial_clean.conf",
+  "attach_channel_mode": "strong",
+  "attach_smoke_repeats": 0,
+  "authorization_boundary": {
+    "allowed": [
+      "D0",
+      "DG-A",
+      "DG-A.1"
+    ],
+    "forbidden": [
+      "DG-B",
+      "D1",
+      "D2",
+      "D3",
+      "controller_ladder",
+      "RL"
+    ]
+  },
+  "binaries": {
+    "gnb": {
+      "path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/OAI/openairinterface5g/cmake_targets/ran_build/build/nr-softmodem",
+      "sha256": "01489dfb141f6e67ecfb9423a75f5c83a90b5df3c06d3aca318b43db3f554a35"
+    },
+    "ue": {
+      "path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/OAI/openairinterface5g/cmake_targets/ran_build/build/nr-uesoftmodem",
+      "sha256": "7cdeee94de55da8b2ae1bf76fd934136f2140133d4c35a1fe345b0cb097be807"
+    }
+  },
+  "channel_config_sha256": "1cad745259ad3ebcd433fb4afa4d8b0aafe4fcff5460dbc4dee4a074576f65bb",
+  "config_sha256": "754d8d695c7589cc6bccdf0cdcdd594aec34014466ac7d00658d45c4b5376c66",
+  "created_at": "2026-08-14T02:16:28.196015+00:00",
+  "dry_run": false,
+  "oai_commit": "7473cdb52e1cf3c40e1e1f189f03b2785bf15610",
+  "oai_status": [
+    " M common/utils/T/T_messages.txt",
+    " M openair2/LAYER2/NR_MAC_UE/nr_ue_scheduler.c",
+    " M openair2/LAYER2/NR_MAC_gNB/gNB_scheduler_dlsch.c",
+    " M openair2/LAYER2/NR_MAC_gNB/gNB_scheduler_primitives.c",
+    " M openair2/LAYER2/NR_MAC_gNB/gNB_scheduler_ulsch.c",
+    " M openair2/LAYER2/NR_MAC_gNB/mac_proto.h",
+    " M openair2/LAYER2/nr_pdcp/nr_pdcp_oai_api.c",
+    " M openair2/LAYER2/nr_rlc/nr_rlc_oai_api.c",
+    "?? targets/PROJECTS/GENERIC-NR-5GC/CONF/channelmod_rfsimu_awgn_edge.conf",
+    "?? targets/PROJECTS/GENERIC-NR-5GC/CONF/channelmod_rfsimu_awgn_harsh.conf",
+    "?? targets/PROJECTS/GENERIC-NR-5GC/CONF/channelmod_rfsimu_awgn_medium.conf",
+    "?? targets/PROJECTS/GENERIC-NR-5GC/CONF/channelmod_rfsimu_awgn_mid15.conf",
+    "?? targets/PROJECTS/GENERIC-NR-5GC/CONF/channelmod_rfsimu_awgn_mild.conf",
+    "?? targets/PROJECTS/GENERIC-NR-5GC/CONF/channelmod_rfsimu_awgn_strong.conf",
+    "?? targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb.sa.band78.fr1.106PRB.scenesense_rfsim.awgn.conf",
+    "?? targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb.sa.band78.fr1.106PRB.scenesense_rfsim.awgn_edge.conf",
+    "?? targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb.sa.band78.fr1.106PRB.scenesense_rfsim.awgn_harsh.conf",
+    "?? targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb.sa.band78.fr1.106PRB.scenesense_rfsim.awgn_medium.conf",
+    "?? targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb.sa.band78.fr1.106PRB.scenesense_rfsim.awgn_mid15.conf",
+    "?? targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb.sa.band78.fr1.106PRB.scenesense_rfsim.awgn_mild.conf",
+    "?? targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb.sa.band78.fr1.106PRB.scenesense_rfsim.awgn_strong.conf",
+    "?? targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb.sa.band78.fr1.106PRB.ulheavy.scenesense_rfsim.conf",
+    "?? targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb.sa.band78.fr1.273PRB.scenesense_rfsim.awgn.conf",
+    "?? targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb.sa.band78.fr1.273PRB.scenesense_rfsim.conf",
+    "?? targets/PROJECTS/GENERIC-NR-5GC/CONF/ue.awgn.conf",
+    "?? targets/PROJECTS/GENERIC-NR-5GC/CONF/ue.awgn_edge.conf",
+    "?? targets/PROJECTS/GENERIC-NR-5GC/CONF/ue.awgn_harsh.conf",
+    "?? targets/PROJECTS/GENERIC-NR-5GC/CONF/ue.awgn_medium.conf",
+    "?? targets/PROJECTS/GENERIC-NR-5GC/CONF/ue.awgn_mid15.conf",
+    "?? targets/PROJECTS/GENERIC-NR-5GC/CONF/ue.awgn_mild.conf",
+    "?? targets/PROJECTS/GENERIC-NR-5GC/CONF/ue.awgn_strong.conf",
+    "?? targets/PROJECTS/GENERIC-NR-5GC/CONF/ue.scenesense_base.conf"
+  ],
+  "preflight_only": false,
+  "repo_commit": "5d704e025344d06c1d76b1e7b902beaaebcfcb9b",
+  "repo_status": [
+    " m OAI/openairinterface5g",
+    " M collab/REVIEW_NOTES.md",
+    " M rl_agent/multiue_oai/README.md",
+    " M rl_agent/multiue_oai/configs/dg_a_v1.yaml",
+    " M rl_agent/multiue_oai/runner.py",
+    " M rl_agent/multiue_oai/tests/test_contract.py",
+    "?? rl_agent/multiue_oai/experiments/dg_a_reregistered_20260813_191553_pdt/"
+  ],
+  "runtime_switch_smoke": false,
+  "runtime_switch_startup_smoke": false,
+  "schema_version": "scenesense.multiue_oai.dg_a.v1",
+  "stage": "DG-A+DG-A.1",
+  "t_messages_sha256": "2f4945814ad2f47197816756819afc0d087156c499e8c746cf0d9a81653005c5",
+  "ue_identity_contract": {
+    "ip_assignment": "dynamic_by_pdu_session_completion_order",
+    "sender_binding": "discover_ipv4_from_fixed_tunnel_each_ran_start",
+    "stable_key": "internal_ue_id_and_tunnel_name",
+    "tunnel_rule": "ue_id_0=oaitun_ue1;ue_id_1=oaitun_ue2"
+  },
+  "ue_network_maps": {
+    "A": {
+      "artifact": "blocks/A/ue_network_map.json",
+      "ues": [
+        {
+          "iface": "oaitun_ue1",
+          "ip": "10.0.0.2",
+          "ue_id": 0
+        },
+        {
+          "iface": "oaitun_ue2",
+          "ip": "10.0.0.3",
+          "ue_id": 1
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,1 @@
+ue_id,frame_id,message_id,scheduled_raw_ns,first_chunk_raw_ns,complete_raw_ns,complete_latency_ms,payload_bytes,chunks,onwire_bytes,checksum_expected,checksum_actual,checksum_ok,identity_ok,source_ip

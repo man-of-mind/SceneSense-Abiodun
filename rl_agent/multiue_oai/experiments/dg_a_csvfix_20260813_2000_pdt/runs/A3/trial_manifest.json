@@ -1,0 +1,75 @@
+{
+  "created_at": "2026-08-14T03:05:05.312688+00:00",
+  "gnb_trace_profile": "latency",
+  "mu_hat_mbps": 6.077408,
+  "rnti_map": {
+    "0": 749,
+    "1": 28730
+  },
+  "sender_argv": [
+    "/home/shr_aisvcs/workarea/carla_0_10_env/carla_0_10_venv/bin/python3",
+    "-m",
+    "rl_agent.multiue_oai.endpoint",
+    "send",
+    "--remote-host",
+    "192.168.70.135",
+    "--remote-port",
+    "56100",
+    "--run-dir",
+    "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/multiue_oai/experiments/dg_a_csvfix_20260813_2000_pdt/runs/A3",
+    "--kind",
+    "equal",
+    "--controller",
+    "open_loop",
+    "--mu-hat-mbps",
+    "6.077408",
+    "--duration-s",
+    "60.0",
+    "--payload-bytes",
+    "409600",
+    "--chunk-bytes",
+    "60000",
+    "--tick-s",
+    "0.05",
+    "--socket-send-buffer-bytes",
+    "8388608",
+    "--pessimism-factor",
+    "0.7",
+    "--estimator-window-s",
+    "1.0",
+    "--estimator-ewma-alpha",
+    "0.2",
+    "--service-conversion",
+    "0.9607869064270605",
+    "--ue",
+    "0,10.0.0.2,0.65",
+    "--ue",
+    "1,10.0.0.3,0.65"
+  ],
+  "service_conversion": 0.9607869064270605,
+  "trial": {
+    "block": "A",
+    "duration_s": 60,
+    "id": "A3",
+    "kind": "equal",
+    "rho": 1.3
+  },
+  "ue_network_map": [
+    {
+      "iface": "oaitun_ue1",
+      "ip": "10.0.0.2",
+      "ue_id": 0
+    },
+    {
+      "iface": "oaitun_ue2",
+      "ip": "10.0.0.3",
+      "ue_id": 1
+    }
+  ],
+  "ue_trace_profile": "all",
+  "ue_trace_relay": {
+    "persistent_for_ran_block": true,
+    "relay_port": 2033,
+    "source_port": 2023
+  }
+}

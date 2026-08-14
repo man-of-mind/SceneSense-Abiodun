@@ -1,0 +1,5 @@
+run_group,rnti,direction,ue_grants,ue_tbs_bytes,gnb_mac_grants,gnb_mac_tbs_bytes,gnb_phy_rows,gnb_phy_payload_bytes,ue_vs_gnb_mac_tbs_ratio,ue_minus_gnb_mac_tbs_bytes,ue_vs_gnb_phy_payload_ratio,ue_minus_gnb_phy_payload_bytes,ue_avg_mcs,gnb_mac_avg_mcs,gnb_phy_avg_mcs
+STRONG_GATE_A,0xc0f3,dl,600,12410,159,3291,0,0.000000,3.770890,9119.000000,,12410.000000,0.000000,0.000000,
+STRONG_GATE_A,0xc0f3,ul,3043,4320133,3043,4320133,3043,4320133.000000,1.000000,0.000000,1.000000,0.000000,8.443313,8.443313,8.443313
+STRONG_GATE_A,0xf171,dl,536,11044,142,2928,0,0.000000,3.771858,8116.000000,,11044.000000,0.000000,0.000000,
+STRONG_GATE_A,0xf171,ul,2784,3894300,2787,3895361,2786,3895260.000000,0.999728,-1061.000000,0.999754,-960.000000,8.472701,8.486545,8.486719

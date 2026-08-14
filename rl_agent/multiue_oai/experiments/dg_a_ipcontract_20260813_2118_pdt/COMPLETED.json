@@ -1,0 +1,7 @@
+{
+  "completed_at": "2026-08-14T04:45:35.727631+00:00",
+  "decision": "CANDIDATE_GO_DG_B_HUMAN_REVIEW_REQUIRED",
+  "next_stage_launched": false,
+  "status": "DG_A_COMPLETE_HUMAN_REVIEW_REQUIRED",
+  "summary": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/multiue_oai/experiments/dg_a_ipcontract_20260813_2118_pdt/results_summary.json"
+}

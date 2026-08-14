@@ -1,0 +1,5 @@
+run_group,rnti,direction,ue_grants,ue_tbs_bytes,gnb_mac_grants,gnb_mac_tbs_bytes,gnb_phy_rows,gnb_phy_payload_bytes,ue_vs_gnb_mac_tbs_ratio,ue_minus_gnb_mac_tbs_bytes,ue_vs_gnb_phy_payload_ratio,ue_minus_gnb_phy_payload_bytes,ue_avg_mcs,gnb_mac_avg_mcs,gnb_phy_avg_mcs
+A6,0xc0f3,dl,312,6264,78,1566,0,0.000000,4.000000,4698.000000,,6264.000000,0.000000,0.000000,
+A6,0xc0f3,ul,929,492527,929,492527,929,492527.000000,1.000000,0.000000,1.000000,0.000000,8.000000,8.000000,8.000000
+A6,0xf171,dl,303,6077,77,1545,0,0.000000,3.933333,4532.000000,,6077.000000,0.000000,0.000000,
+A6,0xf171,ul,930,491726,930,491726,930,491726.000000,1.000000,0.000000,1.000000,0.000000,8.000000,8.000000,8.000000

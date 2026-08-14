@@ -1,0 +1,55 @@
+{
+  "active_uplink_objects": {
+    "active": {
+      "rfsimu_channel_ue0": true,
+      "rfsimu_channel_ue1": true
+    },
+    "fallback_lines": []
+  },
+  "after": {
+    "rfsimu_channel_ue0": {
+      "model_index": 2,
+      "model_name": "rfsimu_channel_ue0",
+      "model_type": "AWGN",
+      "noise_power_db": -4.0,
+      "path_loss_db": 0.0
+    },
+    "rfsimu_channel_ue1": {
+      "model_index": 3,
+      "model_name": "rfsimu_channel_ue1",
+      "model_type": "AWGN",
+      "noise_power_db": -4.0,
+      "path_loss_db": 0.0
+    }
+  },
+  "before": {
+    "rfsimu_channel_ue0": {
+      "model_index": 2,
+      "model_name": "rfsimu_channel_ue0",
+      "model_type": "AWGN",
+      "noise_power_db": -50.0,
+      "path_loss_db": 0.0
+    },
+    "rfsimu_channel_ue1": {
+      "model_index": 3,
+      "model_name": "rfsimu_channel_ue1",
+      "model_type": "AWGN",
+      "noise_power_db": -50.0,
+      "path_loss_db": 0.0
+    }
+  },
+  "block": "B",
+  "both_uplinks_modified": true,
+  "initial_noise_power_db": -50.0,
+  "modify_responses": {
+    "rfsimu_channel_ue0": {
+      "command": "channelmod modify 2 noise_power_dB -4",
+      "response": "model owner: rfsimulator\nnb_tx: 1    nb_rx: 1    taps: 1 bandwidth: 40000000.000000    sampling: 61440000.000000\nchannel length: 1    Max path delay: 0.000000   ricean fact.: 0.000000    angle of arrival: 0.000000 (randomized:No)\nmax Doppler: 0.000000    path loss: 0.000000  noise: -4.000000 rchannel offset: 0    forget factor; 0.000000\nInitial phase: 0.000000   nb_path: 10 \ntaps: 0   lin. ampli. : 1.000000    delay: 0.000000 \nsoftmodem_gnb> "
+    },
+    "rfsimu_channel_ue1": {
+      "command": "channelmod modify 3 noise_power_dB -4",
+      "response": "model owner: rfsimulator\nnb_tx: 1    nb_rx: 1    taps: 1 bandwidth: 40000000.000000    sampling: 61440000.000000\nchannel length: 1    Max path delay: 0.000000   ricean fact.: 0.000000    angle of arrival: 0.000000 (randomized:No)\nmax Doppler: 0.000000    path loss: 0.000000  noise: -4.000000 rchannel offset: 0    forget factor; 0.000000\nInitial phase: 0.000000   nb_path: 10 \ntaps: 0   lin. ampli. : 1.000000    delay: 0.000000 \nsoftmodem_gnb> "
+    }
+  },
+  "target_noise_power_db": -4.0
+}
