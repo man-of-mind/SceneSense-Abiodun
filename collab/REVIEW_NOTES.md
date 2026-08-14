@@ -3837,3 +3837,46 @@ mis-calibration.
 - **Phase 2** — tells the hazard-triggered design it must treat fast objects differently (higher FPS, or accept a
   larger eps for them, or explicitly abstain and say so). That is a design input, not a post-mortem.
 - Everything else from Task D/E stays **cancelled**.
+
+## 2026-08-14 — DESIGN: the AoI/error model, not the payload, is the binding constraint. Three findings + a proposed Phase-2 safety-contract change. (Abiodun's question.)
+
+Verified in `policy/shield.py`. These are **design inputs for Phase 2**, i.e. in-scope under the
+name-the-contribution rule (they change **C3**'s statement and the Phase-2 hazard design).
+
+**F1 — The error model assumes objects FREEZE; there is no motion prediction.**
+`_prior_error = hypot(base_loc, speed * age)` and `_delivered_error = hypot(base_loc, speed * latency)`
+(`shield.py:148,152`). Error therefore grows as **speed x age**. A real cooperative map **dead-reckons** using the
+reported velocity, so error grows as ~**(1/2) a x age^2**. For a 10 m/s vehicle at 0.5 s staleness: **5.0 m
+(freeze) vs ~0.38 m (constant-velocity, a ~ 3 m/s^2)** — a **~13x** difference. This single conservative modelling
+choice may be why the system looks infeasible everywhere, and it is very likely a larger driver of the ~97%
+abstention than payload ever was. **Question for codex: does the shared map (or the intended Phase-2 map) actually
+extrapolate? If yes, the error model is mis-specified and must be corrected before any further feasibility claim.**
+
+**F2 — "Least bad" already exists, but pre-existing staleness is charged to the send.**
+`shield.py:314` falls back to `min(...)` on error bound when the safe set is empty, so Abiodun's least-bad
+mechanism is already implemented. However SPLIT's bound is `max(delivered_error, prepublish_error)`
+(`shield.py:224`) — **the action is charged for staleness it cannot fix within this frame**, so for a stale fast
+object no profile can get under eps. Defensible as a conservative model, but it means the shield structurally
+prefers SKIP for exactly the objects freshness was meant to protect.
+
+**F3 — Abstention is treated as safe; for cooperative perception it is not.**
+Not publishing means the recipient does not know the object **exists**. Stale-but-present beats absent.
+
+### Proposed Phase-2 safety-contract change (for advisor review — do NOT implement unilaterally)
+1. **Publish with uncertainty rather than gating on accuracy.** Emit the estimate **plus its error bound**; the
+   shield's obligation becomes **"never understate uncertainty"** instead of "never publish when inaccurate". A
+   planner can act on "pedestrian at X +/- 2.5 m"; it cannot act on silence. This is standard perception-stack
+   practice (state + covariance) and is easier to defend to a safety reviewer than a 97% abstention rate.
+2. **Make eps hazard-conditioned, NOT achievability-conditioned.** Derive the bound per object from what the
+   downstream decision tolerates (time-to-collision, range, class) — tight for a pedestrian at 5 m / TTC 1 s,
+   looser for a vehicle at 60 m. **Never loosen eps because the bound is hard to meet** — fast objects are *more*
+   dangerous, so relaxing there is grading our own homework. This composes directly with codex's hazard-triggered
+   Phase-2 selection.
+3. **Consider regret-shaped rather than absolute error penalty for the CHOICE.** `w_E * (G/eps)` is absolute;
+   penalising 185 ms when 185 ms was the best available is not informative. Use regret (vs the best admissible
+   action) to *choose*, but **keep reporting absolute error** — pure regret masks systematic infeasibility (if
+   everything is bad, regret is zero and the system looks healthy).
+
+**Priority note:** F1 is the only item that could change current numbers and it is a cheap question (does the map
+extrapolate?). Items 1-3 are Phase-2 design decisions for the advisor, not work to start now. Phase-2 paired
+evaluation remains the only P0.
