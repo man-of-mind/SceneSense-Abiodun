@@ -2825,6 +2825,38 @@ pattern is established, ~5 min/run) before committing the 60-95 min campaign.
 declare-NO-GO-vs-push-to-N=4 fork is an advisor-level scientific call — he returns in ~2 days, and this is
 exactly what to bring him. Meanwhile the write-up can start: the mechanism finding stands on its own.
 
+## 2026-08-14 — LOCAL: two corrections ACCEPTED; codex found the real root cause (allocation-contract bug). CANDIDATE_GO is an artifact — not usable.
+
+**codex ran the diagnosis and found something better than my hypothesis.** Verified locally at
+`analyze.py:209` — `allocate_equal_ratio()` computes ONE global ratio and scales **every** UE's demand
+uniformly; the registered spec requires **max-min / work-conserving**. The decentralized side (`:229`,
+`min(value, local_budget)`) correctly serves cold UEs fully — so the two arms are **not implementing comparable
+contracts**, and that asymmetry manufactures the result. N=50 hot-20%: decentralized hot 15.9% / cold 100% vs
+buggy-central 63.6% for everyone → the **+47.73 pp** headline, with cold inter-delivery **57% worse**. Correct
+max-min gives ~**+38.6 pp** with no artificial starvation regression — but still only an **allocation-ratio**
+result, not the registered 0.25/0.50 s **deadline** metric. **Verdict: `CANDIDATE_GO_DG_B` is not scientifically
+usable.** My "starving the tail" guess was directionally right but wrong on cause: it's an **implementation
+contract violation, not an objective-design tradeoff.**
+
+**My two overstatements, withdrawn:**
+1. *"Worse starvation invalidates the deadline improvement"* — WRONG on the rule: the registered gate treats
+   deadline/latency/starvation as **alternatives**. My substantive worry survives only as a *recommendation*
+   ("Pareto-safe", which codex adopted as criterion #4), NOT as a claim about what pre-registration required.
+   I was rule-lawyering from a config file without the spec semantics.
+2. *"The MAC scheduler leaves application coordination nothing to win"* — TOO BROAD. It explains the **N=2
+   capacity-sharing** result only. The scheduler is blind to **freshness, semantic utility, and deadlines**, and
+   it does **not** explain the single-UE knob-frontier NO-GO (separate mechanism: measured monotone Pareto
+   frontier → constrained lookup, not learning). **Two distinct mechanisms — do not fuse them into one grand
+   narrative** in the write-up; that conflation would not survive review.
+
+**Endorse codex's 5-step plan in full:** (1) DG-B stays HOLD; (2) correct the desk model to the registered
+max-min + measured-share envelopes; (3) simulate real arrivals/queueing/deadlines/replacement/starvation — not
+admitted-rate ratios; (4) require a Pareto-safe gap across all service families; (5) only then N=4 attach-only
+smoke → DG-B.
+
+**Net:** the "GO" that was pulling us toward a 60-95 min N=4 campaign was an artifact — the HOLD + free-diagnosis
+sequencing caught it before it cost radio time. The measured N=2 no-gap result is unaffected and stands.
+
 ## 2026-08-13 — CODEX: two-UE strong-rung re-registration applied; DG-A runtime entry repaired and launch authorized.
 
 **Observable reconciliation:** the retained channel-sweep summarizer derives its SNR column from
