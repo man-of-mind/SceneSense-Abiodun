@@ -3535,3 +3535,61 @@ mild tiebreaker, yet freshness-awareness was the motivation. The sensitivity swe
 (supersedes `PRESENTATION_STORY.md`). §7a explains the reward scale and this caveat; §16 records Abiodun's
 slide-production requirements (block diagrams, real CARLA frames, LaTeX-rendered equations, a full notation table,
 validated-palette plots, per-slide scope caveats). Deck gets built only after A/B/C/D land so no figure needs redoing.
+
+## 2026-08-14 — 🔴 ESCALATION (Task E, BLOCKING): the evaluated policy is DEGENERATE — ~97% abstention. The NO-GO may be measured in a regime where the system is not doing the task.
+
+Abiodun asked the decisive question: *if 96-98% of frames are skipped, only 2-4% of information ever reaches the
+shared map — what is the agent for, and is AoI even in play?* Working it through, he is right and this is the most
+serious issue raised in the review so far. **This supersedes Task D in priority (D becomes part of E).**
+
+**1. Effective sharing rate is far below anything the map can use.** `split_pct` = 3.98% of a 10 Hz corpus =>
+~0.4 sends/s (map refresh every ~2.5 s). But `capture_attempt_pct` = **1.55%**, *lower* than `split_pct` — implying
+a realized rate nearer ~0.16/s (refresh every ~6 s). **codex: explain that split-vs-capture gap; it is material to
+interpreting every ladder number.**
+
+**2. That violates our own staleness physics for exactly the objects freshness was meant to protect.** With
+`base_loc ~= 0.9 m` and `eps = 2.0 m`, the budget allows `v*AoI <= 1.76 m`:
+pedestrian @1.4 m/s -> AoI <= 1.26 s (~0.8 Hz); vehicle @10 m/s -> **AoI <= 0.18 s (~5.7 Hz)**; car @14 m/s ->
+**AoI <= 0.13 s (~8 Hz)**. At a 2.5-6 s refresh interval a 10 m/s vehicle's entry carries **~25 m of error**. The
+shared map cannot be serving moving vehicles at all.
+
+**3. AoI is inert by weighting.** `w_error = 0.05` vs `w_task = 1.0`: staleness is nearly free while sending has a
+real `C_PRB` cost, so skipping dominates. AoI is in the formulation but not in the behaviour. The sweep only
+covered `w_error` in [0.025, 0.10] — a freshness weight strong enough to change the policy was never tested.
+
+**4. Structural flaw: safety is satisfied trivially by abstention.** There is no minimum coverage/utility floor
+anywhere in the contract, so "safe" was never coupled to "participating." A system that abstains 97% of the time is
+safe and useless.
+
+**5. Consequence for the NO-GO.** Comparing controllers that all abstain ~97% of the time compares them on ~3% of
+the problem; "greedy ~= oracle" substantially means *they agree about doing nothing*. The NO-GO may still hold, but
+as written it may be an **operating-point/calibration** result rather than a **learnability** result.
+
+### TASK E (blocking; desk-only; do before any further NO-GO claims and before the slide deck)
+1. **Decompose the skip reasons.** For every SKIP, attribute the cause: C1/over-budget, no shield-admissible SPLIT
+   (safety-infeasible), reward-preferred SKIP, or rate-limited by `target_fps`. Report the histogram. This tells us
+   whether abstention is *forced* or *chosen*.
+2. **Explain `capture_attempt_pct` (1.55%) < `split_pct` (3.98%)** and state the true realized send/refresh rate
+   and the resulting map AoI distribution.
+3. **Report map-coverage as a first-class metric** — fraction of objects with a fresh (within-eps) map entry, and the
+   AoI distribution per object-speed band. Reward alone hides the degeneracy; coverage exposes it. This belongs in
+   the paper and on the slide regardless of outcome.
+4. **Re-run the ladder + expanded gate at an operating point where sending is routinely feasible** — the **90 KB
+   seg-safe** profile (100% delivery at every measured rung) — and report skip_pct there. (Absorbs Task D item 3.)
+5. **Sweep `w_error` well beyond 0.10** (e.g. 0.25 / 0.5 / 1.0) and report where the policy stops abstaining. If a
+   defensible freshness weight produces a participating policy, **the ladder must be re-evaluated there** — that is
+   the regime the project is actually about.
+6. **Then** Task D's conditional analysis: restricted to frames with >= 2 admissible actions, oracle-vs-greedy
+   disagreement and reward gap vs the registered bar.
+7. Consider whether the contract needs an explicit **minimum-coverage / participation constraint** (or a
+   staleness-triggered must-send rule) so that trivial abstention is inadmissible by construction. Design question,
+   flag for the advisor — do not silently add it.
+
+**Reporting discipline:** until E is answered, describe the NO-GO as *"no useful one-step headroom **at the 400 KiB
+operating point, where the shielded policy abstains ~97% of the time**"* — and say plainly that a
+participating-regime re-run is pending. Do NOT present it as a general learnability result.
+
+**Presentation impact:** `rl_agent/RL_JOURNEY_REPORT.md` §7b records this. The advisor talk in ~3 days should
+present this as an **open finding we surfaced ourselves**, not a settled NO-GO. It is a much better look than having
+it asked from the audience, and the diagnosis is genuinely interesting: at 400 KiB the physics may simply not permit
+cooperative perception, which is itself the load-shaping thesis with teeth.
