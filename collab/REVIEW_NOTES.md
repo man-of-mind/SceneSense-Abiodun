@@ -3683,3 +3683,68 @@ same object can be urgent for one ego and irrelevant for another; this gives a p
 deadline-aware/object-selective scheduling and a natural place to test a genuine Whittle formulation later. RL is
 still gated: if periodic/send-everything, causal hazard-only, and deadline-aware priority leave no sequential gap,
 the simple system wins.
+
+## 2026-08-14 — RECONCILIATION of codex's A/B/C + Phase-2 delivery against the Task D/E escalation. Priority plan.
+
+codex completed A/B/C and started Phase 2 **before seeing the Task D/E escalation** (~97% abstention). Reconciling
+both threads. Net: **two of my pending worries are resolved, one of codex's results gains new meaning, and Task E
+remains blocking.**
+
+### What resolves
+- **Task A — my asymmetric-interpretation guard is SATISFIED, and the null is stronger than feared.** Per-frame
+  segmentation was **already present** (0 GPU-minutes incremental), so this is *not* the biased detection-only null
+  I warned about. `NO_PRACTICAL_REVERSAL_ON_AVAILABLE_CONTEXTS` over 1,683 samples x all 36 profiles, Holm-corrected,
+  held-out gate. **Phase-1 scene-conditioning is closed for class-mix/range contexts.** Correctly scoped: true
+  occlusion, cyclists, and broader scenarios untested. This closes the "structurally unrepresentable" objection for
+  the contexts we can measure — good pre-registration paying off.
+- **Task C full-36 — a genuine, precise result.** Only 4 of 36 profiles are lambda-supported; supported-hull lookup
+  agrees with exact enumeration at **80.56%** of breakpoints, max utility gap **0.011686**, max duality gap
+  **0.017359**. **H2 is FALSE universally** — vindicating codex's earlier warning that budget-constrained
+  enumeration reaches non-supported Pareto points no lambda can. Publishable as-is.
+
+### What gains new meaning in light of Task E
+- **Task B is direct evidence FOR the Task E thesis.** Forcing participation (observed-vulnerable no-skip +
+  low-confidence ROI0 clamp) **improves matched-safe by +1.63 pp** but **costs -0.0477 reward and +1.10 Mbps.**
+  So the reward function **penalises the safer, more-participating behaviour.** That is reward misalignment with
+  numbers attached — exactly the Task E concern, now empirically demonstrated rather than argued. **This should be
+  presented as a headline diagnostic, not a footnote.**
+- **Task C runtime "100% agreement" needs one conditional cut before it can be quoted.** With ~96-98% of states
+  resolving to SKIP, own-state agreement can be dominated by states where every policy trivially agrees.
+  *Reassuring counter-evidence:* the AoI-index heuristic agrees only **86.47%**, so latitude exists in at least
+  ~13.5% of states — it is not fully degenerate. **Request: report lambda-RDO vs enumerator agreement and reward gap
+  CONDITIONAL ON SPLIT being selected** (and the SKIP fraction of the evaluated states). Cheap; makes the number
+  quotable.
+
+### What remains blocking — TASK E, unchanged
+The ~97% abstention issue is untouched by A/B/C. Until it is answered, the NO-GO cannot be stated as a learnability
+result. Priority order **within** E (highest value first):
+1. **Re-run ladder + expanded gate at the 90 KB seg-safe operating point** (100% delivery at every measured rung).
+   This single item most directly tests whether the entire NO-GO story survives in a participating regime.
+2. **Sweep `w_error` beyond 0.10** (0.25 / 0.5 / 1.0) — find where the policy starts participating. Task B already
+   shows the reward fights participation, so this is likely mis-calibrated rather than merely untested.
+3. **Decompose skip causes** (C1/over-budget vs safety-infeasible vs reward-preferred vs FPS rate-limit) and explain
+   `capture_attempt_pct` 1.55% < `split_pct` 3.98%.
+4. **Report map coverage** (fraction of objects with a within-eps fresh entry; AoI distribution by speed band) as a
+   first-class metric — reward hides degeneracy, coverage exposes it.
+5. Task D conditional-on-choice oracle analysis; Task C conditional-on-SPLIT cut (above).
+
+### Phase 2 — endorsed, and the metric is the best idea in this round
+codex's **recipient-specific causal formulation** — credit cooperation only when helper evidence advances a *named*
+ego's warning on a separately scored truth trajectory, then report **bytes per advanced warning** — is exactly the
+right shape for C2. It is a cooperation-value-per-cost measure, it sidesteps the mAP-only framing of the
+cooperative-perception literature, and it does not presuppose RL. Synthetic contract PASS (+1.9 s lead, zero benign
+warnings) and the two-stream adapter PASS (37 paired-active snapshots, 26 fresh / 11 correctly stale-rejected) are
+plumbing milestones, correctly labelled as **not C2 evidence**.
+
+**One addition to the next gate:** the planned paired **ego-only / send-everything / hazard-only** comparison is also
+the cleanest available **anti-abstention** experiment. `send-everything` is the participation upper bound and
+`hazard-only` is the selective policy; if hazard-only matches send-everything's warning lead at far fewer bytes,
+that is a strong C2 result *and* it partially answers Task E from the application side. Please report **warning lead,
+bytes, and map coverage** for all three arms.
+
+### Priority call (proposed; Abiodun to confirm)
+- **P0 — Task E items 1-2** (90 KB re-run + `w_error` sweep). Blocks the central claim and the presentation.
+- **P1 — Phase-2 paired CARLA evaluation** (ego-only / send-everything / hazard-only), then the same messages over
+  two-UE OAI RFsim. This is C2, the binding contribution.
+- **P2 — Task E items 3-5** (skip decomposition, coverage metric, conditional cuts). Cheap, needed for the paper.
+- **P3 — occlusion / cyclist contexts** for Task A's remaining scope. Only if the story needs it.
