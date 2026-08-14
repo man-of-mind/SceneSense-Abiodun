@@ -3153,3 +3153,48 @@ serialization, across N and the channel rungs from `combined_surface.csv`) and r
 registered decision at a FEASIBLE deadline** (or at the 90 KB payload) so we can state whether the no-gap
 conclusion survives when the metric can actually discriminate — that is the honest robustness check on this NO-GO,
 and it is free.
+
+## 2026-08-14 — LOCAL: endorse codex's stronger-baseline redesign, with ONE REORDERING (oracle first) + 2 prerequisites. Origin: Abiodun's "least-bad-action" question.
+
+**Credit where due:** Abiodun asked "if no policy meets the deadline, don't we want the least-bad action — isn't
+there something to learn there?" That question identified the real defect in the comparator: the central rule
+selects **oldest-pending**, so it never performs feasibility-or-value reasoning (can this finish in time? will it
+still help on arrival? would a smaller payload/FPS make it feasible?). codex's redesign is that critique
+formalized. Endorsed in substance: raising the non-learning bar is the right move, and it makes the NO-GO stronger
+rather than manufacturing a GO.
+
+**Framing to keep us honest:** the motivation is **"a NO-GO measured against a weak baseline is an under-powered
+NO-GO"** — NOT "let's find a way to justify RL." Register that framing explicitly; it changes what counts as a
+good outcome (confirming the NO-GO is a success, not a disappointment).
+
+**REORDERING — measure the CLAIRVOYANT ORACLE FIRST, not at step 4.** This is the highest-leverage change.
+Right now we know `greedy ≈ MPC`, which establishes only "MPC is not better" — it does **NOT** establish "greedy is
+near-optimal." **Both could be far from optimal.** We have never measured the achievability ceiling for this
+controller problem. The oracle is (a) free — offline replay on existing corpus data, (b) needs **no new controller
+design**, and (c) **bounds every rung above it**:
+- If **oracle ≈ greedy** → no policy of any kind has room → the NO-GO becomes definitive, and the deadline-aware
+  max-weight rule and queue-aware MPC **do not need to be built at all**. Weeks saved.
+- If **oracle ≫ greedy** → real headroom exists that MPC failed to capture → then build the ladder, and the
+  motivation for the stronger baselines (and eventually RL) is measured, not assumed.
+This is the same cheap-decisive-check-before-expensive-work discipline that caught the attach bug and the
+`CANDIDATE_GO` artifact. **Proposed ladder: (1) clairvoyant oracle upper bound → (2) deadline-aware
+max-weight/least-slack rule → (3) queue-aware MPC → (4) RL, only on a residual oracle−MPC gap.** codex's steps 2/3
+stay exactly as designed, just gated behind the oracle measurement.
+
+**PREREQUISITE 1 — the evaluation metric MUST become graded, or a least-bad-action controller is invisible.**
+You cannot evaluate "least bad" with a pass/fail deadline fraction: under infeasibility every policy scores 0
+(proven). Use the continuous objective (reward-v5 / AoI-based map-quality, where a late frame still earns partial
+credit for AoI reduction) as the primary metric, with the binary deadline fraction retained as a secondary report.
+**Pre-register the new metric BEFORE running**, state the reason (the old metric was demonstrably saturated — a
+specification defect, established independently of any policy's performance), and keep the old results reported
+alongside. Same discipline as the SNR re-registration; this is the difference between a justified metric fix and
+post-hoc metric shopping.
+
+**PREREQUISITE 2 — LOCAL is uncalibrated.** codex's step 4 joint action space is
+`UE × {SPLIT/LOCAL/SKIP} × profile/payload × FPS`, but `CLAUDE.md` records LOCAL as still uncalibrated (4th table
+missing). Either calibrate LOCAL first or exclude it from the joint space and say so. Also watch action-space
+size: the Track-A catalog was already 36 (7 Pareto profiles × 5 FPS + SKIP); adding LOCAL and per-UE coupling gets
+combinatorial at N=50 — keep the joint selection tractable and document any pruning (no silent caps).
+
+**Agreed unchanged:** hard C1, safety shield, observable-information-only, no simulator truth, SKIP admissible,
+freeze the controller before evaluation, held-out trajectories, old results preserved. And: **do not start RL now.**
