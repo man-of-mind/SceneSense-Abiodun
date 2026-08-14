@@ -1,0 +1,30 @@
+{
+  "created_at": "2026-08-14T00:10:23.946838+00:00",
+  "gnb_trace_profile": "latency",
+  "mu_hat_mbps": 10.4,
+  "rnti_map": {},
+  "service_conversion": 1.0,
+  "trial": {
+    "block": "RUNTIME_SWITCH_R1",
+    "duration_s": 30.0,
+    "fractions": [
+      0.9,
+      0.2
+    ],
+    "id": "SWITCH_STRONG_ASYMMETRIC",
+    "kind": "asymmetric"
+  },
+  "ue_network_map": [
+    {
+      "iface": "oaitun_ue1",
+      "ip": "10.0.0.2",
+      "ue_id": 0
+    },
+    {
+      "iface": "oaitun_ue2",
+      "ip": "10.0.0.3",
+      "ue_id": 1
+    }
+  ],
+  "ue_trace_profile": "all"
+}

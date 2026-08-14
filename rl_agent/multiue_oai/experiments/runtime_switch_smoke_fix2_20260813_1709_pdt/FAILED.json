@@ -1,0 +1,13 @@
+{
+  "attach_channel_mode": "strong",
+  "d0_launched": false,
+  "decision": "HOLD_REPAIR",
+  "dg_a_launched": false,
+  "error": "SWITCH_STRONG_ASYMMETRIC has UE(s) off the registered strong SNR/MCS rung: {'0': {'rnti': 35341, 'sample_count': 14896, 'median_pusch_snr_db': 6.0, 'median_ul_mcs': 8.0}, '1': {'rnti': 59179, 'sample_count': 5480, 'median_pusch_snr_db': 6.0, 'median_ul_mcs': 8.0}}",
+  "error_type": "StageFailure",
+  "failed_at": "2026-08-14T00:11:36.718178+00:00",
+  "next_stage_launched": false,
+  "run_mode": "runtime_switch_smoke",
+  "schema_version": "scenesense.multiue_oai.dg_a.failure.v1",
+  "status": "FAILED_HOLD"
+}

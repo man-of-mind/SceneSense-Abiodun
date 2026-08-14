@@ -1,0 +1,13 @@
+{
+  "attach_channel_mode": "strong",
+  "d0_launched": false,
+  "decision": "HOLD_REPAIR",
+  "dg_a_launched": false,
+  "error": "SWITCH_BASELINE_CLEAN receiver source-IP identity mismatch: {'expected_sources': {'0': '10.0.0.3', '1': '10.0.0.2'}, 'observed_sources': {'1': ['192.168.70.134'], '0': ['192.168.70.134']}, 'mismatch_count': 133, 'mismatch_examples': [{'ue_id': 1, 'source_ip': '192.168.70.134', 'expected_source_ip': '10.0.0.2', 'message_id': '736870912'}, {'ue_id': 1, 'source_ip': '192.168.70.134', 'expected_source_ip': '10.0.0.2', 'message_id': '736870912'}, {'ue_id': 1, 'source_ip': '192.168.70.134', 'expected_source_ip': '10.0.0.2', 'message_id': '736870912'}, {'ue_id': 1, 'source_ip': '192.168.70.134', 'expected_source_ip': '10.0.0.2', 'message_id': '736870912'}, {'ue_id': 1, 'source_ip': '192.168.70.134', 'expected_source_ip': '10.0.0.2', 'message_id': '736870912'}, {'ue_id': 1, 'source_ip': '192.168.70.134', 'expected_source_ip': '10.0.0.2', 'message_id': '736870912'}, {'ue_id': 1, 'source_ip': '192.168.70.134', 'expected_source_ip': '10.0.0.2', 'message_id': '736870912'}, {'ue_id': 0, 'source_ip': '192.168.70.134', 'expected_source_ip': '10.0.0.3', 'message_id': '368435456'}, {'ue_id': 0, 'source_ip': '192.168.70.134', 'expected_source_ip': '10.0.0.3', 'message_id': '368435456'}, {'ue_id': 0, 'source_ip': '192.168.70.134', 'expected_source_ip': '10.0.0.3', 'message_id': '368435456'}], 'missing_ues': [], 'unexpected_ues': []}",
+  "error_type": "StageFailure",
+  "failed_at": "2026-08-13T23:57:36.352011+00:00",
+  "next_stage_launched": false,
+  "run_mode": "runtime_switch_smoke",
+  "schema_version": "scenesense.multiue_oai.dg_a.failure.v1",
+  "status": "FAILED_HOLD"
+}

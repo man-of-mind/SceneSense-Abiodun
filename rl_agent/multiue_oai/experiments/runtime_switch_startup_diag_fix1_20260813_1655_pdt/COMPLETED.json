@@ -1,0 +1,9 @@
+{
+  "completed_at": "2026-08-13T23:55:31.447968+00:00",
+  "d0_launched": false,
+  "decision": "FULL_RUNTIME_SWITCH_NOT_RUN",
+  "dg_a_launched": false,
+  "next_stage_launched": false,
+  "status": "RUNTIME_SWITCH_STARTUP_COMPLETE",
+  "summary": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/multiue_oai/experiments/runtime_switch_startup_diag_fix1_20260813_1655_pdt/results_summary.json"
+}

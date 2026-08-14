@@ -1,0 +1,38 @@
+{
+  "chunks_per_frame": 7,
+  "controller": "open_loop",
+  "demand_count": 19,
+  "demand_trace_sha256": "0c6a965ab5c677e22a4f4c98fdf431832f8ab07e0f23a220fde4a28d6036fca5",
+  "duration_target_s": 15.0,
+  "elapsed_from_start_s": 14.951392906,
+  "end_raw_ns": 880834176211843,
+  "kind": "equal",
+  "local_errors": 0,
+  "mode": "sender",
+  "observer": null,
+  "onwire_bytes_per_frame": 409852,
+  "payload_bytes": 409600,
+  "per_ue": {
+    "0": {
+      "sent_frames": 9,
+      "sent_onwire_bytes": 3688668
+    },
+    "1": {
+      "sent_frames": 10,
+      "sent_onwire_bytes": 4098520
+    }
+  },
+  "socket_bindings": {
+    "0": {
+      "actual_local_ip": "10.0.0.2",
+      "actual_local_port": 55625,
+      "requested_bind_ip": "10.0.0.2"
+    },
+    "1": {
+      "actual_local_ip": "10.0.0.3",
+      "actual_local_port": 49914,
+      "requested_bind_ip": "10.0.0.3"
+    }
+  },
+  "start_raw_ns": 880819224817725
+}

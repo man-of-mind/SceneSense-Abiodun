@@ -1,9 +1,0 @@
-{
-  "decision": "HOLD_REPAIR",
-  "error": "both expected UE tunnels did not attach",
-  "error_type": "StageFailure",
-  "failed_at": "2026-08-13T20:39:33.753484+00:00",
-  "next_stage_launched": false,
-  "schema_version": "scenesense.multiue_oai.dg_a.failure.v1",
-  "status": "FAILED_HOLD"
-}

@@ -10,8 +10,10 @@ import json
 import math
 import os
 import random
+import re
 import shutil
 import signal
+import socket
 import statistics
 import subprocess
 import sys
@@ -78,6 +80,189 @@ def parse_trace_time(value: str) -> float:
     return parsed.hour * 3600 + parsed.minute * 60 + parsed.second + parsed.microsecond / 1e6
 
 
+def parse_interface_ipv4(payload: str, expected_iface: str) -> Optional[str]:
+    """Extract the sole IPv4 address from `ip -j -4 addr show dev IFACE`."""
+    rows = json.loads(payload or "[]")
+    addresses = {
+        str(address["local"])
+        for row in rows
+        if str(row.get("ifname", "")) == expected_iface
+        for address in row.get("addr_info", [])
+        if address.get("family") == "inet" and address.get("local")
+    }
+    if len(addresses) > 1:
+        raise ValueError(f"{expected_iface} has multiple IPv4 addresses: {sorted(addresses)}")
+    return next(iter(addresses), None)
+
+
+def receiver_identity_report(
+    rows: Iterable[Mapping[str, object]],
+    expected_ues: Iterable[int],
+    expected_nat_sources: Iterable[str],
+) -> dict:
+    """Validate logical UE identity after the UPF has source-NATed UE packets.
+
+    The ext-DN cannot recover the originating tunnel from the post-NAT source
+    address.  Logical identity is therefore validated from the message-ID UE
+    prefix, while the source address is checked against the registered UPF N6
+    address rather than against a UE tunnel address.
+    """
+    expected_ue_set = {int(value) for value in expected_ues}
+    expected_nat_set = {str(value) for value in expected_nat_sources}
+    observed: Dict[int, set[str]] = defaultdict(set)
+    invalid_message_ids = []
+    unexpected_nat_sources = set()
+    for row in rows:
+        ue_id = int(row["ue_id"])
+        source_ip = str(row["source_ip"])
+        observed[ue_id].add(source_ip)
+        if source_ip not in expected_nat_set:
+            unexpected_nat_sources.add(source_ip)
+        try:
+            message_ue_id = (int(row["message_id"]) >> 28) - 1
+        except (KeyError, TypeError, ValueError):
+            message_ue_id = None
+        if message_ue_id != ue_id:
+            invalid_message_ids.append(
+                {
+                    "ue_id": ue_id,
+                    "source_ip": source_ip,
+                    "message_id": row.get("message_id"),
+                    "message_ue_id": message_ue_id,
+                }
+            )
+    missing_ues = sorted(expected_ue_set - set(observed))
+    unexpected_ues = sorted(set(observed) - expected_ue_set)
+    return {
+        "identity_basis": "message_id_ue_prefix_after_upf_snat",
+        "expected_ues": sorted(expected_ue_set),
+        "expected_nat_sources": sorted(expected_nat_set),
+        "observed_sources": {str(key): sorted(value) for key, value in observed.items()},
+        "invalid_message_id_count": len(invalid_message_ids),
+        "invalid_message_id_examples": invalid_message_ids[:10],
+        "unexpected_nat_sources": sorted(unexpected_nat_sources),
+        "missing_ues": missing_ues,
+        "unexpected_ues": unexpected_ues,
+    }
+
+
+def sender_route_report(
+    sender: Mapping[str, object],
+    expected_network_map: Mapping[int, Mapping[str, object]],
+    tunnel_health: Mapping[str, Mapping[str, object]],
+    *,
+    tx_ratio_min: float,
+    tx_ratio_max: float,
+) -> dict:
+    """Prove per-UE sender routing before UPF NAT obscures source identity."""
+    raw_bindings = sender.get("socket_bindings", {})
+    raw_per_ue = sender.get("per_ue", {})
+    bindings = raw_bindings if isinstance(raw_bindings, Mapping) else {}
+    per_ue = raw_per_ue if isinstance(raw_per_ue, Mapping) else {}
+    rows: Dict[str, dict] = {}
+    for ue_id, expected in sorted(expected_network_map.items()):
+        key = str(ue_id)
+        binding = bindings.get(key, {})
+        sender_row = per_ue.get(key, {})
+        tunnel = tunnel_health.get(f"ue{ue_id}", {})
+        expected_ip = str(expected["ip"])
+        requested_ip = str(binding.get("requested_bind_ip", ""))
+        actual_ip = str(binding.get("actual_local_ip", ""))
+        sent_bytes = int(sender_row.get("sent_onwire_bytes", 0) or 0)
+        tunnel_tx_bytes = int(tunnel.get("tx_bytes_delta", 0) or 0)
+        ratio = tunnel_tx_bytes / sent_bytes if sent_bytes > 0 else None
+        binding_pass = requested_ip == expected_ip and actual_ip == expected_ip
+        byte_pass = (
+            sent_bytes == 0 and tunnel_tx_bytes == 0
+        ) or (
+            sent_bytes > 0
+            and ratio is not None
+            and tx_ratio_min <= ratio <= tx_ratio_max
+        )
+        rows[key] = {
+            "iface": str(expected["iface"]),
+            "expected_bind_ip": expected_ip,
+            "requested_bind_ip": requested_ip,
+            "actual_local_ip": actual_ip,
+            "actual_local_port": binding.get("actual_local_port"),
+            "sent_onwire_bytes": sent_bytes,
+            "tunnel_tx_bytes_delta": tunnel_tx_bytes,
+            "tunnel_tx_to_sender_ratio": ratio,
+            "binding_pass": binding_pass,
+            "byte_accounting_pass": byte_pass,
+            "pass": binding_pass and byte_pass,
+        }
+    return {
+        "identity_basis": "socket_bind_then_fixed_tunnel_tx_counters_before_upf_snat",
+        "tx_ratio_bounds": [tx_ratio_min, tx_ratio_max],
+        "per_ue": rows,
+        "pass": len(rows) == len(expected_network_map)
+        and all(row["pass"] for row in rows.values()),
+    }
+
+
+def parse_channel_models(payload: str) -> Dict[str, dict]:
+    """Parse `channelmod show current` into model-name keyed evidence."""
+    models: Dict[str, dict] = {}
+    current: Optional[dict] = None
+    for line in payload.splitlines():
+        header = re.match(r"^model\s+(\d+)\s+(\S+)\s+type\s+(\S+):$", line.strip())
+        if header:
+            current = {
+                "model_index": int(header.group(1)),
+                "model_name": header.group(2),
+                "model_type": header.group(3),
+            }
+            models[str(current["model_name"])] = current
+            continue
+        if current is None:
+            continue
+        parameters = re.search(
+            r"path loss:\s*([-+0-9.eE]+)\s+noise:\s*([-+0-9.eE]+)", line
+        )
+        if parameters:
+            current["path_loss_db"] = float(parameters.group(1))
+            current["noise_power_db"] = float(parameters.group(2))
+    return models
+
+
+def per_ue_radio_summary(
+    power_rows: Iterable[Mapping[str, object]],
+    rlc_rows: Iterable[Mapping[str, object]],
+) -> dict:
+    """Map each internal UE to its RNTI and summarize its gNB PUSCH telemetry."""
+    candidates: Dict[int, Counter[int]] = defaultdict(Counter)
+    for row in rlc_rows:
+        try:
+            candidates[int(row["ue_id"])][int(row["rnti"])] += 1
+        except (KeyError, TypeError, ValueError):
+            continue
+    rnti_by_ue = {
+        ue_id: counts.most_common(1)[0][0]
+        for ue_id, counts in candidates.items()
+        if counts
+    }
+    ue_by_rnti = {rnti: ue_id for ue_id, rnti in rnti_by_ue.items()}
+    values: Dict[int, dict] = defaultdict(lambda: {"snr_db": [], "mcs": []})
+    for row in power_rows:
+        try:
+            rnti = int(row["rnti"])
+            ue_id = ue_by_rnti[rnti]
+            values[ue_id]["snr_db"].append(float(row["snrx10"]) / 10.0)
+            values[ue_id]["mcs"].append(float(row["mcs"]))
+        except (KeyError, TypeError, ValueError):
+            continue
+    return {
+        str(ue_id): {
+            "rnti": rnti,
+            "sample_count": len(values[ue_id]["snr_db"]),
+            "median_pusch_snr_db": median(values[ue_id]["snr_db"]),
+            "median_ul_mcs": median(values[ue_id]["mcs"]),
+        }
+        for ue_id, rnti in sorted(rnti_by_ue.items())
+    }
+
+
 def resolve(root: Path, value: str) -> Path:
     path = Path(value).expanduser()
     return path.resolve() if path.is_absolute() else (root / path).resolve()
@@ -101,6 +286,46 @@ def load_config(path: Path) -> dict:
         raise ValueError("DG-A decision traffic must remain 400 KiB")
     if data["radio"]["mcs_policy"] != "sinr":
         raise ValueError("DG-A requires SCENESENSE_MCS_POLICY=sinr")
+    tunnels = data["radio"]["expected_tunnels"]
+    expected_tunnels = [
+        {"ue_id": index, "iface": f"oaitun_ue{index + 1}"} for index in range(2)
+    ]
+    if tunnels != expected_tunnels:
+        raise ValueError(
+            "DG-A tunnel identities must be fixed by internal UE index; IPs are discovered"
+        )
+    if len(set(data["radio"]["expected_ip_pool"])) != 2:
+        raise ValueError("DG-A requires a two-address expected CN pool")
+    nat_sources = data["radio"].get("expected_receiver_nat_sources", [])
+    if not nat_sources or len(set(str(value) for value in nat_sources)) != len(nat_sources):
+        raise ValueError("DG-A requires distinct expected UPF N6 source address(es)")
+    instrumentation = data["instrumentation"]
+    tx_ratio_min = float(instrumentation["tunnel_tx_to_sender_ratio_min"])
+    tx_ratio_max = float(instrumentation["tunnel_tx_to_sender_ratio_max"])
+    if not 0 < tx_ratio_min <= tx_ratio_max:
+        raise ValueError("invalid tunnel TX/application byte-ratio bounds")
+    switch = data.get("runtime_switch", {})
+    required_switch_keys = {
+        "telnet_host",
+        "telnet_port",
+        "initial_noise_power_db",
+        "target_noise_power_db",
+        "baseline_traffic_s",
+        "strong_traffic_s",
+        "baseline_fractions",
+        "strong_fractions",
+        "minimum_snr_movement_db",
+        "minimum_mcs_movement",
+    }
+    if not required_switch_keys <= set(switch):
+        raise ValueError(
+            f"runtime_switch lacks keys: {sorted(required_switch_keys - set(switch))}"
+        )
+    if int(switch["telnet_port"]) <= 0:
+        raise ValueError("runtime-switch telnet port must be positive")
+    for key in ("baseline_fractions", "strong_fractions"):
+        if len(switch[key]) != 2 or any(float(value) <= 0 for value in switch[key]):
+            raise ValueError(f"runtime_switch.{key} must contain two positive UE offers")
     return data
 
 
@@ -114,6 +339,8 @@ class Runner:
         preflight_only: bool = False,
         attach_smoke_repeats: int = 0,
         attach_channel_mode: str = "strong",
+        runtime_switch_smoke: bool = False,
+        runtime_switch_startup_smoke: bool = False,
     ) -> None:
         self.config_path = config_path.resolve()
         self.config = load_config(self.config_path)
@@ -124,6 +351,15 @@ class Runner:
         if self.attach_smoke_repeats < 0:
             raise ValueError("attach_smoke_repeats cannot be negative")
         self.attach_channel_mode = str(attach_channel_mode)
+        self.runtime_switch_smoke = bool(runtime_switch_smoke)
+        self.runtime_switch_startup_smoke = bool(runtime_switch_startup_smoke)
+        self.runtime_channel_control = (
+            self.runtime_switch_smoke or self.runtime_switch_startup_smoke
+        )
+        if self.runtime_switch_smoke and self.runtime_switch_startup_smoke:
+            raise ValueError("choose either runtime-switch startup smoke or full smoke")
+        if self.runtime_channel_control and self.attach_smoke_repeats:
+            raise ValueError("runtime-switch diagnostics and attach-only smoke are mutually exclusive")
         if self.attach_channel_mode not in {"strong", "clean"}:
             raise ValueError("attach_channel_mode must be 'strong' or 'clean'")
         if self.attach_channel_mode != "strong" and self.attach_smoke_repeats <= 0:
@@ -140,6 +376,7 @@ class Runner:
         self.ue_log_handle = None
         self.block_data: Dict[str, dict] = {}
         self.trial_records: List[dict] = []
+        self.ue_network_map: Dict[int, dict] = {}
         self.stop_requested = False
 
     def event(self, event: str, **data: object) -> None:
@@ -196,8 +433,10 @@ class Runner:
             self.paths["oai_ran_conf"] / active_gnb_config,
             self.paths["oai_ran_conf"] / radio["ue_base_config"],
         ]
-        if self.attach_channel_mode == "strong":
+        if self.attach_channel_mode == "strong" or self.runtime_channel_control:
             required.append(self.paths["oai_ran_conf"] / radio["channel_config"])
+        if self.runtime_channel_control:
+            required.append(self.paths["oai_ran_build"] / "libtelnetsrv.so")
         missing = [str(path) for path in required if not path.exists()]
         if missing:
             raise StageFailure(f"preflight missing paths: {missing}")
@@ -211,6 +450,9 @@ class Runner:
         ).stdout.strip()
         if running and not self.dry_run:
             raise StageFailure(f"preflight found existing RAN processes; refusing takeover: {running}")
+        self._materialize_ue_config()
+        if self.runtime_channel_control:
+            active_gnb_config = str(self.runtime_gnb_config)
         config_copy = self.output_dir / "resolved_config.yaml"
         config_copy.write_text(yaml.safe_dump(self.config, sort_keys=False), encoding="utf-8")
         git = self.command(["git", "rev-parse", "HEAD"]).stdout.strip()
@@ -243,16 +485,23 @@ class Runner:
             "preflight_only": self.preflight_only,
             "attach_smoke_repeats": self.attach_smoke_repeats,
             "attach_channel_mode": self.attach_channel_mode,
+            "runtime_switch_smoke": self.runtime_switch_smoke,
+            "runtime_switch_startup_smoke": self.runtime_switch_startup_smoke,
             "active_gnb_config": active_gnb_config,
-            "active_ue_config": radio["ue_base_config"],
+            "active_ue_config": str(self.runtime_ue_config),
             "channel_config_sha256": (
                 sha256(self.paths["oai_ran_conf"] / radio["channel_config"])
-                if self.attach_channel_mode == "strong"
+                if self.attach_channel_mode == "strong" or self.runtime_channel_control
                 else None
             ),
+            "ue_identity_contract": {
+                "stable_key": "internal_ue_id_and_tunnel_name",
+                "tunnel_rule": "ue_id_0=oaitun_ue1;ue_id_1=oaitun_ue2",
+                "ip_assignment": "dynamic_by_pdu_session_completion_order",
+                "sender_binding": "discover_ipv4_from_fixed_tunnel_each_ran_start",
+            },
         }
         atomic_json(self.output_dir / "run_manifest.json", manifest)
-        self._materialize_ue_config()
         self._local_transport_control()
         self.event("preflight_pass")
 
@@ -263,6 +512,9 @@ class Runner:
             # chanmod command-line option, the included model list is not
             # activated by RFsim.
             self.runtime_ue_config = base_path
+            self.runtime_gnb_config = (
+                self.paths["oai_ran_conf"] / self.config["radio"]["clean_gnb_config"]
+            )
             return
         channel_path = self.paths["oai_ran_conf"] / self.config["radio"]["channel_config"]
         base = base_path.read_text(encoding="utf-8")
@@ -278,14 +530,42 @@ class Runner:
             raise StageFailure(
                 f"channel config lacks explicit per-UE RFsim models: {missing_models}"
             )
+        runtime_suffix = "awgn_strong"
+        if self.runtime_channel_control:
+            initial_noise = float(self.config["runtime_switch"]["initial_noise_power_db"])
+            channel, replacements = re.subn(
+                r"noise_power_dB\s*=\s*[-+0-9.eE]+;",
+                f"noise_power_dB = {initial_noise:g};",
+                channel,
+            )
+            if replacements != len(expected_models):
+                raise StageFailure(
+                    "runtime-switch initial channel did not rewrite exactly one noise value "
+                    f"per explicit model: expected={len(expected_models)}, actual={replacements}"
+                )
+            runtime_suffix = "runtime_switch_initial_clean"
         marker = '@include "channelmod_rfsimu_LEO_satellite.conf"'
         if marker not in base:
             raise StageFailure(f"expected channel include missing from {base_path}")
         resolved = base.replace(marker, channel)
-        runtime = self.output_dir / "runtime" / "ue.multi2.awgn_strong.conf"
+        runtime = self.output_dir / "runtime" / f"ue.multi2.{runtime_suffix}.conf"
         runtime.parent.mkdir(parents=True, exist_ok=True)
         runtime.write_text(resolved, encoding="utf-8")
         self.runtime_ue_config = runtime
+        if self.runtime_channel_control:
+            gnb_base = (
+                self.paths["oai_ran_conf"] / self.config["radio"]["clean_gnb_config"]
+            )
+            runtime_gnb = self.output_dir / "runtime" / "gnb.runtime_switch_initial_clean.conf"
+            runtime_gnb.write_text(
+                gnb_base.read_text(encoding="utf-8") + "\n\n" + channel,
+                encoding="utf-8",
+            )
+            self.runtime_gnb_config = runtime_gnb
+        else:
+            self.runtime_gnb_config = (
+                self.paths["oai_ran_conf"] / self.config["radio"]["gnb_config"]
+            )
 
     def _local_transport_control(self) -> None:
         if self.dry_run:
@@ -402,12 +682,7 @@ class Runner:
         self.stop_ran()
         block_dir = self.output_dir / "blocks" / block
         radio = self.config["radio"]
-        gnb_config = (
-            radio["clean_gnb_config"]
-            if self.attach_channel_mode == "clean"
-            else radio["gnb_config"]
-        )
-        gnb_conf = self.paths["oai_ran_conf"] / gnb_config
+        gnb_conf = self.runtime_gnb_config
         gnb_cmd = [
             "sudo",
             "-n",
@@ -425,10 +700,19 @@ class Runner:
             "--T_port",
             str(radio["gnb_ttracer_port"]),
         ]
-        if self.attach_channel_mode == "strong":
+        if self.attach_channel_mode == "strong" or self.runtime_channel_control:
             gnb_cmd[gnb_cmd.index("--T_stdout"):gnb_cmd.index("--T_stdout")] = [
                 "--rfsimulator.[0].options",
                 "chanmod",
+            ]
+        if self.runtime_channel_control:
+            switch = self.config["runtime_switch"]
+            gnb_cmd[gnb_cmd.index("--T_stdout"):gnb_cmd.index("--T_stdout")] = [
+                "--telnetsrv",
+                "--telnetsrv.listenaddr",
+                str(switch["telnet_host"]),
+                "--telnetsrv.listenport",
+                str(switch["telnet_port"]),
             ]
         self.event("ran_start", block=block, component="gnb", argv=gnb_cmd)
         self.gnb_proc = self._popen_log(gnb_cmd, block_dir / "gnb_stdout.log")
@@ -458,7 +742,7 @@ class Runner:
             "--T_port",
             str(radio["ue_ttracer_port"]),
         ]
-        if self.attach_channel_mode == "strong":
+        if self.attach_channel_mode == "strong" or self.runtime_channel_control:
             ue_cmd[ue_cmd.index("-r"):ue_cmd.index("-r")] = [
                 "--rfsimulator.[0].options",
                 "chanmod",
@@ -470,18 +754,18 @@ class Runner:
 
     def wait_tunnels(self, block: str) -> None:
         deadline = time.monotonic() + float(self.config["radio"]["attach_timeout_s"])
-        expected = self.config["radio"]["expected_tunnels"]
         while time.monotonic() < deadline:
-            good = True
-            for ue in expected:
-                result = self.command(
-                    ["ip", "-4", "-br", "addr", "show", ue["iface"]], check=False
-                )
-                if result.returncode or ue["ip"] not in result.stdout:
-                    good = False
-                    break
+            mapping = self._discover_ue_network_map()
+            good = len(mapping) == int(self.config["radio"]["ue_count"])
             if good:
-                for ue in expected:
+                expected_pool = {str(ip) for ip in self.config["radio"]["expected_ip_pool"]}
+                actual_pool = {str(row["ip"]) for row in mapping.values()}
+                if actual_pool != expected_pool:
+                    raise StageFailure(
+                        f"{block} attached outside registered UE IP pool: "
+                        f"expected={sorted(expected_pool)}, actual={sorted(actual_pool)}"
+                    )
+                for ue in mapping.values():
                     ping = self.command(
                         [
                             "ping",
@@ -499,12 +783,65 @@ class Runner:
                         good = False
                         break
             if good:
-                self.event("ran_attached", block=block, tunnels=expected)
+                self._record_ue_network_map(block, mapping)
+                self.event(
+                    "ran_attached",
+                    block=block,
+                    tunnels=[mapping[index] for index in sorted(mapping)],
+                )
                 return
             if self.gnb_proc.poll() is not None or self.ue_proc.poll() is not None:
-                raise StageFailure("softmodem exited before both UEs attached")
+                raise StageFailure(
+                    "softmodem exited before both UEs attached: "
+                    f"gnb_rc={self.gnb_proc.poll()}, ue_rc={self.ue_proc.poll()}"
+                )
             time.sleep(3)
         raise StageFailure("both expected UE tunnels did not attach")
+
+    def _discover_ue_network_map(self) -> Dict[int, dict]:
+        """Map stable internal UE identities to the current CN-assigned IPv4 addresses."""
+        mapping: Dict[int, dict] = {}
+        for registered in self.config["radio"]["expected_tunnels"]:
+            iface = str(registered["iface"])
+            result = self.command(
+                ["ip", "-j", "-4", "addr", "show", "dev", iface], check=False
+            )
+            if result.returncode:
+                continue
+            try:
+                ip = parse_interface_ipv4(result.stdout, iface)
+            except (TypeError, ValueError, json.JSONDecodeError) as exc:
+                raise StageFailure(f"could not parse IPv4 identity for {iface}: {exc}") from exc
+            if ip is None:
+                continue
+            ue_id = int(registered["ue_id"])
+            mapping[ue_id] = {"ue_id": ue_id, "iface": iface, "ip": ip}
+        ips = [str(row["ip"]) for row in mapping.values()]
+        if len(ips) != len(set(ips)):
+            raise StageFailure(f"duplicate UE tunnel IPv4 assignment: {mapping}")
+        return mapping
+
+    def _record_ue_network_map(self, block: str, mapping: Mapping[int, Mapping[str, object]]) -> None:
+        resolved = [dict(mapping[index]) for index in sorted(mapping)]
+        self.ue_network_map = {int(row["ue_id"]): dict(row) for row in resolved}
+        artifact = self.output_dir / "blocks" / block / "ue_network_map.json"
+        atomic_json(
+            artifact,
+            {
+                "schema_version": "scenesense.multiue_oai.ue_network_map.v1",
+                "block": block,
+                "discovered_at": utc_now(),
+                "identity_chain": "ue_id_to_fixed_tunnel_to_dynamic_ip",
+                "ues": resolved,
+            },
+        )
+        manifest_path = self.output_dir / "run_manifest.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest.setdefault("ue_network_maps", {})[block] = {
+            "artifact": str(artifact.relative_to(self.output_dir)),
+            "ues": resolved,
+        }
+        atomic_json(manifest_path, manifest)
 
     def stop_ran(self) -> None:
         if not getattr(self, "ran_active", False):
@@ -525,6 +862,7 @@ class Runner:
                 if handle is not None:
                     handle.close()
         self.ran_active = False
+        self.ue_network_map = {}
 
     def _wait_for_cold_ran(self, timeout_s: float = 20.0) -> None:
         """Verify a repetition starts without old softmodems or tunnel devices."""
@@ -547,15 +885,22 @@ class Runner:
         raise StageFailure(f"RAN did not return to a cold state: {last_state}")
 
     def _attach_stability_evidence(self, block: str) -> dict:
+        registered = {ue_id: dict(row) for ue_id, row in self.ue_network_map.items()}
+        if set(registered) != set(range(int(self.config["radio"]["ue_count"]))):
+            raise StageFailure(f"{block} lacks a complete discovered UE network map: {registered}")
         samples = []
         for sample_index in range(3):
             if self.gnb_proc.poll() is not None or self.ue_proc.poll() is not None:
                 raise StageFailure(f"{block} softmodem exited during attach stability hold")
             per_ue = []
-            for ue in self.config["radio"]["expected_tunnels"]:
-                address = self.command(
-                    ["ip", "-4", "-br", "addr", "show", str(ue["iface"])], check=False
+            current = self._discover_ue_network_map()
+            if current != registered:
+                raise StageFailure(
+                    f"{block} UE network mapping changed during stability hold: "
+                    f"registered={registered}, current={current}"
                 )
+            for ue_id in sorted(registered):
+                ue = registered[ue_id]
                 ping = self.command(
                     [
                         "ping",
@@ -569,18 +914,16 @@ class Runner:
                     ],
                     check=False,
                 )
-                valid_address = address.returncode == 0 and str(ue["ip"]) in address.stdout
-                if not valid_address or ping.returncode != 0:
+                if ping.returncode != 0:
                     raise StageFailure(
                         f"{block} lost UE{ue['ue_id']} during stability hold: "
-                        f"address_ok={valid_address}, ping_rc={ping.returncode}"
+                        f"iface={ue['iface']}, ip={ue['ip']}, ping_rc={ping.returncode}"
                     )
                 per_ue.append(
                     {
                         "ue_id": int(ue["ue_id"]),
                         "iface": str(ue["iface"]),
                         "ip": str(ue["ip"]),
-                        "address": address.stdout.strip(),
                         "ping_pass": True,
                     }
                 )
@@ -647,6 +990,236 @@ class Runner:
             "passed_repeats": len(repetitions),
             "all_passed": len(repetitions) == self.attach_smoke_repeats,
             "repetitions": repetitions,
+            "d0_launched": False,
+            "dg_a_launched": False,
+            "next_stage_launched": False,
+        }
+        atomic_json(self.output_dir / "results_summary.json", summary)
+        return summary
+
+    @staticmethod
+    def _recv_telnet_prompt(connection: socket.socket, timeout_s: float) -> str:
+        connection.settimeout(timeout_s)
+        chunks: List[bytes] = []
+        total = 0
+        while total < 1024 * 1024:
+            chunk = connection.recv(65536)
+            if not chunk:
+                break
+            chunks.append(chunk)
+            total += len(chunk)
+            if b"> " in b"".join(chunks[-2:]):
+                break
+        payload = b"".join(chunks).decode("utf-8", errors="replace")
+        if "> " not in payload:
+            raise StageFailure(f"telnet response lacked a softmodem prompt: {payload[-500:]}")
+        return payload
+
+    def _telnet_command(self, command: str, *, connect_timeout_s: float = 15.0) -> str:
+        switch = self.config["runtime_switch"]
+        deadline = time.monotonic() + connect_timeout_s
+        last_error: Optional[BaseException] = None
+        while time.monotonic() < deadline:
+            try:
+                with socket.create_connection(
+                    (str(switch["telnet_host"]), int(switch["telnet_port"])), timeout=2
+                ) as connection:
+                    connection.sendall(b"\n")
+                    self._recv_telnet_prompt(connection, 3.0)
+                    connection.sendall(command.encode("utf-8") + b"\n")
+                    response = self._recv_telnet_prompt(connection, 5.0)
+                    self.event("runtime_channel_command", command=command, response=response)
+                    return response
+            except (OSError, StageFailure) as exc:
+                last_error = exc
+                time.sleep(0.5)
+        raise StageFailure(
+            f"gNB telnet control unavailable after {connect_timeout_s:.1f}s: {last_error}"
+        )
+
+    def _assert_active_uplink_models(self, block: str) -> dict:
+        log_path = self.output_dir / "blocks" / block / "gnb_stdout.log"
+        text = log_path.read_text(encoding="utf-8", errors="replace")
+        missing_model_lines = [
+            line
+            for line in text.splitlines()
+            if "Model rfsimu_channel_" in line and "not found" in line
+        ]
+        active = {
+            name: f"Random channel {name} in rfsimulator activated" in text
+            for name in ("rfsimu_channel_ue0", "rfsimu_channel_ue1")
+        }
+        if missing_model_lines or not all(active.values()):
+            raise StageFailure(
+                f"{block} did not activate both explicit uplink objects: "
+                f"active={active}, fallback={missing_model_lines}"
+            )
+        return {"active": active, "fallback_lines": missing_model_lines}
+
+    def _switch_both_uplinks(self, block: str) -> dict:
+        """Modify both live gNB UL objects and verify the resulting model state."""
+        switch = self.config["runtime_switch"]
+        names = ("rfsimu_channel_ue0", "rfsimu_channel_ue1")
+        initial = float(switch["initial_noise_power_db"])
+        target = float(switch["target_noise_power_db"])
+        active = self._assert_active_uplink_models(block)
+        before_raw = self._telnet_command("channelmod show current")
+        before = parse_channel_models(before_raw)
+        missing = [name for name in names if name not in before]
+        if missing:
+            raise StageFailure(f"runtime control cannot resolve both uplink objects: {missing}")
+        wrong_initial = {
+            name: before[name]
+            for name in names
+            if abs(float(before[name].get("noise_power_db", float("nan"))) - initial) > 1e-6
+        }
+        if wrong_initial:
+            raise StageFailure(
+                f"uplink model(s) did not start on the registered clean setting: {wrong_initial}"
+            )
+        modify_responses = {}
+        for name in names:
+            model_index = int(before[name]["model_index"])
+            command = f"channelmod modify {model_index} noise_power_dB {target:g}"
+            response = self._telnet_command(command)
+            if "ERROR" in response:
+                raise StageFailure(f"runtime channel command rejected for {name}: {response}")
+            modify_responses[name] = {"command": command, "response": response}
+        after_raw = self._telnet_command("channelmod show current")
+        after = parse_channel_models(after_raw)
+        wrong_target = {
+            name: after.get(name)
+            for name in names
+            if name not in after
+            or abs(float(after[name].get("noise_power_db", float("nan"))) - target) > 1e-6
+        }
+        if wrong_target:
+            raise StageFailure(f"runtime channel switch was partial or a no-op: {wrong_target}")
+        evidence = {
+            "block": block,
+            "active_uplink_objects": active,
+            "initial_noise_power_db": initial,
+            "target_noise_power_db": target,
+            "before": {name: before[name] for name in names},
+            "modify_responses": modify_responses,
+            "after": {name: after[name] for name in names},
+            "both_uplinks_modified": True,
+        }
+        atomic_json(self.output_dir / "blocks" / block / "runtime_channel_switch.json", evidence)
+        return evidence
+
+    def run_runtime_switch_startup_smoke(self) -> dict:
+        """Validate only runtime-control process startup and attachment."""
+        if not self.runtime_switch_startup_smoke:
+            raise StageFailure("runtime-switch startup smoke was not selected")
+        block = "RUNTIME_SWITCH_STARTUP"
+        self._wait_for_cold_ran()
+        self.start_ran(block)
+        stability = self._attach_stability_evidence(block)
+        active = self._assert_active_uplink_models(block)
+        raw_state = self._telnet_command("channelmod show current")
+        state = parse_channel_models(raw_state)
+        initial = float(self.config["runtime_switch"]["initial_noise_power_db"])
+        names = ("rfsimu_channel_ue0", "rfsimu_channel_ue1")
+        invalid = {
+            name: state.get(name)
+            for name in names
+            if name not in state
+            or abs(float(state[name].get("noise_power_db", float("nan"))) - initial) > 1e-6
+        }
+        if invalid:
+            raise StageFailure(f"startup telnet state lacks both initial-clean UL objects: {invalid}")
+        summary = {
+            "schema_version": "scenesense.multiue_oai.runtime_switch_startup_smoke.v1",
+            "status": "RUNTIME_SWITCH_STARTUP_PASS",
+            "decision": "FULL_RUNTIME_SWITCH_NOT_RUN",
+            "block": block,
+            "ue_network_map": [
+                dict(self.ue_network_map[index]) for index in sorted(self.ue_network_map)
+            ],
+            "tunnel_stability": stability,
+            "active_uplink_objects": active,
+            "initial_channel_state": {name: state[name] for name in names},
+            "d0_launched": False,
+            "dg_a_launched": False,
+            "next_stage_launched": False,
+        }
+        atomic_json(self.output_dir / "results_summary.json", summary)
+        return summary
+
+    def run_runtime_switch_smoke(self) -> dict:
+        """Run a bounded clean-to-strong switch smoke; never launch D0 or DG-A."""
+        if not self.runtime_switch_smoke:
+            raise StageFailure("runtime-switch smoke was not selected")
+        block = "RUNTIME_SWITCH_R1"
+        switch = self.config["runtime_switch"]
+        self._wait_for_cold_ran()
+        self.start_ran(block)
+        pre_hold = self._attach_stability_evidence(block)
+        prior = float(self.config["calibration"]["prior_ceiling_mbps"])
+        baseline_metrics = self.run_trial(
+            {
+                "id": "SWITCH_BASELINE_CLEAN",
+                "block": block,
+                "kind": "equal",
+                "fractions": [float(value) for value in switch["baseline_fractions"]],
+                "duration_s": float(switch["baseline_traffic_s"]),
+            },
+            mu_hat=prior,
+            enforce_strong_rung=False,
+        )
+        channel_evidence = self._switch_both_uplinks(block)
+        strong_metrics = self.run_trial(
+            {
+                "id": "SWITCH_STRONG_ASYMMETRIC",
+                "block": block,
+                "kind": "asymmetric",
+                "fractions": [float(value) for value in switch["strong_fractions"]],
+                "duration_s": float(switch["strong_traffic_s"]),
+            },
+            mu_hat=prior,
+            enforce_strong_rung=True,
+        )
+        post_hold = self._attach_stability_evidence(block)
+        baseline_radio = baseline_metrics["radio_validity"]["per_ue"]
+        strong_radio = strong_metrics["radio_validity"]["per_ue"]
+        movement = {}
+        for ue_id in ("0", "1"):
+            snr_movement = float(baseline_radio[ue_id]["median_pusch_snr_db"]) - float(
+                strong_radio[ue_id]["median_pusch_snr_db"]
+            )
+            mcs_movement = float(baseline_radio[ue_id]["median_ul_mcs"]) - float(
+                strong_radio[ue_id]["median_ul_mcs"]
+            )
+            movement[ue_id] = {
+                "baseline": baseline_radio[ue_id],
+                "strong": strong_radio[ue_id],
+                "snr_drop_db": snr_movement,
+                "mcs_drop": mcs_movement,
+                "pass": snr_movement >= float(switch["minimum_snr_movement_db"])
+                and mcs_movement >= float(switch["minimum_mcs_movement"]),
+            }
+        if not all(row["pass"] for row in movement.values()):
+            raise StageFailure(
+                "runtime channel command changed model state but did not empirically move "
+                f"both UEs from clean to the strong rung: {movement}"
+            )
+        summary = {
+            "schema_version": "scenesense.multiue_oai.runtime_switch_smoke.v1",
+            "status": "RUNTIME_SWITCH_SMOKE_PASS",
+            "decision": "DG_A_NOT_RUN_AWAIT_HUMAN_REVIEW",
+            "block": block,
+            "ue_network_map": [
+                dict(self.ue_network_map[index]) for index in sorted(self.ue_network_map)
+            ],
+            "pre_switch_tunnel_stability": pre_hold,
+            "channel_switch": channel_evidence,
+            "baseline_metrics": baseline_metrics,
+            "strong_metrics": strong_metrics,
+            "per_ue_empirical_movement": movement,
+            "post_switch_tunnel_stability": post_hold,
+            "sender_routing_validated": True,
+            "both_uplinks_on_strong_rung": True,
             "d0_launched": False,
             "dg_a_launched": False,
             "next_stage_launched": False,
@@ -862,32 +1435,49 @@ class Runner:
             f"{trial_id} queue did not verify below {threshold} bytes per UE before timeout; last={totals}"
         )
 
-    def _radio_and_grant_validity(self, trial_id: str) -> dict:
+    def _radio_and_grant_validity(
+        self, trial_id: str, *, enforce_strong_rung: bool = True
+    ) -> dict:
         root = self.output_dir / "ttracer" / trial_id
         power_path = root / "gnb" / "csv" / "GNB_MAC_PUSCH_POWER_CONTROL.csv"
-        snr_values: List[float] = []
-        mcs_values: List[float] = []
-        if power_path.exists():
-            with power_path.open(newline="", encoding="utf-8") as handle:
-                for row in csv.DictReader(handle):
-                    try:
-                        snr_values.append(float(row["snrx10"]) / 10.0)
-                        mcs_values.append(float(row["mcs"]))
-                    except (KeyError, ValueError):
-                        continue
-        observed_snr = median(snr_values)
-        observed_mcs = median(mcs_values)
-        if not math.isfinite(observed_snr) or not math.isfinite(observed_mcs):
-            raise StageFailure(f"{trial_id} lacks populated gNB PUSCH SNR/MCS telemetry")
+        rlc_path = root / "ue" / "csv" / "NRUE_MAC_RLC_BUFFER_STATUS.csv"
+        if not power_path.exists() or not rlc_path.exists():
+            raise StageFailure(
+                f"{trial_id} lacks PUSCH/RLC telemetry: power={power_path.exists()}, "
+                f"rlc={rlc_path.exists()}"
+            )
+        with power_path.open(newline="", encoding="utf-8") as power_handle:
+            power_rows = list(csv.DictReader(power_handle))
+        with rlc_path.open(newline="", encoding="utf-8") as rlc_handle:
+            rlc_rows = list(csv.DictReader(rlc_handle))
+        per_ue = per_ue_radio_summary(power_rows, rlc_rows)
+        expected_ues = {
+            str(int(row["ue_id"])) for row in self.config["radio"]["expected_tunnels"]
+        }
+        if set(per_ue) != expected_ues:
+            raise StageFailure(
+                f"{trial_id} lacks distinct per-UE PUSCH telemetry: "
+                f"expected={sorted(expected_ues)}, observed={per_ue}"
+            )
+        for ue_id, row in per_ue.items():
+            if not math.isfinite(float(row["median_pusch_snr_db"])) or not math.isfinite(
+                float(row["median_ul_mcs"])
+            ):
+                raise StageFailure(f"{trial_id} UE{ue_id} has empty PUSCH telemetry: {row}")
         radio = self.config["radio"]
-        if abs(observed_snr - float(radio["expected_snr_db"])) > float(radio["snr_tolerance_db"]):
-            raise StageFailure(
-                f"{trial_id} SNR off registered strong rung: observed={observed_snr:.3f} dB"
-            )
-        if abs(observed_mcs - float(radio["expected_mcs"])) > float(radio["mcs_tolerance"]):
-            raise StageFailure(
-                f"{trial_id} MCS off registered strong rung: observed={observed_mcs:.3f}"
-            )
+        if enforce_strong_rung:
+            off_rung = {
+                ue_id: row
+                for ue_id, row in per_ue.items()
+                if abs(float(row["median_pusch_snr_db"]) - float(radio["expected_snr_db"]))
+                > float(radio["snr_tolerance_db"])
+                or abs(float(row["median_ul_mcs"]) - float(radio["expected_mcs"]))
+                > float(radio["mcs_tolerance"])
+            }
+            if off_rung:
+                raise StageFailure(
+                    f"{trial_id} has UE(s) off the registered strong SNR/MCS rung: {off_rung}"
+                )
 
         self.command(
             [
@@ -914,8 +1504,12 @@ class Runner:
         if any(abs(value - 1.0) > tolerance for value in ratios.values()):
             raise StageFailure(f"{trial_id} UE/gNB TBS reconciliation exceeds tolerance: {ratios}")
         return {
-            "median_pusch_snr_db": observed_snr,
-            "median_ul_mcs": observed_mcs,
+            "enforce_strong_rung": enforce_strong_rung,
+            "per_ue": per_ue,
+            "median_pusch_snr_db": median(
+                float(row["median_pusch_snr_db"]) for row in per_ue.values()
+            ),
+            "median_ul_mcs": median(float(row["median_ul_mcs"]) for row in per_ue.values()),
             "ue_gnb_tbs_ratios": ratios,
         }
 
@@ -949,6 +1543,7 @@ class Runner:
         payload_bytes: Optional[int] = None,
         ue_profile: str = "all",
         gnb_profile: str = "latency",
+        enforce_strong_rung: bool = True,
     ) -> dict:
         trial_id = str(trial["id"])
         trial_dir = self.output_dir / "runs" / trial_id
@@ -971,27 +1566,31 @@ class Runner:
             "created_at": utc_now(),
             "ue_trace_profile": ue_profile,
             "gnb_trace_profile": gnb_profile,
+            "ue_network_map": [
+                dict(self.ue_network_map[index]) for index in sorted(self.ue_network_map)
+            ],
         }
         atomic_json(trial_dir / "trial_manifest.json", manifest)
         self.event("trial_start", trial_id=trial_id, trial=trial)
         receiver = self._start_receiver(trial_dir, total_trace_s + 30)
         recorders = self._trace_processes(trial_id, trial_dir, total_trace_s, ue_profile, gnb_profile)
         sampler_handle = (trial_dir / "network_sampler_stdout.log").open("wb")
+        sampler_command = [
+            str(self.paths["python"]),
+            str(ROOT / "scripts/sample_oai_network_metrics.py"),
+            "--run-group",
+            trial_id,
+            "--duration-s",
+            str(total_trace_s),
+            "--output-dir",
+            str(trial_dir / "network"),
+        ]
+        for ue in self.config["radio"]["expected_tunnels"]:
+            sampler_command.extend(
+                ["--interface", f"{ue['iface']}:ue{int(ue['ue_id'])}"]
+            )
         sampler = subprocess.Popen(
-            [
-                str(self.paths["python"]),
-                str(ROOT / "scripts/sample_oai_network_metrics.py"),
-                "--run-group",
-                trial_id,
-                "--duration-s",
-                str(total_trace_s),
-                "--output-dir",
-                str(trial_dir / "network"),
-                "--interface",
-                "oaitun_ue1:ue0",
-                "--interface",
-                "oaitun_ue2:ue1",
-            ],
+            sampler_command,
             cwd=str(ROOT),
             stdout=sampler_handle,
             stderr=subprocess.STDOUT,
@@ -1042,8 +1641,15 @@ class Runner:
             if fractions is None:
                 rho = float(trial.get("rho", 0.0))
                 fractions = [rho / 2.0, rho / 2.0]
+            if set(self.ue_network_map) != set(range(int(self.config["radio"]["ue_count"]))):
+                raise StageFailure(
+                    f"{trial_id} lacks a complete discovered UE network map: "
+                    f"{self.ue_network_map}"
+                )
             for ue, fraction in zip(self.config["radio"]["expected_tunnels"], fractions):
-                sender.extend(["--ue", f"{ue['ue_id']},{ue['ip']},{fraction}"])
+                ue_id = int(ue["ue_id"])
+                bind_ip = str(self.ue_network_map[ue_id]["ip"])
+                sender.extend(["--ue", f"{ue_id},{bind_ip},{fraction}"])
             for phase in trial.get("phases", []):
                 sender.extend(["--phase", ",".join(str(value) for value in phase)])
             if "demand_seed" in trial:
@@ -1112,7 +1718,9 @@ class Runner:
             raise StageFailure(f"{trial_id} network sampler failure: {sampler_failure}")
         self._extract_traces(trial_id, ue_profile, gnb_profile)
         metrics = self._trial_metrics(trial, trial_dir, mu_hat)
-        metrics["radio_validity"] = self._radio_and_grant_validity(trial_id)
+        metrics["radio_validity"] = self._radio_and_grant_validity(
+            trial_id, enforce_strong_rung=enforce_strong_rung
+        )
         metrics["drained_rlc_bytes"] = self._ensure_drain(trial_id)
         manifest["completed_at"] = utc_now()
         manifest["metrics"] = metrics
@@ -1148,7 +1756,29 @@ class Runner:
             "demand_trace_sha256": sender["demand_trace_sha256"],
             "local_errors": int(sender["local_errors"]),
         }
-        if metrics["local_errors"] or metrics["checksum_failures"]:
+        expected_ues = {int(row["ue_id"]) for row in self.config["radio"]["expected_tunnels"]}
+        with chunks_path.open(newline="", encoding="utf-8") as handle:
+            metrics["receiver_identity_gate"] = receiver_identity_report(
+                csv.DictReader(handle),
+                expected_ues,
+                self.config["radio"]["expected_receiver_nat_sources"],
+            )
+        if (
+            metrics["receiver_identity_gate"]["invalid_message_id_count"]
+            or metrics["receiver_identity_gate"]["unexpected_nat_sources"]
+            or metrics["receiver_identity_gate"]["missing_ues"]
+            or metrics["receiver_identity_gate"]["unexpected_ues"]
+        ):
+            raise StageFailure(
+                f"{trial_id} post-NAT receiver identity failure: "
+                f"{metrics['receiver_identity_gate']}"
+            )
+        if (
+            metrics["local_errors"]
+            or metrics["checksum_failures"]
+            or int(receiver.get("identity_failures", 0))
+            or int(receiver.get("invalid", 0))
+        ):
             raise StageFailure(f"{trial_id} application validity failure: {metrics}")
         network_summary = trial_dir / "network" / "network_summary.csv"
         if not network_summary.exists():
@@ -1161,12 +1791,33 @@ class Runner:
                     int(float(row.get(field, 0) or 0))
                     for field in ("tx_drops_delta", "rx_drops_delta", "tx_errors_delta", "rx_errors_delta")
                 )
-                tunnel_health[str(label)] = {"drops_or_errors": drops}
+                tunnel_health[str(label)] = {
+                    "iface": str(row.get("iface", "")),
+                    "samples": int(float(row.get("samples", 0) or 0)),
+                    "duration_s": float(row.get("duration_s", 0) or 0),
+                    "tx_bytes_delta": int(float(row.get("tx_bytes_delta", 0) or 0)),
+                    "tx_packets_delta": int(float(row.get("tx_packets_delta", 0) or 0)),
+                    "drops_or_errors": drops,
+                }
         metrics["tunnel_health"] = tunnel_health
         if len(tunnel_health) != 2 or any(
             row["drops_or_errors"] for row in tunnel_health.values()
         ):
             raise StageFailure(f"{trial_id} tunnel validity failure: {tunnel_health}")
+        route = sender_route_report(
+            sender,
+            self.ue_network_map,
+            tunnel_health,
+            tx_ratio_min=float(
+                self.config["instrumentation"]["tunnel_tx_to_sender_ratio_min"]
+            ),
+            tx_ratio_max=float(
+                self.config["instrumentation"]["tunnel_tx_to_sender_ratio_max"]
+            ),
+        )
+        metrics["sender_route_gate"] = route
+        if not route["pass"]:
+            raise StageFailure(f"{trial_id} per-UE sender routing failure: {route}")
         if str(trial.get("controller", "open_loop")) == "open_loop" and not trial_id.startswith(
             "D0_"
         ):
@@ -1192,15 +1843,30 @@ class Runner:
                 )
                 target = fraction * mu_hat
                 deviation = abs(actual - target) / max(target, 1e-12)
+                frame_rate_quantum_mbps = (
+                    int(sender["onwire_bytes_per_frame"])
+                    * 8
+                    / max(duration, 1e-9)
+                    / 1e6
+                )
+                allowed_absolute_mbps = max(
+                    tolerance * target,
+                    frame_rate_quantum_mbps,
+                )
                 per_ue_rate_gate[ue_id] = {
                     "target_mbps": target,
                     "actual_mbps": actual,
                     "deviation_fraction": deviation,
+                    "absolute_deviation_mbps": abs(actual - target),
+                    "frame_rate_quantum_mbps": frame_rate_quantum_mbps,
+                    "allowed_absolute_mbps": allowed_absolute_mbps,
+                    "pass": abs(actual - target) <= allowed_absolute_mbps + 1e-12,
                 }
             metrics["open_loop_rate_gate"] = per_ue_rate_gate
-            if any(row["deviation_fraction"] > tolerance for row in per_ue_rate_gate.values()):
+            if any(not row["pass"] for row in per_ue_rate_gate.values()):
                 raise StageFailure(
-                    f"{trial_id} open-loop sender rate exceeds {tolerance:.1%} tolerance: "
+                    f"{trial_id} open-loop sender rate exceeds the larger of "
+                    f"{tolerance:.1%} or one-frame quantization: "
                     f"{per_ue_rate_gate}"
                 )
         return metrics
@@ -1429,13 +2095,24 @@ class Runner:
 
     def run(self) -> int:
         self.output_dir.mkdir(parents=True, exist_ok=False)
-        run_mode = "attach_smoke" if self.attach_smoke_repeats else "dg_a"
+        run_mode = (
+            "runtime_switch_startup_smoke"
+            if self.runtime_switch_startup_smoke
+            else
+            "runtime_switch_smoke"
+            if self.runtime_switch_smoke
+            else "attach_smoke"
+            if self.attach_smoke_repeats
+            else "dg_a"
+        )
         self.event(
             "stage_start",
             stage=self.config["stage"],
             run_mode=run_mode,
             attach_smoke_repeats=self.attach_smoke_repeats,
             attach_channel_mode=self.attach_channel_mode,
+            runtime_switch_smoke=self.runtime_switch_smoke,
+            runtime_switch_startup_smoke=self.runtime_switch_startup_smoke,
             pid=os.getpid(),
         )
         def interrupted(signum: int, _frame: object) -> None:
@@ -1470,7 +2147,37 @@ class Runner:
                 completion_event = {"decision": "NOT_RUN", "run_mode": run_mode}
             else:
                 self.start_core()
-                if self.attach_smoke_repeats:
+                if self.runtime_switch_startup_smoke:
+                    summary = self.run_runtime_switch_startup_smoke()
+                    completion = {
+                        "status": "RUNTIME_SWITCH_STARTUP_COMPLETE",
+                        "decision": summary["decision"],
+                        "completed_at": utc_now(),
+                        "summary": str(self.output_dir / "results_summary.json"),
+                        "d0_launched": False,
+                        "dg_a_launched": False,
+                        "next_stage_launched": False,
+                    }
+                    completion_event = {
+                        "decision": summary["decision"],
+                        "run_mode": "runtime_switch_startup_smoke",
+                    }
+                elif self.runtime_switch_smoke:
+                    summary = self.run_runtime_switch_smoke()
+                    completion = {
+                        "status": "RUNTIME_SWITCH_SMOKE_COMPLETE_HUMAN_REVIEW_REQUIRED",
+                        "decision": summary["decision"],
+                        "completed_at": utc_now(),
+                        "summary": str(self.output_dir / "results_summary.json"),
+                        "d0_launched": False,
+                        "dg_a_launched": False,
+                        "next_stage_launched": False,
+                    }
+                    completion_event = {
+                        "decision": summary["decision"],
+                        "run_mode": "runtime_switch_smoke",
+                    }
+                elif self.attach_smoke_repeats:
                     summary = self.run_attach_smoke()
                     completion = {
                         "status": "ATTACH_SMOKE_COMPLETE_HUMAN_REVIEW_REQUIRED",
@@ -1520,8 +2227,13 @@ class Runner:
             record = failure_record(failure, status="FAILED_HOLD")
             record["run_mode"] = run_mode
             record["attach_channel_mode"] = self.attach_channel_mode
-            record["d0_launched"] = False if self.attach_smoke_repeats else None
-            record["dg_a_launched"] = False if self.attach_smoke_repeats else None
+            diagnostic_only = (
+                self.attach_smoke_repeats
+                or self.runtime_switch_smoke
+                or self.runtime_switch_startup_smoke
+            )
+            record["d0_launched"] = False if diagnostic_only else None
+            record["dg_a_launched"] = False if diagnostic_only else None
             atomic_json(self.output_dir / "results_summary.json", record)
             atomic_json(self.output_dir / "FAILED.json", record)
             self.event("stage_failed", error_type=type(failure).__name__, error=str(failure))
@@ -1551,6 +2263,16 @@ def parse_args() -> argparse.Namespace:
         default="strong",
         help="RFsim channel used by attach-only smoke; clean mode never enables chanmod.",
     )
+    parser.add_argument(
+        "--runtime-switch-smoke",
+        action="store_true",
+        help="Run one bounded clean-to-strong two-UE switch smoke; never launch D0/DG-A.",
+    )
+    parser.add_argument(
+        "--runtime-switch-startup-smoke",
+        action="store_true",
+        help="Run only initial-clean runtime-control startup/attach; never send decision traffic.",
+    )
     return parser.parse_args()
 
 
@@ -1565,6 +2287,8 @@ def main() -> int:
             preflight_only=args.preflight_only,
             attach_smoke_repeats=args.attach_smoke_repeats,
             attach_channel_mode=args.attach_channel_mode,
+            runtime_switch_smoke=args.runtime_switch_smoke,
+            runtime_switch_startup_smoke=args.runtime_switch_startup_smoke,
         ).run()
     except BaseException as exc:
         output.mkdir(parents=True, exist_ok=True)

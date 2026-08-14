@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -13,7 +14,16 @@ from rl_agent.multiue_oai.endpoint import (
     chunks_per_frame,
     frame_onwire_bytes,
 )
-from rl_agent.multiue_oai.runner import DEFAULT_CONFIG, Runner, load_config
+from rl_agent.multiue_oai.runner import (
+    DEFAULT_CONFIG,
+    Runner,
+    load_config,
+    parse_channel_models,
+    parse_interface_ipv4,
+    per_ue_radio_summary,
+    receiver_identity_report,
+    sender_route_report,
+)
 
 
 class EndpointContractTest(unittest.TestCase):
@@ -39,6 +49,9 @@ class ConfigContractTest(unittest.TestCase):
         self.assertEqual(config["c1"]["pessimism_factor"], 0.70)
         self.assertEqual(config["c1"]["estimator_window_s"], 1.0)
         self.assertEqual(config["c1"]["estimator_ewma_alpha"], 0.20)
+        self.assertEqual(config["radio"]["expected_receiver_nat_sources"], ["192.168.70.134"])
+        self.assertEqual(config["instrumentation"]["tunnel_tx_to_sender_ratio_min"], 1.0)
+        self.assertEqual(config["instrumentation"]["tunnel_tx_to_sender_ratio_max"], 1.08)
         self.assertIn("DG-B", config["authorization_boundary"]["forbidden"])
         self.assertEqual([row["id"] for row in config["trials"]], [f"A{i}" for i in range(1, 10)])
 
@@ -86,6 +99,121 @@ class ConfigContractTest(unittest.TestCase):
                 dry_run=True,
                 attach_channel_mode="clean",
             )
+        with self.assertRaises(ValueError):
+            Runner(
+                DEFAULT_CONFIG,
+                Path("/tmp/not-created"),
+                dry_run=True,
+                attach_smoke_repeats=1,
+                runtime_switch_smoke=True,
+            )
+
+    def test_runtime_switch_materializes_initial_clean_models(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            runner = Runner(
+                DEFAULT_CONFIG,
+                Path(temp) / "switch",
+                dry_run=True,
+                runtime_switch_smoke=True,
+            )
+            runner._materialize_ue_config()
+            ue_config = runner.runtime_ue_config.read_text(encoding="utf-8")
+            gnb_config = runner.runtime_gnb_config.read_text(encoding="utf-8")
+            self.assertEqual(ue_config.count("noise_power_dB = -50;"), 4)
+            self.assertEqual(gnb_config.count("noise_power_dB = -50;"), 4)
+            self.assertNotIn("noise_power_dB = -4;", ue_config)
+            self.assertNotIn("@include", gnb_config)
+            self.assertIn("Active_gNBs", gnb_config)
+
+    def test_interface_identity_is_stable_while_ip_is_discovered(self) -> None:
+        config = load_config(DEFAULT_CONFIG)
+        self.assertEqual(
+            [(row["ue_id"], row["iface"]) for row in config["radio"]["expected_tunnels"]],
+            [(0, "oaitun_ue1"), (1, "oaitun_ue2")],
+        )
+        payload = json.dumps(
+            [
+                {
+                    "ifname": "oaitun_ue1",
+                    "addr_info": [{"family": "inet", "local": "10.0.0.3", "prefixlen": 24}],
+                }
+            ]
+        )
+        self.assertEqual(parse_interface_ipv4(payload, "oaitun_ue1"), "10.0.0.3")
+        self.assertIsNone(parse_interface_ipv4("[]", "oaitun_ue1"))
+        report = receiver_identity_report(
+            [
+                {"ue_id": 0, "source_ip": "192.168.70.134", "message_id": 1 << 28},
+                {"ue_id": 1, "source_ip": "192.168.70.134", "message_id": 2 << 28},
+            ],
+            {0, 1},
+            {"192.168.70.134"},
+        )
+        self.assertEqual(report["invalid_message_id_count"], 0)
+        self.assertEqual(report["unexpected_nat_sources"], [])
+        self.assertEqual(report["missing_ues"], [])
+        mismatch = receiver_identity_report(
+            [{"ue_id": 0, "source_ip": "192.168.70.200", "message_id": 2 << 28}],
+            {0, 1},
+            {"192.168.70.134"},
+        )
+        self.assertEqual(mismatch["invalid_message_id_count"], 1)
+        self.assertEqual(mismatch["unexpected_nat_sources"], ["192.168.70.200"])
+
+    def test_sender_route_uses_bind_and_tunnel_evidence_before_nat(self) -> None:
+        sender = {
+            "socket_bindings": {
+                "0": {"requested_bind_ip": "10.0.0.3", "actual_local_ip": "10.0.0.3", "actual_local_port": 10001},
+                "1": {"requested_bind_ip": "10.0.0.2", "actual_local_ip": "10.0.0.2", "actual_local_port": 10002},
+            },
+            "per_ue": {
+                "0": {"sent_onwire_bytes": 3_688_668},
+                "1": {"sent_onwire_bytes": 4_098_520},
+            },
+        }
+        network = {
+            0: {"ue_id": 0, "iface": "oaitun_ue1", "ip": "10.0.0.3"},
+            1: {"ue_id": 1, "iface": "oaitun_ue2", "ip": "10.0.0.2"},
+        }
+        tunnels = {
+            "ue0": {"tx_bytes_delta": 3_737_808},
+            "ue1": {"tx_bytes_delta": 4_153_120},
+        }
+        report = sender_route_report(
+            sender, network, tunnels, tx_ratio_min=1.0, tx_ratio_max=1.08
+        )
+        self.assertTrue(report["pass"])
+        sender["socket_bindings"]["0"]["actual_local_ip"] = "10.0.0.2"
+        self.assertFalse(
+            sender_route_report(
+                sender, network, tunnels, tx_ratio_min=1.0, tx_ratio_max=1.08
+            )["pass"]
+        )
+
+    def test_channel_state_and_per_ue_radio_evidence_are_parsed(self) -> None:
+        channel = parse_channel_models(
+            "model 2 rfsimu_channel_ue0 type AWGN:\n"
+            "max Doppler: 0 path loss: 0.000000  noise: -4.000000 rchannel offset: 0\n"
+            "model 3 rfsimu_channel_ue1 type AWGN:\n"
+            "max Doppler: 0 path loss: 0.000000  noise: -4.000000 rchannel offset: 0\n"
+        )
+        self.assertEqual(channel["rfsimu_channel_ue0"]["model_index"], 2)
+        self.assertEqual(channel["rfsimu_channel_ue1"]["noise_power_db"], -4.0)
+        radio = per_ue_radio_summary(
+            [
+                {"rnti": "100", "snrx10": "82", "mcs": "9"},
+                {"rnti": "100", "snrx10": "84", "mcs": "10"},
+                {"rnti": "200", "snrx10": "80", "mcs": "8"},
+            ],
+            [
+                {"ue_id": "0", "rnti": "100"},
+                {"ue_id": "0", "rnti": "100"},
+                {"ue_id": "1", "rnti": "200"},
+            ],
+        )
+        self.assertEqual(radio["0"]["rnti"], 100)
+        self.assertAlmostEqual(radio["0"]["median_pusch_snr_db"], 8.3)
+        self.assertEqual(radio["1"]["median_ul_mcs"], 8.0)
 
     def test_dry_run_writes_completion_without_oai(self) -> None:
         with tempfile.TemporaryDirectory() as temp:

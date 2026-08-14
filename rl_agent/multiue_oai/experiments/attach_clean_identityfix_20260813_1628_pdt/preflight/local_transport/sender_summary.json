@@ -1,0 +1,26 @@
+{
+  "chunks_per_frame": 7,
+  "controller": "open_loop",
+  "demand_count": 32,
+  "demand_trace_sha256": "cf077bbc8e530ab8d0e534dfe7f6982a45514a12491bbdab7ba42e50981d7c5d",
+  "duration_target_s": 8.0,
+  "elapsed_from_start_s": 7.950520845,
+  "end_raw_ns": 878334461728008,
+  "kind": "smoke",
+  "local_errors": 0,
+  "mode": "sender",
+  "observer": null,
+  "onwire_bytes_per_frame": 409852,
+  "payload_bytes": 409600,
+  "per_ue": {
+    "0": {
+      "sent_frames": 16,
+      "sent_onwire_bytes": 6557632
+    },
+    "1": {
+      "sent_frames": 16,
+      "sent_onwire_bytes": 6557632
+    }
+  },
+  "start_raw_ns": 878326511205290
+}

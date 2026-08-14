@@ -84,6 +84,7 @@ FRAME_FIELDS = (
     "checksum_expected",
     "checksum_actual",
     "checksum_ok",
+    "identity_ok",
     "source_ip",
 )
 
@@ -343,6 +344,11 @@ class TrafficSender:
             result.append(UEConfig(int(ue_text), ip, float(fraction_text)))
         if not result:
             raise ValueError("at least one --ue ue_id,bind_ip,demand_fraction is required")
+        ids = [ue.ue_id for ue in result]
+        if len(ids) != len(set(ids)):
+            raise ValueError(f"duplicate UE IDs are not allowed: {ids}")
+        if any(ue.demand_fraction < 0 for ue in result):
+            raise ValueError("UE demand fractions must be non-negative")
         return result
 
     def _make_sockets(self) -> Dict[int, socket.socket]:
@@ -527,6 +533,14 @@ class TrafficSender:
         if self.observer is not None:
             observer_summary = self.observer.summary()
             self.observer.close()
+        socket_bindings = {
+            str(ue.ue_id): {
+                "requested_bind_ip": ue.bind_ip,
+                "actual_local_ip": str(self.sockets[ue.ue_id].getsockname()[0]),
+                "actual_local_port": int(self.sockets[ue.ue_id].getsockname()[1]),
+            }
+            for ue in self.ues
+        }
         for sock in self.sockets.values():
             sock.close()
 
@@ -573,6 +587,7 @@ class TrafficSender:
             "demand_count": len(self.demands),
             "demand_trace_sha256": demand_hash.hexdigest(),
             "local_errors": self.local_errors,
+            "socket_bindings": socket_bindings,
             "observer": observer_summary,
             "per_ue": {
                 str(ue.ue_id): {
@@ -678,6 +693,7 @@ class TrafficReceiver:
                     magic, version, ue_id, _flags, frame_id, scheduled_ns, payload_bytes, expected = header
                     body = blob[FRAME_HEADER.size : payload_bytes]
                     actual = zlib.crc32(body) & 0xFFFFFFFF
+                    identity_ok = ue_id == ue_guess
                     self.frames.append(
                         {
                             "ue_id": ue_id,
@@ -700,6 +716,7 @@ class TrafficReceiver:
                             "checksum_ok": int(
                                 magic == MAGIC and version == VERSION and expected == actual
                             ),
+                            "identity_ok": int(identity_ok),
                             "source_ip": source_ip,
                         }
                     )
@@ -725,6 +742,7 @@ class TrafficReceiver:
             "duplicates": self.duplicate_count,
             "invalid": self.invalid_count,
             "checksum_failures": sum(1 for row in self.frames if not int(row["checksum_ok"])),
+            "identity_failures": sum(1 for row in self.frames if not int(row["identity_ok"])),
             "latency_p50_ms": percentile(latencies, 0.50),
             "latency_p95_ms": percentile(latencies, 0.95),
         }

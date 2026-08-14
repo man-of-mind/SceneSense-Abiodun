@@ -1,0 +1,64 @@
+{
+  "passed": [
+    {
+      "attach_and_hold_elapsed_s": 28.25256448192522,
+      "attach_channel_mode": "clean",
+      "block": "ATTACH_R1",
+      "chanmod_activation_absent": true,
+      "samples": [
+        {
+          "sample_index": 0,
+          "ues": [
+            {
+              "iface": "oaitun_ue1",
+              "ip": "10.0.0.3",
+              "ping_pass": true,
+              "ue_id": 0
+            },
+            {
+              "iface": "oaitun_ue2",
+              "ip": "10.0.0.2",
+              "ping_pass": true,
+              "ue_id": 1
+            }
+          ]
+        },
+        {
+          "sample_index": 1,
+          "ues": [
+            {
+              "iface": "oaitun_ue1",
+              "ip": "10.0.0.3",
+              "ping_pass": true,
+              "ue_id": 0
+            },
+            {
+              "iface": "oaitun_ue2",
+              "ip": "10.0.0.2",
+              "ping_pass": true,
+              "ue_id": 1
+            }
+          ]
+        },
+        {
+          "sample_index": 2,
+          "ues": [
+            {
+              "iface": "oaitun_ue1",
+              "ip": "10.0.0.3",
+              "ping_pass": true,
+              "ue_id": 0
+            },
+            {
+              "iface": "oaitun_ue2",
+              "ip": "10.0.0.2",
+              "ping_pass": true,
+              "ue_id": 1
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "requested_repeats": 1
+}

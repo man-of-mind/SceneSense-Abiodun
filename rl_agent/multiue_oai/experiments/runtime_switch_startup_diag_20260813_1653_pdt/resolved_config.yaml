@@ -1,0 +1,204 @@
+schema_version: scenesense.multiue_oai.dg_a.v1
+stage: DG-A+DG-A.1
+authorization_boundary:
+  allowed:
+  - D0
+  - DG-A
+  - DG-A.1
+  forbidden:
+  - DG-B
+  - D1
+  - D2
+  - D3
+  - controller_ladder
+  - RL
+paths:
+  python: /home/shr_aisvcs/workarea/carla_0_10_env/carla_0_10_venv/bin/python3
+  output_root: rl_agent/multiue_oai/experiments
+  oai_cn_dir: OAI/oai-cn5g
+  oai_ran_build: OAI/openairinterface5g/cmake_targets/ran_build/build
+  oai_ran_conf: OAI/openairinterface5g/targets/PROJECTS/GENERIC-NR-5GC/CONF
+  ttracer_dir: OAI/openairinterface5g/common/utils/T/tracer
+  t_messages: OAI/openairinterface5g/common/utils/T/T_messages.txt
+radio:
+  ue_count: 2
+  prb: 106
+  numerology: 1
+  band: 78
+  downlink_frequency_hz: 3619200000
+  gnb_config: gnb.sa.band78.fr1.106PRB.scenesense_rfsim.awgn_strong.conf
+  clean_gnb_config: gnb.sa.band78.fr1.106PRB.usrpb210.conf
+  ue_base_config: ue.multi2.conf
+  channel_config: channelmod_rfsimu_awgn_strong.conf
+  mcs_policy: sinr
+  expected_snr_db: 8.2
+  snr_tolerance_db: 2.0
+  expected_mcs: 9
+  mcs_tolerance: 2
+  gnb_ttracer_port: 2021
+  ue_ttracer_port: 2023
+  t_stdout: 2
+  attach_timeout_s: 240
+  expected_tunnels:
+  - ue_id: 0
+    iface: oaitun_ue1
+  - ue_id: 1
+    iface: oaitun_ue2
+  expected_ip_pool:
+  - 10.0.0.2
+  - 10.0.0.3
+  ext_dn_container: oai-ext-dn
+  ext_dn_ip: 192.168.70.135
+transport:
+  udp_port: 56100
+  payload_bytes: 409600
+  chunk_bytes: 60000
+  tick_s: 0.05
+  socket_send_buffer_bytes: 8388608
+  socket_receive_buffer_bytes: 16777216
+  traffic_s: 60
+  pre_idle_s: 10
+  post_idle_s: 8
+  drain_timeout_s: 90
+  drain_threshold_bytes: 65536
+  drain_stable_s: 5
+instrumentation:
+  smoke_s: 20
+  perturbation_s: 30
+  trace_service_tolerance_fraction: 0.05
+  trace_latency_tolerance_fraction: 0.1
+  recorder_lead_s: 2
+  recorder_tail_s: 5
+  extraction_timeout_s: 30
+  sender_rate_tolerance_fraction: 0.02
+  ue_gnb_tbs_tolerance_fraction: 0.05
+calibration:
+  prior_ceiling_mbps: 10.4
+  offer_multiplier: 1.3
+  traffic_s: 30
+  service_window_s: 20
+  minimum_achieved_rho: 1.25
+  minimum_backlogged_s: 5
+runtime_switch:
+  telnet_host: 127.0.0.1
+  telnet_port: 9090
+  initial_noise_power_db: -50
+  target_noise_power_db: -4
+  baseline_traffic_s: 15
+  strong_traffic_s: 30
+  baseline_fractions:
+  - 0.2
+  - 0.2
+  strong_fractions:
+  - 0.9
+  - 0.2
+  minimum_snr_movement_db: 3.0
+  minimum_mcs_movement: 2.0
+c1:
+  pessimism_factor: 0.7
+  estimator_window_s: 1.0
+  estimator_ewma_alpha: 0.2
+  estimator_lag_ticks: 1
+  obsolete_frame_rule: newest_replaces_unsent
+  initial_share: equal_mu_over_n
+decision:
+  deadline_s:
+  - 0.25
+  - 0.5
+  minimum_deadline_lift_pp: 5.0
+  minimum_latency_relative_reduction: 0.2
+  minimum_latency_absolute_ms: 50.0
+  minimum_starvation_relative_reduction: 0.2
+  minimum_starvation_absolute_ms: 100.0
+  maximum_goodput_loss_fraction: 0.05
+  scheduler_aggregate_floor_fraction: 0.95
+  scheduler_residual_to_heavy_floor_fraction: 0.9
+  large_n:
+  - 50
+  - 100
+  large_n_service_families:
+  - constant_ceiling
+  - saturating
+  - power_law
+  large_n_demands:
+  - equal
+  - hot20_traffic80
+  - synchronized_burst
+  physical_service_cap_mbps: 36.7
+  physical_service_cap_source: channel_condition_sweep/combined_surface.csv clear/1MB
+    scheduled UL
+  historical_n1_strong_sched_mbps: 10.4
+  historical_n1_source: channel_condition_sweep/combined_surface.csv
+trials:
+- id: A1
+  block: A
+  kind: equal
+  rho: 0.75
+  duration_s: 60
+- id: A2
+  block: A
+  kind: equal
+  rho: 1.0
+  duration_s: 60
+- id: A3
+  block: A
+  kind: equal
+  rho: 1.3
+  duration_s: 60
+- id: A4
+  block: A
+  kind: asymmetric
+  fractions:
+  - 0.9
+  - 0.2
+  duration_s: 60
+- id: A5
+  block: A
+  kind: burst
+  phases:
+  - - 0
+    - 20
+    - 0.6
+  - - 20
+    - 50
+    - 1.3
+  - - 50
+    - 110
+    - 0.6
+  duration_s: 110
+- id: A6
+  block: A
+  kind: controlled
+  controller: decentralized_c1
+  fractions:
+  - 0.9
+  - 0.2
+  duration_s: 60
+  demand_seed: 61301
+- id: A7
+  block: A
+  kind: controlled
+  controller: centralized_observable
+  fractions:
+  - 0.9
+  - 0.2
+  duration_s: 60
+  demand_seed: 61301
+- id: A8
+  block: B
+  kind: controlled
+  controller: decentralized_c1
+  fractions:
+  - 0.2
+  - 0.9
+  duration_s: 60
+  demand_seed: 61302
+- id: A9
+  block: B
+  kind: controlled
+  controller: centralized_observable
+  fractions:
+  - 0.2
+  - 0.9
+  duration_s: 60
+  demand_seed: 61302

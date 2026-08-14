@@ -1,0 +1,100 @@
+{
+  "active_uplink_objects": {
+    "active": {
+      "rfsimu_channel_ue0": true,
+      "rfsimu_channel_ue1": true
+    },
+    "fallback_lines": []
+  },
+  "block": "RUNTIME_SWITCH_STARTUP",
+  "d0_launched": false,
+  "decision": "FULL_RUNTIME_SWITCH_NOT_RUN",
+  "dg_a_launched": false,
+  "initial_channel_state": {
+    "rfsimu_channel_ue0": {
+      "model_index": 2,
+      "model_name": "rfsimu_channel_ue0",
+      "model_type": "AWGN",
+      "noise_power_db": -50.0,
+      "path_loss_db": 0.0
+    },
+    "rfsimu_channel_ue1": {
+      "model_index": 3,
+      "model_name": "rfsimu_channel_ue1",
+      "model_type": "AWGN",
+      "noise_power_db": -50.0,
+      "path_loss_db": 0.0
+    }
+  },
+  "next_stage_launched": false,
+  "schema_version": "scenesense.multiue_oai.runtime_switch_startup_smoke.v1",
+  "status": "RUNTIME_SWITCH_STARTUP_PASS",
+  "tunnel_stability": {
+    "block": "RUNTIME_SWITCH_STARTUP",
+    "samples": [
+      {
+        "sample_index": 0,
+        "ues": [
+          {
+            "iface": "oaitun_ue1",
+            "ip": "10.0.0.3",
+            "ping_pass": true,
+            "ue_id": 0
+          },
+          {
+            "iface": "oaitun_ue2",
+            "ip": "10.0.0.2",
+            "ping_pass": true,
+            "ue_id": 1
+          }
+        ]
+      },
+      {
+        "sample_index": 1,
+        "ues": [
+          {
+            "iface": "oaitun_ue1",
+            "ip": "10.0.0.3",
+            "ping_pass": true,
+            "ue_id": 0
+          },
+          {
+            "iface": "oaitun_ue2",
+            "ip": "10.0.0.2",
+            "ping_pass": true,
+            "ue_id": 1
+          }
+        ]
+      },
+      {
+        "sample_index": 2,
+        "ues": [
+          {
+            "iface": "oaitun_ue1",
+            "ip": "10.0.0.3",
+            "ping_pass": true,
+            "ue_id": 0
+          },
+          {
+            "iface": "oaitun_ue2",
+            "ip": "10.0.0.2",
+            "ping_pass": true,
+            "ue_id": 1
+          }
+        ]
+      }
+    ]
+  },
+  "ue_network_map": [
+    {
+      "iface": "oaitun_ue1",
+      "ip": "10.0.0.3",
+      "ue_id": 0
+    },
+    {
+      "iface": "oaitun_ue2",
+      "ip": "10.0.0.2",
+      "ue_id": 1
+    }
+  ]
+}

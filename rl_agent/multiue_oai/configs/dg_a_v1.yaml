@@ -32,11 +32,16 @@ radio:
   ue_ttracer_port: 2023
   t_stdout: 2
   attach_timeout_s: 240
+  # Tunnel names are stable UE identities. IP assignment is discovered from
+  # these fixed interfaces after every attach; expected_ip_pool is unordered.
   expected_tunnels:
-    - {ue_id: 0, iface: oaitun_ue1, ip: 10.0.0.2}
-    - {ue_id: 1, iface: oaitun_ue2, ip: 10.0.0.3}
+    - {ue_id: 0, iface: oaitun_ue1}
+    - {ue_id: 1, iface: oaitun_ue2}
+  expected_ip_pool: [10.0.0.2, 10.0.0.3]
   ext_dn_container: oai-ext-dn
   ext_dn_ip: 192.168.70.135
+  # OAI UPF has enable_snat=yes, so ext-DN sees the UPF N6 address for both UEs.
+  expected_receiver_nat_sources: [192.168.70.134]
 
 transport:
   udp_port: 56100
@@ -62,6 +67,10 @@ instrumentation:
   extraction_timeout_s: 30
   sender_rate_tolerance_fraction: 0.02
   ue_gnb_tbs_tolerance_fraction: 0.05
+  # Linux tunnel TX includes IPv4 fragmentation headers omitted from the
+  # application-level on-wire estimate. The retained baseline measured 1.0133.
+  tunnel_tx_to_sender_ratio_min: 1.0
+  tunnel_tx_to_sender_ratio_max: 1.08
 
 calibration:
   prior_ceiling_mbps: 10.4
@@ -70,6 +79,22 @@ calibration:
   service_window_s: 20
   minimum_achieved_rho: 1.25
   minimum_backlogged_s: 5
+
+# Bounded runtime-control diagnostic only. RFsim starts with both per-UE
+# channel objects active but effectively clean, then the gNB telnet control
+# changes both UL objects to the measured strong profile. This mode cannot
+# launch D0 or DG-A.
+runtime_switch:
+  telnet_host: 127.0.0.1
+  telnet_port: 9090
+  initial_noise_power_db: -50
+  target_noise_power_db: -4
+  baseline_traffic_s: 15
+  strong_traffic_s: 30
+  baseline_fractions: [0.20, 0.20]
+  strong_fractions: [0.90, 0.20]
+  minimum_snr_movement_db: 3.0
+  minimum_mcs_movement: 2.0
 
 c1:
   pessimism_factor: 0.70

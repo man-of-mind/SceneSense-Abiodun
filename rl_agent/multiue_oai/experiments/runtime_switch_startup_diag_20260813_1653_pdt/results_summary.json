@@ -1,0 +1,13 @@
+{
+  "attach_channel_mode": "strong",
+  "d0_launched": false,
+  "decision": "HOLD_REPAIR",
+  "dg_a_launched": false,
+  "error": "softmodem exited before both UEs attached",
+  "error_type": "StageFailure",
+  "failed_at": "2026-08-13T23:54:03.242996+00:00",
+  "next_stage_launched": false,
+  "run_mode": "runtime_switch_startup_smoke",
+  "schema_version": "scenesense.multiue_oai.dg_a.failure.v1",
+  "status": "FAILED_HOLD"
+}
