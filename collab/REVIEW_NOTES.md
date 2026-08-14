@@ -3498,3 +3498,40 @@ over RFsim first either way, so it does not gate starting.
 positive result, the C2 gap, and the in-flight tasks — it previously described the project as an RL controller
 effort and predated the expanded gate and the multi-UE results. `SCENESENSE_MONTHLY_CHECKLIST.md` still needs its
 own reconciliation pass (codex, low priority, before the advisor meeting).
+
+## 2026-08-14 — NEW DIAGNOSTIC REQUEST (Task D): is the near-tie a "no headroom" result or a "no choice" artifact?
+
+Abiodun asked why greedy/MPC reward is ~0.19 when a delivered top-quality frame scores `U_task` ~= 1.0. Digging in
+raised a caveat we must resolve **before presenting the NO-GO as an interpretation**:
+
+**The controllers SKIP almost every frame** (ladder table, 2,638 frames each): `skip_pct` = **96.0% greedy /
+98.6% MPC / 98.5% rule / 94.1% LinUCB**, with `over_budget_pct` **27.5%** and shield conditional false-rejects
+**20.5%**. So the mean reward is dominated by retained-map value, not delivery. That is *consistent* with the
+feasibility frontier (7/200 cells feasible at 400 KiB) — i.e. skipping is likely CORRECT — but it means **most
+decisions are effectively forced**, and the oracle's **1.56%** action-change rate is the same order as the ~4% of
+frames where SPLIT was chosen at all.
+
+**Therefore the current evidence cannot distinguish two very different conclusions:**
+- (A) *No headroom* — even where a real choice exists, greedy is near-optimal. → the NO-GO strengthens a lot.
+- (B) *No choice* — headroom is small because the 400 KiB operating point makes sending rarely admissible. → the
+  honest conclusion becomes an **operating-point** statement, not a **learnability** one.
+
+**TASK D (cheap, uses existing artifacts — please run alongside A/B/C):**
+1. Restrict to frames where **>= 2 actions are shield-admissible** (report that subset's size).
+2. On that subset report: oracle-vs-greedy **action disagreement rate** and **reward gap with CI**, against the same
+   pre-registered +5% / +0.01 bar.
+3. Repeat the expanded-action gate at a payload where sending is routinely feasible — the **90 KB seg-safe point**
+   is the natural choice (100% delivery at every measured rung) — so the gate is evaluated where the controller
+   actually has latitude.
+4. Report `skip_pct` and the admissible-action-count distribution as first-class results; they belong in the paper
+   and on the slide either way.
+
+**Also flagged for the advisor (not a bug, a design question):** the reward is **task-dominated** —
+`w_task = 1.0` vs `w_error = 0.05*(G/eps)` (= 0.05 at the safety bound) and `lambda_switch = 0.10`. Freshness is a
+mild tiebreaker, yet freshness-awareness was the motivation. The sensitivity sweep only spanned
+`w_error` in [0.025, 0.10], so a stronger freshness weight was never tested.
+
+**Presentation deliverable:** `rl_agent/RL_JOURNEY_REPORT.md` is drafted for the advisor/team talk in ~3 days
+(supersedes `PRESENTATION_STORY.md`). §7a explains the reward scale and this caveat; §16 records Abiodun's
+slide-production requirements (block diagrams, real CARLA frames, LaTeX-rendered equations, a full notation table,
+validated-palette plots, per-slide scope caveats). Deck gets built only after A/B/C/D land so no figure needs redoing.

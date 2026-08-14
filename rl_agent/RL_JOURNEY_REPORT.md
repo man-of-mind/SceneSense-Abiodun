@@ -141,6 +141,46 @@ Held-out test: 6 trajectories, **2,638 frames per controller**, paired channel/l
 
 **Read:** the sequential structure RL would exploit is largely absent. First **NO-GO**.
 
+### 7a. "Is 0.19 a good reward?" — how to read the scale (expect this question)
+
+Config: `w_task = 1.0`, `w_error = 0.05`, `lambda_switch = 0.10`, `eps = 2.0 m`; task weights
+**0.35 / 0.40 / 0.25** summing to 1.0; task references **miou 0.840 / ped 0.887 / veh 0.927**
+(`policy/configs/track_a_pilot.yaml`).
+
+Because each metric is divided by its reference and the weights sum to one, **a delivered top-quality frame scores
+`U_task` ≈ 1.0.** So the per-frame task ceiling is ~1.0 — but **0.19 is NOT "19% of achievable"**, for a reason
+that is itself a finding:
+
+**The controllers SKIP almost every frame:** `skip_pct` = **96.0% (greedy) / 98.6% (MPC) / 98.5% (rule) /
+94.1% (LinUCB)**, with `over_budget_pct` **27.5%** and shield conditional false-rejects **20.5%**. So the mean
+reward is dominated by **the retained map's value when you do not send**, not by delivery quality. Sending is
+usually **not admissible** — precisely what the feasibility frontier predicts (only **7/200** cells feasible at
+400 KiB).
+
+**Penalty magnitudes, for the same question about the switch cost:**
+- `lambda_switch = 0.10` — a 10% tax on *changing mode*; it creates hysteresis against flip-flopping. Real, not
+  prohibitive.
+- `w_error * (G/eps) = 0.05` when the error sits exactly at the safety bound, growing as staleness grows.
+- Therefore **the reward is task-dominated; freshness acts as a mild tiebreaker.** *Open question for the advisor:*
+  is that the intended balance, given freshness-awareness was the motivation? (The sensitivity sweep only spanned
+  `w_error` ∈ [0.025, 0.10], so this was never tested at a stronger setting.)
+
+**Why the absolute number is the wrong yardstick.** What matters is reward **relative to the achievable range at
+this operating point** — SKIP-floor to oracle-ceiling. That is exactly what the **+1.383% oracle gap** (§8)
+measures, which is why the oracle comparison, not the absolute 0.19, carries the conclusion.
+
+**⚠️ The caveat this exposes — flag it on the slide, do not let a reviewer find it.** If ~96% of decisions are
+effectively *forced* (only SKIP admissible), then there is little decision latitude for **any** controller,
+including RL. The oracle changed **1.56%** of actions and SPLIT was chosen on ~4% of frames — the same order of
+magnitude. So the near-tie may partly reflect **how little choice exists at this operating point**, rather than how
+learnable the problem is.
+
+**Required diagnostic (cheap, requested of codex):** conditional on frames where **≥2 actions are admissible**,
+report (i) how often the oracle disagrees with greedy, and (ii) the reward gap. If the conditional gap is still
+small, the NO-GO strengthens considerably. If it is large, the honest conclusion changes to *"there is little
+headroom because there is little choice at 400 KiB"* — an operating-point statement, not a learnability one — and
+the gate should be re-run at a payload where sending is routinely feasible (e.g. the 90 KB seg-safe point).
+
 ---
 
 ## 8. Result 2 — expanding the action space, then measuring the ceiling
@@ -346,3 +386,44 @@ baselines — not a retune of the gates we already passed.
 >
 > So we are not training RL. We are building the end-to-end cooperative-perception system, and the remaining open
 > question is a real one we can test cheaply: **does scene content change which compression profile is best?**
+
+---
+
+## 16. Slide-production requirements (Abiodun, 2026-08-14) — apply when building the deck
+
+**Design principle: the deck must be self-contained.** Assume it gets forwarded to someone who was not in the room
+and who asks no questions. Every symbol defined on or adjacent to the slide that uses it; no ambiguity; no
+"as discussed."
+
+1. **Block diagram of the decision loop** — the state → shield → action → outcome → reward → next-state cycle, so a
+   reader sees the architecture before any equation. Source material exists in `REWARD_LOOP_DIAGRAM.md`; render it
+   as a proper figure (not ASCII). A second, simpler diagram should show the **physical pipeline**: car sensors →
+   front backbone → compress → 5G uplink (OAI) → edge fusion → shared map → back to the car's planner.
+2. **Real CARLA frames wherever they ground a claim** — use captured frames, not clip art. Specifically:
+   - a scene showing the **ego + helper vehicle + pedestrians** (motivates cooperation),
+   - an **occlusion** case (motivates Phase 2),
+   - side-by-side **ROI-drop damage to segmentation** vs intact (this is the density/seg finding and it is visually
+     obvious),
+   - a **radar point-cloud overlay** at the on-contract 19,404 returns/frame (shows the multi-modal input).
+3. **Equations rendered properly** — LaTeX/MathType, not plain text or screenshots of code. The set that must
+   appear: the reward `R(a,s)`, `U_task`, the per-object error `e_j` and `G = max_j e_j`, the C1 admission
+   inequality, and the feasibility condition `payload*8 / per-UE-share <= deadline`.
+4. **A notation table as its own slide (and repeated in the appendix)** — every symbol: `a`, `s`, `U_task`, `G`,
+   `e_j`, `v_j`, `AoI`, `eps`, `kappa`/pessimism, `mu_hat`, `b(s)`, `w_task`, `w_error`, `lambda_switch`,
+   `C_PRB`, plus units. No symbol used before it is defined.
+5. **Clean, consistent plots** — use the validated palette already used for `plots/knob_accuracy_frontier.png`
+   (blue `#2a78d6` = Pareto/primary, orange `#eb6834` = operating points, grey `#898781` = dominated/secondary;
+   light surface `#fcfcfb`). Direct-label series rather than relying on legends alone; never a dual y-axis.
+   Figures to produce/reuse:
+   - knob accuracy-vs-payload frontier (**exists**),
+   - channel sweep delivery/latency knee (**exists** in `channel_condition_sweep/plots/`),
+   - the **controller ladder bar chart** with error bars (rule/greedy/LinUCB/MPC) — must show the overlap,
+   - **greedy vs oracle** with the +1.383% gap and the pre-registered 5% bar drawn as a threshold line (the visual
+     makes the NO-GO instantly legible),
+   - the **deadline-feasibility frontier** (7 / 58 / 89 of 200 cells) — this is the positive result, give it a full
+     slide,
+   - the **skip-rate / admissibility** chart supporting §7a (why 0.19 is the number it is).
+6. **State every scope caveat on the slide that makes the claim**, not only in the limitations slide — especially
+   "one-step, matched-support oracle", "N=2 measured / N=50 modeled", "RFsim, not over-the-air".
+
+**Build the deck only once Tasks A/B/C land**, so no number changes after the figures are made.
