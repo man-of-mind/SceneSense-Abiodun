@@ -3198,3 +3198,30 @@ combinatorial at N=50 — keep the joint selection tractable and document any pr
 
 **Agreed unchanged:** hard C1, safety shield, observable-information-only, no simulator truth, SKIP admissible,
 freeze the controller before evaluation, held-out trajectories, old results preserved. And: **do not start RL now.**
+
+### CRITICAL REFINEMENT to the reordering above — the oracle must be over the EXPANDED action space
+My "oracle first" is a **trap as written** if the oracle is computed over the OLD restricted action space (fixed
+400 KiB, oldest-pending, no expired-drop): it would report "no headroom" **by construction**, because the
+infeasibility is baked into the action set. That would falsely kill the redesign.
+
+**Correct design — expand the action space FIRST, then measure both ends of the ladder inside it:**
+`UE × {SPLIT/LOCAL/SKIP} × profile/payload × FPS`, with expired-work dropping admissible, evaluated on the graded
+objective. Then compute, on held-out offline data:
+- **expanded-space GREEDY** (simple rule, no lookahead), and
+- **expanded-space CLAIRVOYANT ORACLE** (upper bound).
+
+That single comparison answers **two independent questions at once**:
+1. **Is there a SYSTEM win?** `expanded-greedy` vs `current-greedy@400KiB`. Expected to be **large and positive** —
+   the feasibility frontier says 400 KiB cannot meet 250/500 ms at the measured ceiling while ~90 KB can, so simply
+   *allowing* payload/FPS reduction should convert "0/490 arrivals in time" into a working system. **This win is
+   real and is INDEPENDENT of RL** — it comes from load shaping, i.e. a lookup. This is why the redesign is worth
+   building regardless of the RL verdict.
+2. **Is there an RL case?** `expanded-oracle` vs `expanded-greedy`. If they converge → definitive RL NO-GO, and
+   steps 2/3 (max-weight, queue-aware MPC) are unnecessary. If a real sequential gap remains → build max-weight →
+   MPC → and RL becomes legitimately motivated by a measured gap.
+
+**So the answer to "is there nothing to try now?" is NO — there is concrete, free, offline work, and it is the
+substantive part of the redesign:** (a) the deadline-feasibility frontier; (b) define + **pre-register** the
+expanded action space and the graded objective; (c) calibrate LOCAL (prerequisite for the joint space); (d) run
+expanded-greedy vs expanded-oracle on held-out trajectories. No OAI, no CARLA, no radio time. The heavy controller
+machinery (max-weight, queue-aware MPC) is what waits on (d) — not the redesign itself.
