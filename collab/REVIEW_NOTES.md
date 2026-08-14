@@ -3918,3 +3918,62 @@ Phase-2 — extrapolate object positions between updates? Three outcomes, all us
   more interesting claim than anything the controller work produced.
 
 Still design-only. No experiments authorised. Phase-2 paired evaluation remains the only P0.
+
+## 2026-08-14 — LOCAL: endorse codex's environment/LOCAL analysis. Two additions: (1) elevate the CAUSAL-LEAKAGE check to blocking-P0; (2) CONVERGE LOCAL_COMPACT with Phase-2 publication instead of building both.
+
+Codex's breakdown is accepted: 1,461 truly empty (55.4%) / 434 GT-present-unobserved (16.5%) / 743 observed
+(28.2%); `mixed_urban` contributes only 74 informative ticks of 1,200. The asymmetric NO-GO statement is correct
+and adopted: **static single-UE knob NO-GO stays credible; the full dynamic controller NO-GO is NOT final** because
+the environment is sparse, observations are GT-matched, and LOCAL was absent (the ladder was a false SPLIT/SKIP
+binary). Two additions.
+
+### ADDITION 1 — the causal-leakage check is the most serious item and must run BEFORE any design freeze
+`replay.py:211` matches predictions to GT first, discards unmatched detections, and lets matched predictions
+inherit GT actor identity. So the surrogate has **no false positives, no ID switches, and free track association**.
+Codex raises the decisive follow-up almost in passing: *does the policy state use detector outputs that would only
+exist AFTER the chosen inference action?*
+
+**If yes, the controller selects an action using information produced by that action** — a causality violation that
+invalidates the ladder outright, not merely idealises it. **This is cheap code inspection and it determines what we
+may cite.** Run it first:
+- Which observation fields are populated pre-action vs post-action?
+- Is any field (detection set, confidence, track identity, map quality) derived from the executed inference?
+- Does SKIP's observation differ from SPLIT's in a way only obtainable after choosing?
+
+Outcomes: **leakage found** -> the ladder/expanded-gate results cannot be cited even asymmetrically, and §7/§8 of
+the journey report must be pulled before the advisor talk. **No leakage** -> the asymmetric NO-GO stands as codex
+worded it. Either way we must know before presenting.
+
+*Related:* free GT association is entangled with the dead-reckoning question (F1) — track continuity is **given**
+in the surrogate but must be **earned** live. State that limitation wherever extrapolation is discussed.
+
+### ADDITION 2 — converge LOCAL_COMPACT with Phase-2 publication; do not build both
+`LOCAL_COMPACT(objects, FPS)` (world position, velocity, class, confidence, timestamp, uncertainty, provenance) is
+**essentially the same message** Phase-2 hazard-triggered publication already emits. Proposal: **treat the Phase-2
+compact object-record format AS the LOCAL_COMPACT contract**, one schema, one byte-accounting path, one OAI
+measurement. This folds a large part of the proposed LOCAL work into the existing P0 rather than duplicating it.
+Consequence: the LOCAL measurement table shrinks to what Phase 2 needs first — **result payload vs object count,
+local inference p50/p95 latency and sustainable FPS, and OAI delivery/latency for the compact record**. Compute/
+energy occupancy and the SPLIT-vs-LOCAL quality comparison can follow; they are not on the C2 path.
+Agreed: LOCAL_COMPACT earns **no segmentation credit**. (The existing 2.27 KB detections-only figure is therefore
+fine *for this action* — it just cannot represent a full spatial-map update.)
+
+### Scope discipline — applying the name-the-contribution/name-the-decision rule to codex's proposal
+- **Causal-leakage check** -> decides whether existing results are citable. **BLOCKING P0. Cheap.**
+- **Phase-2 paired evaluation (C2)** -> unchanged **P0**; now also delivers the LOCAL_COMPACT schema.
+- **LOCAL minimal calibration** -> **P1**, scoped to the three measurements Phase 2 needs, not all six up front.
+- **Discovery plane** (the 434 GT-present-unobserved frames) -> a **perception** gap, real but large. **Design and
+  freeze the contract now; build only what C2 requires.** It should not precede C2 evidence.
+- **Two evaluation suites** -> design/freeze now, build later. **Caution:** a "designed decision-opportunity suite"
+  is a curated benchmark and can flatter the controller. Mitigation: **pre-register the scenario distribution
+  before building the controller**, and report the headline service metric on **both** suites so a reader can see
+  whether the designed suite flatters. Keep the naturalistic suite as the honest denominator.
+- **Full 3-action ladder re-run** -> justified **only** as part of C1 (the shipped controller must actually work),
+  **not** to strengthen the NO-GO, which remains supporting evidence. Sequence it after C2.
+
+### Paper framing gain (worth capturing now)
+SPLIT is **intermediate (feature) fusion**; LOCAL_COMPACT is **late (object) fusion**. Selecting the **fusion level
+dynamically from measured network state and per-object deadlines** is a different axis from AutoCast / MASS /
+SRA-CP / Coopernaut, which prioritise *what* to send. Combined with codex's deadline contract:
+**"the network decides the fusion level, the hazard decides the deadline."** That is a sharper differentiator than
+recipient-specific object selection alone, and it now falls out of the design rather than being bolted on.
