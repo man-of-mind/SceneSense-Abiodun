@@ -3748,3 +3748,53 @@ bytes, and map coverage** for all three arms.
   two-UE OAI RFsim. This is C2, the binding contribution.
 - **P2 — Task E items 3-5** (skip decomposition, coverage metric, conditional cuts). Cheap, needed for the paper.
 - **P3 — occlusion / cyclist contexts** for Task A's remaining scope. Only if the story needs it.
+
+## 2026-08-14 — ⛔ PRIORITY RESET (Abiodun). Task E largely CANCELLED. Phase-2 C2 evidence is the only P0.
+
+Abiodun applied the right test and it overrules my previous P0-P3: *does this advance the project's goal, or are we
+drifting?* Task E fails that test and is cancelled except for one item. Rationale, recorded so we do not re-litigate:
+
+1. **The NO-GO is SUPPORTING EVIDENCE (§8.3), not a contribution.** Its job is to justify not doing RL. A *scoped*
+   NO-GO already does that job completely. Hardening it while **C2 — the binding contribution — does not exist** is
+   misallocation.
+2. **Phase-2 hazard-only selection IS the abstention fix.** Participation moves from reward-argmax (which chose SKIP
+   ~97% of the time) to hazard-triggered sending — exactly the must-send rule Task E item 7 proposed bolting onto
+   Phase 1. Phase 2 **supersedes** the problem; re-calibrating `w_error` on a controller Phase 2 replaces is work for
+   its own sake.
+3. A week on the RL question was **not wasted** — it prevented months of unjustified RL work — but the cost is now
+   sunk and must not drive further spend.
+
+### CANCELLED (do not run)
+- Task E `w_error` sweep beyond 0.10; skip-cause decomposition; `capture_attempt` vs `split_pct` forensics.
+- Task D conditional-on-choice oracle analysis.
+- Full ladder / expanded-gate re-runs.
+- Task C conditional-on-SPLIT cut (nice-to-have only; do it **only** if the number is actually quoted in the paper).
+- Task A occlusion/cyclist extension — deferred unless Phase 2 needs it.
+
+### KEPT — one item only, and it is a C4 design rule, not an RL question
+**Confirm the system's operating point.** We need to know what payload/FPS the *deployed* system runs at, and the
+evidence already points to the **~90 KB seg-safe** profile (100% delivery at every measured rung; 58/200 feasible
+cells vs 7/200 at 400 KiB). Do the **minimum** needed to state that as a design rule — no ladder re-run, no reward
+re-calibration. If Phase-2's paired evaluation naturally establishes the operating point, **fold it in there and do
+nothing separately.**
+
+### P0 — the only priority: Phase-2 paired evaluation (C2 evidence)
+`ego-only` vs `send-everything` vs `hazard-only`, reporting **warning lead, bytes, and map coverage** per arm, then
+the identical messages over two-UE OAI RFsim. This is the binding contribution and it also answers the participation
+question from the application side, which is the side that matters.
+
+### Standing discipline (Abiodun's rule, adopted for all future work)
+**Before authorising any task, state (a) which contribution C1-C4 it advances, and (b) what decision changes based on
+its outcome. If no decision changes, do not run it.** Applying it now:
+- Phase-2 paired eval -> **C2**, decides whether cooperation demonstrably pays. **RUN.**
+- Operating-point confirmation -> **C4/C1**, decides what the system ships at. **RUN (minimal, likely folded in).**
+- Task E residue -> advances a supporting result; **no decision changes. CANCELLED.**
+- OTA leg -> **C1/C2 credibility**, decides the venue. **Advisor decision, not ours.**
+
+### Presentation guidance (advisor + team, ~3 days)
+The RL work gets **one forward-looking slide, not a post-mortem**: rigorously tested with pre-registered gates, three
+gates said no under the evaluated contract, pivoting to the system + Phase 2. Detail goes in **backup slides** so the
+deck stays self-contained if forwarded. The ~97% abstention is **not** presented as a failure narrative; it appears
+only as one line of *rationale* for the design going forward — "analysis showed the 400 KiB operating point makes
+sending rarely feasible, which is why we move to the ~90 KB seg-safe point and hazard-triggered sharing." Honest,
+decision-relevant, and forward-looking, without dwelling on a controller we are replacing.
