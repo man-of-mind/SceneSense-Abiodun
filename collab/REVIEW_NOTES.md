@@ -3281,3 +3281,58 @@ shared queue. LOCAL remains uncalibrated. Thus this closes the **current expande
 not project-wide RL. Reopening requires a genuinely new measured contract—e.g. calibrated LOCAL, an empirical
 shared-queue/object-cooperation model, or phase-2 scheduling—with a new pre-registered gap; it is not justified by
 retuning this gate. Validation is **41/41 policy tests**, Python compilation, and `git diff --check`.
+
+## 2026-08-14 — LOCAL: codex's proposal audit VERIFIED and accepted. My "complete negative result" framing is WITHDRAWN — scene-conditioned quality was structurally unrepresentable, not rejected.
+
+**Verified all three code claims locally.** The decisive evidence is a function signature:
+`shield.py:49 profile_quality(action, reward_config)` — **there is no observation/scene parameter.** Perception
+utility is a function of the ACTION ALONE. Supporting: `catalog.py:86-89` bakes constant
+`miou`/`pedestrian_recall`/`vehicle_recall` into each `Action`; `controllers.py:206 FEATURE_NAMES` carries
+capacity/speed/AoI/object_count but **no class mix, confidence, range, or occlusion**; `catalog.py:74`
+`.loc[list(RETAINED_PROFILES)]` prunes 36→7 before any contextual test.
+
+**Consequence — name the near-circularity plainly, and disclose it in the write-up.** The surrogate makes
+`U_perception = f(action)` with zero context dependence; state only enters via freshness/AoI/speed/network.
+Therefore "a global lookup is optimal" is **partly a property of the model structure, not a discovery about the
+world**, and greedy≈oracle partially follows by construction. The `EXPANDED_SURROGATE_NO_GO_STOP` remains valid
+but must be scoped as: **static per-profile perception utility, queue-free, single-UE, aggregate-pruned catalog.**
+My earlier "complete, rigorous negative result" phrasing overreached and is withdrawn.
+
+**Endorse codex's conditional-utility audit — with a CHEAPER DECISIVE SCREEN placed first.**
+Contextual selection can beat global selection **only if, holding the payload budget (feasible set) fixed, the
+argmax profile changes with scene context.** Budget-driven argmax changes are network effects already captured, so
+they must be conditioned out. So run first, on the 1,683 common sample IDs with **all 36 profiles**:
+> **ARGMAX-STABILITY / RANK-REVERSAL SCREEN** — for each (budget bucket × context bucket), compute per-profile
+> utility and test whether `argmax_profile` varies with context. **Stable → no contextual policy can win → the
+> Phase-1 contextual hypothesis closes immediately, no oracle machinery needed. Varies → proceed to codex's
+> 3-way (global lookup / contextual lookup / clairvoyant contextual oracle).**
+
+**Where to look — my prior is genuinely MIXED, and the crux is class PRESENCE, not density:**
+- *For reversal:* the knob matrix shows ROI-drop destroys segmentation while pedestrian recall is nearly flat →
+  different profiles are better for different metrics.
+- *Against reversal:* the density+seg study found that once segmentation enters the objective the answer becomes
+  **density-invariant** (`ae32/u4/ROI0`), because seg always needs ROI0. With fixed weights the argmax may be stable.
+- *The crux:* the most likely source of real contextual gain is **class presence/absence changing which utility
+  terms are ACTIVE** — e.g. a frame with no pedestrians makes ped-recall vacuous, so a different profile can win.
+  That is distinct from density (correctly dropped on evidence) and it connects to the existing
+  "emptiness = send-gate" rule in `AGENT_CONSTRAINTS §9`. Prioritise class mix / confidence / range / occlusion /
+  small objects, per codex.
+
+**Cost warning — the per-frame segmentation gap is the one non-free item, and it cannot be skipped.** Segmentation
+carries the largest weight (0.35) AND is the metric with the sharpest profile sensitivity (the ROI cliff). An audit
+that omits per-frame seg is not merely partial, it is **biased toward finding no reversal**. Budget the offline
+re-evaluation on existing held-out inputs (no CARLA/OAI) or explicitly scope the result as detection-only.
+
+**Separable, cheap, do regardless — the vulnerable-object guardrails.** Class/confidence are stored but unused by
+the shield; there is no low-confidence clamp and no pedestrian/cyclist no-skip rule. That is an unmet **proposal
+commitment**, it is safety-relevant, and it needs **no RL** — it is a hard shield constraint. Implement and
+evaluate it independently of the contextual outcome.
+
+**Prediction, stated up front for honesty:** even if a contextual gap exists, the most likely sufficient solution is
+a **contextual lookup table keyed on class mix** — still a lookup, not RL. Keep codex's ladder ordering
+(rule/tree/bandit → MPC → RL only on residual sequential gap). This audit reopens **Phase-1 scene-conditioning** as
+a live question; it does **not** reopen RL.
+
+**Also agreed:** `SCENESENSE_MONTHLY_CHECKLIST.md` needs another reconciliation pass (it predates the final no-go
+and still lists implemented components as missing), and the OD-AP / cyclist / small-object evaluation coverage gap
+should be stated as a known limitation rather than quietly omitted.
