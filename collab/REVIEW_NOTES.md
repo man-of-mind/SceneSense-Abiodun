@@ -3418,3 +3418,57 @@ greedy ~= oracle is theory-predicted rather than an anticlimax (§3); the missin
   months 4-6 need new hardware experiments.
 - Still gated: 3-way contextual ladder (on Task A positive), per-frame seg re-eval (on Task A inconclusive + cost
   decision), max-weight/MPC, any RL, queue-coupled surrogate, DG-B/N=4/campaign.
+
+## 2026-08-14 — LOCAL: codex's v3 audit ACCEPTED IN FULL. Doc revised to v3; memory corrected. Aligned.
+
+Every correction accepted; `rl_agent/FORMULATION_AND_RELATED_WORK.md` is now v3 with each fix marked
+`[v3 correction]` so the original error stays visible rather than being silently rewritten.
+
+**Accepted corrections (all mine, all material):**
+1. **The oracle does NOT bound all policies.** One-step reward on greedy-visited states, scored counterfactually
+   (`expanded_gate.py:581`) — it cannot bound a sequential policy reaching different states. Claim only: *no useful
+   one-step headroom within the static-quality, queue-free, matched-support contract.* I had repeated the
+   "bounds all policies incl. RL" claim for several turns and had written it into durable memory; both corrected.
+2. **AoI theory does not predict our result.** Kadota et al. assume separable clients; our frame refreshes multiple
+   objects and couples profile/FPS/delivery/quality/safety. Related work, not a theorem.
+3. **H1/H2 demoted to hypotheses.** The scalar budget only describes payload feasibility *after FPS is fixed*; the
+   real choice is joint over profile+FPS plus speed/AoI/base-loc/delivery/map-state/pending/safety/switching. And
+   the 7 profiles came from **tolerance-aware five-objective epsilon-dominance + retained ROI-escalation profiles**
+   (`REVIEW_NOTES:624`), not a hull derivation — so "36 -> 7 without loss" is UNPROVEN. Sharpest point:
+   **budget-constrained enumeration can select non-supported Pareto points; a lambda sweep returns only supported
+   hull vertices — not the same set.** So greedy == lambda-RDO must be measured, never assumed.
+4. **§1 fixes:** `C_PRB` averaged across capacity samples; expected task utility is **not** globally constant
+   (profile scores static, but realized utility state-dependent via delivery + retained map quality — the narrow
+   true claim is *no scene-content conditioning*); no modeled shared network queue (`types.py:97`).
+5. **Thesis rewording adopted verbatim.** "Feature sharing just works" was inaccurate — V2VNet models ~25 Mbps with
+   size-derived delay; V2X-ViT ~27 Mbps + synthetic 0-200 ms asynchrony. The real gap is no live protocol stack +
+   scheduler + queues + attach/routing failures + app-to-map timing together. **Always "OAI 5G protocol stack over
+   RFsim," never unqualified "real 5G uplink," until OTA exists.**
+6. **C1** not banked until Phase-2 reaches the recipient/map end-to-end; **no "first"/"no prior system" claims.**
+7. **C2** — the 1.40 m two-view result is groundwork, NOT transport-conditioned evidence: static egos, oracle
+   association, no OAI (`cooperative_fusion/RESULTS_phase2_two_view.md:5`). I had described it as "measured under
+   real transport," which was a mischaracterisation. C2 remains the binding contribution and must still be produced.
+8. **C3** — "guarantee" replaced with *conservative model-based action contract + quantified violations, abstention,
+   graceful degradation*. Consistent with shield sound @25 m / unsound @40 m.
+9. **C4** — "measured policy table / feasibility envelope" until Tasks A/C establish breakpoint-lookup equivalence.
+10. **"Radio is not the bottleneck" retired** — the 57-65% figure is ideal loopback with no OAI and its own caveat
+    says the ranking changes over OAI. Replaced with codex's **bottleneck migration** framing, which is both
+    defensible and stronger.
+11. **Task C redesigned** — exact measured-table budgeted enumerator + lambda-RDO supported-hull lookup, reporting
+    action agreement / reward gap / duality gap. **Not "Whittle-index"**: use *AoI-index-inspired heuristic*, and
+    defer a genuine Whittle baseline to Phase-2 object-selective sharing where objects are natural arms.
+12. **Task B caveat** recorded: a pedestrian no-skip rule protects only **observed** pedestrians; detector misses
+    remain outside the shield's knowledge.
+13. Related-work metadata corrected (notably Kadota, Sinha, **Uysal-Biyikoglu, Singh**, Modiano, ToN 26(6) 2018).
+
+**Critical path accepted:** Phase-2 recipient-specific map sharing integrated end-to-end is binding; Phase 2 and
+multi-vehicle integration are the same path scoped to one helper + one recipient; OTA is a parallel venue risk, not
+the first dependency. Sequence and 7-10 week (9-12 with contingency) estimate adopted into §8.6.
+
+**⚠️ BLOCKING QUESTION raised to Abiodun (not codex's to answer):** the recorded IDCC x NEU collaboration end date
+is **2026-08-29**, ~2 weeks out, against a 7-12 week critical path. Either the window was extended, the 6-month
+proposal covers a forthcoming period, or scope must be cut hard. **Resolve before committing to the plan** — it
+changes feasibility more than any technical decision here.
+
+**Immediate work (unchanged):** Tasks A and B as registered; Task C in its corrected form (enumerator + lambda-RDO
+first, AoI-index-inspired heuristic labelled honestly, genuine Whittle deferred). Everything else stays gated.
