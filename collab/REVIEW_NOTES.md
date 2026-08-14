@@ -2788,6 +2788,43 @@ asymmetric load. A gap past the pre-registered thresholds = coordination/RL dire
 decentralized C1-admission suffices under 2-UE contention" (still a clean systems finding). DG-A may be NO-GO;
 re-registering the SNR gate does not prejudge that.
 
+## 2026-08-13/14 — LOCAL REVIEW of DG-A result: clean measured NO-GAP at N=2. DG-B is NOT yet authorized by our own rule. Free diagnosis first.
+
+*(Reviewing codex's summary — DG-A artifacts are not synced to L10320, so these numbers are relayed, not independently verified.)*
+
+**Result accepted as valid and clean:** D0 passed, 9/9 trials, both restart blocks, all routing/identity/radio/
+checksum/tunnel gates green. **Measured N=2: no replicated coordination gap** — centralized observable admission
+did not clear the pre-registered deadline or latency thresholds vs decentralized hard-C1.
+
+**The mechanism is the real finding — surface it, don't bury it:** scheduler redistribution confirmed at
+**6.090 Mbps aggregate vs 6.077 Mbps calibrated ceiling**. The 5G MAC scheduler already drives the cell to its
+capacity ceiling and reallocates residual to the heavy UE. **The scheduler IS the coordinator** → an
+application-layer coordinator has nothing left to win. This explains BOTH no-gos (single-UE ladder greedy 0.197
+vs MPC 0.198, and now N=2) with one mechanism. That is a publishable systems result, not a null.
+
+**DG-B authorization — my read: NOT met.** The pre-registered gate was "a replicated raw gap **OR a robust
+provisional N=50 gap**." What we have is **model-only and internally contradictory**: +47.73 pp worst-delivery
+lift (hot-20%) but **starvation WORSE**. Starvation reduction was itself a pre-registered criterion
+(`minimum_starvation_relative_reduction: 0.20`), so the model improves one registered metric while degrading
+another. That is not a robust gap — and spec v1.1 states plainly: **model uncertainty is a HOLD, never an "RL
+opportunity."** Running DG-B on this signal would be stretching our own rule. codex's own read agrees ("not yet
+evidence for RL").
+
+**Highest-value next step is FREE — diagnose the model's contradiction (no OAI, table-driven, minutes):**
+does centralized admission achieve its +47.73 pp worst-delivery by **starving the tail**? If yes, the "gap" is an
+artifact of an objective that trades fairness for aggregate delivery — not a coordination benefit worth radio
+time → clean NO-GO closure. If instead it resolves to a genuine Pareto improvement under a defensible objective,
+DG-B becomes justified. **Do this before any N=4 work.**
+
+**On DG-B cost (if it is later justified):** N=4 is NOT a config flip — it needs 2 new CN subscribers/IMSIs,
+`rfsimu_channel_ue2/ue3`, and 4-way RACH under a runtime-switched channel. We just spent a day on 2-UE attach;
+4-way attach is a realistic repeat. If DG-B is approved, **de-risk with an N=4 attach-only smoke first** (the
+pattern is established, ~5 min/run) before committing the 60-95 min campaign.
+
+**Recommendation:** (1) run the free model-contradiction diagnosis; (2) HOLD DG-B pending its outcome; (3) the
+declare-NO-GO-vs-push-to-N=4 fork is an advisor-level scientific call — he returns in ~2 days, and this is
+exactly what to bring him. Meanwhile the write-up can start: the mechanism finding stands on its own.
+
 ## 2026-08-13 — CODEX: two-UE strong-rung re-registration applied; DG-A runtime entry repaired and launch authorized.
 
 **Observable reconciliation:** the retained channel-sweep summarizer derives its SNR column from
