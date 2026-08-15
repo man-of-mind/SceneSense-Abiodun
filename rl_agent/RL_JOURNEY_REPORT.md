@@ -1,7 +1,7 @@
 # The RL journey: environment, reward, baselines, results, and what comes next
 
-**Audience:** advisor + team. **Status:** draft for a presentation in ~3 days; becomes slides once Tasks A/B/C
-land. **Supersedes** `PRESENTATION_STORY.md` (written before the results). Every number here is traceable to an
+**Audience:** advisor + team. **Status:** audited working record; Tasks A/B/C have landed, but the causal audit
+re-scoped the controller results before slide preparation. **Supersedes** `PRESENTATION_STORY.md` (written before the results). Every number here is traceable to an
 artifact path; scope caveats are stated inline rather than in a footnote, because two of them changed our claims.
 
 > # ⛔ READ FIRST — §§7-8 ARE RE-SCOPED (causal audit, 2026-08-14)
@@ -140,8 +140,9 @@ leaves a real gap.*
 | **MPC** | **Model-predictive control** — each tick, simulates several steps ahead using the measured channel/latency/kinematics models, picks the best first action, then replans | Tests whether **planning ahead** helps. Crucially, MPC is *the* test for sequential structure: if looking into the future doesn't help, there is little for RL to learn. It gets no future frames and no true capacity. |
 | **Clairvoyant oracle** | Knows the realized outcome, picks the best action per state | A **reference ceiling**: how much is left on the table? |
 
-**In plain terms for the talk:** greedy = "do the best thing right now." MPC = "think a few steps ahead." Oracle =
-"cheat and see the answer." If greedy ≈ MPC ≈ oracle, the problem is a **lookup**, not a learning problem.
+**In plain terms for backup material:** greedy = "do the best thing right now." MPC = "think a few steps ahead."
+Oracle = "cheat and see the answer." Their comparison probes headroom **inside this replay contract**; because the
+state is noncausal, it cannot establish whether the deployable problem is a lookup or a learning problem.
 
 ---
 
@@ -157,14 +158,16 @@ Held-out test: 6 trajectories, **2,638 frames per controller**, paired channel/l
 | linucb | 0.1906 | 91.13 |
 | **mpc** | **0.1983** | 91.13 |
 
-**What it tells us:**
+**What it tells us inside the noncausal matched-support replay:**
 - **MPC beats greedy by only 0.91%**, with a bootstrap interval covering zero, and they choose differently on just
   **2.54%** of frames. **Planning ahead buys almost nothing.**
 - **LinUCB (the learner) was *worse* than greedy.** Learning a reward model added variance, not skill — because the
   reward model is already *measured*.
 - All controllers hit an identical **91.13% matched-safe rate**: the shield, not the optimizer, determines safety.
 
-**Read:** the sequential structure RL would exploit is largely absent. First **NO-GO**.
+**Read:** little sequential headroom appears under the legacy replay's oracle observation. This is useful diagnostic
+evidence, but **not a deployable dynamic-controller NO-GO**. The static single-UE profile-selection NO-GO remains
+separately supported by the measured-table analysis.
 
 ### 7a. "Is 0.19 a good reward?" — how to read the scale (expect this question)
 
@@ -173,14 +176,10 @@ Config: `w_task = 1.0`, `w_error = 0.05`, `lambda_switch = 0.10`, `eps = 2.0 m`;
 (`policy/configs/track_a_pilot.yaml`).
 
 Because each metric is divided by its reference and the weights sum to one, **a delivered top-quality frame scores
-`U_task` ≈ 1.0.** So the per-frame task ceiling is ~1.0 — but **0.19 is NOT "19% of achievable"**, for a reason
-that is itself a finding:
-
-**The controllers SKIP almost every frame:** `skip_pct` = **96.0% (greedy) / 98.6% (MPC) / 98.5% (rule) /
-94.1% (LinUCB)**, with `over_budget_pct` **27.5%** and shield conditional false-rejects **20.5%**. So the mean
-reward is dominated by **the retained map's value when you do not send**, not by delivery quality. Sending is
-usually **not admissible** — precisely what the feasibility frontier predicts (only **7/200** cells feasible at
-400 KiB).
+`U_task` ≈ 1.0.** The per-frame task ceiling is therefore ~1.0, but **0.19 is not "19% of achievable"**: it is an
+average over a sparse, scheduler-gated replay in which the controller rarely attempts an update. More importantly,
+the same-frame object evidence used to score and choose actions is not a causal pre-action signal. The absolute
+reward is consequently useful only for paired comparisons within this legacy surrogate.
 
 **Penalty magnitudes, for the same question about the switch cost:**
 - `lambda_switch = 0.10` — a 10% tax on *changing mode*; it creates hysteresis against flip-flopping. Real, not
@@ -190,21 +189,10 @@ usually **not admissible** — precisely what the feasibility frontier predicts 
   is that the intended balance, given freshness-awareness was the motivation? (The sensitivity sweep only spanned
   `w_error` ∈ [0.025, 0.10], so this was never tested at a stronger setting.)
 
-**Why the absolute number is the wrong yardstick.** What matters is reward **relative to the achievable range at
-this operating point** — SKIP-floor to oracle-ceiling. That is exactly what the **+1.383% oracle gap** (§8)
-measures, which is why the oracle comparison, not the absolute 0.19, carries the conclusion.
-
-**⚠️ The caveat this exposes — flag it on the slide, do not let a reviewer find it.** If ~96% of decisions are
-effectively *forced* (only SKIP admissible), then there is little decision latitude for **any** controller,
-including RL. The oracle changed **1.56%** of actions and SPLIT was chosen on ~4% of frames — the same order of
-magnitude. So the near-tie may partly reflect **how little choice exists at this operating point**, rather than how
-learnable the problem is.
-
-**Required diagnostic (cheap, requested of codex):** conditional on frames where **≥2 actions are admissible**,
-report (i) how often the oracle disagrees with greedy, and (ii) the reward gap. If the conditional gap is still
-small, the NO-GO strengthens considerably. If it is large, the honest conclusion changes to *"there is little
-headroom because there is little choice at 400 KiB"* — an operating-point statement, not a learnability one — and
-the gate should be re-run at a payload where sending is routinely feasible (e.g. the 90 KB seg-safe point).
+**Why the absolute number is the wrong yardstick.** Paired reward gaps are more interpretable than the absolute
+scale, but even the §8 oracle gap is bounded to the same noncausal, one-step, matched-support contract. It does not
+close the causal dynamic-control question. A further diagnostic on this corpus cannot repair the missing pre-action
+signals, so no additional replay sweep is required before Phase 2.
 
 ---
 
@@ -237,17 +225,17 @@ corrected version is the more interesting finding.**
 
 **One frame.** Reward mis-calibration is not the story, so a `w_error` sweep would have been wasted effort.
 
-**The real structural concern — STALE-LOCKOUT (codex).** When the map is already stale and nothing satisfies eps,
+**A structural hypothesis — STALE-LOCKOUT (not established).** When the map is already stale and nothing satisfies eps,
 the degraded shield minimizes the *immediate peak* bound. SKIP is evaluated over a one-tick horizon while sending
 carries capture wait + network latency — so **SKIP looks less bad right now even though sending is the only path to
-recovery**, and the map gets staler, repeating. Much of the 693 is likely this. It needs a desk-level counterexample
-analysis, not a weight sweep.
+recovery**, and the map gets staler, repeating. The 693-frame count is consistent with this mechanism but does not
+identify it causally. Phase 2 must not inherit this frozen-object shield model; its map already extrapolates tracks.
 
 **Also note:** Task B's vulnerable guardrail already raised SPLIT from **3.98% -> 29.38%**, so the old number
 describes the *unguarded baseline*, not the current design.
 
 **And a genuine environment/perception issue:** only **743** frames contain observed objects (1,895 do not), while
-a further **427** frames contain GT objects the **detector missed** — i.e. ~36% of GT-object frames are lost before
+a further **434** frames contain GT objects but no matched observation — i.e. ~37% of GT-object frames are lost before
 the controller ever sees them. That is a perception-coverage gap the controller cannot solve, and it means
 whole-corpus percentages dilute the informative subset.
 
@@ -270,15 +258,15 @@ oracle** in that larger space. (`expanded_action_gate/20260813_233947_pdt`)
 | **actions the oracle changed** | **1.56%** |
 | verdict | `EXPANDED_SURROGATE_NO_GO_STOP` |
 
-**What it tells us:** with *perfect knowledge of the outcome*, you would change roughly **1 decision in 64**, for
-a **1.4%** gain — far below the bar we registered in advance. Greedy isn't just close in score; it makes nearly the
-same *choices*.
+**What it tells us inside this replay:** with perfect one-step outcome knowledge, the oracle changes roughly
+**1 decision in 64** for a **1.4%** gain, below the registered bar. This characterizes the legacy surrogate; it is
+not a bound on a controller operating from causal pre-action signals.
 
 **Honest scope — this matters and we corrected it:** the oracle is **one-step**, evaluated on the states **greedy
-visits**, with matched support (`policy/expanded_gate.py:581`). It therefore does **not** upper-bound a sequential
-policy that would reach different states. The defensible claim is *"no useful one-step headroom within the
-static-quality, queue-free, matched-support contract"* — **not** "all RL is bounded by 1.4%." We initially
-overstated this and fixed it.
+visits**, with matched support (`policy/expanded_gate.py:581`) and same-frame post-tail/GT-assisted observations.
+It therefore does **not** upper-bound a causal sequential policy that would reach different states. The defensible
+claim is *"no useful one-step headroom within the noncausal, static-quality, queue-free, matched-support contract"*
+— **not** "all RL is bounded by 1.4%." We initially overstated this and fixed it.
 
 ---
 
@@ -330,12 +318,14 @@ grand narrative would not survive review):
 2. **Multi-UE:** the MAC scheduler already operates at the capacity ceiling, so application-layer capacity
    coordination has no room at N=2.
 
-**Bottom line: do not train RL now.** Not because RL is bad, but because we **measured** that the simplest policy is
-within ~1.4% of a one-step ceiling, and no cheaper rung on the ladder was left behind.
+**Bottom line: do not train RL now.** Static profile choice has not earned learning, the N=2 OAI admission study
+found no coordination gap, and the legacy dynamic ladder cannot settle the causal question. Reopen learning only
+if the paired causal Phase-2 ladder leaves a pre-registered residual sequential gap.
 
 **And what is genuinely NOT falsified** — we are careful here:
 - **Scene-conditioned quality.** `profile_quality()` takes **no scene argument**, so "different scenes want
-  different profiles" was **structurally unrepresentable**, not rejected. (Task A tests it.)
+  different profiles" was **structurally unrepresentable** in the controller. Task A later found no practical
+  reversal on the available class/range contexts, but true occlusion and cyclists remain untested.
 - Queue-coupled dynamics; calibrated `LOCAL` actions; deadline-aware load shaping that drops expired work;
   Phase-2 object-selective map sharing.
 
@@ -366,19 +356,19 @@ uplink latency root cause was **RLC queue-wait from the gNB UL scheduler's MCS c
 
 ## 12. Next steps
 
-**In flight now (desk-only, no CARLA/OAI):**
-- **Task A — does context change the best profile?** Argmax-stability / rank-reversal screen over **all 36
-  profiles** and 1,683 common samples, bucketed by **class mix, confidence, range, occlusion**. *Pre-registered
-  asymmetry:* a detection-only null is **INCONCLUSIVE, not a closure**, because per-frame segmentation metrics
-  don't exist yet and segmentation is the most profile-sensitive term.
-- **Task B — vulnerable-object guardrails.** Low-confidence clamp + pedestrian/cyclist no-skip as **hard shield
-  rules** (protects *observed* objects only). An unmet proposal commitment; needs no RL.
-- **Task C — principled baselines.** Exact budgeted enumerator + **λ-RDO supported-hull lookup**, reporting action
-  agreement, reward gap, and duality gap.
+**Completed desk work:** Task A found no practical reversal on the available class/range contexts; Task B
+implemented observed-vulnerable guardrail logic; Task C showed that lambda-supported-hull lookup is not equivalent
+to exact enumeration over all 36 profiles. Task B's empirical replay deltas and Task C's runtime half inherit the
+noncausal caveat.
 
-**The critical path to the Month-6 system:** **Phase-2 recipient-specific map sharing, integrated end-to-end**
-(same path as multi-vehicle integration if scoped to one helper + one recipient), then run it over the existing
-two-UE OAI system, then navigation warning/override. **~7–10 weeks, 9–12 with contingency.**
+**In flight now (design only, no CARLA/OAI):** freeze `phase2_paired_causal_v1`: causal pre-action provenance,
+separate inference-placement/publication actions, schema-v2 uncertainty, pre-registered designed and naturalistic
+suites, and a two-trajectory pilot gate. The pilot itself remains held for review.
+
+**The critical path to the Month-6 system:** review the Phase-2 causal schema/corpus spec → pass the positive +
+benign pilot → collect paired designed and naturalistic suites → establish C2 locally → repeat identical messages
+over the existing two-UE OAI system → calibrate minimal LOCAL and run simple causal baselines → navigation
+warning/optional override. **~7–10 weeks, 9–12 with contingency.**
 
 **The binding gap:** the **transport-conditioned cooperation gain** does not exist yet. The 1.40 m two-view
 triangulation result is groundwork — **static egos, oracle association, no OAI transport.**
@@ -432,11 +422,13 @@ baselines — not a retune of the gates we already passed.
   radio.
 - CARLA simulation, not physical vehicles/sensors.
 - Measured contention at **N=2** only; N=50/100 is modeled (and v1 of that model had a bug we caught).
-- The oracle gate is **queue-free, one-step, matched-support**.
+- The legacy ladder/oracle is **noncausal same-frame post-tail, GT-assisted, queue-free, one-step,
+  matched-support**.
 - Evaluation is segmentation + pedestrian/vehicle recall & localization — **not true OD AP**; cyclists and small
   objects uncovered.
 - Shield soundness is **regional** (sound @25 m, unsound @40 m) and covers **detected** objects only.
-- Scene-conditioned perception utility **untested**.
+- Scene-conditioned perception utility has a scoped null over available class/range contexts; true occlusion and
+  cyclists remain untested.
 
 ---
 
@@ -447,15 +439,17 @@ baselines — not a retune of the gates we already passed.
 > freshness-and-quality reward. We then climbed a ladder — rule, greedy, contextual bandit, MPC, clairvoyant oracle
 > — and pre-registered what would count as a win for learning.
 >
-> **Learning did not earn its place.** Greedy is within **1.4%** of a one-step oracle and makes the same choice
-> **98.4%** of the time; a contextual bandit did worse; MPC gained **0.9%** with an interval covering zero. At N=2
-> the 5G scheduler is *already* the coordinator (6.090 vs 6.077 Mbps ceiling), so coordination added nothing.
+> **Learning has not earned its place yet.** Static profile choice is a measured-table problem and, independently,
+> the N=2 OAI admission study found the 5G scheduler already at the capacity ceiling. The old dynamic replay also
+> showed little headroom, but a causal audit found post-tail/GT-assisted state, so that result is backup-only and
+> does not close causal control.
 >
 > **What does work is load shaping:** payload choice expands the feasible operating region **~12.7×** (7 → 89 of
 > 200 cells). The lever is *what you send*, not *how cleverly you schedule it*.
 >
-> So we are not training RL. We are building the end-to-end cooperative-perception system, and the remaining open
-> question is a real one we can test cheaply: **does scene content change which compression profile is best?**
+> So we are not training RL. We are first building a paired causal helper-recipient path and asking the citable
+> question: **does cooperation advance the recipient's warning through the OAI stack, and do simple causal rules
+> leave any sequential headroom?**
 
 ---
 
@@ -487,13 +481,15 @@ and who asks no questions. Every symbol defined on or adjacent to the slide that
    Figures to produce/reuse:
    - knob accuracy-vs-payload frontier (**exists**),
    - channel sweep delivery/latency knee (**exists** in `channel_condition_sweep/plots/`),
-   - the **controller ladder bar chart** with error bars (rule/greedy/LinUCB/MPC) — must show the overlap,
+   - the **legacy controller ladder bar chart** with error bars (rule/greedy/LinUCB/MPC) — appendix only, with the
+     noncausal same-frame/GT-assisted caveat on the figure,
    - **greedy vs oracle** with the +1.383% gap and the pre-registered 5% bar drawn as a threshold line (the visual
-     makes the NO-GO instantly legible),
+     illustrates the legacy replay result; do not label it a deployable NO-GO),
    - the **deadline-feasibility frontier** (7 / 58 / 89 of 200 cells) — this is the positive result, give it a full
      slide,
    - the **skip-rate / admissibility** chart supporting §7a (why 0.19 is the number it is).
 6. **State every scope caveat on the slide that makes the claim**, not only in the limitations slide — especially
    "one-step, matched-support oracle", "N=2 measured / N=50 modeled", "RFsim, not over-the-air".
 
-**Build the deck only once Tasks A/B/C land**, so no number changes after the figures are made.
+**Tasks A/B/C have landed.** Build the main narrative around the system, measured surfaces, and Phase-2 causal
+plan; keep the legacy ladder/oracle figures in backup until the paired pilot and C2 evidence exist.

@@ -1,8 +1,10 @@
 # Phase-2 recipient-specific map-sharing contract
 
-Status: v1 implementation contract, 2026-08-14. The local core and synthetic
-acceptance fixture may run offline; CARLA/OAI integration remains gated on
-review of this contract.
+Status: v1 implementation/scaffold contract, 2026-08-14. The local core and
+synthetic acceptance fixture may run offline. It is **not** the collection or
+deployable safety contract: schema v1 lacks covariance/process-noise semantics,
+and the accepted v5 corpus lacks causal paired observations. CARLA/OAI work is
+gated by `PHASE2_PAIRED_CAUSAL_CORPUS_SPEC.md` and its reviewed pilot.
 
 ## Claim and smallest sound path
 
@@ -38,11 +40,16 @@ one-to-one gating and persistent canonical track IDs. It is intentionally
 simple and must be compared with explicit target-ID/oracle association only as
 an evaluation ceiling, never used to generate the deployable warning.
 
-The hazard-only baseline is also deployable: it predicts closest approach from
+The hazard-only baseline is causal **as a post-inference publication rule**: it predicts closest approach from
 the helper's causal object estimates and the named recipient's current state.
 It does not select with CARLA truth or a future collision label. The unit of
 cooperation is therefore an **intent-conditioned map contribution**—evidence
 useful to a particular recipient—rather than a globally salient object.
+
+This publication choice must not be conflated with the **pre-inference placement**
+choice (`LOCAL_INFER`, `SPLIT_FEATURE`, or `SKIP_INFERENCE`). A local result may
+subsequently use `PUBLISH_ALL`, `PUBLISH_HAZARD_SUBSET`, or `SKIP_PUBLICATION`;
+choosing placement after seeing that result would already have paid its compute cost.
 
 ## Warning contract
 
@@ -68,14 +75,26 @@ This is a deterministic warning baseline, not a learned driving policy.
 - Tracks expire after TTL; expired evidence cannot cause warnings.
 - Source time, map-install time, and warning time remain separate in logs.
 
-## Step 3 — canonical local path
+## Schema-v2 requirement before a pilot
 
-1. Adapt the existing `spatial_map_coop`/`spatial_map_geometry` output to
-   `scenesense.map_contribution.v1`.
-2. Exercise one helper + one ego with paired ego-only/cooperative event logs.
-3. Join a separate CARLA truth stream by time/class/XY for evaluation.
-4. Gate on recipient isolation, ordering, association, warning provenance, and
-   positive warning lead in the controlled occlusion scene.
+`scenesense.map_contribution.v1` remains immutable for its checked-in plumbing
+artifacts. Before live collection, define and review `v2` with per-object
+position/velocity covariance, object measurement time, motion-model ID,
+process-noise parameters/validity horizon, and the complete inference/publication
+provenance and timestamp chain. The recipient must propagate uncertainty under
+the declared motion model. A configured uncertainty floor is not a calibrated
+safety model. The complete required fields and gates are canonical in
+`PHASE2_PAIRED_CAUSAL_CORPUS_SPEC.md`.
+
+## Step 3 — canonical local path after the pilot design gate
+
+1. Implement the reviewed v2 schema and causal state allowlist without changing v1.
+2. Run only the two-trajectory pilot: one controlled positive occlusion/hazard
+   and one matched benign negative.
+3. Prove pre-action availability, unfiltered detections, causal source-local
+   tracking, raw-sensor alignment, separate truth, and C2 computability.
+4. Stop for human review. Only a reviewed PASS authorizes the full paired
+   designed and naturalistic suites.
 
 The checked-in synthetic fixture validates plumbing only; it is not C2 evidence.
 Its application-byte counts are exact canonical JSON lengths, with UDP/IP chunk
@@ -106,15 +125,17 @@ latency. RFsim transport success alone is not C2.
 ## Step 5 — warning/override evaluation
 
 Start with warning only. Compare ego-only, send-everything, and hazard-only over
-paired controlled occlusions plus benign negatives. Pre-register lead-time,
-false-warning, missed-hazard, payload, and stale-map gates before CARLA runs.
+the separately reported pre-registered designed-opportunity and naturalistic
+paired suites. Pre-register lead-time, false-warning, missed-hazard, payload,
+uncertainty, and stale-map gates before CARLA runs.
 Only after warning correctness is established may an override apply braking;
 override evaluation then adds avoided collision/near-miss, minimum clearance,
 braking latency, and unnecessary-intervention rate.
 
 ## Learning gate
 
-No map-sharing RL is authorized by this scaffold. First add periodic,
+No map-sharing RL is authorized by this scaffold. First establish C2 on the
+causal paired corpus, then add periodic,
 send-everything, hazard-only, deadline-aware, and object-priority baselines. A
 genuine Whittle baseline is considered only after objects are demonstrated to
 be meaningful scheduling arms and indexability is analyzed. DQN/MARL is opened

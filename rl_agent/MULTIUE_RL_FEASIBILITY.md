@@ -1,5 +1,11 @@
 # Multi-UE RL feasibility — does contention create coordination/RL headroom? (2026-08-13)
 
+> **Final status — toy GO retracted, measured NO-GO (2026-08-14).** The early +40–93 pp claim below came from the
+> audited collapse abstraction and strawman C1 override; it is preserved only as a failure-analysis trail. The
+> later DG-A OAI measurement found no N=2 application-layer admission gap because the MAC scheduler already
+> operated at the measured capacity ceiling, and the corrected large-N screen left 0/216 cells. DG-B/campaign/RL
+> stopped. This result is independent of the separate Phase-1 replay causality defect.
+
 **Question:** the single-UE controller ladder showed greedy ≈ MPC (RL NO-GO). Does the *multi-UE* setting
 (every UE running the policy, competing for shared uplink) create headroom that justifies learned/coordinated
 (RL / multi-agent-RL) control? Tested with a fast standalone contention model (NO CARLA, ~minutes) before
@@ -13,7 +19,7 @@ cannot defer a stale-critical send); (b) **clairvoyant coordinator** that admits
 capacity, never over-offering. Over-subscription applies a `collapse_frac` = throughput retained past the knee.
 Script: `scratchpad/multiue_feasibility.py`.
 
-## Result — headroom scales with collapse severity, and the measured channel is in the harsh regime
+## Historical toy result — superseded by DG-A
 | collapse_frac (throughput retained when over-offered) | coord − greedy freshness (RL headroom ceiling) |
 |---|---|
 | 1.00 (graceful: serve K, rest retry) | ~0 pp (greedy fine) |
@@ -25,13 +31,13 @@ Script: `scratchpad/multiue_feasibility.py`.
 **47.7 MiB**, latency explodes to **6–15 s** (`combined_surface.csv`). So `collapse_frac ≈ 0.05–0.3` → the
 coordination advantage is **large (~+40 pp or more)**.
 
-## Mechanism
+## Historical toy mechanism — invalid abstraction
 Decentralized greedy **death-spirals**: freshness-critical UEs override backoff → synchronized over-offer →
 congestion collapse → nobody delivers → more UEs go stale/critical → worse over-offer. A coordinator that keeps
 aggregate offered ≤ capacity avoids collapse entirely and holds 80–94% freshness. The C1 backoff cannot save
 greedy because freshness-criticality forbids deferral at exactly the wrong moment.
 
-## Verdict: **GO** — multi-UE contention genuinely motivates learned/coordinated control
+## Retracted toy verdict: ~~GO~~
 The single-UE NO-GO does NOT generalize. Single-UE is myopic (greedy≈optimal); multi-UE in the measured
 hard-collapse regime is a real coordination problem with large headroom. This is where the RL / multi-agent-RL
 contribution lives.
@@ -44,7 +50,7 @@ contribution lives.
   recover (anticipate contention, send earlier to avoid the critical-rush, trade own staleness to prevent
   collective collapse)? Learnable only if the training env contains contention (N copies sharing the channel).
 
-## Next step
+## Superseded next step
 Build the proper multi-UE surrogate (N copies sharing the measured capacity surface + the measured collapse law)
 and run the real ladder there: greedy-everywhere vs coordinated-oracle vs decentralized-learned (RL/MARL). Ground
 `collapse_frac`/delivery from the over-capacity cells of `combined_surface.csv`.

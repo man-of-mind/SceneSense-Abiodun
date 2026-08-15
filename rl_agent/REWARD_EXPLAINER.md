@@ -1,5 +1,10 @@
 # Reward formulation — plain-language explainer (for the advisor discussion)
 
+> **Historical Phase-1 explainer after the 2026-08-14 causal audit.** The static utility weights remain the v5
+> record, but the dynamic controller shown here used noncausal same-frame/GT-assisted replay observations. Use
+> `state_diagram.md` and `../phase2_map_sharing/PHASE2_PAIRED_CAUSAL_CORPUS_SPEC.md` for the current Phase-2
+> design. Do not present this shield or its replay results as deployable evidence.
+
 Companion to the formal, authoritative `REWARD_FORMULATION.md` (v5). This is the intuition-first walkthrough:
 what each symbol means, why each term exists, the pilot values, and the open questions to brainstorm.
 Math is in plain monospace (this repo/terminal does not render LaTeX).

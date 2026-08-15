@@ -1,5 +1,9 @@
 # Track A policy results — gated one-configuration pilot
 
+> **Causal-audit scope (2026-08-14).** This Phase-1 replay exposes same-frame post-tail detections and
+> GT-assisted matched tracks before action selection. Treat all stateful policy/safety values below as noncausal
+> matched-support diagnostics, not deployable or Phase-2 evidence.
+
 **Scope:** table-driven SPLIT+SKIP only; epsilon=2.0 m; 90 KiB preferred core; objects within 25 m; real CARLA vehicle replay composed with a synthetic Markov channel. No CARLA, OAI, LOCAL, or RL run.
 
 ## Gate status

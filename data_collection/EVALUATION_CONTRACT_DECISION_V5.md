@@ -1,8 +1,14 @@
 # Advisor-rich v5 acceptance and pre-RL decision
 
-**Decision: accept the 23-run corpus; do not re-collect. The current
-SPLIT+SKIP surrogate gives a `NO-GO` for RL training because greedy and MPC
-remain effectively tied under reward v5.**
+> **2026-08-14 causal-audit correction.** Corpus acceptance remains valid for perception QA, workload/freshness
+> characterization, and historical replay. The dynamic RL NO-GO below is **retracted as a deployable conclusion**:
+> the replay presents same-frame post-tail detections and GT-assisted matched tracks before action selection.
+> Ladder values are retained only as a noncausal matched-support study. The static measured-profile selection
+> conclusion remains valid, and no RL training is authorized until a paired causal Phase-2 ladder leaves a
+> pre-registered residual gap.
+
+**Decision: accept the 23-run corpus; do not re-collect it. Do not use it as the
+Phase-2 paired causal corpus. The current SPLIT+SKIP result is backup-only.**
 
 The immutable source batch is
 `experiments/policy_corpus_advisor_rich_v5/20260813_045142_full`. Collection
@@ -92,9 +98,9 @@ The fixed-action controller was retained as an extra diagnostic and scores
 result, however, is that short-horizon planning does not materially improve
 over the much simpler one-step greedy controller.
 
-## RL go/no-go
+## Historical RL go/no-go — re-scoped by causal audit
 
-**NO-GO for SAC/DQN/PPO training on the current surrogate.** The richer corpus
+**Historical decision:** NO-GO for SAC/DQN/PPO training on the current surrogate. The richer corpus
 contains feasible/dynamic frames and substantial freshness pressure, yet MPC
 still ties greedy on held-out reward and safety. An RL policy using the same
 state, shield, action catalog, and reward is therefore more likely to reproduce
@@ -105,8 +111,10 @@ uses a synthetic Markov channel over real accepted-corpus perception replay,
 and currently supports SPLIT+SKIP only. The LOCAL action table remains pending.
 If LOCAL is later calibrated and added, or if a new scenario/channel family
 introduces genuine delayed consequences, rerun the non-RL ladder before
-reconsidering RL. Under the present contract, the honest research result is
-that simple shielded control suffices; RL training should remain stopped.
+reconsidering RL. Under the causal audit, the honest result is narrower: simple
+control suffices inside this noncausal matched-support replay. RL training
+remains stopped, but the deployable dynamic question is reopened and must be
+tested on `phase2_paired_causal_v1` after its pilot gate.
 
 ## Reproducible artifacts
 

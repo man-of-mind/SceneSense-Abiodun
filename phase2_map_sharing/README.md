@@ -6,6 +6,12 @@ wire-safe `scenesense.map_contribution.v1` update to one named ego, performs
 class/kinematic association, rejects stale/out-of-order/cross-recipient data,
 and emits constant-velocity closest-approach warnings.
 
+`v1` is a frozen plumbing scaffold, not the live collection/safety schema. The
+canonical next-step design is `PHASE2_PAIRED_CAUSAL_CORPUS_SPEC.md`: schema v2,
+causal pre-action state, separate inference-placement/publication decisions,
+designed + naturalistic paired suites, and a two-trajectory pilot gate. Do not
+launch CARLA/OAI collection from this README.
+
 The compact baseline is **recipient-hazard-only**, not generic saliency: it
 uses causal object estimates plus the named recipient's current state to select
 objects predicted to enter its safety radius. CARLA IDs and future truth are
@@ -24,8 +30,9 @@ Run the cheap local contract check with:
 ```
 
 The checked-in/latest result is a **synthetic contract validation**, never C2
-evidence. C2 requires the paired ego-only/send-everything/hazard-only test on a
-controlled CARLA occlusion through the two-UE OAI RFsim path.
+evidence. C2 requires a reviewed paired-corpus pilot, then the separately
+reported local and two-UE OAI RFsim evaluations. The accepted v5 policy corpus
+cannot supply synchronized recipient warning lead.
 
 The adapter is also checked against the existing two-stream recordings:
 

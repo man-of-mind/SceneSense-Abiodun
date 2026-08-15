@@ -1,5 +1,9 @@
 # Expanded action gate results (scenesense.policy.expanded_action_gate.v3)
 
+> **Causal-audit scope (2026-08-14).** The common state contains same-frame post-tail detections and GT-assisted
+> matched tracks unavailable at a causal placement decision. The gate is a noncausal one-step matched-support
+> diagnostic, not a deployable NO-GO or a bound on causal sequential control.
+
 Verdict: **`EXPANDED_SURROGATE_NO_GO_STOP`**.
 
 This was a desk-only run over immutable accepted reward-v5 replay. It launched no OAI or CARLA and includes

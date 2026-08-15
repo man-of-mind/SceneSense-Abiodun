@@ -178,17 +178,25 @@ ROI 0, still density-invariant.
 
 ---
 
-## 9. LOCKED RL design synthesis (2026-07-31)
+## 9. FROZEN PHASE-1 design synthesis (historical after causal audit)
+
+> **2026-08-14 scope correction.** “Locked” meant frozen for reproducibility of the SPLIT+SKIP surrogate; it does
+> not make this a deployable or Phase-2 RL specification. The accepted replay exposes same-frame post-tail
+> detections and GT-assisted tracks before action selection. The stateful ladder is therefore noncausal
+> matched-support evidence, and the full dynamic-controller NO-GO is reopened. Static measured tables and their
+> profile-selection conclusions remain valid. The current causal state/action/corpus contract is
+> `../phase2_map_sharing/PHASE2_PAIRED_CAUSAL_CORPUS_SPEC.md`.
 
 One sentence: **object speed sets the freshness budget; the channel sets the affordable payload; the knobs
 spend payload to buy accuracy within that budget; scene-emptiness is a send-gate, not a knob.** This is the
-distillation of every measured result above; treat it as the design spec for the SAC/PPO controller.
+distillation of the measured Phase-1 results. Preserve it as the legacy experiment contract; do not use it as
+authorization or a design spec for SAC/PPO.
 
 ### 9.1 STATE
 | variable | why | source / status |
 |---|---|---|
 | **object speed** (+ uncertainty) | dominant; sets the whole latency/FPS budget via the master inequality | §1–§5, MEASURED |
-| **channel state** — CQI/SNR→achievable rate, UE buffer occupancy | sets affordable payload + delivery reliability; the binding constraint over OAI | **MEASURED (2026-08-04, clean 12-cell grid on fresh CARLA)** (`channel_condition_sweep/CHANNEL_SWEEP_RESULTS.md` + plots). Uplink-only, SINR, retx=0 everywhere; sharp payload-ordered knee (offered ~6 fps): **1 MB** survives only clear (97.5%), collapses at ≤19.5 dB (22%→4.6%, 6–15 s); **400 KB** holds to 15.6 dB (100%, ≤251 ms), collapses at 8.2 dB (31.5%); **90 KB (ae32/u4/ROI0 seg-safe floor) = 100% at EVERY rung, ≤175 ms.** Collapse = congestion (BSR pins at the ~48 MiB ceiling), not radio errors. Measured-grid rule: `payload_budget=capacity(SNR)/target_fps × margin`; budget @10 fps ≈ {clear 448, mild 339, mid 241, **strong 127**} KB. The deployed policy instead uses its **lagged/noisy achievable-capacity estimate**, not a hard-coded SNR→payload map. The 90 KB floor fits every measured rung; at ~8 dB even 400 KB does not fit in the tested config. CAVEAT: offered fps was ~6 (live-front, CARLA-render limited); capacity estimated from delivered ceilings (±~30%); a shaped-burst @10 fps re-run (Mode A, no CARLA) will pin the absolute knee — not blocking. Fast objects (32 mph) still need FPS ≥15 for the 2.0 m target. |
+| **channel state** — CQI/SNR→achievable rate, UE buffer occupancy | sets affordable payload + delivery reliability; the binding constraint over OAI | **MEASURED (2026-08-04, clean 12-cell grid on fresh CARLA)** (`channel_condition_sweep/CHANNEL_SWEEP_RESULTS.md` + plots). Uplink-only, SINR, retx=0 everywhere; sharp payload-ordered knee (offered ~6 fps): **1 MB** survives only clear (97.5%), collapses at ≤19.5 dB (22%→4.6%, 6–15 s); **400 KB** holds to 15.6 dB (100%, ≤251 ms), collapses at 8.2 dB (31.5%); **90 KB (ae32/u4/ROI0 seg-safe floor) = 100% at EVERY rung, ≤175 ms.** Collapse = congestion (BSR pins at the ~48 MiB ceiling), not radio errors. Measured-grid rule: `payload_budget=capacity(SNR)/target_fps × margin`; budget @10 fps ≈ {clear 448, mild 339, mid 241, **strong 127**} KB. The legacy policy uses its **lagged/noisy achievable-capacity estimate**, not a hard-coded SNR→payload map. The 90 KB floor fits every measured rung; at ~8 dB even 400 KB does not fit in the tested config. CAVEAT: offered fps was ~6 (live-front, CARLA-render limited); capacity estimated from delivered ceilings (±~30%); a shaped-burst @10 fps re-run (Mode A, no CARLA) will pin the absolute knee — not blocking. Fast objects (32 mph) still need FPS ≥15 for the 2.0 m target. |
 | **scene-empty gate** — max/count objectness on the CURRENT frame (pre-transmit) | decides send / skip; computed by the front backbone before compression, so NOT lagged | §8 (density-seg), available on the UE |
 | **previous action + outcome** — last payload/FPS, last latency/delivery | channel telemetry is lagged, so the agent needs its last decision + result to act sensibly (POMDP) | added 2026-08-04 (POLICY_KICKOFF + state diagram) |
 | **per-object shared-map age-of-information** — `AoI_map,j = now − capture_timestamp(newest valid contribution for object j, any source)` | phase 1 normally resets every included object's age on a delivered frame; skip/drop increments each age. Preserve repeatable contribution provenance per `PHASE2_FORWARD_COMPAT.md`; a scalar is only a derived single-UE summary. It drives composed loc-error and makes send/skip sequential | added 2026-08-05; per-object schema clarified 2026-08-07 |
@@ -196,9 +204,9 @@ distillation of every measured result above; treat it as the design spec for the
 | **scheduler phase + observable in-flight summary** | fixed-20-Hz target-FPS scheduling and delayed/out-of-order publishes affect the next transition; hiding these locally known values would make equal observations transition differently | Track A contract, 2026-08-10 |
 | ~~scene density (graded)~~ | **dropped** — the seg-aware knob is density-invariant | §8 |
 
-> **Authoritative current spec:** `rl_agent/POLICY_KICKOFF.md` + the MDP state diagram supersede this table
-> where they differ — they add **previous-action+outcome** (above) and make **send/skip** an explicit action.
-> Constraints C1–C4 and reward cautions: see `collab/REVIEW_NOTES.md` (2026-08-05).
+> **Authoritative Phase-2 spec:** `phase2_map_sharing/PHASE2_PAIRED_CAUSAL_CORPUS_SPEC.md` plus the updated
+> `rl_agent/state_diagram.md`. They separate pre-inference placement from post-inference publication and enforce
+> timestamped causal availability. The remainder of §9 documents the frozen Phase-1 experiment only.
 
 ### 9.2 ACTION — payload levers, in cost order (cheapest first)
 1. **Quant bits u8→u4** — nearly free (seg-lossless at ROI 0), ~2.0–2.4× payload cut. Use first.

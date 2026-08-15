@@ -1,10 +1,17 @@
 # Policy formulation — START HERE (kickoff, 2026-08-04)
 
+> **Historical Phase-1 kickoff after the 2026-08-14 causal audit.** Do not start a controller or corpus from this
+> document. The table inputs and static profile-selection analyses remain valid, but the replay exposed same-frame
+> post-tail detections and GT-assisted tracks before action selection. The dynamic ladder is therefore noncausal
+> matched-support evidence. Current work is governed by
+> `../phase2_map_sharing/PHASE2_PAIRED_CAUSAL_CORPUS_SPEC.md` and `state_diagram.md`; no pilot/full collection or
+> RL is authorized yet.
+
 Goal: a **safety-constrained RL controller** that, each frame, observes lagged network state + current scene
 urgency and picks **compression / FPS / send** actions to keep spatial-map staleness within the localization
 error budget — without congesting the uplink.
 
-## You can start immediately — NO OAI / CARLA needed
+## Historical execution note — NO OAI / CARLA was needed for Phase 1
 Policy formulation is **table-driven**. The environment is already measured; you build a fast **surrogate env**
 from three tables and train in it. OAI/CARLA are only needed later, for the *live validation* step.
 
@@ -25,7 +32,7 @@ delivery normally resets every included object's age to capture→map latency, w
 age. Keep repeatable contribution provenance per `PHASE2_FORWARD_COMPAT.md`; a scalar is only a derived
 single-UE summary. No fusion-model re-run required.
 
-## Locked design (do not re-derive) — `AGENT_CONSTRAINTS.md §9`
+## Frozen Phase-1 design (reproducibility only) — `AGENT_CONSTRAINTS.md §9`
 - **§9.1 STATE:** lagged/noisy channel telemetry + achievable-capacity estimate/confidence; object speed (+σ);
   current scene-emptiness/urgency; **per-object shared-map AoI**; previous action+outcome; and the locally known
   **scheduler phase + observable in-flight summary**. Estimate capacity from either

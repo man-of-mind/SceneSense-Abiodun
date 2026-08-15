@@ -1,5 +1,8 @@
 # Track A reward one-at-a-time sensitivity
 
+> **Causal-audit scope (2026-08-14).** This stateful Phase-1 result uses the legacy noncausal matched-support
+> replay. It remains a reproducible sensitivity study, not a basis for Phase-2 reward tuning.
+
 **Scope:** the pre-registered seven cells (baseline plus low/high `w_error`, `lambda_prb`, and `w_task`) at epsilon=2.0 m, preferred core=90 KiB, range<=25 m, `ucb_k=0`, and C1=0.70. Replay, channel seeds, and per-tick latency shocks are paired. No CARLA, OAI, LOCAL, RL, or model training was run.
 
 ## Robustness result

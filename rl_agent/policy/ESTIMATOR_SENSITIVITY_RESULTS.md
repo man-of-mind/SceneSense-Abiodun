@@ -1,5 +1,8 @@
 # Track A estimator-quality sensitivity
 
+> **Causal-audit scope (2026-08-14).** This stateful Phase-1 result uses the legacy noncausal matched-support
+> replay. It remains a reproducible sensitivity study, not deployable-controller or Phase-2 evidence.
+
 **Scope:** fixed epsilon=2.0 m, preferred core=90 KiB, range<=25 m, `ucb_k=0`, and `c1_pessimism_factor=0.70`; shielded oracle over the same three held-out vehicle replays. Only telemetry lag and estimate noise vary. No CARLA, OAI, LOCAL, RL, or model training was run.
 
 ## Paired finding

@@ -2,12 +2,19 @@
 
 **Status:** advisor-endorsed consensus **v5** (2026-08-11). v5 retains v4's observation-only live shield,
 mandatory small expected-error margin, object-first/tail-second aggregation, and shared safety stack across
-deployable baselines. It splits task utility into segmentation, pedestrian recall, and vehicle recall; removes
+the Phase-1 baselines. It splits task utility into segmentation, pedestrian recall, and vehicle recall; removes
 the explicit ROI penalty because ROI damage is already measured by task utility; and keeps localization on the
 safety side. Builds on `AGENT_CONSTRAINTS.md §9`, `POLICY_KICKOFF.md`, `state_diagram.md`, and
 `collab/REVIEW_NOTES.md`. Advisor-pending: ε (default 2.0 m), pedestrian hard protection, and 25 vs 40 m.
 
-## 1. Decision each control step
+> **2026-08-14 causal-audit scope.** Reward v5 is frozen for reproducing the Phase-1 surrogate, but its stateful
+> controller evaluation is not deployable evidence: the replay exposes current-frame post-tail detections and
+> GT-assisted tracks before action selection. The equations below must not be carried wholesale into Phase 2.
+> Static profile utility remains usable; the new causal design separates pre-inference placement from
+> post-inference publication and is specified in
+> `../phase2_map_sharing/PHASE2_PAIRED_CAUSAL_CORPUS_SPEC.md`.
+
+## 1. Historical Phase-1 decision each control step
 `mode ∈ {SPLIT, LOCAL, SKIP}`
 - **SPLIT** — front backbone → send features → edge intermediate-fusion. Sub-choice = ε-dominance-pruned knob
   (2 ROI0 seg-safe {ae32/u4 90 KB, ae128/u4 129 KB} + 5 sub-90 KB ROI-escalation) × FPS.
@@ -22,7 +29,7 @@ previous action+outcome, **scheduler phase + observable in-flight summary**, **l
 (available CPU/GPU / load, or ≥ measured max sustainable
 full-local FPS for the device). Preserve repeatable per-object contribution provenance as specified in
 `PHASE2_FORWARD_COMPAT.md`; a phase-1 controller may consume fixed-size summaries without discarding the raw
-records. Denote the lagged/noisy observable state `s_obs`; the live shield and every deployable controller
+records. Denote the lagged/noisy observable state `s_obs`; the live shield and every Phase-1 controller
 receive the same `s_obs`. Latent simulator truth is retained only for outcome generation and the
 separately-labelled clairvoyant upper bound (§8).
 
@@ -65,7 +72,7 @@ operations.
   TAIL property, not a median.**
 
 The sampled RL reward uses realized `G(a,s,o)`; oracle/bandit/MPC expected scoring uses `E_expected`. True
-`E_risk` and `E_risk* = min_{a∈A_m} E_risk` are evaluation quantities; the deployable shield uses the
+`E_risk` and `E_risk* = min_{a∈A_m} E_risk` are evaluation quantities; the legacy observation-based shield uses the
 conservative observable-state estimates below.
 
 The same outcome discipline applies to task quality. Define `U_task_post(a,s,o)` from the resulting **map**:
@@ -105,7 +112,7 @@ R_inner_expected(a,s) = w_task·E_o[U_task_post(a,s,o)] − C_UE(a) − C_PRB(a)
                         − w_E·E_expected(a,s)/ε                # oracle/bandit/MPC scoring
 ```
 This makes safety **lexicographically dominant** and graceful degradation structural (`F_hat=0` → optimize
-inside the near-best conservative band + flag). Every deployable controller in §8 must call the **same mask
+inside the near-best conservative band + flag). Every Phase-1 controller in §8 must call the **same mask
 and shield implementation** with the same catalog, `s_obs`, surrogate, calibration, and `δ_loc`.
 *Scalar-weight ablation to compare:* `R = 10·r_safety + 2·U_task − …` (v1) — only a soft preference, so
 validate its safety/resource Pareto.
@@ -167,7 +174,7 @@ LOCAL **provisional** until then. LOCAL expands the feasible set but does **not*
 
 ## 8. Controller ladder + architecture — simplest that works
 1. **Clairvoyant true-state oracle (non-deployable):** true latent state/outcome model; upper bound only.
-2. **Shielded observation-based one-step oracle (deployable benchmark):** enumerate the shared
+2. **Shielded observation-based one-step oracle (legacy noncausal benchmark after audit):** enumerate the shared
    `A_m→A_safe` using `s_obs`, then maximize `R_inner_expected`. The gap to the clairvoyant oracle is the
    price of observability, telemetry lag, and conservative uncertainty.
 3. **Hand-written rule/greedy baseline:** explicit capacity/AoI thresholds; no fitted policy and no full
@@ -259,7 +266,7 @@ contribution can stop object *j* from binding, but whole-frame `SKIP` must still
   2. Live shield is observation-only and uncertainty-aware (`B=E_hat_risk+k·sigma_hat` or calibrated
      equivalent), with OOD degraded mode and held-out false-admit/false-reject evaluation.
   3. Multi-object aggregation order fixed: build per-outcome `G` first, then p95/CVaR across outcomes.
-  4. Every deployable baseline uses the identical masks + shield; clairvoyant and shielded oracles are
+  4. Every Phase-1 baseline uses the identical masks + shield; clairvoyant and shielded oracles are
      separately labelled.
   5. Added hand-written rule, contextual bandit, and shielded MPC before RL; adopt the simplest controller
      that works, and require RL to beat both bandit and MPC on anticipatory metrics.
@@ -279,6 +286,25 @@ The equations and definitions above now implement the advisor-endorsed direction
 4. Named `j_G` the **freshness-driving object** and `G` its budget-binding localization error.
 5. Confirmed the pre-RL baselines are contextual bandit and MPC ("NPC" was a transcription error).
 
-- **Open after v5:** decide whether pedestrians need a tighter class-specific ε and/or a hard recall floor once
-  pedestrian perception is validated. **Do not start RL merely because the earlier degenerate corpus made MPC
-  tie greedy; rerun bandit and MPC on the richer verified corpus first.**
+- **Resolved after v5:** the richer-corpus ladder also used a noncausal same-frame object observation, so it cannot
+  close the deployable dynamic-controller question. Do not run another replay sweep to repair missing pre-action
+  data.
+
+## 14. Phase-2 carry-forward after the causal audit (2026-08-14)
+
+Carry forward only the measured static utility inputs and the principle that safety is structural rather than a
+large reward weight. Rebuild the dynamic part around these requirements:
+
+1. `SPLIT_FEATURE`, `LOCAL_INFER`, and `SKIP_INFERENCE` are **pre-inference placement** actions chosen only from
+   timestamped causal state.
+2. `PUBLISH_ALL`, `PUBLISH_HAZARD_SUBSET`, and `SKIP_PUBLICATION` are separate **post-inference publication**
+   actions. A single `SKIP` must not represent both decisions.
+3. The Phase-2 map propagates `[x,y,vx,vy]` plus measured covariance/process noise; it must not inherit the
+   Phase-1 frozen-object `speed × AoI` error as its safety model.
+4. Current detector outputs, confidence, track identity, map quality, shadow actions, and CARLA truth cannot feed
+   the placement decision that produces them.
+5. Reward weights are not retuned until the paired causal corpus makes recipient warning lead, false/missed
+   warning, uncertainty, bytes, and latency jointly computable.
+
+The two-trajectory pilot is a data-contract gate, not a reward experiment. RL remains unauthorized until the
+causal exact/rule/greedy/MPC ladder leaves a pre-registered sequential gap.

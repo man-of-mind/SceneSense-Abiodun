@@ -4,6 +4,13 @@ Status: frozen for the SPLIT+SKIP surrogate/oracle experiments. This contract im
 `collab/REVIEW_NOTES.md`, including the 2026-08-10 post-calibration review. It does not authorize LOCAL, RL
 training, CARLA, or OAI runs.
 
+> **Historical Phase-1 scope after the 2026-08-14 causal audit.** This freezes the existing surrogate so its
+> artifacts remain reproducible; it does **not** define a deployable Phase-2 observation contract. The replay
+> exposes current-frame post-tail detections before action selection and constructs tracks through GT-assisted
+> matching. All stateful controller, Task B, and Task C runtime results using it are noncausal matched-support
+> studies. The replacement causal contract is
+> `../../phase2_map_sharing/PHASE2_PAIRED_CAUSAL_CORPUS_SPEC.md`.
+
 ## 1. Clock, scheduler, and delivery ordering
 
 - The environment advances on a fixed 20 Hz clock (`dt=0.05 s`).
@@ -116,11 +123,12 @@ its eventual delivered frame is fresh.
   `in_camera_frustum AND range <= configured_range`; off-FOV actors are logged as out of scope for this
   single-view Track A result, not counted as shield failures. Resample in-scope positions to the 20 Hz clock
   with a bounded interpolation gap.
-- Ground truth drives hidden scene dynamics and evaluation. The deployable oracle receives matched predictions,
-  tracker-derived speed, declared noise/uncertainty, lagged channel estimates, scheduler state, and observable
-  send feedback. Pending contributions are keyed only by objects present in the prediction/tracker observation
-  at capture time; hidden GT must never seed map state. Only the clairvoyant oracle receives current truth for
-  action selection and upper-bound evaluation.
+- Ground truth drives hidden scene dynamics and evaluation. The legacy controller observation receives matched
+  predictions, tracker-derived speed, declared noise/uncertainty, lagged channel estimates, scheduler state, and
+  send feedback. However, matching removes false positives and gives predictions GT-assisted identities, while
+  current-frame predictions are post-tail information unavailable at a real pre-inference decision. Hidden GT
+  does not directly seed the retained map, but the observation is still noncausal and oracle-assisted. Only the
+  separately labelled clairvoyant oracle additionally receives current truth for action scoring.
 - Replay matching mirrors the validated staleness convention: use actor `origin_x/origin_y` when present,
   the validation-frozen per-class threshold (pedestrian 0.165 / vehicle 0.205 for the accepted v5 corpus),
   greedy one-to-one same-class association, and a 5 m gate. Using logged
@@ -174,12 +182,13 @@ All three use the same replay split, paired channel seeds, and latency common ra
 and control tick. The 40 m cells are explicitly extrapolative. Per-epsilon over-budget/feasibility is the
 advisor sweep's headline result; no script automatically chooses advisor-pending values.
 
-## 8. Pre-RL controller-ladder execution contract
+## 8. Legacy pre-RL ladder execution contract — noncausal matched-support
 
 - The fixed schedule, explicit threshold rule, observation-based greedy oracle, contextual bandit, MPC, exact
   enumerator, lambda-RDO lookup, and AoI-index-inspired heuristic all
   receive the same observable `Observation` and the same `ShieldDecision`. Their selected action must belong to
-  that decision's `candidate_action_ids`; the common runner rejects any bypass.
+  that decision's `candidate_action_ids`; the common runner rejects any bypass. Equal access makes comparisons
+  internally paired, but does not make the current-frame object observation causally available.
 - The rule uses declared capacity, map-age/risk, and speed thresholds and does not fit data or enumerate the
   full expected reward. Greedy is the separately labelled one-step expected-reward oracle.
 - The disjoint LinUCB controller fits only on the grouped training split. Its environment feedback is the
@@ -188,14 +197,15 @@ advisor sweep's headline result; no script automatically chooses advisor-pending
 - MPC replans from observable state each 20 Hz tick. Phase-1 planning propagates Markov expected capacity,
   uses the modal rung for latency, and holds observed object kinematics constant; scheduler-credit rules and
   planned contribution arrivals are explicit. Existing
-  in-flight traffic is available only as the deployable summary and cannot secretly install hidden objects in
+  in-flight traffic is available only as the declared summary and cannot secretly install hidden objects in
   the planner. Every future branch is re-masked and re-shielded by the shared implementation.
 - Controller comparisons use paired channel seeds and per-tick latency random numbers. A verified corrected-
   vehicle corpus root and episode-level grouped split manifest are mandatory; the runner refuses the legacy
   replay as a headline input. It also requires the verifier's `PASS` manifest and checks the full-batch mode,
   corpus identity, and recorded batch/config/split hashes before loading replay.
 - A one-episode `--scaffold-smoke` is labelled plumbing validation. Only a complete configured run is labelled
-  a surrogate controller evaluation. Neither is live safety validation, and no DQN/SAC/PPO result exists yet.
+  a surrogate controller evaluation. Neither is live safety validation or causal deployable-controller evidence,
+  and no DQN/SAC/PPO result exists yet.
 
 ## 9. Observed vulnerable-object guardrails
 
@@ -209,3 +219,5 @@ advisor sweep's headline result; no script automatically chooses advisor-pending
 - These rules protect only detector/tracker observations. They cannot protect a
   missed pedestrian, an unimplemented hidden-hazard signal, or empirically
   validate cyclists absent from replay.
+- The rule and C1 precedence are implementation-valid. Its reported replay
+  reward/load/safety deltas inherit the noncausal matched-support caveat above.

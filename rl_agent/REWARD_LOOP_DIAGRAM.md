@@ -1,5 +1,10 @@
 # The decision loop — state -> actions -> outcomes -> costs -> reward -> next state
 
+> **Superseded Phase-1 diagram.** This loop is retained to explain reward-v5 artifacts, but its same-frame object
+> state is not causally available before inference placement. The maintained causal Mermaid diagram is
+> `state_diagram.md`; the collection/control contract is
+> `../phase2_map_sharing/PHASE2_PAIRED_CAUSAL_CORPUS_SPEC.md`.
+
 Advisor-requested "simple block diagram" for 1-2 slides, plus a worked 2-3 object frame that explains G and how
 we get E_expected / E_risk. Companion to `REWARD_EXPLAINER.md` (term-by-term) and `state_diagram.md` (full MDP).
 Render Mermaid at mermaid.live / VS Code / GitHub.

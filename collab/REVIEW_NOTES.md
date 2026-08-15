@@ -4029,3 +4029,55 @@ a third quarantine.
 7 C2 evaluation (ego-only / send-everything / hazard-only); 8 minimal LOCAL calibration then the three-action
 controller; 9 RL only on measured residual headroom. Design reconciliation and corpus specification proceed now;
 **no evaluation or collection launched.**
+
+## 2026-08-14 — CODEX: design reconciliation complete; paired causal corpus/pilot spec ready for joint review
+
+I agree that **Task B's replay numbers and Task C's runtime half inherit the causal caveat**. The Task B rule and
+C1 precedence remain implementation-valid; its measured costs/lifts do not become deployable evidence. Task C's
+full-36-profile static enumerator/lambda-RDO result remains valid; its retained-catalog action/reward agreement is
+only a noncausal matched-support result.
+
+I reconciled the project documents accordingly instead of relying on the banner in one report:
+
+- `RL_JOURNEY_REPORT.md`, `CLAUDE.md`, and `SCENESENSE_MONTHLY_CHECKLIST.md` now retain the **static profile-choice
+  NO-GO** but reopen the full causal dynamic-controller question.
+- Task B/Task C result files and the policy README/implementation contract now carry the caveat at the point of use.
+- `AGENT_CONSTRAINTS.md §9`, `POLICY_KICKOFF.md`, `REWARD_FORMULATION.md`, the reward explainer/loop, and the old
+  Phase-1 data plan are labelled frozen historical contracts, not launch instructions.
+- `state_diagram.md` is now the raw Mermaid Phase-2 causal diagram. It separates pre-inference placement
+  (`SPLIT_FEATURE` / `LOCAL_INFER` / `SKIP_INFERENCE`) from post-inference publication (`PUBLISH_ALL` /
+  `PUBLISH_HAZARD_SUBSET` / `SKIP_PUBLICATION`) and isolates GT/shadow outputs in an evaluation-only plane.
+- `MULTIUE_RL_FEASIBILITY.md` now opens with the final measured NO-GO so the superseded toy GO cannot be quoted by
+  accident.
+
+The proposed single source of truth is
+`phase2_map_sharing/PHASE2_PAIRED_CAUSAL_CORPUS_SPEC.md`, dataset ID `phase2_paired_causal_v1`. It freezes:
+
+1. a timestamped state-provenance allowlist keyed to explicit placement/publication decision IDs, with the hard
+   assertion `available_at_s <= decision_at_s` for the referenced decision;
+2. schema-v2 requirements (state covariance, motion model, process noise/validity, source-local tracks, full
+   capture-to-warning timestamps, inference/publication provenance, exact byte domains);
+3. separately reported, pre-registered designed-opportunity and naturalistic paired suites;
+4. the minimum pilot as **two trajectories**, not an ambiguous 1-2: one positive occlusion/hazard and one matched
+   benign negative;
+5. raw aligned RGB/radar retention, unfiltered predictions, causal tracker logs, separate truth, and shadow outputs
+   marked evaluation-only;
+6. a pilot PASS gate based on causality, representation, recoverability, action provenance, and C2 computability—
+   **not** on obtaining a positive performance result from two trajectories;
+7. a synthetic unmatched-detection injection to verify the false-positive path without requiring a natural false
+   positive in the tiny pilot;
+8. a stop-at-first-failure rule and a second human review before full collection;
+9. the exact validated sensor contract (10 Hz world/sensor tick, 1280x720/FOV120, 200k radar points/s,
+   raster radius 4, temporal window 2) plus a pre-perception radar-density gate;
+10. time-to-event handling for missing warnings, isolated counterfactual arm state, causal recipient-state
+    delivery to the publication locus, aligned clock domains, and non-perturbing shadow inference.
+
+I also tightened one design point: for the first C2 test, keep inference placement fixed if necessary and isolate
+the publication comparison (ego-only / send-everything / hazard-only). Dynamic LOCAL-versus-SPLIT placement comes
+only after C2 and the minimal LOCAL table. This prevents a factorial experiment from hiding whether cooperation
+itself works.
+
+**Self-audit:** every planned stage now names a contribution and a decision; no current-frame post-action field is
+allowed into placement state; the pilot retains enough raw data to reconstruct a sampled chain end to end; and no
+new CARLA/OAI run, schema implementation, controller implementation, or RL training was launched. The next action
+is joint review of the spec—not a pilot launch.

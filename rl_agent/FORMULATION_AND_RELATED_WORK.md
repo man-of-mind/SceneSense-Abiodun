@@ -104,8 +104,9 @@ The hypotheses were tested at both levels rather than collapsed into one claim
   the full measured design space.
 - On the **retained seven-profile stateful ladder**, lambda-RDO agrees with the
   full shield-candidate enumerator on **100%** of held-out own-state actions,
-  with zero predicted or realized reward gap. Hull lookup is sufficient for
-  this deployed catalog/replay contract, not universally.
+  with zero predicted or realized reward gap. This runtime result uses the
+  legacy noncausal, GT-assisted replay; it establishes equivalence only inside
+  that matched-support surrogate, not for a deployable controller.
 - H1's static budget staircase exists under its scalar assumptions, but the
   full policy still does not collapse to one scalar: FPS, AoI, speed, latency,
   prior map state, pending frames, safety, and switching remain active.
@@ -129,8 +130,8 @@ implementation advances greedy and scores the oracle counterfactually on that tr
 future states.
 
 **Defensible claim:**
-> No useful one-step coordination headroom was found within the static-quality, queue-free, matched-support
-> contract.
+> No useful one-step coordination headroom was found within the noncausal, static-quality, queue-free,
+> matched-support replay contract.
 
 **Not claimable:** that all RL policies are bounded within 1.38%.
 
@@ -139,8 +140,10 @@ particular unreliable-broadcast scheduling model with **separable clients**; our
 refresh multiple objects** and couples profile, FPS, delivery, quality, and safety. The literature is *relevant
 context*, not a theorem for this controller. Cite it as related work, not as an explanation of the measurement.
 
-**Scope limits to state every time the NO-GO is mentioned:** static per-profile quality scores (no scene
-conditioning), queue-free surrogate, matched-support/one-step evaluation, epsilon-dominance-pruned catalog.
+**Scope limits to state every time the NO-GO is mentioned:** same-frame post-tail object observations presented
+pre-action, GT-assisted matching/track identity, static per-profile quality scores (no scene conditioning),
+queue-free surrogate, matched-support/one-step evaluation, epsilon-dominance-pruned catalog. The **static
+measured-profile selection** result remains valid; the full deployable dynamic-controller NO-GO does not.
 
 ---
 
@@ -155,7 +158,7 @@ expanded-gate oracle.
 | Baseline | Purpose |
 |---|---|
 | **Exact measured-table budgeted enumerator** | **Implemented/evaluated.** Ground truth for "what does full enumeration pick?" |
-| **lambda-RDO supported-hull lookup** | **Implemented/evaluated.** Full-36 equivalence fails; retained-catalog runtime equivalence holds on current replay. |
+| **lambda-RDO supported-hull lookup** | **Implemented/evaluated.** Full-36 equivalence fails; retained-catalog runtime equivalence holds only on the noncausal current replay. |
 | **max-rate-that-fits** (utility-blind) | Isolates what the utility *shape* buys over "send as much as fits". |
 | **AoI-index-inspired heuristic** | **Implemented/evaluated; no positive reward gap. Do NOT call this "Whittle-index"** unless indexability and per-object arm decomposition are established. A genuine Whittle baseline belongs in **Phase-2 object-selective map sharing**, where individual objects are natural scheduling arms. |
 | **contextual lookup** (class-mix keyed) | Not unlocked: Task A found no practical reversal on the available seg-inclusive contexts. |
@@ -184,18 +187,21 @@ these is a legitimate sensitivity contribution. Pre-registration discipline: fre
   near-lossless collaborative intelligence, MMSP 2018 (arXiv:1804.09963).
 - **Semantic/task-oriented communication:** Gunduz et al., *Beyond Transmitting Bits*, IEEE JSAC 41(1), 5-41, 2023.
 - **Cooperative perception (the line we differentiate from):** V2VNet (ECCV 2020), OPV2V (ICRA 2022), V2X-ViT
-  (ECCV 2022), DiscoNet (NeurIPS 2021). Plus `V2X_for_AD.pdf` and the SCAN-AI foundation
+  (ECCV 2022), DiscoNet (NeurIPS 2021), and mmCooper (ICCV 2025), which already adapts intermediate/late
+  collaboration. Dynamic fusion-level selection alone is therefore **not** our novelty. Plus `V2X_for_AD.pdf` and the SCAN-AI foundation
   (`SCAN_AI_03_13_26_2.pdf`) in this repo.
 
 ---
 
 ## 7. Honest novelty assessment (controller only)
 
-**Not novel:** constrained argmax, RDO, AoI, split computing. Do not claim these.
+**Not novel:** constrained argmax, RDO, AoI, split computing, or dynamic intermediate/late fusion selection by
+itself. Do not claim these.
 
-**Statable:** the *coupling* of a measured task-utility/rate surface with AoI/freshness under a measured OAI 5G
-protocol stack — RDO work ignores freshness; AoI work uses abstract packet models rather than measured task
-utility. Supporting result, not the paper's contribution. See §8.
+**Statable:** the *combination* of a measured task-utility/rate surface, causal recipient warning lead,
+uncertainty/deadline semantics, and end-to-end timing/recovery under the OAI 5G protocol stack. RDO work generally
+ignores freshness and AoI work generally abstracts task utility, but the novelty claim must rest on the integrated
+system/evidence rather than any one familiar mechanism. See §8.
 
 ---
 
@@ -226,13 +232,15 @@ scheduler, queues, attach/routing failures, and application-to-map timing togeth
   is NOT yet C2 evidence:** it was two **static** CARLA egos with **oracle association** and **no OAI transport**
   (`cooperative_fusion/RESULTS_phase2_two_view.md:5`). It is promising groundwork; the transport-conditioned
   version must still be produced.
-- **C3 — Safety contract and feasibility envelope.** `[v3 correction]` **Do not say "guarantee."** Say: *the system
-  enforces a conservative, model-based action contract and quantifies violations, abstention, and graceful
-  degradation.* C1-estimate misses, `ucb_k=0`, detector misses, and limited object scope preclude an unconditional
-  localization guarantee (cf. shield sound @25 m / unsound @40 m).
+- **C3 — Safety contract and feasibility envelope.** The Phase-1 shield is only a scoped, noncausal surrogate
+  contract; do not promote its 25 m/40 m numbers into Phase 2. Phase 2 should publish state plus calibrated
+  uncertainty, propagate it under an explicit motion model, and derive recipient deadlines from hazard tolerance.
+  Until covariance/process noise and warning calibration are validated, say *"uncertainty-aware, model-based
+  contract"*, never an unconditional guarantee.
 - **C4 — Deployable design rules.** A **measured policy table / feasibility envelope**. Task C now establishes a
-  precise boundary: supported-hull lookup is equivalent to the enumerator on the retained runtime catalog/replay,
-  but not across all 36 measured profiles. State that conditional result; do not claim universal hull sufficiency.
+  precise static boundary: supported-hull lookup is **not** equivalent to exact budgeted enumeration across all
+  36 measured profiles. The 100% retained-catalog runtime agreement is noncausal replay evidence, not yet a
+  deployable rule. Prefer the exact measured-table enumerator until causal evaluation supports a simpler lookup.
 
 ### 8.2 Banked vs pending (2026-08-14, corrected)
 
@@ -240,14 +248,14 @@ scheduler, queues, attach/routing failures, and application-to-map timing togeth
 |---|---|
 | Instrumented pipeline spine (split inference, OAI transport, shield, map) | **Largely built**, not end-to-end complete |
 | Two-view triangulation 1.40 m | **Groundwork only** — static egos, oracle association, no transport |
-| C3 action contract + feasibility envelope | **Built**, with quantified unsoundness regions |
-| C4 measured policy table + one-step reference gap | **Built**; Task C conditions hull sufficiency on the retained catalog |
-| Phase-2 recipient-specific map sharing, end-to-end | **Local contract/scaffold passes synthetic acceptance; real CARLA + OAI path remains the BINDING CONSTRAINT** |
+| C3 action contract + feasibility envelope | **Phase-1 surrogate only**; Phase-2 uncertainty/deadline contract pending calibration |
+| C4 measured policy table | **Static exact enumerator built**; deployable runtime rule still pending causal evidence |
+| Phase-2 recipient-specific map sharing, end-to-end | **v1 local scaffold passes synthetic acceptance; schema-v2 + paired causal corpus/pilot are the BINDING CONSTRAINT** |
 | Multi-vehicle end-to-end integration | **Not built** (same path as Phase 2 if scoped to one helper + one recipient) |
 | Occlusion recovery | **Not built** |
 | Navigation warning/override | **Deterministic warning contract built and synthetic-tested; real warning and any override remain unbuilt** |
 | Scene-conditioned knob selection | **Task A complete:** no practical reversal on available class/range contexts; true occlusion/cyclists untested |
-| Vulnerable-object guardrails | **Built/evaluated for observed pedestrians/cyclists**; detector misses and hidden hazards stay outside shield knowledge |
+| Vulnerable-object guardrails | **Rule built for observed pedestrians/cyclists**; replay cost/lift is noncausal, and detector misses/hidden hazards stay outside shield knowledge |
 
 ### 8.3 Supporting results (evidence for C1-C4, not contributions)
 
@@ -265,14 +273,16 @@ scheduler, queues, attach/routing failures, and application-to-map timing togeth
   ae32/u4/ROI0 ~90 KB).
 - **Deadline-feasibility frontier.** 7/200 feasible cells at 400 KiB -> 58/200 at 90 KB -> 89/200 at 49.4 KB; even
   the smallest payload leaves ~55% infeasible.
-- **Scope-limited falsification.** No useful one-step headroom vs the matched-support oracle (+1.38%); no N=2
-  coordination gap (MAC scheduler at the capacity ceiling, 6.090 vs 6.077 Mbps).
+- **Scope-limited diagnostics.** No useful one-step headroom in the noncausal matched-support replay (+1.38%);
+  independently, no N=2 application-layer coordination gap in the real OAI study (MAC scheduler at the capacity
+  ceiling, 6.090 vs 6.077 Mbps).
 
 ### 8.4 Why the scoped NO-GO helps a systems paper
 
-For a systems venue, "a measured policy table suffices" beats "we trained an RL agent": simple, explainable,
-deterministic, deployable, with a quantified gap to a one-step reference. Do not bury it and do not apologise for
-it — but state its scope every time (§3).
+For a systems venue, a measured exact enumerator is a strong simple baseline and the right default until a causal
+controller leaves measurable residual headroom. The current one-step gap is diagnostic rather than deployable
+evidence. The valuable result is disciplined model selection: do not train RL unless the paired causal Phase-2
+evaluation exposes a sequential gap that exact and simple baselines leave open.
 
 ### 8.5 Limitations to disclose up front
 
@@ -280,7 +290,8 @@ it — but state its scope every time (§3).
   radio. Biggest acceptance risk at MobiSys/MobiCom.
 - CARLA simulation, not physical vehicles/sensors.
 - Measured contention at **N=2** only; N=50/100 modelled (first model version had a max-min contract bug, corrected).
-- Oracle gate: **queue-free, one-step, matched-support**.
+- Legacy ladder/oracle gate: **noncausal same-frame post-tail observation, GT-assisted tracks, queue-free,
+  one-step, matched-support**.
 - Segmentation + pedestrian/vehicle recall & localization; **not true OD AP**; cyclists and small objects uncovered.
 - Scene-conditioned class/range utility tested with no practical reversal;
   true occlusion, cyclists, and broader scenario contexts remain untested.
@@ -292,23 +303,24 @@ it — but state its scope every time (§3).
 integration are effectively the same path if scoped to one helper/source + one recipient. **OTA is a venue decision
 and a parallel risk, not the first dependency** — stabilise Phase 2 over RFsim before moving to hardware.
 
-1. Paper/venue contract + corrected formulation — **2-3 days**
-2. Tasks A, B, corrected C — **1-2 weeks**
-3. Canonical local Phase-2 path (association/tracking or explicitly scoped target IDs, shared-map publication,
-   recipient selection, warning timing) — **2-3 weeks**
-4. Same path over the existing two-UE OAI RFsim system — **1-2 weeks**
-5. Navigation warning/override evaluation, no RL — **1-2 weeks**
-6. Replicates, ablations, figures, packaging — **2-3 weeks**
+1. Paper/venue contract + causal-audit reconciliation — **2-3 days**
+2. Freeze schema-v2, causal state/action timing, dual-suite distribution, and pilot gates — **3-5 days**
+3. Instrument and pass the two-trajectory paired pilot (positive occlusion + matched benign negative) — **1-2 weeks**
+4. Collect the pre-registered paired designed + naturalistic suites — **1-2 weeks** after pilot review
+5. Canonical local C2 evaluation, then identical messages over two-UE OAI RFsim — **2-3 weeks**
+6. Minimal LOCAL calibration and simple three-action/controller ladder, only after C2 — **1-2 weeks**
+7. Warning/optional override evaluation, replicates, ablations, figures, packaging — **2-3 weeks**
 
-**2026-08-14 Step-3 start:** `phase2_map_sharing/` now defines the recipient-
+**2026-08-14 design hold:** `phase2_map_sharing/` now defines the recipient-
 scoped wire schema, exact application/on-wire byte accounting, causal
 recipient-hazard-only selection, non-oracle class/kinematic association,
 freshness/order/isolation guards, a closest-approach warning baseline, and a
 strictly separate truth matcher. Synthetic acceptance passes at
 `phase2_map_sharing/experiments/20260814_222111`; its constructed +1.9 s lead is
-plumbing validation, **not C2 evidence**. The next evidence-bearing gate is
-paired CARLA ego-only/send-everything/hazard-only replay, followed by identical
-JSON over the existing two-UE OAI RFsim route.
+plumbing validation, **not C2 evidence**. The v1 schema lacks the uncertainty
+fields required for the intended Phase-2 safety contract, and v5 lacks paired
+recipient/hazard truth and causal pre-action signals. The next gate is therefore
+the reviewed `phase2_paired_causal_v1` two-trajectory pilot—not a full run.
 The adapter additionally passes 37 paired-active snapshots from the existing
 two-stream recordings (`snapshot_adapter/20260814_222354`): 26 are accepted and
 11 are correctly rejected by the 1 s freshness gate. They lack synchronized

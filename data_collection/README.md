@@ -1,5 +1,12 @@
 # Policy corpus collection
 
+> **Current Phase-2 hold (2026-08-14).** The commands below document the
+> historical Phase-1 collectors and must not be used to launch a new corpus.
+> The accepted v5 corpus remains valid for perception/workload analysis but is
+> not a paired causal controller corpus. All new collection is governed by
+> `../phase2_map_sharing/PHASE2_PAIRED_CAUSAL_CORPUS_SPEC.md`; only its reviewed
+> two-trajectory pilot may run before a separate full-collection authorization.
+
 This directory owns the L10319 collection loop described in
 `rl_agent/policy/DATA_COLLECTION_PLAN.md`.
 

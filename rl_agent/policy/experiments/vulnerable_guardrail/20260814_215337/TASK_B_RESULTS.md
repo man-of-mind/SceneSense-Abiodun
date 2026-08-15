@@ -1,5 +1,11 @@
 # Task B — observed vulnerable-object guardrail ablation
 
+> **Causal-audit scope (2026-08-14).** The guardrail rule and its unit-tested behavior remain valid as an
+> implementation contract: it protects only observed pedestrians/cyclists and fails closed through C1. The
+> numerical ablation below, however, uses the legacy replay's same-frame post-tail detections and GT-assisted
+> matched tracks. It is therefore a **noncausal matched-support surrogate result**, not evidence for a deployable
+> pre-action controller. The costs and lifts must inherit this caveat wherever they are quoted.
+
 The hard rules prevent SKIP whenever an observed pedestrian/cyclist is active and clamp low-confidence vulnerable-object frames to ROI0. They cannot protect detector misses or unrepresented hidden hazards.
 
 C1 remains dominant: if no C1-admitted action satisfies the vulnerable rule, the least-risk C1 action is used and `vulnerable_guardrail_unachievable` is raised.

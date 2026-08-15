@@ -1,5 +1,9 @@
 # Track A advisor sweep
 
+> **Causal-audit scope (2026-08-14).** This Phase-1 replay exposes same-frame post-tail detections and
+> GT-assisted matched tracks before action selection. The sweep is a noncausal matched-support characterization;
+> its infeasibility/soundness values do not define the Phase-2 map contract.
+
 **Status:** advisor-facing characterization complete; no epsilon, preferred-core, or range value is selected by this report.
 
 Scope is the 3 epsilon x 2 preferred-core x 2 range grid at fixed `ucb_k=0` and C1=0.70, using the same three held-out vehicle replays, paired channel seeds, and per-tick latency common random numbers. Both the deployable shielded oracle and non-deployable clairvoyant upper bound are shown. No CARLA, OAI, LOCAL, RL, or model training was run.

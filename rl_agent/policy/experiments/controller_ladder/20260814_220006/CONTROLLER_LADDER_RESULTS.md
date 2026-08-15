@@ -1,5 +1,9 @@
 # Pre-RL controller ladder results
 
+> **Causal-audit scope (2026-08-14).** This replay supplies same-frame post-tail detections and GT-assisted
+> matched tracks before action selection. The runtime comparison is **noncausal matched-support**. Static
+> full-36-profile Task C results are evaluated separately and remain valid.
+
 **Implementation status:** `completed_surrogate_controller_evaluation`.
 
 This is a table-driven SPLIT+SKIP surrogate comparison on the explicitly pinned `policy_corpus_advisor_rich_v5` corpus. It is not a CARLA/OAI run, LOCAL evaluation, live safety validation, or RL result.

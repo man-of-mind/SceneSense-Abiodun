@@ -11,13 +11,15 @@ Use this file to keep the work tied to the proposal: every experiment should ans
 - **Month 1:** complete (baselines, transport, scenarios, logging, metrics, schema).
 - **Month 2:** complete. The accepted 36-profile zstd table, executable seven-
   profile catalog, reward-v5 scorer, grouped replay loader, and non-RL ladder
-  (fixed/rule/greedy/LinUCB/MPC) all exist. The authoritative richer-corpus
-  rerun is `rl_agent/policy/experiments/controller_ladder/20260813_063514`.
+  (fixed/rule/greedy/LinUCB/MPC) all exist. The richer-corpus run
+  `rl_agent/policy/experiments/controller_ladder/20260813_063514` is retained as
+  a **noncausal matched-support study**, not a deployable controller evaluation.
 - **Month 3:** the native-10-Hz advisor-rich corpus is accepted (23 clean runs
-  after one impact exclusion), freshness is re-scored, and the baseline ladder
-  gives a scoped single-UE RL NO-GO (greedy approximately equals MPC). Task B's
-  observed-pedestrian/cyclist hard guardrails are implemented and paired-tested;
-  the remaining stress work is queue/jitter/loss packaging and Sionna realism.
+  after one impact exclusion) for perception/workload studies and freshness is
+  re-scored. The **static measured-profile selection** NO-GO remains credible;
+  the full dynamic-controller NO-GO is reopened by the causal audit. Task B's
+  observed-pedestrian/cyclist hard-guardrail logic is implemented; its replay
+  cost/lift numbers are noncausal. Queue/jitter/loss packaging and Sionna realism remain open.
 - **Month 4 groundwork started early:** moving-ego/two-source map display,
   record/replay, synthetic FoV occlusion reasoning, and the recipient-specific
   Phase-2 local contract. The latter passes synthetic plumbing acceptance;
@@ -25,39 +27,53 @@ Use this file to keep the work tied to the proposal: every experiment should ans
   open.
 - **Policy/reward:** reward v5 and the table-driven surrogate are implemented.
   Task A found no practical seg-inclusive class/range rank reversal; Task C
-  found that lambda-RDO is exactly equivalent to full enumeration on the
-  retained runtime catalog, but not on the full 36-profile scalar design space.
-  No Phase-1 RL training is justified under the tested contract.
-- **Binding path now:** recipient-specific Phase-2 map sharing from one helper
-  to one ego, first locally and then over the existing two-UE OAI RFsim path,
-  followed by warning/override evaluation. OTA/venue is an open parallel risk,
-  not a blocker for the RFsim path.
+  found that lambda-RDO is not exactly equivalent to full enumeration on the
+  full 36-profile scalar design space. Its retained-catalog runtime equivalence
+  is noncausal replay evidence. No RL training is authorized before a causal,
+  pre-registered residual gap exists.
+- **Binding path now:** freeze the causal Phase-2 control/schema contract and the
+  paired helper-recipient corpus specification; review a two-trajectory pilot;
+  only then collect the designed and naturalistic suites and evaluate C2 locally
+  and over two-UE OAI RFsim. OTA/venue is a parallel risk, not an RFsim blocker.
 
-## 2026-08-14 reconciliation note (post-corpus, RL gates, and paper reframe)
+## 2026-08-14 reconciliation note (causal audit, paper reframe, and Phase-2 gate)
 
 - Accepted corpus: `policy_corpus_advisor_rich_v5/20260813_045142_full`, 23/24
   structurally valid runs, on-contract radar density, both classes populated,
   clean traffic; `pcarv5_mixed_va01` excluded for the ego-walker impact.
-- Single-UE, expanded-action, and measured N=2/modeled-large-N contention gates
-  do not justify RL under their registered contracts. This is a scoped result,
-  not a claim that sequential control can never matter.
+- The single-UE ladder and expanded-action gate use same-frame post-tail object
+  observations plus GT-assisted matching/track identities. They are retained
+  only as noncausal matched-support studies; they do not close the deployable
+  dynamic-controller question. The static measured-table result remains valid.
+- Measured N=2/modeled-large-N contention found no application-layer admission
+  gap under its registered contract; that real-network result is unaffected by
+  the replay audit.
 - **Task A complete:** 36 profiles x exact 1,683 common frames, with per-frame
   segmentation. Verdict `NO_PRACTICAL_REVERSAL_ON_AVAILABLE_CONTEXTS`; the
   strongest class/range cells miss the registered +0.010 utility gate.
 - **Task B complete:** observed vulnerable objects remove SKIP; low-confidence
   vulnerable objects clamp ROI to zero. It improves matched-safe rate by 1.63 pp
   but costs 0.0477 finite matched reward and +1.10 Mbps. Detector misses and
-  absent cyclist examples remain outside empirical protection.
+  absent cyclist examples remain outside empirical protection. The rule is
+  implementation-valid; the quoted empirical deltas are noncausal replay results.
 - **Task C complete:** the 36-profile scalar problem has four lambda-supported
   profiles and only 80.56% budget-breakpoint agreement with exact enumeration;
-  the retained seven-profile runtime ladder has 100% lambda-RDO agreement. The
-  freshness baseline is AoI-index-inspired, not Whittle.
+  the retained seven-profile runtime ladder has 100% lambda-RDO agreement only
+  within the noncausal replay. The freshness baseline is AoI-index-inspired, not Whittle.
 - The paper/system north star is the end-to-end multi-modal cooperative-
   perception system over OAI RFsim, with transport-conditioned cooperation gain,
   a qualified safety contract, and deployable design rules. Measurement findings
   support those contributions; they are not themselves the paper spine.
+- The accepted v5 corpus remains useful but lacks a paired recipient, synchronized
+  hazard truth, raw aligned sensing, unfiltered detections, and causal pre-action
+  signals. It cannot estimate C2 warning lead and will not be relabelled as the
+  Phase-2 dataset.
+- Next data unit: `phase2_paired_causal_v1`, with separate pre-registered designed
+  opportunity and naturalistic suites. A two-trajectory pilot (one positive
+  occlusion/hazard and one matched benign negative) must prove causality and C2
+  computability before any full collection. No CARLA/OAI run is yet authorized.
 
-## 2026-08-11 reconciliation note (arc since 2026-07-17)
+## 2026-08-11 reconciliation note (historical; superseded where the causal audit differs)
 - Built the table-driven **policy surrogate environment** (`rl_agent/policy/`) from the channel sweep + knob
   matrix + staleness model; dual oracles (clairvoyant + shielded) + rule/greedy/LinUCB/MPC ladder.
 - **Reward** hardened v2->v5 (two-layer: hard C1 mask + live tail-risk shield; per-object AoI localization;
@@ -893,7 +909,9 @@ Completion criteria:
   task utility vs bytes vs latency/timeout. (controller_ladder figures.)
 - [x] The best simple reference is identified. On the accepted richer corpus,
   greedy finite matched reward is 0.19655 and MPC is 0.19834 (+0.91%) at the
-  same 91.13% matched-safe rate. The scoped Phase-1 decision is RL NO-GO.
+  same 91.13% matched-safe rate. **Causal-audit correction:** this identifies the
+  best reference only inside the noncausal matched-support replay; it is not a
+  deployable dynamic RL NO-GO.
 - [x] No online action execution is enabled until offline replay passes sanity
   checks. (Surrogate-only; no CARLA/OAI execution.)
 
@@ -985,9 +1003,9 @@ Completion criteria:
 - [x] Offline controller replay can score simple static policies once at least
   two valid action/model profiles exist. **DONE 2026-08-11:** the controller
   ladder (rule/greedy/LinUCB/MPC vs static baselines) ran on the surrogate
-  environment; this closes the last Month-2 exit item. Caveat: the corpus it ran
-  on is being upgraded (advisor CARLA scripts) and will be re-scored before the
-  numbers are treated as final.
+  environment; this closes the Month-2 implementation/plumbing exit item only.
+  **2026-08-14 caveat:** its same-frame/GT-assisted observation is noncausal, so
+  the numbers are not Phase-2 controller evidence.
 - [x] A Month 2 slide/report summarizes:
   - [x] Chosen parked-ego scene and dataset coverage.
   - [x] SEG/localization and OD-model-status performance.

@@ -65,9 +65,10 @@ loading an episode.
 - `channel.py`, `latency.py`, `replay.py` — measured input adapters and declared projections.
 - `env.py` — fixed-20-Hz scheduler, in-flight event queue, and per-object contribution map.
 - `shield.py`, `oracles.py` — one shared observation-based shield and the true-state upper bound.
-- `controllers.py`, `ladder.py` — common deployable interface plus fixed, rule,
+- `controllers.py`, `ladder.py` — common controller interface plus fixed, rule,
   greedy, LinUCB, MPC, exact-enumerator, lambda-RDO, and AoI-index-inspired
   rungs; every selected action must belong to the shared shield's candidate set.
+  The legacy replay supplying that interface is noncausal and is not deployable evidence.
 - `run_controller_ladder.py` — grouped train/evaluation runner with frozen bandit evaluation, common channel/
   latency seeds, fitted-state serialization, and explicit scaffold-vs-result status.
 - `configs/controller_ladder.yaml` — controller thresholds, bandit fit settings, MPC projection, and verified-
@@ -89,17 +90,22 @@ loading an episode.
 The accepted multiclass corpus is
 `data_collection/experiments/policy_corpus_advisor_rich_v5/20260813_045142_full`;
 its structural verifier is `verification/20260813_061952`, with impact run
-`pcarv5_mixed_va01` excluded. The authoritative reward-v5 ladder is
+`pcarv5_mixed_va01` excluded. The completed reward-v5 Phase-1 ladder artifact is
 `experiments/controller_ladder/20260813_063514`.
+
+The corpus remains valid for perception QA, workload characterization, and the
+legacy matched-support analyses. It is **not** a paired helper-recipient causal
+corpus and cannot measure cooperative warning lead.
 
 On six held-out trajectories, finite matched reward is 0.19655 for greedy and
 0.19834 for MPC (+0.91%), with the same 91.13% matched-safe rate. They disagree
-on only 2.54% of finite frames. The richer corpus therefore preserves the
-earlier greedy approximately-equals-MPC result: **RL training is a NO-GO under
-the present SPLIT+SKIP surrogate.** LOCAL remains pending. If LOCAL is
-calibrated or the state/action contract gains genuine delayed consequences,
-rerun this non-RL ladder before reconsidering SAC/DQN/PPO. Full evidence and
-limitations are in `data_collection/EVALUATION_CONTRACT_DECISION_V5.md`.
+on only 2.54% of finite frames. A later causal audit showed that the replay
+provides current-frame post-tail detections and GT-assisted tracks before the
+action. The result is therefore a **noncausal matched-support upper-bound study**,
+not a dynamic-controller NO-GO. The static measured-profile selection result
+remains valid. A new causal gap—not a retune of this replay—is required before
+reconsidering SAC/DQN/PPO. Full evidence and limitations are in
+`../RL_JOURNEY_REPORT.md` and `data_collection/EVALUATION_CONTRACT_DECISION_V5.md`.
 
 Tasks A-C are complete:
 
@@ -111,5 +117,10 @@ Tasks A-C are complete:
 
 The full 36-profile scalar RDO problem is not exactly represented by its
 supported hull, while lambda-RDO is exactly equivalent to full enumeration on
-the retained runtime catalog for the current held-out replay. This is a
-conditional design rule, not a universal convex-hull claim.
+the retained catalog only inside the current noncausal replay. The static result
+is a conditional design rule, not a universal convex-hull or deployable-runtime claim.
+
+Phase-2 collection/evaluation is governed by
+`../../phase2_map_sharing/PHASE2_PAIRED_CAUSAL_CORPUS_SPEC.md`. Until its
+two-trajectory pilot is reviewed and passes, do not launch the full corpus,
+OAI evaluation, a three-action ladder, or RL training.

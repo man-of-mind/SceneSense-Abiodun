@@ -1,5 +1,10 @@
 # Data-collection plan — richer CARLA corpus to build the environment cleanly
 
+> **Historical Phase-1 plan; do not launch.** The v5 corpus produced by this work remains accepted for
+> perception/workload studies, but it cannot measure paired recipient warning lead or reconstruct causal
+> pre-action state. New collection is governed by
+> `../../phase2_map_sharing/PHASE2_PAIRED_CAUSAL_CORPUS_SPEC.md` and is held before its two-trajectory pilot.
+
 **Current status (2026-08-11):** candidate v1 is immutable and quarantined for policy use. The matched gate
 confirmed that its vehicle-detection deficit was a 5,000-points/s collection regression: the corrected 200,000
 points/s recipe restored 93–97% target coverage and the exact convoy held 13.37 m/s in view for 8.0 s. Work is

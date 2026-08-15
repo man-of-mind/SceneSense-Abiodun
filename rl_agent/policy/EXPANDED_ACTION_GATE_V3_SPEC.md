@@ -1,5 +1,9 @@
 # Expanded SPLIT+SKIP action gate v3 — common-state upper-bound correction
 
+> **Historical Phase-1 spec after the 2026-08-14 causal audit.** V3 repaired its registered comparator, but the
+> shared replay state itself is noncausal and GT-assisted. Preserve this spec for reproducibility; do not use its
+> outcome as deployable controller evidence.
+
 Status: **pre-registered before the v3 outcome**. V2 completed technically but its scientific verdict is
 invalid. V3 inherits every source, frontier cell, held-out group, seed, action, reward coefficient, threshold,
 and authorization boundary through SHA-pinned v2 and v1 configs.

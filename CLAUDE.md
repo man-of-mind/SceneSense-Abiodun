@@ -42,30 +42,37 @@ index — the authoritative detail lives in the docs below (read them before act
   (`channel_condition_sweep/CHANNEL_SWEEP_RESULTS.md` + `combined_surface.csv` + `plots/`). Knee: 1 MB→clear
   only, 400 KB→to 15.6 dB, 90 KB seg-safe floor→every rung. `AGENT_CONSTRAINTS §9.1` holds the measured
   channel_state + `payload_budget=capacity/fps` rule.
-- The native-10-Hz advisor-rich v5 corpus is accepted. Collection completed 24/24 runs; verification
+- The native-10-Hz advisor-rich v5 corpus is accepted for perception QA, workload characterization, and legacy
+  matched-support replay. It is **not** a paired helper-recipient causal-control corpus and cannot measure C2
+  warning lead. Collection completed 24/24 runs; verification
   `data_collection/experiments/policy_corpus_advisor_rich_v5/20260813_045142_full/verification/20260813_061952`
   is `PASS` on structural controller-corpus gates after excluding only impact run `pcarv5_mixed_va01` (23/24
   retained). Recall is report-only: held-out pedestrian <=12 m is 67.87% and vehicle <=25 m is 67.20%, with
   trajectory-grouped CIs. Accepted-run radar density is 19,404.5/frame; traffic and cleanup are clean.
 - Freshness re-score `freshness_rescore/20260813_062203` has no QC exclusions and confirms both slow pedestrian
   and sustained >=10 m/s vehicle regimes, with 54.43% GT-seeded mapped freshness pressure.
-- The authoritative reward-v5 pre-RL ladder is
+- The completed reward-v5 Phase-1 ladder artifact is
   `rl_agent/policy/experiments/controller_ladder/20260813_063514`. Greedy reward is 0.19655 and MPC is 0.19834
-  with identical 91.13% matched-safe rate; they disagree on only 2.54% of finite frames. See
-  `data_collection/EVALUATION_CONTRACT_DECISION_V5.md`.
+  with identical 91.13% matched-safe rate; they disagree on only 2.54% of finite frames. A 2026-08-14 audit found
+  same-frame post-tail observation leakage and GT-assisted track construction. These numbers are therefore a
+  **noncausal matched-support upper-bound study**, not deployable controller evidence. See
+  `rl_agent/RL_JOURNEY_REPORT.md` and `data_collection/EVALUATION_CONTRACT_DECISION_V5.md`.
 
-## RL decision: NO-GO (2026-08-14) — three independent gates, scope stated honestly
-1. **Single-UE ladder:** greedy ~= MPC (above), bootstrap interval covers zero.
+## RL decision (2026-08-14) — static NO-GO retained; dynamic decision reopened
+1. **Single-UE ladder:** greedy ~= MPC (above), bootstrap interval covers zero, but the observation is noncausal.
+   This does **not** close the deployable dynamic-controller question.
 2. **Expanded action space** (`rl_agent/policy/experiments/expanded_action_gate/20260813_233947_pdt`):
    greedy 0.192625 vs oracle 0.195290 = **+1.383%**, below the registered +5%/+0.01 bar →
    `EXPANDED_SURROGATE_NO_GO_STOP`. **Scope:** the oracle is **one-step, on greedy-visited states, matched-support**
-   (`policy/expanded_gate.py:581`) — it does **NOT** bound sequential policies. Claim only *"no useful one-step
-   headroom within the static-quality, queue-free, matched-support contract."*
+   (`policy/expanded_gate.py:581`) and uses the same noncausal state — it does **NOT** bound causal sequential
+   policies. Claim only *"no useful one-step headroom within the noncausal, static-quality, queue-free,
+   matched-support contract."*
 3. **Multi-UE contention** (`rl_agent/multiue_oai/`): measured N=2 shows **no coordination gap** — the MAC scheduler
    already sits at the capacity ceiling (6.090 vs 6.077 Mbps). Corrected N=50/100 screen: 0/216 cells survive
    (`STOP_CHEAP_NO`). DG-B / N=4 / the campaign / the ladder / RL are all **stopped**.
 
-**Untested, therefore NOT falsified:** scene-conditioned knob selection (`policy/shield.py:49 profile_quality()`
+**Still valid:** the static measured-table profile-selection result and Task C's full-36-profile scalar analysis.
+**Untested, therefore NOT falsified:** a causal dynamic controller; scene-conditioned knob selection (`policy/shield.py:49 profile_quality()`
 takes no observation → the Phase-1 hypothesis was unrepresentable, not rejected); queue-coupled surrogates;
 calibrated LOCAL actions; Phase-2 object-selective map sharing. Reopening RL requires a *new* pre-registered gap on
 an expanded contract, not a retune of these gates.
@@ -82,17 +89,20 @@ an expanded contract, not a retune of these gates.
   cyclists remain outside scope. Artifact: `rl_agent/contextual_knob/experiments/20260814_214749`.
 - **Task B complete:** hard observed-vulnerable no-skip + low-confidence ROI0 clamp, with an explicit C1-conflict
   flag. Paired replay improves matched-safe rate +1.63 pp at a finite-reward cost of -0.0477 and +1.10 Mbps;
-  detector misses are not protected. Artifact: `rl_agent/policy/experiments/vulnerable_guardrail/20260814_215337`.
+  detector misses are not protected. The rule/contract is valid, but those empirical deltas inherit the noncausal
+  replay caveat. Artifact: `rl_agent/policy/experiments/vulnerable_guardrail/20260814_215337`.
 - **Task C complete:** full-36 lambda-RDO agrees with exact enumeration at 80.56% of payload breakpoints (max
-  utility gap 0.011686; max duality gap 0.017359), while the retained-catalog runtime ladder agrees 100% with zero
-  reward gap. The AoI baseline is explicitly index-inspired, not Whittle. Artifact:
+  utility gap 0.011686; max duality gap 0.017359). The retained-catalog runtime ladder agrees 100% with zero reward
+  gap only inside the noncausal matched-support replay. The AoI baseline is explicitly index-inspired, not
+  Whittle. Artifact:
   `rl_agent/policy/experiments/task_c/20260814_220006`.
-- `SCENESENSE_MONTHLY_CHECKLIST.md` was reconciled on 2026-08-14. **Phase-2 Step 3 has started:**
+- `SCENESENSE_MONTHLY_CHECKLIST.md` was reconciled on 2026-08-14. **Phase-2 contract plumbing exists:**
   `phase2_map_sharing/` passes synthetic contract validation for recipient isolation, causal hazard-only selection,
   association, warning provenance, exact byte accounting, and production-header chunk reassembly. This is plumbing,
   not C2 evidence. Its adapter also passes the existing two-stream recordings (26 fresh accepted, 11 stale rejected),
-  which lack synchronized hazard truth. **Next:** paired CARLA local evidence, then identical messages over two-UE OAI RFsim, then
-  warning/override evaluation; no RL before a new gap.
+  which lack synchronized hazard truth. **Current hold:** reconcile a schema-v2 uncertainty contract and a new
+  `phase2_paired_causal_v1` corpus specification, then review a two-trajectory pilot gate. v5 cannot be patched into
+  that dataset. No pilot, full collection, OAI evaluation, or RL is authorized until the design gate passes.
 
 > The `~/.claude` memory cache was wiped by a retention cleanup on 2026-08-03 (harness, not us). This
 > repo-tracked file exists so project state is never lost that way again. Keep it updated as work advances.

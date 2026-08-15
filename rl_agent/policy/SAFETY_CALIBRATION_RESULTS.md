@@ -1,5 +1,9 @@
 # Track A safety calibration
 
+> **Causal-audit scope (2026-08-14).** This Phase-1 replay exposes same-frame post-tail detections and
+> GT-assisted matched tracks before action selection. The calibration is a noncausal matched-support surrogate
+> diagnostic and must not be propagated into the Phase-2 uncertainty/deadline contract.
+
 **Status:** fixed-point safety characterization complete; no operating point selected.
 
 Scope is fixed at epsilon=2.0 m, preferred core=90 KiB, range<=25 m, the same three held-out vehicle replay episodes, and channel seeds `[1101, 2202, 3303]`. CARLA, OAI, LOCAL, RL, reward-weight sensitivity, and the 3x2x2 advisor sweep were not run.
