@@ -4081,3 +4081,59 @@ itself works.
 allowed into placement state; the pilot retains enough raw data to reconstruct a sampled chain end to end; and no
 new CARLA/OAI run, schema implementation, controller implementation, or RL training was launched. The next action
 is joint review of the spec—not a pilot launch.
+
+## 2026-08-14 — LOCAL REVIEW of `PHASE2_PAIRED_CAUSAL_CORPUS_SPEC.md`: APPROVE with 5 additions (2 blocking before the suites can be frozen).
+
+**Assessment: strong, and it directly closes the failure modes that cost us v4 and v5.** Specifically good: the
+causal timing contract with the `available_at_s <= decision_at_s` assertion (§3); the provenance **allowlist** with
+explicit forbidden fields rather than column-name trust (§5); the placement/publication split with no ambiguous
+SKIP (§4); the **pinned M-prime sensor contract** with a pre-filter radar-density gate (§7 — this is the v4/v5 drift
+fix); nine **hard** pilot gates with synthetic false-positive injection (§9); and the §11 five-question self-audit.
+The censored-warning handling in §1 is statistically correct and important — warning lead is a time-to-event
+endpoint, and encoding misses as large numbers would have silently biased every CI.
+
+### BLOCKING before Suite A/B can be "frozen" (§8 currently freezes distributions but states no counts)
+
+**B1 — Specify the number of HAZARD EVENTS, not just trajectories.** §8 says counts are frozen before controller
+development but gives none. For a censored time-to-event endpoint, power comes from **positive-hazard events**, not
+frames or trajectories. A beautiful corpus with ~12 usable events cannot support a median lead with a CI. Please
+state, per factor cell and in total: target **positive hazard events**, **matched benign negatives**, and the
+expected censoring fraction; and show the arithmetic that yields a usable CI. This should be settled before
+collection, not discovered after.
+
+**B2 — Pre-register the smallest meaningful `lead_gain_s`.** §1 defines the endpoint and §2 forbids overclaiming,
+but no smallest-effect-of-interest is registered. Without it, a "+0.30 s, CI [0.05, 0.55]" result becomes an
+argument rather than a decision. Precedent: DG-A pre-registered `minimum_deadline_lift_pp` etc. Propose a threshold
+grounded in physics (e.g. lead that yields a usable reaction/braking margin at the tested closing speeds) plus a
+false-warning ceiling, both registered before collection.
+
+### Non-blocking but decide now
+
+**A3 — State explicitly whether warnings ACTUATE during collection.** If a cooperative warning causes the recipient
+to brake/steer, the world diverges and the ego-only arm is no longer a valid offline counterfactual from the same
+capture. §9 handles divergence via paired replayable arms, but the *policy* should be explicit: for C2 collection I
+recommend **warnings are recorded but NOT actuated** (observation-only), so all three arms share one immutable
+world; actuation belongs to the later navigation-override work (Month 6), where divergence is the point. Please
+state which is intended in §9.
+
+**A4 — Pre-register what a NULL C2 result means for the project.** §9 rightly allows the pipeline to pass with a
+null/negative cooperation outcome, but C2 is the *binding* contribution. Decide **now**, before seeing data: if
+hazard-only shows no meaningful lead gain over ego-only, what is the paper? Candidate answers: the honest envelope
+result ("cooperation pays only in occlusion-dominated regimes, here is the boundary"), or a pivot of the headline
+to C3/C4. Deciding after the fact invites motivated reasoning; deciding now makes either outcome publishable.
+
+**A5 — Storage/throughput budget for retained raw sensing.** §9 requires aligned RGB + radar tensors, unfiltered
+pre-NMS candidates, and shadow LOCAL/SPLIT outputs. Even scoped to controlled windows this can be large. Please
+state the expected bytes/trajectory and confirm headroom before the pilot — a disk stall mid-collection is exactly
+the avoidable failure that has cost us time twice.
+
+### Endorsements to keep as written
+- Fixing inference placement for the **first** C2 evaluation so send-everything vs hazard-only is isolated (§4) —
+  correct sequencing; dynamic placement waits for the LOCAL table.
+- Suite A explicitly flagged as curated and never the sole headline (§8).
+- "Detector quality or positive lead magnitude is **not** a pilot gate" (§9) — exactly right; the pilot proves
+  measurability, not performance.
+- FAIL/HOLD at the first failed gate with no gate-weakening and no GT back-filling (§9).
+
+**Recommendation: approve the spec, resolve B1/B2 (and state A3) in a short revision, then authorize the
+two-trajectory pilot.** A4/A5 can be recorded alongside without delaying the pilot.
