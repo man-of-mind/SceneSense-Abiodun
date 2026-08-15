@@ -4,6 +4,31 @@
 land. **Supersedes** `PRESENTATION_STORY.md` (written before the results). Every number here is traceable to an
 artifact path; scope caveats are stated inline rather than in a footnote, because two of them changed our claims.
 
+> # ⛔ READ FIRST — §§7-8 ARE RE-SCOPED (causal audit, 2026-08-14)
+>
+> A causality audit **confirmed same-frame oracle observation leakage** in the policy surrogate. The replay exposes
+> the object set, class, confidence, world position, speed and persistent track identity **before** action
+> selection — but those predictions are produced by the edge back-half only *after* features are encoded,
+> transmitted and decoded (`uplink_only_spatial_map_pipeline/...:2063` -> `policy/env.py:101`). Track keys are also
+> GT-assisted, with unmatched detections removed (`policy/replay.py:211`). It is **not** action-branch leakage
+> (SKIP and SPLIT see the same observation), but every action sees information that in the real split pipeline
+> would only exist after inference and communication.
+>
+> **Consequences — apply before presenting:**
+> - **STILL VALID:** the measured surfaces (knob matrix, channel sweep, staleness), Task A's contextual screen,
+>   Task C's **static** 36-profile lambda-RDO result, the deadline-feasibility frontier, and the **multi-UE DG-A**
+>   OAI measurements (real runs, not replay).
+> - **RE-SCOPED:** the controller ladder (§7), the expanded-action gate (§8), Task B's replay numbers, and Task C's
+>   **runtime** half. These may be cited **only** as a *noncausal, matched-support upper-bound study* — **never** as
+>   a deployable observation-based controller evaluation. **The full dynamic NO-GO is not citable as a system
+>   conclusion.**
+> - **Move §§7-8 out of the main advisor narrative into backup**, with the caveat stated on the slide.
+> - **Phase-1 infeasibility/abstention numbers must NOT be carried into Phase 2:** Phase 2 already performs
+>   constant-velocity extrapolation (`phase2_map_sharing/engine.py:35`), so the old shield's frozen-object
+>   `speed x age` model does not represent the intended Phase-2 map.
+> - This is **not a replay bug fixable in software**: causal pre-action observations were never recorded, which is
+>   why a new paired corpus is required.
+
 ---
 
 ## 1. The question we set out to answer

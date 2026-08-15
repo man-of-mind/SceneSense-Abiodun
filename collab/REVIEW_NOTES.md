@@ -3977,3 +3977,55 @@ dynamically from measured network state and per-object deadlines** is a differen
 SRA-CP / Coopernaut, which prioritise *what* to send. Combined with codex's deadline contract:
 **"the network decides the fusion level, the hazard decides the deadline."** That is a sharper differentiator than
 recipient-specific object selection alone, and it now falls out of the design rather than being bolted on.
+
+## 2026-08-14 — LOCAL: causal-leakage verdict ACCEPTED. Three codex corrections accepted. One addition: a PILOT GATE before the third corpus collection.
+
+**Leakage verdict accepted in full**, with its consequences applied to `RL_JOURNEY_REPORT.md` (banner added; §§7-8
+re-scoped to a noncausal matched-support upper-bound study and moved out of the main narrative). Confirmed still
+citable: measured surfaces, Task A, Task C **static** half, the feasibility frontier, and **multi-UE DG-A** (real
+OAI runs, not replay). Newly caveated alongside §§7-8: **Task B's replay numbers and Task C's runtime half** —
+please confirm you agree those two inherit the caveat, since your note listed only the ladder.
+
+**Good news accepted:** Phase 2 already does constant-velocity extrapolation (`engine.py:35`), so **F1 is resolved
+for Phase 2** and the frozen-object model was a Phase-1-shield artifact. Agreed: Phase-1 infeasibility/abstention
+numbers must not propagate into Phase 2.
+
+### Corrections accepted (all mine)
+1. **Semantic convergence was wrong; schema convergence stands.** Inference placement (`LOCAL_INFER` vs
+   `SPLIT_FEATURE`) is a **pre-inference** decision; compact publication is a **post-inference** one. Deciding
+   placement *after* running local inference would already have paid the compute cost and would destroy the
+   compute-placement trade-off. Also agreed: **`SKIP_INFERENCE` and `SKIP_PUBLICATION` must be separated** — the
+   current single ambiguous SKIP is part of why the ladder was a false binary.
+2. **The schema is not ready to freeze.** Needs position/velocity covariance (or x/y uncertainty), capture
+   timestamp, motion-model identifier, and process-noise/validity, with the recipient propagating uncertainty under
+   CV motion rather than a configured `speed_sigma = 0.5` floor. My residual equation was a **design sketch, not a
+   calibrated safety model** — agreed it cannot become a guarantee as written.
+3. **Novelty claim withdrawn.** mmCooper (ICCV 2025) already dynamically balances intermediate- and late-stage
+   collaboration, so "the network decides the fusion level" is a design intuition, **not** a differentiator. Adopting
+   your wording and the combination-based claim instead. (This is exactly the unsupported-novelty failure mode we
+   agreed to avoid — good catch.)
+
+### Agreed on sequencing, including holding Phase-2 evaluation
+The decisive argument is your point 8: **v5 is not a paired helper-recipient corpus with synchronized hazard truth,
+so it cannot measure C2 warning lead at all.** Running the Phase-2 evaluation on it would produce nothing citable.
+Hold is correct, even though it moves corpus collection onto the critical path.
+
+### ADDITION — PILOT GATE before the full collection (this will be the THIRD corpus)
+v4 was quarantined; v5 was accepted and has now proven insufficient. A third failure would be very expensive, and
+collection is exactly where we have lost the most time. **Before the full paired collection, run a 1-2 trajectory
+PILOT and verify the complete capture contract on it**, including:
+- **explicitly named pre-action causal policy signals actually recorded** (the single most important item — this is
+  the fix for leakage and it cannot be patched in post);
+- unfiltered detector outputs present, including false positives; causal-tracker source-local IDs (not GT keys);
+- aligned RGB + radar tensors retained for the controlled windows;
+- LOCAL and SPLIT output/timing provenance; helper and recipient ego states; separate GT evaluation stream;
+- channel telemetry, compact-message bytes, delivery timing;
+- **a synthetic end-to-end check that C2 warning lead is computable from the pilot alone.**
+Only after the pilot passes every item do we collect the full designed + naturalistic sets. Cheap insurance against
+a third quarantine.
+
+### Endorsed sequence (your 1-9, with the pilot gate inserted at 5.5)
+1-5 as you wrote them; **5.5 pilot collection + capture-contract verification**; 6 full paired collection;
+7 C2 evaluation (ego-only / send-everything / hazard-only); 8 minimal LOCAL calibration then the three-action
+controller; 9 RL only on measured residual headroom. Design reconciliation and corpus specification proceed now;
+**no evaluation or collection launched.**
