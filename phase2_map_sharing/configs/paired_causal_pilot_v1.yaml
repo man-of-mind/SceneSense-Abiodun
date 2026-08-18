@@ -1,0 +1,140 @@
+contract_version: scenesense.phase2_paired_causal_pilot.v1
+dataset_id: phase2_paired_causal_v1
+implementation_status: offline_contract_only
+authorization:
+  carla: false
+  oai: false
+  full_collection: false
+  controller_evaluation: false
+  rl_training: false
+
+pilot:
+  trajectory_count: 2
+  required_roles:
+    - controlled_positive_occlusion
+    - matched_benign_negative
+  warnings:
+    mode: record_only
+    actuate_brake_or_steer: false
+  arms:
+    - ego_only
+    - send_everything
+    - hazard_only
+  arm_state_isolation_required: true
+
+sensor_contract:
+  world_hz: 10.0
+  fixed_delta_seconds: 0.1
+  rgb_width: 1280
+  rgb_height: 720
+  rgb_fov_degrees: 120.0
+  radar_points_per_second: 200000
+  expected_radar_returns_per_frame: 20000
+  radar_raster_radius: 4
+  temporal_window: 2
+  truth_position_convention: actor_origin
+
+raw_retention:
+  mode: controlled_windows_only
+  expected_two_vehicle_bytes_per_second: 1000000000
+  maximum_window_seconds_per_trajectory: 20.0
+  maximum_raw_bytes_per_trajectory: 32000000000
+  maximum_raw_bytes_pilot_total: 80000000000
+  minimum_free_bytes_after_reservation: 500000000000
+  quota_action: stop_raw_keep_lightweight_logs
+  allow_automatic_dataset_deletion: false
+
+causal_contract:
+  required_field_metadata:
+    - source_stage
+    - observed_at_s
+    - available_at_s
+    - consuming_decision_id
+    - consuming_decision_stage
+    - clock_id
+    - arm_id
+  required_inequality: available_at_s <= decision_at_s
+  placement_actions:
+    - SPLIT_FEATURE
+    - LOCAL_INFER
+    - SKIP_INFERENCE
+  publication_actions:
+    - PUBLISH_ALL
+    - PUBLISH_HAZARD_SUBSET
+    - SKIP_PUBLICATION
+  forbidden_runtime_sources:
+    - evaluation_truth
+    - shadow_inference
+  field_source_allowlist:
+    lagged_capacity_estimate_mbps: [prior_network_estimator]
+    capacity_estimate_sigma_mbps: [prior_network_estimator]
+    previous_action: [prior_completed_event]
+    previous_delivery_success: [prior_completed_event]
+    previous_latency_s: [prior_completed_event]
+    previous_loss_fraction: [prior_completed_event]
+    scheduler_credit: [scheduler_state]
+    in_flight_summary: [scheduler_state]
+    installed_map_summary: [recipient_map]
+    prior_source_track_summary: [causal_tracker]
+    helper_state: [helper_localization]
+    recipient_state: [recipient_localization]
+    recipient_state_message: [recipient_state_transport]
+    local_compute_headroom: [local_compute_monitor]
+    current_inference_result: [selected_inference]
+    current_causal_tracks: [causal_tracker]
+  forbidden_runtime_fields:
+    - actor_id
+    - carla_actor_id
+    - gt_actor_id
+    - gt_id
+    - ground_truth_id
+    - matched_gt_id
+    - oracle_association
+    - evaluation_truth
+    - shadow_inference
+    - truth_id
+    - future_trajectory
+    - collision_label
+
+network_design:
+  measured_static_anchors:
+    - id: clear
+      snr_db: 50.3
+    - id: mild
+      snr_db: 19.5
+    - id: mid
+      snr_db: 15.6
+    - id: strong
+      snr_db: 8.2
+  policy_observes_anchor_id: false
+  decision_core_requires:
+    - stable_good
+    - stable_bad
+    - degradation_and_recovery
+    - burst_and_queue_recovery
+    - heldout_intermediate_near_split_knee
+
+post_pilot_freeze:
+  cluster_aware_power_required: true
+  independent_unit: route_seed_cluster
+  smallest_effect_of_interest: null
+  false_warning_ceiling: null
+  positive_hazard_events_per_cell: null
+  matched_benign_events_per_cell: null
+  expected_censoring_fraction: null
+  confirmatory_counts: null
+
+local_calibration_before_dynamic_ladder:
+  required: true
+  metrics:
+    - compact_payload_bytes_by_object_count
+    - segmentation_accuracy
+    - pedestrian_recall
+    - vehicle_recall
+    - localization_error
+    - inference_latency_p50_p95
+    - sustainable_fps
+    - cpu_gpu_utilization
+    - memory_occupancy
+    - oai_delivery_latency_prb_queue_by_anchor
+  energy_required_only_with_calibrated_counter: true

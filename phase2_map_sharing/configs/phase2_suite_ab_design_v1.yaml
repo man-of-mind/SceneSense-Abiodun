@@ -1,0 +1,148 @@
+schema_version: scenesense.phase2_suite_design.v1
+design_id: phase2_suite_ab_v1
+implementation_status: design_freeze_candidate_no_collection_authority
+authorization:
+  carla_launch: false
+  oai_launch: false
+  full_collection: false
+  controller_evaluation: false
+  rl_training: false
+
+master_seed: 8172026
+pilot_exclusion_group_ids:
+  - phase2_pilot_pair_001
+
+common:
+  town: Town10HD_Opt
+  renderer_quality:
+    primary_level: Epic
+    required_server_launch_flag: -quality-level=Epic
+    provenance_source: operator_declared_server_launch_flag
+    rpc_introspection_available: false
+    existing_stress_level: Low
+    future_low_collection_authorized: false
+  world_hz: 10.0
+  trajectory_duration_s: 12.0
+  roles: [helper, recipient]
+  arms: [ego_only, send_everything, hazard_only]
+  sensor_contract: mprime_training_exact_v1
+  truth_contract: actor_origin_evaluation_only
+  warning_horizon_s: 5.0
+  split_fractions:
+    calibration: 0.20
+    validation: 0.20
+    test: 0.60
+
+power:
+  primary_endpoint: paired_registered_target_warning_lead_s
+  analysis_unit: independent_route_seed_scenario_group
+  smallest_effect_s: 0.5
+  two_sided_alpha: 0.05
+  minimum_power: 0.80
+  planned_censor_fraction: 0.10
+  paired_sd_sensitivity_s: [0.75, 1.0, 1.25, 1.5]
+  calibration_gate: >-
+    Simulate the registered clustered/censored estimator using calibration
+    yields and nuisance outcomes. Continue only if planned untouched test
+    counts provide at least 0.80 power at 0.5 s, and separately demonstrate
+    adequate missed-hazard and false-warning non-inferiority precision.
+
+retention:
+  raw_window_duration_s: 4.0
+  raw_window_anchor: registered_conflict_minus_2s_or_middle_if_unregistered
+  calibration_tier: inputs_only_window
+  validation_tier: inputs_only_window
+  test_tier: causal_lightweight_only
+  audit_tier: inputs_plus_logits_window
+  audit_selection: one_calibration_group_per_designed_geometry_and_naturalistic_route
+  pilot_measured_role_input_bytes_per_frame: 2747563
+  pilot_measured_role_logits_bytes_per_frame: 19951192
+  estimated_lightweight_bytes_per_trajectory: 5000000
+  design_raw_cap_bytes: 80000000000
+  required_free_floor_bytes: 500000000000
+
+runtime_estimate:
+  pilot_measured_minutes_per_trajectory: 2.9
+  note: excludes human gate review and offline analysis
+
+suite_a:
+  label: designed_decision_opportunities
+  headline_role: powered_regime_bounded_c2_test
+  replicates_per_factor_cell: 5
+  split_by_replicate:
+    calibration: [0]
+    validation: [1]
+    test: [2, 3, 4]
+  traffic_density_cycle: [sparse, typical, dense]
+  weather: ClearNoon
+  closing_speed_bands:
+    low: [2.0, 4.0]
+    high: [6.0, 10.0]
+  time_to_hazard_bands:
+    short: [1.5, 3.0]
+    long: [3.0, 5.0]
+  geometries:
+    - geometry_id: curbside_bus_occluded_pedestrian
+      hazard_class: pedestrian
+      implementation_status: reviewed_pilot_geometry
+      source_geometry_id: town10hd_opt_curbside_legal_opposing_v1
+    - geometry_id: signalized_corner_occluded_pedestrian
+      hazard_class: pedestrian
+      implementation_status: reviewed_visual_geometry
+      source_geometry_id: town10hd_opt_signalized_corner_van_crosswalk_v1
+      recipient_route: data_collection/routes/town10hd_opt_signalized_corner_recipient_v1.progress.csv
+      helper_route: data_collection/routes/town10hd_opt_signalized_corner_helper_v1.progress.csv
+    - geometry_id: parked_van_midblock_occluded_pedestrian
+      hazard_class: pedestrian
+      implementation_status: reviewed_visual_geometry
+      source_geometry_id: town10hd_opt_midblock_curbside_van_v1
+      recipient_route: data_collection/routes/town10hd_opt_midblock_van_recipient_v1.progress.csv
+      helper_route: data_collection/routes/town10hd_opt_midblock_van_helper_v1.progress.csv
+    - geometry_id: occluded_cross_traffic_vehicle
+      hazard_class: vehicle
+      implementation_status: reviewed_visual_geometry
+      source_geometry_id: town10hd_opt_occluded_cross_traffic_vehicle_v1
+      recipient_route: data_collection/routes/town10hd_opt_signalized_corner_recipient_v1.progress.csv
+      helper_route: data_collection/routes/town10hd_opt_signalized_corner_helper_v1.progress.csv
+      target_route: data_collection/routes/town10hd_opt_cross_traffic_target_v1.progress.csv
+    - geometry_id: parked_vehicle_pullout
+      hazard_class: vehicle
+      implementation_status: reviewed_visual_geometry
+      source_geometry_id: town10hd_opt_parked_vehicle_pullout_v1
+      recipient_route: data_collection/routes/town10hd_opt_midblock_van_recipient_v1.progress.csv
+      helper_route: data_collection/routes/town10hd_opt_midblock_van_helper_v1.progress.csv
+      target_route: data_collection/routes/town10hd_opt_parked_vehicle_pullout_target_v1.progress.csv
+    - geometry_id: queue_reveal_lead_vehicle
+      hazard_class: vehicle
+      implementation_status: reviewed_visual_geometry
+      source_geometry_id: town10hd_opt_queue_reveal_lead_vehicle_v1
+      recipient_route: data_collection/routes/town10hd_opt_midblock_van_recipient_v1.progress.csv
+      helper_route: data_collection/routes/town10hd_opt_midblock_van_helper_v1.progress.csv
+      occluder_route: data_collection/routes/town10hd_opt_queue_reveal_occluder_v1.progress.csv
+
+suite_b:
+  label: naturalistic_operation
+  headline_role: honest_denominator_not_powered_for_forced_hazard_lead
+  groups_per_route: 30
+  split_counts_per_route:
+    calibration: 6
+    validation: 6
+    test: 18
+  density_counts_per_route_split:
+    calibration: {sparse: 2, typical: 3, dense: 1}
+    validation: {sparse: 2, typical: 3, dense: 1}
+    test: {sparse: 4, typical: 9, dense: 5}
+  weather_counts_per_route_split:
+    calibration: {ClearNoon: 4, CloudyNoon: 1, WetNoon: 1}
+    validation: {ClearNoon: 4, CloudyNoon: 1, WetNoon: 1}
+    test: {ClearNoon: 13, CloudyNoon: 4, WetNoon: 1}
+  routes:
+    - route_id: town10hd_opt_curbside_corridor
+      implementation_status: reviewed_pilot_route
+      source_route: data_collection/routes/town10hd_opt_curbside_recipient_v1.progress.csv
+    - route_id: town10hd_opt_signalized_demo_region
+      implementation_status: paired_route_authoring_and_visual_review_required
+      source_route: data_collection/routes/town10hd_opt_advisor_demo_loop_v2.progress.csv
+    - route_id: town10hd_opt_safe_perimeter
+      implementation_status: paired_route_authoring_and_visual_review_required
+      source_route: data_collection/routes/town10hd_opt_advisor_safe_perimeter_loop_v3.progress.csv

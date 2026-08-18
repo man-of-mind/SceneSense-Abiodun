@@ -1071,6 +1071,61 @@ Groundwork completed early (does not satisfy the formal Month-4 exit criterion):
   recording adapter smoke also passes at
   `phase2_map_sharing/experiments/snapshot_adapter/20260814_222354` (37 paired-
   active snapshots; 26 fresh accepted, 11 stale rejected; no hazard truth).
+- [x] Implement the separate Phase-2 v2 offline contract foundation: strict
+  source-local schema, object+recipient covariance propagation, aligned-clock
+  rejection, per-stage causal allowlist/audit logging, truth/shadow rejection,
+  isolated counterfactual arm state, and pre-write raw-retention quotas.
+- [x] Wire the v2 safeguards into a derived paired helper-recipient collector,
+  exact-frame external-ticker orchestration, isolated three-arm replay, and the
+  nine-gate verifier. Phase-2 tests pass 36/36 and collector regressions pass
+  61/61; this is implementation evidence, not C2 evidence.
+- [x] Review and freeze the road-legal helper/recipient UI geometry: helper
+  lane `+1`, recipient lane `-2`, accepted positive and matched-benign arms.
+- [x] Confirm host GPU headroom for the correctness-only shared-`cuda:0`
+  assignment and cut separate pilot-only contract/integration configs. CARLA
+  alone used 6,362 MiB and 16,748 MiB remained free. Only the two-trajectory
+  CARLA pilot is authorized; shared-GPU inference timing is non-citable.
+- [x] Launch the detached two-trajectory pilot, stop at its completion sentinel,
+  then separately run replay and the nine hard gates. Accepted capture:
+  `data_collection/experiments/phase2_paired_causal_v1/20260817_181354_pilot`.
+  The create-only `evaluation_v4` / `verification_v4` repair proves a
+  registered-target, helper+recipient capture-to-warning chain; all nine gates
+  PASS. Warning parameters and shared-GPU timing remain non-citable.
+- [x] Freeze the post-pilot warning evaluation design in
+  `phase2_map_sharing/WARNING_EVALUATION_DESIGN_FREEZE.md`: correct
+  target/non-target/unmatched/false-warning labels, trajectory-clustered units,
+  bounded calibration grid, 5 pp miss and 2 pp nuisance C2 non-inferiority
+  margins, and a 0.5 s minimum meaningful lead. Phase-2 tests: 48/48 PASS;
+  data-collection regressions: 65/65 PASS.
+- [x] Implement and test the evaluation-only future-trajectory hazard
+  adjudicator. Authoritative output `hazard_adjudication_v2` preserves all
+  runtime hashes, performs class-constrained one-to-one matching, and uses the
+  matched benign recipient trajectory as the positive no-yield
+  counterfactual. The intervention-contaminated v1 output is superseded.
+  Stopping/clearance is computable but non-attributable until warnings actuate
+  a fixed downstream controller. Phase-2 tests pass 57/57 and data-collection
+  regressions pass 65/65.
+- [x] Generate the deterministic powered Suite A/B design candidate and hashed
+  grouped split manifest. Suite A is designed opportunities (120 independent
+  groups); Suite B is naturalistic operation (90 groups). Exact 20/20/60
+  assignments produce 330 world trajectories, ~16 h staged capture, and a
+  54.61 GB tiered-retention estimate under the 80 GB cap. The 0.5 s lead
+  sensitivity is 0.883 approximate power at SD 1.25 s and 10% censoring; this
+  is not a pilot variance estimate.
+- [x] Author, visually accept, and hash-freeze the signalized-corner and
+  parked-van-midblock pedestrian geometries. The latter now gravity-settles
+  its curbside occluder before freezing physics; its two 33-point routes are
+  immutable.
+- [x] Resolve renderer quality as an explicit corpus contract. Primary Phase-2
+  rows lock CARLA `Epic` (`-quality-level=Epic`); existing Low captures are a
+  labelled stress diagnostic only. The dense <=12 m weighted comparison was
+  inconclusive due zero near-pedestrian support, so this is an operational
+  freeze rather than an all-class dominance or training-lineage claim.
+- [ ] Author and visually accept three pending vehicle geometries plus two
+  paired naturalistic routes, then run only the 15-trajectory calibration
+  audit. The registered estimator must demonstrate >=0.80 simulated power and
+  adequate non-inferiority precision before validation. Full collection is
+  still unauthorized.
 - [ ] Real-data ray/visibility-grid occlusion disambiguation and warning path.
 
 - [x] Add an offline adapter from existing raw split-model spatial-map outputs

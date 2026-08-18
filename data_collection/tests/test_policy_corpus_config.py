@@ -40,6 +40,71 @@ from data_collection.run_advisor_spawn_blocker import _poll_for_tick
 from data_collection.replay_on_contract_pedestrian_diagnostic import (
     target_radar_hit_count,
 )
+from data_collection.author_advisor_demo_route import _PlanningWorld
+from data_collection.review_phase2_pair_geometry import (
+    CURBSIDE_ROUTE_PROGRESS,
+    _settle_parked_occluder,
+    load_route_progress,
+    opposite_lane_route,
+    offset_transform,
+)
+from data_collection.phase2_curbside_scenario import (
+    CURBSIDE_GEOMETRY_ID,
+    DirectRouteController,
+)
+from data_collection.phase2_signalized_corner_scenario import (
+    SIGNALIZED_EXPECTED_END_LANES,
+    SIGNALIZED_EXPECTED_START_LANES,
+    SIGNALIZED_GEOMETRY_ID,
+    SIGNALIZED_JUNCTION_ID,
+    SIGNALIZED_ROUTE_SHA256,
+    _standard_agents_root,
+    frozen_routes,
+    line_of_sight_bearings_deg,
+)
+from data_collection.phase2_midblock_van_scenario import (
+    MIDBLOCK_EXPECTED_LANES,
+    MIDBLOCK_GEOMETRY_ID,
+    MIDBLOCK_HELPER_TRANSFORM,
+    MIDBLOCK_OCCLUDER_MAX_CENTER_OFFSET_M,
+    MIDBLOCK_OCCLUDER_MIN_CENTER_OFFSET_M,
+    MIDBLOCK_OCCLUDER_TRANSFORM,
+    MIDBLOCK_RECIPIENT_TRANSFORM,
+    MIDBLOCK_ROAD_ID,
+    MIDBLOCK_ROUTE_SHA256,
+    frozen_routes as midblock_frozen_routes,
+    line_of_sight_bearings_deg as midblock_line_of_sight_bearings_deg,
+)
+from data_collection.phase2_cross_traffic_vehicle_scenario import (
+    CROSS_TRAFFIC_GEOMETRY_ID,
+    CROSS_TRAFFIC_HELPER_TRANSFORM,
+    CROSS_TRAFFIC_OCCLUDER_TRANSFORM,
+    CROSS_TRAFFIC_RECIPIENT_TRANSFORM,
+    CROSS_TRAFFIC_TARGET_TRANSFORM,
+    CROSS_TRAFFIC_TARGET_ROUTE_SHA256,
+    frozen_routes as cross_traffic_frozen_routes,
+    visibility_state as cross_traffic_visibility_state,
+)
+from data_collection.phase2_parked_vehicle_pullout_scenario import (
+    PULLOUT_GEOMETRY_ID,
+    PULLOUT_HELPER_TRANSFORM,
+    PULLOUT_MERGE_POINT,
+    PULLOUT_OCCLUDER_TRANSFORM,
+    PULLOUT_RECIPIENT_TRANSFORM,
+    PULLOUT_TARGET_ROUTE_VALUES,
+    PULLOUT_TARGET_ROUTE_SHA256,
+    PULLOUT_TARGET_TRANSFORM,
+    frozen_routes as pullout_frozen_routes,
+)
+from data_collection.phase2_queue_reveal_vehicle_scenario import (
+    QUEUE_REVEAL_GEOMETRY_ID,
+    QUEUE_REVEAL_HELPER_TRANSFORM,
+    QUEUE_REVEAL_OCCLUDER_ROUTE_VALUES,
+    QUEUE_REVEAL_OCCLUDER_TRANSFORM,
+    QUEUE_REVEAL_RECIPIENT_TRANSFORM,
+    QUEUE_REVEAL_TARGET_TRANSFORM,
+    frozen_routes as queue_reveal_frozen_routes,
+)
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -62,6 +127,341 @@ ON_CONTRACT_CONFIG_PATH = (
 
 
 class VehicleCorpusConfigTests(unittest.TestCase):
+    def test_route_planning_world_does_not_register_unused_tick_callback(self):
+        class FakeWorld:
+            marker = object()
+
+            def on_tick(self, _callback):
+                raise AssertionError("planning-only route author must not subscribe")
+
+        wrapped = FakeWorld()
+        planning_world = _PlanningWorld(wrapped)
+        self.assertIsNone(planning_world.on_tick(lambda _snapshot: None))
+        self.assertIs(planning_world.marker, wrapped.marker)
+
+    def test_phase2_geometry_offset_stays_on_base_heading(self):
+        base = __import__("carla").Transform(
+            __import__("carla").Location(x=-3.974, y=28.104, z=0.6),
+            __import__("carla").Rotation(yaw=0.16),
+        )
+        helper = offset_transform(base, forward_m=10.0)
+        self.assertAlmostEqual(
+            math.hypot(
+                float(helper.location.x - base.location.x),
+                float(helper.location.y - base.location.y),
+            ),
+            10.0,
+            places=5,
+        )
+        self.assertAlmostEqual(helper.location.x, 6.02596, places=4)
+        self.assertAlmostEqual(helper.location.y, 28.13193, places=4)
+        self.assertAlmostEqual(helper.location.z, 0.75, places=6)
+
+    def test_phase2_geometry_viewer_uses_accepted_v3_route(self):
+        route = load_route_progress(
+            REPO_ROOT
+            / "data_collection/routes/town10hd_opt_advisor_safe_perimeter_loop_v3.progress.csv"
+        )
+        self.assertGreater(len(route), 80)
+        self.assertAlmostEqual(float(route[0].x), 3.273855, places=5)
+        self.assertAlmostEqual(float(route[0].y), 28.193132, places=5)
+
+    def test_phase2_curbside_routes_cross_centerline_and_are_opposite(self):
+        recipient = load_route_progress(CURBSIDE_ROUTE_PROGRESS)
+        helper = opposite_lane_route(recipient)
+        frozen_helper = load_route_progress(
+            REPO_ROOT
+            / "data_collection/routes/town10hd_opt_curbside_helper_v1.progress.csv"
+        )
+        self.assertEqual(len(recipient), 28)
+        self.assertGreater(len(helper), 10)
+        self.assertEqual(len(frozen_helper), len(helper))
+        self.assertEqual(CURBSIDE_GEOMETRY_ID, "town10hd_opt_curbside_legal_opposing_v1")
+        self.assertAlmostEqual(float(recipient[0].x), 57.500881195, places=6)
+        self.assertAlmostEqual(float(helper[0].x), 6.516562939, places=6)
+        self.assertAlmostEqual(
+            float(helper[-1].y - recipient[0].y), 7.0, places=5
+        )
+        recipient_dx = float(recipient[1].x - recipient[0].x)
+        helper_dx = float(helper[1].x - helper[0].x)
+        self.assertLess(recipient_dx, 0.0)
+        self.assertGreater(helper_dx, 0.0)
+        for generated, frozen in zip(helper, frozen_helper):
+            self.assertAlmostEqual(float(generated.x), float(frozen.x), places=6)
+            self.assertAlmostEqual(float(generated.y), float(frozen.y), places=6)
+
+    def test_phase2_signalized_frozen_geometry_has_lane_and_camera_contract(self):
+        self.assertEqual(
+            SIGNALIZED_GEOMETRY_ID,
+            "town10hd_opt_signalized_corner_van_crosswalk_v1",
+        )
+        self.assertEqual(SIGNALIZED_JUNCTION_ID, 532)
+        self.assertEqual(SIGNALIZED_EXPECTED_START_LANES["recipient"], (21, -1))
+        self.assertEqual(SIGNALIZED_EXPECTED_START_LANES["occluder"], (21, -2))
+        self.assertNotEqual(
+            SIGNALIZED_EXPECTED_END_LANES["recipient"],
+            SIGNALIZED_EXPECTED_END_LANES["helper"],
+        )
+        self.assertTrue(_standard_agents_root().is_dir())
+        routes = frozen_routes()
+        self.assertEqual(len(routes["recipient"]), 39)
+        self.assertEqual(len(routes["helper"]), 33)
+        self.assertEqual(len(SIGNALIZED_ROUTE_SHA256["recipient"]), 64)
+        bearings = line_of_sight_bearings_deg()
+        self.assertEqual(set(bearings), {"helper", "recipient"})
+        self.assertTrue(all(abs(value) < 55.0 for value in bearings.values()))
+
+    def test_phase2_midblock_candidate_has_opposing_lane_and_camera_contract(self):
+        self.assertEqual(
+            MIDBLOCK_GEOMETRY_ID,
+            "town10hd_opt_midblock_curbside_van_v1",
+        )
+        self.assertEqual(MIDBLOCK_ROAD_ID, 12)
+        self.assertEqual(MIDBLOCK_EXPECTED_LANES["recipient"], (12, 1))
+        self.assertEqual(MIDBLOCK_EXPECTED_LANES["helper"], (12, -1))
+        start_separation_m = math.hypot(
+            MIDBLOCK_RECIPIENT_TRANSFORM[0] - MIDBLOCK_HELPER_TRANSFORM[0],
+            MIDBLOCK_RECIPIENT_TRANSFORM[1] - MIDBLOCK_HELPER_TRANSFORM[1],
+        )
+        self.assertGreater(start_separation_m, 40.0)
+        self.assertLess(
+            MIDBLOCK_RECIPIENT_TRANSFORM[0], MIDBLOCK_OCCLUDER_TRANSFORM[0]
+        )
+        self.assertLess(
+            MIDBLOCK_OCCLUDER_TRANSFORM[0], MIDBLOCK_HELPER_TRANSFORM[0]
+        )
+        self.assertLess(abs(MIDBLOCK_RECIPIENT_TRANSFORM[3]), 5.0)
+        self.assertLess(abs(abs(MIDBLOCK_HELPER_TRANSFORM[3]) - 180.0), 5.0)
+        curb_center_offset_m = abs(
+            MIDBLOCK_OCCLUDER_TRANSFORM[1] - MIDBLOCK_RECIPIENT_TRANSFORM[1]
+        )
+        self.assertGreaterEqual(
+            curb_center_offset_m, MIDBLOCK_OCCLUDER_MIN_CENTER_OFFSET_M
+        )
+        self.assertLessEqual(
+            curb_center_offset_m, MIDBLOCK_OCCLUDER_MAX_CENTER_OFFSET_M
+        )
+        bearings = midblock_line_of_sight_bearings_deg()
+        self.assertEqual(set(bearings), {"helper", "recipient"})
+        self.assertTrue(all(abs(value) < 55.0 for value in bearings.values()))
+        routes = midblock_frozen_routes()
+        self.assertEqual(len(routes["recipient"]), 33)
+        self.assertEqual(len(routes["helper"]), 33)
+        self.assertTrue(
+            all(len(value) == 64 for value in MIDBLOCK_ROUTE_SHA256.values())
+        )
+
+    def test_phase2_cross_traffic_frozen_geometry_has_differential_initial_visibility(self):
+        carla = __import__("carla")
+
+        def transform(values):
+            return carla.Transform(
+                carla.Location(x=values[0], y=values[1], z=values[2]),
+                carla.Rotation(yaw=values[3]),
+            )
+
+        self.assertEqual(
+            CROSS_TRAFFIC_GEOMETRY_ID,
+            "town10hd_opt_occluded_cross_traffic_vehicle_v1",
+        )
+        self.assertEqual(len(CROSS_TRAFFIC_TARGET_ROUTE_SHA256), 64)
+        routes = cross_traffic_frozen_routes()
+        self.assertEqual(len(routes["recipient"]), 39)
+        self.assertEqual(len(routes["helper"]), 33)
+        self.assertEqual(len(routes["target"]), 107)
+        target = transform(CROSS_TRAFFIC_TARGET_TRANSFORM)
+        occluder = transform(CROSS_TRAFFIC_OCCLUDER_TRANSFORM)
+        helper = cross_traffic_visibility_state(
+            transform(CROSS_TRAFFIC_HELPER_TRANSFORM), target, occluder
+        )
+        recipient = cross_traffic_visibility_state(
+            transform(CROSS_TRAFFIC_RECIPIENT_TRANSFORM), target, occluder
+        )
+        self.assertTrue(helper["in_fov"])
+        self.assertTrue(helper["geometrically_visible"])
+        self.assertFalse(helper["occluded_by_controlled_truck"])
+        self.assertTrue(recipient["in_fov"])
+        self.assertFalse(recipient["geometrically_visible"])
+        self.assertTrue(recipient["occluded_by_controlled_truck"])
+
+    def test_phase2_pullout_frozen_geometry_has_explicit_conflict_route(self):
+        carla = __import__("carla")
+
+        def transform(values):
+            return carla.Transform(
+                carla.Location(x=values[0], y=values[1], z=values[2]),
+                carla.Rotation(yaw=values[3]),
+            )
+
+        self.assertEqual(
+            PULLOUT_GEOMETRY_ID,
+            "town10hd_opt_parked_vehicle_pullout_v1",
+        )
+        self.assertEqual(len(PULLOUT_TARGET_ROUTE_SHA256), 64)
+        routes = pullout_frozen_routes()
+        self.assertEqual(set(routes), {"recipient", "helper", "target"})
+        self.assertEqual(len(routes["target"]), len(PULLOUT_TARGET_ROUTE_VALUES))
+        self.assertAlmostEqual(
+            float(routes["target"][0].x), PULLOUT_TARGET_TRANSFORM[0], places=5
+        )
+        self.assertAlmostEqual(
+            float(routes["target"][0].y), PULLOUT_TARGET_TRANSFORM[1], places=5
+        )
+        self.assertLessEqual(
+            min(
+                math.hypot(
+                    float(point.x) - PULLOUT_MERGE_POINT[0],
+                    float(point.y) - PULLOUT_MERGE_POINT[1],
+                )
+                for point in routes["target"]
+            ),
+            0.05,
+        )
+        target = transform(PULLOUT_TARGET_TRANSFORM)
+        occluder = transform(PULLOUT_OCCLUDER_TRANSFORM)
+        helper = cross_traffic_visibility_state(
+            transform(PULLOUT_HELPER_TRANSFORM), target, occluder
+        )
+        recipient = cross_traffic_visibility_state(
+            transform(PULLOUT_RECIPIENT_TRANSFORM), target, occluder
+        )
+        self.assertTrue(helper["geometrically_visible"])
+        self.assertFalse(helper["occluded_by_controlled_truck"])
+        self.assertFalse(recipient["geometrically_visible"])
+        self.assertTrue(recipient["occluded_by_controlled_truck"])
+
+    def test_phase2_queue_reveal_frozen_geometry_has_distinct_initial_visibility(self):
+        carla = __import__("carla")
+
+        def transform(values):
+            return carla.Transform(
+                carla.Location(x=values[0], y=values[1], z=values[2]),
+                carla.Rotation(yaw=values[3]),
+            )
+
+        self.assertEqual(
+            QUEUE_REVEAL_GEOMETRY_ID,
+            "town10hd_opt_queue_reveal_lead_vehicle_v1",
+        )
+        routes = queue_reveal_frozen_routes()
+        self.assertEqual(set(routes), {"recipient", "helper", "occluder"})
+        self.assertEqual(
+            len(routes["occluder"]), len(QUEUE_REVEAL_OCCLUDER_ROUTE_VALUES)
+        )
+        target = transform(QUEUE_REVEAL_TARGET_TRANSFORM)
+        occluder = transform(QUEUE_REVEAL_OCCLUDER_TRANSFORM)
+        helper = cross_traffic_visibility_state(
+            transform(QUEUE_REVEAL_HELPER_TRANSFORM), target, occluder
+        )
+        recipient = cross_traffic_visibility_state(
+            transform(QUEUE_REVEAL_RECIPIENT_TRANSFORM), target, occluder
+        )
+        self.assertTrue(helper["geometrically_visible"])
+        self.assertFalse(helper["occluded_by_controlled_truck"])
+        self.assertFalse(recipient["geometrically_visible"])
+        self.assertTrue(recipient["occluded_by_controlled_truck"])
+
+    def test_review_route_shield_accounts_for_an_angled_vehicle_envelope(self):
+        carla = __import__("carla")
+
+        class ActorList:
+            def __init__(self, vehicle):
+                self.vehicle = vehicle
+
+            def filter(self, pattern):
+                return [self.vehicle] if pattern == "vehicle.*" else []
+
+        class World:
+            def __init__(self, vehicle):
+                self.actors = ActorList(vehicle)
+
+            def get_actors(self):
+                return self.actors
+
+        other = SimpleNamespace(
+            id=2,
+            type_id="vehicle.sprinter.mercedes",
+            bounding_box=SimpleNamespace(
+                extent=SimpleNamespace(x=3.0, y=1.0)
+            ),
+        )
+        other.get_transform = lambda: carla.Transform(
+            carla.Location(x=5.0, y=2.7, z=0.0),
+            carla.Rotation(yaw=20.0),
+        )
+        actor = SimpleNamespace(
+            id=1,
+            bounding_box=SimpleNamespace(
+                extent=SimpleNamespace(x=2.4, y=0.9)
+            ),
+        )
+        actor.get_world = lambda: World(other)
+        controller = DirectRouteController.__new__(DirectRouteController)
+        controller.actor = actor
+        controller.last_yield = None
+        ego = carla.Transform(
+            carla.Location(x=0.0, y=0.0, z=0.0),
+            carla.Rotation(yaw=0.0),
+        )
+
+        self.assertTrue(controller._must_yield(ego, speed_mps=3.0))
+        self.assertEqual(controller.last_yield["actor_id"], 2)
+        other.get_transform = lambda: carla.Transform(
+            carla.Location(x=5.0, y=2.7, z=0.0),
+            carla.Rotation(yaw=0.0),
+        )
+        self.assertFalse(controller._must_yield(ego, speed_mps=3.0))
+
+    def test_phase2_midblock_occluder_settles_before_physics_is_frozen(self):
+        carla = __import__("carla")
+        commanded = carla.Transform(
+            carla.Location(x=-6.0, y=72.5, z=0.8),
+            carla.Rotation(yaw=0.073),
+        )
+        transforms = [
+            carla.Transform(
+                carla.Location(x=-6.0 + min(index, 4) * 0.002, y=72.5, z=z),
+                carla.Rotation(yaw=0.073),
+            )
+            for index, z in enumerate(
+                (0.8, 0.5, 0.1, -0.05, -0.056, -0.056, -0.056, -0.056, -0.056)
+            )
+        ]
+
+        class FakeWorld:
+            step = 0
+
+            def tick(self, _timeout_s):
+                self.step += 1
+                return 1000 + self.step
+
+        class FakeActor:
+            def __init__(self, world):
+                self.world = world
+                self.physics_calls = []
+
+            def set_simulate_physics(self, enabled):
+                self.physics_calls.append(bool(enabled))
+
+            def apply_control(self, _control):
+                return None
+
+            def get_transform(self):
+                return transforms[min(max(self.world.step - 1, 0), len(transforms) - 1)]
+
+            def get_velocity(self):
+                return carla.Vector3D(z=0.0)
+
+        world = FakeWorld()
+        actor = FakeActor(world)
+        result = _settle_parked_occluder(
+            world, actor, commanded, timeout_s=1.0
+        )
+        self.assertTrue(result["pass"])
+        self.assertAlmostEqual(result["settled_z_m"], -0.056, places=6)
+        self.assertLess(result["xy_drift_m"], 0.01)
+        self.assertEqual(actor.physics_calls, [True, False])
+
     def test_vehicle_v2_locks_recipe_and_regimes_in_every_split(self):
         config = _load_config(CONFIG_PATH)
 

@@ -1,0 +1,52 @@
+{
+  "accepted_utc": "2026-08-18T03:45:48Z",
+  "acceptance_basis": "manual_positive_and_matched_benign_visual_review_after_automatic_geometry_gates",
+  "collection_authorized": false,
+  "geometry_id": "town10hd_opt_queue_reveal_lead_vehicle_v1",
+  "review_only_safety_note": "The authoring harness uses a ground-truth safety yield to prevent an intentional collision in the positive arm. It is not a policy input, C2 result, or learned-controller result.",
+  "reviewer_observation": "Both arms worked exactly as declared with no visual issue: the white Sprinter held the recipient queue, pulled smoothly into the curb without overlap or collision, and exposed the stopped lead vehicle; the recipient then stopped safely. In the matched benign arm the stopped lead was absent and the recipient continued.",
+  "routes": {
+    "helper": {
+      "path": "data_collection/routes/town10hd_opt_midblock_van_helper_v1.progress.csv",
+      "rows": 33,
+      "sha256": "c5fc19f01dc22bf3cdd5cc42bb5dc958d7088bfefac908977aacbe6e79e1cc81"
+    },
+    "occluder": {
+      "path": "data_collection/routes/town10hd_opt_queue_reveal_occluder_v1.progress.csv",
+      "rows": 13,
+      "sha256": "57371f1b7004b7bb5a709b44705167a327f19779e0684a70bf30380aae2ec870"
+    },
+    "recipient": {
+      "path": "data_collection/routes/town10hd_opt_midblock_van_recipient_v1.progress.csv",
+      "rows": 33,
+      "sha256": "f1d6e525dd1120a064e0414ab777faab31c7049df1554da6c4944f3b39ae3318"
+    }
+  },
+  "schema": "scenesense.phase2_geometry_review_acceptance.v1",
+  "visual_runs": {
+    "controlled_positive_occlusion": {
+      "artifact_path_at_review": "/tmp/phase2_geometry_review_queue_reveal_vehicle_positive_20260818_033946",
+      "collision_count": 0,
+      "combined_screenshot_sha256": "ab05a23bcb726531b585a7fb7ef25cb3e74621b8be57382c0fa6e1957f0abb65",
+      "helper_visibility_lead_s": 12.500000000000002,
+      "lane_contract_pass": true,
+      "longest_differential_visibility_s": 2.7,
+      "minimum_recipient_conflict_clearance_during_yield_m": 11.688169088494343,
+      "queue_occluder_route_max_cross_track_m": 0.8530032526248891,
+      "queue_occluder_speed_mps_median_while_moving": 1.0261029328814364,
+      "recipient_sustained_stop_after_reveal_s": 1.3,
+      "summary_sha256": "f5831742a80610870e336b3b2a654d7d0aeb23e65de132ae9a73a98e3e3dcf93",
+      "target_conflict_min_distance_m": 0.005418710743070157,
+      "target_stationary_max_speed_mps": 0.0
+    },
+    "matched_benign_negative": {
+      "artifact_path_at_review": "/tmp/phase2_geometry_review_queue_reveal_vehicle_benign_20260818_034023",
+      "collision_count": 0,
+      "combined_screenshot_sha256": "f72c648581ebf4a4cac2751e2f434975ba50a14e44fc37d336804b0a3e634f36",
+      "helper_progress_m": 46.889073293445136,
+      "matched_benign_motion_gate_pass": true,
+      "recipient_progress_m": 35.603681089601686,
+      "summary_sha256": "1a01335d7ad641a5d00999a251b6a64359669fe4b96277a508e1ad1827bdc6b1"
+    }
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "accepted_utc": "2026-08-18T00:20:03Z",
+  "acceptance_basis": "manual_pair_review_with_post_fix_high_quality_grounding_confirmation",
+  "collection_authorized": false,
+  "geometry_id": "town10hd_opt_midblock_curbside_van_v1",
+  "renderer_quality_note": "The final grounding check was manually performed at CARLA default/high quality, but renderer quality was not machine-recorded and is not treated as part of the frozen sensor contract.",
+  "reviewer_observation": "The helper/recipient motion, asymmetric pedestrian reveal, yielding, legal opposing lanes, and matched-benign behavior were as designed. After gravity settlement replaced immediate physics freezing, the occluder looked grounded with no visual issue at default/high rendering quality.",
+  "routes": {
+    "helper": {
+      "path": "data_collection/routes/town10hd_opt_midblock_van_helper_v1.progress.csv",
+      "rows": 33,
+      "sha256": "c5fc19f01dc22bf3cdd5cc42bb5dc958d7088bfefac908977aacbe6e79e1cc81"
+    },
+    "recipient": {
+      "path": "data_collection/routes/town10hd_opt_midblock_van_recipient_v1.progress.csv",
+      "rows": 33,
+      "sha256": "f1d6e525dd1120a064e0414ab777faab31c7049df1554da6c4944f3b39ae3318"
+    }
+  },
+  "schema": "scenesense.phase2_geometry_review_acceptance.v1",
+  "visual_runs": {
+    "controlled_positive_occlusion": {
+      "artifact_path_at_review": "/tmp/phase2_geometry_review_midblock_van_positive_20260818_001417",
+      "collisions": 0,
+      "combined_screenshot_sha256": "600671cc076d135ace4043e29765158b9f824ef2a50337a95b91c4322c6dd05d",
+      "lane_contract_pass": true,
+      "occluder_settlement_pass": true,
+      "pedestrian_completed": true,
+      "pedestrian_speed_gate_pass": true,
+      "summary_sha256": "f6c2f5ee19dec71ece0476d8441c94f607615f5545e777be72ef25a988d1ac11"
+    },
+    "matched_benign_negative_post_fix": {
+      "artifact_path_at_review": "/tmp/phase2_geometry_review_midblock_van_benign_20260817_234902",
+      "collisions": 0,
+      "combined_screenshot_sha256": "e4c233de7e09c0a895bce5fb3d1c8044943520a73093a632506c8836dd61cc54",
+      "matched_benign_motion_gate_pass": true,
+      "occluder_settlement_pass": true,
+      "review_mode": "post_fix_headless_recheck_after_manual_pair_review",
+      "summary_sha256": "5d63d98bf955cf0404d5729d4e35d5911633bd3728a2ef60d6540377b5c33dc5"
+    }
+  }
+}

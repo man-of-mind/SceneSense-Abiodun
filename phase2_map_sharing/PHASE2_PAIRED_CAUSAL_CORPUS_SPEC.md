@@ -1,9 +1,11 @@
 # Phase-2 paired causal control and corpus specification
 
 **Dataset ID:** `phase2_paired_causal_v1`  
-**Status:** design/preregistration draft, 2026-08-14. **No pilot, full CARLA collection, OAI run, controller
-evaluation, or RL training is authorized by this document.** The two-trajectory pilot must be reviewed separately
-before launch, and a passing pilot must be reviewed again before the full collection.
+**Status:** causal pilot and offline adjudication complete; powered Suite A/B
+design candidate added 2026-08-17. **No full CARLA collection, OAI run,
+controller evaluation, or RL training is authorized by this document.** The
+accepted pilot is structural evidence only; staged collection remains gated by
+`WARNING_EVALUATION_DESIGN_FREEZE.md` and `PHASE2_SUITE_AB_DESIGN.md`.
 
 This is the single source of truth for the Phase-2 observation/action timing, map-contribution schema requirements,
 paired corpus, and pilot acceptance gate. `policy_corpus_advisor_rich_v5` remains useful for perception QA,
@@ -31,6 +33,19 @@ lead_gain_s = first_warning_at_s(ego_only) - first_warning_at_s(cooperative)
 A helper receives cooperation credit only when delivered causal evidence advances the named recipient's warning.
 Localization, recall, bytes, latency, and map AoI are explanatory metrics, not substitutes for warning lead.
 
+“Actionable” is hazard-conditioned rather than a universal lead threshold. Before the scientific decision core,
+freeze a required response margin from independently justified terms:
+
+```text
+required_margin_s(h) = pipeline_p95_s + reaction_s + braking_s(h) + safety_margin_s
+actionable(h) iff first_warning_at_s <= predicted_conflict_at_s(h) - required_margin_s(h)
+```
+
+`braking_s(h)` depends on the registered closing speed, distance, and conservative deceleration model. The
+primary C2 decision endpoint is the paired change in actionable-warning success subject to a registered
+false-warning ceiling; continuous `lead_gain_s` is secondary. The numerical smallest effect of interest and sample
+counts are frozen after the pilot measures yield/censoring/variance, before any confirmatory collection.
+
 Warning time is a time-to-event endpoint, so missing warnings are not encoded as arbitrary large numbers. If the
 cooperative arm warns and ego-only does not warn before the registered hazard/evaluation horizon, report a
 right-censored ego-only time and a lower bound on lead. If both miss a positive hazard, report a missed-hazard pair
@@ -48,6 +63,8 @@ outcomes, not a fabricated lead. Report event counts alongside any median/CI.
   warning calibration must be measured before the C3 language can exceed “uncertainty-aware model contract.”
 - No RL algorithm is selected or trained here. RL is gated on residual sequential headroom after exact and simple
   causal baselines.
+- C2 warnings are **recorded but never actuated** during the paired corpus. Braking/steering would make the world
+  action-dependent and belongs only to the later navigation-override evaluation.
 
 ## 3. Causal decision loop
 
@@ -157,6 +174,11 @@ reviewed and implemented without silently changing v1 artifacts. At minimum it m
 - causal occlusion/hazard inputs and their provenance; any recipient-conditioned hazard score must record the
   recipient-state timestamp used to compute it.
 
+The causally delivered recipient-state message also carries covariance, motion/process-noise model identifiers,
+and process-noise parameters. Relative-warning uncertainty combines propagated object and recipient covariance;
+the initial sum assumes independent errors. A correlated estimator must supply cross-covariance and replace that
+assumption. Zero recipient uncertainty must be explicit and calibrated, never an omitted default.
+
 ### Recipient behavior
 
 For a constant-velocity baseline with state `z=[x,y,vx,vy]`, propagate:
@@ -181,6 +203,19 @@ default:
 - radar raster radius **4** and temporal window **2**;
 - actor-origin GT in the separate truth stream; no GT-derived runtime labels or keys.
 
+CARLA renderer quality is an explicit nuisance variable. The M-prime training
+metadata did not record Low/default/Epic, so the training corpus must not be
+retroactively labelled. The paired sparse gate proved renderer sensitivity, and
+the matched medium/crowded confirmation had identical world/radar support but no
+pedestrian inside its pre-registered <=12 m safety band. Its weighted v5 decision
+was therefore formally inconclusive rather than repaired post hoc. The operational
+contract is nevertheless frozen: all primary Phase-2 capture uses explicit
+`Epic` (`-quality-level=Epic`), selected for realistic rendering and its stronger
+dense diagnostic segmentation/vehicle results. Existing Low captures remain a
+labelled stress condition; no additional Low corpus stratum is authorized. Every
+later launch and run manifest must record `Epic`, the exact server flag, and the
+operator-declaration provenance because CARLA exposes no reliable quality RPC.
+
 Any faster controller clock is a later surrogate/runtime concern; it must not silently change the CARLA sensor
 contract. The pilot records pre-filter returns/frame and fails on a material density/shape/config drift before
 testing perception or C2.
@@ -193,7 +228,18 @@ reassembly, install, and warning. Never subtract timestamps from unaligned clock
 
 Both suites use one helper and one named recipient, synchronized truth, identical route/scenario seeds across
 policy arms, and trajectory-grouped train/validation/test splits. Scenario counts and factor distributions are
-frozen **before** controller development.
+frozen **after the pilot and before** the scientific decision core/controller development. Power is based on
+independent route/seed clusters, not raw frames or a naive count of correlated hazards. Use trajectory-clustered
+bootstrap or simulation-based power with pilot-estimated event yield, censoring, variance, and within-trajectory
+correlation. Freeze positive-hazard and matched-benign counts per factor cell, total independent clusters, expected
+censoring, smallest effect of interest, and false-warning ceiling in a hashed analysis plan.
+
+The deterministic candidate `phase2_suite_ab_v1` now provides that group
+inventory, exact 20/20/60 assignment, sensitivity envelope, retention tiers,
+and hashes. It remains a candidate—not authorization—until every proposed
+geometry/route is manually accepted and calibration simulation confirms at
+least 0.80 power for the registered estimators. The fixed names are Suite A =
+designed decision opportunities and Suite B = naturalistic operation.
 
 ### Suite A — designed decision opportunities
 
@@ -220,6 +266,22 @@ suite separately.
 The accepted v5 distribution informs traffic realism and perception workload, but its frames are not Phase-2 C2
 samples.
 
+### Network-state coverage for agent feasibility
+
+The four measured SNR/channel rungs remain the static calibration anchors, but SNR labels are never policy input
+and are not the complete environment. The causal state uses lagged capacity/queue/link telemetry. Before any
+dynamic-controller or RL go/no-go, the design-only scientific core must include at least one controlled
+degradation-and-recovery trace plus stable good/bad and burst/queue-recovery cases. It must demonstrate that:
+
+- at least two placement/publication actions are genuinely feasible in enough independent clusters;
+- LOCAL and SPLIT outcomes are measured on identical inputs without shadow-path perturbation;
+- action outcomes and rankings differ beyond measurement noise in at least some registered states; and
+- earlier actions change later queue/map-freshness state.
+
+Broader transition coverage is added only if this core exposes residual headroom. Add at least one held-out
+intermediate condition near the measured SPLIT feasibility knee to validate interpolation rather than memorizing
+four rungs.
+
 ## 9. Two-trajectory pilot gate
 
 The minimum pilot is **exactly two short paired trajectories**:
@@ -230,7 +292,8 @@ The minimum pilot is **exactly two short paired trajectories**:
 The pilot should exercise ego-only, send-everything, and hazard-only counterfactual evaluation from one immutable
 capture where valid. Each arm has an independent recipient-map/controller state; no installed track, queue, or
 warning state may leak across arms. If an arm changes sensing or world evolution, collect it as a paired replayable
-arm rather than claiming an invalid offline counterfactual.
+arm rather than claiming an invalid offline counterfactual. Warnings are logged only and **must not actuate** the
+recipient during C2 capture.
 
 ### Required retained artifacts
 
@@ -249,6 +312,21 @@ arm rather than claiming an invalid offline counterfactual.
 - application/on-wire bytes, tunnel identity, channel estimate and raw OAI telemetry where applicable;
 - resolved config, package/library versions, model/checkpoint hash, code revision, and artifact manifest hashes.
 
+### Hard raw-retention budget
+
+Continuous heavy retention is forbidden. The retained-input diagnostic implies an initial planning rate of about
+46 MB/frame, or about 55 GB/min for two synchronized vehicles at 10 Hz before shadow artifacts. This is a sizing
+reference, not a promised corpus size. The pilot runner must:
+
+- retain RGB/radar/tensors/logits only inside explicit controlled windows;
+- enforce per-window, per-trajectory, and pilot-total byte quotas before each write;
+- reserve configured free space up front and fail closed if the reserve would be crossed;
+- record attempted/written bytes, measured bytes/s, window duration, and stop reason; and
+- stop raw retention safely while preserving lightweight causal/event logs if a quota is reached.
+
+The pilot measures the true rate used to budget the full suites. Deleting prior evidence is not an automatic
+overflow policy; cleanup requires a separate reviewed inventory of uncited, reproducibly disposable artifacts.
+
 ### Pilot PASS gates
 
 All are hard gates; there is no majority pass.
@@ -264,9 +342,10 @@ All are hard gates; there is no majority pass.
    tracking, action, transport, map install, warning, and separate truth scoring.
 5. **Action provenance:** LOCAL, SPLIT, `SKIP_INFERENCE`, and `SKIP_PUBLICATION` cannot be conflated; shadow outputs
    cannot influence actions.
-6. **C2 computability:** from pilot artifacts alone, compute first warning, warning lead, false warning, missed
-   hazard, bytes, latency decomposition, map AoI, and evidence provenance for ego-only, send-everything, and
-   hazard-only.
+6. **C2 computability:** from pilot artifacts alone, compute first registered-target warning, warning lead,
+   non-target and unmatched warning burden, missed hazard, bytes, latency decomposition, map AoI, and evidence
+   provenance for ego-only, send-everything, and hazard-only. A non-target warning is not called a false alarm
+   until evaluation-only future-trajectory truth adjudicates whether that other object is hazardous.
 7. **Paired semantics:** the positive and benign trajectories share the intended matched factors, and all arm
    differences are declared. Counterfactual arms have isolated state. No hidden world-state divergence is treated
    as a policy effect.
@@ -274,7 +353,8 @@ All are hard gates; there is no majority pass.
    manifest, mutable overwrite, unintended collision/pile-up/gridlock, or failed actor cleanup. The deliberate
    positive hazard is labelled separately from an unintended impact.
 9. **Sensor contract:** configuration hashes match the pinned 10 Hz/1280x720/FOV120/200k/raster4/window2 contract,
-   and pre-filter radar density is on the expected approximately 20k-return/frame scale before perception scoring.
+   pre-filter radar density is on the expected approximately 20k-return/frame scale before perception scoring,
+   and the resolved CARLA renderer quality is present and matches the selected primary or declared stress stratum.
 
 Detector quality or a positive lead magnitude is **not** a pilot gate; the pilot establishes that these outcomes
 can be measured honestly. A pipeline can pass with a null/negative cooperation outcome if the result is causal and
@@ -286,20 +366,37 @@ At the first failed gate: write a failure summary, retain the immutable artifact
 Do not launch more trajectories, repair missing causal fields by joining future/GT data, weaken the gate, or infer
 that a full run will average the defect away. A PASS summary still requires human review before full collection.
 
-## 10. Full evaluation plan after a reviewed pilot PASS
+The post-pilot warning labels, clustered evaluation units, bounded calibration grid, non-inferiority margins, and
+C2 decision rule are frozen separately in `WARNING_EVALUATION_DESIGN_FREEZE.md`. That document is binding for the
+next design stage; the two-trajectory pilot is excluded from calibration and confirmatory claims.
 
-1. Collect the frozen Suite A and Suite B distributions once.
-2. Run local paired C2 baselines: ego-only, periodic/send-everything, hazard-only, deadline-aware, and exact
+## 10. Staged evaluation plan after a reviewed pilot PASS
+
+1. Apply `WARNING_EVALUATION_DESIGN_FREEZE.md`: freeze the cluster-aware Suite A/B inventory, power-based counts,
+   split manifest, actionable-deadline parameters, raw-data quotas, and a small design-only scientific core. Core
+   and calibration trajectories never reappear as confirmatory test evidence. The C2 false-warning
+   non-inferiority margin is not misrepresented as an absolute C3 deployment guarantee.
+2. Run the scientific core and stop unless it passes the causal action-support/dynamic-response gates in §8.
+3. Run local paired C2 baselines: ego-only, periodic/send-everything, hazard-only, deadline-aware, and exact
    object/profile enumeration where defined.
-3. Send the identical v2 contribution bytes over the two-UE OAI RFsim route and repeat the paired endpoints.
-4. Report warning lead, missed/false warnings, payload, end-to-end latency, map AoI/uncertainty, track continuity,
+4. Send the identical v2 contribution bytes over the two-UE OAI RFsim route and repeat the paired endpoints.
+5. Report actionable-warning success, continuous warning lead, missed/false warnings, payload, end-to-end latency,
+   map AoI/uncertainty, track continuity,
    and recovery separately by suite and scenario factor.
-5. Measure the minimal LOCAL table needed for dynamic placement: payload versus object count, local inference
-   p50/p95, sustainable FPS, and compact-record OAI delivery/latency.
-6. Only then run the causal three-placement/publication ladder. Start with exact enumerator, fixed/rule, greedy,
+6. Measure the LOCAL table needed for dynamic placement on the target compute configuration: compact payload
+   versus object count/schema; paired segmentation, pedestrian/vehicle recall and localization on identical
+   inputs; inference p50/p95; sustainable FPS; CPU/GPU and memory occupancy; and compact-record OAI delivery,
+   latency, PRB/airtime, and queueing across the four static anchors. Payload size is indexed by object/schema,
+   while SNR/load indexes transport outcomes. Energy is optional unless a calibrated counter exists.
+7. Only then run the causal three-placement/publication ladder. Start with exact enumerator, fixed/rule, greedy,
    lambda-RDO where supported, and the AoI-index-inspired heuristic. Genuine Whittle requires a demonstrated
    per-object arm decomposition and indexability.
-7. Authorize DQN/discrete-SAC/masked-PPO only if simpler causal baselines leave a pre-registered sequential gap.
+8. Authorize DQN/discrete-SAC/masked-PPO only if simpler causal baselines leave a pre-registered sequential gap.
+
+Pre-register the interpretation of a null before the core: gain in both suites supports broad C2; gain only in
+designed occlusions supports a regime-bounded claim; a late-transport null defines the transport feasibility
+boundary; no earlier helper evidence defines a perception/scenario boundary; no meaningful gain anywhere requires
+reconsidering C2 as the paper spine rather than a post-hoc C3/C4 pivot.
 
 ## 11. Pre-launch self-audit
 

@@ -12,6 +12,20 @@ from .schemas import (
     WarningEvent,
     with_exact_payload_bytes,
 )
+from .causal_contract import (
+    CausalDecisionAudit,
+    CausalField,
+    CounterfactualArmRegistry,
+    DecisionRecord,
+)
+from .engine_v2 import RecipientMapEngineV2
+from .schemas_v2 import (
+    MapContributionV2,
+    MapObjectObservationV2,
+    RecipientStateV2,
+    WarningEventV2,
+    with_exact_payload_bytes_v2,
+)
 
 __all__ = [
     "EgoState",
@@ -28,4 +42,14 @@ __all__ = [
     "select_recipient_hazards",
     "chunk_payload",
     "with_exact_payload_bytes",
+    "CausalDecisionAudit",
+    "CausalField",
+    "CounterfactualArmRegistry",
+    "DecisionRecord",
+    "MapContributionV2",
+    "MapObjectObservationV2",
+    "RecipientMapEngineV2",
+    "RecipientStateV2",
+    "WarningEventV2",
+    "with_exact_payload_bytes_v2",
 ]

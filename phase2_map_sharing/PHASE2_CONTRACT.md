@@ -75,26 +75,38 @@ This is a deterministic warning baseline, not a learned driving policy.
 - Tracks expire after TTL; expired evidence cannot cause warnings.
 - Source time, map-install time, and warning time remain separate in logs.
 
-## Schema-v2 requirement before a pilot
+## Schema-v2 offline foundation and remaining pilot requirement
 
 `scenesense.map_contribution.v1` remains immutable for its checked-in plumbing
-artifacts. Before live collection, define and review `v2` with per-object
-position/velocity covariance, object measurement time, motion-model ID,
-process-noise parameters/validity horizon, and the complete inference/publication
-provenance and timestamp chain. The recipient must propagate uncertainty under
-the declared motion model. A configured uncertainty floor is not a calibrated
-safety model. The complete required fields and gates are canonical in
-`PHASE2_PAIRED_CAUSAL_CORPUS_SPEC.md`.
+artifacts. The separate v2 offline implementation now carries per-object and
+recipient position/velocity covariance, object measurement time, motion-model
+ID, process-noise parameters/validity horizon, and the inference/publication
+provenance/timestamp chain. The recipient CV baseline propagates and combines
+both uncertainties. This is not a calibrated safety model. A derived paired
+collector, separate truth/runtime writers, simulation-time raw capture permits,
+isolated three-arm replay, and the nine-gate verifier are now wired and tested
+offline. The reviewed two-trajectory pilot batch `20260817_181354_pilot`
+passes the versioned structural/computability verifier. Its warning parameters
+and shared-GPU timing are not citable performance evidence. The binding next
+boundary is `WARNING_EVALUATION_DESIGN_FREEZE.md`.
 
 ## Step 3 — canonical local path after the pilot design gate
 
-1. Implement the reviewed v2 schema and causal state allowlist without changing v1.
-2. Run only the two-trajectory pilot: one controlled positive occlusion/hazard
-   and one matched benign negative.
-3. Prove pre-action availability, unfiltered detections, causal source-local
-   tracking, raw-sensor alignment, separate truth, and C2 computability.
-4. Stop for human review. Only a reviewed PASS authorizes the full paired
-   designed and naturalistic suites.
+1. The reviewed v2 schema, causal state allowlist, arm isolation, retention
+   quota, paired collector, replay, and verifier are complete without changing
+   v1.
+2. The legal helper/recipient geometry and shared-GPU correctness assignment
+   were reviewed, and the two-trajectory pilot completed.
+3. Versioned replay and all nine structural/computability gates pass, including
+   a registered-target recovery chain and explicit warning-burden diagnostics.
+4. The evaluation-only future-truth hazard adjudicator is implemented and
+   passes on the pilot as `hazard_adjudication_v2`. It uses the matched benign
+   no-yield trajectory for positive future-hazard truth and keeps realized
+   stopping outcomes non-attributable. Before full collection, freeze the
+   powered suite inventory and grouped split required by
+   `WARNING_EVALUATION_DESIGN_FREEZE.md`.
+5. Collect calibration/design first and stop at its gate; do not jump directly
+   from pilot PASS to confirmatory collection.
 
 The checked-in synthetic fixture validates plumbing only; it is not C2 evidence.
 Its application-byte counts are exact canonical JSON lengths, with UDP/IP chunk

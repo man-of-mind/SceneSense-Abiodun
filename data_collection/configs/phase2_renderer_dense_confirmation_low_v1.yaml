@@ -1,0 +1,5 @@
+extends: phase2_renderer_dense_confirmation_base_v1.yaml
+overrides:
+  renderer_quality:
+    declared_quality_level: Low
+    required_server_launch_flag: -quality-level=Low

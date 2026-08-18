@@ -4176,3 +4176,856 @@ quota**, not a guideline, with the pilot measuring the true rate and reserving s
    full collection -> C2 evaluation.
 
 No further review round needed from local Claude on the spec itself. Proceed.
+
+## 2026-08-14 — CODEX: Phase-2 v2 offline readiness foundation implemented; live pilot remains HOLD
+
+I proceeded with the agreed smallest implementation unit only. **No CARLA, OAI, pilot trajectory, controller
+evaluation, full collection, or RL training ran.** The result is deliberately labelled `OFFLINE FOUNDATION PASS`,
+not `PILOT PASS` and not C1/C2 evidence.
+
+### What is now implemented
+
+- `scenesense.map_contribution.v2` alongside immutable v1: source-local tracker provenance, placement/capture/
+  inference/publication timing, strict action/locus semantics, exact canonical application bytes and production
+  chunk count, object covariance/process noise/validity, model/config/code/calibration provenance, and strict
+  rejection of unknown fields plus GT/truth aliases.
+- `RecipientStateV2` carries its own covariance/process-noise contract. The CV recipient baseline propagates both
+  object and recipient state to the causal decision time, combines relative covariance for warning expansion, and
+  fails closed on clock-domain or unsupported-motion-model mismatch. The initial covariance sum explicitly assumes
+  independent errors; correlated estimators must supply cross-covariance before any stronger C3 claim.
+- A placement/publication-specific **state and producer allowlist**. Every exposed field must name its producer,
+  observation/availability time, consuming decision/stage, clock, and arm, and must satisfy
+  `available_at_s <= decision_at_s`. Merely renaming a current output to look “lagged” no longer passes.
+- Create-only JSONL causal audit records; `evaluation_truth` and `shadow_inference` are rejected as runtime sources.
+- Deep-copied, revision-guarded per-trajectory state stores for the three counterfactual arms. A stale token or
+  undeclared arm fails rather than sharing map/queue/warning state.
+- A non-destructive raw-retention budget with pre-write permits, duration/per-trajectory/pilot-total/free-space
+  limits, pending-write overbooking protection, and `stop raw / keep lightweight logs` behavior. There is no
+  deletion API.
+- An offline config/disk preflight pinned to exactly two trajectories, record-only warnings, the validated 10 Hz
+  sensor contract, the 80 GB pilot cap + 500 GB protected floor, and a minimal degradation/recovery network core
+  before any RL go/no-go.
+
+### Adversarial findings repaired before handoff
+
+The self-review caught four defects that a happy-path implementation would have missed: the first recipient-warning
+draft used an old recipient pose at a newer map time; clock alignment was asserted in prose but not at install;
+object-only covariance understated relative uncertainty; and state-field names were allowlisted without pinning
+their producer stage. The storage review also found that multiple outstanding write approvals could overbook a
+quota. All five are fixed and covered by negative tests.
+
+### Verification and storage result
+
+- Phase-2 unit/contract suite: **30/30 PASS**, including every frozen v1 test.
+- `py_compile`: PASS for every new v2/readiness module.
+- `git diff --check`: PASS.
+- Offline preflight: PASS with **~1.277 TB free**, versus an **80,000,000,000-byte** pilot maximum
+  plus **500,000,000,000-byte** protected floor. The two 32 GB trajectory caps bind before the 80 GB global cap.
+- Canonical record: `phase2_map_sharing/PILOT_IMPLEMENTATION_READINESS.md`.
+
+### Remaining blocking work — why there is still no launch command
+
+The latest collector is not yet wired to these primitives. Before authorization it must capture one helper + one
+recipient with aligned clocks; log unfiltered candidates and causal tracker lifecycle; physically separate truth
+and shadow outputs; call the quota permit before every heavy write; instantiate independent arm maps; and implement
+the nine-gate verifier including synthetic false-positive injection and one reconstructable capture-to-warning
+chain. That integration gets another review before a two-trajectory command is exposed.
+
+One scientific concern remains unchanged: the four static channel anchors are calibration points, not enough to
+establish sequential control. We can defer broad temporal modelling, but **not** the minimal registered
+degradation/recovery + burst/queue-recovery trace before the agent go/no-go. Without it, another greedy/MPC/RL tie
+would still be unable to distinguish “simple control suffices” from “the environment contains no sequential
+choice.”
+
+## 2026-08-14 — CODEX: paired collector/replay/verifier integration implemented; launch remains HOLD
+
+I implemented the next unit without launching CARLA, OAI, a pilot, a corpus, a controller, or RL. The accepted v5
+detector remains the perception path; the new entrypoint is a derived causal instrumentation layer.
+
+### What changed
+
+- The base collector now has explicit passive external-ticker mode and a pre-capture hook. Two UE collectors cannot
+  take clock ownership, spawn their own NPCs, or enter any inherited target mode that calls `world.tick`.
+- The paired wrapper logs the fixed SPLIT placement decision before the next sensor frame can exist, discards any
+  image buffered behind the start barrier, then logs publication only after selected inference and causal tracking.
+  Recipient self-localization has its own `recipient_localization` producer; it is not mislabelled as transported
+  recipient state.
+- CARLA actor-origin truth is moved into `evaluation_truth/`; runtime detections/tracks use only source-local IDs.
+  Aligned RGB, radar tensor/point records, and raw logits are retained through pre-write permits. Quota duration uses
+  **CARLA simulation time**, not slow wall-clock processing time.
+- The dry-run integration resolves exactly two trajectories, two exact ego spawns, eight unique loopback UDP ports,
+  one 10 Hz orchestrator ticker, a shared start barrier, and exact-frame heartbeats. The checked-in config is
+  `offline_dry_run_only`; live authorization is false.
+- Offline replay builds independent v2 recipient maps for ego-only, send-everything, and hazard-only, accounts exact
+  application/on-wire bytes, and performs CARLA identity matching only in the evaluation namespace. Its covariance
+  and warning settings are explicitly provisional-for-computability.
+- The verifier implements all nine gates in order and FAIL/HOLDs at the first one, including synthetic unmatched
+  detection injection and a capture-to-warning-to-truth recovery chain. Pilot performance gain is not a gate.
+
+### Adversarial repairs made during implementation
+
+1. The original paired sketch would have allowed the ego spawner to silently fall back from spawn 53/55 to any free
+   spawn, invalidating helper/recipient geometry. `--ego-spawn-require-exact` now makes that impossible.
+2. The initial retention hook measured 20 seconds in wall time, which would truncate a lockstep run if inference was
+   slow. It now measures the registered 200-frame CARLA interval.
+3. Missed causal tracks initially looked freshly observed on every replay frame. The tracker now carries the last
+   actual observation timestamp, so propagation, AoI, and TTL do not receive free freshness.
+4. The inherited config assigns both fronts to `cuda:0`. That may be acceptable for correctness-only lockstep, but
+   shared-GPU latency is non-citable. Host GPU inventory/device assignment is now an explicit pre-launch review item.
+
+### Verification and remaining HOLD
+
+- Phase-2 tests: **36/36 PASS**; data-collection regression suite: **61/61 PASS**; `py_compile` and
+  `git diff --check`: PASS.
+- Non-launching paired config/command resolution: PASS and reports `live_authorized=false`.
+- Remaining blockers are (a) UI proof that helper evidence precedes recipient evidence in the positive route and
+  that the matched benign route has no warning-worthy conflict, and (b) host compute inventory/device freeze.
+  After those are reviewed, cut a separate `reviewed_pilot_only` config, run only the two trajectories, replay, run
+  the nine gates, and stop again for human review. Full balanced corpus counts remain post-pilot, not guessed now.
+
+## 2026-08-15 — CODEX: curbside opposite-direction geometry adapter repaired and empirically checked
+
+The first curbside visual-review attempt **failed and is not evidence**: Traffic Manager reinterpreted the supplied
+paths, made the recipient U-turn into the helper's direction, and the pedestrian appeared absent. The saved summary
+showed that the walker had started, exposing a second adapter defect: a literal `WalkerControl.speed=1.3` realizes
+only about 0.064 m/s in this CARLA 0.10 build, and the walker was never stopped at its endpoint.
+
+The geometry-only instrument now uses two independent, non-looping direct polyline controllers—no TM routing—for
+the recipient and opposite-lane helper. The CLI pedestrian speed remains the **physical** contract (1.3 m/s); the
+CARLA-specific low-level command conversion is explicit, logged, and checked from realized pose. The walker stops
+and remains visible at the crossing endpoint. Per-tick realized poses and collision events are persisted.
+
+Corrected camera-backed smoke: `/tmp/phase2_geometry_review_20260815_035031`.
+
+- helper stayed in its eastbound lane (lateral span < 0.03 m); recipient stayed in its westbound lane (lateral
+  span < 0.03 m); neither U-turned;
+- realized pedestrian median speed = **1.2695 m/s** for requested 1.3 m/s, physical-speed gate PASS, endpoint held;
+- collisions = **0**;
+- at the 4.5 s retained view (CARLA frame 215336), the pedestrian is emerging in the helper view while the
+  recipient view is fully blocked by the parked Sprinter; by 6.0 s both views contain the pedestrian. This is about
+  a 1-1.5 s **visual** opportunity, not a claim that M' detects it or that C2 warning lead is positive.
+
+Offline verification remains clean: data-collection suite **65/65 PASS**, `py_compile` PASS, `git diff --check`
+PASS. Verdict: **geometry-review PASS for wiring the curbside positive and matched no-pedestrian benign pair**.
+The paired pilot remains HOLD until that wiring/config is reviewed. Detector visibility, radar support, causal
+tracking, and warning lead remain measurements for the two-trajectory pilot, not assumptions imported from this
+visual check.
+
+### Matched benign twin — automated pre-check complete, manual UI sign-off pending
+
+The visual instrument now has an explicit `matched_benign_negative` role. It holds the curbside geometry, both
+routes, vehicle speeds, parked Sprinter, cameras, timing, and controller code fixed, and removes only the pedestrian
+actor. It also fails unless both vehicles make at least 25 m of forward progress with zero collisions, preventing a
+stalled vehicle from masquerading as a safe negative.
+
+Headless camera-backed pre-check: `/tmp/phase2_geometry_review_benign_20260815_040750`.
+
+- pedestrian actor absent and all walker pose fields empty;
+- collisions = **0**;
+- helper/recipient longitudinal progress = **44.85 m / 49.67 m** over 12 s;
+- retained camera views show the same curbside Sprinter and no walker; headings remain opposite.
+
+This is an automated adapter check, not the final human visual gate. One short UI run remains: confirm no pedestrian
+appears, both cars stay on their opposite routes and pass naturally, and the recipient does not stop at the empty
+crossing. After that, freeze geometry and compute assignment and move to the reviewed two-trajectory pilot wiring;
+do not add more geometry variants.
+
+## 2026-08-15 — CODEX: user caught wrong-way helper; prior curbside sign-off revoked and repaired
+
+The user's final visual review exposed a road-topology error inherited from the original curbside demo. Although the
+helper and recipient faced opposite directions, both occupied negative-ID lanes on the same two-lane carriageway:
+the recipient was legally westbound on Town10HD_Opt road 10 lane `-2`, while the helper was commanded eastbound on
+lane `-1`, whose native heading is also westbound. Therefore the earlier positive/benign visual passes are **not a
+road-legal geometry sign-off** and must not be cited as naturalistic Phase-2 evidence.
+
+Read-only CARLA map inspection found the four-lane cross-section at the conflict:
+
+- lanes `-2/-1`: native heading approximately 180 degrees;
+- lanes `+1/+2`: native heading approximately 0 degrees.
+
+The adapter now places the helper on the nearest legal opposing lane `+1` (approximately 7.0 m from the recipient
+route, rather than the inherited 3.6 m shift). A runtime fail-fast gate projects both start poses to CARLA driving
+waypoints and requires opposite-signed lane IDs plus at most 5 degrees error from each lane's native heading.
+
+Corrected headless evidence:
+
+- positive: `/tmp/phase2_geometry_review_positive_20260815_041512`; helper lane `+1`, recipient lane `-2`, native
+  heading errors below 0.001 degrees, pedestrian speed gate PASS, collisions 0. At the retained 4.5 s frame, the
+  pedestrian is visible to the helper while the Sprinter still blocks the recipient.
+- benign: `/tmp/phase2_geometry_review_benign_20260815_041634`; the same legal lane contract PASS, pedestrian absent,
+  collisions 0, helper/recipient forward progress 44.16/49.63 m, benign motion gate PASS.
+- data-collection regression suite: **65/65 PASS**; `py_compile` and `git diff --check`: PASS.
+
+The pilot remains HOLD for one final manual UI pass of both repaired arms. This is not an extra scenario variant; it
+replaces the invalid wrong-way geometry. Only the legal-lane pair may be wired into the pilot.
+
+### Manual legal-lane sign-off complete
+
+Abiodun visually reviewed both repaired arms and confirmed they behaved as specified. The retained run records are:
+
+- positive: `/tmp/phase2_geometry_review_positive_20260815_041815` — legal lane contract PASS (`helper=+1`,
+  `recipient=-2`), pedestrian started/completed, physical-speed gate PASS, collisions 0;
+- benign: `/tmp/phase2_geometry_review_benign_20260815_041841` — identical legal lane contract, pedestrian absent,
+  helper/recipient forward progress 44.26/49.74 m, benign motion gate PASS, collisions 0.
+
+**Geometry verdict: PASS and frozen.** The pilot implementation must use this 7.0 m legal opposing-carriageway
+layout and must retain the runtime lane-ID/native-heading assertion. The inherited 3.6 m wrong-way layout is banned.
+No further geometry visual checks are required unless a pose, route, speed, occluder, camera, or timing parameter
+changes.
+
+## 2026-08-17 — CODEX: frozen legal geometry wired; offline pilot integration re-audited
+
+Fresh-week audit found one blocking implementation error before it could waste a pilot: the passive
+`--external-sync-ticker` collectors never call the policy overlay's per-tick route controller. The stale wiring
+would therefore have left both egos parked, or required Traffic Manager and reintroduced the already observed
+U-turn/path-reinterpretation failure. This is repaired without changing the reviewed scene:
+
+- `phase2_curbside_scenario.py` is now the single source for the accepted transforms, legal `+1/-2` lane contract,
+  routes, walker speed conversion, and non-looping direct controller. The visual instrument and paired orchestrator
+  import the same primitives.
+- Both collector-owned egos spawn **frozen** at reviewed spawn 61/152 plus pinned offsets. After both models and
+  sensors report ready, the orchestrator checks realized 3-D pose/yaw and the CARLA lane ID/native heading before
+  unfreezing either actor. It then owns both direct controllers; Traffic Manager does not own motion.
+- The orchestrator directly owns the Sprinter and optional `phase2_controlled_pedestrian`. The benign twin has no
+  walker. Town10HD_Opt reloads before each trajectory so the pair does not inherit hidden dynamic state.
+- This two-trajectory pilot intentionally has **no ambient NPCs**. It is a causal-capture/C2-computability gate,
+  not the full environmental-distribution corpus. Naturalistic/designed density and seed variation are frozen only
+  after pilot PASS.
+- The controlled window is reduced from an unused 20-second tail to the already reviewed 12 seconds (120 frames at
+  10 Hz). Placement is still SPLIT_FEATURE loopback; LOCAL remains a required post-C2 calibration before the
+  three-action dynamic ladder. The shared-GPU pilot is correctness-only and its inference latency is non-citable.
+
+Offline result: config resolution PASS; storage preflight PASS with 1,273,659,449,344 bytes free; role quotas bound
+the four role-trajectory streams to at most 64 GB, under the 80 GB design cap and preserving the 500 GB floor.
+Phase-2 tests are **37/37 PASS** and data-collection tests **65/65 PASS**. No CARLA, OAI, pilot, corpus, baseline, or
+RL run was launched.
+
+**Remaining HOLD:** run a host `nvidia-smi` capacity check with CARLA in its intended launch state. If there is
+reasonable headroom and no unrelated competing GPU job, cut separate `reviewed_pilot_only` contract/integration
+configs, inspect the resolved plan, launch exactly the two trajectories, then stop for replay + nine-gate review.
+No further visual geometry run is required unless a frozen scene/camera/motion parameter changes.
+
+### 2026-08-17 host-GPU gate passed; reviewed pilot-only launch surface cut
+
+With CARLA running, L10319 reported one RTX 5090 Laptop GPU: 24,463 MiB total, 7,251 MiB used, 16,748 MiB free;
+CARLA accounted for 6,362 MiB and no unrelated heavy GPU process was present. Utilization was 96%, so the decision
+is deliberately asymmetric: **capacity PASS for the synchronous correctness pilot; inference-timing evidence
+remains forbidden.** Lockstep pauses CARLA between ticks, but this run is not a compute benchmark.
+
+Separate reviewed contract and integration configs now authorize only CARLA for exactly the positive/benign pair.
+OAI, full collection, controller evaluation, and RL stay false and are covered by negative tests. The offline
+configs remain false. The runner also checks all eight loopback UDP ports before mutating CARLA, closing another
+common stale-process failure mode.
+
+A dedicated launcher performs config + disk validation, starts the pilot in a detached session, logs to a sibling
+file, and exits. The child emits per-10-frame structured progress plus explicit completion/failure/result sentinels.
+This satisfies the long-run rule:
+neither codex nor Abiodun needs to babysit it, and replay/verification are not chained across the human gate.
+
+Verification after authorization: reviewed config/preflight PASS with `live_authorized=true`; Phase-2 tests
+**41/41 PASS**; data-collection tests **65/65 PASS**; compilation and diff hygiene PASS. No CARLA trajectory was
+launched during this authorization step.
+
+### 2026-08-17 first detached attempt: pre-capture packaging failure; repaired, no data accepted
+
+Attempt `20260817_175134_pilot` failed about six seconds into collector startup. Both role logs contained the same
+root cause: the orchestrator invoked `phase2_paired_causal_collector.py` by filesystem path, which made Python place
+`data_collection/` rather than the repository root on `sys.path`; `from data_collection import ...` therefore
+failed. This occurred before readiness, model inference, capture, or raw retention. The failure sentinel is valid,
+and postflight reports zero vehicles, walkers, sensors, or walker controllers left behind.
+
+Repair: every collector is now invoked as
+`python -m data_collection.phase2_paired_causal_collector` from the repository root. The config validator also pins
+the collector source file, and both offline/reviewed-plan tests assert the module-mode prefix. All four generated
+positive/benign helper/recipient child commands were independently exercised through import + argument parsing
+with `--help`; all returned zero without contacting CARLA. Phase-2 tests remain **41/41 PASS**, compilation and diff
+hygiene pass. This failed batch remains provenance only and must not enter replay or evaluation.
+
+### 2026-08-17 second detached attempt: one-sided frame barrier race; repaired, no data accepted
+
+Attempt `20260817_175758_pilot` passed import, model/sensor startup, exact ego spawn, and both role-ready sentinels,
+then failed on the first requested capture frame 90087. This was not a detector failure or a CARLA rendering
+failure: helper and recipient had already received startup camera frames 90085/90084. Neither role wrote a frame
+heartbeat, retained RGB/radar input, or logits.
+
+The causal audit makes the race reproducible. The shared start boundary was frame 90086, but the parent immediately
+ticked 90087 without knowing whether either child had completed its placement decision and installed its buffered
+frame filter. One hook observed the world advancing during that interval; both ultimately required a frame newer
+than 90087. The parent, meanwhile, correctly refused to issue another tick until both roles completed 90087. The
+result was a three-way deadlock and six 5-second camera timeouts per role. Retrying unchanged could reproduce this
+on any frame, so no relaunch was authorized.
+
+Repair: lockstep is now an explicit two-phase per-frame protocol. Each role waits for the shared start, samples one
+stable boundary, installs `minimum_capture_frame=after_frame+1`, records its causal placement decision, and
+atomically writes a role-specific `tick_ready`. Only after **both** exact-boundary records exist may the parent
+apply controls and tick once. Both role-specific exact-frame completion heartbeats are then required before the
+next arm/tick cycle. The runtime rejects a repeated pre-capture before completion, a non-consecutive or duplicate
+completion, wrong-role barrier data, and any skipped/advanced frame; the parent now reports observed barrier
+payloads instead of an opaque timeout.
+
+Pre-relaunch evidence: all four resolved child commands pass import/argument parsing; reviewed config/storage
+validation passes; Phase-2 tests **44/44 PASS** (including barrier race/fail-fast cases), data-collection regression
+tests **65/65 PASS**, `py_compile`, and `git diff --check` pass. Live postflight is clean: Town10HD_Opt is async with
+zero vehicles, walkers, sensors, or walker controllers. The failed batch is provenance only and must not enter
+replay or evaluation. No third attempt has been launched in this repair step.
+
+### 2026-08-17 third detached attempt: concurrent spawn-settling race; repaired, no data accepted
+
+Attempt `20260817_180751_pilot` reached both collector-ready sentinels, then the unchanged 0.25 m exact-pose gate
+rejected the helper before capture. Its requested transform was `(4.505, -60.913, 0.400)`, but its realized Z was
+`-0.063`, for 0.463 m total error; XY and yaw remained effectively exact. No capture-start sentinel, causal
+decision, retained input, logits, or completion heartbeat was written. The two-phase frame barrier was therefore
+not exercised by this attempt.
+
+Root cause: during startup, the sole orchestrator must tick CARLA so newly spawned actors and sensors initialize.
+The children concurrently call `try_spawn_actor` and only then disable ego physics for `--ego-freeze`. The helper
+could therefore receive an arbitrary number of gravity/settling ticks in the RPC interval before physics was
+disabled. Attempt 2 happened to settle only 0.054 m and passed; attempt 3 settled 0.463 m and correctly failed. This
+was nondeterministic spawn initialization, not an invalid pose tolerance and not evidence about the scenario.
+
+Repair: a non-Experiment-3 frozen ego now disables physics, restores the exact requested transform, and explicitly
+zeros linear and angular velocity before sensor initialization can continue. If this exact-freeze sequence fails
+under `--ego-spawn-require-exact`, the actor is destroyed and startup fails immediately rather than deferring the
+problem until both models load. The existing 0.25 m pose gate is unchanged. A live bounded RPC smoke on the same
+Town10HD_Opt helper transform held Z at 0.400000 for one second in an asynchronously ticking world with total pose
+error `3.8e-6 m`; its temporary actor was then destroyed. Postflight again showed async mode and zero dynamic
+actors.
+
+Pre-relaunch evidence: Phase-2 tests **45/45 PASS**, data-collection regression tests **65/65 PASS**, including a
+new exact-freeze regression; live exact-pose smoke PASS; `py_compile` and diff hygiene PASS. The batch is provenance
+only and must not enter replay/evaluation. No fourth attempt has been launched in this repair step.
+
+## 2026-08-17 — CODEX: accepted pilot offline repair complete; warning-evaluation design frozen
+
+The immutable accepted capture remains
+`data_collection/experiments/phase2_paired_causal_v1/20260817_181354_pilot`. No CARLA, OAI, collection, controller,
+or RL run was launched in this step. The original `evaluation/` and `verification/` artifacts were not overwritten.
+
+### Repair outcome
+
+The create-only authoritative derived outputs are now `evaluation_v3/` and `verification_v3/`. All nine gates PASS.
+Gate 4 no longer accepts an arbitrary warning exemplar: it selects the earliest registered-target warning, requires
+`target_hazard_match=1`, verifies the target actor/role at that exact frame, and recovers **both helper and recipient**
+input, logits, tracker, and action artifacts because the selected map warning has both evidence sources. Frame 156300
+is linked to controlled pedestrian actor 143 through the hazard-only arm. The intermediate `evaluation_v2/` and
+`verification_v2/` generated during the audit are superseded and must not be cited: they fixed target selection but
+named only the helper side of a two-source warning.
+
+Replay now writes exposure-based warning diagnostics, truth-object/unmatched track-fragmentation diagnostics, map
+engine counters, explicit non-citable timing labels, config/code/capture hashes, and a hashed evaluation artifact
+manifest. The verifier checks those hashes and refuses a replay config that differs semantically or byte-for-byte
+from the captured launch config.
+
+### Scientific correction and pilot diagnostic
+
+The inherited `false_warning = any non-target warning` definition was wrong. A warning about a different real actor
+can be valid. The v3 artifacts therefore report registered-target, matched-non-target, and unmatched warnings
+separately; the old binary is retained only as an explicitly named provisional proxy. True false warnings will be
+assigned only by an evaluation-only, future-trajectory hazard oracle.
+
+The provisional warning rule is not ready to freeze. On the benign pilot, warning-active-frame rate is 89.2% for
+ego-only and 93.3% for send-everything/hazard-only. Unmatched warnings are active on 84.2%, 90.8%, and 90.8% of
+frames. The controlled pedestrian spans 4–5 canonical warning tracks per arm. Hazard-only produces more warning
+events than send-everything despite fewer bytes; this is exposed rather than hidden. Pre-publication filtering
+changes which helper observations participate in map association, so it changes warning persistence as well as
+payload. These are calibration/association diagnostics, not pilot failures and not C2 evidence.
+
+### Design freeze
+
+`phase2_map_sharing/WARNING_EVALUATION_DESIGN_FREEZE.md` is now binding for the next stage:
+
+- pilot trajectories are excluded from calibration and test;
+- matched trajectory groups are split 20% calibration / 20% validation / 60% untouched test, with exact counts
+  still requiring a cluster-level power calculation;
+- only a bounded confidence/association/TTL/uncertainty grid may be searched;
+- C2 uses a 5 percentage-point missed-hazard non-inferiority margin versus send-everything, a 2 pp cooperative
+  false-warning-active-frame margin versus ego-only, and a 0.5 s minimum meaningful lead;
+- those margins are research decision margins, not an absolute C3 automotive safety guarantee;
+- naturalistic results remain the honest denominator; designed-only gain supports only a regime-bounded claim.
+
+Before any full collection, implement and test the future-trajectory hazard adjudicator, freeze powered Suite A/B
+counts and the grouped split manifest, and prove a small calibration capture can replay the bounded grid. Collection
+then runs calibration/design first and stops at its gate; it does not jump directly to confirmatory test.
+
+Validation: Phase-2 tests **48/48 PASS**, data-collection regression tests **65/65 PASS**, `py_compile` PASS, and the
+v3 verifier reports `verdict=PASS`, `first_failed_gate=null`. Contribution self-audit: this advances C1/C2; a failed
+target-specific chain or irreducible warning burden would change course; runtime causality is unchanged; every
+claim is recoverable from immutable capture plus hashed derived artifacts; and this was the smallest offline repair
+that closed the reporting defect without recollection.
+
+## 2026-08-17 — CODEX: future-hazard adjudicator v2 complete; physical/reward boundary frozen
+
+### Adversarial correction before acceptance
+
+The first create-only `hazard_adjudication_v1` run was technically reproducible but scientifically wrong. It used
+the realized positive recipient trajectory to label future danger. Because the scenario controller had already
+yielded independently of warnings, the controlled pedestrian never entered the 2.5 m center-radius and all of its
+warnings appeared non-hazardous. That is an intervention paradox, not evidence that the warnings were false. The
+v1 namespace is retained for provenance but is **superseded and must not be cited**.
+
+`hazard_adjudication_v2` fixes the estimand without touching runtime data. Within each registered matched pair, it
+aligns the benign/no-target recipient trace to the positive trace by elapsed simulation time and uses that as the
+positive no-yield counterfactual. It fails closed on missing pair IDs, non-unique positive/benign members, unequal
+trace lengths, or more than half-cadence time mismatch. Benign warnings continue to use their realized non-actuated
+recipient trajectory. Every event records the trajectory basis and counterfactual source ID.
+
+The adjudicator independently class-matches warnings to truth one-to-one at each frame with the frozen 5 m
+center/origin gate, follows the matched actor for 5 s, applies the class safety radius, censored-horizon rules, and
+episode/exposure reporting, and hashes runtime artifacts before/after. Seven integrity gates PASS, including a new
+gate requiring the registered controlled target to become future-hazard-positive under the matched counterfactual.
+All 2,235 warning rows are preserved; no runtime hash changed.
+
+Pilot diagnostic only: the controlled pedestrian reaches **0.254 m** minimum counterfactual center separation and
+has future-hazard-positive warnings in all three arms. The provisional first-target lead remains 3.6 s for both
+cooperative arms versus ego-only. This one excluded pilot pair is not calibration or C2 evidence.
+
+### Advisor reward questions — accepted with boundaries
+
+Stopping distance belongs in the eventual C3/override evaluation, but it is not yet attributable to the
+perception/map-sharing policy. The current positive trajectory has zero collision, about **2.88 m** minimum surface
+clearance, and about **2.89 m** surface clearance at sustained stop; the scenario orchestrator caused that yield and
+warnings were not actuated. After every arm uses one fixed warning-to-braking/replanning adapter, collision and an
+advisor-frozen minimum clearance become hard constraints. Stop position inside a declared comfort band, unnecessary
+early stopping, deceleration/jerk, route progress, and unnecessary interventions become soft outcomes. Clearance
+alone is gameable by stopping extremely early. Direct recipient ego bounding-box logging is required; the pilot's
+clearance uses a declared same-blueprint proxy.
+
+The full constraint ranking is now `phase2_map_sharing/PHASE2_CONSTRAINT_CATALOG.md`: causal/structural invariants,
+physical safety, hazard-deadline service, network/compute feasibility, then utility/efficiency. The advisor's
+"continuous action set" should be interpreted carefully. Latency, AoI, PRB, compute, clearance, and safety are
+continuous outcomes, but profile choices remain the measured discrete frontier. FPS/update interval becomes a
+continuous parameter only after held-out interpolation validation; the agent must not invent an unmeasured profile.
+
+No raw global SKIP penalty was added. It would punish correct abstention in empty/fresh states and can manufacture
+congestion. `SKIP_INFERENCE` and `SKIP_PUBLICATION` remain separate; each is scored through causal consequences:
+unserved hazard deadline debt, missed warning, AoI/uncertainty growth, and map staleness. Registered arrivals stay
+in service denominators so SKIP cannot erase hard cases. Report skip rates by no-demand, safely-fresh, network-
+blocked, compute-blocked, and policy-preferred causes. Frequent SKIP is wrong only when it leaves hazard service
+unmet, not merely because its global percentage is high.
+
+### Design status and next gate
+
+The immutable accepted capture remains unchanged. Authoritative offline namespaces are now `evaluation_v4`,
+`verification_v4`, and `hazard_adjudication_v2`; all PASS. `WARNING_EVALUATION_DESIGN_FREEZE.md`,
+`REWARD_FORMULATION.md`, `AGENT_CONSTRAINTS.md`, `state_diagram.md`, the Phase-2 README/contract, CLAUDE index, and
+monthly checklist are synchronized. Full collection is still not authorized. The next design task is the powered
+Suite A/B trajectory inventory plus grouped split manifest; after that, a small calibration capture must prove the
+bounded replay grid before staged collection.
+
+Validation: Phase-2 tests **57/57 PASS**, data-collection regressions **65/65 PASS**, `py_compile` and diff hygiene
+PASS. The v2 module hash matches its provenance, every listed artifact hash matches its manifest, and every
+adjudicator verification gate is true.
+
+## 2026-08-17 — CODEX: deterministic powered Suite A/B candidate generated; still HOLD for authoring/calibration
+
+First, a naming correction to codex's preceding chat summary: the authoritative corpus spec has always defined
+**Suite A = designed decision opportunities** and **Suite B = naturalistic operation**. The prose summary inverted
+those labels once. Code/config/tests now fail if the inversion recurs.
+
+### Inventory and split
+
+`phase2_suite_ab_v1` is a deterministic, hashed design candidate—not collection authority. It contains 210
+independent groups and 330 world trajectories:
+
+- Suite A: 120 groups, each a positive + matched-benign world pair = 240 trajectories. Six geometry families
+  (three pedestrian, three vehicle) x low/high closing speed x short/long time-to-hazard form 24 cells, each with
+  five independent seeds split exactly 1 calibration / 1 validation / 3 test. Density is orthogonally balanced.
+- Suite B: 90 unforced naturalistic groups over three route families, with declared traffic/weather quotas and no
+  fabricated positive-hazard prevalence.
+- Group totals are A 24/24/72 and B 18/18/54 for calibration/validation/test. Positive/benign twins share seeds,
+  stay in one split, and the accepted pilot group is excluded. Confirmatory rows were locked before outcomes.
+
+Cyclists are not included because there is no validated cyclist perception contract. Transport conditions are
+replayed against immutable captures rather than multiplying CARLA collection by SNR; the four measured rungs and
+held-out intermediate/transition traces remain the later network design.
+
+### Power position
+
+The one excluded pilot pair cannot estimate variance, so its 3.6 s descriptive lead was not used. The candidate
+freezes the 0.5 s smallest effect, two-sided alpha 0.05, 72 Suite-A positive test groups and planned 10% censoring.
+At 64 effective numeric pairs, paired-t sensitivity is 0.883 power if paired SD is 1.25 s. This is explicitly a
+sensitivity, not an assumed truth. After calibration, simulate the registered clustered/censored estimator and
+the two non-inferiority endpoints. Validation remains blocked unless all reach >=0.80 power/adequate precision;
+otherwise revise counts before collecting validation, never weaken margins after seeing data.
+
+### Storage, runtime, and staged stop gates
+
+Continuous input+logit retention would be about 1.8 TB. The fixed tier retains lightweight causal/unfiltered
+records everywhere, 4 s input windows on calibration/validation, and logits for one calibration audit group per
+geometry/route (15 trajectories). Estimated total is 54.61 GB under an 80 GB cap and 500 GB free-space floor.
+Pilot wall time implies ~3.2 h calibration, ~3.2 h validation, and ~9.6 h test (~16 h total), each detached and
+stopped at a human gate.
+
+Collection is still **HOLD**. Before even the calibration audit, author and visually accept five pending designed
+geometries and paired helper/recipient versions of two naturalistic routes. Then run only the six designed audit
+groups (positive+benign) plus three naturalistic groups: 15 trajectories, ~44 minutes, ~27 GB heavy-window data.
+It must prove bounded-grid replay and exact local/OAI time/byte fields. Only then may the remaining calibration
+rows run; validation and test each require separate decisions.
+
+Artifacts: `phase2_map_sharing/PHASE2_SUITE_AB_DESIGN.md`, config
+`phase2_map_sharing/configs/phase2_suite_ab_design_v1.yaml`, generator
+`phase2_map_sharing/design_suite_manifest.py`, and hashed outputs under
+`phase2_map_sharing/design/phase2_suite_ab_v1/`. No CARLA, OAI, controller, or RL process was launched.
+
+Validation: Phase-2 tests **65/65 PASS**, data-collection regressions **65/65 PASS**, compilation and diff hygiene
+PASS. The generated module/config hashes match provenance and every design artifact matches its manifest.
+
+## 2026-08-17 — CODEX: signalized-corner pedestrian geometry visually accepted and frozen; HOLD remains
+
+Abiodun manually reviewed both the positive run
+`/tmp/phase2_geometry_review_signalized_corner_positive_20260817_224735` and its matched benign twin
+`/tmp/phase2_geometry_review_signalized_corner_benign_20260817_224817`. The positive behaved as designed: the
+helper saw the pedestrian before the stopped Sprinter cleared from the recipient view, the recipient discovered
+the pedestrian at about 6--8 s and yielded with ample time and space, and the pedestrian reached the raised refuge
+island. The benign run was identical except for pedestrian absence. Both runs reported zero collisions; the
+positive passed the physical-speed and endpoint gates, and the benign passed the paired motion gate. This is a
+manual geometry/visibility acceptance, not C2 evidence.
+
+The accepted identifier is `town10hd_opt_signalized_corner_van_crosswalk_v1`. The distinct-lane contract remains
+Town10HD_Opt junction 532: recipient road 21/lane -1 turning into road 0/lane -2, helper road 2/lane -1 continuing
+straight into road 0/lane -1, and the stopped van on road 21/lane -2. Runtime planning has been removed from normal
+review execution. The exact planned paths are frozen as:
+
+- recipient `town10hd_opt_signalized_corner_recipient_v1.progress.csv`, 39 rows, SHA-256
+  `4144eaabf3e6c2bcdbfef2cd5ba639e0d6459adc739c45a3110c196486c73911`; and
+- helper `town10hd_opt_signalized_corner_helper_v1.progress.csv`, 33 rows, SHA-256
+  `af7352eb95a0e0deffde35d960f365f8954b8be36a6bfc3c937101a658197af6`.
+
+The standard CARLA planner remains only as an explicit map-drift audit; `frozen_routes()` verifies the route bytes
+before use. The acceptance record under `phase2_map_sharing/geometry_reviews/` preserves summary/screenshot hashes
+without treating transient `/tmp` images as scientific results. The Suite A config now marks only this geometry
+family `reviewed_visual_geometry`, and the deterministic design artifacts were regenerated: all four artifact
+hashes pass and all 40 rows for this family carry the reviewed status. One pedestrian geometry, three vehicle
+geometries, and two paired naturalistic routes still block calibration; collection authorization remains false.
+
+Important claim boundary from Abiodun's observation that this base run had generous stopping margin: the visual
+gate establishes legal motion, occlusion ordering, and a feasible yield, but it does **not** validate the Suite A
+short-time/high-closing-speed cells. Calibration must measure and gate realized closing speed and time-to-hazard
+for every factor cell; no harder cell inherits this comfortable run's acceptance.
+
+Validation: data-collection tests **66/66 PASS**, Phase-2 tests **65/65 PASS**, `py_compile`, diff hygiene, frozen
+route hashes, regenerated design-artifact hashes, and the runtime-authorization false check all PASS. No corpus,
+OAI, baseline, controller, or RL run was started.
+
+## 2026-08-17 — CODEX: midblock pedestrian geometry accepted; renderer-quality gap made explicit
+
+Abiodun manually accepted the parked-van midblock positive/matched behavior after one physical defect was repaired:
+the Sprinter had been frozen immediately at its 0.8 m collision-clearance spawn height. The review harness now lets
+only this candidate occluder fall under physics, requires three stable ticks, bounds horizontal/yaw drift, then
+freezes the grounded pose. The final repeated settlement was deterministic: z `-0.056 m`, horizontal drift `0.008
+m`, roll `-2.20 deg`, vertical speed zero. The post-fix positive had zero collisions, completed the 1.27 m/s
+pedestrian crossing, and passed the legal road-12 opposing-lane contract; the post-fix benign passed its motion and
+collision gates. At CARLA default/high visual quality Abiodun found the final occluder grounding visually correct.
+
+The frozen identifier is `town10hd_opt_midblock_curbside_van_v1`. Both routes have 33 points:
+
+- recipient `data_collection/routes/town10hd_opt_midblock_van_recipient_v1.progress.csv`, SHA-256
+  `f1d6e525dd1120a064e0414ab777faab31c7049df1554da6c4944f3b39ae3318`;
+- helper `data_collection/routes/town10hd_opt_midblock_van_helper_v1.progress.csv`, SHA-256
+  `c5fc19f01dc22bf3cdd5cc42bb5dc958d7088bfefac908977aacbe6e79e1cc81`.
+
+The acceptance record stores final summary/screenshot hashes and does **not** authorize collection. The Suite A
+design now labels all 40 midblock rows `reviewed_visual_geometry`; generated design hashes were refreshed. Three
+vehicle geometries and two paired naturalistic routes remain pending.
+
+Abiodun also observed stronger tree reflections/shadows at high quality and reasonably asked whether agent training
+should use that domain. Audit result: renderer quality is absent from both the M-prime training metadata and the
+current Phase-2 sensor contract. Therefore we cannot call Low or default/high “training matched,” and cannot silently
+switch the corpus on visual preference. Before calibration, run a small paired Low-vs-default/high frozen-seed
+detector gate and compare class PR/recall/confidence, segmentation, radar-density invariance, dropped frames, and
+wall-clock cost. Pin one primary setting, label the other as a renderer-domain stress stratum, and record the resolved
+quality in every manifest. The RL/controller consumes causal detections/tracks rather than pixels, but rendering can
+change those upstream observations; the comparison belongs at the perception boundary. Full collection remains
+HOLD.
+
+## 2026-08-17 — CODEX: renderer-quality fail-fast gate implemented; waiting on explicit Epic server start
+
+The smallest valid renderer check is now implemented without a second inference path. It reuses the accepted
+curbside positive/benign pair and the production paired causal collector at the exact M-prime contract (10 Hz,
+1280x720, FOV 120, 200k radar pps, raster radius 4, temporal window 2). Each quality stage contains exactly two
+12 s trajectories and both helper/recipient roles. OAI, full collection, controller evaluation, and RL remain
+unauthorized. The checked-in gate files are:
+
+- `data_collection/configs/phase2_renderer_quality_gate_v1.yaml`;
+- `phase2_map_sharing/configs/renderer_quality_gate_v1.yaml`;
+- `data_collection/run_phase2_renderer_quality_gate.py`; and
+- `data_collection/analyze_phase2_renderer_quality_gate.py`.
+
+CARLA provides no reliable RPC field for the engine quality level. The detached launcher therefore requires the
+operator to name `Low` or `Epic`, validates the corresponding exact `-quality-level=` flag, and records the
+declaration in the launch manifest and resolved integration config. This is explicit provenance, not a claim that
+the flag was introspected. A run with a default/implicit server launch is not accepted for the comparison.
+
+The analysis uses actor-origin, one-to-one 5 m localization matching; pedestrian <=12 m and vehicle <=25 m; and a
+postdecoder PR sweep from the real 0.05 candidate floor. It also checks radar-density invariance, all 120 required
+frames for all four role-runs, and Low/Epic segmentation-output agreement. Because the causal collector deliberately
+disables the semantic-GT camera, the segmentation result is correctly labelled **paired prediction stability, not
+accuracy**. The single matched pair is a fail-fast domain screen, not a confidence interval or publication claim.
+
+Raw retention is bounded to the first 8 s. Self-audit caught that helper and recipient collectors have separate
+`RawRetentionBudget` instances, so a nominal shared `pilot_total` would not enforce an aggregate process-wide cap.
+The renderer contract instead gives each role process a 4 GB ceiling (four role-runs => hard 16 GB upper bound),
+preflights the 16 GB aggregate against the 500 GB reserve, and verifies actual aggregate retained bytes before a
+completion sentinel is written. No automatic deletion is allowed.
+
+Pre-launch validation passes with about 1.2 TB free. Regression status: data-collection **68/68 PASS**, Phase-2
+**71/71 PASS**, Python compilation, and diff hygiene PASS. The historical accepted paired capture took 5.8 minutes,
+so the expected total is about 6 minutes per quality plus the manual CARLA restart and short offline comparison.
+No renderer stage has been launched: the current CARLA RPC was not reachable, and the required first step is an
+explicit `-quality-level=Epic` server start. Full corpus collection remains HOLD until both stages and the paired
+decision report pass.
+
+### Epic stage audit — capture PASS, comparative verdict pending Low
+
+The explicitly declared Epic stage `20260818_004734_epic` completed in 5.52 minutes. Both matched trajectories
+captured 120/120 frames; all four collector processes returned zero; result receipt was 120/120 for every role;
+the positive pedestrian completed at 1.270 m/s; and there were zero collisions, persistent gridlock events,
+dropped streams, or leaked actors. Median projected radar points were 17,740--18,152/frame (p05
+17,201--17,597), consistent across roles and on the expected training-contract scale. The 8 s raw windows stopped
+on `maximum_window_duration_reached` after 79 input/logit pairs per role. Aggregate retained bytes were 7.146 GB,
+below the hard 16 GB stage cap. Config and contract hashes exactly match the detached launch manifest.
+
+One analysis defect was found and repaired before Low was run: the detector emits localization class `person`,
+whereas actor-origin truth uses `pedestrian`. An uncanonicalized join would falsely report zero pedestrian
+detections. The analyzer now maps both spellings to canonical `pedestrian`, rejects unknown labels, and has a
+regression test. The corrected Epic-only descriptive check at the 0.05 decoder floor gives <=12 m pedestrian
+recall 56/83 = **67.47%** and <=25 m vehicle recall 239/422 = **56.64%**. These are not renderer conclusions;
+only the matched Low stage supplies the comparison. Validation after the repair: data-collection **68/68 PASS**,
+Phase-2 **72/72 PASS**, compilation and diff hygiene PASS. Full corpus remains HOLD.
+
+### Low stage + paired decision — sensitivity confirmed; sparse gate cannot select the corpus renderer
+
+The explicitly declared Low stage `20260818_010057_low` also passed capture integrity: both trajectories and all
+four role streams completed 120/120 frames, all collector return codes were zero, pedestrian motion exactly matched
+Epic at 1.270 m/s, radar medians were 17,734--18,152 projected points/frame, zero collisions/gridlock/leaks occurred,
+and the 8 s quotas retained 7.177 GB. The create-only paired analysis is
+`data_collection/experiments/phase2_renderer_quality_gate_v1/20260818_011500_analysis`.
+
+The pre-registered fail-fast verdict is `HOLD_RENDERER_CONTRACT_REVIEW`, not because either capture failed, but
+because renderer choice materially changed class behavior. At score 0.05, Low/Epic <=12 m pedestrian recall was
+80.72/67.47% (Epic-Low = -13.25 pp), while <=25 m vehicle recall was 41.47/56.64% (+15.17 pp). Radar was invariant
+(0.015% median difference) and overall segmentation argmax agreement was 98.87%, but paired vehicle-mask IoU was
+0.829 and the tiny person mask was unstable; the latter is prediction stability, not semantic accuracy.
+
+Abiodun then identified the key scope limitation: this gate has
+`population_mode=frozen_curbside_pilot_no_ambient`. It contains helper, recipient, the occluder, and only the
+positive controlled pedestrian; **it does not spawn training-style ambient NPC traffic**. That was deliberate for
+causal isolation and makes the gate a valid sensitivity detector. It is not a representative accuracy benchmark and
+cannot decide which setting is better after the observed pedestrian/vehicle tradeoff.
+
+The final M-prime training lineage is materially denser. The 200k-pps merged moving-ego dataset was collected at
+three density rungs with fixed route/seed: low 8 vehicles/10 pedestrians, medium 20/25, and crowded 28/35. The
+collection launcher used CARLA without an explicit renderer-quality flag, so default/Epic is a plausible inference
+but remains unproven provenance; the checkpoint's embedded legacy collection config is not a trustworthy substitute
+for the later dataset lineage. Do not retroactively label training as Epic.
+
+**Decision:** do not start the full corpus and do not choose a renderer from the sparse gate. The smallest sound
+follow-up is a short matched training-density confirmation, not another full corpus: one medium and one crowded
+fixed-route seed under explicit Low and Epic, exact current M-prime sensor/decoder contract, actor-origin per-class
+PR/recall/localization, semantic-GT segmentation metrics in an evaluation-only namespace, radar invariance, and
+traffic-sanity gates. Use identical spawn/route manifests across quality levels. If one renderer wins the weighted
+v5 task metric without a material class regression, pin it primary; otherwise use an explicitly mixed renderer
+stratum in calibration and pre-register renderer as an environment factor. This confirmation must reuse the
+production inference path and should take minutes, not recreate model training or weaken the current HOLD.
+
+## 2026-08-17 — CODEX: Epic renderer operationally frozen; renderer visual gate closed
+
+The bounded training-density confirmation completed under explicit Low
+(`20260818_014332_low`) and Epic (`20260818_015251_epic`). Both medium (20 vehicles/25 pedestrians) and crowded
+(28/35) trials captured 120/120 frames with 100% inference results, semantic GT on every frame, matched realized
+populations, identical median radar density (~19,894 projected points/frame), clean return codes, and no actor leaks.
+The create-only paired analysis is `20260818_015700_analysis`.
+
+The pre-registered weighted v5 verdict is **not** a renderer win: it correctly reports
+`HOLD_INVALID_MATCHED_CAPTURE` because neither quality produced an in-frustum pedestrian inside the locked <=12 m
+band (closest 12.41 m in medium, 14.80 m in crowded). That metric was not weakened after seeing the result. At a
+clearly labelled <=25 m diagnostic only, Epic/Low recall was 76.8/74.7% for pedestrians and 58.1/16.0% for vehicles;
+semantic-GT macro mIoU was 0.611/0.575. The earlier sparse controlled-pedestrian gate had the opposite pedestrian
+ordering, confirming a renderer-by-scene interaction rather than universal dominance.
+
+Abiodun selected the operational primary setting so the project can move forward without another renderer loop:
+all future primary Phase-2 runs use explicit CARLA **Epic** with exact flag `-quality-level=Epic`. This is recorded
+in every generated Suite A/B design row. Existing Low captures remain a labelled stress diagnostic; the powered
+corpus is not doubled and no future Low collection is authorized. Do not call Epic "training matched," do not claim
+all-class statistical dominance, and do not accept ambiguous default/high launches because CARLA exposes no quality
+RPC. The renderer visual-inspection gate is closed.
+
+The next blocker is scenario validity, not graphics: author and automatically gate three vehicle-hazard geometries
+and two paired naturalistic routes, then ask Abiodun to visually inspect only the bounded positive/benign candidates
+that pass lane, timing, visibility, collision, population, and cleanup checks. No further renderer inspection is
+needed.
+
+## 2026-08-17 — CODEX: first vehicle-hazard candidate passes automatic gates; visual/freeze still pending
+
+The `occluded_cross_traffic_vehicle` candidate now reuses the accepted signalized-junction ego routes. The target
+Mini travels north on road 3 lane `+1` through junction 532 while the helper approaches in the distinct opposing
+lane `-1`; a stopped Coca-Cola truck in adjacent northbound lane `+2` provides the controlled recipient-only initial
+occlusion. The fail-closed static contract records legal native headings, 0.408 m minimum recipient/target route
+separation at the registered conflict, 3.500 m helper/target opposing-lane clearance, and initial 120-degree-camera
+geometry in which the target is in both FOVs but truck-occluded only for the recipient. The target route remains
+planner-derived and the geometry ID remains suffixed `_candidate`; neither is collection-authorized before visual
+acceptance and a byte-hashed route freeze.
+
+The first dynamic authoring smoke (`/tmp/phase2_geometry_review_cross_traffic_vehicle_positive_20260818_022021`)
+was correctly rejected: target and recipient collided. It is not evidence and was not weakened into a pass. The
+review harness now applies a clearly labelled **review-only ground-truth safety yield** at 14 m from the registered
+conflict. This prevents an intentional authoring crash; it is not a policy observation, C2 result, or learned
+controller. The repaired positive smoke
+(`/tmp/phase2_geometry_review_cross_traffic_vehicle_positive_20260818_022325`) passes with zero collisions, 2.8 s
+helper-before-recipient geometric visibility, a 0.214 m target/conflict passage, realistic 3.19 m/s median realized
+target speed for a 3.6 m/s command, and 12.06 m minimum recipient conflict clearance during the yield. The matched
+benign smoke (`/tmp/phase2_geometry_review_cross_traffic_vehicle_benign_20260818_022403`) differs by target absence,
+has zero collisions, and both egos progress more than 50 m. The parked truck was gravity-settled before its physics
+was frozen; cleanup returned the world to zero dynamic actors.
+
+The controlled ego traffic lights are independently forced green only for deterministic geometry review. This does
+not claim a legal simultaneous signal phase or target compliance. Data-collection tests are **69/69 PASS** and
+compilation/diff hygiene pass. Remaining gate: Abiodun visually checks both arms under the already pinned explicit
+Epic server. Collection, OAI, freshness, controller evaluation, and RL remain on HOLD.
+
+## 2026-08-17 — CODEX: occluded cross-traffic vehicle geometry manually accepted and frozen
+
+Abiodun ran the bounded UI pair and confirmed both behaved exactly as declared. The accepted artifacts are the
+positive `/tmp/phase2_geometry_review_cross_traffic_vehicle_positive_20260818_024451` and matched benign
+`/tmp/phase2_geometry_review_cross_traffic_vehicle_benign_20260818_024525`. Their saved summaries independently
+confirm the automatic PASS values: zero collisions in both arms; 2.8 s helper visibility lead, 0.214 m target
+passage from the registered conflict, and 12.09 m minimum recipient conflict clearance in the positive; and more
+than 50 m progress per ego with the target absent in the benign.
+
+The target route is now byte-frozen at
+`data_collection/routes/town10hd_opt_cross_traffic_target_v1.progress.csv`: 107 rows, SHA-256
+`c9f70a5db774bb462b7c7de9debb3d7771e98169aaa6feb3e353980e2bed4cc5`. A fresh Town10HD_Opt planner audit
+reproduced all 107 points with 0.0 m maximum drift. The geometry ID is final
+`town10hd_opt_occluded_cross_traffic_vehicle_v1`; the runtime refuses target-route hash or row-count drift. The
+acceptance record is `phase2_map_sharing/geometry_reviews/occluded_cross_traffic_vehicle_v1_acceptance.json` and
+preserves the visual summary/screenshot hashes plus the review-only GT-yield and signal-phase caveats.
+
+The Suite A config now marks this family `reviewed_visual_geometry`, and all 40 regenerated design rows carry that
+status. The deterministic manifest hash is now
+`39ff1de32128115c2a5290c262a629f38bc525e176746fc36a81bebee5013210`; collection remains unauthorized. Remaining
+scenario blockers are exactly two vehicle-hazard geometries (`parked_vehicle_pullout`,
+`queue_reveal_lead_vehicle`) and two paired naturalistic routes. No renderer, corpus, OAI, controller, or RL work
+was started.
+
+## 2026-08-18 — CODEX: parked-vehicle pullout candidate passes automatic pair; visual/freeze pending
+
+The second vehicle candidate reuses the accepted legal opposing midblock ego routes. A stopped Sprinter occupies
+the curbside shoulder and initially hides an orange Mini from the eastbound recipient while the opposing helper has
+geometric line of sight. The Mini remains parked for 4.0 s, then follows an explicit curb-to-lane path through a
+registered merge point on the recipient route. The static contract passes: both egos remain on road 12 legal lanes
+`+1/-1`; the curb actors are 6.56 m apart; the recipient route passes 0.478 m from the registered merge; the helper
+route retains 3.50 m minimum clearance; and the target lies inside both 120-degree camera fields but is occluded by
+the Sprinter only for the recipient. The identifier remains
+`town10hd_opt_parked_vehicle_pullout_v1_candidate`; the target path is not frozen or collection-authorized.
+
+Two early authoring runs are deliberately excluded from evidence. In
+`/tmp/phase2_geometry_review_parked_vehicle_pullout_positive_20260818_025847`, the generic 3.5 m waypoint radius
+allowed the Mini to cut the tight merge. The target controller now uses a 0.75 m radius while all existing route
+controllers retain their old default. In
+`/tmp/phase2_geometry_review_parked_vehicle_pullout_positive_20260818_030124`, the corrected path passed but an
+inappropriate whole-manoeuvre speed comparison treated the intentional low-speed turn as a command-speed failure.
+The fail-closed metric now separates realistic turning motion from post-merge command tracking; this changes the
+representation of the declared behavior, not the route or observed result.
+
+The final automatic positive is
+`/tmp/phase2_geometry_review_parked_vehicle_pullout_positive_20260818_030359`: zero collisions, 4.2 s helper-before-
+recipient visibility, 0.808 m maximum route cross-track error, 0.657 m minimum distance to the registered conflict,
+2.00 m/s median while moving through the turn, 2.29 m/s post-merge median for a 3.0 m/s command, and 11.99 m minimum
+recipient conflict clearance under the explicitly review-only GT safety yield. The matched benign
+`/tmp/phase2_geometry_review_parked_vehicle_pullout_benign_20260818_030443` removes only the Mini, has zero
+collisions, triggers no yield, and advances both egos more than 46 m. Saved Epic frames were inspected offline and
+show no obvious floating, overlap, lane, or route-cutting artifact.
+
+Validation: data-collection tests **70/70 PASS**, Phase-2 tests **77/77 PASS**, compilation and diff hygiene PASS.
+The remaining gate is Abiodun's bounded visual review of this positive/benign pair. No route or acceptance record
+will be frozen before that review, and no corpus, OAI, controller, or RL work was started.
+
+### Manual acceptance and route freeze
+
+Abiodun ran the UI pair at
+`/tmp/phase2_geometry_review_parked_vehicle_pullout_positive_20260818_031013` and
+`/tmp/phase2_geometry_review_parked_vehicle_pullout_benign_20260818_031048` and confirmed that both worked exactly
+as declared with no visual issue. The positive summary independently passed with zero collisions, 4.2 s helper
+visibility lead, 0.827 m maximum target-route cross-track error, 0.653 m conflict passage, 2.29 m/s post-merge
+median speed, and 12.39 m recipient yield clearance. The benign removed only the target, triggered no yield, and
+advanced both egos more than 47 m.
+
+The final ID is `town10hd_opt_parked_vehicle_pullout_v1`. Its explicit target route is byte-frozen at
+`data_collection/routes/town10hd_opt_parked_vehicle_pullout_target_v1.progress.csv`: 23 rows, SHA-256
+`7e101885d4dd52fefb13f8c2b942e0ef33738955bf4651235c13cc5ed2948175`. Runtime rejects hash, row-count, or
+point-value drift. The acceptance record is
+`phase2_map_sharing/geometry_reviews/parked_vehicle_pullout_v1_acceptance.json` and preserves the reviewed summary
+and screenshot hashes plus the review-only GT-yield caveat. This geometry is accepted; overall corpus collection
+is not.
+
+The Suite A config and all 40 generated rows now mark this family `reviewed_visual_geometry`. The regenerated
+trajectory manifest SHA-256 is
+`62d88ae520cdeb83108c3bb97d35a978fe38b5c22cbefb34b417a8f2e95f1521`. Remaining scenario blockers are exactly
+one vehicle geometry (`queue_reveal_lead_vehicle`) and two paired naturalistic routes. No corpus, OAI, controller,
+or RL work was started.
+
+## 2026-08-18 — CODEX: queue-reveal vehicle geometry manually accepted and frozen
+
+The final designed vehicle family is deliberately different from the pullout case. The eastbound recipient first
+queues behind a white Sprinter while the legal opposing-lane helper can see a stationary lead Lincoln. After 5.0 s,
+the Sprinter follows a controlled, gradual curb-exit route and reveals the stopped lead. The matched benign arm
+removes only that lead vehicle. The static contract places both egos on road 12 legal lanes `+1/-1`, the queue pair
+on lane `+1`, the target 0.478 m from the recipient route, the helper at 3.56 m minimum route clearance, and the
+recipient target initially occluded while the helper target is visible.
+
+The authoring history was fail-closed rather than silently cherry-picked. The pair ending in
+`...positive_20260818_032533` / `...benign_20260818_032657` was rejected after the benign queue member contacted the
+recipient at an angled curb endpoint. The pair ending in `...032837` / `...032912` was rejected because the longer
+exit contacted static vegetation. Sharp-start candidates, including `...positive_20260818_033505`, were rejected
+because the queue member failed to realize the declared motion. These are debugging artifacts, not evidence. The
+review shield was also repaired to use yaw-aware realized actor envelopes instead of a fixed two-metre strip.
+
+The accepted automatic pair is
+`/tmp/phase2_geometry_review_queue_reveal_vehicle_positive_20260818_033946` and
+`/tmp/phase2_geometry_review_queue_reveal_vehicle_benign_20260818_034023`. The positive has zero collisions, 12.5 s
+helper-before-recipient first visibility, 2.7 s longest simultaneous differential visibility, a stationary lead,
+0.853 m maximum queue-route cross-track error, 1.026 m/s median moving speed through the bounded curb manoeuvre,
+0.005 m target-to-conflict distance, and a 1.3 s recipient stop with 11.69 m conflict clearance. The benign has
+zero collisions, no GT safety yield, and advances helper/recipient by 46.89/35.60 m. Abiodun visually confirmed
+that both worked exactly as described with no issue.
+
+The final ID is `town10hd_opt_queue_reveal_lead_vehicle_v1`. The queue-member path is byte-frozen at
+`data_collection/routes/town10hd_opt_queue_reveal_occluder_v1.progress.csv`: 13 rows, SHA-256
+`57371f1b7004b7bb5a709b44705167a327f19779e0684a70bf30380aae2ec870`. Runtime rejects hash, row-count, or
+point-value drift. The acceptance record is
+`phase2_map_sharing/geometry_reviews/queue_reveal_lead_vehicle_v1_acceptance.json`; it preserves evidence hashes
+and the review-only GT-yield caveat. The Suite A family is now `reviewed_visual_geometry`, but overall collection
+remains unauthorized. The only remaining scenario-design blockers are the two paired naturalistic routes; no
+corpus, OAI, controller, or RL work was started.
+
+The deterministic Suite A/B artifacts were regenerated after the freeze. All 40 queue-reveal rows now carry
+`reviewed_visual_geometry`; the trajectory-manifest SHA-256 is
+`57debf6e2706a7fc90069026022e0ffe3c51311d39031a73a53a87d3c090e9de`. The summary reports only
+`paired_route_authoring_and_visual_review_required` as a pending scenario status and still reports
+`collection_authorized=false`. Validation is **72/72 data-collection tests PASS** and **79/79 Phase-2 tests PASS**;
+focused compilation and diff hygiene also pass. A misleading authoring-summary field was corrected so the
+stationary lead now reports a 0 m/s command rather than inheriting the generic moving-target default.
+
+### Blocking self-audit before paired naturalistic-route authoring
+
+The two pending source loops cannot simply be paired from row 0. Offline comparison finds that
+`town10hd_opt_advisor_demo_loop_v2.progress.csv` and
+`town10hd_opt_advisor_safe_perimeter_loop_v3.progress.csv` share their first **44 points / 165.887 m**. The Suite-B
+trajectory duration is frozen at 12 s: even at 8 m/s an ego reaches only 96 m, so all nominal demo/perimeter runs
+would remain inside the identical prefix. Calling these two route families would create false route diversity and
+pseudo-replication. This was caught before paired-route files or collection were created.
+
+Proposed smallest repair, pending joint review: keep the accepted source loops and 12 s duration, but pre-register
+six collision-free non-junction start anchors distributed around each loop. Cycle each anchor once in calibration,
+once in validation, and three times in test (matching 6/6/18 groups per route). Spawn the helper approximately
+12--18 m ahead on the same legal route and direction, then rotate the immutable route for both actors. This is a
+naturalistic platoon-style vantage difference, not a forced hazard. Persist `route_start_anchor_id`, recipient/helper
+start indices, realized start transforms, initial separation, and source-route SHA-256 in every manifest. Automatic
+gates should require legal native headings, no initial envelope overlap, zero owned-actor collision, bounded route
+cross-track error, and meaningful progress for both roles. Visual review should exercise all anchor segments at
+least once before freezing, because reviewing only row 0 would repeat the original defect.
+
+Alternative but weaker repairs are rejected: merely lengthening every trajectory would materially increase the
+registered storage/runtime and still correlate the route families; treating traffic seeds as route diversity does
+not change geometry; and inventing lateral XY offsets can create illegal-lane motion. Until the anchor schedule is
+accepted and visually reviewed, the two naturalistic routes—and therefore collection—remain blocked.

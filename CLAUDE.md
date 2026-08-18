@@ -37,7 +37,7 @@ index — the authoritative detail lives in the docs below (read them before act
   `staleness/uplink_only_latency_budget/`.
 - **Papers:** `SCAN_AI_03_13_26_2.pdf` (single-UE foundation), `V2X_for_AD.pdf` (CoDriving).
 
-## Current status / next (2026-08-12 local / 2026-08-13 UTC)
+## Current status / next (2026-08-17)
 - Density+seg study, RL design lock, measured loopback latency, and the **channel-condition sweep: DONE**
   (`channel_condition_sweep/CHANNEL_SWEEP_RESULTS.md` + `combined_surface.csv` + `plots/`). Knee: 1 MB→clear
   only, 400 KB→to 15.6 dB, 90 KB seg-safe floor→every rung. `AGENT_CONSTRAINTS §9.1` holds the measured
@@ -96,13 +96,28 @@ an expanded contract, not a retune of these gates.
   gap only inside the noncausal matched-support replay. The AoI baseline is explicitly index-inspired, not
   Whittle. Artifact:
   `rl_agent/policy/experiments/task_c/20260814_220006`.
-- `SCENESENSE_MONTHLY_CHECKLIST.md` was reconciled on 2026-08-14. **Phase-2 contract plumbing exists:**
+- `SCENESENSE_MONTHLY_CHECKLIST.md` is reconciled through 2026-08-17. **Phase-2 contract plumbing exists:**
   `phase2_map_sharing/` passes synthetic contract validation for recipient isolation, causal hazard-only selection,
   association, warning provenance, exact byte accounting, and production-header chunk reassembly. This is plumbing,
   not C2 evidence. Its adapter also passes the existing two-stream recordings (26 fresh accepted, 11 stale rejected),
-  which lack synchronized hazard truth. **Current hold:** reconcile a schema-v2 uncertainty contract and a new
-  `phase2_paired_causal_v1` corpus specification, then review a two-trajectory pilot gate. v5 cannot be patched into
-  that dataset. No pilot, full collection, OAI evaluation, or RL is authorized until the design gate passes.
+  which lack synchronized hazard truth. The `phase2_paired_causal_v1` spec and v2 collector/replay/verifier path are
+  now integrated offline: strict schema/unknown-field rejection, object+recipient uncertainty propagation,
+  pre-capture causal audit, physically separate truth, source-local tracking, quota-bounded raw/logit retention,
+  isolated three-arm replay, and the nine fail-fast gates. The reviewed legal-route two-trajectory pilot is complete
+  at `data_collection/experiments/phase2_paired_causal_v1/20260817_181354_pilot`; authoritative
+  `evaluation_v4` / `verification_v4` pass all nine structural/computability gates. The evaluation-only
+  `hazard_adjudication_v2` also passes: positive hazard truth uses the matched benign no-yield recipient trajectory,
+  while realized stopping remains explicitly non-policy-attributable. The v1 adjudication is superseded due to the
+  intervention paradox. The deterministic `phase2_suite_ab_v1` candidate now fixes Suite A=designed and Suite
+  B=naturalistic across 210 independent groups / 330 world trajectories with hashed 20/20/60 assignments,
+  conditional power and tiered retention. The signalized-corner and parked-van-midblock pedestrian geometries are
+  visually accepted and route-hash frozen. Full collection, OAI evaluation, and RL remain unauthorized until three
+  pending geometries and two paired routes are visually accepted and the 15-trajectory calibration audit plus
+  registered simulation-power gate pass. The renderer gate is now resolved operationally: every primary Phase-2
+  design row locks explicit CARLA `Epic` (`-quality-level=Epic`). Low survives only as the already-captured labelled
+  stress condition; no future Low collection is authorized. The frozen <=12 m dense weighted comparison was
+  inconclusive because it had zero near-pedestrian support, so do not claim Epic statistically dominated every
+  class or retroactively relabel the unrecorded M-prime training renderer.
 
 > The `~/.claude` memory cache was wiped by a retention cleanup on 2026-08-03 (harness, not us). This
 > repo-tracked file exists so project state is never lost that way again. Keep it updated as work advances.

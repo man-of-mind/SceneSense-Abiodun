@@ -308,3 +308,33 @@ large reward weight. Rebuild the dynamic part around these requirements:
 
 The two-trajectory pilot is a data-contract gate, not a reward experiment. RL remains unauthorized until the
 causal exact/rule/greedy/MPC ladder leaves a pre-registered sequential gap.
+
+## 15. Phase-2 physical outcomes, constraints, and SKIP (2026-08-17)
+
+The advisor's stopping-distance proposal is accepted as a **future physical
+outcome**, with one attribution boundary: the map-sharing controller does not
+brake the vehicle. Minimum clearance, collision, and stop placement can enter
+controller evaluation/reward only after every arm drives the same fixed
+warning-to-braking/replanning adapter. In the current pilot the scenario
+orchestrator yielded independently of warnings, so its stopping metrics are
+report-only and earn no policy reward.
+
+Once actuation exists, collision and an advisor-frozen minimum surface
+clearance are safety constraints, not ordinary weighted preferences. Stop
+placement inside a declared comfort band, deceleration/jerk, route progress,
+and unnecessary intervention are soft outcomes. Clearance alone is
+insufficient because an agent can maximize it by stopping needlessly early.
+
+Do not add a global SKIP penalty. Keep `SKIP_INFERENCE` and
+`SKIP_PUBLICATION` separate and score the causal consequences of abstention:
+unserved hazard deadline debt, missed warning, growing AoI/uncertainty, and
+stale-map risk. Global SKIP rate is report-only and must be stratified by no
+demand, safely fresh map, network/compute block, and policy preference.
+
+The action surface remains measurement-supported and hybrid. Measured profile
+choices are categorical; FPS/update interval may be continuous only after a
+held-out interpolation check. Continuous latency, PRB, compute, clearance, and
+safety outcomes do not justify inventing unmeasured continuous profile
+actions. The normative ranking and complete catalog are in
+`../phase2_map_sharing/PHASE2_CONSTRAINT_CATALOG.md`; weights remain unfrozen
+until the causal corpus and LOCAL/OAI tables exist.

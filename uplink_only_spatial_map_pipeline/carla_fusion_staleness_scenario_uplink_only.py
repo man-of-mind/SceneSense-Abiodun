@@ -574,6 +574,14 @@ def parse_args() -> argparse.Namespace:
         help="Map spawn-point index for the parked ego vehicle. Negative = first available spawn point.",
     )
     parser.add_argument(
+        "--ego-spawn-require-exact",
+        action="store_true",
+        help=(
+            "Fail if --ego-spawn-index cannot be used instead of silently falling "
+            "back to a different spawn. Required for paired geometry experiments."
+        ),
+    )
+    parser.add_argument(
         "--ego-role-name",
         default="scenesense_fusion_ego",
         help="CARLA role_name assigned to the parked ego vehicle.",
@@ -683,6 +691,15 @@ def parse_args() -> argparse.Namespace:
         help="Do not force CARLA synchronous mode.",
     )
     parser.set_defaults(sync_world=True)
+    parser.add_argument(
+        "--external-sync-ticker",
+        action="store_true",
+        help=(
+            "Attach passively to a world whose synchronous clock is owned by an "
+            "external orchestrator. Requires --async-world and forbids collector-owned "
+            "actors/features that advance the clock internally."
+        ),
+    )
 
     # Radar sensor (defaults match configs/fusion_full_run.yaml).
     parser.add_argument("--radar-range", type=float, default=120.0)
@@ -4593,8 +4610,21 @@ def _spawn_parked_ego_vehicle(
     if not spawn_points:
         raise RuntimeError("No CARLA spawn points are available for parked ego fusion.")
     if int(args.ego_spawn_index) >= 0:
+        if bool(getattr(args, "ego_spawn_require_exact", False)) and int(
+            args.ego_spawn_index
+        ) >= len(spawn_points):
+            raise ValueError(
+                f"required ego spawn index {int(args.ego_spawn_index)} is outside "
+                f"the map's [0, {len(spawn_points) - 1}] range"
+            )
         index = int(args.ego_spawn_index) % len(spawn_points)
-        ordered_spawn_points = [spawn_points[index], *spawn_points[:index], *spawn_points[index + 1 :]]
+        ordered_spawn_points = [spawn_points[index]]
+        if not bool(getattr(args, "ego_spawn_require_exact", False)):
+            ordered_spawn_points.extend(
+                [*spawn_points[:index], *spawn_points[index + 1 :]]
+            )
+    elif bool(getattr(args, "ego_spawn_require_exact", False)):
+        raise ValueError("--ego-spawn-require-exact requires a nonnegative --ego-spawn-index")
     else:
         ordered_spawn_points = list(spawn_points)
         random.shuffle(ordered_spawn_points)
@@ -4631,10 +4661,30 @@ def _spawn_parked_ego_vehicle(
                     for _ in range(max(0, int(args.experiment3_settle_ticks))):
                         world.tick()
                 actor.set_simulate_physics(False)
-            except RuntimeError:
-                pass
+                if str(getattr(args, "experiment3_target_profile", "none")) == "none":
+                    # In external-ticker mode the orchestrator can advance the
+                    # world concurrently between try_spawn_actor() and the
+                    # physics-disable RPC above.  Restore the requested frozen
+                    # transform and clear any fall velocity after physics is
+                    # disabled so startup duration cannot change ego geometry.
+                    actor.set_transform(candidate_transform)
+                    actor.set_target_velocity(carla.Vector3D())
+                    actor.set_target_angular_velocity(carla.Vector3D())
+            except RuntimeError as exc:
+                if bool(getattr(args, "ego_spawn_require_exact", False)):
+                    try:
+                        actor.destroy()
+                    except RuntimeError:
+                        pass
+                    raise RuntimeError(
+                        "Unable to freeze ego at the required exact transform."
+                    ) from exc
         return actor
 
+    if bool(getattr(args, "ego_spawn_require_exact", False)):
+        raise RuntimeError(
+            f"Unable to spawn ego at required exact spawn index {int(args.ego_spawn_index)}."
+        )
     raise RuntimeError("Unable to spawn parked ego vehicle at any available spawn point.")
 
 
@@ -5199,6 +5249,85 @@ def on_synchronous_world_tick(
     del world, anchor_actor, args, frame_id
 
 
+def on_pre_sensor_capture(
+    *,
+    world: "carla.World",
+    anchor_actor: Optional["carla.Actor"],
+    args: argparse.Namespace,
+    previous_frame_id: int,
+) -> None:
+    """Derived collectors may make a causal decision before the next capture.
+
+    The hook deliberately runs before either ``world.tick`` or the passive
+    camera-queue wait.  A placement decision made here therefore cannot read
+    inference output produced by the frame it controls.
+    """
+
+    del world, anchor_actor, args, previous_frame_id
+
+
+def validate_clock_ownership_args(args: argparse.Namespace) -> None:
+    """Fail closed when passive external-ticker mode could still tick CARLA."""
+
+    if not bool(getattr(args, "external_sync_ticker", False)):
+        return
+    if bool(args.sync_world):
+        raise ValueError("--external-sync-ticker requires --async-world")
+    if bool(getattr(args, "capture_pipeline", False)):
+        raise ValueError("--external-sync-ticker does not support --capture-pipeline")
+    if int(getattr(args, "npc_vehicles", 0)) != 0 or int(
+        getattr(args, "npc_pedestrians", 0)
+    ) != 0:
+        raise ValueError(
+            "--external-sync-ticker requires --npc-vehicles 0 --npc-pedestrians 0"
+        )
+    if str(getattr(args, "controlled_target", "none")) != "none":
+        raise ValueError("--external-sync-ticker forbids --controlled-target")
+    if str(getattr(args, "tracked_lead", "none")) != "none":
+        raise ValueError("--external-sync-ticker forbids --tracked-lead")
+    if str(getattr(args, "experiment3_target_profile", "none")) != "none":
+        raise ValueError("--external-sync-ticker forbids Experiment-3 targets")
+
+
+def require_external_sync_contract(world: "carla.World", args: argparse.Namespace) -> None:
+    """Empirically verify the external owner configured the pinned clock."""
+
+    if not bool(getattr(args, "external_sync_ticker", False)):
+        return
+    settings = world.get_settings()
+    expected_delta_s = 1.0 / resolved_world_tick_hz(args)
+    actual_delta_s = settings.fixed_delta_seconds
+    if not bool(settings.synchronous_mode):
+        raise RuntimeError("external ticker mode requires an already-synchronous CARLA world")
+    if actual_delta_s is None or not math.isclose(
+        float(actual_delta_s), expected_delta_s, rel_tol=0.0, abs_tol=1e-9
+    ):
+        raise RuntimeError(
+            "external ticker fixed_delta_seconds mismatch: "
+            f"expected {expected_delta_s:.9f}, got {actual_delta_s}"
+        )
+
+
+def wait_for_external_world_frame(
+    world: "carla.World",
+    *,
+    after_frame_id: int,
+    timeout_s: float,
+) -> int:
+    """Passively poll for a newer frame without ever acquiring tick ownership."""
+
+    deadline = time.monotonic() + float(timeout_s)
+    while time.monotonic() < deadline:
+        frame_id = int(world.get_snapshot().frame)
+        if frame_id > int(after_frame_id):
+            return frame_id
+        time.sleep(0.005)
+    raise RuntimeError(
+        "timed out waiting for external CARLA ticker after frame "
+        f"{int(after_frame_id)}"
+    )
+
+
 def tick_for_sensor_frame(
     *,
     world: "carla.World",
@@ -5244,6 +5373,7 @@ def run_client(args: argparse.Namespace) -> None:
         run_back_only(args)
         return
 
+    validate_clock_ownership_args(args)
     random.seed(int(args.seed))
     np.random.seed(int(args.seed))
 
@@ -5445,6 +5575,7 @@ def run_client(args: argparse.Namespace) -> None:
             camera_transform = _ego_camera_transform(args)
             radar_transform = _ego_radar_transform(args)
         original_settings = world.get_settings()
+        require_external_sync_contract(world, args)
     except Exception:
         _close_split_runtime(
             stop_event=stop_event,
@@ -5498,6 +5629,14 @@ def run_client(args: argparse.Namespace) -> None:
         f"sensor/detection={float(args.fps):.2f} Hz, "
         f"control_ticks_per_sensor_frame={synchronous_ticks_per_sensor_frame(args)}"
     )
+    print(
+        "Clock ownership: "
+        + (
+            "external synchronous orchestrator (collector is passive)"
+            if bool(getattr(args, "external_sync_ticker", False))
+            else ("collector" if bool(args.sync_world) else "asynchronous server")
+        )
+    )
     print(f"Front device: {front_device}, back device: {back_device}")
     print(f"Entropy coder: {args.entropy_coder} | Quantization: {args.quantization_mode}")
     print(f"Role: {args.role} | bind-host: {args.bind_host} | remote-host: {remote_host}")
@@ -5525,12 +5664,20 @@ def run_client(args: argparse.Namespace) -> None:
         # flipped to async if we toggled it here.
 
         if sensor_platform == "ego_vehicle":
+            spawn_snapshot_frame = int(world.get_snapshot().frame)
             ego_vehicle = _spawn_parked_ego_vehicle(world=world, args=args)
             actors.append(ego_vehicle)
             # CARLA may report an actor transform at (0,0,0) until the first
             # world tick after spawn. Initialize it before reading anchor
             # position or placing a tracked lead relative to the ego.
-            world.tick()
+            if bool(getattr(args, "external_sync_ticker", False)):
+                wait_for_external_world_frame(
+                    world,
+                    after_frame_id=spawn_snapshot_frame,
+                    timeout_s=float(args.camera_timeout),
+                )
+            else:
+                world.tick()
             anchor_actor = ego_vehicle
             anchor_location = ego_vehicle.get_location()
             camera_attach_to = ego_vehicle
@@ -5961,10 +6108,20 @@ def run_client(args: argparse.Namespace) -> None:
                 camera_frame_wait_ms = sensor_tick_timing["camera_frame_wait_ms"]
             else:
                 camera_wait_start_perf = time.perf_counter()
-                try:
-                    image = image_queue.get(timeout=float(args.camera_timeout))
-                except queue.Empty:
-                    image = None
+                minimum_frame = int(
+                    getattr(args, "external_capture_minimum_frame", 0)
+                )
+                if bool(getattr(args, "external_sync_ticker", False)):
+                    image = od_demo.wait_for_camera_frame(
+                        image_queue,
+                        minimum_frame,
+                        float(args.camera_timeout),
+                    )
+                else:
+                    try:
+                        image = image_queue.get(timeout=float(args.camera_timeout))
+                    except queue.Empty:
+                        image = None
                 camera_frame_wait_ms = float((time.perf_counter() - camera_wait_start_perf) * 1000.0)
             if image is None:
                 print(f"Warning: camera frame not received within {args.camera_timeout:.1f}s; retrying.")
@@ -6225,6 +6382,12 @@ def run_client(args: argparse.Namespace) -> None:
                 sleep_s = scheduled_perf - time.perf_counter()
                 if sleep_s > 0.0:
                     time.sleep(sleep_s)
+            on_pre_sensor_capture(
+                world=world,
+                anchor_actor=anchor_actor,
+                args=args,
+                previous_frame_id=int(world.get_snapshot().frame),
+            )
             sync_world_tick_ms: object = ""
             camera_frame_wait_ms: object = ""
             if bool(args.sync_world):
@@ -6254,10 +6417,20 @@ def run_client(args: argparse.Namespace) -> None:
                 camera_frame_wait_ms = sensor_tick_timing["camera_frame_wait_ms"]
             else:
                 camera_wait_start_perf = time.perf_counter()
-                try:
-                    image = image_queue.get(timeout=float(args.camera_timeout))
-                except queue.Empty:
-                    image = None
+                minimum_frame = int(
+                    getattr(args, "external_capture_minimum_frame", 0)
+                )
+                if bool(getattr(args, "external_sync_ticker", False)):
+                    image = od_demo.wait_for_camera_frame(
+                        image_queue,
+                        minimum_frame,
+                        float(args.camera_timeout),
+                    )
+                else:
+                    try:
+                        image = image_queue.get(timeout=float(args.camera_timeout))
+                    except queue.Empty:
+                        image = None
                 camera_frame_wait_ms = float((time.perf_counter() - camera_wait_start_perf) * 1000.0)
             if image is None:
                 print(f"Warning: camera frame not received within {args.camera_timeout:.1f}s; retrying.")

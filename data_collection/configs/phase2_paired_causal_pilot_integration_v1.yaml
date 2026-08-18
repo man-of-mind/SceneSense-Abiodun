@@ -1,0 +1,133 @@
+schema_version: scenesense.phase2_paired_causal_integration.v1
+implementation_status: offline_dry_run_only
+authorization:
+  carla_launch: false
+  oai_launch: false
+  full_collection: false
+
+contract_config: phase2_map_sharing/configs/paired_causal_pilot_v1.yaml
+source_collection_config: data_collection/configs/policy_corpus_advisor_rich_v5.yaml
+collector: data_collection/phase2_paired_causal_collector.py
+output_root: data_collection/experiments/phase2_paired_causal_v1
+
+scenario_geometry:
+  status: reviewed_positive_and_benign_routes
+  layout_id: town10hd_opt_curbside_legal_opposing_v1
+  town: Town10HD_Opt
+  population_mode: frozen_curbside_pilot_no_ambient
+  reload_world_before_trajectory: true
+  route_progress_csv_by_role:
+    helper: data_collection/routes/town10hd_opt_curbside_helper_v1.progress.csv
+    recipient: data_collection/routes/town10hd_opt_curbside_recipient_v1.progress.csv
+  expected_lane_id_by_role:
+    helper: 1
+    recipient: -2
+  maximum_lane_heading_error_deg: 5.0
+  maximum_pose_error_m: 0.25
+  maximum_yaw_error_deg: 1.0
+  occluder:
+    blueprint: vehicle.sprinter.mercedes
+    role_name: phase2_curbside_occluder
+    transform: [34.999732971, -70.711265564, 0.0, 179.9765778]
+  pedestrian:
+    blueprint_strategy: first_sorted_walker
+    role_name: phase2_controlled_pedestrian
+    start_transform: [30.498630524, -73.409431458, 1.0, 89.9765778]
+    end_location: [30.501941681, -65.309432983, 1.0]
+    start_delay_s: 3.0
+    physical_speed_mps: 1.3
+    carla_control_to_physical_scale: 0.05
+    endpoint_tolerance_m: 0.25
+  evidence:
+    positive_artifacts: /tmp/phase2_geometry_review_positive_20260815_041815
+    benign_artifacts: /tmp/phase2_geometry_review_benign_20260815_041841
+    note: >-
+      Human visual review accepted both trajectories on 2026-08-15. Helper
+      follows legal lane +1 and recipient legal lane -2; the historical 3.6 m
+      wrong-way offset is forbidden.
+
+clock:
+  owner: paired_orchestrator
+  world_hz: 10.0
+  fixed_delta_seconds: 0.1
+  startup_timeout_s: 180.0
+  per_frame_timeout_s: 30.0
+  shutdown_timeout_s: 60.0
+  tm_port: 8010
+
+capture:
+  frames_per_trajectory: 120
+  controlled_window_seconds: 12.0
+  warnings_actuated: false
+  placement_action: SPLIT_FEATURE
+  publication_action: PUBLISH_ALL
+  required_roles: [helper, recipient]
+  compute_assignment:
+    status: correctness_only_shared_gpu
+    purpose: causal_capture_correctness_not_inference_benchmarking
+    host_gpu_count: 1
+    front_device_by_role:
+      helper: cuda:0
+      recipient: cuda:0
+    back_device_by_role:
+      helper: cpu
+      recipient: cpu
+    shared_gpu_timing_is_citable: false
+  ports:
+    helper:
+      camera_source: 53001
+      remote: 53002
+      remote_source: 53003
+      camera_result: 53004
+    recipient:
+      camera_source: 53101
+      remote: 53102
+      remote_source: 53103
+      camera_result: 53104
+
+roles:
+  helper:
+    ego_spawn_index: 61
+    ego_spawn_forward_offset_m: -2.905936616128194
+    ego_spawn_right_offset_m: -0.014170022206065527
+    ego_spawn_z_offset_m: -0.1999999642372131
+    ego_spawn_yaw_offset_deg: 0.5584379991889
+    expected_transform: [4.505173, -60.912979, 0.4, 0.535]
+    target_speed_mps: 4.5
+    ego_role_name: scenesense_phase2_helper
+  recipient:
+    ego_spawn_index: 152
+    ego_spawn_forward_offset_m: 0.0
+    ego_spawn_right_offset_m: 0.0
+    ego_spawn_z_offset_m: 0.0
+    ego_spawn_yaw_offset_deg: 0.0
+    expected_transform: [57.56834030151367, -67.849853515625, 0.5999999642372131, 179.9765625]
+    target_speed_mps: 5.0
+    ego_role_name: scenesense_phase2_recipient
+
+# The matched pair starts from a newly loaded Town10HD_Opt world. The only
+# declared positive/negative difference is the controlled pedestrian actor.
+trajectories:
+  - trajectory_id: phase2_pilot_positive_001
+    scenario_role: controlled_positive_occlusion
+    seed: 27181
+    population_family: frozen_curbside_pilot
+    controlled_pedestrian: true
+    target_truth_role_prefix: phase2_controlled_pedestrian
+    matched_pair_id: phase2_pilot_pair_001
+  - trajectory_id: phase2_pilot_benign_001
+    scenario_role: matched_benign_negative
+    seed: 27181
+    population_family: frozen_curbside_pilot
+    controlled_pedestrian: false
+    target_truth_role_prefix: ''
+    matched_pair_id: phase2_pilot_pair_001
+
+verification:
+  required_gate_count: 9
+  fail_hold_at_first_gate: true
+  expected_radar_returns_per_frame: 20000
+  radar_density_reference_projected_median: 18591.5
+  radar_density_relative_tolerance: 0.10
+  synthetic_unmatched_detection_required: true
+  performance_gain_is_a_gate: false

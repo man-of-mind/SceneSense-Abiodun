@@ -1,0 +1,38 @@
+{
+  "accepted_utc": "2026-08-17T22:53:00Z",
+  "acceptance_basis": "manual_positive_and_matched_benign_visual_review",
+  "collection_authorized": false,
+  "geometry_id": "town10hd_opt_signalized_corner_van_crosswalk_v1",
+  "reviewer_observation": "At approximately 6-8 seconds the recipient discovered the pedestrian and yielded with ample time and space; all other motion and visibility matched the declared design.",
+  "routes": {
+    "helper": {
+      "path": "data_collection/routes/town10hd_opt_signalized_corner_helper_v1.progress.csv",
+      "rows": 33,
+      "sha256": "af7352eb95a0e0deffde35d960f365f8954b8be36a6bfc3c937101a658197af6"
+    },
+    "recipient": {
+      "path": "data_collection/routes/town10hd_opt_signalized_corner_recipient_v1.progress.csv",
+      "rows": 39,
+      "sha256": "4144eaabf3e6c2bcdbfef2cd5ba639e0d6459adc739c45a3110c196486c73911"
+    }
+  },
+  "schema": "scenesense.phase2_geometry_review_acceptance.v1",
+  "visual_runs": {
+    "matched_benign_negative": {
+      "artifact_path_at_review": "/tmp/phase2_geometry_review_signalized_corner_benign_20260817_224817",
+      "collisions": 0,
+      "combined_screenshot_sha256": "005d8b599522eed70a48978725a73050548104874e81e003b9f5ac0f51f675ae",
+      "matched_benign_motion_gate_pass": true,
+      "summary_sha256": "807e65049e0be93c39454cd12ecf1bdce27d92e0113abf98e2034360c73b01e8"
+    },
+    "controlled_positive_occlusion": {
+      "artifact_path_at_review": "/tmp/phase2_geometry_review_signalized_corner_positive_20260817_224735",
+      "collisions": 0,
+      "combined_screenshot_sha256": "d86a01de1072d501ff9df87cbffb1f8a43bccffcebc667966fa6c1333bf68d0d",
+      "lane_contract_pass": true,
+      "pedestrian_completed": true,
+      "pedestrian_speed_gate_pass": true,
+      "summary_sha256": "e5b1e587bc8242656b53f97e0dda5e1303668cf23fa0772adc5a435875059d73"
+    }
+  }
+}

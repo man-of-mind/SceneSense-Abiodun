@@ -69,14 +69,24 @@ flowchart LR
     noinfer --> predict
   end
 
+  subgraph ACTUATE["LATER FIXED WARNING-ACTUATION ADAPTER — NOT IN CURRENT PILOT"]
+    direction TB
+    brake["Identical braking/replanning rule in every arm<br/>warning time → actuation latency → vehicle control"]
+    outcome["Physical outcomes<br/>collision / near miss · minimum surface clearance<br/>stop clearance band · deceleration/jerk · route progress"]
+    warn -. "future override stage" .-> brake --> outcome
+  end
+
   subgraph EVAL["SEPARATE EVALUATION PLANE — NEVER POLICY STATE"]
     direction TB
     gt["Synchronized CARLA truth<br/>actor IDs, future trajectory, hazard label"]
+    cf["Matched no-yield counterfactual recipient trajectory<br/>future-hazard label only; prevents intervention paradox"]
     shadow["Shadow unchosen LOCAL/SPLIT outputs<br/>evaluation_only=true; offline/separate pass<br/>cannot perturb primary timing/resources"]
-    metrics["Paired C2/C3 metrics<br/>warning lead, false/missed warning,<br/>bytes, latency, AoI/uncertainty, tracking"]
+    metrics["Paired C2/C3 metrics<br/>warning lead, false/missed warning,<br/>bytes, latency, AoI/uncertainty, tracking<br/>later: clearance/collision/comfort with attribution"]
     gt --> metrics
+    cf --> metrics
     shadow --> metrics
     warn --> metrics
+    outcome --> metrics
   end
 
   wire -. "prior outcome only<br/>after availability lag" .-> net

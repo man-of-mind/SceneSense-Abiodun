@@ -1,0 +1,30 @@
+schema_version: scenesense.phase2_future_hazard_adjudication_config.v1
+authorization: evaluation_only_no_runtime_feedback
+
+matching:
+  representation: class_constrained_one_to_one_center_origin
+  center_gate_m: 5.0
+
+future_hazard:
+  horizon_s: 5.0
+  safety_radius_m_by_class:
+    pedestrian: 2.5
+    cyclist: 3.0
+    vehicle: 3.0
+
+timebase:
+  clock_id: carla_simulation_elapsed_seconds
+  cadence_s: 0.1
+
+episodes:
+  quiet_gap_s: 1.0
+
+stopping:
+  speed_threshold_mps: 0.2
+  minimum_dwell_s: 0.5
+  target_motion_threshold_m: 0.05
+  clearance_band_status: continuous_report_only_thresholds_not_frozen
+
+attribution:
+  warnings_actuated: false
+  current_pilot: scenario_orchestrator_yield_not_warning_or_policy_actuation

@@ -1,0 +1,50 @@
+{
+  "blocking_gates": [
+    "author_and_visually_review_all_pending_geometry_and_route_families",
+    "calibration_replay_sufficiency_capture",
+    "calibration_simulation_power_at_least_0_80_for_all_registered_endpoints",
+    "review_exact_local_and_oai_timestamp_byte_fields"
+  ],
+  "collection_authorized": false,
+  "design_id": "phase2_suite_ab_v1",
+  "design_raw_cap_bytes": 80000000000,
+  "estimated_capture_hours": 15.95,
+  "estimated_storage_bytes": 54605695680,
+  "group_counts": {
+    "A_calibration": 24,
+    "A_test": 72,
+    "A_validation": 24,
+    "B_calibration": 18,
+    "B_test": 54,
+    "B_validation": 18
+  },
+  "independent_group_count": 210,
+  "minimum_required_calibration_power": 0.8,
+  "pending_manual_scenario_statuses": [
+    "paired_route_authoring_and_visual_review_required"
+  ],
+  "planned_censor_fraction": 0.1,
+  "power_status": "conditional_on_calibration_simulation_gate",
+  "renderer_contract": {
+    "existing_stress_level": "Low",
+    "future_low_collection_authorized": false,
+    "primary_level": "Epic",
+    "provenance_source": "operator_declared_server_launch_flag",
+    "required_server_launch_flag": "-quality-level=Epic",
+    "rpc_introspection_available": false
+  },
+  "schema": "scenesense.phase2_suite_design_summary.v1",
+  "sensitivity_power_at_sd_1_25_s": 0.883151595799319,
+  "storage_estimate_within_cap": true,
+  "suite_a_test_positive_group_count": 72,
+  "suite_labels": {
+    "A": "designed_decision_opportunities",
+    "B": "naturalistic_operation"
+  },
+  "trajectory_count": 330,
+  "trajectory_counts": {
+    "calibration": 66,
+    "test": 198,
+    "validation": 66
+  }
+}

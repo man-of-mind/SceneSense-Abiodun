@@ -206,7 +206,10 @@ authorization or a design spec for SAC/PPO.
 
 > **Authoritative Phase-2 spec:** `phase2_map_sharing/PHASE2_PAIRED_CAUSAL_CORPUS_SPEC.md` plus the updated
 > `rl_agent/state_diagram.md`. They separate pre-inference placement from post-inference publication and enforce
-> timestamped causal availability. The remainder of §9 documents the frozen Phase-1 experiment only.
+> timestamped causal availability. The Phase-2 ranked constraint/outcome list,
+> stopping-attribution boundary, and separate SKIP semantics are in
+> `../phase2_map_sharing/PHASE2_CONSTRAINT_CATALOG.md`. The remainder of §9
+> documents the frozen Phase-1 experiment only.
 
 ### 9.2 ACTION — payload levers, in cost order (cheapest first)
 1. **Quant bits u8→u4** — nearly free (seg-lossless at ROI 0), ~2.0–2.4× payload cut. Use first.

@@ -351,6 +351,34 @@ def _live_carla_preflight(config: Mapping[str, object]) -> Dict[str, object]:
     }
 
 
+def _reload_carla_world(config: Mapping[str, object]) -> Dict[str, object]:
+    """Reset the declared Town before a matched, independently seeded run.
+
+    ``load_world(..., True)`` resets world settings as well as actors.  That is
+    important here: a previous synchronous collector must not leak either its
+    actors *or* its clock settings into the next renderer-quality trial.
+    """
+
+    connection = config["carla"]
+    try:
+        import carla
+
+        client = carla.Client(
+            str(connection["host"]), int(connection["port"])
+        )
+        client.set_timeout(float(connection.get("timeout_s", 10.0)))
+        world = client.load_world(str(connection["expected_town"]), True)
+    except Exception as exc:
+        raise RuntimeError(f"CARLA world reset failed: {type(exc).__name__}: {exc}") from exc
+    reset = {
+        "requested_map": str(connection["expected_town"]),
+        "resolved_map": str(world.get_map().name),
+        "reset_settings": True,
+    }
+    reset["post_reset_preflight"] = _live_carla_preflight(config)
+    return reset
+
+
 def _static_preflight(config: Mapping[str, object]) -> Dict[str, object]:
     provenance = config["provenance"]
     files = {
@@ -531,6 +559,11 @@ def run_batch(
         _write_manifest(manifest_path, manifest)
         if dry_run:
             continue
+        run_baseline = preflight["live_carla"]
+        if bool(config["carla"].get("reload_world_before_run", False)):
+            record["world_reload"] = _reload_carla_world(config)
+            run_baseline = record["world_reload"]["post_reset_preflight"]
+            _write_manifest(manifest_path, manifest)
         run_dir.mkdir(parents=True, exist_ok=False)
         log_path = run_dir / "run.log"
         with log_path.open("w", encoding="utf-8") as log_stream:
@@ -543,7 +576,7 @@ def run_batch(
             )
         record["returncode"] = int(result.returncode)
         record["postflight_carla"] = _live_carla_preflight(config)
-        baseline_actors = preflight["live_carla"]["dynamic_actor_counts"]
+        baseline_actors = run_baseline["dynamic_actor_counts"]
         postflight_actors = record["postflight_carla"]["dynamic_actor_counts"]
         actor_cleanup_pass = postflight_actors == baseline_actors
         record["actor_cleanup_pass"] = actor_cleanup_pass

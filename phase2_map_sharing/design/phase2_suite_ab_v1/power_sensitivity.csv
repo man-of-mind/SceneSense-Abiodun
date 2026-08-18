@@ -1,0 +1,13 @@
+planned_test_groups,censor_fraction,effective_numeric_pairs,smallest_effect_s,paired_sd_s,two_sided_alpha,approximate_paired_t_power,status
+72,0.0,72,0.5,0.75,0.05,0.9998521332967858,sensitivity_only_not_pilot_estimated
+72,0.0,72,0.5,1.0,0.05,0.9869470781796874,sensitivity_only_not_pilot_estimated
+72,0.0,72,0.5,1.25,0.05,0.917414906543216,sensitivity_only_not_pilot_estimated
+72,0.0,72,0.5,1.5,0.05,0.7967353580651582,sensitivity_only_not_pilot_estimated
+72,0.1,64,0.5,0.75,0.05,0.9995000825059224,sensitivity_only_not_pilot_estimated
+72,0.1,64,0.5,1.0,0.05,0.9760555768876558,sensitivity_only_not_pilot_estimated
+72,0.1,64,0.5,1.25,0.05,0.883151595799319,sensitivity_only_not_pilot_estimated
+72,0.1,64,0.5,1.5,0.05,0.7472511861936333,sensitivity_only_not_pilot_estimated
+72,0.2,57,0.5,0.75,0.05,0.9985835492867277,sensitivity_only_not_pilot_estimated
+72,0.2,57,0.5,1.0,0.05,0.9598941135410132,sensitivity_only_not_pilot_estimated
+72,0.2,57,0.5,1.25,0.05,0.8432247074775439,sensitivity_only_not_pilot_estimated
+72,0.2,57,0.5,1.5,0.05,0.6961323278944187,sensitivity_only_not_pilot_estimated

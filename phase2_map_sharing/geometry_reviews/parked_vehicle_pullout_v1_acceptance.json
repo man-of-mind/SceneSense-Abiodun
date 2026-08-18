@@ -1,0 +1,47 @@
+{
+  "accepted_utc": "2026-08-18T03:14:48Z",
+  "acceptance_basis": "manual_positive_and_matched_benign_visual_review_after_automatic_geometry_gates",
+  "collection_authorized": false,
+  "geometry_id": "town10hd_opt_parked_vehicle_pullout_v1",
+  "review_only_safety_note": "The authoring harness uses a ground-truth safety yield to prevent an intentional collision. It is not a policy input, C2 result, or learned-controller result.",
+  "reviewer_observation": "Both arms worked as declared with no issue: the orange target remained parked behind the white Sprinter, was visible to the helper before the recipient, pulled smoothly into the recipient lane after the delay, and the recipient yielded and resumed. The benign arm removed only the target and caused no unnecessary yield.",
+  "routes": {
+    "helper": {
+      "path": "data_collection/routes/town10hd_opt_midblock_van_helper_v1.progress.csv",
+      "rows": 33,
+      "sha256": "c5fc19f01dc22bf3cdd5cc42bb5dc958d7088bfefac908977aacbe6e79e1cc81"
+    },
+    "recipient": {
+      "path": "data_collection/routes/town10hd_opt_midblock_van_recipient_v1.progress.csv",
+      "rows": 33,
+      "sha256": "f1d6e525dd1120a064e0414ab777faab31c7049df1554da6c4944f3b39ae3318"
+    },
+    "target": {
+      "path": "data_collection/routes/town10hd_opt_parked_vehicle_pullout_target_v1.progress.csv",
+      "rows": 23,
+      "sha256": "7e101885d4dd52fefb13f8c2b942e0ef33738955bf4651235c13cc5ed2948175"
+    }
+  },
+  "schema": "scenesense.phase2_geometry_review_acceptance.v1",
+  "visual_runs": {
+    "controlled_positive_occlusion": {
+      "artifact_path_at_review": "/tmp/phase2_geometry_review_parked_vehicle_pullout_positive_20260818_031013",
+      "collision_count": 0,
+      "combined_screenshot_sha256": "8b2495bf0336bfb42c20348b436db96e74ec23d1f454d175d406af1961fe630e",
+      "helper_visibility_lead_s": 4.2,
+      "lane_contract_pass": true,
+      "minimum_recipient_conflict_clearance_during_yield_m": 12.391098967786085,
+      "summary_sha256": "424af7c233c1fdafc38f241537483c2764858cd66582834631a1b98bde3881b8",
+      "target_conflict_min_distance_m": 0.6533676922134953,
+      "target_post_merge_speed_mps_median": 2.293707067240174,
+      "target_route_max_cross_track_m": 0.8267196955099705
+    },
+    "matched_benign_negative": {
+      "artifact_path_at_review": "/tmp/phase2_geometry_review_parked_vehicle_pullout_benign_20260818_031048",
+      "collision_count": 0,
+      "combined_screenshot_sha256": "de011f757c03806d4495e923e272ea9ce971a5fbf575db95a8672cf61cfd6f69",
+      "matched_benign_motion_gate_pass": true,
+      "summary_sha256": "2c3ce430d10e23107ee75f6f7dddf961f9f180b0a1a62ca773fbf88039a02eae"
+    }
+  }
+}

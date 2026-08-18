@@ -978,11 +978,10 @@ def build_object_ground_truth_rows(
     return rows
 
 
-def main() -> None:
-    global _PEDESTRIAN_OVERLAY, _CONTROLLED_TARGET_INFO
-    _PEDESTRIAN_OVERLAY, inherited_argv = _parse_overlay_args(sys.argv[1:])
-    original_argv = list(sys.argv)
-    sys.argv = [sys.argv[0], *inherited_argv]
+def install_policy_overlay_hooks() -> None:
+    """Install the policy-corpus overlays once for derived collector entrypoints."""
+
+    global _CONTROLLED_TARGET_INFO
     _CONTROLLED_TARGET_INFO = None
     _DIRECT_ROUTE_STATE.clear()
     base.build_vehicle_ground_truth_rows = build_object_ground_truth_rows
@@ -1015,6 +1014,15 @@ def main() -> None:
     base.FusionRunLogger.write_manifest = write_manifest_with_overlay_provenance
     # Make the inherited manifest name the actual collection entry point.
     base.__file__ = __file__
+
+
+def main() -> None:
+    global _PEDESTRIAN_OVERLAY, _CONTROLLED_TARGET_INFO
+    _PEDESTRIAN_OVERLAY, inherited_argv = _parse_overlay_args(sys.argv[1:])
+    original_argv = list(sys.argv)
+    sys.argv = [sys.argv[0], *inherited_argv]
+    _CONTROLLED_TARGET_INFO = None
+    install_policy_overlay_hooks()
     try:
         base.main()
     finally:

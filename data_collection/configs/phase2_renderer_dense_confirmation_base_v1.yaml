@@ -1,0 +1,178 @@
+schema_version: 1
+experiment_name: phase2_renderer_dense_confirmation_v1
+collector: data_collection/carla_fusion_policy_corpus_collector.py
+output_root: data_collection/experiments/phase2_renderer_dense_confirmation_v1
+requested_frames: 120
+
+# This is a bounded renderer-contract decision, not corpus collection.  The two
+# independently reset worlds reproduce the medium/crowded population counts
+# from the final M-prime training lineage while the production inference path
+# records actor-origin object truth and semantic-camera evaluation truth.
+authorization:
+  carla_launch: true
+  oai_launch: false
+  full_collection: false
+  controller_evaluation: false
+  rl_training: false
+
+renderer_quality:
+  comparison_id: phase2_training_density_low_vs_epic_v1
+  declared_quality_level: BASE_REQUIRES_LOW_OR_EPIC_OVERLAY
+  required_server_launch_flag: BASE_REQUIRES_LOW_OR_EPIC_OVERLAY
+  verification_source: operator_declared_server_launch_flag
+  rpc_introspection_available: false
+
+carla:
+  host: 127.0.0.1
+  port: 2000
+  timeout_s: 15
+  expected_server_version: 0.10.0
+  expected_town: Town10HD_Opt
+  reload_world_before_run: true
+  require_empty_dynamic_actor_patterns:
+    [vehicle.*, walker.pedestrian.*, sensor.*, controller.ai.walker]
+
+provenance:
+  checkpoint: experiments/ae_integrated_20260710/noae_baseline/checkpoints/mprime_joint_noae/best.pt
+  checkpoint_sha256: f319e2a5e8fb134e74c24c0822233e17368df6e4c733add658026603e131d4fa
+  training_lineage: moving_ego_pps200000_merged_8loops_stride2
+  population_source: scripts/run_pps_ablation.sh
+  carla_version_file: VERSION
+  town_umap: CarlaUnreal/Content/Carla/Maps/Town10HD_Opt.umap
+  town_uexp: CarlaUnreal/Content/Carla/Maps/Town10HD_Opt.uexp
+
+timing_gate:
+  minimum_processed_fraction: 0.95
+  minimum_result_received_pct: 100.0
+  median_max_ms: 250.0
+  p95_max_ms: 500.0
+
+evaluation:
+  class_names: [pedestrian, vehicle]
+  postdecoder_score_thresholds: [0.05, 0.075, 0.10, 0.15, 0.20]
+  primary_score_threshold: 0.05
+  localization_match_gate_m: 5.0
+  near_range_m_by_class: {pedestrian: 12.0, vehicle: 25.0}
+  reward_v5_task_weights:
+    segmentation: 0.35
+    pedestrian_recall: 0.40
+    vehicle_recall: 0.25
+  dominance_utility_margin: 0.03
+  maximum_component_regression: 0.05
+  radar_median_relative_tolerance: 0.05
+  matched_population_count_relative_tolerance: 0.10
+  initial_position_tolerance_m: 2.0
+  minimum_initial_position_match_fraction: 0.90
+  minimum_realized_spawn_fraction: 0.75
+  inconclusive_fallback: MIXED_RENDERER_STRATA
+
+collection_contract:
+  require_requested_frames_match_max_frames: true
+  required_effective_args:
+    --fps: 10
+    --world-tick-hz: 10
+    --camera-width: 1280
+    --camera-height: 720
+    --camera-fov: 120
+    --radar-hfov: 120
+    --radar-vfov: 30
+    --radar-range: 120
+    --radar-points-per-second: 200000
+    --radar-raster-radius-px: 4
+    --radar-rasterizer: fast
+    --radar-temporal-window-frames: 2
+    --object-score-threshold: 0.05
+    --object-nms-radius-px: 2
+    --topk-objects: 120
+    --enable-semantic-gt: "true"
+
+common_args:
+  - --role
+  - loopback
+  - --host
+  - 127.0.0.1
+  - --port
+  - 2000
+  - --tm-port
+  - 8000
+  - --sensor-platform
+  - ego_vehicle
+  - --no-ego-freeze
+  - --ego-spawn-index
+  - 80
+  - --ego-fixed-path-spawn-indices
+  - 80,85,91,94,99,80
+  - --ego-fixed-path-loop
+  - --ego-fixed-path-min-spacing-m
+  - 3
+  - --ego-autopilot-speed-difference-pct
+  - 60
+  - --ego-follow-distance-m
+  - 28
+  - --ego-ignore-lights-pct
+  - 0
+  - --ego-disable-lane-change
+  - --fps
+  - 10
+  - --world-tick-hz
+  - 10
+  - --camera-width
+  - 1280
+  - --camera-height
+  - 720
+  - --camera-fov
+  - 120
+  - --radar-hfov
+  - 120
+  - --radar-vfov
+  - 30
+  - --radar-range
+  - 120
+  - --radar-points-per-second
+  - 200000
+  - --radar-raster-radius-px
+  - 4
+  - --radar-rasterizer
+  - fast
+  - --radar-temporal-window-frames
+  - 2
+  - --object-score-threshold
+  - 0.05
+  - --object-nms-radius-px
+  - 2
+  - --topk-objects
+  - 120
+  - --quantization-mode
+  - per_channel_uint8
+  - --entropy-coder
+  - zlib
+  - --fusion-checkpoint
+  - experiments/ae_integrated_20260710/noae_baseline/checkpoints/mprime_joint_noae/best.pt
+  - --front-device
+  - cuda:0
+  - --back-device
+  - cpu
+  - --result-timeout
+  - 2.0
+  - --headless
+  - --no-spatial-map-stream
+  - --enable-semantic-gt
+  - --max-frames
+  - 120
+  - --transport-label
+  - phase2_renderer_dense_confirmation_loopback
+
+family_args:
+  medium:
+    [--npc-vehicles, 20, --npc-pedestrians, 25, --spawn-radius, 80,
+     --npc-speed-difference-pct, 10, --npc-ignore-lights-pct, 0]
+  crowded:
+    [--npc-vehicles, 28, --npc-pedestrians, 35, --spawn-radius, 80,
+     --npc-speed-difference-pct, 10, --npc-ignore-lights-pct, 0]
+
+smoke_runs: []
+runs:
+  - {episode_id: renderer_medium_seed31, run_group: phase2_renderer_dense_confirmation__medium__seed31,
+     scenario_family: medium, scenario_variant: training_density_medium, split: decision, seed: 31}
+  - {episode_id: renderer_crowded_seed31, run_group: phase2_renderer_dense_confirmation__crowded__seed31,
+     scenario_family: crowded, scenario_variant: training_density_crowded, split: decision, seed: 31}

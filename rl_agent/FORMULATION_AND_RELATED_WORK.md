@@ -250,7 +250,7 @@ scheduler, queues, attach/routing failures, and application-to-map timing togeth
 | Two-view triangulation 1.40 m | **Groundwork only** — static egos, oracle association, no transport |
 | C3 action contract + feasibility envelope | **Phase-1 surrogate only**; Phase-2 uncertainty/deadline contract pending calibration |
 | C4 measured policy table | **Static exact enumerator built**; deployable runtime rule still pending causal evidence |
-| Phase-2 recipient-specific map sharing, end-to-end | **v1 local scaffold passes synthetic acceptance; schema-v2 + paired causal corpus/pilot are the BINDING CONSTRAINT** |
+| Phase-2 recipient-specific map sharing, end-to-end | **v1 local scaffold plus v2 offline safeguards pass; live paired collector + nine-gate pilot remain the BINDING CONSTRAINT** |
 | Multi-vehicle end-to-end integration | **Not built** (same path as Phase 2 if scoped to one helper + one recipient) |
 | Occlusion recovery | **Not built** |
 | Navigation warning/override | **Deterministic warning contract built and synthetic-tested; real warning and any override remain unbuilt** |
@@ -317,10 +317,13 @@ recipient-hazard-only selection, non-oracle class/kinematic association,
 freshness/order/isolation guards, a closest-approach warning baseline, and a
 strictly separate truth matcher. Synthetic acceptance passes at
 `phase2_map_sharing/experiments/20260814_222111`; its constructed +1.9 s lead is
-plumbing validation, **not C2 evidence**. The v1 schema lacks the uncertainty
-fields required for the intended Phase-2 safety contract, and v5 lacks paired
-recipient/hazard truth and causal pre-action signals. The next gate is therefore
-the reviewed `phase2_paired_causal_v1` two-trajectory pilot—not a full run.
+plumbing validation, **not C2 evidence**. The immutable v1 schema lacks the
+uncertainty fields required for the intended Phase-2 safety contract; a separate
+v2 offline implementation now adds them, causal field auditing, isolated arm
+state, and raw-retention quotas. v5 still lacks paired recipient/hazard truth
+and causal pre-action signals. The next implementation gate is live
+collector/verifier wiring; only after its review is the
+`phase2_paired_causal_v1` two-trajectory pilot eligible for authorization.
 The adapter additionally passes 37 paired-active snapshots from the existing
 two-stream recordings (`snapshot_adapter/20260814_222354`): 26 are accepted and
 11 are correctly rejected by the 1 s freshness gate. They lack synchronized

@@ -1,0 +1,54 @@
+schema_version: scenesense.phase2_renderer_quality_gate.v1
+implementation_status: reviewed_fail_fast_gate_only
+authorization:
+  carla_launch: true
+  oai_launch: false
+  full_collection: false
+
+base_integration_config: data_collection/configs/phase2_paired_causal_pilot_reviewed_v1.yaml
+contract_config: phase2_map_sharing/configs/renderer_quality_gate_v1.yaml
+output_root: data_collection/experiments/phase2_renderer_quality_gate_v1
+
+comparison:
+  comparison_id: phase2_renderer_low_vs_epic_v1
+  frozen_geometry_id: town10hd_opt_curbside_legal_opposing_v1
+  allowed_quality_levels: [Low, Epic]
+  required_quality_levels: [Low, Epic]
+  server_launch_flag_by_quality:
+    Low: -quality-level=Low
+    Epic: -quality-level=Epic
+  quality_verification: operator_declared_server_launch_flag
+  limitation: >-
+    CARLA exposes no reliable runtime API for the engine quality level. The
+    launcher records and validates the operator declaration but cannot infer
+    the flag from the CARLA world RPC.
+
+capture:
+  frames_per_trajectory: 120
+  controlled_window_seconds: 12.0
+  retained_raw_window_seconds: 8.0
+  aggregate_raw_bytes_cap: 16000000000
+  seed: 27181
+  roles: [helper, recipient]
+  scenario_roles: [controlled_positive_occlusion, matched_benign_negative]
+  exact_sensor_contract: true
+  inference_timing_is_citable: false
+
+metrics:
+  localization_match_gate_m: 5.0
+  near_range_m_by_class:
+    pedestrian: 12.0
+    vehicle: 25.0
+  postdecoder_score_thresholds: [0.05, 0.075, 0.10, 0.15, 0.20, 0.30, 0.50]
+  primary_score_threshold: 0.05
+  radar_median_relative_tolerance: 0.10
+  maximum_absolute_recall_shift_pp: 10.0
+  minimum_segmentation_argmax_agreement: 0.90
+  minimum_segmentation_class_iou: 0.70
+  segmentation_comparison_stride_frames: 5
+  maximum_dropped_required_frames: 0
+
+decision:
+  single_pair_is_fail_fast_not_confirmatory: true
+  if_stable: pin_epic_primary_and_low_stress_stratum
+  if_unstable: hold_corpus_and_review_training_renderer_contract

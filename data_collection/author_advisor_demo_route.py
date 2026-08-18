@@ -47,6 +47,28 @@ for _path in (str(REPO_ROOT), str(CARLA_AGENTS_ROOT), str(ADVISOR_CODES)):
 import ego_route_config  # noqa: E402
 
 
+class _PlanningWorld:
+    """Forward CARLA world calls without registering a tick callback.
+
+    ``ScenarioControllerV2`` normally subscribes to ``world.on_tick`` because
+    its interactive UI needs live frame state.  Route authoring only uses its
+    deterministic catalogs and planner.  Registering that unused callback can
+    make the CARLA 0.10 client abort during interpreter teardown with
+    ``thread::join failed: Resource deadlock avoided`` even after both route
+    files have been flushed.  This narrow proxy preserves every planning call
+    while making the unused subscription explicit and inert.
+    """
+
+    def __init__(self, world: carla.World) -> None:
+        self._world = world
+
+    def __getattr__(self, name: str):
+        return getattr(self._world, name)
+
+    def on_tick(self, _callback):
+        return None
+
+
 def _sha256(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as stream:
@@ -174,7 +196,7 @@ def author_route(args: argparse.Namespace) -> tuple[Path, Path]:
     config = advisor_ui_v2.v1.load_yaml_config(scenario_config)
     controller = advisor_ui_v2.ScenarioControllerV2(
         client,
-        world,
+        _PlanningWorld(world),
         traffic_light_data,
         float(config["ui"].get("map_waypoint_spacing_m", 2.0)),
         master_clock=False,
