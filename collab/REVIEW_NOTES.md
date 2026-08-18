@@ -5029,3 +5029,36 @@ Alternative but weaker repairs are rejected: merely lengthening every trajectory
 registered storage/runtime and still correlate the route families; treating traffic seeds as route diversity does
 not change geometry; and inventing lateral XY offsets can create illegal-lane motion. Until the anchor schedule is
 accepted and visually reviewed, the two naturalistic routes—and therefore collection—remain blocked.
+
+## 2026-08-18 — LOCAL REVIEW of the Suite A/B design + warning-eval freeze: PROCEED. Two notes, neither blocking.
+
+Reviewed all sections since 2026-08-14. **Approved to proceed.** Strong: cluster-aware design (210 independent
+groups, positive/benign twins sharing seed and split), the excluded pilot pair correctly **not** used for variance,
+storage tiered 1.8 TB -> 54.61 GB under an 80 GB cap with a 500 GB floor, staged detached runs with human gates,
+hash-verified create-only `*_v3` artifacts, the legal-lane geometry fix with a runtime lane-ID/heading assertion,
+and the correct scientific catch that `false_warning = any non-target warning` was wrong. B1/B2/A5 are addressed.
+
+### Note 1 (fix before the freeze binds; cheap) — the 0.5 s effect is ASSERTED, not DERIVED
+`PHASE2_SUITE_AB_DESIGN.md:79` states "smallest effect of interest: 0.5 s" with no derivation. Codex itself agreed
+the threshold "should not be arbitrary. Define an actionable, **speed-dependent** deadline from reaction, pipeline,
+braking, and safety-margin time." That follow-through is missing, and it matters because **Suite A deliberately
+varies low/high closing speed x short/long time-to-hazard** — the very factors the threshold should depend on. A
+flat 0.5 s is likely too lenient in the high-closing-speed cells and too strict in the low ones, so it conflates
+cells the design was built to separate. Either derive a per-speed-band actionable threshold, or keep 0.5 s as a
+declared conservative floor **with the arithmetic shown** (reaction + measured pipeline latency + braking at the
+tested closing speeds + margin). Fix now: the power calculation depends on it, and changing it after data would be
+exactly the post-hoc margin-weakening we banned.
+
+### Note 2 (top risk to C2; already acknowledged, stating it as an explicit gate)
+Provisional-rule benign diagnostics: warning-active frames **89.2% ego-only / 93.3% cooperative**, unmatched
+warnings active on **84.2/90.8/90.8%**. If a rule fires on ~90% of frames, `first_warning_at_s` is ~immediate in
+**both** arms and `lead_gain_s` collapses toward 0 **by construction** — measurable but meaningless. Codex correctly
+says the rule is not ready to freeze; making it a gate: **calibration must demonstrate a benign-arm warning rate low
+enough that first-warning time is discriminative** (i.e. the ego-only arm must plausibly *fail* to warn before the
+horizon on a positive hazard) before validation/test are authorized. Report the benign warning rate alongside power
+as a calibration exit criterion. Also worth diagnosing rather than only exposing: hazard-only producing *more*
+warning events than send-everything despite fewer bytes suggests pre-publication filtering is changing association
+persistence — understand that mechanism before it is baked into the C2 comparison.
+
+Neither note blocks the pending five geometry authorings, the paired naturalistic routes, or the six-group
+calibration audit. Proceed.
