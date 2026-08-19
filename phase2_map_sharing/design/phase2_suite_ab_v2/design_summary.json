@@ -1,0 +1,156 @@
+{
+  "ambient_population_contracts": {
+    "A": {
+      "generic_vehicles": 0,
+      "generic_walkers": 0,
+      "mode": "scenario_owned_only",
+      "population_process_required": false,
+      "traffic_density_status": "not_applicable"
+    },
+    "B": {
+      "mode": "naturalistic_tm",
+      "population_process_required": true,
+      "traffic_density_status": "realized_nuisance_factor"
+    }
+  },
+  "blocking_gates": [
+    "per_row_factor_runtime_adapter_and_positive_realization_gate",
+    "bounded_factor_smoke_before_factor_freeze",
+    "calibration_replay_sufficiency_capture",
+    "register_recipient_endpoint_effect_size_and_power_after_calibration",
+    "freeze_installed_track_metric_definitions_denominators_and_structural_gates_before_exact_16_calibration",
+    "estimate_then_register_numeric_track_quality_thresholds_before_additional_collection",
+    "review_exact_local_and_oai_timestamp_byte_fields"
+  ],
+  "collection_authorized": false,
+  "design_id": "phase2_suite_ab_v2",
+  "design_raw_cap_bytes": 80000000000,
+  "estimated_capture_hours": 15.95,
+  "estimated_storage_bytes": 54605695680,
+  "group_counts": {
+    "A_calibration": 24,
+    "A_test": 72,
+    "A_validation": 24,
+    "B_calibration": 18,
+    "B_test": 54,
+    "B_validation": 18
+  },
+  "historical_warning_reference": {
+    "endpoint": "paired_registered_target_warning_lead_s",
+    "minimum_power": 0.8,
+    "planned_censor_fraction": 0.1,
+    "sensitivity_power_at_sd_1_25_s": 0.883151595799319,
+    "smallest_effect_interpretation": {
+      "distance_equivalent_m_by_closing_speed_band": {
+        "high": [
+          3.0,
+          5.0
+        ],
+        "low": [
+          1.0,
+          2.0
+        ]
+      },
+      "future_safety_deadline_status": "deferred_until_fixed_warning_actuation_and_advisor_braking_parameters",
+      "policy_decision_count": 10,
+      "required_reporting": [
+        "warning_lead_s_by_closing_speed_band",
+        "closing_distance_equivalent_m",
+        "causal_deadline_slack_s"
+      ],
+      "role": "cross_cell_research_floor_not_a_braking_safety_threshold",
+      "sensor_frame_count": 5
+    },
+    "smallest_effect_s": 0.5,
+    "status": "non_authoritative_reference_only"
+  },
+  "independent_group_count": 210,
+  "installed_track_quality_guardrails": {
+    "endpoint": "recipient_available_confirmed_track_margin_s",
+    "numeric_threshold_contract": {
+      "estimation_source": "exact_16_factor_realization_calibration_tranche",
+      "failure_action": "block_additional_calibration_and_validation",
+      "registration_deadline": "before_any_additional_calibration_or_validation",
+      "same_16_research_usability_claim_authorized": false,
+      "status": "estimate_on_exact_16_then_register_before_additional_collection"
+    },
+    "pre_16_calibration_contract": {
+      "failure_action": "block_exact_16_calibration_tranche",
+      "metric_definitions": {
+        "duplicate_recipient_install_rate": {
+          "denominator": "all_recipient_installs",
+          "numerator": "repeated_recipient_installs_for_same_contribution_and_source_track"
+        },
+        "false_recipient_install_rate": {
+          "denominator": "all_recipient_install_attempts",
+          "numerator": "recipient_installs_without_registered_source_target_correspondence"
+        },
+        "recipient_map_pollution_rate": {
+          "denominator": "all_recipient_map_tracks",
+          "numerator": "recipient_map_tracks_without_valid_local_or_installed_source_provenance"
+        },
+        "source_to_recipient_track_fragmentation_rate": {
+          "denominator": "source_tracks_with_at_least_one_recipient_install",
+          "numerator": "extra_recipient_track_ids_beyond_one_per_source_track_within_episode"
+        }
+      },
+      "status": "definitions_denominators_and_structural_integrity_gates_must_be_frozen",
+      "structural_integrity_gates": [
+        "every_install_has_unique_contribution_source_and_recipient_track_ids",
+        "publish_install_available_timestamps_are_monotone_on_one_clock",
+        "every_metric_event_is_recomputable_from_immutable_provenance",
+        "zero_missing_denominators_or_untyped_zero_exposure_cases"
+      ]
+    },
+    "status": "two_stage_calibration_contract_no_collection_authority"
+  },
+  "minimum_required_calibration_power": null,
+  "pending_manual_scenario_statuses": [],
+  "planned_censor_fraction": null,
+  "power_status": "not_authorized_pending_recipient_endpoint_runtime_and_calibration",
+  "primary_endpoint": "recipient_available_confirmed_track_margin_s",
+  "primary_endpoint_status": "pending_recipient_install_runtime_factor_smoke_and_calibration_no_effect_size_registered",
+  "registered_effect_size_s": null,
+  "renderer_contract": {
+    "existing_stress_level": "Low",
+    "future_low_collection_authorized": false,
+    "primary_level": "Epic",
+    "provenance_source": "operator_declared_server_launch_flag",
+    "required_server_launch_flag": "-quality-level=Epic",
+    "rpc_introspection_available": false
+  },
+  "schema": "scenesense.phase2_suite_design_summary.v2",
+  "sensitivity_power_at_sd_1_25_s": null,
+  "smallest_effect_interpretation": null,
+  "storage_estimate_within_cap": true,
+  "suite_a_test_positive_group_count": 72,
+  "suite_labels": {
+    "A": "designed_decision_opportunities",
+    "B": "naturalistic_operation"
+  },
+  "trajectory_count": 330,
+  "trajectory_counts": {
+    "calibration": 66,
+    "test": 198,
+    "validation": 66
+  },
+  "warning_nuisance_gate": {
+    "adjudicated_false_warning_active_frame_rate_max": 0.1,
+    "aggregation": {
+      "false_warning_active_frame_rate": "sum_false_warning_active_frames_over_sum_eligible_benign_frames",
+      "false_warning_episode_rate_per_minute": "sum_false_warning_episodes_over_sum_eligible_benign_exposure_minutes",
+      "threshold_basis": "pooled_point_estimate_with_cluster_interval_reported",
+      "uncertainty_unit": "paired_trajectory_cluster"
+    },
+    "apply_to": "future_warning_claim_candidates_only",
+    "c2_installed_track_endpoint_blocking": false,
+    "cooperative_vs_ego_noninferiority_margin_pp": 2.0,
+    "failure_action": "block_future_warning_claim_not_C2_installed_track_evidence",
+    "false_warning_episodes_per_minute_max": 1.0,
+    "note": "research_usability_gate_not_a_certified_automotive_requirement",
+    "population": "suite_a_matched_benign_negative",
+    "scope": "binding_only_for_any_future_warning_claim",
+    "status": "historical_failed_secondary_not_blocking_C2",
+    "timing_endpoint_basis": "registered_target_warning_only"
+  }
+}

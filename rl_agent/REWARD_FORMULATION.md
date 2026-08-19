@@ -303,11 +303,16 @@ large reward weight. Rebuild the dynamic part around these requirements:
    Phase-1 frozen-object `speed × AoI` error as its safety model.
 4. Current detector outputs, confidence, track identity, map quality, shadow actions, and CARLA truth cannot feed
    the placement decision that produces them.
-5. Reward weights are not retuned until the paired causal corpus makes recipient warning lead, false/missed
-   warning, uncertainty, bytes, and latency jointly computable.
+5. Reward weights are not retuned until a reviewed paired causal corpus makes
+   recipient-available installed-track gain, typed actionability slack,
+   false/duplicate/fragmented installed-track burden, uncertainty, bytes, and
+   latency jointly computable. Warning lead and false/missed warnings remain
+   separate secondary outcomes; the failed v3 warning result is not converted
+   into reward evidence.
 
-The two-trajectory pilot is a data-contract gate, not a reward experiment. RL remains unauthorized until the
-causal exact/rule/greedy/MPC ladder leaves a pre-registered sequential gap.
+The completed bounded pilots are data-contract/formative gates, not reward
+experiments. RL remains unauthorized until the causal exact/rule/greedy/MPC
+ladder leaves a pre-registered sequential gap.
 
 ## 15. Phase-2 physical outcomes, constraints, and SKIP (2026-08-17)
 
@@ -338,3 +343,32 @@ safety outcomes do not justify inventing unmeasured continuous profile
 actions. The normative ranking and complete catalog are in
 `../phase2_map_sharing/PHASE2_CONSTRAINT_CATALOG.md`; weights remain unfrozen
 until the causal corpus and LOCAL/OAI tables exist.
+
+## 16. Phase-2 timing, anti-memorization, and manual-driver boundary (proposed 2026-08-19)
+
+The proposed future C2 information endpoint is the time advantage of a
+**causally delivered, accepted helper track available to the recipient
+consumer** over a usable recipient-self track available at the same boundary.
+Consumer `available_at` must be no earlier than map install. Helper-local
+confirmation or raw install time is only a zero-transport formative
+upper bound. The 2026-08-19 pilot's 2.4 s local confirmation gap is preserved as
+such; its warning result remains secondary and failed benign specificity.
+
+Do not reward a fixed warning time, scenario phase, or the pilot's pedestrian
+schedule. The policy feature allowlist excludes scenario/frame identifiers,
+absolute elapsed time, factor/positive labels, planned target onset/route,
+future conflict truth, driver-profile identity, and manual/autopilot status. It
+may use causal relative kinematics, uncertainty, AoI, lagged network state,
+previous outcomes, and protocol scheduler/in-flight state. Scheduler phase is
+varied independently of hazard onset. The authoritative allow/deny contract is
+in `../phase2_map_sharing/PHASE2_PAIRED_CAUSAL_CORPUS_SPEC.md §5.1`.
+
+Per-geometry actionability slack under frozen reaction/deceleration/clearance
+profiles is a required evaluation stratum, not evidence that an installed track
+caused a correct warning or safe stop. It must not enter the learned reward
+until a common causal warning-to-actuation adapter exists. Until then C3
+warning/safety remains unresolved. Research evaluation uses reproducible
+scripted motion and a common adapter when actuation is enabled; MWC manual
+driving is a post-freeze human-in-the-loop holdout, never training or model
+selection data, and its driver-response/clearance results are reported
+separately.

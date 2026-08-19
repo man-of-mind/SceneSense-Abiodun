@@ -8,9 +8,11 @@ import unittest
 import yaml
 
 from phase2_map_sharing.design_suite_manifest import (
+    FACTOR_REALIZATION_COLUMNS,
     build_manifest,
     build_power_sensitivity,
     summarize,
+    validate_manifest,
     write_design,
 )
 
@@ -292,6 +294,162 @@ class SuiteDesignTests(unittest.TestCase):
             )
             self.assertFalse(provenance["runtime_authorized"])
             self.assertEqual(len(artifacts["files"]), 4)
+
+
+class SuiteDesignV2FactorTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.root = Path(__file__).resolve().parents[2]
+        cls.config_path = (
+            cls.root / "phase2_map_sharing/configs/phase2_suite_ab_design_v2.yaml"
+        )
+        cls.config = yaml.safe_load(cls.config_path.read_text(encoding="utf-8"))
+        cls.manifest = build_manifest(cls.config)
+
+    def test_v2_retains_frozen_design_shape_and_adds_typed_numeric_controls(self) -> None:
+        self.assertEqual({"scenesense.phase2_suite_design_manifest.v2"}, set(self.manifest.schema))
+        self.assertEqual(330, len(self.manifest))
+        self.assertTrue(FACTOR_REALIZATION_COLUMNS.issubset(self.manifest.columns))
+        suite_a = self.manifest[self.manifest.suite_id == "A"]
+        self.assertEqual(
+            {"provisional_controls_pending_bounded_factor_smoke"},
+            set(suite_a.factor_realization_status),
+        )
+        self.assertEqual(
+            {"not_scientifically_realized_until_bounded_factor_smoke"},
+            set(suite_a.time_to_hazard_label_status),
+        )
+        numeric = sorted(
+            FACTOR_REALIZATION_COLUMNS
+            - {
+                "factor_realization_status",
+                "time_to_hazard_label_status",
+                "hazard_actor_role",
+                "onset_driver_role",
+                "geometry_measurement_basis",
+                "closing_speed_measurement_basis",
+                "proximity_horizon_measurement_basis",
+            }
+        )
+        self.assertFalse(suite_a[numeric].isna().any().any())
+
+    def test_matched_twins_receive_identical_requested_controls(self) -> None:
+        suite_a = self.manifest[self.manifest.suite_id == "A"]
+        requested = sorted(
+            field for field in FACTOR_REALIZATION_COLUMNS if field.startswith("requested_")
+        )
+        cardinality = suite_a.groupby("group_id")[requested].nunique(dropna=False)
+        self.assertEqual(1, int(cardinality.to_numpy().max()))
+
+    def test_audit_rows_span_factor_cells_instead_of_reusing_low_short(self) -> None:
+        audit = self.manifest[
+            self.manifest.raw_retention_tier == "inputs_plus_logits_window"
+        ]
+        designed = audit[audit.suite_id == "A"]
+        self.assertEqual(15, len(audit))
+        self.assertEqual(9, audit.group_id.nunique())
+        self.assertEqual(6, designed.group_id.nunique())
+        cells = set(
+            zip(designed.closing_speed_band, designed.time_to_hazard_band)
+        )
+        self.assertGreater(len(cells), 1)
+        self.assertIn(("high", "long"), cells)
+        self.assertIn(("low", "long"), cells)
+
+    def test_naturalistic_rows_do_not_fabricate_hazard_realization(self) -> None:
+        suite_b = self.manifest[self.manifest.suite_id == "B"]
+        self.assertEqual(
+            {"not_applicable_unforced_naturalistic"},
+            set(suite_b.factor_realization_status),
+        )
+        self.assertTrue(suite_b.requested_hazard_actor_speed_mps.isna().all())
+        self.assertTrue(suite_b.requested_hazard_onset_s.isna().all())
+
+    def test_factor_geometry_coverage_and_target_bounds_fail_closed(self) -> None:
+        import copy
+
+        missing = copy.deepcopy(self.config)
+        del missing["suite_a"]["factor_realization"]["geometry_contracts"][
+            "queue_reveal_lead_vehicle"
+        ]
+        with self.assertRaisesRegex(ValueError, "geometry coverage"):
+            build_manifest(missing)
+
+        invalid = self.manifest.copy()
+        index = invalid[invalid.suite_id == "A"].index[0]
+        invalid.loc[index, "requested_closing_speed_target_mps"] = 100.0
+        with self.assertRaisesRegex(ValueError, "outside their bands"):
+            validate_manifest(invalid, self.config)
+
+    def test_written_v2_design_remains_offline_and_hash_sealed(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "design"
+            summary = write_design(self.config_path, output)
+            provenance = json.loads(
+                (output / "design_provenance.json").read_text(encoding="utf-8")
+            )
+            self.assertEqual(
+                "scenesense.phase2_suite_design_summary.v2", summary["schema"]
+            )
+            self.assertFalse(summary["collection_authorized"])
+            self.assertFalse(provenance["runtime_authorized"])
+            self.assertEqual(
+                "recipient_available_confirmed_track_margin_s",
+                summary["primary_endpoint"],
+            )
+            self.assertIsNone(summary["registered_effect_size_s"])
+            self.assertIsNone(summary["sensitivity_power_at_sd_1_25_s"])
+            self.assertEqual(
+                "non_authoritative_reference_only",
+                summary["historical_warning_reference"]["status"],
+            )
+            self.assertEqual(
+                "not_authorized_pending_recipient_endpoint_runtime_and_calibration",
+                summary["power_status"],
+            )
+            self.assertEqual(
+                "historical_failed_secondary_not_blocking_C2",
+                summary["warning_nuisance_gate"]["status"],
+            )
+            self.assertFalse(
+                summary["warning_nuisance_gate"][
+                    "c2_installed_track_endpoint_blocking"
+                ]
+            )
+            self.assertNotIn(
+                "calibration_absolute_warning_nuisance_gate",
+                summary["blocking_gates"],
+            )
+            self.assertIn(
+                "freeze_installed_track_metric_definitions_denominators_and_structural_gates_before_exact_16_calibration",
+                summary["blocking_gates"],
+            )
+            self.assertEqual(
+                "two_stage_calibration_contract_no_collection_authority",
+                summary["installed_track_quality_guardrails"]["status"],
+            )
+            pre_16 = summary["installed_track_quality_guardrails"][
+                "pre_16_calibration_contract"
+            ]
+            self.assertEqual(4, len(pre_16["metric_definitions"]))
+            self.assertTrue(
+                all(
+                    value["denominator"]
+                    for value in pre_16["metric_definitions"].values()
+                )
+            )
+            numeric = summary["installed_track_quality_guardrails"][
+                "numeric_threshold_contract"
+            ]
+            self.assertFalse(numeric["same_16_research_usability_claim_authorized"])
+            self.assertEqual(
+                "before_any_additional_calibration_or_validation",
+                numeric["registration_deadline"],
+            )
+            self.assertIn(
+                "estimate_then_register_numeric_track_quality_thresholds_before_additional_collection",
+                summary["blocking_gates"],
+            )
 
 
 if __name__ == "__main__":

@@ -6295,3 +6295,132 @@ a C2 result that does not depend on the component that failed, and it is honest 
 ### Also note (carry with the result)
 The naturalistic run is **report-only**: all six warning-active frames per arm are censored for lack of complete
 future trajectory, so its 0% false-warning rate is **not** specificity evidence. Do not cite it as such.
+
+## 2026-08-19 — CODEX proposed C2 endpoint/generalization reconciliation; PENDING JOINT REVIEW, NO RUN AUTHORIZED
+
+I agree with reporting the lead-versus-nuisance trade-off and not tuning the
+failed warning rule, but two LOCAL claims need narrowing. The pilot's 2.4 s is
+helper-local v3 confirmation (2.2 s) versus recipient-self confirmation
+(4.6 s). It is warning-rule-independent but still detector/tracker-dependent,
+and it is not the time at which an accepted installed helper track became
+available to the recipient consumer. Treat it as a one-trajectory,
+zero-transport formative upper bound.
+Also, static-object motion is not established as the sole nuisance cause in this
+pilot: only 2/23 false-warning events are near a static OBB, helper-only evidence
+adds excess, and hazard-only is worse than send-everything. The supported
+diagnosis is unresolved unmatched vehicle-track/motion nuisance that publication
+selection can amplify.
+
+Proposed future primary C2 information endpoint:
+
+```text
+recipient_available_confirmed_track_margin_s(h) = recipient_self_available_s(h)
+                                                  - recipient_usable_helper_available_s(h)
+```
+
+The helper time includes causal sensing/inference/confirmation, publication,
+transport, reassembly, recipient association, accepted map install, and the
+consumer `available_at` hand-off (`available_at >= installed_at`). Target
+association remains evaluation-only. False/duplicate/fragmented track and
+benign map-pollution guardrails prevent a permissive tracker from manufacturing
+early gain. Warning lead/nuisance stays secondary; the v3 warning stack remains
+failed under the unchanged 10%, 1/min, and +2 pp gates.
+
+Per-geometry actionability slack under registered reaction, braking/friction,
+and safety-margin profiles is mandatory stratification of whether information
+could arrive in time. It is not proof that a valid warning or safe stop occurred;
+C3 warning/safety remains unresolved until all arms share a frozen causal
+warning-to-actuation path.
+
+A blocking design gap is now explicit: v1's low/high closing-speed and
+short/long time-to-hazard columns are labels only, without executable
+per-geometry controls or realized gates. The old 15/66/330 launch paths therefore
+remain false. The versioned successor must use typed geometry-specific conflict
+surfaces, urgency/prediction horizons, numeric realized bounds, and censoring;
+pedestrian crossing, cross-traffic, pullout, and queue reveal do not inherit one
+universal TTC.
+
+The next proposed live unit is 16 trajectories hash-assigned to calibration
+before launch. It is not another disposable pilot: every row that passes the
+capture/integrity and typed realization gates counts toward calibration;
+failed/out-of-cell rows remain immutable and are never relabelled. This remains
+a proposal pending joint review—no CARLA/OAI launch follows from this entry.
+
+Anti-memorization is structural. Allow causal ego-relative kinematics,
+uncertainty/AoI, lagged network state, prior outcomes, and protocol
+scheduler/in-flight state. Deny scenario/frame ID, absolute elapsed time,
+positive/factor labels, seed, planned hazard timing/route, future truth,
+driver-profile identity, and manual/autopilot status. Independently vary onset,
+route start, and scheduler phase; hold out an onset range, scripted driver-motion
+profile, and geometry/route combination.
+
+MWC manual driving is a post-freeze human-in-the-loop holdout, never training,
+calibration, model selection, or confirmatory C2 data. The frozen policy consumes
+live ego kinematics and recomputes urgency; manual runs separately report system
+availability, driver response, clearance/collision, and comfort with an explicit
+safety override. The proposed wording is synchronized in
+`PHASE2_PAIRED_CAUSAL_CORPUS_SPEC.md`, `PHASE2_SUITE_AB_DESIGN.md`,
+`PHASE2_CONSTRAINT_CATALOG.md`, `REWARD_FORMULATION.md`, and the Phase-2
+pointer in `AGENT_CONSTRAINTS.md`.
+
+## 2026-08-19 — CODEX offline v2 factor contract ready for joint review; collection still blocked
+
+The label-only generalization defect is now closed at the **offline design**
+boundary, not misrepresented as a live repair. The immutable v1 artifacts remain
+warning-era provenance. New `phase2_suite_ab_v2` rows carry deterministic numeric
+helper/recipient/hazard/onset-driver controls, positive/benign twins share the
+same non-treatment requests, and every designed geometry declares separate
+hazard/onset roles and a typed measurement basis. The historical
+`time_to_hazard_band` name remains explicitly provisional: the future runtime
+must measure `pre_intervention_hazard_proximity_horizon_s` and radial closing
+speed before intervention and reject an out-of-cell row. This diagnostic is not
+silently called collision TTC or a safety guarantee.
+
+The exact future information endpoint name is now synchronized in prose and
+machine files:
+
+```text
+recipient_available_confirmed_track_margin_s
+  = recipient_self_available_s
+    - recipient_usable_helper_available_s
+```
+
+Both sides use the same recipient-consumer `available_at` boundary, with helper
+confirmation <= publication <= install <= availability. The v2 power effect is
+deliberately unset until calibration; the old 0.5 s warning-lead sensitivity is
+retained only as a non-authoritative historical reference. The failed v3 warning
+gate remains binding for any future warning/C3 claim but does not block the C2
+information study. Before the 16-row calibration tranche, freeze definitions,
+denominators, and structural integrity gates for false installs, duplicates,
+source-to-recipient fragmentation, and benign map pollution. Use the 16 only to
+estimate their distributions; register numeric usability thresholds before any
+additional calibration or validation, and never claim those thresholds are
+validated on the same 16 rows that set them.
+
+The bounded smoke contract pins 16 real replicate-0 calibration trajectories:
+one pedestrian and one vehicle geometry crossed with low/high closing and
+short/long typed proximity horizon, each with a matched benign twin. An atomic
+PASS admits those exact 16 into calibration; any failure excludes the whole
+batch, so this is not another disposable pre-corpus run. Authored onset seconds
+are provisional scene metadata and are never policy features; only realized
+physical kinematics determine admission. The MWC manual holdout later uses a
+route-progress/recipient-ETA trigger.
+
+Current static verdict is `PASS_OFFLINE_DESIGN_COLLECTION_BLOCKED` with plan
+SHA `a6f7c48a4b20028b0391c6507b02e47f4a4906494a3edc80fa84f1d427879be1`.
+The four intentionally open implementation gates are: per-row runtime factor
+adapter, recipient availability/install instrumentation, exact policy-feature
+projection, and create-only detached launcher. Therefore no command can launch
+the batch yet. After joint review, implement and test only those adapters, run a
+short visual/physical corner check, then hand off the approximately 46-minute
+16-trajectory detached collection. Do not chain the old 15-row audit or any
+larger stage.
+
+Integrity: v2 config SHA
+`1211a589fad4b1e09399754f8be125cef95e394498e2ca7823da3e4e37b88bc5`,
+manifest SHA
+`c5b56fc1210a7d2e26e8cb58cc0b495fd2b649c36faa96d5c83f8726502fdf96`,
+summary SHA
+`fb45b5ca1bc229297daff00dc828d830559ee4a3e182c86ea73623efeba5bcca`.
+Independent rerun: 32 focused tests PASS, `py_compile` PASS, and
+`git diff --check` PASS. No CARLA or OAI process was launched.

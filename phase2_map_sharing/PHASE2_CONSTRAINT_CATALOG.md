@@ -1,7 +1,8 @@
 # Phase-2 constraint and outcome catalog
 
-Status: design freeze for the causal paired-corpus stage, 2026-08-17. This
-catalog does not authorize RL, full collection, or warning-triggered braking.
+Status: 2026-08-17 constraint ranking retained; 2026-08-19 C2 endpoint
+reconciliation **proposed and pending joint review**. This catalog does not
+authorize CARLA/OAI collection, RL, or warning-triggered braking.
 
 ## 1. Scope and control boundary
 
@@ -33,12 +34,15 @@ physically valid.
 2. **Physical safety constraints** — collision and minimum clearance once
    warning actuation exists; observed vulnerable-road-user protection applies
    only to objects the causal pipeline has actually observed.
-3. **Deadline/service constraints** — deliver useful hazard evidence before its
-   recipient-specific deadline, with declared uncertainty.
+3. **Deadline/service constraints** — make an accepted usable helper track
+   available to the recipient consumer before its recipient-specific deadline,
+   with declared uncertainty; warning/actuation safety remains a separate later
+   layer.
 4. **Network and compute feasibility** — do not knowingly enqueue work that
    exceeds conservative radio or local-compute capacity.
-5. **Task utility and efficiency** — perception quality, warning lead, bytes,
-   PRB-time, UE compute, switching, comfort, and progress.
+5. **Task utility and efficiency** — perception quality, recipient-available
+   information gain, secondary warning lead, bytes, PRB-time, UE compute,
+   switching, comfort, and progress.
 
 This is a constrained/lexicographic design. A scalar reward may rank actions
 *inside* the admitted set, but a tuned weight must not buy permission to violate
@@ -48,16 +52,17 @@ causality or a hard physical-safety invariant.
 
 | ID | Constraint or outcome | Causal measurement | Treatment now | Later acceptance/evaluation |
 |---|---|---|---|---|
-| S0 | No future truth, GT actor identity, same-action output, or shadow result in policy state | timestamped allowlist and consuming-decision audit | hard reject | zero violations |
+| S0 | No future truth, GT actor identity, same-action output, shadow result, scenario clock/label, authored hazard schedule, or driver-profile identity in policy state | timestamped allowlist, anti-memorization manifest, and consuming-decision audit | hard reject | zero violations |
 | S1 | Action is supported by the measured profile/FPS/local table | catalog membership and config hash | hard mask | zero unsupported actions |
 | S2 | Recipient/source isolation and monotone contribution ordering | recipient ID, sequence, capture/install times | hard reject | zero cross-recipient or time-order violations |
 | N1 | Conservative uplink admission | lagged capacity estimate + uncertainty, payload, target rate, in-flight bytes | hard mask for known infeasibility; estimate misses logged | C1 false-admit/false-reject and overload rate |
-| N2 | Hazard evidence delivered before its deadline | capture/enqueue/reassembly/install times and causal deadline slack | service constraint | deadline success, tail latency, starvation, bytes/PRB-time |
+| N2 | Usable helper evidence available at the recipient before its deadline | capture/enqueue/reassembly/install/consumer-available times and typed actionability slack | service constraint | deadline-stratified availability, tail latency, starvation, bytes/PRB-time |
 | N3 | Queue stability | BSR/queue, replacement/drop state, service estimate | bounded backlog/drop-expired work | queue tail and recovery after overload |
 | K1 | Local inference feasibility | measured local p50/p95, sustainable FPS, bounded queue/headroom | hard mask after LOCAL calibration | deadline misses, compute utilization |
 | K2 | UE energy/thermal budget | measured energy and thermal state | deferred until measured | energy/update and thermal throttling |
 | M1 | Map contribution validity | confidence, covariance, motion-model ID, process noise, validity horizon | hard schema/TTL checks | stale rejection and calibration |
-| M2 | Hazard service quality | causal warning, AoI, covariance, deadline debt | service constraint, not a raw send bonus | warning lead, misses, false-warning exposure |
+| M2 | Recipient information gain | recipient-self availability versus accepted usable-helper consumer availability, AoI, covariance, track quality | proposed primary C2 information endpoint, not a raw send bonus | recipient-available track gain/censoring, misses, false/duplicate/fragmented tracks, benign map pollution |
+| W1 | Warning service quality | causal warning, AoI, covariance, deadline debt | secondary; present v3 stack failed unchanged specificity gates | warning lead, misses, false-warning exposure |
 | M3 | Perception utility | segmentation, pedestrian recall, vehicle recall from frozen measured tables/eval | soft utility | class-stratified quality and calibration |
 | P1 | Collision | CARLA collision stream, separately from policy state | report-only until warning actuation; then hard/terminal | collision/near-miss rate |
 | P2 | Minimum surface clearance | oriented ego/hazard boxes over synchronized truth | report-only now; later safety constraint | minimum and quantile clearance |
@@ -92,8 +97,9 @@ There is no global `-lambda * I[SKIP]` term. It would punish correct abstention
 in empty scenes and can force useless traffic during overload. Instead:
 
 - `SKIP_INFERENCE` is judged by the service debt it creates before inference;
-- `SKIP_PUBLICATION` is judged after inference by missed hazard evidence,
-  deadline slack, map AoI/uncertainty, and recipient warning consequences;
+- `SKIP_PUBLICATION` is judged after inference by missed usable hazard evidence,
+  recipient-availability/deadline slack, map AoI/uncertainty, and secondary
+  warning consequences;
 - a hazard-conditioned consecutive-skip/service constraint may be admitted only
   from causal observed evidence, never future truth;
 - all registered arrivals remain in deadline denominators, so skip cannot erase
@@ -107,12 +113,13 @@ skip percentage.
 
 ## 6. Reward structure after the causal corpus
 
-Do not tune weights from the two-trajectory pilot. Once all required local and
+Do not tune weights from the completed bounded pilots. Once all required local and
 transport tables exist, the candidate ordering is:
 
 1. apply S0--S2 and measured N1/K1 masks;
-2. enforce physical-safety and hazard-deadline constraints with explicit
-   graceful-degradation flags when no action can satisfy them;
+2. enforce usable-track deadline/service constraints with explicit
+   graceful-degradation flags when no action can satisfy them; apply physical
+   safety only after a common causal warning-to-actuation adapter exists;
 3. rank the remaining actions by task utility minus realized radio, compute,
    switching, service-debt, and—only with fixed warning actuation—comfort costs.
 

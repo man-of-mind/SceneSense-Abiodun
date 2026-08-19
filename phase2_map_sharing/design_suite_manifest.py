@@ -20,8 +20,33 @@ import yaml
 from scipy.stats import nct, t
 
 
-SCHEMA = "scenesense.phase2_suite_design_manifest.v1"
+CONFIG_SCHEMA_V1 = "scenesense.phase2_suite_design.v1"
+CONFIG_SCHEMA_V2 = "scenesense.phase2_suite_design.v2"
+MANIFEST_SCHEMA_V1 = "scenesense.phase2_suite_design_manifest.v1"
+MANIFEST_SCHEMA_V2 = "scenesense.phase2_suite_design_manifest.v2"
 SPLITS = ("calibration", "validation", "test")
+
+FACTOR_REALIZATION_COLUMNS = {
+    "factor_realization_status",
+    "time_to_hazard_label_status",
+    "hazard_actor_role",
+    "onset_driver_role",
+    "geometry_measurement_basis",
+    "closing_speed_measurement_basis",
+    "proximity_horizon_measurement_basis",
+    "requested_helper_speed_mps",
+    "requested_recipient_speed_mps",
+    "requested_hazard_actor_speed_mps",
+    "requested_onset_driver_speed_mps",
+    "requested_hazard_onset_s",
+    "requested_closing_speed_target_mps",
+    "requested_closing_speed_band_min_mps",
+    "requested_closing_speed_band_max_mps",
+    "requested_proximity_horizon_target_s",
+    "requested_proximity_horizon_band_min_s",
+    "requested_proximity_horizon_band_max_s",
+    "minimum_onset_driver_speed_mps",
+}
 
 
 def _sha256(path: Path) -> str:
@@ -79,13 +104,183 @@ def _retention_tier(split: str, *, audit: bool, config: Mapping[str, object]) ->
     return str(retention[f"{split}_tier"])
 
 
+def _factor_realization_fields(
+    config: Mapping[str, object],
+    geometry: Mapping[str, object],
+    *,
+    closing_band: str,
+    tth_band: str,
+) -> dict[str, object]:
+    """Resolve deterministic Suite-A controls for a v2 manifest row.
+
+    The historical ``time_to_hazard_band`` label never had executable
+    semantics.  V2 deliberately keeps it as a provisional factor label and
+    records a measurable constant-velocity proximity-horizon diagnostic.  It
+    is not silently renamed to collision TTC.
+    """
+
+    factor = config["suite_a"]["factor_realization"]
+    if factor.get("schema") != "scenesense.phase2_factor_realization.v1":
+        raise ValueError("unsupported Suite-A factor-realization schema")
+    closing_ranges = config["suite_a"]["closing_speed_bands"]
+    horizon_ranges = config["suite_a"]["time_to_hazard_bands"]
+    if set(factor["requested_recipient_speed_mps_by_closing_speed_band"]) != set(
+        closing_ranges
+    ):
+        raise ValueError("requested recipient speeds do not cover closing-speed bands")
+    if set(factor["requested_hazard_onset_s_by_factor_cell"]) != set(
+        closing_ranges
+    ):
+        raise ValueError("requested onset table does not cover closing-speed bands")
+    for name, values in factor["requested_hazard_onset_s_by_factor_cell"].items():
+        if set(values) != set(horizon_ranges):
+            raise ValueError(f"requested onset table is incomplete for {name}")
+    geometry_contracts = factor["geometry_contracts"]
+    configured_geometry_ids = {
+        str(item["geometry_id"]) for item in config["suite_a"]["geometries"]
+    }
+    if set(geometry_contracts) != configured_geometry_ids:
+        raise ValueError("factor realization geometry coverage differs from Suite A")
+    identity = str(geometry["geometry_id"])
+    if identity not in geometry_contracts:
+        raise ValueError(f"factor realization lacks geometry {identity}")
+    contract = geometry_contracts[identity]
+    expected_contract_keys = {
+        "hazard_actor_role",
+        "onset_driver_role",
+        "geometry_measurement_basis",
+        "requested_hazard_actor_speed_mps",
+        "requested_onset_driver_speed_mps",
+    }
+    if set(contract) != expected_contract_keys:
+        raise ValueError(
+            f"factor geometry contract keys differ for {identity}: "
+            f"missing={sorted(expected_contract_keys - set(contract))}, "
+            f"extra={sorted(set(contract) - expected_contract_keys)}"
+        )
+    closing_min, closing_max = (
+        float(value) for value in closing_ranges[closing_band]
+    )
+    horizon_min, horizon_max = (
+        float(value) for value in horizon_ranges[tth_band]
+    )
+    recipient_speed = float(
+        factor["requested_recipient_speed_mps_by_closing_speed_band"][closing_band]
+    )
+    if recipient_speed <= 0.0 or not math.isfinite(recipient_speed):
+        raise ValueError("requested recipient speed must be finite and positive")
+    hazard_onset_s = float(
+        factor["requested_hazard_onset_s_by_factor_cell"][closing_band][tth_band]
+    )
+    if hazard_onset_s < 0.0:
+        raise ValueError("requested hazard onset cannot be negative")
+    gate = factor["realized_gate"]
+    return {
+        "factor_realization_status": str(factor["status"]),
+        "time_to_hazard_label_status": str(factor["time_to_hazard_label_status"]),
+        "hazard_actor_role": str(contract["hazard_actor_role"]),
+        "onset_driver_role": str(contract["onset_driver_role"]),
+        "geometry_measurement_basis": str(contract["geometry_measurement_basis"]),
+        "closing_speed_measurement_basis": str(
+            gate["closing_speed_measurement_basis"]
+        ),
+        "proximity_horizon_measurement_basis": str(
+            gate["proximity_horizon_measurement_basis"]
+        ),
+        "requested_helper_speed_mps": float(factor["requested_helper_speed_mps"]),
+        "requested_recipient_speed_mps": recipient_speed,
+        "requested_hazard_actor_speed_mps": float(
+            contract["requested_hazard_actor_speed_mps"]
+        ),
+        "requested_onset_driver_speed_mps": float(
+            contract["requested_onset_driver_speed_mps"]
+        ),
+        "requested_hazard_onset_s": hazard_onset_s,
+        "requested_closing_speed_target_mps": 0.5
+        * (closing_min + closing_max),
+        "requested_closing_speed_band_min_mps": closing_min,
+        "requested_closing_speed_band_max_mps": closing_max,
+        "requested_proximity_horizon_target_s": 0.5
+        * (horizon_min + horizon_max),
+        "requested_proximity_horizon_band_min_s": horizon_min,
+        "requested_proximity_horizon_band_max_s": horizon_max,
+        "minimum_onset_driver_speed_mps": float(
+            gate["minimum_onset_driver_speed_mps"]
+        ),
+    }
+
+
+def _naturalistic_factor_fields(config: Mapping[str, object]) -> dict[str, object]:
+    factor = config["suite_a"]["factor_realization"]
+    controls = factor["naturalistic_ego_controls"]
+    return {
+        "factor_realization_status": "not_applicable_unforced_naturalistic",
+        "time_to_hazard_label_status": "not_applicable_unforced_naturalistic",
+        "hazard_actor_role": "not_applicable",
+        "onset_driver_role": "not_applicable",
+        "geometry_measurement_basis": "not_applicable_unforced_naturalistic",
+        "closing_speed_measurement_basis": "not_applicable_unforced_naturalistic",
+        "proximity_horizon_measurement_basis": "not_applicable_unforced_naturalistic",
+        "requested_helper_speed_mps": float(controls["helper_speed_mps"]),
+        "requested_recipient_speed_mps": float(controls["recipient_speed_mps"]),
+        "requested_hazard_actor_speed_mps": math.nan,
+        "requested_onset_driver_speed_mps": math.nan,
+        "requested_hazard_onset_s": math.nan,
+        "requested_closing_speed_target_mps": math.nan,
+        "requested_closing_speed_band_min_mps": math.nan,
+        "requested_closing_speed_band_max_mps": math.nan,
+        "requested_proximity_horizon_target_s": math.nan,
+        "requested_proximity_horizon_band_min_s": math.nan,
+        "requested_proximity_horizon_band_max_s": math.nan,
+        "minimum_onset_driver_speed_mps": math.nan,
+    }
+
+
+def _power_reference(config: Mapping[str, object]) -> Mapping[str, object]:
+    """Return the arithmetic reference without granting endpoint authority.
+
+    V1's warning-lead calculation is preserved for historical reproducibility.
+    V2 names the recipient-available endpoint but deliberately registers no
+    effect size until its runtime event chain and calibration yields exist.
+    """
+
+    power = config["power"]
+    if str(config.get("schema_version")) == CONFIG_SCHEMA_V1:
+        return power
+    if power.get("status") != (
+        "no_v2_power_authorization_historical_warning_sensitivity_only"
+    ):
+        raise ValueError("v2 power status must deny endpoint authorization")
+    if power.get("primary_endpoint") != "recipient_available_confirmed_track_margin_s":
+        raise ValueError("v2 primary endpoint name drifted")
+    if power.get("primary_endpoint_status") != (
+        "pending_recipient_install_runtime_factor_smoke_and_calibration_"
+        "no_effect_size_registered"
+    ):
+        raise ValueError("v2 primary endpoint status drifted")
+    if power.get("registered_effect_size_s") is not None:
+        raise ValueError("v2 must not fabricate a registered effect size")
+    historical = power.get("historical_warning_reference")
+    if not isinstance(historical, Mapping) or historical.get("status") != (
+        "non_authoritative_reference_only"
+    ):
+        raise ValueError("v2 historical warning reference is not bounded")
+    if historical.get("endpoint") != "paired_registered_target_warning_lead_s":
+        raise ValueError("v2 historical warning endpoint drifted")
+    return historical
+
+
 def build_manifest(config: Mapping[str, object]) -> pd.DataFrame:
-    if config.get("schema_version") != "scenesense.phase2_suite_design.v1":
+    config_schema = str(config.get("schema_version"))
+    if config_schema not in {CONFIG_SCHEMA_V1, CONFIG_SCHEMA_V2}:
         raise ValueError("unsupported suite-design config schema")
+    manifest_schema = (
+        MANIFEST_SCHEMA_V2 if config_schema == CONFIG_SCHEMA_V2 else MANIFEST_SCHEMA_V1
+    )
     if any(bool(value) for value in config["authorization"].values()):
         raise ValueError("suite-design config must not authorize runtime work")
 
-    power = config["power"]
+    power = _power_reference(config)
     effect_s = float(power["smallest_effect_s"])
     effect = power["smallest_effect_interpretation"]
     world_hz = float(config["common"]["world_hz"])
@@ -131,8 +326,85 @@ def build_manifest(config: Mapping[str, object]) -> pd.DataFrame:
         "failure_action": "stop_before_validation",
         "note": "research_usability_gate_not_a_certified_automotive_requirement",
     }
+    if config_schema == CONFIG_SCHEMA_V2:
+        expected_nuisance.update(
+            {
+                "status": "historical_failed_secondary_not_blocking_C2",
+                "scope": "binding_only_for_any_future_warning_claim",
+                "c2_installed_track_endpoint_blocking": False,
+                "apply_to": "future_warning_claim_candidates_only",
+                "failure_action": (
+                    "block_future_warning_claim_not_C2_installed_track_evidence"
+                ),
+            }
+        )
     if nuisance != expected_nuisance:
         raise ValueError("absolute warning-nuisance gate drifted")
+    if config_schema == CONFIG_SCHEMA_V2:
+        expected_track_guardrails = {
+            "status": "two_stage_calibration_contract_no_collection_authority",
+            "endpoint": "recipient_available_confirmed_track_margin_s",
+            "pre_16_calibration_contract": {
+                "status": (
+                    "definitions_denominators_and_structural_integrity_gates_"
+                    "must_be_frozen"
+                ),
+                "metric_definitions": {
+                    "false_recipient_install_rate": {
+                        "numerator": (
+                            "recipient_installs_without_registered_source_target_"
+                            "correspondence"
+                        ),
+                        "denominator": "all_recipient_install_attempts",
+                    },
+                    "duplicate_recipient_install_rate": {
+                        "numerator": (
+                            "repeated_recipient_installs_for_same_contribution_and_"
+                            "source_track"
+                        ),
+                        "denominator": "all_recipient_installs",
+                    },
+                    "source_to_recipient_track_fragmentation_rate": {
+                        "numerator": (
+                            "extra_recipient_track_ids_beyond_one_per_source_track_"
+                            "within_episode"
+                        ),
+                        "denominator": (
+                            "source_tracks_with_at_least_one_recipient_install"
+                        ),
+                    },
+                    "recipient_map_pollution_rate": {
+                        "numerator": (
+                            "recipient_map_tracks_without_valid_local_or_installed_"
+                            "source_provenance"
+                        ),
+                        "denominator": "all_recipient_map_tracks",
+                    },
+                },
+                "structural_integrity_gates": [
+                    "every_install_has_unique_contribution_source_and_recipient_track_ids",
+                    "publish_install_available_timestamps_are_monotone_on_one_clock",
+                    "every_metric_event_is_recomputable_from_immutable_provenance",
+                    "zero_missing_denominators_or_untyped_zero_exposure_cases",
+                ],
+                "failure_action": "block_exact_16_calibration_tranche",
+            },
+            "numeric_threshold_contract": {
+                "status": (
+                    "estimate_on_exact_16_then_register_before_additional_collection"
+                ),
+                "estimation_source": (
+                    "exact_16_factor_realization_calibration_tranche"
+                ),
+                "same_16_research_usability_claim_authorized": False,
+                "registration_deadline": (
+                    "before_any_additional_calibration_or_validation"
+                ),
+                "failure_action": "block_additional_calibration_and_validation",
+            },
+        }
+        if config.get("installed_track_quality_guardrails") != expected_track_guardrails:
+            raise ValueError("v2 installed-track quality guardrails drifted")
 
     master_seed = int(config["master_seed"])
     common = config["common"]
@@ -187,13 +459,30 @@ def build_manifest(config: Mapping[str, object]) -> pd.DataFrame:
                         f"sa_{geometry['geometry_id']}_{closing_band}_"
                         f"{tth_band}_r{replicate:02d}"
                     )
-                    audit = (
-                        split == "calibration"
-                        and closing_band == next(iter(suite_a["closing_speed_bands"]))
-                        and tth_band == next(iter(suite_a["time_to_hazard_bands"]))
-                    )
+                    if config_schema == CONFIG_SCHEMA_V2:
+                        audit_cell = geometry["audit_factor_cell"]
+                        audit = (
+                            split == "calibration"
+                            and closing_band == str(audit_cell["closing_speed_band"])
+                            and tth_band == str(audit_cell["time_to_hazard_band"])
+                        )
+                        factor_fields = _factor_realization_fields(
+                            config,
+                            geometry,
+                            closing_band=str(closing_band),
+                            tth_band=str(tth_band),
+                        )
+                    else:
+                        audit = (
+                            split == "calibration"
+                            and closing_band
+                            == next(iter(suite_a["closing_speed_bands"]))
+                            and tth_band
+                            == next(iter(suite_a["time_to_hazard_bands"]))
+                        )
+                        factor_fields = {}
                     shared = {
-                        "schema": SCHEMA,
+                        "schema": manifest_schema,
                         "design_id": config["design_id"],
                         "suite_id": "A",
                         "suite_label": suite_a["label"],
@@ -238,6 +527,7 @@ def build_manifest(config: Mapping[str, object]) -> pd.DataFrame:
                         "helper_start_index": "",
                         "recipient_route_sha256": "",
                         "helper_route_sha256": "",
+                        **factor_fields,
                     }
                     for role, present in (
                         ("controlled_positive_occlusion", 1),
@@ -252,6 +542,11 @@ def build_manifest(config: Mapping[str, object]) -> pd.DataFrame:
                             }
                         )
     suite_b = config["suite_b"]
+    naturalistic_factor_fields = (
+        _naturalistic_factor_fields(config)
+        if config_schema == CONFIG_SCHEMA_V2
+        else {}
+    )
     suite_b_population = suite_b["ambient_population_contract"]
     expected_suite_b_population = {
         "mode": "naturalistic_tm",
@@ -337,7 +632,7 @@ def build_manifest(config: Mapping[str, object]) -> pd.DataFrame:
                 audit = split == "calibration" and local_index == 0
                 rows.append(
                     {
-                        "schema": SCHEMA,
+                        "schema": manifest_schema,
                         "design_id": config["design_id"],
                         "suite_id": "B",
                         "suite_label": suite_b["label"],
@@ -389,6 +684,7 @@ def build_manifest(config: Mapping[str, object]) -> pd.DataFrame:
                             route["recipient_route_sha256"]
                         ),
                         "helper_route_sha256": str(route["helper_route_sha256"]),
+                        **naturalistic_factor_fields,
                     }
                 )
             route_offset += group_count
@@ -403,6 +699,14 @@ def validate_manifest(manifest: pd.DataFrame, config: Mapping[str, object]) -> N
         raise ValueError("manifest is empty or contains duplicate trajectory IDs")
     if set(manifest["suite_id"]) != {"A", "B"}:
         raise ValueError("manifest must contain Suite A and Suite B")
+    config_schema = str(config.get("schema_version"))
+    expected_manifest_schema = (
+        MANIFEST_SCHEMA_V2
+        if config_schema == CONFIG_SCHEMA_V2
+        else MANIFEST_SCHEMA_V1
+    )
+    if set(manifest["schema"].astype(str)) != {expected_manifest_schema}:
+        raise ValueError("manifest schema does not match suite-design config")
     if set(manifest["renderer_quality_level"].astype(str)) != {"Epic"}:
         raise ValueError("every primary Suite A/B row must declare Epic rendering")
     if set(manifest["renderer_server_launch_flag"].astype(str)) != {
@@ -447,6 +751,65 @@ def validate_manifest(manifest: pd.DataFrame, config: Mapping[str, object]) -> N
     if any(value != expected_roles for value in pair_roles):
         raise ValueError("Suite A positive/benign role pairing drifted")
 
+    if config_schema == CONFIG_SCHEMA_V2:
+        missing_factor_columns = FACTOR_REALIZATION_COLUMNS - set(manifest.columns)
+        if missing_factor_columns:
+            raise ValueError(
+                "v2 manifest lacks factor-realization columns: "
+                f"{sorted(missing_factor_columns)}"
+            )
+        if set(suite_a["factor_realization_status"].astype(str)) != {
+            "provisional_controls_pending_bounded_factor_smoke"
+        }:
+            raise ValueError("Suite A factor-realization status drifted")
+        if set(suite_a["time_to_hazard_label_status"].astype(str)) != {
+            "not_scientifically_realized_until_bounded_factor_smoke"
+        }:
+            raise ValueError("Suite A time-to-hazard claim boundary drifted")
+        numeric_fields = {
+            "requested_helper_speed_mps",
+            "requested_recipient_speed_mps",
+            "requested_hazard_actor_speed_mps",
+            "requested_onset_driver_speed_mps",
+            "requested_hazard_onset_s",
+            "requested_closing_speed_target_mps",
+            "requested_closing_speed_band_min_mps",
+            "requested_closing_speed_band_max_mps",
+            "requested_proximity_horizon_target_s",
+            "requested_proximity_horizon_band_min_s",
+            "requested_proximity_horizon_band_max_s",
+            "minimum_onset_driver_speed_mps",
+        }
+        converted = suite_a[list(sorted(numeric_fields))].apply(
+            pd.to_numeric, errors="coerce"
+        )
+        if converted.isna().any().any() or not np_isfinite_frame(converted):
+            raise ValueError("Suite A factor-realization controls must be finite")
+        if not (
+            converted["requested_closing_speed_band_min_mps"]
+            <= converted["requested_closing_speed_target_mps"]
+        ).all() or not (
+            converted["requested_closing_speed_target_mps"]
+            <= converted["requested_closing_speed_band_max_mps"]
+        ).all():
+            raise ValueError("requested closing-speed targets lie outside their bands")
+        if not (
+            converted["requested_proximity_horizon_band_min_s"]
+            <= converted["requested_proximity_horizon_target_s"]
+        ).all() or not (
+            converted["requested_proximity_horizon_target_s"]
+            <= converted["requested_proximity_horizon_band_max_s"]
+        ).all():
+            raise ValueError("requested proximity-horizon targets lie outside their bands")
+        pair_factor_fields = sorted(
+            FACTOR_REALIZATION_COLUMNS - {"factor_realization_status"}
+        )
+        pair_cardinality = suite_a.groupby("group_id")[pair_factor_fields].nunique(
+            dropna=False
+        )
+        if int(pair_cardinality.to_numpy().max()) != 1:
+            raise ValueError("Suite A matched pairs do not share requested controls")
+
     group_counts = (
         manifest.drop_duplicates("group_id").groupby(["suite_id", "split"]).size()
     )
@@ -477,6 +840,15 @@ def validate_manifest(manifest: pd.DataFrame, config: Mapping[str, object]) -> N
         raise ValueError("Suite A cells are not split 1/1/3")
 
     suite_b = manifest[manifest["suite_id"] == "B"]
+    if config_schema == CONFIG_SCHEMA_V2:
+        if set(suite_b["factor_realization_status"].astype(str)) != {
+            "not_applicable_unforced_naturalistic"
+        }:
+            raise ValueError("Suite B factor-realization status drifted")
+        if not suite_b["requested_hazard_actor_speed_mps"].isna().all():
+            raise ValueError("Suite B must not fabricate requested hazard controls")
+        if not suite_b["requested_hazard_onset_s"].isna().all():
+            raise ValueError("Suite B must not fabricate a hazard onset")
     if set(suite_b["traffic_density_status"].astype(str)) != {
         "realized_nuisance_factor"
     }:
@@ -513,8 +885,15 @@ def validate_manifest(manifest: pd.DataFrame, config: Mapping[str, object]) -> N
         raise ValueError("confirmatory test rows must not retain heavy raw windows")
 
 
+def np_isfinite_frame(frame: pd.DataFrame) -> bool:
+    """Avoid an eager NumPy dependency in the offline design generator."""
+
+    return all(math.isfinite(float(value)) for value in frame.to_numpy().ravel())
+
+
 def build_power_sensitivity(config: Mapping[str, object], manifest: pd.DataFrame) -> pd.DataFrame:
-    power = config["power"]
+    power = _power_reference(config)
+    historical_only = str(config.get("schema_version")) == CONFIG_SCHEMA_V2
     planned_test = int(
         manifest[
             (manifest["suite_id"] == "A")
@@ -543,7 +922,11 @@ def build_power_sensitivity(config: Mapping[str, object], manifest: pd.DataFrame
                         paired_sd_s=float(paired_sd_s),
                         alpha=float(power["two_sided_alpha"]),
                     ),
-                    "status": "sensitivity_only_not_pilot_estimated",
+                    "status": (
+                        "historical_warning_endpoint_sensitivity_only_not_v2_power"
+                        if historical_only
+                        else "sensitivity_only_not_pilot_estimated"
+                    ),
                 }
             )
     return pd.DataFrame(rows)
@@ -578,7 +961,9 @@ def summarize(
 
     group_frame = manifest.drop_duplicates("group_id")
     trajectory_count = len(manifest)
-    planned_censor = float(config["power"]["planned_censor_fraction"])
+    power_reference = _power_reference(config)
+    is_v2 = str(config.get("schema_version")) == CONFIG_SCHEMA_V2
+    planned_censor = float(power_reference["planned_censor_fraction"])
     planned_sd = 1.25
     planned_row = power_table[
         (power_table["censor_fraction"] == planned_censor)
@@ -598,7 +983,11 @@ def summarize(
         config["runtime_estimate"]["pilot_measured_minutes_per_trajectory"]
     )
     return {
-        "schema": "scenesense.phase2_suite_design_summary.v1",
+        "schema": (
+            "scenesense.phase2_suite_design_summary.v2"
+            if str(config.get("schema_version")) == CONFIG_SCHEMA_V2
+            else "scenesense.phase2_suite_design_summary.v1"
+        ),
         "design_id": config["design_id"],
         "collection_authorized": False,
         "suite_labels": {
@@ -610,10 +999,43 @@ def summarize(
             "B": dict(config["suite_b"]["ambient_population_contract"]),
         },
         "renderer_contract": dict(config["common"]["renderer_quality"]),
-        "smallest_effect_interpretation": dict(
-            config["power"]["smallest_effect_interpretation"]
+        "primary_endpoint": str(config["power"]["primary_endpoint"]),
+        "primary_endpoint_status": (
+            str(config["power"]["primary_endpoint_status"])
+            if is_v2
+            else "registered_v1_warning_endpoint"
+        ),
+        "registered_effect_size_s": (
+            None if is_v2 else float(power_reference["smallest_effect_s"])
+        ),
+        "historical_warning_reference": (
+            {
+                "status": "non_authoritative_reference_only",
+                "endpoint": str(power_reference["endpoint"]),
+                "smallest_effect_s": float(power_reference["smallest_effect_s"]),
+                "smallest_effect_interpretation": dict(
+                    power_reference["smallest_effect_interpretation"]
+                ),
+                "planned_censor_fraction": planned_censor,
+                "minimum_power": float(power_reference["minimum_power"]),
+                "sensitivity_power_at_sd_1_25_s": float(
+                    planned_row["approximate_paired_t_power"]
+                ),
+            }
+            if is_v2
+            else None
+        ),
+        "smallest_effect_interpretation": (
+            None
+            if is_v2
+            else dict(power_reference["smallest_effect_interpretation"])
         ),
         "warning_nuisance_gate": dict(config["warning_nuisance_gate"]),
+        "installed_track_quality_guardrails": (
+            dict(config["installed_track_quality_guardrails"])
+            if is_v2
+            else None
+        ),
         "independent_group_count": int(group_frame["group_id"].nunique()),
         "trajectory_count": trajectory_count,
         "group_counts": {
@@ -633,12 +1055,20 @@ def summarize(
                 & (manifest["scenario_role"] == "controlled_positive_occlusion")
             ]["group_id"].nunique()
         ),
-        "power_status": "conditional_on_calibration_simulation_gate",
-        "planned_censor_fraction": planned_censor,
-        "sensitivity_power_at_sd_1_25_s": float(
-            planned_row["approximate_paired_t_power"]
+        "power_status": (
+            "not_authorized_pending_recipient_endpoint_runtime_and_calibration"
+            if is_v2
+            else "conditional_on_calibration_simulation_gate"
         ),
-        "minimum_required_calibration_power": float(config["power"]["minimum_power"]),
+        "planned_censor_fraction": None if is_v2 else planned_censor,
+        "sensitivity_power_at_sd_1_25_s": (
+            None
+            if is_v2
+            else float(planned_row["approximate_paired_t_power"])
+        ),
+        "minimum_required_calibration_power": (
+            None if is_v2 else float(power_reference["minimum_power"])
+        ),
         "estimated_storage_bytes": int(estimated_bytes),
         "design_raw_cap_bytes": int(retention["design_raw_cap_bytes"]),
         "storage_estimate_within_cap": estimated_bytes
@@ -648,12 +1078,28 @@ def summarize(
         "blocking_gates": (
             (["author_and_visually_review_all_pending_geometry_and_route_families"]
              if pending_statuses else [])
-            + [
-            "calibration_replay_sufficiency_capture",
-            "calibration_simulation_power_at_least_0_80_for_all_registered_endpoints",
-            "calibration_absolute_warning_nuisance_gate",
-            "review_exact_local_and_oai_timestamp_byte_fields",
-            ]
+            + (
+                [
+                    "per_row_factor_runtime_adapter_and_positive_realization_gate",
+                    "bounded_factor_smoke_before_factor_freeze",
+                ]
+                if str(config.get("schema_version")) == CONFIG_SCHEMA_V2
+                else []
+            )
+            + ["calibration_replay_sufficiency_capture"]
+            + (
+                [
+                    "register_recipient_endpoint_effect_size_and_power_after_calibration",
+                    "freeze_installed_track_metric_definitions_denominators_and_structural_gates_before_exact_16_calibration",
+                    "estimate_then_register_numeric_track_quality_thresholds_before_additional_collection",
+                ]
+                if is_v2
+                else [
+                    "calibration_simulation_power_at_least_0_80_for_all_registered_endpoints",
+                    "calibration_absolute_warning_nuisance_gate",
+                ]
+            )
+            + ["review_exact_local_and_oai_timestamp_byte_fields"]
         ),
     }
 

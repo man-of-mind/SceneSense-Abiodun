@@ -210,6 +210,17 @@ authorization or a design spec for SAC/PPO.
 > stopping-attribution boundary, and separate SKIP semantics are in
 > `../phase2_map_sharing/PHASE2_CONSTRAINT_CATALOG.md`. The remainder of §9
 > documents the frozen Phase-1 experiment only.
+>
+> The proposed 2026-08-19 Phase-2 reconciliation also makes anti-memorization
+> structural: scenario/frame ID, absolute elapsed time, factor/hazard label,
+> authored target schedule, future truth, and driver-profile/manual status are
+> denied policy features. Causal ego-relative kinematics, uncertainty/AoI,
+> lagged network state, prior outcomes, and protocol scheduler/in-flight state
+> remain allowed. The proposed future primary C2 information endpoint is an
+> accepted usable helper track becoming available to the recipient consumer
+> before a usable recipient-self track is available at the same boundary;
+> helper-local confirmation or raw install is not recipient knowledge, and actionability slack
+> is required evaluation stratification rather than proof of warning/safety.
 
 ### 9.2 ACTION — payload levers, in cost order (cheapest first)
 1. **Quant bits u8→u4** — nearly free (seg-lossless at ROI 0), ~2.0–2.4× payload cut. Use first.

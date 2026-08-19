@@ -1,0 +1,327 @@
+schema_version: scenesense.phase2_suite_design.v2
+design_id: phase2_suite_ab_v2
+implementation_status: factor_controls_provisional_pending_bounded_smoke_no_collection_authority
+authorization:
+  carla_launch: false
+  oai_launch: false
+  full_collection: false
+  controller_evaluation: false
+  rl_training: false
+
+master_seed: 8172026
+pilot_exclusion_group_ids:
+  - phase2_pilot_pair_001
+
+common:
+  town: Town10HD_Opt
+  renderer_quality:
+    primary_level: Epic
+    required_server_launch_flag: -quality-level=Epic
+    provenance_source: operator_declared_server_launch_flag
+    rpc_introspection_available: false
+    existing_stress_level: Low
+    future_low_collection_authorized: false
+  world_hz: 10.0
+  policy_control_hz_surrogate: 20.0
+  trajectory_duration_s: 12.0
+  roles: [helper, recipient]
+  arms: [ego_only, send_everything, hazard_only]
+  sensor_contract: mprime_training_exact_v1
+  truth_contract: actor_origin_evaluation_only
+  warning_horizon_s: 5.0
+  split_fractions:
+    calibration: 0.20
+    validation: 0.20
+    test: 0.60
+
+power:
+  status: no_v2_power_authorization_historical_warning_sensitivity_only
+  primary_endpoint: recipient_available_confirmed_track_margin_s
+  primary_endpoint_status: pending_recipient_install_runtime_factor_smoke_and_calibration_no_effect_size_registered
+  registered_effect_size_s: null
+  analysis_unit: independent_route_seed_scenario_group
+  future_power_gate: >-
+    Register an effect size and simulate the clustered/censored estimator only
+    after the recipient-install endpoint, factor realization, and calibration
+    yields are measured. The historical warning-era sensitivity below cannot
+    authorize collection or confirmatory testing for the v2 endpoint.
+  historical_warning_reference:
+    status: non_authoritative_reference_only
+    endpoint: paired_registered_target_warning_lead_s
+    smallest_effect_s: 0.5
+    smallest_effect_interpretation:
+      role: cross_cell_research_floor_not_a_braking_safety_threshold
+      sensor_frame_count: 5
+      policy_decision_count: 10
+      distance_equivalent_m_by_closing_speed_band:
+        low: [1.0, 2.0]
+        high: [3.0, 5.0]
+      required_reporting:
+        - warning_lead_s_by_closing_speed_band
+        - closing_distance_equivalent_m
+        - causal_deadline_slack_s
+      future_safety_deadline_status: deferred_until_fixed_warning_actuation_and_advisor_braking_parameters
+    two_sided_alpha: 0.05
+    minimum_power: 0.80
+    planned_censor_fraction: 0.10
+    paired_sd_sensitivity_s: [0.75, 1.0, 1.25, 1.5]
+    calibration_gate: historical_only_not_v2_authority
+
+warning_nuisance_gate:
+  status: historical_failed_secondary_not_blocking_C2
+  scope: binding_only_for_any_future_warning_claim
+  c2_installed_track_endpoint_blocking: false
+  population: suite_a_matched_benign_negative
+  timing_endpoint_basis: registered_target_warning_only
+  aggregation:
+    false_warning_active_frame_rate: sum_false_warning_active_frames_over_sum_eligible_benign_frames
+    false_warning_episode_rate_per_minute: sum_false_warning_episodes_over_sum_eligible_benign_exposure_minutes
+    uncertainty_unit: paired_trajectory_cluster
+    threshold_basis: pooled_point_estimate_with_cluster_interval_reported
+  adjudicated_false_warning_active_frame_rate_max: 0.10
+  false_warning_episodes_per_minute_max: 1.0
+  cooperative_vs_ego_noninferiority_margin_pp: 2.0
+  apply_to: future_warning_claim_candidates_only
+  failure_action: block_future_warning_claim_not_C2_installed_track_evidence
+  note: research_usability_gate_not_a_certified_automotive_requirement
+
+installed_track_quality_guardrails:
+  status: two_stage_calibration_contract_no_collection_authority
+  endpoint: recipient_available_confirmed_track_margin_s
+  pre_16_calibration_contract:
+    status: definitions_denominators_and_structural_integrity_gates_must_be_frozen
+    metric_definitions:
+      false_recipient_install_rate:
+        numerator: recipient_installs_without_registered_source_target_correspondence
+        denominator: all_recipient_install_attempts
+      duplicate_recipient_install_rate:
+        numerator: repeated_recipient_installs_for_same_contribution_and_source_track
+        denominator: all_recipient_installs
+      source_to_recipient_track_fragmentation_rate:
+        numerator: extra_recipient_track_ids_beyond_one_per_source_track_within_episode
+        denominator: source_tracks_with_at_least_one_recipient_install
+      recipient_map_pollution_rate:
+        numerator: recipient_map_tracks_without_valid_local_or_installed_source_provenance
+        denominator: all_recipient_map_tracks
+    structural_integrity_gates:
+      - every_install_has_unique_contribution_source_and_recipient_track_ids
+      - publish_install_available_timestamps_are_monotone_on_one_clock
+      - every_metric_event_is_recomputable_from_immutable_provenance
+      - zero_missing_denominators_or_untyped_zero_exposure_cases
+    failure_action: block_exact_16_calibration_tranche
+  numeric_threshold_contract:
+    status: estimate_on_exact_16_then_register_before_additional_collection
+    estimation_source: exact_16_factor_realization_calibration_tranche
+    same_16_research_usability_claim_authorized: false
+    registration_deadline: before_any_additional_calibration_or_validation
+    failure_action: block_additional_calibration_and_validation
+
+retention:
+  raw_window_duration_s: 4.0
+  raw_window_anchor: registered_conflict_minus_2s_or_middle_if_unregistered
+  calibration_tier: inputs_only_window
+  validation_tier: inputs_only_window
+  test_tier: causal_lightweight_only
+  audit_tier: inputs_plus_logits_window
+  audit_selection: one_calibration_group_per_designed_geometry_and_naturalistic_route
+  pilot_measured_role_input_bytes_per_frame: 2747563
+  pilot_measured_role_logits_bytes_per_frame: 19951192
+  estimated_lightweight_bytes_per_trajectory: 5000000
+  design_raw_cap_bytes: 80000000000
+  required_free_floor_bytes: 500000000000
+
+runtime_estimate:
+  pilot_measured_minutes_per_trajectory: 2.9
+  note: excludes human gate review and offline analysis
+
+suite_a:
+  label: designed_decision_opportunities
+  headline_role: powered_regime_bounded_c2_test
+  ambient_population_contract:
+    mode: scenario_owned_only
+    population_process_required: false
+    generic_vehicles: 0
+    generic_walkers: 0
+    traffic_density_status: not_applicable
+  replicates_per_factor_cell: 5
+  split_by_replicate:
+    calibration: [0]
+    validation: [1]
+    test: [2, 3, 4]
+  weather: ClearNoon
+  closing_speed_bands:
+    low: [2.0, 4.0]
+    high: [6.0, 10.0]
+  time_to_hazard_bands:
+    short: [1.5, 3.0]
+    long: [3.0, 5.0]
+  # V1 enumerated these two factors as labels but did not change scenario
+  # motion. V2 makes every requested control numeric and row-addressable. The
+  # settings below are deterministic starting requests, not calibrated claims:
+  # only the bounded factor smoke may establish that they realize separable
+  # closing-speed/proximity-horizon bins for each geometry.
+  factor_realization:
+    schema: scenesense.phase2_factor_realization.v1
+    status: provisional_controls_pending_bounded_factor_smoke
+    time_to_hazard_label_status: not_scientifically_realized_until_bounded_factor_smoke
+    requested_helper_speed_mps: 4.5
+    requested_recipient_speed_mps_by_closing_speed_band:
+      low: 3.0
+      high: 8.0
+    # Later onset is the provisional request for a shorter pre-intervention
+    # horizon. Geometry dynamics decide the realized diagnostic; the smoke is
+    # required to reject or recalibrate this table rather than infer success.
+    requested_hazard_onset_s_by_factor_cell:
+      low: {short: 3.5, long: 1.0}
+      high: {short: 2.5, long: 0.0}
+    naturalistic_ego_controls:
+      helper_speed_mps: 4.5
+      recipient_speed_mps: 5.0
+    realized_gate:
+      closing_speed_measurement_basis: instantaneous_radial_center_closing_at_first_realized_onset_sample
+      proximity_horizon_measurement_basis: instantaneous_relative_linear_motion_center_proximity_horizon_not_collision_ttc
+      minimum_onset_driver_speed_mps: 0.2
+    geometry_contracts:
+      curbside_bus_occluded_pedestrian:
+        hazard_actor_role: walker
+        onset_driver_role: walker
+        geometry_measurement_basis: curbside_recipient_center_to_registered_pedestrian_origin_at_first_walker_motion_sample
+        requested_hazard_actor_speed_mps: 1.3
+        requested_onset_driver_speed_mps: 1.3
+      signalized_corner_occluded_pedestrian:
+        hazard_actor_role: walker
+        onset_driver_role: walker
+        geometry_measurement_basis: signalized_recipient_center_to_registered_pedestrian_origin_at_first_walker_motion_sample
+        requested_hazard_actor_speed_mps: 1.3
+        requested_onset_driver_speed_mps: 1.3
+      parked_van_midblock_occluded_pedestrian:
+        hazard_actor_role: walker
+        onset_driver_role: walker
+        geometry_measurement_basis: midblock_recipient_center_to_registered_pedestrian_origin_at_first_walker_motion_sample
+        requested_hazard_actor_speed_mps: 1.3
+        requested_onset_driver_speed_mps: 1.3
+      occluded_cross_traffic_vehicle:
+        hazard_actor_role: target_vehicle
+        onset_driver_role: target_vehicle
+        geometry_measurement_basis: signalized_recipient_center_to_registered_cross_traffic_vehicle_origin_at_first_target_motion_sample
+        requested_hazard_actor_speed_mps: 3.6
+        requested_onset_driver_speed_mps: 3.6
+      parked_vehicle_pullout:
+        hazard_actor_role: target_vehicle
+        onset_driver_role: target_vehicle
+        geometry_measurement_basis: midblock_recipient_center_to_registered_pullout_vehicle_origin_at_first_target_motion_sample
+        requested_hazard_actor_speed_mps: 3.0
+        requested_onset_driver_speed_mps: 3.0
+      queue_reveal_lead_vehicle:
+        hazard_actor_role: target_vehicle
+        onset_driver_role: occluder
+        geometry_measurement_basis: midblock_recipient_center_to_registered_stationary_lead_vehicle_origin_at_first_queue_occluder_motion_sample
+        requested_hazard_actor_speed_mps: 0.0
+        requested_onset_driver_speed_mps: 2.5
+  geometries:
+    - geometry_id: curbside_bus_occluded_pedestrian
+      hazard_class: pedestrian
+      implementation_status: reviewed_pilot_geometry
+      source_geometry_id: town10hd_opt_curbside_legal_opposing_v1
+      audit_factor_cell: {closing_speed_band: low, time_to_hazard_band: short}
+    - geometry_id: signalized_corner_occluded_pedestrian
+      hazard_class: pedestrian
+      implementation_status: reviewed_visual_geometry
+      source_geometry_id: town10hd_opt_signalized_corner_van_crosswalk_v1
+      recipient_route: data_collection/routes/town10hd_opt_signalized_corner_recipient_v1.progress.csv
+      helper_route: data_collection/routes/town10hd_opt_signalized_corner_helper_v1.progress.csv
+      audit_factor_cell: {closing_speed_band: low, time_to_hazard_band: long}
+    - geometry_id: parked_van_midblock_occluded_pedestrian
+      hazard_class: pedestrian
+      implementation_status: reviewed_visual_geometry
+      source_geometry_id: town10hd_opt_midblock_curbside_van_v1
+      recipient_route: data_collection/routes/town10hd_opt_midblock_van_recipient_v1.progress.csv
+      helper_route: data_collection/routes/town10hd_opt_midblock_van_helper_v1.progress.csv
+      audit_factor_cell: {closing_speed_band: high, time_to_hazard_band: short}
+    - geometry_id: occluded_cross_traffic_vehicle
+      hazard_class: vehicle
+      implementation_status: reviewed_visual_geometry
+      source_geometry_id: town10hd_opt_occluded_cross_traffic_vehicle_v1
+      recipient_route: data_collection/routes/town10hd_opt_signalized_corner_recipient_v1.progress.csv
+      helper_route: data_collection/routes/town10hd_opt_signalized_corner_helper_v1.progress.csv
+      target_route: data_collection/routes/town10hd_opt_cross_traffic_target_v1.progress.csv
+      audit_factor_cell: {closing_speed_band: high, time_to_hazard_band: long}
+    - geometry_id: parked_vehicle_pullout
+      hazard_class: vehicle
+      implementation_status: reviewed_visual_geometry
+      source_geometry_id: town10hd_opt_parked_vehicle_pullout_v1
+      recipient_route: data_collection/routes/town10hd_opt_midblock_van_recipient_v1.progress.csv
+      helper_route: data_collection/routes/town10hd_opt_midblock_van_helper_v1.progress.csv
+      target_route: data_collection/routes/town10hd_opt_parked_vehicle_pullout_target_v1.progress.csv
+      audit_factor_cell: {closing_speed_band: low, time_to_hazard_band: short}
+    - geometry_id: queue_reveal_lead_vehicle
+      hazard_class: vehicle
+      implementation_status: reviewed_visual_geometry
+      source_geometry_id: town10hd_opt_queue_reveal_lead_vehicle_v1
+      recipient_route: data_collection/routes/town10hd_opt_midblock_van_recipient_v1.progress.csv
+      helper_route: data_collection/routes/town10hd_opt_midblock_van_helper_v1.progress.csv
+      occluder_route: data_collection/routes/town10hd_opt_queue_reveal_occluder_v1.progress.csv
+      audit_factor_cell: {closing_speed_band: high, time_to_hazard_band: short}
+
+suite_b:
+  label: naturalistic_operation
+  headline_role: honest_denominator_not_powered_for_forced_hazard_lead
+  ambient_population_contract:
+    mode: naturalistic_tm
+    population_process_required: true
+    traffic_density_status: realized_nuisance_factor
+  groups_per_route: 30
+  split_counts_per_route:
+    calibration: 6
+    validation: 6
+    test: 18
+  density_counts_per_route_split:
+    calibration: {sparse: 2, typical: 3, dense: 1}
+    validation: {sparse: 2, typical: 3, dense: 1}
+    test: {sparse: 4, typical: 9, dense: 5}
+  weather_counts_per_route_split:
+    calibration: {ClearNoon: 4, CloudyNoon: 1, WetNoon: 1}
+    validation: {ClearNoon: 4, CloudyNoon: 1, WetNoon: 1}
+    test: {ClearNoon: 13, CloudyNoon: 4, WetNoon: 1}
+  routes:
+    - route_id: town10hd_opt_curbside_corridor
+      implementation_status: reviewed_pilot_route
+      pair_contract_id: town10hd_opt_curbside_legal_opposing_v1
+      recipient_route: data_collection/routes/town10hd_opt_curbside_recipient_v1.progress.csv
+      recipient_route_sha256: 007283bc887cfb021d8370bd28721c67d6ebf17dea461a3da6a142bd05e78d4c
+      helper_route: data_collection/routes/town10hd_opt_curbside_helper_v1.progress.csv
+      helper_route_sha256: 45778005540b866a9652a61a140c57b6a774d6809873afbc40cd6b427e203906
+      start_anchor_schedule:
+        - {anchor_id: pilot_frozen, recipient_start_index: 0, helper_start_index: 0}
+    - route_id: town10hd_opt_signalized_demo_region
+      implementation_status: reviewed_visual_route
+      pair_contract_id: town10hd_opt_same_lane_helper_ahead_v1
+      visual_acceptance_record: phase2_map_sharing/geometry_reviews/signalized_demo_naturalistic_pair_v1_acceptance.json
+      visual_acceptance_record_sha256: 7772b994fac5641ef00fd3e4dbfb26a091d6ffe97a811a5cd862db50f39ca272
+      recipient_route: data_collection/routes/town10hd_opt_advisor_demo_loop_v2.progress.csv
+      recipient_route_sha256: 3315d27a1c9c7500e7df426c70beb0a1622b838cc98debfb0f2e3de54c024f46
+      helper_route: data_collection/routes/town10hd_opt_advisor_demo_loop_v2.progress.csv
+      helper_route_sha256: 3315d27a1c9c7500e7df426c70beb0a1622b838cc98debfb0f2e3de54c024f46
+      start_anchor_schedule:
+        - {anchor_id: a0, recipient_start_index: 0, helper_start_index: 4}
+        - {anchor_id: a1, recipient_start_index: 15, helper_start_index: 19}
+        - {anchor_id: a2, recipient_start_index: 38, helper_start_index: 42}
+        - {anchor_id: a3, recipient_start_index: 59, helper_start_index: 63}
+        - {anchor_id: a4, recipient_start_index: 82, helper_start_index: 86}
+        - {anchor_id: a5, recipient_start_index: 103, helper_start_index: 107}
+    - route_id: town10hd_opt_safe_perimeter
+      implementation_status: reviewed_visual_route
+      pair_contract_id: town10hd_opt_same_lane_helper_ahead_v1
+      visual_acceptance_record: phase2_map_sharing/geometry_reviews/safe_perimeter_naturalistic_pair_v1_acceptance.json
+      visual_acceptance_record_sha256: eeead846cd028553e70ded648fadf829876923ab0d76723ce7e470384f7accd8
+      recipient_route: data_collection/routes/town10hd_opt_advisor_safe_perimeter_loop_v3.progress.csv
+      recipient_route_sha256: f3dc2f4d8c59905801fdfad2df7a19f2b427459d4039ed3a8cdec3535e818ce1
+      helper_route: data_collection/routes/town10hd_opt_advisor_safe_perimeter_loop_v3.progress.csv
+      helper_route_sha256: f3dc2f4d8c59905801fdfad2df7a19f2b427459d4039ed3a8cdec3535e818ce1
+      start_anchor_schedule:
+        - {anchor_id: a0, recipient_start_index: 0, helper_start_index: 4}
+        - {anchor_id: a1, recipient_start_index: 14, helper_start_index: 18}
+        - {anchor_id: a2, recipient_start_index: 27, helper_start_index: 30}
+        - {anchor_id: a3, recipient_start_index: 38, helper_start_index: 42}
+        - {anchor_id: a4, recipient_start_index: 56, helper_start_index: 60}
+        - {anchor_id: a5, recipient_start_index: 78, helper_start_index: 82}

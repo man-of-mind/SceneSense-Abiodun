@@ -1,0 +1,212 @@
+schema_version: scenesense.phase2_factor_realization_smoke_config.v1
+stage_id: phase2_factor_realization_smoke_v1
+implementation_status: offline_contract_only_runtime_adapter_pending
+
+# This file selects real replicate-0 calibration rows.  It is not a disposable
+# toy manifest: one atomic PASS batch may be admitted into the 66-trajectory
+# calibration set.  A failed/incomplete batch remains an excluded smoke fixture.
+authorization:
+  offline_plan_validation: true
+  carla_launch: false
+  oai_launch: false
+  warning_parameter_selection: false
+  old_15_trajectory_audit_chain: false
+  remaining_calibration: false
+  validation_collection: false
+  test_collection: false
+  controller_evaluation: false
+  rl_training: false
+
+source_design:
+  manifest: phase2_map_sharing/design/phase2_suite_ab_v2/trajectory_group_manifest.csv
+  manifest_sha256: c5b56fc1210a7d2e26e8cb58cc0b495fd2b649c36faa96d5c83f8726502fdf96
+  manifest_schema: scenesense.phase2_suite_design_manifest.v2
+  design_config: phase2_map_sharing/configs/phase2_suite_ab_design_v2.yaml
+  design_config_sha256: 1211a589fad4b1e09399754f8be125cef95e394498e2ca7823da3e4e37b88bc5
+  design_config_schema: scenesense.phase2_suite_design.v2
+  design_id: phase2_suite_ab_v2
+  selector:
+    suite_id: A
+    split: calibration
+    replicate_suffix: r00
+    geometries:
+      - curbside_bus_occluded_pedestrian
+      - occluded_cross_traffic_vehicle
+    expected_hazard_class_by_geometry:
+      curbside_bus_occluded_pedestrian: pedestrian
+      occluded_cross_traffic_vehicle: vehicle
+    expected_factor_realization_status: provisional_controls_pending_bounded_factor_smoke
+    expected_time_to_hazard_label_status: not_scientifically_realized_until_bounded_factor_smoke
+    closing_speed_bands: [low, high]
+    time_to_hazard_bands: [short, long]
+    scenario_roles: [controlled_positive_occlusion, matched_benign_negative]
+    expected_groups: 8
+    expected_trajectories: 16
+    expected_positive_trajectories: 8
+    expected_benign_trajectories: 8
+
+# Canonical row hash = SHA-256 of the CSV row encoded as sorted, compact JSON,
+# with every CSV value retained as a string.  These pins prevent a later design
+# regeneration from silently changing which calibration observations the smoke
+# is allowed to contribute.
+pinned_trajectory_row_sha256:
+  sa_curbside_bus_occluded_pedestrian_low_short_r00_pos: 8c9e22d27e76485314b49ed3a399f58a0fb45c0206ac724cb816ac32485420e8
+  sa_curbside_bus_occluded_pedestrian_low_short_r00_ben: ae77b7359ffce1392420eec5b03b93152daa778998fd35b1c977560df83daa23
+  sa_curbside_bus_occluded_pedestrian_low_long_r00_pos: 1989c29cc96bf9bfae1cd95e5786bedd0bebb3df7c1844a69cd362776bb3ce23
+  sa_curbside_bus_occluded_pedestrian_low_long_r00_ben: 11d62e684e14fadf7ccbb4f21e33e586418c17f166af1da26534ea206e9647cc
+  sa_curbside_bus_occluded_pedestrian_high_short_r00_pos: 4da3c7bf6a5f58be5b24b8828a69214fe53f2e20d5cbaf91bc2984e200489fea
+  sa_curbside_bus_occluded_pedestrian_high_short_r00_ben: 68b3c733f86f21cd6fc7a07cfb65453d2dcaa985833346dd70f8684bfd69b537
+  sa_curbside_bus_occluded_pedestrian_high_long_r00_pos: c4b540c69fa0735a23e593d66c60e0742ee3f9f9cc8ba2fabebe56a5f9bcc3e8
+  sa_curbside_bus_occluded_pedestrian_high_long_r00_ben: ff610e9e06c3ec172acebf53ae39266f9bb22e0edc942be5aa2fef482d3646f3
+  sa_occluded_cross_traffic_vehicle_low_short_r00_pos: c9da962cb8becc40fb1f7dd880a0acb845098df9c7f5eb684375db59299d903d
+  sa_occluded_cross_traffic_vehicle_low_short_r00_ben: db6c78bc3d8c2f115324bfa09d4a2ec57cff642464a3b77a74599ac6f4480125
+  sa_occluded_cross_traffic_vehicle_low_long_r00_pos: 81c57b2eabe834c2bbad264546e6181717d1ee4f52349830a5de48f9394d5641
+  sa_occluded_cross_traffic_vehicle_low_long_r00_ben: d9f6a0febc65161dc3be22318e83752d249f80bb8f6b24d7a41285036035f618
+  sa_occluded_cross_traffic_vehicle_high_short_r00_pos: 089fe5be3a7b8667fa76e8b016fc2e52fff220843691577330b18c3f8f6490c3
+  sa_occluded_cross_traffic_vehicle_high_short_r00_ben: 7243a2aa284520909a7bb807c2f0db270efb4a5e8746b1d0d92112d0af55c78d
+  sa_occluded_cross_traffic_vehicle_high_long_r00_pos: deac63ea13a801a69d2b1a9a1c7bf2e81662351f6838cedfeea41805d6c1cd51
+  sa_occluded_cross_traffic_vehicle_high_long_r00_ben: de7e009baaf98b690119f1f1ead5a30890faa67bad872066eba61ea92afbb391
+
+factor_contract:
+  measurement_anchor: first_realized_onset_sample_before_recipient_intervention
+  scenario_onset_control: authored_requested_hazard_onset_s_provisional_evaluation_metadata
+  scenario_onset_control_policy_visibility: forbidden
+  realization_gate_basis: geometry_specific_physical_kinematics_at_first_realized_onset_sample
+  future_manual_holdout_trigger: route_progress_or_recipient_eta_not_absolute_episode_clock
+  counterfactual_motion_basis: matched_benign_recipient_no_target_no_warning_actuation
+  closing_speed_metric: pre_intervention_radial_closing_speed_mps
+  horizon_metric: pre_intervention_hazard_proximity_horizon_s
+  geometry_measurement_basis_required: true
+  closing_speed_measurement_basis_required: true
+  proximity_horizon_measurement_basis_required: true
+  positive_hazard_surface_clearance_max_m_by_class:
+    pedestrian: 2.5
+    vehicle: 3.0
+  controlled_pedestrian_speed_range_mps: [1.0, 2.0]
+  target_error_policy: report_only_until_bounded_smoke_calibrates_control_to_realization
+  requested_vs_realized_policy:
+    positive: require_typed_realization_inside_manifest_declared_band
+    benign: require_positive_reference_and_identical_nontreatment_plan_hash
+  realized_metrics_required:
+    - realized_hazard_onset_s
+    - realized_helper_speed_mps
+    - realized_recipient_speed_mps
+    - realized_hazard_actor_speed_mps
+    - realized_onset_driver_speed_mps
+    - pre_intervention_radial_closing_speed_mps
+    - pre_intervention_hazard_proximity_horizon_s
+    - pre_intervention_minimum_surface_clearance_m
+    - geometry_measurement_basis
+    - closing_speed_measurement_basis
+    - proximity_horizon_measurement_basis
+
+installed_track_endpoint:
+  endpoint_name: recipient_available_confirmed_track_margin_s
+  definition: recipient_own_target_confirmation_at_s_minus_helper_target_track_recipient_available_at_s
+  source_only_margin_role: explanatory_upper_bound_not_recipient_knowledge
+  transport_scope: local_loopback_only_no_oai_claim
+  missing_event_policy: typed_censor_or_miss_never_null_or_fabricated_time
+  allowed_statuses:
+    - numeric
+    - ego_right_censored
+    - cooperative_miss
+    - both_miss
+  required_positive_fields:
+    - helper_source_confirmation
+    - helper_track_recipient_install
+    - recipient_own_confirmation
+    - evaluation_horizon_s
+    - endpoint_status
+    - evidence_chain_sha256
+  required_install_provenance:
+    - contribution_id
+    - source_track_id
+    - recipient_map_track_id
+    - published_at_s
+    - installed_at_s
+    - available_at_s
+  monotonicity: helper_source_confirmation_at_s_lte_published_at_s_lte_installed_at_s_lte_available_at_s
+
+policy_feature_contract:
+  projection_must_be_exact: true
+  raw_audit_timestamps_and_ids_are_metadata_only: true
+  placement_features:
+    - lagged_capacity_estimate_mbps
+    - capacity_estimate_sigma_mbps
+    - previous_action_code
+    - previous_delivery_success
+    - previous_latency_s
+    - previous_loss_fraction
+    - scheduler_credit_normalized
+    - in_flight_bytes
+    - in_flight_oldest_age_s
+    - installed_map_object_count
+    - installed_map_max_aoi_s
+    - installed_map_max_position_sigma_m
+    - installed_map_min_estimated_ttc_s
+    - prior_source_track_count
+    - helper_recipient_relative_x_m
+    - helper_recipient_relative_y_m
+    - helper_recipient_relative_vx_mps
+    - helper_recipient_relative_vy_mps
+    - recipient_speed_mps
+    - recipient_acceleration_mps2
+    - local_compute_headroom
+  publication_features:
+    - current_causal_track_count
+    - current_min_track_confidence
+    - current_min_estimated_ttc_s
+    - current_min_estimated_clearance_m
+    - current_max_position_sigma_m
+    - recipient_state_age_s
+    - scheduler_credit_normalized
+    - in_flight_bytes
+    - installed_map_max_aoi_s
+  forbidden_feature_tokens:
+    - frame_id
+    - elapsed_s
+    - scenario
+    - trajectory
+    - route
+    - spawn
+    - seed
+    - actor_id
+    - carla_actor
+    - ground_truth
+    - gt_
+    - future
+    - world_x
+    - world_y
+    - absolute_time
+    - geometry
+    - closing_speed_band
+    - time_to_hazard_band
+    - proximity_horizon_band
+    - requested_hazard_onset
+    - requested_tth
+    - realized_tth
+
+admission_gate:
+  atomic_batch: true
+  pass_use: admit_exact_16_trajectory_batch_as_replicate_0_calibration_tranche
+  fail_use: retain_as_excluded_factor_smoke_fixture_only
+  prohibit_double_counting_same_design_row: true
+  old_capture_status: excluded_unless_it_independently_has_this_contract_and_pass_sentinel
+  pass_requires:
+    - exact_pinned_16_rows
+    - all_8_positive_realizations_in_requested_bins
+    - all_8_matched_benign_nontreatment_hashes_equal_positive
+    - all_positive_endpoint_statuses_typed_and_computable
+    - exact_policy_feature_projection_without_forbidden_tokens
+    - zero_warning_actuation
+    - zero_oai_execution
+    - immutable_manifest_and_artifact_hashes
+  next_action_on_pass: human_review_before_any_additional_calibration_tranche
+  next_action_on_fail: stop_no_scaling_repair_factor_or_endpoint_contract
+
+runtime_readiness:
+  factor_adapter_status: pending_not_implemented
+  recipient_install_event_status: pending_not_implemented
+  policy_feature_projection_status: pending_not_implemented
+  launch_wrapper_status: pending_not_implemented
+  consequence: collection_blocked_even_when_offline_design_validation_passes

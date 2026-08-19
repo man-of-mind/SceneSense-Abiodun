@@ -1,0 +1,25 @@
+{
+  "files": [
+    {
+      "bytes": 441,
+      "path": "design_provenance.json",
+      "sha256": "7804f485ab36c35c0a248a7bda28b52bd8b99e508a6880d63166659da8827526"
+    },
+    {
+      "bytes": 6539,
+      "path": "design_summary.json",
+      "sha256": "fb45b5ca1bc229297daff00dc828d830559ee4a3e182c86ea73623efeba5bcca"
+    },
+    {
+      "bytes": 1344,
+      "path": "power_sensitivity.csv",
+      "sha256": "fd9b92ff01f4f2872a42825042bcb63712710fa237fafaccc3932cac039cde98"
+    },
+    {
+      "bytes": 312419,
+      "path": "trajectory_group_manifest.csv",
+      "sha256": "c5b56fc1210a7d2e26e8cb58cc0b495fd2b649c36faa96d5c83f8726502fdf96"
+    }
+  ],
+  "schema": "scenesense.phase2_suite_design_artifact_manifest.v1"
+}

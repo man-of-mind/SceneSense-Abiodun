@@ -1,9 +1,12 @@
 # Phase-2 powered Suite A/B design
 
-Status: **deterministic design-freeze candidate; collection remains
-unauthorized**, 2026-08-17.
+Status: **2026-08-19 endpoint-reconciliation proposal pending joint review;
+collection remains unauthorized**. The checked-in v1 machine-readable artifacts
+preserve the warning-lead-era design and must not be overwritten. The offline v2
+factor manifest now exists, but it has no runtime or power authority; its
+adapters, track-quality guardrails, and bounded smoke remain prerequisites.
 
-Authoritative machine-readable inputs and outputs:
+Historical v1 machine-readable inputs and outputs:
 
 - config: `configs/phase2_suite_ab_design_v1.yaml`;
 - generator/validator: `design_suite_manifest.py`;
@@ -11,23 +14,36 @@ Authoritative machine-readable inputs and outputs:
 - sensitivity table: `design/phase2_suite_ab_v1/power_sensitivity.csv`; and
 - hashed summary/provenance: `design/phase2_suite_ab_v1/`.
 
+Proposed offline v2 inputs and outputs:
+
+- config: `configs/phase2_suite_ab_design_v2.yaml`;
+- manifest and sealed artifacts: `design/phase2_suite_ab_v2/`;
+- factor contract: `PHASE2_FACTOR_REALIZATION_CONTRACT.md`; and
+- bounded smoke contract: `FACTOR_REALIZATION_SMOKE_V1.md` plus
+  `../data_collection/configs/phase2_factor_realization_smoke_v1.yaml`.
+
 ## 1. Suite identity and claim boundary
 
 The names are fixed:
 
-- **Suite A — designed decision opportunities.** This is the powered,
+- **Suite A — designed decision opportunities.** This is the future powered,
   regime-bounded C2 test. It intentionally produces helper-visible hazards
-  and matched benign negatives.
+  and matched benign negatives. Its primary timing endpoint is a causally
+  delivered, accepted usable helper track available to the recipient consumer
+  before a recipient-self track is available there; actionability slack is mandatory
+  stratification of potential timeliness, not proof of a valid warning or safe
+  response.
 - **Suite B — naturalistic operation.** This is the honest denominator. It
   never forces a hazard and is not pooled with Suite A for the headline.
 
-The accepted two-trajectory pilot is excluded. Policy arms are replayed from
+Both completed pilots, including the 2026-08-19 decision-opportunity
+positive/benign/naturalistic batch, are excluded. Policy arms are replayed from
 one immutable capture with isolated state. A Suite A independent group contains
 two world trajectories—the controlled positive and its benign twin. A Suite B
 group contains one naturalistic world trajectory; its ego-only,
 send-everything, and hazard-only arms still use isolated replay state.
 
-## 2. Frozen candidate inventory
+## 2. Preserved v1 candidate inventory; realization gap blocks launch
 
 | Suite | Calibration groups | Validation groups | Test groups | World trajectories |
 |---|---:|---:|---:|---:|
@@ -35,12 +51,29 @@ send-everything, and hazard-only arms still use isolated replay state.
 | B naturalistic | 18 | 18 | 54 | 90 |
 | **Total** | **42** | **42** | **126** | **330** |
 
-Suite A contains 24 factor cells and five independent route/seed replicates per
-cell. Each cell is split exactly 1 calibration / 1 validation / 3 test:
+The v1 candidate contains 24 intended factor cells and five independent
+route/seed replicates per cell. Each cell is split exactly 1 calibration / 1
+validation / 3 test:
 
 - six geometry families: three pedestrian and three vehicle;
 - low/high closing-speed bands; and
 - short/long time-to-hazard bands.
+
+Those speed and time-to-hazard values are **labels only today**. The v1
+manifest does not bind them to per-geometry actor controls or fail a row when
+its realized kinematics land outside its label. Consequently none of the old
+15-trajectory audit, 66-trajectory calibration plan, or 330-trajectory full
+plan is launch authorization. Visual geometry acceptance does not close this
+scientific gap.
+
+The versioned successor must use a typed urgency contract per geometry rather
+than one universal TTC: define the conflict event/surface, evaluation-only truth
+fields, prediction model and horizon, intended band, numeric realized bounds,
+and tolerance. Persist realized recipient speed, closing/range or clearance to
+that surface, conflict-time/censoring, helper-visible interval,
+recipient-self-availability time, usable-helper install and consumer-availability
+times, and actionability slack. A row counts only if those realized quantities satisfy its
+preassigned cell.
 
 Traffic density is an orthogonally balanced nuisance factor: each split is
 exactly balanced across sparse, typical, and dense groups. Cyclists are not
@@ -69,6 +102,24 @@ rows are flagged before any outcome exists. Tests fail if Suite labels are
 inverted, a group leaks across splits, a seed is reused, or a factor cell loses
 its 1/1/3 assignment.
 
+The successor manifest additionally balances/jitters hazard onset, route start,
+and sensor/scheduler phase independently; varies preregistered recipient-motion
+profiles; and reserves an unseen onset range, one complete scripted
+driver-motion profile, and a geometry/route combination as explicit
+extrapolation stresses. Split assignment occurs before feature construction.
+The policy receives causal relative kinematics, AoI/uncertainty, lagged network
+state, and protocol state—not scenario time/frame, ID, factor label, seed,
+planned target phase, future truth, absolute hazard location, or driver-profile
+identity. Absolute route position is isolated to a registered radio-map
+ablation with route-family holdout.
+
+Manual audience driving for MWC 2027 is a post-freeze human-in-the-loop holdout,
+never part of training, calibration, model selection, or confirmatory C2. The
+frozen system observes live ego kinematics and recomputes urgency; manual runs
+report system availability, driver response, clearance/collision, and comfort
+separately and include an explicit safety override. Scripted research outcomes
+must not be represented as measured human response.
+
 ### Renderer contract
 
 Every one of the 330 primary design rows declares CARLA `Epic` and the exact
@@ -82,50 +133,50 @@ every class: the pre-registered <=12 m dense pedestrian component had zero suppo
 
 ## 3. Power position—what is and is not claimed
 
-The excluded one-pair pilot cannot estimate between-group variance. Its 3.6 s
-descriptive lead is therefore not used to power the study.
+Neither excluded pilot estimates between-group variance. In particular, the
+2026-08-19 pilot's 2.4 s helper-local-versus-recipient-self confirmation gap is
+a one-trajectory, zero-transport upper bound, not recipient-available C2 gain.
+Its 3.3 s warning lead also remains secondary and failed the unchanged benign
+specificity gates. Neither number powers the future study.
 
-The candidate freezes:
+The checked-in v1 sensitivity table and its 0.5 s warning-lead effect, 1.25 s
+paired standard deviation, 10% censoring, 72 positive test groups, and 0.883
+illustrative power are preserved as **historical planning assumptions**. They
+must not be relabelled as power for `recipient_available_confirmed_track_margin_s`. Two-sided alpha
+0.05 and minimum required power 0.80 remain design principles; the effect size,
+censoring model, estimator, and counts are re-frozen from the versioned
+endpoint plan and passing calibration evidence before validation.
 
-- smallest effect of interest: 0.5 s;
-- two-sided alpha: 0.05;
-- 72 untouched Suite A positive test groups;
-- planned 10% nonnumeric/censored loss, leaving 64 numeric pairs; and
-- minimum required power: 0.80.
+The future analysis has one primary information endpoint and one required
+safety-relevance interpretation:
 
-The 0.5 s value is a **cross-cell research floor**, not a braking-safety
-threshold. At the 10 Hz sensor/evaluation cadence it is five frames; at the
-separate 20 Hz surrogate policy clock it is ten decision opportunities. Under
-the registered closing-speed bands it corresponds to 1--2 m of closing travel
-in the low band and 3--5 m in the high band. Warning lead by speed band, those
-distance equivalents, and causal deadline slack are mandatory reports. A
-braking-derived actionable deadline is deferred until every arm has the same
-fixed warning-actuation adapter and the advisor freezes reaction, deceleration,
-and clearance parameters.
+1. `recipient_available_confirmed_track_margin_s = recipient_self_available_s -
+   recipient_usable_helper_available_s`, where helper availability follows
+   accepted install and both sides use the same recipient-consumer boundary,
+   with explicit censoring and target-track validity/quality requirements; and
+2. mandatory actionable-success and continuous actionability-slack strata under typed
+   per-geometry conflict definitions and preregistered response profiles. If
+   reaction/deceleration/clearance profiles are not frozen, no actionable claim
+   is made. Even when frozen, these are potential-timeliness interpretations;
+   they do not show that a valid warning or actuation occurred. C3 remains
+   failed/unresolved on the present warning stack.
 
-The checked-in sensitivity table shows approximate paired-t power of 0.883 at
-0.5 s effect, 1.25 s paired standard deviation, and 10% censoring. This is a
-planning sensitivity—not the registered censored/clustered analysis and not a
-claim that the true standard deviation is 1.25 s.
+The proposed 16-trajectory factor-realization tranche is assigned to
+calibration before launch. Every passing trajectory counts toward calibration;
+it is not discarded as another pilot. Use it to estimate realization yield,
+censoring, recipient-consumer track availability, cluster variance, and benign map
+pollution. Validation remains blocked until the registered estimator has at
+least 0.80 planned power and track/map-quality guardrails have adequate
+precision. Failed/out-of-cell rows are never relabelled, and no margin is
+weakened after seeing data.
 
-After calibration, simulate the **actual registered estimator** using observed
-event yield, censoring, paired variance, false-warning exposure, and
-missed-hazard discordance. Validation may start only if the planned test counts
-provide at least 0.80 power for the 0.5 s lead endpoint and adequate precision
-for both non-inferiority endpoints. If not, stop and revise counts before any
-validation/test data are collected. Do not weaken the endpoint or margins.
-
-Power alone is insufficient. Every setting retained for validation must also
-pass an absolute research-usability gate on Suite-A matched benign negatives:
-adjudicated false-warning-active frames at most 10%, false-warning episodes at
-most 1/min, and the existing cooperative-versus-ego margin of no more than
-+2 percentage points. Failure stops before validation. These are C2 research
-gates, not certified automotive limits. First-warning timing remains
-registered-target-specific; unrelated warnings cannot move that endpoint.
-The two absolute rates pool their numerators and eligible benign exposure over
-all calibration trajectories for an arm/candidate, with trajectory-cluster
-intervals reported. In particular, the episode-rate gate is not applied to
-each short trajectory separately.
+The old warning-rule usability gates—at most 10% false-warning-active frames,
+at most 1/min false-warning episodes, and no more than +2 percentage points
+cooperative excess—remain unchanged for any warning claim. The current v3
+warning stack failed them and stays disqualified; track timing does not rescue
+it. The new primary endpoint separately requires preregistered false/duplicate/
+fragmented installed-track and benign map-pollution guardrails so a permissive
+tracker cannot manufacture early knowledge.
 
 ## 4. Retention and runtime
 
@@ -133,7 +184,7 @@ The pilot measured about 2.75 MB of aligned inputs and 19.95 MB of logits per
 role/frame. Continuous full retention for 330 trajectories would be roughly
 1.8 TB and is forbidden.
 
-The candidate uses:
+The preserved v1 candidate planned:
 
 - causal lightweight records, unfiltered detections, final detections, tracks,
   truth, ego state, actions, queue/network timestamps, and manifests for every
@@ -143,12 +194,12 @@ The candidate uses:
   naturalistic route (15 world trajectories total); and
 - no heavy raw window in the confirmatory test.
 
-Using pilot-measured bytes, the total estimate is **54.61 GB**, below the
+Using pilot-measured bytes, the v1 total estimate is **54.61 GB**, below the
 hard **80 GB** design cap while preserving the existing 500 GB free-space
 floor. The collector must still reserve space and enforce permits before every
 write; this estimate is not permission to exceed a quota.
 
-Pilot wall time was about 2.9 minutes per world trajectory. The candidate
+Pilot wall time was about 2.9 minutes per world trajectory. The v1 candidate
 therefore estimates:
 
 | Stage | World trajectories | Capture time estimate |
@@ -159,11 +210,13 @@ therefore estimates:
 | **Total** | **330** | **16.0 h** |
 
 Each stage uses a detached, self-logging runner and stops at its human gate.
-No stage is chained into the next.
+No stage is chained into the next. These storage/runtime figures remain useful
+planning bounds, but the 66/66/198 schedule is not launch authorization and
+must be regenerated for the successor manifest.
 
-### Calibration-audit execution contract
+### Historical v1 planned calibration-audit contract
 
-The first runnable stage is frozen in
+The warning-era audit **plan** was defined in
 `data_collection/configs/phase2_calibration_audit_v1.yaml`. It selects exactly
 nine calibration groups from the immutable manifest: six designed matched
 groups (positive plus benign) and three naturalistic groups, for 15 world
@@ -173,6 +226,20 @@ each role retains exactly 40 aligned input/logit pairs inside its reviewed 4 s
 window. The expected heavy-data total is 27.24 GB, protected by a 3 GB
 per-trajectory cap, an 80 GB stage cap, a 500 GB post-write free-space floor,
 and a 580 GB preflight requirement. Automatic deletion is forbidden.
+
+The full 15-trajectory plan did not complete. The accepted
+`20260818_230028_audit` execution contains only three trajectories / two groups;
+it is the completed structural subset described below. Do not infer
+15-trajectory evidence from the historical plan or its storage estimate.
+
+That v1 config is now provenance, not a runnable next-stage contract. The next
+proposed unit is a separately versioned 16-trajectory factor-realization
+tranche preassigned to calibration. Its rows must bind typed per-geometry
+urgency/horizon parameters and realized gates before launch. If a row passes
+capture, integrity, and realization gates, it counts toward calibration; this
+avoids another disposable pilot. A failed/out-of-cell row is retained and does
+not count or change labels. No launch is authorized until the successor config,
+manifest, hashes, and analysis plan receive joint review.
 
 The runner fails at the first trajectory that violates actor cleanup, zero
 unintended-collision traffic sanity, the exact M-prime
@@ -225,8 +292,9 @@ The accepted three-trajectory regression batch `20260818_230028_audit`
 retains its create-only `resolved_config.yaml`, which records the superseded
 96-point declaration used at capture time. That historical file is immutable
 provenance and must not be rewritten. No replay was executed under it. The
-retained source artifacts remain sufficient for the narrower binding 72-point
-map-engine grid, which governs every new replay/configuration.
+retained source artifacts remain sufficient for the narrower historical
+72-point warning-engine grid. That grid preserves the failed warning study; it
+does not govern or select the future installed-track endpoint.
 
 ## 5. Scenario-authoring status
 
@@ -251,7 +319,8 @@ Already reviewed:
 
 No scenario geometry remains pending. Both naturalistic families are frozen
 under `town10hd_opt_same_lane_helper_ahead_v1`; this removes the geometry gate
-but does not authorize collection past the staged calibration gates.
+but does not realize the labelled speed/urgency cells and does not authorize
+collection. Typed per-geometry factor controls and gates remain blocking.
 
 Every new geometry needs the same manual review used for the pilot: legal lane
 IDs/headings, no pose overlap, visible helper advantage for positive hazards,
@@ -262,19 +331,27 @@ camera visibility, and clean actor teardown.
 
 1. **Complete:** both paired naturalistic routes are visually accepted and the
    shared pair-contract ID plus both route hashes are frozen.
-2. Run only the nine preselected calibration audit groups—six designed groups
-   (positive + benign) and three naturalistic groups, 15 world trajectories,
-   about 44 minutes and about 27 GB of heavy-window data.
-3. After the CARLA stage stops, run the bounded 72-setting offline map-engine
-   replay from the retained artifacts and review it separately; then verify
-   the exact OAI timestamp and byte fields in the later OAI measurement.
-   Neither result is implied by a CARLA capture-complete sentinel.
-4. Complete the remaining calibration trajectories and run the registered
-   simulation-power gate. Stop on insufficient event yield, excessive
-   censoring, warning burden, or power.
-5. Only after review, collect validation and freeze one operating point.
-6. Only after a second review, collect the untouched test and apply the C2
-   decision rule.
+2. **Complete, historical:** the warning-era audit/replay and the bounded
+   decision-opportunity pilot established capture integrity and a local sensing
+   opportunity, but the warning rule failed its unchanged specificity gates.
+3. **Current design/runtime gate:** jointly review the checked-in v2 factor
+   manifest and exact 16 calibration rows, then implement and verify the
+   per-row runtime adapter, typed realized urgency/horizon gates,
+   recipient-available installed-track event, exact anti-memorization feature
+   projection, track-quality guardrails, and create-only launcher. The v1
+   15/66/330 launch paths remain false, and v2 has no registered power claim.
+4. If separately authorized, collect only the 16 preassigned calibration
+   trajectories. Count every passing row toward calibration; stop on contract,
+   out-of-cell realization, censoring, track/map-quality, or integrity failure.
+5. Analyze local installed-track gain and mandatory actionability strata. Then,
+   only after a separate human gate, verify accepted install and consumer
+   `available_at` over two-UE OAI using identical contributions. Do not promote
+   helper-local confirmation or raw install time to recipient knowledge.
+6. Regenerate clustered power/counts for the new endpoint. Complete remaining
+   calibration only if the result is supportable; validation and untouched test
+   each require separate approval. Warning lead remains secondary/failed unless
+   a genuinely new warning design is later preregistered; its old gates are not
+   weakened.
 
 LOCAL/OAI calibration and the causal controller ladder remain downstream.
-Nothing in this design authorizes RL.
+Nothing in this proposal authorizes CARLA, OAI, a controller run, or RL.
