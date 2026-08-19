@@ -6245,3 +6245,53 @@ events as non-false leaves send-everything at 8/70 = 11.43% and hazard-only at
 10/70 = 14.29%, with +7.14/+10.00 pp excess versus ego-only, so both frozen
 cooperative gates still fail. All 71 consumed-input fingerprints and all 15
 output artifacts rehash; the full Phase-2 map-sharing regression is 127/127.
+
+## 2026-08-19 — LOCAL DECISION on the lead-versus-nuisance fork: report the trade-off, do NOT preregister a new warning-design test. Re-anchor C2 on the rule-independent sensing margin.
+
+Abiodun's constraint is explicit: second week, no corpus yet, only highly relevant work from here. Decision below
+is made against that constraint.
+
+### Answer to the fork: option (a) — report the trade-off. NO new bounded warning test now.
+Reasons, in order of weight:
+1. **The gap is 4-6x the frozen limit** (+8.57 / +11.43 pp against a +2 pp cap; both cooperative arms also breach
+   the 10% absolute ceiling). That is structural specificity failure, not a margin a narrow repair closes.
+2. **codex already bounded the most obvious repair.** Granting both near-OBB events as non-false still leaves
+   send-everything 11.43% and hazard-only 14.29% (+7.14/+10.00 pp). So completing OBB/surface-clearance
+   adjudication **cannot rescue the gate** — that test is answered without running it.
+3. **The +2 pp limit was frozen pre-data and must not be weakened.** Tuning to pass it is exactly the failure mode
+   we have banned all thread.
+4. A "genuinely different quality/risk-gated warning design" is a **research project** (uncertainty-aware risk
+   gating, confidence calibration, learned specificity). Starting it now would repeat the RL detour at a moment when
+   the project needs C2 evidence, not a new subsystem. **Future work, explicitly deferred.**
+
+### The reframe that preserves C2 — anchor on the SENSING margin, not the warning rule
+The 3.3 s warning lead is **rule-dependent** and therefore inherits the specificity failure. The **2.4 s sensing /
+track-confirmation margin** (helper confirms 2.2 s, recipient 4.6 s) does **not** — it is upstream of any warning
+rule and measures exactly what cooperation buys: *the recipient's knowledge of the hazard arrives earlier.*
+
+**Recommendation:** make the **confirmed-track sensing margin the primary C2 endpoint**, with warning lead reported
+as a rule-dependent secondary alongside its nuisance cost. Actionability is still evidenced: the cooperative signal
+precedes the recipient's first hidden-target yield by **2.1 s** while it is still travelling at 4.15 m/s. This gives
+a C2 result that does not depend on the component that failed, and it is honest about which layer is unresolved.
+
+### Findings to report (all three are results, not failures)
+1. **Cooperation advances hazard knowledge by a measured, causal margin** in a staged urban occlusion
+   (2.4 s sensing, 3.3 s warning lead, 2.1 s before the recipient's own yield).
+2. **The specificity bottleneck is static-object motion, not the sharing decision.** Benign false warnings are
+   *all* vehicle-class and unmatched even after the verified static catalog; earlier forensics found parked
+   Town10HD vehicles assigned fabricated motion (e.g. a parked taxi at `(10.7, -15.1) m/s`). This localises the
+   defect to tracking/adjudication, upstream of the sharing controller.
+3. **Naive hazard-triggered publication is counterproductive on specificity:** hazard-only is *worse* than
+   send-everything (15.71% vs 12.86%) despite fewer bytes — the apparent-hazard heuristic preferentially forwards
+   noisy threats. That is a substantive caution against the intuitive "send what looks dangerous" design and is
+   worth stating plainly.
+
+### Do not do now
+- No threshold tuning or CARLA rerun on this pilot (time-box already forbids it).
+- No new warning-design preregistration.
+- No full corpus, OAI overlay, controller ladder, or RL on this stack — the existing preregistered NO-GO to scaling
+  stands.
+
+### Also note (carry with the result)
+The naturalistic run is **report-only**: all six warning-active frames per arm are censored for lack of complete
+future trajectory, so its 0% false-warning rate is **not** specificity evidence. Do not cite it as such.
