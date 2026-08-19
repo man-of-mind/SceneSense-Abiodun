@@ -24,6 +24,13 @@ import pandas as pd
 import yaml
 from scipy.optimize import linear_sum_assignment
 
+from phase2_map_sharing.static_truth_adjudication_v1 import (
+    TRUTH_SOURCE_STATIC,
+    constant_static_future_truth_v1,
+    load_trajectory_static_catalogs_v1,
+    match_unmatched_warnings_to_static_v1,
+)
+
 
 SCHEMA = "scenesense.phase2_future_hazard_adjudication.v2"
 OUTPUT_NAME_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]*$")
@@ -648,6 +655,17 @@ def adjudicate(
         ].items()
     }
     trajectories = list(integration_config["trajectories"])
+    static_catalogs, static_truth_requirement = (
+        load_trajectory_static_catalogs_v1(
+            batch_root,
+            [trajectory["trajectory_id"] for trajectory in trajectories],
+            declared_sources=(
+                ("integration_config", integration_config),
+                ("adjudication_config", adjudication_config),
+                ("input_replay_provenance", replay_provenance),
+            ),
+        )
+    )
     for trajectory in trajectories:
         trajectory_id = str(trajectory["trajectory_id"])
         recipient_dir = batch_root / trajectory_id / "recipient"
@@ -671,6 +689,9 @@ def adjudicate(
             "frame_times": frame_times,
             "target_prefix": str(trajectory.get("target_truth_role_prefix", "")),
         }
+        static_catalog = static_catalogs.get(trajectory_id)
+        if static_catalog is not None:
+            trajectory_context[trajectory_id]["static_catalog"] = static_catalog
 
     pair_members: dict[str, list[Mapping[str, object]]] = {}
     for trajectory in trajectories:
@@ -741,10 +762,23 @@ def adjudicate(
         ):
             frame_id = int(frame_warnings.iloc[0]["frame_id"])
             truth_frame = truth[truth["frame_id"].astype(int) == frame_id]
-            matches = match_warnings_one_to_one(
+            dynamic_matches = match_warnings_one_to_one(
                 frame_warnings,
                 truth_frame,
                 gate_m=float(adjudication_config["matching"]["center_gate_m"]),
+            )
+            static_catalog = context.get("static_catalog")
+            matches = (
+                match_unmatched_warnings_to_static_v1(
+                    frame_warnings,
+                    dynamic_matches,
+                    static_catalog,
+                    gate_m=float(
+                        adjudication_config["matching"]["center_gate_m"]
+                    ),
+                )
+                if isinstance(static_catalog, pd.DataFrame)
+                else dynamic_matches
             )
             for warning_index, event in frame_warnings.iterrows():
                 base = dict(event)
@@ -778,10 +812,21 @@ def adjudicate(
                         }
                     )
                 else:
-                    actor_truth = truth[
-                        truth["actor_id"].astype(str)
-                        == str(match["current_truth_actor_id"])
-                    ]
+                    if match.get("truth_source") == TRUTH_SOURCE_STATIC:
+                        if not isinstance(static_catalog, pd.DataFrame):
+                            raise RuntimeError(
+                                "static warning match lacks its verified catalog"
+                            )
+                        actor_truth = constant_static_future_truth_v1(
+                            static_catalog,
+                            actor_id=str(match["current_truth_actor_id"]),
+                            frame_times=context["frame_times"],
+                        )
+                    else:
+                        actor_truth = truth[
+                            truth["actor_id"].astype(str)
+                            == str(match["current_truth_actor_id"])
+                        ]
                     result = _future_label(
                         base,
                         actor_truth,
@@ -1017,6 +1062,7 @@ def adjudicate(
         "integration_config_semantic_sha256": _semantic_sha256(integration_config),
         "adjudication_config_semantic_sha256": _semantic_sha256(adjudication_config),
         "truth_usage": "evaluation_only_no_runtime_feedback",
+        "static_truth_requirement": static_truth_requirement,
         "positive_hazard_ego_trajectory_basis": positive_basis,
         "benign_hazard_ego_trajectory_basis": benign_basis,
     }
@@ -1062,6 +1108,8 @@ def adjudicate(
             "continuous_outcome_computable_but_not_policy_attributable_until_warning_actuation"
         ),
         "positive_hazard_ego_trajectory_basis": positive_basis,
+        "static_truth_required": bool(static_truth_requirement["required"]),
+        "static_truth_catalog_count": len(static_catalogs),
         "supersedes": "hazard_adjudication_v1_intervention_contaminated",
     }
     (output_dir / "adjudication_summary.json").write_text(

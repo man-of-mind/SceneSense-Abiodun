@@ -101,6 +101,8 @@ class Phase2RuntimeConfig:
     maximum_missed_frames: int = 3
     placement_action: str = "SPLIT_FEATURE"
     publication_action: str = "PUBLISH_ALL"
+    retention_start_offset_s: float = 0.0
+    retention_frame_count: Optional[int] = None
 
     def validate(self) -> None:
         if self.role not in ROLE_NAMES:
@@ -111,6 +113,10 @@ class Phase2RuntimeConfig:
             raise ValueError("capture-start timeout must be positive")
         if self.association_gate_m <= 0.0 or self.maximum_missed_frames < 0:
             raise ValueError("causal tracker limits are invalid")
+        if self.retention_start_offset_s < 0.0:
+            raise ValueError("raw-retention start offset must be non-negative")
+        if self.retention_frame_count is not None and self.retention_frame_count <= 0:
+            raise ValueError("raw-retention frame count must be positive when set")
 
 
 @dataclass
@@ -310,6 +316,7 @@ class Phase2CaptureRuntime:
         self._closed = False
         self._capture_started = False
         self._capture_start_clock_s: Optional[float] = None
+        self._retention_window_started_at_s: Optional[float] = None
         self._armed_after_frame_id: Optional[int] = None
         self._last_completed_frame_id: Optional[int] = None
         self._last_tracks: list[dict] = []
@@ -319,6 +326,7 @@ class Phase2CaptureRuntime:
         self._quota_stop_reason: Optional[str] = None
         self._raw_files_written = 0
         self._logits_files_written = 0
+        self._retained_input_frames: set[int] = set()
 
         role_limit = int(retention["maximum_raw_bytes_per_trajectory"]) // 2
         role_limits = RetentionLimits(
@@ -404,6 +412,8 @@ class Phase2CaptureRuntime:
                 },
                 "placement_action": config.placement_action,
                 "publication_action": config.publication_action,
+                "retention_start_offset_s": config.retention_start_offset_s,
+                "retention_frame_count": config.retention_frame_count,
                 "contract_config_path": str(config.contract_config_path),
                 "retention_preflight": self.retention_preflight,
             },
@@ -480,10 +490,6 @@ class Phase2CaptureRuntime:
         carla_timestamp = float(snapshot.timestamp.elapsed_seconds)
         if self._capture_start_clock_s is None:
             self._capture_start_clock_s = carla_timestamp
-            self.retention.start_window(
-                f"{self.config.trajectory_id}:{self.config.role}",
-                self._capture_start_clock_s,
-            )
         state = self._ego_state(anchor_actor)
         state_field_name = "helper_state" if self.config.role == "helper" else "recipient_state"
         state_source = (
@@ -605,6 +611,38 @@ class Phase2CaptureRuntime:
             self.retention.record_write_complete(permit)
             return True
 
+    def _retain_frame(self, frame_id: int, carla_timestamp: float) -> bool:
+        """Select the registered bounded window without dropping light logs.
+
+        The capture barrier defines time zero.  Heavy retention begins at the
+        first sensor frame on or after the configured offset and is bounded by
+        an exact frame count.  This avoids the inclusive-endpoint ambiguity of
+        treating a 4 s, 10 Hz window as a floating-time interval (40 vs 41
+        frames).
+        """
+
+        if self._capture_start_clock_s is None:
+            return False
+        if int(frame_id) in self._retained_input_frames:
+            return True
+        if (
+            self.config.retention_frame_count is not None
+            and len(self._retained_input_frames) >= self.config.retention_frame_count
+        ):
+            return False
+        requested_start_s = (
+            self._capture_start_clock_s + self.config.retention_start_offset_s
+        )
+        if float(carla_timestamp) + 1e-9 < requested_start_s:
+            return False
+        if self._retention_window_started_at_s is None:
+            self._retention_window_started_at_s = float(carla_timestamp)
+            self.retention.start_window(
+                f"{self.config.trajectory_id}:{self.config.role}",
+                self._retention_window_started_at_s,
+            )
+        return True
+
     def record_inputs(
         self,
         *,
@@ -619,6 +657,8 @@ class Phase2CaptureRuntime:
             return
         self._frame_timestamps[int(frame_id)] = float(carla_timestamp)
         points = self._radar_points.pop(int(frame_id), {})
+        if not self._retain_frame(int(frame_id), float(carla_timestamp)):
+            return
         buffer = io.BytesIO()
         arrays: Dict[str, np.ndarray] = {
             "frame_bgr": np.asarray(frame_bgr),
@@ -637,10 +677,12 @@ class Phase2CaptureRuntime:
             float(carla_timestamp),
         ):
             self._raw_files_written += 1
+            self._retained_input_frames.add(int(frame_id))
 
     def record_logits(self, frame_id: int, outputs: Mapping[str, object]) -> None:
         if not self._capture_started:
             return
+        retained_input = int(frame_id) in self._retained_input_frames
         arrays: Dict[str, np.ndarray] = {}
 
         def visit(prefix: str, value: object) -> None:
@@ -664,13 +706,15 @@ class Phase2CaptureRuntime:
             height, width = int(object_tensor.shape[-2]), int(object_tensor.shape[-1])
             batch = int(object_tensor.shape[0]) if object_tensor.ndim == 4 else 1
             heatmap_cells = batch * heatmap_channels * height * width
-        buffer = io.BytesIO()
-        np.savez_compressed(buffer, **arrays)
-        retained = self._quota_write(
-            self.raw_dir / f"frame_{int(frame_id):08d}_logits.npz",
-            buffer.getvalue(),
-            float(self._frame_timestamps[int(frame_id)]),
-        )
+        retained = False
+        if retained_input:
+            buffer = io.BytesIO()
+            np.savez_compressed(buffer, **arrays)
+            retained = self._quota_write(
+                self.raw_dir / f"frame_{int(frame_id):08d}_logits.npz",
+                buffer.getvalue(),
+                float(self._frame_timestamps[int(frame_id)]),
+            )
         self.inference_inventory_writer.write(
             {
                 "trajectory_id": self.config.trajectory_id,
@@ -862,6 +906,8 @@ class Phase2CaptureRuntime:
                 "source_role": self.config.role,
                 "raw_input_files_written": self._raw_files_written,
                 "logits_files_written": self._logits_files_written,
+                "retained_frame_ids": sorted(self._retained_input_frames),
+                "retention_window_started_at_s": self._retention_window_started_at_s,
                 "quota_stop_reason": self._quota_stop_reason,
                 "retention": self.retention.summary(),
             },

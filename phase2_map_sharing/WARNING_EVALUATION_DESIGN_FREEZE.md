@@ -82,6 +82,15 @@ Frames are not treated as independent samples. Confidence intervals and tests
 use paired trajectory/scenario clusters. The positive and benign member of a
 matched pair always remain in the same data split.
 
+Both absolute nuisance rates are pooled over all eligible Suite-A benign
+exposure for one arm and candidate setting. Specifically, active frames are
+summed before division by eligible frames, and false-warning episodes are
+summed before division by total eligible exposure minutes. The 1/min gate is
+therefore **not** evaluated independently on each 12 s trajectory, where one
+episode would spuriously appear as 5/min. The registered thresholds apply to
+the pooled point estimates; trajectory-cluster intervals are reported beside
+them and trajectories remain the uncertainty unit.
+
 ## 4. Frozen split and calibration procedure
 
 The existing two-trajectory pilot is excluded from all tuning and test claims.
@@ -99,7 +108,7 @@ and reported separately.
 
 Only the calibration split may search this bounded grid:
 
-- detector/map confidence floor: `{0.05, 0.10, 0.15, 0.20}`;
+- recipient warning-emission confidence floor: `{0.05, 0.10, 0.15, 0.20}`;
 - map association base gate: `{2, 3, 4}` m;
 - track TTL: `{0.5, 1.0}` s;
 - warning uncertainty multiplier: `{0, 1, 2}`.
@@ -109,20 +118,33 @@ cyclist/vehicle), source-local tracker, truth-matching gate, contribution schema
 and causal state are not tuned. Any change to those items creates a new design
 version and requires validation again.
 
+The confidence axis is applied **after recipient-map installation and
+association** and gates warning emission only. Source decoding remains fixed at
+its captured 0.05 floor, and every resulting source observation remains eligible
+for map installation and association at every grid point. The axis is therefore
+neither a detector threshold nor a map-admission filter; introducing either
+intervention would define a different, unregistered calibration surface.
+
 Candidates are filtered on calibration data, then exactly one setting is chosen
 on validation data by the following order:
 
-1. reject a hazard-only setting whose missed-hazard rate exceeds
+1. reject every setting whose Suite-A matched-benign adjudicated
+   false-warning-active-frame rate exceeds **10%** or whose false-warning
+   episode rate exceeds **1/min**;
+2. reject a hazard-only setting whose missed-hazard rate exceeds
    send-everything by more than 5 percentage points;
-2. reject a cooperative setting whose false-warning-active-frame rate exceeds
+3. reject a cooperative setting whose false-warning-active-frame rate exceeds
    ego-only by more than 2 percentage points;
-3. maximize median registered-target warning lead;
-4. break ties by lower unmatched-warning-active-frame rate, then lower payload,
+4. maximize median registered-target warning lead;
+5. break ties by lower unmatched-warning-active-frame rate, then lower payload,
    then lexicographic parameter order.
 
 The 5 pp miss and 2 pp nuisance margins are **C2 research non-inferiority
 margins**, not a certified automotive safety requirement. Absolute deployment
 limits belong to the later C3 safety case and require advisor/application input.
+The 10% and 1/min limits are likewise research-usability gates rather than
+certification claims; if calibration leaves no candidate inside them,
+validation does not start.
 The selected setting and its hash are frozen before opening the test outcomes.
 The complete calibration/validation frontier is retained so a favourable single
 operating point cannot hide a poor trade-off.
@@ -145,6 +167,13 @@ if all of the following hold:
 The naturalistic suite is always the honest denominator and reports the same
 metrics. A gain only in the designed suite supports a regime-bounded C2 claim,
 not a broad traffic claim. A null naturalistic result is not discarded.
+
+The 0.5 s floor is deliberately common across cells: five 10 Hz evidence
+frames and ten 20 Hz surrogate policy decisions. It implies 1--2 m closing
+travel in the 2--4 m/s band and 3--5 m in the 6--10 m/s band. Report those
+distance equivalents and deadline slack by band. This is not a braking-safety
+threshold; reaction/braking arithmetic is invalid until warning actuation and
+its physical parameters are frozen.
 
 ## 6. Gates before full collection
 
@@ -191,6 +220,12 @@ pre-publication hazard filtering changes which helper observations reach map
 association, so it can change track persistence and the fraction of installed
 tracks already near the warning boundary. The frozen diagnostics must expose
 that coupling; calibration must not optimize lead while ignoring it.
+
+This burden does **not** mechanically alter the lead endpoint: replay and
+adjudication compute first-warning time only from warnings matched to the
+registered target. It is nevertheless operationally unacceptable and can pass
+a relative-only non-inferiority rule when all arms are poor, which is why the
+absolute 10% and 1/min gates above are mandatory.
 
 ## 8. Adjudicator v2 pilot result and limits
 

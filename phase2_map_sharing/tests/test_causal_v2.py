@@ -280,6 +280,31 @@ class SchemaV2Tests(unittest.TestCase):
 
 
 class EngineV2Tests(unittest.TestCase):
+    @staticmethod
+    def _retimed_contribution(
+        *,
+        source: str,
+        sequence: int,
+        measured_at_s: float,
+        captured_at_s: float,
+        published_at_s: float,
+    ) -> MapContributionV2:
+        candidate = replace(
+            contribution(source=source, sequence=sequence),
+            objects=(
+                observation(
+                    track_id=f"{source}-track-1",
+                    measured_at_s=measured_at_s,
+                ),
+            ),
+            captured_at_s=captured_at_s,
+            placement_decision_at_s=captured_at_s - 0.01,
+            inference_completed_at_s=captured_at_s + 0.01,
+            publication_decision_at_s=published_at_s - 0.01,
+            published_at_s=published_at_s,
+        )
+        return with_exact_payload_bytes_v2(candidate)
+
     def test_recipient_pose_is_propagated_to_availability_time(self):
         engine = RecipientMapEngineV2("ego", track_ttl_s=2.0)
         self.assertEqual(
@@ -289,6 +314,115 @@ class EngineV2Tests(unittest.TestCase):
             engine.snapshot(0.3, "other_clock")
         warning = engine.warnings(recipient_state())[0]
         self.assertAlmostEqual(warning.time_to_closest_approach_s, 1.0, places=6)
+
+    def test_warning_confidence_floor_does_not_filter_map_install_or_association(self):
+        engine = RecipientMapEngineV2(
+            "ego", warning_emission_confidence_floor=0.8, track_ttl_s=2.0
+        )
+        low_confidence = contribution(
+            obj=replace(observation(), confidence=0.2),
+        )
+        self.assertEqual(
+            engine.install(low_confidence, 0.22, "carla_sim_clock"), "accepted"
+        )
+        snapshot = engine.snapshot(0.3, "carla_sim_clock")
+        self.assertEqual(len(snapshot["tracks"]), 1)
+        canonical_track_id = snapshot["tracks"][0]["canonical_track_id"]
+        self.assertEqual(engine.warnings(recipient_state()), [])
+
+        high_confidence = contribution(
+            sequence=2,
+            obj=replace(observation(), confidence=0.9),
+        )
+        self.assertEqual(
+            engine.install(high_confidence, 0.22, "carla_sim_clock"), "accepted"
+        )
+        snapshot = engine.snapshot(0.3, "carla_sim_clock")
+        self.assertEqual(len(snapshot["tracks"]), 1)
+        self.assertEqual(
+            snapshot["tracks"][0]["canonical_track_id"], canonical_track_id
+        )
+        self.assertEqual(len(engine.warnings(recipient_state())), 1)
+
+    def test_republished_missed_track_does_not_reset_map_aoi(self):
+        engine = RecipientMapEngineV2("ego", track_ttl_s=2.0)
+        first = self._retimed_contribution(
+            source="helper",
+            sequence=1,
+            measured_at_s=0.1,
+            captured_at_s=0.1,
+            published_at_s=0.12,
+        )
+        republished = self._retimed_contribution(
+            source="helper",
+            sequence=2,
+            measured_at_s=0.1,
+            captured_at_s=0.8,
+            published_at_s=0.82,
+        )
+        self.assertEqual(engine.install(first, 0.12, "carla_sim_clock"), "accepted")
+        self.assertEqual(
+            engine.install(republished, 0.82, "carla_sim_clock"), "accepted"
+        )
+
+        warning = engine.warnings(recipient_state())[0]
+        self.assertAlmostEqual(warning.map_aoi_s, 0.9)
+        self.assertAlmostEqual(warning.latest_capture_at_s, 0.8)
+        self.assertAlmostEqual(warning.latest_publish_at_s, 0.82)
+        snapshot = engine.snapshot(1.0, "carla_sim_clock")
+        self.assertAlmostEqual(snapshot["tracks"][0]["map_aoi_s"], 0.9)
+
+    def test_active_evidence_uses_each_sources_measurement_time(self):
+        engine = RecipientMapEngineV2("ego", association_gate_m=2.0, track_ttl_s=0.5)
+        helper_first = self._retimed_contribution(
+            source="helper",
+            sequence=1,
+            measured_at_s=0.1,
+            captured_at_s=0.1,
+            published_at_s=0.12,
+        )
+        helper_republished = self._retimed_contribution(
+            source="helper",
+            sequence=2,
+            measured_at_s=0.1,
+            captured_at_s=0.45,
+            published_at_s=0.47,
+        )
+        ego_fresh = self._retimed_contribution(
+            source="ego",
+            sequence=1,
+            measured_at_s=0.5,
+            captured_at_s=0.5,
+            published_at_s=0.52,
+        )
+        self.assertEqual(
+            engine.install(helper_first, 0.12, "carla_sim_clock"), "accepted"
+        )
+        self.assertEqual(
+            engine.install(helper_republished, 0.47, "carla_sim_clock"), "accepted"
+        )
+        self.assertEqual(engine.install(ego_fresh, 0.52, "carla_sim_clock"), "accepted")
+
+        state = replace(recipient_state(), observed_at_s=0.0, available_at_s=0.7)
+        warning = engine.warnings(state)[0]
+        self.assertAlmostEqual(warning.map_aoi_s, 0.2)
+        self.assertEqual(warning.evidence_sources, ("ego",))
+        self.assertEqual(warning.evidence_scope, "ego_only")
+        snapshot = engine.snapshot(0.7, "carla_sim_clock")
+        snapshot_track = snapshot["tracks"][0]
+        self.assertNotIn("evidence_sources", snapshot_track)
+        self.assertEqual(snapshot_track["active_evidence_sources"], ["ego"])
+        self.assertEqual(
+            snapshot_track["active_evidence_track_ids_by_source"],
+            {"ego": "ego-track-1"},
+        )
+        self.assertEqual(
+            snapshot_track["historical_evidence_sources"], ["ego", "helper"]
+        )
+        self.assertEqual(
+            snapshot_track["historical_evidence_track_ids_by_source"],
+            {"ego": "ego-track-1", "helper": "helper-track-1"},
+        )
 
     def test_clock_and_motion_model_mismatches_fail_closed(self):
         engine = RecipientMapEngineV2("ego")

@@ -23,12 +23,14 @@ from data_collection.phase2_causal_runtime import (
     Phase2RuntimeConfig,
 )
 from phase2_map_sharing.pilot_contract import load_and_validate_pilot_config
+from phase2_map_sharing.retention import RetentionLimits
 
 
 base = policy.base
 _RUNTIME: Optional[Phase2CaptureRuntime] = None
 _PHASE2_ARGS: Optional[argparse.Namespace] = None
 _CONTRACT_CONFIG: Optional[Mapping[str, object]] = None
+_RETENTION_CONFIG: Optional[Mapping[str, object]] = None
 
 
 def _parse_phase2_args(argv: Sequence[str]) -> tuple[argparse.Namespace, list[str]]:
@@ -38,9 +40,14 @@ def _parse_phase2_args(argv: Sequence[str]) -> tuple[argparse.Namespace, list[st
     parser.add_argument(
         "--phase2-scenario-role",
         required=True,
-        choices=("controlled_positive_occlusion", "matched_benign_negative"),
+        choices=(
+            "controlled_positive_occlusion",
+            "matched_benign_negative",
+            "naturalistic_operation",
+        ),
     )
     parser.add_argument("--phase2-contract-config", required=True)
+    parser.add_argument("--phase2-retention-config")
     parser.add_argument("--phase2-geometry-id", required=True)
     parser.add_argument(
         "--phase2-motion-owner",
@@ -52,6 +59,8 @@ def _parse_phase2_args(argv: Sequence[str]) -> tuple[argparse.Namespace, list[st
     parser.add_argument("--phase2-tick-ready", required=True)
     parser.add_argument("--phase2-heartbeat", required=True)
     parser.add_argument("--phase2-start-timeout-s", type=float, default=180.0)
+    parser.add_argument("--phase2-retention-start-offset-s", type=float, default=0.0)
+    parser.add_argument("--phase2-retention-frame-count", type=int)
     parser.add_argument("--phase2-tracker-association-gate-m", type=float, default=5.0)
     parser.add_argument("--phase2-tracker-maximum-missed-frames", type=int, default=3)
     parsed, remaining = parser.parse_known_args(list(argv))
@@ -67,6 +76,26 @@ def _load_contract(path: Path) -> Mapping[str, object]:
     if not isinstance(payload, Mapping):
         raise ValueError("Phase-2 contract config root must be a mapping")
     return payload
+
+
+def _load_retention_config(path: Path) -> Mapping[str, object]:
+    with path.open("r", encoding="utf-8") as stream:
+        payload = yaml.safe_load(stream)
+    if not isinstance(payload, Mapping) or payload.get("schema_version") != (
+        "scenesense.phase2_calibration_audit_retention.v1"
+    ):
+        raise ValueError("unexpected calibration-audit retention schema")
+    retention = payload.get("raw_retention")
+    if not isinstance(retention, Mapping):
+        raise ValueError("calibration-audit raw_retention mapping is required")
+    RetentionLimits.from_mapping(retention)
+    if retention.get("mode") != "controlled_windows_only":
+        raise ValueError("continuous calibration-audit retention is forbidden")
+    if retention.get("quota_action") != "stop_raw_keep_lightweight_logs":
+        raise ValueError("audit quota must preserve lightweight logs")
+    if bool(retention.get("allow_automatic_dataset_deletion")):
+        raise ValueError("audit retention must never delete existing artifacts")
+    return retention
 
 
 def _require_inherited_contract(argv: Sequence[str]) -> None:
@@ -190,8 +219,12 @@ def install_phase2_hooks() -> None:
                 maximum_missed_frames=int(
                     phase2.phase2_tracker_maximum_missed_frames
                 ),
+                retention_start_offset_s=float(
+                    phase2.phase2_retention_start_offset_s
+                ),
+                retention_frame_count=phase2.phase2_retention_frame_count,
             ),
-            _CONTRACT_CONFIG["raw_retention"],
+            _RETENTION_CONFIG or _CONTRACT_CONFIG["raw_retention"],
         )
         manifest_path = Path(logger.manifest_path)
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -323,11 +356,16 @@ def _runtime_frame_timestamp(frame_id: int) -> float:
 
 
 def main(argv: Optional[Sequence[str]] = None) -> None:
-    global _PHASE2_ARGS, _CONTRACT_CONFIG
+    global _PHASE2_ARGS, _CONTRACT_CONFIG, _RETENTION_CONFIG
     original_argv = list(sys.argv)
     arguments = list(sys.argv[1:] if argv is None else argv)
     _PHASE2_ARGS, policy_and_base = _parse_phase2_args(arguments)
     _CONTRACT_CONFIG = _load_contract(Path(_PHASE2_ARGS.phase2_contract_config).resolve())
+    _RETENTION_CONFIG = (
+        _load_retention_config(Path(_PHASE2_ARGS.phase2_retention_config).resolve())
+        if _PHASE2_ARGS.phase2_retention_config
+        else None
+    )
     policy._PEDESTRIAN_OVERLAY, inherited = policy._parse_overlay_args(policy_and_base)
     _require_inherited_contract(inherited)
     sys.argv = [sys.argv[0], *inherited]

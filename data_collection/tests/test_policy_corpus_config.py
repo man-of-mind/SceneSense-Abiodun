@@ -26,6 +26,7 @@ from data_collection.run_advisor_policy_corpus import (
     _controlled_pedestrian_gate_rows,
     _exact_fast_scenario_summary,
     _in_forward_corridor,
+    _vehicle_envelope_requires_yield,
     _vehicle_requires_yield,
     _walker_requires_yield,
     _load_config as _load_advisor_config,
@@ -412,6 +413,46 @@ class VehicleCorpusConfigTests(unittest.TestCase):
         )
         self.assertFalse(controller._must_yield(ego, speed_mps=3.0))
 
+    def test_review_route_shield_predicts_a_moving_pedestrian_crossing(self):
+        carla = __import__("carla")
+
+        class ActorList:
+            def __init__(self, walker):
+                self.walker = walker
+
+            def filter(self, pattern):
+                return [self.walker] if pattern == "walker.pedestrian.*" else []
+
+        walker = SimpleNamespace(
+            id=2,
+            type_id="walker.pedestrian.0001",
+            bounding_box=SimpleNamespace(extent=SimpleNamespace(x=0.3, y=0.3)),
+        )
+        walker.get_transform = lambda: carla.Transform(
+            carla.Location(x=10.0, y=4.0), carla.Rotation(yaw=-90.0)
+        )
+        walker.get_velocity = lambda: carla.Vector3D(x=0.0, y=-1.5)
+        actor = SimpleNamespace(
+            id=1,
+            bounding_box=SimpleNamespace(extent=SimpleNamespace(x=2.5, y=1.0)),
+        )
+        actor.get_world = lambda: SimpleNamespace(
+            get_actors=lambda: ActorList(walker)
+        )
+        controller = DirectRouteController.__new__(DirectRouteController)
+        controller.actor = actor
+        controller.last_yield = None
+        transform = carla.Transform(
+            carla.Location(x=0.0, y=0.0), carla.Rotation(yaw=0.0)
+        )
+        self.assertTrue(controller._must_yield(transform, speed_mps=5.0))
+        self.assertLessEqual(
+            controller.last_yield["predicted_lateral_m"],
+            controller.last_yield["lateral_limit_m"],
+        )
+        walker.get_velocity = lambda: carla.Vector3D()
+        self.assertFalse(controller._must_yield(transform, speed_mps=5.0))
+
     def test_phase2_midblock_occluder_settles_before_physics_is_frozen(self):
         carla = __import__("carla")
         commanded = carla.Transform(
@@ -691,14 +732,14 @@ class AdvisorRichCorpusConfigTests(unittest.TestCase):
         self.assertTrue(
             _vehicle_requires_yield(
                 transform,
-                SimpleNamespace(x=9.0, y=5.0),
+                SimpleNamespace(x=9.0, y=2.5),
                 maximum_forward_m=12.0,
             )
         )
         self.assertFalse(
             _vehicle_requires_yield(
                 transform,
-                SimpleNamespace(x=9.0, y=7.0),
+                SimpleNamespace(x=9.0, y=3.5),
                 maximum_forward_m=12.0,
             )
         )
@@ -708,6 +749,18 @@ class AdvisorRichCorpusConfigTests(unittest.TestCase):
         curb = SimpleNamespace(x=10.0, y=2.7)
         self.assertFalse(_walker_requires_yield(transform, curb, stationary))
         self.assertTrue(_walker_requires_yield(transform, curb, moving))
+        registered_waiting = SimpleNamespace(x=10.0, y=4.5)
+        self.assertFalse(
+            _walker_requires_yield(transform, registered_waiting, stationary)
+        )
+        self.assertTrue(
+            _walker_requires_yield(
+                transform,
+                registered_waiting,
+                stationary,
+                registered_crossing=True,
+            )
+        )
         self.assertFalse(
             _in_forward_corridor(
                 transform,
@@ -878,6 +931,7 @@ class AdvisorRichCorpusConfigTests(unittest.TestCase):
         gate = {
             "maximum_collision_incidents": 0,
             "minimum_actor_observation_fraction": 0.95,
+            "minimum_per_actor_frame_observation_fraction": 0.95,
             "stopped_speed_max_mps": 0.5,
             "gridlock_minimum_npc_count": 5,
             "gridlock_stopped_fraction": 0.8,
@@ -885,13 +939,209 @@ class AdvisorRichCorpusConfigTests(unittest.TestCase):
         }
 
         summary = _traffic_sanity_summary(
-            pd.DataFrame(trajectories), pd.DataFrame(collisions), list(range(1, 7)), gate
+            pd.DataFrame(trajectories),
+            pd.DataFrame(collisions),
+            list(range(1, 7)),
+            gate,
+            expected_frame_count=80,
         )
 
         self.assertEqual(summary["collision_events"], 1)
         self.assertGreaterEqual(summary["persistent_gridlock_dwell_s"], 3.0)
-        self.assertIn("npc_collision_incidents_above_gate", summary["failures"])
+        self.assertIn("owned_actor_collision_incidents_above_gate", summary["failures"])
         self.assertIn("persistent_network_gridlock", summary["failures"])
+        self.assertEqual(1.0, summary["minimum_per_actor_frame_observation_fraction"])
+
+        under_sampled = _traffic_sanity_summary(
+            pd.DataFrame(trajectories[:6]),
+            pd.DataFrame(),
+            list(range(1, 7)),
+            gate,
+            expected_frame_count=80,
+        )
+        self.assertIn(
+            "insufficient_npc_per_frame_observation", under_sampled["failures"]
+        )
+
+    def test_traffic_collision_gate_ignores_settlement_but_keeps_real_contacts(self):
+        trajectories = pd.DataFrame(
+            [
+                {
+                    "frame_id": frame_id,
+                    "carla_timestamp": frame_id * 0.1,
+                    "actor_id": 1,
+                    "speed_mps": 2.0,
+                }
+                for frame_id in range(1, 11)
+            ]
+        )
+        collisions = pd.DataFrame(
+            [
+                {
+                    "frame_id": 2,
+                    "npc_actor_id": 1,
+                    "other_actor_id": 0,
+                    "other_type_id": "static.road",
+                    "normal_impulse_x": 8.0,
+                    "normal_impulse_y": 2.0,
+                    "normal_impulse_z": 600.0,
+                },
+                {
+                    "frame_id": 3,
+                    "npc_actor_id": 50,
+                    "other_actor_id": 0,
+                    "other_type_id": "static.sidewalk",
+                    "normal_impulse_x": 0.0,
+                    "normal_impulse_y": 0.0,
+                    "normal_impulse_z": 0.0,
+                },
+                {
+                    "frame_id": 4,
+                    "npc_actor_id": 1,
+                    "other_actor_id": 50,
+                    "other_type_id": "walker.pedestrian.0001",
+                    "normal_impulse_x": 0.0,
+                    "normal_impulse_y": 0.0,
+                    "normal_impulse_z": 0.0,
+                },
+                {
+                    "frame_id": 8,
+                    "npc_actor_id": 1,
+                    "other_actor_id": 0,
+                    "other_type_id": "static.wall",
+                    "normal_impulse_x": 80.0,
+                    "normal_impulse_y": 0.0,
+                    "normal_impulse_z": 0.0,
+                },
+            ]
+        )
+        gate = {
+            "maximum_collision_incidents": 0,
+            "minimum_static_collision_horizontal_impulse": 50.0,
+            "minimum_actor_observation_fraction": 0.95,
+            "minimum_per_actor_frame_observation_fraction": 0.95,
+            "stopped_speed_max_mps": 0.5,
+            "gridlock_minimum_npc_count": 5,
+            "gridlock_stopped_fraction": 0.8,
+            "persistent_gridlock_min_s": 3.0,
+        }
+        summary = _traffic_sanity_summary(
+            trajectories, collisions, [1], gate, expected_frame_count=10
+        )
+        self.assertEqual(summary["ignored_static_contact_rows"], 2)
+        self.assertEqual(summary["collision_events"], 2)
+        self.assertIn("owned_actor_collision_incidents_above_gate", summary["failures"])
+
+    def test_registered_crossing_yield_is_not_misclassified_as_gridlock(self):
+        trajectories = []
+        for frame_id in range(1, 81):
+            for actor_id in range(1, 7):
+                trajectories.append(
+                    {
+                        "frame_id": frame_id,
+                        "carla_timestamp": frame_id * 0.1,
+                        "actor_id": actor_id,
+                        "speed_mps": 0.0,
+                        "registered_hazard_yield_active": frame_id <= 60,
+                    }
+                )
+        gate = {
+            "maximum_collision_incidents": 0,
+            "minimum_actor_observation_fraction": 0.95,
+            "minimum_per_actor_frame_observation_fraction": 0.95,
+            "stopped_speed_max_mps": 0.5,
+            "gridlock_minimum_npc_count": 5,
+            "gridlock_stopped_fraction": 0.8,
+            "persistent_gridlock_min_s": 3.0,
+        }
+        summary = _traffic_sanity_summary(
+            pd.DataFrame(trajectories),
+            pd.DataFrame(),
+            list(range(1, 7)),
+            gate,
+            expected_frame_count=80,
+        )
+        self.assertGreaterEqual(summary["raw_stopped_network_dwell_s"], 7.0)
+        self.assertGreaterEqual(summary["registered_hazard_yield_dwell_s"], 5.0)
+        self.assertLess(summary["persistent_gridlock_dwell_s"], 3.0)
+        self.assertNotIn("persistent_network_gridlock", summary["failures"])
+
+    def test_one_registered_yield_does_not_mask_other_stalled_npcs(self):
+        trajectories = []
+        for frame_id in range(1, 81):
+            for actor_id in range(1, 7):
+                trajectories.append(
+                    {
+                        "frame_id": frame_id,
+                        "carla_timestamp": frame_id * 0.1,
+                        "actor_id": actor_id,
+                        "speed_mps": 0.0,
+                        "registered_hazard_yield_active": actor_id == 1,
+                    }
+                )
+        gate = {
+            "maximum_collision_incidents": 0,
+            "minimum_actor_observation_fraction": 0.95,
+            "minimum_per_actor_frame_observation_fraction": 0.95,
+            "stopped_speed_max_mps": 0.5,
+            "gridlock_minimum_npc_count": 5,
+            "gridlock_stopped_fraction": 0.8,
+            "persistent_gridlock_min_s": 3.0,
+        }
+        summary = _traffic_sanity_summary(
+            pd.DataFrame(trajectories),
+            pd.DataFrame(),
+            list(range(1, 7)),
+            gate,
+            expected_frame_count=80,
+        )
+        self.assertGreaterEqual(summary["persistent_gridlock_dwell_s"], 7.0)
+        self.assertIn("persistent_network_gridlock", summary["failures"])
+
+    def test_direct_route_vehicle_yield_excludes_adjacent_lane(self):
+        carla = __import__("carla")
+        transform = carla.Transform(
+            carla.Location(x=0.0, y=0.0), carla.Rotation(yaw=0.0)
+        )
+        self.assertTrue(
+            _vehicle_requires_yield(
+                transform, carla.Location(x=10.0, y=2.5)
+            )
+        )
+        self.assertFalse(
+            _vehicle_requires_yield(
+                transform, carla.Location(x=10.0, y=3.5)
+            )
+        )
+
+    def test_direct_route_vehicle_envelope_catches_crossing_not_adjacent(self):
+        carla = __import__("carla")
+        own = SimpleNamespace(
+            bounding_box=SimpleNamespace(extent=SimpleNamespace(x=2.5, y=1.0))
+        )
+        transform = carla.Transform(
+            carla.Location(x=0.0, y=0.0), carla.Rotation(yaw=0.0)
+        )
+
+        def other(yaw):
+            value = SimpleNamespace(
+                bounding_box=SimpleNamespace(extent=SimpleNamespace(x=2.5, y=1.0))
+            )
+            value.get_transform = lambda: carla.Transform(
+                carla.Location(x=8.0, y=3.5), carla.Rotation(yaw=yaw)
+            )
+            return value
+
+        self.assertFalse(
+            _vehicle_envelope_requires_yield(
+                own, transform, other(0.0), speed_mps=4.0
+            )
+        )
+        self.assertTrue(
+            _vehicle_envelope_requires_yield(
+                own, transform, other(45.0), speed_mps=4.0
+            )
+        )
 
     def test_on_contract_diagnostic_is_exact_and_cannot_schedule_a_full_corpus(self):
         config = _load_advisor_config(ON_CONTRACT_CONFIG_PATH)

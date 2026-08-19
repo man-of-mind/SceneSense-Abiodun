@@ -96,6 +96,7 @@ class _TrackV2:
     clock_id: str
     source_track_ids: Dict[str, str] = field(default_factory=dict)
     source_capture_at_s: Dict[str, float] = field(default_factory=dict)
+    source_measurement_at_s: Dict[str, float] = field(default_factory=dict)
 
     def predicted(self, timestamp_s: float) -> tuple[Tuple[float, ...], Tuple[float, ...]]:
         return propagate_cv(
@@ -119,7 +120,7 @@ class RecipientMapEngineV2:
         track_ttl_s: float = 1.0,
         max_transport_age_s: float = 1.0,
         warning_horizon_s: float = 5.0,
-        confidence_floor: float = 0.15,
+        warning_emission_confidence_floor: float = 0.15,
         safety_radius_m_by_class: Optional[Mapping[str, float]] = None,
     ) -> None:
         self.recipient_ue_id = str(recipient_ue_id)
@@ -129,7 +130,12 @@ class RecipientMapEngineV2:
         self.track_ttl_s = float(track_ttl_s)
         self.max_transport_age_s = float(max_transport_age_s)
         self.warning_horizon_s = float(warning_horizon_s)
-        self.confidence_floor = float(confidence_floor)
+        # This is deliberately a warning-emission gate, not a source detector
+        # floor or a map-admission filter.  Sub-threshold observations still
+        # participate in recipient-map installation and association.
+        self.warning_emission_confidence_floor = float(
+            warning_emission_confidence_floor
+        )
         self.safety_radius = {
             "pedestrian": 2.5,
             "cyclist": 3.0,
@@ -143,7 +149,7 @@ class RecipientMapEngineV2:
             self.track_ttl_s,
             self.max_transport_age_s,
             self.warning_horizon_s,
-            self.confidence_floor,
+            self.warning_emission_confidence_floor,
             *self.safety_radius.values(),
         )
         if not all(math.isfinite(value) for value in numeric_config):
@@ -158,8 +164,10 @@ class RecipientMapEngineV2:
             raise ValueError("v2 gates/horizons must be positive")
         if min(self.association_sigma_multiplier, self.warning_sigma_multiplier) < 0.0:
             raise ValueError("uncertainty multipliers must be nonnegative")
-        if not 0.0 <= self.confidence_floor <= 1.0:
-            raise ValueError("confidence_floor must be in [0, 1]")
+        if not 0.0 <= self.warning_emission_confidence_floor <= 1.0:
+            raise ValueError(
+                "warning_emission_confidence_floor must be in [0, 1]"
+            )
         self.tracks: Dict[str, _TrackV2] = {}
         self.clock_id: Optional[str] = None
         self.last_sequence_by_source: Dict[str, int] = {}
@@ -286,6 +294,7 @@ class RecipientMapEngineV2:
             track.validity_horizon_s = obj.validity_horizon_s
             track.source_track_ids[contribution.source_ue_id] = obj.source_track_id
             track.source_capture_at_s[contribution.source_ue_id] = contribution.captured_at_s
+            track.source_measurement_at_s[contribution.source_ue_id] = obj.measured_at_s
             reserved.add(track.canonical_track_id)
         self.counters["accepted_contributions"] += 1
         return "accepted"
@@ -311,7 +320,7 @@ class RecipientMapEngineV2:
         self._expire(now)
         warnings = []
         for track in self.tracks.values():
-            if track.confidence < self.confidence_floor:
+            if track.confidence < self.warning_emission_confidence_floor:
                 continue
             current_state, current_covariance = track.predicted(now)
             rx = current_state[0] - recipient_x
@@ -352,13 +361,7 @@ class RecipientMapEngineV2:
             safety_radius = float(self.safety_radius.get(track.class_name, 3.0))
             if expanded_closest > safety_radius:
                 continue
-            active_sources = tuple(
-                sorted(
-                    source
-                    for source, captured_at_s in track.source_capture_at_s.items()
-                    if now - captured_at_s <= self.track_ttl_s + 1e-12
-                )
-            )
+            active_sources = self._active_sources(track, now)
             active_track_ids = tuple(track.source_track_ids[source] for source in active_sources)
             evidence_scope = (
                 "multi_source"
@@ -377,7 +380,7 @@ class RecipientMapEngineV2:
                     closest_approach_m=closest,
                     uncertainty_expanded_closest_approach_m=expanded_closest,
                     position_sigma_at_closest_approach_m=sigma,
-                    map_aoi_s=max(0.0, now - track.latest_capture_at_s),
+                    map_aoi_s=max(0.0, now - track.latest_measurement_at_s),
                     evidence_sources=active_sources,
                     evidence_track_ids=active_track_ids,
                     evidence_scope=evidence_scope,
@@ -389,6 +392,17 @@ class RecipientMapEngineV2:
             )
         return sorted(warnings, key=lambda item: (item.time_to_closest_approach_s, item.canonical_track_id))
 
+    def _active_sources(self, track: _TrackV2, timestamp_s: float) -> Tuple[str, ...]:
+        """Return only source evidence still live under the map-track TTL."""
+
+        return tuple(
+            sorted(
+                source
+                for source, measured_at_s in track.source_measurement_at_s.items()
+                if float(timestamp_s) - measured_at_s <= self.track_ttl_s + 1e-12
+            )
+        )
+
     def snapshot(self, timestamp_s: float, clock_id: str) -> dict:
         timestamp = float(timestamp_s)
         if not math.isfinite(timestamp):
@@ -399,6 +413,7 @@ class RecipientMapEngineV2:
         rows = []
         for track in sorted(self.tracks.values(), key=lambda item: item.canonical_track_id):
             state, covariance = track.predicted(timestamp)
+            active_sources = self._active_sources(track, timestamp)
             rows.append(
                 {
                     "canonical_track_id": track.canonical_track_id,
@@ -408,8 +423,21 @@ class RecipientMapEngineV2:
                     "vx_mps": state[2],
                     "vy_mps": state[3],
                     "position_sigma_m": _largest_position_sigma(covariance),
-                    "map_aoi_s": max(0.0, timestamp - track.latest_capture_at_s),
-                    "evidence_sources": sorted(track.source_track_ids),
+                    "map_aoi_s": max(0.0, timestamp - track.latest_measurement_at_s),
+                    # Controller-facing provenance is active-only.  The map
+                    # keeps the ever-associated source set for diagnostics,
+                    # but exposes it under an explicitly historical name so a
+                    # TTL-expired helper cannot masquerade as current evidence.
+                    "active_evidence_sources": list(active_sources),
+                    "active_evidence_track_ids_by_source": {
+                        source: track.source_track_ids[source]
+                        for source in active_sources
+                    },
+                    "historical_evidence_sources": sorted(track.source_track_ids),
+                    "historical_evidence_track_ids_by_source": {
+                        source: track.source_track_ids[source]
+                        for source in sorted(track.source_track_ids)
+                    },
                     "motion_model_id": track.motion_model_id,
                     "process_noise_model_id": track.process_noise_model_id,
                 }

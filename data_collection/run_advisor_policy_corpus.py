@@ -11,7 +11,9 @@ collector is always launched in observe-existing mode by the resolved config.
 from __future__ import annotations
 
 import argparse
+import bisect
 import csv
+import hashlib
 import json
 import math
 import os
@@ -57,14 +59,15 @@ def _connect(config: Mapping[str, object]) -> Tuple[carla.Client, carla.World]:
     # the old 10 s window, so keep the retry bounded but long enough to cross
     # that observed startup/backpressure interval.
     attempts = 30
+    client = carla.Client(str(connection["host"]), int(connection["port"]))
+    client.set_timeout(float(connection.get("timeout_s", 10.0)))
     for _attempt in range(attempts):
         try:
-            client = carla.Client(str(connection["host"]), int(connection["port"]))
-            client.set_timeout(float(connection.get("timeout_s", 10.0)))
             # This CARLA 0.10 Linux package intermittently aborts get_world()
             # when it is the first RPC on a fresh client. The lightweight
-            # version request reliably establishes the session and is needed
-            # for the required version check anyway.
+            # version request normally establishes the session. Retaining the
+            # same client across bounded retries avoids a loop of perpetually
+            # fresh sessions when the server returns ``Operation aborted``.
             server_version = str(client.get_server_version())
             world = client.get_world()
             if not str(world.get_map().name).endswith(str(connection["expected_town"])):
@@ -120,20 +123,13 @@ def _traffic_sanity_summary(
     collisions: pd.DataFrame,
     expected_actor_ids: Sequence[int],
     gate: Mapping[str, object],
+    expected_frame_count: Optional[int] = None,
+    stationary_context_expected: bool = False,
+    stationary_context_trajectories: Optional[pd.DataFrame] = None,
 ) -> Dict[str, object]:
     """Summarize NPC collisions and sustained network-wide gridlock."""
 
     expected_ids = {int(value) for value in expected_actor_ids}
-    if not expected_ids:
-        return {
-            "applicable": False,
-            "pass": True,
-            "failures": [],
-            "monitored_npc_vehicles": 0,
-            "collision_events": 0,
-            "persistent_gridlock_dwell_s": 0.0,
-        }
-
     trajectories = trajectories.copy()
     collisions = collisions.copy()
     observed_ids = set(
@@ -141,9 +137,31 @@ def _traffic_sanity_summary(
         .dropna()
         .astype(int)
     )
-    observation_fraction = len(expected_ids & observed_ids) / len(expected_ids)
+    observation_fraction = (
+        len(expected_ids & observed_ids) / len(expected_ids)
+        if expected_ids
+        else 1.0
+    )
+    observed_frames_by_actor = {
+        actor_id: int(
+            trajectories.loc[
+                pd.to_numeric(trajectories.get("actor_id"), errors="coerce").eq(actor_id),
+                "frame_id",
+            ].nunique()
+        )
+        for actor_id in sorted(expected_ids)
+    }
+    per_actor_frame_fraction = None
+    if expected_frame_count is not None and expected_ids:
+        if int(expected_frame_count) <= 0:
+            raise ValueError("traffic expected frame count must be positive")
+        per_actor_frame_fraction = min(observed_frames_by_actor.values(), default=0) / int(
+            expected_frame_count
+        )
 
     collision_incidents = 0
+    ignored_static_contact_rows = 0
+    collision_events_by_owner_scope: Dict[str, int] = {}
     if not collisions.empty:
         collision_rows = collisions.copy()
         collision_rows["frame_id"] = pd.to_numeric(
@@ -151,28 +169,94 @@ def _traffic_sanity_summary(
         ).fillna(-1).astype(int)
         first = pd.to_numeric(collision_rows["npc_actor_id"], errors="coerce").fillna(-1).astype(int)
         second = pd.to_numeric(collision_rows["other_actor_id"], errors="coerce").fillna(-1).astype(int)
+        other_type = collision_rows.get(
+            "other_type_id", pd.Series("", index=collision_rows.index, dtype=str)
+        ).fillna("").astype(str)
+        collision_rows["other_type_id"] = other_type
+        impulse_x = pd.to_numeric(
+            collision_rows.get(
+                "normal_impulse_x", pd.Series(0.0, index=collision_rows.index)
+            ),
+            errors="coerce",
+        ).fillna(0.0)
+        impulse_y = pd.to_numeric(
+            collision_rows.get(
+                "normal_impulse_y", pd.Series(0.0, index=collision_rows.index)
+            ),
+            errors="coerce",
+        ).fillna(0.0)
+        horizontal_impulse = np.hypot(impulse_x, impulse_y)
+        static_horizontal_gate = float(
+            gate.get("minimum_static_collision_horizontal_impulse", 50.0)
+        )
+        # CARLA collision sensors report benign body/ground and walker/sidewalk
+        # contacts, including high *vertical* suspension impulses.  Count every
+        # actor-to-actor contact, plus only static-world contacts with material
+        # horizontal impulse.  This preserves vehicle/pedestrian and vehicle/
+        # obstacle failures without treating gravity settlement as a crash.
+        relevant = (second > 0) | (
+            other_type.str.startswith("static.")
+            & (horizontal_impulse >= static_horizontal_gate)
+        )
+        ignored_static_contact_rows = int((~relevant).sum())
+        collision_rows = collision_rows.loc[relevant].copy()
+        first = first.loc[relevant]
+        second = second.loc[relevant]
+        owner_scope = collision_rows.get(
+            "contact_owner_scope",
+            pd.Series("ambient_npc", index=collision_rows.index, dtype=str),
+        ).fillna("unknown").astype(str)
         collision_rows["pair_low"] = np.minimum(first, second)
         collision_rows["pair_high"] = np.maximum(first, second)
+        collision_rows["owner_scope"] = owner_scope
         collision_rows = collision_rows.sort_values(
-            ["pair_low", "pair_high", "frame_id"]
+            ["owner_scope", "pair_low", "pair_high", "other_type_id", "frame_id"]
         )
-        previous_frame = collision_rows.groupby(["pair_low", "pair_high"])[
-            "frame_id"
-        ].shift()
-        collision_incidents = int(
-            (previous_frame.isna() | ((collision_rows["frame_id"] - previous_frame) > 2)).sum()
+        group_fields = ["owner_scope", "pair_low", "pair_high", "other_type_id"]
+        previous_frame = collision_rows.groupby(group_fields)["frame_id"].shift()
+        new_incident = previous_frame.isna() | (
+            (collision_rows["frame_id"] - previous_frame) > 10
         )
+        collision_incidents = int(new_incident.sum())
+        collision_events_by_owner_scope = {
+            str(scope): int(count)
+            for scope, count in collision_rows.loc[new_incident]
+            .groupby("owner_scope")
+            .size()
+            .items()
+        }
 
     persistent_gridlock_dwell_s = 0.0
+    raw_stopped_network_dwell_s = 0.0
+    registered_hazard_yield_dwell_s = 0.0
     npc_speed_p50_mps = None
     stopped_fraction_p95 = None
+    unattributed_stopped_fraction_p95 = None
+    path_distance_by_actor_m: Dict[str, float] = {}
     if not trajectories.empty:
         trajectories["speed_mps"] = pd.to_numeric(
             trajectories["speed_mps"], errors="coerce"
         )
+        trajectories["registered_hazard_yield_active"] = trajectories.get(
+            "registered_hazard_yield_active",
+            pd.Series(False, index=trajectories.index),
+        ).map(lambda value: str(value).strip().lower() in {"1", "true", "yes"})
         valid_speed = trajectories["speed_mps"].dropna()
         if len(valid_speed):
             npc_speed_p50_mps = float(valid_speed.quantile(0.50))
+        if {"world_x", "world_y"}.issubset(trajectories.columns):
+            for actor_id, actor_rows in trajectories.groupby("actor_id"):
+                ordered = actor_rows.sort_values("frame_id")
+                step_distance = np.hypot(
+                    pd.to_numeric(ordered["world_x"], errors="coerce").diff(),
+                    pd.to_numeric(ordered["world_y"], errors="coerce").diff(),
+                )
+                path_distance_by_actor_m[str(int(actor_id))] = float(
+                    step_distance.fillna(0.0).sum()
+                )
+        trajectories["unattributed_stopped"] = (
+            trajectories["speed_mps"] <= float(gate["stopped_speed_max_mps"])
+        ) & ~trajectories["registered_hazard_yield_active"]
         per_frame = trajectories.groupby("frame_id").agg(
             carla_timestamp=("carla_timestamp", "median"),
             npc_count=("actor_id", "nunique"),
@@ -182,38 +266,127 @@ def _traffic_sanity_summary(
                     (values <= float(gate["stopped_speed_max_mps"])).mean()
                 ),
             ),
+            registered_hazard_yield_active=(
+                "registered_hazard_yield_active", "max"
+            ),
+            unattributed_stopped_fraction=(
+                "unattributed_stopped", "mean"
+            ),
         ).sort_index()
         if len(per_frame):
             stopped_fraction_p95 = float(per_frame["stopped_fraction"].quantile(0.95))
-            gridlocked = (
+            unattributed_stopped_fraction_p95 = float(
+                per_frame["unattributed_stopped_fraction"].quantile(0.95)
+            )
+            raw_gridlocked = (
                 per_frame["npc_count"] >= int(gate["gridlock_minimum_npc_count"])
             ) & (
                 per_frame["stopped_fraction"]
+                >= float(gate["gridlock_stopped_fraction"])
+            )
+            raw_stopped_network_dwell_s = _longest_mask_dwell_s(
+                raw_gridlocked, per_frame["carla_timestamp"]
+            )
+            registered_hazard_yield_dwell_s = _longest_mask_dwell_s(
+                per_frame["registered_hazard_yield_active"],
+                per_frame["carla_timestamp"],
+            )
+            # Exempt only the individual actors geometrically yielding to the
+            # registered hazard. A single legitimate yield must not mask a
+            # different, network-wide stall (the old frame-global Boolean did).
+            gridlocked = (
+                per_frame["npc_count"] >= int(gate["gridlock_minimum_npc_count"])
+            ) & (
+                per_frame["unattributed_stopped_fraction"]
                 >= float(gate["gridlock_stopped_fraction"])
             )
             persistent_gridlock_dwell_s = _longest_mask_dwell_s(
                 gridlocked, per_frame["carla_timestamp"]
             )
 
+    stationary_context_path_distance_by_actor_m = dict(path_distance_by_actor_m)
+    if stationary_context_trajectories is not None:
+        stationary_rows = stationary_context_trajectories.copy()
+        stationary_context_path_distance_by_actor_m = {}
+        if (
+            not stationary_rows.empty
+            and {"actor_id", "frame_id", "world_x", "world_y"}.issubset(
+                stationary_rows.columns
+            )
+        ):
+            for actor_id, actor_rows in stationary_rows.groupby("actor_id"):
+                ordered = actor_rows.sort_values("frame_id")
+                step_distance = np.hypot(
+                    pd.to_numeric(ordered["world_x"], errors="coerce").diff(),
+                    pd.to_numeric(ordered["world_y"], errors="coerce").diff(),
+                )
+                stationary_context_path_distance_by_actor_m[
+                    str(int(actor_id))
+                ] = float(step_distance.fillna(0.0).sum())
+
     failures: List[str] = []
     if observation_fraction < float(gate["minimum_actor_observation_fraction"]):
         failures.append("insufficient_npc_trajectory_observation")
+    if (
+        per_actor_frame_fraction is not None
+        and per_actor_frame_fraction
+        < float(gate.get("minimum_per_actor_frame_observation_fraction", 0.0))
+    ):
+        failures.append("insufficient_npc_per_frame_observation")
     if collision_incidents > int(gate["maximum_collision_incidents"]):
-        failures.append("npc_collision_incidents_above_gate")
-    if persistent_gridlock_dwell_s >= float(gate["persistent_gridlock_min_s"]):
+        failures.append("owned_actor_collision_incidents_above_gate")
+    maximum_stationary_path_distance_m = (
+        max(stationary_context_path_distance_by_actor_m.values(), default=0.0)
+        if stationary_context_expected
+        else None
+    )
+    if (
+        stationary_context_expected
+        and maximum_stationary_path_distance_m
+        > float(gate["maximum_stationary_context_path_distance_m"])
+    ):
+        failures.append("stationary_context_moved")
+    if (
+        not stationary_context_expected
+        and persistent_gridlock_dwell_s >= float(gate["persistent_gridlock_min_s"])
+    ):
         failures.append("persistent_network_gridlock")
     return {
-        "applicable": True,
+        "applicable": bool(
+            expected_ids or stationary_context_expected or not collisions.empty
+        ),
         "pass": not failures,
         "failures": failures,
         "monitored_npc_vehicles": int(len(expected_ids)),
         "observed_npc_vehicles": int(len(expected_ids & observed_ids)),
         "actor_observation_fraction": float(observation_fraction),
+        "expected_frame_count": expected_frame_count,
+        "observed_frames_by_actor": {
+            str(actor_id): frames
+            for actor_id, frames in observed_frames_by_actor.items()
+        },
+        "minimum_per_actor_frame_observation_fraction": per_actor_frame_fraction,
         "collision_callback_rows": int(len(collisions)),
+        "ignored_static_contact_rows": ignored_static_contact_rows,
         "collision_events": int(collision_incidents),
+        "collision_events_by_owner_scope": collision_events_by_owner_scope,
         "persistent_gridlock_dwell_s": float(persistent_gridlock_dwell_s),
+        "gridlock_gate_applicable": not stationary_context_expected,
+        "stationary_context_expected": bool(stationary_context_expected),
+        "maximum_stationary_context_path_distance_m": (
+            maximum_stationary_path_distance_m
+        ),
+        "raw_stopped_network_dwell_s": float(raw_stopped_network_dwell_s),
+        "registered_hazard_yield_dwell_s": float(
+            registered_hazard_yield_dwell_s
+        ),
         "npc_speed_p50_mps": npc_speed_p50_mps,
         "stopped_fraction_p95": stopped_fraction_p95,
+        "unattributed_stopped_fraction_p95": unattributed_stopped_fraction_p95,
+        "path_distance_by_actor_m": path_distance_by_actor_m,
+        "stationary_context_path_distance_by_actor_m": (
+            stationary_context_path_distance_by_actor_m
+        ),
     }
 
 
@@ -386,9 +559,20 @@ def _walker_requires_yield(
     transform: object,
     walker_location: object,
     walker_velocity: object,
+    *,
+    registered_crossing: bool = False,
 ) -> bool:
     speed_mps = math.hypot(float(walker_velocity.x), float(walker_velocity.y))
-    lateral_limit = 3.5 if speed_mps >= 0.2 else 2.2
+    # A controlled registered target has an authored crossing intent before it
+    # starts moving. Reserve that crossing corridor while it waits at the curb;
+    # otherwise an NPC queue can stop across the path and the walker will enter
+    # the side of an already stationary vehicle. Incidental stationary ambient
+    # pedestrians retain the narrow limit so dense sidewalks do not gridlock.
+    lateral_limit = (
+        5.5
+        if registered_crossing
+        else (3.5 if speed_mps >= 0.2 else 2.2)
+    )
     return _in_forward_corridor(
         transform,
         walker_location,
@@ -403,7 +587,14 @@ def _vehicle_requires_yield(
     *,
     maximum_forward_m: float = 12.0,
 ) -> bool:
-    """Use a widening forward corridor for vehicles on curved loop segments."""
+    """Yield to the occupied travel lane without blocking on an adjacent lane.
+
+    A prior widening corridor reached 6 m at 12 m look-ahead and therefore
+    treated a controlled occluder one full 3.5 m lane away as a lead vehicle.
+    The reviewed direct routes have sufficiently dense waypoints that a 2.6 m
+    centre corridor covers their curvature while remaining below lane-centre
+    separation.
+    """
 
     location = transform.location
     forward = transform.get_forward_vector()
@@ -411,15 +602,90 @@ def _vehicle_requires_yield(
     dy = float(vehicle_location.y) - float(location.y)
     forward_m = dx * float(forward.x) + dy * float(forward.y)
     lateral_m = abs(-dx * float(forward.y) + dy * float(forward.x))
-    lateral_limit_m = min(6.0, 2.8 + 0.35 * max(0.0, forward_m))
     return bool(
         0.0 < forward_m <= float(maximum_forward_m)
-        and lateral_m <= lateral_limit_m
+        and lateral_m <= 2.6
     )
 
 
+def _vehicle_envelope_requires_yield(
+    actor: object,
+    transform: object,
+    other: object,
+    *,
+    speed_mps: float,
+    maximum_forward_m: float = 12.0,
+) -> bool:
+    """Envelope-aware vehicle shield for crossing and adjacent-lane traffic.
+
+    Same-heading traffic uses its narrow physical width, so an adjacent lane
+    does not become a false lead.  A crossing/turning vehicle contributes its
+    rotated length plus a 4 m prediction margin (0.8 s at the bounded 5 m/s
+    approach), allowing the shield to brake before the two envelopes overlap.
+    """
+
+    other_transform = other.get_transform()
+    location = transform.location
+    other_location = other_transform.location
+    forward = transform.get_forward_vector()
+    dx = float(other_location.x) - float(location.x)
+    dy = float(other_location.y) - float(location.y)
+    forward_m = dx * float(forward.x) + dy * float(forward.y)
+    lateral_m = abs(-dx * float(forward.y) + dy * float(forward.x))
+    own_box = getattr(actor, "bounding_box", None)
+    other_box = getattr(other, "bounding_box", None)
+    own_half_length_m = float(own_box.extent.x) if own_box is not None else 2.5
+    own_half_width_m = float(own_box.extent.y) if own_box is not None else 1.0
+    other_half_length_m = (
+        float(other_box.extent.x) if other_box is not None else 2.5
+    )
+    other_half_width_m = (
+        float(other_box.extent.y) if other_box is not None else 1.0
+    )
+    relative_yaw = (
+        math.radians(
+            float(other_transform.rotation.yaw) - float(transform.rotation.yaw)
+        )
+        + math.pi
+    ) % (2.0 * math.pi) - math.pi
+    effective_other_half_length_m = (
+        abs(math.cos(relative_yaw)) * other_half_length_m
+        + abs(math.sin(relative_yaw)) * other_half_width_m
+    )
+    effective_other_half_width_m = (
+        abs(math.sin(relative_yaw)) * other_half_length_m
+        + abs(math.cos(relative_yaw)) * other_half_width_m
+    )
+    crossing_prediction_margin_m = (
+        4.0 if abs(relative_yaw) >= math.radians(15.0) else 0.0
+    )
+    lateral_limit_m = (
+        own_half_width_m
+        + effective_other_half_width_m
+        + 0.4
+        + crossing_prediction_margin_m
+    )
+    stopping_m = min(
+        float(maximum_forward_m),
+        max(
+            7.0,
+            own_half_length_m
+            + effective_other_half_length_m
+            + 2.0
+            + float(speed_mps) ** 2 / 5.0,
+        ),
+    )
+    return bool(0.0 < forward_m <= stopping_m and lateral_m <= lateral_limit_m)
+
+
 class TrafficSanityMonitor:
-    """Passive trajectory logger plus per-NPC CARLA collision sensors."""
+    """Trajectory logger, bounded NPC controller, and collision monitor.
+
+    A synchronous orchestrator may set ``external_sync_tick_owner`` and call
+    :meth:`before_world_tick` / :meth:`observe_snapshot` itself.  This avoids
+    relying on CARLA's asynchronous ``on_tick`` callback thread while another
+    client owns the synchronous clock.
+    """
 
     def __init__(
         self,
@@ -437,11 +703,23 @@ class TrafficSanityMonitor:
         self.actor_metadata: Dict[int, Dict[str, object]] = {}
         self.collision_sensors: List[carla.Actor] = []
         self.trajectory_rows: List[Dict[str, object]] = []
+        self.ambient_actor_trajectory_rows: List[Dict[str, object]] = []
         self.collision_rows: List[Dict[str, object]] = []
         self._tick_callback_id = None
         self._lock = threading.Lock()
         self.initial_geometry: Dict[str, object] = {}
         self._direct_route_state: Dict[int, Dict[str, object]] = {}
+        self._direct_route_speed_mps: float | None = None
+        self._replay_route_state: Dict[int, Dict[str, object]] = {}
+        self._stationary_context_state: Dict[int, Dict[str, object]] = {}
+        self._replay_speed_mps: float | None = None
+        self._replay_fixed_delta_seconds: float | None = None
+        self._route_mode = "fixed_loop"
+        self._tick_failure: str | None = None
+        self._registered_hazard_yield_actor_ids: set[int] = set()
+        self._ambient_walker_ids: List[int] = []
+        self._ambient_walker_metadata: Dict[int, Dict[str, object]] = {}
+        self._observed_tick_count = 0
 
     @staticmethod
     def _actor_role(actor: carla.Actor) -> str:
@@ -458,23 +736,56 @@ class TrafficSanityMonitor:
                 vehicles.append(actor)
         return vehicles
 
-    def _npc_loop_route(self) -> List[carla.Location]:
-        path = base_runner._resolve_repo_path(
-            str(self.integration["npc_loop_route_progress_csv"])
-        )
-        locations: List[carla.Location] = []
-        with path.open("r", encoding="utf-8", newline="") as stream:
-            for row in csv.DictReader(stream):
-                locations.append(
-                    carla.Location(
-                        x=float(row["ego_x"]),
-                        y=float(row["ego_y"]),
-                        z=float(row.get("ego_z", 0.0)),
+    def _live_vehicle_map(self) -> Dict[int, carla.Actor]:
+        """Return authoritative membership from the server-backed inventory.
+
+        ``world.get_actor(id)`` can yield a cached tombstone after a separately
+        owned population process destroys an actor. The full actor inventory is
+        the liveness boundary for this monitor.
+        """
+
+        return {
+            int(actor.id): actor
+            for actor in self.world.get_actors().filter("vehicle.*")
+        }
+
+    def _npc_loop_routes(self) -> List[List[carla.Location]]:
+        raw_paths = self.integration.get("npc_loop_route_progress_csvs")
+        if raw_paths is None:
+            raw_paths = [self.integration["npc_loop_route_progress_csv"]]
+        if isinstance(raw_paths, (str, Path)):
+            raw_paths = [raw_paths]
+        routes: List[List[carla.Location]] = []
+        for raw_path in raw_paths:
+            path = base_runner._resolve_repo_path(str(raw_path))
+            locations: List[carla.Location] = []
+            with path.open("r", encoding="utf-8", newline="") as stream:
+                for row in csv.DictReader(stream):
+                    locations.append(
+                        carla.Location(
+                            x=float(row["ego_x"]),
+                            y=float(row["ego_y"]),
+                            z=float(row.get("ego_z", 0.0)),
+                        )
                     )
-                )
-        if len(locations) < 2:
-            raise RuntimeError(f"NPC loop route is invalid: {path}")
-        return locations
+            if len(locations) < 2:
+                raise RuntimeError(f"NPC loop route is invalid: {path}")
+            routes.append(locations)
+        if not routes:
+            raise RuntimeError("at least one NPC loop route is required")
+        return routes
+
+    @staticmethod
+    def _nearest_loop_route(
+        actor_location: carla.Location,
+        routes: Sequence[Sequence[carla.Location]],
+    ) -> Sequence[carla.Location]:
+        if not routes:
+            raise ValueError("cannot assign an NPC without a route")
+        return min(
+            routes,
+            key=lambda route: min(actor_location.distance(point) for point in route),
+        )
 
     @staticmethod
     def _rotated_loop_path(
@@ -491,6 +802,15 @@ class TrafficSanityMonitor:
         return one_loop * max(1, int(repetitions))
 
     @staticmethod
+    def _route_is_closed(
+        route: Sequence[carla.Location], maximum_endpoint_gap_m: float = 10.0
+    ) -> bool:
+        return bool(
+            len(route) >= 2
+            and route[0].distance(route[-1]) <= float(maximum_endpoint_gap_m)
+        )
+
+    @staticmethod
     def _minimum_pairwise_distance(actors: Sequence[carla.Actor]) -> float | None:
         locations = [actor.get_location() for actor in actors]
         if len(locations) < 2:
@@ -503,18 +823,302 @@ class TrafficSanityMonitor:
             )
         )
 
+    @staticmethod
+    def _deterministic_waypoint_choice(
+        candidates: Sequence[object], previous_yaw_deg: float
+    ) -> object:
+        """Choose one legal continuation without depending on CARLA list order."""
+
+        if not candidates:
+            raise RuntimeError("native-lane replay route reached a dead end")
+
+        def key(waypoint: object) -> tuple[float, int, int, float, float]:
+            transform = waypoint.transform
+            yaw_error = abs(
+                (
+                    float(transform.rotation.yaw)
+                    - float(previous_yaw_deg)
+                    + 180.0
+                )
+                % 360.0
+                - 180.0
+            )
+            return (
+                yaw_error,
+                int(getattr(waypoint, "road_id", 0)),
+                int(getattr(waypoint, "lane_id", 0)),
+                round(float(transform.location.x), 6),
+                round(float(transform.location.y), 6),
+            )
+
+        return min(candidates, key=key)
+
+    def _build_native_lane_replay(
+        self, actor: carla.Actor, *, horizon_m: float, step_m: float
+    ) -> Dict[str, object]:
+        """Build an immutable native-lane trace from a held actor pose.
+
+        Ambient traffic in the paired audit must have the same future in both
+        positive and benign arms.  Traffic Manager cannot provide that
+        guarantee because its junction reservations depend on timing and on
+        the arm-specific controlled actors.  This route is therefore resolved
+        once, before capture, and replayed kinematically by the sole sync owner.
+        """
+
+        actor_transform = actor.get_transform()
+        road_map = self.world.get_map()
+        waypoint = road_map.get_waypoint(
+            actor_transform.location,
+            project_to_road=True,
+            lane_type=carla.LaneType.Driving,
+        )
+        if waypoint is None:
+            raise RuntimeError(
+                f"ambient NPC {int(actor.id)} is not on a native driving lane"
+            )
+        # Do not preserve suspension-settle Z: CARLA can settle the same held
+        # vehicle at slightly different vertical origins in two world reloads.
+        # Native waypoint Z is the deterministic road-reference contract.
+        height_offset = 0.0
+        canonical_start = carla.Transform(
+            carla.Location(
+                x=float(actor_transform.location.x),
+                y=float(actor_transform.location.y),
+                z=float(waypoint.transform.location.z),
+            ),
+            carla.Rotation(
+                pitch=float(waypoint.transform.rotation.pitch),
+                yaw=float(actor_transform.rotation.yaw),
+                roll=float(waypoint.transform.rotation.roll),
+            ),
+        )
+        transforms = [canonical_start]
+        cumulative = [0.0]
+        previous_yaw = float(actor_transform.rotation.yaw)
+        current = waypoint
+        while cumulative[-1] < float(horizon_m):
+            current = self._deterministic_waypoint_choice(
+                list(current.next(float(step_m))), previous_yaw
+            )
+            source = current.transform
+            transform = carla.Transform(
+                carla.Location(
+                    x=float(source.location.x),
+                    y=float(source.location.y),
+                    z=float(source.location.z) + height_offset,
+                ),
+                carla.Rotation(
+                    pitch=float(source.rotation.pitch),
+                    yaw=float(source.rotation.yaw),
+                    roll=float(source.rotation.roll),
+                ),
+            )
+            segment_m = transforms[-1].location.distance(transform.location)
+            if segment_m <= 1e-4:
+                raise RuntimeError("native-lane replay produced a zero-length segment")
+            transforms.append(transform)
+            cumulative.append(cumulative[-1] + float(segment_m))
+            previous_yaw = float(transform.rotation.yaw)
+        serialized = [
+            [
+                round(float(item.location.x), 5),
+                round(float(item.location.y), 5),
+                round(float(item.location.z), 5),
+                round(float(item.rotation.yaw), 4),
+            ]
+            for item in transforms
+        ]
+        route_sha256 = hashlib.sha256(
+            json.dumps(serialized, separators=(",", ":")).encode("utf-8")
+        ).hexdigest()
+        identity = "|".join(
+            (
+                str(actor.type_id),
+                self._actor_role(actor),
+                f"{float(actor_transform.location.x):.4f}",
+                f"{float(actor_transform.location.y):.4f}",
+                f"{float(actor_transform.rotation.yaw):.3f}",
+            )
+        )
+        return {
+            "transforms": transforms,
+            "cumulative_distance_m": cumulative,
+            "route_sha256": route_sha256,
+            "replay_identity": identity,
+            "tick_index": 0,
+            "last_distance_m": 0.0,
+        }
+
+    @staticmethod
+    def _sample_replay_transform(
+        transforms: Sequence[carla.Transform],
+        cumulative_distance_m: Sequence[float],
+        distance_m: float,
+    ) -> carla.Transform:
+        if not transforms or len(transforms) != len(cumulative_distance_m):
+            raise ValueError("invalid native-lane replay trace")
+        if float(distance_m) > float(cumulative_distance_m[-1]) + 1e-9:
+            raise RuntimeError("native-lane replay exhausted its audited horizon")
+        index = max(
+            0,
+            min(
+                len(transforms) - 2,
+                bisect.bisect_right(cumulative_distance_m, float(distance_m)) - 1,
+            ),
+        )
+        left = transforms[index]
+        right = transforms[index + 1]
+        start_m = float(cumulative_distance_m[index])
+        end_m = float(cumulative_distance_m[index + 1])
+        alpha = 0.0 if end_m <= start_m else (float(distance_m) - start_m) / (end_m - start_m)
+        alpha = max(0.0, min(1.0, alpha))
+        yaw_delta = (
+            float(right.rotation.yaw) - float(left.rotation.yaw) + 180.0
+        ) % 360.0 - 180.0
+        return carla.Transform(
+            carla.Location(
+                x=float(left.location.x)
+                + alpha * (float(right.location.x) - float(left.location.x)),
+                y=float(left.location.y)
+                + alpha * (float(right.location.y) - float(left.location.y)),
+                z=float(left.location.z)
+                + alpha * (float(right.location.z) - float(left.location.z)),
+            ),
+            carla.Rotation(
+                pitch=float(left.rotation.pitch)
+                + alpha * (float(right.rotation.pitch) - float(left.rotation.pitch)),
+                yaw=float(left.rotation.yaw) + alpha * yaw_delta,
+                roll=float(left.rotation.roll)
+                + alpha * (float(right.rotation.roll) - float(left.rotation.roll)),
+            ),
+        )
+
+    def _audit_deterministic_replay_clearance(
+        self, blockers: Sequence[carla.Actor]
+    ) -> Dict[str, object]:
+        """Reject an unsafe immutable replay before the first capture frame."""
+
+        if self._replay_speed_mps is None or self._replay_fixed_delta_seconds is None:
+            raise RuntimeError("deterministic replay was not initialized")
+        minimum_allowed = float(
+            self.integration["npc_trace_replay_minimum_clearance_m"]
+        )
+        minimum_pair = float("inf")
+        minimum_blocker = float("inf")
+        actor_ids = sorted(self._replay_route_state)
+        frame_count = int(self.integration["traffic_expected_frame_count"])
+        for tick_index in range(1, frame_count + 1):
+            distance_m = (
+                tick_index
+                * self._replay_fixed_delta_seconds
+                * self._replay_speed_mps
+            )
+            locations = {
+                actor_id: self._sample_replay_transform(
+                    self._replay_route_state[actor_id]["transforms"],
+                    self._replay_route_state[actor_id]["cumulative_distance_m"],
+                    distance_m,
+                ).location
+                for actor_id in actor_ids
+            }
+            for left_index, left_id in enumerate(actor_ids):
+                for right_id in actor_ids[left_index + 1 :]:
+                    minimum_pair = min(
+                        minimum_pair,
+                        float(locations[left_id].distance(locations[right_id])),
+                    )
+                for blocker in blockers:
+                    minimum_blocker = min(
+                        minimum_blocker,
+                        float(locations[left_id].distance(blocker.get_location())),
+                    )
+        failures = []
+        if minimum_pair < minimum_allowed:
+            failures.append("ambient_replay_pair_clearance")
+        if minimum_blocker < minimum_allowed:
+            failures.append("ambient_replay_static_occluder_clearance")
+        result = {
+            "pass": not failures,
+            "basis": "full_horizon_center_distance_before_capture",
+            "minimum_allowed_clearance_m": minimum_allowed,
+            "minimum_pair_clearance_m": (
+                None if math.isinf(minimum_pair) else minimum_pair
+            ),
+            "minimum_static_occluder_clearance_m": (
+                None if math.isinf(minimum_blocker) else minimum_blocker
+            ),
+            "failures": failures,
+        }
+        if failures:
+            raise RuntimeError(
+                f"deterministic ambient replay clearance failed: {result}"
+            )
+        return result
+
     def start(self) -> None:
         vehicles = self._npc_vehicles()
+        ambient_walkers = [
+            actor
+            for actor in self.world.get_actors().filter("walker.pedestrian.*")
+            if not self._actor_role(actor).startswith("phase2_")
+            and not self._actor_role(actor).startswith("scenesense_")
+        ]
+        self._ambient_walker_ids = [int(actor.id) for actor in ambient_walkers]
+        self._ambient_walker_metadata = {}
+        ambient_walker_mode = str(
+            self.integration.get(
+                "ambient_walker_motion_mode", "walker_ai_destination"
+            )
+        )
+        walker_group_ordinals: Dict[tuple[str, str], int] = {}
+        ordered_walkers = sorted(
+            ambient_walkers,
+            key=lambda actor: (
+                str(actor.type_id),
+                self._actor_role(actor),
+                float(actor.get_location().x),
+                float(actor.get_location().y),
+            ),
+        )
+        for actor in ordered_walkers:
+            transform = actor.get_transform()
+            key = (str(actor.type_id), self._actor_role(actor))
+            ordinal = walker_group_ordinals.get(key, 0)
+            walker_group_ordinals[key] = ordinal + 1
+            identity = (
+                f"stationary_context|{key[0]}|{key[1]}|{ordinal}"
+                if ambient_walker_mode == "runner_owned_stationary"
+                else "|".join(
+                    (
+                        key[0],
+                        key[1],
+                        f"{float(transform.location.x):.4f}",
+                        f"{float(transform.location.y):.4f}",
+                        f"{float(transform.rotation.yaw):.3f}",
+                    )
+                )
+            )
+            self._ambient_walker_metadata[int(actor.id)] = {
+                "role_name": self._actor_role(actor),
+                "type_id": str(actor.type_id),
+                "replay_identity": identity,
+                "replay_plan_sha256": hashlib.sha256(
+                    f"{ambient_walker_mode}|{identity}".encode("utf-8")
+                ).hexdigest(),
+                "motion_mode": ambient_walker_mode,
+            }
         blockers = [
             actor
             for actor in self.world.get_actors().filter("vehicle.*")
             if self._actor_role(actor).startswith("static_blocker_v4")
+            or "_occluder" in self._actor_role(actor)
         ]
         self.actor_ids = [int(actor.id) for actor in vehicles]
         self.actor_metadata = {
             int(actor.id): {
                 "role_name": self._actor_role(actor),
                 "type_id": str(actor.type_id),
+                "monitoring_scope": "ambient_npc",
             }
             for actor in vehicles
         }
@@ -522,26 +1126,104 @@ class TrafficSanityMonitor:
         speed_difference = float(self.integration["tm_speed_difference_pct"])
         desired_speed = float(self.integration["tm_desired_speed_mps"])
         route_mode = str(self.integration.get("npc_route_mode", "fixed_loop"))
-        if route_mode not in {"fixed_loop", "tm_autonomous", "direct_loop"}:
+        self._route_mode = route_mode
+        if route_mode not in {
+            "fixed_loop",
+            "tm_autonomous",
+            "direct_loop",
+            "deterministic_trace_replay",
+            "stationary_context",
+        }:
             raise ValueError(f"unsupported NPC route mode: {route_mode}")
-        loop_route = (
-            self._npc_loop_route()
+        if route_mode == "direct_loop":
+            self._direct_route_speed_mps = float(
+                self.integration["npc_direct_route_speed_mps"]
+            )
+            if not 2.0 <= self._direct_route_speed_mps <= 10.0:
+                raise ValueError("direct NPC route speed must be within 2-10 m/s")
+        elif route_mode == "deterministic_trace_replay":
+            self._direct_route_speed_mps = None
+            self._replay_speed_mps = float(
+                self.integration["npc_trace_replay_speed_mps"]
+            )
+            self._replay_fixed_delta_seconds = float(
+                self.integration["npc_trace_replay_fixed_delta_seconds"]
+            )
+            horizon_m = float(self.integration["npc_trace_replay_horizon_m"])
+            required_m = (
+                self._replay_speed_mps
+                * self._replay_fixed_delta_seconds
+                * int(self.integration["traffic_expected_frame_count"])
+            )
+            if not 2.0 <= self._replay_speed_mps <= 10.0:
+                raise ValueError("trace-replay speed must be within 2-10 m/s")
+            if horizon_m < required_m + 10.0:
+                raise ValueError(
+                    "trace-replay horizon must retain at least 10 m after capture"
+                )
+        else:
+            self._direct_route_speed_mps = None
+            self._replay_speed_mps = None
+            self._replay_fixed_delta_seconds = None
+        loop_routes = (
+            self._npc_loop_routes()
             if route_mode in {"fixed_loop", "direct_loop"}
             else []
         )
         loop_repetitions = int(self.integration.get("npc_loop_repetitions", 1))
         self.traffic_manager.set_global_distance_to_leading_vehicle(leading_distance)
         self.traffic_manager.global_percentage_speed_difference(speed_difference)
+        stationary_identity_by_actor: Dict[int, str] = {}
+        if route_mode == "stationary_context":
+            group_ordinals: Dict[tuple[str, str], int] = {}
+            ordered = sorted(
+                vehicles,
+                key=lambda actor: (
+                    str(actor.type_id),
+                    self._actor_role(actor),
+                    float(actor.get_location().x),
+                    float(actor.get_location().y),
+                ),
+            )
+            for actor in ordered:
+                key = (str(actor.type_id), self._actor_role(actor))
+                ordinal = group_ordinals.get(key, 0)
+                group_ordinals[key] = ordinal + 1
+                stationary_identity_by_actor[int(actor.id)] = (
+                    f"stationary_context|{key[0]}|{key[1]}|{ordinal}"
+                )
         tm_failures = []
         for actor in vehicles:
             try:
+                loop_route = (
+                    self._nearest_loop_route(actor.get_location(), loop_routes)
+                    if loop_routes
+                    else []
+                )
+                route_priority_index = next(
+                    (
+                        index
+                        for index, candidate in enumerate(loop_routes)
+                        if candidate is loop_route
+                    ),
+                    0,
+                )
+                route_closed = bool(
+                    loop_route and self._route_is_closed(loop_route)
+                )
                 self.traffic_manager.distance_to_leading_vehicle(actor, leading_distance)
                 self.traffic_manager.vehicle_percentage_speed_difference(
                     actor, speed_difference
                 )
-                self.traffic_manager.set_desired_speed(actor, desired_speed)
+                # CARLA Traffic Manager's API uses km/h even though our
+                # experiment contract is expressed in SI units.
+                self.traffic_manager.set_desired_speed(actor, desired_speed * 3.6)
                 self.traffic_manager.auto_lane_change(actor, False)
                 if route_mode == "fixed_loop":
+                    if not route_closed:
+                        raise RuntimeError(
+                            "fixed_loop requires a geometrically closed NPC route"
+                        )
                     self.traffic_manager.set_path(
                         actor,
                         self._rotated_loop_path(actor, loop_route, loop_repetitions),
@@ -549,13 +1231,49 @@ class TrafficSanityMonitor:
                 elif route_mode == "direct_loop":
                     actor.set_autopilot(False, int(self.integration["tm_port"]))
                     actor_location = actor.get_location()
-                    route_index = min(
+                    waypoint_index = min(
                         range(len(loop_route)),
                         key=lambda index: actor_location.distance(loop_route[index]),
                     )
                     self._direct_route_state[int(actor.id)] = {
-                        "waypoint_index": int(route_index),
+                        "waypoint_index": int(waypoint_index),
                         "route": loop_route,
+                        "route_priority_index": int(route_priority_index),
+                        "route_closed": route_closed,
+                        "endpoint_reached": False,
+                    }
+                elif route_mode == "deterministic_trace_replay":
+                    actor.set_autopilot(False, int(self.integration["tm_port"]))
+                    actor.set_simulate_physics(False)
+                    actor.set_target_velocity(carla.Vector3D())
+                    actor.set_target_angular_velocity(carla.Vector3D())
+                    self._replay_route_state[int(actor.id)] = (
+                        self._build_native_lane_replay(
+                            actor,
+                            horizon_m=float(
+                                self.integration["npc_trace_replay_horizon_m"]
+                            ),
+                            step_m=float(
+                                self.integration["npc_trace_replay_step_m"]
+                            ),
+                        )
+                    )
+                    actor.set_transform(
+                        self._replay_route_state[int(actor.id)]["transforms"][0]
+                    )
+                elif route_mode == "stationary_context":
+                    actor.set_autopilot(False, int(self.integration["tm_port"]))
+                    actor.set_simulate_physics(False)
+                    actor.set_target_velocity(carla.Vector3D())
+                    actor.set_target_angular_velocity(carla.Vector3D())
+                    transform = actor.get_transform()
+                    identity = stationary_identity_by_actor[int(actor.id)]
+                    self._stationary_context_state[int(actor.id)] = {
+                        "replay_identity": identity,
+                        "plan_sha256": hashlib.sha256(
+                            f"stationary_context|{identity}".encode("utf-8")
+                        ).hexdigest(),
+                        "tick_index": 0,
                     }
                 for blocker in blockers:
                     self.traffic_manager.collision_detection(actor, blocker, True)
@@ -566,6 +1284,12 @@ class TrafficSanityMonitor:
                 tm_failures.append({"actor_id": int(actor.id), "error": str(exc)})
         if tm_failures:
             raise RuntimeError(f"could not apply NPC Traffic Manager safety profile: {tm_failures}")
+
+        replay_clearance = (
+            self._audit_deterministic_replay_clearance(blockers)
+            if route_mode == "deterministic_trace_replay"
+            else None
+        )
 
         minimum_blocker_distance = None
         if vehicles and blockers:
@@ -578,6 +1302,8 @@ class TrafficSanityMonitor:
             )
         self.initial_geometry = {
             "npc_vehicle_count": int(len(vehicles)),
+            "ambient_walker_count": int(len(ambient_walkers)),
+            "ambient_walker_motion_mode": ambient_walker_mode,
             "static_blocker_count": int(len(blockers)),
             "minimum_npc_pairwise_distance_m": self._minimum_pairwise_distance(vehicles),
             "minimum_npc_to_static_blocker_distance_m": minimum_blocker_distance,
@@ -585,10 +1311,47 @@ class TrafficSanityMonitor:
             "tm_speed_difference_pct": speed_difference,
             "tm_desired_speed_mps": desired_speed,
             "npc_route_mode": route_mode,
-            "npc_loop_route_points": int(len(loop_route)),
+            "npc_loop_route_count": int(len(loop_routes)),
+            "npc_loop_route_points": int(sum(len(route) for route in loop_routes)),
+            "npc_loop_route_point_counts": [int(len(route)) for route in loop_routes],
+            "npc_route_closed": [
+                bool(self._route_is_closed(route)) for route in loop_routes
+            ],
             "npc_loop_repetitions": (
                 int(loop_repetitions)
                 if route_mode in {"fixed_loop", "direct_loop"}
+                else None
+            ),
+            "deterministic_replay": (
+                {
+                    "speed_mps": self._replay_speed_mps,
+                    "fixed_delta_seconds": self._replay_fixed_delta_seconds,
+                    "horizon_m": float(
+                        self.integration["npc_trace_replay_horizon_m"]
+                    ),
+                    "minimum_route_margin_m": min(
+                        float(state["cumulative_distance_m"][-1])
+                        - self._replay_speed_mps
+                        * self._replay_fixed_delta_seconds
+                        * int(self.integration["traffic_expected_frame_count"])
+                        for state in self._replay_route_state.values()
+                    ),
+                    "route_sha256_by_replay_identity": {
+                        str(state["replay_identity"]): str(state["route_sha256"])
+                        for state in self._replay_route_state.values()
+                    },
+                    "clearance_gate": replay_clearance,
+                }
+                if route_mode == "deterministic_trace_replay"
+                else None
+            ),
+            "stationary_context": (
+                {
+                    "actor_count": len(self._stationary_context_state),
+                    "basis": "physics_disabled_immutable_ambient_context",
+                    "gridlock_gate_applicable": False,
+                }
+                if route_mode == "stationary_context"
                 else None
             ),
             "safe_blueprint_filter_enabled": True,
@@ -601,70 +1364,401 @@ class TrafficSanityMonitor:
                 lambda event, npc_id=int(actor.id): self._on_collision(npc_id, event)
             )
             self.collision_sensors.append(sensor)
-        self._tick_callback_id = self.world.on_tick(self._on_tick)
+        externally_clocked = bool(self.integration.get("external_sync_tick_owner", False))
+        self.initial_geometry["sampling_clock"] = (
+            "external_sync_tick_owner" if externally_clocked else "carla_on_tick_callback"
+        )
+        if not externally_clocked:
+            self._tick_callback_id = self.world.on_tick(self._on_tick)
+
+    def activate_vehicle_motion(self, client: object | None = None) -> None:
+        """Activate Traffic Manager after the held-population RELEASE barrier.
+
+        The actor RPC has no acknowledgement payload.  Full-stack collection
+        therefore uses an explicit command batch and rejects any per-actor
+        registration error before advancing the first release tick.
+        """
+
+        if self._route_mode == "deterministic_trace_replay":
+            self.initial_geometry["tm_activation"] = {
+                "basis": "not_used_runner_owned_deterministic_trace_replay",
+                "actor_count": len(self.actor_ids),
+            }
+            return
+        if self._route_mode == "stationary_context":
+            self.initial_geometry["tm_activation"] = {
+                "basis": "not_used_runner_owned_stationary_context",
+                "actor_count": len(self.actor_ids),
+            }
+            return
+        if self._route_mode != "tm_autonomous":
+            return
+        live = self._live_vehicle_map()
+        missing = sorted(set(self.actor_ids) - set(live))
+        if missing:
+            raise RuntimeError(
+                f"ambient NPCs disappeared before Traffic Manager activation: {missing}"
+            )
+        tm_port = int(self.integration["tm_port"])
+        if client is None:
+            for actor_id in self.actor_ids:
+                live[actor_id].set_autopilot(True, tm_port)
+            activation = {
+                "basis": "actor_rpc_unacknowledged_compatibility_path",
+                "actor_count": len(self.actor_ids),
+            }
+        else:
+            commands = [
+                carla.command.SetAutopilot(int(actor_id), True, tm_port)
+                for actor_id in self.actor_ids
+            ]
+            responses = list(client.apply_batch_sync(commands, False))
+            failures = [
+                {
+                    "actor_id": int(self.actor_ids[index]),
+                    "error": str(getattr(response, "error", "unknown error")),
+                }
+                for index, response in enumerate(responses)
+                if str(getattr(response, "error", "")).strip()
+            ]
+            if len(responses) != len(commands):
+                failures.append(
+                    {
+                        "actor_id": None,
+                        "error": (
+                            "Traffic Manager activation response count mismatch: "
+                            f"expected {len(commands)}, observed {len(responses)}"
+                        ),
+                    }
+                )
+            if failures:
+                raise RuntimeError(
+                    f"Traffic Manager activation batch failed: {failures}"
+                )
+            activation = {
+                "basis": "acknowledged_set_autopilot_batch",
+                "actor_count": len(self.actor_ids),
+                "tm_port": tm_port,
+            }
+        self.initial_geometry["tm_activation"] = activation
+
+    def _remember_tick_failure(self, exc: BaseException) -> None:
+        with self._lock:
+            if self._tick_failure is None:
+                self._tick_failure = f"{type(exc).__name__}: {exc}"
+
+    def before_world_tick(self) -> None:
+        """Apply direct-route control once before an externally owned tick."""
+
+        try:
+            if getattr(self, "_replay_route_state", {}):
+                self._apply_deterministic_trace_replay()
+            elif self._direct_route_state:
+                self._apply_direct_route_controls()
+        except BaseException as exc:
+            self._remember_tick_failure(exc)
+
+    def observe_snapshot(self, snapshot: object) -> None:
+        """Record every realized synchronous frame after its world tick."""
+
+        try:
+            rows = []
+            ambient_rows = []
+            self._observed_tick_count = int(
+                getattr(self, "_observed_tick_count", 0)
+            ) + 1
+            timestamp = float(snapshot.timestamp.elapsed_seconds)
+            live_vehicles = self._live_vehicle_map()
+            missing = sorted(set(self.actor_ids) - set(live_vehicles))
+            if missing:
+                raise RuntimeError(
+                    "ambient NPC membership disappeared from the authoritative "
+                    f"world inventory at frame {int(snapshot.frame)}: {missing}"
+                )
+            inferred_yields = self._infer_registered_hazard_yield_actor_ids(
+                live_vehicles
+            )
+            for actor_id in self.actor_ids:
+                actor_snapshot = snapshot.find(int(actor_id))
+                replay_state = getattr(self, "_replay_route_state", {}).get(actor_id)
+                stationary_state = getattr(
+                    self, "_stationary_context_state", {}
+                ).get(actor_id)
+                if replay_state is not None:
+                    actor = live_vehicles[int(actor_id)]
+                    transform = actor.get_transform()
+                    velocity = carla.Vector3D()
+                    sample_source = "deterministic_trace_replay"
+                elif stationary_state is not None:
+                    actor = live_vehicles[int(actor_id)]
+                    transform = actor.get_transform()
+                    velocity = carla.Vector3D()
+                    stationary_state["tick_index"] = self._observed_tick_count
+                    sample_source = "stationary_context"
+                elif actor_snapshot is None:
+                    # CARLA 0.10 may omit live actors from WorldSnapshot after
+                    # the first externally owned tick.  The world has already
+                    # advanced synchronously, so an actor RPC is a causal,
+                    # same-frame fallback rather than an additional tick.
+                    actor = live_vehicles[int(actor_id)]
+                    transform = actor.get_transform()
+                    velocity = actor.get_velocity()
+                    sample_source = "live_actor_fallback"
+                else:
+                    transform = actor_snapshot.get_transform()
+                    velocity = actor_snapshot.get_velocity()
+                    sample_source = "world_snapshot"
+                metadata = self.actor_metadata[actor_id]
+                row = {
+                        "frame_id": int(snapshot.frame),
+                        "carla_timestamp": timestamp,
+                        "actor_id": int(actor_id),
+                        "role_name": metadata["role_name"],
+                        "type_id": metadata["type_id"],
+                        "world_x": float(transform.location.x),
+                        "world_y": float(transform.location.y),
+                        "world_z": float(transform.location.z),
+                        "sample_source": sample_source,
+                        "speed_mps": (
+                            float(self._replay_speed_mps)
+                            if replay_state is not None
+                            else 0.0
+                            if stationary_state is not None
+                            else float(
+                                math.sqrt(
+                                    velocity.x ** 2
+                                    + velocity.y ** 2
+                                    + velocity.z ** 2
+                                )
+                            )
+                        ),
+                        "replay_identity": (
+                            str(replay_state["replay_identity"])
+                            if replay_state is not None
+                            else str(stationary_state["replay_identity"])
+                            if stationary_state is not None
+                            else ""
+                        ),
+                        "replay_plan_sha256": (
+                            str(replay_state["route_sha256"])
+                            if replay_state is not None
+                            else str(stationary_state["plan_sha256"])
+                            if stationary_state is not None
+                            else ""
+                        ),
+                        "replay_tick_index": (
+                            int(replay_state["tick_index"])
+                            if replay_state is not None
+                            else int(stationary_state["tick_index"])
+                            if stationary_state is not None
+                            else None
+                        ),
+                        "replay_distance_m": (
+                            float(replay_state["last_distance_m"])
+                            if replay_state is not None
+                            else 0.0
+                            if stationary_state is not None
+                            else None
+                        ),
+                        "registered_hazard_yield_active": bool(
+                            actor_id in inferred_yields
+                            or actor_id in self._registered_hazard_yield_actor_ids
+                        ),
+                    }
+                rows.append(row)
+                ambient_rows.append({**row, "actor_kind": "vehicle"})
+            ambient_walker_ids = list(
+                getattr(self, "_ambient_walker_ids", [])
+            )
+            live_walkers = (
+                {
+                    int(actor.id): actor
+                    for actor in self.world.get_actors().filter(
+                        "walker.pedestrian.*"
+                    )
+                }
+                if ambient_walker_ids
+                else {}
+            )
+            missing_walkers = sorted(
+                set(ambient_walker_ids) - set(live_walkers)
+            )
+            if missing_walkers:
+                raise RuntimeError(
+                    "ambient walkers disappeared from the authoritative world "
+                    f"inventory at frame {int(snapshot.frame)}: {missing_walkers}"
+                )
+            for actor_id in ambient_walker_ids:
+                actor = live_walkers[actor_id]
+                actor_snapshot = snapshot.find(int(actor_id))
+                if actor_snapshot is None:
+                    transform = actor.get_transform()
+                    velocity = actor.get_velocity()
+                    sample_source = "live_actor_fallback"
+                else:
+                    transform = actor_snapshot.get_transform()
+                    velocity = actor_snapshot.get_velocity()
+                    sample_source = "world_snapshot"
+                metadata = self._ambient_walker_metadata[actor_id]
+                ambient_rows.append(
+                    {
+                        "frame_id": int(snapshot.frame),
+                        "carla_timestamp": timestamp,
+                        "actor_id": int(actor_id),
+                        "role_name": metadata["role_name"],
+                        "type_id": metadata["type_id"],
+                        "world_x": float(transform.location.x),
+                        "world_y": float(transform.location.y),
+                        "world_z": float(transform.location.z),
+                        "sample_source": sample_source,
+                        "speed_mps": float(
+                            math.sqrt(
+                                velocity.x ** 2
+                                + velocity.y ** 2
+                                + velocity.z ** 2
+                            )
+                        ),
+                        "replay_identity": metadata["replay_identity"],
+                        "replay_plan_sha256": metadata["replay_plan_sha256"],
+                        "replay_tick_index": self._observed_tick_count,
+                        "replay_distance_m": 0.0,
+                        "registered_hazard_yield_active": False,
+                        "actor_kind": "walker",
+                    }
+                )
+            with self._lock:
+                self.trajectory_rows.extend(rows)
+                if not hasattr(self, "ambient_actor_trajectory_rows"):
+                    self.ambient_actor_trajectory_rows = []
+                self.ambient_actor_trajectory_rows.extend(ambient_rows)
+        except BaseException as exc:
+            self._remember_tick_failure(exc)
 
     def _on_tick(self, snapshot: object) -> None:
-        rows = []
-        timestamp = float(snapshot.timestamp.elapsed_seconds)
-        if self._direct_route_state:
-            self._apply_direct_route_controls()
-        for actor_id in self.actor_ids:
-            actor_snapshot = snapshot.find(int(actor_id))
-            if actor_snapshot is None:
-                continue
-            transform = actor_snapshot.get_transform()
-            velocity = actor_snapshot.get_velocity()
-            metadata = self.actor_metadata[actor_id]
-            rows.append(
-                {
-                    "frame_id": int(snapshot.frame),
-                    "carla_timestamp": timestamp,
-                    "actor_id": int(actor_id),
-                    "role_name": metadata["role_name"],
-                    "type_id": metadata["type_id"],
-                    "world_x": float(transform.location.x),
-                    "world_y": float(transform.location.y),
-                    "world_z": float(transform.location.z),
-                    "speed_mps": float(
-                        math.sqrt(velocity.x ** 2 + velocity.y ** 2 + velocity.z ** 2)
-                    ),
-                }
-            )
+        self.before_world_tick()
+        self.observe_snapshot(snapshot)
+
+    def raise_if_failed(self) -> None:
         with self._lock:
-            self.trajectory_rows.extend(rows)
+            failure = self._tick_failure
+        if failure is not None:
+            raise RuntimeError(f"NPC traffic tick callback failed: {failure}")
 
     @staticmethod
     def _wrap_angle(angle: float) -> float:
         return (float(angle) + math.pi) % (2.0 * math.pi) - math.pi
 
+    def _infer_registered_hazard_yield_actor_ids(
+        self, live_vehicles: Mapping[int, carla.Actor]
+    ) -> set[int]:
+        """Attribute a yield only to NPCs whose forward envelope holds the hazard."""
+
+        registered_vehicles = [
+            actor
+            for actor in live_vehicles.values()
+            if self._actor_role(actor).startswith("phase2_registered_target_")
+        ]
+        registered_walkers = [
+            actor
+            for actor in self.world.get_actors().filter("walker.pedestrian.*")
+            if self._actor_role(actor).startswith("phase2_registered_target_")
+        ]
+        yielding: set[int] = set()
+        for actor_id in self.actor_ids:
+            actor = live_vehicles.get(actor_id)
+            if actor is None:
+                continue
+            transform = actor.get_transform()
+            velocity = actor.get_velocity()
+            speed_mps = math.sqrt(
+                float(velocity.x) ** 2
+                + float(velocity.y) ** 2
+                + float(velocity.z) ** 2
+            )
+            if any(
+                _vehicle_envelope_requires_yield(
+                    actor,
+                    transform,
+                    other,
+                    speed_mps=speed_mps,
+                    maximum_forward_m=12.0,
+                )
+                for other in registered_vehicles
+                if int(other.id) != actor_id
+            ):
+                yielding.add(actor_id)
+                continue
+            for walker in registered_walkers:
+                try:
+                    walker_location = walker.get_location()
+                    walker_velocity = walker.get_velocity()
+                except RuntimeError:
+                    continue
+                if _walker_requires_yield(
+                    transform,
+                    walker_location,
+                    walker_velocity,
+                    registered_crossing=True,
+                ):
+                    yielding.add(actor_id)
+                    break
+        return yielding
+
     def _apply_direct_route_controls(self) -> None:
         """Apply bounded synchronous waypoint control to all managed NPCs."""
 
+        self._registered_hazard_yield_actor_ids = set()
+
+        all_vehicles = self._live_vehicle_map()
         actors = {
-            int(actor.id): actor
-            for actor in self.world.get_actors(self.actor_ids)
-            if actor is not None
+            actor_id: all_vehicles[actor_id]
+            for actor_id in self.actor_ids
+            if actor_id in all_vehicles
         }
-        all_vehicles = {
-            int(actor.id): actor
-            for actor in self.world.get_actors().filter("vehicle.*")
-        }
+        missing = sorted(set(self.actor_ids) - set(actors))
+        if missing:
+            raise RuntimeError(f"ambient NPCs disappeared before direct control: {missing}")
         all_walkers = list(self.world.get_actors().filter("walker.pedestrian.*"))
-        target_speed = float(self.integration["npc_direct_route_speed_mps"])
+        if self._direct_route_speed_mps is None:
+            raise RuntimeError("direct-route controller was not initialized")
+        target_speed = self._direct_route_speed_mps
         for actor_id, state in self._direct_route_state.items():
             actor = actors.get(actor_id)
             if actor is None:
                 continue
             route = state["route"]
             index = int(state["waypoint_index"])
+            route_closed = bool(state.get("route_closed", False))
             transform = actor.get_transform()
             location = transform.location
             for _unused in range(len(route)):
                 target = route[index]
                 if location.distance(target) >= 4.0:
                     break
-                index = (index + 1) % len(route)
-            lookahead = route[(index + 1) % len(route)]
+                if index + 1 < len(route):
+                    index += 1
+                elif route_closed:
+                    index = 0
+                else:
+                    state["endpoint_reached"] = True
+                    break
+            if bool(state.get("endpoint_reached", False)):
+                actor.apply_control(
+                    carla.VehicleControl(
+                        throttle=0.0,
+                        steer=0.0,
+                        brake=1.0,
+                        hand_brake=False,
+                    )
+                )
+                state["waypoint_index"] = int(index)
+                continue
+            if index + 1 < len(route):
+                lookahead = route[index + 1]
+            elif route_closed:
+                lookahead = route[0]
+            else:
+                lookahead = route[index]
             desired_yaw = math.atan2(
                 float(lookahead.y) - float(location.y),
                 float(lookahead.x) - float(location.x),
@@ -688,11 +1782,30 @@ class TrafficSanityMonitor:
                 if other_id == actor_id:
                     continue
                 other_location = other.get_location()
-                if _vehicle_requires_yield(
+                if _vehicle_envelope_requires_yield(
+                    actor,
                     transform,
-                    other_location,
+                    other,
+                    speed_mps=speed_mps,
                     maximum_forward_m=12.0,
                 ):
+                    other_state = self._direct_route_state.get(other_id)
+                    if (
+                        other_state is not None
+                        and int(other_state["route_priority_index"])
+                        != int(state["route_priority_index"])
+                        and int(state["route_priority_index"])
+                        < int(other_state["route_priority_index"])
+                    ):
+                        # Reviewed ambient paths are ordered helper/through
+                        # first, recipient/turning second. Only the lower-
+                        # priority route yields at a crossing; otherwise two
+                        # symmetric shields can stop nose-to-nose forever.
+                        continue
+                    if self._actor_role(other).startswith(
+                        "phase2_registered_target_"
+                    ):
+                        self._registered_hazard_yield_actor_ids.add(actor_id)
                     throttle = 0.0
                     brake = 1.0
                     break
@@ -703,11 +1816,17 @@ class TrafficSanityMonitor:
                         walker_velocity = walker.get_velocity()
                     except RuntimeError:
                         continue
+                    registered_crossing = self._actor_role(walker).startswith(
+                        "phase2_registered_target_"
+                    )
                     if _walker_requires_yield(
                         transform,
                         walker_location,
                         walker_velocity,
+                        registered_crossing=registered_crossing,
                     ):
+                        if registered_crossing:
+                            self._registered_hazard_yield_actor_ids.add(actor_id)
                         throttle = 0.0
                         brake = 1.0
                         break
@@ -721,6 +1840,38 @@ class TrafficSanityMonitor:
             )
             state["waypoint_index"] = int(index)
 
+    def _apply_deterministic_trace_replay(self) -> None:
+        """Advance every ambient NPC on its immutable native-lane trace."""
+
+        if self._replay_speed_mps is None or self._replay_fixed_delta_seconds is None:
+            raise RuntimeError("deterministic replay was not initialized")
+        live = self._live_vehicle_map()
+        missing = sorted(set(self.actor_ids) - set(live))
+        if missing:
+            raise RuntimeError(
+                f"ambient NPCs disappeared before deterministic replay: {missing}"
+            )
+        for actor_id, state in self._replay_route_state.items():
+            tick_index = int(state["tick_index"]) + 1
+            distance_m = (
+                tick_index
+                * self._replay_fixed_delta_seconds
+                * self._replay_speed_mps
+            )
+            transform = self._sample_replay_transform(
+                state["transforms"],
+                state["cumulative_distance_m"],
+                distance_m,
+            )
+            actor = live[actor_id]
+            actor.set_autopilot(False, int(self.integration["tm_port"]))
+            actor.set_simulate_physics(False)
+            actor.set_target_velocity(carla.Vector3D())
+            actor.set_target_angular_velocity(carla.Vector3D())
+            actor.set_transform(transform)
+            state["tick_index"] = tick_index
+            state["last_distance_m"] = distance_m
+
     def _on_collision(self, npc_actor_id: int, event: object) -> None:
         other = getattr(event, "other_actor", None)
         impulse = getattr(event, "normal_impulse", None)
@@ -729,6 +1880,9 @@ class TrafficSanityMonitor:
             "carla_timestamp": float(getattr(event, "timestamp", float("nan"))),
             "npc_actor_id": int(npc_actor_id),
             "npc_role_name": self.actor_metadata.get(npc_actor_id, {}).get("role_name", ""),
+            "contact_owner_scope": self.actor_metadata.get(npc_actor_id, {}).get(
+                "monitoring_scope", "unknown"
+            ),
             "other_actor_id": int(getattr(other, "id", -1)),
             "other_type_id": str(getattr(other, "type_id", "")),
             "other_role_name": self._actor_role(other) if other is not None else "",
@@ -766,26 +1920,69 @@ class TrafficSanityMonitor:
         self.collision_sensors.clear()
         with self._lock:
             trajectory_rows = list(self.trajectory_rows)
+            ambient_actor_rows = list(
+                getattr(self, "ambient_actor_trajectory_rows", [])
+            )
             collision_rows = list(self.collision_rows)
         self.output_dir.mkdir(parents=True, exist_ok=True)
         trajectory_fields = (
             "frame_id", "carla_timestamp", "actor_id", "role_name", "type_id",
-            "world_x", "world_y", "world_z", "speed_mps",
+            "world_x", "world_y", "world_z", "sample_source", "speed_mps",
+            "replay_identity", "replay_plan_sha256", "replay_tick_index",
+            "replay_distance_m",
+            "registered_hazard_yield_active",
         )
         collision_fields = (
             "frame_id", "carla_timestamp", "npc_actor_id", "npc_role_name",
+            "contact_owner_scope",
             "other_actor_id", "other_type_id", "other_role_name",
             "normal_impulse_x", "normal_impulse_y", "normal_impulse_z",
         )
         self._write_csv(self.output_dir / "npc_trajectories.csv", trajectory_rows, trajectory_fields)
+        ambient_trajectory_fields = (*trajectory_fields, "actor_kind")
+        self._write_csv(
+            self.output_dir / "ambient_actor_trajectories.csv",
+            ambient_actor_rows,
+            ambient_trajectory_fields,
+        )
         self._write_csv(self.output_dir / "npc_collision_events.csv", collision_rows, collision_fields)
         summary = _traffic_sanity_summary(
             pd.DataFrame(trajectory_rows, columns=trajectory_fields),
             pd.DataFrame(collision_rows, columns=collision_fields),
             self.actor_ids,
             self.integration["traffic_sanity_gate"],
+            (
+                int(self.integration["traffic_expected_frame_count"])
+                if self.integration.get("traffic_expected_frame_count") is not None
+                else None
+            ),
+            stationary_context_expected=bool(
+                self.integration.get("expected_stationary_context", False)
+            ),
+            stationary_context_trajectories=pd.DataFrame(
+                ambient_actor_rows, columns=ambient_trajectory_fields
+            ),
         )
+        summary["sample_source_counts"] = {
+            str(key): int(value)
+            for key, value in pd.Series(
+                [row.get("sample_source", "unknown") for row in trajectory_rows],
+                dtype=str,
+            ).value_counts().items()
+        }
+        with self._lock:
+            tick_failure = self._tick_failure
+        summary["tick_callback_error"] = tick_failure
+        if tick_failure is not None:
+            summary["pass"] = False
+            summary.setdefault("failures", []).append("npc_tick_callback_error")
         summary["initial_geometry"] = self.initial_geometry
+        summary["trajectory_csv"] = str(
+            self.output_dir / "npc_trajectories.csv"
+        )
+        summary["ambient_actor_trajectory_csv"] = str(
+            self.output_dir / "ambient_actor_trajectories.csv"
+        )
         (self.output_dir / "traffic_sanity_summary.json").write_text(
             json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8"
         )

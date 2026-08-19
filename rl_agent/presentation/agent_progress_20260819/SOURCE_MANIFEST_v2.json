@@ -1,0 +1,193 @@
+{
+  "brand": {
+    "blue": "00A8EC",
+    "deep": "0A5C93",
+    "font": "Century Gothic",
+    "functional_red": "D8455F",
+    "grey": "49515C",
+    "navy": "010644",
+    "orange": "FFAA59",
+    "teal": "00C9C8"
+  },
+  "deck": "rl_agent/presentation/agent_progress_20260819/SceneSense_Agent_Progress_2026-08-19_ID.pptx",
+  "math_rendering": {
+    "dpi": 460,
+    "engine": "matplotlib mathtext",
+    "equations": {
+      "causal_invariant": "$t_{\\mathrm{available}}(x)\\ \\leq\\ t_{\\mathrm{decision}}(x)$",
+      "covariance": "$P_{j,\\,t+\\Delta}=F\\,P_{j,t}\\,F^{\\top}+Q(\\Delta)$",
+      "deadline": "$t_{\\mathrm{install}}(a_t)\\ \\leq\\ t_{\\mathrm{conflict}}-\\left(\\tau_{\\mathrm{pipe},95}+\\tau_{\\mathrm{react}}+\\tau_{\\mathrm{brake}}+\\tau_{\\mathrm{margin}}\\right)$",
+      "local_admission": "$T^{\\,95}_{\\mathrm{local}}(p)\\ \\leq\\ \\Delta t\\quad\\wedge\\quad f\\ \\leq\\ f_{\\mathrm{sust}}(p)$",
+      "object": "$z_{j,\\,t+\\Delta}=F(\\Delta)\\,z_{j,t}$",
+      "queue": "$q_{t+1}=\\left[\\,q_t+B(a_t)-S_t\\,\\right]_{+}$",
+      "radio_admission": "$r_{\\mathrm{offer}}(a)=B_{\\mathrm{frame}}(a)\\,f(a)\\ \\leq\\ \\kappa\\,C_{\\mathrm{LCB}}(s_t)$",
+      "reward": "$R_t=w_U\\,U_{\\mathrm{task}}-\\lambda_r C_{\\mathrm{PRB}}-\\lambda_c C_{\\mathrm{local}}-\\lambda_q D_{\\mathrm{hazard}}-\\lambda_s\\,\\mathbf{1}\\!\\left[a_t\\neq a_{t-1}\\right]-w_E\\,M_{\\mathrm{unc}}$",
+      "state": "$s_t^{-}=\\left[\\,\\hat{C}_{t-\\ell},\\ \\sigma_C,\\ q_t,\\ b_t^{\\mathrm{flight}},\\ M_{t^-},\\ P_{t^-},\\ x_t^{H},\\ \\tilde{x}^{R}_{t-\\delta},\\ h_t^{\\mathrm{local}},\\ a_{t-1},\\ y_{t-1}\\,\\right]$",
+      "stop_cost": "$C_{\\mathrm{stop}}=\\left(\\frac{(d_{\\min}-d)_{+}}{d_{\\min}}\\right)^{\\!2}+\\lambda_e\\left(\\frac{(d-d_{\\mathrm{comf}})_{+}}{d_s}\\right)^{\\!2}$",
+      "utility": "$U_{\\mathrm{task}}=0.35\\,\\frac{\\mathrm{mIoU}_{\\mathrm{seg}}}{\\mathrm{mIoU}_{\\mathrm{ref}}}+0.40\\,\\frac{\\mathrm{Recall}_{\\mathrm{ped}}}{\\mathrm{Recall}_{\\mathrm{ped,ref}}}+0.25\\,\\frac{\\mathrm{Recall}_{\\mathrm{veh}}}{\\mathrm{Recall}_{\\mathrm{veh,ref}}}$"
+    },
+    "fontset": "cm"
+  },
+  "page_size_in": [
+    13.3333,
+    7.5
+  ],
+  "schema": "scenesense.agent_progress_deck.v2",
+  "slide_count": 18,
+  "slides": [
+    {
+      "number": 1,
+      "source": "title",
+      "title": "SceneSense Agent"
+    },
+    {
+      "number": 2,
+      "source": "Source: visually accepted Epic midblock-van pedestrian geometry (Town10HD_Opt)",
+      "title": "One scene defines the control problem"
+    },
+    {
+      "number": 3,
+      "source": "Source: rl_agent/state_diagram.md and the Phase-2 paired causal contract",
+      "title": "The agent is a causal two-stage controller"
+    },
+    {
+      "number": 4,
+      "source": "Design correction: no post-action information may select the action that produced it",
+      "title": "State design: what is known before the action?"
+    },
+    {
+      "number": 5,
+      "source": "Measured profiles are categorical; payload/accuracy interpolation is not assumed",
+      "title": "Action space: discrete semantics, measured operating points"
+    },
+    {
+      "number": 6,
+      "source": "Scenario: parked-van midblock pedestrian \u2022 helper/recipient synchronized Epic views",
+      "title": "Worked loop: one midblock pedestrian decision"
+    },
+    {
+      "number": 7,
+      "source": "Phase-2 propagates state + covariance; it does not reuse the frozen-object speed \u00d7 AoI shortcut",
+      "title": "The action changes network, map, and hazard state"
+    },
+    {
+      "number": 8,
+      "source": "Source: REWARD_FORMULATION.md v5 and the Phase-2 constraint catalog",
+      "title": "Reward v5: task value inside a constrained safe set"
+    },
+    {
+      "number": 9,
+      "source": "Stopping too early and stopping too close are both undesirable; clearance alone is gameable",
+      "title": "Reward terms shape behavior \u2014 without replacing constraints"
+    },
+    {
+      "number": 10,
+      "source": "Operational IDs S/N/K/M/P/O stay separate from paper contributions C1\u2013C4",
+      "title": "Constraints are lexicographic, not one weighted soup"
+    },
+    {
+      "number": 11,
+      "source": "Graceful degradation is explicit when no action satisfies every service target",
+      "title": "The constraint domains are coupled"
+    },
+    {
+      "number": 12,
+      "source": "Primary CARLA capture: Town10HD_Opt \u2022 Epic \u2022 native 10 Hz \u2022 matched positive/benign futures",
+      "title": "Physical and environmental constraints"
+    },
+    {
+      "number": 13,
+      "source": "Measured OAI RFsim channel sweep \u2022 delivery, queue latency, and capacity are action-dependent",
+      "title": "Network and compute constraints decide what is feasible"
+    },
+    {
+      "number": 14,
+      "source": "Environment contract: explicit observation/action spaces, deterministic reset, structured episode logs",
+      "title": "Building the agent environment"
+    },
+    {
+      "number": 15,
+      "source": "Suite A = designed decision opportunities \u2022 cyclists excluded until the perception contract supports them",
+      "title": "Suite A creates decision opportunities"
+    },
+    {
+      "number": 16,
+      "source": "Pilot excluded \u2022 primary C2 endpoint: recipient-specific actionable warning success + warning lead",
+      "title": "Suite B keeps the result honest"
+    },
+    {
+      "number": 17,
+      "source": "Pilot batch: 20260817_181354_pilot \u2022 authoritative evaluation/verification namespaces retained",
+      "title": "What is already banked"
+    },
+    {
+      "number": 18,
+      "source": "RL gate: a held-out causal service/reward gap that survives the exact, rule, and MPC baselines",
+      "title": "Next steps: answer whether learning is necessary"
+    }
+  ],
+  "source_assets": {
+    "cross_traffic": {
+      "bytes": 3736033,
+      "path": "/tmp/phase2_geometry_review_cross_traffic_vehicle_positive_20260818_024451/20260818_024513_531786_combined.png",
+      "sha256": "41a823fdbee2842ed52fb892f5e23f5edb01449dafcab120624baa5dcc6678f8"
+    },
+    "curbside": {
+      "bytes": 3753571,
+      "path": "/tmp/phase2_geometry_review_positive_20260815_041815/20260815_041825_634287_combined.png",
+      "sha256": "480d015d96faeeef20995a12fdaa1cc6c841ee8e96dc72af6d8ad7b2f498032e"
+    },
+    "delivery": {
+      "bytes": 138333,
+      "path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/channel_condition_sweep/plots/fig2_delivery_heatmap.png",
+      "sha256": "e291a17a8eb3985a2d1d975526684324cf5e017755ff45be0a0c0e3c8b83afef"
+    },
+    "frontier": {
+      "bytes": 177021,
+      "path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/plots/knob_accuracy_frontier.png",
+      "sha256": "3be4274b60028e443f87391fec79fd787e20a560116432ebfa6f615a116cda4e"
+    },
+    "natural_perimeter": {
+      "bytes": 3328664,
+      "path": "/tmp/phase2_geometry_review_naturalistic_pair_naturalistic_20260818_044034/20260818_044050_035125_combined.png",
+      "sha256": "9d1ee46d6993e178e67917056fbfaeecbb71c8c492f2c6a950c6c6cf7e4bb01d"
+    },
+    "natural_signal": {
+      "bytes": 3289828,
+      "path": "/tmp/phase2_geometry_review_naturalistic_pair_naturalistic_20260818_043912/20260818_043928_809709_combined.png",
+      "sha256": "990bf8680f57828a71736e91ed586701ef595bc077af78ca5dcd23c412a0cdb5"
+    },
+    "pilot_helper": {
+      "bytes": 1682247,
+      "path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/presentation/agent_progress_20260819/pilot_frame_156300_helper.png",
+      "sha256": "5c652a3cadfc843e978fd823c04362fec3a7b7d8aefe2405b70fbac850f4a0d5"
+    },
+    "pilot_recipient": {
+      "bytes": 1326975,
+      "path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/presentation/agent_progress_20260819/pilot_frame_156300_recipient.png",
+      "sha256": "8c63ef958f2d7924c2a8a76f3c19ddeb9f213f1c9abb2627d997ec38c7e3d452"
+    },
+    "pullout": {
+      "bytes": 3520574,
+      "path": "/tmp/phase2_geometry_review_parked_vehicle_pullout_positive_20260818_031013/20260818_031036_689670_combined.png",
+      "sha256": "8b2495bf0336bfb42c20348b436db96e74ec23d1f454d175d406af1961fe630e"
+    },
+    "queue": {
+      "bytes": 3458878,
+      "path": "/tmp/phase2_geometry_review_queue_reveal_vehicle_positive_20260818_033946/20260818_034002_180110_combined.png",
+      "sha256": "3d88f00d5f7929ca6302b651cf6bcf5e4d13a31c3ba688d8ef8fe103442595bd"
+    },
+    "signalized": {
+      "bytes": 3870161,
+      "path": "/tmp/phase2_geometry_review_signalized_corner_positive_20260817_224735/20260817_224753_327439_combined.png",
+      "sha256": "d86a01de1072d501ff9df87cbffb1f8a43bccffcebc667966fa6c1333bf68d0d"
+    },
+    "worked": {
+      "bytes": 3787904,
+      "path": "/tmp/phase2_geometry_review_midblock_van_positive_20260818_001417/20260818_001435_896264_combined.png",
+      "sha256": "600671cc076d135ace4043e29765158b9f824ef2a50337a95b91c4322c6dd05d"
+    }
+  },
+  "template": "rl_agent/presentation/agent_progress_20260819/interdigital_template.pptx",
+  "template_sha256": "a599238d82e54f5267c34628704153f115a115a4e86a0074a25983d01a2f57ba"
+}

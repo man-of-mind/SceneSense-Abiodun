@@ -256,6 +256,18 @@ Balance controlled positive hazards with matched benign negatives. Span, at mini
 
 This suite is curated and may flatter the controller. It cannot be the only headline.
 
+The designed positive/benign contrast uses **scenario-owned actors only**, not
+a scripted moving traffic future. The helper, recipient, registered hazard,
+and scenario-owned occluder reproduce the manually accepted geometry; no
+generic vehicle/walker population process is launched. This removes Traffic
+Manager, the sparse native spawn catalog, and random pedestrian placement from
+the causal treatment. Suite-A manifest rows use
+`traffic_density=not_applicable`, `ambient_population_mode=scenario_owned_only`,
+and `ambient_population_process_required=0`. If calibration later
+shows that explicit distractor competition is necessary, add preregistered
+scenario-owned transforms and repeat visual review rather than reintroducing a
+random background population.
+
 ### Suite B — naturalistic paired operation
 
 Purpose: preserve an honest denominator under natural event prevalence. Use paired helper-recipient traffic with
@@ -263,8 +275,32 @@ the same capture contract, but do not force a decision opportunity every frame. 
 latency, and load metrics as Suite A. Never pool the suites into a single headline without also reporting each
 suite separately.
 
+Suite B uses ordinary safe Traffic Manager vehicle motion and walker AI, not
+matched replay. Its initial sparse/typical/dense targets are 6/4, 10/8, and
+15/12 vehicles/walkers. It retains collision, liveness, and persistent-gridlock
+gates but has no positive/benign ambient-trajectory equality requirement. The
+three density levels are nuisance strata, while balanced **decision windows**
+(object-bearing, hazard/deadline, and no-hazard windows) are the unit used to
+assess controller opportunity; raw empty frames are not allowed to dominate by
+accident.
+
 The accepted v5 distribution informs traffic realism and perception workload, but its frames are not Phase-2 C2
 samples.
+
+Short trajectories must not manufacture route diversity by repeatedly using a
+shared prefix. For each loop, pre-register geometry-only start-anchor strata
+before collection and balance them across calibration/validation/test. Persist
+the anchor ID, recipient/helper start indices, native lane/headings, initial
+separation, and byte hashes of both role routes. The current candidate uses six
+non-junction strata on each of the signalized-demo and safe-perimeter loops,
+with a same-lane helper 10--20 m ahead. This is an unforced platoon-style
+vantage difference, not a designed hazard. All inference remains conditional
+on the named Town10HD_Opt route families.
+
+Both the signalized-demo and safe-perimeter families have passed automatic and
+manual review at all six anchors. Their shared contract is finalized as
+`town10hd_opt_same_lane_helper_ahead_v1`. Collection remains subject to the
+separate staged calibration, recoverability, warning-nuisance, and power gates.
 
 ### Network-state coverage for agent feasibility
 
@@ -327,6 +363,20 @@ reference, not a promised corpus size. The pilot runner must:
 The pilot measures the true rate used to budget the full suites. Deleting prior evidence is not an automatic
 overflow policy; cleanup requires a separate reviewed inventory of uncited, reproducibly disposable artifacts.
 
+For the first post-pilot calibration audit, the generic controlled-window rule
+is instantiated as exactly 40 retained input/logit pairs per role in a reviewed
+4 s window, while lightweight causal/event logs cover all 120 frames of each
+12 s trajectory. The nine-group/15-trajectory audit has a 27.24 GB planning
+estimate, a 3 GB per-trajectory cap, an 80 GB stage cap, a 500 GB free-space
+floor, and a 580 GB preflight requirement. It uses native 10 Hz world ticks,
+Epic rendering, the exact M-prime sensor contract, and a pre-perception radar
+density gate centered at 18,591.5 projected points/frame with 10% tolerance.
+This CARLA-only capture may establish replay sufficiency and local-loopback
+field completeness; it cannot establish OAI enqueue, on-wire, reassembly, or
+install timestamps. A capture-complete sentinel therefore does not authorize
+or imply offline replay, OAI calibration, later splits, controller evaluation,
+or RL.
+
 ### Pilot PASS gates
 
 All are hard gates; there is no majority pass.
@@ -376,6 +426,10 @@ next design stage; the two-trajectory pilot is excluded from calibration and con
    split manifest, actionable-deadline parameters, raw-data quotas, and a small design-only scientific core. Core
    and calibration trajectories never reappear as confirmatory test evidence. The C2 false-warning
    non-inferiority margin is not misrepresented as an absolute C3 deployment guarantee.
+   Absolute nuisance rates pool counts and eligible exposure over the Suite-A
+   benign calibration trajectories for each arm/candidate; the 1/min episode
+   gate is not computed separately on each short trajectory. Uncertainty is
+   reported with the trajectory/scenario cluster as the sampling unit.
 2. Run the scientific core and stop unless it passes the causal action-support/dynamic-response gates in §8.
 3. Run local paired C2 baselines: ego-only, periodic/send-everything, hazard-only, deadline-aware, and exact
    object/profile enumeration where defined.

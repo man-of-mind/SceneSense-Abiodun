@@ -1,0 +1,12 @@
+schema_version: scenesense.phase2_calibration_audit_retention.v1
+raw_retention:
+  mode: controlled_windows_only
+  # Two roles share this trajectory allocation.  Each role is capped at
+  # 1.5 GB, above the measured ~0.91 GB 40-frame inputs+logits window while
+  # still failing long before the 80 GB stage cap can be crossed silently.
+  maximum_window_seconds_per_trajectory: 4.0
+  maximum_raw_bytes_per_trajectory: 3000000000
+  maximum_raw_bytes_pilot_total: 3000000000
+  minimum_free_bytes_after_reservation: 500000000000
+  quota_action: stop_raw_keep_lightweight_logs
+  allow_automatic_dataset_deletion: false

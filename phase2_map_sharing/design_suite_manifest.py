@@ -85,6 +85,55 @@ def build_manifest(config: Mapping[str, object]) -> pd.DataFrame:
     if any(bool(value) for value in config["authorization"].values()):
         raise ValueError("suite-design config must not authorize runtime work")
 
+    power = config["power"]
+    effect_s = float(power["smallest_effect_s"])
+    effect = power["smallest_effect_interpretation"]
+    world_hz = float(config["common"]["world_hz"])
+    policy_hz = float(config["common"]["policy_control_hz_surrogate"])
+    if effect["role"] != "cross_cell_research_floor_not_a_braking_safety_threshold":
+        raise ValueError("smallest-effect claim boundary drifted")
+    if int(effect["sensor_frame_count"]) != round(effect_s * world_hz):
+        raise ValueError("smallest effect no longer equals the declared sensor frames")
+    if int(effect["policy_decision_count"]) != round(effect_s * policy_hz):
+        raise ValueError("smallest effect no longer equals the declared policy decisions")
+    closing_bands = config["suite_a"]["closing_speed_bands"]
+    expected_distances = {
+        str(name): [effect_s * float(value) for value in values]
+        for name, values in closing_bands.items()
+    }
+    observed_distances = {
+        str(name): [float(value) for value in values]
+        for name, values in effect["distance_equivalent_m_by_closing_speed_band"].items()
+    }
+    if observed_distances != expected_distances:
+        raise ValueError("smallest-effect closing-distance arithmetic drifted")
+
+    nuisance = config["warning_nuisance_gate"]
+    expected_nuisance = {
+        "population": "suite_a_matched_benign_negative",
+        "timing_endpoint_basis": "registered_target_warning_only",
+        "aggregation": {
+            "false_warning_active_frame_rate": (
+                "sum_false_warning_active_frames_over_sum_eligible_benign_frames"
+            ),
+            "false_warning_episode_rate_per_minute": (
+                "sum_false_warning_episodes_over_sum_eligible_benign_exposure_minutes"
+            ),
+            "uncertainty_unit": "paired_trajectory_cluster",
+            "threshold_basis": (
+                "pooled_point_estimate_with_cluster_interval_reported"
+            ),
+        },
+        "adjudicated_false_warning_active_frame_rate_max": 0.10,
+        "false_warning_episodes_per_minute_max": 1.0,
+        "cooperative_vs_ego_noninferiority_margin_pp": 2.0,
+        "apply_to": "every_candidate_retained_for_validation",
+        "failure_action": "stop_before_validation",
+        "note": "research_usability_gate_not_a_certified_automotive_requirement",
+    }
+    if nuisance != expected_nuisance:
+        raise ValueError("absolute warning-nuisance gate drifted")
+
     master_seed = int(config["master_seed"])
     common = config["common"]
     renderer = common.get("renderer_quality")
@@ -105,13 +154,21 @@ def build_manifest(config: Mapping[str, object]) -> pd.DataFrame:
     rows: list[dict] = []
 
     suite_a = config["suite_a"]
+    suite_a_population = suite_a["ambient_population_contract"]
+    expected_suite_a_population = {
+        "mode": "scenario_owned_only",
+        "population_process_required": False,
+        "generic_vehicles": 0,
+        "generic_walkers": 0,
+        "traffic_density_status": "not_applicable",
+    }
+    if suite_a_population != expected_suite_a_population:
+        raise ValueError("Suite A ambient-population contract drifted")
     replicates = int(suite_a["replicates_per_factor_cell"])
     split_by_replicate = {
         split: {int(value) for value in suite_a["split_by_replicate"][split]}
         for split in SPLITS
     }
-    density_cycle = [str(value) for value in suite_a["traffic_density_cycle"]]
-    cell_index = 0
     for geometry in suite_a["geometries"]:
         for closing_band in suite_a["closing_speed_bands"]:
             for tth_band in suite_a["time_to_hazard_bands"]:
@@ -135,7 +192,6 @@ def build_manifest(config: Mapping[str, object]) -> pd.DataFrame:
                         and closing_band == next(iter(suite_a["closing_speed_bands"]))
                         and tth_band == next(iter(suite_a["time_to_hazard_bands"]))
                     )
-                    density = density_cycle[(cell_index + replicate) % len(density_cycle)]
                     shared = {
                         "schema": SCHEMA,
                         "design_id": config["design_id"],
@@ -149,7 +205,14 @@ def build_manifest(config: Mapping[str, object]) -> pd.DataFrame:
                         "hazard_class": geometry["hazard_class"],
                         "closing_speed_band": closing_band,
                         "time_to_hazard_band": tth_band,
-                        "traffic_density": density,
+                        "traffic_density": "not_applicable",
+                        "traffic_density_status": suite_a_population[
+                            "traffic_density_status"
+                        ],
+                        "ambient_population_mode": suite_a_population["mode"],
+                        "ambient_population_process_required": int(
+                            bool(suite_a_population["population_process_required"])
+                        ),
                         "weather": suite_a["weather"],
                         "renderer_quality_level": renderer["primary_level"],
                         "renderer_server_launch_flag": renderer[
@@ -169,6 +232,12 @@ def build_manifest(config: Mapping[str, object]) -> pd.DataFrame:
                             else "none"
                         ),
                         "confirmatory_locked": int(split == "test"),
+                        "pair_contract_id": "",
+                        "route_start_anchor_id": "",
+                        "recipient_start_index": "",
+                        "helper_start_index": "",
+                        "recipient_route_sha256": "",
+                        "helper_route_sha256": "",
                     }
                     for role, present in (
                         ("controlled_positive_occlusion", 1),
@@ -182,14 +251,73 @@ def build_manifest(config: Mapping[str, object]) -> pd.DataFrame:
                                 "controlled_hazard_present": present,
                             }
                         )
-                cell_index += 1
-
     suite_b = config["suite_b"]
+    suite_b_population = suite_b["ambient_population_contract"]
+    expected_suite_b_population = {
+        "mode": "naturalistic_tm",
+        "population_process_required": True,
+        "traffic_density_status": "realized_nuisance_factor",
+    }
+    if suite_b_population != expected_suite_b_population:
+        raise ValueError("Suite B ambient-population contract drifted")
+    repository_root = Path(__file__).resolve().parents[1]
     for route in suite_b["routes"]:
         route_id = str(route["route_id"])
+        anchors = list(route["start_anchor_schedule"])
+        if not anchors:
+            raise ValueError(f"Suite B route has no start anchors: {route_id}")
+        anchor_ids = [str(item["anchor_id"]) for item in anchors]
+        if len(anchor_ids) != len(set(anchor_ids)):
+            raise ValueError(f"Suite B route reuses an anchor ID: {route_id}")
+        if str(route["implementation_status"]) == "reviewed_visual_route":
+            acceptance_path = repository_root / str(
+                route["visual_acceptance_record"]
+            )
+            if not acceptance_path.is_file():
+                raise FileNotFoundError(acceptance_path)
+            observed_acceptance_hash = _sha256(acceptance_path)
+            expected_acceptance_hash = str(
+                route["visual_acceptance_record_sha256"]
+            )
+            if observed_acceptance_hash != expected_acceptance_hash:
+                raise ValueError(
+                    f"Suite B visual acceptance hash drifted for {route_id}: "
+                    f"expected={expected_acceptance_hash}, "
+                    f"observed={observed_acceptance_hash}"
+                )
+            acceptance = json.loads(acceptance_path.read_text(encoding="utf-8"))
+            if (
+                str(acceptance.get("route_id")) != route_id
+                or bool(acceptance.get("collection_authorized"))
+                or str(acceptance.get("pair_contract_id"))
+                != str(route["pair_contract_id"])
+                or str(acceptance.get("shared_contract_status"))
+                != "final_after_both_naturalistic_route_families_accepted"
+                or str(acceptance.get("route", {}).get("sha256"))
+                != str(route["recipient_route_sha256"])
+                or set(acceptance.get("visual_runs", {})) != set(anchor_ids)
+            ):
+                raise ValueError(
+                    f"Suite B visual acceptance contract is invalid for {route_id}"
+                )
+        for role in ("recipient", "helper"):
+            route_path = repository_root / str(route[f"{role}_route"])
+            if not route_path.is_file():
+                raise FileNotFoundError(route_path)
+            observed_hash = _sha256(route_path)
+            expected_hash = str(route[f"{role}_route_sha256"])
+            if observed_hash != expected_hash:
+                raise ValueError(
+                    f"Suite B {role} route hash drifted for {route_id}: "
+                    f"expected={expected_hash}, observed={observed_hash}"
+                )
         route_offset = 0
         for split in SPLITS:
             group_count = int(suite_b["split_counts_per_route"][split])
+            if group_count % len(anchors) != 0:
+                raise ValueError(
+                    f"Suite B anchors are not balanced in {route_id}/{split}"
+                )
             density = _deterministic_multiset(
                 suite_b["density_counts_per_route_split"][split],
                 master_seed=master_seed,
@@ -203,6 +331,7 @@ def build_manifest(config: Mapping[str, object]) -> pd.DataFrame:
             if len(density) != group_count or len(weather) != group_count:
                 raise ValueError(f"Suite B quota mismatch for {route_id}/{split}")
             for local_index in range(group_count):
+                anchor = anchors[local_index % len(anchors)]
                 ordinal = route_offset + local_index
                 group_id = f"sb_{route_id}_r{ordinal:02d}"
                 audit = split == "calibration" and local_index == 0
@@ -224,6 +353,13 @@ def build_manifest(config: Mapping[str, object]) -> pd.DataFrame:
                         "closing_speed_band": "natural",
                         "time_to_hazard_band": "natural",
                         "traffic_density": density[local_index],
+                        "traffic_density_status": suite_b_population[
+                            "traffic_density_status"
+                        ],
+                        "ambient_population_mode": suite_b_population["mode"],
+                        "ambient_population_process_required": int(
+                            bool(suite_b_population["population_process_required"])
+                        ),
                         "weather": weather[local_index],
                         "renderer_quality_level": renderer["primary_level"],
                         "renderer_server_launch_flag": renderer[
@@ -243,6 +379,16 @@ def build_manifest(config: Mapping[str, object]) -> pd.DataFrame:
                             else "none"
                         ),
                         "confirmatory_locked": int(split == "test"),
+                        "pair_contract_id": str(route["pair_contract_id"]),
+                        "route_start_anchor_id": str(anchor["anchor_id"]),
+                        "recipient_start_index": int(
+                            anchor["recipient_start_index"]
+                        ),
+                        "helper_start_index": int(anchor["helper_start_index"]),
+                        "recipient_route_sha256": str(
+                            route["recipient_route_sha256"]
+                        ),
+                        "helper_route_sha256": str(route["helper_route_sha256"]),
                     }
                 )
             route_offset += group_count
@@ -283,6 +429,16 @@ def validate_manifest(manifest: pd.DataFrame, config: Mapping[str, object]) -> N
         raise ValueError("CARLA seed is reused across independent groups")
 
     suite_a = manifest[manifest["suite_id"] == "A"]
+    if set(suite_a["traffic_density"].astype(str)) != {"not_applicable"}:
+        raise ValueError("Suite A must not claim a realized traffic-density factor")
+    if set(suite_a["traffic_density_status"].astype(str)) != {"not_applicable"}:
+        raise ValueError("Suite A traffic-density status drifted")
+    if set(suite_a["ambient_population_mode"].astype(str)) != {
+        "scenario_owned_only"
+    }:
+        raise ValueError("Suite A ambient-population mode drifted")
+    if set(suite_a["ambient_population_process_required"].astype(int)) != {0}:
+        raise ValueError("Suite A must not launch a generic population process")
     pair_sizes = suite_a.groupby("group_id").size()
     if set(pair_sizes) != {2}:
         raise ValueError("every Suite A group must have positive and benign members")
@@ -319,6 +475,39 @@ def validate_manifest(manifest: pd.DataFrame, config: Mapping[str, object]) -> N
         for _, row in cell_counts.iterrows()
     ):
         raise ValueError("Suite A cells are not split 1/1/3")
+
+    suite_b = manifest[manifest["suite_id"] == "B"]
+    if set(suite_b["traffic_density_status"].astype(str)) != {
+        "realized_nuisance_factor"
+    }:
+        raise ValueError("Suite B traffic-density status drifted")
+    if set(suite_b["ambient_population_mode"].astype(str)) != {"naturalistic_tm"}:
+        raise ValueError("Suite B ambient-population mode drifted")
+    if set(suite_b["ambient_population_process_required"].astype(int)) != {1}:
+        raise ValueError("Suite B must launch its naturalistic population process")
+    if suite_b["pair_contract_id"].astype(str).eq("").any():
+        raise ValueError("Suite B row lacks a paired-route contract")
+    if suite_b["route_start_anchor_id"].astype(str).eq("").any():
+        raise ValueError("Suite B row lacks a pre-registered start anchor")
+    if suite_b["recipient_route_sha256"].astype(str).str.len().ne(64).any():
+        raise ValueError("Suite B recipient route hash is invalid")
+    if suite_b["helper_route_sha256"].astype(str).str.len().ne(64).any():
+        raise ValueError("Suite B helper route hash is invalid")
+    for route_id in (
+        "town10hd_opt_signalized_demo_region",
+        "town10hd_opt_safe_perimeter",
+    ):
+        rows = suite_b[suite_b["geometry_or_route_id"] == route_id]
+        anchor_counts = rows.groupby(["route_start_anchor_id", "split"]).size()
+        for anchor_id in (f"a{index}" for index in range(6)):
+            observed = tuple(
+                int(anchor_counts.get((anchor_id, split), 0)) for split in SPLITS
+            )
+            if observed != (1, 1, 3):
+                raise ValueError(
+                    f"Suite B anchor {route_id}/{anchor_id} is not split 1/1/3: "
+                    f"{observed}"
+                )
 
     if (manifest.loc[manifest["split"] == "test", "raw_window_duration_s"] != 0).any():
         raise ValueError("confirmatory test rows must not retain heavy raw windows")
@@ -416,7 +605,15 @@ def summarize(
             "A": "designed_decision_opportunities",
             "B": "naturalistic_operation",
         },
+        "ambient_population_contracts": {
+            "A": dict(config["suite_a"]["ambient_population_contract"]),
+            "B": dict(config["suite_b"]["ambient_population_contract"]),
+        },
         "renderer_contract": dict(config["common"]["renderer_quality"]),
+        "smallest_effect_interpretation": dict(
+            config["power"]["smallest_effect_interpretation"]
+        ),
+        "warning_nuisance_gate": dict(config["warning_nuisance_gate"]),
         "independent_group_count": int(group_frame["group_id"].nunique()),
         "trajectory_count": trajectory_count,
         "group_counts": {
@@ -448,12 +645,16 @@ def summarize(
         <= int(retention["design_raw_cap_bytes"]),
         "estimated_capture_hours": runtime_minutes / 60.0,
         "pending_manual_scenario_statuses": pending_statuses,
-        "blocking_gates": [
-            "author_and_visually_review_all_pending_geometry_and_route_families",
+        "blocking_gates": (
+            (["author_and_visually_review_all_pending_geometry_and_route_families"]
+             if pending_statuses else [])
+            + [
             "calibration_replay_sufficiency_capture",
             "calibration_simulation_power_at_least_0_80_for_all_registered_endpoints",
+            "calibration_absolute_warning_nuisance_gate",
             "review_exact_local_and_oai_timestamp_byte_fields",
-        ],
+            ]
+        ),
     }
 
 

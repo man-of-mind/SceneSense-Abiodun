@@ -1,0 +1,44 @@
+schema_version: scenesense.phase2_warning_repair_screen.v3
+authorization: offline_immutable_batch_structural_screen_only
+claim_scope: tracker_and_fusion_repair_diagnostic_not_parameter_selection_or_c2
+
+source_detection_floor: 0.05
+source_tracker:
+  algorithm: source_local_confirmed_cv.v3
+  association_gate_m: 5.0
+  maximum_missed_frames: 3
+  minimum_confirmation_hits: 2
+  duplicate_suppression_radius_m: 0.75
+  velocity_smoothing_alpha: 0.5
+  speed_plausibility_slack_m: 0.75
+  maximum_vertical_speed_mps: 8.0
+  maximum_speed_mps_by_class:
+    person: 12.0
+    pedestrian: 12.0
+    cyclist: 25.0
+    vehicle: 60.0
+    object: 40.0
+  publish_missed_tracks: false
+
+recipient_map:
+  algorithm: quality_weighted_moment_equal_time_v1
+  warning_emission_confidence_floor: 0.20
+  association_gate_m: 3.0
+  association_sigma_multiplier: 2.0
+  warning_uncertainty_multiplier: 0.0
+  track_ttl_s: 0.5
+  max_transport_age_s: 1.0
+  warning_horizon_s: 5.0
+  safety_radius_m_by_class:
+    pedestrian: 2.5
+    cyclist: 3.0
+    vehicle: 3.0
+
+screen_gates:
+  maximum_suite_a_benign_false_warning_active_frame_rate: 0.10
+  maximum_cooperative_excess_false_warning_active_frame_rate: 0.02
+  minimum_cooperative_target_lead_s: 0.50
+  require_zero_registered_target_misses: true
+  episode_rate_status: report_only_insufficient_seven_second_exposure
+  static_truth_status: incomplete_actor_only_truth_manual_rgb_audit_required
+

@@ -1,0 +1,240 @@
+schema_version: scenesense.phase2_calibration_audit.v1
+stage_id: phase2_suite_ab_calibration_audit_v1
+implementation_status: reviewed_audit_stage_only
+authorization:
+  carla_launch: true
+  oai_launch: false
+  remaining_calibration: false
+  validation_collection: false
+  test_collection: false
+  controller_evaluation: false
+  rl_training: false
+manual_detached_launch_only: true
+
+design:
+  config: phase2_map_sharing/configs/phase2_suite_ab_design_v1.yaml
+  config_sha256: f97e17e957113ff414d8d1be4dfb5bd8da2bf1dc334f398f1c488aef6d5d654f
+  trajectory_manifest: phase2_map_sharing/design/phase2_suite_ab_v1/trajectory_group_manifest.csv
+  trajectory_manifest_sha256: 055c5a33fb7beb64c1be76c9683d2140ac7c9047bc0d26691830e5c88a1e1233
+  selector:
+    split: calibration
+    raw_retention_tier: inputs_plus_logits_window
+    expected_group_count: 9
+    expected_trajectory_count: 15
+
+source_collection_config: data_collection/configs/policy_corpus_advisor_rich_v5.yaml
+source_collection_config_sha256: 8a1b5fd88a74684bfdde4e27875cc9a33bef9fc7bd8501354e56893fa3390e48
+causal_contract_config: phase2_map_sharing/configs/paired_causal_pilot_reviewed_v1.yaml
+retention_config: phase2_map_sharing/configs/calibration_audit_retention_v1.yaml
+collector: data_collection/phase2_paired_causal_collector.py
+output_root: data_collection/experiments/phase2_calibration_audit_v1
+
+carla:
+  host: 127.0.0.1
+  port: 2000
+  expected_town: Town10HD_Opt
+  reload_world_before_trajectory: true
+  renderer_quality_level: Epic
+  required_server_launch_flag: -quality-level=Epic
+  renderer_provenance: operator_declared_not_rpc_introspected
+
+clock:
+  owner: calibration_audit_orchestrator
+  world_hz: 10.0
+  fixed_delta_seconds: 0.1
+  frames_per_trajectory: 120
+  duration_s: 12.0
+  tm_port: 8010
+  startup_timeout_s: 240.0
+  per_frame_timeout_s: 45.0
+  shutdown_timeout_s: 60.0
+
+capture:
+  sensor_contract: mprime_training_exact_v1
+  warnings_actuated: false
+  placement_action: SPLIT_FEATURE
+  publication_action: PUBLISH_ALL
+  raw_window_duration_s: 4.0
+  retained_frames_per_role: 40
+  raw_window_start_offset_s_by_geometry_or_route:
+    curbside_bus_occluded_pedestrian: 4.0
+    signalized_corner_occluded_pedestrian: 6.0
+    parked_van_midblock_occluded_pedestrian: 4.0
+    occluded_cross_traffic_vehicle: 7.0
+    parked_vehicle_pullout: 4.0
+    queue_reveal_lead_vehicle: 4.0
+    town10hd_opt_curbside_corridor: 4.0
+    town10hd_opt_signalized_demo_region: 4.0
+    town10hd_opt_safe_perimeter: 4.0
+  offset_basis: reviewed_conflict_window_or_middle_if_unregistered
+  compute_assignment:
+    status: correctness_only_shared_gpu
+    purpose: replay_sufficiency_not_inference_benchmarking
+    front_device_by_role: {helper: cuda:0, recipient: cuda:0}
+    back_device_by_role: {helper: cpu, recipient: cpu}
+    shared_gpu_timing_is_citable: false
+  ports:
+    helper: {camera_source: 53201, remote: 53202, remote_source: 53203, camera_result: 53204}
+    recipient: {camera_source: 53301, remote: 53302, remote_source: 53303, camera_result: 53304}
+
+staging_roles:
+  helper:
+    ego_spawn_index: 61
+    ego_spawn_forward_offset_m: -2.905936616128194
+    ego_spawn_right_offset_m: -0.014170022206065527
+    ego_spawn_z_offset_m: -0.1999999642372131
+    ego_spawn_yaw_offset_deg: 0.5584379991889
+    ego_role_name: scenesense_phase2_helper
+    target_speed_mps: 4.5
+  recipient:
+    ego_spawn_index: 152
+    ego_spawn_forward_offset_m: 0.0
+    ego_spawn_right_offset_m: 0.0
+    ego_spawn_z_offset_m: 0.0
+    ego_spawn_yaw_offset_deg: 0.0
+    ego_role_name: scenesense_phase2_recipient
+    target_speed_mps: 5.0
+
+controlled_motion:
+  pedestrian_speed_mps: 1.3
+  pedestrian_start_delay_s: 3.0
+  review_only_gt_safety_yield: true
+  warnings_remain_record_only: true
+
+ambient_traffic:
+  entrypoint: data_collection/run_advisor_generate_traffic.py
+  source_script_read_only: rl_agent/advisor_helper_scripts/codes/generate_traffic_v1.py
+  use_spawn_blocker: false
+  safe_blueprints: true
+  # Do not force one ambient-motion contract to answer two different
+  # scientific questions.  Designed positive/benign twins need immutable
+  # context; naturalistic trajectories need ordinary, non-scripted traffic.
+  layer_by_scenario_role:
+    controlled_positive_occlusion: designed_frozen
+    matched_benign_negative: designed_frozen
+    naturalistic_operation: naturalistic_tm
+  layers:
+    designed_frozen:
+      evidence_role: controlled_matched_scenario_owned_only
+      counts_by_density:
+        not_applicable: {vehicles: 0, walkers: 0, minimum_walkers_ready: 0}
+      population_process_required: false
+      npc_route_mode: stationary_context
+      released_vehicle_motion_mode: runner_owned_stationary_context
+      released_walker_motion_mode: runner_owned_stationary
+      minimum_route_offset_m: 0.0
+      maximum_route_offset_m: 20.0
+      maximum_route_heading_error_deg: 75.0
+      route_derived_spawn_fallback: false
+    naturalistic_tm:
+      evidence_role: unpaired_naturalistic_denominator
+      counts_by_density:
+        sparse: {vehicles: 6, walkers: 4, minimum_walkers_ready: 4}
+        typical: {vehicles: 10, walkers: 8, minimum_walkers_ready: 8}
+        dense: {vehicles: 15, walkers: 12, minimum_walkers_ready: 12}
+      population_process_required: true
+      npc_route_mode: tm_autonomous
+      released_vehicle_motion_mode: runner_owned_tm_autonomous
+      released_walker_motion_mode: walker_ai_destination
+      minimum_route_offset_m: 0.0
+      maximum_route_offset_m: 30.0
+      maximum_route_heading_error_deg: 85.0
+      route_derived_spawn_fallback: true
+  walker_seed_offset: 100000
+  # Same-lane headway and opposing-route clearance are distinct contracts.
+  # A single Euclidean clearance either starves two-lane route capacity or
+  # packs same-lane queues tightly enough to deadlock the direct controller.
+  vehicle_spawn_clearance_m_by_density: {sparse: 8.0, typical: 7.0, dense: 6.0}
+  protected_location_clearance_m_by_density: {sparse: 8.0, typical: 7.0, dense: 6.0}
+  route_derived_same_route_spacing_m_by_density: {sparse: 12.0, typical: 9.0, dense: 7.0}
+  route_derived_cross_route_clearance_m_by_density: {sparse: 8.0, typical: 7.0, dense: 6.0}
+  replenish_interval_s: 0.5
+  population_log_interval_s: 1.0
+  population_start_timeout_s: 60.0
+  population_shutdown_timeout_s: 30.0
+  require_all_walker_controllers_ready: true
+  npc_direct_route_speed_mps: 6.0
+  # Legacy trace-replay parameters remain accepted by the shared monitor for
+  # historical runs, but neither v1 audit layer selects that mode now.
+  npc_trace_replay_speed_mps: 4.0
+  npc_trace_replay_fixed_delta_seconds: 0.1
+  npc_trace_replay_step_m: 1.0
+  npc_trace_replay_horizon_m: 80.0
+  npc_trace_replay_minimum_clearance_m: 4.0
+  npc_loop_repetitions: 3
+  tm_distance_to_leading_vehicle_m: 12.0
+  tm_speed_difference_pct: 65.0
+  tm_desired_speed_mps: 6.0
+  traffic_sanity_gate:
+    maximum_collision_incidents: 0
+    minimum_static_collision_horizontal_impulse: 50.0
+    minimum_actor_observation_fraction: 0.95
+    minimum_per_actor_frame_observation_fraction: 0.95
+    maximum_stationary_context_path_distance_m: 0.05
+    stopped_speed_max_mps: 0.5
+    gridlock_minimum_npc_count: 2
+    gridlock_stopped_fraction: 0.75
+    persistent_gridlock_min_s: 5.0
+
+storage:
+  measured_role_input_bytes_per_frame: 2747563
+  measured_role_logits_bytes_per_frame: 19951192
+  estimated_heavy_bytes: 27238506000
+  stage_hard_cap_bytes: 80000000000
+  per_trajectory_hard_cap_bytes: 3000000000
+  required_free_floor_bytes: 500000000000
+  preflight_required_free_bytes: 580000000000
+  allow_automatic_dataset_deletion: false
+
+verification:
+  fail_hold_at_first_trajectory: true
+  required_roles: [helper, recipient]
+  required_retained_frame_pairs_per_role: 40
+  required_causal_decisions_per_role: 240
+  matched_pair_initial_realization_gate:
+    maximum_horizontal_error_m: 0.10
+    maximum_yaw_error_deg: 0.10
+  matched_pair_trajectory_gate:
+    required_frames_per_actor: 120
+    maximum_horizontal_error_m: 0.02
+    # CARLA vehicle suspension settles to slightly different Z values across
+    # world reloads.  Z is diagnostic only; causal context is frozen in XY.
+    maximum_vertical_error_m: 0.25
+    maximum_speed_error_mps: 0.001
+    require_identical_replay_plan_sha256: true
+  radar_density_gate:
+    reference_projected_points_median: 18591.5
+    relative_tolerance: 0.10
+    minimum_metric_frames: 50
+  replay_grid:
+    # Retained detections/tracks are produced once under this fixed source
+    # contract.  Offline calibration must not re-run or tune the source-local
+    # tracker; every axis below belongs to the recipient map/warning engine.
+    fixed_source_contract:
+      detector_confidence_floor: 0.05
+      source_local_tracker:
+        status: fixed_capture_contract_not_replayed_or_tuned
+        association_gate_m: 5.0
+        maximum_missed_frames: 3
+    map_engine_axes:
+      warning_emission_confidence_floors: [0.05, 0.10, 0.15, 0.20]
+      association_base_gates_m: [2.0, 3.0, 4.0]
+      track_ttls_s: [0.5, 1.0]
+      warning_uncertainty_multipliers: [0.0, 1.0, 2.0]
+    expected_combinations: 72
+  local_loopback_fields:
+    - feature_payload_bytes
+    - feature_payload_bytes_uncompressed
+    - t_front_send_wall_s
+    - t_edge_recv_wall_s
+    - t_result_send_wall_s
+    - t_car_result_recv_wall_s
+  oai_fields:
+    status: not_measured_in_carla_only_audit_remains_blocking
+    required_later:
+      - application_payload_bytes
+      - on_wire_bytes
+      - enqueue_timestamp
+      - first_byte_timestamp
+      - last_byte_reassembly_timestamp
+      - install_timestamp

@@ -1,8 +1,22 @@
 {
+  "ambient_population_contracts": {
+    "A": {
+      "generic_vehicles": 0,
+      "generic_walkers": 0,
+      "mode": "scenario_owned_only",
+      "population_process_required": false,
+      "traffic_density_status": "not_applicable"
+    },
+    "B": {
+      "mode": "naturalistic_tm",
+      "population_process_required": true,
+      "traffic_density_status": "realized_nuisance_factor"
+    }
+  },
   "blocking_gates": [
-    "author_and_visually_review_all_pending_geometry_and_route_families",
     "calibration_replay_sufficiency_capture",
     "calibration_simulation_power_at_least_0_80_for_all_registered_endpoints",
+    "calibration_absolute_warning_nuisance_gate",
     "review_exact_local_and_oai_timestamp_byte_fields"
   ],
   "collection_authorized": false,
@@ -20,9 +34,7 @@
   },
   "independent_group_count": 210,
   "minimum_required_calibration_power": 0.8,
-  "pending_manual_scenario_statuses": [
-    "paired_route_authoring_and_visual_review_required"
-  ],
+  "pending_manual_scenario_statuses": [],
   "planned_censor_fraction": 0.1,
   "power_status": "conditional_on_calibration_simulation_gate",
   "renderer_contract": {
@@ -35,6 +47,27 @@
   },
   "schema": "scenesense.phase2_suite_design_summary.v1",
   "sensitivity_power_at_sd_1_25_s": 0.883151595799319,
+  "smallest_effect_interpretation": {
+    "distance_equivalent_m_by_closing_speed_band": {
+      "high": [
+        3.0,
+        5.0
+      ],
+      "low": [
+        1.0,
+        2.0
+      ]
+    },
+    "future_safety_deadline_status": "deferred_until_fixed_warning_actuation_and_advisor_braking_parameters",
+    "policy_decision_count": 10,
+    "required_reporting": [
+      "warning_lead_s_by_closing_speed_band",
+      "closing_distance_equivalent_m",
+      "causal_deadline_slack_s"
+    ],
+    "role": "cross_cell_research_floor_not_a_braking_safety_threshold",
+    "sensor_frame_count": 5
+  },
   "storage_estimate_within_cap": true,
   "suite_a_test_positive_group_count": 72,
   "suite_labels": {
@@ -46,5 +79,21 @@
     "calibration": 66,
     "test": 198,
     "validation": 66
+  },
+  "warning_nuisance_gate": {
+    "adjudicated_false_warning_active_frame_rate_max": 0.1,
+    "aggregation": {
+      "false_warning_active_frame_rate": "sum_false_warning_active_frames_over_sum_eligible_benign_frames",
+      "false_warning_episode_rate_per_minute": "sum_false_warning_episodes_over_sum_eligible_benign_exposure_minutes",
+      "threshold_basis": "pooled_point_estimate_with_cluster_interval_reported",
+      "uncertainty_unit": "paired_trajectory_cluster"
+    },
+    "apply_to": "every_candidate_retained_for_validation",
+    "cooperative_vs_ego_noninferiority_margin_pp": 2.0,
+    "failure_action": "stop_before_validation",
+    "false_warning_episodes_per_minute_max": 1.0,
+    "note": "research_usability_gate_not_a_certified_automotive_requirement",
+    "population": "suite_a_matched_benign_negative",
+    "timing_endpoint_basis": "registered_target_warning_only"
   }
 }

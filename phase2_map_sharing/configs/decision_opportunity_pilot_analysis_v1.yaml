@@ -1,0 +1,54 @@
+schema_version: scenesense.phase2_decision_opportunity_pilot_analysis.v1
+authorization: offline_immutable_pilot_decision_only_no_downstream
+claim_scope: three_trajectory_local_carla_pilot_stop_go_not_c2_or_oai_evidence
+
+pilot_contract:
+  stage_id: phase2_decision_opportunity_pilot_v1
+  pilot_schema: scenesense.phase2_decision_opportunity_pilot.v1
+  completion_status: audit_complete_stop_for_human_gate
+  batch_status: audit_capture_and_per_trajectory_verification_complete
+  trajectory_ids:
+    - sa_curbside_bus_occluded_pedestrian_low_short_r00_pos
+    - sa_curbside_bus_occluded_pedestrian_low_short_r00_ben
+    - sb_town10hd_opt_signalized_demo_region_r00_natural
+  scenario_roles:
+    - controlled_positive_occlusion
+    - matched_benign_negative
+    - naturalistic_operation
+  target_role_prefix: phase2_registered_target_
+  source_roles: [helper, recipient]
+  cooperative_arms: [send_everything, hazard_only]
+  all_arms: [ego_only, send_everything, hazard_only]
+  world_hz: 10.0
+  frame_count_per_trajectory: 120
+
+frozen_dependencies:
+  decision_contract: phase2_map_sharing/DECISION_OPPORTUNITY_PILOT_V1.md
+  decision_contract_sha256: 1b5f04e1b9e680f6be65c1c789d893f0942bca795a39dee458aa3124063cb234
+  warning_repair_config: phase2_map_sharing/configs/warning_repair_screen_v3.yaml
+  warning_repair_config_sha256: b08c7837aab8002477a5f2c47d500a6470391827a15c4dc2b72d2acd37719dd8
+  replay_truth_config: phase2_map_sharing/configs/calibration_replay_sufficiency_v1.yaml
+  replay_truth_config_sha256: a9307c81885f0840e926aeb0b3d4f98810057400238e7d5b251d925e9d325806
+  setting_id: c20_a30_t05_u00
+  tracker_version: source_local_confirmed_cv.v3
+
+target_detection_gate:
+  normalized_class: pedestrian
+  score_floor: 0.05
+  actor_origin_center_gate_m: 5.0
+  minimum_consecutive_helper_frames: 5
+
+decision_gates:
+  minimum_recipient_confirmation_delay_s: 1.0
+  minimum_helper_warning_lead_vs_ego_s: 0.5
+  minimum_recipient_speed_at_helper_warning_mps: 2.0
+  require_helper_warning_before_first_hidden_actor_yield: true
+  require_zero_registered_target_misses_all_arms: true
+  maximum_benign_false_warning_active_frame_rate: 0.10
+  maximum_cooperative_excess_false_warning_active_frame_rate: 0.02
+
+reporting:
+  naturalistic_status: report_only
+  false_warning_episode_rate_status: report_only_insufficient_short_exposure
+  oai_status: not_run_not_authorized
+  downstream_status: not_authorized

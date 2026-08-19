@@ -5062,3 +5062,1186 @@ persistence — understand that mechanism before it is baked into the C2 compari
 
 Neither note blocks the pending five geometry authorings, the paired naturalistic routes, or the six-group
 calibration audit. Proceed.
+
+## 2026-08-18 — CODEX: review reconciled; naturalistic anchor candidate implemented, collection still locked
+
+I agree with the two LOCAL concerns after one precise qualification. The registered 0.5 s lead is now explicitly a
+**cross-cell research floor**, not a braking-safety threshold: it equals five 10 Hz evidence frames / ten 20 Hz
+surrogate decisions and 1--2 m or 3--5 m of closing travel in the registered low/high speed bands. Lead, closing-
+distance equivalent, and causal deadline slack must be reported by speed band. A braking-derived threshold is
+deferred until warning actuation plus reaction, deceleration, and clearance parameters are frozen; inventing that
+arithmetic now would be less defensible than stating the research floor honestly.
+
+The approximately 90% provisional nuisance exposure is a real calibration blocker, but unrelated false warnings
+do **not mechanically move** the registered `first_warning_at_s`: that endpoint follows only the registered target
+chain. The correct failure is operational nuisance and possible association/persistence pathology, not causal
+contamination of target timing. The freeze now rejects every candidate above 10% adjudicated false-warning-active
+frames or 1 episode/min on Suite-A matched benign trajectories, before validation, while retaining the +2 pp
+cooperative-versus-ego margin. Rates pool counts over total eligible benign exposure for an arm/candidate; the
+1/min limit is not applied independently to each 12 s trajectory. Trajectory-cluster intervals are reported. The
+unexpected hazard-only event inflation remains a required calibration diagnostic rather than an assumed policy
+benefit.
+
+The false-route-diversity repair is now a deterministic **candidate**, not an accepted geometry. Each of the two
+byte-frozen naturalistic loops has six non-junction, same-native-lane start anchors. The recipient/helper index pair
+is fixed at every anchor, the helper is 10--20 m ahead in the same legal direction, and each role follows a rotated
+copy of the immutable source loop. Every anchor occurs exactly once in calibration, once in validation, and three
+times in test. The generated manifest persists route family, anchor ID, both indices, and both route hashes, so the
+two loops cannot collapse back onto their shared 165.887 m prefix without a validation failure.
+
+The visual harness now supports `naturalistic_pair` and fails closed on the frozen lane/hash contract, fewer than
+80 realized frames, either ego travelling less than 25 m, route cross-track above 2.5 m, pair centre separation
+below 5.5 m, or any owned-vehicle collision. The first automatic smoke, signalized-demo anchor `a0`, passed at
+`/tmp/phase2_geometry_review_naturalistic_pair_naturalistic_20260818_041825`: 120 frames, zero collisions,
+48.81/49.31 m recipient/helper travel, 2.00/1.97 m maximum cross-track, and 16.01 m minimum pair separation.
+The remaining eleven anchors were **not** classified: the CARLA server then disappeared and `nvidia-smi` could no
+longer communicate with the driver. That is a host/runtime outage, not a geometry failure. All twelve anchors still
+require one complete visual pass before either route loses the `_candidate` status or collection can be authorized.
+
+The regenerated design remains `collection_authorized=false`; its only pending scenario status is
+`paired_route_authoring_and_visual_review_required`. Current offline validation is **78/78 data-collection tests
+PASS** and **80/80 Phase-2 tests PASS**, with focused compilation and diff hygiene passing. No corpus, OAI,
+controller, or RL run was launched.
+
+### Naturalistic `a1` fail-closed metric repair
+
+The first manual `signalized_demo_region/a1` run at
+`/tmp/phase2_geometry_review_naturalistic_pair_naturalistic_20260818_042630` completed 120 frames with zero
+collisions, 40.90/43.81 m helper/recipient travel, and 11.23 m minimum centre separation, but correctly returned
+FAIL because the original cross-track implementation compared poses only to sparse route **vertices**. It reported
+2.79/2.61 m against the 2.5 m limit. Offline recomputation against the continuous piecewise-linear route gives
+0.95/0.80 m maxima (segment-distance p95 at most 0.93 m), proving a representation bug rather than evidence for
+loosening the gate.
+
+The harness now measures point-to-polyline-segment distance, names that reference in every summary, and has a
+regression test that distinguishes segment distance from nearest-vertex distance. The threshold remains 2.5 m.
+The old `a1` artifact remains a labelled debugging FAIL and is not accepted retroactively; `a1` must be rerun with
+the repaired metric. The earlier `a0` smoke passed a more conservative vertex-distance gate, but it is also rerun
+so every acceptance artifact names the same corrected reference and schema. Data-collection validation is now
+**79/79 PASS**, compilation and diff hygiene pass, and the remaining anchor loop stays stopped.
+
+### Signalized-demo naturalistic route accepted; safe-perimeter remains
+
+Abiodun reran and visually accepted all six `signalized_demo_region` anchors with the corrected segment-distance
+metric. The immutable automatic summaries all pass: 120 frames per anchor, zero collisions, 39.85--49.60 m
+minimum/maximum role travel, 10.90--15.97 m minimum pair spacing across anchors, and at most 0.946 m route
+cross-track against the unchanged 2.5 m gate. Abiodun reported that every run worked with no issue or visual
+weirdness.
+
+The route is now `reviewed_visual_route`. Its route-level acceptance record is
+`phase2_map_sharing/geometry_reviews/signalized_demo_naturalistic_pair_v1_acceptance.json`, SHA-256
+`bb5a203eef410780eabb850351924c99f0de1aff475a71bd494e2f99d8103d64`; it hashes each accepted summary, trace,
+and combined screenshot. Manifest generation fails if that record, its route identity/hash, or its six-anchor set
+drifts. The shared pair-contract keeps its `_candidate` suffix until the safe-perimeter family passes the same
+review, preventing one successful loop from silently validating the other.
+
+The regenerated trajectory-manifest SHA-256 is
+`c1d2c21dade5eafdeefbcdc11b03a2937b8b79e383b97729c6863828e1459fb9`. The only pending scenario status remains
+`paired_route_authoring_and_visual_review_required`, now present solely on `town10hd_opt_safe_perimeter`.
+Collection remains unauthorized. Validation is **79/79 data-collection tests PASS** and **81/81 Phase-2 tests
+PASS**; focused compilation and diff hygiene pass.
+
+### Both naturalistic route families accepted; shared contract finalized
+
+Abiodun visually accepted all six `safe_perimeter` anchors. Every automatic summary independently passes with 120
+frames, zero collisions, 39.19--49.82 m role travel, at least 9.51 m pair spacing, and at most 0.996 m segment-based
+cross-track against the unchanged 2.5 m gate. Together with the six accepted signalized-demo strata, the evidence
+now spans both byte-distinct route families rather than only their shared prefix.
+
+The shared contract is promoted from the evidence-time candidate ID to
+`town10hd_opt_same_lane_helper_ahead_v1`. Both routes are `reviewed_visual_route`; their acceptance records retain
+the candidate ID as evidence provenance while naming the final contract. The signalized record SHA-256 is now
+`7772b994fac5641ef00fd3e4dbfb26a091d6ffe97a811a5cd862db50f39ca272`; the safe-perimeter record is
+`phase2_map_sharing/geometry_reviews/safe_perimeter_naturalistic_pair_v1_acceptance.json`, SHA-256
+`eeead846cd028553e70ded648fadf829876923ab0d76723ce7e470384f7accd8`. Generator validation fails on record,
+route, pair-contract, six-anchor, or byte-hash drift.
+
+The regenerated trajectory-manifest SHA-256 is
+`4c958c7fa140ae9c996489c9fc2373108f48c7790e4e7296c31f9fe0983522a9`; `pending_manual_scenario_statuses` is
+empty. The obsolete geometry-authoring blocker is removed, but `collection_authorized` deliberately remains false
+behind four independent gates: calibration replay-sufficiency capture, registered power/non-inferiority simulation,
+absolute warning nuisance, and exact LOCAL/OAI byte/timestamp field review. No long collection was launched.
+Validation remains **79/79 data-collection tests PASS** and **81/81 Phase-2 tests PASS**, with compilation and diff
+hygiene passing.
+
+## 2026-08-18 — CODEX: bounded calibration-audit runner ready for manual detached launch
+
+The first post-pilot stage is implemented without widening authorization. It
+selects exactly the immutable manifest's nine audit groups / 15 trajectories:
+six Suite-A matched positive/benign groups plus three Suite-B naturalistic
+groups. The runtime adapter uses the same reviewed geometry/route contracts,
+owned egos, controlled hazards, and realistic ambient traffic that passed the
+visual gates; it does not substitute a new scenario path. Per density it uses
+2/12, 4/24, or 6/36 ambient vehicles/walkers, safe spawn filtering around both
+ego routes and controlled actors, deterministic seeds, zero unintended
+collision, and persistent-gridlock checks. Positive/benign partners must
+realize identical ambient actor signatures.
+
+Each 12 s trajectory uses Epic rendering and native 10 Hz CARLA ticks with the
+exact 1280x720/FOV120/200k/raster4/window2 M-prime contract. Lightweight causal
+records cover all 120 frames. Each helper/recipient role retains exactly 40
+aligned input/logit pairs inside the geometry-specific reviewed 4 s window.
+The trajectory verifier fails closed on missing causal/local-loopback fields,
+input/logit misalignment, truth non-recoverability, artifact-hash drift, actor
+leaks, traffic failure, or radar-density drift beyond 10% from the 18,591.5
+projected-points/frame reference. The previous half-density failure therefore
+cannot first surface after the full audit.
+
+Storage is bounded at 3 GB/trajectory, 80 GB for the stage, a 500 GB free-space
+floor, and a 580 GB launch preflight; the planning estimate is 27.24 GB and
+about 43.5 minutes. Retention quota stops preserve lightweight logs and fail
+the trajectory. No automatic dataset deletion is allowed. The detached runner
+writes a progress JSONL, run log, launch manifest, and completion/failure plus
+results sentinels, and stops after this stage.
+
+One claim boundary is explicit: a CARLA PASS proves artifact completeness and
+support for the registered 96-setting confidence/association/TTL/uncertainty
+grid, not that the 96 offline replays were executed. Exact OAI application/
+on-wire/enqueue/reassembly/install evidence remains
+`not_measured_in_carla_only_audit_remains_blocking`. Offline replay and OAI are
+separate human-gated next stages. Remaining calibration, validation, test,
+controller evaluation, and RL remain unauthorized. No CARLA or OAI process was
+launched during implementation.
+
+The final pre-launch audit caught and repaired two would-have-failed issues.
+First, the repeated-route spawn filter admitted NPCs on both legal reviewed
+corridors while the sanity controller gave every NPC only the first loop; that
+could have induced cross-lane steering and corrupted the traffic distribution.
+Each NPC is now assigned to the nearest frozen route, and route boundaries are
+kept separate during spawn filtering. Second, the live verifier looked for the
+production metrics CSV at the role root rather than `role/streams`; the lookup
+now follows the actual logger layout. Both repairs have regression tests, and
+post-cleanup/storage/matched-pair failures are now recorded as explicit
+`failed_hold` events rather than escaping with a misleading running manifest.
+Final offline validation is **86/86 data-collection tests PASS** and **81/81
+Phase-2 tests PASS**; focused compilation, static audit selection, detached
+launch validation, and diff hygiene pass. The validated stage selects exactly
+9 groups / 15 trajectories, estimates 43.5 minutes and 27,238,506,000 heavy
+bytes, and observed 1,244,494,880,768 free bytes against the 580 GB preflight
+requirement. No runtime was started by validation.
+
+### First detached launch FAIL/HOLD: missing direct-route speed contract
+
+The `20260818_052542_audit` launch is invalid and excluded. Its first
+trajectory reached 90/120 collector frames, but every ambient-traffic tick
+raised `KeyError: npc_direct_route_speed_mps`. The route mode was correctly
+set to `direct_loop`; the audit-specific integration omitted the direct
+controller's required 6.0 m/s speed even though the established v4/v5 traffic
+contract already carried it. CARLA callback exceptions were printed without
+automatically terminating the parent, so capture continued temporarily with
+uncontrolled ambient NPCs. The stage completed all 120 requested frames for
+the first trajectory and then correctly emitted `FAILED.json`; the formal
+failure was `insufficient_npc_trajectory_observation` because the callback
+could record no valid NPC rows. No trajectory from this batch is reusable.
+
+The repair pins `npc_direct_route_speed_mps: 6.0`, passes it through the audit
+integration, validates the 2--10 m/s bound before launch, and resolves the
+controller speed synchronously before registering its tick callback. Tick
+callback exceptions are now retained as structured monitor state, checked
+after every capture barrier, and force both a traffic-sanity FAIL and an
+immediate trajectory hold instead of becoming repeated stderr-only warnings.
+A regression test injects the same missing-contract failure and proves it is
+promoted to the fatal gate. Post-repair validation is **87/87 data-collection
+tests PASS** and **81/81 Phase-2 tests PASS**; compilation, diff hygiene,
+config validation, and detached launch validation pass. The new config SHA-256
+is `e57ea2b95a3a55769f3de2f5c11a4cca25be65919ea88fd2e33795f3374dd3b3`.
+No replacement run was launched during repair.
+
+### Second detached launch FAIL/HOLD: verifier API mismatch, capture itself valid
+
+The `20260818_053224_audit` replacement stopped after its first trajectory on
+`AttributeError: CausalDecisionAudit has no attribute to_record`. This was a
+verifier-only implementation error: the production causal contract exposes
+`to_dict()`, while its `CausalAuditWriter` adds `record_sha256` over canonical
+JSON. The audit verifier incorrectly assumed a combined `to_record()` API.
+The batch remains excluded and is not resumed because its failure sentinel and
+immutable stage state must not be rewritten.
+
+The verifier now mirrors the established `verify_paired_pilot.py` contract:
+require `CAUSAL_AUDIT_SCHEMA`, reconstruct and validate `DecisionRecord` plus
+`CausalField` objects, serialize `audit.to_dict()` with the writer's exact
+canonical JSON parameters, and compare its SHA-256 to the envelope. A writer
+round-trip plus corrupted-hash regression test covers this boundary.
+
+Crucially, the repaired **entire** `verify_trajectory` function was then run
+offline against the replacement run's actual completed first-trajectory
+artifacts, not only mocks. It passes both roles: 240 causal decisions, 40
+aligned input/logit pairs, 120 metric frames, 94 hashed artifacts per role,
+clean truth recovery, and all 96 registered replay combinations supported.
+Helper/recipient projected-radar medians are 18,145.5 and 17,752.0 (2.40% and
+4.52% from reference); heavy bytes are 904,817,880 and 911,384,922. Runtime
+traffic also passed with both NPC vehicles observed, zero collisions, zero
+gridlock, no callback error, and cleanup returned every dynamic actor count to
+zero. This establishes that the capture path and every current per-trajectory
+verification branch execute successfully; only the stale method name caused
+the hold.
+
+Post-repair validation is **88/88 data-collection tests PASS** and **81/81
+Phase-2 tests PASS**; compilation, diff hygiene, static config validation, and
+detached launch validation pass. No third run was launched during repair.
+
+### Third detached launch FAIL/HOLD: pair verifier sampled CARLA suspension settling
+
+The `20260818_054118_audit` batch stopped after the first complete matched
+positive/benign pair. Both trajectories independently passed capture and the
+full artifact verifier: each role has 240 causal decisions, 40 aligned
+input/logit pairs, 120 metrics frames, recoverable truth, valid artifact
+hashes, on-contract radar density, clean traffic, zero collisions, and zero
+postflight actor leaks. The postflight pair gate nevertheless used exact
+dictionary equality over live actor transforms and rejected the pair.
+
+The raw signatures isolate the cause. Both arms contained the same 14 ambient
+actors (the same two vehicle and 12 pedestrian blueprint/role entries) at
+exactly the same X/Y coordinates and yaw. Only the two vehicles' Z values
+differed: 0.5461 m versus 0.3944 m, a 0.1517 m difference produced while a
+newly spawned CARLA vehicle's suspension/body settles over initial world
+ticks. Replaying the revised gate on the immutable batch gives 14/14 identity
+matches, maximum horizontal error 0.0000 m, maximum yaw error 0.000 degrees,
+and maximum vertical-settle error 0.1517 m. This is not an ambient spawn or
+seed mismatch, so the batch failure does not identify a scientific
+realization drift.
+
+The repair does not replace the gate with a loose success condition. The
+config now pre-registers separate initial-realization limits: 0.10 m in the
+horizontal plane, 0.10 degrees yaw, and 0.25 m only for vertical settling.
+Type/role multiplicities must still match exactly, every actor comparison and
+maximum residual is written into each paired manifest, and any identity,
+horizontal, heading, or larger vertical deviation remains fatal. Regression
+tests demonstrate both the observed settling PASS and failures for meaningful
+horizontal or identity drift.
+
+The investigation also found a more important setup race. Population
+readiness previously required walker bodies but not their AI controllers. The
+failed pair was sampled while the controller population was still converging,
+which explains why matched arms reached the signature after different numbers
+of settling ticks and could have made ambient walkers static in one arm. The
+audit now waits for all requested walker bodies **and all requested walker
+controllers** before taking the signature or starting capture; the existing
+60 s timeout remains fail-closed.
+
+Finally, the live evidence showed that CARLA's asynchronous `on_tick` callback
+had recorded only one frame per NPC during each 120-frame trajectory. That is
+insufficient to substantiate the persistent-gridlock gate and meant the direct
+route controller was not guaranteed to execute at every audit tick. For this
+single-sync-ticker stage, the orchestrator now explicitly applies NPC control
+before every owned world tick and records the resulting snapshot after every
+tick. Other users of the shared monitor retain callback mode by default. A
+120-snapshot regression test proves the external-clock path records all 120
+frames, and callback exceptions remain fatal.
+
+Post-repair validation is **91/91 data-collection tests PASS** and **81/81
+Phase-2 tests PASS**. Focused compilation, diff hygiene, config validation,
+detached-launch validation, and an offline replay of the failed pair gate all
+pass. The resolved config selects the same immutable 9 groups / 15
+trajectories, estimates 43.5 minutes and 27.24 GB, and has 1.235 TB free
+against the 580 GB preflight requirement. Config SHA-256 is
+`2155f7c3afe3709cdb36a3fa5b6d5d066a4390ededdd4149a1e1d5840ecd0e9a`.
+After confirming Town10HD_Opt was asynchronous and empty (zero vehicles,
+walkers, sensors, or walker controllers), the replacement was launched
+detached as `20260818_055255_audit`. It remains bounded to the audit and cannot
+chain into offline replay, OAI, controller evaluation, or RL.
+
+### Fourth detached launch FAIL/HOLD: deferred CARLA transform realization across geometry families
+
+The effective replacement was `20260818_055436_audit` (`055255` produced only
+an empty launch log and no batch directory). Its first curbside positive/benign
+pair completed and passed the revised matched-initial-realization gate. The
+third trajectory, the signalized positive arm, failed before controlled actors
+or ambient traffic were spawned: the helper remained at the curbside staging
+pose, 150.999 m and 90.144 degrees from the requested signalized pose.
+
+This was deterministic, not a bad geometry. Both collectors intentionally
+spawn at fixed, collision-safe curbside staging indices. CARLA 0.10 queues an
+actor `set_transform()` until the next synchronous world tick. The audit
+runtime commanded a new transform and verified it immediately, so the first
+curbside family passed by coincidence while every later family was guaranteed
+to read the old staging pose. Ego placement is now a two-phase barrier:
+disable autopilot/physics and command **both** role transforms, advance exactly
+one orchestrator-owned tick, then verify both realized poses. The barrier frame
+ID is recorded per role.
+
+A live setup audit then exposed the same deferred-state assumption for newly
+spawned controlled target vehicles: map projection before one server tick read
+their pre-realization location near the origin and falsely reported road/lane
+20/5 instead of the registered cross-traffic lane 3/1. Controlled occluders,
+pedestrians, and target vehicles now cross one shared spawn-realization barrier
+before settlement and realized lane/visibility checks. This does not alter any
+accepted transform, route, speed, or scenario timing.
+
+The repairs were tested beyond the failed signalized row. A live no-sensor,
+no-model relocation sweep passed all **nine unique audit geometries**, with
+maximum realized position error below 0.000004 m. A second live setup-only
+sweep passed all **12 designed positive/benign arms**: every occluder and
+hazard target spawned, required actors settled, every realized lane contract
+passed, and each arm cleaned its controlled actors before the next.
+
+The completed curbside artifacts also revealed that CARLA's
+`WorldSnapshot.find()` omitted the live ambient NPCs after the first capture
+frame even under explicit external-clock sampling, leaving only 2 rows (one
+per NPC) and making the prior gridlock PASS under-sampled. The monitor now
+uses a causal same-frame live-actor RPC fallback when a synchronous snapshot
+omits an expected NPC, records `sample_source` for every row, and hard-fails an
+audit trajectory unless every NPC is observed on at least 95% of the 120
+frames. The previous one-frame evidence can therefore no longer pass.
+
+Final validation is **93/93 data-collection tests PASS** and **81/81 Phase-2
+tests PASS**, including deferred ego relocation, snapshot-omission fallback,
+and rejection of under-sampled traffic trajectories. Both live setup sweeps,
+compilation, diff hygiene, static config validation, and detached launch
+validation pass. The new config SHA-256 is
+`aca5d5b1c34261878b002d681b292b6bbe1d4204d16d7b96114bceb17f782d68`.
+After an empty/asynchronous Town10HD_Opt preflight, the replacement was
+launched detached as `20260818_061349_audit`; no downstream stage is chained.
+
+### Fifth detached launch FAIL/HOLD: matched-pair sampling occurred after variable ambient motion
+
+The effective replacement was `20260818_061850_audit`; the earlier `061349`
+launch again produced no batch. Both curbside arms completed all 120 frames,
+passed their per-trajectory artifact/radar/traffic checks, recorded every NPC
+on 120/120 frames through the live-actor fallback, and cleaned all actors. The
+postflight pair gate correctly stopped the stage, however: unlike the earlier
+vertical-only suspension case, the live signatures now differed in XY and yaw
+as well. This batch remains excluded.
+
+The actor inventories and logs isolate a setup race rather than a seed or
+scenario mismatch. Positive and benign arms had the same two vehicle and 12
+walker type/role entries, but the populator started Traffic Manager and walker
+AI before the orchestrator sampled the signature. Controller readiness took a
+different number of world ticks in the two fresh worlds (one initial log was
+12/12, the other 11/12). During those variable ticks the taxi moved about 1.3
+m and walkers moved roughly 0.8--1.5 m and rotated. Waiting for controller
+*existence* therefore did not establish a matched pre-motion state. Widening
+the pose gate would have concealed a real causal mismatch and was rejected.
+
+The derived traffic wrapper now implements an explicit three-way
+READY/RELEASE/RELEASED handshake while the advisor script remains read-only.
+New ambient vehicles have chained autopilot disabled before the first external
+tick; vehicle and walker bodies are physics-held; walker controllers are
+prepared but not started. READY is atomically published only when every
+requested vehicle, walker body, and walker controller is live. Its immutable,
+ID-free signature records type/role, held XY/yaw, and—critically—the walker AI
+destination and speed. The audit captures that provenance, gives the traffic
+monitor ownership, then releases and waits in wall time without advancing
+CARLA. Thus the next orchestrator tick is the first possible ambient-motion
+frame. Expected shutdown SIGINT is also converted to a clean wrapper exit
+after ownership-scoped cleanup.
+
+The matched gate now tests the causal contract directly: exact type/role
+multiset, exact future-motion contract, horizontal error <=0.10 m, and yaw
+error <=0.10 degrees. Z is a held-pose diagnostic, not part of spawn choice;
+the temporary vertical-settle allowance is removed. A bounded live validation
+ran two independent 2-vehicle/12-walker populations with the audit seeds. Both
+reached 2/12/12 READY, remained stationary across eight extra ticks (maximum
+rounding-relative residual below 0.0005), released all 12 controllers, and
+cleaned to an asynchronous empty world. The production matched-realization
+gate passed all 14 actors with exact motion contracts; evidence is
+`/tmp/phase2_population_handshake_live_v4/summary.json`.
+
+Post-repair validation is **95/95 data-collection tests PASS** and **81/81
+Phase-2 tests PASS**. Focused compilation, config validation, diff hygiene, and
+the bounded two-population live test pass. The audit remains exactly 9 groups /
+15 trajectories, 43.5 minutes, approximately 27.24 GB, and no downstream
+stage is chained. Config SHA-256 is
+`c6f7b0bbc6f85f9906b3f6a0fe245a88771e7b09b0a9328246aef5cf37aba3b9`.
+
+### Sixth detached launch FAIL/HOLD and bounded traffic-contract repair
+
+The `20260818_064204_audit` replacement is excluded. Its curbside matched pair
+passed, but the signalized positive arm stopped before capture because
+Town10HD's native spawn catalog provided only two route-corridor positions for
+the requested four vehicles. Retrying that seed could not repair a deterministic
+capacity mismatch. Subsequent bounded motion tests also exposed three latent
+issues that a spawn-only check could not see: an unbalanced route prefix could
+place four of six vehicles on one lane; the open 48 m midblock paths wrapped
+their endpoints into illegal U-turns; and the speed-only gridlock metric called
+a registered pedestrian/vehicle yield a traffic jam.
+
+The repair keeps the frozen density counts and the zero-collision/persistent-
+stall gates. Reviewed route samples now provide the fallback spawn pool with
+separate same-route and cross-route clearances, deterministic phase search, and
+a balanced requested prefix. Pedestrian crossings protect intermediate path
+samples as well as endpoints. The registered hazard reserves its crossing or
+conflict corridor, and each such causal yield is logged; only explicitly
+attributed registered-hazard intervals are excluded from the ambient-gridlock
+dwell, while raw stopped-network dwell, collisions, and unexplained stalls are
+still reported and gated. The midblock family retains its reviewed 48 m local
+spawn support but uses two byte-hashed 168 m legal CARLA-lane motion routes, so
+no 12 s cell reaches an artificial endpoint wrap. A bounded shared placement
+barrier tolerates CARLA's delayed frozen-ego transform realization, and one
+recorded post-RELEASE tick realizes NPC physics before scenario/capture motion.
+
+Evidence `/tmp/phase2_route_spawn_motion_live_v20` passed signalized, dense
+midblock, and parked-pullout motion cells with zero collision incidents and no
+unattributed persistent gridlock. During the fourth queue-reveal setup CARLA
+itself terminated with `std::exception`; the population client then lost its
+RPC connection and could not clean actors. No queue verdict exists, and the
+full audit remains **HOLD**. CARLA must be restarted and only the prepared
+queue-reveal motion cell rerun before any full detached audit. Offline status is
+**104/104 data-collection tests PASS** and **81/81 Phase-2 tests PASS**, plus
+compilation and diff hygiene. No corpus, replay, OAI, controller, or RL stage is
+authorized by these preflights.
+
+### Queue-reveal gate closed after full swept-corridor reservation
+
+After the Epic Town10HD_Opt server restart, the prepared queue-only cell first
+reached the traffic-sanity gate and exposed one real integration collision. An
+ambient Patrol had been initialized 5.5 m ahead of the controlled Sprinter,
+inside the Sprinter's byte-frozen curb-exit route. When the designed five-second
+hold expired, the Sprinter entered that occupied corridor. This does not
+invalidate the manually accepted ego/hazard geometry; the manual viewer had no
+full 6-vehicle/36-walker ambient population. The missing contract was that an
+owned moving actor's **entire future swept route**, not merely its initial pose
+and final conflict point, must be excluded from ambient spawning.
+
+`ResolvedScenario.protected_locations` now includes every frozen queue-member
+route point. A live read-only capacity calculation proved this does not weaken
+the dense cell: it leaves exactly six legal, balanced ambient vehicle positions.
+The next queue run completed 120/120 frames with six vehicles and 36 walkers,
+zero collisions, no unexplained persistent gridlock, and zero leaked actors.
+Evidence is `/tmp/phase2_route_spawn_motion_queue_live_v23/summary.json`.
+
+One intervening setup attempt received CARLA 0.10's bare `std::exception` while
+waiting for a newly created walker controller to become visible. The server
+remained responsive and the world cleaned successfully. The derived wrapper
+now retries only that exact transient at most three times; descriptive timeout,
+clock, and RPC failures remain fatal. This is regression-tested and does not
+change single-sync-ticker ownership.
+
+The final bounded positive/benign queue pair is
+`/tmp/phase2_route_spawn_motion_queue_pair_live_v24/summary.json`. Both arms
+pass traffic sanity with zero collisions and clean postflight actor counts. The
+production matched-realization gate compares all 42 ambient actors and passes
+with exact type/role/motion-contract identity, 0.000 m maximum horizontal
+error, and 0.000 degrees maximum yaw error. Validation is now **105/105
+data-collection tests PASS** and **81/81 Phase-2 tests PASS**, plus compilation
+and diff hygiene. The queue blocker is closed; this evidence authorizes only a
+fresh detached calibration-audit attempt, not any downstream replay, OAI,
+controller, or RL stage.
+
+### Seventh detached launch invalid: population child exit fabricated gridlock
+
+The `20260818_081333_audit` batch is excluded and stopped at the signalized
+positive arm. Its reported `persistent_network_gridlock` is not a physical
+traffic result. The population reached a valid 4-vehicle/24-walker RELEASED
+barrier, but the unmodified advisor main loop then received CARLA 0.10's bare
+`std::exception` from a direct `world.wait_for_tick()` outside the population
+manager. Its ownership cleanup immediately destroyed the ambient population.
+The audit did not yet poll child liveness during capture, and the traffic
+monitor accepted CARLA tombstone actor proxies: after one valid frame, all four
+vehicles were recorded at exactly `(0, 0, 0)` with zero speed for 119 frames.
+That manufactured the 12.0 s stopped-network dwell. The independent collector
+truth likewise contains these ambient IDs only on the first frame. Therefore
+neither the gridlock label nor this trajectory's ambient-context perception
+data is valid; it cannot be salvaged or cited.
+
+The derived wrapper now returns a delegating CARLA client/world proxy to the
+advisor reference so **every** external-follower wait—including the advisor's
+released maintenance loop—uses the same exact-exception, maximum-three-attempt
+retry. Descriptive timeouts and RPC failures still abort. The audit polls the
+population process before and after every capture tick and fails immediately on
+an unexpected exit. The traffic monitor also rejects dead actor proxies rather
+than converting their zero-valued tombstones into stopped vehicles.
+
+The exact failed signalized positive row was then rerun as a bounded 12 s,
+sensor-free liveness/motion test. Evidence is
+`/tmp/phase2_signalized_population_liveness_live_v25/summary.json`. The child
+remained alive and exited cleanly; all four vehicles were observed on all 120
+frames (480/480 valid `world_snapshot` samples), collision count was zero,
+persistent stopped-network dwell was only 0.3 s, the controlled pedestrian
+completed, and postflight actor counts were all zero. Thus this failure was an
+orchestration defect, not evidence that the signalized scenario, traffic
+density, Phase-2 design, or cooperative-perception question is infeasible.
+No replacement long audit was launched automatically.
+
+### Eighth detached launch FAIL/HOLD: open-route wrap was a real ambient-controller defect
+
+The `20260818_082920_audit` batch is excluded. Its first curbside positive row
+completed capture but correctly failed the zero-collision gate. This was not a
+false collision callback: ambient vehicles 931 and 932 hit Town10HD_Opt
+`static.truck` / `static.car` props. Their realized traces confirm the attached
+LOCAL review's primary diagnosis. `direct_loop` interpreted the reviewed 51 m
+and 81 m **open** curbside polylines as cycles; at the terminal waypoint the
+modulo index jumped to waypoint zero and commanded a hard U-turn. One vehicle
+then curved off-lane into a parked truck and the other stalled against a parked
+car. The zero-collision gate is retained unchanged.
+
+The wider review also found validity bugs that make another full retry unsafe.
+Cached `world.get_actor(id)` tombstones could masquerade as live zero-pose
+traffic; the sparse two-NPC cell could never meet the old four-NPC gridlock
+minimum; one frame-global registered-hazard flag could exempt unrelated stalled
+NPCs; and ego/controlled-actor contacts were reported under an NPC-only label.
+These are repaired at the evidence boundary. Every frame now requires each
+ambient ID in the authoritative full world vehicle inventory. Registered-hazard
+yield is attributed per NPC, and gridlock is computed from the fraction of
+*unattributed* stopped NPCs. The sparse minimum is two. Path distance per actor
+is reported. Collision evidence records whether the sensor owner is ambient or
+scenario-owned and uses the generic owned-actor failure label. The open-route
+tangent calculation no longer wraps at its endpoint, and legacy direct-route
+control can only wrap a geometrically closed route; an open route brakes at its
+end rather than turning back through the scene.
+
+More importantly, exact waypoint following is not scientifically required for
+ambient traffic. It was copied from the two research egos, whose manually
+validated paths must be exact, into NPCs whose job is natural context. The audit
+therefore keeps the helper/recipient direct controllers unchanged but moves
+ambient vehicles to Traffic Manager autonomous lane following. TM is activated
+only after the existing deterministic READY/RELEASE acknowledgement and before
+one fixed realization tick. Held-pair provenance records
+`runner_owned_tm_autonomous` and its target speed, so positive/benign arms still
+share the same pre-motion state and motion contract.
+
+A new bounded `run_phase2_traffic_preflight.py` runs the exact audit scenarios,
+seeds, controlled actors, ambient populations, 120 ticks, liveness, collision,
+gridlock, matched-pair, and cleanup gates **without sensors or model capture**.
+It writes a plan, progress log, per-cell evidence, summary, and PASS/FAIL
+sentinel. This is now mandatory before another 43.5-minute calibration audit:
+first replay the exact failed curbside row, then all 15 audit rows. Offline
+validation is **113/113 data-collection tests PASS**, audit config validation
+PASS, compilation PASS, and diff hygiene PASS.
+
+The exact-row preflight has not produced a traffic verdict yet. The current
+CARLA server began returning bare `Operation aborted` for every connection
+attempt before world setup; no scenario actor or capture process was started.
+One incomplete preflight directory contains only its immutable plan/config and
+is not evidence. **HOLD remains** until an Epic Town10HD_Opt restart and the
+exact-row plus all-cell traffic preflights pass. No full audit or downstream
+stage is authorized.
+
+### Exact failed-cell TM preflight PASS; all-cell traffic sweep authorized
+
+After an Epic Town10HD_Opt restart, the exact previously failing curbside
+positive row passed the new sensor/model-free traffic preflight at
+`data_collection/experiments/phase2_traffic_preflight_v1/20260818_021947_preflight`.
+The evidence is substantive rather than sentinel-only: both ambient vehicles
+are present in the authoritative world snapshot on all 120 frames (240/240
+rows), the controlled pedestrian completes, collision callbacks are zero,
+unattributed network-gridlock dwell is 0.2 s, the population child exits zero,
+and postflight vehicle/walker/controller/sensor counts are all zero. The held
+signature records `runner_owned_tm_autonomous` at 8.0 m/s.
+
+The old U-turn is absent. The taxi travels 25.41 m with 25.37 m net progress,
+never leaves native driving road/lane 10/2, and stays within 0.267 m of lane
+centre. The Dodge travels 5.68 m monotonically on road/lane 7/2, stays within
+0.142 m of lane centre, and has no collision. Its 8.8 s stop was checked rather
+than waved through: the terminal waypoint has a traffic-light landmark 6.67 m
+ahead, so this is a lawful signal stop, not contact with the adjacent parked
+map car or a controller stall. One signal-stopped vehicle does not meet the
+pre-registered 75% network-gridlock condition and is valid natural traffic.
+
+This closes only the exact regression cell. It authorizes the **15-cell
+traffic-only preflight sweep** so every geometry, density, hazard/benign pair,
+and naturalistic row is checked under the new ambient motion owner. It does not
+yet authorize the full perception calibration audit or downstream work; those
+remain held until the all-cell summary and six matched-pair checks pass.
+
+### Cross-traffic READY blocker repaired; matched positive/benign pair PASS
+
+The first 15-cell traffic sweep stopped at
+`sa_occluded_cross_traffic_vehicle_low_short_r00_pos` before RELEASE. The two
+native catalog points passed route/protection filtering but were only 4.13 m
+apart. Sparse traffic requires 12 m vehicle clearance, so the advisor could
+realize only one of the nominal two slots. This was primarily a disagreement
+between the capacity gate and the spawner's mutual-NPC clearance—not a
+post-RELEASE TM-motion failure and, for these exact two points, not direct
+exclusion by a staged ego/controlled actor.
+
+The native branch now applies the same ordered pairwise-clearance admission
+used by initial vehicle spawning before testing capacity. It therefore reports
+`native_corridor=2`, `native_eligible=1` and selects the reviewed route-derived
+fallback with five legal candidates. An offline audit of all 15 frozen cells
+shows sufficient selected capacity for every density/geometry. A deterministic
+pre-READY vehicle deficit can no longer spin silently for 60 s: after five
+unchanged reconciliations, the child writes a structured
+`population.failed.json` with observed/target counts, candidate source and
+clearance, and the parent surfaces that cause immediately.
+
+The isolated positive run passed at
+`data_collection/experiments/phase2_traffic_preflight_v1/20260818_024647_preflight`.
+The decisive matched pair then passed at
+`data_collection/experiments/phase2_traffic_preflight_v1/20260818_024755_preflight`.
+Both arms reached 2/2 vehicles and 12/12 walkers, had zero collisions and no
+persistent gridlock, observed both NPCs on native driving lanes for all 120
+frames with maximum lane-centre offsets below 0.281 m, exited the population
+child cleanly, and left zero dynamic actors. All 14 held actors match across
+positive/benign arms with exact type/role/motion identity, 0.000 m pose drift,
+and 0.000 degrees yaw drift. Offline validation is now **116/116
+data-collection tests PASS**, plus compilation and diff hygiene.
+
+The cross-traffic blocker is closed symmetrically. The full 15-cell
+traffic-only preflight remains the next gate; the calibration audit and every
+downstream perception/OAI/controller/RL stage remain held until its single
+summary and all six designed matched-pair checks pass.
+
+### Full 15-cell traffic preflight PASS; calibration audit authorized
+
+The complete traffic-only gate passed at
+`data_collection/experiments/phase2_traffic_preflight_v1/20260818_025002_preflight`.
+This is a full evidence pass, not only a completion sentinel: all 15/15 frozen
+trajectories pass both traffic sanity and native-lane motion gates; all 15
+population children exit zero; every postflight vehicle, walker, controller,
+and sensor count is zero; and actor observation coverage is 100% overall and
+per NPC. Across the stage there are zero collision incidents, maximum
+unattributed persistent-gridlock dwell is 0.3 s, and the largest observed NPC
+lane-centre offset is 0.281 m against the 1.5 m gate.
+
+All six designed positive/benign groups pass the held-realization contract.
+The compared ambient populations contain 14, 14, 42, 28, 42, and 28 actors,
+respectively; every pair has exact type/role/future-motion identity, 0.000 m
+maximum horizontal drift, and 0.000 degrees maximum yaw drift. The three
+naturalistic rows also pass independently. Thus the TM-autonomous ambient
+motion repair, route-derived capacity fallback, swept-hazard reservation, and
+matched READY/RELEASE barrier are jointly validated across every frozen
+geometry and density.
+
+The detached calibration-audit launch preflight also passes: 9 groups / 15
+trajectories, estimated 43.5 minutes and 27,238,506,000 heavy bytes, with an
+80 GB stage hard cap. Current free space is approximately 1.217 TB versus the
+580 GB launch requirement and 500 GB retained free-space floor, so no old-data
+deletion is justified. Config/hash validation and diff hygiene pass. This
+authorizes the **detached Phase-2 calibration audit only**. It does not
+authorize OAI, validation/test collection, controller evaluation, or RL; the
+audit remains fail-fast and stops for human review at its completion/failure
+sentinel.
+
+### 2026-08-18 — Post-PASS audit failures exposed a matched-future design error; deterministic replay repair ready for live validation
+
+The traffic-only PASS established that each arm could run independently, but it
+did **not** establish the stronger counterfactual requirement that a positive
+and benign arm realize the same ambient future. The subsequent full audit made
+this distinction decisive. In the curbside pair, identical held actors and
+identical `runner_owned_tm_autonomous` metadata produced incompatible outcomes:
+the positive NPCs advanced about 25 m, while the benign NPCs remained nearly
+stationary and tripped the persistent-gridlock gate. Earlier signalized failures
+showed the same mechanism through junction reservations and mutually yielding
+approaches. Traffic Manager acknowledgement proves registration, not a fixed
+trajectory. Therefore a pre-motion spawn signature is insufficient evidence
+for a matched counterfactual corpus.
+
+The paired-audit implementation now removes Traffic Manager from post-RELEASE
+ambient motion. The sole synchronous owner constructs an immutable native-lane
+trace for every ambient vehicle, advances it kinematically at 4.0 m/s on the
+10 Hz clock, and records the trace hash, ID-free replay identity, tick index,
+distance, and realized pose. The 80 m trace horizon covers the 48 m capture
+distance with more than the required 10 m reserve. A pre-capture full-horizon
+clearance audit rejects ambient-ambient or ambient-static-occluder approaches
+below 4 m before sensor capture begins. Replay speed is no greater than either
+ego target speed, so an ambient vehicle spawned behind an ego cannot consume
+the protected rear gap during the 12 s window. The controlled ego/target safety
+shields remain unchanged; no timeout or collision escape was added.
+
+Matched positive/benign background walkers are held stationary, while the
+registered positive-arm pedestrian remains dynamic. This removes random
+navigation from the counterfactual background without erasing the hazard.
+Naturalistic rows still use the 1--2 m/s walker-AI contract so the honest
+denominator is not converted into a static-pedestrian scene. The RELEASED
+manifest reports allocated versus actually started walker controllers and the
+exact vehicle/walker motion modes.
+
+Pair verification now has two mandatory layers. The existing held XY/yaw/type/
+role/motion signature remains the initial-state gate. A new full-trajectory gate
+then compares all 120 frames for **both vehicles and walkers**, independent of
+CARLA actor IDs, and requires the same replay-plan hash plus at most 0.02 m XY,
+0.02 m Z, and 0.001 m/s speed error. The traffic-only preflight applies this
+same full-trajectory gate, so a long sensor run cannot be authorized by an
+initial-state-only PASS again.
+
+The inherited speed-unit bug is also corrected: CARLA Traffic Manager's
+`set_desired_speed` receives km/h, so SI contract values are multiplied by 3.6
+at both call sites. TM is not active in the paired audit, but leaving this bug
+would make compatibility/fallback paths misleading. The detached launcher now
+requires a child-created plan/progress/failure artifact within 15 s; a returned
+PID alone is no longer reported as a successful launch.
+
+Current status is **OFFLINE READY, LIVE UNVALIDATED**. Data-collection tests are
+121/121 PASS and Phase-2 tests are 81/81 PASS; compilation, config/dry-run
+resolution, bounded launch validation, and diff hygiene pass. No CARLA run was
+launched during this repair. The next and only authorized live step is a short
+matched curbside-plus-signalized traffic preflight with human visual inspection
+of vehicle grounding/lane motion and static matched-background pedestrians.
+Only if both full-trajectory pair gates pass should the 15-cell traffic sweep be
+run; the full perception audit remains held until that sweep passes. The two
+controlled approach lights remain a documented experimental intervention
+(forced green for direct-controlled research egos), not a claim of natural
+signal phasing; because ambient vehicles no longer use TM, that intervention
+cannot create the former ambient junction deadlock.
+
+### Deterministic replay visual preflight stopped on an inconsistent private tolerance; repaired
+
+The bounded deterministic replay reached the held-population settlement stage
+and then failed before `READY` on actor 1964 with `xy_error=0.007335 m` and
+`yaw_error=0.024307 degrees`. This is not a traffic-motion or matched-future
+failure. The child wrapper had a private hard-coded `0.020 m / 0.020 degree`
+post-transform check, while the preregistered initial-realization contract used
+by both the preflight and audit is `0.10 m / 0.10 degree`. CARLA's readback was
+well inside the scientific gate but 0.004307 degrees above the hidden yaw
+threshold.
+
+The wrapper now receives the registered initial-realization tolerances from the
+resolved audit config and uses those same values for its pre-`READY` pose
+retention check. The historical rich-corpus command path remains compatible via
+the same 0.10 defaults. The error message now prints both observed errors and
+configured limits. A regression reproduces the exact 0.007335 m / 0.024307
+degree observation and proves it is admitted by the 0.10 contract while still
+exposing that it would have failed the obsolete 0.020 check. Focused tests,
+the full **122/122 data-collection** suite, the full **81/81 Phase-2** suite,
+compilation, two-trajectory dry-run resolution, and diff hygiene pass.
+
+This aligns two implementations of one frozen contract; it does not weaken a
+scientific gate after observing an outcome. The downstream positive/benign
+initial-realization comparison and the stricter full-trajectory replay gate
+remain unchanged. The only next live action is still the bounded visual
+preflight, not the calibration audit.
+
+### 2026-08-18 — CODEX: split the ambient-traffic contract by evidence role; offline implementation ready
+
+The deterministic moving-replay repair was internally coherent, but it was the
+wrong abstraction to keep extending. We were asking one ambient controller to
+provide two incompatible properties: an identical positive/benign future for a
+causal contrast and ordinary interactive traffic for the naturalistic
+denominator. The repeated deadlock, collision, endpoint, and microscopic pose
+failures were therefore design feedback, not evidence that CARLA could not
+support the Phase-2 corpus. The visually accepted research-actor scenarios did
+not require us to control every background actor's future.
+
+The calibration runner now has two explicit, non-poolable ambient evidence
+layers:
+
+- `designed_frozen` applies to controlled-positive and matched-benign twins.
+  The helper, recipient, registered hazard, and scenario-owned occluder retain
+  their reviewed motion. Background vehicles and walkers are frozen after the
+  held-spawn barrier. Initial sparse/typical/dense context is 2/0, 4/2, and 6/4
+  vehicles/walkers. Static vehicle centers must be 5--20 m from either reviewed
+  route centerline and must come from CARLA's native spawn catalog; route-
+  derived fallback is disabled so a static actor cannot be synthesized on the
+  ego path. Full-frame ID-free pose/plan equality remains mandatory. CARLA Z
+  suspension settling is a bounded diagnostic at 0.25 m; XY stays at 0.02 m
+  and speed at 0.001 m/s. Declared stationary actors are not tested for
+  "gridlock", but actor liveness, every-frame observation, and zero collision
+  remain hard; cumulative stationary-actor path above 0.05 m is also fatal.
+- `naturalistic_tm` applies only to unpaired naturalistic trajectories. It
+  uses the advisor's safe blueprints, ordinary Traffic Manager motion, and
+  walker AI, with initial 6/4, 10/8, and 15/12 vehicle/walker targets. Its
+  0--30 m corridor may use the reviewed-route fallback. Collision, liveness,
+  lane, and persistent-gridlock checks remain hard; there is deliberately no
+  cross-arm ambient-future equality claim.
+
+Every plan, trajectory result, and traffic preflight result records the layer,
+evidence role, counts, and vehicle/walker motion contracts. The shared monitor
+now supports `stationary_context`, emits stable ID-free identities and hashes,
+keeps actors physics-disabled, and makes only the stopped-network test non-
+applicable. The ordinary TM activation path is unchanged and still uses the
+acknowledged batch barrier. The production config rejects an inverted layer
+map, missing density table, incorrect motion mode, unsafe route offset, or an
+attempt to enable route-derived fallback for designed static context.
+
+No CARLA run was launched. Offline evidence is: config/dry-run PASS for the
+frozen 9-group/15-trajectory audit; Python compilation PASS; focused Phase-2
+calibration/preflight tests **38/38 PASS**; and the shared advisor/vehicle
+corpus regression suite **42/42 PASS**. The complete data-collection suite is
+**123/123 PASS** and the Phase-2 map-sharing suite is **81/81 PASS**. The next
+live action is deliberately
+small: visually inspect one designed static-context cell and one naturalistic-
+TM cell, then run only one designed positive/benign pair plus one naturalistic
+traffic preflight. The 15-cell traffic preflight and sensor-bearing calibration
+remain held until those two evidence modes pass separately.
+
+### 2026-08-18 — CODEX correction after `124613`: Suite A now reproduces the reviewed scenario exactly
+
+The bounded preflight at
+`data_collection/experiments/phase2_traffic_preflight_v1/20260818_124613_preflight`
+failed before `READY` and before any scenario/perception evidence was collected.
+The new 5--20 m off-route native-catalog rule found zero eligible vehicle spawn
+points for the curbside geometry (`eligible=0`, `required=2`). This was a
+deterministic design error in the just-added static-context proposal and should
+have been eliminated before operator handoff. Enabling the route-derived
+fallback or shrinking the 5 m exclusion would merely place a frozen car on or
+near the ego route, recreating a roadblock; neither is an acceptable repair.
+
+The corrected Suite-A contract is now **scenario-owned only**. Designed
+positive/benign rows launch no generic traffic process and request zero ambient
+vehicles and walkers. They contain exactly
+the manually reviewed helper, recipient, occluder, and treatment-specific
+registered hazard. Suite-A manifest rows now say
+`traffic_density=not_applicable`, `ambient_population_mode=scenario_owned_only`,
+and `ambient_population_process_required=0`; moving-traffic density and the
+naturalistic denominator remain Suite B's job at 6/4, 10/8, and 15/12 vehicle/
+walker targets. If explicit distractor competition is later necessary, it must
+be added through preregistered scenario-owned transforms and visual review, not
+random catalog placement.
+
+The runner and traffic preflight now skip the population subprocess plus READY/
+RELEASE handshake for Suite A, record
+`ambient_population_mode=scenario_owned_only`, and continue to attach collision sensors to both egos and
+all scenario-owned actors. A real latent bug was repaired at the same time:
+traffic sanity no longer returns early when the ambient-NPC ID set is empty, so
+an ego/occluder/hazard collision is still fatal. The matched-pair gate now
+requires equal ID-free initial signatures for the helper, recipient, and non-
+treatment occluder. Empty ambient trajectory files pass only when **both** arms
+declare the preregistered scenario-owned-only mode; undeclared empty or one-
+sided-empty evidence fails. Naturalistic rows retain the unchanged external
+population, Traffic Manager activation, collision, liveness, lane, gridlock,
+and cleanup paths.
+
+No replacement CARLA run was launched. Compilation and config/dry-run
+validation pass; the focused calibration/preflight suite is now **41/41 PASS**,
+including zero-ambient collision enforcement, explicit empty-pair admission,
+one-sided-empty rejection, and plan-level proof that designed rows do not
+launch population while naturalistic rows do. The next live command remains a
+three-trajectory visual gate, but its designed pair can no longer reach the
+failed spawn-catalog code path.
+
+The machine-readable design was regenerated rather than leaving stale density
+labels behind. Every Suite-A row now carries
+`traffic_density=not_applicable`, `traffic_density_status=not_applicable`,
+`ambient_population_mode=scenario_owned_only`, and
+`ambient_population_process_required=0`; every Suite-B row carries
+`ambient_population_mode=naturalistic_tm` and
+`traffic_density_status=realized_nuisance_factor`. The runtime validates those
+columns before CARLA and refuses to construct a generic population command for
+a Suite-A row. The regenerated design/config hashes are pinned by the audit
+config. Broader offline regression is **126/126 data-collection tests** and
+**82/82 Phase-2 map-sharing tests**, with `git diff --check` clean.
+
+### 2026-08-18 — LIVE confirmation: scenario-owned Suite-A pair passes
+
+The bounded designed-pair preflight at
+`data_collection/experiments/phase2_traffic_preflight_v1/20260818_140452_preflight`
+is a verified **PASS**, not merely a completion-sentinel claim. Both requested
+120-frame trajectories completed. Each recorded
+`ambient_population_mode=scenario_owned_only`, zero generic vehicles/walkers,
+`population_command=null`, zero collision callbacks/events, a passing lane
+gate, and zero postflight vehicles, walkers, controllers, or sensors. The
+matched-pair owned non-treatment check compared the helper, recipient, and
+curbside occluder with exact type/role identity and observed 0.0 m XY and 0.0
+degree yaw differences. The deliberately empty generic-ambient trajectory
+comparison passed only under its explicit scenario-owned-only basis.
+
+This closes the designed-pair traffic preflight. It does not yet validate the
+separate naturalistic Traffic Manager layer or authorize sensor-bearing
+calibration; one sparse unpaired Suite-B cell remains the next bounded gate.
+
+### 2026-08-18 — LIVE confirmation: naturalistic Suite-B cell passes
+
+The separate sparse naturalistic preflight at
+`data_collection/experiments/phase2_traffic_preflight_v1/20260818_140726_preflight`
+is also a verified **PASS**. It realized the requested 6 Traffic Manager
+vehicles plus 4 walkers/controllers (10-entry held spawn signature), observed
+all 6 vehicles over all 120 frames, and exited the population process with code
+0. Median NPC speed was 4.07 m/s, persistent stopped-network dwell was only
+0.1 s, and collision callbacks/events were both zero. Every vehicle stayed on
+a native driving lane for 120/120 frames, the worst lane-centre offset was
+0.521 m against the 1.5 m gate, and postflight dynamic actor/sensor counts were
+all zero.
+
+Both traffic evidence layers are therefore live-validated separately. Because
+the next sensor-bearing audit is approximately 43.5 minutes and prior failures
+occurred at integration boundaries, the next gate is a three-trajectory
+sensor-bearing regression subset: the same designed pair plus this naturalistic
+row. Its detached launch spec validates at 3 trajectories / 2 groups, an
+estimated 8.7 minutes, 1.207 TB free versus the 580 GB preflight requirement,
+no OAI, and no chained stage. The full 15-trajectory calibration audit remains
+held until this subset's retained inputs, logits, causal records, perception
+verification, pair gate, quota, and cleanup all pass.
+
+### 2026-08-18 — CODEX correction: audit replay declaration reconciled to the binding 72-setting freeze
+
+The audit's `4 x 3 x 2 x 4 = 96` declaration was an implementation drift from
+`WARNING_EVALUATION_DESIGN_FREEZE.md`, not a new design decision. The active
+audit configuration now fails closed on the frozen 72-setting recipient-map
+surface: warning-emission confidence floor `{0.05, 0.10, 0.15, 0.20}`, association base gate
+`{2, 3, 4}` m, map-track TTL `{0.5, 1.0}` s, and warning uncertainty
+multiplier `{0, 1, 2}`. The source detector candidate floor is fixed at 0.05;
+the source-local causal tracker is fixed at 5 m association and three missed
+frames. Neither source setting is replayed or tuned. Future collector commands
+pin the tracker values explicitly instead of relying on parser defaults.
+
+The accepted `20260818_230028_audit/resolved_config.yaml` is deliberately
+unchanged. It is immutable capture provenance for the earlier accidental
+declaration, and its PASS did not execute any replay setting. The retained
+candidate detections and fixed source tracks still cover the binding map floors
+starting at 0.05, so the batch can be replayed under the corrected 72-point
+contract without recollection. Historical REVIEW_NOTES references to a
+96-setting grid describe that superseded capture declaration only.
+
+### 2026-08-18 — CODEX preregistration note: route-indexed channel field, after the offline C2 gate
+
+Abiodun's suggestion to assign radio conditions to locations along the CARLA
+route is sound and matches the mechanism used by SCAN-AI: a position-indexed
+SNR field is evaluated along the driven route and the corresponding condition
+is applied to the OAI RF simulator at runtime. It is deliberately **not** part
+of the current 72-setting offline replay. The order remains: finish the local
+replay-sufficiency decision, calibrate dynamic OAI switching with shaped
+traffic, replay identical Phase-2 messages through OAI, and only then add the
+spatial field.
+
+The initial spatial map is hidden environment truth, not a source of realized
+future SNR for the policy. The causal controller continues to observe only
+network fields available by its decision time. A deployable route-ahead radio
+environment-map input may be evaluated later as a separate proactive-policy
+ablation; it must expose a predicted mean, uncertainty, and time-to-fade rather
+than future ground truth, and must be tested under localization and map error.
+The route contract should index arc length and position and record the link,
+requested channel state, empirically observed PUSCH SNR/MCS/service response,
+LOS/NLOS label, uncertainty, and map/calibration hashes. A telnet acknowledgement
+is not proof that the condition took effect, and helper and recipient links must
+be verified separately.
+
+The causal experiment is counterbalanced within a frozen trajectory cluster:
+hazard present versus matched benign, crossed with a fade overlapping the
+warning-critical interval versus the same fade shifted away from that interval.
+Route, sensing inputs, traffic, offered load, OAI configuration, and seeds stay
+paired. We need both controlled trace shifts for attribution and an unmodified
+Sionna route map for geographic realism; the realistic map alone may confound
+physical occlusion and RF shadowing. Core traces are stable good, stable
+near-knee/bad, good-to-bad-to-recovery, and burst/queue recovery, with an
+intermediate condition held out. This later stage is useful only if earlier
+choices measurably change later queue or map freshness and a causal look-ahead
+baseline beats myopic control beyond uncertainty; otherwise it is not an RL
+motivation result.
+
+### 2026-08-18 — CODEX human gate: replay/integrity PASS; warning-design readiness FAIL-HOLD
+
+The immutable three-trajectory replay at
+`data_collection/experiments/phase2_calibration_replay_v1/20260818_235054_replay`
+finished normally. `COMPLETED.json` is present, `FAILED.json` is absent, all 72
+registered settings completed, and all integrity gates pass. The run reproduced
+240 retained decode frames / 1,612 detections, verified six source-tracker
+streams, kept 216 counterfactual arm states isolated, and emitted 648 arm-metric
+rows plus 229,716 adjudicated warning rows. All 625 capture artifacts, external
+checkpoints, runtime artifacts, and result-defining dependencies were unchanged.
+This is an **execution and replay-sufficiency PASS only**; the result itself
+states that parameter selection and C2 claims are not authorized.
+
+The human scientific gate is a **warning-design FAIL-HOLD**. On the matched
+benign trajectory, the best false-warning-active-frame rates over the frozen
+surface are 18.57% for ego-only, 45.71% for send-everything, and 55.71% for
+hazard-only; zero of 72 settings reaches the registered 10% ceiling in any arm.
+The observed episode-rate minima are 8.57/minute, but each trajectory supplies
+only 70 fully adjudicable frames / 7.0 seconds after the five-second future
+horizon, so this tiny audit cannot estimate a one-per-minute tail rate with
+useful power. The naturalistic row points in the same direction (best active
+rates 8.57%, 11.43%, and 15.71%, respectively). This is a structural screen
+failure, not a powered rejection of all possible operating points.
+
+Sensitivity is present: every setting warns on the registered pedestrian.
+The least-nuisance cooperative family (`c20_a{20,30,40}_t05_u00`) provides a
+2.6 s target lead for send-everything and hazard-only, but at the unacceptable
+45.71% / 55.71% benign active rates above. Lower-confidence settings can show
+larger apparent lead, although the largest 5.3–5.9 s send-everything values
+begin in future-censored frames; measuring from the first truth-hazard-positive
+frame caps that lead at 4.5 s. Hazard-only transmits 784,800 application bytes
+versus 3,221,362 for send-everything, a descriptive 75.64% reduction, but these
+are loopback/application bytes rather than measured OAI bytes and are not C2
+evidence.
+
+The surface is pinned to its most conservative boundaries: confidence 0.20,
+TTL 0.5 s, and warning uncertainty multiplier 0. Association 2–4 m is almost
+inert. Increasing TTL or the uncertainty multiplier adds nuisance without
+enough useful lead. Across the replay, eligible warning errors are classified
+as unmatched-object warnings rather than matched actors that are future-safe.
+However, actor-origin truth may omit static Town10 vehicle/obstacle props, so
+`unmatched` is not yet proof of a hallucination. That truth-completeness check
+is blocking before blaming or retraining the detector.
+
+The diagnostics also expose severe source-track churn relative to the sparse
+scene, rapid map expiry, fragmented target identities, and predominantly
+helper-only excess warnings in the cooperative arms. Plausible causal causes
+are one-step finite-difference velocity, absent track confirmation and
+world-space duplicate suppression, preferential transmission of noisy
+apparent threats, and order-dependent latest-writer fusion when recipient and
+helper updates have equal timestamps.
+
+Therefore hold the full calibration collection, OAI field campaign, C2 study,
+controller ladder, and RL. The next work is bounded and offline on this same
+batch: (1) inspect the highest-frequency unmatched clusters against retained
+imagery and static-object truth; (2) establish a causal v3 confirmed-track
+baseline with duplicate suppression plus smoothed, physically plausible
+velocity; (3) replace latest-writer fusion with an order-invariant,
+source-separated or quality/covariance-aware rule; (4) permit warnings only
+after stable-track confirmation and add persistence/hysteresis; and (5) log
+hit age, innovation, hazard score, births/deaths, expirations, and ID switches.
+Re-run this exact audit with unchanged acceptance gates. Only if nuisance becomes
+plausibly gateable without losing useful target lead should the final schema get
+a minimal OAI timestamp/byte smoke and the staged calibration collection resume.
+
+### 2026-08-18 — CODEX time-box result: v3 reduces nuisance but exposes no causal lead
+
+The bounded repair is complete and stopped at its declared one-setting gate.
+The forensic RGB audit confirms that actor-only truth omits many real parked
+Town10HD vehicles: eight frequent evidence tracks land on visible parked
+vehicles and explain 56/67 unmatched warning rows in the retained overlap.
+Those objects are assigned fictitious motion (for example, a parked taxi at
+`(10.7, -15.1) m/s`), and a duplicate pair marks the same parked car. A
+generous static proxy still leaves most warnings future-safe, so truth
+completion alone cannot rescue the warning surface.
+
+Versioned `source_tracker_v3.py` and `engine_v3.py` add two-hit confirmation,
+world-space duplicate suppression, smoothed/plausibility-bounded motion, no
+missed-observation republication, and order-invariant equal-time fusion. The
+capture-time tracker and v2 engine remain untouched. The exact
+`c20_a30_t05_u00` screen at
+`data_collection/experiments/phase2_warning_repair_screen_v3/20260819_010500_screen`
+finishes with technical PASS but scientific **FAIL-HOLD**. Benign false-active
+rates improve from 18.57/45.71/55.71% to 10.00/25.71/42.86% for
+ego/send-everything/hazard-only, and all arms still detect the target, but both
+cooperative leads become 0 s. Running the same v3 tracks through v2 fusion also
+gives 0 s, proving fusion is not the cause. The old 2.6 s lead depended on noisy
+one-step motion and is not a result to preserve.
+
+No 72-point rerun, collection, OAI, C2, controller, or RL follows. The detailed
+decision and minimum next-scenario contract are in
+`phase2_map_sharing/WARNING_REPAIR_TIMEBOX_DECISION.md`. The next permissible
+live work is only a three-trajectory pilot: a designed positive with at least
+five consecutive helper-only target observations while the pedestrian begins
+hazard-directed motion and the still-occluded recipient remains actively
+approaching, plus at least 1.0 s confirmed visibility margin; its matched benign
+negative; and one naturalistic run. It must capture hashed static-object truth
+and pass the unchanged 0.5 s truth-positive lead, 10% absolute nuisance, and
++2 pp cooperative nuisance gates. Failure stops the direction; success alone
+authorizes staged collection and later network overlays. The replay endpoint
+now requires `truth_hazard_positive == 1` for first-target timing rather than a
+spatial target match alone; this does not change the v3 smoke result.
+
+### 2026-08-19 — CODEX bounded next gate: one decision-opportunity pilot, not another corpus
+
+The next live step is frozen to one three-trajectory pilot and remains blocked
+on human visual acceptance. It reuses the accepted curbside legal-opposing
+geometry and changes exactly one physical treatment: the registered pedestrian
+start delay moves from 3.0 s to 2.0 s. Pedestrian speed (1.3 m/s), helper and
+recipient speeds (4.5/5.0 m/s), routes, transforms, grounded Sprinter, Epic
+rendering, 10 Hz world/sensor clock, and the matched-benign treatment remain
+unchanged. The pilot-only retained raw window is `[3.0, 7.0] s`. The three rows
+are the revised positive, its matched benign negative, and the already reviewed
+signalized-demo naturalistic denominator. Failure stops this direction; success
+authorizes only a reviewed staged-collection decision.
+
+Two evaluation defects are repaired before spending the live run. First, the
+runner now snapshots a create-only, hashed Town10HD `Car`/`Truck`/`Bus` static
+environment catalog before any dynamic actor is spawned. Offline adjudication
+preserves dynamic actor-origin precedence, matches remaining warnings
+one-to-one to verified static objects, and evaluates their OBBs against the
+future ego path; a static match is not automatically hazardous. Second, each
+scenario frame now logs whether the direct-route safety controller yielded to
+a hidden actor and records its first yield time. A cooperative lead is
+creditable only if the helper-derived truth-positive warning occurs before that
+first hidden-GT yield while the recipient is still moving at least 2 m/s. The
+matched-benign recipient path remains the positive's no-target counterfactual
+for future-hazard adjudication.
+
+The fail-closed launcher is
+`data_collection/launch_phase2_decision_opportunity_pilot.py`, with its exact
+contract in `data_collection/configs/phase2_decision_opportunity_pilot_v1.yaml`
+and `phase2_map_sharing/DECISION_OPPORTUNITY_PILOT_V1.md`. Nonlaunching
+validation resolves exactly 3 trajectories / 2 groups, estimates 8.7 minutes
+and 5,447,701,200 retained bytes, and reports about 1.20 TB free. It forbids
+OAI, full-corpus collection, downstream replay, controller evaluation, and RL;
+it will not launch until a real geometry summary proves the exact speeds,
+pedestrian timing, zero collisions, and legal lanes and all operator checks,
+including Epic rendering, are hash-bound into the acceptance record. Full
+offline regression is 154/154 data-collection tests and 123/123 Phase-2
+map-sharing tests, with compilation and `git diff --check` clean. No CARLA or
+OAI run was launched during this implementation step.
+
+The later adjudicators also fail early when pilot/capture/replay provenance
+declares static truth but any trajectory catalog is absent or fails integrity
+verification. Only undeclared historical batches retain actor-only fallback;
+the new pilot can no longer receive a scientific verdict after silently losing
+its static catalog.
+
+### 2026-08-19 — LIVE visual gate PASS: decision-opportunity pilot is launch-ready
+
+Abiodun completed the preregistered 2.0 s curbside visual review at
+`/tmp/phase2_geometry_review_curbside_opposite_positive_20260819_012213` and
+reported that it behaved as expected. Independent inspection of the saved
+summary, 120-frame trace, and paired screenshots agrees. The helper and
+recipient remain on road/lane 17/+1 and 10/-2, respectively; collisions are
+zero; the Sprinter is fixed and grounded; the pedestrian first moves at 2.1 s
+with 1.2695 m/s median moving speed; and neither ego reverses or exhibits an
+implausible route excursion.
+
+The saved paired frame at 4.3 s shows the pedestrian clearly in the helper view
+while the Sprinter hides it from the recipient. The recipient is still moving
+at 4.50 m/s and has not begun its direct-route safety yield. Its first hidden
+walker yield occurs at 4.7 s while it is still moving at 4.09 m/s; the later
+6.9 s frame shows the pedestrian in the recipient view with the recipient
+stopped, and the 12.0 s frame shows normal resumed travel. This is a valid
+visual opportunity, but the saved helper-only frame precedes the hidden yield
+by only 0.4 s. Therefore the review does **not** pre-accept detection,
+confirmation, warning lead, or C2. The instrumented pilot must still prove a
+helper-derived truth-positive warning before 4.7 s and satisfy the registered
+lead/nuisance gates.
+
+The operator acceptance is hash-bound in
+`phase2_map_sharing/geometry_reviews/decision_opportunity_pilot_v1_acceptance.json`.
+The pilot launcher now resolves `validated_ready_not_started`: exactly three
+trajectories / two groups, 8.7 minutes, 5,447,701,200 retained bytes, no OAI or
+downstream chaining. No pilot collection has been launched yet.
+
+### 2026-08-19 — CODEX decision-opportunity pilot: capture PASS, scientific FAIL-HOLD
+
+The bounded three-trajectory pilot completed at
+`data_collection/experiments/phase2_decision_opportunity_pilot_v1/20260819_013333_pilot`.
+This is a clean execution result: all six collectors returned zero; every role
+contains 120/120 lightweight frames and 40 aligned retained input/logit pairs;
+the 10 Hz, 1280x720/FOV-120, radar-radius-4 sensor contract is satisfied; all
+564 role-manifest entries rehash; the positive/benign static catalogs each
+contain the same 123 Town10HD Car/Truck/Bus objects; traffic, collision, quota,
+and postflight cleanup gates pass. No OAI or downstream stage ran.
+
+The create-only, one-setting v3 decision analysis is at
+`data_collection/experiments/phase2_decision_opportunity_analysis_v1/20260819_020611_decision`.
+It replays only `source_local_confirmed_cv.v3` plus `RecipientMapEngineV3` at
+the preregistered `c20_a30_t05_u00` setting, uses static/dynamic truth only
+after causal warning generation, and runs neither a grid nor a baseline
+search. Its technical verdict is PASS, but its scientific verdict is
+**FAIL_HOLD_STOP_NO_DOWNSTREAM**.
+
+The designed positive succeeds and is worth preserving as a result. The
+helper has a 10-frame registered-pedestrian detection run at 2.1--3.0 s and
+confirms the v3 target track at 2.2 s; the recipient confirms at 4.6 s, a
+2.4 s sensing margin. Both cooperative arms emit the same helper-derived,
+truth-positive warning at 2.7 s, versus the ego-only warning at 6.0 s: 3.3 s
+lead. At that cooperative warning the recipient still travels at 4.154 m/s,
+and the warning precedes its first hidden-target safety yield at 4.8 s by
+2.1 s. Registered-target misses are zero in all arms. The scenario therefore
+fixes the earlier sparse/no-opportunity failure; the useful cooperative signal
+is real and causal under the local replay abstraction.
+
+The preregistered benign specificity gates fail. Across 70 full-horizon
+eligible matched-benign frames, false-warning active frames are 3/70 = 4.29%
+for ego-only, 9/70 = 12.86% for send-everything, and 11/70 = 15.71% for
+hazard-only. Cooperative excess is therefore +8.57 and +11.43 percentage
+points, versus the frozen +2 pp limit, and both cooperative arms exceed the
+10% absolute ceiling. All adjudicated benign false warnings are vehicle-class
+and unmatched even after the verified static catalog is applied; helper-only
+evidence contributes materially to the excess. Hazard-only being worse than
+send-everything is a warning that the current apparent-hazard publication
+heuristic preferentially sends noisy threats rather than solving specificity.
+
+The naturalistic run is report-only: each arm has six warning-active frames,
+but all six lack a complete future trajectory and are censored. Its computed
+zero false-warning rate is not evidence of specificity. Episode/minute also
+remains report-only at this exposure.
+
+This result is **not** a general NO-GO on cooperative perception or RL. It is
+a preregistered NO-GO to scaling the current v3 tracker/map-warning/publication
+stack into the full corpus, OAI field test, controller ladder, or RL. The
+positive opportunity now exists, but the cooperative warning rule does not
+yet preserve benign non-inferiority. Per the time-box, do not tune thresholds
+or rerun CARLA on this pilot after seeing the result. The next step is a human
+design decision: either stop this warning-path direction and report the clean
+lead-versus-nuisance trade-off, or preregister a genuinely different
+quality/risk-gated warning design before any further bounded test. The first
+analysis artifact `20260819_020439_decision` used an overly conservative
+exact-frame target-evidence attribution and is superseded by the immutable
+`20260819_020611_decision`; nuisance rates and the FAIL-HOLD verdict are
+unchanged.
+
+Independent adversarial recomputation found no verdict blocker. One caveat
+must travel with the result: static association and future labeling are still
+center-gated rather than a complete OBB/surface-clearance adjudicator. Two of
+the 23 false-warning events lie within 3 m of a static OBB. Even granting both
+events as non-false leaves send-everything at 8/70 = 11.43% and hazard-only at
+10/70 = 14.29%, with +7.14/+10.00 pp excess versus ego-only, so both frozen
+cooperative gates still fail. All 71 consumed-input fingerprints and all 15
+output artifacts rehash; the full Phase-2 map-sharing regression is 127/127.

@@ -44,6 +44,9 @@ from data_collection.phase2_curbside_scenario import (
     wrap_degrees,
     world_transform as _world_transform,
 )
+from data_collection.phase2_calibration_scenario import (
+    direct_route_yield_trace_fields,
+)
 from data_collection.phase2_signalized_corner_scenario import (
     SIGNALIZED_GEOMETRY_ID,
     SIGNALIZED_HELPER_TRANSFORM,
@@ -66,6 +69,12 @@ from data_collection.phase2_midblock_van_scenario import (
     frozen_routes as midblock_frozen_routes,
     line_of_sight_bearings_deg as midblock_line_of_sight_bearings_deg,
     midblock_lane_contract,
+)
+from data_collection.phase2_naturalistic_pair_scenario import (
+    NATURALISTIC_PAIR_CONTRACT_ID,
+    ROUTE_FAMILIES as NATURALISTIC_ROUTE_FAMILIES,
+    point_to_polyline_distance_m,
+    resolve_pair as resolve_naturalistic_pair,
 )
 from data_collection.phase2_cross_traffic_vehicle_scenario import (
     CROSS_TRAFFIC_GEOMETRY_ID,
@@ -127,8 +136,13 @@ LAYOUTS = (
     "cross_traffic_vehicle",
     "parked_vehicle_pullout",
     "queue_reveal_vehicle",
+    "naturalistic_pair",
 )
-SCENARIO_ROLES = ("controlled_positive_occlusion", "matched_benign_negative")
+SCENARIO_ROLES = (
+    "controlled_positive_occlusion",
+    "matched_benign_negative",
+    "naturalistic_operation",
+)
 OCCLUDER_SETTLE_MAX_TICKS = 30
 OCCLUDER_SETTLE_STABLE_TICKS = 3
 OCCLUDER_SETTLE_MAX_XY_DRIFT_M = 0.35
@@ -350,6 +364,12 @@ def main() -> None:
     )
     parser.add_argument("--recipient-spawn-index", type=int, default=55)
     parser.add_argument("--helper-forward-offset-m", type=float, default=10.0)
+    parser.add_argument(
+        "--naturalistic-route-family",
+        choices=tuple(NATURALISTIC_ROUTE_FAMILIES),
+        default="signalized_demo_region",
+    )
+    parser.add_argument("--anchor-id", choices=tuple(f"a{i}" for i in range(6)), default="a0")
     parser.add_argument("--duration-s", type=float, default=20.0)
     parser.add_argument("--tm-port", type=int, default=8010)
     parser.add_argument("--recipient-speed-mps", type=float, default=5.0)
@@ -386,6 +406,10 @@ def main() -> None:
     args = parser.parse_args()
     if bool(args.headless) and bool(args.pose_only):
         parser.error("--headless and --pose-only are mutually exclusive")
+    if str(args.layout) == "naturalistic_pair" and str(args.scenario_role) != "naturalistic_operation":
+        parser.error("naturalistic_pair requires --scenario-role naturalistic_operation")
+    if str(args.scenario_role) == "naturalistic_operation" and str(args.layout) != "naturalistic_pair":
+        parser.error("naturalistic_operation is defined only for naturalistic_pair")
     if str(args.scenario_role) == "matched_benign_negative" and str(
         args.layout
     ) not in {
@@ -408,6 +432,10 @@ def main() -> None:
         parser.error("recipient speed must remain within 1-8 m/s")
     if not 1.0 <= float(args.helper_speed_mps) <= 8.0:
         parser.error("helper speed must remain within 1-8 m/s")
+    if str(args.layout) == "naturalistic_pair" and not math.isclose(
+        float(args.helper_speed_mps), float(args.recipient_speed_mps), abs_tol=1e-9
+    ):
+        parser.error("naturalistic pair requires equal helper/recipient command speeds")
     if float(args.pedestrian_start_delay_s) < 0.0:
         parser.error("pedestrian start delay must be non-negative")
     if not 1.0 <= float(args.pedestrian_speed_mps) <= 2.0:
@@ -456,6 +484,7 @@ def main() -> None:
         "cross_traffic_vehicle",
         "parked_vehicle_pullout",
         "queue_reveal_vehicle",
+        "naturalistic_pair",
     }:
         route_path = None
         route = None
@@ -467,9 +496,26 @@ def main() -> None:
         )
         route = load_route_progress(route_path)
 
-    client = carla.Client(str(args.host), int(args.port))
-    client.set_timeout(float(args.timeout_s))
-    world = client.get_world()
+    client: Optional[carla.Client] = None
+    world: Optional[carla.World] = None
+    last_connection_error: Optional[RuntimeError] = None
+    for _attempt in range(10):
+        candidate = carla.Client(str(args.host), int(args.port))
+        candidate.set_timeout(float(args.timeout_s))
+        try:
+            candidate_world = candidate.get_world()
+        except RuntimeError as exc:
+            last_connection_error = exc
+            time.sleep(0.5)
+            continue
+        client = candidate
+        world = candidate_world
+        break
+    if client is None or world is None:
+        raise RuntimeError(
+            "CARLA geometry-review connection failed after 10 attempts: "
+            f"{last_connection_error}"
+        )
     if not str(world.get_map().name).endswith("Town10HD_Opt"):
         raise RuntimeError(f"expected Town10HD_Opt, found {world.get_map().name}")
     inventory = _dynamic_inventory(world)
@@ -545,6 +591,15 @@ def main() -> None:
         role_routes = queue_reveal_frozen_routes()
         walker_transform = _world_transform(QUEUE_REVEAL_TARGET_TRANSFORM)
         walker_end = None
+    elif str(args.layout) == "naturalistic_pair":
+        geometry_origin = "geometry_only_anchor_contract_frozen_20260818"
+        transforms, role_routes, lane_contract = resolve_naturalistic_pair(
+            world.get_map(),
+            str(args.naturalistic_route_family),
+            str(args.anchor_id),
+        )
+        walker_transform = transforms["recipient"]
+        walker_end = None
     else:
         geometry_origin = f"spawn_index_{int(args.recipient_spawn_index)}"
         spawn_points = list(world.get_map().get_spawn_points())
@@ -607,6 +662,10 @@ def main() -> None:
             _world_transform(QUEUE_REVEAL_TARGET_TRANSFORM),
             role_routes,
         )
+    elif str(args.layout) == "naturalistic_pair":
+        # Already resolved atomically with its byte-hashed route and anchors.
+        if not bool(lane_contract.get("pass")):
+            raise RuntimeError("naturalistic pair contract did not pass")
     else:
         lane_contract = None
     separation = transforms["recipient"].location.distance(
@@ -619,7 +678,11 @@ def main() -> None:
             "phase2_geometry_review_"
             + str(args.layout)
             + "_"
-            + ("positive_" if hazard_present else "benign_")
+            + (
+                "naturalistic_"
+                if str(args.layout) == "naturalistic_pair"
+                else ("positive_" if hazard_present else "benign_")
+            )
             + datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
         )
     )
@@ -640,6 +703,7 @@ def main() -> None:
     walker_started = False
     walker_completed = False
     review_safety_yield_ever = False
+    first_direct_route_yield = {role: None for role in ROLE_ORDER}
     realized_trace = []
     automatic_capture_times_s = (
         (0.5, 1.0, 1.5, 2.0, 3.0, 4.0, 6.0, 8.0, 10.0)
@@ -652,8 +716,28 @@ def main() -> None:
         if str(args.layout) == "queue_reveal_vehicle"
         else
         (2.0, 4.0, 6.0, 8.0, 10.0, 12.0)
+        if str(args.layout) == "naturalistic_pair"
+        else
+        (2.0, 4.0, 6.0, 8.0, 10.0, 12.0)
         if str(args.layout) in {"signalized_corner", "midblock_van"}
-        else (4.5, 6.0, 7.5, 9.0)
+        # The decision-opportunity pilot advances the curbside pedestrian from
+        # 3.0 s to 2.0 s.  Retain views around motion onset and the predicted
+        # helper-only window instead of only after the recipient has yielded.
+        else tuple(
+            sorted(
+                {
+                    max(0.5, float(args.pedestrian_start_delay_s) - 0.5),
+                    float(args.pedestrian_start_delay_s),
+                    float(args.pedestrian_start_delay_s) + 0.5,
+                    float(args.pedestrian_start_delay_s) + 1.0,
+                    float(args.pedestrian_start_delay_s) + 1.5,
+                    float(args.pedestrian_start_delay_s) + 2.0,
+                    float(args.pedestrian_start_delay_s) + 3.0,
+                    6.0,
+                    8.0,
+                }
+            )
+        )
     )
     automatic_captures_written = []
     mailbox = CameraMailbox()
@@ -959,6 +1043,12 @@ def main() -> None:
                 cameras.append(camera)
                 owned.append(camera)
 
+        target_text = (
+            f"recipient_target_distance={transforms['recipient'].location.distance(target_location):.2f}m, "
+            f"helper_target_distance={transforms['helper'].location.distance(target_location):.2f}m, "
+            if str(args.layout) != "naturalistic_pair"
+            else "unforced_naturalistic_no_registered_target=true, "
+        )
         print(
             "Geometry review ready: "
             f"layout={args.layout}, "
@@ -967,9 +1057,8 @@ def main() -> None:
             f"lane_contract_pass={lane_contract is not None}, "
             f"geometry_origin={geometry_origin}, "
             f"separation={separation:.2f}m, "
-            f"recipient_target_distance={transforms['recipient'].location.distance(target_location):.2f}m, "
-            f"helper_target_distance={transforms['helper'].location.distance(target_location):.2f}m, "
-            f"motion={'stationary' if args.stationary else 'direct_role_specific_route'}",
+            + target_text
+            + f"motion={'stationary' if args.stationary else 'direct_role_specific_route'}",
             flush=True,
         )
         if str(args.layout) == "signalized_corner":
@@ -1006,6 +1095,15 @@ def main() -> None:
                 "overall collection remains separately authorized",
                 flush=True,
             )
+        elif str(args.layout) == "naturalistic_pair":
+            print(
+                f"Naturalistic candidate={NATURALISTIC_PAIR_CONTRACT_ID}; "
+                f"family={args.naturalistic_route_family}; anchor={args.anchor_id}; "
+                f"recipient/helper_indices={lane_contract['recipient_start_index']}/"
+                f"{lane_contract['helper_start_index']}; "
+                f"source_sha256={lane_contract['source_route_sha256']}",
+                flush=True,
+            )
         elif str(args.layout) == "queue_reveal_vehicle":
             print(
                 f"Queue-reveal candidate={QUEUE_REVEAL_GEOMETRY_ID}; "
@@ -1028,6 +1126,7 @@ def main() -> None:
         while elapsed_sim_s < float(args.duration_s):
             tick_started = time.monotonic()
             review_safety_yield_active = False
+            controller_roles_ticked = set()
             if (
                 str(args.layout) == "queue_reveal_vehicle"
                 and target_vehicle is not None
@@ -1124,6 +1223,7 @@ def main() -> None:
                         review_safety_yield_ever = True
                         continue
                 controller.tick()
+                controller_roles_ticked.add(controller_role)
             frame = int(world.tick(float(args.timeout_s)))
             elapsed_sim_s = max(0, frame - review_start_frame) * 0.1
             if (
@@ -1187,6 +1287,23 @@ def main() -> None:
                 "target_vehicle_started": int(target_vehicle_started),
                 "queue_occluder_started": int(queue_occluder_started),
             }
+            for role in ROLE_ORDER:
+                role_controller = controllers.get(role)
+                yield_event = (
+                    role_controller.last_yield
+                    if role_controller is not None
+                    and role in controller_roles_ticked
+                    and not bool(getattr(role_controller, "finished", False))
+                    else None
+                )
+                trace_row.update(direct_route_yield_trace_fields(role, yield_event))
+                if yield_event is not None and first_direct_route_yield[role] is None:
+                    first_direct_route_yield[role] = {
+                        "frame_id": int(frame),
+                        "elapsed_s": float(elapsed_sim_s),
+                        "actor_id": int(yield_event["actor_id"]),
+                        "actor_type": str(yield_event["type_id"]),
+                    }
             if walker is None:
                 trace_row.update(
                     walker_x="",
@@ -1425,7 +1542,11 @@ def main() -> None:
                             else (
                                 QUEUE_REVEAL_GEOMETRY_ID
                                 if str(args.layout) == "queue_reveal_vehicle"
-                                else None
+                                else (
+                                    NATURALISTIC_PAIR_CONTRACT_ID
+                                    if str(args.layout) == "naturalistic_pair"
+                                    else None
+                                )
                             )
                         )
                     )
@@ -1435,7 +1556,7 @@ def main() -> None:
             "hazard_actor_present": bool(hazard_present),
             "benign_single_difference": (
                 None
-                if hazard_present
+                if hazard_present or str(args.layout) == "naturalistic_pair"
                 else (
                     "target_vehicle_absent"
                     if str(args.layout)
@@ -1453,7 +1574,13 @@ def main() -> None:
             ),
             "geometry_origin": geometry_origin,
             "route_progress_csv": (
-                str(route_path.resolve()) if route_path is not None else None
+                str(route_path.resolve())
+                if route_path is not None
+                else (
+                    str(lane_contract["source_route_path"])
+                    if str(args.layout) == "naturalistic_pair"
+                    else None
+                )
             ),
             "route_source": (
                 "visually_accepted_frozen_progress_csv"
@@ -1465,7 +1592,9 @@ def main() -> None:
                         "visually_accepted_byte_frozen_ego_and_queue_exit_routes"
                         if str(args.layout) == "queue_reveal_vehicle"
                         else (
-                            "visually_accepted_frozen_progress_csv"
+                            "visually_accepted_byte_frozen_loop_and_geometry_only_anchor"
+                            if str(args.layout) == "naturalistic_pair"
+                            else "visually_accepted_frozen_progress_csv"
                             if str(args.layout)
                             in {"signalized_corner", "midblock_van"}
                             else "frozen_progress_csv"
@@ -1479,6 +1608,18 @@ def main() -> None:
                 "fov_deg": 120.0,
             },
             "world_hz": 10.0,
+            "helper_command_speed_mps": float(args.helper_speed_mps),
+            "recipient_command_speed_mps": float(args.recipient_speed_mps),
+            "naturalistic_route_family": (
+                str(args.naturalistic_route_family)
+                if str(args.layout) == "naturalistic_pair"
+                else None
+            ),
+            "naturalistic_anchor_id": (
+                str(args.anchor_id)
+                if str(args.layout) == "naturalistic_pair"
+                else None
+            ),
             "target_vehicle_command_speed_mps": (
                 target_vehicle_speed_mps
                 if target_vehicle is not None
@@ -1492,6 +1633,11 @@ def main() -> None:
                 float(args.pedestrian_speed_mps)
                 if hazard_present and walker_end is not None
                 else 0.0
+            ),
+            "pedestrian_start_delay_s": (
+                float(args.pedestrian_start_delay_s)
+                if hazard_present and walker_end is not None
+                else None
             ),
             "walker_control_command_speed": (
                 float(args.pedestrian_speed_mps)
@@ -1528,6 +1674,11 @@ def main() -> None:
             "pedestrian_started": bool(walker_started),
             "pedestrian_completed": bool(walker_completed),
             "review_only_gt_safety_yield_ever": bool(review_safety_yield_ever),
+            "direct_route_yield_ever_by_role": {
+                role: first_direct_route_yield[role] is not None
+                for role in ROLE_ORDER
+            },
+            "first_direct_route_yield_by_role": dict(first_direct_route_yield),
             "collisions": collisions,
             "automatic_captures_written_s": automatic_captures_written,
             "controllers_finished": {
@@ -1557,14 +1708,85 @@ def main() -> None:
                     * float(forward.y)
                 )
         summary["role_longitudinal_progress_m"] = role_progress_m
+        role_path_distance_m = {
+            role: float(
+                sum(
+                    math.hypot(
+                        float(right[f"{role}_x"]) - float(left[f"{role}_x"]),
+                        float(right[f"{role}_y"]) - float(left[f"{role}_y"]),
+                    )
+                    for left, right in zip(realized_trace, realized_trace[1:])
+                )
+            )
+            for role in ROLE_ORDER
+        }
+        summary["role_path_distance_m"] = role_path_distance_m
         summary["matched_benign_motion_gate_pass"] = (
             None
-            if hazard_present
+            if hazard_present or str(args.layout) == "naturalistic_pair"
             else bool(
                 not collisions
                 and all(role_progress_m.get(role, 0.0) >= 25.0 for role in ROLE_ORDER)
             )
         )
+        naturalistic_pair_review_gate: Optional[Dict[str, object]] = None
+        if str(args.layout) == "naturalistic_pair":
+            route_cross_track_m = {
+                role: float(
+                    max(
+                        point_to_polyline_distance_m(
+                            float(row[f"{role}_x"]),
+                            float(row[f"{role}_y"]),
+                            role_routes[role],
+                        )
+                        for row in realized_trace
+                    )
+                )
+                for role in ROLE_ORDER
+            }
+            pair_center_separation_m = [
+                math.hypot(
+                    float(row["helper_x"]) - float(row["recipient_x"]),
+                    float(row["helper_y"]) - float(row["recipient_y"]),
+                )
+                for row in realized_trace
+            ]
+            minimum_pair_center_separation_m = float(
+                min(pair_center_separation_m)
+            )
+            naturalistic_pair_review_gate = {
+                "pass": bool(
+                    lane_contract.get("pass")
+                    and not collisions
+                    and len(realized_trace) >= 80
+                    and all(
+                        role_path_distance_m.get(role, 0.0) >= 25.0
+                        for role in ROLE_ORDER
+                    )
+                    and all(value <= 2.5 for value in route_cross_track_m.values())
+                    and minimum_pair_center_separation_m >= 5.5
+                ),
+                "basis": (
+                    "legal_native_same_lane_pair_zero_collision_progress_"
+                    "bounded_polyline_cross_track_and_center_separation"
+                ),
+                "family_id": str(args.naturalistic_route_family),
+                "anchor_id": str(args.anchor_id),
+                "trace_frame_count": len(realized_trace),
+                "collision_count": len(collisions),
+                "role_path_distance_m": role_path_distance_m,
+                "route_max_cross_track_m": route_cross_track_m,
+                "route_cross_track_reference": "piecewise_linear_route_segments",
+                "route_maximum_allowed_cross_track_m": 2.5,
+                "minimum_pair_center_separation_m": (
+                    minimum_pair_center_separation_m
+                ),
+                "minimum_allowed_pair_center_separation_m": 5.5,
+                "source_route_sha256": lane_contract["source_route_sha256"],
+                "recipient_start_index": lane_contract["recipient_start_index"],
+                "helper_start_index": lane_contract["helper_start_index"],
+            }
+        summary["naturalistic_pair_review_gate"] = naturalistic_pair_review_gate
         active_walker_speeds = [
             float(row["walker_speed_mps"])
             for row in realized_trace
@@ -1575,6 +1797,16 @@ def main() -> None:
         summary["pedestrian_realized_speed_mps_median"] = (
             float(np.median(active_walker_speeds))
             if active_walker_speeds
+            else None
+        )
+        physical_walker_motion_times = [
+            float(row["elapsed_sim_s"])
+            for row in realized_trace
+            if float(row["walker_speed_mps"]) > 0.05
+        ]
+        summary["pedestrian_first_physical_motion_s"] = (
+            min(physical_walker_motion_times)
+            if physical_walker_motion_times
             else None
         )
         realized_walker_speed = summary["pedestrian_realized_speed_mps_median"]
@@ -2026,6 +2258,14 @@ def main() -> None:
             raise RuntimeError(
                 "matched benign motion gate failed: expected zero collisions and "
                 f">=25m forward progress per role, observed={role_progress_m}"
+            )
+        if (
+            naturalistic_pair_review_gate is not None
+            and naturalistic_pair_review_gate["pass"] is False
+        ):
+            raise RuntimeError(
+                "naturalistic paired-route review gate failed: "
+                f"{naturalistic_pair_review_gate}"
             )
         if (
             vehicle_hazard_review_gate is not None

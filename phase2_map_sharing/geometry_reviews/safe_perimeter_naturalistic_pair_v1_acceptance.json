@@ -1,0 +1,63 @@
+{
+  "accepted_utc": "2026-08-18T04:41:44Z",
+  "acceptance_basis": "manual_visual_review_of_all_six_start_strata_after_automatic_route_gates",
+  "collection_authorized": false,
+  "evidence_pair_contract_id": "town10hd_opt_same_lane_helper_ahead_v1_candidate",
+  "pair_contract_id": "town10hd_opt_same_lane_helper_ahead_v1",
+  "route": {
+    "path": "data_collection/routes/town10hd_opt_advisor_safe_perimeter_loop_v3.progress.csv",
+    "rows": 85,
+    "sha256": "f3dc2f4d8c59905801fdfad2df7a19f2b427459d4039ed3a8cdec3535e818ce1"
+  },
+  "route_id": "town10hd_opt_safe_perimeter",
+  "schema": "scenesense.phase2_naturalistic_route_review_acceptance.v1",
+  "shared_contract_status": "final_after_both_naturalistic_route_families_accepted",
+  "summary": {
+    "anchor_count": 6,
+    "collision_count": 0,
+    "maximum_route_cross_track_m": 0.9960308631160397,
+    "minimum_pair_center_separation_m": 9.508332652865027,
+    "minimum_role_path_distance_m": 39.19432644302002,
+    "route_cross_track_reference": "piecewise_linear_route_segments",
+    "trace_frames_per_anchor": 120
+  },
+  "visual_reviewer_observation": "All six anchors worked as expected with no visual issue or weirdness; both vehicles followed the intended legal route naturally with stable separation and no collision.",
+  "visual_runs": {
+    "a0": {
+      "artifact_path_at_review": "/tmp/phase2_geometry_review_naturalistic_pair_naturalistic_20260818_043912",
+      "combined_screenshot_sha256": "990bf8680f57828a71736e91ed586701ef595bc077af78ca5dcd23c412a0cdb5",
+      "summary_sha256": "3db9b744456231a01abd06dd135c64768d4a9ec8d34c0364a169d4fec5e2845e",
+      "trace_sha256": "7e5ebbe0f75f5b2d3a00afbfff1ef4b7cd23a477ad1c8ff6ac34c0ee2bf5983c"
+    },
+    "a1": {
+      "artifact_path_at_review": "/tmp/phase2_geometry_review_naturalistic_pair_naturalistic_20260818_043929",
+      "combined_screenshot_sha256": "741320dfbdceb3d2952ebca0ea9af66eaa73076b70b9929e5c4ffc5b433971c5",
+      "summary_sha256": "7f13ebcd8436ab006037539cae64633dd0907b6aad7722cf1ae8ea7361130250",
+      "trace_sha256": "b1670cbeb85c0c51afbe3a404d753b0fd0d3bc89ae379bf3d7f481ec36c6f157"
+    },
+    "a2": {
+      "artifact_path_at_review": "/tmp/phase2_geometry_review_naturalistic_pair_naturalistic_20260818_043945",
+      "combined_screenshot_sha256": "f7ba5409446bfdf2a39a47e56c7597c12e54de2bbf2e665ec2ef8bfe18c2d0a3",
+      "summary_sha256": "6ad6dd4bcc7090bc1a990731ee2780247e16cddd930f0220f9ba054f7ef6f9a3",
+      "trace_sha256": "bd359d13a1bcd710b3463ae71b0f905ea0b7b4635ed631297b2ea7230a27500b"
+    },
+    "a3": {
+      "artifact_path_at_review": "/tmp/phase2_geometry_review_naturalistic_pair_naturalistic_20260818_044001",
+      "combined_screenshot_sha256": "45b8558d4045dd5010bf8044e21d80f54f29f0cab7e9a1eca3d65fb2d609e429",
+      "summary_sha256": "2864277ee37fb9adff639e9acaef198ab3b953707c75a9482f2daa2b4b714739",
+      "trace_sha256": "a8fbe81b62e2c528238c04c49a8ea4bce4347683bd857fecec231a4a335bfcd1"
+    },
+    "a4": {
+      "artifact_path_at_review": "/tmp/phase2_geometry_review_naturalistic_pair_naturalistic_20260818_044017",
+      "combined_screenshot_sha256": "aca71bb43b21333931242a3dd203b570f4b06b91d23709ea4451ece2bbbb4df7",
+      "summary_sha256": "373101e67ea5c2012ae17ac780c5c809b92b66093daeb8afbac49239c06f1d88",
+      "trace_sha256": "173cfab0c02fbb2a498a478c40688d80a47542fe50ddd7bd45b6994256e40879"
+    },
+    "a5": {
+      "artifact_path_at_review": "/tmp/phase2_geometry_review_naturalistic_pair_naturalistic_20260818_044034",
+      "combined_screenshot_sha256": "9d1ee46d6993e178e67917056fbfaeecbb71c8c492f2c6a950c6c6cf7e4bb01d",
+      "summary_sha256": "d5f11251d05450213d54d2e31cad68b8ab5fdbdc4d0a45ef3fadf0207d1701f2",
+      "trace_sha256": "7bf102004ea4d36a5573f3b0cdd7193c5ed39d5ec22dc6ccf03f07fd0aa9ef80"
+    }
+  }
+}

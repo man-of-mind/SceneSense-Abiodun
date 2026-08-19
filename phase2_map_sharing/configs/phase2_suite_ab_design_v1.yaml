@@ -22,6 +22,7 @@ common:
     existing_stress_level: Low
     future_low_collection_authorized: false
   world_hz: 10.0
+  policy_control_hz_surrogate: 20.0
   trajectory_duration_s: 12.0
   roles: [helper, recipient]
   arms: [ego_only, send_everything, hazard_only]
@@ -37,6 +38,18 @@ power:
   primary_endpoint: paired_registered_target_warning_lead_s
   analysis_unit: independent_route_seed_scenario_group
   smallest_effect_s: 0.5
+  smallest_effect_interpretation:
+    role: cross_cell_research_floor_not_a_braking_safety_threshold
+    sensor_frame_count: 5
+    policy_decision_count: 10
+    distance_equivalent_m_by_closing_speed_band:
+      low: [1.0, 2.0]
+      high: [3.0, 5.0]
+    required_reporting:
+      - warning_lead_s_by_closing_speed_band
+      - closing_distance_equivalent_m
+      - causal_deadline_slack_s
+    future_safety_deadline_status: deferred_until_fixed_warning_actuation_and_advisor_braking_parameters
   two_sided_alpha: 0.05
   minimum_power: 0.80
   planned_censor_fraction: 0.10
@@ -46,6 +59,21 @@ power:
     yields and nuisance outcomes. Continue only if planned untouched test
     counts provide at least 0.80 power at 0.5 s, and separately demonstrate
     adequate missed-hazard and false-warning non-inferiority precision.
+
+warning_nuisance_gate:
+  population: suite_a_matched_benign_negative
+  timing_endpoint_basis: registered_target_warning_only
+  aggregation:
+    false_warning_active_frame_rate: sum_false_warning_active_frames_over_sum_eligible_benign_frames
+    false_warning_episode_rate_per_minute: sum_false_warning_episodes_over_sum_eligible_benign_exposure_minutes
+    uncertainty_unit: paired_trajectory_cluster
+    threshold_basis: pooled_point_estimate_with_cluster_interval_reported
+  adjudicated_false_warning_active_frame_rate_max: 0.10
+  false_warning_episodes_per_minute_max: 1.0
+  cooperative_vs_ego_noninferiority_margin_pp: 2.0
+  apply_to: every_candidate_retained_for_validation
+  failure_action: stop_before_validation
+  note: research_usability_gate_not_a_certified_automotive_requirement
 
 retention:
   raw_window_duration_s: 4.0
@@ -68,12 +96,17 @@ runtime_estimate:
 suite_a:
   label: designed_decision_opportunities
   headline_role: powered_regime_bounded_c2_test
+  ambient_population_contract:
+    mode: scenario_owned_only
+    population_process_required: false
+    generic_vehicles: 0
+    generic_walkers: 0
+    traffic_density_status: not_applicable
   replicates_per_factor_cell: 5
   split_by_replicate:
     calibration: [0]
     validation: [1]
     test: [2, 3, 4]
-  traffic_density_cycle: [sparse, typical, dense]
   weather: ClearNoon
   closing_speed_bands:
     low: [2.0, 4.0]
@@ -123,6 +156,10 @@ suite_a:
 suite_b:
   label: naturalistic_operation
   headline_role: honest_denominator_not_powered_for_forced_hazard_lead
+  ambient_population_contract:
+    mode: naturalistic_tm
+    population_process_required: true
+    traffic_density_status: realized_nuisance_factor
   groups_per_route: 30
   split_counts_per_route:
     calibration: 6
@@ -139,10 +176,42 @@ suite_b:
   routes:
     - route_id: town10hd_opt_curbside_corridor
       implementation_status: reviewed_pilot_route
-      source_route: data_collection/routes/town10hd_opt_curbside_recipient_v1.progress.csv
+      pair_contract_id: town10hd_opt_curbside_legal_opposing_v1
+      recipient_route: data_collection/routes/town10hd_opt_curbside_recipient_v1.progress.csv
+      recipient_route_sha256: 007283bc887cfb021d8370bd28721c67d6ebf17dea461a3da6a142bd05e78d4c
+      helper_route: data_collection/routes/town10hd_opt_curbside_helper_v1.progress.csv
+      helper_route_sha256: 45778005540b866a9652a61a140c57b6a774d6809873afbc40cd6b427e203906
+      start_anchor_schedule:
+        - {anchor_id: pilot_frozen, recipient_start_index: 0, helper_start_index: 0}
     - route_id: town10hd_opt_signalized_demo_region
-      implementation_status: paired_route_authoring_and_visual_review_required
-      source_route: data_collection/routes/town10hd_opt_advisor_demo_loop_v2.progress.csv
+      implementation_status: reviewed_visual_route
+      pair_contract_id: town10hd_opt_same_lane_helper_ahead_v1
+      visual_acceptance_record: phase2_map_sharing/geometry_reviews/signalized_demo_naturalistic_pair_v1_acceptance.json
+      visual_acceptance_record_sha256: 7772b994fac5641ef00fd3e4dbfb26a091d6ffe97a811a5cd862db50f39ca272
+      recipient_route: data_collection/routes/town10hd_opt_advisor_demo_loop_v2.progress.csv
+      recipient_route_sha256: 3315d27a1c9c7500e7df426c70beb0a1622b838cc98debfb0f2e3de54c024f46
+      helper_route: data_collection/routes/town10hd_opt_advisor_demo_loop_v2.progress.csv
+      helper_route_sha256: 3315d27a1c9c7500e7df426c70beb0a1622b838cc98debfb0f2e3de54c024f46
+      start_anchor_schedule:
+        - {anchor_id: a0, recipient_start_index: 0, helper_start_index: 4}
+        - {anchor_id: a1, recipient_start_index: 15, helper_start_index: 19}
+        - {anchor_id: a2, recipient_start_index: 38, helper_start_index: 42}
+        - {anchor_id: a3, recipient_start_index: 59, helper_start_index: 63}
+        - {anchor_id: a4, recipient_start_index: 82, helper_start_index: 86}
+        - {anchor_id: a5, recipient_start_index: 103, helper_start_index: 107}
     - route_id: town10hd_opt_safe_perimeter
-      implementation_status: paired_route_authoring_and_visual_review_required
-      source_route: data_collection/routes/town10hd_opt_advisor_safe_perimeter_loop_v3.progress.csv
+      implementation_status: reviewed_visual_route
+      pair_contract_id: town10hd_opt_same_lane_helper_ahead_v1
+      visual_acceptance_record: phase2_map_sharing/geometry_reviews/safe_perimeter_naturalistic_pair_v1_acceptance.json
+      visual_acceptance_record_sha256: eeead846cd028553e70ded648fadf829876923ab0d76723ce7e470384f7accd8
+      recipient_route: data_collection/routes/town10hd_opt_advisor_safe_perimeter_loop_v3.progress.csv
+      recipient_route_sha256: f3dc2f4d8c59905801fdfad2df7a19f2b427459d4039ed3a8cdec3535e818ce1
+      helper_route: data_collection/routes/town10hd_opt_advisor_safe_perimeter_loop_v3.progress.csv
+      helper_route_sha256: f3dc2f4d8c59905801fdfad2df7a19f2b427459d4039ed3a8cdec3535e818ce1
+      start_anchor_schedule:
+        - {anchor_id: a0, recipient_start_index: 0, helper_start_index: 4}
+        - {anchor_id: a1, recipient_start_index: 14, helper_start_index: 18}
+        - {anchor_id: a2, recipient_start_index: 27, helper_start_index: 30}
+        - {anchor_id: a3, recipient_start_index: 38, helper_start_index: 42}
+        - {anchor_id: a4, recipient_start_index: 56, helper_start_index: 60}
+        - {anchor_id: a5, recipient_start_index: 78, helper_start_index: 82}

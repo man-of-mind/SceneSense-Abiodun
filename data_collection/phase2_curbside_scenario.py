@@ -250,18 +250,51 @@ class DirectRouteController:
                     + (0.4 if pattern == "vehicle.*" else 0.6)
                 )
                 stopping_m = max(
-                    7.0,
+                    12.0 if pattern == "walker.pedestrian.*" else 7.0,
                     own_half_length_m
                     + effective_other_half_length_m
                     + 2.0
                     + speed_mps * speed_mps / 5.0,
                 )
-                if 0.0 < forward_m <= stopping_m and lateral_m <= lateral_limit:
+                predicted_lateral_m = lateral_m
+                prediction_horizon_s = 0.0
+                if pattern == "walker.pedestrian.*" and 0.0 < forward_m:
+                    try:
+                        other_velocity = other.get_velocity()
+                    except RuntimeError:
+                        other_velocity = carla.Vector3D()
+                    walker_speed_mps = math.hypot(
+                        float(other_velocity.x), float(other_velocity.y)
+                    )
+                    if walker_speed_mps >= 0.2:
+                        prediction_horizon_s = min(
+                            3.0,
+                            max(
+                                0.0,
+                                forward_m / max(float(speed_mps), 0.5),
+                            ),
+                        )
+                        predicted_dx = (
+                            dx + float(other_velocity.x) * prediction_horizon_s
+                        )
+                        predicted_dy = (
+                            dy + float(other_velocity.y) * prediction_horizon_s
+                        )
+                        predicted_lateral_m = abs(
+                            -predicted_dx * float(forward.y)
+                            + predicted_dy * float(forward.x)
+                        )
+                if (
+                    0.0 < forward_m <= stopping_m
+                    and min(lateral_m, predicted_lateral_m) <= lateral_limit
+                ):
                     self.last_yield = {
                         "actor_id": int(other.id),
                         "type_id": str(other.type_id),
                         "forward_m": float(forward_m),
                         "lateral_m": float(lateral_m),
+                        "predicted_lateral_m": float(predicted_lateral_m),
+                        "prediction_horizon_s": float(prediction_horizon_s),
                         "stopping_m": float(stopping_m),
                         "lateral_limit_m": float(lateral_limit),
                     }

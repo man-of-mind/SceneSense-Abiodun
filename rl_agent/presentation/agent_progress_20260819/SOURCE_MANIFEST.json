@@ -1,0 +1,169 @@
+{
+  "schema": "scenesense.agent_advisor_deck_manifest.v1",
+  "deck": "rl_agent/presentation/agent_progress_20260819/SceneSense_Agent_Progress_2026-08-19.pptx",
+  "slide_count": 18,
+  "slides": [
+    {
+      "ordinal": 1,
+      "path": "rl_agent/presentation/agent_progress_20260819/slides/01_title.png",
+      "sha256": "6ce6fb697e7648adbaa6dc249407d197fa1944fa84ed709ce35b63e2443d2a65"
+    },
+    {
+      "ordinal": 2,
+      "path": "rl_agent/presentation/agent_progress_20260819/slides/02_problem_scene.png",
+      "sha256": "d8f04cbd168c832f0a1f9cf36639514fe759a233397e4519dcdd89be6f102c95"
+    },
+    {
+      "ordinal": 3,
+      "path": "rl_agent/presentation/agent_progress_20260819/slides/03_causal_state_diagram.png",
+      "sha256": "462e85d8b3590d31493a6d455af83d46828bd2a27aa210539fc79ac48537fc81"
+    },
+    {
+      "ordinal": 4,
+      "path": "rl_agent/presentation/agent_progress_20260819/slides/04_state_contract.png",
+      "sha256": "140edb6d14cda7b543a9f4b489c704917bf310d3fb5993a4ab049cdff313295f"
+    },
+    {
+      "ordinal": 5,
+      "path": "rl_agent/presentation/agent_progress_20260819/slides/05_action_space.png",
+      "sha256": "ace560090847eb6e0a657d73e0756fbe21a651a5165df93e83e6a6a51fed6b63"
+    },
+    {
+      "ordinal": 6,
+      "path": "rl_agent/presentation/agent_progress_20260819/slides/06_worked_loop.png",
+      "sha256": "72e17b51971f51187b6a3da702e280940ab271b37a15bfd5e6b1f6a3fbcc37c1"
+    },
+    {
+      "ordinal": 7,
+      "path": "rl_agent/presentation/agent_progress_20260819/slides/07_transition_model.png",
+      "sha256": "07272f75c43c81a76d9ad92244f3397f9f50bf073ebc6cb8ec614e8c12d3673b"
+    },
+    {
+      "ordinal": 8,
+      "path": "rl_agent/presentation/agent_progress_20260819/slides/08_reward_v5.png",
+      "sha256": "b3f06d22f153bce55c1c50bc467d171f4490e18158ced582dcd89e0957f2decd"
+    },
+    {
+      "ordinal": 9,
+      "path": "rl_agent/presentation/agent_progress_20260819/slides/09_reward_effects.png",
+      "sha256": "dc9dc21d2aa183c758e009f5731828e4a34c18ccce195ae1dcbdb3846583f710"
+    },
+    {
+      "ordinal": 10,
+      "path": "rl_agent/presentation/agent_progress_20260819/slides/10_constraint_rank.png",
+      "sha256": "c0fb78637011bf46741aeec2e03e3779ee7393385c94f1fdee38728942785581"
+    },
+    {
+      "ordinal": 11,
+      "path": "rl_agent/presentation/agent_progress_20260819/slides/11_constraint_relationships.png",
+      "sha256": "b1435ccafe829da4efdff42093658c77d6a7d634165217016f679acadcce8828"
+    },
+    {
+      "ordinal": 12,
+      "path": "rl_agent/presentation/agent_progress_20260819/slides/12_physical_constraints.png",
+      "sha256": "fde90f1455b698318bd823a68862fd18258478ab415fe2d5682864e55b10922d"
+    },
+    {
+      "ordinal": 13,
+      "path": "rl_agent/presentation/agent_progress_20260819/slides/13_network_compute.png",
+      "sha256": "304fc22b1201ae583e3c5e6297fc300254db29815854a205b614323a6c52f926"
+    },
+    {
+      "ordinal": 14,
+      "path": "rl_agent/presentation/agent_progress_20260819/slides/14_agent_environment.png",
+      "sha256": "c9cb6354694783278b34669679aaa3c092633e4288e8761edb751db32783a061"
+    },
+    {
+      "ordinal": 15,
+      "path": "rl_agent/presentation/agent_progress_20260819/slides/15_suite_a.png",
+      "sha256": "6b911b958e81c8bfc75d6bfaf4b847fe97c451b9faccdd7c76b0e4fcba285ac6"
+    },
+    {
+      "ordinal": 16,
+      "path": "rl_agent/presentation/agent_progress_20260819/slides/16_suite_b.png",
+      "sha256": "20ad00c56e405dbf897490934f800dfc89302130670a2c9219f6e3c320915c05"
+    },
+    {
+      "ordinal": 17,
+      "path": "rl_agent/presentation/agent_progress_20260819/slides/17_banked_progress.png",
+      "sha256": "4d98821903a61bb0f6cbff0cdafa5acd1a52393f5404795f27e1cef4afb298ec"
+    },
+    {
+      "ordinal": 18,
+      "path": "rl_agent/presentation/agent_progress_20260819/slides/18_next_steps.png",
+      "sha256": "c03e65202ce515db703c97e89c92849c054741212965819d2de56b80acdcba19"
+    }
+  ],
+  "source_assets": [
+    {
+      "name": "worked",
+      "path": "/tmp/phase2_geometry_review_midblock_van_positive_20260818_001417/20260818_001435_896264_combined.png",
+      "sha256": "600671cc076d135ace4043e29765158b9f824ef2a50337a95b91c4322c6dd05d"
+    },
+    {
+      "name": "curbside",
+      "path": "/tmp/phase2_geometry_review_positive_20260815_041815/20260815_041825_634287_combined.png",
+      "sha256": "480d015d96faeeef20995a12fdaa1cc6c841ee8e96dc72af6d8ad7b2f498032e"
+    },
+    {
+      "name": "signalized",
+      "path": "/tmp/phase2_geometry_review_signalized_corner_positive_20260817_224735/20260817_224753_327439_combined.png",
+      "sha256": "d86a01de1072d501ff9df87cbffb1f8a43bccffcebc667966fa6c1333bf68d0d"
+    },
+    {
+      "name": "cross_traffic",
+      "path": "/tmp/phase2_geometry_review_cross_traffic_vehicle_positive_20260818_024451/20260818_024513_531786_combined.png",
+      "sha256": "41a823fdbee2842ed52fb892f5e23f5edb01449dafcab120624baa5dcc6678f8"
+    },
+    {
+      "name": "pullout",
+      "path": "/tmp/phase2_geometry_review_parked_vehicle_pullout_positive_20260818_031013/20260818_031036_689670_combined.png",
+      "sha256": "8b2495bf0336bfb42c20348b436db96e74ec23d1f454d175d406af1961fe630e"
+    },
+    {
+      "name": "queue",
+      "path": "/tmp/phase2_geometry_review_queue_reveal_vehicle_positive_20260818_033946/20260818_034002_180110_combined.png",
+      "sha256": "3d88f00d5f7929ca6302b651cf6bcf5e4d13a31c3ba688d8ef8fe103442595bd"
+    },
+    {
+      "name": "natural_signal",
+      "path": "/tmp/phase2_geometry_review_naturalistic_pair_naturalistic_20260818_043912/20260818_043928_809709_combined.png",
+      "sha256": "990bf8680f57828a71736e91ed586701ef595bc077af78ca5dcd23c412a0cdb5"
+    },
+    {
+      "name": "natural_perimeter",
+      "path": "/tmp/phase2_geometry_review_naturalistic_pair_naturalistic_20260818_044034/20260818_044050_035125_combined.png",
+      "sha256": "9d1ee46d6993e178e67917056fbfaeecbb71c8c492f2c6a950c6c6cf7e4bb01d"
+    },
+    {
+      "name": "frontier",
+      "path": "rl_agent/plots/knob_accuracy_frontier.png",
+      "sha256": "3be4274b60028e443f87391fec79fd787e20a560116432ebfa6f615a116cda4e"
+    },
+    {
+      "name": "delivery",
+      "path": "channel_condition_sweep/plots/fig2_delivery_heatmap.png",
+      "sha256": "e291a17a8eb3985a2d1d975526684324cf5e017755ff45be0a0c0e3c8b83afef"
+    },
+    {
+      "name": "pilot_helper",
+      "path": "rl_agent/presentation/agent_progress_20260819/pilot_frame_156300_helper.png",
+      "sha256": "5c652a3cadfc843e978fd823c04362fec3a7b7d8aefe2405b70fbac850f4a0d5"
+    },
+    {
+      "name": "pilot_recipient",
+      "path": "rl_agent/presentation/agent_progress_20260819/pilot_frame_156300_recipient.png",
+      "sha256": "8c63ef958f2d7924c2a8a76f3c19ddeb9f213f1c9abb2627d997ec38c7e3d452"
+    }
+  ],
+  "claim_sources": [
+    "rl_agent/state_diagram.md",
+    "rl_agent/REWARD_FORMULATION.md",
+    "phase2_map_sharing/PHASE2_CONSTRAINT_CATALOG.md",
+    "phase2_map_sharing/PHASE2_PAIRED_CAUSAL_CORPUS_SPEC.md",
+    "phase2_map_sharing/WARNING_EVALUATION_DESIGN_FREEZE.md",
+    "phase2_map_sharing/PHASE2_SUITE_AB_DESIGN.md",
+    "rl_agent/ADVISOR_PROGRESS_BRIEF_2026-08-19.md"
+  ],
+  "claim_boundary": "The accepted two-trajectory pilot is structural/computability evidence only. The deck reports no historical noncausal controller result as a deployable policy result."
+}

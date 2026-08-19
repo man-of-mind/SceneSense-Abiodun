@@ -463,7 +463,7 @@ def replay_trajectory(
     engines = {
         arm: RecipientMapEngineV2(
             "recipient",
-            confidence_floor=0.05,
+            warning_emission_confidence_floor=0.05,
             warning_sigma_multiplier=0.0,
         )
         for arm in ARMS

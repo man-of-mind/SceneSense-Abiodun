@@ -1,0 +1,58 @@
+schema_version: scenesense.phase2_calibration_replay_sufficiency.v1
+authorization: evaluation_only_no_runtime_feedback
+claim_scope: retained_artifact_replay_sufficiency_not_parameter_selection_or_c2_evidence
+
+execution:
+  parallel_workers: 8
+
+source_decode:
+  captured_floor: 0.05
+  topk: 120
+  nms_radius_px: 2
+  maximum_objects: 30
+  object_class_names: [vehicle, person]
+  predict_bbox2d: true
+  parity_score_tolerance: 1.0e-6
+  parity_position_tolerance_m: 1.0e-5
+
+source_tracker:
+  algorithm: source_local_nearest_cv.v1
+  association_gate_m: 5.0
+  maximum_missed_frames: 3
+  tuned: false
+
+map_engine_fixed:
+  association_sigma_multiplier: 2.0
+  warning_horizon_s: 5.0
+  max_transport_age_s: 1.0
+  multi_source_install_order: [recipient, helper]
+  equal_measurement_time_tie_semantics: latest_installed_observation_state_and_confidence_wins
+  safety_radius_m_by_class:
+    pedestrian: 2.5
+    cyclist: 3.0
+    vehicle: 3.0
+
+# Binding values from WARNING_EVALUATION_DESIGN_FREEZE.md section 4.
+replay_grid:
+  warning_emission_confidence_floors: [0.05, 0.10, 0.15, 0.20]
+  map_association_gates_m: [2.0, 3.0, 4.0]
+  map_track_ttls_s: [0.5, 1.0]
+  warning_uncertainty_multipliers: [0.0, 1.0, 2.0]
+  expected_combinations: 72
+
+truth_evaluation:
+  center_match_gate_m: 5.0
+  future_horizon_s: 5.0
+  cadence_s: 0.1
+  false_warning_quiet_gap_s: 1.0
+  registered_target_role_prefix: phase2_registered_target_
+  positive_ego_basis: matched_benign_no_target_recipient_counterfactual
+  benign_and_naturalistic_ego_basis: realized_nonactuated_recipient_trajectory
+
+integrity:
+  require_capture_completed: true
+  require_all_role_artifact_hashes: true
+  require_decode_parity_on_every_retained_logit: true
+  require_baseline_tracker_parity: true
+  require_runtime_hashes_unchanged: true
+  output_is_create_only_sibling: true

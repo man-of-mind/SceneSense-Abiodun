@@ -1,0 +1,21 @@
+{
+  "accepted_utc": "2026-08-19T01:30:13Z",
+  "checks": {
+    "camera_views_and_occlusion_plausible": true,
+    "epic_server_quality_confirmed": true,
+    "helper_route_road17_lane_plus1": true,
+    "helper_visible_before_recipient": true,
+    "no_uturn_overlap_collision_or_implausible_motion": true,
+    "pedestrian_started_at_2p1_plusminus_0p1s": true,
+    "recipient_approaching_during_helper_only_interval": true,
+    "recipient_later_yielded_safely": true,
+    "recipient_route_road10_lane_minus2": true,
+    "sprinter_fixed_and_grounded": true
+  },
+  "geometry_review_summary": "/tmp/phase2_geometry_review_curbside_opposite_positive_20260819_012213/geometry_review_summary.json",
+  "geometry_review_summary_sha256": "ed7260ad5ad5b8a04f0ac16c0965dd80c532217f9efbf45331897f97e4d73c97",
+  "operator": "Abiodun",
+  "pilot_config_sha256": "842c5a2041cd7f23bf00c32e2818b09f8dd9a7a403a4f41568516ad0b7d8e0fa",
+  "schema": "scenesense.phase2_decision_opportunity_visual_acceptance.v1",
+  "status": "accepted"
+}
