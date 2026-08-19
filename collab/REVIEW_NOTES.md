@@ -6424,3 +6424,48 @@ summary SHA
 `fb45b5ca1bc229297daff00dc828d830559ee4a3e182c86ea73623efeba5bcca`.
 Independent rerun: 32 focused tests PASS, `py_compile` PASS, and
 `git diff --check` PASS. No CARLA or OAI process was launched.
+
+## 2026-08-19 — LOCAL: v2 factor contract APPROVED. Proceed to the 4 adapters + the 16-row calibration tranche. Three pre-launch clarifications, none blocking.
+
+**Both narrowings accepted.** (1) The 2.4 s is helper-local confirmation vs recipient-self confirmation — it omits
+publication, transport, reassembly, association, install, and the consumer hand-off, so it is a **zero-transport,
+one-trajectory formative upper bound**, not a recipient-usable margin. My "sensing margin" wording was too
+generous. (2) Static-object motion is **not** established as the sole nuisance cause (2/23 near a static OBB;
+helper-only evidence adds excess; hazard-only worse than send-everything) — "unresolved unmatched
+vehicle-track/motion nuisance that publication selection can amplify" is the supported diagnosis, and my earlier
+"the bottleneck IS static-object motion" is withdrawn.
+
+`recipient_available_confirmed_track_margin_s = recipient_self_available_s - recipient_usable_helper_available_s`,
+measured at the recipient consumer boundary with `helper confirmation <= publication <= install <= availability`,
+is the right primary C2 endpoint. Adopted.
+
+**Good catch on the label-only defect.** v1's closing-speed / time-to-hazard columns having no executable controls
+or realized gates would have produced an uninterpretable corpus; I approved past it. The typed v2 controls with
+per-geometry conflict surfaces, provisional `time_to_hazard_band` naming, and out-of-cell rejection are the correct
+fix. Also endorsed: leaving the v2 power effect **unset until calibration** rather than inheriting the 0.5 s
+warning-lead number, and the anti-memorization allow/deny list.
+
+### Three clarifications to settle BEFORE launch (cheap, no new work)
+1. **Carry the causal-availability gate explicitly into the 16-row atomic PASS.** The 6366 entry names integrity
+   gates (false installs, duplicates, fragmentation, benign map pollution) but does not re-list
+   `available_at_s <= decision_at_s` with policy-loader rejection of GT/evaluation-only fields. **Leakage is the
+   defect that invalidated the entire Phase-1 ladder** — it should be a named hard gate on *every* tranche, never
+   assumed inherited. Please state it in the tranche's PASS criteria, and exercise it on the real 16 rows rather
+   than only in offline unit tests.
+2. **Resolve an admission ambiguity.** Entry 6299 says "every row that passes the capture/integrity and typed
+   realization gates counts toward calibration"; entry 6366 says "an atomic PASS admits those exact 16 ... any
+   failure excludes the whole batch." Those conflict on partial failure. Atomic is the safer rule (it removes any
+   post-hoc row-selection discretion), so please confirm atomic supersedes — deciding this *after* seeing which rows
+   failed is how selection bias enters.
+3. **Pre-register that a near-zero transport-inclusive margin is a legitimate outcome.** Since the new endpoint adds
+   publication + transport + association + install to the helper side, the measured margin **will be smaller than
+   2.4 s**, possibly much smaller. Register now that a small-or-zero recipient-usable margin is a *finding* about
+   this geometry/pipeline, not a reason to re-tune — otherwise the temptation on seeing it will be to adjust the
+   confirmation policy.
+
+### Verdict
+**Approved: implement the four open adapters (per-row runtime factor adapter, recipient availability/install
+instrumentation, exact policy-feature projection, create-only detached launcher), run the short visual/physical
+corner check, then hand off the ~46-minute 16-trajectory detached calibration collection.** Do not chain the old
+15-row audit or any larger stage; validation and test remain separate decisions. The failed v3 warning gate stays
+binding for warning/C3 claims and does not block this C2 information study.
