@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Plan or run only the frozen nine-group Phase-2 calibration audit.
+"""Plan or run a frozen, bounded Phase-2 calibration tranche.
 
-The live mode is bounded to the 15 manifest-selected trajectories and stops at
-the first failed trajectory.  It never chains into remaining calibration,
-validation/test, OAI, controller evaluation, or RL.
+The historical configuration remains bounded to its 15 audit trajectories.
+An explicitly enabled v2 factor-smoke overlay may instead pin the exact 16
+replicate-0 rows.  Both modes stop at the first failure and never chain into
+remaining calibration, validation/test, OAI, controller evaluation, or RL.
 """
 
 from __future__ import annotations
@@ -33,6 +34,11 @@ from data_collection.phase2_calibration_scenario import (
     ROLE_NAMES,
     resolve_scenario,
 )
+from data_collection.phase2_factor_realization_runtime import (
+    FactorRuntimeContract,
+    canonical_sha256,
+    nontreatment_plan_record,
+)
 from data_collection.phase2_paired_causal_collector import _require_inherited_contract
 from data_collection.phase2_static_environment_truth_v1 import (
     MANIFEST_JSON_NAME as STATIC_ENVIRONMENT_MANIFEST_JSON_NAME,
@@ -60,6 +66,10 @@ from phase2_map_sharing.causal_contract import (
     CausalField,
     DecisionRecord,
 )
+from data_collection.validate_phase2_factor_realization_smoke import (
+    build_plan as build_factor_smoke_plan,
+    load_config as load_factor_smoke_config,
+)
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -86,6 +96,93 @@ EXPECTED_MANIFEST_COLUMNS = {
     "route_start_anchor_id",
     "weather",
 }
+
+
+def _factor_runtime_bundle(
+    config: Mapping[str, object],
+) -> Optional[tuple[dict, dict]]:
+    """Load and byte-verify the optional exact-16 factor runtime contract."""
+
+    runtime = config.get("factor_realization_runtime")
+    if runtime is None:
+        return None
+    if not isinstance(runtime, Mapping):
+        raise ValueError("factor_realization_runtime must be a mapping")
+    _require_exact_keys(
+        runtime,
+        {
+            "schema",
+            "enabled",
+            "factor_smoke_config",
+            "factor_smoke_config_sha256",
+            "factor_smoke_plan",
+            "factor_smoke_plan_sha256",
+            "exact_trajectory_count",
+            "atomic_batch",
+        },
+        "factor_realization_runtime",
+    )
+    if (
+        runtime["schema"]
+        != "scenesense.phase2_factor_realization_runtime_config.v1"
+    ):
+        raise ValueError("unsupported factor-realization runtime schema")
+    if runtime["enabled"] is not True:
+        raise ValueError("present factor_realization_runtime must be enabled")
+    if runtime["atomic_batch"] is not True:
+        raise ValueError("factor-smoke runtime must be atomic")
+    if int(runtime["exact_trajectory_count"]) != 16:
+        raise ValueError("factor-smoke runtime must contain exactly 16 trajectories")
+    smoke_config_path = _repo_path(runtime["factor_smoke_config"])
+    smoke_plan_path = _repo_path(runtime["factor_smoke_plan"])
+    for label, path, expected in (
+        (
+            "config",
+            smoke_config_path,
+            str(runtime["factor_smoke_config_sha256"]),
+        ),
+        ("plan", smoke_plan_path, str(runtime["factor_smoke_plan_sha256"])),
+    ):
+        if not path.is_file():
+            raise FileNotFoundError(f"factor-smoke {label} is missing: {path}")
+        observed = _sha256(path)
+        if observed != expected:
+            raise ValueError(
+                f"factor-smoke {label} hash drift: expected={expected} observed={observed}"
+            )
+    smoke_config = load_factor_smoke_config(smoke_config_path)
+    expected_plan = build_factor_smoke_plan(smoke_config)
+    smoke_plan = json.loads(smoke_plan_path.read_text(encoding="utf-8"))
+    if smoke_plan != expected_plan:
+        raise ValueError("factor-smoke plan differs from the config-derived plan")
+    if int(smoke_plan["trajectory_count"]) != 16:
+        raise ValueError("factor-smoke plan trajectory count drifted")
+    return smoke_config, smoke_plan
+
+
+def _factor_contracts(
+    config: Mapping[str, object], selected: pd.DataFrame
+) -> dict[str, FactorRuntimeContract]:
+    bundle = _factor_runtime_bundle(config)
+    if bundle is None:
+        return {}
+    smoke_config, plan = bundle
+    maximum_by_class = smoke_config["factor_contract"][
+        "positive_hazard_surface_clearance_max_m_by_class"
+    ]
+    contracts = {
+        str(row["trajectory_id"]): FactorRuntimeContract.from_plan_row(
+            row,
+            maximum_surface_clearance_m=float(maximum_by_class[row["hazard_class"]]),
+        )
+        for row in plan["rows"]
+    }
+    selected_ids = selected["trajectory_id"].astype(str).tolist()
+    if selected_ids != [str(row["trajectory_id"]) for row in plan["rows"]]:
+        raise ValueError("factor-smoke selected order differs from the immutable plan")
+    if set(contracts) != set(selected_ids):
+        raise ValueError("factor-smoke selected trajectories differ from the plan")
+    return contracts
 SCENARIO_ROLES = {
     "controlled_positive_occlusion",
     "matched_benign_negative",
@@ -113,6 +210,8 @@ STATIC_ENVIRONMENT_SEMANTIC_HASH_BASIS = (
     "sha256_canonical_json_sorted_static_ids_classes_enabled_transforms_"
     "oriented_bboxes_and_map_excluding_capture_clock_fields"
 )
+FACTOR_RETENTION_PRE_ONSET_S = 0.9
+FACTOR_RETENTION_MINIMUM_POST_ONSET_S = 3.0
 
 
 def _repo_path(value: object) -> Path:
@@ -157,6 +256,84 @@ def _sha256(path: Path) -> str:
         for block in iter(lambda: stream.read(1024 * 1024), b""):
             digest.update(block)
     return digest.hexdigest()
+
+
+def _retention_window_for_row(
+    config: Mapping[str, object], row: Mapping[str, object]
+) -> dict[str, object]:
+    """Resolve a historical geometry window or a v2 onset-aligned window.
+
+    Authored onset remains evaluation/orchestration metadata.  The derived
+    retention offset is passed only to the artifact logger, never into either
+    policy feature projection.
+    """
+
+    duration = float(config["clock"]["duration_s"])
+    window = float(config["capture"]["raw_window_duration_s"])
+    if config.get("factor_realization_runtime") is None:
+        offset = float(
+            config["capture"]["raw_window_start_offset_s_by_geometry_or_route"][
+                str(row["geometry_or_route_id"])
+            ]
+        )
+        return {
+            "start_offset_s": offset,
+            "end_offset_s": offset + window,
+            "basis": "historical_geometry_static_offset",
+            "authored_onset_policy_visibility": "not_applicable",
+        }
+    onset = float(row["requested_hazard_onset_s"])
+    offset = max(
+        0.0,
+        min(duration - window, onset - FACTOR_RETENTION_PRE_ONSET_S),
+    )
+    end = offset + window
+    if not offset - 1e-12 <= onset <= end + 1e-12:
+        raise ValueError("factor retention window does not contain authored onset")
+    if end + 1e-12 < min(
+        duration, onset + FACTOR_RETENTION_MINIMUM_POST_ONSET_S
+    ):
+        raise ValueError("factor retention window lacks the registered post-onset span")
+    return {
+        "start_offset_s": offset,
+        "end_offset_s": end,
+        "authored_onset_s": onset,
+        "pre_onset_s": onset - offset,
+        "post_onset_s": end - onset,
+        "basis": "authored_onset_minus_0p9s_bounded_to_trajectory_evaluation_metadata_only",
+        "authored_onset_policy_visibility": "forbidden",
+    }
+
+
+def _expected_retention_bytes(
+    *,
+    storage: Mapping[str, object],
+    retained_frames_per_role: int,
+    tiers: Sequence[object],
+) -> tuple[list[int], int]:
+    """Return exact two-role heavy-byte estimates for mixed retention tiers."""
+
+    input_bytes = int(storage["measured_role_input_bytes_per_frame"])
+    logits_bytes = int(storage["measured_role_logits_bytes_per_frame"])
+    retained_frames = int(retained_frames_per_role)
+    if input_bytes <= 0 or logits_bytes <= 0 or retained_frames <= 0:
+        raise ValueError("retention byte inputs and frame count must be positive")
+    estimates = []
+    for tier in tiers:
+        value = str(tier)
+        if value not in {"inputs_only_window", "inputs_plus_logits_window"}:
+            raise ValueError(f"unsupported manifest retention tier: {value}")
+        estimates.append(
+            len(ROLE_NAMES)
+            * retained_frames
+            * (
+                input_bytes
+                + (logits_bytes if value == "inputs_plus_logits_window" else 0)
+            )
+        )
+    if not estimates:
+        raise ValueError("retention estimate requires at least one trajectory")
+    return estimates, sum(estimates)
 
 
 def _static_environment_truth_config(
@@ -343,6 +520,51 @@ def _write_json_create(path: Path, payload: Mapping[str, object]) -> None:
         stream.write("\n")
 
 
+def _persist_factor_forensic_then_finalize(
+    *,
+    scenario_dir: Path,
+    trajectory_id: str,
+    contract: FactorRuntimeContract,
+    nontreatment_plan_sha256: str,
+    scenario_summary: Mapping[str, object],
+    scenario_runtime: CalibrationScenarioRuntime,
+) -> dict[str, object]:
+    """Persist the exact diagnostic before converting it to a hard gate.
+
+    A failed physical realization is still useful for repairing provisional
+    controls.  Create-only persistence must therefore finish before
+    ``factor_result()`` is allowed to raise and stop the atomic batch.
+    """
+
+    factor_diagnostic = {
+        key: scenario_summary[key]
+        for key in (
+            "realized_factors",
+            "factor_realization_gate",
+            "registered_target_absent",
+            "realized_factors_status",
+            "factor_reference_trajectory_id",
+        )
+        if key in scenario_summary
+    }
+    artifact_path = scenario_dir / "factor_realization.json"
+    _write_json_create(
+        artifact_path,
+        {
+            "schema": "scenesense.phase2_factor_realization_runtime.v1",
+            "trajectory_id": str(trajectory_id),
+            "trajectory_row_sha256": contract.trajectory_row_sha256,
+            "scenario_role": contract.scenario_role,
+            "requested_factors": dict(contract.requested),
+            "nontreatment_plan_sha256": str(nontreatment_plan_sha256),
+            **factor_diagnostic,
+        },
+    )
+    if not artifact_path.is_file():  # pragma: no cover - defensive filesystem gate
+        raise RuntimeError("factor-realization forensic artifact was not persisted")
+    return scenario_runtime.factor_result()
+
+
 def _replace_json(path: Path, payload: Mapping[str, object]) -> None:
     temporary = path.with_suffix(path.suffix + ".tmp")
     temporary.write_text(
@@ -513,6 +735,7 @@ def _load_config(path: Path) -> tuple[dict, dict, pd.DataFrame]:
     if not bool(config.get("manual_detached_launch_only")):
         raise ValueError("audit must require detached/manual launch")
     _static_environment_truth_config(config)
+    factor_bundle = _factor_runtime_bundle(config)
 
     design = config["design"]
     for field in ("config", "trajectory_manifest"):
@@ -539,18 +762,64 @@ def _load_config(path: Path) -> tuple[dict, dict, pd.DataFrame]:
     if missing:
         raise ValueError(f"trajectory manifest is missing columns: {sorted(missing)}")
     selector = design["selector"]
-    selected = manifest[
+    split_rows = manifest[
         manifest["split"].astype(str).eq(str(selector["split"]))
-        & manifest["raw_retention_tier"].astype(str).eq(
-            str(selector["raw_retention_tier"])
-        )
     ].copy()
-    if len(selected) != int(selector["expected_trajectory_count"]):
-        raise ValueError("audit selector did not yield exactly 15 trajectories")
-    if selected["group_id"].nunique() != int(selector["expected_group_count"]):
-        raise ValueError("audit selector did not yield exactly nine groups")
+    selected = (
+        split_rows
+        if factor_bundle is not None
+        else split_rows[
+            split_rows["raw_retention_tier"].astype(str).eq(
+                str(selector["raw_retention_tier"])
+            )
+        ].copy()
+    )
+    exact_ids = selector.get("exact_trajectory_ids")
+    if factor_bundle is not None:
+        if not isinstance(exact_ids, list) or len(exact_ids) != 16:
+            raise ValueError("factor-smoke selector must pin an ordered exact-16 ID list")
+        if len(set(str(value) for value in exact_ids)) != 16:
+            raise ValueError("factor-smoke selector contains duplicate trajectory IDs")
+        available = set(selected["trajectory_id"].astype(str))
+        missing_ids = sorted(set(str(value) for value in exact_ids) - available)
+        if missing_ids:
+            raise ValueError(f"factor-smoke selector IDs are absent: {missing_ids}")
+        order = {str(value): index for index, value in enumerate(exact_ids)}
+        selected = selected[
+            selected["trajectory_id"].astype(str).isin(order)
+        ].copy()
+        selected["_factor_selection_order"] = selected["trajectory_id"].astype(str).map(order)
+        selected = selected.sort_values("_factor_selection_order").drop(
+            columns="_factor_selection_order"
+        )
+    elif exact_ids is not None:
+        raise ValueError("exact_trajectory_ids require factor_realization_runtime")
+    expected_trajectory_count = int(selector["expected_trajectory_count"])
+    expected_group_count = int(selector["expected_group_count"])
+    if len(selected) != expected_trajectory_count:
+        raise ValueError(
+            "audit selector trajectory count drifted: "
+            f"observed={len(selected)} expected={expected_trajectory_count}"
+        )
+    if selected["group_id"].nunique() != expected_group_count:
+        raise ValueError(
+            "audit selector group count drifted: "
+            f"observed={selected['group_id'].nunique()} expected={expected_group_count}"
+        )
     if selected["trajectory_id"].duplicated().any():
         raise ValueError("audit trajectory IDs are not unique")
+    if factor_bundle is not None:
+        allowed_tiers = {"inputs_only_window", "inputs_plus_logits_window"}
+        observed_tiers = set(selected["raw_retention_tier"].astype(str))
+        if not observed_tiers <= allowed_tiers:
+            raise ValueError(
+                f"factor-smoke manifest has unsupported retention tiers: {observed_tiers}"
+            )
+        if not all(
+            math.isclose(float(value), 4.0, abs_tol=1e-12)
+            for value in selected["raw_window_duration_s"]
+        ):
+            raise ValueError("factor-smoke rows must retain exact four-second windows")
     designed = selected[selected["scenario_role"].ne("naturalistic_operation")]
     expected_hazard_marker = {
         "controlled_positive_occlusion": "1",
@@ -601,8 +870,13 @@ def _load_config(path: Path) -> tuple[dict, dict, pd.DataFrame]:
     expected_pair = {"controlled_positive_occlusion", "matched_benign_negative"}
     if any(value != expected_pair for value in pair_sizes):
         raise ValueError("each designed audit group must be an exact positive/benign pair")
-    if len(designed) != 12 or len(selected) - len(designed) != 3:
-        raise ValueError("audit must contain 12 designed and three naturalistic trajectories")
+    if factor_bundle is None:
+        if len(designed) != 12 or len(selected) - len(designed) != 3:
+            raise ValueError(
+                "historical audit must contain 12 designed and three naturalistic trajectories"
+            )
+    elif len(designed) != 16 or len(selected) != len(designed):
+        raise ValueError("factor-smoke tranche must contain exactly 16 designed trajectories")
     for _group_id, rows in designed.groupby("group_id"):
         for field in ("carla_seed", "traffic_seed", "sensor_seed", "traffic_density"):
             if rows[field].nunique(dropna=False) != 1:
@@ -625,8 +899,11 @@ def _load_config(path: Path) -> tuple[dict, dict, pd.DataFrame]:
     ):
         raise ValueError("audit retention must be exactly 40 frames at 10 Hz")
     identities = set(selected["geometry_or_route_id"].astype(str))
-    if set(capture["raw_window_start_offset_s_by_geometry_or_route"]) != identities:
+    offset_identities = set(capture["raw_window_start_offset_s_by_geometry_or_route"])
+    if factor_bundle is None and offset_identities != identities:
         raise ValueError("raw-window offset table does not cover exact audit identities")
+    if factor_bundle is not None and not identities <= offset_identities:
+        raise ValueError("raw-window offset table omits a factor-smoke identity")
     for identity, offset in capture[
         "raw_window_start_offset_s_by_geometry_or_route"
     ].items():
@@ -802,18 +1079,15 @@ def _load_config(path: Path) -> tuple[dict, dict, pd.DataFrame]:
     storage = config["storage"]
     if bool(storage["allow_automatic_dataset_deletion"]):
         raise ValueError("audit must never delete prior datasets")
-    expected_per_trajectory = (
-        len(ROLE_NAMES)
-        * int(capture["retained_frames_per_role"])
-        * (
-            int(storage["measured_role_input_bytes_per_frame"])
-            + int(storage["measured_role_logits_bytes_per_frame"])
-        )
+    retained_frames = int(capture["retained_frames_per_role"])
+    expected_by_trajectory, expected_stage = _expected_retention_bytes(
+        storage=storage,
+        retained_frames_per_role=retained_frames,
+        tiers=selected["raw_retention_tier"].tolist(),
     )
-    expected_stage = len(selected) * expected_per_trajectory
     if int(storage["estimated_heavy_bytes"]) != expected_stage:
         raise ValueError("audit heavy-data estimate does not match the frozen window count")
-    if int(storage["per_trajectory_hard_cap_bytes"]) < expected_per_trajectory:
+    if int(storage["per_trajectory_hard_cap_bytes"]) < max(expected_by_trajectory):
         raise ValueError("per-trajectory raw cap is below the measured planning estimate")
     if int(storage["estimated_heavy_bytes"]) > int(storage["stage_hard_cap_bytes"]):
         raise ValueError("estimated audit data exceed the hard cap")
@@ -879,7 +1153,9 @@ def _load_config(path: Path) -> tuple[dict, dict, pd.DataFrame]:
         clock["frames_per_trajectory"]
     ):
         raise ValueError("radar-density minimum frame count is invalid")
-    return config, source, selected.reset_index(drop=True)
+    selected = selected.reset_index(drop=True)
+    _factor_contracts(config, selected)
+    return config, source, selected
 
 
 def _collector_command(
@@ -909,13 +1185,13 @@ def _collector_command(
         "--front-device", "--back-device",
         "--phase2-tracker-association-gate-m",
         "--phase2-tracker-maximum-missed-frames",
+        "--phase2-retention-tier",
         "--seed",
     }
     inherited = _drop_options(source["common_args"], dropped)
     geometry_id = str(row["geometry_or_route_id"])
-    offset_s = float(
-        capture["raw_window_start_offset_s_by_geometry_or_route"][geometry_id]
-    )
+    retention_window = _retention_window_for_row(config, row)
+    offset_s = float(retention_window["start_offset_s"])
     coordination = trajectory_dir / "coordination"
     fixed_tracker = config["verification"]["replay_grid"][
         "fixed_source_contract"
@@ -956,6 +1232,7 @@ def _collector_command(
             "--phase2-retention-config", str(_repo_path(config["retention_config"])),
             "--phase2-retention-start-offset-s", str(offset_s),
             "--phase2-retention-frame-count", str(capture["retained_frames_per_role"]),
+            "--phase2-retention-tier", str(row["raw_retention_tier"]),
             "--phase2-tracker-association-gate-m",
             str(fixed_tracker["association_gate_m"]),
             "--phase2-tracker-maximum-missed-frames",
@@ -1076,11 +1353,11 @@ def build_plan(
     output_dir: Path,
 ) -> dict:
     trajectories = []
+    factor_contracts = _factor_contracts(config, selected)
     for row in selected.to_dict("records"):
         trajectory_dir = output_dir / str(row["trajectory_id"])
         layer_id, layer, counts = _ambient_counts(config, row)
-        trajectories.append(
-            {
+        planned = {
                 **{key: (None if pd.isna(value) else value) for key, value in row.items()},
                 "trajectory_dir": str(trajectory_dir),
                 "ambient_evidence_layer": layer_id,
@@ -1092,10 +1369,9 @@ def build_plan(
                 "ambient_walker_motion_mode": str(
                     layer["released_walker_motion_mode"]
                 ),
+                "retention_window": _retention_window_for_row(config, row),
                 "retention_start_offset_s": float(
-                    config["capture"]["raw_window_start_offset_s_by_geometry_or_route"][
-                        str(row["geometry_or_route_id"])
-                    ]
+                    _retention_window_for_row(config, row)["start_offset_s"]
                 ),
                 "collector_commands": {
                     role: _collector_command(config, source, row, role, trajectory_dir)
@@ -1107,7 +1383,16 @@ def build_plan(
                     else "not_launched_scenario_owned_only"
                 ),
             }
-        )
+        factor_contract = factor_contracts.get(str(row["trajectory_id"]))
+        if factor_contract is not None:
+            planned["factor_runtime_contract"] = {
+                "trajectory_row_sha256": factor_contract.trajectory_row_sha256,
+                "requested_factors": dict(factor_contract.requested),
+                "authored_onset_policy_visibility": (
+                    "forbidden_evaluation_metadata_only"
+                ),
+            }
+        trajectories.append(planned)
     return {
         "schema": "scenesense.phase2_calibration_audit_plan.v1",
         "stage_id": config["stage_id"],
@@ -1116,6 +1401,7 @@ def build_plan(
         "single_sync_ticker": True,
         "oai_launched": False,
         "next_stage_chained": False,
+        "factor_realization_runtime_enabled": bool(factor_contracts),
         "estimated_minutes": round(
             len(trajectories) * 2.9, 1
         ),
@@ -1200,6 +1486,12 @@ def verify_trajectory(
     expected_frames = int(config["verification"]["required_retained_frame_pairs_per_role"])
     expected_decisions = int(config["verification"]["required_causal_decisions_per_role"])
     local_fields = set(config["verification"]["local_loopback_fields"])
+    retention_tier = str(row["raw_retention_tier"])
+    if retention_tier not in {"inputs_only_window", "inputs_plus_logits_window"}:
+        raise ValueError(f"unsupported manifest retention tier: {retention_tier}")
+    expected_logits = (
+        expected_frames if retention_tier == "inputs_plus_logits_window" else 0
+    )
     by_role = {}
     for role in ROLE_NAMES:
         role_dir = trajectory_dir / role
@@ -1208,10 +1500,15 @@ def verify_trajectory(
         )
         if runtime.get("status") != "complete" or runtime.get("quota_stop_reason") is not None:
             raise ValueError(f"{role} runtime did not complete cleanly: {runtime}")
-        if int(runtime["raw_input_files_written"]) != expected_frames or int(
-            runtime["logits_files_written"]
-        ) != expected_frames:
-            raise ValueError(f"{role} did not retain exactly {expected_frames} frame pairs")
+        if str(runtime.get("retention_tier")) != retention_tier:
+            raise ValueError(f"{role} runtime retention tier differs from manifest")
+        if int(runtime["raw_input_files_written"]) != expected_frames:
+            raise ValueError(f"{role} did not retain exactly {expected_frames} inputs")
+        if int(runtime["logits_files_written"]) != expected_logits:
+            raise ValueError(
+                f"{role} retained {runtime['logits_files_written']} logits, "
+                f"expected {expected_logits} for {retention_tier}"
+            )
         raw_dir = role_dir / "retained_inputs"
         inputs = {
             path.name.removesuffix("_inputs.npz")
@@ -1221,8 +1518,12 @@ def verify_trajectory(
             path.name.removesuffix("_logits.npz")
             for path in raw_dir.glob("frame_*_logits.npz")
         }
-        if inputs != logits or len(inputs) != expected_frames:
+        if len(inputs) != expected_frames:
+            raise ValueError(f"{role} retained input frame set is incomplete")
+        if retention_tier == "inputs_plus_logits_window" and inputs != logits:
             raise ValueError(f"{role} retained input/logit frame sets differ")
+        if retention_tier == "inputs_only_window" and logits:
+            raise ValueError(f"{role} inputs-only tier contains retained logits")
         audits = []
         for line in (role_dir / "runtime/causal_decisions.jsonl").read_text(
             encoding="utf-8"
@@ -1261,7 +1562,14 @@ def verify_trajectory(
         ):
             raise ValueError(f"{role} retained frames are not recoverable in truth stream")
         by_role[role] = {
-            "retained_frame_pairs": len(inputs),
+            "retained_frame_pairs": (
+                len(inputs)
+                if retention_tier == "inputs_plus_logits_window"
+                else 0
+            ),
+            "retained_input_frames": len(inputs),
+            "retention_tier": retention_tier,
+            "retained_logit_frames": len(logits),
             "causal_decisions": len(audits),
             "metric_frames": len(metrics),
             "radar_projected_points_median": radar_median,
@@ -1743,6 +2051,19 @@ def _require_completed_pair_match(
             "matched positive/benign scenario-owned geometry drifted for "
             f"{group_id}: {owned_result['failures']}"
         )
+    factor_hashes = [row.get("nontreatment_plan_sha256") for row in rows]
+    if any(value is not None for value in factor_hashes):
+        if any(
+            not isinstance(value, str) or len(value) != 64
+            for value in factor_hashes
+        ):
+            raise RuntimeError(
+                f"factor pair lacks a complete non-treatment plan hash for {group_id}"
+            )
+        if len(set(factor_hashes)) != 1:
+            raise RuntimeError(
+                f"factor pair non-treatment plan differs for {group_id}"
+            )
     trajectory_result = _compare_ambient_trajectories(
         Path(str(rows[0]["traffic_sanity"]["ambient_actor_trajectory_csv"])),
         Path(str(rows[1]["traffic_sanity"]["ambient_actor_trajectory_csv"])),
@@ -1761,9 +2082,90 @@ def _require_completed_pair_match(
         "owned_nontreatment_realization": owned_result,
         "full_trajectory": trajectory_result,
     }
+    if all(isinstance(value, str) for value in factor_hashes):
+        result_record["nontreatment_plan_sha256"] = factor_hashes[0]
     if static_result is not None:
         result_record["static_environment"] = static_result
     return result_record
+
+
+def _persist_completed_factor_pair_postflights(
+    *,
+    batch: MutableMapping[str, object],
+    group_id: str,
+    output_dir: Path,
+    factor_smoke_config: Mapping[str, object],
+    factor_smoke_plan: Mapping[str, object],
+) -> int:
+    """Fail-fast replay both rows only after their matched-pair gates exist."""
+
+    records = [
+        row
+        for row in batch["trajectories"]
+        if str(row.get("group_id")) == str(group_id)
+        and str(row.get("scenario_role")) != "naturalistic_operation"
+    ]
+    if len(records) < 2:
+        return 0
+    if len(records) != 2 or any(row.get("status") != "complete" for row in records):
+        return 0
+    gate_names = (
+        "matched_pair_initial_realization_gate",
+        "matched_pair_owned_nontreatment_gate",
+        "matched_pair_static_environment_gate",
+        "matched_pair_full_trajectory_gate",
+    )
+    for row in records:
+        for name in gate_names:
+            gate = row.get(name)
+            if not isinstance(gate, Mapping) or gate.get("pass") is not True:
+                raise RuntimeError(
+                    f"factor pair lacks passed {name}: {row.get('trajectory_id')}"
+                )
+    plan_rows = {
+        str(row["trajectory_id"]): row for row in factor_smoke_plan["rows"]
+    }
+    from phase2_map_sharing.factor_smoke_postflight import (
+        analyze_and_persist_trajectory_artifacts,
+    )
+
+    written = 0
+    for record in records:
+        trajectory_id = str(record["trajectory_id"])
+        plan_row = plan_rows.get(trajectory_id)
+        if plan_row is None:
+            raise RuntimeError(f"factor plan row disappeared: {trajectory_id}")
+        postflight_path = (
+            Path(output_dir) / trajectory_id / "scenario/factor_smoke_postflight.json"
+        )
+        prior = record.get("factor_postflight_artifact")
+        if prior is not None:
+            if (
+                not isinstance(prior, Mapping)
+                or Path(str(prior.get("path", ""))).resolve()
+                != postflight_path.resolve()
+                or not postflight_path.is_file()
+                or prior.get("sha256") != _sha256(postflight_path)
+            ):
+                raise RuntimeError(f"factor postflight record drifted: {trajectory_id}")
+            continue
+        if postflight_path.exists():
+            raise RuntimeError(
+                f"unregistered factor postflight already exists: {trajectory_id}"
+            )
+        trajectory_postflight = analyze_and_persist_trajectory_artifacts(
+            trajectory_dir=Path(output_dir) / trajectory_id,
+            trajectory_row=plan_row,
+            smoke_config=factor_smoke_config,
+        )
+        record["factor_postflight_artifact"] = {
+            "path": str(postflight_path),
+            "sha256": _sha256(postflight_path),
+            "postflight_sha256": trajectory_postflight["postflight_sha256"],
+            "status": "complete_excluded_until_atomic_exact_16_pass",
+        }
+        written += 1
+    return written
 
 
 def _compare_ambient_trajectories(
@@ -1913,8 +2315,15 @@ def _compare_ambient_trajectories(
 
 
 def _stage_heavy_bytes(output_dir: Path) -> int:
+    # The current runtime co-locates input and logit NPZ files under
+    # ``retained_inputs``.  Count every NPZ there, while also supporting the
+    # versioned/separate ``retained_logits`` layout without weakening the cap.
     return int(
-        sum(path.stat().st_size for path in output_dir.rglob("retained_inputs/*.npz"))
+        sum(
+            path.stat().st_size
+            for pattern in ("retained_inputs/*.npz", "retained_logits/*.npz")
+            for path in output_dir.rglob(pattern)
+        )
     )
 
 
@@ -1934,6 +2343,8 @@ def run_live(
             f"free={free_bytes}, required={storage['preflight_required_free_bytes']}"
         )
     _require_udp_ports_available({"capture": config["capture"]})
+    factor_contracts = _factor_contracts(config, selected)
+    factor_smoke_bundle = _factor_runtime_bundle(config) if factor_contracts else None
     output_dir.mkdir(parents=True, exist_ok=False)
     progress_path = output_dir / "progress.jsonl"
     _write_json_create(output_dir / "plan.json", plan)
@@ -1975,6 +2386,15 @@ def run_live(
                 "traffic_density": str(row["traffic_density"]),
                 "status": "running",
             }
+            factor_contract = factor_contracts.get(trajectory_id)
+            if factor_contract is not None:
+                record["trajectory_row_sha256"] = (
+                    factor_contract.trajectory_row_sha256
+                )
+                record["requested_factors"] = dict(factor_contract.requested)
+                record["authored_onset_policy_visibility"] = (
+                    "forbidden_evaluation_metadata_only"
+                )
             batch["trajectories"].append(record)
             _replace_json(batch_path, batch)
             _append_progress(
@@ -2072,6 +2492,8 @@ def run_live(
                     recipient_speed_mps=float(config["staging_roles"]["recipient"]["target_speed_mps"]),
                     pedestrian_speed_mps=float(config["controlled_motion"]["pedestrian_speed_mps"]),
                     pedestrian_start_delay_s=float(config["controlled_motion"]["pedestrian_start_delay_s"]),
+                    factor_contract=factor_contract,
+                    cadence_s=float(config["clock"]["fixed_delta_seconds"]),
                 )
                 record["realized_ego_placement"] = scenario_runtime.place_egos()
                 record["controlled_actor_setup"] = scenario_runtime.spawn_controlled_actors()
@@ -2097,6 +2519,17 @@ def run_live(
                 record["scenario_owned_nontreatment_signature"] = (
                     _scenario_owned_nontreatment_signature(world, config)
                 )
+                if factor_contract is not None:
+                    nontreatment = nontreatment_plan_record(
+                        row,
+                        scenario_owned_signature=record[
+                            "scenario_owned_nontreatment_signature"
+                        ],
+                    )
+                    record["nontreatment_plan"] = nontreatment
+                    record["nontreatment_plan_sha256"] = canonical_sha256(
+                        nontreatment
+                    )
 
                 coordination_dir = trajectory_dir / "coordination"
                 population_ready_path = coordination_dir / "population.ready.json"
@@ -2300,6 +2733,18 @@ def run_live(
                 scenario_dir.mkdir()
                 scenario_summary = scenario_runtime.summary()
                 _write_json_create(scenario_dir / "realization_summary.json", scenario_summary)
+                if factor_contract is not None:
+                    factor_result = _persist_factor_forensic_then_finalize(
+                        scenario_dir=scenario_dir,
+                        trajectory_id=trajectory_id,
+                        contract=factor_contract,
+                        nontreatment_plan_sha256=str(
+                            record["nontreatment_plan_sha256"]
+                        ),
+                        scenario_summary=scenario_summary,
+                        scenario_runtime=scenario_runtime,
+                    )
+                    record.update(factor_result)
                 if scenario_runtime.trace:
                     with (scenario_dir / "realized_trace.csv").open(
                         "x", encoding="utf-8", newline=""
@@ -2391,12 +2836,31 @@ def run_live(
                 if free_after < int(storage["required_free_floor_bytes"]):
                     raise RuntimeError("calibration-audit free-space floor crossed")
                 record["status"] = "complete"
-                _require_completed_pair_match(
+                pair_match = _require_completed_pair_match(
                     batch,
                     str(row["group_id"]),
                     config["verification"]["matched_pair_initial_realization_gate"],
                     config["verification"]["matched_pair_trajectory_gate"],
                 )
+                if factor_contract is not None and pair_match is not None:
+                    if factor_smoke_bundle is None:
+                        raise RuntimeError("factor runtime bundle disappeared")
+                    factor_smoke_config, factor_smoke_plan = factor_smoke_bundle
+                    postflight_count = _persist_completed_factor_pair_postflights(
+                        batch=batch,
+                        group_id=str(row["group_id"]),
+                        output_dir=output_dir,
+                        factor_smoke_config=factor_smoke_config,
+                        factor_smoke_plan=factor_smoke_plan,
+                    )
+                    if postflight_count:
+                        _append_progress(
+                            progress_path,
+                            "factor_pair_postflight_complete",
+                            group_id=str(row["group_id"]),
+                            trajectory_count=postflight_count,
+                            atomic_admission=False,
+                        )
             except Exception as exc:
                 record["status"] = "failed"
                 record["error"] = f"{type(exc).__name__}: {exc}"
@@ -2418,17 +2882,58 @@ def run_live(
                 stage_heavy_bytes=heavy_bytes,
             )
             _replace_json(batch_path, batch)
-        batch["status"] = "audit_capture_and_per_trajectory_verification_complete"
+        if factor_contracts:
+            _append_progress(
+                progress_path,
+                "raw_capture_complete_pending_factor_postflight",
+                trajectory_count=len(selected),
+                generic_audit_completion_is_scientific_pass=False,
+            )
+            smoke_bundle = _factor_runtime_bundle(config)
+            if smoke_bundle is None:
+                raise RuntimeError("factor runtime disappeared before postflight")
+            factor_smoke_config, factor_smoke_plan = smoke_bundle
+            # Lazy import keeps the historical audit path independent of the
+            # offline tracker/model-analysis environment.
+            from phase2_map_sharing.factor_smoke_postflight import (
+                analyze_batch_artifacts,
+            )
+
+            _factor_result, factor_validation = analyze_batch_artifacts(
+                batch_root=output_dir,
+                smoke_config=factor_smoke_config,
+                factor_plan=factor_smoke_plan,
+                write_outputs=True,
+            )
+            if factor_validation.get("verdict") != "PASS_ATOMIC_EXACT_16_ADMITTED":
+                raise RuntimeError("factor postflight lacked the registered atomic PASS")
+            batch["factor_postflight"] = {
+                "result_bundle": str(output_dir / "factor_smoke_results.json"),
+                "atomic_validation": str(
+                    output_dir / "factor_smoke_validation.json"
+                ),
+                "verdict": factor_validation["verdict"],
+            }
+            batch["status"] = "factor_postflight_complete_atomic_exact_16_validated"
+            _append_progress(
+                progress_path,
+                "factor_postflight_complete",
+                trajectory_count=len(selected),
+                verdict=factor_validation["verdict"],
+                next_action="outer_atomic_stage_validation_then_human_review",
+            )
+        else:
+            batch["status"] = "audit_capture_and_per_trajectory_verification_complete"
+            _append_progress(
+                progress_path,
+                "stage_complete",
+                trajectory_count=len(selected),
+                next_action="human_review_replay_sufficiency_and_oai_field_gate",
+            )
         batch["completed_utc"] = datetime.now(timezone.utc).isoformat()
         batch["stage_heavy_bytes"] = _stage_heavy_bytes(output_dir)
         batch["oai_field_gate"] = config["verification"]["oai_fields"]["status"]
         _replace_json(batch_path, batch)
-        _append_progress(
-            progress_path,
-            "stage_complete",
-            trajectory_count=len(selected),
-            next_action="human_review_replay_sufficiency_and_oai_field_gate",
-        )
     finally:
         try:
             advisor._require_empty_async(world)
@@ -2493,16 +2998,47 @@ def main() -> None:
                     },
                 )
             raise
+        factor_runtime_enabled = config.get("factor_realization_runtime") is not None
+        factor_validation_path = output_dir / "factor_smoke_validation.json"
+        factor_validation = None
+        if factor_runtime_enabled:
+            if not factor_validation_path.is_file():
+                raise RuntimeError(
+                    "factor runtime completed without atomic validation artifact"
+                )
+            factor_validation = json.loads(
+                factor_validation_path.read_text(encoding="utf-8")
+            )
+            if factor_validation.get("verdict") != (
+                "PASS_ATOMIC_EXACT_16_ADMITTED"
+            ):
+                raise RuntimeError(
+                    "factor runtime completed without registered atomic PASS"
+                )
         summary = {
             "schema": "scenesense.phase2_calibration_audit_sentinel.v1",
-            "status": "audit_complete_stop_for_human_gate",
+            "status": (
+                "factor_smoke_atomic_exact_16_admitted_stop_for_human_gate"
+                if factor_runtime_enabled
+                else "audit_complete_stop_for_human_gate"
+            ),
             "batch_root": str(output_dir),
             "oai_field_gate": config["verification"]["oai_fields"]["status"],
             "written_utc": datetime.now(timezone.utc).isoformat(),
         }
+        if factor_runtime_enabled:
+            summary["factor_smoke_validation"] = {
+                "path": str(factor_validation_path),
+                "sha256": _sha256(factor_validation_path),
+                "verdict": factor_validation["verdict"],
+            }
         _write_json_create(output_dir / "RESULTS_SUMMARY.json", summary)
         _write_json_create(output_dir / "COMPLETED.json", summary)
-        result["note"] = "audit complete; no downstream stage was chained"
+        result["note"] = (
+            "factor smoke admitted atomically; no downstream stage was chained"
+            if factor_runtime_enabled
+            else "audit complete; no downstream stage was chained"
+        )
     print(json.dumps(result, indent=2, sort_keys=True))
 
 

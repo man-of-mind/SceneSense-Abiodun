@@ -1,0 +1,16 @@
+priority,item_id,category,status,resolution,new_run_required,measurement_authorized
+1,select_object_map_quality_floor,human_decision,REVIEW_REQUIRED,Abiodun and supervisor select one absolute object-quality floor after reviewing ROI-incremental sensitivity and absolute catalog metrics.,False,False
+2,difficult_object_certification,quality_evidence,UNRESOLVED_ALL_PROFILES_HIGH_ROI_HAS_ADDITIONAL_DETAIL_GAP,All survivors require difficult-object review; high-ROI profiles additionally lack per-object match rows. Restore source GT only for decision-relevant survivors.,False,False
+3,quality_source_dataset_restore,reproducibility,SOURCE_DATASET_ABSENT,Restore the frozen source dataset before any fresh profile or ROI evaluation.,False,False
+4,select_transport_replay_sequence,transport_provenance,UNSELECTED,Select and hash one retained ordered tensor sequence only after the eligible catalog is known.,False,False
+5,integrated_bundle_compute_timing,compute_evidence,LEGACY_ARCHITECTURE_PROXY_ONLY,Remeasure only eligible or decision-relevant integrated bundles if exact compute timing is missing.,False,False
+6,fixed_10hz_map_update_boundaries,network_measurement,PENDING_AFTER_CATALOG_FREEZE,"Measure at most the nearest decision-relevant profile per regime, then close only the adjacent bracket needed.",True,False
+7,select_service_tolerance,freshness_decision,SENSITIVITY_ONLY,Choose a localization/service tolerance after reviewing the historical latency proxy; derive AoI from later accepted-update events.,False,False
+8,candidate_clear_nearest_above_feature_payload_proxy,candidate_only,NOT_AUTHORIZED_PENDING_ELIGIBLE_CATALOG,noae/u6/q0.5,False,False
+8,candidate_clear_nearest_at_or_below_feature_payload_proxy,candidate_only,NOT_AUTHORIZED_PENDING_ELIGIBLE_CATALOG,noae/u8/q0.7,False,False
+8,candidate_mid_nearest_above_feature_payload_proxy,candidate_only,NOT_AUTHORIZED_PENDING_ELIGIBLE_CATALOG,ae128/u8/q0.3,False,False
+8,candidate_mid_nearest_at_or_below_feature_payload_proxy,candidate_only,NOT_AUTHORIZED_PENDING_ELIGIBLE_CATALOG,ae32/u8/q0,False,False
+8,candidate_mild_nearest_above_feature_payload_proxy,candidate_only,NOT_AUTHORIZED_PENDING_ELIGIBLE_CATALOG,noae/u6/q0.7,False,False
+8,candidate_mild_nearest_at_or_below_feature_payload_proxy,candidate_only,NOT_AUTHORIZED_PENDING_ELIGIBLE_CATALOG,noae/u4/q0.3,False,False
+8,candidate_poor_nearest_above_feature_payload_proxy,candidate_only,NOT_AUTHORIZED_PENDING_ELIGIBLE_CATALOG,ae32/u8/q0.5,False,False
+8,candidate_poor_nearest_at_or_below_feature_payload_proxy,candidate_only,NOT_AUTHORIZED_PENDING_ELIGIBLE_CATALOG,ae32/u6/q0.3,False,False

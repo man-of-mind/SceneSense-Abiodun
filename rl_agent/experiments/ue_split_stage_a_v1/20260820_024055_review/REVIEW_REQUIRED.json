@@ -1,0 +1,13 @@
+{
+  "decision_state": "REVIEW_REQUIRED",
+  "eligible_action_count": null,
+  "logical_surface_rows": null,
+  "manifest_sha256": "703fae3309732b143d40628415c1c6214bf0428a82816b379f76ba9500735574",
+  "next_action": "review_quality_sensitivity_and_freeze_object_map_v1_floor",
+  "no_run_authority": true,
+  "profile_count": 72,
+  "provisional_profile_regime_screen_rows": 288,
+  "quality_floor_id": null,
+  "schema": "scenesense.ue_split_stage_a_review_required.v1",
+  "verdict": "PASS_EVIDENCE_ASSEMBLED_REVIEW_REQUIRED_NO_RUN_AUTHORITY"
+}

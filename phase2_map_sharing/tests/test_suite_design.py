@@ -431,7 +431,17 @@ class SuiteDesignV2FactorTests(unittest.TestCase):
             pre_16 = summary["installed_track_quality_guardrails"][
                 "pre_16_calibration_contract"
             ]
-            self.assertEqual(4, len(pre_16["metric_definitions"]))
+            self.assertEqual(5, len(pre_16["metric_definitions"]))
+            self.assertEqual(
+                "recipient_installs_without_valid_source_observation_and_source_track_provenance_correspondence",
+                pre_16["metric_definitions"]
+                ["protocol_false_recipient_install_rate"]["numerator"],
+            )
+            self.assertEqual(
+                "report_only_evaluation_diagnostic_not_structural_failure",
+                pre_16["metric_definitions"]
+                ["truth_unmatched_recipient_install_rate"]["role"],
+            )
             self.assertTrue(
                 all(
                     value["denominator"]

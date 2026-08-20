@@ -103,6 +103,7 @@ class Phase2RuntimeConfig:
     publication_action: str = "PUBLISH_ALL"
     retention_start_offset_s: float = 0.0
     retention_frame_count: Optional[int] = None
+    retention_tier: str = "inputs_plus_logits_window"
 
     def validate(self) -> None:
         if self.role not in ROLE_NAMES:
@@ -117,6 +118,11 @@ class Phase2RuntimeConfig:
             raise ValueError("raw-retention start offset must be non-negative")
         if self.retention_frame_count is not None and self.retention_frame_count <= 0:
             raise ValueError("raw-retention frame count must be positive when set")
+        if self.retention_tier not in {
+            "inputs_only_window",
+            "inputs_plus_logits_window",
+        }:
+            raise ValueError("unsupported Phase-2 raw-retention tier")
 
 
 @dataclass
@@ -414,6 +420,7 @@ class Phase2CaptureRuntime:
                 "publication_action": config.publication_action,
                 "retention_start_offset_s": config.retention_start_offset_s,
                 "retention_frame_count": config.retention_frame_count,
+                "retention_tier": config.retention_tier,
                 "contract_config_path": str(config.contract_config_path),
                 "retention_preflight": self.retention_preflight,
             },
@@ -707,7 +714,7 @@ class Phase2CaptureRuntime:
             batch = int(object_tensor.shape[0]) if object_tensor.ndim == 4 else 1
             heatmap_cells = batch * heatmap_channels * height * width
         retained = False
-        if retained_input:
+        if retained_input and self.config.retention_tier == "inputs_plus_logits_window":
             buffer = io.BytesIO()
             np.savez_compressed(buffer, **arrays)
             retained = self._quota_write(
@@ -908,6 +915,7 @@ class Phase2CaptureRuntime:
                 "logits_files_written": self._logits_files_written,
                 "retained_frame_ids": sorted(self._retained_input_frames),
                 "retention_window_started_at_s": self._retention_window_started_at_s,
+                "retention_tier": self.config.retention_tier,
                 "quota_stop_reason": self._quota_stop_reason,
                 "retention": self.retention.summary(),
             },

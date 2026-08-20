@@ -1,5 +1,11 @@
 # Phase-2 map sharing
 
+> **PARKED 2026-08-19 — no active execution or launch authority.**
+> This package is preserved for later helper-recipient work. The current
+> milestone is the single-UE controller in
+> `../rl_agent/UE_AGENT_EXECUTION_CHECKLIST.md`. Read
+> `PARKED_STATUS_2026-08-19.md` before touching this package.
+
 This package is the recipient-specific SceneSense map-sharing core. It adapts
 one source stream from the existing spatial-map snapshot, publishes a
 wire-safe `scenesense.map_contribution.v1` update to one named ego, performs
@@ -7,7 +13,7 @@ class/kinematic association, rejects stale/out-of-order/cross-recipient data,
 and emits constant-velocity closest-approach warnings.
 
 `v1` is a frozen plumbing scaffold, not the live collection/safety schema. The
-canonical next-step design is `PHASE2_PAIRED_CAUSAL_CORPUS_SPEC.md`: schema v2,
+banked successor design is `PHASE2_PAIRED_CAUSAL_CORPUS_SPEC.md`: schema v2,
 causal pre-action state, separate inference-placement/publication decisions,
 designed + naturalistic paired suites, and a two-trajectory pilot gate. Do not
 launch CARLA/OAI collection from this README.

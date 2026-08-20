@@ -91,9 +91,13 @@ installed_track_quality_guardrails:
   pre_16_calibration_contract:
     status: definitions_denominators_and_structural_integrity_gates_must_be_frozen
     metric_definitions:
-      false_recipient_install_rate:
-        numerator: recipient_installs_without_registered_source_target_correspondence
+      protocol_false_recipient_install_rate:
+        numerator: recipient_installs_without_valid_source_observation_and_source_track_provenance_correspondence
         denominator: all_recipient_install_attempts
+      truth_unmatched_recipient_install_rate:
+        numerator: recipient_installs_not_matched_to_any_evaluation_truth_object
+        denominator: all_recipient_installs
+        role: report_only_evaluation_diagnostic_not_structural_failure
       duplicate_recipient_install_rate:
         numerator: repeated_recipient_installs_for_same_contribution_and_source_track
         denominator: all_recipient_installs
@@ -104,7 +108,7 @@ installed_track_quality_guardrails:
         numerator: recipient_map_tracks_without_valid_local_or_installed_source_provenance
         denominator: all_recipient_map_tracks
     structural_integrity_gates:
-      - every_install_has_unique_contribution_source_and_recipient_track_ids
+      - every_install_has_valid_contribution_object_source_and_recipient_track_provenance
       - publish_install_available_timestamps_are_monotone_on_one_clock
       - every_metric_event_is_recomputable_from_immutable_provenance
       - zero_missing_denominators_or_untyped_zero_exposure_cases

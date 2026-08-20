@@ -1,5 +1,9 @@
 # The RL journey: environment, reward, baselines, results, and what comes next
 
+> **Current next-step supersession (2026-08-19):** retain this report's evidence
+> and causal caveats, but do not follow its helper-recipient Phase-2 next steps.
+> The sole current execution path is `UE_AGENT_EXECUTION_CHECKLIST.md`.
+
 **Audience:** advisor + team. **Status:** audited working record; Tasks A/B/C have landed, but the causal audit
 re-scoped the controller results before slide preparation. **Supersedes** `PRESENTATION_STORY.md` (written before the results). Every number here is traceable to an
 artifact path; scope caveats are stated inline rather than in a footnote, because two of them changed our claims.

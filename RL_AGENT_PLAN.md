@@ -1,6 +1,10 @@
 # UE-Side RL Agent — Plan of Attack (Month 2 catch-up → Month 3)
 *Original plan written 2026-07-08; current status overlaid 2026-07-16.*
 
+> **Superseded execution order:** use
+> `rl_agent/UE_AGENT_EXECUTION_CHECKLIST.md`. This document is retained for
+> historical rationale only.
+
 > Sections below preserve the workstream rationale and design decisions from
 > the original plan. This status overlay is authoritative when an older status
 > statement conflicts with later evidence.

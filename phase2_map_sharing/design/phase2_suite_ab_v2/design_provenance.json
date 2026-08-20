@@ -1,9 +1,9 @@
 {
-  "config_semantic_sha256": "b32a606157bbb7c1da369b93db252d44992a354608f66ae3de67dde2ee066733",
-  "config_sha256": "1211a589fad4b1e09399754f8be125cef95e394498e2ca7823da3e4e37b88bc5",
+  "config_semantic_sha256": "6b85b5023044052e66a36e3d9bcb1375e600b7cb904cfddba65f589e61e98921",
+  "config_sha256": "66935c6edc8ede1a9eebc563ffb51210a7b391ee3c252690ec8e504a209b5363",
   "design_id": "phase2_suite_ab_v2",
   "deterministic_master_seed": 8172026,
-  "module_sha256": "dd5c91e5a57d7720d717b15fc0aa450a0256ae9b888e8d5fe7aade258d22eaca",
+  "module_sha256": "e40a4106fcc58ad0c0ff51241ab8a4376c0aa52bb948267ff1136f46301f40b7",
   "runtime_authorized": false,
   "schema": "scenesense.phase2_suite_design_provenance.v1"
 }

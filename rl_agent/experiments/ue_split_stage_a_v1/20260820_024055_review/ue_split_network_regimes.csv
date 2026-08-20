@@ -1,0 +1,5 @@
+network_regime,historical_network_config_id,achieved_snr_db_median,mcs_median,capacity_reference_mbps,capacity_reference_low_mbps,capacity_reference_high_mbps,capacity_equivalent_payload_10hz_bytes,capacity_equivalent_payload_10hz_kib,projection_uncertainty_fraction,evidence_status,exact_10hz_certification,authoritative_map_update_done,radio_provenance_status
+clear,clear,50.3,28.0,36.683697,25.6785879,47.6888061,458546.2125,447.79903564,0.3,existing_reused_capacity_projection,False,False,SUMMARY_ONLY_RAW_TTRACER_ABSENT
+mild,mild,19.5,24.0,27.778469,19.4449283,36.1120097,347230.8625,339.09263916,0.3,existing_reused_capacity_projection,False,False,SUMMARY_ONLY_RAW_TTRACER_ABSENT
+mid,mid15,15.6,19.0,19.711695,13.7981865,25.6252035,246396.1875,240.62127686,0.3,existing_reused_capacity_projection,False,False,SUMMARY_ONLY_RAW_TTRACER_ABSENT
+poor,strong,8.2,9.0,10.390025,7.2730175,13.5070325,129875.3125,126.83135986,0.3,existing_reused_capacity_projection,False,False,SUMMARY_ONLY_RAW_TTRACER_ABSENT

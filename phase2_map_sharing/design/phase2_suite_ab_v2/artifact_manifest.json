@@ -3,12 +3,12 @@
     {
       "bytes": 441,
       "path": "design_provenance.json",
-      "sha256": "7804f485ab36c35c0a248a7bda28b52bd8b99e508a6880d63166659da8827526"
+      "sha256": "6c5f0347d02defdc819a7487b61e901c048747211c8949d614d62daae8326ca2"
     },
     {
-      "bytes": 6539,
+      "bytes": 6868,
       "path": "design_summary.json",
-      "sha256": "fb45b5ca1bc229297daff00dc828d830559ee4a3e182c86ea73623efeba5bcca"
+      "sha256": "b1b2c71a0b1b6858a43c8b6541d775e44533ee798dc5bd5a9e1e3a3f4e42dbf7"
     },
     {
       "bytes": 1344,

@@ -86,6 +86,10 @@ from data_collection.phase2_queue_reveal_vehicle_scenario import (
     queue_reveal_geometry_contract,
 )
 from data_collection.phase2_naturalistic_pair_scenario import resolve_pair
+from data_collection.phase2_factor_realization_runtime import (
+    FactorRealizationMonitor,
+    FactorRuntimeContract,
+)
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -540,6 +544,8 @@ class CalibrationScenarioRuntime:
         recipient_speed_mps: float = 5.0,
         pedestrian_speed_mps: float = 1.3,
         pedestrian_start_delay_s: float = 3.0,
+        factor_contract: Optional[FactorRuntimeContract] = None,
+        cadence_s: float = 0.1,
     ) -> None:
         if set(egos) != set(ROLE_NAMES):
             raise ValueError("scenario runtime requires helper and recipient egos")
@@ -549,10 +555,31 @@ class CalibrationScenarioRuntime:
         self.scenario = scenario
         self.egos = dict(egos)
         self.tm_port = int(tm_port)
+        self.factor_contract = factor_contract
+        if factor_contract is not None:
+            if factor_contract.geometry_or_route_id != scenario.geometry_or_route_id:
+                raise ValueError("factor contract and realized geometry disagree")
+            if factor_contract.scenario_role != scenario.scenario_role:
+                raise ValueError("factor contract and realized scenario role disagree")
+            if factor_contract.controlled_hazard_present != scenario.hazard_present:
+                raise ValueError("factor contract and hazard presence disagree")
+            requested = factor_contract.requested
+            helper_speed_mps = float(requested["requested_helper_speed_mps"])
+            recipient_speed_mps = float(requested["requested_recipient_speed_mps"])
+            pedestrian_start_delay_s = float(requested["requested_hazard_onset_s"])
+            if str(requested["hazard_actor_role"]) == "walker":
+                pedestrian_speed_mps = float(
+                    requested["requested_hazard_actor_speed_mps"]
+                )
         self.helper_speed_mps = float(helper_speed_mps)
         self.recipient_speed_mps = float(recipient_speed_mps)
         self.pedestrian_speed_mps = float(pedestrian_speed_mps)
         self.pedestrian_start_delay_s = float(pedestrian_start_delay_s)
+        self.factor_monitor = (
+            FactorRealizationMonitor(factor_contract, cadence_s=float(cadence_s))
+            if factor_contract is not None
+            else None
+        )
         self.owned: list[carla.Actor] = []
         self.controllers: Dict[str, DirectRouteController] = {}
         self.occluder: Optional[carla.Actor] = None
@@ -841,9 +868,17 @@ class CalibrationScenarioRuntime:
                 self.target_vehicle,
                 self.scenario.routes["target"],
                 target_speed_mps=(
-                    PULLOUT_TARGET_SPEED_MPS
-                    if self.scenario.layout == "parked_vehicle_pullout"
-                    else 3.6
+                    float(
+                        self.factor_contract.requested[
+                            "requested_hazard_actor_speed_mps"
+                        ]
+                    )
+                    if self.factor_contract is not None
+                    else (
+                        PULLOUT_TARGET_SPEED_MPS
+                        if self.scenario.layout == "parked_vehicle_pullout"
+                        else 3.6
+                    )
                 ),
                 waypoint_reach_m=(
                     0.75 if self.scenario.layout == "parked_vehicle_pullout" else 3.5
@@ -855,7 +890,15 @@ class CalibrationScenarioRuntime:
             self.controllers["occluder"] = DirectRouteController(
                 self.occluder,
                 self.scenario.routes["occluder"],
-                target_speed_mps=QUEUE_REVEAL_OCCLUDER_SPEED_MPS,
+                target_speed_mps=(
+                    float(
+                        self.factor_contract.requested[
+                            "requested_onset_driver_speed_mps"
+                        ]
+                    )
+                    if self.factor_contract is not None
+                    else QUEUE_REVEAL_OCCLUDER_SPEED_MPS
+                ),
                 waypoint_reach_m=0.75,
             )
 
@@ -863,9 +906,19 @@ class CalibrationScenarioRuntime:
         layout = self.scenario.layout
         self._last_controller_tick_roles.clear()
         for controller_role, controller in self.controllers.items():
+            requested_onset_s = (
+                float(self.factor_contract.requested["requested_hazard_onset_s"])
+                if self.factor_contract is not None
+                else None
+            )
             if (
                 controller_role == "occluder"
-                and float(elapsed_s) < QUEUE_REVEAL_OCCLUDER_START_DELAY_S
+                and float(elapsed_s)
+                < (
+                    requested_onset_s
+                    if requested_onset_s is not None
+                    else QUEUE_REVEAL_OCCLUDER_START_DELAY_S
+                )
             ):
                 assert self.occluder is not None
                 self.occluder.apply_control(
@@ -875,9 +928,13 @@ class CalibrationScenarioRuntime:
             if controller_role == "occluder":
                 self.queue_occluder_started = True
             target_delay_s = (
-                PULLOUT_TARGET_START_DELAY_S
-                if layout == "parked_vehicle_pullout"
-                else 0.0
+                requested_onset_s
+                if requested_onset_s is not None
+                else (
+                    PULLOUT_TARGET_START_DELAY_S
+                    if layout == "parked_vehicle_pullout"
+                    else 0.0
+                )
             )
             if controller_role == "target" and float(elapsed_s) < target_delay_s:
                 assert self.target_vehicle is not None
@@ -897,7 +954,11 @@ class CalibrationScenarioRuntime:
                 }
                 and float(elapsed_s)
                 >= (
-                    QUEUE_REVEAL_OCCLUDER_START_DELAY_S
+                    (
+                        requested_onset_s
+                        if requested_onset_s is not None
+                        else QUEUE_REVEAL_OCCLUDER_START_DELAY_S
+                    )
                     if layout == "queue_reveal_vehicle"
                     else target_delay_s
                 )
@@ -1003,6 +1064,28 @@ class CalibrationScenarioRuntime:
                     "actor_id": int(yield_event["actor_id"]),
                     "actor_type": str(yield_event["type_id"]),
                 }
+        if self.factor_monitor is not None:
+            hazard_actor = {
+                "walker": self.walker,
+                "target_vehicle": self.target_vehicle,
+            }.get(str(self.factor_contract.requested["hazard_actor_role"]))
+            onset_driver = {
+                "walker": self.walker,
+                "target_vehicle": self.target_vehicle,
+                "occluder": self.occluder,
+            }.get(str(self.factor_contract.requested["onset_driver_role"]))
+            self.factor_monitor.observe(
+                frame_id=int(frame_id),
+                elapsed_s=float(elapsed_s),
+                helper=self.egos["helper"],
+                recipient=self.egos["recipient"],
+                hazard=hazard_actor,
+                onset_driver=onset_driver,
+                recipient_intervened=(
+                    self.review_only_yield_ever
+                    or self.first_direct_route_yield["recipient"] is not None
+                ),
+            )
         row["walker_speed_mps"] = _speed(self.walker) if self.walker is not None else 0.0
         row["target_vehicle_speed_mps"] = (
             _speed(self.target_vehicle) if self.target_vehicle is not None else 0.0
@@ -1010,7 +1093,7 @@ class CalibrationScenarioRuntime:
         self.trace.append(row)
 
     def summary(self) -> dict:
-        return {
+        result = {
             "schema": "scenesense.phase2_calibration_scenario_runtime.v2",
             "geometry_or_route_id": self.scenario.geometry_or_route_id,
             "layout": self.scenario.layout,
@@ -1034,6 +1117,22 @@ class CalibrationScenarioRuntime:
             "lane_contract": dict(self.realized_lane_contract),
             "settlement": dict(self.settlement),
         }
+        if self.factor_contract is not None:
+            result["factor_runtime_contract"] = {
+                "trajectory_id": self.factor_contract.trajectory_id,
+                "trajectory_row_sha256": self.factor_contract.trajectory_row_sha256,
+                "requested_factors": dict(self.factor_contract.requested),
+                "authored_onset_policy_visibility": "forbidden_evaluation_metadata_only",
+            }
+            # Summary artifacts retain failed provisional control realizations;
+            # the owning exact-16 runner calls factor_result() to fail closed.
+            result.update(self.factor_monitor.diagnostic())
+        return result
+
+    def factor_result(self) -> dict[str, object]:
+        if self.factor_monitor is None:
+            raise RuntimeError("factor result requested from a legacy runtime")
+        return self.factor_monitor.finalize()
 
     def destroy(self) -> None:
         for traffic_light, state, frozen in reversed(self._traffic_light_restore):

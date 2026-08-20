@@ -1,6 +1,6 @@
 schema_version: scenesense.phase2_factor_realization_smoke_config.v1
 stage_id: phase2_factor_realization_smoke_v1
-implementation_status: offline_contract_only_runtime_adapter_pending
+implementation_status: exact_16_runtime_adapters_ready_manual_corner_acceptance_required_no_launch_authority
 
 # This file selects real replicate-0 calibration rows.  It is not a disposable
 # toy manifest: one atomic PASS batch may be admitted into the 66-trajectory
@@ -22,7 +22,7 @@ source_design:
   manifest_sha256: c5b56fc1210a7d2e26e8cb58cc0b495fd2b649c36faa96d5c83f8726502fdf96
   manifest_schema: scenesense.phase2_suite_design_manifest.v2
   design_config: phase2_map_sharing/configs/phase2_suite_ab_design_v2.yaml
-  design_config_sha256: 1211a589fad4b1e09399754f8be125cef95e394498e2ca7823da3e4e37b88bc5
+  design_config_sha256: 66935c6edc8ede1a9eebc563ffb51210a7b391ee3c252690ec8e504a209b5363
   design_config_schema: scenesense.phase2_suite_design.v2
   design_id: phase2_suite_ab_v2
   selector:
@@ -82,6 +82,8 @@ factor_contract:
   positive_hazard_surface_clearance_max_m_by_class:
     pedestrian: 2.5
     vehicle: 3.0
+  surface_clearance_interpretation: counterfactual_predicted_conflict_proximity_zero_may_mean_predicted_obb_overlap_not_realized_collision_status
+  actual_collision_gate: separate_zero_realized_collision_structural_requirement
   controlled_pedestrian_speed_range_mps: [1.0, 2.0]
   target_error_policy: report_only_until_bounded_smoke_calibrates_control_to_realization
   requested_vs_realized_policy:
@@ -102,7 +104,7 @@ factor_contract:
 
 installed_track_endpoint:
   endpoint_name: recipient_available_confirmed_track_margin_s
-  definition: recipient_own_target_confirmation_at_s_minus_helper_target_track_recipient_available_at_s
+  definition: recipient_self_target_track_recipient_available_at_s_minus_helper_target_track_recipient_available_at_s
   source_only_margin_role: explanatory_upper_bound_not_recipient_knowledge
   transport_scope: local_loopback_only_no_oai_claim
   missing_event_policy: typed_censor_or_miss_never_null_or_fabricated_time
@@ -114,7 +116,8 @@ installed_track_endpoint:
   required_positive_fields:
     - helper_source_confirmation
     - helper_track_recipient_install
-    - recipient_own_confirmation
+    - recipient_self_source_confirmation
+    - recipient_self_track_recipient_install
     - evaluation_horizon_s
     - endpoint_status
     - evidence_chain_sha256
@@ -125,7 +128,115 @@ installed_track_endpoint:
     - published_at_s
     - installed_at_s
     - available_at_s
-  monotonicity: helper_source_confirmation_at_s_lte_published_at_s_lte_installed_at_s_lte_available_at_s
+  helper_monotonicity: helper_source_confirmation_at_s_lte_published_at_s_lte_installed_at_s_lte_available_at_s
+  recipient_self_monotonicity: recipient_self_confirmation_at_s_lte_local_installed_at_s_lte_available_at_s
+  outcome_preregistration:
+    numeric_margin_domain: signed_real_seconds
+    near_zero_or_negative_margin_is_valid: true
+    near_zero_or_negative_interpretation: measured_pipeline_or_geometry_finding_not_runtime_failure
+    minimum_success_margin_s: null
+    post_result_confirmation_or_transport_retuning_authorized: false
+    failed_warning_v3_threshold_retuning_authorized: false
+
+recipient_endpoint_runtime:
+  warning_repair_config: phase2_map_sharing/configs/warning_repair_screen_v3.yaml
+  warning_repair_config_sha256: b08c7837aab8002477a5f2c47d500a6470391827a15c4dc2b72d2acd37719dd8
+  replay_config: phase2_map_sharing/configs/calibration_replay_sufficiency_v1.yaml
+  replay_config_sha256: a9307c81885f0840e926aeb0b3d4f98810057400238e7d5b251d925e9d325806
+  tracker_version: source_local_confirmed_cv.v3
+  map_engine: RecipientMapEngineV3
+  transport_mode: local_loopback
+  consumer_handoff_delay_s: 0.0
+  consumer_handoff_delay_interpretation: same_simulated_timestamp_install_then_consumer_snapshot_not_zero_physical_transport_claim
+  dependency_sha256:
+    factor_smoke_postflight:
+      path: phase2_map_sharing/factor_smoke_postflight.py
+      sha256: c6d2798c7146d62ea37b189a83f8b789c76d74c7d040d45e4022309638c38fb6
+    factor_smoke_runtime_contract:
+      path: phase2_map_sharing/factor_smoke_runtime_contract.py
+      sha256: 518e47ef44596c042746ca2fc3ae0ff002d6363506fe3303455d9baa6a81f60f
+    causal_contract:
+      path: phase2_map_sharing/causal_contract.py
+      sha256: 8e26d9861e383b9c234ae3650389f0457f3a185ee72ef4d01d3bdd3f9d6d0e8b
+    schemas_v2:
+      path: phase2_map_sharing/schemas_v2.py
+      sha256: ffe8ffb0ccf9764744d0b0e66b619588951d487f9e674802d8902c24ce1f9acc
+    source_tracker_v3:
+      path: phase2_map_sharing/source_tracker_v3.py
+      sha256: ef38d5d1d060bb189bca783216aa08ca265d62664ff334356dbadb84d32c2ec1
+    engine_v2:
+      path: phase2_map_sharing/engine_v2.py
+      sha256: 384ab5445daff085faab9bf5826ad9997f6481ba305ed2084f270b9473b1cc79
+    engine_v3:
+      path: phase2_map_sharing/engine_v3.py
+      sha256: 4bcfafc192e84e967d92bed3ba0bf52c8a4560c52dadd93d7803e6e83395d235
+    replay_warning_repair_screen:
+      path: phase2_map_sharing/replay_warning_repair_screen.py
+      sha256: a5623a7f52e8611c365a5f90eb4cfc195693ed8ba03042ab7ed2f98669874e1e
+    replay_paired_pilot:
+      path: phase2_map_sharing/replay_paired_pilot.py
+      sha256: 3abdc7b855edcfeb4787ca5b27a06e9db967e520b0c8ddcd04fde32dd3bacd76
+    replay_calibration_grid:
+      path: phase2_map_sharing/replay_calibration_grid.py
+      sha256: b462fc153e9f991a1a15008ef831f8e0f1d356bdcada00fa37bf05cc66375630
+    static_truth_adjudication_v1:
+      path: phase2_map_sharing/static_truth_adjudication_v1.py
+      sha256: 39963f550cd456b0cc85d47284127a2878721835f1eb08e79abb00ab0b701271
+    factor_smoke_validator:
+      path: data_collection/validate_phase2_factor_realization_smoke.py
+      sha256: d6ca019452811b25c4f0c4dd353bca7a980a291ceca2f09876c42165f9f6fe0e
+
+# This audits the actual runtime loader, not merely an allowlist written beside
+# a wider observation dictionary. The isolated canary is rejected before a
+# policy sees it and therefore never becomes a policy observation.
+causal_policy_audit_contract:
+  schema: scenesense.phase2_causal_policy_runtime_audit.v1
+  required_on_every_real_trajectory: true
+  required_stages: [placement, publication]
+  consumed_field_temporal_gate: available_at_s_lte_decision_at_s
+  minimum_decisions_per_stage_per_trajectory: 1
+  maximum_temporal_gate_violations: 0
+  forbidden_field_canary:
+    required_once_per_trajectory: true
+    source: evaluation_only_isolated_loader_test_not_policy_observation
+    required_rejections_per_trajectory: 1
+    maximum_acceptances: 0
+  pass_requires:
+    - exact_projector_is_the_runtime_policy_loader
+    - every_consumed_field_records_available_at_s_and_decision_at_s
+    - every_consumed_field_satisfies_available_at_s_lte_decision_at_s
+    - forbidden_gt_or_evaluation_canary_rejected_on_each_of_the_real_16_rows
+    - zero_unprojected_wider_dict_consumers
+
+installed_track_quality_guardrails:
+  status: definitions_and_structural_gates_frozen_before_exact_16
+  metric_definitions:
+    protocol_false_recipient_install_rate:
+      numerator: recipient_installs_without_valid_source_observation_and_source_track_provenance_correspondence
+      denominator: all_recipient_install_attempts
+    truth_unmatched_recipient_install_rate:
+      numerator: recipient_installs_not_matched_to_any_evaluation_truth_object
+      denominator: all_recipient_installs
+      role: report_only_evaluation_diagnostic_not_structural_failure
+    duplicate_recipient_install_rate:
+      numerator: repeated_recipient_installs_for_same_contribution_and_source_track
+      denominator: all_recipient_installs
+    source_to_recipient_track_fragmentation_rate:
+      numerator: extra_recipient_track_ids_beyond_one_per_source_track_within_episode
+      denominator: source_tracks_with_at_least_one_recipient_install
+    recipient_map_pollution_rate:
+      numerator: recipient_map_tracks_without_valid_local_or_installed_source_provenance
+      denominator: all_recipient_map_tracks
+  zero_exposure_policy: typed_zero_exposure_not_missing_denominator
+  structural_integrity_gates:
+    - every_install_has_valid_contribution_object_source_and_recipient_track_provenance
+    - publish_install_available_timestamps_are_monotone_on_one_clock
+    - every_metric_event_is_recomputable_from_immutable_provenance
+    - zero_missing_denominators_or_untyped_zero_exposure_cases
+  numeric_threshold_policy:
+    exact_16_role: estimate_distributions_only
+    same_16_usability_validation_authorized: false
+    registration_deadline: before_any_additional_calibration_or_validation
 
 policy_feature_contract:
   projection_must_be_exact: true
@@ -186,8 +297,79 @@ policy_feature_contract:
     - requested_tth
     - realized_tth
 
+policy_projection_exercise:
+  role: post_capture_causal_environment_loader_audit_not_policy_performance
+  fixed_actions:
+    placement: SPLIT_FEATURE
+    publication: PUBLISH_ALL
+  policy_action_selected_from_features: false
+  policy_performance_evaluated: false
+  oai_state: unavailable_local_loopback_fixture
+  observed_policy_state_complete: false
+  fixture_source: preregistered_disabled_channel_fixture
+  fixture_semantics: preregistered_disabled_no_oai_and_no_compute_monitor_sentinel_not_neutral_observation
+  fixture_available_at_basis: episode_initialization_or_prior_completed_tick_never_future_of_decision
+  fixture_backed_fields:
+    lagged_capacity_estimate_mbps:
+      value: 0.0
+      runtime_source_stage: prior_network_estimator
+    capacity_estimate_sigma_mbps:
+      value: 0.0
+      runtime_source_stage: prior_network_estimator
+    previous_action_code:
+      value: 1.0
+      value_mapping: SPLIT_FEATURE
+      runtime_source_stage: prior_completed_event
+    previous_delivery_success:
+      value: 0.0
+      runtime_source_stage: prior_completed_event
+    previous_latency_s:
+      value: 0.0
+      runtime_source_stage: prior_completed_event
+    previous_loss_fraction:
+      value: 0.0
+      runtime_source_stage: prior_completed_event
+    scheduler_credit_normalized:
+      value: 0.0
+      runtime_source_stage: scheduler_state
+    in_flight_bytes:
+      value: 0.0
+      runtime_source_stage: scheduler_state
+    in_flight_oldest_age_s:
+      value: 0.0
+      runtime_source_stage: scheduler_state
+    local_compute_headroom:
+      value: 1.0
+      runtime_source_stage: local_compute_monitor
+  local_loopback_transport_abstracted_fields:
+    semantics: postcapture_local_loopback_transport_abstraction
+    availability_basis: same_simulated_timestamp_not_observed_live_transport_latency
+    observed_live_transport_or_network_state: false
+    fields:
+      recipient_speed_mps: recipient_state_transport
+      recipient_acceleration_mps2: recipient_state_transport
+      recipient_state_age_s: recipient_state_transport
+      helper_recipient_relative_x_m: derived_relative_kinematics
+      helper_recipient_relative_y_m: derived_relative_kinematics
+      helper_recipient_relative_vx_mps: derived_relative_kinematics
+      helper_recipient_relative_vy_mps: derived_relative_kinematics
+      installed_map_object_count: recipient_map_feedback_transport
+      installed_map_max_aoi_s: recipient_map_feedback_transport
+      installed_map_max_position_sigma_m: recipient_map_feedback_transport
+      installed_map_min_estimated_ttc_s: recipient_map_feedback_transport
+  future_live_controller_gate: reject_any_fixture_backed_feature_until_replaced_by_causal_measurement_or_registered_missingness_contract
+  admissible_claim: exact_schema_causality_and_forbidden_field_rejection_only
+  prohibited_claims:
+    - policy_readiness
+    - policy_performance
+    - action_quality
+    - observed_network_or_compute_state
+
 admission_gate:
   atomic_batch: true
+  atomic_rule_precedence: whole_batch_rule_supersedes_any_earlier_per_row_admission_wording
+  partial_admission_authorized: false
+  post_hoc_relabel_or_row_selection_authorized: false
   pass_use: admit_exact_16_trajectory_batch_as_replicate_0_calibration_tranche
   fail_use: retain_as_excluded_factor_smoke_fixture_only
   prohibit_double_counting_same_design_row: true
@@ -195,9 +377,16 @@ admission_gate:
   pass_requires:
     - exact_pinned_16_rows
     - all_8_positive_realizations_in_requested_bins
+    - all_8_positive_reviewed_onsets_leave_at_least_2p9s_in_the_exact_40_sample_10hz_retention_window
     - all_8_matched_benign_nontreatment_hashes_equal_positive
     - all_positive_endpoint_statuses_typed_and_computable
     - exact_policy_feature_projection_without_forbidden_tokens
+    - available_at_s_lte_decision_at_s_for_every_consumed_policy_field_on_all_16_rows
+    - forbidden_gt_and_evaluation_only_canary_rejected_by_runtime_loader_on_all_16_rows
+    - installed_track_structural_integrity_gates_pass_with_typed_denominators
+    - static_car_truck_bus_environment_truth_captured_after_fresh_reload_before_dynamic_actor_spawn_on_all_16_rows
+    - both_role_manifests_on_all_16_rows_record_and_recompute_the_capture_time_model_checkpoint_sha256
+    - one_identical_frozen_model_checkpoint_sha256_is_used_by_both_roles_across_all_16_rows
     - zero_warning_actuation
     - zero_oai_execution
     - immutable_manifest_and_artifact_hashes
@@ -205,8 +394,8 @@ admission_gate:
   next_action_on_fail: stop_no_scaling_repair_factor_or_endpoint_contract
 
 runtime_readiness:
-  factor_adapter_status: pending_not_implemented
-  recipient_install_event_status: pending_not_implemented
-  policy_feature_projection_status: pending_not_implemented
-  launch_wrapper_status: pending_not_implemented
-  consequence: collection_blocked_even_when_offline_design_validation_passes
+  factor_adapter_status: ready_verified
+  recipient_install_event_status: ready_verified
+  policy_feature_projection_status: ready_verified
+  launch_wrapper_status: ready_verified
+  consequence: exact_16_runtime_ready_separate_manual_launch_and_corner_acceptance_required

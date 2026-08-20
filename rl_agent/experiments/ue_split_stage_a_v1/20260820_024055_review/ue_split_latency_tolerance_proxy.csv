@@ -1,0 +1,33 @@
+source_id,band,v_ms,eps_m,max_L_ms_measured,max_L_ms_closedform,metric_kind,historical_fixed_floor_m,profile_specific,aoi_observed,selected_service_tolerance,decision_status
+registered_uplink_only_staleness_budget,~walk/slow,0.076,1.5,>300,13338,historical_capture_to_map_latency_tolerance_proxy,1.1,False,False,False,SENSITIVITY_ONLY_NOT_AN_AOI_SELECTION
+registered_uplink_only_staleness_budget,~walk/slow,0.076,2.0,>300,21846,historical_capture_to_map_latency_tolerance_proxy,1.1,False,False,False,SENSITIVITY_ONLY_NOT_AN_AOI_SELECTION
+registered_uplink_only_staleness_budget,~walk/slow,0.076,2.5,>300,29362,historical_capture_to_map_latency_tolerance_proxy,1.1,False,False,False,SENSITIVITY_ONLY_NOT_AN_AOI_SELECTION
+registered_uplink_only_staleness_budget,~walk/slow,0.076,3.0,>300,36504,historical_capture_to_map_latency_tolerance_proxy,1.1,False,False,False,SENSITIVITY_ONLY_NOT_AN_AOI_SELECTION
+registered_uplink_only_staleness_budget,~6 mph,3.227,1.5,>300,316,historical_capture_to_map_latency_tolerance_proxy,1.1,False,False,False,SENSITIVITY_ONLY_NOT_AN_AOI_SELECTION
+registered_uplink_only_staleness_budget,~6 mph,3.227,2.0,>300,518,historical_capture_to_map_latency_tolerance_proxy,1.1,False,False,False,SENSITIVITY_ONLY_NOT_AN_AOI_SELECTION
+registered_uplink_only_staleness_budget,~6 mph,3.227,2.5,>300,696,historical_capture_to_map_latency_tolerance_proxy,1.1,False,False,False,SENSITIVITY_ONLY_NOT_AN_AOI_SELECTION
+registered_uplink_only_staleness_budget,~6 mph,3.227,3.0,>300,865,historical_capture_to_map_latency_tolerance_proxy,1.1,False,False,False,SENSITIVITY_ONLY_NOT_AN_AOI_SELECTION
+registered_uplink_only_staleness_budget,~10 mph,4.596,1.5,187,222,historical_capture_to_map_latency_tolerance_proxy,1.1,False,False,False,SENSITIVITY_ONLY_NOT_AN_AOI_SELECTION
+registered_uplink_only_staleness_budget,~10 mph,4.596,2.0,>300,363,historical_capture_to_map_latency_tolerance_proxy,1.1,False,False,False,SENSITIVITY_ONLY_NOT_AN_AOI_SELECTION
+registered_uplink_only_staleness_budget,~10 mph,4.596,2.5,>300,488,historical_capture_to_map_latency_tolerance_proxy,1.1,False,False,False,SENSITIVITY_ONLY_NOT_AN_AOI_SELECTION
+registered_uplink_only_staleness_budget,~10 mph,4.596,3.0,>300,607,historical_capture_to_map_latency_tolerance_proxy,1.1,False,False,False,SENSITIVITY_ONLY_NOT_AN_AOI_SELECTION
+registered_uplink_only_staleness_budget,~14 mph,6.313,1.5,127,162,historical_capture_to_map_latency_tolerance_proxy,1.1,False,False,False,SENSITIVITY_ONLY_NOT_AN_AOI_SELECTION
+registered_uplink_only_staleness_budget,~14 mph,6.313,2.0,224,265,historical_capture_to_map_latency_tolerance_proxy,1.1,False,False,False,SENSITIVITY_ONLY_NOT_AN_AOI_SELECTION
+registered_uplink_only_staleness_budget,~14 mph,6.313,2.5,>300,356,historical_capture_to_map_latency_tolerance_proxy,1.1,False,False,False,SENSITIVITY_ONLY_NOT_AN_AOI_SELECTION
+registered_uplink_only_staleness_budget,~14 mph,6.313,3.0,>300,442,historical_capture_to_map_latency_tolerance_proxy,1.1,False,False,False,SENSITIVITY_ONLY_NOT_AN_AOI_SELECTION
+registered_uplink_only_staleness_budget,~18 mph,8.114,1.5,125,126,historical_capture_to_map_latency_tolerance_proxy,1.1,False,False,False,SENSITIVITY_ONLY_NOT_AN_AOI_SELECTION
+registered_uplink_only_staleness_budget,~18 mph,8.114,2.0,211,206,historical_capture_to_map_latency_tolerance_proxy,1.1,False,False,False,SENSITIVITY_ONLY_NOT_AN_AOI_SELECTION
+registered_uplink_only_staleness_budget,~18 mph,8.114,2.5,282,277,historical_capture_to_map_latency_tolerance_proxy,1.1,False,False,False,SENSITIVITY_ONLY_NOT_AN_AOI_SELECTION
+registered_uplink_only_staleness_budget,~18 mph,8.114,3.0,>300,344,historical_capture_to_map_latency_tolerance_proxy,1.1,False,False,False,SENSITIVITY_ONLY_NOT_AN_AOI_SELECTION
+registered_uplink_only_staleness_budget,~23 mph,10.519,1.5,52,97,historical_capture_to_map_latency_tolerance_proxy,1.1,False,False,False,SENSITIVITY_ONLY_NOT_AN_AOI_SELECTION
+registered_uplink_only_staleness_budget,~23 mph,10.519,2.0,119,159,historical_capture_to_map_latency_tolerance_proxy,1.1,False,False,False,SENSITIVITY_ONLY_NOT_AN_AOI_SELECTION
+registered_uplink_only_staleness_budget,~23 mph,10.519,2.5,171,213,historical_capture_to_map_latency_tolerance_proxy,1.1,False,False,False,SENSITIVITY_ONLY_NOT_AN_AOI_SELECTION
+registered_uplink_only_staleness_budget,~23 mph,10.519,3.0,220,265,historical_capture_to_map_latency_tolerance_proxy,1.1,False,False,False,SENSITIVITY_ONLY_NOT_AN_AOI_SELECTION
+registered_uplink_only_staleness_budget,~28 mph,12.331,1.5,114,83,historical_capture_to_map_latency_tolerance_proxy,1.1,False,False,False,SENSITIVITY_ONLY_NOT_AN_AOI_SELECTION
+registered_uplink_only_staleness_budget,~28 mph,12.331,2.0,167,135,historical_capture_to_map_latency_tolerance_proxy,1.1,False,False,False,SENSITIVITY_ONLY_NOT_AN_AOI_SELECTION
+registered_uplink_only_staleness_budget,~28 mph,12.331,2.5,212,182,historical_capture_to_map_latency_tolerance_proxy,1.1,False,False,False,SENSITIVITY_ONLY_NOT_AN_AOI_SELECTION
+registered_uplink_only_staleness_budget,~28 mph,12.331,3.0,255,226,historical_capture_to_map_latency_tolerance_proxy,1.1,False,False,False,SENSITIVITY_ONLY_NOT_AN_AOI_SELECTION
+registered_uplink_only_staleness_budget,~32 mph,14.756,1.5,47,69,historical_capture_to_map_latency_tolerance_proxy,1.1,False,False,False,SENSITIVITY_ONLY_NOT_AN_AOI_SELECTION
+registered_uplink_only_staleness_budget,~32 mph,14.756,2.0,98,113,historical_capture_to_map_latency_tolerance_proxy,1.1,False,False,False,SENSITIVITY_ONLY_NOT_AN_AOI_SELECTION
+registered_uplink_only_staleness_budget,~32 mph,14.756,2.5,137,152,historical_capture_to_map_latency_tolerance_proxy,1.1,False,False,False,SENSITIVITY_ONLY_NOT_AN_AOI_SELECTION
+registered_uplink_only_staleness_budget,~32 mph,14.756,3.0,173,189,historical_capture_to_map_latency_tolerance_proxy,1.1,False,False,False,SENSITIVITY_ONLY_NOT_AN_AOI_SELECTION

@@ -4,99 +4,94 @@ config:
   theme: redux
 ---
 flowchart LR
-  %% Phase-2 causal design. Runtime state is available before the action.
-  %% Current-frame inference outputs and CARLA truth never feed the placement decision.
+  %% LOCKED CURRENT MILESTONE: one UE -> one edge map.
+  %% Sensors capture every frame independently of the controller action.
+  %% The v1 action is selected before any model/front output exists.
 
-  subgraph PRE["CAUSAL PRE-ACTION STATE  s_pre(t)"]
-    direction TB
-    net["Lagged network estimate<br/>capacity + uncertainty, prior MCS/BLER/BSR,<br/>previous delivery and latency"]
-    map["Previously installed recipient map<br/>causal tracks, AoI, covariance,<br/>capture/install provenance"]
-    trk["Prior completed source-local tracks<br/>detections available before decision only<br/>no GT actor IDs"]
-    ego["Timestamped kinematics<br/>current helper-local state + most recent<br/>causally received recipient state"]
-    sched["Local scheduler and compute state<br/>credit, in-flight summaries,<br/>available LOCAL headroom"]
-    allow{{"CAUSAL ALLOWLIST<br/>source/observed/available timestamps<br/>+ consuming decision ID/stage<br/>assert available_at_s ≤ referenced decision_at_s"}}
-    net --> allow
-    map --> allow
-    trk --> allow
-    ego --> allow
-    sched --> allow
-  end
+  capture["ALWAYS-ON SENSOR CAPTURE + ALIGN<br/>RGB 3 channels + radar 4 channels<br/>new capture timestamp every sensor frame"]
 
-  subgraph PLACE["PRE-INFERENCE PLACEMENT DECISION"]
-    direction TB
-    pcand["Placement candidates<br/>SPLIT_FEATURE profile/FPS<br/>LOCAL_INFER profile/FPS<br/>SKIP_INFERENCE"]
-    pmask{{"HARD ADMISSION<br/>SPLIT: estimated UL budget<br/>LOCAL: compute headroom<br/>all: declared uncertainty/deadline contract"}}
-    pctrl{{"Simplest causal controller first<br/>exact enumerator / fixed / rule / greedy / MPC<br/>RL only after registered residual gap"}}
-    pa["PLACEMENT ACTION<br/>at placement_decision_at_s"]
-    pcand --> pmask
-    allow --> pmask
-    pmask --> pctrl --> pa
-  end
+  state["EXACT LEAN v1 STATE — 7 SCALARS<br/>1 freshness_slack_s<br/>2 radar_risk<br/>3 ego_speed_mps<br/>4 ul_capacity_lcb_bps<br/>5 in_flight_age_s<br/>6 local_compute_slack_ms<br/>7 time_since_last_processed_s"]
 
-  subgraph INFER["ACTION-CONDITIONED INFERENCE"]
-    direction TB
-    split["SPLIT_FEATURE<br/>capture → head → feature encode<br/>→ OAI/edge tail"]
-    local["LOCAL_INFER<br/>capture → full local inference"]
-    noinfer["SKIP_INFERENCE<br/>no new perception result"]
-    result["POST-INFERENCE RESULT<br/>unfiltered detections + final detections,<br/>causal tracker IDs, covariance,<br/>capture/inference provenance"]
-    split --> result
-    local --> result
-  end
+  guards{{"VALIDITY GUARDS — NOT LEARNED INPUTS<br/>RGB/radar alignment · ACK validity<br/>state support · timestamps available before decision"}}
 
-  pa -- SPLIT_FEATURE --> split
-  pa -- LOCAL_INFER --> local
-  pa -- SKIP_INFERENCE --> noinfer
+  masks{{"U1/U2 HARD MASKS + SERVICE SHIELD<br/>physical network/compute feasibility<br/>SKIP allowed only under frozen freshness/radar/time rules<br/>minimum-debt fallback if no action meets service"}}
 
-  subgraph PUB["POST-INFERENCE PUBLICATION DECISION"]
-    direction TB
-    pubcand["Publication candidates<br/>PUBLISH_ALL<br/>PUBLISH_HAZARD_SUBSET<br/>SKIP_PUBLICATION"]
-    hsel{{"Recipient-conditioned causal selection<br/>current result + newest recipient state<br/>available at the logged decision locus<br/>no future truth / GT identity"}}
-    pub["PUBLICATION ACTION<br/>at publication_decision_at_s<br/>scenesense.map_contribution.v2<br/>state + covariance + motion model<br/>source/recipient/time/byte provenance"]
-    nopub["SKIP_PUBLICATION<br/>retain prior map"]
-    result --> pubcand --> hsel
-    hsel -- publish --> pub
-    hsel -- skip --> nopub
-  end
+  controller{{"ONE PRE-MODEL DECISION<br/>rule / exact greedy / bandit / MPC first<br/>RL only after a registered temporal gap"}}
 
-  subgraph TRANSPORT["TRANSPORT + RECIPIENT MAP"]
-    direction TB
-    wire["Local path or identical bytes over OAI RFsim<br/>enqueue, first/last byte, reassembly"]
-    install["Recipient install<br/>ordering + recipient isolation + association"]
-    predict["Uncertainty-aware propagation<br/>z(t+dt)=Fz<br/>P(t+dt)=F P Fᵀ + Q"]
-    warn["Recipient warning<br/>first-warning time, TTC, closest approach,<br/>AoI/uncertainty + evidence provenance"]
-    pub --> wire --> install --> predict --> warn
-    nopub --> predict
-    noinfer --> predict
-  end
+  action["ACTION<br/>SKIP_INFERENCE<br/>LOCAL_INFER<br/>SPLIT_FEATURE(profile)"]
 
-  subgraph ACTUATE["LATER FIXED WARNING-ACTUATION ADAPTER — NOT IN CURRENT PILOT"]
-    direction TB
-    brake["Identical braking/replanning rule in every arm<br/>warning time → actuation latency → vehicle control"]
-    outcome["Physical outcomes<br/>collision / near miss · minimum surface clearance<br/>stop clearance band · deceleration/jerk · route progress"]
-    warn -. "future override stage" .-> brake --> outcome
-  end
+  capture --> state --> guards --> masks --> controller --> action
+
+  action -- SKIP_INFERENCE --> skip["DROP THIS CAPTURE FROM INFERENCE<br/>sensors remain on<br/>known edge-map freshness ages"]
+
+  action -- LOCAL or SPLIT --> front["COMMON UE FRONT<br/>runs only after action selection<br/>front/object-head output is not v1 state"]
+
+  front -- selected LOCAL --> local["LOCAL_INFER<br/>finish back half on UE<br/>record local_result_available_at"]
+  front -- selected SPLIT --> split["SPLIT_FEATURE<br/>compress measured profile"]
+
+  local --> compact["MEASURED COMPACT RESULT<br/>nominal ~2 KB is a hypothesis"]
+  compact --> one_shot["ONE-SHOT DEADLINE-BOUNDED ENQUEUE<br/>LOCAL result or SPLIT feature<br/>no application queue · no old-frame retry"]
+  split --> one_shot
+  one_shot -- SPLIT feature accepted --> split_wire["OAI FEATURE TRANSPORT<br/>edge back-half inference"]
+
+  one_shot -- LOCAL result accepted --> fixed_pub["FIXED PUBLISH-ALL PATH<br/>not a learned action"]
+  split_wire --> fixed_pub
+  fixed_pub --> validate{{"EDGE VALIDATION<br/>capture ordering · schema · provenance"}}
+  validate -- accepted --> install["EDGE MAP INSTALL<br/>newer capture ID wins"]
+  validate -- rejected / no install --> nack["REJECTED STATUS / NACK<br/>accepted=false · edge_install_at=null<br/>observable only at nack_received_at"]
+  install --> ack["ACCEPTED INSTALL ACK<br/>capture_id · capture_timestamp<br/>edge_install_at · accepted<br/>UE logs ack_received_at"]
+
+  one_shot -- immediate backpressure / drop --> retain["RETAIN PRIOR KNOWN MAP STATE<br/>no freshness credit"]
+  split_wire -- delivery failure known --> retain
+  skip --> retain
+  nack -- received --> retain
+  nack -- lost --> timeout["DECLARED ACK/NACK TIMEOUT<br/>clears in-flight state · no resend"]
+  ack -- lost --> timeout
+  timeout --> retain
+  ack -- received and available --> edge_outcome["NEXT KNOWN EDGE STATE<br/>freshness advances only from accepted ACK<br/>quality · latency · delivery · PRB/bytes"]
+  retain --> edge_outcome
+
+  edge_outcome -. "next decision only" .-> state
+
+  capture_next["NEXT SENSOR FRAME<br/>capture continues during SKIP,<br/>compute, transport, and ACK wait"]
+  capture -. "independent sensor clock" .-> capture_next
+  capture_next -. "next sensor tick" .-> capture
+
+  visual["OPTIONAL OFFLINE v1+SI/TI<br/>counterfactual controller ablation<br/>complexity/activity, not density<br/>never silently expands base v1"]
+  visual -. "paired decision-value evaluation" .-> metrics
 
   subgraph EVAL["SEPARATE EVALUATION PLANE — NEVER POLICY STATE"]
     direction TB
-    gt["Synchronized CARLA truth<br/>actor IDs, future trajectory, hazard label"]
-    cf["Matched no-yield counterfactual recipient trajectory<br/>future-hazard label only; prevents intervention paradox"]
-    shadow["Shadow unchosen LOCAL/SPLIT outputs<br/>evaluation_only=true; offline/separate pass<br/>cannot perturb primary timing/resources"]
-    metrics["Paired C2/C3 metrics<br/>warning lead, false/missed warning,<br/>bytes, latency, AoI/uncertainty, tracking<br/>later: clearance/collision/comfort with attribution"]
-    gt --> metrics
-    cf --> metrics
-    shadow --> metrics
-    warn --> metrics
-    outcome --> metrics
+    truth["Hidden scene/channel truth<br/>GT actors · future motion · true capacity"]
+    counter["Unchosen-action counterfactuals<br/>offline/table model only"]
+    metrics["UE metrics<br/>deadline misses · p50/p90/p95+CI<br/>stage latency · edge freshness<br/>task utility · PRB/bytes · compute<br/>action and ACK/drop reasons"]
+    truth --> metrics
+    counter --> metrics
+    edge_outcome --> metrics
   end
 
-  wire -. "prior outcome only<br/>after availability lag" .-> net
-  install -. "next decision only" .-> map
-  result -. "next decision only" .-> trk
+  leak{{"FORBIDDEN v1 INPUT<br/>front/tail/object-head result · objectness<br/>GT/future channel · route/scenario/time ID<br/>speed limit · junction/occluder/stopping geometry"}}
+  front -. forbidden .-> leak
+  local -. forbidden .-> leak
+  split -. forbidden .-> leak
+  truth -. forbidden .-> leak
+  counter -. forbidden .-> leak
 
-  leak{{"FORBIDDEN CAUSAL LEAKAGE<br/>same-frame result/confidence/track/map quality<br/>cannot feed the placement action that produced it"}}
-  result -. forbidden .-> leak
-  gt -. forbidden .-> leak
-  shadow -. forbidden .-> leak
+  parked["PHASE 2 PARKED<br/>helper/recipient sharing · warning/braking<br/>dynamic occluder/cooperative information"]
+  metrics -. "later separate authorization" .-> parked
 
-  gate["TWO-TRAJECTORY PILOT GATE<br/>positive occlusion + matched benign negative<br/>prove causality, raw recoverability, and C2 computability<br/>PASS still requires human review before full collection"]
-  metrics --> gate
+  classDef obs fill:#dbeafe,stroke:#2a78d6,color:#0b0b0b;
+  classDef dec fill:#ece9fb,stroke:#4a3aa7,color:#0b0b0b;
+  classDef act fill:#ffe3d3,stroke:#eb6834,color:#0b0b0b;
+  classDef env fill:#d7f2e6,stroke:#1baf7a,color:#0b0b0b;
+  classDef eval fill:#eeeeee,stroke:#888888,color:#222222;
+  classDef bad fill:#fde2e1,stroke:#e34948,color:#0b0b0b;
+  classDef hold fill:#fff3cd,stroke:#eda100,color:#0b0b0b;
+
+  class capture,state obs;
+  class guards,masks,controller dec;
+  class action,skip,front,local,split act;
+  class compact,one_shot,split_wire,fixed_pub,validate,install,nack,ack,timeout,retain,edge_outcome,capture_next env;
+  class truth,counter,metrics,visual eval;
+  class leak bad;
+  class parked hold;

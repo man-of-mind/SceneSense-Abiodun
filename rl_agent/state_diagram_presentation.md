@@ -1,84 +1,69 @@
-# Phase-2 state diagram — presentation version
-
-Compact presentation copy of [`state_diagram.md`](state_diagram.md). This keeps the same causal contract but removes most implementation detail so it can be explained live.
-
-```mermaid
 ---
 config:
   layout: dagre
   theme: redux
 ---
 flowchart LR
-  %% Presentation version: same causal structure as state_diagram.md,
-  %% but reduced to the concepts needed for a live explanation.
+  %% Compact UE-only presentation diagram.
 
-  subgraph OBS["PRE-ACTION OBSERVATION  s_pre(t)"]
-    direction TB
-    net["Network memory<br/>capacity estimate, MCS/BLER/BSR,<br/>previous delivery + latency"]
-    map["Recipient map memory<br/>tracks, AoI, covariance,<br/>install provenance"]
-    trk["Source-local prior tracks<br/>completed detections only<br/>no same-frame result"]
-    ego["Ego / recipient kinematics<br/>timestamped states"]
-    comp["Local scheduler state<br/>compute headroom,<br/>in-flight work"]
-  end
+  sensor["ALWAYS-ON SENSORS<br/>capture aligned RGB+radar<br/>every frame"]
 
-  OBS --> CHECK{{"CAUSAL CHECK<br/>only information available<br/>before this decision is allowed"}}
+  state["LEAN CAUSAL STATE — 7 SCALARS<br/>freshness · radar risk · ego speed<br/>pessimistic capacity · in-flight age<br/>local-compute slack · time since process"]
 
-  CHECK --> DECIDE{{"PLACEMENT DECISION<br/>choose where/when to run perception"}}
+  sensor --> state --> valid{{"Validity + hard masks<br/>causal · physical · freshness"}}
+  valid --> choose{{"ONE PRE-MODEL ACTION<br/>SKIP · LOCAL · SPLIT(profile)"}}
 
-  subgraph ACT["ACTION CANDIDATES"]
-    direction TB
-    split["SPLIT_FEATURE<br/>front on car, tail at edge"]
-    local["LOCAL_INFER<br/>full model on car"]
-    skip["SKIP_INFERENCE<br/>no new perception result"]
-  end
+  choose -- SKIP --> drop["Drop current frame<br/>from inference<br/>sensors continue"]
+  choose -- LOCAL / SPLIT --> front["Common UE front<br/>after action selection"]
 
-  DECIDE --> ACT
+  front -- LOCAL --> local["Finish locally<br/>compact result"]
+  front -- SPLIT --> split["Compressed feature<br/>edge back half"]
 
-  ACT --> ADMIT{{"HARD ADMISSION<br/>SPLIT: uplink budget<br/>LOCAL: compute budget<br/>all: deadline + uncertainty contract"}}
+  local --> send["One-shot outbound enqueue<br/>LOCAL result or SPLIT feature<br/>no application buffer/retry"]
+  split --> send
+  send -- LOCAL accepted --> fixed["Fixed publish-all<br/>to one edge map"]
+  send -- SPLIT accepted --> edge_tail["OAI + edge back half"]
+  edge_tail --> fixed
+  fixed --> validate{{"Edge validation"}}
+  validate -- accepted --> install["Edge-map install"]
+  install --> ack["Accepted install ACK<br/>advances known freshness"]
+  validate -- rejected --> nack["NACK received<br/>no install"]
 
-  ADMIT --> INF["ACTION-CONDITIONED INFERENCE<br/>capture → model path → detections<br/>+ covariance + timestamps"]
+  send -- immediate drop --> age["Prior known map ages"]
+  edge_tail -- delivery failure known --> age
+  drop --> age
+  nack -- received --> age
+  nack -- lost --> timeout["ACK/NACK timeout<br/>no resend"]
+  ack -- lost --> timeout
+  timeout --> age
 
-  INF --> PUB{{"PUBLICATION DECISION<br/>publish all, hazard subset,<br/>or skip publication"}}
+  ack -- accepted --> outcome["EDGE OUTCOME<br/>freshness · quality · latency<br/>PRB/bytes · compute"]
+  age --> outcome
+  outcome -. "next decision only" .-> state
 
-  PUB --> WIRE["TRANSPORT<br/>local path or OAI RFsim<br/>bytes, queueing, reassembly"]
+  next["NEXT SENSOR FRAME<br/>always arrives"]
+  sensor -. "independent clock" .-> next
+  next -. "sensor clock" .-> sensor
 
-  WIRE --> MAP["RECIPIENT MAP UPDATE<br/>associate, install, propagate uncertainty"]
+  optional["OPTIONAL OFFLINE v1+SI/TI<br/>paired counterfactual ablation<br/>never expands base v1 silently"]
+  optional -. "decision-value evaluation" .-> outcome
 
-  MAP --> WARN["WARNING / SHARED MAP OUTPUT<br/>AoI, uncertainty, TTC,<br/>closest approach, evidence provenance"]
+  no["OUT OF SCOPE NOW<br/>helper/recipient sharing · warning/braking<br/>all geometry-derived policy features"]
+  outcome -. "parked Phase 2" .-> no
 
-  WARN --> FB["NEXT-STEP FEEDBACK<br/>delivered frame, latency, AoI,<br/>BSR/backlog, updated tracks"]
-  FB -. "available only at t+1" .-> OBS
-
-  subgraph EVAL["EVALUATION PLANE — NOT POLICY STATE"]
-    direction TB
-    gt["CARLA truth<br/>actor IDs + future trajectory"]
-    shadow["Shadow unchosen actions<br/>offline / evaluation only"]
-    metrics["Metrics<br/>warning lead, missed/false warning,<br/>latency, AoI, bytes, tracking"]
-    gate["TWO-TRAJECTORY PILOT GATE<br/>positive occlusion + matched benign negative<br/>human review before full collection"]
-    gt --> metrics
-    shadow --> metrics
-    WARN --> metrics
-    metrics --> gate
-  end
-
-  LEAK{{"FORBIDDEN LEAKAGE<br/>same-frame result, future truth,<br/>or shadow output cannot affect<br/>the decision that produced it"}}
-  INF -. forbidden .-> LEAK
-  gt -. forbidden .-> LEAK
-  shadow -. forbidden .-> LEAK
+  leak{{"REJECTED v1 INPUT<br/>front/tail objectness · GT/future<br/>route/scenario/time · geometry"}}
+  choose -. "rejects" .-> leak
 
   classDef obs fill:#dbeafe,stroke:#2a78d6,color:#0b0b0b;
-  classDef act fill:#ffe3d3,stroke:#eb6834,color:#0b0b0b;
   classDef dec fill:#ece9fb,stroke:#4a3aa7,color:#0b0b0b;
+  classDef act fill:#ffe3d3,stroke:#eb6834,color:#0b0b0b;
   classDef env fill:#d7f2e6,stroke:#1baf7a,color:#0b0b0b;
-  classDef eval fill:#eeeeee,stroke:#888888,color:#222222;
-  classDef warn fill:#fff3cd,stroke:#eda100,color:#0b0b0b;
   classDef bad fill:#fde2e1,stroke:#e34948,color:#0b0b0b;
+  classDef hold fill:#fff3cd,stroke:#eda100,color:#0b0b0b;
 
-  class net,map,trk,ego,comp,FB obs;
-  class split,local,skip act;
-  class CHECK,DECIDE,ADMIT,PUB dec;
-  class INF,WIRE,MAP env;
-  class WARN,metrics,gate warn;
-  class gt,shadow eval;
-  class LEAK bad;
-```
+  class sensor,state obs;
+  class valid,choose dec;
+  class drop,front,local,split act;
+  class send,edge_tail,fixed,validate,install,nack,ack,timeout,age,outcome,next,optional env;
+  class leak bad;
+  class no hold;

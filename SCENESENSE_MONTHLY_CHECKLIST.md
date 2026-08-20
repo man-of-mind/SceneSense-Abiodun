@@ -2,7 +2,12 @@
 
 Living checklist aligned with `2026_SceneSense-Agent_Research_Proposal_6Month_DRAFT.docx`.
 
-Last reconciled with repository evidence: **2026-08-14**.
+Last reconciled with repository evidence: **2026-08-19**.
+
+> **Current execution authority:** `rl_agent/UE_AGENT_EXECUTION_CHECKLIST.md`.
+> Month-4/5 helper-recipient work remains banked but is parked until the
+> single-UE SPLIT/LOCAL/SKIP milestone is closed. Historical checked boxes
+> below are retained as evidence, not current launch instructions.
 
 Use this file to keep the work tied to the proposal: every experiment should answer either a baseline, metric, controller, guardrail, spatial-map, or demo question.
 
@@ -31,10 +36,10 @@ Use this file to keep the work tied to the proposal: every experiment should ans
   full 36-profile scalar design space. Its retained-catalog runtime equivalence
   is noncausal replay evidence. No RL training is authorized before a causal,
   pre-registered residual gap exists.
-- **Binding path now:** freeze the causal Phase-2 control/schema contract and the
-  paired helper-recipient corpus specification; review a two-trajectory pilot;
-  only then collect the designed and naturalistic suites and evaluate C2 locally
-  and over two-UE OAI RFsim. OTA/venue is a parallel risk, not an RFsim blocker.
+- **Binding path now:** freeze the single-UE causal timing/state/service
+  contract, audit the three reusable tables, measure the missing LOCAL action
+  table, then build the causal table-driven surrogate and run simple baselines.
+  RL and any new corpus remain gated. Phase-2 paired work is parked.
 
 ## 2026-08-14 reconciliation note (causal audit, paper reframe, and Phase-2 gate)
 
@@ -68,10 +73,10 @@ Use this file to keep the work tied to the proposal: every experiment should ans
   hazard truth, raw aligned sensing, unfiltered detections, and causal pre-action
   signals. It cannot estimate C2 warning lead and will not be relabelled as the
   Phase-2 dataset.
-- Next data unit: `phase2_paired_causal_v1`, with separate pre-registered designed
-  opportunity and naturalistic suites. A two-trajectory pilot (one positive
-  occlusion/hazard and one matched benign negative) must prove causality and C2
-  computability before any full collection. No CARLA/OAI run is yet authorized.
+- Next evidence unit: the bounded single-UE LOCAL table (compute, payload,
+  quality, and compact-result delivery). No new CARLA corpus is a prerequisite.
+  The historical `phase2_paired_causal_v1` plan is parked and remains
+  unauthorized.
 
 ## 2026-08-11 reconciliation note (historical; superseded where the causal audit differs)
 - Built the table-driven **policy surrogate environment** (`rl_agent/policy/`) from the channel sweep + knob

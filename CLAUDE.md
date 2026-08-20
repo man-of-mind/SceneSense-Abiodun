@@ -4,11 +4,15 @@ Abiodun Ganiyu (IDCC). Research: an **instrumented, network- and safety-aware mu
 system** (RGB+radar split inference, CARLA 0.10 / Town10HD_Opt → OAI 5G edge over RFsim). This file is the durable
 index — the authoritative detail lives in the docs below (read them before acting on their topic).
 
-> **Direction change (2026-08-14): this is no longer an RL-first project.** Learned control was not justified for
-> the evaluated Phase-1 contract (see status below). The Month-6 deliverable is an **end-to-end system paper**;
-> Phase-2 learning remains gated on a measured residual gap after simple baselines. Read
-> `rl_agent/FORMULATION_AND_RELATED_WORK.md` §8 before any paper, planning, or controller work — it holds the
-> thesis, contributions C1-C4, banked-vs-pending status, limitations, critical path, and the open venue/OTA decision.
+> **Current execution reset (2026-08-19): single-UE controller first.**
+> The sole current authority is `rl_agent/UE_AGENT_EXECUTION_CHECKLIST.md`.
+> The UE chooses genuine SKIP versus PROCESS and then LOCAL versus measured
+> SPLIT profile/FPS so its own edge-map contribution meets a causal freshness
+> service envelope. Helper-recipient publication/warning work is parked in
+> `phase2_map_sharing/PARKED_STATUS_2026-08-19.md`. Learned control remains
+> conditional on a residual gap after simple baselines. External reviews are
+> advisory, not approval gates; scope changes require an explicit
+> Abiodun–Codex decision.
 
 ## Conventions (do not violate)
 - Work only in `abiodun/`; never edit top-level shared scripts (copy into an `abiodun/` subfolder).
@@ -24,8 +28,11 @@ index — the authoritative detail lives in the docs below (read them before act
   patterns still hold"; don't lower score gates to force a pass.
 
 ## Authoritative docs (source of truth)
-- **RL design (LOCKED):** `rl_agent/AGENT_CONSTRAINTS.md` — §9 = state/action/reward synthesis; §8 = the
-  density+segmentation finding; §1–§6 = the staleness/latency/FPS bounds.
+- **Current execution authority:** `rl_agent/UE_AGENT_EXECUTION_CHECKLIST.md`.
+- **Current UE diagram:** `rl_agent/state_diagram.md`.
+- **Historical measured RL design:** `rl_agent/AGENT_CONSTRAINTS.md` — §9 =
+  frozen Phase-1 state/action/reward synthesis; §8 = the density+segmentation
+  finding; §1–§6 = the staleness/latency/FPS bounds.
 - **Knob matrix (accuracy↔knob↔payload, transport-invariant):** `rl_agent/PERMODEL_KNOB_MATRIX_ZSTD.md`.
 - **Density+seg study (DONE, 9/9 gates):** `rl_agent/density_knob/DENSITY_KNOB_RESULTS.md` — ROI drop
   destroys segmentation; seg-safe knob is `ae32/u4/ROI0 ≈ 90 KB`, density-invariant.
@@ -37,7 +44,7 @@ index — the authoritative detail lives in the docs below (read them before act
   `staleness/uplink_only_latency_budget/`.
 - **Papers:** `SCAN_AI_03_13_26_2.pdf` (single-UE foundation), `V2X_for_AD.pdf` (CoDriving).
 
-## Current status / next (2026-08-17)
+## Current status / next (2026-08-19)
 - Density+seg study, RL design lock, measured loopback latency, and the **channel-condition sweep: DONE**
   (`channel_condition_sweep/CHANNEL_SWEEP_RESULTS.md` + `combined_surface.csv` + `plots/`). Knee: 1 MB→clear
   only, 400 KB→to 15.6 dB, 90 KB seg-safe floor→every rung. `AGENT_CONSTRAINTS §9.1` holds the measured
@@ -77,13 +84,21 @@ takes no observation → the Phase-1 hypothesis was unrepresentable, not rejecte
 calibrated LOCAL actions; Phase-2 object-selective map sharing. Reopening RL requires a *new* pre-registered gap on
 an expanded contract, not a retune of these gates.
 
-## Current work (2026-08-14)
+## Current work (scope-reset 2026-08-19)
+- **Binding path:** complete Stage 1 of
+  `rl_agent/UE_AGENT_EXECUTION_CHECKLIST.md`, then audit the reusable tables,
+  measure only the missing LOCAL action table, and build the causal single-UE
+  surrogate. No new corpus is currently authorized.
+- **Phase 2 parked:** recipient-specific map sharing, warning, factor
+  realization, exact-16, and paired CARLA/OAI work are preserved but inactive.
+  They resume only under the conditions in
+  `phase2_map_sharing/PARKED_STATUS_2026-08-19.md`.
 - **Positive result:** load-shaping deadline-feasibility frontier — 7/200 feasible cells at 400 KiB → 58/200 at
   90 KB → 89/200 at 49.4 KB (even the smallest payload leaves ~55% infeasible).
-- **Binding gap: C2, the transport-conditioned cooperation gain, does not exist yet.** The 1.40 m two-view
+- **Banked later-stage gap: C2, the transport-conditioned cooperation gain, does not exist yet.** The 1.40 m two-view
   triangulation result is groundwork only — static egos, oracle association, **no OAI transport**.
-- **Critical path:** Phase-2 recipient-specific map sharing integrated end-to-end (= multi-vehicle integration when
-  scoped to one helper + one recipient). ~7-10 weeks, 9-12 with contingency. OTA is a parallel venue risk.
+- **Superseded ordering:** the earlier 7-10 week helper-recipient critical path
+  remains a paper-stage estimate, not the current implementation sequence.
 - **Task A complete:** the exact 36-profile/1,683-frame screen includes the already-available per-frame
   segmentation metrics and finds no practical class/range reversal under the registered gate. True occlusion and
   cyclists remain outside scope. Artifact: `rl_agent/contextual_knob/experiments/20260814_214749`.

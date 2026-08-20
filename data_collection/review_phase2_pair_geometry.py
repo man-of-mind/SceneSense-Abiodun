@@ -23,7 +23,7 @@ import threading
 import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, Optional, Tuple
+from typing import Any, Dict, Mapping, Optional, Tuple
 
 import carla
 import cv2
@@ -46,6 +46,14 @@ from data_collection.phase2_curbside_scenario import (
 )
 from data_collection.phase2_calibration_scenario import (
     direct_route_yield_trace_fields,
+)
+from data_collection.phase2_factor_realization_runtime import (
+    FactorRealizationMonitor,
+    FactorRuntimeContract,
+)
+from data_collection.validate_phase2_factor_realization_smoke import (
+    build_plan as build_factor_smoke_plan,
+    load_config as load_factor_smoke_config,
 )
 from data_collection.phase2_signalized_corner_scenario import (
     SIGNALIZED_GEOMETRY_ID,
@@ -147,6 +155,40 @@ OCCLUDER_SETTLE_MAX_TICKS = 30
 OCCLUDER_SETTLE_STABLE_TICKS = 3
 OCCLUDER_SETTLE_MAX_XY_DRIFT_M = 0.35
 OCCLUDER_SETTLE_MAX_YAW_DRIFT_DEG = 3.0
+
+
+def _load_factor_review_contract(
+    config_path: Path, trajectory_id: str
+) -> tuple[dict[str, Any], Mapping[str, object], FactorRuntimeContract]:
+    """Resolve one positive corner from the same immutable smoke plan.
+
+    This helper performs no CARLA operation.  It intentionally refuses benign
+    rows because the eight-corner physical preflight measures realized hazard
+    kinematics; matched benign twins are checked later by the atomic capture.
+    """
+
+    smoke = load_factor_smoke_config(Path(config_path).resolve())
+    plan = build_factor_smoke_plan(smoke)
+    matches = [
+        row for row in plan["rows"] if str(row["trajectory_id"]) == str(trajectory_id)
+    ]
+    if len(matches) != 1:
+        raise ValueError(
+            f"factor trajectory ID must resolve exactly once, found {len(matches)}"
+        )
+    row = matches[0]
+    if row["scenario_role"] != "controlled_positive_occlusion" or not bool(
+        row["controlled_hazard_present"]
+    ):
+        raise ValueError("factor geometry review accepts positive rows only")
+    maximum_by_class = smoke["factor_contract"][
+        "positive_hazard_surface_clearance_max_m_by_class"
+    ]
+    contract = FactorRuntimeContract.from_plan_row(
+        row,
+        maximum_surface_clearance_m=float(maximum_by_class[row["hazard_class"]]),
+    )
+    return smoke, row, contract
 
 
 def offset_transform(
@@ -402,8 +444,66 @@ def main() -> None:
     parser.add_argument("--target-vehicle-start-delay-s", type=float)
     parser.add_argument("--queue-occluder-speed-mps", type=float)
     parser.add_argument("--queue-occluder-start-delay-s", type=float)
+    parser.add_argument(
+        "--factor-smoke-config",
+        type=Path,
+        help="exact v2 factor-smoke config; requires --factor-trajectory-id",
+    )
+    parser.add_argument(
+        "--factor-trajectory-id",
+        help="one positive row from the exact factor-smoke plan",
+    )
     parser.add_argument("--output-root", type=Path, default=DEFAULT_OUTPUT_ROOT)
     args = parser.parse_args()
+    factor_contract: Optional[FactorRuntimeContract] = None
+    if (args.factor_smoke_config is None) != (args.factor_trajectory_id is None):
+        parser.error(
+            "--factor-smoke-config and --factor-trajectory-id must be supplied together"
+        )
+    if args.factor_smoke_config is not None:
+        try:
+            _smoke, _factor_plan_row, factor_contract = _load_factor_review_contract(
+                args.factor_smoke_config, str(args.factor_trajectory_id)
+            )
+        except (FileNotFoundError, KeyError, TypeError, ValueError) as exc:
+            parser.error(str(exc))
+        expected_layout = {
+            "curbside_bus_occluded_pedestrian": "curbside_opposite",
+            "occluded_cross_traffic_vehicle": "cross_traffic_vehicle",
+        }.get(factor_contract.geometry_or_route_id)
+        if expected_layout is None:
+            parser.error(
+                "factor geometry is unsupported by the bounded corner review: "
+                f"{factor_contract.geometry_or_route_id}"
+            )
+        # The immutable plan, not free CLI knobs, owns every treatment value.
+        # The generated review command also prints these values explicitly so
+        # a human can audit them, but this override prevents argument drift.
+        args.layout = expected_layout
+        args.scenario_role = factor_contract.scenario_role
+        requested = factor_contract.requested
+        args.helper_speed_mps = float(requested["requested_helper_speed_mps"])
+        args.recipient_speed_mps = float(requested["requested_recipient_speed_mps"])
+        args.pedestrian_start_delay_s = float(requested["requested_hazard_onset_s"])
+        args.target_vehicle_start_delay_s = float(
+            requested["requested_hazard_onset_s"]
+        )
+        if str(requested["hazard_actor_role"]) == "walker":
+            args.pedestrian_speed_mps = float(
+                requested["requested_hazard_actor_speed_mps"]
+            )
+        elif str(requested["hazard_actor_role"]) == "target_vehicle":
+            args.target_vehicle_speed_mps = float(
+                requested["requested_hazard_actor_speed_mps"]
+            )
+        else:
+            parser.error(
+                "unsupported factor hazard actor role: "
+                f"{requested['hazard_actor_role']}"
+            )
+        # Every corner must extend far enough to observe a late 3.5 s onset and
+        # at least three seconds of post-onset physical motion.
+        args.duration_s = max(float(args.duration_s), 7.0)
     if bool(args.headless) and bool(args.pose_only):
         parser.error("--headless and --pose-only are mutually exclusive")
     if str(args.layout) == "naturalistic_pair" and str(args.scenario_role) != "naturalistic_operation":
@@ -683,6 +783,11 @@ def main() -> None:
                 if str(args.layout) == "naturalistic_pair"
                 else ("positive_" if hazard_present else "benign_")
             )
+            + (
+                str(factor_contract.trajectory_id) + "_"
+                if factor_contract is not None
+                else ""
+            )
             + datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
         )
     )
@@ -704,6 +809,11 @@ def main() -> None:
     walker_completed = False
     review_safety_yield_ever = False
     first_direct_route_yield = {role: None for role in ROLE_ORDER}
+    factor_monitor = (
+        FactorRealizationMonitor(factor_contract, cadence_s=0.1)
+        if factor_contract is not None
+        else None
+    )
     realized_trace = []
     automatic_capture_times_s = (
         (0.5, 1.0, 1.5, 2.0, 3.0, 4.0, 6.0, 8.0, 10.0)
@@ -1304,6 +1414,29 @@ def main() -> None:
                         "actor_id": int(yield_event["actor_id"]),
                         "actor_type": str(yield_event["type_id"]),
                     }
+            if factor_monitor is not None:
+                assert factor_contract is not None
+                hazard_actor = {
+                    "walker": walker,
+                    "target_vehicle": target_vehicle,
+                }.get(str(factor_contract.requested["hazard_actor_role"]))
+                onset_driver = {
+                    "walker": walker,
+                    "target_vehicle": target_vehicle,
+                    "occluder": occluder,
+                }.get(str(factor_contract.requested["onset_driver_role"]))
+                factor_monitor.observe(
+                    frame_id=frame,
+                    elapsed_s=elapsed_sim_s,
+                    helper=vehicles["helper"],
+                    recipient=vehicles["recipient"],
+                    hazard=hazard_actor,
+                    onset_driver=onset_driver,
+                    recipient_intervened=(
+                        review_safety_yield_ever
+                        or first_direct_route_yield["recipient"] is not None
+                    ),
+                )
             if walker is None:
                 trace_row.update(
                     walker_x="",
@@ -1695,6 +1828,29 @@ def main() -> None:
                 for role, transform in transforms.items()
             },
         }
+        factor_finalize_error: Optional[str] = None
+        if factor_monitor is not None:
+            assert factor_contract is not None
+            try:
+                factor_diagnostic = factor_monitor.finalize()
+            except RuntimeError as exc:
+                # Retain the exact failed realization for pre-outcome control
+                # repair, but still exit nonzero after the artifact is closed.
+                factor_finalize_error = str(exc)
+                factor_diagnostic = factor_monitor.diagnostic()
+            summary["factor_runtime_contract"] = {
+                "trajectory_id": factor_contract.trajectory_id,
+                "trajectory_row_sha256": factor_contract.trajectory_row_sha256,
+                "requested_factors": dict(factor_contract.requested),
+                "authored_onset_policy_visibility": (
+                    "forbidden_evaluation_metadata_only"
+                ),
+                "measurement_implementation": (
+                    "data_collection.phase2_factor_realization_runtime."
+                    "FactorRealizationMonitor"
+                ),
+            }
+            summary.update(factor_diagnostic)
         role_progress_m = {}
         if realized_trace:
             final_row = realized_trace[-1]
@@ -2248,6 +2404,8 @@ def main() -> None:
                 writer = csv.DictWriter(stream, fieldnames=list(realized_trace[0]))
                 writer.writeheader()
                 writer.writerows(realized_trace)
+        if factor_finalize_error is not None:
+            raise RuntimeError(factor_finalize_error)
         if summary["pedestrian_physical_speed_gate_pass"] is False:
             raise RuntimeError(
                 "realized pedestrian speed is outside the physical-speed contract: "

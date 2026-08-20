@@ -1,0 +1,195 @@
+schema: scenesense.ue_split_stage_a_config.v1
+experiment_name: ue_split_stage_a_v1
+repository_root: ../..
+authority:
+  evidence_reuse_only: true
+  new_carla_run: false
+  new_oai_run: false
+  model_inference: false
+  model_training: false
+  policy_training: false
+  profile_eligibility_freeze: false
+service_contract:
+  id: OBJECT_MAP_V1
+  primary_outputs:
+  - vehicle_detection
+  - pedestrian_detection
+  - world_xy_localization
+  segmentation_role: secondary_diagnostic
+  quality_floor_id: null
+  approval_reference: null
+factor_contract:
+  evidence_pool_version: ue_split_pool_v1
+  models:
+    noae:
+      per_frame_path: rl_agent/density_knob/raw/perframe_noae.csv
+      per_frame_sha256: 86417d7ca5898576fdd36b48683e411d34df6eee3ebd2d218e1e91027d3dcd7f
+      checkpoint_path: experiments/ae_integrated_20260710/noae_baseline/checkpoints/mprime_joint_noae/best.pt
+      checkpoint_sha256: f319e2a5e8fb134e74c24c0822233e17368df6e4c733add658026603e131d4fa
+    ae32:
+      per_frame_path: rl_agent/density_knob/raw/perframe_ae32.csv
+      per_frame_sha256: c4ca439bdbce4af57be5b6299efcbd22ed2bfd4bfd067fce240518577a0cd9bc
+      checkpoint_path: experiments/ae_integrated_20260710/ae32/checkpoints/ae32_integrated/best.pt
+      checkpoint_sha256: 10cebbeede4da992e68850d8f38358e89000b62524be25b68c88517d7b58f9b2
+    ae64:
+      per_frame_path: rl_agent/density_knob/raw/perframe_ae64.csv
+      per_frame_sha256: e09d2384bae52f030e4616ffb3beba0fa8804983eede109b3de795d33e47a2d4
+      checkpoint_path: experiments/ae_integrated_20260710/ae64/checkpoints/ae64_integrated/best.pt
+      checkpoint_sha256: c6a2362c7c2d72ff31825508ae7532c0796ec063a8556317d47d8d30fad99480
+    ae128:
+      per_frame_path: rl_agent/density_knob/raw/perframe_ae128.csv
+      per_frame_sha256: f6a63b4ed640057b0b9e2ef64b52ed1155b0f4780bc83944a40740c9b3a988f4
+      checkpoint_path: experiments/ae_integrated_20260710/ae128/checkpoints/ae128_integrated/best.pt
+      checkpoint_sha256: 601984b96d85e1d72e9521f8a796103ab630834991d0957b62990116524cd62c
+  quantizers:
+  - per_channel_uint8
+  - per_channel_uint6
+  - per_channel_uint4
+  roi_drop_fractions:
+  - 0.0
+  - 0.3
+  - 0.5
+  - 0.7
+  - 0.9
+  - 0.98
+  entropy_coder: zstd
+  entropy_level: 3
+  expected_profiles: 72
+  expected_frames_per_profile: 2162
+  expected_rows_per_model: 38916
+  expected_total_profile_frames: 155664
+quality_evidence:
+  quality_set_id: moving_ego_pps200000_merged_8loops_stride2_test_v1
+  eval_settings_path: rl_agent/density_knob/raw/eval_settings.json
+  eval_settings_sha256: e3ab8fec02378aeee646adb8b626c8d8c68f2bff84a7e98839502f1e5721d4fb
+  analysis_settings_path: rl_agent/density_knob/raw/analysis_settings.json
+  analysis_settings_sha256: 55505501aea665f10ab3bcccdc190cd23cb6a3c716e7c63d6e1fa631ec50ba32
+  saved_gate_report_path: rl_agent/density_knob/raw/gate_report.txt
+  saved_gate_report_sha256: 8853b760bab9640057d665f47757775b7f7bf531889173e2f9170679df30736e
+  evaluator_path: rl_agent/density_knob/density_knob_eval.py
+  evaluator_sha256: 4b8fae9ef69c7a15208bd4f3006e39c1573b78aa0af9ad1e824f8fc8d00e7555
+  run_log_path: rl_agent/density_knob/RUN_LOG.md
+  run_log_sha256: dcd0044b8c9809dc2adb375301c2b6fede36d2e0837681c085ffaa28180cdb2a
+  frame_context_path: rl_agent/density_knob/raw/frame_density.csv
+  frame_context_sha256: 3bc3e116c9afd94a5078531b140f5ddf5c2a372cae038c9c2173a9c5f47bff09
+  aggregate_check_path: rl_agent/density_knob/raw/by_density_profile.csv
+  aggregate_check_sha256: e86fcc3f3a0fd97e09cf59714f02bccb5021c7f44faba6b12f551467c9e2a71b
+  ordered_test_set_sha256: f1cbf0aceab3359f4f38da933069b462ec2bf34e43bbff44b66d4057ab5f7432
+  split_manifests:
+    train:
+      expected_count: 10911
+      sha256: c39d280d16c81cb4fafeeffe4805137d5d12498aab5a3f16476bf207d5d84b27
+      paths:
+        noae: experiments/ae_integrated_20260710/noae_baseline/splits/train.txt
+        ae32: experiments/ae_integrated_20260710/ae32/splits/train.txt
+        ae64: experiments/ae_integrated_20260710/ae64/splits/train.txt
+        ae128: experiments/ae_integrated_20260710/ae128/splits/train.txt
+    val:
+      expected_count: 2110
+      sha256: 91204710264ec63f53e4cdbae3cec8e9526c7f99bb329c4817346de281b1ba9c
+      paths:
+        noae: experiments/ae_integrated_20260710/noae_baseline/splits/val.txt
+        ae32: experiments/ae_integrated_20260710/ae32/splits/val.txt
+        ae64: experiments/ae_integrated_20260710/ae64/splits/val.txt
+        ae128: experiments/ae_integrated_20260710/ae128/splits/val.txt
+    test:
+      expected_count: 2162
+      sha256: f1cbf0aceab3359f4f38da933069b462ec2bf34e43bbff44b66d4057ab5f7432
+      paths:
+        noae: experiments/ae_integrated_20260710/noae_baseline/splits/test.txt
+        ae32: experiments/ae_integrated_20260710/ae32/splits/test.txt
+        ae64: experiments/ae_integrated_20260710/ae64/splits/test.txt
+        ae128: experiments/ae_integrated_20260710/ae128/splits/test.txt
+  expected_eval_settings:
+    object_score_threshold: 0.2
+    object_nms_radius_px: 2
+    topk_objects: 120
+    match_distance_m: 5.0
+    max_gt_distance_m: 40.0
+    min_gt_area_px: 12.0
+  training_disjointness_status: PASS_IDENTIFIER_LEVEL_RETAINED_SPLITS_DISJOINT
+  difficult_object_evidence_status: UNRESOLVED_FOR_ALL_PROFILES
+  sensitivity_floors:
+  - id: strict_exploratory
+    max_recall_drop: 0.01
+    max_class_recall_drop: 0.01
+    max_localization_increase_m: 0.05
+    max_fp_per_frame_increase: 0.025
+  - id: prior_reference_exploratory
+    max_recall_drop: 0.02
+    max_class_recall_drop: 0.02
+    max_localization_increase_m: 0.1
+    max_fp_per_frame_increase: 0.05
+  - id: relaxed_exploratory
+    max_recall_drop: 0.03
+    max_class_recall_drop: 0.03
+    max_localization_increase_m: 0.15
+    max_fp_per_frame_increase: 0.1
+network_evidence:
+  target_offer_hz: 10.0
+  existing_runs_are_exact_10hz: false
+  existing_runs_have_authoritative_map_update_done: false
+  capacity_projection_uncertainty_fraction: 0.3
+  screening_load_ratio:
+    below_capacity_max: 0.8
+    above_capacity_min: 1.2
+  packetization_proxy:
+    max_udp_datagram_bytes: 60000
+    custom_chunk_header_bytes: 8
+    udp_ipv4_header_bytes: 28
+    lower_layer_overhead_status: UNKNOWN_NOT_ESTIMATED
+  summary_path: channel_condition_sweep/combined_surface.csv
+  summary_sha256: c48c44667dec980d6a5a62abb4a081cb33ac70bdf33e9536187a8fd62007e5a1
+  transport_sources:
+  - id: noae_uint8_1mb_stress
+    path: uplink_only_spatial_map_pipeline/results/chsweep_full_p1u8_.csv
+    sha256: 0e4364e081c62cfa2f7b7aecfd0c1d69d0e572fa981e70f2298ac77c70c6a0fc
+    evidence_kind: existing_reused_transport_only
+    combined_payload_label: 1 MB
+  - id: noae_uint4_400kb_anchor
+    path: uplink_only_spatial_map_pipeline/results/chsweep_full_p2u4_.csv
+    sha256: 4e0c79364129540176dd5fa2021cdbc28cfae1aacdcee5d9011cb95063151019
+    evidence_kind: existing_reused_transport_only
+    combined_payload_label: 400 KB
+  - id: legacy_ae32_90kb_anchor
+    path: uplink_only_spatial_map_pipeline/results/chsweep_full_p3ae_.csv
+    sha256: 0f0d6ca3528878dbf27100592d8c34e9b7725cec98968e65ff14a855ca782cfc
+    evidence_kind: payload_proxy_legacy_checkpoint
+    combined_payload_label: 90 KB
+  regimes:
+  - id: clear
+    historical_id: clear
+    source_label: clear_sinr
+  - id: mild
+    historical_id: mild
+    source_label: mild_sinr
+  - id: mid
+    historical_id: mid15
+    source_label: mid15_sinr
+  - id: poor
+    historical_id: strong
+    source_label: strong_sinr
+staleness_evidence:
+  historical_base_localization_floor_m: 1.1
+  budget_path: staleness/uplink_only_latency_budget/results/budget_latency_upper.csv
+  budget_sha256: 277a520d76b1f0409af961c85c33b617665509ae5c2568ab8400ace0ad29f155
+  latency_anchors_path: staleness/uplink_only_latency_budget/results/L_anchors.csv
+  latency_anchors_sha256: 39714a808bdb84acc9faca2abdc7e7486cc5a3aaacd5c2d9ff3ed8725da896a1
+  direct_latency_summary_path: staleness/uplink_only_latency_budget/results/fresh_L_by_condition.csv
+  direct_latency_summary_sha256: 00eb5fb35680c933842eb4a113e2ac3c1e0b7ca58b12dfc784aa8437ac1dc7e4
+  error_sensitivity_path: staleness/uplink_only_latency_budget/results/error_vs_L_by_speed.csv
+  error_sensitivity_sha256: 41062d97d9f0edb6d0a524ae6f52f3e3f91759d212ee3f2b3d1696baae42578e
+  tolerance_m:
+  - 1.5
+  - 2.0
+  - 2.5
+  - 3.0
+  selected_service_tolerance_m: null
+transport_replay:
+  sequence_id: null
+  ordered_sample_ids_sha256: null
+  status: UNSELECTED_REVIEW_REQUIRED
+output:
+  root: rl_agent/experiments/ue_split_stage_a_v1
+  decision_state: REVIEW_REQUIRED
+  write_completed_marker: false

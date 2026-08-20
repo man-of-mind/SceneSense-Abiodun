@@ -184,8 +184,10 @@ ROI 0, still density-invariant.
 > not make this a deployable or Phase-2 RL specification. The accepted replay exposes same-frame post-tail
 > detections and GT-assisted tracks before action selection. The stateful ladder is therefore noncausal
 > matched-support evidence, and the full dynamic-controller NO-GO is reopened. Static measured tables and their
-> profile-selection conclusions remain valid. The current causal state/action/corpus contract is
-> `../phase2_map_sharing/PHASE2_PAIRED_CAUSAL_CORPUS_SPEC.md`.
+> profile-selection conclusions remain valid. The current single-UE execution
+> and design-freeze sequence is `UE_AGENT_EXECUTION_CHECKLIST.md`. The former
+> helper-recipient Phase-2 path is parked in
+> `../phase2_map_sharing/PARKED_STATUS_2026-08-19.md`.
 
 One sentence: **object speed sets the freshness budget; the channel sets the affordable payload; the knobs
 spend payload to buy accuracy within that budget; scene-emptiness is a send-gate, not a knob.** This is the
@@ -197,19 +199,34 @@ authorization or a design spec for SAC/PPO.
 |---|---|---|
 | **object speed** (+ uncertainty) | dominant; sets the whole latency/FPS budget via the master inequality | §1–§5, MEASURED |
 | **channel state** — CQI/SNR→achievable rate, UE buffer occupancy | sets affordable payload + delivery reliability; the binding constraint over OAI | **MEASURED (2026-08-04, clean 12-cell grid on fresh CARLA)** (`channel_condition_sweep/CHANNEL_SWEEP_RESULTS.md` + plots). Uplink-only, SINR, retx=0 everywhere; sharp payload-ordered knee (offered ~6 fps): **1 MB** survives only clear (97.5%), collapses at ≤19.5 dB (22%→4.6%, 6–15 s); **400 KB** holds to 15.6 dB (100%, ≤251 ms), collapses at 8.2 dB (31.5%); **90 KB (ae32/u4/ROI0 seg-safe floor) = 100% at EVERY rung, ≤175 ms.** Collapse = congestion (BSR pins at the ~48 MiB ceiling), not radio errors. Measured-grid rule: `payload_budget=capacity(SNR)/target_fps × margin`; budget @10 fps ≈ {clear 448, mild 339, mid 241, **strong 127**} KB. The legacy policy uses its **lagged/noisy achievable-capacity estimate**, not a hard-coded SNR→payload map. The 90 KB floor fits every measured rung; at ~8 dB even 400 KB does not fit in the tested config. CAVEAT: offered fps was ~6 (live-front, CARLA-render limited); capacity estimated from delivered ceilings (±~30%); a shaped-burst @10 fps re-run (Mode A, no CARLA) will pin the absolute knee — not blocking. Fast objects (32 mph) still need FPS ≥15 for the 2.0 m target. |
-| **scene-empty gate** — max/count objectness on the CURRENT frame (pre-transmit) | decides send / skip; computed by the front backbone before compression, so NOT lagged | §8 (density-seg), available on the UE |
+| **historical scene-empty gate** — max/count objectness on the CURRENT frame (pre-transmit) | can inform LOCAL-vs-SPLIT placement or a back-half/update abstention after the front has run; it cannot authorize genuine `SKIP_INFERENCE`, because the front cost was already incurred | §8 (density-seg), available on the UE only after the common front; superseded timing is frozen in `UE_AGENT_EXECUTION_CHECKLIST.md` |
 | **previous action + outcome** — last payload/FPS, last latency/delivery | channel telemetry is lagged, so the agent needs its last decision + result to act sensibly (POMDP) | added 2026-08-04 (POLICY_KICKOFF + state diagram) |
 | **per-object shared-map age-of-information** — `AoI_map,j = now − capture_timestamp(newest valid contribution for object j, any source)` | phase 1 normally resets every included object's age on a delivered frame; skip/drop increments each age. Preserve repeatable contribution provenance per `PHASE2_FORWARD_COMPAT.md`; a scalar is only a derived single-UE summary. It drives composed loc-error and makes send/skip sequential | added 2026-08-05; per-object schema clarified 2026-08-07 |
 | **estimated achievable UL capacity (+ confidence)** — derive from either full-resource `TBS_per_grant × attainable_grant_rate` or `spectral_efficiency(MCS) × configured_available_UL_resources/time`; corroborate with BSR/RLC drain and outcomes | the C1 mask + policy budget use this lagged/noisy estimate, never hidden true capacity. Raw scheduled throughput and actually allocated PRB/TBS under light load are demand-censored lower bounds, not capacity | added 2026-08-05 (`REVIEW_NOTES.md` items 15/A, 21) |
 | **scheduler phase + observable in-flight summary** | fixed-20-Hz target-FPS scheduling and delayed/out-of-order publishes affect the next transition; hiding these locally known values would make equal observations transition differently | Track A contract, 2026-08-10 |
 | ~~scene density (graded)~~ | **dropped** — the seg-aware knob is density-invariant | §8 |
 
-> **Authoritative Phase-2 spec:** `phase2_map_sharing/PHASE2_PAIRED_CAUSAL_CORPUS_SPEC.md` plus the updated
-> `rl_agent/state_diagram.md`. They separate pre-inference placement from post-inference publication and enforce
-> timestamped causal availability. The Phase-2 ranked constraint/outcome list,
-> stopping-attribution boundary, and separate SKIP semantics are in
-> `../phase2_map_sharing/PHASE2_CONSTRAINT_CATALOG.md`. The remainder of §9
-> documents the frozen Phase-1 experiment only.
+> **Immediate authority after the 2026-08-19 scope reset:**
+> `UE_AGENT_EXECUTION_CHECKLIST.md` plus the UE-only `state_diagram.md`.
+> They define a single UE, a fixed edge-map endpoint, a genuine frame gate,
+> LOCAL versus SPLIT placement, and fixed publish-all. The paired corpus,
+> recipient publication, warning, and stopping contracts are parked later-stage
+> Phase-2 material. The remainder of §9 documents the frozen Phase-1
+> experiment only and does not authorize implementation.
+>
+> The current v1 allowlist is exactly seven scalars: ACK-derived freshness
+> slack, current aligned radar risk, ego speed, one lagged pessimistic UL-capacity scalar,
+> in-flight age, local-compute slack, and time since last processed sample.
+> Historical broad object/track state and application-buffer sweeps remain
+> evidence only. V1 has no application result buffer or old-frame retry;
+> lower-layer HARQ/RLC state remains observable transport behavior. Route,
+> speed-limit, junction, sight/occluder, stopping-distance, and CARLA scenario
+> geometry are excluded. Low-resolution SI/TI, if tested, means visual
+> complexity/activity—not density—and is an optional retained-frame ablation,
+> never a low-value permission to SKIP. Latency evidence follows the checklist's
+> stage-specific percentile and deadline-miss policy. V1 has no separate FPS
+> action: effective update rate emerges from its per-frame SKIP, LOCAL, and
+> measured SPLIT-profile decisions.
 >
 > The proposed 2026-08-19 Phase-2 reconciliation also makes anti-memorization
 > structural: scenario/frame ID, absolute elapsed time, factor/hazard label,

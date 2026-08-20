@@ -81,9 +81,9 @@
           "denominator": "all_recipient_installs",
           "numerator": "repeated_recipient_installs_for_same_contribution_and_source_track"
         },
-        "false_recipient_install_rate": {
+        "protocol_false_recipient_install_rate": {
           "denominator": "all_recipient_install_attempts",
-          "numerator": "recipient_installs_without_registered_source_target_correspondence"
+          "numerator": "recipient_installs_without_valid_source_observation_and_source_track_provenance_correspondence"
         },
         "recipient_map_pollution_rate": {
           "denominator": "all_recipient_map_tracks",
@@ -92,11 +92,16 @@
         "source_to_recipient_track_fragmentation_rate": {
           "denominator": "source_tracks_with_at_least_one_recipient_install",
           "numerator": "extra_recipient_track_ids_beyond_one_per_source_track_within_episode"
+        },
+        "truth_unmatched_recipient_install_rate": {
+          "denominator": "all_recipient_installs",
+          "numerator": "recipient_installs_not_matched_to_any_evaluation_truth_object",
+          "role": "report_only_evaluation_diagnostic_not_structural_failure"
         }
       },
       "status": "definitions_denominators_and_structural_integrity_gates_must_be_frozen",
       "structural_integrity_gates": [
-        "every_install_has_unique_contribution_source_and_recipient_track_ids",
+        "every_install_has_valid_contribution_object_source_and_recipient_track_provenance",
         "publish_install_available_timestamps_are_monotone_on_one_clock",
         "every_metric_event_is_recomputable_from_immutable_provenance",
         "zero_missing_denominators_or_untyped_zero_exposure_cases"

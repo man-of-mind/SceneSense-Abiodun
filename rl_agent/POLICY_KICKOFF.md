@@ -1,11 +1,11 @@
-# Policy formulation — START HERE (kickoff, 2026-08-04)
+# Policy formulation — measured-input background (kickoff, 2026-08-04)
 
-> **Historical Phase-1 kickoff after the 2026-08-14 causal audit.** Do not start a controller or corpus from this
-> document. The table inputs and static profile-selection analyses remain valid, but the replay exposed same-frame
-> post-tail detections and GT-assisted tracks before action selection. The dynamic ladder is therefore noncausal
-> matched-support evidence. Current work is governed by
-> `../phase2_map_sharing/PHASE2_PAIRED_CAUSAL_CORPUS_SPEC.md` and `state_diagram.md`; no pilot/full collection or
-> RL is authorized yet.
+> **Current scope reset (2026-08-19).** Do not start work from this historical
+> kickoff. Its three measured inputs and static profile analyses remain valid,
+> but its dynamic ladder is noncausal matched-support evidence. Current work is
+> governed only by `UE_AGENT_EXECUTION_CHECKLIST.md` and the UE-only
+> `state_diagram.md`. Helper-recipient Phase 2 is parked; no new corpus or RL is
+> authorized by this document.
 
 Goal: a **safety-constrained RL controller** that, each frame, observes lagged network state + current scene
 urgency and picks **compression / FPS / send** actions to keep spatial-map staleness within the localization

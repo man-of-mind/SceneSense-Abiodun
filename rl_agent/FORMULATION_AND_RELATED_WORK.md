@@ -1,5 +1,10 @@
 # Formulation, structural hypotheses, baselines, related work, and paper framing
 
+> **Execution-order supersession (2026-08-19):** the helper-recipient critical
+> path in §8 is parked paper-stage work. Current implementation follows
+> `UE_AGENT_EXECUTION_CHECKLIST.md`: one UE, fixed edge-map publication,
+> SPLIT/LOCAL/permitted SKIP, simple baselines first.
+
 **Purpose.** Capture the mathematics of the controller we actually run, what the NO-GO does and does not establish,
 the baseline suite a reviewer will ask for, and an honest contribution/status assessment.
 
@@ -297,11 +302,12 @@ evaluation exposes a sequential gap that exact and simple baselines leave open.
   true occlusion, cyclists, and broader scenario contexts remain untested.
 - Shield soundness is **regional** (sound @25 m, unsound @40 m), not unconditional.
 
-### 8.6 Critical path and schedule (codex estimate, 2026-08-14)
+### 8.6 Historical Phase-2 schedule (superseded execution order, 2026-08-19)
 
-**Binding constraint: Phase-2 recipient-specific map sharing, integrated end-to-end.** Phase 2 and multi-vehicle
-integration are effectively the same path if scoped to one helper/source + one recipient. **OTA is a venue decision
-and a parallel risk, not the first dependency** — stabilise Phase 2 over RFsim before moving to hardware.
+**This is no longer the current binding path.** The estimate below is preserved
+for later recipient-specific Phase 2. Current implementation follows
+`UE_AGENT_EXECUTION_CHECKLIST.md`; see
+`../phase2_map_sharing/PARKED_STATUS_2026-08-19.md`.
 
 1. Paper/venue contract + causal-audit reconciliation — **2-3 days**
 2. Freeze schema-v2, causal state/action timing, dual-suite distribution, and pilot gates — **3-5 days**

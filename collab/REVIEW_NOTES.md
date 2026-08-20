@@ -6469,3 +6469,257 @@ instrumentation, exact policy-feature projection, create-only detached launcher)
 corner check, then hand off the ~46-minute 16-trajectory detached calibration collection.** Do not chain the old
 15-row audit or any larger stage; validation and test remain separate decisions. The failed v3 warning gate stays
 binding for warning/C3 claims and does not block this C2 information study.
+
+## 2026-08-19 — CODEX implementation checkpoint: four adapters READY; only the manual eight-corner gate is authorized next
+
+Claude's three clarifications are now executable gates rather than prose. The
+runtime uses the typed v2 per-row factor contract, records requested and
+realized kinematics, and rejects an out-of-cell positive. The primary endpoint
+is evaluated at one recipient-consumer boundary:
+
+```text
+recipient_available_confirmed_track_margin_s
+  = recipient_self_available_s
+    - recipient_usable_helper_available_s
+```
+
+The helper chain is source confirmation -> publication -> recipient install ->
+consumer availability. Target association is evaluation-only and occurs after
+install. A near-zero or negative signed margin is a valid finding, never a
+reason to retune confirmation or transport after seeing the result. This
+tranche is local-loopback only: it makes no OAI latency/channel claim and does
+not evaluate policy performance or warning actuation.
+
+The exact causal projector is exercised on every real row for both fixed
+stages (`SPLIT_FEATURE`, `PUBLISH_ALL`). Every consumed field must satisfy
+`available_at_s <= decision_at_s`; an isolated GT/evaluation-field canary must
+be rejected on every trajectory. Capture-time model checkpoint hashes are
+recorded and reverified for both roles, with one identical checkpoint required
+across the tranche. Fresh Car/Truck/Bus static truth, role artifact manifests,
+retained tensors, structural traffic/collision/trajectory gates, matched-pair
+provenance, and postflight inputs are hash-bound.
+
+Admission is unambiguously atomic: all 16 preassigned replicate-0 calibration
+rows pass together or all 16 remain an excluded diagnostic fixture. Pair-level
+postflight runs immediately after each positive/benign pair is complete, so a
+bad early pair stops before the remaining pairs. The final assembler then
+recomputes all 16 and requires the exact verdict
+`PASS_ATOMIC_EXACT_16_ADMITTED`; generic raw-capture completion cannot become a
+scientific PASS. Detached terminal JSON is atomically published create-only,
+and success/failure sentinels are mutually exclusive even under injected
+partial-write and progress-write failures.
+
+One last pre-run defect was caught and repaired: 40 samples at 10 Hz span 3.9
+s, so the factor retention window now begins 0.9 s before authored onset. The
+manual reviewer computes the actual cadence-rounded final retained sample and
+requires at least 2.9 s after measured onset, one full tick above the
+independent 2.8 s postflight minimum. Authored onset remains orchestration and
+evaluation metadata and is forbidden from policy features.
+
+Final offline status:
+
+- v2 design config SHA: `66935c6edc8ede1a9eebc563ffb51210a7b391ee3c252690ec8e504a209b5363`
+- immutable trajectory manifest SHA: `c5b56fc1210a7d2e26e8cb58cc0b495fd2b649c36faa96d5c83f8726502fdf96`
+- factor-smoke config SHA: `27c72cab9b95b56a0075874be14b1a85bc97448e017b0144122b65c9ed4dc52b`
+- exact plan SHA: `3e3a8e003a2a02f8c60508a606b8919b45d592f3e2697f2b086290354b416e4e`
+- detached launch config SHA: `9ccb03ce0e01df1defd8bdea6445a7d9bfc27cb76203defa1591e36f8a1cb5aa`
+- direct validator: `PASS_OFFLINE_DESIGN_RUNTIME_READY_REQUIRES_SEPARATE_LAUNCH_AUTHORITY`, 16 trajectories / 8 groups, no runtime blockers
+- outer validation: `validated_blocked_pending_manual_corner_acceptance`
+- full offline regression: data-collection 196/196 and Phase-2 map-sharing 161/161 PASS; `py_compile` and `git diff --check` PASS
+- estimated later exact-16 stage: 46.4 minutes and about 9.9 GB heavy artifacts; approximately 1.1 TB is currently free
+
+No CARLA, OAI, old audit, additional corpus, ladder, or RL run was launched.
+The only authorized next action is the fresh-root, geometry-only manual review
+of all eight positive factor corners in Epic quality, following
+`FACTOR_REALIZATION_LAUNCH_RUNBOOK_V1.md`. Stop at the first failed physical or
+visual cell. Even eight-corner acceptance does not itself launch the exact-16;
+the post-acceptance validator must first report `validated_ready_not_started`,
+followed by a separate human authorization.
+
+## 2026-08-19 — CODEX forensic correction after eight-corner review: visual 8/8, quantitative 1/8; DESIGN HOLD
+
+Abiodun completed all eight visual reviews. Every run produced a 120-frame
+trace, three screenshots, legal-looking motion, and zero collisions. The final
+acceptance correctly rejected the batch, however: only the pedestrian
+high/short cell passed the quantitative factor gate. Human visual plausibility
+was mistakenly conflated with physical-factor realization in the handoff. The
+raw reviewer commands did exit nonzero for failed cells after persisting their
+evidence, but there was no structured per-cell ledger and final acceptance
+reported only the first failing path. This was a design-order and operational
+UX failure, not an operator failure.
+
+The complete result is:
+
+| Cell | Closing (m/s) | Horizon (s) | Clearance (m) | Gate |
+|---|---:|---:|---:|---|
+| pedestrian high / long | 0.663 | 10.278 | 21.074 | FAIL: closing, horizon, clearance |
+| pedestrian high / short | 6.663 | 2.954 | 0.595 | PASS |
+| pedestrian low / long | 1.939 | 11.287 | 8.718 | FAIL: closing, horizon, clearance |
+| pedestrian low / short | 2.714 | 7.495 | 2.959 | FAIL: horizon, clearance |
+| vehicle high / long | 0.245 | 222.589 | 0.000 | FAIL: closing, horizon |
+| vehicle high / short | N/A | N/A | N/A | FAIL: inadmissible onset; missed conflict |
+| vehicle low / long | N/A | N/A | N/A | FAIL: inadmissible onset; no safety-yield realization |
+| vehicle low / short | N/A | N/A | N/A | FAIL: inadmissible onset; missed conflict |
+
+This exposed both an implementation defect and a larger control-design defect.
+The vehicle monitor used 3D speed, so vertical CARLA spawn settling of about
+0.55 m/s was mistaken for deliberate pre-onset motion even while the handbrake
+held planar position. But fixing planar speed alone cannot make the design
+valid. Onset-zero rows sample actors during acceleration, and changing command
+speed plus an unsolved wall-clock delay cannot independently realize radial
+closing speed and closest-approach horizon.
+
+**HOLD:** do not bypass acceptance, widen gates, relabel these rows, launch the
+exact-16, or write a quick runtime patch. Preserve
+`/tmp/phase2_factor_corner_final_20260819_050403` as the immutable failed
+feasibility fixture. It proves the base visual geometry but cannot enter
+calibration.
+
+The design-first successor is proposed in
+`phase2_map_sharing/FACTOR_REALIZATION_CONTROL_ARCHITECTURE_V2.md`. Its core is
+`RESET/SETTLE -> PRE-ROLL -> ARMED -> spatial/ETA trigger -> deliberate
+release/hazard-entry -> factor measurement -> bounded rolling capture`.
+Pedestrians release only after stable recipient approach; cross-traffic
+vehicles pre-roll while occluded and are measured at a registered hazard-entry
+surface, not first motion from rest. An offline route/kinematic feasibility
+table must prove every proposed cell has an interior solution before any code
+or CARLA rerun. If the full Cartesian grid is physically empty, revise the
+design transparently or use continuous realized covariates rather than forcing
+unreachable cells.
+
+The proposed verification order is desk proof, deterministic state-machine
+tests, one machine-only aggregate eight-cell CARLA check requiring 8/8, then at
+most a minimal human spot-check of changed timing. The next tool must report a
+complete eight-row PASS/FAIL ledger and never make the operator discover seven
+failures only at final acceptance. This proposal is pending joint review; no
+runtime implementation or live run is authorized by this entry.
+
+## 2026-08-19 — Abiodun + CODEX scope reset: UE controller current; Phase 2 parked
+
+**Decision:** stop the helper-recipient/factor-realization path now. Preserve it
+under `phase2_map_sharing/`, but do not repair, rerun, collect, or use it as a
+gate for the immediate UE-side agent. The eight-corner quantitative 1/8 result
+remains an honest Phase-2 diagnostic.
+
+The sole current execution authority is
+`rl_agent/UE_AGENT_EXECUTION_CHECKLIST.md`. The current loop is:
+
+```text
+causal UE state
+  -> PROCESS or genuine SKIP_INFERENCE
+  -> common UE front when processing
+  -> LOCAL_INFER or measured SPLIT_FEATURE(profile, FPS)
+  -> fixed publish-all to this UE's edge-map endpoint
+  -> resulting AoI/quality/network/compute state
+```
+
+No helper, recipient, learned publication action, cooperative-warning endpoint,
+or braking/stopping reward belongs to this milestone. LOCAL still attempts a
+measured compact upload; SKIP is permitted only under the frozen freshness and
+current-frame gate rules. Sensing itself never stops.
+
+The causal audit, sensor-contract repair, channel surface, knob matrix,
+staleness measurements, reward-v5 principles, and simple-controller
+infrastructure remain reusable. The previous dynamic ladder remains noncausal
+historical evidence; its static measured-profile results survive.
+
+**Ownership and change control:** Abiodun and Codex own this execution
+sequence. External reviews may be considered as advice but are not required
+approval gates. Any change to scope or order must be an explicit
+Abiodun–Codex decision with a recorded reason.
+
+**Mandatory drift test before and after every task:**
+
+> Which UE state, action, transition, reward, constraint, or evaluation
+> question does this task answer, and what downstream UE-controller decision
+> will its result change?
+
+If there is no specific answer, or the task requires a helper/recipient,
+publication policy, warning lead, or vehicle actuation, park it under Phase 2.
+The next pending item is UE-1.1; no controller implementation or new
+CARLA/OAI/corpus run begins before Stage 1 is complete.
+
+### 2026-08-19 — Abiodun correction: capture is unconditional; LOCAL has onboard and edge outcomes
+
+Abiodun corrected two assumptions in the first UE diagram:
+
+1. The synchronized RGB+radar seven-channel sensors capture every frame
+   independently of the policy. The correct order is
+   `CAPTURE/ALIGN -> PROCESS_SAMPLE or SKIP_INFERENCE -> common front if
+   processed -> LOCAL or SPLIT`. SKIP drops only that already-captured sample
+   from inference; it never stops sensing, and the next sensor frame still
+   arrives. The gate may use the current sample only through a frozen
+   action-independent representation with measured compute cost. Front/tail
+   output still cannot choose genuine SKIP.
+2. A completed LOCAL result remains useful onboard even if its expected
+   approximately 2 KB compact update is temporarily delayed. LOCAL therefore
+   has two causal endpoints: `local_result_available_at` for onboard perception
+   and `edge_install_at` for edge-map freshness. Only the latter resets map
+   AoI. The exact serialized size and delivery/latency relationship must be
+   measured over the existing SNR rungs and transient outage/recovery.
+
+The initial fallback contract is a bounded latest-valid-result buffer, not an
+unbounded FIFO: newer captures supersede older unsent results, records retain
+their original capture timestamp/sequence, expired records are dropped under a
+declared TTL/attempt budget, and the edge enforces newer-capture-wins.
+
+This is directly within the UE-agent scope: it changes the UE action outcome,
+state transition, freshness accounting, and LOCAL-vs-SPLIT decision. The
+checklist and both UE Mermaid diagrams were corrected before implementation.
+
+### 2026-08-19 — Abiodun + CODEX lean UE-v1 freeze: seven scalars, no assumed geometry, no application buffer
+
+This entry supersedes the broad gate state, front-side urgency, onboard-reward,
+and application-buffer language in the immediately preceding correction. The
+single UE still captures the aligned RGB+radar sample on every sensor tick, but
+it now makes one pre-model categorical decision:
+
+```text
+SKIP_INFERENCE | LOCAL_INFER | SPLIT_FEATURE(profile)
+```
+
+LOCAL and SPLIT run the common front only after that choice. Current
+front/object-head output is not v1 state. The learned-controller vector is
+exactly seven scalars: ACK-derived freshness slack, current aligned radar risk,
+ego speed, one lagged pessimistic UL-capacity scalar, in-flight age,
+local-compute slack, and time since last processed sample. Validity/support
+flags are masks, not hidden eighth features. V1 has no separate FPS action;
+effective update rate emerges from its per-frame action sequence.
+
+Route/speed-limit/junction/curvature, stopping distance, sight/occluder
+geometry, CARLA scenario/actor metadata, and semantic objectness/density are
+excluded. They may return only after a real acquisition interface, measured
+incremental controller value, and explicit Abiodun–Codex review. Low-resolution
+SI/TI is a retained-frame ablation only: SI is visual edge/texture complexity,
+TI is temporal luminance change, neither is object density, and low SI/TI can
+never grant SKIP.
+
+LOCAL receives current-milestone utility only after an accepted edge-map
+install. `local_result_available_at` is retained as timing provenance, not an
+onboard-safety or occlusion reward. There is no application-level frame,
+feature, or result buffer and no store-and-forward retry of old frames. Each
+outbound LOCAL result or SPLIT feature gets one deadline-bounded immediate
+enqueue attempt; lower-layer HARQ/RLC behavior remains measured transport
+state. An accepted install ACK carrying capture ID/time, install time, and
+status is the sole new feedback interface that advances the UE's known map
+freshness. ACK loss or rejection earns no freshness credit and does not trigger
+an application retry.
+
+The four canonical hand traces are: update-due/good-channel -> SPLIT;
+safe-fresh/quiet-radar/bad-channel -> SKIP; expiring freshness/radar risk with
+SPLIT infeasible and LOCAL+compact upload feasible -> LOCAL; and no action able
+to meet the service target -> explicit minimum-debt graceful degradation. RL
+does not invent the last fallback.
+
+Latency is stage-timed with a monotonic clock. Report sample count, p50, p90,
+p95 with uncertainty, and deadline-miss count/rate; supported p99 and maximum
+are diagnostics. Deadline-miss evidence is the operational gate and p95 is a
+planning/review statistic, never a one-sample veto. An isolated maximum is not
+renamed p95 or attributed to the controller without stage evidence. The extra
+state-extraction-plus-policy working target is p95 <= 2 ms; p95 > 5 ms triggers
+review rather than automatic rejection. Warm-up is separate, exclusions require
+a predeclared logged invalid event, and inclusive sensitivity remains visible.
+
+This was a design/documentation freeze only. It adds no controller code, CARLA
+run, OAI run, corpus, or RL authorization. The next item remains UE-1.1 and the
+rest of Stage 1.

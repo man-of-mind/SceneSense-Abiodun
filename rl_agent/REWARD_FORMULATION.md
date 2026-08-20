@@ -1,5 +1,23 @@
 # Reward formulation — network-aware split/local-inference controller (v5)
 
+> **Current scope reset (2026-08-19).** Reward v5 supplies measured utility and
+> safety principles, not a fully locked current reward. The active
+> SPLIT/LOCAL/SKIP design-freeze tasks are Stage 1, UE-1.1 through UE-1.7, in
+> `UE_AGENT_EXECUTION_CHECKLIST.md`. Sections 14-16 are parked Phase-2
+> carry-forward and are not current implementation authority.
+
+> **Lean UE-v1 override (2026-08-19).** The current controller receives exactly
+> seven scalars: freshness slack from an accepted install ACK, current aligned
+> radar risk, ego speed, a lagged pessimistic UL-capacity scalar, in-flight age, local
+> compute slack, and time since last processed sample. Geometry, front/object-
+> head objectness, and semantic density are excluded. Low-resolution SI/TI is
+> ablation-only. One post-capture/pre-model decision selects SKIP, LOCAL, or a
+> measured SPLIT profile; v1 has no separate FPS action. Every outbound LOCAL
+> result or SPLIT feature uses one immediate enqueue attempt with no application
+> buffer or old-frame retry. Only an accepted edge-install ACK earns current
+> map/reward credit. These statements supersede broader historical state/buffer
+> language below for current implementation.
+
 **Status:** advisor-endorsed consensus **v5** (2026-08-11). v5 retains v4's observation-only live shield,
 mandatory small expected-error margin, object-first/tail-second aggregation, and shared safety stack across
 the Phase-1 baselines. It splits task utility into segmentation, pedestrian recall, and vehicle recall; removes
@@ -10,9 +28,10 @@ safety side. Builds on `AGENT_CONSTRAINTS.md §9`, `POLICY_KICKOFF.md`, `state_d
 > **2026-08-14 causal-audit scope.** Reward v5 is frozen for reproducing the Phase-1 surrogate, but its stateful
 > controller evaluation is not deployable evidence: the replay exposes current-frame post-tail detections and
 > GT-assisted tracks before action selection. The equations below must not be carried wholesale into Phase 2.
-> Static profile utility remains usable; the new causal design separates pre-inference placement from
-> post-inference publication and is specified in
-> `../phase2_map_sharing/PHASE2_PAIRED_CAUSAL_CORPUS_SPEC.md`.
+> Static profile utility remains usable. The current causal UE design uses a
+> fixed publish-all edge-map path and is governed by
+> `UE_AGENT_EXECUTION_CHECKLIST.md`; recipient-specific placement/publication
+> remains parked Phase 2.
 
 ## 1. Historical Phase-1 decision each control step
 `mode ∈ {SPLIT, LOCAL, SKIP}`
@@ -23,7 +42,7 @@ safety side. Builds on `AGENT_CONSTRAINTS.md §9`, `POLICY_KICKOFF.md`, `state_d
 - **FPS set (config):** `{2, 5, 10, 15, 20}`. Track A has **35 SPLIT actions + one whole-frame SKIP = 36
   actions**. All weights/margins/denominators are declared in config.
 
-## 2. State (adds to §9.1)
+## 2. Historical Phase-1 state (adds to §9.1)
 Channel-budget estimate (+confidence), object speed (+σ), front-side urgency, **per-object shared-map AoI**,
 previous action+outcome, **scheduler phase + observable in-flight summary**, **local-compute headroom**
 (available CPU/GPU / load, or ≥ measured max sustainable
@@ -70,6 +89,11 @@ operations.
   alone) or outcome-CVaR → the target tail statistic. Its conservative observable-state bound `B` forms the
   live **safety band `A_safe`** (§5); true `E_risk` supports the operating-envelope report. **Safety is a
   TAIL property, not a median.**
+
+Finite-sample latency evidence follows the percentile policy in
+`UE_AGENT_EXECUTION_CHECKLIST.md`: report sample support, p50/p90/p95 with
+uncertainty, and deadline-miss rate; never substitute an isolated maximum for
+p95 or attribute an end-to-end spike to the controller without stage timing.
 
 The sampled RL reward uses realized `G(a,s,o)`; oracle/bandit/MPC expected scoring uses `E_expected`. True
 `E_risk` and `E_risk* = min_{a∈A_m} E_risk` are evaluation quantities; the legacy observation-based shield uses the
@@ -295,8 +319,12 @@ The equations and definitions above now implement the advisor-endorsed direction
 Carry forward only the measured static utility inputs and the principle that safety is structural rather than a
 large reward weight. Rebuild the dynamic part around these requirements:
 
-1. `SPLIT_FEATURE`, `LOCAL_INFER`, and `SKIP_INFERENCE` are **pre-inference placement** actions chosen only from
-   timestamped causal state.
+1. Sensor capture/alignment is unconditional and precedes every action.
+   `SKIP_INFERENCE` is a **post-capture, pre-model sample-admission** action
+   chosen from the frozen current-sample gate representation plus prior causal
+   state. If the sample is processed, `SPLIT_FEATURE` versus `LOCAL_INFER` is a
+   separate **post-front placement** decision. Front output cannot retroactively
+   authorize genuine `SKIP_INFERENCE`.
 2. `PUBLISH_ALL`, `PUBLISH_HAZARD_SUBSET`, and `SKIP_PUBLICATION` are separate **post-inference publication**
    actions. A single `SKIP` must not represent both decisions.
 3. The Phase-2 map propagates `[x,y,vx,vy]` plus measured covariance/process noise; it must not inherit the

@@ -1,9 +1,10 @@
 # Project overview — cooperative-perception split-inference RL controller
 
-**Read this first.** It's the sequential story of how we got here, so you don't have to reverse-engineer it
-from the folder (which holds many similar experiments/runs). For terse pointers + conventions see `CLAUDE.md`;
-for the locked agent design see `rl_agent/AGENT_CONSTRAINTS.md §9`; to start the current work see
-`rl_agent/POLICY_KICKOFF.md`.
+**Read this first.** It's the sequential story of how we got here, so you don't
+have to reverse-engineer it from the folder (which holds many similar
+experiments/runs). For terse pointers + conventions see `CLAUDE.md`; for the
+historical measured design see `rl_agent/AGENT_CONSTRAINTS.md §9`; the sole
+current execution authority is `rl_agent/UE_AGENT_EXECUTION_CHECKLIST.md`.
 
 **What this is.** Abiodun's research thread (IDCC × NEU): a UE-side, **network-aware split-inference RL
 controller** for RGB+radar fusion cooperative perception. A car runs a front backbone, compresses features,
@@ -60,8 +61,12 @@ delivers 100 % at every rung.** Collapse is pure congestion (BSR pins ~48 MiB), 
 control law **`payload_budget(SNR) = capacity(SNR) / fps`**. (`channel_condition_sweep/CHANNEL_SWEEP_RESULTS.md`
 + `combined_surface.csv` + `plots/`.)
 
-**Phase 7 — NOW: policy formulation.** Build a surrogate env from the three measured tables → bandit baseline
-→ constrained RL → live validation. **Start at `rl_agent/POLICY_KICKOFF.md`.**
+**Phase 7 — NOW: causal UE-controller closure (scope reset 2026-08-19).**
+Freeze the single-UE SPLIT/LOCAL/SKIP contract, fill only the missing LOCAL
+table, build the causal table-driven surrogate, and run the simplest-controller
+ladder. RL remains conditional on a measured temporal gap. Start and mark
+progress only in `rl_agent/UE_AGENT_EXECUTION_CHECKLIST.md`. Helper-recipient
+map sharing is parked for later Phase 2.
 
 ## Dead-ends / superseded (do NOT revisit or be confused by)
 - Standalone **detection head** — dead end (F1 ~0.35). Feature-sharing + fusion is the path.
@@ -75,7 +80,9 @@ control law **`payload_budget(SNR) = capacity(SNR) / fps`**. (`channel_condition
 
 ## Navigating the folder (what matters for THIS project)
 - `PROJECT_OVERVIEW.md` (this), `CLAUDE.md` — orientation.
-- `rl_agent/` — the agent: `AGENT_CONSTRAINTS.md` (§9 locked design), `POLICY_KICKOFF.md` (start here),
+- `rl_agent/` — the agent: `UE_AGENT_EXECUTION_CHECKLIST.md` (start here),
+  `state_diagram.md` (current UE-only loop), `AGENT_CONSTRAINTS.md` (§9
+  historical measured design), `POLICY_KICKOFF.md` (measured-input background),
   `PERMODEL_KNOB_MATRIX_ZSTD.md`, `density_knob/`, `feature_ae/` (AE checkpoints).
 - `channel_condition_sweep/` — the transport surface: `CHANNEL_SWEEP_RESULTS.md`, `combined_surface.csv`,
   `plots/`, `CHANNEL_SWEEP_PLAN.md` (guardrails).

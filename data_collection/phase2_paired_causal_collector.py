@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -31,6 +32,30 @@ _RUNTIME: Optional[Phase2CaptureRuntime] = None
 _PHASE2_ARGS: Optional[argparse.Namespace] = None
 _CONTRACT_CONFIG: Optional[Mapping[str, object]] = None
 _RETENTION_CONFIG: Optional[Mapping[str, object]] = None
+
+
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for block in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def _capture_checkpoint_identity(manifest: Mapping[str, object]) -> dict[str, str]:
+    """Resolve and authenticate the exact model bytes used by this collector."""
+
+    raw_path = str(manifest.get("checkpoint_path", "")).strip()
+    if not raw_path:
+        raise RuntimeError("collector manifest is missing checkpoint_path")
+    checkpoint_path = Path(raw_path).expanduser().resolve()
+    if not checkpoint_path.is_file():
+        raise RuntimeError(f"collector checkpoint is not a file: {checkpoint_path}")
+    return {
+        "checkpoint_path_at_capture": str(checkpoint_path),
+        "checkpoint_sha256": _sha256_file(checkpoint_path),
+        "checkpoint_identity_basis": "capture_time_file_bytes",
+    }
 
 
 def _parse_phase2_args(argv: Sequence[str]) -> tuple[argparse.Namespace, list[str]]:
@@ -61,6 +86,11 @@ def _parse_phase2_args(argv: Sequence[str]) -> tuple[argparse.Namespace, list[st
     parser.add_argument("--phase2-start-timeout-s", type=float, default=180.0)
     parser.add_argument("--phase2-retention-start-offset-s", type=float, default=0.0)
     parser.add_argument("--phase2-retention-frame-count", type=int)
+    parser.add_argument(
+        "--phase2-retention-tier",
+        choices=("inputs_only_window", "inputs_plus_logits_window"),
+        default="inputs_plus_logits_window",
+    )
     parser.add_argument("--phase2-tracker-association-gate-m", type=float, default=5.0)
     parser.add_argument("--phase2-tracker-maximum-missed-frames", type=int, default=3)
     parsed, remaining = parser.parse_known_args(list(argv))
@@ -223,11 +253,14 @@ def install_phase2_hooks() -> None:
                     phase2.phase2_retention_start_offset_s
                 ),
                 retention_frame_count=phase2.phase2_retention_frame_count,
+                retention_tier=str(phase2.phase2_retention_tier),
             ),
             _RETENTION_CONFIG or _CONTRACT_CONFIG["raw_retention"],
         )
         manifest_path = Path(logger.manifest_path)
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        checkpoint_identity = _capture_checkpoint_identity(manifest)
+        manifest.update(checkpoint_identity)
         manifest["phase2_paired_causal"] = {
             "schema": "scenesense.phase2_causal_capture_runtime.v1",
             "trajectory_id": str(phase2.phase2_trajectory_id),
@@ -237,9 +270,11 @@ def install_phase2_hooks() -> None:
             "motion_owner": str(phase2.phase2_motion_owner),
             "geometry_id": str(phase2.phase2_geometry_id),
             "warnings_actuated": False,
+            "retention_tier": str(phase2.phase2_retention_tier),
             "ground_truth_namespace": "evaluation_truth",
             "runtime_namespace": "runtime",
             "shadow_namespace": "evaluation_shadow",
+            **checkpoint_identity,
         }
         if isinstance(manifest.get("output_files"), dict):
             manifest["output_files"]["object_ground_truth_csv"] = str(

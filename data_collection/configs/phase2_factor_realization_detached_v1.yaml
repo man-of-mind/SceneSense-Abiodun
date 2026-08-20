@@ -1,0 +1,95 @@
+schema_version: scenesense.phase2_factor_realization_detached_launch.v1
+stage_id: phase2_factor_realization_smoke_v1
+implementation_status: exact_16_runtime_adapters_ready_manual_corner_acceptance_required_no_launch_authority
+base_audit_config: data_collection/configs/phase2_calibration_audit_v1.yaml
+base_audit_config_sha256: 1b8796819fa9a68d6a7dab9d311d481f854c212b53736898081956c878f08954
+factor_smoke_config: data_collection/configs/phase2_factor_realization_smoke_v1.yaml
+factor_smoke_config_sha256: 27c72cab9b95b56a0075874be14b1a85bc97448e017b0144122b65c9ed4dc52b
+factor_smoke_contract: phase2_map_sharing/FACTOR_REALIZATION_SMOKE_V1.md
+factor_smoke_contract_sha256: b19cdb3026573531c4a353f6aed697f357c441c9da468538e83185064d742480
+expected_factor_plan_sha256: 3e3a8e003a2a02f8c60508a606b8919b45d592f3e2697f2b086290354b416e4e
+base_runner: data_collection/run_phase2_calibration_audit.py
+base_runner_sha256: 57d9e688f906587e42616cc3d0e540339198d54f02eea433159b13fec7460bde
+factor_validator: data_collection/validate_phase2_factor_realization_smoke.py
+factor_validator_sha256: d6ca019452811b25c4f0c4dd353bca7a980a291ceca2f09876c42165f9f6fe0e
+factor_postflight: phase2_map_sharing/factor_smoke_postflight.py
+factor_postflight_sha256: c6d2798c7146d62ea37b189a83f8b789c76d74c7d040d45e4022309638c38fb6
+geometry_reviewer: data_collection/review_phase2_pair_geometry.py
+geometry_reviewer_sha256: cff87f1c85d22433327136e3f5eb3bf2cad2141bd1ce585f70bcb86ae7fe7b8a
+source_tree_fingerprint:
+  schema: scenesense.phase2_factor_relevant_source_tree.v1
+  roots: [data_collection, phase2_map_sharing]
+  include_suffixes: [.py, .yaml, .yml]
+  excluded_directory_names: [__pycache__, experiments, geometry_reviews]
+output_root: data_collection/experiments/phase2_factor_realization_smoke_v1
+manual_detached_launch_only: true
+
+authorization:
+  carla_launch_after_corner_acceptance: true
+  oai_launch: false
+  old_15_trajectory_audit_chain: false
+  additional_calibration: false
+  validation_collection: false
+  test_collection: false
+  controller_evaluation: false
+  rl_training: false
+
+exact_batch:
+  trajectory_count: 16
+  group_count: 8
+  positive_corner_count: 8
+  atomic_all_or_none: true
+  partial_admission: false
+  expected_world_minutes: 46.4
+  raw_capture_subdirectory: raw_capture
+  result_bundle_name: factor_smoke_results.json
+  raw_validation_name: factor_smoke_validation.json
+  atomic_validation_name: factor_smoke_validation.json
+
+manual_corner_review:
+  required_before_launch: true
+  scope: all_8_positive_geometry_by_closing_by_proximity_horizon_cells
+  automated_physical_preflight:
+    required_cells: all_8_positive_cells
+    execution_scope: geometry_only_no_sensors_no_detector_no_c2_endpoint_no_oai
+    implementation: exact_factor_runtime_monitor_inside_geometry_reviewer
+    pass_requires: every_cell_realizes_declared_closing_horizon_and_surface_clearance_gate
+    partial_pass_authorized: false
+  retention_window_preflight:
+    retained_frame_count: 40
+    sample_period_s: 0.1
+    configured_pre_authored_onset_s: 0.9
+    postflight_minimum_post_realized_onset_s: 2.8
+    prelaunch_minimum_post_realized_onset_s: 2.9
+    prelaunch_margin_over_postflight_s: 0.1
+    first_sample_basis: first_10hz_sensor_sample_on_or_after_configured_offset_and_after_capture_boundary
+    authored_onset_policy_visibility: forbidden_evaluation_only
+  output_root: /tmp/phase2_factor_realization_corner_review_v1
+  archive_root: phase2_map_sharing/geometry_reviews/factor_realization_corner_v1
+  acceptance_record: phase2_map_sharing/geometry_reviews/phase2_factor_realization_corner_acceptance_v1.json
+  acceptance_schema: scenesense.phase2_factor_realization_corner_acceptance.v1
+  operator_must_explicitly_confirm: true
+  reviewer_module: data_collection.review_phase2_pair_geometry
+  duration_s: 12.0
+  layout_by_geometry:
+    curbside_bus_occluded_pedestrian: curbside_opposite
+    occluded_cross_traffic_vehicle: cross_traffic_vehicle
+  required_human_checks:
+    - epic_server_quality_confirmed
+    - all_8_positive_factor_cells_viewed_from_helper_and_recipient
+    - low_and_high_ego_motion_visibly_distinct_and_physically_plausible
+    - short_and_long_proximity_horizon_conditions_visibly_distinct_and_physically_plausible
+    - occluder_and_target_geometry_remain_plausible_in_every_cell
+    - no_overlap_collision_floating_actor_uturn_or_other_visual_weirdness
+    - helper_recipient_and_hazard_follow_the_intended_legal_routes
+
+runtime_completion:
+  generic_audit_completed_is_raw_capture_only: true
+  stage_completed_requires_atomic_result_validation_pass: true
+  required_atomic_validator_verdict: PASS_ATOMIC_EXACT_16_ADMITTED
+  stage_failure_retains_excluded_fixture: true
+  progress_jsonl_required: true
+  results_summary_required_on_success_and_failure: true
+  completion_sentinel: COMPLETED.json
+  failure_sentinel: FAILED.json
+  no_downstream_chaining: true

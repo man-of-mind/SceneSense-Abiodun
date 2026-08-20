@@ -350,12 +350,22 @@ def build_manifest(config: Mapping[str, object]) -> pd.DataFrame:
                     "must_be_frozen"
                 ),
                 "metric_definitions": {
-                    "false_recipient_install_rate": {
+                    "protocol_false_recipient_install_rate": {
                         "numerator": (
-                            "recipient_installs_without_registered_source_target_"
-                            "correspondence"
+                            "recipient_installs_without_valid_source_observation_"
+                            "and_source_track_provenance_correspondence"
                         ),
                         "denominator": "all_recipient_install_attempts",
+                    },
+                    "truth_unmatched_recipient_install_rate": {
+                        "numerator": (
+                            "recipient_installs_not_matched_to_any_evaluation_"
+                            "truth_object"
+                        ),
+                        "denominator": "all_recipient_installs",
+                        "role": (
+                            "report_only_evaluation_diagnostic_not_structural_failure"
+                        ),
                     },
                     "duplicate_recipient_install_rate": {
                         "numerator": (
@@ -382,7 +392,7 @@ def build_manifest(config: Mapping[str, object]) -> pd.DataFrame:
                     },
                 },
                 "structural_integrity_gates": [
-                    "every_install_has_unique_contribution_source_and_recipient_track_ids",
+                    "every_install_has_valid_contribution_object_source_and_recipient_track_provenance",
                     "publish_install_available_timestamps_are_monotone_on_one_clock",
                     "every_metric_event_is_recomputable_from_immutable_provenance",
                     "zero_missing_denominators_or_untyped_zero_exposure_cases",

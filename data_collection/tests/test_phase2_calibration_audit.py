@@ -16,7 +16,10 @@ from data_collection.phase2_causal_runtime import (
     Phase2CaptureRuntime,
     Phase2RuntimeConfig,
 )
-from data_collection.phase2_paired_causal_collector import _load_retention_config
+from data_collection.phase2_paired_causal_collector import (
+    _capture_checkpoint_identity,
+    _load_retention_config,
+)
 from data_collection.phase2_calibration_scenario import (
     CalibrationScenarioRuntime,
     ResolvedScenario,
@@ -34,6 +37,7 @@ from data_collection.run_phase2_calibration_audit import (
     _role_metrics_csv,
     _scenario_owned_nontreatment_signature,
     _select_trajectory_ids,
+    _stage_heavy_bytes,
     _traffic_monitor_integration,
     _validate_replay_grid,
     _validate_population_ready_manifest,
@@ -1572,6 +1576,41 @@ class Phase2CalibrationAuditTests(unittest.TestCase):
             metrics.parent.mkdir(parents=True)
             metrics.write_text("frame_id\n1\n", encoding="utf-8")
             self.assertEqual(metrics, _role_metrics_csv(role_dir))
+
+    def test_capture_manifest_authenticates_checkpoint_bytes(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            checkpoint = Path(temporary) / "best.pt"
+            checkpoint.write_bytes(b"frozen-model-bytes")
+            identity = _capture_checkpoint_identity(
+                {"checkpoint_path": str(checkpoint)}
+            )
+            self.assertEqual(str(checkpoint.resolve()), identity["checkpoint_path_at_capture"])
+            self.assertEqual(
+                "55d15cd099ef5a181b4634f2dc808491963a428a9c0e7119024ae21aea15c663",
+                identity["checkpoint_sha256"],
+            )
+            self.assertEqual(
+                "capture_time_file_bytes", identity["checkpoint_identity_basis"]
+            )
+
+    def test_capture_manifest_rejects_missing_checkpoint(self) -> None:
+        with self.assertRaisesRegex(RuntimeError, "checkpoint is not a file"):
+            _capture_checkpoint_identity({"checkpoint_path": "/missing/factor.pt"})
+
+    def test_stage_heavy_bytes_counts_retained_inputs_and_logits(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            inputs = root / "trajectory/helper/retained_inputs/frame_1_inputs.npz"
+            logits = root / "trajectory/helper/retained_logits/frame_1_logits.npz"
+            unrelated = root / "trajectory/helper/runtime/metrics.npz"
+            for path, payload in (
+                (inputs, b"input"),
+                (logits, b"logits"),
+                (unrelated, b"not-heavy-retention"),
+            ):
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(payload)
+            self.assertEqual(len(b"input") + len(b"logits"), _stage_heavy_bytes(root))
 
     def test_live_verifier_uses_causal_writer_hash_contract(self) -> None:
         decision = DecisionRecord(
