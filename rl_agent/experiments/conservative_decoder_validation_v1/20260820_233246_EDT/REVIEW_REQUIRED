@@ -1,0 +1,13 @@
+{
+  "conclusion": "RETRAINING_PILOT_JUSTIFIED",
+  "deployment_approved": false,
+  "production_edits_made": false,
+  "required_review": [
+    "Review frozen split/provenance hashes and paired evidence.",
+    "Review all normal profiles, not only pooled values.",
+    "If promotion is authorized later, regenerate every affected detection/localization catalog row."
+  ],
+  "selected_global_decoder_setting": null,
+  "status": "REVIEW_REQUIRED",
+  "training_started": false
+}

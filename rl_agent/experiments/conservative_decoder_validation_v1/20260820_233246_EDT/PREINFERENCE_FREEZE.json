@@ -1,0 +1,48 @@
+{
+  "disjointness_proven": true,
+  "frozen_at_utc": "2026-08-21T03:40:13.669920+00:00",
+  "frozen_files": [
+    {
+      "path": "PLAN.md",
+      "sha256": "31398c9e70d99b73ef5b66196de11e8b652061a69921a05e39a760ec7f5a637c",
+      "size_bytes": 4549
+    },
+    {
+      "path": "resolved_config.json",
+      "sha256": "c51e48067403c0867c28849e36a14dbe840fdbcd6a912e94120fc2bcfce147ce",
+      "size_bytes": 5516
+    },
+    {
+      "path": "split_integrity.json",
+      "sha256": "2b82a44623a6cffbacacac8a8cc79513610c14002cc61aaf7217ee77fd68d49a",
+      "size_bytes": 2170
+    },
+    {
+      "path": "input_hash_manifest.json",
+      "sha256": "4e3c96ec7ab553e84ee688d6bafd3157bd89b22cdd38905b580f73ab3f92b527",
+      "size_bytes": 12444
+    },
+    {
+      "path": "environment_provenance.json",
+      "sha256": "516a78fa178cb56b8c4c64f017a35f4838e94206bffb7511180ee25562014770",
+      "size_bytes": 767
+    },
+    {
+      "path": "split_identifiers/train.txt",
+      "sha256": "c39d280d16c81cb4fafeeffe4805137d5d12498aab5a3f16476bf207d5d84b27",
+      "size_bytes": 663124
+    },
+    {
+      "path": "split_identifiers/val.txt",
+      "sha256": "91204710264ec63f53e4cdbae3cec8e9526c7f99bb329c4817346de281b1ba9c",
+      "size_bytes": 128257
+    },
+    {
+      "path": "split_identifiers/test.txt",
+      "sha256": "f1cbf0aceab3359f4f38da933069b462ec2bf34e43bbff44b66d4057ab5f7432",
+      "size_bytes": 131390
+    }
+  ],
+  "status": "FROZEN_BEFORE_INFERENCE",
+  "validation_identifiers": 2110
+}

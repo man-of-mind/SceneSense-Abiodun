@@ -1,0 +1,25 @@
+{
+  "analyzed_at_utc": "2026-08-21T03:52:12.068212+00:00",
+  "candidates": {
+    "world_suppression_1m": {
+      "all_normal_profile_floors_pass": false,
+      "eligible": false,
+      "material_paired_improvement_pass": true
+    },
+    "world_suppression_2m": {
+      "all_normal_profile_floors_pass": false,
+      "eligible": false,
+      "material_paired_improvement_pass": true
+    }
+  },
+  "selected_candidate": null,
+  "selection_rule_result": "no_conservative_candidate_eligible",
+  "split": "val",
+  "validation_evidence_hashes": {
+    "decision_checks_val.csv": "dab5b4497a9ca92672bfef33bb35f7a213426174353f15d344138d6ca61d9bdb",
+    "latency_summary_val.csv": "1db0a9a5dda5c528ab7e9a7b8ad4d2fdee3afffb5884fb67000444eca143d99c",
+    "paired_bootstrap_val.csv": "35d0dad67145d404fcbe155c5fd78f87adc72e47f63ad5a37411a0dc18639bf4",
+    "paired_per_frame_val.csv.gz": "f9e5738db91af7dbd3c4d637a5416829839d7655559e0ebe85bf3042d9809227",
+    "per_profile_class_metrics_val.csv": "4e0a435e5cc35fe398ef4acff21fdc351d8190596a8359506c9f7941226c0401"
+  }
+}

@@ -1,0 +1,76 @@
+{
+  "all_checkpoint_split_files_exact_order_match": {
+    "ae128": {
+      "test": true,
+      "train": true,
+      "val": true
+    },
+    "ae32": {
+      "test": true,
+      "train": true,
+      "val": true
+    },
+    "ae64": {
+      "test": true,
+      "train": true,
+      "val": true
+    },
+    "noae": {
+      "test": true,
+      "train": true,
+      "val": true
+    }
+  },
+  "asset_columns_checked": [
+    "rgb_path",
+    "mask_path",
+    "radar_tensor_path",
+    "radar_points_path"
+  ],
+  "asset_references_checked": 60732,
+  "dataset": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/fusion_training_data/moving_ego_pps200000_merged_8loops_stride2",
+  "disjointness_proven": true,
+  "expected_counts": {
+    "test": 2162,
+    "train": 10911,
+    "val": 2110
+  },
+  "frozen_identifier_files": {
+    "test": {
+      "count": 2162,
+      "first_identifier": "moving_ego_pps200000_low_8loops_stride2_000002_frame82048",
+      "last_identifier": "moving_ego_pps200000_crowded_8loops_stride2_005146_frame112486",
+      "sha256": "f1cbf0aceab3359f4f38da933069b462ec2bf34e43bbff44b66d4057ab5f7432"
+    },
+    "train": {
+      "count": 10911,
+      "first_identifier": "moving_ego_pps200000_low_8loops_stride2_000000_frame82044",
+      "last_identifier": "moving_ego_pps200000_crowded_8loops_stride2_005145_frame112484",
+      "sha256": "c39d280d16c81cb4fafeeffe4805137d5d12498aab5a3f16476bf207d5d84b27"
+    },
+    "val": {
+      "count": 2110,
+      "first_identifier": "moving_ego_pps200000_low_8loops_stride2_000009_frame82062",
+      "last_identifier": "moving_ego_pps200000_crowded_8loops_stride2_005143_frame112480",
+      "sha256": "91204710264ec63f53e4cdbae3cec8e9526c7f99bb329c4817346de281b1ba9c"
+    }
+  },
+  "manifest_unique_identifier_count": 15183,
+  "missing_asset_references": 0,
+  "pairwise_overlap_counts": {
+    "train_test": 0,
+    "train_val": 0,
+    "val_test": 0
+  },
+  "pairwise_overlap_identifiers": {
+    "train_test": [],
+    "train_val": [],
+    "val_test": []
+  },
+  "split_counts": {
+    "test": 2162,
+    "train": 10911,
+    "val": 2110
+  },
+  "validation_identifier_count_proven": true
+}
