@@ -1,7 +1,7 @@
 # UE-Side SceneSense Agent Workspace
 
-> **Current authority (2026-08-19):**
-> `UE_AGENT_EXECUTION_CHECKLIST.md`. The status and implementation order below
+> **Current authority (2026-08-20):**
+> `UE_AGENT_EXECUTION_CHECKLIST_V2.md`. The status and implementation order below
 > are a stale 2026-07 snapshot and must not override that checklist.
 
 Status: **action/model characterization complete; controller harness not yet

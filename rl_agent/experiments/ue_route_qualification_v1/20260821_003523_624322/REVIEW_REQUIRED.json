@@ -1,0 +1,6 @@
+{
+  "created_at": "2026-08-21T00:38:39.720692+00:00",
+  "machine_review": "ROUTE_MACHINE_REVIEW.json",
+  "schema": "scenesense.ue_route_terminal.v1",
+  "status": "REVIEW_REQUIRED"
+}

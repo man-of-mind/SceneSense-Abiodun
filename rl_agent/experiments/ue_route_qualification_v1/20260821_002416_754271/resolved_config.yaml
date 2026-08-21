@@ -1,0 +1,124 @@
+{
+  "schema": "scenesense.ue_route_qualification_config.v1",
+  "experiment_id": "ue_route_qualification_v1",
+  "carla": {
+    "host": "127.0.0.1",
+    "port": 2000,
+    "timeout_s": 10.0,
+    "map": "Town10HD_Opt",
+    "reload_world_at_start": true
+  },
+  "scene": {
+    "contract": "ego_only",
+    "allowed_spawned_actor_types": [
+      "vehicle.tesla.model3",
+      "sensor.other.collision"
+    ],
+    "forbid_preexisting_vehicles_walkers_and_sensors": true,
+    "traffic_manager_enabled": false,
+    "traffic_manager_seed_reserved_for_later_scene_stage": 31,
+    "rgb_enabled": false,
+    "radar_enabled": false,
+    "model_enabled": false,
+    "oai_enabled": false,
+    "map_stream_enabled": false
+  },
+  "route": {
+    "route_id": "town10hd_opt_safe_perimeter_loop_v3",
+    "route_json": "data_collection/routes/town10hd_opt_advisor_safe_perimeter_loop_v3.json",
+    "route_json_sha256": "0d3cceeb30d603e258cc61c00bb51e8d0ca29c176e7fccb38ec1e10692233860",
+    "progress_csv": "data_collection/routes/town10hd_opt_advisor_safe_perimeter_loop_v3.progress.csv",
+    "progress_csv_sha256": "f3dc2f4d8c59905801fdfad2df7a19f2b427459d4039ed3a8cdec3535e818ce1",
+    "expected_point_count": 85,
+    "expected_open_length_m": 330.775,
+    "expected_closing_seam_m": 7.248,
+    "expected_closed_length_m": 338.023,
+    "length_tolerance_m": 0.002,
+    "spawn_index": 55,
+    "expected_spawn": {
+      "x_m": -3.973867654800415,
+      "y_m": 28.104215621948242,
+      "z_m": 0.5999999642372131,
+      "yaw_deg": 0.15919800102710724,
+      "position_tolerance_m": 0.25,
+      "heading_tolerance_deg": 1.0
+    },
+    "ego_blueprint": "vehicle.tesla.model3",
+    "ego_role_name": "ue_route_qualification_ego",
+    "target_speed_mps": 6.0,
+    "controller": {
+      "name": "closed_direct_route_v1",
+      "waypoint_reach_m": 4.0,
+      "lookahead_points": 1,
+      "turn_minimum_speed_scale": 0.35,
+      "throttle_gain": 0.30,
+      "throttle_max": 0.75,
+      "brake_gain": 0.35,
+      "brake_max": 0.65,
+      "steer_full_scale_deg": 45.0,
+      "steer_max_abs": 0.70
+    },
+    "lap_detector": {
+      "start_gate_x_m": -3.973867654800415,
+      "start_gate_y_m": 28.104215621948242,
+      "expected_return_heading_deg": 0.15919800102710724,
+      "gate_exit_radius_m": 15.0,
+      "completion_radius_m": 4.0,
+      "completion_heading_tolerance_deg": 15.0,
+      "minimum_ordered_progress_ratio_to_arm": 0.95,
+      "required_wrap_count": 1
+    }
+  },
+  "clock": {
+    "synchronous_mode": true,
+    "control_hz": 20.0,
+    "fixed_delta_seconds": 0.05,
+    "real_time_pacing_enabled": true,
+    "real_time_tick_period_s": 0.05,
+    "future_decision_slot_hz": 10.0,
+    "world_tick_timeout_s": 2.0,
+    "collision_flush_ticks": 1,
+    "collision_flush_settle_s": 0.02
+  },
+  "trials": {
+    "count": 3,
+    "warmup_ticks": 4,
+    "maximum_duration_s": 120.0
+  },
+  "acceptance": {
+    "maximum_collision_count": 0,
+    "maximum_cross_track_p95_m": 1.5,
+    "divergence_cross_track_threshold_m": 2.0,
+    "maximum_continuous_divergence_s": 0.5,
+    "maximum_cross_track_error_m": 3.0,
+    "maximum_tick_displacement_m": 2.0,
+    "stall_grace_s": 3.0,
+    "stall_speed_threshold_mps": 0.5,
+    "maximum_continuous_stall_s": 5.0,
+    "minimum_unwrapped_progress_ratio": 0.95,
+    "maximum_unwrapped_progress_ratio": 1.10,
+    "maximum_duration_spread_fraction_of_median": 0.05,
+    "maximum_control_rate_error_hz": 0.1,
+    "maximum_sim_delta_error_s": 0.0001,
+    "require_owned_actor_cleanup": true
+  },
+  "spectator": {
+    "enabled": true,
+    "behind_m": 10.0,
+    "above_m": 5.0,
+    "pitch_deg": -15.0
+  },
+  "manual_review": {
+    "required_reviewer": "Abiodun",
+    "required_checks": [
+      "spawn_lane_heading_and_no_physics_jump",
+      "expected_perimeter_and_all_intended_turns",
+      "no_curb_sidewalk_wrong_lane_corner_cut_oscillation_reverse_or_u_turn",
+      "stable_steering_acceleration_braking_and_turn_speed",
+      "smooth_final_to_first_seam_without_teleport_or_abrupt_correction",
+      "full_route_completed_before_return_counted",
+      "trials_two_and_three_materially_match_trial_one",
+      "previous_ego_and_collision_sensor_absent_before_next_trial"
+    ]
+  }
+}

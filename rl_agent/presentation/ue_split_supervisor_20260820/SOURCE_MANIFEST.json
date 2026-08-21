@@ -1,0 +1,134 @@
+{
+  "classification_expected": "Non-Public",
+  "created_date": "2026-08-20",
+  "deck": "rl_agent/presentation/ue_split_supervisor_20260820/SceneSense_UE_Split_Baseline_Supervisor_2026-08-20.pptx",
+  "deck_sha256": "752d098cdec8644fec2d80c25c51f2ccf3686f8b99998f9ca363d7f0421832c9",
+  "editable_content_contract": {
+    "native_chart": true,
+    "native_shapes": true,
+    "native_tables": true,
+    "native_text": true,
+    "slide_bitmaps": false
+  },
+  "measurement_authority": false,
+  "profiles": {
+    "balanced": {
+      "label": "AE64 / u4 / q0.5",
+      "miou": 0.70245846,
+      "offer_mbps": 5.451608,
+      "p95_kib": 66.478,
+      "pedestrian_recall": 0.87071978,
+      "pedestrian_xy": 1.13720897,
+      "profile_id": "ae64__u4__q0.5__zstd3__ckptc6a2362c7c2d",
+      "role": "Balanced normal",
+      "vehicle_recall": 0.91815235,
+      "vehicle_xy": 0.82256806
+    },
+    "compact": {
+      "label": "AE32 / u4 / q0.5",
+      "miou": 0.6561885,
+      "offer_mbps": 4.252828,
+      "p95_kib": 51.879,
+      "pedestrian_recall": 0.85185185,
+      "pedestrian_xy": 1.12986442,
+      "profile_id": "ae32__u4__q0.5__zstd3__ckpt10cebbeede4d",
+      "role": "Compact normal",
+      "vehicle_recall": 0.92017828,
+      "vehicle_xy": 0.82632325
+    },
+    "quality": {
+      "label": "AE128 / u4 / q0.3",
+      "miou": 0.68418689,
+      "offer_mbps": 8.304636,
+      "p95_kib": 101.305,
+      "pedestrian_recall": 0.88609364,
+      "pedestrian_xy": 1.07568942,
+      "profile_id": "ae128__u4__q0.3__zstd3__ckpt601984b96d85",
+      "role": "Quality normal",
+      "vehicle_recall": 0.92423015,
+      "vehicle_xy": 0.7762052
+    },
+    "rescue": {
+      "label": "AE32 / u4 / q0.9",
+      "miou": 0.42404755,
+      "offer_mbps": 1.625068,
+      "p95_kib": 19.802,
+      "pedestrian_recall": 0.84136967,
+      "pedestrian_xy": 1.14147248,
+      "profile_id": "ae32__u4__q0.9__zstd3__ckpt10cebbeede4d",
+      "role": "Degraded rescue",
+      "vehicle_recall": 0.92058347,
+      "vehicle_xy": 0.84297591
+    }
+  },
+  "schema": "scenesense.ue_split_supervisor_deck.v1",
+  "slide_count": 7,
+  "slides": [
+    {
+      "evidence_status": "PLAN",
+      "number": 1,
+      "source": "Supervisor plan",
+      "title": "UE Split-Inference Baseline"
+    },
+    {
+      "evidence_status": "PLAN",
+      "number": 2,
+      "source": "Source: UE_SPLIT_ONLY_SUPERVISOR_DELIVERABLE.md \u00a7\u00a71\u20132",
+      "title": "Start with the smallest question the UE agent must answer"
+    },
+    {
+      "evidence_status": "OFFLINE",
+      "number": 3,
+      "source": "Source: candidate catalog; 2,162-frame offline evaluation; baseline decoder",
+      "title": "Three normal profiles plus one explicit rescue span the trade-off"
+    },
+    {
+      "evidence_status": "HISTORICAL",
+      "number": 4,
+      "source": "Source: historical OAI four-regime sweep + composed 10-Hz planning sheet",
+      "title": "The current regimes may not force profile switching"
+    },
+    {
+      "evidence_status": "PROJECTED",
+      "number": 5,
+      "source": "Source: UE_SPLIT_ONLY_SUPERVISOR_COMBINATIONS_V1.csv",
+      "title": "Define 16 logical cells; directly measure only two before expanding"
+    },
+    {
+      "evidence_status": "PLANNED",
+      "number": 6,
+      "source": "Source: supervisor plan \u00a7\u00a75\u20137; full technical contract in UE_SPLIT_ONLY_EXPERIMENT_PLAN.md",
+      "title": "Fixed 10-Hz replay links processing, delivery, and freshness"
+    },
+    {
+      "evidence_status": "PLAN",
+      "number": 7,
+      "source": "Source: supervisor plan \u00a7\u00a78\u201310",
+      "title": "The baseline tells us whether learning is necessary"
+    }
+  ],
+  "sources": {
+    "rl_agent/UE_SPLIT_ONLY_SUPERVISOR_COMBINATIONS_V1.csv": {
+      "bytes": 4381,
+      "sha256": "b9866f817b11fd54e8ce4b89c18681215115ca0b072c50babec4a9096a2b3f84"
+    },
+    "rl_agent/UE_SPLIT_ONLY_SUPERVISOR_DELIVERABLE.md": {
+      "bytes": 14059,
+      "sha256": "03f3779f03bb9930b7b1f9f89aa705f50a337fd6981262b1850e9763cf22b364"
+    },
+    "rl_agent/experiments/model_precision_decoder_audit_v1/20260819_210004/REPORT.md": {
+      "bytes": 10648,
+      "sha256": "6dd5dcf7add08dae7bde013d61a2f4245ce67cfeaf76ddb0b05074a1a04e5367"
+    },
+    "rl_agent/experiments/ue_split_catalog_proposal_v1/20260820_042414_candidate/ue_split_candidate_catalog.csv": {
+      "bytes": 38205,
+      "sha256": "3048f383ea3e71092cae094abea1823c716d490b8478e26a5197190c04778f97"
+    },
+    "rl_agent/presentation/agent_progress_20260819/interdigital_template.pptx": {
+      "bytes": 2473401,
+      "sha256": "a599238d82e54f5267c34628704153f115a115a4e86a0074a25983d01a2f57ba"
+    }
+  },
+  "template": "rl_agent/presentation/agent_progress_20260819/interdigital_template.pptx",
+  "template_sha256": "a599238d82e54f5267c34628704153f115a115a4e86a0074a25983d01a2f57ba"
+}

@@ -1,0 +1,28 @@
+{
+  "artifact_contract": {
+    "create_only": true,
+    "machine_failure_terminal": "FAILED.json",
+    "machine_pass_name_forbidden": true,
+    "machine_success_terminal": "REVIEW_REQUIRED.json"
+  },
+  "config_path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/configs/ue_route_qualification_v1.json",
+  "created_at": "2026-08-21T00:35:23.624450+00:00",
+  "experiment_id": "ue_route_qualification_v1",
+  "resolved_contract": {
+    "closed_route_length_m": 338.0232545712883,
+    "closing_seam_m": 7.247940978987757,
+    "config_path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/configs/ue_route_qualification_v1.json",
+    "config_sha256": "bdbff03993e753f752042ba8e94944f81394977a054367593c5cfbac29653f21",
+    "ideal_duration_at_target_speed_s": 56.33720909521472,
+    "map": "Town10HD_Opt",
+    "map_asset": "Carla/Maps/Town10HD_Opt",
+    "open_route_length_m": 330.77531359230056,
+    "progress_csv_path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/data_collection/routes/town10hd_opt_advisor_safe_perimeter_loop_v3.progress.csv",
+    "progress_csv_sha256": "f3dc2f4d8c59905801fdfad2df7a19f2b427459d4039ed3a8cdec3535e818ce1",
+    "route_json_path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/data_collection/routes/town10hd_opt_advisor_safe_perimeter_loop_v3.json",
+    "route_json_sha256": "0d3cceeb30d603e258cc61c00bb51e8d0ca29c176e7fccb38ec1e10692233860",
+    "route_point_count": 85,
+    "trial_count": 3
+  },
+  "schema": "scenesense.ue_route_qualification_manifest.v1"
+}

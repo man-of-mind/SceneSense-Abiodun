@@ -1,0 +1,3 @@
+experiment_id,trial_id,event_id,event_type,frame_id,sim_time_s,route_index,unwrapped_progress_m,status,details
+ue_route_qualification_v1,trial_01,1,RUNTIME_ERROR,,,,0.0,FAIL,"{""error"": ""RuntimeError: std::exception""}"
+ue_route_qualification_v1,trial_01,2,CLEANUP,,,,0.0,INFO,"{""cleanup_tick_error"": null, ""owned_actor_ids"": [], ""pass"": true, ""remaining_owned_actors"": []}"

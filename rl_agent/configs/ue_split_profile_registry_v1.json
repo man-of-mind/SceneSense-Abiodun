@@ -1,0 +1,164 @@
+{
+  "schema": "scenesense.ue_split_profile_registry_config.v1",
+  "registry_id": "ue_split_profile_registry_v1",
+  "repository_root": "../..",
+  "authority": {
+    "static_checkpoint_inspection": true,
+    "model_inference": false,
+    "carla_run": false,
+    "oai_run": false,
+    "profile_quality_filter": false,
+    "wire_smoke": false,
+    "policy_training": false
+  },
+  "source_evidence": {
+    "path": "rl_agent/experiments/ue_split_stage_a_v1/20260820_024055_review/ue_split_evidence_pool.csv",
+    "sha256": "af0edeb53942c8b2402ab3897dfd814530ec63c65dd5129db6e2736d33f86b2c",
+    "expected_rows": 72,
+    "evidence_pool_version": "ue_split_pool_v1",
+    "profile_evaluator_path": "rl_agent/density_knob/density_knob_eval.py",
+    "profile_evaluator_sha256": "4b8fae9ef69c7a15208bd4f3006e39c1573b78aa0af9ad1e824f8fc8d00e7555"
+  },
+  "service_contract": {
+    "id": "OBJECT_MAP_V1",
+    "aligned_input_schema_id": "rgb3_radar4_768x432.v1",
+    "feature_schema_id": "multimodal_lraspp_low_high.v1",
+    "map_output_schema_id": "fusion_object_spatial_map.v1",
+    "feature_levels": [
+      "low",
+      "high"
+    ],
+    "native_feature_shapes": {
+      "low": [1, 40, 54, 96],
+      "high": [1, 960, 27, 48]
+    },
+    "segmentation_classes": [
+      "background",
+      "vehicle",
+      "person"
+    ],
+    "object_classes": [
+      "vehicle",
+      "person"
+    ],
+    "radar_channels": 4,
+    "input_width": 768,
+    "input_height": 432,
+    "object_channels": 14
+  },
+  "decoder_contract": {
+    "object_score_threshold": 0.2,
+    "object_nms_radius_px": 2,
+    "topk_objects": 120,
+    "max_objects_published": 120,
+    "source_eval_settings_path": "rl_agent/density_knob/raw/eval_settings.json",
+    "source_eval_settings_sha256": "e3ab8fec02378aeee646adb8b626c8d8c68f2bff84a7e98839502f1e5721d4fb",
+    "live_defaults_match_registered_evidence": false,
+    "launch_override_required": true
+  },
+  "factor_contract": {
+    "models": {
+      "noae": {
+        "ae_bottleneck_channels": 0,
+        "checkpoint_path": "experiments/ae_integrated_20260710/noae_baseline/checkpoints/mprime_joint_noae/best.pt",
+        "checkpoint_sha256": "f319e2a5e8fb134e74c24c0822233e17368df6e4c733add658026603e131d4fa",
+        "trial_summary_path": "experiments/ae_integrated_20260710/noae_baseline/checkpoints/mprime_joint_noae/trial_summary.json",
+        "trial_summary_sha256": "fb534a3d8dcf16a250c1a6cdedb492bcd848206aff93d1270762dfa1bf447b17"
+      },
+      "ae32": {
+        "ae_bottleneck_channels": 32,
+        "checkpoint_path": "experiments/ae_integrated_20260710/ae32/checkpoints/ae32_integrated/best.pt",
+        "checkpoint_sha256": "10cebbeede4da992e68850d8f38358e89000b62524be25b68c88517d7b58f9b2",
+        "trial_summary_path": "experiments/ae_integrated_20260710/ae32/checkpoints/ae32_integrated/trial_summary.json",
+        "trial_summary_sha256": "8f16632099dfbc5287d7fb56dfb420da444e92f2d58252b28410a29236e40667"
+      },
+      "ae64": {
+        "ae_bottleneck_channels": 64,
+        "checkpoint_path": "experiments/ae_integrated_20260710/ae64/checkpoints/ae64_integrated/best.pt",
+        "checkpoint_sha256": "c6a2362c7c2d72ff31825508ae7532c0796ec063a8556317d47d8d30fad99480",
+        "trial_summary_path": "experiments/ae_integrated_20260710/ae64/checkpoints/ae64_integrated/trial_summary.json",
+        "trial_summary_sha256": "1bcc31a377229a4e9116a103c058ea4ad3a93719195b7bf853d25f20ab183583"
+      },
+      "ae128": {
+        "ae_bottleneck_channels": 128,
+        "checkpoint_path": "experiments/ae_integrated_20260710/ae128/checkpoints/ae128_integrated/best.pt",
+        "checkpoint_sha256": "601984b96d85e1d72e9521f8a796103ab630834991d0957b62990116524cd62c",
+        "trial_summary_path": "experiments/ae_integrated_20260710/ae128/checkpoints/ae128_integrated/trial_summary.json",
+        "trial_summary_sha256": "41613aafb8ffa8cfd69ea0f823b5f58455d4b5b7ccc701648e6f1adf604ff55d"
+      }
+    },
+    "quantizers": {
+      "per_channel_uint8": 8,
+      "per_channel_uint6": 6,
+      "per_channel_uint4": 4
+    },
+    "roi_drop_fractions": [
+      0.0,
+      0.3,
+      0.5,
+      0.7,
+      0.9,
+      0.98
+    ],
+    "roi_semantics": "rank_drop_lowest_objectness_feature_cells_before_integrated_ae",
+    "entropy_coder": "zstd",
+    "entropy_level": 3,
+    "offline_payload_semantics": "zstd3_compressed_quantized_feature_wire_buffers_excluding_pickle_metadata_udp_and_lower_layers",
+    "expected_profiles": 72
+  },
+  "runtime_contract": {
+    "active_runtime_path": "uplink_only_spatial_map_pipeline/carla_fusion_staleness_scenario_uplink_only.py",
+    "active_runtime_sha256": "71ef79a56a3a556b9b70211f7c6500d35e5069de5846ed8db01b1dca4a7a15e2",
+    "feature_codec_path": "carla_split_inference_udp_data_collect.py",
+    "feature_codec_sha256": "22b6a8e4ade8ea4f4715bf143688c829e32aa7b3c9935fcad46283ab7a0aa13d",
+    "split_runtime_path": "pole_lraspp_multimodal_fusion/pole_lraspp_multimodal_fusion/split_runtime.py",
+    "split_runtime_sha256": "85d408959ea332245444db567ba916b7bce6a9c93cfbc73ae25d129abda0cae5",
+    "model_source_path": "pole_lraspp_multimodal_fusion/pole_lraspp_multimodal_fusion/model.py",
+    "model_source_sha256": "a7828a505f4414d5dcab694ba68f1afc807001d46f7ef052e8a28b88629bcfa9",
+    "object_decoder_path": "pole_lraspp_multimodal_fusion/pole_lraspp_multimodal_fusion/object_targets.py",
+    "object_decoder_sha256": "f3909883e520cb18f5c6b9b2d1b5615b093c4b396c2e2740563582f42098d6f8",
+    "integrated_ae_source_path": "rl_agent/feature_ae/ae_model.py",
+    "integrated_ae_source_sha256": "29a98885a909fd59f51e1254b70807f32697c81e6e1127f7ff93a02c72b0c975",
+    "feature_wire_schema_id": "per_channel_range_quant_pickle_zstd_udp.v1",
+    "feature_header_struct": "!IIIB",
+    "udp_chunk_header_struct": "!IHH",
+    "chunk_bytes": 60000,
+    "binding_mode": "fixed_profile_per_process_launch",
+    "container_repository_root": "/work/abiodun",
+    "oai_launcher_path": "uplink_only_spatial_map_pipeline/run_track1_oai_default106_ttracer_10fps.sh",
+    "oai_launcher_sha256": "4bd64a5992a50daeb33b5da45a41495350c91ef599f9b105fe4e7f67fc7c09da",
+    "receiver_compose_path": "receiver_container/docker-compose.yaml",
+    "receiver_compose_sha256": "b1cbc368f2d6857232bc89e6d05ca3db2eac4bb2c88a327be3aa52a188d7aa3a",
+    "receiver_fusion_overlay_path": "receiver_container/docker-compose.fusion-back.yaml",
+    "receiver_fusion_overlay_sha256": "a160eb3b7300ef556f1c33608f38897367a5069b536f3e5be1f945069c52dcc0",
+    "edge_profile_overrides_propagated_by_current_launcher": false,
+    "integrated_ae_external_override_allowed": false,
+    "wire_profile_identity_present": false,
+    "wire_mismatch_rejection_present": false,
+    "required_front_payload_keys": [
+      "frame_id",
+      "batch_size",
+      "model_input_size",
+      "display_size",
+      "feature_shapes",
+      "features",
+      "stream_id",
+      "carla_timestamp",
+      "timing"
+    ],
+    "missing_identity_keys": [
+      "profile_id",
+      "checkpoint_sha256",
+      "feature_schema_id",
+      "quantization_mode",
+      "entropy_coder"
+    ]
+  },
+  "output": {
+    "directory": "rl_agent/registries/ue_split_profile_registry_v1",
+    "registry_csv": "ue_split_profile_registry.csv",
+    "manifest_json": "manifest.json",
+    "report_md": "REPORT.md",
+    "terminal_json": "UE_A1_STATIC_BINDING_VERIFIED.json"
+  }
+}

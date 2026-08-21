@@ -1,0 +1,11 @@
+{
+  "created_at": "2026-08-21T01:29:39.256674+00:00",
+  "manifest_sha256": "675d383a0646ef833ad57f56a0eed841f404674666dff38cafa980d124a913e2",
+  "next_checklist_item": "UE-A2",
+  "profile_count": 72,
+  "quality_mask_count": 0,
+  "registry_id": "ue_split_profile_registry_v1",
+  "schema": "scenesense.ue_split_profile_registry_decision.v1",
+  "status": "STATIC_BINDINGS_VERIFIED_WIRE_SMOKE_REQUIRED",
+  "technical_validity_frozen": false
+}

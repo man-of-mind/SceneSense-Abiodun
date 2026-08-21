@@ -4,7 +4,7 @@ Living checklist aligned with `2026_SceneSense-Agent_Research_Proposal_6Month_DR
 
 Last reconciled with repository evidence: **2026-08-19**.
 
-> **Current execution authority:** `rl_agent/UE_AGENT_EXECUTION_CHECKLIST.md`.
+> **Current execution authority:** `rl_agent/UE_AGENT_EXECUTION_CHECKLIST_V2.md`.
 > Month-4/5 helper-recipient work remains banked but is parked until the
 > single-UE SPLIT/LOCAL/SKIP milestone is closed. Historical checked boxes
 > below are retained as evidence, not current launch instructions.

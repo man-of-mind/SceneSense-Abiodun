@@ -1,0 +1,102 @@
+{
+  "created_at": "2026-08-21T00:24:55.112742+00:00",
+  "duration_spread_gate": {
+    "durations_s": [],
+    "median_s": null,
+    "pass": false,
+    "spread_fraction_of_median": null,
+    "spread_s": null
+  },
+  "manual_review_required_for_final_pass": false,
+  "orchestration_error": null,
+  "orchestration_traceback": null,
+  "run_gates": {
+    "all_trial_machine_gates": false,
+    "duration_spread_within_five_percent": false,
+    "exactly_three_independent_trials": false,
+    "no_orchestration_error": true
+  },
+  "schema": "scenesense.ue_route_machine_review.v1",
+  "status": "FAILED",
+  "trial_summaries": [
+    {
+      "cleanup": {
+        "cleanup_tick_error": null,
+        "owned_actor_ids": [],
+        "pass": true,
+        "remaining_owned_actors": []
+      },
+      "collision_count": 0,
+      "collision_flush": {
+        "error": "flush_not_run",
+        "flush_frame_id": null,
+        "flush_tick_count": 0,
+        "mailbox_count_after": 0,
+        "mailbox_count_before": 0,
+        "new_collision_rows": [],
+        "pass": false
+      },
+      "configured_control_rate_hz": 20.0,
+      "cross_track_p95_m": null,
+      "duration_s": null,
+      "false_completion_count": 0,
+      "lap_count": 0,
+      "machine_gates": {
+        "absolute_cross_track": false,
+        "control_cadence": false,
+        "cross_track_p95": false,
+        "duration_below_limit": false,
+        "exactly_one_completed_lap": false,
+        "exactly_one_wrap_after_arming": false,
+        "final_collision_flush": false,
+        "monotonic_unique_world_frames": true,
+        "no_persistent_divergence": true,
+        "no_pose_jump": true,
+        "no_runtime_error": false,
+        "no_unexplained_stall": true,
+        "ordered_route_sequence": true,
+        "owned_actor_cleanup": true,
+        "return_heading": false,
+        "return_position": false,
+        "spawn_pose_exact": true,
+        "unwrapped_progress_95_to_110_percent": false,
+        "zero_collisions": true,
+        "zero_false_completion": true
+      },
+      "machine_status": "FAILED",
+      "maximum_continuous_divergence_s": 0.0,
+      "maximum_continuous_stall_s": 0.0,
+      "maximum_cross_track_m": null,
+      "maximum_sim_delta_error_s": null,
+      "maximum_tick_displacement_m": 0.0,
+      "nonmonotonic_frame_count": 0,
+      "observed_sim_control_rate_hz": null,
+      "return_heading_error_deg": null,
+      "return_position_error_m": null,
+      "route_length_m": 338.0232545712883,
+      "runtime_error": "RuntimeError: std::exception",
+      "runtime_traceback": "Traceback (most recent call last):\n  File \"/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/ue_route_qualification.py\", line 1039, in _run_trial\n    blueprint = world.get_blueprint_library().find(str(route[\"ego_blueprint\"]))\nRuntimeError: std::exception\n",
+      "sequence_error_count": 0,
+      "spawn_pose_audit": {
+        "heading_error_deg": 0.0,
+        "observed": {
+          "x_m": -3.973867654800415,
+          "y_m": 28.104215621948242,
+          "yaw_deg": 0.15919800102710724,
+          "z_m": 0.5999999642372131
+        },
+        "pass": true,
+        "position_error_m": 0.0
+      },
+      "stop_reason": null,
+      "tick_count": 0,
+      "trial_id": "trial_01",
+      "unwrapped_progress_m": 0.0,
+      "unwrapped_progress_ratio": 0.0,
+      "wall_tick_p50_s": null,
+      "wall_tick_p95_s": null,
+      "wrap_after_arming_count": 0,
+      "wrap_count": 0
+    }
+  ]
+}

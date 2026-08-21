@@ -1,0 +1,374 @@
+{
+  "authority": {
+    "carla_run": false,
+    "model_inference": false,
+    "oai_run": false,
+    "policy_training": false,
+    "profile_quality_filter": false,
+    "static_checkpoint_inspection": true,
+    "wire_smoke": false
+  },
+  "checkpoint_metadata": {
+    "ae128": {
+      "ae_arch": "v2",
+      "checkpoint_bytes": 39938194,
+      "edge_decoded_high_channels": 960,
+      "epoch": 36,
+      "integrated_ae_state_key_count": 12,
+      "native_high_channels": 960,
+      "native_low_channels": 40,
+      "state_key_count": 351,
+      "strict_structure_status": "PASS",
+      "trial_name": "ae128_integrated",
+      "wire_high_channels": 128
+    },
+    "ae32": {
+      "ae_arch": "v2",
+      "checkpoint_bytes": 39642898,
+      "edge_decoded_high_channels": 960,
+      "epoch": 38,
+      "integrated_ae_state_key_count": 12,
+      "native_high_channels": 960,
+      "native_low_channels": 40,
+      "state_key_count": 351,
+      "strict_structure_status": "PASS",
+      "trial_name": "ae32_integrated",
+      "wire_high_channels": 32
+    },
+    "ae64": {
+      "ae_arch": "v2",
+      "checkpoint_bytes": 39741330,
+      "edge_decoded_high_channels": 960,
+      "epoch": 33,
+      "integrated_ae_state_key_count": 12,
+      "native_high_channels": 960,
+      "native_low_channels": 40,
+      "state_key_count": 351,
+      "strict_structure_status": "PASS",
+      "trial_name": "ae64_integrated",
+      "wire_high_channels": 64
+    },
+    "noae": {
+      "ae_arch": "none",
+      "checkpoint_bytes": 18886798,
+      "edge_decoded_high_channels": 960,
+      "epoch": 39,
+      "integrated_ae_state_key_count": 0,
+      "native_high_channels": 960,
+      "native_low_channels": 40,
+      "state_key_count": 339,
+      "strict_structure_status": "PASS",
+      "trial_name": "mprime_joint_noae",
+      "wire_high_channels": 960
+    }
+  },
+  "counts": {
+    "profiles": 72,
+    "quality_masked": 0,
+    "registered_pending_smoke": 72,
+    "static_bindings_verified": 72,
+    "technically_invalid": 0,
+    "technically_valid": 0
+  },
+  "created_at": "2026-08-21T01:29:39.256674+00:00",
+  "gates": {
+    "checkpoint_hashes": "PASS",
+    "checkpoint_strict_structure": "PASS",
+    "current_edge_launcher_profile_override_propagation": "PENDING_UE_A2",
+    "evidence_decoder_override_binding": "PASS",
+    "exact_factor_grid": "PASS",
+    "fixed_profile_edge_argument_declaration": "PASS",
+    "fixed_profile_front_argument_binding": "PASS",
+    "integrated_ae_binding": "PASS",
+    "no_quality_filter": "PASS",
+    "offline_payload_semantics_binding": "PASS",
+    "profile_evidence_settings_binding": "PASS",
+    "quantizer_codec_source_binding": "PASS",
+    "wire_profile_identity": "PENDING_UE_A2_GAP_RECORDED",
+    "wire_smoke": "PENDING_UE_A2"
+  },
+  "inputs": [
+    {
+      "bytes": 7334,
+      "kind": "config",
+      "path": "rl_agent/configs/ue_split_profile_registry_v1.json",
+      "sha256": "8453e88b72d2da6f41cb8e0057f6135dc1df64e3660f81d9acab677bfcfa0274"
+    },
+    {
+      "bytes": 68649,
+      "kind": "evidence_pool",
+      "path": "rl_agent/experiments/ue_split_stage_a_v1/20260820_024055_review/ue_split_evidence_pool.csv",
+      "rows": 72,
+      "sha256": "af0edeb53942c8b2402ab3897dfd814530ec63c65dd5129db6e2736d33f86b2c"
+    },
+    {
+      "bytes": 18886798,
+      "family": "noae",
+      "kind": "checkpoint",
+      "path": "experiments/ae_integrated_20260710/noae_baseline/checkpoints/mprime_joint_noae/best.pt",
+      "sha256": "f319e2a5e8fb134e74c24c0822233e17368df6e4c733add658026603e131d4fa"
+    },
+    {
+      "bytes": 3284,
+      "family": "noae",
+      "kind": "trial_summary",
+      "path": "experiments/ae_integrated_20260710/noae_baseline/checkpoints/mprime_joint_noae/trial_summary.json",
+      "sha256": "fb534a3d8dcf16a250c1a6cdedb492bcd848206aff93d1270762dfa1bf447b17"
+    },
+    {
+      "bytes": 39642898,
+      "family": "ae32",
+      "kind": "checkpoint",
+      "path": "experiments/ae_integrated_20260710/ae32/checkpoints/ae32_integrated/best.pt",
+      "sha256": "10cebbeede4da992e68850d8f38358e89000b62524be25b68c88517d7b58f9b2"
+    },
+    {
+      "bytes": 3470,
+      "family": "ae32",
+      "kind": "trial_summary",
+      "path": "experiments/ae_integrated_20260710/ae32/checkpoints/ae32_integrated/trial_summary.json",
+      "sha256": "8f16632099dfbc5287d7fb56dfb420da444e92f2d58252b28410a29236e40667"
+    },
+    {
+      "bytes": 39741330,
+      "family": "ae64",
+      "kind": "checkpoint",
+      "path": "experiments/ae_integrated_20260710/ae64/checkpoints/ae64_integrated/best.pt",
+      "sha256": "c6a2362c7c2d72ff31825508ae7532c0796ec063a8556317d47d8d30fad99480"
+    },
+    {
+      "bytes": 3470,
+      "family": "ae64",
+      "kind": "trial_summary",
+      "path": "experiments/ae_integrated_20260710/ae64/checkpoints/ae64_integrated/trial_summary.json",
+      "sha256": "1bcc31a377229a4e9116a103c058ea4ad3a93719195b7bf853d25f20ab183583"
+    },
+    {
+      "bytes": 39938194,
+      "family": "ae128",
+      "kind": "checkpoint",
+      "path": "experiments/ae_integrated_20260710/ae128/checkpoints/ae128_integrated/best.pt",
+      "sha256": "601984b96d85e1d72e9521f8a796103ab630834991d0957b62990116524cd62c"
+    },
+    {
+      "bytes": 3475,
+      "family": "ae128",
+      "kind": "trial_summary",
+      "path": "experiments/ae_integrated_20260710/ae128/checkpoints/ae128_integrated/trial_summary.json",
+      "sha256": "41613aafb8ffa8cfd69ea0f823b5f58455d4b5b7ccc701648e6f1adf604ff55d"
+    },
+    {
+      "bytes": 293567,
+      "path": "uplink_only_spatial_map_pipeline/carla_fusion_staleness_scenario_uplink_only.py",
+      "sha256": "71ef79a56a3a556b9b70211f7c6500d35e5069de5846ed8db01b1dca4a7a15e2"
+    },
+    {
+      "bytes": 131741,
+      "path": "carla_split_inference_udp_data_collect.py",
+      "sha256": "22b6a8e4ade8ea4f4715bf143688c829e32aa7b3c9935fcad46283ab7a0aa13d"
+    },
+    {
+      "bytes": 4887,
+      "path": "pole_lraspp_multimodal_fusion/pole_lraspp_multimodal_fusion/split_runtime.py",
+      "sha256": "85d408959ea332245444db567ba916b7bce6a9c93cfbc73ae25d129abda0cae5"
+    },
+    {
+      "bytes": 19551,
+      "path": "pole_lraspp_multimodal_fusion/pole_lraspp_multimodal_fusion/model.py",
+      "sha256": "a7828a505f4414d5dcab694ba68f1afc807001d46f7ef052e8a28b88629bcfa9"
+    },
+    {
+      "bytes": 20489,
+      "path": "pole_lraspp_multimodal_fusion/pole_lraspp_multimodal_fusion/object_targets.py",
+      "sha256": "f3909883e520cb18f5c6b9b2d1b5615b093c4b396c2e2740563582f42098d6f8"
+    },
+    {
+      "bytes": 4247,
+      "path": "rl_agent/feature_ae/ae_model.py",
+      "sha256": "29a98885a909fd59f51e1254b70807f32697c81e6e1127f7ff93a02c72b0c975"
+    },
+    {
+      "bytes": 19674,
+      "path": "uplink_only_spatial_map_pipeline/run_track1_oai_default106_ttracer_10fps.sh",
+      "sha256": "4bd64a5992a50daeb33b5da45a41495350c91ef599f9b105fe4e7f67fc7c09da"
+    },
+    {
+      "bytes": 1280,
+      "path": "receiver_container/docker-compose.yaml",
+      "sha256": "b1cbc368f2d6857232bc89e6d05ca3db2eac4bb2c88a327be3aa52a188d7aa3a"
+    },
+    {
+      "bytes": 3199,
+      "path": "receiver_container/docker-compose.fusion-back.yaml",
+      "sha256": "a160eb3b7300ef556f1c33608f38897367a5069b536f3e5be1f945069c52dcc0"
+    },
+    {
+      "bytes": 924,
+      "path": "rl_agent/density_knob/raw/eval_settings.json",
+      "sha256": "e3ab8fec02378aeee646adb8b626c8d8c68f2bff84a7e98839502f1e5721d4fb"
+    },
+    {
+      "bytes": 18766,
+      "path": "rl_agent/density_knob/density_knob_eval.py",
+      "sha256": "4b8fae9ef69c7a15208bd4f3006e39c1573b78aa0af9ad1e824f8fc8d00e7555"
+    }
+  ],
+  "known_gaps": [
+    "WIRE_PROFILE_IDENTITY_ABSENT",
+    "WIRE_MISMATCH_REJECTION_ABSENT",
+    "LIVE_DECODER_DEFAULTS_REQUIRE_EXPLICIT_OVERRIDE",
+    "EDGE_LAUNCHER_DECODER_OVERRIDES_NOT_PROPAGATED",
+    "EXPECTED_FEATURE_SHAPES_UNOBSERVED_UNTIL_UE_A2"
+  ],
+  "outputs": [
+    {
+      "bytes": 156947,
+      "path": "ue_split_profile_registry.csv",
+      "rows": 72,
+      "sha256": "9542adc8e014960bf8876e87cdbd9783f8911140fbc37820605ce7dd69e23722"
+    },
+    {
+      "bytes": 1703,
+      "path": "REPORT.md",
+      "sha256": "31f994e4aeff57b6de4f57ae8eb43d0ba534394e4b34bc091540935098cd9ce9"
+    },
+    {
+      "bytes": 7414,
+      "path": "resolved_config.json",
+      "sha256": "0c45b431145f8a58a7017570053b425eb805912cf587856b52e3cb146ee2ad30"
+    }
+  ],
+  "registry_id": "ue_split_profile_registry_v1",
+  "repository": {
+    "assembler_path": "rl_agent/ue_split_profile_registry.py",
+    "assembler_sha256": "f05108052b3e7f2a9ff1531a27dc864991a19654d30d07cb5a494feddafb4805"
+  },
+  "runtime_audit": {
+    "container_repository_root": "/work/abiodun",
+    "edge_profile_override_propagation": {
+      "missing_options": [
+        "--object-score-threshold",
+        "--object-nms-radius-px",
+        "--topk-objects",
+        "--max-objects-drawn"
+      ],
+      "status": "PENDING_UE_A2"
+    },
+    "live_decoder_defaults": {
+      "max_objects_published": 30,
+      "object_nms_radius_px": 4,
+      "object_score_threshold": 0.05,
+      "topk_objects": 80
+    },
+    "missing_identity_keys": [
+      "checkpoint_sha256",
+      "entropy_coder",
+      "feature_schema_id",
+      "profile_id",
+      "quantization_mode"
+    ],
+    "payload_keys": [
+      "batch_size",
+      "camera_intrinsics_input",
+      "camera_matrix",
+      "camera_sent_perf",
+      "camera_sent_wall_s",
+      "camera_transform",
+      "carla_timestamp",
+      "display_size",
+      "feature_shapes",
+      "features",
+      "frame_id",
+      "model_input_size",
+      "payload_bytes_uncompressed",
+      "stream_id",
+      "timing"
+    ],
+    "pinned_sources": [
+      {
+        "bytes": 293567,
+        "path": "uplink_only_spatial_map_pipeline/carla_fusion_staleness_scenario_uplink_only.py",
+        "sha256": "71ef79a56a3a556b9b70211f7c6500d35e5069de5846ed8db01b1dca4a7a15e2"
+      },
+      {
+        "bytes": 131741,
+        "path": "carla_split_inference_udp_data_collect.py",
+        "sha256": "22b6a8e4ade8ea4f4715bf143688c829e32aa7b3c9935fcad46283ab7a0aa13d"
+      },
+      {
+        "bytes": 4887,
+        "path": "pole_lraspp_multimodal_fusion/pole_lraspp_multimodal_fusion/split_runtime.py",
+        "sha256": "85d408959ea332245444db567ba916b7bce6a9c93cfbc73ae25d129abda0cae5"
+      },
+      {
+        "bytes": 19551,
+        "path": "pole_lraspp_multimodal_fusion/pole_lraspp_multimodal_fusion/model.py",
+        "sha256": "a7828a505f4414d5dcab694ba68f1afc807001d46f7ef052e8a28b88629bcfa9"
+      },
+      {
+        "bytes": 20489,
+        "path": "pole_lraspp_multimodal_fusion/pole_lraspp_multimodal_fusion/object_targets.py",
+        "sha256": "f3909883e520cb18f5c6b9b2d1b5615b093c4b396c2e2740563582f42098d6f8"
+      },
+      {
+        "bytes": 4247,
+        "path": "rl_agent/feature_ae/ae_model.py",
+        "sha256": "29a98885a909fd59f51e1254b70807f32697c81e6e1127f7ff93a02c72b0c975"
+      },
+      {
+        "bytes": 19674,
+        "path": "uplink_only_spatial_map_pipeline/run_track1_oai_default106_ttracer_10fps.sh",
+        "sha256": "4bd64a5992a50daeb33b5da45a41495350c91ef599f9b105fe4e7f67fc7c09da"
+      },
+      {
+        "bytes": 1280,
+        "path": "receiver_container/docker-compose.yaml",
+        "sha256": "b1cbc368f2d6857232bc89e6d05ca3db2eac4bb2c88a327be3aa52a188d7aa3a"
+      },
+      {
+        "bytes": 3199,
+        "path": "receiver_container/docker-compose.fusion-back.yaml",
+        "sha256": "a160eb3b7300ef556f1c33608f38897367a5069b536f3e5be1f945069c52dcc0"
+      },
+      {
+        "bytes": 924,
+        "path": "rl_agent/density_knob/raw/eval_settings.json",
+        "sha256": "e3ab8fec02378aeee646adb8b626c8d8c68f2bff84a7e98839502f1e5721d4fb"
+      },
+      {
+        "bytes": 18766,
+        "path": "rl_agent/density_knob/density_knob_eval.py",
+        "sha256": "4b8fae9ef69c7a15208bd4f3006e39c1573b78aa0af9ad1e824f8fc8d00e7555"
+      }
+    ],
+    "profile_evidence_decoder_binding": {
+      "object_nms_radius_px": 2,
+      "object_score_threshold": 0.2,
+      "topk_objects": 120
+    },
+    "profile_evidence_entropy_binding": {
+      "entropy_coder": "zstd",
+      "entropy_level": 3
+    },
+    "registered_decoder_binding": {
+      "max_objects_published": 120,
+      "object_nms_radius_px": 2,
+      "object_score_threshold": 0.2,
+      "topk_objects": 120
+    }
+  },
+  "schema": "scenesense.ue_split_profile_registry_manifest.v1",
+  "status": "STATIC_BINDINGS_VERIFIED_WIRE_SMOKE_REQUIRED",
+  "terminal_decision_path": "UE_A1_STATIC_BINDING_VERIFIED.json",
+  "terminal_decision_payload": {
+    "created_at": "2026-08-21T01:29:39.256674+00:00",
+    "next_checklist_item": "UE-A2",
+    "profile_count": 72,
+    "quality_mask_count": 0,
+    "registry_id": "ue_split_profile_registry_v1",
+    "schema": "scenesense.ue_split_profile_registry_decision.v1",
+    "status": "STATIC_BINDINGS_VERIFIED_WIRE_SMOKE_REQUIRED",
+    "technical_validity_frozen": false
+  },
+  "terminal_decision_payload_sha256": "5f9f7ca8473688ea9cbe08cf1172965b60ae34f8578ef3836447dabe641c0e50"
+}

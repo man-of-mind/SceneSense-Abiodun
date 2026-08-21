@@ -1,6 +1,15 @@
 # UE-side inference controller — locked execution checklist
 
-**Status:** LOCKED CURRENT EXECUTION AUTHORITY (2026-08-19)
+> **SUPERSEDED FOR CURRENT EXECUTION (2026-08-20).** This checklist preserves
+> the earlier lean-controller and candidate-filtering sequence. Use
+> [`UE_AGENT_EXECUTION_CHECKLIST_V2.md`](UE_AGENT_EXECUTION_CHECKLIST_V2.md)
+> as the current execution authority. In particular, the active design exposes
+> all 72 measured split-profile anchors subject to technical smoke, uses a
+> repeatable live route and
+> time-varying saved SNR traces, and requires authoritative map-install
+> feedback before the collection sweep.
+
+**Status:** LOCKED CURRENT EXECUTION AUTHORITY (2026-08-20)
 
 **Owners:** Abiodun and Codex.
 
@@ -9,11 +18,18 @@ External reviews may supply ideas, but they are not approval gates and cannot
 silently change this sequence. A scope or design change requires an explicit
 Abiodun–Codex decision recorded here with its reason.
 
-> **Immediate evidence sequence (2026-08-19).** Following the supervisor
+> **Immediate evidence sequence (2026-08-20).** Following the supervisor
 > discussion, the next deliverable is the design-only split-profile baseline in
-> `UE_SPLIT_ONLY_EXPERIMENT_PLAN.md`. First compose the existing profile,
-> channel, and staleness evidence into the 12-row status sheet; new 10-Hz runs
-> are limited to unresolved profile-capacity boundaries. Those measurements
+> `UE_SPLIT_ONLY_EXPERIMENT_PLAN.md`. The concise discussion handoff is
+> `UE_SPLIT_ONLY_SUPERVISOR_DELIVERABLE.md`, with the 16-row planning surface in
+> `UE_SPLIT_ONLY_SUPERVISOR_COMBINATIONS_V1.csv`. The reuse-only Stage-A audit now covers
+> the existing 72-profile quality/payload pool, four network regimes, and
+> staleness evidence. The approved floor yields a review proposal with 26
+> normal aggregate candidates plus one separately typed provisional rescue;
+> this is not `N=27` and not a final action catalog. New 10-Hz runs remain
+> unauthorized. Candidate/equivalence review may propose a bounded run only;
+> execution requires a separate explicit Abiodun--Codex authorization. Any
+> later authorized measurements
 > vary only registered `SPLIT(profile)` bundles and calibrated network regimes
 > while input/task schema, hardware allocation, input frames, replay rate, and
 > map path stay fixed. A bundle binds its model/checkpoint and compression path;
@@ -22,6 +38,12 @@ Abiodun–Codex decision recorded here with its reason.
 > seven-scalar `SKIP/LOCAL/SPLIT` controller below remains the later target and
 > is derived only after the split-only data sheet is reviewed. This sequencing
 > correction narrows the first experiment; it does not reopen parked Phase 2.
+
+The immutable evidence audit is
+`experiments/ue_split_stage_a_v1/20260820_024055_review`; the approved floor is
+`decisions/ue_split_object_map_v1_floor_v1.yaml`. The candidate-proposal bundle
+must end in `CANDIDATE_REVIEW_REQUIRED`, with no run, training, or final-freeze
+authority.
 
 The current objective is:
 
@@ -64,6 +86,27 @@ The current objective is:
   captured normally. It generates no new perception result and therefore ages
   the edge map.
 - CARLA truth and future information remain evaluation-only.
+
+### OBJECT_MAP_V1 service lock
+
+The current split service requires vehicle/pedestrian class, confidence,
+predicted actor-reference world XY, source/capture identity, and a
+valid-empty-versus-missing-update distinction. `profile_id` is required
+wire/provenance metadata, not an object semantic. The world position is not a
+segmentation-mask centroid. Dimensions, yaw, parked state, and radar-support
+fields remain best-effort until separately validated.
+
+Object detection and world-XY localization are primary. Segmentation mIoU,
+vehicle IoU, and person IoU are secondary offline evaluation metrics and never
+veto catalog admission in v1. Their numerical reward weight is not yet frozen.
+The normal experimental floor and provisional rescue are hash-bound in
+`decisions/ue_split_object_map_v1_floor_v1.yaml`; those offline values are
+catalog-development evidence, not live/deployment certification.
+
+`DEGRADED_RESCUE` is a separate action tier. It may be considered only when no
+normal action is physically/network feasible, remains subject to the network
+mask, emits service debt, and never counts as normal-quality success. It does
+not relax the normal floor or become an extra hidden reward mode.
 
 ### Parked for Phase 2
 
@@ -319,7 +362,10 @@ constraints are named U0–U4:
    explicit graceful degradation. Per-object/class/range diagnostics remain in
    the evaluation plane.
 4. **U3 — perception validity and quality:** use only measured profiles and
-   validity regions; retain segmentation/pedestrian/vehicle quality accounting.
+   validity regions. Normal actions must satisfy the hash-bound
+   `OBJECT_MAP_V1` object-quality floor. A separately labelled rescue may be
+   used only under its registered no-normal-feasible contract. Segmentation is
+   recorded as a secondary diagnostic and is not a v1 eligibility veto.
 5. **U4 — efficiency:** optimize airtime/PRB occupancy, UE compute, and
    switching only inside U0–U3.
 
@@ -327,9 +373,12 @@ Safety constraints cannot be traded away by reward weights.
 
 ## Reward starting contract
 
-The task utility remains the reward-v5 starting point:
-
-U_task = 0.35 U_seg + 0.40 U_ped + 0.25 U_vehicle.
+The historical reward-v5 weights are not the current frozen utility. For
+`OBJECT_MAP_V1`, pedestrian/vehicle detection and world-XY localization are
+primary; segmentation is secondary. No numerical task-utility weights are
+frozen until Stage 1 defines metric normalization and one-at-a-time
+sensitivity. Catalog quality gates remain outside the reward and cannot be
+traded away by learned preferences.
 
 The current reward design must:
 
@@ -412,10 +461,20 @@ ran.
 
 ## Stage 2 — audit reusable evidence and expose only real gaps
 
-- [ ] **UE-2.1:** Validate schema, unit, clock, and provenance consistency for
-  the channel surface, 36-profile knob matrix, and staleness table.
-- [ ] **UE-2.2:** Recompute the measured SPLIT Pareto/action catalog without
-  claiming unsupported profiles are selectable.
+- [x] **UE-2.1:** Validate schema, unit, clock, and provenance consistency for
+  the 72-profile evidence pool, four-regime channel surface, and staleness
+  evidence. Evidence:
+  `experiments/ue_split_stage_a_v1/20260820_024055_review`, 2026-08-20.
+- [x] **UE-2.2a:** Publish the validated reuse-only
+  `CANDIDATE_REVIEW_REQUIRED` proposal: 26 normal aggregate candidates plus one
+  separately typed provisional rescue, with every measurement unauthorized.
+  Evidence:
+  `experiments/ue_split_catalog_proposal_v1/20260820_042414_candidate`,
+  2026-08-20.
+- [ ] **UE-2.2b:** Review the proposal, resolve the bounded difficult-object and
+  equivalence/catalog-budget decisions, then freeze final `N_normal`,
+  `N_rescue`, and `N_total` without claiming unsupported profiles are
+  selectable.
 - [ ] **UE-2.3:** Inventory existing local-compute evidence and distinguish
   target-device measurements from desktop proxies.
 - [ ] **UE-2.4:** Audit existing v5 traces for truly causal pre-action fields.
@@ -579,5 +638,7 @@ warning, or a new paired corpus.
   reviewed Stage-5 decision and bounded Stage-7 validation, and only after
   Abiodun explicitly reauthorizes Phase 2.
 
-The first pending task is **UE-1.1**. No controller implementation, CARLA/OAI
-run, new corpus, or RL training is authorized before Stage 1 is complete.
+The immediate split-only task is **UE-2.2b candidate/evidence review**. The
+first pending full-controller design task remains **UE-1.1**. No controller
+implementation, CARLA/OAI run, new corpus, or RL training is authorized before
+Stage 1 is complete and the applicable later-stage gate is explicitly opened.

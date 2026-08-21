@@ -1,14 +1,32 @@
 # UE split-only baseline experiment plan
 
-**Status:** Abiodun-approved draft pending supervisor review. Reuse-only
-Stage-A evidence audit and data-sheet assembly are authorized. This does not
-authorize a new CARLA/OAI run, ROI gap fill, controller training, or runtime
-implementation.
+> **SUPERSEDED FOR CURRENT EXECUTION (2026-08-20).** This document preserves
+> the earlier reuse/candidate-filtering design and its audit contracts. The
+> supervisor discussion changed the experiment to a full 72-action,
+> time-varying-network characterization. Use
+> [`UE_SPLIT_ONLY_EXPERIMENT_PLAN_V2.md`](UE_SPLIT_ONLY_EXPERIMENT_PLAN_V2.md)
+> as the current plan. Do not use the `N_total`, static-four-regime, replay-only,
+> or no-install-ACK instructions below to launch new work.
 
-**Decision date:** 2026-08-19
+**Status:** Reuse-only Stage-A audit and offline candidate proposal complete;
+Abiodun--Codex candidate review and final action-catalog selection remain
+pending. Supervisor discussion is welcome but is not an approval dependency.
+This does not authorize a new CARLA/OAI run, ROI gap fill, controller training,
+or runtime implementation.
+
+**Decision date:** 2026-08-20
 
 **Reading guide:** Sections 1--7 are the supervisor-facing plan. Sections
 8--15 are the reproducibility and data-contract appendix for implementation.
+
+**Concise supervisor handoff:**
+[`UE_SPLIT_ONLY_SUPERVISOR_DELIVERABLE.md`](UE_SPLIT_ONLY_SUPERVISOR_DELIVERABLE.md)
+summarizes the agreed scope, proposed 3-normal-plus-1-rescue shortlist, four
+network regimes, measurements, and conditional two-cell starting plan. Its
+companion
+[`UE_SPLIT_ONLY_SUPERVISOR_COMBINATIONS_V1.csv`](UE_SPLIT_ONLY_SUPERVISOR_COMBINATIONS_V1.csv)
+lists all 16 logical combinations without claiming that they have been
+measured or authorizing a run.
 
 ## 1. Purpose and immediate deliverable
 
@@ -22,25 +40,41 @@ This is a measurement baseline, not yet an agent-training experiment. We will
 use the completed table to derive the first deterministic profile-selection
 logic before considering `SKIP`, `LOCAL`, MPC, or a learned policy.
 
-The deliverable has one review point rather than silently inventing a quality
-floor:
+The deliverable has three explicit decision states rather than silently
+inventing a quality floor or final action set:
 
 1. this approved written experiment contract;
 2. one audited 72-row existing SPLIT-profile evidence pool;
 3. one `OBJECT_MAP_V1` quality-floor sensitivity table;
 4. one four-regime network catalog and small transport-anchor evidence table;
-5. one explicit unresolved-measurement list for supervisor review;
-6. after one absolute quality floor is selected and required difficult-object
-   evidence is resolved for its survivors, one frozen `N`-row eligible action
-   catalog and one composed `N`-profile x 4-regime logical state-action surface,
-   with evidence provenance on every row; and
+5. one explicit unresolved-measurement list for owner/supervisor discussion;
+6. after one absolute quality floor is selected, one immutable
+   `CANDIDATE_REVIEW_REQUIRED` proposal separating normal candidates from any
+   degraded-rescue candidate; then, only after the remaining evidence and
+   catalog-equivalence decisions, one frozen `N_total`-row eligible action
+   catalog and one composed `N_total`-profile x 4-regime logical state-action
+   surface, with evidence provenance on every row; and
 7. a short interpretation of feasible profiles and remaining evidence gaps.
 
-The initial reuse assembly ends in `REVIEW_REQUIRED`: it has no final `N`, no
-final action catalog or `N x 4` surface, and no `COMPLETED.json`. The selected
-quality floor is recorded later in an immutable decision input, and the frozen
-catalog/surface are written to a new sibling output rather than mutating the
-review assembly. Neither artifact authorizes a Cartesian live OAI sweep.
+The initial reuse assembly ends in `REVIEW_REQUIRED`: it has no final
+`N_total`, no final action catalog or `N_total x 4` surface, and no
+`COMPLETED.json`. The approved
+quality floor is recorded in an immutable decision input. Its reuse-only
+successor ends in `CANDIDATE_REVIEW_REQUIRED`, with 26 normal aggregate
+candidates and one separately typed provisional rescue, all
+`final_eligible=false`. Only a later owner-approved sibling may enter `FROZEN`
+and write the final catalog/surface. None of these artifacts authorizes a
+Cartesian live OAI sweep.
+
+The completed Stage-A review is
+`rl_agent/experiments/ue_split_stage_a_v1/20260820_024055_review`. The approved
+floor is recorded in
+`rl_agent/decisions/ue_split_object_map_v1_floor_v1.yaml`. Its validated
+successor is
+`rl_agent/experiments/ue_split_catalog_proposal_v1/20260820_042414_candidate`.
+It is a candidate proposal, not a final catalog: `eligible_action_count`
+remains null and every measurement remains unauthorized. Its manifest SHA-256
+is `d88cbabeee74bf862d3b7743c0bf447fd08f42f9fcf13e119af7e2bb58191d42`.
 
 ## 2. Scope lock
 
@@ -69,9 +103,9 @@ The UE's responsibility here is only to deliver its own split-inference
 evidence to the edge map efficiently. Reasoning over the completed map belongs
 to a later stage.
 
-### Output-service decision for supervisor review
+### Approved output-service decision
 
-The proposed current service contract is `OBJECT_MAP_V1`. The object head
+The current service contract is `OBJECT_MAP_V1`. The object head
 already produces vehicle/person class, confidence, local/world position,
 dimensions, yaw, parked-state score, radar-support score, and an optional 2-D
 box. The current map server associates, fuses, and tracks those object records.
@@ -82,6 +116,20 @@ per-class pixel-count summary to the map server; the dense mask is not consumed
 by the current object-map fusion path. Segmentation therefore remains an
 offline quality diagnostic and auxiliary model output in this baseline, not a
 hard map-service requirement. It is not removed from the model or the logs.
+
+The required v1 object record is deliberately narrow: source/capture identity,
+a valid-empty-versus-missing distinction, confidence, vehicle-or-pedestrian
+class, and predicted actor-reference world XY. The latter is the model's
+learned object reference location, not a segmentation-mask centroid or an
+independently guaranteed geometric-box center. The map may name it `location`;
+the service contract calls it `world_location_xy`. The selected `profile_id`
+is mandatory wire/provenance metadata, but it is not a semantic object-service
+field.
+
+Segmentation quality remains visible through macro mIoU plus vehicle and person
+IoU on CARLA/offline ground truth. IoU is not a live model output because it
+requires ground truth. A segmentation prediction or class summary may be
+logged live, while its IoU is computed only in evaluation.
 
 For a later task-utility formulation, pedestrian/vehicle detection and
 source-time/map-time localization receive the primary service role.
@@ -100,8 +148,44 @@ with w_seg lower than the object terms.
 ```
 
 This is neither an RL reward nor a change to the model-training loss. The
-metric definitions, normalisation, weights, and sensitivity remain an explicit
-supervisor-review decision after the data sheet is assembled.
+metric definitions, normalisation, weights, and sensitivity remain a later
+Abiodun--Codex decision after the data sheet is assembled, informed by the
+supervisor discussion.
+
+### Approved experimental quality floor
+
+The following inclusive floor is approved for forming **normal aggregate
+candidates**. It is a quality-preservation screen under the frozen evaluator,
+not an autonomous-driving or deployment-safety certificate:
+
+| Metric | Normal floor |
+|---|---:|
+| Vehicle recall | >= 0.90 |
+| Pedestrian recall | >= 0.85 |
+| Vehicle precision | >= 0.49 |
+| Pedestrian precision | >= 0.61 |
+| Vehicle world-XY MAE | <= 0.90 m |
+| Pedestrian world-XY MAE | <= 1.20 m |
+| False positives/frame | <= 1.45 |
+
+Vehicle recall `0.91` is a preferred, non-gating target. Every normal candidate
+must also pass the existing `prior_reference_exploratory` same-model,
+same-quantizer, `q=0` incremental screen. Segmentation never participates in
+this veto. Point estimates near a boundary remain visible for later paired
+uncertainty review rather than being described as physically exact.
+
+One separately typed `DEGRADED_RESCUE` candidate may be retained. It is
+available only if no normal action is physically/network feasible, must pass
+its own registered minimums and network mask, emits service debt, and never
+counts as normal-quality success. The current proposal is `ae32/u4/q0.9`, with
+a bounded pedestrian-recall minimum of `0.84`; it remains provisional pending
+difficult-object review.
+
+These floors preserve quality under the frozen offline evaluator. Because the
+same 2,162-frame set informed candidate selection, it is catalog-development
+evidence rather than an independent final test. Similar live performance is
+not assumed: the final catalog requires a later bounded, independently
+reported runtime parity/held-out validation before deployment claims.
 
 ## 3. Frozen baseline flow
 
@@ -211,12 +295,24 @@ The original 36-profile matrix is the subset with `q={0.00,0.30,0.50}`; the
 later density study measured the additional 36 high-ROI profiles on the same
 2,162-frame test split. Evidence-pool membership does not automatically make a
 profile a registered policy action. Stage A verifies provenance and reports
-`OBJECT_MAP_V1` ROI-incremental sensitivity. Abiodun and the supervisor then
-select one absolute floor, producing `M` aggregate candidates. Required
-difficult-object evidence is resolved only for useful survivors; that second
-gate freezes `N <= M` eligible actions.
-The exact enumerator evaluates all `N` before any smaller deployed catalog is
-accepted. Convex-hull membership alone is not a sufficient pruning rule.
+`OBJECT_MAP_V1` ROI-incremental sensitivity. The approved absolute floor
+produces `M_normal` aggregate normal candidates and, separately, up to
+`R_rescue` provisional rescue candidates. Required difficult-object evidence
+is resolved only for useful survivors. The later owner decision freezes
+`N_normal <= M_normal` and `N_rescue <= R_rescue`, with
+`N_total = N_normal + N_rescue`.
+The exact enumerator evaluates all `N_total` before any smaller deployed
+catalog is accepted. Convex-hull membership alone is not a sufficient pruning
+rule.
+
+The approved v1 floor produces `M_normal=26` aggregate normal candidates from
+the 72-profile pool: 28 pass the absolute floor and 26 also pass the selected
+same-`q=0` screen. One provisional rescue is tracked separately as
+`R_rescue=1`; it is not added to `M_normal`, cannot be reported as `N=27`, and
+cannot satisfy normal service. Exact eight-metric dominance removes only three
+normal candidates, leaving 23 non-dominated point estimates. Consequently, a
+small final `N_total` must not be invented without an approved equivalence or
+catalog-budget rule.
 
 The 72 profiles exhaust only this measured factorial design. They do not
 exhaust possible AE widths, quantizers, ROI fractions, split points, codecs, or
@@ -238,10 +334,11 @@ One additional non-selectable stress/reference profile is retained:
 |---|---:|---:|---|
 | `noae__uint8__roi0.0` | 1050.3 KiB | 86.04 Mbps | existing non-selectable stress reference |
 
-The stress profile is not rerun unless the supervisor explicitly requests a
-saturation demonstration: its nominal rate already exceeds the observed clear
-capacity by a wide margin. After `N` is frozen, choose the smallest anchor set
-that brackets useful payload-capacity knees. An eligible exact profile is
+The stress profile is not rerun unless Abiodun--Codex explicitly authorize a
+saturation demonstration; supervisor input is optional and nonblocking. Its
+nominal rate already exceeds the observed clear capacity by a wide margin.
+After `N_total` is frozen, choose the smallest anchor set that brackets useful
+payload-capacity knees. An eligible exact profile is
 preferred; a shaped or legacy substitute is labelled `payload_proxy`, never an
 exact action measurement. Freeze that set before any new network measurement.
 `zstd` remains fixed at level 3.
@@ -266,18 +363,19 @@ Existing integrated evidence already covers the higher fractions
 automatically selectable actions. High ROI drop can preserve object detection
 while severely damaging dense segmentation. Under `OBJECT_MAP_V1`, segmentation
 is reported as a secondary diagnostic rather than used as a hard veto, while
-an aggressive-ROI profile may enter `N` only after it passes held-out,
+an aggressive-ROI profile may enter `N_normal` only after it passes held-out,
 class-specific pedestrian/vehicle recall, precision/false-positive, and
 localization gates, including difficult non-empty strata. A profile that works
 only when a post-hoc label says the frame was empty is not a causal v1 action.
 
 Do not run the proposed `q={0.10,0.15}` gap fill in Stage A. First audit the
-existing 72 profiles. A later bounded, offline, same-sample gap fill is
-authorized only if the completed object-quality/network sheet identifies a
-specific useful payload-quality interval around a measured capacity knee that
-is not covered by the measured grid. Any accepted value creates a versioned
-successor evidence pool, repeats the integrity/quality audit, and regenerates
-`N` and the logical surface; it is never silently appended to v1.
+existing 72 profiles. If the completed object-quality/network sheet identifies
+a specific useful payload-quality interval around a measured capacity knee, a
+bounded offline same-sample gap fill may be proposed. It still requires a
+separate explicit Abiodun--Codex authorization. Any accepted value creates a
+versioned successor evidence pool, repeats the integrity/quality audit, and
+regenerates `N_total` and the logical surface; it is never silently appended to
+v1.
 
 ROI remains categorical in v1. A continuous or hybrid ROI action is deferred
 until a measured curve demonstrates reliable interpolation at held-out `q`
@@ -368,8 +466,10 @@ Do not claim that three whole-run values alone define a precise 95% interval.
   occlusion scenario.
 - Record source ego/object motion and ground truth only for evaluation strata.
   They do not select the split profile in this baseline.
-- If no suitable retained sequence exists, collect one short sequence once
-  after plan approval; do not create a scenario corpus.
+- If no suitable retained sequence exists, record that as an evidence gap. A
+  short replacement collection requires separate explicit Abiodun--Codex
+  authorization; plan approval alone is not run authority and no scenario
+  corpus is implied.
 
 An optional later validation may replay a few representative choices on one
 simple live route. It is not part of the minimum baseline acceptance gate.
@@ -381,17 +481,17 @@ simple live route. It is not part of the minimum baseline acceptance gate.
 1. Verify the existing 72-profile same-sample payload/quality evidence pool,
    including its original 36-profile subset.
 2. Produce the `OBJECT_MAP_V1` class-specific quality-floor sensitivity table;
-   leave final eligibility pending supervisor review and do not run a new ROI
-   gap fill.
+   leave final eligibility pending owner review and do not run a new ROI gap
+   fill.
 3. Resolve the four model-family checkpoint hashes and every registered profile
    binding.
 4. Record one-fixed-profile-per-launch as sufficient for a later measurement;
    defer simultaneous residency and switching implementation.
 5. Verify the existing four-regime OAI surface and achieved radio metrics.
 6. Freeze and validate the retained train/validation/test identifier manifests.
-   Keep the ordered transport replay sequence explicitly unselected until `N`
-   is known; when selected later, give it a separate role ID/hash and record
-   any overlap rather than conflating it with the quality set.
+   Keep the ordered transport replay sequence explicitly unselected until
+   `N_total` is known; when selected later, give it a separate role ID/hash and
+   record any overlap rather than conflating it with the quality set.
 7. Produce the evidence pool, quality sensitivity, four-regime catalog,
    transport evidence, and unresolved-measurement sheet, including nominal
    10-Hz load, evidence status, provenance, and uncertainty.
@@ -399,14 +499,27 @@ simple live route. It is not part of the minimum baseline acceptance gate.
    `decision_state=REVIEW_REQUIRED`, `quality_floor_id=null`, and
    `eligible_action_count=null`. Do not write a final action catalog, logical
    surface, or `COMPLETED.json`.
-9. Stop for Abiodun-supervisor review before any new run.
+9. Stop for Abiodun--Codex review before any new run; collect supervisor input
+   when available, but it is nonblocking. Every run requires a separate
+   explicit Abiodun--Codex authorization.
 
 After one absolute quality floor is approved, create a new immutable sibling
-candidate output that references the review-manifest hash and records `M`.
-Resolve required difficult-object evidence only for decision-relevant survivors;
-then freeze `N <= M`, write the `N`-row eligible catalog and exact `4N`-row
-logical surface, and recompute the unresolved list.
-If `N=0`, stop without inventing an action or surface.
+candidate output that references the review-manifest hash, records `M_normal`
+and `R_rescue` separately, and remains `CANDIDATE_REVIEW_REQUIRED`.
+Resolve required difficult-object evidence only for decision-relevant
+survivors; then freeze `N_normal <= M_normal` and
+`N_rescue <= R_rescue`, write the `N_total`-row eligible catalog and exact
+`4N_total`-row logical surface, and recompute the unresolved list. A rescue is
+always labelled separately and never counted as normal-quality service. If
+`N_total=0`, stop without inventing an action or surface.
+
+Current evidence supports exact frame/density strata for every candidate and
+horizontal-range recall/localization for the pinned `q<=0.5` diagnostic
+profiles. Exact small-object recall remains unavailable: FN rows lack GT box
+size and the frozen source `object_boxes.csv` is absent. This limitation is
+reported rather than repaired with a broad rerun. High-ROI `q=0.7/q=0.9`
+profiles additionally lack retained per-object match rows and remain
+provisional where that evidence is required.
 
 The existing approximately 90-KiB OAI cell used a legacy external AE-32
 checkpoint. Reuse it as payload/network evidence only, not as an exact
@@ -477,14 +590,16 @@ table, and complete logical profile-by-regime surface with evidence status and
 source; never present a composed or monotonic-inference row as directly
 measured.
 
-Only if that table leaves a material sequential queue-recovery question may we
-authorize one optional `clear -> constrained -> clear` trace for profiles near
-the measured knee. This is not part of the initial deliverable.
+Only if that table leaves a material sequential queue-recovery question may an
+optional `clear -> constrained -> clear` trace be proposed for profiles near
+the measured knee. It is not part of the initial deliverable and still
+requires separate explicit Abiodun--Codex authorization.
 
 ### Stage E — optional bounded live validation
 
-After the data sheet is reviewed, optionally validate a few table predictions
-on one simple live CARLA route. This is not a new training corpus and cannot
+After the data sheet is reviewed, a few table predictions may be proposed for
+validation on one simple live CARLA route. Execution requires separate explicit
+Abiodun--Codex authorization. It is not a new training corpus and cannot
 silently expand into complex NPC or cooperation work.
 
 ## 8. Timestamp and map-update contract
@@ -586,9 +701,10 @@ error(v, age, profile)
   ~= sqrt(base_localization_error(profile)^2 + (v * age)^2)
 ```
 
-Report provisional localization tolerances of 1.5, 2.0, 2.5, and 3.0 m. The
-supervisor/advisor selects the acceptable service tolerance after seeing the
-trade-off. The corresponding age budget is then derived by movement regime.
+Report provisional localization tolerances of 1.5, 2.0, 2.5, and 3.0 m.
+Abiodun--Codex select the acceptable service tolerance after reviewing the
+trade-off with the supervisor. The corresponding age budget is then derived by
+movement regime.
 The earlier 2.0 m value remains a reference, not a deployment guarantee.
 
 ## 11. Data-sheet contract
@@ -607,8 +723,10 @@ checkpoint_sha256, quantization_mode, roi_drop_fraction,
 entropy_coder, entropy_level,
 quality_set_id, quality_frame_count,
 payload_bytes_mean, payload_bytes_p95,
-recall_vehicle, recall_pedestrian, precision, fp_per_frame,
-xy_mae_m, miou,
+recall_vehicle, recall_pedestrian,
+precision_vehicle, precision_pedestrian, fp_per_frame,
+xy_mae_m, xy_mae_vehicle_m, xy_mae_pedestrian_m,
+miou, iou_background, iou_vehicle, iou_person,
 provenance_status, evidence_source_id, exclusion_reason
 ```
 
@@ -634,13 +752,40 @@ quality_gate_status, quality_gate_reason, final_eligible
 density and vehicle/pedestrian-positive frame strata. These are offline
 evaluation strata, never current-frame policy inputs.
 
+### Candidate-proposal artifacts
+
+After the floor decision, a separate offline assembler writes a new immutable
+`CANDIDATE_REVIEW_REQUIRED` bundle. Its principal tables are:
+
+- `ue_split_absolute_quality_gate.csv`: all 72 profiles and every inclusive
+  absolute/incremental gate result;
+- `ue_split_candidate_catalog.csv`: `M_normal` aggregate candidates plus any
+  separately typed provisional rescue, all with `final_eligible=false`;
+- `ue_split_audit_priority_shortlist.csv`: a nonbinding evidence-review
+  shortlist, not the final action space;
+- `ue_split_candidate_quality_strata.csv`: retained exact density/class strata;
+- `ue_split_range_audit.csv` and `ue_split_range_comparison.csv`: horizontal
+  camera-to-GT range diagnostics for pinned per-object evidence; and
+- `ue_split_candidate_profile_regime_screen.csv`: exactly four provisional,
+  unauthorized regime rows per candidate.
+
+The proposal must omit `ue_split_action_catalog.csv`,
+`ue_split_profile_network_surface.csv`, `FROZEN.json`, and `COMPLETED.json`.
+Its `CANDIDATE_REVIEW_REQUIRED.json` and manifest record 26 normal aggregate
+candidates, one separately typed provisional rescue,
+`eligible_action_count=null`, `measurement_authorized=false`, and no-run
+authority. Every candidate has `final_eligible=false`. The rescue count is
+never folded into the normal-candidate count.
+
 ### `ue_split_action_catalog.csv`
 
-This file is absent from the initial `REVIEW_REQUIRED` assembly. The immutable
-freeze output writes exactly `N` rows after a quality floor is approved:
+This file is absent from both the initial `REVIEW_REQUIRED` assembly and the
+`CANDIDATE_REVIEW_REQUIRED` proposal. A later immutable freeze output writes
+exactly `N_total` rows after the owner-approved difficult-evidence and
+catalog-budget decisions:
 
 ```text
-action_index, profile_id, evidence_pool_version, service_contract_id,
+action_index, profile_id, action_tier, evidence_pool_version, service_contract_id,
 selected_quality_floor_id, checkpoint_sha256,
 quantizer, roi_drop_fraction, codec, codec_level,
 object_quality_gate_pass, profile_eligible, evidence_source_id
@@ -660,9 +805,10 @@ proxy provenance; it is not multiplied into the logical surface.
 
 ### `ue_split_profile_network_surface.csv`
 
-This file is absent from the initial `REVIEW_REQUIRED` assembly. The freeze
-output contains exactly one row for every eligible profile and broad regime:
-exactly `4N` unique `(profile_id, network_regime)` keys.
+This file is absent from the initial `REVIEW_REQUIRED` assembly and the
+`CANDIDATE_REVIEW_REQUIRED` proposal. The freeze output contains exactly one
+row for every eligible profile and broad regime: exactly `4N_total` unique
+`(profile_id, network_regime)` keys.
 
 ```text
 cell_id, profile_id, network_regime, target_offer_hz,
@@ -685,7 +831,7 @@ The initial review may also contain
 plus an explicit custom-header/UDP/IPv4 estimate with the historical capacity
 projection. Lower-layer GTP/PDCP/RLC/MAC overhead remains unknown. Every row is
 `UNRESOLVED`, every candidate is unauthorized, and neither file is the final
-`4N` logical surface.
+`4N_total` logical surface.
 
 ### `ue_split_unresolved_measurements.csv`
 
@@ -740,9 +886,14 @@ audit{verdict, tests, fatal_errors, warnings}
 
 The initial assembly must say `decision_state=REVIEW_REQUIRED`, use a null
 quality floor and null eligible count, omit the final action catalog and
-logical surface, and omit `COMPLETED.json`. A later freeze output may say
-`FROZEN` only when its recorded floor is approved, its catalog has exactly `N`
-rows, its surface has exactly `4N` rows, and every artifact hash validates.
+logical surface, and omit `COMPLETED.json`. The candidate sibling must say
+`decision_state=CANDIDATE_REVIEW_REQUIRED`, bind the parent manifest and floor
+decision, keep `eligible_action_count=null`, record normal and rescue counts
+separately, make all measurements unauthorized, and omit the final catalog,
+surface, `FROZEN.json`, and `COMPLETED.json`. A later freeze output may say
+`FROZEN` only when its recorded floor and catalog-budget decisions are
+approved, its catalog has exactly `N_total` rows, its surface has exactly
+`4N_total` rows, and every artifact hash validates.
 
 ### Fail-closed assembler acceptance
 
@@ -759,8 +910,8 @@ rows, its surface has exactly `4N` rows, and every artifact hash validates.
 - Require finite primary metrics and adequate class/stratum support. An unknown
   or failed required object-quality gate cannot pass. Segmentation is logged
   but does not veto under `OBJECT_MAP_V1`.
-- Without an approved `quality_floor_id`, never infer `N`, publish a final
-  catalog/surface, or emit a completion marker.
+- Without an approved `quality_floor_id`, never infer an eligible action count,
+  publish a final catalog/surface, or emit a completion marker.
 - In a freeze output, require the action catalog to contain exactly the eligible
   evidence-pool IDs and the logical surface to equal their exact Cartesian
   product with the four regimes. Orphan, ineligible, missing, or duplicate keys
@@ -834,10 +985,12 @@ same-sample achieved SNR used here as experimental truth.
 The first gap is not a run: it is the audited 72-profile evidence pool,
 quality-floor sensitivity, four-regime/transport evidence, and explicit
 unresolved list. The initial assembly stops in `REVIEW_REQUIRED`. After the
-absolute floor and difficult-evidence gates freeze `N`, its `4N` logical surface
-determines whether any correctly paced 10-Hz OAI boundary check remains
-necessary. Any such check uses exact registered split tensors, a frame-aware
-edge path, timing/queue diagnostics, and authoritative accepted map updates.
+absolute floor and difficult-evidence gates freeze `N_total`, its `4N_total`
+logical surface determines whether any correctly paced 10-Hz OAI boundary
+check should be proposed. Any such check still requires separate explicit
+Abiodun--Codex authorization and uses exact registered split tensors, a
+frame-aware edge path, timing/queue diagnostics, and authoritative accepted
+map updates.
 
 The existing OAI surface ran at approximately 5.8--8.0 offered frames/s despite
 a nominal 10-Hz schedule, used one run per cell, and lacks usable semantic/map
@@ -847,26 +1000,41 @@ payload/network evidence rather than exact integrated-profile evidence.
 
 ## 14. Review and acceptance checklist
 
-- [ ] Abiodun approves this reuse-only scope; the supervisor reviews the
-  ROI-incremental sensitivity, selects an absolute floor, and resolves the
-  required difficult-object evidence before an `N`-action catalog is frozen.
-- [ ] The initial manifest is `REVIEW_REQUIRED`, has no selected quality floor
+- [x] Abiodun and Codex approve this reuse-only scope, `OBJECT_MAP_V1`, and the
+  absolute floor. Evidence:
+  `rl_agent/decisions/ue_split_object_map_v1_floor_v1.yaml`, 2026-08-20.
+- [ ] Abiodun--Codex complete the required difficult-object/catalog-budget
+  decisions before an `N_total`-action catalog is frozen. Supervisor discussion
+  is useful but nonblocking.
+- [x] The initial manifest is `REVIEW_REQUIRED`, has no selected quality floor
   or eligible count, and publishes no final action catalog, logical surface, or
-  `COMPLETED.json`.
-- [ ] The primary evidence pool contains exactly 72 unique profiles and 155,664
+  `COMPLETED.json`. Evidence: `20260820_024055_review/manifest.json`.
+- [x] The primary evidence pool contains exactly 72 unique profiles and 155,664
   complete profile-frame keys on the identical 2,162-sample quality set.
-- [ ] The four model-family checkpoint hashes and all registered profile
+- [x] The four model-family checkpoint hashes and all registered profile
   bindings are resolved before a profile is eligible.
-- [ ] The live one-profile-per-launch limitation is recorded and does not block
+- [x] The live one-profile-per-launch limitation is recorded and does not block
   the evidence sheet; simultaneous residency and switching remain a later
   controller-implementation gate.
-- [ ] The existing 72-profile evidence pool is audited before any new ROI
+- [x] The existing 72-profile evidence pool is audited before any new ROI
   value is evaluated; `q={0.10,0.15}` remains conditional on a named gap.
-- [ ] The supervisor confirms `OBJECT_MAP_V1` as the current service contract;
-  object detection/localization are primary and segmentation is a logged
-  secondary diagnostic rather than a hard profile gate.
+- [x] `OBJECT_MAP_V1` is the current owner-approved service contract: object
+  detection/localization are primary and segmentation is a logged secondary
+  diagnostic rather than a hard profile gate. Supervisor feedback may refine
+  the later final catalog without silently replacing this decision.
 - [ ] Any aggressive-ROI action passes held-out, class-specific object-quality
   gates without relying on current-frame density or other post-action labels.
+- [x] The approved aggregate floor is hash-bound in
+  `rl_agent/decisions/ue_split_object_map_v1_floor_v1.yaml`; segmentation is
+  non-vetoing, `M_normal` and rescue are separate, and no measurement or final
+  freeze authority is granted.
+- [x] The validated candidate proposal records 26 normal candidates and one
+  separate provisional rescue, all `final_eligible=false`, with no measurement
+  authority or final artifacts. Evidence:
+  `20260820_042414_candidate/manifest.json`.
+- [ ] The candidate proposal is reviewed; incomplete small-object/high-ROI
+  evidence and an equivalence/catalog-budget rule are resolved or explicitly
+  bounded before final `N_total` is selected.
 - [ ] The held-out quality set and ordered transport replay sequence have
   separate role IDs and hashes; any overlap is recorded rather than conflated.
 - [ ] Radar-risk remains outside the split-only experiment factors; its later
@@ -876,9 +1044,9 @@ payload/network evidence rather than exact integrated-profile evidence.
 - [ ] All non-profile/non-network factors are fixed and logged.
 - [ ] Achieved radio measurements are recorded; commanded labels alone do not
   qualify a cell.
-- [ ] After the floor decision, the frozen catalog contains exactly `N`
-  eligible evidence-pool IDs and the logical surface contains exactly `4N`
-  unique profile/regime keys.
+- [ ] After the floor decision, the frozen catalog contains exactly `N_total`
+  eligible evidence-pool IDs and the logical surface contains exactly
+  `4N_total` unique profile/regime keys, with normal and rescue counts separate.
 - [ ] Every logical profile/regime combination has an explicit evidence status
   and component source IDs; no composed/inferred row is presented as directly
   measured.

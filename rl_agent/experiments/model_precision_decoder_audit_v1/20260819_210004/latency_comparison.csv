@@ -1,0 +1,4 @@
+stage,configuration,p50_ms,p90_ms,p95_ms,max_ms,profile_frame_samples,repeats_per_side,loop_overhead_subtracted_ns
+retained_list_postprocessing,baseline,0.00077775,0.00156305,0.001803,0.0035335,16080,30,55.0
+retained_list_postprocessing,combo_world_nms_3m_veh_thr_0p25,0.0013175,0.0048993000000000005,0.006622199999999997,0.0195185,16080,30,55.0
+retained_list_postprocessing,paired_delta,0.00064175,0.0033606,0.004787525,0.016171500000000002,16080,30,55.0

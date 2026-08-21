@@ -1,0 +1,25 @@
+experiment_id,trial_id,event_id,event_type,frame_id,sim_time_s,route_index,unwrapped_progress_m,status,details
+ue_route_qualification_v1,trial_01,1,TRIAL_STARTED,44152,6.12463117018342,0,0.0,INFO,{}
+ue_route_qualification_v1,trial_01,2,START_GATE_EXITED,44229,9.97463122755289,3,15.247943862063863,INFO,{}
+ue_route_qualification_v1,trial_01,3,LAP_ARMED,45337,65.37463205307722,81,321.271196909345,INFO,{}
+ue_route_qualification_v1,trial_01,4,ROUTE_WRAP,45399,68.47463209927082,0,338.02325457128836,INFO,"{""armed_before_wrap"": true, ""wrap_count"": 1}"
+ue_route_qualification_v1,trial_01,5,LAP_COMPLETED,45400,68.52463210001588,0,338.02325457128836,INFO,{}
+ue_route_qualification_v1,trial_01,6,TRIAL_STOP,45400,68.52463210001588,0,338.02325457128836,INFO,"{""reason"": ""LAP_COMPLETED""}"
+ue_route_qualification_v1,trial_01,7,COLLISION_FLUSH,45401,,0,338.02325457128836,INFO,"{""drained_unseen_collision_count"": 0, ""flush_tick_count"": 1, ""mailbox_count_after"": 0, ""mailbox_count_before"": 0}"
+ue_route_qualification_v1,trial_01,8,CLEANUP,45400,,0,338.02325457128836,INFO,"{""cleanup_elapsed_sim_s"": 0.05, ""cleanup_max_sim_s"": 5.0, ""cleanup_tick_error"": null, ""cleanup_ticks"": 1, ""owned_actor_ids"": [123, 124], ""pass"": true, ""remaining_owned_actors"": []}"
+ue_route_qualification_v1,trial_02,1,TRIAL_STARTED,45406,68.82463210448623,0,0.0,INFO,{}
+ue_route_qualification_v1,trial_02,2,START_GATE_EXITED,45483,72.6746321618557,3,15.247943862063863,INFO,{}
+ue_route_qualification_v1,trial_02,3,LAP_ARMED,46591,128.07463298738003,81,321.271196909345,INFO,{}
+ue_route_qualification_v1,trial_02,4,ROUTE_WRAP,46653,131.17463303357363,0,338.02325457128836,INFO,"{""armed_before_wrap"": true, ""wrap_count"": 1}"
+ue_route_qualification_v1,trial_02,5,LAP_COMPLETED,46654,131.22463303431869,0,338.02325457128836,INFO,{}
+ue_route_qualification_v1,trial_02,6,TRIAL_STOP,46654,131.22463303431869,0,338.02325457128836,INFO,"{""reason"": ""LAP_COMPLETED""}"
+ue_route_qualification_v1,trial_02,7,COLLISION_FLUSH,46655,,0,338.02325457128836,INFO,"{""drained_unseen_collision_count"": 0, ""flush_tick_count"": 1, ""mailbox_count_after"": 0, ""mailbox_count_before"": 0}"
+ue_route_qualification_v1,trial_02,8,CLEANUP,46654,,0,338.02325457128836,INFO,"{""cleanup_elapsed_sim_s"": 0.05, ""cleanup_max_sim_s"": 5.0, ""cleanup_tick_error"": null, ""cleanup_ticks"": 1, ""owned_actor_ids"": [125, 126], ""pass"": true, ""remaining_owned_actors"": []}"
+ue_route_qualification_v1,trial_03,1,TRIAL_STARTED,46660,131.52463303878903,0,0.0,INFO,{}
+ue_route_qualification_v1,trial_03,2,START_GATE_EXITED,46737,135.3746330961585,3,15.247943862063863,INFO,{}
+ue_route_qualification_v1,trial_03,3,LAP_ARMED,47845,190.77463392168283,81,321.271196909345,INFO,{}
+ue_route_qualification_v1,trial_03,4,ROUTE_WRAP,47907,193.87463396787643,0,338.02325457128836,INFO,"{""armed_before_wrap"": true, ""wrap_count"": 1}"
+ue_route_qualification_v1,trial_03,5,LAP_COMPLETED,47908,193.9246339686215,0,338.02325457128836,INFO,{}
+ue_route_qualification_v1,trial_03,6,TRIAL_STOP,47908,193.9246339686215,0,338.02325457128836,INFO,"{""reason"": ""LAP_COMPLETED""}"
+ue_route_qualification_v1,trial_03,7,COLLISION_FLUSH,47909,,0,338.02325457128836,INFO,"{""drained_unseen_collision_count"": 0, ""flush_tick_count"": 1, ""mailbox_count_after"": 0, ""mailbox_count_before"": 0}"
+ue_route_qualification_v1,trial_03,8,CLEANUP,47908,,0,338.02325457128836,INFO,"{""cleanup_elapsed_sim_s"": 0.05, ""cleanup_max_sim_s"": 5.0, ""cleanup_tick_error"": null, ""cleanup_ticks"": 1, ""owned_actor_ids"": [127, 128], ""pass"": true, ""remaining_owned_actors"": []}"

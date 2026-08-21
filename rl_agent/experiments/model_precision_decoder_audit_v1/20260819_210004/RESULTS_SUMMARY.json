@@ -1,0 +1,104 @@
+{
+  "audit_id": "model_precision_decoder_audit_v1/20260819_210004",
+  "audit_split": {
+    "block_overlap": 0,
+    "identifier_overlap": 0,
+    "original_validation_available": false,
+    "test_unique_frames": 1340,
+    "validation_unique_frames": 822
+  },
+  "conclusion": "POSTPROCESSING_SUFFICIENT",
+  "frozen_test_pooled": [
+    {
+      "candidate": "baseline",
+      "class_name": "vehicle",
+      "f1": 0.6457236719,
+      "fp_per_frame": 1.0731965174,
+      "gt_count": 19020,
+      "precision": 0.5005788042,
+      "prediction_count": 34554,
+      "recall": 0.9094111462,
+      "xy_mae_m": 0.8192281163,
+      "xy_rmse_m": 1.1399354412
+    },
+    {
+      "candidate": "baseline",
+      "class_name": "person",
+      "f1": 0.7237662606,
+      "fp_per_frame": 0.3243781095,
+      "gt_count": 10236,
+      "precision": 0.6268688747,
+      "prediction_count": 13979,
+      "recall": 0.8560961313,
+      "xy_mae_m": 1.050240177,
+      "xy_rmse_m": 1.3434373066
+    },
+    {
+      "candidate": "combo_world_nms_3m_veh_thr_0p25",
+      "class_name": "vehicle",
+      "f1": 0.8850189409,
+      "fp_per_frame": 0.0893034826,
+      "gt_count": 19020,
+      "precision": 0.9187461099,
+      "prediction_count": 17673,
+      "recall": 0.8536803365,
+      "xy_mae_m": 0.9507045999,
+      "xy_rmse_m": 1.2679752888
+    },
+    {
+      "candidate": "combo_world_nms_3m_veh_thr_0p25",
+      "class_name": "person",
+      "f1": 0.8610305153,
+      "fp_per_frame": 0.0713930348,
+      "gt_count": 10236,
+      "precision": 0.8823046955,
+      "prediction_count": 9754,
+      "recall": 0.8407581086,
+      "xy_mae_m": 1.1780908598,
+      "xy_rmse_m": 1.4540008038
+    }
+  ],
+  "limitations": [
+    "Original dataset and original validation per-object outputs are unavailable.",
+    "Audit validation/test are grouped disjoint holdouts of the published test identifiers.",
+    "Raw heatmap local-maximum suppression was not replayed.",
+    "Latency covers retained-list post-processing, not end-to-end GPU decoder latency.",
+    "Live temporal/multi-stream map behavior was not run."
+  ],
+  "map_replay": {
+    "actual_functions_invoked": [
+      "_normalize_packet",
+      "_fuse_and_smooth_objects"
+    ],
+    "network_or_carla_calls": false,
+    "raw_equals_installed_all_frames": true,
+    "raw_equals_measurements_all_frames": true,
+    "scope": "each frame/profile replayed independently; temporal smoothing reset",
+    "server_path": "real_time_spatial_map_server_fusion_object_v2.py",
+    "server_sha256": "80f6d2ee0413d819c5225351e2970d35826e6efc443670286363e8ab8ef39062",
+    "single_stream_cluster_rule": "_can_join_cluster rejects any cluster containing the same source_stream_id",
+    "verified": true
+  },
+  "selected_candidate": {
+    "image_nms_px": 0.0,
+    "name": "combo_world_nms_3m_veh_thr_0p25",
+    "person_threshold": 0.2,
+    "vehicle_threshold": 0.25,
+    "world_nms_m": 3.0
+  },
+  "selection_details": {
+    "baseline_vehicle_f1": 0.6620787369699422,
+    "best_threshold_candidate": "veh_thr_0p25",
+    "best_threshold_vehicle_f1": 0.7000559805933942,
+    "best_world_candidate": "world_nms_3m",
+    "best_world_vehicle_f1": 0.8991514814299625,
+    "combination_candidate": "combo_world_nms_3m_veh_thr_0p25",
+    "combination_gate_passed": true,
+    "selected_candidate": "combo_world_nms_3m_veh_thr_0p25"
+  },
+  "vehicle_fp_taxonomy": {
+    "duplicate_fraction": 0.9608168812049376,
+    "duplicate_same_class_claimed_gt": 25453,
+    "total_fp_profile_instances": 26491
+  }
+}

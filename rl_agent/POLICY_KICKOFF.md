@@ -3,7 +3,7 @@
 > **Current scope reset (2026-08-19).** Do not start work from this historical
 > kickoff. Its three measured inputs and static profile analyses remain valid,
 > but its dynamic ladder is noncausal matched-support evidence. Current work is
-> governed only by `UE_AGENT_EXECUTION_CHECKLIST.md` and the UE-only
+> governed only by `UE_AGENT_EXECUTION_CHECKLIST_V2.md` and the UE-only
 > `state_diagram.md`. Helper-recipient Phase 2 is parked; no new corpus or RL is
 > authorized by this document.
 

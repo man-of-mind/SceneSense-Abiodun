@@ -1,0 +1,87 @@
+{
+  "acceptance": {
+    "divergence_cross_track_threshold_m": 2.0,
+    "maximum_collision_count": 0,
+    "maximum_continuous_divergence_s": 0.5,
+    "maximum_continuous_stall_s": 5.0,
+    "maximum_control_rate_error_hz": 0.1,
+    "maximum_cross_track_error_m": 3.0,
+    "maximum_cross_track_p95_m": 1.5,
+    "maximum_duration_spread_fraction_of_median": 0.05,
+    "maximum_sim_delta_error_s": 0.0001,
+    "maximum_tick_displacement_m": 2.0,
+    "maximum_unwrapped_progress_ratio": 1.1,
+    "minimum_unwrapped_progress_ratio": 0.95,
+    "require_owned_actor_cleanup": true,
+    "stall_grace_s": 3.0,
+    "stall_speed_threshold_mps": 0.5
+  },
+  "clock": {
+    "collision_flush_settle_s": 0.02,
+    "collision_flush_ticks": 1,
+    "control_hz": 20.0,
+    "fixed_delta_seconds": 0.05,
+    "future_decision_slot_hz": 10.0,
+    "real_time_pacing_enabled": true,
+    "real_time_tick_period_s": 0.05,
+    "synchronous_mode": true,
+    "world_tick_timeout_s": 2.0
+  },
+  "controller": {
+    "brake_gain": 0.35,
+    "brake_max": 0.65,
+    "lookahead_points": 1,
+    "name": "closed_direct_route_v1",
+    "steer_full_scale_deg": 45.0,
+    "steer_max_abs": 0.7,
+    "throttle_gain": 0.3,
+    "throttle_max": 0.75,
+    "turn_minimum_speed_scale": 0.35,
+    "waypoint_reach_m": 4.0
+  },
+  "lap_detector": {
+    "completion_heading_tolerance_deg": 15.0,
+    "completion_radius_m": 4.0,
+    "expected_return_heading_deg": 0.15919800102710724,
+    "gate_exit_radius_m": 15.0,
+    "minimum_ordered_progress_ratio_to_arm": 0.95,
+    "required_wrap_count": 1,
+    "start_gate_x_m": -3.973867654800415,
+    "start_gate_y_m": 28.104215621948242
+  },
+  "resolved": {
+    "closed_route_length_m": 338.0232545712883,
+    "closing_seam_m": 7.247940978987757,
+    "config_path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/configs/ue_route_qualification_v1.json",
+    "config_sha256": "259e8e8c5ede198f79e9388d6896a4d9a7726a24fc5f808fe220ed14653d5d5c",
+    "ideal_duration_at_target_speed_s": 56.33720909521472,
+    "map": "Town10HD_Opt",
+    "map_asset": "Carla/Maps/Town10HD_Opt",
+    "open_route_length_m": 330.77531359230056,
+    "progress_csv_path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/data_collection/routes/town10hd_opt_advisor_safe_perimeter_loop_v3.progress.csv",
+    "progress_csv_sha256": "f3dc2f4d8c59905801fdfad2df7a19f2b427459d4039ed3a8cdec3535e818ce1",
+    "route_json_path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/data_collection/routes/town10hd_opt_advisor_safe_perimeter_loop_v3.json",
+    "route_json_sha256": "0d3cceeb30d603e258cc61c00bb51e8d0ca29c176e7fccb38ec1e10692233860",
+    "route_point_count": 85,
+    "trial_count": 3
+  },
+  "route_id": "town10hd_opt_safe_perimeter_loop_v3",
+  "scene": {
+    "allowed_spawned_actor_types": [
+      "vehicle.tesla.model3",
+      "sensor.other.collision"
+    ],
+    "contract": "ego_only",
+    "forbid_preexisting_vehicles_walkers_and_sensors": true,
+    "map_stream_enabled": false,
+    "model_enabled": false,
+    "oai_enabled": false,
+    "radar_enabled": false,
+    "rgb_enabled": false,
+    "traffic_manager_enabled": false,
+    "traffic_manager_seed_reserved_for_later_scene_stage": 31
+  },
+  "schema": "scenesense.ue_route_contract.v1",
+  "spawn_index": 55,
+  "target_speed_mps": 6.0
+}

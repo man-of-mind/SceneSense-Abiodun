@@ -1,0 +1,7 @@
+experiment_id,trial_id,event_id,event_type,frame_id,sim_time_s,route_index,unwrapped_progress_m,status,details
+ue_route_qualification_v1,trial_01,1,TRIAL_STARTED,20518,6.130886487662792,0,0.0,INFO,{}
+ue_route_qualification_v1,trial_01,2,START_GATE_EXITED,20595,9.980886545032263,3,15.247943862063863,INFO,{}
+ue_route_qualification_v1,trial_01,3,LAP_ARMED,21703,65.3808873705566,81,321.271196909345,INFO,{}
+ue_route_qualification_v1,trial_01,4,TRIAL_STOP,21765,68.48088741675019,84,333.27119722980666,FAIL,"{""reason"": ""FALSE_COMPLETION_ATTEMPT""}"
+ue_route_qualification_v1,trial_01,5,COLLISION_FLUSH,21766,,84,333.27119722980666,INFO,"{""drained_unseen_collision_count"": 0, ""flush_tick_count"": 1, ""mailbox_count_after"": 0, ""mailbox_count_before"": 0}"
+ue_route_qualification_v1,trial_01,6,CLEANUP,21765,,84,333.27119722980666,FAIL,"{""cleanup_tick_error"": null, ""owned_actor_ids"": [97, 98], ""pass"": false, ""remaining_owned_actors"": [{""actor_id"": 97, ""type_id"": ""vehicle.lincoln.mkz""}, {""actor_id"": 98, ""type_id"": ""sensor.other.collision""}]}"

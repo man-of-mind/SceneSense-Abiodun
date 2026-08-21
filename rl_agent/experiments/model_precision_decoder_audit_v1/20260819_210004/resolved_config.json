@@ -1,0 +1,181 @@
+{
+  "audit_id": "model_precision_decoder_audit_v1/20260819_210004",
+  "baseline": {
+    "image_nms_px": 0.0,
+    "name": "baseline",
+    "person_threshold": 0.2,
+    "vehicle_threshold": 0.2,
+    "world_nms_m": 0.0
+  },
+  "bootstrap": {
+    "replicates": 2000,
+    "seed": 20260819,
+    "unit": "unique sample_id with complete profiles"
+  },
+  "dataset_available": false,
+  "eligible_candidates_after_combination_gate": [
+    {
+      "image_nms_px": 0.0,
+      "name": "baseline",
+      "person_threshold": 0.2,
+      "vehicle_threshold": 0.2,
+      "world_nms_m": 0.0
+    },
+    {
+      "image_nms_px": 0.0,
+      "name": "world_nms_1m",
+      "person_threshold": 0.2,
+      "vehicle_threshold": 0.2,
+      "world_nms_m": 1.0
+    },
+    {
+      "image_nms_px": 0.0,
+      "name": "world_nms_2m",
+      "person_threshold": 0.2,
+      "vehicle_threshold": 0.2,
+      "world_nms_m": 2.0
+    },
+    {
+      "image_nms_px": 0.0,
+      "name": "world_nms_3m",
+      "person_threshold": 0.2,
+      "vehicle_threshold": 0.2,
+      "world_nms_m": 3.0
+    },
+    {
+      "image_nms_px": 6.0,
+      "name": "image_nms_6px",
+      "person_threshold": 0.2,
+      "vehicle_threshold": 0.2,
+      "world_nms_m": 0.0
+    },
+    {
+      "image_nms_px": 8.0,
+      "name": "image_nms_8px",
+      "person_threshold": 0.2,
+      "vehicle_threshold": 0.2,
+      "world_nms_m": 0.0
+    },
+    {
+      "image_nms_px": 0.0,
+      "name": "veh_thr_0p225",
+      "person_threshold": 0.2,
+      "vehicle_threshold": 0.225,
+      "world_nms_m": 0.0
+    },
+    {
+      "image_nms_px": 0.0,
+      "name": "veh_thr_0p25",
+      "person_threshold": 0.2,
+      "vehicle_threshold": 0.25,
+      "world_nms_m": 0.0
+    },
+    {
+      "image_nms_px": 0.0,
+      "name": "combo_world_nms_3m_veh_thr_0p25",
+      "person_threshold": 0.2,
+      "vehicle_threshold": 0.25,
+      "world_nms_m": 3.0
+    }
+  ],
+  "matching": {
+    "class_aware": true,
+    "world_xy_radius_m": 5.0
+  },
+  "preregistered_candidates": [
+    {
+      "image_nms_px": 0.0,
+      "name": "baseline",
+      "person_threshold": 0.2,
+      "vehicle_threshold": 0.2,
+      "world_nms_m": 0.0
+    },
+    {
+      "image_nms_px": 0.0,
+      "name": "world_nms_1m",
+      "person_threshold": 0.2,
+      "vehicle_threshold": 0.2,
+      "world_nms_m": 1.0
+    },
+    {
+      "image_nms_px": 0.0,
+      "name": "world_nms_2m",
+      "person_threshold": 0.2,
+      "vehicle_threshold": 0.2,
+      "world_nms_m": 2.0
+    },
+    {
+      "image_nms_px": 0.0,
+      "name": "world_nms_3m",
+      "person_threshold": 0.2,
+      "vehicle_threshold": 0.2,
+      "world_nms_m": 3.0
+    },
+    {
+      "image_nms_px": 6.0,
+      "name": "image_nms_6px",
+      "person_threshold": 0.2,
+      "vehicle_threshold": 0.2,
+      "world_nms_m": 0.0
+    },
+    {
+      "image_nms_px": 8.0,
+      "name": "image_nms_8px",
+      "person_threshold": 0.2,
+      "vehicle_threshold": 0.2,
+      "world_nms_m": 0.0
+    },
+    {
+      "image_nms_px": 0.0,
+      "name": "veh_thr_0p225",
+      "person_threshold": 0.2,
+      "vehicle_threshold": 0.225,
+      "world_nms_m": 0.0
+    },
+    {
+      "image_nms_px": 0.0,
+      "name": "veh_thr_0p25",
+      "person_threshold": 0.2,
+      "vehicle_threshold": 0.25,
+      "world_nms_m": 0.0
+    }
+  ],
+  "proposed_unpromoted_decoder_version": "decoder_postprocess_audit_493adeedee08",
+  "runtime": {
+    "clock": "time.perf_counter_ns",
+    "latency_repeats_per_side": 30
+  },
+  "scope": "offline persisted model outputs only",
+  "selected_candidate": {
+    "image_nms_px": 0.0,
+    "name": "combo_world_nms_3m_veh_thr_0p25",
+    "person_threshold": 0.2,
+    "vehicle_threshold": 0.25,
+    "world_nms_m": 3.0
+  },
+  "selected_decoder_config_sha256": "493adeedee085ec03c58caa9a53724448e428dedb7c055a24b53e420f69fb7d2",
+  "selection_details": {
+    "baseline_vehicle_f1": 0.6620787369699422,
+    "best_threshold_candidate": "veh_thr_0p25",
+    "best_threshold_vehicle_f1": 0.7000559805933942,
+    "best_world_candidate": "world_nms_3m",
+    "best_world_vehicle_f1": 0.8991514814299625,
+    "combination_candidate": "combo_world_nms_3m_veh_thr_0p25",
+    "combination_gate_passed": true,
+    "selected_candidate": "combo_world_nms_3m_veh_thr_0p25"
+  },
+  "selection_rule": "max pooled audit-validation vehicle F1; person F1, FP/frame, latency tie-breaks",
+  "split": {
+    "block_size_collection_indices": 25,
+    "hash_salt": "decoder-audit-v1",
+    "modulo": 5,
+    "validation_modulo_values": [
+      0,
+      1
+    ]
+  },
+  "taxonomy": {
+    "persistence_radius_m": 3.0,
+    "plausible_radius_m": 10.0
+  }
+}

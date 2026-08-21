@@ -4,11 +4,13 @@ Abiodun Ganiyu (IDCC). Research: an **instrumented, network- and safety-aware mu
 system** (RGB+radar split inference, CARLA 0.10 / Town10HD_Opt → OAI 5G edge over RFsim). This file is the durable
 index — the authoritative detail lives in the docs below (read them before acting on their topic).
 
-> **Current execution reset (2026-08-19): single-UE controller first.**
-> The sole current authority is `rl_agent/UE_AGENT_EXECUTION_CHECKLIST.md`.
-> The UE chooses genuine SKIP versus PROCESS and then LOCAL versus measured
-> SPLIT profile/FPS so its own edge-map contribution meets a causal freshness
-> service envelope. Helper-recipient publication/warning work is parked in
+> **Current execution reset (2026-08-20): split-profile characterization first.**
+> The sole current authority is `rl_agent/UE_AGENT_EXECUTION_CHECKLIST_V2.md`.
+> The active experiment starts from all 72 measured split-profile anchors and
+> characterizes them on one repeatable route under four saved time-varying OAI
+> traces.
+> SKIP, LOCAL, continuous-q promotion, and policy training follow only after
+> the split table and simple baselines. Helper-recipient work is parked in
 > `phase2_map_sharing/PARKED_STATUS_2026-08-19.md`. Learned control remains
 > conditional on a residual gap after simple baselines. External reviews are
 > advisory, not approval gates; scope changes require an explicit
@@ -28,7 +30,8 @@ index — the authoritative detail lives in the docs below (read them before act
   patterns still hold"; don't lower score gates to force a pass.
 
 ## Authoritative docs (source of truth)
-- **Current execution authority:** `rl_agent/UE_AGENT_EXECUTION_CHECKLIST.md`.
+- **Current execution authority:** `rl_agent/UE_AGENT_EXECUTION_CHECKLIST_V2.md`.
+- **Current split experiment plan:** `rl_agent/UE_SPLIT_ONLY_EXPERIMENT_PLAN_V2.md`.
 - **Current UE diagram:** `rl_agent/state_diagram.md`.
 - **Historical measured RL design:** `rl_agent/AGENT_CONSTRAINTS.md` — §9 =
   frozen Phase-1 state/action/reward synthesis; §8 = the density+segmentation
@@ -84,11 +87,12 @@ takes no observation → the Phase-1 hypothesis was unrepresentable, not rejecte
 calibrated LOCAL actions; Phase-2 object-selective map sharing. Reopening RL requires a *new* pre-registered gap on
 an expanded contract, not a retune of these gates.
 
-## Current work (scope-reset 2026-08-19)
-- **Binding path:** complete Stage 1 of
-  `rl_agent/UE_AGENT_EXECUTION_CHECKLIST.md`, then audit the reusable tables,
-  measure only the missing LOCAL action table, and build the causal single-UE
-  surrogate. No new corpus is currently authorized.
+## Current work (scope-reset 2026-08-20)
+- **Binding path:** follow
+  `rl_agent/UE_AGENT_EXECUTION_CHECKLIST_V2.md`. Qualify the repeatable route,
+  calibrate the 100-ms OAI SNR-trace actuator, validate authoritative map
+  feedback, then run the 4x4 pilot before separately authorizing the 72x4
+  split-profile characterization. SKIP/LOCAL and policy training remain later.
 - **Phase 2 parked:** recipient-specific map sharing, warning, factor
   realization, exact-16, and paired CARLA/OAI work are preserved but inactive.
   They resume only under the conditions in

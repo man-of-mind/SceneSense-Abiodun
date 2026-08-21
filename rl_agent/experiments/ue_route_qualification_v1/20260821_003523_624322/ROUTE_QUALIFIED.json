@@ -1,0 +1,57 @@
+{
+  "created_at": "2026-08-21T00:50:11.215022+00:00",
+  "manual_review": {
+    "overall_verdict": "PASS",
+    "reviewed_at": "2026-08-20T17:49:40-07:00",
+    "reviewer": "Abiodun",
+    "trials": {
+      "trial_01": {
+        "anomalies": [],
+        "checks": {
+          "expected_perimeter_and_all_intended_turns": true,
+          "full_route_completed_before_return_counted": true,
+          "no_curb_sidewalk_wrong_lane_corner_cut_oscillation_reverse_or_u_turn": true,
+          "previous_ego_and_collision_sensor_absent_before_next_trial": true,
+          "smooth_final_to_first_seam_without_teleport_or_abrupt_correction": true,
+          "spawn_lane_heading_and_no_physics_jump": true,
+          "stable_steering_acceleration_braking_and_turn_speed": true,
+          "trials_two_and_three_materially_match_trial_one": true
+        },
+        "notes": "",
+        "verdict": "PASS"
+      },
+      "trial_02": {
+        "anomalies": [],
+        "checks": {
+          "expected_perimeter_and_all_intended_turns": true,
+          "full_route_completed_before_return_counted": true,
+          "no_curb_sidewalk_wrong_lane_corner_cut_oscillation_reverse_or_u_turn": true,
+          "previous_ego_and_collision_sensor_absent_before_next_trial": true,
+          "smooth_final_to_first_seam_without_teleport_or_abrupt_correction": true,
+          "spawn_lane_heading_and_no_physics_jump": true,
+          "stable_steering_acceleration_braking_and_turn_speed": true,
+          "trials_two_and_three_materially_match_trial_one": true
+        },
+        "notes": "",
+        "verdict": "PASS"
+      },
+      "trial_03": {
+        "anomalies": [],
+        "checks": {
+          "expected_perimeter_and_all_intended_turns": true,
+          "full_route_completed_before_return_counted": true,
+          "no_curb_sidewalk_wrong_lane_corner_cut_oscillation_reverse_or_u_turn": true,
+          "previous_ego_and_collision_sensor_absent_before_next_trial": true,
+          "smooth_final_to_first_seam_without_teleport_or_abrupt_correction": true,
+          "spawn_lane_heading_and_no_physics_jump": true,
+          "stable_steering_acceleration_braking_and_turn_speed": true,
+          "trials_two_and_three_materially_match_trial_one": true
+        },
+        "notes": "",
+        "verdict": "PASS"
+      }
+    }
+  },
+  "schema": "scenesense.ue_route_final_review.v1",
+  "status": "PASS"
+}

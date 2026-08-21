@@ -1,0 +1,14 @@
+{
+  "actual_functions_invoked": [
+    "_normalize_packet",
+    "_fuse_and_smooth_objects"
+  ],
+  "network_or_carla_calls": false,
+  "raw_equals_installed_all_frames": true,
+  "raw_equals_measurements_all_frames": true,
+  "scope": "each frame/profile replayed independently; temporal smoothing reset",
+  "server_path": "real_time_spatial_map_server_fusion_object_v2.py",
+  "server_sha256": "80f6d2ee0413d819c5225351e2970d35826e6efc443670286363e8ab8ef39062",
+  "single_stream_cluster_rule": "_can_join_cluster rejects any cluster containing the same source_stream_id",
+  "verified": true
+}

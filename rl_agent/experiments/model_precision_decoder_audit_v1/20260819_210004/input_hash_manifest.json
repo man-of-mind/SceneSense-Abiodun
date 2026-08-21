@@ -1,0 +1,451 @@
+{
+  "audit_id": "rl_agent/experiments/model_precision_decoder_audit_v1/20260819_210004",
+  "dataset_path_exists": false,
+  "dataset_path_recorded_by_evaluator": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/fusion_training_data/moving_ego_pps200000_merged_8loops_stride2",
+  "files": [
+    {
+      "exists": true,
+      "mtime_ns": 1785523574226600126,
+      "path": "rl_agent/density_knob/raw/perframe_noae.csv",
+      "role": "per_frame_metrics",
+      "sha256": "86417d7ca5898576fdd36b48683e411d34df6eee3ebd2d218e1e91027d3dcd7f",
+      "size_bytes": 8494773
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1785524850713967989,
+      "path": "rl_agent/density_knob/raw/perframe_ae32.csv",
+      "role": "per_frame_metrics",
+      "sha256": "c4ca439bdbce4af57be5b6299efcbd22ed2bfd4bfd067fce240518577a0cd9bc",
+      "size_bytes": 8552331
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1785525988603183110,
+      "path": "rl_agent/density_knob/raw/perframe_ae64.csv",
+      "role": "per_frame_metrics",
+      "sha256": "e09d2384bae52f030e4616ffb3beba0fa8804983eede109b3de795d33e47a2d4",
+      "size_bytes": 8558351
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1785526857844994825,
+      "path": "rl_agent/density_knob/raw/perframe_ae128.csv",
+      "role": "per_frame_metrics",
+      "sha256": "f6a63b4ed640057b0b9e2ef64b52ed1155b0f4780bc83944a40740c9b3a988f4",
+      "size_bytes": 8685389
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1785477781349328740,
+      "path": "rl_agent/density_knob/raw/frame_density.csv",
+      "role": "frame_density",
+      "sha256": "3bc3e116c9afd94a5078531b140f5ddf5c2a372cae038c9c2173a9c5f47bff09",
+      "size_bytes": 390837
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1783971488580700129,
+      "path": "experiments/ae_integrated_20260710/noae_baseline/checkpoints/mprime_joint_noae/best.pt",
+      "role": "checkpoint",
+      "sha256": "f319e2a5e8fb134e74c24c0822233e17368df6e4c733add658026603e131d4fa",
+      "size_bytes": 18886798
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1783740524991100886,
+      "path": "experiments/ae_integrated_20260710/ae32/checkpoints/ae32_integrated/best.pt",
+      "role": "checkpoint",
+      "sha256": "10cebbeede4da992e68850d8f38358e89000b62524be25b68c88517d7b58f9b2",
+      "size_bytes": 39642898
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1783733519816337434,
+      "path": "experiments/ae_integrated_20260710/ae64/checkpoints/ae64_integrated/best.pt",
+      "role": "checkpoint",
+      "sha256": "c6a2362c7c2d72ff31825508ae7532c0796ec063a8556317d47d8d30fad99480",
+      "size_bytes": 39741330
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1783746471546208791,
+      "path": "experiments/ae_integrated_20260710/ae128/checkpoints/ae128_integrated/best.pt",
+      "role": "checkpoint",
+      "sha256": "601984b96d85e1d72e9521f8a796103ab630834991d0957b62990116524cd62c",
+      "size_bytes": 39938194
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1784606807275232958,
+      "path": "experiments/ae_integrated_20260710/sweeps_permodel_zstd/noae__uint8__roi0.0/metrics/test_learned_object_metrics.csv",
+      "role": "per_object_metrics",
+      "sha256": "77f1207cf2bdc717b2b90bdc93d33a3d29c18849b014758a08f8d3c4be8d6cc5",
+      "size_bytes": 2348410
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1784606805499225665,
+      "path": "experiments/ae_integrated_20260710/sweeps_permodel_zstd/noae__uint8__roi0.0/metrics/test_fusion_evaluation_metrics.json",
+      "role": "evaluation_metrics",
+      "sha256": "ee448354fd55736005757d7b45fb5e6e83fbf6548d812dd449b1c787fd6f1346",
+      "size_bytes": 2476
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1784607713526937088,
+      "path": "experiments/ae_integrated_20260710/sweeps_permodel_zstd/noae__uint6__roi0.0/metrics/test_learned_object_metrics.csv",
+      "role": "per_object_metrics",
+      "sha256": "a21a3584b1864fe52c9c59f6c3e1e96275ded4f47efecdf4ae17f93327288298",
+      "size_bytes": 2351480
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1784607712624933418,
+      "path": "experiments/ae_integrated_20260710/sweeps_permodel_zstd/noae__uint6__roi0.0/metrics/test_fusion_evaluation_metrics.json",
+      "role": "evaluation_metrics",
+      "sha256": "30c75f4a6d637af2def65bc1354a970f1f142653d12356f33ec2a7ead6abe121",
+      "size_bytes": 2588
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1784608430861076366,
+      "path": "experiments/ae_integrated_20260710/sweeps_permodel_zstd/noae__uint4__roi0.0/metrics/test_learned_object_metrics.csv",
+      "role": "per_object_metrics",
+      "sha256": "7b594bc61739a2a54c919c79edc284cd5c166d0198bc53c03aa7c9beac23a9b6",
+      "size_bytes": 2358887
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1784608429476070211,
+      "path": "experiments/ae_integrated_20260710/sweeps_permodel_zstd/noae__uint4__roi0.0/metrics/test_fusion_evaluation_metrics.json",
+      "role": "evaluation_metrics",
+      "sha256": "c5aa02d5147ad37ea5353507f4236b67ea0ac15c2ce56692e54137506b19981e",
+      "size_bytes": 2588
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1784609299252892342,
+      "path": "experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae32__uint8__roi0.0/metrics/test_learned_object_metrics.csv",
+      "role": "per_object_metrics",
+      "sha256": "c3cf417cd44176322c42f2e2f8e020b2a0db6d88bcc8a81c4834eaa46cb53ea4",
+      "size_bytes": 2440011
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1784609297392884267,
+      "path": "experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae32__uint8__roi0.0/metrics/test_fusion_evaluation_metrics.json",
+      "role": "evaluation_metrics",
+      "sha256": "5d96dcf9181b06086a12ec7d4e5fc36d3c576721d03de174ecd8c7df9eee8578",
+      "size_bytes": 2577
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1784609950464708445,
+      "path": "experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae32__uint6__roi0.0/metrics/test_learned_object_metrics.csv",
+      "role": "per_object_metrics",
+      "sha256": "6952ba1ddf8d060b8f4b8447f8b70682fa9e9361667f48b9e788207cbfedbe16",
+      "size_bytes": 2437641
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1784609949747705356,
+      "path": "experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae32__uint6__roi0.0/metrics/test_fusion_evaluation_metrics.json",
+      "role": "evaluation_metrics",
+      "sha256": "e75d137e9392da285fc9aff20af85045eb8968cf1174c5a8b43c564b9b675f85",
+      "size_bytes": 2570
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1784610606196524171,
+      "path": "experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae32__uint4__roi0.0/metrics/test_learned_object_metrics.csv",
+      "role": "per_object_metrics",
+      "sha256": "b1589eade9265de4a7d12897f487df97043db576ae67e554b36cb1d94dfdfa5d",
+      "size_bytes": 2430800
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1784610604816518264,
+      "path": "experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae32__uint4__roi0.0/metrics/test_fusion_evaluation_metrics.json",
+      "role": "evaluation_metrics",
+      "sha256": "cef176f57a585d03304e6ca04cccb3c0c7631e82dfa0a7c0bfa6151a36ff46f8",
+      "size_bytes": 2573
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1784611459989182397,
+      "path": "experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae64__uint8__roi0.0/metrics/test_learned_object_metrics.csv",
+      "role": "per_object_metrics",
+      "sha256": "39fb7e94e1947052cbdd71b8ea7b90b93832af325a5a6b94c759436a19bb0b64",
+      "size_bytes": 2434709
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1784611459157178823,
+      "path": "experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae64__uint8__roi0.0/metrics/test_fusion_evaluation_metrics.json",
+      "role": "evaluation_metrics",
+      "sha256": "b54d5cdd743f3f2c86581e459806957f944ef9978934bc6baa1915f2cf3f1014",
+      "size_bytes": 2576
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1784612140660100474,
+      "path": "experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae64__uint6__roi0.0/metrics/test_learned_object_metrics.csv",
+      "role": "per_object_metrics",
+      "sha256": "83712369d67482c0a386093fbeb6bae442169d0959bd96f74d0eafbcba444222",
+      "size_bytes": 2433088
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1784612138710092131,
+      "path": "experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae64__uint6__roi0.0/metrics/test_fusion_evaluation_metrics.json",
+      "role": "evaluation_metrics",
+      "sha256": "be0c5a8c8a81eec93e3caa63871d7b5f6c007a035a728dc4e6efd8aee3e76e56",
+      "size_bytes": 2580
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1784612804369935301,
+      "path": "experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae64__uint4__roi0.0/metrics/test_learned_object_metrics.csv",
+      "role": "per_object_metrics",
+      "sha256": "2d2731386d203b8fbe75d9f4778ebb3fd82c13081ef46ad6f8d1fa5142b5954f",
+      "size_bytes": 2420419
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1784612803179930227,
+      "path": "experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae64__uint4__roi0.0/metrics/test_fusion_evaluation_metrics.json",
+      "role": "evaluation_metrics",
+      "sha256": "f6a49ab284e234f9dc074929f2a1587eb6f5b7eca9f924ab0cc061321bdf9789",
+      "size_bytes": 2585
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1784613661323703312,
+      "path": "experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae128__uint8__roi0.0/metrics/test_learned_object_metrics.csv",
+      "role": "per_object_metrics",
+      "sha256": "c7b209a6d951513c7989a027dd6f608e8a9301247e5d6b37fa58553eb2f3b16f",
+      "size_bytes": 2457715
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1784613660610700103,
+      "path": "experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae128__uint8__roi0.0/metrics/test_fusion_evaluation_metrics.json",
+      "role": "evaluation_metrics",
+      "sha256": "6988b7c49d71c4439dade41cc7a9ada40cf6a762f1c55baa841c11f93433527f",
+      "size_bytes": 2579
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1784614292712537975,
+      "path": "experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae128__uint6__roi0.0/metrics/test_learned_object_metrics.csv",
+      "role": "per_object_metrics",
+      "sha256": "1e833f8fb426f35e48f262d1fad6e78f87eb0332576fafdf2eadf369088605ff",
+      "size_bytes": 2459166
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1784614291955534560,
+      "path": "experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae128__uint6__roi0.0/metrics/test_fusion_evaluation_metrics.json",
+      "role": "evaluation_metrics",
+      "sha256": "a94384619c2664d775115dd244adfa01ff01c4217989b25083619bb5458115de",
+      "size_bytes": 2577
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1784614963120552091,
+      "path": "experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae128__uint4__roi0.0/metrics/test_learned_object_metrics.csv",
+      "role": "per_object_metrics",
+      "sha256": "1937138ec7e8cfdc166ae0773fb8f64a51e7ae96001771caec4c97a0e2f287da",
+      "size_bytes": 2453655
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1784614962303548431,
+      "path": "experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae128__uint4__roi0.0/metrics/test_fusion_evaluation_metrics.json",
+      "role": "evaluation_metrics",
+      "sha256": "52747d24e733ef35e4d8aa779f1a505d4801ded797b308977ffae706c70d1203",
+      "size_bytes": 2579
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1782528580931872312,
+      "path": "pole_lraspp_multimodal_fusion/pole_lraspp_multimodal_fusion/object_targets.py",
+      "role": "decoder_source",
+      "sha256": "f3909883e520cb18f5c6b9b2d1b5615b093c4b396c2e2740563582f42098d6f8",
+      "size_bytes": 20489
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1783965898595069243,
+      "path": "pole_lraspp_multimodal_fusion/pole_lraspp_multimodal_fusion/evaluate_fusion.py",
+      "role": "evaluator_source",
+      "sha256": "8b38163632b470451bf686acc6abd894852adb06c0e3218cc09399158c036557",
+      "size_bytes": 39446
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1785522087113475000,
+      "path": "rl_agent/density_knob/density_knob_eval.py",
+      "role": "density_evaluator_source",
+      "sha256": "4b8fae9ef69c7a15208bd4f3006e39c1573b78aa0af9ad1e824f8fc8d00e7555",
+      "size_bytes": 18766
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1781218572955535062,
+      "path": "pole_lraspp_multimodal_fusion/configs/fusion_full_run.yaml",
+      "role": "fusion_config",
+      "sha256": "c7c3d645c43e0670d92714b4158830566ca690dc5157976b24ab9eaed8c282a6",
+      "size_bytes": 4455
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1779819292385729181,
+      "path": "real_time_spatial_map_server_fusion_object_v2.py",
+      "role": "map_server_source",
+      "sha256": "80f6d2ee0413d819c5225351e2970d35826e6efc443670286363e8ab8ef39062",
+      "size_bytes": 56716
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1787193655182316925,
+      "path": "rl_agent/experiments/ue_split_stage_a_v1/20260820_024055_review/REPORT.md",
+      "role": "stage_a_evidence",
+      "sha256": "25777cbba76b75a7fcea62ed0ab86bb6020887c3d9be6a5835695653afe793e1",
+      "size_bytes": 4392
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1787193655205317165,
+      "path": "rl_agent/experiments/ue_split_stage_a_v1/20260820_024055_review/REVIEW_REQUIRED.json",
+      "role": "stage_a_evidence",
+      "sha256": "08934796bdc2ca859816212f53cf27d1b088089df235252633d1bd653418c127",
+      "size_bytes": 537
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1787193655163316727,
+      "path": "rl_agent/experiments/ue_split_stage_a_v1/20260820_024055_review/input_manifest.json",
+      "role": "stage_a_evidence",
+      "sha256": "b69ca6911750ae568c50c6eecac244cd43ccc911fda4a994001e3df21862ea18",
+      "size_bytes": 13374
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1787193655205317165,
+      "path": "rl_agent/experiments/ue_split_stage_a_v1/20260820_024055_review/manifest.json",
+      "role": "stage_a_evidence",
+      "sha256": "703fae3309732b143d40628415c1c6214bf0428a82816b379f76ba9500735574",
+      "size_bytes": 22146
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1787193655163316727,
+      "path": "rl_agent/experiments/ue_split_stage_a_v1/20260820_024055_review/resolved_config.yaml",
+      "role": "stage_a_evidence",
+      "sha256": "01bad4d148ba9497d0f68653387c39bc27e14796c4804b1aea209aec04fa8623",
+      "size_bytes": 8520
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1787193655178316883,
+      "path": "rl_agent/experiments/ue_split_stage_a_v1/20260820_024055_review/ue_split_boundary_candidates.csv",
+      "role": "stage_a_evidence",
+      "sha256": "ff02c784d30b3d0f2bb8d1153f835782c2427e03602db16ac801cae5dee126a8",
+      "size_bytes": 2944
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1787193655166316758,
+      "path": "rl_agent/experiments/ue_split_stage_a_v1/20260820_024055_review/ue_split_evidence_pool.csv",
+      "role": "stage_a_evidence",
+      "sha256": "af0edeb53942c8b2402ab3897dfd814530ec63c65dd5129db6e2736d33f86b2c",
+      "size_bytes": 68649
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1787193655179316894,
+      "path": "rl_agent/experiments/ue_split_stage_a_v1/20260820_024055_review/ue_split_latency_tolerance_proxy.csv",
+      "role": "stage_a_evidence",
+      "sha256": "b8bc955082dc7c6044d11d83be7805834ad2a9654f71407ade668f5b37a18c83",
+      "size_bytes": 5842
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1787193655175316852,
+      "path": "rl_agent/experiments/ue_split_stage_a_v1/20260820_024055_review/ue_split_network_regimes.csv",
+      "role": "stage_a_evidence",
+      "sha256": "6784d44a2404f3b8aabf788ae91251fedbba1c42643937d25fbdb8bd882a4d14",
+      "size_bytes": 1007
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1787193655178316883,
+      "path": "rl_agent/experiments/ue_split_stage_a_v1/20260820_024055_review/ue_split_profile_regime_screen.csv",
+      "role": "stage_a_evidence",
+      "sha256": "dcc7d87a2256ded105e118d91fc4d222e073262beb7e0d5e490bdf50870366e1",
+      "size_bytes": 78834
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1787193655174316842,
+      "path": "rl_agent/experiments/ue_split_stage_a_v1/20260820_024055_review/ue_split_quality_floor_sensitivity.csv",
+      "role": "stage_a_evidence",
+      "sha256": "9bae24bdf8b30ed4a8676272c805cae15353b8469ee897231e3ec56f4fb38a6c",
+      "size_bytes": 141673
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1787193655172316821,
+      "path": "rl_agent/experiments/ue_split_stage_a_v1/20260820_024055_review/ue_split_quality_strata.csv",
+      "role": "stage_a_evidence",
+      "sha256": "74e7ad2acc34c6fc3e8e2b0ae1e1ebe0bcc127e5e32b5e439a7f1cff4b4d709e",
+      "size_bytes": 256216
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1787193655181316914,
+      "path": "rl_agent/experiments/ue_split_stage_a_v1/20260820_024055_review/ue_split_staleness_error_sensitivity.csv",
+      "role": "stage_a_evidence",
+      "sha256": "bc76786a98e98a907f0ce65e1a88b6b5d86eea59fd43f88334dbf63e15a1ba0f",
+      "size_bytes": 1884
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1787193655180316904,
+      "path": "rl_agent/experiments/ue_split_stage_a_v1/20260820_024055_review/ue_split_staleness_latency_anchors.csv",
+      "role": "stage_a_evidence",
+      "sha256": "c646a784b39909103ae997de255f55759b5eaca438cdc33f21c1f595e190ea4c",
+      "size_bytes": 1068
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1787193655176316862,
+      "path": "rl_agent/experiments/ue_split_stage_a_v1/20260820_024055_review/ue_split_transport_evidence.csv",
+      "role": "stage_a_evidence",
+      "sha256": "20598fccf66c6dbba98e5cb6a3c9e81749ff43013906766ed39a957f1f8215e6",
+      "size_bytes": 4685
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1787193655181316914,
+      "path": "rl_agent/experiments/ue_split_stage_a_v1/20260820_024055_review/ue_split_unresolved_measurements.csv",
+      "role": "stage_a_evidence",
+      "sha256": "6c108541f7c5599f9f9f30716fa3330bd062e6cd2677742aa7edaf1e180071c5",
+      "size_bytes": 2614
+    }
+  ],
+  "frozen_evaluator": {
+    "class_aware": true,
+    "match_distance_m": 5.0,
+    "max_gt_distance_m": 40.0,
+    "min_gt_area_px": 12.0,
+    "nms_radius_px": 2,
+    "score_threshold": 0.2,
+    "topk": 120
+  },
+  "generated_at_unix": 1787198905.583487,
+  "repository_branch": "master",
+  "repository_commit": "9624f812f82c309bdf5fad491aa9aa72007f229b"
+}

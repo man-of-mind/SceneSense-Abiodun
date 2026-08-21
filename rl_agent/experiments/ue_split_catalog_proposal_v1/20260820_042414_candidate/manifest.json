@@ -1,0 +1,330 @@
+{
+  "audit": {
+    "tests": [
+      {
+        "id": "PARENT_HASH_CHAIN",
+        "status": "PASS"
+      },
+      {
+        "id": "ABSOLUTE_FLOOR",
+        "profiles": 28,
+        "status": "PASS"
+      },
+      {
+        "id": "NORMAL_CANDIDATES",
+        "profiles": 26,
+        "status": "PASS"
+      },
+      {
+        "id": "RESCUE_SEPARATION",
+        "profiles": 1,
+        "status": "PASS"
+      },
+      {
+        "id": "SEGMENTATION_NON_VETO",
+        "status": "PASS"
+      },
+      {
+        "id": "RANGE_REPRODUCTION",
+        "profiles": 7,
+        "status": "PASS"
+      },
+      {
+        "id": "NO_RUN_AUTHORITY",
+        "status": "PASS"
+      }
+    ],
+    "verdict": "PASS",
+    "warnings": [
+      "No final N is selected.",
+      "Offline quality evidence informed candidate selection; reserve independent bounded validation for performance claims.",
+      "Small-object certification is unresolved because FN boxes/source GT are absent.",
+      "High-ROI q0.7/q0.9 profiles lack retained per-object match rows.",
+      "All network rows remain provisional and unauthorized."
+    ]
+  },
+  "counts": {
+    "absolute_quality_pass": 28,
+    "candidate_profile_regime_rows": 108,
+    "evidence_pool_profiles": 72,
+    "final_eligible_actions": null,
+    "normal_candidates": 26,
+    "rescue_candidates": 1
+  },
+  "created_utc": "2026-08-20T04:24:14.512120+00:00",
+  "decision": {
+    "approved_by": [
+      "Abiodun",
+      "Codex"
+    ],
+    "path": "rl_agent/decisions/ue_split_object_map_v1_floor_v1.yaml",
+    "sha256": "6063c1ed1fa1b1e889cc308227c0cfb75c74e7bdd668936578e4681a9a28ee2a",
+    "supervisor_review_status": "pending"
+  },
+  "decision_state": "CANDIDATE_REVIEW_REQUIRED",
+  "degraded_rescue": {
+    "activation_contract": {
+      "counts_as_normal_service_success": false,
+      "emits_service_debt": true,
+      "only_when_no_normal_action_physically_feasible": true,
+      "requires_final_evidence_review": true,
+      "requires_network_feasibility": true
+    },
+    "candidate_count": 1,
+    "included_in_normal_candidate_count": false,
+    "profile_id": "ae32__u4__q0.9__zstd3__ckpt10cebbeede4d"
+  },
+  "experiment_id": "20260820_042414_candidate",
+  "inputs": [
+    {
+      "artifact_id": "decision",
+      "path": "rl_agent/decisions/ue_split_object_map_v1_floor_v1.yaml",
+      "sha256": "6063c1ed1fa1b1e889cc308227c0cfb75c74e7bdd668936578e4681a9a28ee2a"
+    },
+    {
+      "artifact_id": "parent_manifest",
+      "path": "rl_agent/experiments/ue_split_stage_a_v1/20260820_024055_review/manifest.json",
+      "sha256": "703fae3309732b143d40628415c1c6214bf0428a82816b379f76ba9500735574"
+    },
+    {
+      "artifact_id": "parent_review_marker",
+      "path": "rl_agent/experiments/ue_split_stage_a_v1/20260820_024055_review/REVIEW_REQUIRED.json",
+      "sha256": "08934796bdc2ca859816212f53cf27d1b088089df235252633d1bd653418c127"
+    },
+    {
+      "artifact_id": "frame_context",
+      "bytes": 390837,
+      "path": "rl_agent/density_knob/raw/frame_density.csv",
+      "provenance_status": "PASS",
+      "role": "quality_context",
+      "rows": 2162,
+      "schema_sha256": "90619daf4466daf4a1b1e0f70fae190eaee5f79cb976f9183f8e0e32eafd976b",
+      "sha256": "3bc3e116c9afd94a5078531b140f5ddf5c2a372cae038c9c2173a9c5f47bff09"
+    },
+    {
+      "artifact_id": "object_detail_ae32_u4_q0",
+      "bytes": 2430800,
+      "path": "experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae32__uint4__roi0.0/metrics/test_learned_object_metrics.csv",
+      "role": "supplemental_object_detail",
+      "rows": 6871,
+      "sha256": "b1589eade9265de4a7d12897f487df97043db576ae67e554b36cb1d94dfdfa5d"
+    },
+    {
+      "artifact_id": "object_detail_ae32_u4_q0p3",
+      "bytes": 2430915,
+      "path": "experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae32__uint4__roi0.3/metrics/test_learned_object_metrics.csv",
+      "role": "supplemental_object_detail",
+      "rows": 6881,
+      "sha256": "62508803382794f9fc2ae5c8159f4e5fe61973e3fb23bb048e55a0a573bdf026"
+    },
+    {
+      "artifact_id": "object_detail_ae32_u4_q0p5",
+      "bytes": 2438507,
+      "path": "experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae32__uint4__roi0.5/metrics/test_learned_object_metrics.csv",
+      "role": "supplemental_object_detail",
+      "rows": 6962,
+      "sha256": "71ea8930f88c99dce39c930cdbd90adb75a1a793e812920e229cd8af1b9c61c8"
+    },
+    {
+      "artifact_id": "object_detail_ae64_u4_q0",
+      "bytes": 2420419,
+      "path": "experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae64__uint4__roi0.0/metrics/test_learned_object_metrics.csv",
+      "role": "supplemental_object_detail",
+      "rows": 6826,
+      "sha256": "2d2731386d203b8fbe75d9f4778ebb3fd82c13081ef46ad6f8d1fa5142b5954f"
+    },
+    {
+      "artifact_id": "object_detail_ae64_u4_q0p5",
+      "bytes": 2432019,
+      "path": "experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae64__uint4__roi0.5/metrics/test_learned_object_metrics.csv",
+      "role": "supplemental_object_detail",
+      "rows": 6873,
+      "sha256": "7a29e52219addbc1b4de397de2f940910ce5877c28c092fc26384ebad66a2109"
+    },
+    {
+      "artifact_id": "object_detail_ae128_u4_q0",
+      "bytes": 2453655,
+      "path": "experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae128__uint4__roi0.0/metrics/test_learned_object_metrics.csv",
+      "role": "supplemental_object_detail",
+      "rows": 6917,
+      "sha256": "1937138ec7e8cfdc166ae0773fb8f64a51e7ae96001771caec4c97a0e2f287da"
+    },
+    {
+      "artifact_id": "object_detail_ae128_u4_q0p3",
+      "bytes": 2452997,
+      "path": "experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae128__uint4__roi0.3/metrics/test_learned_object_metrics.csv",
+      "role": "supplemental_object_detail",
+      "rows": 6913,
+      "sha256": "b3aa3ff7d8254246e173372bf0e8070e59dd8504415174b578b9fbfdacbcb26d"
+    }
+  ],
+  "outputs": [
+    {
+      "artifact_id": "resolved_decision",
+      "bytes": 5047,
+      "path": "resolved_decision.yaml",
+      "rows": null,
+      "schema_id": "scenesense.ue_split_catalog_decision.v1",
+      "sha256": "1533b110efc7676554e7c4b5af788e7fa3890e65e90e8944a801bcfd4a05881a"
+    },
+    {
+      "artifact_id": "ue_split_absolute_quality_gate",
+      "bytes": 76432,
+      "path": "ue_split_absolute_quality_gate.csv",
+      "rows": 72,
+      "schema_id": "scenesense.ue_split_absolute_quality_gate.v1",
+      "sha256": "fa316fb3e8d41b6abcb95e2d8c2e4547323e867f60debf327479f850b527212d"
+    },
+    {
+      "artifact_id": "ue_split_candidate_catalog",
+      "bytes": 38205,
+      "path": "ue_split_candidate_catalog.csv",
+      "rows": 27,
+      "schema_id": "scenesense.ue_split_candidate_catalog.v1",
+      "sha256": "3048f383ea3e71092cae094abea1823c716d490b8478e26a5197190c04778f97"
+    },
+    {
+      "artifact_id": "ue_split_audit_priority_shortlist",
+      "bytes": 11644,
+      "path": "ue_split_audit_priority_shortlist.csv",
+      "rows": 7,
+      "schema_id": "scenesense.ue_split_audit_priority_shortlist.v1",
+      "sha256": "ca3efeae62c71a21eaa9fed988fed1b681f78d962335ff8e8afe420ccfc6600e"
+    },
+    {
+      "artifact_id": "ue_split_candidate_quality_strata",
+      "bytes": 98163,
+      "path": "ue_split_candidate_quality_strata.csv",
+      "rows": 243,
+      "schema_id": "scenesense.ue_split_candidate_quality_strata.v1",
+      "sha256": "9eeec5eeaad902903cec4ffbbb21432dc3a4fcce8f1f8864b1de494839743c3a"
+    },
+    {
+      "artifact_id": "ue_split_candidate_profile_regime_screen",
+      "bytes": 35575,
+      "path": "ue_split_candidate_profile_regime_screen.csv",
+      "rows": 108,
+      "schema_id": "scenesense.ue_split_candidate_profile_regime_screen.v1",
+      "sha256": "31ffbdbe665c1b12af6d54146debea228385ab85247527589372b7789e51724a"
+    },
+    {
+      "artifact_id": "ue_split_range_audit",
+      "bytes": 9071,
+      "path": "ue_split_range_audit.csv",
+      "rows": 42,
+      "schema_id": "scenesense.ue_split_range_audit.v1",
+      "sha256": "350e2c6dcde24242b891982f7529fcf869fb93952f3e50a23607fb9604204b36"
+    },
+    {
+      "artifact_id": "ue_split_range_comparison",
+      "bytes": 3800,
+      "path": "ue_split_range_comparison.csv",
+      "rows": 24,
+      "schema_id": "scenesense.ue_split_range_comparison.v1",
+      "sha256": "9db3bb51957559465d948572e7e8f360dec43c21cb6f8cf4d33603097c62d31f"
+    },
+    {
+      "artifact_id": "ue_split_unresolved_evidence",
+      "bytes": 990,
+      "path": "ue_split_unresolved_evidence.csv",
+      "rows": 7,
+      "schema_id": "scenesense.ue_split_candidate_unresolved.v1",
+      "sha256": "829361cd61d6fc3f7a3797b3a29d2082c46b22934bcb6707cf2b284f77858e78"
+    },
+    {
+      "artifact_id": "REPORT",
+      "bytes": 3452,
+      "path": "REPORT.md",
+      "rows": null,
+      "schema_id": "scenesense.ue_split_catalog_proposal_report.v1",
+      "sha256": "12e63ffbe386998e483d9d87533ee4530640ea5944e73886a28fcfbfb853f142"
+    },
+    {
+      "artifact_id": "ASSEMBLER_SNAPSHOT",
+      "bytes": 49603,
+      "path": "ASSEMBLER_SNAPSHOT.py",
+      "rows": null,
+      "schema_id": "scenesense.ue_split_catalog_proposal_source.v1",
+      "sha256": "8949276d127e18d19b0a9e64cca98a3808b0f1c670902f00a3b8ca1f5eeee9d7"
+    }
+  ],
+  "parent": {
+    "manifest_sha256": "703fae3309732b143d40628415c1c6214bf0428a82816b379f76ba9500735574",
+    "marker_sha256": "08934796bdc2ca859816212f53cf27d1b088089df235252633d1bd653418c127",
+    "path": "rl_agent/experiments/ue_split_stage_a_v1/20260820_024055_review"
+  },
+  "range_reproduction": {
+    "ae128/u4/q0": {
+      "fn": 350,
+      "fp": 3018,
+      "gt_rows_missing_bbox": 350,
+      "status": "PASS_COUNTS_AND_LOCALIZATION_REPRODUCED",
+      "tp": 3549
+    },
+    "ae128/u4/q0.3": {
+      "fn": 350,
+      "fp": 3014,
+      "gt_rows_missing_bbox": 350,
+      "status": "PASS_COUNTS_AND_LOCALIZATION_REPRODUCED",
+      "tp": 3549
+    },
+    "ae32/u4/q0": {
+      "fn": 389,
+      "fp": 2972,
+      "gt_rows_missing_bbox": 389,
+      "status": "PASS_COUNTS_AND_LOCALIZATION_REPRODUCED",
+      "tp": 3510
+    },
+    "ae32/u4/q0.3": {
+      "fn": 393,
+      "fp": 2982,
+      "gt_rows_missing_bbox": 393,
+      "status": "PASS_COUNTS_AND_LOCALIZATION_REPRODUCED",
+      "tp": 3506
+    },
+    "ae32/u4/q0.5": {
+      "fn": 409,
+      "fp": 3063,
+      "gt_rows_missing_bbox": 409,
+      "status": "PASS_COUNTS_AND_LOCALIZATION_REPRODUCED",
+      "tp": 3490
+    },
+    "ae64/u4/q0": {
+      "fn": 396,
+      "fp": 2927,
+      "gt_rows_missing_bbox": 396,
+      "status": "PASS_COUNTS_AND_LOCALIZATION_REPRODUCED",
+      "tp": 3503
+    },
+    "ae64/u4/q0.5": {
+      "fn": 387,
+      "fp": 2974,
+      "gt_rows_missing_bbox": 387,
+      "status": "PASS_COUNTS_AND_LOCALIZATION_REPRODUCED",
+      "tp": 3512
+    }
+  },
+  "repository": {
+    "assembler_path": "rl_agent/ue_split_catalog_proposal.py",
+    "assembler_sha256": "8949276d127e18d19b0a9e64cca98a3808b0f1c670902f00a3b8ca1f5eeee9d7",
+    "assembler_snapshot_path": "ASSEMBLER_SNAPSHOT.py",
+    "assembler_snapshot_sha256": "8949276d127e18d19b0a9e64cca98a3808b0f1c670902f00a3b8ca1f5eeee9d7",
+    "dirty": true,
+    "git_commit": "9624f812f82c309bdf5fad491aa9aa72007f229b"
+  },
+  "schema": "scenesense.ue_split_catalog_proposal_manifest.v1",
+  "service_contract": {
+    "id": "OBJECT_MAP_V1",
+    "quality_floor_id": "object_map_v1_normal_floor_v1",
+    "required_outputs": [
+      "vehicle_or_pedestrian_class",
+      "confidence_score",
+      "world_location_xy",
+      "source_capture_identity",
+      "valid_empty_vs_missing_update"
+    ],
+    "segmentation_role": "SECONDARY_NON_VETOING",
+    "world_location_semantics": "predicted_actor_reference_location_not_mask_centroid"
+  },
+  "verdict": "PASS_CANDIDATE_PROPOSAL_REVIEW_REQUIRED_NO_RUN_AUTHORITY"
+}

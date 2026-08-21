@@ -1,0 +1,12 @@
+{
+  "decision_state": "CANDIDATE_REVIEW_REQUIRED",
+  "eligible_action_count": null,
+  "manifest_sha256": "d88cbabeee74bf862d3b7743c0bf447fd08f42f9fcf13e119af7e2bb58191d42",
+  "measurement_authorized": false,
+  "next_action": "review_catalog_equivalence_and_difficult_evidence_before_final_N",
+  "no_run_authority": true,
+  "normal_candidate_count": 26,
+  "rescue_candidate_count": 1,
+  "schema": "scenesense.ue_split_catalog_candidate_review.v1",
+  "verdict": "PASS_CANDIDATE_PROPOSAL_REVIEW_REQUIRED_NO_RUN_AUTHORITY"
+}

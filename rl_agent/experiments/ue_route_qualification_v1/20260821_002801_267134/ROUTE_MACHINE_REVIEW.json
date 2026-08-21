@@ -1,0 +1,117 @@
+{
+  "created_at": "2026-08-21T00:29:09.914299+00:00",
+  "duration_spread_gate": {
+    "durations_s": [
+      62.3500009290874
+    ],
+    "median_s": null,
+    "pass": false,
+    "spread_fraction_of_median": null,
+    "spread_s": null
+  },
+  "manual_review_required_for_final_pass": false,
+  "orchestration_error": null,
+  "orchestration_traceback": null,
+  "run_gates": {
+    "all_trial_machine_gates": false,
+    "duration_spread_within_five_percent": false,
+    "exactly_three_independent_trials": false,
+    "no_orchestration_error": true
+  },
+  "schema": "scenesense.ue_route_machine_review.v1",
+  "status": "FAILED",
+  "trial_summaries": [
+    {
+      "cleanup": {
+        "cleanup_tick_error": null,
+        "owned_actor_ids": [
+          97,
+          98
+        ],
+        "pass": false,
+        "remaining_owned_actors": [
+          {
+            "actor_id": 97,
+            "type_id": "vehicle.lincoln.mkz"
+          },
+          {
+            "actor_id": 98,
+            "type_id": "sensor.other.collision"
+          }
+        ]
+      },
+      "collision_count": 0,
+      "collision_flush": {
+        "drained_unseen_collision_count": 0,
+        "error": null,
+        "flush_frame_id": 21766,
+        "flush_tick_count": 1,
+        "mailbox_count_after": 0,
+        "mailbox_count_before": 0,
+        "new_collision_rows": [],
+        "pass": true
+      },
+      "configured_control_rate_hz": 20.0,
+      "cross_track_p95_m": 0.9832271495652833,
+      "duration_s": 62.3500009290874,
+      "false_completion_count": 1,
+      "lap_count": 0,
+      "machine_gates": {
+        "absolute_cross_track": true,
+        "control_cadence": true,
+        "cross_track_p95": true,
+        "duration_below_limit": true,
+        "exactly_one_completed_lap": false,
+        "exactly_one_wrap_after_arming": false,
+        "final_collision_flush": true,
+        "monotonic_unique_world_frames": true,
+        "no_persistent_divergence": true,
+        "no_pose_jump": true,
+        "no_runtime_error": true,
+        "no_unexplained_stall": true,
+        "ordered_route_sequence": true,
+        "owned_actor_cleanup": false,
+        "return_heading": true,
+        "return_position": true,
+        "spawn_pose_exact": true,
+        "unwrapped_progress_95_to_110_percent": true,
+        "zero_collisions": true,
+        "zero_false_completion": false
+      },
+      "machine_status": "FAILED",
+      "maximum_continuous_divergence_s": 0.0,
+      "maximum_continuous_stall_s": 0.0,
+      "maximum_cross_track_m": 1.0535907208768955,
+      "maximum_sim_delta_error_s": 7.450580569168253e-10,
+      "maximum_tick_displacement_m": 0.2901825831282241,
+      "nonmonotonic_frame_count": 0,
+      "observed_sim_control_rate_hz": 19.99999970197678,
+      "return_heading_error_deg": 0.8861365765333176,
+      "return_position_error_m": 3.785165543608094,
+      "route_length_m": 338.0232545712883,
+      "runtime_error": null,
+      "runtime_traceback": null,
+      "sequence_error_count": 0,
+      "spawn_pose_audit": {
+        "heading_error_deg": 0.0,
+        "observed": {
+          "x_m": -3.973867654800415,
+          "y_m": 28.104215621948242,
+          "yaw_deg": 0.15919800102710724,
+          "z_m": 0.5999999642372131
+        },
+        "pass": true,
+        "position_error_m": 0.0
+      },
+      "stop_reason": "FALSE_COMPLETION_ATTEMPT",
+      "tick_count": 1247,
+      "trial_id": "trial_01",
+      "unwrapped_progress_m": 333.27119722980666,
+      "unwrapped_progress_ratio": 0.9859416259762701,
+      "wall_tick_p50_s": 0.0018294649198651314,
+      "wall_tick_p95_s": 0.005274208495393396,
+      "wrap_after_arming_count": 0,
+      "wrap_count": 0
+    }
+  ]
+}

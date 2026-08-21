@@ -1,0 +1,122 @@
+schema: scenesense.ue_split_catalog_decision.v1
+decision_id: ue_split_object_map_v1_floor_v1
+decision_status: approved_for_candidate_proposal
+approved_utc: 2026-08-20 04:02:17+00:00
+approved_by:
+- Abiodun
+- Codex
+supervisor_review_status: pending
+repository_root: ../..
+authority:
+  evidence_reuse_only: true
+  new_carla_run: false
+  new_oai_run: false
+  model_inference: false
+  model_training: false
+  policy_training: false
+  measurement_authorized: false
+  final_catalog_freeze: false
+parent_review:
+  path: rl_agent/experiments/ue_split_stage_a_v1/20260820_024055_review
+  manifest_sha256: 703fae3309732b143d40628415c1c6214bf0428a82816b379f76ba9500735574
+  marker_sha256: 08934796bdc2ca859816212f53cf27d1b088089df235252633d1bd653418c127
+  expected_verdict: PASS_EVIDENCE_ASSEMBLED_REVIEW_REQUIRED_NO_RUN_AUTHORITY
+service_contract:
+  id: OBJECT_MAP_V1
+  required_outputs:
+  - vehicle_or_pedestrian_class
+  - confidence_score
+  - world_location_xy
+  - source_capture_identity
+  - valid_empty_vs_missing_update
+  world_location_semantics: predicted_actor_reference_location_not_mask_centroid
+  segmentation_output_role: secondary_diagnostic
+  segmentation_metrics:
+  - miou
+  - iou_vehicle
+  - iou_person
+  segmentation_is_eligibility_veto: false
+quality_floor:
+  id: object_map_v1_normal_floor_v1
+  normal:
+    recall_vehicle_min: 0.9
+    recall_pedestrian_min: 0.85
+    precision_vehicle_min: 0.49
+    precision_pedestrian_min: 0.61
+    xy_mae_vehicle_max_m: 0.9
+    xy_mae_pedestrian_max_m: 1.2
+    fp_per_frame_max: 1.45
+  preferred_non_gating:
+    recall_vehicle_min: 0.91
+  roi_incremental_floor_id: prior_reference_exploratory
+  threshold_comparison: inclusive
+  interpretation: experimental_object_map_quality_preservation_not_deployment_safety
+degraded_rescue:
+  enabled: true
+  profile_id: ae32__u4__q0.9__zstd3__ckpt10cebbeede4d
+  display_profile_id: ae32/u4/q0.9
+  allowed_normal_gate_exceptions:
+  - recall_pedestrian_min
+  rescue_minimums:
+    recall_pedestrian_min: 0.84
+  activation_contract:
+    only_when_no_normal_action_physically_feasible: true
+    counts_as_normal_service_success: false
+    emits_service_debt: true
+    requires_network_feasibility: true
+    requires_final_evidence_review: true
+diagnostic_shortlist:
+  status: nonbinding_audit_priority_not_final_catalog
+  profiles:
+  - display_profile_id: ae64/u4/q0.7
+    role: compact_preferred_pending_high_roi_detail
+  - display_profile_id: ae32/u4/q0.5
+    role: compact_evidence_complete_fallback
+  - display_profile_id: ae32/u4/q0.3
+    role: mid_payload_localization_balanced
+  - display_profile_id: ae64/u4/q0.5
+    role: mid_payload_pedestrian_recall
+  - display_profile_id: ae128/u4/q0.3
+    role: high_object_quality_pedestrian_recall
+  - display_profile_id: ae64/u4/q0
+    role: secondary_segmentation_preserving_reference
+supplemental_object_detail:
+  range_basis: horizontal_camera_to_gt_world_xy
+  range_bins_m:
+  - id: near_0_15
+    min_inclusive: 0.0
+    max_exclusive: 15.0
+  - id: mid_15_30
+    min_inclusive: 15.0
+    max_exclusive: 30.0
+  - id: far_30_to_evaluator_limit
+    min_inclusive: 30.0
+    max_exclusive: null
+  small_object_status: unresolved_source_gt_absent_fn_boxes_missing
+  inputs:
+  - display_profile_id: ae32/u4/q0
+    path: experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae32__uint4__roi0.0/metrics/test_learned_object_metrics.csv
+    sha256: b1589eade9265de4a7d12897f487df97043db576ae67e554b36cb1d94dfdfa5d
+  - display_profile_id: ae32/u4/q0.3
+    path: experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae32__uint4__roi0.3/metrics/test_learned_object_metrics.csv
+    sha256: 62508803382794f9fc2ae5c8159f4e5fe61973e3fb23bb048e55a0a573bdf026
+  - display_profile_id: ae32/u4/q0.5
+    path: experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae32__uint4__roi0.5/metrics/test_learned_object_metrics.csv
+    sha256: 71ea8930f88c99dce39c930cdbd90adb75a1a793e812920e229cd8af1b9c61c8
+  - display_profile_id: ae64/u4/q0
+    path: experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae64__uint4__roi0.0/metrics/test_learned_object_metrics.csv
+    sha256: 2d2731386d203b8fbe75d9f4778ebb3fd82c13081ef46ad6f8d1fa5142b5954f
+  - display_profile_id: ae64/u4/q0.5
+    path: experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae64__uint4__roi0.5/metrics/test_learned_object_metrics.csv
+    sha256: 7a29e52219addbc1b4de397de2f940910ce5877c28c092fc26384ebad66a2109
+  - display_profile_id: ae128/u4/q0
+    path: experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae128__uint4__roi0.0/metrics/test_learned_object_metrics.csv
+    sha256: 1937138ec7e8cfdc166ae0773fb8f64a51e7ae96001771caec4c97a0e2f287da
+  - display_profile_id: ae128/u4/q0.3
+    path: experiments/ae_integrated_20260710/sweeps_permodel_zstd/ae128__uint4__roi0.3/metrics/test_learned_object_metrics.csv
+    sha256: b3aa3ff7d8254246e173372bf0e8070e59dd8504415174b578b9fbfdacbcb26d
+output:
+  root: rl_agent/experiments/ue_split_catalog_proposal_v1
+  decision_state: CANDIDATE_REVIEW_REQUIRED
+  write_completed_marker: false
+  eligible_action_count: null

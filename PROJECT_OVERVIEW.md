@@ -4,7 +4,7 @@
 have to reverse-engineer it from the folder (which holds many similar
 experiments/runs). For terse pointers + conventions see `CLAUDE.md`; for the
 historical measured design see `rl_agent/AGENT_CONSTRAINTS.md §9`; the sole
-current execution authority is `rl_agent/UE_AGENT_EXECUTION_CHECKLIST.md`.
+current execution authority is `rl_agent/UE_AGENT_EXECUTION_CHECKLIST_V2.md`.
 
 **What this is.** Abiodun's research thread (IDCC × NEU): a UE-side, **network-aware split-inference RL
 controller** for RGB+radar fusion cooperative perception. A car runs a front backbone, compresses features,
@@ -61,12 +61,13 @@ delivers 100 % at every rung.** Collapse is pure congestion (BSR pins ~48 MiB), 
 control law **`payload_budget(SNR) = capacity(SNR) / fps`**. (`channel_condition_sweep/CHANNEL_SWEEP_RESULTS.md`
 + `combined_surface.csv` + `plots/`.)
 
-**Phase 7 — NOW: causal UE-controller closure (scope reset 2026-08-19).**
-Freeze the single-UE SPLIT/LOCAL/SKIP contract, fill only the missing LOCAL
-table, build the causal table-driven surrogate, and run the simplest-controller
-ladder. RL remains conditional on a measured temporal gap. Start and mark
-progress only in `rl_agent/UE_AGENT_EXECUTION_CHECKLIST.md`. Helper-recipient
-map sharing is parked for later Phase 2.
+**Phase 7 — NOW: single-UE split characterization (scope reset 2026-08-20).**
+Qualify one repeatable route, calibrate saved 100-ms OAI SNR traces, validate
+authoritative map-install feedback, and characterize all 72 measured split
+actions across four time-varying network profiles. Use the resulting table to
+design simple baselines before RL or SKIP/LOCAL expansion. Start and mark
+progress only in `rl_agent/UE_AGENT_EXECUTION_CHECKLIST_V2.md`.
+Helper-recipient map sharing is parked for later Phase 2.
 
 ## Dead-ends / superseded (do NOT revisit or be confused by)
 - Standalone **detection head** — dead end (F1 ~0.35). Feature-sharing + fusion is the path.
@@ -80,7 +81,7 @@ map sharing is parked for later Phase 2.
 
 ## Navigating the folder (what matters for THIS project)
 - `PROJECT_OVERVIEW.md` (this), `CLAUDE.md` — orientation.
-- `rl_agent/` — the agent: `UE_AGENT_EXECUTION_CHECKLIST.md` (start here),
+- `rl_agent/` — the agent: `UE_AGENT_EXECUTION_CHECKLIST_V2.md` (start here),
   `state_diagram.md` (current UE-only loop), `AGENT_CONSTRAINTS.md` (§9
   historical measured design), `POLICY_KICKOFF.md` (measured-input background),
   `PERMODEL_KNOB_MATRIX_ZSTD.md`, `density_knob/`, `feature_ae/` (AE checkpoints).
