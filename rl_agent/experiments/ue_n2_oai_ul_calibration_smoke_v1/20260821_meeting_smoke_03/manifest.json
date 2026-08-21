@@ -1,0 +1,57 @@
+{
+  "completed_at": "2026-08-21T11:24:03.320027-07:00",
+  "config_path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/configs/ue_n2_oai_ul_calibration_smoke_v1.json",
+  "config_sha256": "cbf4817fb3e16e2e0600a010403f46f0fd0b9ce7773acd6b0a7d05cb305a4d98",
+  "control_session_id": "bb61ad63-54ac-40b2-9951-112bb5b13683",
+  "created_at": "2026-08-21T11:23:01.512246-07:00",
+  "outputs": [
+    {
+      "bytes": 1470,
+      "path": "channel_state_restored_failure_cleanup.txt",
+      "sha256": "d42722e503e8af1d21448d22b05587f997fb05427db7d30617392d4774f68593"
+    },
+    {
+      "bytes": 184,
+      "path": "cleanup_report.json",
+      "sha256": "b56dbab055825178ab347e0e063715dd4896cee1bf8cb582a74e783a3fa94f6a"
+    },
+    {
+      "bytes": 8,
+      "path": "command_log.csv",
+      "sha256": "7703741f562b3f2c276fc35a9aba6f2de114df21e80f56ebf257cdb5ea03115c"
+    },
+    {
+      "bytes": 56558,
+      "path": "logs/gnb.log",
+      "sha256": "a16c58a7087d5cac3c2f5ebff6f18f69922768656390f1316d5eabd068560e32"
+    },
+    {
+      "bytes": 23998,
+      "path": "logs/ue.log",
+      "sha256": "5bac412343b161e84dbe100036a603dcb55151c8a4fe8eab5f5dc13e8cbe6d69"
+    },
+    {
+      "bytes": 5018,
+      "path": "resolved_config.json",
+      "sha256": "b8a968f6f541af85021ad5f1d2066e21d5de426ca51a38a10f700b1fa366aa0d"
+    },
+    {
+      "bytes": 265,
+      "path": "runtime/config_hashes.json",
+      "sha256": "ab0f20af4c38a5a1dfc30821fbb919576dc89c353385561310ca77a04e428d78"
+    },
+    {
+      "bytes": 10170,
+      "path": "runtime/effective_gnb_clean_minus50.conf",
+      "sha256": "a3c2140dceb28aee34865ddd28fa6ffeae69abd8bfd59dfdb97083847d981d22"
+    },
+    {
+      "bytes": 1166,
+      "path": "runtime/effective_ue_clean_minus50.conf",
+      "sha256": "ab06afcc1cfc2bb777fa35973811aaad655032f6541e1b4565541cac9cc04f97"
+    }
+  ],
+  "ran_epoch_id": "9a4349a7-509e-4490-81ac-b5276d978bc7",
+  "schema": "scenesense.ue_n2_oai_ul_calibration_smoke_manifest.v1",
+  "status": "FAILED"
+}

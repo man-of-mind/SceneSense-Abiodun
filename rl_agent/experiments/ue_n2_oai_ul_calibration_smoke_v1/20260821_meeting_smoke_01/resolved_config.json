@@ -1,0 +1,151 @@
+{
+  "actuator": {
+    "channel_model_name": "rfsimu_channel_ue0",
+    "channel_model_owner": "rfsimulator",
+    "channel_model_type": "AWGN",
+    "clean_and_restore_commanded_noise_power_db": "-50",
+    "connect_timeout_s": 15.0,
+    "max_response_bytes": 1048576,
+    "path_loss_db": 0.0,
+    "prompt_suffix": "softmodem_gnb> ",
+    "response_timeout_s": 2.0,
+    "telnet_host": "127.0.0.1",
+    "telnet_port": 9090
+  },
+  "analysis": {
+    "direct_ul_bler_zero_fill_authorized": false,
+    "first_effect_consecutive_samples": 3,
+    "first_effect_method_id": "DIRECTIONAL_ROLLING_MEDIAN_3_V1",
+    "first_effect_min_change_db": 1.0,
+    "first_effect_pre_samples": 5,
+    "minimum_accepted_pusch_observations_for_settled_ema": 120,
+    "settled_tail_s": 1.0
+  },
+  "authority": {
+    "bounded_single_ue_oai_smoke_authorized": true,
+    "carla_run_authorized": false,
+    "full_profile_sweep_authorized": false,
+    "numeric_bound_promotion_authorized": false,
+    "policy_training_authorized": false
+  },
+  "capture": {
+    "minimum_clean_pusch_samples": 5,
+    "recorder_duration_s": 40.0,
+    "recorder_lead_s": 0.75,
+    "sender_cooldown_s": 2.0,
+    "sender_frames": 300,
+    "sender_idle_before_s": 0.0,
+    "sink_timeout_s": 5.0
+  },
+  "experiment_id": "ue_n2_oai_ul_calibration_smoke_v1",
+  "output": {
+    "command_log": "command_log.csv",
+    "joined_observations": "joined_observations.csv",
+    "manifest": "manifest.json",
+    "meeting_summary_json": "meeting_summary.json",
+    "meeting_summary_md": "meeting_summary.md",
+    "next_checklist_item": "UE-N3",
+    "plateau_summary": "plateau_summary.csv",
+    "raw_radio_events": "raw_radio_events.jsonl",
+    "resolved_config": "resolved_config.json",
+    "terminal_failure": "FAILED.json",
+    "terminal_success": "UE_N2_SMOKE_CAPTURED.json"
+  },
+  "paths": {
+    "channel_config": "channelmod_rfsimu.conf",
+    "gnb_base_config": "gnb.sa.band78.fr1.106PRB.usrpb210.conf",
+    "oai_cn_dir": "OAI/oai-cn5g",
+    "oai_ran_build": "OAI/openairinterface5g/cmake_targets/ran_build/build",
+    "oai_ran_conf": "OAI/openairinterface5g/targets/PROJECTS/GENERIC-NR-5GC/CONF",
+    "output_root": "rl_agent/experiments/ue_n2_oai_ul_calibration_smoke_v1",
+    "python": "/home/shr_aisvcs/workarea/carla_0_10_env/carla_0_10_venv/bin/python3",
+    "t_messages": "OAI/openairinterface5g/common/utils/T/T_messages.txt",
+    "ue_base_config": "ue.conf"
+  },
+  "predecessor": {
+    "bundle_dir": "rl_agent/registries/ue_n1_oai_ul_actuator_interface_v2",
+    "manifest_json": "manifest.json",
+    "manifest_sha256": "0a53d754fc8e16d291dc63fe971f2749e3c0965b385b88910229fdc002a18987",
+    "required_next": "UE-N2",
+    "required_status": "FROZEN_INTERFACE_ONLY",
+    "terminal_json": "UE_N1_INTERFACE_V2_FROZEN.json",
+    "terminal_sha256": "0a521058bae085bec42b60ba57540ceaea5a7cf7bc2d2fa315f698812b018e99"
+  },
+  "radio": {
+    "attach_timeout_s": 180.0,
+    "band": 78,
+    "core_containers": [
+      "oai-amf",
+      "oai-smf",
+      "oai-upf",
+      "oai-ext-dn"
+    ],
+    "downlink_frequency_hz": 3619200000,
+    "expected_imsi": "001010000000001",
+    "ext_dn_ip": "192.168.70.135",
+    "force_ul_mcs_must_be_unset": true,
+    "global_noise_parameter_must_be_unset": "noise_power_dBFS",
+    "gnb_start_lead_s": 5.0,
+    "mcs_policy": "sinr",
+    "numerology": 1,
+    "power_control_target_x10": 150,
+    "prb": 106,
+    "slots_per_frame": 20,
+    "ue_count": 1,
+    "ue_interface": "oaitun_ue1"
+  },
+  "repository_root": "../..",
+  "schedule": {
+    "catch_up_policy": "SKIP_OBSOLETE_NEVER_BURST",
+    "commanded_noise_plateaus_db": [
+      "-10",
+      "-8",
+      "-5",
+      "-4"
+    ],
+    "commands_per_plateau": 30,
+    "desired_achieved_pusch_snr_db": null,
+    "numeric_range_semantics": "HISTORICAL_ATTACH_SAFE_PROBE_RANGE_NOT_PROMOTED_BOUND",
+    "period_ns": 100000000,
+    "plateau_duration_s": 3.0
+  },
+  "schema": "scenesense.ue_n2_oai_ul_calibration_smoke_config.v1",
+  "telemetry": {
+    "collector_tail_s": 1.0,
+    "connect_timeout_s": 15.0,
+    "direct_ul_bler_status": "UNAVAILABLE_UNRESOLVED",
+    "events": {
+      "gnb": [
+        "GNB_MAC_PUSCH_POWER_CONTROL",
+        "GNB_MAC_UL_MCS_DECISION",
+        "GNB_MAC_UL",
+        "GNB_MAC_BLER_MCS_DECISION"
+      ],
+      "ue": [
+        "NRUE_MAC_DCI_GRANT",
+        "NRUE_MAC_RLC_BUFFER_STATUS",
+        "NRUE_MAC_BSR_STATUS"
+      ]
+    },
+    "gnb_host": "127.0.0.1",
+    "gnb_port": 2021,
+    "gnb_relay_port": 2031,
+    "policy_observation_binding": "COLLECTOR_EVIDENCE_ONLY_NOT_UE_POLICY_AVAILABLE",
+    "ue_host": "127.0.0.1",
+    "ue_port": 2023,
+    "ue_relay_port": 2033
+  },
+  "traffic": {
+    "bind_host": "10.0.0.2",
+    "chunk_bytes": 60000,
+    "expected_chunks_per_frame": 1,
+    "fps": 10.0,
+    "frame_bytes": 25000,
+    "fresh_pusch_timeout_s": 15.0,
+    "method": "CARLA_SHAPED_UDP_10HZ",
+    "offered_payload_mbps": 2.0,
+    "remote_port": 56120,
+    "sender_path": "oai_layer_latency/carla_shaped_udp_burst_sender.py",
+    "sink_path": "bursty_traffic/udp_sink.py"
+  }
+}

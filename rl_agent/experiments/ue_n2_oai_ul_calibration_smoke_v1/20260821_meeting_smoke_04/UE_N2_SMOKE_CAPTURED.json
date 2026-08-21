@@ -1,0 +1,10 @@
+{
+  "causal_first_effect_status": "UNAVAILABLE_STOCK_TRACER_LIMITATION",
+  "clean_restore_verified": true,
+  "evidence_class": "PARTIAL_EVIDENCE",
+  "full_raw_event_envelope_satisfied": false,
+  "manifest_sha256": "06fff3a60c14cce5ed3a1dc57d2b1bea5af73bb39fb894d674442f24830d68c6",
+  "meeting_summary": "meeting_summary.md",
+  "next": "UE-N3",
+  "status": "UE_N2_SMOKE_CAPTURED_PARTIAL_EVIDENCE"
+}

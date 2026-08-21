@@ -1,0 +1,56 @@
+{
+  "audit_id": "continuous_roi_control_audit_v1/20260820_203411",
+  "audit_split": {
+    "block_overlap": 0,
+    "identifier_overlap": 0,
+    "test_frames": 1324,
+    "validation_frames": 838
+  },
+  "controller_recommendation": "KEEP_MEASURED_DISCRETE_Q_ANCHORS",
+  "dense_inference_started": false,
+  "existing_anchor_diagnostics": {
+    "branches": 12,
+    "in_distribution_ordering_crossings": 117,
+    "minimum_frame_paired_payload_nonincrease_fraction": 1.0,
+    "payload_monotone_branches": 12
+  },
+  "measured_profiles_complete": 72,
+  "missing_evidence": [
+    "13 unmeasured planned q points",
+    "dense midpoint interpolation",
+    "0.05-step local discontinuity tests",
+    "q gate and serialization latency",
+    "original dataset files",
+    "CUDA device"
+  ],
+  "next_experiment": {
+    "branch": "ae64/uint6",
+    "frames": 838,
+    "profile_frame_evaluations": 15922,
+    "q_points": 19,
+    "split": "audit_validation"
+  },
+  "planned_dense_profile_frames": 492936,
+  "planned_dense_profiles": 228,
+  "promotion_allowed": false,
+  "structural_action": {
+    "coincident_transition_count": 0,
+    "high_only_transition_count": 1037,
+    "in_distribution_interval": [
+      0.0,
+      0.8
+    ],
+    "joint_plateau_count": 5185,
+    "joint_transition_count_open_interval": 5184,
+    "low_only_transition_count": 4147,
+    "maximum_plateau_width_q": 0.00019290123456790122,
+    "minimum_plateau_width_q": 9.645061728395061e-05,
+    "n_high": 1296,
+    "n_low": 5184,
+    "not_a_score_threshold": true,
+    "q_one_forbidden": true,
+    "rounding": "Python round, ties to even",
+    "semantics": "drop round(q*N) lowest-ranked objectness cells independently at native low/high resolutions"
+  },
+  "terminal": "INSUFFICIENT_EVIDENCE"
+}

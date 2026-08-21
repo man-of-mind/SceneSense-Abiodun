@@ -1,0 +1,8 @@
+{
+  "clean_restore_verified": false,
+  "cleanup_errors": [],
+  "error": "[Errno 2] No such file or directory: '/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/experiments/ue_n2_oai_ul_calibration_smoke_v1/20260821_meeting_smoke_01/logs/gnb.log'",
+  "error_type": "FileNotFoundError",
+  "failed_at": "2026-08-21T11:17:42.813142-07:00",
+  "status": "FAILED"
+}

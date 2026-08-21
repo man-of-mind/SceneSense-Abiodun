@@ -1,0 +1,572 @@
+{
+  "actuator": {
+    "canonical_command_field": "commanded_noise_power_db",
+    "channel_model_name": "rfsimu_channel_ue0",
+    "channel_model_owner": "rfsimulator",
+    "channel_model_type": "AWGN",
+    "command_value_lexical_contract": "FINITE_CANONICAL_BASE10_DECIMAL_STRING_NO_EXPONENT_WHITESPACE_OR_CONTROL_CHARACTERS_AND_FINITE_OAI_BINARY32_STORAGE",
+    "command_value_semantics": "RFSIM_NOISE_CONTROL_NOT_TARGET_OR_ACHIEVED_SNR",
+    "fixed_path_loss_db": 0,
+    "fixed_path_loss_parameter": "ploss",
+    "global_noise_parameter": "noise_power_dBFS",
+    "global_noise_requirement": "UNSET",
+    "hardcoded_model_index_authorized": false,
+    "model_index_binding": "RESOLVE_EXACT_NAME_EACH_GNB_CONTROL_SESSION",
+    "modify_command_template": "channelmod modify {resolved_model_index} noise_power_dB {commanded_noise_power_db}",
+    "oai_atof_is_input_validation": false,
+    "oai_mutable_parameter": "noise_power_dB",
+    "prohibited_channel_model_names": [
+      "rfsimu_channel_enB0",
+      "rfsimu_channel_enB1",
+      "rfsimu_channel_ue1"
+    ],
+    "resolution_command": "channelmod show current",
+    "subsystem": "OAI_RFSIM_CHANNELMOD"
+  },
+  "attach_lifecycle": {
+    "initial_and_restore_commanded_noise_power_db": "-50",
+    "n2_effective_runtime_config_requirement": "CREATE_HASH_AND_RECORD_EFFECTIVE_CONFIG_OR_EXACT_OVERRIDE_AND_ARGV",
+    "pre_attach_show_current_required_noise_power_db": -50,
+    "restore_on_failure": true,
+    "restore_on_normal_shutdown": true,
+    "runtime_command_gate": [
+      "UE_ATTACHED_CURRENT_SESSION",
+      "OAITUN_UE1_PRESENT",
+      "REACHABILITY_PASS",
+      "UPLINK_TRAFFIC_ACTIVE",
+      "TELEMETRY_RECORDER_READY",
+      "EXACT_ACTIVE_UL_CHANNEL_OBJECT_VALIDATED",
+      "FRESH_CURRENT_SESSION_PUSCH_OBSERVATION_PRESENT"
+    ],
+    "source_template_initial_noise_power_db": -10,
+    "source_template_is_effective_runtime_config": false,
+    "tunnel_presence_alone_is_sufficient": false
+  },
+  "authority": {
+    "carla_run_authorized": false,
+    "interface_freeze_only": true,
+    "launcher_or_runtime_edit_authorized": false,
+    "numeric_bounds_authorized": false,
+    "numeric_calibration_authorized": false,
+    "oai_run_authorized": false,
+    "policy_training_authorized": false,
+    "socket_execution_authorized": false
+  },
+  "calibration": {
+    "attach_safe_achieved_snr_bounds_db": "NOT_DEFINED_UE_N1",
+    "command_latency_or_jitter_bounds": "NOT_DEFINED_UE_N1",
+    "commanded_noise_operating_bounds_db": "NOT_DEFINED_UE_N1",
+    "desired_achieved_pusch_snr_to_commanded_noise_mapping": "NOT_DEFINED_UE_N1",
+    "desired_to_measured_achieved_error_or_lag": "NOT_DEFINED_UE_N1",
+    "status": "NOT_PERFORMED_INTERFACE_ONLY"
+  },
+  "causal_classification": {
+    "collector_evidence_is_ue_policy_observation": false,
+    "control_and_evaluation_only_fields": [
+      "desired_achieved_pusch_snr_db",
+      "commanded_noise_power_db"
+    ],
+    "control_fields_in_policy_state_authorized": false,
+    "future_trace_values_in_policy_state_authorized": false,
+    "ground_truth_in_policy_state_authorized": false,
+    "post_action_collector_evidence_fields": [
+      "gnb_mac_normalized_pusch_snr_db",
+      "scheduler_ema_snr_db",
+      "selected_mcs",
+      "final_mcs",
+      "grant_tbs",
+      "queue_state",
+      "radio_outcome"
+    ]
+  },
+  "command_timing": {
+    "first_effect_semantics": "MEASURED_STEP_RESPONSE_ESTIMATE_NOT_COMMAND_APPLICATION_TIMESTAMP",
+    "n2_first_effect_fields": [
+      "first_effect_detection_status",
+      "first_effect_method_id",
+      "first_effect_source_event_index",
+      "first_effect_source_event_timestamp_ns",
+      "first_effect_collector_ingest_monotonic_ns",
+      "first_effect_lag_estimate_ns"
+    ],
+    "post_command_observation_semantics": "FIRST_CAUSALLY_LATER_PUSCH_IS_CANDIDATE_NOT_PROOF_OF_NEW_CHANNEL_APPLICATION",
+    "prohibited_fields": [
+      "command_applied_at",
+      "command_applied_at_ns",
+      "application_timestamp_ns"
+    ],
+    "required_fields": [
+      "trace_id",
+      "trace_index",
+      "desired_achieved_pusch_snr_db",
+      "commanded_noise_power_db",
+      "scheduled_monotonic_ns",
+      "send_monotonic_ns",
+      "send_wall_time_ns",
+      "response_received_monotonic_ns",
+      "response_received_wall_time_ns",
+      "control_session_id",
+      "resolved_model_index",
+      "resolved_model_name",
+      "resolved_model_owner",
+      "resolved_model_type",
+      "show_current_response_sha256",
+      "response_text_sha256",
+      "echoed_owner",
+      "echoed_noise_power_db",
+      "echoed_path_loss_db",
+      "status"
+    ],
+    "response_received_semantics": "ACK_UPPER_BOUND_FOR_CHANNELMOD_HANDLER_COMPLETION_NOT_RF_APPLICATION_TIME",
+    "send_time_semantics": "LOWER_BRACKET_FOR_CHANNELMOD_HANDLER_COMPLETION"
+  },
+  "contract": {
+    "path": "rl_agent/UE_N1_OAI_UL_ACTUATOR_INTERFACE_CONTRACT_V2.md",
+    "sha256": "8f9fca74e8162327e91430fef58b0ba5ef832811fa6a1dde8908c4829cb73c03"
+  },
+  "control_transport": {
+    "cleanup_success_can_change_failed_to_pass": false,
+    "connection_loss_trace_result": "FAILED",
+    "fail_closed_conditions": [
+      "CONTROL_ERROR",
+      "MISSING_OR_DUPLICATE_MODEL_NAME",
+      "UNEXPECTED_OWNER_OR_TYPE",
+      "NONZERO_PATH_LOSS",
+      "GLOBAL_NOISE_CONFIGURED",
+      "RESPONSE_OR_ECHO_MISMATCH",
+      "CONNECTION_LOST"
+    ],
+    "host": "127.0.0.1",
+    "modify_response_echoes_model_name_or_index": false,
+    "n2_connection_lifecycle": "ONE_PERSISTENT_CONNECTION_PER_TRACE",
+    "port": 9090,
+    "post_loss_reconnect_scope": "BEST_EFFORT_RESTORE_CLEAN_ONLY",
+    "protocol": "TELNET",
+    "reconnect_per_command_authorized": false,
+    "resolution_binding_lifetime": "CONTROL_SESSION_ID",
+    "response_requirement": "FULL_RESPONSE_AND_PROMPT_WITH_MATCHING_OWNER_PATHLOSS_NOISE_ECHO_AND_NO_ERROR",
+    "server_process": "GNB"
+  },
+  "interface_id": "ue_n1_oai_ul_actuator_interface_v2",
+  "mechanism_evidence": {
+    "cadence_claimed": false,
+    "claim": "TWO_UE_CHANNELMOD_READ_MODIFY_READ_MECHANISM_ONLY",
+    "files": {
+      "failed_terminal": {
+        "path": "rl_agent/multiue_oai/experiments/runtime_switch_smoke_fix2_20260813_1709_pdt/FAILED.json",
+        "sha256": "43a8ae406d05e36d79d6fde237e8094322176437021ef3023bf57d3af56e1278"
+      },
+      "results_summary": {
+        "path": "rl_agent/multiue_oai/experiments/runtime_switch_smoke_fix2_20260813_1709_pdt/results_summary.json",
+        "sha256": "43a8ae406d05e36d79d6fde237e8094322176437021ef3023bf57d3af56e1278"
+      },
+      "runtime_switch": {
+        "path": "rl_agent/multiue_oai/experiments/runtime_switch_smoke_fix2_20260813_1709_pdt/blocks/RUNTIME_SWITCH_R1/runtime_channel_switch.json",
+        "sha256": "9cb15dcd08ed7e5cb9be52c1584117e44557e42111e4a999f22f1e3b3699228d"
+      }
+    },
+    "numeric_bound_claimed": false,
+    "overall_experiment_status": "FAILED_HOLD",
+    "single_ue_calibration_claimed": false
+  },
+  "oai_revision": {
+    "branch": "scenesense-nrue-grant-trace",
+    "dirty_tree_at_freeze": true,
+    "git_head": "7473cdb52e1cf3c40e1e1f189f03b2785bf15610",
+    "revision_authority": "EXACT_FILE_AND_RUNTIME_ARTIFACT_HASHES_COMMIT_ALONE_IS_INSUFFICIENT"
+  },
+  "output": {
+    "manifest_json": "manifest.json",
+    "next_checklist_item": "UE-N2",
+    "report_md": "REPORT.md",
+    "resolved_config_json": "resolved_config.json",
+    "root": "rl_agent/registries/ue_n1_oai_ul_actuator_interface_v2",
+    "terminal_json": "UE_N1_INTERFACE_V2_FROZEN.json",
+    "terminal_status": "FROZEN_INTERFACE_ONLY"
+  },
+  "policy_availability": {
+    "admission_predicate": "policy_observation_available_monotonic_ns <= decision_cutoff_monotonic_ns AND observation.ran_epoch_id == decision.ran_epoch_id AND observation.control_session_id == decision.control_session_id",
+    "availability_must_be_measured_non_null": true,
+    "collector_ingest_is_policy_availability": false,
+    "feedback_path_must_be_ue_visible_and_measured": true,
+    "required_future_fields": [
+      "feedback_path_id",
+      "policy_observation_available_monotonic_ns",
+      "decision_cutoff_monotonic_ns",
+      "ran_epoch_id",
+      "control_session_id"
+    ],
+    "status": "UNBOUND_UNTIL_MEASURED_UE_VISIBLE_FEEDBACK_PATH"
+  },
+  "predecessor": {
+    "bundle_dir": "rl_agent/registries/ue_split_technical_registry_v1",
+    "checklist_item": "UE-A4",
+    "manifest_json": "manifest.json",
+    "manifest_sha256": "ea044dcc31632f3729f9ddae11311ab980598c6120f1aacad09034bd32698128",
+    "registry_csv": "ue_split_technical_registry.csv",
+    "registry_sha256": "6de6e88e6c03abcef4a907dc9bea367938f99cc34f0161497df9901f840daec4",
+    "required_next": "UE-N1",
+    "required_profiles": 72,
+    "required_status": "FROZEN",
+    "terminal_json": "UE_A4_TECHNICAL_REGISTRY_FROZEN.json",
+    "terminal_sha256": "c52100190c6b82bfb626242d1edcf032b839fa862f20a51c38603a5dee718fa7"
+  },
+  "raw_event_envelope": {
+    "collector_ingest_clock": "SEPARATE_WALL_AND_MONOTONIC",
+    "forward_fill_authorized": false,
+    "frame_slot_alone_authorized": false,
+    "frame_slot_wrap_period_s": 10.24,
+    "missing_numeric_value": null,
+    "missing_pusch_semantics": "MISSING_UNRESOLVED_NOT_DTX_WITHOUT_DTX_EVIDENCE",
+    "missing_reason_codes": [
+      "NO_MATCHING_EVENT_IN_WINDOW",
+      "TELEMETRY_RECORDER_NOT_READY",
+      "TRACE_GAP_OR_DROP",
+      "RAN_EPOCH_OR_RNTI_JOIN_UNRESOLVED",
+      "UL_OUTCOME_SOURCE_UNBOUND",
+      "OTHER_EXPLICIT"
+    ],
+    "missing_reason_required_when_value_absent": true,
+    "required_fields": [
+      "ran_epoch_id",
+      "control_session_id",
+      "source_event_id",
+      "source_event_index",
+      "source_event_realtime_sec",
+      "source_event_realtime_nsec",
+      "source_event_timestamp_ns",
+      "rnti",
+      "frame",
+      "slot",
+      "unwrapped_absolute_slot",
+      "collector_ingest_wall_time_ns",
+      "collector_ingest_monotonic_ns",
+      "raw_event_sha256",
+      "missing_reason_code"
+    ],
+    "source_event_index_scope": "STRICTLY_MONOTONIC_WITHIN_RAN_EPOCH",
+    "source_timestamp_clock": "CLOCK_REALTIME",
+    "zero_fill_authorized": false
+  },
+  "repository_root": "../..",
+  "runtime_artifacts": {
+    "authority": "CURRENT_ARTIFACT_SEALS_ONLY_REVERIFY_AT_UE_N2_PREFLIGHT",
+    "execution_claimed": false,
+    "files": {
+      "gnb_softmodem": {
+        "path": "OAI/openairinterface5g/cmake_targets/ran_build/build/nr-softmodem",
+        "sha256": "01489dfb141f6e67ecfb9423a75f5c83a90b5df3c06d3aca318b43db3f554a35"
+      },
+      "rfsimulator_library": {
+        "path": "OAI/openairinterface5g/cmake_targets/ran_build/build/librfsimulator.so",
+        "sha256": "e61a78176a4c42097183bf4ff89aead1943469a7f0110afa0ec1d0171ae79bfd"
+      },
+      "telnet_server_library": {
+        "path": "OAI/openairinterface5g/cmake_targets/ran_build/build/libtelnetsrv.so",
+        "sha256": "28a2961df5883a6dbe71fcacb8a424931965221de7f443d0fecb51bd032f09cb"
+      },
+      "ue_softmodem": {
+        "path": "OAI/openairinterface5g/cmake_targets/ran_build/build/nr-uesoftmodem",
+        "sha256": "7cdeee94de55da8b2ae1bf76fd934136f2140133d4c35a1fe345b0cb097be807"
+      }
+    }
+  },
+  "schedule": {
+    "catch_up_policy": "NEVER_BURST_OBSOLETE_COMMANDS",
+    "clock": "time.monotonic_ns",
+    "formula": "anchor_monotonic_ns + trace_index * 100000000",
+    "numeric_lateness_or_jitter_acceptance": "NOT_DEFINED_UE_N1",
+    "period_ms": 100,
+    "relative_to_actual_completion": false,
+    "strictly_monotonic": true,
+    "trace_index_contract": "UNIQUE_CONTIGUOUS_ZERO_BASED"
+  },
+  "scheduler": {
+    "band": 78,
+    "force_mcs_environment": "SCENESENSE_FORCE_UL_MCS",
+    "force_mcs_requirement": "UNSET",
+    "mcs_table": 0,
+    "numerology": 1,
+    "policy_environment": "SCENESENSE_MCS_POLICY",
+    "policy_value": "sinr",
+    "power_control_target_parameter": "pusch_TargetSNRx10",
+    "power_control_target_semantics": "FIXED_OAI_UE_POWER_CONTROL_TARGET_NOT_DESIRED_ACHIEVED_PUSCH_SNR_TRACE",
+    "power_control_target_value_x10": 150,
+    "resource_blocks": 106,
+    "scheduler_ema_constant": 0.975,
+    "scheduler_ema_is_instantaneous": false,
+    "selected_mcs_may_differ_from_final_mcs": true,
+    "ul_layers": 1
+  },
+  "schema": "scenesense.ue_n1_oai_ul_actuator_interface_config.v2",
+  "scope": {
+    "direction": "UPLINK_ONLY",
+    "downlink_actuation_authorized": false,
+    "multi_ue_actuation_authorized": false,
+    "rf_simulator_server_role": "GNB",
+    "ue_count": 1
+  },
+  "signal_contract": {
+    "commanded_noise_power_db": "EXPERIMENT_CONTROL_EVALUATION_ONLY_RFSIM_NOISE_POWER_DB_VALUE_NOT_POLICY_OBSERVATION",
+    "cqi_domain_pusch_snr_db": "GNB_MAC_PUSCH_POWER_CONTROL.(snrx10_PLUS_10_TIMES_txpower_calc)_DIV_10_QUANTIZED_0P5DB_AND_CENSORED_AT_UL_CQI_SATURATION",
+    "desired_achieved_pusch_snr_db": "EXPERIMENT_CONTROL_EVALUATION_ONLY_NOT_POLICY_OBSERVATION_OR_RADIO_TRUTH",
+    "final_mcs": "GNB_MAC_UL_MCS_DECISION.final_mcs",
+    "gnb_mac_normalized_pusch_snr_db": "GNB_MAC_PUSCH_POWER_CONTROL.snrx10_DIV_10_NOT_RAW_PHY_SNR",
+    "oai_pusch_TargetSNRx10": "FIXED_UE_POWER_CONTROL_TARGET_NOT_EXPERIMENT_TRACE",
+    "scheduler_ema_snr_db": "GNB_MAC_UL_MCS_DECISION.avg_snr_x10_DIV_10",
+    "selected_mcs": "GNB_MAC_UL_MCS_DECISION.selected_mcs"
+  },
+  "sources": {
+    "channel_descriptor": {
+      "path": "OAI/openairinterface5g/openair1/SIMULATION/TOOLS/sim.h",
+      "sha256": "61e22f2da38a0adbcad4a73f81f8859132861f6037c6672b1bc79f6c91244b30"
+    },
+    "channelmod_documentation": {
+      "path": "OAI/openairinterface5g/openair1/SIMULATION/TOOLS/DOC/channel_simulation.md",
+      "sha256": "36f9a2ada64bae2fad3c42198d273473093dbd937bf911b9a1cb483dc9f0cebb"
+    },
+    "channelmod_parser": {
+      "path": "OAI/openairinterface5g/openair1/SIMULATION/TOOLS/random_channel.c",
+      "sha256": "1d4cae0caba965a8989efab2b26eb56c27895d24db93020cf6baa7ba215f3cdc"
+    },
+    "existing_control_helper": {
+      "path": "rl_agent/multiue_oai/runner.py",
+      "sha256": "2243022ade56ecd8b2b12e3305ac58b8a1218aa7df31e1fcdb168ac80985f749"
+    },
+    "gnb_radio_config": {
+      "path": "OAI/openairinterface5g/targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb.sa.band78.fr1.106PRB.usrpb210.conf",
+      "sha256": "71bfab4e610580013a919dd22fbf04cd874edb5e059366261d7e513c93b016f4"
+    },
+    "phy_pusch_snr": {
+      "path": "OAI/openairinterface5g/openair1/SCHED_NR/phy_procedures_nr_gNB.c",
+      "sha256": "6e2068f17d97f05aede6ed216d83b23de28463b1112aa06c4e738f3720e8cce4"
+    },
+    "rfsim_channel_application": {
+      "path": "OAI/openairinterface5g/radio/rfsimulator/apply_channelmod.c",
+      "sha256": "d87fb051292bdb7da91cac2358110f6d0df8a06652cf106c71a2ad5d31fdf6f8"
+    },
+    "rfsim_channel_binding": {
+      "path": "OAI/openairinterface5g/radio/rfsimulator/simulator.cpp",
+      "sha256": "8d78932b06903344d4a137bdafb5729173b40a98330116d1609a0abca0315c3a"
+    },
+    "rfsim_channel_config": {
+      "path": "OAI/openairinterface5g/targets/PROJECTS/GENERIC-NR-5GC/CONF/channelmod_rfsimu.conf",
+      "sha256": "a47ade413b36ecf66f6df666bead124974705636cb134dd09a539b34bce7d760"
+    },
+    "scheduler_mapping_and_ema": {
+      "path": "OAI/openairinterface5g/openair2/LAYER2/NR_MAC_gNB/gNB_scheduler_primitives.c",
+      "sha256": "b29e9235bcc212de3e07b768af28e4d19269c6e47ab38f022325c41fb302206f"
+    },
+    "scheduler_ul_path": {
+      "path": "OAI/openairinterface5g/openair2/LAYER2/NR_MAC_gNB/gNB_scheduler_ulsch.c",
+      "sha256": "c2776fab4cd7e51e37d2a6c1a4a1f6a6388dc8145cb1705d6961719986c35804"
+    },
+    "telemetry_csv_formatter": {
+      "path": "OAI/openairinterface5g/common/utils/T/tracer/csv.c",
+      "sha256": "a1090d1a749ae6da314315a45490cb0e8bf0b87d5d185cb26cf262e202f6c670"
+    },
+    "telemetry_event_clock": {
+      "path": "OAI/openairinterface5g/common/utils/T/T.h",
+      "sha256": "066ae66bc9d9f92464f666997b1dc7693a8f89c02303f7a61d1d6908ded1b456"
+    },
+    "telemetry_schema": {
+      "path": "OAI/openairinterface5g/common/utils/T/T_messages.txt",
+      "sha256": "2f4945814ad2f47197816756819afc0d087156c499e8c746cf0d9a81653005c5"
+    },
+    "v1_offline_helper_dependency": {
+      "path": "rl_agent/ue_n1_freeze_oai_ul_actuator.py",
+      "sha256": "bbdb7c0a9d72a4e0c160852185ee902ee33da07dfab76d0e9847bfb3f7e473e6"
+    }
+  },
+  "supersedes": {
+    "authority_status": "SUPERSEDED_PRE_FINAL_OBSERVATION_AUDIT",
+    "bundle_dir": "rl_agent/registries/ue_n1_oai_ul_actuator_interface_v1",
+    "interface_id": "ue_n1_oai_ul_actuator_interface_v1",
+    "manifest_json": "manifest.json",
+    "manifest_sha256": "75d6a380bcd52e5ddc1a4d2c52154d94f42b8471b778c60a7929ff966e0136d6",
+    "report_md": "REPORT.md",
+    "report_sha256": "83bd7a11076c9ef069849cfc9c0e7f9e39195df8f24b13fbef6e75fbaeaaa327",
+    "resolved_config_json": "resolved_config.json",
+    "resolved_config_sha256": "00aed91aed19c3f71fd759dc8f74a6af863b94e8b9f0f6242a5c9921b56866bf",
+    "terminal_json": "UE_N1_INTERFACE_FROZEN.json",
+    "terminal_sha256": "f1ec2f1989368d63fb062f21c0f62f044fcd77f3bc9e26c7f437d6cb397222d3",
+    "v1_bytes_mutable": false,
+    "v1_remains_execution_authority": false
+  },
+  "telemetry": {
+    "csv_time_semantics": "PRODUCER_EVENT_EMISSION_TIME_NOT_COLLECTOR_INGEST_OR_UE_POLICY_AVAILABILITY",
+    "direct_ul_bler_status": "UNAVAILABLE_UNRESOLVED_CURRENT_SINR_TRACE",
+    "ema_context_fields": [
+      "accepted_pusch_observations_since_command",
+      "age_since_command_ns"
+    ],
+    "events": [
+      {
+        "fields": [
+          "rnti",
+          "frame",
+          "slot",
+          "snrx10",
+          "phr",
+          "tpc",
+          "tb_size",
+          "txpower_calc",
+          "rbSize",
+          "mcs",
+          "rssi"
+        ],
+        "id": "GNB_MAC_PUSCH_POWER_CONTROL",
+        "semantics": "MAC_NORMALIZED_PUSCH_SNR_POST_ACTION_COLLECTOR_EVIDENCE"
+      },
+      {
+        "fields": [
+          "rnti",
+          "frame",
+          "slot",
+          "sched_frame",
+          "sched_slot",
+          "avg_snr_x10",
+          "mcs_table",
+          "ul_bler_mcs_before",
+          "selected_mcs",
+          "pre_phr_mcs",
+          "post_phr_mcs",
+          "final_mcs",
+          "estimated_ul_buffer",
+          "sched_ul_bytes",
+          "B",
+          "min_rb",
+          "available_rb_before",
+          "available_rb_after",
+          "ph",
+          "pcmax",
+          "rb_size_final",
+          "tbs_final",
+          "force_ul_mcs"
+        ],
+        "id": "GNB_MAC_UL_MCS_DECISION",
+        "semantics": "SCHEDULER_EMA_AND_SELECTED_TO_FINAL_MCS_POST_ACTION_COLLECTOR_EVIDENCE"
+      },
+      {
+        "fields": [
+          "rnti",
+          "frame",
+          "slot",
+          "mcs",
+          "tbs"
+        ],
+        "id": "GNB_MAC_UL",
+        "semantics": "SCHEDULED_GRANT_NOT_CONFIRMED_DELIVERY"
+      },
+      {
+        "fields": [
+          "direction",
+          "dci_format",
+          "rnti_type",
+          "rnti",
+          "dci_frame",
+          "dci_slot",
+          "sched_frame",
+          "sched_slot",
+          "mcs",
+          "mcs_table",
+          "rb_start",
+          "rb_size",
+          "start_symbol",
+          "nr_symbols",
+          "tbs",
+          "harq_pid",
+          "ndi",
+          "rv",
+          "round",
+          "qam_mod_order",
+          "target_code_rate",
+          "tpc",
+          "n_cce",
+          "N_cce"
+        ],
+        "id": "NRUE_MAC_DCI_GRANT",
+        "semantics": "UE_GRANT_RETRANSMISSION_PROXY_NOT_DIRECT_CRC_OR_BLER"
+      },
+      {
+        "fields": [
+          "rnti",
+          "ue_id",
+          "frame",
+          "slot",
+          "lcid",
+          "lcgid",
+          "bytes_in_buffer",
+          "bj",
+          "pbr",
+          "priority"
+        ],
+        "id": "NRUE_MAC_RLC_BUFFER_STATUS",
+        "semantics": "RLC_BUFFER_POST_ACTION_COLLECTOR_EVIDENCE_NO_ZERO_FILL"
+      },
+      {
+        "fields": [
+          "rnti",
+          "ue_id",
+          "frame",
+          "slot",
+          "bsr_type",
+          "trigger_mask",
+          "bsr_sent",
+          "padding_len",
+          "num_sdus",
+          "sdu_bytes",
+          "lcg0_bytes",
+          "lcg1_bytes",
+          "lcg2_bytes",
+          "lcg3_bytes",
+          "lcg4_bytes",
+          "lcg5_bytes",
+          "lcg6_bytes",
+          "lcg7_bytes",
+          "bsr_lcg_id",
+          "bsr_index",
+          "bsr_long0_index",
+          "bsr_long1_index",
+          "bsr_long2_index",
+          "bsr_long3_index",
+          "bsr_long4_index",
+          "bsr_long5_index",
+          "bsr_long6_index",
+          "bsr_long7_index"
+        ],
+        "id": "NRUE_MAC_BSR_STATUS",
+        "semantics": "BSR_POST_ACTION_COLLECTOR_EVIDENCE_NO_ZERO_FILL"
+      },
+      {
+        "fields": [
+          "direction",
+          "rnti",
+          "frame",
+          "diff",
+          "old_mcs",
+          "new_mcs",
+          "max_mcs_input",
+          "max_mcs_applied",
+          "min_mcs",
+          "opt_max_mcs",
+          "num_sched",
+          "num_retx",
+          "bler_window_ppm",
+          "bler_before_ppm",
+          "bler_after_ppm",
+          "lower_ppm",
+          "upper_ppm",
+          "branch",
+          "updated"
+        ],
+        "id": "GNB_MAC_BLER_MCS_DECISION",
+        "semantics": "NOT_DIRECT_UL_BLER_EVIDENCE_UNDER_CURRENT_SINR_PATH"
+      }
+    ],
+    "lower_bound_acceptance": "REQUIRE_GENUINE_UL_CRC_HARQ_OUTCOME_OR_EXPLICIT_MISSING_EVIDENCE_GATE",
+    "missing_direct_bler_is_zero": false,
+    "source_event_timestamp_clock": "CLOCK_REALTIME",
+    "ue_grant_round_semantics": "RETRANSMISSION_PROXY_ONLY"
+  }
+}

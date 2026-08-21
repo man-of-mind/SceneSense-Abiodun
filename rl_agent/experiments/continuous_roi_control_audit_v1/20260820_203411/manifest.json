@@ -1,0 +1,339 @@
+{
+  "analysis_conclusion": "INSUFFICIENT_EVIDENCE",
+  "audit_id": "continuous_roi_control_audit_v1/20260820_203411",
+  "create_only": true,
+  "created_at_unix": 1787283868.3120403,
+  "inputs": [
+    {
+      "exists": true,
+      "mtime_ns": 1785523574226600126,
+      "path": "rl_agent/density_knob/raw/perframe_noae.csv",
+      "role": "per_frame_q_evidence",
+      "sha256": "86417d7ca5898576fdd36b48683e411d34df6eee3ebd2d218e1e91027d3dcd7f",
+      "size_bytes": 8494773
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1785524850713967989,
+      "path": "rl_agent/density_knob/raw/perframe_ae32.csv",
+      "role": "per_frame_q_evidence",
+      "sha256": "c4ca439bdbce4af57be5b6299efcbd22ed2bfd4bfd067fce240518577a0cd9bc",
+      "size_bytes": 8552331
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1785525988603183110,
+      "path": "rl_agent/density_knob/raw/perframe_ae64.csv",
+      "role": "per_frame_q_evidence",
+      "sha256": "e09d2384bae52f030e4616ffb3beba0fa8804983eede109b3de795d33e47a2d4",
+      "size_bytes": 8558351
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1785526857844994825,
+      "path": "rl_agent/density_knob/raw/perframe_ae128.csv",
+      "role": "per_frame_q_evidence",
+      "sha256": "f6a63b4ed640057b0b9e2ef64b52ed1155b0f4780bc83944a40740c9b3a988f4",
+      "size_bytes": 8685389
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1785477781349328740,
+      "path": "rl_agent/density_knob/raw/frame_density.csv",
+      "role": "frame_density",
+      "sha256": "3bc3e116c9afd94a5078531b140f5ddf5c2a372cae038c9c2173a9c5f47bff09",
+      "size_bytes": 390837
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1785526857855994860,
+      "path": "rl_agent/density_knob/raw/eval_settings.json",
+      "role": "eval_settings",
+      "sha256": "e3ab8fec02378aeee646adb8b626c8d8c68f2bff84a7e98839502f1e5721d4fb",
+      "size_bytes": 924
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1787275486730928751,
+      "path": "rl_agent/configs/ue_split_profile_registry_v1.json",
+      "role": "registry_config_read_only",
+      "sha256": "8453e88b72d2da6f41cb8e0057f6135dc1df64e3660f81d9acab677bfcfa0274",
+      "size_bytes": 7334
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1785522087113475000,
+      "path": "rl_agent/density_knob/density_knob_eval.py",
+      "role": "density_evaluator",
+      "sha256": "4b8fae9ef69c7a15208bd4f3006e39c1573b78aa0af9ad1e824f8fc8d00e7555",
+      "size_bytes": 18766
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1783728003666007183,
+      "path": "pole_lraspp_multimodal_fusion/pole_lraspp_multimodal_fusion/model.py",
+      "role": "model_q_semantics",
+      "sha256": "a7828a505f4414d5dcab694ba68f1afc807001d46f7ef052e8a28b88629bcfa9",
+      "size_bytes": 19551
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1783965898595069243,
+      "path": "pole_lraspp_multimodal_fusion/pole_lraspp_multimodal_fusion/evaluate_fusion.py",
+      "role": "evaluator_q_semantics",
+      "sha256": "8b38163632b470451bf686acc6abd894852adb06c0e3218cc09399158c036557",
+      "size_bytes": 39446
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1786990272420420152,
+      "path": "uplink_only_spatial_map_pipeline/carla_fusion_staleness_scenario_uplink_only.py",
+      "role": "live_q_semantics_read_only",
+      "sha256": "71ef79a56a3a556b9b70211f7c6500d35e5069de5846ed8db01b1dca4a7a15e2",
+      "size_bytes": 293567
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1778218406362430548,
+      "path": "pole_lraspp_multimodal_fusion/pole_lraspp_multimodal_fusion/split_runtime.py",
+      "role": "split_runtime",
+      "sha256": "85d408959ea332245444db567ba916b7bce6a9c93cfbc73ae25d129abda0cae5",
+      "size_bytes": 4887
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1783971488580700129,
+      "path": "experiments/ae_integrated_20260710/noae_baseline/checkpoints/mprime_joint_noae/best.pt",
+      "role": "checkpoint",
+      "sha256": "f319e2a5e8fb134e74c24c0822233e17368df6e4c733add658026603e131d4fa",
+      "size_bytes": 18886798
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1783740524991100886,
+      "path": "experiments/ae_integrated_20260710/ae32/checkpoints/ae32_integrated/best.pt",
+      "role": "checkpoint",
+      "sha256": "10cebbeede4da992e68850d8f38358e89000b62524be25b68c88517d7b58f9b2",
+      "size_bytes": 39642898
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1783733519816337434,
+      "path": "experiments/ae_integrated_20260710/ae64/checkpoints/ae64_integrated/best.pt",
+      "role": "checkpoint",
+      "sha256": "c6a2362c7c2d72ff31825508ae7532c0796ec063a8556317d47d8d30fad99480",
+      "size_bytes": 39741330
+    },
+    {
+      "exists": true,
+      "mtime_ns": 1783746471546208791,
+      "path": "experiments/ae_integrated_20260710/ae128/checkpoints/ae128_integrated/best.pt",
+      "role": "checkpoint",
+      "sha256": "601984b96d85e1d72e9521f8a796103ab630834991d0957b62990116524cd62c",
+      "size_bytes": 39938194
+    },
+    {
+      "exists": false,
+      "mtime_ns": null,
+      "path": "fusion_training_data/moving_ego_pps200000_merged_8loops_stride2/manifest.csv",
+      "role": "dataset_manifest_missing",
+      "sha256": null,
+      "size_bytes": null
+    },
+    {
+      "exists": false,
+      "mtime_ns": null,
+      "path": "fusion_training_data/moving_ego_pps200000_merged_8loops_stride2/object_boxes.csv",
+      "role": "dataset_objects_missing",
+      "sha256": null,
+      "size_bytes": null
+    }
+  ],
+  "outputs": [
+    {
+      "path": "PLAN.md",
+      "sha256": "724377d6429a89fec19748b318d4941dd3c82753b63a9f8a9fa356a6849774be",
+      "size_bytes": 10075
+    },
+    {
+      "path": "REPORT.md",
+      "sha256": "a5bdbdc5a63b13202a114a1740b517a3d00961da79e6ec58a0c58b7f028f832c",
+      "size_bytes": 6396
+    },
+    {
+      "path": "RESULTS_SUMMARY.json",
+      "sha256": "f063ef9b08a2f867813f91a324b5e20e78d3e3c293e1122802e070780fb1b28a",
+      "size_bytes": 1749
+    },
+    {
+      "path": "REVIEW_REQUIRED.json",
+      "sha256": "88b5f5a3ccf838c16f9c24598afe52d18717adba88fcbb77b7fe7417f50bdf18",
+      "size_bytes": 692
+    },
+    {
+      "path": "analyze_existing_q_anchors.py",
+      "sha256": "4f752bf93d3a5b51bd9b31c3de0396dca005347154fed7da44038cea2ac4a908",
+      "size_bytes": 44451
+    },
+    {
+      "path": "anchor_curve_diagnostics.csv",
+      "sha256": "e3b5af7422c5f37d696cc9b0141aff7da5b59b48ab8f39a702b2f3c807b40205",
+      "size_bytes": 10014
+    },
+    {
+      "path": "audit_split_manifest.csv",
+      "sha256": "540c42d1e5e60792ea27dbef0885b3ea7d5ad52965330d3deb4d262474a6577a",
+      "size_bytes": 390285
+    },
+    {
+      "path": "branch_crossings.csv",
+      "sha256": "2ccc2df1654ab8abc4cadcd5d0b7add5613b3c8172abc0825f7d17ec1c427713",
+      "size_bytes": 28350
+    },
+    {
+      "path": "coarse_anchor_interpolation.csv",
+      "sha256": "301900c141f14a16682dcf0690b7ef99b8f187c74a2de4aba2a6140e8ab8e756",
+      "size_bytes": 140362
+    },
+    {
+      "path": "figures/fp_per_frame_anchor_curves.pdf",
+      "sha256": "e6130e94ee818237d0cb08430497f0f1b0f0644e51e497b517bd0fda02b22c17",
+      "size_bytes": 21594
+    },
+    {
+      "path": "figures/fp_per_frame_anchor_curves.png",
+      "sha256": "51a2bf953c852c8337620d6fef5cb33c36c801fc69e6217f806f2d7fe3cb64b5",
+      "size_bytes": 473305
+    },
+    {
+      "path": "figures/payload_anchor_curves.pdf",
+      "sha256": "f5e0a7cb25b61b50f04ae94e647c5ae23e2a514777ef4f1c2d2dcc6a84bd2aeb",
+      "size_bytes": 21515
+    },
+    {
+      "path": "figures/payload_anchor_curves.png",
+      "sha256": "8317632c0907ed667345565a72e96c03edba084014b9715d1bc3f9e92f41e76f",
+      "size_bytes": 492013
+    },
+    {
+      "path": "figures/person_precision_anchor_curves.pdf",
+      "sha256": "3383cc9540b56393d4f9577a0a9fd3967c16a39793b55be089f496b5ea1c2f61",
+      "size_bytes": 20398
+    },
+    {
+      "path": "figures/person_precision_anchor_curves.png",
+      "sha256": "5b6b9853e3008b754567973e7c4f7df63b46939dc04df1915b93b1381c7531ee",
+      "size_bytes": 457517
+    },
+    {
+      "path": "figures/person_recall_anchor_curves.pdf",
+      "sha256": "94fc1776177c4bc0b52ae45a44be3896be278439b903401779ee14e1eb060fff",
+      "size_bytes": 19976
+    },
+    {
+      "path": "figures/person_recall_anchor_curves.png",
+      "sha256": "8ba795355a2c05b083b38dd8be5f43bdff2d47e485493ea57992e4f623c2503f",
+      "size_bytes": 443397
+    },
+    {
+      "path": "figures/q_action_piecewise.pdf",
+      "sha256": "acc958476480d478aa6858797afab59f166d584aad798bfb40c3fa7f9f84b3fe",
+      "size_bytes": 16543
+    },
+    {
+      "path": "figures/q_action_piecewise.png",
+      "sha256": "acfe076accc326735c327c353efc1272ef59d67307af8cff84fef2a47fa293f1",
+      "size_bytes": 124883
+    },
+    {
+      "path": "figures/segmentation_miou_anchor_curves.pdf",
+      "sha256": "e865bac371a4480d732d00f74760de69b1a80b1b2c308a561cf847d0365569c5",
+      "size_bytes": 21625
+    },
+    {
+      "path": "figures/segmentation_miou_anchor_curves.png",
+      "sha256": "ca3cb4e5405dbd796412ef2713748c6cebc2415ee2879a4b4a18073f2bae2ac1",
+      "size_bytes": 498738
+    },
+    {
+      "path": "figures/vehicle_precision_anchor_curves.pdf",
+      "sha256": "790df1815f53078193d6816b7c4f02ddaef7c4ce835a4fa4e13f8b06bb274656",
+      "size_bytes": 20950
+    },
+    {
+      "path": "figures/vehicle_precision_anchor_curves.png",
+      "sha256": "ecbb096d6c5ddeaaaa65a7b7e6ceedd44412af1616b1216cb4e94ac9a09e196b",
+      "size_bytes": 524261
+    },
+    {
+      "path": "figures/vehicle_recall_anchor_curves.pdf",
+      "sha256": "217219317352030b23c3370a5078f845c7284cb5e240f46e9ecdac8bdb8e81c8",
+      "size_bytes": 20268
+    },
+    {
+      "path": "figures/vehicle_recall_anchor_curves.png",
+      "sha256": "1f254fd6f82d7ba95cf3c4ab8c76a6d5dfa9400edda310678d5f4eb0001cbcd6",
+      "size_bytes": 423555
+    },
+    {
+      "path": "figures/xy_mae_anchor_curves.pdf",
+      "sha256": "be4ce07e0f65ce8531e7759ff39acb209270aa6a0d669b86214bb43d81c07148",
+      "size_bytes": 22231
+    },
+    {
+      "path": "figures/xy_mae_anchor_curves.png",
+      "sha256": "804c5cfbde8078d9a488aac0f7028eab3138197268d89465df1dd4a03751e694",
+      "size_bytes": 383023
+    },
+    {
+      "path": "finalize_anchor_audit.py",
+      "sha256": "f0be76da1498ee81f56390f2eea8c568e83ea2e2a29d16482ee974d3052cd482",
+      "size_bytes": 12119
+    },
+    {
+      "path": "latency_measurement.csv",
+      "sha256": "9f257ab7db93b1dcd00f9f811b7eadf1b368bd04a61bb3865208c460ad6374ff",
+      "size_bytes": 704
+    },
+    {
+      "path": "paired_anchor_bootstrap.csv",
+      "sha256": "d1d23d61650736cec4dd66a67ff32bd93f59d21d0ba5ebdf901807e812b61ad9",
+      "size_bytes": 267132
+    },
+    {
+      "path": "payload_frame_monotonicity.csv",
+      "sha256": "5a5bca6fc244a43880c93eee8f0a319a1e81d13de57afc8c5d1a696d5228c995",
+      "size_bytes": 11401
+    },
+    {
+      "path": "per_q_results.csv",
+      "sha256": "49e61b04f0fd206d5cc7925e9b6b487816ed1f581289bbc5afef031657fbf16a",
+      "size_bytes": 92165
+    },
+    {
+      "path": "preflight.json",
+      "sha256": "d782546dd252aa6fb74f35ff5f70a1b4f7570199ea89cde1b5de0487ecb41f9e",
+      "size_bytes": 2917
+    },
+    {
+      "path": "q_action_quantization.csv",
+      "sha256": "89d0b9ca35bf40ba841ba0fb9bdbeef42802ebc29a6b979878d0a4c5aee5d922",
+      "size_bytes": 1860
+    },
+    {
+      "path": "q_action_structural_summary.json",
+      "sha256": "e66f9165c1eaf530b5946cf236f9f456671c438f6afa373cf9ca0d86647f93aa",
+      "size_bytes": 601
+    },
+    {
+      "path": "resolved_config.json",
+      "sha256": "b38e4da4709e50933c18920722952869574f06a80be281c5215d754d65a8df5a",
+      "size_bytes": 1194
+    }
+  ],
+  "repository_branch": "master",
+  "repository_commit": "f0fad5ee83490e9d79044c3a93db83b5816a1afc",
+  "resume_note": "Initial analysis completed; terminal rendering resumed after escaping a Markdown f-string literal. No computed artifact was overwritten.",
+  "schema": "scenesense.continuous_roi_control_audit_manifest.v1",
+  "terminal": "REVIEW_REQUIRED"
+}

@@ -1,0 +1,339 @@
+{
+  "authority": {
+    "carla_run_authorized": false,
+    "interface_freeze_only": true,
+    "launcher_or_runtime_edit_authorized": false,
+    "numeric_bounds_authorized": false,
+    "numeric_calibration_authorized": false,
+    "oai_run_authorized": false,
+    "policy_training_authorized": false,
+    "socket_execution_authorized": false
+  },
+  "causality": {
+    "collector_ingest_is_policy_availability": false,
+    "control_evaluation_only": [
+      "desired_achieved_pusch_snr_db",
+      "commanded_noise_power_db"
+    ],
+    "control_fields_in_policy_state": false,
+    "future_policy_admission": "policy_observation_available_monotonic_ns <= decision_cutoff_monotonic_ns AND observation.ran_epoch_id == decision.ran_epoch_id AND observation.control_session_id == decision.control_session_id",
+    "missing_pusch": "MISSING_UNRESOLVED_NOT_DTX_WITHOUT_DTX_EVIDENCE",
+    "post_action_collector_evidence_is_policy_observation": false
+  },
+  "claim_scope": "FINAL_V2_INTERFACE_ONLY_NO_RUNTIME_OR_CALIBRATION",
+  "created_at": "2026-08-21T05:32:34.817304Z",
+  "deferred": [
+    "PERSISTENT_TELNET_IMPLEMENTATION_AND_100MS_REPLAY",
+    "COMMAND_ACK_BRACKET_AND_FIRST_EFFECT_LAG_MEASUREMENT",
+    "DESIRED_ACHIEVED_PUSCH_SNR_TO_COMMANDED_NOISE_CALIBRATION",
+    "ATTACH_SAFE_ACHIEVED_SNR_BOUNDS",
+    "GENUINE_UL_CRC_HARQ_OUTCOME_BINDING",
+    "MEASURED_UE_VISIBLE_POLICY_FEEDBACK_AVAILABILITY"
+  ],
+  "gates": {
+    "a4_predecessor": "PASS_PINNED_72_UNFILTERED_TECHNICAL_ACTIONS",
+    "ack_not_apply_timestamp": "PASS_DECLARED",
+    "awgn_noise_power_db": "PASS_DECLARED",
+    "canonical_commanded_noise_power_db": "PASS_EXCLUDED_FROM_POLICY_STATE",
+    "clean_attach_then_runtime": "PASS_DECLARED",
+    "collector_vs_policy_availability": "PASS_DISTINCT_POLICY_PATH_UNBOUND",
+    "direct_ul_bler": "UNAVAILABLE_UNRESOLVED_NOT_ZERO",
+    "dynamic_model_index": "PASS_DECLARED",
+    "first_effect_lag": "DEFINED_FOR_UE_N2_MEASUREMENT_NOT_EXECUTED",
+    "monotonic_100ms_no_catch_up": "PASS_DECLARED",
+    "numeric_bounds": "NOT_AUTHORIZED_NOT_DEFINED",
+    "numeric_calibration": "NOT_AUTHORIZED_NOT_PERFORMED",
+    "persistent_telnet": "REQUIRED_UE_N2_NOT_EXECUTED",
+    "raw_event_envelope": "PASS_DECLARED",
+    "runtime_artifact_seals_including_rfsimulator": "PASS_CURRENT_REVERIFY_UE_N2",
+    "runtime_or_socket": "NOT_AUTHORIZED_NOT_EXECUTED",
+    "single_ue_ul_scope": "PASS",
+    "two_ue_mechanism_evidence": "PASS_MECHANISM_ONLY_OVERALL_RUN_FAILED_HOLD",
+    "v1_supersession": "PASS_PINNED_IMMUTABLE_PRE_FINAL"
+  },
+  "inputs": [
+    {
+      "bytes": 20535,
+      "kind": "config",
+      "label": "UE-N1 v2 canonical config",
+      "path": "rl_agent/configs/ue_n1_oai_ul_actuator_interface_v2.json",
+      "sha256": "78193f8aaa9c6a3facbb86d22b107d4a142a54b280c69c90cd0372149d47ae82"
+    },
+    {
+      "bytes": 47017,
+      "kind": "assembler",
+      "label": "UE-N1 v2 assembler/validator",
+      "path": "rl_agent/ue_n1_freeze_oai_ul_actuator_v2.py",
+      "sha256": "0cb3508b0f2b6eafd53faf765a33f15a74749fbecf1ff376418970d9c41522da"
+    },
+    {
+      "bytes": 9450,
+      "kind": "contract",
+      "label": "UE-N1 v2 interface contract",
+      "path": "rl_agent/UE_N1_OAI_UL_ACTUATOR_INTERFACE_CONTRACT_V2.md",
+      "sha256": "8f9fca74e8162327e91430fef58b0ba5ef832811fa6a1dde8908c4829cb73c03"
+    },
+    {
+      "bytes": 10694,
+      "kind": "superseded_pre_final",
+      "label": "v1 manifest",
+      "path": "rl_agent/registries/ue_n1_oai_ul_actuator_interface_v1/manifest.json",
+      "sha256": "75d6a380bcd52e5ddc1a4d2c52154d94f42b8471b778c60a7929ff966e0136d6"
+    },
+    {
+      "bytes": 857,
+      "kind": "superseded_pre_final",
+      "label": "v1 terminal",
+      "path": "rl_agent/registries/ue_n1_oai_ul_actuator_interface_v1/UE_N1_INTERFACE_FROZEN.json",
+      "sha256": "f1ec2f1989368d63fb062f21c0f62f044fcd77f3bc9e26c7f437d6cb397222d3"
+    },
+    {
+      "bytes": 18349,
+      "kind": "superseded_pre_final",
+      "label": "v1 resolved config",
+      "path": "rl_agent/registries/ue_n1_oai_ul_actuator_interface_v1/resolved_config.json",
+      "sha256": "00aed91aed19c3f71fd759dc8f74a6af863b94e8b9f0f6242a5c9921b56866bf"
+    },
+    {
+      "bytes": 1477,
+      "kind": "superseded_pre_final",
+      "label": "v1 report",
+      "path": "rl_agent/registries/ue_n1_oai_ul_actuator_interface_v1/REPORT.md",
+      "sha256": "83bd7a11076c9ef069849cfc9c0e7f9e39195df8f24b13fbef6e75fbaeaaa327"
+    },
+    {
+      "bytes": 471,
+      "kind": "predecessor",
+      "label": "UE-A4 terminal",
+      "path": "rl_agent/registries/ue_split_technical_registry_v1/UE_A4_TECHNICAL_REGISTRY_FROZEN.json",
+      "sha256": "c52100190c6b82bfb626242d1edcf032b839fa862f20a51c38603a5dee718fa7"
+    },
+    {
+      "bytes": 6427,
+      "kind": "predecessor",
+      "label": "UE-A4 manifest",
+      "path": "rl_agent/registries/ue_split_technical_registry_v1/manifest.json",
+      "sha256": "ea044dcc31632f3729f9ddae11311ab980598c6120f1aacad09034bd32698128"
+    },
+    {
+      "bytes": 382298,
+      "kind": "predecessor",
+      "label": "UE-A4 technical registry",
+      "path": "rl_agent/registries/ue_split_technical_registry_v1/ue_split_technical_registry.csv",
+      "sha256": "6de6e88e6c03abcef4a907dc9bea367938f99cc34f0161497df9901f840daec4"
+    },
+    {
+      "bytes": 13594,
+      "kind": "source",
+      "label": "channelmod_documentation",
+      "path": "OAI/openairinterface5g/openair1/SIMULATION/TOOLS/DOC/channel_simulation.md",
+      "sha256": "36f9a2ada64bae2fad3c42198d273473093dbd937bf911b9a1cb483dc9f0cebb"
+    },
+    {
+      "bytes": 90088,
+      "kind": "source",
+      "label": "channelmod_parser",
+      "path": "OAI/openairinterface5g/openair1/SIMULATION/TOOLS/random_channel.c",
+      "sha256": "1d4cae0caba965a8989efab2b26eb56c27895d24db93020cf6baa7ba215f3cdc"
+    },
+    {
+      "bytes": 63182,
+      "kind": "source",
+      "label": "rfsim_channel_binding",
+      "path": "OAI/openairinterface5g/radio/rfsimulator/simulator.cpp",
+      "sha256": "8d78932b06903344d4a137bdafb5729173b40a98330116d1609a0abca0315c3a"
+    },
+    {
+      "bytes": 13268,
+      "kind": "source",
+      "label": "rfsim_channel_application",
+      "path": "OAI/openairinterface5g/radio/rfsimulator/apply_channelmod.c",
+      "sha256": "d87fb051292bdb7da91cac2358110f6d0df8a06652cf106c71a2ad5d31fdf6f8"
+    },
+    {
+      "bytes": 24318,
+      "kind": "source",
+      "label": "channel_descriptor",
+      "path": "OAI/openairinterface5g/openair1/SIMULATION/TOOLS/sim.h",
+      "sha256": "61e22f2da38a0adbcad4a73f81f8859132861f6037c6672b1bc79f6c91244b30"
+    },
+    {
+      "bytes": 53687,
+      "kind": "source",
+      "label": "phy_pusch_snr",
+      "path": "OAI/openairinterface5g/openair1/SCHED_NR/phy_procedures_nr_gNB.c",
+      "sha256": "6e2068f17d97f05aede6ed216d83b23de28463b1112aa06c4e738f3720e8cce4"
+    },
+    {
+      "bytes": 196931,
+      "kind": "source",
+      "label": "scheduler_mapping_and_ema",
+      "path": "OAI/openairinterface5g/openair2/LAYER2/NR_MAC_gNB/gNB_scheduler_primitives.c",
+      "sha256": "b29e9235bcc212de3e07b768af28e4d19269c6e47ab38f022325c41fb302206f"
+    },
+    {
+      "bytes": 110614,
+      "kind": "source",
+      "label": "scheduler_ul_path",
+      "path": "OAI/openairinterface5g/openair2/LAYER2/NR_MAC_gNB/gNB_scheduler_ulsch.c",
+      "sha256": "c2776fab4cd7e51e37d2a6c1a4a1f6a6388dc8145cb1705d6961719986c35804"
+    },
+    {
+      "bytes": 144111,
+      "kind": "source",
+      "label": "telemetry_schema",
+      "path": "OAI/openairinterface5g/common/utils/T/T_messages.txt",
+      "sha256": "2f4945814ad2f47197816756819afc0d087156c499e8c746cf0d9a81653005c5"
+    },
+    {
+      "bytes": 39334,
+      "kind": "source",
+      "label": "telemetry_event_clock",
+      "path": "OAI/openairinterface5g/common/utils/T/T.h",
+      "sha256": "066ae66bc9d9f92464f666997b1dc7693a8f89c02303f7a61d1d6908ded1b456"
+    },
+    {
+      "bytes": 5688,
+      "kind": "source",
+      "label": "telemetry_csv_formatter",
+      "path": "OAI/openairinterface5g/common/utils/T/tracer/csv.c",
+      "sha256": "a1090d1a749ae6da314315a45490cb0e8bf0b87d5d185cb26cf262e202f6c670"
+    },
+    {
+      "bytes": 9284,
+      "kind": "source",
+      "label": "gnb_radio_config",
+      "path": "OAI/openairinterface5g/targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb.sa.band78.fr1.106PRB.usrpb210.conf",
+      "sha256": "71bfab4e610580013a919dd22fbf04cd874edb5e059366261d7e513c93b016f4"
+    },
+    {
+      "bytes": 883,
+      "kind": "source",
+      "label": "rfsim_channel_config",
+      "path": "OAI/openairinterface5g/targets/PROJECTS/GENERIC-NR-5GC/CONF/channelmod_rfsimu.conf",
+      "sha256": "a47ade413b36ecf66f6df666bead124974705636cb134dd09a539b34bce7d760"
+    },
+    {
+      "bytes": 142798,
+      "kind": "source",
+      "label": "existing_control_helper",
+      "path": "rl_agent/multiue_oai/runner.py",
+      "sha256": "2243022ade56ecd8b2b12e3305ac58b8a1218aa7df31e1fcdb168ac80985f749"
+    },
+    {
+      "bytes": 52451,
+      "kind": "source",
+      "label": "v1_offline_helper_dependency",
+      "path": "rl_agent/ue_n1_freeze_oai_ul_actuator.py",
+      "sha256": "bbdb7c0a9d72a4e0c160852185ee902ee33da07dfab76d0e9847bfb3f7e473e6"
+    },
+    {
+      "bytes": 109712464,
+      "kind": "runtime_artifact",
+      "label": "gnb_softmodem",
+      "path": "OAI/openairinterface5g/cmake_targets/ran_build/build/nr-softmodem",
+      "sha256": "01489dfb141f6e67ecfb9423a75f5c83a90b5df3c06d3aca318b43db3f554a35"
+    },
+    {
+      "bytes": 47171936,
+      "kind": "runtime_artifact",
+      "label": "ue_softmodem",
+      "path": "OAI/openairinterface5g/cmake_targets/ran_build/build/nr-uesoftmodem",
+      "sha256": "7cdeee94de55da8b2ae1bf76fd934136f2140133d4c35a1fe345b0cb097be807"
+    },
+    {
+      "bytes": 780488,
+      "kind": "runtime_artifact",
+      "label": "telnet_server_library",
+      "path": "OAI/openairinterface5g/cmake_targets/ran_build/build/libtelnetsrv.so",
+      "sha256": "28a2961df5883a6dbe71fcacb8a424931965221de7f443d0fecb51bd032f09cb"
+    },
+    {
+      "bytes": 1248128,
+      "kind": "runtime_artifact",
+      "label": "rfsimulator_library",
+      "path": "OAI/openairinterface5g/cmake_targets/ran_build/build/librfsimulator.so",
+      "sha256": "e61a78176a4c42097183bf4ff89aead1943469a7f0110afa0ec1d0171ae79bfd"
+    },
+    {
+      "bytes": 2222,
+      "kind": "mechanism_evidence",
+      "label": "two-UE runtime switch",
+      "path": "rl_agent/multiue_oai/experiments/runtime_switch_smoke_fix2_20260813_1709_pdt/blocks/RUNTIME_SWITCH_R1/runtime_channel_switch.json",
+      "sha256": "9cb15dcd08ed7e5cb9be52c1584117e44557e42111e4a999f22f1e3b3699228d"
+    },
+    {
+      "bytes": 638,
+      "kind": "mechanism_evidence",
+      "label": "failed terminal",
+      "path": "rl_agent/multiue_oai/experiments/runtime_switch_smoke_fix2_20260813_1709_pdt/FAILED.json",
+      "sha256": "43a8ae406d05e36d79d6fde237e8094322176437021ef3023bf57d3af56e1278"
+    },
+    {
+      "bytes": 638,
+      "kind": "mechanism_evidence",
+      "label": "failed results summary",
+      "path": "rl_agent/multiue_oai/experiments/runtime_switch_smoke_fix2_20260813_1709_pdt/results_summary.json",
+      "sha256": "43a8ae406d05e36d79d6fde237e8094322176437021ef3023bf57d3af56e1278"
+    }
+  ],
+  "interface": {
+    "canonical_command_field": "commanded_noise_power_db",
+    "catch_up_policy": "NEVER_BURST_OBSOLETE_COMMANDS",
+    "channel_model_name": "rfsimu_channel_ue0",
+    "clean_attach_and_restore_commanded_noise_power_db": "-50",
+    "direction": "UPLINK_ONLY",
+    "fixed_path_loss_db": 0,
+    "global_noise_requirement": "UNSET",
+    "model_index_resolution": "DYNAMIC_EXACT_NAME_PER_CONTROL_SESSION",
+    "oai_mutable_parameter": "noise_power_dB",
+    "persistent_telnet_required_next": true,
+    "response_ack_semantics": "HANDLER_COMPLETION_UPPER_BOUND_NOT_APPLICATION_TIMESTAMP",
+    "schedule_period_ms": 100,
+    "ue_count": 1
+  },
+  "interface_id": "ue_n1_oai_ul_actuator_interface_v2",
+  "outputs": [
+    {
+      "bytes": 21485,
+      "path": "resolved_config.json",
+      "sha256": "618b876d70e597d7897e42ca11335338eb5772753be50cb4e1d80a3cfc60cb4a"
+    },
+    {
+      "bytes": 1675,
+      "path": "REPORT.md",
+      "sha256": "84b4fed02f5ddbe3b6818b99664176aeb1757fad07e7153ebb787797e9dbc329"
+    }
+  ],
+  "schema": "scenesense.ue_n1_oai_ul_actuator_interface_manifest.v2",
+  "status": "FROZEN_INTERFACE_ONLY",
+  "supersession": {
+    "supersedes_interface_id": "ue_n1_oai_ul_actuator_interface_v1",
+    "supersedes_manifest_sha256": "75d6a380bcd52e5ddc1a4d2c52154d94f42b8471b778c60a7929ff966e0136d6",
+    "v1_authority_status": "SUPERSEDED_PRE_FINAL_OBSERVATION_AUDIT",
+    "v1_bytes_mutated": false
+  },
+  "terminal_decision_path": "UE_N1_INTERFACE_V2_FROZEN.json",
+  "terminal_decision_payload": {
+    "canonical_command_field": "commanded_noise_power_db",
+    "carla_run": false,
+    "claim_scope": "FINAL_V2_INTERFACE_ONLY_NO_RUNTIME_OR_CALIBRATION",
+    "created_at": "2026-08-21T05:32:34.817304Z",
+    "direct_ul_bler_status": "UNAVAILABLE_UNRESOLVED",
+    "interface_id": "ue_n1_oai_ul_actuator_interface_v2",
+    "next_checklist_item": "UE-N2",
+    "numeric_bounds_status": "NOT_DEFINED",
+    "numeric_calibration_status": "NOT_PERFORMED",
+    "oai_mutable_parameter": "noise_power_dB",
+    "oai_run": false,
+    "policy_observation_binding": "UNBOUND_UNTIL_MEASURED_UE_VISIBLE_FEEDBACK_PATH",
+    "predecessor": "UE-A4",
+    "runtime_executed": false,
+    "schema": "scenesense.ue_n1_oai_ul_actuator_interface_decision.v2",
+    "socket_executed": false,
+    "status": "FROZEN_INTERFACE_ONLY",
+    "supersedes_authority_status": "SUPERSEDED_PRE_FINAL_OBSERVATION_AUDIT",
+    "supersedes_interface_id": "ue_n1_oai_ul_actuator_interface_v1"
+  },
+  "terminal_decision_payload_sha256": "016e01b1589ef2008854ea6a286092930a6086df8a74d12ee059c51dc4b84bf8"
+}

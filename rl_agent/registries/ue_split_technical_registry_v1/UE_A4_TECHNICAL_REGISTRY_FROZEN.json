@@ -1,0 +1,13 @@
+{
+  "created_at": "2026-08-21T04:17:24.923202+00:00",
+  "manifest_sha256": "ea044dcc31632f3729f9ddae11311ab980598c6120f1aacad09034bd32698128",
+  "next_checklist_item": "UE-N1",
+  "profile_count": 72,
+  "quality_mask_count": 0,
+  "registry_id": "ue_split_technical_registry_v1",
+  "runtime_retargeted": false,
+  "schema": "scenesense.ue_split_technical_registry_decision.v1",
+  "status": "FROZEN",
+  "technically_invalid_profiles": 0,
+  "technically_valid_profiles": 72
+}

@@ -1,6 +1,7 @@
 # UE split-profile characterization plan v2
 
-**Status:** DESIGN LOCKED; Stage 1 and UE-A1 are complete; continue at UE-A2.
+**Status:** DESIGN LOCKED; Stages 1 and 2 plus UE-N1 are complete; continue at
+UE-N2.
 
 **Decision date:** 2026-08-20
 
@@ -59,8 +60,9 @@ drop fraction directly.
 
 - UE and edge hardware allocation;
 - local compute background-load policy;
-- model input, class definitions, preprocessing, split interface, codec, map
-  schema, and publish-all behavior;
+- model input, class definitions, preprocessing, split interface, lossless
+  `zstd` level-3 UE-to-edge feature wire, `zlib` level-1 edge-to-map
+  `OBJECT_MAP_V1` JSON packet, map schema, and publish-all behavior;
 - route file, spawn, route controller, scene seeds, and actor choreography;
 - capture cadence and one-action-per-loop behavior;
 - OAI PRB/TDD configuration and SINR-driven scheduler; and
@@ -165,6 +167,15 @@ x 3 quantizers {uint8, uint6, uint4}
 x 6 measured feature-drop fractions q {0.00, 0.30, 0.50, 0.70, 0.90, 0.98}
 = 72 discrete actions
 ```
+
+The codec is frozen rather than selected by the agent. The UE-to-edge feature
+envelope uses `zstd` level 3; the independent edge-to-map JSON packet retains
+`zlib` level 1. The older 36-profile offline matrix made zlib about 1.18%
+smaller at the median, but the paired runtime A/B showed content-dependent
+payload ordering and faster zstd transport/decompression in every profile.
+Only zstd-3 has complete evidence for all six q anchors. Changing the feature
+codec therefore creates a new experiment contract; it is not an implicit A4
+edit.
 
 All 72 are exposed to offline policy learning if their exact checkpoint,
 feature schema, codec, decoder, and wire path pass a technical smoke. Quality,
@@ -298,18 +309,19 @@ not another training profile and not a prerequisite for this first matrix.
 The intended physical path is:
 
 ```text
-saved target-SNR trace at 100-ms steps
+saved desired_achieved_pusch_snr_db trace at 100-ms steps
     -> trace player
-    -> calibrated OAI channel-model noise/pathloss command
+    -> calibrated OAI RFsim commanded_noise_power_db
     -> achieved PUSCH SNR
     -> scheduler SNR estimate/EMA
     -> selected MCS, transport service, queue, and delivery outcome
 ```
 
 Yes, this follows the same broad pattern as reading a precomputed SNR sequence
-while the vehicle moves. The target trace is not itself authoritative radio
-truth. OAI's channel-model command must be calibrated against achieved PUSCH
-SNR, scheduler state, MCS, BLER, and throughput.
+while the vehicle moves. The desired trace is not itself authoritative radio
+truth. The OAI RFsim noise command must be calibrated against achieved PUSCH
+SNR, scheduler state, MCS, genuinely available UL HARQ/CRC evidence, and
+throughput.
 
 Under the current one-layer scheduler table, MCS 28 begins at `24.5 dB`, not
 `24.4 dB`. Above `24.5 dB`, additional SNR does not unlock a higher MCS under
@@ -322,17 +334,24 @@ BLER, and queue behavior remain valid.
 
 For every 100-ms trace step log:
 
-- `trace_id`, `trace_index`, and `target_snr_db`;
-- channel command and `command_applied_at`;
+- `trace_id`, `trace_index`, and `desired_achieved_pusch_snr_db`;
+- `commanded_noise_power_db`, scheduled/send time, and response-ACK receipt
+  time; the ACK is an upper timing bracket, not an application timestamp;
 - achieved instantaneous PUSCH SNR;
 - scheduler/EMA SNR;
-- MCS, TBS/grant, PRBs, BLER, HARQ/RLC state, BSR, and backlog; and
-- the availability time of every radio observation.
+- MCS, TBS/grant, PRBs, genuine available UL HARQ/CRC evidence, RLC/BSR, and
+  backlog; and
+- source-event and collector-ingest times plus explicit missingness. A future
+  policy additionally requires a separately measured UE-visible availability
+  time.
 
 The scheduler estimate is smoothed, so a command need not produce an immediate
-equal observed SNR. The future target trace is evaluation/configuration truth,
-not policy state. A later policy sees only the newest causally available,
-lagged achieved-radio estimate.
+equal observed SNR. The desired trace and commanded noise are
+evaluation/control truth, not policy state. gNB collector ingest is not
+UE-policy availability. A later policy may consume only an observation
+delivered through a measured UE-visible feedback path with
+`policy_observation_available_monotonic_ns <= decision_cutoff_monotonic_ns` in
+the same RAN/control epoch.
 
 A direct scheduler-SNR injection, if used as a diagnostic, must be labelled
 `SCHEDULER_EMULATION`: it scripts MCS/capacity and does not by itself reproduce
@@ -423,6 +442,23 @@ evidence-compatible decoder settings, and distinct host/edge checkpoint paths.
 All rows remain `REGISTERED_PENDING_SMOKE`; no quality mask or technical-valid
 claim was applied.
 
+**UE-A2--A3 completed 2026-08-20:** the authoritative create-only bundle under
+`experiments/ue_a2_technical_smoke_v1/20260820_cuda_model_smoke_02/` proves
+72/72 strict load, feature/codec, finite tail/map, and actual localhost-UDP
+paths. All 34 injected mismatches were rejected before decode/map use. No
+technical failure or quality mask was recorded; the earlier `_01` bundle is
+superseded.
+
+**UE-A4 completed 2026-08-20:** the create-only successor under
+`registries/ue_split_technical_registry_v1/` freezes all 72 actions as
+technically valid with zero invalid rows and no quality-derived mask. Its CSV
+SHA-256 is
+`6de6e88e6c03abcef4a907dc9bea367938f99cc34f0161497df9901f840daec4` and
+its manifest SHA-256 is
+`ea044dcc31632f3729f9ddae11311ab980598c6120f1aacad09034bd32698128`.
+It preserves UE-A1 operational identity while certifying it against A2 `_02`;
+it does not silently retarget the runtime.
+
 - add fail-closed profile/schema/checkpoint/codec identity to the wire;
 - make the current edge launcher propagate every registry-bound decoder option;
 - run the smallest fixed-profile load/encode/serialize/decode/map-schema smokes;
@@ -432,6 +468,12 @@ claim was applied.
 
 ### Stage 3 — OAI actuator calibration
 
+- **UE-N1 completed 2026-08-20:** the create-only final v2 interface bundle at
+  `registries/ue_n1_oai_ul_actuator_interface_v2/` freezes the single-UE,
+  gNB-side RFsim actuator and observation semantics without numeric
+  calibration, bounds, runtime edits, or execution. Manifest SHA-256:
+  `0a53d754fc8e16d291dc63fe971f2749e3c0965b385b88910229fdc002a18987`.
+  The immutable v1 bundle is superseded pre-final evidence.
 - verify one saved trace can update the channel actuator at 100-ms cadence;
 - calibrate target to achieved SNR across attach-safe points;
 - freeze lower/upper operational bounds; and
@@ -557,7 +599,14 @@ mutated or overwritten.
 At minimum, `snr_trace.csv` contains:
 
 ```text
-trace_id,trace_index,scheduled_at_s,target_snr_db,state,seed
+trace_id,trace_index,scheduled_offset_ns,desired_achieved_pusch_snr_db,state,seed
+```
+
+At minimum, the UE-N2 command log contains:
+
+```text
+ran_epoch_id,control_session_id,trace_id,trace_index,commanded_noise_power_db,
+scheduled_monotonic_ns,send_monotonic_ns,response_received_monotonic_ns,status
 ```
 
 At minimum, `map_feedback.csv` contains:
@@ -629,12 +678,13 @@ quality fields without exposing future/GT fields to the policy.
 
 ## 13. Remaining decisions
 
-No further conceptual decision is required before UE-A2 technical-smoke work. The
-following numerical/interface values are intentionally resolved by short
-staged evidence rather than guessed now:
+No further conceptual decision is required before the UE-N2 bounded actuator
+smoke. The following numerical/interface values are intentionally resolved by
+short staged evidence rather than guessed now:
 
 1. attach-safe achieved-SNR lower bound;
-2. target-SNR-to-channel-command calibration;
+2. replicated desired-achieved-PUSCH-SNR-to-commanded-noise calibration (the
+   four-point UE-N2 smoke is provisional evidence, not a promoted mapping);
 3. exact four network-profile means, variances, correlations, transition
    probabilities, and seeds;
 4. map acceptance-expiry and UE ACK-timeout values;
@@ -642,7 +692,13 @@ staged evidence rather than guessed now:
 6. replicate count after pilot variance is known; and
 7. whether mask-assisted dimensions justify their added complexity.
 
-The immediate next task is UE-A2 within Stage 2: make fixed-profile wire
-identity and edge launch binding fail closed, then run the bounded technical
-smokes. The full 72 x 4 sweep, SNR actuation, continuous-q experiment, and
-policy training remain separate later authorizations.
+The bounded UE-N2 physical smoke is captured as partial evidence under
+`experiments/ue_n2_oai_ul_calibration_smoke_v1/20260821_meeting_smoke_04/`.
+Its four commands produced monotone median achieved PUSCH SNR values of
+`19.5`, `16.0`, `10.0`, and `8.5 dB`; all 120 responses met the 100-ms cadence
+and clean teardown passed. The immediate next task is UE-N3: replicate and
+order-check the mapping, verify the deployed 24.5-dB MCS-28 boundary, and
+calibrate the attach-safe lower achieved-SNR bound. The stock-tracer
+first-effect timestamp limitation remains explicit. The full 72 x 4 sweep,
+continuous-q experiment, and policy training remain separate later
+authorizations.

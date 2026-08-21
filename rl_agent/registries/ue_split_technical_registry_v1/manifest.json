@@ -1,0 +1,181 @@
+{
+  "authority": {
+    "carla_run_authorized": false,
+    "evidence_only_successor": true,
+    "oai_run_authorized": false,
+    "policy_training_authorized": false,
+    "quality_filter_authorized": false,
+    "runtime_retarget_authorized": false
+  },
+  "claim_scope": "A1_OPERATIONAL_IDENTITY_PLUS_A2_LOCAL_TECHNICAL_CERTIFICATION",
+  "codec_boundary": {
+    "edge_to_map": {
+      "coder": "zlib",
+      "level": 1,
+      "payload": "fusion_object_spatial_map.v1_json",
+      "runtime_literal": "zlib.compress(encoded, level=1)"
+    },
+    "ue_to_edge": {
+      "coder": "zstd",
+      "level": 3,
+      "payload": "quantized_intermediate_features"
+    }
+  },
+  "counts": {
+    "profiles": 72,
+    "quality_masked": 0,
+    "technically_invalid": 0,
+    "technically_valid": 72
+  },
+  "created_at": "2026-08-21T04:17:24.923202+00:00",
+  "gates": {
+    "a1_bundle_seals": "PASS",
+    "a2_02_bundle_seals": "PASS",
+    "action_contract_identity": "PASS",
+    "actual_udp_72_of_72": "PASS",
+    "all_a2_stage_statuses": "PASS",
+    "exact_72_row_join": "PASS",
+    "negative_contract_34_of_34": "PASS",
+    "no_quality_filter": "PASS",
+    "runtime_retarget": "NOT_AUTHORIZED_NOT_PERFORMED",
+    "strict_model_smoke": "PASS"
+  },
+  "inputs": [
+    {
+      "bytes": 3847,
+      "kind": "config",
+      "path": "rl_agent/configs/ue_split_technical_registry_v1.json",
+      "sha256": "b449765e0002c83e4f3ba0d1479b47eeceba902ae3aa709066892ba4d326841e"
+    },
+    {
+      "bytes": 51234,
+      "kind": "source",
+      "path": "rl_agent/ue_a4_freeze_registry.py",
+      "sha256": "4f06b39e804942df4309e14ab2a72225da518bd716d80daca848f35447d42699"
+    },
+    {
+      "bytes": 156947,
+      "kind": "A1 registry",
+      "path": "rl_agent/registries/ue_split_profile_registry_v1/ue_split_profile_registry.csv",
+      "sha256": "9542adc8e014960bf8876e87cdbd9783f8911140fbc37820605ce7dd69e23722"
+    },
+    {
+      "bytes": 12959,
+      "kind": "A1 manifest",
+      "path": "rl_agent/registries/ue_split_profile_registry_v1/manifest.json",
+      "sha256": "675d383a0646ef833ad57f56a0eed841f404674666dff38cafa980d124a913e2"
+    },
+    {
+      "bytes": 439,
+      "kind": "A1 terminal",
+      "path": "rl_agent/registries/ue_split_profile_registry_v1/UE_A1_STATIC_BINDING_VERIFIED.json",
+      "sha256": "da274400245b65356a4321f4792d0a98278ed52f97af7e110931c9e6f7a396da"
+    },
+    {
+      "bytes": 97739,
+      "kind": "A2 manifest",
+      "path": "rl_agent/experiments/ue_a2_technical_smoke_v1/20260820_cuda_model_smoke_02/manifest.json",
+      "sha256": "441fce68cffa70ff1ad42d2200a5c2aeeae07fdc7e155783e36217946c24186f"
+    },
+    {
+      "bytes": 561,
+      "kind": "A2 terminal",
+      "path": "rl_agent/experiments/ue_a2_technical_smoke_v1/20260820_cuda_model_smoke_02/UE_A2_PASSED.json",
+      "sha256": "8c51d75fd9470c933827043136c70fe6e78e1f9af36e1257b69dfef138e20d12"
+    },
+    {
+      "bytes": 32036,
+      "kind": "A2 profile table",
+      "path": "rl_agent/experiments/ue_a2_technical_smoke_v1/20260820_cuda_model_smoke_02/ue_a2_profile_smoke.csv",
+      "sha256": "d9a387d4fe30993a3b419a7757ffd857ff8cc5fb455b77477ea42b2ffa0eb6a9"
+    },
+    {
+      "bytes": 75867,
+      "kind": "A2 model smoke",
+      "path": "rl_agent/experiments/ue_a2_technical_smoke_v1/20260820_cuda_model_smoke_02/model_smoke.json",
+      "sha256": "66f685ab157acd0c0b298a194b2f971c9c073c689565c567e78c151cf30ae095"
+    },
+    {
+      "bytes": 10808,
+      "kind": "A2 negative tests",
+      "path": "rl_agent/experiments/ue_a2_technical_smoke_v1/20260820_cuda_model_smoke_02/negative_contract_tests.json",
+      "sha256": "c8f610760ad7fed75d5fd7b631968e647aac5856dc720ad2547d72cdfa3f1b24"
+    },
+    {
+      "bytes": 932,
+      "kind": "A2 transport",
+      "path": "rl_agent/experiments/ue_a2_technical_smoke_v1/20260820_cuda_model_smoke_02/transport_preflight.json",
+      "sha256": "aa9447436e74584b44edbd1f312d3a4c59fd1a55ec5ffa96821d86ddd40a3b23"
+    },
+    {
+      "bytes": 49657,
+      "kind": "source",
+      "label": "a1_registry_assembler",
+      "path": "rl_agent/ue_split_profile_registry.py",
+      "sha256": "f05108052b3e7f2a9ff1531a27dc864991a19654d30d07cb5a494feddafb4805"
+    },
+    {
+      "bytes": 38204,
+      "kind": "source",
+      "label": "wire_contract",
+      "path": "rl_agent/ue_split_wire_contract.py",
+      "sha256": "85231c8af3905038ac5e6c48c5bd9110dcc5a38a527d4770910fd571d9f7eac2"
+    },
+    {
+      "bytes": 310471,
+      "kind": "source",
+      "label": "runtime_v2",
+      "path": "uplink_only_spatial_map_pipeline/carla_fusion_staleness_scenario_uplink_only_v2.py",
+      "sha256": "a99a88f5e4fe60e0964f71a48e5f3c5e544c270c28ffb7c20c2a825347efc991"
+    },
+    {
+      "bytes": 25392,
+      "kind": "source",
+      "label": "launcher_v2",
+      "path": "uplink_only_spatial_map_pipeline/run_track1_oai_default106_ttracer_10fps_v2.sh",
+      "sha256": "fd2f1dd9530ab35536dfaa9f69b25bce7ae44c9e8905dda1a24b96d7a24b2cf4"
+    },
+    {
+      "bytes": 131741,
+      "kind": "source",
+      "label": "feature_codec",
+      "path": "carla_split_inference_udp_data_collect.py",
+      "sha256": "22b6a8e4ade8ea4f4715bf143688c829e32aa7b3c9935fcad46283ab7a0aa13d"
+    }
+  ],
+  "outputs": [
+    {
+      "bytes": 382298,
+      "path": "ue_split_technical_registry.csv",
+      "rows": 72,
+      "sha256": "6de6e88e6c03abcef4a907dc9bea367938f99cc34f0161497df9901f840daec4"
+    },
+    {
+      "bytes": 875,
+      "path": "REPORT.md",
+      "sha256": "4c31cedf09dd9fc840f93628142fe7439124a5443595aa9ab25d32d3f1a7960d"
+    },
+    {
+      "bytes": 3847,
+      "path": "resolved_config.json",
+      "sha256": "47dc37a0a87ec9dabd534e82282a855c124064ced83dc41e95e184c3a895cba2"
+    }
+  ],
+  "registry_id": "ue_split_technical_registry_v1",
+  "schema": "scenesense.ue_split_technical_registry_manifest.v1",
+  "status": "FROZEN",
+  "terminal_decision_path": "UE_A4_TECHNICAL_REGISTRY_FROZEN.json",
+  "terminal_decision_payload": {
+    "created_at": "2026-08-21T04:17:24.923202+00:00",
+    "next_checklist_item": "UE-N1",
+    "profile_count": 72,
+    "quality_mask_count": 0,
+    "registry_id": "ue_split_technical_registry_v1",
+    "runtime_retargeted": false,
+    "schema": "scenesense.ue_split_technical_registry_decision.v1",
+    "status": "FROZEN",
+    "technically_invalid_profiles": 0,
+    "technically_valid_profiles": 72
+  },
+  "terminal_decision_payload_sha256": "f2114a6066fb038ea770580096b26c65fcb80de2c25943596a849fabd8811767"
+}

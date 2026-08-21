@@ -1,0 +1,21 @@
+{
+  "actuator": "GNB_RFSIM_RFSIMU_CHANNEL_UE0_NOISE_POWER_DB",
+  "carla_run": false,
+  "claim_scope": "INTERFACE_ONLY_NO_RUNTIME_OR_CALIBRATION",
+  "created_at": "2026-08-21T04:51:00.902774+00:00",
+  "direct_ul_bler_status": "UNAVAILABLE_UNRESOLVED",
+  "interface_id": "ue_n1_oai_ul_actuator_interface_v1",
+  "manifest_sha256": "75d6a380bcd52e5ddc1a4d2c52154d94f42b8471b778c60a7929ff966e0136d6",
+  "model_index_resolution": "DYNAMIC_BY_EXACT_NAME",
+  "next_checklist_item": "UE-N2",
+  "numeric_bounds_status": "NOT_DEFINED",
+  "numeric_calibration_status": "NOT_PERFORMED",
+  "oai_run": false,
+  "persistent_telnet_required_next": true,
+  "predecessor": "UE-A4",
+  "runtime_executed": false,
+  "schedule_period_ms": 100,
+  "schema": "scenesense.ue_n1_oai_ul_actuator_interface_decision.v1",
+  "socket_executed": false,
+  "status": "FROZEN_INTERFACE_ONLY"
+}

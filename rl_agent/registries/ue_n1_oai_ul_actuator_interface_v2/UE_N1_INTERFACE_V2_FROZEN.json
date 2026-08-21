@@ -1,0 +1,22 @@
+{
+  "canonical_command_field": "commanded_noise_power_db",
+  "carla_run": false,
+  "claim_scope": "FINAL_V2_INTERFACE_ONLY_NO_RUNTIME_OR_CALIBRATION",
+  "created_at": "2026-08-21T05:32:34.817304Z",
+  "direct_ul_bler_status": "UNAVAILABLE_UNRESOLVED",
+  "interface_id": "ue_n1_oai_ul_actuator_interface_v2",
+  "manifest_sha256": "0a53d754fc8e16d291dc63fe971f2749e3c0965b385b88910229fdc002a18987",
+  "next_checklist_item": "UE-N2",
+  "numeric_bounds_status": "NOT_DEFINED",
+  "numeric_calibration_status": "NOT_PERFORMED",
+  "oai_mutable_parameter": "noise_power_dB",
+  "oai_run": false,
+  "policy_observation_binding": "UNBOUND_UNTIL_MEASURED_UE_VISIBLE_FEEDBACK_PATH",
+  "predecessor": "UE-A4",
+  "runtime_executed": false,
+  "schema": "scenesense.ue_n1_oai_ul_actuator_interface_decision.v2",
+  "socket_executed": false,
+  "status": "FROZEN_INTERFACE_ONLY",
+  "supersedes_authority_status": "SUPERSEDED_PRE_FINAL_OBSERVATION_AUDIT",
+  "supersedes_interface_id": "ue_n1_oai_ul_actuator_interface_v1"
+}

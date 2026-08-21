@@ -23,11 +23,13 @@ contract. The historical 26-pass subset and provisional rescue are annotations,
 not a hand-selected action catalog. The four representative profiles used in
 the integration pilot are measurement anchors, not the policy action space.
 
-Stage 1 route qualification and UE-A1--A3 are complete. All 72 registered
-profiles passed the fixed-profile CUDA/local-wire smoke with no technical
-failures. The first active task is now **UE-A4: freeze the successor 72-row
-technical registry**. The full 72 x 4 sweep,
-continuous-q study, and policy training are not yet authorized.
+Stage 1 route qualification and UE-A1--A4 are complete. The successor
+technical registry freezes all 72 registered profiles as technically valid,
+records zero genuine technical failures, and applies no quality-derived mask.
+UE-N1 has frozen the OAI uplink actuator and observation interface without
+claiming a numeric calibration. The first active task is now **UE-N2: implement
+and run the bounded persistent-Telnet 100-ms actuator smoke**. The full 72 x 4
+sweep, continuous-q study, and policy training are not yet authorized.
 
 ## Scope and drift guard
 
@@ -76,6 +78,13 @@ silently change the active contract.
 
 - Discrete baseline: `4 model families x 3 quantizers x 6 measured q values =
   72 actions`.
+- The codec is a fixed system parameter, not an agent action: UE-to-edge
+  feature payloads use `zstd` level 3, while the separate edge-to-map JSON
+  packet keeps `zlib` level 1.
+- This split is deliberate. On the paired 36-profile offline matrix, zlib's
+  median payload advantage was only about 1.18%; the independent loopback A/B
+  found content-dependent payload ordering but faster zstd transport/decode in
+  all 36 profiles. The complete six-q, 72-action evidence is zstd-3.
 - All 72 remain available if their exact checkpoint, codec, feature schema,
   decoder, and wire path are technically valid.
 - Recall, precision, localization, segmentation, payload, latency, or AoI
@@ -139,14 +148,20 @@ Segmentation IoU is not used as a proxy for dimension accuracy.
 
 ### SNR trace and policy visibility
 
-- Pre-generate, hash, and replay the target-SNR trace at 100-ms granularity.
-- Calibrate target SNR to the OAI channel command and measure achieved PUSCH
-  SNR, scheduler/EMA SNR, MCS, BLER, and queue service.
+- Pre-generate, hash, and replay the desired-achieved-PUSCH-SNR trace at
+  100-ms granularity.
+- Calibrate `desired_achieved_pusch_snr_db` to the RFsim
+  `commanded_noise_power_db` control and measure achieved PUSCH SNR,
+  scheduler/EMA SNR, MCS, genuine available UL HARQ/CRC evidence, and queue
+  service.
 - The current scheduler saturation threshold is `24.5 dB`; the attach-safe
   lower achieved-SNR bound remains a calibration result.
 - The future trace and target value are experiment truth, not policy input.
-- A later policy sees only the newest causally available achieved/lagged radio
-  estimate.
+- Desired SNR and commanded noise are experiment-control/evaluation fields,
+  never policy state. gNB collector time is not UE-policy availability. A
+  later policy may use a radio observation only after a measured UE-visible
+  feedback path proves `policy_observation_available_monotonic_ns <=
+  decision_cutoff_monotonic_ns` in the same RAN/control epoch.
 
 ### Network-profile interpretation
 
@@ -225,7 +240,7 @@ The final create-only authority is `ROUTE_QUALIFIED.json`.
   map schema.
 - [x] **UE-A3:** Record every genuine technical failure. Do not remove an
   action because its offline quality or payload is unattractive.
-- [ ] **UE-A4:** Hash the 72-row technical action registry.
+- [x] **UE-A4:** Hash the 72-row technical action registry.
 
 **Accept when:** every action is either technically valid or has a reproducible
 technical-invalid reason. No quality-derived mask is present.
@@ -250,13 +265,28 @@ source seals were unchanged, and no quality mask was applied. UE-A3 records
 zero genuine technical failures; no action was removed. The earlier `_01`
 bundle is superseded and is not authority.
 
+**UE-A4 evidence:** `registries/ue_split_technical_registry_v1/`. The
+create-only `UE_A4_TECHNICAL_REGISTRY_FROZEN.json` freezes 72/72 technically
+valid rows, zero invalid rows, and `quality_mask_count=0`. The registry CSV
+SHA-256 is
+`6de6e88e6c03abcef4a907dc9bea367938f99cc34f0161497df9901f840daec4`;
+the manifest SHA-256 is
+`ea044dcc31632f3729f9ddae11311ab980598c6120f1aacad09034bd32698128`.
+The immutable UE-A1 registry remains the operational identity source consumed
+by the A2-smoked runtime; UE-A4 is the authoritative technical-evidence
+successor and does not silently retarget that runtime.
+
 ## Stage 3 — OAI SNR actuator calibration and trace freeze
 
-- [ ] **UE-N1:** Freeze the physical injection point: saved target SNR to
-  calibrated channel-model command to achieved PUSCH/scheduler observation.
-- [ ] **UE-N2:** Replay a short saved trace at 100-ms cadence and log target,
-  command, application time, instantaneous/EMA achieved SNR, MCS, TBS/grant,
-  BLER/HARQ, BSR/backlog, and availability time.
+- [x] **UE-N1:** Freeze the physical injection and observation interface:
+  saved desired achieved PUSCH SNR to a future calibrated RFsim noise command
+  to achieved PUSCH/scheduler observations. Do not claim a numeric mapping.
+- [ ] **UE-N2 (bounded smoke captured; full envelope remains open):** Implement persistent Telnet, recheck the effective clean
+  `-50` configuration/runtime seals, and replay a short trace at 100-ms
+  cadence. Log scheduled/send/response-ACK timing brackets, estimated
+  first-effect lag, instantaneous/EMA achieved SNR, MCS, TBS/grant, genuine
+  available UL HARQ/CRC evidence, BSR/backlog, and collector-ingest time. Do
+  not invent a channel-command application timestamp.
 - [ ] **UE-N3:** Verify the deployed scheduler's `24.5-dB` MCS-28 boundary and
   calibrate the attach-safe lower achieved-SNR bound.
 - [ ] **UE-N4:** Quantify target-to-achieved error, lag, command jitter,
@@ -269,6 +299,31 @@ bundle is superseded and is not authority.
 **Accept when:** the target/command/achieved distinction is empirically
 validated and every intended trace is reproducible, bounded, attach-safe, and
 occupies its intended channel behavior.
+
+**UE-N1 evidence:** `registries/ue_n1_oai_ul_actuator_interface_v2/`. The
+create-only `UE_N1_INTERFACE_V2_FROZEN.json` records
+`FROZEN_INTERFACE_ONLY`, no runtime/socket/CARLA/OAI execution, no numeric
+mapping or bounds, and UE-N2 as the next item. It freezes the gNB-side
+single-UE `rfsimu_channel_ue0.noise_power_dB` actuator, dynamic model-index
+resolution, persistent-Telnet requirement, 100-ms monotonic/no-catch-up
+schedule, ACK timing brackets, raw-event envelope, and causal policy boundary.
+The manifest SHA-256 is
+`0a53d754fc8e16d291dc63fe971f2749e3c0965b385b88910229fdc002a18987`.
+The immutable v1 bundle is superseded pre-final evidence and is not authority.
+
+**UE-N2 bounded-smoke evidence (2026-08-21):**
+`experiments/ue_n2_oai_ul_calibration_smoke_v1/20260821_meeting_smoke_04/`
+records `UE_N2_SMOKE_CAPTURED_PARTIAL_EVIDENCE`. The single-UE physical run
+sent 120/120 persistent-Telnet commands at 100-ms cadence, received every
+response before the next boundary, delivered 141/141 shaped UDP frames, and
+verified clean `-50` restoration plus cold teardown. Median achieved
+PUSCH-SNR/MCS pairs for commands `-10/-8/-5/-4` were respectively
+`19.5/24`, `16.0/19`, `10.0/12`, and `8.5/9`. Handler-bracket p50/p95/max was
+`0.123/0.409/1.048 ms`. The checkbox deliberately remains open because the
+stock tracer does not provide the complete timestamp envelope needed for a
+causal first-effect estimate, and direct UL BLER remains unresolved. These
+limitations do not promote a numeric bound or universal calibration. Meeting
+brief: `UE_N2_MEETING_BRIEF_20260821.md`.
 
 ## Stage 4 — map-install feedback and asynchronous timing
 
@@ -385,8 +440,8 @@ and the algorithm matches the mixed action structure.
 
 ## Immediate handoff
 
-The next task is **UE-A4**: create and hash a successor 72-row technical
-registry that consumes the immutable UE-A1 declarations and the UE-A2 `_02`
-evidence, changes each row from pending to technically valid, preserves all 72
-actions, and applies no quality-derived mask. No 72 x 4 collection, SNR
-actuation, continuous-q promotion, or policy training starts in that task.
+The next task is **UE-N2**: implement the persistent-Telnet player and run only
+the bounded 100-ms actuator smoke. Recheck the effective channel configuration
+and binary/telemetry seals, then record command send/ACK brackets and measured
+radio response; do not begin the 72 x 4 collection, continuous-q promotion, or
+policy training.

@@ -1,0 +1,88 @@
+{
+  "a1": {
+    "bundle_dir": "rl_agent/registries/ue_split_profile_registry_v1",
+    "manifest_json": "manifest.json",
+    "manifest_sha256": "675d383a0646ef833ad57f56a0eed841f404674666dff38cafa980d124a913e2",
+    "operational_registry_id": "ue_split_profile_registry_v1",
+    "operational_registry_schema": "scenesense.ue_split_profile_registry.v1",
+    "profiles": 72,
+    "registry_csv": "ue_split_profile_registry.csv",
+    "registry_sha256": "9542adc8e014960bf8876e87cdbd9783f8911140fbc37820605ce7dd69e23722",
+    "terminal_json": "UE_A1_STATIC_BINDING_VERIFIED.json",
+    "terminal_sha256": "da274400245b65356a4321f4792d0a98278ed52f97af7e110931c9e6f7a396da"
+  },
+  "a2": {
+    "bundle_dir": "rl_agent/experiments/ue_a2_technical_smoke_v1/20260820_cuda_model_smoke_02",
+    "manifest_json": "manifest.json",
+    "manifest_sha256": "441fce68cffa70ff1ad42d2200a5c2aeeae07fdc7e155783e36217946c24186f",
+    "model_smoke_json": "model_smoke.json",
+    "model_smoke_sha256": "66f685ab157acd0c0b298a194b2f971c9c073c689565c567e78c151cf30ae095",
+    "negative_tests": 34,
+    "negative_tests_json": "negative_contract_tests.json",
+    "negative_tests_sha256": "c8f610760ad7fed75d5fd7b631968e647aac5856dc720ad2547d72cdfa3f1b24",
+    "profile_csv": "ue_a2_profile_smoke.csv",
+    "profile_csv_sha256": "d9a387d4fe30993a3b419a7757ffd857ff8cc5fb455b77477ea42b2ffa0eb6a9",
+    "profiles": 72,
+    "required_bundle_name": "20260820_cuda_model_smoke_02",
+    "superseded_bundle_name": "20260820_cuda_model_smoke_01",
+    "terminal_json": "UE_A2_PASSED.json",
+    "terminal_sha256": "8c51d75fd9470c933827043136c70fe6e78e1f9af36e1257b69dfef138e20d12",
+    "transport_json": "transport_preflight.json",
+    "transport_sha256": "aa9447436e74584b44edbd1f312d3a4c59fd1a55ec5ffa96821d86ddd40a3b23"
+  },
+  "authority": {
+    "carla_run_authorized": false,
+    "evidence_only_successor": true,
+    "oai_run_authorized": false,
+    "policy_training_authorized": false,
+    "quality_filter_authorized": false,
+    "runtime_retarget_authorized": false
+  },
+  "output": {
+    "manifest_json": "manifest.json",
+    "registry_csv": "ue_split_technical_registry.csv",
+    "report_md": "REPORT.md",
+    "resolved_config_json": "resolved_config.json",
+    "root": "rl_agent/registries/ue_split_technical_registry_v1",
+    "terminal_json": "UE_A4_TECHNICAL_REGISTRY_FROZEN.json"
+  },
+  "registry_id": "ue_split_technical_registry_v1",
+  "registry_schema": "scenesense.ue_split_technical_registry.v1",
+  "repository_root": "../..",
+  "schema": "scenesense.ue_split_technical_registry_config.v1",
+  "sources": {
+    "a1_registry_assembler": {
+      "path": "rl_agent/ue_split_profile_registry.py",
+      "sha256": "f05108052b3e7f2a9ff1531a27dc864991a19654d30d07cb5a494feddafb4805"
+    },
+    "feature_codec": {
+      "path": "carla_split_inference_udp_data_collect.py",
+      "sha256": "22b6a8e4ade8ea4f4715bf143688c829e32aa7b3c9935fcad46283ab7a0aa13d"
+    },
+    "launcher_v2": {
+      "path": "uplink_only_spatial_map_pipeline/run_track1_oai_default106_ttracer_10fps_v2.sh",
+      "sha256": "fd2f1dd9530ab35536dfaa9f69b25bce7ae44c9e8905dda1a24b96d7a24b2cf4"
+    },
+    "runtime_v2": {
+      "path": "uplink_only_spatial_map_pipeline/carla_fusion_staleness_scenario_uplink_only_v2.py",
+      "sha256": "a99a88f5e4fe60e0964f71a48e5f3c5e544c270c28ffb7c20c2a825347efc991"
+    },
+    "wire_contract": {
+      "path": "rl_agent/ue_split_wire_contract.py",
+      "sha256": "85231c8af3905038ac5e6c48c5bd9110dcc5a38a527d4770910fd571d9f7eac2"
+    }
+  },
+  "transport_decision": {
+    "edge_to_map": {
+      "coder": "zlib",
+      "level": 1,
+      "payload": "fusion_object_spatial_map.v1_json",
+      "runtime_literal": "zlib.compress(encoded, level=1)"
+    },
+    "ue_to_edge": {
+      "coder": "zstd",
+      "level": 3,
+      "payload": "quantized_intermediate_features"
+    }
+  }
+}

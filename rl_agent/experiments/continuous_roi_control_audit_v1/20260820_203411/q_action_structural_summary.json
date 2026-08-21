@@ -1,0 +1,19 @@
+{
+  "coincident_transition_count": 0,
+  "high_only_transition_count": 1037,
+  "in_distribution_interval": [
+    0.0,
+    0.8
+  ],
+  "joint_plateau_count": 5185,
+  "joint_transition_count_open_interval": 5184,
+  "low_only_transition_count": 4147,
+  "maximum_plateau_width_q": 0.00019290123456790122,
+  "minimum_plateau_width_q": 9.645061728395061e-05,
+  "n_high": 1296,
+  "n_low": 5184,
+  "not_a_score_threshold": true,
+  "q_one_forbidden": true,
+  "rounding": "Python round, ties to even",
+  "semantics": "drop round(q*N) lowest-ranked objectness cells independently at native low/high resolutions"
+}

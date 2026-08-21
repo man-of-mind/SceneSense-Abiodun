@@ -1,0 +1,7 @@
+stage,status,reason,p50_ms,p90_ms,p95_ms,max_ms
+objectness_plus_rank,NOT_MEASURED,dense inference preflight stopped: dataset missing and CUDA unavailable,,,,
+cached_rank_mask_apply,NOT_MEASURED,dense inference preflight stopped: dataset missing and CUDA unavailable,,,,
+full_q_gate,NOT_MEASURED,dense inference preflight stopped: dataset missing and CUDA unavailable,,,,
+integrated_ae,NOT_MEASURED,dense inference preflight stopped: dataset missing and CUDA unavailable,,,,
+quantize_serialize_zstd3,NOT_MEASURED,dense inference preflight stopped: dataset missing and CUDA unavailable,,,,
+gate_to_serialized_payload,NOT_MEASURED,dense inference preflight stopped: dataset missing and CUDA unavailable,,,,

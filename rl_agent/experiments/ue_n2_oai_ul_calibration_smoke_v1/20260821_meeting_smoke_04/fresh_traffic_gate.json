@@ -1,0 +1,8 @@
+{
+  "baseline_pusch_rows": 10,
+  "current_rnti": 54415,
+  "fresh_pusch_rows": 69,
+  "sender_alive": true,
+  "sink_alive": true,
+  "sink_receive_rate_observed": true
+}

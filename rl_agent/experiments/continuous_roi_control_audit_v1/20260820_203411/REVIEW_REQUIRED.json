@@ -1,0 +1,18 @@
+{
+  "analysis_conclusion": "INSUFFICIENT_EVIDENCE",
+  "carla_run": false,
+  "controller_action": "KEEP_MEASURED_DISCRETE_Q_ANCHORS",
+  "controller_changed": false,
+  "oai_run": false,
+  "promotion_allowed": false,
+  "registry_changed": false,
+  "review_questions": [
+    "Restore the exact dataset path or approve an equivalently hashed immutable cache.",
+    "Provide CUDA capacity for the AE64/uint6 19-q validation pilot.",
+    "Review the preregistered interpolation and local-jump tolerances before any promotion run."
+  ],
+  "rl_agent_implemented": false,
+  "runtime_changed": false,
+  "schema": "scenesense.continuous_roi_control_review_required.v1",
+  "terminal": "REVIEW_REQUIRED"
+}
