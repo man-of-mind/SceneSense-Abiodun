@@ -1,0 +1,71 @@
+{
+  "bytes": 2499548,
+  "carla_timestamp": 58.5582474488765,
+  "extra_arrays_ignored": [
+    "radar_points__camera_depth_m",
+    "radar_points__camera_xyz",
+    "radar_points__stationary_age_s",
+    "radar_points__u",
+    "radar_points__v",
+    "radar_points__valid_projection",
+    "radar_points__velocity_mps",
+    "radar_points__world_xyz"
+  ],
+  "frame_id": 156944,
+  "ground_truth_consumed": false,
+  "path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/fixtures/ue_a2/ue_frame_00156944_inputs.npz",
+  "phase2_logic_consumed": false,
+  "required_arrays": {
+    "camera_intrinsics_input": {
+      "bytes": 72,
+      "dtype": "float64",
+      "shape": [
+        3,
+        3
+      ]
+    },
+    "camera_matrix": {
+      "bytes": 128,
+      "dtype": "float64",
+      "shape": [
+        4,
+        4
+      ]
+    },
+    "carla_timestamp": {
+      "bytes": 8,
+      "dtype": "float64",
+      "shape": [
+        1
+      ]
+    },
+    "frame_bgr": {
+      "bytes": 2764800,
+      "dtype": "uint8",
+      "shape": [
+        720,
+        1280,
+        3
+      ]
+    },
+    "frame_id": {
+      "bytes": 8,
+      "dtype": "int64",
+      "shape": [
+        1
+      ]
+    },
+    "radar_tensor": {
+      "bytes": 5308416,
+      "dtype": "float32",
+      "shape": [
+        4,
+        432,
+        768
+      ]
+    }
+  },
+  "schema": "scenesense.ue_a2_fixture_manifest.v1",
+  "sha256": "7fcfad2255c6626b8b87ff3a1c85ec7d32e17c8c2b4eee2875f5f132be423b41",
+  "status": "PASS"
+}

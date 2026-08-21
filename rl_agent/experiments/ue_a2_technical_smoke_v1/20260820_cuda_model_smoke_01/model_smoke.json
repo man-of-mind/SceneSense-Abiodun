@@ -1,0 +1,2966 @@
+{
+  "actual_udp_executed": true,
+  "cuda_device_name": "NVIDIA GeForce RTX 5090 Laptop GPU",
+  "cuda_free_vram_bytes_at_start": 16952721408,
+  "cuda_runtime_version": "12.8",
+  "cuda_total_vram_bytes": 25163464704,
+  "cudnn_version": 91501,
+  "device": "cuda:0",
+  "elapsed_s": 5.932722444878891,
+  "families": {
+    "ae128": {
+      "actions": {
+        "ae128__u4__q0.3__zstd3__ckpt601984b96d85": {
+          "map": {
+            "json_bytes": 3477,
+            "object_count": 4,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1637
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 4,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 2,
+            "compressed_bytes": 99723,
+            "roundtrip_ms": 1.111599151045084
+          }
+        },
+        "ae128__u4__q0.5__zstd3__ckpt601984b96d85": {
+          "map": {
+            "json_bytes": 3933,
+            "object_count": 5,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1774
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 5,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 2,
+            "compressed_bytes": 83579,
+            "roundtrip_ms": 1.032913802191615
+          }
+        },
+        "ae128__u4__q0.7__zstd3__ckpt601984b96d85": {
+          "map": {
+            "json_bytes": 3482,
+            "object_count": 4,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1640
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 4,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 2,
+            "compressed_bytes": 68416,
+            "roundtrip_ms": 0.8904100395739079
+          }
+        },
+        "ae128__u4__q0.98__zstd3__ckpt601984b96d85": {
+          "map": {
+            "json_bytes": 3915,
+            "object_count": 5,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1764
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 5,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 1,
+            "compressed_bytes": 19588,
+            "roundtrip_ms": 0.4685339517891407
+          }
+        },
+        "ae128__u4__q0.9__zstd3__ckpt601984b96d85": {
+          "map": {
+            "json_bytes": 3929,
+            "object_count": 5,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1791
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 5,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 1,
+            "compressed_bytes": 40295,
+            "roundtrip_ms": 0.6377359386533499
+          }
+        },
+        "ae128__u4__q0__zstd3__ckpt601984b96d85": {
+          "map": {
+            "json_bytes": 3477,
+            "object_count": 4,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1644
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 4,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 3,
+            "compressed_bytes": 132556,
+            "roundtrip_ms": 1.329503022134304
+          }
+        },
+        "ae128__u6__q0.3__zstd3__ckpt601984b96d85": {
+          "map": {
+            "json_bytes": 3467,
+            "object_count": 4,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1632
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 4,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 4,
+            "compressed_bytes": 198679,
+            "roundtrip_ms": 1.1006561107933521
+          }
+        },
+        "ae128__u6__q0.5__zstd3__ckpt601984b96d85": {
+          "map": {
+            "json_bytes": 3939,
+            "object_count": 5,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1775
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 5,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 3,
+            "compressed_bytes": 160796,
+            "roundtrip_ms": 1.08841503970325
+          }
+        },
+        "ae128__u6__q0.7__zstd3__ckpt601984b96d85": {
+          "map": {
+            "json_bytes": 3478,
+            "object_count": 4,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1634
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 4,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 3,
+            "compressed_bytes": 123061,
+            "roundtrip_ms": 1.1408268474042416
+          }
+        },
+        "ae128__u6__q0.98__zstd3__ckpt601984b96d85": {
+          "map": {
+            "json_bytes": 3469,
+            "object_count": 4,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1623
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 4,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 1,
+            "compressed_bytes": 28707,
+            "roundtrip_ms": 0.6147532258182764
+          }
+        },
+        "ae128__u6__q0.9__zstd3__ckpt601984b96d85": {
+          "map": {
+            "json_bytes": 3916,
+            "object_count": 5,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1769
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 5,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 2,
+            "compressed_bytes": 65707,
+            "roundtrip_ms": 0.7843568455427885
+          }
+        },
+        "ae128__u6__q0__zstd3__ckpt601984b96d85": {
+          "map": {
+            "json_bytes": 3456,
+            "object_count": 4,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1623
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 4,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 5,
+            "compressed_bytes": 268623,
+            "roundtrip_ms": 0.6813358049839735
+          }
+        },
+        "ae128__u8__q0.3__zstd3__ckpt601984b96d85": {
+          "map": {
+            "json_bytes": 3463,
+            "object_count": 4,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1629
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 4,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 5,
+            "compressed_bytes": 258140,
+            "roundtrip_ms": 1.1521719861775637
+          }
+        },
+        "ae128__u8__q0.5__zstd3__ckpt601984b96d85": {
+          "map": {
+            "json_bytes": 3933,
+            "object_count": 5,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1767
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 5,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 4,
+            "compressed_bytes": 207063,
+            "roundtrip_ms": 1.2741480022668839
+          }
+        },
+        "ae128__u8__q0.7__zstd3__ckpt601984b96d85": {
+          "map": {
+            "json_bytes": 3485,
+            "object_count": 4,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1636
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 4,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 3,
+            "compressed_bytes": 155154,
+            "roundtrip_ms": 1.3246999587863684
+          }
+        },
+        "ae128__u8__q0.98__zstd3__ckpt601984b96d85": {
+          "map": {
+            "json_bytes": 3469,
+            "object_count": 4,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1629
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 4,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 1,
+            "compressed_bytes": 32068,
+            "roundtrip_ms": 0.6215658504515886
+          }
+        },
+        "ae128__u8__q0.9__zstd3__ckpt601984b96d85": {
+          "map": {
+            "json_bytes": 3917,
+            "object_count": 5,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1771
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 5,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 2,
+            "compressed_bytes": 80077,
+            "roundtrip_ms": 0.9834240190684795
+          }
+        },
+        "ae128__u8__q0__zstd3__ckpt601984b96d85": {
+          "map": {
+            "json_bytes": 3456,
+            "object_count": 4,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1632
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 4,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 6,
+            "compressed_bytes": 350151,
+            "roundtrip_ms": 1.3803839683532715
+          }
+        }
+      },
+      "checkpoint_sha256": "601984b96d85e1d72e9521f8a796103ab630834991d0957b62990116524cd62c",
+      "cuda_memory_end": {
+        "allocated_bytes": 1494016,
+        "free_bytes": 16877223936,
+        "max_allocated_bytes": 207263232,
+        "max_reserved_bytes": 278921216,
+        "reserved_bytes": 6291456
+      },
+      "cuda_memory_start": {
+        "allocated_bytes": 1162240,
+        "free_bytes": 16877223936,
+        "reserved_bytes": 6291456,
+        "total_bytes": 25163464704
+      },
+      "errors": [],
+      "front_paths": {
+        "0": {
+          "dropped_spatial_cells": {
+            "high": 0,
+            "low": 0
+          },
+          "effect_matches_independent_reconstruction": true,
+          "q": 0.0,
+          "wire_high_channels": 128
+        },
+        "0.3": {
+          "dropped_spatial_cells": {
+            "high": 389,
+            "low": 1555
+          },
+          "effect_matches_independent_reconstruction": true,
+          "q": 0.3,
+          "wire_high_channels": 128
+        },
+        "0.5": {
+          "dropped_spatial_cells": {
+            "high": 648,
+            "low": 2592
+          },
+          "effect_matches_independent_reconstruction": true,
+          "q": 0.5,
+          "wire_high_channels": 128
+        },
+        "0.7": {
+          "dropped_spatial_cells": {
+            "high": 907,
+            "low": 3629
+          },
+          "effect_matches_independent_reconstruction": true,
+          "q": 0.7,
+          "wire_high_channels": 128
+        },
+        "0.9": {
+          "dropped_spatial_cells": {
+            "high": 1166,
+            "low": 4666
+          },
+          "effect_matches_independent_reconstruction": true,
+          "q": 0.9,
+          "wire_high_channels": 128
+        },
+        "0.98": {
+          "dropped_spatial_cells": {
+            "high": 1270,
+            "low": 5080
+          },
+          "effect_matches_independent_reconstruction": true,
+          "q": 0.98,
+          "wire_high_channels": 128
+        }
+      },
+      "integrated_ae_binding": {
+        "edge": {
+          "bottleneck_channels": 128,
+          "class": "FeatureAEv2",
+          "present": true
+        },
+        "expected_bottleneck_channels": 128,
+        "front": {
+          "bottleneck_channels": 128,
+          "class": "FeatureAEv2",
+          "present": true
+        }
+      },
+      "profiles": 18
+    },
+    "ae32": {
+      "actions": {
+        "ae32__u4__q0.3__zstd3__ckpt10cebbeede4d": {
+          "map": {
+            "json_bytes": 3890,
+            "object_count": 5,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1774
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 5,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 2,
+            "compressed_bytes": 67905,
+            "roundtrip_ms": 0.5709158722311258
+          }
+        },
+        "ae32__u4__q0.5__zstd3__ckpt10cebbeede4d": {
+          "map": {
+            "json_bytes": 3452,
+            "object_count": 4,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1641
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 4,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 1,
+            "compressed_bytes": 55084,
+            "roundtrip_ms": 0.5156160332262516
+          }
+        },
+        "ae32__u4__q0.7__zstd3__ckpt10cebbeede4d": {
+          "map": {
+            "json_bytes": 3449,
+            "object_count": 4,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1637
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 4,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 1,
+            "compressed_bytes": 39645,
+            "roundtrip_ms": 0.44969189912080765
+          }
+        },
+        "ae32__u4__q0.98__zstd3__ckpt10cebbeede4d": {
+          "map": {
+            "json_bytes": 3461,
+            "object_count": 4,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1637
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 4,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 1,
+            "compressed_bytes": 10478,
+            "roundtrip_ms": 0.31223706901073456
+          }
+        },
+        "ae32__u4__q0.9__zstd3__ckpt10cebbeede4d": {
+          "map": {
+            "json_bytes": 3896,
+            "object_count": 5,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1776
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 5,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 1,
+            "compressed_bytes": 20597,
+            "roundtrip_ms": 0.3498620353639126
+          }
+        },
+        "ae32__u4__q0__zstd3__ckpt10cebbeede4d": {
+          "map": {
+            "json_bytes": 3439,
+            "object_count": 4,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1633
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 4,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 2,
+            "compressed_bytes": 91739,
+            "roundtrip_ms": 0.6691832095384598
+          }
+        },
+        "ae32__u6__q0.3__zstd3__ckpt10cebbeede4d": {
+          "map": {
+            "json_bytes": 3457,
+            "object_count": 4,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1633
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 4,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 3,
+            "compressed_bytes": 131781,
+            "roundtrip_ms": 0.7250399794429541
+          }
+        },
+        "ae32__u6__q0.5__zstd3__ckpt10cebbeede4d": {
+          "map": {
+            "json_bytes": 3443,
+            "object_count": 4,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1634
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 4,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 2,
+            "compressed_bytes": 103440,
+            "roundtrip_ms": 0.7069550920277834
+          }
+        },
+        "ae32__u6__q0.7__zstd3__ckpt10cebbeede4d": {
+          "map": {
+            "json_bytes": 3445,
+            "object_count": 4,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1635
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 4,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 2,
+            "compressed_bytes": 70682,
+            "roundtrip_ms": 0.6463229656219482
+          }
+        },
+        "ae32__u6__q0.98__zstd3__ckpt10cebbeede4d": {
+          "map": {
+            "json_bytes": 3022,
+            "object_count": 3,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1492
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 3,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 1,
+            "compressed_bytes": 14413,
+            "roundtrip_ms": 0.3638260532170534
+          }
+        },
+        "ae32__u6__q0.9__zstd3__ckpt10cebbeede4d": {
+          "map": {
+            "json_bytes": 3896,
+            "object_count": 5,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1765
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 5,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 1,
+            "compressed_bytes": 33112,
+            "roundtrip_ms": 0.45168609358370304
+          }
+        },
+        "ae32__u6__q0__zstd3__ckpt10cebbeede4d": {
+          "map": {
+            "json_bytes": 3448,
+            "object_count": 4,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1636
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 4,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 3,
+            "compressed_bytes": 179839,
+            "roundtrip_ms": 0.4829089157283306
+          }
+        },
+        "ae32__u8__q0.3__zstd3__ckpt10cebbeede4d": {
+          "map": {
+            "json_bytes": 3453,
+            "object_count": 4,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1627
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 4,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 3,
+            "compressed_bytes": 171694,
+            "roundtrip_ms": 0.7329990621656179
+          }
+        },
+        "ae32__u8__q0.5__zstd3__ckpt10cebbeede4d": {
+          "map": {
+            "json_bytes": 3454,
+            "object_count": 4,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1640
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 4,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 3,
+            "compressed_bytes": 132740,
+            "roundtrip_ms": 0.7685332093387842
+          }
+        },
+        "ae32__u8__q0.7__zstd3__ckpt10cebbeede4d": {
+          "map": {
+            "json_bytes": 3449,
+            "object_count": 4,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1637
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 4,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 2,
+            "compressed_bytes": 88694,
+            "roundtrip_ms": 0.6771590560674667
+          }
+        },
+        "ae32__u8__q0.98__zstd3__ckpt10cebbeede4d": {
+          "map": {
+            "json_bytes": 3021,
+            "object_count": 3,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1487
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 3,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 1,
+            "compressed_bytes": 15443,
+            "roundtrip_ms": 0.40755514055490494
+          }
+        },
+        "ae32__u8__q0.9__zstd3__ckpt10cebbeede4d": {
+          "map": {
+            "json_bytes": 3900,
+            "object_count": 5,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1767
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 5,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 1,
+            "compressed_bytes": 39200,
+            "roundtrip_ms": 0.48638298176229
+          }
+        },
+        "ae32__u8__q0__zstd3__ckpt10cebbeede4d": {
+          "map": {
+            "json_bytes": 3446,
+            "object_count": 4,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1627
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 4,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 4,
+            "compressed_bytes": 235001,
+            "roundtrip_ms": 0.5717591848224401
+          }
+        }
+      },
+      "checkpoint_sha256": "10cebbeede4da992e68850d8f38358e89000b62524be25b68c88517d7b58f9b2",
+      "cuda_memory_end": {
+        "allocated_bytes": 996352,
+        "free_bytes": 16875126784,
+        "max_allocated_bytes": 205313536,
+        "max_reserved_bytes": 293601280,
+        "reserved_bytes": 8388608
+      },
+      "cuda_memory_start": {
+        "allocated_bytes": 5807104,
+        "free_bytes": 16858349568,
+        "reserved_bytes": 25165824,
+        "total_bytes": 25163464704
+      },
+      "errors": [],
+      "front_paths": {
+        "0": {
+          "dropped_spatial_cells": {
+            "high": 0,
+            "low": 0
+          },
+          "effect_matches_independent_reconstruction": true,
+          "q": 0.0,
+          "wire_high_channels": 32
+        },
+        "0.3": {
+          "dropped_spatial_cells": {
+            "high": 389,
+            "low": 1555
+          },
+          "effect_matches_independent_reconstruction": true,
+          "q": 0.3,
+          "wire_high_channels": 32
+        },
+        "0.5": {
+          "dropped_spatial_cells": {
+            "high": 648,
+            "low": 2592
+          },
+          "effect_matches_independent_reconstruction": true,
+          "q": 0.5,
+          "wire_high_channels": 32
+        },
+        "0.7": {
+          "dropped_spatial_cells": {
+            "high": 907,
+            "low": 3629
+          },
+          "effect_matches_independent_reconstruction": true,
+          "q": 0.7,
+          "wire_high_channels": 32
+        },
+        "0.9": {
+          "dropped_spatial_cells": {
+            "high": 1166,
+            "low": 4666
+          },
+          "effect_matches_independent_reconstruction": true,
+          "q": 0.9,
+          "wire_high_channels": 32
+        },
+        "0.98": {
+          "dropped_spatial_cells": {
+            "high": 1270,
+            "low": 5080
+          },
+          "effect_matches_independent_reconstruction": true,
+          "q": 0.98,
+          "wire_high_channels": 32
+        }
+      },
+      "integrated_ae_binding": {
+        "edge": {
+          "bottleneck_channels": 32,
+          "class": "FeatureAEv2",
+          "present": true
+        },
+        "expected_bottleneck_channels": 32,
+        "front": {
+          "bottleneck_channels": 32,
+          "class": "FeatureAEv2",
+          "present": true
+        }
+      },
+      "profiles": 18
+    },
+    "ae64": {
+      "actions": {
+        "ae64__u4__q0.3__zstd3__ckptc6a2362c7c2d": {
+          "map": {
+            "json_bytes": 4356,
+            "object_count": 6,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1919
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 6,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 2,
+            "compressed_bytes": 77713,
+            "roundtrip_ms": 1.005460973829031
+          }
+        },
+        "ae64__u4__q0.5__zstd3__ckptc6a2362c7c2d": {
+          "map": {
+            "json_bytes": 4348,
+            "object_count": 6,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1910
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 6,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 2,
+            "compressed_bytes": 65922,
+            "roundtrip_ms": 0.8409868460148573
+          }
+        },
+        "ae64__u4__q0.7__zstd3__ckptc6a2362c7c2d": {
+          "map": {
+            "json_bytes": 4357,
+            "object_count": 6,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1916
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 6,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 1,
+            "compressed_bytes": 49720,
+            "roundtrip_ms": 0.7138608489185572
+          }
+        },
+        "ae64__u4__q0.98__zstd3__ckptc6a2362c7c2d": {
+          "map": {
+            "json_bytes": 3930,
+            "object_count": 5,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1778
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 5,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 1,
+            "compressed_bytes": 12571,
+            "roundtrip_ms": 0.34002214670181274
+          }
+        },
+        "ae64__u4__q0.9__zstd3__ckptc6a2362c7c2d": {
+          "map": {
+            "json_bytes": 4372,
+            "object_count": 6,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1920
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 6,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 1,
+            "compressed_bytes": 26327,
+            "roundtrip_ms": 0.45892992056906223
+          }
+        },
+        "ae64__u4__q0__zstd3__ckptc6a2362c7c2d": {
+          "map": {
+            "json_bytes": 4348,
+            "object_count": 6,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1917
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 6,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 2,
+            "compressed_bytes": 102130,
+            "roundtrip_ms": 1.1255887802690268
+          }
+        },
+        "ae64__u6__q0.3__zstd3__ckptc6a2362c7c2d": {
+          "map": {
+            "json_bytes": 4348,
+            "object_count": 6,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1906
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 6,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 3,
+            "compressed_bytes": 155152,
+            "roundtrip_ms": 0.9904799517244101
+          }
+        },
+        "ae64__u6__q0.5__zstd3__ckptc6a2362c7c2d": {
+          "map": {
+            "json_bytes": 4348,
+            "object_count": 6,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1924
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 6,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 3,
+            "compressed_bytes": 126278,
+            "roundtrip_ms": 0.9200589265674353
+          }
+        },
+        "ae64__u6__q0.7__zstd3__ckptc6a2362c7c2d": {
+          "map": {
+            "json_bytes": 4340,
+            "object_count": 6,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1910
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 6,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 2,
+            "compressed_bytes": 89352,
+            "roundtrip_ms": 0.8497890084981918
+          }
+        },
+        "ae64__u6__q0.98__zstd3__ckptc6a2362c7c2d": {
+          "map": {
+            "json_bytes": 3938,
+            "object_count": 5,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1775
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 5,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 1,
+            "compressed_bytes": 17356,
+            "roundtrip_ms": 0.40851603262126446
+          }
+        },
+        "ae64__u6__q0.9__zstd3__ckptc6a2362c7c2d": {
+          "map": {
+            "json_bytes": 3899,
+            "object_count": 5,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1779
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 5,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 1,
+            "compressed_bytes": 41967,
+            "roundtrip_ms": 0.5001728422939777
+          }
+        },
+        "ae64__u6__q0__zstd3__ckptc6a2362c7c2d": {
+          "map": {
+            "json_bytes": 4334,
+            "object_count": 6,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1894
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 6,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 4,
+            "compressed_bytes": 209100,
+            "roundtrip_ms": 0.5610678344964981
+          }
+        },
+        "ae64__u8__q0.3__zstd3__ckptc6a2362c7c2d": {
+          "map": {
+            "json_bytes": 4351,
+            "object_count": 6,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1915
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 6,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 4,
+            "compressed_bytes": 204120,
+            "roundtrip_ms": 0.9635009337216616
+          }
+        },
+        "ae64__u8__q0.5__zstd3__ckptc6a2362c7c2d": {
+          "map": {
+            "json_bytes": 4344,
+            "object_count": 6,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1917
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 6,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 3,
+            "compressed_bytes": 164270,
+            "roundtrip_ms": 1.0694419033825397
+          }
+        },
+        "ae64__u8__q0.7__zstd3__ckptc6a2362c7c2d": {
+          "map": {
+            "json_bytes": 4346,
+            "object_count": 6,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1930
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 6,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 2,
+            "compressed_bytes": 113598,
+            "roundtrip_ms": 0.9787119925022125
+          }
+        },
+        "ae64__u8__q0.98__zstd3__ckptc6a2362c7c2d": {
+          "map": {
+            "json_bytes": 3943,
+            "object_count": 5,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1777
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 5,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 1,
+            "compressed_bytes": 19100,
+            "roundtrip_ms": 0.4653788637369871
+          }
+        },
+        "ae64__u8__q0.9__zstd3__ckptc6a2362c7c2d": {
+          "map": {
+            "json_bytes": 3898,
+            "object_count": 5,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1763
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 5,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 1,
+            "compressed_bytes": 49915,
+            "roundtrip_ms": 0.641105929389596
+          }
+        },
+        "ae64__u8__q0__zstd3__ckptc6a2362c7c2d": {
+          "map": {
+            "json_bytes": 4338,
+            "object_count": 6,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1916
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 6,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 5,
+            "compressed_bytes": 274283,
+            "roundtrip_ms": 0.7097700145095587
+          }
+        }
+      },
+      "checkpoint_sha256": "c6a2362c7c2d72ff31825508ae7532c0796ec063a8556317d47d8d30fad99480",
+      "cuda_memory_end": {
+        "allocated_bytes": 1162240,
+        "free_bytes": 16877223936,
+        "max_allocated_bytes": 206206464,
+        "max_reserved_bytes": 278921216,
+        "reserved_bytes": 6291456
+      },
+      "cuda_memory_start": {
+        "allocated_bytes": 996352,
+        "free_bytes": 16875126784,
+        "reserved_bytes": 8388608,
+        "total_bytes": 25163464704
+      },
+      "errors": [],
+      "front_paths": {
+        "0": {
+          "dropped_spatial_cells": {
+            "high": 0,
+            "low": 0
+          },
+          "effect_matches_independent_reconstruction": true,
+          "q": 0.0,
+          "wire_high_channels": 64
+        },
+        "0.3": {
+          "dropped_spatial_cells": {
+            "high": 389,
+            "low": 1555
+          },
+          "effect_matches_independent_reconstruction": true,
+          "q": 0.3,
+          "wire_high_channels": 64
+        },
+        "0.5": {
+          "dropped_spatial_cells": {
+            "high": 648,
+            "low": 2592
+          },
+          "effect_matches_independent_reconstruction": true,
+          "q": 0.5,
+          "wire_high_channels": 64
+        },
+        "0.7": {
+          "dropped_spatial_cells": {
+            "high": 907,
+            "low": 3629
+          },
+          "effect_matches_independent_reconstruction": true,
+          "q": 0.7,
+          "wire_high_channels": 64
+        },
+        "0.9": {
+          "dropped_spatial_cells": {
+            "high": 1166,
+            "low": 4666
+          },
+          "effect_matches_independent_reconstruction": true,
+          "q": 0.9,
+          "wire_high_channels": 64
+        },
+        "0.98": {
+          "dropped_spatial_cells": {
+            "high": 1270,
+            "low": 5080
+          },
+          "effect_matches_independent_reconstruction": true,
+          "q": 0.98,
+          "wire_high_channels": 64
+        }
+      },
+      "integrated_ae_binding": {
+        "edge": {
+          "bottleneck_channels": 64,
+          "class": "FeatureAEv2",
+          "present": true
+        },
+        "expected_bottleneck_channels": 64,
+        "front": {
+          "bottleneck_channels": 64,
+          "class": "FeatureAEv2",
+          "present": true
+        }
+      },
+      "profiles": 18
+    },
+    "noae": {
+      "actions": {
+        "noae__u4__q0.3__zstd3__ckptf319e2a5e8fb": {
+          "map": {
+            "json_bytes": 2567,
+            "object_count": 2,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1339
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 2,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 6,
+            "compressed_bytes": 312601,
+            "roundtrip_ms": 3.120304783806205
+          }
+        },
+        "noae__u4__q0.5__zstd3__ckptf319e2a5e8fb": {
+          "map": {
+            "json_bytes": 3020,
+            "object_count": 3,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1488
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 3,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 5,
+            "compressed_bytes": 275461,
+            "roundtrip_ms": 2.969572087749839
+          }
+        },
+        "noae__u4__q0.7__zstd3__ckptf319e2a5e8fb": {
+          "map": {
+            "json_bytes": 3006,
+            "object_count": 3,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1484
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 3,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 4,
+            "compressed_bytes": 202934,
+            "roundtrip_ms": 2.384888008236885
+          }
+        },
+        "noae__u4__q0.98__zstd3__ckptf319e2a5e8fb": {
+          "map": {
+            "json_bytes": 2573,
+            "object_count": 2,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1335
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 2,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 1,
+            "compressed_bytes": 49632,
+            "roundtrip_ms": 1.0438649915158749
+          }
+        },
+        "noae__u4__q0.9__zstd3__ckptf319e2a5e8fb": {
+          "map": {
+            "json_bytes": 3477,
+            "object_count": 4,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1623
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 4,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 2,
+            "compressed_bytes": 115435,
+            "roundtrip_ms": 1.6843369230628014
+          }
+        },
+        "noae__u4__q0__zstd3__ckptf319e2a5e8fb": {
+          "map": {
+            "json_bytes": 2555,
+            "object_count": 2,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1333
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 2,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 7,
+            "compressed_bytes": 406851,
+            "roundtrip_ms": 3.889900865033269
+          }
+        },
+        "noae__u6__q0.3__zstd3__ckptf319e2a5e8fb": {
+          "map": {
+            "json_bytes": 2560,
+            "object_count": 2,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1334
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 2,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 11,
+            "compressed_bytes": 603888,
+            "roundtrip_ms": 4.270158940926194
+          }
+        },
+        "noae__u6__q0.5__zstd3__ckptf319e2a5e8fb": {
+          "map": {
+            "json_bytes": 2576,
+            "object_count": 2,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1347
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 2,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 9,
+            "compressed_bytes": 504543,
+            "roundtrip_ms": 4.267262062057853
+          }
+        },
+        "noae__u6__q0.7__zstd3__ckptf319e2a5e8fb": {
+          "map": {
+            "json_bytes": 2562,
+            "object_count": 2,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1333
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 2,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 6,
+            "compressed_bytes": 345824,
+            "roundtrip_ms": 3.503696992993355
+          }
+        },
+        "noae__u6__q0.98__zstd3__ckptf319e2a5e8fb": {
+          "map": {
+            "json_bytes": 2579,
+            "object_count": 2,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1347
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 2,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 2,
+            "compressed_bytes": 69278,
+            "roundtrip_ms": 1.4189491048455238
+          }
+        },
+        "noae__u6__q0.9__zstd3__ckptf319e2a5e8fb": {
+          "map": {
+            "json_bytes": 3019,
+            "object_count": 3,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1485
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 3,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 4,
+            "compressed_bytes": 184971,
+            "roundtrip_ms": 2.456307178363204
+          }
+        },
+        "noae__u6__q0__zstd3__ckptf319e2a5e8fb": {
+          "map": {
+            "json_bytes": 2559,
+            "object_count": 2,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1332
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 2,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 14,
+            "compressed_bytes": 807731,
+            "roundtrip_ms": 5.403012968599796
+          }
+        },
+        "noae__u8__q0.3__zstd3__ckptf319e2a5e8fb": {
+          "map": {
+            "json_bytes": 2564,
+            "object_count": 2,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1332
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 2,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 14,
+            "compressed_bytes": 801539,
+            "roundtrip_ms": 5.984176881611347
+          }
+        },
+        "noae__u8__q0.5__zstd3__ckptf319e2a5e8fb": {
+          "map": {
+            "json_bytes": 2572,
+            "object_count": 2,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1344
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 2,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 11,
+            "compressed_bytes": 652604,
+            "roundtrip_ms": 5.805364111438394
+          }
+        },
+        "noae__u8__q0.7__zstd3__ckptf319e2a5e8fb": {
+          "map": {
+            "json_bytes": 2564,
+            "object_count": 2,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1338
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 2,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 8,
+            "compressed_bytes": 436045,
+            "roundtrip_ms": 4.858257016167045
+          }
+        },
+        "noae__u8__q0.98__zstd3__ckptf319e2a5e8fb": {
+          "map": {
+            "json_bytes": 2579,
+            "object_count": 2,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1339
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 2,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 2,
+            "compressed_bytes": 73910,
+            "roundtrip_ms": 2.135863061994314
+          }
+        },
+        "noae__u8__q0.9__zstd3__ckptf319e2a5e8fb": {
+          "map": {
+            "json_bytes": 3031,
+            "object_count": 3,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1482
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 3,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 4,
+            "compressed_bytes": 217937,
+            "roundtrip_ms": 3.80436098203063
+          }
+        },
+        "noae__u8__q0__zstd3__ckptf319e2a5e8fb": {
+          "map": {
+            "json_bytes": 2556,
+            "object_count": 2,
+            "schema": "fusion_object_spatial_map.v1",
+            "zlib_bytes": 1331
+          },
+          "tail": {
+            "mask_dtype": "uint8",
+            "mask_shape": [
+              720,
+              1280
+            ],
+            "object_count": 2,
+            "raw_output_shapes": {
+              "object": [
+                1,
+                14,
+                432,
+                768
+              ],
+              "out": [
+                1,
+                3,
+                432,
+                768
+              ]
+            }
+          },
+          "udp": {
+            "chunks": 18,
+            "compressed_bytes": 1073642,
+            "roundtrip_ms": 6.173354107886553
+          }
+        }
+      },
+      "checkpoint_sha256": "f319e2a5e8fb134e74c24c0822233e17368df6e4c733add658026603e131d4fa",
+      "cuda_memory_end": {
+        "allocated_bytes": 5807104,
+        "free_bytes": 16858349568,
+        "max_allocated_bytes": 158585344,
+        "max_reserved_bytes": 243269632,
+        "reserved_bytes": 25165824
+      },
+      "cuda_memory_start": {
+        "allocated_bytes": 0,
+        "free_bytes": 16952721408,
+        "reserved_bytes": 0,
+        "total_bytes": 25163464704
+      },
+      "errors": [],
+      "front_paths": {
+        "0": {
+          "dropped_spatial_cells": {
+            "high": 0,
+            "low": 0
+          },
+          "effect_matches_independent_reconstruction": true,
+          "q": 0.0,
+          "wire_high_channels": 960
+        },
+        "0.3": {
+          "dropped_spatial_cells": {
+            "high": 389,
+            "low": 1555
+          },
+          "effect_matches_independent_reconstruction": true,
+          "q": 0.3,
+          "wire_high_channels": 960
+        },
+        "0.5": {
+          "dropped_spatial_cells": {
+            "high": 648,
+            "low": 2592
+          },
+          "effect_matches_independent_reconstruction": true,
+          "q": 0.5,
+          "wire_high_channels": 960
+        },
+        "0.7": {
+          "dropped_spatial_cells": {
+            "high": 907,
+            "low": 3629
+          },
+          "effect_matches_independent_reconstruction": true,
+          "q": 0.7,
+          "wire_high_channels": 960
+        },
+        "0.9": {
+          "dropped_spatial_cells": {
+            "high": 1166,
+            "low": 4666
+          },
+          "effect_matches_independent_reconstruction": true,
+          "q": 0.9,
+          "wire_high_channels": 960
+        },
+        "0.98": {
+          "dropped_spatial_cells": {
+            "high": 1270,
+            "low": 5080
+          },
+          "effect_matches_independent_reconstruction": true,
+          "q": 0.98,
+          "wire_high_channels": 960
+        }
+      },
+      "integrated_ae_binding": {
+        "edge": {
+          "present": false
+        },
+        "expected_bottleneck_channels": 0,
+        "front": {
+          "present": false
+        }
+      },
+      "profiles": 18
+    }
+  },
+  "minimum_free_vram_bytes": 2147483648,
+  "model_inference_executed": true,
+  "native_backbone_encodes": 4,
+  "roi_ae_paths": 24,
+  "runtime_codec": {
+    "path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/carla_split_inference_udp_data_collect.py",
+    "sha256": "22b6a8e4ade8ea4f4715bf143688c829e32aa7b3c9935fcad46283ab7a0aa13d"
+  },
+  "schema": "scenesense.ue_a2_cuda_model_smoke.v1",
+  "seed": 20260820,
+  "source_drift": {},
+  "source_seals_end": {
+    "codec": {
+      "bytes": 131741,
+      "path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/carla_split_inference_udp_data_collect.py",
+      "sha256": "22b6a8e4ade8ea4f4715bf143688c829e32aa7b3c9935fcad46283ab7a0aa13d"
+    },
+    "feature_ae": {
+      "bytes": 4247,
+      "path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/feature_ae/ae_model.py",
+      "sha256": "29a98885a909fd59f51e1254b70807f32697c81e6e1127f7ff93a02c72b0c975"
+    },
+    "model": {
+      "bytes": 19551,
+      "path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/pole_lraspp_multimodal_fusion/pole_lraspp_multimodal_fusion/model.py",
+      "sha256": "a7828a505f4414d5dcab694ba68f1afc807001d46f7ef052e8a28b88629bcfa9"
+    },
+    "runtime": {
+      "bytes": 310471,
+      "path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/uplink_only_spatial_map_pipeline/carla_fusion_staleness_scenario_uplink_only_v2.py",
+      "sha256": "a99a88f5e4fe60e0964f71a48e5f3c5e544c270c28ffb7c20c2a825347efc991"
+    },
+    "split_runtime": {
+      "bytes": 4887,
+      "path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/pole_lraspp_multimodal_fusion/pole_lraspp_multimodal_fusion/split_runtime.py",
+      "sha256": "85d408959ea332245444db567ba916b7bce6a9c93cfbc73ae25d129abda0cae5"
+    },
+    "wire_contract": {
+      "bytes": 38204,
+      "path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/ue_split_wire_contract.py",
+      "sha256": "85231c8af3905038ac5e6c48c5bd9110dcc5a38a527d4770910fd571d9f7eac2"
+    }
+  },
+  "source_seals_start": {
+    "codec": {
+      "bytes": 131741,
+      "path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/carla_split_inference_udp_data_collect.py",
+      "sha256": "22b6a8e4ade8ea4f4715bf143688c829e32aa7b3c9935fcad46283ab7a0aa13d"
+    },
+    "feature_ae": {
+      "bytes": 4247,
+      "path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/feature_ae/ae_model.py",
+      "sha256": "29a98885a909fd59f51e1254b70807f32697c81e6e1127f7ff93a02c72b0c975"
+    },
+    "model": {
+      "bytes": 19551,
+      "path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/pole_lraspp_multimodal_fusion/pole_lraspp_multimodal_fusion/model.py",
+      "sha256": "a7828a505f4414d5dcab694ba68f1afc807001d46f7ef052e8a28b88629bcfa9"
+    },
+    "runtime": {
+      "bytes": 310471,
+      "path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/uplink_only_spatial_map_pipeline/carla_fusion_staleness_scenario_uplink_only_v2.py",
+      "sha256": "a99a88f5e4fe60e0964f71a48e5f3c5e544c270c28ffb7c20c2a825347efc991"
+    },
+    "split_runtime": {
+      "bytes": 4887,
+      "path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/pole_lraspp_multimodal_fusion/pole_lraspp_multimodal_fusion/split_runtime.py",
+      "sha256": "85d408959ea332245444db567ba916b7bce6a9c93cfbc73ae25d129abda0cae5"
+    },
+    "wire_contract": {
+      "bytes": 38204,
+      "path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/ue_split_wire_contract.py",
+      "sha256": "85231c8af3905038ac5e6c48c5bd9110dcc5a38a527d4770910fd571d9f7eac2"
+    }
+  },
+  "status": "PASS",
+  "strict_edge_loads": 4,
+  "strict_front_loads": 4,
+  "tail_decodes": 72,
+  "technical_invalid_profiles": 0,
+  "technical_valid_profiles": 72,
+  "torch_version": "2.11.0.dev20260120+cu128"
+}

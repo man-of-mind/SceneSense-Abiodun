@@ -1,0 +1,218 @@
+{
+  "decode_or_map_calls_after_rejection": 0,
+  "records": [
+    {
+      "detail": "WIRE_IDENTITY_MISSING: profile_identity must be a mapping",
+      "expected_code": "WIRE_IDENTITY_MISSING",
+      "name": "missing_identity",
+      "observed_code": "WIRE_IDENTITY_MISSING",
+      "status": "PASS"
+    },
+    {
+      "detail": "WIRE_IDENTITY_VALUE_MISMATCH: field=profile_id expected='ae32__u4__q0.9__zstd3__ckpt10cebbeede4d' actual='wrong'",
+      "expected_code": "WIRE_IDENTITY_VALUE_MISMATCH",
+      "name": "identity_rejected_before_feature_inspection",
+      "observed_code": "WIRE_IDENTITY_VALUE_MISMATCH",
+      "status": "PASS"
+    },
+    {
+      "detail": "WIRE_IDENTITY_VALUE_MISMATCH: field=schema expected='scenesense.ue_split_wire_identity.v1' actual='scenesense.ue_split_wire_identity.v1-bad'",
+      "expected_code": "WIRE_IDENTITY_VALUE_MISMATCH",
+      "name": "identity_schema",
+      "observed_code": "WIRE_IDENTITY_VALUE_MISMATCH",
+      "status": "PASS"
+    },
+    {
+      "detail": "WIRE_IDENTITY_VALUE_MISMATCH: field=registry_id expected='ue_split_profile_registry_v1' actual='ue_split_profile_registry_v1-bad'",
+      "expected_code": "WIRE_IDENTITY_VALUE_MISMATCH",
+      "name": "identity_registry_id",
+      "observed_code": "WIRE_IDENTITY_VALUE_MISMATCH",
+      "status": "PASS"
+    },
+    {
+      "detail": "WIRE_IDENTITY_VALUE_MISMATCH: field=profile_id expected='ae32__u4__q0.9__zstd3__ckpt10cebbeede4d' actual='ae32__u4__q0.9__zstd3__ckpt10cebbeede4d-bad'",
+      "expected_code": "WIRE_IDENTITY_VALUE_MISMATCH",
+      "name": "identity_profile_id",
+      "observed_code": "WIRE_IDENTITY_VALUE_MISMATCH",
+      "status": "PASS"
+    },
+    {
+      "detail": "WIRE_IDENTITY_VALUE_MISMATCH: field=action_contract_sha256 expected='bb86ce09fcbdc6e3808e6d521ec01e65d80fa0ef8c60408c94ed43587e7d53a3' actual='bb86ce09fcbdc6e3808e6d521ec01e65d80fa0ef8c60408c94ed43587e7d53a3-bad'",
+      "expected_code": "WIRE_IDENTITY_VALUE_MISMATCH",
+      "name": "identity_action_contract_sha256",
+      "observed_code": "WIRE_IDENTITY_VALUE_MISMATCH",
+      "status": "PASS"
+    },
+    {
+      "detail": "WIRE_IDENTITY_VALUE_MISMATCH: field=checkpoint_sha256 expected='10cebbeede4da992e68850d8f38358e89000b62524be25b68c88517d7b58f9b2' actual='10cebbeede4da992e68850d8f38358e89000b62524be25b68c88517d7b58f9b2-bad'",
+      "expected_code": "WIRE_IDENTITY_VALUE_MISMATCH",
+      "name": "identity_checkpoint_sha256",
+      "observed_code": "WIRE_IDENTITY_VALUE_MISMATCH",
+      "status": "PASS"
+    },
+    {
+      "detail": "WIRE_IDENTITY_VALUE_MISMATCH: field=feature_schema_id expected='multimodal_lraspp_low_high.v1' actual='multimodal_lraspp_low_high.v1-bad'",
+      "expected_code": "WIRE_IDENTITY_VALUE_MISMATCH",
+      "name": "identity_feature_schema_id",
+      "observed_code": "WIRE_IDENTITY_VALUE_MISMATCH",
+      "status": "PASS"
+    },
+    {
+      "detail": "WIRE_IDENTITY_VALUE_MISMATCH: field=feature_wire_schema_id expected='per_channel_range_quant_pickle_zstd_udp.v1' actual='per_channel_range_quant_pickle_zstd_udp.v1-bad'",
+      "expected_code": "WIRE_IDENTITY_VALUE_MISMATCH",
+      "name": "identity_feature_wire_schema_id",
+      "observed_code": "WIRE_IDENTITY_VALUE_MISMATCH",
+      "status": "PASS"
+    },
+    {
+      "detail": "WIRE_IDENTITY_VALUE_MISMATCH: field=quantization_mode expected='per_channel_uint4' actual='per_channel_uint4-bad'",
+      "expected_code": "WIRE_IDENTITY_VALUE_MISMATCH",
+      "name": "identity_quantization_mode",
+      "observed_code": "WIRE_IDENTITY_VALUE_MISMATCH",
+      "status": "PASS"
+    },
+    {
+      "detail": "WIRE_IDENTITY_VALUE_MISMATCH: field=roi_drop_fraction expected='0.9' actual='0.9-bad'",
+      "expected_code": "WIRE_IDENTITY_VALUE_MISMATCH",
+      "name": "identity_roi_drop_fraction",
+      "observed_code": "WIRE_IDENTITY_VALUE_MISMATCH",
+      "status": "PASS"
+    },
+    {
+      "detail": "WIRE_IDENTITY_VALUE_MISMATCH: field=entropy_coder expected='zstd' actual='zstd-bad'",
+      "expected_code": "WIRE_IDENTITY_VALUE_MISMATCH",
+      "name": "identity_entropy_coder",
+      "observed_code": "WIRE_IDENTITY_VALUE_MISMATCH",
+      "status": "PASS"
+    },
+    {
+      "detail": "WIRE_IDENTITY_VALUE_MISMATCH: field=entropy_level expected=3 actual=4",
+      "expected_code": "WIRE_IDENTITY_VALUE_MISMATCH",
+      "name": "identity_entropy_level",
+      "observed_code": "WIRE_IDENTITY_VALUE_MISMATCH",
+      "status": "PASS"
+    },
+    {
+      "detail": "WIRE_IDENTITY_VALUE_MISMATCH: field=udp_chunk_bytes expected=60000 actual=60001",
+      "expected_code": "WIRE_IDENTITY_VALUE_MISMATCH",
+      "name": "identity_udp_chunk_bytes",
+      "observed_code": "WIRE_IDENTITY_VALUE_MISMATCH",
+      "status": "PASS"
+    },
+    {
+      "detail": "WIRE_IDENTITY_VALUE_MISMATCH: field=action_contract_sha256 expected='bb86ce09fcbdc6e3808e6d521ec01e65d80fa0ef8c60408c94ed43587e7d53a3' actual='9214ebccae52b3e06c1ea27b8d6d826fa71037fa0a212953cfa0b8b2b289ba0b'",
+      "expected_code": "WIRE_IDENTITY_VALUE_MISMATCH",
+      "name": "cross_profile_payload",
+      "observed_code": "WIRE_IDENTITY_VALUE_MISMATCH",
+      "status": "PASS"
+    },
+    {
+      "detail": "FEATURE_SHAPE_MISMATCH: stage=wire level=high expected=(1, 32, 27, 48) actual=(1, 33, 27, 48)",
+      "expected_code": "FEATURE_SHAPE_MISMATCH",
+      "name": "declared_high_shape",
+      "observed_code": "FEATURE_SHAPE_MISMATCH",
+      "status": "PASS"
+    },
+    {
+      "detail": "FEATURE_WIRE_HEADER_MISMATCH: level=high expected_shape=(1, 32, 27, 48) actual_shape=(1, 33, 27, 48) expected_bits=4 actual_bits=4",
+      "expected_code": "FEATURE_WIRE_HEADER_MISMATCH",
+      "name": "serialized_high_header",
+      "observed_code": "FEATURE_WIRE_HEADER_MISMATCH",
+      "status": "PASS"
+    },
+    {
+      "detail": "PROFILE_NOT_FOUND: unknown-profile",
+      "expected_code": "PROFILE_NOT_FOUND",
+      "name": "unknown_profile_resolution",
+      "observed_code": "PROFILE_NOT_FOUND",
+      "status": "PASS"
+    },
+    {
+      "detail": "RUNTIME_BINDING_MISMATCH: quantization_mode: expected='per_channel_uint4' actual='per_channel_uint8'",
+      "expected_code": "RUNTIME_BINDING_MISMATCH",
+      "name": "runtime_quantization_mode",
+      "observed_code": "RUNTIME_BINDING_MISMATCH",
+      "status": "PASS"
+    },
+    {
+      "detail": "RUNTIME_BINDING_MISMATCH: roi_drop_fraction: expected='0.9' actual='0.7'",
+      "expected_code": "RUNTIME_BINDING_MISMATCH",
+      "name": "runtime_roi_threshold",
+      "observed_code": "RUNTIME_BINDING_MISMATCH",
+      "status": "PASS"
+    },
+    {
+      "detail": "RUNTIME_BINDING_MISMATCH: entropy_coder: expected='zstd' actual='zlib'",
+      "expected_code": "RUNTIME_BINDING_MISMATCH",
+      "name": "runtime_entropy_coder",
+      "observed_code": "RUNTIME_BINDING_MISMATCH",
+      "status": "PASS"
+    },
+    {
+      "detail": "RUNTIME_BINDING_MISMATCH: entropy_level: expected=3 actual=2",
+      "expected_code": "RUNTIME_BINDING_MISMATCH",
+      "name": "runtime_zstd_level",
+      "observed_code": "RUNTIME_BINDING_MISMATCH",
+      "status": "PASS"
+    },
+    {
+      "detail": "RUNTIME_BINDING_MISMATCH: chunk_bytes: expected=60000 actual=59999",
+      "expected_code": "RUNTIME_BINDING_MISMATCH",
+      "name": "runtime_chunk_bytes",
+      "observed_code": "RUNTIME_BINDING_MISMATCH",
+      "status": "PASS"
+    },
+    {
+      "detail": "RUNTIME_BINDING_MISMATCH: object_score_threshold: expected='0.2' actual='0.05'",
+      "expected_code": "RUNTIME_BINDING_MISMATCH",
+      "name": "runtime_object_score_threshold",
+      "observed_code": "RUNTIME_BINDING_MISMATCH",
+      "status": "PASS"
+    },
+    {
+      "detail": "RUNTIME_BINDING_MISMATCH: object_nms_radius_px: expected=2 actual=4",
+      "expected_code": "RUNTIME_BINDING_MISMATCH",
+      "name": "runtime_object_nms_radius_px",
+      "observed_code": "RUNTIME_BINDING_MISMATCH",
+      "status": "PASS"
+    },
+    {
+      "detail": "RUNTIME_BINDING_MISMATCH: topk_objects: expected=120 actual=80",
+      "expected_code": "RUNTIME_BINDING_MISMATCH",
+      "name": "runtime_topk_objects",
+      "observed_code": "RUNTIME_BINDING_MISMATCH",
+      "status": "PASS"
+    },
+    {
+      "detail": "RUNTIME_BINDING_MISMATCH: max_objects_published: expected=120 actual=30",
+      "expected_code": "RUNTIME_BINDING_MISMATCH",
+      "name": "runtime_max_objects_drawn",
+      "observed_code": "RUNTIME_BINDING_MISMATCH",
+      "status": "PASS"
+    },
+    {
+      "detail": "EXTERNAL_AE_OVERRIDE_FORBIDDEN: profile=ae32__u4__q0.9__zstd3__ckpt10cebbeede4d ae_checkpoint=/tmp/forbidden-ae.pt",
+      "expected_code": "EXTERNAL_AE_OVERRIDE_FORBIDDEN",
+      "name": "external_ae_override",
+      "observed_code": "EXTERNAL_AE_OVERRIDE_FORBIDDEN",
+      "status": "PASS"
+    },
+    {
+      "detail": "CHUNK_SET_INCOMPLETE: missing=[2]",
+      "expected_code": "CHUNK_SET_INCOMPLETE",
+      "name": "missing_udp_chunk",
+      "observed_code": "CHUNK_SET_INCOMPLETE",
+      "status": "PASS"
+    },
+    {
+      "detail": "CHUNK_DUPLICATE: 0",
+      "expected_code": "CHUNK_DUPLICATE",
+      "name": "duplicate_udp_chunk",
+      "observed_code": "CHUNK_DUPLICATE",
+      "status": "PASS"
+    }
+  ],
+  "schema": "scenesense.ue_a2_negative_contract_tests.v1",
+  "status": "PASS",
+  "tests": 30
+}

@@ -1,0 +1,14 @@
+experiment_id,trial_id,event_id,event_type,frame_id,sim_time_s,route_index,unwrapped_progress_m,status,details
+ue_route_qualification_v1,trial_01,1,TRIAL_STARTED,203982,6.552604916505516,0,0.0,INFO,{}
+ue_route_qualification_v1,trial_01,2,START_GATE_EXITED,204059,10.402604973874986,3,15.247943862063863,INFO,{}
+ue_route_qualification_v1,trial_01,3,LAP_ARMED,205167,65.80260579939932,81,321.271196909345,INFO,{}
+ue_route_qualification_v1,trial_01,4,ROUTE_WRAP,205229,68.90260584559292,0,338.02325457128836,INFO,"{""armed_before_wrap"": true, ""wrap_count"": 1}"
+ue_route_qualification_v1,trial_01,5,LAP_COMPLETED,205230,68.95260584633797,0,338.02325457128836,INFO,{}
+ue_route_qualification_v1,trial_01,6,TRIAL_STOP,205230,68.95260584633797,0,338.02325457128836,INFO,"{""reason"": ""LAP_COMPLETED""}"
+ue_route_qualification_v1,trial_01,7,COLLISION_FLUSH,205231,,0,338.02325457128836,INFO,"{""drained_unseen_collision_count"": 0, ""flush_tick_count"": 1, ""mailbox_count_after"": 0, ""mailbox_count_before"": 0}"
+ue_route_qualification_v1,trial_01,8,CLEANUP,205230,,0,338.02325457128836,INFO,"{""cleanup_elapsed_sim_s"": 0.05, ""cleanup_max_sim_s"": 5.0, ""cleanup_tick_error"": null, ""cleanup_ticks"": 1, ""owned_actor_ids"": [49, 50], ""pass"": true, ""remaining_owned_actors"": []}"
+ue_route_qualification_v1,trial_02,1,TRIAL_STARTED,205236,69.25260585080832,0,0.0,INFO,{}
+ue_route_qualification_v1,trial_02,2,START_GATE_EXITED,205313,73.1026059081778,3,15.247943862063863,INFO,{}
+ue_route_qualification_v1,trial_02,3,RUNTIME_ERROR,205818,,39,153.2049193385637,FAIL,"{""error"": ""KeyboardInterrupt: ""}"
+ue_route_qualification_v1,trial_02,4,COLLISION_FLUSH,205819,,39,153.2049193385637,INFO,"{""drained_unseen_collision_count"": 0, ""flush_tick_count"": 1, ""mailbox_count_after"": 0, ""mailbox_count_before"": 0}"
+ue_route_qualification_v1,trial_02,5,CLEANUP,205818,,39,153.2049193385637,INFO,"{""cleanup_elapsed_sim_s"": 0.05, ""cleanup_max_sim_s"": 5.0, ""cleanup_tick_error"": null, ""cleanup_ticks"": 1, ""owned_actor_ids"": [51, 52], ""pass"": true, ""remaining_owned_actors"": []}"

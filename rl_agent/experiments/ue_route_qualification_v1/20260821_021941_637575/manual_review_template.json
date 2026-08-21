@@ -1,0 +1,54 @@
+{
+  "instructions": "Watch all three trials. Copy this file to manual_review.json; fill reviewed_at, eight booleans and PASS/FAIL per trial, anomalies with trial/time/route region, and the consistent overall verdict.",
+  "overall_verdict": "PENDING",
+  "reviewed_at": null,
+  "reviewer": "Abiodun",
+  "schema": "scenesense.ue_route_manual_review.v1",
+  "trials": {
+    "trial_01": {
+      "anomalies": [],
+      "checks": {
+        "expected_perimeter_and_all_intended_turns": null,
+        "full_route_completed_before_return_counted": null,
+        "no_curb_sidewalk_wrong_lane_corner_cut_oscillation_reverse_or_u_turn": null,
+        "previous_ego_and_collision_sensor_absent_before_next_trial": null,
+        "smooth_final_to_first_seam_without_teleport_or_abrupt_correction": null,
+        "spawn_lane_heading_and_no_physics_jump": null,
+        "stable_steering_acceleration_braking_and_turn_speed": null,
+        "trials_two_and_three_materially_match_trial_one": null
+      },
+      "notes": "",
+      "verdict": "PENDING"
+    },
+    "trial_02": {
+      "anomalies": [],
+      "checks": {
+        "expected_perimeter_and_all_intended_turns": null,
+        "full_route_completed_before_return_counted": null,
+        "no_curb_sidewalk_wrong_lane_corner_cut_oscillation_reverse_or_u_turn": null,
+        "previous_ego_and_collision_sensor_absent_before_next_trial": null,
+        "smooth_final_to_first_seam_without_teleport_or_abrupt_correction": null,
+        "spawn_lane_heading_and_no_physics_jump": null,
+        "stable_steering_acceleration_braking_and_turn_speed": null,
+        "trials_two_and_three_materially_match_trial_one": null
+      },
+      "notes": "",
+      "verdict": "PENDING"
+    },
+    "trial_03": {
+      "anomalies": [],
+      "checks": {
+        "expected_perimeter_and_all_intended_turns": null,
+        "full_route_completed_before_return_counted": null,
+        "no_curb_sidewalk_wrong_lane_corner_cut_oscillation_reverse_or_u_turn": null,
+        "previous_ego_and_collision_sensor_absent_before_next_trial": null,
+        "smooth_final_to_first_seam_without_teleport_or_abrupt_correction": null,
+        "spawn_lane_heading_and_no_physics_jump": null,
+        "stable_steering_acceleration_braking_and_turn_speed": null,
+        "trials_two_and_three_materially_match_trial_one": null
+      },
+      "notes": "",
+      "verdict": "PENDING"
+    }
+  }
+}

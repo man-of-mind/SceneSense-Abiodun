@@ -1,0 +1,29 @@
+{
+  "actual_udp": {
+    "actual_udp_executed": true,
+    "host": "127.0.0.1",
+    "max_compressed_bytes": 1073643,
+    "messages_received": 72,
+    "messages_sent": 72,
+    "reported_receive_buffer_bytes": 16777216,
+    "reported_send_buffer_bytes": 16777216,
+    "requested_socket_buffer_bytes": 8388608,
+    "status": "PASS",
+    "total_chunks": 251,
+    "total_compressed_bytes": 12807528
+  },
+  "preflight": {
+    "actual_udp_executed": false,
+    "blockers": [],
+    "buffer_margin_ratio": 1.25,
+    "design_max_message_bytes": 1108591,
+    "historical_max_message_bytes": 1108591,
+    "observed_synthetic_max_message_bytes": 3214,
+    "reported_receive_buffer_bytes": 16777216,
+    "reported_send_buffer_bytes": 16777216,
+    "requested_socket_buffer_bytes": 8388608,
+    "required_reported_receive_buffer_bytes": 1385739,
+    "status": "READY_FOR_ACTUAL_UDP_SMOKE"
+  },
+  "schema": "scenesense.ue_a2_transport_evidence.v1"
+}

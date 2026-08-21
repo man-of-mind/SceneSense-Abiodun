@@ -23,9 +23,10 @@ contract. The historical 26-pass subset and provisional rescue are annotations,
 not a hand-selected action catalog. The four representative profiles used in
 the integration pilot are measurement anchors, not the policy action space.
 
-Stage 1 route qualification and the UE-A1 static registry are complete. The
-first active task is now **UE-A2: fixed-profile load/encode/wire smokes**. The
-full 72 x 4 sweep,
+Stage 1 route qualification and UE-A1--A3 are complete. All 72 registered
+profiles passed the fixed-profile CUDA/local-wire smoke with no technical
+failures. The first active task is now **UE-A4: freeze the successor 72-row
+technical registry**. The full 72 x 4 sweep,
 continuous-q study, and policy training are not yet authorized.
 
 ## Scope and drift guard
@@ -219,10 +220,10 @@ The final create-only authority is `ROUTE_QUALIFIED.json`.
 
 - [x] **UE-A1:** Verify each profile's checkpoint, model family, quantizer, q,
   codec, feature schema, and edge decoder binding.
-- [ ] **UE-A2:** Run the smallest fixed-profile local/wire smoke needed to
+- [x] **UE-A2:** Run the smallest fixed-profile local/wire smoke needed to
   prove every anchor can load, encode, serialize, decode, and reach the fixed
   map schema.
-- [ ] **UE-A3:** Record every genuine technical failure. Do not remove an
+- [x] **UE-A3:** Record every genuine technical failure. Do not remove an
   action because its offline quality or payload is unattractive.
 - [ ] **UE-A4:** Hash the 72-row technical action registry.
 
@@ -238,6 +239,16 @@ Every row remains `REGISTERED_PENDING_SMOKE`: wire identity, mismatch
 rejection, observed feature shapes, and current edge-launcher decoder-override
 propagation are explicitly deferred to UE-A2. This is not a technical-validity
 freeze and applies no quality mask.
+
+**UE-A2--A3 evidence:**
+`experiments/ue_a2_technical_smoke_v1/20260820_cuda_model_smoke_02/`. The
+create-only `UE_A2_PASSED.json` records 72/72 technically valid profiles, four
+strict front loads, four strict edge loads, four backbone encodes, 24 q/AE
+paths, 72 finite tail/map paths, and 72/72 actual localhost-UDP round trips.
+All 34 injected contract mismatches were rejected before decode/map use, the
+source seals were unchanged, and no quality mask was applied. UE-A3 records
+zero genuine technical failures; no action was removed. The earlier `_01`
+bundle is superseded and is not authority.
 
 ## Stage 3 — OAI SNR actuator calibration and trace freeze
 
@@ -374,8 +385,8 @@ and the algorithm matches the mixed action structure.
 
 ## Immediate handoff
 
-The next task is **UE-A2**: add the minimum fail-closed wire identity and edge
-launcher binding needed for fixed-profile smoke, then prove representative
-load/encode/serialize/decode/map-schema paths before expanding only as needed
-to cover all 72 registered anchors. No 72 x 4 collection, SNR actuation,
-continuous-q experiment, or policy training starts in that task.
+The next task is **UE-A4**: create and hash a successor 72-row technical
+registry that consumes the immutable UE-A1 declarations and the UE-A2 `_02`
+evidence, changes each row from pending to technically valid, preserves all 72
+actions, and applies no quality-derived mask. No 72 x 4 collection, SNR
+actuation, continuous-q promotion, or policy training starts in that task.

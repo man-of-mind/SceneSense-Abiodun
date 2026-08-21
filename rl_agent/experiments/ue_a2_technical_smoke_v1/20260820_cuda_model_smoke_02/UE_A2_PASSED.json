@@ -1,0 +1,18 @@
+{
+  "actual_udp_executed": true,
+  "blockers": [],
+  "carla_run": false,
+  "claim_scope": "LOCAL_CUDA_TECHNICAL_EXECUTABILITY_ONLY",
+  "created_at": "2026-08-21T03:09:53.964411+00:00",
+  "elapsed_s": 9.861990033881739,
+  "infrastructure_blocked_profiles": 0,
+  "model_inference_executed": true,
+  "oai_run": false,
+  "profile_rows": 72,
+  "quality_gate_applied": false,
+  "schema": "scenesense.ue_a2_technical_smoke_terminal.v1",
+  "status": "PASSED",
+  "successor_registry_emitted": false,
+  "technical_invalid_profiles": 0,
+  "technical_valid_profiles": 72
+}

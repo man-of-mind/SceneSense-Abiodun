@@ -1,0 +1,81 @@
+{
+  "schema": "scenesense.ue_a2_technical_smoke_config.v1",
+  "experiment_id": "ue_a2_technical_smoke_v1",
+  "repository_root": "../..",
+  "scope": {
+    "carla_run": false,
+    "oai_run": false,
+    "model_inference_in_preflight": false,
+    "actual_udp_in_preflight": false,
+    "quality_gate": false,
+    "profile_filter": false,
+    "cuda_required_for_final_smoke": true
+  },
+  "registry": {
+    "path": "rl_agent/registries/ue_split_profile_registry_v1/ue_split_profile_registry.csv",
+    "sha256": "9542adc8e014960bf8876e87cdbd9783f8911140fbc37820605ce7dd69e23722",
+    "expected_profiles": 72,
+    "families": ["noae", "ae32", "ae64", "ae128"],
+    "quantizers": ["per_channel_uint8", "per_channel_uint6", "per_channel_uint4"],
+    "roi_drop_fractions": ["0", "0.3", "0.5", "0.7", "0.9", "0.98"]
+  },
+  "fixture": {
+    "path": "rl_agent/fixtures/ue_a2/ue_frame_00156944_inputs.npz",
+    "sha256": "7fcfad2255c6626b8b87ff3a1c85ec7d32e17c8c2b4eee2875f5f132be423b41",
+    "bytes": 2499548,
+    "required_arrays": {
+      "frame_bgr": {"shape": [720, 1280, 3], "dtype": "uint8"},
+      "radar_tensor": {"shape": [4, 432, 768], "dtype": "float32"},
+      "camera_matrix": {"shape": [4, 4], "dtype": "float64"},
+      "camera_intrinsics_input": {"shape": [3, 3], "dtype": "float64"},
+      "frame_id": {"shape": [1], "dtype": "int64"},
+      "carla_timestamp": {"shape": [1], "dtype": "float64"}
+    }
+  },
+  "sources": {
+    "wire_contract_path": "rl_agent/ue_split_wire_contract.py",
+    "runtime_path": "uplink_only_spatial_map_pipeline/carla_fusion_staleness_scenario_uplink_only_v2.py",
+    "launcher_path": "uplink_only_spatial_map_pipeline/run_track1_oai_default106_ttracer_10fps_v2.sh",
+    "codec_path": "carla_split_inference_udp_data_collect.py",
+    "codec_sha256": "22b6a8e4ade8ea4f4715bf143688c829e32aa7b3c9935fcad46283ab7a0aa13d"
+  },
+  "transport": {
+    "entropy_coder": "zstd",
+    "entropy_level": 3,
+    "udp_chunk_header_struct": "!IHH",
+    "chunk_bytes": 60000,
+    "requested_socket_buffer_bytes": 8388608,
+    "buffer_margin_ratio": 1.25,
+    "historical_max_message_bytes": 1108591,
+    "historical_max_source": "ue_split_evidence_pool.payload_bytes_max"
+  },
+  "model_smoke": {
+    "device": "cuda:0",
+    "seed": 20260820,
+    "min_free_vram_bytes": 2147483648,
+    "socket_host": "127.0.0.1",
+    "socket_timeout_s": 5.0,
+    "strict_front_loads": 4,
+    "strict_edge_loads": 4,
+    "native_backbone_encodes": 4,
+    "roi_ae_paths": 24,
+    "tail_decodes": 72,
+    "actual_udp_roundtrips": 72
+  },
+  "map_contract": {
+    "schema": "fusion_object_spatial_map.v1",
+    "require_profile_identity": true,
+    "max_udp_datagram_bytes": 65507
+  },
+  "output": {
+    "root": "rl_agent/experiments/ue_a2_technical_smoke_v1",
+    "profile_csv": "ue_a2_profile_smoke.csv",
+    "negative_tests_json": "negative_contract_tests.json",
+    "transport_json": "transport_preflight.json",
+    "fixture_json": "fixture_manifest.json",
+    "model_smoke_json": "model_smoke.json",
+    "resolved_config_json": "resolved_config.json",
+    "report_md": "REPORT.md",
+    "manifest_json": "manifest.json"
+  }
+}
