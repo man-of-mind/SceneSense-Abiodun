@@ -1,0 +1,82 @@
+{
+  "completed_at_utc": "2026-08-21T03:51:48.248539+00:00",
+  "cuda_runtime": "13.0",
+  "device": "cuda",
+  "device_name": "NVIDIA GeForce RTX 5090",
+  "driver_version": null,
+  "elapsed_minutes": 10.703439954916636,
+  "profile_results": [
+    {
+      "ae_bottleneck": 0,
+      "checkpoint": "experiments/ae_integrated_20260710/noae_baseline/checkpoints/mprime_joint_noae/best.pt",
+      "checkpoint_sha256": "f319e2a5e8fb134e74c24c0822233e17368df6e4c733add658026603e131d4fa",
+      "decoder_latency_p50_ms": 4.167325,
+      "decoder_latency_p95_ms": 5.7035155999999985,
+      "decoder_latency_warmup_excluded": 25,
+      "frames": 2110,
+      "path": "raw_predictions/val/noae_u8_q0_reference.jsonl.gz",
+      "profile_id": "noae_u8_q0_reference",
+      "sha256": "ee25c4e6cff4299ab84bdce79ec04471426bf55081e94406e009664a78ee7fa9",
+      "size_bytes": 429206,
+      "status": "generated"
+    },
+    {
+      "ae_bottleneck": 64,
+      "checkpoint": "experiments/ae_integrated_20260710/ae64/checkpoints/ae64_integrated/best.pt",
+      "checkpoint_sha256": "c6a2362c7c2d72ff31825508ae7532c0796ec063a8556317d47d8d30fad99480",
+      "decoder_latency_p50_ms": 4.016594,
+      "decoder_latency_p95_ms": 9.4890694,
+      "decoder_latency_warmup_excluded": 25,
+      "frames": 2110,
+      "path": "raw_predictions/val/ae64_u4_q0p7_compact.jsonl.gz",
+      "profile_id": "ae64_u4_q0p7_compact",
+      "sha256": "c21f7349a5f447f88c34250a868e19dbee0b5f1ee8dc715cc0ba5fed7befef8b",
+      "size_bytes": 445520,
+      "status": "generated"
+    },
+    {
+      "ae_bottleneck": 32,
+      "checkpoint": "experiments/ae_integrated_20260710/ae32/checkpoints/ae32_integrated/best.pt",
+      "checkpoint_sha256": "10cebbeede4da992e68850d8f38358e89000b62524be25b68c88517d7b58f9b2",
+      "decoder_latency_p50_ms": 5.947559,
+      "decoder_latency_p95_ms": 12.5188416,
+      "decoder_latency_warmup_excluded": 25,
+      "frames": 2110,
+      "path": "raw_predictions/val/ae32_u4_q0p5_compact_fallback.jsonl.gz",
+      "profile_id": "ae32_u4_q0p5_compact_fallback",
+      "sha256": "961b73ef26fa4d5de63921236150886ec492e976a0dfdbbd7b49865b1c2bbc6b",
+      "size_bytes": 449484,
+      "status": "generated"
+    },
+    {
+      "ae_bottleneck": 32,
+      "checkpoint": "experiments/ae_integrated_20260710/ae32/checkpoints/ae32_integrated/best.pt",
+      "checkpoint_sha256": "10cebbeede4da992e68850d8f38358e89000b62524be25b68c88517d7b58f9b2",
+      "decoder_latency_p50_ms": 5.809106,
+      "decoder_latency_p95_ms": 12.5684272,
+      "decoder_latency_warmup_excluded": 25,
+      "frames": 2110,
+      "path": "raw_predictions/val/ae32_u4_q0p9_high_q_rescue.jsonl.gz",
+      "profile_id": "ae32_u4_q0p9_high_q_rescue",
+      "sha256": "e2b4ac7d6635506c1fdded4f32f19a565d7b72220675a265e92bd9282f00007c",
+      "size_bytes": 449545,
+      "status": "generated"
+    },
+    {
+      "ae_bottleneck": 128,
+      "checkpoint": "experiments/ae_integrated_20260710/ae128/checkpoints/ae128_integrated/best.pt",
+      "checkpoint_sha256": "601984b96d85e1d72e9521f8a796103ab630834991d0957b62990116524cd62c",
+      "decoder_latency_p50_ms": 5.106659,
+      "decoder_latency_p95_ms": 10.8234292,
+      "decoder_latency_warmup_excluded": 25,
+      "frames": 2110,
+      "path": "raw_predictions/val/ae128_u4_q0p3_quality.jsonl.gz",
+      "profile_id": "ae128_u4_q0p3_quality",
+      "sha256": "8347157f3225788c4ccd8c86915bd26b0d12e8007e21a00a4a95758286f57b8c",
+      "size_bytes": 449112,
+      "status": "generated"
+    }
+  ],
+  "split": "val",
+  "torch_version": "2.12.0+cu130"
+}

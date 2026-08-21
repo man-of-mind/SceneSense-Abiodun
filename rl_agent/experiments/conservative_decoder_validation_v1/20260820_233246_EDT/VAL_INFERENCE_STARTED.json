@@ -1,0 +1,7 @@
+{
+  "frozen_test_identifier_hash": "f1cbf0aceab3359f4f38da933069b462ec2bf34e43bbff44b66d4057ab5f7432",
+  "frozen_validation_identifier_hash": "91204710264ec63f53e4cdbae3cec8e9526c7f99bb329c4817346de281b1ba9c",
+  "resume_policy": "completed profile files are never overwritten; absent profiles may resume after interruption",
+  "split": "val",
+  "started_at_utc": "2026-08-21T03:40:43.015630+00:00"
+}

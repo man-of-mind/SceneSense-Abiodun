@@ -1,0 +1,8 @@
+{
+  "audit_id": "conservative_decoder_validation_v1/20260820_233246_EDT",
+  "conclusion": "RETRAINING_PILOT_JUSTIFIED",
+  "deployment_approved": false,
+  "reason": "Neither 1 m nor 2 m met every frozen validation floor and paired material-improvement requirement.",
+  "review_required": true,
+  "selected_candidate": null
+}

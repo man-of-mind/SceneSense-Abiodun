@@ -1,0 +1,18 @@
+{
+  "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/experiments/conservative_decoder_validation_v1/20260820_233246_EDT",
+  "executable": "/usr/bin/python3",
+  "git_head": "f0fad5ee83490e9d79044c3a93db83b5816a1afc",
+  "git_head_command_exit": 0,
+  "git_status_command_exit": 0,
+  "git_tracked_dirty_status": "m OAI/openairinterface5g",
+  "hostname": "W10273",
+  "platform": "Linux-6.8.0-136-generic-x86_64-with-glibc2.35",
+  "python": "3.10.12 (main, Jun 22 2026, 18:55:27) [GCC 11.4.0]",
+  "recorded_at_utc": "2026-08-21T03:40:13.668825+00:00",
+  "torch": {
+    "cuda_available_at_freeze": false,
+    "cuda_runtime": "12.9",
+    "cudnn_version": 91002,
+    "version": "2.9.0.dev20250813+cu129"
+  }
+}
