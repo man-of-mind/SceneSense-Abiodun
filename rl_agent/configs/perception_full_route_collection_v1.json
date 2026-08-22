@@ -1,0 +1,159 @@
+{
+  "schema": "scenesense.perception_full_route_collection.v1",
+  "version": "1.0.0",
+  "status": "WAITING_FOR_CANONICAL_ROUTE",
+  "route_contract": {
+    "external_file_required": true,
+    "allowed_extensions": [
+      ".json",
+      ".yaml",
+      ".yml"
+    ],
+    "expected_schema": "scenesense.canonical_route.v1",
+    "expected_town": "Town10HD",
+    "expected_route_identity": "Route B",
+    "external_sha256_required": true,
+    "verify_before_carla_import_or_startup": true,
+    "coordinates_embedded_in_config": false
+  },
+  "output_policy": {
+    "mode": "create_only",
+    "allow_resume": false,
+    "allow_overwrite": false,
+    "episode_directory_template": "{experiment_id}/{episode_id}",
+    "atomic_metadata_writes": true,
+    "integrity_algorithm": "sha256"
+  },
+  "density_profiles": [
+    {
+      "profile_id": "low",
+      "provisional_actor_counts": {
+        "vehicles": 20,
+        "pedestrians": 10
+      }
+    },
+    {
+      "profile_id": "medium",
+      "provisional_actor_counts": {
+        "vehicles": 45,
+        "pedestrians": 25
+      }
+    },
+    {
+      "profile_id": "dense",
+      "provisional_actor_counts": {
+        "vehicles": 75,
+        "pedestrians": 50
+      }
+    }
+  ],
+  "actor_count_semantics": "Provisional requested counts only. Achieved local and sensor-view density is the measured experimental quantity.",
+  "achieved_density_logging_per_frame": {
+    "local_radius_m": 50.0,
+    "required_counts": [
+      "local_vehicle_count",
+      "local_pedestrian_count",
+      "in_view_vehicle_count",
+      "in_view_pedestrian_count"
+    ],
+    "visibility_definition_must_be_versioned": true
+  },
+  "seed_bundles": [
+    {
+      "seed_bundle_id": "seed-101",
+      "carla_seed": 101,
+      "traffic_manager_seed": 1101,
+      "reserved_split": "train"
+    },
+    {
+      "seed_bundle_id": "seed-103",
+      "carla_seed": 103,
+      "traffic_manager_seed": 1103,
+      "reserved_split": "train"
+    },
+    {
+      "seed_bundle_id": "seed-107",
+      "carla_seed": 107,
+      "traffic_manager_seed": 1107,
+      "reserved_split": "train"
+    },
+    {
+      "seed_bundle_id": "seed-109",
+      "carla_seed": 109,
+      "traffic_manager_seed": 1109,
+      "reserved_split": "train"
+    },
+    {
+      "seed_bundle_id": "seed-113",
+      "carla_seed": 113,
+      "traffic_manager_seed": 1113,
+      "reserved_split": "train"
+    },
+    {
+      "seed_bundle_id": "seed-127",
+      "carla_seed": 127,
+      "traffic_manager_seed": 1127,
+      "reserved_split": "validation"
+    },
+    {
+      "seed_bundle_id": "seed-131",
+      "carla_seed": 131,
+      "traffic_manager_seed": 1131,
+      "reserved_split": "validation"
+    },
+    {
+      "seed_bundle_id": "seed-137",
+      "carla_seed": 137,
+      "traffic_manager_seed": 1137,
+      "reserved_split": "final_test"
+    },
+    {
+      "seed_bundle_id": "seed-139",
+      "carla_seed": 139,
+      "traffic_manager_seed": 1139,
+      "reserved_split": "final_test"
+    }
+  ],
+  "weather_cycle": [
+    "ClearNoon",
+    "CloudyNoon",
+    "WetNoon"
+  ],
+  "laps_per_episode": 2,
+  "required_frame_metadata": [
+    "route_progress",
+    "route_segment_id",
+    "lap",
+    "simulation_timestamp_s",
+    "capture_timestamp_utc",
+    "weather",
+    "scenario_id"
+  ],
+  "owned_actor_cleanup": {
+    "only_destroy_actor_ids_created_by_this_episode": true,
+    "stop_sensor_listeners_first": true,
+    "stop_walker_controllers_second": true,
+    "destroy_in_reverse_spawn_order": true,
+    "batch_destroy": true,
+    "verify_owned_actor_ids_absent": true,
+    "run_in_finally": true
+  },
+  "experiment_separation": {
+    "matrix_dimensions": [
+      "density_profile",
+      "seed_bundle"
+    ],
+    "explicitly_excluded_dimensions": [
+      "UE_72_action",
+      "four_network_profile",
+      "perception_family",
+      "quantization",
+      "ROI"
+    ],
+    "rationale": "Perception collection and UE/network action experiments are separate experiments."
+  },
+  "final_test_access": {
+    "state": "LOCKED_UNTOUCHED",
+    "required_marker": "TEST_EVALUATION_AUTHORIZED"
+  }
+}

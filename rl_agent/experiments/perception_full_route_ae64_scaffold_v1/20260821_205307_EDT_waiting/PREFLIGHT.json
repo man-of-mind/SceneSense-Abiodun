@@ -1,0 +1,16 @@
+{
+  "carla_imported": false,
+  "carla_start_attempted": false,
+  "collection_started": false,
+  "final_test_evaluation_started": false,
+  "reason": "Qualified canonical Town10HD Route B file and external SHA-256 have not been supplied.",
+  "required_before_collection_preflight_can_pass": [
+    "canonical_route_b.json|yaml",
+    "external lowercase SHA-256 digest of the exact route file bytes",
+    "route qualification evidence fields embedded in the route contract"
+  ],
+  "schema": "scenesense.perception_full_route_scaffold.v1",
+  "terminal": "WAITING_FOR_CANONICAL_ROUTE",
+  "training_started": false,
+  "validation_evaluation_started": false
+}

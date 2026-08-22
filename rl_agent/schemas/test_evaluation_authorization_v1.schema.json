@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "scenesense://schemas/test_evaluation_authorization_v1.schema.json",
+  "title": "One-time final-test evaluation authorization",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "authorization",
+    "authorized_by",
+    "authorized_at_utc",
+    "dataset_manifest_sha256",
+    "pilot_manifest_sha256",
+    "validation_gate_report_sha256",
+    "maximum_evaluation_count"
+  ],
+  "properties": {
+    "schema": {
+      "const": "scenesense.test_evaluation_authorization.v1"
+    },
+    "authorization": {
+      "const": "TEST_EVALUATION_AUTHORIZED"
+    },
+    "authorized_by": {
+      "type": "string",
+      "minLength": 1
+    },
+    "authorized_at_utc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "dataset_manifest_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "pilot_manifest_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "validation_gate_report_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "maximum_evaluation_count": {
+      "const": 1
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  }
+}

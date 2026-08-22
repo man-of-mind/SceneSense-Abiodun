@@ -1,0 +1,89 @@
+{
+  "files": [
+    {
+      "path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/carla_collect_moving_ego_fusion_training_data.py",
+      "sha256": "60d21475ae857d4d4ebeecd2e5eb988ebe9bc898eded914aea7cc4a6547ad1b8",
+      "size_bytes": 51741
+    },
+    {
+      "path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/ae_integrated_20260710/ae64/checkpoints/ae64_integrated/best.pt",
+      "sha256": "c6a2362c7c2d72ff31825508ae7532c0796ec063a8556317d47d8d30fad99480",
+      "size_bytes": 39741330
+    },
+    {
+      "path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/pole_lraspp_multimodal_fusion/pole_lraspp_multimodal_fusion/evaluate_fusion.py",
+      "sha256": "8b38163632b470451bf686acc6abd894852adb06c0e3218cc09399158c036557",
+      "size_bytes": 39446
+    },
+    {
+      "path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/pole_lraspp_multimodal_fusion/pole_lraspp_multimodal_fusion/object_targets.py",
+      "sha256": "f3909883e520cb18f5c6b9b2d1b5615b093c4b396c2e2740563582f42098d6f8",
+      "size_bytes": 20489
+    },
+    {
+      "path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/pole_lraspp_multimodal_fusion/pole_lraspp_multimodal_fusion/split_runtime.py",
+      "sha256": "85d408959ea332245444db567ba916b7bce6a9c93cfbc73ae25d129abda0cae5",
+      "size_bytes": 4887
+    },
+    {
+      "path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/pole_lraspp_multimodal_fusion/pole_lraspp_multimodal_fusion/train_fusion.py",
+      "sha256": "63acaa019ceb2edaf7bfc099c872dc65be33f647661984e9e60294ec8fcdc30e",
+      "size_bytes": 48220
+    },
+    {
+      "path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/configs/perception_ae64_pilot_v1.json",
+      "sha256": "c9a08e2a6d37835af39f1d47e1f96af20a693a630edaad5484dc1d1fedb2f8eb",
+      "size_bytes": 4413
+    },
+    {
+      "path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/configs/perception_full_route_collection_v1.json",
+      "sha256": "870e044c7e263658c2e4ce9e8054a34aa1c562999388f49ab6e8cc4bb522f753",
+      "size_bytes": 4059
+    },
+    {
+      "path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/configs/perception_full_route_evaluation_v1.json",
+      "sha256": "993b948621f815d77cdbbf59c689fe5c63e0546bb5d250f401ecdcb6c8418069",
+      "size_bytes": 2872
+    },
+    {
+      "path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/experiments/conservative_decoder_validation_v1/20260820_233246_EDT/PREINFERENCE_FREEZE.json",
+      "sha256": "cfff81ebc834f8e530a99a631a24e8e6df5945582923d65767e374b1e6571806",
+      "size_bytes": 1488
+    },
+    {
+      "path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/experiments/conservative_decoder_validation_v1/20260820_233246_EDT/RETRAINING_PILOT_PROPOSAL.md",
+      "sha256": "a3fec68daf38e91e7766201805b1049b1fe8a66b71ede9c862192c165fce88bd",
+      "size_bytes": 1709
+    },
+    {
+      "path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/perception_full_route_pilot_v1.py",
+      "sha256": "e537511cd09339cec74731c52f1c8ec95a4a7aa2e75cf2cc0791630c73e1dfc7",
+      "size_bytes": 44412
+    },
+    {
+      "path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/schemas/canonical_route_v1.schema.json",
+      "sha256": "975496b5f17d70064a09d44e37c57a422ced1ca8762fafb28a975d0e865efaa0",
+      "size_bytes": 7171
+    },
+    {
+      "path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/schemas/perception_episode_v1.schema.json",
+      "sha256": "90c1d51428895e199d20629fcd473c39a70662b14d393310c0bba8108878c0df",
+      "size_bytes": 3702
+    },
+    {
+      "path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/schemas/perception_frame_v1.schema.json",
+      "sha256": "993d7b23f898e050bec66ecdb08449bd667c76e95dd3aafceb7ef327a745eeb9",
+      "size_bytes": 6979
+    },
+    {
+      "path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/schemas/perception_split_input_v1.schema.json",
+      "sha256": "243e87afad2977d62d254d3c1bf4f77eaabb386d73cc75b6d74639b32925db29",
+      "size_bytes": 1498
+    },
+    {
+      "path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/schemas/test_evaluation_authorization_v1.schema.json",
+      "sha256": "d59aeb19020ed50f4c96796ff067d497273fd15d4db99facd619c861d6e8b70b",
+      "size_bytes": 1198
+    }
+  ]
+}

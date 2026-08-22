@@ -1,0 +1,96 @@
+{
+  "schema": "scenesense.perception_evaluation_contract.v1",
+  "version": "1.0.0",
+  "status": "FROZEN_PENDING_PROVENANCE_REVIEW",
+  "evaluation_source": {
+    "path": "abiodun/pole_lraspp_multimodal_fusion/pole_lraspp_multimodal_fusion/evaluate_fusion.py",
+    "sha256": "8b38163632b470451bf686acc6abd894852adb06c0e3218cc09399158c036557"
+  },
+  "decoder_envelope": {
+    "score_threshold": 0.2,
+    "image_nms_radius_px": 2,
+    "top_k": 120,
+    "predicted_world_suppression_radius_m": null,
+    "selection_scope": "validation_only_global_setting",
+    "ground_truth_allowed_only_for_offline_scoring": true,
+    "deployable_inputs": [
+      "predicted_class",
+      "predicted_score",
+      "predicted_world_xy"
+    ]
+  },
+  "normal_service_validation_floors": {
+    "provenance": "conservative_decoder_validation_v1 pre-inference freeze; preserve until explicitly reviewed",
+    "vehicle_recall_min": 0.9,
+    "person_recall_min": 0.85,
+    "vehicle_precision_min": 0.49,
+    "person_precision_min": 0.61,
+    "vehicle_xy_mae_m_max": 0.9,
+    "person_xy_mae_m_max": 1.2,
+    "false_positives_per_frame_max": 1.45
+  },
+  "required_metrics": {
+    "per_class_detection": [
+      "precision",
+      "recall",
+      "f1",
+      "false_positives_per_frame"
+    ],
+    "world_localization": [
+      "xy_mae_m",
+      "xy_rmse_m",
+      "centroid_error_mean_m",
+      "centroid_error_p50_m",
+      "centroid_error_p95_m"
+    ],
+    "image_centroid": [
+      "centroid_error_mean_px",
+      "centroid_error_p50_px",
+      "centroid_error_p95_px"
+    ],
+    "dimension": [
+      "length_mae_m",
+      "width_mae_m",
+      "height_mae_m",
+      "dimension_iou"
+    ],
+    "secondary_segmentation": [
+      "mean_iou",
+      "per_class_iou",
+      "pixel_accuracy"
+    ],
+    "transport_compute": [
+      "payload_bytes_per_frame",
+      "payload_bits_per_second",
+      "incremental_list_postprocessing_latency_ms",
+      "gpu_decoder_latency_ms",
+      "end_to_end_decoder_latency_ms",
+      "end_to_end_inference_latency_ms"
+    ]
+  },
+  "reporting_strata": [
+    "model_family",
+    "quantization",
+    "ROI",
+    "density_profile",
+    "route_segment_id",
+    "weather",
+    "class"
+  ],
+  "paired_evidence": {
+    "unit": "frame",
+    "scenario_aware": true,
+    "confidence_interval": 0.95,
+    "bootstrap_seed_required": true,
+    "per_frame_records_required": true
+  },
+  "test_split_gate": {
+    "state": "LOCKED_UNTOUCHED",
+    "validation_pass_required": true,
+    "required_marker": "TEST_EVALUATION_AUTHORIZED",
+    "marker_schema": "scenesense.test_evaluation_authorization.v1",
+    "evaluate_exactly_once_after_authorization": true
+  },
+  "promotion_semantics": "Precision superiority plus non-inferiority for recall, world XY, secondary segmentation, payload, and compute; strict improvement of every scalar is not required.",
+  "deployment_authorized": false
+}

@@ -1,0 +1,545 @@
+{
+  "rows": [
+    {
+      "carla_seed": 101,
+      "density_profile": "low",
+      "determinism_key_sha256": "4303c94a0a6cb60f0a3216e416dd6f840edb10c08d921a464e7fa3342c589ecb",
+      "episode_plan_id": "fullroute-v1-low-seed-101",
+      "laps": 2,
+      "matrix_index": 0,
+      "provisional_actor_counts": {
+        "pedestrians": 10,
+        "vehicles": 20
+      },
+      "reserved_split": "train",
+      "route_id": null,
+      "route_sha256": null,
+      "scenario_id": "fullroute:low:seed-101",
+      "seed_bundle_id": "seed-101",
+      "status": "WAITING_FOR_CANONICAL_ROUTE",
+      "traffic_manager_seed": 1101,
+      "weather": "ClearNoon"
+    },
+    {
+      "carla_seed": 103,
+      "density_profile": "low",
+      "determinism_key_sha256": "73abee4adcdd1c05e1bb2dd2901a9b08b01e51846d1e0a43727180401e23aed9",
+      "episode_plan_id": "fullroute-v1-low-seed-103",
+      "laps": 2,
+      "matrix_index": 1,
+      "provisional_actor_counts": {
+        "pedestrians": 10,
+        "vehicles": 20
+      },
+      "reserved_split": "train",
+      "route_id": null,
+      "route_sha256": null,
+      "scenario_id": "fullroute:low:seed-103",
+      "seed_bundle_id": "seed-103",
+      "status": "WAITING_FOR_CANONICAL_ROUTE",
+      "traffic_manager_seed": 1103,
+      "weather": "CloudyNoon"
+    },
+    {
+      "carla_seed": 107,
+      "density_profile": "low",
+      "determinism_key_sha256": "3dfe45eee60e64bcb83e2c88b4d7b3c7e509ab623bea09e6ad0c11ec2b69f621",
+      "episode_plan_id": "fullroute-v1-low-seed-107",
+      "laps": 2,
+      "matrix_index": 2,
+      "provisional_actor_counts": {
+        "pedestrians": 10,
+        "vehicles": 20
+      },
+      "reserved_split": "train",
+      "route_id": null,
+      "route_sha256": null,
+      "scenario_id": "fullroute:low:seed-107",
+      "seed_bundle_id": "seed-107",
+      "status": "WAITING_FOR_CANONICAL_ROUTE",
+      "traffic_manager_seed": 1107,
+      "weather": "WetNoon"
+    },
+    {
+      "carla_seed": 109,
+      "density_profile": "low",
+      "determinism_key_sha256": "4bdc51607298311e55b79cb57ca053574778a7b06d037fde36506120e69ca1dc",
+      "episode_plan_id": "fullroute-v1-low-seed-109",
+      "laps": 2,
+      "matrix_index": 3,
+      "provisional_actor_counts": {
+        "pedestrians": 10,
+        "vehicles": 20
+      },
+      "reserved_split": "train",
+      "route_id": null,
+      "route_sha256": null,
+      "scenario_id": "fullroute:low:seed-109",
+      "seed_bundle_id": "seed-109",
+      "status": "WAITING_FOR_CANONICAL_ROUTE",
+      "traffic_manager_seed": 1109,
+      "weather": "ClearNoon"
+    },
+    {
+      "carla_seed": 113,
+      "density_profile": "low",
+      "determinism_key_sha256": "0e762eb906cbc0532193aa07c7f30ead994f8272d4393d57daff549196faca04",
+      "episode_plan_id": "fullroute-v1-low-seed-113",
+      "laps": 2,
+      "matrix_index": 4,
+      "provisional_actor_counts": {
+        "pedestrians": 10,
+        "vehicles": 20
+      },
+      "reserved_split": "train",
+      "route_id": null,
+      "route_sha256": null,
+      "scenario_id": "fullroute:low:seed-113",
+      "seed_bundle_id": "seed-113",
+      "status": "WAITING_FOR_CANONICAL_ROUTE",
+      "traffic_manager_seed": 1113,
+      "weather": "CloudyNoon"
+    },
+    {
+      "carla_seed": 127,
+      "density_profile": "low",
+      "determinism_key_sha256": "69e9df8776926eba22594107d1d52190995bc43a883e928613498d269449021b",
+      "episode_plan_id": "fullroute-v1-low-seed-127",
+      "laps": 2,
+      "matrix_index": 5,
+      "provisional_actor_counts": {
+        "pedestrians": 10,
+        "vehicles": 20
+      },
+      "reserved_split": "validation",
+      "route_id": null,
+      "route_sha256": null,
+      "scenario_id": "fullroute:low:seed-127",
+      "seed_bundle_id": "seed-127",
+      "status": "WAITING_FOR_CANONICAL_ROUTE",
+      "traffic_manager_seed": 1127,
+      "weather": "WetNoon"
+    },
+    {
+      "carla_seed": 131,
+      "density_profile": "low",
+      "determinism_key_sha256": "a5f8661e06a74dd3fa3e588154e5e892f74623e5d97f540894e55648d96184c5",
+      "episode_plan_id": "fullroute-v1-low-seed-131",
+      "laps": 2,
+      "matrix_index": 6,
+      "provisional_actor_counts": {
+        "pedestrians": 10,
+        "vehicles": 20
+      },
+      "reserved_split": "validation",
+      "route_id": null,
+      "route_sha256": null,
+      "scenario_id": "fullroute:low:seed-131",
+      "seed_bundle_id": "seed-131",
+      "status": "WAITING_FOR_CANONICAL_ROUTE",
+      "traffic_manager_seed": 1131,
+      "weather": "ClearNoon"
+    },
+    {
+      "carla_seed": 137,
+      "density_profile": "low",
+      "determinism_key_sha256": "3ce4275748548572c37c9d23cd861820c13132c018d0d902113832ba0fcb68b7",
+      "episode_plan_id": "fullroute-v1-low-seed-137",
+      "laps": 2,
+      "matrix_index": 7,
+      "provisional_actor_counts": {
+        "pedestrians": 10,
+        "vehicles": 20
+      },
+      "reserved_split": "final_test",
+      "route_id": null,
+      "route_sha256": null,
+      "scenario_id": "fullroute:low:seed-137",
+      "seed_bundle_id": "seed-137",
+      "status": "WAITING_FOR_CANONICAL_ROUTE",
+      "traffic_manager_seed": 1137,
+      "weather": "CloudyNoon"
+    },
+    {
+      "carla_seed": 139,
+      "density_profile": "low",
+      "determinism_key_sha256": "12ef5ce743d16067d3bfa5a3741ceff5c019501d014428b9c2d9d9fbbe93cbf5",
+      "episode_plan_id": "fullroute-v1-low-seed-139",
+      "laps": 2,
+      "matrix_index": 8,
+      "provisional_actor_counts": {
+        "pedestrians": 10,
+        "vehicles": 20
+      },
+      "reserved_split": "final_test",
+      "route_id": null,
+      "route_sha256": null,
+      "scenario_id": "fullroute:low:seed-139",
+      "seed_bundle_id": "seed-139",
+      "status": "WAITING_FOR_CANONICAL_ROUTE",
+      "traffic_manager_seed": 1139,
+      "weather": "WetNoon"
+    },
+    {
+      "carla_seed": 101,
+      "density_profile": "medium",
+      "determinism_key_sha256": "947e0ec435bf32ce2b59eb4af0179c604829eff7fd9faa355942af4d78030aef",
+      "episode_plan_id": "fullroute-v1-medium-seed-101",
+      "laps": 2,
+      "matrix_index": 9,
+      "provisional_actor_counts": {
+        "pedestrians": 25,
+        "vehicles": 45
+      },
+      "reserved_split": "train",
+      "route_id": null,
+      "route_sha256": null,
+      "scenario_id": "fullroute:medium:seed-101",
+      "seed_bundle_id": "seed-101",
+      "status": "WAITING_FOR_CANONICAL_ROUTE",
+      "traffic_manager_seed": 1101,
+      "weather": "ClearNoon"
+    },
+    {
+      "carla_seed": 103,
+      "density_profile": "medium",
+      "determinism_key_sha256": "6d94a2cdad01ad1b8d8c24fad6344caf4a49db6e427a3cd57b377fc0a2fe1702",
+      "episode_plan_id": "fullroute-v1-medium-seed-103",
+      "laps": 2,
+      "matrix_index": 10,
+      "provisional_actor_counts": {
+        "pedestrians": 25,
+        "vehicles": 45
+      },
+      "reserved_split": "train",
+      "route_id": null,
+      "route_sha256": null,
+      "scenario_id": "fullroute:medium:seed-103",
+      "seed_bundle_id": "seed-103",
+      "status": "WAITING_FOR_CANONICAL_ROUTE",
+      "traffic_manager_seed": 1103,
+      "weather": "CloudyNoon"
+    },
+    {
+      "carla_seed": 107,
+      "density_profile": "medium",
+      "determinism_key_sha256": "3fe1f57c461f9dda1f9110086dcdfe0d3d8d90df0ffeb7008227e358b255f622",
+      "episode_plan_id": "fullroute-v1-medium-seed-107",
+      "laps": 2,
+      "matrix_index": 11,
+      "provisional_actor_counts": {
+        "pedestrians": 25,
+        "vehicles": 45
+      },
+      "reserved_split": "train",
+      "route_id": null,
+      "route_sha256": null,
+      "scenario_id": "fullroute:medium:seed-107",
+      "seed_bundle_id": "seed-107",
+      "status": "WAITING_FOR_CANONICAL_ROUTE",
+      "traffic_manager_seed": 1107,
+      "weather": "WetNoon"
+    },
+    {
+      "carla_seed": 109,
+      "density_profile": "medium",
+      "determinism_key_sha256": "e0d0e471c66301161db99b50c8971ecd09d8ef49aa551b44f0c0b31a4c16270f",
+      "episode_plan_id": "fullroute-v1-medium-seed-109",
+      "laps": 2,
+      "matrix_index": 12,
+      "provisional_actor_counts": {
+        "pedestrians": 25,
+        "vehicles": 45
+      },
+      "reserved_split": "train",
+      "route_id": null,
+      "route_sha256": null,
+      "scenario_id": "fullroute:medium:seed-109",
+      "seed_bundle_id": "seed-109",
+      "status": "WAITING_FOR_CANONICAL_ROUTE",
+      "traffic_manager_seed": 1109,
+      "weather": "ClearNoon"
+    },
+    {
+      "carla_seed": 113,
+      "density_profile": "medium",
+      "determinism_key_sha256": "6e57cbb2af9117975938b4e7799a3531707fcf8a2b547fa8c82a2bb5b8f936e2",
+      "episode_plan_id": "fullroute-v1-medium-seed-113",
+      "laps": 2,
+      "matrix_index": 13,
+      "provisional_actor_counts": {
+        "pedestrians": 25,
+        "vehicles": 45
+      },
+      "reserved_split": "train",
+      "route_id": null,
+      "route_sha256": null,
+      "scenario_id": "fullroute:medium:seed-113",
+      "seed_bundle_id": "seed-113",
+      "status": "WAITING_FOR_CANONICAL_ROUTE",
+      "traffic_manager_seed": 1113,
+      "weather": "CloudyNoon"
+    },
+    {
+      "carla_seed": 127,
+      "density_profile": "medium",
+      "determinism_key_sha256": "bf0a8196c1a8055dc212fbf1ff7cb449fc62913837a62de9bbecd873b32fc2e6",
+      "episode_plan_id": "fullroute-v1-medium-seed-127",
+      "laps": 2,
+      "matrix_index": 14,
+      "provisional_actor_counts": {
+        "pedestrians": 25,
+        "vehicles": 45
+      },
+      "reserved_split": "validation",
+      "route_id": null,
+      "route_sha256": null,
+      "scenario_id": "fullroute:medium:seed-127",
+      "seed_bundle_id": "seed-127",
+      "status": "WAITING_FOR_CANONICAL_ROUTE",
+      "traffic_manager_seed": 1127,
+      "weather": "WetNoon"
+    },
+    {
+      "carla_seed": 131,
+      "density_profile": "medium",
+      "determinism_key_sha256": "c24c70517810500b5698248daa86e99b9457de752da5998543bd3fb49c5975c6",
+      "episode_plan_id": "fullroute-v1-medium-seed-131",
+      "laps": 2,
+      "matrix_index": 15,
+      "provisional_actor_counts": {
+        "pedestrians": 25,
+        "vehicles": 45
+      },
+      "reserved_split": "validation",
+      "route_id": null,
+      "route_sha256": null,
+      "scenario_id": "fullroute:medium:seed-131",
+      "seed_bundle_id": "seed-131",
+      "status": "WAITING_FOR_CANONICAL_ROUTE",
+      "traffic_manager_seed": 1131,
+      "weather": "ClearNoon"
+    },
+    {
+      "carla_seed": 137,
+      "density_profile": "medium",
+      "determinism_key_sha256": "fd564f9a506eca1aa34b5d1248dcbcc0965a7209cf475aced9854232533e25c4",
+      "episode_plan_id": "fullroute-v1-medium-seed-137",
+      "laps": 2,
+      "matrix_index": 16,
+      "provisional_actor_counts": {
+        "pedestrians": 25,
+        "vehicles": 45
+      },
+      "reserved_split": "final_test",
+      "route_id": null,
+      "route_sha256": null,
+      "scenario_id": "fullroute:medium:seed-137",
+      "seed_bundle_id": "seed-137",
+      "status": "WAITING_FOR_CANONICAL_ROUTE",
+      "traffic_manager_seed": 1137,
+      "weather": "CloudyNoon"
+    },
+    {
+      "carla_seed": 139,
+      "density_profile": "medium",
+      "determinism_key_sha256": "bb2acfde7295116698e5bb0914347f697bde374c3f79bc34c9a4f6b1b13e6593",
+      "episode_plan_id": "fullroute-v1-medium-seed-139",
+      "laps": 2,
+      "matrix_index": 17,
+      "provisional_actor_counts": {
+        "pedestrians": 25,
+        "vehicles": 45
+      },
+      "reserved_split": "final_test",
+      "route_id": null,
+      "route_sha256": null,
+      "scenario_id": "fullroute:medium:seed-139",
+      "seed_bundle_id": "seed-139",
+      "status": "WAITING_FOR_CANONICAL_ROUTE",
+      "traffic_manager_seed": 1139,
+      "weather": "WetNoon"
+    },
+    {
+      "carla_seed": 101,
+      "density_profile": "dense",
+      "determinism_key_sha256": "962b4b95ca257f08662bd97dfce9131eb7a4fdb4399d6653e57db6f2f5e8e924",
+      "episode_plan_id": "fullroute-v1-dense-seed-101",
+      "laps": 2,
+      "matrix_index": 18,
+      "provisional_actor_counts": {
+        "pedestrians": 50,
+        "vehicles": 75
+      },
+      "reserved_split": "train",
+      "route_id": null,
+      "route_sha256": null,
+      "scenario_id": "fullroute:dense:seed-101",
+      "seed_bundle_id": "seed-101",
+      "status": "WAITING_FOR_CANONICAL_ROUTE",
+      "traffic_manager_seed": 1101,
+      "weather": "ClearNoon"
+    },
+    {
+      "carla_seed": 103,
+      "density_profile": "dense",
+      "determinism_key_sha256": "8d683c894efdf8caa2494099c9a192bced747381d39fb592eeeab1524c3f3d7f",
+      "episode_plan_id": "fullroute-v1-dense-seed-103",
+      "laps": 2,
+      "matrix_index": 19,
+      "provisional_actor_counts": {
+        "pedestrians": 50,
+        "vehicles": 75
+      },
+      "reserved_split": "train",
+      "route_id": null,
+      "route_sha256": null,
+      "scenario_id": "fullroute:dense:seed-103",
+      "seed_bundle_id": "seed-103",
+      "status": "WAITING_FOR_CANONICAL_ROUTE",
+      "traffic_manager_seed": 1103,
+      "weather": "CloudyNoon"
+    },
+    {
+      "carla_seed": 107,
+      "density_profile": "dense",
+      "determinism_key_sha256": "182d1d59206fa25dd93c0238cd296bcae590ba3b1b30af91cd2057d7e9ee405c",
+      "episode_plan_id": "fullroute-v1-dense-seed-107",
+      "laps": 2,
+      "matrix_index": 20,
+      "provisional_actor_counts": {
+        "pedestrians": 50,
+        "vehicles": 75
+      },
+      "reserved_split": "train",
+      "route_id": null,
+      "route_sha256": null,
+      "scenario_id": "fullroute:dense:seed-107",
+      "seed_bundle_id": "seed-107",
+      "status": "WAITING_FOR_CANONICAL_ROUTE",
+      "traffic_manager_seed": 1107,
+      "weather": "WetNoon"
+    },
+    {
+      "carla_seed": 109,
+      "density_profile": "dense",
+      "determinism_key_sha256": "80c7ee325f4c6ad2913e42baa7e26a7d4d9f9b838031479c6e61980b7c88dd3e",
+      "episode_plan_id": "fullroute-v1-dense-seed-109",
+      "laps": 2,
+      "matrix_index": 21,
+      "provisional_actor_counts": {
+        "pedestrians": 50,
+        "vehicles": 75
+      },
+      "reserved_split": "train",
+      "route_id": null,
+      "route_sha256": null,
+      "scenario_id": "fullroute:dense:seed-109",
+      "seed_bundle_id": "seed-109",
+      "status": "WAITING_FOR_CANONICAL_ROUTE",
+      "traffic_manager_seed": 1109,
+      "weather": "ClearNoon"
+    },
+    {
+      "carla_seed": 113,
+      "density_profile": "dense",
+      "determinism_key_sha256": "76b6d2d466ca5fc2be011649409a26b3ff4897ff1253e1bbbf9cd49cc5c32aaf",
+      "episode_plan_id": "fullroute-v1-dense-seed-113",
+      "laps": 2,
+      "matrix_index": 22,
+      "provisional_actor_counts": {
+        "pedestrians": 50,
+        "vehicles": 75
+      },
+      "reserved_split": "train",
+      "route_id": null,
+      "route_sha256": null,
+      "scenario_id": "fullroute:dense:seed-113",
+      "seed_bundle_id": "seed-113",
+      "status": "WAITING_FOR_CANONICAL_ROUTE",
+      "traffic_manager_seed": 1113,
+      "weather": "CloudyNoon"
+    },
+    {
+      "carla_seed": 127,
+      "density_profile": "dense",
+      "determinism_key_sha256": "125d74be9c589367b9eae5b34d16e4a831f75ce334c2a7ac7e8bd510136bd78a",
+      "episode_plan_id": "fullroute-v1-dense-seed-127",
+      "laps": 2,
+      "matrix_index": 23,
+      "provisional_actor_counts": {
+        "pedestrians": 50,
+        "vehicles": 75
+      },
+      "reserved_split": "validation",
+      "route_id": null,
+      "route_sha256": null,
+      "scenario_id": "fullroute:dense:seed-127",
+      "seed_bundle_id": "seed-127",
+      "status": "WAITING_FOR_CANONICAL_ROUTE",
+      "traffic_manager_seed": 1127,
+      "weather": "WetNoon"
+    },
+    {
+      "carla_seed": 131,
+      "density_profile": "dense",
+      "determinism_key_sha256": "2986ed1a0e696b18b17e768811d4d222cdc50cbb870e2a53ec5b59667bc87479",
+      "episode_plan_id": "fullroute-v1-dense-seed-131",
+      "laps": 2,
+      "matrix_index": 24,
+      "provisional_actor_counts": {
+        "pedestrians": 50,
+        "vehicles": 75
+      },
+      "reserved_split": "validation",
+      "route_id": null,
+      "route_sha256": null,
+      "scenario_id": "fullroute:dense:seed-131",
+      "seed_bundle_id": "seed-131",
+      "status": "WAITING_FOR_CANONICAL_ROUTE",
+      "traffic_manager_seed": 1131,
+      "weather": "ClearNoon"
+    },
+    {
+      "carla_seed": 137,
+      "density_profile": "dense",
+      "determinism_key_sha256": "8f296a4fc6a855b66396f59004d3e7eb93bf1869d7006d79367c52371c5ce2fe",
+      "episode_plan_id": "fullroute-v1-dense-seed-137",
+      "laps": 2,
+      "matrix_index": 25,
+      "provisional_actor_counts": {
+        "pedestrians": 50,
+        "vehicles": 75
+      },
+      "reserved_split": "final_test",
+      "route_id": null,
+      "route_sha256": null,
+      "scenario_id": "fullroute:dense:seed-137",
+      "seed_bundle_id": "seed-137",
+      "status": "WAITING_FOR_CANONICAL_ROUTE",
+      "traffic_manager_seed": 1137,
+      "weather": "CloudyNoon"
+    },
+    {
+      "carla_seed": 139,
+      "density_profile": "dense",
+      "determinism_key_sha256": "8a9debe9418503c2c491032db04fcaffab627ea627579a84669cb47f1c3dc50f",
+      "episode_plan_id": "fullroute-v1-dense-seed-139",
+      "laps": 2,
+      "matrix_index": 26,
+      "provisional_actor_counts": {
+        "pedestrians": 50,
+        "vehicles": 75
+      },
+      "reserved_split": "final_test",
+      "route_id": null,
+      "route_sha256": null,
+      "scenario_id": "fullroute:dense:seed-139",
+      "seed_bundle_id": "seed-139",
+      "status": "WAITING_FOR_CANONICAL_ROUTE",
+      "traffic_manager_seed": 1139,
+      "weather": "WetNoon"
+    }
+  ],
+  "schema": "scenesense.perception_full_route_scaffold.v1"
+}

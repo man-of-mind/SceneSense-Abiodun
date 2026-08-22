@@ -1,0 +1,334 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "scenesense://schemas/perception_frame_v1.schema.json",
+  "title": "Full-route perception frame record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "episode_id",
+    "frame_id",
+    "timestamp",
+    "seed",
+    "density_profile",
+    "achieved_density",
+    "route_id",
+    "route_sha256",
+    "lap",
+    "route_segment_id",
+    "route_progress",
+    "ego_pose",
+    "sensor_identifiers",
+    "ground_truth",
+    "artifacts"
+  ],
+  "properties": {
+    "schema": {
+      "const": "scenesense.perception_frame.v1"
+    },
+    "episode_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "frame_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "timestamp": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "simulation_s",
+        "capture_utc"
+      ],
+      "properties": {
+        "simulation_s": {
+          "type": "number",
+          "minimum": 0
+        },
+        "capture_utc": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "seed": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "seed_bundle_id",
+        "carla_seed",
+        "traffic_manager_seed"
+      ],
+      "properties": {
+        "seed_bundle_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "carla_seed": {
+          "type": "integer"
+        },
+        "traffic_manager_seed": {
+          "type": "integer"
+        }
+      }
+    },
+    "density_profile": {
+      "enum": [
+        "low",
+        "medium",
+        "dense"
+      ]
+    },
+    "achieved_density": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "local_radius_m",
+        "local_vehicle_count",
+        "local_pedestrian_count",
+        "in_view_vehicle_count",
+        "in_view_pedestrian_count",
+        "visibility_definition_version"
+      ],
+      "properties": {
+        "local_radius_m": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "local_vehicle_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "local_pedestrian_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "in_view_vehicle_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "in_view_pedestrian_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "visibility_definition_version": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "route_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "route_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "lap": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "route_segment_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "route_progress": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "distance_m",
+        "fraction"
+      ],
+      "properties": {
+        "distance_m": {
+          "type": "number",
+          "minimum": 0
+        },
+        "fraction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "ego_pose": {
+      "$ref": "#/$defs/transform"
+    },
+    "weather": {
+      "type": "string",
+      "minLength": 1
+    },
+    "scenario_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sensor_identifiers": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "sensor_id",
+          "sensor_type",
+          "calibration_id"
+        ],
+        "properties": {
+          "sensor_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sensor_type": {
+            "type": "string",
+            "minLength": 1
+          },
+          "calibration_id": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "ground_truth": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifact_path",
+        "sha256",
+        "vehicle_count",
+        "pedestrian_count",
+        "coordinate_frame"
+      ],
+      "properties": {
+        "artifact_path": {
+          "$ref": "#/$defs/relative_path"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "vehicle_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "pedestrian_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "coordinate_frame": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "role",
+          "direction",
+          "path",
+          "sha256",
+          "size_bytes"
+        ],
+        "properties": {
+          "role": {
+            "type": "string",
+            "minLength": 1
+          },
+          "direction": {
+            "enum": [
+              "input",
+              "output"
+            ]
+          },
+          "path": {
+            "$ref": "#/$defs/relative_path"
+          },
+          "sha256": {
+            "$ref": "#/$defs/sha256"
+          },
+          "size_bytes": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "relative_path": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"
+    },
+    "location": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "x",
+        "y",
+        "z"
+      ],
+      "properties": {
+        "x": {
+          "type": "number"
+        },
+        "y": {
+          "type": "number"
+        },
+        "z": {
+          "type": "number"
+        }
+      }
+    },
+    "rotation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pitch",
+        "yaw",
+        "roll"
+      ],
+      "properties": {
+        "pitch": {
+          "type": "number"
+        },
+        "yaw": {
+          "type": "number"
+        },
+        "roll": {
+          "type": "number"
+        }
+      }
+    },
+    "transform": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "location",
+        "rotation",
+        "coordinate_frame"
+      ],
+      "properties": {
+        "location": {
+          "$ref": "#/$defs/location"
+        },
+        "rotation": {
+          "$ref": "#/$defs/rotation"
+        },
+        "coordinate_frame": {
+          "const": "carla_world"
+        }
+      }
+    }
+  }
+}
