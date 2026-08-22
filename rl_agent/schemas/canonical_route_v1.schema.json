@@ -1,0 +1,337 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "scenesense://schemas/canonical_route_v1.schema.json",
+  "title": "Canonical Town10HD Route B",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "route_id",
+    "version",
+    "map",
+    "coordinate_frame",
+    "route_direction",
+    "waypoints",
+    "segments",
+    "ego_spawn_transform",
+    "loop_closure",
+    "route_length",
+    "expected_duration",
+    "qualification"
+  ],
+  "properties": {
+    "schema": {
+      "const": "scenesense.canonical_route.v1"
+    },
+    "route_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?$"
+    },
+    "map": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "town",
+        "map_identifier"
+      ],
+      "properties": {
+        "town": {
+          "const": "Town10HD"
+        },
+        "map_identifier": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "coordinate_frame": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "units",
+        "handedness",
+        "axes"
+      ],
+      "properties": {
+        "name": {
+          "const": "carla_world"
+        },
+        "units": {
+          "const": "meters"
+        },
+        "handedness": {
+          "const": "left_handed"
+        },
+        "axes": {
+          "const": {
+            "x": "forward",
+            "y": "right",
+            "z": "up"
+          }
+        }
+      }
+    },
+    "route_direction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "direction",
+        "waypoint_order"
+      ],
+      "properties": {
+        "direction": {
+          "enum": [
+            "forward",
+            "reverse"
+          ]
+        },
+        "waypoint_order": {
+          "const": "travel_order"
+        }
+      }
+    },
+    "waypoints": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "sequence_index",
+          "x",
+          "y",
+          "z",
+          "route_segment_id"
+        ],
+        "properties": {
+          "sequence_index": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "x": {
+            "type": "number"
+          },
+          "y": {
+            "type": "number"
+          },
+          "z": {
+            "type": "number"
+          },
+          "route_segment_id": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "segments": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "segment_id",
+          "start_waypoint_index",
+          "end_waypoint_index"
+        ],
+        "properties": {
+          "segment_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "start_waypoint_index": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "end_waypoint_index": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "ego_spawn_transform": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "location",
+        "rotation",
+        "route_start_waypoint_index",
+        "route_start_position_tolerance_m"
+      ],
+      "properties": {
+        "location": {
+          "$ref": "#/$defs/location"
+        },
+        "rotation": {
+          "$ref": "#/$defs/rotation"
+        },
+        "route_start_waypoint_index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "route_start_position_tolerance_m": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "loop_closure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "close_last_to_first",
+        "position_tolerance_m",
+        "heading_tolerance_deg"
+      ],
+      "properties": {
+        "mode": {
+          "enum": [
+            "closed_loop",
+            "open_route"
+          ]
+        },
+        "close_last_to_first": {
+          "type": "boolean"
+        },
+        "position_tolerance_m": {
+          "type": "number",
+          "minimum": 0
+        },
+        "heading_tolerance_deg": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "route_length": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "declared_m",
+        "calculation",
+        "measurement_tolerance_m"
+      ],
+      "properties": {
+        "declared_m": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "calculation": {
+          "const": "polyline_waypoints_with_optional_loop_seam"
+        },
+        "measurement_tolerance_m": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "expected_duration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "minimum_s",
+        "nominal_s",
+        "maximum_s"
+      ],
+      "properties": {
+        "minimum_s": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "nominal_s": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "maximum_s": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "qualification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "qualified_by",
+        "qualified_at_utc",
+        "qualification_bundle_id",
+        "qualification_manifest_sha256"
+      ],
+      "properties": {
+        "status": {
+          "const": "QUALIFIED"
+        },
+        "qualified_by": {
+          "type": "string",
+          "minLength": 1
+        },
+        "qualified_at_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "qualification_bundle_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "qualification_manifest_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "location": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "x",
+        "y",
+        "z"
+      ],
+      "properties": {
+        "x": {
+          "type": "number"
+        },
+        "y": {
+          "type": "number"
+        },
+        "z": {
+          "type": "number"
+        }
+      }
+    },
+    "rotation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pitch",
+        "yaw",
+        "roll"
+      ],
+      "properties": {
+        "pitch": {
+          "type": "number"
+        },
+        "yaw": {
+          "type": "number"
+        },
+        "roll": {
+          "type": "number"
+        }
+      }
+    }
+  }
+}

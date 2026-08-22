@@ -1,0 +1,19 @@
+{
+  "dry_run_dimensions": [
+    "density_profile",
+    "seed_bundle"
+  ],
+  "dry_run_episode_count": 27,
+  "excluded_matrix_dimensions": [
+    "UE action",
+    "network profile",
+    "model family",
+    "quantization",
+    "ROI"
+  ],
+  "existing_decision": "RETRAINING_PILOT_JUSTIFIED",
+  "final_test_state": "LOCKED_UNTOUCHED",
+  "readiness": "NOT_READY_FOR_COLLECTION",
+  "scope": "Bounded AE64-first pilot only; no family-wide retraining and no deployment approval.",
+  "terminal": "WAITING_FOR_CANONICAL_ROUTE"
+}

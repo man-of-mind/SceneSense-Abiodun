@@ -1,0 +1,28 @@
+{
+  "coordinates": "No coordinates are included in this scaffold; they must come from the qualified main-machine artifact.",
+  "required_files_from_main_machine": [
+    {
+      "content": "A contract conforming to schemas/canonical_route_v1.schema.json and the semantic validator",
+      "file": "canonical_route_b.json (preferred), canonical_route_b.yaml, or canonical_route_b.yml"
+    },
+    {
+      "content": "Exactly one lowercase SHA-256 digest for the exact route-file bytes",
+      "file": "canonical_route_b.sha256 or an equivalent separately transmitted digest"
+    }
+  ],
+  "required_route_fields": [
+    "schema=scenesense.canonical_route.v1",
+    "route_id identifying Route B",
+    "version (semantic version)",
+    "map.town=Town10HD and map.map_identifier",
+    "coordinate_frame name/units/handedness/x-y-z axes",
+    "route_direction.direction and waypoint_order=travel_order",
+    "ordered waypoints with sequence_index/x/y/z/route_segment_id",
+    "contiguous segments with IDs and waypoint ranges",
+    "ego_spawn_transform location/rotation/start waypoint/tolerance",
+    "loop_closure mode/close flag/position tolerance/heading tolerance",
+    "route_length declared value/calculation/tolerance",
+    "expected_duration minimum/nominal/maximum seconds",
+    "qualification status/by/time/bundle ID/qualification manifest SHA-256"
+  ]
+}

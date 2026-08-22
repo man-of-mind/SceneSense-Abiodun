@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "scenesense://schemas/perception_split_input_v1.schema.json",
+  "title": "Leakage-safe split input index row",
+  "description": "A denormalized, post-finalization index row joining a frame record to its COMPLETE episode manifest.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "episode_id",
+    "frame_id",
+    "episode_status",
+    "seed",
+    "route_id",
+    "route_sha256",
+    "route_region_id"
+  ],
+  "properties": {
+    "schema": {
+      "const": "scenesense.perception_split_input.v1"
+    },
+    "episode_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "frame_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "episode_status": {
+      "const": "COMPLETE"
+    },
+    "seed": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "seed_bundle_id",
+        "carla_seed",
+        "traffic_manager_seed"
+      ],
+      "properties": {
+        "seed_bundle_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "carla_seed": {
+          "type": "integer"
+        },
+        "traffic_manager_seed": {
+          "type": "integer"
+        }
+      }
+    },
+    "route_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "route_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "route_region_id": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}

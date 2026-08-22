@@ -1,0 +1,48 @@
+{
+  "artifacts": [
+    {
+      "path": "DATASET_SPLIT_POLICY.json",
+      "sha256": "89fd866a8e1fef961ba16ea8f6f8b9967f9fa26d53c6936ebdac480e65d848e4",
+      "size_bytes": 755
+    },
+    {
+      "path": "DRY_RUN_MATRIX.json",
+      "sha256": "8e2cbe53061fed2453e1d966cd2a4cab152a51f6ca5bd8278a474fee5e44f5ba",
+      "size_bytes": 17589
+    },
+    {
+      "path": "PLAN.json",
+      "sha256": "a70d7f78fe1be1a8eb9c84023b2853a2b2d21da256241d8a7267261df1656611",
+      "size_bytes": 861
+    },
+    {
+      "path": "PREFLIGHT.json",
+      "sha256": "f1089166b43776359cbc34751dff42eb2375c21e13bafe5cbcf1f8dad1c0aea8",
+      "size_bytes": 652
+    },
+    {
+      "path": "REPORT.json",
+      "sha256": "e7291bae729fd9e67ee769dd992d9ab2a628b7750ba0305e29caf5804a3da064",
+      "size_bytes": 517
+    },
+    {
+      "path": "REVIEW_REQUIRED",
+      "sha256": "2b2041aa1faec2fd779edd1c97866d786394f2ee3fcc48cb436f4442cb166b80",
+      "size_bytes": 116
+    },
+    {
+      "path": "ROUTE_B_REQUIREMENTS.json",
+      "sha256": "0d5dd8c6bb0ca48574912e3f74571c35dddd16ee6a43b38783eaab269ead9bf1",
+      "size_bytes": 1359
+    },
+    {
+      "path": "SOURCE_PROVENANCE.json",
+      "sha256": "108ca607fac04d1ce1ab3a1ac07943e86c3dd14f8e7a6c7ae5ca6973114f026d",
+      "size_bytes": 5170
+    }
+  ],
+  "bundle_name": "20260821_205307_EDT_waiting",
+  "created_at_utc": "2026-08-22T00:53:10Z",
+  "schema": "scenesense.immutable_readiness_manifest.v1",
+  "terminal": "WAITING_FOR_CANONICAL_ROUTE"
+}

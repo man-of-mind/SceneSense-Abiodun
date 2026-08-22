@@ -1,0 +1,31 @@
+{
+  "alternative_strategy": "complete_route_region_holdout",
+  "current_overlap_check_status": "NOT_RUN_NO_COLLECTED_DATASET",
+  "default_strategy": "complete_episode_and_seed_bundle_holdout",
+  "final_test_access_state": "LOCKED_UNTOUCHED",
+  "final_test_required_marker": "TEST_EVALUATION_AUTHORIZED",
+  "overlap_axes_required": [
+    "episode_id",
+    "seed_bundle_id",
+    "frame_key"
+  ],
+  "random_individual_frame_split_allowed": false,
+  "schema": "scenesense.split_policy_freeze.v1",
+  "seed_partition": {
+    "final_test": [
+      "seed-137",
+      "seed-139"
+    ],
+    "train": [
+      "seed-101",
+      "seed-103",
+      "seed-107",
+      "seed-109",
+      "seed-113"
+    ],
+    "validation": [
+      "seed-127",
+      "seed-131"
+    ]
+  }
+}

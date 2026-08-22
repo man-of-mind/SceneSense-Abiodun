@@ -1,0 +1,114 @@
+{
+  "schema": "scenesense.ae64_retraining_pilot.v1",
+  "version": "1.0.0",
+  "status": "WAITING_FOR_CANONICAL_ROUTE",
+  "scope": {
+    "authorized_family": "AE64",
+    "bounded_pilot_only": true,
+    "training_started": false,
+    "other_families_authorized": false,
+    "deployment_authorized": false
+  },
+  "starting_evidence": {
+    "decision": "RETRAINING_PILOT_JUSTIFIED",
+    "source_bundle": "abiodun/rl_agent/experiments/conservative_decoder_validation_v1/20260820_233246_EDT",
+    "validation_result": "Neither 1 m nor 2 m predicted-world suppression passed every frozen validation floor.",
+    "binding_observation": "AE32/u4/q0.5 vehicle XY MAE was 0.9165 m versus the 0.90 m floor for the 1 m candidate.",
+    "untouched_test_frame_count": 2162,
+    "untouched_test_evaluated": false
+  },
+  "base_checkpoint": {
+    "path": "abiodun/experiments/ae_integrated_20260710/ae64/checkpoints/ae64_integrated/best.pt",
+    "sha256": "c6a2362c7c2d72ff31825508ae7532c0796ec063a8556317d47d8d30fad99480",
+    "read_only": true
+  },
+  "split_inference_interface": {
+    "version": "split_feature_dict_low_high_v1",
+    "source_path": "abiodun/pole_lraspp_multimodal_fusion/pole_lraspp_multimodal_fusion/split_runtime.py",
+    "source_sha256": "85d408959ea332245444db567ba916b7bce6a9c93cfbc73ae25d129abda0cae5",
+    "preserve": true,
+    "feature_container": "ordered mapping",
+    "ordered_feature_keys": [
+      "low",
+      "high"
+    ],
+    "shape_dtype_device_and_serialization_compatibility_required": true,
+    "version_change_condition": "Only measured incompatibility evidence plus explicit interface review may authorize a new version."
+  },
+  "training_freeze": {
+    "training_source_path": "abiodun/pole_lraspp_multimodal_fusion/pole_lraspp_multimodal_fusion/train_fusion.py",
+    "training_source_sha256": "63acaa019ceb2edaf7bfc099c872dc65be33f647661984e9e60294ec8fcdc30e",
+    "dataset_manifest_sha256": null,
+    "canonical_route_sha256": null,
+    "required_before_training": true,
+    "training_seeds": [
+      1401,
+      1402,
+      1403
+    ],
+    "maximum_epochs": 40,
+    "early_stopping": {
+      "metric": "service_aware_selection_score",
+      "mode": "max",
+      "patience_epochs": 8,
+      "minimum_delta": 0.001,
+      "restore_best_candidate": true
+    },
+    "checkpoint_output": {
+      "directory_mode": "create_only_versioned",
+      "filename_template": "ae64_fullroute_pilot_v2_seed{seed}_epoch{epoch:03d}_candidate.pt",
+      "forbidden_filenames": [
+        "best.pt",
+        "last.pt"
+      ],
+      "write_checkpoint_sha256": true,
+      "write_config_sha256": true,
+      "write_training_code_sha256": true
+    }
+  },
+  "service_aware_selection": {
+    "feasibility_first": true,
+    "score_weights": {
+      "vehicle_precision": 0.35,
+      "person_precision": 0.2,
+      "recall": 0.15,
+      "world_xy": 0.15,
+      "secondary_segmentation": 0.05,
+      "payload": 0.05,
+      "compute": 0.05
+    },
+    "candidate_vs_v1_requirements": {
+      "precision": "paired superiority",
+      "vehicle_recall_noninferiority_margin": -0.01,
+      "person_recall_noninferiority_margin": -0.01,
+      "vehicle_xy_mae_noninferiority_margin_m": 0.05,
+      "person_xy_mae_noninferiority_margin_m": 0.05,
+      "secondary_segmentation_miou_noninferiority_margin": -0.01,
+      "payload_noninferiority_relative_margin": 0.02,
+      "gpu_decoder_latency_noninferiority_relative_margin": 0.05,
+      "end_to_end_inference_noninferiority_relative_margin": 0.05
+    },
+    "normal_service_validation_floors_also_required": true
+  },
+  "family_expansion_gate": {
+    "families_locked": [
+      "AE32",
+      "AE128",
+      "no-AE"
+    ],
+    "required_evidence": [
+      "AE64 passes every frozen normal-service validation floor on the new leakage-safe validation split",
+      "paired precision superiority over AE64 v1",
+      "paired non-inferiority for vehicle/person recall, world XY, dimension, secondary segmentation, payload, and compute",
+      "acceptable stability across all three frozen training seeds",
+      "split-inference tensor/interface compatibility evidence",
+      "complete hashes for dataset, route, checkpoint, config, and training code",
+      "no use of the untouched final-test set",
+      "human FAMILY_EXPANSION_AUTHORIZED record"
+    ]
+  },
+  "final_test_access": {
+    "state": "LOCKED_UNTOUCHED",
+    "required_marker": "TEST_EVALUATION_AUTHORIZED"
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "authorized_now": [
+    "offline contract validation",
+    "dry-run matrix generation",
+    "leakage-safe splitting",
+    "unit tests"
+  ],
+  "gates": [
+    "qualified canonical Route B and matching SHA-256",
+    "create-only collection output",
+    "complete-episode/seed or complete-route-region splits",
+    "AE64 validation feasibility and selection evidence",
+    "TEST_EVALUATION_AUTHORIZED"
+  ],
+  "objective": "Route-independent full-map perception collection scaffolding and bounded AE64-first retraining pilot",
+  "prohibited_now": [
+    "CARLA startup or collection",
+    "model training",
+    "untouched final-test evaluation",
+    "production runtime, registry, launcher, controller, or map-server edits",
+    "checkpoint overwrite"
+  ],
+  "schema": "scenesense.perception_full_route_scaffold.v1",
+  "terminal": "WAITING_FOR_CANONICAL_ROUTE"
+}
