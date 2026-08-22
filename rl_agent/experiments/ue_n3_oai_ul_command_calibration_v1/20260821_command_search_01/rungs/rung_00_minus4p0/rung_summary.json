@@ -1,0 +1,15 @@
+{
+  "candidate_application_count": 0,
+  "clean_restore_verified": false,
+  "cleanup_errors": [],
+  "commanded_noise_power_db": -4.0,
+  "control_session_id": "dd0b5e2b-f209-4c4c-8899-d1551b02e92e",
+  "error": "[Errno 17] File exists: '/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/experiments/ue_n3_oai_ul_command_calibration_v1/20260821_command_search_01/rungs/rung_00_minus4p0/runtime'",
+  "error_type": "FileExistsError",
+  "hard_loss_reason": null,
+  "numeric_bound_promoted": false,
+  "ran_epoch_id": "35851fb5-4fbb-44f0-829c-23edcf3cf1ab",
+  "rung_index": 0,
+  "status": "FAILED",
+  "target_mapping_promoted": false
+}

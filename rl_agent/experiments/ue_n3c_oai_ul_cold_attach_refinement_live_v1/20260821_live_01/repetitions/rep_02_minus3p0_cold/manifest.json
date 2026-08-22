@@ -1,0 +1,127 @@
+{
+  "candidate_application_count": 0,
+  "command_ladder_manifest_sha256": "e8235586c07c5996aab17219280da35947bc8e54b05fc43ee326ee5373618f82",
+  "commanded_noise_power_db": -3.0,
+  "config_sha256": "13ea9536bd5492a98d6f42b61ed5371d6e02cd3bd47381f69fd877797209fc4d",
+  "control_session_id": "210302a1-a819-43b2-a3f5-879303f70273",
+  "engine_runner_sha256": "30cf1615f51c7cd0ebe4087f7b6ca66f37a563f2d5c452e474ae838a23c8878b",
+  "evidence_valid_for_aggregation": true,
+  "joint_candidate_confirmation_pass": false,
+  "n3b_adjudication_manifest_sha256": "bda88d7f89e41822bf07209a69f32a9a2f72cacabccc6112364cfa81b135398f",
+  "n3b_live_manifest_sha256": "ac76763ea9651212f0003c35eb19092d85dbf28b104572e9a9ffc107cb298f3a",
+  "operational_bound_promoted": false,
+  "outputs": [
+    {
+      "bytes": 257,
+      "path": "attach_gate.json",
+      "sha256": "d55b5ca7ac7ec08bedb30d0ebe98547c67e9070d3997cc385835f3d5123c67ca"
+    },
+    {
+      "bytes": 190,
+      "path": "carla_absent_gate.json",
+      "sha256": "af513eb3025173f7f1c9c0ad330be3adbd02f756531651349f02e1add581c869"
+    },
+    {
+      "bytes": 1470,
+      "path": "channel_state_restored.txt",
+      "sha256": "d42722e503e8af1d21448d22b05587f997fb05427db7d30617392d4774f68593"
+    },
+    {
+      "bytes": 1469,
+      "path": "channel_state_startup_candidate.txt",
+      "sha256": "9547a184c4019f2f452f822060a7ef880df040512217934df3141b26a796b49c"
+    },
+    {
+      "bytes": 224,
+      "path": "cleanup_report.json",
+      "sha256": "600decd37274fea996d8a1f72e1797444cad60f42e069b5848dd8ea4bcb09791"
+    },
+    {
+      "bytes": 240,
+      "path": "cold_start_identity.json",
+      "sha256": "586077edee393ecfdf87ce2495f86a16c2a453826310a36fbbcb634929e94a9f"
+    },
+    {
+      "bytes": 709,
+      "path": "command_ladder_expectation_predecessor.json",
+      "sha256": "d9569adabe55ead8d52f8eea821079efd9c6fe0f09cd84270ad2ce540ca1fc8f"
+    },
+    {
+      "bytes": 393,
+      "path": "command_log.csv",
+      "sha256": "5930c1db49aa56e7719d1586c93a271022fab4b6a7d2e8fd82fa837abe2d0449"
+    },
+    {
+      "bytes": 78325,
+      "path": "logs/gnb.log",
+      "sha256": "c8b85a6d8f1efd07edfac97d3b71da02fa6fe63297ba0ba43a3c1c5b0df9e119"
+    },
+    {
+      "bytes": 3824112,
+      "path": "logs/ue.log",
+      "sha256": "2c523616a6b62a8d11bd9e9c6186db6444eff4989468198234e2e4083cac3218"
+    },
+    {
+      "bytes": 639,
+      "path": "n3b_adjudication_predecessor.json",
+      "sha256": "fe9af84d8e201b43c6a10d857e58f874f7b4a50a619423acf70f6e76f343dbca"
+    },
+    {
+      "bytes": 661,
+      "path": "n3b_live_evidence_predecessor.json",
+      "sha256": "d55714dd1215543d6dd18eb80a9fbf7c08f15647fa12e1c1e9bc92d68aa49fe8"
+    },
+    {
+      "bytes": 3661,
+      "path": "repetition_summary.json",
+      "sha256": "581253b46d5afda8a00ddedbfe441717107de64921e5de68e01676fb31749c08"
+    },
+    {
+      "bytes": 12898,
+      "path": "resolved_config.json",
+      "sha256": "18c21d78f400002ffe8ceecea6cafd0422f0eae5c778b7ad89aebac435c95fe8"
+    },
+    {
+      "bytes": 764,
+      "path": "runtime/config_hashes.json",
+      "sha256": "8b2f21596bf4cd1f81f482930cb8358ea97c194a3663d0e2e93da04e19d27b36"
+    },
+    {
+      "bytes": 888,
+      "path": "runtime/effective_channel_cold_attach_minus3p0.conf",
+      "sha256": "2a59b92b136a8e3a1980bc277e7cf6cb72428f71ec11608999694f5a88fbbe72"
+    },
+    {
+      "bytes": 10175,
+      "path": "runtime/effective_gnb_cold_attach_minus3p0.conf",
+      "sha256": "863802d888d31a5e963f341ed70b0cdabdb47643725e3378cac6ce6a7b0f2959"
+    },
+    {
+      "bytes": 1171,
+      "path": "runtime/effective_ue_cold_attach_minus3p0.conf",
+      "sha256": "1daf643d80850dada5fff26872993d0cbbdf000e454a5c9ee38d461162e7453b"
+    },
+    {
+      "bytes": 5266,
+      "path": "runtime_seals.json",
+      "sha256": "e44697f661c4b27bd6bd3a4aeb293510a4deec0620c1fcba67c6b579ac4847e0"
+    },
+    {
+      "bytes": 617,
+      "path": "source_oai_config_integrity.json",
+      "sha256": "64ad030c4a3c91252aa56afd674f34e82a01e7616fe7803fd63d57044a9e8154"
+    },
+    {
+      "bytes": 758,
+      "path": "startup_channel_runtime_gate.json",
+      "sha256": "18f1dadfe58171bb8bd391f7a76c8a6bff3f4786f9351f1298935be898d0fd3f"
+    }
+  ],
+  "ran_epoch_id": "76e93b28-1b55-4be6-9843-32feaf830e94",
+  "repetition_index": 2,
+  "restore_application_count": 1,
+  "review_required": true,
+  "runner_sha256": "d3f62a4b116786f7e684090a02be41c3a93d6b9013fca2da9bb8e28636b45f7d",
+  "schema": "scenesense.ue_n3c_cold_attach_repetition_manifest.v1",
+  "status": "UE_N3C_COLD_ATTACH_REPETITION_VALID_OPERATIONAL_SCREEN_NONCONFIRMATION"
+}

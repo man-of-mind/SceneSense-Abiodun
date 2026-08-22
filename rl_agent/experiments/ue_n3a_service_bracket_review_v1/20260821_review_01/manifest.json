@@ -1,0 +1,47 @@
+{
+  "config_sha256": "ba670658236ba26891fb4315e2b68b62dadc09da848133bdba6b45bd091ff9e4",
+  "connectivity_bound_promoted": false,
+  "n3b_executed": false,
+  "n3b_execution_authorized": false,
+  "numeric_bound_promoted": false,
+  "offline_only": true,
+  "operational_bound_promoted": false,
+  "outputs": [
+    {
+      "bytes": 541,
+      "path": "REPORT.md",
+      "sha256": "512286739020ddeb132359711440a118fcda22ebbd2dc6d72f3d76e14dec64b1"
+    },
+    {
+      "bytes": 2466,
+      "path": "per_repetition_adjudication.csv",
+      "sha256": "7fbf9a2f0ce23e3444e6965d8ac0383caec8478eca0f70ea29cada5130065de7"
+    },
+    {
+      "bytes": 8068,
+      "path": "per_repetition_adjudication.json",
+      "sha256": "8e62a337876a925ec32bdd1a9792cccfb2ed786b91cbbce9510df326794be04b"
+    },
+    {
+      "bytes": 6938,
+      "path": "resolved_config.json",
+      "sha256": "fc5a969dc2a1e121c726ad6fa721ca4280f8e730383526242dd8cd3b0d753107"
+    },
+    {
+      "bytes": 15195,
+      "path": "service_bracket_review.json",
+      "sha256": "b65b0789741826a88122d59f79bd05f30fddcd33241b0961f5c814d842e072b4"
+    },
+    {
+      "bytes": 5492,
+      "path": "source_evidence_verification.json",
+      "sha256": "0597ba3587db55379a45576778281938a6a612b6b71069a22cd0818a537d8717"
+    }
+  ],
+  "runner_sha256": "cb79098c4157420c33b3ae5fa51414d8594f0baafb24436733b15def1e400037",
+  "schema": "scenesense.ue_n3a_service_bracket_review_manifest.v1",
+  "source_campaign_manifest_sha256": "62639405273bd77aba5ff345bba2e2f99d2f15dfe962aa54083d5142c1b1b6ce",
+  "status": "UE_N3_BOUND_BRACKETED_REVIEW_REQUIRED",
+  "target_mapping_promoted": false,
+  "usable_service_bound_promoted": false
+}

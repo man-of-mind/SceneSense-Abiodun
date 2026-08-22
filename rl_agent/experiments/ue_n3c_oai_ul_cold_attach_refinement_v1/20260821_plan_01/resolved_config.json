@@ -1,0 +1,321 @@
+{
+  "actuator": {
+    "channel_model_name": "rfsimu_channel_ue0",
+    "channel_model_owner": "rfsimulator",
+    "channel_model_type": "AWGN",
+    "clean_and_restore_commanded_noise_power_db": "-50",
+    "connect_timeout_s": 15,
+    "max_response_bytes": 1048576,
+    "path_loss_db": 0,
+    "prompt_suffix": "softmodem_gnb> ",
+    "response_timeout_s": 2,
+    "telnet_host": "127.0.0.1",
+    "telnet_port": 9090
+  },
+  "analysis": {
+    "achieved_snr_expectation_role": "CONSISTENCY_ONLY_FROM_SEALED_WARM_ATTACHED_COMMAND_LADDER_NOT_MAPPING",
+    "achieved_snr_tolerance_db": 0.5,
+    "direct_ul_bler_zero_fill_authorized": false,
+    "expected_achieved_pusch_snr_db": 6.5,
+    "post_restore_recovery_required": true,
+    "scheduler_required_force_ul_mcs": -1,
+    "scheduler_required_mcs_table": 0,
+    "service_window_delivery_role": "AUTHORITATIVE_EXACT_600_FRAME_SERVICE_GATE",
+    "timestamp_claim": "COLLECTOR_INGEST_WINDOWS_NOT_RF_APPLICATION_TIMESTAMPS",
+    "whole_capture_delivery_role": "DIAGNOSTIC_ONLY"
+  },
+  "authority": {
+    "carla_run_authorized": false,
+    "connectivity_bound_promotion_authorized": false,
+    "live_authority_basis": "NOT_AUTHORIZED_PREPARE_ONLY",
+    "live_oai_run_authorized": false,
+    "live_socket_execution_authorized": false,
+    "numeric_bound_promotion_authorized": false,
+    "offline_plan_authorized": true,
+    "operational_bound_promotion_authorized": false,
+    "policy_training_authorized": false,
+    "target_mapping_promotion_authorized": false,
+    "usable_service_bound_promotion_authorized": false
+  },
+  "campaign": {
+    "candidate_application_count": 0,
+    "candidate_baked_before_ue_launch": true,
+    "commanded_noise_power_db": [
+      -3.0
+    ],
+    "continue_after_valid_attach_or_service_failure": true,
+    "one_fresh_ran_per_repetition": true,
+    "post_restore_recovery_fail_closed": true,
+    "repetitions": 3,
+    "run_local_configs_only": true,
+    "stop_on_invalid_or_unclean_evidence": true
+  },
+  "claim_boundary": "ADJACENT_COLD_ATTACH_REFINEMENT_EVIDENCE_ONLY_NO_BOUND_PROMOTION",
+  "experiment_id": "ue_n3c_oai_ul_cold_attach_refinement_v1",
+  "output": {
+    "campaign_plan": "campaign_plan.csv",
+    "campaign_summary": "campaign_summary.json",
+    "command_log": "command_log.csv",
+    "failure": "FAILED.json",
+    "manifest": "manifest.json",
+    "raw_radio_events": "raw_radio_events.jsonl",
+    "repetition_summary": "repetition_summary.json",
+    "resolved_config": "resolved_config.json"
+  },
+  "paths": {
+    "channel_config": "channelmod_rfsimu.conf",
+    "command_calibration_engine": "rl_agent/ue_n3_oai_ul_command_calibration_v1.py",
+    "gnb_base_config": "gnb.sa.band78.fr1.106PRB.usrpb210.conf",
+    "n2_runner": "rl_agent/ue_n2_oai_ul_calibration_smoke.py",
+    "n3b_runner": "rl_agent/ue_n3b_oai_ul_cold_attach_confirmation_v1.py",
+    "oai_ran_build": "OAI/openairinterface5g/cmake_targets/ran_build/build",
+    "oai_ran_conf": "OAI/openairinterface5g/targets/PROJECTS/GENERIC-NR-5GC/CONF",
+    "output_root": "rl_agent/experiments/ue_n3c_oai_ul_cold_attach_refinement_v1",
+    "python": "/home/shr_aisvcs/workarea/carla_0_10_env/carla_0_10_venv/bin/python3",
+    "receiver": "rl_agent/ue_n3_structured_udp_receiver.py",
+    "sender": "oai_layer_latency/carla_shaped_udp_burst_sender.py",
+    "t_messages": "OAI/openairinterface5g/common/utils/T/T_messages.txt",
+    "ue_base_config": "ue.conf"
+  },
+  "predecessors": {
+    "command_ladder_expectation": {
+      "directory": "rl_agent/experiments/ue_n3_oai_ul_command_calibration_v1/20260821_command_search_02",
+      "manifest": "manifest.json",
+      "manifest_sha256": "e8235586c07c5996aab17219280da35947bc8e54b05fc43ee326ee5373618f82",
+      "required_status": "UE_N3_TARGET_CALIBRATION_UNRESOLVED",
+      "rung_directory": "rungs/rung_02_minus3p0",
+      "rung_manifest": "manifest.json",
+      "rung_manifest_sha256": "0913985a99d3765a9c88d824ddb2ef38079085826dfded9dce583e621db7f302",
+      "rung_summary": "rung_summary.json",
+      "source_config_sha256": "04609685a6993b0ef6bbf55c6d694736ea5f8cb4715abe0ebb2b2b9a793943da",
+      "source_runner_sha256": "30cf1615f51c7cd0ebe4087f7b6ca66f37a563f2d5c452e474ae838a23c8878b"
+    },
+    "n3b_adjudication": {
+      "directory": "PENDING_CREATE_ONLY_N3B_ADJUDICATION",
+      "manifest": "manifest.json",
+      "manifest_sha256": "PENDING_CREATE_ONLY_N3B_ADJUDICATION",
+      "n3c_eligibility_status": "UE_N3B_VALID_COLD_ATTACH_FAILURE_ACCEPTED_FOR_N3C",
+      "n3c_selected_command_db": -3.0,
+      "required_status": "UE_N3B_OUTCOME_ADJUDICATED_N3C_ELIGIBLE_REVIEW_REQUIRED",
+      "resolved_config": "resolved_config.json",
+      "resolved_config_sha256": "PENDING_CREATE_ONLY_N3B_ADJUDICATION",
+      "source_config_sha256": "PENDING_CREATE_ONLY_N3B_ADJUDICATION",
+      "source_runner_sha256": "PENDING_CREATE_ONLY_N3B_ADJUDICATION",
+      "terminal": "UE_N3B_OUTCOME_ADJUDICATED_N3C_ELIGIBLE_REVIEW_REQUIRED.json",
+      "terminal_sha256": "PENDING_CREATE_ONLY_N3B_ADJUDICATION"
+    },
+    "n3b_live_evidence": {
+      "directory": "rl_agent/experiments/ue_n3b_oai_ul_cold_attach_confirmation_v1/20260821_live_01",
+      "manifest": "manifest.json",
+      "manifest_sha256": "ac76763ea9651212f0003c35eb19092d85dbf28b104572e9a9ffc107cb298f3a",
+      "required_status": "UE_N3B_COLD_ATTACH_CONFIRMATION_NOT_3_OF_3_REVIEW_REQUIRED",
+      "resolved_config": "resolved_config.json",
+      "resolved_config_sha256": "fdc46f717392b0b71fff9fc6f66d0afc9da831e48ce41cc566af909bb61d7072",
+      "source_config_sha256": "72583ccbf56347d65f8a3c937505b932cc08670064097e4f7388bccd347a33e4",
+      "source_runner_sha256": "3cb0b1e975ae58f9fffc510ec20622bded9237848498f5d3c13bfd0b0f3b57f7",
+      "terminal": "UE_N3B_COLD_ATTACH_CONFIRMATION_NOT_3_OF_3_REVIEW_REQUIRED.json",
+      "terminal_sha256": "50066ffcba4137f585a55ad8d9ebcc728a7ca0e8cceec9728c0b8cc7f644c183"
+    },
+    "ue_n1_bundle": "rl_agent/registries/ue_n1_oai_ul_actuator_interface_v2"
+  },
+  "preflight": {
+    "carla_ports": [
+      2000,
+      2001,
+      2002
+    ],
+    "carla_process_markers": [
+      "CarlaUE4",
+      "CarlaUnreal"
+    ],
+    "fail_if_carla_active": true,
+    "required_host_tcp_ports": [
+      4043,
+      9090,
+      2021,
+      2023,
+      2031,
+      2033
+    ],
+    "structured_udp_port": 56130
+  },
+  "radio": {
+    "attach_timeout_s": 180,
+    "band": 78,
+    "core_containers": [
+      "oai-amf",
+      "oai-smf",
+      "oai-upf",
+      "oai-ext-dn"
+    ],
+    "downlink_frequency_hz": 3619200000,
+    "expected_imsi": "001010000000001",
+    "ext_dn_container": "oai-ext-dn",
+    "ext_dn_ip": "192.168.70.135",
+    "force_ul_mcs_must_be_unset": true,
+    "global_noise_parameter_must_be_unset": "noise_power_dBFS",
+    "gnb_start_lead_s": 5,
+    "mcs_policy": "sinr",
+    "numerology": 1,
+    "power_control_target_x10": 150,
+    "prb": 106,
+    "slots_per_frame": 20,
+    "ue_count": 1,
+    "ue_interface": "oaitun_ue1"
+  },
+  "rung": {
+    "candidate_lead_s": 5,
+    "clean_lead_s": 5,
+    "clean_recovery_s": 5,
+    "expected_service_frames": 600,
+    "hard_loss_silence_s": 2,
+    "measured_service_s": 60,
+    "minimum_recovery_pusch_samples": 5,
+    "minimum_recovery_receiver_frames": 5,
+    "minimum_service_mcs_samples": 360,
+    "minimum_service_pusch_samples": 1440,
+    "receiver_capture_duration_s": 75,
+    "sender_frames": 700,
+    "service_duration_s": 70
+  },
+  "runtime_seals": [
+    {
+      "path": "rl_agent/ue_n3c_oai_ul_cold_attach_refinement_v1.py",
+      "sha256": "5eaf61f41114fe51ab8219520c22b859636083c24fc9da94c831b42707216d43"
+    },
+    {
+      "path": "rl_agent/ue_n3b_oai_ul_cold_attach_confirmation_v1.py",
+      "sha256": "3cb0b1e975ae58f9fffc510ec20622bded9237848498f5d3c13bfd0b0f3b57f7"
+    },
+    {
+      "path": "rl_agent/ue_n3_oai_ul_command_calibration_v1.py",
+      "sha256": "30cf1615f51c7cd0ebe4087f7b6ca66f37a563f2d5c452e474ae838a23c8878b"
+    },
+    {
+      "path": "rl_agent/ue_n2_oai_ul_calibration_smoke.py",
+      "sha256": "f309ab018aed383dfe5bdbdfcde32e3a796bd663d1e2c59f0f5a02c4428a497a"
+    },
+    {
+      "path": "rl_agent/ue_n3_structured_udp_receiver.py",
+      "sha256": "3e92ba8f756d2c028dcfe51c2a35f18d4f268a041516ea1e054f349f1b916446"
+    },
+    {
+      "path": "oai_layer_latency/carla_shaped_udp_burst_sender.py",
+      "sha256": "9b737a7ff3fe0b7ba7e47ae469b1c8e5b825098feca4eac5bbe410c725d52a8d"
+    },
+    {
+      "path": "scripts/ttracer_extract_csv_smoke.sh",
+      "sha256": "82f23ae18136379c4ea2511744eb1ed932d74850851885584b8075f9f3cdb488"
+    },
+    {
+      "path": "OAI/openairinterface5g/cmake_targets/ran_build/build/nr-softmodem",
+      "sha256": "01489dfb141f6e67ecfb9423a75f5c83a90b5df3c06d3aca318b43db3f554a35"
+    },
+    {
+      "path": "OAI/openairinterface5g/cmake_targets/ran_build/build/nr-uesoftmodem",
+      "sha256": "7cdeee94de55da8b2ae1bf76fd934136f2140133d4c35a1fe345b0cb097be807"
+    },
+    {
+      "path": "OAI/openairinterface5g/common/utils/T/T_messages.txt",
+      "sha256": "2f4945814ad2f47197816756819afc0d087156c499e8c746cf0d9a81653005c5"
+    },
+    {
+      "path": "OAI/openairinterface5g/common/utils/T/tracer/multi",
+      "sha256": "455ff3083dfb30f82ffee941dac01f888b39705f9d3ffab2b019ff5430da9542"
+    },
+    {
+      "path": "OAI/openairinterface5g/common/utils/T/tracer/record",
+      "sha256": "517150245a1317c2e117c0ac3adde1ee097a3592658316fe5b40edcbd5235e61"
+    },
+    {
+      "path": "OAI/openairinterface5g/common/utils/T/tracer/csv",
+      "sha256": "2b5e42dc64d88ed1ad19ebeb7c26b195e668fe2eb9bc9c3da95f81334731faaa"
+    },
+    {
+      "path": "OAI/openairinterface5g/common/utils/T/tracer/replay",
+      "sha256": "cf6ccf11ad42b481dd3731dea02649e314fa4589b4c710d98ff4e8c06c034f70"
+    },
+    {
+      "path": "OAI/openairinterface5g/common/utils/T/tracer/extract_config",
+      "sha256": "e724bd3f0a1327ed9afef50fb1a81703054e029a8e137689e4874fdfc013c898"
+    },
+    {
+      "path": "OAI/openairinterface5g/targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb.sa.band78.fr1.106PRB.usrpb210.conf",
+      "sha256": "71bfab4e610580013a919dd22fbf04cd874edb5e059366261d7e513c93b016f4"
+    },
+    {
+      "path": "OAI/openairinterface5g/targets/PROJECTS/GENERIC-NR-5GC/CONF/ue.conf",
+      "sha256": "b20bf2d9d8da9bd15b1f822836b7235dafa16b29f4e097e6ca3749729494c944"
+    },
+    {
+      "path": "OAI/openairinterface5g/targets/PROJECTS/GENERIC-NR-5GC/CONF/channelmod_rfsimu.conf",
+      "sha256": "a47ade413b36ecf66f6df666bead124974705636cb134dd09a539b34bce7d760"
+    }
+  ],
+  "schema": "scenesense.ue_n3c_oai_ul_cold_attach_refinement_config.v1",
+  "startup_channel": {
+    "rfsimu_channel_enB0": -50.0,
+    "rfsimu_channel_enB1": -50.0,
+    "rfsimu_channel_ue0": -3.0
+  },
+  "telemetry": {
+    "collector_tail_s": 1,
+    "connect_timeout_s": 15,
+    "direct_ul_bler_status": "UNAVAILABLE_UNRESOLVED",
+    "events": {
+      "gnb": [
+        "GNB_MAC_PUSCH_POWER_CONTROL",
+        "GNB_MAC_UL_MCS_DECISION",
+        "GNB_MAC_UL",
+        "GNB_MAC_BLER_MCS_DECISION",
+        "GNB_MAC_RX_SDU",
+        "GNB_PDCP_RX_DELIVER",
+        "GNB_PHY_UL_PAYLOAD_RX_BITS"
+      ],
+      "ue": [
+        "NRUE_MAC_DCI_GRANT",
+        "NRUE_MAC_RLC_BUFFER_STATUS",
+        "NRUE_MAC_BSR_STATUS",
+        "UE_PHY_UL_PAYLOAD_TX_BITS",
+        "NR_PDCP_TX_SDU",
+        "NR_RLC_TX_SDU",
+        "NR_RLC_TX_DEQUEUE"
+      ]
+    },
+    "gnb_host": "127.0.0.1",
+    "gnb_port": 2021,
+    "gnb_relay_port": 2031,
+    "ue_host": "127.0.0.1",
+    "ue_port": 2023,
+    "ue_relay_port": 2033
+  },
+  "traffic": {
+    "chunk_bytes": 12500,
+    "expected_chunks_per_frame": 1,
+    "fps": 10,
+    "frame_bytes": 12500,
+    "goodput_role": "DIAGNOSTIC_ONLY_OUTSIDE_EXACT_SERVICE_WINDOW",
+    "method": "MATCHED_SSBURST_STRUCTURED_UDP",
+    "receiver_max_chunks_per_frame": 1,
+    "receiver_max_streams": 1,
+    "receiver_ready_timeout_s": 5,
+    "receiver_reorder_window_frames": 64,
+    "receiver_socket_buffer_bytes": 8388608,
+    "remote_port": 56130
+  },
+  "transport_gates": {
+    "expected_source_ip": "192.168.70.134",
+    "maximum_contract_mismatch_datagrams": 0,
+    "maximum_interarrival_gaps_gte_1s": 0,
+    "maximum_malformed_datagrams": 0,
+    "maximum_outside_expected_range_datagrams": 0,
+    "maximum_stream_limit_exceeded_datagrams": 0,
+    "primary_complete_frame_ratio": 0.99,
+    "required_stop_reason": "DURATION_COMPLETE",
+    "required_valid_streams": 1,
+    "sensitivity_complete_frame_ratios": [
+      0.95,
+      0.9
+    ]
+  }
+}

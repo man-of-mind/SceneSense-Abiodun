@@ -1,0 +1,2 @@
+{"missing_reason_code": "STOCK_CSV_NO_FULL_EPOCH_OR_INGEST_CLOCK", "raw_event_envelope_status": "UNAVAILABLE_WITH_STOCK_EXPORTER", "raw_file": "ttracer/gnb/gnb.raw", "raw_file_sha256": "1cdf0072447fa5637744bd63409555b5c1511902440a4383fabe5c04223b5025", "source": "gnb"}
+{"missing_reason_code": "STOCK_CSV_NO_FULL_EPOCH_OR_INGEST_CLOCK", "raw_event_envelope_status": "UNAVAILABLE_WITH_STOCK_EXPORTER", "raw_file": "ttracer/ue/ue.raw", "raw_file_sha256": "8ad6ab02bad98c31ed237162612c102a9308c1a7477444ad481324097273180f", "source": "ue"}

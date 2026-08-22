@@ -1,0 +1,15 @@
+{
+  "directory": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/experiments/ue_n3_oai_ul_live_stage_v1/20260821_clean_control_03",
+  "manifest": "manifest.json",
+  "manifest_sha256": "ed28aac841e34d5e0da555286e06c3ecd2545d58776f46928bbd0a8f40a4a185",
+  "predecessor": "clean_control",
+  "resolved_config": "resolved_config.json",
+  "resolved_config_sha256": "a51e296b1582f15b2ed38bff2091bb17b91cce1148277506cc72374d894f11b8",
+  "source_config_sha256": "fb11c681a8c272c97e1386c26988d94f1a108ec74c1c7053cd71ca68c4a835e4",
+  "source_runner_sha256": "c258972b2a68d0598341eb8e422a1414c582cab1774a78b8692237ef65fb0ab3",
+  "status": "VERIFIED_READ_ONLY_PREDECESSOR",
+  "terminal": "UE_N3_CLEAN_RECEIVER_CONTROL_PASSED.json",
+  "terminal_sha256": "cab56b66541743a74d845e7f7289c512ba37d6e8526fd5fa22fa82ca9990baba",
+  "verified_at": "2026-08-21T19:58:41.283717-07:00",
+  "verified_output_count": 99
+}

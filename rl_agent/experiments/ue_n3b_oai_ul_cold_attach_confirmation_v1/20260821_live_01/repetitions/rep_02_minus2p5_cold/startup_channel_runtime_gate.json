@@ -1,0 +1,31 @@
+{
+  "candidate_application_count": 0,
+  "models": {
+    "rfsimu_channel_enB0": {
+      "model_index": 0,
+      "model_name": "rfsimu_channel_enB0",
+      "model_type": "AWGN",
+      "noise_power_db": -50.0,
+      "owner": "not",
+      "path_loss_db": 0.0
+    },
+    "rfsimu_channel_enB1": {
+      "model_index": 1,
+      "model_name": "rfsimu_channel_enB1",
+      "model_type": "AWGN",
+      "noise_power_db": -50.0,
+      "owner": "not",
+      "path_loss_db": 0.0
+    },
+    "rfsimu_channel_ue0": {
+      "model_index": 2,
+      "model_name": "rfsimu_channel_ue0",
+      "model_type": "AWGN",
+      "noise_power_db": -2.5,
+      "owner": "rfsimulator",
+      "path_loss_db": 0.0
+    }
+  },
+  "startup_channel_runtime_verified": true,
+  "status": "PASSED"
+}

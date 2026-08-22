@@ -1,0 +1,10 @@
+{
+  "directory": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/experiments/ue_n3b_cold_attach_outcome_review_v1/20260821_review_01",
+  "manifest_sha256": "bda88d7f89e41822bf07209a69f32a9a2f72cacabccc6112364cfa81b135398f",
+  "n3c_selected_command_db": -3.0,
+  "resolved_config_sha256": "b2c3bd8936b372f243839a16c6f33b0a36283cee1551f100ee9ec5fd880f71dc",
+  "status": "VERIFIED_READ_ONLY_N3B_ADJUDICATION",
+  "terminal_sha256": "55152131655d66c35c37b83167ac9174f9d95ac37e9419d0c1ab4e8bc313f11f",
+  "verified_at": "2026-08-21T21:18:37.418702-07:00",
+  "verified_output_count": 6
+}

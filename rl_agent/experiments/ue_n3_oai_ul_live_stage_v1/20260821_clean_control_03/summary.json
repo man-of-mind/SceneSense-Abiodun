@@ -1,0 +1,53 @@
+{
+  "claim_boundary": "CONTROL_AND_COMMAND_CALIBRATION_EVIDENCE_ONLY_NO_MAPPING_OR_BOUND_PROMOTION",
+  "cleanup_clean": true,
+  "connectivity_gate": {
+    "current_rnti": 44027,
+    "ext_dn_ping_pass": true,
+    "observed_tunnel_ipv4": [
+      "10.0.0.5"
+    ],
+    "processes_alive": true,
+    "same_tunnel_ipv4": true,
+    "status": "PASSED"
+  },
+  "current_rnti": 44027,
+  "direct_ul_bler_status": "UNAVAILABLE_UNRESOLVED",
+  "instantaneous_pusch_snr_db_p05": 50.0,
+  "instantaneous_pusch_snr_db_p50": 50.5,
+  "instantaneous_pusch_snr_db_p95": 51.0,
+  "live_pusch_observation_count": 5412,
+  "mapping_promoted": false,
+  "mode": "CLEAN_RECEIVER_CONTROL",
+  "numeric_bound_promoted": false,
+  "receiver_gate": {
+    "complete_frame_ratio": 1.0,
+    "complete_frames": 600,
+    "delivery_90_pass": true,
+    "delivery_95_pass": true,
+    "expected_frames": 600,
+    "expected_receiver_source_ipv4": [
+      "192.168.70.134"
+    ],
+    "goodput_role": "DIAGNOSTIC_ONLY_CAPTURE_DURATION_NOT_SERVICE_WINDOW",
+    "observed_source_ipv4": "192.168.70.134",
+    "observed_stream_id": "192.168.70.134:58506",
+    "primary_threshold": 0.99,
+    "primary_usable_service_pass": true,
+    "receiver_unique_datagram_goodput_mbps": 0.9230769230769231,
+    "receiver_unique_payload_goodput_mbps": 0.9213046153846154,
+    "sender_frames": 600,
+    "structural_pass": true
+  },
+  "restored_to_clean_minus50": true,
+  "scheduler": {
+    "final_mcs_p50": 28.0,
+    "force_ul_mcs": -1,
+    "mcs_table": 0,
+    "row_count": 5415,
+    "scheduler_ema_snr_db_p50": 50.5,
+    "selected_mcs_p50": 28.0
+  },
+  "schema": "scenesense.ue_n3_clean_receiver_control_summary.v1",
+  "status": "UE_N3_CLEAN_RECEIVER_CONTROL_PASSED"
+}

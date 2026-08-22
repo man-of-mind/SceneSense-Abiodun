@@ -1,0 +1,11 @@
+{
+  "clean_restore_verified": false,
+  "cleanup_errors": [],
+  "error": "CARLA must be stopped: ports=[2000, 2001, 2002] processes=['1778334 CarlaUnreal.sh', '1778341 CarlaUnreal-Lin']",
+  "error_type": "LiveStageFailure",
+  "failed_at": "2026-08-21T18:21:00.004883-07:00",
+  "mapping_promoted": false,
+  "mode": "CLEAN_RECEIVER_CONTROL",
+  "numeric_bound_promoted": false,
+  "status": "FAILED"
+}

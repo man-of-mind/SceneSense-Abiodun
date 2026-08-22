@@ -1,0 +1,117 @@
+{
+  "authority": {
+    "carla_run_authorized": false,
+    "connectivity_bound_promotion_authorized": false,
+    "n3d_execution_authorized": false,
+    "numeric_bound_promotion_authorized": false,
+    "oai_run_authorized": false,
+    "offline_review_authorized": true,
+    "operational_bound_promotion_authorized": false,
+    "policy_training_authorized": false,
+    "socket_execution_authorized": false,
+    "target_mapping_promotion_authorized": false,
+    "usable_service_bound_promotion_authorized": false
+  },
+  "claim_boundary": "OFFLINE_N3C_MIXED_OUTCOME_REVIEW_ONLY_N3D_ELIGIBILITY_NO_EXECUTION_NO_PROMOTION",
+  "command_ladder": {
+    "commanded_noise_power_db": -3.5,
+    "directory": "rl_agent/experiments/ue_n3_oai_ul_command_calibration_v1/20260821_command_search_02",
+    "expected_root_output_count": 529,
+    "expected_rung_output_count": 103,
+    "manifest": "manifest.json",
+    "manifest_sha256": "e8235586c07c5996aab17219280da35947bc8e54b05fc43ee326ee5373618f82",
+    "observed_hot_pusch_snr_db_p05": 7.0,
+    "observed_hot_pusch_snr_db_p50": 7.5,
+    "observed_hot_pusch_snr_db_p95": 7.5,
+    "provenance_role": "EXPECTATION_ONLY_ALREADY_ATTACHED_HOT_RUNG_NOT_COLD_ATTAINED",
+    "required_rung_status": "UE_N3_COMMAND_RUNG_CAPTURED_PROPOSAL_ONLY",
+    "required_status": "UE_N3_TARGET_CALIBRATION_UNRESOLVED",
+    "rung_directory": "rungs/rung_01_minus3p5",
+    "rung_manifest": "manifest.json",
+    "rung_manifest_sha256": "45d9bebea2e681f99c2a22e1a8092ef26290849806b7dcf306be131dc5d36c31",
+    "rung_summary": "rung_summary.json",
+    "rung_summary_sha256": "e7dcca3082a7bea7860d641b5496544fd10d3b61690cb8e08e7e11403011758b",
+    "rung_terminal": "UE_N3_COMMAND_RUNG_CAPTURED_PROPOSAL_ONLY.json",
+    "rung_terminal_sha256": "e25435257b4d616e6da41d960eb50789b1ae21ab816f78d8bfecab0f36927a11"
+  },
+  "contract": {
+    "expected_joint_confirmation_passes": 2,
+    "expected_operational_nonconfirmations": 1,
+    "failed_repetition_cold_snr_must_be_null": true,
+    "mixed_result_does_not_confirm_floor": true,
+    "n3d_command_relation": "ADJACENT_STRONGER_RFSIM_COMMAND_MINUS0P5_DB",
+    "n3d_selected_command_db": -3.5,
+    "n3d_selection_is_eligibility_only": true,
+    "operational_nonconfirmation_role": "VALID_OPERATIONAL_SCREEN_NONCONFIRMATION_NOT_CANDIDATE_CAUSAL_OR_PHYSICAL_BOUNDARY_PROOF",
+    "repetitions": 3,
+    "required_floor_confirmation_passes": 3,
+    "separate_live_authority_required": true,
+    "tested_commanded_noise_power_db": -3.0
+  },
+  "expected_repetitions": [
+    {
+      "directory": "rep_01_minus3p0_cold",
+      "manifest_output_count": 109,
+      "manifest_sha256": "8a210b13eec1113722368b980255ca95858747fecbfc0e1eb10b932793e9a762",
+      "repetition_index": 1,
+      "status": "UE_N3C_COLD_ATTACH_SERVICE_REPETITION_PASSED",
+      "summary_sha256": "5104733789024de8ff9e3ae3f601815658b8e52876f96c4f838ab36b8272ec8d",
+      "terminal_sha256": "e1851a3977c5091435fdf08614a6fe6134e978f5af5c67341c1fbeb7681bc105"
+    },
+    {
+      "directory": "rep_02_minus3p0_cold",
+      "manifest_output_count": 21,
+      "manifest_sha256": "d9d66341f4f3ee813778e001781467a8a5b80a48cf9143a629d21060848bbe95",
+      "repetition_index": 2,
+      "status": "UE_N3C_COLD_ATTACH_REPETITION_VALID_OPERATIONAL_SCREEN_NONCONFIRMATION",
+      "summary_sha256": "581253b46d5afda8a00ddedbfe441717107de64921e5de68e01676fb31749c08",
+      "terminal_sha256": "b43bb259f26f64d0cdd0aff0b72c4b02eaebb99af53ae9a52020a45efb615a10"
+    },
+    {
+      "directory": "rep_03_minus3p0_cold",
+      "manifest_output_count": 109,
+      "manifest_sha256": "00c1c83bbb55d83f1f4c1072202f29d5d1329ee2ef6814ea40a4770bd2d3c9eb",
+      "repetition_index": 3,
+      "status": "UE_N3C_COLD_ATTACH_SERVICE_REPETITION_PASSED",
+      "summary_sha256": "48a58f5edd1d6a354c2cb83faa6f4c371b46b97a0dba02217570eb38c1b7892a",
+      "terminal_sha256": "35cead22ad4c08d3059b1d367d4363ca1403d76b47c89d65cdadb69f61d4d7bd"
+    }
+  ],
+  "experiment_id": "ue_n3c_cold_attach_outcome_review_v1",
+  "output": {
+    "adjudications_csv": "per_repetition_adjudication.csv",
+    "adjudications_json": "per_repetition_adjudication.json",
+    "failure": "FAILED.json",
+    "failure_context": "failure_context.json",
+    "manifest": "manifest.json",
+    "report": "REPORT.md",
+    "resolved_config": "resolved_config.json",
+    "source_verification": "source_evidence_verification.json",
+    "summary": "n3c_outcome_review.json"
+  },
+  "runtime_seals": [
+    {
+      "path": "rl_agent/ue_n3c_cold_attach_outcome_review_v1.py",
+      "sha256": "9f7d3d514d0e2298a8a682e480cff6d9ceac5ae3c678857ea1a3f9765aa426e0"
+    }
+  ],
+  "schema": "scenesense.ue_n3c_cold_attach_outcome_review_config.v1",
+  "source": {
+    "campaign_summary": "campaign_summary.json",
+    "campaign_summary_sha256": "41d50ef8c2701a9dcb29ccf1f8a152ab300b5cc337210e3d13e3734f55e677c6",
+    "directory": "rl_agent/experiments/ue_n3c_oai_ul_cold_attach_refinement_live_v1/20260821_live_01",
+    "expected_root_output_count": 251,
+    "manifest": "manifest.json",
+    "manifest_sha256": "7aaa76319d7fdfbe82082a89b514da2b7a3071d0f3b1b52f5e13ed32cb0c6f3b",
+    "required_status": "UE_N3C_COLD_ATTACH_REFINEMENT_NOT_3_OF_3_REVIEW_REQUIRED",
+    "resolved_config": "resolved_config.json",
+    "resolved_config_sha256": "23ec2a7231edecf97a160162b6927e8f7b1ba1f573064f6f1e8a00ed07da4d77",
+    "source_config_sha256": "13ea9536bd5492a98d6f42b61ed5371d6e02cd3bd47381f69fd877797209fc4d",
+    "source_engine_runner_sha256": "30cf1615f51c7cd0ebe4087f7b6ca66f37a563f2d5c452e474ae838a23c8878b",
+    "source_n3b_runner_sha256": "3cb0b1e975ae58f9fffc510ec20622bded9237848498f5d3c13bfd0b0f3b57f7",
+    "source_prepare_runner_sha256": "5eaf61f41114fe51ab8219520c22b859636083c24fc9da94c831b42707216d43",
+    "source_runner_sha256": "d3f62a4b116786f7e684090a02be41c3a93d6b9013fca2da9bb8e28636b45f7d",
+    "terminal": "UE_N3C_COLD_ATTACH_REFINEMENT_NOT_3_OF_3_REVIEW_REQUIRED.json",
+    "terminal_sha256": "afa36b3f486c816924114de441364a8aaf06f39e76d9273c3eb3646e3e3877a2"
+  }
+}

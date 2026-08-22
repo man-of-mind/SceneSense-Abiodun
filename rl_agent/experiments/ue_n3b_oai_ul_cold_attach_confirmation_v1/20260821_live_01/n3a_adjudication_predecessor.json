@@ -1,0 +1,10 @@
+{
+  "directory": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/experiments/ue_n3a_service_bracket_review_v1/20260821_review_01",
+  "manifest_sha256": "9eb86ac88a56c0e81848a95103a9692dbaabb28db0e92145eaa8c3bccfcbb8fc",
+  "predecessor": "n3a_adjudication",
+  "resolved_config_sha256": "fc5a969dc2a1e121c726ad6fa721ca4280f8e730383526242dd8cd3b0d753107",
+  "status": "VERIFIED_READ_ONLY_PREDECESSOR",
+  "terminal_sha256": "c05b381af6580b630cc23bc824235228e15de8936055e940b050541bae0bfcb6",
+  "verified_at": "2026-08-21T20:37:14.683223-07:00",
+  "verified_output_count": 6
+}

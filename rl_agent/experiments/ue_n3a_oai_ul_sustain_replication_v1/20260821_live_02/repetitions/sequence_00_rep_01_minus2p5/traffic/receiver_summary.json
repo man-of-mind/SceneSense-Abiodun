@@ -1,0 +1,73 @@
+{
+  "bounds": {
+    "max_chunks_per_frame": 1,
+    "max_streams": 1,
+    "one_second_bins": 85,
+    "reorder_window_frames": 64
+  },
+  "claim_boundary": "TRANSPORT_SCREEN_EVIDENCE_ONLY_NOT_CONNECTION_PROOF_OR_OPERATIONAL_SNR_BOUND",
+  "clean_shutdown": true,
+  "created_at": "2026-08-21T20:00:19.642599-07:00",
+  "datagrams_total": 800,
+  "empty_one_second_bins_global": 5,
+  "malformed_datagrams": 0,
+  "max_consecutive_empty_one_second_bins_global": 5,
+  "measurement": {
+    "configured_duration_s": 85.0,
+    "expected_chunks_per_frame": 1,
+    "expected_first_frame": 0,
+    "expected_frames_per_stream": 800,
+    "observed_duration_s": 85.0
+  },
+  "no_valid_stream_observed": false,
+  "observed_one_second_bins": 85,
+  "schema": "scenesense.ue_n3_structured_udp_receiver_summary.v1",
+  "status": "CAPTURED",
+  "stop_reason": "DURATION_COMPLETE",
+  "stream_limit_exceeded_datagrams": 0,
+  "streams": [
+    {
+      "bounded_pending_frames_after_finalize": 0,
+      "chunk_delivery_ratio": 1.0,
+      "complete_frame_ratio": 1.0,
+      "complete_frames": 800,
+      "contract_mismatch_datagrams": 0,
+      "datagrams_with_valid_header": 800,
+      "duplicate_chunks": 0,
+      "empty_one_second_bins": 5,
+      "expected_chunks": 800,
+      "expected_chunks_per_frame": 1,
+      "expected_first_frame": 0,
+      "expected_frames": 800,
+      "finalized_frames": 800,
+      "incomplete_frames": 0,
+      "interarrival_gaps_over_one_second": 1,
+      "late_after_finalize": 0,
+      "lost_chunks": 0,
+      "max_consecutive_empty_one_second_bins": 5,
+      "max_interarrival_gap_s": 1.607125192,
+      "maximum_pending_frames_observed": 1,
+      "one_second_bins": 85,
+      "out_of_order_unique_chunks": 0,
+      "outside_expected_range_datagrams": 0,
+      "received_unique_chunks": 800,
+      "reorder_window_frames": 64,
+      "stream_id": "192.168.70.134:56175",
+      "unique_chunks": 800,
+      "unique_datagram_bytes": 10000000,
+      "unique_datagram_goodput_mbps": 0.9411764705882353,
+      "unique_payload_bytes": 9980800,
+      "unique_payload_goodput_mbps": 0.9393694117647059,
+      "wholly_missing_frames": 0,
+      "wire_datagram_bytes": 10000000
+    }
+  ],
+  "valid_stream_count": 1,
+  "wire_bytes_total": 10000000,
+  "wire_contract": {
+    "header_bytes": 24,
+    "magic_ascii": "SSBURST",
+    "stream_identity": "SOURCE_IPV4_AND_UDP_PORT",
+    "struct_format": "!8sIIII"
+  }
+}

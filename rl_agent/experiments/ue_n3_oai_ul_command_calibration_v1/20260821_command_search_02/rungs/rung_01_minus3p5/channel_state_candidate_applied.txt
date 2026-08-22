@@ -1,0 +1,25 @@
+model 0 rfsimu_channel_enB0 type AWGN:
+model owner: not set
+nb_tx: 1    nb_rx: 1    taps: 1 bandwidth: 40000000.000000    sampling: 61440000.000000
+channel length: 1    Max path delay: 0.000000   ricean fact.: 0.000000    angle of arrival: 0.000000 (randomized:No)
+max Doppler: 0.000000    path loss: 0.000000  noise: -50.000000 rchannel offset: 0    forget factor; 0.000000
+Initial phase: 0.000000   nb_path: 10 
+taps: 0   lin. ampli. : 1.000000    delay: 0.000000 
+----------------
+model 1 rfsimu_channel_enB1 type AWGN:
+model owner: not set
+nb_tx: 1    nb_rx: 1    taps: 1 bandwidth: 40000000.000000    sampling: 61440000.000000
+channel length: 1    Max path delay: 0.000000   ricean fact.: 0.000000    angle of arrival: 0.000000 (randomized:No)
+max Doppler: 0.000000    path loss: 0.000000  noise: -50.000000 rchannel offset: 0    forget factor; 0.000000
+Initial phase: 0.000000   nb_path: 10 
+taps: 0   lin. ampli. : 1.000000    delay: 0.000000 
+----------------
+model 2 rfsimu_channel_ue0 type AWGN:
+model owner: rfsimulator
+nb_tx: 1    nb_rx: 1    taps: 1 bandwidth: 40000000.000000    sampling: 61440000.000000
+channel length: 1    Max path delay: 0.000000   ricean fact.: 0.000000    angle of arrival: 0.000000 (randomized:No)
+max Doppler: 0.000000    path loss: 0.000000  noise: -3.500000 rchannel offset: 0    forget factor; 0.000000
+Initial phase: 0.000000   nb_path: 10 
+taps: 0   lin. ampli. : 1.000000    delay: 0.000000 
+----------------
+softmodem_gnb> 

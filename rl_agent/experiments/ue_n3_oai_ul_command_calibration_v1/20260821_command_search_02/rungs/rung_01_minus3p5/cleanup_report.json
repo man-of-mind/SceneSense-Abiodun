@@ -1,0 +1,9 @@
+{
+  "busy_owned_ports": [],
+  "checked_at": "2026-08-21T19:31:55.111328-07:00",
+  "clean": true,
+  "errors": [],
+  "oai_tunnel_interfaces_present": [],
+  "owned_processes_alive": [],
+  "prior_dirty_state_preserved": false
+}

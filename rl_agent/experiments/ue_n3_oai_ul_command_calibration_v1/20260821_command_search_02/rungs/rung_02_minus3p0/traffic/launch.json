@@ -1,0 +1,12 @@
+{
+  "commanded_noise_power_db": -3.0,
+  "receiver_ready": {
+    "bind_host": "192.168.70.135",
+    "duration_s": 30.0,
+    "measurement_start_monotonic_ns": 1580583807318787,
+    "port": 56130,
+    "schema": "scenesense.ue_n3_structured_udp_receiver_ready.v1",
+    "status": "READY"
+  },
+  "sender_launch_monotonic_ns": 1580583840975522
+}

@@ -1,0 +1,140 @@
+{
+  "schema": "scenesense.ue_n3a_service_bracket_review_config.v1",
+  "experiment_id": "ue_n3a_service_bracket_review_v1",
+  "claim_boundary": "OFFLINE_SERVICE_BRACKET_REVIEW_ONLY_NO_BOUND_PROMOTION_NO_N3B_AUTHORITY",
+  "authority": {
+    "offline_review_authorized": true,
+    "oai_run_authorized": false,
+    "socket_execution_authorized": false,
+    "carla_run_authorized": false,
+    "n3b_execution_authorized": false,
+    "target_mapping_promotion_authorized": false,
+    "numeric_bound_promotion_authorized": false,
+    "operational_bound_promotion_authorized": false,
+    "connectivity_bound_promotion_authorized": false,
+    "usable_service_bound_promotion_authorized": false,
+    "policy_training_authorized": false
+  },
+  "frozen_plan": {
+    "directory": "rl_agent/experiments/ue_n3a_oai_ul_sustain_replication_v1/20260821_plan_02",
+    "manifest": "manifest.json",
+    "manifest_sha256": "86497a46d87c369bc804f8bce0d034ecef26a5cd7fa141887289e736893ab802",
+    "terminal": "UE_N3A_SUSTAIN_REPLICATION_PLAN_FROZEN_REVIEW_REQUIRED.json",
+    "terminal_sha256": "c1eee8c262308b47bb9ce5d3f9d395167e539c561e2106960f96854d92b1206e",
+    "resolved_config": "resolved_config.json",
+    "resolved_config_sha256": "44343c9212f7c005887b252f27027ca044080c19033b4d2e33822a09acc8c4ed",
+    "required_status": "UE_N3A_SUSTAIN_REPLICATION_PLAN_FROZEN_REVIEW_REQUIRED"
+  },
+  "source": {
+    "directory": "rl_agent/experiments/ue_n3a_oai_ul_sustain_replication_v1/20260821_live_02",
+    "manifest": "manifest.json",
+    "manifest_sha256": "62639405273bd77aba5ff345bba2e2f99d2f15dfe962aa54083d5142c1b1b6ce",
+    "terminal": "UE_N3_UNSTABLE_BOUND_REVIEW_REQUIRED.json",
+    "terminal_sha256": "b05f8537cf671984545d426d58b2efea923dc348b052e20f0eddaaa18625b798",
+    "campaign_summary": "campaign_summary.json",
+    "campaign_summary_sha256": "0f5ecb7ee1b2dba6cd9c94a787a74e8fbca1183754b573229212a88e8929cb91",
+    "resolved_config": "resolved_config.json",
+    "resolved_config_sha256": "44343c9212f7c005887b252f27027ca044080c19033b4d2e33822a09acc8c4ed",
+    "required_status": "UE_N3_UNSTABLE_BOUND_REVIEW_REQUIRED",
+    "source_config_sha256": "f1afb806478d0fc17d381b2dd2f119173d4745696abff90be945bce1bdd71358",
+    "source_runner_sha256": "b72f98d1e492840fde074772e9e90a1831c4b0f8d777795b29b27a9e1a482487",
+    "source_engine_runner_sha256": "30cf1615f51c7cd0ebe4087f7b6ca66f37a563f2d5c452e474ae838a23c8878b"
+  },
+  "contract": {
+    "repetitions_per_endpoint": 3,
+    "commands_db": [-2.5, -2.0],
+    "pass_command_db": -2.5,
+    "fail_command_db": -2.0,
+    "pass_expected_achieved_snr_db": 6.0,
+    "pass_achieved_tolerance_db": 0.5,
+    "observed_fail_snr_role": "POST_LIVE_SOURCE_SEALED_ALL_THREE_MEDIANS_EQUAL_NOT_PREREGISTERED_TARGET",
+    "primary_complete_frame_ratio": 0.99,
+    "maximum_interarrival_gaps_gte_1s": 0,
+    "measured_tail_s": 60.0,
+    "expected_tail_frames": 600,
+    "mechanism_expectation_is_not_service_endpoint": true,
+    "hard_loss_is_acceptable_fail_evidence": true,
+    "n3b_selected_command_db_if_bracketed": -2.5,
+    "expected_observed_fail_snr_db": 5.0,
+    "expected_observed_pass_snr_db": 6.0,
+    "expected_observed_bracket_width_db": 1.0
+  },
+  "expected_repetitions": [
+    {
+      "directory": "sequence_00_rep_01_minus2p5",
+      "repetition_index": 1,
+      "commanded_noise_power_db": -2.5,
+      "condition_id": "SUSTAIN_CANDIDATE_MINUS2P5",
+      "status": "UE_N3A_SUSTAINED_CANDIDATE_REPLICATION_PASSED",
+      "manifest_sha256": "a97c6544c2ca46931945cd22bdfbedee2e40032c00d550cbfb480f84068a816e",
+      "terminal_sha256": "46c2e7874eed6ea61b18d6eb786995375b241e19114795a593a1ea6a9f2248a4",
+      "summary_sha256": "00f7c56508c0b931124c3eb9d3002ea8a9ae3475806f9a19f1f2668cfbaea490"
+    },
+    {
+      "directory": "sequence_01_rep_01_minus2p0",
+      "repetition_index": 1,
+      "commanded_noise_power_db": -2.0,
+      "condition_id": "ADJACENT_HARD_LOSS_MINUS2P0",
+      "status": "UE_N3A_VALID_SURPRISE_OUTCOME_CAPTURED",
+      "manifest_sha256": "90a60fa77a6871b045d00a6de14b6bc0d283f7e46565ad3baa553c9c73859a13",
+      "terminal_sha256": "34dab362efc964df6b709be6c50c2fc3697606cac2370ec93cd9fe1d95b998d4",
+      "summary_sha256": "405532dd0e8c0cba3fe85149b01e10011952b3b4f0a9d5dfd4fae1f8cd44e412"
+    },
+    {
+      "directory": "sequence_02_rep_02_minus2p5",
+      "repetition_index": 2,
+      "commanded_noise_power_db": -2.5,
+      "condition_id": "SUSTAIN_CANDIDATE_MINUS2P5",
+      "status": "UE_N3A_SUSTAINED_CANDIDATE_REPLICATION_PASSED",
+      "manifest_sha256": "85b38bcfca058fc966026f70eeef4b1514ff06ef3f7decd4a324194d78b76d43",
+      "terminal_sha256": "c2c229c997c3e654ca01cbd43798bfed096297973716e190369bb67f4b62199b",
+      "summary_sha256": "6308b31177b2ccee5bd2902456050e81f205e81848f57dedcd569485bb2da7a6"
+    },
+    {
+      "directory": "sequence_03_rep_02_minus2p0",
+      "repetition_index": 2,
+      "commanded_noise_power_db": -2.0,
+      "condition_id": "ADJACENT_HARD_LOSS_MINUS2P0",
+      "status": "UE_N3A_VALID_SURPRISE_OUTCOME_CAPTURED",
+      "manifest_sha256": "5702d030349131e137d8a42ac7b8eb5c08bdc8fec84d5c0389d1b12d5226819b",
+      "terminal_sha256": "7331bd20382ac55dc416566833b9517c80df28aab4ecdbd54d898655952c0f01",
+      "summary_sha256": "1e3b86a435e9ce24e2ec851b01a498cc4ed860fe1ffc75fb83af6158b2016f2f"
+    },
+    {
+      "directory": "sequence_04_rep_03_minus2p5",
+      "repetition_index": 3,
+      "commanded_noise_power_db": -2.5,
+      "condition_id": "SUSTAIN_CANDIDATE_MINUS2P5",
+      "status": "UE_N3A_SUSTAINED_CANDIDATE_REPLICATION_PASSED",
+      "manifest_sha256": "f991dfc52f5ba1c6be3719ccee0f530059b646f699d0537289fc2636fabe7f6e",
+      "terminal_sha256": "4ec149fbd05858da05ffe12140f52a9b4008f3afcd7141b483d01b3a76867ae1",
+      "summary_sha256": "64b37d8873f65a12b427963d6cf7eba0281b9217f5694dccd307541e64af36d9"
+    },
+    {
+      "directory": "sequence_05_rep_03_minus2p0",
+      "repetition_index": 3,
+      "commanded_noise_power_db": -2.0,
+      "condition_id": "ADJACENT_HARD_LOSS_MINUS2P0",
+      "status": "UE_N3A_VALID_SURPRISE_OUTCOME_CAPTURED",
+      "manifest_sha256": "4e54cbaed8eb1f53fb1d797b33258b9e3bf32e7e76804776d5b41981964f958c",
+      "terminal_sha256": "a910491a21735d9c8ae1e7e2aad6cd96194433531ce4c0ea8ed36e4d2c2256b2",
+      "summary_sha256": "5f4e2903b5cf542f1dfb72775bd62b719a6a0dd80ec034ef8011f7d22c0dcac2"
+    }
+  ],
+  "runtime_seals": [
+    {
+      "path": "rl_agent/ue_n3a_service_bracket_review_v1.py",
+      "sha256": "cb79098c4157420c33b3ae5fa51414d8594f0baafb24436733b15def1e400037"
+    }
+  ],
+  "output": {
+    "resolved_config": "resolved_config.json",
+    "source_verification": "source_evidence_verification.json",
+    "adjudications_json": "per_repetition_adjudication.json",
+    "adjudications_csv": "per_repetition_adjudication.csv",
+    "summary": "service_bracket_review.json",
+    "report": "REPORT.md",
+    "manifest": "manifest.json",
+    "failure": "FAILED.json"
+  }
+}

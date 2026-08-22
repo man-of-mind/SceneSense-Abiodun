@@ -1,0 +1,15 @@
+{
+  "directory": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/experiments/ue_n3_oai_ul_command_calibration_v1/20260821_command_search_02",
+  "manifest": "manifest.json",
+  "manifest_sha256": "e8235586c07c5996aab17219280da35947bc8e54b05fc43ee326ee5373618f82",
+  "predecessor": "command_search",
+  "resolved_config": "resolved_config.json",
+  "resolved_config_sha256": "8d500b33156596bd78ddea2c146d98d854ceaab74ca01b95cd11f9ac661388cf",
+  "source_config_sha256": "04609685a6993b0ef6bbf55c6d694736ea5f8cb4715abe0ebb2b2b9a793943da",
+  "source_runner_sha256": "30cf1615f51c7cd0ebe4087f7b6ca66f37a563f2d5c452e474ae838a23c8878b",
+  "status": "VERIFIED_READ_ONLY_PREDECESSOR",
+  "terminal": "UE_N3_TARGET_CALIBRATION_UNRESOLVED.json",
+  "terminal_sha256": "cc773f849ecd5b90dc108278b3d367c746a428010ce82a65233f5cd69cce7890",
+  "verified_at": "2026-08-21T19:58:17.210897-07:00",
+  "verified_output_count": 529
+}

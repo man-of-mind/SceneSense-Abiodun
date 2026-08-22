@@ -1,0 +1,30 @@
+{
+  "cold_attach_bound_evaluated": false,
+  "config_sha256": "f1afb806478d0fc17d381b2dd2f119173d4745696abff90be945bce1bdd71358",
+  "connectivity_bound_promoted": false,
+  "engine_runner_sha256": "30cf1615f51c7cd0ebe4087f7b6ca66f37a563f2d5c452e474ae838a23c8878b",
+  "numeric_bound_promoted": false,
+  "outputs": [
+    {
+      "bytes": 941,
+      "path": "campaign_plan.csv",
+      "sha256": "44be1705aba71645baddbce8e0e8a6ef4b504c6cae2bc58923c9e6cb814b2e7b"
+    },
+    {
+      "bytes": 3435,
+      "path": "campaign_summary.json",
+      "sha256": "7b8c7bbab3a0edd78315a4e130d9df350021a7220d8b27f4da4082a4b9b1913b"
+    },
+    {
+      "bytes": 11595,
+      "path": "resolved_config.json",
+      "sha256": "44343c9212f7c005887b252f27027ca044080c19033b4d2e33822a09acc8c4ed"
+    }
+  ],
+  "review_required": true,
+  "runner_sha256": "b72f98d1e492840fde074772e9e90a1831c4b0f8d777795b29b27a9e1a482487",
+  "schema": "scenesense.ue_n3a_sustain_replication_campaign_manifest.v1",
+  "status": "UE_N3A_SUSTAIN_REPLICATION_PLAN_FROZEN_REVIEW_REQUIRED",
+  "target_mapping_promoted": false,
+  "usable_service_bound_promoted": false
+}

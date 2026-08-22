@@ -1,0 +1,8 @@
+{
+  "discovered_ipv4": "10.0.0.7",
+  "ext_dn_ip": "192.168.70.135",
+  "imsi": "001010000000001",
+  "interface": "oaitun_ue1",
+  "ping_pass": true,
+  "ue_count": 1
+}

@@ -1,0 +1,8 @@
+{
+  "bind_host": "192.168.70.135",
+  "duration_s": 85.0,
+  "measurement_start_monotonic_ns": 1582745403053244,
+  "port": 56130,
+  "schema": "scenesense.ue_n3_structured_udp_receiver_ready.v1",
+  "status": "READY"
+}

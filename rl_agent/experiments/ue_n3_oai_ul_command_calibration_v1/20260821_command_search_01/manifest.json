@@ -1,0 +1,76 @@
+{
+  "cold_attach_bound_evaluated": false,
+  "config_sha256": "8e297e398c48bfe8eacf7533cdba855d3267dd169a8ec8fdc29d690f08e4c851",
+  "numeric_bound_promoted": false,
+  "outputs": [
+    {
+      "bytes": 845,
+      "path": "campaign_plan.csv",
+      "sha256": "a52ef917d64988eb29c75207d1b896e93510c5faf22f1e6f94c3172ff709f839"
+    },
+    {
+      "bytes": 881,
+      "path": "campaign_summary.json",
+      "sha256": "70e83be78e4a1021d321d8a246de91381006a20a50e0bc4640c29af745cfccae"
+    },
+    {
+      "bytes": 506,
+      "path": "clean_control_predecessor.json",
+      "sha256": "effb4ce45b983c4b4bce882e35ac1c0a1c9cfec625f95ee4f424e65149b62a9e"
+    },
+    {
+      "bytes": 10921,
+      "path": "resolved_config.json",
+      "sha256": "73b3025b5d49e3ff7c97772c74f1e1f428e9dac7357085c0d26487a172cd71f5"
+    },
+    {
+      "bytes": 773,
+      "path": "rungs/rung_00_minus4p0/FAILED.json",
+      "sha256": "7f5ab195ec8b995ef50aae5af4be89c44c364f99ac888f31527b08955ebd7ee0"
+    },
+    {
+      "bytes": 506,
+      "path": "rungs/rung_00_minus4p0/clean_control_predecessor.json",
+      "sha256": "effb4ce45b983c4b4bce882e35ac1c0a1c9cfec625f95ee4f424e65149b62a9e"
+    },
+    {
+      "bytes": 224,
+      "path": "rungs/rung_00_minus4p0/cleanup_report.json",
+      "sha256": "4965df61a4bd0e8ba841e9833edba2c23bc0f62f294bfaeda3d647009c64f2c8"
+    },
+    {
+      "bytes": 8,
+      "path": "rungs/rung_00_minus4p0/command_log.csv",
+      "sha256": "7703741f562b3f2c276fc35a9aba6f2de114df21e80f56ebf257cdb5ea03115c"
+    },
+    {
+      "bytes": 1659,
+      "path": "rungs/rung_00_minus4p0/manifest.json",
+      "sha256": "2c4bd717d7af0a5652f1a00d9db5014239ed90b030e9968ea708be555ad919ae"
+    },
+    {
+      "bytes": 11005,
+      "path": "rungs/rung_00_minus4p0/resolved_config.json",
+      "sha256": "7ea57bfa5c28b939f5521c7eb8d2ea7be7549a9aa52a821efa09bdcd48d16fac"
+    },
+    {
+      "bytes": 684,
+      "path": "rungs/rung_00_minus4p0/rung_summary.json",
+      "sha256": "bb3bec57f361be039d0db7d032d51ce04a073bc92a07ddc5471b265e716af968"
+    },
+    {
+      "bytes": 100,
+      "path": "rungs/rung_00_minus4p0/runtime/carla_absent_gate.json",
+      "sha256": "c4ca5b47f3cdb33fa12c1a744d01d693190c115c28b616368ebc631e0b44c074"
+    },
+    {
+      "bytes": 4973,
+      "path": "rungs/rung_00_minus4p0/runtime_seals.json",
+      "sha256": "bdba2e75ec5ac0a18475f09ed315323e5f21dd17bed394fa0e8041e012ba0676"
+    }
+  ],
+  "runner_sha256": "0415ae0b370259921b17fea2790738d8e6b4e0c4b1f59409c9524199c99a786c",
+  "schema": "scenesense.ue_n3_command_calibration_campaign_manifest.v1",
+  "status": "FAILED",
+  "target_mapping_promoted": false
+}

@@ -1,0 +1,10 @@
+{
+  "core_ready_at_terminal": true,
+  "duration_s": 180.773928322,
+  "interface": "oaitun_ue1",
+  "observed_ipv4": [],
+  "passed": false,
+  "ran_processes_alive_at_terminal": true,
+  "status": "COLD_ATTACH_OR_PDU_EXT_DN_GATE_FAILED",
+  "timeout_s": 180.0
+}

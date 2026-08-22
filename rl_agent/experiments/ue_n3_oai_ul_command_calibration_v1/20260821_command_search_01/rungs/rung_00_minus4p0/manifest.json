@@ -1,0 +1,50 @@
+{
+  "candidate_application_count": 0,
+  "commanded_noise_power_db": -4.0,
+  "config_sha256": "8e297e398c48bfe8eacf7533cdba855d3267dd169a8ec8fdc29d690f08e4c851",
+  "control_session_id": "dd0b5e2b-f209-4c4c-8899-d1551b02e92e",
+  "numeric_bound_promoted": false,
+  "outputs": [
+    {
+      "bytes": 506,
+      "path": "clean_control_predecessor.json",
+      "sha256": "effb4ce45b983c4b4bce882e35ac1c0a1c9cfec625f95ee4f424e65149b62a9e"
+    },
+    {
+      "bytes": 224,
+      "path": "cleanup_report.json",
+      "sha256": "4965df61a4bd0e8ba841e9833edba2c23bc0f62f294bfaeda3d647009c64f2c8"
+    },
+    {
+      "bytes": 8,
+      "path": "command_log.csv",
+      "sha256": "7703741f562b3f2c276fc35a9aba6f2de114df21e80f56ebf257cdb5ea03115c"
+    },
+    {
+      "bytes": 11005,
+      "path": "resolved_config.json",
+      "sha256": "7ea57bfa5c28b939f5521c7eb8d2ea7be7549a9aa52a821efa09bdcd48d16fac"
+    },
+    {
+      "bytes": 684,
+      "path": "rung_summary.json",
+      "sha256": "bb3bec57f361be039d0db7d032d51ce04a073bc92a07ddc5471b265e716af968"
+    },
+    {
+      "bytes": 100,
+      "path": "runtime/carla_absent_gate.json",
+      "sha256": "c4ca5b47f3cdb33fa12c1a744d01d693190c115c28b616368ebc631e0b44c074"
+    },
+    {
+      "bytes": 4973,
+      "path": "runtime_seals.json",
+      "sha256": "bdba2e75ec5ac0a18475f09ed315323e5f21dd17bed394fa0e8041e012ba0676"
+    }
+  ],
+  "ran_epoch_id": "35851fb5-4fbb-44f0-829c-23edcf3cf1ab",
+  "rung_index": 0,
+  "runner_sha256": "0415ae0b370259921b17fea2790738d8e6b4e0c4b1f59409c9524199c99a786c",
+  "schema": "scenesense.ue_n3_command_calibration_rung_manifest.v1",
+  "status": "FAILED",
+  "target_mapping_promoted": false
+}

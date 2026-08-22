@@ -1,0 +1,10 @@
+{
+  "current_rnti": 44027,
+  "ext_dn_ping_pass": true,
+  "observed_tunnel_ipv4": [
+    "10.0.0.5"
+  ],
+  "processes_alive": true,
+  "same_tunnel_ipv4": true,
+  "status": "PASSED"
+}

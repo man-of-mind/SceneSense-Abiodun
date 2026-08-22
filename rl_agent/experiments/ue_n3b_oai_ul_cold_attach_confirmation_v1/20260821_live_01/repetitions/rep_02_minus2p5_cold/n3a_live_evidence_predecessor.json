@@ -1,0 +1,10 @@
+{
+  "directory": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/experiments/ue_n3a_oai_ul_sustain_replication_v1/20260821_live_02",
+  "manifest_sha256": "62639405273bd77aba5ff345bba2e2f99d2f15dfe962aa54083d5142c1b1b6ce",
+  "predecessor": "n3a_live_evidence",
+  "resolved_config_sha256": "44343c9212f7c005887b252f27027ca044080c19033b4d2e33822a09acc8c4ed",
+  "status": "VERIFIED_READ_ONLY_PREDECESSOR",
+  "terminal_sha256": "b05f8537cf671984545d426d58b2efea923dc348b052e20f0eddaaa18625b798",
+  "verified_at": "2026-08-21T20:40:27.586646-07:00",
+  "verified_output_count": 641
+}

@@ -1,0 +1,25 @@
+{
+  "complete_frame_ratio": 0.43125,
+  "expected_source_ip": "192.168.70.134",
+  "goodput_gate_applied": false,
+  "integrity_gate": true,
+  "interarrival_gaps_gte_1s": 4,
+  "maximum_interarrival_gap_s": 2.045939252,
+  "no_one_second_outage_pass": false,
+  "primary_99_pass": false,
+  "receiver_stop_reason": "DURATION_COMPLETE",
+  "sender_completion": {
+    "bounded_wait_timed_out": false,
+    "complete": true,
+    "malformed_rows": 0,
+    "missing_frames": [],
+    "outside_expected_frames": [],
+    "partial_sender_allowed_after_service_loss": false,
+    "process_returncode": 0,
+    "rows": 800,
+    "unique_frames": 800
+  },
+  "sensitivity_90_pass": false,
+  "sensitivity_95_pass": false,
+  "source_isolated": true
+}

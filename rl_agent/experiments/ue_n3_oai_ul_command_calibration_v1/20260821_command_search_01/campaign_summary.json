@@ -1,0 +1,20 @@
+{
+  "clean_control_predecessor": {
+    "directory": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/experiments/ue_n3_oai_ul_live_stage_v1/20260821_clean_control_03",
+    "manifest": "manifest.json",
+    "manifest_sha256": "ed28aac841e34d5e0da555286e06c3ecd2545d58776f46928bbd0a8f40a4a185",
+    "status": "VERIFIED_READ_ONLY_PREDECESSOR",
+    "terminal": "UE_N3_CLEAN_RECEIVER_CONTROL_PASSED.json",
+    "terminal_sha256": "cab56b66541743a74d845e7f7289c512ba37d6e8526fd5fa22fa82ca9990baba"
+  },
+  "cold_attach_bound_evaluated": false,
+  "error": "rung manifest candidate-application count mismatch",
+  "error_type": "CalibrationFailure",
+  "numeric_bound_promoted": false,
+  "rung_evidence": [],
+  "rung_results": [],
+  "rungs_executed": 0,
+  "rungs_planned": 9,
+  "status": "FAILED",
+  "target_mapping_promoted": false
+}

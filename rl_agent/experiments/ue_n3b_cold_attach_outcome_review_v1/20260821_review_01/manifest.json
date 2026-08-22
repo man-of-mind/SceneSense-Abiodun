@@ -1,0 +1,49 @@
+{
+  "command_ladder_manifest_sha256": "e8235586c07c5996aab17219280da35947bc8e54b05fc43ee326ee5373618f82",
+  "command_ladder_minus3_rung_manifest_sha256": "0913985a99d3765a9c88d824ddb2ef38079085826dfded9dce583e621db7f302",
+  "config_sha256": "b1e702632bfc922f84e25a1619c75550b642cbb4b1188ca10ada1fa092330ce2",
+  "connectivity_bound_promoted": false,
+  "n3c_executed": false,
+  "n3c_execution_authorized": false,
+  "numeric_bound_promoted": false,
+  "offline_only": true,
+  "operational_bound_promoted": false,
+  "outputs": [
+    {
+      "bytes": 821,
+      "path": "REPORT.md",
+      "sha256": "680114efcaf7b78def274444b2ea85a42b0753ed0abd54991f3f8b4b07fac94d"
+    },
+    {
+      "bytes": 9763,
+      "path": "n3b_outcome_review.json",
+      "sha256": "749b709ec6f2db8baac8220e19e088327fe5efc218297e15c1bf6b057fb90ebe"
+    },
+    {
+      "bytes": 1379,
+      "path": "per_repetition_adjudication.csv",
+      "sha256": "562cbdfa2a0e94349a7793182889bc97165838dfd59a5b1007c417c107fdeffd"
+    },
+    {
+      "bytes": 3558,
+      "path": "per_repetition_adjudication.json",
+      "sha256": "314a7147c97c2a7b6157fb9c3d67c34d56ead07480582c07b0a0164cbc543831"
+    },
+    {
+      "bytes": 4945,
+      "path": "resolved_config.json",
+      "sha256": "b2c3bd8936b372f243839a16c6f33b0a36283cee1551f100ee9ec5fd880f71dc"
+    },
+    {
+      "bytes": 3529,
+      "path": "source_evidence_verification.json",
+      "sha256": "dd74d2b3442b2099bd436c9eb6186e6bca35f26b49451fc64cbd9224f8129576"
+    }
+  ],
+  "runner_sha256": "e6ef1bce54e29421ff36debef787daeac706acc3126643e9ab4f1cb6520a005d",
+  "schema": "scenesense.ue_n3b_cold_attach_outcome_review_manifest.v1",
+  "source_n3b_manifest_sha256": "ac76763ea9651212f0003c35eb19092d85dbf28b104572e9a9ffc107cb298f3a",
+  "status": "UE_N3B_OUTCOME_ADJUDICATED_N3C_ELIGIBLE_REVIEW_REQUIRED",
+  "target_mapping_promoted": false,
+  "usable_service_bound_promoted": false
+}

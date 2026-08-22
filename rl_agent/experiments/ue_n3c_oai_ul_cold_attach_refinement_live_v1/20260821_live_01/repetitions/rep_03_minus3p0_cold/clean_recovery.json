@@ -1,0 +1,22 @@
+{
+  "application_delivery_passed": true,
+  "median_snr_db": 50.5,
+  "minimum_post_restore_receiver_frames": 5,
+  "minimum_pusch_samples": 5,
+  "observed_rntis": [
+    61002
+  ],
+  "passed": true,
+  "post_restore_receiver_frames": 49,
+  "pre_restore_rnti": 61002,
+  "pusch_samples": 444,
+  "radio_recovery_passed": true,
+  "recovered_rnti": 61002,
+  "required": true,
+  "rnti_replaced_after_restore": false,
+  "stable_tail_rntis": [
+    61002
+  ],
+  "status": "CLEAN_RECOVERY_PASSED",
+  "tunnel_recovered": true
+}

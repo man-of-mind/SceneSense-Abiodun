@@ -1,0 +1,102 @@
+{
+  "schema": "scenesense.ue_n3b_cold_attach_outcome_review_config.v1",
+  "experiment_id": "ue_n3b_cold_attach_outcome_review_v1",
+  "claim_boundary": "OFFLINE_N3B_OUTCOME_REVIEW_ONLY_N3C_ELIGIBILITY_NO_EXECUTION_NO_PROMOTION",
+  "authority": {
+    "offline_review_authorized": true,
+    "oai_run_authorized": false,
+    "socket_execution_authorized": false,
+    "carla_run_authorized": false,
+    "n3c_execution_authorized": false,
+    "target_mapping_promotion_authorized": false,
+    "numeric_bound_promotion_authorized": false,
+    "operational_bound_promotion_authorized": false,
+    "connectivity_bound_promotion_authorized": false,
+    "usable_service_bound_promotion_authorized": false,
+    "policy_training_authorized": false
+  },
+  "source": {
+    "directory": "rl_agent/experiments/ue_n3b_oai_ul_cold_attach_confirmation_v1/20260821_live_01",
+    "manifest": "manifest.json",
+    "manifest_sha256": "ac76763ea9651212f0003c35eb19092d85dbf28b104572e9a9ffc107cb298f3a",
+    "terminal": "UE_N3B_COLD_ATTACH_CONFIRMATION_NOT_3_OF_3_REVIEW_REQUIRED.json",
+    "terminal_sha256": "50066ffcba4137f585a55ad8d9ebcc728a7ca0e8cceec9728c0b8cc7f644c183",
+    "campaign_summary": "campaign_summary.json",
+    "campaign_summary_sha256": "4115431fa6ea396a6ad5e72cb99f2bc2bfaabdfefd4d76286fb7c7f70f440563",
+    "resolved_config": "resolved_config.json",
+    "resolved_config_sha256": "fdc46f717392b0b71fff9fc6f66d0afc9da831e48ce41cc566af909bb61d7072",
+    "required_status": "UE_N3B_COLD_ATTACH_CONFIRMATION_NOT_3_OF_3_REVIEW_REQUIRED",
+    "source_config_sha256": "72583ccbf56347d65f8a3c937505b932cc08670064097e4f7388bccd347a33e4",
+    "source_runner_sha256": "3cb0b1e975ae58f9fffc510ec20622bded9237848498f5d3c13bfd0b0f3b57f7",
+    "source_engine_runner_sha256": "30cf1615f51c7cd0ebe4087f7b6ca66f37a563f2d5c452e474ae838a23c8878b",
+    "expected_root_output_count": 71
+  },
+  "command_ladder": {
+    "directory": "rl_agent/experiments/ue_n3_oai_ul_command_calibration_v1/20260821_command_search_02",
+    "manifest": "manifest.json",
+    "manifest_sha256": "e8235586c07c5996aab17219280da35947bc8e54b05fc43ee326ee5373618f82",
+    "required_status": "UE_N3_TARGET_CALIBRATION_UNRESOLVED",
+    "expected_root_output_count": 529,
+    "rung_directory": "rungs/rung_02_minus3p0",
+    "rung_manifest": "manifest.json",
+    "rung_manifest_sha256": "0913985a99d3765a9c88d824ddb2ef38079085826dfded9dce583e621db7f302",
+    "rung_terminal": "UE_N3_COMMAND_RUNG_CAPTURED_PROPOSAL_ONLY.json",
+    "rung_summary": "rung_summary.json",
+    "required_rung_status": "UE_N3_COMMAND_RUNG_CAPTURED_PROPOSAL_ONLY",
+    "expected_rung_output_count": 103,
+    "commanded_noise_power_db": -3.0,
+    "observed_hot_pusch_snr_db_p05": 6.0,
+    "observed_hot_pusch_snr_db_p50": 6.5,
+    "observed_hot_pusch_snr_db_p95": 7.0,
+    "provenance_role": "EXPECTATION_ONLY_ALREADY_ATTACHED_HOT_RUNG_NOT_COLD_ATTAINED"
+  },
+  "contract": {
+    "repetitions": 3,
+    "tested_commanded_noise_power_db": -2.5,
+    "attach_timeout_s": 180,
+    "expected_cold_attach_passes": 0,
+    "cold_achieved_snr_must_be_null": true,
+    "hot_cold_endpoint_separation": "ALREADY_ATTACHED_SERVICE_DOES_NOT_ESTABLISH_COLD_ATTACH",
+    "n3c_selected_command_db": -3.0,
+    "n3c_selection_is_eligibility_only": true
+  },
+  "expected_repetitions": [
+    {
+      "directory": "rep_01_minus2p5_cold",
+      "repetition_index": 1,
+      "manifest_sha256": "515ffd44044b17f84605877e5b1b4fe514bcca2dc254270647fc90ab2476ad76",
+      "terminal_sha256": "d5b6598b5f1ce1b272c72aa0f70541fce0bd3f88da08fe10c4453495fe05d3b4",
+      "summary_sha256": "5107dbce85e347479f3ba039a3e35f36d4e0f956d74769d678646c78732b5712"
+    },
+    {
+      "directory": "rep_02_minus2p5_cold",
+      "repetition_index": 2,
+      "manifest_sha256": "2240bc109df6c7cfe224dc56b565d1893431a9fa545e19131c8a6a9069ea271b",
+      "terminal_sha256": "ad30cf50b831986aaf877b882074d66a2ee3cdd358f2e4f9dc0f0473116bd584",
+      "summary_sha256": "988bfa548a9f509e4e2de2d1fa2dddf1ea9db5e4430d364029f37618aafa042c"
+    },
+    {
+      "directory": "rep_03_minus2p5_cold",
+      "repetition_index": 3,
+      "manifest_sha256": "761bdddba720a5a1e3558664900f3df57cd5d7f1c51fabcd1453b4728a372376",
+      "terminal_sha256": "ba2afe9a0306bc4ddaf42ae26d11083cb72bf7fffc5891fc4bca1d9df7e38eea",
+      "summary_sha256": "039e92aaa577e293a1a576e2982e9aa35cc332565f6b447b58f7f030e45421aa"
+    }
+  ],
+  "runtime_seals": [
+    {
+      "path": "rl_agent/ue_n3b_cold_attach_outcome_review_v1.py",
+      "sha256": "e6ef1bce54e29421ff36debef787daeac706acc3126643e9ab4f1cb6520a005d"
+    }
+  ],
+  "output": {
+    "resolved_config": "resolved_config.json",
+    "source_verification": "source_evidence_verification.json",
+    "adjudications_json": "per_repetition_adjudication.json",
+    "adjudications_csv": "per_repetition_adjudication.csv",
+    "summary": "n3b_outcome_review.json",
+    "report": "REPORT.md",
+    "manifest": "manifest.json",
+    "failure": "FAILED.json"
+  }
+}

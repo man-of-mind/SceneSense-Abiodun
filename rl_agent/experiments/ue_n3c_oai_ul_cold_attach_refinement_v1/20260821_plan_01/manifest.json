@@ -1,0 +1,41 @@
+{
+  "config_sha256": "d2719311feee728c3d33f2b4f46c81f5f3806addf91826c7e4f4bb3999e541b6",
+  "connectivity_bound_promoted": false,
+  "numeric_bound_promoted": false,
+  "operational_bound_promoted": false,
+  "outputs": [
+    {
+      "bytes": 721,
+      "path": "campaign_plan.csv",
+      "sha256": "4623f1f8a3833556e2154c2604a88ae322c08a5da0d7bfb05524480372175988"
+    },
+    {
+      "bytes": 4066,
+      "path": "campaign_summary.json",
+      "sha256": "16d7b74eb3cfcd7c2d039804e64d1a76b76a11e2029b77f6a378251a9f1a0b78"
+    },
+    {
+      "bytes": 709,
+      "path": "command_ladder_expectation_predecessor.json",
+      "sha256": "9510e38edb05a82a9880dc8353c034950ef0bff741e061f34753c72bcec44edb"
+    },
+    {
+      "bytes": 661,
+      "path": "n3b_live_evidence_predecessor.json",
+      "sha256": "8bc5136cbb17ca41507ae387837d64065ec726d92da8578b9128dae859b8d8f5"
+    },
+    {
+      "bytes": 12406,
+      "path": "resolved_config.json",
+      "sha256": "0a79d5c6c67cc45b3c0575bdc311c97c444d30f9ba782a07a6d2ab69a33bb3a0"
+    }
+  ],
+  "review_required": true,
+  "runner_sha256": "5eaf61f41114fe51ab8219520c22b859636083c24fc9da94c831b42707216d43",
+  "runtime_executed": false,
+  "schema": "scenesense.ue_n3c_cold_attach_refinement_plan_manifest.v1",
+  "socket_executed": false,
+  "status": "UE_N3C_COLD_ATTACH_REFINEMENT_PLAN_FROZEN_PREREQUISITES_PENDING",
+  "target_mapping_promoted": false,
+  "usable_service_bound_promoted": false
+}

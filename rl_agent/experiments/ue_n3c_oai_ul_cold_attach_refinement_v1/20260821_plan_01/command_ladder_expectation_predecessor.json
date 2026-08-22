@@ -1,0 +1,12 @@
+{
+  "achieved_pusch_snr_db_p05": 6.0,
+  "achieved_pusch_snr_db_p50": 6.5,
+  "achieved_pusch_snr_db_p95": 7.0,
+  "campaign_manifest_sha256": "e8235586c07c5996aab17219280da35947bc8e54b05fc43ee326ee5373618f82",
+  "commanded_noise_power_db": -3.0,
+  "directory": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/experiments/ue_n3_oai_ul_command_calibration_v1/20260821_command_search_02/rungs/rung_02_minus3p0",
+  "mapping_promoted": false,
+  "rung_manifest_sha256": "0913985a99d3765a9c88d824ddb2ef38079085826dfded9dce583e621db7f302",
+  "status": "VERIFIED_CONSISTENCY_EXPECTATION_ONLY_NOT_MAPPING",
+  "verified_at": "2026-08-21T20:59:04.918404-07:00"
+}

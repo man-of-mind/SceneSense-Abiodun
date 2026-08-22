@@ -1,0 +1,8 @@
+{
+  "baseline_pusch_rows": 14,
+  "current_rnti": 44027,
+  "fresh_pusch_rows": 10,
+  "matched_receiver_events_observed": true,
+  "receiver_ready_observed": true,
+  "status": "PASSED"
+}

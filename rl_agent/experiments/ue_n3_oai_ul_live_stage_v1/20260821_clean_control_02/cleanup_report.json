@@ -1,0 +1,12 @@
+{
+  "busy_owned_ports": [],
+  "checked_at": "2026-08-21T18:23:04.006363-07:00",
+  "clean": true,
+  "errors": [],
+  "ext_dn_structured_udp_check_error": null,
+  "ext_dn_structured_udp_port": 56130,
+  "ext_dn_structured_udp_port_busy": false,
+  "n3_cleanup_checked_at": "2026-08-21T18:23:04.036184-07:00",
+  "oai_tunnel_interfaces_present": [],
+  "owned_processes_alive": []
+}

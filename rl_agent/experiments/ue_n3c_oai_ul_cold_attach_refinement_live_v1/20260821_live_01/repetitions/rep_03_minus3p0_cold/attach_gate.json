@@ -1,0 +1,10 @@
+{
+  "discovered_ipv4": "10.0.0.13",
+  "duration_s": 76.370329979,
+  "ext_dn_ping_pass": true,
+  "interface": "oaitun_ue1",
+  "passed": true,
+  "pdu_session_evidence": "SINGLE_OAI_TUNNEL_IPV4",
+  "status": "COLD_ATTACH_PDU_EXT_DN_GATE_PASSED",
+  "timeout_s": 180.0
+}

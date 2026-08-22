@@ -1,0 +1,65 @@
+{
+  "cold_attach_bound_evaluated": false,
+  "config_sha256": "f1afb806478d0fc17d381b2dd2f119173d4745696abff90be945bce1bdd71358",
+  "connectivity_bound_promoted": false,
+  "engine_runner_sha256": "30cf1615f51c7cd0ebe4087f7b6ca66f37a563f2d5c452e474ae838a23c8878b",
+  "numeric_bound_promoted": false,
+  "outputs": [
+    {
+      "bytes": 941,
+      "path": "campaign_plan.csv",
+      "sha256": "44be1705aba71645baddbce8e0e8a6ef4b504c6cae2bc58923c9e6cb814b2e7b"
+    },
+    {
+      "bytes": 2470,
+      "path": "campaign_summary.json",
+      "sha256": "701a6938327f9c7f07757e49dc1e9f598e689828480afe1fd9ce74dac5176cfe"
+    },
+    {
+      "bytes": 953,
+      "path": "clean_control_predecessor.json",
+      "sha256": "cf82aa584b6a0eeed6ad297a2f645f3f457eb820333b0882db6f9c694edc1fdc"
+    },
+    {
+      "bytes": 965,
+      "path": "command_search_predecessor.json",
+      "sha256": "7ede3088399fcf70243b82e25c9633d6708bd304af298bd3d03be904533c5da0"
+    },
+    {
+      "bytes": 953,
+      "path": "repetitions/sequence_00_rep_01_minus2p5/clean_control_predecessor.json",
+      "sha256": "fc04c130c4d9d98195fbd19ad57bdea19dc380ed864c24964f73a1a4e392e52a"
+    },
+    {
+      "bytes": 8,
+      "path": "repetitions/sequence_00_rep_01_minus2p5/command_log.csv",
+      "sha256": "7703741f562b3f2c276fc35a9aba6f2de114df21e80f56ebf257cdb5ea03115c"
+    },
+    {
+      "bytes": 965,
+      "path": "repetitions/sequence_00_rep_01_minus2p5/command_search_predecessor.json",
+      "sha256": "c379990a51606c190a3b5514b70260a900818fca5aa61e45d95eefddaa6556b4"
+    },
+    {
+      "bytes": 11679,
+      "path": "repetitions/sequence_00_rep_01_minus2p5/resolved_config.json",
+      "sha256": "107467213de04b8680e2862fba3e7c449dc16b86007d8dbf16ca6788444f6b8b"
+    },
+    {
+      "bytes": 4722,
+      "path": "repetitions/sequence_00_rep_01_minus2p5/runtime_seals.json",
+      "sha256": "fa65d35ba0ac3bf7fd954df6ba744c6cf00809685fa2c75d4a2c292971156225"
+    },
+    {
+      "bytes": 11595,
+      "path": "resolved_config.json",
+      "sha256": "44343c9212f7c005887b252f27027ca044080c19033b4d2e33822a09acc8c4ed"
+    }
+  ],
+  "review_required": true,
+  "runner_sha256": "b72f98d1e492840fde074772e9e90a1831c4b0f8d777795b29b27a9e1a482487",
+  "schema": "scenesense.ue_n3a_sustain_replication_campaign_manifest.v1",
+  "status": "FAILED",
+  "target_mapping_promoted": false,
+  "usable_service_bound_promoted": false
+}

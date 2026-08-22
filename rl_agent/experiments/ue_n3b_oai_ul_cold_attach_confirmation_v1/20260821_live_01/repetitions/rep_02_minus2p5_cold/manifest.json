@@ -1,0 +1,121 @@
+{
+  "candidate_application_count": 0,
+  "commanded_noise_power_db": -2.5,
+  "config_sha256": "72583ccbf56347d65f8a3c937505b932cc08670064097e4f7388bccd347a33e4",
+  "control_session_id": "a772634d-086b-4469-a4a8-9876988ab650",
+  "engine_runner_sha256": "30cf1615f51c7cd0ebe4087f7b6ca66f37a563f2d5c452e474ae838a23c8878b",
+  "evidence_valid_for_aggregation": true,
+  "joint_candidate_confirmation_pass": false,
+  "n3a_adjudication_manifest_sha256": "9eb86ac88a56c0e81848a95103a9692dbaabb28db0e92145eaa8c3bccfcbb8fc",
+  "n3a_live_manifest_sha256": "62639405273bd77aba5ff345bba2e2f99d2f15dfe962aa54083d5142c1b1b6ce",
+  "operational_bound_promoted": false,
+  "outputs": [
+    {
+      "bytes": 257,
+      "path": "attach_gate.json",
+      "sha256": "806017feff32e8f0cd779bdf4ece45783b2d819418febead5b2b8a87852a062a"
+    },
+    {
+      "bytes": 190,
+      "path": "carla_absent_gate.json",
+      "sha256": "6986c42b6fbbf07f30da7c34e46ee5ab98212052000b68bf1f2af39a0b7548ea"
+    },
+    {
+      "bytes": 1470,
+      "path": "channel_state_restored.txt",
+      "sha256": "d42722e503e8af1d21448d22b05587f997fb05427db7d30617392d4774f68593"
+    },
+    {
+      "bytes": 1469,
+      "path": "channel_state_startup_candidate.txt",
+      "sha256": "c6f0ee4425b2d41425a7179a4617cb20f65f2a9cbe9582afaeae1abcbaccb4f4"
+    },
+    {
+      "bytes": 224,
+      "path": "cleanup_report.json",
+      "sha256": "0d8810ab1114082d06ede01d255e4b2f91e27ae5a2d3861da075b95985f6e22e"
+    },
+    {
+      "bytes": 240,
+      "path": "cold_start_identity.json",
+      "sha256": "9fc50add8d20482154ef555ff4d65275482a4ec885b2941bff28ce3ccc49f9f8"
+    },
+    {
+      "bytes": 393,
+      "path": "command_log.csv",
+      "sha256": "48bbb4ddd44f93ecaf7240cd51c63e7e60e7293295b3a02b3bdff33dc4e88235"
+    },
+    {
+      "bytes": 31019,
+      "path": "logs/gnb.log",
+      "sha256": "c4daff454851fed187e9e414ee49d7cc4b7b6625d86752e0ab7dcad47b65ae17"
+    },
+    {
+      "bytes": 3975806,
+      "path": "logs/ue.log",
+      "sha256": "f109b105e530be7932f935cc09e19ead255cfb2b55ae44afa6f01677c2615863"
+    },
+    {
+      "bytes": 632,
+      "path": "n3a_adjudication_predecessor.json",
+      "sha256": "b0062cef0c28e274afb09bde1176e4697b8ecf6d5a22257440f5e498c183c60a"
+    },
+    {
+      "bytes": 637,
+      "path": "n3a_live_evidence_predecessor.json",
+      "sha256": "612866c1a18506f4d4f38de04b290c9775fc5436206bb7219920385243284cee"
+    },
+    {
+      "bytes": 2629,
+      "path": "repetition_summary.json",
+      "sha256": "988bfa548a9f509e4e2de2d1fa2dddf1ea9db5e4430d364029f37618aafa042c"
+    },
+    {
+      "bytes": 11465,
+      "path": "resolved_config.json",
+      "sha256": "91a48aa30c2819929ab33686ec4650107a65c18943daae21edc6586f6ed5f094"
+    },
+    {
+      "bytes": 764,
+      "path": "runtime/config_hashes.json",
+      "sha256": "baa87de676bbed4cfe5b067d029761fdf65b61567a966e7d68179ebd35b68891"
+    },
+    {
+      "bytes": 888,
+      "path": "runtime/effective_channel_cold_attach_minus2p5.conf",
+      "sha256": "0b35519e5945d3e3ccab8b8c7d315edabdb76325e8eeff83f0589f04e0062ba2"
+    },
+    {
+      "bytes": 10175,
+      "path": "runtime/effective_gnb_cold_attach_minus2p5.conf",
+      "sha256": "555a55b8dbc451b48d4096fc7fc3d6d3ff49660215a6496b3f68db11b6a0c15f"
+    },
+    {
+      "bytes": 1171,
+      "path": "runtime/effective_ue_cold_attach_minus2p5.conf",
+      "sha256": "e84053bba36f0c9ac8fd8962d9929fcd018d2b7480fbc498576deb361a832168"
+    },
+    {
+      "bytes": 4727,
+      "path": "runtime_seals.json",
+      "sha256": "fc1993c73f763f57a4ae44922b15e8580cfae38b1a7cc396a48d7e0d323afb11"
+    },
+    {
+      "bytes": 617,
+      "path": "source_oai_config_integrity.json",
+      "sha256": "64ad030c4a3c91252aa56afd674f34e82a01e7616fe7803fd63d57044a9e8154"
+    },
+    {
+      "bytes": 758,
+      "path": "startup_channel_runtime_gate.json",
+      "sha256": "de29231dbc92554a327fe997cff9bdeac61a045dbcc2d5387a1d6a01b7b654d4"
+    }
+  ],
+  "ran_epoch_id": "464d808d-56de-471e-bf63-4de9d0fe3cab",
+  "repetition_index": 2,
+  "restore_application_count": 1,
+  "review_required": true,
+  "runner_sha256": "3cb0b1e975ae58f9fffc510ec20622bded9237848498f5d3c13bfd0b0f3b57f7",
+  "schema": "scenesense.ue_n3b_cold_attach_repetition_manifest.v1",
+  "status": "UE_N3B_COLD_ATTACH_REPETITION_VALID_ATTACH_FAILURE"
+}

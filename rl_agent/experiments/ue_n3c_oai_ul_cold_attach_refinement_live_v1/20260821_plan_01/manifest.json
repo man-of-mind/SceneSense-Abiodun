@@ -1,0 +1,45 @@
+{
+  "config_sha256": "13ea9536bd5492a98d6f42b61ed5371d6e02cd3bd47381f69fd877797209fc4d",
+  "connectivity_bound_promoted": false,
+  "engine_runner_sha256": "30cf1615f51c7cd0ebe4087f7b6ca66f37a563f2d5c452e474ae838a23c8878b",
+  "numeric_bound_promoted": false,
+  "operational_bound_promoted": false,
+  "outputs": [
+    {
+      "bytes": 727,
+      "path": "campaign_plan.csv",
+      "sha256": "c4f766ad8b4fc1c30350cd3a4fdecf9a654c58c99c3be082758d1c5ad75ee42e"
+    },
+    {
+      "bytes": 4507,
+      "path": "campaign_summary.json",
+      "sha256": "8f38492c8b8a2b238247cdf9ff8954bfa11648ac7d60438f63fa05d7052ce9e9"
+    },
+    {
+      "bytes": 709,
+      "path": "command_ladder_expectation_predecessor.json",
+      "sha256": "2128b69ef428b916d38ac6ad570be7a498c105dae7f63efd6318efe7ffea11f2"
+    },
+    {
+      "bytes": 639,
+      "path": "n3b_adjudication_predecessor.json",
+      "sha256": "c2c2252c1adb053f64cd6025700bb957502cfc19f99e7716adee7603e4174e6e"
+    },
+    {
+      "bytes": 661,
+      "path": "n3b_live_evidence_predecessor.json",
+      "sha256": "640fb6db8b702e254e04eac6c55ebaf29e750b55b480152f81d5026ff44b47dd"
+    },
+    {
+      "bytes": 12802,
+      "path": "resolved_config.json",
+      "sha256": "23ec2a7231edecf97a160162b6927e8f7b1ba1f573064f6f1e8a00ed07da4d77"
+    }
+  ],
+  "review_required": true,
+  "runner_sha256": "d3f62a4b116786f7e684090a02be41c3a93d6b9013fca2da9bb8e28636b45f7d",
+  "schema": "scenesense.ue_n3c_cold_attach_live_campaign_manifest.v1",
+  "status": "UE_N3C_LIVE_PLAN_FROZEN_READY_FOR_EXPLICIT_EXECUTE_LIVE",
+  "target_mapping_promoted": false,
+  "usable_service_bound_promoted": false
+}

@@ -1,0 +1,7 @@
+{
+  "busy_ports": [],
+  "checked_at": "2026-08-21T21:21:51.399151-07:00",
+  "detector_scope": "PROCESS_COMM_AND_ARGS_PLUS_TCP_AND_UDP_PORTS",
+  "process_matches": [],
+  "status": "PASSED"
+}

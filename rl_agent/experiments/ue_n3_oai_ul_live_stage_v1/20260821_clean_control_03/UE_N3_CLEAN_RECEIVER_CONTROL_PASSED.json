@@ -1,0 +1,10 @@
+{
+  "clean_restore_verified": true,
+  "manifest_sha256": "ed28aac841e34d5e0da555286e06c3ecd2545d58776f46928bbd0a8f40a4a185",
+  "mapping_promoted": false,
+  "mode": "CLEAN_RECEIVER_CONTROL",
+  "next": "COMMAND_CALIBRATION_SEARCH",
+  "numeric_bound_promoted": false,
+  "primary_usable_service_pass": true,
+  "status": "UE_N3_CLEAN_RECEIVER_CONTROL_PASSED"
+}

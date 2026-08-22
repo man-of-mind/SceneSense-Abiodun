@@ -1,0 +1,19 @@
+{
+  "complete_frame_ratio": 1.0,
+  "complete_frames": 600,
+  "delivery_90_pass": true,
+  "delivery_95_pass": true,
+  "expected_frames": 600,
+  "expected_receiver_source_ipv4": [
+    "192.168.70.134"
+  ],
+  "goodput_role": "DIAGNOSTIC_ONLY_CAPTURE_DURATION_NOT_SERVICE_WINDOW",
+  "observed_source_ipv4": "192.168.70.134",
+  "observed_stream_id": "192.168.70.134:58506",
+  "primary_threshold": 0.99,
+  "primary_usable_service_pass": true,
+  "receiver_unique_datagram_goodput_mbps": 0.9230769230769231,
+  "receiver_unique_payload_goodput_mbps": 0.9213046153846154,
+  "sender_frames": 600,
+  "structural_pass": true
+}

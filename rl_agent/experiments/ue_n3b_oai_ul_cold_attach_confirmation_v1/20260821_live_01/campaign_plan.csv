@@ -1,0 +1,4 @@
+sequence_index,repetition_index,commanded_noise_power_db,fresh_ran_epoch_required,candidate_baked_before_ue_launch,candidate_application_count,attach_pdu_ext_dn_timeout_s,measured_service_s,expected_service_frames,restore_commanded_noise_power_db,status
+0,1,-2.5,True,True,0,180.0,60.0,600,-50.0,READY_FOR_EXPLICIT_EXECUTE_LIVE
+1,2,-2.5,True,True,0,180.0,60.0,600,-50.0,READY_FOR_EXPLICIT_EXECUTE_LIVE
+2,3,-2.5,True,True,0,180.0,60.0,600,-50.0,READY_FOR_EXPLICIT_EXECUTE_LIVE

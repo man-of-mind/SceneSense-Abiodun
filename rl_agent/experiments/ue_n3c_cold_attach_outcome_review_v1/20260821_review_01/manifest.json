@@ -1,0 +1,52 @@
+{
+  "carla_run_authorized": false,
+  "command_ladder_manifest_sha256": "e8235586c07c5996aab17219280da35947bc8e54b05fc43ee326ee5373618f82",
+  "command_ladder_minus3p5_rung_manifest_sha256": "45d9bebea2e681f99c2a22e1a8092ef26290849806b7dcf306be131dc5d36c31",
+  "config_sha256": "4585e7ed9a1acc1cad6350bddcd41fef1f6842d8824c38d8d3af24d81a9307fc",
+  "connectivity_bound_promoted": false,
+  "n3d_executed": false,
+  "n3d_execution_authorized": false,
+  "numeric_bound_promoted": false,
+  "oai_run_authorized": false,
+  "offline_only": true,
+  "operational_bound_promoted": false,
+  "outputs": [
+    {
+      "bytes": 1028,
+      "path": "REPORT.md",
+      "sha256": "bb5b3dd8514bddeaf44afe857fd099c4c2fad84576ff72f6c7031cd059bc7f20"
+    },
+    {
+      "bytes": 11247,
+      "path": "n3c_outcome_review.json",
+      "sha256": "a1fd4d7926014768af3d86d008e266bf930dfcca39e504ad534c3d59ce175fb6"
+    },
+    {
+      "bytes": 1670,
+      "path": "per_repetition_adjudication.csv",
+      "sha256": "602f8f312f701e37002fc86215be06a9c3bd0886b3391fc420327df413878e23"
+    },
+    {
+      "bytes": 4467,
+      "path": "per_repetition_adjudication.json",
+      "sha256": "f01c145cde88be64727a457261425ff24f7173ce1d99a48a1ab81526c6197ad4"
+    },
+    {
+      "bytes": 6005,
+      "path": "resolved_config.json",
+      "sha256": "e2ca8ee9c8da90bef1132c5ace3fe0ff16dd87aad4c4a80a166090c76ae3c1f1"
+    },
+    {
+      "bytes": 3717,
+      "path": "source_evidence_verification.json",
+      "sha256": "b4a6cdbcdf450d2a482fc50f77d305218b85cf4adf42ce70011bfc94bc8561c0"
+    }
+  ],
+  "runner_sha256": "9f7d3d514d0e2298a8a682e480cff6d9ceac5ae3c678857ea1a3f9765aa426e0",
+  "schema": "scenesense.ue_n3c_cold_attach_outcome_review_manifest.v1",
+  "socket_execution_authorized": false,
+  "source_n3c_manifest_sha256": "7aaa76319d7fdfbe82082a89b514da2b7a3071d0f3b1b52f5e13ed32cb0c6f3b",
+  "status": "UE_N3C_OUTCOME_ADJUDICATED_N3D_ELIGIBLE_REVIEW_REQUIRED",
+  "target_mapping_promoted": false,
+  "usable_service_bound_promoted": false
+}

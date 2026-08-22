@@ -1,0 +1,10 @@
+rung_index,commanded_noise_power_db,fresh_ran_epoch_required,candidate_application_count,clean_start_command_db,clean_lead_s,settle_s,measured_tail_s,clean_recovery_s,sender_frames,status
+0,-4.0,True,1,-50.0,5.0,10.0,5.0,5.0,250,BLOCKED_PENDING_LIVE_AUTHORITY
+1,-3.5,True,1,-50.0,5.0,10.0,5.0,5.0,250,BLOCKED_PENDING_LIVE_AUTHORITY
+2,-3.0,True,1,-50.0,5.0,10.0,5.0,5.0,250,BLOCKED_PENDING_LIVE_AUTHORITY
+3,-2.5,True,1,-50.0,5.0,10.0,5.0,5.0,250,BLOCKED_PENDING_LIVE_AUTHORITY
+4,-2.0,True,1,-50.0,5.0,10.0,5.0,5.0,250,BLOCKED_PENDING_LIVE_AUTHORITY
+5,-1.5,True,1,-50.0,5.0,10.0,5.0,5.0,250,BLOCKED_PENDING_LIVE_AUTHORITY
+6,-1.0,True,1,-50.0,5.0,10.0,5.0,5.0,250,BLOCKED_PENDING_LIVE_AUTHORITY
+7,-0.5,True,1,-50.0,5.0,10.0,5.0,5.0,250,BLOCKED_PENDING_LIVE_AUTHORITY
+8,0.0,True,1,-50.0,5.0,10.0,5.0,5.0,250,BLOCKED_PENDING_LIVE_AUTHORITY

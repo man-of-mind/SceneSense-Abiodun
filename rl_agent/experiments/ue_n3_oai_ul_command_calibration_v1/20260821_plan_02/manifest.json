@@ -1,0 +1,26 @@
+{
+  "cold_attach_bound_evaluated": false,
+  "config_sha256": "108c0dc1fd2a0954688bb21560ef96a48b0ab8a101d1ec1352a2d41b3de18b96",
+  "numeric_bound_promoted": false,
+  "outputs": [
+    {
+      "bytes": 845,
+      "path": "campaign_plan.csv",
+      "sha256": "a52ef917d64988eb29c75207d1b896e93510c5faf22f1e6f94c3172ff709f839"
+    },
+    {
+      "bytes": 3770,
+      "path": "campaign_summary.json",
+      "sha256": "003b8b3dddb6221f8b8fe35378307d81dc6b28cdd556dce9bf1dcee11e365297"
+    },
+    {
+      "bytes": 10405,
+      "path": "resolved_config.json",
+      "sha256": "a4571031f2ae22d083c052ad98db582b654f8c025f52fbd54a163d32988a7500"
+    }
+  ],
+  "runner_sha256": "105ffd29c4dd9aa1b1c6bdb545ce41e51605a063e031af55fcb0ef2efcb25e49",
+  "schema": "scenesense.ue_n3_command_calibration_campaign_manifest.v1",
+  "status": "UE_N3_COMMAND_CALIBRATION_PLAN_FROZEN_REVIEW_REQUIRED",
+  "target_mapping_promoted": false
+}

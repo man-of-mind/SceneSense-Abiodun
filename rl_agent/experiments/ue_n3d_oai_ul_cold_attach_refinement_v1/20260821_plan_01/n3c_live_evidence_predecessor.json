@@ -1,0 +1,37 @@
+{
+  "campaign_summary_sha256": "41d50ef8c2701a9dcb29ccf1f8a152ab300b5cc337210e3d13e3734f55e677c6",
+  "cold_attach_passes": 2,
+  "directory": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/experiments/ue_n3c_oai_ul_cold_attach_refinement_live_v1/20260821_live_01",
+  "joint_candidate_confirmation_passes": 2,
+  "manifest_sha256": "7aaa76319d7fdfbe82082a89b514da2b7a3071d0f3b1b52f5e13ed32cb0c6f3b",
+  "repetitions": [
+    {
+      "directory": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/experiments/ue_n3c_oai_ul_cold_attach_refinement_live_v1/20260821_live_01/repetitions/rep_01_minus3p0_cold",
+      "joint_candidate_confirmation_pass": true,
+      "manifest_sha256": "8a210b13eec1113722368b980255ca95858747fecbfc0e1eb10b932793e9a762",
+      "status": "UE_N3C_COLD_ATTACH_SERVICE_REPETITION_PASSED",
+      "terminal_sha256": "e1851a3977c5091435fdf08614a6fe6134e978f5af5c67341c1fbeb7681bc105"
+    },
+    {
+      "directory": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/experiments/ue_n3c_oai_ul_cold_attach_refinement_live_v1/20260821_live_01/repetitions/rep_02_minus3p0_cold",
+      "joint_candidate_confirmation_pass": false,
+      "manifest_sha256": "d9d66341f4f3ee813778e001781467a8a5b80a48cf9143a629d21060848bbe95",
+      "status": "UE_N3C_COLD_ATTACH_REPETITION_VALID_OPERATIONAL_SCREEN_NONCONFIRMATION",
+      "terminal_sha256": "b43bb259f26f64d0cdd0aff0b72c4b02eaebb99af53ae9a52020a45efb615a10"
+    },
+    {
+      "directory": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/experiments/ue_n3c_oai_ul_cold_attach_refinement_live_v1/20260821_live_01/repetitions/rep_03_minus3p0_cold",
+      "joint_candidate_confirmation_pass": true,
+      "manifest_sha256": "00c1c83bbb55d83f1f4c1072202f29d5d1329ee2ef6814ea40a4770bd2d3c9eb",
+      "status": "UE_N3C_COLD_ATTACH_SERVICE_REPETITION_PASSED",
+      "terminal_sha256": "35cead22ad4c08d3059b1d367d4363ca1403d76b47c89d65cdadb69f61d4d7bd"
+    }
+  ],
+  "resolved_config_sha256": "23ec2a7231edecf97a160162b6927e8f7b1ba1f573064f6f1e8a00ed07da4d77",
+  "review_before_next_action_required": true,
+  "status": "VERIFIED_READ_ONLY_N3C_MIXED_2_OF_3_PREDECESSOR",
+  "terminal_sha256": "afa36b3f486c816924114de441364a8aaf06f39e76d9273c3eb3646e3e3877a2",
+  "trials": 3,
+  "verified_at": "2026-08-21T21:41:59.582070-07:00",
+  "verified_output_count": 251
+}

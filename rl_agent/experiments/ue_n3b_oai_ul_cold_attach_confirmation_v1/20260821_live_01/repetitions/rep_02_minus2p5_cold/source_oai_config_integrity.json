@@ -1,0 +1,15 @@
+{
+  "after": {
+    "channel": "a47ade413b36ecf66f6df666bead124974705636cb134dd09a539b34bce7d760",
+    "gnb_base": "71bfab4e610580013a919dd22fbf04cd874edb5e059366261d7e513c93b016f4",
+    "ue_base": "b20bf2d9d8da9bd15b1f822836b7235dafa16b29f4e097e6ca3749729494c944"
+  },
+  "before": {
+    "channel": "a47ade413b36ecf66f6df666bead124974705636cb134dd09a539b34bce7d760",
+    "gnb_base": "71bfab4e610580013a919dd22fbf04cd874edb5e059366261d7e513c93b016f4",
+    "ue_base": "b20bf2d9d8da9bd15b1f822836b7235dafa16b29f4e097e6ca3749729494c944"
+  },
+  "source_paths_written": false,
+  "status": "UNCHANGED",
+  "unchanged": true
+}

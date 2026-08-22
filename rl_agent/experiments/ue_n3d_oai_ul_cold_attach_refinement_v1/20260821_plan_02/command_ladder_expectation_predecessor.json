@@ -1,0 +1,21 @@
+{
+  "achieved_pusch_snr_db_p05": 7.0,
+  "achieved_pusch_snr_db_p50": 7.5,
+  "achieved_pusch_snr_db_p95": 7.5,
+  "campaign_manifest_sha256": "e8235586c07c5996aab17219280da35947bc8e54b05fc43ee326ee5373618f82",
+  "cold_attach_evidence": false,
+  "commanded_noise_power_db": -3.5,
+  "directory": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/experiments/ue_n3_oai_ul_command_calibration_v1/20260821_command_search_02/rungs/rung_01_minus3p5",
+  "mapping_promoted": false,
+  "mcs_samples": 699,
+  "numeric_bound_promoted": false,
+  "pusch_samples": 699,
+  "rung_manifest_sha256": "45d9bebea2e681f99c2a22e1a8092ef26290849806b7dcf306be131dc5d36c31",
+  "rung_summary_sha256": "e7dcca3082a7bea7860d641b5496544fd10d3b61690cb8e08e7e11403011758b",
+  "rung_terminal_sha256": "e25435257b4d616e6da41d960eb50789b1ae21ab816f78d8bfecab0f36927a11",
+  "service_frames_expected": 50,
+  "service_frames_received": 50,
+  "status": "VERIFIED_CONSISTENCY_EXPECTATION_ONLY_NOT_MAPPING",
+  "verified_at": "2026-08-21T21:43:29.897534-07:00",
+  "warm_already_attached_session": true
+}
