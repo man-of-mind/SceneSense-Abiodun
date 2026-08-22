@@ -1,0 +1,40 @@
+{
+  "config_path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/configs/ue_n3_oai_ul_boundary_calibration_v1.json",
+  "config_sha256": "53f668e0d5f9d3f03e70970ffa08198b593a57f21be766246b0b752ebeb311a1",
+  "created_at": "2026-08-22T00:25:38.956365Z",
+  "dependency_files": [
+    {
+      "path": "rl_agent/UE_N3_OAI_UL_BOUNDARY_CALIBRATION_CONTRACT_V1.md",
+      "sha256": "912fe1aaf754d6b39ccd468c3c1ebd6c290d5359b3932bbdd9f3d2ee5530ac46"
+    },
+    {
+      "path": "oai_layer_latency/carla_shaped_udp_burst_sender.py",
+      "sha256": "9b737a7ff3fe0b7ba7e47ae469b1c8e5b825098feca4eac5bbe410c725d52a8d"
+    },
+    {
+      "path": "rl_agent/ue_n3_structured_udp_receiver.py",
+      "sha256": "3e92ba8f756d2c028dcfe51c2a35f18d4f268a041516ea1e054f349f1b916446"
+    }
+  ],
+  "outputs": [
+    {
+      "bytes": 4729,
+      "path": "resolved_config.json",
+      "sha256": "5c7a5436b15a64a6d9ce32a0a9025e0847c3f890c684b0b74300302f594bd5b1"
+    },
+    {
+      "bytes": 1154,
+      "path": "trial_matrix.csv",
+      "sha256": "adce0aa000cbfe5f9082f9bec95014d1277f9c2c22e10e86a053744629fe6e46"
+    },
+    {
+      "bytes": 980,
+      "path": "REPORT.md",
+      "sha256": "60dc56d3331fbe4f6a2bdc28dad16e368831562f85c3f54f6f698c7bace608e4"
+    }
+  ],
+  "runtime_executed": false,
+  "schema": "scenesense.ue_n3_oai_ul_boundary_calibration_manifest.v1",
+  "socket_executed": false,
+  "status": "UE_N3_PLAN_FROZEN_REVIEW_REQUIRED"
+}

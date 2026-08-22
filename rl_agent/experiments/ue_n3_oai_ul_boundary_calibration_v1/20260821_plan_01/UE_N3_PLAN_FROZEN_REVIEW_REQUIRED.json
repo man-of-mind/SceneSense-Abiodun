@@ -1,0 +1,10 @@
+{
+  "manifest_sha256": "de52e1fbe0e41e7b1bc9d9c031b64bd274c1f94c5f9edb8c8a4a01e95e808e75",
+  "next": "IMPLEMENT_MATCHED_PROBE_AND_REVIEW_TARGET_TO_COMMAND_CALIBRATION",
+  "numeric_bound_promoted": false,
+  "runtime_executed": false,
+  "socket_executed": false,
+  "status": "UE_N3_PLAN_FROZEN_REVIEW_REQUIRED",
+  "target_to_command_mapping_status": "UNRESOLVED",
+  "traffic_probe_status": "IMPLEMENTATION_REQUIRED_BEFORE_LIVE_RUN"
+}

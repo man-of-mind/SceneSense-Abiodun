@@ -1,0 +1,110 @@
+{
+  "authority": {
+    "carla_run_authorized": false,
+    "numeric_bound_promotion_authorized": false,
+    "oai_run_authorized": false,
+    "offline_plan_freeze_authorized": true,
+    "policy_training_authorized": false,
+    "rf_command_extrapolation_authorized": false,
+    "socket_execution_authorized": false
+  },
+  "cold_attach": {
+    "authorized_now": false,
+    "phase_id": "N3B",
+    "repetitions": 3,
+    "required_evidence": [
+      "UE_IDENTITY",
+      "PDU_SESSION_ADDRESS",
+      "EXT_DN_REACHABILITY",
+      "ACHIEVED_PUSCH_SNR_IF_AVAILABLE",
+      "SAME_60S_SERVICE_PROBE"
+    ],
+    "selection_source": "LOWEST_REPLICATED_N3A_PASSING_TARGET"
+  },
+  "experiment_id": "ue_n3_oai_ul_boundary_calibration_v1",
+  "known_anchors": {
+    "clean_achieved_pusch_snr_db_reference": 50.5,
+    "clean_commanded_noise_power_db": -50.0,
+    "scheduler_mcs28_saturation_threshold_db": 24.5,
+    "scheduler_table_lower_threshold_db_not_attach_bound": -1.0,
+    "weakest_n2_achieved_pusch_snr_db_median": 8.5,
+    "weakest_n2_commanded_noise_power_db": -4.0
+  },
+  "observation": {
+    "actuator_field": "commanded_noise_power_db",
+    "desired_target_field": "desired_achieved_pusch_snr_db",
+    "direct_ul_bler_status": "UNAVAILABLE_UNRESOLVED",
+    "measured_field": "GNB_MAC_PUSCH_POWER_CONTROL.snrx10/10",
+    "policy_availability": "POST_ACTION_COLLECTOR_EVIDENCE_NOT_AGENT_OBSERVATION",
+    "scheduler_ema_field": "GNB_MAC_UL_MCS_DECISION.avg_snr_x10/10"
+  },
+  "outputs": {
+    "manifest": "manifest.json",
+    "output_root": "rl_agent/experiments/ue_n3_oai_ul_boundary_calibration_v1",
+    "report": "REPORT.md",
+    "resolved_config": "resolved_config.json",
+    "terminal": "UE_N3_PLAN_FROZEN_REVIEW_REQUIRED.json",
+    "trial_matrix": "trial_matrix.csv"
+  },
+  "predecessor": {
+    "evidence_dir": "rl_agent/experiments/ue_n2_oai_ul_calibration_smoke_v1/20260821_meeting_smoke_04",
+    "manifest_json": "manifest.json",
+    "manifest_sha256": "06fff3a60c14cce5ed3a1dc57d2b1bea5af73bb39fb894d674442f24830d68c6",
+    "required_next": "UE-N3",
+    "required_status": "UE_N2_SMOKE_CAPTURED_PARTIAL_EVIDENCE",
+    "terminal_json": "UE_N2_SMOKE_CAPTURED.json",
+    "terminal_sha256": "ff4d4b1324958c59f820d90211e4b583a7d3ede49c4b286aba9b7911ac2a0707"
+  },
+  "refinement": {
+    "boundary_repetitions": 3,
+    "maximum_additional_targets": 2,
+    "maximum_final_bracket_width_db": 1.0,
+    "stable_outcome_requirement": "3_OF_3",
+    "target_resolution_db": 0.5,
+    "two_of_three_outcome": "UE_N3_UNSTABLE_BOUND_REVIEW_REQUIRED"
+  },
+  "schema": "scenesense.ue_n3_oai_ul_boundary_calibration_config.v1",
+  "screening": {
+    "commanded_noise_power_db_by_target": {
+      "2.0": null,
+      "3.0": null,
+      "4.0": null,
+      "6.0": null
+    },
+    "desired_achieved_pusch_snr_db": [
+      6.0,
+      4.0,
+      3.0,
+      2.0
+    ],
+    "service_duration_s": 60.0,
+    "settle_duration_s": 10.0,
+    "stop_lower_targets_after_hard_service_loss": true,
+    "target_tolerance_db": 0.5,
+    "unconfirmed_target_outcome": "DETACHED_BEFORE_TARGET_CONFIRMATION"
+  },
+  "traffic_probe": {
+    "gate_status": "REVIEW_REQUIRED_BEFORE_LIVE_RUN",
+    "goodput_gate_mbps": null,
+    "host_iperf3_status": "UNAVAILABLE_AT_PLAN_FREEZE",
+    "maximum_complete_receiver_gap_s": 1.0,
+    "method": "STRUCTURED_UDP_UPLINK",
+    "offered_rate_mbps": 1.0,
+    "packet_loss_gate": null,
+    "required_receiver": "DEDICATED_SSBURST_AWARE_MATCHED_RECEIVER",
+    "sender_header": "SSBURST",
+    "sender_path": "oai_layer_latency/carla_shaped_udp_burst_sender.py",
+    "status": "IMPLEMENTATION_REQUIRED_BEFORE_LIVE_RUN"
+  },
+  "upper_boundary": {
+    "authorized_now": false,
+    "desired_achieved_pusch_snr_db": [
+      24.0,
+      24.5,
+      50.5
+    ],
+    "expected_saturation_mcs": 28,
+    "final_mcs_reported_separately": true,
+    "selection_metric": "SCHEDULER_SELECTED_MCS"
+  }
+}

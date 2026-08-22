@@ -325,6 +325,19 @@ causal first-effect estimate, and direct UL BLER remains unresolved. These
 limitations do not promote a numeric bound or universal calibration. Meeting
 brief: `UE_N2_MEETING_BRIEF_20260821.md`.
 
+**UE-N3 preparation evidence (2026-08-21):**
+`experiments/ue_n3_oai_ul_boundary_calibration_v1/20260821_plan_03/`
+records `UE_N3_PLAN_FROZEN_REVIEW_REQUIRED`. The create-only plan separates
+the sustain, cold-attach, and operational lower bounds; freezes desired
+achieved-PUSCH-SNR screening targets at `6/4/3/2 dB`; leaves every unmeasured
+RFsim command unset; and retains `24.5 dB` as a scheduler-boundary hypothesis
+to verify rather than a physical RF maximum. The matched `SSBURST` receiver is
+implemented and offline-tested for sequence loss, duplicates, reordering,
+goodput, and one-second gaps. The combined N2/N3 suite passes 24/24 tests. No
+live OAI/socket run or numeric-bound promotion occurred, so UE-N3 remains open.
+The authoritative manifest SHA-256 is
+`4cdf5781e3355cb1f1ce507a1d1cc98ed19561adba6059b6d2626e3f369d0d8f`.
+
 ## Stage 4 — map-install feedback and asynchronous timing
 
 - [ ] **UE-F1:** Implement authoritative `ACK_INSTALLED` only after accepted
