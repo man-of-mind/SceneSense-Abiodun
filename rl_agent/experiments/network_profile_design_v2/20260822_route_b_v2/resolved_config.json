@@ -1,0 +1,177 @@
+{
+  "claim_boundary": "TARGET_SNR_DESIGN_NOT_MEASURED_ACHIEVED_OAI_SNR_RFSIM_ACTUATION_REQUIRES_CALIBRATION",
+  "experiment_id": "network_profile_design_v2",
+  "figure": {
+    "font_family": "DejaVu Sans",
+    "palette": {
+      "blue": "#00A8EC",
+      "deep": "#0A5C93",
+      "grey": "#49515C",
+      "light": "#E6E6E7",
+      "navy": "#010644",
+      "orange": "#FFAA59",
+      "teal": "#00C9C8",
+      "warning": "#D8455F",
+      "white": "#FFFFFF"
+    },
+    "pdf_svg_enabled": true,
+    "png_dpi": 300
+  },
+  "profiles": [
+    {
+      "color": "#00C9C8",
+      "display_name": "Favorable stable",
+      "initial_distribution": "STATIONARY",
+      "line_style": "-",
+      "profile_id": "FAVORABLE_STABLE",
+      "seed": 2026082101,
+      "short_description": "80% favorable occupancy; long favorable runs; rare brief fades",
+      "trace_id": "GM_V2_FAVORABLE_STABLE_SEED_2026082101",
+      "transition_matrix": [
+        [
+          0.8,
+          0.2,
+          0.0
+        ],
+        [
+          0.05,
+          0.85,
+          0.1
+        ],
+        [
+          0.0,
+          0.02,
+          0.98
+        ]
+      ]
+    },
+    {
+      "color": "#00A8EC",
+      "display_name": "Mid variable",
+      "initial_distribution": "STATIONARY",
+      "line_style": "--",
+      "profile_id": "MID_VARIABLE",
+      "seed": 2026082102,
+      "short_description": "20/60/20 occupancy; rapid switching among the three channel states",
+      "trace_id": "GM_V2_MID_VARIABLE_SEED_2026082102",
+      "transition_matrix": [
+        [
+          0.85,
+          0.15,
+          0.0
+        ],
+        [
+          0.05,
+          0.9,
+          0.05
+        ],
+        [
+          0.0,
+          0.15,
+          0.85
+        ]
+      ]
+    },
+    {
+      "color": "#0A5C93",
+      "display_name": "Adverse stable",
+      "initial_distribution": "STATIONARY",
+      "line_style": ":",
+      "profile_id": "ADVERSE_STABLE",
+      "seed": 2026082103,
+      "short_description": "80% adverse occupancy; long adverse runs; rare brief recovery",
+      "trace_id": "GM_V2_ADVERSE_STABLE_SEED_2026082103",
+      "transition_matrix": [
+        [
+          0.98,
+          0.02,
+          0.0
+        ],
+        [
+          0.1,
+          0.85,
+          0.05
+        ],
+        [
+          0.0,
+          0.2,
+          0.8
+        ]
+      ]
+    },
+    {
+      "color": "#FFAA59",
+      "display_name": "Fade / recovery",
+      "initial_distribution": "STATIONARY",
+      "line_style": "-.",
+      "profile_id": "FADE_RECOVERY",
+      "seed": 2026082104,
+      "short_description": "Same 20/60/20 occupancy as mid-variable; five-times longer state dwell",
+      "trace_id": "GM_V2_FADE_RECOVERY_SEED_2026082104",
+      "transition_matrix": [
+        [
+          0.97,
+          0.03,
+          0.0
+        ],
+        [
+          0.01,
+          0.98,
+          0.01
+        ],
+        [
+          0.0,
+          0.03,
+          0.97
+        ]
+      ]
+    }
+  ],
+  "replay_contract": {
+    "action_profile_count": 72,
+    "density_consumption": "each density consumes the matching prefix and stops when its Route B episode ends",
+    "episode_reset": "REPLAY_FROM_SAMPLE_ZERO",
+    "reference_trace_is_runtime_cap": false,
+    "runtime_continuation": "continue the seeded RNG and Markov state beyond sample 4199 when an episode lasts longer than 420 seconds",
+    "sequence_scope": "ONE_DETERMINISTIC_TARGET_SNR_SEQUENCE_PER_NETWORK_PROFILE"
+  },
+  "route": {
+    "duration_s": 420.0,
+    "qualified_density_durations_s": {
+      "dense": 419.9,
+      "low": 359.25,
+      "medium": 358.7
+    },
+    "route_id": "Town10HD_Opt Route B full-map loop v1",
+    "route_length_m": 1268.68,
+    "runtime_semantics": "initialize once per episode from the fixed profile seed, replay from sample zero, and continue the same RNG and Markov state until the episode ends; 4200 samples is a reference-figure length, not a runtime cap",
+    "sample_count": 4200,
+    "sample_period_s": 0.1,
+    "sample_semantics": "reference target k is held over [k*0.1,(k+1)*0.1), k=0..4199"
+  },
+  "schema": "scenesense.network_profile_design.v2",
+  "target_snr": {
+    "bounds_status": "QUALIFIED_OPERATIONAL_DESIGN_BOUNDS",
+    "lower_bound_db": 5.5,
+    "lower_bound_semantics": "QUALIFIED_LOWER_ACHIEVED_TARGET_PUSCH_SNR",
+    "parameter_rule": "R=U-L; mu_A=L+0.15R; mu_I=L+0.50R; mu_F=L+0.85R; sigma=0.06R",
+    "range_db": 19.0,
+    "state_means_db": [
+      8.35,
+      15.0,
+      21.65
+    ],
+    "state_order": [
+      "ADVERSE",
+      "INTERMEDIATE",
+      "FAVORABLE"
+    ],
+    "state_sigma_db": [
+      1.14,
+      1.14,
+      1.14
+    ],
+    "upper_bound_db": 24.5,
+    "upper_bound_semantics": "QUALIFIED_UPPER_SCHEDULER_BOUNDARY"
+  }
+}

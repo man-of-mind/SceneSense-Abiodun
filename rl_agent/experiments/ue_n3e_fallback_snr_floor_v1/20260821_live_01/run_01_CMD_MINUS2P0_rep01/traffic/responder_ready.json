@@ -1,0 +1,7 @@
+{
+  "bind_host": "192.168.70.135",
+  "pid": 4160289,
+  "port": 56131,
+  "schema": "scenesense.ue_n3e_fallback_ack_responder_ready.v1",
+  "status": "READY"
+}

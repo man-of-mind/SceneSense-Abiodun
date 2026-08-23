@@ -1,0 +1,165 @@
+{
+  "actuator": {
+    "channel_model_name": "rfsimu_channel_ue0",
+    "channel_model_owner": "rfsimulator",
+    "channel_model_type": "AWGN",
+    "clean_and_restore_commanded_noise_power_db": "-50",
+    "connect_timeout_s": 15.0,
+    "max_response_bytes": 1048576,
+    "path_loss_db": 0.0,
+    "prompt_suffix": "softmodem_gnb> ",
+    "response_timeout_s": 2.0,
+    "telnet_host": "127.0.0.1",
+    "telnet_port": 9090
+  },
+  "analysis": {
+    "minimum_tail_mcs_samples": 30,
+    "minimum_tail_pusch_samples": 120,
+    "scheduler_required_force_ul_mcs": -1,
+    "scheduler_required_mcs_table": 0
+  },
+  "authority": {
+    "carla_run_authorized": false,
+    "live_authority_basis": "USER_REQUEST_2026-08-21_FALLBACK_LOWER_OPERATIONAL_SNR_BOUND",
+    "live_oai_run_authorized": true,
+    "live_socket_execution_authorized": true
+  },
+  "claim_boundary": "RUNTIME_SUSTAIN_OF_2KB_PER_100MS_FALLBACK_ROUTE_ONLY_NOT_A_COLD_ATTACH_LIMIT_AND_NOT_A_PHYSICAL_LIMIT",
+  "experiment_id": "ue_n3e_fallback_snr_floor_v1",
+  "output": {
+    "campaign_summary": "campaign_summary.json",
+    "command_log": "command_log.csv",
+    "report": "REPORT.md",
+    "runs_csv": "runs.csv"
+  },
+  "pass_criteria": {
+    "maximum_ack_latency_p95_ms": 100.0,
+    "maximum_outage_s": 1.0,
+    "minimum_delivered_and_acked": 594,
+    "minimum_delivery_ratio": 0.99,
+    "no_disconnection_required": true
+  },
+  "paths": {
+    "ack_client": "rl_agent/ue_n3e_fallback_ack_client.py",
+    "ack_responder": "rl_agent/ue_n3e_fallback_ack_responder.py",
+    "channel_config": "channelmod_rfsimu.conf",
+    "command_calibration_engine": "rl_agent/ue_n3_oai_ul_command_calibration_v1.py",
+    "gnb_base_config": "gnb.sa.band78.fr1.106PRB.usrpb210.conf",
+    "n2_runner": "rl_agent/ue_n2_oai_ul_calibration_smoke.py",
+    "oai_ran_build": "OAI/openairinterface5g/cmake_targets/ran_build/build",
+    "oai_ran_conf": "OAI/openairinterface5g/targets/PROJECTS/GENERIC-NR-5GC/CONF",
+    "output_root": "rl_agent/experiments/ue_n3e_fallback_snr_floor_v1",
+    "python": "/home/shr_aisvcs/workarea/carla_0_10_env/carla_0_10_venv/bin/python3",
+    "receiver": "rl_agent/ue_n3_structured_udp_receiver.py",
+    "sender": "oai_layer_latency/carla_shaped_udp_burst_sender.py",
+    "t_messages": "OAI/openairinterface5g/common/utils/T/T_messages.txt",
+    "ue_base_config": "ue.conf"
+  },
+  "preflight": {
+    "carla_ports": [
+      2000,
+      2001,
+      2002
+    ],
+    "carla_process_markers": [
+      "CarlaUE4",
+      "CarlaUnreal"
+    ],
+    "fail_if_carla_active": true,
+    "required_host_tcp_ports": [
+      4043,
+      9090,
+      2021,
+      2023,
+      2031,
+      2033
+    ],
+    "structured_udp_port": 56130
+  },
+  "radio": {
+    "attach_timeout_s": 180.0,
+    "band": 78,
+    "core_containers": [
+      "oai-amf",
+      "oai-smf",
+      "oai-upf",
+      "oai-ext-dn"
+    ],
+    "downlink_frequency_hz": 3619200000,
+    "expected_imsi": "001010000000001",
+    "ext_dn_container": "oai-ext-dn",
+    "ext_dn_ip": "192.168.70.135",
+    "force_ul_mcs_must_be_unset": true,
+    "global_noise_parameter_must_be_unset": "noise_power_dBFS",
+    "gnb_start_lead_s": 5.0,
+    "mcs_policy": "sinr",
+    "numerology": 1,
+    "power_control_target_x10": 150,
+    "prb": 106,
+    "slots_per_frame": 20,
+    "ue_count": 1,
+    "ue_interface": "oaitun_ue1"
+  },
+  "run": {
+    "clean_commanded_noise_power_db": -50.0,
+    "clean_lead_s": 5.0,
+    "clean_recovery_s": 5.0,
+    "client_total_messages": 850,
+    "expected_tail_messages": 600,
+    "inter_run_settle_s": 5.0,
+    "measured_tail_s": 60.0,
+    "minimum_clean_lead_acks": 20,
+    "minimum_recovery_ack_messages": 5,
+    "minimum_recovery_pusch_samples": 5,
+    "responder_duration_s": 100.0,
+    "settle_s": 10.0
+  },
+  "schema": "scenesense.ue_n3e_fallback_snr_floor_config.v1",
+  "search": {
+    "repetitions_for_lowest_pass": 3,
+    "start_commanded_noise_power_db": -2.0,
+    "step_db": 0.5,
+    "stop_commanded_noise_power_db": 0.0
+  },
+  "telemetry": {
+    "collector_tail_s": 1.0,
+    "connect_timeout_s": 15.0,
+    "direct_ul_bler_status": "UNAVAILABLE_UNRESOLVED",
+    "events": {
+      "gnb": [
+        "GNB_MAC_PUSCH_POWER_CONTROL",
+        "GNB_MAC_UL_MCS_DECISION",
+        "GNB_MAC_UL",
+        "GNB_MAC_BLER_MCS_DECISION",
+        "GNB_MAC_RX_SDU",
+        "GNB_PDCP_RX_DELIVER",
+        "GNB_PHY_UL_PAYLOAD_RX_BITS"
+      ],
+      "ue": [
+        "NRUE_MAC_DCI_GRANT",
+        "NRUE_MAC_RLC_BUFFER_STATUS",
+        "NRUE_MAC_BSR_STATUS",
+        "UE_PHY_UL_PAYLOAD_TX_BITS",
+        "NR_PDCP_TX_SDU",
+        "NR_RLC_TX_SDU",
+        "NR_RLC_TX_DEQUEUE"
+      ]
+    },
+    "gnb_host": "127.0.0.1",
+    "gnb_port": 2021,
+    "gnb_relay_port": 2031,
+    "ue_host": "127.0.0.1",
+    "ue_port": 2023,
+    "ue_relay_port": 2033
+  },
+  "workload": {
+    "ack_bytes": 16,
+    "expected_source_ip": "192.168.70.134",
+    "interval_ms": 100.0,
+    "nominal_bitrate_bps": 163840,
+    "payload_bytes": 2048,
+    "remote_port": 56131,
+    "responder_ready_timeout_s": 10.0,
+    "role": "DEGRADED_LOCAL_FALLBACK_OUTPUT"
+  }
+}

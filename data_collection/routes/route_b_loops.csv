@@ -1,0 +1,3 @@
+route_id,loop_index,completed,all_ordered_waypoints_reached,waypoints_reached,waypoints_expected,regions_covered,planned_route_length_m,driven_distance_m,simulation_duration_s,wall_clock_duration_s,ticks,return_position_error_m,return_heading_error_deg,collision_count
+Town10HD_Opt Route B full-map loop v1,1,True,True,19,19,"B1,B2,B3",1268.68,1251.54,292.95,292.95,5859,0.508,0.717,0
+Town10HD_Opt Route B full-map loop v1,2,True,True,19,19,"B1,B2,B3",1268.68,1251.59,302.0,302.0,6040,0.596,0.784,0

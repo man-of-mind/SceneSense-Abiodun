@@ -1,0 +1,31 @@
+{
+  "achieved_pusch_snr_db_median": 5.0,
+  "achieved_pusch_snr_db_p05": 5.0,
+  "achieved_pusch_snr_db_p25": 5.0,
+  "achieved_pusch_snr_db_p75": 5.0,
+  "achieved_pusch_snr_db_p95": 5.5,
+  "end_monotonic_ns": 1589848228359650,
+  "expected_rnti": 1432,
+  "final_mcs_histogram": {
+    "7": 2809
+  },
+  "final_mcs_median": 7,
+  "force_ul_mcs": -1,
+  "mcs_samples": 2809,
+  "mcs_seals_ok": true,
+  "mcs_table": 0,
+  "minimum_mcs_samples": 30,
+  "minimum_pusch_samples": 120,
+  "observed_rntis": [
+    1432
+  ],
+  "pusch_samples": 2696,
+  "scheduler_ema_snr_db_median": 5.0,
+  "selected_mcs_histogram": {
+    "7": 2809
+  },
+  "selected_mcs_median": 7,
+  "start_monotonic_ns": 1589788228359650,
+  "status": "TAIL_ACCEPTED",
+  "timestamp_semantics": "COLLECTOR_INGEST_WINDOW_NOT_RF_APPLICATION_TIMESTAMP"
+}

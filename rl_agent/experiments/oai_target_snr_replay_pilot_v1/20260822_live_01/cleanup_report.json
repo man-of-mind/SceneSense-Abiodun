@@ -1,0 +1,9 @@
+{
+  "busy_owned_ports": [],
+  "checked_at": "2026-08-22T19:01:53.450761-07:00",
+  "clean": true,
+  "errors": [],
+  "ext_dn_ack_port_busy": false,
+  "oai_tunnel_interfaces_present": [],
+  "owned_processes_alive": []
+}

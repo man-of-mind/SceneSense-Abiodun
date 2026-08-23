@@ -1,0 +1,12 @@
+{
+  "acked": 650,
+  "attempted": 650,
+  "interval_ms": 100.0,
+  "malformed_acks": 0,
+  "payload_bytes": 2048,
+  "schema": "scenesense.ue_n3e_fallback_ack_client_summary.v1",
+  "send_errors": {},
+  "send_ok": 650,
+  "status": "COMPLETE",
+  "unexpected_duplicate_acks": 0
+}

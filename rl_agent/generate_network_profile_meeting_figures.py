@@ -30,16 +30,9 @@ from matplotlib.patches import FancyArrowPatch, FancyBboxPatch, Rectangle
 
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_CONFIG = ROOT / "rl_agent/configs/network_profile_design_v1.json"
+DEFAULT_CONFIG = ROOT / "rl_agent/configs/network_profile_design_v2.json"
 NORMAL = NormalDist()
 STATE_SHORT = ("A", "I", "F")
-DESIGN_FOOTER = (
-    "Illustrative target-SNR design · provisional bounds · not measured radio evidence"
-)
-TRACE_FOOTER = (
-    "Illustrative target-SNR trace · fixed seed · 624 × 100 ms · "
-    "provisional bounds · not measured radio evidence"
-)
 
 
 class DesignError(RuntimeError):
@@ -82,6 +75,7 @@ def validate_config(config: Mapping[str, Any]) -> None:
         raise DesignError("state means must lie strictly inside the target-SNR bounds")
     seen_ids: set[str] = set()
     seen_seeds: set[int] = set()
+    seen_trace_ids: set[str] = set()
     for profile in config["profiles"]:
         profile_id = str(profile["profile_id"])
         seed = int(profile["seed"])
@@ -89,6 +83,10 @@ def validate_config(config: Mapping[str, Any]) -> None:
             raise DesignError("profile identifiers and seeds must be unique")
         seen_ids.add(profile_id)
         seen_seeds.add(seed)
+        trace_id = str(profile.get("trace_id", f"{profile_id}_SEED_{seed}"))
+        if trace_id in seen_trace_ids:
+            raise DesignError("profile trace identifiers must be unique")
+        seen_trace_ids.add(trace_id)
         matrix = np.asarray(profile["transition_matrix"], dtype=float)
         sigmas = np.asarray(target["state_sigma_db"], dtype=float)
         if matrix.shape != (3, 3) or np.any(matrix < 0):
@@ -132,6 +130,24 @@ def truncated_normal_ppf(
     return mean + sigma * NORMAL.inv_cdf(mapped)
 
 
+def truncated_normal_moments(
+    mean: float, sigma: float, lower: float, upper: float
+) -> tuple[float, float]:
+    alpha = (lower - mean) / sigma
+    beta = (upper - mean) / sigma
+    alpha_pdf = NORMAL.pdf(alpha)
+    beta_pdf = NORMAL.pdf(beta)
+    normalizer = NORMAL.cdf(beta) - NORMAL.cdf(alpha)
+    shift = (alpha_pdf - beta_pdf) / normalizer
+    truncated_mean = mean + sigma * shift
+    truncated_variance = sigma * sigma * (
+        1.0
+        + (alpha * alpha_pdf - beta * beta_pdf) / normalizer
+        - shift * shift
+    )
+    return truncated_mean, truncated_variance
+
+
 def mixture_pdf(
     x: np.ndarray,
     weights: Sequence[float],
@@ -147,38 +163,61 @@ def mixture_pdf(
     return np.sum(components, axis=0), components
 
 
+class DeterministicTargetSnrSequence:
+    """Stateful fixed-seed sequence that can continue for an entire episode."""
+
+    def __init__(self, profile: Mapping[str, Any], config: Mapping[str, Any]) -> None:
+        self.profile = profile
+        self.config = config
+        target = config["target_snr"]
+        self.means = np.asarray(target["state_means_db"], dtype=float)
+        self.sigmas = np.asarray(target["state_sigma_db"], dtype=float)
+        self.matrix = np.asarray(profile["transition_matrix"], dtype=float)
+        self.lower = float(target["lower_bound_db"])
+        self.upper = float(target["upper_bound_db"])
+        self.stationary = stationary_distribution(self.matrix)
+        self.rng = np.random.default_rng(int(profile["seed"]))
+        self.state = int(self.rng.choice(3, p=self.stationary))
+        self.sample_index = 0
+
+    def next_sample(self) -> tuple[int, float]:
+        if self.sample_index:
+            self.state = int(self.rng.choice(3, p=self.matrix[self.state]))
+        probability = float(self.rng.random())
+        value = truncated_normal_ppf(
+            probability,
+            self.means[self.state],
+            self.sigmas[self.state],
+            self.lower,
+            self.upper,
+        )
+        self.sample_index += 1
+        return self.state, value
+
+
 def generate_trace(
-    profile: Mapping[str, Any], config: Mapping[str, Any]
+    profile: Mapping[str, Any],
+    config: Mapping[str, Any],
+    sample_count: int | None = None,
 ) -> dict[str, Any]:
     route = config["route"]
     target = config["target_snr"]
-    states = list(target["state_order"])
-    means = np.asarray(target["state_means_db"], dtype=float)
-    sigmas = np.asarray(target["state_sigma_db"], dtype=float)
     matrix = np.asarray(profile["transition_matrix"], dtype=float)
-    lower = float(target["lower_bound_db"])
-    upper = float(target["upper_bound_db"])
-    count = int(route["sample_count"])
+    count = int(route["sample_count"] if sample_count is None else sample_count)
+    if count <= 0:
+        raise DesignError("sample count must be positive")
     period = float(route["sample_period_s"])
-    rng = np.random.default_rng(int(profile["seed"]))
     state_index = np.empty(count, dtype=int)
     snr = np.empty(count, dtype=float)
-    stationary = stationary_distribution(matrix)
-    state_index[0] = int(rng.choice(3, p=stationary))
+    sequence = DeterministicTargetSnrSequence(profile, config)
     for index in range(count):
-        if index:
-            state_index[index] = int(rng.choice(3, p=matrix[state_index[index - 1]]))
-        probability = float(rng.random())
-        state = state_index[index]
-        snr[index] = truncated_normal_ppf(
-            probability, means[state], sigmas[state], lower, upper
-        )
+        state_index[index], snr[index] = sequence.next_sample()
     edges = np.arange(count + 1, dtype=float) * period
     times = edges[:-1]
     return {
         "profile": profile,
         "matrix": matrix,
-        "stationary": stationary,
+        "stationary": sequence.stationary,
         "state_index": state_index,
         "snr": snr,
         "times": times,
@@ -228,8 +267,40 @@ def configure_matplotlib(config: Mapping[str, Any]) -> None:
     )
 
 
-def figure_footer(figure: plt.Figure, text: str = DESIGN_FOOTER) -> None:
+def design_footer(config: Mapping[str, Any]) -> str:
+    target = config["target_snr"]
+    return (
+        f"Target-SNR design · L={float(target['lower_bound_db']):g} dB, "
+        f"U={float(target['upper_bound_db']):g} dB · not measured achieved-OAI SNR"
+    )
+
+
+def trace_footer(config: Mapping[str, Any]) -> str:
+    route = config["route"]
+    return (
+        f"Target-SNR reference trace · fixed seed/trace ID · "
+        f"{int(route['sample_count'])} × {1000 * float(route['sample_period_s']):g} ms · "
+        "runtime continues to episode end"
+    )
+
+
+def figure_footer(figure: plt.Figure, text: str) -> None:
     figure.text(0.5, 0.012, text, ha="center", va="bottom", fontsize=8.5, color="#49515C")
+
+
+def trace_time_ticks(duration: float) -> np.ndarray:
+    return np.linspace(0.0, duration, 8)
+
+
+def snr_ticks(config: Mapping[str, Any]) -> list[float]:
+    target = config["target_snr"]
+    return sorted(
+        {
+            float(target["lower_bound_db"]),
+            *map(float, target["state_means_db"]),
+            float(target["upper_bound_db"]),
+        }
+    )
 
 
 def save_figure(figure: plt.Figure, output_dir: Path, stem: str, dpi: int) -> None:
@@ -283,7 +354,7 @@ def plot_gaussian_mean_shift(config: Mapping[str, Any]) -> plt.Figure:
         bbox={"boxstyle": "round,pad=0.35", "facecolor": "white", "edgecolor": config["figure"]["palette"]["light"]},
     )
     figure.subplots_adjust(bottom=0.16, top=0.86)
-    figure_footer(figure)
+    figure_footer(figure, design_footer(config))
     return figure
 
 
@@ -336,7 +407,7 @@ def plot_markov_model(config: Mapping[str, Any]) -> plt.Figure:
     axis.text(0.5, 0.985, "Markov-modulated Gaussian profile: distribution plus temporal persistence", ha="center", va="top", fontsize=15, weight="bold", color=palette["navy"])
     axis.text(0.5, 0.095, "Large diagonal probabilities create multi-frame fades and recoveries instead of independent 100-ms jumps.", ha="center", fontsize=11, color=palette["grey"])
     figure.subplots_adjust(bottom=0.08, top=0.97, left=0.02, right=0.98)
-    figure_footer(figure)
+    figure_footer(figure, design_footer(config))
     return figure
 
 
@@ -370,7 +441,7 @@ def plot_transition_matrices(traces: Sequence[Mapping[str, Any]], config: Mappin
     figure.suptitle("Four network profiles differ through state occupancy and persistence", y=0.975, fontsize=16, weight="bold", color=palette["navy"])
     figure.text(0.5, 0.925, "A = adverse   ·   I = intermediate   ·   F = favorable", ha="center", fontsize=9.5, color=palette["grey"])
     figure.subplots_adjust(left=0.075, right=0.96, bottom=0.13, top=0.85, hspace=0.58, wspace=0.30)
-    figure_footer(figure)
+    figure_footer(figure, design_footer(config))
     return figure
 
 
@@ -396,11 +467,11 @@ def plot_marginal_overview(traces: Sequence[Mapping[str, Any]], config: Mapping[
         xlabel="Target SNR, γ (dB)", ylabel="Long-run probability density",
         xlim=(lower - 0.35, upper + 0.35),
     )
-    figure.suptitle("Proposed marginal distributions for the four network profiles", y=0.97, fontsize=16, weight="bold", color=palette["navy"])
+    figure.suptitle("Target-SNR design marginals for the four network profiles", y=0.97, fontsize=16, weight="bold", color=palette["navy"])
     figure.text(0.5, 0.895, "Mid-variable and fade/recovery overlap: same marginal distribution, different temporal memory", ha="center", fontsize=10.5, color=palette["grey"])
     axis.legend(frameon=False, ncol=2, loc="upper center", bbox_to_anchor=(0.5, 1.16))
     figure.subplots_adjust(bottom=0.17, top=0.73)
-    figure_footer(figure)
+    figure_footer(figure, design_footer(config))
     return figure
 
 
@@ -426,19 +497,22 @@ def plot_trace_overview(traces: Sequence[Mapping[str, Any]], config: Mapping[str
         axis.set_title(f"{profile['display_name']}  ·  realized mean {np.mean(snr):.1f} dB", color=palette["navy"], fontsize=11.5)
         axis.set_xlim(0, duration)
         axis.set_ylim(lower - 0.4, upper + 0.4)
-        axis.set_xticks([0, 10, 20, 30, 40, 50, duration])
-        axis.set_yticks([8.5, 12, 16, 20, 24.5])
+        axis.set_xticks(trace_time_ticks(duration))
+        axis.set_yticks(snr_ticks(config))
+        axis.tick_params(axis="x", labelbottom=True)
         if panel_index // 2 == 1:
             axis.set_xlabel("Route-loop time (s)")
         if panel_index % 2 == 0:
             axis.set_ylabel("Target SNR (dB)")
+        else:
+            axis.tick_params(axis="y", labelleft=True)
     figure.suptitle(
-        f"One pre-generated target-SNR value every 100 ms across the {duration:g}-s / {float(route['route_length_m']):.1f}-m loop",
+        f"Fixed-seed target-SNR reference at 100 ms across {duration:g} s of Route B ({float(route['route_length_m']):.1f} m)",
         y=0.975, fontsize=15.5, weight="bold", color=palette["navy"],
     )
     figure.text(0.5, 0.91, "Background state: adverse (grey) · intermediate (orange) · favorable (teal)", ha="center", fontsize=9.5, color=palette["grey"])
     figure.subplots_adjust(left=0.085, right=0.98, bottom=0.13, top=0.84, hspace=0.42, wspace=0.13)
-    figure_footer(figure, TRACE_FOOTER)
+    figure_footer(figure, trace_footer(config))
     return figure
 
 
@@ -462,7 +536,7 @@ def plot_profile_distribution(trace: Mapping[str, Any], config: Mapping[str, Any
     axis.legend(frameon=False, loc="upper right")
     axis.text(0.02, 0.96, profile["short_description"], transform=axis.transAxes, va="top", fontsize=10, color=palette["grey"])
     figure.subplots_adjust(bottom=0.17, top=0.85)
-    figure_footer(figure)
+    figure_footer(figure, design_footer(config))
     return figure
 
 
@@ -479,14 +553,14 @@ def plot_profile_trace(trace: Mapping[str, Any], config: Mapping[str, Any]) -> p
     axis.set(
         xlabel="Route-loop time (s)", ylabel="Target SNR (dB)",
         xlim=(0, duration), ylim=(lower - 0.4, upper + 0.4),
-        title=f"{profile['display_name']}: 624 target values over one {duration:g}-s route loop",
+        title=f"{profile['display_name']}: {len(snr)} target values over the {duration:g}-s reference trace",
     )
-    axis.set_xticks([0, 10, 20, 30, 40, 50, duration])
-    axis.set_yticks([8.5, 12, 16, 20, 24.5])
+    axis.set_xticks(trace_time_ticks(duration))
+    axis.set_yticks(snr_ticks(config))
     axis.legend(frameon=False, loc="upper right")
     axis.text(0.01, 0.94, profile["short_description"], transform=axis.transAxes, va="top", fontsize=10, color=palette["grey"])
     figure.subplots_adjust(bottom=0.19, top=0.82)
-    figure_footer(figure, TRACE_FOOTER)
+    figure_footer(figure, trace_footer(config))
     return figure
 
 
@@ -512,10 +586,10 @@ def plot_profile_card(trace: Mapping[str, Any], config: Mapping[str, Any]) -> pl
     trace_axis.axhline(float(np.mean(snr)), color=palette["grey"], linestyle="--", linewidth=1.0)
     trace_axis.set(
         xlabel="Route-loop time (s)", ylabel="Target SNR (dB)",
-        xlim=(0, duration), ylim=(lower - 0.4, upper + 0.4), title="Fixed-seed 62.4-s trace",
+        xlim=(0, duration), ylim=(lower - 0.4, upper + 0.4), title=f"Fixed-seed {duration:g}-s reference trace",
     )
-    trace_axis.set_xticks([0, 10, 20, 30, 40, 50, duration])
-    trace_axis.set_yticks([8.5, 12, 16, 20, 24.5])
+    trace_axis.set_xticks(trace_time_ticks(duration))
+    trace_axis.set_yticks(snr_ticks(config))
     stationary = np.asarray(trace["stationary"])
     dwell = float(route["sample_period_s"]) / (1.0 - np.diag(trace["matrix"]))
     figure.suptitle(profile["display_name"], y=0.965, fontsize=17, weight="bold", color=palette["navy"])
@@ -527,7 +601,7 @@ def plot_profile_card(trace: Mapping[str, Any], config: Mapping[str, Any]) -> pl
         ha="center", fontsize=9.2, color=palette["grey"],
     )
     figure.subplots_adjust(bottom=0.18, top=0.79, wspace=0.30)
-    figure_footer(figure, TRACE_FOOTER)
+    figure_footer(figure, trace_footer(config))
     return figure
 
 
@@ -536,8 +610,8 @@ def write_trace_table(output_dir: Path, traces: Sequence[Mapping[str, Any]], con
     states = list(config["target_snr"]["state_order"])
     period = float(config["route"]["sample_period_s"])
     fields = (
-        "profile_id", "seed", "step_index", "interval_start_s", "interval_end_s",
-        "state_index", "state", "target_snr_db",
+        "profile_id", "trace_id", "seed", "value_semantics", "step_index",
+        "interval_start_s", "interval_end_s", "state_index", "state", "target_snr_db",
     )
     with path.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=fields)
@@ -548,7 +622,11 @@ def write_trace_table(output_dir: Path, traces: Sequence[Mapping[str, Any]], con
                 writer.writerow(
                     {
                         "profile_id": profile["profile_id"],
+                        "trace_id": profile.get(
+                            "trace_id", f"{profile['profile_id']}_SEED_{profile['seed']}"
+                        ),
                         "seed": profile["seed"],
+                        "value_semantics": "TARGET_SNR_DESIGN_NOT_MEASURED_ACHIEVED_OAI_SNR",
                         "step_index": index,
                         "interval_start_s": f"{index * period:.1f}",
                         "interval_end_s": f"{(index + 1) * period:.1f}",
@@ -561,8 +639,17 @@ def write_trace_table(output_dir: Path, traces: Sequence[Mapping[str, Any]], con
 
 def build_summaries(traces: Sequence[Mapping[str, Any]], config: Mapping[str, Any]) -> list[dict[str, Any]]:
     route = config["route"]
-    states = list(config["target_snr"]["state_order"])
+    target = config["target_snr"]
+    states = list(target["state_order"])
     period = float(route["sample_period_s"])
+    lower = float(target["lower_bound_db"])
+    upper = float(target["upper_bound_db"])
+    component_moments = [
+        truncated_normal_moments(float(mean), float(sigma), lower, upper)
+        for mean, sigma in zip(target["state_means_db"], target["state_sigma_db"])
+    ]
+    component_means = np.asarray([value[0] for value in component_moments])
+    component_variances = np.asarray([value[1] for value in component_moments])
     summaries = []
     for trace in traces:
         profile, snr, state_index = trace["profile"], trace["snr"], trace["state_index"]
@@ -571,6 +658,13 @@ def build_summaries(traces: Sequence[Mapping[str, Any]], config: Mapping[str, An
         occupancy = np.bincount(state_index, minlength=3) / len(state_index)
         transitions = int(np.count_nonzero(state_index[1:] != state_index[:-1]))
         expected_transition_rate = 1.0 - float(np.dot(stationary, np.diag(trace["matrix"])))
+        theoretical_mean = float(np.dot(stationary, component_means))
+        theoretical_variance = float(
+            np.dot(
+                stationary,
+                component_variances + np.square(component_means - theoretical_mean),
+            )
+        )
         trace_digest = hashlib.sha256()
         trace_digest.update(np.asarray(state_index, dtype="<i4").tobytes())
         trace_digest.update(np.asarray(snr, dtype="<f8").tobytes())
@@ -578,10 +672,17 @@ def build_summaries(traces: Sequence[Mapping[str, Any]], config: Mapping[str, An
             {
                 "profile_id": profile["profile_id"],
                 "display_name": profile["display_name"],
+                "trace_id": profile.get(
+                    "trace_id", f"{profile['profile_id']}_SEED_{profile['seed']}"
+                ),
                 "seed": int(profile["seed"]),
+                "value_semantics": "TARGET_SNR_DESIGN_NOT_MEASURED_ACHIEVED_OAI_SNR",
                 "sample_count": len(snr),
                 "duration_s": float(route["duration_s"]),
+                "theoretical_marginal_mean_snr_db": theoretical_mean,
+                "theoretical_marginal_variance_snr_db2": theoretical_variance,
                 "empirical_mean_snr_db": float(np.mean(snr)),
+                "empirical_variance_snr_db2": float(np.var(snr)),
                 "empirical_std_snr_db": float(np.std(snr)),
                 "empirical_p05_snr_db": float(np.quantile(snr, 0.05)),
                 "empirical_median_snr_db": float(np.median(snr)),
@@ -608,54 +709,74 @@ def write_summary_csv(path: Path, summaries: Sequence[Mapping[str, Any]]) -> Non
         writer.writerows(summaries)
 
 
+def supervisor_table_markdown(summaries: Sequence[Mapping[str, Any]]) -> str:
+    lines = [
+        "# Target-SNR profile mean and variance", "",
+        "> Design traces only; not measured achieved-OAI SNR. RFsim actuation requires a separate calibrated mapping.", "",
+        "| Network profile | Theoretical mean after truncation (dB) | Theoretical variance after truncation (dB^2) | 420-s empirical mean (dB) | 420-s empirical variance (dB^2) |",
+        "|---|---:|---:|---:|---:|",
+    ]
+    for summary in summaries:
+        lines.append(
+            f"| {summary['display_name']} | "
+            f"{float(summary['theoretical_marginal_mean_snr_db']):.3f} | "
+            f"{float(summary['theoretical_marginal_variance_snr_db2']):.3f} | "
+            f"{float(summary['empirical_mean_snr_db']):.3f} | "
+            f"{float(summary['empirical_variance_snr_db2']):.3f} |"
+        )
+    return "\n".join(lines) + "\n"
+
+
 def formulation_markdown(config: Mapping[str, Any], traces: Sequence[Mapping[str, Any]]) -> str:
     target, route = config["target_snr"], config["route"]
-    lower, upper = target["lower_bound_db"], target["upper_bound_db"]
+    lower, upper = float(target["lower_bound_db"]), float(target["upper_bound_db"])
+    period = float(route["sample_period_s"])
+    count = int(route["sample_count"])
+    duration = float(route["duration_s"])
+    means = ", ".join(f"{float(value):.2f}" for value in target["state_means_db"])
+    sigmas = ", ".join(f"{float(value):.2f}" for value in target["state_sigma_db"])
+    density_durations = route["qualified_density_durations_s"]
     lines = [
         "# Gaussian and Markov network-profile formulation", "",
-        "## Slide-level formulation", "",
-        "At each 100-ms decision interval, the generator produces one **target SNR** value.", "",
-        "### 1. Shifted, bounded Gaussian", "",
-        "For a simple profile:", "",
+        "> All values here are **target-SNR design values**, not measured achieved-OAI SNR. RFsim actuation requires a separate calibrated target-to-RFsim mapping; this design does not assume that RFsim accepts target PUSCH SNR directly.", "",
+        "## Bounded Gaussian emission", "",
+        f"At each `{1000 * period:g} ms` interval, the generator produces one target-SNR value. The qualified design band is `L={lower:g} dB`, `U={upper:g} dB`, with `R={upper - lower:g} dB`.", "",
         "```text",
-        "gamma_k ~ TruncatedNormal(mu, sigma^2; L, U)",
+        "gamma_k | Z_k=i ~ TruncatedNormal(mu_i, sigma_i^2; L, U)",
         "```", "",
-        "- `mu` shifts the bell curve left or right and controls the typical channel level.",
-        "- `sigma` controls how concentrated or variable the values are.",
-        f"- This meeting design uses provisional illustration bounds `L={lower:g} dB`, `U={upper:g} dB`.", "",
+        f"The preserved relative rule gives state means A/I/F = `{means} dB` and state sigmas A/I/F = `{sigmas} dB`.", "",
         "The normalized density is:", "",
         "```text",
         "f(gamma) = phi((gamma-mu)/sigma)",
         "           / {sigma [Phi((U-mu)/sigma) - Phi((L-mu)/sigma)]},  L <= gamma <= U",
         "```", "",
-        "where `phi` and `Phi` are the standard-normal PDF and CDF.", "",
-        "### 2. Markov state memory", "",
+        "The summary computes each component's exact mean and variance after truncation, then combines them using the stationary state probabilities. `phi` and `Phi` are the standard-normal PDF and CDF.", "",
+        "## Markov state memory", "",
         "Let `Z_k` be ADVERSE, INTERMEDIATE, or FAVORABLE:", "",
         "```text",
         "Pr(Z_(k+1)=j | Z_k=i) = P_ij",
-        "gamma_k | Z_k=i ~ TruncatedNormal(mu_i, sigma_i^2; L, U)",
         "```", "",
-        "The diagonal `P_ii` is the probability of remaining in the same state. At `Delta t=0.1 s`:", "",
+        f"The transition matrices are unchanged. At `Delta t={period:g} s`, expected state dwell is:", "",
         "```text",
-        "expected dwell time in state i = 0.1 / (1 - P_ii) seconds",
+        "E[D_i] = Delta t / (1 - P_ii)",
         "```", "",
-        "The long-run state proportions satisfy:", "",
+        "Stationary state occupancy and the profile marginal satisfy:", "",
         "```text",
         "pi = pi P,     sum_i pi_i = 1",
         "f_profile(gamma) = sum_i pi_i f_i(gamma)",
         "```", "",
-        "Thus Gaussian parameters determine values *within* a state, while the Markov matrix determines how often and how long states occur.", "",
-        "Samples are conditionally independent within a state in this first design. Temporal memory comes only from the Markov state, avoiding an additional unvalidated smoothing parameter.", "",
-        "## Route-time convention", "",
-        f"The qualified loop is `{float(route['route_length_m']):.3f} m` and `{float(route['duration_s']):.1f} s`.",
-        "There are exactly 624 target values:", "",
+        "## Route B reference trace and runtime continuation", "",
+        f"Route `{route['route_id']}` is `{float(route['route_length_m']):.2f} m`. Qualified durations are low `{float(density_durations['low']):.2f} s`, medium `{float(density_durations['medium']):.2f} s`, and dense `{float(density_durations['dense']):.2f} s`.", "",
+        f"The presentation artifact is a `{duration:g} s` reference prefix containing `{count}` target values:", "",
         "```text",
-        "I_k = [0.1 k, 0.1 (k+1)),   k = 0,...,623",
+        f"I_k = [{period:g} k, {period:g} (k+1)),   k = 0,...,{count - 1}",
         "```", "",
-        "The intervals cover `[0,62.4)` seconds. The final plotted boundary at 62.4 s extends the last held value; it is not sample 625.", "",
-        "## Four proposed profiles", "",
-        "| Profile | Stationary A/I/F | Expected dwell A/I/F | Expected switches / loop | Interpretation |",
-        "|---|---:|---:|---:|---|",
+        f"The plotted intervals cover `[0,{duration:g})` seconds. The `{duration:g} s` boundary extends the final held value and is not an additional sample.", "",
+        "At episode start, instantiate the profile generator with its fixed seed and replay from sample zero. Low and medium consume their matching prefix; dense consumes approximately the full reference prefix. If any episode lasts longer than 420 seconds, the same RNG and Markov state continue deterministically beyond sample 4199 until episode end. The reference length is not a runtime cap.", "",
+        "The same profile trace ID and seed are reused across all 72 action profiles and every density. A new random trace must not be generated per action-profile episode.", "",
+        "## Preserved profiles", "",
+        "| Profile | Trace ID | Seed | Stationary A/I/F | Expected dwell A/I/F | Expected switches / 420-s reference | Interpretation |",
+        "|---|---|---:|---:|---:|---:|---|",
     ]
     for trace in traces:
         profile = trace["profile"]
@@ -663,37 +784,38 @@ def formulation_markdown(config: Mapping[str, Any], traces: Sequence[Mapping[str
         dwell = "/".join(f"{value:.1f}s" for value in float(route["sample_period_s"]) / (1.0 - np.diag(trace["matrix"])))
         transition_rate = 1.0 - float(np.dot(trace["stationary"], np.diag(trace["matrix"])))
         expected_switches = transition_rate * (int(route["sample_count"]) - 1)
-        lines.append(f"| `{profile['profile_id']}` | {stationary} | {dwell} | {expected_switches:.0f} | {profile['short_description']} |")
+        trace_id = profile.get("trace_id", f"{profile['profile_id']}_SEED_{profile['seed']}")
+        lines.append(f"| `{profile['profile_id']}` | `{trace_id}` | {profile['seed']} | {stationary} | {dwell} | {expected_switches:.0f} | {profile['short_description']} |")
     lines += [
         "", "## Interpretation boundary", "",
-        "These figures are proposed, fixed-seed **target-SNR design traces**. They are not measured radio traces and the provisional bounds are not accepted operating limits. The same saved trace should be replayed for every compared action. Later replicates use new complete seeds, and a SCAN/Sionna-derived trace remains a held-out spatial test.", "",
+        "These are fixed-seed **target-SNR design traces**. They are not measured achieved-OAI traces. Turning a target into RFsim controls remains a separate calibrated mapping step.", "",
     ]
     return "\n".join(lines)
 
 
 def presenter_markdown(config: Mapping[str, Any], traces: Sequence[Mapping[str, Any]]) -> str:
-    route = config["route"]
+    route, target = config["route"], config["target_snr"]
     return "\n".join(
         [
             "# Presenter guide — network-profile figures", "",
+            "> Label every value as target-SNR design data. These are not measured achieved-OAI traces, and target-to-RFsim actuation remains a separate calibrated mapping.", "",
             "## The story in four slides", "",
             "### Slide 1 — Gaussian mean shift", "",
-            "**Say:** A Gaussian profile gives us a controlled way to make some SNR values more common than others. Moving the mean toward the upper bound creates a favorable profile; moving it toward the lower bound creates an adverse one. The variance controls how wide or stable the profile is.", "",
-            "**Do not say:** that these illustrative bounds are already validated network limits.", "",
+            f"**Say:** The qualified design band is `{float(target['lower_bound_db']):g}` to `{float(target['upper_bound_db']):g} dB`. The unchanged relative rule places the adverse, intermediate, and favorable means at `{float(target['state_means_db'][0]):.2f}`, `{float(target['state_means_db'][1]):.2f}`, and `{float(target['state_means_db'][2]):.2f} dB`, with sigma `{float(target['state_sigma_db'][0]):.2f} dB`.", "",
             "### Slide 2 — Why add Markov memory?", "",
             "**Say:** Independent Gaussian draws forget the previous 100-ms value. A Markov state adds persistence: the channel normally stays in its current condition and occasionally transitions. The diagonal transition probability directly determines expected dwell time.", "",
-            "### Slide 3 — Four proposed profile distributions", "",
+            "### Slide 3 — Four preserved profile distributions", "",
             "**Say:** The profiles are not four fixed SNR values. Favorable and adverse change long-run state occupancy. Mid-variable and fade/recovery deliberately have the same long-run SNR distribution, but fade/recovery scales transition rates down by five. This isolates rapid variation from sustained fades.", "",
-            "### Slide 4 — One route-loop trace per profile", "",
-            f"**Say:** The qualified `{float(route['route_length_m']):.1f}-m` loop takes `{float(route['duration_s']):.1f} s`, giving exactly 624 decisions at 100-ms cadence. Each colored step is one target held for a single decision interval. We save each trace once and replay the exact same values for all action profiles, preserving a fair comparison.", "",
-            "## One-sentence recommendation", "",
-            "Use the Markov-modulated Gaussian model for the main experiment because it retains the supervisor's intuitive mean/variance control while adding the temporal persistence needed to study queue build-up, fades, and recovery; keep an IID bounded-Gaussian trace as a diagnostic control.", "",
+            "### Slide 4 — Route B reference traces", "",
+            f"**Say:** Route B is `{float(route['route_length_m']):.2f} m`. The longest qualified density duration is `{float(route['qualified_density_durations_s']['dense']):.2f} s`, so the presentation uses a `{float(route['duration_s']):g} s`, `{int(route['sample_count'])}`-sample reference trace at 100-ms cadence.", "",
+            "**Say:** For fair action-profile comparison, each network profile has one trace ID and fixed seed. Every one of the 72 action profiles and every density restarts that sequence at sample zero. Low and medium stop on their shorter Route B completion; dense uses approximately the full reference. If a run exceeds 420 seconds, the stateful generator continues deterministically until episode end.", "",
+            "**Do not say:** that RFsim accepts target PUSCH SNR directly. A calibrated target-to-RFsim mapping is a separate actuation layer.", "",
             "## Figure mapping", "",
             "- `01_gaussian_mean_shift`: explains mean and variance.",
             "- `02_markov_model`: explains temporal memory and dwell time.",
             "- `03_markov_transition_matrices`: technical backup for the four matrices.",
             "- `04_profile_marginal_distributions`: compares long-run profile shapes.",
-            "- `05_target_snr_trace_overview`: compares all four 62.4-s traces.",
+            "- `05_target_snr_trace_overview`: compares all four 420-s reference traces.",
             "- `profiles/*_card`: one distribution plus its route trace for a dedicated slide.", "",
             "Every figure is available as PNG for convenient insertion and PDF/SVG for vector-quality editing.", "",
         ]
@@ -715,7 +837,7 @@ def write_manifest(output_dir: Path, config_path: Path, config: Mapping[str, Any
         output_dir / "manifest.json",
         {
             "schema": "scenesense.network_profile_design_manifest.v1",
-            "status": "ILLUSTRATIVE_DESIGN_FIGURES_GENERATED",
+            "status": "TARGET_SNR_DESIGN_FIGURES_GENERATED",
             "claim_boundary": config["claim_boundary"],
             "config_path": str(config_path.resolve()),
             "config_sha256": sha256(config_path),
@@ -739,6 +861,7 @@ def run(config_path: Path, output_dir: Path) -> None:
     summaries = build_summaries(traces, config)
     write_summary_csv(output_dir / "profile_summary.csv", summaries)
     atomic_json(output_dir / "profile_summary.json", summaries)
+    atomic_text(output_dir / "SUPERVISOR_PROFILE_TABLE.md", supervisor_table_markdown(summaries))
     atomic_text(output_dir / "MATHEMATICAL_FORMULATION.md", formulation_markdown(config, traces))
     atomic_text(output_dir / "PRESENTER_GUIDE.md", presenter_markdown(config, traces))
     dpi = int(config["figure"]["png_dpi"])
@@ -755,7 +878,7 @@ def run(config_path: Path, output_dir: Path) -> None:
         save_figure(plot_profile_trace(trace, config), profile_dir, stem + "_trace", dpi)
         save_figure(plot_profile_card(trace, config), profile_dir, stem + "_card", dpi)
     write_manifest(output_dir, config_path, config)
-    print(json.dumps({"status": "ILLUSTRATIVE_DESIGN_FIGURES_GENERATED", "output_dir": str(output_dir), "profiles": len(traces), "samples_per_profile": int(config["route"]["sample_count"])}, sort_keys=True))
+    print(json.dumps({"status": "TARGET_SNR_DESIGN_FIGURES_GENERATED", "output_dir": str(output_dir), "profiles": len(traces), "samples_per_profile": int(config["route"]["sample_count"])}, sort_keys=True))
 
 
 def parse_args() -> argparse.Namespace:

@@ -1,0 +1,117 @@
+{
+  "schema": "scenesense.network_profile_design.v2",
+  "experiment_id": "network_profile_design_v2",
+  "claim_boundary": "TARGET_SNR_DESIGN_NOT_MEASURED_ACHIEVED_OAI_SNR_RFSIM_ACTUATION_REQUIRES_CALIBRATION",
+  "route": {
+    "route_id": "Town10HD_Opt Route B full-map loop v1",
+    "route_length_m": 1268.68,
+    "qualified_density_durations_s": {
+      "low": 359.25,
+      "medium": 358.70,
+      "dense": 419.90
+    },
+    "duration_s": 420.0,
+    "sample_period_s": 0.1,
+    "sample_count": 4200,
+    "sample_semantics": "reference target k is held over [k*0.1,(k+1)*0.1), k=0..4199",
+    "runtime_semantics": "initialize once per episode from the fixed profile seed, replay from sample zero, and continue the same RNG and Markov state until the episode ends; 4200 samples is a reference-figure length, not a runtime cap"
+  },
+  "replay_contract": {
+    "sequence_scope": "ONE_DETERMINISTIC_TARGET_SNR_SEQUENCE_PER_NETWORK_PROFILE",
+    "episode_reset": "REPLAY_FROM_SAMPLE_ZERO",
+    "action_profile_count": 72,
+    "density_consumption": "each density consumes the matching prefix and stops when its Route B episode ends",
+    "reference_trace_is_runtime_cap": false,
+    "runtime_continuation": "continue the seeded RNG and Markov state beyond sample 4199 when an episode lasts longer than 420 seconds"
+  },
+  "target_snr": {
+    "lower_bound_db": 5.5,
+    "lower_bound_semantics": "QUALIFIED_LOWER_ACHIEVED_TARGET_PUSCH_SNR",
+    "upper_bound_db": 24.5,
+    "upper_bound_semantics": "QUALIFIED_UPPER_SCHEDULER_BOUNDARY",
+    "range_db": 19.0,
+    "bounds_status": "QUALIFIED_OPERATIONAL_DESIGN_BOUNDS",
+    "state_order": ["ADVERSE", "INTERMEDIATE", "FAVORABLE"],
+    "state_means_db": [8.35, 15.00, 21.65],
+    "state_sigma_db": [1.14, 1.14, 1.14],
+    "parameter_rule": "R=U-L; mu_A=L+0.15R; mu_I=L+0.50R; mu_F=L+0.85R; sigma=0.06R"
+  },
+  "profiles": [
+    {
+      "profile_id": "FAVORABLE_STABLE",
+      "trace_id": "GM_V2_FAVORABLE_STABLE_SEED_2026082101",
+      "display_name": "Favorable stable",
+      "short_description": "80% favorable occupancy; long favorable runs; rare brief fades",
+      "color": "#00C9C8",
+      "line_style": "-",
+      "seed": 2026082101,
+      "initial_distribution": "STATIONARY",
+      "transition_matrix": [
+        [0.80, 0.20, 0.00],
+        [0.05, 0.85, 0.10],
+        [0.00, 0.02, 0.98]
+      ]
+    },
+    {
+      "profile_id": "MID_VARIABLE",
+      "trace_id": "GM_V2_MID_VARIABLE_SEED_2026082102",
+      "display_name": "Mid variable",
+      "short_description": "20/60/20 occupancy; rapid switching among the three channel states",
+      "color": "#00A8EC",
+      "line_style": "--",
+      "seed": 2026082102,
+      "initial_distribution": "STATIONARY",
+      "transition_matrix": [
+        [0.85, 0.15, 0.00],
+        [0.05, 0.90, 0.05],
+        [0.00, 0.15, 0.85]
+      ]
+    },
+    {
+      "profile_id": "ADVERSE_STABLE",
+      "trace_id": "GM_V2_ADVERSE_STABLE_SEED_2026082103",
+      "display_name": "Adverse stable",
+      "short_description": "80% adverse occupancy; long adverse runs; rare brief recovery",
+      "color": "#0A5C93",
+      "line_style": ":",
+      "seed": 2026082103,
+      "initial_distribution": "STATIONARY",
+      "transition_matrix": [
+        [0.98, 0.02, 0.00],
+        [0.10, 0.85, 0.05],
+        [0.00, 0.20, 0.80]
+      ]
+    },
+    {
+      "profile_id": "FADE_RECOVERY",
+      "trace_id": "GM_V2_FADE_RECOVERY_SEED_2026082104",
+      "display_name": "Fade / recovery",
+      "short_description": "Same 20/60/20 occupancy as mid-variable; five-times longer state dwell",
+      "color": "#FFAA59",
+      "line_style": "-.",
+      "seed": 2026082104,
+      "initial_distribution": "STATIONARY",
+      "transition_matrix": [
+        [0.97, 0.03, 0.00],
+        [0.01, 0.98, 0.01],
+        [0.00, 0.03, 0.97]
+      ]
+    }
+  ],
+  "figure": {
+    "png_dpi": 300,
+    "pdf_svg_enabled": true,
+    "font_family": "DejaVu Sans",
+    "palette": {
+      "navy": "#010644",
+      "blue": "#00A8EC",
+      "deep": "#0A5C93",
+      "teal": "#00C9C8",
+      "orange": "#FFAA59",
+      "grey": "#49515C",
+      "light": "#E6E6E7",
+      "warning": "#D8455F",
+      "white": "#FFFFFF"
+    }
+  }
+}

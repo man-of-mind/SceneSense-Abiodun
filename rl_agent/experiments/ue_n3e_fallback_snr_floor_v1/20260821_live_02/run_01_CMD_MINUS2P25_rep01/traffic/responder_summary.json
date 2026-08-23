@@ -1,0 +1,10 @@
+{
+  "acks_sent": 850,
+  "malformed_datagrams": 0,
+  "observed_source_ips": [
+    "192.168.70.134"
+  ],
+  "requests_received": 850,
+  "schema": "scenesense.ue_n3e_fallback_ack_responder_summary.v1",
+  "status": "COMPLETE"
+}

@@ -1,0 +1,55 @@
+{
+  "experiment_id": "oai_target_snr_replay_pilot_v1",
+  "claim_boundary": "ONE_SHORT_TARGET_SNR_REPLAY_INTEGRATION_PILOT_NOT_A_PHYSICAL_BOUNDARY_STUDY",
+  "paths": {
+    "oai_base_config": "rl_agent/configs/ue_n3e_fallback_snr_floor_v1.json",
+    "network_profile_config": "rl_agent/configs/network_profile_design_v2.json",
+    "network_profile_traces": "rl_agent/experiments/network_profile_design_v2/20260822_route_b_v2/traces.csv",
+    "network_profile_summary": "rl_agent/experiments/network_profile_design_v2/20260822_route_b_v2/profile_summary.csv"
+  },
+  "profile_order": [
+    "FAVORABLE_STABLE",
+    "MID_VARIABLE",
+    "ADVERSE_STABLE",
+    "FADE_RECOVERY"
+  ],
+  "existing_measured_anchors": [
+    {"noise_power_db": -2.25, "achieved_median_pusch_snr_db": 5.5},
+    {"noise_power_db": -2.50, "achieved_median_pusch_snr_db": 6.0},
+    {"noise_power_db": -3.00, "achieved_median_pusch_snr_db": 6.5},
+    {"noise_power_db": -3.50, "achieved_median_pusch_snr_db": 7.5},
+    {"noise_power_db": -4.00, "achieved_median_pusch_snr_db": 8.5},
+    {"noise_power_db": -5.00, "achieved_median_pusch_snr_db": 10.0},
+    {"noise_power_db": -8.00, "achieved_median_pusch_snr_db": 16.0},
+    {"noise_power_db": -10.00, "achieved_median_pusch_snr_db": 19.5}
+  ],
+  "upper_anchor": {
+    "first_command_db": -12.5,
+    "measurement_duration_s": 3.0,
+    "desired_achieved_snr_db": 24.5,
+    "maximum_absolute_error_db": 1.0,
+    "maximum_attempts": 2,
+    "minimum_pusch_samples": 30,
+    "minimum_mcs_samples": 15
+  },
+  "replay": {
+    "samples_per_profile": 100,
+    "sample_period_s": 0.1,
+    "command_granularity_db": 0.25,
+    "profile_lead_s": 0.5,
+    "stable_gap_s": 0.5,
+    "clean_recovery_s": 2.0,
+    "client_total_messages": 650,
+    "responder_duration_s": 75.0,
+    "catch_up_policy": "SKIP_OBSOLETE_NEVER_BURST"
+  },
+  "pass_criteria": {
+    "minimum_command_apply_ratio": 0.99,
+    "maximum_command_ack_p95_ms": 100.0,
+    "minimum_application_delivery_ratio": 0.99,
+    "maximum_application_ack_p95_ms": 100.0,
+    "minimum_valid_achieved_interval_ratio": 0.90,
+    "maximum_tracking_mae_db": 1.5,
+    "no_ue_or_pdu_disconnection": true
+  }
+}

@@ -1,0 +1,2 @@
+attempt,noise_power_db,measurement_start_monotonic_ns,measurement_end_monotonic_ns,command_latency_ms,telemetry_status,pusch_samples,achieved_median_pusch_snr_db,achieved_pusch_snr_p05_db,achieved_pusch_snr_p95_db,mcs_median
+1,-12.5,1665091481934641,1665094481934641,0.276255,TAIL_ACCEPTED,235,25.0,24.0,25.0,28

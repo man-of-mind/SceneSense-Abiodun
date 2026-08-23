@@ -1,0 +1,198 @@
+{
+  "clean_restore_verified": true,
+  "cleanup_clean": true,
+  "cleanup_errors": [],
+  "control_session_id": "f24e66ab-e422-47ff-8afd-1a1a25380282",
+  "mapping_anchors": [
+    {
+      "achieved_median_pusch_snr_db": 5.5,
+      "noise_power_db": -2.25,
+      "source": "EXISTING_MEASURED_ANCHOR"
+    },
+    {
+      "achieved_median_pusch_snr_db": 6.0,
+      "noise_power_db": -2.5,
+      "source": "EXISTING_MEASURED_ANCHOR"
+    },
+    {
+      "achieved_median_pusch_snr_db": 6.5,
+      "noise_power_db": -3.0,
+      "source": "EXISTING_MEASURED_ANCHOR"
+    },
+    {
+      "achieved_median_pusch_snr_db": 7.5,
+      "noise_power_db": -3.5,
+      "source": "EXISTING_MEASURED_ANCHOR"
+    },
+    {
+      "achieved_median_pusch_snr_db": 8.5,
+      "noise_power_db": -4.0,
+      "source": "EXISTING_MEASURED_ANCHOR"
+    },
+    {
+      "achieved_median_pusch_snr_db": 10.0,
+      "noise_power_db": -5.0,
+      "source": "EXISTING_MEASURED_ANCHOR"
+    },
+    {
+      "achieved_median_pusch_snr_db": 16.0,
+      "noise_power_db": -8.0,
+      "source": "EXISTING_MEASURED_ANCHOR"
+    },
+    {
+      "achieved_median_pusch_snr_db": 19.5,
+      "noise_power_db": -10.0,
+      "source": "EXISTING_MEASURED_ANCHOR"
+    },
+    {
+      "achieved_median_pusch_snr_db": 25.0,
+      "noise_power_db": -12.5,
+      "source": "PILOT_MEASURED_UPPER_ATTEMPT_1"
+    }
+  ],
+  "overall": {
+    "application_acked": 400,
+    "application_delivery_ratio": 1.0,
+    "application_messages": 400,
+    "application_rtt_ms_max": 109.6753,
+    "application_rtt_ms_p50": 22.62135,
+    "application_rtt_ms_p95": 47.542829999999995,
+    "burst_catch_up_used": false,
+    "clean_restore_verified": true,
+    "cleanup_clean": true,
+    "command_ack_latency_ms_max": 1.28611,
+    "command_ack_latency_ms_p50": 0.079034,
+    "command_ack_latency_ms_p95": 0.3050221999999996,
+    "command_apply_ratio": 1.0,
+    "command_to_first_observed_effect_latency": "UNAVAILABLE_STOCK_TRACER_LIMITATION",
+    "commands_applied": 400,
+    "commands_expected": 400,
+    "commands_late": 0,
+    "commands_skipped": 0,
+    "disconnect_reason": null,
+    "mapping_quality_target_mae_db": 1.5,
+    "snr_tracking_mae_db": 0.34142178446115296,
+    "snr_tracking_p95_absolute_error_db": 1.0006262999999995,
+    "timing_and_service_pass": true,
+    "ue_or_pdu_disconnected": false,
+    "valid_achieved_snr_interval_ratio": 0.9975,
+    "valid_achieved_snr_intervals": 399
+  },
+  "profiles": [
+    {
+      "application_acked": 100,
+      "application_delivery_ratio": 1.0,
+      "application_messages": 100,
+      "application_rtt_ms_max": 92.7265,
+      "application_rtt_ms_p50": 23.144,
+      "application_rtt_ms_p95": 31.033654999999996,
+      "command_ack_latency_ms_max": 0.787563,
+      "command_ack_latency_ms_p50": 0.075381,
+      "command_ack_latency_ms_p95": 0.4261639499999997,
+      "command_to_first_observed_effect_latency": "UNAVAILABLE_STOCK_TRACER_LIMITATION",
+      "commands_applied": 100,
+      "commands_expected": 100,
+      "commands_late": 0,
+      "commands_skipped": 0,
+      "outage_status": "NO_APPLICATION_ACK_OUTAGE_OBSERVED",
+      "profile_id": "FAVORABLE_STABLE",
+      "snr_tracking_mae_db": 0.4201645700000002,
+      "snr_tracking_p95_absolute_error_db": 0.8579948999999989,
+      "target_achieved_correlation": 0.9738966068310428,
+      "trace_id": "GM_V2_FAVORABLE_STABLE_SEED_2026082101",
+      "ue_or_pdu_disconnected": false,
+      "valid_achieved_snr_intervals": 100
+    },
+    {
+      "application_acked": 100,
+      "application_delivery_ratio": 1.0,
+      "application_messages": 100,
+      "application_rtt_ms_max": 109.6753,
+      "application_rtt_ms_p50": 22.351950000000002,
+      "application_rtt_ms_p95": 59.508829999999996,
+      "command_ack_latency_ms_max": 1.28611,
+      "command_ack_latency_ms_p50": 0.08100550000000001,
+      "command_ack_latency_ms_p95": 0.3716328499999999,
+      "command_to_first_observed_effect_latency": "UNAVAILABLE_STOCK_TRACER_LIMITATION",
+      "commands_applied": 100,
+      "commands_expected": 100,
+      "commands_late": 0,
+      "commands_skipped": 0,
+      "outage_status": "NO_APPLICATION_ACK_OUTAGE_OBSERVED",
+      "profile_id": "MID_VARIABLE",
+      "snr_tracking_mae_db": 0.38276545000000006,
+      "snr_tracking_p95_absolute_error_db": 1.0520942999999994,
+      "target_achieved_correlation": 0.9847793566672598,
+      "trace_id": "GM_V2_MID_VARIABLE_SEED_2026082102",
+      "ue_or_pdu_disconnected": false,
+      "valid_achieved_snr_intervals": 100
+    },
+    {
+      "application_acked": 100,
+      "application_delivery_ratio": 1.0,
+      "application_messages": 100,
+      "application_rtt_ms_max": 98.2212,
+      "application_rtt_ms_p50": 22.8917,
+      "application_rtt_ms_p95": 55.635794999999995,
+      "command_ack_latency_ms_max": 0.215154,
+      "command_ack_latency_ms_p50": 0.091767,
+      "command_ack_latency_ms_p95": 0.14947449999999998,
+      "command_to_first_observed_effect_latency": "UNAVAILABLE_STOCK_TRACER_LIMITATION",
+      "commands_applied": 100,
+      "commands_expected": 100,
+      "commands_late": 0,
+      "commands_skipped": 0,
+      "outage_status": "NO_APPLICATION_ACK_OUTAGE_OBSERVED",
+      "profile_id": "ADVERSE_STABLE",
+      "snr_tracking_mae_db": 0.2943143333333334,
+      "snr_tracking_p95_absolute_error_db": 0.8829895999999989,
+      "target_achieved_correlation": 0.9903096935478866,
+      "trace_id": "GM_V2_ADVERSE_STABLE_SEED_2026082103",
+      "ue_or_pdu_disconnected": false,
+      "valid_achieved_snr_intervals": 99
+    },
+    {
+      "application_acked": 100,
+      "application_delivery_ratio": 1.0,
+      "application_messages": 100,
+      "application_rtt_ms_max": 105.7534,
+      "application_rtt_ms_p50": 21.848300000000002,
+      "application_rtt_ms_p95": 39.0531,
+      "command_ack_latency_ms_max": 0.534783,
+      "command_ack_latency_ms_p50": 0.0713815,
+      "command_ack_latency_ms_p95": 0.17909734999999996,
+      "command_to_first_observed_effect_latency": "UNAVAILABLE_STOCK_TRACER_LIMITATION",
+      "commands_applied": 100,
+      "commands_expected": 100,
+      "commands_late": 0,
+      "commands_skipped": 0,
+      "outage_status": "NO_APPLICATION_ACK_OUTAGE_OBSERVED",
+      "profile_id": "FADE_RECOVERY",
+      "snr_tracking_mae_db": 0.2679717100000001,
+      "snr_tracking_p95_absolute_error_db": 0.794015599999999,
+      "target_achieved_correlation": 0.9818893609355153,
+      "trace_id": "GM_V2_FADE_RECOVERY_SEED_2026082104",
+      "ue_or_pdu_disconnected": false,
+      "valid_achieved_snr_intervals": 100
+    }
+  ],
+  "ran_epoch_id": "d4058ffd-288b-4fe7-8566-831fa79f17dc",
+  "rfsim_actuation_semantics": "MEASURED_PIECEWISE_MAPPING_NOT_DIRECT_TARGET_SNR",
+  "trace_semantics": "TARGET_SNR_DESIGN_NOT_MEASURED_ACHIEVED_OAI_SNR",
+  "upper_anchor_attempts": [
+    {
+      "achieved_median_pusch_snr_db": 25.0,
+      "achieved_pusch_snr_p05_db": 24.0,
+      "achieved_pusch_snr_p95_db": 25.0,
+      "attempt": 1,
+      "command_latency_ms": 0.276255,
+      "mcs_median": 28,
+      "measurement_end_monotonic_ns": 1665094481934641,
+      "measurement_start_monotonic_ns": 1665091481934641,
+      "noise_power_db": -12.5,
+      "pusch_samples": 235,
+      "telemetry_status": "TAIL_ACCEPTED"
+    }
+  ],
+  "verdict": "REPLAY_INTEGRATION_PASS"
+}

@@ -1,0 +1,63 @@
+{
+  "claim_boundary": "RUNTIME_SUSTAIN_OF_2KB_PER_100MS_FALLBACK_ROUTE_ONLY_NOT_A_COLD_ATTACH_LIMIT_AND_NOT_A_PHYSICAL_LIMIT",
+  "completed_at": "2026-08-21T22:07:00.151752-07:00",
+  "lowest_passing_achieved_pusch_snr_db_median": null,
+  "lowest_passing_commanded_noise_power_db": null,
+  "pass_criteria": {
+    "maximum_ack_latency_p95_ms": 100.0,
+    "maximum_outage_s": 1.0,
+    "minimum_delivered_and_acked": 594,
+    "minimum_delivery_ratio": 0.99,
+    "no_disconnection_required": true
+  },
+  "replications_passed": 0,
+  "replications_required": 3,
+  "runs": [
+    {
+      "achieved_pusch_snr_db_median": 5.0,
+      "achieved_pusch_snr_db_p05": 5.0,
+      "achieved_pusch_snr_db_p95": 5.5,
+      "ack_latency_ms_max": 94.0655,
+      "ack_latency_ms_p50": 48.2939,
+      "ack_latency_ms_p95": 82.7491,
+      "clean_restore_verified": true,
+      "commanded_noise_power_db": -2.0,
+      "condition_id": "CMD_MINUS2P0",
+      "control_session_id": "3a76359e-1c3e-4994-85c2-23de6cd1caa3",
+      "deadline_misses_over_100ms": 0,
+      "delivery_ack_percent": 52.8333,
+      "disconnect_reason": "",
+      "fail_reasons": "DELIVERY_317_BELOW_594",
+      "longest_outage_s": 0.8556,
+      "messages_attempted": 600,
+      "messages_delivered_and_acked": 317,
+      "output_dir": "run_01_CMD_MINUS2P0_rep01",
+      "ran_epoch_id": "dd91aa73-57bf-414d-a146-484bb9ddd827",
+      "recovered_after_restore": true,
+      "repetition_index": 1,
+      "rfsim_command": "channelmod modify 2 noise_power_dB -2.0",
+      "run_id": "run_01_CMD_MINUS2P0_rep01",
+      "run_index": 1,
+      "status": "RUN_COMPLETE",
+      "tail_pusch_samples": 2696,
+      "tail_status": "TAIL_ACCEPTED",
+      "ue_or_pdu_disconnected": false,
+      "verdict": "FAIL"
+    }
+  ],
+  "schema": "scenesense.ue_n3e_fallback_snr_floor_campaign.v1",
+  "status": "BOUNDARY_BRACKETED",
+  "tested_commands_db": [
+    -2.0
+  ],
+  "workload": {
+    "ack_bytes": 16,
+    "expected_source_ip": "192.168.70.134",
+    "interval_ms": 100.0,
+    "nominal_bitrate_bps": 163840,
+    "payload_bytes": 2048,
+    "remote_port": 56131,
+    "responder_ready_timeout_s": 10.0,
+    "role": "DEGRADED_LOCAL_FALLBACK_OUTPUT"
+  }
+}

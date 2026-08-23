@@ -1,0 +1,5 @@
+route_id,density,loop_index,completed,all_ordered_waypoints_reached,waypoints_reached,waypoints_expected,regions_covered,npc_vehicles_requested,npc_pedestrians_requested,npc_vehicles_live,npc_pedestrians_live,seed,lane_offset_m,planned_route_length_m,driven_distance_m,simulation_duration_s,wall_clock_duration_s,ticks,return_position_error_m,return_heading_error_deg,collision_count
+Town10HD_Opt Route B full-map loop v1,low,1,True,True,19,19,"B1,B2,B3",5,5,5,5,31,-0.5,1268.68,1251.74,298.4,298.4,5968,0.576,0.904,0
+Town10HD_Opt Route B full-map loop v1,low,1,True,True,19,19,"B1,B2,B3",5,5,5,5,31,-0.5,1268.68,1251.52,298.35,298.35,5967,0.45,0.136,0
+Town10HD_Opt Route B full-map loop v1,dense,1,True,True,19,19,"B1,B2,B3",20,20,20,20,31,-0.5,1268.68,1251.6,298.35,298.35,5967,0.485,0.881,0
+Town10HD_Opt Route B full-map loop v1,dense,1,True,True,19,19,"B1,B2,B3",20,20,20,20,31,-0.5,1268.68,1251.6,298.05,298.05,5961,0.537,0.774,0,0,0,3,11

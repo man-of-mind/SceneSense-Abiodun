@@ -1,0 +1,2 @@
+rfsim_command,commanded_noise_power_db,send_monotonic_ns,send_wall_time_ns,response_received_monotonic_ns,response_received_wall_time_ns,handler_bracket_ms,status,control_session_id,ran_epoch_id
+channelmod modify 2 noise_power_dB -2.25,-2.25,1589918709692737,1787375273646148055,1589918709776669,1787375273646231854,0.083932,ACK_AND_POST_STATE_VALIDATED_ONCE,94fcde34-ac5a-419a-94c6-2ef91b4c08ec,2f797260-8b9f-436d-a250-149f4e1fefcd
