@@ -1,7 +1,7 @@
 {
   "schema": "scenesense.perception_full_route_collection.v1",
   "version": "1.0.0",
-  "status": "WAITING_FOR_CANONICAL_ROUTE",
+  "status": "ROUTE_B_THREE_EPISODE_PILOT_ONLY",
   "route_contract": {
     "external_file_required": true,
     "allowed_extensions": [
@@ -9,9 +9,9 @@
       ".yaml",
       ".yml"
     ],
-    "expected_schema": "scenesense.canonical_route.v1",
-    "expected_town": "Town10HD",
-    "expected_route_identity": "Route B",
+    "expected_schema": "carla_ego_route.v1",
+    "expected_town": "Town10HD_Opt",
+    "expected_route_identity": "Town10HD_Opt Route B full-map loop v1",
     "external_sha256_required": true,
     "verify_before_carla_import_or_startup": true,
     "coordinates_embedded_in_config": false
@@ -28,22 +28,22 @@
     {
       "profile_id": "low",
       "provisional_actor_counts": {
-        "vehicles": 20,
-        "pedestrians": 10
+        "vehicles": 5,
+        "pedestrians": 5
       }
     },
     {
       "profile_id": "medium",
       "provisional_actor_counts": {
-        "vehicles": 45,
-        "pedestrians": 25
+        "vehicles": 15,
+        "pedestrians": 15
       }
     },
     {
       "profile_id": "dense",
       "provisional_actor_counts": {
-        "vehicles": 75,
-        "pedestrians": 50
+        "vehicles": 25,
+        "pedestrians": 25
       }
     }
   ],
@@ -64,62 +64,17 @@
       "carla_seed": 101,
       "traffic_manager_seed": 1101,
       "reserved_split": "train"
-    },
-    {
-      "seed_bundle_id": "seed-103",
-      "carla_seed": 103,
-      "traffic_manager_seed": 1103,
-      "reserved_split": "train"
-    },
-    {
-      "seed_bundle_id": "seed-107",
-      "carla_seed": 107,
-      "traffic_manager_seed": 1107,
-      "reserved_split": "train"
-    },
-    {
-      "seed_bundle_id": "seed-109",
-      "carla_seed": 109,
-      "traffic_manager_seed": 1109,
-      "reserved_split": "train"
-    },
-    {
-      "seed_bundle_id": "seed-113",
-      "carla_seed": 113,
-      "traffic_manager_seed": 1113,
-      "reserved_split": "train"
-    },
-    {
-      "seed_bundle_id": "seed-127",
-      "carla_seed": 127,
-      "traffic_manager_seed": 1127,
-      "reserved_split": "validation"
-    },
-    {
-      "seed_bundle_id": "seed-131",
-      "carla_seed": 131,
-      "traffic_manager_seed": 1131,
-      "reserved_split": "validation"
-    },
-    {
-      "seed_bundle_id": "seed-137",
-      "carla_seed": 137,
-      "traffic_manager_seed": 1137,
-      "reserved_split": "final_test"
-    },
-    {
-      "seed_bundle_id": "seed-139",
-      "carla_seed": 139,
-      "traffic_manager_seed": 1139,
-      "reserved_split": "final_test"
     }
   ],
   "weather_cycle": [
-    "ClearNoon",
-    "CloudyNoon",
-    "WetNoon"
+    "qualified_fresh_world_default"
   ],
-  "laps_per_episode": 2,
+  "laps_per_episode": 1,
+  "sampling": {
+    "simulator_hz": 20,
+    "save_every_nth_tick": 10,
+    "saved_hz": 2
+  },
   "required_frame_metadata": [
     "route_progress",
     "route_segment_id",
