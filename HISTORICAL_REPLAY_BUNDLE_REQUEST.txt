@@ -1,0 +1,178 @@
+HISTORICAL REPLAY BUNDLE REQUEST
+Route B perception parity audit v1
+generated_by: route_b_parity_audit_v1.py
+
+WHY THIS IS NEEDED
+------------------
+The historical merged dataset that produced the retained clean gate metrics for the
+noAE and AE64 checkpoints is not present on this machine. Every gate_eval/dataset
+symlink resolves by path but the target does not exist, so the exact historical
+replay gate cannot be executed and Route B degradation cannot be interpreted.
+
+Missing required paths:
+  - /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/fusion_training_data/moving_ego_pps200000_merged_8loops_stride2 (not a directory)
+  - /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/fusion_training_data/moving_ego_pps200000_merged_8loops_stride2/manifest.csv
+  - /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/fusion_training_data/moving_ego_pps200000_merged_8loops_stride2/object_boxes.csv
+  - /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/fusion_training_data/moving_ego_pps200000_merged_8loops_stride2/metadata.json
+  - /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/fusion_training_data/moving_ego_pps200000_merged_8loops_stride2/rgb/
+  - /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/fusion_training_data/moving_ego_pps200000_merged_8loops_stride2/masks/
+  - /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/fusion_training_data/moving_ego_pps200000_merged_8loops_stride2/radar_tensors/
+  - /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/fusion_training_data/moving_ego_pps200000_merged_8loops_stride2/radar_points/
+
+Retained locally (do NOT resend):
+  - staleness/egospeed_split_ds/manifest.csv  (real file copy of the collection manifest, 15,183 rows)
+  - experiments/ae_integrated_20260710/noae_baseline/gate_eval/metrics/test_learned_object_metrics.csv
+  - experiments/ae_integrated_20260710/ae64/gate_eval/metrics/test_learned_object_metrics.csv
+  - both checkpoints, SHA-256 verified against the registered expected digests
+
+WHAT TO SEND
+------------
+1. Merged dataset metadata:
+     metadata.json          (from the merged dataset root; it embeds command_args,
+                             which is the authoritative record of --fps, --sample-stride,
+                             --radar-temporal-window-frames and --radar-points-per-second)
+     merge_summary.json     (if the merge step produced one)
+2. Full manifest.csv and full object_boxes.csv from the merged dataset root.
+3. metadata.json from each of the three source collections:
+     moving_ego_pps200000_low_8loops_stride2/metadata.json
+     moving_ego_pps200000_medium_8loops_stride2/metadata.json
+     moving_ego_pps200000_crowded_8loops_stride2/metadata.json
+
+4. Exactly 96 frozen sample IDs (32 per source density),
+   listed below. For each ID send:
+     rgb/<sample_id>.jpg
+     masks/<sample_id>.png
+     radar_tensors/<sample_id>.npy
+     radar_points/<sample_id>.npz
+     semantic_tags/<sample_id>.png   (if the collection retained it)
+5. A SHA-256 manifest covering every transferred file.
+
+SELECTION RULE (deterministic, reproducible)
+--------------------------------------------
+Within each source density, candidate IDs are ordered by (priority tier, then
+sha256(sample_id) hex ascending) and the first 32 are taken.
+  tier 1 = present in the retained clean noAE per-object rows AND carrying both
+           vehicle and person ground truth
+  tier 2 = present in the retained clean noAE per-object rows (either class)
+  tier 3 = any remaining frame of that density (substitution source only)
+Selected tier counts: {"1": 96, "2": 0, "3": 0}
+If a listed ID cannot be supplied, substitute the next ID in the same deterministic
+order for that density and record the substitution explicitly in the transfer notes.
+
+WHAT WILL BE DONE WITH IT
+-------------------------
+noAE is run first on exactly these IDs under the frozen clean contract (768x432,
+score 0.20, image NMS radius 2 px, top-k 120, class-aware one-to-one matching at
+5 m, GT and prediction range <= 40 m, min GT box area 12 px, no quantization, ROI
+drop 0, no predicted-world suppression, no radar gate, no lane-corridor filter,
+person and vehicle scored separately). Per-sample TP/FP/FN and per-object rows are
+canonicalised and compared against the corresponding rows of the retained noAE
+test_learned_object_metrics.csv. Counts must match exactly; only a small documented
+floating-point tolerance is permitted on scores and coordinates. If noAE does not
+reproduce, the audit stops at HISTORICAL_REPLAY_MISMATCH and AE64 is not run.
+Segmentation IoU will NOT be compared subset-versus-full-2,162-frame aggregate.
+
+SAMPLE IDS
+----------
+[moving_ego_pps200000_low_8loops_stride2]  (32 IDs)
+  tier1  moving_ego_pps200000_low_8loops_stride2_003975_frame89994
+  tier1  moving_ego_pps200000_low_8loops_stride2_001355_frame84754
+  tier1  moving_ego_pps200000_low_8loops_stride2_001377_frame84798
+  tier1  moving_ego_pps200000_low_8loops_stride2_004737_frame91518
+  tier1  moving_ego_pps200000_low_8loops_stride2_004007_frame90058
+  tier1  moving_ego_pps200000_low_8loops_stride2_001508_frame85060
+  tier1  moving_ego_pps200000_low_8loops_stride2_001248_frame84540
+  tier1  moving_ego_pps200000_low_8loops_stride2_003921_frame89886
+  tier1  moving_ego_pps200000_low_8loops_stride2_004869_frame91782
+  tier1  moving_ego_pps200000_low_8loops_stride2_003932_frame89908
+  tier1  moving_ego_pps200000_low_8loops_stride2_000796_frame83636
+  tier1  moving_ego_pps200000_low_8loops_stride2_004022_frame90088
+  tier1  moving_ego_pps200000_low_8loops_stride2_000783_frame83610
+  tier1  moving_ego_pps200000_low_8loops_stride2_001226_frame84496
+  tier1  moving_ego_pps200000_low_8loops_stride2_000428_frame82900
+  tier1  moving_ego_pps200000_low_8loops_stride2_002363_frame86770
+  tier1  moving_ego_pps200000_low_8loops_stride2_000798_frame83640
+  tier1  moving_ego_pps200000_low_8loops_stride2_001904_frame85852
+  tier1  moving_ego_pps200000_low_8loops_stride2_000315_frame82674
+  tier1  moving_ego_pps200000_low_8loops_stride2_002237_frame86518
+  tier1  moving_ego_pps200000_low_8loops_stride2_003084_frame88212
+  tier1  moving_ego_pps200000_low_8loops_stride2_001269_frame84582
+  tier1  moving_ego_pps200000_low_8loops_stride2_001906_frame85856
+  tier1  moving_ego_pps200000_low_8loops_stride2_001256_frame84556
+  tier1  moving_ego_pps200000_low_8loops_stride2_000345_frame82734
+  tier1  moving_ego_pps200000_low_8loops_stride2_001216_frame84476
+  tier1  moving_ego_pps200000_low_8loops_stride2_000800_frame83644
+  tier1  moving_ego_pps200000_low_8loops_stride2_003952_frame89948
+  tier1  moving_ego_pps200000_low_8loops_stride2_000374_frame82792
+  tier1  moving_ego_pps200000_low_8loops_stride2_001379_frame84802
+  tier1  moving_ego_pps200000_low_8loops_stride2_002235_frame86514
+  tier1  moving_ego_pps200000_low_8loops_stride2_000380_frame82804
+
+[moving_ego_pps200000_medium_8loops_stride2]  (32 IDs)
+  tier1  moving_ego_pps200000_medium_8loops_stride2_000073_frame92071
+  tier1  moving_ego_pps200000_medium_8loops_stride2_004490_frame100905
+  tier1  moving_ego_pps200000_medium_8loops_stride2_003103_frame98131
+  tier1  moving_ego_pps200000_medium_8loops_stride2_001300_frame94525
+  tier1  moving_ego_pps200000_medium_8loops_stride2_003065_frame98055
+  tier1  moving_ego_pps200000_medium_8loops_stride2_003769_frame99463
+  tier1  moving_ego_pps200000_medium_8loops_stride2_000177_frame92279
+  tier1  moving_ego_pps200000_medium_8loops_stride2_005008_frame101941
+  tier1  moving_ego_pps200000_medium_8loops_stride2_000187_frame92299
+  tier1  moving_ego_pps200000_medium_8loops_stride2_000082_frame92089
+  tier1  moving_ego_pps200000_medium_8loops_stride2_005078_frame102081
+  tier1  moving_ego_pps200000_medium_8loops_stride2_004936_frame101797
+  tier1  moving_ego_pps200000_medium_8loops_stride2_003455_frame98835
+  tier1  moving_ego_pps200000_medium_8loops_stride2_003489_frame98903
+  tier1  moving_ego_pps200000_medium_8loops_stride2_004123_frame100171
+  tier1  moving_ego_pps200000_medium_8loops_stride2_000253_frame92431
+  tier1  moving_ego_pps200000_medium_8loops_stride2_003109_frame98143
+  tier1  moving_ego_pps200000_medium_8loops_stride2_004683_frame101291
+  tier1  moving_ego_pps200000_medium_8loops_stride2_001234_frame94393
+  tier1  moving_ego_pps200000_medium_8loops_stride2_005005_frame101935
+  tier1  moving_ego_pps200000_medium_8loops_stride2_003481_frame98887
+  tier1  moving_ego_pps200000_medium_8loops_stride2_003496_frame98917
+  tier1  moving_ego_pps200000_medium_8loops_stride2_000065_frame92055
+  tier1  moving_ego_pps200000_medium_8loops_stride2_000746_frame93417
+  tier1  moving_ego_pps200000_medium_8loops_stride2_000653_frame93231
+  tier1  moving_ego_pps200000_medium_8loops_stride2_004837_frame101599
+  tier1  moving_ego_pps200000_medium_8loops_stride2_002151_frame96227
+  tier1  moving_ego_pps200000_medium_8loops_stride2_004087_frame100099
+  tier1  moving_ego_pps200000_medium_8loops_stride2_004583_frame101091
+  tier1  moving_ego_pps200000_medium_8loops_stride2_002646_frame97217
+  tier1  moving_ego_pps200000_medium_8loops_stride2_003431_frame98787
+  tier1  moving_ego_pps200000_medium_8loops_stride2_000339_frame92603
+
+[moving_ego_pps200000_crowded_8loops_stride2]  (32 IDs)
+  tier1  moving_ego_pps200000_crowded_8loops_stride2_000775_frame103744
+  tier1  moving_ego_pps200000_crowded_8loops_stride2_004847_frame111888
+  tier1  moving_ego_pps200000_crowded_8loops_stride2_005125_frame112444
+  tier1  moving_ego_pps200000_crowded_8loops_stride2_003753_frame109700
+  tier1  moving_ego_pps200000_crowded_8loops_stride2_003747_frame109688
+  tier1  moving_ego_pps200000_crowded_8loops_stride2_002445_frame107084
+  tier1  moving_ego_pps200000_crowded_8loops_stride2_002019_frame106232
+  tier1  moving_ego_pps200000_crowded_8loops_stride2_002041_frame106276
+  tier1  moving_ego_pps200000_crowded_8loops_stride2_005105_frame112404
+  tier1  moving_ego_pps200000_crowded_8loops_stride2_002908_frame108010
+  tier1  moving_ego_pps200000_crowded_8loops_stride2_004461_frame111116
+  tier1  moving_ego_pps200000_crowded_8loops_stride2_001657_frame105508
+  tier1  moving_ego_pps200000_crowded_8loops_stride2_001457_frame105108
+  tier1  moving_ego_pps200000_crowded_8loops_stride2_005082_frame112358
+  tier1  moving_ego_pps200000_crowded_8loops_stride2_002439_frame107072
+  tier1  moving_ego_pps200000_crowded_8loops_stride2_001378_frame104950
+  tier1  moving_ego_pps200000_crowded_8loops_stride2_001327_frame104848
+  tier1  moving_ego_pps200000_crowded_8loops_stride2_003791_frame109776
+  tier1  moving_ego_pps200000_crowded_8loops_stride2_000198_frame102590
+  tier1  moving_ego_pps200000_crowded_8loops_stride2_004684_frame111562
+  tier1  moving_ego_pps200000_crowded_8loops_stride2_004816_frame111826
+  tier1  moving_ego_pps200000_crowded_8loops_stride2_002912_frame108018
+  tier1  moving_ego_pps200000_crowded_8loops_stride2_002860_frame107914
+  tier1  moving_ego_pps200000_crowded_8loops_stride2_001234_frame104662
+  tier1  moving_ego_pps200000_crowded_8loops_stride2_002057_frame106308
+  tier1  moving_ego_pps200000_crowded_8loops_stride2_003097_frame108388
+  tier1  moving_ego_pps200000_crowded_8loops_stride2_001282_frame104758
+  tier1  moving_ego_pps200000_crowded_8loops_stride2_005061_frame112316
+  tier1  moving_ego_pps200000_crowded_8loops_stride2_000643_frame103480
+  tier1  moving_ego_pps200000_crowded_8loops_stride2_000594_frame103382
+  tier1  moving_ego_pps200000_crowded_8loops_stride2_001565_frame105324
+  tier1  moving_ego_pps200000_crowded_8loops_stride2_000670_frame103534
+
