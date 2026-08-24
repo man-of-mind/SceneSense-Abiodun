@@ -1,0 +1,484 @@
+{
+  "cleanup_succeeded": true,
+  "collision_count_total": 0,
+  "collision_events": [],
+  "collision_incident_count_total": 0,
+  "collision_incidents": [],
+  "density": "dense",
+  "driven_distance_m_median": 1251.7,
+  "ego_block_events_total": 12,
+  "ego_overtakes_total": 0,
+  "intervention_count_total": 0,
+  "intervention_events": [],
+  "lane_offset_m": -0.5,
+  "loops": 1,
+  "loops_completed": 1,
+  "npc_pedestrians_requested": 50,
+  "npc_roadblocks_cleared_total": 0,
+  "npc_vehicles_requested": 50,
+  "overtake_attempts": [
+    {
+      "action": "OBSERVED_NO_INTERVENTION",
+      "blocked_for_s": 12.0,
+      "blocker_id": 197,
+      "blocker_type": "vehicle.dodgecop.charger",
+      "direction": "left",
+      "leg_index": 11,
+      "loop_index": 1,
+      "sim_s": 171.7,
+      "x": 109.39,
+      "y": 69.66
+    },
+    {
+      "action": "OBSERVED_NO_INTERVENTION",
+      "blocked_for_s": 12.0,
+      "blocker_id": 197,
+      "blocker_type": "vehicle.dodgecop.charger",
+      "direction": "left",
+      "leg_index": 11,
+      "loop_index": 1,
+      "sim_s": 183.7,
+      "x": 109.39,
+      "y": 69.66
+    },
+    {
+      "action": "OBSERVED_NO_INTERVENTION",
+      "blocked_for_s": 12.0,
+      "blocker_id": 197,
+      "blocker_type": "vehicle.dodgecop.charger",
+      "direction": "left",
+      "leg_index": 11,
+      "loop_index": 1,
+      "sim_s": 195.7,
+      "x": 109.39,
+      "y": 69.66
+    },
+    {
+      "action": "OBSERVED_NO_INTERVENTION",
+      "blocked_for_s": 12.0,
+      "blocker_id": 197,
+      "blocker_type": "vehicle.dodgecop.charger",
+      "direction": "left",
+      "leg_index": 11,
+      "loop_index": 1,
+      "sim_s": 207.7,
+      "x": 109.39,
+      "y": 69.66
+    },
+    {
+      "action": "OBSERVED_NO_INTERVENTION",
+      "blocked_for_s": 12.0,
+      "blocker_id": 197,
+      "blocker_type": "vehicle.dodgecop.charger",
+      "direction": "left",
+      "leg_index": 11,
+      "loop_index": 1,
+      "sim_s": 219.7,
+      "x": 109.39,
+      "y": 69.66
+    },
+    {
+      "action": "OBSERVED_NO_INTERVENTION",
+      "blocked_for_s": 12.0,
+      "blocker_id": 197,
+      "blocker_type": "vehicle.dodgecop.charger",
+      "direction": "left",
+      "leg_index": 11,
+      "loop_index": 1,
+      "sim_s": 231.7,
+      "x": 109.39,
+      "y": 69.66
+    },
+    {
+      "action": "OBSERVED_NO_INTERVENTION",
+      "blocked_for_s": 12.0,
+      "blocker_id": 197,
+      "blocker_type": "vehicle.dodgecop.charger",
+      "direction": "left",
+      "leg_index": 11,
+      "loop_index": 1,
+      "sim_s": 243.7,
+      "x": 109.39,
+      "y": 69.66
+    },
+    {
+      "action": "OBSERVED_NO_INTERVENTION",
+      "blocked_for_s": 12.0,
+      "blocker_id": 197,
+      "blocker_type": "vehicle.dodgecop.charger",
+      "direction": "left",
+      "leg_index": 11,
+      "loop_index": 1,
+      "sim_s": 255.7,
+      "x": 109.39,
+      "y": 69.66
+    },
+    {
+      "action": "OBSERVED_NO_INTERVENTION",
+      "blocked_for_s": 12.0,
+      "blocker_id": 225,
+      "blocker_type": "vehicle.mini.cooper",
+      "direction": "right",
+      "leg_index": 16,
+      "loop_index": 1,
+      "sim_s": 363.85,
+      "x": -72.86,
+      "y": 27.98
+    },
+    {
+      "action": "OBSERVED_NO_INTERVENTION",
+      "blocked_for_s": 12.0,
+      "blocker_id": 225,
+      "blocker_type": "vehicle.mini.cooper",
+      "direction": "right",
+      "leg_index": 16,
+      "loop_index": 1,
+      "sim_s": 375.85,
+      "x": -72.86,
+      "y": 27.98
+    },
+    {
+      "action": "OBSERVED_NO_INTERVENTION",
+      "blocked_for_s": 12.0,
+      "blocker_id": 225,
+      "blocker_type": "vehicle.mini.cooper",
+      "direction": "right",
+      "leg_index": 16,
+      "loop_index": 1,
+      "sim_s": 387.85,
+      "x": -72.86,
+      "y": 27.98
+    },
+    {
+      "action": "OBSERVED_NO_INTERVENTION",
+      "blocked_for_s": 12.0,
+      "blocker_id": 225,
+      "blocker_type": "vehicle.mini.cooper",
+      "direction": "right",
+      "leg_index": 16,
+      "loop_index": 1,
+      "sim_s": 399.85,
+      "x": -72.86,
+      "y": 27.98
+    }
+  ],
+  "per_loop": [
+    {
+      "abort_reason": "",
+      "all_ordered_waypoints_reached": true,
+      "cleanup_succeeded": true,
+      "collision_count": 0,
+      "collision_incident_count": 0,
+      "completed": true,
+      "density": "dense",
+      "driven_distance_m": 1251.7,
+      "ego_block_events": 12,
+      "ego_overtakes": 0,
+      "ego_replans": 1,
+      "intervention_count": 0,
+      "lane_offset_m": -0.5,
+      "loop_index": 1,
+      "npc_pedestrians_live": 50,
+      "npc_pedestrians_requested": 50,
+      "npc_roadblocks_cleared": 0,
+      "npc_vehicles_live": 50,
+      "npc_vehicles_requested": 50,
+      "planned_route_length_m": 1268.68,
+      "regions_covered": "B1,B2,B3",
+      "return_heading_error_deg": 0.683,
+      "return_position_error_m": 0.577,
+      "roadblock_destructions": 0,
+      "roadblock_relocations": 0,
+      "route_id": "Town10HD_Opt Route B full-map loop v1",
+      "seed": 31,
+      "simulation_duration_s": 419.85,
+      "status": "PEDESTRIAN_BRAKING_NOT_EXERCISED",
+      "ticks": 8397,
+      "walker_brake_ticks": 0,
+      "wall_clock_duration_s": 419.85,
+      "watchdog_aborted": false,
+      "waypoints_expected": 19,
+      "waypoints_reached": 19
+    }
+  ],
+  "planned_route_length_m": 1268.68,
+  "return_heading_error_deg_max": 0.683,
+  "return_position_error_m_max": 0.577,
+  "roadblock_destructions_total": 0,
+  "roadblock_observations": [
+    {
+      "actor_id": 194,
+      "actor_type": "vehicle.lincoln.mkz",
+      "loop_index": 1,
+      "sim_s": 62.9,
+      "x": 94.74,
+      "y": 123.22
+    },
+    {
+      "actor_id": 203,
+      "actor_type": "vehicle.nissan.patrol",
+      "loop_index": 1,
+      "sim_s": 62.9,
+      "x": 80.8,
+      "y": 134.2
+    },
+    {
+      "actor_id": 229,
+      "actor_type": "vehicle.nissan.patrol",
+      "loop_index": 1,
+      "sim_s": 62.9,
+      "x": 109.51,
+      "y": 52.86
+    },
+    {
+      "actor_id": 200,
+      "actor_type": "vehicle.taxi.ford",
+      "loop_index": 1,
+      "sim_s": 77.25,
+      "x": 81.83,
+      "y": 137.57
+    },
+    {
+      "actor_id": 216,
+      "actor_type": "vehicle.dodgecop.charger",
+      "loop_index": 1,
+      "sim_s": 77.25,
+      "x": 96.61,
+      "y": 62.96
+    },
+    {
+      "actor_id": 222,
+      "actor_type": "vehicle.lincoln.mkz",
+      "loop_index": 1,
+      "sim_s": 108.0,
+      "x": 93.36,
+      "y": 129.9
+    },
+    {
+      "actor_id": 219,
+      "actor_type": "vehicle.taxi.ford",
+      "loop_index": 1,
+      "sim_s": 122.35,
+      "x": 98.29,
+      "y": 110.62
+    },
+    {
+      "actor_id": 227,
+      "actor_type": "vehicle.taxi.ford",
+      "loop_index": 1,
+      "sim_s": 134.45,
+      "x": 109.36,
+      "y": 74.93
+    },
+    {
+      "actor_id": 197,
+      "actor_type": "vehicle.dodgecop.charger",
+      "loop_index": 1,
+      "sim_s": 144.45,
+      "x": 109.37,
+      "y": 72.33
+    },
+    {
+      "actor_id": 205,
+      "actor_type": "vehicle.dodgecop.charger",
+      "loop_index": 1,
+      "sim_s": 152.45,
+      "x": -25.19,
+      "y": 66.22
+    },
+    {
+      "actor_id": 238,
+      "actor_type": "vehicle.nissan.patrol",
+      "loop_index": 1,
+      "sim_s": 166.45,
+      "x": 60.72,
+      "y": 141.19
+    },
+    {
+      "actor_id": 208,
+      "actor_type": "vehicle.lincoln.mkz",
+      "loop_index": 1,
+      "sim_s": 182.45,
+      "x": -18.8,
+      "y": 28.13
+    },
+    {
+      "actor_id": 236,
+      "actor_type": "vehicle.mini.cooper",
+      "loop_index": 1,
+      "sim_s": 182.45,
+      "x": 91.81,
+      "y": -50.01
+    },
+    {
+      "actor_id": 199,
+      "actor_type": "vehicle.dodge.charger",
+      "loop_index": 1,
+      "sim_s": 184.45,
+      "x": -52.13,
+      "y": 61.65
+    },
+    {
+      "actor_id": 229,
+      "actor_type": "vehicle.nissan.patrol",
+      "loop_index": 1,
+      "sim_s": 196.45,
+      "x": -57.33,
+      "y": 140.36
+    },
+    {
+      "actor_id": 223,
+      "actor_type": "vehicle.lincoln.mkz",
+      "loop_index": 1,
+      "sim_s": 212.45,
+      "x": -23.27,
+      "y": 66.22
+    },
+    {
+      "actor_id": 200,
+      "actor_type": "vehicle.taxi.ford",
+      "loop_index": 1,
+      "sim_s": 242.45,
+      "x": -46.58,
+      "y": 140.42
+    },
+    {
+      "actor_id": 238,
+      "actor_type": "vehicle.nissan.patrol",
+      "loop_index": 1,
+      "sim_s": 244.45,
+      "x": 109.5,
+      "y": 86.62
+    },
+    {
+      "actor_id": 242,
+      "actor_type": "vehicle.taxi.ford",
+      "loop_index": 1,
+      "sim_s": 272.45,
+      "x": 0.0,
+      "y": 0.0
+    },
+    {
+      "actor_id": 222,
+      "actor_type": "vehicle.lincoln.mkz",
+      "loop_index": 1,
+      "sim_s": 274.45,
+      "x": 0.0,
+      "y": 0.0
+    },
+    {
+      "actor_id": 227,
+      "actor_type": "vehicle.taxi.ford",
+      "loop_index": 1,
+      "sim_s": 274.45,
+      "x": 0.0,
+      "y": 0.0
+    },
+    {
+      "actor_id": 208,
+      "actor_type": "vehicle.lincoln.mkz",
+      "loop_index": 1,
+      "sim_s": 284.45,
+      "x": 65.99,
+      "y": 28.37
+    },
+    {
+      "actor_id": 224,
+      "actor_type": "vehicle.dodge.charger",
+      "loop_index": 1,
+      "sim_s": 286.45,
+      "x": 88.22,
+      "y": 129.69
+    },
+    {
+      "actor_id": 195,
+      "actor_type": "vehicle.lincoln.mkz",
+      "loop_index": 1,
+      "sim_s": 292.45,
+      "x": 8.19,
+      "y": 28.21
+    },
+    {
+      "actor_id": 197,
+      "actor_type": "vehicle.dodgecop.charger",
+      "loop_index": 1,
+      "sim_s": 294.45,
+      "x": 0.0,
+      "y": 0.0
+    },
+    {
+      "actor_id": 207,
+      "actor_type": "vehicle.dodgecop.charger",
+      "loop_index": 1,
+      "sim_s": 302.45,
+      "x": 0.0,
+      "y": 0.0
+    },
+    {
+      "actor_id": 239,
+      "actor_type": "vehicle.taxi.ford",
+      "loop_index": 1,
+      "sim_s": 302.45,
+      "x": 83.82,
+      "y": 136.64
+    },
+    {
+      "actor_id": 213,
+      "actor_type": "vehicle.dodge.charger",
+      "loop_index": 1,
+      "sim_s": 304.45,
+      "x": 0.0,
+      "y": 0.0
+    },
+    {
+      "actor_id": 198,
+      "actor_type": "vehicle.lincoln.mkz",
+      "loop_index": 1,
+      "sim_s": 344.45,
+      "x": -18.57,
+      "y": -68.19
+    },
+    {
+      "actor_id": 214,
+      "actor_type": "vehicle.lincoln.mkz",
+      "loop_index": 1,
+      "sim_s": 366.45,
+      "x": -100.29,
+      "y": 32.54
+    },
+    {
+      "actor_id": 228,
+      "actor_type": "vehicle.dodge.charger",
+      "loop_index": 1,
+      "sim_s": 366.45,
+      "x": -98.71,
+      "y": 110.57
+    },
+    {
+      "actor_id": 204,
+      "actor_type": "vehicle.nissan.patrol",
+      "loop_index": 1,
+      "sim_s": 372.45,
+      "x": -97.99,
+      "y": 111.86
+    },
+    {
+      "actor_id": 195,
+      "actor_type": "vehicle.lincoln.mkz",
+      "loop_index": 1,
+      "sim_s": 392.45,
+      "x": 21.9,
+      "y": 130.47
+    }
+  ],
+  "roadblock_relocations_total": 0,
+  "route_id": "Town10HD_Opt Route B full-map loop v1",
+  "seed": 31,
+  "simulation_duration_s_max": 419.85,
+  "simulation_duration_s_median": 419.85,
+  "simulation_duration_s_min": 419.85,
+  "status": "PEDESTRIAN_BRAKING_NOT_EXERCISED",
+  "walker_brake_ticks_total": 0,
+  "wall_clock_duration_s_total": 419.85,
+  "watchdog_aborted_any": false
+}

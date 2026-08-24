@@ -1,0 +1,511 @@
+{
+  "sim_seconds_observed": 180.0,
+  "fixed_delta_seconds": 0.05,
+  "long_wait_locations": {
+    "leg11_x109_y70": [
+      109.39,
+      69.66
+    ],
+    "leg16_xm73_y28": [
+      -72.86,
+      27.98
+    ]
+  },
+  "lights": [
+    {
+      "actor_id": 34,
+      "group_key": 34,
+      "group_size": 4,
+      "configured_red_s": 2.0,
+      "configured_yellow_s": 3.0,
+      "configured_green_s": 10.0,
+      "observed": {
+        "Red": {
+          "n": 3,
+          "min": 32.25,
+          "max": 32.25,
+          "mean": 32.25
+        },
+        "Yellow": {
+          "n": 3,
+          "min": 3.05,
+          "max": 3.05,
+          "mean": 3.05
+        },
+        "Green": {
+          "n": 3,
+          "min": 10.0,
+          "max": 10.0,
+          "mean": 10.0
+        }
+      },
+      "stop_line_geometry_m": {
+        "stop_waypoint_count": 2,
+        "leg11_x109_y70": 190.51,
+        "leg16_xm73_y28": 104.08
+      }
+    },
+    {
+      "actor_id": 35,
+      "group_key": 34,
+      "group_size": 4,
+      "configured_red_s": 2.0,
+      "configured_yellow_s": 3.0,
+      "configured_green_s": 10.0,
+      "observed": {
+        "Red": {
+          "n": 3,
+          "min": 32.25,
+          "max": 32.25,
+          "mean": 32.25
+        },
+        "Yellow": {
+          "n": 3,
+          "min": 3.05,
+          "max": 3.05,
+          "mean": 3.05
+        },
+        "Green": {
+          "n": 3,
+          "min": 10.0,
+          "max": 10.0,
+          "mean": 10.0
+        }
+      },
+      "stop_line_geometry_m": {
+        "stop_waypoint_count": 2,
+        "leg11_x109_y70": 188.11,
+        "leg16_xm73_y28": 75.7
+      }
+    },
+    {
+      "actor_id": 36,
+      "group_key": 36,
+      "group_size": 4,
+      "configured_red_s": 2.0,
+      "configured_yellow_s": 3.0,
+      "configured_green_s": 10.0,
+      "observed": {
+        "Red": {
+          "n": 3,
+          "min": 32.25,
+          "max": 32.25,
+          "mean": 32.25
+        },
+        "Yellow": {
+          "n": 3,
+          "min": 3.05,
+          "max": 3.05,
+          "mean": 3.05
+        },
+        "Green": {
+          "n": 3,
+          "min": 10.0,
+          "max": 10.0,
+          "mean": 10.0
+        }
+      },
+      "stop_line_geometry_m": {
+        "stop_waypoint_count": 2,
+        "leg11_x109_y70": 21.21,
+        "leg16_xm73_y28": 180.06
+      }
+    },
+    {
+      "actor_id": 37,
+      "group_key": 36,
+      "group_size": 4,
+      "configured_red_s": 2.0,
+      "configured_yellow_s": 3.0,
+      "configured_green_s": 10.0,
+      "observed": {
+        "Red": {
+          "n": 3,
+          "min": 32.25,
+          "max": 32.25,
+          "mean": 32.25
+        },
+        "Yellow": {
+          "n": 3,
+          "min": 3.05,
+          "max": 3.05,
+          "mean": 3.05
+        },
+        "Green": {
+          "n": 3,
+          "min": 10.0,
+          "max": 10.0,
+          "mean": 10.0
+        }
+      },
+      "stop_line_geometry_m": {
+        "stop_waypoint_count": 2,
+        "leg11_x109_y70": 78.73,
+        "leg16_xm73_y28": 176.17
+      }
+    },
+    {
+      "actor_id": 38,
+      "group_key": 38,
+      "group_size": 5,
+      "configured_red_s": 2.0,
+      "configured_yellow_s": 3.0,
+      "configured_green_s": 10.0,
+      "observed": {
+        "Red": {
+          "n": 2,
+          "min": 47.35,
+          "max": 47.35,
+          "mean": 47.35
+        },
+        "Yellow": {
+          "n": 2,
+          "min": 3.05,
+          "max": 3.05,
+          "mean": 3.05
+        },
+        "Green": {
+          "n": 2,
+          "min": 10.0,
+          "max": 10.0,
+          "mean": 10.0
+        }
+      },
+      "stop_line_geometry_m": {
+        "stop_waypoint_count": 2,
+        "leg11_x109_y70": 152.57,
+        "leg16_xm73_y28": 34.33
+      }
+    },
+    {
+      "actor_id": 39,
+      "group_key": 38,
+      "group_size": 5,
+      "configured_red_s": 2.0,
+      "configured_yellow_s": 3.0,
+      "configured_green_s": 10.0,
+      "observed": {
+        "Red": {
+          "n": 2,
+          "min": 47.35,
+          "max": 47.35,
+          "mean": 47.35
+        },
+        "Yellow": {
+          "n": 2,
+          "min": 3.05,
+          "max": 3.05,
+          "mean": 3.05
+        },
+        "Green": {
+          "n": 2,
+          "min": 10.0,
+          "max": 10.0,
+          "mean": 10.0
+        }
+      },
+      "stop_line_geometry_m": {
+        "stop_waypoint_count": 2,
+        "leg11_x109_y70": 143.47,
+        "leg16_xm73_y28": 50.25
+      }
+    },
+    {
+      "actor_id": 40,
+      "group_key": 38,
+      "group_size": 5,
+      "configured_red_s": 2.0,
+      "configured_yellow_s": 3.0,
+      "configured_green_s": 10.0,
+      "observed": {
+        "Red": {
+          "n": 2,
+          "min": 47.35,
+          "max": 47.35,
+          "mean": 47.35
+        },
+        "Yellow": {
+          "n": 2,
+          "min": 3.05,
+          "max": 3.05,
+          "mean": 3.05
+        },
+        "Green": {
+          "n": 2,
+          "min": 10.0,
+          "max": 10.0,
+          "mean": 10.0
+        }
+      },
+      "stop_line_geometry_m": {
+        "stop_waypoint_count": 2,
+        "leg11_x109_y70": 176.04,
+        "leg16_xm73_y28": 40.98
+      }
+    },
+    {
+      "actor_id": 41,
+      "group_key": 41,
+      "group_size": 4,
+      "configured_red_s": 2.0,
+      "configured_yellow_s": 3.0,
+      "configured_green_s": 10.0,
+      "observed": {
+        "Red": {
+          "n": 3,
+          "min": 32.25,
+          "max": 32.25,
+          "mean": 32.25
+        },
+        "Yellow": {
+          "n": 3,
+          "min": 3.05,
+          "max": 3.05,
+          "mean": 3.05
+        },
+        "Green": {
+          "n": 3,
+          "min": 10.0,
+          "max": 10.0,
+          "mean": 10.0
+        }
+      },
+      "stop_line_geometry_m": {
+        "stop_waypoint_count": 2,
+        "leg11_x109_y70": 214.08,
+        "leg16_xm73_y28": 38.06
+      }
+    },
+    {
+      "actor_id": 42,
+      "group_key": 34,
+      "group_size": 4,
+      "configured_red_s": 2.0,
+      "configured_yellow_s": 3.0,
+      "configured_green_s": 10.0,
+      "observed": {
+        "Red": {
+          "n": 3,
+          "min": 32.25,
+          "max": 32.25,
+          "mean": 32.25
+        },
+        "Yellow": {
+          "n": 3,
+          "min": 3.05,
+          "max": 3.05,
+          "mean": 3.05
+        },
+        "Green": {
+          "n": 3,
+          "min": 10.0,
+          "max": 10.0,
+          "mean": 10.0
+        }
+      },
+      "stop_line_geometry_m": {
+        "stop_waypoint_count": 2,
+        "leg11_x109_y70": 219.04,
+        "leg16_xm73_y28": 86.3
+      }
+    },
+    {
+      "actor_id": 43,
+      "group_key": 41,
+      "group_size": 4,
+      "configured_red_s": 2.0,
+      "configured_yellow_s": 3.0,
+      "configured_green_s": 10.0,
+      "observed": {
+        "Red": {
+          "n": 3,
+          "min": 32.25,
+          "max": 32.25,
+          "mean": 32.25
+        },
+        "Yellow": {
+          "n": 3,
+          "min": 3.05,
+          "max": 3.05,
+          "mean": 3.05
+        },
+        "Green": {
+          "n": 3,
+          "min": 10.0,
+          "max": 10.0,
+          "mean": 10.0
+        }
+      },
+      "stop_line_geometry_m": {
+        "stop_waypoint_count": 2,
+        "leg11_x109_y70": 232.88,
+        "leg16_xm73_y28": 51.83
+      }
+    },
+    {
+      "actor_id": 44,
+      "group_key": 44,
+      "group_size": 3,
+      "configured_red_s": 2.0,
+      "configured_yellow_s": 3.0,
+      "configured_green_s": 10.0,
+      "observed": {
+        "Red": {
+          "n": 5,
+          "min": 17.15,
+          "max": 17.15,
+          "mean": 17.15
+        },
+        "Yellow": {
+          "n": 5,
+          "min": 3.05,
+          "max": 3.05,
+          "mean": 3.05
+        },
+        "Green": {
+          "n": 5,
+          "min": 10.0,
+          "max": 10.0,
+          "mean": 10.0
+        }
+      },
+      "stop_line_geometry_m": {
+        "stop_waypoint_count": 2,
+        "leg11_x109_y70": 162.5,
+        "leg16_xm73_y28": 82.78
+      }
+    },
+    {
+      "actor_id": 45,
+      "group_key": 44,
+      "group_size": 3,
+      "configured_red_s": 2.0,
+      "configured_yellow_s": 3.0,
+      "configured_green_s": 10.0,
+      "observed": {
+        "Red": {
+          "n": 5,
+          "min": 17.15,
+          "max": 17.15,
+          "mean": 17.15
+        },
+        "Yellow": {
+          "n": 5,
+          "min": 3.05,
+          "max": 3.05,
+          "mean": 3.05
+        },
+        "Green": {
+          "n": 5,
+          "min": 10.0,
+          "max": 10.0,
+          "mean": 10.0
+        }
+      },
+      "stop_line_geometry_m": {
+        "stop_waypoint_count": 2,
+        "leg11_x109_y70": 144.44,
+        "leg16_xm73_y28": 114.15
+      }
+    },
+    {
+      "actor_id": 46,
+      "group_key": 38,
+      "group_size": 5,
+      "configured_red_s": 2.0,
+      "configured_yellow_s": 3.0,
+      "configured_green_s": 10.0,
+      "observed": {
+        "Red": {
+          "n": 2,
+          "min": 47.35,
+          "max": 47.35,
+          "mean": 47.35
+        },
+        "Yellow": {
+          "n": 2,
+          "min": 3.05,
+          "max": 3.05,
+          "mean": 3.05
+        },
+        "Green": {
+          "n": 2,
+          "min": 10.0,
+          "max": 10.0,
+          "mean": 10.0
+        }
+      },
+      "stop_line_geometry_m": {
+        "stop_waypoint_count": 2,
+        "leg11_x109_y70": 184.25,
+        "leg16_xm73_y28": 2.77
+      }
+    },
+    {
+      "actor_id": 47,
+      "group_key": 41,
+      "group_size": 4,
+      "configured_red_s": 2.0,
+      "configured_yellow_s": 3.0,
+      "configured_green_s": 10.0,
+      "observed": {
+        "Red": {
+          "n": 3,
+          "min": 32.25,
+          "max": 32.25,
+          "mean": 32.25
+        },
+        "Yellow": {
+          "n": 3,
+          "min": 3.05,
+          "max": 3.05,
+          "mean": 3.05
+        },
+        "Green": {
+          "n": 3,
+          "min": 10.0,
+          "max": 10.0,
+          "mean": 10.0
+        }
+      },
+      "stop_line_geometry_m": {
+        "stop_waypoint_count": 2,
+        "leg11_x109_y70": 199.93,
+        "leg16_xm73_y28": 15.57
+      }
+    },
+    {
+      "actor_id": 48,
+      "group_key": 36,
+      "group_size": 4,
+      "configured_red_s": 2.0,
+      "configured_yellow_s": 3.0,
+      "configured_green_s": 10.0,
+      "observed": {
+        "Red": {
+          "n": 3,
+          "min": 32.25,
+          "max": 32.25,
+          "mean": 32.25
+        },
+        "Yellow": {
+          "n": 3,
+          "min": 3.05,
+          "max": 3.05,
+          "mean": 3.05
+        },
+        "Green": {
+          "n": 3,
+          "min": 10.0,
+          "max": 10.0,
+          "mean": 10.0
+        }
+      },
+      "stop_line_geometry_m": {
+        "stop_waypoint_count": 2,
+        "leg11_x109_y70": 52.04,
+        "leg16_xm73_y28": 150.54
+      }
+    }
+  ]
+}

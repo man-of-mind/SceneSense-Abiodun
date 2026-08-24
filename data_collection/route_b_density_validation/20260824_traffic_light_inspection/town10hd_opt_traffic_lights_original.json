@@ -1,0 +1,500 @@
+{
+  "map": "Carla/Maps/Town10HD_Opt",
+  "route_id": "Town10HD_Opt Route B full-map loop v1",
+  "near_route_threshold_m": 30.0,
+  "long_wait_locations": {
+    "leg11_x109_y70": [
+      109.39,
+      69.66
+    ],
+    "leg16_xm73_y28": [
+      -72.86,
+      27.98
+    ]
+  },
+  "total_traffic_lights": 15,
+  "lights": [
+    {
+      "actor_id": 40,
+      "type_id": "traffic.traffic_light",
+      "opendrive_id": "951",
+      "pole_index": 1,
+      "group_key": 38,
+      "group_members": [
+        38,
+        39,
+        40,
+        40,
+        46
+      ],
+      "group_size": 5,
+      "x": -62.35,
+      "y": 20.2,
+      "z": 0.25,
+      "yaw_deg": 180.0,
+      "red_time_s": 2.0,
+      "yellow_time_s": 3.0,
+      "green_time_s": 10.0,
+      "cycle_s": 15.0,
+      "state_at_read": "Red",
+      "distance_to_route_b_path_m": 3.57,
+      "nearest_path_segment_index": 157,
+      "nearest_ordered_waypoint_index": 16,
+      "nearest_ordered_waypoint_dist_m": 8.67,
+      "distance_to_long_wait_m": {
+        "leg11_x109_y70": 178.72,
+        "leg16_xm73_y28": 13.08
+      },
+      "on_route_b": true
+    },
+    {
+      "actor_id": 41,
+      "type_id": "traffic.traffic_light",
+      "opendrive_id": "961",
+      "pole_index": 2,
+      "group_key": 41,
+      "group_members": [
+        41,
+        41,
+        43,
+        47
+      ],
+      "group_size": 4,
+      "x": -94.93,
+      "y": 20.33,
+      "z": 0.25,
+      "yaw_deg": 0.0,
+      "red_time_s": 2.0,
+      "yellow_time_s": 3.0,
+      "green_time_s": 10.0,
+      "cycle_s": 15.0,
+      "state_at_read": "Red",
+      "distance_to_route_b_path_m": 3.84,
+      "nearest_path_segment_index": 173,
+      "nearest_ordered_waypoint_index": 4,
+      "nearest_ordered_waypoint_dist_m": 9.32,
+      "distance_to_long_wait_m": {
+        "leg11_x109_y70": 210.19,
+        "leg16_xm73_y28": 23.35
+      },
+      "on_route_b": true
+    },
+    {
+      "actor_id": 36,
+      "type_id": "traffic.traffic_light",
+      "opendrive_id": "958",
+      "pole_index": 1,
+      "group_key": 36,
+      "group_members": [
+        36,
+        36,
+        37,
+        48
+      ],
+      "group_size": 4,
+      "x": 114.45,
+      "y": 21.2,
+      "z": 0.25,
+      "yaw_deg": -0.0,
+      "red_time_s": 2.0,
+      "yellow_time_s": 3.0,
+      "green_time_s": 10.0,
+      "cycle_s": 15.0,
+      "state_at_read": "Red",
+      "distance_to_route_b_path_m": 4.73,
+      "nearest_path_segment_index": 377,
+      "nearest_ordered_waypoint_index": 1,
+      "nearest_ordered_waypoint_dist_m": 28.53,
+      "distance_to_long_wait_m": {
+        "leg11_x109_y70": 48.73,
+        "leg16_xm73_y28": 187.43
+      },
+      "on_route_b": true
+    },
+    {
+      "actor_id": 34,
+      "type_id": "traffic.traffic_light",
+      "opendrive_id": "943",
+      "pole_index": 0,
+      "group_key": 34,
+      "group_members": [
+        34,
+        34,
+        35,
+        42
+      ],
+      "group_size": 4,
+      "x": -46.17,
+      "y": -73.56,
+      "z": 0.25,
+      "yaw_deg": -90.0,
+      "red_time_s": 2.0,
+      "yellow_time_s": 3.0,
+      "green_time_s": 10.0,
+      "cycle_s": 15.0,
+      "state_at_read": "Green",
+      "distance_to_route_b_path_m": 5.08,
+      "nearest_path_segment_index": 484,
+      "nearest_ordered_waypoint_index": 14,
+      "nearest_ordered_waypoint_dist_m": 8.79,
+      "distance_to_long_wait_m": {
+        "leg11_x109_y70": 211.45,
+        "leg16_xm73_y28": 104.99
+      },
+      "on_route_b": true
+    },
+    {
+      "actor_id": 44,
+      "type_id": "traffic.traffic_light",
+      "opendrive_id": "953",
+      "pole_index": 0,
+      "group_key": 44,
+      "group_members": [
+        44,
+        44,
+        45
+      ],
+      "group_size": 3,
+      "x": -58.72,
+      "y": 145.82,
+      "z": 0.25,
+      "yaw_deg": 180.0,
+      "red_time_s": 2.0,
+      "yellow_time_s": 3.0,
+      "green_time_s": 10.0,
+      "cycle_s": 15.0,
+      "state_at_read": "Green",
+      "distance_to_route_b_path_m": 5.47,
+      "nearest_path_segment_index": 252,
+      "nearest_ordered_waypoint_index": 8,
+      "nearest_ordered_waypoint_dist_m": 19.05,
+      "distance_to_long_wait_m": {
+        "leg11_x109_y70": 184.55,
+        "leg16_xm73_y28": 118.69
+      },
+      "on_route_b": true
+    },
+    {
+      "actor_id": 46,
+      "type_id": "traffic.traffic_light",
+      "opendrive_id": "949",
+      "pole_index": 3,
+      "group_key": 38,
+      "group_members": [
+        38,
+        39,
+        40,
+        46,
+        46
+      ],
+      "group_size": 5,
+      "x": -31.64,
+      "y": 33.78,
+      "z": 0.25,
+      "yaw_deg": 90.0,
+      "red_time_s": 2.0,
+      "yellow_time_s": 3.0,
+      "green_time_s": 10.0,
+      "cycle_s": 15.0,
+      "state_at_read": "Red",
+      "distance_to_route_b_path_m": 5.68,
+      "nearest_path_segment_index": 574,
+      "nearest_ordered_waypoint_index": 17,
+      "nearest_ordered_waypoint_dist_m": 6.38,
+      "distance_to_long_wait_m": {
+        "leg11_x109_y70": 145.52,
+        "leg16_xm73_y28": 41.63
+      },
+      "on_route_b": true
+    },
+    {
+      "actor_id": 48,
+      "type_id": "traffic.traffic_light",
+      "opendrive_id": "959",
+      "pole_index": 2,
+      "group_key": 36,
+      "group_members": [
+        36,
+        37,
+        48,
+        48
+      ],
+      "group_size": 4,
+      "x": 115.45,
+      "y": 35.04,
+      "z": 0.22,
+      "yaw_deg": 90.0,
+      "red_time_s": 2.0,
+      "yellow_time_s": 3.0,
+      "green_time_s": 10.0,
+      "cycle_s": 15.0,
+      "state_at_read": "Red",
+      "distance_to_route_b_path_m": 5.82,
+      "nearest_path_segment_index": 370,
+      "nearest_ordered_waypoint_index": 1,
+      "nearest_ordered_waypoint_dist_m": 19.29,
+      "distance_to_long_wait_m": {
+        "leg11_x109_y70": 35.14,
+        "leg16_xm73_y28": 188.44
+      },
+      "on_route_b": true
+    },
+    {
+      "actor_id": 37,
+      "type_id": "traffic.traffic_light",
+      "opendrive_id": "957",
+      "pole_index": 0,
+      "group_key": 36,
+      "group_members": [
+        36,
+        37,
+        37,
+        48
+      ],
+      "group_size": 4,
+      "x": 89.79,
+      "y": 20.92,
+      "z": 0.25,
+      "yaw_deg": 180.0,
+      "red_time_s": 2.0,
+      "yellow_time_s": 3.0,
+      "green_time_s": 10.0,
+      "cycle_s": 15.0,
+      "state_at_read": "Green",
+      "distance_to_route_b_path_m": 7.6,
+      "nearest_path_segment_index": 44,
+      "nearest_ordered_waypoint_index": 1,
+      "nearest_ordered_waypoint_dist_m": 26.01,
+      "distance_to_long_wait_m": {
+        "leg11_x109_y70": 52.53,
+        "leg16_xm73_y28": 162.8
+      },
+      "on_route_b": true
+    },
+    {
+      "actor_id": 38,
+      "type_id": "traffic.traffic_light",
+      "opendrive_id": "950",
+      "pole_index": 2,
+      "group_key": 38,
+      "group_members": [
+        38,
+        38,
+        39,
+        40,
+        46
+      ],
+      "group_size": 5,
+      "x": -31.93,
+      "y": 20.3,
+      "z": 0.25,
+      "yaw_deg": -0.0,
+      "red_time_s": 2.0,
+      "yellow_time_s": 3.0,
+      "green_time_s": 10.0,
+      "cycle_s": 15.0,
+      "state_at_read": "Red",
+      "distance_to_route_b_path_m": 7.79,
+      "nearest_path_segment_index": 574,
+      "nearest_ordered_waypoint_index": 17,
+      "nearest_ordered_waypoint_dist_m": 8.43,
+      "distance_to_long_wait_m": {
+        "leg11_x109_y70": 149.69,
+        "leg16_xm73_y28": 41.64
+      },
+      "on_route_b": true
+    },
+    {
+      "actor_id": 47,
+      "type_id": "traffic.traffic_light",
+      "opendrive_id": "960",
+      "pole_index": 0,
+      "group_key": 41,
+      "group_members": [
+        41,
+        43,
+        47,
+        47
+      ],
+      "group_size": 4,
+      "x": -119.23,
+      "y": 5.09,
+      "z": 0.26,
+      "yaw_deg": -90.0,
+      "red_time_s": 2.0,
+      "yellow_time_s": 3.0,
+      "green_time_s": 10.0,
+      "cycle_s": 15.0,
+      "state_at_read": "Green",
+      "distance_to_route_b_path_m": 8.93,
+      "nearest_path_segment_index": 534,
+      "nearest_ordered_waypoint_index": 4,
+      "nearest_ordered_waypoint_dist_m": 21.33,
+      "distance_to_long_wait_m": {
+        "leg11_x109_y70": 237.56,
+        "leg16_xm73_y28": 51.71
+      },
+      "on_route_b": true
+    },
+    {
+      "actor_id": 39,
+      "type_id": "traffic.traffic_light",
+      "opendrive_id": "952",
+      "pole_index": 0,
+      "group_key": 38,
+      "group_members": [
+        38,
+        39,
+        39,
+        40,
+        46
+      ],
+      "group_size": 5,
+      "x": -64.26,
+      "y": 7.06,
+      "z": 0.25,
+      "yaw_deg": -90.0,
+      "red_time_s": 2.0,
+      "yellow_time_s": 3.0,
+      "green_time_s": 10.0,
+      "cycle_s": 15.0,
+      "state_at_read": "Green",
+      "distance_to_route_b_path_m": 9.44,
+      "nearest_path_segment_index": 158,
+      "nearest_ordered_waypoint_index": 16,
+      "nearest_ordered_waypoint_dist_m": 21.82,
+      "distance_to_long_wait_m": {
+        "leg11_x109_y70": 184.59,
+        "leg16_xm73_y28": 22.61
+      },
+      "on_route_b": true
+    },
+    {
+      "actor_id": 43,
+      "type_id": "traffic.traffic_light",
+      "opendrive_id": "962",
+      "pole_index": 1,
+      "group_key": 41,
+      "group_members": [
+        41,
+        43,
+        43,
+        47
+      ],
+      "group_size": 4,
+      "x": -119.24,
+      "y": 19.0,
+      "z": 0.25,
+      "yaw_deg": 180.0,
+      "red_time_s": 2.0,
+      "yellow_time_s": 3.0,
+      "green_time_s": 10.0,
+      "cycle_s": 15.0,
+      "state_at_read": "Red",
+      "distance_to_route_b_path_m": 9.81,
+      "nearest_path_segment_index": 181,
+      "nearest_ordered_waypoint_index": 4,
+      "nearest_ordered_waypoint_dist_m": 15.04,
+      "distance_to_long_wait_m": {
+        "leg11_x109_y70": 234.17,
+        "leg16_xm73_y28": 47.24
+      },
+      "on_route_b": true
+    },
+    {
+      "actor_id": 45,
+      "type_id": "traffic.traffic_light",
+      "opendrive_id": "954",
+      "pole_index": 1,
+      "group_key": 44,
+      "group_members": [
+        44,
+        45,
+        45
+      ],
+      "group_size": 3,
+      "x": -62.1,
+      "y": 123.76,
+      "z": 0.28,
+      "yaw_deg": -90.0,
+      "red_time_s": 2.0,
+      "yellow_time_s": 3.0,
+      "green_time_s": 10.0,
+      "cycle_s": 15.0,
+      "state_at_read": "Red",
+      "distance_to_route_b_path_m": 16.57,
+      "nearest_path_segment_index": 250,
+      "nearest_ordered_waypoint_index": 8,
+      "nearest_ordered_waypoint_dist_m": 27.36,
+      "distance_to_long_wait_m": {
+        "leg11_x109_y70": 179.82,
+        "leg16_xm73_y28": 96.38
+      },
+      "on_route_b": true
+    },
+    {
+      "actor_id": 42,
+      "type_id": "traffic.traffic_light",
+      "opendrive_id": "945",
+      "pole_index": 1,
+      "group_key": 34,
+      "group_members": [
+        34,
+        35,
+        42,
+        42
+      ],
+      "group_size": 4,
+      "x": -59.24,
+      "y": -51.5,
+      "z": 0.25,
+      "yaw_deg": 90.0,
+      "red_time_s": 2.0,
+      "yellow_time_s": 3.0,
+      "green_time_s": 10.0,
+      "cycle_s": 15.0,
+      "state_at_read": "Red",
+      "distance_to_route_b_path_m": 17.11,
+      "nearest_path_segment_index": 490,
+      "nearest_ordered_waypoint_index": 14,
+      "nearest_ordered_waypoint_dist_m": 26.34,
+      "distance_to_long_wait_m": {
+        "leg11_x109_y70": 207.64,
+        "leg16_xm73_y28": 80.64
+      },
+      "on_route_b": true
+    },
+    {
+      "actor_id": 35,
+      "type_id": "traffic.traffic_light",
+      "opendrive_id": "944",
+      "pole_index": 2,
+      "group_key": 34,
+      "group_members": [
+        34,
+        35,
+        35,
+        42
+      ],
+      "group_size": 4,
+      "x": -34.45,
+      "y": -51.02,
+      "z": 0.25,
+      "yaw_deg": -0.0,
+      "red_time_s": 2.0,
+      "yellow_time_s": 3.0,
+      "green_time_s": 10.0,
+      "cycle_s": 15.0,
+      "state_at_read": "Red",
+      "distance_to_route_b_path_m": 17.33,
+      "nearest_path_segment_index": 478,
+      "nearest_ordered_waypoint_index": 14,
+      "nearest_ordered_waypoint_dist_m": 17.98,
+      "distance_to_long_wait_m": {
+        "leg11_x109_y70": 187.76,
+        "leg16_xm73_y28": 87.84
+      },
+      "on_route_b": true
+    }
+  ]
+}

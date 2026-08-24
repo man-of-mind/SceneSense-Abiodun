@@ -28,12 +28,22 @@ DEFAULT_PROGRESS = HERE / "routes" / "town10hd_opt_route_b_full_map_loop_v1.prog
 ACCEPTED_DENSITY_RUNNER = HERE / "run_route_b_density_loop.py"
 EXPECTED_ROUTE_SHA256 = "fc4518a8746b9417a64616b8e544f59b16b5a31b7585298a316a59662ecfd6e5"
 EXPECTED_PROGRESS_SHA256 = "974593859368f24ee2bc4ac31b82118bf2e932d0de1c96858b8771e2dd4d90c0"
-EXPECTED_RUNNER_SHA256 = "59592ee83184a227f324ff872d1cc7f5601d5a1efb0300dc08dec7b7f26749a4"
+# Re-verified 2026-08-24 after the reviewed population-ledger + traffic-profile change
+# to the density runner (ROUTE_B_TRAFFIC_30_50_CONFIGURATION.md §3). Previous accepted
+# value: 59592ee83184a227f324ff872d1cc7f5601d5a1efb0300dc08dec7b7f26749a4.
+EXPECTED_RUNNER_SHA256 = "f2abd86ca650d6257eb5a6600bc7cdf94bc3e0777964e58a7aeeb1a63bd55730"
 DENSITIES = {
+    # Historical names, retained so earlier Route B episodes stay reproducible.
     "low": (5, 5),
     "medium": (15, 15),
     "dense": (25, 25),
+    # Current profile; the name states the requested actor counts only.
+    "traffic_30_30": (30, 30),
 }
+DEFAULT_TARGET_SPEED_KPH = 25.0
+ALLOWED_SEED_BUNDLES = {(101, 1101), (31, 31)}
+SENSOR_NAMES = ("rgb", "semantic", "depth", "radar")
+QUALIFIED_WALKER_BRAKE_DISTANCE_M = 10.0
 
 
 class PilotError(RuntimeError):
@@ -92,6 +102,8 @@ def verify_inputs(args: argparse.Namespace) -> dict[str, Any]:
         "pedestrians": pedestrians,
         "scenario_seed": int(args.scenario_seed),
         "traffic_manager_seed": int(args.tm_seed),
+        "target_speed_kph": float(args.target_speed_kph),
+        "hybrid_physics": bool(args.hybrid_physics),
         "output_dir": str(output_dir),
         "route_name": route["name"],
         "route_progress_points": progress_rows,
@@ -165,6 +177,8 @@ class LegacyPerceptionCollector:
         pedestrians: int,
         scenario_seed: int,
         tm_seed: int,
+        target_speed_kph: float,
+        hybrid_physics: bool,
         route_path: Path,
         progress_path: Path,
     ) -> None:
@@ -180,6 +194,9 @@ class LegacyPerceptionCollector:
         self.pedestrians = int(pedestrians)
         self.scenario_seed = int(scenario_seed)
         self.tm_seed = int(tm_seed)
+        self.target_speed_kph = float(target_speed_kph)
+        self.hybrid_physics = bool(hybrid_physics)
+        self.scenario_id = f"route_b_{density}_seed{int(scenario_seed)}_tm{int(tm_seed)}"
         self.route_path = route_path.resolve()
         self.progress_path = progress_path.resolve()
         self.experiment_id = self.output_dir.name
@@ -195,6 +212,9 @@ class LegacyPerceptionCollector:
         self.max_camera_transform_delta_m = 0.0
         self.max_radar_transform_delta_m = 0.0
         self.cleanup_succeeded = False
+        self.cleanup_tick = "not_run"
+        self.cleanup_records: list[dict[str, Any]] = []
+        self.cleanup_warnings: list[str] = []
         self.failure = ""
 
         fr = parked.fusion_runtime
@@ -293,7 +313,7 @@ class LegacyPerceptionCollector:
             "experiment_id": self.experiment_id,
             "description": "Qualified Route B moving-ego perception pilot in the historical fusion layout.",
             "world": str(self.world.get_map().name),
-            "scenario_id": f"route_b_{self.density}_seed101_tm1101",
+            "scenario_id": self.scenario_id,
             "view_id": "qualified_route_b_controller",
             "split": "train",
             "density": self.density,
@@ -311,10 +331,12 @@ class LegacyPerceptionCollector:
             "qualified_density_runner_sha256": EXPECTED_RUNNER_SHA256,
             "controller": {
                 "lane_offset_m": -0.5,
-                "walker_detection_distance_m": 10.0,
+                "walker_detection_distance_m": QUALIFIED_WALKER_BRAKE_DISTANCE_M,
                 "npc_hardening": True,
                 "safe_vehicle_filter": True,
                 "interventions": False,
+                "target_speed_kph": self.target_speed_kph,
+                "hybrid_physics": self.hybrid_physics,
             },
             "weather": weather_payload(self.world.get_weather()),
             "camera_resolution": [self.args.camera_width, self.args.camera_height],
@@ -459,7 +481,7 @@ class LegacyPerceptionCollector:
             intrinsics_full=self.intrinsics_full,
             radar_summary=radar_summary,
         )
-        scenario_id = f"route_b_{self.density}_seed101_tm1101"
+        scenario_id = self.scenario_id
         manifest_row["scenario_id"] = scenario_id
         manifest_row["view_id"] = "qualified_route_b_controller"
         sample_base = {
@@ -531,27 +553,75 @@ class LegacyPerceptionCollector:
             )
 
     def stop_sensors(self) -> bool:
-        sensor_ids = [int(sensor.id) for sensor in self.sensors]
-        ok = True
-        for sensor in self.sensors:
+        """Stop and destroy the perception sensors, then verify final actor absence.
+
+        In synchronous mode a destroy request is only applied by the server on the next
+        tick, so liveness is verified after one dedicated cleanup tick. Success is decided
+        by final absence: a False destroy return on a confirmed-absent actor is a warning,
+        while a surviving actor or unavailable verification is a failure.
+        """
+        records: list[dict[str, Any]] = []
+        for name, sensor in zip(SENSOR_NAMES, self.sensors):
+            record: dict[str, Any] = {
+                "sensor": name,
+                "type_id": str(sensor.type_id),
+                "actor_id": int(sensor.id),
+                "stop_result": "ok",
+                "destroy_result": None,
+                "final_state": "unverified",
+            }
             try:
                 sensor.stop()
-            except RuntimeError:
-                ok = False
-        for sensor in reversed(self.sensors):
+            except RuntimeError as exc:
+                record["stop_result"] = f"error: {exc}"
+            records.append(record)
+        for index in range(len(self.sensors) - 1, -1, -1):
             try:
-                if not sensor.destroy():
-                    ok = False
-            except RuntimeError:
-                ok = False
-        for actor_id in sensor_ids:
+                records[index]["destroy_result"] = bool(self.sensors[index].destroy())
+            except RuntimeError as exc:
+                records[index]["destroy_result"] = f"error: {exc}"
+        cleanup_tick = "ok"
+        try:
+            self.world.tick()
+        except RuntimeError as exc:
+            cleanup_tick = f"error: {exc}"
+        for record in records:
             try:
-                actor = self.world.get_actor(actor_id)
-                if actor is not None and actor.is_alive:
-                    ok = False
-            except RuntimeError:
+                actor = self.world.get_actor(record["actor_id"])
+                record["final_state"] = "absent" if actor is None or not actor.is_alive else "alive"
+            except RuntimeError as exc:
+                record["final_state"] = f"unverified: {exc}"
+
+        ok = cleanup_tick == "ok"
+        warnings: list[str] = []
+        if cleanup_tick != "ok":
+            warnings.append(f"cleanup tick failed, final verification unavailable ({cleanup_tick})")
+        for record in records:
+            if record["final_state"] != "absent":
                 ok = False
+                continue
+            if record["destroy_result"] is not True:
+                warnings.append(
+                    f"{record['sensor']} destroy returned {record['destroy_result']!r} "
+                    "but the actor is confirmed absent"
+                )
+            if record["stop_result"] != "ok":
+                warnings.append(
+                    f"{record['sensor']} stop reported {record['stop_result']!r} "
+                    "but the actor is confirmed absent"
+                )
+        self.cleanup_tick = cleanup_tick
+        self.cleanup_records = records
+        self.cleanup_warnings = warnings
         self.cleanup_succeeded = ok
+        for message in warnings:
+            print(f"perception sensor cleanup warning: {message}", flush=True)
+        print(
+            "perception sensor cleanup "
+            f"{'OK' if ok else 'FAILED'}: "
+            + ", ".join(f"{r['sensor']}#{r['actor_id']}={r['final_state']}" for r in records),
+            flush=True,
+        )
         return ok
 
     @staticmethod
@@ -575,6 +645,8 @@ class LegacyPerceptionCollector:
             "density": self.density,
             "scenario_seed": self.scenario_seed,
             "traffic_manager_seed": self.tm_seed,
+            "target_speed_kph": self.target_speed_kph,
+            "hybrid_physics": self.hybrid_physics,
             "saved_samples": self.saved,
             "sampling": {
                 "simulator_hz": 20,
@@ -598,7 +670,14 @@ class LegacyPerceptionCollector:
                 )
             },
             "per_frame_density_counts": self.sample_stats,
+            "walker_brake_distance_m": QUALIFIED_WALKER_BRAKE_DISTANCE_M,
             "sensor_cleanup_succeeded": self.cleanup_succeeded,
+            "sensor_cleanup": {
+                "succeeded": self.cleanup_succeeded,
+                "cleanup_tick": self.cleanup_tick,
+                "warnings": self.cleanup_warnings,
+                "sensors": self.cleanup_records,
+            },
             "error": error,
             "route_result": route_result,
         }
@@ -613,6 +692,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--route-progress-csv", type=Path, default=DEFAULT_PROGRESS)
     parser.add_argument("--scenario-seed", type=int, default=101)
     parser.add_argument("--tm-seed", type=int, default=1101)
+    parser.add_argument("--target-speed-kph", type=float, default=DEFAULT_TARGET_SPEED_KPH)
+    parser.add_argument("--hybrid-physics", dest="hybrid_physics", action="store_true",
+                        help="restore the density runner's stock hybrid physics")
+    parser.add_argument("--no-hybrid-physics", dest="hybrid_physics", action="store_false",
+                        help="keep full physics for every NPC (pilot default)")
+    parser.set_defaults(hybrid_physics=False)
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=2000)
     parser.add_argument("--tm-port", type=int, default=8010)
@@ -631,8 +716,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.preflight_only:
         return 0
 
-    if (int(args.scenario_seed), int(args.tm_seed)) != (101, 1101):
-        print("pilot requires the exact seed bundle 101/1101", file=sys.stderr)
+    if (int(args.scenario_seed), int(args.tm_seed)) not in ALLOWED_SEED_BUNDLES:
+        allowed = ", ".join(f"{a}/{b}" for a, b in sorted(ALLOWED_SEED_BUNDLES))
+        print(f"pilot requires one of the registered seed bundles: {allowed}", file=sys.stderr)
         return 2
 
     if str(REPO_ROOT) not in sys.path:
@@ -653,13 +739,16 @@ def main(argv: list[str] | None = None) -> int:
         "--tm-port", str(args.tm_port),
         "--route-config", str(Path(args.route_config).resolve()),
         "--lane-offset-m", "-0.5",
-        "--walker-brake-distance-m", "10.0",
+        "--target-speed-kph", str(float(args.target_speed_kph)),
+        "--walker-brake-distance-m", str(QUALIFIED_WALKER_BRAKE_DISTANCE_M),
         "--fixed-delta-seconds", "0.05",
         "--real-time-tick-period-s", "0.05",
         "--no-spectator",
         "--out-csv", str(output_dir / "route_metrics.csv"),
         "--summary-json", str(output_dir / "route_metrics_summary.json"),
     ]
+    if not args.hybrid_physics:
+        density_argv.append("--no-hybrid-physics")
     density_args = density.build_parser().parse_args(density_argv)
 
     real_client_class = density.carla.Client
@@ -681,6 +770,8 @@ def main(argv: list[str] | None = None) -> int:
             pedestrians=pedestrians,
             scenario_seed=args.scenario_seed,
             tm_seed=args.tm_seed,
+            target_speed_kph=args.target_speed_kph,
+            hybrid_physics=args.hybrid_physics,
             route_path=Path(args.route_config),
             progress_path=Path(args.route_progress_csv),
         )

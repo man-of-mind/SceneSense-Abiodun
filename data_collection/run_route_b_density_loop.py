@@ -67,10 +67,107 @@ REQUIRED_MAP = "Town10HD_Opt"
 CLEANUP_RPC_TIMEOUT_S = 2.0
 
 DENSITY_PROFILES = {
+    # Historical names, retained so the accepted 2026-08-22 qualifications stay
+    # reproducible. New work must not use them as scene-density labels.
     "low": {"vehicles": 5, "pedestrians": 5},
     "medium": {"vehicles": 10, "pedestrians": 10},
     "dense": {"vehicles": 20, "pedestrians": 20},
+    # Current profiles. The name states the requested actor counts and nothing
+    # else: actual scene density is a measured per-frame local/in-view quantity,
+    # not something a spawn request can assert.
+    "traffic_30_30": {"vehicles": 30, "pedestrians": 30},
+    "traffic_50_50": {"vehicles": 50, "pedestrians": 50},
 }
+
+
+class PopulationLedger:
+    """Episode-level accounting of NPC population loss and replenishment.
+
+    The population manager already reconciles and refills genuinely lost actors.
+    This only observes it: ownership sets are diffed either side of
+    ``reconcile`` so a replacement is never counted as a survivor, and the
+    minimum live count is read from the surviving set *before* the refill, which
+    is the real trough. Nothing here changes population behaviour.
+    """
+
+    def __init__(self, population: Any, respawn_dormant: bool) -> None:
+        self.population = population
+        self.respawn_dormant_enabled = bool(respawn_dormant)
+        self.vehicles_spawned = 0
+        self.pedestrians_spawned = 0
+        self.vehicles_lost = 0
+        self.pedestrians_lost = 0
+        self.vehicles_replenished = 0
+        self.pedestrians_replenished = 0
+        self.vehicles_live_min = 0
+        self.pedestrians_live_min = 0
+        self.events: list[dict[str, Any]] = []
+
+    def record_initial_spawn(self) -> None:
+        self.vehicles_spawned = len(self.population.vehicle_ids)
+        self.pedestrians_spawned = len(self.population.walkers)
+        self.vehicles_live_min = self.vehicles_spawned
+        self.pedestrians_live_min = self.pedestrians_spawned
+
+    def snapshot(self) -> tuple[set[int], set[int]]:
+        vehicles = {int(value) for value in self.population.vehicle_ids}
+        walkers = {
+            int(record["id"]) for record in self.population.walkers
+            if record.get("id") is not None
+        }
+        return vehicles, walkers
+
+    def observe(
+        self,
+        before: tuple[set[int], set[int]],
+        after: tuple[set[int], set[int]],
+        sim_now_s: float,
+    ) -> None:
+        vehicles_before, walkers_before = before
+        vehicles_after, walkers_after = after
+        lost_vehicles = sorted(vehicles_before - vehicles_after)
+        lost_walkers = sorted(walkers_before - walkers_after)
+        new_vehicles = sorted(vehicles_after - vehicles_before)
+        new_walkers = sorted(walkers_after - walkers_before)
+
+        self.vehicles_live_min = min(
+            self.vehicles_live_min, len(vehicles_before) - len(lost_vehicles)
+        )
+        self.pedestrians_live_min = min(
+            self.pedestrians_live_min, len(walkers_before) - len(lost_walkers)
+        )
+        self.vehicles_lost += len(lost_vehicles)
+        self.pedestrians_lost += len(lost_walkers)
+        self.vehicles_replenished += len(new_vehicles)
+        self.pedestrians_replenished += len(new_walkers)
+
+        for kind, action, actor_ids in (
+            ("vehicle", "LOST", lost_vehicles),
+            ("pedestrian", "LOST", lost_walkers),
+            ("vehicle", "REPLENISHED", new_vehicles),
+            ("pedestrian", "REPLENISHED", new_walkers),
+        ):
+            for actor_id in actor_ids:
+                self.events.append({
+                    "sim_s": round(float(sim_now_s), 2),
+                    "actor_kind": kind,
+                    "action": action,
+                    "actor_id": int(actor_id),
+                })
+
+    def report(self) -> dict[str, Any]:
+        return {
+            "npc_vehicles_spawned": self.vehicles_spawned,
+            "npc_pedestrians_spawned": self.pedestrians_spawned,
+            "npc_vehicles_live_min": self.vehicles_live_min,
+            "npc_pedestrians_live_min": self.pedestrians_live_min,
+            "npc_vehicles_lost": self.vehicles_lost,
+            "npc_pedestrians_lost": self.pedestrians_lost,
+            "npc_vehicles_replenished": self.vehicles_replenished,
+            "npc_pedestrians_replenished": self.pedestrians_replenished,
+            "respawn_dormant_enabled": self.respawn_dormant_enabled,
+            "population_events": list(self.events),
+        }
 
 
 class DensityCollisionMailbox(CollisionMailbox):
@@ -580,7 +677,7 @@ def drive_one_loop_with_traffic(
         )
         previous = current
 
-        maintain()
+        maintain(sim_elapsed_s)
         if sim_elapsed_s - janitor_last_sweep_s >= float(args.janitor_interval_s):
             janitor_last_sweep_s = sim_elapsed_s
             janitor.sweep(sim_elapsed_s)
@@ -1029,6 +1126,8 @@ def run(args: argparse.Namespace) -> int:
                     continue
 
         population.spawn_initial_population()
+        ledger = PopulationLedger(population, args.respawn_dormant)
+        ledger.record_initial_spawn()
         if args.harden_npcs:
             harden_npcs()
 
@@ -1041,16 +1140,18 @@ def run(args: argparse.Namespace) -> int:
 
         next_reconcile_at = time.monotonic() + float(args.replenish_interval_s)
 
-        def maintain_population() -> None:
+        def maintain_population(sim_now_s: float) -> None:
             nonlocal next_reconcile_at
             now = time.monotonic()
             if now < next_reconcile_at:
                 return
             next_reconcile_at = now + float(args.replenish_interval_s)
             try:
-                before = set(population.vehicle_ids)
+                before = ledger.snapshot()
                 population.reconcile()
-                if args.harden_npcs and set(population.vehicle_ids) != before:
+                after = ledger.snapshot()
+                ledger.observe(before, after, sim_now_s)
+                if args.harden_npcs and after[0] != before[0]:
                     harden_npcs()
             except RuntimeError as error:
                 logging.error("population maintenance failed: %s", error)
@@ -1105,6 +1206,8 @@ def run(args: argparse.Namespace) -> int:
             result["npc_pedestrians_live"] = len(population.walkers)
             result["seed"] = int(args.seed)
             result["lane_offset_m"] = float(args.lane_offset_m)
+            result["target_speed_kph"] = float(args.target_speed_kph)
+            result.update(ledger.report())
             rows.append(result)
             print(
                 f"loop {loop_index}/{args.loops} [{args.density}]: "
@@ -1116,6 +1219,11 @@ def run(args: argparse.Namespace) -> int:
                 f"return_yaw_err_deg={result['return_heading_error_deg']:.2f} "
                 f"collisions={result['collision_count']} "
                 f"npc_v={result['npc_vehicles_live']} npc_p={result['npc_pedestrians_live']} "
+                f"npc_v_min={result['npc_vehicles_live_min']} "
+                f"npc_p_min={result['npc_pedestrians_live_min']} "
+                f"lost_v={result['npc_vehicles_lost']} lost_p={result['npc_pedestrians_lost']} "
+                f"repl_v={result['npc_vehicles_replenished']} "
+                f"repl_p={result['npc_pedestrians_replenished']} "
                 f"blocks={result['ego_block_events']} overtakes={result['ego_overtakes']} "
                 f"roadblocks_cleared={result['npc_roadblocks_cleared']} "
                 f"walker_brake_ticks={result['walker_brake_ticks']} "
@@ -1212,7 +1320,12 @@ DENSITY_FIELDS = [
     "route_id", "density", "loop_index", "status", "cleanup_succeeded", "completed",
     "all_ordered_waypoints_reached", "waypoints_reached", "waypoints_expected",
     "regions_covered", "npc_vehicles_requested", "npc_pedestrians_requested",
-    "npc_vehicles_live", "npc_pedestrians_live", "seed", "lane_offset_m",
+    "npc_vehicles_spawned", "npc_pedestrians_spawned",
+    "npc_vehicles_live_min", "npc_pedestrians_live_min",
+    "npc_vehicles_live", "npc_pedestrians_live",
+    "npc_vehicles_lost", "npc_pedestrians_lost",
+    "npc_vehicles_replenished", "npc_pedestrians_replenished",
+    "respawn_dormant_enabled", "seed", "lane_offset_m", "target_speed_kph",
     "planned_route_length_m", "driven_distance_m", "simulation_duration_s",
     "wall_clock_duration_s", "ticks", "return_position_error_m",
     "return_heading_error_deg", "collision_count", "collision_incident_count",
@@ -1257,6 +1370,7 @@ def write_outputs(
         "npc_pedestrians_requested": rows[0]["npc_pedestrians_requested"],
         "seed": int(args.seed),
         "lane_offset_m": float(args.lane_offset_m),
+        "target_speed_kph": float(args.target_speed_kph),
         "loops": len(rows),
         "loops_completed": sum(1 for row in rows if row["completed"]),
         "status": status,
@@ -1322,6 +1436,34 @@ def write_outputs(
             {"loop_index": row["loop_index"], **event}
             for row in rows for event in row.get("roadblock_observations", [])
         ],
+        # Population accounting. Replenishment is the manager doing its job, so
+        # it is reported rather than suppressed; a non-zero loss count means the
+        # episode did not run on the actors it started with.
+        "respawn_dormant_enabled": bool(args.respawn_dormant),
+        "npc_vehicles_spawned_total": sum(
+            int(row["npc_vehicles_spawned"]) for row in rows
+        ),
+        "npc_pedestrians_spawned_total": sum(
+            int(row["npc_pedestrians_spawned"]) for row in rows
+        ),
+        "npc_vehicles_live_min": min(int(row["npc_vehicles_live_min"]) for row in rows),
+        "npc_pedestrians_live_min": min(
+            int(row["npc_pedestrians_live_min"]) for row in rows
+        ),
+        "npc_vehicles_lost_total": sum(int(row["npc_vehicles_lost"]) for row in rows),
+        "npc_pedestrians_lost_total": sum(
+            int(row["npc_pedestrians_lost"]) for row in rows
+        ),
+        "npc_vehicles_replenished_total": sum(
+            int(row["npc_vehicles_replenished"]) for row in rows
+        ),
+        "npc_pedestrians_replenished_total": sum(
+            int(row["npc_pedestrians_replenished"]) for row in rows
+        ),
+        "population_events": [
+            {"loop_index": row["loop_index"], **event}
+            for row in rows for event in row.get("population_events", [])
+        ],
     }
     if len(durations) > 1:
         summary["simulation_duration_s_stdev"] = round(statistics.stdev(durations), 2)
@@ -1338,7 +1480,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--density", choices=sorted(DENSITY_PROFILES), default="low",
-        help="low=5/5, medium=10/10, dense=20/20 (vehicles/pedestrians)",
+        help="requested NPC vehicles/pedestrians: traffic_30_30=30/30, "
+             "traffic_50_50=50/50; the historical low=5/5, medium=10/10, "
+             "dense=20/20 names are retained only for reproducing older runs",
     )
     parser.add_argument("--vehicles", type=int, default=None,
                         help="override the profile NPC vehicle count")
