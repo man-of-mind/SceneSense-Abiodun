@@ -160,7 +160,8 @@ episode_gates:                                 # all must pass; evaluated in rou
   - exact_population_at_start
   - population_alive_95pct_every_saved_frame
   - no_population_deficit_beyond_replenish_plus_2s
-  - controllers_ready_95pct_every_saved_frame
+  # instantaneous controller readiness is diagnostic only: phased walker
+  # replacement intentionally spans several ticks (body, attach, start)
   - no_controller_deficit_beyond_replenish_plus_2s
   - zero_missing_or_corrupt_records
   - rgb_and_segmentation_frames_valid

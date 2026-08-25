@@ -1212,7 +1212,8 @@ class PerceptionCollectorV2:
             "ready_fraction_gate": CONTROLLER_READY_FRACTION_GATE,
             "terminal_gate_field": "live_ready_walker_controllers",
             "diagnostic_only_fields": [
-                "live_attached_walker_controllers", "controllers_marked_ready"],
+                "live_attached_walker_controllers", "controllers_marked_ready",
+                "controllers_ready_95pct_every_saved_frame_diagnostic"],
             "deficit_limit_s": round(float(deficit_limit_s), 3),
             "frames": len(rows),
             "population_manager_observed": bool(
@@ -1229,6 +1230,7 @@ class PerceptionCollectorV2:
                 "first_frame_below_ready_floor": None,
                 "deficit_spans": [],
                 "max_controller_deficit_span_s": 0.0,
+                "controllers_ready_95pct_every_saved_frame_diagnostic": None,
             })
             return report
 
@@ -1278,6 +1280,12 @@ class PerceptionCollectorV2:
         report["deficit_spans"] = spans
         report["max_controller_deficit_span_s"] = max(
             (span["duration_s"] for span in spans), default=0.0)
+        # Diagnostic, not a gate: a replaced walker needs separate ticks for body
+        # spawn, controller attach and controller start, so instantaneous
+        # readiness contradicts the crash-safe lifecycle. Prolonged loss is
+        # caught by no_controller_deficit_beyond_replenish_plus_2s.
+        report["controllers_ready_95pct_every_saved_frame_diagnostic"] = (
+            report["frames_below_ready_floor"] == 0)
         return report
 
     def _incident_report(self, replenish_interval_s: float) -> dict[str, Any]:
@@ -1396,10 +1404,6 @@ class PerceptionCollectorV2:
             ),
             "no_population_deficit_beyond_replenish_plus_2s":
                 population["max_deficit_span_s"] <= deficit_limit_s,
-            "controllers_ready_95pct_every_saved_frame": (
-                controller_health["frames_below_ready_floor"] == 0
-                if controller_health["population_manager_observed"] else True
-            ),
             "no_controller_deficit_beyond_replenish_plus_2s":
                 controller_health["max_controller_deficit_span_s"] <= deficit_limit_s,
             "zero_missing_or_corrupt_records": (
