@@ -42,6 +42,7 @@ latest_fusion_object_spatial_map*.png
 *.pcap
 *.pcapng
 /pole_lraspp_multimodal_fusion/latest_*.txt
+/historical_replay_bundles/
 
 # Model weights and framework caches
 /checkpoints/
