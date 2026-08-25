@@ -20,7 +20,7 @@ route:
   loop: true
   planned_length_m: 1268.68
   qualified_density_runner: data_collection/run_route_b_density_loop.py
-  qualified_density_runner_sha256: f2abd86ca650d6257eb5a6600bc7cdf94bc3e0777964e58a7aeeb1a63bd55730
+  qualified_density_runner_sha256: 0f3147fad30cf9e03657c98373c8ef2783af04853ccefc97dc1acbdfa33b336b
 
 scenario:
   densities: [traffic_30_30, traffic_50_50]   # only these two
@@ -33,16 +33,18 @@ scenario:
   scenario_interventions: false                # no roadblock deletion during accepted collection
   traffic_light_retiming: false
   respawn_dormant: false
-  replenish_interval_s: 5.0
-  maximum_loop_sim_s: 900.0
+  replenish_interval_s: 2.0
+  maximum_loop_sim_s: 600.0
   loops_per_process: 1                         # fresh CARLA process/world per episode
   traffic_helper: generate_traffic_v1          # imported by the density runner; NOT duplicated.
   traffic_helper_note: >
-    data_collection/generate_traffic_v11.py was inspected and is identical to
-    rl_agent/advisor_helper_scripts/codes/generate_traffic_v1.py apart from one
-    trailing blank line. The existing import and the TrafficPopulationManager
-    reconciliation + PopulationLedger are retained unchanged. no-hybrid-physics
-    and population reconciliation are complementary, not alternatives.
+    data_collection/run_route_b_density_loop.py imports
+    rl_agent/advisor_helper_scripts/codes/generate_traffic_v1.py - that file is
+    the live traffic helper. data_collection/generate_traffic_v11.py is a stale
+    unimported copy and must not be used. The existing import and the
+    TrafficPopulationManager reconciliation + PopulationLedger are retained
+    unchanged. no-hybrid-physics and population reconciliation are
+    complementary, not alternatives.
 
 simulation:
   synchronous_mode: true
@@ -158,6 +160,8 @@ episode_gates:                                 # all must pass; evaluated in rou
   - exact_population_at_start
   - population_alive_95pct_every_saved_frame
   - no_population_deficit_beyond_replenish_plus_2s
+  - controllers_ready_95pct_every_saved_frame
+  - no_controller_deficit_beyond_replenish_plus_2s
   - zero_missing_or_corrupt_records
   - rgb_and_segmentation_frames_valid
   - sensor_frames_exactly_aligned

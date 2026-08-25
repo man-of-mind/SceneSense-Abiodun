@@ -141,6 +141,7 @@ def run_attempt(args: argparse.Namespace, output_dir: Path, attempt: int) -> dic
             "--tm-seed", str(args.tm_seed),
             "--target-speed-kph", str(args.target_speed_kph),
             "--rasterizer", str(args.rasterizer),
+            "--replenish-interval-s", str(args.replenish_interval_s),
             "--maximum-loop-sim-s", str(args.maximum_loop_sim_s),
             "--no-hybrid-physics",
         ]
@@ -192,6 +193,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--tm-seed", type=int, default=1101)
     parser.add_argument("--target-speed-kph", type=float, default=25.0)
     parser.add_argument("--rasterizer", default="fast")
+    parser.add_argument(
+        "--replenish-interval-s", type=float, default=2.0,
+        help="population reconciliation interval in CARLA simulated seconds, "
+             "forwarded unchanged to the collection runner (default: %(default)s)",
+    )
     parser.add_argument("--maximum-loop-sim-s", type=float, default=600.0)
     parser.add_argument("--carla-ready-timeout-s", type=float, default=180.0)
     parser.add_argument(
@@ -225,7 +231,7 @@ def main(argv: list[str] | None = None) -> int:
         final = second
 
     report["status"] = (
-        "TRAFFIC_30_30_READY_FOR_MANUAL_REVIEW"
+        "COLLECTION_SMOKE_PASSED"
         if final["status"] == "COLLECTION_ATTEMPT_PASSED"
         else "COLLECTION_SMOKE_FAILED"
     )
@@ -233,7 +239,7 @@ def main(argv: list[str] | None = None) -> int:
     Path(args.report_json).write_text(
         json.dumps(report, indent=2, sort_keys=True), encoding="utf-8")
     print(json.dumps(report, indent=2, sort_keys=True), flush=True)
-    return 0 if report["status"] == "TRAFFIC_30_30_READY_FOR_MANUAL_REVIEW" else 1
+    return 0 if report["status"] == "COLLECTION_SMOKE_PASSED" else 1
 
 
 if __name__ == "__main__":
