@@ -37,6 +37,10 @@ PERCENTAGE_PEDESTRIANS_CROSSING = 0.0
 PHASE_BODY_PENDING = 'body_pending'
 PHASE_CONTROLLER_PENDING = 'controller_pending'
 PHASE_READY = 'ready'
+# Terminal phase. A body whose controller is lost or mis-parented is retired
+# whole: it is never handed a second controller. Re-attaching to the same body
+# is what let one pathological walker cycle controllers indefinitely.
+PHASE_RETIRED = 'retired'
 
 
 def positive_float(value):
@@ -116,6 +120,7 @@ class TrafficPopulationManager(object):
         self.vehicle_ids = []
         self.walkers = []
         self.orphan_controller_ids = set()
+        self.retired_walker_count = 0
         self._last_population_log = 0.0
         # Tick ownership. Outside a route this manager may advance the world for
         # its own spawn batches; during a route it must not, because those ticks
@@ -458,26 +463,30 @@ class TrafficPopulationManager(object):
             actor_ids.extend((record['id'], record['con']))
         live_actors = self._live_actor_map(actor_ids)
         initialized = 0
+        retired = 0
         for record in candidates:
+            if record.get('retired'):
+                continue
             body = live_actors.get(record['id'])
             controller = live_actors.get(record['con'])
             if not self._has_type(body, 'walker.pedestrian.'):
                 continue
             if not self._has_type(controller, 'controller.ai.walker'):
-                # Retain the returned controller ID as cleanup ownership until
-                # a later authoritative snapshot confirms that it is absent.
-                self.orphan_controller_ids.add(record['con'])
-                record['con'] = None
-                record['controller_ready'] = False
+                # Never re-attach to this body: retire the whole record and let
+                # target reconciliation spawn a fresh one.
+                self._retire_walker_record(
+                    record, 'controller_absent', body=body, controller=controller)
+                retired += 1
                 continue
             try:
                 parent = controller.parent
             except (AttributeError, RuntimeError):
                 parent = None
             if parent is not None and parent.id != record['id']:
-                self.orphan_controller_ids.add(record['con'])
-                record['con'] = None
-                record['controller_ready'] = False
+                self._retire_walker_record(
+                    record, 'controller_parent_mismatch',
+                    body=body, controller=controller)
+                retired += 1
                 continue
 
             destination = self._random_navigation_location()
@@ -498,6 +507,14 @@ class TrafficPopulationManager(object):
             record['phase_tick'] = self._observed_ticks
             self._record_lifecycle_event('controller_started', record)
             initialized += 1
+        if retired:
+            # Confirmed-destroyed bodies leave the registry, so the next
+            # reconcile sees the deficit and replenishes through the phased path.
+            self.walkers = [
+                walker for walker in self.walkers if not walker.get('retired')]
+            logging.warning(
+                'Retired %d walker record(s) on controller loss; '
+                'target reconciliation will replace them', retired)
         return initialized
 
     def _spawn_walkers(self, count):
@@ -527,6 +544,7 @@ class TrafficPopulationManager(object):
         attach = [
             record for record in self.walkers
             if record.get('phase') == PHASE_BODY_PENDING
+            and not record.get('retired')
             and record.get('con') is None
             and tick > int(record.get('phase_tick', tick))
         ]
@@ -543,6 +561,7 @@ class TrafficPopulationManager(object):
         start = [
             record for record in self.walkers
             if record.get('phase') == PHASE_CONTROLLER_PENDING
+            and not record.get('retired')
             and not record.get('controller_ready', False)
             and tick > int(record.get('phase_tick', tick))
         ]
@@ -551,13 +570,11 @@ class TrafficPopulationManager(object):
             for record in start:
                 if record.get('controller_ready', False):
                     continue
+                if record.get('retired'):
+                    # Destroyed and dropped from the registry; nothing to requeue.
+                    continue
                 record['phase_tick'] = tick
-                if record.get('con') is None:
-                    # _initialize_walker_controllers disowned it; re-attach.
-                    record['phase'] = PHASE_BODY_PENDING
-                    self._record_lifecycle_event('controller_rejected', record)
-                else:
-                    self._record_lifecycle_event('controller_start_deferred', record)
+                self._record_lifecycle_event('controller_start_deferred', record)
 
     def _stop_controller(self, controller):
         if not self._has_type(controller, 'controller.ai.walker'):
@@ -593,13 +610,73 @@ class TrafficPopulationManager(object):
                 self._record_lifecycle_event(
                     'orphan_controller_reaped', None, detail=int(controller_id))
 
-    def _disown_controller(self, record, reason):
-        """Drop a bad controller and re-queue the body for a phased re-attach."""
-        self._record_lifecycle_event('controller_disowned', record, detail=reason)
-        record['con'] = None
+    def _retire_walker_record(self, record, reason, body=None, controller=None):
+        """Retire the whole walker record whose controller was lost/mis-parented.
+
+        The body is destroyed rather than handed a replacement controller. The
+        previous behaviour cleared ``record['con']`` and re-queued the same body
+        at PHASE_BODY_PENDING, so a body whose ``controller.ai.walker`` kept
+        vanishing cycled controller after controller on one body (measured: 21
+        in a row on body 99, 147 -> 163 -> 164 on body 146).
+
+        Neither destroy advances the world: ``actor.destroy()`` is measured at a
+        zero frame delta in either tick-ownership mode (TICK_OWNERSHIP_AUDIT
+        20260824 A1), unlike ``apply_batch_sync(..., True)``.
+
+        Fails closed: if the body cannot be confirmed destroyed the record is
+        kept and the error propagates, so no duplicate replacement can be
+        spawned against a body that is still alive. The caller removes the
+        record from the registry and counts the retirement as a walker loss
+        only after this returns.
+        """
+        body_id = record.get('id')
+        controller_id = record.get('con')
+        self._record_lifecycle_event(
+            'body_retired_controller_loss', record, detail=reason)
+
+        if controller_id is not None:
+            # Hold cleanup ownership until this destroy is confirmed.
+            self.orphan_controller_ids.add(controller_id)
+            if controller is None:
+                controller = self._live_actor_map(
+                    [controller_id]).get(controller_id)
+            if self._has_type(controller, 'controller.ai.walker'):
+                self._stop_controller(controller)
+                try:
+                    reaped = bool(controller.destroy())
+                except RuntimeError as error:
+                    reaped = False
+                    logging.warning(
+                        'Retired walker %s: controller %s destroy failed: %s',
+                        body_id, controller_id, error)
+                if reaped:
+                    self.orphan_controller_ids.discard(controller_id)
+                    self._record_lifecycle_event(
+                        'orphan_controller_reaped', None,
+                        detail=int(controller_id))
+
+        if body is None and body_id is not None:
+            body = self._live_actor_map([body_id]).get(body_id)
+        if self._has_type(body, 'walker.pedestrian.'):
+            try:
+                destroyed = bool(body.destroy())
+            except RuntimeError as error:
+                raise RuntimeError(
+                    'walker retirement failed: body %s (controller %s, %s) '
+                    'could not be destroyed: %s'
+                    % (body_id, controller_id, reason, error)) from error
+            if not destroyed:
+                raise RuntimeError(
+                    'walker retirement failed: body %s (controller %s, %s) '
+                    'refused destruction' % (body_id, controller_id, reason))
+
+        record['retired'] = True
         record['controller_ready'] = False
-        record['phase'] = PHASE_BODY_PENDING
+        record['phase'] = PHASE_RETIRED
         record['phase_tick'] = self._observed_ticks
+        self.retired_walker_count += 1
+        self._record_lifecycle_event(
+            'body_retired_confirmed', record, detail=reason)
 
     def _reconcile_owned_actors(self):
         actor_ids = list(self.vehicle_ids)
@@ -634,16 +711,21 @@ class TrafficPopulationManager(object):
                 continue
             if controller_id is not None and not self._has_type(
                     controller, 'controller.ai.walker'):
-                self.orphan_controller_ids.add(controller_id)
-                self._disown_controller(record, 'controller_absent')
-            elif controller_id is not None:
+                self._retire_walker_record(
+                    record, 'controller_absent', body=body, controller=controller)
+                lost_walker_count += 1
+                continue
+            if controller_id is not None:
                 try:
                     parent = controller.parent
                 except (AttributeError, RuntimeError):
                     parent = None
                 if parent is not None and parent.id != body_id:
-                    self.orphan_controller_ids.add(controller_id)
-                    self._disown_controller(record, 'controller_parent_mismatch')
+                    self._retire_walker_record(
+                        record, 'controller_parent_mismatch',
+                        body=body, controller=controller)
+                    lost_walker_count += 1
+                    continue
             retained_walkers.append(record)
         self.walkers = retained_walkers
 
@@ -673,6 +755,8 @@ class TrafficPopulationManager(object):
         if self._route_mode:
             # Phase-driven: queue the repair, let observed route ticks run it.
             for record in self.walkers:
+                if record.get('retired'):
+                    continue
                 if record.get('con') is None and record.get('phase') != PHASE_BODY_PENDING:
                     record['phase'] = PHASE_BODY_PENDING
                     record['phase_tick'] = self._observed_ticks
@@ -714,6 +798,7 @@ class TrafficPopulationManager(object):
                 1 for record in self.walkers
                 if record.get('phase') == PHASE_CONTROLLER_PENDING),
             'orphan_controllers': len(self.orphan_controller_ids),
+            'retired_walkers': int(self.retired_walker_count),
         }
 
     def log_population(self, force=False):

@@ -15,9 +15,11 @@ retried attempt writes to its own sibling output directory.
 from __future__ import annotations
 
 import argparse
+import errno
 import json
 import os
 import signal
+import socket
 import subprocess
 import sys
 import time
@@ -42,10 +44,16 @@ def child_env() -> dict[str, str]:
     return env
 
 
-def start_carla(port: int, log_path: Path) -> subprocess.Popen:
+def start_carla(port: int, log_path: Path) -> tuple[subprocess.Popen, int]:
+    """Start CarlaUnreal.sh in its own session and return it with its PGID.
+
+    The PGID is the only handle that covers the whole launch: the wrapper script
+    exits well before the UE binary it spawned, so waiting on the wrapper alone
+    reports a live server as a clean shutdown.
+    """
     log_path.parent.mkdir(parents=True, exist_ok=True)
     stream = log_path.open("wb")
-    return subprocess.Popen(
+    process = subprocess.Popen(
         [
             str(CARLA_LAUNCHER), "-RenderOffScreen", "-nosound",
             "-quality-level=Epic", f"-carla-rpc-port={port}",
@@ -53,6 +61,66 @@ def start_carla(port: int, log_path: Path) -> subprocess.Popen:
         cwd=str(CARLA_ROOT), stdout=stream, stderr=subprocess.STDOUT,
         stdin=subprocess.DEVNULL, start_new_session=True, env=child_env(),
     )
+    try:
+        pgid = os.getpgid(process.pid)
+    except ProcessLookupError:
+        # Exited before we could read it; start_new_session makes pid == pgid.
+        pgid = process.pid
+    return process, pgid
+
+
+def process_group_members(pgid: int) -> list[dict[str, Any]]:
+    """Live PIDs in exactly this process group, read from /proc.
+
+    Deliberately not a pkill/killall name match: only processes whose kernel
+    process-group id equals the group this launcher created are ever considered,
+    so another user's CARLA can never be seen or signalled.
+    """
+    members: list[dict[str, Any]] = []
+    for entry in os.listdir("/proc"):
+        if not entry.isdigit():
+            continue
+        pid = int(entry)
+        if pid == os.getpid():
+            continue
+        try:
+            with open(f"/proc/{pid}/stat", "rb") as handle:
+                fields = handle.read().rsplit(b")", 1)[1].split()
+            # stat fields after comm: state, ppid, pgrp, ...
+            if int(fields[2]) != int(pgid):
+                continue
+            with open(f"/proc/{pid}/cmdline", "rb") as handle:
+                cmdline = handle.read().replace(b"\x00", b" ").decode(
+                    "utf-8", "replace").strip()
+        except (FileNotFoundError, ProcessLookupError, PermissionError,
+                IndexError, ValueError):
+            continue
+        members.append({"pid": pid, "cmdline": cmdline[:200]})
+    return members
+
+
+def rpc_port_listening(port: int, host: str = "127.0.0.1") -> bool:
+    """True when something still accepts connections on the RPC port."""
+    try:
+        with socket.create_connection((host, int(port)), timeout=2.0):
+            return True
+    except OSError as error:
+        if getattr(error, "errno", None) in (errno.ECONNREFUSED, errno.EHOSTUNREACH):
+            return False
+        return False
+
+
+def signal_group(pgid: int, sig: int) -> str:
+    """Signal exactly the launched group, never this launcher's own group."""
+    if int(pgid) <= 0 or int(pgid) == os.getpgrp():
+        return "refused_own_or_invalid_group"
+    try:
+        os.killpg(int(pgid), sig)
+    except ProcessLookupError:
+        return "no_such_group"
+    except PermissionError:
+        return "permission_denied"
+    return "sent"
 
 
 def wait_for_rpc(port: int, timeout_s: float) -> str | None:
@@ -73,25 +141,72 @@ def wait_for_rpc(port: int, timeout_s: float) -> str | None:
     return None
 
 
-def stop_carla(process: subprocess.Popen, grace_s: float = 20.0) -> dict[str, Any]:
-    if process.poll() is not None:
-        return {"already_exited": True, "returncode": process.returncode}
-    try:
-        os.killpg(os.getpgid(process.pid), signal.SIGTERM)
-    except (ProcessLookupError, PermissionError):
-        pass
-    deadline = time.monotonic() + grace_s
-    while time.monotonic() < deadline and process.poll() is None:
+def stop_carla(
+    process: subprocess.Popen,
+    pgid: int,
+    port: int,
+    grace_s: float = 30.0,
+    kill_grace_s: float = 20.0,
+) -> dict[str, Any]:
+    """Tear down the whole launched group and prove the RPC port is released.
+
+    Shutdown is complete only when both are true: no PID remains in the group
+    this launcher created, and nothing accepts connections on the RPC port. The
+    wrapper's own return code is recorded but is never the completion test - the
+    UE binary outlives it, absorbs SIGTERM, and previously survived as an
+    orphan holding the port and its GPU allocation.
+    """
+    report: dict[str, Any] = {"pgid": int(pgid), "rpc_port": int(port)}
+
+    def settled() -> tuple[list[dict[str, Any]], bool]:
+        members = process_group_members(pgid)
+        return members, rpc_port_listening(port)
+
+    members, listening = settled()
+    report["group_members_before_signal"] = members
+    report["port_listening_before_signal"] = listening
+    if not members and not listening:
+        report["already_exited"] = True
+        report["wrapper_returncode"] = process.poll()
+        report["sigkill_required"] = False
+        report["group_members_remaining"] = []
+        report["port_listening_after"] = False
+        report["shutdown_verified"] = True
+        return report
+
+    report["already_exited"] = False
+    report["sigterm_result"] = signal_group(pgid, signal.SIGTERM)
+    deadline = time.monotonic() + float(grace_s)
+    while time.monotonic() < deadline:
+        members, listening = settled()
+        if not members and not listening:
+            break
         time.sleep(1.0)
-    forced = False
-    if process.poll() is None:
-        forced = True
-        try:
-            os.killpg(os.getpgid(process.pid), signal.SIGKILL)
-        except (ProcessLookupError, PermissionError):
-            pass
-        process.wait(timeout=30)
-    return {"already_exited": False, "returncode": process.returncode, "forced": forced}
+
+    report["group_members_after_sigterm"] = members
+    report["port_listening_after_sigterm"] = listening
+    sigkill_required = bool(members or listening)
+    report["sigkill_required"] = sigkill_required
+    if sigkill_required:
+        # Exactly this group, by PGID. No name matching, no other CARLA touched.
+        report["sigkill_result"] = signal_group(pgid, signal.SIGKILL)
+        kill_deadline = time.monotonic() + float(kill_grace_s)
+        while time.monotonic() < kill_deadline:
+            members, listening = settled()
+            if not members and not listening:
+                break
+            time.sleep(1.0)
+
+    try:
+        report["wrapper_returncode"] = process.wait(timeout=5)
+    except subprocess.TimeoutExpired:
+        report["wrapper_returncode"] = process.poll()
+
+    members, listening = settled()
+    report["group_members_remaining"] = members
+    report["port_listening_after"] = listening
+    report["shutdown_verified"] = not members and not listening
+    return report
 
 
 def describe_exit(returncode: int) -> dict[str, Any]:
@@ -121,8 +236,9 @@ def run_attempt(args: argparse.Namespace, output_dir: Path, attempt: int) -> dic
         "carla_server_log": str(server_log),
         "client_log": str(client_log),
     }
-    server = start_carla(int(args.port), server_log)
+    server, server_pgid = start_carla(int(args.port), server_log)
     record["carla_pid"] = server.pid
+    record["carla_pgid"] = int(server_pgid)
     try:
         version = wait_for_rpc(int(args.port), float(args.carla_ready_timeout_s))
         record["carla_rpc_ready"] = version is not None
@@ -154,7 +270,16 @@ def run_attempt(args: argparse.Namespace, output_dir: Path, attempt: int) -> dic
             )
         record["wall_clock_s"] = round(time.monotonic() - started, 1)
         record["client_exit"] = describe_exit(child.returncode)
-        record["carla_exited_during_run"] = server.poll() is not None
+        # Group + RPC state, not the wrapper: the wrapper exits early on a
+        # healthy server, so poll() alone reports a false death here.
+        record["carla_wrapper_returncode_during_run"] = server.poll()
+        record["carla_group_members_during_run"] = len(
+            process_group_members(server_pgid))
+        record["carla_rpc_listening_after_client"] = rpc_port_listening(
+            int(args.port))
+        record["carla_exited_during_run"] = (
+            record["carla_group_members_during_run"] == 0
+            and not record["carla_rpc_listening_after_client"])
         summary_path = output_dir / "route_summary.json"
         events_path = output_dir.parent / f"{output_dir.name}_population_events.jsonl"
         record["route_summary_present"] = summary_path.is_file()
@@ -178,7 +303,8 @@ def run_attempt(args: argparse.Namespace, output_dir: Path, attempt: int) -> dic
         )
         return record
     finally:
-        record["carla_shutdown"] = stop_carla(server)
+        record["carla_shutdown"] = stop_carla(
+            server, server_pgid, int(args.port))
 
 
 def build_parser() -> argparse.ArgumentParser:

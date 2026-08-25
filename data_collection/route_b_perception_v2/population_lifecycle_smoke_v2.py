@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import random
 import shutil
 import sys
@@ -79,6 +80,7 @@ def phase_history(events: list[dict[str, Any]], body_id: int) -> list[dict[str, 
             "body_spawned", "controller_spawned", "controller_started",
             "controller_attach_deferred", "controller_start_deferred",
             "controller_rejected", "controller_repair_queued",
+            "body_retired_controller_loss", "body_retired_confirmed",
         )
     ]
 
@@ -95,7 +97,13 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--replenish-interval-s", type=float, default=5.0)
     parser.add_argument(
         "--kill-ticks", type=int, nargs="+", default=(120, 400),
-        help="route ticks at which one managed walker body is destroyed",
+        help="route ticks at which one managed walker is attacked",
+    )
+    parser.add_argument(
+        "--kill-mode", choices=("body", "controller"), default="body",
+        help="body: destroy the walker body (v1/v2 behaviour). controller: "
+             "destroy only the AI controller and leave the body alive, which "
+             "reproduces the pathological controller-loss condition",
     )
     parser.add_argument(
         "--work-dir", type=Path,
@@ -119,6 +127,7 @@ def main(argv: list[str] | None = None) -> int:  # noqa: C901 - one linear smoke
             "vehicles": int(args.vehicles),
             "ticks": int(args.ticks),
             "kill_ticks": list(args.kill_ticks),
+            "kill_mode": str(args.kill_mode),
             "replenish_interval_s": float(args.replenish_interval_s),
             "seed": int(args.seed),
         },
@@ -224,13 +233,21 @@ def main(argv: list[str] | None = None) -> int:  # noqa: C901 - one linear smoke
                 if victims:
                     victim = victims[0]
                     body_id = int(victim["id"])
+                    controller_id = victim.get("con")
                     # Destroy behind the manager's back; verified 0 frame delta.
-                    actor = world.get_actor(body_id)
+                    if args.kill_mode == "controller":
+                        # Body survives: only its AI controller disappears.
+                        target_id = None if controller_id is None else int(controller_id)
+                    else:
+                        target_id = body_id
+                    actor = None if target_id is None else world.get_actor(target_id)
                     destroyed = bool(actor.destroy()) if actor is not None else False
                     killed.append({
                         "route_tick": route_tick, "frame_id": frame_id,
+                        "kill_mode": str(args.kill_mode),
+                        "destroyed_actor_id": target_id,
                         "body_id": body_id,
-                        "controller_id": victim.get("con"),
+                        "controller_id": controller_id,
                         "destroy_result": destroyed,
                     })
                     kill_schedule[route_tick] = body_id
@@ -326,6 +343,72 @@ def main(argv: list[str] | None = None) -> int:  # noqa: C901 - one linear smoke
                                       traffic.PHASE_CONTROLLER_PENDING)),
             "orphan_controllers": len(population.orphan_controller_ids),
         }
+        # --- forced controller-loss audit ---------------------------------
+        # One body must never collect a second controller: that cycle is what
+        # the retirement repair removes.
+        killed_bodies = {int(row["body_id"]) for row in killed}
+        killed_controllers = {
+            int(row["controller_id"]) for row in killed
+            if row.get("controller_id") is not None
+        }
+        owned_body_ids = {int(i) for i in owned_walkers}
+        forced_rows: list[dict[str, Any]] = []
+        for row in killed:
+            old_body = int(row["body_id"])
+            retired = [
+                e for e in events
+                if e.get("phase") == "body_retired_controller_loss"
+                and e.get("body_id") == old_body
+            ]
+            confirmed = [
+                e for e in events
+                if e.get("phase") == "body_retired_confirmed"
+                and e.get("body_id") == old_body
+            ]
+            attached = [
+                e for e in events
+                if e.get("phase") == "controller_spawned"
+                and e.get("body_id") == old_body
+            ]
+            reattached_after_kill = [
+                e for e in attached
+                if int(e.get("observed_tick", 0)) >= int(row["route_tick"])
+            ]
+            forced_rows.append({
+                "kill_route_tick": int(row["route_tick"]),
+                "kill_mode": row.get("kill_mode"),
+                "old_body_id": old_body,
+                "old_controller_id": row.get("controller_id"),
+                "retired": bool(retired),
+                "retire_reason": retired[0].get("detail") if retired else None,
+                "retire_observed_tick": (
+                    retired[0].get("observed_tick") if retired else None),
+                "destruction_confirmed": bool(confirmed),
+                "controllers_ever_attached_to_old_body": [
+                    e.get("controller_id") for e in attached],
+                "controllers_attached_after_kill": len(reattached_after_kill),
+                "old_body_still_owned": old_body in owned_body_ids,
+                "old_body_alive_in_world": old_body in live_walkers,
+                "phases_seen": [
+                    e["phase"] for e in phase_history(events, old_body)],
+            })
+        report["forced_controller_loss"] = forced_rows
+
+        # Global form of the same property, over every body of the run rather
+        # than only the two forced victims.
+        controllers_per_body: dict[str, int] = {}
+        phase_counts: dict[str, int] = {}
+        for event in events:
+            phase = str(event.get("phase"))
+            phase_counts[phase] = phase_counts.get(phase, 0) + 1
+            if phase == "controller_spawned" and event.get("body_id") is not None:
+                key = str(int(event["body_id"]))
+                controllers_per_body[key] = controllers_per_body.get(key, 0) + 1
+        report["lifecycle_phase_counts"] = phase_counts
+        report["controllers_per_body"] = controllers_per_body
+        report["max_controllers_on_one_body"] = (
+            max(controllers_per_body.values()) if controllers_per_body else 0)
+
         health_rows = collector.controller_health_samples
         report["controller_health_samples"] = len(health_rows)
         report["controller_health_last"] = health_rows[-1] if health_rows else None
@@ -341,6 +424,21 @@ def main(argv: list[str] | None = None) -> int:  # noqa: C901 - one linear smoke
         report["controller_health_orphans_max"] = (
             max(int(row["orphan_controllers"]) for row in health_rows)
             if health_rows else None)
+        # Verified live + attached + ready, against the same floor the episode
+        # gate controllers_ready_95pct_every_saved_frame uses.
+        report["controller_health_live_ready_min"] = (
+            min(int(row["live_ready_walker_controllers"]) for row in health_rows)
+            if health_rows else None)
+        below_floor = [
+            row for row in health_rows
+            if int(row["managed_walker_bodies_alive"]) > 0
+            and int(row["live_ready_walker_controllers"]) < math.ceil(
+                collection.CONTROLLER_READY_FRACTION_GATE
+                * float(row["managed_walker_bodies_alive"]))
+        ]
+        report["controller_health_frames_below_ready_floor"] = len(below_floor)
+        report["controller_health_first_frame_below_floor"] = (
+            below_floor[0]["frame_id"] if below_floor else None)
         report["cadence"] = {
             "raw_callbacks": collector.aggregator.raw_callbacks,
             "dropped_callback_frames": collector.aggregator.dropped_callback_frames,
@@ -362,8 +460,13 @@ def main(argv: list[str] | None = None) -> int:  # noqa: C901 - one linear smoke
         cadence = report["cadence"]
         intervals = report["reconcile_schedule"]["realised_intervals_s"]
         checks = {
+            # Compared on the world-tick grid, not in floats: the schedule can
+            # only fire on a tick boundary, so a 2.0 s interval legitimately
+            # realises as 1.95/2.00/2.05 s. abs(1.95 - 2.0) is 0.05000000000000018
+            # in float64 and failed a <= 0.05 test by 7e-17.
             "reconciles_fired_on_simulated_time": len(intervals) >= 3 and all(
-                abs(value - float(args.replenish_interval_s)) <= WORLD_DELTA_S
+                abs(round(value / WORLD_DELTA_S)
+                    - round(float(args.replenish_interval_s) / WORLD_DELTA_S)) <= 1
                 for value in intervals),
             "at_least_one_walker_destroyed": len(killed) >= 1 and all(
                 row["destroy_result"] for row in killed),
@@ -386,6 +489,38 @@ def main(argv: list[str] | None = None) -> int:  # noqa: C901 - one linear smoke
                 for row in lifecycle_rows),
             "population_back_to_target": final["owned_walker_records"] == target
             and final["owned_present_in_world"] == target,
+            "vehicles_back_to_target":
+                final["owned_vehicle_records"] == int(args.vehicles),
+            # The deployed floor, not final-frame equality: a controller that
+            # vanishes inside the last reconcile window is legitimately still
+            # counted as attached-but-unreconciled on the final saved frame.
+            # 29 of 30 bodies is 96.7%, above the 0.95 gate.
+            "verified_ready_controllers_hold_deployed_floor":
+                report["controller_health_frames_below_ready_floor"] == 0,
+            "registry_fully_recovered_at_end":
+                final["controllers_ready"] == target
+                and final["pending_phases"] == 0
+                and final["orphan_controllers"] == 0,
+            "every_forced_loss_retired_old_body": bool(forced_rows) and all(
+                row["retired"] and row["destruction_confirmed"]
+                for row in forced_rows),
+            "no_controller_reattached_to_retired_body": bool(forced_rows) and all(
+                row["controllers_attached_after_kill"] == 0
+                for row in forced_rows),
+            "at_most_one_controller_per_body_lifetime": bool(forced_rows) and all(
+                len(row["controllers_ever_attached_to_old_body"]) <= 1
+                for row in forced_rows),
+            "no_body_anywhere_received_two_controllers": bool(controllers_per_body)
+            and int(report["max_controllers_on_one_body"]) <= 1,
+            "retired_body_destroyed_and_dropped": bool(forced_rows) and all(
+                not row["old_body_still_owned"]
+                and not row["old_body_alive_in_world"]
+                for row in forced_rows),
+            "replacements_use_new_body_and_controller_ids": bool(lifecycle_rows) and all(
+                row["body_id"] not in killed_bodies
+                and (row["controller_id"] is None
+                     or row["controller_id"] not in killed_controllers)
+                for row in lifecycle_rows),
             "all_controllers_ready_at_end": final["controllers_ready"] == target
             and final["pending_phases"] == 0,
             "zero_unobserved_world_frame_gaps": not tick_error,
