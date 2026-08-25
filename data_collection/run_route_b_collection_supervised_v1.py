@@ -357,7 +357,7 @@ def main(argv: list[str] | None = None) -> int:
         final = second
 
     report["status"] = (
-        "COLLECTION_SMOKE_PASSED"
+        "SUPERVISED_COLLECTION_PASSED"
         if final["status"] == "COLLECTION_ATTEMPT_PASSED"
         else "COLLECTION_SMOKE_FAILED"
     )
@@ -365,7 +365,7 @@ def main(argv: list[str] | None = None) -> int:
     Path(args.report_json).write_text(
         json.dumps(report, indent=2, sort_keys=True), encoding="utf-8")
     print(json.dumps(report, indent=2, sort_keys=True), flush=True)
-    return 0 if report["status"] == "COLLECTION_SMOKE_PASSED" else 1
+    return 0 if report["status"] == "SUPERVISED_COLLECTION_PASSED" else 1
 
 
 if __name__ == "__main__":
