@@ -261,6 +261,9 @@ def run_attempt(args: argparse.Namespace, output_dir: Path, attempt: int) -> dic
             "--maximum-loop-sim-s", str(args.maximum_loop_sim_s),
             "--no-hybrid-physics",
         ]
+        if args.allow_roadblock_clearing:
+            argv.append("--allow-roadblock-clearing")
+        record["allow_roadblock_clearing"] = bool(args.allow_roadblock_clearing)
         record["client_argv"] = argv
         started = time.monotonic()
         with client_log.open("wb") as stream:
@@ -295,6 +298,8 @@ def run_attempt(args: argparse.Namespace, output_dir: Path, attempt: int) -> dic
             )
             record["dropped_callback_frames"] = (
                 summary.get("cadence", {}).get("dropped_callback_frames"))
+            # Interventions are reported verbatim, never suppressed.
+            record["intervention_policy"] = summary.get("intervention_policy")
         record["status"] = (
             "COLLECTION_ATTEMPT_PASSED"
             if record["client_exit"]["returncode"] == 0
@@ -326,6 +331,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--maximum-loop-sim-s", type=float, default=600.0)
     parser.add_argument("--carla-ready-timeout-s", type=float, default=180.0)
+    parser.add_argument(
+        "--allow-roadblock-clearing", action="store_true", default=False,
+        help="forward --allow-roadblock-clearing to the collection runner: bounded "
+             "stationary-blocker clearing only, never forced ego overtaking",
+    )
     parser.add_argument(
         "--allow-one-retry", action="store_true",
         help="on a native client/server fault only, retry once into <output-dir>_retry1",
