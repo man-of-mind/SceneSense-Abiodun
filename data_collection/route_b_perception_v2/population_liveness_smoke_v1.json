@@ -1,0 +1,74 @@
+{
+  "after_kill": {
+    "manager_owned_records": 8,
+    "owned_present_in_snapshot": 7,
+    "per_id_lookup_alive": 7,
+    "world_snapshot_walkers": 7
+  },
+  "after_reconcile": {
+    "manager_owned_records": 8,
+    "owned_present_in_snapshot": 8,
+    "per_id_lookup_alive": 8,
+    "world_snapshot_walkers": 8
+  },
+  "after_stabilize": {
+    "manager_owned_records": 8,
+    "owned_present_in_snapshot": 8,
+    "per_id_lookup_alive": 8,
+    "world_snapshot_walkers": 8
+  },
+  "checks": {
+    "cleanup_leaves_no_actors": true,
+    "exactly_one_loss_recorded": true,
+    "exactly_one_replacement_created": true,
+    "kill_visible_in_world": true,
+    "per_id_agrees_with_snapshot": true,
+    "population_back_to_target": true,
+    "replacement_controller_working": true,
+    "stabilized_at_target": true,
+    "world_snapshot_back_to_target": true
+  },
+  "cleanup": {
+    "surviving_tracked": [],
+    "tracked_actors": 16,
+    "walkers_left_in_world": 0
+  },
+  "destroyed_walker_controller_id": 57,
+  "destroyed_walker_id": 49,
+  "launch": {
+    "launch_argv": [
+      "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/CarlaUnreal/Binaries/Linux/CarlaUnreal-Linux-Shipping",
+      "CarlaUnreal",
+      "-RenderOffScreen",
+      "-nosound",
+      "-quality-level=Epic",
+      "-carla-rpc-port=2000"
+    ],
+    "launch_command": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/CarlaUnreal/Binaries/Linux/CarlaUnreal-Linux-Shipping CarlaUnreal -RenderOffScreen -nosound -quality-level=Epic -carla-rpc-port=2000",
+    "quality_level": "Epic",
+    "quality_level_explicit": true,
+    "render_disabling_flags": [],
+    "render_offscreen": true,
+    "rpc_port": 2000,
+    "server_pid": 136470
+  },
+  "lost_ids": [
+    49
+  ],
+  "map": "Carla/Maps/Town10HD_Opt",
+  "no_rendering_mode": false,
+  "replacement_controller_alive": [
+    true
+  ],
+  "replacement_controller_ready": [
+    true
+  ],
+  "replacement_ids": [
+    65
+  ],
+  "schema": "route_b_perception_v2.population_liveness_smoke.v1",
+  "settings_restored": true,
+  "spawned": 8,
+  "status": "POPULATION_FIX_PASSED",
+  "target_walkers": 8
+}

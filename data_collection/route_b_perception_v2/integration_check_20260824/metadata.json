@@ -1,0 +1,135 @@
+{
+  "camera_resolution": [
+    1280,
+    720
+  ],
+  "controller": {
+    "hybrid_physics": false,
+    "interventions": false,
+    "lane_offset_m": -0.5,
+    "npc_hardening": true,
+    "safe_vehicle_filter": true,
+    "target_speed_kph": 25.0,
+    "walker_detection_distance_m": 10.0
+  },
+  "density": "traffic_30_30",
+  "description": "Canonical Route B moving-ego perception episode, v2 timing contract.",
+  "experiment_id": "integration_check",
+  "ground_truth": {
+    "convention": "actor origin",
+    "evaluation_eligibility": {
+      "camera_frustum": "projected bounding-box centre inside the full-resolution frame",
+      "max_distance_m": 40.0,
+      "min_projected_area_px": 12.0,
+      "note": "eligibility is an evaluation filter only; collection is unrestricted"
+    },
+    "gt_max_distance_m": 140.0,
+    "person_mask_provenance": "semantic-tag training mask, then person regions overpainted as filled axis-aligned boxes from projected actor bounding boxes (parked.rasterize_person_regions shape='box')",
+    "raw_gt_preserved": true,
+    "visibility_fields": "recorded where the historical object-box schema provides them"
+  },
+  "model_input_size": [
+    768,
+    432
+  ],
+  "prepare_every_nth_tick": 2,
+  "prepared_hz": 10.0,
+  "qualified_density_runner_sha256": "f2abd86ca650d6257eb5a6600bc7cdf94bc3e0777964e58a7aeeb1a63bd55730",
+  "radar": {
+    "configured_attributes": {
+      "horizontal_fov": "120.0",
+      "points_per_second": "200000",
+      "range": "120.0",
+      "sensor_tick": "0.0",
+      "vertical_fov": "30.0"
+    },
+    "horizontal_fov": 120.0,
+    "points_per_second": 200000,
+    "range_m": 120.0,
+    "sweep_period_s": 0.1,
+    "temporal_support_s": 0.2,
+    "temporal_window_sweeps": 2,
+    "vertical_fov": 30.0
+  },
+  "render_provenance": {
+    "camera_fov_deg": 120.0,
+    "camera_resolution": [
+      1280,
+      720
+    ],
+    "client_version": "0.10.0",
+    "fixed_delta_seconds": 0.05,
+    "launch": {
+      "launch_argv": [
+        "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/CarlaUnreal/Binaries/Linux/CarlaUnreal-Linux-Shipping",
+        "CarlaUnreal",
+        "-RenderOffScreen",
+        "-nosound",
+        "-quality-level=Epic",
+        "-carla-rpc-port=2000"
+      ],
+      "launch_command": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/CarlaUnreal/Binaries/Linux/CarlaUnreal-Linux-Shipping CarlaUnreal -RenderOffScreen -nosound -quality-level=Epic -carla-rpc-port=2000",
+      "quality_level": "Epic",
+      "quality_level_explicit": true,
+      "render_disabling_flags": [],
+      "render_offscreen": true,
+      "rpc_port": 2000,
+      "server_pid": 94045
+    },
+    "map": "Carla/Maps/Town10HD_Opt",
+    "no_rendering_mode": false,
+    "server_version": "0.10.0",
+    "synchronous_mode": true,
+    "weather": {
+      "cloudiness": 0.0,
+      "dust_storm": 0.0,
+      "fog_density": 0.0,
+      "fog_distance": 0.0,
+      "fog_falloff": 0.0,
+      "mie_scattering_scale": 0.0,
+      "precipitation": 0.0,
+      "precipitation_deposits": 0.0,
+      "rayleigh_scattering_scale": 0.03310000151395798,
+      "scattering_intensity": 0.0,
+      "sun_altitude_angle": 0.0,
+      "sun_azimuth_angle": 0.0,
+      "wetness": 0.0,
+      "wind_intensity": 0.0
+    }
+  },
+  "requested_pedestrians": 30,
+  "requested_vehicles": 30,
+  "route_file": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/data_collection/routes/town10hd_opt_route_b_full_map_loop_v1.json",
+  "route_file_sha256": "fc4518a8746b9417a64616b8e544f59b16b5a31b7585298a316a59662ecfd6e5",
+  "route_progress_csv": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/data_collection/routes/town10hd_opt_route_b_full_map_loop_v1.progress.csv",
+  "route_progress_csv_sha256": "974593859368f24ee2bc4ac31b82118bf2e932d0de1c96858b8771e2dd4d90c0",
+  "save_every_nth_prepared_input": 2,
+  "saved_hz": 5.0,
+  "scenario_id": "route_b_traffic_30_30_seed101_tm1101",
+  "scenario_seed": 101,
+  "schema": "scenesense_moving_ego_fusion_training_data.v2",
+  "seed_bundle": null,
+  "sensor_tick_policy": "free-running; cadence derived from world ticks and timestamps",
+  "sensor_tick_s": 0.0,
+  "simulator_hz": 20.0,
+  "split": "smoke",
+  "traffic_manager_seed": 1101,
+  "view_id": "qualified_route_b_controller",
+  "weather": {
+    "cloudiness": 0.0,
+    "dust_storm": 0.0,
+    "fog_density": 0.0,
+    "fog_distance": 0.0,
+    "fog_falloff": 0.0,
+    "mie_scattering_scale": 0.0,
+    "precipitation": 0.0,
+    "precipitation_deposits": 0.0,
+    "rayleigh_scattering_scale": 0.03310000151395798,
+    "scattering_intensity": 0.0,
+    "sun_altitude_angle": 0.0,
+    "sun_azimuth_angle": 0.0,
+    "wetness": 0.0,
+    "wind_intensity": 0.0
+  },
+  "world": "Carla/Maps/Town10HD_Opt"
+}

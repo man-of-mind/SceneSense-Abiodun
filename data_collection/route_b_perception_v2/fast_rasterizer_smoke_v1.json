@@ -1,0 +1,610 @@
+{
+  "alignment": {
+    "camera_frame_gap": {
+      "count": 449,
+      "max": 2.0,
+      "mean": 2.0,
+      "min": 2.0
+    },
+    "camera_frame_parity": 0,
+    "camera_misses": 0,
+    "max_camera_radar_timestamp_delta_s": 0.0,
+    "max_snapshot_radar_timestamp_delta_s": 0.0,
+    "warmup_rgb_frames": [
+      1204,
+      1205,
+      1206,
+      1207,
+      1208,
+      1209,
+      1210,
+      1211,
+      1212,
+      1213,
+      1214,
+      1215,
+      1216,
+      1217,
+      1218,
+      1219,
+      1220,
+      1221,
+      1222
+    ]
+  },
+  "cleanup": {
+    "destroyed": [
+      29,
+      28,
+      27,
+      26,
+      25
+    ],
+    "settings_restored": true,
+    "surviving": []
+  },
+  "configured": {
+    "camera_sensor_tick_s": 0.0,
+    "configured_points_per_second": 200000,
+    "fixed_delta_seconds": 0.05,
+    "prepare_every_n_ticks": 2,
+    "radar_attributes": {
+      "horizontal_fov": "120.0",
+      "points_per_second": "200000",
+      "range": "120.0",
+      "sensor_tick": "0.0",
+      "vertical_fov": "30.0"
+    },
+    "rasterizer": "fast",
+    "save_every_n_prepared": 2,
+    "sweep_period_s": 0.1,
+    "synchronous_mode": true,
+    "target_speed_kph": 25.0,
+    "window_sweeps": 2
+  },
+  "frame_content": {
+    "checks_run": 450,
+    "failures": []
+  },
+  "gates": {
+    "callbacks_per_sweep_exact": true,
+    "cleanup_clean": true,
+    "consecutive_logical_sweeps": true,
+    "epic_quality_confirmed": true,
+    "logical_sweeps_10hz": true,
+    "no_camera_misses": true,
+    "no_dropped_callbacks": true,
+    "no_duplicate_callbacks": true,
+    "no_out_of_order_callbacks": true,
+    "no_tensor_failures": true,
+    "no_timestamp_reversals": true,
+    "pps_not_inflated": true,
+    "prepared_inputs_10hz": true,
+    "rgb_and_segmentation_frames_valid": true,
+    "saved_frames_5hz": true,
+    "sensor_frames_aligned": true,
+    "window_callbacks_exact": true,
+    "window_span_within_200ms": true,
+    "world_tick_20hz": true
+  },
+  "logical_sweeps": {
+    "cadence": {
+      "count": 451,
+      "hz": 9.999999999999998,
+      "interval_s_max": 0.10000000000000853,
+      "interval_s_mean": 0.10000000000000002,
+      "interval_s_min": 0.09999999999999432,
+      "reversals": 0
+    },
+    "callbacks_per_sweep": {
+      "count": 451,
+      "max": 2.0,
+      "mean": 2.0,
+      "min": 2.0
+    },
+    "consumed_sweep_index_range": [
+      -1,
+      449
+    ],
+    "count": 451,
+    "expected_callbacks_per_sweep": 2,
+    "returns_per_sweep": {
+      "count": 451,
+      "max": 19925.0,
+      "mean": 18340.263858093127,
+      "min": 16942.0
+    },
+    "unconsumed_partial_sweeps": [
+      -10,
+      -9,
+      -8,
+      -7,
+      -6,
+      -5,
+      -4,
+      -3,
+      -2,
+      450
+    ]
+  },
+  "map": "Carla/Maps/Town10HD_Opt",
+  "prepare_wall_clock_s": {
+    "count": 450,
+    "max": 0.13895230799971614,
+    "mean": 0.05671986805323589,
+    "min": 0.0387580850001541
+  },
+  "prepared_inputs": {
+    "count": 450,
+    "hz": 9.99999985098839,
+    "interval_s_max": 0.10000000149011612,
+    "interval_s_mean": 0.10000000149011612,
+    "interval_s_min": 0.10000000149011612,
+    "reversals": 0
+  },
+  "prepared_records_head": [
+    {
+      "camera_frames": {
+        "depth": 1224,
+        "rgb": 1224,
+        "semantic": 1224
+      },
+      "camera_timestamp_delta_s": 0.0,
+      "persisted": true,
+      "radar_points_in_tensor": 38952.0,
+      "snapshot_timestamp_s": 18.040639919403475,
+      "sweep_callbacks": 2,
+      "sweep_index": 0,
+      "sweep_returns": 19450,
+      "window_callback_frames": [
+        1221,
+        1222,
+        1223,
+        1224
+      ],
+      "window_contiguous": true,
+      "window_returns": 38952,
+      "window_span_s": 0.15000000223517418,
+      "window_sweeps": [
+        -1,
+        0
+      ],
+      "world_frame": 1224,
+      "world_timestamp_s": 18.040639919403475
+    },
+    {
+      "camera_frames": {
+        "depth": 1226,
+        "rgb": 1226,
+        "semantic": 1226
+      },
+      "camera_timestamp_delta_s": 0.0,
+      "persisted": false,
+      "radar_points_in_tensor": 38913.0,
+      "snapshot_timestamp_s": 18.14063992089359,
+      "sweep_callbacks": 2,
+      "sweep_index": 1,
+      "sweep_returns": 19463,
+      "window_callback_frames": [
+        1223,
+        1224,
+        1225,
+        1226
+      ],
+      "window_contiguous": true,
+      "window_returns": 38913,
+      "window_span_s": 0.15000000223517418,
+      "window_sweeps": [
+        0,
+        1
+      ],
+      "world_frame": 1226,
+      "world_timestamp_s": 18.14063992089359
+    },
+    {
+      "camera_frames": {
+        "depth": 1228,
+        "rgb": 1228,
+        "semantic": 1228
+      },
+      "camera_timestamp_delta_s": 0.0,
+      "persisted": true,
+      "radar_points_in_tensor": 38919.0,
+      "snapshot_timestamp_s": 18.240639922383707,
+      "sweep_callbacks": 2,
+      "sweep_index": 2,
+      "sweep_returns": 19456,
+      "window_callback_frames": [
+        1225,
+        1226,
+        1227,
+        1228
+      ],
+      "window_contiguous": true,
+      "window_returns": 38919,
+      "window_span_s": 0.15000000223517418,
+      "window_sweeps": [
+        1,
+        2
+      ],
+      "world_frame": 1228,
+      "world_timestamp_s": 18.240639922383707
+    },
+    {
+      "camera_frames": {
+        "depth": 1230,
+        "rgb": 1230,
+        "semantic": 1230
+      },
+      "camera_timestamp_delta_s": 0.0,
+      "persisted": false,
+      "radar_points_in_tensor": 38945.0,
+      "snapshot_timestamp_s": 18.340639923873823,
+      "sweep_callbacks": 2,
+      "sweep_index": 3,
+      "sweep_returns": 19489,
+      "window_callback_frames": [
+        1227,
+        1228,
+        1229,
+        1230
+      ],
+      "window_contiguous": true,
+      "window_returns": 38945,
+      "window_span_s": 0.15000000223517418,
+      "window_sweeps": [
+        2,
+        3
+      ],
+      "world_frame": 1230,
+      "world_timestamp_s": 18.340639923873823
+    },
+    {
+      "camera_frames": {
+        "depth": 1232,
+        "rgb": 1232,
+        "semantic": 1232
+      },
+      "camera_timestamp_delta_s": 0.0,
+      "persisted": true,
+      "radar_points_in_tensor": 38923.0,
+      "snapshot_timestamp_s": 18.44063992536394,
+      "sweep_callbacks": 2,
+      "sweep_index": 4,
+      "sweep_returns": 19434,
+      "window_callback_frames": [
+        1229,
+        1230,
+        1231,
+        1232
+      ],
+      "window_contiguous": true,
+      "window_returns": 38923,
+      "window_span_s": 0.15000000223517418,
+      "window_sweeps": [
+        3,
+        4
+      ],
+      "world_frame": 1232,
+      "world_timestamp_s": 18.44063992536394
+    },
+    {
+      "camera_frames": {
+        "depth": 1234,
+        "rgb": 1234,
+        "semantic": 1234
+      },
+      "camera_timestamp_delta_s": 0.0,
+      "persisted": false,
+      "radar_points_in_tensor": 38888.0,
+      "snapshot_timestamp_s": 18.540639926854055,
+      "sweep_callbacks": 2,
+      "sweep_index": 5,
+      "sweep_returns": 19454,
+      "window_callback_frames": [
+        1231,
+        1232,
+        1233,
+        1234
+      ],
+      "window_contiguous": true,
+      "window_returns": 38888,
+      "window_span_s": 0.15000000223517418,
+      "window_sweeps": [
+        4,
+        5
+      ],
+      "world_frame": 1234,
+      "world_timestamp_s": 18.540639926854055
+    },
+    {
+      "camera_frames": {
+        "depth": 1236,
+        "rgb": 1236,
+        "semantic": 1236
+      },
+      "camera_timestamp_delta_s": 0.0,
+      "persisted": true,
+      "radar_points_in_tensor": 38955.0,
+      "snapshot_timestamp_s": 18.64063992834417,
+      "sweep_callbacks": 2,
+      "sweep_index": 6,
+      "sweep_returns": 19501,
+      "window_callback_frames": [
+        1233,
+        1234,
+        1235,
+        1236
+      ],
+      "window_contiguous": true,
+      "window_returns": 38955,
+      "window_span_s": 0.15000000223517418,
+      "window_sweeps": [
+        5,
+        6
+      ],
+      "world_frame": 1236,
+      "world_timestamp_s": 18.64063992834417
+    },
+    {
+      "camera_frames": {
+        "depth": 1238,
+        "rgb": 1238,
+        "semantic": 1238
+      },
+      "camera_timestamp_delta_s": 0.0,
+      "persisted": false,
+      "radar_points_in_tensor": 39040.0,
+      "snapshot_timestamp_s": 18.740639929834288,
+      "sweep_callbacks": 2,
+      "sweep_index": 7,
+      "sweep_returns": 19539,
+      "window_callback_frames": [
+        1235,
+        1236,
+        1237,
+        1238
+      ],
+      "window_contiguous": true,
+      "window_returns": 39040,
+      "window_span_s": 0.15000000223517418,
+      "window_sweeps": [
+        6,
+        7
+      ],
+      "world_frame": 1238,
+      "world_timestamp_s": 18.740639929834288
+    }
+  ],
+  "prepared_records_tail": [
+    {
+      "camera_frames": {
+        "depth": 2116,
+        "rgb": 2116,
+        "semantic": 2116
+      },
+      "camera_timestamp_delta_s": 0.0,
+      "persisted": true,
+      "radar_points_in_tensor": 36367.0,
+      "snapshot_timestamp_s": 62.640640583995264,
+      "sweep_callbacks": 2,
+      "sweep_index": 446,
+      "sweep_returns": 18196,
+      "window_callback_frames": [
+        2113,
+        2114,
+        2115,
+        2116
+      ],
+      "window_contiguous": true,
+      "window_returns": 36367,
+      "window_span_s": 0.15000000223517418,
+      "window_sweeps": [
+        445,
+        446
+      ],
+      "world_frame": 2116,
+      "world_timestamp_s": 62.640640583995264
+    },
+    {
+      "camera_frames": {
+        "depth": 2118,
+        "rgb": 2118,
+        "semantic": 2118
+      },
+      "camera_timestamp_delta_s": 0.0,
+      "persisted": false,
+      "radar_points_in_tensor": 36430.0,
+      "snapshot_timestamp_s": 62.74064058548538,
+      "sweep_callbacks": 2,
+      "sweep_index": 447,
+      "sweep_returns": 18234,
+      "window_callback_frames": [
+        2115,
+        2116,
+        2117,
+        2118
+      ],
+      "window_contiguous": true,
+      "window_returns": 36430,
+      "window_span_s": 0.15000000223517418,
+      "window_sweeps": [
+        446,
+        447
+      ],
+      "world_frame": 2118,
+      "world_timestamp_s": 62.74064058548538
+    },
+    {
+      "camera_frames": {
+        "depth": 2120,
+        "rgb": 2120,
+        "semantic": 2120
+      },
+      "camera_timestamp_delta_s": 0.0,
+      "persisted": true,
+      "radar_points_in_tensor": 36382.0,
+      "snapshot_timestamp_s": 62.840640586975496,
+      "sweep_callbacks": 2,
+      "sweep_index": 448,
+      "sweep_returns": 18148,
+      "window_callback_frames": [
+        2117,
+        2118,
+        2119,
+        2120
+      ],
+      "window_contiguous": true,
+      "window_returns": 36382,
+      "window_span_s": 0.15000000223517418,
+      "window_sweeps": [
+        447,
+        448
+      ],
+      "world_frame": 2120,
+      "world_timestamp_s": 62.840640586975496
+    },
+    {
+      "camera_frames": {
+        "depth": 2122,
+        "rgb": 2122,
+        "semantic": 2122
+      },
+      "camera_timestamp_delta_s": 0.0,
+      "persisted": false,
+      "radar_points_in_tensor": 36322.0,
+      "snapshot_timestamp_s": 62.94064058846561,
+      "sweep_callbacks": 2,
+      "sweep_index": 449,
+      "sweep_returns": 18174,
+      "window_callback_frames": [
+        2119,
+        2120,
+        2121,
+        2122
+      ],
+      "window_contiguous": true,
+      "window_returns": 36322,
+      "window_span_s": 0.15000000223517418,
+      "window_sweeps": [
+        448,
+        449
+      ],
+      "world_frame": 2122,
+      "world_timestamp_s": 62.94064058846561
+    }
+  ],
+  "raw_callbacks": {
+    "cadence": {
+      "hz": 19.99999970197678,
+      "interval_s": {
+        "count": 919,
+        "max": 0.05000000074505806,
+        "mean": 0.05000000074505806,
+        "min": 0.05000000074505806
+      }
+    },
+    "count": 920,
+    "dropped_frames": 0,
+    "duplicates": 0,
+    "out_of_order": 0,
+    "returns_per_callback": {
+      "count": 920,
+      "max": 9964.0,
+      "mean": 9180.498913043479,
+      "min": 8415.0
+    },
+    "timestamp_reversals": 0,
+    "total_returns": 8446059
+  },
+  "render_provenance": {
+    "camera_fov_deg": 120.0,
+    "camera_resolution": [
+      1280,
+      720
+    ],
+    "client_version": "0.10.0",
+    "fixed_delta_seconds": 0.05,
+    "launch": {
+      "launch_argv": [
+        "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/CarlaUnreal/Binaries/Linux/CarlaUnreal-Linux-Shipping",
+        "CarlaUnreal",
+        "-RenderOffScreen",
+        "-nosound",
+        "-quality-level=Epic",
+        "-carla-rpc-port=2000"
+      ],
+      "launch_command": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/CarlaUnreal/Binaries/Linux/CarlaUnreal-Linux-Shipping CarlaUnreal -RenderOffScreen -nosound -quality-level=Epic -carla-rpc-port=2000",
+      "quality_level": "Epic",
+      "quality_level_explicit": true,
+      "render_disabling_flags": [],
+      "render_offscreen": true,
+      "rpc_port": 2000,
+      "server_pid": 156571
+    },
+    "map": "Carla/Maps/Town10HD_Opt",
+    "no_rendering_mode": false,
+    "server_version": "0.10.0",
+    "synchronous_mode": true,
+    "weather": {
+      "cloudiness": 0.0,
+      "dust_storm": 0.0,
+      "fog_density": 0.0,
+      "fog_distance": 0.0,
+      "fog_falloff": 0.0,
+      "mie_scattering_scale": 0.0,
+      "precipitation": 0.0,
+      "precipitation_deposits": 0.0,
+      "rayleigh_scattering_scale": 0.03310000151395798,
+      "scattering_intensity": 0.0,
+      "sun_altitude_angle": 0.0,
+      "sun_azimuth_angle": 0.0,
+      "wetness": 0.0,
+      "wind_intensity": 0.0
+    }
+  },
+  "saved_frames": {
+    "count": 225,
+    "hz": 4.999999925494195,
+    "interval_s_max": 0.20000000298023224,
+    "interval_s_mean": 0.20000000298023224,
+    "interval_s_min": 0.20000000298023224,
+    "reversals": 0
+  },
+  "schema": "route_b_radar_cadence_smoke_v1.report",
+  "status": "RADAR_SMOKE_PASSED",
+  "temporal_window": {
+    "callbacks_per_window": {
+      "count": 450,
+      "max": 4.0,
+      "mean": 4.0,
+      "min": 4.0
+    },
+    "expected_support_s": 0.2,
+    "expected_window_callbacks": 4,
+    "motion_compensation_roundtrip_max_error_m": 3.600041597018599e-05,
+    "non_consecutive_prepared_frames": [],
+    "returns": {
+      "count": 450,
+      "max": 39838.0,
+      "mean": 36678.31555555556,
+      "min": 33988.0
+    },
+    "span_s": {
+      "count": 450,
+      "max": 0.15000000223517418,
+      "mean": 0.15000000223517418,
+      "min": 0.15000000223517418
+    }
+  },
+  "tensor_failures": [],
+  "warmup_prepared_skipped": 0,
+  "world_tick": {
+    "count": 920,
+    "hz": 19.99999970197678,
+    "interval_s_max": 0.05000000074505806,
+    "interval_s_mean": 0.05000000074505806,
+    "interval_s_min": 0.05000000074505806,
+    "reversals": 0
+  }
+}

@@ -1,0 +1,69 @@
+{
+  "boresight_half_angle_deg": 4.0,
+  "convention": "negative = closing (range decreasing); positive = receding; value is the range rate",
+  "ego_moving_backward": {
+    "ego_forward_speed_mps": {
+      "max": -2.0298830470611198,
+      "mean": -2.313652859056925,
+      "min": -2.59763216162778
+    },
+    "fraction_negative": 0.0,
+    "mean_ratio_radar_over_ego_speed": -0.9856608626223549,
+    "radar_velocity_mps": {
+      "max": 2.565450429916382,
+      "mean": 2.2806915442148843,
+      "min": 1.9972295761108398
+    },
+    "samples": 9
+  },
+  "ego_moving_forward": {
+    "ego_forward_speed_mps": {
+      "max": 17.28167383177285,
+      "mean": 8.439693226413617,
+      "min": 2.0108990071811443
+    },
+    "fraction_negative": 1.0,
+    "mean_ratio_radar_over_ego_speed": -0.9895523398939428,
+    "radar_velocity_mps": {
+      "max": -1.922497272491455,
+      "mean": -8.356588518763163,
+      "min": -17.215927124023438
+    },
+    "samples": 83
+  },
+  "forward": {
+    "ego_forward_speed_mps": {
+      "max": 17.28167383177285,
+      "mean": 9.731685276036382,
+      "min": 2.0108990071811443
+    },
+    "fraction_negative": 1.0,
+    "mean_ratio_radar_over_ego_speed": -0.9850553491585323,
+    "radar_velocity_mps": {
+      "max": -1.922497272491455,
+      "mean": -9.624726151718813,
+      "min": -17.215927124023438
+    },
+    "samples": 68
+  },
+  "magnitude_tracks_ego_speed": true,
+  "mean_ratio_all_samples": -0.9891716518999831,
+  "raw_layout": "CARLA raw float32 order is (velocity, azimuth, altitude, depth); radar_raw_to_alt_az_depth_velocity reorders to [altitude, azimuth, depth, velocity]",
+  "reverse": {
+    "ego_forward_speed_mps": {
+      "max": 3.1359556574317358,
+      "mean": 0.7465443037643297,
+      "min": -2.59763216162778
+    },
+    "fraction_negative": 0.625,
+    "mean_ratio_radar_over_ego_speed": -1.0008345096674272,
+    "radar_velocity_mps": {
+      "max": 2.565450429916382,
+      "mean": -0.7745518684387207,
+      "min": -3.1935763359069824
+    },
+    "samples": 24
+  },
+  "schema": "route_b_perception_v2.radar_velocity_sign.v1",
+  "status": "MEASURED"
+}

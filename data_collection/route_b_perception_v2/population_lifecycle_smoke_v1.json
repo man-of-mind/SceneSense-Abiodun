@@ -1,0 +1,211 @@
+{
+  "cadence": {
+    "dropped_callback_frames": 0,
+    "duplicate_callbacks": 0,
+    "expected_raw_callbacks": 580,
+    "out_of_order_callbacks": 0,
+    "prepared_inputs": 280,
+    "raw_callbacks": 580,
+    "saved_samples": 140,
+    "timestamp_reversals": 0
+  },
+  "checks": {
+    "all_controllers_ready_at_end": true,
+    "cleanup_leaves_no_actors": true,
+    "every_replacement_controller_parent_correct": true,
+    "every_replacement_controller_ready": true,
+    "every_replacement_phased_body_then_controller": true,
+    "every_replacement_phased_controller_then_start": true,
+    "population_back_to_target": true,
+    "raw_callbacks_match_observed_ticks": true,
+    "sensor_cleanup_succeeded": true,
+    "three_replacements_created": true,
+    "three_walkers_destroyed": true,
+    "zero_dropped_callbacks": true,
+    "zero_duplicate_callbacks": true,
+    "zero_out_of_order_callbacks": true,
+    "zero_timestamp_reversals": true,
+    "zero_unobserved_world_frame_gaps": true
+  },
+  "cleanup": {
+    "controllers_left_in_world": 0,
+    "sensors_left_in_world": 0,
+    "surviving_tracked": [],
+    "tracked_actors": 20,
+    "walkers_left_in_world": 0
+  },
+  "final_population": {
+    "controllers_ready": 8,
+    "orphan_controllers": 0,
+    "owned_present_in_world": 8,
+    "owned_vehicle_records": 4,
+    "owned_walker_records": 8,
+    "pending_phases": 0,
+    "world_walkers": 8
+  },
+  "initial_vehicles": 4,
+  "initial_walkers": 8,
+  "killed": [
+    {
+      "body_id": 312,
+      "controller_id": 320,
+      "destroy_result": true,
+      "frame_id": 142312,
+      "route_tick": 90
+    },
+    {
+      "body_id": 313,
+      "controller_id": 321,
+      "destroy_result": true,
+      "frame_id": 142472,
+      "route_tick": 250
+    },
+    {
+      "body_id": 314,
+      "controller_id": 322,
+      "destroy_result": true,
+      "frame_id": 142632,
+      "route_tick": 410
+    }
+  ],
+  "launch": {
+    "launch_argv": [
+      "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/CarlaUnreal/Binaries/Linux/CarlaUnreal-Linux-Shipping",
+      "CarlaUnreal",
+      "-RenderOffScreen",
+      "-nosound",
+      "-quality-level=Epic",
+      "-carla-rpc-port=2000"
+    ],
+    "launch_command": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/CarlaUnreal/Binaries/Linux/CarlaUnreal-Linux-Shipping CarlaUnreal -RenderOffScreen -nosound -quality-level=Epic -carla-rpc-port=2000",
+    "quality_level": "Epic",
+    "quality_level_explicit": true,
+    "render_disabling_flags": [],
+    "render_offscreen": true,
+    "rpc_port": 2000,
+    "server_pid": 158162
+  },
+  "lifecycle_event_count": 38,
+  "map": "Carla/Maps/Town10HD_Opt",
+  "no_rendering_mode": false,
+  "observed_ticks": 560,
+  "parameters": {
+    "kill_ticks": [
+      90,
+      250,
+      410
+    ],
+    "replenish_interval_s": 2.0,
+    "seed": 101,
+    "ticks": 560,
+    "vehicles": 4,
+    "walkers": 8
+  },
+  "radar_attributes": {
+    "horizontal_fov": "120.0",
+    "points_per_second": "200000",
+    "range": "120.0",
+    "sensor_tick": "0.0",
+    "vertical_fov": "30.0"
+  },
+  "replacement_body_ids": [
+    332,
+    334,
+    336
+  ],
+  "replacement_lifecycle": [
+    {
+      "attach_after_observed_tick": true,
+      "body_id": 332,
+      "body_spawn_tick": 121,
+      "controller_alive": true,
+      "controller_attach_tick": 122,
+      "controller_id": 333,
+      "controller_parent_matches_body": true,
+      "controller_ready": true,
+      "controller_start_tick": 123,
+      "phase": "ready",
+      "phases_seen": [
+        "body_spawned",
+        "controller_spawned",
+        "controller_started"
+      ],
+      "start_after_observed_tick": true
+    },
+    {
+      "attach_after_observed_tick": true,
+      "body_id": 334,
+      "body_spawn_tick": 281,
+      "controller_alive": true,
+      "controller_attach_tick": 282,
+      "controller_id": 335,
+      "controller_parent_matches_body": true,
+      "controller_ready": true,
+      "controller_start_tick": 283,
+      "phase": "ready",
+      "phases_seen": [
+        "body_spawned",
+        "controller_spawned",
+        "controller_started"
+      ],
+      "start_after_observed_tick": true
+    },
+    {
+      "attach_after_observed_tick": true,
+      "body_id": 336,
+      "body_spawn_tick": 441,
+      "controller_alive": true,
+      "controller_attach_tick": 442,
+      "controller_id": 337,
+      "controller_parent_matches_body": true,
+      "controller_ready": true,
+      "controller_start_tick": 443,
+      "phase": "ready",
+      "phases_seen": [
+        "body_spawned",
+        "controller_spawned",
+        "controller_started"
+      ],
+      "start_after_observed_tick": true
+    }
+  ],
+  "route_ticks": 560,
+  "schema": "route_b_perception_v2.population_lifecycle_smoke.v1",
+  "sensor_cleanup": [
+    {
+      "actor_id": 328,
+      "destroy_result": true,
+      "final_state": "absent",
+      "sensor": "rgb",
+      "stop_result": "ok",
+      "type_id": "sensor.camera.rgb"
+    },
+    {
+      "actor_id": 329,
+      "destroy_result": true,
+      "final_state": "absent",
+      "sensor": "semantic",
+      "stop_result": "ok",
+      "type_id": "sensor.camera.semantic_segmentation"
+    },
+    {
+      "actor_id": 330,
+      "destroy_result": true,
+      "final_state": "absent",
+      "sensor": "depth",
+      "stop_result": "ok",
+      "type_id": "sensor.camera.depth"
+    },
+    {
+      "actor_id": 331,
+      "destroy_result": true,
+      "final_state": "absent",
+      "sensor": "radar",
+      "stop_result": "ok",
+      "type_id": "sensor.other.radar"
+    }
+  ],
+  "settings_restored": true,
+  "status": "POPULATION_LIFECYCLE_SMOKE_PASSED",
+  "work_dir_bytes": 1046251920
+}

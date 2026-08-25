@@ -1,0 +1,665 @@
+{
+  "decision": "legacy",
+  "decision_rule": "fast only if exact everywhere, or every difference is an equal-magnitude signed-velocity tie in the velocity channel",
+  "differences_only_equal_magnitude_velocity_ties": false,
+  "episode_dir": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/data_collection/experiments/route_b_perception_v2/20260824_smoke_traffic_30_30",
+  "exact_on_every_frame": false,
+  "frames_compared": 40,
+  "max_abs_difference": 5.960464477539063e-08,
+  "per_frame": [
+    {
+      "differing_elements": 7409,
+      "fast_s": 0.039781946998118656,
+      "legacy_s": 0.24077430099714547,
+      "max_abs_difference": 5.960464477539063e-08,
+      "non_velocity_differing_elements": 7409,
+      "per_channel_differing": {
+        "inverse_range": 7409,
+        "occupancy": 0,
+        "radial_velocity": 0,
+        "stationary_age": 0
+      },
+      "points": 35272,
+      "sample": "20260824_smoke_traffic_30_30_000000_frame8958",
+      "velocity_differences_are_equal_magnitude_ties": true
+    },
+    {
+      "differing_elements": 14880,
+      "fast_s": 0.012337670999841066,
+      "legacy_s": 0.26631405599982827,
+      "max_abs_difference": 5.960464477539063e-08,
+      "non_velocity_differing_elements": 14880,
+      "per_channel_differing": {
+        "inverse_range": 14880,
+        "occupancy": 0,
+        "radial_velocity": 0,
+        "stationary_age": 0
+      },
+      "points": 38678,
+      "sample": "20260824_smoke_traffic_30_30_000045_frame9138",
+      "velocity_differences_are_equal_magnitude_ties": true
+    },
+    {
+      "differing_elements": 11544,
+      "fast_s": 0.010849177997442894,
+      "legacy_s": 0.2804362189999665,
+      "max_abs_difference": 5.960464477539063e-08,
+      "non_velocity_differing_elements": 11544,
+      "per_channel_differing": {
+        "inverse_range": 11544,
+        "occupancy": 0,
+        "radial_velocity": 0,
+        "stationary_age": 0
+      },
+      "points": 39601,
+      "sample": "20260824_smoke_traffic_30_30_000090_frame9318",
+      "velocity_differences_are_equal_magnitude_ties": true
+    },
+    {
+      "differing_elements": 10497,
+      "fast_s": 0.012483156002417672,
+      "legacy_s": 0.2887518749994342,
+      "max_abs_difference": 5.960464477539063e-08,
+      "non_velocity_differing_elements": 10497,
+      "per_channel_differing": {
+        "inverse_range": 10497,
+        "occupancy": 0,
+        "radial_velocity": 0,
+        "stationary_age": 0
+      },
+      "points": 39567,
+      "sample": "20260824_smoke_traffic_30_30_000135_frame9498",
+      "velocity_differences_are_equal_magnitude_ties": true
+    },
+    {
+      "differing_elements": 15928,
+      "fast_s": 0.010872318998735864,
+      "legacy_s": 0.2716017790007754,
+      "max_abs_difference": 5.960464477539063e-08,
+      "non_velocity_differing_elements": 15928,
+      "per_channel_differing": {
+        "inverse_range": 15928,
+        "occupancy": 0,
+        "radial_velocity": 0,
+        "stationary_age": 0
+      },
+      "points": 39873,
+      "sample": "20260824_smoke_traffic_30_30_000181_frame9682",
+      "velocity_differences_are_equal_magnitude_ties": true
+    },
+    {
+      "differing_elements": 9162,
+      "fast_s": 0.010274419997585937,
+      "legacy_s": 0.2620574360007595,
+      "max_abs_difference": 5.960464477539063e-08,
+      "non_velocity_differing_elements": 9162,
+      "per_channel_differing": {
+        "inverse_range": 9162,
+        "occupancy": 0,
+        "radial_velocity": 0,
+        "stationary_age": 0
+      },
+      "points": 37747,
+      "sample": "20260824_smoke_traffic_30_30_000226_frame9862",
+      "velocity_differences_are_equal_magnitude_ties": true
+    },
+    {
+      "differing_elements": 9384,
+      "fast_s": 0.010773426001833286,
+      "legacy_s": 0.2655952230015828,
+      "max_abs_difference": 5.960464477539063e-08,
+      "non_velocity_differing_elements": 9384,
+      "per_channel_differing": {
+        "inverse_range": 9384,
+        "occupancy": 0,
+        "radial_velocity": 0,
+        "stationary_age": 0
+      },
+      "points": 39661,
+      "sample": "20260824_smoke_traffic_30_30_000271_frame10042",
+      "velocity_differences_are_equal_magnitude_ties": true
+    },
+    {
+      "differing_elements": 11422,
+      "fast_s": 0.008456187002593651,
+      "legacy_s": 0.22100778699677903,
+      "max_abs_difference": 5.960464477539063e-08,
+      "non_velocity_differing_elements": 11422,
+      "per_channel_differing": {
+        "inverse_range": 11422,
+        "occupancy": 0,
+        "radial_velocity": 0,
+        "stationary_age": 0
+      },
+      "points": 34237,
+      "sample": "20260824_smoke_traffic_30_30_000317_frame10226",
+      "velocity_differences_are_equal_magnitude_ties": true
+    },
+    {
+      "differing_elements": 6713,
+      "fast_s": 0.008897032003005734,
+      "legacy_s": 0.24290699699849938,
+      "max_abs_difference": 5.960464477539063e-08,
+      "non_velocity_differing_elements": 6713,
+      "per_channel_differing": {
+        "inverse_range": 6713,
+        "occupancy": 0,
+        "radial_velocity": 0,
+        "stationary_age": 0
+      },
+      "points": 35718,
+      "sample": "20260824_smoke_traffic_30_30_000362_frame10406",
+      "velocity_differences_are_equal_magnitude_ties": true
+    },
+    {
+      "differing_elements": 7159,
+      "fast_s": 0.010596638003335102,
+      "legacy_s": 0.24212274800083833,
+      "max_abs_difference": 5.960464477539063e-08,
+      "non_velocity_differing_elements": 7159,
+      "per_channel_differing": {
+        "inverse_range": 7159,
+        "occupancy": 0,
+        "radial_velocity": 0,
+        "stationary_age": 0
+      },
+      "points": 35801,
+      "sample": "20260824_smoke_traffic_30_30_000407_frame10586",
+      "velocity_differences_are_equal_magnitude_ties": true
+    },
+    {
+      "differing_elements": 7470,
+      "fast_s": 0.009055447000719141,
+      "legacy_s": 0.23950848200183827,
+      "max_abs_difference": 5.960464477539063e-08,
+      "non_velocity_differing_elements": 7470,
+      "per_channel_differing": {
+        "inverse_range": 7470,
+        "occupancy": 0,
+        "radial_velocity": 0,
+        "stationary_age": 0
+      },
+      "points": 35590,
+      "sample": "20260824_smoke_traffic_30_30_000453_frame10770",
+      "velocity_differences_are_equal_magnitude_ties": true
+    },
+    {
+      "differing_elements": 14950,
+      "fast_s": 0.00880386100106989,
+      "legacy_s": 0.24502202400253736,
+      "max_abs_difference": 5.960464477539063e-08,
+      "non_velocity_differing_elements": 14950,
+      "per_channel_differing": {
+        "inverse_range": 14950,
+        "occupancy": 0,
+        "radial_velocity": 0,
+        "stationary_age": 0
+      },
+      "points": 36802,
+      "sample": "20260824_smoke_traffic_30_30_000498_frame10950",
+      "velocity_differences_are_equal_magnitude_ties": true
+    },
+    {
+      "differing_elements": 13543,
+      "fast_s": 0.010249412000121083,
+      "legacy_s": 0.2462112610010081,
+      "max_abs_difference": 5.960464477539063e-08,
+      "non_velocity_differing_elements": 13543,
+      "per_channel_differing": {
+        "inverse_range": 13543,
+        "occupancy": 0,
+        "radial_velocity": 0,
+        "stationary_age": 0
+      },
+      "points": 36267,
+      "sample": "20260824_smoke_traffic_30_30_000543_frame11130",
+      "velocity_differences_are_equal_magnitude_ties": true
+    },
+    {
+      "differing_elements": 12531,
+      "fast_s": 0.009560836999298772,
+      "legacy_s": 0.23897024100006092,
+      "max_abs_difference": 5.960464477539063e-08,
+      "non_velocity_differing_elements": 12531,
+      "per_channel_differing": {
+        "inverse_range": 12531,
+        "occupancy": 0,
+        "radial_velocity": 0,
+        "stationary_age": 0
+      },
+      "points": 36287,
+      "sample": "20260824_smoke_traffic_30_30_000589_frame11314",
+      "velocity_differences_are_equal_magnitude_ties": true
+    },
+    {
+      "differing_elements": 12498,
+      "fast_s": 0.008982809002191061,
+      "legacy_s": 0.24168460000146297,
+      "max_abs_difference": 5.960464477539063e-08,
+      "non_velocity_differing_elements": 12498,
+      "per_channel_differing": {
+        "inverse_range": 12498,
+        "occupancy": 0,
+        "radial_velocity": 0,
+        "stationary_age": 0
+      },
+      "points": 36224,
+      "sample": "20260824_smoke_traffic_30_30_000634_frame11494",
+      "velocity_differences_are_equal_magnitude_ties": true
+    },
+    {
+      "differing_elements": 12686,
+      "fast_s": 0.010489684998901794,
+      "legacy_s": 0.24209277800036944,
+      "max_abs_difference": 5.960464477539063e-08,
+      "non_velocity_differing_elements": 12686,
+      "per_channel_differing": {
+        "inverse_range": 12686,
+        "occupancy": 0,
+        "radial_velocity": 0,
+        "stationary_age": 0
+      },
+      "points": 36156,
+      "sample": "20260824_smoke_traffic_30_30_000679_frame11674",
+      "velocity_differences_are_equal_magnitude_ties": true
+    },
+    {
+      "differing_elements": 9960,
+      "fast_s": 0.008830509999825153,
+      "legacy_s": 0.21538150000196765,
+      "max_abs_difference": 5.960464477539063e-08,
+      "non_velocity_differing_elements": 9960,
+      "per_channel_differing": {
+        "inverse_range": 9960,
+        "occupancy": 0,
+        "radial_velocity": 0,
+        "stationary_age": 0
+      },
+      "points": 33152,
+      "sample": "20260824_smoke_traffic_30_30_000725_frame11858",
+      "velocity_differences_are_equal_magnitude_ties": true
+    },
+    {
+      "differing_elements": 14473,
+      "fast_s": 0.009126126999035478,
+      "legacy_s": 0.2534765939999488,
+      "max_abs_difference": 5.960464477539063e-08,
+      "non_velocity_differing_elements": 14473,
+      "per_channel_differing": {
+        "inverse_range": 14473,
+        "occupancy": 0,
+        "radial_velocity": 0,
+        "stationary_age": 0
+      },
+      "points": 38078,
+      "sample": "20260824_smoke_traffic_30_30_000770_frame12038",
+      "velocity_differences_are_equal_magnitude_ties": true
+    },
+    {
+      "differing_elements": 10532,
+      "fast_s": 0.010848375997738913,
+      "legacy_s": 0.24221177400249871,
+      "max_abs_difference": 5.960464477539063e-08,
+      "non_velocity_differing_elements": 10532,
+      "per_channel_differing": {
+        "inverse_range": 10532,
+        "occupancy": 0,
+        "radial_velocity": 0,
+        "stationary_age": 0
+      },
+      "points": 36736,
+      "sample": "20260824_smoke_traffic_30_30_000815_frame12218",
+      "velocity_differences_are_equal_magnitude_ties": true
+    },
+    {
+      "differing_elements": 10148,
+      "fast_s": 0.009457009000470862,
+      "legacy_s": 0.25840852499823086,
+      "max_abs_difference": 5.960464477539063e-08,
+      "non_velocity_differing_elements": 10148,
+      "per_channel_differing": {
+        "inverse_range": 10148,
+        "occupancy": 0,
+        "radial_velocity": 0,
+        "stationary_age": 0
+      },
+      "points": 38552,
+      "sample": "20260824_smoke_traffic_30_30_000861_frame12402",
+      "velocity_differences_are_equal_magnitude_ties": true
+    },
+    {
+      "differing_elements": 15369,
+      "fast_s": 0.009413783001946285,
+      "legacy_s": 0.2629374040006951,
+      "max_abs_difference": 5.960464477539063e-08,
+      "non_velocity_differing_elements": 15369,
+      "per_channel_differing": {
+        "inverse_range": 15369,
+        "occupancy": 0,
+        "radial_velocity": 0,
+        "stationary_age": 0
+      },
+      "points": 39553,
+      "sample": "20260824_smoke_traffic_30_30_000906_frame12582",
+      "velocity_differences_are_equal_magnitude_ties": true
+    },
+    {
+      "differing_elements": 11078,
+      "fast_s": 0.0105083479975292,
+      "legacy_s": 0.23526278999997885,
+      "max_abs_difference": 5.960464477539063e-08,
+      "non_velocity_differing_elements": 11078,
+      "per_channel_differing": {
+        "inverse_range": 11078,
+        "occupancy": 0,
+        "radial_velocity": 0,
+        "stationary_age": 0
+      },
+      "points": 35105,
+      "sample": "20260824_smoke_traffic_30_30_000951_frame12762",
+      "velocity_differences_are_equal_magnitude_ties": true
+    },
+    {
+      "differing_elements": 11684,
+      "fast_s": 0.008872580001479946,
+      "legacy_s": 0.24088538299838547,
+      "max_abs_difference": 5.960464477539063e-08,
+      "non_velocity_differing_elements": 11684,
+      "per_channel_differing": {
+        "inverse_range": 11684,
+        "occupancy": 0,
+        "radial_velocity": 0,
+        "stationary_age": 0
+      },
+      "points": 36772,
+      "sample": "20260824_smoke_traffic_30_30_000997_frame12946",
+      "velocity_differences_are_equal_magnitude_ties": true
+    },
+    {
+      "differing_elements": 13487,
+      "fast_s": 0.009162823000224307,
+      "legacy_s": 0.25484922000032384,
+      "max_abs_difference": 5.960464477539063e-08,
+      "non_velocity_differing_elements": 13487,
+      "per_channel_differing": {
+        "inverse_range": 13487,
+        "occupancy": 0,
+        "radial_velocity": 0,
+        "stationary_age": 0
+      },
+      "points": 38819,
+      "sample": "20260824_smoke_traffic_30_30_001042_frame13126",
+      "velocity_differences_are_equal_magnitude_ties": true
+    },
+    {
+      "differing_elements": 14719,
+      "fast_s": 0.011087784001574619,
+      "legacy_s": 0.25591629699920304,
+      "max_abs_difference": 5.960464477539063e-08,
+      "non_velocity_differing_elements": 14719,
+      "per_channel_differing": {
+        "inverse_range": 14719,
+        "occupancy": 0,
+        "radial_velocity": 0,
+        "stationary_age": 0
+      },
+      "points": 39450,
+      "sample": "20260824_smoke_traffic_30_30_001087_frame13306",
+      "velocity_differences_are_equal_magnitude_ties": true
+    },
+    {
+      "differing_elements": 9719,
+      "fast_s": 0.009868835000816034,
+      "legacy_s": 0.25178986199898645,
+      "max_abs_difference": 5.960464477539063e-08,
+      "non_velocity_differing_elements": 9719,
+      "per_channel_differing": {
+        "inverse_range": 9719,
+        "occupancy": 0,
+        "radial_velocity": 0,
+        "stationary_age": 0
+      },
+      "points": 38238,
+      "sample": "20260824_smoke_traffic_30_30_001133_frame13490",
+      "velocity_differences_are_equal_magnitude_ties": true
+    },
+    {
+      "differing_elements": 10369,
+      "fast_s": 0.009065278998605208,
+      "legacy_s": 0.23926896000193665,
+      "max_abs_difference": 5.960464477539063e-08,
+      "non_velocity_differing_elements": 10369,
+      "per_channel_differing": {
+        "inverse_range": 10369,
+        "occupancy": 0,
+        "radial_velocity": 0,
+        "stationary_age": 0
+      },
+      "points": 36379,
+      "sample": "20260824_smoke_traffic_30_30_001178_frame13670",
+      "velocity_differences_are_equal_magnitude_ties": true
+    },
+    {
+      "differing_elements": 8355,
+      "fast_s": 0.010353174999181647,
+      "legacy_s": 0.23911069499808946,
+      "max_abs_difference": 5.960464477539063e-08,
+      "non_velocity_differing_elements": 8355,
+      "per_channel_differing": {
+        "inverse_range": 8355,
+        "occupancy": 0,
+        "radial_velocity": 0,
+        "stationary_age": 0
+      },
+      "points": 36321,
+      "sample": "20260824_smoke_traffic_30_30_001223_frame13850",
+      "velocity_differences_are_equal_magnitude_ties": true
+    },
+    {
+      "differing_elements": 5175,
+      "fast_s": 0.0093360320024658,
+      "legacy_s": 0.23568191600134014,
+      "max_abs_difference": 5.960464477539063e-08,
+      "non_velocity_differing_elements": 5175,
+      "per_channel_differing": {
+        "inverse_range": 5175,
+        "occupancy": 0,
+        "radial_velocity": 0,
+        "stationary_age": 0
+      },
+      "points": 36519,
+      "sample": "20260824_smoke_traffic_30_30_001269_frame14034",
+      "velocity_differences_are_equal_magnitude_ties": true
+    },
+    {
+      "differing_elements": 7742,
+      "fast_s": 0.009096294998016674,
+      "legacy_s": 0.23238335200221627,
+      "max_abs_difference": 5.960464477539063e-08,
+      "non_velocity_differing_elements": 7742,
+      "per_channel_differing": {
+        "inverse_range": 7742,
+        "occupancy": 0,
+        "radial_velocity": 0,
+        "stationary_age": 0
+      },
+      "points": 35999,
+      "sample": "20260824_smoke_traffic_30_30_001314_frame14214",
+      "velocity_differences_are_equal_magnitude_ties": true
+    },
+    {
+      "differing_elements": 8247,
+      "fast_s": 0.010753000002296176,
+      "legacy_s": 0.23588068399840267,
+      "max_abs_difference": 5.960464477539063e-08,
+      "non_velocity_differing_elements": 8247,
+      "per_channel_differing": {
+        "inverse_range": 8247,
+        "occupancy": 0,
+        "radial_velocity": 0,
+        "stationary_age": 0
+      },
+      "points": 36094,
+      "sample": "20260824_smoke_traffic_30_30_001359_frame14394",
+      "velocity_differences_are_equal_magnitude_ties": true
+    },
+    {
+      "differing_elements": 13746,
+      "fast_s": 0.008524622997356346,
+      "legacy_s": 0.250799471999926,
+      "max_abs_difference": 5.960464477539063e-08,
+      "non_velocity_differing_elements": 13746,
+      "per_channel_differing": {
+        "inverse_range": 13746,
+        "occupancy": 0,
+        "radial_velocity": 0,
+        "stationary_age": 0
+      },
+      "points": 38694,
+      "sample": "20260824_smoke_traffic_30_30_001405_frame14578",
+      "velocity_differences_are_equal_magnitude_ties": true
+    },
+    {
+      "differing_elements": 12913,
+      "fast_s": 0.010322876001737313,
+      "legacy_s": 0.2281996399979107,
+      "max_abs_difference": 5.960464477539063e-08,
+      "non_velocity_differing_elements": 12913,
+      "per_channel_differing": {
+        "inverse_range": 12913,
+        "occupancy": 0,
+        "radial_velocity": 0,
+        "stationary_age": 0
+      },
+      "points": 35667,
+      "sample": "20260824_smoke_traffic_30_30_001450_frame14758",
+      "velocity_differences_are_equal_magnitude_ties": true
+    },
+    {
+      "differing_elements": 13007,
+      "fast_s": 0.007624130001204321,
+      "legacy_s": 0.21368871099912212,
+      "max_abs_difference": 5.960464477539063e-08,
+      "non_velocity_differing_elements": 13007,
+      "per_channel_differing": {
+        "inverse_range": 13007,
+        "occupancy": 0,
+        "radial_velocity": 0,
+        "stationary_age": 0
+      },
+      "points": 32703,
+      "sample": "20260824_smoke_traffic_30_30_001495_frame14938",
+      "velocity_differences_are_equal_magnitude_ties": true
+    },
+    {
+      "differing_elements": 11959,
+      "fast_s": 0.008927408001909498,
+      "legacy_s": 0.24610118200143916,
+      "max_abs_difference": 5.960464477539063e-08,
+      "non_velocity_differing_elements": 11959,
+      "per_channel_differing": {
+        "inverse_range": 11959,
+        "occupancy": 0,
+        "radial_velocity": 0,
+        "stationary_age": 0
+      },
+      "points": 37962,
+      "sample": "20260824_smoke_traffic_30_30_001541_frame15122",
+      "velocity_differences_are_equal_magnitude_ties": true
+    },
+    {
+      "differing_elements": 11176,
+      "fast_s": 0.010850498998479452,
+      "legacy_s": 0.2449861150016659,
+      "max_abs_difference": 5.960464477539063e-08,
+      "non_velocity_differing_elements": 11176,
+      "per_channel_differing": {
+        "inverse_range": 11176,
+        "occupancy": 0,
+        "radial_velocity": 0,
+        "stationary_age": 0
+      },
+      "points": 38037,
+      "sample": "20260824_smoke_traffic_30_30_001586_frame15302",
+      "velocity_differences_are_equal_magnitude_ties": true
+    },
+    {
+      "differing_elements": 11316,
+      "fast_s": 0.009520540002995403,
+      "legacy_s": 0.24527790900174296,
+      "max_abs_difference": 5.960464477539063e-08,
+      "non_velocity_differing_elements": 11316,
+      "per_channel_differing": {
+        "inverse_range": 11316,
+        "occupancy": 0,
+        "radial_velocity": 0,
+        "stationary_age": 0
+      },
+      "points": 37976,
+      "sample": "20260824_smoke_traffic_30_30_001631_frame15482",
+      "velocity_differences_are_equal_magnitude_ties": true
+    },
+    {
+      "differing_elements": 11513,
+      "fast_s": 0.009399864000442903,
+      "legacy_s": 0.24696810300156358,
+      "max_abs_difference": 5.960464477539063e-08,
+      "non_velocity_differing_elements": 11513,
+      "per_channel_differing": {
+        "inverse_range": 11513,
+        "occupancy": 0,
+        "radial_velocity": 0,
+        "stationary_age": 0
+      },
+      "points": 38039,
+      "sample": "20260824_smoke_traffic_30_30_001677_frame15666",
+      "velocity_differences_are_equal_magnitude_ties": true
+    },
+    {
+      "differing_elements": 11771,
+      "fast_s": 0.010821404001035262,
+      "legacy_s": 0.24903312900278252,
+      "max_abs_difference": 5.960464477539063e-08,
+      "non_velocity_differing_elements": 11771,
+      "per_channel_differing": {
+        "inverse_range": 11771,
+        "occupancy": 0,
+        "radial_velocity": 0,
+        "stationary_age": 0
+      },
+      "points": 37939,
+      "sample": "20260824_smoke_traffic_30_30_001722_frame15846",
+      "velocity_differences_are_equal_magnitude_ties": true
+    },
+    {
+      "differing_elements": 10446,
+      "fast_s": 0.009549932001391426,
+      "legacy_s": 0.24882287899890798,
+      "max_abs_difference": 5.960464477539063e-08,
+      "non_velocity_differing_elements": 10446,
+      "per_channel_differing": {
+        "inverse_range": 10446,
+        "occupancy": 0,
+        "radial_velocity": 0,
+        "stationary_age": 0
+      },
+      "points": 37943,
+      "sample": "20260824_smoke_traffic_30_30_001767_frame16026",
+      "velocity_differences_are_equal_magnitude_ties": true
+    }
+  ],
+  "points_per_frame": {
+    "max": 39873,
+    "mean": 37105.2,
+    "min": 32703
+  },
+  "runtime_s": {
+    "fast_mean_per_frame": 0.010594631425374246,
+    "fast_total": 0.42378525701496983,
+    "legacy_mean_per_frame": 0.24655949757525378,
+    "legacy_total": 9.86237990301015,
+    "speedup": 23.272116572620106
+  },
+  "schema": "route_b_perception_v2.rasterizer_comparison.v1",
+  "total_differing_elements": 446680
+}

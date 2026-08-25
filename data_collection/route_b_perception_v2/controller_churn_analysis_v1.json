@@ -1,0 +1,575 @@
+{
+  "controller_lifetime_ticks": {
+    "disowned": {
+      "count": 30,
+      "max": 5241,
+      "median": 29.0,
+      "min": 27
+    },
+    "survived_to_episode_end": {
+      "count": 30,
+      "max": 6014,
+      "median": 6014.0,
+      "min": 566
+    }
+  },
+  "disowns_by_body": {
+    "86": 2,
+    "98": 2,
+    "99": 21,
+    "105": 2,
+    "109": 1,
+    "146": 2
+  },
+  "event_lines": 223,
+  "ledger": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/data_collection/experiments/route_b_perception_v2/20260825_smoke5_traffic_30_30_tickfix_population_events.jsonl",
+  "lifetimes": [
+    {
+      "body_id": 109,
+      "controller_id": 139,
+      "end_reason": "controller_disowned",
+      "end_tick": 249,
+      "lifetime_ticks": 249,
+      "spawn_tick": 0
+    },
+    {
+      "body_id": 99,
+      "controller_id": 129,
+      "end_reason": "controller_disowned",
+      "end_tick": 1741,
+      "lifetime_ticks": 1741,
+      "spawn_tick": 0
+    },
+    {
+      "body_id": 98,
+      "controller_id": 128,
+      "end_reason": "controller_disowned",
+      "end_tick": 1801,
+      "lifetime_ticks": 1801,
+      "spawn_tick": 0
+    },
+    {
+      "body_id": 105,
+      "controller_id": 135,
+      "end_reason": "controller_disowned",
+      "end_tick": 3953,
+      "lifetime_ticks": 3953,
+      "spawn_tick": 0
+    },
+    {
+      "body_id": 86,
+      "controller_id": 116,
+      "end_reason": "controller_disowned",
+      "end_tick": 5241,
+      "lifetime_ticks": 5241,
+      "spawn_tick": 0
+    },
+    {
+      "body_id": 81,
+      "controller_id": 111,
+      "end_reason": "survived_to_episode_end",
+      "end_tick": 6014,
+      "lifetime_ticks": 6014,
+      "spawn_tick": 0
+    },
+    {
+      "body_id": 82,
+      "controller_id": 112,
+      "end_reason": "survived_to_episode_end",
+      "end_tick": 6014,
+      "lifetime_ticks": 6014,
+      "spawn_tick": 0
+    },
+    {
+      "body_id": 83,
+      "controller_id": 113,
+      "end_reason": "survived_to_episode_end",
+      "end_tick": 6014,
+      "lifetime_ticks": 6014,
+      "spawn_tick": 0
+    },
+    {
+      "body_id": 84,
+      "controller_id": 114,
+      "end_reason": "survived_to_episode_end",
+      "end_tick": 6014,
+      "lifetime_ticks": 6014,
+      "spawn_tick": 0
+    },
+    {
+      "body_id": 85,
+      "controller_id": 115,
+      "end_reason": "survived_to_episode_end",
+      "end_tick": 6014,
+      "lifetime_ticks": 6014,
+      "spawn_tick": 0
+    },
+    {
+      "body_id": 87,
+      "controller_id": 117,
+      "end_reason": "survived_to_episode_end",
+      "end_tick": 6014,
+      "lifetime_ticks": 6014,
+      "spawn_tick": 0
+    },
+    {
+      "body_id": 88,
+      "controller_id": 118,
+      "end_reason": "survived_to_episode_end",
+      "end_tick": 6014,
+      "lifetime_ticks": 6014,
+      "spawn_tick": 0
+    },
+    {
+      "body_id": 89,
+      "controller_id": 119,
+      "end_reason": "survived_to_episode_end",
+      "end_tick": 6014,
+      "lifetime_ticks": 6014,
+      "spawn_tick": 0
+    },
+    {
+      "body_id": 90,
+      "controller_id": 120,
+      "end_reason": "survived_to_episode_end",
+      "end_tick": 6014,
+      "lifetime_ticks": 6014,
+      "spawn_tick": 0
+    },
+    {
+      "body_id": 91,
+      "controller_id": 121,
+      "end_reason": "survived_to_episode_end",
+      "end_tick": 6014,
+      "lifetime_ticks": 6014,
+      "spawn_tick": 0
+    },
+    {
+      "body_id": 92,
+      "controller_id": 122,
+      "end_reason": "survived_to_episode_end",
+      "end_tick": 6014,
+      "lifetime_ticks": 6014,
+      "spawn_tick": 0
+    },
+    {
+      "body_id": 93,
+      "controller_id": 123,
+      "end_reason": "survived_to_episode_end",
+      "end_tick": 6014,
+      "lifetime_ticks": 6014,
+      "spawn_tick": 0
+    },
+    {
+      "body_id": 94,
+      "controller_id": 124,
+      "end_reason": "survived_to_episode_end",
+      "end_tick": 6014,
+      "lifetime_ticks": 6014,
+      "spawn_tick": 0
+    },
+    {
+      "body_id": 95,
+      "controller_id": 125,
+      "end_reason": "survived_to_episode_end",
+      "end_tick": 6014,
+      "lifetime_ticks": 6014,
+      "spawn_tick": 0
+    },
+    {
+      "body_id": 96,
+      "controller_id": 126,
+      "end_reason": "survived_to_episode_end",
+      "end_tick": 6014,
+      "lifetime_ticks": 6014,
+      "spawn_tick": 0
+    },
+    {
+      "body_id": 97,
+      "controller_id": 127,
+      "end_reason": "survived_to_episode_end",
+      "end_tick": 6014,
+      "lifetime_ticks": 6014,
+      "spawn_tick": 0
+    },
+    {
+      "body_id": 100,
+      "controller_id": 130,
+      "end_reason": "survived_to_episode_end",
+      "end_tick": 6014,
+      "lifetime_ticks": 6014,
+      "spawn_tick": 0
+    },
+    {
+      "body_id": 101,
+      "controller_id": 131,
+      "end_reason": "survived_to_episode_end",
+      "end_tick": 6014,
+      "lifetime_ticks": 6014,
+      "spawn_tick": 0
+    },
+    {
+      "body_id": 102,
+      "controller_id": 132,
+      "end_reason": "survived_to_episode_end",
+      "end_tick": 6014,
+      "lifetime_ticks": 6014,
+      "spawn_tick": 0
+    },
+    {
+      "body_id": 103,
+      "controller_id": 133,
+      "end_reason": "survived_to_episode_end",
+      "end_tick": 6014,
+      "lifetime_ticks": 6014,
+      "spawn_tick": 0
+    },
+    {
+      "body_id": 104,
+      "controller_id": 134,
+      "end_reason": "survived_to_episode_end",
+      "end_tick": 6014,
+      "lifetime_ticks": 6014,
+      "spawn_tick": 0
+    },
+    {
+      "body_id": 106,
+      "controller_id": 136,
+      "end_reason": "survived_to_episode_end",
+      "end_tick": 6014,
+      "lifetime_ticks": 6014,
+      "spawn_tick": 0
+    },
+    {
+      "body_id": 107,
+      "controller_id": 137,
+      "end_reason": "survived_to_episode_end",
+      "end_tick": 6014,
+      "lifetime_ticks": 6014,
+      "spawn_tick": 0
+    },
+    {
+      "body_id": 108,
+      "controller_id": 138,
+      "end_reason": "survived_to_episode_end",
+      "end_tick": 6014,
+      "lifetime_ticks": 6014,
+      "spawn_tick": 0
+    },
+    {
+      "body_id": 110,
+      "controller_id": 140,
+      "end_reason": "survived_to_episode_end",
+      "end_tick": 6014,
+      "lifetime_ticks": 6014,
+      "spawn_tick": 0
+    },
+    {
+      "body_id": 109,
+      "controller_id": 145,
+      "end_reason": "body_lost",
+      "end_tick": 447,
+      "lifetime_ticks": 197,
+      "spawn_tick": 250
+    },
+    {
+      "body_id": 146,
+      "controller_id": 147,
+      "end_reason": "controller_disowned",
+      "end_tick": 2853,
+      "lifetime_ticks": 2405,
+      "spawn_tick": 448
+    },
+    {
+      "body_id": 99,
+      "controller_id": 148,
+      "end_reason": "controller_disowned",
+      "end_tick": 1771,
+      "lifetime_ticks": 29,
+      "spawn_tick": 1742
+    },
+    {
+      "body_id": 99,
+      "controller_id": 149,
+      "end_reason": "controller_disowned",
+      "end_tick": 1801,
+      "lifetime_ticks": 29,
+      "spawn_tick": 1772
+    },
+    {
+      "body_id": 98,
+      "controller_id": 150,
+      "end_reason": "controller_disowned",
+      "end_tick": 1833,
+      "lifetime_ticks": 31,
+      "spawn_tick": 1802
+    },
+    {
+      "body_id": 99,
+      "controller_id": 151,
+      "end_reason": "controller_disowned",
+      "end_tick": 1833,
+      "lifetime_ticks": 31,
+      "spawn_tick": 1802
+    },
+    {
+      "body_id": 99,
+      "controller_id": 153,
+      "end_reason": "controller_disowned",
+      "end_tick": 1861,
+      "lifetime_ticks": 27,
+      "spawn_tick": 1834
+    },
+    {
+      "body_id": 98,
+      "controller_id": 152,
+      "end_reason": "body_lost",
+      "end_tick": 2009,
+      "lifetime_ticks": 175,
+      "spawn_tick": 1834
+    },
+    {
+      "body_id": 99,
+      "controller_id": 154,
+      "end_reason": "controller_disowned",
+      "end_tick": 1891,
+      "lifetime_ticks": 29,
+      "spawn_tick": 1862
+    },
+    {
+      "body_id": 99,
+      "controller_id": 155,
+      "end_reason": "controller_disowned",
+      "end_tick": 1921,
+      "lifetime_ticks": 29,
+      "spawn_tick": 1892
+    },
+    {
+      "body_id": 99,
+      "controller_id": 156,
+      "end_reason": "controller_disowned",
+      "end_tick": 1951,
+      "lifetime_ticks": 29,
+      "spawn_tick": 1922
+    },
+    {
+      "body_id": 99,
+      "controller_id": 157,
+      "end_reason": "controller_disowned",
+      "end_tick": 1981,
+      "lifetime_ticks": 29,
+      "spawn_tick": 1952
+    },
+    {
+      "body_id": 99,
+      "controller_id": 158,
+      "end_reason": "controller_disowned",
+      "end_tick": 2009,
+      "lifetime_ticks": 27,
+      "spawn_tick": 1982
+    },
+    {
+      "body_id": 99,
+      "controller_id": 160,
+      "end_reason": "controller_disowned",
+      "end_tick": 2039,
+      "lifetime_ticks": 29,
+      "spawn_tick": 2010
+    },
+    {
+      "body_id": 159,
+      "controller_id": 161,
+      "end_reason": "survived_to_episode_end",
+      "end_tick": 6014,
+      "lifetime_ticks": 4004,
+      "spawn_tick": 2010
+    },
+    {
+      "body_id": 99,
+      "controller_id": 162,
+      "end_reason": "controller_disowned",
+      "end_tick": 2069,
+      "lifetime_ticks": 29,
+      "spawn_tick": 2040
+    },
+    {
+      "body_id": 99,
+      "controller_id": 163,
+      "end_reason": "controller_disowned",
+      "end_tick": 2099,
+      "lifetime_ticks": 29,
+      "spawn_tick": 2070
+    },
+    {
+      "body_id": 99,
+      "controller_id": 164,
+      "end_reason": "controller_disowned",
+      "end_tick": 2129,
+      "lifetime_ticks": 29,
+      "spawn_tick": 2100
+    },
+    {
+      "body_id": 99,
+      "controller_id": 165,
+      "end_reason": "controller_disowned",
+      "end_tick": 2157,
+      "lifetime_ticks": 27,
+      "spawn_tick": 2130
+    },
+    {
+      "body_id": 99,
+      "controller_id": 166,
+      "end_reason": "controller_disowned",
+      "end_tick": 2189,
+      "lifetime_ticks": 31,
+      "spawn_tick": 2158
+    },
+    {
+      "body_id": 99,
+      "controller_id": 167,
+      "end_reason": "controller_disowned",
+      "end_tick": 2219,
+      "lifetime_ticks": 29,
+      "spawn_tick": 2190
+    },
+    {
+      "body_id": 99,
+      "controller_id": 168,
+      "end_reason": "controller_disowned",
+      "end_tick": 2249,
+      "lifetime_ticks": 29,
+      "spawn_tick": 2220
+    },
+    {
+      "body_id": 99,
+      "controller_id": 169,
+      "end_reason": "controller_disowned",
+      "end_tick": 2279,
+      "lifetime_ticks": 29,
+      "spawn_tick": 2250
+    },
+    {
+      "body_id": 99,
+      "controller_id": 170,
+      "end_reason": "controller_disowned",
+      "end_tick": 2309,
+      "lifetime_ticks": 29,
+      "spawn_tick": 2280
+    },
+    {
+      "body_id": 99,
+      "controller_id": 171,
+      "end_reason": "controller_disowned",
+      "end_tick": 2341,
+      "lifetime_ticks": 31,
+      "spawn_tick": 2310
+    },
+    {
+      "body_id": 99,
+      "controller_id": 172,
+      "end_reason": "body_lost",
+      "end_tick": 2529,
+      "lifetime_ticks": 187,
+      "spawn_tick": 2342
+    },
+    {
+      "body_id": 173,
+      "controller_id": 174,
+      "end_reason": "survived_to_episode_end",
+      "end_tick": 6014,
+      "lifetime_ticks": 3484,
+      "spawn_tick": 2530
+    },
+    {
+      "body_id": 146,
+      "controller_id": 175,
+      "end_reason": "controller_disowned",
+      "end_tick": 2887,
+      "lifetime_ticks": 33,
+      "spawn_tick": 2854
+    },
+    {
+      "body_id": 146,
+      "controller_id": 176,
+      "end_reason": "body_lost",
+      "end_tick": 3071,
+      "lifetime_ticks": 183,
+      "spawn_tick": 2888
+    },
+    {
+      "body_id": 177,
+      "controller_id": 178,
+      "end_reason": "survived_to_episode_end",
+      "end_tick": 6014,
+      "lifetime_ticks": 2942,
+      "spawn_tick": 3072
+    },
+    {
+      "body_id": 105,
+      "controller_id": 179,
+      "end_reason": "controller_disowned",
+      "end_tick": 3985,
+      "lifetime_ticks": 31,
+      "spawn_tick": 3954
+    },
+    {
+      "body_id": 105,
+      "controller_id": 180,
+      "end_reason": "body_lost",
+      "end_tick": 4179,
+      "lifetime_ticks": 193,
+      "spawn_tick": 3986
+    },
+    {
+      "body_id": 181,
+      "controller_id": 182,
+      "end_reason": "survived_to_episode_end",
+      "end_tick": 6014,
+      "lifetime_ticks": 1834,
+      "spawn_tick": 4180
+    },
+    {
+      "body_id": 86,
+      "controller_id": 183,
+      "end_reason": "controller_disowned",
+      "end_tick": 5269,
+      "lifetime_ticks": 27,
+      "spawn_tick": 5242
+    },
+    {
+      "body_id": 86,
+      "controller_id": 184,
+      "end_reason": "body_lost",
+      "end_tick": 5447,
+      "lifetime_ticks": 177,
+      "spawn_tick": 5270
+    },
+    {
+      "body_id": 185,
+      "controller_id": 186,
+      "end_reason": "survived_to_episode_end",
+      "end_tick": 6014,
+      "lifetime_ticks": 566,
+      "spawn_tick": 5448
+    }
+  ],
+  "schema": "route_b_perception_v2.controller_churn_analysis.v1",
+  "totals": {
+    "bodies_with_at_least_one_disown": 6,
+    "bodies_with_zero_disowns": 30,
+    "controller_disowned_events": 30,
+    "controllers_spawned": 66,
+    "last_observed_tick": 6014,
+    "managed_bodies_seen": 36,
+    "top_body": 99,
+    "top_body_disowns": 21,
+    "top_body_share_of_disowns": 0.7
+  },
+  "verdict": {
+    "affected_body_fraction": 0.1667,
+    "bodies_excluding_top_with_disowns": 5,
+    "disowns_excluding_top_body": 9,
+    "mean_disowns_per_other_affected_body": 1.8,
+    "single_body_concentration": true
+  }
+}

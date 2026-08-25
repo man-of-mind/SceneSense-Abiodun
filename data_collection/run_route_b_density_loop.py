@@ -80,6 +80,48 @@ DENSITY_PROFILES = {
 }
 
 
+class SimTimeReconcileSchedule:
+    """Fire population reconciliation on CARLA simulated time, not wall clock.
+
+    ``replenish_interval_s`` is a simulated-time budget. Gating it on
+    ``time.monotonic()`` made its real rate a function of how fast the machine
+    happened to be running: at the measured ~0.17 s wall per 0.05 s tick, a 5 s
+    wall gate fired roughly every 1.5 simulated seconds, and that rate moved with
+    machine load. The route loop already supplies its own simulated elapsed time,
+    so the schedule reads it instead.
+
+    Firing times are retained so a smoke can assert the realised interval.
+    """
+
+    def __init__(self, interval_s: float) -> None:
+        self.interval_s = float(interval_s)
+        if not (self.interval_s > 0.0) or self.interval_s == float("inf"):
+            raise RouteBError("replenish interval must be a positive finite number")
+        self.next_due_s = self.interval_s
+        self.last_sim_s: float | None = None
+        self.fired_sim_s: list[float] = []
+
+    def due(self, sim_now_s: float) -> bool:
+        sim_now_s = float(sim_now_s)
+        if self.last_sim_s is not None and sim_now_s < self.last_sim_s:
+            # A new route loop restarts simulated time at zero.
+            self.next_due_s = sim_now_s + self.interval_s
+        self.last_sim_s = sim_now_s
+        if sim_now_s < self.next_due_s:
+            return False
+        # Whole intervals only: a long stall must not queue a burst of reconciles.
+        while self.next_due_s <= sim_now_s:
+            self.next_due_s += self.interval_s
+        self.fired_sim_s.append(sim_now_s)
+        return True
+
+    def realised_intervals_s(self) -> list[float]:
+        return [
+            round(self.fired_sim_s[i] - self.fired_sim_s[i - 1], 6)
+            for i in range(1, len(self.fired_sim_s))
+        ]
+
+
 class PopulationLedger:
     """Episode-level accounting of NPC population loss and replenishment.
 
@@ -102,6 +144,8 @@ class PopulationLedger:
         self.vehicles_live_min = 0
         self.pedestrians_live_min = 0
         self.events: list[dict[str, Any]] = []
+        # Set by run() so a native crash still leaves the ledger on disk.
+        self.event_sink: Any = None
 
     def record_initial_spawn(self) -> None:
         self.vehicles_spawned = len(self.population.vehicle_ids)
@@ -148,12 +192,15 @@ class PopulationLedger:
             ("pedestrian", "REPLENISHED", new_walkers),
         ):
             for actor_id in actor_ids:
-                self.events.append({
+                event = {
                     "sim_s": round(float(sim_now_s), 2),
                     "actor_kind": kind,
                     "action": action,
                     "actor_id": int(actor_id),
-                })
+                }
+                self.events.append(event)
+                if self.event_sink is not None:
+                    self.event_sink(event)
 
     def report(self) -> dict[str, Any]:
         return {
@@ -1015,6 +1062,7 @@ def run(args: argparse.Namespace) -> int:
     rows: list[dict[str, Any]] = []
     status = "FAIL"
     cleanup_ok = False
+    population_event_stream: Any = None
 
     try:
         settings = world.get_settings()
@@ -1125,8 +1173,25 @@ def run(args: argparse.Namespace) -> int:
                 except (AttributeError, RuntimeError):
                     continue
 
+        # Sibling of the experiment directory, never inside it: the perception
+        # collector creates that directory create-only and must keep doing so.
+        summary_path = args.summary_json.resolve()
+        events_path = summary_path.parent.parent / (
+            f"{summary_path.parent.name}_population_events.jsonl")
+        events_path.parent.mkdir(parents=True, exist_ok=True)
+        population_event_stream = events_path.open("a", encoding="utf-8")
+        print(f"population events: {events_path}", flush=True)
+
+        def emit_population_event(event: dict[str, Any]) -> None:
+            # Flushed per event: a native client fault must not take the
+            # population provenance with it.
+            population_event_stream.write(json.dumps(event, sort_keys=True) + "\n")
+            population_event_stream.flush()
+
+        population.lifecycle_event_sink = emit_population_event
         population.spawn_initial_population()
         ledger = PopulationLedger(population, args.respawn_dormant)
+        ledger.event_sink = emit_population_event
         ledger.record_initial_spawn()
         if args.harden_npcs:
             harden_npcs()
@@ -1138,14 +1203,22 @@ def run(args: argparse.Namespace) -> int:
             flush=True,
         )
 
-        next_reconcile_at = time.monotonic() + float(args.replenish_interval_s)
+        reconcile_schedule = SimTimeReconcileSchedule(float(args.replenish_interval_s))
 
         def maintain_population(sim_now_s: float) -> None:
-            nonlocal next_reconcile_at
-            now = time.monotonic()
-            if now < next_reconcile_at:
+            # Exactly one observed route tick has just completed. This advances
+            # any pending walker replacement by at most one phase and never
+            # advances the world.
+            population.note_route_tick()
+            if not reconcile_schedule.due(sim_now_s):
                 return
-            next_reconcile_at = now + float(args.replenish_interval_s)
+            emit_population_event({
+                "phase": "reconcile",
+                "sim_s": round(float(sim_now_s), 3),
+                "observed_tick": population.observed_ticks,
+                "interval_s": float(args.replenish_interval_s),
+                "schedule": "simulated_time",
+            })
             try:
                 before = ledger.snapshot()
                 population.reconcile()
@@ -1155,6 +1228,11 @@ def run(args: argparse.Namespace) -> int:
                     harden_npcs()
             except RuntimeError as error:
                 logging.error("population maintenance failed: %s", error)
+
+        # Lets the route's tick owner name the most recent population event when
+        # it detects an unobserved frame.
+        maintain_population.population = population  # type: ignore[attr-defined]
+        maintain_population.reconcile_schedule = reconcile_schedule  # type: ignore[attr-defined]
 
         from agents.navigation.basic_agent import BasicAgent  # noqa: E402
 
@@ -1193,10 +1271,14 @@ def run(args: argparse.Namespace) -> int:
         janitor.relocation_points = list(spawn_points)
 
         for loop_index in range(1, int(args.loops) + 1):
-            result = drive_one_loop_with_traffic(
-                world, vehicle, new_agent(), route, collisions, args, loop_index,
-                maintain_population, janitor,
-            )
+            population.begin_route_mode()
+            try:
+                result = drive_one_loop_with_traffic(
+                    world, vehicle, new_agent(), route, collisions, args, loop_index,
+                    maintain_population, janitor,
+                )
+            finally:
+                population.end_route_mode()
             result["route_id"] = str(route["name"])
             result["planned_route_length_m"] = round(length_m, 2)
             result["density"] = args.density
@@ -1232,6 +1314,14 @@ def run(args: argparse.Namespace) -> int:
                 flush=True,
             )
     finally:
+        if population is not None:
+            # Cleanup owns the tick again; batch destroys may advance frames.
+            population.end_route_mode()
+        if population_event_stream is not None:
+            try:
+                population_event_stream.close()
+            except OSError:
+                pass
         cleanup_rpc_available = True
         try:
             client.set_timeout(CLEANUP_RPC_TIMEOUT_S)

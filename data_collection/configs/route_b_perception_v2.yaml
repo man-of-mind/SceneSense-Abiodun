@@ -1,0 +1,187 @@
+# Canonical Route B perception dataset - resolved collection config (v2).
+#
+# Every value here is what run_route_b_perception_collection_v2.py actually
+# applies; nothing is left to a runner default. The runner re-derives and writes
+# the same values into each episode's metadata.json / route_summary.json, so a
+# dataset consumer never has to trust this file alone.
+schema: scenesense_route_b_perception_collection.v2
+version: 2
+authored: 2026-08-24
+
+route:
+  name: Town10HD_Opt Route B full-map loop v1
+  map: Carla/Maps/Town10HD_Opt
+  config: data_collection/routes/town10hd_opt_route_b_full_map_loop_v1.json
+  config_sha256: fc4518a8746b9417a64616b8e544f59b16b5a31b7585298a316a59662ecfd6e5
+  progress_csv: data_collection/routes/town10hd_opt_route_b_full_map_loop_v1.progress.csv
+  progress_csv_sha256: '974593859368f24ee2bc4ac31b82118bf2e932d0de1c96858b8771e2dd4d90c0'
+  progress_points: 301
+  intermediate_waypoints: 18
+  loop: true
+  planned_length_m: 1268.68
+  qualified_density_runner: data_collection/run_route_b_density_loop.py
+  qualified_density_runner_sha256: f2abd86ca650d6257eb5a6600bc7cdf94bc3e0777964e58a7aeeb1a63bd55730
+
+scenario:
+  densities: [traffic_30_30, traffic_50_50]   # only these two
+  target_speed_kph: 25.0
+  hybrid_physics: false                        # --no-hybrid-physics
+  lane_offset_m: -0.5
+  walker_brake_distance_m: 10.0
+  npc_hardening: true
+  safe_vehicle_filter: true
+  scenario_interventions: false                # no roadblock deletion during accepted collection
+  traffic_light_retiming: false
+  respawn_dormant: false
+  replenish_interval_s: 5.0
+  maximum_loop_sim_s: 900.0
+  loops_per_process: 1                         # fresh CARLA process/world per episode
+  traffic_helper: generate_traffic_v1          # imported by the density runner; NOT duplicated.
+  traffic_helper_note: >
+    data_collection/generate_traffic_v11.py was inspected and is identical to
+    rl_agent/advisor_helper_scripts/codes/generate_traffic_v1.py apart from one
+    trailing blank line. The existing import and the TrafficPopulationManager
+    reconciliation + PopulationLedger are retained unchanged. no-hybrid-physics
+    and population reconciliation are complementary, not alternatives.
+
+simulation:
+  synchronous_mode: true
+  fixed_delta_seconds: 0.05
+  world_tick_hz: 20
+  real_time_tick_period_s: 0.05
+
+renderer:                                      # hard preflight gate; see render_provenance_v1.py
+  quality_level: Epic                          # explicit -quality-level=Epic, never Low
+  quality_level_must_be_explicit: true
+  no_rendering_mode: false
+  render_offscreen_allowed: true               # headless GPU rendering, NOT no-rendering mode
+  forbidden_flags: [-nullrhi, -norender, -disablerendering, -noRHI]
+  record_in_manifest: [launch_command, quality_level, rendering_mode, resolution,
+                       fov, weather, server_version, map]
+
+sensors:
+  sensor_tick_policy: free-running             # sensor_tick=0.0 on every sensor
+  sensor_tick_rationale: >
+    A commanded camera sensor_tick of 0.1 s was measured on this machine to skip
+    about one capture per 200 world ticks (gap histogram 2:98, 3:1). One slip
+    permanently shifts the 10 Hz phase, so cadence is derived from world ticks
+    and timestamps instead.
+  camera:
+    blueprints: [sensor.camera.rgb, sensor.camera.semantic_segmentation, sensor.camera.depth]
+    resolution: [1280, 720]
+    fov_deg: 120.0
+    jpeg_quality: 92
+  model_input_size: [768, 432]
+  radar:
+    blueprint: sensor.other.radar
+    points_per_second: 200000                  # never inflated to fake a longer sweep
+    range_m: 120.0
+    horizontal_fov_deg: 120.0
+    vertical_fov_deg: 30.0
+    max_abs_velocity_mps: 20.0
+    raster_radius_px: 4
+    # Frozen for every canonical episode of this campaign.
+    rasterizer: fast
+    rasterizer_tolerance:
+      bit_identical_channels: [occupancy, radial_velocity, stationary_age]
+      tolerant_channels: [inverse_range]
+      max_abs_difference: 5.96e-08          # ~half a float32 ULP at 1.0
+      differing_element_fraction: 0.0084
+      equal_magnitude_velocity_ties_observed: 0
+      measured_speedup: 23.3
+      evidence: data_collection/route_b_perception_v2/rasterizer_comparison_v1.json
+    raw_range_note: >
+      CARLA occasionally reports original_range_m beyond the configured range
+      (0.043% of returns, up to 172.7 m at a 120 m setting). Raw provenance is
+      saved unmodified and unclamped. The downstream reducer treats only finite
+      returns satisfying 0 < original_range_m <= range_m as range-valid.
+
+cadence:
+  world_tick_hz: 20
+  logical_sweep_period_s: 0.1                  # non-overlapping timestamp bins
+  callbacks_per_logical_sweep: 2               # measured, gated exactly
+  prepare_every_n_ticks: 2                     # 10 Hz prepared model input
+  prepared_hz: 10
+  temporal_window_sweeps: 2                    # current + immediately previous
+  temporal_support_s: 0.2
+  save_every_n_prepared: 2                     # 5 Hz persistence
+  saved_hz: 5
+  bin_boundary_tolerance_s: 0.0125             # quarter world tick; see aggregator docstring
+  motion_compensation: >
+    Each raw callback is lifted to world coordinates with its own callback
+    transform and re-expressed in the radar pose at the prepared tick, so the
+    previous sweep's contribution is motion compensated. Measured round-trip
+    error 3.6e-5 m.
+  radar_tensor: unchanged                      # 4 x 432 x 768 float32, same channels
+
+ground_truth:
+  convention: actor origin
+  raw_gt_preserved: true
+  gt_max_distance_m: 140.0                     # collection is NOT restricted to the driving lane
+  evaluation_eligibility:                      # applied at evaluation time only
+    camera_frustum: projected bounding-box centre inside the full-resolution frame
+    min_projected_area_px: 12.0
+    max_distance_m: 40.0
+  person_mask_provenance: >
+    semantic-tag training mask, then person regions overpainted as filled
+    axis-aligned boxes from projected actor bounding boxes
+    (parked.rasterize_person_regions shape='box'). Recorded, not changed.
+  visibility_fields: recorded where the historical object-box schema provides them
+
+incidents:
+  collision_policy: >
+    A logged collision alone is not a perception-data hard failure when the route
+    completes and the data stay valid. Collision timestamps are preserved and an
+    incident-window flag is emitted per sample.
+  incident_window_half_width_s: 2.0
+  artifact: collision_incident_windows.csv
+  reporting: primary on all frames; sensitivity result excluding +/-2 s
+  never_delete_frames: true
+
+splits:
+  by: complete_episode                         # never by frame
+  locked_test_policy: not evaluated or inspected during development
+  bundles:
+    1: {scenario_seed: 101, tm_seed: 1101, split: train}
+    2: {scenario_seed: 202, tm_seed: 1202, split: val}
+    3: {scenario_seed: 303, tm_seed: 1303, split: test}
+    4: {scenario_seed: 404, tm_seed: 1404, split: train}   # only if the architecture pilot passes
+  initial_corpus: 6 episodes   # bundles 1-3 x {traffic_30_30, traffic_50_50}
+  final_corpus: 8 episodes     # + bundle 4 x both densities
+  profile_policy: >
+    Collection is never multiplied by AE, quantization, ROI or network profile.
+    Every model/profile evaluation reuses the same collected frames.
+
+episode_gates:                                 # all must pass; evaluated in route_summary.json
+  - route_completed
+  - no_watchdog_abort
+  - exact_population_at_start
+  - population_alive_95pct_every_saved_frame
+  - no_population_deficit_beyond_replenish_plus_2s
+  - zero_missing_or_corrupt_records
+  - rgb_and_segmentation_frames_valid
+  - sensor_frames_exactly_aligned
+  - world_tick_20hz
+  - logical_sweeps_10hz
+  - prepared_inputs_10hz
+  - saved_frames_5hz
+  - callbacks_per_sweep_exact
+  - window_callbacks_exact
+  - consecutive_logical_sweeps
+  - no_dropped_duplicate_or_reordered_callbacks
+  - pps_not_inflated
+  - epic_quality_confirmed
+  - sensor_cleanup_succeeded
+  - no_collector_error
+
+outputs:
+  root: data_collection/experiments/route_b_perception_v2/
+  per_episode:
+    - metadata.json                  # includes render_provenance and the cadence contract
+    - manifest.csv
+    - object_boxes.csv
+    - route_summary.json             # gates, cadence, population, incidents, storage
+    - collision_incident_windows.csv
+    - route_metrics.csv
+    - route_metrics_summary.json
+    - rgb/ masks/ semantic_tags/ radar_tensors/ radar_points/

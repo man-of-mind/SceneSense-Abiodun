@@ -1,0 +1,65 @@
+{
+  "name": "curriculum_stage2_joint_v1",
+  "_arm": "stage 2 - joint refinement; all unfrozen except BN, lower LR, seg as secondary loss",
+  "_warm_start": "frozen noAE checkpoint f319e2a5...d4fa; never overwritten",
+  "optimizer": "adamw",
+  "lr": 3e-05,
+  "weight_decay": 0.0001,
+  "augment_strength": "strong",
+  "geometric_augment": false,
+  "input_size": [
+    768,
+    432
+  ],
+  "batch_size": 16,
+  "num_workers": 8,
+  "prefetch_factor": 2,
+  "persistent_workers": true,
+  "epochs": 25,
+  "early_stop_patience": 12,
+  "init_rgb_checkpoint": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/ae_integrated_20260710/noae_baseline/checkpoints/mprime_joint_noae/best.pt",
+  "init_object_checkpoint": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/ae_integrated_20260710/noae_baseline/checkpoints/mprime_joint_noae/best.pt",
+  "freeze_backbone": false,
+  "freeze_classifier": false,
+  "freeze_object_head": false,
+  "freeze_bn": true,
+  "lr_scheduler": "cosine",
+  "lr_warmup_epochs": 1,
+  "min_lr_ratio": 0.01,
+  "poly_power": 0.9,
+  "selection_score_mode": "loc_dim_loss",
+  "class_loss_weights": [
+    0.5,
+    1.0,
+    4.0
+  ],
+  "lovasz_weight": 0.5,
+  "loss_weights": {
+    "object_total": 1.0,
+    "segmentation": 0.3,
+    "object": {
+      "center": 4.0,
+      "location": 1.5,
+      "dimensions": 0.6,
+      "yaw": 0.3,
+      "parked": 0.2,
+      "radar_support": 0.1,
+      "bbox2d": 1.0
+    }
+  },
+  "object_heads": {
+    "heatmap_radius_px": 4,
+    "fuse_low_feature": true,
+    "head_arch": "shared",
+    "use_coordconv": false,
+    "head_depth": 3,
+    "use_groundplane_prior": false,
+    "predict_bbox2d": true,
+    "adaptive_heatmap_radius": true,
+    "vehicle_heatmap_radius_cap_px": 4,
+    "max_gt_distance_m": 40
+  },
+  "feature_drop_max": 0.8,
+  "ae_bottleneck": 0,
+  "_init_from": "checkpoints/curriculum_stage1_objhead_v1/best.pt (set before launch)"
+}

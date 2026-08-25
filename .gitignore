@@ -21,6 +21,7 @@ env/
 /metrics_logs/
 /experiments/
 /fusion_training_data/
+/historical_replay_bundles/
 /lidar_diagnostic_runs/
 /analysis_outputs/
 /radar_pedestrian_diagnostic_runs/

@@ -30,14 +30,6 @@ WALKER_SPAWN_ROUNDS = 3
 PERCENTAGE_PEDESTRIANS_RUNNING = 0.0
 PERCENTAGE_PEDESTRIANS_CROSSING = 0.0
 
-# Mid-episode walker replacement phases. During an active route the world is
-# advanced only by the route's own tick owner, so a replacement cannot spawn a
-# body, attach its controller and start it inside one maintenance call. Each
-# record instead advances at most one phase per *observed* route tick.
-PHASE_BODY_PENDING = 'body_pending'
-PHASE_CONTROLLER_PENDING = 'controller_pending'
-PHASE_READY = 'ready'
-
 
 def positive_float(value):
     """Argparse converter for positive finite durations."""
@@ -117,132 +109,34 @@ class TrafficPopulationManager(object):
         self.walkers = []
         self.orphan_controller_ids = set()
         self._last_population_log = 0.0
-        # Tick ownership. Outside a route this manager may advance the world for
-        # its own spawn batches; during a route it must not, because those ticks
-        # bypass the collector and appear downstream as missing frame IDs.
-        self._route_mode = False
-        self._observed_ticks = 0
-        self._last_observed_frame = None
-        self.lifecycle_events = []
-        self.lifecycle_event_sink = None
         self._walker_controller_blueprint = (
             world.get_blueprint_library().find('controller.ai.walker'))
 
-    # -- tick ownership ---------------------------------------------------
-    def begin_route_mode(self):
-        """Hand the world tick to the route.
-
-        From here until end_route_mode() this manager issues no frame-advancing
-        call: no apply_batch_sync(..., True), no world.tick(), no blocking
-        world.wait_for_tick(). Replacement is driven phase by phase off ordinary
-        observed route ticks instead.
-        """
-        self._route_mode = True
-        self._record_lifecycle_event('route_mode_begin', None)
-
-    def end_route_mode(self):
-        self._record_lifecycle_event('route_mode_end', None)
-        self._route_mode = False
-
-    @property
-    def route_mode(self):
-        return self._route_mode
-
-    @property
-    def observed_ticks(self):
-        return self._observed_ticks
-
-    def note_route_tick(self, frame_id=None):
-        """Record one observed route tick and advance pending walker phases.
-
-        Must be called exactly once per tick issued by the route's tick owner,
-        after that tick has completed. Never advances the world itself.
-        """
-        self._observed_ticks += 1
-        if frame_id is not None:
-            self._last_observed_frame = int(frame_id)
-        self._advance_pending_walkers()
-
-    def _current_frame(self):
-        if self._last_observed_frame is not None:
-            return self._last_observed_frame
-        try:
-            # Cached client-side episode state; this is not an RPC.
-            return int(self.world.get_snapshot().frame)
-        except (AttributeError, RuntimeError):
-            return None
-
-    def _record_lifecycle_event(self, phase, record, detail=None):
-        event = {
-            'observed_tick': self._observed_ticks,
-            'frame_id': self._current_frame(),
-            'route_mode': self._route_mode,
-            'phase': phase,
-            'body_id': None if record is None else record.get('id'),
-            'controller_id': None if record is None else record.get('con'),
-        }
-        if detail is not None:
-            event['detail'] = detail
-        self.lifecycle_events.append(event)
-        sink = self.lifecycle_event_sink
-        if sink is not None:
-            try:
-                sink(event)
-            except Exception as error:  # noqa: BLE001 - provenance must not kill the route
-                logging.warning('lifecycle event sink failed: %s', error)
-        return event
-
     @property
     def _batch_ticks_world(self):
-        if self._route_mode:
-            # The route owns the tick. A batch here must never advance a frame.
-            return False
         return self.synchronous_master and not self.asynchronous
 
     def _apply_batch_sync(self, batch):
         if not batch:
             return []
-        do_tick = self._batch_ticks_world
-        if self._route_mode and do_tick:
-            raise RuntimeError(
-                'population maintenance attempted to advance the world during '
-                'an active route')
-        return self.client.apply_batch_sync(batch, do_tick)
+        return self.client.apply_batch_sync(batch, self._batch_ticks_world)
 
     def _wait_for_actor_update(self):
         # An owner-side apply_batch_sync(..., True) already advances a frame.
         # Followers and asynchronous clients wait rather than stealing a tick.
-        # During a route nobody waits: blocking here would deadlock against the
-        # thread that owns ticking.
-        if self._route_mode:
-            return
         if not self._batch_ticks_world:
             self.world.wait_for_tick()
 
     def _live_actor_map(self, actor_ids):
-        """Map owned actor id -> live actor, resolved from a world snapshot.
-
-        ``world.get_actors(<explicit id list>)`` was measured to hand back stale
-        proxies for actors that no longer exist: they still answer
-        ``is_alive == True``, so a destroyed walker was never detected here,
-        never dropped from ``self.walkers``, and therefore never replenished.
-        A single argument-less ``world.get_actors()`` snapshot does not have
-        that problem - it agrees with per-id ``world.get_actor(id).is_alive``.
-
-        The requested ids are intersected with that snapshot and are still
-        filtered through ``actor_is_alive``. The return type and every caller's
-        contract are unchanged.
-        """
-        wanted = {
-            actor_id for actor_id in actor_ids if actor_id is not None
-        }
-        if not wanted:
+        actor_ids = list(dict.fromkeys(
+            actor_id for actor_id in actor_ids if actor_id is not None))
+        if not actor_ids:
             return {}
-        snapshot = self.world.get_actors()
+        actors = self.world.get_actors(actor_ids)
         return {
             actor.id: actor
-            for actor in snapshot
-            if actor.id in wanted and actor_is_alive(actor)
+            for actor in actors
+            if actor_is_alive(actor)
         }
 
     @staticmethod
@@ -382,8 +276,6 @@ class TrafficPopulationManager(object):
                 'con': None,
                 'speed': self._walker_speed(walker_blueprint),
                 'controller_ready': False,
-                'phase': PHASE_BODY_PENDING,
-                'phase_tick': self._observed_ticks,
             })
             batch.append(carla.command.SpawnActor(
                 walker_blueprint, spawn_transform))
@@ -394,14 +286,10 @@ class TrafficPopulationManager(object):
                 logging.debug('Walker spawn failed: %s', response.error)
             else:
                 candidate['id'] = response.actor_id
-                candidate['phase'] = PHASE_BODY_PENDING
-                candidate['phase_tick'] = self._observed_ticks
                 new_walkers.append(candidate)
 
         # Enroll bodies immediately so interruption cannot leak an unowned actor.
         self.walkers.extend(new_walkers)
-        for record in new_walkers:
-            self._record_lifecycle_event('body_spawned', record)
         return new_walkers
 
     def _spawn_missing_walker_controllers(self, walker_records):
@@ -439,7 +327,6 @@ class TrafficPopulationManager(object):
                 record['con'] = response.actor_id
                 record['controller_ready'] = False
                 spawned += 1
-                self._record_lifecycle_event('controller_spawned', record)
         if spawned:
             self._wait_for_actor_update()
         return spawned
@@ -494,9 +381,6 @@ class TrafficPopulationManager(object):
                     error)
                 continue
             record['controller_ready'] = True
-            record['phase'] = PHASE_READY
-            record['phase_tick'] = self._observed_ticks
-            self._record_lifecycle_event('controller_started', record)
             initialized += 1
         return initialized
 
@@ -509,55 +393,9 @@ class TrafficPopulationManager(object):
             if remaining <= 0:
                 break
             new_walkers.extend(self._spawn_walker_bodies_once(remaining))
-        if self._route_mode:
-            # Bodies only. note_route_tick() attaches each controller after an
-            # observed route tick, and starts it after a further one.
-            return new_walkers
         self._spawn_missing_walker_controllers(new_walkers)
         self._initialize_walker_controllers(new_walkers)
         return new_walkers
-
-    # -- phased replacement -----------------------------------------------
-    def _advance_pending_walkers(self):
-        """Advance each pending walker by at most one phase per observed tick."""
-        if not self._route_mode:
-            return
-        tick = self._observed_ticks
-
-        attach = [
-            record for record in self.walkers
-            if record.get('phase') == PHASE_BODY_PENDING
-            and record.get('con') is None
-            and tick > int(record.get('phase_tick', tick))
-        ]
-        if attach:
-            self._spawn_missing_walker_controllers(attach)
-            for record in attach:
-                record['phase_tick'] = tick
-                if record.get('con') is not None:
-                    record['phase'] = PHASE_CONTROLLER_PENDING
-                else:
-                    self._record_lifecycle_event(
-                        'controller_attach_deferred', record)
-
-        start = [
-            record for record in self.walkers
-            if record.get('phase') == PHASE_CONTROLLER_PENDING
-            and not record.get('controller_ready', False)
-            and tick > int(record.get('phase_tick', tick))
-        ]
-        if start:
-            self._initialize_walker_controllers(start)
-            for record in start:
-                if record.get('controller_ready', False):
-                    continue
-                record['phase_tick'] = tick
-                if record.get('con') is None:
-                    # _initialize_walker_controllers disowned it; re-attach.
-                    record['phase'] = PHASE_BODY_PENDING
-                    self._record_lifecycle_event('controller_rejected', record)
-                else:
-                    self._record_lifecycle_event('controller_start_deferred', record)
 
     def _stop_controller(self, controller):
         if not self._has_type(controller, 'controller.ai.walker'):
@@ -590,16 +428,6 @@ class TrafficPopulationManager(object):
                     response.error)
             else:
                 self.orphan_controller_ids.discard(controller_id)
-                self._record_lifecycle_event(
-                    'orphan_controller_reaped', None, detail=int(controller_id))
-
-    def _disown_controller(self, record, reason):
-        """Drop a bad controller and re-queue the body for a phased re-attach."""
-        self._record_lifecycle_event('controller_disowned', record, detail=reason)
-        record['con'] = None
-        record['controller_ready'] = False
-        record['phase'] = PHASE_BODY_PENDING
-        record['phase_tick'] = self._observed_ticks
 
     def _reconcile_owned_actors(self):
         actor_ids = list(self.vehicle_ids)
@@ -630,12 +458,12 @@ class TrafficPopulationManager(object):
                 lost_walker_count += 1
                 if self._has_type(controller, 'controller.ai.walker'):
                     self.orphan_controller_ids.add(controller_id)
-                self._record_lifecycle_event('body_lost', record)
                 continue
             if controller_id is not None and not self._has_type(
                     controller, 'controller.ai.walker'):
                 self.orphan_controller_ids.add(controller_id)
-                self._disown_controller(record, 'controller_absent')
+                record['con'] = None
+                record['controller_ready'] = False
             elif controller_id is not None:
                 try:
                     parent = controller.parent
@@ -643,7 +471,8 @@ class TrafficPopulationManager(object):
                     parent = None
                 if parent is not None and parent.id != body_id:
                     self.orphan_controller_ids.add(controller_id)
-                    self._disown_controller(record, 'controller_parent_mismatch')
+                    record['con'] = None
+                    record['controller_ready'] = False
             retained_walkers.append(record)
         self.walkers = retained_walkers
 
@@ -651,10 +480,6 @@ class TrafficPopulationManager(object):
         return lost_vehicle_count, lost_walker_count
 
     def spawn_initial_population(self):
-        # Runs before sensors and the route exist, so owner-side ticking here is
-        # both allowed and unchanged.
-        if self._route_mode:
-            raise RuntimeError('initial population spawn must precede route mode')
         self._spawn_vehicles(
             self.target_vehicle_count,
             shuffle_spawn_points=False)
@@ -670,16 +495,8 @@ class TrafficPopulationManager(object):
                 lost_walker_count)
 
         # Repair controllers for surviving bodies before filling body deficits.
-        if self._route_mode:
-            # Phase-driven: queue the repair, let observed route ticks run it.
-            for record in self.walkers:
-                if record.get('con') is None and record.get('phase') != PHASE_BODY_PENDING:
-                    record['phase'] = PHASE_BODY_PENDING
-                    record['phase_tick'] = self._observed_ticks
-                    self._record_lifecycle_event('controller_repair_queued', record)
-        else:
-            self._spawn_missing_walker_controllers(self.walkers)
-            self._initialize_walker_controllers(self.walkers)
+        self._spawn_missing_walker_controllers(self.walkers)
+        self._initialize_walker_controllers(self.walkers)
 
         missing_vehicles = max(
             0, self.target_vehicle_count - len(self.vehicle_ids))
@@ -696,26 +513,6 @@ class TrafficPopulationManager(object):
                 len(new_walkers))
         self.log_population()
 
-    def phase_summary(self):
-        """Read-only census of the replacement phase machine.
-
-        Telemetry only: it inspects the ownership registry, mutates nothing, and
-        issues no RPC. Liveness must still be read from a world snapshot.
-        """
-        return {
-            'managed_walker_records': len(self.walkers),
-            'controllers_marked_ready': sum(
-                1 for record in self.walkers
-                if record.get('controller_ready', False)),
-            'pending_body_phase': sum(
-                1 for record in self.walkers
-                if record.get('phase') == PHASE_BODY_PENDING),
-            'pending_controller_phase': sum(
-                1 for record in self.walkers
-                if record.get('phase') == PHASE_CONTROLLER_PENDING),
-            'orphan_controllers': len(self.orphan_controller_ids),
-        }
-
     def log_population(self, force=False):
         now = time.monotonic()
         if not force and (
@@ -726,19 +523,15 @@ class TrafficPopulationManager(object):
         ready_controllers = sum(
             1 for record in self.walkers
             if record.get('controller_ready', False))
-        pending = sum(
-            1 for record in self.walkers
-            if record.get('phase') in (PHASE_BODY_PENDING, PHASE_CONTROLLER_PENDING))
         logging.info(
             'Managed population: vehicles=%d/%d walkers=%d/%d '
-            'active_controllers=%d/%d pending_phases=%d',
+            'active_controllers=%d/%d',
             len(self.vehicle_ids),
             self.target_vehicle_count,
             len(self.walkers),
             self.target_walker_count,
             ready_controllers,
-            len(self.walkers),
-            pending)
+            len(self.walkers))
 
     def destroy(self):
         """Best-effort cleanup of actors created by this script only."""
