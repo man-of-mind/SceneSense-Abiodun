@@ -305,6 +305,7 @@ class PerceptionCollectorV2:
         route_path: Path,
         progress_path: Path,
         population: Any = None,
+        allow_roadblock_clearing: bool = False,
     ) -> None:
         import numpy as np
 
@@ -327,6 +328,9 @@ class PerceptionCollectorV2:
         self.tm_seed = int(tm_seed)
         self.target_speed_kph = float(target_speed_kph)
         self.hybrid_physics = bool(hybrid_physics)
+        # Bounded stationary-blocker clearing is permitted experiment
+        # infrastructure; forced ego overtaking never is.
+        self.allow_roadblock_clearing = bool(allow_roadblock_clearing)
         self.scenario_id = f"route_b_{density}_seed{int(scenario_seed)}_tm{int(tm_seed)}"
         self.route_path = route_path.resolve()
         self.progress_path = progress_path.resolve()
@@ -622,7 +626,11 @@ class PerceptionCollectorV2:
                 "walker_detection_distance_m": QUALIFIED_WALKER_BRAKE_DISTANCE_M,
                 "npc_hardening": True,
                 "safe_vehicle_filter": True,
-                "interventions": False,
+                "interventions": self.allow_roadblock_clearing,
+                "scenario_interventions": self.allow_roadblock_clearing,
+                "roadblock_clearing": self.allow_roadblock_clearing,
+                "forced_overtaking": False,
+                "maximum_overtakes": 0,
                 "target_speed_kph": self.target_speed_kph,
                 "hybrid_physics": self.hybrid_physics,
             },
@@ -1527,6 +1535,9 @@ class PerceptionCollectorV2:
                 "sensors": self.cleanup_records,
             },
             "gates": gates,
+            "intervention_policy": intervention_policy(
+                route_result, self.allow_roadblock_clearing
+            ),
             "status": "COLLECTION_EPISODE_PASSED" if all(gates.values()) else "COLLECTION_EPISODE_FAILED",
             "error": error,
             "route_result": route_result,
@@ -1538,6 +1549,37 @@ class PerceptionCollectorV2:
             f"bytes={self.saved_bytes} failed_gates={failed}",
             flush=True,
         )
+
+
+ALLOWED_INTERVENTION_ACTIONS = ("RELOCATED", "DESTROYED")
+
+
+def intervention_policy(
+    route_result: dict[str, Any] | None, allow_roadblock_clearing: bool
+) -> dict[str, Any]:
+    """Declared intervention permission plus every intervention that happened.
+
+    Events are copied verbatim from the density runner's route result, so an
+    intervention can never be hidden or relabelled by this layer.
+    """
+    events = list((route_result or {}).get("intervention_events") or [])
+    unexpected = [
+        event for event in events
+        if str(event.get("action")) not in ALLOWED_INTERVENTION_ACTIONS
+    ]
+    return {
+        "scenario_interventions": bool(allow_roadblock_clearing),
+        "roadblock_clearing": bool(allow_roadblock_clearing),
+        "forced_overtaking": False,
+        "maximum_overtakes": 0,
+        "permitted_actions": list(ALLOWED_INTERVENTION_ACTIONS),
+        "intervention_count": len(events),
+        "intervention_events": events,
+        "unexpected_intervention_events": unexpected,
+        "interventions_permitted_and_expected": (
+            not events or (bool(allow_roadblock_clearing) and not unexpected)
+        ),
+    }
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -1578,6 +1620,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--maximum-loop-sim-s", type=float, default=900.0,
                         help="density-runner simulated budget passthrough; a small value runs a "
                              "plumbing-only integration check that cannot pass the episode gates")
+    parser.add_argument(
+        "--allow-roadblock-clearing", action="store_true", default=False,
+        help="permit the density runner's bounded stationary-blocker clearing "
+             "(--allow-scenario-interventions with --maximum-overtakes 0); "
+             "forced ego overtaking stays disabled",
+    )
     parser.add_argument("--preflight-only", action="store_true")
     return parser
 
@@ -1613,6 +1661,7 @@ def main(argv: list[str] | None = None) -> int:
         preflight["rasterizer"] = args.rasterizer
         preflight["spectator"] = bool(args.spectator)
         preflight["replenish_interval_s"] = float(args.replenish_interval_s)
+        preflight["allow_roadblock_clearing"] = bool(args.allow_roadblock_clearing)
     except (PilotError, RenderProvenanceError, OSError, ValueError, json.JSONDecodeError) as exc:
         print(f"Route B perception preflight failed: {exc}", file=sys.stderr, flush=True)
         return 2
@@ -1655,6 +1704,9 @@ def main(argv: list[str] | None = None) -> int:
     ]
     if not args.hybrid_physics:
         density_argv.append("--no-hybrid-physics")
+    if args.allow_roadblock_clearing:
+        # Permission to clear a stationary blocker, never to force a lane change.
+        density_argv += ["--allow-scenario-interventions", "--maximum-overtakes", "0"]
     density_args = density.build_parser().parse_args(density_argv)
 
     real_client_class = density.carla.Client
@@ -1690,6 +1742,7 @@ def main(argv: list[str] | None = None) -> int:
             route_path=Path(args.route_config),
             progress_path=Path(args.route_progress_csv),
             population=getattr(maintain, "population", None),
+            allow_roadblock_clearing=bool(args.allow_roadblock_clearing),
         )
         collector_holder["collector"] = collector
         result: dict[str, Any] | None = None
@@ -1728,17 +1781,41 @@ def main(argv: list[str] | None = None) -> int:
         collector = collector_holder.get("collector")
         summary_path = output_dir / "route_summary.json"
         episode_status = "COLLECTION_EPISODE_FAILED"
+        policy = intervention_policy(None, args.allow_roadblock_clearing)
         if collector is not None and summary_path.is_file():
-            episode_status = json.loads(summary_path.read_text(encoding="utf-8")).get("status", episode_status)
+            summary = json.loads(summary_path.read_text(encoding="utf-8"))
+            episode_status = summary.get("status", episode_status)
+            policy = summary.get("intervention_policy", policy)
+        metrics_path = output_dir / "route_metrics_summary.json"
+        density_status = ""
+        if metrics_path.is_file():
+            density_status = str(json.loads(
+                metrics_path.read_text(encoding="utf-8")
+            ).get("status", ""))
+        # A permitted, purely stationary-blocker INTERVENED density terminal is
+        # accepted; a forced overtake or any unrecognised intervention is not.
+        route_ok = route_status == 0 or (
+            bool(args.allow_roadblock_clearing)
+            and density_status == "INTERVENED"
+            and bool(policy.get("interventions_permitted_and_expected"))
+        )
+        accepted = (
+            route_ok
+            and episode_status == "COLLECTION_EPISODE_PASSED"
+            and bool(policy.get("interventions_permitted_and_expected"))
+        )
         print(
             json.dumps({
                 "route_runner_exit": route_status,
+                "density_status": density_status,
                 "episode_status": episode_status,
+                "intervention_policy": policy,
+                "accepted": accepted,
                 "summary": str(summary_path),
             }, indent=2),
             flush=True,
         )
-        return 0 if (route_status == 0 and episode_status == "COLLECTION_EPISODE_PASSED") else 1
+        return 0 if accepted else 1
     finally:
         density.drive_one_loop_with_traffic = original_drive
         density.carla.Client = real_client_class
