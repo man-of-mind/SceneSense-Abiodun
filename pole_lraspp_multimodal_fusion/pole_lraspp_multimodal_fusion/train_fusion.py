@@ -834,7 +834,14 @@ def train(args: argparse.Namespace) -> int:
             object_targets = _move_object_targets(object_targets, device)
             optimizer.zero_grad(set_to_none=True)
             q_drop = float(torch.rand(1).item()) * feature_drop_max if feature_drop_max > 0.0 else 0.0
-            with torch.autocast(device_type=device.type, enabled=scaler.is_enabled()):
+            # cache_enabled=False is required, not a tuning knob. Drop-aware training runs the
+            # object head once under torch.no_grad() inside _objectness_drop to get the objectness
+            # ranking; with the autocast weight cache on, that no-grad pass caches detached half
+            # casts of the head's weights, and the *real* grad-requiring head call later in the same
+            # autocast region reuses them - so object_logits comes back with no grad_fn and the
+            # object head receives zero gradient on every batch where q_drop > 0. Disabling the cast
+            # cache costs a re-cast per op and changes no numerics.
+            with torch.autocast(device_type=device.type, enabled=scaler.is_enabled(), cache_enabled=False):
                 loss, _, _ = compute_losses(
                     model, tensors, masks, object_targets, num_classes, loss_weights,
                     class_weights=class_weights_tensor,
