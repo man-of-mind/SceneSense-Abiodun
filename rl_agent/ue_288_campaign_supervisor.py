@@ -337,6 +337,7 @@ def adapter_value(config: Mapping[str, Any], override: str | None = None) -> str
 def validate_static(config_path: Path) -> tuple[dict[str, Any], list[Cell], dict[str, str]]:
     config = load_yaml(config_path)
     require(config.get("schema") == "scenesense.ue_288_campaign.v1", "campaign schema drift")
+    require(config.get("stop_on_first_failure") is True, "campaign must stop on the first failed/interrupted cell")
     verify_file_hashes(config)
     verify_route_contract(config)
     verify_output_contract(config)
@@ -401,13 +402,42 @@ def terminal_files(attempt_dir: Path) -> list[Path]:
     return [attempt_dir / name for name in TERMINAL_NAMES if (attempt_dir / name).is_file()]
 
 
-def passed_attempt_exists(campaign_root: Path, ledger_rows: Sequence[Mapping[str, Any]]) -> bool:
+def passed_attempt_exists(
+    campaign_root: Path,
+    ledger_rows: Sequence[Mapping[str, Any]],
+    expected_outputs: Sequence[str],
+) -> bool:
     for row in ledger_rows:
         if row.get("status") != "PASSED":
             continue
         attempt_dir = campaign_root / str(row["attempt_dir"])
         terminals = terminal_files(attempt_dir)
-        if len(terminals) == 1 and terminals[0].name == "PASSED.json":
+        if len(terminals) != 1 or terminals[0].name != "PASSED.json":
+            continue
+        if row.get("terminal_sha256") != sha256_file(terminals[0]):
+            continue
+        try:
+            terminal = load_json(terminals[0])
+            summary = load_json(attempt_dir / "RESULTS_SUMMARY.json")
+            manifest = load_json(attempt_dir / "manifest.json")
+        except (OSError, json.JSONDecodeError):
+            continue
+        outputs_present = all((attempt_dir / name).is_file() for name in expected_outputs)
+        manifest_rows = manifest.get("files", []) if isinstance(manifest, dict) else []
+        manifest_hashes_valid = bool(manifest_rows) and all(
+            isinstance(item, dict)
+            and (attempt_dir / str(item.get("path", ""))).is_file()
+            and item.get("sha256") == sha256_file(attempt_dir / str(item["path"]))
+            for item in manifest_rows
+        )
+        if (
+            outputs_present
+            and manifest.get("registered_outputs") == list(expected_outputs)
+            and manifest_hashes_valid
+            and terminal.get("status") == "PASSED"
+            and summary.get("status") == "PASSED"
+            and summary.get("terminal_status") == "PASSED"
+        ):
             return True
     return False
 
@@ -458,7 +488,9 @@ def run_one_cell(
     resolved_path = attempt_dir / "resolved_config.yaml"
     write_create_only(resolved_path, yaml.safe_dump(resolved, sort_keys=False))
     lifecycle = import_lifecycle_helper(config)
-    carla_log = attempt_dir / "carla_server.log"
+    service_log_dir = campaign_root / "service_logs" / cell.cell_id / f"attempt_{attempt:04d}"
+    service_log_dir.mkdir(parents=True, exist_ok=False)
+    carla_log = service_log_dir / "carla_server.log"
     server = None
     pgid = None
     status = "FAILED"
@@ -477,7 +509,9 @@ def run_one_cell(
             "--carla-host", "127.0.0.1",
             "--carla-port", str(port),
         ]
-        with (attempt_dir / "cell_adapter.log").open("xb") as stream:
+        if args_maximum_loop_sim_s := config.get("_maximum_loop_sim_s_override"):
+            argv += ["--maximum-loop-sim-s", str(float(args_maximum_loop_sim_s))]
+        with (service_log_dir / "cell_adapter.log").open("xb") as stream:
             child = subprocess.run(
                 argv,
                 cwd=str(ROOT),
@@ -488,8 +522,25 @@ def run_one_cell(
             )
         child_rc = int(child.returncode)
         missing = [name for name in config["cell"]["expected_outputs"] if not (attempt_dir / name).is_file()]
-        status = "PASSED" if child_rc == 0 and not missing else "FAILED"
-        detail = {"adapter_returncode": child_rc, "missing_outputs": missing}
+        summary_status = ""
+        summary_terminal_status = ""
+        summary_error = ""
+        if not missing and (attempt_dir / "RESULTS_SUMMARY.json").is_file():
+            try:
+                summary = load_json(attempt_dir / "RESULTS_SUMMARY.json")
+                summary_status = str(summary.get("status", ""))
+                summary_terminal_status = str(summary.get("terminal_status", ""))
+            except (OSError, json.JSONDecodeError) as exc:
+                summary_error = f"{type(exc).__name__}: {exc}"
+        summary_passed = summary_status == "PASSED" and summary_terminal_status == "PASSED"
+        status = "PASSED" if child_rc == 0 and not missing and summary_passed else "FAILED"
+        detail = {
+            "adapter_returncode": child_rc,
+            "missing_outputs": missing,
+            "results_summary_status": summary_status,
+            "results_summary_terminal_status": summary_terminal_status,
+            "results_summary_error": summary_error,
+        }
     except KeyboardInterrupt:
         status = "INTERRUPTED"
         detail = {"reason": "operator interrupt", "adapter_returncode": child_rc}
@@ -527,10 +578,14 @@ def verify_pilot_gate(path: Path) -> None:
     ledger = load_json(path)
     require(ledger.get("schema") == LEDGER_SCHEMA, "pilot ledger schema drift")
     cells = ledger.get("cells", {})
+    expected_outputs = [
+        "per_frame_metrics.csv", "radio_trace.csv", "map_feedback.csv",
+        "perception_metrics.csv", "resolved_config.yaml", "RESULTS_SUMMARY.json",
+        "manifest.json",
+    ]
     passed = sum(
-        1
-        for rows in cells.values()
-        if isinstance(rows, list) and any(row.get("status") == "PASSED" for row in rows)
+        1 for rows in cells.values()
+        if isinstance(rows, list) and passed_attempt_exists(path.parent, rows, expected_outputs)
     )
     require(passed == 16 and len(cells) == 16, f"full sweep requires all 16 pilot cells PASSED; found {passed}/16")
 
@@ -539,6 +594,8 @@ def run_campaign(args: argparse.Namespace) -> int:
     config_path = args.config.resolve()
     config, cells, _hashes = validate_static(config_path)
     apply_model_overrides(config, args.model)
+    if args.maximum_loop_sim_s is not None:
+        config["_maximum_loop_sim_s_override"] = float(args.maximum_loop_sim_s)
     registry = read_registry(config)
     verify_resolved_models(config, registry)
     adapter_raw = adapter_value(config, args.route_b_split_cell_adapter)
@@ -553,6 +610,11 @@ def run_campaign(args: argparse.Namespace) -> int:
     else:
         require(not args.authorize_full_sweep, "--authorize-full-sweep is invalid for the 16-cell pilot")
 
+    if args.cell_id is not None:
+        selected = [cell for cell in cells if cell.cell_id == args.cell_id]
+        require(len(selected) == 1, f"unknown --cell-id: {args.cell_id}")
+        cells = selected
+
     campaign_root = args.output_root.resolve()
     campaign_root.mkdir(parents=True, exist_ok=True)
     config_digest = sha256_file(config_path)
@@ -561,7 +623,7 @@ def run_campaign(args: argparse.Namespace) -> int:
     for cell in cells:
         rows = ledger["cells"].setdefault(cell.cell_id, [])
         require(isinstance(rows, list), f"ledger rows are not a list for {cell.cell_id}")
-        if passed_attempt_exists(campaign_root, rows):
+        if passed_attempt_exists(campaign_root, rows, config["cell"]["expected_outputs"]):
             continue
         result = run_one_cell(
             config=config,
@@ -574,8 +636,8 @@ def run_campaign(args: argparse.Namespace) -> int:
         rows.append(result)
         ledger["updated_at_unix_s"] = time.time()
         atomic_json(ledger_path, ledger)
-        if result["status"] == "INTERRUPTED":
-            return 130
+        if result["status"] in {"FAILED", "INTERRUPTED"}:
+            return 130 if result["status"] == "INTERRUPTED" else 1
     return 0
 
 
@@ -601,8 +663,8 @@ def validate_command(args: argparse.Namespace) -> int:
         "real_launch_blockers": {
             "campaign_models": unresolved_models(campaign),
             "pilot_models": unresolved_models(pilot),
-            "qualified_route_b_split_cell_adapter": adapter_value(campaign),
         },
+        "qualified_route_b_split_cell_adapter": adapter_value(campaign),
         "external_processes_started": 0,
     }
     print(json.dumps(report, indent=2, sort_keys=True))
@@ -631,6 +693,8 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--carla-port", type=int, default=2000)
     run.add_argument("--authorize-full-sweep", action="store_true")
     run.add_argument("--pilot-ledger", type=Path)
+    run.add_argument("--cell-id", help="run exactly one registered cell (bounded integration smoke)")
+    run.add_argument("--maximum-loop-sim-s", type=float, help="bounded Route B smoke override")
     run.set_defaults(func=run_campaign)
     return parser
 

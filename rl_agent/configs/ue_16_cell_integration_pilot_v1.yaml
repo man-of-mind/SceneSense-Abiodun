@@ -2,6 +2,7 @@ schema: scenesense.ue_288_campaign.v1
 campaign_id: ue_16_cell_route_b_traffic_50_50_integration_pilot_v1
 campaign_kind: integration_pilot_16
 full_sweep_authorized: false
+stop_on_first_failure: true
 
 actions:
   technical_registry_csv: rl_agent/registries/ue_split_technical_registry_v1/ue_split_technical_registry.csv
@@ -67,7 +68,7 @@ runtime:
   split_inference_runtime: uplink_only_spatial_map_pipeline/carla_fusion_staleness_scenario_uplink_only_v2.py
   map_install_runtime: uplink_only_spatial_map_pipeline/spatial_map_server_moving_ego_uplink_only_baseline.py
   target_snr_runtime: rl_agent/ue_target_snr_cell_runtime_v1.py
-  required_route_b_split_cell_adapter: __REQUIRED_QUALIFIED_ROUTE_B_SPLIT_CELL_ADAPTER__
+  required_route_b_split_cell_adapter: rl_agent/ue_route_b_split_cell_adapter_v1.py
   install_feedback:
     ack_status: ACK_INSTALLED
     ack_semantics: decoded_result_accepted_and_installed_into_map

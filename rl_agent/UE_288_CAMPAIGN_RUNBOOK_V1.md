@@ -6,30 +6,20 @@ new experiment framework.
 
 ## Current terminal
 
-`IMPLEMENTATION_BLOCKED`
+`READY_PENDING_FINAL_MODEL_HASHES_AND_16_CELL_PILOT`
 
-The exact missing runtime component is a qualified Route B split-cell adapter.
-The existing Route B collector owns the CARLA synchronous clock, qualified ego
-controller, traffic lifecycle, no-hybrid-physics setting, and accepted
-stationary-roadblock clearing. The certified split/OAI launcher independently
-spawns and controls another ego on a different route. It also has no external
-front lifecycle boundary through which a Route B-owned ego can be attached.
-Substituting that route would invalidate the campaign; running both owners in
-one world would invalidate clock and scene causality.
-
-The adapter must accept the supervisor's narrow command interface:
+The qualified adapter accepts the supervisor's narrow command interface:
 
 ```text
 python ADAPTER.py --resolved-config CELL/resolved_config.yaml \
   --attempt-dir CELL --carla-host 127.0.0.1 --carla-port 2000
 ```
 
-It must attach the registered split front to the already-created qualified
-Route B ego without taking world-clock or traffic ownership, start/reuse the
-existing OAI back half, publish decoded results to the existing map endpoint,
-surface identifiable reassembly failures, and write the seven configured
-outputs. The supervisor—not the adapter—owns the fresh Epic off-screen CARLA
-process and the cell terminal.
+It installs a `collecting_drive` hook around the unchanged qualified density
+runner. The hook receives Route B's exact ego and gives the unchanged drive
+function a `SamplingWorld`; Route B therefore remains the sole ego and clock
+owner. Split processing is asynchronous and bounded. The supervisor—not the
+adapter—owns the fresh Epic off-screen CARLA process and the cell terminal.
 
 ## Offline validation
 
@@ -44,6 +34,14 @@ python3 rl_agent/ue_288_campaign_supervisor.py validate \
   --pilot rl_agent/configs/ue_16_cell_integration_pilot_v1.yaml
 ```
 
+The adapter-specific dry contract check is:
+
+```bash
+python3 rl_agent/ue_route_b_split_cell_adapter_v1.py --contract-check \
+  --campaign rl_agent/configs/ue_288_campaign_v1.yaml \
+  --campaign rl_agent/configs/ue_16_cell_integration_pilot_v1.yaml
+```
+
 ## Future 16-cell pilot command
 
 After the adapter exists and the four final paths/hashes have been entered into
@@ -56,7 +54,6 @@ checks all three before creating the campaign output root.
 python3 rl_agent/ue_288_campaign_supervisor.py run \
   --config rl_agent/configs/ue_16_cell_integration_pilot_v1.yaml \
   --output-root rl_agent/experiments/ue_16_cell_integration_pilot_v1/<PILOT_RUN_ID> \
-  --route-b-split-cell-adapter <QUALIFIED_ROUTE_B_SPLIT_CELL_ADAPTER.py> \
   --model noae=<FINAL_NOAE_PATH>@<FINAL_NOAE_SHA256> \
   --model ae32=<FINAL_AE32_PATH>@<FINAL_AE32_SHA256> \
   --model ae64=<FINAL_AE64_PATH>@<FINAL_AE64_SHA256> \
@@ -86,6 +83,7 @@ overhead.
   `latest_streams` under the map lock. Schema/decode/install rejection emits
   `NACK_REJECTED`; inference completion is not treated as installation.
 - The campaign supervisor uses create-only attempt directories, skips only a
-  cell with preserved PASSED evidence, and gives every failed/interrupted cell
-  a new attempt directory. It writes exactly one terminal after verified CARLA
-  process-group cleanup.
+  cell with hash-verified PASSED evidence, and gives every failed/interrupted
+  cell a new attempt directory. It writes exactly one terminal after verified
+  CARLA process-group cleanup and stops at the first failed or interrupted
+  cell.
