@@ -242,27 +242,55 @@ def _checkpoint_state_dict(checkpoint: object) -> Dict[str, torch.Tensor]:
     raise ValueError("Checkpoint did not contain a state_dict.")
 
 
-def _load_object_head_checkpoint(model: torch.nn.Module, checkpoint_path: str, *, device: torch.device) -> Dict[str, int]:
+def _load_object_head_checkpoint(model: torch.nn.Module, checkpoint_path: str, *, device: torch.device) -> Dict[str, Any]:
     if not checkpoint_path:
         return {"loaded": 0, "skipped": 0}
     path = Path(checkpoint_path).expanduser()
     if not path.exists():
         raise FileNotFoundError(f"Object-head checkpoint not found: {path}")
-    source = _checkpoint_state_dict(torch.load(path, map_location=device))
+    source = _checkpoint_state_dict(torch.load(path, map_location=device, weights_only=False))
     current = model.state_dict()
     compatible: Dict[str, torch.Tensor] = {}
     skipped = 0
     partial = 0
+    mapped_source = set()
+    unloaded_tensors: List[str] = []
     for key, tensor in source.items():
         key2 = key[7:] if str(key).startswith("module.") else str(key)
         if not key2.startswith("object_head."):
             continue
+        if getattr(model, "head_arch", "") == "split_class_heatmaps":
+            suffix = key2[len("object_head.") :]
+            trunk_key = f"object_head.shared_trunk.{suffix}"
+            if trunk_key in current and tuple(current[trunk_key].shape) == tuple(tensor.shape):
+                compatible[trunk_key] = tensor
+                mapped_source.add(key2)
+                continue
+            if tensor.ndim in (1, 4) and int(tensor.shape[0]) == int(model.object_channels):
+                branch_names = (
+                    "vehicle_heatmap_head",
+                    "person_heatmap_head",
+                    "regression_head",
+                )
+                slices = (tensor[0:1], tensor[1:2], tensor[2:])
+                leaf = suffix.rsplit(".", 1)[-1]
+                target_keys = [f"object_head.{name}.{leaf}" for name in branch_names]
+                if all(
+                    target in current and tuple(current[target].shape) == tuple(value.shape)
+                    for target, value in zip(target_keys, slices)
+                ):
+                    for target, value in zip(target_keys, slices):
+                        compatible[target] = value
+                    mapped_source.add(key2)
+                    continue
         if key2 not in current:
             skipped += 1
+            unloaded_tensors.append(key2)
             continue
         cur = current[key2]
         if tuple(cur.shape) == tuple(tensor.shape):
             compatible[key2] = tensor
+            mapped_source.add(key2)
         elif (
             cur.ndim == tensor.ndim
             and cur.shape[0] > tensor.shape[0]
@@ -276,10 +304,18 @@ def _load_object_head_checkpoint(model: torch.nn.Module, checkpoint_path: str, *
             merged[: tensor.shape[0]] = tensor.to(merged.dtype)
             compatible[key2] = merged
             partial += 1
+            mapped_source.add(key2)
         else:
             skipped += 1
+            unloaded_tensors.append(key2)
     model.load_state_dict(compatible, strict=False)
-    return {"loaded": len(compatible), "skipped": skipped, "partial": partial}
+    return {
+        "loaded": len(mapped_source),
+        "loaded_target_tensors": len(compatible),
+        "skipped": skipped,
+        "partial": partial,
+        "unloaded_tensors": unloaded_tensors,
+    }
 
 
 def _move_object_targets(targets: Dict[str, torch.Tensor], device: torch.device) -> Dict[str, torch.Tensor]:
@@ -626,7 +662,8 @@ def train(args: argparse.Namespace) -> int:
         log(
             f"Loaded object head from {init_object_checkpoint}; "
             f"loaded={object_load_stats['loaded']} partial={object_load_stats.get('partial', 0)} "
-            f"skipped={object_load_stats['skipped']}."
+            f"skipped={object_load_stats['skipped']} "
+            f"unloaded_tensors={json.dumps(object_load_stats.get('unloaded_tensors', []))}."
         )
     # INTEGRATED feature-AE (end-to-end): attach after warm-start load, before the optimizer, so its
     # params train jointly with the backbone + heads (the whole model co-adapts to the bottleneck).
@@ -791,7 +828,7 @@ def train(args: argparse.Namespace) -> int:
                 group["lr"] = resume_lr
             base_lrs = [resume_lr for _ in optimizer.param_groups]
             log(f"Overrode resumed optimizer lr to {resume_lr:g}.")
-        start_epoch = int(ckpt.get("epoch", -1)) + 1
+        start_epoch = int(ckpt.get("training_epoch_index", ckpt.get("epoch", -1))) + 1
         best_score = float(ckpt.get("best_selection_score", ckpt.get("best_miou", best_score)))
         best_miou = float(ckpt.get("best_miou", best_miou))
         log(f"Resumed {trial_name} from epoch {start_epoch}.")
@@ -831,11 +868,14 @@ def train(args: argparse.Namespace) -> int:
     patience = int(trial.get("early_stop_patience", train_cfg.get("early_stop_patience", 3)))
     stale_epochs = 0
     max_epochs = int(trial.get("epochs", train_cfg.get("epochs", 8)))
+    run_until_epoch = min(max_epochs, int(trial.get("run_until_epoch", max_epochs)))
+    checkpoint_epoch_offset = int(trial.get("checkpoint_epoch_offset", 0))
     # Opt-in per-epoch checkpointing; 0 (the default) keeps the best/last-only behaviour.
     checkpoint_every_epochs = int(
         trial.get("checkpoint_every_epochs", train_cfg.get("checkpoint_every_epochs", 0))
     )
-    for epoch in range(start_epoch, max_epochs):
+    for epoch in range(start_epoch, run_until_epoch):
+        reported_epoch = epoch + checkpoint_epoch_offset
         epoch_started = time.monotonic()
         if device.type == "cuda":
             torch.cuda.reset_peak_memory_stats(device)
@@ -936,7 +976,7 @@ def train(args: argparse.Namespace) -> int:
         train_loss = float(np.mean(losses)) if losses else float("nan")
         row = {
             "trial": trial_name,
-            "epoch": epoch,
+            "epoch": reported_epoch,
             "train_loss": train_loss,
             "val_loss": val_metrics["loss"],
             "selection_score": val_metrics["selection_score"],
@@ -982,7 +1022,8 @@ def train(args: argparse.Namespace) -> int:
         epoch_snapshot = (
                 {
                     "model": model.state_dict(),
-                    "epoch": epoch,
+                    "epoch": reported_epoch,
+                    "training_epoch_index": epoch,
                     "best_selection_score": best_score,
                     "best_miou": best_miou,
                     "trial": trial,
@@ -1019,18 +1060,19 @@ def train(args: argparse.Namespace) -> int:
         if improved:
             torch.save(epoch_snapshot, best_path)
         if checkpoint_every_epochs > 0 and (epoch + 1) % checkpoint_every_epochs == 0:
-            epoch_path = trial_dir / f"epoch_{epoch:03d}.pt"
+            epoch_path = trial_dir / f"epoch_{reported_epoch:03d}.pt"
             if epoch_path.exists():
                 raise FileExistsError(
                     f"refusing to overwrite an existing per-epoch checkpoint: {epoch_path}"
                 )
             torch.save(epoch_snapshot, epoch_path)
-            log(f"{trial_name} epoch={epoch} checkpoint written to {epoch_path}")
+            log(f"{trial_name} epoch={reported_epoch} checkpoint written to {epoch_path}")
         torch.save(
             {
                 "model": model.state_dict(),
                 "optimizer": optimizer.state_dict(),
-                "epoch": epoch,
+                "epoch": reported_epoch,
+                "training_epoch_index": epoch,
                 "best_selection_score": best_score,
                 "best_miou": best_miou,
                 "trial": trial,
@@ -1064,7 +1106,7 @@ def train(args: argparse.Namespace) -> int:
             last_path,
         )
         log(
-            f"{trial_name} epoch={epoch} train_loss={train_loss:.4f} "
+            f"{trial_name} epoch={reported_epoch} train_loss={train_loss:.4f} "
             f"val_score(maximin)={val_metrics['selection_score']:.4f} val_miou@drop={val_metrics['miou']:.4f} "
             f"clean_miou={val_metrics.get('clean_miou', float('nan')):.4f} "
             f"vehicle_iou={val_metrics.get('vehicle_iou', float('nan')):.4f} "

@@ -13,6 +13,35 @@ from .object_targets import OBJECT_OUTPUT_CHANNELS, OBJECT_REG_CHANNELS, object_
 OBJECT_HEAD_CHANNELS = OBJECT_OUTPUT_CHANNELS
 
 
+class SplitClassHeatmapHead(torch.nn.Module):
+    """Shared lightweight trunk with class-specific heatmaps and shared regression."""
+
+    def __init__(self, in_ch: int, hidden: int, reg_ch: int, depth: int) -> None:
+        super().__init__()
+        layers = []
+        channels = int(in_ch)
+        for _ in range(max(1, int(depth))):
+            layers.append(torch.nn.Conv2d(channels, int(hidden), kernel_size=3, padding=1, bias=False))
+            layers.append(torch.nn.BatchNorm2d(int(hidden)))
+            layers.append(torch.nn.ReLU(inplace=True))
+            channels = int(hidden)
+        self.shared_trunk = torch.nn.Sequential(*layers)
+        self.vehicle_heatmap_head = torch.nn.Conv2d(int(hidden), 1, kernel_size=1)
+        self.person_heatmap_head = torch.nn.Conv2d(int(hidden), 1, kernel_size=1)
+        self.regression_head = torch.nn.Conv2d(int(hidden), int(reg_ch), kernel_size=1)
+
+    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+        shared = self.shared_trunk(inputs)
+        return torch.cat(
+            [
+                self.vehicle_heatmap_head(shared),
+                self.person_heatmap_head(shared),
+                self.regression_head(shared),
+            ],
+            dim=1,
+        )
+
+
 class MultiTaskFusionLRASPP(torch.nn.Module):
     """LR-ASPP segmentation backbone with learned object localization heads."""
 
@@ -84,6 +113,17 @@ class MultiTaskFusionLRASPP(torch.nn.Module):
             self.heatmap_head = self._make_head(head_in, int(hidden_channels), self.heatmap_channels, self.head_depth)
             self.reg_head = self._make_head(head_in, int(hidden_channels), self.reg_channels, self.head_depth)
             self.object_head = None
+        elif self.head_arch == "split_class_heatmaps":
+            if self.heatmap_channels != 2:
+                raise ValueError(
+                    "split_class_heatmaps requires exactly two heatmap channels "
+                    f"(vehicle, person), got {self.heatmap_channels}."
+                )
+            self.object_head = SplitClassHeatmapHead(
+                head_in, int(hidden_channels), self.reg_channels, self.head_depth
+            )
+            self.heatmap_head = None
+            self.reg_head = None
         else:
             self.object_head = self._make_head(head_in, int(hidden_channels), self.object_channels, self.head_depth)
             self.heatmap_head = None
@@ -117,6 +157,16 @@ class MultiTaskFusionLRASPP(torch.nn.Module):
         if self.head_arch == "decoupled":
             final = self.heatmap_head[-1]
             heatmap_channels = min(self.heatmap_channels, int(final.bias.numel())) if final.bias is not None else 0
+        elif self.head_arch == "split_class_heatmaps":
+            for final in (
+                self.object_head.vehicle_heatmap_head,
+                self.object_head.person_heatmap_head,
+            ):
+                if final.bias is not None:
+                    with torch.no_grad():
+                        final.bias.fill_(-4.6)
+            final = None
+            heatmap_channels = 0
         else:
             final = self.object_head[-1]
             heatmap_channels = min(self.heatmap_channels, int(final.bias.numel())) if final.bias is not None else 0
@@ -127,7 +177,12 @@ class MultiTaskFusionLRASPP(torch.nn.Module):
         # Bias the 2D-box (last two regression) logits so softplus(bias) ~ 0.05, a
         # typical normalized object size, instead of softplus(0) ~ 0.69 (huge boxes).
         if self.predict_bbox2d:
-            reg_final = self.reg_head[-1] if self.head_arch == "decoupled" else self.object_head[-1]
+            if self.head_arch == "decoupled":
+                reg_final = self.reg_head[-1]
+            elif self.head_arch == "split_class_heatmaps":
+                reg_final = self.object_head.regression_head
+            else:
+                reg_final = self.object_head[-1]
             if isinstance(reg_final, torch.nn.Conv2d) and reg_final.bias is not None and reg_final.bias.numel() >= 2:
                 with torch.no_grad():
                     reg_final.bias[-2:] = -3.0

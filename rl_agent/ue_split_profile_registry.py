@@ -546,7 +546,7 @@ def _strict_checkpoint_metadata(
         raise ProfileRegistryError(f"{family} object-class mismatch")
     if not bool(checkpoint.get("fuse_low_into_object_head")):
         raise ProfileRegistryError(f"{family} does not bind the required low-feature object fusion")
-    if str(checkpoint.get("object_head_arch")) != "shared":
+    if str(checkpoint.get("object_head_arch")) not in {"shared", "split_class_heatmaps"}:
         raise ProfileRegistryError(f"{family} object-head architecture mismatch")
     if int(checkpoint.get("object_head_depth", -1)) != 3:
         raise ProfileRegistryError(f"{family} object-head depth mismatch")

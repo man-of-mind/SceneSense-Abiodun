@@ -177,6 +177,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser.add_argument("--feature-drop-fraction", type=float, default=0.0,
                         help="Objectness rank-drop fraction q at inference. 0.0 = clean "
                              "(structural no-op, identical to the original decode path).")
+    parser.add_argument("--object-score-threshold", type=float, choices=(0.02, 0.20), default=0.20)
     parser.add_argument("--python", default=sys.executable)
     args = parser.parse_args(argv)
 
@@ -197,7 +198,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         "--checkpoint", str(checkpoint),
         "--split", args.split,
         "--require-cuda",
-        "--object-score-threshold", str(FIXED_DECODER["object_score_threshold"]),
+        "--object-score-threshold", str(float(args.object_score_threshold)),
         "--topk-objects", str(FIXED_DECODER["topk_objects"]),
         "--object-nms-radius-px", str(FIXED_DECODER["object_nms_radius_px"]),
         "--match-distance-m", str(FIXED_DECODER["match_distance_m"]),
@@ -234,7 +235,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         "tag": args.tag,
         "checkpoint": str(checkpoint),
         "split": args.split,
-        "fixed_decoder": FIXED_DECODER,
+        "fixed_decoder": {**FIXED_DECODER, "object_score_threshold": float(args.object_score_threshold)},
         "feature_drop_fraction": float(args.feature_drop_fraction),
         "duplicate_fp_definition": (
             "a prediction is a duplicate when another prediction of the same class, in the "
