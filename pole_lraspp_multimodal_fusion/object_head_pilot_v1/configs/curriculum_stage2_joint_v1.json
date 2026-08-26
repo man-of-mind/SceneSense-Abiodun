@@ -16,7 +16,7 @@
   "prefetch_factor": 2,
   "persistent_workers": true,
   "epochs": 25,
-  "early_stop_patience": 12,
+  "early_stop_patience": 25,
   "init_rgb_checkpoint": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/ae_integrated_20260710/noae_baseline/checkpoints/mprime_joint_noae/best.pt",
   "init_object_checkpoint": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/ae_integrated_20260710/noae_baseline/checkpoints/mprime_joint_noae/best.pt",
   "freeze_backbone": false,
@@ -61,5 +61,7 @@
   },
   "feature_drop_max": 0.8,
   "ae_bottleneck": 0,
-  "_init_from": "checkpoints/curriculum_stage1_objhead_v1/best.pt (set before launch)"
+  "_init_from": "checkpoints/curriculum_stage1_objhead_v1/best.pt (set before launch)",
+  "training_seed": 20260825,
+  "checkpoint_every_epochs": 1
 }

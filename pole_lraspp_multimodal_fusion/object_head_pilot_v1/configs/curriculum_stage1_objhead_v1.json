@@ -60,5 +60,7 @@
     "max_gt_distance_m": 40
   },
   "feature_drop_max": 0.8,
-  "ae_bottleneck": 0
+  "ae_bottleneck": 0,
+  "training_seed": 20260825,
+  "checkpoint_every_epochs": 1
 }
