@@ -28,6 +28,7 @@ FIELDS = (
     "ack_timeout_at",
     "result_status",
     "status",
+    "terminal",
     "accepted",
     "late",
     "timeout_seen",
@@ -43,11 +44,11 @@ class FeedbackContractError(RuntimeError):
 class InstallFeedbackLedger:
     """Non-blocking capture tracker plus create-only CSV evidence sink.
 
-    The capture producer calls :meth:`register_capture` and continues.  A
+    The capture producer calls :meth:`register_capture` and continues. A
     receiver thread calls :meth:`receive_once`; a watchdog calls
-    :meth:`record_expired`.  No resend is performed.  An ACK arriving after a
-    timeout produces a second, explicitly late row and never erases the
-    timeout violation.
+    :meth:`record_expired`. No resend is performed. An ACK arriving after a
+    timeout produces a second, explicitly late diagnostic row, while the
+    timeout remains the capture's one terminal record.
     """
 
     def __init__(
@@ -110,11 +111,11 @@ class InstallFeedbackLedger:
         self.writer.writerow({field: row.get(field, "") for field in FIELDS})
         self.handle.flush()
 
-    def receive_once(self) -> bool:
+    def receive_once(self) -> dict[str, Any] | None:
         try:
             packet, _source = self.socket.recvfrom(65535)
         except socket.timeout:
-            return False
+            return None
         received_at = time.time()
         try:
             message = json.loads(packet.decode("utf-8"))
@@ -156,6 +157,7 @@ class InstallFeedbackLedger:
                     "feedback_received_at": received_at,
                     "result_status": message.get("result_status", ""),
                     "status": status,
+                    "terminal": not timeout_seen,
                     "accepted": status == "ACK_INSTALLED",
                     "late": late,
                     "timeout_seen": timeout_seen,
@@ -163,7 +165,7 @@ class InstallFeedbackLedger:
                 }
             )
             self.pending.pop(capture_id, None)
-        return True
+        return message
 
     def record_reassembly_failure(self, *, capture_id: str, reason: str) -> None:
         """Record an identifiable edge reassembly terminal without inference."""
@@ -171,6 +173,7 @@ class InstallFeedbackLedger:
             base = self.pending.pop(str(capture_id), None)
             if base is None:
                 raise FeedbackContractError(f"reassembly failure for unknown capture: {capture_id}")
+            timeout_seen = str(capture_id) in self.timed_out
             self._append(
                 {
                     "experiment_id": self.experiment_id,
@@ -178,9 +181,10 @@ class InstallFeedbackLedger:
                     **base,
                     "result_status": "FEATURE_REASSEMBLY_FAILED",
                     "status": "NACK_REASSEMBLY_TIMEOUT",
+                    "terminal": not timeout_seen,
                     "accepted": False,
-                    "late": False,
-                    "timeout_seen": False,
+                    "late": timeout_seen,
+                    "timeout_seen": timeout_seen,
                     "rejection_reason": str(reason),
                 }
             )
@@ -202,6 +206,7 @@ class InstallFeedbackLedger:
                         "feedback_received_at": observed,
                         "result_status": "NO_AUTHORITATIVE_FEEDBACK",
                         "status": "TIMEOUT_NO_ACK",
+                        "terminal": True,
                         "accepted": False,
                         "late": True,
                         "timeout_seen": True,

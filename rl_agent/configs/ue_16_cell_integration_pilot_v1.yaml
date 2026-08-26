@@ -62,6 +62,15 @@ route_b:
   forced_overtaking: false
   maximum_overtakes: 0
 
+measurement_contract:
+  match_distance_m: 3.0
+  max_gt_distance_m: 40.0
+  min_gt_area_px: 12.0
+  expected_prepared_hz: 10.0
+  minimum_sensor_preparation_coverage: 0.95
+  installed_frame_history_size: 256
+  segmentation_evidence_retention_s: 5.0
+
 runtime:
   carla_lifecycle_helper: data_collection/run_route_b_collection_supervised_v1.py
   oai_registered_profile_launcher: uplink_only_spatial_map_pipeline/run_track1_oai_default106_ttracer_10fps_v2.sh
@@ -89,8 +98,8 @@ cell:
   exactly_one_terminal: true
   expected_outputs: [per_frame_metrics.csv, radio_trace.csv, map_feedback.csv, perception_metrics.csv, resolved_config.yaml, RESULTS_SUMMARY.json, manifest.json]
   radio_trace_fields: [profile_id, trace_id, seed, step_index, target_snr_db, mapped_rfsim_command_db, achieved_snr_db, scheduled_monotonic_ns, command_send_monotonic_ns, command_ack_monotonic_ns, command_send_wall_ns, command_ack_wall_ns, command_timing_status]
-  map_feedback_fields: [experiment_id, cell_id, stream_id, capture_id, frame_id, capture_at, action_id, service_deadline_at, edge_install_at, install_timestamp, feedback_emit_at, feedback_received_at, ack_timeout_at, result_status, status, accepted, late, timeout_seen, rejection_reason]
-  perception_metric_fields: [frame_id, class_name, tp, fp, fn, precision, recall, valid_empty, coverage, source_time_world_xy_error_m, aligned_world_xy_error_m, dimension_error_m, footprint_iou, segmentation_iou]
+  map_feedback_fields: [experiment_id, cell_id, stream_id, capture_id, frame_id, capture_at, action_id, service_deadline_at, edge_install_at, install_timestamp, feedback_emit_at, feedback_received_at, ack_timeout_at, result_status, status, terminal, accepted, late, timeout_seen, rejection_reason]
+  perception_metric_fields: [frame_id, class_name, tp, fp, fn, precision, recall, valid_empty, coverage, feedback_status, exact_frame_prediction_available, object_gt_evidence_available, segmentation_evidence_available, source_time_world_xy_error_m, aligned_world_xy_error_m, dimension_error_m, footprint_iou, segmentation_iou]
 
 authorization:
   models_must_be_resolved_before_real_launch: true

@@ -238,8 +238,30 @@ def verify_output_contract(config: Mapping[str, Any]) -> None:
     ):
         require(field in radio, f"radio_trace schema missing {field}")
     feedback = set(cell["map_feedback_fields"])
-    for field in ("frame_id", "capture_at", "action_id", "install_timestamp", "result_status", "rejection_reason"):
+    for field in (
+        "frame_id", "capture_at", "action_id", "install_timestamp",
+        "result_status", "status", "terminal", "rejection_reason",
+    ):
         require(field in feedback, f"map_feedback schema missing {field}")
+    perception = set(cell["perception_metric_fields"])
+    for field in (
+        "exact_frame_prediction_available", "object_gt_evidence_available",
+        "segmentation_evidence_available", "footprint_iou", "segmentation_iou",
+    ):
+        require(field in perception, f"perception_metrics schema missing {field}")
+
+
+def verify_measurement_contract(config: Mapping[str, Any]) -> None:
+    contract = config.get("measurement_contract")
+    require(isinstance(contract, dict), "campaign measurement_contract is missing")
+    require(float(contract["match_distance_m"]) == 3.0, "primary match distance must be 3.0 m")
+    require(float(contract["max_gt_distance_m"]) == 40.0, "GT range gate must be 40.0 m")
+    require(float(contract["min_gt_area_px"]) == 12.0, "GT area gate must be 12.0 px")
+    require(float(contract["expected_prepared_hz"]) == 10.0, "prepared-input schedule must be 10 Hz")
+    coverage = float(contract["minimum_sensor_preparation_coverage"])
+    require(0.0 < coverage <= 1.0, "sensor/preparation coverage gate must be in (0, 1]")
+    require(int(contract["installed_frame_history_size"]) > 0, "installed-frame history must be bounded and nonempty")
+    require(float(contract["segmentation_evidence_retention_s"]) > 0.0, "segmentation evidence retention must be positive")
 
 
 def verify_trace_prefixes(config: Mapping[str, Any]) -> dict[str, str]:
@@ -340,6 +362,7 @@ def validate_static(config_path: Path) -> tuple[dict[str, Any], list[Cell], dict
     require(config.get("stop_on_first_failure") is True, "campaign must stop on the first failed/interrupted cell")
     verify_file_hashes(config)
     verify_route_contract(config)
+    verify_measurement_contract(config)
     verify_output_contract(config)
     cells = enumerate_cells(config)
     hashes = verify_trace_prefixes(config)
@@ -481,6 +504,7 @@ def run_one_cell(
     resolved = {
         "schema": "scenesense.ue_288_cell_resolved.v1",
         "campaign": config,
+        "measurement_contract": dict(config["measurement_contract"]),
         "cell": cell_to_dict(cell),
         "attempt": attempt,
         "attempt_dir": str(attempt_dir),
@@ -648,6 +672,10 @@ def validate_command(args: argparse.Namespace) -> int:
     require(len(pilot_cells) == 16, "integration pilot did not enumerate 16 cells")
     require(campaign_hashes == pilot_hashes, "pilot/full trace hashes differ")
     require(campaign["route_b"] == pilot["route_b"], "pilot/full Route B contract differs")
+    require(
+        campaign["measurement_contract"] == pilot["measurement_contract"],
+        "pilot/full measurement contracts differ",
+    )
     report = {
         "status": "OFFLINE_VALIDATION_PASS_WITH_LAUNCH_BLOCKERS",
         "yaml_parse": "PASS",

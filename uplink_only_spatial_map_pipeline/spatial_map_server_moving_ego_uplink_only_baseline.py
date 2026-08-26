@@ -24,7 +24,7 @@ import sys
 import threading
 import time
 import zlib
-from collections import Counter
+from collections import Counter, OrderedDict
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Set, Tuple
@@ -74,6 +74,7 @@ plot_lock = threading.Lock()
 fusion_lock = threading.Lock()
 
 latest_streams: Dict[str, Dict[str, object]] = {}
+installed_frame_history: "OrderedDict[Tuple[str, int], Dict[str, object]]" = OrderedDict()
 fusion_tracks: Dict[str, Dict[str, object]] = {}
 next_track_id = 1
 static_map_cache: Dict[str, object] = {
@@ -177,6 +178,12 @@ def parse_args() -> argparse.Namespace:
             "Fixed registered action ID for this one-cell map process. Used "
             "only when the legacy spatial packet does not carry action_id."
         ),
+    )
+    parser.add_argument(
+        "--installed-frame-history-size",
+        type=int,
+        default=256,
+        help="Bounded exact installed-record history keyed by stream and frame.",
     )
     parser.add_argument("--carla-host", default="127.0.0.1", help="CARLA server host.")
     parser.add_argument("--carla-port", type=int, default=2000, help="CARLA server port.")
@@ -1703,11 +1710,18 @@ def udp_listener_thread() -> None:
             delay_ms = max(0.0, float(getattr(cfg, "map_update_delay_ms", 0.0)))
             if delay_ms > 0.0:
                 time.sleep(delay_ms / 1000.0)
+            install_timestamp = time.time()
+            normalized["install_timestamp"] = install_timestamp
+            history_key = (str(normalized["stream_id"]), int(normalized["frame_id"]))
             with state_lock:
                 latest_streams[str(normalized["stream_id"])] = normalized
+                installed_frame_history[history_key] = normalized
+                installed_frame_history.move_to_end(history_key)
+                history_limit = max(1, int(cfg.installed_frame_history_size))
+                while len(installed_frame_history) > history_limit:
+                    installed_frame_history.popitem(last=False)
             map_installed = True
             t_map_update_done_perf = time.perf_counter()
-            install_timestamp = time.time()
             _emit_install_feedback(
                 sock,
                 status="ACK_INSTALLED",
@@ -1875,12 +1889,14 @@ def healthz():
         render_age = None if latest_render_at == 0.0 else time.time() - latest_render_at
     with state_lock:
         stream_count = len(latest_streams)
+        installed_history_count = len(installed_frame_history)
     with fusion_lock:
         track_count = len(fusion_tracks)
     return jsonify(
         {
             "ok": True,
             "streams_seen": stream_count,
+            "installed_frame_history_count": installed_history_count,
             "fused_tracks": track_count,
             "latest_render_age_s": render_age,
             "latest_render_error": latest_render_error,
@@ -1898,6 +1914,22 @@ def get_spatial_map_latest():
             "latest_fusion_object_spatial_map_v2.png",
         )
     return jsonify(snapshot)
+
+
+@app.route("/api/fusion_streams/installed/<path:stream_id>/<int:frame_id>", methods=["GET"])
+def get_fusion_stream_installed_frame(stream_id: str, frame_id: int):
+    """Return only the exact record installed for this stream/frame key."""
+    with state_lock:
+        record = installed_frame_history.get((str(stream_id), int(frame_id)))
+    if record is None:
+        return jsonify(
+            {
+                "status": "NOT_FOUND",
+                "stream_id": str(stream_id),
+                "frame_id": int(frame_id),
+            }
+        ), 404
+    return jsonify({"status": "INSTALLED", "record": record})
 
 
 @app.route("/api/analytics/counts/latest", methods=["GET"])

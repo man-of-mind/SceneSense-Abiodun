@@ -81,6 +81,15 @@ route_b:
   forced_overtaking: false
   maximum_overtakes: 0
 
+measurement_contract:
+  match_distance_m: 3.0
+  max_gt_distance_m: 40.0
+  min_gt_area_px: 12.0
+  expected_prepared_hz: 10.0
+  minimum_sensor_preparation_coverage: 0.95
+  installed_frame_history_size: 256
+  segmentation_evidence_retention_s: 5.0
+
 runtime:
   carla_lifecycle_helper: data_collection/run_route_b_collection_supervised_v1.py
   oai_registered_profile_launcher: uplink_only_spatial_map_pipeline/run_track1_oai_default106_ttracer_10fps_v2.sh
@@ -144,6 +153,7 @@ cell:
     - ack_timeout_at
     - result_status
     - status
+    - terminal
     - accepted
     - late
     - timeout_seen
@@ -158,6 +168,10 @@ cell:
     - recall
     - valid_empty
     - coverage
+    - feedback_status
+    - exact_frame_prediction_available
+    - object_gt_evidence_available
+    - segmentation_evidence_available
     - source_time_world_xy_error_m
     - aligned_world_xy_error_m
     - dimension_error_m

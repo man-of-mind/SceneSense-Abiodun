@@ -20,6 +20,9 @@ runner. The hook receives Route B's exact ego and gives the unchanged drive
 function a `SamplingWorld`; Route B therefore remains the sole ego and clock
 owner. Split processing is asynchronous and bounded. The supervisor—not the
 adapter—owns the fresh Epic off-screen CARLA process and the cell terminal.
+The primary measurement contract uses a 3.0 m object-match radius, a 40.0 m
+GT range gate, and a 12.0 px minimum projected GT area. These values are
+stamped into every resolved cell, results summary, and manifest.
 
 ## Offline validation
 
@@ -75,13 +78,20 @@ overhead.
   the accepted interpolation mapping, records `SKIP_OBSOLETE_NEVER_BURST`, and
   verifies the `noise_power_dB=-50` restore in `finally`.
 - `ue_map_install_feedback_v1.py` keeps capture production asynchronous,
-  records `TIMEOUT_NO_ACK` without resend, retains late ACKs after timeout, and
-  has explicit `NACK_REJECTED` and identifiable `NACK_REASSEMBLY_TIMEOUT`
-  records.
+  records `TIMEOUT_NO_ACK` without resend, retains late ACK diagnostics after
+  timeout, marks exactly one terminal feedback record per capture, and has
+  explicit `NACK_REJECTED` and identifiable `NACK_REASSEMBLY_TIMEOUT` records.
 - `spatial_map_server_moving_ego_uplink_only_baseline.py` emits
   `ACK_INSTALLED` only after the decoded result has been accepted into
-  `latest_streams` under the map lock. Schema/decode/install rejection emits
+  `latest_streams` and a bounded `(stream_id, frame_id)` history under the map
+  lock. The adapter reads that exact installed record after ACK and never
+  substitutes a newer frame. Schema/decode/install rejection emits
   `NACK_REJECTED`; inference completion is not treated as installation.
+- The unchanged certified tail runtime is wrapped only to enqueue its decoded
+  segmentation mask after normal map publication into a bounded out-of-band
+  evaluation sink. A same-frame semantic-GT camera feeds the existing
+  `_segmentation_quality_columns` path; neither mask is placed in the measured
+  feature payload or spatial-map packet.
 - The campaign supervisor uses create-only attempt directories, skips only a
   cell with hash-verified PASSED evidence, and gives every failed/interrupted
   cell a new attempt directory. It writes exactly one terminal after verified
