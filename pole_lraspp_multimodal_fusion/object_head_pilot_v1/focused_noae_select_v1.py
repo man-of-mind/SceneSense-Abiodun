@@ -181,6 +181,13 @@ def main() -> int:
             "clean_person_iou": seg(c0, "person_iou"),
             "worst_anchor_mean_f1": worst,
             "worst_anchor_q": worst_q,
+            "baseline_worst_anchor_mean_f1": (
+                min((mean_f1(base_evals[q]) for q in have if q in base_evals), default=None)
+                if have else None),
+            "anchors_beating_matched_baseline": [
+                q for q in have if q in base_evals and mean_f1(per_q[q]) > mean_f1(base_evals[q])],
+            "anchors_below_matched_baseline": [
+                q for q in have if q in base_evals and mean_f1(per_q[q]) <= mean_f1(base_evals[q])],
             "mean_xy_mae_over_anchors": (
                 sum(float(per_q[q].get("overall_xy_mae_m", 0.0)) for q in have) / len(have)
                 if have else float("nan")),
@@ -191,6 +198,27 @@ def main() -> int:
             "improves": mean_f1(c0) >= mean_f1(b0) + IMPROVE_MARGIN,
             "per_q": {qtag(q): {
                 "q": q,
+                # Matched-q comparison: this candidate at q vs the epoch-13 baseline
+                # decoded at the SAME q. Never against the clean baseline only.
+                "baseline_at_q": ({
+                    "vehicle_f1": base_evals[q].get("vehicle_f1"),
+                    "person_f1": base_evals[q].get("person_f1"),
+                    "vehicle_recall": base_evals[q].get("vehicle_recall"),
+                    "person_recall": base_evals[q].get("person_recall"),
+                    "mean_f1": mean_f1(base_evals[q]),
+                    "overall_xy_mae_m": base_evals[q].get("overall_xy_mae_m"),
+                    "duplicate_fp_per_frame": dup_per_frame(base_evals[q]),
+                } if q in base_evals else None),
+                "delta_vs_baseline_at_q": ({
+                    "vehicle_f1": float(per_q[q].get("vehicle_f1", 0.0)) - float(base_evals[q].get("vehicle_f1", 0.0)),
+                    "person_f1": float(per_q[q].get("person_f1", 0.0)) - float(base_evals[q].get("person_f1", 0.0)),
+                    "vehicle_recall": float(per_q[q].get("vehicle_recall", 0.0)) - float(base_evals[q].get("vehicle_recall", 0.0)),
+                    "person_recall": float(per_q[q].get("person_recall", 0.0)) - float(base_evals[q].get("person_recall", 0.0)),
+                    "mean_f1": mean_f1(per_q[q]) - mean_f1(base_evals[q]),
+                    "overall_xy_mae_m": float(per_q[q].get("overall_xy_mae_m", 0.0)) - float(base_evals[q].get("overall_xy_mae_m", 0.0)),
+                    "duplicate_fp_per_frame": dup_per_frame(per_q[q]) - dup_per_frame(base_evals[q]),
+                } if q in base_evals else None),
+                "baseline_missing_at_q": q not in base_evals,
                 "vehicle_f1": per_q[q].get("vehicle_f1"),
                 "person_f1": per_q[q].get("person_f1"),
                 "vehicle_recall": per_q[q].get("vehicle_recall"),
@@ -223,7 +251,57 @@ def main() -> int:
                 for r in ranked],
         }
     else:
+        # ---- Completeness audit: never silently select from missing results. ----
+        expected_full = sorted(ANCHORS + MIDPOINTS)
+        shortlist_file = exp / "focused_noae_selection_shortlist.json"
+        if shortlist_file.is_file():
+            shortlist_epochs = list(json.loads(shortlist_file.read_text())["shortlist_epochs"])
+        else:
+            shortlist_epochs = [r["epoch"] for r in rows if len(r["per_q"]) > 1]
+        missing: Dict[str, List[Any]] = {}
+        for ep in shortlist_epochs:
+            row = next((r for r in rows if r["epoch"] == ep), None)
+            if row is None:
+                missing[f"epoch_{ep}"] = ["no decode at all"]
+                continue
+            have_q = {round(v["q"], 4) for v in row["per_q"].values()}
+            gap = [q for q in expected_full if round(q, 4) not in have_q]
+            if gap:
+                missing[f"epoch_{ep}"] = gap
+        base_gap = [q for q in expected_full if q not in base_evals]
+        if base_gap:
+            missing["baseline_epoch13"] = base_gap
+        clean_gap = [r["epoch"] for r in rows if 0.0 not in {v["q"] for v in r["per_q"].values()}]
+        if clean_gap:
+            missing["candidates_without_clean_decode"] = clean_gap
+
+        completeness = {
+            "expected_q_grid": expected_full,
+            "shortlist_epochs": shortlist_epochs,
+            "candidate_epochs_decoded_clean": [r["epoch"] for r in rows],
+            "missing_cells": missing,
+            "complete": not missing,
+        }
+        if missing:
+            result = {
+                "stage": "final",
+                "verdict": "FOCUSED_NOAE_INCOMPLETE_EVALUATION",
+                "note": ("evaluation lanes did not all complete; refusing to select from "
+                         "missing results. Re-run the decode sweep for the missing cells."),
+                "completeness": completeness,
+                "all_candidates": rows,
+            }
+            out = Path(args.out) if args.out else (exp / f"focused_noae_selection_{args.stage}.json")
+            out.write_text(json.dumps(result, indent=2, sort_keys=True))
+            print(json.dumps({k: v for k, v in result.items() if k != "all_candidates"},
+                             indent=2, sort_keys=True), flush=True)
+            print(f"\nwritten: {out}", flush=True)
+            return 3
+
         pool = [r for r in rows if r["eligible"] and r["improves"] and len(r["anchors_scored"]) == len(ANCHORS)]
+        dropped_incomplete = [r["epoch"] for r in rows
+                              if r["eligible"] and r["improves"]
+                              and len(r["anchors_scored"]) != len(ANCHORS)]
         ranked = sorted(pool, key=lambda r: (-r["worst_anchor_mean_f1"],
                                              r["mean_xy_mae_over_anchors"],
                                              r["mean_dup_fp_per_frame_over_anchors"]))
@@ -265,6 +343,8 @@ def main() -> int:
                           for q, m in sorted(base_evals.items())},
             },
             "selected": sel,
+            "completeness": completeness,
+            "dropped_for_incomplete_anchor_coverage": dropped_incomplete,
             "advisory_targets": advisory,
             "all_candidates": rows,
         }
@@ -274,7 +354,70 @@ def main() -> int:
     print(json.dumps({k: v for k, v in result.items() if k not in ("all_candidates", "ranked_clean")},
                      indent=2, sort_keys=True)[:6000], flush=True)
     print(f"\nwritten: {out}", flush=True)
+
+    if args.stage == "final" and result.get("selected"):
+        (exp / "FOCUSED_NOAE_DECISION.md").write_text(decision_md(result))
+        print(f"written: {exp / 'FOCUSED_NOAE_DECISION.md'}", flush=True)
     return 0
+
+
+def decision_md(res: Dict[str, Any]) -> str:
+    sel = res["selected"]
+    b = res["baseline"]
+    L = ["# FOCUSED_NOAE decision", "",
+         f"**Verdict:** `{res['verdict']}`", "",
+         f"- Selected: epoch **{sel['epoch']}** — `{sel['checkpoint']}`",
+         f"- Baseline: epoch 13 — `{b['checkpoint']}`",
+         f"- Ranking: worst-anchor mean(vehicle_f1, person_f1) -> mean XY MAE -> mean duplicate FP/frame",
+         f"- Worst anchor: q={sel['worst_anchor_q']}, mean F1 {sel['worst_anchor_mean_f1']:.4f} "
+         f"(baseline at its own worst anchor: {sel['baseline_worst_anchor_mean_f1']:.4f})",
+         f"- Evaluation completeness: **{'COMPLETE' if res['completeness']['complete'] else 'INCOMPLETE'}**",
+         "",
+         "## Per-q metrics, vehicle and person separately",
+         "",
+         "Every candidate value is compared against the epoch-13 baseline decoded at the **same q**.",
+         "`A` = registered training anchor, `M` = unseen interval midpoint (reported, never ranked).",
+         "",
+         "| q | kind | veh F1 | veh F1 vs base | per F1 | per F1 vs base | veh rec | per rec | "
+         "mean F1 | XY MAE m | dupFP/fr |",
+         "|---|------|--------|----------------|--------|----------------|---------|---------|"
+         "---------|----------|----------|"]
+    for tag in sorted(sel["per_q"], key=lambda t: sel["per_q"][t]["q"]):
+        e = sel["per_q"][tag]
+        d = e.get("delta_vs_baseline_at_q")
+        kind = "A" if e["is_registered_anchor"] else "M"
+        def f(x, n=4):
+            return "n/a" if x is None else f"{x:.{n}f}"
+        def sgn(x):
+            return "n/a" if x is None else f"{x:+.4f}"
+        L.append(
+            f"| {e['q']:.2f} | {kind} | {f(e['vehicle_f1'])} | {sgn(d and d['vehicle_f1'])} | "
+            f"{f(e['person_f1'])} | {sgn(d and d['person_f1'])} | {f(e['vehicle_recall'])} | "
+            f"{f(e['person_recall'])} | {f(e['mean_f1'])} | {f(e['overall_xy_mae_m'])} | "
+            f"{f(e['duplicate_fp_per_frame'])} |")
+    L += ["", "## Clean q=0.00 guards (vs matched baseline)", "",
+          "| metric | selected | baseline | delta |", "|---|---|---|---|"]
+    for k, bk in (("clean_vehicle_f1", "clean_vehicle_f1"), ("clean_person_f1", "clean_person_f1"),
+                  ("clean_vehicle_recall", "clean_vehicle_recall"),
+                  ("clean_person_recall", "clean_person_recall"),
+                  ("clean_xy_mae_m", "clean_xy_mae_m"),
+                  ("clean_dimension_mae_m", "clean_dimension_mae_m"),
+                  ("clean_miou", "clean_miou"), ("clean_vehicle_iou", "clean_vehicle_iou"),
+                  ("clean_person_iou", "clean_person_iou")):
+        sv, bv = sel.get(k), b.get(bk)
+        dv = "n/a" if (sv is None or bv is None) else f"{sv - bv:+.4f}"
+        L.append(f"| {k} | {'n/a' if sv is None else f'{sv:.4f}'} | "
+                 f"{'n/a' if bv is None else f'{bv:.4f}'} | {dv} |")
+    L += ["", "## Advisory service targets (visible, never gating)", "",
+          "| target | value | threshold | met |", "|---|---|---|---|"]
+    for k, v in res.get("advisory_targets", {}).items():
+        L.append(f"| {k} | {v['value']:.4f} | {v['target']:.2f} | {'yes' if v['met'] else 'no'} |")
+    L += ["", "## Exclusions", "",
+          "- Aborted pure-categorical run isolated at "
+          "`_ABORTED_pure_categorical_20260826_focused_noae_v1/` and excluded from selection.",
+          f"- Candidates dropped for incomplete anchor coverage: "
+          f"{res.get('dropped_for_incomplete_anchor_coverage', [])}", ""]
+    return "\n".join(L)
 
 
 if __name__ == "__main__":
