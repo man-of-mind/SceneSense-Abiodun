@@ -1,0 +1,411 @@
+{
+  "audit": "W10275 visibility-aware <=40 m evaluation + match-radius parity (read-only)",
+  "correction_note": "documentation correction: the visibility conclusion is narrowed to frustum geometry and the residual gap is no longer attributed to corpus composition. All match-radius results are preserved unchanged.",
+  "full_artifact_with_slices": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/route_b_noae_precision_full_v1/20260825_195301/decision/visibility_and_match_radius_audit_v1.json",
+  "gap_attribution": {
+    "explained_by_match_radius_3m_to_5m": {
+      "label": "EVALUATION_TOLERANCE_EFFECT",
+      "meaning": "matches admitted only between 3 m and 5 m are 3-5 m localization errors; this is scoring tolerance, not model-quality recovery",
+      "overall": 0.172,
+      "person": 0.167,
+      "vehicle": 0.174
+    },
+    "residual": {
+      "association": "the failure is strongly associated with small, distant and dense Route B objects",
+      "causality_limit": "causality cannot be assigned solely to corpus composition because historical per-object GT is unavailable - the M-prime corpus GT table is not retained, only its 2162 split ids",
+      "share": 0.83,
+      "statement": "approximately 83% remains a genuine model/input/domain gap",
+      "supporting_slices_route_b_stage2_at_3m": {
+        "gt_per_frame_historical_test": 1.804,
+        "gt_per_frame_route_b_val": 3.775,
+        "recall_10_20m": {
+          "person": 0.6127,
+          "vehicle": 0.6681
+        },
+        "recall_30_40m": {
+          "person": 0.1659,
+          "vehicle": 0.2302
+        },
+        "recall_h16_32px": {
+          "person": 0.2014,
+          "vehicle": 0.2352
+        },
+        "recall_h64_128px": {
+          "person": 0.7694,
+          "vehicle": 0.8164
+        }
+      }
+    }
+  },
+  "historical_reference": {
+    "corpus": "fusion_training_data/moving_ego_pps200000_merged_8loops_stride2 (moving ego, RGB+radar; GT table NOT retained)",
+    "gt_per_frame": 1.8034227567067531,
+    "overall_recall": 0.8781738907412157,
+    "person_recall": 0.8532494758909853,
+    "split": "test (M-prime moving-ego corpus)",
+    "tag": "noae__clean",
+    "vehicle_recall": 0.8926256077795786
+  },
+  "interpretation": "EVALUATION_TOLERANCE_EFFECT: matches recovered only between 3 m and 5 m are 3-5 m localization errors, not model-quality recovery",
+  "match_radius_parity": {
+    "historical_command": "rl_agent/ae_integrated/run_permodel_sweep.sh: --object-score-threshold 0.20 --object-nms-radius-px 2 --topk-objects 120 --match-distance-m 5.0 --max-gt-distance-m 40",
+    "historical_mprime": 5.0,
+    "identical_elsewhere": [
+      "object_score_threshold 0.20",
+      "object_nms_radius_px 2",
+      "topk_objects 120",
+      "max_gt_distance_m 40",
+      "min_gt_area_px 12.0",
+      "classes [vehicle,person]",
+      "prediction 40 m range gate"
+    ],
+    "note": "fusion_full_run.yaml records match_distance_m 3.0; the historical 0.8926/0.8532 came from a CLI override to 5.0",
+    "route_b": 3.0
+  },
+  "operational": {
+    "conclusion": "neither the 3 m Route B result nor the historical-parity 5 m result meets the new full-map quality objective",
+    "historical_reference_at_5m": {
+      "person_recall": 0.8532,
+      "vehicle_recall": 0.8926
+    },
+    "stage2_selected_epoch13": {
+      "at_3m": {
+        "person_recall": 0.3752,
+        "vehicle_recall": 0.4498
+      },
+      "at_5m": {
+        "person_recall": 0.455,
+        "vehicle_recall": 0.5267
+      }
+    }
+  },
+  "results_by_match_radius": {
+    "baseline_frozen_noae": {
+      "by_radius": {
+        "1.0": {
+          "overall_f1": 0.1062274071639829,
+          "overall_precision": 0.11973330863968885,
+          "overall_recall": 0.09545957918050942,
+          "person_f1": 0.052166825159625056,
+          "person_fn": 4445,
+          "person_fp": 2532,
+          "person_precision": 0.07048458149779736,
+          "person_recall": 0.04140608151822299,
+          "person_tp": 192,
+          "person_xy_mae_m": 0.6364839473877657,
+          "vehicle_f1": 0.12965907083554143,
+          "vehicle_fn": 7807,
+          "vehicle_fp": 6974,
+          "vehicle_precision": 0.1363467492260062,
+          "vehicle_recall": 0.12359676695105523,
+          "vehicle_tp": 1101,
+          "vehicle_xy_mae_m": 0.6279565317109509
+        },
+        "2.0": {
+          "overall_f1": 0.21500164311534667,
+          "overall_precision": 0.24233725344939347,
+          "overall_recall": 0.1932078257659653,
+          "person_f1": 0.1336774894715392,
+          "person_fn": 4145,
+          "person_fp": 2232,
+          "person_precision": 0.18061674008810572,
+          "person_recall": 0.10610308389044641,
+          "person_tp": 492,
+          "person_xy_mae_m": 1.1669867839023274,
+          "vehicle_f1": 0.2502502502502503,
+          "vehicle_fn": 6783,
+          "vehicle_fp": 5950,
+          "vehicle_precision": 0.2631578947368421,
+          "vehicle_recall": 0.2385496183206107,
+          "vehicle_tp": 2125,
+          "vehicle_xy_mae_m": 1.023157991329541
+        },
+        "3.0": {
+          "overall_f1": 0.29863621426224124,
+          "overall_precision": 0.33660524122603946,
+          "overall_recall": 0.26836471022517533,
+          "person_f1": 0.1918217633473713,
+          "person_fn": 3931,
+          "person_fp": 2018,
+          "person_precision": 0.2591776798825257,
+          "person_recall": 0.15225361224929912,
+          "person_tp": 706,
+          "person_xy_mae_m": 1.5623651502077855,
+          "vehicle_f1": 0.3449331684625802,
+          "vehicle_fn": 5979,
+          "vehicle_fp": 5146,
+          "vehicle_precision": 0.36272445820433435,
+          "vehicle_recall": 0.3288055680287382,
+          "vehicle_tp": 2929,
+          "vehicle_xy_mae_m": 1.41909796260188
+        },
+        "4.0": {
+          "overall_f1": 0.35269470916858364,
+          "overall_precision": 0.39753680896379295,
+          "overall_recall": 0.31694352159468436,
+          "person_f1": 0.24426029072136937,
+          "person_fn": 3738,
+          "person_fp": 1825,
+          "person_precision": 0.3300293685756241,
+          "person_recall": 0.1938753504420962,
+          "person_tp": 899,
+          "person_xy_mae_m": 1.973850449161604,
+          "vehicle_f1": 0.3996938114585174,
+          "vehicle_fn": 5514,
+          "vehicle_fp": 4681,
+          "vehicle_precision": 0.42030959752321984,
+          "vehicle_recall": 0.38100583744948363,
+          "vehicle_tp": 3394,
+          "vehicle_xy_mae_m": 1.6944873118338668
+        },
+        "5.0": {
+          "overall_f1": 0.3971409792967467,
+          "overall_precision": 0.4476340401889064,
+          "overall_recall": 0.3568844592100406,
+          "person_f1": 0.28664583616356476,
+          "person_fn": 3582,
+          "person_fp": 1669,
+          "person_precision": 0.38729809104258445,
+          "person_recall": 0.22751779167565236,
+          "person_tp": 1055,
+          "person_xy_mae_m": 2.3431289882910886,
+          "vehicle_f1": 0.44503326856268033,
+          "vehicle_fn": 5129,
+          "vehicle_fp": 4296,
+          "vehicle_precision": 0.4679876160990712,
+          "vehicle_recall": 0.4242254153569825,
+          "vehicle_tp": 3779,
+          "vehicle_xy_mae_m": 1.9755306758584854
+        }
+      },
+      "name": "frozen historical noAE",
+      "newly_accepted_3_to_5m": {
+        "person": 349,
+        "vehicle": 850
+      }
+    },
+    "curriculum_stage1_objhead_v1_epoch_018": {
+      "by_radius": {
+        "1.0": {
+          "overall_f1": 0.1750604119519773,
+          "overall_precision": 0.18218106338815265,
+          "overall_recall": 0.16847545219638244,
+          "person_f1": 0.13604220451229093,
+          "person_fn": 4031,
+          "person_fp": 3666,
+          "person_precision": 0.14185393258426968,
+          "person_recall": 0.1306879447918913,
+          "person_tp": 606,
+          "person_xy_mae_m": 0.5923723049175205,
+          "vehicle_f1": 0.1953152313250204,
+          "vehicle_fn": 7232,
+          "vehicle_fp": 6578,
+          "vehicle_precision": 0.20305306518051855,
+          "vehicle_recall": 0.1881454872025146,
+          "vehicle_tp": 1676,
+          "vehicle_xy_mae_m": 0.5898929326955599
+        },
+        "2.0": {
+          "overall_f1": 0.3370028000460282,
+          "overall_precision": 0.3507105221140029,
+          "overall_recall": 0.3243263196751569,
+          "person_f1": 0.2734313615445056,
+          "person_fn": 3419,
+          "person_fp": 3054,
+          "person_precision": 0.2851123595505618,
+          "person_recall": 0.2626698296312271,
+          "person_tp": 1218,
+          "person_xy_mae_m": 1.0350260385566818,
+          "vehicle_f1": 0.3700034960960261,
+          "vehicle_fn": 5733,
+          "vehicle_fp": 5079,
+          "vehicle_precision": 0.38466198206929975,
+          "vehicle_recall": 0.3564211944319713,
+          "vehicle_tp": 3175,
+          "vehicle_xy_mae_m": 0.9926428944378756
+        },
+        "3.0": {
+          "overall_f1": 0.4114916957539028,
+          "overall_precision": 0.42822928309117037,
+          "overall_recall": 0.39601328903654487,
+          "person_f1": 0.36367718037939156,
+          "person_fn": 3017,
+          "person_fp": 2652,
+          "person_precision": 0.3792134831460674,
+          "person_recall": 0.34936381281000645,
+          "person_tp": 1620,
+          "person_xy_mae_m": 1.3894748388960074,
+          "vehicle_f1": 0.4363127840578021,
+          "vehicle_fn": 5164,
+          "vehicle_fp": 4510,
+          "vehicle_precision": 0.4535982553913254,
+          "vehicle_recall": 0.42029636281993715,
+          "vehicle_tp": 3744,
+          "vehicle_xy_mae_m": 1.211617242061835
+        },
+        "4.0": {
+          "overall_f1": 0.4585938398987381,
+          "overall_precision": 0.47724732556282934,
+          "overall_recall": 0.441343669250646,
+          "person_f1": 0.4135144236165676,
+          "person_fn": 2795,
+          "person_fp": 2430,
+          "person_precision": 0.4311797752808989,
+          "person_recall": 0.3972395945654518,
+          "person_tp": 1842,
+          "person_xy_mae_m": 1.6383249380711487,
+          "vehicle_f1": 0.48199510546556346,
+          "vehicle_fn": 4772,
+          "vehicle_fp": 4118,
+          "vehicle_precision": 0.5010903804216138,
+          "vehicle_recall": 0.4643017512348451,
+          "vehicle_tp": 4136,
+          "vehicle_xy_mae_m": 1.4254269196355756
+        },
+        "5.0": {
+          "overall_f1": 0.49764105711326756,
+          "overall_precision": 0.5178828037681622,
+          "overall_recall": 0.478922111480251,
+          "person_f1": 0.4501066337411606,
+          "person_fn": 2632,
+          "person_fp": 2267,
+          "person_precision": 0.4693352059925094,
+          "person_recall": 0.4323916325210265,
+          "person_tp": 2005,
+          "person_xy_mae_m": 1.8679578589423895,
+          "vehicle_f1": 0.522316746299965,
+          "vehicle_fn": 4426,
+          "vehicle_fp": 3772,
+          "vehicle_precision": 0.543009449963654,
+          "vehicle_recall": 0.5031432420296362,
+          "vehicle_tp": 4482,
+          "vehicle_xy_mae_m": 1.661635974975205
+        }
+      },
+      "name": "Stage-1 selected e18",
+      "newly_accepted_3_to_5m": {
+        "person": 385,
+        "vehicle": 738
+      }
+    },
+    "curriculum_stage2_joint_v1_epoch_013": {
+      "by_radius": {
+        "1.0": {
+          "overall_f1": 0.20294009555310547,
+          "overall_precision": 0.20204903036955726,
+          "overall_recall": 0.2038390550018457,
+          "person_f1": 0.14921656117048873,
+          "person_fn": 3918,
+          "person_fp": 4281,
+          "person_precision": 0.1438,
+          "person_recall": 0.15505714901876214,
+          "person_tp": 719,
+          "person_xy_mae_m": 0.5835340597492219,
+          "vehicle_f1": 0.23240198031070392,
+          "vehicle_fn": 6866,
+          "vehicle_fp": 6623,
+          "vehicle_precision": 0.2356607039815349,
+          "vehicle_recall": 0.22923215087561744,
+          "vehicle_tp": 2042,
+          "vehicle_xy_mae_m": 0.5862304679386693
+        },
+        "2.0": {
+          "overall_f1": 0.35420801176038225,
+          "overall_precision": 0.3526527625320161,
+          "overall_recall": 0.35577703949796974,
+          "person_f1": 0.2824530455535955,
+          "person_fn": 3276,
+          "person_fp": 3639,
+          "person_precision": 0.2722,
+          "person_recall": 0.29350873409532025,
+          "person_tp": 1361,
+          "person_xy_mae_m": 0.9954017138944937,
+          "vehicle_f1": 0.39355829966425765,
+          "vehicle_fn": 5450,
+          "vehicle_fp": 5207,
+          "vehicle_precision": 0.39907674552798617,
+          "vehicle_recall": 0.3881903906600808,
+          "vehicle_tp": 3458,
+          "vehicle_xy_mae_m": 0.922406765207009
+        },
+        "3.0": {
+          "overall_f1": 0.4224182285924293,
+          "overall_precision": 0.42056348335162824,
+          "overall_recall": 0.42428940568475454,
+          "person_f1": 0.36110822870187814,
+          "person_fn": 2897,
+          "person_fp": 3260,
+          "person_precision": 0.348,
+          "person_recall": 0.37524261375889584,
+          "person_tp": 1740,
+          "person_xy_mae_m": 1.3195396437473512,
+          "vehicle_f1": 0.4560405167017584,
+          "vehicle_fn": 4901,
+          "vehicle_fp": 4658,
+          "vehicle_precision": 0.4624350836699365,
+          "vehicle_recall": 0.4498203861697351,
+          "vehicle_tp": 4007,
+          "vehicle_xy_mae_m": 1.1343447165423084
+        },
+        "4.0": {
+          "overall_f1": 0.46431459022418226,
+          "overall_precision": 0.4622758873033297,
+          "overall_recall": 0.46637135474344776,
+          "person_f1": 0.40614299055722736,
+          "person_fn": 2680,
+          "person_fp": 3043,
+          "person_precision": 0.3914,
+          "person_recall": 0.4220401121414708,
+          "person_tp": 1957,
+          "person_xy_mae_m": 1.5525862402185453,
+          "vehicle_f1": 0.4962157855801514,
+          "vehicle_fn": 4548,
+          "vehicle_fp": 4305,
+          "vehicle_precision": 0.5031736872475476,
+          "vehicle_recall": 0.48944768747193534,
+          "vehicle_tp": 4360,
+          "vehicle_xy_mae_m": 1.3234236129245776
+        },
+        "5.0": {
+          "overall_f1": 0.4999632488055862,
+          "overall_precision": 0.4977680204903037,
+          "overall_recall": 0.5021779254337394,
+          "person_f1": 0.43789561066722005,
+          "person_fn": 2527,
+          "person_fp": 2890,
+          "person_precision": 0.422,
+          "person_recall": 0.45503558335130473,
+          "person_tp": 2110,
+          "person_xy_mae_m": 1.7643379485018864,
+          "vehicle_f1": 0.5340010242986399,
+          "vehicle_fn": 4216,
+          "vehicle_fp": 3973,
+          "vehicle_precision": 0.5414887478361223,
+          "vehicle_recall": 0.5267175572519084,
+          "vehicle_tp": 4692,
+          "vehicle_xy_mae_m": 1.5451839702128503
+        }
+      },
+      "name": "Stage-2 selected e13",
+      "newly_accepted_3_to_5m": {
+        "person": 370,
+        "vehicle": 685
+      }
+    }
+  },
+  "visibility": {
+    "consequence": "the visibility-aware rule as specified changes no metric on this corpus, but that is a null result about frustum geometry, not a demonstration that every scored target was observable. True occlusion remains unresolved from the retained fields.",
+    "measured_facts_unchanged": {
+      "gt_out_of_range_gt40m": 50833,
+      "gt_within_40m": 13545,
+      "ignore_population_under_A_B_C": 0,
+      "parity_with_evaluator": "tp+fn == 13545 (8908 vehicle / 4637 person) for all three checkpoints",
+      "radar_support_zero_share": 0.131,
+      "rules_A_B_C_gave_identical_metrics": true
+    },
+    "terminal": "TRUE_OCCLUSION_UNRESOLVED_FROM_RETAINED_FIELDS",
+    "what_rule_B_actually_measures": "geometric camera-frustum inclusion only - positive camera depth plus a projected box with support inside the image. It is NOT a test of actual visibility and NOT a test of occlusion.",
+    "what_the_retained_fields_cannot_prove": "positive depth, projected box support and recorded radar support do not prove that an actor was visually unobstructed; no retained per-object field distinguishes a clearly observed actor from one hidden behind another object.",
+    "why_A_equals_B_is_partly_schematic": "the stored bounding boxes were already clipped to the image during collection, so the measured zero truncation and the A==B equality are partly consequences of the stored schema rather than independent evidence that no target is truncated or occluded in the world."
+  }
+}
