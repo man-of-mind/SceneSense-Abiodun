@@ -62,6 +62,15 @@ def load_eval(exp_dir: Path, tag: str) -> Optional[Dict[str, Any]]:
         "overall_recall": primary["overall_recall"],
         "overall_f1": primary["overall_f1"],
         "fp_per_frame": primary["overall_fp_per_frame"],
+        # Rates, not shares: a fraction can rise while absolute false positives fall, so the
+        # terminal cap test uses duplicate FP per frame and the fraction is context only.
+        "duplicate_fp_per_frame": primary["overall_duplicate_fp"] / max(1, primary["frames"]),
+        "non_duplicate_fp_per_frame": (
+            (primary["overall_fp"] - primary["overall_duplicate_fp"]) / max(1, primary["frames"])
+        ),
+        "duplicate_fp": primary["overall_duplicate_fp"],
+        "total_fp": primary["overall_fp"],
+        "frames": primary["frames"],
         "duplicate_fp_fraction": primary["overall_duplicate_fp_fraction"],
         "vehicle_duplicate_fp_fraction": primary["vehicle_duplicate_fp_fraction"],
         "person_duplicate_fp_fraction": primary["person_duplicate_fp_fraction"],
@@ -187,6 +196,9 @@ def main(argv: Optional[List[str]] = None) -> int:
                     "tag": selected["tag"],
                     "checkpoint": selected["checkpoint"],
                     "vehicle_precision": selected["vehicle_precision"],
+                    "duplicate_fp_per_frame": selected["duplicate_fp_per_frame"],
+                    "non_duplicate_fp_per_frame": selected["non_duplicate_fp_per_frame"],
+                    "fp_per_frame": selected["fp_per_frame"],
                     "duplicate_fp_fraction": selected["duplicate_fp_fraction"],
                     "vehicle_xy_mae_m": selected["vehicle_xy_mae_m"],
                 }
@@ -203,36 +215,68 @@ def main(argv: Optional[List[str]] = None) -> int:
                           if candidate and row["epoch"] == candidate["epoch"]), None)
 
     reasons: List[str] = []
+    # "improves vehicle precision and reduces duplicate-FP fraction" is scored against the
+    # RETRAINED CONTROL, not the frozen baseline. The two arms differ only by the vehicle
+    # radius cap, so the paired contrast is what isolates the cap's contribution, and
+    # CONTROL_ONLY_ADVANCES is itself defined as "the cap does not add benefit" - benefit
+    # over the control. The cap-vs-baseline contrast is reported alongside it because the
+    # two readings can disagree; the non-inferiority guards remain anchored to the baseline.
+    contrasts: Dict[str, Any] = {}
+    if candidate_row is not None:
+        for name, reference in (("vs_retrained_control", control_row), ("vs_frozen_baseline", base)):
+            if reference is None:
+                continue
+            contrasts[name] = {
+                "vehicle_precision_delta": candidate_row["vehicle_precision"] - reference["vehicle_precision"],
+                "duplicate_fp_per_frame_delta": candidate_row["duplicate_fp_per_frame"] - reference["duplicate_fp_per_frame"],
+                "improves_vehicle_precision": candidate_row["vehicle_precision"] > reference["vehicle_precision"],
+                "reduces_duplicate_fp_per_frame": candidate_row["duplicate_fp_per_frame"] < reference["duplicate_fp_per_frame"],
+                # secondary context, never terminal on its own
+                "duplicate_fp_fraction_delta": candidate_row["duplicate_fp_fraction"] - reference["duplicate_fp_fraction"],
+                "fp_per_frame_delta": candidate_row["fp_per_frame"] - reference["fp_per_frame"],
+                "non_duplicate_fp_per_frame_delta": (
+                    candidate_row["non_duplicate_fp_per_frame"] - reference["non_duplicate_fp_per_frame"]
+                ),
+            }
+    control_helps = control_row is not None and (
+        control_row["vehicle_precision"] > base["vehicle_precision"]
+        or control_row["overall_f1"] > base["overall_f1"]
+    )
     if candidate_row is None:
-        decision = "NO_PILOT_ADVANCES" if control_row is None else "CONTROL_ONLY_ADVANCES"
+        decision = "CONTROL_ONLY_ADVANCES" if control_helps else "NO_PILOT_ADVANCES"
         reasons.append("no capped-arm epoch satisfied every non-inferiority guard")
-        if control_row is not None:
-            reasons.append("a control epoch is feasible, so Route B retraining itself is viable")
+    elif control_row is None:
+        decision = "NO_PILOT_ADVANCES"
+        reasons.append("no control epoch was feasible, so the paired cap contrast is undefined")
     else:
-        cap_beats_control_precision = candidate_row["vehicle_precision"] > (
-            control_row["vehicle_precision"] if control_row else base["vehicle_precision"]
-        )
-        cap_beats_control_duplicates = candidate_row["duplicate_fp_fraction"] < (
-            control_row["duplicate_fp_fraction"] if control_row else base["duplicate_fp_fraction"]
-        )
-        cap_beats_base_precision = candidate_row["vehicle_precision"] > base["vehicle_precision"]
-        cap_beats_base_duplicates = candidate_row["duplicate_fp_fraction"] < base["duplicate_fp_fraction"]
-        if (cap_beats_control_precision and cap_beats_control_duplicates
-                and cap_beats_base_precision and cap_beats_base_duplicates):
+        paired = contrasts["vs_retrained_control"]
+        if paired["improves_vehicle_precision"] and paired["reduces_duplicate_fp_per_frame"]:
             decision = "CAP_CANDIDATE_ADVANCES"
-            reasons.append("the capped candidate improves vehicle precision and reduces the "
-                           "duplicate-FP fraction versus both the frozen baseline and the "
-                           "retrained control, under every non-inferiority guard")
-        elif control_row is not None and (
-            control_row["vehicle_precision"] > base["vehicle_precision"]
-            or control_row["duplicate_fp_fraction"] < base["duplicate_fp_fraction"]
-        ):
+            reasons.append(
+                "versus the selected control epoch the capped candidate improves vehicle "
+                f"precision by {paired['vehicle_precision_delta']:+.4f} and reduces duplicate "
+                f"FP/frame by {paired['duplicate_fp_per_frame_delta']:+.4f}, under every "
+                "non-inferiority guard"
+            )
+        elif control_helps:
             decision = "CONTROL_ONLY_ADVANCES"
-            reasons.append("Route B retraining helps, but the cap adds no further benefit "
-                           "on vehicle precision and duplicate-FP fraction together")
+            reasons.append(
+                "Route B retraining helps, but the cap does not add benefit: versus the selected "
+                f"control epoch it moves vehicle precision {paired['vehicle_precision_delta']:+.4f} "
+                f"and duplicate FP/frame {paired['duplicate_fp_per_frame_delta']:+.4f}, and both "
+                "must move favourably"
+            )
         else:
             decision = "NO_PILOT_ADVANCES"
             reasons.append("neither arm improves on the frozen baseline under the registered criteria")
+    if candidate_row is not None and "vs_frozen_baseline" in contrasts:
+        vb = contrasts["vs_frozen_baseline"]
+        reasons.append(
+            "for reference, versus the frozen baseline the capped candidate moves vehicle "
+            f"precision {vb['vehicle_precision_delta']:+.4f}, duplicate FP/frame "
+            f"{vb['duplicate_fp_per_frame_delta']:+.4f} and the duplicate-FP fraction "
+            f"{vb['duplicate_fp_fraction_delta']:+.4f}"
+        )
 
     report = {
         "experiment_dir": str(exp_dir),
@@ -245,6 +289,15 @@ def main(argv: Optional[List[str]] = None) -> int:
             "retrained_control": control_row,
             "capped_candidate": candidate_row,
         },
+        "cap_contrasts": contrasts,
+        "decision_criterion": (
+            "Both arms are screened against the frozen-baseline recall / XY MAE / segmentation "
+            "IoU / dimension guardrails. CAP_CANDIDATE_ADVANCES then requires the selected capped "
+            "epoch to show HIGHER vehicle precision AND LOWER duplicate FP per frame than the "
+            "SELECTED CONTROL EPOCH (the paired arm differs only by the cap). Duplicate-FP "
+            "fraction is reported as secondary context alongside total FP/frame and "
+            "non-duplicate FP/frame, and never determines the terminal on its own."
+        ),
         "terminal_decision": decision,
         "decision_reasons": reasons,
         "scope": "pilot decision only; not deployment approval",
