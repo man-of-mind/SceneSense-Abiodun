@@ -378,7 +378,10 @@ def evaluate_checkpoint(args: argparse.Namespace) -> int:
                     feats_rt = type(feats_rt)((k, (ae.decode(v) if k == "high" else v)) for k, v in feats_rt.items())
                 outputs = split_codec["split"].decode_outputs(feats_rt, split_codec["out_hw"])
             else:
-                outputs = model(fused_tensor)
+                # Anchor-exact evaluation: q is the SAME objectness rank-drop the model
+                # was trained on (model.forward -> _objectness_drop). q=0.0 is a
+                # structural no-op, so the default path is byte-identical to before.
+                outputs = model(fused_tensor, feature_drop_fraction=float(getattr(args, "feature_drop_fraction", 0.0)))
             logits = F.interpolate(outputs["out"], size=output_hw, mode="bilinear", align_corners=False)
             pred = logits.argmax(dim=1).squeeze(0).detach().cpu().numpy().astype(np.int64)
             gt = load_mask(dataset_dir / row["mask_path"])
@@ -649,6 +652,9 @@ def main() -> None:
     parser.add_argument("--checkpoint", required=True)
     parser.add_argument("--split", default="test", choices=("train", "val", "test"))
     parser.add_argument("--input-size", nargs=2, type=int, default=None)
+    parser.add_argument("--feature-drop-fraction", type=float, default=0.0,
+                        help="Objectness rank-drop fraction q applied at inference, matching the "
+                             "training anchors {0.00,0.30,0.50,0.70,0.90,0.98}. 0.0 = clean (no-op).")
     parser.add_argument("--object-score-threshold", type=float, default=None)
     parser.add_argument("--object-nms-radius-px", type=int, default=None)
     parser.add_argument("--topk-objects", type=int, default=None)

@@ -274,14 +274,91 @@ def build_object_targets(
     }
 
 
-def focal_heatmap_loss(logits: torch.Tensor, target: torch.Tensor, *, alpha: float = 2.0, beta: float = 4.0) -> torch.Tensor:
+def focal_heatmap_loss(
+    logits: torch.Tensor,
+    target: torch.Tensor,
+    *,
+    alpha: float = 2.0,
+    beta: float = 4.0,
+    pos_weight: Optional[torch.Tensor] = None,
+    weight_cap: float = 4.0,
+    class_balanced: bool = False,
+    stats: Optional[Dict[str, float]] = None,
+) -> torch.Tensor:
+    """CornerNet-style focal heatmap loss.
+
+    With ``pos_weight=None`` this is bit-identical to the original pooled form.
+
+    With ``class_balanced=True`` the POSITIVE term becomes a macro-average over the
+    object classes that actually have positives in this batch, and ``pos_weight`` is
+    renormalised to mean 1.0 *within each class independently*. Two consequences that
+    are the whole point of the change:
+
+      * vehicle cell count can no longer dominate person learning - each class
+        contributes one equally-weighted per-positive mean, regardless of how many
+        cells it owns;
+      * the positive-loss budget is fixed - both the pooled and the macro-averaged
+        form are a "mean focal loss per positive cell", so reweighting can only
+        redistribute gradient, never inflate it. A handful of far/small objects
+        cannot take over training.
+
+    The BACKGROUND (negative) term is left exactly as it was, including its original
+    ``pos_count`` denominator, so the positive:negative balance is not silently moved.
+    Classes with zero positives in a batch are skipped safely and contribute nothing.
+    """
     pred = torch.sigmoid(logits).clamp(min=1e-4, max=1.0 - 1e-4)
     pos = target.ge(1.0 - 1e-3).to(logits.dtype)
     neg = (1.0 - pos).to(logits.dtype)
     pos_loss = -torch.log(pred) * torch.pow(1.0 - pred, alpha) * pos
     neg_loss = -torch.log(1.0 - pred) * torch.pow(pred, alpha) * torch.pow(1.0 - target, beta) * neg
     pos_count = pos.sum().clamp(min=1.0)
-    return (pos_loss.sum() + neg_loss.sum()) / pos_count
+
+    if pos_weight is None and not class_balanced:
+        return (pos_loss.sum() + neg_loss.sum()) / pos_count
+
+    cap = float(weight_cap)
+    if pos_weight is None:
+        w = torch.ones_like(pos)
+    else:
+        w = pos_weight.to(logits.dtype).expand_as(pos).clamp(min=0.0, max=cap)
+
+    num_classes = int(pos.shape[1])
+    per_class_mean: List[torch.Tensor] = []
+    per_class_count: List[torch.Tensor] = []
+    max_w_seen = 0.0
+    for c in range(num_classes):
+        pos_c = pos[:, c]
+        n_c = pos_c.sum()
+        if float(n_c.detach().item()) < 0.5:
+            # No positives for this class in this batch: skip it entirely. Never
+            # divide by zero, never fabricate a gradient for an absent class.
+            continue
+        # Renormalise this class's weights to mean 1.0 over ITS OWN positives.
+        w_c = w[:, c] * pos_c
+        w_c = w_c * (n_c / w_c.sum().clamp(min=1e-6))
+        per_class_mean.append((pos_loss[:, c] * w_c).sum() / n_c)
+        per_class_count.append(n_c)
+        if stats is not None:
+            max_w_seen = max(max_w_seen, float(w_c.max().detach().item()))
+            stats[f"pos_mean_w_class{c}"] = float((w_c.sum() / n_c).detach().item())
+            stats[f"pos_count_class{c}"] = float(n_c.detach().item())
+            stats[f"pos_mean_loss_class{c}"] = float(per_class_mean[-1].detach().item())
+
+    if not per_class_mean:
+        pos_term = pos_loss.sum() * 0.0
+    elif class_balanced:
+        # Macro-average: one equally-weighted vote per class present.
+        pos_term = torch.stack(per_class_mean).mean()
+    else:
+        # Pooled (cell-count-weighted) mean, i.e. the original balance with weights.
+        counts = torch.stack(per_class_count)
+        pos_term = (torch.stack(per_class_mean) * counts).sum() / counts.sum().clamp(min=1.0)
+
+    if stats is not None:
+        stats["pos_max_weight"] = max_w_seen
+        stats["pos_classes_present"] = float(len(per_class_mean))
+
+    return pos_term + neg_loss.sum() / pos_count
 
 
 def multitask_object_loss(outputs: torch.Tensor, targets: Dict[str, torch.Tensor], weights: Dict[str, float]) -> Tuple[torch.Tensor, Dict[str, float]]:
@@ -298,7 +375,41 @@ def multitask_object_loss(outputs: torch.Tensor, targets: Dict[str, torch.Tensor
     reg_target = targets["regression"].to(outputs.device)
     has_bbox2d = int(regs.shape[1]) >= OBJECT_REG_CHANNELS_BBOX and int(reg_target.shape[1]) >= OBJECT_REG_CHANNELS_BBOX
     reg_mask = targets["regression_mask"].to(outputs.device)
-    center_loss = focal_heatmap_loss(center_logits, heatmap)
+
+    # Bounded range/size positive weighting, built from targets that are already on
+    # device - no new dataloader field and no new target tensor.
+    #   local_x/local_y (REG_LOCAL_XYZ[0:2]) are raw METRES  -> the 20-40 m band;
+    #   REG_BBOX_WH are input-image FRACTIONS                -> the small-object test.
+    # Weights are capped per element and renormalised to mean 1.0 within each class
+    # by focal_heatmap_loss, so the positive-loss budget is fixed.
+    pos_weight = None
+    center_stats: Dict[str, float] = {}
+    use_pos_weight = bool(weights.get("pos_weight_enable", False))
+    class_balanced = bool(weights.get("class_balanced_center", False))
+    if use_pos_weight:
+        m = reg_mask  # (B,1,H,W), 1.0 at positive cells
+        if has_bbox2d:
+            gw = reg_target[:, REG_BBOX_WH.start: REG_BBOX_WH.start + 1].clamp(min=0.0)
+            gh = reg_target[:, REG_BBOX_WH.start + 1: REG_BBOX_WH.start + 2].clamp(min=0.0)
+            small = ((gw * gh) < float(weights.get("small_area_frac", 0.003))).to(reg_target.dtype) * m
+        else:
+            small = torch.zeros_like(m)
+        rng = torch.linalg.vector_norm(reg_target[:, 0:2], dim=1, keepdim=True)
+        lo = float(weights.get("range_band_lo_m", 20.0))
+        hi = float(weights.get("range_band_hi_m", 40.0))
+        band = ((rng >= lo) & (rng < hi)).to(reg_target.dtype) * m
+        pos_weight = (
+            (1.0 + float(weights.get("small_gain", 1.0)) * small)
+            * (1.0 + float(weights.get("range_gain", 0.8)) * band)
+        )
+    center_loss = focal_heatmap_loss(
+        center_logits,
+        heatmap,
+        pos_weight=pos_weight,
+        weight_cap=float(weights.get("pos_weight_cap", 4.0)),
+        class_balanced=class_balanced,
+        stats=center_stats,
+    )
     denom = reg_mask.sum().clamp(min=1.0)
     mask = reg_mask.expand_as(regs)
     loc_loss = F.smooth_l1_loss(regs[:, REG_LOCAL_XYZ] * mask[:, REG_LOCAL_XYZ], reg_target[:, REG_LOCAL_XYZ] * mask[:, REG_LOCAL_XYZ], reduction="sum") / denom
@@ -353,6 +464,7 @@ def multitask_object_loss(outputs: torch.Tensor, targets: Dict[str, torch.Tensor
         "radar_support_loss": float(radar_loss.detach().item()),
         "bbox2d_loss": float(bbox_loss.detach().item()),
     }
+    parts.update(center_stats)
     return total, parts
 
 

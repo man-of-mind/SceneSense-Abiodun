@@ -174,9 +174,15 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser.add_argument("--config", required=True)
     parser.add_argument("--split", default="val")
     parser.add_argument("--duplicate-radius-m", type=float, default=3.0)
+    parser.add_argument("--feature-drop-fraction", type=float, default=0.0,
+                        help="Objectness rank-drop fraction q at inference. 0.0 = clean "
+                             "(structural no-op, identical to the original decode path).")
     parser.add_argument("--python", default=sys.executable)
     args = parser.parse_args(argv)
 
+    # The evaluator subprocess runs with cwd=PKG_ROOT, so a relative --config would
+    # resolve against the wrong directory and fail. Always hand it an absolute path.
+    config_path = str(Path(args.config).expanduser().resolve(strict=True))
     exp_dir = args.experiment_dir.resolve()
     out_dir = exp_dir / "eval" / args.tag
     if out_dir.exists():
@@ -186,7 +192,7 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     command = [
         args.python, "-m", "pole_lraspp_multimodal_fusion.evaluate_fusion",
-        "--config", str(args.config),
+        "--config", config_path,
         "--experiment-dir", str(exp_dir),
         "--checkpoint", str(checkpoint),
         "--split", args.split,
@@ -196,6 +202,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         "--object-nms-radius-px", str(FIXED_DECODER["object_nms_radius_px"]),
         "--match-distance-m", str(FIXED_DECODER["match_distance_m"]),
         "--max-gt-distance-m", str(FIXED_DECODER["max_gt_distance_m"]),
+        "--feature-drop-fraction", str(float(args.feature_drop_fraction)),
     ]
     print(" ".join(command), flush=True)
     result = subprocess.run(command, cwd=str(PKG_ROOT))
@@ -228,6 +235,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         "checkpoint": str(checkpoint),
         "split": args.split,
         "fixed_decoder": FIXED_DECODER,
+        "feature_drop_fraction": float(args.feature_drop_fraction),
         "duplicate_fp_definition": (
             "a prediction is a duplicate when another prediction of the same class, in the "
             "same frame, with a strictly higher score, lies within duplicate_radius_m of it "

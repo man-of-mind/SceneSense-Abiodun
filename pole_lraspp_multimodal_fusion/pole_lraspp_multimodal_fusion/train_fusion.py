@@ -711,6 +711,32 @@ def train(args: argparse.Namespace) -> int:
     # representative operating point (default q_max/2) instead of clean q=0 -> otherwise selection keeps
     # the least drop-adapted epoch. Clean q=0 is guarded separately at GATE A. 0 => clean val (default).
     feature_drop_val = float(trial.get("feature_drop_val", feature_drop_max * 0.5))
+    # Anchor-exact drop curriculum (supersedes the Uniform(0, feature_drop_max) sampler
+    # when present): sample q CATEGORICALLY and UNIFORMLY from the registered measured
+    # split anchors, so training support is exactly the deployed action set - including
+    # exact q=0.00, which the continuous sampler could never produce (probability zero)
+    # and which is the path 1/4 of the 72-action registry actually uses.
+    _drop_anchor_cfg = trial.get("feature_drop_values", train_cfg.get("feature_drop_values"))
+    feature_drop_values: Optional[List[float]] = (
+        sorted(float(v) for v in _drop_anchor_cfg) if _drop_anchor_cfg else None
+    )
+    if feature_drop_values is not None and len(feature_drop_values) < 2:
+        raise ValueError("feature_drop_values needs at least two anchors")
+    # Hybrid q distribution:
+    #   with probability feature_drop_anchor_prob  -> an EXACT registered anchor,
+    #                                                 drawn uniformly (explicit
+    #                                                 exact-anchor exposure, incl. q=0.00);
+    #   otherwise                                  -> a STRATIFIED continuous draw,
+    #                                                 one of the len(anchors)-1 open
+    #                                                 intervals picked uniformly, then
+    #                                                 uniform inside it.
+    # Equal mass per stratum (not width-proportional) so the narrow 0.90-0.98 gap is
+    # covered as densely as the wide 0.00-0.30 one.
+    feature_drop_anchor_prob = float(
+        trial.get("feature_drop_anchor_prob", train_cfg.get("feature_drop_anchor_prob", 1.0))
+    )
+    if not (0.0 <= feature_drop_anchor_prob <= 1.0):
+        raise ValueError(f"feature_drop_anchor_prob must be in [0,1], got {feature_drop_anchor_prob}")
     # Seg-distillation teacher: a frozen copy of the seg model (from the distill
     # checkpoint, defaulting to the seg init checkpoint) anchors the student's seg
     # output while the backbone partially adapts for localization.
@@ -828,12 +854,38 @@ def train(args: argparse.Namespace) -> int:
         if freeze_bn:
             _freeze_batch_norm(model)
         losses: List[float] = []
+        drop_hist: Dict[float, int] = {float(v): 0 for v in (feature_drop_values or [])}
+        drop_cont_hist: Dict[str, int] = (
+            {f"({feature_drop_values[i]:.2f},{feature_drop_values[i + 1]:.2f})": 0
+             for i in range(len(feature_drop_values) - 1)}
+            if feature_drop_values and feature_drop_anchor_prob < 1.0 else {}
+        )
         for tensors, masks, object_targets in train_loader:
             tensors = tensors.to(device, non_blocking=True)
             masks = masks.to(device, non_blocking=True)
             object_targets = _move_object_targets(object_targets, device)
             optimizer.zero_grad(set_to_none=True)
-            q_drop = float(torch.rand(1).item()) * feature_drop_max if feature_drop_max > 0.0 else 0.0
+            if feature_drop_values is not None:
+                if float(torch.rand(1).item()) < feature_drop_anchor_prob:
+                    # EXACT anchor, uniform. Exact q=0.00 batches are real training
+                    # batches: model.forward skips _objectness_drop for them, so the clean
+                    # path gets true forward AND backward passes, not an extrapolation.
+                    _idx = int(torch.randint(0, len(feature_drop_values), (1,)).item())
+                    q_drop = float(feature_drop_values[_idx])
+                    drop_hist[q_drop] += 1
+                else:
+                    # Stratified continuous draw between two consecutive anchors. The
+                    # probability of landing exactly on an anchor is zero, so this branch
+                    # never dilutes the exact-anchor exposure above.
+                    _s = int(torch.randint(0, len(feature_drop_values) - 1, (1,)).item())
+                    _lo = float(feature_drop_values[_s])
+                    _hi = float(feature_drop_values[_s + 1])
+                    q_drop = _lo + (_hi - _lo) * float(torch.rand(1).item())
+                    drop_cont_hist[f"({_lo:.2f},{_hi:.2f})"] += 1
+            elif feature_drop_max > 0.0:
+                q_drop = float(torch.rand(1).item()) * feature_drop_max
+            else:
+                q_drop = 0.0
             # cache_enabled=False is required, not a tuning knob. Drop-aware training runs the
             # object head once under torch.no_grad() inside _objectness_drop to get the objectness
             # ranking; with the autocast weight cache on, that no-grad pass caches detached half
@@ -1017,6 +1069,8 @@ def train(args: argparse.Namespace) -> int:
             f"clean_miou={val_metrics.get('clean_miou', float('nan')):.4f} "
             f"vehicle_iou={val_metrics.get('vehicle_iou', float('nan')):.4f} "
             f"loc_loss={val_metrics.get('loc_loss', float('nan')):.4f} dim_loss={val_metrics.get('dim_loss', float('nan')):.4f}"
+            + (f" drop_hist={json.dumps({f'{k:.2f}': v for k, v in sorted(drop_hist.items())})}" if drop_hist else "")
+            + (f" drop_cont_hist={json.dumps(drop_cont_hist)}" if drop_cont_hist else "")
         )
         if patience > 0 and stale_epochs >= patience:
             log(f"Early stopping {trial_name} after {stale_epochs} stale epochs.")
