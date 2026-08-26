@@ -39,9 +39,14 @@ ANCHOR_DEGRADED = 0.90
 
 
 def main() -> int:
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--trial-json", default=str(HERE / "configs" / "focused_noae_v1.json"))
+    ap.add_argument("--exp-dir", default="")
+    a = ap.parse_args()
     cfg_path = HERE / "configs" / "route_b_noae_precision_pilot_v1.yaml"
-    trial = json.loads((HERE / "configs" / "focused_noae_v1.json").read_text())
-    exp_dir = Path((HERE / "FOCUSED_EXP_DIR.txt").read_text().strip())
+    trial = json.loads(Path(a.trial_json).read_text())
+    exp_dir = Path(a.exp_dir) if a.exp_dir else Path((HERE / "FOCUSED_EXP_DIR.txt").read_text().strip())
 
     install(trial["object_heads"].get("vehicle_heatmap_radius_cap_px"))
 
@@ -82,6 +87,19 @@ def main() -> int:
         device=device,
     ).to(device)
     tf._load_object_head_checkpoint(model, str(trial["init_object_checkpoint"]), device=device)
+    # Attach the integrated feature-AE exactly as train_fusion does: after the
+    # warm-start load, before the optimizer, warm-started from the family's own weights.
+    ae_bn = int(trial.get("ae_bottleneck", 0))
+    if ae_bn > 0:
+        sys.path.insert(0, str(ABIODUN / "rl_agent" / "feature_ae"))
+        from ae_model import build_ae
+        hi_ch = int(model.classifier.cbr[0].in_channels)
+        ae = build_ae(str(trial.get("ae_arch", "v2")), hi_ch, ae_bn).to(device)
+        ae_ck = torch.load(str(trial["ae_init_checkpoint"]), map_location=device, weights_only=False)
+        ae.load_state_dict(ae_ck["ae_state"])
+        model.feature_ae = ae
+        print(f"AE attached: bottleneck={ae_bn} in_ch={hi_ch} "
+              f"params={sum(p.numel() for p in ae.parameters()):,}", flush=True)
     assert model.head_arch == "shared" and model.object_head is not None, "shared head required"
     model.train()
     tf._freeze_batch_norm(model)
@@ -97,7 +115,7 @@ def main() -> int:
 
     scaler = torch.cuda.amp.GradScaler(enabled=bool(train_cfg.get("amp", True)) and device.type == "cuda")
     final_conv = model.object_head[-1]
-    report: dict = {"anchors": {}}
+    report: dict = {"anchors": {}, "trial": trial.get("name"), "ae_bottleneck": int(trial.get("ae_bottleneck", 0))}
     failures: list[str] = []
 
     for q in (0.0, ANCHOR_DEGRADED):
@@ -132,6 +150,12 @@ def main() -> int:
                     entry[f"{k}{c}"] = parts[f"{k}{c}"]
         report["anchors"][f"q={q:.2f}"] = entry
 
+        if ae_bn > 0:
+            agw = [q.grad for q in model.feature_ae.parameters() if q.grad is not None]
+            an = float(sum(float(g.detach().float().norm().item() ** 2) for g in agw) ** 0.5) if agw else 0.0
+            entry["ae_grad_norm"] = an
+            if not (an > 0.0):
+                failures.append(f"C5 q={q}: feature_ae grad norm is {an} (AE not training)")
         # C1
         if not entry["loss_finite"]:
             failures.append(f"C1 q={q}: non-finite loss {entry['loss']}")
