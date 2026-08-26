@@ -530,8 +530,14 @@ def train(args: argparse.Namespace) -> int:
     input_width, input_height = [int(v) for v in trial.get("input_size", train_cfg.get("input_size", [512, 288]))]
     num_classes = int(train_cfg.get("num_classes", 3))
     radar_channels = int(fusion_cfg.get("radar_channels", 4))
-    trial_seed = int(hashlib.sha1(trial_name.encode("utf-8")).hexdigest()[:8], 16)
-    seed = int(config["collection"].get("seed", 17)) ^ trial_seed
+    # An explicit trial-level seed makes paired arms comparable: two trials with
+    # different names would otherwise derive different seeds from the name hash,
+    # so data order, augmentation and init noise would differ between the arms.
+    if trial.get("training_seed") is not None:
+        seed = int(trial["training_seed"])
+    else:
+        trial_seed = int(hashlib.sha1(trial_name.encode("utf-8")).hexdigest()[:8], 16)
+        seed = int(config["collection"].get("seed", 17)) ^ trial_seed
     set_reproducible_seeds(seed)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     log(
@@ -786,6 +792,9 @@ def train(args: argparse.Namespace) -> int:
         "radar_support_loss",
         "gt_objects",
         "lr",
+        "epoch_seconds",
+        "cuda_max_memory_allocated_mib",
+        "cuda_max_memory_reserved_mib",
         "timestamp",
     ]
     if not metrics_path.exists():
@@ -796,7 +805,14 @@ def train(args: argparse.Namespace) -> int:
     patience = int(trial.get("early_stop_patience", train_cfg.get("early_stop_patience", 3)))
     stale_epochs = 0
     max_epochs = int(trial.get("epochs", train_cfg.get("epochs", 8)))
+    # Opt-in per-epoch checkpointing; 0 (the default) keeps the best/last-only behaviour.
+    checkpoint_every_epochs = int(
+        trial.get("checkpoint_every_epochs", train_cfg.get("checkpoint_every_epochs", 0))
+    )
     for epoch in range(start_epoch, max_epochs):
+        epoch_started = time.monotonic()
+        if device.type == "cuda":
+            torch.cuda.reset_peak_memory_stats(device)
         if time.monotonic() >= deadline:
             log(f"Training budget exhausted during {trial_name}; checkpointing and stopping.")
             break
@@ -881,6 +897,15 @@ def train(args: argparse.Namespace) -> int:
             "radar_support_loss": val_metrics.get("radar_support_loss", float("nan")),
             "gt_objects": val_metrics.get("gt_objects", 0.0),
             "lr": float(optimizer.param_groups[0].get("lr", trial.get("lr", 2e-4))),
+            "epoch_seconds": float(time.monotonic() - epoch_started),
+            "cuda_max_memory_allocated_mib": (
+                float(torch.cuda.max_memory_allocated(device)) / (1024.0 ** 2)
+                if device.type == "cuda" else float("nan")
+            ),
+            "cuda_max_memory_reserved_mib": (
+                float(torch.cuda.max_memory_reserved(device)) / (1024.0 ** 2)
+                if device.type == "cuda" else float("nan")
+            ),
             "timestamp": utc_iso(),
         }
         with metrics_path.open("a", newline="", encoding="utf-8") as fh:
@@ -890,7 +915,12 @@ def train(args: argparse.Namespace) -> int:
             best_score = float(val_metrics["selection_score"])
             best_miou = float(val_metrics["miou"])
             stale_epochs = 0
-            torch.save(
+        else:
+            stale_epochs += 1
+        # One snapshot payload, written to best.pt when the selection score improves and,
+        # when checkpoint_every_epochs is enabled, to a per-epoch create-only file so a
+        # post-hoc criterion (e.g. precision-aware selection) can score every epoch.
+        epoch_snapshot = (
                 {
                     "model": model.state_dict(),
                     "epoch": epoch,
@@ -925,11 +955,18 @@ def train(args: argparse.Namespace) -> int:
                     "freeze_classifier": freeze_classifier,
                     "freeze_object_head": freeze_object_head,
                     "model_task": "segmentation_plus_learned_object_localization",
-                },
-                best_path,
-            )
-        else:
-            stale_epochs += 1
+                }
+        )
+        if improved:
+            torch.save(epoch_snapshot, best_path)
+        if checkpoint_every_epochs > 0 and (epoch + 1) % checkpoint_every_epochs == 0:
+            epoch_path = trial_dir / f"epoch_{epoch:03d}.pt"
+            if epoch_path.exists():
+                raise FileExistsError(
+                    f"refusing to overwrite an existing per-epoch checkpoint: {epoch_path}"
+                )
+            torch.save(epoch_snapshot, epoch_path)
+            log(f"{trial_name} epoch={epoch} checkpoint written to {epoch_path}")
         torch.save(
             {
                 "model": model.state_dict(),

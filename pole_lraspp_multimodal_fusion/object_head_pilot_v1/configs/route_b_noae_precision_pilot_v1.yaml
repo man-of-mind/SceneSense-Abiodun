@@ -1,0 +1,38 @@
+# Route B noAE precision pilot - base config.
+#
+# Overlays configs/fusion_full_run.yaml (the package default) with only what this
+# pilot fixes. The GT contract is inherited unchanged: 40 m eligibility (set per
+# trial via object_heads.max_gt_distance_m and passed to the evaluator as
+# --max-gt-distance-m), 12 px minimum GT box area, person 2D-box mask provenance,
+# 4 radar channels, the 200 ms radar window and 768x432 input.
+experiment_name: route_b_noae_precision_pilot_v1
+
+training:
+  input_size: [768, 432]
+  amp: true
+  pretrained: false
+  # The RGB-only reference model is not part of this pilot's decision and would
+  # add a second forward pass over every validation frame in every evaluation.
+  baseline_rgb_checkpoint: ''
+  # Opt-in per-epoch checkpoints so a post-hoc criterion can score every epoch.
+  checkpoint_every_epochs: 1
+
+object_heads:
+  object_classes: [vehicle, person]
+  hidden_channels: 128
+  max_objects_per_frame: 64
+  min_gt_area_px: 12.0
+  fuse_low_feature: true
+
+fusion:
+  radar_channels: 4
+
+# Fixed production decoder for every evaluation in this pilot: the same
+# thresholds for the frozen baseline and for every epoch of both arms. No
+# per-epoch, per-arm, per-density or per-class threshold tuning.
+evaluation:
+  object_score_threshold: 0.20
+  topk_objects: 120
+  object_nms_radius_px: 2
+  match_distance_m: 3.0
+  classical_radar_diagnostic: false
