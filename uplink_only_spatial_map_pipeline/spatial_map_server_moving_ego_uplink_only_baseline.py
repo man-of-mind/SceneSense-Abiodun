@@ -156,6 +156,28 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--api-port", type=int, default=DEFAULT_API_PORT, help="Flask API port.")
     parser.add_argument("--udp-host", default="0.0.0.0", help="UDP ingest bind host.")
     parser.add_argument("--udp-port", type=int, default=DEFAULT_UDP_PORT, help="UDP ingest port.")
+    parser.add_argument(
+        "--install-feedback-host",
+        default="",
+        help=(
+            "Optional UE/supervisor host for authoritative map-install feedback. "
+            "No ACK is emitted when this is empty."
+        ),
+    )
+    parser.add_argument(
+        "--install-feedback-port",
+        type=int,
+        default=0,
+        help="UDP port for authoritative ACK_INSTALLED/NACK_REJECTED feedback.",
+    )
+    parser.add_argument(
+        "--default-action-id",
+        default="",
+        help=(
+            "Fixed registered action ID for this one-cell map process. Used "
+            "only when the legacy spatial packet does not carry action_id."
+        ),
+    )
     parser.add_argument("--carla-host", default="127.0.0.1", help="CARLA server host.")
     parser.add_argument("--carla-port", type=int, default=2000, help="CARLA server port.")
     parser.add_argument(
@@ -353,6 +375,61 @@ def _append_map_metrics(row: Dict[str, object]) -> None:
     with map_metrics_lock:
         map_metrics_writer.writerow(clean)
         map_metrics_file.flush()
+
+
+def _emit_install_feedback(
+    sock: socket.socket,
+    *,
+    status: str,
+    payload: Optional[Dict[str, object]],
+    normalized: Optional[Dict[str, object]],
+    install_timestamp: Optional[float],
+    rejection_reason: str = "",
+) -> None:
+    """Emit feedback only from the recipient map endpoint.
+
+    ``ACK_INSTALLED`` is called after ``latest_streams`` has been updated under
+    its lock.  Edge inference/tail completion is intentionally not an ACK
+    source.  Malformed or schema-rejected packets use ``NACK_REJECTED``.
+    """
+    cfg = _config()
+    host = str(getattr(cfg, "install_feedback_host", "") or "").strip()
+    port = int(getattr(cfg, "install_feedback_port", 0) or 0)
+    if not host or port <= 0:
+        return
+    source = normalized if normalized is not None else (payload or {})
+    timing = source.get("timing") if isinstance(source.get("timing"), dict) else {}
+    capture_timestamp = source.get("capture_timestamp")
+    if capture_timestamp in (None, ""):
+        capture_timestamp = timing.get("t_capture_wall_s", source.get("timestamp", ""))
+    frame_id = source.get("frame_id", "")
+    stream_id = str(source.get("stream_id") or source.get("node_id") or "")
+    feedback_emit_at = time.time()
+    message = {
+        "schema": "scenesense.map_install_feedback.v1",
+        "frame_id": frame_id,
+        "capture_id": str(source.get("capture_id") or f"{stream_id}:{frame_id}"),
+        "capture_timestamp": capture_timestamp,
+        "action_id": str(source.get("action_id") or ""),
+        "stream_id": stream_id,
+        "install_timestamp": install_timestamp if install_timestamp is not None else "",
+        "feedback_emit_at": feedback_emit_at,
+        "result_status": (
+            "DECODED_RESULT_ACCEPTED_AND_INSTALLED"
+            if status == "ACK_INSTALLED"
+            else "RESULT_REJECTED"
+        ),
+        "status": status,
+        "accepted": status == "ACK_INSTALLED",
+        "rejection_reason": rejection_reason,
+    }
+    encoded = json.dumps(message, allow_nan=False, separators=(",", ":")).encode("utf-8")
+    try:
+        sock.sendto(encoded, (host, port))
+    except OSError as exc:
+        # Map installation has already happened; feedback transport failure is
+        # observed by the UE as TIMEOUT_NO_ACK and must not undo installation.
+        print(f"[UDP] Install-feedback send error: {exc}")
 
 
 def _close_map_metrics_logger() -> None:
@@ -703,6 +780,9 @@ def _normalize_packet(payload: Dict[str, object], received_at: float) -> Dict[st
         "traffic_light_actor_id": _safe_int(payload.get("traffic_light_actor_id"), -1),
         "traffic_light_opendrive_id": str(payload.get("traffic_light_opendrive_id") or ""),
         "frame_id": frame_id,
+        "capture_id": str(payload.get("capture_id") or f"{stream_id}:{frame_id}"),
+        "capture_timestamp": payload.get("capture_timestamp", ""),
+        "action_id": str(payload.get("action_id") or getattr(_config(), "default_action_id", "") or ""),
         "timestamp": _safe_float(payload.get("timestamp"), received_at),
         "carla_timestamp": _safe_float(payload.get("carla_timestamp"), 0.0),
         "received_at": received_at,
@@ -1591,20 +1671,50 @@ def udp_listener_thread() -> None:
 
         received_at = time.time()
         t_map_ingest_perf = time.perf_counter()
+        payload: Optional[Dict[str, object]] = None
+        normalized: Optional[Dict[str, object]] = None
+        map_installed = False
         try:
             payload = json.loads(zlib.decompress(data).decode("utf-8"))
             if not isinstance(payload, dict):
+                _emit_install_feedback(
+                    sock,
+                    status="NACK_REJECTED",
+                    payload=None,
+                    normalized=None,
+                    install_timestamp=None,
+                    rejection_reason="DECODED_PAYLOAD_NOT_OBJECT",
+                )
                 continue
             normalized = _normalize_packet(payload, received_at)
             if normalized["schema"] and normalized["schema"] != SPATIAL_STREAM_SCHEMA:
-                print(f"[UDP] Warning: unexpected schema {normalized['schema']!r}")
+                reason = f"UNEXPECTED_SCHEMA:{normalized['schema']}"
+                print(f"[UDP] Rejecting unexpected schema {normalized['schema']!r}")
+                _emit_install_feedback(
+                    sock,
+                    status="NACK_REJECTED",
+                    payload=payload,
+                    normalized=normalized,
+                    install_timestamp=None,
+                    rejection_reason=reason,
+                )
+                continue
             t_map_update_start_perf = time.perf_counter()
             delay_ms = max(0.0, float(getattr(cfg, "map_update_delay_ms", 0.0)))
             if delay_ms > 0.0:
                 time.sleep(delay_ms / 1000.0)
             with state_lock:
                 latest_streams[str(normalized["stream_id"])] = normalized
+            map_installed = True
             t_map_update_done_perf = time.perf_counter()
+            install_timestamp = time.time()
+            _emit_install_feedback(
+                sock,
+                status="ACK_INSTALLED",
+                payload=payload,
+                normalized=normalized,
+                install_timestamp=install_timestamp,
+            )
             timing = normalized.get("timing") if isinstance(normalized.get("timing"), dict) else {}
             t_capture_perf = _safe_float(timing.get("t_capture_perf"), 0.0)
             t_front_start_perf = _safe_float(timing.get("t_front_start_perf"), 0.0)
@@ -1722,6 +1832,15 @@ def udp_listener_thread() -> None:
             )
         except Exception as exc:
             print(f"[UDP] Packet parse error: {exc}")
+            if not map_installed:
+                _emit_install_feedback(
+                    sock,
+                    status="NACK_REJECTED",
+                    payload=payload,
+                    normalized=normalized,
+                    install_timestamp=None,
+                    rejection_reason=f"DECODE_OR_INSTALL_FAILURE:{type(exc).__name__}",
+                )
 
     try:
         sock.close()

@@ -1,0 +1,98 @@
+schema: scenesense.ue_288_campaign.v1
+campaign_id: ue_16_cell_route_b_traffic_50_50_integration_pilot_v1
+campaign_kind: integration_pilot_16
+full_sweep_authorized: false
+
+actions:
+  technical_registry_csv: rl_agent/registries/ue_split_technical_registry_v1/ue_split_technical_registry.csv
+  technical_registry_sha256: 6de6e88e6c03abcef4a907dc9bea367938f99cc34f0161497df9901f840daec4
+  required_certification_status: TECHNICALLY_VALID_A1_IDENTITY_A2_SMOKE
+  selection: explicit_display_profile_ids
+  expected_count: 4
+  identity_field: profile_id
+  display_profile_ids: [noae/u8/q0, ae32/u4/q0.98, ae64/u6/q0.9, ae128/u8/q0.5]
+  final_model_registry_entries:
+    registry_config: rl_agent/configs/ue_split_profile_registry_v1.json
+    json_pointer_root: /factor_contract/models
+    noae: {checkpoint_path: __REQUIRED_FINAL_MODEL_PATH_NOAE__, checkpoint_sha256: __REQUIRED_FINAL_MODEL_SHA256_NOAE__}
+    ae32: {checkpoint_path: __REQUIRED_FINAL_MODEL_PATH_AE32__, checkpoint_sha256: __REQUIRED_FINAL_MODEL_SHA256_AE32__}
+    ae64: {checkpoint_path: __REQUIRED_FINAL_MODEL_PATH_AE64__, checkpoint_sha256: __REQUIRED_FINAL_MODEL_SHA256_AE64__}
+    ae128: {checkpoint_path: __REQUIRED_FINAL_MODEL_PATH_AE128__, checkpoint_sha256: __REQUIRED_FINAL_MODEL_SHA256_AE128__}
+
+network:
+  design_config: rl_agent/configs/network_profile_design_v2.json
+  traces_csv: rl_agent/experiments/network_profile_design_v2/20260822_route_b_v2/traces.csv
+  traces_sha256: 32f1be66e976cba322803c128eefdeb81a8d31ed64bd253ff85ea1ab0583303d
+  summary_csv: rl_agent/experiments/network_profile_design_v2/20260822_route_b_v2/profile_summary.csv
+  summary_sha256: 75514d0d08b3a3a22159dd2abbcda77e42c9d34e24d920a04e5a18e776e70317
+  mapping_csv: rl_agent/experiments/oai_target_snr_replay_pilot_v1/20260822_live_01/target_to_rfsim_mapping.csv
+  mapping_sha256: 347a86570d1a1142c5c26c41bb3e6d894ec3f9253d6cda6cd3ac8e60d449c201
+  sample_period_ms: 100
+  prefix_samples: 4200
+  catch_up_policy: SKIP_OBSOLETE_NEVER_BURST
+  clean_restore_noise_power_db: -50.0
+  continuation: CONTINUE_SAME_RNG_AND_MARKOV_STATE_INDEFINITELY
+  forbidden_after_prefix: [wrap, hold_final_value, reseed]
+  profiles:
+    - {profile_id: FAVORABLE_STABLE, trace_id: GM_V2_FAVORABLE_STABLE_SEED_2026082101, seed: 2026082101, trace_sha256: 8cad86e2e1ee98176c75b872132eb68f7d770f889d7330fa4a9932c45c172de6}
+    - {profile_id: MID_VARIABLE, trace_id: GM_V2_MID_VARIABLE_SEED_2026082102, seed: 2026082102, trace_sha256: 0d2ef7ff9e7f342c772d0d88a4cec4e9ce9ac1c9946c1402d3087c55c8f0f811}
+    - {profile_id: ADVERSE_STABLE, trace_id: GM_V2_ADVERSE_STABLE_SEED_2026082103, seed: 2026082103, trace_sha256: 380925bb530945b11b8e79ab93e88d5a555de540ce859756d6c5ad08584e98a0}
+    - {profile_id: FADE_RECOVERY, trace_id: GM_V2_FADE_RECOVERY_SEED_2026082104, seed: 2026082104, trace_sha256: ef2ae2d6448d9c7f3208bc81123d301a1a9f5d9b16be3bac4412c8cecf94e7c0}
+
+route_b:
+  collection_config: data_collection/configs/route_b_perception_v2.yaml
+  route_json: data_collection/routes/town10hd_opt_route_b_full_map_loop_v1.json
+  route_json_sha256: fc4518a8746b9417a64616b8e544f59b16b5a31b7585298a316a59662ecfd6e5
+  progress_csv: data_collection/routes/town10hd_opt_route_b_full_map_loop_v1.progress.csv
+  progress_csv_sha256: 974593859368f24ee2bc4ac31b82118bf2e932d0de1c96858b8771e2dd4d90c0
+  qualified_density_runner: data_collection/run_route_b_density_loop.py
+  qualified_density_runner_sha256: 0f3147fad30cf9e03657c98373c8ef2783af04853ccefc97dc1acbdfa33b336b
+  density: traffic_50_50
+  scenario_seed: 31
+  traffic_manager_seed: 31
+  fresh_carla_process_and_world_per_cell: true
+  carla_quality: Epic
+  render_offscreen: true
+  no_rendering_mode: false
+  hybrid_physics: false
+  loops_per_process: 1
+  allow_roadblock_clearing: true
+  roadblock_policy: STATIONARY_BLOCKER_RELOCATED_OR_DESTROYED_ONLY
+  forced_overtaking: false
+  maximum_overtakes: 0
+
+runtime:
+  carla_lifecycle_helper: data_collection/run_route_b_collection_supervised_v1.py
+  oai_registered_profile_launcher: uplink_only_spatial_map_pipeline/run_track1_oai_default106_ttracer_10fps_v2.sh
+  split_inference_runtime: uplink_only_spatial_map_pipeline/carla_fusion_staleness_scenario_uplink_only_v2.py
+  map_install_runtime: uplink_only_spatial_map_pipeline/spatial_map_server_moving_ego_uplink_only_baseline.py
+  target_snr_runtime: rl_agent/ue_target_snr_cell_runtime_v1.py
+  required_route_b_split_cell_adapter: __REQUIRED_QUALIFIED_ROUTE_B_SPLIT_CELL_ADAPTER__
+  install_feedback:
+    ack_status: ACK_INSTALLED
+    ack_semantics: decoded_result_accepted_and_installed_into_map
+    forbidden_ack_semantics: inference_complete_or_edge_receive
+    nack_statuses: [NACK_REJECTED, NACK_REASSEMBLY_TIMEOUT, TIMEOUT_NO_ACK]
+    required_fields: [frame_id, capture_timestamp, action_id, install_timestamp, result_status]
+
+cell:
+  count: 16
+  attempt_directory_pattern: attempts/attempt_{attempt:04d}
+  create_only: true
+  resume_ledger: campaign_ledger.json
+  skip_statuses: [PASSED]
+  rerun_statuses: [FAILED, INTERRUPTED]
+  service_deadline_ms: 100
+  ack_timeout_ms: 500
+  terminal_files: [PASSED.json, FAILED.json, INTERRUPTED.json]
+  exactly_one_terminal: true
+  expected_outputs: [per_frame_metrics.csv, radio_trace.csv, map_feedback.csv, perception_metrics.csv, resolved_config.yaml, RESULTS_SUMMARY.json, manifest.json]
+  radio_trace_fields: [profile_id, trace_id, seed, step_index, target_snr_db, mapped_rfsim_command_db, achieved_snr_db, scheduled_monotonic_ns, command_send_monotonic_ns, command_ack_monotonic_ns, command_send_wall_ns, command_ack_wall_ns, command_timing_status]
+  map_feedback_fields: [experiment_id, cell_id, stream_id, capture_id, frame_id, capture_at, action_id, service_deadline_at, edge_install_at, install_timestamp, feedback_emit_at, feedback_received_at, ack_timeout_at, result_status, status, accepted, late, timeout_seen, rejection_reason]
+  perception_metric_fields: [frame_id, class_name, tp, fp, fn, precision, recall, valid_empty, coverage, source_time_world_xy_error_m, aligned_world_xy_error_m, dimension_error_m, footprint_iou, segmentation_iou]
+
+authorization:
+  models_must_be_resolved_before_real_launch: true
+  this_pilot_must_pass_before_full_sweep: true
+  required_passed_cells: 16
+  full_sweep_remains_unauthorized: true
