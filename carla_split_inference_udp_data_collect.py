@@ -2747,6 +2747,36 @@ def _pad_to_multiple(image: torch.Tensor, multiple: int) -> Tuple[torch.Tensor, 
     return image, (height, width)
 
 
+def reconstruct_image_list(
+    batch_shape: Tuple[int, ...],
+    image_sizes: List[Tuple[int, int]],
+    device: torch.device,
+    *,
+    dtype: torch.dtype = torch.float32,
+) -> ImageList:
+    """Reconstruct the server-side ImageList used by every detector tail.
+
+    Pixel values are intentionally absent at the split boundary. Faster R-CNN's
+    RPN only uses the dummy batch shape plus ``image_sizes`` for anchors and
+    clipping, so this helper is valid for MobileNet-FPN and ResNet-FPN alike.
+    """
+    resolved_shape = tuple(int(value) for value in batch_shape)
+    resolved_sizes = [tuple(int(value) for value in size) for size in image_sizes]
+    return ImageList(torch.zeros(resolved_shape, device=device, dtype=dtype), resolved_sizes)
+
+
+def run_faster_rcnn_back_half(
+    model: torch.nn.Module,
+    image_list: ImageList,
+    features: "OrderedDict[str, torch.Tensor]",
+    original_sizes: List[Tuple[int, int]],
+) -> List[Dict[str, torch.Tensor]]:
+    """Run the established RPN -> ROI heads -> postprocess detector tail."""
+    proposals, _ = model.rpn(image_list, features, None)
+    detections, _ = model.roi_heads(features, proposals, image_list.image_sizes, None)
+    return model.transform.postprocess(detections, image_list.image_sizes, original_sizes)
+
+
 class CameraSideSplitInference:
     def __init__(
         self,
@@ -2950,21 +2980,11 @@ class RemoteInferenceWorker(threading.Thread):
         image_sizes = [tuple(map(int, size)) for size in payload["image_sizes"]]
         original_sizes = [tuple(map(int, size)) for size in payload["original_sizes"]]
 
-        dummy_images = torch.zeros(batch_shape, device=self.device)
-        image_list = ImageList(dummy_images, image_sizes)
+        image_list = reconstruct_image_list(batch_shape, image_sizes, self.device)
 
         with torch.inference_mode():
-            proposals, _ = self.model.rpn(image_list, features, None)
-            detections, _ = self.model.roi_heads(
-                features,
-                proposals,
-                image_list.image_sizes,
-                None,
-            )
-            detections = self.model.transform.postprocess(
-                detections,
-                image_list.image_sizes,
-                original_sizes,
+            detections = run_faster_rcnn_back_half(
+                self.model, image_list, features, original_sizes
             )
 
         prediction = detections[0]

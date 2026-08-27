@@ -1,0 +1,54 @@
+{
+  "name": "fasterrcnn_radar_roi_v1",
+  "architecture": "torchvision COCO Faster R-CNN ResNet-50-FPN v2 RGB RPN/ROI detector; independent four-channel radar pyramid; concatenated visual/radar positive-ROI localization head; isolated visual-FPN semantic decoder",
+  "input_size": [1024, 576],
+  "epochs": 12,
+  "head_adaptation_epochs": 2,
+  "batch_size": 4,
+  "num_workers": 8,
+  "training_seed": 20260827,
+  "optimizer": "adamw",
+  "lr_new": 0.0003,
+  "lr_detector": 0.0001,
+  "lr_backbone": 0.00002,
+  "weight_decay": 0.0001,
+  "warmup_epochs": 1,
+  "min_lr_ratio": 0.02,
+  "amp": true,
+  "amp_dtype": "bfloat16",
+  "flip_probability": 0.5,
+  "segmentation_class_weights": [0.2, 1.0, 4.0],
+  "segmentation_loss_weight": 1.0,
+  "localization_loss_weights": {
+    "xyz": 1.5,
+    "dimensions": 0.6,
+    "yaw": 0.3,
+    "parked": 0.2,
+    "radar_support": 0.1
+  },
+  "weights": {
+    "enum": "FasterRCNN_ResNet50_FPN_V2_Weights.COCO_V1",
+    "url": "https://download.pytorch.org/models/fasterrcnn_resnet50_fpn_v2_coco-dd69338a.pth",
+    "filename": "fasterrcnn_resnet50_fpn_v2_coco-dd69338a.pth",
+    "sha256": "dd69338a24b8d7381807e247652bdc356325bcbaf1cd3e092e00e0a1a58706bf",
+    "license": "torchvision BSD-3-Clause"
+  },
+  "coco_mapping": {
+    "route_background_0": [0],
+    "route_vehicle_1_mean": [3, 4, 6, 8],
+    "route_person_2": [1]
+  },
+  "detector_native_postprocess": {
+    "score_floor": 0.02,
+    "class_aware_box_nms_iou": 0.5,
+    "detections_per_image": 100
+  },
+  "evaluation": {
+    "epochs": [4, 8, 12],
+    "primary_score": 0.2,
+    "diagnostic_score": 0.02,
+    "match_distance_m": 3.0,
+    "max_gt_distance_m": 40.0,
+    "min_gt_area_px": 12.0
+  }
+}
