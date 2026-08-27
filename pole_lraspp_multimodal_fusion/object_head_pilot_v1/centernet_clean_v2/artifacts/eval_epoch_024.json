@@ -1,0 +1,331 @@
+{
+  "by_threshold": {
+    "0.02": {
+      "primary_greedy": {
+        "all_prediction_duplicate_fraction": 0.10346497363607016,
+        "all_prediction_duplicates": 1923,
+        "all_predictions": 18586,
+        "duplicate_radius_m": 3.0,
+        "frames": 3588,
+        "frames_with_detections_or_gt": 3550,
+        "overall_centroid_2d_error_px": 13.750279263514031,
+        "overall_dimension_mae_m": 0.18599499727937643,
+        "overall_duplicate_fp": 1409,
+        "overall_duplicate_fp_fraction": 0.14042256328483158,
+        "overall_f1": 0.5323208116771964,
+        "overall_fn": 4993,
+        "overall_fp": 10034,
+        "overall_fp_per_frame": 2.7965440356744704,
+        "overall_precision": 0.4601312816098138,
+        "overall_recall": 0.6313768918420081,
+        "overall_tp": 8552,
+        "overall_xy_mae_m": 0.9960302317866548,
+        "person_centroid_2d_error_px": 4.3378997889461575,
+        "person_dimension_mae_m": 0.1444498958922554,
+        "person_duplicate_fp": 531,
+        "person_duplicate_fp_fraction": 0.11146095717884132,
+        "person_f1": 0.3966913959239362,
+        "person_fn": 2311,
+        "person_fp": 4764,
+        "person_fp_per_frame": 1.3277591973244147,
+        "person_precision": 0.3280677009873061,
+        "person_recall": 0.5016174250593056,
+        "person_tp": 2326,
+        "person_xy_mae_m": 1.079165317331234,
+        "subset": "all_val_frames",
+        "vehicle_centroid_2d_error_px": 17.266693439203856,
+        "vehicle_dimension_mae_m": 0.20151602295018423,
+        "vehicle_duplicate_fp": 878,
+        "vehicle_duplicate_fp_fraction": 0.1666034155597723,
+        "vehicle_f1": 0.6102724955891002,
+        "vehicle_fn": 2682,
+        "vehicle_fp": 5270,
+        "vehicle_fp_per_frame": 1.4687848383500557,
+        "vehicle_precision": 0.541579679888657,
+        "vehicle_recall": 0.6989223170184105,
+        "vehicle_tp": 6226,
+        "vehicle_xy_mae_m": 0.9649714124842682
+      },
+      "recall_by_band": {
+        "distance": {
+          "person": {
+            "0-10": {
+              "detected": 289,
+              "gt": 328,
+              "recall": 0.8810975609756098
+            },
+            "10-20": {
+              "detected": 896,
+              "gt": 1179,
+              "recall": 0.7599660729431722
+            },
+            "20-30": {
+              "detected": 712,
+              "gt": 1436,
+              "recall": 0.4958217270194986
+            },
+            "30-40": {
+              "detected": 429,
+              "gt": 1694,
+              "recall": 0.2532467532467532
+            }
+          },
+          "vehicle": {
+            "0-10": {
+              "detected": 1598,
+              "gt": 2056,
+              "recall": 0.7772373540856031
+            },
+            "10-20": {
+              "detected": 2366,
+              "gt": 2849,
+              "recall": 0.8304668304668305
+            },
+            "20-30": {
+              "detected": 1239,
+              "gt": 2200,
+              "recall": 0.5631818181818182
+            },
+            "30-40": {
+              "detected": 1023,
+              "gt": 1802,
+              "recall": 0.5677025527192009
+            },
+            "out_of_range": {
+              "detected": 0,
+              "gt": 1,
+              "recall": 0.0
+            }
+          }
+        },
+        "size": {
+          "person": {
+            "0-8": {
+              "detected": 0,
+              "gt": 17,
+              "recall": 0.0
+            },
+            "16-32": {
+              "detected": 997,
+              "gt": 1932,
+              "recall": 0.5160455486542443
+            },
+            "32-64": {
+              "detected": 794,
+              "gt": 978,
+              "recall": 0.8118609406952966
+            },
+            "64+": {
+              "detected": 134,
+              "gt": 173,
+              "recall": 0.7745664739884393
+            },
+            "8-16": {
+              "detected": 401,
+              "gt": 1537,
+              "recall": 0.2608978529603123
+            }
+          },
+          "vehicle": {
+            "16-32": {
+              "detected": 1100,
+              "gt": 2075,
+              "recall": 0.5301204819277109
+            },
+            "32-64": {
+              "detected": 2723,
+              "gt": 3563,
+              "recall": 0.7642436149312377
+            },
+            "64+": {
+              "detected": 2336,
+              "gt": 2919,
+              "recall": 0.8002740664611169
+            },
+            "8-16": {
+              "detected": 67,
+              "gt": 351,
+              "recall": 0.1908831908831909
+            }
+          }
+        }
+      }
+    },
+    "0.20": {
+      "primary_greedy": {
+        "all_prediction_duplicate_fraction": 0.03408861015577584,
+        "all_prediction_duplicates": 337,
+        "all_predictions": 9886,
+        "duplicate_radius_m": 3.0,
+        "frames": 3588,
+        "frames_with_detections_or_gt": 3494,
+        "overall_centroid_2d_error_px": 4.978762788666924,
+        "overall_dimension_mae_m": 0.1653877261637866,
+        "overall_duplicate_fp": 124,
+        "overall_duplicate_fp_fraction": 0.05164514785506039,
+        "overall_f1": 0.6388971874866629,
+        "overall_fn": 6060,
+        "overall_fp": 2401,
+        "overall_fp_per_frame": 0.6691750278706801,
+        "overall_precision": 0.7571312967833299,
+        "overall_recall": 0.5526024363233666,
+        "overall_tp": 7485,
+        "overall_xy_mae_m": 0.9227274051427503,
+        "person_centroid_2d_error_px": 2.9498932833732616,
+        "person_dimension_mae_m": 0.12827763895909142,
+        "person_duplicate_fp": 31,
+        "person_duplicate_fp_fraction": 0.026886383347788378,
+        "person_f1": 0.5388012618296529,
+        "person_fn": 2502,
+        "person_fp": 1153,
+        "person_fp_per_frame": 0.32134894091415833,
+        "person_precision": 0.649330900243309,
+        "person_recall": 0.4604270002156567,
+        "person_tp": 2135,
+        "person_xy_mae_m": 1.0254860966087644,
+        "subset": "all_val_frames",
+        "vehicle_centroid_2d_error_px": 5.788414451059796,
+        "vehicle_dimension_mae_m": 0.1801970787211746,
+        "vehicle_duplicate_fp": 93,
+        "vehicle_duplicate_fp_fraction": 0.07451923076923077,
+        "vehicle_f1": 0.6900554624016508,
+        "vehicle_fn": 3558,
+        "vehicle_fp": 1248,
+        "vehicle_fp_per_frame": 0.34782608695652173,
+        "vehicle_precision": 0.8108517732646257,
+        "vehicle_recall": 0.600583744948361,
+        "vehicle_tp": 5350,
+        "vehicle_xy_mae_m": 0.8817199647166
+      },
+      "recall_by_band": {
+        "distance": {
+          "person": {
+            "0-10": {
+              "detected": 273,
+              "gt": 328,
+              "recall": 0.8323170731707317
+            },
+            "10-20": {
+              "detected": 860,
+              "gt": 1179,
+              "recall": 0.729431721798134
+            },
+            "20-30": {
+              "detected": 660,
+              "gt": 1436,
+              "recall": 0.4596100278551532
+            },
+            "30-40": {
+              "detected": 342,
+              "gt": 1694,
+              "recall": 0.20188902007083825
+            }
+          },
+          "vehicle": {
+            "0-10": {
+              "detected": 1124,
+              "gt": 2056,
+              "recall": 0.546692607003891
+            },
+            "10-20": {
+              "detected": 2181,
+              "gt": 2849,
+              "recall": 0.7655317655317655
+            },
+            "20-30": {
+              "detected": 1137,
+              "gt": 2200,
+              "recall": 0.5168181818181818
+            },
+            "30-40": {
+              "detected": 908,
+              "gt": 1802,
+              "recall": 0.5038845726970034
+            },
+            "out_of_range": {
+              "detected": 0,
+              "gt": 1,
+              "recall": 0.0
+            }
+          }
+        },
+        "size": {
+          "person": {
+            "0-8": {
+              "detected": 0,
+              "gt": 17,
+              "recall": 0.0
+            },
+            "16-32": {
+              "detected": 928,
+              "gt": 1932,
+              "recall": 0.4803312629399586
+            },
+            "32-64": {
+              "detected": 769,
+              "gt": 978,
+              "recall": 0.7862985685071575
+            },
+            "64+": {
+              "detected": 117,
+              "gt": 173,
+              "recall": 0.6763005780346821
+            },
+            "8-16": {
+              "detected": 321,
+              "gt": 1537,
+              "recall": 0.2088484059856864
+            }
+          },
+          "vehicle": {
+            "16-32": {
+              "detected": 978,
+              "gt": 2075,
+              "recall": 0.4713253012048193
+            },
+            "32-64": {
+              "detected": 2526,
+              "gt": 3563,
+              "recall": 0.7089531293853494
+            },
+            "64+": {
+              "detected": 1791,
+              "gt": 2919,
+              "recall": 0.6135662898252826
+            },
+            "8-16": {
+              "detected": 55,
+              "gt": 351,
+              "recall": 0.15669515669515668
+            }
+          }
+        }
+      }
+    }
+  },
+  "checkpoint": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/route_b_centernet_clean_v2/20260827_033102/checkpoints/resnet34_fpn_centernet_native_v2/epoch_024.pt",
+  "checkpoint_sha256": "fb2faa9d30c8a8e027bfc27f070f825d9b9b242f5bb6b9720ffeb9258a4e02af",
+  "epoch": 24,
+  "fixed_contract": {
+    "class_aware_matching": true,
+    "decoder": "centernet_clean_v2_native_dual_stride_localmax_before_topk",
+    "diagnostic_score_threshold": 0.02,
+    "match_distance_m": 3.0,
+    "matcher": "greedy_distance",
+    "max_gt_distance_m": 40.0,
+    "min_gt_area_px": 12.0,
+    "operating_score_threshold": 0.2,
+    "peak_suppression": "per-class 3x3 native local maxima before top-k",
+    "topk_objects_per_branch": 120
+  },
+  "frames": 3588,
+  "segmentation": {
+    "background_iou": 0.9788457675954033,
+    "miou": 0.682403001605505,
+    "person_box_mask_iou": 0.32748405940288483,
+    "person_box_mask_iou_note": "person GT is a filled projected box, not a silhouette; this is box-mask IoU and must not be compared as silhouette-quality IoU",
+    "pixel_accuracy": 0.9791031910114154,
+    "vehicle_iou": 0.7408791778182271
+  },
+  "split": "val"
+}

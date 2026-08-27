@@ -1,0 +1,30 @@
+# CenterNet v2 - exact commands (run from /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/pole_lraspp_multimodal_fusion)
+# python: /usr/bin/python3 (3.10.12 torch 2.10.0.dev20251114+cu128)
+# experiment dir: /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/route_b_centernet_clean_v2/20260827_033102
+
+# 1. pre-run checks
+/usr/bin/python3 /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/pole_lraspp_multimodal_fusion/object_head_pilot_v1/centernet_clean_v2/launch_check_v2.py \
+  --config /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/pole_lraspp_multimodal_fusion/object_head_pilot_v1/centernet_clean_v2/configs/route_b_centernet_clean_v2.yaml \
+  --trial-json /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/pole_lraspp_multimodal_fusion/object_head_pilot_v1/centernet_clean_v2/configs/resnet34_fpn_centernet_native_v2.json \
+  --experiment-dir /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/route_b_centernet_clean_v2/20260827_033102 \
+  --warm-start /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/route_b_centernet_clean_v1/20260826_175224/checkpoints/resnet34_fpn_centerfusion_v1/epoch_012.pt \
+  --warm-start-sha256 59884bb0ed8c291b00dc9dbc40767f1f2f537d6253b7401cf25833f8bea1928e \
+  --out /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/route_b_centernet_clean_v2/20260827_033102/launch_check_v2.json
+
+# 2. training (single run, 24 epochs, batch 24)
+/usr/bin/python3 /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/pole_lraspp_multimodal_fusion/object_head_pilot_v1/centernet_clean_v2/train_v2.py \
+  --config /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/pole_lraspp_multimodal_fusion/object_head_pilot_v1/centernet_clean_v2/configs/route_b_centernet_clean_v2.yaml \
+  --trial-json /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/pole_lraspp_multimodal_fusion/object_head_pilot_v1/centernet_clean_v2/configs/resnet34_fpn_centernet_native_v2.json \
+  --experiment-dir /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/route_b_centernet_clean_v2/20260827_033102 \
+  --warm-start /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/route_b_centernet_clean_v1/20260826_175224/checkpoints/resnet34_fpn_centerfusion_v1/epoch_012.pt \
+  --warm-start-sha256 59884bb0ed8c291b00dc9dbc40767f1f2f537d6253b7401cf25833f8bea1928e
+
+# 3. evaluation (epochs 8,12,16,20,24 on val at 0.20 and 0.02, frozen native v2 decoder)
+/usr/bin/python3 /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/pole_lraspp_multimodal_fusion/object_head_pilot_v1/centernet_clean_v2/evaluate_v2.py \
+  --experiment-dir /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/route_b_centernet_clean_v2/20260827_033102 \
+  --config /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/pole_lraspp_multimodal_fusion/object_head_pilot_v1/centernet_clean_v2/configs/route_b_centernet_clean_v2.yaml \
+  --checkpoints /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/route_b_centernet_clean_v2/20260827_033102/checkpoints/resnet34_fpn_centernet_native_v2/epoch_0{08,12,16,20,24}.pt \
+  --out-root /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/route_b_centernet_clean_v2/20260827_033102/eval
+
+# 4. selection + report
+/usr/bin/python3 /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/pole_lraspp_multimodal_fusion/object_head_pilot_v1/centernet_clean_v2/select_and_report_v2.py --experiment-dir /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/route_b_centernet_clean_v2/20260827_033102

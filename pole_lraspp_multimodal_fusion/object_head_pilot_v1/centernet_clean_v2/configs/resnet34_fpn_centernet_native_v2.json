@@ -1,0 +1,41 @@
+{
+  "name": "resnet34_fpn_centernet_native_v2",
+  "_architecture": "ImageNet-pretrained ResNet34 RGB FPN (stride 4) + independent 4-channel radar encoder/FPN + RGB/radar fusion; vehicle native head at stride 4 and person native head at stride 2, each with a private 2-channel centre-offset head and 12 class-specific regression fields; lightweight segmentation decoder (stride-4 fused context + stride-2 RGB/radar skip + two learned upsamples)",
+  "optimizer": "adamw",
+  "lr_new": 0.0003,
+  "lr_warm": 0.0001,
+  "lr_backbone": 0.00003,
+  "weight_decay": 0.0001,
+  "augment_strength": "strong",
+  "geometric_augment": false,
+  "input_size": [768, 432],
+  "batch_size": 24,
+  "num_workers": 8,
+  "prefetch_factor": 2,
+  "persistent_workers": true,
+  "epochs": 24,
+  "lr_scheduler": "cosine",
+  "lr_warmup_epochs": 1,
+  "min_lr_ratio": 0.01,
+  "freeze_bn": true,
+  "class_loss_weights": [0.5, 1.0, 4.0],
+  "lovasz_weight": 0.5,
+  "loss_weights": {
+    "object_total": 1.0,
+    "segmentation": 0.4,
+    "object": {
+      "center": 4.0,
+      "offset": 1.0,
+      "location": 1.5,
+      "dimensions": 0.6,
+      "yaw": 0.3,
+      "parked": 0.2,
+      "radar_support": 0.1,
+      "bbox2d": 1.0
+    }
+  },
+  "warm_start_checkpoint": "experiments/route_b_centernet_clean_v1/20260826_175224/checkpoints/resnet34_fpn_centerfusion_v1/epoch_012.pt",
+  "warm_start_sha256": "59884bb0ed8c291b00dc9dbc40767f1f2f537d6253b7401cf25833f8bea1928e",
+  "training_seed": 20260826,
+  "checkpoint_every_epochs": 1
+}

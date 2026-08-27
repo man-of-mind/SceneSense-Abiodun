@@ -1,0 +1,30 @@
+# Route B clean CenterNet v2 - native dual-stride object heads.
+# Same dataset view, GT rules and evaluation contract as v1; only the object
+# head geometry, the offset heads and the segmentation decoder changed.
+experiment_name: route_b_centernet_clean_v2
+
+training:
+  input_size: [768, 432]
+  num_classes: 3
+  amp: true
+  pretrained: true
+  checkpoint_every_epochs: 1
+
+object_heads:
+  object_classes: [vehicle, person]
+  min_gt_area_px: 12.0
+  max_gt_distance_m: 40
+  vehicle_stride: 4
+  person_stride: 2
+
+fusion:
+  radar_channels: 4
+
+evaluation:
+  object_score_threshold: 0.20
+  diagnostic_score_threshold: 0.02
+  topk_objects: 120
+  match_distance_m: 3.0
+  max_gt_distance_m: 40.0
+  min_gt_area_px: 12.0
+  class_aware_matching: true
