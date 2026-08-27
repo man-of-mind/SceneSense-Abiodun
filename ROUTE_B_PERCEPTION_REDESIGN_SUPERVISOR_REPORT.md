@@ -3,9 +3,9 @@
 ## Interim supervisor report: evaluation audit, architecture transition, visibility-qualified data, and measurement roadmap
 
 **Status date:** 27 August 2026<br>
-**Status:** Route B v3 canonical data collection and frozen-model comparison complete; Faster R-CNN v3 retraining and locked-test evaluation pending.
+**Status:** Route B v3 canonical data collection and frozen-model comparison complete; static parked-vehicle GT audit and LR-ASPP v3 retraining pending before architecture selection.
 
-> This is an interim, evidence-backed report. The frozen-model v3 comparison values are final for the cited validation run; retraining and locked-test results remain pending. No model is yet being presented as deployment-ready or approved for the 288-cell agent campaign.
+> This is an interim, evidence-backed report. The frozen-model v3 comparison values are final for the cited validation run, but they do not settle the architecture choice: the historical LR-ASPP has not yet been retrained on v3, and static map-level parked vehicles may be absent from detection GT. No model is yet being presented as deployment-ready or approved for the 288-cell agent campaign.
 
 ---
 
@@ -21,17 +21,21 @@ The major findings were:
 4. The old dense heatmap decoder spent much of its top-k budget on bilinearly interpolated duplicates. Correcting local-maximum selection improved recall, but still did not reach the required full-map quality.
 5. CARLA 0.10 does not render usable walker semantic pixels in this setup. An older pole-model label map also included RoadLine, Ground, and Wall in the “person” class, invalidating its historical person-segmentation claim. Vehicle segmentation from that experiment remains valid.
 6. Route B v2 retained any geometrically projected pedestrian as ground truth, even if another vehicle made the pedestrian almost or completely invisible. It also used filled projected boxes for person segmentation, including pixels belonging to the occluder. This mixed model misses with targets that the RGB sensor could not actually observe.
+7. Route B v3 detection rows are currently actor-origin only. Static Town10HD parked cars/trucks/buses are map environment objects rather than `vehicle.*` actors, so a correct detection of one may currently be charged as a false positive. This is under audit and must be resolved before the final architecture comparison.
 
 A split multimodal Faster R-CNN–FPN candidate was therefore developed. On the v2 Route B validation set it approximately doubled the vehicle and person detection F1 scores relative to the frozen historical LR-ASPP model, and substantially improved localization and vehicle segmentation. However, it could not provide high precision and high recall at the same operating point under the v2 ground-truth contract.
 
 The data contract has now been corrected. Route B v3 adds synchronized lossless depth and per-actor visibility evidence. A controlled smoke and manual review established that the depth-derived regions distinguish visible, partially occluded, and fully occluded actors. Eight episode-separated v3 runs—four train, two validation, and two locked test—subsequently passed all collection gates.
 
-The frozen comparison is now complete. On the primary v0.10 contract, Faster R-CNN increased vehicle F1 from 0.3281 to 0.6856 and person F1 from 0.2299 to 0.3761, while reducing vehicle/person XY MAE from 1.318/1.638 m to 0.674/1.058 m. This selects Faster R-CNN as the retraining baseline, but not as a service-ready model: person precision is only 0.2503 and visible-person IoU is 0.1502.
+The frozen comparison is now complete. On the primary v0.10 contract, Faster R-CNN increased vehicle F1 from 0.3281 to 0.6856 and person F1 from 0.2299 to 0.3761, while reducing vehicle/person XY MAE from 1.318/1.638 m to 0.674/1.058 m. This establishes Faster R-CNN as the strongest **frozen challenger**, but not as the selected replacement: LR-ASPP has not had the corresponding visibility-qualified v3 retraining, and the parked-vehicle GT gap may bias vehicle precision for both models.
 
 The remaining decision path is deliberately narrow:
 
-- retrain the selected Faster R-CNN architecture using visibility-qualified v3 targets;
-- open the locked v3 test only after validation selection;
+- audit map-level static parked-vehicle truth and, if confirmed, create a v3.1 GT view without changing raw sensor payloads;
+- re-score the frozen models under that corrected validation contract;
+- retrain the existing seven-channel LR-ASPP on visibility-qualified v3.1 train data and compare it on validation;
+- retrain Faster R-CNN on v3.1 only if LR-ASPP remains inadequate, then choose the common base;
+- open the locked test only after the architecture, recipe, decoder, and checkpoint are fixed;
 - then extend the selected base to hybrid-q training, AE32/AE64/AE128 split models, a 16-cell integration pilot, and finally the 288-cell campaign.
 
 ---
@@ -75,22 +79,28 @@ The historical model used early RGB/radar fusion. Three RGB channels and four ra
 
 ```mermaid
 flowchart LR
-    RGB[RGB image<br/>3 channels] --> CAT[Channel concatenation]
-    RAD[Rasterized radar<br/>4 channels] --> CAT
-    CAT --> X7[7-channel tensor]
-    X7 --> FRONT[MobileNetV3 front / backbone]
-    FRONT --> LOW[Low feature]
-    FRONT --> HIGH[High feature]
-    LOW --> SPLIT{{UE-to-edge split bundle}}
-    HIGH --> SPLIT
-    SPLIT --> Q[Rank drop q / quantization / optional AE]
-    Q --> SEG[LR-ASPP semantic head]
-    Q --> OBJ[Dense heatmap + shared regression head]
+    subgraph UE[UE / fused front]
+      RGB[RGB image<br/>3 channels] --> CAT[Channel concatenation]
+      RAD[Rasterized radar<br/>4 channels] --> CAT
+      CAT --> X7[One fused 7-channel tensor]
+      X7 --> FRONT[MobileNetV3 front / backbone]
+      FRONT --> LOW[Low feature<br/>RGB and radar mixed]
+      FRONT --> HIGH[High feature<br/>RGB and radar mixed]
+      LOW --> SPLIT[Structured low + high bundle]
+      HIGH --> SPLIT
+      SPLIT --> UEPACK[q rank drop<br/>optional AE on high<br/>quantization + zstd]
+    end
+    UEPACK --> NET{{OAI / network transport}}
+    subgraph EDGE[Edge / LR-ASPP tail]
+      NET --> RESTORE[Decompress + dequantize<br/>optional AE decode]
+      RESTORE --> SEG[LR-ASPP semantic head]
+      RESTORE --> OBJ[Dense heatmap + shared regression head]
+    end
     SEG --> SM[Background / vehicle / person logits]
     OBJ --> DET[Vehicle/person centers + XYZ/dims/yaw]
 ```
 
-This design remains useful evidence for split-inference mechanics, but it has limitations for full-map perception: early modality mixing, a dense grid detector, limited multiscale proposal handling, and a shared feature path for segmentation, detection, and world regression.
+The LR-ASPP split payload is therefore not literally one tensor: it contains `low` and `high` feature maps at different resolutions. However, both tensors come from the same seven-channel fused backbone and already contain mixed RGB/radar representations. The existing feature AE compresses the `high` map while the transport codec handles both maps. This is materially simpler than transporting two independent modality pyramids and preserves the already qualified split-inference implementation. Its full-map limitations remain the dense grid detector, limited multiscale proposal handling, and shared feature path for segmentation, detection, and world regression; v3 retraining will determine whether those limitations are binding in practice.
 
 ### 3.2 Historical versus Route B recall
 
@@ -130,9 +140,9 @@ The data consisted of repeated route loops and consecutive frames. Therefore, fr
 
 ---
 
-## 4. Candidate architecture: split multimodal Faster R-CNN–FPN
+## 4. Challenger architecture: split multimodal Faster R-CNN–FPN
 
-The current candidate is more accurately described as a **split multimodal Faster R-CNN ResNet50-FPN v2 with radar-conditioned ROI localization and an FPN segmentation decoder**. It is not an LR-ASPP model and it is not a single seven-channel network.
+The challenger is more accurately described as a **split multimodal Faster R-CNN ResNet50-FPN v2 with radar-conditioned ROI localization and an FPN segmentation decoder**. It is not an LR-ASPP model and it is not a single seven-channel network.
 
 RGB and radar remain the same seven raw channels in total—three plus four—but they are encoded separately and fused later.
 
@@ -152,11 +162,14 @@ flowchart LR
 
     subgraph EDGE[Edge / tail decoder]
       NET --> EDGEUNPACK[zstd decompression + dequantization<br/>optional AE decoder]
-      EDGEUNPACK --> RPN[RGB region proposal network]
+      EDGEUNPACK --> RGBTAIL[Restored RGB P2-P6]
+      EDGEUNPACK --> RADTAIL[Restored radar P2-P6]
+      RGBTAIL --> RPN[RGB region proposal network]
       RPN --> ROI[ROIAlign + COCO-initialized classifier<br/>and 2D box regressor]
-      EDGEUNPACK --> RROI[Radar ROI pooling]
+      RADTAIL --> RROI[Radar ROI pooling]
       ROI --> LOC[RGB + radar ROI localization<br/>XYZ / dimensions / yaw / state]
-      EDGEUNPACK --> FSEG[FPN segmentation decoder]
+      RROI --> LOC
+      RGBTAIL --> FSEG[FPN segmentation decoder]
     end
 
     ROI --> BOX[Vehicle/person detections]
@@ -166,13 +179,13 @@ flowchart LR
 
 ### 4.1 Split-inference compatibility
 
-`encode_front(rgb, radar)` runs on the UE and emits five RGB-FPN tensors and five radar-pyramid tensors. Before transmission, the UE applies the selected rank-drop action, optional AE encoding, quantization, and zstd compression. The network carries only the resulting feature payload. The edge reverses the transport transforms—zstd decompression, dequantization, and optional AE decoding—then calls `decode_tail(bundle, image_size)`. The tail receives no raw RGB/radar side channel. Monolithic and split outputs were measured as bit-identical in the v1 qualification.
+`encode_front(rgb, radar)` runs on the UE and emits five RGB-FPN tensors and five radar-pyramid tensors. The dictionary called a “bundle” is a transport container, not a fused tensor: RGB and radar remain separate until radar ROI features are concatenated with visual ROI features for world localization. The RPN, 2D classification/box regression, and segmentation decoder use RGB-FPN features. Before transmission, the UE applies the selected rank-drop action, optional AE encoding, quantization, and zstd compression. The edge reverses those transforms and calls `decode_tail(bundle, image_size)` without any raw RGB/radar side channel. Monolithic and split outputs were measured as bit-identical in the v1 qualification.
 
-The raw FP32 bundle is approximately 62.85 MB per sample, so direct transport is not the target deployment. The retained split pipeline places rank drop, quantization, zstd, and the AE bottleneck at this boundary. The old LR-ASPP AE weights are not shape-compatible and will not be reused; the selected Faster R-CNN feature representation needs newly trained AE32, AE64, and AE128 models.
+The raw FP32 bundle is approximately 62.85 MB per sample, so direct transport is not the target deployment. Compressing ten heterogeneous, modality-specific pyramid tensors is more complex than the existing LR-ASPP low/high transport. If Faster R-CNN is ultimately selected, it will require newly designed and jointly trained feature codecs; historical LR-ASPP AE weights are not shape-compatible.
 
 ### 4.2 Architecture comparison
 
-| Property | Historical LR-ASPP | Faster R-CNN–FPN candidate |
+| Property | Historical LR-ASPP | Faster R-CNN–FPN challenger |
 |---|---|---|
 | Modality fusion | Early concatenation into 7 channels | Separate RGB and radar encoders; ROI-level fusion |
 | Visual initialization | MobileNetV3/LR-ASPP | COCO-pretrained ResNet50-FPN v2 |
@@ -300,6 +313,14 @@ The canonical collector hashes are:
 | v3 config | `084a433e22bac4771cc9889bcb485b42689db5765321747717e3604f8d5e5f97` |
 | visibility helper | `4a7aa974ea6374eceff35c0fbd8261fba299b2c5de68297591f5ce9756cf980c` |
 
+### 6.4 Remaining vehicle-GT question: static parked map objects
+
+The v3 visibility rows and detection GT currently originate from live CARLA actors. Town10HD also contains parked vehicle-like map assets that are exposed as CARLA environment objects rather than `vehicle.*` actors. These objects can have a stable environment-object ID, transform, semantic class, and 3D bounding box while remaining absent from the actor-origin `object_boxes.csv` stream.
+
+If such a parked vehicle is visible and the model detects it, the current detection evaluator has no corresponding GT and charges the detection as a **false positive**—not a true negative. The semantic camera may simultaneously label the same pixels as vehicle, creating inconsistent detection and segmentation supervision. The magnitude of this effect is not yet known.
+
+The next audit will reuse the existing Town10HD static-environment truth helper for `Car`, `Truck`, and `Bus`, project those boxes into retained v3 validation frames, apply the same depth-derived v0.10/v0.25 observability rules, and reclassify persisted vehicle predictions without rerunning inference. It will stop for manual review before any canonical GT is changed. Because v3 retains depth, camera provenance, and raw sensor payloads, a validated correction should be expressible as a create-only v3.1 GT view rather than another eight-episode collection.
+
 ---
 
 ## 7. Frozen-model comparison on v3 — complete
@@ -338,9 +359,9 @@ Faster R-CNN person recall rises from 0.7557 under v0.10 to 0.8238 under v0.25, 
 
 ### 7.3 Interpretation rule
 
-An increase in either frozen model’s v3 visibility-qualified recall relative to v2 is an **evaluation-contract effect**, not a model improvement. The architecture comparison is only the difference between the two frozen models on the same v3 contract. Retraining benefit will be measured later by comparing the selected v3-trained Faster R-CNN against its own frozen v3 baseline.
+An increase in either frozen model’s v3 visibility-qualified recall relative to v2 is an **evaluation-contract effect**, not a model improvement. The comparison establishes the current frozen ranking only. It is not a fair final architecture decision because LR-ASPP was trained on the historical corpus while Faster R-CNN received later Route B training, and neither validation score yet includes audited static parked-vehicle GT.
 
-The result is decisive for architecture selection but not for deployment. Faster R-CNN is the stronger v3 retraining baseline because it materially improves both-class recall/F1, localization, vehicle IoU, and foreground mIoU. It is not yet service-ready because person precision and visible-person segmentation remain weak. The selected next action is therefore one visibility-qualified Faster R-CNN retraining run, with v0.10 as the primary contract and v0.25 as sensitivity—not another frozen architecture search.
+Faster R-CNN is therefore the stronger frozen challenger, not the selected replacement. It materially improves both-class recall/F1, localization, vehicle IoU, and foreground mIoU, but its person precision and visible-person segmentation remain weak. LR-ASPP will first be retrained on the same visibility-qualified v3.1 train view. If it remains inadequate, Faster R-CNN will then receive the same v3.1 retraining before the architectures are compared under one corrected validation contract.
 
 ---
 
@@ -348,12 +369,17 @@ The result is decisive for architecture selection but not for deployment. Faster
 
 ```mermaid
 flowchart LR
-    V3[V3 canonical corpus<br/>COMPLETE] --> BASE[Frozen LR-ASPP vs Faster R-CNN<br/>COMPLETE: FRCNN selected]
-    BASE --> TRAIN[Retrain selected Faster R-CNN/FPN base<br/>visibility-qualified targets]
-    TRAIN --> VAL[Validation selection<br/>fixed 3 m contract]
-    VAL --> TEST[Open locked test once]
+    V3[V3 canonical raw corpus<br/>COMPLETE] --> STATIC[Audit static parked vehicles]
+    STATIC --> V31[V3.1 corrected GT view<br/>no sensor recollection]
+    V31 --> RESCORE[Re-score frozen models<br/>persisted predictions]
+    RESCORE --> LTRAIN[Retrain fused 7-channel LR-ASPP<br/>clean noAE / q=0]
+    LTRAIN --> DECIDE{LR-ASPP adequate<br/>on corrected validation?}
+    DECIDE -->|yes| SELECT[Select common perception base]
+    DECIDE -->|no| FTRAIN[Retrain Faster R-CNN on v3.1]
+    FTRAIN --> SELECT
+    SELECT --> TEST[Open locked test once]
     TEST --> Q[Hybrid-q robustness training]
-    Q --> AE[Train AE32 / AE64 / AE128<br/>at the new split bundle]
+    Q --> AE[Train AE32 / AE64 / AE128<br/>for selected split representation]
     AE --> HASH[Freeze four model paths + SHA-256]
     HASH --> PILOT[16-cell integration pilot]
     PILOT --> CAMPAIGN[288-cell traffic_50_50 campaign]
@@ -361,9 +387,13 @@ flowchart LR
 
 ### 8.1 Base retraining
 
-The next training run should retain the Faster R-CNN–FPN split interface and COCO initialization while replacing v2 person supervision with v3 visibility-qualified detection and visible-region segmentation targets. Selection must use decoded v3 validation metrics. The locked test remains closed until the recipe and checkpoint are fixed.
+The next training run will retain the historical LR-ASPP architecture: RGB3 and radar4 concatenated into one seven-channel input, one shared MobileNetV3/LR-ASPP backbone, the existing low/high split boundary, and the corrected dense object decoder. It will warm-start the historical multimodal checkpoint and fine-tune the full network on v3.1 using v0.10 as the primary person contract and v0.25 as sensitivity. The clean noAE, `q=0` base is trained first so compression robustness does not confound the architecture comparison.
 
-### 8.2 Hybrid-q robustness
+### 8.2 Architecture selection
+
+Validation will first compare the v3.1-trained LR-ASPP against both frozen corrected-GT baselines. If LR-ASPP delivers adequate clean perception, it is preferred operationally because its fused low/high split representation and q/quantization/zstd/AE runtime already exist. If it remains inadequate, Faster R-CNN will be retrained on the identical v3.1 train view and the two v3.1-trained models will be compared using the same episode-separated validation contract. The locked test remains closed until the architecture, training recipe, decoder, and checkpoint are fixed.
+
+### 8.3 Hybrid-q robustness
 
 After the clean base passes, robustness training should cover both the deployed anchors and intermediate values:
 
@@ -375,18 +405,18 @@ After the clean base passes, robustness training should cover both the deployed 
 
 This keeps the supervisor’s proposed continuous control possible without losing exact support for the six registered measurement actions.
 
-### 8.3 AE model families
+### 8.4 AE model families
 
-Once noAE is selected, train three integrated feature autoencoder variants on the Faster R-CNN split bundle:
+Once noAE is selected, train three integrated feature autoencoder variants for the selected split representation:
 
 1. noAE;
 2. AE32;
 3. AE64;
 4. AE128.
 
-Each family must receive its own jointly trained encoder/decoder weights. The historical LR-ASPP AE weights are evidence and initialization references only; they are not compatible with the new feature pyramid. Every family will be checked at clean q, all six anchors, and held-out continuous-q midpoints before its final checkpoint hash is registered.
+Each family must receive its own jointly trained encoder/decoder weights. If LR-ASPP is retained, the existing high-feature AE and low/high transport provide the starting implementation. If Faster R-CNN is selected, new multi-level feature codecs are required because the historical AE weights are not compatible with the RGB/radar pyramids. Every family will be checked at clean q, all six anchors, and held-out continuous-q midpoints before its final checkpoint hash is registered.
 
-### 8.4 Split-inference integration and 288 measurements
+### 8.5 Split-inference integration and 288 measurements
 
 The campaign structure already exists:
 
@@ -417,11 +447,15 @@ The existing W10275 baseline is approximately 678.75 s per cell, corresponding t
 - The v3 collector passed eight episode-separated canonical runs and preserved a locked test split.
 - The proposed Faster R-CNN split boundary is real: the tail has no raw-modality side channel.
 - On v3 v0.10, frozen Faster R-CNN substantially exceeds frozen LR-ASPP in both-class recall/F1, localization, vehicle IoU, and foreground mIoU.
-- Faster R-CNN is the evidence-backed v3 retraining baseline, but its frozen person precision and visible-person IoU remain inadequate.
+- Faster R-CNN is the strongest frozen v3 challenger, but its person precision and visible-person IoU remain inadequate.
+- The Faster R-CNN split “bundle” contains separate RGB and radar pyramids; it is packaging, not a single fused representation.
+- The LR-ASPP split contains separate low/high maps, but both are produced by one shared seven-channel fused backbone and are already supported by the existing transport/AE pipeline.
 
 ### Not yet supported
 
 - A service-ready v3 model.
+- A final LR-ASPP-versus-Faster-R-CNN architecture selection.
+- The magnitude of vehicle false-positive bias caused by missing static parked-vehicle GT.
 - A claim that the v3 person mask is a perfect anatomical silhouette; it is a depth-consistent visible-region approximation.
 - A claim that all historical error was caused by label or split defects.
 - Deployment readiness of noAE or any AE family.
@@ -434,9 +468,9 @@ The existing W10275 baseline is approximately 678.75 s per cell, corresponding t
 
 Route B did not show that multimodal perception is infeasible. It exposed that the historical score combined a looser localization tolerance, non-episode-grouped splits, an unsuitable pedestrian semantic target, dense-decoder limitations, and an observability-blind full-map denominator.
 
-The current work has separated these issues. On the v3 validation contract, the Faster R-CNN–FPN candidate provides much stronger detection recall/F1, world localization, vehicle segmentation, and foreground mIoU than the frozen LR-ASPP model. Route B v3 supplies synchronized, manually reviewed visibility-qualified person truth and episode-separated train/validation/test data. The frozen comparison is complete; the remaining model task is one controlled v3 Faster R-CNN retraining followed by validation selection and a single locked-test evaluation.
+The current work has separated these issues. On the present v3 validation contract, the Faster R-CNN–FPN challenger provides much stronger detection recall/F1, world localization, vehicle segmentation, and foreground mIoU than the historically trained frozen LR-ASPP model. That result justifies retaining Faster R-CNN as a challenger, but it does not justify abandoning the established LR-ASPP split pipeline before LR-ASPP receives equivalent v3 training.
 
-If the v3-trained Faster R-CNN preserves its localization/segmentation gains while widening the person precision–recall frontier, it will become the common perception base for the noAE, AE32, AE64, and AE128 split-inference families and the subsequent 288-cell measurement campaign.
+The immediate task is to audit and, if validated, add visibility-qualified static parked-vehicle truth through a create-only v3.1 view. LR-ASPP will then be retrained on the corrected full-map corpus. Only if it remains inadequate will Faster R-CNN receive equivalent v3.1 retraining. The winning architecture will become the common perception base for noAE, AE32, AE64, and AE128, followed by the 16-cell integration pilot and 288-cell campaign.
 
 ---
 
@@ -446,6 +480,7 @@ If the v3-trained Faster R-CNN preserves its localization/segmentation gains whi
 - [Frozen Faster R-CNN v1 report](pole_lraspp_multimodal_fusion/object_head_pilot_v1/fasterrcnn_radar_roi_v1/FRCNN_RADAR_ROI_FINAL_REPORT.md)
 - [Depth visibility smoke report](data_collection/route_b_depth_visibility/DEPTH_VISIBILITY_SMOKE_REPORT.md)
 - [Route B v3 schema](data_collection/route_b_perception_v3/SCHEMA.md)
+- [Reusable static-environment truth helper](data_collection/phase2_static_environment_truth_v1.py)
 - [Pedestrian semantic-label bug](cooperative_fusion/FINDINGS_pedestrian_label_bug.md)
 - [Focused hybrid-q training plan](pole_lraspp_multimodal_fusion/object_head_pilot_v1/FOCUSED_NOAE_TRAINING_PLAN.md)
 - [288-cell campaign runbook](rl_agent/UE_288_CAMPAIGN_RUNBOOK_V1.md)
