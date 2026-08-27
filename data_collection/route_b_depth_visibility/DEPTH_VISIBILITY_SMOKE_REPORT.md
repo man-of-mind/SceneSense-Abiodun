@@ -79,9 +79,22 @@ survive as GT. Both criteria are load-bearing.
 
 ### Heavily occluded case, reported truthfully
 S4 (`vf=0.213`, `closer=0.628`, 55 px at input) is **accepted** under the frozen
-rule, identically on all 3 frames. The constructed geometry left ~20% of the
-body width clear of the van edge, so an accept is the correct and honest outcome
-of the fixed rule — this is reported, not tuned away.
+rule, identically on all 3 frames.
+
+**Correction after visual review** (`review_crops/S4_ped_heavy_occluded_review.png`):
+the lateral offset I registered did not produce the intended thin lateral sliver.
+The van's hood and roofline occlude the pedestrian's **lower body**, leaving the
+**head and torso fully visible above the van**. So S4 is not a "small body region
+visible" case at all — it is an ordinary lower-body occlusion that a detector
+should be expected to find, and accepting it is the right answer rather than a
+tolerated miss. The depth mask tracks the visible upper body accurately.
+
+The consequence: **the ladder has a gap between S4 (0.213, upper body visible)
+and S5 (0.061, nothing visible).** No stage in this smoke actually tests a
+genuinely marginal pedestrian — a few percent of body visible through a gap. The
+0.10 threshold is therefore validated as *separating clear cases*, not as
+correctly placed on the hard boundary. Locating that boundary needs a follow-up
+with intermediate occlusion levels.
 
 ## 4. Runtime gates
 
@@ -183,7 +196,8 @@ correct static-geometry probe, and confirm the rule under ego motion.
 - `data_collection/experiments/depth_visibility_smoke_v1/20260827_023930/` (8.2 MB): `resolved_config.json`,
   `per_frame_visibility_metrics.csv`, `summary.json`, `stage_manifest.json`,
   `frame_alignment_evidence.json`, `contact_sheet.png`, `provenance_frames/` (one
-  RGB jpg + one float16 depth npz per stage)
+  RGB jpg + one float16 depth npz per stage), `review_crops/` (zoomed annotated
+  S1/S2/S4 panels, generated offline from the retained frames after the run)
 
 No existing file was modified. The canonical v2 collector was not touched.
 
