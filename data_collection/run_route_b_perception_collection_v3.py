@@ -53,6 +53,16 @@ CONFIG_PATH = HERE / "configs" / "route_b_perception_v3.yaml"
 SCHEMA_PATH = HERE / "route_b_perception_v3" / "SCHEMA.md"
 MIN_EXERCISED_PERSON_ROWS = 4
 REVIEW_CASES = 32
+CANONICAL_EPISODE_KEYS = {
+    ("train", "traffic_30_30", 501, 1501),
+    ("train", "traffic_50_50", 502, 1502),
+    ("train", "traffic_30_30", 503, 1503),
+    ("train", "traffic_50_50", 504, 1504),
+    ("val", "traffic_30_30", 601, 1601),
+    ("val", "traffic_50_50", 602, 1602),
+    ("test", "traffic_30_30", 701, 1701),
+    ("test", "traffic_50_50", 702, 1702),
+}
 
 VISIBILITY_FIELDS = (
     "experiment_id", "sample_id", "frame_id", "timestamp", "gt_actor_id", "label",
@@ -696,16 +706,30 @@ class PerceptionCollectorV3(v2.PerceptionCollectorV2):
             and person_unobservable >= MIN_EXERCISED_PERSON_ROWS)
 
         review: dict[str, Any] = {"written": False}
+        smoke_mode = self.split == "smoke"
         technical_pass_before_review = all(v2_gates.values()) and all(v3_gates.values())
-        if technical_pass_before_review:
+        if technical_pass_before_review and smoke_mode:
             try:
                 review = {"written": True, **_write_review_artifacts(self)}
             except Exception as exc:  # noqa: BLE001
                 review = {"written": False, "error": f"{type(exc).__name__}: {exc}"}
-        v3_gates["manual_review_artifacts_written"] = bool(review.get("written"))
+        elif technical_pass_before_review:
+            review = {
+                "written": False,
+                "not_required_for_canonical_episode": True,
+                "accepted_smoke_review": (
+                    "data_collection/experiments/route_b_perception_v3/"
+                    "20260827_103139_traffic_30_30_smoke/"
+                    "ROUTE_B_V3_30_30_SMOKE_REPORT.md"
+                ),
+            }
+        if smoke_mode:
+            v3_gates["manual_review_artifacts_written"] = bool(review.get("written"))
         technical_pass = all(v2_gates.values()) and all(v3_gates.values())
         if not technical_pass:
             terminal = "ROUTE_B_V3_COLLECTION_FAILED"
+        elif not smoke_mode:
+            terminal = "ROUTE_B_V3_CANONICAL_EPISODE_PASSED"
         elif not visibility_exercised:
             terminal = "ROUTE_B_V3_VISIBILITY_NOT_EXERCISED"
         else:
@@ -788,7 +812,7 @@ class PerceptionCollectorV3(v2.PerceptionCollectorV2):
             "v2 rgb/mask/semantic/radar payloads + lossless raw CARLA encoded-depth PNG"
         )
         self.parked.save_json(summary_path, summary)
-        self._write_smoke_report(summary)
+        self._write_episode_report(summary)
         failed = sorted(name for name, passed in summary["gates"].items() if not passed)
         print(json.dumps({
             "terminal": terminal, "technical_pass": technical_pass,
@@ -796,7 +820,7 @@ class PerceptionCollectorV3(v2.PerceptionCollectorV2):
             "review_cases": review.get("actual_cases", 0),
         }, indent=2), flush=True)
 
-    def _write_smoke_report(self, summary: dict[str, Any]) -> None:
+    def _write_episode_report(self, summary: dict[str, Any]) -> None:
         route = summary.get("route_result") or {}
         visibility = summary["depth_visibility"]
         storage = summary["v3_storage"]
@@ -806,7 +830,11 @@ class PerceptionCollectorV3(v2.PerceptionCollectorV2):
         decode_mean = float(runtime["depth_decode_s"]["mean"] or 0.0)
         visibility_mean = float(runtime["saved_frame_visibility_and_mask_s"]["mean"] or 0.0)
         baseline_mean = float(runtime["v2_core_prepare_before_depth_estimate_s"]["mean"] or 0.0)
-        report = f"""# Route B v3 30/30 smoke report
+        report_title = (
+            "Route B v3 30/30 smoke report" if self.split == "smoke"
+            else "Route B v3 canonical episode report"
+        )
+        report = f"""# {report_title}
 
 Terminal: `{summary['terminal']}`
 
@@ -827,7 +855,11 @@ Vehicle masks preserve CARLA semantic pixels. Person masks are depth-derived vis
 
 Future canonical storage recommendation: {storage['future_canonical_recommendation']}
 """
-        (self.output_dir / "ROUTE_B_V3_30_30_SMOKE_REPORT.md").write_text(
+        report_name = (
+            "ROUTE_B_V3_30_30_SMOKE_REPORT.md"
+            if self.split == "smoke" else "ROUTE_B_V3_EPISODE_REPORT.md"
+        )
+        (self.output_dir / report_name).write_text(
             report, encoding="utf-8")
 
 
@@ -839,11 +871,18 @@ def build_parser():
 
 
 def main(argv: list[str] | None = None) -> int:
-    # Parse once here to enforce this task's bounded smoke scope before v2 can
-    # connect to CARLA or create an output directory.
+    # Parse once here to admit only the reviewed smoke or one of the eight
+    # registered canonical episode tuples before v2 can connect or create data.
     preview = build_parser().parse_args(argv)
-    if preview.density != "traffic_30_30" or preview.split not in (None, "smoke"):
-        print("v3 bounded collector permits only traffic_30_30 with split=smoke", file=sys.stderr)
+    requested = (
+        str(preview.split), str(preview.density),
+        int(preview.scenario_seed), int(preview.tm_seed),
+    )
+    smoke_request = requested == ("smoke", "traffic_30_30", 101, 1101)
+    canonical_request = requested in CANONICAL_EPISODE_KEYS
+    if not smoke_request and not canonical_request:
+        print("v3 collector request is not the reviewed smoke or a registered canonical tuple",
+              file=sys.stderr)
         return 2
     if preview.hybrid_physics:
         print("v3 bounded collector requires --no-hybrid-physics", file=sys.stderr)
@@ -859,11 +898,15 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     original = v2.PerceptionCollectorV2
+    original_allowed_seeds = set(v2.ALLOWED_SEED_BUNDLES)
+    v2.ALLOWED_SEED_BUNDLES.update((key[2], key[3]) for key in CANONICAL_EPISODE_KEYS)
     v2.PerceptionCollectorV2 = PerceptionCollectorV3
     try:
         code = v2.main(argv)
     finally:
         v2.PerceptionCollectorV2 = original
+        v2.ALLOWED_SEED_BUNDLES.clear()
+        v2.ALLOWED_SEED_BUNDLES.update(original_allowed_seeds)
     summary_path = Path(preview.output_dir).resolve() / "route_summary.json"
     if summary_path.is_file():
         summary = json.loads(summary_path.read_text(encoding="utf-8"))

@@ -115,6 +115,8 @@ def _patch_summary_after_shutdown(
         summary["status"] = "COLLECTION_EPISODE_FAILED"
     path.write_text(json.dumps(summary, indent=2, sort_keys=True), encoding="utf-8")
     report_path = output_dir / "ROUTE_B_V3_30_30_SMOKE_REPORT.md"
+    if not report_path.is_file():
+        report_path = output_dir / "ROUTE_B_V3_EPISODE_REPORT.md"
     if report_path.is_file():
         with report_path.open("a", encoding="utf-8") as stream:
             stream.write(

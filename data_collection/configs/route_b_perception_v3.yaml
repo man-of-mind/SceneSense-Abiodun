@@ -3,10 +3,19 @@ schema: scenesense_route_b_perception_collection.v3
 version: 3
 extends: data_collection/configs/route_b_perception_v2.yaml
 collection:
-  allowed_density: traffic_30_30
-  allowed_split: smoke
-  maximum_episodes: 1
-  stop_before_traffic_50_50: true
+  reviewed_smoke: {split: smoke, density: traffic_30_30, scenario_seed: 101, tm_seed: 1101}
+  canonical_episode_tuples:
+    - {split: train, density: traffic_30_30, scenario_seed: 501, tm_seed: 1501}
+    - {split: train, density: traffic_50_50, scenario_seed: 502, tm_seed: 1502}
+    - {split: train, density: traffic_30_30, scenario_seed: 503, tm_seed: 1503}
+    - {split: train, density: traffic_50_50, scenario_seed: 504, tm_seed: 1504}
+    - {split: val, density: traffic_30_30, scenario_seed: 601, tm_seed: 1601}
+    - {split: val, density: traffic_50_50, scenario_seed: 602, tm_seed: 1602}
+    - {split: test, density: traffic_30_30, scenario_seed: 701, tm_seed: 1701}
+    - {split: test, density: traffic_50_50, scenario_seed: 702, tm_seed: 1702}
+  canonical_maximum_episodes: 8
+  sequential_fresh_carla: true
+  automatic_retry: false
 depth_visibility:
   blueprint: sensor.camera.depth
   colocation: exact canonical RGB transform, resolution, FOV and free-running timing
