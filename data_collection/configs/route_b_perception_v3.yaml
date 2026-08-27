@@ -1,0 +1,38 @@
+# Route B v3 extends the frozen v2 contract; only v3 additions are stated here.
+schema: scenesense_route_b_perception_collection.v3
+version: 3
+extends: data_collection/configs/route_b_perception_v2.yaml
+collection:
+  allowed_density: traffic_30_30
+  allowed_split: smoke
+  maximum_episodes: 1
+  stop_before_traffic_50_50: true
+depth_visibility:
+  blueprint: sensor.camera.depth
+  colocation: exact canonical RGB transform, resolution, FOV and free-running timing
+  resolution: [1280, 720]
+  model_input_size: [768, 432]
+  sensor_tick_s: 0.0
+  encoding: CARLA BGRA uint8 encoded-depth, lossless PNG
+  decode: (R + G*256 + B*256^2)/(256^3-1) * 1000 m
+  algorithm_version: route_b_depth_visibility_interval_v1
+  depth_tolerance_m: 0.25
+  minimum_model_visible_pixels: 12
+  eligible_visible_v010_threshold: 0.10
+  eligible_clear_v025_threshold: 0.25
+  tiers:
+    clear: visible_fraction >= 0.25 and model pixels >= 12
+    marginal_or_heavily_occluded: 0.10 <= visible_fraction < 0.25 and model pixels >= 12
+    unobservable: visible_fraction < 0.10 or model pixels < 12
+masks:
+  vehicles: preserved CARLA semantic pixels
+  persons: depth-consistent visible-region approximation only
+  paint_gate: eligible_visible_v010
+  low_support_fallback: forbidden
+storage:
+  smoke_depth: lossless raw encoded depth retained for every saved frame
+  future_recommendation: compact derived masks plus a bounded raw-depth provenance sample
+review:
+  deterministic_cases: 32
+  minimum_marginal_person_rows_to_exercise_contract: 4
+  minimum_unobservable_person_rows_to_exercise_contract: 4
