@@ -1,0 +1,40 @@
+{
+  "evaluated_epochs": [5, 10, 15, 20, 25],
+  "loss_best_epoch_policy": "include only if not already in evaluated_epochs",
+  "fixed_decoder": {
+    "score_points": [0.20, 0.02],
+    "topk": 120,
+    "image_nms_radius_px": 2,
+    "prediction_range_m": 40.0,
+    "match_radius_m": 3.0
+  },
+  "feasibility": {
+    "vehicle_iou_min_delta": -0.01,
+    "person_box_mask_iou_min_delta": -0.01,
+    "vehicle_xy_mae_max_increase_m": 0.10,
+    "person_xy_mae_max_increase_m": 0.10
+  },
+  "ranking": [
+    "highest_mean_vehicle_person_f1_at_0.20",
+    "highest_minimum_vehicle_person_recall_at_0.20",
+    "lowest_mean_vehicle_person_xy_mae",
+    "highest_foreground_miou",
+    "earliest_epoch"
+  ],
+  "material_gain": {
+    "mean_class_f1_min_delta": 0.02,
+    "per_class_f1_min_delta": -0.005,
+    "foreground_miou_min_delta": -0.01
+  },
+  "service_targets": {
+    "vehicle_precision_min": 0.80,
+    "vehicle_recall_min": 0.85,
+    "person_precision_min": 0.80,
+    "person_recall_min": 0.80,
+    "vehicle_xy_mae_max_m": 1.0,
+    "person_xy_mae_max_m": 1.2,
+    "vehicle_iou_min": 0.85,
+    "person_box_mask_iou_min": 0.50,
+    "foreground_miou_min": 0.675
+  }
+}
