@@ -140,6 +140,7 @@ def main() -> int:
     parser.add_argument("--base-sha256", required=True)
     parser.add_argument("--resume-checkpoint", type=Path)
     parser.add_argument("--resume-sha256")
+    parser.add_argument("--numerical-policy-registration", required=True, type=Path)
     parser.add_argument("--attempt", type=int, default=1)
     args = parser.parse_args()
     experiment = args.experiment.resolve()
@@ -147,10 +148,30 @@ def main() -> int:
     design = config["person_design"]
     registration_path = experiment / "REGISTRATION.json"
     registration = json.loads(registration_path.read_text(encoding="utf-8"))
+    numerical_policy_path = args.numerical_policy_registration.resolve(strict=True)
+    numerical_policy = json.loads(numerical_policy_path.read_text(encoding="utf-8"))
     if not registration["all_frozen_before_training"]:
         raise RuntimeError("refinement registration is not closed")
     if sha256(args.config) != registration["resolved_config_sha256"]:
         raise RuntimeError("resolved refinement configuration changed after registration")
+    required_policy = {
+        "frozen_feature_compute": "existing_fp16_no_grad",
+        "detached_native_feature": "fp32",
+        "complete_person_refinement_tail": "fp32",
+        "inherited_trainable_person_heatmap": "fp32",
+        "person_losses_and_unprojection": "fp32",
+        "optimizer_parameters_and_state": "fp32",
+        "grad_scaler_enabled": False,
+    }
+    if (
+        numerical_policy.get("schema")
+        != "route_b_v3_1_person_refinement_numerical_policy_registration_v3"
+        or numerical_policy.get("authorized") is not True
+        or numerical_policy.get("policy") != required_policy
+        or numerical_policy.get("source_registration_sha256") != sha256(registration_path)
+        or numerical_policy.get("base_checkpoint_sha256") != args.base_sha256
+    ):
+        raise RuntimeError("full-FP32 person numerical policy registration is invalid")
     if sys.executable != "/usr/bin/python3" or not torch.cuda.is_available():
         raise RuntimeError("required /usr/bin/python3 CUDA environment unavailable")
     if int(design["epochs"]) != 18 or tuple(design["checkpoint_epochs"]) != CHECKPOINT_EPOCHS:
@@ -198,7 +219,12 @@ def main() -> int:
         {"params": new_parameters(model), "lr": 0.0, "name": "new_person_tail"},
         {"params": inherited_person_parameters(model), "lr": 0.0, "name": "inherited_person_heatmap"},
     ], lr=0.0, weight_decay=float(design["weight_decay"]))
-    scaler = torch.amp.GradScaler("cuda", enabled=bool(design["amp"]))
+    if not all(
+        not parameter.is_floating_point() or parameter.dtype == torch.float32
+        for group in optimizer.param_groups for parameter in group["params"]
+    ):
+        raise RuntimeError("person optimizer parameters are not FP32")
+    scaler = torch.amp.GradScaler("cuda", enabled=False)
     start_epoch, optimizer_steps = 1, 0
     if args.resume_checkpoint is not None:
         resume_path = args.resume_checkpoint.resolve(strict=True)
@@ -213,6 +239,8 @@ def main() -> int:
         optimizer_steps = int(resume["optimizer_steps"])
         if resume["registration_sha256"] != sha256(registration_path):
             raise RuntimeError("candidate retry registration mismatch")
+        if resume.get("numerical_policy_registration_sha256") != sha256(numerical_policy_path):
+            raise RuntimeError("candidate retry numerical policy mismatch")
 
     checkpoint_dir = experiment / "checkpoints" / config["name"]
     recovery_dir = experiment / "candidate_recovery_checkpoints"
@@ -228,6 +256,8 @@ def main() -> int:
             "schema": "route_b_v3_1_person_refinement_training_started_v1",
             "created_utc": utc_now(), "attempt": args.attempt, "config": config,
             "registration_sha256": sha256(registration_path), "base_mapping": load_mapping,
+            "numerical_policy_registration": str(numerical_policy_path),
+            "numerical_policy_registration_sha256": sha256(numerical_policy_path),
             "base_checkpoint_sha256": base_hash, "train_frames": len(train_rows),
             "validation_frames_not_used_for_training_or_mining": len(val_rows),
             "sampling_draws_per_epoch": int(design["sampling"]["num_samples_per_epoch"]),
@@ -273,7 +303,7 @@ def main() -> int:
             targets = {key: value.to(device, non_blocking=True) for key, value in targets.items()}
             optimizer.zero_grad(set_to_none=True)
             with torch.autocast(
-                device_type="cuda", enabled=scaler.is_enabled(),
+                device_type="cuda", enabled=bool(design["amp"]), dtype=torch.float16,
                 cache_enabled=bool(design["autocast_cache_enabled"]),
             ):
                 outputs = model.training_outputs(tensors)
@@ -285,9 +315,18 @@ def main() -> int:
                 )
             if not math.isfinite(float(loss.detach().item())):
                 raise RuntimeError(f"nonfinite refinement loss epoch={epoch} batch={batch_index + 1}")
-            scaler.scale(loss).backward()
-            scaler.step(optimizer)
-            scaler.update()
+            loss.backward()
+            nonfinite_gradients = [
+                name for name, parameter in model.named_parameters()
+                if parameter.requires_grad and parameter.grad is not None
+                and not torch.isfinite(parameter.grad).all().item()
+            ]
+            if nonfinite_gradients:
+                raise RuntimeError(
+                    f"nonfinite full-FP32 gradients epoch={epoch} batch={batch_index + 1} "
+                    f"parameters={nonfinite_gradients}"
+                )
+            optimizer.step()
             optimizer_steps += 1
             batches += 1
             for key, value in parts.items():
@@ -295,6 +334,18 @@ def main() -> int:
         assert first_lr is not None and last_lr is not None
         if not all(torch.isfinite(value).all().item() for value in model.state_dict().values()):
             raise RuntimeError(f"nonfinite model state after epoch {epoch}")
+        non_fp32_optimizer_state = [
+            (group_index, state_name, str(value.dtype))
+            for group_index, group in enumerate(optimizer.param_groups)
+            for parameter in group["params"]
+            for state_name, value in optimizer.state.get(parameter, {}).items()
+            if isinstance(value, torch.Tensor) and value.is_floating_point()
+            and value.dtype != torch.float32
+        ]
+        if non_fp32_optimizer_state:
+            raise RuntimeError(
+                f"non-FP32 optimizer state after epoch {epoch}: {non_fp32_optimizer_state}"
+            )
         allocated = torch.cuda.max_memory_allocated(device) / 2**20
         reserved = torch.cuda.max_memory_reserved(device) / 2**20
         peak_allocated, peak_reserved = max(peak_allocated, allocated), max(peak_reserved, reserved)
@@ -323,6 +374,8 @@ def main() -> int:
             "epoch": epoch, "optimizer_steps": optimizer_steps, "stage": stage,
             "config": config, "registration": registration,
             "registration_sha256": sha256(registration_path),
+            "numerical_policy_registration": numerical_policy,
+            "numerical_policy_registration_sha256": sha256(numerical_policy_path),
             "native_checkpoint": str(base_path), "native_checkpoint_sha256": base_hash,
             "radar_channels": int(base["radar_channels"]),
             "object_hidden_channels": int(base["object_hidden_channels"]),
@@ -359,6 +412,9 @@ def main() -> int:
         "optimizer_steps": optimizer_steps, "peak_allocated_mib": peak_allocated,
         "peak_reserved_mib": peak_reserved,
         "validation_rows_used_for_training_or_mining": 0,
+        "numerical_policy_registration": str(numerical_policy_path),
+        "numerical_policy_registration_sha256": sha256(numerical_policy_path),
+        "grad_scaler_enabled": False,
         "no_ordinary_early_stop": True,
     }
     write_json_x(experiment / "PERSON_TRAINING_COMPLETE.json", result)

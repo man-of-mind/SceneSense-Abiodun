@@ -1,0 +1,45 @@
+{
+  "schema": "route_b_v3_1_person_refinement_full_fp32_policy_v3",
+  "required_starting_head": "272098dd69e177543030a9503f55163d80213ac7",
+  "source_failed_experiment": "experiments/route_b_v3_1_person_refinement_continuation_v2/20260828_134000",
+  "source_failed_terminal": "LRASPP_PERSON_REFINEMENT_RUNTIME_FAILURE",
+  "source_failed_terminal_sha256": "959345cba2f99e288f25a4940c003c897a28c9e9786fa47e6185b47bcb20c503",
+  "source_registration_sha256": "d97c85e9a3b4815a8c4e37ded0d768475caa31c3ab0580dd26426a337fff3a66",
+  "base_checkpoint_sha256": "5c6bb268b43f4dd84bd7a283ff483ec4e87366a50ea51dfacee44979df2bf6e8",
+  "phase1_reproduction_sha256": "9e49a808fa6a60bf35919a41c95d089d89d760d30c029a1caeecf21168042542",
+  "phase1_failure": {
+    "epoch": 1,
+    "batch": 134,
+    "first_operation": "person_trunk.conv1",
+    "dtype": "torch.float16",
+    "nan": 0,
+    "positive_infinity": 0,
+    "negative_infinity": 24
+  },
+  "policy": {
+    "frozen_feature_compute": "existing_fp16_no_grad",
+    "detached_native_feature": "fp32",
+    "complete_person_refinement_tail": "fp32",
+    "inherited_trainable_person_heatmap": "fp32",
+    "person_losses_and_unprojection": "fp32",
+    "optimizer_parameters_and_state": "fp32",
+    "grad_scaler_enabled": false
+  },
+  "scientific_design_changes": {
+    "model_equations": false,
+    "initialization": false,
+    "learning_rates": false,
+    "scheduler": false,
+    "losses_or_weights": false,
+    "sampler_or_seed": false,
+    "targets": false,
+    "decoder": false,
+    "batch_size": false,
+    "architecture": false,
+    "evaluation_rules": false
+  },
+  "maximum_further_dtype_patches": 0,
+  "candidate_restart_epoch": 1,
+  "candidate_epochs": 18,
+  "evaluation_epochs": [6, 12, 18]
+}

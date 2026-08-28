@@ -112,6 +112,11 @@ class PersonRefinementFusionLRASPP(native.NativeGridFusionLRASPP):
                 self.object_head.person_heatmap_head(feature),
             )
 
+    def _person_refinement_fp32(self, native_feature: torch.Tensor) -> dict[str, torch.Tensor]:
+        """Run the complete trainable person tail under one coherent FP32 policy."""
+        with torch.autocast(device_type="cuda", enabled=False):
+            return self.person_refinement(native_feature.detach().float())
+
     def tail_outputs(self, features: object) -> dict[str, Any]:
         native_feature = self._native_feature(features)
         vehicle_heatmap, person_heatmap = self._finite_class_heatmaps(native_feature)
@@ -120,20 +125,22 @@ class PersonRefinementFusionLRASPP(native.NativeGridFusionLRASPP):
             self.object_head.regression_head(native_feature),
             self.object_head.offset_head(native_feature),
         ], dim=1)
-        refinement = self.person_refinement(native_feature.detach())
+        refinement = self._person_refinement_fp32(native_feature)
         segmentation = self.classifier(features)
         if isinstance(segmentation, dict):
             segmentation = segmentation["out"]
-        if tuple(refinement["person_mask_residual"].shape[-2:]) != tuple(segmentation.shape[-2:]):
-            mask_residual = torch.nn.functional.interpolate(
-                refinement["person_mask_residual"], size=segmentation.shape[-2:],
-                mode="bilinear", align_corners=False,
-            )
-        else:
-            mask_residual = refinement["person_mask_residual"]
-        refined_segmentation = torch.cat([
-            segmentation[:, :2], segmentation[:, 2:3] + mask_residual,
-        ], dim=1)
+        with torch.autocast(device_type="cuda", enabled=False):
+            if tuple(refinement["person_mask_residual"].shape[-2:]) != tuple(segmentation.shape[-2:]):
+                mask_residual = torch.nn.functional.interpolate(
+                    refinement["person_mask_residual"], size=segmentation.shape[-2:],
+                    mode="bilinear", align_corners=False,
+                )
+            else:
+                mask_residual = refinement["person_mask_residual"]
+            segmentation_fp32 = segmentation.float()
+            refined_segmentation = torch.cat([
+                segmentation_fp32[:, :2], segmentation_fp32[:, 2:3] + mask_residual,
+            ], dim=1)
         return {
             "out": refined_segmentation, "base_out": segmentation,
             "object": base_object, "person_refinement": refinement,
@@ -165,15 +172,17 @@ class PersonRefinementFusionLRASPP(native.NativeGridFusionLRASPP):
         base_object = torch.cat([
             vehicle_heatmap.detach(), person_heatmap, regression.detach(), grid_offset.detach(),
         ], dim=1)
-        refinement = self.person_refinement(native_feature.detach())
-        mask_residual = refinement["person_mask_residual"]
-        if tuple(mask_residual.shape[-2:]) != tuple(segmentation.shape[-2:]):
-            mask_residual = torch.nn.functional.interpolate(
-                mask_residual, size=segmentation.shape[-2:], mode="bilinear", align_corners=False,
-            )
-        refined_segmentation = torch.cat([
-            segmentation[:, :2].detach(), segmentation[:, 2:3].detach() + mask_residual,
-        ], dim=1)
+        refinement = self._person_refinement_fp32(native_feature)
+        with torch.autocast(device_type="cuda", enabled=False):
+            mask_residual = refinement["person_mask_residual"]
+            if tuple(mask_residual.shape[-2:]) != tuple(segmentation.shape[-2:]):
+                mask_residual = torch.nn.functional.interpolate(
+                    mask_residual, size=segmentation.shape[-2:], mode="bilinear", align_corners=False,
+                )
+            segmentation_fp32 = segmentation.detach().float()
+            refined_segmentation = torch.cat([
+                segmentation_fp32[:, :2], segmentation_fp32[:, 2:3] + mask_residual,
+            ], dim=1)
         return {
             "out": refined_segmentation, "base_out": segmentation.detach(),
             "object": base_object, "person_refinement": refinement,

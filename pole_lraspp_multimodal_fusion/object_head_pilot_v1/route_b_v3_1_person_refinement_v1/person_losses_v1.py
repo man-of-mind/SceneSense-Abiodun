@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Any, Callable, Sequence
 
 import torch
 import torch.nn.functional as F
@@ -51,10 +51,20 @@ def _bounded_center_loss(logits: torch.Tensor, target: torch.Tensor, *,
     }
 
 
+TensorObserver = Callable[[str, torch.Tensor], None]
+
+
+def _observe(observer: TensorObserver | None, name: str, value: torch.Tensor) -> None:
+    if observer is not None:
+        observer(name, value)
+
+
 def _mask_loss(logits: torch.Tensor, masks: torch.Tensor, *,
-               hard_negative_ratio: int) -> tuple[torch.Tensor, dict[str, float]]:
+               hard_negative_ratio: int,
+               tensor_observer: TensorObserver | None = None) -> tuple[torch.Tensor, dict[str, float]]:
     if tuple(logits.shape[-2:]) != tuple(masks.shape[-2:]):
         logits = F.interpolate(logits, size=masks.shape[-2:], mode="bilinear", align_corners=False)
+    _observe(tensor_observer, "loss.mask_interpolated_logits", logits)
     # The scored target is a filled projected-person box.  Compare the person
     # logit against the log-sum-exp of the two frozen alternatives.
     binary_logit = logits[:, 2] - torch.logsumexp(logits[:, :2], dim=1)
@@ -80,6 +90,7 @@ def _mask_loss(logits: torch.Tensor, masks: torch.Tensor, *,
     false_negative = ((1.0 - probability) * target).sum()
     tversky = (intersection + 1.0) / (intersection + 0.3 * false_positive + 0.7 * false_negative + 1.0)
     loss = 0.5 * balanced_bce + 0.5 * (1.0 - tversky)
+    _observe(tensor_observer, "loss.person_mask", loss)
     return loss, {
         "person_mask_positive_pixels": float(positive_count),
         "mask_hard_negatives_selected": float(selected_count),
@@ -90,38 +101,52 @@ def _mask_loss(logits: torch.Tensor, masks: torch.Tensor, *,
 def person_refinement_loss(outputs: dict[str, Any], masks: torch.Tensor,
                            targets: dict[str, torch.Tensor], *,
                            range_edges: Sequence[float], offset_caps: Sequence[float],
-                           design: dict[str, Any]) -> tuple[torch.Tensor, dict[str, float]]:
+                           design: dict[str, Any],
+                           tensor_observer: TensorObserver | None = None) -> tuple[torch.Tensor, dict[str, float]]:
     refinement = outputs["person_refinement"]
     base_object = outputs["object"]
     target_heatmap = targets["center_heatmap"][:, 1:2].to(base_object.device)
     combined_objectness = base_object[:, 1:2] + refinement["objectness_residual"]
+    _observe(tensor_observer, "loss.combined_objectness", combined_objectness)
     center, parts = _bounded_center_loss(
         combined_objectness, target_heatmap,
         hard_negative_ratio=int(design["hard_negative_ratio"]),
         hard_negative_minimum=int(design["hard_negative_minimum"]),
     )
+    _observe(tensor_observer, "loss.center", center)
     positive = targets["person_regression_mask"].to(base_object.device)[:, 0].gt(0.5)
     indices = positive.nonzero(as_tuple=False)
     if indices.numel() == 0:
         zero = combined_objectness.sum() * 0.0
-        return center + zero, {**parts, "range_bin_loss": 0.0, "range_residual_loss": 0.0,
+        total = center + zero
+        for name in (
+            "loss.range_bin", "loss.range_residual", "loss.projected_offset",
+            "loss.local_xy_endpoint", "loss.quality", "loss.person_mask",
+        ):
+            _observe(tensor_observer, name, zero)
+        _observe(tensor_observer, "loss.total", total)
+        return total, {**parts, "range_bin_loss": 0.0, "range_residual_loss": 0.0,
                                "projected_offset_loss": 0.0, "local_xy_endpoint_loss": 0.0,
                                "quality_loss": 0.0, "person_mask_loss": 0.0}
     batch_index, cell_y, cell_x = indices[:, 0], indices[:, 1], indices[:, 2]
     bin_logits = refinement["range_bin_logits"][batch_index, :, cell_y, cell_x]
+    _observe(tensor_observer, "loss.range_bin_logits_positive", bin_logits)
     bin_target = targets["person_range_bin"].to(base_object.device)[batch_index, cell_y, cell_x]
     range_bin_loss = F.cross_entropy(bin_logits, bin_target)
+    _observe(tensor_observer, "loss.range_bin", range_bin_loss)
     predicted_residual = torch.tanh(
         refinement["range_residual"][batch_index, 0, cell_y, cell_x]
     )
     residual_target = targets["person_range_residual"].to(base_object.device)[batch_index, 0, cell_y, cell_x]
     range_residual_loss = F.smooth_l1_loss(predicted_residual, residual_target)
+    _observe(tensor_observer, "loss.range_residual", range_residual_loss)
     caps = torch.as_tensor(offset_caps, dtype=torch.float32, device=base_object.device)
     predicted_offset = torch.tanh(
         refinement["projected_center_offset"][batch_index, :, cell_y, cell_x]
     ) * caps
     offset_target = targets["person_projected_center_offset"].to(base_object.device)[batch_index, :, cell_y, cell_x]
     projected_offset_loss = F.smooth_l1_loss(predicted_offset, offset_target)
+    _observe(tensor_observer, "loss.projected_offset", projected_offset_loss)
 
     edges = torch.as_tensor(range_edges, dtype=torch.float32, device=base_object.device)
     centers = (edges[:-1] + edges[1:]) / 2.0
@@ -129,12 +154,17 @@ def person_refinement_loss(outputs: dict[str, Any], masks: torch.Tensor,
     probability = torch.softmax(bin_logits.float(), dim=1)
     candidate_ranges = centers.unsqueeze(0) + predicted_residual.unsqueeze(1) * half_widths.unsqueeze(0)
     predicted_depth = (probability * candidate_ranges).sum(dim=1).clamp(min=0.05, max=float(edges[-1]))
+    _observe(tensor_observer, "loss.predicted_depth", predicted_depth)
     base_grid_offset = base_object[:, native.SL_OFFSET][batch_index, :, cell_y, cell_x].clamp(0.0, 1.0)
     u = (cell_x.to(torch.float32) + base_grid_offset[:, 0] + predicted_offset[:, 0]) * float(native.NATIVE_STRIDE)
     v = (cell_y.to(torch.float32) + base_grid_offset[:, 1] + predicted_offset[:, 1]) * float(native.NATIVE_STRIDE)
     intrinsic = targets["camera_intrinsic_model"].to(base_object.device)[batch_index]
     predicted_right = (u - intrinsic[:, 0, 2]) * predicted_depth / intrinsic[:, 0, 0]
     predicted_up = -(v - intrinsic[:, 1, 2]) * predicted_depth / intrinsic[:, 1, 1]
+    _observe(tensor_observer, "loss.unprojection_u", u)
+    _observe(tensor_observer, "loss.unprojection_v", v)
+    _observe(tensor_observer, "loss.unprojection_right", predicted_right)
+    _observe(tensor_observer, "loss.unprojection_up", predicted_up)
     local_target = targets["person_local_xyz"].to(base_object.device)[batch_index, :, cell_y, cell_x]
     local_xy_error = torch.sqrt(
         (predicted_depth - local_target[:, 0]).pow(2)
@@ -143,12 +173,15 @@ def person_refinement_loss(outputs: dict[str, Any], masks: torch.Tensor,
     local_xy_endpoint_loss = F.smooth_l1_loss(
         torch.stack([predicted_depth, predicted_right], dim=1), local_target[:, :2]
     )
+    _observe(tensor_observer, "loss.local_xy_endpoint", local_xy_endpoint_loss)
     quality_target = (1.0 - local_xy_error.detach() / 3.0).clamp(0.0, 1.0)
     quality_logits = refinement["localization_quality"][batch_index, 0, cell_y, cell_x]
     quality_loss = F.binary_cross_entropy_with_logits(quality_logits, quality_target)
+    _observe(tensor_observer, "loss.quality", quality_loss)
     person_mask_loss, mask_parts = _mask_loss(
         outputs["out"], masks.to(base_object.device),
         hard_negative_ratio=int(design["mask_hard_negative_ratio"]),
+        tensor_observer=tensor_observer,
     )
     weights = design["loss_weights"]
     total = (
@@ -160,6 +193,7 @@ def person_refinement_loss(outputs: dict[str, Any], masks: torch.Tensor,
         + float(weights["local_xy_endpoint"]) * local_xy_endpoint_loss
         + float(weights["person_mask"]) * person_mask_loss
     )
+    _observe(tensor_observer, "loss.total", total)
     details = {
         **parts, **mask_parts,
         "total_loss": float(total.detach().item()),
