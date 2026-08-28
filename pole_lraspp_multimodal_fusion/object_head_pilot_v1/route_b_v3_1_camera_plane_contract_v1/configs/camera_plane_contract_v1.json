@@ -1,0 +1,27 @@
+{
+  "schema": "route_b_v3_1_camera_plane_contract_config_v1",
+  "name": "route_b_v3_1_camera_plane_contract_v1",
+  "source_experiment": "experiments/route_b_v3_1_clean_base_v1/20260828_012309",
+  "contracts": ["v010", "v025"],
+  "splits": ["train", "val"],
+  "input_size": [768, 432],
+  "rule": {
+    "field": "object_sensor_x",
+    "meaning": "CARLA camera-forward physical-centre depth in metres",
+    "transition_when": "camera_forward_depth <= 0.0",
+    "original_state": "POSITIVE",
+    "derived_localization_state": "IGNORE",
+    "ignore_reason": "CAMERA_PLANE_STRADDLING_CENTER_NONPOSITIVE_DEPTH",
+    "segmentation_eligibility": "unchanged",
+    "object_negative_supervision": "ignored projected visible box",
+    "prediction_assignment": "neutral by existing ignore-mask centre semantics"
+  },
+  "expected_v010_validation_transition": {
+    "total": 34,
+    "vehicle": 34,
+    "person": 0,
+    "actor": 26,
+    "environment_static": 8,
+    "unique_identities": 11
+  }
+}
