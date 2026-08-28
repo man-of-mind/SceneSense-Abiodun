@@ -441,15 +441,30 @@ def make_report(experiment: Path, terminal: str, config: dict[str, Any],
         f"- Runtime retries used: `{retry_used}` of one; error: `{error or 'none'}`.",
     ]
     if recovery:
+        reconciliation_path = experiment / "EPOCH40_RECONCILIATION.json"
+        reconciliation = (
+            json.loads(reconciliation_path.read_text()) if reconciliation_path.is_file() else None
+        )
         lines.extend([
             f"- Recovered epochs: `{recovery['decision']['epochs_completed']}`; decoded epochs: `{recovery['decision']['decoded_epochs']}`.",
             f"- Retained base checkpoints: `{recovery['decision']['retained_checkpoints']}`.",
-            "- Epoch-40 reconciliation passed within the registered P/R/F1, XY, IoU, and duplicate-FP tolerances.",
+            (
+                "- Epoch-40 reconciliation passed within the registered P/R/F1, XY, IoU, and duplicate-FP tolerances."
+                if reconciliation and reconciliation["all_pass"] else
+                f"- Epoch-40 reconciliation failed closed: `{reconciliation}`."
+            ),
         ])
     lines.extend(["", "## Registered refinement", "",
-        "The private person tail consumes only the transported `low`/`high` feature bundle. It adds person objectness residual, detached 3 m localization quality, eight train-derived range bins plus bounded residual, projected-center offset with external camera unprojection, and an independent person-mask residual. The recovered backbone, shared object trunk, vehicle heatmap, shared regression, grid offset, and vehicle segmentation path remain frozen; only the inherited person heatmap slice is enabled at lower LR in P2 (epochs 7–18).",
-        "", "Full retained-prediction PR curves, distance/area/radar/visibility/occlusion-proxy/episode/track strata, and FP/FN taxonomies are in `BASE_DIAGNOSTIC.json`. Executable source, gradient, split-parity, schema, range-bin, camera-plane, sampler, and AMP gates are in `QUALIFICATION.json`.",
+        "The prepared private person tail consumes only the transported `low`/`high` feature bundle. It adds person objectness residual, detached 3 m localization quality, eight train-derived range bins plus bounded residual, projected-center offset with external camera unprojection, and an independent person-mask residual. The recovered backbone, shared object trunk, vehicle heatmap, shared regression, grid offset, and vehicle segmentation path are configured frozen; only the inherited person heatmap slice is configured for lower-LR P2 training (epochs 7–18).",
     ])
+    if not (experiment / "REGISTRATION.json").is_file():
+        lines.extend(["",
+            "The base reconciliation gate failed before Phase B, so the diagnostic, executable qualification, registration artifact, candidate training, candidate scoring, and v0.25 sensitivity were not run. The prepared refinement implementation remains unexecuted scientific design.",
+        ])
+    else:
+        lines.extend(["",
+            "Full retained-prediction PR curves, distance/area/radar/visibility/occlusion-proxy/episode/track strata, and FP/FN taxonomies are in `BASE_DIAGNOSTIC.json`. Executable source, gradient, split-parity, schema, range-bin, camera-plane, sampler, and AMP gates are in `QUALIFICATION.json`.",
+        ])
     if (experiment / "REGISTRATION.json").is_file():
         registration = json.loads((experiment / "REGISTRATION.json").read_text())
         parameters = registration["parameter_report_p2"]
