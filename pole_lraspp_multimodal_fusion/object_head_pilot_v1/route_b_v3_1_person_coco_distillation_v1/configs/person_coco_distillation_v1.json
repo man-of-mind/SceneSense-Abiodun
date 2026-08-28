@@ -1,0 +1,332 @@
+{
+  "schema": "route_b_v3_1_person_coco_distillation_v1",
+  "name": "route_b_v3_1_person_coco_distillation_v1",
+
+  "registered_design": "experiments/route_b_person_lineage_audit_v1/20260828_222103/PERSON_LINEAGE_AUDIT.md",
+  "registered_design_section": "E",
+  "required_audit_terminal": "PERSON_LINEAGE_AUDIT_SUPPORTS_COCO_TRANSFER",
+  "lineage_manifest": "experiments/route_b_person_lineage_audit_v1/20260828_222103/lineage_manifest.json",
+
+  "student_warm_start": "experiments/route_b_v3_1_person_refinement_v1/20260828_163100/checkpoints/route_b_v3_1_person_refinement_v1/epoch_040.pt",
+  "student_warm_start_sha256": "5c6bb268b43f4dd84bd7a283ff483ec4e87366a50ea51dfacee44979df2bf6e8",
+  "student_warm_start_tensor_count": 351,
+  "student_warm_start_new_tensors": 0,
+  "student_warm_start_shape_transforms": 0,
+
+  "registered_training_config": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/route_b_v3_1_native_grid_expanded_training_v2/configs/expanded_training_v2.json",
+  "native_package": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/route_b_v3_1_native_grid_v1",
+  "expanded_package": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/route_b_v3_1_native_grid_expanded_training_v2",
+  "scoring_package": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/route_b_v3_1_clean_base_v1",
+  "dimension_yaw_scorer_sha256": "14629e69a1617d05ca6dec2bad6901b69f83df96f2cf5543509dbe970d18069d",
+
+  "dataset_view": "experiments/route_b_v3_1_expanded_train_camera_plane_v1/20260828_094151",
+  "train_frames": 16827,
+  "train_episodes": 10,
+  "validation_frames": 3345,
+  "validation_episodes": 2,
+  "test_frames": 0,
+  "test_must_remain_unopened": true,
+  "primary_contract": "v010",
+  "sensitivity_contract": "v025",
+  "sensitivity_scope": "selected_candidate_only_after_primary_gates_pass",
+
+  "teacher": {
+    "constructor": "torchvision.models.detection.fasterrcnn_resnet50_fpn_v2",
+    "weights_enum": "FasterRCNN_ResNet50_FPN_V2_Weights.COCO_V1",
+    "weights_url": "https://download.pytorch.org/models/fasterrcnn_resnet50_fpn_v2_coco-dd69338a.pth",
+    "local_cache": "~/.cache/torch/hub/checkpoints/fasterrcnn_resnet50_fpn_v2_coco-dd69338a.pth",
+    "cache_sha256": "dd69338a24b8d7381807e247652bdc356325bcbaf1cd3e092e00e0a1a58706bf",
+    "cache_bytes": 175221657,
+    "provenance": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/fasterrcnn_radar_roi_v1/PROVENANCE.md",
+    "fine_tuned_route_b_variant_forbidden": true,
+    "download_forbidden": true,
+    "permanently_eval": true,
+    "all_parameters_frozen": true,
+    "inference_under_no_grad": true,
+    "input": "rgb_only",
+    "sees_radar": false,
+    "runs_on": "train_split_only",
+    "runs_at_validation": false,
+    "runs_at_test": false,
+    "present_in_deployed_model": false,
+    "coco_person_class_index": 1,
+    "pinned_transform": {
+      "min_size": [432],
+      "max_size": 768,
+      "size_divisible": 32,
+      "required_scale_factor": 1.0,
+      "required_image_size": [432, 768],
+      "required_padded_size": [448, 768],
+      "required_identity_max_abs_delta": 0.0
+    },
+    "consumed_outputs": ["fpn_p2_features", "fpn_p3_features", "coco_person_box_scores"],
+    "not_consumed_outputs": ["box_regression", "world_localization", "depth", "dimensions", "yaw"],
+    "detection_to_gt_iou_threshold": 0.5,
+    "teacher_positive_score_floor": 0.05
+  },
+
+  "distillation": {
+    "style": "roi_aligned_person_region_feature_and_objectness",
+    "teacher_levels": {"p2": {"key": "0", "spatial_scale": 0.25}, "p3": {"key": "1", "spatial_scale": 0.125}},
+    "student_levels": {"low": {"spatial_scale": 0.125}, "high": {"spatial_scale": 0.03125}},
+    "roi_output_size": 7,
+    "roi_sampling_ratio": 2,
+    "roi_aligned": true,
+    "teacher_embedding_channels": 512,
+    "student_embedding_channels": 512,
+    "teacher_adapter": "identity_non_trainable",
+    "teacher_adapter_rationale": "a trainable adapter on both sides admits a trivial constant-collapse solution under a cosine objective; the teacher embedding is therefore the fixed concat(P2,P3) ROI feature",
+    "student_adapter": "conv1x1(1000->512)+groupnorm(32)+relu+conv1x1(512->512)",
+    "student_adapter_lr": 0.0001,
+    "adapters_are_train_time_only": true,
+    "adapters_absent_from_deployable_state_dict": true,
+    "l_feat_weight": 0.5,
+    "l_feat_definition": "mean over person ROIs and 7x7 cells of (1 - cosine(student_embedding, teacher_embedding)) on the channel axis",
+    "l_obj_weight": 0.25,
+    "l_obj_definition": "BCE-with-logits between the student person heatmap logit at the GT-positive person centre cell and the IoU-matched teacher COCO person score",
+    "l_obj_sites": "valid_gt_positive_person_centre_cells_with_an_iou_matched_teacher_person_detection_only",
+    "l_obj_excludes_teacher_positive_gt_absent": true,
+    "l_obj_excludes_teacher_negative_gt_positive": true,
+    "l_obj_never_suppresses_a_gt_positive": true,
+    "l_kd_reg_weight": 0.0,
+    "teacher_detections_are_never_pseudo_gt": true,
+    "ordinary_negatives_governed_by": "existing_v3_1_focal_detection_loss"
+  },
+
+  "existing_losses_unchanged": {
+    "object_total": 1.0,
+    "segmentation": 0.3,
+    "lovasz_weight": 0.5,
+    "class_loss_weights": [0.5, 1.0, 4.0],
+    "object": {
+      "center": 4.0,
+      "location": 1.5,
+      "dimensions": 0.6,
+      "yaw": 0.3,
+      "parked": 0.2,
+      "radar_support": 0.1,
+      "bbox2d": 1.0,
+      "offset": 1.0
+    },
+    "note": "verbatim from the registered expanded_training_v2 recipe; the registered section-5 weights L_person_center=4.0, L_vehicle_all=1.0 and L_person_seg=1.0 are exactly these existing terms and are not re-scaled"
+  },
+
+  "trainable": {
+    "object_head.person_heatmap_head": 0.0001,
+    "object_head.shared_trunk.6": 0.00002,
+    "classifier.low_classifier": 0.00002,
+    "classifier.high_classifier": 0.00002,
+    "backbone.13": 0.000005,
+    "backbone.14": 0.000005,
+    "backbone.15": 0.000005,
+    "backbone.16": 0.000005,
+    "distillation_student_adapter": 0.0001
+  },
+  "person_seg_row_gradient_mask": {
+    "trained_rows": [2],
+    "masked_rows": [0, 1],
+    "enforcement": "backward hook zeroes rows 0 and 1, and rows 0 and 1 are restored bit-exactly from the warm start after every optimizer step so decoupled AdamW weight decay cannot drift them"
+  },
+  "frozen": [
+    "backbone.0", "backbone.1", "backbone.2", "backbone.3", "backbone.4", "backbone.5",
+    "backbone.6", "backbone.7", "backbone.8", "backbone.9", "backbone.10", "backbone.11",
+    "backbone.12",
+    "classifier.cbr", "classifier.scale",
+    "object_head.shared_trunk.0", "object_head.shared_trunk.3",
+    "object_head.vehicle_heatmap_head", "object_head.regression_head",
+    "object_head.upsampler", "object_head.offset_head",
+    "all_batch_norm_affine_and_running_statistics"
+  ],
+  "freeze_batch_norm": true,
+  "optimizer": "AdamW",
+  "weight_decay": 0.0001,
+  "schedule": "one_warmup_epoch_then_cosine",
+  "min_lr_ratio": 0.1,
+
+  "epochs": 18,
+  "checkpoint_epochs": [6, 12, 18],
+  "evaluation_epochs": [6, 12, 18],
+  "batch_size": 16,
+  "num_workers": 8,
+  "prefetch_factor": 2,
+  "persistent_workers": true,
+  "training_seed": 20260828,
+  "feature_drop_fraction": 0.0,
+  "q": 0,
+  "ae": false,
+  "input_size": [768, 432],
+
+  "augmentation": {
+    "photometric": "existing_strong",
+    "geometric_augment_legacy_flag": false,
+    "person_geometry": {
+      "enabled": true,
+      "probability": 0.35,
+      "applies_to": "samples_with_at_least_one_valid_person",
+      "scale_range": [0.8, 1.4],
+      "single_sampled_affine_applied_jointly_to": [
+        "rgb", "radar_channel_0", "radar_channel_1", "radar_channel_2", "radar_channel_3",
+        "segmentation_mask", "object_ignore_mask", "person_boxes", "vehicle_boxes",
+        "projected_centres", "native_heatmaps", "native_offsets", "camera_intrinsics"
+      ],
+      "world_coordinates_preserved": true,
+      "camera_frame_local_xyz_preserved": true,
+      "anchor_person_box_must_stay_inside_canvas": true,
+      "anchor_resampling_attempts": 8,
+      "off_canvas_object_policy": "dropped_from_supervision_and_added_to_the_object_ignore_mask",
+      "validation_augmentation": "off"
+    },
+    "no_augmentation_sweep": true
+  },
+
+  "numerical_policy": {
+    "qualification_required_before_epoch_1": true,
+    "candidate_policies": ["student_bf16_teacher_fp32_losses_fp32", "full_fp32"],
+    "preferred": "student_bf16_teacher_fp32_losses_fp32",
+    "grad_scaler_enabled": false,
+    "fp16_forbidden_anywhere": true,
+    "loss_reduction_dtype": "float32",
+    "distillation_path_dtype": "float32",
+    "frozen_before_epoch_1": true,
+    "mid_run_dtype_patches_allowed": 0,
+    "previously_problematic_batch": {
+      "source": "experiments/route_b_v3_1_person_refinement_numerical_repair_v3/20260828_143000/numerical/PHASE1_NUMERICAL_REPRODUCTION.json",
+      "sampler_batch_index": 134,
+      "must_be_included_in_qualification": true
+    }
+  },
+
+  "evaluation": {
+    "inference_passes_per_checkpoint": 1,
+    "inference_score_floor": 0.02,
+    "offline_scores": [0.2, 0.02],
+    "world_match_radius_m": 3.0,
+    "class_aware_matching": true,
+    "topk_per_class": 120,
+    "native_local_maximum_kernel": 3,
+    "prediction_range_m": 40.0,
+    "threshold_or_nms_sweep_forbidden": true,
+    "decoder": "route_b_v3_1_native_grid_v1/decode_v1.py",
+    "person_breakdown_bins": {
+      "box_area_px": [0, 400, 1600, 6400, 1000000],
+      "distance_m": [0, 10, 20, 30, 40],
+      "radar_support": ["supported", "unsupported"]
+    }
+  },
+
+  "baseline_reference_epoch40": {
+    "source": "experiments/route_b_v3_1_person_refinement_v1/20260828_163100/EPOCH40_RECONCILIATION.json",
+    "source_field": "recomputed",
+    "vehicle_precision": 0.79443359375,
+    "vehicle_recall": 0.8394386544216283,
+    "vehicle_f1": 0.8163162912046561,
+    "vehicle_recall_002": 0.8719430399339594,
+    "vehicle_xy_mae_m": 0.8304825902065905,
+    "vehicle_iou": 0.8705440560025107,
+    "person_precision": 0.537513397642015,
+    "person_recall": 0.5180785123966942,
+    "person_f1": 0.527617043661231,
+    "person_recall_002": 0.6151859504132231,
+    "person_xy_mae_m": 1.341152643721099,
+    "person_box_mask_iou": 0.45386697069216453,
+    "foreground_miou": 0.6622055133473377,
+    "vehicle_duplicate_fp": 644
+  },
+
+  "material_gain": {
+    "A": {
+      "person_f1_delta_min": 0.030,
+      "person_recall_delta_min": 0.040,
+      "person_precision_delta_min": -0.010,
+      "person_xy_improvement_min_m": 0.05
+    },
+    "B": {
+      "person_f1_delta_min": 0.015,
+      "person_xy_improvement_min_m": 0.10,
+      "person_iou_delta_min": 0.020
+    }
+  },
+  "vehicle_non_regression": {
+    "vehicle_f1_delta_min": -0.002,
+    "vehicle_recall_delta_min": -0.002,
+    "vehicle_xy_delta_max_m": 0.01,
+    "vehicle_iou_delta_min": -0.002,
+    "vehicle_detection_count_relative_tolerance": 0.002
+  },
+  "catastrophic_limits": {
+    "class_f1_below_baseline": 0.03,
+    "class_xy_mae_above_baseline_m": 0.15,
+    "class_iou_below_baseline": 0.02,
+    "applied_at_epoch": 12
+  },
+  "teacher_adoption_guard": {
+    "person_precision_floor": 0.45,
+    "condition": "person precision below the floor while person recall rises above baseline",
+    "action": "stop"
+  },
+  "budget": {
+    "estimated_wall_seconds": 6600,
+    "abort_multiple": 2.0,
+    "vram_budget_gib": 12.0,
+    "teacher_half_batch_fallback": true
+  },
+  "service_targets": {
+    "vehicle_precision_min": 0.80,
+    "vehicle_recall_min": 0.85,
+    "person_precision_min": 0.80,
+    "person_recall_min": 0.80,
+    "vehicle_xy_mae_max_m": 1.0,
+    "person_xy_mae_max_m": 1.2,
+    "vehicle_iou_min": 0.85,
+    "person_box_mask_iou_min": 0.50,
+    "foreground_miou_min": 0.675
+  },
+  "eligibility_limits": {
+    "class_f1_below_baseline": 0.01,
+    "class_recall_below_baseline": 0.01,
+    "class_xy_mae_above_baseline_m": 0.05,
+    "class_iou_below_baseline": 0.01
+  },
+
+  "retention": {
+    "retain_all_designated_checkpoints": true,
+    "retain_all_non_dominated_candidates": true,
+    "checkpoint_deletion_forbidden": true
+  },
+
+  "recovery": {
+    "maximum_transient_retries": 1,
+    "retry_source": "latest_create_only_checkpoint",
+    "second_scientific_training_attempt_forbidden": true,
+    "retune_and_retry_forbidden": true,
+    "pseudo_labeling_forbidden": true,
+    "threshold_or_nms_calibration_forbidden": true,
+    "q_ae_continuation_forbidden": true,
+    "test_reopening_forbidden": true
+  },
+
+  "terminals": [
+    "LRASPP_COCO_DISTILLATION_SERVICE_READY",
+    "LRASPP_COCO_DISTILLATION_MATERIAL_GAIN",
+    "LRASPP_COCO_DISTILLATION_NO_GAIN",
+    "LRASPP_COCO_DISTILLATION_TEACHER_NOT_ADOPTED",
+    "LRASPP_COCO_DISTILLATION_CONTRACT_INVALID",
+    "LRASPP_COCO_DISTILLATION_RUNTIME_FAILURE"
+  ],
+  "terminal_semantics": {
+    "LRASPP_COCO_DISTILLATION_SERVICE_READY": "material gain held and all nine absolute service targets were met",
+    "LRASPP_COCO_DISTILLATION_MATERIAL_GAIN": "registered material gain A or B held with vehicle non-regression, but not all service targets were met",
+    "LRASPP_COCO_DISTILLATION_NO_GAIN": "gates were evaluated and no eligible candidate met material gain A or B; a vehicle non-regression breach also lands here because a breaching candidate is ineligible",
+    "LRASPP_COCO_DISTILLATION_TEACHER_NOT_ADOPTED": "the pre-registered teacher-adoption guard fired (person precision fell below 0.45 while person recall rose), so the run stopped; the required property 'the teacher is distilled, not adopted as GT' was violated",
+    "LRASPP_COCO_DISTILLATION_CONTRACT_INVALID": "a preflight or contract gate failed, including an unprovable teacher-to-student ROI coordinate round trip",
+    "LRASPP_COCO_DISTILLATION_RUNTIME_FAILURE": "an unrecoverable runtime failure after the single permitted transient retry"
+  },
+
+  "registered_caveat": "if this experiment gains, it will still not have isolated 'pretraining' from 'extra supervision signal'; a matched control distilling from a randomly initialized teacher would be needed for that, and it is deliberately excluded to keep this to one run",
+
+  "forbidden_actions": [
+    "carla", "oai", "q_training", "ae_training", "live_split_runtime",
+    "288_measurements", "opening_the_locked_test_split", "another_teacher",
+    "another_architecture", "post_hoc_loss_lr_gate_or_epoch_changes"
+  ]
+}
