@@ -40,6 +40,7 @@ for path in (str(PACKAGE_ROOT), str(ROOT)):
 
 import run_accepted_continuation_v2 as accepted  # noqa: E402
 import run_pipeline_v1 as core  # noqa: E402
+import policy_v1 as selection_policy  # noqa: E402
 
 
 class ContractInvalid(RuntimeError):
@@ -342,6 +343,116 @@ def service_gaps(metrics: dict[str, float], targets: dict[str, float]) -> dict[s
     return accepted.service_gaps(metrics, targets)
 
 
+def build_selection_failure_audit(experiment: Path, config: dict[str, Any]) -> dict[str, Any]:
+    output = experiment / "FINAL_SELECTION_FAILURE_AUDIT.json"
+    if output.exists():
+        raise FileExistsError(f"create-only selection failure audit exists: {output}")
+    base = json.loads((experiment / "decisions/epoch_040_decode.json").read_text())
+    base_inference_path = Path(base["prediction_root"]) / "inference_manifest.json"
+    base_inference = json.loads(base_inference_path.read_text())
+    base.update({
+        "label": "epoch_040_base", "selection_order": 0,
+        "vehicle_detection_rows": selection_policy.vehicle_rows(base_inference_path, base_inference),
+    })
+    records = [base]
+    for epoch in (6, 12, 18):
+        record = json.loads(
+            (experiment / f"decisions/person_epoch_{epoch:03d}_primary.json").read_text()
+        )
+        inference_path = Path(record["prediction_root"]) / "inference_manifest.json"
+        inference = json.loads(inference_path.read_text())
+        record.update({
+            "label": f"person_epoch_{epoch:03d}", "selection_order": epoch,
+            "vehicle_detection_rows": selection_policy.vehicle_rows(inference_path, inference),
+        })
+        records.append(record)
+    for record in records:
+        gates = selection_policy.eligibility(
+            record, base, config["final_eligibility"], int(base["vehicle_detection_rows"]),
+        )
+        record["eligibility_gates"] = gates
+        record["eligible"] = all(gates.values())
+        record["material_gain"] = selection_policy.material(
+            record["metrics"], base["metrics"], config["material_gain"],
+        )
+        record["normalized_person_deficit"] = selection_policy.deficit(record["metrics"])
+        record["service_targets"] = selection_policy.service_targets(
+            record["metrics"], config["service_targets"],
+        )
+        record["service_gaps"] = service_gaps(record["metrics"], config["service_targets"])
+    candidates = records[1:]
+    eligible = [record for record in candidates if record["eligible"]]
+    nondominated = [
+        record["label"] for record in candidates
+        if not any(selection_policy.dominates(other, record)
+                   for other in candidates if other is not record)
+    ]
+    diagnostic_ranking = sorted(candidates, key=lambda record: (
+        record["normalized_person_deficit"], -record["metrics"]["person_f1"],
+        -record["metrics"]["person_recall"], record["metrics"]["person_xy_mae_m"],
+        record["selection_order"],
+    ))
+    result = {
+        "schema": "route_b_v3_1_person_refinement_no_eligible_selection_audit_v3",
+        "created_utc": utc_now(), "terminal": "LRASPP_PERSON_REFINEMENT_CONTRACT_INVALID",
+        "reason": "no eligible person-refinement checkpoint under unchanged registered gates",
+        "records": records, "eligible_labels": [record["label"] for record in eligible],
+        "nondominated_labels": nondominated,
+        "diagnostic_continuous_deficit_ranking_not_a_selection": [
+            {"label": record["label"],
+             "normalized_person_deficit": record["normalized_person_deficit"]}
+            for record in diagnostic_ranking
+        ],
+        "selected": None, "selected_checkpoint": None, "selected_checkpoint_sha256": None,
+        "selected_only_v025_sensitivity_run": False,
+        "selected_only_v025_not_run_reason": "no legally eligible selected checkpoint",
+        "selection_or_evaluation_rules_changed": False,
+    }
+    if eligible:
+        raise ContractInvalid("selection failure audit unexpectedly found an eligible candidate")
+    write_json_x(output, result)
+    return result
+
+
+def retention_without_selection(experiment: Path, config: dict[str, Any],
+                                audit: dict[str, Any]) -> dict[str, Any]:
+    output = experiment / "RETENTION_NO_SELECTION.json"
+    if output.exists():
+        raise FileExistsError(f"create-only no-selection retention audit exists: {output}")
+    paths = {
+        "epoch_010": (ROOT / config["resume_checkpoint"]).resolve(strict=True),
+        **{
+            f"recovered_epoch_{epoch:03d}": HISTORICAL_BASE_EXPERIMENT
+            / f"checkpoints/{config['name']}/epoch_{epoch:03d}.pt"
+            for epoch in (20, 30, 40)
+        },
+        **{
+            f"person_epoch_{epoch:03d}": experiment
+            / f"checkpoints/{config['name']}/epoch_{epoch:03d}.pt"
+            for epoch in (6, 12, 18)
+        },
+    }
+    missing = [name for name, path in paths.items() if not path.is_file()]
+    result = {
+        "schema": "route_b_v3_1_person_refinement_no_selection_retention_v3",
+        "created_utc": utc_now(), "all_pass": not missing,
+        "missing": missing, "checkpoint_deletions_performed": 0,
+        "retained_paths": {name: str(path) for name, path in paths.items()},
+        "retained_sha256": {name: sha256(path) for name, path in paths.items() if path.is_file()},
+        "nondominated_labels": audit["nondominated_labels"],
+        "all_nondominated_present": all(
+            paths[label].is_file() for label in audit["nondominated_labels"]
+        ),
+        "selected_checkpoint": None,
+        "selected_checkpoint_absent_reason": "no eligible candidate under unchanged gates",
+    }
+    result["all_pass"] = result["all_pass"] and result["all_nondominated_present"]
+    write_json_x(output, result)
+    if not result["all_pass"]:
+        raise ContractInvalid(f"no-selection retention audit failed: {result}")
+    return result
+
+
 def make_report(experiment: Path, terminal: str, config: dict[str, Any],
                 policy: dict[str, Any], selection: dict[str, Any] | None,
                 retention: dict[str, Any] | None, notification: dict[str, Any],
@@ -370,7 +481,7 @@ def make_report(experiment: Path, terminal: str, config: dict[str, Any],
         "Inputs, targets, parameters, optimizer state, transported low/high tensors, and the native feature were independently finite before the failing convolution.", "",
         "## Authorized numerical policy", "",
         f"Final policy: `{policy['policy']}`.",
-        f"P2 inherited-person proof: `{phase2['full_fp32_p2_inherited_person_proof']}`.",
+        f"P2 inherited-person proof: loss/dtype `{phase2['full_fp32_p2_inherited_person_proof']['loss']}` / `{phase2['full_fp32_p2_inherited_person_proof']['loss_dtype']}`; inherited gradient `{phase2['full_fp32_p2_inherited_person_proof']['gradients']['modules']['inherited_person_heatmap']}`; all-pass `{phase2['full_fp32_p2_inherited_person_proof']['all_pass']}`.",
         f"Actual implementation deltas on batches 133--135: `{ {batch: payload['actual_full_fp32_implementation_max_abs_deltas'] for batch, payload in phase2['policies']['person_tail_fp32']['batches'].items()} }`.",
         "No model equation, initialization, LR, scheduler, loss, weight, sampler, target, decoder, batch-size, architecture, or evaluation-rule change was made. No further dtype patch is authorized.", "",
         "## Execution", "",
@@ -407,6 +518,34 @@ def make_report(experiment: Path, terminal: str, config: dict[str, Any],
             f"Evaluation inference wall/VRAM: `{resources}`.",
             f"Retention audit: `{retention}`. No designated candidate checkpoint was deleted.",
         ])
+    elif (experiment / "FINAL_SELECTION_FAILURE_AUDIT.json").is_file():
+        audit = json.loads((experiment / "FINAL_SELECTION_FAILURE_AUDIT.json").read_text())
+        retained = json.loads((experiment / "RETENTION_NO_SELECTION.json").read_text())
+        lines.extend(["", "## Complete primary v0.10 metrics and failed eligibility", ""])
+        for record in audit["records"]:
+            lines.append(
+                f"- `{record['label']}`: checkpoint `{record.get('checkpoint')}` SHA `{record.get('checkpoint_sha256')}`; metrics `{record['metrics']}`; eligibility `{record['eligibility_gates']}`; material `{record['material_gain']}`; normalized person deficit `{record['normalized_person_deficit']}`; service gaps `{record['service_gaps']}`."
+            )
+        training = json.loads((experiment / "PERSON_TRAINING_COMPLETE.json").read_text())
+        epoch_metrics = {
+            str(epoch): json.loads((experiment / f"person_metrics/epoch_{epoch:03d}.json").read_text())
+            for epoch in range(1, 19)
+        }
+        resources = {
+            record["label"]: {
+                key: json.loads((Path(record["prediction_root"]) / "inference_manifest.json").read_text())[key]
+                for key in ("wall_seconds", "peak_allocated_mib", "peak_reserved_mib")
+            }
+            for record in audit["records"] if record["label"] != "epoch_040_base"
+        }
+        lines.extend(["", "## No legal selection, sensitivity, runtime, and retention", "",
+            "No candidate passed all unchanged eligibility gates; therefore there is no selected checkpoint or SHA, and selected-only v0.25 sensitivity was not legally runnable.",
+            f"Diagnostic continuous-deficit ranking (not a selection): `{audit['diagnostic_continuous_deficit_ranking_not_a_selection']}`. Non-dominated candidates: `{audit['nondominated_labels']}`.",
+            f"All 18 epoch training metrics: `{epoch_metrics}`.",
+            f"Training optimizer steps/VRAM allocated/reserved: `{training['optimizer_steps']}` / `{training['peak_allocated_mib']}` / `{training['peak_reserved_mib']}` MiB.",
+            f"Evaluation inference wall/VRAM: `{resources}`.",
+            f"Retention audit: `{retained}`. All designated candidates, including the non-dominated epoch 18 checkpoint, remain retained.",
+        ])
     lines.extend(["", "## Operational boundary", "",
         "The locked test remained absent and unopened. No q/AE, tracking, CARLA, OAI, live-runtime, or 288-measurement work was performed. Checkpoints, datasets, predictions, and experiment artifacts are not committed.",
         f"Notification result: `{notification}`.",
@@ -432,7 +571,7 @@ def notify(terminal: str, experiment: Path) -> dict[str, Any]:
                 "error": f"{type(exc).__name__}: {exc}"}
 
 
-def commit_report() -> dict[str, Any]:
+def commit_report(message: str = "Complete FP32 LR-ASPP person refinement") -> dict[str, Any]:
     explicit = [
         PACKAGE_ROOT / "diagnose_numerics_v2.py",
         PACKAGE_ROOT / "person_losses_v1.py",
@@ -451,7 +590,7 @@ def commit_report() -> dict[str, Any]:
     if forbidden:
         raise RuntimeError(f"forbidden artifacts staged: {forbidden}")
     result = subprocess.run(
-        ["git", "commit", "-m", "Complete FP32 LR-ASPP person refinement"],
+        ["git", "commit", "-m", message],
         cwd=ROOT, capture_output=True, text=True, check=False,
     )
     if result.returncode != 0:
@@ -463,14 +602,65 @@ def commit_report() -> dict[str, Any]:
     return {"head": head, "staged_files": staged, "stdout": result.stdout[-2000:]}
 
 
+def amend_existing(experiment_arg: Path) -> int:
+    experiment = experiment_arg.resolve(strict=True)
+    if experiment.parent != EXPERIMENT_PARENT.resolve(strict=True):
+        raise ContractInvalid(f"unexpected experiment parent: {experiment}")
+    terminal = (experiment / "TERMINAL_VERDICT.txt").read_text().strip()
+    if terminal != "LRASPP_PERSON_REFINEMENT_CONTRACT_INVALID":
+        raise ContractInvalid(f"report amendment requires contract-invalid terminal, got {terminal}")
+    if (experiment / "FINAL_SELECTION.json").exists():
+        raise ContractInvalid("refusing no-selection amendment when final selection exists")
+    config = json.loads((experiment / "resolved_configs/person_refinement_v1.json").read_text())
+    policy = json.loads((experiment / "resolved_configs/full_fp32_person_policy_v3.json").read_text())
+    audit = build_selection_failure_audit(experiment, config)
+    retained = retention_without_selection(experiment, config, audit)
+    notification = json.loads((experiment / "NOTIFICATION.json").read_text())
+    pipeline = json.loads((experiment / "PIPELINE_COMPLETE.json").read_text())
+    report = make_report(
+        experiment, terminal, config, policy, None, retained, notification,
+        int(pipeline["retry_used"]), pipeline["error"], float(pipeline["wall_seconds"]),
+    )
+    (experiment / "FINAL_REPORT.md").write_text(report, encoding="utf-8")
+    TRACKED_REPORT.write_text(report, encoding="utf-8")
+    amendment_path = experiment / "REPORT_AMENDMENT.json"
+    write_json_x(amendment_path, {
+        "schema": "route_b_v3_1_person_refinement_contract_invalid_report_amendment_v3",
+        "created_utc": utc_now(), "terminal_changed": False, "terminal": terminal,
+        "selection_rules_changed": False, "evaluation_rules_changed": False,
+        "selection_failure_audit": str(experiment / "FINAL_SELECTION_FAILURE_AUDIT.json"),
+        "retention_audit": str(experiment / "RETENTION_NO_SELECTION.json"),
+        "reason": "add complete candidate metrics, eligibility gates, service gaps, and no-selection retention evidence",
+        "source_commit": None,
+    })
+    commit = commit_report("Report no-eligible FP32 refinement outcome")
+    amendment = json.loads(amendment_path.read_text())
+    amendment["source_commit"] = commit
+    write_json_atomic(amendment_path, amendment)
+    print(json.dumps({
+        "experiment": str(experiment), "terminal": terminal,
+        "source_commit": commit["head"], "eligible_labels": audit["eligible_labels"],
+        "nondominated_labels": audit["nondominated_labels"],
+        "selected": None, "v025_run": False,
+    }, indent=2), flush=True)
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--timestamp")
-    parser.add_argument("--phase1-reproduction", required=True, type=Path)
-    parser.add_argument("--phase2-qualification", required=True, type=Path)
+    parser.add_argument("--phase1-reproduction", type=Path)
+    parser.add_argument("--phase2-qualification", type=Path)
+    parser.add_argument("--amend-existing", type=Path)
     args = parser.parse_args()
     if sys.executable != "/usr/bin/python3":
         raise RuntimeError(f"required /usr/bin/python3, got {sys.executable}")
+    if args.amend_existing is not None:
+        if args.timestamp or args.phase1_reproduction or args.phase2_qualification:
+            raise ValueError("--amend-existing is mutually exclusive with run creation arguments")
+        return amend_existing(args.amend_existing)
+    if args.phase1_reproduction is None or args.phase2_qualification is None:
+        parser.error("fresh runs require --phase1-reproduction and --phase2-qualification")
     started = time.monotonic()
     experiment, config_path, policy_path, policy, phase2, execution_head = setup(
         args.timestamp, args.phase1_reproduction, args.phase2_qualification,
