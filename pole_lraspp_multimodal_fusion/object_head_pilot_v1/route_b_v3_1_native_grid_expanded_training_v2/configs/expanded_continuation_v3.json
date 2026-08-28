@@ -1,0 +1,56 @@
+{
+  "schema": "route_b_v3_1_native_grid_expanded_continuation_v3",
+  "name": "route_b_v3_1_native_grid_expanded_continuation_v3",
+  "required_starting_head": "02ebabd2b6b7dd3e1ecb4b199541de2a458fda2e",
+  "registered_training_config": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/route_b_v3_1_native_grid_expanded_training_v2/configs/expanded_training_v2.json",
+  "registered_training_config_sha256": "07db704d8e0b45cd5c57f77b88babedf744ae8aa2471c53b04ff542da3e2a025",
+  "resume_checkpoint": "experiments/route_b_v3_1_native_grid_expanded_training_v2/20260828_103000/checkpoints/route_b_v3_1_native_grid_expanded_training_v2/epoch_010.pt",
+  "resume_checkpoint_sha256": "26763b2955258ba7bc0287a702788d28f03d82fd504921030af53951b5b39e11",
+  "resume_epoch": 10,
+  "resume_optimizer_steps": 10520,
+  "resume_steps_per_epoch": 1052,
+  "resume_epoch10_evidence": "experiments/route_b_v3_1_native_grid_expanded_training_v2/20260828_103000/decisions/epoch_010_decode.json",
+  "resume_epoch10_evidence_sha256": "2d268290e0dd1352c04a509d3ee17df4e15b33db0f7acb63a02e376f7db083e3",
+  "amended_baseline": "experiments/route_b_v3_1_camera_plane_contract_v1/20260828_060131/AMENDED_BASELINE.json",
+  "amended_baseline_sha256": "622d7f5e579384facaccbcdf43ef23ec2b9b68493534b9ed0dc3caac909aba04",
+  "dimension_yaw_scorer": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/route_b_v3_1_clean_base_v1/score_contract_v1.py",
+  "dimension_yaw_scorer_sha256": "14629e69a1617d05ca6dec2bad6901b69f83df96f2cf5543509dbe970d18069d",
+  "first_epoch": 11,
+  "maximum_epoch": 40,
+  "checkpoint_epochs": [20, 30, 40],
+  "decode_epochs": [20, 30, 40],
+  "primary_score": 0.20,
+  "low_score": 0.02,
+  "maximum_runtime_retries": 1,
+  "maximum_amp_patches": 1,
+  "catastrophic_limits": {
+    "class_f1_below_baseline": 0.03,
+    "class_xy_mae_above_baseline_m": 0.15,
+    "class_iou_below_baseline": 0.02
+  },
+  "eligibility_limits": {
+    "class_f1_below_baseline": 0.01,
+    "class_recall_below_baseline": 0.01,
+    "class_xy_mae_above_baseline_m": 0.05,
+    "class_iou_below_baseline": 0.01
+  },
+  "service_targets": {
+    "vehicle_precision_min": 0.80,
+    "vehicle_recall_min": 0.85,
+    "person_precision_min": 0.80,
+    "person_recall_min": 0.80,
+    "vehicle_xy_mae_max_m": 1.0,
+    "person_xy_mae_max_m": 1.2,
+    "vehicle_iou_min": 0.85,
+    "person_box_mask_iou_min": 0.50,
+    "foreground_miou_min": 0.675
+  },
+  "terminals": [
+    "LRASPP_EXPANDED_LONGTRAIN_SERVICE_READY",
+    "LRASPP_EXPANDED_LONGTRAIN_IMPROVED_NOT_SERVICE_READY",
+    "LRASPP_EXPANDED_LONGTRAIN_NO_GAIN",
+    "LRASPP_EXPANDED_LONGTRAIN_CATASTROPHIC_REGRESSION",
+    "LRASPP_EXPANDED_LONGTRAIN_RUNTIME_FAILURE",
+    "LRASPP_EXPANDED_CONTINUATION_STATE_INVALID"
+  ]
+}
