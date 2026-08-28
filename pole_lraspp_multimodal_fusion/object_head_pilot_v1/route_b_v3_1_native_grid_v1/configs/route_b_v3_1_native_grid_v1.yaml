@@ -1,0 +1,40 @@
+experiment_name: route_b_v3_1_native_grid_v1
+
+# Geometry correction only. The 7-channel input, the MobileNetV3 LR-ASPP backbone, the
+# segmentation path and the transported low/high split bundle are all unchanged.
+
+training:
+  input_size: [768, 432]
+  num_classes: 3
+  amp: true
+  pretrained: false
+
+object_heads:
+  object_classes: [vehicle, person]
+  hidden_channels: 128
+  head_depth: 3
+  max_objects_per_frame: 64
+  min_gt_area_px: 12.0
+  max_gt_distance_m: 40
+  fuse_low_feature: true
+  predict_bbox2d: true
+  # New geometry:
+  native_stride: 4               # object output stride (was: stride 8 then bilinear to 1)
+  native_grid: [192, 108]        # 768/4 x 432/4
+  min_native_gaussian_radius_cells: 1
+  center_offset_channels: 2      # private, internal only, never exported
+  ignore_downsample: all_pixels_ignored   # conservative: never expands quarantine
+
+fusion:
+  radar_channels: 4
+
+evaluation:
+  object_score_thresholds: [0.20, 0.02]
+  inference_score_floor: 0.02
+  topk_objects_per_class: 120
+  local_maximum_kernel: 3
+  world_nms: none
+  match_distance_m: 3.0
+  prediction_range_m: 40.0
+  primary_visibility: v010
+  sensitivity_visibility: v025

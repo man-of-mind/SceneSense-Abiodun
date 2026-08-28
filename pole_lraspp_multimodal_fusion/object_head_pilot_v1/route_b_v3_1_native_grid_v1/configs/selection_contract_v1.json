@@ -1,0 +1,92 @@
+{
+  "schema": "route_b_v3_1_native_grid_selection_contract_v1",
+  "_status": "REGISTERED BEFORE THE FIRST CANDIDATE EVALUATION. Do not relax.",
+  "evaluated_epochs": [3, 6, 9, 12, 15],
+  "evaluation_view": {
+    "train_frames": 6361,
+    "validation_frames": 3345,
+    "test": "absent and unopened",
+    "primary_visibility": "v010",
+    "sensitivity_visibility": "v025",
+    "sensitivity_scope": "final selected checkpoint only",
+    "score_points": [0.20, 0.02],
+    "topk_per_class": 120,
+    "match_distance_m": 3.0,
+    "prediction_range_m": 40.0,
+    "minimum_projected_area_px": 12.0,
+    "ignored_predictions": "neutral"
+  },
+
+  "baseline_epoch20": {
+    "checkpoint_sha256": "88b34a69eeec7bf2f6444e70a0e346c365b979e6936d277cb0c75e8cd747aa1d",
+    "vehicle_precision": 0.4810028794156893,
+    "vehicle_recall": 0.70426735218509,
+    "vehicle_f1": 0.571607411116675,
+    "vehicle_recall_002": 0.7461182519280206,
+    "vehicle_xy_mae_m": 0.9980633837411443,
+    "vehicle_iou": 0.8639556911420896,
+    "person_precision": 0.4612655233589592,
+    "person_recall": 0.40289256198347106,
+    "person_f1": 0.43010752688172044,
+    "person_recall_002": 0.45609504132231404,
+    "person_xy_mae_m": 1.4087968615412807,
+    "person_box_mask_iou": 0.4388121054321076,
+    "foreground_miou": 0.6513838982870985,
+    "mean_class_f1": 0.5008574689991977
+  },
+
+  "eligibility_non_regression": {
+    "vehicle_f1_ge": 0.5666,
+    "person_f1_ge": 0.4251,
+    "vehicle_recall_ge": 0.6943,
+    "vehicle_xy_mae_le_m": 1.02,
+    "person_xy_mae_le_m": 1.43,
+    "vehicle_iou_ge": 0.854,
+    "person_box_mask_iou_ge": 0.429,
+    "foreground_miou_ge": 0.641
+  },
+
+  "ranking": [
+    "highest mean of vehicle/person F1",
+    "highest minimum class recall",
+    "lowest mean class XY MAE",
+    "earlier epoch (final tie-break only)"
+  ],
+
+  "material_gain_all_required": {
+    "mean_class_f1_ge": 0.5309,
+    "_mean_class_f1_rule": "improves by at least 0.03 over 0.5009",
+    "person_improvement_either": {
+      "person_f1_ge": 0.4501,
+      "_person_f1_rule": "improves by at least 0.02 over 0.4301",
+      "person_recall_002_ge": 0.5061,
+      "_person_recall_002_rule": "improves by at least 0.05 over 0.4561"
+    },
+    "vehicle_precision_ge": 0.5310,
+    "_vehicle_precision_rule": "improves by at least 0.05 over 0.4810",
+    "vehicle_recall_ge": 0.6943,
+    "_vehicle_recall_rule": "recall loss no worse than 0.01 vs 0.7043",
+    "vehicle_duplicate_fp_reduction_ge_fraction": 0.30,
+    "_duplicate_rule": "at least a 30% reduction in vehicle PREDICTED_DUPLICATE FP relative to the baseline, same taxonomy"
+  },
+
+  "service_targets_advisory": {
+    "vehicle_precision_ge": 0.80,
+    "vehicle_recall_ge": 0.85,
+    "person_precision_ge": 0.80,
+    "person_recall_ge": 0.80,
+    "vehicle_xy_mae_le_m": 1.0,
+    "person_xy_mae_le_m": 1.2,
+    "vehicle_iou_ge": 0.85,
+    "person_box_mask_iou_ge": 0.50,
+    "foreground_miou_ge": 0.675
+  },
+
+  "terminals": [
+    "LRASPP_NATIVE_GRID_SERVICE_READY",
+    "LRASPP_NATIVE_GRID_MATERIAL_GAIN_NOT_SERVICE_READY",
+    "LRASPP_NATIVE_GRID_NO_GAIN",
+    "LRASPP_NATIVE_GRID_RUNTIME_FAILURE",
+    "LRASPP_NATIVE_GRID_DIAGNOSIS_NOT_CONFIRMED"
+  ]
+}

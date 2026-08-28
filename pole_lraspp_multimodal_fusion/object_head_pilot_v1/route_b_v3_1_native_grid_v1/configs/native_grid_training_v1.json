@@ -1,0 +1,69 @@
+{
+  "name": "route_b_v3_1_native_grid_v1",
+  "_recipe": "frozen v3.1 stage-2 recipe; only the object grid geometry and the added centre-offset term differ",
+  "warm_start_checkpoint": "experiments/route_b_v3_1_clean_base_v1/20260828_012309/checkpoints/route_b_v3_1_clean_noae_stage2_v1/epoch_020.pt",
+  "warm_start_sha256": "88b34a69eeec7bf2f6444e70a0e346c365b979e6936d277cb0c75e8cd747aa1d",
+
+  "input_size": [768, 432],
+  "amp": true,
+  "optimizer": "adamw",
+  "weight_decay": 0.0001,
+  "augment_strength": "strong",
+  "geometric_augment": false,
+  "freeze_bn": true,
+  "_freeze_bn_note": "matches the frozen v3.1 stage-2 recipe; it also makes the bilinear-initialised upsampler an exact identity-normalised 2x upsample at step zero",
+
+  "batch_size": 16,
+  "_batch_size_note": "chosen once and fixed to the frozen v3.1 stage-2 value so the geometry correction is not confounded with an optimisation change; the launch check only verifies it fits with headroom. No sweep.",
+  "num_workers": 8,
+  "prefetch_factor": 2,
+  "persistent_workers": true,
+  "training_seed": 20260828,
+
+  "total_epochs": 15,
+  "checkpoint_epochs": [3, 6, 9, 12, 15],
+  "early_stopping": false,
+
+  "stages": [
+    {
+      "name": "H",
+      "description": "new-head adaptation",
+      "first_epoch": 1,
+      "last_epoch": 3,
+      "freeze_backbone": true,
+      "freeze_classifier": true,
+      "lr": {"inherited": 0.0, "object": 0.0003}
+    },
+    {
+      "name": "J",
+      "description": "joint fine-tuning",
+      "first_epoch": 4,
+      "last_epoch": 15,
+      "freeze_backbone": false,
+      "freeze_classifier": false,
+      "lr": {"inherited": 0.00001, "object": 0.0001}
+    }
+  ],
+
+  "class_loss_weights": [0.5, 1.0, 4.0],
+  "lovasz_weight": 0.5,
+  "loss_weights": {
+    "object_total": 1.0,
+    "segmentation": 0.3,
+    "object": {
+      "center": 4.0,
+      "location": 1.5,
+      "dimensions": 0.6,
+      "yaw": 0.3,
+      "parked": 0.2,
+      "radar_support": 0.1,
+      "bbox2d": 1.0,
+      "offset": 1.0
+    }
+  },
+  "_loss_note": "center/location/dimensions/yaw/parked/radar_support/bbox2d and the segmentation recipe are the frozen v3.1 values, unchanged. offset=1.0 is the only added weight (CenterNet's standard off_weight). No person weighting, no class_balanced_center. Not tuned after seeing results.",
+
+  "feature_drop_max": 0.0,
+  "feature_drop_val": 0.0,
+  "ae_bottleneck": 0
+}
