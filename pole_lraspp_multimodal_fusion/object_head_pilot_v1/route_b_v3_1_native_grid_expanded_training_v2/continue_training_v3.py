@@ -772,6 +772,7 @@ def main() -> int:
             epoch_rows.append(row)
 
             designated = epoch in set(continuation["checkpoint_epochs"])
+            should_decode = epoch in set(continuation["decode_epochs"])
             checkpoint = (
                 checkpoint_dir / f"epoch_{epoch:03d}.pt"
                 if designated else recovery_dir / f"epoch_{epoch:03d}.pt"
@@ -811,7 +812,7 @@ def main() -> int:
                 f"inherited_lr={last_lr['inherited']:.10g}", flush=True,
             )
 
-            if designated:
+            if should_decode:
                 prediction_root = run_inference(experiment, checkpoint, checkpoint_hash, epoch)
                 score_output = decisions_dir / f"epoch_{epoch:03d}_decode.json"
                 record = run_score([
@@ -853,6 +854,45 @@ def main() -> int:
         write_json_x(experiment / "LR_SCHEDULE_TRACE.json", scheduler.state_dict())
         if amp_patch is not None and not (experiment / "AMP_NUMERICAL_RECOVERY.json").is_file():
             raise CatastrophicRegression("AMP numerical patch did not verify failing batch and successor")
+
+        # The person-refinement program first needs an exact, retained epoch-40
+        # engineering base.  In that registered recovery-only mode the continuation
+        # worker stops here: it neither runs the old checkpoint-selection policy nor
+        # performs the old selected-only v0.25 pass.  Checkpoint retention and the
+        # sole requested epoch-40 primary decode are controlled independently by
+        # checkpoint_epochs/decode_epochs above.
+        if bool(continuation.get("recovery_only", False)):
+            if [int(record["epoch"]) for record in decoded] != list(continuation["decode_epochs"]):
+                raise ContinuationStateInvalid("recovery-only decode set drift")
+            retained = []
+            for retained_epoch in continuation["checkpoint_epochs"]:
+                path = checkpoint_dir / f"epoch_{int(retained_epoch):03d}.pt"
+                if not path.is_file():
+                    raise ContinuationStateInvalid(f"missing retained Pareto checkpoint {path}")
+                retained.append({
+                    "epoch": int(retained_epoch), "path": str(path), "sha256": sha256(path),
+                })
+            decision = {
+                "schema": "route_b_v3_1_native_grid_pareto_recovery_decision_v1",
+                "created_utc": utc_now(), "phase": "base_recovery_complete",
+                "epochs_completed": [row["epoch"] for row in epoch_rows],
+                "decoded_epochs": [record["epoch"] for record in decoded],
+                "training_rows": epoch_rows, "decode_records": decoded,
+                "retained_checkpoints": retained,
+                "wall_seconds": time.monotonic() - started,
+                "peak_allocated_mib": peak_allocated, "peak_reserved_mib": peak_reserved,
+                "automatic_recovery": amp_patch,
+            }
+            write_json_x(experiment / "BASE_RECOVERY_DECISION.json", decision)
+            write_json_x(experiment / "WORKER_COMPLETE.json", {
+                "phase": "base_recovery_complete", "attempt": attempt,
+                "created_utc": utc_now(), "retained_checkpoints": retained,
+            })
+            update_status(experiment, phase="base_recovery_complete", last_decoded_epoch=40)
+            append_progress(progress, attempt, "base_recovery_complete", 40,
+                            scheduler.optimizer_steps, retained[-1]["sha256"])
+            print(json.dumps(decision, indent=2), flush=True)
+            return 0
 
         if catastrophic_detail is not None:
             terminal = "LRASPP_EXPANDED_LONGTRAIN_CATASTROPHIC_REGRESSION"
