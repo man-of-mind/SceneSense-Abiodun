@@ -1,81 +1,112 @@
-# Route B v3.1 factorized localization v2 CUDA-resume report
+# Route B v3.1 factorized localization v2 numerical audit
 
-Terminal: `LRASPP_FACTORIZED_LOCALIZATION_RUNTIME_FAILURE`
+Terminal: `LRASPP_FACTORIZED_LOCALIZATION_NUMERICAL_CAUSE_UNRESOLVED`
 
-CUDA-resume experiment: `experiments/route_b_v3_1_factorized_localization_v2/cuda_resume_20260828_063600`
+Reproduction evidence: `experiments/route_b_v3_1_factorized_localization_v2/numerical_reproduction_activation_20260828_064700`
 
-## Outcome
+## Decision
 
-GPU access was successfully resolved without changing source, training configuration, the camera-plane contract, amended baseline, or registered selection gates. All eight existing launch checks passed. The unchanged training loop then stopped fail-closed when the loss became non-finite at epoch 2, batch 134. No retry, redesign, configuration change, checkpoint evaluation, or follow-up experiment was performed.
+The epoch-2/batch-134 failure was reproduced twice from the original epoch-15 warm start with the committed seed, manifest order, implicit PyTorch DataLoader generator, eight workers, batch 16, AdamW configuration, LR, cosine schedule, and AMP settings.
 
-## CUDA provenance
+The first non-finite operation is not unconstrained depth exponentiation, its endpoint gradient, or projected-offset scaling. It is the first localization-trunk `Conv2d` executed under FP16 autocast. This operation is outside the two authorized repair branches, so no repair qualification or candidate training was allowed.
 
-| Field | Recorded value |
-|---|---|
-| Executable | `/usr/bin/python3` |
-| Python | `3.10.12` |
-| PyTorch | `2.10.0.dev20251114+cu128` |
-| CUDA build | `12.8` |
-| `torch.cuda.is_available()` | `True` |
-| `CUDA_VISIBLE_DEVICES` | unset |
-| Device | `NVIDIA GeForce RTX 5090` |
-| Compute capability | `(12, 0)` |
-| Architecture list | `sm_70, sm_75, sm_80, sm_86, sm_90, sm_100, sm_120` |
-| Driver | `575.57.08` |
-| Memory | `32607 MiB` |
+## Exact first non-finite tensor and operation
 
-A real CUDA `Conv2d(3,16,3,padding=1)` forward/backward completed under `/usr/bin/python3`; loss was `0.3190063536`, and input/weight gradients were finite. The initial sandboxed `nvidia-smi` failure was correctly treated as device isolation, not host unavailability; the approved execution confirmed a healthy GPU.
+The frozen native stride-4 input to `localization_trunk.0` was finite: range `[0, 15272]`, mean `265.878`. All trainable parameters were finite. Under explicit fp32 the first convolution was finite with range `[-65844.9609, 31632.5801]`. FP16's minimum finite value is `-65504`; under autocast the same convolution produced one `-inf` as its first non-finite value.
 
-## Immutable provenance checks
+GroupNorm propagated that single infinity into 165,888 NaNs. Both output heads then became non-finite at the affected region: seven positive-cell raw depth logits were NaN and fourteen projected-offset values were NaN. The downstream `exp`, camera/world geometry, and all three losses propagated those NaNs but did not originate them.
 
-- HEAD before execution: `99a699d4f67ba01b9823b8eb533a38ef920a30d2`.
-- Warm-start SHA-256: `1245b2028372d486ed0b25b8a6b8a3e8b341257d542ec57cfdabf3b543d7c9ed`.
-- Contract-summary SHA-256: `460a7adcebf2fa2107a572b20f6a06ea69701f9c8f852ac4b74ab6c603e08385`.
-- Amended-baseline file SHA-256: `622d7f5e579384facaccbcdf43ef23ec2b9b68493534b9ed0dc3caac909aba04`.
-- Amended metrics canonical SHA-256: `72d5fd31ed6da8f1e41aa715e4891727a50023cf5e008c74a3cdf89e8b0f3e5b`.
-- Amended taxonomy canonical SHA-256: `c6318d0e2b5ccd5f74e478def761706fa9cf53854accbf599d81c0b5429d1450`.
-- Retained detections SHA-256: `265e68dc0bc6e1b5a851cf7254be45918a23d20ed60dbb040f60c607fd3ae1ba`.
-- Retained prediction-set SHA-256: `0d3f290b81addf2f8ba58411ad2a10ee6341147a749b69929d98fe6ced65cd08`.
+The full explicit-fp32 failing-batch path was finite:
 
-The committed contract was not regenerated or reinterpreted. Exclusions remain v0.10 train/validation `100/34` and v0.25 train/validation `10/1`; the v0.10 validation composition remains 26 actor plus 8 static vehicles across 11 identities, with zero person transitions.
+| Quantity | fp32 result |
+|---|---:|
+| Raw depth-logit range | 1.319609 to 3.581608 |
+| Decoded depth range | 3.741957 to 35.931282 m |
+| Target depth range | 3.648628 to 37.250889 m |
+| Predicted projected-offset range | -2.089510 to 0.261687 grid units |
+| Target projected-offset range | -18.004744 to 8.225213 grid units |
+| Log-depth loss | 0.006895 |
+| Projected-offset loss | 0.564491 |
+| Local-XY endpoint loss | 1.130124 |
+| Total loss | 1.701510 |
 
-## Launch and split isolation
+The AMP path instead produced NaN total loss. This proves an FP16 convolution range overflow before depth decoding, rather than a target, parameter, optimizer-state, `exp`, or offset-normalization failure.
 
-All eight committed launch checks passed. The real batch used batch 16, q=0, AMP with autocast cache disabled, and both classes. Loss was finite at `5.1016125679`. Gradient absolute sums were `4.2160419` for the localization trunk, `10.4239998` for the log-depth head, and `0.6968441` for the projected-centre-offset head; frozen-gradient sum was exactly zero.
+## Failing sample IDs
 
-The tail read only `{high, low}` plus camera calibration metadata. Monolithic-versus-split maximum absolute deltas were exactly zero for segmentation, native object output, and factorized localization. No raw-modality side channel exists.
+1. `canonical_v3_04_train_50_50_s504_tm1504_001638_frame6778`
+2. `canonical_v3_04_train_50_50_s504_tm1504_000943_frame3998`
+3. `canonical_v3_03_train_30_30_s503_tm1503_000405_frame1834`
+4. `canonical_v3_04_train_50_50_s504_tm1504_001315_frame5486`
+5. `canonical_v3_01_train_30_30_s501_tm1501_000508_frame2246`
+6. `canonical_v3_03_train_30_30_s503_tm1503_001352_frame5622`
+7. `canonical_v3_03_train_30_30_s503_tm1503_000395_frame1794`
+8. `canonical_v3_04_train_50_50_s504_tm1504_000567_frame2494`
+9. `canonical_v3_02_train_50_50_s502_tm1502_001036_frame4362`
+10. `canonical_v3_01_train_30_30_s501_tm1501_001486_frame6158`
+11. `canonical_v3_02_train_50_50_s502_tm1502_000530_frame2338`
+12. `canonical_v3_04_train_50_50_s504_tm1504_001500_frame6226`
+13. `canonical_v3_04_train_50_50_s504_tm1504_000493_frame2198`
+14. `canonical_v3_03_train_30_30_s503_tm1503_000823_frame3506`
+15. `canonical_v3_01_train_30_30_s501_tm1501_000225_frame1114`
+16. `canonical_v3_01_train_30_30_s501_tm1501_000285_frame1354`
 
-Parameter counts remained 111,171 trainable localization parameters and 4,931,198 frozen inherited parameters, 5,042,369 total.
+## Preceding gradients and state
 
-## Training record
+The GradScaler scale remained `1024` before and after batches 130–133 and was `1024` on entry to batch 134. All parameters remained finite before and after each preceding optimizer step.
 
-| Epoch | Status | Mean loss | Log-depth | Projected offset | Local XY endpoint | LR | Batches |
-|---:|---|---:|---:|---:|---:|---:|---:|
-| 1 | completed | 5.821915 | 0.104866 | 1.837001 | 3.880048 | 0.0003 | 398 |
-| 2 | failed at batch 134 | non-finite | — | — | — | cosine schedule unchanged | 133 finite batches before failure |
-| 4 | not reached | — | — | — | — | — | — |
-| 8 | not reached | — | — | — | — | — | — |
-| 12 | not reached | — | — | — | — | — | — |
+| Batch | Localization trunk norm | Log-depth head norm | Offset head norm |
+|---:|---:|---:|---:|
+| 130 | 26.3322 | 20.0492 | 0.1494 |
+| 131 | 54.1300 | 34.2228 | 0.3022 |
+| 132 | 31.1866 | 21.0938 | 0.6380 |
+| 133 | 38.7749 | 30.8105 | 0.5917 |
 
-The exact recorded exception was `RuntimeError: non-finite loss at epoch=2 batch=134`. No epoch-4/8/12 checkpoint was created.
+These gradients were finite. No backward or optimizer step was executed for batch 134 because the harness stopped at the first non-finite forward/loss value.
 
-## Baseline, selection, and evaluation
+## Repair gate
 
-The amended retained baseline remains:
+No repair was applied:
 
-| Contract | Class | Precision | Recall | F1 | Recall @ 0.02 | XY MAE m |
-|---|---|---:|---:|---:|---:|---:|
-| v0.10 | vehicle | 0.712543 | 0.807760 | 0.757170 | 0.845527 | 0.984324 |
-| v0.10 | person | 0.495587 | 0.464101 | 0.479328 | 0.560692 | 1.396104 |
-| v0.25 | vehicle | 0.721978 | 0.882648 | 0.794269 | 0.903757 | 0.943158 |
-| v0.25 | person | 0.497530 | 0.507109 | 0.502274 | 0.592417 | 1.394697 |
+- Bounded-depth parameterization: not authorized because `exp` was not the first non-finite operation.
+- Bounded-depth interval and median-bias initialization: not applicable.
+- Projected-offset normalization: not authorized because target and fp32 offset paths were finite.
+- Gradient clipping: not applied because it was conditional on an authorized repair.
+- Forcing the localization trunk convolution to fp32 would address the observed operation, but it was not an authorized repair and was therefore not implemented.
+
+Consequently the bounded repair-qualification suite, fresh 12-epoch resume, checkpoints 4/8/12, and three candidate validation inference passes were not run.
+
+## Baseline and unavailable candidate results
+
+The amended retained baseline remains unchanged:
+
+| Contract | Class | Precision | Recall | F1 | XY MAE m |
+|---|---|---:|---:|---:|---:|
+| v0.10 | vehicle | 0.712543 | 0.807760 | 0.757170 | 0.984324 |
+| v0.10 | person | 0.495587 | 0.464101 | 0.479328 | 1.396104 |
+| v0.25 | vehicle | 0.721978 | 0.882648 | 0.794269 | 0.943158 |
+| v0.25 | person | 0.497530 | 0.507109 | 0.502274 | 1.394697 |
 
 Baseline taxonomy remains vehicle duplicate `979`, vehicle `TWO_D_CORRECT_WORLD_WRONG=1694`, person `CENTER_PRESENT_WORLD_WRONG=854`, and person `HEATMAP_CENTER_MISS=685`.
 
-Exactly zero candidate validation inference passes ran because training failed before the first authorized checkpoint. Consequently there is no selected checkpoint or SHA, no candidate world-error taxonomy, no radar-supported/unsupported candidate result, no selected v0.10 result, and no selected-checkpoint v0.25 sensitivity result. Registered selection and material-gain gates were never changed or applied to an incomplete model.
+There is no repaired candidate, epoch table, world-error taxonomy, radar-supported/unsupported candidate result, selected checkpoint/SHA, selected v0.10 result, or selected-checkpoint v0.25 sensitivity result.
+
+## Service targets
+
+| Target | Amended baseline | Candidate |
+|---|:---:|:---:|
+| Vehicle precision >= 0.80 | fail | not trained |
+| Vehicle recall >= 0.85 | fail | not trained |
+| Person precision >= 0.80 | fail | not trained |
+| Person recall >= 0.80 | fail | not trained |
+| Vehicle XY MAE <= 1.0 m | pass | not trained |
+| Person XY MAE <= 1.2 m | fail | not trained |
+| Vehicle IoU >= 0.85 | pass | not trained |
+| Person box-mask IoU >= 0.50 | fail | not trained |
+| Foreground mIoU >= 0.675 | fail | not trained |
 
 ## Runtime, resources, and safety
 
-The CUDA-resume pipeline ran for `85.782 s`; epoch 1 took `30.049 s`. Recorded epoch-1 CUDA peak allocated/reserved memory was `928.482/1350.0 MiB`.
+The activation-instrumented reproduction took `36.488 s`; the first reproduction took `37.619 s`. The reproduction harness did not record a new peak-memory counter; the immediately preceding unchanged CUDA run recorded `928.482 MiB` allocated and `1350.0 MiB` reserved.
 
-The completion sentinel was written and desktop notification succeeded. The failed runtime directory was not overwritten, and this CUDA resume used a new create-only sibling. Test, CARLA, OAI, containers, q/AE, and 288 measurements remained untouched. No branch, remote, dependency, threshold, NMS, loss, optimizer, batch, or configuration change occurred. The dirty OAI submodule and pre-existing untracked refinement pointer were preserved.
+The camera-plane contract and dataset were not rebuilt. Test, CARLA, OAI, q/AE, and 288 measurements remained untouched. No branch, remote, dependency, threshold, NMS, loss weight, optimizer, schedule, batch, selection gate, service target, or candidate metric was changed. No follow-up experiment or push occurred.
