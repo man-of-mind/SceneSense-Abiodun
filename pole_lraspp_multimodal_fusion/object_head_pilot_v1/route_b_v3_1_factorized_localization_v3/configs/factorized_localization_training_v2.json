@@ -1,0 +1,81 @@
+{
+  "schema": "route_b_v3_1_factorized_localization_training_v2",
+  "name": "route_b_v3_1_factorized_localization_v2",
+  "derived_contract_experiment": "experiments/route_b_v3_1_camera_plane_contract_v1/20260828_060131",
+  "warm_start_checkpoint": "experiments/route_b_v3_1_native_grid_v1/20260828_042729/checkpoints/route_b_v3_1_native_grid_v1/epoch_015.pt",
+  "warm_start_sha256": "1245b2028372d486ed0b25b8a6b8a3e8b341257d542ec57cfdabf3b543d7c9ed",
+  "input_size": [768, 432],
+  "native_stride": 4,
+  "native_grid": [192, 108],
+  "radar_channels": 4,
+  "object_hidden_channels": 128,
+  "object_head_depth": 3,
+  "localization_hidden_channels": 64,
+  "localization_trunk": [
+    "Conv2d(128,64,kernel_size=3,padding=1,bias=true)",
+    "GroupNorm(8,64)",
+    "ReLU",
+    "Conv2d(64,64,kernel_size=3,padding=1,bias=true)",
+    "GroupNorm(8,64)",
+    "ReLU"
+  ],
+  "localization_outputs": {
+    "log_depth": 1,
+    "projected_3d_center_offset_grid_units": 2
+  },
+  "initialization": {
+    "trunk": "kaiming_normal_relu",
+    "log_depth_weight": "normal(mean=0,std=1e-3)",
+    "log_depth_bias": "log(20m)",
+    "projected_center_offset_weight": "normal(mean=0,std=1e-3)",
+    "projected_center_offset_bias": 0.0
+  },
+  "optimizer": "AdamW",
+  "weight_decay": 0.0001,
+  "localization_lr": 0.0003,
+  "schedule": "CosineAnnealingLR(T_max=12,eta_min=0)",
+  "epochs": 12,
+  "checkpoint_epochs": [4, 8, 12],
+  "early_stopping": false,
+  "batch_size": 16,
+  "num_workers": 8,
+  "prefetch_factor": 2,
+  "persistent_workers": true,
+  "training_seed": 20260828,
+  "amp": true,
+  "autocast_cache_enabled": false,
+  "fp32_localization_path": [
+    "localization_trunk",
+    "log_depth_head",
+    "projected_3d_center_offset_head",
+    "depth_decode",
+    "camera_unprojection",
+    "localization_losses"
+  ],
+  "q": 0,
+  "ae": false,
+  "augment_strength": "strong",
+  "geometric_augment": false,
+  "losses": {
+    "log_depth_smooth_l1_weight": 1.0,
+    "projected_center_offset_smooth_l1_weight": 1.0,
+    "local_xy_endpoint_smooth_l1_beta_m": 1.0,
+    "local_xy_endpoint_weight": 1.0,
+    "class_reduction": "per-class object mean then macro-average over present vehicle/person classes"
+  },
+  "frozen": [
+    "backbone",
+    "classifier",
+    "object_head.shared_trunk",
+    "object_head.upsampler",
+    "object_head.vehicle_heatmap_head",
+    "object_head.person_heatmap_head",
+    "object_head.offset_head",
+    "object_head.regression_head"
+  ],
+  "trainable": [
+    "localization_trunk",
+    "log_depth_head",
+    "projected_3d_center_offset_head"
+  ]
+}

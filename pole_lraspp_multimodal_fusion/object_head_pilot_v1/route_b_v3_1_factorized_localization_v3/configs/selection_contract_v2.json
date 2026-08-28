@@ -1,0 +1,78 @@
+{
+  "schema": "route_b_v3_1_factorized_localization_selection_contract_v2",
+  "status": "REGISTERED BEFORE FIRST CANDIDATE EVALUATION",
+  "evaluated_epochs": [4, 8, 12],
+  "primary_visibility": "v010",
+  "sensitivity_visibility": "v025_selected_only",
+  "thresholds": [0.2, 0.02],
+  "topk_per_class": 120,
+  "native_local_maximum_kernel": 3,
+  "world_match_radius_m": 3.0,
+  "amended_baseline": {
+    "vehicle_precision": 0.712543236846896,
+    "vehicle_recall": 0.807759777112785,
+    "vehicle_f1": 0.7571698021956763,
+    "vehicle_recall_002": 0.8455267774223506,
+    "vehicle_xy_mae_m": 0.9843235273107319,
+    "person_precision": 0.4955874241588527,
+    "person_recall": 0.46410123966942146,
+    "person_f1": 0.47932782075220054,
+    "person_recall_002": 0.5606921487603306,
+    "person_xy_mae_m": 1.3961044330278092,
+    "vehicle_iou": 0.8655106254636608,
+    "person_box_mask_iou": 0.44374515948597326,
+    "foreground_miou": 0.654627892474817,
+    "vehicle_two_d_correct_world_wrong": 1694,
+    "person_center_present_world_wrong": 854,
+    "vehicle_duplicate_fp": 979,
+    "person_heatmap_center_miss": 685
+  },
+  "amended_v025_baseline": {
+    "vehicle_f1": 0.7942691564713458,
+    "vehicle_xy_mae_m": 0.9431579104759117,
+    "person_f1": 0.5022737274460907,
+    "person_xy_mae_m": 1.3946969345246876
+  },
+  "eligibility_relative_deltas_min": {
+    "vehicle_precision": -0.01,
+    "vehicle_recall": -0.01,
+    "vehicle_f1": -0.01,
+    "person_precision": -0.01,
+    "person_recall": -0.01,
+    "person_f1": -0.01
+  },
+  "hard_invariance": {
+    "segmentation_iou_abs_tolerance": 0.000001,
+    "duplicate_candidate_structure": "bit_identical",
+    "person_heatmap_center_miss_candidate_structure": "bit_identical",
+    "all_non_xyz_detection_fields": "bit_identical"
+  },
+  "ranking": [
+    "lowest mean candidate_XY_MAE/amended_baseline_XY_MAE across vehicle/person",
+    "lowest vehicle TWO_D_CORRECT_WORLD_WRONG plus person CENTER_PRESENT_WORLD_WRONG",
+    "highest mean vehicle/person F1",
+    "earlier epoch"
+  ],
+  "material_gain_all_required": {
+    "vehicle_two_d_correct_world_wrong_reduction_fraction_ge": 0.3,
+    "person_center_present_world_wrong_reduction_fraction_ge": 0.3,
+    "vehicle_xy_mae_le_m": 0.95,
+    "person_xy_mae_le_m": 1.25,
+    "vehicle_f1_delta_ge": 0.02,
+    "person_f1_delta_ge": 0.05,
+    "vehicle_duplicate_fp_le_amended_baseline": 979,
+    "person_heatmap_center_miss_le_amended_baseline": 685,
+    "v025_no_reversal": "each class F1 >= amended_v025-0.01 and XY MAE <= amended_v025"
+  },
+  "service_targets": {
+    "vehicle_precision_ge": 0.8,
+    "vehicle_recall_ge": 0.85,
+    "person_precision_ge": 0.8,
+    "person_recall_ge": 0.8,
+    "vehicle_xy_mae_le_m": 1.0,
+    "person_xy_mae_le_m": 1.2,
+    "vehicle_iou_ge": 0.85,
+    "person_box_mask_iou_ge": 0.5,
+    "foreground_miou_ge": 0.675
+  }
+}
