@@ -157,9 +157,10 @@ def main() -> int:
         record["normalized_person_deficit"] = deficit(record["metrics"])
         record["service_targets"] = service_targets(record["metrics"], config["service_targets"])
         record["service_ready"] = all(record["service_targets"].values())
-    eligible = [record for record in records if record["eligible"]]
+    candidate_records = records[1:]
+    eligible = [record for record in candidate_records if record["eligible"]]
     if not eligible:
-        raise RuntimeError("recovered epoch-40 base unexpectedly ineligible")
+        raise RuntimeError("no eligible person-refinement checkpoint")
     ranked = sorted(eligible, key=lambda record: (
         record["normalized_person_deficit"], -record["metrics"]["person_f1"],
         -record["metrics"]["person_recall"], record["metrics"]["person_xy_mae_m"],
@@ -167,12 +168,12 @@ def main() -> int:
     ))
     selected = ranked[0]
     nondominated = [
-        record["label"] for record in records
-        if not any(dominates(other, record) for other in records if other is not record)
+        record["label"] for record in candidate_records
+        if not any(dominates(other, record) for other in candidate_records if other is not record)
     ]
     if selected["service_ready"]:
         terminal = "LRASPP_PERSON_REFINEMENT_SERVICE_READY"
-    elif selected["label"] != "epoch_040_base" and selected["material_gain"]["pass"]:
+    elif selected["material_gain"]["pass"]:
         terminal = "LRASPP_PERSON_REFINEMENT_MATERIAL_GAIN"
     else:
         terminal = "LRASPP_PERSON_REFINEMENT_NO_GAIN"
@@ -188,7 +189,7 @@ def main() -> int:
             "person_xy_mae_m": record["metrics"]["person_xy_mae_m"],
         } for record in ranked],
         "nondominated_labels": nondominated,
-        "material_labels": [record["label"] for record in records if record["material_gain"]["pass"]],
+        "material_labels": [record["label"] for record in candidate_records if record["material_gain"]["pass"]],
         "selected": selected, "terminal": terminal,
     }
     write_json_x(args.output, result)

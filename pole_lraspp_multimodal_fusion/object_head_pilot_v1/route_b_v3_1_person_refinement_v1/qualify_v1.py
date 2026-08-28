@@ -95,6 +95,7 @@ def main() -> int:
     parser.add_argument("--base-checkpoint", required=True, type=Path)
     parser.add_argument("--base-sha256", required=True)
     parser.add_argument("--diagnostic", required=True, type=Path)
+    parser.add_argument("--base-acceptance", required=True, type=Path)
     args = parser.parse_args()
     started = time.monotonic()
     experiment = args.experiment.resolve()
@@ -103,7 +104,24 @@ def main() -> int:
     design = config["person_design"]
     base_path = args.base_checkpoint.resolve(strict=True)
     diagnostic_path = args.diagnostic.resolve(strict=True)
+    acceptance_path = args.base_acceptance.resolve(strict=True)
+    acceptance = json.loads(acceptance_path.read_text(encoding="utf-8"))
     checks: list[dict[str, Any]] = []
+
+    checks.append({
+        "name": "recovered_epoch40_favorable_variation_accepted",
+        "pass": (
+            acceptance.get("decision")
+            == "RECOVERED_EPOCH40_ACCEPTED_WITH_FAVORABLE_LOW_THRESHOLD_VARIATION"
+            and acceptance.get("recovered_checkpoint_sha256") == args.base_sha256
+            and acceptance.get("comparison_baseline")
+            == "recovered_checkpoint_own_decoded_primary_v010_metrics"
+            and acceptance.get("repeat_epochs_11_through_40") is False
+            and acceptance.get("person_refinement_design_changed") is False
+        ),
+        "acceptance": str(acceptance_path), "acceptance_sha256": sha256(acceptance_path),
+        "decision": acceptance.get("decision"),
+    })
 
     sources = sorted(PACKAGE_ROOT.glob("*.py"))
     compile_result = subprocess.run(
@@ -322,6 +340,9 @@ def main() -> int:
         "created_utc": utc_now(), "all_frozen_before_training": True,
         "resolved_config": config, "resolved_config_sha256": sha256(config_path),
         "diagnostic": str(diagnostic_path), "diagnostic_sha256": sha256(diagnostic_path),
+        "base_acceptance": str(acceptance_path),
+        "base_acceptance_sha256": sha256(acceptance_path),
+        "base_acceptance_decision": acceptance["decision"],
         "base_checkpoint": str(base_path), "base_checkpoint_sha256": actual_base_hash,
         "architecture": config["person_design"],
         "loss": config["person_design"]["loss_weights"],
