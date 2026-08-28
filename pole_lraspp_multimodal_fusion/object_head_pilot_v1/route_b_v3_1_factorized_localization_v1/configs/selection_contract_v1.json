@@ -1,0 +1,52 @@
+{
+  "schema": "route_b_v3_1_factorized_localization_selection_contract_v1",
+  "status": "REGISTERED_WITH_REQUEST; NOT REACHED BECAUSE PHASE A FAILED",
+  "evaluated_epochs": [4, 8, 12],
+  "fixed_decoder": {
+    "score_thresholds": [0.2, 0.02],
+    "native_local_max": true,
+    "topk_per_class": 120,
+    "world_match_radius_m": 3.0,
+    "primary_visibility": "v010",
+    "sensitivity_visibility": "v025"
+  },
+  "eligibility": {
+    "vehicle_precision_ge": 0.7012,
+    "vehicle_recall_ge": 0.798,
+    "vehicle_f1_ge": 0.7465,
+    "person_precision_ge": 0.485,
+    "person_recall_ge": 0.4541,
+    "person_f1_ge": 0.4691,
+    "vehicle_duplicate_fp_le": 991,
+    "person_heatmap_center_miss_le": 685,
+    "segmentation_iou_abs_tolerance": 0.000001
+  },
+  "ranking": [
+    "lowest combined normalized vehicle/person XY MAE",
+    "lowest combined vehicle TWO_D_CORRECT_WORLD_WRONG plus person CENTER_PRESENT_WORLD_WRONG",
+    "highest mean class F1",
+    "earlier epoch"
+  ],
+  "material_gain_all_required": {
+    "vehicle_two_d_correct_world_wrong_le": 1193,
+    "person_center_present_world_wrong_le": 598,
+    "vehicle_xy_mae_le_m": 0.95,
+    "person_xy_mae_le_m": 1.25,
+    "vehicle_f1_ge": 0.77,
+    "person_f1_ge": 0.54,
+    "vehicle_duplicate_fp_le": 991,
+    "person_heatmap_center_miss_le": 685,
+    "same_direction_under_v025": true
+  },
+  "service_targets": {
+    "vehicle_precision_ge": 0.8,
+    "vehicle_recall_ge": 0.85,
+    "person_precision_ge": 0.8,
+    "person_recall_ge": 0.8,
+    "vehicle_xy_mae_le_m": 1.0,
+    "person_xy_mae_le_m": 1.2,
+    "vehicle_iou_ge": 0.85,
+    "person_box_mask_iou_ge": 0.5,
+    "foreground_miou_ge": 0.675
+  }
+}

@@ -1,0 +1,62 @@
+{
+  "schema": "route_b_v3_1_factorized_localization_config_v1",
+  "name": "route_b_v3_1_factorized_localization_v1",
+  "phase_order": [
+    "geometry_contract",
+    "implementation_if_geometry_passes",
+    "launch_and_parity_if_geometry_passes",
+    "training_if_all_prior_gates_pass",
+    "evaluation_if_training_completes"
+  ],
+  "warm_start_checkpoint": "experiments/route_b_v3_1_native_grid_v1/20260828_042729/checkpoints/route_b_v3_1_native_grid_v1/epoch_015.pt",
+  "warm_start_sha256": "1245b2028372d486ed0b25b8a6b8a3e8b341257d542ec57cfdabf3b543d7c9ed",
+  "geometry": {
+    "manifest": "experiments/route_b_v3_1_clean_base_v1/20260828_012309/dataset/manifest.csv",
+    "v010_validation_objects": "experiments/route_b_v3_1_clean_base_v1/20260828_012309/contracts/v010/val/object_boxes.csv",
+    "validation_frames": 3345,
+    "expected_objects": 13597,
+    "input_size": [768, 432],
+    "native_stride": 4,
+    "local_axis_order": ["carla_camera_forward", "carla_camera_right", "carla_camera_up"],
+    "depth_definition": "positive camera-forward coordinate",
+    "roundtrip_median_xy_error_le_m": 0.01,
+    "roundtrip_p99_xy_error_le_m": 0.05,
+    "require_positive_depth_for_every_object": true,
+    "require_finite_reconstruction_for_every_object": true
+  },
+  "phase_b_recipe_if_unlocked": {
+    "tail_input": ["low", "high"],
+    "static_tail_metadata": ["camera_intrinsics", "camera_to_world"],
+    "raw_modality_side_channels": [],
+    "new_outputs": ["log_depth", "projected_3d_center_offset"],
+    "depth_activation": "exp",
+    "legacy_xyz": "checkpoint compatibility only",
+    "optimizer": "AdamW",
+    "localization_lr": 0.0003,
+    "schedule": "fixed cosine over 12 epochs",
+    "epochs": 12,
+    "checkpoint_epochs": [4, 8, 12],
+    "early_stopping": false,
+    "q": 0,
+    "ae": false,
+    "seed": 20260828,
+    "batch_size": null,
+    "batch_size_resolution": "one largest-safe launch check only",
+    "losses": {
+      "log_depth_smooth_l1": 1.0,
+      "projected_center_offset_smooth_l1": 1.0,
+      "xy_endpoint_smooth_l1_beta_1m": 1.0,
+      "class_reduction": "mean per present class, then vehicle/person macro-average"
+    },
+    "frozen_modules": [
+      "rgb_radar_backbone",
+      "lraspp_classifier_and_segmentation",
+      "native_grid_upsampler",
+      "vehicle_heatmap_branch",
+      "person_heatmap_branch",
+      "grid_center_offset_branch",
+      "dimension_yaw_bbox_parked_radar_support_branches"
+    ]
+  },
+  "status": "PHASE_B_NOT_UNLOCKED_GEOMETRY_CONTRACT_INVALID"
+}
