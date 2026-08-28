@@ -96,6 +96,8 @@ def main() -> int:
     parser.add_argument("--base-sha256", required=True)
     parser.add_argument("--diagnostic", required=True, type=Path)
     parser.add_argument("--base-acceptance", required=True, type=Path)
+    parser.add_argument("--output", type=Path)
+    parser.add_argument("--registration-output", type=Path)
     args = parser.parse_args()
     started = time.monotonic()
     experiment = args.experiment.resolve()
@@ -210,7 +212,9 @@ def main() -> int:
         offset_caps=design["projected_offset_cap_grid_xy"],
     )
     loader = DataLoader(dataset, batch_size=2, shuffle=False, num_workers=0)
-    tensors, masks, targets = next(iter(loader))
+    qualification_batches = iter(loader)
+    tensors, masks, targets = next(qualification_batches)
+    successor_tensors, successor_masks, successor_targets = next(qualification_batches)
     tensors = tensors.to(device)
     masks = masks.to(device)
     targets = {key: value.to(device) for key, value in targets.items()}
@@ -321,17 +325,98 @@ def main() -> int:
         "center_x_px", "center_y_px", "bbox_x0", "bbox_y0", "bbox_x1", "bbox_y1",
     }
     schema_ok = all(required_fields.issubset(value) for value in predictions)
-    finite_ok = all(all(math.isfinite(float(value[key])) for key in required_fields - {"class_name"})
-                    for value in predictions)
+    nonfinite_prediction_fields = [
+        {"prediction_index": index, "class_name": value.get("class_name"), "field": key,
+         "value": value.get(key)}
+        for index, value in enumerate(predictions)
+        for key in required_fields - {"class_name"}
+        if key in value and not math.isfinite(float(value[key]))
+    ]
+    missing_prediction_fields = [
+        {"prediction_index": index, "class_name": value.get("class_name"),
+         "missing": sorted(required_fields - set(value))}
+        for index, value in enumerate(predictions) if not required_fields.issubset(value)
+    ]
+    finite_ok = not nonfinite_prediction_fields
+    object_output_finite = bool(torch.isfinite(outputs["object"]).all().item())
+    amp_nonfinite_by_output = {
+        "object_channels": [
+            int((~torch.isfinite(outputs["object"][:, channel])).sum().item())
+            for channel in range(outputs["object"].shape[1])
+        ],
+        "out": int((~torch.isfinite(outputs["out"])).sum().item()),
+        "base_out": int((~torch.isfinite(outputs["base_out"])).sum().item()),
+        "native_feature": int((~torch.isfinite(outputs["native_feature"])).sum().item()),
+        "person_refinement": {
+            key: int((~torch.isfinite(value)).sum().item())
+            for key, value in outputs["person_refinement"].items()
+        },
+    }
     positive_depth_targets = targets["person_local_xyz"][:, 0][targets["person_regression_mask"][:, 0].bool()]
+    camera_depth_ok = (
+        positive_depth_targets.numel() == 0 or bool((positive_depth_targets > 0).all().item())
+    )
     checks.append({
         "name": "external_schema_range_bins_camera_plane_amp_forward",
-        "pass": schema_ok and finite_ok and bool(torch.isfinite(outputs["object"]).all().item())
-                and (positive_depth_targets.numel() == 0 or bool((positive_depth_targets > 0).all().item())),
+        "pass": schema_ok and finite_ok and object_output_finite and camera_depth_ok,
         "prediction_count": len(predictions), "required_fields": sorted(required_fields),
+        "schema_ok": schema_ok, "finite_ok": finite_ok,
+        "object_output_finite": object_output_finite, "camera_depth_ok": camera_depth_ok,
+        "amp_nonfinite_by_output": amp_nonfinite_by_output,
+        "missing_prediction_fields": missing_prediction_fields,
+        "nonfinite_prediction_fields": nonfinite_prediction_fields,
         "camera_plane_positive_targets": int(positive_depth_targets.numel()),
         "camera_plane_convention": "local_x_forward_local_y_right_local_z_up",
         "amp_dtype": str(outputs["object"].dtype),
+    })
+
+    successor_tensors = successor_tensors.to(device)
+    successor_masks = successor_masks.to(device)
+    successor_targets = {key: value.to(device) for key, value in successor_targets.items()}
+    configure_stage(model, "P2")
+    with torch.autocast(device_type="cuda", enabled=True, cache_enabled=False):
+        successor_outputs = model.training_outputs(successor_tensors)
+    with torch.autocast(device_type="cuda", enabled=False):
+        successor_loss, _successor_parts = person_refinement_loss(
+            successor_outputs, successor_masks, successor_targets,
+            range_edges=range_bins["edges_m"],
+            offset_caps=design["projected_offset_cap_grid_xy"], design=design,
+        )
+    parameters_finite = all(bool(torch.isfinite(parameter).all().item())
+                            for parameter in model.parameters())
+    inputs_finite = bool(torch.isfinite(tensors).all().item()) and bool(
+        torch.isfinite(successor_tensors).all().item()
+    )
+    targets_finite = all(bool(torch.isfinite(value).all().item()) for value in targets.values()) and all(
+        bool(torch.isfinite(value).all().item()) for value in successor_targets.values()
+    )
+    successor_finite = (
+        bool(torch.isfinite(successor_loss).item())
+        and bool(torch.isfinite(successor_outputs["object"]).all().item())
+        and bool(torch.isfinite(successor_outputs["out"]).all().item())
+        and all(bool(torch.isfinite(value).all().item())
+                for value in successor_outputs["person_refinement"].values())
+    )
+    repair = {
+        "schema": "route_b_v3_1_person_refinement_amp_numerical_repair_v1",
+        "operation": "inherited_native_vehicle_and_person_1x1_class_heatmap_projections",
+        "precision": "FP32",
+        "scope": "two inherited class-heatmap Conv2d projections only",
+        "pre_repair_fp16_nonfinite_cells": {"vehicle": 1403, "person": 1040},
+        "fp32_path_finite": all(value == 0.0 for value in invariant_deltas.values()),
+        "inputs_finite": inputs_finite, "targets_finite": targets_finite,
+        "parameters_finite": parameters_finite,
+        "failing_batch_after_repair_finite": object_output_finite and math.isfinite(float(loss.detach().item())),
+        "successor_batch_after_repair_finite": successor_finite,
+        "architecture_losses_targets_lr_validation_changed": False,
+    }
+    checks.append({
+        "name": "single_narrow_amp_heatmap_repair_failing_batch_and_successor",
+        "pass": all(bool(repair[key]) for key in (
+            "fp32_path_finite", "inputs_finite", "targets_finite", "parameters_finite",
+            "failing_batch_after_repair_finite", "successor_batch_after_repair_finite",
+        )),
+        "detail": repair,
     })
 
     source_hashes = {str(path.relative_to(ROOT)): sha256(path) for path in sources}
@@ -357,6 +442,7 @@ def main() -> int:
         "base_mapping": mapping, "parameter_report_p2": parameter_report(model),
         "validation_rows_used_for_sampler_mining_or_training": 0,
         "geometric_augmentation": False, "q": 0, "ae": False,
+        "amp_numerical_repair": repair,
     }
     all_pass = all(check["pass"] for check in checks)
     result = {
@@ -364,10 +450,17 @@ def main() -> int:
         "created_utc": utc_now(), "all_pass": all_pass, "checks": checks,
         "wall_seconds": time.monotonic() - started,
     }
-    write_json_x(experiment / "QUALIFICATION.json", result)
+    output_path = args.output.resolve() if args.output is not None else experiment / "QUALIFICATION.json"
+    registration_output = (
+        args.registration_output.resolve()
+        if args.registration_output is not None else experiment / "REGISTRATION.json"
+    )
+    write_json_x(output_path, result)
     if all_pass:
-        write_json_x(experiment / "REGISTRATION.json", registration)
-        (experiment / "QUALIFICATION_COMPLETE").write_text("PASS\n", encoding="utf-8")
+        write_json_x(registration_output, registration)
+        if args.output is None:
+            write_json_x(experiment / "AMP_NUMERICAL_REPAIR.json", repair)
+            (experiment / "QUALIFICATION_COMPLETE").write_text("PASS\n", encoding="utf-8")
     print(json.dumps(result, indent=2, sort_keys=True), flush=True)
     return 0 if all_pass else 20
 

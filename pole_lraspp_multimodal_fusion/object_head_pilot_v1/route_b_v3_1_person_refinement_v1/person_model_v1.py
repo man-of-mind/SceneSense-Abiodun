@@ -96,11 +96,27 @@ class PersonRefinementFusionLRASPP(native.NativeGridFusionLRASPP):
             self.object_head.shared_trunk(self._object_input(features))
         )
 
+    def _finite_class_heatmaps(self, native_feature: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        """Run only the two inherited 1x1 heatmap projections in FP32.
+
+        Recovered epoch-40 heatmap weights can overflow at some background cells
+        under FP16 although the input feature, weights, FP32 path, losses, and all
+        decoded values are finite.  This is the single registered AMP numerical
+        repair; regression, offsets, segmentation, and the new person tail remain
+        under the caller's normal autocast policy.
+        """
+        with torch.autocast(device_type="cuda", enabled=False):
+            feature = native_feature.float()
+            return (
+                self.object_head.vehicle_heatmap_head(feature),
+                self.object_head.person_heatmap_head(feature),
+            )
+
     def tail_outputs(self, features: object) -> dict[str, Any]:
         native_feature = self._native_feature(features)
+        vehicle_heatmap, person_heatmap = self._finite_class_heatmaps(native_feature)
         base_object = torch.cat([
-            self.object_head.vehicle_heatmap_head(native_feature),
-            self.object_head.person_heatmap_head(native_feature),
+            vehicle_heatmap, person_heatmap,
             self.object_head.regression_head(native_feature),
             self.object_head.offset_head(native_feature),
         ], dim=1)
@@ -138,13 +154,14 @@ class PersonRefinementFusionLRASPP(native.NativeGridFusionLRASPP):
         with torch.no_grad():
             features = self.backbone(x)
             native_feature = self._native_feature(features)
-            vehicle_heatmap = self.object_head.vehicle_heatmap_head(native_feature)
+            vehicle_heatmap, _unused_person_heatmap = self._finite_class_heatmaps(native_feature)
             regression = self.object_head.regression_head(native_feature)
             grid_offset = self.object_head.offset_head(native_feature)
             segmentation = self.classifier(features)
             if isinstance(segmentation, dict):
                 segmentation = segmentation["out"]
-        person_heatmap = self.object_head.person_heatmap_head(native_feature.detach())
+        with torch.autocast(device_type="cuda", enabled=False):
+            person_heatmap = self.object_head.person_heatmap_head(native_feature.detach().float())
         base_object = torch.cat([
             vehicle_heatmap.detach(), person_heatmap, regression.detach(), grid_offset.detach(),
         ], dim=1)

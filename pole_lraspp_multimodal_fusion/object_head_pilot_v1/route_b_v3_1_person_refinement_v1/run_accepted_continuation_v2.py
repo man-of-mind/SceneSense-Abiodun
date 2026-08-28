@@ -182,20 +182,26 @@ def resume_setup(path: Path) -> tuple[Path, Path, Path, dict[str, Any], dict[str
     prior_terminal = (experiment / "TERMINAL_VERDICT.txt").read_text().strip()
     if prior_terminal != "LRASPP_PERSON_REFINEMENT_CONTRACT_INVALID":
         raise ContractInvalid(f"unexpected qualification-failure terminal {prior_terminal}")
+    attempt = len(list(experiment.glob("QUALIFICATION_FAILURE_ATTEMPT_*_TERMINAL_VERDICT.txt"))) + 1
     archive_names = {
-        "FINAL_REPORT.md": "QUALIFICATION_FAILURE_ATTEMPT_1_REPORT.md",
-        "PIPELINE_COMPLETE.json": "QUALIFICATION_FAILURE_ATTEMPT_1_PIPELINE_COMPLETE.json",
-        "TERMINAL_VERDICT.txt": "QUALIFICATION_FAILURE_ATTEMPT_1_TERMINAL_VERDICT.txt",
-        "COMPLETION_SENTINEL": "QUALIFICATION_FAILURE_ATTEMPT_1_COMPLETION_SENTINEL",
-        "NOTIFICATION.json": "QUALIFICATION_FAILURE_ATTEMPT_1_NOTIFICATION.json",
-        "COMPLETED.pid": "QUALIFICATION_FAILURE_ATTEMPT_1_COMPLETED.pid",
+        "FINAL_REPORT.md": f"QUALIFICATION_FAILURE_ATTEMPT_{attempt}_REPORT.md",
+        "PIPELINE_COMPLETE.json": f"QUALIFICATION_FAILURE_ATTEMPT_{attempt}_PIPELINE_COMPLETE.json",
+        "TERMINAL_VERDICT.txt": f"QUALIFICATION_FAILURE_ATTEMPT_{attempt}_TERMINAL_VERDICT.txt",
+        "COMPLETION_SENTINEL": f"QUALIFICATION_FAILURE_ATTEMPT_{attempt}_COMPLETION_SENTINEL",
+        "NOTIFICATION.json": f"QUALIFICATION_FAILURE_ATTEMPT_{attempt}_NOTIFICATION.json",
+        "COMPLETED.pid": f"QUALIFICATION_FAILURE_ATTEMPT_{attempt}_COMPLETED.pid",
     }
+    if (experiment / "QUALIFICATION.json").is_file():
+        archive_names["QUALIFICATION.json"] = f"QUALIFICATION_FAILURE_ATTEMPT_{attempt}_QUALIFICATION.json"
     for source, target in archive_names.items():
         source_path, target_path = experiment / source, experiment / target
         if not source_path.is_file() or target_path.exists():
             raise ContractInvalid(f"qualification-failure archive collision/missing file: {source}")
         source_path.rename(target_path)
-    shutil.copyfile(experiment / "STATUS.json", experiment / "QUALIFICATION_FAILURE_ATTEMPT_1_STATUS.json")
+    shutil.copyfile(
+        experiment / "STATUS.json",
+        experiment / f"QUALIFICATION_FAILURE_ATTEMPT_{attempt}_STATUS.json",
+    )
     write_text_x(experiment / "RUNNING.pid", f"{os.getpid()}\n")
     status = json.loads((experiment / "STATUS.json").read_text())
     status.update({
@@ -204,19 +210,26 @@ def resume_setup(path: Path) -> tuple[Path, Path, Path, dict[str, Any], dict[str
         "updated_utc": utc_now(), "supervisor_pid": os.getpid(),
     })
     write_json_atomic(experiment / "STATUS.json", status)
-    write_json_x(experiment / "IMPLEMENTATION_REPAIR_ATTEMPT_1.json", {
+    if attempt == 1:
+        failure = "AttributeError: module model_v1 has no attribute REG_DIMS"
+        repair = "import unchanged REG_* object-output slices from object_targets"
+        repaired_source = PACKAGE_ROOT / "person_decode_v1.py"
+    else:
+        failure = "inherited vehicle/person heatmap 1x1 projections overflow at background cells only under FP16"
+        repair = "execute only the two inherited class-heatmap 1x1 projections in FP32"
+        repaired_source = PACKAGE_ROOT / "person_model_v1.py"
+    write_json_x(experiment / f"IMPLEMENTATION_REPAIR_ATTEMPT_{attempt}.json", {
         "schema": "route_b_v3_1_person_refinement_implementation_repair_v2",
         "created_utc": utc_now(),
-        "failure": "AttributeError: module model_v1 has no attribute REG_DIMS",
-        "repair": "import unchanged REG_* object-output slices from object_targets",
-        "repaired_source": str((PACKAGE_ROOT / "person_decode_v1.py").relative_to(ROOT)),
-        "repaired_source_sha256": sha256(PACKAGE_ROOT / "person_decode_v1.py"),
+        "attempt": attempt, "failure": failure, "repair": repair,
+        "repaired_source": str(repaired_source.relative_to(ROOT)),
+        "repaired_source_sha256": sha256(repaired_source),
         "architecture_changed": False, "losses_changed": False, "targets_changed": False,
         "learning_rates_changed": False, "validation_rules_changed": False,
         "candidate_training_or_scoring_started_before_repair": False,
         "base_diagnostic_reused_without_inference": True,
     })
-    core.progress(experiment, "implementation_repair_qualification", "decoder REG_* namespace")
+    core.progress(experiment, "implementation_repair_qualification", repair, attempt=attempt)
     return experiment, config_path, acceptance_path, person_config, acceptance
 
 
@@ -414,6 +427,7 @@ def commit_report() -> dict[str, Any]:
     explicit = [
         PACKAGE_ROOT / "qualify_v1.py", PACKAGE_ROOT / "policy_v1.py",
         PACKAGE_ROOT / "person_decode_v1.py",
+        PACKAGE_ROOT / "person_model_v1.py",
         PACKAGE_ROOT / "preflight_accepted_v2.py", PACKAGE_ROOT / "run_accepted_continuation_v2.py",
         ACCEPTANCE_SOURCE, TRACKED_REPORT,
     ]
