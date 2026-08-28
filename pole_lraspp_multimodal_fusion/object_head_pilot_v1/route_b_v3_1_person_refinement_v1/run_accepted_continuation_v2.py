@@ -165,6 +165,61 @@ def preflight(experiment: Path, config_path: Path, acceptance_path: Path) -> Non
         raise ContractInvalid("accepted recovered epoch-40 preflight failed")
 
 
+def resume_setup(path: Path) -> tuple[Path, Path, Path, dict[str, Any], dict[str, Any]]:
+    experiment = path.resolve(strict=True)
+    if experiment.parent != EXPERIMENT_PARENT.resolve():
+        raise ContractInvalid("resume experiment is outside the accepted continuation parent")
+    config_path = experiment / "resolved_configs/person_refinement_v1.json"
+    acceptance_path = experiment / "ACCEPTED_BASE_DECISION.json"
+    person_config = json.loads(config_path.read_text())
+    acceptance = json.loads(acceptance_path.read_text())
+    if not (experiment / "ACCEPTED_BASE_PREFLIGHT_COMPLETE").is_file():
+        raise ContractInvalid("accepted-base preflight is not complete")
+    if not (experiment / "BASE_DIAGNOSTIC_COMPLETE").is_file():
+        raise ContractInvalid("Phase-B diagnostic is not complete")
+    if (experiment / "REGISTRATION.json").exists() or (experiment / "PERSON_TRAINING_STARTED.json").exists():
+        raise ContractInvalid("qualification-failure resume found candidate registration/training state")
+    prior_terminal = (experiment / "TERMINAL_VERDICT.txt").read_text().strip()
+    if prior_terminal != "LRASPP_PERSON_REFINEMENT_CONTRACT_INVALID":
+        raise ContractInvalid(f"unexpected qualification-failure terminal {prior_terminal}")
+    archive_names = {
+        "FINAL_REPORT.md": "QUALIFICATION_FAILURE_ATTEMPT_1_REPORT.md",
+        "PIPELINE_COMPLETE.json": "QUALIFICATION_FAILURE_ATTEMPT_1_PIPELINE_COMPLETE.json",
+        "TERMINAL_VERDICT.txt": "QUALIFICATION_FAILURE_ATTEMPT_1_TERMINAL_VERDICT.txt",
+        "COMPLETION_SENTINEL": "QUALIFICATION_FAILURE_ATTEMPT_1_COMPLETION_SENTINEL",
+        "NOTIFICATION.json": "QUALIFICATION_FAILURE_ATTEMPT_1_NOTIFICATION.json",
+        "COMPLETED.pid": "QUALIFICATION_FAILURE_ATTEMPT_1_COMPLETED.pid",
+    }
+    for source, target in archive_names.items():
+        source_path, target_path = experiment / source, experiment / target
+        if not source_path.is_file() or target_path.exists():
+            raise ContractInvalid(f"qualification-failure archive collision/missing file: {source}")
+        source_path.rename(target_path)
+    shutil.copyfile(experiment / "STATUS.json", experiment / "QUALIFICATION_FAILURE_ATTEMPT_1_STATUS.json")
+    write_text_x(experiment / "RUNNING.pid", f"{os.getpid()}\n")
+    status = json.loads((experiment / "STATUS.json").read_text())
+    status.update({
+        "phase": "implementation_repair_qualification", "terminal": None,
+        "detail": "repair decoder constant namespace only; reuse completed Phase-B diagnostic",
+        "updated_utc": utc_now(), "supervisor_pid": os.getpid(),
+    })
+    write_json_atomic(experiment / "STATUS.json", status)
+    write_json_x(experiment / "IMPLEMENTATION_REPAIR_ATTEMPT_1.json", {
+        "schema": "route_b_v3_1_person_refinement_implementation_repair_v2",
+        "created_utc": utc_now(),
+        "failure": "AttributeError: module model_v1 has no attribute REG_DIMS",
+        "repair": "import unchanged REG_* object-output slices from object_targets",
+        "repaired_source": str((PACKAGE_ROOT / "person_decode_v1.py").relative_to(ROOT)),
+        "repaired_source_sha256": sha256(PACKAGE_ROOT / "person_decode_v1.py"),
+        "architecture_changed": False, "losses_changed": False, "targets_changed": False,
+        "learning_rates_changed": False, "validation_rules_changed": False,
+        "candidate_training_or_scoring_started_before_repair": False,
+        "base_diagnostic_reused_without_inference": True,
+    })
+    core.progress(experiment, "implementation_repair_qualification", "decoder REG_* namespace")
+    return experiment, config_path, acceptance_path, person_config, acceptance
+
+
 def diagnose_and_register(experiment: Path, config_path: Path, acceptance_path: Path,
                           acceptance: dict[str, Any]) -> dict[str, Any]:
     base_checkpoint = (ROOT / acceptance["recovered_checkpoint"]).resolve(strict=True)
@@ -202,6 +257,25 @@ def diagnose_and_register(experiment: Path, config_path: Path, acceptance_path: 
     if registration["base_acceptance_decision"] != acceptance["decision"]:
         raise ContractInvalid("acceptance decision was not frozen into registration")
     return base_record
+
+
+def qualify_existing_diagnostic(experiment: Path, config_path: Path, acceptance_path: Path,
+                                acceptance: dict[str, Any]) -> dict[str, Any]:
+    base_checkpoint = (ROOT / acceptance["recovered_checkpoint"]).resolve(strict=True)
+    core.progress(experiment, "refinement_qualification_repair")
+    if run_logged([
+        sys.executable, str(PACKAGE_ROOT / "qualify_v1.py"),
+        "--experiment", str(experiment), "--config", str(config_path),
+        "--base-checkpoint", str(base_checkpoint),
+        "--base-sha256", acceptance["recovered_checkpoint_sha256"],
+        "--diagnostic", str(experiment / "BASE_DIAGNOSTIC.json"),
+        "--base-acceptance", str(acceptance_path),
+    ], experiment / "logs/qualification.log", "repaired executable qualification") != 0:
+        raise ContractInvalid("repaired person-refinement qualification failed")
+    registration = json.loads((experiment / "REGISTRATION.json").read_text())
+    if registration["base_acceptance_decision"] != acceptance["decision"]:
+        raise ContractInvalid("acceptance decision was not frozen into repaired registration")
+    return json.loads((experiment / "decisions/epoch_040_decode.json").read_text())
 
 
 def retention_audit(experiment: Path, selection: dict[str, Any],
@@ -339,6 +413,7 @@ def notify(terminal: str, experiment: Path) -> dict[str, Any]:
 def commit_report() -> dict[str, Any]:
     explicit = [
         PACKAGE_ROOT / "qualify_v1.py", PACKAGE_ROOT / "policy_v1.py",
+        PACKAGE_ROOT / "person_decode_v1.py",
         PACKAGE_ROOT / "preflight_accepted_v2.py", PACKAGE_ROOT / "run_accepted_continuation_v2.py",
         ACCEPTANCE_SOURCE, TRACKED_REPORT,
     ]
@@ -362,19 +437,33 @@ def commit_report() -> dict[str, Any]:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--timestamp")
+    parser.add_argument("--resume-experiment", type=Path)
     args = parser.parse_args()
     if sys.executable != "/usr/bin/python3":
         raise RuntimeError(f"required /usr/bin/python3, got {sys.executable}")
     started = time.monotonic()
-    experiment, config_path, acceptance_path, person_config, acceptance = setup(args.timestamp)
+    resumed = args.resume_experiment is not None
+    if resumed and args.timestamp is not None:
+        raise ValueError("--timestamp and --resume-experiment are mutually exclusive")
+    if resumed:
+        experiment, config_path, acceptance_path, person_config, acceptance = resume_setup(
+            args.resume_experiment
+        )
+    else:
+        experiment, config_path, acceptance_path, person_config, acceptance = setup(args.timestamp)
     retry = {"used": 0}
     terminal = "LRASPP_PERSON_REFINEMENT_RUNTIME_FAILURE"
     selection: dict[str, Any] | None = None
     retention: dict[str, Any] | None = None
     error: str | None = None
     try:
-        preflight(experiment, config_path, acceptance_path)
-        base_record = diagnose_and_register(experiment, config_path, acceptance_path, acceptance)
+        if resumed:
+            base_record = qualify_existing_diagnostic(
+                experiment, config_path, acceptance_path, acceptance
+            )
+        else:
+            preflight(experiment, config_path, acceptance_path)
+            base_record = diagnose_and_register(experiment, config_path, acceptance_path, acceptance)
         base_checkpoint = (ROOT / acceptance["recovered_checkpoint"]).resolve(strict=True)
         base_record["checkpoint"] = str(base_checkpoint)
         core.train_candidate(experiment, config_path, base_record, person_config, retry)

@@ -13,11 +13,11 @@ Epochs 11–40 were not repeated.
 
 ## Execution
 
-Runtime retries used: `0` of one. Error: `ContractInvalid: person-refinement qualification failed`.
+Runtime retries used: `0` of one. Error: `ContractInvalid: repaired person-refinement qualification failed`.
 Notification result: `{'command': ['notify-send', 'LR-ASPP accepted person refinement complete', 'LRASPP_PERSON_REFINEMENT_CONTRACT_INVALID\n/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/route_b_v3_1_person_refinement_continuation_v2/20260828_134000'], 'returncode': 0, 'stdout': '', 'stderr': '', 'delivered': True}`.
 
 ## Scope confirmation
 
 Locked test remained absent and unopened. No q/AE, tracking, CARLA, OAI, live-runtime, calibrated-threshold, alternative-architecture, second-hyperparameter, or 288-measurement work was performed. Datasets, predictions, and checkpoints are not committed.
 
-Supervisor wall time: `175.2` seconds.
+Supervisor wall time: `6.0` seconds.

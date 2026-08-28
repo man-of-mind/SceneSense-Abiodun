@@ -19,7 +19,10 @@ for path in (str(NATIVE_PACKAGE), str(ROOT)):
 
 import model_v1 as native  # noqa: E402
 from decode_v1 import TOPK_PER_CLASS, decode_native_objects, native_local_maxima  # noqa: E402
-from pole_lraspp_multimodal_fusion.object_targets import transform_point  # noqa: E402
+from pole_lraspp_multimodal_fusion.object_targets import (  # noqa: E402
+    REG_BBOX_WH, REG_DIMS, REG_PARKED, REG_RADAR_SUPPORT, REG_YAW,
+    transform_point,
+)
 
 
 def _softplus(value: float) -> float:
@@ -82,19 +85,19 @@ def decode_person_refinement(
         up = -(projected_v - intrinsic_model[1, 2]) * depth / intrinsic_model[1, 1]
         local = np.asarray([depth, right, up], dtype=np.float64)
         world = transform_point(camera_matrix, local)
-        dims = np.maximum(regs[native.REG_DIMS, cell_y, cell_x], 0.0)
-        yaw_sin, yaw_cos = regs[native.REG_YAW, cell_y, cell_x]
+        dims = np.maximum(regs[REG_DIMS, cell_y, cell_x], 0.0)
+        yaw_sin, yaw_cos = regs[REG_YAW, cell_y, cell_x]
         yaw_norm = max(1e-6, float(np.hypot(yaw_sin, yaw_cos)))
-        box_w = _softplus(float(regs[native.REG_BBOX_WH.start, cell_y, cell_x])) * model_width
-        box_h = _softplus(float(regs[native.REG_BBOX_WH.start + 1, cell_y, cell_x])) * model_height
+        box_w = _softplus(float(regs[REG_BBOX_WH.start, cell_y, cell_x])) * model_width
+        box_h = _softplus(float(regs[REG_BBOX_WH.start + 1, cell_y, cell_x])) * model_height
         predictions.append({
             "class_index": 1.0, "class_name": "person", "score": score,
             "world_x": float(world[0]), "world_y": float(world[1]), "world_z": float(world[2]),
             "local_x": depth, "local_y": float(right), "local_z": float(up),
             "size_x": float(dims[0]), "size_y": float(dims[1]), "size_z": float(dims[2]),
             "yaw_sin": float(yaw_sin / yaw_norm), "yaw_cos": float(yaw_cos / yaw_norm),
-            "parked_score": float(torch.sigmoid(raw[native.HEATMAP_CHANNELS + native.REG_PARKED, cell_y, cell_x]).item()),
-            "radar_support_score": float(torch.sigmoid(raw[native.HEATMAP_CHANNELS + native.REG_RADAR_SUPPORT, cell_y, cell_x]).item()),
+            "parked_score": float(torch.sigmoid(raw[native.HEATMAP_CHANNELS + REG_PARKED, cell_y, cell_x]).item()),
+            "radar_support_score": float(torch.sigmoid(raw[native.HEATMAP_CHANNELS + REG_RADAR_SUPPORT, cell_y, cell_x]).item()),
             "center_x_px": center_x_px, "center_y_px": center_y_px,
             "bbox_w_px": box_w, "bbox_h_px": box_h,
             "bbox_x0": center_x_px - box_w / 2.0, "bbox_y0": center_y_px - box_h / 2.0,
