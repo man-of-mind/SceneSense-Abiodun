@@ -632,7 +632,9 @@ def materialize_training_view(output_root: Path, manifests: Mapping[str, Sequenc
     write_csv_x(dataset / "object_boxes.csv", OBJECT_FIELDS, positives)
     return {
         "frames": len(combined), "train_frames": len(manifests["train"]), "val_frames": len(manifests["val"]),
-        "episode_symlinks": 6, "regular_corpus_payload_copies": 0,
+        # Counted, not asserted: 6 for the canonical four-train/two-validation view.
+        "episode_symlinks": sum(len(EXPECTED_EPISODES[split]) for split in ("train", "val")),
+        "regular_corpus_payload_copies": 0,
         "manifest_sha256": sha256(dataset / "manifest.csv"),
         "object_boxes_sha256": sha256(dataset / "object_boxes.csv"),
     }

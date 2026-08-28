@@ -1,0 +1,31 @@
+{
+  "schema": "route_b_perception_v3.additional_train_campaign_config.v1",
+  "name": "route_b_v3_additional_train_v1",
+  "purpose": "Six additional independent train-only Route B v3 episodes for the v3.1 expanded training view.",
+  "frozen_contract": {
+    "differs_from_canonical_only_in": ["split", "episode identity", "scenario seed", "traffic manager seed", "density"],
+    "launch_command_source": "data_collection/route_b_perception_v3/run_canonical_campaign_v1.py::_run_episode",
+    "retry_permitted": false,
+    "fresh_epic_carla_per_episode": true,
+    "create_only_outputs": true
+  },
+  "episodes": [
+    {"episode": 9,  "label": "extra_09", "split": "train", "density": "traffic_30_30", "scenario_seed": 801, "tm_seed": 1801, "name": "extra_v3_09_train_30_30_s801_tm1801"},
+    {"episode": 10, "label": "extra_10", "split": "train", "density": "traffic_50_50", "scenario_seed": 802, "tm_seed": 1802, "name": "extra_v3_10_train_50_50_s802_tm1802"},
+    {"episode": 11, "label": "extra_11", "split": "train", "density": "traffic_30_30", "scenario_seed": 803, "tm_seed": 1803, "name": "extra_v3_11_train_30_30_s803_tm1803"},
+    {"episode": 12, "label": "extra_12", "split": "train", "density": "traffic_50_50", "scenario_seed": 804, "tm_seed": 1804, "name": "extra_v3_12_train_50_50_s804_tm1804"},
+    {"episode": 13, "label": "extra_13", "split": "train", "density": "traffic_30_30", "scenario_seed": 805, "tm_seed": 1805, "name": "extra_v3_13_train_30_30_s805_tm1805"},
+    {"episode": 14, "label": "extra_14", "split": "train", "density": "traffic_50_50", "scenario_seed": 806, "tm_seed": 1806, "name": "extra_v3_14_train_50_50_s806_tm1806"}
+  ],
+  "preflight": {
+    "safety_margin_gib": 30.0,
+    "expected_map_name": "Carla/Maps/Town10HD_Opt",
+    "expected_map_sha256": "5d883b799f634030af92be1e9d79d107845540ba04338e8c60e095be1aef7be7",
+    "static_catalog": "experiments/route_b_v3_static_vehicle_gt_audit_v1/20260827_225706/static_environment_truth/catalog/static_environment_objects.csv",
+    "canonical_report": "data_collection/experiments/route_b_perception_v3/ROUTE_B_V3_CANONICAL_COLLECTION_REPORT.json",
+    "route_file_sha256": "fc4518a8746b9417a64616b8e544f59b16b5a31b7585298a316a59662ecfd6e5",
+    "system_python": "/usr/bin/python3",
+    "carla_venv_python": "/home/shr_aisvcs/workarea/carla_0_10_env/carla_0_10_venv/bin/python3",
+    "gpu_allowed_process_names": ["gnome-remote-desktop-daemon", "nvidia-cuda-mps-server", "Xorg", "gnome-shell"]
+  }
+}

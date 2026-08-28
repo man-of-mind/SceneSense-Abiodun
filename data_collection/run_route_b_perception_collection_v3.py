@@ -64,6 +64,20 @@ CANONICAL_EPISODE_KEYS = {
     ("test", "traffic_50_50", 702, 1702),
 }
 
+# Six additional independent train-only episodes, registered for the Route B v3.1
+# expanded training view.  Purely additive: the canonical eight above are untouched and
+# every other bound - 25 km/h, fast rasterizer, 2.0 s replenish, 600 s budget, roadblock
+# clearing, no hybrid physics - still applies unchanged to these tuples.
+ADDITIONAL_TRAIN_EPISODE_KEYS = {
+    ("train", "traffic_30_30", 801, 1801),
+    ("train", "traffic_50_50", 802, 1802),
+    ("train", "traffic_30_30", 803, 1803),
+    ("train", "traffic_50_50", 804, 1804),
+    ("train", "traffic_30_30", 805, 1805),
+    ("train", "traffic_50_50", 806, 1806),
+}
+REGISTERED_EPISODE_KEYS = CANONICAL_EPISODE_KEYS | ADDITIONAL_TRAIN_EPISODE_KEYS
+
 VISIBILITY_FIELDS = (
     "experiment_id", "sample_id", "frame_id", "timestamp", "gt_actor_id", "label",
     "gt_actor_type_id", "depth_path", "depth_frame_id", "depth_timestamp_s",
@@ -879,7 +893,7 @@ def main(argv: list[str] | None = None) -> int:
         int(preview.scenario_seed), int(preview.tm_seed),
     )
     smoke_request = requested == ("smoke", "traffic_30_30", 101, 1101)
-    canonical_request = requested in CANONICAL_EPISODE_KEYS
+    canonical_request = requested in REGISTERED_EPISODE_KEYS
     if not smoke_request and not canonical_request:
         print("v3 collector request is not the reviewed smoke or a registered canonical tuple",
               file=sys.stderr)
@@ -899,7 +913,7 @@ def main(argv: list[str] | None = None) -> int:
 
     original = v2.PerceptionCollectorV2
     original_allowed_seeds = set(v2.ALLOWED_SEED_BUNDLES)
-    v2.ALLOWED_SEED_BUNDLES.update((key[2], key[3]) for key in CANONICAL_EPISODE_KEYS)
+    v2.ALLOWED_SEED_BUNDLES.update((key[2], key[3]) for key in REGISTERED_EPISODE_KEYS)
     v2.PerceptionCollectorV2 = PerceptionCollectorV3
     try:
         code = v2.main(argv)
