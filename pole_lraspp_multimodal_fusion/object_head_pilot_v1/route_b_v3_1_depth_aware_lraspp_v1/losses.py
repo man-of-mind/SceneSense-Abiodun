@@ -76,6 +76,15 @@ def _mean_available(values: list[torch.Tensor], reference: torch.Tensor) -> torc
     return torch.stack(values).mean() if values else reference.sum() * 0.0
 
 
+def log_dimension_loss(predicted_log_dimensions: torch.Tensor,
+                       target_dimensions: torch.Tensor) -> torch.Tensor:
+    if not torch.all(target_dimensions > 0):
+        raise RuntimeError("dimension targets must be strictly positive")
+    return F.smooth_l1_loss(
+        predicted_log_dimensions, torch.log(target_dimensions), reduction="mean",
+    )
+
+
 def actor_object_losses(outputs: Mapping[str, Mapping[str, torch.Tensor]],
                         heatmap_target: torch.Tensor,
                         owners: Mapping[str, Mapping[str, torch.Tensor]],
@@ -150,9 +159,11 @@ def actor_object_losses(outputs: Mapping[str, Mapping[str, torch.Tensor]],
         ], dim=1)
         class_terms["endpoint"].append(F.smooth_l1_loss(
             local_prediction / 3.0, target_on_device["local_xyz"] / 3.0, reduction="mean"))
-        dimensions = torch.exp(_gather(branch["log_dimensions"], cells))
-        class_terms["dimensions"].append(F.smooth_l1_loss(
-            torch.log(dimensions.clamp_min(1e-6)), torch.log(target_on_device["dimensions"]), reduction="mean"))
+        predicted_log_dimensions = _gather(branch["log_dimensions"], cells)
+        target_dimensions = target_on_device["dimensions"]
+        class_terms["dimensions"].append(log_dimension_loss(
+            predicted_log_dimensions, target_dimensions,
+        ))
         yaw = F.normalize(_gather(branch["yaw_sincos"], cells), dim=1, eps=1e-6)
         class_terms["yaw"].append(F.smooth_l1_loss(yaw, target_on_device["yaw"], reduction="mean"))
         radar = _gather(branch["radar_support"], cells)

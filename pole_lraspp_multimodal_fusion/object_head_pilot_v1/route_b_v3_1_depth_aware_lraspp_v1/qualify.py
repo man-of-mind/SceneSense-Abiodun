@@ -319,12 +319,20 @@ def main() -> int:
     split_records = decode_geometry(split, model.depth_anchors, model.depth_delta, camera, intrinsic, 0.02)
     mono_bytes = json.dumps(mono_records, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
     split_bytes = json.dumps(split_records, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
+    # The corrected registered heatmap prior is sigmoid(-4.6) ~= 0.00995,
+    # intentionally below the unchanged 0.02 scoring threshold.  Preserve the
+    # scored split-parity check above and use a separate threshold-zero decode
+    # solely to assert the external record schema at pristine initialization.
+    schema_records = decode_geometry(mono, model.depth_anchors, model.depth_delta, camera, intrinsic, 0.0)
     checks["decoded_parity"] = {"records": len(mono_records), "byte_identical": mono_bytes == split_bytes,
-                                 "external_fields_compatible": all(name in mono_records[0] for name in (
+                                 "registered_prior_below_scoring_threshold": len(mono_records) == 0,
+                                 "schema_probe_threshold": 0.0,
+                                 "schema_probe_records": len(schema_records),
+                                 "external_fields_compatible": all(name in schema_records[0] for name in (
                                      "class_name", "score", "world_x", "world_y", "world_z", "local_x", "local_y",
                                      "local_z", "size_x", "size_y", "size_z", "yaw_sin", "yaw_cos", "parked_score",
                                      "radar_support_score", "center_x_px", "center_y_px", "bbox_x0", "bbox_y0", "bbox_x1", "bbox_y1"))
-                                     if mono_records else False}
+                                     if schema_records else False}
 
     hard_passes = [
         checks["data"]["pass"], load_report["official_feature_tensors"] == load_report["compatible_feature_tensors_loaded"],

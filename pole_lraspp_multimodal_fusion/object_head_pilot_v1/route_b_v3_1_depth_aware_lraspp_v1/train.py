@@ -120,8 +120,21 @@ def telemetry(model: torch.nn.Module, batch: Mapping[str, Any], weights: Mapping
 
 
 def latest_checkpoint(directory: Path) -> Path | None:
-    candidates = sorted(directory.glob("epoch_*.pt")) if directory.exists() else []
-    return candidates[-1] if candidates else None
+    candidates = sorted(directory.glob("epoch_*.pt"), reverse=True) if directory.exists() else []
+    for candidate in candidates:
+        sidecar = candidate.with_suffix(".json")
+        if not sidecar.is_file():
+            continue
+        try:
+            record = load_json(sidecar)
+            if (bool(record["complete"])
+                    and int(record["epoch"]) == int(candidate.stem.split("_")[1])
+                    and int(record["bytes"]) == candidate.stat().st_size
+                    and record["sha256"] == sha256(candidate)):
+                return candidate
+        except (KeyError, ValueError, OSError, json.JSONDecodeError):
+            continue
+    return None
 
 
 def main() -> int:
@@ -165,6 +178,10 @@ def main() -> int:
     telemetry_dir = experiment / "gradient_telemetry"; telemetry_dir.mkdir(exist_ok=True)
     checkpoint = latest_checkpoint(checkpoint_dir)
     start_epoch = 1; global_step = 0; training_started = time.time(); cumulative_wall = 0.0
+    source_provenance = (load_json(experiment / "SOURCE_PROVENANCE.json")
+                         if (experiment / "SOURCE_PROVENANCE.json").is_file()
+                         else {"repair_code_commit": config["source_commit"],
+                               "scientific_launch_commit": None})
     if checkpoint is None:
         write_json_x(experiment / "TRAINING_STARTED.json", {
             "schema": "route_b_v3_1_depth_aware_lraspp_training_started_v1", "created_utc": utc_now(),
@@ -175,6 +192,30 @@ def main() -> int:
             "official_loading": loading, "initial_pretrained_state_hash": initial_pretrained_hash,
             "resolved_config_sha256": config_sha,
         })
+        initial_payload = {
+            "schema": "route_b_v3_1_depth_aware_lraspp_recovery_checkpoint_v2",
+            "model": {name: value.detach().cpu() for name, value in model.state_dict().items()},
+            "optimizer": optimizer.state_dict(), "epoch": 0, "global_step": 0,
+            "gradient_accumulation_phase": 0, "rng_state": rng_state(),
+            "sampler_state": {"epoch": 1, "seed": seed + 1, "visited": 0,
+                              "unique": 0, "complete": False},
+            "scheduler_state": {"next_epoch": 1, "global_update": 0,
+                                "schedule": "registered_stage_a_stage_b_stateless_v1"},
+            "resolved_config_sha256": config_sha, "source_commit": config["source_commit"],
+            "code_provenance": source_provenance,
+            "physical_batch": physical, "gradient_accumulation": accumulation,
+            "initial_pretrained_state_hash": initial_pretrained_hash,
+            "cumulative_wall_seconds": 0.0, "precision": "full_fp32",
+            "bn_running_state": "frozen", "compression": "identity_disabled",
+        }
+        initial_path = checkpoint_dir / "epoch_000.pt"
+        write_torch_atomic_create(initial_path, initial_payload)
+        write_json_x(checkpoint_dir / "epoch_000.json", {
+            "epoch": 0, "path": str(initial_path), "bytes": initial_path.stat().st_size,
+            "sha256": sha256(initial_path), "complete": True,
+        })
+        if latest_checkpoint(checkpoint_dir) != initial_path:
+            raise RuntimeError("atomic epoch_000 checkpoint verification failed")
     else:
         payload = torch.load(checkpoint, map_location="cpu", weights_only=False)
         if payload["resolved_config_sha256"] != config_sha or payload["source_commit"] != config["source_commit"]:
@@ -189,9 +230,12 @@ def main() -> int:
     weights = config["loss_weights"]
     batches_per_epoch = math.ceil(len(rows) / physical)
     updates_per_epoch = math.ceil(batches_per_epoch / accumulation)
+    operational_ceiling = float(config.get("operational", {}).get(
+        "scientific_wall_clock_ceiling_seconds", 16 * 3600,
+    ))
     for epoch in range(start_epoch, 41):
-        if cumulative_wall + (time.monotonic() - started_monotonic) >= 8 * 3600:
-            raise TimeoutError("eight-hour scientific wall-clock budget exhausted")
+        if cumulative_wall + (time.monotonic() - started_monotonic) >= operational_ceiling:
+            raise TimeoutError("sixteen-hour scientific wall-clock ceiling exhausted")
         stage = "A" if epoch <= 5 else "B"
         configure_stage(model, stage); stage_train_mode(model, stage)
         dataset.set_epoch(epoch)
@@ -261,7 +305,10 @@ def main() -> int:
             "gradient_accumulation_phase": 0, "rng_state": rng_state(),
             "sampler_state": {"epoch": epoch, "seed": seed + epoch, "visited": len(visited),
                               "unique": len(set(visited)), "complete": True},
+            "scheduler_state": {"next_epoch": epoch + 1, "global_update": global_step,
+                                "schedule": "registered_stage_a_stage_b_stateless_v1"},
             "resolved_config_sha256": config_sha, "source_commit": config["source_commit"],
+            "code_provenance": source_provenance,
             "physical_batch": physical, "gradient_accumulation": accumulation,
             "initial_pretrained_state_hash": initial_pretrained_hash,
             "cumulative_wall_seconds": current_wall, "precision": "full_fp32",
@@ -271,7 +318,8 @@ def main() -> int:
         write_torch_atomic_create(path, checkpoint_payload)
         checkpoint_hash = sha256(path)
         write_json_x(checkpoint_dir / f"epoch_{epoch:03d}.json", {
-            "epoch": epoch, "path": str(path), "bytes": path.stat().st_size, "sha256": checkpoint_hash,
+            "epoch": epoch, "path": str(path), "bytes": path.stat().st_size,
+            "sha256": checkpoint_hash, "complete": True,
         })
         print(json.dumps({"epoch": epoch, "stage": stage, "loss": metric["mean_losses"]["total"],
                           "seconds": metric["epoch_seconds"], "global_step": global_step,

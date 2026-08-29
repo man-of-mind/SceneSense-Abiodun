@@ -134,7 +134,8 @@ def dense_depth_diagnostics(config: Mapping[str, Any], experiment: Path, dataset
             value, row = dataset[index]; depth, valid, radar = cache.get(row["sample_id"])
             prediction = model(value.unsqueeze(0).to(device), dense=True)["dense_depth_log1p"][0, 0]
             target = depth.to(device); valid_gpu = valid.to(device)
-            decoded = torch.expm1(prediction).clamp_min(0.0)
+            decoded = torch.expm1(prediction.double()).clamp_min(0.0)
+            target = target.double()
             error = (decoded - target).abs()
             for name, mask in [("overall", valid_gpu)] + [
                     (f"[{left},{right})m", valid_gpu & target.ge(left) & target.lt(right)) for left, right in edges]:

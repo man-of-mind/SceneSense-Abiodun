@@ -13,6 +13,16 @@ TOPK_PER_CLASS = 120
 LOCAL_MAX_KERNEL = 3
 
 
+def inference_expm1_float64(value: torch.Tensor) -> torch.Tensor:
+    """Unbounded inference-only metric decode in float64."""
+    return torch.expm1(value.to(torch.float64))
+
+
+def inference_exp_float64(value: torch.Tensor) -> torch.Tensor:
+    """Unbounded inference-only dimension decode in float64."""
+    return torch.exp(value.to(torch.float64))
+
+
 def local_maxima(scores: torch.Tensor) -> torch.Tensor:
     pooled = F.max_pool2d(scores, LOCAL_MAX_KERNEL, stride=1, padding=LOCAL_MAX_KERNEL // 2)
     return scores * pooled.eq(scores).to(scores.dtype)
@@ -52,14 +62,14 @@ def decode_branch(branch: Mapping[str, torch.Tensor], class_name: str,
         logits = raw["depth_bin_logits"][:, cell_y, cell_x]
         residuals = raw["depth_bin_residuals"][:, cell_y, cell_x]
         z = (torch.softmax(logits, dim=0) * (anchors + delta * residuals)).sum()
-        depth = max(0.0, float(torch.expm1(z).item()))
+        depth = max(0.0, float(inference_expm1_float64(z).item()))
         local = np.asarray([
             depth,
             depth * (u_physical - intrinsic[0, 2]) / intrinsic[0, 0],
             depth * (intrinsic[1, 2] - v_physical) / intrinsic[1, 1],
         ], dtype=np.float64)
         world = (matrix @ np.asarray([local[0], local[1], local[2], 1.0]))[:3]
-        dimensions = torch.exp(raw["log_dimensions"][:, cell_y, cell_x])
+        dimensions = inference_exp_float64(raw["log_dimensions"][:, cell_y, cell_x])
         yaw = F.normalize(raw["yaw_sincos"][:, cell_y, cell_x], dim=0, eps=1e-6)
         width, height = float(box_wh[0].item()), float(box_wh[1].item())
         record: dict[str, Any] = {
@@ -81,6 +91,14 @@ def decode_branch(branch: Mapping[str, torch.Tensor], class_name: str,
             "actor_forward_depth_m": depth,
             "native_cell_x": cell_x, "native_cell_y": cell_y,
         }
+        nonfinite = [
+            name for name, value in record.items()
+            if isinstance(value, (int, float)) and not math.isfinite(float(value))
+        ]
+        if nonfinite:
+            raise FloatingPointError(
+                f"non-finite scored detection class={class_name} cell=({cell_y},{cell_x}) fields={nonfinite}"
+            )
         records.append(record)
     return records
 

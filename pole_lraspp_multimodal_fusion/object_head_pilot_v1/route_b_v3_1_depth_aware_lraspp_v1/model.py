@@ -113,6 +113,11 @@ class ObjectBranch(torch.nn.Module):
                 if module.bias is not None:
                     torch.nn.init.zeros_(module.bias)
         with torch.no_grad():
+            # Field heads represent registered output priors. Exact-zero final
+            # weights make those priors effective without changing capacity;
+            # the object trunk retains its Kaiming initialization.
+            for head in self.heads.values():
+                head.weight.zero_()
             self.heads["heatmap"].bias.fill_(-4.6)
             self.heads["subcell"].weight.zero_()
             self.heads["subcell"].bias.zero_()
