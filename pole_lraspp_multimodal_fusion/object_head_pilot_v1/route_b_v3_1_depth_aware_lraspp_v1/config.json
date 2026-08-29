@@ -2,7 +2,7 @@
   "schema": "route_b_v3_1_depth_aware_lraspp_config_v1",
   "model_name": "route_b_v3_1_depth_aware_lraspp_v1",
   "scientific_seed": 20260829,
-  "source_commit": "fa9b1e1b4f3af8f64de458a29df09ae1d7093b39",
+  "source_commit": "3829518fbbdc34ca770159ce1e587c72aeefdf67",
   "dataset_root": "experiments/route_b_v3_1_expanded_train_camera_plane_v1/20260828_094151",
   "visible_anchor_cache": "experiments/route_b_v3_1_person_visible_anchor_v1/20260829_021120/derived_targets/visible_anchor_targets_v010.csv",
   "pretrained": {
@@ -55,6 +55,7 @@
     "dense_depth": "Conv3x3(128,64)+ReLU+Conv1x1(64,1), log1p camera-forward surface depth at stride 4",
     "object_classes": ["vehicle", "person"],
     "class_private_branch": "Conv3x3(128,128,bias=False)+BN+ReLU followed by field-private Conv1x1 heads",
+    "object_final_field_weight_initialization": "exact_zero_with_registered_field_biases",
     "object_fields": {
       "common": {"heatmap": 1, "subcell": 2, "box_center_delta": 2, "box_wh": 2, "physical_ray_delta": 2, "depth_bin_logits": 32, "depth_bin_residuals": 32, "log_dimensions": 3, "yaw_sincos": 2, "radar_support": 1},
       "vehicle_only": {"parked": 1}
@@ -131,8 +132,9 @@
     "checkpoint_epochs": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40],
     "evaluation_epochs": [10, 20, 30, 40]
   },
-  "inference": {"score_floor": 0.02, "derived_score": 0.20, "topk_per_class": 120, "local_max_kernel": 3, "world_nms": "none", "dense_readout": "disabled", "depth_input": false},
+  "inference": {"score_floor": 0.02, "derived_score": 0.20, "topk_per_class": 120, "local_max_kernel": 3, "world_nms": "none", "dense_readout": "disabled", "depth_input": false, "metric_exponentiation": "unbounded_float64_exp_and_expm1", "nonfinite_scored_prediction": "explicit_runtime_failure"},
   "baseline": {"vehicle_precision": 0.794434, "vehicle_recall": 0.839439, "vehicle_f1": 0.816316, "vehicle_xy_mae_m": 0.830483, "vehicle_iou": 0.870544, "person_precision": 0.537513, "person_recall": 0.518079, "person_f1": 0.527617, "person_recall_002": 0.615186, "person_xy_mae_m": 1.341153, "person_iou50_f1_020": 0.529474, "person_iou50_recall_002": 0.566374, "person_iou50_conditional_3m_002": 0.814865, "person_centre_present_world_wrong_002": 766, "person_box_mask_iou": 0.453867, "foreground_miou": 0.662206},
   "visible_anchor_reference": {"person_iou50_f1_020": 0.553834, "person_iou50_recall_002": 0.596333, "person_xy_mae_m": 1.286255},
+  "operational": {"scientific_wall_clock_ceiling_seconds": 57600, "required_prelaunch_margin_fraction": 0.15},
   "terminals": ["DEPTH_AWARE_LRASPP_SERVICE_READY", "DEPTH_AWARE_LRASPP_IMPROVED_NOT_SERVICE_READY", "VALID_DEPTH_AWARE_LRASPP_DOES_NOT_IMPROVE", "DEPTH_AWARE_CONTRACT_INVALID", "DEPTH_AWARE_RUNTIME_FAILURE"]
 }

@@ -1,0 +1,36 @@
+{
+  "schema": "route_b_v3_1_depth_aware_lraspp_resolved_config_v2",
+  "created_utc": "2026-08-29T06:07:29Z",
+  "config_path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/route_b_v3_1_depth_aware_lraspp_v1/config.json",
+  "config_sha256": "ea604c99b68bb58352c303808dc2d720c86288f177e35d513b810d3fda831e09",
+  "experiment": "experiments/route_b_v3_1_depth_aware_lraspp_v1/20260829_060656",
+  "repair_code_commit": "3829518fbbdc34ca770159ce1e587c72aeefdf67",
+  "branch": "master",
+  "seed": 20260829,
+  "dataset_root": "experiments/route_b_v3_1_expanded_train_camera_plane_v1/20260828_094151",
+  "registered_design_authority": {
+    "source_experiment": "experiments/route_b_v3_1_depth_aware_lraspp_v1/20260829_042423",
+    "REGISTERED_DESIGN.md_sha256": "fa3a7e8a78daff9c092f21c6df6d6b3cb40c5b22af4548054a359475bc62b15a",
+    "REGISTERED_DESIGN.json_sha256": "7d0a9aa9127b1aa3467296df809ec91a9d16f392469b83b100fbfda40e38fb2c",
+    "original_RESOLVED_CONFIG.json_sha256": "fc5d38480e3dd9dfd79c19be889229155835a0b8dd9e937e1c610bbe587f62e6"
+  },
+  "implementation_recovery": {
+    "dimension_loss": "direct Smooth-L1 of predicted log dimensions and log positive targets",
+    "dimension_loss_class": "contract-restoring Class A; safe-domain equivalent only",
+    "object_final_field_weights": "exact zero with all registered biases preserved",
+    "inference_exponentiation": "unbounded float64 exp and expm1 with explicit scored-nonfinite failure",
+    "operational_ceiling_seconds": 57600
+  },
+  "scientific_contract_unchanged": [
+    "architecture and capacity",
+    "targets",
+    "loss weights",
+    "optimizer",
+    "schedule",
+    "sampler",
+    "augmentation",
+    "batch size",
+    "evaluation and selection gates"
+  ],
+  "frozen_contract": "the ratified registered design plus only the four predeclared implementation corrections is authoritative"
+}

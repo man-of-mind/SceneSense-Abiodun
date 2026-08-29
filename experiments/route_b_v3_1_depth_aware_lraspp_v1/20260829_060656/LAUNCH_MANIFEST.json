@@ -1,0 +1,36 @@
+{
+  "schema": "route_b_v3_1_depth_aware_lraspp_scientific_launch_manifest_v1",
+  "created_utc": "2026-08-29T06:07:29Z",
+  "experiment": "experiments/route_b_v3_1_depth_aware_lraspp_v1/20260829_060656",
+  "scientific_attempt": 2,
+  "first_valid_evaluation": true,
+  "repair_code_commit": "3829518fbbdc34ca770159ce1e587c72aeefdf67",
+  "scientific_launch_commit_recorded_after_this_commit_in": "SOURCE_PROVENANCE.json",
+  "self_referential_commit_field_omitted": true,
+  "resolved_config_sha256": "ea604c99b68bb58352c303808dc2d720c86288f177e35d513b810d3fda831e09",
+  "pre_scientific_gates": {
+    "unit_equivalence": {"pass": true, "sha256": "ca6adffdf7b3f57819c3554cf22c9be0350fba6ab221c9fb450ab238f7d1e902"},
+    "loss_pressure": {"pass": true, "sha256": "2f24c09144a37dda6d49ddd5f244fd943cd89392de97db1a20e93ff3d1872ae2"},
+    "repaired_short_replay_comparison": {"pass": true, "sha256": "2900b0bb850e8048f072c65a9741abc47e761cf8f6a6cd4127bc8066d2a7a56c"},
+    "unchanged_qualification": {"pass": true, "sha256": "db3940111152bb4a4196156f8e46735b9569c27fe6ce7b0cc7c5c88c6268e225"},
+    "full_disposable_epoch": {"pass": true, "sha256": "3a088cdc4e06950b9f6d833474bb0fc9f2c0bb4211239a6af47273c8137f7555"},
+    "throughput_projection": {"pass": true, "sha256": "f0c099407091e5140e10933f176255b331b6fcaf78df882e6eef328ad61483db"}
+  },
+  "runtime": {
+    "device": "CUDA",
+    "precision": "full_fp32",
+    "physical_batch": 16,
+    "gradient_accumulation": 1,
+    "epochs": 40,
+    "evaluation_epochs": [10, 20, 30, 40],
+    "validation_during_training": false,
+    "projected_total_hours": 3.6136562582651255,
+    "projected_margin_fraction_within_16_hours": 0.7741464838584297
+  },
+  "train_cache": {
+    "mode": "verified_read_only_symlink",
+    "source": "experiments/route_b_v3_1_depth_aware_lraspp_v1/20260829_042423/depth_cache/train",
+    "CACHE_REPORT.json_sha256": "6413abfce4f9600b579e9f30c621db16da63c6b8f24dd0196eab6d4ad9d5ddbb"
+  },
+  "expected_launch_worktree": "master at scientific launch commit with only OAI/openairinterface5g dirty"
+}
