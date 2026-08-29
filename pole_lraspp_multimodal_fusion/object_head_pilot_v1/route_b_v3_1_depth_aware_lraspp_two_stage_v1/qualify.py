@@ -24,7 +24,7 @@ from losses import log_dimension_loss, private_object_losses, representation_los
 from model import (build_model, configure_two_stage, freeze_bn_running_state, reset_private_object_branches,
                    split_report, stem_equivalence_report)
 from two_stage import (assert_allowlist, build_optimizer, is_object, is_representation, model_finite,
-                       optimizer_finite, parameter_counts, state_hash)
+                       optimizer_finite, parameter_counts, set_lrs, state_hash)
 
 
 def batch(dataset: TrainingDataset, size: int) -> dict[str, Any]:
@@ -160,6 +160,7 @@ def main() -> int:
     seed_everything(int(config["stage1_seed"])); stage1, _ = build_model(weight, device)
     configure_two_stage(stage1, "stage1"); assert_allowlist(stage1, "stage1", registered["parameter_allowlists"]["stage1"])
     optimizer1 = build_optimizer(stage1, "stage1"); before = clone_state(stage1)
+    set_lrs(optimizer1, "stage1", 3e-4, 3e-5)
     gradient_steps = []
     for _ in range(2):
         optimizer1.zero_grad(set_to_none=True); total, parts, denoms, _ = representation_losses(stage1, proof_batch, weights)
@@ -180,9 +181,10 @@ def main() -> int:
         "denominators": denoms, "pass": stage1_pass}
 
     # Exactly two disposable Stage-2 updates from that disposable Stage-1 state.
+    for parameter in stage1.parameters(): parameter.grad = None
     reset_private_object_branches(stage1, int(config["stage2_initialization_seed"])); configure_two_stage(stage1, "stage2")
     assert_allowlist(stage1, "stage2", registered["parameter_allowlists"]["stage2"])
-    optimizer2 = build_optimizer(stage1, "stage2"); before2 = clone_state(stage1)
+    optimizer2 = build_optimizer(stage1, "stage2"); set_lrs(optimizer2, "stage2", 3e-4, 3e-5); before2 = clone_state(stage1)
     frozen_names = [name for name in before2 if not is_object(name) or name not in dict(stage1.named_parameters())]
     stage1.eval(); freeze_bn_running_state(stage1)
     with torch.inference_mode(): predictions_before = stage1.representation_outputs(proof_batch["input"].to(device))
@@ -219,6 +221,7 @@ def main() -> int:
         seed_everything(int(config[f"{stage}_seed"])); candidate, _ = build_model(weight, device)
         if stage == "stage2": reset_private_object_branches(candidate, int(config["stage2_initialization_seed"]))
         configure_two_stage(candidate, stage); opt = build_optimizer(candidate, stage)
+        set_lrs(opt, stage, 3e-4, 3e-5)
         torch.cuda.empty_cache(); torch.cuda.reset_peak_memory_stats(device); opt.zero_grad(set_to_none=True)
         value, _, _, _ = loss_function(candidate, memory_batch, weights); value.backward(); opt.step(); torch.cuda.synchronize()
         reserved = torch.cuda.max_memory_reserved(device) / 2**20
