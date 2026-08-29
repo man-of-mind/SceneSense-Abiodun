@@ -4,7 +4,6 @@ import argparse
 import csv
 import hashlib
 import json
-import math
 import time
 from pathlib import Path
 
@@ -98,9 +97,6 @@ def main() -> int:
                                           "width": labels.shape[1], "height": labels.shape[0], "sha256": sha256(path)})
                 records = decode_geometry(outputs, model.depth_anchors, model.depth_delta,
                                           camera_matrix_from_row(row), intrinsic_from_row(row), 0.02, 120)
-                matrix = camera_matrix_from_row(row); camera_xy = matrix[:2, 3]
-                records = [record for record in records if math.hypot(
-                    float(record["world_x"]) - camera_xy[0], float(record["world_y"]) - camera_xy[1]) <= 40.0]
                 for prediction_index, record in enumerate(records):
                     writer.writerow(external_record(record, row["sample_id"], row["frame_id"], prediction_index))
                 detection_count += len(records)
