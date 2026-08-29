@@ -36,7 +36,9 @@ from torchvision.models.detection import (
     FasterRCNN_ResNet50_FPN_V2_Weights,
     fasterrcnn_resnet50_fpn_v2,
 )
-from torchvision.ops import box_iou, roi_align
+from torchvision.ops import box_iou
+
+from roi_v1 import roi_align_model_frame
 
 TEACHER_CACHE = Path.home() / ".cache/torch/hub/checkpoints/fasterrcnn_resnet50_fpn_v2_coco-dd69338a.pth"
 TEACHER_SHA256 = "dd69338a24b8d7381807e247652bdc356325bcbaf1cd3e092e00e0a1a58706bf"
@@ -246,8 +248,12 @@ def teacher_roi_embedding(
     common embedding space is pinned to the teacher's own ROI feature space and only
     the student side is learned.
     """
-    pooled_p2 = roi_align(p2.float(), boxes, output_size=ROI_OUTPUT, spatial_scale=P2_SCALE,
-                          sampling_ratio=ROI_SAMPLING_RATIO, aligned=True)
-    pooled_p3 = roi_align(p3.float(), boxes, output_size=ROI_OUTPUT, spatial_scale=P3_SCALE,
-                          sampling_ratio=ROI_SAMPLING_RATIO, aligned=True)
+    pooled_p2 = roi_align_model_frame(
+        p2.float(), boxes, output_size=ROI_OUTPUT, spatial_scale=P2_SCALE,
+        sampling_ratio=ROI_SAMPLING_RATIO,
+    )
+    pooled_p3 = roi_align_model_frame(
+        p3.float(), boxes, output_size=ROI_OUTPUT, spatial_scale=P3_SCALE,
+        sampling_ratio=ROI_SAMPLING_RATIO,
+    )
     return torch.cat([pooled_p2, pooled_p3], dim=1)

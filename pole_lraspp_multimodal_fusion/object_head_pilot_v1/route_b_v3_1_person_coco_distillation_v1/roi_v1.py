@@ -6,7 +6,11 @@ in ONE frame: model-input pixels on the 768x432 canvas. The teacher's transform 
 pinned so that its own pixel frame is that same canvas (see ``teacher_v1``), and each
 feature level declares the spatial scale implied by its own shape.
 
-The round trip is proved, not assumed. For a feature map whose channel 0 holds the
+The round trip is proved, not assumed. Each feature map receives a one-cell border
+and each ROI is shifted by that level's stride before pooling. This makes every
+valid canvas box an interior ROI even when it touches a canvas edge; without this
+border, torchvision clamps aligned samples near an edge by a level-dependent number
+of pixels, invalidating the cross-level proof. For a coordinate probe whose channel 0 holds the
 pixel x-coordinate of each cell centre and channel 1 the pixel y-coordinate,
 ``roi_align`` with ``aligned=True`` and sampling_ratio ``r`` returns, in output bin
 (ph, pw), exactly
@@ -31,15 +35,36 @@ from torchvision.ops import roi_align
 ROUND_TRIP_TOLERANCE_PX = 1e-3
 
 
+def shifted_boxes(boxes: Sequence[torch.Tensor], spatial_scale: float) -> List[torch.Tensor]:
+    """Shift model-frame ROIs to account for a one-feature-cell border."""
+    stride = 1.0 / float(spatial_scale)
+    delta = boxes[0].new_tensor([stride, stride, stride, stride]) if boxes else None
+    return [value + delta for value in boxes] if delta is not None else []
+
+
+def roi_align_model_frame(
+    feature: torch.Tensor, boxes: List[torch.Tensor], *, output_size: int,
+    spatial_scale: float, sampling_ratio: int,
+) -> torch.Tensor:
+    """ROIAlign in model pixels with a level-aware border that prevents edge clamping."""
+    padded = torch.nn.functional.pad(feature, (1, 1, 1, 1), mode="constant", value=0.0)
+    return roi_align(
+        padded, shifted_boxes(boxes, spatial_scale), output_size=output_size,
+        spatial_scale=float(spatial_scale), sampling_ratio=int(sampling_ratio), aligned=True,
+    )
+
+
 def coordinate_feature(
     height: int, width: int, spatial_scale: float, device: torch.device
 ) -> torch.Tensor:
     """[1,2,H,W] map whose channels hold the pixel (x, y) of each feature-cell centre."""
     stride = 1.0 / float(spatial_scale)
-    xs = (torch.arange(int(width), dtype=torch.float64, device=device) + 0.5) * stride
-    ys = (torch.arange(int(height), dtype=torch.float64, device=device) + 0.5) * stride
-    grid_x = xs.view(1, 1, 1, int(width)).expand(1, 1, int(height), int(width))
-    grid_y = ys.view(1, 1, int(height), 1).expand(1, 1, int(height), int(width))
+    # Include the same one-cell border used by roi_align_model_frame. Coordinate
+    # values extrapolate linearly into the border so the address proof stays exact.
+    xs = (torch.arange(int(width) + 2, dtype=torch.float64, device=device) - 0.5) * stride
+    ys = (torch.arange(int(height) + 2, dtype=torch.float64, device=device) - 0.5) * stride
+    grid_x = xs.view(1, 1, 1, int(width) + 2).expand(1, 1, int(height) + 2, int(width) + 2)
+    grid_y = ys.view(1, 1, int(height) + 2, 1).expand(1, 1, int(height) + 2, int(width) + 2)
     return torch.cat([grid_x, grid_y], dim=1).to(torch.float32)
 
 
@@ -70,7 +95,10 @@ def verify_level(
     canvas: Sequence[int],
 ) -> Dict[str, Any]:
     feature = coordinate_feature(height, width, spatial_scale, device)
-    pooled = roi_align(feature, [boxes], output_size=output_size, spatial_scale=float(spatial_scale),
+    stride = 1.0 / float(spatial_scale)
+    shifted = boxes + boxes.new_tensor([stride, stride, stride, stride])
+    pooled = roi_align(feature, [shifted], output_size=output_size,
+                       spatial_scale=float(spatial_scale),
                        sampling_ratio=int(sampling_ratio), aligned=True)
     expected = expected_bin_centres(boxes, output_size, device)
     deviation = (pooled - expected).abs()
@@ -160,9 +188,22 @@ def student_roi_embedding(
     else. No teacher tensor, raw RGB, raw radar or metadata is added to that bundle.
     """
     low_scale = float(low.shape[-1]) / 768.0
-    high_scale = float(high.shape[-1]) / 768.0
-    pooled_low = roi_align(low.float(), boxes, output_size=output_size, spatial_scale=low_scale,
-                           sampling_ratio=sampling_ratio, aligned=True)
-    pooled_high = roi_align(high.float(), boxes, output_size=output_size, spatial_scale=high_scale,
-                            sampling_ratio=sampling_ratio, aligned=True)
+    # The transported MobileNet high tensor is stride 16 (27x48), while the frozen
+    # distillation contract registers the high ROI level at stride 32. Derive that
+    # level deterministically from the same transported tensor; this adds no payload
+    # and prevents silently violating the registered 0.03125 spatial scale.
+    high_roi = torch.nn.functional.avg_pool2d(
+        high.float(), kernel_size=2, stride=2, ceil_mode=True, count_include_pad=False,
+    )
+    high_scale = 0.03125
+    if tuple(high_roi.shape[-2:]) != (14, 24):
+        raise RuntimeError(f"registered student-high ROI grid must be 14x24, got {tuple(high_roi.shape[-2:])}")
+    pooled_low = roi_align_model_frame(
+        low.float(), boxes, output_size=output_size, spatial_scale=low_scale,
+        sampling_ratio=sampling_ratio,
+    )
+    pooled_high = roi_align_model_frame(
+        high_roi, boxes, output_size=output_size, spatial_scale=high_scale,
+        sampling_ratio=sampling_ratio,
+    )
     return torch.cat([pooled_low, pooled_high], dim=1)
