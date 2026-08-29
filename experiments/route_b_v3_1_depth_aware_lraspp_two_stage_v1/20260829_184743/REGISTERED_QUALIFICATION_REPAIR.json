@@ -1,0 +1,34 @@
+{
+  "schema": "two_stage_lraspp_registered_qualification_repair_v1",
+  "created_utc": "2026-08-29T18:52:00Z",
+  "scope": "qualification harness only; no scientific model, loss, optimizer, schedule, sampler, gate, seed, evaluation, or terminal changed",
+  "trigger": {
+    "bounded_attempt_completed": false,
+    "scientific_epoch_000_created": false,
+    "scientific_training_started": false,
+    "passing_checks": [
+      "data and official hashes",
+      "seven-channel stem",
+      "split parity",
+      "direct log-dimension and depth numerics",
+      "projection/unprojection",
+      "visible anchors and Gaussian",
+      "no inference depth",
+      "Stage-1 and Stage-2 batch-16 memory"
+    ],
+    "failed_harness_predicates": [
+      "disposable optimizers retained their constructor LR 0.0, so isolation proofs observed no updates",
+      "Stage-1 disposable gradients were not cleared before the Stage-2 proof, so frozen-module gradient inspection saw stale values"
+    ]
+  },
+  "repair": [
+    "set the registered peak LRs only in disposable qualification optimizers",
+    "clear every disposable gradient before the Stage-2 proof"
+  ],
+  "repair_commit": "13c206eb83a0af4aeb4f854fa5c6b5bb498f27ec",
+  "file": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/route_b_v3_1_depth_aware_lraspp_two_stage_v1/qualify.py",
+  "old_sha256": "4aaaa4576a7cd5f778d9e34cf2d873d568ae790fc750742e602163add0151c2c",
+  "new_sha256": "486f1472a83cca2c34cc743fa5d16337872967df426c4370d8cea8c0a17693d9",
+  "scientific_configuration_unchanged": true,
+  "registered_before_requalification_optimizer_execution": true
+}
