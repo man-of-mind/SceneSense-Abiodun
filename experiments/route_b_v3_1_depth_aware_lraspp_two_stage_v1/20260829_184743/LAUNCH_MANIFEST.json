@@ -1,0 +1,29 @@
+{
+  "schema": "two_stage_lraspp_scientific_launch_v1",
+  "created_utc": "2026-08-29T18:55:00Z",
+  "branch": "master",
+  "launch_head": "85228b8698c273e12b5f8ebd39f58b382e8a42d6",
+  "required_ancestor": "8e556a680516638a720d9d37656493721b2bea87",
+  "qualification_pass": true,
+  "qualification_report_sha256": "f8e3066622ffd3df3a4befc37de41c61b6f347dbc47dadd1977e62a8ef8f1574",
+  "stage1_epoch000_sha256": "509de52a0007a4057846fb8a3d890a7ef792cb6bde710929225fd1612a5c0ff0",
+  "scientific_configuration_frozen": true,
+  "validation_opened": false,
+  "test_opened": false,
+  "projected_seconds": {
+    "stage1_training": 3200,
+    "stage1_evaluation": 600,
+    "stage2_training_if_authorized": 3000,
+    "stage2_inference_if_authorized": 720,
+    "stage2_frozen_output_audit_if_authorized": 900,
+    "reporting_and_recovery_margin": 900,
+    "total_worst_path": 9320
+  },
+  "operational_ceiling_seconds": 28800,
+  "required_margin_fraction": 0.15,
+  "projected_with_required_margin_seconds": 10718,
+  "projected_margin_pass": true,
+  "worktree_scope": "only the preserved pre-existing OAI/openairinterface5g gitlink dirtiness; scientific source/config committed",
+  "checkpoint_monitoring": "foreground training emits one notifier record at each complete atomic epoch boundary; no continuous polling",
+  "resume_policy": "complete sidecar, byte size, SHA-256 and resolved-config hash must all verify"
+}

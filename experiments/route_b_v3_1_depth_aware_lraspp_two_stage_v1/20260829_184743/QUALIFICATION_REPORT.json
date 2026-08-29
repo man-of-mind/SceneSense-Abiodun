@@ -1,0 +1,696 @@
+{
+  "atomic_stage1_epoch000": {
+    "bytes": 16939661,
+    "path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/route_b_v3_1_depth_aware_lraspp_two_stage_v1/20260829_184743/stage1/checkpoints/epoch_000.pt",
+    "sha256": "509de52a0007a4057846fb8a3d890a7ef792cb6bde710929225fd1612a5c0ff0",
+    "verified": true
+  },
+  "checks": {
+    "anchors_gaussian": {
+      "invalid_visible_anchors": 0,
+      "pass": true,
+      "radius_mismatches": 0,
+      "rows": 21459
+    },
+    "data": {
+      "disjoint": true,
+      "manifest_sha256": "5d65e6eb14aadea11ca6bab6e82f0c94c31a50746611d167d282d8988a4504c2",
+      "pass": true,
+      "test": 0,
+      "train": 16827,
+      "validation": 3345
+    },
+    "depth_distribution": {
+      "bins": 32,
+      "lower": 0.0,
+      "unbounded_float64_deploy_exponentials": true,
+      "upper": 3.7135720252990723
+    },
+    "memory": {
+      "pass": true,
+      "stages": {
+        "stage1": {
+          "accumulation": 1,
+          "finite": true,
+          "limit_mib": 12288.0,
+          "pass": true,
+          "physical_batch": 16,
+          "reserved_mib": 8040.0
+        },
+        "stage2": {
+          "accumulation": 1,
+          "finite": true,
+          "limit_mib": 12288.0,
+          "pass": true,
+          "physical_batch": 16,
+          "reserved_mib": 2562.0
+        }
+      }
+    },
+    "no_inference_depth": {
+      "depth_argument_absent": true,
+      "depth_open_attempts": 0,
+      "sentinel_input_exact": true,
+      "signature": "(self, dataset_root: 'Path', rows: 'Sequence[dict[str, str]]') -> 'None'"
+    },
+    "numerical": {
+      "dimension_gradients_finite": true,
+      "dimension_loss_finite": true,
+      "float64_exp_95_5_finite": true,
+      "float64_expm1_95_5_finite": true,
+      "no_bound_or_clamp_added": true,
+      "pass": true,
+      "safe_domain_equivalent": true
+    },
+    "official_weight": {
+      "expected": "5c1a416349c4cf298f2a6a5e2600ed0ee55e604713578f5e74e6bc8bcaef7997",
+      "sha256": "5c1a416349c4cf298f2a6a5e2600ed0ee55e604713578f5e74e6bc8bcaef7997"
+    },
+    "projection_unprojection": {
+      "limit_m": 0.0001,
+      "max_abs_error_m": 1.4210854715202004e-14,
+      "pass": true
+    },
+    "runtime": {
+      "cuda": true,
+      "device": "NVIDIA GeForce RTX 5090",
+      "python": "3.10.12 (main, Jun 22 2026, 18:55:27) [GCC 11.4.0]",
+      "torch": "2.10.0.dev20251114+cu128",
+      "torchvision": "0.25.0.dev20251117+cu128"
+    },
+    "split": {
+      "all_raw_equal": true,
+      "dtypes": {
+        "high": "torch.float32",
+        "low": "torch.float32"
+      },
+      "identity_serialized_bytes": 5806080,
+      "raw_bytes": 5806080,
+      "raw_equal": {
+        "dense_depth_log1p": true,
+        "objects.person.box_center_delta": true,
+        "objects.person.box_wh": true,
+        "objects.person.depth_bin_logits": true,
+        "objects.person.depth_bin_residuals": true,
+        "objects.person.heatmap": true,
+        "objects.person.log_dimensions": true,
+        "objects.person.physical_ray_delta": true,
+        "objects.person.radar_support": true,
+        "objects.person.subcell": true,
+        "objects.person.yaw_sincos": true,
+        "objects.vehicle.box_center_delta": true,
+        "objects.vehicle.box_wh": true,
+        "objects.vehicle.depth_bin_logits": true,
+        "objects.vehicle.depth_bin_residuals": true,
+        "objects.vehicle.heatmap": true,
+        "objects.vehicle.log_dimensions": true,
+        "objects.vehicle.parked": true,
+        "objects.vehicle.physical_ray_delta": true,
+        "objects.vehicle.radar_support": true,
+        "objects.vehicle.subcell": true,
+        "objects.vehicle.yaw_sincos": true,
+        "out": true
+      },
+      "shapes": {
+        "high": [
+          1,
+          960,
+          27,
+          48
+        ],
+        "low": [
+          1,
+          40,
+          54,
+          96
+        ]
+      },
+      "tail_inputs": [
+        "low",
+        "high"
+      ],
+      "transport_names": [
+        "low",
+        "high"
+      ]
+    },
+    "stage1_two_update": {
+      "changed_state_tensors": [
+        "backbone.0.rgb_conv.weight",
+        "backbone.0.radar_conv.weight",
+        "backbone.0.norm.weight",
+        "backbone.0.norm.bias",
+        "backbone.1.block.0.0.weight",
+        "backbone.1.block.0.1.weight",
+        "backbone.1.block.0.1.bias",
+        "backbone.1.block.1.0.weight",
+        "backbone.1.block.1.1.weight",
+        "backbone.1.block.1.1.bias",
+        "backbone.2.block.0.0.weight",
+        "backbone.2.block.0.1.weight",
+        "backbone.2.block.0.1.bias",
+        "backbone.2.block.1.0.weight",
+        "backbone.2.block.1.1.weight",
+        "backbone.2.block.1.1.bias",
+        "backbone.2.block.2.0.weight",
+        "backbone.2.block.2.1.weight",
+        "backbone.2.block.2.1.bias",
+        "backbone.3.block.0.0.weight",
+        "backbone.3.block.0.1.weight",
+        "backbone.3.block.0.1.bias",
+        "backbone.3.block.1.0.weight",
+        "backbone.3.block.1.1.weight",
+        "backbone.3.block.1.1.bias",
+        "backbone.3.block.2.0.weight",
+        "backbone.3.block.2.1.weight",
+        "backbone.3.block.2.1.bias",
+        "backbone.4.block.0.0.weight",
+        "backbone.4.block.0.1.weight",
+        "backbone.4.block.0.1.bias",
+        "backbone.4.block.1.0.weight",
+        "backbone.4.block.1.1.weight",
+        "backbone.4.block.1.1.bias",
+        "backbone.4.block.2.fc2.bias",
+        "backbone.4.block.3.0.weight",
+        "backbone.4.block.3.1.weight",
+        "backbone.4.block.3.1.bias",
+        "backbone.5.block.0.0.weight",
+        "backbone.5.block.0.1.weight",
+        "backbone.5.block.0.1.bias",
+        "backbone.5.block.1.0.weight",
+        "backbone.5.block.1.1.weight",
+        "backbone.5.block.1.1.bias",
+        "backbone.5.block.2.fc1.weight",
+        "backbone.5.block.2.fc1.bias",
+        "backbone.5.block.2.fc2.weight",
+        "backbone.5.block.2.fc2.bias",
+        "backbone.5.block.3.0.weight",
+        "backbone.5.block.3.1.weight",
+        "backbone.5.block.3.1.bias",
+        "backbone.6.block.0.0.weight",
+        "backbone.6.block.0.1.weight",
+        "backbone.6.block.0.1.bias",
+        "backbone.6.block.1.0.weight",
+        "backbone.6.block.1.1.weight",
+        "backbone.6.block.1.1.bias",
+        "backbone.6.block.2.fc1.weight",
+        "backbone.6.block.2.fc1.bias",
+        "backbone.6.block.2.fc2.weight",
+        "backbone.6.block.2.fc2.bias",
+        "backbone.6.block.3.0.weight",
+        "backbone.6.block.3.1.weight",
+        "backbone.6.block.3.1.bias",
+        "backbone.7.block.0.0.weight",
+        "backbone.7.block.0.1.weight",
+        "backbone.7.block.0.1.bias",
+        "backbone.7.block.1.0.weight",
+        "backbone.7.block.1.1.weight",
+        "backbone.7.block.1.1.bias",
+        "backbone.7.block.2.0.weight",
+        "backbone.7.block.2.1.weight",
+        "backbone.7.block.2.1.bias",
+        "backbone.8.block.0.0.weight",
+        "backbone.8.block.0.1.weight",
+        "backbone.8.block.0.1.bias",
+        "backbone.8.block.1.0.weight",
+        "backbone.8.block.1.1.weight",
+        "backbone.8.block.1.1.bias",
+        "backbone.8.block.2.0.weight",
+        "backbone.8.block.2.1.weight",
+        "backbone.8.block.2.1.bias",
+        "backbone.9.block.0.0.weight",
+        "backbone.9.block.0.1.weight",
+        "backbone.9.block.0.1.bias",
+        "backbone.9.block.1.0.weight",
+        "backbone.9.block.1.1.weight",
+        "backbone.9.block.1.1.bias",
+        "backbone.9.block.2.0.weight",
+        "backbone.9.block.2.1.weight",
+        "backbone.9.block.2.1.bias",
+        "backbone.10.block.0.0.weight",
+        "backbone.10.block.0.1.weight",
+        "backbone.10.block.0.1.bias",
+        "backbone.10.block.1.0.weight",
+        "backbone.10.block.1.1.weight",
+        "backbone.10.block.1.1.bias",
+        "backbone.10.block.2.0.weight",
+        "backbone.10.block.2.1.weight",
+        "backbone.10.block.2.1.bias",
+        "backbone.11.block.0.0.weight",
+        "backbone.11.block.0.1.weight",
+        "backbone.11.block.0.1.bias",
+        "backbone.11.block.1.0.weight",
+        "backbone.11.block.1.1.weight",
+        "backbone.11.block.1.1.bias",
+        "backbone.11.block.2.fc1.weight",
+        "backbone.11.block.2.fc1.bias",
+        "backbone.11.block.2.fc2.weight",
+        "backbone.11.block.2.fc2.bias",
+        "backbone.11.block.3.0.weight",
+        "backbone.11.block.3.1.weight",
+        "backbone.11.block.3.1.bias",
+        "backbone.12.block.0.0.weight",
+        "backbone.12.block.0.1.weight",
+        "backbone.12.block.0.1.bias",
+        "backbone.12.block.1.0.weight",
+        "backbone.12.block.1.1.weight",
+        "backbone.12.block.1.1.bias",
+        "backbone.12.block.2.fc1.weight",
+        "backbone.12.block.2.fc1.bias",
+        "backbone.12.block.2.fc2.weight",
+        "backbone.12.block.2.fc2.bias",
+        "backbone.12.block.3.0.weight",
+        "backbone.12.block.3.1.weight",
+        "backbone.12.block.3.1.bias",
+        "backbone.13.block.0.0.weight",
+        "backbone.13.block.0.1.weight",
+        "backbone.13.block.0.1.bias",
+        "backbone.13.block.1.0.weight",
+        "backbone.13.block.1.1.weight",
+        "backbone.13.block.1.1.bias",
+        "backbone.13.block.2.fc1.weight",
+        "backbone.13.block.2.fc1.bias",
+        "backbone.13.block.2.fc2.weight",
+        "backbone.13.block.2.fc2.bias",
+        "backbone.13.block.3.0.weight",
+        "backbone.13.block.3.1.weight",
+        "backbone.13.block.3.1.bias",
+        "backbone.14.block.0.0.weight",
+        "backbone.14.block.0.1.weight",
+        "backbone.14.block.0.1.bias",
+        "backbone.14.block.1.0.weight",
+        "backbone.14.block.1.1.weight",
+        "backbone.14.block.1.1.bias",
+        "backbone.14.block.2.fc1.weight",
+        "backbone.14.block.2.fc1.bias",
+        "backbone.14.block.2.fc2.weight",
+        "backbone.14.block.2.fc2.bias",
+        "backbone.14.block.3.0.weight",
+        "backbone.14.block.3.1.weight",
+        "backbone.14.block.3.1.bias",
+        "backbone.15.block.0.0.weight",
+        "backbone.15.block.0.1.weight",
+        "backbone.15.block.0.1.bias",
+        "backbone.15.block.1.0.weight",
+        "backbone.15.block.1.1.weight",
+        "backbone.15.block.1.1.bias",
+        "backbone.15.block.2.fc1.weight",
+        "backbone.15.block.2.fc1.bias",
+        "backbone.15.block.2.fc2.weight",
+        "backbone.15.block.2.fc2.bias",
+        "backbone.15.block.3.0.weight",
+        "backbone.15.block.3.1.weight",
+        "backbone.15.block.3.1.bias",
+        "backbone.16.0.weight",
+        "backbone.16.1.weight",
+        "backbone.16.1.bias",
+        "depth_neck.high_projection.0.weight",
+        "depth_neck.high_projection.1.weight",
+        "depth_neck.high_projection.1.bias",
+        "depth_neck.low_projection.0.weight",
+        "depth_neck.low_projection.1.weight",
+        "depth_neck.low_projection.1.bias",
+        "depth_neck.fusion.0.0.weight",
+        "depth_neck.fusion.0.1.weight",
+        "depth_neck.fusion.0.1.bias",
+        "depth_neck.fusion.1.0.weight",
+        "depth_neck.fusion.1.1.weight",
+        "depth_neck.fusion.1.1.bias",
+        "depth_neck.upsample.0.weight",
+        "depth_neck.upsample.1.weight",
+        "depth_neck.upsample.1.bias",
+        "segmentation.0.0.weight",
+        "segmentation.0.1.weight",
+        "segmentation.0.1.bias",
+        "segmentation.1.weight",
+        "segmentation.1.bias",
+        "dense_depth.0.weight",
+        "dense_depth.0.bias",
+        "dense_depth.2.weight",
+        "dense_depth.2.bias"
+      ],
+      "denominators": {
+        "dense_depth": 72528,
+        "radar_consistency": 9962,
+        "segmentation": 1254767
+      },
+      "gradient_steps": [
+        {
+          "backbone": {
+            "all_finite": true,
+            "gradient_tensors": 171,
+            "nonzero": true,
+            "norm": 124.37274441458906,
+            "parameter_tensors": 171
+          },
+          "backbone.0.radar_conv": {
+            "all_finite": true,
+            "gradient_tensors": 1,
+            "nonzero": true,
+            "norm": 3.0509469235184925,
+            "parameter_tensors": 1
+          },
+          "backbone.0.rgb_conv": {
+            "all_finite": true,
+            "gradient_tensors": 1,
+            "nonzero": true,
+            "norm": 4.704393386896112,
+            "parameter_tensors": 1
+          },
+          "dense_depth": {
+            "all_finite": true,
+            "gradient_tensors": 4,
+            "nonzero": true,
+            "norm": 68.28674905236377,
+            "parameter_tensors": 4
+          },
+          "depth_neck": {
+            "all_finite": true,
+            "gradient_tensors": 15,
+            "nonzero": true,
+            "norm": 95.07302708397951,
+            "parameter_tensors": 15
+          },
+          "person": {
+            "all_finite": false,
+            "gradient_tensors": 0,
+            "nonzero": false,
+            "norm": 0.0,
+            "parameter_tensors": 23
+          },
+          "segmentation": {
+            "all_finite": true,
+            "gradient_tensors": 5,
+            "nonzero": true,
+            "norm": 13.124191715479565,
+            "parameter_tensors": 5
+          },
+          "vehicle": {
+            "all_finite": false,
+            "gradient_tensors": 0,
+            "nonzero": false,
+            "norm": 0.0,
+            "parameter_tensors": 25
+          }
+        },
+        {
+          "backbone": {
+            "all_finite": true,
+            "gradient_tensors": 171,
+            "nonzero": true,
+            "norm": 25.47454308909693,
+            "parameter_tensors": 171
+          },
+          "backbone.0.radar_conv": {
+            "all_finite": true,
+            "gradient_tensors": 1,
+            "nonzero": true,
+            "norm": 0.2792406358984469,
+            "parameter_tensors": 1
+          },
+          "backbone.0.rgb_conv": {
+            "all_finite": true,
+            "gradient_tensors": 1,
+            "nonzero": true,
+            "norm": 1.3309804849519533,
+            "parameter_tensors": 1
+          },
+          "dense_depth": {
+            "all_finite": true,
+            "gradient_tensors": 4,
+            "nonzero": true,
+            "norm": 17.392904872946836,
+            "parameter_tensors": 4
+          },
+          "depth_neck": {
+            "all_finite": true,
+            "gradient_tensors": 15,
+            "nonzero": true,
+            "norm": 26.54659074965443,
+            "parameter_tensors": 15
+          },
+          "person": {
+            "all_finite": false,
+            "gradient_tensors": 0,
+            "nonzero": false,
+            "norm": 0.0,
+            "parameter_tensors": 23
+          },
+          "segmentation": {
+            "all_finite": true,
+            "gradient_tensors": 5,
+            "nonzero": true,
+            "norm": 3.6894722782986324,
+            "parameter_tensors": 5
+          },
+          "vehicle": {
+            "all_finite": false,
+            "gradient_tensors": 0,
+            "nonzero": false,
+            "norm": 0.0,
+            "parameter_tensors": 25
+          }
+        }
+      ],
+      "losses": {
+        "dense_depth": 7.201474189758301,
+        "radar_consistency": 5.842103481292725,
+        "segmentation": 2.277822494506836
+      },
+      "object_changed": false,
+      "only_representation_changed": true,
+      "pass": true,
+      "updates": 2
+    },
+    "stage2_two_update": {
+      "changed_state_tensors": [
+        "vehicle.trunk.0.weight",
+        "vehicle.trunk.1.weight",
+        "vehicle.trunk.1.bias",
+        "vehicle.heads.heatmap.weight",
+        "vehicle.heads.heatmap.bias",
+        "vehicle.heads.subcell.weight",
+        "vehicle.heads.subcell.bias",
+        "vehicle.heads.box_wh.weight",
+        "vehicle.heads.box_wh.bias",
+        "vehicle.heads.physical_ray_delta.weight",
+        "vehicle.heads.physical_ray_delta.bias",
+        "vehicle.heads.depth_bin_logits.weight",
+        "vehicle.heads.depth_bin_logits.bias",
+        "vehicle.heads.depth_bin_residuals.weight",
+        "vehicle.heads.depth_bin_residuals.bias",
+        "vehicle.heads.log_dimensions.weight",
+        "vehicle.heads.log_dimensions.bias",
+        "vehicle.heads.yaw_sincos.weight",
+        "vehicle.heads.yaw_sincos.bias",
+        "vehicle.heads.radar_support.weight",
+        "vehicle.heads.radar_support.bias",
+        "vehicle.heads.parked.weight",
+        "vehicle.heads.parked.bias",
+        "person.trunk.0.weight",
+        "person.trunk.1.weight",
+        "person.trunk.1.bias",
+        "person.heads.heatmap.weight",
+        "person.heads.heatmap.bias",
+        "person.heads.subcell.weight",
+        "person.heads.subcell.bias",
+        "person.heads.box_center_delta.weight",
+        "person.heads.box_center_delta.bias",
+        "person.heads.box_wh.weight",
+        "person.heads.box_wh.bias",
+        "person.heads.physical_ray_delta.weight",
+        "person.heads.physical_ray_delta.bias",
+        "person.heads.depth_bin_logits.weight",
+        "person.heads.depth_bin_logits.bias",
+        "person.heads.depth_bin_residuals.weight",
+        "person.heads.depth_bin_residuals.bias",
+        "person.heads.log_dimensions.weight",
+        "person.heads.log_dimensions.bias",
+        "person.heads.yaw_sincos.weight",
+        "person.heads.yaw_sincos.bias",
+        "person.heads.radar_support.weight",
+        "person.heads.radar_support.bias"
+      ],
+      "denominators": {
+        "heatmap_person": 3,
+        "heatmap_vehicle": 20,
+        "owners_person": 3,
+        "owners_vehicle": 20
+      },
+      "frozen_parameters_buffers_counters_bit_identical": true,
+      "gradient_steps": [
+        {
+          "backbone": {
+            "all_finite": false,
+            "gradient_tensors": 0,
+            "nonzero": false,
+            "norm": 0.0,
+            "parameter_tensors": 171
+          },
+          "dense_depth": {
+            "all_finite": false,
+            "gradient_tensors": 0,
+            "nonzero": false,
+            "norm": 0.0,
+            "parameter_tensors": 4
+          },
+          "depth_neck": {
+            "all_finite": false,
+            "gradient_tensors": 0,
+            "nonzero": false,
+            "norm": 0.0,
+            "parameter_tensors": 15
+          },
+          "person.heads": {
+            "all_finite": true,
+            "gradient_tensors": 20,
+            "nonzero": true,
+            "norm": 33.753581457705934,
+            "parameter_tensors": 20
+          },
+          "person.trunk": {
+            "all_finite": true,
+            "gradient_tensors": 3,
+            "nonzero": false,
+            "norm": 0.0,
+            "parameter_tensors": 3
+          },
+          "segmentation": {
+            "all_finite": false,
+            "gradient_tensors": 0,
+            "nonzero": false,
+            "norm": 0.0,
+            "parameter_tensors": 5
+          },
+          "vehicle.heads": {
+            "all_finite": true,
+            "gradient_tensors": 22,
+            "nonzero": true,
+            "norm": 29.822249819711978,
+            "parameter_tensors": 22
+          },
+          "vehicle.trunk": {
+            "all_finite": true,
+            "gradient_tensors": 3,
+            "nonzero": false,
+            "norm": 0.0,
+            "parameter_tensors": 3
+          }
+        },
+        {
+          "backbone": {
+            "all_finite": false,
+            "gradient_tensors": 0,
+            "nonzero": false,
+            "norm": 0.0,
+            "parameter_tensors": 171
+          },
+          "dense_depth": {
+            "all_finite": false,
+            "gradient_tensors": 0,
+            "nonzero": false,
+            "norm": 0.0,
+            "parameter_tensors": 4
+          },
+          "depth_neck": {
+            "all_finite": false,
+            "gradient_tensors": 0,
+            "nonzero": false,
+            "norm": 0.0,
+            "parameter_tensors": 15
+          },
+          "person.heads": {
+            "all_finite": true,
+            "gradient_tensors": 20,
+            "nonzero": true,
+            "norm": 33.65767603409008,
+            "parameter_tensors": 20
+          },
+          "person.trunk": {
+            "all_finite": true,
+            "gradient_tensors": 3,
+            "nonzero": true,
+            "norm": 0.41065507045269506,
+            "parameter_tensors": 3
+          },
+          "segmentation": {
+            "all_finite": false,
+            "gradient_tensors": 0,
+            "nonzero": false,
+            "norm": 0.0,
+            "parameter_tensors": 5
+          },
+          "vehicle.heads": {
+            "all_finite": true,
+            "gradient_tensors": 22,
+            "nonzero": true,
+            "norm": 29.827276590359745,
+            "parameter_tensors": 22
+          },
+          "vehicle.trunk": {
+            "all_finite": true,
+            "gradient_tensors": 3,
+            "nonzero": true,
+            "norm": 0.27138521497630425,
+            "parameter_tensors": 3
+          }
+        }
+      ],
+      "losses": {
+        "box_center_delta": 0.004270130768418312,
+        "box_wh": 6.029776096343994,
+        "depth_bin": 3.408024787902832,
+        "depth_residual": 0.0815228670835495,
+        "dimensions": 0.07867218554019928,
+        "endpoint": 2.9090147018432617,
+        "heatmap": 4.495914459228516,
+        "parked": 0.6877592206001282,
+        "physical_ray": 0.645816445350647,
+        "radar_support": 0.6756635904312134,
+        "subcell": 0.034320395439863205,
+        "yaw": 0.5995806455612183
+      },
+      "only_private_object_changed": true,
+      "pass": true,
+      "segmentation_dense_predictions_bit_identical": true,
+      "updates": 2
+    },
+    "stem": {
+      "conv_outputs_equal": true,
+      "max_abs_delta": 0.0,
+      "radar_bias": false,
+      "rgb_bias": false,
+      "weight_shape": [
+        16,
+        7,
+        3,
+        3
+      ]
+    }
+  },
+  "created_utc": "2026-08-29T18:50:57.551931+00:00",
+  "disposable_stage1_optimizer_steps": 3,
+  "disposable_stage2_optimizer_steps": 3,
+  "full_disposable_epochs": 0,
+  "parameter_counts": {
+    "stage1": {
+      "frozen": 315935,
+      "frozen_tensors": 48,
+      "total": 4174643,
+      "trainable": 3858708,
+      "trainable_tensors": 195
+    },
+    "stage2": {
+      "frozen": 3858708,
+      "frozen_tensors": 195,
+      "total": 4174643,
+      "trainable": 315935,
+      "trainable_tensors": 48
+    }
+  },
+  "pass": true,
+  "schema": "two_stage_lraspp_bounded_qualification_v1",
+  "validation_depth_files_opened": 0,
+  "validation_predictions_created": 0,
+  "wall_seconds": 4.869269169867039
+}

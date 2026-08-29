@@ -1,0 +1,26 @@
+{
+  "created_utc": "2026-08-29T18:50:57.558496+00:00",
+  "effective_batch": 16,
+  "gradient_accumulation": 1,
+  "memory": {
+    "stage1": {
+      "accumulation": 1,
+      "finite": true,
+      "limit_mib": 12288.0,
+      "pass": true,
+      "physical_batch": 16,
+      "reserved_mib": 8040.0
+    },
+    "stage2": {
+      "accumulation": 1,
+      "finite": true,
+      "limit_mib": 12288.0,
+      "pass": true,
+      "physical_batch": 16,
+      "reserved_mib": 2562.0
+    }
+  },
+  "physical_batch": 16,
+  "precision": "full_fp32",
+  "schema": "two_stage_lraspp_runtime_v1"
+}
