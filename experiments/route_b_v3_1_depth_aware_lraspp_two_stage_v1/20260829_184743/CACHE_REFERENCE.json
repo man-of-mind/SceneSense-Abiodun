@@ -1,0 +1,13 @@
+{
+  "created_utc": "2026-08-29T18:47:49.584199+00:00",
+  "hashes": {
+    "CACHE_REPORT.json": "6413abfce4f9600b579e9f30c621db16da63c6b8f24dd0196eab6d4ad9d5ddbb",
+    "depth_forward_f16.bin": "ec75d0a776097f6fb8a582e98e1fe907a7d0032267c1fcae27eb5a8937bf00ed",
+    "index.csv": "d978b1c93a2bcd6292d0e320f5ceb4b04a73d7c82c29537038ddab96b57db13b",
+    "radar_consistency_f32.bin": "89f630ddeb32fbf41c83eed42b7ae7dd78ea10c492984fe6ae2764483ebbbdcf",
+    "valid_u8.bin": "5ec480cb3d2eefa9cba3d35368484ae22d09e253dbc337d7ba10230b67304ee8"
+  },
+  "mode": "verified_read_only_symlink",
+  "schema": "two_stage_lraspp_train_cache_reference_v1",
+  "source": "experiments/route_b_v3_1_depth_aware_lraspp_v1/20260829_042423/depth_cache/train"
+}
