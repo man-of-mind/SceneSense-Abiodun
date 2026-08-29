@@ -1,0 +1,9 @@
+{
+  "created_utc": "2026-08-29T20:36:54.120201+00:00",
+  "exactly_one_terminal": true,
+  "final_report": "FINAL_REPORT.md",
+  "final_report_sha256": "8a11f6d1480da4da621eced7408a608347ced7a62955cbd9c5fe328740b5622e",
+  "notification": "NOTIFICATION.json",
+  "schema": "two_stage_lraspp_pipeline_complete_v1",
+  "terminal": "TWO_STAGE_LRASPP_STAGE2_OBJECT_FAILED_CLOSE_LRASPP"
+}

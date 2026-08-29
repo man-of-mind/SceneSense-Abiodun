@@ -1,0 +1,7 @@
+{
+  "created_utc": "2026-08-29T20:36:54.120143+00:00",
+  "q_ae_started": false,
+  "schema": "two_stage_lraspp_notification_v1",
+  "service_eligible_for_later_q_ae": false,
+  "terminal": "TWO_STAGE_LRASPP_STAGE2_OBJECT_FAILED_CLOSE_LRASPP"
+}
