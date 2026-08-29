@@ -4,10 +4,10 @@
   "experiment": "experiments/route_b_v3_1_depth_aware_lraspp_v1/20260829_060656",
   "scientific_attempt": 2,
   "first_valid_evaluation": true,
-  "repair_code_commit": "3829518fbbdc34ca770159ce1e587c72aeefdf67",
+  "repair_code_commit": "d5741eee70ff4a776f6417f2b5ae7be9da85ad4a",
   "scientific_launch_commit_recorded_after_this_commit_in": "SOURCE_PROVENANCE.json",
   "self_referential_commit_field_omitted": true,
-  "resolved_config_sha256": "ea604c99b68bb58352c303808dc2d720c86288f177e35d513b810d3fda831e09",
+  "resolved_config_sha256": "b1fce0ce5e316aad912e0b2a223e4ec326839e5fa166e8ea90745a624ada45ec",
   "pre_scientific_gates": {
     "unit_equivalence": {"pass": true, "sha256": "ca6adffdf7b3f57819c3554cf22c9be0350fba6ab221c9fb450ab238f7d1e902"},
     "loss_pressure": {"pass": true, "sha256": "2f24c09144a37dda6d49ddd5f244fd943cd89392de97db1a20e93ff3d1872ae2"},

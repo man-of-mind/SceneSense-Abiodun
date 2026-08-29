@@ -2,7 +2,7 @@
   "schema": "route_b_v3_1_depth_aware_lraspp_config_v1",
   "model_name": "route_b_v3_1_depth_aware_lraspp_v1",
   "scientific_seed": 20260829,
-  "source_commit": "3829518fbbdc34ca770159ce1e587c72aeefdf67",
+  "source_commit": "d5741eee70ff4a776f6417f2b5ae7be9da85ad4a",
   "dataset_root": "experiments/route_b_v3_1_expanded_train_camera_plane_v1/20260828_094151",
   "visible_anchor_cache": "experiments/route_b_v3_1_person_visible_anchor_v1/20260829_021120/derived_targets/visible_anchor_targets_v010.csv",
   "pretrained": {
