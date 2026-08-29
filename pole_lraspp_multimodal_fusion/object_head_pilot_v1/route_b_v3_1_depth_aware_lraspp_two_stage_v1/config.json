@@ -5,7 +5,7 @@
   "stage1_seed": 20260830,
   "stage2_seed": 20260831,
   "stage2_initialization_seed": 20260832,
-  "source_commit": "PREREGISTRATION_COMMIT_PENDING",
+  "source_commit": "a27b19f32e9b5807100d6abdeb7e927e8689d78e",
   "dataset_root": "experiments/route_b_v3_1_expanded_train_camera_plane_v1/20260828_094151",
   "visible_anchor_cache": "experiments/route_b_v3_1_person_visible_anchor_v1/20260829_021120/derived_targets/visible_anchor_targets_v010.csv",
   "pretrained": {
