@@ -1,0 +1,124 @@
+{
+  "schema": "route_b_v3_1_person_contract_audit_registration_v1",
+  "audit_name": "route_b_v3_1_person_contract_audit_v1",
+  "immutability": {
+    "mode": "read_only_evidence_audit",
+    "training": false,
+    "new_model_inference": false,
+    "model_or_threshold_modification": false,
+    "test_payload_access": false
+  },
+  "dataset": {
+    "root": "experiments/route_b_v3_1_expanded_train_camera_plane_v1/20260828_094151",
+    "expected_frames": {"train": 16827, "val": 3345, "test": 0},
+    "expected_primary_v010_val_person_gt": 3872,
+    "contracts": ["v010", "v025"],
+    "model_size_wh": [768, 432],
+    "native_stride": 4,
+    "range_m": 40.0
+  },
+  "models": {
+    "base_epoch_040": {
+      "checkpoint": "experiments/route_b_v3_1_person_refinement_v1/20260828_163100/checkpoints/route_b_v3_1_person_refinement_v1/epoch_040.pt",
+      "checkpoint_sha256": "5c6bb268b43f4dd84bd7a283ff483ec4e87366a50ea51dfacee44979df2bf6e8",
+      "prediction_root": "experiments/route_b_v3_1_person_refinement_v1/20260828_163100/predictions/continued_epoch_040",
+      "detections_sha256": "c60306eda126815bc1dc0b6eb22b6b6fd0d2b1725d52e23b621288d03274e364"
+    },
+    "distilled_epoch_012": {
+      "checkpoint": "experiments/route_b_v3_1_person_coco_distillation_v1/20260828_165107/checkpoints/route_b_v3_1_person_coco_distillation_v1/epoch_012.pt",
+      "checkpoint_sha256": "8592131ff4b6ba2ddc12abecc97f9aaee11134463c12a1efdec06449162d2231",
+      "prediction_root": "experiments/route_b_v3_1_person_coco_distillation_v1/20260828_165107/predictions/coco_distill_epoch_012",
+      "detections_sha256": "fa0a632176005f005e657e8410ade89c8e935c708142595d69ed040f38cb0091"
+    }
+  },
+  "canonical_joint": {
+    "class": "person",
+    "contract": "v010",
+    "thresholds": [0.2, 0.02],
+    "match": "class-aware one-to-one greedy smallest world-XY distance",
+    "match_radius_m": 3.0,
+    "unmatched_prediction_ignore": "prediction centre in registered v010 ignore mask"
+  },
+  "image_space_matchers": {
+    "primary": "FULL_BOX_IOU_050",
+    "definitions": {
+      "FULL_BOX_CENTER": {
+        "eligible": "person prediction centre is inside authoritative projected person GT box using half-open box bounds",
+        "order": ["smallest_normalized_center_distance", "higher_score", "stable_prediction_row", "stable_gt_row"]
+      },
+      "FULL_BOX_IOU_050": {
+        "eligible": "full predicted/authoritative projected box IoU >= 0.50",
+        "order": ["greatest_iou", "higher_score", "stable_prediction_row", "stable_gt_row"]
+      },
+      "FULL_BOX_IOU_030": {
+        "eligible": "full predicted/authoritative projected box IoU >= 0.30",
+        "role": "sensitivity_only",
+        "order": ["greatest_iou", "higher_score", "stable_prediction_row", "stable_gt_row"]
+      }
+    },
+    "thresholds": [0.2, 0.02],
+    "unmatched_prediction_ignore": "same registered v010 ignore-centre neutrality as canonical scorer"
+  },
+  "conditional_localization": {
+    "matchers": ["FULL_BOX_CENTER", "FULL_BOX_IOU_050", "FULL_BOX_IOU_030"],
+    "success_radii_m": [1.0, 2.0, 3.0, 5.0],
+    "percentiles": [50, 75, 90, 95],
+    "distance_bins_m": [0, 10, 20, 30, 40],
+    "area_bins_px": [0, 400, 1600, 6400, 1000000000],
+    "metadata_key": ["sample_id", "source_identity"]
+  },
+  "joint_failure_taxonomy": {
+    "primary_matcher": "FULL_BOX_IOU_050",
+    "decision_threshold": 0.02,
+    "labels": [
+      "NO_2D_PERSON_SUPPORT",
+      "TWO_D_MATCH_WORLD_ERROR_GT_3M",
+      "TWO_D_AND_WORLD_MATCH",
+      "MATCHING_CONTENTION",
+      "IGNORED_NEUTRAL"
+    ],
+    "decision_denominator": "canonical joint person false-negative GT",
+    "terminal_rules": {
+      "PERSON_CONTRACT_AUDIT_LOCALIZATION_DOMINANT": "2D-assigned canonical FNs with paired world error >3 m exceed 50%",
+      "PERSON_CONTRACT_AUDIT_DETECTION_DOMINANT": "canonical FNs lacking a valid one-to-one 2D assignment exceed 50%",
+      "PERSON_CONTRACT_AUDIT_MIXED_FAILURE": "neither condition exceeds 50%"
+    }
+  },
+  "target_observability": {
+    "population": "every authoritative actor-person positive in v010 and v025, train and validation",
+    "mask": "frozen route_b_depth_visibility_interval_v1 interval reconstructed from retained BGRA depth and per-actor near/far/tolerance fields",
+    "target_point": "continuous gt_center_x/y in source pixels; its model/grid mappings follow build_native_object_targets exactly",
+    "pixel_sampling": "floor continuous source coordinates under half-open pixel bounds",
+    "categories": [
+      "ON_OWN_VISIBLE_MASK",
+      "ON_CLOSER_OCCLUDER",
+      "INSIDE_PROJECTED_BOX_BUT_NOT_VISIBLE",
+      "OUTSIDE_OWN_PROJECTED_BOX",
+      "OUTSIDE_FRAME"
+    ],
+    "review_roles": {
+      "ON_CLOSER_OCCLUDER": 8,
+      "INSIDE_PROJECTED_BOX_BUT_NOT_VISIBLE": 8,
+      "ON_OWN_VISIBLE_MASK": 4,
+      "LARGEST_VISIBLE_CENTROID_OFFSET": 4
+    }
+  },
+  "gaussian_reference": {
+    "derivation": "independent standard CornerNet/CenterNet three-quadratic equations at min_overlap=0.7",
+    "integer_rule": "max(1, round(raw_radius)) matching native builder after independent raw calculation",
+    "comparison": "same continuous centre, draw support, and forced floor-cell peak; radius implementation is the only variable",
+    "unit_cases": ["square", "tall", "tiny_person", "half_cell", "boundary_cell", "train_person_population", "validation_person_population"]
+  },
+  "calibration": {
+    "threshold_grid": {"minimum": 0.02, "maximum": 1.0, "step": 0.005, "include_all_fixed_and_observed_optima": true},
+    "metrics": ["canonical_joint_3m", "FULL_BOX_IOU_050"],
+    "max_f1_role": "post_hoc_non_promotable",
+    "auprc": "trapezoidal precision-recall area on dense retained-prediction curve"
+  },
+  "flags": [
+    "HEATMAP_TARGET_VISIBILITY_DEFECT_CONFIRMED",
+    "GAUSSIAN_RADIUS_IMPLEMENTATION_MISMATCH_CONFIRMED",
+    "DISTILLATION_CALIBRATION_SHIFT_CONFIRMED",
+    "PERSON_CONTRACT_AUDIT_INVALID"
+  ]
+}
