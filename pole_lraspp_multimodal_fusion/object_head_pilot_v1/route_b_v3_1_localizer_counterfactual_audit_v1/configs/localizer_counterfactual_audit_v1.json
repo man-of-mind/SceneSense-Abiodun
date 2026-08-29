@@ -1,0 +1,151 @@
+{
+  "schema": "route_b_v3_1_localizer_counterfactual_audit_config_v1",
+  "name": "route_b_v3_1_localizer_counterfactual_audit_v1",
+  "required_head": "78e2e1c531296c2cf77938a485ca04e0e35e1cd3",
+  "dataset_root": "experiments/route_b_v3_1_person_visible_anchor_v1/20260829_021120",
+  "base_checkpoint": "experiments/route_b_v3_1_person_refinement_v1/20260828_163100/checkpoints/route_b_v3_1_person_refinement_v1/epoch_040.pt",
+  "base_checkpoint_sha256": "5c6bb268b43f4dd84bd7a283ff483ec4e87366a50ea51dfacee44979df2bf6e8",
+  "candidate_checkpoint": "experiments/route_b_v3_1_person_visible_anchor_v1/20260829_021120/checkpoints/route_b_v3_1_person_visible_anchor_v1/epoch_018.pt",
+  "candidate_checkpoint_sha256": "62330263c90ae8d71c2d44b7e0cf164b08dd3f928bee6966f023c619b629b5fc",
+  "base_predictions": "experiments/route_b_v3_1_person_refinement_v1/20260828_163100/predictions/continued_epoch_040",
+  "base_detections_sha256": "c60306eda126815bc1dc0b6eb22b6b6fd0d2b1725d52e23b621288d03274e364",
+  "candidate_predictions": "experiments/route_b_v3_1_person_visible_anchor_v1/20260829_021120/predictions/visible_anchor_epoch_018",
+  "candidate_detections_sha256": "606bd52550b04fd5f46787730bccf8a7bb1dfc2ff6cbb618901d46d50c145f72",
+  "published_evaluation": "experiments/route_b_v3_1_person_visible_anchor_v1/20260829_021120/evaluation/epoch_018.json",
+  "published_baseline": "experiments/route_b_v3_1_person_visible_anchor_v1/20260829_021120/evaluation/BASELINE_REPRODUCTION.json",
+  "expected": {
+    "validation_frames": 3345,
+    "primary_person_gt": 3872,
+    "test_frames": 0,
+    "native_grid_hw": [108, 192],
+    "native_stride": 4,
+    "model_size_wh": [768, 432],
+    "thresholds": [0.02, 0.20],
+    "primary_threshold": 0.20,
+    "diagnostic_floor": 0.02,
+    "world_match_radius_m": 3.0,
+    "iou_threshold": 0.50
+  },
+  "reconciliation": {
+    "absolute_tolerance": 1e-12,
+    "base": {
+      "person_precision_020": 0.537513397642015,
+      "person_recall_020": 0.5180785123966942,
+      "person_f1_020": 0.527617043661231,
+      "person_recall_002": 0.6151859504132231,
+      "person_xy_mae_m_020": 1.341152643721099,
+      "iou50_f1_020": 0.5294736842105262,
+      "iou50_recall_002": 0.5663739669421488,
+      "iou50_conditional_within_3m_002": 0.8148654810761514,
+      "center_present_world_wrong_002": 766,
+      "iou50_pairs_002": 2193,
+      "iou50_within_3m_002": 1787
+    },
+    "candidate": {
+      "person_precision_020": 0.5431372549019607,
+      "person_recall_020": 0.5007747933884298,
+      "person_f1_020": 0.5210964794410106,
+      "person_recall_002": 0.5958161157024794,
+      "person_xy_mae_m_020": 1.2862545998837343,
+      "iou50_f1_020": 0.5538338231365215,
+      "iou50_recall_002": 0.5963326446280992,
+      "iou50_conditional_within_3m_002": 0.7600692940666955,
+      "center_present_world_wrong_002": 861,
+      "iou50_pairs_002": 2309,
+      "iou50_within_3m_002": 1755
+    }
+  },
+  "counterfactual_contract": {
+    "fixed_pair_definition": "class_aware_one_to_one_FULL_BOX_IOU_050_at_each_registered_threshold",
+    "oracle_pair_policy": "freeze_candidate_iou50_pairs_before_any_substitution",
+    "oracle_unmatched_policy": "leave_unmatched_candidate_predictions_unchanged_for_end_to_end_scoring",
+    "predicted_ray_reconstruction": "u=cx+fx*local_y/local_x;v=cy-fy*local_z/local_x",
+    "unprojection": "local_x=depth;local_y=(u-cx)*depth/fx;local_z=(cy-v)*depth/fy",
+    "dense_sampler": "hard_floor_native_cell_no_interpolation",
+    "dense_sampler_equation": "cell_x=floor(full_box_center_x/4);cell_y=floor(full_box_center_y/4)",
+    "out_of_grid_policy": "invalid_no_clamp",
+    "deployable_arm": "candidate_confidence_and_box_plus_epoch40_XYZ_dimensions_yaw_at_candidate_predicted_full_box_cell",
+    "gt_cell_arm": "diagnostic_oracle_candidate_iou50_pairs_sample_epoch40_field_at_GT_full_box_center_cell",
+    "gt_substitution_is_diagnostic_only": true
+  },
+  "inference_allowance": {
+    "new_candidate_traversals": 0,
+    "new_base_traversals_max": 1,
+    "new_segmentation_outputs": 0,
+    "new_threshold_passes": 0,
+    "persist_dense_maps": false,
+    "persist_only_sampled_compact_fields": true
+  },
+  "strata": {
+    "distance_edges_m": [0, 10, 20, 30, 40.000001],
+    "visible_fraction_edges": [0.10, 0.25, 0.50, 0.75, 1.000001],
+    "radar": ["supported", "unsupported"],
+    "visibility_contract": ["clear_v025", "primary_v010_only"]
+  },
+  "attribution": {
+    "population": "candidate_iou50_pairs_with_predicted_predicted_world_error_gt_3m",
+    "success_radius_m": 3.0,
+    "dominance_ratio": 2.0,
+    "minimum_original_failure_recovery_fraction": 0.25,
+    "depth_dominant_rule": "depth_only_recovered>=2*max(1,ray_only_recovered) and depth_only_recovered>=0.25*original_failures",
+    "ray_dominant_rule": "ray_only_recovered>=2*max(1,depth_only_recovered) and ray_only_recovered>=0.25*original_failures",
+    "otherwise": "LRASPP_DEPTH_AND_RAY_ERROR_MIXED"
+  },
+  "composition_success": {
+    "retain_candidate_iou50_f1_020_exact": true,
+    "retain_candidate_iou50_recall_002_exact": true,
+    "person_recall_020_min": 0.5180785123966942,
+    "person_f1_020_min": 0.527617043661231,
+    "person_xy_mae_m_020_max": 1.341152643721099,
+    "additional_world_wrong_reduction_min": 48,
+    "iou50_conditional_within_3m_002_min": 0.80,
+    "vehicle_and_segmentation_bit_identical": true,
+    "gt_or_depth_image_at_inference": false
+  },
+  "decision": {
+    "primary_terminals": [
+      "LRASPP_INHERITED_LOCALIZER_RECOVERS_VISIBLE_ANCHOR_GAINS",
+      "LRASPP_INHERITED_LOCALIZER_SAMPLING_LIMITED",
+      "LRASPP_INHERITED_LOCALIZER_DOES_NOT_RECOVER",
+      "LRASPP_LOCALIZER_COUNTERFACTUAL_CONTRACT_INVALID",
+      "LRASPP_LOCALIZER_COUNTERFACTUAL_RUNTIME_FAILURE"
+    ],
+    "secondary_attributions": [
+      "LRASPP_DEPTH_ERROR_DOMINANT",
+      "LRASPP_RAY_ERROR_DOMINANT",
+      "LRASPP_DEPTH_AND_RAY_ERROR_MIXED"
+    ],
+    "sampling_limited_rule": "deployable_arm_fails_and_GT_cell_oracle_arm_passes_composition_metric_gates",
+    "close_rule": "if deployable and GT_cell oracle both fail, close further LRASPP person-head work under the frozen low_high transport contract"
+  },
+  "required_outputs": [
+    "INPUT_PROVENANCE.json",
+    "REGISTERED_AUDIT_PLAN.json",
+    "RECONCILIATION.json",
+    "PER_GT_TRANSITIONS.csv",
+    "TRANSITION_SUMMARY.json",
+    "DENSE_FIELD_SAMPLES.csv",
+    "CELL_SAMPLING_AUDIT.json",
+    "ORACLE_PAIR_RESULTS.csv",
+    "ORACLE_SUMMARY.json",
+    "COUNTERFACTUAL_DETECTIONS.csv",
+    "COUNTERFACTUAL_METRICS.json",
+    "SLICE_METRICS.csv",
+    "DECISION.json",
+    "FINAL_REPORT.md",
+    "COMPLETION_SENTINEL",
+    "NOTIFICATION.json"
+  ],
+  "forbidden": {
+    "training": true,
+    "locked_test": true,
+    "carla": true,
+    "oai": true,
+    "q_ae": true,
+    "live_runtime": true,
+    "measurements_288": true,
+    "threshold_or_nms_sweep": true,
+    "v025_inference": true,
+    "production_mutation": true
+  }
+}
