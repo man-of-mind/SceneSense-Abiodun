@@ -238,6 +238,22 @@ class ReviewDefectTests(unittest.TestCase):
             self.assertEqual((epoch, global_update), (10, expected_global))
             self.assertEqual(state["recovery"], recovery)
 
+    def test_epoch10_awaiting_review_is_an_exact_resume_boundary(self) -> None:
+        recovery = {"binding": "prospective-epoch10"}
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            config, expected_global = self._resume_fixture(root, recovery=recovery)
+            (root / "RECOVERED_EPOCH10_GATE_COMPLETE").write_text(
+                "RECOVERED_EPOCH10_GATE_COMPLETE\n", encoding="utf-8")
+            (root / "STATUS.json").write_text(json.dumps({
+                "state": "awaiting_review", "epoch_complete": 10,
+                "global_optimizer_update": expected_global, "validation_accessed": False,
+                "epoch11_accessed": False}) + "\n", encoding="utf-8")
+            epoch, global_update, _state = _select_verified_resume_checkpoint(
+                root, expected_recovery=recovery, config=config, train_frames=16827,
+                effective_batch=16)
+            self.assertEqual((epoch, global_update), (10, expected_global))
+
     def test_partial_epoch_is_never_treated_as_complete(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

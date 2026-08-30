@@ -119,9 +119,17 @@ def _select_verified_resume_checkpoint(output: Path, *, expected_recovery: Mappi
         status = load_json(status_path)
         status_epoch = int(status.get("epoch_complete", -1))
         expected_status_global = 9468 + (status_epoch - 9) * updates_per_epoch
+        prospective_epoch10_stop = (
+            status.get("state") == "awaiting_review"
+            and status_epoch == 10
+            and latest[0] == 10
+            and status.get("epoch11_accessed") is False
+            and (output / "RECOVERED_EPOCH10_GATE_COMPLETE").is_file()
+        )
         if status.get("validation_accessed") is not False:
             raise RuntimeError("resume status reports validation access")
-        if (status.get("state") != "training" or not 10 <= status_epoch <= latest[0]
+        if ((status.get("state") != "training" and not prospective_epoch10_stop)
+                or not 10 <= status_epoch <= latest[0]
                 or int(status.get("global_optimizer_update", -1)) != expected_status_global):
             raise RuntimeError("resume status is inconsistent with verified checkpoints")
     return latest

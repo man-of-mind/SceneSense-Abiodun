@@ -1,0 +1,52 @@
+{
+  "schema": "splitfusion_fcos_prospective_epoch10_protocol_amendment_v1",
+  "state": "PROSPECTIVE_EPOCH10_GATE_ONLY",
+  "prior_qualification": {
+    "status": "FAILED",
+    "failure": "original failure did not reproduce numerically twice",
+    "replay_metric_agreement_gate": "RETIRED_AS_INVALID_FOR_NONDETERMINISTIC_CUDA_TRAJECTORIES",
+    "qualification_pass_claimed": false,
+    "qualified_to_train_claimed": false
+  },
+  "replay_evidence": {
+    "original_a_sha256": "44cde199d0e29868a5e8306cc1a04ab4f3767f655bb981db1fee5eb484b1cb76",
+    "original_b_sha256": "7d5e435c0030b51982100e2dc11fc384cd014d195fb359ef027aed22b756b082",
+    "required_healthy_updates_per_replay": 446,
+    "required_update447_sample_ids": 16,
+    "required_yaw_carriers_per_boundary": 831,
+    "accepted_cuda_trajectory_nondeterminism": true,
+    "additional_original_replay_authorized": false
+  },
+  "yaw_repair": {
+    "tau": 0.01,
+    "preregistered_candidate": true,
+    "affected_carriers_original_a": 0,
+    "affected_carriers_original_b": 0,
+    "unchanged_equation_when_raw_norm_at_least_tau": true,
+    "fallback_direction": false,
+    "maximum_normalization_sensitivity": 100.0
+  },
+  "breaker_envelope": {
+    "source": "union of updates 1-446 from verified Replay A and Replay B",
+    "metric_families": [
+      "gradient_norm",
+      "momentum_norm",
+      "proposed_sgd_update_norm",
+      "max_parameter_relative_update"
+    ],
+    "formula": "10 * maximum value across both replay histories",
+    "replay_agreement_required": false
+  },
+  "scientific_gate": {
+    "source_checkpoint_epoch": 9,
+    "source_global_optimizer_update": 9468,
+    "only_epoch": 10,
+    "expected_optimizer_updates": 1052,
+    "expected_final_global_optimizer_update": 10520,
+    "validation_authorized": false,
+    "epoch11_authorized": false,
+    "write_training_complete": false,
+    "success_marker": "RECOVERED_EPOCH10_GATE_COMPLETE",
+    "stop_state": "AWAITING_REVIEW"
+  }
+}

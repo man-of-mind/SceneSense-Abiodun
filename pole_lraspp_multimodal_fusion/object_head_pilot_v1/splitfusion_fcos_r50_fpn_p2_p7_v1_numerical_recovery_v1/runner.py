@@ -8,6 +8,7 @@ from typing import Any, Mapping
 import numpy as np
 import torch
 
+from .contracts import atomic_json
 from .guards import PreStepBreaker
 from .recovery_losses import compute_loss_groups
 
@@ -37,6 +38,29 @@ def aggregate_required_reachability(records: list[Mapping[str, Mapping[str, Any]
                 row["observed_nonzero_at_least_once"] for row in required.values())}
 
 
+def _abort_with_runtime_record(breaker: PreStepBreaker, *, epoch: int, update_in_epoch: int,
+                               global_update_if_stepped: int, sample_ids: list[str], reason: str,
+                               detail: Any, optimizer_step_executed: bool) -> None:
+    breaker.failure_root.mkdir(parents=True, exist_ok=True)
+    record = {
+        "schema": "splitfusion_fcos_runtime_finite_check_failure_v1",
+        "epoch": int(epoch),
+        "update_in_epoch": int(update_in_epoch),
+        "global_update_if_stepped": int(global_update_if_stepped),
+        "sample_ids": list(sample_ids),
+        "reason": reason,
+        "detail": detail,
+        "optimizer_step_executed": bool(optimizer_step_executed),
+        "action": ("abort_after_detected_post_step_nonfinite" if optimizer_step_executed
+                   else "abort_before_optimizer_step"),
+        "no_retry": True,
+    }
+    path = breaker.failure_root / f"RUNTIME_E{epoch:03d}_U{update_in_epoch:04d}.json"
+    atomic_json(path, record)
+    raise FloatingPointError(
+        f"runtime finite check failed epoch={epoch} update={update_in_epoch} reason={reason}: {path}")
+
+
 def run_guarded_epoch(base: Any, model: torch.nn.Module, optimizer: torch.optim.Optimizer, loader: Any,
                       config: Mapping[str, Any], multipliers: Mapping[str, float], epoch: int,
                       global_update: int, accumulation: int, breaker: PreStepBreaker,
@@ -55,18 +79,29 @@ def run_guarded_epoch(base: Any, model: torch.nn.Module, optimizer: torch.optim.
             total, parts, _audit, _outputs = compute_loss_groups(model, batch, multipliers)
             scalars = base.losses.scalar_components(parts)
             if not base.common.finite_tree(scalars):
-                raise FloatingPointError(f"nonfinite individual loss epoch={epoch} update={update_in_epoch}")
+                _abort_with_runtime_record(
+                    breaker, epoch=epoch, update_in_epoch=update_in_epoch,
+                    global_update_if_stepped=global_update + 1, sample_ids=update_sample_ids,
+                    reason="nonfinite_individual_loss", detail=scalars,
+                    optimizer_step_executed=False)
             (total / len(microbatches)).backward(); update_loss += float(total.detach()) / len(microbatches)
             for name, value in scalars.items():
                 update_parts[name] += value / len(microbatches)
             del total, parts, _audit, _outputs
         if not base.train.all_gradients_finite(model):
-            raise FloatingPointError(f"nonfinite gradient epoch={epoch} update={update_in_epoch}")
+            _abort_with_runtime_record(
+                breaker, epoch=epoch, update_in_epoch=update_in_epoch,
+                global_update_if_stepped=global_update + 1, sample_ids=update_sample_ids,
+                reason="nonfinite_gradient", detail={}, optimizer_step_executed=False)
         required = base.train.required_gradient_evidence(model)
         failed = {name: value for name, value in required.items()
                   if value["required_this_stage"] and not value["finite"]}
         if failed:
-            raise FloatingPointError(f"nonfinite required gradient epoch={epoch} update={update_in_epoch}: {failed}")
+            _abort_with_runtime_record(
+                breaker, epoch=epoch, update_in_epoch=update_in_epoch,
+                global_update_if_stepped=global_update + 1, sample_ids=update_sample_ids,
+                reason="nonfinite_required_gradient", detail=failed,
+                optimizer_step_executed=False)
         zero_groups = sorted(name for name, value in required.items()
                              if value["required_this_stage"] and not value["nonzero"])
         breaker_record = breaker.check(model, optimizer, epoch=epoch, update_in_epoch=update_in_epoch,
@@ -76,9 +111,15 @@ def run_guarded_epoch(base: Any, model: torch.nn.Module, optimizer: torch.optim.
         radar_norm = base.train.gradient_norm(model.front.W_radar); rgb_norm = base.train.gradient_norm(model.front.W_rgb)
         optimizer.step(); global_update += 1
         if not base.train.all_model_finite(model):
-            raise FloatingPointError(f"nonfinite parameter epoch={epoch} update={update_in_epoch}")
+            _abort_with_runtime_record(
+                breaker, epoch=epoch, update_in_epoch=update_in_epoch,
+                global_update_if_stepped=global_update, sample_ids=update_sample_ids,
+                reason="nonfinite_parameter", detail={}, optimizer_step_executed=True)
         if not base.train.optimizer_finite(optimizer):
-            raise FloatingPointError(f"nonfinite optimizer epoch={epoch} update={update_in_epoch}")
+            _abort_with_runtime_record(
+                breaker, epoch=epoch, update_in_epoch=update_in_epoch,
+                global_update_if_stepped=global_update, sample_ids=update_sample_ids,
+                reason="nonfinite_optimizer", detail={}, optimizer_step_executed=True)
         radar_norms.append(radar_norm); rgb_norms.append(rgb_norm)
         for name, value in update_parts.items():
             totals[name] += value

@@ -127,6 +127,14 @@ def _full_disposable_range(output: Path, tau: float, ceilings: Mapping[str, Any]
 
 
 def main() -> int:
+    protocol_path = Path(__file__).with_name("PROTOCOL_AMENDMENT_EPOCH10_GATE.json")
+    if protocol_path.is_file():
+        protocol = load_json(protocol_path)
+        if (protocol.get("state") == "PROSPECTIVE_EPOCH10_GATE_ONLY"
+                and protocol.get("prior_qualification", {}).get("replay_metric_agreement_gate")
+                == "RETIRED_AS_INVALID_FOR_NONDETERMINISTIC_CUDA_TRAJECTORIES"):
+            raise RuntimeError(
+                "retrospective qualification is retired; no replay, agreement gate, or disposable range is authorized")
     parser = argparse.ArgumentParser(description="Run preregistered disposable recovery qualification")
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--expected-update447", required=True, type=Path)
