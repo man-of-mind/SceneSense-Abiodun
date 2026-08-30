@@ -14,8 +14,21 @@ from .contracts import (atomic_json, atomic_text, canonical_hash, current_commit
 from .envelope import build_healthy_envelope
 from .guards import PreStepBreaker
 from .precision_compare import compare_registered_precisions
-from .replay import prepare_runtime, run_replay_once
-from .runner import run_guarded_epoch
+from .replay import (prepare_runtime, run_candidate_boundary, run_replay_once,
+                     run_replay_with_boundary_snapshot)
+from .runner import aggregate_required_reachability, run_guarded_epoch
+
+
+def disposable_execution_accounting(candidate_count: int) -> dict[str, int]:
+    if int(candidate_count) != 4:
+        raise RuntimeError("qualification execution plan requires the four preregistered candidates")
+    original_replay_steps = 2 * 446
+    repaired_range_steps = 1052 + 32
+    return {"original_failure_reproductions": 2, "original_replay_optimizer_steps": original_replay_steps,
+            "candidate_common_boundary_runs": int(candidate_count), "candidate_boundary_optimizer_steps": 0,
+            "selected_candidate_repeat_runs": 1, "selected_candidate_repeat_optimizer_steps": 0,
+            "full_epoch10_optimizer_steps": 1052, "epoch11_prefix_optimizer_steps": 32,
+            "total_disposable_optimizer_steps": original_replay_steps + repaired_range_steps}
 
 
 def _violations(metrics: Mapping[str, Any], ceilings: Mapping[str, Any]) -> list[str]:
@@ -93,18 +106,21 @@ def _full_disposable_range(output: Path, tau: float, ceilings: Mapping[str, Any]
     dataset.set_epoch(10); loader10, _sampler10 = base.train.dataloader(dataset, int(config["scientific_seed"]), 10, 4,
                                                                        int(config["training"]["workers"]))
     global_update, epoch10 = run_guarded_epoch(base, model, optimizer, loader10, config, calibration["multipliers"],
-                                                10, 9468, 4, breaker, enforce_required_nonzero=True)
+                                                10, 9468, 4, breaker)
     dataset.set_epoch(11); loader11, _sampler11 = base.train.dataloader(dataset, int(config["scientific_seed"]), 11, 4,
                                                                        int(config["training"]["workers"]))
     global_update, epoch11 = run_guarded_epoch(base, model, optimizer, loader11, config, calibration["multipliers"],
-                                                11, global_update, 4, breaker, maximum_updates=32,
-                                                enforce_required_nonzero=True)
+                                                11, global_update, 4, breaker, maximum_updates=32)
+    reachability = aggregate_required_reachability([
+        row["required_gradient_evidence"]
+        for summary in (epoch10, epoch11)
+        for row in summary["update_boundary_records"]])
     return {"epoch10": epoch10, "epoch11_first32": epoch11, "global_update": global_update,
             "repaired_update447_and_successor_included": epoch10["updates"] >= 448,
             "full_epoch10": epoch10["updates"] == 1052, "first32_epoch11": epoch11["updates"] == 32,
             "pre_step_guard_checks": epoch10["updates"] + epoch11["updates"],
             "circuit_breaker_events": 0, "all_guard_checks_passed": True,
-            "required_reachability_nonzero_every_update": True,
+            "aggregate_required_gradient_reachability": reachability,
             "peak_allocated_mib": max(epoch10["peak_allocated_mib"], epoch11["peak_allocated_mib"]),
             "vram_cap_mib": 12288, "disposable": True, "checkpoint_written": False,
             "validation_accessed": False, "original_epochs10_26_used": False}
@@ -133,7 +149,7 @@ def main() -> int:
     verify_original_provenance(checkpoint_metadata=True)
     output.mkdir(parents=True, exist_ok=False); (output / "replays").mkdir(); (output / "candidates").mkdir()
     shutil.copy2(args.independent_review, output / "INDEPENDENT_SOURCE_REVIEW.json")
-    original_a = run_replay_once(output / "replays/original_a", expected, normalization="original")
+    original_a, boundary_snapshot = run_replay_with_boundary_snapshot(output / "replays/original_a", expected)
     original_b = run_replay_once(output / "replays/original_b", expected, normalization="original")
     if not _reproductions_agree(original_a, original_b):
         raise RuntimeError("original failure did not reproduce numerically twice")
@@ -154,11 +170,12 @@ def main() -> int:
                 "expected_update447_sha256": expected_update447_sha256,
                 "update446_healthy": True, "optimizer_step_at_447": False})
     atomic_json(output / "healthy_envelope.json", envelope)
+    candidates = load_recovery_config()["yaw"]["candidate_tau"]
+    execution_accounting = disposable_execution_accounting(len(candidates))
     candidate_reports = []
-    for tau in load_recovery_config()["yaw"]["candidate_tau"]:
+    for tau in candidates:
         root = output / "candidates" / f"tau_{float(tau):.0e}"; root.mkdir()
-        left = run_replay_once(root / "reproduction_a", expected, normalization="candidate", tau=float(tau))
-        right = run_replay_once(root / "reproduction_b", expected, normalization="candidate", tau=float(tau))
+        left = run_candidate_boundary(root / "boundary", expected, tau=float(tau), snapshot=boundary_snapshot)
         violations = _violations(left["boundary"]["pre_step"], ceilings)
         identities = [identity for micro in left["boundary"]["physical_microbatches"]
                       for identity in micro.get("geometry", {}).get("carrier_identities", [])]
@@ -171,16 +188,17 @@ def main() -> int:
                 ordinary_errors.extend(abs(float(actual) - float(expected_value))
                                        for actual, expected_value in zip(row["normalized_yaw"], expected_yaw))
         ordinary_max_error = max(ordinary_errors, default=0.0)
-        report = {"tau": tau, "two_reproductions_agree": _reproductions_agree(left, right),
+        report = {"tau": tau, "common_boundary_state_restored": True,
+                  "candidate_optimizer_steps": 0, "selected_boundary_reproduction_agrees": None,
                   "guard_violations": violations, "affected_carriers": affected,
                   "ordinary_norm_ge_tau_count": len(ordinary_errors) // 2,
                   "ordinary_norm_ge_tau_max_equation_error": ordinary_max_error,
                   "ordinary_norm_ge_tau_equation_unchanged": ordinary_max_error <= 2e-7,
                   "raw_decoded_output_audit": coverage,
-                  "passes_update447": not violations and _reproductions_agree(left, right)
-                      and affected > 0 and bool(ordinary_errors) and ordinary_max_error <= 2e-7
+                  "passes_update447": not violations and affected > 0 and bool(ordinary_errors)
+                      and ordinary_max_error <= 2e-7
                       and coverage["complete"]}
-        candidate_reports.append(report); atomic_json(root / "candidate.json", report)
+        candidate_reports.append(report)
     passing = [row for row in candidate_reports if row["passes_update447"]]
     if not passing:
         atomic_text(output / "CONTRACT_INVALID_NO_CANDIDATE", "NO_PREREGISTERED_TAU_SATISFIED_THE_GUARDS\n")
@@ -189,9 +207,22 @@ def main() -> int:
         raise RuntimeError("contract-invalid: no preregistered yaw tau satisfied qualification guards")
     selected_report = min(passing, key=lambda row: (row["affected_carriers"], float(row["tau"])))
     selected = float(selected_report["tau"])
+    selected_repeat = run_candidate_boundary(output / "candidates/selected_boundary_repeat", expected,
+                                               tau=selected, snapshot=boundary_snapshot)
+    selected_first = load_json(output / "candidates" / f"tau_{selected:.0e}" / "boundary/boundary.json")
+    selected_report["selected_boundary_reproduction_agrees"] = _reproductions_agree(
+        selected_first, selected_repeat)
+    if not selected_report["selected_boundary_reproduction_agrees"]:
+        raise RuntimeError("selected candidate boundary did not reproduce from the common state")
+    for report in candidate_reports:
+        atomic_json(output / "candidates" / f"tau_{float(report['tau']):.0e}" / "candidate.json", report)
     range_report = _full_disposable_range(output / "selected_disposable", selected, ceilings)
     if not (range_report["full_epoch10"] and range_report["first32_epoch11"]
             and range_report["repaired_update447_and_successor_included"]
+            and range_report["aggregate_required_gradient_reachability"][
+                "all_required_trainable_groups_finite_every_update"]
+            and range_report["aggregate_required_gradient_reachability"][
+                "all_required_trainable_groups_observed_nonzero"]
             and range_report["peak_allocated_mib"] <= 12288):
         raise RuntimeError("selected candidate failed full disposable range or VRAM guard")
     base, config, calibration, model, optimizer, _loader, _loss = prepare_runtime(selected, "candidate")
@@ -221,6 +252,13 @@ def main() -> int:
                  "candidate_set": load_recovery_config()["yaw"]["candidate_tau"]}
     qualification = {"schema": "splitfusion_fcos_numerical_recovery_qualification_v1", "pass": True,
         "source_commit": commit, "source_files_sha256": source_hash, "original_failure_reproduced_twice": True,
+        "common_pre_update447_state": {"captured_once": True, "candidate_optimizer_steps": 0,
+            "model_sha256": boundary_snapshot.model_sha256,
+            "optimizer_sha256": boundary_snapshot.optimizer_sha256,
+            "rng_sha256": boundary_snapshot.rng_sha256,
+            "control_sha256": boundary_snapshot.control_sha256,
+            "selected_candidate_boundary_reproduced": True},
+        "disposable_execution_accounting": execution_accounting,
         "selected_tau": selected, "candidate_selection": "minimum affected carriers then smallest passing", "range": range_report,
         "causal_repair_evidence": "only shared yaw normalization changed; original boundary violated; repaired boundary and ordinary vectors passed",
         "precision_comparison": "bf16_fp32_train_only.json", "validation_accessed": False,
@@ -229,7 +267,7 @@ def main() -> int:
         "expected_update447_sha256": expected_update447_sha256,
         "selected_tau_and_ceilings_hash": canonical_hash({"selected_tau": selected, "ceilings": ceilings}),
         "scientific_optimizer_steps": 0,
-        "disposable_optimizer_steps": (2 + 2 * len(load_recovery_config()["yaw"]["candidate_tau"])) * 446 + 1052 + 32,
+        "disposable_optimizer_steps": execution_accounting["total_disposable_optimizer_steps"],
         "disposable_state_discarded": True, "independent_review": True}
     atomic_json(output / "QUALIFIED_RECOVERY_CONFIG.json", qualified)
     atomic_json(output / "RECOVERY_QUALIFICATION.json", qualification)

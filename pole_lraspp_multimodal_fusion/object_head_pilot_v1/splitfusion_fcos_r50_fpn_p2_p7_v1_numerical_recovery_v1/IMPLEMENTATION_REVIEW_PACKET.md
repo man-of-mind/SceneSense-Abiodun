@@ -4,6 +4,8 @@
 
 Implementation start: `8caef38f6312add8a9a986a00217c7f98b275bd2` on local `master`. The implementation commit is the local `master` commit containing this packet; resolve it with `git rev-parse HEAD` after checkout. Git commit hashes cannot self-identify inside their own committed bytes, so the machine-verifiable binding used by qualification is the resolved commit plus `canonical_hash(package_hashes())`.
 
+Independent-review remediation is based only on `0c7cab240d7149e4d313c101ac13d52b5b0f8c18`: aggregate rather than per-update reachability, streaming breaker reductions, a shared disposable update-447 boundary for candidates, and verified epoch-boundary scientific resume. No scientific equation or selection contract changed.
+
 All changes are confined to this new package. Changed files are: `__init__.py`, `README.md`, `NUMERICAL_OPERATION_AUDIT.md`, `IMPLEMENTATION_REVIEW_PACKET.md`, `IMPLEMENTATION_REVIEW_PACKET.json`, `recovery_config.json`, `contracts.py`, `base_runtime.py`, `safe_math.py`, `audit.py`, `state_guard.py`, `guards.py`, `envelope.py`, `recovery_model.py`, `recovery_losses.py`, `replay.py`, `runner.py`, `precision_compare.py`, `qualify_recovery.py`, `continue_scientific.py`, `infer_recovered.py`, `evaluate_recovered.py`, `operation_inventory.py`, `tests/__init__.py`, and `tests/test_synthetic.py`.
 
 ## 2. Original immutability
@@ -42,7 +44,7 @@ Training `recovery_losses.geometry_losses` and inference `recovery_model._decode
 
 ## 6. Optimizer groups and proposed update
 
-The breaker requires exact, nonoverlapping coverage by the following groups. It computes FP64 L2 gradient/momentum/proposed-delta values from the registered SGD settings, including weight decay, dampening, nesterov/maximize semantics, and existing momentum buffers, without mutation. It also records global gradient norm and worst named parameter-relative delta.
+The breaker requires exact, nonoverlapping coverage by the following groups. It computes FP64 scalar L2 reductions for gradient/momentum/proposed-delta values from the registered SGD settings, including weight decay, dampening, nesterov/maximize semantics, and existing momentum buffers, without mutation. Each parameter is processed and released before the next; no FP64 parameter/gradient/momentum copies or proposed-update lists are retained. It also records global gradient norm and worst named parameter-relative delta.
 
 | Optimizer group | Locked base LR | Exact membership rule |
 |---|---:|---|
@@ -54,11 +56,11 @@ All use SGD momentum `0.9`, weight decay `0.0001`, and the unchanged absolute ep
 
 ## 7. Breaker placement
 
-`runner.run_guarded_epoch` preserves loss finiteness, gradient finiteness, required-gradient evidence, post-step model finiteness, and post-step optimizer finiteness checks. It inserts `PreStepBreaker.check` only after all four physical microbatches accumulate and before `optimizer.step`. On violation it writes a structured record and raises; no clip, skip, step, or loss-magnitude criterion occurs. Hash equality proves breaker calculation leaves model/optimizer unchanged.
+`runner.run_guarded_epoch` preserves loss finiteness, per-update required-gradient finiteness, post-step model finiteness, and post-step optimizer finiteness checks. An isolated exact-zero required gradient is written in each update record and never aborts. Qualification aggregates those records and requires every required trainable group to be nonzero at least once across the full disposable epoch10 plus epoch11-prefix range. `PreStepBreaker.check` remains after all four physical microbatches and before `optimizer.step`; violations preserve sample IDs, write a structured record, and raise with no clip, skip, step, or loss-magnitude criterion. Synthetic hash tests and audited update-447 boundary hashes prove non-mutation without hashing full state on each scientific update.
 
 ## 8. Candidate selection and healthy envelope
 
-Candidates remain `[1e-5,1e-4,1e-3,1e-2]`; selected tau and all ceilings are null. Later qualification reproduces original update 447 twice, uses only healthy epoch4–9 telemetry plus explicit epoch10 updates1–446, calculates min/median/p99/max, fixes every ceiling to ten times healthy max, evaluates all four candidates twice, and selects the passing candidate affecting the fewest carriers, breaking a tie by the smallest tau. It then requires repaired 447 and successor, a full disposable epoch10, first 32 epoch11 updates, all audits, and the 12 GiB cap. No passing candidate creates `CONTRACT_INVALID_NO_CANDIDATE` and cannot qualify.
+Candidates remain `[1e-5,1e-4,1e-3,1e-2]`; selected tau and all ceilings are null. Later qualification reproduces the original update 447 twice, captures one exact pre-update-447 model/optimizer/RNG state and four microbatches, evaluates every tau once at that common state with zero candidate steps, and repeats only the selected candidate boundary once. Selection remains fewest affected carriers then smallest tau. The only disposable optimizer steps are `2×446 + 1052 + 32 = 1976`. The full repaired epoch10 plus first 32 epoch11 updates must pass every finite/guard check and aggregate reachability, all audits, and the 12 GiB cap. No passing candidate creates `CONTRACT_INVALID_NO_CANDIDATE` and cannot qualify.
 
 ## 9. State-restoration proof design
 
@@ -66,13 +68,17 @@ Candidates remain `[1e-5,1e-4,1e-3,1e-2]`; selected tau and all ceilings are nul
 
 ## 10. Deterministic replay design
 
-The replay names epoch-9 explicitly, verifies its path/hash/schema/epoch/global/config and required model/optimizer/scheduler/RNG/sampler keys, checks finite model/buffer/optimizer state, restores optimizer and RNG, recreates epoch10 sampler/augmentation, steps only disposable updates1–446, verifies 16 preregistered IDs, and runs update447 forward/backward with no step. It isolates four microbatches and records all requested identities, losses, gradients, extrema, state hashes, and proposed updates. Two reproductions use numerical tolerance, not byte-identical CUDA.
+The replay names epoch-9 explicitly, verifies its path/hash/schema/epoch/global/config and required model/optimizer/scheduler/RNG/sampler keys, checks finite model/buffer/optimizer state, restores optimizer and RNG, recreates epoch10 sampler/augmentation, steps only disposable updates1–446, verifies 16 preregistered IDs, and runs update447 forward/backward with no step. It isolates four microbatches and records all requested identities, losses, gradients, extrema, boundary state hashes, and proposed updates. Full model/optimizer hashes are computed only at the audited boundary. Two original reproductions use numerical tolerance, not byte-identical CUDA.
+
+Scientific interruption recovery is explicitly requested with `--resume-existing-epoch-boundary`. It rejects missing, partial, noncontiguous, symlinked, breaker-failed, terminal, or hash-drifted state; verifies every completed checkpoint and sidecar against source, qualification, provenance, schedule, sampler, and exact global counter; restores the latest verified checkpoint model/optimizer/RNG; and begins only at the next epoch. New output remains create-only from the verified original epoch 9, and checkpoint writes refuse overwrite.
 
 ## 11. Tests run
 
 - `python3 -m py_compile .../*.py` — pass.
-- `python3 -m unittest ...tests.test_synthetic` — 11 CPU-only tests pass.
+- `python3 -m unittest ...tests.test_synthetic` — 19 CPU-only tests pass.
 - Import smoke test, static forbidden-execution audit, original hash/provenance check, `git diff --check`, and final worktree audit are required before commit and recorded in the JSON packet.
+
+Focused remediation coverage includes isolated-zero aggregate reachability, never-nonzero rejection, streaming SGD metric equivalence and pre/post non-mutation hashes, zero candidate optimizer steps and exact `1976` disposable-step accounting, verified checkpoint selection, partial-epoch rejection, checkpoint-binding rejection, and exact experiment-provenance binding. No test calls `optimizer.step`.
 
 No test loaded a real sample, ran a real model forward/backward, invoked CUDA training, or called `optimizer.step`.
 
@@ -97,6 +103,8 @@ Only after qualification, a second independent review writes `/tmp/splitfusion_r
 ```bash
 python3 -m pole_lraspp_multimodal_fusion.object_head_pilot_v1.splitfusion_fcos_r50_fpn_p2_p7_v1_numerical_recovery_v1.continue_scientific --qualification-dir /tmp/splitfusion_recovery_qualification_v1 --authorization /tmp/splitfusion_recovery_review/USER_AUTHORIZATION.json --output experiments/route_b_v3_1_splitfusion_fcos_r50_fpn_p2_p7_v1_recovery_v1/CREATE_ONLY_AFTER_AUTHORIZATION --execute-scientific-continuation AUTHORIZED_EPOCH9_TO_EPOCH26_RECOVERY
 ```
+
+If that authorized process is interrupted after a complete recovered epoch checkpoint, the exact same command adds `--resume-existing-epoch-boundary`. It refuses an absent output, a run with no complete recovered checkpoint, any partial/noncontiguous next-epoch artifact, or any source/qualification/provenance binding drift.
 
 Recovered inference is one command per epoch 16, 22, and 26, changing only `--epoch`:
 

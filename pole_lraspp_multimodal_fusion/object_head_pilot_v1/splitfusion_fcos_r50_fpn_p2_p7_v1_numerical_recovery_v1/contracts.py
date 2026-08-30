@@ -201,7 +201,10 @@ def require_qualified(qualification_dir: Path, authorization: Path) -> tuple[Map
     checks = (
         qualified.get("state") == "QUALIFIED_TO_TRAIN",
         qualification.get("pass") is True,
-        qualification.get("range", {}).get("required_reachability_nonzero_every_update") is True,
+        qualification.get("range", {}).get("aggregate_required_gradient_reachability", {}).get(
+            "all_required_trainable_groups_observed_nonzero") is True,
+        qualification.get("range", {}).get("aggregate_required_gradient_reachability", {}).get(
+            "all_required_trainable_groups_finite_every_update") is True,
         review.get("approved") is True,
         qualification_review.get("approved") is True,
         auth.get("authorized") is True,

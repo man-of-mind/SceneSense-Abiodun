@@ -4,6 +4,7 @@ import argparse
 import json
 import math
 from collections import defaultdict
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence
 
@@ -15,7 +16,36 @@ from .contracts import atomic_json, load_json, load_recovery_config, resolve_rep
 from .guards import proposed_sgd_metrics
 from .recovery_losses import compute_loss_groups as recovered_loss
 from .recovery_model import build_recovery_model
-from .state_guard import model_hash, optimizer_hash
+from .state_guard import control_hash, model_hash, optimizer_hash, rng_hash
+
+
+def _cpu_clone_tree(value: Any) -> Any:
+    if isinstance(value, torch.Tensor):
+        return value.detach().cpu().clone()
+    if isinstance(value, dict):
+        return {key: _cpu_clone_tree(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_cpu_clone_tree(item) for item in value]
+    if isinstance(value, tuple):
+        return tuple(_cpu_clone_tree(item) for item in value)
+    return value
+
+
+@dataclass(frozen=True)
+class BoundarySnapshot:
+    """Disposable exact state immediately before epoch10 update447."""
+
+    model_state: Mapping[str, Any]
+    optimizer_state: Mapping[str, Any]
+    rng_state: Mapping[str, Any]
+    module_modes: Mapping[str, bool]
+    requires_grad: Mapping[str, bool]
+    microbatches: Sequence[Mapping[str, Any]]
+    sample_ids: tuple[str, ...]
+    model_sha256: str
+    optimizer_sha256: str
+    rng_sha256: str
+    control_sha256: str
 
 
 def _norm(values: Sequence[torch.Tensor | None]) -> float:
@@ -184,14 +214,16 @@ def prepare_runtime(tau: float | None, normalization: str) -> tuple[Any, Mapping
     return base, original_config, calibration, model, optimizer, loader, loss_function
 
 
-def run_replay_once(output: Path, expected_sample_ids: Sequence[str], *, normalization: str,
-                    tau: float | None = None, stop_update: int = 447, step_stop_update: bool = False,
-                    use_amp: bool = True) -> dict[str, Any]:
+def _run_replay(output: Path, expected_sample_ids: Sequence[str], *, normalization: str,
+                tau: float | None = None, stop_update: int = 447, step_stop_update: bool = False,
+                use_amp: bool = True, capture_boundary_snapshot: bool = False
+                ) -> tuple[dict[str, Any], BoundarySnapshot | None]:
     if Path(output).exists():
         raise FileExistsError(output)
     Path(output).mkdir(parents=True, exist_ok=False)
     base, config, calibration, model, optimizer, loader, loss_function = prepare_runtime(tau, normalization)
     accumulation = 4; global_update = 9468; healthy_records = []; boundary: dict[str, Any] | None = None
+    captured: BoundarySnapshot | None = None
     torch.cuda.reset_peak_memory_stats()
     for update_in_epoch, microbatches in enumerate(base.train.microbatch_groups(loader, accumulation), 1):
         if update_in_epoch > stop_update:
@@ -200,7 +232,27 @@ def run_replay_once(output: Path, expected_sample_ids: Sequence[str], *, normali
             raise RuntimeError("registered update boundary is not four physical microbatches")
         lrs = base.train.scheduled_lrs(config, 10, global_update + 1); base.train.set_lrs(optimizer, lrs)
         optimizer.zero_grad(set_to_none=True)
-        model_before = model_hash(model); optimizer_before = optimizer_hash(optimizer)
+        model_before = optimizer_before = rng_before = None
+        if update_in_epoch == stop_update:
+            model_before = model_hash(model)
+            optimizer_before = optimizer_hash(optimizer)
+            rng_state = base.common.capture_rng()
+            rng_before = rng_hash(rng_state)
+            if capture_boundary_snapshot:
+                captured_ids = tuple(str(value) for batch in microbatches for value in batch["sample_ids"])
+                captured = BoundarySnapshot(
+                    model_state=_cpu_clone_tree(model.state_dict()),
+                    optimizer_state=_cpu_clone_tree(optimizer.state_dict()),
+                    rng_state=_cpu_clone_tree(rng_state),
+                    module_modes={name: module.training for name, module in model.named_modules()},
+                    requires_grad={name: parameter.requires_grad for name, parameter in model.named_parameters()},
+                    microbatches=_cpu_clone_tree(microbatches),
+                    sample_ids=captured_ids,
+                    model_sha256=model_before,
+                    optimizer_sha256=optimizer_before,
+                    rng_sha256=rng_before,
+                    control_sha256=control_hash(model),
+                )
         sample_ids: list[str] = []; micro_records = []; accumulated_parts: dict[str, float] = defaultdict(float)
         for physical_index, batch in enumerate(microbatches):
             sample_ids.extend(batch["sample_ids"])
@@ -244,16 +296,18 @@ def run_replay_once(output: Path, expected_sample_ids: Sequence[str], *, normali
         if update_in_epoch == stop_update:
             if list(sample_ids) != list(expected_sample_ids):
                 raise RuntimeError(f"update-447 sample identity mismatch: {sample_ids}")
+            model_after = model_hash(model); optimizer_after = optimizer_hash(optimizer)
             boundary = {"epoch": 10, "update_in_epoch": update_in_epoch, "global_update_if_stepped": global_update + 1,
                         "sample_ids": sample_ids, "accumulated_loss_components": dict(accumulated_parts),
                         "physical_microbatches": micro_records,
                         "parameter_gradient_groups": _parameter_gradients(model), "pre_step": metrics,
                         "model_hash_before_forward_backward": model_before,
-                        "model_hash_after_forward_backward": model_hash(model),
+                        "model_hash_after_forward_backward": model_after,
                         "optimizer_hash_before_forward_backward": optimizer_before,
-                        "optimizer_hash_after_forward_backward": optimizer_hash(optimizer),
-                        "model_optimizer_unchanged_by_forward_backward": model_before == model_hash(model)
-                            and optimizer_before == optimizer_hash(optimizer),
+                        "optimizer_hash_after_forward_backward": optimizer_after,
+                        "rng_hash_before_forward_backward": rng_before,
+                        "model_optimizer_unchanged_by_forward_backward": model_before == model_after
+                            and optimizer_before == optimizer_after,
                         "optimizer_step_executed": bool(step_stop_update)}
             if not step_stop_update:
                 break
@@ -267,6 +321,97 @@ def run_replay_once(output: Path, expected_sample_ids: Sequence[str], *, normali
               "boundary": boundary, "peak_allocated_mib": torch.cuda.max_memory_allocated() / 2**20,
               "vram_cap_mib": 12288, "validation_accessed": False}
     atomic_json(Path(output) / "replay.json", report)
+    return report, captured
+
+
+def run_replay_once(output: Path, expected_sample_ids: Sequence[str], *, normalization: str,
+                    tau: float | None = None, stop_update: int = 447, step_stop_update: bool = False,
+                    use_amp: bool = True) -> dict[str, Any]:
+    report, _snapshot = _run_replay(output, expected_sample_ids, normalization=normalization, tau=tau,
+                                    stop_update=stop_update, step_stop_update=step_stop_update,
+                                    use_amp=use_amp, capture_boundary_snapshot=False)
+    return report
+
+
+def run_replay_with_boundary_snapshot(output: Path, expected_sample_ids: Sequence[str]
+                                      ) -> tuple[dict[str, Any], BoundarySnapshot]:
+    report, snapshot = _run_replay(output, expected_sample_ids, normalization="original",
+                                   capture_boundary_snapshot=True)
+    if snapshot is None or snapshot.sample_ids != tuple(str(value) for value in expected_sample_ids):
+        raise RuntimeError("exact common update-447 boundary state was not captured")
+    return report, snapshot
+
+
+def run_candidate_boundary(output: Path, expected_sample_ids: Sequence[str], *, tau: float,
+                           snapshot: BoundarySnapshot, use_amp: bool = True) -> dict[str, Any]:
+    """Evaluate one tau at the shared pre-update447 state; never execute a step."""
+    if Path(output).exists():
+        raise FileExistsError(output)
+    Path(output).mkdir(parents=True, exist_ok=False)
+    base, _config, calibration, model, optimizer, _loader, loss_function = prepare_runtime(tau, "candidate")
+    model.load_state_dict(snapshot.model_state, strict=True)
+    optimizer.load_state_dict(snapshot.optimizer_state)
+    for name, module in model.named_modules():
+        module.train(snapshot.module_modes[name])
+    for name, parameter in model.named_parameters():
+        parameter.requires_grad_(snapshot.requires_grad[name])
+    base.common.restore_rng(snapshot.rng_state)
+    if (model_hash(model) != snapshot.model_sha256
+            or optimizer_hash(optimizer) != snapshot.optimizer_sha256
+            or rng_hash(base.common.capture_rng()) != snapshot.rng_sha256
+            or control_hash(model) != snapshot.control_sha256):
+        raise RuntimeError("candidate did not restore the exact common pre-update447 state")
+    optimizer.zero_grad(set_to_none=True)
+    model_before = model_hash(model); optimizer_before = optimizer_hash(optimizer)
+    sample_ids: list[str] = []; micro_records = []; accumulated_parts: dict[str, float] = defaultdict(float)
+    for physical_index, batch in enumerate(snapshot.microbatches):
+        sample_ids.extend(str(value) for value in batch["sample_ids"])
+        audit_context = ForwardAudit(model); audit_context.__enter__(); audit_context.add("batch.input", batch["input"])
+        try:
+            total, parts, audit, outputs = loss_function(
+                model, batch, calibration["multipliers"], use_amp=use_amp, audit_detail=True)
+            scalar = base.losses.scalar_components(parts)
+            if not base.common.finite_tree(scalar):
+                raise FloatingPointError("nonfinite individual loss at common update447 boundary")
+            for name, value in scalar.items():
+                accumulated_parts[name] += value / len(snapshot.microbatches)
+            diagnostics = _autograd_diagnostics(model, parts, outputs)
+            audit_context.add("forward.outputs", outputs); audit_context.add("loss.parts", parts)
+            (total / len(snapshot.microbatches)).backward()
+            raw_audit = audit_tree(outputs, "outputs"); require_finite_audit(raw_audit)
+            micro_records.append({"physical_microbatch": physical_index + 1,
+                "sample_ids": list(batch["sample_ids"]), "losses": scalar,
+                "group_and_per_loss_autograd": diagnostics, "geometry": audit.get("geometry", {}),
+                "tensor_audit": audit_context.records,
+                "score_and_box_decode_audit": _training_decode_audit(model, outputs)})
+        finally:
+            audit_context.__exit__(None, None, None)
+        del total, parts, audit, outputs
+    if sample_ids != [str(value) for value in expected_sample_ids]:
+        raise RuntimeError(f"common-boundary sample identity mismatch: {sample_ids}")
+    if not base.train.all_gradients_finite(model):
+        raise FloatingPointError("nonfinite candidate gradient at common update447 boundary")
+    metrics = proposed_sgd_metrics(model, optimizer)
+    model_after = model_hash(model); optimizer_after = optimizer_hash(optimizer)
+    boundary = {"epoch": 10, "update_in_epoch": 447, "global_update_if_stepped": 9915,
+        "sample_ids": sample_ids, "accumulated_loss_components": dict(accumulated_parts),
+        "physical_microbatches": micro_records, "parameter_gradient_groups": _parameter_gradients(model),
+        "pre_step": metrics, "model_hash_before_forward_backward": model_before,
+        "model_hash_after_forward_backward": model_after,
+        "optimizer_hash_before_forward_backward": optimizer_before,
+        "optimizer_hash_after_forward_backward": optimizer_after,
+        "model_optimizer_unchanged_by_forward_backward": model_before == model_after
+            and optimizer_before == optimizer_after,
+        "optimizer_step_executed": False, "common_boundary_state_sha256": {
+            "model": snapshot.model_sha256, "optimizer": snapshot.optimizer_sha256,
+            "rng": snapshot.rng_sha256, "control": snapshot.control_sha256}}
+    report = {"schema": "splitfusion_fcos_common_boundary_candidate_v1", "normalization": "candidate",
+        "tau": float(tau), "source_checkpoint_epoch": 9, "source_global_update": 9468,
+        "updates_replayed_for_candidate": 0, "common_boundary_state_restored": True,
+        "healthy_records": [], "boundary": boundary,
+        "peak_allocated_mib": torch.cuda.max_memory_allocated() / 2**20,
+        "vram_cap_mib": 12288, "validation_accessed": False}
+    atomic_json(Path(output) / "boundary.json", report)
     return report
 
 

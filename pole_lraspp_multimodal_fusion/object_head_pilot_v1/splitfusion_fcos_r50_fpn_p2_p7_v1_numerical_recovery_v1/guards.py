@@ -1,18 +1,20 @@
 from __future__ import annotations
 
 import math
-from collections import defaultdict
 from pathlib import Path
-from typing import Any, Mapping, Sequence
+from typing import Any, Mapping
 
 import torch
 
 from .contracts import atomic_json
-from .state_guard import model_hash, optimizer_hash
 
 
-def _l2(values: Sequence[torch.Tensor]) -> float:
-    return math.sqrt(sum(float(value.detach().double().pow(2).sum()) for value in values))
+def _squared_l2(value: torch.Tensor) -> float:
+    """Reduce one tensor directly to an FP64 scalar without retaining an FP64 copy."""
+    scalar = torch.linalg.vector_norm(value.detach(), ord=2, dtype=torch.float64)
+    result = float(scalar) ** 2
+    del scalar
+    return result
 
 
 def parameter_groups(model: torch.nn.Module, optimizer: torch.optim.Optimizer) -> dict[str, list[torch.nn.Parameter]]:
@@ -35,66 +37,86 @@ def parameter_groups(model: torch.nn.Module, optimizer: torch.optim.Optimizer) -
 
 
 def proposed_sgd_metrics(model: torch.nn.Module, optimizer: torch.optim.Optimizer) -> dict[str, Any]:
-    """Calculate the exact next SGD delta without mutating parameters or state."""
+    """Stream exact SGD metrics one tensor at a time without mutating state."""
     groups = parameter_groups(model, optimizer)
+    parameter_names = {id(value): name for name, value in model.named_parameters()}
     group_gradients: dict[str, float] = {}
     group_momentum: dict[str, float] = {}
     group_updates: dict[str, float] = {}
     group_parameters: dict[str, float] = {}
     group_optimizer_state: dict[str, float] = {}
-    relative: dict[str, float] = {}
+    max_relative = 0.0
+    max_relative_name: str | None = None
     nonzero_gradients = 0
+    global_gradient_squared = 0.0
+    global_parameter_squared = 0.0
     for group in optimizer.param_groups:
         name = str(group["name"])
-        gradients, momentums, updates = [], [], []
-        parameter_values = [parameter.detach().double() for parameter in groups[name]]
-        optimizer_values = [value.detach().double() for parameter in groups[name]
-                            for value in optimizer.state.get(parameter, {}).values()
-                            if isinstance(value, torch.Tensor) and value.dtype.is_floating_point]
+        gradient_squared = momentum_squared = update_squared = 0.0
+        parameter_squared = optimizer_state_squared = 0.0
         lr, momentum = float(group["lr"]), float(group.get("momentum", 0.0))
         dampening, weight_decay = float(group.get("dampening", 0.0)), float(group.get("weight_decay", 0.0))
         nesterov, maximize = bool(group.get("nesterov", False)), bool(group.get("maximize", False))
         for parameter in groups[name]:
+            parameter_l2_squared = _squared_l2(parameter)
+            parameter_squared += parameter_l2_squared
+            global_parameter_squared += parameter_l2_squared
+            state = optimizer.state.get(parameter, {})
+            momentum_buffer_l2_squared = None
+            for state_name, state_value in state.items():
+                if isinstance(state_value, torch.Tensor) and state_value.dtype.is_floating_point:
+                    state_l2_squared = _squared_l2(state_value)
+                    optimizer_state_squared += state_l2_squared
+                    if state_name == "momentum_buffer":
+                        momentum_buffer_l2_squared = state_l2_squared
             if parameter.grad is None:
                 continue
-            gradient = parameter.grad.detach().double()
-            gradients.append(gradient)
-            nonzero_gradients += int(bool(torch.count_nonzero(gradient)))
+            gradient = parameter.grad.detach()
+            gradient_l2_squared = _squared_l2(gradient)
+            gradient_squared += gradient_l2_squared
+            global_gradient_squared += gradient_l2_squared
+            nonzero_gradients += int(gradient_l2_squared > 0.0)
             direction = -gradient if maximize else gradient
             if weight_decay:
-                direction = direction + parameter.detach().double() * weight_decay
-            buffer = optimizer.state.get(parameter, {}).get("momentum_buffer")
+                direction = direction.add(parameter.detach(), alpha=weight_decay)
+            buffer = state.get("momentum_buffer")
             if buffer is not None:
-                prior = buffer.detach().double()
-                momentums.append(prior)
-                next_buffer = prior * momentum + direction * (1.0 - dampening)
+                prior = buffer.detach()
+                momentum_squared += (momentum_buffer_l2_squared
+                                     if momentum_buffer_l2_squared is not None else _squared_l2(prior))
+                next_buffer = prior.mul(momentum).add(direction, alpha=1.0 - dampening)
             else:
                 next_buffer = direction
             if momentum:
-                effective = direction + momentum * next_buffer if nesterov else next_buffer
+                effective = direction.add(next_buffer, alpha=momentum) if nesterov else next_buffer
             else:
                 effective = direction
-            delta = effective * (-lr)
-            updates.append(delta)
-            parameter_norm = float(parameter.detach().double().norm())
-            relative_name = next(key for key, value in model.named_parameters() if value is parameter)
-            relative[relative_name] = float(delta.norm()) / max(parameter_norm, torch.finfo(torch.float64).tiny)
-        group_gradients[name] = _l2(gradients)
-        group_momentum[name] = _l2(momentums)
-        group_updates[name] = _l2(updates)
-        group_parameters[name] = _l2(parameter_values)
-        group_optimizer_state[name] = _l2(optimizer_values)
-    all_gradients = [value.grad.detach().double() for value in model.parameters() if value.grad is not None]
+            effective_l2_squared = _squared_l2(effective)
+            update_squared += lr * lr * effective_l2_squared
+            relative_value = abs(lr) * math.sqrt(effective_l2_squared) / max(
+                math.sqrt(parameter_l2_squared), torch.finfo(torch.float64).tiny)
+            if max_relative_name is None or relative_value > max_relative:
+                max_relative = relative_value
+                max_relative_name = parameter_names[id(parameter)]
+            del direction, next_buffer, effective
+        group_gradients[name] = math.sqrt(gradient_squared)
+        group_momentum[name] = math.sqrt(momentum_squared)
+        group_updates[name] = math.sqrt(update_squared)
+        group_parameters[name] = math.sqrt(parameter_squared)
+        group_optimizer_state[name] = math.sqrt(optimizer_state_squared)
     record = {
-        "gradient_norm": {**group_gradients, "global": _l2(all_gradients)},
+        "gradient_norm": {**group_gradients, "global": math.sqrt(global_gradient_squared)},
         "momentum_norm": group_momentum,
         "proposed_sgd_update_norm": group_updates,
-        "parameter_norm": {**group_parameters, "global": _l2([value.detach().double() for value in model.parameters()])},
+        "parameter_norm": {**group_parameters, "global": math.sqrt(global_parameter_squared)},
         "optimizer_state_norm": group_optimizer_state,
-        "max_parameter_relative_update": max(relative.values(), default=0.0),
-        "max_parameter_relative_update_name": max(relative, key=relative.get) if relative else None,
-        "gradient_tensors": len(all_gradients), "nonzero_gradient_tensors": nonzero_gradients,
+        "max_parameter_relative_update": max_relative,
+        "max_parameter_relative_update_name": max_relative_name,
+        "gradient_tensors": sum(parameter.grad is not None for parameter in model.parameters()),
+        "nonzero_gradient_tensors": nonzero_gradients,
         "zero_gradients_are_diagnostic_only": True,
+        "streaming_scalar_reductions": True,
+        "retained_fp64_tensor_copies": 0,
     }
     floating = [value for family in (record["gradient_norm"], record["momentum_norm"],
                                       record["proposed_sgd_update_norm"]) for value in family.values()]
@@ -115,7 +137,6 @@ class PreStepBreaker:
 
     def check(self, model: torch.nn.Module, optimizer: torch.optim.Optimizer, *, epoch: int,
               update_in_epoch: int, global_update_if_stepped: int, context: Mapping[str, Any] | None = None) -> dict[str, Any]:
-        before = {"model": model_hash(model), "optimizer": optimizer_hash(optimizer)}
         metrics = proposed_sgd_metrics(model, optimizer)
         violations: list[dict[str, Any]] = []
         if not metrics["finite"]:
@@ -129,15 +150,13 @@ class PreStepBreaker:
         ceiling = float(self.ceilings["max_parameter_relative_update"])
         if not math.isfinite(ceiling) or value > ceiling:
             violations.append({"kind": "max_parameter_relative_update", "value": value, "ceiling": ceiling})
-        after = {"model": model_hash(model), "optimizer": optimizer_hash(optimizer)}
-        if before != after:
-            raise RuntimeError("breaker calculation mutated model or optimizer")
         context_record = dict(context or {})
         record = {"schema": "splitfusion_fcos_pre_step_breaker_v1", "epoch": int(epoch),
                   "update_in_epoch": int(update_in_epoch), "global_update_if_stepped": int(global_update_if_stepped),
                   "sample_ids": list(context_record.get("sample_ids", [])),
                   "metrics": metrics, "ceilings": self.ceilings, "violations": violations,
-                  "model_optimizer_unchanged": True, "action": "abort_before_optimizer_step" if violations else "allow_step",
+                  "nonmutation_proof": "unit_tests_and_qualification_boundary_hashes",
+                  "action": "abort_before_optimizer_step" if violations else "allow_step",
                   "no_clipping": True, "no_skip_policy": True, "loss_is_not_a_breaker_criterion": True,
                   "context": context_record}
         if violations:

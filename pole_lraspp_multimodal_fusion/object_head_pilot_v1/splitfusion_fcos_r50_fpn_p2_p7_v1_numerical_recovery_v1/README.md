@@ -10,13 +10,14 @@ The only scientific numerical change is the shared training/inference yaw map:
 
 The candidate set is frozen at `[1e-5, 1e-4, 1e-3, 1e-2]`; `selected_tau` is deliberately null. Ordinary nonzero rows at or above tau use the unchanged unit-normalization equation. Zero and near-zero rows have no invented direction or fallback. Diagnostics record raw norms and affected count/fraction. Dimension inference keeps the registered FP64 exponential with a representable-range/finiteness check and no physical clamp.
 
-The post-accumulation/pre-step breaker computes gradient norms by the three registered optimizer groups plus global, momentum norms, exact proposed SGD update norms including weight decay/momentum, and maximum parameter-relative proposed update. Its ceilings are deliberately null until qualification constructs each as ten times the healthy maximum. It never clips, skips, or treats loss magnitude as a breaker criterion. Zero gradients remain diagnostic unless an independently qualified reachability rule applies.
+The post-accumulation/pre-step breaker computes gradient norms by the three registered optimizer groups plus global, momentum norms, exact proposed SGD update norms including weight decay/momentum, and maximum parameter-relative proposed update. It uses one-tensor-at-a-time scalar reductions and retains no FP64 copies or full proposed-update lists. Its ceilings are deliberately null until qualification constructs each as ten times the healthy maximum. It never clips, skips, or treats loss magnitude as a breaker criterion. Every required gradient must remain finite; isolated exact-zero gradients are logged, while qualification requires each required trainable group to be observed nonzero at least once across the complete disposable range.
 
 All executable paths are gated:
 
 - replay requires explicit reviewed update-447 sample identities and an opt-in token;
 - qualification requires independent review bound to the exact commit and package hash;
 - scientific continuation additionally requires qualified artifacts and explicit user authorization bound to the same commit;
+- a new continuation is create-only from epoch 9; explicit interruption recovery accepts only the latest contiguous, fully verified epoch-boundary checkpoint in that same output and refuses partial or overwrite-prone state;
 - validation inference requires recovered epoch-26 completion;
 - evaluation uses the frozen original evaluator for original epochs 3/8 and recovered epochs 16/22/26, with `v025_selected_only` sensitivity.
 

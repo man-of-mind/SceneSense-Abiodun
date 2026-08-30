@@ -1,6 +1,6 @@
 # Numerical operation audit
 
-This is the equation-to-code review map for the active original model/loss/evaluator and the recovery replacement. `operation_inventory.py` AST-enumerates numerical divisions, matrix projections, normalization/norm, log/exp, sqrt, softmax, and box-decode calls so review can be repeated against the exact committed source. Filesystem `/` operators are not scientific operations and are excluded from the interpretation below. The implementation audit found 127 source occurrences; the implementation packet records that count and the inventory command.
+This is the equation-to-code review map for the active original model/loss/evaluator and the recovery replacement. `operation_inventory.py` AST-enumerates numerical divisions, matrix projections, normalization/norm, log/exp, sqrt, softmax, and box-decode calls so review can be repeated against the exact committed source. Filesystem `/` operators are not scientific operations and are excluded from the interpretation below. The implementation audit found 134 source occurrences; the implementation packet records that count and the inventory command.
 
 ## Registered loss map
 
@@ -41,10 +41,10 @@ The frozen scorer retains its registered precision, recall, F1, localization, se
 
 ## Exhaustive occurrence index
 
-The following is the complete 127-occurrence AST inventory for the active model/loss/evaluator/recovery numerical scope. `sensitive_call` rows are resolved to their equations in the sections above; the inventory function returns the exact expression for each row. Re-run with `python3 -c "from pole_lraspp_multimodal_fusion.object_head_pilot_v1.splitfusion_fcos_r50_fpn_p2_p7_v1_numerical_recovery_v1.operation_inventory import inventory; import json; print(json.dumps(inventory(), indent=2))"`.
+The following is the complete 134-occurrence AST inventory for the active model/loss/evaluator/recovery numerical scope. `sensitive_call` rows are resolved to their equations in the sections above; the inventory function returns the exact expression for each row. Re-run with `python3 -c "from pole_lraspp_multimodal_fusion.object_head_pilot_v1.splitfusion_fcos_r50_fpn_p2_p7_v1_numerical_recovery_v1.operation_inventory import inventory; import json; print(json.dumps(inventory(), indent=2))"`.
 
 - `evaluate.py`: 30 division; 39 division (x2); 103 division (x2); 123 division; 124 division; 141 division; 147–151 division; 194 division; 229 division (x2); 240 division; 241 division (x3); 293 division.
-- `guards.py`: 15 square-root norm; 79 parameter norm; 81 delta norm and parameter-relative division.
+- `guards.py`: 14 streaming FP64 scalar vector norm; 96–97 proposed-update/parameter relative division and square roots; 102–111 streaming square roots for group/global gradient, momentum, update, parameter, and optimizer-state norms.
 - `losses.py`: 25 division; 32 softmax; 55 Lovasz-Softmax; 67–68 division; 85 division; 154 division; 156 box decode; 157 division; 161 division and square root; 162–163 division; 196 division; 233 division; 235 division; 238 log1p (x2); 239 expm1; 240 softmax; 245–247 division (x4); 250 log; 251 normalize; 280 log1p; 291 division; 321 division.
 - `model.py`: 98 GroupNorm; 297 log1p (x2); 299 expm1; 302 division; 307–308 division; 311 projection matrix multiply; 312 exp; 313 normalize; 331 square root; 338 integer division; 341 box decode. FrozenBatchNorm modules inherited from the official backbone are preserved and accounted by the state guard.
 - `recovery_losses.py`: 44 division; 47 division; 50 log1p (x2); 51 expm1; 52 softmax; 57–59 division (x4); 64 log; 65 shared yaw normalize; 71 checked dimension exp; 74 world projection; 150 division.

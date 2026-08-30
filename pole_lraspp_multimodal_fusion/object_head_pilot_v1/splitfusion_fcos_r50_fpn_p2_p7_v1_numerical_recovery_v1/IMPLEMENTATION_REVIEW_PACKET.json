@@ -2,9 +2,13 @@
   "schema": "splitfusion_fcos_numerical_recovery_implementation_review_packet_v1",
   "1_commits_and_changed_files": {
     "implementation_start_commit": "8caef38f6312add8a9a986a00217c7f98b275bd2",
+    "independent_review_remediation_base_commit": "0c7cab240d7149e4d313c101ac13d52b5b0f8c18",
     "implementation_commit": "SELF: resolve the master commit containing this packet with git rev-parse HEAD",
     "branch": "master",
     "scope": "only splitfusion_fcos_r50_fpn_p2_p7_v1_numerical_recovery_v1/**",
+    "review_remediation_changed_files": ["README.md", "NUMERICAL_OPERATION_AUDIT.md",
+      "IMPLEMENTATION_REVIEW_PACKET.md", "IMPLEMENTATION_REVIEW_PACKET.json", "continue_scientific.py",
+      "contracts.py", "guards.py", "qualify_recovery.py", "replay.py", "runner.py", "tests/test_synthetic.py"],
     "changed_files": ["NUMERICAL_OPERATION_AUDIT.md", "README.md", "IMPLEMENTATION_REVIEW_PACKET.json",
       "IMPLEMENTATION_REVIEW_PACKET.md", "__init__.py", "audit.py", "base_runtime.py", "continue_scientific.py",
       "contracts.py", "envelope.py", "evaluate_recovered.py", "guards.py", "infer_recovered.py",
@@ -22,7 +26,7 @@
   "3_equation_to_code_and_numerical_operations": {
     "document": "NUMERICAL_OPERATION_AUDIT.md",
     "machine_inventory": "operation_inventory.py",
-    "machine_inventory_occurrences": 127,
+    "machine_inventory_occurrences": 134,
     "covers": ["D/G/S/A loss equations", "normalization", "division", "log/log1p", "exp/expm1", "sqrt", "softmax", "box decode", "camera/world projection", "frozen evaluator"]
   },
   "4_train_inference_symmetry": {
@@ -48,7 +52,11 @@
     "clipping": false,
     "skip_policy": false,
     "loss_criterion": false,
-    "structured_abort_record": true
+    "structured_abort_record": true,
+    "streaming_scalar_reductions": true,
+    "retained_fp64_tensor_copies": 0,
+    "per_update_full_state_hashes": false,
+    "nonmutation_proof": "synthetic pre/post hashes plus qualification boundary hashes"
   },
   "8_selection_and_thresholds": {
     "candidate_tau": [1e-05, 0.0001, 0.001, 0.01],
@@ -73,9 +81,27 @@
     "reproductions": 2,
     "byte_identical_CUDA_required": false
   },
+  "10b_review_remediation": {
+    "original_failure_reproductions": 2,
+    "common_pre_update447_state_captures": 1,
+    "candidate_boundary_runs": 4,
+    "candidate_optimizer_steps": 0,
+    "selected_candidate_boundary_repeat_runs": 1,
+    "total_disposable_optimizer_steps_if_qualification_is_later_authorized": 1976,
+    "per_update_nonzero_requirement": false,
+    "qualification_aggregate_reachability_required": true,
+    "new_run_source": "verified original epoch9 create-only",
+    "resume_source": "latest contiguous fully verified recovered epoch checkpoint in same output",
+    "partial_epoch_treated_as_complete": false,
+    "completed_checkpoint_overwrite": false
+  },
   "11_tests": {
     "py_compile": "PASS",
-    "cpu_synthetic_unittest": "PASS: 11 tests",
+    "cpu_synthetic_unittest": "PASS: 19 tests",
+    "focused_review_defect_coverage": ["aggregate reachability with isolated zero", "never-nonzero rejection",
+      "streaming SGD metric equivalence", "breaker non-mutation", "candidate zero-step accounting",
+      "verified epoch checkpoint selection", "partial epoch rejection", "checkpoint binding rejection",
+      "experiment provenance binding"],
     "real_data_or_model_execution": false,
     "optimizer_step_executed": false,
     "final_static_and_worktree_audits": "recorded before commit"

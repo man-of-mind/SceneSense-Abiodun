@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import math
 import json
+import inspect
 import tempfile
 import unittest
 from pathlib import Path
@@ -9,9 +10,14 @@ from pathlib import Path
 import torch
 
 from ..audit import audit_tree, require_finite_audit
-from ..contracts import load_recovery_config, verify_original_provenance
+from ..continue_scientific import (_expected_scheduler, _select_verified_resume_checkpoint,
+                                   _verify_resume_provenance)
+from ..contracts import (canonical_hash, current_commit, load_recovery_config, package_hashes, sha256,
+                         verify_original_provenance)
 from ..envelope import build_healthy_envelope
-from ..guards import PreStepBreaker
+from ..guards import PreStepBreaker, proposed_sgd_metrics
+from ..qualify_recovery import disposable_execution_accounting
+from ..runner import aggregate_required_reachability, run_guarded_epoch
 from ..safe_math import exp_dimensions_fp64, normalize_yaw_fp32
 from ..state_guard import DiagnosticStateGuard, model_hash, optimizer_hash
 
@@ -110,8 +116,31 @@ class BreakerAndStateTests(unittest.TestCase):
             record = json.loads((Path(temporary) / "BREAKER_E010_U0447.json").read_text())
             self.assertEqual(record["sample_ids"], ["synthetic_a", "synthetic_b"])
             self.assertEqual(record["action"], "abort_before_optimizer_step")
-            self.assertTrue(record["model_optimizer_unchanged"])
+            self.assertEqual(record["nonmutation_proof"], "unit_tests_and_qualification_boundary_hashes")
         self.assertEqual(before, (model_hash(model), optimizer_hash(optimizer)))
+
+    def test_streaming_sgd_metrics_match_reference_without_mutation(self) -> None:
+        model = torch.nn.Linear(2, 1, bias=False)
+        with torch.no_grad():
+            model.weight.copy_(torch.tensor([[3.0, 4.0]]))
+        model.weight.grad = torch.tensor([[1.0, 2.0]])
+        optimizer = torch.optim.SGD([{"params": [model.weight], "name": "new", "lr": 0.1}],
+                                    momentum=0.9, weight_decay=0.01)
+        optimizer.state[model.weight]["momentum_buffer"] = torch.tensor([[0.5, -0.5]])
+        before = (model_hash(model), optimizer_hash(optimizer))
+        metrics = proposed_sgd_metrics(model, optimizer)
+        direction = torch.tensor([[1.03, 2.04]], dtype=torch.float64)
+        expected_buffer = 0.9 * torch.tensor([[0.5, -0.5]], dtype=torch.float64) + direction
+        self.assertAlmostEqual(metrics["gradient_norm"]["new"], math.sqrt(5.0), places=12)
+        self.assertAlmostEqual(metrics["momentum_norm"]["new"], math.sqrt(0.5), places=12)
+        self.assertAlmostEqual(metrics["proposed_sgd_update_norm"]["new"],
+                               0.1 * float(expected_buffer.norm()), places=7)
+        self.assertAlmostEqual(metrics["max_parameter_relative_update"],
+                               0.1 * float(expected_buffer.norm()) / 5.0, places=7)
+        self.assertTrue(metrics["streaming_scalar_reductions"])
+        self.assertEqual(metrics["retained_fp64_tensor_copies"], 0)
+        self.assertEqual(before, (model_hash(model), optimizer_hash(optimizer)))
+        self.assertNotIn("model_hash", inspect.getsource(PreStepBreaker.check))
 
     def test_full_diagnostic_state_restores(self) -> None:
         model, optimizer = self._fixture(); before = (model_hash(model), optimizer_hash(optimizer))
@@ -142,6 +171,106 @@ class EnvelopeAndProvenanceTests(unittest.TestCase):
         self.assertTrue(all(value == 0 for value in config["execution_counters"].values()))
         report = verify_original_provenance(checkpoint_metadata=False)
         self.assertEqual(report["checkpoint_sha256"], config["original"]["checkpoint_sha256"])
+
+
+class ReviewDefectTests(unittest.TestCase):
+    def test_aggregate_reachability_allows_isolated_zero(self) -> None:
+        records = [
+            {"yaw": {"required_this_stage": True, "finite": True, "nonzero": False},
+             "p2": {"required_this_stage": True, "finite": True, "nonzero": True}},
+            {"yaw": {"required_this_stage": True, "finite": True, "nonzero": True},
+             "p2": {"required_this_stage": True, "finite": True, "nonzero": False}},
+        ]
+        report = aggregate_required_reachability(records)
+        self.assertTrue(report["all_required_trainable_groups_finite_every_update"])
+        self.assertTrue(report["all_required_trainable_groups_observed_nonzero"])
+        self.assertEqual(report["groups"]["yaw"]["zero_update_count"], 1)
+        self.assertNotIn("enforce_required_nonzero", inspect.signature(run_guarded_epoch).parameters)
+
+    def test_aggregate_reachability_rejects_never_nonzero_group(self) -> None:
+        report = aggregate_required_reachability([
+            {"yaw": {"required_this_stage": True, "finite": True, "nonzero": False}}])
+        self.assertTrue(report["all_required_trainable_groups_finite_every_update"])
+        self.assertFalse(report["all_required_trainable_groups_observed_nonzero"])
+
+    def test_disposable_execution_plan_has_no_candidate_replay_steps(self) -> None:
+        report = disposable_execution_accounting(4)
+        self.assertEqual(report["candidate_common_boundary_runs"], 4)
+        self.assertEqual(report["candidate_boundary_optimizer_steps"], 0)
+        self.assertEqual(report["selected_candidate_repeat_runs"], 1)
+        self.assertEqual(report["total_disposable_optimizer_steps"], 1976)
+
+    @staticmethod
+    def _resume_fixture(root: Path, *, recovery: dict[str, object], partial: bool = False) -> tuple[dict[str, object], int]:
+        for name in ("checkpoints", "training_metrics", "gradient_telemetry", "numerical_failures"):
+            (root / name).mkdir(parents=True, exist_ok=True)
+        config = {"scientific_seed": 20260829, "training": {
+            "base_lrs": {"pretrained_backbone": 0.001, "pretrained_fpn_heads": 0.0025, "new": 0.01},
+            "gamma": 0.1}}
+        epoch = 10; global_update = 9468 + 1052
+        if partial:
+            (root / "training_metrics/epoch_010.json").write_text('{"epoch": 10}\n', encoding="utf-8")
+            return config, global_update
+        scheduler = _expected_scheduler(config, epoch)
+        state = {"schema": "splitfusion_fcos_numerical_recovery_atomic_checkpoint_v1",
+            "model": {"weight": torch.ones(1)},
+            "optimizer": {"state": {}, "param_groups": [
+                {"name": name, "lr": lr, "params": []} for name, lr in scheduler["lrs"].items()]},
+            "scheduler": scheduler, "epoch": epoch, "global_optimizer_update": global_update,
+            "amp": {"enabled": True, "dtype": "bfloat16", "grad_scaler": None},
+            "rng": {"python": (), "numpy": (), "torch": torch.zeros(1, dtype=torch.uint8), "cuda": []},
+            "sampler": {"length": 16827, "seed": 20260829, "epoch": epoch, "start_index": 0},
+            "validation_accessed": False, "recovery": recovery}
+        checkpoint = (root / "checkpoints/epoch_010.pt").resolve(); torch.save(state, checkpoint)
+        (root / "checkpoints/epoch_010.json").write_text(json.dumps({"epoch": epoch, "path": str(checkpoint),
+            "sha256": sha256(checkpoint), "global_optimizer_update": global_update}) + "\n", encoding="utf-8")
+        for directory in ("training_metrics", "gradient_telemetry"):
+            (root / directory / "epoch_010.json").write_text('{"epoch": 10}\n', encoding="utf-8")
+        return config, global_update
+
+    def test_verified_epoch_boundary_resume_selection(self) -> None:
+        recovery = {"binding": "synthetic"}
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            config, expected_global = self._resume_fixture(root, recovery=recovery)
+            epoch, global_update, state = _select_verified_resume_checkpoint(
+                root, expected_recovery=recovery, config=config, train_frames=16827, effective_batch=16)
+            self.assertEqual((epoch, global_update), (10, expected_global))
+            self.assertEqual(state["recovery"], recovery)
+
+    def test_partial_epoch_is_never_treated_as_complete(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            config, _global = self._resume_fixture(root, recovery={"binding": "synthetic"}, partial=True)
+            with self.assertRaisesRegex(RuntimeError, "partial or noncontiguous"):
+                _select_verified_resume_checkpoint(root, expected_recovery={"binding": "synthetic"},
+                                                   config=config, train_frames=16827, effective_batch=16)
+
+    def test_resume_checkpoint_rejects_binding_drift(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            config, _global = self._resume_fixture(root, recovery={"binding": "recorded"})
+            with self.assertRaisesRegex(RuntimeError, "provenance verification failed"):
+                _select_verified_resume_checkpoint(root, expected_recovery={"binding": "changed"},
+                                                   config=config, train_frames=16827, effective_batch=16)
+
+    def test_resume_experiment_provenance_is_exactly_bound(self) -> None:
+        qualified = {"state": "synthetic"}; qualification = {"pass": True}
+        original = {"checkpoint_sha256": "synthetic-checkpoint"}; hashes = {"artifact": "digest"}
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            saved = {"schema": "splitfusion_fcos_scientific_recovery_v1",
+                "source_commit": current_commit(), "source_files": package_hashes(),
+                "source_files_sha256": canonical_hash(package_hashes()), "original_epoch9": original,
+                "original_epochs_10_26": "CORRUPTED_FINITE_GRADIENT_TRAJECTORY_DO_NOT_USE",
+                "qualified_config": qualified, "qualification_sha256": canonical_hash(qualification),
+                "qualification_artifact_hashes": hashes, "start_epoch": 10, "validation_accessed": False}
+            (root / "RECOVERY_PROVENANCE.json").write_text(json.dumps(saved) + "\n", encoding="utf-8")
+            _verify_resume_provenance(root, qualified=qualified, qualification=qualification,
+                                      provenance=original, qualification_hashes=hashes)
+            with self.assertRaisesRegex(RuntimeError, "does not bind"):
+                _verify_resume_provenance(root, qualified=qualified, qualification=qualification,
+                                          provenance=original, qualification_hashes={"artifact": "changed"})
 
 
 if __name__ == "__main__":
