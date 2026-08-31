@@ -13,7 +13,13 @@ import torch
 import torch.nn.functional as F
 
 from .runtime import FROZEN_CHECKPOINT_SHA256, load_frozen_runtime, require_device, sha256
-from .verifier import VERIFIER_ARCHITECTURE, PersonRoIDescriptor, PersonVerifier, apply_person_refinement
+from .verifier import (
+    VERIFIER_ARCHITECTURE,
+    PersonRoIDescriptor,
+    PersonVerifier,
+    apply_person_refinement,
+    fp16_round_trip_roi_descriptors,
+)
 
 
 def load_verifier(path: Path, device: torch.device) -> tuple[PersonVerifier, float]:
@@ -73,6 +79,7 @@ def main() -> int:
                 outputs = runtime.model(fused, dense=False)
                 base_detections = runtime.model.postprocess(outputs, [calibration_device])[0]
                 descriptors, scalars, person_indices = extractor(outputs, base_detections)
+                descriptors = fp16_round_trip_roi_descriptors(descriptors)
                 features = torch.cat((descriptors, scalars), dim=1)
                 delta = verifier(features)
                 detections = apply_person_refinement(

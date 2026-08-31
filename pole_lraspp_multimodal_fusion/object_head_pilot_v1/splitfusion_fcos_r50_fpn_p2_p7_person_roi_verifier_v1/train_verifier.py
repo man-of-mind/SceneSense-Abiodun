@@ -19,8 +19,10 @@ from .verifier import (
     build_verifier_optimizer,
     calibration_bias_for_interval,
     exact_pr_report,
+    fp16_round_trip_roi_descriptors,
     partition_experiment_ids,
     refined_person_logits,
+    refined_person_scores,
 )
 
 EPOCHS = 5
@@ -83,8 +85,9 @@ def _epoch_sampling_plan(
 
 def _holdout_outputs(
     head: PersonVerifier, cache: Path, shards: list[dict[str, Any]], device: torch.device,
-) -> tuple[torch.Tensor, torch.Tensor]:
-    logit_parts: list[torch.Tensor] = []
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    base_score_parts: list[torch.Tensor] = []
+    delta_parts: list[torch.Tensor] = []
     label_parts: list[torch.Tensor] = []
     head.eval()
     with torch.inference_mode():
@@ -94,18 +97,47 @@ def _holdout_outputs(
             selected = torch.where((payload["partitions"].long() == 1) & (labels >= 0))[0]
             if selected.numel() == 0:
                 continue
-            descriptors = payload["roi_descriptors"].index_select(0, selected).float().to(device)
+            descriptors = fp16_round_trip_roi_descriptors(
+                payload["roi_descriptors"].index_select(0, selected),
+            ).to(device)
             scalars = payload["scalar_features"].index_select(0, selected).float().to(device)
             base_scores = payload["base_scores"].index_select(0, selected).float().to(device)
             features = torch.cat((descriptors, scalars), dim=1)
-            logits = refined_person_logits(base_scores, head(features))
-            if not bool(torch.isfinite(logits).all()):
-                raise FloatingPointError("non-finite holdout verifier logit")
-            logit_parts.append(logits.cpu())
+            delta = head(features)
+            if not bool(torch.isfinite(delta).all()):
+                raise FloatingPointError("non-finite holdout verifier delta")
+            base_score_parts.append(base_scores.cpu())
+            delta_parts.append(delta.cpu())
             label_parts.append(labels.index_select(0, selected))
-    if not logit_parts:
+    if not base_score_parts:
         raise RuntimeError("holdout cache contains no non-ignored person candidates")
-    return torch.cat(logit_parts), torch.cat(label_parts)
+    return torch.cat(base_score_parts), torch.cat(delta_parts), torch.cat(label_parts)
+
+
+def _deployment_calibration_result(
+    base_scores: torch.Tensor,
+    verifier_delta: torch.Tensor,
+    labels: torch.Tensor,
+    eligible_positive_count: int,
+    interval: dict[str, float],
+) -> dict[str, Any]:
+    attempted_bias = calibration_bias_for_interval(interval, CANONICAL_THRESHOLD)
+    calibrated_scores = refined_person_scores(base_scores, verifier_delta, attempted_bias)
+    report = exact_pr_report(
+        calibrated_scores,
+        labels,
+        eligible_positive_count=eligible_positive_count,
+        canonical_threshold=CANONICAL_THRESHOLD,
+    )
+    canonical = report["at_0_20"]
+    allowed = bool(canonical["precision"] >= 0.80 and canonical["recall"] >= 0.80)
+    return {
+        "attempted_calibration_bias": attempted_bias,
+        "calibration_bias": attempted_bias if allowed else 0.0,
+        "after_calibration": report,
+        "status": "train_feasible" if allowed else "train_infeasible",
+        "validation_allowed": allowed,
+    }
 
 
 def main() -> int:
@@ -163,7 +195,9 @@ def main() -> int:
             payload = _load_shard(cache, shards[shard_index])
             for start in range(0, selected.numel(), BATCH_SIZE):
                 indices = selected[start:start + BATCH_SIZE]
-                descriptors = payload["roi_descriptors"].index_select(0, indices).float().to(device)
+                descriptors = fp16_round_trip_roi_descriptors(
+                    payload["roi_descriptors"].index_select(0, indices),
+                ).to(device)
                 scalars = payload["scalar_features"].index_select(0, indices).float().to(device)
                 base_scores = payload["base_scores"].index_select(0, indices).float().to(device)
                 labels = payload["labels"].index_select(0, indices).float().to(device)
@@ -189,8 +223,10 @@ def main() -> int:
         print(json.dumps({"epoch": epoch, "epochs": EPOCHS, "bce": epoch_loss,
                           "positive": positive_count, "negative": negative_count}), flush=True)
 
-    holdout_logits, holdout_labels = _holdout_outputs(head, cache, shards, device)
-    holdout_scores = torch.sigmoid(holdout_logits)
+    holdout_base_scores, holdout_delta, holdout_labels = _holdout_outputs(head, cache, shards, device)
+    holdout_base_scores = holdout_base_scores.to(device)
+    holdout_delta = holdout_delta.to(device)
+    holdout_scores = refined_person_scores(holdout_base_scores, holdout_delta)
     holdout_before = exact_pr_report(
         holdout_scores,
         holdout_labels,
@@ -201,16 +237,20 @@ def main() -> int:
         selected_interval = holdout_before["selected_interval"]
         if selected_interval is None:
             raise RuntimeError("joint-feasible holdout has no threshold interval")
-        calibration_bias = calibration_bias_for_interval(selected_interval, CANONICAL_THRESHOLD)
-        calibrated_scores = torch.sigmoid(holdout_logits.double() + calibration_bias)
-        holdout_after = exact_pr_report(
-            calibrated_scores,
+        calibration = _deployment_calibration_result(
+            holdout_base_scores,
+            holdout_delta,
             holdout_labels,
-            eligible_positive_count=holdout_eligible_person_gt,
-            canonical_threshold=CANONICAL_THRESHOLD,
+            holdout_eligible_person_gt,
+            selected_interval,
         )
-        status, validation_allowed = "train_feasible", True
+        attempted_calibration_bias = calibration["attempted_calibration_bias"]
+        calibration_bias = calibration["calibration_bias"]
+        holdout_after = calibration["after_calibration"]
+        status = calibration["status"]
+        validation_allowed = calibration["validation_allowed"]
     else:
+        attempted_calibration_bias = None
         calibration_bias = 0.0
         holdout_after = None
         status, validation_allowed = "train_infeasible", False
@@ -238,6 +278,7 @@ def main() -> int:
         "holdout": {
             "threshold_source": "two untouched training holdout episodes",
             "before_calibration": holdout_before,
+            "attempted_calibration_bias": attempted_calibration_bias,
             "calibration_bias": calibration_bias,
             "after_calibration": holdout_after,
         },

@@ -53,6 +53,17 @@ def _logit(value: float) -> float:
     return math.log(value / (1.0 - value))
 
 
+def fp16_round_trip_roi_descriptors(value: torch.Tensor) -> torch.Tensor:
+    """Return the exact FP32 representation seen after FP16 cache storage."""
+    value = value.float()
+    if value.ndim != 2 or value.shape[1] != ROI_DESCRIPTOR_DIM:
+        raise ValueError(f"expected [N,{ROI_DESCRIPTOR_DIM}] ROI descriptors, got {tuple(value.shape)}")
+    if (not bool(torch.isfinite(value).all())
+            or (value.numel() and float(value.abs().amax()) > torch.finfo(torch.float16).max)):
+        raise FloatingPointError("ROI descriptor is not safe for an FP16 round trip")
+    return value.to(torch.float16).to(torch.float32)
+
+
 class PersonRoIDescriptor(nn.Module):
     """Parameter-free vectorized descriptor for post-NMS person candidates."""
 
@@ -194,6 +205,13 @@ def refined_person_logits(
     return torch.logit(base) + verifier_delta.float() + bias
 
 
+def refined_person_scores(
+    base_scores: torch.Tensor, verifier_delta: torch.Tensor, calibration_bias: float | torch.Tensor = 0.0,
+) -> torch.Tensor:
+    """Apply the deployment FP32 logit residual and sigmoid arithmetic."""
+    return torch.sigmoid(refined_person_logits(base_scores, verifier_delta, calibration_bias))
+
+
 def apply_person_refinement(
     detections: Mapping[str, torch.Tensor], verifier_delta: torch.Tensor,
     *, calibration_bias: float | torch.Tensor = 0.0,
@@ -206,7 +224,7 @@ def apply_person_refinement(
     refined = dict(detections)
     scores = detections["scores"].clone()
     person_base = scores.index_select(0, person_indices)
-    scores[person_indices] = torch.sigmoid(refined_person_logits(person_base, verifier_delta, calibration_bias))
+    scores[person_indices] = refined_person_scores(person_base, verifier_delta, calibration_bias)
     refined["scores"] = scores
     vehicle = classes != PERSON_CLASS
     if not torch.equal(refined["scores"][vehicle], detections["scores"][vehicle]):

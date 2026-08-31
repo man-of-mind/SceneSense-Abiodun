@@ -7,6 +7,7 @@ from .verifier import (
     PersonVerifier,
     apply_person_refinement,
     build_verifier_optimizer,
+    fp16_round_trip_roi_descriptors,
     partition_experiment_ids,
     refined_person_logits,
 )
@@ -18,6 +19,7 @@ __all__ = (
     "PersonVerifier",
     "apply_person_refinement",
     "build_verifier_optimizer",
+    "fp16_round_trip_roi_descriptors",
     "partition_experiment_ids",
     "refined_person_logits",
 )

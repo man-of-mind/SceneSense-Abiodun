@@ -7,6 +7,7 @@ from unittest import mock
 import torch
 from torch import nn
 
+from ..train_verifier import _deployment_calibration_result
 from ..verifier import (
     FEATURE_DIM,
     HOLDOUT_EXPERIMENT_IDS,
@@ -16,7 +17,12 @@ from ..verifier import (
     PersonVerifier,
     apply_person_refinement,
     build_verifier_optimizer,
+    calibration_bias_for_interval,
+    exact_pr_report,
+    fp16_round_trip_roi_descriptors,
     partition_experiment_ids,
+    refined_person_logits,
+    refined_person_scores,
 )
 
 
@@ -129,6 +135,41 @@ class PersonRoIVerifierSyntheticChecks(unittest.TestCase):
         optimizer_ids = {id(parameter) for group in optimizer.param_groups for parameter in group["params"]}
         self.assertEqual(optimizer_ids, {id(parameter) for parameter in head.parameters()})
         self.assertTrue(optimizer_ids.isdisjoint({id(parameter) for parameter in frozen_base.parameters()}))
+
+    def test_6_training_and_inference_share_fp16_roi_representation(self) -> None:
+        raw_roi = torch.linspace(-1.0, 1.0, 2 * ROI_DESCRIPTOR_DIM).reshape(2, ROI_DESCRIPTOR_DIM)
+        cached_roi = raw_roi.to(torch.float16)
+        training_roi = fp16_round_trip_roi_descriptors(cached_roi)
+        inference_roi = fp16_round_trip_roi_descriptors(raw_roi)
+        self.assertEqual(training_roi.dtype, torch.float32)
+        self.assertTrue(torch.equal(training_roi, inference_roi))
+        self.assertFalse(torch.equal(raw_roi, inference_roi))
+        scalars = torch.tensor([[0.1234567] * len(SCALAR_FEATURE_NAMES)] * 2, dtype=torch.float32)
+        base_scores = torch.tensor([0.2345678, 0.3456789], dtype=torch.float32)
+        self.assertFalse(torch.equal(scalars, scalars.to(torch.float16).float()))
+        self.assertFalse(torch.equal(base_scores, base_scores.to(torch.float16).float()))
+        self.assertTrue(torch.equal(torch.cat((training_roi, scalars), dim=1)[:, -10:], scalars))
+        self.assertTrue(torch.equal(base_scores, base_scores.float()))
+
+    def test_7_fp32_calibration_recheck_fails_closed(self) -> None:
+        boundary_logit = -33.41585159301758
+        base_scores = torch.full((6,), 0.5, dtype=torch.float32)
+        delta = torch.tensor([boundary_logit] * 4 + [-40.0] * 2, dtype=torch.float32)
+        labels = torch.tensor([1, 1, 1, 1, 0, 0])
+        before = exact_pr_report(refined_person_scores(base_scores, delta), labels, eligible_positive_count=4)
+        interval = before["selected_interval"]
+        self.assertIsNotNone(interval)
+        attempted_bias = calibration_bias_for_interval(interval)
+        old_fp64_scores = torch.sigmoid(refined_person_logits(base_scores, delta).double() + attempted_bias)
+        old_metrics = exact_pr_report(old_fp64_scores, labels, eligible_positive_count=4)["at_0_20"]
+        self.assertGreaterEqual(old_metrics["precision"], 0.80)
+        self.assertGreaterEqual(old_metrics["recall"], 0.80)
+
+        result = _deployment_calibration_result(base_scores, delta, labels, 4, interval)
+        self.assertEqual(result["after_calibration"]["at_0_20"]["recall"], 0.0)
+        self.assertEqual(result["calibration_bias"], 0.0)
+        self.assertEqual(result["status"], "train_infeasible")
+        self.assertFalse(result["validation_allowed"])
 
 
 if __name__ == "__main__":

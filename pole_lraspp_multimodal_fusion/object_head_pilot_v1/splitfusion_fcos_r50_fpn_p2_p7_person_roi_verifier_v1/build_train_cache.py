@@ -19,19 +19,12 @@ from .verifier import (
     ROI_DESCRIPTOR_DIM,
     SCALAR_FEATURE_NAMES,
     PersonRoIDescriptor,
+    fp16_round_trip_roi_descriptors,
     partition_experiment_ids,
 )
 
 EXPECTED_TRAIN_FRAMES = 16_827
 SHARD_FRAMES = 256
-
-
-def _float16_roi(value: torch.Tensor) -> torch.Tensor:
-    value = value.detach().float().cpu()
-    if (not bool(torch.isfinite(value).all())
-            or (value.numel() and float(value.abs().amax()) > torch.finfo(torch.float16).max)):
-        raise FloatingPointError("ROI descriptor is not safe for float16 cache storage")
-    return value.to(torch.float16)
 
 
 def main() -> int:
@@ -113,7 +106,8 @@ def main() -> int:
                     or scalar_features.shape != (person_count, len(SCALAR_FEATURE_NAMES))):
                 raise RuntimeError(f"person candidate reconciliation failed for {target['sample_id']}")
 
-            buffers["roi_descriptors"].append(_float16_roi(roi_descriptors))
+            rounded_roi = fp16_round_trip_roi_descriptors(roi_descriptors.detach())
+            buffers["roi_descriptors"].append(rounded_roi.to(torch.float16).cpu())
             buffers["scalar_features"].append(scalar_features.detach().float().cpu())
             buffers["base_scores"].append(detections["scores"].index_select(0, person_indices).detach().float().cpu())
             buffers["labels"].append(labels)
