@@ -1,0 +1,79 @@
+{
+  "architecture": {
+    "dropout": 0.0,
+    "feedforward_dimension": 256,
+    "hidden_dimension": 128,
+    "input_dimension": 1044,
+    "layers": 2,
+    "normalization": "LayerNorm(1044)",
+    "output": "one residual logit per candidate",
+    "projection": "Linear(1044,128)",
+    "self_attention_heads": 4,
+    "zero_initialized_output": true
+  },
+  "base": {
+    "checkpoint_sha256": "da14d21edbd374c1c3abce02ca4674b9f4097becfba9759aba945cea160a297f",
+    "epoch": 26,
+    "frozen": true
+  },
+  "cache_contract": {
+    "candidates": 1148929,
+    "consolidation_cache": "experiments/person_instance_consolidation_v1/train_cache",
+    "consolidation_manifest_sha256": "6e9386a6ee1d87cb19685ae0afb1c54cc6b9406bfae4ccf01d9e804578ddcc4c",
+    "frames": 16827,
+    "maximum_candidates_per_frame": 97,
+    "roi_cache": "experiments/person_roi_verifier_v1/train_cache",
+    "roi_manifest_sha256": "f3263d702fac50010975f6e0616c5debd0832e9642f3ce0b8a41a0752b5d307c"
+  },
+  "features": {
+    "cached_roi_and_scalar_dimension": 1034,
+    "forbidden_inputs": [
+      "gt_world_xy",
+      "labels",
+      "ignore_flags",
+      "experiment_id",
+      "sample_id",
+      "visibility"
+    ],
+    "relational_order": [
+      "box_x0_over_768",
+      "box_y0_over_432",
+      "box_x1_over_768",
+      "box_y1_over_432",
+      "centered_world_x_over_40",
+      "centered_world_y_over_40",
+      "semantic_component_support",
+      "valid_semantic_component",
+      "component_candidate_fraction",
+      "locked_consolidation_retained"
+    ]
+  },
+  "locked_consolidation": {
+    "evidence": "experiments/person_instance_consolidation_v1/feasibility_result.json",
+    "evidence_sha256": "a1bb8b2b7062abc2d0ef4c5cbc715154c5a4e9f1da64e050547de14c56bdddde",
+    "grid_index": 27,
+    "group_box_iou_threshold": 0.2,
+    "semantic_support_threshold": 0.1
+  },
+  "runtime": {
+    "canonical_person_threshold": 0.2,
+    "candidate_order": "original_post_nms",
+    "consolidation_is_feature_only": true,
+    "geometry_changed": false,
+    "segmentation_changed": false,
+    "vehicle_policy": "locked_service_candidate_v1"
+  },
+  "schema": "splitfusion_fcos_person_relational_selector_locked_config_v1",
+  "training": {
+    "batch_frames": 16,
+    "epochs": 5,
+    "holdout_episodes": [
+      "canonical_v3_03_train_30_30_s503_tm1503",
+      "canonical_v3_04_train_50_50_s504_tm1504"
+    ],
+    "learning_rate": 0.001,
+    "negative_per_positive": 3,
+    "seed": 20260831,
+    "validation_gate": "aggregate_and_each_holdout_episode_precision_and_recall_gte_0.80"
+  }
+}
