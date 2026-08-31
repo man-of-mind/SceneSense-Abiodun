@@ -1,0 +1,40 @@
+{
+  "base": {
+    "checkpoint": "experiments/route_b_v3_1_splitfusion_fcos_r50_fpn_p2_p7_v1_numerical_recovery_v1/20260830_recovered_epoch10_gate_v1/checkpoints/epoch_026.pt",
+    "checkpoint_sha256": "da14d21edbd374c1c3abce02ca4674b9f4097becfba9759aba945cea160a297f",
+    "epoch": 26
+  },
+  "behavior": {
+    "candidate_creation": false,
+    "candidate_order": "original_post_nms",
+    "geometry_changed": false,
+    "nms_rerun": false,
+    "person_retained_fields_and_scores_changed": false,
+    "segmentation_changed": false,
+    "vehicle_candidates_filtered": false,
+    "vehicle_non_score_fields_changed": false
+  },
+  "person": {
+    "canonical_score_threshold": 0.2,
+    "feasibility_result": "experiments/person_instance_consolidation_v1/feasibility_result.json",
+    "feasibility_result_sha256": "a1bb8b2b7062abc2d0ef4c5cbc715154c5a4e9f1da64e050547de14c56bdddde",
+    "grid_index": 27,
+    "group_box_iou_threshold": 0.2,
+    "implementation": "splitfusion_fcos_r50_fpn_p2_p7_person_instance_consolidation_v1.core.retained_detection_indices",
+    "required_status": "holdout_feasible",
+    "semantic_support_threshold": 0.1,
+    "source_commit": "a7b759b9e9565555340d3ea6175cb8283c73a687"
+  },
+  "schema": "splitfusion_fcos_service_candidate_locked_config_v1",
+  "vehicle": {
+    "arithmetic": "sigmoid(logit(clamp_fp32(base_score,1e-6,1-1e-6))+logit_bias_fp32)",
+    "base_score_operating_threshold": 0.5224518340619145,
+    "canonical_score_threshold": 0.2,
+    "clamp_epsilon": 1e-06,
+    "logit_bias": -1.476162131187961,
+    "train_only_feasible_interval": {
+      "lower_exclusive": 0.392763704,
+      "upper_inclusive": 0.649181962
+    }
+  }
+}
