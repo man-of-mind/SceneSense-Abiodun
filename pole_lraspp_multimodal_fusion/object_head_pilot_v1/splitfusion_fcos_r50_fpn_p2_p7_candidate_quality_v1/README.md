@@ -12,9 +12,11 @@ python3 -m pole_lraspp_multimodal_fusion.object_head_pilot_v1.splitfusion_fcos_r
 python3 -m pole_lraspp_multimodal_fusion.object_head_pilot_v1.splitfusion_fcos_r50_fpn_p2_p7_candidate_quality_v1.train_quality_head --cache experiments/route_b_v3_1_splitfusion_fcos_r50_fpn_p2_p7_candidate_quality_v1/train_cache_epoch026 --output experiments/route_b_v3_1_splitfusion_fcos_r50_fpn_p2_p7_candidate_quality_v1/quality_head_epoch005.pt --device cuda:0
 
 python3 -m pole_lraspp_multimodal_fusion.object_head_pilot_v1.splitfusion_fcos_r50_fpn_p2_p7_candidate_quality_v1.infer_refined --quality-checkpoint experiments/route_b_v3_1_splitfusion_fcos_r50_fpn_p2_p7_candidate_quality_v1/quality_head_epoch005.pt --output experiments/route_b_v3_1_splitfusion_fcos_r50_fpn_p2_p7_candidate_quality_v1/predictions/quality_head_epoch005 --device cuda:0 --nms-iou 0.60
+
+python3 -m pole_lraspp_multimodal_fusion.object_head_pilot_v1.splitfusion_fcos_r50_fpn_p2_p7_candidate_quality_v1.evaluate_refined --prediction-dir experiments/route_b_v3_1_splitfusion_fcos_r50_fpn_p2_p7_candidate_quality_v1/predictions/quality_head_epoch005
 ```
 
-The cache builder opens only the training split and stores float16 feature vectors (after a representability check), class, float32 base score, label, sample ID, and the original `(image, FPN level, flattened point, class)` identity. Ignored labels are cached as `-1` and excluded from focal loss. Training is fixed to five epochs with sigmoid focal loss (`alpha=0.25`, `gamma=2`) on `logit(base_score) + quality_delta` and writes one final head checkpoint.
+The cache builder opens only the training split and stores float16 feature vectors (after a representability check), class, float32 base score, label, sample ID, and the original `(image, FPN level, flattened point, class)` identity. Matching precedes ignore neutralization, as in the canonical evaluator: matched ignore-centred candidates remain positive, while only unmatched ignore-centred candidates receive label `-1` and no loss. Training is fixed to five epochs with sigmoid focal loss (`alpha=0.25`, `gamma=2`) on `logit(base_score) + quality_delta`, checks loss/quality gradients/quality parameters for finiteness, records final train-cache precision and recall by class at `0.20`, and writes one final head checkpoint. Refined inference checks logits and scores for finiteness. `evaluate_refined.py` delegates one completed prediction directory to the existing frozen v0.10 scorer and nine service gates; it does not redefine their equations.
 
 The permitted CPU synthetic checks are:
 

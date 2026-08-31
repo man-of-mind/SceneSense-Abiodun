@@ -14,6 +14,51 @@ BATCH_SIZE = 2048
 SEED = 20260830
 FOCAL_ALPHA = 0.25
 FOCAL_GAMMA = 2.0
+METRIC_THRESHOLD = 0.20
+
+
+def _require_finite_quality_parameters(head: QualityMLP, *, gradients: bool) -> None:
+    for name, parameter in head.named_parameters():
+        value = parameter.grad if gradients else parameter
+        if value is None or not bool(torch.isfinite(value).all()):
+            kind = "gradient" if gradients else "parameter"
+            raise FloatingPointError(f"non-finite quality-head {kind}: {name}")
+
+
+def _train_cache_metrics(
+    head: QualityMLP, cache: Path, shards: list[dict[str, object]], device: torch.device,
+) -> dict[str, dict[str, float | int]]:
+    totals = {name: {"tp": 0, "fp": 0, "fn": 0} for name in ("vehicle", "person")}
+    head.eval()
+    with torch.inference_mode():
+        for shard in shards:
+            payload = torch.load(cache / str(shard["path"]), map_location="cpu", weights_only=True)
+            labels = payload["labels"].long()
+            selected = torch.where(labels >= 0)[0]
+            features = payload["features"][selected].float().to(device)
+            base_scores = payload["base_scores"][selected].float().to(device)
+            classes = payload["classes"][selected].long().to(device)
+            labels = labels[selected].to(device)
+            logits = refined_logits(base_scores, head(features))
+            scores = torch.sigmoid(logits)
+            if not bool(torch.isfinite(logits).all()) or not bool(torch.isfinite(scores).all()):
+                raise FloatingPointError("non-finite refined train-cache metric output")
+            predicted = scores >= METRIC_THRESHOLD
+            for class_index, class_name in enumerate(("vehicle", "person")):
+                class_mask = classes == class_index
+                positive = labels == 1
+                totals[class_name]["tp"] += int((class_mask & predicted & positive).sum())
+                totals[class_name]["fp"] += int((class_mask & predicted & ~positive).sum())
+                totals[class_name]["fn"] += int((class_mask & ~predicted & positive).sum())
+    metrics: dict[str, dict[str, float | int]] = {}
+    for class_name, counts in totals.items():
+        tp, fp, fn = counts["tp"], counts["fp"], counts["fn"]
+        metrics[class_name] = {
+            **counts,
+            "precision": tp / max(1, tp + fp),
+            "recall": tp / max(1, tp + fn),
+        }
+    return metrics
 
 
 def main() -> int:
@@ -43,6 +88,7 @@ def main() -> int:
     optimizer_parameter_ids = {id(parameter) for group in optimizer.param_groups for parameter in group["params"]}
     if optimizer_parameter_ids != head_parameter_ids:
         raise RuntimeError("optimizer contains a non-quality-head parameter")
+    _require_finite_quality_parameters(head, gradients=False)
 
     epoch_losses: list[float] = []
     shards = list(manifest["shards"])
@@ -66,8 +112,12 @@ def main() -> int:
                 optimizer.zero_grad(set_to_none=True)
                 logits = refined_logits(batch_base_scores, head(batch_features))
                 loss = sigmoid_focal_loss(logits, batch_labels, alpha=FOCAL_ALPHA, gamma=FOCAL_GAMMA)
+                if not bool(torch.isfinite(loss)):
+                    raise FloatingPointError("non-finite quality-head training loss")
                 loss.backward()
+                _require_finite_quality_parameters(head, gradients=True)
                 optimizer.step()
+                _require_finite_quality_parameters(head, gradients=False)
                 batch_count = indices.numel()
                 loss_sum += float(loss.detach()) * batch_count
                 example_count += batch_count
@@ -77,6 +127,7 @@ def main() -> int:
         epoch_losses.append(epoch_loss)
         print(json.dumps({"epoch": epoch, "epochs": EPOCHS, "focal_loss": epoch_loss}), flush=True)
 
+    train_cache_metrics = _train_cache_metrics(head, cache, shards, device)
     output.parent.mkdir(parents=True, exist_ok=True)
     checkpoint = {
         "schema": "splitfusion_fcos_candidate_quality_head_v1",
@@ -92,6 +143,11 @@ def main() -> int:
             "focal_gamma": FOCAL_GAMMA,
             "seed": SEED,
             "epoch_losses": epoch_losses,
+            "train_cache_metrics": {
+                "threshold": METRIC_THRESHOLD,
+                "ignored_labels_excluded": True,
+                "classes": train_cache_metrics,
+            },
         },
         "cache_manifest": str(cache / "cache_manifest.json"),
     }

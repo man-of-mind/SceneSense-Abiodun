@@ -18,12 +18,12 @@ def _ignored_box_centres(boxes: torch.Tensor, ignore_mask: torch.Tensor) -> torc
     boxes_cpu = boxes.detach().double().cpu()
     mask_cpu = ignore_mask.detach().bool().cpu()
     height, width = mask_cpu.shape
-    ignored = []
-    for box in boxes_cpu:
-        x = int(round(float((box[0] + box[2]) / 2.0)))
-        y = int(round(float((box[1] + box[3]) / 2.0)))
-        ignored.append(0 <= x < width and 0 <= y < height and bool(mask_cpu[y, x]))
-    return torch.tensor(ignored, dtype=torch.bool)
+    centres = torch.round((boxes_cpu[:, :2] + boxes_cpu[:, 2:]) / 2.0).long()
+    valid = ((centres[:, 0] >= 0) & (centres[:, 0] < width)
+             & (centres[:, 1] >= 0) & (centres[:, 1] < height))
+    x = centres[:, 0].clamp(0, width - 1)
+    y = centres[:, 1].clamp(0, height - 1)
+    return valid & mask_cpu[y, x]
 
 
 def label_candidates(
@@ -33,10 +33,9 @@ def label_candidates(
 ) -> tuple[torch.Tensor, dict[str, Any]]:
     """Label post-base-NMS candidates with deterministic evaluator-style matching.
 
-    Ignore-centred candidates are removed before matching because their label is
-    categorically excluded from candidate-quality loss. Remaining same-class
-    pairs are greedily selected in ``(world distance, candidate index, GT index)``
-    order, identical to the canonical evaluator's one-to-one nearest rule.
+    Same-class pairs are greedily selected in ``(world distance, candidate
+    index, GT index)`` order. Only unmatched predictions are then neutralized
+    by the ignore mask, exactly matching the canonical evaluator's ordering.
     """
     candidate_world_xy = candidate_world_xy.detach().double().cpu()
     candidate_classes = candidate_classes.detach().long().cpu()
@@ -51,13 +50,9 @@ def label_candidates(
     if not bool(torch.isfinite(candidate_world_xy).all()) or not bool(torch.isfinite(gt_world_xy).all()):
         raise FloatingPointError("non-finite world coordinate in candidate labeler")
 
-    ignored = _ignored_box_centres(candidate_boxes, ignore_mask)
     labels = torch.full((count,), NEGATIVE_LABEL, dtype=torch.int8)
-    labels[ignored] = IGNORE_LABEL
     pairs: list[tuple[float, int, int]] = []
     for candidate_index in range(count):
-        if bool(ignored[candidate_index]):
-            continue
         for gt_index in range(eligible_gt):
             if int(candidate_classes[candidate_index]) != int(gt_classes[gt_index]):
                 continue
@@ -73,6 +68,11 @@ def label_candidates(
         used_candidates.add(candidate_index)
         used_gt.add(gt_index)
         labels[candidate_index] = POSITIVE_LABEL
+    ignored = _ignored_box_centres(candidate_boxes, ignore_mask)
+    matched = torch.zeros(count, dtype=torch.bool)
+    if used_candidates:
+        matched[list(used_candidates)] = True
+    labels[ignored & ~matched] = IGNORE_LABEL
 
     true_positive = len(used_gt)
     false_negative = eligible_gt - true_positive

@@ -7,6 +7,7 @@ from typing import Any
 import torch
 import torch.nn.functional as F
 from torch import nn
+from torchvision.ops import roi_pool
 
 FPN_CHANNELS = 256
 LEVEL_NAMES = ("p2", "p3", "p4", "p5", "p6", "p7")
@@ -56,15 +57,6 @@ def refine_scores(base_scores: torch.Tensor, quality_delta: torch.Tensor) -> tor
     return torch.sigmoid(refined_logits(base_scores, quality_delta))
 
 
-def _semantic_box_max(probability: torch.Tensor, box: torch.Tensor) -> torch.Tensor:
-    height, width = probability.shape
-    x0 = max(0, min(width - 1, int(math.floor(float(box[0])))))
-    y0 = max(0, min(height - 1, int(math.floor(float(box[1])))))
-    x1 = max(x0 + 1, min(width, int(math.ceil(float(box[2])))))
-    y1 = max(y0 + 1, min(height, int(math.ceil(float(box[3])))))
-    return probability[y0:y1, x0:x1].amax()
-
-
 def extract_candidate_features(
     outputs: Mapping[str, Any], detections: Mapping[str, torch.Tensor], *, image_index: int = 0,
 ) -> torch.Tensor:
@@ -86,6 +78,10 @@ def extract_candidate_features(
     ), dim=1)
     if not torch.equal(identities, expected_identity):
         raise RuntimeError("candidate identity drift before quality extraction")
+    if bool(((levels < 0) | (levels >= len(LEVEL_NAMES))).any()):
+        raise ValueError("invalid FPN level index")
+    if bool(((classes < 0) | (classes >= 2)).any()):
+        raise ValueError("invalid candidate class index")
 
     semantic = torch.softmax(outputs["semantic_logits"][image_index].float(), dim=0)
     depth_probabilities = detections.get("depth_bin_probabilities")
@@ -98,43 +94,48 @@ def extract_candidate_features(
     if depth_count < 2:
         raise ValueError("depth distribution must contain at least two bins")
 
-    rows: list[torch.Tensor] = []
-    for index in range(count):
-        level_index = int(levels[index])
-        if not 0 <= level_index < len(LEVEL_NAMES):
-            raise ValueError(f"invalid FPN level index {level_index}")
-        feature_map = outputs["features"][LEVEL_NAMES[level_index]][image_index]
-        _channels, height, width = feature_map.shape
-        point_index = int(points[index])
-        if not 0 <= point_index < height * width:
-            raise ValueError(f"invalid flattened point {point_index} for {LEVEL_NAMES[level_index]}")
-        row, column = divmod(point_index, width)
-        frozen_feature = feature_map[:, row, column].float()
+    frozen_features = scores.new_empty((count, FPN_CHANNELS))
+    semantic_y = torch.empty_like(points)
+    semantic_x = torch.empty_like(points)
+    for level_index, level_name in enumerate(LEVEL_NAMES):
+        level_mask = levels == level_index
+        level_points = points[level_mask]
+        feature_map = outputs["features"][level_name][image_index]
+        channels, height, width = feature_map.shape
+        if channels != FPN_CHANNELS:
+            raise ValueError(f"{level_name} channel drift")
+        if bool(((level_points < 0) | (level_points >= height * width)).any()):
+            raise ValueError(f"invalid flattened point for {level_name}")
+        flattened = feature_map.float().flatten(1).transpose(0, 1)
+        frozen_features[level_mask] = flattened.index_select(0, level_points)
+        point_rows = torch.div(level_points, width, rounding_mode="floor")
+        point_columns = level_points.remainder(width)
+        semantic_y[level_mask] = ((point_rows.float() + 0.5) * (448.0 / height)).long().clamp_max(
+            semantic.shape[1] - 1,
+        )
+        semantic_x[level_mask] = ((point_columns.float() + 0.5) * (768.0 / width)).long().clamp_max(
+            semantic.shape[2] - 1,
+        )
 
-        # FPN cells cover the padded 448x768 detector input. The semantic output
-        # covers the 432x768 content, so padded-bottom points clamp to its last row.
-        semantic_y = min(semantic.shape[1] - 1, int((row + 0.5) * 448.0 / height))
-        semantic_x = min(semantic.shape[2] - 1, int((column + 0.5) * 768.0 / width))
-        semantic_class = int(classes[index]) + 1
-        class_probability = semantic[semantic_class]
-        point_probability = class_probability[semantic_y, semantic_x]
-        box_probability = _semantic_box_max(class_probability, boxes[index])
-
-        depth_probability = depth_probabilities[index]
-        depth_max = depth_probability.amax()
-        entropy = -(depth_probability * depth_probability.clamp_min(1e-12).log()).sum()
-        normalized_entropy = entropy / math.log(depth_count)
-        extras = torch.stack((
-            scores[index],
-            classes[index].float(),
-            levels[index].float() / float(len(LEVEL_NAMES) - 1),
-            point_probability,
-            box_probability,
-            depth_max,
-            normalized_entropy,
-        ))
-        rows.append(torch.cat((frozen_feature, extras)))
-    features = torch.stack(rows)
+    semantic_classes = classes + 1
+    point_probability = semantic[semantic_classes, semantic_y, semantic_x]
+    class_rois = torch.cat((classes[:, None].float(), boxes), dim=1)
+    box_probability = roi_pool(
+        semantic[1:].unsqueeze(1), class_rois, output_size=(1, 1), spatial_scale=1.0,
+    ).flatten()
+    depth_max = depth_probabilities.amax(dim=1)
+    entropy = -(depth_probabilities * depth_probabilities.clamp_min(1e-12).log()).sum(dim=1)
+    normalized_entropy = entropy / math.log(depth_count)
+    extras = torch.stack((
+        scores,
+        classes.float(),
+        levels.float() / float(len(LEVEL_NAMES) - 1),
+        point_probability,
+        box_probability,
+        depth_max,
+        normalized_entropy,
+    ), dim=1)
+    features = torch.cat((frozen_features, extras), dim=1)
     if features.shape != (count, FEATURE_DIM) or not bool(torch.isfinite(features).all()):
         raise FloatingPointError("non-finite or malformed candidate feature vector")
     return features

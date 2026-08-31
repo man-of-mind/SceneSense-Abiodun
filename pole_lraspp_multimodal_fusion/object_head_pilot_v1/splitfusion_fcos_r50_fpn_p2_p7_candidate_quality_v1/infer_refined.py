@@ -12,7 +12,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-from .quality import FEATURE_DIM, QualityMLP, apply_refinement, extract_candidate_features, refine_scores
+from .quality import FEATURE_DIM, QualityMLP, apply_refinement, extract_candidate_features, refined_logits
 from .runtime import FROZEN_CHECKPOINT_SHA256, load_frozen_runtime, require_device, sha256
 
 
@@ -26,6 +26,8 @@ def load_quality_head(path: Path, device: torch.device) -> QualityMLP:
     head = QualityMLP(normalize=False)
     head.load_state_dict(checkpoint["quality_head"], strict=True)
     head.to(device).eval()
+    if any(not bool(torch.isfinite(parameter).all()) for parameter in head.parameters()):
+        raise FloatingPointError("non-finite quality-head checkpoint parameter")
     return head
 
 
@@ -66,7 +68,10 @@ def main() -> int:
                 outputs = runtime.model(fused, dense=False)
                 candidates = runtime.model.postprocess(outputs, [calibration_device])[0]
                 features = extract_candidate_features(outputs, candidates)
-                refined_scores = refine_scores(candidates["scores"], quality(features))
+                logits = refined_logits(candidates["scores"], quality(features))
+                refined_scores = torch.sigmoid(logits)
+                if not bool(torch.isfinite(logits).all()) or not bool(torch.isfinite(refined_scores).all()):
+                    raise FloatingPointError(f"non-finite refined output for {row['sample_id']}")
                 detections = apply_refinement(candidates, refined_scores, nms_iou=args.nms_iou, limit=100)
                 for prediction_index in range(len(detections["scores"])):
                     writer.writerow(runtime.base.infer.record(detections, row, prediction_index))
