@@ -35,11 +35,15 @@ class JoinedFrame:
     sample_id: str
     experiment_id: str
     partition: int
-    features: torch.Tensor
+    features: torch.Tensor | None
     base_scores: torch.Tensor
     labels: torch.Tensor
     candidate_identities: torch.Tensor
     original_indices: torch.Tensor
+    boxes: torch.Tensor
+    world_xy: torch.Tensor
+    ignore_flags: torch.Tensor
+    gt_world_xy: torch.Tensor
     eligible_positive_count: int
 
     @property
@@ -133,6 +137,7 @@ def join_shard_payloads(
     expected_partitions: Mapping[str, int],
     *,
     shard_name: str,
+    include_features: bool = True,
 ) -> list[JoinedFrame]:
     """Join one synthetic or real shard pair, failing on any alignment mismatch."""
     frames = consolidation_payload.get("frames")
@@ -196,8 +201,10 @@ def join_shard_payloads(
         world_xy = frame.get("world_xy")
         component_ids = frame.get("component_ids")
         semantic_support = frame.get("semantic_support")
+        ignore_flags = frame.get("ignore_flags")
         _require_vector(component_ids, count, "component_ids")
         _require_vector(semantic_support, count, "semantic_support")
+        _require_vector(ignore_flags, count, "ignore_flags")
         if (not isinstance(original_indices, torch.Tensor) or original_indices.shape != (count,)
                 or not isinstance(boxes, torch.Tensor) or boxes.shape != (count, 4)
                 or not isinstance(world_xy, torch.Tensor) or world_xy.shape != (count, 2)
@@ -206,15 +213,19 @@ def join_shard_payloads(
                 or len({tuple(value) for value in frame_identities.tolist()}) != count):
             raise RuntimeError(f"{shard_name}: candidate identity/order or geometry mismatch")
 
-        rounded_roi = fp16_round_trip_roi_descriptors(roi[offset:stop])
-        cached_features = torch.cat((rounded_roi, scalars[offset:stop].float()), dim=1)
-        features = build_relational_features(
-            cached_features, boxes, world_xy, component_ids, semantic_support,
-            sliced_scores, original_indices,
-        )
         gt_world_xy = frame.get("gt_world_xy")
-        if not isinstance(gt_world_xy, torch.Tensor) or gt_world_xy.ndim != 2 or gt_world_xy.shape[1] != 2:
+        if (not isinstance(gt_world_xy, torch.Tensor) or gt_world_xy.ndim != 2
+                or gt_world_xy.shape[1] != 2
+                or not bool(torch.isfinite(gt_world_xy).all())):
             raise RuntimeError(f"{shard_name}: eligible-person count source is malformed")
+        features = None
+        if include_features:
+            rounded_roi = fp16_round_trip_roi_descriptors(roi[offset:stop])
+            cached_features = torch.cat((rounded_roi, scalars[offset:stop].float()), dim=1)
+            features = build_relational_features(
+                cached_features, boxes, world_xy, component_ids, semantic_support,
+                sliced_scores, original_indices,
+            )
         joined.append(JoinedFrame(
             sample_id=sample_id,
             experiment_id=experiment_id,
@@ -224,6 +235,10 @@ def join_shard_payloads(
             labels=labels[offset:stop].long(),
             candidate_identities=frame_identities,
             original_indices=original_indices.long(),
+            boxes=boxes.float(),
+            world_xy=world_xy.double(),
+            ignore_flags=ignore_flags.bool(),
+            gt_world_xy=gt_world_xy.double(),
             eligible_positive_count=int(gt_world_xy.shape[0]),
         ))
         offset = stop
@@ -232,7 +247,7 @@ def join_shard_payloads(
     return joined
 
 
-def iter_joined_frames(caches: LockedCaches) -> Iterator[JoinedFrame]:
+def iter_joined_frames(caches: LockedCaches, *, include_features: bool = True) -> Iterator[JoinedFrame]:
     """Stream every verified frame from paired cache shards without model execution."""
     split = caches.roi_manifest["episode_split"]
     expected_partitions = {
@@ -252,6 +267,7 @@ def iter_joined_frames(caches: LockedCaches) -> Iterator[JoinedFrame]:
         joined = join_shard_payloads(
             roi_payload, consolidation_payload, expected_partitions,
             shard_name=f"shard_{shard_index:05d}",
+            include_features=include_features,
         )
         shard_candidates = sum(frame.candidate_count for frame in joined)
         if (len(joined) != int(consolidation_shard["frames"])
@@ -283,6 +299,8 @@ def pad_frames(
     for index, frame in enumerate(frames):
         count = frame.candidate_count
         if count:
+            if frame.features is None:
+                raise RuntimeError("metadata-only frame cannot be used as selector input")
             features[index, :count] = frame.features.to(device)
             base_scores[index, :count] = frame.base_scores.to(device)
             labels[index, :count] = frame.labels.to(device)

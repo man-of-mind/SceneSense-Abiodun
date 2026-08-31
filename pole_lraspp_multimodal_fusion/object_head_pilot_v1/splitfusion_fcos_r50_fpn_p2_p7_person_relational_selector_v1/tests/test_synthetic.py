@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import copy
+import math
 import unittest
+from pathlib import Path
+from unittest import mock
 
 import torch
 from torch import nn
@@ -14,13 +17,23 @@ from pole_lraspp_multimodal_fusion.object_head_pilot_v1.splitfusion_fcos_r50_fpn
 )
 
 from ..cache_join import join_shard_payloads
+from .. import runtime as selector_runtime
+from ..provenance import (
+    CONSOLIDATION_MANIFEST_SHA256,
+    FIT_EXPERIMENT_IDS,
+    FROZEN_CHECKPOINT_SHA256,
+    HOLDOUT_EXPERIMENT_IDS,
+    ROI_MANIFEST_SHA256,
+)
 from ..runtime import apply_relational_service_policy
 from ..selector import (
+    ARCHITECTURE,
     INPUT_DIM,
     PersonRelationalSelector,
     build_selector_optimizer,
     refined_person_scores,
 )
+from ..train_selector import ScoredHoldoutFrame, _rematched_metrics_at_threshold
 
 
 def _synthetic_cache_payloads() -> tuple[dict[str, object], dict[str, object], dict[str, int]]:
@@ -165,6 +178,103 @@ class PersonRelationalSelectorSyntheticChecks(unittest.TestCase):
             calibrate_vehicle_scores(detections["scores"].index_select(0, vehicle_positions)),
         ))
         self.assertEqual(float(result["scores"][1]), float(torch.tensor(0.80, dtype=torch.float32)))
+
+    def test_6_holdout_threshold_uses_canonical_rematching_not_cached_labels(self) -> None:
+        cached_labels = torch.tensor([1, 0])
+        frame = ScoredHoldoutFrame(
+            sample_id="synthetic",
+            experiment_id="synthetic_holdout",
+            original_indices=torch.tensor([4, 9]),
+            boxes=torch.tensor([[10.0, 10.0, 20.0, 20.0], [30.0, 10.0, 40.0, 20.0]]),
+            world_xy=torch.tensor([[0.5, 0.0], [2.0, 0.0]], dtype=torch.float64),
+            ignore_flags=torch.tensor([False, False]),
+            gt_world_xy=torch.tensor([[0.0, 0.0]], dtype=torch.float64),
+            base_scores=torch.tensor([0.90, 0.80]),
+            residual_logits=torch.zeros(2),
+            refined_scores=torch.tensor([0.10, 0.80]),
+        )
+        self.assertEqual(cached_labels[torch.tensor([False, True])].tolist(), [0])
+        metrics = _rematched_metrics_at_threshold([frame], [frame.refined_scores], 0.50)
+        self.assertEqual(
+            {name: metrics["aggregate"][name] for name in ("tp", "fp", "fn", "ignored")},
+            {"tp": 1, "fp": 0, "fn": 0, "ignored": 0},
+        )
+
+    def test_7_checkpoint_rejects_mismatched_manifest_hash(self) -> None:
+        lower, upper = 0.40, 0.60
+        midpoint_logit = 0.5 * (
+            math.log(lower / (1.0 - lower)) + math.log(upper / (1.0 - upper))
+        )
+        selected_threshold = 1.0 / (1.0 + math.exp(-midpoint_logit))
+        calibration_bias = math.log(0.20 / 0.80) - midpoint_logit
+        interval = {
+            "lower_score_exclusive": lower,
+            "upper_score_inclusive": upper,
+            "midpoint_logit": midpoint_logit,
+            "selected_threshold": selected_threshold,
+        }
+
+        def metric(threshold: float, true_positive: int) -> dict[str, float | int]:
+            return {
+                "threshold": threshold, "tp": true_positive, "fp": 0, "fn": 0, "ignored": 1,
+                "precision": 1.0, "recall": 1.0,
+            }
+
+        selected = {
+            "aggregate": {**metric(selected_threshold, 16), "ignored": 2},
+            "episodes": {name: metric(selected_threshold, 8) for name in HOLDOUT_EXPERIMENT_IDS},
+        }
+        deployment = {
+            "aggregate": {**metric(0.20, 16), "ignored": 2},
+            "episodes": {name: metric(0.20, 8) for name in HOLDOUT_EXPERIMENT_IDS},
+        }
+        checkpoint = {
+            "schema": "splitfusion_fcos_person_relational_selector_v1",
+            "base_checkpoint_sha256": FROZEN_CHECKPOINT_SHA256,
+            "roi_manifest_sha256": ROI_MANIFEST_SHA256,
+            "consolidation_manifest_sha256": CONSOLIDATION_MANIFEST_SHA256,
+            "architecture": ARCHITECTURE,
+            "selector": PersonRelationalSelector().state_dict(),
+            "training": {
+                "epochs": 5, "selected_epoch": 5, "batch_frames": 16, "optimizer": "Adam",
+                "learning_rate": 1e-3, "positive_to_negative_loss_sampling": "1:3",
+                "all_candidates_retained_in_attention_context": True,
+                "ignored_labels_excluded_from_loss": True, "sampling_plan_scans": 1,
+                "fit_episodes": list(FIT_EXPERIMENT_IDS),
+                "holdout_episodes": list(HOLDOUT_EXPERIMENT_IDS), "seed": 20260831,
+                "epoch_losses": [0.5] * 5,
+                "epoch_sampling": [{"positive": 2, "negative": 6}] * 5,
+            },
+            "holdout": {
+                "threshold_source": "one fixed epoch and one joint two-episode holdout threshold",
+                "before_calibration": {
+                    "candidate_scores_computed_once": True,
+                    "tie_processing": "all_equal_scores_added_before_affected_frames_are_rematched",
+                    "score_boundaries": 2,
+                    "joint_precision_recall_0_80_exists": True,
+                    "selected_interval": interval,
+                },
+                "joint_feasible_interval": interval,
+                "selected_threshold_metrics": selected,
+                "attempted_calibration_bias": calibration_bias,
+                "calibration_bias": calibration_bias,
+                "deployment_at_0_20": deployment,
+                "selected_deployment_counts_agree": True,
+            },
+            "status": "train_feasible",
+            "validation_allowed": True,
+            "validation_or_test_accessed": False,
+        }
+        with mock.patch.object(selector_runtime.torch, "load", return_value=checkpoint):
+            loaded, loaded_bias = selector_runtime.load_selector_checkpoint(Path(__file__), torch.device("cpu"))
+        self.assertIsInstance(loaded, PersonRelationalSelector)
+        self.assertEqual(loaded_bias, calibration_bias)
+
+        invalid = copy.deepcopy(checkpoint)
+        invalid["roi_manifest_sha256"] = "wrong"
+        with mock.patch.object(selector_runtime.torch, "load", return_value=invalid):
+            with self.assertRaises(RuntimeError):
+                selector_runtime.load_selector_checkpoint(Path(__file__), torch.device("cpu"))
 
 
 if __name__ == "__main__":

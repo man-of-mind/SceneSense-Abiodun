@@ -22,6 +22,16 @@ CONSOLIDATION_EVIDENCE_RELATIVE = Path(
 EXPECTED_FRAMES = 16_827
 EXPECTED_CANDIDATES = 1_148_929
 MAX_CANDIDATES_PER_FRAME = 97
+FIT_EXPERIMENT_IDS = (
+    "canonical_v3_01_train_30_30_s501_tm1501",
+    "canonical_v3_02_train_50_50_s502_tm1502",
+    "extra_v3_09_train_30_30_s801_tm1801",
+    "extra_v3_10_train_50_50_s802_tm1802",
+    "extra_v3_11_train_30_30_s803_tm1803",
+    "extra_v3_12_train_50_50_s804_tm1804",
+    "extra_v3_13_train_30_30_s805_tm1805",
+    "extra_v3_14_train_50_50_s806_tm1806",
+)
 HOLDOUT_EXPERIMENT_IDS = (
     "canonical_v3_03_train_30_30_s503_tm1503",
     "canonical_v3_04_train_50_50_s504_tm1504",
@@ -110,8 +120,8 @@ def _validate_roi_manifest(manifest: dict[str, Any]) -> None:
             or int(manifest.get("scalar_feature_dim", -1)) != 10
             or int(manifest.get("feature_dim", -1)) != 1034
             or manifest.get("base_checkpoint_sha256") != FROZEN_CHECKPOINT_SHA256
+            or tuple(split.get("fit", ())) != FIT_EXPERIMENT_IDS
             or tuple(split.get("holdout", ())) != HOLDOUT_EXPERIMENT_IDS
-            or len(split.get("fit", ())) != 8
             or manifest.get("validation_or_test_accessed") is not False
             or sum(int(shard.get("person_candidates", -1)) for shard in manifest.get("shards", ()))
             != EXPECTED_CANDIDATES):
@@ -127,8 +137,8 @@ def _validate_consolidation_manifest(manifest: dict[str, Any]) -> None:
             or int(manifest.get("frames", -1)) != EXPECTED_FRAMES
             or _candidate_total(manifest) != EXPECTED_CANDIDATES
             or manifest.get("base_checkpoint_sha256") != FROZEN_CHECKPOINT_SHA256
+            or tuple(split.get("fit", ())) != FIT_EXPERIMENT_IDS
             or tuple(split.get("holdout", ())) != HOLDOUT_EXPERIMENT_IDS
-            or len(split.get("fit", ())) != 8
             or manifest.get("validation_or_test_accessed") is not False
             or sum(int(shard.get("frames", -1)) for shard in shards) != EXPECTED_FRAMES
             or sum(int(shard.get("person_candidates", -1)) for shard in shards) != EXPECTED_CANDIDATES):

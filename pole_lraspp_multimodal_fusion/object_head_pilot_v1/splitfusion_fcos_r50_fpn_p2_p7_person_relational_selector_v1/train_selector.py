@@ -4,14 +4,15 @@ import argparse
 import json
 import math
 from collections.abc import Mapping
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 import torch
 import torch.nn.functional as F
 
-from pole_lraspp_multimodal_fusion.object_head_pilot_v1.splitfusion_fcos_r50_fpn_p2_p7_person_roi_verifier_v1.verifier import (
-    exact_pr_report,
+from pole_lraspp_multimodal_fusion.object_head_pilot_v1.splitfusion_fcos_r50_fpn_p2_p7_person_instance_consolidation_v1.core import (
+    rematch_person_frame,
 )
 
 from .cache_join import JoinedFrame, iter_joined_frames, pad_frames
@@ -51,12 +52,13 @@ def _frame_key(frame: JoinedFrame) -> tuple[str, str]:
 
 
 def _sampling_plans(
-    caches: LockedCaches, *, seed: int,
-) -> tuple[dict[tuple[str, str], torch.Tensor], int, int]:
+    caches: LockedCaches,
+) -> tuple[list[dict[tuple[str, str], torch.Tensor]], int, int]:
+    """Create all fixed epoch plans from one metadata/label-only cache scan."""
     positive_by_frame: list[tuple[tuple[str, str], torch.Tensor]] = []
     negative_by_frame: list[tuple[tuple[str, str], torch.Tensor]] = []
     seen: set[tuple[str, str]] = set()
-    for frame in iter_joined_frames(caches):
+    for frame in iter_joined_frames(caches, include_features=False):
         if frame.partition != 0:
             continue
         key = _frame_key(frame)
@@ -71,20 +73,23 @@ def _sampling_plans(
     if positive_count == 0 or negative_count < sampled_negative_count:
         raise RuntimeError("fit cache cannot support the fixed 1:3 positive/negative loss sample")
 
-    generator = torch.Generator().manual_seed(seed)
-    selected_global = torch.randperm(negative_count, generator=generator)[:sampled_negative_count]
-    plans = {key: positive.clone() for key, positive in positive_by_frame}
-    offset = 0
-    for key, negative in negative_by_frame:
-        selected = selected_global[
-            (selected_global >= offset) & (selected_global < offset + negative.numel())
-        ] - offset
-        sampled = negative.index_select(0, selected)
-        plans[key] = torch.cat((plans[key], sampled)).sort().values
-        offset += negative.numel()
-    if sum(indices.numel() for indices in plans.values()) != positive_count + sampled_negative_count:
-        raise RuntimeError("deterministic 1:3 sampling plan did not reconcile")
-    return plans, positive_count, sampled_negative_count
+    epoch_plans: list[dict[tuple[str, str], torch.Tensor]] = []
+    for epoch in range(1, EPOCHS + 1):
+        generator = torch.Generator().manual_seed(SEED + epoch)
+        selected_global = torch.randperm(negative_count, generator=generator)[:sampled_negative_count]
+        plans = {key: positive.clone() for key, positive in positive_by_frame}
+        offset = 0
+        for key, negative in negative_by_frame:
+            selected = selected_global[
+                (selected_global >= offset) & (selected_global < offset + negative.numel())
+            ] - offset
+            sampled = negative.index_select(0, selected)
+            plans[key] = torch.cat((plans[key], sampled)).sort().values
+            offset += negative.numel()
+        if sum(indices.numel() for indices in plans.values()) != positive_count + sampled_negative_count:
+            raise RuntimeError("deterministic 1:3 sampling plan did not reconcile")
+        epoch_plans.append(plans)
+    return epoch_plans, positive_count, sampled_negative_count
 
 
 def _optimize_batch(
@@ -154,45 +159,68 @@ def _train_epoch(
     return loss_sum / example_count
 
 
+@dataclass(frozen=True)
+class ScoredHoldoutFrame:
+    sample_id: str
+    experiment_id: str
+    original_indices: torch.Tensor
+    boxes: torch.Tensor
+    world_xy: torch.Tensor
+    ignore_flags: torch.Tensor
+    gt_world_xy: torch.Tensor
+    base_scores: torch.Tensor
+    residual_logits: torch.Tensor
+    refined_scores: torch.Tensor
+
+    @property
+    def candidate_count(self) -> int:
+        return int(self.refined_scores.numel())
+
+
 def _holdout_outputs(
     selector: PersonRelationalSelector,
     caches: LockedCaches,
     device: torch.device,
-) -> dict[str, dict[str, Any]]:
-    outputs = {
-        experiment_id: {
-            "base_scores": [], "residual_logits": [], "labels": [], "eligible_positive": 0,
-        }
-        for experiment_id in HOLDOUT_EXPERIMENT_IDS
-    }
+) -> list[ScoredHoldoutFrame]:
+    """Compute each holdout candidate score once and retain rematching fields."""
+    scored: list[ScoredHoldoutFrame] = []
+    eligible_by_episode = {experiment_id: 0 for experiment_id in HOLDOUT_EXPERIMENT_IDS}
     selector.eval()
     with torch.inference_mode():
         for frame in iter_joined_frames(caches):
             if frame.partition != 1:
                 continue
-            if frame.experiment_id not in outputs:
+            if frame.experiment_id not in eligible_by_episode:
                 raise RuntimeError("unexpected holdout episode")
-            episode = outputs[frame.experiment_id]
-            episode["eligible_positive"] += frame.eligible_positive_count
-            if frame.candidate_count == 0:
-                continue
-            features, base_scores, labels, padding = pad_frames([frame], device)
-            residual = selector(features, padding)[0, :frame.candidate_count]
-            valid = labels[0, :frame.candidate_count] >= 0
-            episode["base_scores"].append(base_scores[0, :frame.candidate_count][valid].cpu())
-            episode["residual_logits"].append(residual[valid].cpu())
-            episode["labels"].append(labels[0, :frame.candidate_count][valid].cpu())
-    finalized: dict[str, dict[str, Any]] = {}
-    for experiment_id, episode in outputs.items():
-        if not episode["base_scores"] or int(episode["eligible_positive"]) <= 0:
-            raise RuntimeError(f"holdout episode has no scored candidates or eligible people: {experiment_id}")
-        finalized[experiment_id] = {
-            "base_scores": torch.cat(episode["base_scores"]),
-            "residual_logits": torch.cat(episode["residual_logits"]),
-            "labels": torch.cat(episode["labels"]),
-            "eligible_positive": int(episode["eligible_positive"]),
-        }
-    return finalized
+            eligible_by_episode[frame.experiment_id] += frame.eligible_positive_count
+            if frame.candidate_count:
+                if frame.features is None:
+                    raise RuntimeError("holdout frame is missing relational features")
+                features = frame.features.unsqueeze(0).to(device)
+                padding = torch.zeros((1, frame.candidate_count), dtype=torch.bool, device=device)
+                base = frame.base_scores.to(device)
+                residual = selector(features, padding)[0]
+                scores = refined_person_scores(base, residual)
+            else:
+                base = torch.empty(0, dtype=torch.float32, device=device)
+                residual = torch.empty(0, dtype=torch.float32, device=device)
+                scores = torch.empty(0, dtype=torch.float32, device=device)
+            scored.append(ScoredHoldoutFrame(
+                sample_id=frame.sample_id,
+                experiment_id=frame.experiment_id,
+                original_indices=frame.original_indices.cpu(),
+                boxes=frame.boxes.cpu(),
+                world_xy=frame.world_xy.cpu(),
+                ignore_flags=frame.ignore_flags.cpu(),
+                gt_world_xy=frame.gt_world_xy.cpu(),
+                base_scores=base.cpu(),
+                residual_logits=residual.cpu(),
+                refined_scores=scores.cpu(),
+            ))
+    if (set(frame.experiment_id for frame in scored) != set(HOLDOUT_EXPERIMENT_IDS)
+            or any(count <= 0 for count in eligible_by_episode.values())):
+        raise RuntimeError("both fixed holdout episodes must contain eligible people")
+    return scored
 
 
 def _logit(value: float) -> float:
@@ -201,118 +229,237 @@ def _logit(value: float) -> float:
     return math.log(clamped / (1.0 - clamped))
 
 
-def _joint_feasible_interval(
-    scores_by_episode: Mapping[str, torch.Tensor],
-    labels_by_episode: Mapping[str, torch.Tensor],
-    eligible_by_episode: Mapping[str, int],
-) -> dict[str, float] | None:
-    episode_names = tuple(sorted(scores_by_episode))
-    scores = torch.cat([scores_by_episode[name].detach().float().cpu() for name in episode_names])
-    labels = torch.cat([labels_by_episode[name].detach().long().cpu() for name in episode_names])
-    episode_index = torch.cat([
-        torch.full((scores_by_episode[name].numel(),), index, dtype=torch.long)
-        for index, name in enumerate(episode_names)
-    ])
-    order = torch.argsort(scores, descending=True, stable=True)
-    ordered_scores = scores[order].double()
-    ordered_labels = labels[order]
-    ordered_episode = episode_index[order]
-    unique_scores, group_counts = torch.unique_consecutive(ordered_scores, return_counts=True)
-    group_ends = group_counts.cumsum(0) - 1
+COUNT_FIELDS = ("tp", "fp", "fn", "ignored")
 
-    predicted = torch.arange(1, scores.numel() + 1, dtype=torch.long)[group_ends]
-    tp = ordered_labels.eq(1).long().cumsum(0)[group_ends]
-    eligible_total = sum(int(eligible_by_episode[name]) for name in episode_names)
-    feasible = (tp.double() / predicted.double() >= 0.80) & (tp.double() / eligible_total >= 0.80)
-    for episode_number, name in enumerate(episode_names):
-        member = ordered_episode.eq(episode_number)
-        episode_predicted = member.long().cumsum(0)[group_ends]
-        episode_tp = (member & ordered_labels.eq(1)).long().cumsum(0)[group_ends]
-        precision = episode_tp.double() / episode_predicted.clamp_min(1).double()
-        recall = episode_tp.double() / int(eligible_by_episode[name])
-        feasible &= (precision >= 0.80) & (recall >= 0.80)
-    indices = torch.where(feasible)[0].tolist()
-    if not indices:
-        return None
-    start = end = indices[0]
-    for index in indices[1:]:
-        if index != end + 1:
-            break
-        end = index
-    upper = float(unique_scores[start])
-    lower_exclusive = float(unique_scores[end + 1]) if end + 1 < unique_scores.numel() else 0.0
-    midpoint_logit = 0.5 * (_logit(lower_exclusive) + _logit(upper))
+
+def _rematch_counts(frame: ScoredHoldoutFrame, retained: torch.Tensor) -> dict[str, int]:
+    retained = retained.detach().long().cpu()
+    if (retained.ndim != 1 or bool((retained < 0).any())
+            or bool((retained >= frame.candidate_count).any())
+            or (retained.numel() > 1 and not bool((retained[1:] > retained[:-1]).all()))):
+        raise RuntimeError("holdout rematch did not preserve original candidate order")
+    if retained.numel() > 1:
+        original = frame.original_indices.index_select(0, retained)
+        if not bool((original[1:] > original[:-1]).all()):
+            raise RuntimeError("holdout rematch original indices are not increasing")
+    labels, summary = rematch_person_frame({
+        "boxes": frame.boxes,
+        "world_xy": frame.world_xy,
+        "ignore_flags": frame.ignore_flags,
+        "gt_world_xy": frame.gt_world_xy,
+    }, retained)
     return {
-        "lower_score_exclusive": lower_exclusive,
-        "upper_score_inclusive": upper,
-        "midpoint_logit": midpoint_logit,
-        "selected_threshold": 1.0 / (1.0 + math.exp(-midpoint_logit)),
+        "tp": int(summary["tp"]),
+        "fp": int((labels == 0).sum()),
+        "fn": int(summary["fn"]),
+        "ignored": int((labels == -1).sum()),
     }
 
 
-def _metric_at_0_20(scores: torch.Tensor, labels: torch.Tensor, eligible: int) -> dict[str, Any]:
-    return exact_pr_report(
-        scores, labels, eligible_positive_count=eligible, canonical_threshold=CANONICAL_THRESHOLD,
-    )["at_0_20"]
+def _add_counts(target: dict[str, int], value: Mapping[str, int], scale: int = 1) -> None:
+    for name in COUNT_FIELDS:
+        target[name] += scale * int(value[name])
 
 
-def _holdout_calibration_result(episodes: Mapping[str, Mapping[str, Any]]) -> dict[str, Any]:
-    raw_scores = {
-        name: refined_person_scores(value["base_scores"], value["residual_logits"])
-        for name, value in episodes.items()
+def _metrics(counts: Mapping[str, int], threshold: float) -> dict[str, Any]:
+    tp, fp, fn = int(counts["tp"]), int(counts["fp"]), int(counts["fn"])
+    return {
+        "threshold": float(threshold),
+        "tp": tp,
+        "fp": fp,
+        "fn": fn,
+        "ignored": int(counts["ignored"]),
+        "precision": tp / max(1, tp + fp),
+        "recall": tp / max(1, tp + fn),
     }
-    labels = {name: value["labels"] for name, value in episodes.items()}
-    eligible = {name: int(value["eligible_positive"]) for name, value in episodes.items()}
-    aggregate_scores = torch.cat([raw_scores[name] for name in sorted(raw_scores)])
-    aggregate_labels = torch.cat([labels[name] for name in sorted(labels)])
-    aggregate_eligible = sum(eligible.values())
-    before = {
-        "aggregate": exact_pr_report(
-            aggregate_scores, aggregate_labels, eligible_positive_count=aggregate_eligible,
-            canonical_threshold=CANONICAL_THRESHOLD,
-        ),
-        "episodes": {
-            name: exact_pr_report(
-                raw_scores[name], labels[name], eligible_positive_count=eligible[name],
-                canonical_threshold=CANONICAL_THRESHOLD,
-            )
-            for name in sorted(raw_scores)
+
+
+def _rematched_metrics_at_threshold(
+    frames: list[ScoredHoldoutFrame],
+    scores_by_frame: list[torch.Tensor],
+    threshold: float,
+) -> dict[str, Any]:
+    if len(frames) != len(scores_by_frame) or not frames:
+        raise ValueError("holdout frames and score vectors are empty or misaligned")
+    episodes = {
+        name: {field: 0 for field in COUNT_FIELDS}
+        for name in sorted({frame.experiment_id for frame in frames})
+    }
+    for frame, scores in zip(frames, scores_by_frame, strict=True):
+        scores = scores.detach().float().cpu()
+        if scores.shape != (frame.candidate_count,) or not bool(torch.isfinite(scores).all()):
+            raise RuntimeError("holdout rematch score/frame alignment drift")
+        retained = torch.where(scores >= float(threshold))[0]
+        _add_counts(episodes[frame.experiment_id], _rematch_counts(frame, retained))
+    aggregate = {field: sum(value[field] for value in episodes.values()) for field in COUNT_FIELDS}
+    return {
+        "aggregate": _metrics(aggregate, threshold),
+        "episodes": {name: _metrics(value, threshold) for name, value in episodes.items()},
+    }
+
+
+def _passes_all_gates(metrics: Mapping[str, Any]) -> bool:
+    episodes = metrics.get("episodes", {})
+    reports = [metrics.get("aggregate", {}), *episodes.values()]
+    return (set(episodes) == set(HOLDOUT_EXPERIMENT_IDS)
+            and all(float(report.get("precision", -1.0)) >= 0.80
+                    and float(report.get("recall", -1.0)) >= 0.80 for report in reports))
+
+
+def _same_rematched_counts(left: Mapping[str, Any], right: Mapping[str, Any]) -> bool:
+    if set(left.get("episodes", {})) != set(right.get("episodes", {})):
+        return False
+    scopes = [(left["aggregate"], right["aggregate"])] + [
+        (left["episodes"][name], right["episodes"][name]) for name in left["episodes"]
+    ]
+    return all(all(int(a[field]) == int(b[field]) for field in COUNT_FIELDS) for a, b in scopes)
+
+
+def _rematched_holdout_frontier(frames: list[ScoredHoldoutFrame]) -> dict[str, Any]:
+    """Build the exact tied-score frontier with per-frame canonical rematching."""
+    if set(frame.experiment_id for frame in frames) != set(HOLDOUT_EXPERIMENT_IDS):
+        raise RuntimeError("exact frontier requires both fixed holdout episodes")
+    scores_by_frame = [frame.refined_scores.detach().float().cpu() for frame in frames]
+    if not scores_by_frame or sum(scores.numel() for scores in scores_by_frame) == 0:
+        raise RuntimeError("holdout frontier contains no candidates")
+    flat_scores = torch.cat(scores_by_frame)
+    if not bool(torch.isfinite(flat_scores).all()):
+        raise FloatingPointError("non-finite holdout score")
+    flat_frame = torch.cat([
+        torch.full((scores.numel(),), index, dtype=torch.long)
+        for index, scores in enumerate(scores_by_frame)
+    ])
+    flat_position = torch.cat([torch.arange(scores.numel()) for scores in scores_by_frame])
+    order = torch.argsort(flat_scores, descending=True, stable=True)
+    ordered_scores = flat_scores[order].double()
+    ordered_frame = flat_frame[order]
+    ordered_position = flat_position[order]
+    unique_scores, group_counts = torch.unique_consecutive(ordered_scores, return_counts=True)
+
+    active = [torch.zeros(frame.candidate_count, dtype=torch.bool) for frame in frames]
+    frame_counts = [
+        {"tp": 0, "fp": 0, "fn": int(frame.gt_world_xy.shape[0]), "ignored": 0}
+        for frame in frames
+    ]
+    episode_counts = {
+        name: {field: 0 for field in COUNT_FIELDS} for name in HOLDOUT_EXPERIMENT_IDS
+    }
+    for frame, counts in zip(frames, frame_counts, strict=True):
+        _add_counts(episode_counts[frame.experiment_id], counts)
+    maximum_precision_at_recall = {"aggregate": 0.0, **{name: 0.0 for name in HOLDOUT_EXPERIMENT_IDS}}
+    maximum_recall_at_precision = {"aggregate": 0.0, **{name: 0.0 for name in HOLDOUT_EXPERIMENT_IDS}}
+    jointly_feasible: list[bool] = []
+
+    offset = 0
+    for boundary, group_count in zip(unique_scores.tolist(), group_counts.tolist(), strict=True):
+        stop = offset + int(group_count)
+        affected: set[int] = set()
+        for frame_index, position in zip(
+            ordered_frame[offset:stop].tolist(), ordered_position[offset:stop].tolist(), strict=True,
+        ):
+            active[frame_index][position] = True
+            affected.add(frame_index)
+        for frame_index in sorted(affected):
+            frame = frames[frame_index]
+            _add_counts(episode_counts[frame.experiment_id], frame_counts[frame_index], scale=-1)
+            retained = torch.where(active[frame_index])[0]
+            frame_counts[frame_index] = _rematch_counts(frame, retained)
+            _add_counts(episode_counts[frame.experiment_id], frame_counts[frame_index])
+        aggregate_counts = {
+            field: sum(value[field] for value in episode_counts.values()) for field in COUNT_FIELDS
+        }
+        reports = {
+            "aggregate": _metrics(aggregate_counts, boundary),
+            **{name: _metrics(episode_counts[name], boundary) for name in HOLDOUT_EXPERIMENT_IDS},
+        }
+        for name, report in reports.items():
+            if float(report["recall"]) >= 0.80:
+                maximum_precision_at_recall[name] = max(
+                    maximum_precision_at_recall[name], float(report["precision"]),
+                )
+            if float(report["precision"]) >= 0.80:
+                maximum_recall_at_precision[name] = max(
+                    maximum_recall_at_precision[name], float(report["recall"]),
+                )
+        jointly_feasible.append(all(
+            float(report["precision"]) >= 0.80 and float(report["recall"]) >= 0.80
+            for report in reports.values()
+        ))
+        offset = stop
+
+    feasible_indices = [index for index, feasible in enumerate(jointly_feasible) if feasible]
+    selected_interval: dict[str, float] | None = None
+    if feasible_indices:
+        start = end = feasible_indices[0]
+        for index in feasible_indices[1:]:
+            if index != end + 1:
+                break
+            end = index
+        upper = float(unique_scores[start])
+        lower_exclusive = float(unique_scores[end + 1]) if end + 1 < unique_scores.numel() else 0.0
+        midpoint_logit = 0.5 * (_logit(lower_exclusive) + _logit(upper))
+        selected_interval = {
+            "lower_score_exclusive": lower_exclusive,
+            "upper_score_inclusive": upper,
+            "midpoint_logit": midpoint_logit,
+            "selected_threshold": 1.0 / (1.0 + math.exp(-midpoint_logit)),
+        }
+    at_canonical = _rematched_metrics_at_threshold(frames, scores_by_frame, CANONICAL_THRESHOLD)
+    return {
+        "candidate_scores_computed_once": True,
+        "tie_processing": "all_equal_scores_added_before_affected_frames_are_rematched",
+        "score_boundaries": int(unique_scores.numel()),
+        "aggregate": {
+            "at_0_20": at_canonical["aggregate"],
+            "maximum_precision_at_recall_gte_0_80": maximum_precision_at_recall["aggregate"],
+            "maximum_recall_at_precision_gte_0_80": maximum_recall_at_precision["aggregate"],
         },
+        "episodes": {
+            name: {
+                "at_0_20": at_canonical["episodes"][name],
+                "maximum_precision_at_recall_gte_0_80": maximum_precision_at_recall[name],
+                "maximum_recall_at_precision_gte_0_80": maximum_recall_at_precision[name],
+            }
+            for name in HOLDOUT_EXPERIMENT_IDS
+        },
+        "joint_precision_recall_0_80_exists": bool(feasible_indices),
+        "selected_interval": selected_interval,
+        "selected_interval_rule": "highest-score contiguous jointly feasible rematched interval",
     }
-    interval = _joint_feasible_interval(raw_scores, labels, eligible)
+
+
+def _holdout_calibration_result(frames: list[ScoredHoldoutFrame]) -> dict[str, Any]:
+    frontier = _rematched_holdout_frontier(frames)
+    interval = frontier["selected_interval"]
     attempted_bias: float | None = None
+    selected_metrics: dict[str, Any] | None = None
     deployment: dict[str, Any] | None = None
+    counts_agree = False
     allowed = False
     if interval is not None:
+        selected_threshold = float(interval["selected_threshold"])
+        raw_scores = [frame.refined_scores for frame in frames]
+        selected_metrics = _rematched_metrics_at_threshold(frames, raw_scores, selected_threshold)
         attempted_bias = _logit(CANONICAL_THRESHOLD) - float(interval["midpoint_logit"])
-        calibrated = {
-            name: refined_person_scores(
-                episodes[name]["base_scores"], episodes[name]["residual_logits"], attempted_bias,
-            )
-            for name in episodes
-        }
-        deployment = {
-            "aggregate": _metric_at_0_20(
-                torch.cat([calibrated[name] for name in sorted(calibrated)]),
-                aggregate_labels,
-                aggregate_eligible,
-            ),
-            "episodes": {
-                name: _metric_at_0_20(calibrated[name], labels[name], eligible[name])
-                for name in sorted(calibrated)
-            },
-        }
-        reports = [deployment["aggregate"], *deployment["episodes"].values()]
-        allowed = all(
-            float(report["precision"]) >= 0.80 and float(report["recall"]) >= 0.80
-            for report in reports
+        calibrated_scores = [
+            refined_person_scores(frame.base_scores, frame.residual_logits, attempted_bias)
+            for frame in frames
+        ]
+        deployment = _rematched_metrics_at_threshold(
+            frames, calibrated_scores, CANONICAL_THRESHOLD,
         )
+        counts_agree = _same_rematched_counts(selected_metrics, deployment)
+        allowed = (_passes_all_gates(selected_metrics)
+                   and _passes_all_gates(deployment)
+                   and counts_agree)
     return {
-        "before_calibration": before,
+        "before_calibration": frontier,
         "joint_feasible_interval": interval,
+        "selected_threshold_metrics": selected_metrics,
         "attempted_calibration_bias": attempted_bias,
         "calibration_bias": attempted_bias if allowed else 0.0,
         "deployment_at_0_20": deployment,
+        "selected_deployment_counts_agree": counts_agree,
         "status": "train_feasible" if allowed else "train_infeasible",
         "validation_allowed": allowed,
     }
@@ -338,8 +485,8 @@ def main() -> int:
 
     epoch_losses: list[float] = []
     epoch_sampling: list[dict[str, int]] = []
-    for epoch in range(1, EPOCHS + 1):
-        plans, positives, negatives = _sampling_plans(caches, seed=SEED + epoch)
+    all_epoch_plans, positives, negatives = _sampling_plans(caches)
+    for epoch, plans in enumerate(all_epoch_plans, start=1):
         loss = _train_epoch(selector, optimizer, caches, plans, device)
         epoch_losses.append(loss)
         epoch_sampling.append({"positive": positives, "negative": negatives})
@@ -364,6 +511,7 @@ def main() -> int:
             "positive_to_negative_loss_sampling": "1:3",
             "all_candidates_retained_in_attention_context": True,
             "ignored_labels_excluded_from_loss": True,
+            "sampling_plan_scans": 1,
             "fit_episodes": list(caches.roi_manifest["episode_split"]["fit"]),
             "holdout_episodes": list(HOLDOUT_EXPERIMENT_IDS),
             "seed": SEED,
