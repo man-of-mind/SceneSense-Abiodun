@@ -1,0 +1,40 @@
+{
+  "schema": "route_b_publication_renderer_zbuffer_visibility_protocol_v2_amendment_001",
+  "registered_date": "2026-09-01",
+  "base_protocol": {
+    "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_service_candidate_v1/PUBLICATION_EVALUATION_PROTOCOL_V2.json",
+    "sha256": "361bd50f9f94f18689a67fbb2cfb3ed0ac02f668677daf3ab861405210adb728"
+  },
+  "triggering_evidence": {
+    "path": "data_collection/experiments/route_b_publication_zbuffer_visibility_v2/qualification_20260901_020000/controlled_qualification/controlled_qualification_failure.json",
+    "sha256": "25c5a8c713d865fb264dde45f1a9abda74d05fb610031bed81723d9239f2fc11",
+    "finding": "The isolated actor-only depth renderer produced 5156 finite vehicle-support pixels, while the colocated instance camera produced no vehicle component. The primary z-buffer method had not failed."
+  },
+  "single_change": {
+    "field": "qualification_before_collection.vehicle_depth_mask_vs_instance_mask_iou_minimum",
+    "old": 0.98,
+    "new": null,
+    "new_role": "optional_nonblocking_diagnostic",
+    "missing_component_behavior": "record instance_diagnostic_unavailable with raw evidence and continue primary z-buffer qualification"
+  },
+  "rationale": "A sensor already proven unreliable for pedestrians cannot be a mandatory validator of a depth method that does not use that sensor. Making the optional vehicle cross-check nonblocking removes no scientific evidence used by the registered visibility equation.",
+  "unchanged": [
+    "perception baseline",
+    "renderer z-buffer visibility equation",
+    "tau_empty_m=0.02",
+    "tau_match_m=0.02",
+    "clear/partial/full qualification gates",
+    "walker pose and transform gates",
+    "visibility thresholds 0.10/0.25/0.50/0.70/0.85",
+    "40 m range contract",
+    "four prospective episode seeds",
+    "models, postprocessing and metrics",
+    "no tuning, training, test or compression boundary"
+  ],
+  "authorization": {
+    "one_new_create_only_controlled_run": true,
+    "traffic_smoke_or_publication_collection": false,
+    "model_access": false,
+    "tolerance_or_metric_changes": false
+  }
+}
