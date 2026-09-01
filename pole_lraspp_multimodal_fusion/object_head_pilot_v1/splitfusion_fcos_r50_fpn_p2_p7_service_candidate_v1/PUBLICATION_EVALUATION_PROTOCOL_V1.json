@@ -1,0 +1,129 @@
+{
+  "schema": "route_b_publication_instance_visibility_protocol_v1",
+  "registered_date": "2026-08-31",
+  "purpose": "Prospective held-out evaluation with renderer-derived per-actor instance visibility; no model selection or tuning.",
+  "baseline_lock": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_service_candidate_v1/PERCEPTION_BASELINE_LOCK_V1.json",
+  "primary_model": "SplitFusion-FCOS-R50-FPN-P2-P7 locked service candidate",
+  "visibility": {
+    "name": "renderer-derived in-frame instance visibility",
+    "formula": "pixel_count(visible_instance_mask INTERSECT unoccluded_instance_mask) / pixel_count(unoccluded_instance_mask)",
+    "visible_mask": "normal synchronized CARLA instance-segmentation rendering of the exact actor",
+    "unoccluded_mask": "CARLA renderer instance mask of the same actor blueprint, pose and camera-relative transform with other scene actors and occluders absent",
+    "denominator_scope": "in-frame unoccluded actor silhouette; off-image pixels are not counted as occlusion",
+    "self_occlusion": "retained in both masks",
+    "thresholds": [0.1, 0.25, 0.5, 0.7, 0.85],
+    "forbidden_proxies": [
+      "depth-consistent projected-box occupancy",
+      "semantic-class pixels without instance identity",
+      "filled 2D or 3D projected boxes",
+      "ellipse or class-average silhouettes",
+      "learned amodal completion"
+    ]
+  },
+  "non_visibility_eligibility": {
+    "source": "reuse the existing Route B v3 geometric qualification and 40 m range contract unchanged",
+    "maximum_range_m": 40.0,
+    "visibility_is_the_only_replaced_eligibility_signal": true
+  },
+  "prospective_episodes": [
+    {
+      "name": "publication_v1_01_eval_30_30_s801_tm1801",
+      "density": "traffic_30_30",
+      "scenario_seed": 801,
+      "traffic_manager_seed": 1801
+    },
+    {
+      "name": "publication_v1_02_eval_50_50_s802_tm1802",
+      "density": "traffic_50_50",
+      "scenario_seed": 802,
+      "traffic_manager_seed": 1802
+    },
+    {
+      "name": "publication_v1_03_eval_30_30_s803_tm1803",
+      "density": "traffic_30_30",
+      "scenario_seed": 803,
+      "traffic_manager_seed": 1803
+    },
+    {
+      "name": "publication_v1_04_eval_50_50_s804_tm1804",
+      "density": "traffic_50_50",
+      "scenario_seed": 804,
+      "traffic_manager_seed": 1804
+    }
+  ],
+  "collection": {
+    "base_configuration": "reuse Route B perception v3 route, sensor calibration, weather, 25 km/h target, 20/10/5 Hz cadence, radar aggregation and 600 s maximum loop",
+    "new_streams": [
+      "synchronized instance-segmentation image",
+      "verified rendered-instance-ID to CARLA actor-ID mapping",
+      "actor blueprint and transform",
+      "camera transform and intrinsics",
+      "walker bone pose where applicable",
+      "state required to reproduce vehicle silhouette"
+    ],
+    "old_canonical_test_episodes_permitted": false,
+    "create_only_outputs": true
+  },
+  "frozen_models": {
+    "primary": {
+      "name": "SplitFusion-FCOS locked service candidate",
+      "checkpoint": "experiments/route_b_v3_1_splitfusion_fcos_r50_fpn_p2_p7_v1_numerical_recovery_v1/20260830_recovered_epoch10_gate_v1/checkpoints/epoch_026.pt",
+      "checkpoint_sha256": "da14d21edbd374c1c3abce02ca4674b9f4097becfba9759aba945cea160a297f",
+      "postprocessing": "PERCEPTION_BASELINE_LOCK_V1.json"
+    },
+    "comparators": [
+      {
+        "name": "depth-aware LR-ASPP joint epoch 10",
+        "checkpoint": "experiments/route_b_v3_1_depth_aware_lraspp_v1/20260829_060656/checkpoints/epoch_010.pt",
+        "checkpoint_sha256": "f58b3e71c60ea5f225105de63e5be910f9d6d18330d2df33dbda13470589354e"
+      },
+      {
+        "name": "depth-aware LR-ASPP task-separated stage-2 epoch 30",
+        "checkpoint": "experiments/route_b_v3_1_depth_aware_lraspp_two_stage_v1/20260829_184743/stage2/checkpoints/stage2_epoch_030.pt",
+        "checkpoint_sha256": "ae118744f9b312320bfc10c726982708a7d225747bf67d30748086739001dbde"
+      }
+    ]
+  },
+  "evaluation": {
+    "fixed_score_views": [0.2, 0.02],
+    "service_detection_matching": "class-aware greedy nearest-first world-XY matching within 3.0 m, preserving the historical service interpretation",
+    "standard_2d_detection": [
+      "AP50",
+      "COCO-style AP averaged over IoU 0.50:0.05:0.95",
+      "per-class precision-recall curves"
+    ],
+    "gt_2d_box": "tight bounding rectangle of the in-frame unoccluded actor instance mask",
+    "segmentation_gt": "visible semantic pixels assembled from exact actor instance masks; ineligible foreground instances are ignored for threshold-specific views",
+    "segmentation_metrics": [
+      "vehicle pixel IoU",
+      "person pixel IoU",
+      "foreground mean IoU"
+    ],
+    "localization_metrics": [
+      "world-XY error mean",
+      "world-XY error median",
+      "world-XY error p90",
+      "range/depth absolute error",
+      "dimension MAE by axis",
+      "yaw angular MAE"
+    ],
+    "strata": {
+      "visibility_minimum": [0.1, 0.25, 0.5, 0.7, 0.85],
+      "range_m": [[0, 10], [10, 20], [20, 30], [30, 40]],
+      "class": ["vehicle", "person"],
+      "episode": "all four episodes separately and aggregate"
+    },
+    "uncertainty": "95% confidence intervals from a fixed-seed temporal-block bootstrap; block length and seed must be fixed in source before inference and never tuned",
+    "visibility_threshold_is_not_a_score_threshold": true
+  },
+  "scientific_boundaries": {
+    "training_permitted": false,
+    "optimizer_steps_permitted": false,
+    "model_or_postprocessing_changes_permitted": false,
+    "validation_derived_thresholds_permitted": false,
+    "reruns_after_results_permitted": false,
+    "compression_or_288_measurements_in_this_protocol": false,
+    "test_data_access_permitted": false,
+    "all_models_use_identical_ground_truth_and_metric_code": true
+  }
+}

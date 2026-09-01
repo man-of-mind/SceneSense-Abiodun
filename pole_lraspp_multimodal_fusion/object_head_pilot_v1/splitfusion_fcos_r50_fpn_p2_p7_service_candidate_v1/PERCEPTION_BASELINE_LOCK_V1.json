@@ -1,0 +1,138 @@
+{
+  "schema": "splitfusion_fcos_perception_baseline_lock_v1",
+  "decision_date": "2026-08-31",
+  "decision": {
+    "status": "supervisor_accepted_for_compression_and_system_evaluation",
+    "basis": "The user reported supervisor acceptance of the locked 7-of-9 service candidate.",
+    "interpretation": "This is a service-scope acceptance decision and is not a claim that all nine original gates passed.",
+    "original_gate_result": "7/9",
+    "failed_original_gates": [
+      "person_precision_at_v010",
+      "person_recall_at_v010"
+    ]
+  },
+  "architecture": {
+    "name": "SplitFusion-FCOS-R50-FPN-P2-P7",
+    "input": "one fused seven-channel tensor: RGB(3) concatenated with radar raster(4)",
+    "split": "raw fused ResNet C2 feature tensor Z",
+    "split_shape": [256, 112, 192],
+    "split_payload_fp32_bytes": 22020096,
+    "fcos_centerness": "original Torchvision FCOS centerness retained for 2D candidate scoring; it is not an explicit centroid correction",
+    "geometry": "custom class-specific physical-centre ray, actor-depth, dimensions and yaw predictions from fused features"
+  },
+  "base_checkpoint": {
+    "path": "experiments/route_b_v3_1_splitfusion_fcos_r50_fpn_p2_p7_v1_numerical_recovery_v1/20260830_recovered_epoch10_gate_v1/checkpoints/epoch_026.pt",
+    "sha256": "da14d21edbd374c1c3abce02ca4674b9f4097becfba9759aba945cea160a297f",
+    "epoch": 26,
+    "training_source_commit": "0d5697b46e901d4494572b2e9a9863326947d24c"
+  },
+  "service_candidate": {
+    "package": "pole_lraspp_multimodal_fusion.object_head_pilot_v1.splitfusion_fcos_r50_fpn_p2_p7_service_candidate_v1",
+    "source_commit": "bb7edac2fbd98b2f9dec616311e9f79d957ee192",
+    "runtime_source_tree_before_lock_artifacts": "45132fe9c8b54663a59fb225a24011fd7ae573f4",
+    "locked_config_path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_service_candidate_v1/locked_config.json",
+    "locked_config_sha256": "cd4db04d97ff47492cb20ae454491a02b69dc00351918ba789ea37076f7e2d79"
+  },
+  "postprocessing": {
+    "canonical_score_threshold": 0.2,
+    "base_candidate_score_floor": 0.02,
+    "base_post_nms_candidates_per_image": 100,
+    "vehicle": {
+      "logit_bias": -1.476162131187961,
+      "clamp_epsilon": 1e-06,
+      "arithmetic": "sigmoid(logit(clamp_fp32(base_score,1e-6,1-1e-6))+logit_bias_fp32)",
+      "candidates_filtered": false,
+      "nms_rerun": false
+    },
+    "person": {
+      "method": "parameter-free semantic instance consolidation",
+      "grid_index": 27,
+      "semantic_support_threshold": 0.1,
+      "group_box_iou_threshold": 0.2,
+      "feasibility_result_path": "experiments/person_instance_consolidation_v1/feasibility_result.json",
+      "feasibility_result_sha256": "a1bb8b2b7062abc2d0ef4c5cbc715154c5a4e9f1da64e050547de14c56bdddde",
+      "source_commit": "a7b759b9e9565555340d3ea6175cb8283c73a687"
+    },
+    "unchanged_outputs": [
+      "segmentation",
+      "geometry",
+      "retained person scores and fields",
+      "vehicle non-score fields"
+    ]
+  },
+  "historical_prediction_set": {
+    "root": "experiments/splitfusion_fcos_service_candidate_v1/predictions",
+    "validation_frames": 3345,
+    "prediction_set_sha256": "8c2d0ae02912204a7d24bcd6924b540ecb1a4d048dcec8ddf6df9209bb72e295",
+    "detections_sha256": "a682a1fc5eabb2e59e07449a8c6b5fc604077b40ef094b57dc30c5a18d7ec260",
+    "segmentation_manifest_sha256": "52d6131e674adbfc75d8ea449a4f3be54a51fd993d3cb818cca23e8d759078f7",
+    "inference_manifest_sha256": "3b930b9ad4bd6e4f0b93d269fdcb599facc145fd988bb67159581230bef38153"
+  },
+  "historical_evaluations": {
+    "metric_name": "depth-consistent projected-box occupancy sensitivity",
+    "warning": "These thresholds are not true anatomical visibility fractions and must not be described that way in a publication.",
+    "v010": {
+      "path": "experiments/splitfusion_fcos_service_candidate_v1/predictions/evaluation_v010.json",
+      "sha256": "81fb31b4c3423a3a381946afdf1012d435116bbba7fc75d7cb5553225a616773",
+      "vehicle_precision": 0.9315917644454283,
+      "vehicle_recall": 0.8684346300691363,
+      "person_precision": 0.7306725329981144,
+      "person_recall": 0.6004648760330579,
+      "vehicle_xy_mae_m": 0.4786754207718958,
+      "person_xy_mae_m": 0.843629339263225,
+      "vehicle_iou": 0.8990128473391599,
+      "person_box_mask_iou": 0.5278940800907954,
+      "foreground_miou": 0.7134534637149776
+    },
+    "v025": {
+      "path": "experiments/splitfusion_fcos_service_candidate_v1/predictions/evaluation_v025.json",
+      "sha256": "2c8bf3ff0650a64809e7841481e99eaaaaba4ca5a8990e60bb9c072eeb8034e1",
+      "vehicle_precision": 0.9521422604129371,
+      "vehicle_recall": 0.9514609421586165,
+      "person_precision": 0.7604447439353099,
+      "person_recall": 0.668542654028436,
+      "vehicle_xy_mae_m": 0.4431291316036823,
+      "person_xy_mae_m": 0.8338362536161299
+    },
+    "v050": {
+      "path": "experiments/splitfusion_fcos_service_candidate_v1/predictions/evaluation_v050.json",
+      "sha256": "d464bebea931c68a42ee80af6d21807ba3a8f5830e82969ad07b1ad48047a281",
+      "vehicle_precision": 0.9646172474101977,
+      "vehicle_recall": 0.9777717168962226,
+      "person_precision": 0.7687213448802853,
+      "person_recall": 0.7644376899696048,
+      "vehicle_xy_mae_m": 0.4030273993234701,
+      "person_xy_mae_m": 0.7310843593750909
+    }
+  },
+  "publication_evaluation": {
+    "status": "pending_true_instance_visibility_ground_truth",
+    "visibility_thresholds": [0.1, 0.25, 0.5, 0.7, 0.85],
+    "range_m": [0.0, 40.0],
+    "model_or_postprocessing_tuning_permitted": false
+  },
+  "frozen": [
+    "checkpoint parameters",
+    "seven-channel input and C2 split",
+    "FCOS heads and original centerness scoring",
+    "semantic and geometry heads",
+    "score calibration",
+    "person consolidation",
+    "score thresholds and NMS",
+    "class mapping and output schema"
+  ],
+  "not_part_of_baseline": [
+    "candidate-quality MLP",
+    "person ROI verifier",
+    "person relational selector",
+    "any validation-derived recalibration"
+  ],
+  "permitted_next_changes": [
+    "lossless zstd at frozen C2 tensor Z",
+    "fixed 8-bit quantization at frozen C2 tensor Z",
+    "hybrid-q/ROI transport at frozen C2 tensor Z",
+    "AE128/AE64/AE32 encoders and decoders at frozen C2 tensor Z",
+    "payload and UE/network/edge latency measurement",
+    "publication evaluator correction applied equally to all frozen models"
+  ]
+}
