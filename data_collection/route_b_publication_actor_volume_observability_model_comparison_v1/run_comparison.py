@@ -26,6 +26,7 @@ from typing import Any, Iterable, Mapping, Sequence
 
 import cv2
 import numpy as np
+import pandas as pd
 
 from data_collection.route_b_publication_actor_volume_visibility_v1 import core, scoring
 from data_collection.route_b_publication_actor_volume_visibility_v1.run_audit import (
@@ -68,6 +69,8 @@ EXPECTED_VALIDATION_FRAMES = 3345
 EXPECTED_PILOT_ROWS = 100
 EXPECTED_PILOT_BALANCED_ACCURACY = 0.8522727272727273
 TERMINAL = "ACTOR_VOLUME_OBSERVABILITY_MODEL_COMPARISON_COMPLETE"
+PILOT_FLOAT_REL_TOL = 1e-12
+PILOT_FLOAT_ABS_TOL = 1e-12
 
 ORIGINAL_UNNORMALIZED_SOURCE_HASHES = {
     "data_collection/route_b_publication_actor_volume_visibility_v1/core.py":
@@ -121,7 +124,7 @@ TABLE_FIELDS = (
     "clipped_projected_area_px", "actor_near_depth_m", "actor_far_depth_m",
     "sampled_roi_px", "valid_depth_px", "retained_actor_point_count",
     "competing_actor_boxes", "actor_volume_observability", "truncation",
-    "no_support", "visible_bbox_x", "visible_bbox_y", "visible_bbox_w",
+    "actor_volume_band", "no_support", "visible_bbox_x", "visible_bbox_y", "visible_bbox_w",
     "visible_bbox_h", "visible_box_area_px", "visible_box_raster_ratio",
     "degenerate_visible_box", "visible_box_height_ratio",
     "visible_box_width_ratio", "actor_point_surface_occupancy",
@@ -137,6 +140,13 @@ class QualificationError(RuntimeError):
 def read_csv(path: Path) -> list[dict[str, str]]:
     with path.open("r", encoding="utf-8", newline="") as stream:
         return list(csv.DictReader(stream))
+
+
+def read_csv_pandas(
+    path: Path, *, dtype: Mapping[str, Any] | None = None
+) -> list[dict[str, Any]]:
+    """Use the registered pilot's pandas parser for geometry-bearing CSVs."""
+    return pd.read_csv(path, dtype=dtype).to_dict(orient="records")
 
 
 def read_json(path: Path) -> Any:
@@ -209,6 +219,48 @@ def exact_double_equal(left: Any, right: Any) -> bool:
     return struct.pack(">d", float(left)) == struct.pack(">d", float(right))
 
 
+def optional_float(value: Any) -> float:
+    if value is None or (isinstance(value, str) and value.strip() == ""):
+        return float("nan")
+    return float(value)
+
+
+def pilot_float_comparison(reproduced: Any, registered: Any) -> dict[str, Any]:
+    """Registered parser-compatible comparison for derived pilot float fields."""
+    actual = optional_float(reproduced)
+    expected = optional_float(registered)
+    if math.isnan(actual) or math.isnan(expected):
+        paired_nan = math.isnan(actual) and math.isnan(expected)
+        return {
+            "passed": paired_nan,
+            "absolute_difference": 0.0 if paired_nan else None,
+            "relative_difference": 0.0 if paired_nan else None,
+            "paired_undefined": paired_nan,
+        }
+    if not (math.isfinite(actual) and math.isfinite(expected)):
+        same = actual == expected
+        return {
+            "passed": same,
+            "absolute_difference": 0.0 if same else None,
+            "relative_difference": 0.0 if same else None,
+            "paired_undefined": False,
+        }
+    absolute = abs(actual - expected)
+    denominator = max(abs(actual), abs(expected))
+    relative = absolute / denominator if denominator > 0.0 else 0.0
+    return {
+        "passed": math.isclose(
+            actual,
+            expected,
+            rel_tol=PILOT_FLOAT_REL_TOL,
+            abs_tol=PILOT_FLOAT_ABS_TOL,
+        ),
+        "absolute_difference": absolute,
+        "relative_difference": relative,
+        "paired_undefined": False,
+    }
+
+
 def verify_original_unnormalized_sources() -> dict[str, Any]:
     actual = {
         relative: sha256_file(REPO_ROOT / relative)
@@ -230,17 +282,17 @@ def verify_original_unnormalized_sources() -> dict[str, Any]:
 def load_raw_sources() -> dict[str, Any]:
     canonical_manifest_path = CANONICAL_EXPERIMENT / "dataset/manifest.csv"
     canonical_rows = [
-        row for row in read_csv(canonical_manifest_path) if row["split"] == "val"
+        row for row in read_csv_pandas(canonical_manifest_path) if row["split"] == "val"
     ]
     frame_ids = [row["sample_id"] for row in canonical_rows]
     if len(frame_ids) != EXPECTED_VALIDATION_FRAMES or len(set(frame_ids)) != len(frame_ids):
         raise QualificationError("frozen validation frame count/uniqueness drift")
     frame_set = set(frame_ids)
 
-    manifests: list[dict[str, str]] = []
-    boxes: list[dict[str, str]] = []
-    visibility: list[dict[str, str]] = []
-    depth_frames: list[dict[str, str]] = []
+    manifests: list[dict[str, Any]] = []
+    boxes: list[dict[str, Any]] = []
+    visibility: list[dict[str, Any]] = []
+    depth_frames: list[dict[str, Any]] = []
     input_hashes: dict[str, str] = {
         str(canonical_manifest_path.relative_to(REPO_ROOT)): sha256_file(canonical_manifest_path)
     }
@@ -255,15 +307,25 @@ def load_raw_sources() -> dict[str, Any]:
         }
         for path in paths.values():
             input_hashes[str(path.relative_to(REPO_ROOT))] = sha256_file(path)
-        episode_manifest = read_csv(paths["manifest"])
+        episode_manifest = read_csv_pandas(paths["manifest"])
         retained = [row for row in episode_manifest if row["sample_id"] in frame_set]
         manifests.extend(retained)
-        boxes.extend(row for row in read_csv(paths["object_boxes"]) if row["sample_id"] in frame_set)
+        boxes.extend(
+            row
+            for row in read_csv_pandas(paths["object_boxes"], dtype={"gt_actor_id": str})
+            if row["sample_id"] in frame_set
+        )
         visibility.extend(
-            row for row in read_csv(paths["object_visibility"]) if row["sample_id"] in frame_set
+            row
+            for row in read_csv_pandas(
+                paths["object_visibility"], dtype={"gt_actor_id": str}
+            )
+            if row["sample_id"] in frame_set
         )
         depth_frames.extend(
-            row for row in read_csv(paths["depth_frames"]) if row["sample_id"] in frame_set
+            row
+            for row in read_csv_pandas(paths["depth_frames"])
+            if row["sample_id"] in frame_set
         )
         raw_frame_counts[episode] = {
             "raw": len(episode_manifest),
@@ -286,12 +348,12 @@ def load_raw_sources() -> dict[str, Any]:
     depth_by_sample = {row["sample_id"]: row for row in depth_frames}
     visibility_by_key = {row_key(row): row for row in visibility}
     all_people = [row for row in boxes if row["label"] == "person"]
-    people_by_sample: dict[str, list[dict[str, str]]] = defaultdict(list)
+    people_by_sample: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for person in all_people:
         people_by_sample[person["sample_id"]].append(person)
 
-    qualified: list[dict[str, str]] = []
-    structural_ignored: list[dict[str, str]] = []
+    qualified: list[dict[str, Any]] = []
+    structural_ignored: list[dict[str, Any]] = []
     exclusion_reasons: Counter[str] = Counter()
     for box in all_people:
         key = row_key(box)
@@ -375,7 +437,7 @@ def load_raw_sources() -> dict[str, Any]:
 
 
 def score_avo_table(raw: Mapping[str, Any]) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-    qualified_by_sample: dict[str, list[dict[str, str]]] = defaultdict(list)
+    qualified_by_sample: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for row in raw["qualified"]:
         qualified_by_sample[row["sample_id"]].append(row)
 
@@ -493,9 +555,14 @@ def score_avo_table(raw: Mapping[str, Any]) -> tuple[list[dict[str, Any]], dict[
                     "depth_frame_id": int(vis["depth_frame_id"]),
                     "depth_timestamp_s": float(vis["depth_timestamp_s"]),
                     **{
-                        ("actor_volume_observability" if name == "visibility" else name): value
+                        (
+                            "actor_volume_observability"
+                            if name == "visibility"
+                            else "actor_volume_band"
+                            if name == "visibility_band"
+                            else name
+                        ): value
                         for name, value in result.items()
-                        if name != "visibility_band"
                     },
                 }
             )
@@ -529,7 +596,7 @@ def score_avo_table(raw: Mapping[str, Any]) -> tuple[list[dict[str, Any]], dict[
 def verify_pilot_reproduction(table: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
     pilot_path = PILOT_ROOT / "actor_volume_visibility_scores.csv"
     metadata_path = PILOT_ROOT / "RUN_METADATA.json"
-    pilot = read_csv(pilot_path)
+    pilot = read_csv_pandas(pilot_path, dtype={"gt_actor_id": str})
     metadata = read_json(metadata_path)
     if len(pilot) != EXPECTED_PILOT_ROWS:
         raise QualificationError(f"pilot row count drift: {len(pilot)}")
@@ -546,58 +613,230 @@ def verify_pilot_reproduction(table: Sequence[Mapping[str, Any]]) -> dict[str, A
         raise QualificationError("registered pilot balanced-accuracy drift")
 
     by_key = {(str(row["sample_id"]), str(row["gt_actor_id"])): row for row in table}
-    fields = (
-        "retained_actor_point_count",
-        "unclipped_projected_area_px",
-        "clipped_projected_area_px",
-        "visible_box_area_px",
-        "actor_volume_observability",
-        "truncation",
-        "no_support",
-    )
+    if len(by_key) != len(table):
+        raise QualificationError("duplicate identity in reproduced pilot source table")
+
+    exact_string_fields = {
+        "sample_id": "sample_id",
+        "episode_id": "episode_id",
+        "gt_actor_id": "gt_actor_id",
+        "algorithm_version": "algorithm_version",
+        "distance_bin": "distance_band",
+        "actor_volume_band": "visibility_band",
+    }
+    exact_integer_fields = {
+        "frame_id": "frame_id",
+        "sampled_roi_px": "sampled_roi_px",
+        "valid_depth_px": "valid_depth_px",
+        "retained_actor_point_count": "retained_actor_point_count",
+        "competing_actor_boxes": "competing_actor_boxes",
+    }
+    exact_boolean_fields = {
+        "no_support": "no_support",
+        "degenerate_visible_box": "degenerate_visible_box",
+    }
+    exact_configuration_fields = {
+        "actor_volume_tolerance_m": "actor_volume_tolerance_m",
+        "ground_reject_margin_m": "ground_reject_margin_m",
+    }
+    derived_float_fields = {
+        "unclipped_bbox_x": "unclipped_bbox_x",
+        "unclipped_bbox_y": "unclipped_bbox_y",
+        "unclipped_bbox_w": "unclipped_bbox_w",
+        "unclipped_bbox_h": "unclipped_bbox_h",
+        "unclipped_projected_area_px": "unclipped_projected_area_px",
+        "clipped_bbox_x": "clipped_bbox_x",
+        "clipped_bbox_y": "clipped_bbox_y",
+        "clipped_bbox_w": "clipped_bbox_w",
+        "clipped_bbox_h": "clipped_bbox_h",
+        "clipped_projected_area_px": "clipped_projected_area_px",
+        "visible_bbox_x": "visible_bbox_x",
+        "visible_bbox_y": "visible_bbox_y",
+        "visible_bbox_w": "visible_bbox_w",
+        "visible_bbox_h": "visible_bbox_h",
+        "visible_box_area_px": "visible_box_area_px",
+        "actor_volume_observability": "visibility",
+        "truncation": "truncation",
+    }
+    field_differences: dict[str, dict[str, Any]] = {}
+    for field in exact_string_fields:
+        field_differences[field] = {
+            "comparison": "exact",
+            "difference_definition": "binary mismatch indicator for nonnumeric exact field",
+            "comparisons": 0,
+            "mismatches": 0,
+            "maximum_absolute_difference": 0.0,
+            "maximum_relative_difference": 0.0,
+        }
+    for field in exact_boolean_fields:
+        field_differences[field] = {
+            "comparison": "exact",
+            "difference_definition": "binary mismatch indicator for nonnumeric exact field",
+            "comparisons": 0,
+            "mismatches": 0,
+            "maximum_absolute_difference": 0.0,
+            "maximum_relative_difference": 0.0,
+        }
+    for field in (*exact_integer_fields, *exact_configuration_fields):
+        field_differences[field] = {
+            "comparison": "exact",
+            "comparisons": 0,
+            "mismatches": 0,
+            "maximum_absolute_difference": 0.0,
+            "maximum_relative_difference": 0.0,
+        }
+    for field in derived_float_fields:
+        field_differences[field] = {
+            "comparison": "math.isclose",
+            "rel_tol": PILOT_FLOAT_REL_TOL,
+            "abs_tol": PILOT_FLOAT_ABS_TOL,
+            "comparisons": 0,
+            "mismatches": 0,
+            "paired_undefined": 0,
+            "maximum_absolute_difference": 0.0,
+            "maximum_relative_difference": 0.0,
+        }
+
     mismatches: list[dict[str, Any]] = []
+
+    def record_exact(
+        *, field: str, expected: Any, actual: Any, passed: bool,
+        numeric: bool = False,
+    ) -> None:
+        stats = field_differences[field]
+        stats["comparisons"] += 1
+        if numeric:
+            absolute = abs(float(actual) - float(expected))
+            denominator = max(abs(float(actual)), abs(float(expected)))
+            relative = absolute / denominator if denominator > 0.0 else 0.0
+        else:
+            absolute = 0.0 if passed else 1.0
+            relative = absolute
+        stats["maximum_absolute_difference"] = max(
+            float(stats["maximum_absolute_difference"]), absolute
+        )
+        stats["maximum_relative_difference"] = max(
+            float(stats["maximum_relative_difference"]), relative
+        )
+        if not passed:
+            stats["mismatches"] += 1
+            mismatches.append(
+                {"field": field, "expected": expected, "actual": actual}
+            )
+
     for expected in pilot:
-        key = (expected["sample_id"], expected["gt_actor_id"])
+        key = (str(expected["sample_id"]), str(expected["gt_actor_id"]))
         actual = by_key.get(key)
         if actual is None:
             mismatches.append({"key": key, "field": "row", "expected": "present", "actual": "missing"})
             continue
-        comparisons = {
-            "retained_actor_point_count": int(expected["retained_actor_point_count"])
-            == int(actual["retained_actor_point_count"]),
-            "unclipped_projected_area_px": exact_double_equal(
-                expected["unclipped_projected_area_px"], actual["unclipped_projected_area_px"]
-            ),
-            "clipped_projected_area_px": exact_double_equal(
-                expected["clipped_projected_area_px"], actual["clipped_projected_area_px"]
-            ),
-            "visible_box_area_px": exact_double_equal(
-                expected["visible_box_area_px"], actual["visible_box_area_px"]
-            ),
-            "actor_volume_observability": exact_double_equal(
-                expected["visibility"], actual["actor_volume_observability"]
-            ),
-            "truncation": exact_double_equal(expected["truncation"], actual["truncation"]),
-            "no_support": truth(expected["no_support"]) == bool(actual["no_support"]),
-        }
-        for field in fields:
-            if not comparisons[field]:
-                expected_field = "visibility" if field == "actor_volume_observability" else field
+
+        for field, registered_field in exact_string_fields.items():
+            registered = str(expected[registered_field])
+            reproduced = str(actual[field])
+            before = len(mismatches)
+            record_exact(
+                field=field,
+                expected=registered,
+                actual=reproduced,
+                passed=reproduced == registered,
+            )
+            if len(mismatches) > before:
+                mismatches[-1]["key"] = key
+        for field, registered_field in exact_integer_fields.items():
+            registered = int(expected[registered_field])
+            reproduced = int(actual[field])
+            before = len(mismatches)
+            record_exact(
+                field=field,
+                expected=registered,
+                actual=reproduced,
+                passed=reproduced == registered,
+                numeric=True,
+            )
+            if len(mismatches) > before:
+                mismatches[-1]["key"] = key
+        for field, registered_field in exact_boolean_fields.items():
+            registered = truth(expected[registered_field])
+            reproduced = bool(actual[field])
+            before = len(mismatches)
+            record_exact(
+                field=field,
+                expected=registered,
+                actual=reproduced,
+                passed=reproduced == registered,
+            )
+            if len(mismatches) > before:
+                mismatches[-1]["key"] = key
+        for field, registered_field in exact_configuration_fields.items():
+            registered = float(expected[registered_field])
+            reproduced = float(actual[field])
+            before = len(mismatches)
+            record_exact(
+                field=field,
+                expected=registered,
+                actual=reproduced,
+                passed=reproduced == registered,
+                numeric=True,
+            )
+            if len(mismatches) > before:
+                mismatches[-1]["key"] = key
+        for field, registered_field in derived_float_fields.items():
+            comparison = pilot_float_comparison(actual[field], expected[registered_field])
+            stats = field_differences[field]
+            stats["comparisons"] += 1
+            stats["paired_undefined"] += int(comparison["paired_undefined"])
+            if comparison["absolute_difference"] is not None:
+                stats["maximum_absolute_difference"] = max(
+                    float(stats["maximum_absolute_difference"]),
+                    float(comparison["absolute_difference"]),
+                )
+                stats["maximum_relative_difference"] = max(
+                    float(stats["maximum_relative_difference"]),
+                    float(comparison["relative_difference"]),
+                )
+            if not comparison["passed"]:
+                stats["mismatches"] += 1
                 mismatches.append(
                     {
                         "key": key,
                         "field": field,
-                        "expected": expected[expected_field],
+                        "expected": expected[registered_field],
                         "actual": actual[field],
+                        "absolute_difference": comparison["absolute_difference"],
+                        "relative_difference": comparison["relative_difference"],
                     }
                 )
+    compared_fields = list(field_differences)
+    expected_comparisons = len(pilot) * len(compared_fields)
+    completed_comparisons = sum(
+        int(stats["comparisons"]) for stats in field_differences.values()
+    )
+    if not mismatches and completed_comparisons != expected_comparisons:
+        raise QualificationError(
+            f"pilot comparison cardinality failure: {completed_comparisons}/{expected_comparisons}"
+        )
     result = {
         "pilot_rows": len(pilot),
-        "fields": list(fields),
-        "exact_matches": len(pilot) * len(fields) - len(mismatches),
-        "expected_comparisons": len(pilot) * len(fields),
+        "fields": compared_fields,
+        "exact_discrete_fields": [
+            *exact_string_fields,
+            *exact_integer_fields,
+            *exact_boolean_fields,
+            *exact_configuration_fields,
+        ],
+        "toleranced_derived_float_fields": list(derived_float_fields),
+        "float_comparison": {
+            "function": "math.isclose",
+            "rel_tol": PILOT_FLOAT_REL_TOL,
+            "abs_tol": PILOT_FLOAT_ABS_TOL,
+        },
+        "passed_comparisons": completed_comparisons - len(mismatches),
+        "completed_comparisons": completed_comparisons,
+        "expected_comparisons": expected_comparisons,
         "mismatch_count": len(mismatches),
         "mismatches": mismatches[:20],
+        "field_differences": field_differences,
         "pilot_balanced_accuracy": balanced_accuracy,
         "pilot_balanced_accuracy_rounded": round(balanced_accuracy, 4),
         "pilot_exact_four_band_agreement": exact_four_band_agreement,
@@ -607,7 +846,9 @@ def verify_pilot_reproduction(table: Sequence[Mapping[str, Any]]) -> dict[str, A
         "passed": not mismatches,
     }
     if mismatches:
-        raise QualificationError(f"exact 100-person pilot reproduction failed: {mismatches[:3]}")
+        raise QualificationError(
+            f"100-person pilot reproduction compatibility gate failed: {mismatches[:3]}"
+        )
     return result
 
 
@@ -1088,8 +1329,9 @@ def report_markdown(
         "actor-frames are structural ignores. Truncation remains a separate diagnostic.",
         "",
         f"Before any prediction was opened, all {pilot['expected_comparisons']} registered pilot "
-        "comparisons reproduced bit-exactly: retained point counts; unclipped, clipped, and "
-        "visible-box areas; unnormalized AVO; truncation; and no-support status. The table has "
+        "comparisons passed: identities, counts, flags, bands, and other discrete fields were "
+        "exact; projected/visible-box coordinates and areas, unnormalized AVO, and truncation "
+        "satisfied `math.isclose(rel_tol=1e-12, abs_tol=1e-12)`. The table has "
         f"{table_diagnostics['no_support_count']} no-support records.",
         "",
         "`actor_volume_observability = area(B_visible) / area(B_full_clipped)`. It uses unchanged "
@@ -1307,7 +1549,7 @@ def main(argv: list[str] | None = None) -> int:
         raw = load_raw_sources()
         print("[qualification] building the one AVO table", flush=True)
         table, table_diagnostics = score_avo_table(raw)
-        print("[qualification] exact 100-person pilot reproduction", flush=True)
+        print("[qualification] registered 100-person pilot compatibility reproduction", flush=True)
         pilot = verify_pilot_reproduction(table)
 
         table_path = run_dir / "actor_volume_observability_table.csv"
