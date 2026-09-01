@@ -1,0 +1,62 @@
+{
+  "schema": "splitfusion_fcos_relational_p070_contract_v1",
+  "objective": {
+    "kind": "post_hoc_revised_train_holdout_gate",
+    "precision_minimum": 0.7,
+    "recall_minimum": 0.7,
+    "historical_0_80_status_preserved": "train_infeasible"
+  },
+  "base_checkpoint": {
+    "path": "experiments/route_b_v3_1_splitfusion_fcos_r50_fpn_p2_p7_v1_numerical_recovery_v1/20260830_recovered_epoch10_gate_v1/checkpoints/epoch_026.pt",
+    "sha256": "da14d21edbd374c1c3abce02ca4674b9f4097becfba9759aba945cea160a297f"
+  },
+  "selector_checkpoint": {
+    "path": "experiments/person_relational_selector_v1/person_relational_selector.pt",
+    "sha256": "af7e8016dbbab41b4edf9ef30f3780bc504b07efe6772a45ac04f5f10df4555a"
+  },
+  "calibration": {
+    "raw_relational_threshold": 0.6632936000823975,
+    "deployment_logit_bias": -2.064300755242339,
+    "deployment_threshold": 0.2,
+    "arithmetic": "FP32"
+  },
+  "holdout": {
+    "score_boundaries": 218742,
+    "aggregate": {
+      "tp": 2879,
+      "fp": 735,
+      "fn": 777,
+      "ignored": 429,
+      "precision": 0.7966242390702822,
+      "recall": 0.787472647702407
+    },
+    "episodes": {
+      "canonical_v3_03_train_30_30_s503_tm1503": {
+        "tp": 898,
+        "fp": 259,
+        "fn": 200,
+        "ignored": 175,
+        "precision": 0.7761452031114953,
+        "recall": 0.8178506375227687
+      },
+      "canonical_v3_04_train_50_50_s504_tm1504": {
+        "tp": 1981,
+        "fp": 476,
+        "fn": 577,
+        "ignored": 254,
+        "precision": 0.8062678062678063,
+        "recall": 0.77443315089914
+      }
+    },
+    "maximin_minimum": 0.77443315089914,
+    "tie_processing": "all_equal_scores_selected_together_before_canonical_frame_rematching"
+  },
+  "runtime": {
+    "candidate_creation": false,
+    "consolidation_is_feature_only": true,
+    "geometry_changed": false,
+    "nms_rerun": false,
+    "segmentation_changed": false,
+    "vehicle_policy": "bit_exact_service_candidate_v1"
+  }
+}
