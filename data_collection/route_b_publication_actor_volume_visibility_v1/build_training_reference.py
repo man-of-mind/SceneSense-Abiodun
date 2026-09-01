@@ -135,6 +135,7 @@ def extract_records(qualified: pd.DataFrame) -> tuple[list[dict[str, Any]], dict
         "actors_extracted": 0,
         "actors_skipped_geometry": 0,
         "actors_zero_support": 0,
+        "actors_zero_box_visibility": 0,
         "actors_invalid_support": 0,
         "skip_reasons": {},
     }
@@ -204,6 +205,10 @@ def extract_records(qualified: pd.DataFrame) -> tuple[list[dict[str, Any]], dict
                     int(result["retained_actor_point_count"]),
                     float(result["clipped_projected_area_px"]),
                 )
+                box_visibility = tref.raw_box_visibility(
+                    float(result["visible_box_area_px"]),
+                    float(result["clipped_projected_area_px"]),
+                )
             except ValueError as exc:
                 stats["actors_skipped_geometry"] += 1
                 reason = str(exc).split("(")[0][:80]
@@ -214,6 +219,8 @@ def extract_records(qualified: pd.DataFrame) -> tuple[list[dict[str, Any]], dict
                 continue
             if density == 0.0:
                 stats["actors_zero_support"] += 1
+            if box_visibility == 0.0:
+                stats["actors_zero_box_visibility"] += 1
             stats["actors_extracted"] += 1
             records.append(
                 {
@@ -228,7 +235,10 @@ def extract_records(qualified: pd.DataFrame) -> tuple[list[dict[str, Any]], dict
                     "height_bin": tref.height_bin(float(result["clipped_bbox_h"])),
                     "clipped_projected_area_px": float(result["clipped_projected_area_px"]),
                     "retained_actor_point_count": int(result["retained_actor_point_count"]),
+                    "visible_box_area_px": float(result["visible_box_area_px"]),
+                    "no_support": bool(result["no_support"]),
                     "support_density": density,
+                    "raw_box_visibility": box_visibility,
                 }
             )
     return records, stats
@@ -265,6 +275,23 @@ def _frame_people(episode: str, sample_id: str) -> pd.DataFrame:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--run-id", default=None)
+    parser.add_argument(
+        "--statistic",
+        default=tref.STATISTIC_SUPPORT_DENSITY,
+        choices=list(tref.SUPPORTED_STATISTICS),
+        help=(
+            "which per-actor statistic to take the 95th percentile of. "
+            "The default reproduces the original pixel-support reference exactly."
+        ),
+    )
+    parser.add_argument(
+        "--verify-against",
+        default=None,
+        help=(
+            "run id of an existing reference to prove this extraction is "
+            "unchanged: its support_density tables must match bit for bit"
+        ),
+    )
     args = parser.parse_args(argv)
 
     if os.environ.get("CUDA_VISIBLE_DEVICES", None) != "":
@@ -283,7 +310,31 @@ def main(argv: list[str] | None = None) -> int:
         raise AuditError("validation rows leaked into the training population")
 
     records, stats = extract_records(qualified)
-    reference = tref.build_reference(records)
+    reference = tref.build_reference(records, statistic=args.statistic)
+
+    # Proof that only the aggregated statistic changed: rebuilding the
+    # support_density reference from these same records must reproduce the
+    # earlier frozen artifact exactly.  Any drift in the extraction, the
+    # population filter, the binning or the fallback thresholds shows up here.
+    equivalence: dict[str, Any] = {"checked": False}
+    if args.verify_against:
+        frozen_path = (
+            OUTPUT_PARENT / REFERENCE_DIR_NAME / args.verify_against / "training_reference.json"
+        )
+        frozen = json.loads(frozen_path.read_text())["reference"]
+        rebuilt = tref.build_reference(records, statistic=tref.STATISTIC_SUPPORT_DENSITY)
+        equivalence = {
+            "checked": True,
+            "frozen_run": args.verify_against,
+            "frozen_reference_sha256": sha256_file(frozen_path),
+            "total_records_match": frozen["total_records"] == rebuilt["total_records"],
+            "tables_identical": frozen["tables"] == rebuilt["tables"],
+        }
+        if not (equivalence["total_records_match"] and equivalence["tables_identical"]):
+            raise AuditError(
+                "extraction drifted: rebuilt support_density reference does not "
+                f"match frozen run {args.verify_against}"
+            )
 
     records_frame = pd.DataFrame(records)
     records_path = run_dir / "training_support_records.csv"
@@ -327,6 +378,8 @@ def main(argv: list[str] | None = None) -> int:
         },
         "dataset_manifest_sha256": sha256_file(DATASET_DIR / "manifest.csv"),
         "extraction_stats": stats,
+        "statistic": args.statistic,
+        "frozen_support_density_equivalence": equivalence,
         "leakage_proof": {
             "episodes_used": provenance["train_episodes"],
             "all_episodes_are_train_split": True,
@@ -374,7 +427,9 @@ def main(argv: list[str] | None = None) -> int:
             {
                 "run_dir": str(run_dir),
                 "training_reference_sha256": reference_hash,
+                "statistic": args.statistic,
                 "records": len(records),
+                "frozen_support_density_equivalence": equivalence,
                 "group_counts": artifact["group_counts"],
                 "extraction_stats": stats,
                 "wall_seconds": round(artifact["wall_seconds"], 1),

@@ -10,14 +10,32 @@ This module replaces only the denominator.  Instead of the cuboid area it uses
 the *expected unoccluded surface support* for comparable pedestrians, estimated
 from training data alone with no human labels:
 
-    support_density = retained_actor_volume_pixels / clipped_projected_box_area
-    expected_clear_support_density = 95th percentile of support_density
-                                     over a comparable training group
-    normalized_visibility = clamp(support_density / expected, 0, 1)
+    statistic                = one of the two per-actor visibility statistics below
+    expected_clear_statistic = 95th percentile of that statistic over a
+                               comparable training group
+    normalized_visibility    = clamp(statistic / expected_clear_statistic, 0, 1)
 
 The 95th percentile stands in for "unoccluded": within a group of comparable
-pedestrians, the best-supported few per cent are the ones nothing was blocking.
+pedestrians, the best-scoring few per cent are the ones nothing was blocking.
 No occlusion, visibility or eligibility flag is consulted to build it.
+
+Two statistics are supported, and the choice matters:
+
+``support_density``
+    ``retained_actor_volume_pixels / clipped_projected_box_area``.  A pixel-fill
+    measure.  Normalising this was tried first and failed: pixel fill conflates
+    external occlusion with silhouette sparsity, because pose gaps and rendering
+    holes read as missing support.
+
+``raw_box_visibility``
+    ``area(B_visible) / area(B_full_clipped)`` — exactly the statistic validated
+    in the original actor-volume audit, unchanged.  Normalising *this* is the
+    denominator-only correction: the numerator stays the validated visible box,
+    and only the loose projected-cuboid denominator is replaced by the expected
+    unoccluded box extent for comparable pedestrians.
+
+Both are computed from the identical actor-volume extraction; nothing about the
+point retention, tolerances, ground rejection or overlap assignment changes.
 
 Conditioning is on actor type, folded relative view angle, and projected box
 height, with a fixed count-based fallback hierarchy.  Every constant here is
@@ -32,6 +50,13 @@ from typing import Any, Iterable, Sequence
 import numpy as np
 
 REFERENCE_VERSION = "route_b_train_normalized_actor_volume_reference_v1"
+
+STATISTIC_SUPPORT_DENSITY = "support_density"
+STATISTIC_RAW_BOX_VISIBILITY = "raw_box_visibility"
+SUPPORTED_STATISTICS: tuple[str, ...] = (
+    STATISTIC_SUPPORT_DENSITY,
+    STATISTIC_RAW_BOX_VISIBILITY,
+)
 
 # --- locked conditioning scheme ---------------------------------------------
 ANGLE_BIN_EDGES: tuple[tuple[float, float, str], ...] = (
@@ -123,6 +148,22 @@ def support_density(retained_pixels: int, clipped_projected_area_px: float) -> f
     return float(int(retained_pixels)) / area
 
 
+def raw_box_visibility(visible_box_area_px: float, clipped_projected_area_px: float) -> float:
+    """area(B_visible) / area(B_full_clipped), the original audited statistic.
+
+    ``B_visible`` is already constrained to be a sub-box of ``B_full_clipped`` by
+    `scoring.score_actor_frame`, so the ratio is a proper sub-area fraction.  A
+    no-support actor-frame has zero visible-box area and therefore scores 0.
+    """
+    area = float(clipped_projected_area_px)
+    if not math.isfinite(area) or area <= 0.0:
+        raise ValueError(f"clipped projected area {area!r} must be finite and positive")
+    value = float(visible_box_area_px) / area
+    if not math.isfinite(value) or value < 0.0:
+        raise ValueError(f"raw box visibility {value!r} is not a finite non-negative")
+    return value
+
+
 def _percentile(values: Sequence[float]) -> float:
     return float(
         np.percentile(
@@ -133,20 +174,28 @@ def _percentile(values: Sequence[float]) -> float:
     )
 
 
-def build_reference(records: Iterable[dict[str, Any]]) -> dict[str, Any]:
+def build_reference(
+    records: Iterable[dict[str, Any]],
+    *,
+    statistic: str = STATISTIC_SUPPORT_DENSITY,
+) -> dict[str, Any]:
     """Group the training records and take the locked 95th percentile per group.
 
-    ``records`` need ``actor_type``, ``angle_bin``, ``height_bin`` and
-    ``support_density``.  Groups are emitted for all four tiers so the fallback
-    hierarchy can resolve deterministically at lookup time.
+    ``records`` need ``actor_type``, ``angle_bin``, ``height_bin`` and the chosen
+    ``statistic``.  Groups are emitted for all four tiers so the fallback
+    hierarchy can resolve deterministically at lookup time.  The grouping,
+    percentile, method and fallback thresholds are identical whichever statistic
+    is selected; only which column is aggregated changes.
     """
+    if statistic not in SUPPORTED_STATISTICS:
+        raise ValueError(f"unsupported statistic {statistic!r}")
     rows = list(records)
     if not rows:
         raise ValueError("cannot build a reference from zero training records")
 
     buckets: dict[str, dict[str, list[float]]] = {tier: {} for tier in TIER_ORDER}
     for row in rows:
-        density = float(row["support_density"])
+        density = float(row[statistic])
         keys = {
             TIER_TYPE_ANGLE_HEIGHT: "|".join(
                 (str(row["actor_type"]), str(row["angle_bin"]), str(row["height_bin"]))
@@ -172,6 +221,7 @@ def build_reference(records: Iterable[dict[str, Any]]) -> dict[str, Any]:
 
     return {
         "reference_version": REFERENCE_VERSION,
+        "statistic": statistic,
         "percentile": REFERENCE_PERCENTILE,
         "percentile_method": PERCENTILE_METHOD,
         "min_n": {

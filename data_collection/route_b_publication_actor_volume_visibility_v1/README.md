@@ -26,7 +26,8 @@ sensors.
 | `run_audit.py` | Create-only audit driver: qualification gates, scoring, agreement, decision, provenance |
 | `training_reference.py` | Training-only expected-clear-support reference: view-angle/height binning, 95th-percentile estimator, fallback hierarchy |
 | `build_training_reference.py` | Part 1 driver: builds and hashes the immutable training reference (never opens the human pilot directory) |
-| `run_normalized_audit.py` | Part 2 driver: rescores the 100 panels with the normalised denominator against the frozen reference |
+| `run_normalized_audit.py` | Pixel-support-normalised driver (superseded attempt) |
+| `run_box_normalized_audit.py` | Final corrected driver: normalises the audited box statistic, denominator only |
 | `contact_sheet.py` | Per-sample overlay panels, the tiled contact sheet, and the disagreement sheet |
 | `tests/` | Synthetic-array checks; no dataset, model, CARLA or CUDA involvement |
 
@@ -89,3 +90,28 @@ conflates external occlusion with silhouette sparsity. Terminal
 `TRAIN_NORMALIZED_ACTOR_VOLUME_VISIBILITY_NOT_FEASIBLE_RETAIN_HUMAN_BANDS`;
 the conditional independent-audit package was not generated. See
 `NORMALIZED_AUDIT_REPORT_20260901_213040.md`.
+
+## Final result — development stopped
+
+`box_normalized/20260901_214534` applied the intended **denominator-only**
+correction: the numerator stays `area(B_visible)`, byte-identical to the
+originally audited statistic, and only the loose projected-cuboid denominator is
+replaced by the training 95th percentile of that same statistic. The reference
+build proves nothing else moved by rebuilding the earlier pixel reference from
+the same records bit for bit.
+
+24/24 qualification, leakage and integrity checks pass and the `bare` median
+reaches 0.8552, the closest any variant came to the 0.90 target. It still fails:
+weighted kappa 0.4533 (bar 0.60, and below the unnormalized 0.4581) and balanced
+accuracy 0.8371 (above the 0.80 bar but below the unnormalized 0.8523). The
+correction is close to a uniform ~0.9 rescale, so it cannot change ordinal
+agreement, and lifting the scale lifts human-`heavy` past 0.65 too (3/19 -> 7/19).
+`B_visible` is a bounding box, so occlusion that punches holes without shrinking
+the box extent barely moves it. Terminal
+`BOX_NORMALIZED_ACTOR_VOLUME_VISIBILITY_NOT_FEASIBLE_FINAL_RETAIN_HUMAN_BANDS`.
+
+**Visibility-method development is closed.** Retain: human visibility bands as
+the publication reference; the unnormalized actor-volume >= 0.65 result
+(balanced accuracy 0.8523) as supporting *binary* pilot evidence only, never
+quoted as band-level agreement; old depth-only occupancy as internal sensitivity
+only. See `BOX_NORMALIZED_AUDIT_REPORT_20260901_214534.md`.
