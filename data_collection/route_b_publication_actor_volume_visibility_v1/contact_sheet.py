@@ -171,6 +171,31 @@ def build_contact_sheet(
     panels_dir.mkdir(parents=True, exist_ok=True)
 
     ordered = merged.sort_values("panel_number").reset_index(drop=True)
+    rendered = _render_rows(ordered, manifest, people, dataset_dir, panels_dir)
+    sheet = _tile(rendered, GRID_COLS)
+    sheet_path = run_dir / "contact_sheet.png"
+    cv2.imwrite(str(sheet_path), sheet, [int(cv2.IMWRITE_PNG_COMPRESSION), 6])
+    rows = math.ceil(len(rendered) / GRID_COLS)
+
+    return {
+        "panels": int(len(rendered)),
+        "grid": [rows, GRID_COLS],
+        "panel_size_px": [PANEL_W, PANEL_H],
+        "contact_sheet_px": [int(sheet.shape[1]), int(sheet.shape[0])],
+        "panels_dir": "panels",
+        "legend": {
+            "amber_box": "full clipped projected box (B_full_clipped)",
+            "green_overlay": "retained actor-volume depth points",
+            "cyan_box": "derived visible box (B_visible)",
+            "border": "green agree / red disagree / grey ambiguous-excluded",
+        },
+    }
+
+
+def _render_rows(ordered, manifest, people, dataset_dir, panels_dir):
+    """Enrich each row with its calibration and candidate boxes, then render."""
+    import cv2
+
     rendered: list[np.ndarray] = []
     for _position, row in ordered.iterrows():
         meta = manifest.loc[row.sample_id]
@@ -190,29 +215,42 @@ def build_contact_sheet(
             for person in people[row.sample_id].itertuples()
         ]
         panel = _render_panel(enriched, dataset_dir, int(row.panel_number))
-        cv2.imwrite(str(panels_dir / f"panel_{int(row.panel_number):03d}.png"), panel)
+        if panels_dir is not None:
+            cv2.imwrite(str(panels_dir / f"panel_{int(row.panel_number):03d}.png"), panel)
         rendered.append(panel)
+    return rendered
 
-    rows = math.ceil(len(rendered) / GRID_COLS)
+
+def _tile(rendered, columns):
+    rows = math.ceil(len(rendered) / columns) if rendered else 0
     sheet = np.full(
-        (rows * PANEL_H, GRID_COLS * PANEL_W, 3), COLOUR_PANEL_BG, dtype=np.uint8
+        (max(1, rows) * PANEL_H, columns * PANEL_W, 3), COLOUR_PANEL_BG, dtype=np.uint8
     )
     for position, panel in enumerate(rendered):
-        r, c = divmod(position, GRID_COLS)
+        r, c = divmod(position, columns)
         sheet[r * PANEL_H : (r + 1) * PANEL_H, c * PANEL_W : (c + 1) * PANEL_W] = panel
-    sheet_path = run_dir / "contact_sheet.png"
-    cv2.imwrite(str(sheet_path), sheet, [int(cv2.IMWRITE_PNG_COMPRESSION), 6])
+    return sheet
 
+
+def build_disagreement_sheet(
+    rows: pd.DataFrame,
+    dataset_dir: Path,
+    output_path: Path,
+    view_boxes_path: Path,
+    *,
+    columns: int = 5,
+) -> dict[str, Any]:
+    """Render an ordered subset (largest disagreements first) as one sheet."""
+    import cv2
+
+    manifest = pd.read_csv(dataset_dir / "manifest.csv").set_index("sample_id")
+    boxes = pd.read_csv(view_boxes_path, dtype={"gt_actor_id": str})
+    people = {sid: g for sid, g in boxes[boxes.label == "person"].groupby("sample_id")}
+    rendered = _render_rows(rows.reset_index(drop=True), manifest, people, dataset_dir, None)
+    sheet = _tile(rendered, columns)
+    cv2.imwrite(str(output_path), sheet, [int(cv2.IMWRITE_PNG_COMPRESSION), 6])
     return {
         "panels": int(len(rendered)),
-        "grid": [rows, GRID_COLS],
-        "panel_size_px": [PANEL_W, PANEL_H],
-        "contact_sheet_px": [int(sheet.shape[1]), int(sheet.shape[0])],
-        "panels_dir": "panels",
-        "legend": {
-            "amber_box": "full clipped projected box (B_full_clipped)",
-            "green_overlay": "retained actor-volume depth points",
-            "cyan_box": "derived visible box (B_visible)",
-            "border": "green agree / red disagree / grey ambiguous-excluded",
-        },
+        "grid": [math.ceil(len(rendered) / columns), columns],
+        "image_px": [int(sheet.shape[1]), int(sheet.shape[0])],
     }
