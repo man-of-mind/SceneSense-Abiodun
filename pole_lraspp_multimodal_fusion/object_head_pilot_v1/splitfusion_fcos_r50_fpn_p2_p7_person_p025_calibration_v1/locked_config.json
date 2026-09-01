@@ -1,0 +1,30 @@
+{
+  "schema": "splitfusion_fcos_person_p025_service_candidate_locked_config_v1",
+  "base_service": {
+    "package": "splitfusion_fcos_r50_fpn_p2_p7_service_candidate_v1",
+    "runtime_sha256": "1dd4a822e9741d48a8cdcba7a99c38acfc827ac5cf6b85edec1335b7e1cadea6",
+    "locked_config_sha256": "cd4db04d97ff47492cb20ae454491a02b69dc00351918ba789ea37076f7e2d79",
+    "person_consolidation_score_threshold": 0.2
+  },
+  "person_output_filter": {
+    "score_threshold": 0.25,
+    "comparison": "score_fp32 >= 0.25",
+    "applied_after_base_service": true,
+    "scores_changed": false,
+    "non_score_fields_changed": false,
+    "candidate_order_changed": false
+  },
+  "vehicle_behavior": {
+    "filtered": false,
+    "reordered": false,
+    "fields_changed": false
+  },
+  "train_qualification": {
+    "path": "experiments/splitfusion_fcos_person_p025_calibration_v1/train_holdout_qualification.json",
+    "sha256": "3d403dd481235aa50353747104dcb90339dcde322373975fba4498925f86b405",
+    "required_terminal": "PERSON_P025_TRAIN_HOLDOUT_QUALIFIED",
+    "avo_threshold": 0.65
+  },
+  "decision": "proposed_deployment_candidate_awaiting_final_acceptance",
+  "approved_p020_service_automatically_replaced": false
+}
