@@ -5,9 +5,11 @@ import copy
 import hashlib
 import json
 import math
+import tempfile
 from collections.abc import Mapping
+from contextlib import contextmanager
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterator
 
 from pole_lraspp_multimodal_fusion.object_head_pilot_v1.splitfusion_fcos_r50_fpn_p2_p7_person_instance_consolidation_v1.runtime import (
     FROZEN_CHECKPOINT,
@@ -27,7 +29,18 @@ from .contract import (
 INFERENCE_SENTINEL = "RELATIONAL_P070_INFERENCE_COMPLETE\n"
 INFERENCE_SCHEMA = "splitfusion_fcos_relational_p070_inference_v1"
 VALIDATION_FRAMES = 3_345
+FROZEN_NATIVE_OBJECT_GRID = [108, 192]
 P070_PERSON_TARGET = 0.70
+SCORE_PRIMARY_MANIFEST_FIELDS = (
+    "detections_sha256",
+    "checkpoint_sha256",
+    "inference_pass_count",
+    "native_object_grid",
+    "prediction_set_sha256",
+    "wall_seconds",
+    "peak_allocated_mib",
+    "peak_reserved_mib",
+)
 ACCEPTED_SERVICE_CANDIDATE = {
     "person_precision": 0.730673,
     "person_recall": 0.600465,
@@ -78,7 +91,11 @@ def validate_prediction_directory(prediction_dir: Path) -> tuple[Path, dict[str,
             is not runtime["consolidation_is_feature_only"]
             or inference.get("vehicle_behavior") != runtime["vehicle_policy"]
             or inference.get("geometry_changed") is not runtime["geometry_changed"]
-            or inference.get("segmentation_changed") is not runtime["segmentation_changed"]):
+            or inference.get("segmentation_changed") is not runtime["segmentation_changed"]
+            or ("checkpoint_sha256" in inference
+                and inference["checkpoint_sha256"] != inference["base_checkpoint_sha256"])
+            or ("native_object_grid" in inference
+                and inference["native_object_grid"] != FROZEN_NATIVE_OBJECT_GRID)):
         raise RuntimeError("relational-p070 inference contract drift")
 
     detections = prediction / "detections.csv"
@@ -93,6 +110,64 @@ def validate_prediction_directory(prediction_dir: Path) -> tuple[Path, dict[str,
             or inference.get("prediction_set_sha256") != prediction_set_hash):
         raise RuntimeError("relational-p070 prediction artifact SHA-256 mismatch")
     return prediction, inference
+
+
+def _is_sha256(value: Any) -> bool:
+    return (isinstance(value, str) and len(value) == 64
+            and all(character in "0123456789abcdef" for character in value))
+
+
+def _validate_score_primary_manifest(manifest: Mapping[str, Any]) -> None:
+    if any(name not in manifest for name in SCORE_PRIMARY_MANIFEST_FIELDS):
+        raise RuntimeError("canonical score_primary manifest field is missing")
+    try:
+        wall_seconds = float(manifest["wall_seconds"])
+        peak_allocated = float(manifest["peak_allocated_mib"])
+        peak_reserved = float(manifest["peak_reserved_mib"])
+    except (TypeError, ValueError, OverflowError):
+        raise RuntimeError("canonical score_primary resource metadata is malformed") from None
+    if (manifest["checkpoint_sha256"] != FROZEN_CHECKPOINT_SHA256
+            or manifest["native_object_grid"] != FROZEN_NATIVE_OBJECT_GRID
+            or type(manifest["inference_pass_count"]) is not int
+            or manifest["inference_pass_count"] != 1
+            or not _is_sha256(manifest["detections_sha256"])
+            or not _is_sha256(manifest["prediction_set_sha256"])
+            or not all(math.isfinite(value) and value >= 0.0 for value in (
+                wall_seconds, peak_allocated, peak_reserved,
+            ))):
+        raise RuntimeError("canonical score_primary manifest contract drift")
+
+
+@contextmanager
+def scoring_compatibility_view(
+    prediction: Path, inference: Mapping[str, Any],
+) -> Iterator[Path]:
+    """Expose immutable predictions through an ephemeral legacy-manifest view."""
+    prediction = Path(prediction).resolve(strict=True)
+    if inference.get("base_checkpoint_sha256") != FROZEN_CHECKPOINT_SHA256:
+        raise RuntimeError("compatibility view is not bound to frozen epoch 26")
+    adapted = copy.deepcopy(dict(inference))
+    adapted["checkpoint_sha256"] = inference["base_checkpoint_sha256"]
+    adapted["native_object_grid"] = list(FROZEN_NATIVE_OBJECT_GRID)
+    _validate_score_primary_manifest(adapted)
+    sources = {
+        "detections.csv": prediction / "detections.csv",
+        "segmentation_manifest.csv": prediction / "segmentation_manifest.csv",
+        "segmentation": prediction / "segmentation",
+    }
+    if (not all(path.exists() for path in sources.values())
+            or not sources["detections.csv"].is_file()
+            or not sources["segmentation_manifest.csv"].is_file()
+            or not sources["segmentation"].is_dir()):
+        raise RuntimeError("immutable scoring source artifact is missing")
+    with tempfile.TemporaryDirectory(prefix="relational_p070_scoring_compat_") as temporary:
+        view = Path(temporary)
+        for name, source in sources.items():
+            (view / name).symlink_to(source, target_is_directory=source.is_dir())
+        (view / "inference_manifest.json").write_text(
+            json.dumps(adapted, indent=2, sort_keys=True) + "\n", encoding="utf-8",
+        )
+        yield view
 
 
 def p070_service_decision(canonical_service: Mapping[str, Any]) -> dict[str, Any]:
@@ -164,9 +239,23 @@ def main() -> int:
     dataset_root = (ROOT / config["dataset_root"]).resolve(strict=True)
     scoring = base.evaluate.load_scoring()
     base.evaluate.install_undefined_localization_adapter(scoring)
-    result = scoring.score_primary(
-        dataset_root, prediction, checkpoint, FROZEN_CHECKPOINT_SHA256, 26,
-    )
+    with scoring_compatibility_view(prediction, _inference) as compatibility_view:
+        result = scoring.score_primary(
+            dataset_root, compatibility_view, checkpoint, FROZEN_CHECKPOINT_SHA256, 26,
+        )
+    result["prediction_root"] = str(prediction)
+    result["scoring_compatibility_adapter"] = {
+        "schema": "splitfusion_fcos_relational_p070_scoring_compatibility_v1",
+        "temporary_manifest_view_used": True,
+        "immutable_prediction_directory_modified": False,
+        "linked_original_artifacts": [
+            "detections.csv", "segmentation_manifest.csv", "segmentation",
+        ],
+        "injected_manifest_fields": {
+            "checkpoint_sha256": FROZEN_CHECKPOINT_SHA256,
+            "native_object_grid": list(FROZEN_NATIVE_OBJECT_GRID),
+        },
+    }
     result["service"] = base.evaluate.service(result)
     if len(result["service"]["targets"]) != 9:
         raise RuntimeError("frozen canonical nine-gate service contract drift")

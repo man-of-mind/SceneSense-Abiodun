@@ -23,7 +23,12 @@ from ..contract import (
     SELECTOR_CHECKPOINT_SHA256,
     calibration_at_raw_threshold,
 )
-from ..evaluate_relational_p070 import validate_prediction_directory
+from ..evaluate_relational_p070 import (
+    FROZEN_NATIVE_OBJECT_GRID,
+    SCORE_PRIMARY_MANIFEST_FIELDS,
+    scoring_compatibility_view,
+    validate_prediction_directory,
+)
 
 
 class RelationalP070SyntheticTests(unittest.TestCase):
@@ -122,6 +127,45 @@ class RelationalP070SyntheticTests(unittest.TestCase):
                     altered[field] = value
                     write(altered, "RELATIONAL_P070_INFERENCE_COMPLETE\n")
                     validate_prediction_directory(prediction)
+
+    def test_scoring_compatibility_view_supplies_every_score_primary_field(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            prediction = Path(temporary) / "immutable_predictions"
+            prediction.mkdir()
+            (prediction / "segmentation").mkdir()
+            detections = prediction / "detections.csv"
+            segmentation_manifest = prediction / "segmentation_manifest.csv"
+            detections.write_bytes(b"synthetic detections\n")
+            segmentation_manifest.write_bytes(b"synthetic segmentation manifest\n")
+            detection_hash = hashlib.sha256(detections.read_bytes()).hexdigest()
+            segmentation_hash = hashlib.sha256(segmentation_manifest.read_bytes()).hexdigest()
+            inference = {
+                "base_checkpoint_sha256": FROZEN_CHECKPOINT_SHA256,
+                "detections_sha256": detection_hash,
+                "inference_pass_count": 1,
+                "prediction_set_sha256": hashlib.sha256(
+                    (detection_hash + segmentation_hash).encode(),
+                ).hexdigest(),
+                "wall_seconds": 12.5,
+                "peak_allocated_mib": 100.0,
+                "peak_reserved_mib": 120.0,
+            }
+            original = copy.deepcopy(inference)
+            with scoring_compatibility_view(prediction, inference) as view:
+                adapted = json.loads((view / "inference_manifest.json").read_text())
+                for field in SCORE_PRIMARY_MANIFEST_FIELDS:
+                    self.assertIn(field, adapted)
+                self.assertEqual(adapted["checkpoint_sha256"], FROZEN_CHECKPOINT_SHA256)
+                self.assertEqual(adapted["native_object_grid"], FROZEN_NATIVE_OBJECT_GRID)
+                for name in ("detections.csv", "segmentation_manifest.csv", "segmentation"):
+                    self.assertTrue((view / name).is_symlink())
+                    self.assertTrue((view / name).samefile(prediction / name))
+            self.assertEqual(inference, original)
+            with self.assertRaises(RuntimeError):
+                incomplete = copy.deepcopy(inference)
+                incomplete.pop("wall_seconds")
+                with scoring_compatibility_view(prediction, incomplete):
+                    self.fail("incomplete score_primary manifest was accepted")
 
 
 if __name__ == "__main__":
