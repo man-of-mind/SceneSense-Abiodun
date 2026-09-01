@@ -36,3 +36,18 @@ splitfusion_fcos_r50_fpn_p2_p7_relational_p070_v1.verify_contract \
 
 Validation has intentionally not been run. The sole future validation command
 is recorded in `REVIEW_PACKET.md`.
+
+After that one inference pass completes, the frozen canonical v0.10 scorer can
+be invoked exactly once with:
+
+```bash
+python3 -m \
+  pole_lraspp_multimodal_fusion.object_head_pilot_v1.\
+splitfusion_fcos_r50_fpn_p2_p7_relational_p070_v1.evaluate_relational_p070 \
+  --prediction-dir experiments/relational_p070_v1/<completed-validation-run>
+```
+
+The evaluator accepts no output override and creates
+`evaluation_v010.json` inside the completed prediction directory without
+overwriting an existing result. It retains the canonical nine-gate result and
+adds a separate supplemental p070 decision.

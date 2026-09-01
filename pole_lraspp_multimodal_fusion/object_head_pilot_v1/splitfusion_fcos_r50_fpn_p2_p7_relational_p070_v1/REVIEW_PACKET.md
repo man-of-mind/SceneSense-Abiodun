@@ -18,6 +18,7 @@ All changed files are confined to this package:
 - `contract.py`
 - `runtime.py`
 - `infer_relational_p070.py`
+- `evaluate_relational_p070.py`
 - `verify_contract.py`
 - `smoke_one_train_frame.py`
 - `tests/__init__.py`
@@ -64,7 +65,7 @@ still reports that no original 0.80/0.80 joint point exists.
 
 ## Minimal verification
 
-Exactly two CPU synthetic test cases pass:
+The original wrapper's two CPU synthetic test cases pass:
 
 ```text
 test_calibration_maps_selected_boundary_to_fp32_point_20 ... ok
@@ -106,3 +107,23 @@ splitfusion_fcos_r50_fpn_p2_p7_relational_p070_v1.infer_relational_p070 \
 No validation inference/evaluation, training, test access, sensitivity run,
 human-band rescoring, hybrid-q work, quantization, zstd, or autoencoder work was
 performed.
+
+## Future canonical v0.10 evaluation command (not run)
+
+Run only after the future inference command has produced a completed immutable
+prediction directory:
+
+```bash
+python3 -m \
+  pole_lraspp_multimodal_fusion.object_head_pilot_v1.\
+splitfusion_fcos_r50_fpn_p2_p7_relational_p070_v1.evaluate_relational_p070 \
+  --prediction-dir experiments/relational_p070_v1/<completed-validation-run>
+```
+
+The evaluator delegates unchanged scoring to the frozen canonical v0.10
+scorer. It preserves the original nine gates and adds a clearly separate p070
+decision that changes only person precision and recall targets from 0.80 to
+0.70. The accepted service-candidate comparison is recorded as person P/R
+`0.730673 / 0.600465`. One additional CPU synthetic test covers acceptance of
+the relational completion contract and rejection of the old sentinel/schema or
+an altered calibration. The evaluator itself has not been run.

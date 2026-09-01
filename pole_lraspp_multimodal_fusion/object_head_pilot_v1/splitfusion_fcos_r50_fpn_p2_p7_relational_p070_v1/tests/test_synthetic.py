@@ -1,6 +1,11 @@
 from __future__ import annotations
 
+import copy
+import hashlib
+import json
+import tempfile
 import unittest
+from pathlib import Path
 
 import torch
 
@@ -11,7 +16,14 @@ from pole_lraspp_multimodal_fusion.object_head_pilot_v1.splitfusion_fcos_r50_fpn
     calibrate_vehicle_scores,
 )
 
-from ..contract import CANONICAL_PERSON_THRESHOLD, calibration_at_raw_threshold
+from ..contract import (
+    CANONICAL_PERSON_THRESHOLD,
+    DEPLOYMENT_LOGIT_BIAS,
+    FROZEN_CHECKPOINT_SHA256,
+    SELECTOR_CHECKPOINT_SHA256,
+    calibration_at_raw_threshold,
+)
+from ..evaluate_relational_p070 import validate_prediction_directory
 
 
 class RelationalP070SyntheticTests(unittest.TestCase):
@@ -52,6 +64,64 @@ class RelationalP070SyntheticTests(unittest.TestCase):
             calibrate_vehicle_scores(detections["scores"].index_select(0, vehicle_source)),
         ))
         self.assertEqual(float(result["scores"][1]), float(person_scores[0]))
+
+    def test_evaluator_accepts_only_the_relational_p070_completion_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            prediction = Path(temporary)
+            detections = prediction / "detections.csv"
+            segmentation = prediction / "segmentation_manifest.csv"
+            detections.write_bytes(b"sample_id,score\nsynthetic,0.2\n")
+            segmentation.write_bytes(b"sample_id,prediction_path\nsynthetic,segmentation/synthetic.png\n")
+            detection_hash = hashlib.sha256(detections.read_bytes()).hexdigest()
+            segmentation_hash = hashlib.sha256(segmentation.read_bytes()).hexdigest()
+            valid = {
+                "schema": "splitfusion_fcos_relational_p070_inference_v1",
+                "base_checkpoint_sha256": FROZEN_CHECKPOINT_SHA256,
+                "selector_checkpoint_sha256": SELECTOR_CHECKPOINT_SHA256,
+                "historical_selector_status_unchanged": "train_infeasible",
+                "revised_objective": {"precision": 0.70, "recall": 0.70},
+                "deployment_bias": DEPLOYMENT_LOGIT_BIAS,
+                "deployment_threshold": 0.20,
+                "validation_frames": 3345,
+                "inference_pass_count": 1,
+                "candidate_creation": False,
+                "nms_rerun": False,
+                "candidate_order": "original_post_nms",
+                "prediction_index": "original_post_nms",
+                "consolidation_is_feature_only": True,
+                "vehicle_behavior": "bit_exact_service_candidate_v1",
+                "geometry_changed": False,
+                "segmentation_changed": False,
+                "detections_sha256": detection_hash,
+                "segmentation_manifest_sha256": segmentation_hash,
+                "prediction_set_sha256": hashlib.sha256(
+                    (detection_hash + segmentation_hash).encode(),
+                ).hexdigest(),
+            }
+            sentinel = prediction / "INFERENCE_COMPLETE"
+            manifest = prediction / "inference_manifest.json"
+
+            def write(payload: dict[str, object], completion: str) -> None:
+                sentinel.write_text(completion, encoding="utf-8")
+                manifest.write_text(json.dumps(payload), encoding="utf-8")
+
+            write(valid, "RELATIONAL_P070_INFERENCE_COMPLETE\n")
+            resolved, accepted = validate_prediction_directory(prediction)
+            self.assertEqual(resolved, prediction.resolve())
+            self.assertEqual(accepted, valid)
+
+            with self.subTest("old completion sentinel"), self.assertRaises(RuntimeError):
+                write(valid, "SERVICE_CANDIDATE_INFERENCE_COMPLETE\n")
+                validate_prediction_directory(prediction)
+            for name, field, value in (
+                ("old schema", "schema", "splitfusion_fcos_service_candidate_inference_v1"),
+                ("altered calibration", "deployment_bias", DEPLOYMENT_LOGIT_BIAS + 0.01),
+            ):
+                with self.subTest(name), self.assertRaises(RuntimeError):
+                    altered = copy.deepcopy(valid)
+                    altered[field] = value
+                    write(altered, "RELATIONAL_P070_INFERENCE_COMPLETE\n")
+                    validate_prediction_directory(prediction)
 
 
 if __name__ == "__main__":
