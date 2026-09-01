@@ -2,11 +2,15 @@
 
 ## A seven-channel RGB-radar split-inference perception study
 
-**Report status:** final noAE evidence consolidation; no model inference or training was rerun for this report.  
-**Primary evaluation contract:** `v0.10`, score threshold `0.20`, class-aware one-to-one world matching within 3 m.  
-**Measured result:** the locked SplitFusion-FCOS service candidate passes 7/9 primary gates. Person precision and recall remain below their original 0.80 targets and are reported unchanged.  
-**Acceptance decision:** after reviewing the complete evidence, the supervisor accepted this locked 7/9 checkpoint as service-ready for the next project phase. This is an explicit service-scope decision, not a claim that the two missed numerical gates passed.
-**Visibility addendum:** a prediction-blind 100-target human pedestrian audit replaces literal interpretation of the earlier depth-box-occupancy proxy. It supports the FCOS/LR-ASPP comparison but does not retroactively alter the full-validation service counts.
+**Report status:** final noAE perception evidence and forward-model lock; no model training or inference was rerun for this documentation update.
+
+**Primary evaluation contract:** canonical `v0.10`, class-aware one-to-one world matching within 3 m. Historical service results use score `0.20`; the forward wrapper applies a person-only output floor of `0.25` after the unchanged `0.20` consolidation pipeline.
+
+**Measured result:** the supervisor-accepted p020 SplitFusion-FCOS candidate passes 7/9 primary gates. The forward p025 wrapper remains 7/9, with canonical person precision/recall `0.7967/0.5961` and supporting `AVO >= 0.65` precision/recall `0.7042/0.7132`.
+
+**Acceptance decision:** the supervisor accepted the frozen epoch-26 7/9 architecture for progression. The project now locks its p025 wrapper as the noAE baseline for hybrid-q, quantization, zstd, AE and system measurement. This is a service-scope decision, not a claim that the two missed 0.80 gates passed.
+
+**Visibility addendum:** human visibility bands are the interpretable publication reference. Actor-volume observability is retained as a full-validation automatic supporting analysis, while the older depth-box occupancy is internal sensitivity evidence.
 
 ---
 
@@ -29,7 +33,11 @@ We therefore changed the perception architecture—not the project framework—t
 
 At the historical `v0.50` depth-box-occupancy sensitivity view, the final FCOS candidate achieves vehicle precision/recall `0.9646/0.9778`, person precision/recall `0.7687/0.7644`, and person XY MAE `0.7311 m`. The comparable joint and task-separated LR-ASPP person F1 values are `0.5231` and `0.4301`; FCOS reaches `0.7666`.
 
+A stronger automatic supporting analysis back-projects synchronized depth into each actor's oriented 3D volume, rejects ground support and measures the 2D extent of actor-consistent pixels. At the human-supported binary cutoff `AVO >= 0.65`, the historical p020 FCOS candidate reaches person precision/recall/F1 `0.6292/0.7167/0.6701`, compared with `0.3478/0.6316/0.4485` for joint LR-ASPP and `0.2566/0.6545/0.3686` for task-separated LR-ASPP. This actor-volume measure is more selective than the old same-depth rectangle proxy, but it is still not a true silhouette fraction.
+
 Because projected-box depth occupancy is not the same as visible pedestrian-body fraction, a separate prediction-blind human pilot categorized 100 target pedestrians by their visually observable body fraction. For the 44 non-severely-truncated targets judged at least 65% visible, FCOS attained `0.7045` target recall and `0.6315 m` matched XY MAE, compared with joint LR-ASPP at `0.5227/0.7094 m` and task-separated LR-ASPP at `0.5682/1.2951 m`. On the clearest `90–100%` band, FCOS recalled `23/28 = 0.8214` targets. The sample is target-stratified, so it measures recall and localization—not full-validation precision.
+
+The final person-only p025 output floor was fixed from train-holdout evidence and then confirmed once on frozen validation outputs. It raises canonical person precision from `0.7307` to `0.7967`; person F1 rises from `0.6592` to `0.6819` because false positives fall more than true positives. It also gives `0.7042/0.7132` precision/recall at `AVO >= 0.65`. All vehicle, segmentation, score and geometry fields are unchanged. This p025 wrapper is the forward perception baseline.
 
 This does **not** prove that LR-ASPP can never support localization. It establishes that the two tested LR-ASPP designs failed the registered service objective, while the detection-native FCOS/FPN representation produced a large and repeatable improvement under the same input, data and split-inference principles.
 
@@ -81,7 +89,7 @@ All models use the same 768×432 camera content and the same prepared four-chann
 | Person box-mask IoU | ≥ 0.50 |
 | Foreground mean IoU | ≥ 0.675 |
 
-Object metrics use score `0.20`; inference retained candidates down to `0.02` for proposal-recall diagnostics. Segmentation IoU is the registered mask metric. Segmentation precision and recall shown later are additional per-pixel values derived directly from the stored confusion matrices.
+The historical registered object metrics use score `0.20`; inference retained candidates down to `0.02` for proposal-recall diagnostics. The final forward wrapper runs that pipeline unchanged and then filters only consolidated person outputs below FP32 score `0.25`. Segmentation IoU is the registered mask metric. Segmentation precision and recall shown later are additional per-pixel values derived directly from the stored confusion matrices.
 
 ### 3.2 Legacy depth-consistent projected-box occupancy
 
@@ -135,6 +143,25 @@ The planned human views are:
 Human annotator A labelled 28 bare, 16 partial, 19 heavy, 14 not-observable and 23 ambiguous targets; three targets were severely truncated. A frozen AI annotation was retained only as a diagnostic, not represented as a second human annotator. Exact visibility-band agreement was `63/100`, but among 76 cases where both assignments were non-ambiguous, `73/76 = 96.1%` were exact or only one adjacent band apart and only three differed by more than one band. Linearly weighted Cohen's kappa was `0.633`. For the publication `>=65%` cutoff, diagnostic binary agreement was `82.4%` with kappa `0.622`. This shows that most disagreement concerns a neighboring band boundary rather than opposite visibility judgments.
 
 For model comparison, frozen score-0.20 detections are matched over the complete frame using the registered same-class, nearest-first one-to-one world-XY rule within 3 m. When the legacy occupancy contract had omitted the manually selected target, its authoritative actor row is restored before matching. Only the selected target's matched/missed status, 2D IoU and localization error are summarized. Since only one pedestrian per frame was manually banded, this audit cannot produce an unbiased precision estimate; full-validation precision remains the registered value.
+
+### 3.4 Actor-volume observability supporting measurement
+
+Actor-volume observability (AVO) was developed to remove the most concerning failure mode of the old proxy: counting road or another same-depth surface merely because it lies inside the projected rectangle. For each qualified person actor-frame, the evaluator:
+
+1. projects and clips the actor's 3D bounding volume;
+2. decodes depth pixels inside that region and back-projects them to 3D;
+3. transforms each point into the actor's oriented local coordinate system;
+4. retains points inside the actor volume with a fixed `0.05 m` tolerance and rejects the bottom `0.03 m` ground band;
+5. forms the tight visible 2D box of the retained actor-consistent pixels; and
+6. computes `AVO = area(visible box) / area(clipped projected actor box)`.
+
+This is an **observability score**, not a literal visible-body percentage. It successfully rejects ground outside the actor volume, but the denominator is a 3D cuboid projection rather than a pedestrian silhouette, and a tight visible box can span across interior occlusion holes. On 77 non-ambiguous human pilot cases, its four-band weighted kappa was `0.4581`, below the registered `0.60` bar. As a binary `>=0.65` indicator it was much more useful: balanced accuracy was `0.8523` with TP/FN/FP/TN `35/9/3/30`. Therefore:
+
+- human bands remain the fine-grained publication visibility reference;
+- `AVO >= 0.65` is a defensible full-validation supporting binary view;
+- the complete AVO threshold sweep is sensitivity evidence, not model selection or a claim of exact anatomical visibility.
+
+The frozen validation AVO table contains 5,276 qualified person actor-frames and is applied identically to FCOS and both LR-ASPP representatives.
 
 ---
 
@@ -438,18 +465,22 @@ Four bounded train/holdout studies investigated whether false candidates could b
 | Person ROI verifier | Holdout max precision at recall ≥.80 was .2094; max recall at precision ≥.80 was .0197. | Train-infeasible; no validation. |
 | Parameter-free semantic instance consolidation | Fit `.8966/.8018` P/R; holdout `.8974/.8042`. | Feasible and locked before validation. |
 | Relational selector | Canonical-rematched holdout max precision at recall ≥.80 was .7722; max recall at precision ≥.80 was .7845. | Close but infeasible; no validation. |
+| Person p025 output floor | Train-holdout `AVO >= .65` P/R `.8989/.8799`; frozen validation `AVO >= .65` P/R `.7042/.7132`; canonical P/R `.7967/.5961`. | Qualified and locked as the forward wrapper. |
 
-The final service candidate therefore uses only:
+The final forward service candidate therefore uses only:
 
 - frozen recovered FCOS epoch 26;
 - one train-derived monotonic vehicle-score calibration;
-- the fixed parameter-free person consolidation rule using semantic support `0.10` and group-box IoU `0.20`.
+- the fixed parameter-free person consolidation rule using semantic support `0.10` and group-box IoU `0.20`;
+- a final person-only FP32 score floor of `0.25` after consolidation.
 
-It does not load the failed candidate-quality, ROI-verifier or relational-selector checkpoints. It creates no new candidates and does not alter geometry.
+It does not load the failed candidate-quality, ROI-verifier or relational-selector checkpoints. It creates no new candidates and does not alter scores, geometry or vehicle outputs.
 
 ---
 
-## 12. Final locked FCOS service-candidate results
+## 12. Final locked FCOS results
+
+Sections 12.1-12.6 preserve the historical p020 evidence used for the architecture and supervisor decision. Section 12.7 records the p025 wrapper that is now locked for all forward compression and system experiments.
 
 ### 12.1 Object-instance detection and localization sensitivity
 
@@ -538,7 +569,51 @@ The 20–40 m cells are too small for architecture claims; they identify far-per
 
 This pilot should be reported alongside—not substituted for—the full-validation service table. The full table supplies precision and population-wide recall under the frozen legacy contract; the human audit supplies a direct, interpretable diagnosis of recall and localization as pedestrian visibility changes.
 
-### 12.6 Internal-only high depth-box-occupancy sensitivity
+### 12.6 Actor-volume observability model comparison
+
+The complete frozen validation set was rescored without inference at six AVO thresholds. All rows below use the same detector score `0.20`, 3 m one-to-one matching and actor-volume table. A stricter AVO threshold changes the eligible population; it does not improve or retune a model.
+
+| Model | AVO | Eligible GT | Person P/R/F1 | Person XY |
+|---|---:|---:|---:|---:|
+| SplitFusion-FCOS | .10 | 4,228 | .6571/.5516/.5997 | .845 m |
+| SplitFusion-FCOS | .25 | 3,995 | .6564/.5820/.6170 | .844 m |
+| SplitFusion-FCOS | .50 | 3,354 | .6476/.6664/.6569 | .830 m |
+| SplitFusion-FCOS | **.65** | **2,877** | **.6292/.7167/.6701** | **.813 m** |
+| SplitFusion-FCOS | .70 | 2,606 | .6090/.7268/.6627 | .803 m |
+| SplitFusion-FCOS | .85 | 1,080 | .3901/.7194/.5059 | .778 m |
+| Joint LR-ASPP | .10 | 4,228 | .3834/.5014/.4346 | 1.203 m |
+| Joint LR-ASPP | .25 | 3,995 | .3818/.5269/.4427 | 1.200 m |
+| Joint LR-ASPP | .50 | 3,354 | .3695/.5957/.4561 | 1.189 m |
+| Joint LR-ASPP | **.65** | **2,877** | **.3478/.6316/.4485** | **1.168 m** |
+| Joint LR-ASPP | .70 | 2,606 | .3308/.6462/.4376 | 1.160 m |
+| Joint LR-ASPP | .85 | 1,080 | .1775/.6815/.2817 | 1.170 m |
+| Two-stage LR-ASPP | .10 | 4,228 | .2895/.5260/.3735 | 1.315 m |
+| Two-stage LR-ASPP | .25 | 3,995 | .2873/.5507/.3776 | 1.311 m |
+| Two-stage LR-ASPP | .50 | 3,354 | .2737/.6130/.3784 | 1.292 m |
+| Two-stage LR-ASPP | **.65** | **2,877** | **.2566/.6545/.3686** | **1.289 m** |
+| Two-stage LR-ASPP | .70 | 2,606 | .2411/.6650/.3539 | 1.290 m |
+| Two-stage LR-ASPP | .85 | 1,080 | .1200/.6889/.2043 | 1.246 m |
+
+FCOS has the best person precision, F1 and localization at every AVO threshold. Precision falls at very strict thresholds because the denominator removes many ground-truth actors while unmatched predictions remain false positives; high AVO is an eligibility filter, not a confidence calibration.
+
+At the human-supported `AVO >= 0.65` cutoff, FCOS recall/XY by distance is `.9274/.352 m` at 0-10 m, `.9246/.597 m` at 10-20 m, `.7321/1.014 m` at 20-30 m and `.3779/1.194 m` at 30-40 m. The result localizes the remaining weakness primarily to far pedestrians.
+
+### 12.7 Forward p025 service lock
+
+The final wrapper keeps the historical p020 pipeline intact and removes only consolidated person rows with FP32 score below `0.25`. It retains 3,203 of 3,577 p020 person outputs on validation as an exact ordered subset. Vehicle, segmentation, scores and every non-score person field remain unchanged.
+
+| Evaluation view | Person TP/FP/FN | Person P/R/F1 | Person XY |
+|---|---:|---:|---:|
+| Canonical v0.10, p020 history | 2,325/857/1,547 | .7307/.6005/.6592 | .8436 m |
+| Canonical v0.10, **p025 forward** | 2,308/589/1,564 | **.7967/.5961/.6819** | **.8395 m** |
+| `AVO >= .65`, p020 history | 2,062/1,215/815 | .6292/.7167/.6701 | .8131 m |
+| `AVO >= .65`, **p025 forward** | 2,052/862/825 | **.7042/.7132/.7087** | **.8122 m** |
+
+Train-only holdout at `AVO >= .65` was `.8989/.8799/.8893` P/R/F1, and both holdout episodes passed the registered qualification. The validation confirmation was then run once on frozen predictions. Canonical person precision is now only `0.0033` below the original `0.80` gate, while recall remains the documented limitation. The project therefore locks p025 for the transport phase without claiming 9/9 service gates. Since validation threshold behavior had previously been explored, this validation is confirmation rather than an untouched selection estimate; the reserved test set is still required for independent publication confirmation.
+
+At `AVO >= .65`, p025 recall by distance is `.9274`, `.9216`, `.7281` and `.3738` for 0-10, 10-20, 20-30 and 30-40 m respectively. This confirms that the filter primarily removes false positives; it does not solve the far-person candidate deficit.
+
+### 12.8 Internal-only high depth-box-occupancy sensitivity
 
 For completeness, frozen predictions were also scored at legacy depth-box-occupancy thresholds `v0.70` and `v0.85`. These results are retained as internal diagnostic evidence and are **not intended for the paper, model selection or service claims**.
 
@@ -586,7 +661,8 @@ The population collapse and counterintuitive mask behavior reinforce the decisio
 3. Multiscale detection materially improves the person candidate frontier: raw FCOS epoch-26 person proposal recall is `0.9228` at score 0.02.
 4. The prediction-blind human pilot shows that FCOS target recall is highest for `90–100%` visible pedestrians (`.8214`) and degrades through partial and heavy occlusion; the effect is not merely an artifact of the old depth-box proxy.
 5. FCOS remains the strongest architecture under both the human reference and the diagnostic alternative banding, despite ordinary neighboring-band disagreement.
-6. Candidate consolidation improves final precision substantially, but the full-validation person 0.80/0.80 target is not met.
+6. AVO rejects same-depth ground outside the oriented actor volume and preserves the same architecture ranking on all 5,276 qualified validation actor-frames.
+7. Candidate consolidation plus the p025 output floor raises canonical person precision to `.7967` and `AVO >= .65` precision/recall to `.7042/.7132`, but the full-validation person 0.80/0.80 target is not met.
 
 ### What the evidence does not support
 
@@ -594,19 +670,20 @@ The population collapse and counterintuitive mask behavior reinforce the decisio
 2. It does not establish that the legacy v0.50 depth-box view should replace the v0.10 service contract, nor that legacy `visible_fraction` is an identity-perfect body-visibility percentage.
 3. The 100-target human pilot is too small for a new population-wide precision value or strong 20–40 m claims; it is a stratified diagnostic rather than a complete relabelling of all validation GT.
 4. The AI agreement analysis is diagnostic and is not evidence of two independent human annotators.
-5. It does not yet establish UE/Raspberry-Pi latency or compressed network performance for FCOS.
-6. It does not isolate radar's causal contribution; a locked modality ablation would be required if that claim is needed.
-7. It does not establish the accuracy, latency or payload-size effects of hybrid-q/ROI, quantization, zstd or AE compression; those remain the next measured phase.
+5. AVO is not a true silhouette percentage: its projected cuboid and tight-visible-box conventions under-estimate some clear people and can miss interior occlusion holes.
+6. It does not yet establish UE/Raspberry-Pi latency or compressed network performance for FCOS.
+7. It does not isolate radar's causal contribution; a locked modality ablation would be required if that claim is needed.
+8. It does not establish the accuracy, latency or payload-size effects of hybrid-q/ROI, quantization, zstd or AE compression; those remain the next measured phase.
 
 ---
 
 ## 14. Supervisor decision and next phase
 
-The supervisor accepted the locked 7/9 SplitFusion-FCOS checkpoint as service-ready for progression. The model weights, centerness equation, geometry head, candidate rules and canonical evaluation remain frozen. The noAE architecture study and visibility audit are now closed. The **next action is the approved hybrid-q/ROI training and evaluation** at the unchanged `Z=C2` split boundary.
+The supervisor accepted the frozen epoch-26 7/9 SplitFusion-FCOS architecture as service-ready for progression. After the bounded p025 confirmation, the project locks the p025 wrapper as the forward noAE perception baseline. The model weights, centerness equation, geometry head, vehicle calibration, person consolidation, final person threshold and canonical evaluation are frozen. The noAE perception and visibility studies are now closed. The **next action will be hybrid-q/ROI training and evaluation** at the unchanged `Z=C2` split boundary after its plan is separately reviewed.
 
 After hybrid-q, the transport study will complete the clean/zstd and 8-bit quantization characterizations, train/evaluate the three registered AE bottlenecks, and report UE/Raspberry-Pi front latency, encoded payload size, encode/decode cost, edge latency and end-to-end accuracy for each accepted variant.
 
-Compression results must be compared with the locked noAE service candidate. They must not silently change the detector, centerness equation, geometry head, candidate consolidation rule or evaluation contract.
+Compression results must be compared with the locked noAE p025 service candidate. They must not silently change the detector, centerness equation, geometry head, vehicle calibration, candidate consolidation, p025 output floor or evaluation contract.
 
 ---
 
@@ -618,7 +695,9 @@ Compression results must be compared with the locked noAE service candidate. The
 - Two-stage LR-ASPP: `pole_lraspp_multimodal_fusion/object_head_pilot_v1/route_b_v3_1_depth_aware_lraspp_two_stage_v1/`
 - SplitFusion-FCOS: `pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_v1/`
 - Numerical recovery: `pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_v1_numerical_recovery_v1/`
-- Locked service candidate: `pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_service_candidate_v1/`
+- Historical p020 service candidate: `pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_service_candidate_v1/`
+- Forward p025 service wrapper and lock: `pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_person_p025_calibration_v1/`
+- Actor-volume observability evaluator: `data_collection/route_b_publication_actor_volume_observability_model_comparison_v1/`
 
 ### Dataset
 
@@ -641,6 +720,11 @@ Compression results must be compared with the locked noAE service candidate. The
 - Human/AI diagnostic agreement: `data_collection/experiments/route_b_publication_human_occlusion_pilot_v1/20260901_030234_seed20260831/human_AI_visibility_band_agreement.json`
 - Human-band FCOS/LR-ASPP comparison: `data_collection/experiments/route_b_publication_human_occlusion_pilot_v1/20260901_030234_seed20260831/human_visibility_band_model_comparison_v1.md`
 - Machine-readable human-band comparison: `data_collection/experiments/route_b_publication_human_occlusion_pilot_v1/20260901_030234_seed20260831/human_visibility_band_model_comparison_v1.json`
+- Actor-volume comparison report: `data_collection/route_b_publication_actor_volume_observability_model_comparison_v1/FINAL_REPORT_20260901_REPAIRED.md`
+- Machine-readable actor-volume results: `experiments/actor_volume_observability_model_comparison_v1/20260901_repaired_tolerance_cpu_once/model_threshold_results.json`
+- Forward p025 train qualification: `experiments/splitfusion_fcos_person_p025_calibration_v1/train_holdout_qualification.json`
+- Forward p025 validation confirmation: `experiments/splitfusion_fcos_person_p025_calibration_v1/validation_confirmation.json`
+- Forward p025 lock: `pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_person_p025_calibration_v1/PERCEPTION_FORWARD_LOCK_P025_V1.md`
 - Internal FCOS v0.70 occupancy sensitivity: `experiments/splitfusion_fcos_service_candidate_v1/predictions/evaluation_v070.json`
 - Internal FCOS v0.85 occupancy sensitivity: `experiments/splitfusion_fcos_service_candidate_v1/predictions/evaluation_v085.json`
 - Internal joint LR-ASPP v0.70 occupancy sensitivity: `experiments/route_b_v3_1_depth_aware_lraspp_v1/20260829_060656/evaluation/epoch_010_v070_sensitivity.json`
