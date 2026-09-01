@@ -1,0 +1,44 @@
+digraph SplitFusionFCOS {
+  graph [rankdir=TB, bgcolor="white", pad="0.25", nodesep="0.30", ranksep="0.50", fontname="Arial", compound=true, newrank=true];
+  node [shape=box, style="rounded,filled", fontname="Arial", fontsize=11, color="#355070", fillcolor="#f4f7fb", margin="0.14,0.09"];
+  edge [color="#506784", penwidth=1.4, arrowsize=0.7];
+
+  rgb [label="RGB camera\n3 channels", fillcolor="#e7f1ff"];
+  radar [label="Radar raster\n4 channels", fillcolor="#e7f1ff"];
+  concat [label="Concatenate channels\nONE 7-channel tensor", fillcolor="#d8ebff"];
+  rgb -> concat;
+  radar -> concat;
+
+  subgraph cluster_ue {
+    label="UE / front device";
+    color="#7aa6c2";
+    style="rounded,dashed";
+    stem [label="One 7-channel ResNet-50 convolution\npretrained RGB + learned radar slices"];
+    c2 [label="ResNet C2\n256 x 112 x 192\nhigh-resolution fused feature map"];
+    z [label="Single split tensor Z = C2", fillcolor="#fff2cc"];
+    codec [label="Transport treatment\ncurrent: identity\nfuture: q/ROI OR INT8+zstd OR AE", fillcolor="#ffe3a3"];
+    concat -> stem -> c2 -> z -> codec;
+  }
+
+  subgraph cluster_edge {
+    label="Edge / tail";
+    color="#8fbf8f";
+    style="rounded,dashed";
+    decode [label="Decode / reconstruct C2"];
+    pyramid [label="ResNet C3-C5 + FPN P2-P7\nmultiscale object features"];
+    semantic [label="Semantic head on P2"];
+    masks [label="OUTPUT 1\nsemantic masks\nbackground / vehicle / person", fillcolor="#dff3df"];
+    fcos [label="FCOS instance detector on P2-P7\nclass + centerness + 2D box"];
+    select [label="Select vehicle/person instance\nclasswise NMS"];
+    geometry [label="Depth + physical ray + dimensions + yaw\nfor the SAME selected level / point / class", fillcolor="#e8e1f5"];
+    unproject [label="Camera intrinsics/extrinsics\nray + depth -> world XYZ"];
+    localized [label="OUTPUT 2\nlocalized detections\nbox + class + confidence + XYZ + dimensions + yaw", fillcolor="#dff3df"];
+    aux [label="Dense surface-depth auxiliary on P2\nTRAINING ONLY", style="rounded,dashed,filled", fillcolor="#eeeeee"];
+
+    codec -> decode [label="  NETWORK TRANSMISSION  ", fontcolor="#9c2f2f", color="#9c2f2f", ltail=cluster_ue, lhead=cluster_edge];
+    decode -> pyramid;
+    pyramid -> semantic -> masks;
+    pyramid -> fcos -> select -> geometry -> unproject -> localized;
+    pyramid -> aux [style=dashed, color="#888888"];
+  }
+}

@@ -1,0 +1,39 @@
+digraph LRASPP {
+  graph [rankdir=TB, bgcolor="white", pad="0.25", nodesep="0.30", ranksep="0.50", fontname="Arial", compound=true, newrank=true];
+  node [shape=box, style="rounded,filled", fontname="Arial", fontsize=11, color="#355070", fillcolor="#f4f7fb", margin="0.14,0.09"];
+  edge [color="#506784", penwidth=1.4, arrowsize=0.7];
+
+  rgb [label="RGB camera\n3 channels", fillcolor="#e7f1ff"];
+  radar [label="Radar raster\n4 channels", fillcolor="#e7f1ff"];
+  concat [label="Concatenate channels\nONE 7-channel tensor", fillcolor="#d8ebff"];
+  rgb -> concat;
+  radar -> concat;
+
+  subgraph cluster_ue {
+    label="UE / front";
+    color="#7aa6c2";
+    style="rounded,dashed";
+    stem [label="7-channel MobileNetV3 stem"];
+    backbone [label="MobileNetV3 feature extractor"];
+    bundle [label="Fused low/high feature bundle\n(split representation)", fillcolor="#fff2cc"];
+    transport [label="Transport treatment\ncurrent: identity\nfuture: q / quant / AE / zstd", fillcolor="#ffe3a3"];
+    concat -> stem -> backbone -> bundle -> transport;
+  }
+
+  subgraph cluster_edge {
+    label="Edge / tail";
+    color="#8fbf8f";
+    style="rounded,dashed";
+    neck [label="Shared depth-aware neck"];
+    seg [label="Semantic decoder"];
+    masks [label="OUTPUT 1\nsemantic masks", fillcolor="#dff3df"];
+    obj [label="Vehicle/person\ninstance-proposal heads"];
+    geom [label="Depth + ray + geometry\nfor each proposal"];
+    localized [label="OUTPUT 2\nlocalized detections\nbox + class + XYZ + dimensions + yaw", fillcolor="#dff3df"];
+    aux [label="Dense surface-depth auxiliary\nTRAINING ONLY", style="rounded,dashed,filled", fillcolor="#eeeeee"];
+    transport -> neck [label="  NETWORK TRANSMISSION  ", fontcolor="#9c2f2f", color="#9c2f2f", ltail=cluster_ue, lhead=cluster_edge];
+    neck -> seg -> masks;
+    neck -> obj -> geom -> localized;
+    neck -> aux [style=dashed, color="#888888"];
+  }
+}
