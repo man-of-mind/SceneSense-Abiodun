@@ -1,0 +1,95 @@
+from __future__ import annotations
+
+import torch
+from torch import nn
+
+from . import contract, guards
+
+
+class SpatialRanker(nn.Module):
+    """Lightweight per-cell importance scorer over the frozen fused C2 tensor.
+
+    Exactly: 1x1 Conv 256->8, ReLU, depthwise 3x3 Conv 8->8 (pad 1), ReLU,
+    1x1 Conv 8->1. No normalization, no attention, no second backbone and no
+    object-level ROI model.
+
+    The module consumes detached C2 only. It has no runtime access to RGB,
+    radar, ground truth, detections, segmentation or geometry outputs.
+    """
+
+    def __init__(
+        self,
+        in_channels: int = contract.SPLIT_CHANNELS,
+        hidden_channels: int = contract.RANKER_HIDDEN_CHANNELS,
+    ) -> None:
+        super().__init__()
+        self.in_channels = int(in_channels)
+        self.hidden_channels = int(hidden_channels)
+        self.reduce = nn.Conv2d(self.in_channels, self.hidden_channels, kernel_size=1)
+        self.act1 = nn.ReLU(inplace=False)
+        self.depthwise = nn.Conv2d(
+            self.hidden_channels,
+            self.hidden_channels,
+            kernel_size=3,
+            padding=1,
+            groups=self.hidden_channels,
+        )
+        self.act2 = nn.ReLU(inplace=False)
+        self.score = nn.Conv2d(self.hidden_channels, 1, kernel_size=1)
+
+    def forward(self, c2: torch.Tensor) -> torch.Tensor:
+        """Score cells of [C,H,W] or [B,C,H,W]; returns [H,W] or [B,H,W].
+
+        The input is detached inside the forward pass, so gradients reach the
+        ranker parameters only and never the frozen perception trunk.
+        """
+        if not isinstance(c2, torch.Tensor):
+            raise guards.HybridQPayloadError("ranker input must be a torch.Tensor")
+        if c2.dim() == 3:
+            batched = c2.unsqueeze(0)
+            squeeze = True
+        elif c2.dim() == 4:
+            batched = c2
+            squeeze = False
+        else:
+            raise guards.HybridQPayloadError(
+                f"ranker input must be [C,H,W] or [B,C,H,W], got {tuple(c2.shape)}"
+            )
+        if batched.shape[1] != self.in_channels:
+            raise guards.HybridQPayloadError(
+                f"ranker expects {self.in_channels} channels, got {batched.shape[1]}"
+            )
+        features = batched.detach()
+        hidden = self.act1(self.reduce(features))
+        hidden = self.act2(self.depthwise(hidden))
+        scores = self.score(hidden).squeeze(1)
+        return scores.squeeze(0) if squeeze else scores
+
+    def score_cells(self, c2: torch.Tensor) -> torch.Tensor:
+        """Guarded scoring entry point: rejects non-finite scores fail-closed."""
+        scores = self.forward(c2)
+        guards.require_finite(scores, "ranker scores")
+        return scores
+
+    def parameter_count(self) -> int:
+        return sum(parameter.numel() for parameter in self.parameters())
+
+    def mac_count(self, height: int, width: int) -> int:
+        cells = int(height) * int(width)
+        return (
+            self.in_channels * self.hidden_channels * cells
+            + self.hidden_channels * 3 * 3 * cells
+            + self.hidden_channels * 1 * cells
+        )
+
+
+def build_ranker() -> SpatialRanker:
+    """Construct the contract ranker and assert its registered size."""
+    ranker = SpatialRanker()
+    observed = ranker.parameter_count()
+    if observed != contract.RANKER_PARAMETER_COUNT:
+        raise guards.HybridQConfigError(
+            f"ranker parameter count {observed} != contract "
+            f"{contract.RANKER_PARAMETER_COUNT}"
+        )
+    return ranker
