@@ -1,0 +1,411 @@
+{
+  "absolute_change_from_q0": {
+    "foreground_miou": -0.0020802319699957383,
+    "person_avo_f1": -0.007175625483442194,
+    "person_avo_precision": -0.01884185738290778,
+    "person_avo_recall": 0.005213764337851923,
+    "person_avo_recall_20_40m": 0.007449856733524385,
+    "person_avo_xy_mae_m": 0.004149476472449232,
+    "person_box_mask_iou": -0.0023954709240227023,
+    "vehicle_f1": -0.00018725822464138453,
+    "vehicle_iou": -0.0017649930159688854,
+    "vehicle_precision": 7.287172690528809e-05,
+    "vehicle_recall": -0.00041275410174390625,
+    "vehicle_xy_mae_m": -0.0017570236424149788
+  },
+  "absolute_service_gates": {
+    "all_pass": false,
+    "failed": [
+      "person_precision",
+      "person_recall"
+    ],
+    "minimum_attainment_ratio": 0.7505810950413223,
+    "pass_count": 7,
+    "targets": {
+      "foreground_miou": {
+        "attainment_ratio": 1.053886269251825,
+        "direction": "higher",
+        "passed": true,
+        "target": 0.675,
+        "value": 0.7113732317449819
+      },
+      "person_box_mask_iou": {
+        "attainment_ratio": 1.0509972183335454,
+        "direction": "higher",
+        "passed": true,
+        "target": 0.5,
+        "value": 0.5254986091667727
+      },
+      "person_precision": {
+        "attainment_ratio": 0.9749245219724925,
+        "direction": "higher",
+        "passed": false,
+        "target": 0.8,
+        "value": 0.779939617577994
+      },
+      "person_recall": {
+        "attainment_ratio": 0.7505810950413223,
+        "direction": "higher",
+        "passed": false,
+        "target": 0.8,
+        "value": 0.6004648760330579
+      },
+      "person_xy_mae_m": {
+        "attainment_ratio": 1.426149751204602,
+        "direction": "lower",
+        "passed": true,
+        "target": 1.2,
+        "value": 0.8414263642274705
+      },
+      "vehicle_iou": {
+        "attainment_ratio": 1.05558571096846,
+        "direction": "higher",
+        "passed": true,
+        "target": 0.85,
+        "value": 0.897247854323191
+      },
+      "vehicle_precision": {
+        "attainment_ratio": 1.164580795215417,
+        "direction": "higher",
+        "passed": true,
+        "target": 0.8,
+        "value": 0.9316646361723336
+      },
+      "vehicle_recall": {
+        "attainment_ratio": 1.0212022070204618,
+        "direction": "higher",
+        "passed": true,
+        "target": 0.85,
+        "value": 0.8680218759673924
+      },
+      "vehicle_xy_mae_m": {
+        "attainment_ratio": 2.096794768285077,
+        "direction": "lower",
+        "passed": true,
+        "target": 1.0,
+        "value": 0.4769183971294808
+      }
+    }
+  },
+  "canonical_person_metrics": {
+    "person_f1": 0.6785349481978695,
+    "person_precision": 0.779939617577994,
+    "person_recall": 0.6004648760330579,
+    "person_xy_mae_m": 0.8414263642274705
+  },
+  "completed_utc": "2026-09-02T20:01:17.733361+00:00",
+  "continuous_q_verification": {
+    "bit_exact_definition": {
+      "decoded_mask_matches_selected_indices": true,
+      "dropped_cells_decode_to_exact_zero": true,
+      "note": "bit-exactness is defined on the retained set, the dropped set and the mask; the dense decoded C2 is not, and cannot be, equal to the original dense C2 at q>0",
+      "retained_values_bit_identical_to_source": true
+    },
+    "bit_exact_encode_decode": true,
+    "bit_exact_frames_verified": 8,
+    "exact_keep_count_every_frame": true,
+    "expected_keep_count": 20429,
+    "is_registered_anchor": false,
+    "nesting": {
+      "dense_bypass_note": "q=0 retains all 21504 cells by construction, so containment is checked as a strict cardinality bound and no ranking is run",
+      "frames_checked": 16,
+      "less_aggressive_neighbour_is_dense_bypass": true,
+      "less_aggressive_neighbour_keep_count": 21504,
+      "less_aggressive_neighbour_q": 0.0,
+      "more_aggressive_neighbour_keep_count": 19354,
+      "more_aggressive_neighbour_q": 0.1,
+      "nested_between_neighbours": true,
+      "subset_of_less_aggressive_neighbour": true,
+      "superset_of_more_aggressive_neighbour": true
+    },
+    "observed_framed_payload_bytes": [
+      20922028
+    ],
+    "observed_keep_counts": [
+      20429
+    ],
+    "requested_q": 0.05,
+    "requested_q_equals_wire_q_every_frame": true,
+    "snapped_every_frame": [
+      false
+    ],
+    "wire_q": 0.05,
+    "wire_q_e4": 500,
+    "wire_resolution": 0.0001
+  },
+  "detections": 121166,
+  "detections_csv_sha256": "d3e7e43a812b05a859910eb59f1c58a489a5c8c1ecbc0c3dfafbd0dc30121e0b",
+  "dropped_cells": 1075,
+  "framed_encode_decode_exact": true,
+  "framed_encode_decode_frames_verified": 8,
+  "framed_payload_bytes": 20922028,
+  "framed_payload_ratio": 0.9501314705537749,
+  "frames": 3345,
+  "inference_run_here": true,
+  "metrics": {
+    "foreground_miou": 0.7113732317449819,
+    "person_avo_f1": 0.7015102664177838,
+    "person_avo_precision": 0.6853448275862069,
+    "person_avo_recall": 0.7184567257559958,
+    "person_avo_recall_20_40m": 0.5851002865329513,
+    "person_avo_xy_mae_m": 0.8163308228250591,
+    "person_box_mask_iou": 0.5254986091667727,
+    "vehicle_f1": 0.8987179487179487,
+    "vehicle_iou": 0.897247854323191,
+    "vehicle_precision": 0.9316646361723336,
+    "vehicle_recall": 0.8680218759673924,
+    "vehicle_xy_mae_m": 0.4769183971294808
+  },
+  "peak_allocated_vram_mib": 2976.32666015625,
+  "peak_reserved_vram_mib": 3590.0,
+  "person_avo_detail": {
+    "distance_bins": {
+      "00_10m": {
+        "eligible_gt": 124,
+        "fn": 8,
+        "recall": 0.9354838709677419,
+        "tp": 116,
+        "xy_mae_m": 0.33185286187406693
+      },
+      "10_20m": {
+        "eligible_gt": 1008,
+        "fn": 78,
+        "recall": 0.9226190476190477,
+        "tp": 930,
+        "xy_mae_m": 0.5963276341195581
+      },
+      "20_30m": {
+        "eligible_gt": 1004,
+        "fn": 270,
+        "recall": 0.7310756972111554,
+        "tp": 734,
+        "xy_mae_m": 1.0103639194892542
+      },
+      "30_40m": {
+        "eligible_gt": 741,
+        "fn": 454,
+        "recall": 0.3873144399460189,
+        "tp": 287,
+        "xy_mae_m": 1.2288120632951351
+      }
+    },
+    "episodes": {
+      "canonical_v3_05_val_30_30_s601_tm1601": {
+        "avo_ignored_gt": 537,
+        "avo_ignored_predictions": 44,
+        "f1": 0.7156743620899149,
+        "fn": 264,
+        "fp": 204,
+        "ignored_predictions": 51,
+        "observable_gt": 853,
+        "precision": 0.742749054224464,
+        "recall": 0.690504103165299,
+        "structural_ignored_gt": 7633,
+        "structural_ignored_predictions": 7,
+        "tp": 589,
+        "xy_mae_m": 0.8015524554873872
+      },
+      "canonical_v3_06_val_50_50_s602_tm1602": {
+        "avo_ignored_gt": 1862,
+        "avo_ignored_predictions": 224,
+        "f1": 0.6960207205085942,
+        "fn": 546,
+        "fp": 745,
+        "ignored_predictions": 242,
+        "observable_gt": 2024,
+        "precision": 0.6648672964462438,
+        "recall": 0.7302371541501976,
+        "structural_ignored_gt": 13147,
+        "structural_ignored_predictions": 18,
+        "tp": 1478,
+        "xy_mae_m": 0.8222201721903429
+      }
+    },
+    "observable_gt_20_40m": 1745,
+    "overall": {
+      "avo_ignored_gt": 2399,
+      "avo_ignored_predictions": 268,
+      "f1": 0.7015102664177838,
+      "fn": 810,
+      "fp": 949,
+      "ignored_predictions": 293,
+      "observable_gt": 2877,
+      "precision": 0.6853448275862069,
+      "recall": 0.7184567257559958,
+      "structural_ignored_gt": 20780,
+      "structural_ignored_predictions": 25,
+      "tp": 2067,
+      "xy_mae_m": 0.8163308228250591
+    },
+    "prediction_rows_all_classes": 121166,
+    "tp_20_40m": 1021
+  },
+  "person_canonical_v010_detail": {
+    "eligible_gt": 3872,
+    "f1": 0.6785349481978695,
+    "fn": 1547,
+    "fp": 656,
+    "ignored_predictions": 328,
+    "precision": 0.779939617577994,
+    "recall": 0.6004648760330579,
+    "tp": 2325,
+    "xy_mae_m": 0.8414263642274705
+  },
+  "person_service_outputs": 3309,
+  "prediction_root": "experiments/splitfusion_fcos_hybrid_q_v1/20260902_195312_low_q_validation_curve/predictions/q0500",
+  "preservation_gates": {
+    "all_passed": false,
+    "failed": [
+      "person_avo_precision"
+    ],
+    "gate_count": 12,
+    "gates": {
+      "foreground_miou": {
+        "baseline": 0.7134534637149776,
+        "bound": 0.01,
+        "candidate": 0.7113732317449819,
+        "degradation": 0.0020802319699957383,
+        "direction": "loss",
+        "passed": true
+      },
+      "person_avo_f1": {
+        "baseline": 0.708685891901226,
+        "bound": 0.015,
+        "candidate": 0.7015102664177838,
+        "degradation": 0.007175625483442194,
+        "direction": "loss",
+        "passed": true
+      },
+      "person_avo_precision": {
+        "baseline": 0.7041866849691146,
+        "bound": 0.015,
+        "candidate": 0.6853448275862069,
+        "degradation": 0.01884185738290778,
+        "direction": "loss",
+        "passed": false
+      },
+      "person_avo_recall": {
+        "baseline": 0.7132429614181439,
+        "bound": 0.015,
+        "candidate": 0.7184567257559958,
+        "degradation": -0.005213764337851923,
+        "direction": "loss",
+        "passed": true
+      },
+      "person_avo_recall_20_40m": {
+        "baseline": 0.5776504297994269,
+        "bound": 0.03,
+        "candidate": 0.5851002865329513,
+        "degradation": -0.007449856733524385,
+        "direction": "loss",
+        "passed": true
+      },
+      "person_avo_xy_mae_m": {
+        "baseline": 0.8121813463526099,
+        "bound": 0.05,
+        "candidate": 0.8163308228250591,
+        "degradation": 0.004149476472449232,
+        "direction": "increase",
+        "passed": true
+      },
+      "person_box_mask_iou": {
+        "baseline": 0.5278940800907954,
+        "bound": 0.01,
+        "candidate": 0.5254986091667727,
+        "degradation": 0.0023954709240227023,
+        "direction": "loss",
+        "passed": true
+      },
+      "vehicle_f1": {
+        "baseline": 0.8989052069425901,
+        "bound": 0.01,
+        "candidate": 0.8987179487179487,
+        "degradation": 0.00018725822464138453,
+        "direction": "loss",
+        "passed": true
+      },
+      "vehicle_iou": {
+        "baseline": 0.8990128473391599,
+        "bound": 0.01,
+        "candidate": 0.897247854323191,
+        "degradation": 0.0017649930159688854,
+        "direction": "loss",
+        "passed": true
+      },
+      "vehicle_precision": {
+        "baseline": 0.9315917644454283,
+        "bound": 0.01,
+        "candidate": 0.9316646361723336,
+        "degradation": -7.287172690528809e-05,
+        "direction": "loss",
+        "passed": true
+      },
+      "vehicle_recall": {
+        "baseline": 0.8684346300691363,
+        "bound": 0.01,
+        "candidate": 0.8680218759673924,
+        "degradation": 0.00041275410174390625,
+        "direction": "loss",
+        "passed": true
+      },
+      "vehicle_xy_mae_m": {
+        "baseline": 0.4786754207718958,
+        "bound": 0.05,
+        "candidate": 0.4769183971294808,
+        "degradation": -0.0017570236424149788,
+        "direction": "increase",
+        "passed": true
+      }
+    },
+    "pass_count": 11,
+    "role": "reported characterization column, not a Phase-6 acceptance gate",
+    "worst_absolute_degradation": 0.01884185738290778,
+    "worst_degradation": 0.01884185738290778
+  },
+  "q": 0.05,
+  "raw_fp32_ratio": 0.9501333690824962,
+  "retained_cells": 20429,
+  "schema": "splitfusion_fcos_hybrid_q_low_q_validation_curve_v1",
+  "segmentation_detail": {
+    "background_iou": 0.9955435387313506,
+    "background_iou_role": "diagnostic_only",
+    "confusion_matrix": [
+      [
+        1057512777,
+        2354711,
+        175633
+      ],
+      [
+        1933557,
+        37657051,
+        12286
+      ],
+      [
+        269960,
+        11903,
+        520272
+      ]
+    ],
+    "foreground_miou": 0.7113732317449819,
+    "ignored_pixels": 9342570,
+    "person_box_mask_iou": 0.5254986091667727,
+    "vehicle_iou": 0.897247854323191
+  },
+  "segmentation_masks_removed_after_scoring": true,
+  "snap_continuous_q_called": false,
+  "source": "measured here through continuous_q.transport",
+  "transport_path": "continuous_q.transport",
+  "vehicle_detail": {
+    "eligible_gt": 9691,
+    "f1": 0.8987179487179487,
+    "fn": 1279,
+    "fp": 617,
+    "ignored_predictions": 2414,
+    "precision": 0.9316646361723336,
+    "recall": 0.8680218759673924,
+    "tp": 8412,
+    "xy_mae_m": 0.4769183971294808
+  },
+  "vehicle_service_outputs": 117857,
+  "wall_seconds": 446.0198757648468
+}
