@@ -36,8 +36,13 @@ class SparsePayload:
 
     @property
     def total_bytes(self) -> int:
-        """Actual serialized length of the wire payload."""
+        """Actual serialized length of the framed wire payload."""
         return len(self.data)
+
+    @property
+    def framed_ratio(self) -> float:
+        """Primary hybrid-q ratio: this payload / the framed q=0 payload."""
+        return contract.framed_payload_ratio(self.total_bytes)
 
 
 def _pack_bitmask(keep_indices: torch.Tensor, cells: int) -> bytes:
@@ -58,17 +63,16 @@ def _unpack_bitmask(mask: bytes, cells: int) -> np.ndarray:
     return np.flatnonzero(bits[:cells]).astype(np.int64)
 
 
-def encode(
-    c2: torch.Tensor, q: float, selection: CellSelection | None = None
+def _encode(
+    c2: torch.Tensor,
+    q: float,
+    selection: CellSelection | None = None,
+    *,
+    registered_only: bool = True,
 ) -> SparsePayload:
-    """Serialize one frame for transport.
-
-    q=0 emits the dense form (no bitmask, every cell present). q>0 emits the
-    bitmask plus the retained values in ascending row-major cell order, each
-    retained cell holding all channels contiguously.
-    """
-    value = guards.require_valid_q(q)
-    guards.require_c2_tensor(c2, channels=c2.shape[0], what="C2 tensor")
+    """Private generic encoder over any [C,H,W] FP32 tensor (tests and internals)."""
+    value = guards.require_valid_q(q, registered_only=registered_only)
+    guards.require_generic_c2(c2, channels=int(c2.shape[0]), what="C2 tensor")
     guards.require_finite(c2, "C2 tensor")
     dtype_code = _DTYPE_CODES.get(c2.dtype)
     if dtype_code is None:
@@ -90,11 +94,10 @@ def encode(
     else:
         if selection is None:
             raise guards.HybridQConfigError("q>0 requires a cell selection")
-        guards.require_keep_cardinality(selection.keep_count, keep)
-        indices = guards.require_sorted_unique_indices(
-            selection.keep_indices.to(torch.int64).cpu(), cells
+        guards.require_selection_integrity(
+            selection, value, cells=cells, spatial_shape=(height, width)
         )
-        guards.require_keep_cardinality(int(indices.numel()), keep)
+        indices = selection.keep_indices.to(torch.int64).cpu()
         flags = FLAG_MASK_PRESENT
         mask = _pack_bitmask(indices, cells)
         retained = cell_major.index_select(0, indices.to(cell_major.device))
@@ -125,8 +128,32 @@ def encode(
     )
 
 
-def decode(payload: bytes | SparsePayload) -> tuple[torch.Tensor, float]:
-    """Reconstruct the dense [C,H,W] tensor, filling dropped cells with exact zeros."""
+def encode(
+    c2: torch.Tensor, q: float, selection: CellSelection | None = None
+) -> SparsePayload:
+    """Serialize one frozen C2 frame for transport.
+
+    q=0 emits the dense form (no bitmask, every cell present). q>0 emits the
+    bitmask plus the retained values in ascending row-major cell order, each
+    retained cell holding all 256 FP32 channels contiguously. For q>0 the
+    supplied selection is cross-checked against the requested q before framing.
+    """
+    guards.require_frozen_c2(c2)
+    value = guards.require_valid_q(q)
+    if selection is not None:
+        guards.require_selection_integrity(
+            selection,
+            value,
+            cells=contract.SPLIT_CELLS,
+            spatial_shape=contract.SPLIT_SPATIAL_SHAPE,
+        )
+    return _encode(c2, value, selection)
+
+
+def _decode(
+    payload: bytes | SparsePayload, *, require_frozen: bool = True
+) -> tuple[torch.Tensor, float]:
+    """Reconstruct the dense tensor, filling dropped cells with exact zeros."""
     data = payload.data if isinstance(payload, SparsePayload) else payload
     if not isinstance(data, (bytes, bytearray, memoryview)):
         raise guards.HybridQPayloadError("payload must be a bytes-like object")
@@ -161,10 +188,14 @@ def decode(payload: bytes | SparsePayload) -> tuple[torch.Tensor, float]:
         raise guards.HybridQPayloadError("unknown header flag bits set")
     if channels <= 0 or height <= 0 or width <= 0:
         raise guards.HybridQPayloadError("non-positive tensor dimension in header")
+    if require_frozen:
+        guards.require_frozen_header_dims(
+            channels, height, width, dtype_code, fp32_code=DTYPE_FP32
+        )
 
     cells = height * width
     q = q_e4 / 10000.0
-    guards.require_valid_q(q)
+    guards.require_valid_q(q, registered_only=require_frozen)
     guards.require_keep_cardinality(keep, contract.keep_count(q, cells))
 
     has_mask = bool(flags & FLAG_MASK_PRESENT)
@@ -212,6 +243,21 @@ def decode(payload: bytes | SparsePayload) -> tuple[torch.Tensor, float]:
     return dense, q
 
 
-def encode_dense_diagnostic_size(c2: torch.Tensor) -> int:
-    """Raw FP32 size of the dense split tensor, for payload-ratio reporting only."""
+def decode(payload: bytes | SparsePayload) -> tuple[torch.Tensor, float]:
+    """Decode a frozen-contract payload to dense [256,112,192] FP32.
+
+    Fails closed unless the header specifies exactly 256 channels, height 112,
+    width 192 and FP32. Dropped cells decode to exact zeros.
+    """
+    dense, q = _decode(payload, require_frozen=True)
+    guards.require_frozen_c2(dense, what="decoded C2 tensor")
+    return dense, q
+
+
+def raw_fp32_reference_bytes(c2: torch.Tensor) -> int:
+    """Unframed raw FP32 tensor size. Reported separately from framed payloads.
+
+    This is NOT the wire representation and the framed q=0 payload is not
+    byte-identical to it: framing adds the 44-byte versioned header.
+    """
     return int(c2.numel()) * 4

@@ -14,7 +14,8 @@ class SpatialRanker(nn.Module):
     object-level ROI model.
 
     The module consumes detached C2 only. It has no runtime access to RGB,
-    radar, ground truth, detections, segmentation or geometry outputs.
+    radar, ground truth, detections, segmentation, geometry or any
+    target-region side channel.
     """
 
     def __init__(
@@ -38,11 +39,17 @@ class SpatialRanker(nn.Module):
         self.score = nn.Conv2d(self.hidden_channels, 1, kernel_size=1)
 
     def forward(self, c2: torch.Tensor) -> torch.Tensor:
-        """Score cells of [C,H,W] or [B,C,H,W]; returns [H,W] or [B,H,W].
+        """Score cells of the frozen C2 tensor.
 
-        The input is detached inside the forward pass, so gradients reach the
-        ranker parameters only and never the frozen perception trunk.
+        Accepts [256,112,192] or [B,256,112,192] FP32 and returns [112,192] or
+        [B,112,192]. The input is detached inside the forward pass, so gradients
+        reach the ranker parameters only and never the frozen perception trunk.
         """
+        guards.require_frozen_batched_c2(c2, what="ranker input")
+        return self._score_any(c2)
+
+    def _score_any(self, c2: torch.Tensor) -> torch.Tensor:
+        """Private generic scorer with no frozen-shape enforcement (tests only)."""
         if not isinstance(c2, torch.Tensor):
             raise guards.HybridQPayloadError("ranker input must be a torch.Tensor")
         if c2.dim() == 3:
@@ -53,7 +60,7 @@ class SpatialRanker(nn.Module):
             squeeze = False
         else:
             raise guards.HybridQPayloadError(
-                f"ranker input must be [C,H,W] or [B,C,H,W], got {tuple(c2.shape)}"
+                f"ranker input must be [C,H,W] or [B,C,H,W], got {list(c2.shape)}"
             )
         if batched.shape[1] != self.in_channels:
             raise guards.HybridQPayloadError(
@@ -66,10 +73,10 @@ class SpatialRanker(nn.Module):
         return scores.squeeze(0) if squeeze else scores
 
     def score_cells(self, c2: torch.Tensor) -> torch.Tensor:
-        """Guarded scoring entry point: rejects non-finite scores fail-closed."""
-        scores = self.forward(c2)
-        guards.require_finite(scores, "ranker scores")
-        return scores
+        """Guarded production entry point: frozen shape in, finite [112,192] out."""
+        guards.require_frozen_c2(c2, what="ranker input")
+        scores = self._score_any(c2)
+        return guards.require_frozen_scores(scores)
 
     def parameter_count(self) -> int:
         return sum(parameter.numel() for parameter in self.parameters())
@@ -83,9 +90,19 @@ class SpatialRanker(nn.Module):
         )
 
 
-def build_ranker() -> SpatialRanker:
-    """Construct the contract ranker and assert its registered size."""
-    ranker = SpatialRanker()
+def build_ranker(*, seed: int | None = contract.RANKER_INIT_SEED) -> SpatialRanker:
+    """Construct the contract ranker deterministically at the registered seed.
+
+    Initialization runs inside `torch.random.fork_rng`, so the caller's global
+    RNG state is restored and the construction does not advance the caller's
+    random sequence. `seed=None` uses ambient RNG (diagnostic use only).
+    """
+    if seed is None:
+        ranker = SpatialRanker()
+    else:
+        with torch.random.fork_rng(devices=[], enabled=True):
+            torch.manual_seed(int(seed))
+            ranker = SpatialRanker()
     observed = ranker.parameter_count()
     if observed != contract.RANKER_PARAMETER_COUNT:
         raise guards.HybridQConfigError(

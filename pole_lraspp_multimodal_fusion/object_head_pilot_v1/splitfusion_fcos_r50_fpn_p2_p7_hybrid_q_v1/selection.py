@@ -19,19 +19,14 @@ class CellSelection:
     keep_mask: torch.Tensor  # bool [H, W]
 
 
-def select_cells(
+def _select_cells(
     scores: torch.Tensor, q: float, *, registered_only: bool = True
 ) -> CellSelection:
-    """Keep the highest-scoring cells; ties prefer the lower row-major index.
-
-    `scores` is [H, W]. Selection is deterministic: a stable descending sort
-    over the row-major flattened scores means equal scores are taken in
-    ascending index order.
-    """
+    """Private generic selection over any [H,W] score map (tests and internals)."""
     value = guards.require_valid_q(q, registered_only=registered_only)
     if scores.dim() != 2:
         raise guards.HybridQPayloadError(
-            f"scores must be [H,W], got {tuple(scores.shape)}"
+            f"scores must be [H,W], got {list(scores.shape)}"
         )
     guards.require_finite(scores, "ranker scores")
 
@@ -61,33 +56,63 @@ def select_cells(
     )
 
 
-def apply_selection(c2: torch.Tensor, selection: CellSelection) -> torch.Tensor:
-    """Zero every dropped cell across all 256 channels; retained cells are exact.
+def select_cells(scores: torch.Tensor, q: float) -> CellSelection:
+    """Production selection over one frozen frame of scores: [112,192], registered q.
 
-    All channels of a spatial cell are retained or removed together.
+    Keeps the highest-scoring cells; ties prefer the lower row-major index. A
+    stable descending sort of the row-major flattened scores makes this
+    deterministic and repeatable.
     """
-    guards.require_c2_tensor(c2, channels=c2.shape[0], what="C2 tensor")
-    if selection.keep_mask.shape != c2.shape[1:]:
+    guards.require_frozen_scores(scores)
+    value = guards.require_valid_q(q)
+    selection = _select_cells(scores, value)
+    guards.require_selection_integrity(
+        selection,
+        value,
+        cells=contract.SPLIT_CELLS,
+        spatial_shape=contract.SPLIT_SPATIAL_SHAPE,
+    )
+    return selection
+
+
+def _apply_selection(c2: torch.Tensor, selection: CellSelection) -> torch.Tensor:
+    """Private generic masking: zero every dropped cell across all channels."""
+    guards.require_generic_c2(c2, channels=int(c2.shape[0]), what="C2 tensor")
+    if tuple(selection.keep_mask.shape) != tuple(c2.shape[1:]):
         raise guards.HybridQPayloadError("selection mask shape does not match C2 tensor")
     mask = selection.keep_mask.to(device=c2.device).unsqueeze(0)
     return c2 * mask.to(c2.dtype)
 
 
-def select_and_apply(
-    c2: torch.Tensor,
-    ranker,
-    q: float,
-    *,
-    registered_only: bool = True,
-) -> tuple[torch.Tensor, CellSelection | None]:
-    """Full masking path. q=0 bypasses ranking and returns the dense tensor.
+def apply_selection(c2: torch.Tensor, selection: CellSelection) -> torch.Tensor:
+    """Production masking at the frozen boundary.
 
-    At q=0 the ranker is never invoked and the returned tensor is the input
-    object itself, so dense identity is exact by construction.
+    All 256 channels of a spatial cell are retained or removed together;
+    dropped cells become exact zeros.
     """
-    value = guards.require_valid_q(q, registered_only=registered_only)
-    if contract.drop_count(value, int(c2.shape[1] * c2.shape[2])) == 0:
+    guards.require_frozen_c2(c2)
+    guards.require_selection_integrity(
+        selection,
+        selection.q,
+        cells=contract.SPLIT_CELLS,
+        spatial_shape=contract.SPLIT_SPATIAL_SHAPE,
+    )
+    return _apply_selection(c2, selection)
+
+
+def select_and_apply(
+    c2: torch.Tensor, ranker, q: float
+) -> tuple[torch.Tensor, CellSelection | None]:
+    """Full production masking path at the frozen boundary.
+
+    q=0 validates the tensor, then bypasses ranking and masking entirely and
+    returns the input tensor object itself, so dense identity is exact by
+    construction. Callers must not mutate the returned tensor in place.
+    """
+    guards.require_frozen_c2(c2)
+    value = guards.require_valid_q(q)
+    if contract.drop_count(value, contract.SPLIT_CELLS) == 0:
         return c2, None
     scores = ranker.score_cells(c2)
-    selection = select_cells(scores, value, registered_only=registered_only)
+    selection = select_cells(scores, value)
     return apply_selection(c2, selection), selection

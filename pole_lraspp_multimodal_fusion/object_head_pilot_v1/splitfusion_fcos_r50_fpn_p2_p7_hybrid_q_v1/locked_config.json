@@ -1,0 +1,184 @@
+{
+  "schema": "splitfusion_fcos_hybrid_q_transport_v1",
+  "decision_date": "2026-09-01",
+  "status": "phase2_source_locked_training_not_executed",
+  "scope": "transport-only spatial sparsification at the frozen fused C2 split",
+  "seed": 20260829,
+  "perception_binding": {
+    "perception_forward_lock_path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_person_p025_calibration_v1/PERCEPTION_FORWARD_LOCK_P025_V1.json",
+    "perception_forward_lock_sha256": "86d6f13ae9168b33b697df5b785c5f7c320afc52cfdcded5b632d94a6d943fe1",
+    "checkpoint_sha256": "da14d21edbd374c1c3abce02ca4674b9f4097becfba9759aba945cea160a297f",
+    "checkpoint_loaded_in_this_phase": false,
+    "unmodified": [
+      "seven-channel input",
+      "frozen perception weights",
+      "FCOS classification, box regression and centerness scoring",
+      "geometry head",
+      "segmentation head",
+      "evaluator and matching rules",
+      "p025 person output threshold",
+      "AVO definition"
+    ],
+    "frozen_model_runtime_mode": "eval"
+  },
+  "c2_contract": {
+    "shape": [256, 112, 192],
+    "batched_ranker_shape": ["B", 256, 112, 192],
+    "cells": 21504,
+    "dtype": "float32",
+    "spatial_index_order": "row_major",
+    "channel_granularity": "all 256 channels of a spatial cell are retained or dropped together",
+    "raw_fp32_reference_bytes": 22020096
+  },
+  "wire_format": {
+    "version": 1,
+    "header_bytes": 44,
+    "header_struct": "<4sHHHHIIIIIIQ",
+    "magic_ascii": "HQ1",
+    "magic_hex": "48513100",
+    "bitmask": {
+      "present_for": "q > 0",
+      "bytes_at_n_21504": 2688,
+      "bit_semantics": "1 = retained",
+      "order": "cell i at byte i//8, bit 7-(i%8); MSB-first within a byte",
+      "padding_bits": "must be zero",
+      "compression": "none; fixed-order uncompressed bitmask is locked for this phase"
+    },
+    "values": {
+      "order": "retained cells in ascending row-major cell order",
+      "layout": "all 256 FP32 channels of a retained cell contiguous",
+      "endianness": "little"
+    },
+    "decode": "dense [256,112,192] with exact zeros in dropped cells",
+    "framed_q0_payload_bytes": 22020140,
+    "primary_compression_ratio": "actual serialized q payload bytes / actual serialized q=0 payload bytes",
+    "raw_fp32_reference_note": "22020096 is the unframed raw tensor size, reported separately; the framed q=0 payload is NOT wire-byte-identical to it"
+  },
+  "q_contract": {
+    "definition": "q is the spatial drop fraction; drop_count = floor(q*N + 0.5); keep_count = N - drop_count",
+    "selection": "keep highest-scoring cells; ties prefer the lower row-major spatial index",
+    "q0_behaviour": "bypass ranking and sparse masking; return the validated input tensor object",
+    "values": [
+      {"q": 0.00, "keep_count": 21504, "drop_count": 0, "role": "parity"},
+      {"q": 0.30, "keep_count": 15053, "drop_count": 6451, "role": "q_aware_training"},
+      {"q": 0.50, "keep_count": 10752, "drop_count": 10752, "role": "q_aware_training"},
+      {"q": 0.70, "keep_count": 6451, "drop_count": 15053, "role": "q_aware_training"},
+      {"q": 0.90, "keep_count": 2150, "drop_count": 19354, "role": "evaluation_stress"},
+      {"q": 0.98, "keep_count": 430, "drop_count": 21074, "role": "evaluation_stress"}
+    ]
+  },
+  "ranker": {
+    "layers": [
+      "Conv2d 256->8 kernel 1x1",
+      "ReLU",
+      "Conv2d 8->8 kernel 3x3 padding 1 groups 8 (depthwise)",
+      "ReLU",
+      "Conv2d 8->1 kernel 1x1"
+    ],
+    "forbidden": ["BatchNorm", "attention", "second backbone", "object-level ROI model"],
+    "parameter_count": 2145,
+    "mac_count_112x192": 45760512,
+    "init_seed": 20260829,
+    "init_rng_isolation": "torch.random.fork_rng; the caller's global RNG state is restored",
+    "runtime_inputs": "detached fused C2 only",
+    "forbidden_runtime_inputs": [
+      "RGB",
+      "radar",
+      "ground truth",
+      "detections",
+      "segmentation outputs",
+      "geometry outputs",
+      "target-region side channels"
+    ]
+  },
+  "training": {
+    "executed_in_this_phase": false,
+    "teacher": {
+      "groups": ["D", "G", "S", "A"],
+      "group_definitions": {
+        "D": "FCOS classification, box regression and centerness",
+        "G": "registered geometry loss",
+        "S": "registered semantic loss",
+        "A": "registered dense-depth and radar-consistency loss"
+      },
+      "importance": "I_t(h,w) = sum_c |C2(c,h,w) * grad_t(c,h,w)|",
+      "normalization": "l1",
+      "normalization_scope": "each valid group normalized independently before combination",
+      "combination": "equal_weight",
+      "invalid_group_handling": "absent, zero-gradient and non-finite groups are recorded with a reason and excluded; never silently treated as valid supervision",
+      "gradient_mass": "diagnostic only; raw pre-normalization L1 mass of each group importance map",
+      "task_losses": "dense task-loss values retained separately for future train-only reference-scale construction",
+      "forbidden": [
+        "class-specific rewritten losses",
+        "target-region side channels",
+        "RGB, radar, predictions or GT in the ranker runtime"
+      ],
+      "cache_contents": [
+        "teacher importance map",
+        "validity flags",
+        "identifiers",
+        "gradient_mass",
+        "task_losses",
+        "frozen checkpoint sha256"
+      ],
+      "cache_excludes": "full C2 tensors"
+    },
+    "distillation": {
+      "loss": "listwise_soft_cross_entropy",
+      "target": "L1-normalized teacher distribution",
+      "temperature": 1.0,
+      "epochs": 4
+    },
+    "q_aware": {
+      "epochs": 8,
+      "q_per_optimizer_update": 1,
+      "cycle": [0.30, 0.50, 0.70],
+      "cycle_order": "deterministic repeated cycle",
+      "parity_q": 0.00,
+      "parity_note": "q=0 is parity monitoring only and must not produce a ranker-training gradient",
+      "evaluation_stress_q": [0.90, 0.98],
+      "objective": "mean(valid masked task loss / frozen train-reference median for that task) + 0.1 * distillation loss",
+      "distillation_weight": 0.1,
+      "reference_median_source": "fit_train",
+      "reference_median_prohibition": "no validation-derived or test-derived scale is allowed"
+    },
+    "optimization": {
+      "optimizer": "AdamW",
+      "learning_rate": 0.001,
+      "weight_decay": 0.0001,
+      "lr_schedule": "constant",
+      "grad_clip_global_norm": 5.0,
+      "grad_clip_scope": "ranker parameters only",
+      "checkpoint_epochs": [4, 8, 12],
+      "augmentation": false,
+      "augmentation_rationale": "cached teacher maps must remain aligned with canonical frames",
+      "optimizer_ownership": "ranker parameters only"
+    },
+    "straight_through": {
+      "forward": "exact hard mask",
+      "boundary": "midpoint_lowest_retained_highest_dropped",
+      "temperature": 1.0,
+      "q0": "explicit identity bypass with no surrogate gradient"
+    },
+    "gradient_qualification": {
+      "finite_loss_required": "every update",
+      "finite_gradient_required": "every observed gradient",
+      "nonzero_gradient_required": "every named trainable ranker tensor at least once across the completed window",
+      "isolated_zero_gradient_batches": "logged, not failures",
+      "missing_or_disconnected_parameters": "fail at end of window",
+      "post_step_checks": [
+        "ranker parameters finite",
+        "all tensor-valued optimizer state finite",
+        "frozen perception parameters and buffers exactly unchanged"
+      ]
+    }
+  },
+  "deferred_to_later_phases": [
+    "fixed quantization and zstd at frozen C2 Z",
+    "AE128, AE64 and AE32 encoders and decoders at frozen C2 Z",
+    "dense-zero zstd diagnostic",
+    "bitmask compression diagnostic",
+    "selection vectorization, pending Phase-3 latency measurement",
+    "payload, UE, network, edge and end-to-end latency measurement"
+  ]
+}
