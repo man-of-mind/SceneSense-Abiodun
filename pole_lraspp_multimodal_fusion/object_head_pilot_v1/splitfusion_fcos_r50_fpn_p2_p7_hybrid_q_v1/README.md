@@ -1,18 +1,21 @@
 # Hybrid-q v1 — spatial transport sparsification at the frozen C2 split
 
-Phase 4 status: **the frozen train-only teacher cache and the four fit-reference medians are
-built.** `gpu_qualification.py` (Phase 3) qualified the path on GPU; `teacher_cache.py` (Phase 4)
-then cached teacher supervision for all 16,827 training frames and froze the reference medians.
-Neither trains the ranker, takes an optimizer step, reads validation or test data, runs
-evaluation, or launches CARLA.
+Status: **Phase 6 is complete** — the validation accuracy-payload curve is measured at the six
+registered q values on the stable epoch-4 ranker (section below), and the transport path now also
+exposes a **continuous-q execution interface** (`continuous_q.py`) that can serve any q in
+[0, 0.98] at the existing 1e-4 wire resolution. The continuous interface is execution only: it
+adds no measurement, and accuracy away from the six measured anchors remains unvalidated.
 
-Results:
+Earlier phase results, unchanged:
 `experiments/splitfusion_fcos_hybrid_q_v1/20260902_004213_phase3_gpu_qualification/`, terminal
 `HYBRID_Q_PHASE3_QUALIFIED`; and
 `experiments/splitfusion_fcos_hybrid_q_v1/20260901_180439_phase4_teacher_cache/`
 (`teacher_cache_manifest.json`, `fit_reference_medians.json`,
 `PHASE4_TEACHER_CACHE_SUMMARY.md`), terminal `HYBRID_Q_PHASE4_TEACHER_CACHE_COMPLETE`. The cache
-shards themselves are large and deliberately untracked.
+shards themselves are large and deliberately untracked. Phase 5 is
+`.../20260901_185725_phase5_ranker_training` (terminal `ROI_DROP_NOT_SAFE_ON_TRAIN_HOLDOUT`) and
+Phase 6 is `.../20260902_182401_phase6_validation_curve` (terminal
+`HYBRID_Q_PHASE6_VALIDATION_CURVE_COMPLETE`).
 
 The machine-readable contract is [locked_config.json](locked_config.json); `contract.load_locked_config()`
 reads it and fails closed on any drift from the module constants.
@@ -392,21 +395,77 @@ of their own hypothesis because they diverged, and the only well-behaved candida
 the mask in the loop. A bounded, pre-registered change to the q-aware stage is untested and
 therefore not falsified; it is not authorized by this commit.
 
+## Phase 6 validation accuracy-payload curve (executed)
+
+`experiments/splitfusion_fcos_hybrid_q_v1/20260902_182401_phase6_validation_curve`
+(`validation_curve.csv`, `validation_curve.json`, `PHASE6_VALIDATION_CURVE_REPORT.md`), terminal
+`HYBRID_Q_PHASE6_VALIDATION_CURVE_COMPLETE`. Measurement only, over the registered 3,345-frame
+validation split at the one stable Phase-5 checkpoint `ranker_epoch_04.pt`: it trains nothing,
+selects nothing, moves no threshold and leaves the locked test split untouched. The q=0 row is
+the frozen p025 validation result re-scored by the identical Phase-6 scoring functions, which
+reproduces all fifteen published values exactly.
+
+| q | cells | framed bytes | ratio | veh F1 | person AVO F1 | fg mIoU | service |
+|---|---|---|---|---|---|---|---|
+| 0.00 | 21,504 | 22,020,140 | 1.0000 | 0.8989 | 0.7087 | 0.7135 | 7/9 |
+| 0.30 | 15,053 | 15,417,004 | 0.7001 | 0.8991 | 0.6823 | 0.6881 | 7/9 |
+| 0.50 | 10,752 | 11,012,780 | 0.5001 | 0.8973 | 0.6772 | 0.6559 | 4/9 |
+| 0.70 | 6,451 | 6,608,556 | 0.3001 | 0.8854 | 0.6729 | 0.5816 | 4/9 |
+| 0.90 | 2,150 | 2,204,332 | 0.1001 | 0.8195 | 0.5930 | 0.3850 | 3/9 |
+| 0.98 | 430 | 443,052 | 0.0201 | 0.5391 | 0.4457 | 0.1288 | 3/9 |
+
+Segmentation, not detection, is the binding constraint: vehicle F1 stays within 0.002 of
+baseline at half the payload, while foreground mIoU falls monotonically. Under the cascade
+registered before the measurement, q=0.30/0.50/0.70 are
+localization-preserving/segmentation-reduced and q=0.90/0.98 are unusable. A denser ladder below
+q=0.30 is untested and no rung there is assumed to exist.
+
+## Continuous-q execution interface
+
+`continuous_q.py` lets the stable ranker and the existing v1 codec execute **any** finite q in
+[0, 0.98], quantized only to the 1e-4 resolution the 44-byte header already carries
+(`contract._q_to_e4`). It is additive and execution-only: `ranker.py`, `selection.py`,
+`codec.py`, `guards.py` and `locked_config.json` are unmodified, and it reuses their private
+generic helpers rather than reimplementing the sort, the mask or the wire format.
+
+- `quantize_q(q) -> ContinuousQ` resolves the request onto the wire grid and reports `wire_q`,
+  `q_e4`, the exact keep/drop counts, whether the value happens to be registered, and whether it
+  is the dense bypass. A request is **never** snapped to an anchor.
+- `select_cells`, `select_and_apply`, `encode`, `decode` and the end-to-end `transport` mirror
+  the registered production call order, preserve the exact q=0 bypass, emit the same 44-byte
+  header and sparse layout, and decode to the frozen `[256,112,192]` FP32 boundary with retained
+  values bit-exact and dropped cells exactly zero.
+- Fails closed on q outside [0, 0.98], non-finite q, malformed payloads and inconsistent
+  q/keep-count/mask metadata, via the existing guards.
+
+`tests/test_continuous_q.py` proves byte-for-byte parity with the discrete path at all six
+registered q (same keep count, indices, mask, masked tensor, serialized payload and decoded
+tensor), and executes q=0.2345 end to end: it stays 0.2345, keeps exactly 16,461 cells, is
+neither q=0 nor q=0.30, and its retained cells are a strict superset of the q=0.30 mask.
+
+**Executability is not measured accuracy.** Phase 6 measured six anchors; accuracy at any other q
+is unmeasured and is neither interpolated nor validated here. `contract.snap_continuous_q`
+remains available as a caller-side conservative policy for accuracy-critical serving.
+
 ## Phase boundaries
 
-Not done and not authorized by this commit: validation or test evaluation, q=0.90 and q=0.98
-stress evaluation, OAI/CARLA transport measurement, quantization, zstd, the AE families,
-continuous-q work, and any retune of the locked training configuration. The test set remains
-untouched and reserved for independent publication confirmation.
+Not done and not authorized: test-set evaluation, OAI/CARLA transport measurement,
+quantization, zstd, the AE families, accuracy measurement at any unregistered q, and any retune
+of the locked training configuration. The test set remains untouched and reserved for
+independent publication confirmation.
 
 ## Commands
 
-Only the first is in scope for this commit beyond the Phase-3 qualification above.
+Only the two CPU test commands are in scope for this commit; the phase runners below are recorded as executed history.
 
 ```bash
 # Run: CPU synthetic tests
 python3 -m unittest pole_lraspp_multimodal_fusion.object_head_pilot_v1.\
 splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1.tests.test_synthetic -v
+
+# Run: CPU continuous-q interface tests
+python3 -m unittest pole_lraspp_multimodal_fusion.object_head_pilot_v1.\
+splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1.tests.test_continuous_q -v
 
 # Phase 4 (executed once; create-only, and the shards are not tracked):
 python3 -m pole_lraspp_multimodal_fusion.object_head_pilot_v1.\
