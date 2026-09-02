@@ -99,7 +99,7 @@ synthetic tensors** (was 37 in Phase 1). Also run: `py_compile` on every module 
 | 3 payload accounting | `PayloadAccountingCheck` (3): q=0 tensor identity and 22,020,140-byte framing, framed-vs-raw distinction, framed-denominator ratios for all six q |
 | 4 locked configuration | `LockedConfigCheck` (3): config/constant agreement, on-disk perception-lock SHA-256, locked training semantics |
 | 5 runtime qualification | `GradientQualificationCheck` (8) and `FrozenStateCheck` (2): per-tensor tracking, isolated zero batch logged, never-nonzero fails, disconnected fails, incomplete window fails, non-finite loss/gradient, tensor-set drift, post-step parameter and optimizer-state finiteness, clip norm, frozen parameter+buffer immutability |
-| 6 deterministic init | `DeterministicInitCheck` (3): seed reproducibility, caller RNG untouched, 2,145 parameters |
+| 6 deterministic init | `DeterministicInitCheck` (3): seed reproducibility, caller RNG untouched, 2,144 parameters |
 | retained Phase-1 coverage | `QSemanticsCheck`, `TieBreakCheck`, `MaskingCheck`, `CodecRoundTripCheck`, `MalformedPayloadCheck`, `RankerShapeCheck`, `OptimizerOwnershipCheck`, `TeacherMapCheck`, `QAwareContractCheck`, `StraightThroughCheck`, `ContractBindingCheck` |
 
 Two test expectations were corrected during this phase, both because the tightened

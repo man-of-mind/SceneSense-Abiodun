@@ -418,14 +418,21 @@ class LockedConfigCheck(unittest.TestCase):
             binding["perception_forward_lock_sha256"], contract.PERCEPTION_LOCK_SHA256
         )
         self.assertEqual(binding["checkpoint_sha256"], contract.FROZEN_CHECKPOINT_SHA256)
-        self.assertFalse(binding["checkpoint_loaded_in_this_phase"])
+        # Phase 3 loads the frozen checkpoint, but only for the bounded qualification.
+        self.assertTrue(binding["checkpoint_loaded_in_this_phase"])
         self.assertEqual(binding["frozen_model_runtime_mode"], "eval")
+        self.assertFalse(config["training"]["executed_in_this_phase"])
+        self.assertFalse(config["phase3_qualification"]["teacher_cache_written"])
+        self.assertEqual(config["phase3_qualification"]["epochs_trained"], 0)
+        self.assertFalse(config["phase3_qualification"]["validation_or_test_accessed"])
         self.assertEqual(tuple(config["c2_contract"]["shape"]), contract.SPLIT_SHAPE)
         self.assertEqual(config["wire_format"]["header_bytes"], codec.HEADER_BYTES)
         self.assertEqual(
             config["wire_format"]["framed_q0_payload_bytes"],
             contract.FRAMED_Q0_PAYLOAD_BYTES,
         )
+        self.assertEqual(config["ranker"]["parameter_count"], contract.RANKER_PARAMETER_COUNT)
+        self.assertFalse(config["ranker"]["final_layer_bias"])
         self.assertEqual(config["ranker"]["mac_count_112x192"], 45760512)
 
     def test_locked_config_hash_matches_the_perception_lock_on_disk(self) -> None:
@@ -631,8 +638,8 @@ class MalformedPayloadCheck(unittest.TestCase):
 class RankerShapeCheck(unittest.TestCase):
     def test_parameter_and_mac_counts_match_the_contract(self) -> None:
         ranker = build_ranker()
-        self.assertEqual(ranker.parameter_count(), 2145)
-        self.assertEqual(contract.RANKER_PARAMETER_COUNT, 2145)
+        self.assertEqual(ranker.parameter_count(), 2144)
+        self.assertEqual(contract.RANKER_PARAMETER_COUNT, 2144)
         cells = contract.SPLIT_CELLS
         macs = sum(
             conv.weight.numel() * cells
@@ -653,6 +660,9 @@ class RankerShapeCheck(unittest.TestCase):
         self.assertEqual(ranker.depthwise.padding, (1, 1))
         self.assertEqual(ranker.score.out_channels, 1)
         self.assertEqual(ranker.score.kernel_size, (1, 1))
+        # A global scalar score offset cannot change cell ranking, so the final
+        # layer carries no unidentifiable bias.
+        self.assertIsNone(ranker.score.bias)
         kinds = {type(module) for module in ranker.modules()}
         self.assertNotIn(nn.BatchNorm2d, kinds)
         self.assertEqual(kinds - {SpatialRanker, nn.Conv2d, nn.ReLU}, set())
@@ -691,8 +701,8 @@ class DeterministicInitCheck(unittest.TestCase):
         self.assertTrue(torch.equal(torch.get_rng_state(), state_before))
         self.assertTrue(torch.equal(torch.randn(5), expected))
 
-    def test_parameter_count_is_still_2145(self) -> None:
-        self.assertEqual(build_ranker().parameter_count(), 2145)
+    def test_parameter_count_is_still_2144(self) -> None:
+        self.assertEqual(build_ranker().parameter_count(), 2144)
 
 
 # ===========================================================================
@@ -708,7 +718,9 @@ class OptimizerOwnershipCheck(unittest.TestCase):
         self.assertIsInstance(optimizer, torch.optim.AdamW)
         owned = {id(p) for group in optimizer.param_groups for p in group["params"]}
         self.assertEqual(owned, {id(p) for p in ranker.parameters()})
-        self.assertEqual(len(owned), 6)  # three convs, weight + bias each
+        # reduce and depthwise carry weight + bias; the final score conv has no bias.
+        self.assertEqual(len(owned), 5)
+        self.assertEqual(sum(p.numel() for p in ranker.parameters()), 2144)
         for group in optimizer.param_groups:
             self.assertEqual(group["lr"], contract.LEARNING_RATE)
             self.assertEqual(group["weight_decay"], contract.WEIGHT_DECAY)
@@ -1024,7 +1036,7 @@ class GradientQualificationCheck(unittest.TestCase):
         self.assertEqual(
             qualification.parameter_names,
             ("reduce.weight", "reduce.bias", "depthwise.weight", "depthwise.bias",
-             "score.weight", "score.bias"),
+             "score.weight"),
         )
         for _ in range(2):
             for parameter in ranker.parameters():
@@ -1054,14 +1066,14 @@ class GradientQualificationCheck(unittest.TestCase):
 
     def test_parameter_that_never_goes_nonzero_fails_at_window_end(self) -> None:
         ranker = self._ranker_with_grads(1.0)
-        ranker.score.bias.grad = torch.zeros_like(ranker.score.bias)
+        ranker.score.weight.grad = torch.zeros_like(ranker.score.weight)
         qualification = training.GradientQualification.for_module(ranker, window=1)
         qualification.observe(ranker, loss=torch.tensor(0.1))
-        self.assertEqual(qualification.never_nonzero(), ("score.bias",))
+        self.assertEqual(qualification.never_nonzero(), ("score.weight",))
         self.assertFalse(qualification.qualified())
         with self.assertRaises(guards.HybridQQualificationError) as caught:
             qualification.require_qualified()
-        self.assertIn("score.bias", str(caught.exception))
+        self.assertIn("score.weight", str(caught.exception))
 
     def test_disconnected_parameter_fails_at_window_end(self) -> None:
         ranker = self._ranker_with_grads(1.0)
@@ -1094,7 +1106,7 @@ class GradientQualificationCheck(unittest.TestCase):
         ranker = self._ranker_with_grads(1.0)
         qualification = training.GradientQualification.for_module(ranker, window=2)
         qualification.observe(ranker, loss=torch.tensor(0.1))
-        ranker.score.bias.requires_grad_(False)
+        ranker.score.weight.requires_grad_(False)
         with self.assertRaises(guards.HybridQQualificationError):
             qualification.observe(ranker, loss=torch.tensor(0.1))
 
@@ -1113,7 +1125,7 @@ class GradientQualificationCheck(unittest.TestCase):
             guards.require_finite_optimizer_state(optimizer)
 
         with torch.no_grad():
-            ranker.score.bias.fill_(float("nan"))
+            ranker.score.weight.fill_(float("nan"))
         with self.assertRaises(guards.HybridQNumericalError):
             guards.require_module_parameters_finite(ranker, "ranker")
 

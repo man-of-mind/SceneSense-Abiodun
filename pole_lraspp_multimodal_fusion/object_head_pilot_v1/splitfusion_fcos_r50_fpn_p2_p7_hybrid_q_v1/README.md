@@ -1,8 +1,13 @@
 # Hybrid-q v1 — spatial transport sparsification at the frozen C2 split
 
-Phase 2 status: **source locked, training not executed.** Nothing in this package loads the
-frozen checkpoint, reads real data, uses CUDA, builds a cache, trains, runs inference,
-evaluates validation/test data, or launches CARLA.
+Phase 3 status: **source corrected, frozen model integrated, one bounded train-only GPU
+qualification executed.** `gpu_qualification.py` loads the frozen epoch-26 checkpoint, reads
+train-split frames with augmentation disabled and uses CUDA. It does **not** build a teacher
+cache, train an epoch, read validation or test data, run evaluation, or launch CARLA.
+
+Result: `experiments/splitfusion_fcos_hybrid_q_v1/20260902_004213_phase3_gpu_qualification/`
+(`qualification_result.json`, `PHASE3_QUALIFICATION_SUMMARY.md`), terminal
+`HYBRID_Q_PHASE3_QUALIFIED`.
 
 The machine-readable contract is [locked_config.json](locked_config.json); `contract.load_locked_config()`
 reads it and fails closed on any drift from the module constants.
@@ -58,9 +63,15 @@ They are not part of the production API.
 | ReLU | |
 | depthwise 3x3 Conv (groups=8, padding=1) | 8 -> 8 |
 | ReLU | |
-| 1x1 Conv | 8 -> 1 |
+| 1x1 Conv, **no bias** | 8 -> 1 |
 
-- **2,145** trainable parameters, **45,760,512 MACs** (~45.76 M) at 112x192.
+- **2,144** trainable parameters in **five** named tensors (`reduce.weight`, `reduce.bias`,
+  `depthwise.weight`, `depthwise.bias`, `score.weight`), **45,760,512 MACs** (~45.76 M) at
+  112x192. The MAC count is bias-free and therefore unchanged.
+- **The final 1x1 conv has no bias.** A single global scalar added to every cell score is
+  unidentifiable: it cannot change the cell ranking, the exact-cardinality selection or the
+  hard mask, listwise softmax distillation is invariant to it, and a straight-through
+  gradient on it would not correspond to any change in the transported cell set.
 - No BatchNorm, no attention, no second backbone, no object-level ROI model.
 - Input detached inside `forward`: gradients reach ranker parameters only.
 - Runtime input is fused C2 and nothing else — no RGB, radar, GT, detections,
@@ -246,25 +257,52 @@ validated input tensor object; FP32 transport only.
 Because masking is applied by zeroing, hybrid-q reduces **transport**, not edge compute.
 Any latency claim must say so explicitly.
 
+## Phase 3 qualification (executed)
+
+`python3 -m ...splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1.gpu_qualification --execute
+HYBRID_Q_PHASE3_TRAIN_ONLY_GPU_QUALIFICATION --output <dir>` runs one bounded train-only
+qualification against the frozen epoch-26 checkpoint behind the p025 forward lock, with every
+perception parameter in eval mode and `requires_grad=False` and gradients admitted only through
+C2 into the ranker mask. It qualified at **physical batch 16** (first attempt, no CUDA OOM,
+peak allocated **23,828.7 MiB**) on four deterministic seed-20260829 fit-training batches, each
+frame carrying both vehicle and person GT:
+
+- **q=0 parity exact**: the ranker is never invoked, framed encode/decode is bit-identical, all
+  37 compared FCOS/semantic/dense-depth/geometry tensors and the FCOS anchors match the existing
+  noAE path bit-for-bit, the final p025 service outputs match, and no frozen parameter or buffer
+  changed.
+- **Teacher maps**: D, G, S and A all valid on every batch, every map finite, non-negative and
+  positive-mass, each L1-normalized independently, combined map finite and positive. No cache written.
+- **Four disposable updates** (one listwise distillation, then q-aware 0.30 / 0.50 / 0.70): all
+  2,144 trainable parameters belong to the ranker, all five named tensors received finite and
+  at-least-once-nonzero gradients, loss / clipped norm / parameters / optimizer state stayed
+  finite, the frozen stack stayed exactly unchanged, and q=0 was never a training update. The
+  disposable ranker state was discarded.
+- **Mask and transport**: masks nested over 0.30/0.50/0.70/0.90/0.98 from one common ranking,
+  keep counts exactly the registered table, retained C2 values bit-identical and dropped cells
+  exact zero at every q.
+- **Latency** is a single-frame diagnostic only (ranker ~0.12 ms median); it must not drive any
+  tuning or selection rewrite. zstd was not run.
+
+The provisional reference scales used inside that window are **disposable** and must not become
+the Phase-4 frozen medians.
+
 ## Phase boundaries
 
-Not done and not authorized by this commit: GPU qualification, teacher-cache generation,
-training, inference, validation or test evaluation, OAI/CARLA transport measurement,
-quantization, zstd and the AE families. The test set remains untouched and reserved for
-independent publication confirmation.
+Not done and not authorized by this commit: teacher-cache generation, training, validation or
+test evaluation, OAI/CARLA transport measurement, quantization, zstd and the AE families. The
+test set remains untouched and reserved for independent publication confirmation.
 
-## Commands intended for later qualification (not executed here)
+## Commands
 
-Only the first is in scope for Phase 2.
+Only the first is in scope for this commit beyond the Phase-3 qualification above.
 
 ```bash
-# Phase 2 (run): CPU synthetic tests
+# Run: CPU synthetic tests
 python3 -m unittest pole_lraspp_multimodal_fusion.object_head_pilot_v1.\
 splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1.tests.test_synthetic -v
 
-# Phase 3+ (NOT run here):
-#   GPU forward-parity qualification at q=0 against the frozen p025 checkpoint
-#   selection latency measurement, before any vectorization decision
+# Phase 4+ (NOT run here):
 #   teacher-cache generation (maps, validity, gradient_mass, task_losses; no C2)
 #   fit-train reference-median construction
 #   4 distillation epochs, then 8 q-aware epochs over the 0.30/0.50/0.70 cycle

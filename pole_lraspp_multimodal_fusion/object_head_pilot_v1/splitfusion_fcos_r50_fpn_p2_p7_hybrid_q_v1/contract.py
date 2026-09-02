@@ -43,9 +43,10 @@ PARITY_Q = 0.00
 Q_AWARE_TRAINING_CYCLE = (0.30, 0.50, 0.70)
 EVALUATION_STRESS_Q_VALUES = (0.90, 0.98)
 
-# Ranker shape and initialization.
+# Ranker shape and initialization. The final 1x1 conv has no bias: a global scalar
+# score offset cannot change cell ranking, so it is unidentifiable under the mask.
 RANKER_HIDDEN_CHANNELS = 8
-RANKER_PARAMETER_COUNT = 2145
+RANKER_PARAMETER_COUNT = 2144
 RANKER_INIT_SEED = 20260829
 
 # Locked teacher supervision: exactly the registered frozen-model loss groups.

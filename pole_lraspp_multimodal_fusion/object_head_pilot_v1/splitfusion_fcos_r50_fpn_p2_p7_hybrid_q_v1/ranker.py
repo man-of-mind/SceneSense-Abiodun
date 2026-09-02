@@ -10,8 +10,14 @@ class SpatialRanker(nn.Module):
     """Lightweight per-cell importance scorer over the frozen fused C2 tensor.
 
     Exactly: 1x1 Conv 256->8, ReLU, depthwise 3x3 Conv 8->8 (pad 1), ReLU,
-    1x1 Conv 8->1. No normalization, no attention, no second backbone and no
-    object-level ROI model.
+    1x1 Conv 8->1 with **no bias**. No normalization, no attention, no second
+    backbone and no object-level ROI model.
+
+    The final layer carries no bias because a single global scalar added to
+    every cell score is unidentifiable: it cannot change the cell ranking, the
+    exact-cardinality selection or the hard mask, and listwise softmax
+    distillation is invariant to it. A straight-through gradient on such a bias
+    would therefore not correspond to any change in the transported cell set.
 
     The module consumes detached C2 only. It has no runtime access to RGB,
     radar, ground truth, detections, segmentation, geometry or any
@@ -36,7 +42,7 @@ class SpatialRanker(nn.Module):
             groups=self.hidden_channels,
         )
         self.act2 = nn.ReLU(inplace=False)
-        self.score = nn.Conv2d(self.hidden_channels, 1, kernel_size=1)
+        self.score = nn.Conv2d(self.hidden_channels, 1, kernel_size=1, bias=False)
 
     def forward(self, c2: torch.Tensor) -> torch.Tensor:
         """Score cells of the frozen C2 tensor.
