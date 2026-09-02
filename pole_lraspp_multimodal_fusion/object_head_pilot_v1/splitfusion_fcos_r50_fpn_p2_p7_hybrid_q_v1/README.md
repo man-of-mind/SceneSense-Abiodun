@@ -417,8 +417,32 @@ reproduces all fifteen published values exactly.
 Segmentation, not detection, is the binding constraint: vehicle F1 stays within 0.002 of
 baseline at half the payload, while foreground mIoU falls monotonically. Under the cascade
 registered before the measurement, q=0.30/0.50/0.70 are
-localization-preserving/segmentation-reduced and q=0.90/0.98 are unusable. A denser ladder below
-q=0.30 is untested and no rung there is assumed to exist.
+localization-preserving/segmentation-reduced and q=0.90/0.98 are unusable.
+
+## Low-q validation sweep (executed)
+
+`experiments/splitfusion_fcos_hybrid_q_v1/20260902_195312_low_q_validation_curve`, terminal
+`HYBRID_Q_LOW_Q_VALIDATION_CURVE_COMPLETE`. The denser ladder below q=0.30 that Phase 6 left
+untested, measured on the same fixed validation split, through `continuous_q.transport`, at the
+same stable epoch-4 ranker. It reuses the q=0 and q=0.30 rows verbatim rather than re-scoring them.
+
+| q | cells | framed bytes | ratio | veh F1 | person AVO F1 | fg mIoU | preservation gates |
+|---|---|---|---|---|---|---|---|
+| 0.00 | 21,504 | 22,020,140 | 1.0000 | 0.8989 | 0.7087 | 0.7135 | 12/12 (dense identity) |
+| 0.05 | 20,429 | 20,922,028 | 0.9501 | 0.8987 | 0.7015 | 0.7114 | 11/12 |
+| 0.10 | 19,354 | 19,821,228 | 0.9001 | 0.8984 | 0.6968 | 0.7065 | 11/12 |
+| 0.15 | 18,278 | 18,719,404 | 0.8501 | 0.8989 | 0.6952 | 0.7050 | 11/12 |
+| 0.20 | 17,203 | 17,618,604 | 0.8001 | 0.8996 | 0.6928 | 0.6999 | 7/12 |
+| 0.25 | 16,128 | 16,517,804 | 0.7501 | 0.8993 | 0.6884 | 0.6953 | 7/12 |
+| 0.30 | 15,053 | 15,417,004 | 0.7001 | 0.8991 | 0.6823 | 0.6881 | 7/12 |
+
+**Result: no q below 0.30 passes all twelve preservation gates** (`largest_q_passing_all_gates`
+is null; q=0 is excluded from the verdict because it is the dense identity the gates are measured
+against). q=0.05/0.10/0.15 miss on `person_avo_precision` alone; from q=0.20 the segmentation and
+IoU gates go with it. The gate set is `contract.HOLDOUT_PRESERVATION_GATES`, registered before the
+sweep and neither invented nor retuned for it, and there is no independent test-set confirmation.
+So a cheap near-lossless rung below q=0.30 was looked for and **not** found — it is now measured
+absent, not merely untested.
 
 ## Continuous-q execution interface
 
@@ -443,16 +467,80 @@ registered q (same keep count, indices, mask, masked tensor, serialized payload 
 tensor), and executes q=0.2345 end to end: it stays 0.2345, keeps exactly 16,461 cells, is
 neither q=0 nor q=0.30, and its retained cells are a strict superset of the q=0.30 mask.
 
-**Executability is not measured accuracy.** Phase 6 measured six anchors; accuracy at any other q
-is unmeasured and is neither interpolated nor validated here. `contract.snap_continuous_q`
-remains available as a caller-side conservative policy for accuracy-critical serving.
+**Arbitrary-q wire execution is mechanically qualified to the 1e-4 header resolution.** Every q
+the interface accepts serialises, round-trips and decodes exactly, with the requested q equal to
+the wire q, the exact keep cardinality, retained values bit-exact and dropped cells exactly zero;
+Phase 7 re-confirmed this on 1,408 live payloads at eleven q values.
+
+**Mechanical qualification is not measured accuracy.** Perception accuracy is validated only at
+the measured q anchors — the six Phase-6 anchors plus the five low-q sweep points. Accuracy at any
+other q is unmeasured and is neither interpolated nor validated here, and **no claim is made that
+arbitrary continuous q is universally near-lossless**; the low-q sweep found no all-gate-passing
+rung below q=0.30 at all. `contract.snap_continuous_q` remains available as a caller-side
+conservative policy for accuracy-critical serving.
+
+## Phase 7 lossless zstd transport measurement (executed)
+
+`experiments/splitfusion_fcos_hybrid_q_v1/20260902_212403_phase7_zstd_measurement`
+(`phase7_zstd_measurement.csv`, `.json`, `PHASE7_ZSTD_MEASUREMENT_REPORT.md`), terminal
+`HYBRID_Q_PHASE7_ZSTD_MEASUREMENT_COMPLETE`. Transport size and **host** encode/decode cost only:
+it trains nothing, evaluates no perception metric, touches no validation or test frame and changes
+no model output. `zstd_transport.py` wraps `SparsePayload.data`; the zero-scattered dense tensor is
+never compressed. `ranker.py`, `selection.py`, `codec.py`, `guards.py` and `locked_config.json` are
+unmodified, which the run re-verifies by hash through `source_delta`.
+
+Frozen compressor: python-zstandard 0.25.0 over zstd 1.5.7 (`cext`), level 1, `threads=0`, no
+dictionary, `write_checksum=True`, `write_content_size=True`, `write_dict_id=False`, one
+independent frame per camera frame, one reused compressor/decompressor context, no level search.
+Data: a deterministic balanced 128-frame sample, 16 evenly spaced frames from each of the eight
+registered fit episodes, no augmentation, zero holdout/validation/test frames.
+
+| q | framed sparse B | zstd B median | zstd/sparse | vs framed q=0 | reduction | vs zstd q=0 |
+|---|---|---|---|---|---|---|
+| 0.00 | 22,020,140 | 15,993,204 | 0.7261 | 0.7261 | 27.39% | 1.0000 |
+| 0.05 | 20,922,028 | 15,164,810 | 0.7245 | 0.6884 | 31.16% | 0.9480 |
+| 0.10 | 19,821,228 | 14,328,548 | 0.7224 | 0.6503 | 34.97% | 0.8955 |
+| 0.15 | 18,719,404 | 13,495,203 | 0.7205 | 0.6125 | 38.75% | 0.8435 |
+| 0.20 | 17,618,604 | 12,663,262 | 0.7185 | 0.5749 | 42.51% | 0.7917 |
+| 0.25 | 16,517,804 | 11,838,578 | 0.7165 | 0.5375 | 46.25% | 0.7402 |
+| 0.30 | 15,417,004 | 11,021,751 | 0.7145 | 0.5003 | 49.97% | 0.6889 |
+| 0.50 | 11,012,780 | 7,763,193 | 0.7059 | 0.3530 | 64.70% | 0.4862 |
+| 0.70 | 6,608,556 | 4,592,850 | 0.6953 | 0.2087 | 79.13% | 0.2874 |
+| 0.90 | 2,204,332 | 1,493,420 | 0.6771 | 0.0678 | 93.22% | 0.0933 |
+| 0.98 | 443,052 | 290,842 | 0.6565 | 0.0132 | 98.68% | 0.0182 |
+
+zstd buys a further **27-34% off the sparse payload at every q, losslessly**, so it composes with
+sparsification instead of competing with it: q=0 alone drops 22.02 MB to 15.99 MB with no accuracy
+cost whatsoever, and q=0.30 reaches an even 50.0% total reduction against the framed dense payload.
+The ratio also improves monotonically as q rises, 0.726 down to 0.657, so the retained high-ranked
+cells compress slightly *better* than the full tensor. This phase records that trend but does not
+establish its mechanism, and nothing here depends on the explanation. All latency and throughput
+columns are in the CSV.
+
+**Round-trip integrity: 1,408/1,408** payloads (128 frames x 11 q) decompressed byte-for-byte
+identical to `SparsePayload.data`, with requested q equal to wire q at 1e-4, header `q_e4` equal to
+round(q x 10,000), exact keep count and framed length, retained values bit-identical, dropped
+locations exactly zero, masks nested on all 128 frames, and the q=0 ranker bypass taken every time.
+Timing and verification run as separate passes, so verification allocations never enter a
+measurement. Frozen perception and ranker state are unchanged at the end.
+
+Host cost on the measurement workstation (Intel Ultra 9 285K, RTX 5090, CPU threads pinned to 1):
+zstd compression runs 534-612 MB/s and decompression 1,154-1,252 MB/s over the payload, so at q=0
+compression costs 36.0 ms and decompression 17.6 ms, falling to 0.83 ms and 0.38 ms at q=0.98. These
+are **current-host numbers, not Raspberry Pi UE or OAI transport latencies** — byte sizes are
+host-independent, latencies are not. Sparse encode/decode are the existing codec's cost, reported
+only for proportion. Threads are pinned because at torch's 24-thread default the same decode call
+varied 5-68 ms while its components summed to 3-7 ms, which measured thread-pool scheduling on a
+hybrid P/E-core CPU rather than codec cost.
 
 ## Phase boundaries
 
-Not done and not authorized: test-set evaluation, OAI/CARLA transport measurement,
-quantization, zstd, the AE families, accuracy measurement at any unregistered q, and any retune
-of the locked training configuration. The test set remains untouched and reserved for
-independent publication confirmation.
+Not done and not authorized: test-set evaluation, OAI/CARLA transport measurement, quantization,
+the AE families, accuracy measurement at any unregistered q, and any retune of the locked training
+configuration. The test set remains untouched and reserved for independent publication
+confirmation. zstd is now measured for **size and host cost only** (Phase 7); it has no measured
+network or edge-deployment latency, and lossless compression by construction leaves the accuracy
+curve untouched.
 
 ## Commands
 
@@ -484,7 +572,17 @@ splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1.phase5_holdout \
   --execute HYBRID_Q_PHASE5_HOLDOUT_EVALUATION \
   --training experiments/splitfusion_fcos_hybrid_q_v1/<timestamp>_phase5_ranker_training
 
-# Phase 6+ (NOT run here):
-#   frozen-validation sweep over q in {0.00, 0.30, 0.50, 0.70, 0.90, 0.98}
-#   measured payload / UE / network / edge / end-to-end latency over OAI
+# Phase 7 (executed once; create-only, aggregates only and no payload blobs):
+python3 -m pole_lraspp_multimodal_fusion.object_head_pilot_v1.\
+splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1.phase7_zstd_measurement \
+  --execute HYBRID_Q_PHASE7_ZSTD_MEASUREMENT \
+  --output experiments/splitfusion_fcos_hybrid_q_v1/<timestamp>_phase7_zstd_measurement
+
+# Still NOT run here:
+#   measured network / edge / end-to-end latency over OAI
+#   any Raspberry Pi UE timing
 ```
+
+The GPU phase runners need a torch build with kernels for this host's GPU (the Phase 4-7 runs used
+torch 2.10.0.dev+cu128 on an RTX 5090, sm_120). A cu121 torch imports fine but dies in the first
+frozen-backbone conv with `no kernel image is available for execution on the device`.

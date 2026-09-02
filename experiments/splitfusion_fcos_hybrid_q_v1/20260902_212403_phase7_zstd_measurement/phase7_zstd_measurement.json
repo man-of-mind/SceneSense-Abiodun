@@ -1,0 +1,2685 @@
+{
+  "binding": {
+    "frozen_checkpoint": {
+      "epoch": 26,
+      "path": "experiments/route_b_v3_1_splitfusion_fcos_r50_fpn_p2_p7_v1_numerical_recovery_v1/20260830_recovered_epoch10_gate_v1/checkpoints/epoch_026.pt",
+      "sha256": "da14d21edbd374c1c3abce02ca4674b9f4097becfba9759aba945cea160a297f"
+    },
+    "hybrid_q_locked_config": {
+      "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1/locked_config.json",
+      "schema": "splitfusion_fcos_hybrid_q_transport_v1",
+      "sha256": "b2b0d8427bd867f46058ebba49ac6a183eb89413b4d69326fef93b150ebfcde6"
+    },
+    "hybrid_q_source_sha256": {
+      "IMPLEMENTATION_REVIEW_PACKET_PHASE1.md": "7b4ff3748b10c7142104177f7bd982224d369600d5d53c7aac9ce564f2a62b48",
+      "README.md": "d6f5a10be8847f6deaad4f27158972b4e26e3787bb6f2395c35926bfe4fc5ada",
+      "__init__.py": "9319a2b3ce9d492e1577908148ef31187ed648ef81944365dd907dee717b206c",
+      "codec.py": "7b3833398a84fea31f65b86ec294c6675727390035b5761d372fd5a3cbba7b79",
+      "continuous_q.py": "8ea72faed324c29b7106bd5f6277699bd7e7ba16a66073905f9ff28c69bab23c",
+      "contract.py": "748eb39c0913c9d4c449784d23b7ec752307ed47eafb1b0ef0ae25df4b4f3d4c",
+      "gpu_qualification.py": "0032b9ac7edb89ec1b01616ea563bec73d04c20b164d6bbf8297f36d30eea7e6",
+      "guards.py": "77d8d8bfd168e74a7f0b6a7e3c8e7abc4c3549a86cda392feb394d7580a33031",
+      "locked_config.json": "b2b0d8427bd867f46058ebba49ac6a183eb89413b4d69326fef93b150ebfcde6",
+      "low_q_validation.py": "3bcecbb838e23eb5e732e0edb8d25125eb79742ce997ab091c40f7be6ef4cfe4",
+      "phase5_common.py": "0d30eeba0effe57df79fff25946d42ae569b102ca4e9f8d9db24fe286480636d",
+      "phase5_holdout.py": "b6dfef020eeef2c3050e23abf104412d29f954d07696b7fcfe02fb6b89a07312",
+      "phase5_training.py": "fbc44f2e4969d9f970b6968f677a5ac5e0cf171cfc25d342346c24769f571336",
+      "phase6_validation.py": "e3cb904e6cbf8490138284dbec4263b404c17c52e9bc9965963e79f9d372f07c",
+      "phase7_zstd_measurement.py": "d83811b109ef721d362dc573f71b7e9a15ce9ee8beaad044dfc2ca9d8a4c6a4c",
+      "ranker.py": "462536991f195651a1ee641f8e83444882ec370a8dffab72f13f0d770422b353",
+      "selection.py": "ccc2b12919b078eac7af6131418989567d618d42f7b908b2db74df42e0342a71",
+      "teacher_cache.py": "14f866d483c245f14078c6234a357427bccc4bfa1dd533b138677f1e17f579be",
+      "tests/__init__.py": "1c1c24c4edd4acf7bd8af46b63f47089fa1d86aa6481b9e43923be8810cf1692",
+      "tests/test_continuous_q.py": "dc4531a2d01fd4de37f37f052f1482cc12003c09adb51398bb13c307fcefd243",
+      "tests/test_synthetic.py": "de2388e391a069a38a712b20bdc1b19215c3d3c5cf51e45a2062460f97fd346b",
+      "training.py": "a10775a3a9f3e051e3456c6c85cdc76fff47f417e9bd24ddecb6633dcda1161a",
+      "zstd_transport.py": "57d1846b3fdc4084266e5a8adcc7abf99556ed2b187befec729003fcdb77edec"
+    },
+    "perception_forward_lock": {
+      "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_person_p025_calibration_v1/PERCEPTION_FORWARD_LOCK_P025_V1.json",
+      "sha256": "86d6f13ae9168b33b697df5b785c5f7c320afc52cfdcded5b632d94a6d943fe1"
+    },
+    "phase4_recorded_source_sha256": {
+      "IMPLEMENTATION_REVIEW_PACKET_PHASE1.md": "7b4ff3748b10c7142104177f7bd982224d369600d5d53c7aac9ce564f2a62b48",
+      "README.md": "cd0648771bce7efad5785b95c11b5e5be04260d208d8f146d3e6090251c6748e",
+      "__init__.py": "9319a2b3ce9d492e1577908148ef31187ed648ef81944365dd907dee717b206c",
+      "codec.py": "7b3833398a84fea31f65b86ec294c6675727390035b5761d372fd5a3cbba7b79",
+      "contract.py": "d3d0fd9d3e904bec7b13d32885b738b62c5bed51d9a7207ffe1ec1b7f2e2041d",
+      "gpu_qualification.py": "0032b9ac7edb89ec1b01616ea563bec73d04c20b164d6bbf8297f36d30eea7e6",
+      "guards.py": "77d8d8bfd168e74a7f0b6a7e3c8e7abc4c3549a86cda392feb394d7580a33031",
+      "locked_config.json": "b2b0d8427bd867f46058ebba49ac6a183eb89413b4d69326fef93b150ebfcde6",
+      "ranker.py": "462536991f195651a1ee641f8e83444882ec370a8dffab72f13f0d770422b353",
+      "selection.py": "ccc2b12919b078eac7af6131418989567d618d42f7b908b2db74df42e0342a71",
+      "teacher_cache.py": "14f866d483c245f14078c6234a357427bccc4bfa1dd533b138677f1e17f579be",
+      "tests/__init__.py": "1c1c24c4edd4acf7bd8af46b63f47089fa1d86aa6481b9e43923be8810cf1692",
+      "tests/test_synthetic.py": "de2388e391a069a38a712b20bdc1b19215c3d3c5cf51e45a2062460f97fd346b",
+      "training.py": "a10775a3a9f3e051e3456c6c85cdc76fff47f417e9bd24ddecb6633dcda1161a"
+    },
+    "stable_ranker": {
+      "epoch": 4,
+      "excluded_epochs": [
+        8,
+        12
+      ],
+      "path": "experiments/splitfusion_fcos_hybrid_q_v1/20260901_185725_phase5_ranker_training/checkpoints/ranker_epoch_04.pt",
+      "sha256": "07781c56a4c0f306f16d332f64627ce6b9458e154f40ab9fef89f89909b79cb5",
+      "stage": "distillation_only"
+    },
+    "teacher_cache_manifest": {
+      "path": "experiments/splitfusion_fcos_hybrid_q_v1/20260901_180439_phase4_teacher_cache/teacher_cache_manifest.json",
+      "reason": "Phase 7 reads no teacher map; bound only for the source record",
+      "sha256": "e1ef600eb83c1924a52c37dbdbf0b435990eaaae4f1db1b0e07d9b1acd7fc273",
+      "shards_rehashed": 0
+    },
+    "train_manifest": {
+      "path": "experiments/route_b_v3_1_expanded_train_camera_plane_v1/20260828_094151/dataset/manifest.csv",
+      "sha256": "5d65e6eb14aadea11ca6bab6e82f0c94c31a50746611d167d282d8988a4504c2"
+    }
+  },
+  "dense_tensor_compressed": false,
+  "generated_utc": "2026-09-02T21:28:08.305106+00:00",
+  "host": {
+    "c2_residency": "CUDA device tensor at the transport boundary",
+    "cpu_logical_cores": 24,
+    "cpu_model": "Intel(R) Core(TM) Ultra 9 285K",
+    "cuda": "12.8",
+    "gpu": "NVIDIA GeForce RTX 5090",
+    "interpreter": "/usr/bin/python3",
+    "node": "W10275",
+    "numpy": "1.26.4",
+    "platform": "Linux-6.8.0-124-generic-x86_64-with-glibc2.35",
+    "processor": "x86_64",
+    "python": "3.10.12",
+    "scope": "measurements on the current host only; not Raspberry Pi UE latency and not OAI transport latency",
+    "torch": "2.10.0.dev20251114+cu128",
+    "torch_cpu_threads": 1,
+    "torch_default_cpu_threads": 24
+  },
+  "integrity": {
+    "dropped_locations_exact_zero": true,
+    "exact_keep_count_and_framed_length": true,
+    "exact_round_trips": 1408,
+    "frames_with_nested_masks": 128,
+    "frozen_perception_state_unchanged": true,
+    "payloads_retained_after_aggregation": 0,
+    "q0_ranker_bypass_path": true,
+    "requested_q_equals_wire_q_at_1e4": true,
+    "required_round_trips": 1408,
+    "retained_values_bit_identical": true,
+    "stable_ranker_state_unchanged": true,
+    "verified_round_trips_second_pass": 1408
+  },
+  "measurement_scope": {
+    "accuracy_claim": "none; zstd is lossless so retained values are bit-exact and the Phase-6 measured accuracy curve is unchanged by construction",
+    "does_not_measure": [
+      "perception accuracy",
+      "training",
+      "validation or test data",
+      "Raspberry Pi UE latency",
+      "OAI transport latency"
+    ],
+    "lossless": true,
+    "measures": [
+      "transport size",
+      "host encode/decode cost"
+    ],
+    "model_outputs_changed": false
+  },
+  "per_q": [
+    {
+      "compressed_ratio_vs_compressed_q0": 1.0,
+      "compressed_zstd_bytes_max": 16281458,
+      "compressed_zstd_bytes_mean": 15989550.8359375,
+      "compressed_zstd_bytes_median": 15993204.0,
+      "compressed_zstd_bytes_min": 15781969,
+      "compressed_zstd_bytes_p5": 15821680.3,
+      "compressed_zstd_bytes_p95": 16160782.55,
+      "compression_MBps_aggregate": 609.5561605339109,
+      "compression_MBps_median": 611.698978474454,
+      "compression_MBps_p5": 591.13082623212,
+      "compression_latency": {
+        "max_ms": 38.502153,
+        "mean_ms": 36.124874828125,
+        "median_ms": 35.9983275,
+        "min_ms": 35.157812,
+        "p5_ms": 35.436015250000004,
+        "p95_ms": 37.25087425
+      },
+      "decompression_MBps_aggregate": 1230.0760164828018,
+      "decompression_MBps_median": 1252.3234622606828,
+      "decompression_MBps_p5": 1014.0668062550197,
+      "decompression_latency": {
+        "max_ms": 22.691448,
+        "mean_ms": 17.9014465,
+        "median_ms": 17.5834295,
+        "min_ms": 16.849929,
+        "p5_ms": 16.986718,
+        "p95_ms": 21.7147152
+      },
+      "dropped_cells": 0,
+      "edge_reconstruction_latency": {
+        "max_ms": 73.624406,
+        "mean_ms": 56.0015555625,
+        "median_ms": 53.8567895,
+        "min_ms": 51.916002,
+        "p5_ms": 52.9897451,
+        "p95_ms": 69.5348876
+      },
+      "exact_round_trips": 128,
+      "frames": 128,
+      "is_agent_anchor": true,
+      "is_bypass": true,
+      "is_registered_q": true,
+      "mask_apply_latency": {
+        "max_ms": 0.0,
+        "mean_ms": 0.0,
+        "median_ms": 0.0,
+        "min_ms": 0.0,
+        "p5_ms": 0.0,
+        "p95_ms": 0.0
+      },
+      "q": 0.0,
+      "q_e4": 0,
+      "ranker_and_ordering_latency": {
+        "max_ms": 0.0,
+        "mean_ms": 0.0,
+        "median_ms": 0.0,
+        "min_ms": 0.0,
+        "p5_ms": 0.0,
+        "p95_ms": 0.0
+      },
+      "retained_cells": 21504,
+      "selection_latency": {
+        "max_ms": 0.0,
+        "mean_ms": 0.0,
+        "median_ms": 0.0,
+        "min_ms": 0.0,
+        "p5_ms": 0.0,
+        "p95_ms": 0.0
+      },
+      "sparse_decode_latency": {
+        "max_ms": 52.360936,
+        "mean_ms": 38.1001090625,
+        "median_ms": 36.4177575,
+        "min_ms": 34.870186,
+        "p5_ms": 35.74323185,
+        "p95_ms": 47.953818
+      },
+      "sparse_encode_latency": {
+        "max_ms": 8.583608,
+        "mean_ms": 3.4926248359375,
+        "median_ms": 3.3580465,
+        "min_ms": 3.283497,
+        "p5_ms": 3.30632075,
+        "p95_ms": 3.9945535
+      },
+      "sparse_ratio_vs_framed_q0": 1.0,
+      "total_compressed_bytes": 2046662507,
+      "total_uncompressed_bytes": 2818577920,
+      "ue_preparation_latency": {
+        "max_ms": 45.479669,
+        "mean_ms": 39.6174996640625,
+        "median_ms": 39.404363000000004,
+        "min_ms": 38.505748,
+        "p5_ms": 38.83505065,
+        "p95_ms": 41.025302499999995
+      },
+      "uncompressed_framed_bytes": 22020140,
+      "wire_ratio_vs_framed_q0": 0.7261330234929251,
+      "wire_reduction_vs_framed_q0": 0.2738669765070749,
+      "zstd_ratio": 0.7261330234929251
+    },
+    {
+      "compressed_ratio_vs_compressed_q0": 0.9480048089824122,
+      "compressed_zstd_bytes_max": 15439417,
+      "compressed_zstd_bytes_mean": 15158171.0859375,
+      "compressed_zstd_bytes_median": 15164810.0,
+      "compressed_zstd_bytes_min": 14956015,
+      "compressed_zstd_bytes_p5": 14994786.3,
+      "compressed_zstd_bytes_p95": 15324014.5,
+      "compression_MBps_aggregate": 609.186738764365,
+      "compression_MBps_median": 610.1378252375441,
+      "compression_MBps_p5": 594.5199343591403,
+      "compression_latency": {
+        "max_ms": 37.231258,
+        "mean_ms": 34.3441947578125,
+        "median_ms": 34.290659500000004,
+        "min_ms": 33.542422,
+        "p5_ms": 33.799794999999996,
+        "p95_ms": 35.19169615
+      },
+      "decompression_MBps_aggregate": 1245.4034816555775,
+      "decompression_MBps_median": 1250.5520247532932,
+      "decompression_MBps_p5": 1210.6311838581246,
+      "decompression_latency": {
+        "max_ms": 21.486418,
+        "mean_ms": 16.799397390625,
+        "median_ms": 16.730234,
+        "min_ms": 16.054378,
+        "p5_ms": 16.213426,
+        "p95_ms": 17.2819173
+      },
+      "dropped_cells": 1075,
+      "edge_reconstruction_latency": {
+        "max_ms": 80.291937,
+        "mean_ms": 57.528267773437506,
+        "median_ms": 55.5288365,
+        "min_ms": 53.709525,
+        "p5_ms": 54.3825667,
+        "p95_ms": 68.98610614999997
+      },
+      "exact_round_trips": 128,
+      "frames": 128,
+      "is_agent_anchor": false,
+      "is_bypass": false,
+      "is_registered_q": false,
+      "mask_apply_latency": {
+        "max_ms": 0.530311,
+        "mean_ms": 0.27303192187499997,
+        "median_ms": 0.2676405,
+        "min_ms": 0.25735,
+        "p5_ms": 0.2609792,
+        "p95_ms": 0.28750525
+      },
+      "q": 0.05,
+      "q_e4": 500,
+      "ranker_and_ordering_latency": {
+        "max_ms": 0.561939,
+        "mean_ms": 0.2884979296875,
+        "median_ms": 0.272907,
+        "min_ms": 0.265041,
+        "p5_ms": 0.2670759,
+        "p95_ms": 0.39816639999999953
+      },
+      "retained_cells": 20429,
+      "selection_latency": {
+        "max_ms": 1.344704,
+        "mean_ms": 0.6312110468750001,
+        "median_ms": 0.613361,
+        "min_ms": 0.59961,
+        "p5_ms": 0.6017763500000001,
+        "p95_ms": 0.6422949
+      },
+      "sparse_decode_latency": {
+        "max_ms": 61.796393,
+        "mean_ms": 40.7288703828125,
+        "median_ms": 38.902627499999994,
+        "min_ms": 37.443826,
+        "p5_ms": 37.80626115,
+        "p95_ms": 50.61275935
+      },
+      "sparse_encode_latency": {
+        "max_ms": 9.715405,
+        "mean_ms": 3.7201682031250005,
+        "median_ms": 3.581883,
+        "min_ms": 3.507831,
+        "p5_ms": 3.52771165,
+        "p95_ms": 4.252278149999999
+      },
+      "sparse_ratio_vs_framed_q0": 0.9501314705537749,
+      "total_compressed_bytes": 1940245899,
+      "total_uncompressed_bytes": 2678019584,
+      "ue_preparation_latency": {
+        "max_ms": 44.945469,
+        "mean_ms": 39.257103859375,
+        "median_ms": 39.069099,
+        "min_ms": 38.203383,
+        "p5_ms": 38.55905645,
+        "p95_ms": 40.5745058
+      },
+      "uncompressed_framed_bytes": 20922028,
+      "wire_ratio_vs_framed_q0": 0.688377598232232,
+      "wire_reduction_vs_framed_q0": 0.311622401767768,
+      "zstd_ratio": 0.7245077334729454
+    },
+    {
+      "compressed_ratio_vs_compressed_q0": 0.8955199368392983,
+      "compressed_zstd_bytes_max": 14575170,
+      "compressed_zstd_bytes_mean": 14318961.5546875,
+      "compressed_zstd_bytes_median": 14328548.5,
+      "compressed_zstd_bytes_min": 14133939,
+      "compressed_zstd_bytes_p5": 14168669.85,
+      "compressed_zstd_bytes_p95": 14468124.049999999,
+      "compression_MBps_aggregate": 607.7515215743553,
+      "compression_MBps_median": 609.9303776918774,
+      "compression_MBps_p5": 588.9848002061955,
+      "compression_latency": {
+        "max_ms": 34.732156,
+        "mean_ms": 32.614032703125005,
+        "median_ms": 32.497525499999995,
+        "min_ms": 31.670424,
+        "p5_ms": 32.01042225,
+        "p95_ms": 33.653209
+      },
+      "decompression_MBps_aggregate": 1250.5531354589803,
+      "decompression_MBps_median": 1247.5884658312284,
+      "decompression_MBps_p5": 1216.870543110859,
+      "decompression_latency": {
+        "max_ms": 16.454054,
+        "mean_ms": 15.849968656249999,
+        "median_ms": 15.887643,
+        "min_ms": 15.362451,
+        "p5_ms": 15.420542650000002,
+        "p95_ms": 16.2886933
+      },
+      "dropped_cells": 2150,
+      "edge_reconstruction_latency": {
+        "max_ms": 69.945791,
+        "mean_ms": 54.42901275,
+        "median_ms": 54.120377500000004,
+        "min_ms": 52.636091,
+        "p5_ms": 53.0820186,
+        "p95_ms": 56.47250735
+      },
+      "exact_round_trips": 128,
+      "frames": 128,
+      "is_agent_anchor": false,
+      "is_bypass": false,
+      "is_registered_q": false,
+      "mask_apply_latency": {
+        "max_ms": 0.575836,
+        "mean_ms": 0.28331196875,
+        "median_ms": 0.2689185,
+        "min_ms": 0.257768,
+        "p5_ms": 0.26123255,
+        "p95_ms": 0.3393880499999999
+      },
+      "q": 0.1,
+      "q_e4": 1000,
+      "ranker_and_ordering_latency": {
+        "max_ms": 0.561939,
+        "mean_ms": 0.2884979296875,
+        "median_ms": 0.272907,
+        "min_ms": 0.265041,
+        "p5_ms": 0.2670759,
+        "p95_ms": 0.39816639999999953
+      },
+      "retained_cells": 19354,
+      "selection_latency": {
+        "max_ms": 1.177196,
+        "mean_ms": 0.6328886953125001,
+        "median_ms": 0.6072285,
+        "min_ms": 0.574102,
+        "p5_ms": 0.59483835,
+        "p95_ms": 0.8015126499999989
+      },
+      "sparse_decode_latency": {
+        "max_ms": 54.072159,
+        "mean_ms": 38.57904409375,
+        "median_ms": 38.256358000000006,
+        "min_ms": 37.122636,
+        "p5_ms": 37.25728045,
+        "p95_ms": 40.71718635
+      },
+      "sparse_encode_latency": {
+        "max_ms": 4.62616,
+        "mean_ms": 3.5522999375,
+        "median_ms": 3.454959,
+        "min_ms": 3.354893,
+        "p5_ms": 3.37178405,
+        "p95_ms": 4.1244299
+      },
+      "sparse_ratio_vs_framed_q0": 0.900140871038967,
+      "total_compressed_bytes": 1832827079,
+      "total_uncompressed_bytes": 2537117184,
+      "ue_preparation_latency": {
+        "max_ms": 40.131069,
+        "mean_ms": 37.371031234374996,
+        "median_ms": 37.1760515,
+        "min_ms": 36.285885,
+        "p5_ms": 36.58654885,
+        "p95_ms": 38.80940045
+      },
+      "uncompressed_framed_bytes": 19821228,
+      "wire_ratio_vs_framed_q0": 0.6502665993353131,
+      "wire_reduction_vs_framed_q0": 0.34973340066468694,
+      "zstd_ratio": 0.7224053703780361
+    },
+    {
+      "compressed_ratio_vs_compressed_q0": 0.843460567678245,
+      "compressed_zstd_bytes_max": 13720576,
+      "compressed_zstd_bytes_mean": 13486555.625,
+      "compressed_zstd_bytes_median": 13495203.0,
+      "compressed_zstd_bytes_min": 13320286,
+      "compressed_zstd_bytes_p5": 13350607.9,
+      "compressed_zstd_bytes_p95": 13626816.7,
+      "compression_MBps_aggregate": 606.866726798473,
+      "compression_MBps_median": 609.5436813472475,
+      "compression_MBps_p5": 587.6223229666638,
+      "compression_latency": {
+        "max_ms": 34.933933,
+        "mean_ms": 30.845988375,
+        "median_ms": 30.710521,
+        "min_ms": 29.947804,
+        "p5_ms": 30.171074800000003,
+        "p95_ms": 31.8562285
+      },
+      "decompression_MBps_aggregate": 1241.7115453917374,
+      "decompression_MBps_median": 1242.3254599106972,
+      "decompression_MBps_p5": 1213.2197400498244,
+      "decompression_latency": {
+        "max_ms": 19.021674,
+        "mean_ms": 15.075485179687501,
+        "median_ms": 15.0680365,
+        "min_ms": 14.542482,
+        "p5_ms": 14.59812535,
+        "p95_ms": 15.429525
+      },
+      "dropped_cells": 3226,
+      "edge_reconstruction_latency": {
+        "max_ms": 71.399195,
+        "mean_ms": 54.1252331171875,
+        "median_ms": 52.781598,
+        "min_ms": 51.461304,
+        "p5_ms": 51.923265199999996,
+        "p95_ms": 66.29671019999999
+      },
+      "exact_round_trips": 128,
+      "frames": 128,
+      "is_agent_anchor": false,
+      "is_bypass": false,
+      "is_registered_q": false,
+      "mask_apply_latency": {
+        "max_ms": 1.966953,
+        "mean_ms": 0.2884196171875,
+        "median_ms": 0.2659,
+        "min_ms": 0.25658,
+        "p5_ms": 0.25918369999999996,
+        "p95_ms": 0.31424519999999967
+      },
+      "q": 0.15,
+      "q_e4": 1500,
+      "ranker_and_ordering_latency": {
+        "max_ms": 0.561939,
+        "mean_ms": 0.2884979296875,
+        "median_ms": 0.272907,
+        "min_ms": 0.265041,
+        "p5_ms": 0.2670759,
+        "p95_ms": 0.39816639999999953
+      },
+      "retained_cells": 18278,
+      "selection_latency": {
+        "max_ms": 1.138432,
+        "mean_ms": 0.6044803125,
+        "median_ms": 0.5885855,
+        "min_ms": 0.552105,
+        "p5_ms": 0.56972785,
+        "p95_ms": 0.6411116999999998
+      },
+      "sparse_decode_latency": {
+        "max_ms": 53.543662,
+        "mean_ms": 39.0497479375,
+        "median_ms": 37.768502,
+        "min_ms": 36.56989,
+        "p5_ms": 36.9078517,
+        "p95_ms": 51.59522594999999
+      },
+      "sparse_encode_latency": {
+        "max_ms": 15.159867,
+        "mean_ms": 3.5044807578125,
+        "median_ms": 3.2743005,
+        "min_ms": 3.184316,
+        "p5_ms": 3.2066459,
+        "p95_ms": 4.454587499999999
+      },
+      "sparse_ratio_vs_framed_q0": 0.8501037686408897,
+      "total_compressed_bytes": 1726279120,
+      "total_uncompressed_bytes": 2396083712,
+      "ue_preparation_latency": {
+        "max_ms": 51.264731,
+        "mean_ms": 35.5318669921875,
+        "median_ms": 35.163008,
+        "min_ms": 34.366598,
+        "p5_ms": 34.58055245,
+        "p95_ms": 36.96706995
+      },
+      "uncompressed_framed_bytes": 18719404,
+      "wire_ratio_vs_framed_q0": 0.612464572205263,
+      "wire_reduction_vs_framed_q0": 0.38753542779473704,
+      "zstd_ratio": 0.7204586014063268
+    },
+    {
+      "compressed_ratio_vs_compressed_q0": 0.7916672863544082,
+      "compressed_zstd_bytes_max": 12876327,
+      "compressed_zstd_bytes_mean": 12658404.3203125,
+      "compressed_zstd_bytes_median": 12663262.5,
+      "compressed_zstd_bytes_min": 12512041,
+      "compressed_zstd_bytes_p5": 12535099.6,
+      "compressed_zstd_bytes_p95": 12793609.35,
+      "compression_MBps_aggregate": 606.288995871531,
+      "compression_MBps_median": 607.4386585126517,
+      "compression_MBps_p5": 589.3744550860118,
+      "compression_latency": {
+        "max_ms": 30.514557,
+        "mean_ms": 29.059745632812497,
+        "median_ms": 29.004745999999997,
+        "min_ms": 28.471687,
+        "p5_ms": 28.5797569,
+        "p95_ms": 29.893750400000002
+      },
+      "decompression_MBps_aggregate": 1239.4363191904881,
+      "decompression_MBps_median": 1240.7696571264278,
+      "decompression_MBps_p5": 1213.630944664598,
+      "decompression_latency": {
+        "max_ms": 17.68212,
+        "mean_ms": 14.215013492187499,
+        "median_ms": 14.199738,
+        "min_ms": 13.800093,
+        "p5_ms": 13.85221875,
+        "p95_ms": 14.51727535
+      },
+      "dropped_cells": 4301,
+      "edge_reconstruction_latency": {
+        "max_ms": 70.588984,
+        "mean_ms": 52.4218531328125,
+        "median_ms": 51.296628,
+        "min_ms": 50.076604,
+        "p5_ms": 50.35959775,
+        "p95_ms": 63.40992939999999
+      },
+      "exact_round_trips": 128,
+      "frames": 128,
+      "is_agent_anchor": false,
+      "is_bypass": false,
+      "is_registered_q": false,
+      "mask_apply_latency": {
+        "max_ms": 0.351796,
+        "mean_ms": 0.2673726640625,
+        "median_ms": 0.2641745,
+        "min_ms": 0.254146,
+        "p5_ms": 0.25688964999999997,
+        "p95_ms": 0.2819522
+      },
+      "q": 0.2,
+      "q_e4": 2000,
+      "ranker_and_ordering_latency": {
+        "max_ms": 0.561939,
+        "mean_ms": 0.2884979296875,
+        "median_ms": 0.272907,
+        "min_ms": 0.265041,
+        "p5_ms": 0.2670759,
+        "p95_ms": 0.39816639999999953
+      },
+      "retained_cells": 17203,
+      "selection_latency": {
+        "max_ms": 1.003378,
+        "mean_ms": 0.5928139531250001,
+        "median_ms": 0.585973,
+        "min_ms": 0.549016,
+        "p5_ms": 0.5732648,
+        "p95_ms": 0.6294118499999999
+      },
+      "sparse_decode_latency": {
+        "max_ms": 56.24216,
+        "mean_ms": 38.206839640625,
+        "median_ms": 37.100564500000004,
+        "min_ms": 35.876113,
+        "p5_ms": 36.15997815,
+        "p95_ms": 48.621302899999996
+      },
+      "sparse_encode_latency": {
+        "max_ms": 5.074983,
+        "mean_ms": 3.231038203125,
+        "median_ms": 3.1205335,
+        "min_ms": 3.021384,
+        "p5_ms": 3.0425631,
+        "p95_ms": 4.057726899999997
+      },
+      "sparse_ratio_vs_framed_q0": 0.8001131691260819,
+      "total_compressed_bytes": 1620275753,
+      "total_uncompressed_bytes": 2255181312,
+      "ue_preparation_latency": {
+        "max_ms": 36.115704,
+        "mean_ms": 33.4394683828125,
+        "median_ms": 33.2712225,
+        "min_ms": 32.704811,
+        "p5_ms": 32.81634375,
+        "p95_ms": 34.85883105
+      },
+      "uncompressed_framed_bytes": 17618604,
+      "wire_ratio_vs_framed_q0": 0.5748557602409657,
+      "wire_reduction_vs_framed_q0": 0.42514423975903426,
+      "zstd_ratio": 0.7184680647974436
+    },
+    {
+      "compressed_ratio_vs_compressed_q0": 0.7401804121679745,
+      "compressed_zstd_bytes_max": 12036338,
+      "compressed_zstd_bytes_mean": 11835152.328125,
+      "compressed_zstd_bytes_median": 11838578.5,
+      "compressed_zstd_bytes_min": 11689979,
+      "compressed_zstd_bytes_p5": 11719424.2,
+      "compressed_zstd_bytes_p95": 11967429.5,
+      "compression_MBps_aggregate": 605.4769046012684,
+      "compression_MBps_median": 607.5340150745967,
+      "compression_MBps_p5": 584.3668050292505,
+      "compression_latency": {
+        "max_ms": 28.669371,
+        "mean_ms": 27.280650796875,
+        "median_ms": 27.1882785,
+        "min_ms": 26.542928,
+        "p5_ms": 26.758104499999998,
+        "p95_ms": 28.266164800000002
+      },
+      "decompression_MBps_aggregate": 1228.1411534440354,
+      "decompression_MBps_median": 1233.192036586869,
+      "decompression_MBps_p5": 1197.569986777419,
+      "decompression_latency": {
+        "max_ms": 16.573272,
+        "mean_ms": 13.449434499999999,
+        "median_ms": 13.394351499999999,
+        "min_ms": 12.940656,
+        "p5_ms": 13.056426,
+        "p95_ms": 13.792769700000001
+      },
+      "dropped_cells": 5376,
+      "edge_reconstruction_latency": {
+        "max_ms": 70.56443,
+        "mean_ms": 51.062453734375,
+        "median_ms": 49.92881250000001,
+        "min_ms": 48.359918,
+        "p5_ms": 49.0807339,
+        "p95_ms": 58.96595364999999
+      },
+      "exact_round_trips": 128,
+      "frames": 128,
+      "is_agent_anchor": false,
+      "is_bypass": false,
+      "is_registered_q": false,
+      "mask_apply_latency": {
+        "max_ms": 1.606665,
+        "mean_ms": 0.2989618125,
+        "median_ms": 0.2618905,
+        "min_ms": 0.250263,
+        "p5_ms": 0.2537845,
+        "p95_ms": 0.4240980999999982
+      },
+      "q": 0.25,
+      "q_e4": 2500,
+      "ranker_and_ordering_latency": {
+        "max_ms": 0.561939,
+        "mean_ms": 0.2884979296875,
+        "median_ms": 0.272907,
+        "min_ms": 0.265041,
+        "p5_ms": 0.2670759,
+        "p95_ms": 0.39816639999999953
+      },
+      "retained_cells": 16128,
+      "selection_latency": {
+        "max_ms": 1.097159,
+        "mean_ms": 0.588092015625,
+        "median_ms": 0.578662,
+        "min_ms": 0.546831,
+        "p5_ms": 0.56564445,
+        "p95_ms": 0.60876445
+      },
+      "sparse_decode_latency": {
+        "max_ms": 54.225311,
+        "mean_ms": 37.613019234375,
+        "median_ms": 36.54293,
+        "min_ms": 35.22197,
+        "p5_ms": 35.70493015,
+        "p95_ms": 45.71312044999999
+      },
+      "sparse_encode_latency": {
+        "max_ms": 6.084043,
+        "mean_ms": 3.076980015625,
+        "median_ms": 2.9538405,
+        "min_ms": 2.871394,
+        "p5_ms": 2.88736615,
+        "p95_ms": 3.6183799999999993
+      },
+      "sparse_ratio_vs_framed_q0": 0.750122569611274,
+      "total_compressed_bytes": 1514899498,
+      "total_uncompressed_bytes": 2114278912,
+      "ue_preparation_latency": {
+        "max_ms": 34.881254,
+        "mean_ms": 31.5331825703125,
+        "median_ms": 31.2838225,
+        "min_ms": 30.529936,
+        "p5_ms": 30.77768635,
+        "p95_ms": 33.0699318
+      },
+      "uncompressed_framed_bytes": 16517804,
+      "wire_ratio_vs_framed_q0": 0.5374694406177708,
+      "wire_reduction_vs_framed_q0": 0.4625305593822292,
+      "zstd_ratio": 0.716508824546229
+    },
+    {
+      "compressed_ratio_vs_compressed_q0": 0.6889266511589055,
+      "compressed_zstd_bytes_max": 11199059,
+      "compressed_zstd_bytes_mean": 11015627.7109375,
+      "compressed_zstd_bytes_median": 11021751.0,
+      "compressed_zstd_bytes_min": 10854788,
+      "compressed_zstd_bytes_p5": 10905156.5,
+      "compressed_zstd_bytes_p95": 11142733.4,
+      "compression_MBps_aggregate": 605.1257931759887,
+      "compression_MBps_median": 607.7578440899296,
+      "compression_MBps_p5": 584.6468966699259,
+      "compression_latency": {
+        "max_ms": 27.071604,
+        "mean_ms": 25.477353921875,
+        "median_ms": 25.367018,
+        "min_ms": 24.875912,
+        "p5_ms": 24.9970666,
+        "p95_ms": 26.3697776
+      },
+      "decompression_MBps_aggregate": 1234.4612155982234,
+      "decompression_MBps_median": 1233.2523388343316,
+      "decompression_MBps_p5": 1207.1255618285936,
+      "decompression_latency": {
+        "max_ms": 12.961637,
+        "mean_ms": 12.48885246875,
+        "median_ms": 12.5010945,
+        "min_ms": 12.160802,
+        "p5_ms": 12.21153365,
+        "p95_ms": 12.771666100000001
+      },
+      "dropped_cells": 6451,
+      "edge_reconstruction_latency": {
+        "max_ms": 62.171785,
+        "mean_ms": 49.106656375,
+        "median_ms": 48.309914500000005,
+        "min_ms": 46.721254,
+        "p5_ms": 47.35687755,
+        "p95_ms": 55.911035949999956
+      },
+      "exact_round_trips": 128,
+      "frames": 128,
+      "is_agent_anchor": true,
+      "is_bypass": false,
+      "is_registered_q": true,
+      "mask_apply_latency": {
+        "max_ms": 0.579739,
+        "mean_ms": 0.2660728046875,
+        "median_ms": 0.26002000000000003,
+        "min_ms": 0.247805,
+        "p5_ms": 0.25178625,
+        "p95_ms": 0.2780365
+      },
+      "q": 0.3,
+      "q_e4": 3000,
+      "ranker_and_ordering_latency": {
+        "max_ms": 0.561939,
+        "mean_ms": 0.2884979296875,
+        "median_ms": 0.272907,
+        "min_ms": 0.265041,
+        "p5_ms": 0.2670759,
+        "p95_ms": 0.39816639999999953
+      },
+      "retained_cells": 15053,
+      "selection_latency": {
+        "max_ms": 1.0489,
+        "mean_ms": 0.5875754453124999,
+        "median_ms": 0.574411,
+        "min_ms": 0.540681,
+        "p5_ms": 0.55581205,
+        "p95_ms": 0.6172755
+      },
+      "sparse_decode_latency": {
+        "max_ms": 49.71392,
+        "mean_ms": 36.61780390625,
+        "median_ms": 35.8175835,
+        "min_ms": 34.317056,
+        "p5_ms": 34.975701449999995,
+        "p95_ms": 43.40186449999996
+      },
+      "sparse_encode_latency": {
+        "max_ms": 4.568779,
+        "mean_ms": 2.93176625,
+        "median_ms": 2.796548,
+        "min_ms": 2.71549,
+        "p5_ms": 2.7400258,
+        "p95_ms": 3.9028299999999994
+      },
+      "sparse_ratio_vs_framed_q0": 0.7001319700964662,
+      "total_compressed_bytes": 1410000347,
+      "total_uncompressed_bytes": 1973376512,
+      "ue_preparation_latency": {
+        "max_ms": 32.494491,
+        "mean_ms": 29.5512663515625,
+        "median_ms": 29.2932345,
+        "min_ms": 28.761956,
+        "p5_ms": 28.8715419,
+        "p95_ms": 30.85517175
+      },
+      "uncompressed_framed_bytes": 15417004,
+      "wire_ratio_vs_framed_q0": 0.5002523921708718,
+      "wire_reduction_vs_framed_q0": 0.4997476078291282,
+      "zstd_ratio": 0.714511568586056
+    },
+    {
+      "compressed_ratio_vs_compressed_q0": 0.48618015261272385,
+      "compressed_zstd_bytes_max": 7895674,
+      "compressed_zstd_bytes_mean": 7773802.265625,
+      "compressed_zstd_bytes_median": 7763193.0,
+      "compressed_zstd_bytes_min": 7634430,
+      "compressed_zstd_bytes_p5": 7676588.75,
+      "compressed_zstd_bytes_p95": 7879065.75,
+      "compression_MBps_aggregate": 600.499654981761,
+      "compression_MBps_median": 601.9567537314094,
+      "compression_MBps_p5": 582.8365929841951,
+      "compression_latency": {
+        "max_ms": 19.233269,
+        "mean_ms": 18.339361078125002,
+        "median_ms": 18.294969000000002,
+        "min_ms": 17.851246,
+        "p5_ms": 17.975090299999998,
+        "p95_ms": 18.895287349999997
+      },
+      "decompression_MBps_aggregate": 1221.051702738124,
+      "decompression_MBps_median": 1222.5355035793923,
+      "decompression_MBps_p5": 1194.2196092329004,
+      "decompression_latency": {
+        "max_ms": 9.542094,
+        "mean_ms": 9.0190939296875,
+        "median_ms": 9.0081475,
+        "min_ms": 8.653507,
+        "p5_ms": 8.84166005,
+        "p95_ms": 9.22174165
+      },
+      "dropped_cells": 10752,
+      "edge_reconstruction_latency": {
+        "max_ms": 57.965838,
+        "mean_ms": 42.451562921874995,
+        "median_ms": 42.054949500000006,
+        "min_ms": 40.764753,
+        "p5_ms": 41.295918,
+        "p95_ms": 45.07504085
+      },
+      "exact_round_trips": 128,
+      "frames": 128,
+      "is_agent_anchor": true,
+      "is_bypass": false,
+      "is_registered_q": true,
+      "mask_apply_latency": {
+        "max_ms": 1.581174,
+        "mean_ms": 0.2618336015625,
+        "median_ms": 0.24373499999999998,
+        "min_ms": 0.231687,
+        "p5_ms": 0.23583445,
+        "p95_ms": 0.29436124999999974
+      },
+      "q": 0.5,
+      "q_e4": 5000,
+      "ranker_and_ordering_latency": {
+        "max_ms": 0.561939,
+        "mean_ms": 0.2884979296875,
+        "median_ms": 0.272907,
+        "min_ms": 0.265041,
+        "p5_ms": 0.2670759,
+        "p95_ms": 0.39816639999999953
+      },
+      "retained_cells": 10752,
+      "selection_latency": {
+        "max_ms": 1.182936,
+        "mean_ms": 0.576866515625,
+        "median_ms": 0.5539275,
+        "min_ms": 0.527933,
+        "p5_ms": 0.533797,
+        "p95_ms": 0.6749669499999995
+      },
+      "sparse_decode_latency": {
+        "max_ms": 48.956674,
+        "mean_ms": 33.4324689921875,
+        "median_ms": 33.01442,
+        "min_ms": 31.647759,
+        "p5_ms": 32.2263,
+        "p95_ms": 35.6977251
+      },
+      "sparse_encode_latency": {
+        "max_ms": 4.136473,
+        "mean_ms": 2.2463234062499997,
+        "median_ms": 2.134627,
+        "min_ms": 2.07462,
+        "p5_ms": 2.0847645000000004,
+        "p95_ms": 2.7210612999999984
+      },
+      "sparse_ratio_vs_framed_q0": 0.5001230691539654,
+      "total_compressed_bytes": 995046690,
+      "total_uncompressed_bytes": 1409635840,
+      "ue_preparation_latency": {
+        "max_ms": 23.879721,
+        "mean_ms": 21.712882531250003,
+        "median_ms": 21.5479335,
+        "min_ms": 21.052944,
+        "p5_ms": 21.1910735,
+        "p95_ms": 22.7923035
+      },
+      "uncompressed_framed_bytes": 11012780,
+      "wire_ratio_vs_framed_q0": 0.35303146417892894,
+      "wire_reduction_vs_framed_q0": 0.6469685358210711,
+      "zstd_ratio": 0.7058891819890164
+    },
+    {
+      "compressed_ratio_vs_compressed_q0": 0.28735536904033393,
+      "compressed_zstd_bytes_max": 4688888,
+      "compressed_zstd_bytes_mean": 4594683.28125,
+      "compressed_zstd_bytes_median": 4592850.0,
+      "compressed_zstd_bytes_min": 4529207,
+      "compressed_zstd_bytes_p5": 4544572.8,
+      "compressed_zstd_bytes_p95": 4645071.1,
+      "compression_MBps_aggregate": 590.8246794676959,
+      "compression_MBps_median": 592.4150190385596,
+      "compression_MBps_p5": 573.5545834848548,
+      "compression_latency": {
+        "max_ms": 11.909593,
+        "mean_ms": 11.1853079765625,
+        "median_ms": 11.155280999999999,
+        "min_ms": 10.86375,
+        "p5_ms": 10.985964000000001,
+        "p95_ms": 11.522106149999999
+      },
+      "decompression_MBps_aggregate": 1202.3256644691664,
+      "decompression_MBps_median": 1205.1135176243015,
+      "decompression_MBps_p5": 1176.4432870076926,
+      "decompression_latency": {
+        "max_ms": 5.843565,
+        "mean_ms": 5.496477531250001,
+        "median_ms": 5.4837625,
+        "min_ms": 5.309874,
+        "p5_ms": 5.38144935,
+        "p95_ms": 5.6174064999999995
+      },
+      "dropped_cells": 15053,
+      "edge_reconstruction_latency": {
+        "max_ms": 50.730403,
+        "mean_ms": 36.09741125,
+        "median_ms": 35.833389,
+        "min_ms": 34.205228,
+        "p5_ms": 34.7461437,
+        "p95_ms": 37.70210255
+      },
+      "exact_round_trips": 128,
+      "frames": 128,
+      "is_agent_anchor": true,
+      "is_bypass": false,
+      "is_registered_q": true,
+      "mask_apply_latency": {
+        "max_ms": 0.645286,
+        "mean_ms": 0.23255672656249998,
+        "median_ms": 0.22743649999999999,
+        "min_ms": 0.219512,
+        "p5_ms": 0.2220272,
+        "p95_ms": 0.23753844999999998
+      },
+      "q": 0.7,
+      "q_e4": 7000,
+      "ranker_and_ordering_latency": {
+        "max_ms": 0.561939,
+        "mean_ms": 0.2884979296875,
+        "median_ms": 0.272907,
+        "min_ms": 0.265041,
+        "p5_ms": 0.2670759,
+        "p95_ms": 0.39816639999999953
+      },
+      "retained_cells": 6451,
+      "selection_latency": {
+        "max_ms": 0.954859,
+        "mean_ms": 0.535244640625,
+        "median_ms": 0.527145,
+        "min_ms": 0.503083,
+        "p5_ms": 0.515196,
+        "p95_ms": 0.57780565
+      },
+      "sparse_decode_latency": {
+        "max_ms": 45.318592,
+        "mean_ms": 30.60093371875,
+        "median_ms": 30.337303499999997,
+        "min_ms": 28.729466,
+        "p5_ms": 29.253939250000002,
+        "p95_ms": 32.205363649999995
+      },
+      "sparse_encode_latency": {
+        "max_ms": 3.651925,
+        "mean_ms": 1.533164578125,
+        "median_ms": 1.4602235000000001,
+        "min_ms": 1.424552,
+        "p5_ms": 1.4405835500000002,
+        "p95_ms": 1.7803780499999997
+      },
+      "sparse_ratio_vs_framed_q0": 0.3001141682114646,
+      "total_compressed_bytes": 588119460,
+      "total_uncompressed_bytes": 845895168,
+      "ue_preparation_latency": {
+        "max_ms": 15.791931,
+        "mean_ms": 13.7747718515625,
+        "median_ms": 13.670914499999999,
+        "min_ms": 13.396816,
+        "p5_ms": 13.48199805,
+        "p95_ms": 14.571333549999999
+      },
+      "uncompressed_framed_bytes": 6608556,
+      "wire_ratio_vs_framed_q0": 0.20865822293818295,
+      "wire_reduction_vs_framed_q0": 0.7913417770618171,
+      "zstd_ratio": 0.6952628200850534
+    },
+    {
+      "compressed_ratio_vs_compressed_q0": 0.09334769818989018,
+      "compressed_zstd_bytes_max": 1516968,
+      "compressed_zstd_bytes_mean": 1492587.765625,
+      "compressed_zstd_bytes_median": 1493420.5,
+      "compressed_zstd_bytes_min": 1471638,
+      "compressed_zstd_bytes_p5": 1476726.6,
+      "compressed_zstd_bytes_p95": 1508849.25,
+      "compression_MBps_aggregate": 587.5383891861909,
+      "compression_MBps_median": 590.0503703468885,
+      "compression_MBps_p5": 572.8058496867362,
+      "compression_latency": {
+        "max_ms": 3.929671,
+        "mean_ms": 3.7518093125,
+        "median_ms": 3.735837,
+        "min_ms": 3.676103,
+        "p5_ms": 3.6876792,
+        "p95_ms": 3.8483058999999997
+      },
+      "decompression_MBps_aggregate": 1186.9178056384433,
+      "decompression_MBps_median": 1192.120547678471,
+      "decompression_MBps_p5": 1147.8586028655955,
+      "decompression_latency": {
+        "max_ms": 2.006204,
+        "mean_ms": 1.8571901015624999,
+        "median_ms": 1.849085,
+        "min_ms": 1.812542,
+        "p5_ms": 1.82049135,
+        "p95_ms": 1.9203872
+      },
+      "dropped_cells": 19354,
+      "edge_reconstruction_latency": {
+        "max_ms": 39.132647,
+        "mean_ms": 29.58057803125,
+        "median_ms": 29.389784499999998,
+        "min_ms": 27.98146,
+        "p5_ms": 28.16522895,
+        "p95_ms": 31.685954299999995
+      },
+      "exact_round_trips": 128,
+      "frames": 128,
+      "is_agent_anchor": true,
+      "is_bypass": false,
+      "is_registered_q": true,
+      "mask_apply_latency": {
+        "max_ms": 0.447045,
+        "mean_ms": 0.2138395546875,
+        "median_ms": 0.209505,
+        "min_ms": 0.200304,
+        "p5_ms": 0.20528485,
+        "p95_ms": 0.22279574999999996
+      },
+      "q": 0.9,
+      "q_e4": 9000,
+      "ranker_and_ordering_latency": {
+        "max_ms": 0.561939,
+        "mean_ms": 0.2884979296875,
+        "median_ms": 0.272907,
+        "min_ms": 0.265041,
+        "p5_ms": 0.2670759,
+        "p95_ms": 0.39816639999999953
+      },
+      "retained_cells": 2150,
+      "selection_latency": {
+        "max_ms": 0.929628,
+        "mean_ms": 0.487575921875,
+        "median_ms": 0.47409250000000003,
+        "min_ms": 0.45319,
+        "p5_ms": 0.46159095,
+        "p95_ms": 0.5386842
+      },
+      "sparse_decode_latency": {
+        "max_ms": 37.27818,
+        "mean_ms": 27.723387929687497,
+        "median_ms": 27.527228,
+        "min_ms": 26.159315,
+        "p5_ms": 26.3186327,
+        "p95_ms": 29.784629899999995
+      },
+      "sparse_encode_latency": {
+        "max_ms": 3.566984,
+        "mean_ms": 0.9989059921875001,
+        "median_ms": 0.9048795000000001,
+        "min_ms": 0.878316,
+        "p5_ms": 0.89270415,
+        "p95_ms": 1.2830713499999986
+      },
+      "sparse_ratio_vs_framed_q0": 0.10010526726896378,
+      "total_compressed_bytes": 191051234,
+      "total_uncompressed_bytes": 282154496,
+      "ue_preparation_latency": {
+        "max_ms": 8.196723,
+        "mean_ms": 5.7406287109375,
+        "median_ms": 5.645264,
+        "min_ms": 5.502613,
+        "p5_ms": 5.54170735,
+        "p95_ms": 6.224032249999999
+      },
+      "uncompressed_framed_bytes": 2204332,
+      "wire_ratio_vs_framed_q0": 0.06778284632273,
+      "wire_reduction_vs_framed_q0": 0.93221715367727,
+      "zstd_ratio": 0.67711568204109
+    },
+    {
+      "compressed_ratio_vs_compressed_q0": 0.018191869872368753,
+      "compressed_zstd_bytes_max": 299200,
+      "compressed_zstd_bytes_mean": 290879.828125,
+      "compressed_zstd_bytes_median": 290841.5,
+      "compressed_zstd_bytes_min": 284688,
+      "compressed_zstd_bytes_p5": 287374.7,
+      "compressed_zstd_bytes_p95": 294393.05,
+      "compression_MBps_aggregate": 531.2103798075623,
+      "compression_MBps_median": 534.3122686224383,
+      "compression_MBps_p5": 507.13498314281844,
+      "compression_latency": {
+        "max_ms": 0.903384,
+        "mean_ms": 0.8340424375,
+        "median_ms": 0.8292005,
+        "min_ms": 0.811104,
+        "p5_ms": 0.81723675,
+        "p95_ms": 0.8736387
+      },
+      "decompression_MBps_aggregate": 1146.881759415586,
+      "decompression_MBps_median": 1154.1030192652945,
+      "decompression_MBps_p5": 1106.0769179788567,
+      "decompression_latency": {
+        "max_ms": 0.448035,
+        "mean_ms": 0.38631009374999997,
+        "median_ms": 0.38389300000000004,
+        "min_ms": 0.374237,
+        "p5_ms": 0.3791731,
+        "p95_ms": 0.400562
+      },
+      "dropped_cells": 21074,
+      "edge_reconstruction_latency": {
+        "max_ms": 35.615292,
+        "mean_ms": 26.737394906250003,
+        "median_ms": 26.508553499999998,
+        "min_ms": 24.971718,
+        "p5_ms": 25.53990665,
+        "p95_ms": 27.9576042
+      },
+      "exact_round_trips": 128,
+      "frames": 128,
+      "is_agent_anchor": true,
+      "is_bypass": false,
+      "is_registered_q": true,
+      "mask_apply_latency": {
+        "max_ms": 0.507277,
+        "mean_ms": 0.2059085390625,
+        "median_ms": 0.199791,
+        "min_ms": 0.191439,
+        "p5_ms": 0.194872,
+        "p95_ms": 0.21130759999999998
+      },
+      "q": 0.98,
+      "q_e4": 9800,
+      "ranker_and_ordering_latency": {
+        "max_ms": 0.561939,
+        "mean_ms": 0.2884979296875,
+        "median_ms": 0.272907,
+        "min_ms": 0.265041,
+        "p5_ms": 0.2670759,
+        "p95_ms": 0.39816639999999953
+      },
+      "retained_cells": 430,
+      "selection_latency": {
+        "max_ms": 0.990107,
+        "mean_ms": 0.468317078125,
+        "median_ms": 0.452105,
+        "min_ms": 0.434465,
+        "p5_ms": 0.43788755,
+        "p95_ms": 0.5749980499999994
+      },
+      "sparse_decode_latency": {
+        "max_ms": 35.236432,
+        "mean_ms": 26.351084812499998,
+        "median_ms": 26.121883500000003,
+        "min_ms": 24.586389,
+        "p5_ms": 25.1584419,
+        "p95_ms": 27.57320965
+      },
+      "sparse_encode_latency": {
+        "max_ms": 3.382304,
+        "mean_ms": 0.5789008124999999,
+        "median_ms": 0.5186930000000001,
+        "min_ms": 0.49226,
+        "p5_ms": 0.498886,
+        "p95_ms": 0.7431469999999979
+      },
+      "sparse_ratio_vs_framed_q0": 0.020120308045271283,
+      "total_compressed_bytes": 37232618,
+      "total_uncompressed_bytes": 56710656,
+      "ue_preparation_latency": {
+        "max_ms": 5.318473,
+        "mean_ms": 2.375666796875,
+        "median_ms": 2.279461,
+        "min_ms": 2.232967,
+        "p5_ms": 2.2469461,
+        "p95_ms": 2.921774999999995
+      },
+      "uncompressed_framed_bytes": 443052,
+      "wire_ratio_vs_framed_q0": 0.013209717473412975,
+      "wire_reduction_vs_framed_q0": 0.9867902825265871,
+      "zstd_ratio": 0.6565365422681761
+    }
+  ],
+  "perception_binding": {
+    "checkpoint_epoch": 26,
+    "checkpoint_path": "experiments/route_b_v3_1_splitfusion_fcos_r50_fpn_p2_p7_v1_numerical_recovery_v1/20260830_recovered_epoch10_gate_v1/checkpoints/epoch_026.pt",
+    "checkpoint_sha256": "da14d21edbd374c1c3abce02ca4674b9f4097becfba9759aba945cea160a297f",
+    "checkpoint_training_source_commit": "0d5697b46e901d4494572b2e9a9863326947d24c",
+    "eval_mode": true,
+    "perception_forward_lock_path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_person_p025_calibration_v1/PERCEPTION_FORWARD_LOCK_P025_V1.json",
+    "perception_forward_lock_sha256": "86d6f13ae9168b33b697df5b785c5f7c320afc52cfdcded5b632d94a6d943fe1",
+    "perception_parameters_requires_grad": false,
+    "person_output_threshold": 0.25,
+    "recovery_build_report": {
+      "architecture_and_state_dict_unchanged": true,
+      "coco_car_bias_sha256": "6c9760f1fd54aff7181fcff3cc30a11daafade9c5fc60bc7284fc2e0bca0de14",
+      "coco_car_index": 3,
+      "coco_car_weight_sha256": "9130a2f343e8162c2ea2baf66b34c359a393d331680d6a0f2aaab498b1c80489",
+      "coco_person_bias_sha256": "45a2cc2d30dc1477cf094c1f59f8a11104121b05960140ecefa8ef7d38f1a9a2",
+      "coco_person_index": 1,
+      "coco_person_weight_sha256": "81a7a980256b77cd98a3fa949857568d6501995b649e86463a656f84d9c877ce",
+      "complete_official_outputs": 91,
+      "official_weight_path": "/home/shr_aisvcs/.cache/torch/hub/checkpoints/fcos_resnet50_fpn_coco-99b0c9b7.pth",
+      "project_person_bias_sha256": "45a2cc2d30dc1477cf094c1f59f8a11104121b05960140ecefa8ef7d38f1a9a2",
+      "project_person_weight_sha256": "81a7a980256b77cd98a3fa949857568d6501995b649e86463a656f84d9c877ce",
+      "project_vehicle_bias_sha256": "6c9760f1fd54aff7181fcff3cc30a11daafade9c5fc60bc7284fc2e0bca0de14",
+      "project_vehicle_weight_sha256": "9130a2f343e8162c2ea2baf66b34c359a393d331680d6a0f2aaab498b1c80489",
+      "radar_stem_exact_zero": true,
+      "recovery_yaw_tau": 0.01,
+      "rgb_stem_exact": true,
+      "shared_training_inference_normalizer": true
+    },
+    "runtime": "splitfusion_fcos_r50_fpn_p2_p7_v1_numerical_recovery_v1.build_recovery_model",
+    "selected_yaw_tau": 0.01,
+    "service_policy": "splitfusion_fcos_r50_fpn_p2_p7_person_p025_calibration_v1.apply_p025_service_policy"
+  },
+  "pipeline": [
+    "C2",
+    "continuous_q rank/select",
+    "existing 44-byte sparse payload",
+    "zstd compress",
+    "zstd decompress",
+    "existing sparse decode",
+    "dense C2"
+  ],
+  "q_values": {
+    "agent_anchors": [
+      0.0,
+      0.3,
+      0.5,
+      0.7,
+      0.9,
+      0.98
+    ],
+    "low_q_support": [
+      0.05,
+      0.1,
+      0.15,
+      0.2,
+      0.25
+    ],
+    "measured": [
+      0.0,
+      0.05,
+      0.1,
+      0.15,
+      0.2,
+      0.25,
+      0.3,
+      0.5,
+      0.7,
+      0.9,
+      0.98
+    ]
+  },
+  "reference_bytes": {
+    "framed_q0_payload_bytes": 22020140,
+    "header_overhead_bytes": 44,
+    "unframed_raw_fp32_reference_bytes": 22020096
+  },
+  "sample": {
+    "augmentation": false,
+    "episodes": [
+      "canonical_v3_01_train_30_30_s501_tm1501",
+      "canonical_v3_02_train_50_50_s502_tm1502",
+      "extra_v3_09_train_30_30_s801_tm1801",
+      "extra_v3_10_train_50_50_s802_tm1802",
+      "extra_v3_11_train_30_30_s803_tm1803",
+      "extra_v3_12_train_50_50_s804_tm1804",
+      "extra_v3_13_train_30_30_s805_tm1805",
+      "extra_v3_14_train_50_50_s806_tm1806"
+    ],
+    "frames": [
+      {
+        "dataset_index": 0,
+        "episode": "canonical_v3_01_train_30_30_s501_tm1501",
+        "episode_frames": 1536,
+        "episode_position": 0,
+        "frame_index": 214,
+        "order_position": 0,
+        "sample_id": "canonical_v3_01_train_30_30_s501_tm1501_000000_frame214"
+      },
+      {
+        "dataset_index": 102,
+        "episode": "canonical_v3_01_train_30_30_s501_tm1501",
+        "episode_frames": 1536,
+        "episode_position": 1,
+        "frame_index": 622,
+        "order_position": 1,
+        "sample_id": "canonical_v3_01_train_30_30_s501_tm1501_000102_frame622"
+      },
+      {
+        "dataset_index": 205,
+        "episode": "canonical_v3_01_train_30_30_s501_tm1501",
+        "episode_frames": 1536,
+        "episode_position": 2,
+        "frame_index": 1034,
+        "order_position": 2,
+        "sample_id": "canonical_v3_01_train_30_30_s501_tm1501_000205_frame1034"
+      },
+      {
+        "dataset_index": 307,
+        "episode": "canonical_v3_01_train_30_30_s501_tm1501",
+        "episode_frames": 1536,
+        "episode_position": 3,
+        "frame_index": 1442,
+        "order_position": 3,
+        "sample_id": "canonical_v3_01_train_30_30_s501_tm1501_000307_frame1442"
+      },
+      {
+        "dataset_index": 409,
+        "episode": "canonical_v3_01_train_30_30_s501_tm1501",
+        "episode_frames": 1536,
+        "episode_position": 4,
+        "frame_index": 1854,
+        "order_position": 4,
+        "sample_id": "canonical_v3_01_train_30_30_s501_tm1501_000410_frame1854"
+      },
+      {
+        "dataset_index": 512,
+        "episode": "canonical_v3_01_train_30_30_s501_tm1501",
+        "episode_frames": 1536,
+        "episode_position": 5,
+        "frame_index": 2266,
+        "order_position": 5,
+        "sample_id": "canonical_v3_01_train_30_30_s501_tm1501_000513_frame2266"
+      },
+      {
+        "dataset_index": 614,
+        "episode": "canonical_v3_01_train_30_30_s501_tm1501",
+        "episode_frames": 1536,
+        "episode_position": 6,
+        "frame_index": 2674,
+        "order_position": 6,
+        "sample_id": "canonical_v3_01_train_30_30_s501_tm1501_000615_frame2674"
+      },
+      {
+        "dataset_index": 716,
+        "episode": "canonical_v3_01_train_30_30_s501_tm1501",
+        "episode_frames": 1536,
+        "episode_position": 7,
+        "frame_index": 3082,
+        "order_position": 7,
+        "sample_id": "canonical_v3_01_train_30_30_s501_tm1501_000717_frame3082"
+      },
+      {
+        "dataset_index": 819,
+        "episode": "canonical_v3_01_train_30_30_s501_tm1501",
+        "episode_frames": 1536,
+        "episode_position": 8,
+        "frame_index": 3494,
+        "order_position": 8,
+        "sample_id": "canonical_v3_01_train_30_30_s501_tm1501_000820_frame3494"
+      },
+      {
+        "dataset_index": 921,
+        "episode": "canonical_v3_01_train_30_30_s501_tm1501",
+        "episode_frames": 1536,
+        "episode_position": 9,
+        "frame_index": 3906,
+        "order_position": 9,
+        "sample_id": "canonical_v3_01_train_30_30_s501_tm1501_000923_frame3906"
+      },
+      {
+        "dataset_index": 1023,
+        "episode": "canonical_v3_01_train_30_30_s501_tm1501",
+        "episode_frames": 1536,
+        "episode_position": 10,
+        "frame_index": 4314,
+        "order_position": 10,
+        "sample_id": "canonical_v3_01_train_30_30_s501_tm1501_001025_frame4314"
+      },
+      {
+        "dataset_index": 1126,
+        "episode": "canonical_v3_01_train_30_30_s501_tm1501",
+        "episode_frames": 1536,
+        "episode_position": 11,
+        "frame_index": 4726,
+        "order_position": 11,
+        "sample_id": "canonical_v3_01_train_30_30_s501_tm1501_001128_frame4726"
+      },
+      {
+        "dataset_index": 1228,
+        "episode": "canonical_v3_01_train_30_30_s501_tm1501",
+        "episode_frames": 1536,
+        "episode_position": 12,
+        "frame_index": 5134,
+        "order_position": 12,
+        "sample_id": "canonical_v3_01_train_30_30_s501_tm1501_001230_frame5134"
+      },
+      {
+        "dataset_index": 1330,
+        "episode": "canonical_v3_01_train_30_30_s501_tm1501",
+        "episode_frames": 1536,
+        "episode_position": 13,
+        "frame_index": 5546,
+        "order_position": 13,
+        "sample_id": "canonical_v3_01_train_30_30_s501_tm1501_001333_frame5546"
+      },
+      {
+        "dataset_index": 1433,
+        "episode": "canonical_v3_01_train_30_30_s501_tm1501",
+        "episode_frames": 1536,
+        "episode_position": 14,
+        "frame_index": 5958,
+        "order_position": 14,
+        "sample_id": "canonical_v3_01_train_30_30_s501_tm1501_001436_frame5958"
+      },
+      {
+        "dataset_index": 1535,
+        "episode": "canonical_v3_01_train_30_30_s501_tm1501",
+        "episode_frames": 1536,
+        "episode_position": 15,
+        "frame_index": 6366,
+        "order_position": 15,
+        "sample_id": "canonical_v3_01_train_30_30_s501_tm1501_001538_frame6366"
+      },
+      {
+        "dataset_index": 1536,
+        "episode": "canonical_v3_02_train_50_50_s502_tm1502",
+        "episode_frames": 1541,
+        "episode_position": 0,
+        "frame_index": 218,
+        "order_position": 16,
+        "sample_id": "canonical_v3_02_train_50_50_s502_tm1502_000000_frame218"
+      },
+      {
+        "dataset_index": 1639,
+        "episode": "canonical_v3_02_train_50_50_s502_tm1502",
+        "episode_frames": 1541,
+        "episode_position": 1,
+        "frame_index": 634,
+        "order_position": 17,
+        "sample_id": "canonical_v3_02_train_50_50_s502_tm1502_000104_frame634"
+      },
+      {
+        "dataset_index": 1741,
+        "episode": "canonical_v3_02_train_50_50_s502_tm1502",
+        "episode_frames": 1541,
+        "episode_position": 2,
+        "frame_index": 1042,
+        "order_position": 18,
+        "sample_id": "canonical_v3_02_train_50_50_s502_tm1502_000206_frame1042"
+      },
+      {
+        "dataset_index": 1844,
+        "episode": "canonical_v3_02_train_50_50_s502_tm1502",
+        "episode_frames": 1541,
+        "episode_position": 3,
+        "frame_index": 1454,
+        "order_position": 19,
+        "sample_id": "canonical_v3_02_train_50_50_s502_tm1502_000309_frame1454"
+      },
+      {
+        "dataset_index": 1947,
+        "episode": "canonical_v3_02_train_50_50_s502_tm1502",
+        "episode_frames": 1541,
+        "episode_position": 4,
+        "frame_index": 1866,
+        "order_position": 20,
+        "sample_id": "canonical_v3_02_train_50_50_s502_tm1502_000412_frame1866"
+      },
+      {
+        "dataset_index": 2049,
+        "episode": "canonical_v3_02_train_50_50_s502_tm1502",
+        "episode_frames": 1541,
+        "episode_position": 5,
+        "frame_index": 2274,
+        "order_position": 21,
+        "sample_id": "canonical_v3_02_train_50_50_s502_tm1502_000514_frame2274"
+      },
+      {
+        "dataset_index": 2152,
+        "episode": "canonical_v3_02_train_50_50_s502_tm1502",
+        "episode_frames": 1541,
+        "episode_position": 6,
+        "frame_index": 2686,
+        "order_position": 22,
+        "sample_id": "canonical_v3_02_train_50_50_s502_tm1502_000617_frame2686"
+      },
+      {
+        "dataset_index": 2255,
+        "episode": "canonical_v3_02_train_50_50_s502_tm1502",
+        "episode_frames": 1541,
+        "episode_position": 7,
+        "frame_index": 3098,
+        "order_position": 23,
+        "sample_id": "canonical_v3_02_train_50_50_s502_tm1502_000720_frame3098"
+      },
+      {
+        "dataset_index": 2357,
+        "episode": "canonical_v3_02_train_50_50_s502_tm1502",
+        "episode_frames": 1541,
+        "episode_position": 8,
+        "frame_index": 3506,
+        "order_position": 24,
+        "sample_id": "canonical_v3_02_train_50_50_s502_tm1502_000822_frame3506"
+      },
+      {
+        "dataset_index": 2460,
+        "episode": "canonical_v3_02_train_50_50_s502_tm1502",
+        "episode_frames": 1541,
+        "episode_position": 9,
+        "frame_index": 3918,
+        "order_position": 25,
+        "sample_id": "canonical_v3_02_train_50_50_s502_tm1502_000925_frame3918"
+      },
+      {
+        "dataset_index": 2563,
+        "episode": "canonical_v3_02_train_50_50_s502_tm1502",
+        "episode_frames": 1541,
+        "episode_position": 10,
+        "frame_index": 4330,
+        "order_position": 26,
+        "sample_id": "canonical_v3_02_train_50_50_s502_tm1502_001028_frame4330"
+      },
+      {
+        "dataset_index": 2665,
+        "episode": "canonical_v3_02_train_50_50_s502_tm1502",
+        "episode_frames": 1541,
+        "episode_position": 11,
+        "frame_index": 4742,
+        "order_position": 27,
+        "sample_id": "canonical_v3_02_train_50_50_s502_tm1502_001131_frame4742"
+      },
+      {
+        "dataset_index": 2768,
+        "episode": "canonical_v3_02_train_50_50_s502_tm1502",
+        "episode_frames": 1541,
+        "episode_position": 12,
+        "frame_index": 5154,
+        "order_position": 28,
+        "sample_id": "canonical_v3_02_train_50_50_s502_tm1502_001234_frame5154"
+      },
+      {
+        "dataset_index": 2871,
+        "episode": "canonical_v3_02_train_50_50_s502_tm1502",
+        "episode_frames": 1541,
+        "episode_position": 13,
+        "frame_index": 5570,
+        "order_position": 29,
+        "sample_id": "canonical_v3_02_train_50_50_s502_tm1502_001338_frame5570"
+      },
+      {
+        "dataset_index": 2973,
+        "episode": "canonical_v3_02_train_50_50_s502_tm1502",
+        "episode_frames": 1541,
+        "episode_position": 14,
+        "frame_index": 5982,
+        "order_position": 30,
+        "sample_id": "canonical_v3_02_train_50_50_s502_tm1502_001441_frame5982"
+      },
+      {
+        "dataset_index": 3076,
+        "episode": "canonical_v3_02_train_50_50_s502_tm1502",
+        "episode_frames": 1541,
+        "episode_position": 15,
+        "frame_index": 6394,
+        "order_position": 31,
+        "sample_id": "canonical_v3_02_train_50_50_s502_tm1502_001544_frame6394"
+      },
+      {
+        "dataset_index": 6361,
+        "episode": "extra_v3_09_train_30_30_s801_tm1801",
+        "episode_frames": 1537,
+        "episode_position": 0,
+        "frame_index": 229,
+        "order_position": 32,
+        "sample_id": "extra_v3_09_train_30_30_s801_tm1801_000000_frame229"
+      },
+      {
+        "dataset_index": 6463,
+        "episode": "extra_v3_09_train_30_30_s801_tm1801",
+        "episode_frames": 1537,
+        "episode_position": 1,
+        "frame_index": 641,
+        "order_position": 33,
+        "sample_id": "extra_v3_09_train_30_30_s801_tm1801_000103_frame641"
+      },
+      {
+        "dataset_index": 6566,
+        "episode": "extra_v3_09_train_30_30_s801_tm1801",
+        "episode_frames": 1537,
+        "episode_position": 2,
+        "frame_index": 1053,
+        "order_position": 34,
+        "sample_id": "extra_v3_09_train_30_30_s801_tm1801_000206_frame1053"
+      },
+      {
+        "dataset_index": 6668,
+        "episode": "extra_v3_09_train_30_30_s801_tm1801",
+        "episode_frames": 1537,
+        "episode_position": 3,
+        "frame_index": 1461,
+        "order_position": 35,
+        "sample_id": "extra_v3_09_train_30_30_s801_tm1801_000308_frame1461"
+      },
+      {
+        "dataset_index": 6771,
+        "episode": "extra_v3_09_train_30_30_s801_tm1801",
+        "episode_frames": 1537,
+        "episode_position": 4,
+        "frame_index": 1873,
+        "order_position": 36,
+        "sample_id": "extra_v3_09_train_30_30_s801_tm1801_000411_frame1873"
+      },
+      {
+        "dataset_index": 6873,
+        "episode": "extra_v3_09_train_30_30_s801_tm1801",
+        "episode_frames": 1537,
+        "episode_position": 5,
+        "frame_index": 2281,
+        "order_position": 37,
+        "sample_id": "extra_v3_09_train_30_30_s801_tm1801_000513_frame2281"
+      },
+      {
+        "dataset_index": 6975,
+        "episode": "extra_v3_09_train_30_30_s801_tm1801",
+        "episode_frames": 1537,
+        "episode_position": 6,
+        "frame_index": 2689,
+        "order_position": 38,
+        "sample_id": "extra_v3_09_train_30_30_s801_tm1801_000615_frame2689"
+      },
+      {
+        "dataset_index": 7078,
+        "episode": "extra_v3_09_train_30_30_s801_tm1801",
+        "episode_frames": 1537,
+        "episode_position": 7,
+        "frame_index": 3101,
+        "order_position": 39,
+        "sample_id": "extra_v3_09_train_30_30_s801_tm1801_000718_frame3101"
+      },
+      {
+        "dataset_index": 7180,
+        "episode": "extra_v3_09_train_30_30_s801_tm1801",
+        "episode_frames": 1537,
+        "episode_position": 8,
+        "frame_index": 3509,
+        "order_position": 40,
+        "sample_id": "extra_v3_09_train_30_30_s801_tm1801_000820_frame3509"
+      },
+      {
+        "dataset_index": 7283,
+        "episode": "extra_v3_09_train_30_30_s801_tm1801",
+        "episode_frames": 1537,
+        "episode_position": 9,
+        "frame_index": 3921,
+        "order_position": 41,
+        "sample_id": "extra_v3_09_train_30_30_s801_tm1801_000923_frame3921"
+      },
+      {
+        "dataset_index": 7385,
+        "episode": "extra_v3_09_train_30_30_s801_tm1801",
+        "episode_frames": 1537,
+        "episode_position": 10,
+        "frame_index": 4329,
+        "order_position": 42,
+        "sample_id": "extra_v3_09_train_30_30_s801_tm1801_001025_frame4329"
+      },
+      {
+        "dataset_index": 7487,
+        "episode": "extra_v3_09_train_30_30_s801_tm1801",
+        "episode_frames": 1537,
+        "episode_position": 11,
+        "frame_index": 4741,
+        "order_position": 43,
+        "sample_id": "extra_v3_09_train_30_30_s801_tm1801_001128_frame4741"
+      },
+      {
+        "dataset_index": 7590,
+        "episode": "extra_v3_09_train_30_30_s801_tm1801",
+        "episode_frames": 1537,
+        "episode_position": 12,
+        "frame_index": 5153,
+        "order_position": 44,
+        "sample_id": "extra_v3_09_train_30_30_s801_tm1801_001231_frame5153"
+      },
+      {
+        "dataset_index": 7692,
+        "episode": "extra_v3_09_train_30_30_s801_tm1801",
+        "episode_frames": 1537,
+        "episode_position": 13,
+        "frame_index": 5561,
+        "order_position": 45,
+        "sample_id": "extra_v3_09_train_30_30_s801_tm1801_001333_frame5561"
+      },
+      {
+        "dataset_index": 7795,
+        "episode": "extra_v3_09_train_30_30_s801_tm1801",
+        "episode_frames": 1537,
+        "episode_position": 14,
+        "frame_index": 5973,
+        "order_position": 46,
+        "sample_id": "extra_v3_09_train_30_30_s801_tm1801_001436_frame5973"
+      },
+      {
+        "dataset_index": 7897,
+        "episode": "extra_v3_09_train_30_30_s801_tm1801",
+        "episode_frames": 1537,
+        "episode_position": 15,
+        "frame_index": 6381,
+        "order_position": 47,
+        "sample_id": "extra_v3_09_train_30_30_s801_tm1801_001538_frame6381"
+      },
+      {
+        "dataset_index": 7898,
+        "episode": "extra_v3_10_train_50_50_s802_tm1802",
+        "episode_frames": 1784,
+        "episode_position": 0,
+        "frame_index": 228,
+        "order_position": 48,
+        "sample_id": "extra_v3_10_train_50_50_s802_tm1802_000000_frame228"
+      },
+      {
+        "dataset_index": 8017,
+        "episode": "extra_v3_10_train_50_50_s802_tm1802",
+        "episode_frames": 1784,
+        "episode_position": 1,
+        "frame_index": 708,
+        "order_position": 49,
+        "sample_id": "extra_v3_10_train_50_50_s802_tm1802_000120_frame708"
+      },
+      {
+        "dataset_index": 8136,
+        "episode": "extra_v3_10_train_50_50_s802_tm1802",
+        "episode_frames": 1784,
+        "episode_position": 2,
+        "frame_index": 1184,
+        "order_position": 50,
+        "sample_id": "extra_v3_10_train_50_50_s802_tm1802_000239_frame1184"
+      },
+      {
+        "dataset_index": 8255,
+        "episode": "extra_v3_10_train_50_50_s802_tm1802",
+        "episode_frames": 1784,
+        "episode_position": 3,
+        "frame_index": 1664,
+        "order_position": 51,
+        "sample_id": "extra_v3_10_train_50_50_s802_tm1802_000359_frame1664"
+      },
+      {
+        "dataset_index": 8373,
+        "episode": "extra_v3_10_train_50_50_s802_tm1802",
+        "episode_frames": 1784,
+        "episode_position": 4,
+        "frame_index": 2140,
+        "order_position": 52,
+        "sample_id": "extra_v3_10_train_50_50_s802_tm1802_000478_frame2140"
+      },
+      {
+        "dataset_index": 8492,
+        "episode": "extra_v3_10_train_50_50_s802_tm1802",
+        "episode_frames": 1784,
+        "episode_position": 5,
+        "frame_index": 2616,
+        "order_position": 53,
+        "sample_id": "extra_v3_10_train_50_50_s802_tm1802_000597_frame2616"
+      },
+      {
+        "dataset_index": 8611,
+        "episode": "extra_v3_10_train_50_50_s802_tm1802",
+        "episode_frames": 1784,
+        "episode_position": 6,
+        "frame_index": 3092,
+        "order_position": 54,
+        "sample_id": "extra_v3_10_train_50_50_s802_tm1802_000716_frame3092"
+      },
+      {
+        "dataset_index": 8730,
+        "episode": "extra_v3_10_train_50_50_s802_tm1802",
+        "episode_frames": 1784,
+        "episode_position": 7,
+        "frame_index": 3568,
+        "order_position": 55,
+        "sample_id": "extra_v3_10_train_50_50_s802_tm1802_000835_frame3568"
+      },
+      {
+        "dataset_index": 8849,
+        "episode": "extra_v3_10_train_50_50_s802_tm1802",
+        "episode_frames": 1784,
+        "episode_position": 8,
+        "frame_index": 4048,
+        "order_position": 56,
+        "sample_id": "extra_v3_10_train_50_50_s802_tm1802_000955_frame4048"
+      },
+      {
+        "dataset_index": 8968,
+        "episode": "extra_v3_10_train_50_50_s802_tm1802",
+        "episode_frames": 1784,
+        "episode_position": 9,
+        "frame_index": 4524,
+        "order_position": 57,
+        "sample_id": "extra_v3_10_train_50_50_s802_tm1802_001074_frame4524"
+      },
+      {
+        "dataset_index": 9087,
+        "episode": "extra_v3_10_train_50_50_s802_tm1802",
+        "episode_frames": 1784,
+        "episode_position": 10,
+        "frame_index": 5000,
+        "order_position": 58,
+        "sample_id": "extra_v3_10_train_50_50_s802_tm1802_001193_frame5000"
+      },
+      {
+        "dataset_index": 9206,
+        "episode": "extra_v3_10_train_50_50_s802_tm1802",
+        "episode_frames": 1784,
+        "episode_position": 11,
+        "frame_index": 5476,
+        "order_position": 59,
+        "sample_id": "extra_v3_10_train_50_50_s802_tm1802_001312_frame5476"
+      },
+      {
+        "dataset_index": 9324,
+        "episode": "extra_v3_10_train_50_50_s802_tm1802",
+        "episode_frames": 1784,
+        "episode_position": 12,
+        "frame_index": 5948,
+        "order_position": 60,
+        "sample_id": "extra_v3_10_train_50_50_s802_tm1802_001430_frame5948"
+      },
+      {
+        "dataset_index": 9443,
+        "episode": "extra_v3_10_train_50_50_s802_tm1802",
+        "episode_frames": 1784,
+        "episode_position": 13,
+        "frame_index": 6424,
+        "order_position": 61,
+        "sample_id": "extra_v3_10_train_50_50_s802_tm1802_001549_frame6424"
+      },
+      {
+        "dataset_index": 9562,
+        "episode": "extra_v3_10_train_50_50_s802_tm1802",
+        "episode_frames": 1784,
+        "episode_position": 14,
+        "frame_index": 6900,
+        "order_position": 62,
+        "sample_id": "extra_v3_10_train_50_50_s802_tm1802_001668_frame6900"
+      },
+      {
+        "dataset_index": 9681,
+        "episode": "extra_v3_10_train_50_50_s802_tm1802",
+        "episode_frames": 1784,
+        "episode_position": 15,
+        "frame_index": 7376,
+        "order_position": 63,
+        "sample_id": "extra_v3_10_train_50_50_s802_tm1802_001787_frame7376"
+      },
+      {
+        "dataset_index": 9682,
+        "episode": "extra_v3_11_train_30_30_s803_tm1803",
+        "episode_frames": 1790,
+        "episode_position": 0,
+        "frame_index": 225,
+        "order_position": 64,
+        "sample_id": "extra_v3_11_train_30_30_s803_tm1803_000000_frame225"
+      },
+      {
+        "dataset_index": 9801,
+        "episode": "extra_v3_11_train_30_30_s803_tm1803",
+        "episode_frames": 1790,
+        "episode_position": 1,
+        "frame_index": 701,
+        "order_position": 65,
+        "sample_id": "extra_v3_11_train_30_30_s803_tm1803_000119_frame701"
+      },
+      {
+        "dataset_index": 9921,
+        "episode": "extra_v3_11_train_30_30_s803_tm1803",
+        "episode_frames": 1790,
+        "episode_position": 2,
+        "frame_index": 1181,
+        "order_position": 66,
+        "sample_id": "extra_v3_11_train_30_30_s803_tm1803_000239_frame1181"
+      },
+      {
+        "dataset_index": 10040,
+        "episode": "extra_v3_11_train_30_30_s803_tm1803",
+        "episode_frames": 1790,
+        "episode_position": 3,
+        "frame_index": 1657,
+        "order_position": 67,
+        "sample_id": "extra_v3_11_train_30_30_s803_tm1803_000358_frame1657"
+      },
+      {
+        "dataset_index": 10159,
+        "episode": "extra_v3_11_train_30_30_s803_tm1803",
+        "episode_frames": 1790,
+        "episode_position": 4,
+        "frame_index": 2133,
+        "order_position": 68,
+        "sample_id": "extra_v3_11_train_30_30_s803_tm1803_000477_frame2133"
+      },
+      {
+        "dataset_index": 10278,
+        "episode": "extra_v3_11_train_30_30_s803_tm1803",
+        "episode_frames": 1790,
+        "episode_position": 5,
+        "frame_index": 2609,
+        "order_position": 69,
+        "sample_id": "extra_v3_11_train_30_30_s803_tm1803_000596_frame2609"
+      },
+      {
+        "dataset_index": 10398,
+        "episode": "extra_v3_11_train_30_30_s803_tm1803",
+        "episode_frames": 1790,
+        "episode_position": 6,
+        "frame_index": 3089,
+        "order_position": 70,
+        "sample_id": "extra_v3_11_train_30_30_s803_tm1803_000716_frame3089"
+      },
+      {
+        "dataset_index": 10517,
+        "episode": "extra_v3_11_train_30_30_s803_tm1803",
+        "episode_frames": 1790,
+        "episode_position": 7,
+        "frame_index": 3565,
+        "order_position": 71,
+        "sample_id": "extra_v3_11_train_30_30_s803_tm1803_000835_frame3565"
+      },
+      {
+        "dataset_index": 10636,
+        "episode": "extra_v3_11_train_30_30_s803_tm1803",
+        "episode_frames": 1790,
+        "episode_position": 8,
+        "frame_index": 4045,
+        "order_position": 72,
+        "sample_id": "extra_v3_11_train_30_30_s803_tm1803_000955_frame4045"
+      },
+      {
+        "dataset_index": 10755,
+        "episode": "extra_v3_11_train_30_30_s803_tm1803",
+        "episode_frames": 1790,
+        "episode_position": 9,
+        "frame_index": 4521,
+        "order_position": 73,
+        "sample_id": "extra_v3_11_train_30_30_s803_tm1803_001074_frame4521"
+      },
+      {
+        "dataset_index": 10875,
+        "episode": "extra_v3_11_train_30_30_s803_tm1803",
+        "episode_frames": 1790,
+        "episode_position": 10,
+        "frame_index": 5001,
+        "order_position": 74,
+        "sample_id": "extra_v3_11_train_30_30_s803_tm1803_001194_frame5001"
+      },
+      {
+        "dataset_index": 10994,
+        "episode": "extra_v3_11_train_30_30_s803_tm1803",
+        "episode_frames": 1790,
+        "episode_position": 11,
+        "frame_index": 5481,
+        "order_position": 75,
+        "sample_id": "extra_v3_11_train_30_30_s803_tm1803_001314_frame5481"
+      },
+      {
+        "dataset_index": 11113,
+        "episode": "extra_v3_11_train_30_30_s803_tm1803",
+        "episode_frames": 1790,
+        "episode_position": 12,
+        "frame_index": 5957,
+        "order_position": 76,
+        "sample_id": "extra_v3_11_train_30_30_s803_tm1803_001433_frame5957"
+      },
+      {
+        "dataset_index": 11232,
+        "episode": "extra_v3_11_train_30_30_s803_tm1803",
+        "episode_frames": 1790,
+        "episode_position": 13,
+        "frame_index": 6433,
+        "order_position": 77,
+        "sample_id": "extra_v3_11_train_30_30_s803_tm1803_001552_frame6433"
+      },
+      {
+        "dataset_index": 11352,
+        "episode": "extra_v3_11_train_30_30_s803_tm1803",
+        "episode_frames": 1790,
+        "episode_position": 14,
+        "frame_index": 6913,
+        "order_position": 78,
+        "sample_id": "extra_v3_11_train_30_30_s803_tm1803_001672_frame6913"
+      },
+      {
+        "dataset_index": 11471,
+        "episode": "extra_v3_11_train_30_30_s803_tm1803",
+        "episode_frames": 1790,
+        "episode_position": 15,
+        "frame_index": 7389,
+        "order_position": 79,
+        "sample_id": "extra_v3_11_train_30_30_s803_tm1803_001791_frame7389"
+      },
+      {
+        "dataset_index": 11472,
+        "episode": "extra_v3_12_train_50_50_s804_tm1804",
+        "episode_frames": 2084,
+        "episode_position": 0,
+        "frame_index": 229,
+        "order_position": 80,
+        "sample_id": "extra_v3_12_train_50_50_s804_tm1804_000000_frame229"
+      },
+      {
+        "dataset_index": 11611,
+        "episode": "extra_v3_12_train_50_50_s804_tm1804",
+        "episode_frames": 2084,
+        "episode_position": 1,
+        "frame_index": 789,
+        "order_position": 81,
+        "sample_id": "extra_v3_12_train_50_50_s804_tm1804_000140_frame789"
+      },
+      {
+        "dataset_index": 11750,
+        "episode": "extra_v3_12_train_50_50_s804_tm1804",
+        "episode_frames": 2084,
+        "episode_position": 2,
+        "frame_index": 1345,
+        "order_position": 82,
+        "sample_id": "extra_v3_12_train_50_50_s804_tm1804_000279_frame1345"
+      },
+      {
+        "dataset_index": 11889,
+        "episode": "extra_v3_12_train_50_50_s804_tm1804",
+        "episode_frames": 2084,
+        "episode_position": 3,
+        "frame_index": 1909,
+        "order_position": 83,
+        "sample_id": "extra_v3_12_train_50_50_s804_tm1804_000420_frame1909"
+      },
+      {
+        "dataset_index": 12027,
+        "episode": "extra_v3_12_train_50_50_s804_tm1804",
+        "episode_frames": 2084,
+        "episode_position": 4,
+        "frame_index": 2461,
+        "order_position": 84,
+        "sample_id": "extra_v3_12_train_50_50_s804_tm1804_000558_frame2461"
+      },
+      {
+        "dataset_index": 12166,
+        "episode": "extra_v3_12_train_50_50_s804_tm1804",
+        "episode_frames": 2084,
+        "episode_position": 5,
+        "frame_index": 3017,
+        "order_position": 85,
+        "sample_id": "extra_v3_12_train_50_50_s804_tm1804_000697_frame3017"
+      },
+      {
+        "dataset_index": 12305,
+        "episode": "extra_v3_12_train_50_50_s804_tm1804",
+        "episode_frames": 2084,
+        "episode_position": 6,
+        "frame_index": 3573,
+        "order_position": 86,
+        "sample_id": "extra_v3_12_train_50_50_s804_tm1804_000836_frame3573"
+      },
+      {
+        "dataset_index": 12444,
+        "episode": "extra_v3_12_train_50_50_s804_tm1804",
+        "episode_frames": 2084,
+        "episode_position": 7,
+        "frame_index": 4133,
+        "order_position": 87,
+        "sample_id": "extra_v3_12_train_50_50_s804_tm1804_000976_frame4133"
+      },
+      {
+        "dataset_index": 12583,
+        "episode": "extra_v3_12_train_50_50_s804_tm1804",
+        "episode_frames": 2084,
+        "episode_position": 8,
+        "frame_index": 4689,
+        "order_position": 88,
+        "sample_id": "extra_v3_12_train_50_50_s804_tm1804_001115_frame4689"
+      },
+      {
+        "dataset_index": 12722,
+        "episode": "extra_v3_12_train_50_50_s804_tm1804",
+        "episode_frames": 2084,
+        "episode_position": 9,
+        "frame_index": 5249,
+        "order_position": 89,
+        "sample_id": "extra_v3_12_train_50_50_s804_tm1804_001255_frame5249"
+      },
+      {
+        "dataset_index": 12861,
+        "episode": "extra_v3_12_train_50_50_s804_tm1804",
+        "episode_frames": 2084,
+        "episode_position": 10,
+        "frame_index": 5805,
+        "order_position": 90,
+        "sample_id": "extra_v3_12_train_50_50_s804_tm1804_001394_frame5805"
+      },
+      {
+        "dataset_index": 13000,
+        "episode": "extra_v3_12_train_50_50_s804_tm1804",
+        "episode_frames": 2084,
+        "episode_position": 11,
+        "frame_index": 6361,
+        "order_position": 91,
+        "sample_id": "extra_v3_12_train_50_50_s804_tm1804_001533_frame6361"
+      },
+      {
+        "dataset_index": 13138,
+        "episode": "extra_v3_12_train_50_50_s804_tm1804",
+        "episode_frames": 2084,
+        "episode_position": 12,
+        "frame_index": 6913,
+        "order_position": 92,
+        "sample_id": "extra_v3_12_train_50_50_s804_tm1804_001671_frame6913"
+      },
+      {
+        "dataset_index": 13277,
+        "episode": "extra_v3_12_train_50_50_s804_tm1804",
+        "episode_frames": 2084,
+        "episode_position": 13,
+        "frame_index": 7469,
+        "order_position": 93,
+        "sample_id": "extra_v3_12_train_50_50_s804_tm1804_001810_frame7469"
+      },
+      {
+        "dataset_index": 13416,
+        "episode": "extra_v3_12_train_50_50_s804_tm1804",
+        "episode_frames": 2084,
+        "episode_position": 14,
+        "frame_index": 8033,
+        "order_position": 94,
+        "sample_id": "extra_v3_12_train_50_50_s804_tm1804_001951_frame8033"
+      },
+      {
+        "dataset_index": 13555,
+        "episode": "extra_v3_12_train_50_50_s804_tm1804",
+        "episode_frames": 2084,
+        "episode_position": 15,
+        "frame_index": 8593,
+        "order_position": 95,
+        "sample_id": "extra_v3_12_train_50_50_s804_tm1804_002091_frame8593"
+      },
+      {
+        "dataset_index": 13556,
+        "episode": "extra_v3_13_train_30_30_s805_tm1805",
+        "episode_frames": 1485,
+        "episode_position": 0,
+        "frame_index": 227,
+        "order_position": 96,
+        "sample_id": "extra_v3_13_train_30_30_s805_tm1805_000000_frame227"
+      },
+      {
+        "dataset_index": 13655,
+        "episode": "extra_v3_13_train_30_30_s805_tm1805",
+        "episode_frames": 1485,
+        "episode_position": 1,
+        "frame_index": 627,
+        "order_position": 97,
+        "sample_id": "extra_v3_13_train_30_30_s805_tm1805_000100_frame627"
+      },
+      {
+        "dataset_index": 13754,
+        "episode": "extra_v3_13_train_30_30_s805_tm1805",
+        "episode_frames": 1485,
+        "episode_position": 2,
+        "frame_index": 1023,
+        "order_position": 98,
+        "sample_id": "extra_v3_13_train_30_30_s805_tm1805_000199_frame1023"
+      },
+      {
+        "dataset_index": 13853,
+        "episode": "extra_v3_13_train_30_30_s805_tm1805",
+        "episode_frames": 1485,
+        "episode_position": 3,
+        "frame_index": 1419,
+        "order_position": 99,
+        "sample_id": "extra_v3_13_train_30_30_s805_tm1805_000298_frame1419"
+      },
+      {
+        "dataset_index": 13952,
+        "episode": "extra_v3_13_train_30_30_s805_tm1805",
+        "episode_frames": 1485,
+        "episode_position": 4,
+        "frame_index": 1819,
+        "order_position": 100,
+        "sample_id": "extra_v3_13_train_30_30_s805_tm1805_000398_frame1819"
+      },
+      {
+        "dataset_index": 14051,
+        "episode": "extra_v3_13_train_30_30_s805_tm1805",
+        "episode_frames": 1485,
+        "episode_position": 5,
+        "frame_index": 2215,
+        "order_position": 101,
+        "sample_id": "extra_v3_13_train_30_30_s805_tm1805_000497_frame2215"
+      },
+      {
+        "dataset_index": 14150,
+        "episode": "extra_v3_13_train_30_30_s805_tm1805",
+        "episode_frames": 1485,
+        "episode_position": 6,
+        "frame_index": 2611,
+        "order_position": 102,
+        "sample_id": "extra_v3_13_train_30_30_s805_tm1805_000596_frame2611"
+      },
+      {
+        "dataset_index": 14249,
+        "episode": "extra_v3_13_train_30_30_s805_tm1805",
+        "episode_frames": 1485,
+        "episode_position": 7,
+        "frame_index": 3007,
+        "order_position": 103,
+        "sample_id": "extra_v3_13_train_30_30_s805_tm1805_000695_frame3007"
+      },
+      {
+        "dataset_index": 14347,
+        "episode": "extra_v3_13_train_30_30_s805_tm1805",
+        "episode_frames": 1485,
+        "episode_position": 8,
+        "frame_index": 3403,
+        "order_position": 104,
+        "sample_id": "extra_v3_13_train_30_30_s805_tm1805_000794_frame3403"
+      },
+      {
+        "dataset_index": 14446,
+        "episode": "extra_v3_13_train_30_30_s805_tm1805",
+        "episode_frames": 1485,
+        "episode_position": 9,
+        "frame_index": 3799,
+        "order_position": 105,
+        "sample_id": "extra_v3_13_train_30_30_s805_tm1805_000893_frame3799"
+      },
+      {
+        "dataset_index": 14545,
+        "episode": "extra_v3_13_train_30_30_s805_tm1805",
+        "episode_frames": 1485,
+        "episode_position": 10,
+        "frame_index": 4195,
+        "order_position": 106,
+        "sample_id": "extra_v3_13_train_30_30_s805_tm1805_000992_frame4195"
+      },
+      {
+        "dataset_index": 14644,
+        "episode": "extra_v3_13_train_30_30_s805_tm1805",
+        "episode_frames": 1485,
+        "episode_position": 11,
+        "frame_index": 4595,
+        "order_position": 107,
+        "sample_id": "extra_v3_13_train_30_30_s805_tm1805_001092_frame4595"
+      },
+      {
+        "dataset_index": 14743,
+        "episode": "extra_v3_13_train_30_30_s805_tm1805",
+        "episode_frames": 1485,
+        "episode_position": 12,
+        "frame_index": 4991,
+        "order_position": 108,
+        "sample_id": "extra_v3_13_train_30_30_s805_tm1805_001191_frame4991"
+      },
+      {
+        "dataset_index": 14842,
+        "episode": "extra_v3_13_train_30_30_s805_tm1805",
+        "episode_frames": 1485,
+        "episode_position": 13,
+        "frame_index": 5387,
+        "order_position": 109,
+        "sample_id": "extra_v3_13_train_30_30_s805_tm1805_001290_frame5387"
+      },
+      {
+        "dataset_index": 14941,
+        "episode": "extra_v3_13_train_30_30_s805_tm1805",
+        "episode_frames": 1485,
+        "episode_position": 14,
+        "frame_index": 5783,
+        "order_position": 110,
+        "sample_id": "extra_v3_13_train_30_30_s805_tm1805_001389_frame5783"
+      },
+      {
+        "dataset_index": 15040,
+        "episode": "extra_v3_13_train_30_30_s805_tm1805",
+        "episode_frames": 1485,
+        "episode_position": 15,
+        "frame_index": 6179,
+        "order_position": 111,
+        "sample_id": "extra_v3_13_train_30_30_s805_tm1805_001488_frame6179"
+      },
+      {
+        "dataset_index": 15041,
+        "episode": "extra_v3_14_train_50_50_s806_tm1806",
+        "episode_frames": 1786,
+        "episode_position": 0,
+        "frame_index": 222,
+        "order_position": 112,
+        "sample_id": "extra_v3_14_train_50_50_s806_tm1806_000000_frame222"
+      },
+      {
+        "dataset_index": 15160,
+        "episode": "extra_v3_14_train_50_50_s806_tm1806",
+        "episode_frames": 1786,
+        "episode_position": 1,
+        "frame_index": 702,
+        "order_position": 113,
+        "sample_id": "extra_v3_14_train_50_50_s806_tm1806_000120_frame702"
+      },
+      {
+        "dataset_index": 15279,
+        "episode": "extra_v3_14_train_50_50_s806_tm1806",
+        "episode_frames": 1786,
+        "episode_position": 2,
+        "frame_index": 1178,
+        "order_position": 114,
+        "sample_id": "extra_v3_14_train_50_50_s806_tm1806_000239_frame1178"
+      },
+      {
+        "dataset_index": 15398,
+        "episode": "extra_v3_14_train_50_50_s806_tm1806",
+        "episode_frames": 1786,
+        "episode_position": 3,
+        "frame_index": 1654,
+        "order_position": 115,
+        "sample_id": "extra_v3_14_train_50_50_s806_tm1806_000358_frame1654"
+      },
+      {
+        "dataset_index": 15517,
+        "episode": "extra_v3_14_train_50_50_s806_tm1806",
+        "episode_frames": 1786,
+        "episode_position": 4,
+        "frame_index": 2130,
+        "order_position": 116,
+        "sample_id": "extra_v3_14_train_50_50_s806_tm1806_000477_frame2130"
+      },
+      {
+        "dataset_index": 15636,
+        "episode": "extra_v3_14_train_50_50_s806_tm1806",
+        "episode_frames": 1786,
+        "episode_position": 5,
+        "frame_index": 2606,
+        "order_position": 117,
+        "sample_id": "extra_v3_14_train_50_50_s806_tm1806_000596_frame2606"
+      },
+      {
+        "dataset_index": 15755,
+        "episode": "extra_v3_14_train_50_50_s806_tm1806",
+        "episode_frames": 1786,
+        "episode_position": 6,
+        "frame_index": 3082,
+        "order_position": 118,
+        "sample_id": "extra_v3_14_train_50_50_s806_tm1806_000715_frame3082"
+      },
+      {
+        "dataset_index": 15874,
+        "episode": "extra_v3_14_train_50_50_s806_tm1806",
+        "episode_frames": 1786,
+        "episode_position": 7,
+        "frame_index": 3558,
+        "order_position": 119,
+        "sample_id": "extra_v3_14_train_50_50_s806_tm1806_000834_frame3558"
+      },
+      {
+        "dataset_index": 15993,
+        "episode": "extra_v3_14_train_50_50_s806_tm1806",
+        "episode_frames": 1786,
+        "episode_position": 8,
+        "frame_index": 4038,
+        "order_position": 120,
+        "sample_id": "extra_v3_14_train_50_50_s806_tm1806_000954_frame4038"
+      },
+      {
+        "dataset_index": 16112,
+        "episode": "extra_v3_14_train_50_50_s806_tm1806",
+        "episode_frames": 1786,
+        "episode_position": 9,
+        "frame_index": 4514,
+        "order_position": 121,
+        "sample_id": "extra_v3_14_train_50_50_s806_tm1806_001073_frame4514"
+      },
+      {
+        "dataset_index": 16231,
+        "episode": "extra_v3_14_train_50_50_s806_tm1806",
+        "episode_frames": 1786,
+        "episode_position": 10,
+        "frame_index": 4990,
+        "order_position": 122,
+        "sample_id": "extra_v3_14_train_50_50_s806_tm1806_001192_frame4990"
+      },
+      {
+        "dataset_index": 16350,
+        "episode": "extra_v3_14_train_50_50_s806_tm1806",
+        "episode_frames": 1786,
+        "episode_position": 11,
+        "frame_index": 5466,
+        "order_position": 123,
+        "sample_id": "extra_v3_14_train_50_50_s806_tm1806_001311_frame5466"
+      },
+      {
+        "dataset_index": 16469,
+        "episode": "extra_v3_14_train_50_50_s806_tm1806",
+        "episode_frames": 1786,
+        "episode_position": 12,
+        "frame_index": 5946,
+        "order_position": 124,
+        "sample_id": "extra_v3_14_train_50_50_s806_tm1806_001431_frame5946"
+      },
+      {
+        "dataset_index": 16588,
+        "episode": "extra_v3_14_train_50_50_s806_tm1806",
+        "episode_frames": 1786,
+        "episode_position": 13,
+        "frame_index": 6422,
+        "order_position": 125,
+        "sample_id": "extra_v3_14_train_50_50_s806_tm1806_001550_frame6422"
+      },
+      {
+        "dataset_index": 16707,
+        "episode": "extra_v3_14_train_50_50_s806_tm1806",
+        "episode_frames": 1786,
+        "episode_position": 14,
+        "frame_index": 6898,
+        "order_position": 126,
+        "sample_id": "extra_v3_14_train_50_50_s806_tm1806_001669_frame6898"
+      },
+      {
+        "dataset_index": 16826,
+        "episode": "extra_v3_14_train_50_50_s806_tm1806",
+        "episode_frames": 1786,
+        "episode_position": 15,
+        "frame_index": 7374,
+        "order_position": 127,
+        "sample_id": "extra_v3_14_train_50_50_s806_tm1806_001788_frame7374"
+      }
+    ],
+    "frames_per_episode": 16,
+    "holdout_validation_test_frames": 0,
+    "per_episode_frame_counts": {
+      "canonical_v3_01_train_30_30_s501_tm1501": 16,
+      "canonical_v3_02_train_50_50_s502_tm1502": 16,
+      "extra_v3_09_train_30_30_s801_tm1801": 16,
+      "extra_v3_10_train_50_50_s802_tm1802": 16,
+      "extra_v3_11_train_30_30_s803_tm1803": 16,
+      "extra_v3_12_train_50_50_s804_tm1804": 16,
+      "extra_v3_13_train_30_30_s805_tm1805": 16,
+      "extra_v3_14_train_50_50_s806_tm1806": 16
+    },
+    "position_rule": "position(i) = floor(i * (N-1) / (FRAMES_PER_EPISODE-1) + 0.5) for i in 0..15 over the sorted episode rows, so the first and last frame of every episode are always included",
+    "rounding_convention": "floor(x + 0.5), the same half-up rule as contract._q_to_e4",
+    "selected_row_sha256": "2931ae6b820d1ac72a63d8f84ed19e894b9c425b6dfec33ac7f853cd53fe32f4",
+    "selected_sample_id_sha256": "cffe5d873298c8b785c72f06fdf31aef75f07dfdfca6f248c04cca81adaf45ae",
+    "sort_key": "primary: int(manifest frame_id); tie-breaker: sample_id",
+    "source_manifest_sha256": "5d65e6eb14aadea11ca6bab6e82f0c94c31a50746611d167d282d8988a4504c2",
+    "split": "train fit partition only",
+    "total_frames": 128,
+    "uniqueness": "16 distinct frames required per episode"
+  },
+  "schema": "splitfusion_fcos_hybrid_q_phase7_zstd_measurement_v1",
+  "source_delta": {
+    "added_since_phase4": [
+      "continuous_q.py",
+      "low_q_validation.py",
+      "phase5_common.py",
+      "phase5_holdout.py",
+      "phase5_training.py",
+      "phase6_validation.py",
+      "phase7_zstd_measurement.py",
+      "tests/test_continuous_q.py",
+      "zstd_transport.py"
+    ],
+    "changed_since_phase4": [
+      "README.md",
+      "contract.py"
+    ],
+    "frozen_semantics_modules_unchanged": [
+      "ranker.py",
+      "selection.py",
+      "codec.py",
+      "guards.py",
+      "training.py",
+      "teacher_cache.py",
+      "gpu_qualification.py",
+      "locked_config.json",
+      "__init__.py"
+    ]
+  },
+  "steady_state_sensitivity": {
+    "first_repeat_discarded": true,
+    "frame": "the last frame of the 128-frame sample",
+    "outcome": "agrees with the primary table to within ~1 ms at every q, so the primary latencies are not allocator- or q-ordering-dependent",
+    "per_q": {
+      "q00000": {
+        "q": 0.0,
+        "repeats": 9,
+        "sparse_decode_median_ms": 36.093953,
+        "zstd_compress_median_ms": 36.232174,
+        "zstd_decompress_median_ms": 17.265372
+      },
+      "q00500": {
+        "q": 0.05,
+        "repeats": 9,
+        "sparse_decode_median_ms": 39.29676,
+        "zstd_compress_median_ms": 34.404669,
+        "zstd_decompress_median_ms": 16.523399
+      },
+      "q01000": {
+        "q": 0.1,
+        "repeats": 9,
+        "sparse_decode_median_ms": 37.163592,
+        "zstd_compress_median_ms": 32.566532,
+        "zstd_decompress_median_ms": 15.747187
+      },
+      "q01500": {
+        "q": 0.15,
+        "repeats": 9,
+        "sparse_decode_median_ms": 36.316556,
+        "zstd_compress_median_ms": 30.750937,
+        "zstd_decompress_median_ms": 14.892414
+      },
+      "q02000": {
+        "q": 0.2,
+        "repeats": 9,
+        "sparse_decode_median_ms": 36.84709,
+        "zstd_compress_median_ms": 29.058932,
+        "zstd_decompress_median_ms": 14.14939
+      },
+      "q02500": {
+        "q": 0.25,
+        "repeats": 9,
+        "sparse_decode_median_ms": 36.269541,
+        "zstd_compress_median_ms": 27.479627,
+        "zstd_decompress_median_ms": 13.417033
+      },
+      "q03000": {
+        "q": 0.3,
+        "repeats": 9,
+        "sparse_decode_median_ms": 35.836804,
+        "zstd_compress_median_ms": 25.525754,
+        "zstd_decompress_median_ms": 12.614252
+      },
+      "q05000": {
+        "q": 0.5,
+        "repeats": 9,
+        "sparse_decode_median_ms": 32.859009,
+        "zstd_compress_median_ms": 18.296722,
+        "zstd_decompress_median_ms": 8.998475
+      },
+      "q07000": {
+        "q": 0.7,
+        "repeats": 9,
+        "sparse_decode_median_ms": 30.007026,
+        "zstd_compress_median_ms": 11.071904,
+        "zstd_decompress_median_ms": 5.427282
+      },
+      "q09000": {
+        "q": 0.9,
+        "repeats": 9,
+        "sparse_decode_median_ms": 27.199457,
+        "zstd_compress_median_ms": 3.855032,
+        "zstd_decompress_median_ms": 1.847819
+      },
+      "q09800": {
+        "q": 0.98,
+        "repeats": 9,
+        "sparse_decode_median_ms": 26.12087,
+        "zstd_compress_median_ms": 0.839281,
+        "zstd_decompress_median_ms": 0.38217
+      }
+    },
+    "repeats_per_q": 9,
+    "scope": "one frame, one q repeated, warm host allocator; corroborates the primary frame-major numbers, and is not a replacement curve"
+  },
+  "terminal": "HYBRID_Q_PHASE7_ZSTD_MEASUREMENT_COMPLETE",
+  "timing_contract": {
+    "c2_forward_passes_per_frame": 1,
+    "clock": "time.perf_counter_ns",
+    "cuda_synchronized_around_gpu_operations": true,
+    "excluded": [
+      "RGB/radar file loading",
+      "RGB/radar -> C2 frozen backbone inference"
+    ],
+    "host_scope": "current-host CPU/GPU measurement; NOT Raspberry Pi UE latency and NOT OAI transport latency",
+    "measured_passes_per_frame_per_q": 1,
+    "q_masks_derived_by_slicing_one_ordering": true,
+    "ranker_and_full_ordering_per_frame": 1,
+    "ranker_plus_ordering_charged_in_full_to_every_q_gt_0_ue_total": true,
+    "ranker_sorting_and_selection_excluded_at_q0": "q=0 preserves its exact ranker-bypass path and never scores cells",
+    "sparse_encode_includes_gpu_to_host_transfer": true,
+    "timing_and_verification_are_separate_passes": true,
+    "torch_cpu_threads": 1,
+    "torch_cpu_threads_rationale": "pinned for reproducibility: at torch's 24-thread default on this hybrid P/E-core CPU the same decode call ranged 5-68 ms while its component operations summed to 3-7 ms, so the multi-thread medians measured thread-pool scheduling jitter rather than codec cost",
+    "verification_allocations_excluded_from_timing": true,
+    "warmup_payloads_per_q": 1,
+    "warmup_reported": false
+  },
+  "wall_seconds": 243.6475124359131,
+  "zstd_implementation": {
+    "backend": "cext",
+    "binding_version": "0.25.0",
+    "implementation": "python-zstandard",
+    "module": "zstandard",
+    "settings": {
+      "dict_data": null,
+      "level": 1,
+      "level_search_performed": false,
+      "one_frame_per_camera_frame": true,
+      "threads": 0,
+      "write_checksum": true,
+      "write_content_size": true,
+      "write_dict_id": false
+    },
+    "zstd_library_version": "1.5.7"
+  },
+  "zstd_wraps": "SparsePayload.data"
+}
