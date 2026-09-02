@@ -345,12 +345,59 @@ over an even count and exercises the two-central-value rule.
 This artifact is teacher supervision and loss scale only. It is **not** evidence about accuracy,
 payload, latency or transport at any q.
 
+## Phase 5 ranker training and train-holdout selection (executed)
+
+`experiments/splitfusion_fcos_hybrid_q_v1/20260901_185725_phase5_ranker_training`.
+**Terminal `ROI_DROP_NOT_SAFE_ON_TRAIN_HOLDOUT`** — no checkpoint/q pair passed every
+registered preservation gate, so no checkpoint was selected and validation was not opened.
+
+One 12-epoch scientific run: 10,164 updates (847 x 12), 6,776 q-aware, 81.2 min. Every fit
+frame exactly once per epoch under a `20260829 + epoch` shuffle, batch 16 with the final
+partial batch retained, **0** holdout frames in any optimizer batch, gradient qualification
+passed every epoch, and all 371 frozen perception parameters and buffers bit-identical at
+epochs 4, 8 and 12. The q cycle ran 0.30/0.50/0.70 continuously across epoch boundaries
+(282/283 per q per epoch).
+
+**The q-aware stage diverged.** Total loss rose monotonically 31.1 -> 245.3 across epochs
+5-12, essentially every update was clipped at norm 5.0, and the ranker weight norm grew
+5.87 -> 31.43 -> 40.56 at the three candidates. The hard mask is scale-invariant, so nothing
+bounds score magnitude except the `0.1 x` distillation term, which loses; the normalized
+geometry contribution went 10.33 -> 47.79, ending worse than a randomly initialized ranker.
+This is a property of the locked hyper-parameters, not a numerical fault: stage A is
+well-behaved throughout and every runtime and ownership gate held on all 10,164 updates. No
+retune was attempted.
+
+The q=0 holdout baseline **exactly reproduces** the published frozen p025 train-holdout
+result — 2249/253/307 TP/FP/FN over 2,556 AVO-observable actor-frames, with precision, recall
+and F1 bit-identical and XY MAE differing by 6.1e-06 m — confirming the evaluation is the
+frozen p025 pipeline rather than a re-implementation.
+
+The closest pair is epoch 4 (distillation-only) at q=0.30, worst absolute degradation 0.037936
+at 0.700132 of the framed q=0 payload. **Every object-level detection and localization gate
+passes there; all four failures are segmentation or segmentation-coupled** (vehicle IoU
++0.0379, foreground mIoU +0.0269, person box-mask IoU +0.0159, and person precision +0.0186
+downstream of the p025 `semantic_support_threshold` 0.10 gate). Vehicle precision, person
+recall and person 20-40 m recall all improve slightly. This corroborates
+`rl_agent/density_knob/DENSITY_KNOB_RESULTS.md`: the dense per-pixel semantic head, not the
+sparse object heads, is the binding constraint on spatial cell drop.
+
+Scoring reuses the frozen v3.1 `audit_v1.score_arm` and `score_contract_v1.score_segmentation`
+and the frozen p025 AVO view unmodified. Those scorers hardcode `contracts/<contract>/val/`,
+so the train contract directory is exposed at that path by a read-only symlink alias: the
+scoring code executed is byte-identical and only the split it reads changes. The validation
+contract directory is never linked or read.
+
+This does **not** show ROI drop is unachievable. The eight q-aware epochs are not a fair test
+of their own hypothesis because they diverged, and the only well-behaved candidate never saw
+the mask in the loop. A bounded, pre-registered change to the q-aware stage is untested and
+therefore not falsified; it is not authorized by this commit.
+
 ## Phase boundaries
 
-Not done and not authorized by this commit: ranker training (distillation and the q-aware
-stage), validation or test evaluation, OAI/CARLA transport measurement, quantization, zstd and
-the AE families. The test set remains untouched and reserved for independent publication
-confirmation.
+Not done and not authorized by this commit: validation or test evaluation, q=0.90 and q=0.98
+stress evaluation, OAI/CARLA transport measurement, quantization, zstd, the AE families,
+continuous-q work, and any retune of the locked training configuration. The test set remains
+untouched and reserved for independent publication confirmation.
 
 ## Commands
 
@@ -367,8 +414,18 @@ splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1.teacher_cache \
   --execute HYBRID_Q_PHASE4_TEACHER_CACHE \
   --output experiments/splitfusion_fcos_hybrid_q_v1/<timestamp>_phase4_teacher_cache
 
-# Phase 5+ (NOT run here):
-#   4 distillation epochs, then 8 q-aware epochs over the 0.30/0.50/0.70 cycle
+# Phase 5 (executed once each; the run is create-only and resumable by epoch):
+python3 -m pole_lraspp_multimodal_fusion.object_head_pilot_v1.\
+splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1.phase5_training \
+  --execute HYBRID_Q_PHASE5_RANKER_TRAINING \
+  --output experiments/splitfusion_fcos_hybrid_q_v1/<timestamp>_phase5_ranker_training
+
+python3 -m pole_lraspp_multimodal_fusion.object_head_pilot_v1.\
+splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1.phase5_holdout \
+  --execute HYBRID_Q_PHASE5_HOLDOUT_EVALUATION \
+  --training experiments/splitfusion_fcos_hybrid_q_v1/<timestamp>_phase5_ranker_training
+
+# Phase 6+ (NOT run here):
 #   frozen-validation sweep over q in {0.00, 0.30, 0.50, 0.70, 0.90, 0.98}
 #   measured payload / UE / network / edge / end-to-end latency over OAI
 ```

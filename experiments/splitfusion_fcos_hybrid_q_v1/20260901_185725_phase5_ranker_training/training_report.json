@@ -1,0 +1,943 @@
+{
+  "binding": {
+    "fit_reference_medians": {
+      "medians": {
+        "A": 0.013652884401381016,
+        "D": 0.7242346405982971,
+        "G": 0.10442040860652924,
+        "S": 0.09630495309829712
+      },
+      "path": "experiments/splitfusion_fcos_hybrid_q_v1/20260901_180439_phase4_teacher_cache/fit_reference_medians.json",
+      "sha256": "f91570c7e9b7b895b9c02ae5831c382b68f5a4f6b7a20fa9aed6c5bcf552729e"
+    },
+    "frozen_checkpoint": {
+      "epoch": 26,
+      "path": "experiments/route_b_v3_1_splitfusion_fcos_r50_fpn_p2_p7_v1_numerical_recovery_v1/20260830_recovered_epoch10_gate_v1/checkpoints/epoch_026.pt",
+      "sha256": "da14d21edbd374c1c3abce02ca4674b9f4097becfba9759aba945cea160a297f"
+    },
+    "hybrid_q_locked_config": {
+      "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1/locked_config.json",
+      "schema": "splitfusion_fcos_hybrid_q_transport_v1",
+      "sha256": "b2b0d8427bd867f46058ebba49ac6a183eb89413b4d69326fef93b150ebfcde6"
+    },
+    "hybrid_q_source_sha256": {
+      "IMPLEMENTATION_REVIEW_PACKET_PHASE1.md": "7b4ff3748b10c7142104177f7bd982224d369600d5d53c7aac9ce564f2a62b48",
+      "README.md": "da02e0a3c5223a305256fe71d1dc7a8fd7f208e6c9a600f5a77e89a039cad9e0",
+      "__init__.py": "9319a2b3ce9d492e1577908148ef31187ed648ef81944365dd907dee717b206c",
+      "codec.py": "7b3833398a84fea31f65b86ec294c6675727390035b5761d372fd5a3cbba7b79",
+      "contract.py": "bbcf73aade3e0f901ea451746213d08cecb4798fadf1a3de677cbef6d9633db6",
+      "gpu_qualification.py": "0032b9ac7edb89ec1b01616ea563bec73d04c20b164d6bbf8297f36d30eea7e6",
+      "guards.py": "77d8d8bfd168e74a7f0b6a7e3c8e7abc4c3549a86cda392feb394d7580a33031",
+      "locked_config.json": "b2b0d8427bd867f46058ebba49ac6a183eb89413b4d69326fef93b150ebfcde6",
+      "phase5_common.py": "0d30eeba0effe57df79fff25946d42ae569b102ca4e9f8d9db24fe286480636d",
+      "phase5_holdout.py": "b6dfef020eeef2c3050e23abf104412d29f954d07696b7fcfe02fb6b89a07312",
+      "phase5_training.py": "fbc44f2e4969d9f970b6968f677a5ac5e0cf171cfc25d342346c24769f571336",
+      "ranker.py": "462536991f195651a1ee641f8e83444882ec370a8dffab72f13f0d770422b353",
+      "selection.py": "ccc2b12919b078eac7af6131418989567d618d42f7b908b2db74df42e0342a71",
+      "teacher_cache.py": "14f866d483c245f14078c6234a357427bccc4bfa1dd533b138677f1e17f579be",
+      "tests/__init__.py": "1c1c24c4edd4acf7bd8af46b63f47089fa1d86aa6481b9e43923be8810cf1692",
+      "tests/test_synthetic.py": "de2388e391a069a38a712b20bdc1b19215c3d3c5cf51e45a2062460f97fd346b",
+      "training.py": "a10775a3a9f3e051e3456c6c85cdc76fff47f417e9bd24ddecb6633dcda1161a"
+    },
+    "perception_forward_lock": {
+      "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_person_p025_calibration_v1/PERCEPTION_FORWARD_LOCK_P025_V1.json",
+      "sha256": "86d6f13ae9168b33b697df5b785c5f7c320afc52cfdcded5b632d94a6d943fe1"
+    },
+    "phase4_recorded_source_sha256": {
+      "IMPLEMENTATION_REVIEW_PACKET_PHASE1.md": "7b4ff3748b10c7142104177f7bd982224d369600d5d53c7aac9ce564f2a62b48",
+      "README.md": "cd0648771bce7efad5785b95c11b5e5be04260d208d8f146d3e6090251c6748e",
+      "__init__.py": "9319a2b3ce9d492e1577908148ef31187ed648ef81944365dd907dee717b206c",
+      "codec.py": "7b3833398a84fea31f65b86ec294c6675727390035b5761d372fd5a3cbba7b79",
+      "contract.py": "d3d0fd9d3e904bec7b13d32885b738b62c5bed51d9a7207ffe1ec1b7f2e2041d",
+      "gpu_qualification.py": "0032b9ac7edb89ec1b01616ea563bec73d04c20b164d6bbf8297f36d30eea7e6",
+      "guards.py": "77d8d8bfd168e74a7f0b6a7e3c8e7abc4c3549a86cda392feb394d7580a33031",
+      "locked_config.json": "b2b0d8427bd867f46058ebba49ac6a183eb89413b4d69326fef93b150ebfcde6",
+      "ranker.py": "462536991f195651a1ee641f8e83444882ec370a8dffab72f13f0d770422b353",
+      "selection.py": "ccc2b12919b078eac7af6131418989567d618d42f7b908b2db74df42e0342a71",
+      "teacher_cache.py": "14f866d483c245f14078c6234a357427bccc4bfa1dd533b138677f1e17f579be",
+      "tests/__init__.py": "1c1c24c4edd4acf7bd8af46b63f47089fa1d86aa6481b9e43923be8810cf1692",
+      "tests/test_synthetic.py": "de2388e391a069a38a712b20bdc1b19215c3d3c5cf51e45a2062460f97fd346b",
+      "training.py": "a10775a3a9f3e051e3456c6c85cdc76fff47f417e9bd24ddecb6633dcda1161a"
+    },
+    "teacher_cache_manifest": {
+      "path": "experiments/splitfusion_fcos_hybrid_q_v1/20260901_180439_phase4_teacher_cache/teacher_cache_manifest.json",
+      "sha256": "e1ef600eb83c1924a52c37dbdbf0b435990eaaae4f1db1b0e07d9b1acd7fc273"
+    }
+  },
+  "candidate_checkpoints": {
+    "ranker_epoch_04.pt": "07781c56a4c0f306f16d332f64627ce6b9458e154f40ab9fef89f89909b79cb5",
+    "ranker_epoch_08.pt": "a2af4367d2d7d6896825e46b0279cea3d8ce90cb42b38266b29e637ffcf23395",
+    "ranker_epoch_12.pt": "91737439b4a9f1ac1576b3ca4c50603395cb193ec06e02b2d0a3c9c1fef75470"
+  },
+  "environment": {
+    "cuda": "12.8",
+    "gpu": "NVIDIA GeForce RTX 5090",
+    "python": "3.10.12",
+    "torch": "2.10.0.dev20251114+cu128",
+    "training_precision": "bf16 autocast tail, fp32 C2 boundary and losses (registered)"
+  },
+  "epochs": [
+    {
+      "clipped_fraction": 0.0,
+      "clipped_updates": 0,
+      "epoch": 1,
+      "epoch_sample_id_sha256": "5ef63470c71aea35565123594dabd414cae9f91879bbb1f74b32502c6fa808c3",
+      "epoch_shuffle_seed": 20260830,
+      "frames": 13543,
+      "frozen_perception_state_unchanged": true,
+      "global_q_update_index": 0,
+      "global_update_index": 847,
+      "gradient_qualification": {
+        "disconnected_tensors": [],
+        "missing_gradient_batches": [],
+        "named_ranker_tensors": [
+          "reduce.weight",
+          "reduce.bias",
+          "depthwise.weight",
+          "depthwise.bias",
+          "score.weight"
+        ],
+        "never_nonzero_tensors": [],
+        "observed_updates": 847,
+        "qualified": true,
+        "window": 847,
+        "zero_gradient_batches": []
+      },
+      "group_contributing_updates": {},
+      "group_excluded_updates": {},
+      "holdout_frames_in_optimizer_batches": 0,
+      "max_pre_clip_global_grad_norm": 0.9332941770553589,
+      "mean_distillation_loss": 9.320575734378314,
+      "mean_normalized_group_contribution": {},
+      "mean_total_loss": 9.320575734378314,
+      "optimizer_updates": 847,
+      "peak_allocated_vram_mib": 2205.806640625,
+      "peak_reserved_vram_mib": 2494.0,
+      "q_update_counts": {},
+      "stage": "distillation",
+      "wall_seconds": 98.0793707370758
+    },
+    {
+      "clipped_fraction": 0.0,
+      "clipped_updates": 0,
+      "epoch": 2,
+      "epoch_sample_id_sha256": "10af8322c56db613ce6b5eb0bd3caaa0c3579e2e12b5a4e0226a9e1b2785e3a9",
+      "epoch_shuffle_seed": 20260831,
+      "frames": 13543,
+      "frozen_perception_state_unchanged": true,
+      "global_q_update_index": 0,
+      "global_update_index": 1694,
+      "gradient_qualification": {
+        "disconnected_tensors": [],
+        "missing_gradient_batches": [],
+        "named_ranker_tensors": [
+          "reduce.weight",
+          "reduce.bias",
+          "depthwise.weight",
+          "depthwise.bias",
+          "score.weight"
+        ],
+        "never_nonzero_tensors": [],
+        "observed_updates": 847,
+        "qualified": true,
+        "window": 847,
+        "zero_gradient_batches": []
+      },
+      "group_contributing_updates": {},
+      "group_excluded_updates": {},
+      "holdout_frames_in_optimizer_batches": 0,
+      "max_pre_clip_global_grad_norm": 0.7667236328125,
+      "mean_distillation_loss": 9.198461244351185,
+      "mean_normalized_group_contribution": {},
+      "mean_total_loss": 9.198461244351185,
+      "optimizer_updates": 847,
+      "peak_allocated_vram_mib": 2205.806640625,
+      "peak_reserved_vram_mib": 2512.0,
+      "q_update_counts": {},
+      "stage": "distillation",
+      "wall_seconds": 96.23997664451599
+    },
+    {
+      "clipped_fraction": 0.0,
+      "clipped_updates": 0,
+      "epoch": 3,
+      "epoch_sample_id_sha256": "be62f8d98e77f210880418262ef4763a23409fe9be931cc749f75ab58cc3ef77",
+      "epoch_shuffle_seed": 20260832,
+      "frames": 13543,
+      "frozen_perception_state_unchanged": true,
+      "global_q_update_index": 0,
+      "global_update_index": 2541,
+      "gradient_qualification": {
+        "disconnected_tensors": [],
+        "missing_gradient_batches": [],
+        "named_ranker_tensors": [
+          "reduce.weight",
+          "reduce.bias",
+          "depthwise.weight",
+          "depthwise.bias",
+          "score.weight"
+        ],
+        "never_nonzero_tensors": [],
+        "observed_updates": 847,
+        "qualified": true,
+        "window": 847,
+        "zero_gradient_batches": []
+      },
+      "group_contributing_updates": {},
+      "group_excluded_updates": {},
+      "holdout_frames_in_optimizer_batches": 0,
+      "max_pre_clip_global_grad_norm": 0.7720115184783936,
+      "mean_distillation_loss": 9.16970170684238,
+      "mean_normalized_group_contribution": {},
+      "mean_total_loss": 9.16970170684238,
+      "optimizer_updates": 847,
+      "peak_allocated_vram_mib": 2205.806640625,
+      "peak_reserved_vram_mib": 2512.0,
+      "q_update_counts": {},
+      "stage": "distillation",
+      "wall_seconds": 96.0380470752716
+    },
+    {
+      "candidate_checkpoint": "ranker_epoch_04.pt",
+      "candidate_checkpoint_sha256": "07781c56a4c0f306f16d332f64627ce6b9458e154f40ab9fef89f89909b79cb5",
+      "clipped_fraction": 0.0,
+      "clipped_updates": 0,
+      "epoch": 4,
+      "epoch_sample_id_sha256": "dc510ebfbf66782c90c7caaec861e8fbf018d4d5fae61e34f845508c6bb1452b",
+      "epoch_shuffle_seed": 20260833,
+      "frames": 13543,
+      "frozen_perception_state_unchanged": true,
+      "global_q_update_index": 0,
+      "global_update_index": 3388,
+      "gradient_qualification": {
+        "disconnected_tensors": [],
+        "missing_gradient_batches": [],
+        "named_ranker_tensors": [
+          "reduce.weight",
+          "reduce.bias",
+          "depthwise.weight",
+          "depthwise.bias",
+          "score.weight"
+        ],
+        "never_nonzero_tensors": [],
+        "observed_updates": 847,
+        "qualified": true,
+        "window": 847,
+        "zero_gradient_batches": []
+      },
+      "group_contributing_updates": {},
+      "group_excluded_updates": {},
+      "holdout_frames_in_optimizer_batches": 0,
+      "max_pre_clip_global_grad_norm": 0.8090175986289978,
+      "mean_distillation_loss": 9.161322264913403,
+      "mean_normalized_group_contribution": {},
+      "mean_total_loss": 9.161322264913403,
+      "optimizer_updates": 847,
+      "peak_allocated_vram_mib": 2205.806640625,
+      "peak_reserved_vram_mib": 2512.0,
+      "q_update_counts": {},
+      "stage": "distillation",
+      "wall_seconds": 96.39213299751282
+    },
+    {
+      "clipped_fraction": 0.9799291617473436,
+      "clipped_updates": 830,
+      "epoch": 5,
+      "epoch_sample_id_sha256": "239aa37d47c7280c758eaf62c734583c5591bb3cc689dbe46cf2ba013ba3ca5f",
+      "epoch_shuffle_seed": 20260834,
+      "frames": 13543,
+      "frozen_perception_state_unchanged": true,
+      "global_q_update_index": 847,
+      "global_update_index": 4235,
+      "gradient_qualification": {
+        "disconnected_tensors": [],
+        "missing_gradient_batches": [],
+        "named_ranker_tensors": [
+          "reduce.weight",
+          "reduce.bias",
+          "depthwise.weight",
+          "depthwise.bias",
+          "score.weight"
+        ],
+        "never_nonzero_tensors": [],
+        "observed_updates": 847,
+        "qualified": true,
+        "window": 847,
+        "zero_gradient_batches": []
+      },
+      "group_contributing_updates": {
+        "A": 847,
+        "D": 847,
+        "G": 847,
+        "S": 847
+      },
+      "group_excluded_updates": {},
+      "holdout_frames_in_optimizer_batches": 0,
+      "max_pre_clip_global_grad_norm": 224.6371612548828,
+      "mean_distillation_loss": 250.213038005401,
+      "mean_normalized_group_contribution": {
+        "A": 9.70604255714342,
+        "D": 1.2336544116208998,
+        "G": 10.329519509312057,
+        "S": 3.1812492157280747
+      },
+      "mean_total_loss": 31.133920661392573,
+      "optimizer_updates": 847,
+      "peak_allocated_vram_mib": 22903.705078125,
+      "peak_reserved_vram_mib": 23550.0,
+      "q_update_counts": {
+        "0.30": 283,
+        "0.50": 282,
+        "0.70": 282
+      },
+      "stage": "q_aware",
+      "wall_seconds": 558.5529651641846
+    },
+    {
+      "clipped_fraction": 1.0,
+      "clipped_updates": 847,
+      "epoch": 6,
+      "epoch_sample_id_sha256": "aff2a98d5236c915f205a1cf9d61b094727621340b820a7a1776177a5263c202",
+      "epoch_shuffle_seed": 20260835,
+      "frames": 13543,
+      "frozen_perception_state_unchanged": true,
+      "global_q_update_index": 1694,
+      "global_update_index": 5082,
+      "gradient_qualification": {
+        "disconnected_tensors": [],
+        "missing_gradient_batches": [],
+        "named_ranker_tensors": [
+          "reduce.weight",
+          "reduce.bias",
+          "depthwise.weight",
+          "depthwise.bias",
+          "score.weight"
+        ],
+        "never_nonzero_tensors": [],
+        "observed_updates": 847,
+        "qualified": true,
+        "window": 847,
+        "zero_gradient_batches": []
+      },
+      "group_contributing_updates": {
+        "A": 847,
+        "D": 847,
+        "G": 847,
+        "S": 847
+      },
+      "group_excluded_updates": {},
+      "holdout_frames_in_optimizer_batches": 0,
+      "max_pre_clip_global_grad_norm": 297.79730224609375,
+      "mean_distillation_loss": 630.4641049147497,
+      "mean_normalized_group_contribution": {
+        "A": 8.640968548687042,
+        "D": 1.4765916097528542,
+        "G": 19.49399777712208,
+        "S": 4.301801411497912
+      },
+      "mean_total_loss": 71.52475122859374,
+      "optimizer_updates": 847,
+      "peak_allocated_vram_mib": 22903.1337890625,
+      "peak_reserved_vram_mib": 23550.0,
+      "q_update_counts": {
+        "0.30": 282,
+        "0.50": 283,
+        "0.70": 282
+      },
+      "stage": "q_aware",
+      "wall_seconds": 558.964195728302
+    },
+    {
+      "clipped_fraction": 1.0,
+      "clipped_updates": 847,
+      "epoch": 7,
+      "epoch_sample_id_sha256": "bc7dc0035202ad9d9d602123b82393fc2123bed5ad637724f0f187631c514a01",
+      "epoch_shuffle_seed": 20260836,
+      "frames": 13543,
+      "frozen_perception_state_unchanged": true,
+      "global_q_update_index": 2541,
+      "global_update_index": 5929,
+      "gradient_qualification": {
+        "disconnected_tensors": [],
+        "missing_gradient_batches": [],
+        "named_ranker_tensors": [
+          "reduce.weight",
+          "reduce.bias",
+          "depthwise.weight",
+          "depthwise.bias",
+          "score.weight"
+        ],
+        "never_nonzero_tensors": [],
+        "observed_updates": 847,
+        "qualified": true,
+        "window": 847,
+        "zero_gradient_batches": []
+      },
+      "group_contributing_updates": {
+        "A": 847,
+        "D": 847,
+        "G": 847,
+        "S": 847
+      },
+      "group_excluded_updates": {},
+      "holdout_frames_in_optimizer_batches": 0,
+      "max_pre_clip_global_grad_norm": 439.1025085449219,
+      "mean_distillation_loss": 949.9912447338262,
+      "mean_normalized_group_contribution": {
+        "A": 8.689482625405551,
+        "D": 1.685530960760279,
+        "G": 26.69425394478958,
+        "S": 4.90848748119891
+      },
+      "mean_total_loss": 105.49356467326952,
+      "optimizer_updates": 847,
+      "peak_allocated_vram_mib": 22903.3974609375,
+      "peak_reserved_vram_mib": 23550.0,
+      "q_update_counts": {
+        "0.30": 282,
+        "0.50": 282,
+        "0.70": 283
+      },
+      "stage": "q_aware",
+      "wall_seconds": 561.6541783809662
+    },
+    {
+      "candidate_checkpoint": "ranker_epoch_08.pt",
+      "candidate_checkpoint_sha256": "a2af4367d2d7d6896825e46b0279cea3d8ce90cb42b38266b29e637ffcf23395",
+      "clipped_fraction": 1.0,
+      "clipped_updates": 847,
+      "epoch": 8,
+      "epoch_sample_id_sha256": "60d691415dcaeba9f8e5ff233649ec12b31135d128c2efc659d8df956a9bd838",
+      "epoch_shuffle_seed": 20260837,
+      "frames": 13543,
+      "frozen_perception_state_unchanged": true,
+      "global_q_update_index": 3388,
+      "global_update_index": 6776,
+      "gradient_qualification": {
+        "disconnected_tensors": [],
+        "missing_gradient_batches": [],
+        "named_ranker_tensors": [
+          "reduce.weight",
+          "reduce.bias",
+          "depthwise.weight",
+          "depthwise.bias",
+          "score.weight"
+        ],
+        "never_nonzero_tensors": [],
+        "observed_updates": 847,
+        "qualified": true,
+        "window": 847,
+        "zero_gradient_batches": []
+      },
+      "group_contributing_updates": {
+        "A": 847,
+        "D": 847,
+        "G": 847,
+        "S": 847
+      },
+      "group_excluded_updates": {},
+      "holdout_frames_in_optimizer_batches": 0,
+      "max_pre_clip_global_grad_norm": 653.0616455078125,
+      "mean_distillation_loss": 1222.4644816465052,
+      "mean_normalized_group_contribution": {
+        "A": 8.838495089574359,
+        "D": 1.8888237672131174,
+        "G": 34.44170939561299,
+        "S": 5.474498686215573
+      },
+      "mean_total_loss": 134.90733204090608,
+      "optimizer_updates": 847,
+      "peak_allocated_vram_mib": 22903.26806640625,
+      "peak_reserved_vram_mib": 23550.0,
+      "q_update_counts": {
+        "0.30": 283,
+        "0.50": 282,
+        "0.70": 282
+      },
+      "stage": "q_aware",
+      "wall_seconds": 561.687305688858
+    },
+    {
+      "clipped_fraction": 1.0,
+      "clipped_updates": 847,
+      "epoch": 9,
+      "epoch_sample_id_sha256": "52abf720f50d6af8b824e52cb5f1dc332912eca953cba3eda7acfa5d3c67dff9",
+      "epoch_shuffle_seed": 20260838,
+      "frames": 13543,
+      "frozen_perception_state_unchanged": true,
+      "global_q_update_index": 4235,
+      "global_update_index": 7623,
+      "gradient_qualification": {
+        "disconnected_tensors": [],
+        "missing_gradient_batches": [],
+        "named_ranker_tensors": [
+          "reduce.weight",
+          "reduce.bias",
+          "depthwise.weight",
+          "depthwise.bias",
+          "score.weight"
+        ],
+        "never_nonzero_tensors": [],
+        "observed_updates": 847,
+        "qualified": true,
+        "window": 847,
+        "zero_gradient_batches": []
+      },
+      "group_contributing_updates": {
+        "A": 847,
+        "D": 847,
+        "G": 847,
+        "S": 847
+      },
+      "group_excluded_updates": {},
+      "holdout_frames_in_optimizer_batches": 0,
+      "max_pre_clip_global_grad_norm": 765.1455688476562,
+      "mean_distillation_loss": 1516.384917528317,
+      "mean_normalized_group_contribution": {
+        "A": 9.042440701533753,
+        "D": 2.0035119692603813,
+        "G": 38.83845275576604,
+        "S": 5.8055478958550255
+      },
+      "mean_total_loss": 165.56098305658298,
+      "optimizer_updates": 847,
+      "peak_allocated_vram_mib": 22903.36083984375,
+      "peak_reserved_vram_mib": 23550.0,
+      "q_update_counts": {
+        "0.30": 282,
+        "0.50": 283,
+        "0.70": 282
+      },
+      "stage": "q_aware",
+      "wall_seconds": 560.0051369667053
+    },
+    {
+      "clipped_fraction": 1.0,
+      "clipped_updates": 847,
+      "epoch": 10,
+      "epoch_sample_id_sha256": "633bd4ecad2f1f8ff6ce8ca9f7037db842c0c84714669ae82dbeca306b33c3ce",
+      "epoch_shuffle_seed": 20260839,
+      "frames": 13543,
+      "frozen_perception_state_unchanged": true,
+      "global_q_update_index": 5082,
+      "global_update_index": 8470,
+      "gradient_qualification": {
+        "disconnected_tensors": [],
+        "missing_gradient_batches": [],
+        "named_ranker_tensors": [
+          "reduce.weight",
+          "reduce.bias",
+          "depthwise.weight",
+          "depthwise.bias",
+          "score.weight"
+        ],
+        "never_nonzero_tensors": [],
+        "observed_updates": 847,
+        "qualified": true,
+        "window": 847,
+        "zero_gradient_batches": []
+      },
+      "group_contributing_updates": {
+        "A": 847,
+        "D": 847,
+        "G": 847,
+        "S": 847
+      },
+      "group_excluded_updates": {},
+      "holdout_frames_in_optimizer_batches": 0,
+      "max_pre_clip_global_grad_norm": 781.561767578125,
+      "mean_distillation_loss": 1807.9289581046617,
+      "mean_normalized_group_contribution": {
+        "A": 9.23177421919862,
+        "D": 2.099851381053366,
+        "G": 42.553018589504774,
+        "S": 6.033695726501934
+      },
+      "mean_total_loss": 195.77248336629856,
+      "optimizer_updates": 847,
+      "peak_allocated_vram_mib": 22903.14404296875,
+      "peak_reserved_vram_mib": 23550.0,
+      "q_update_counts": {
+        "0.30": 282,
+        "0.50": 282,
+        "0.70": 283
+      },
+      "stage": "q_aware",
+      "wall_seconds": 561.6086618900299
+    },
+    {
+      "clipped_fraction": 1.0,
+      "clipped_updates": 847,
+      "epoch": 11,
+      "epoch_sample_id_sha256": "c3d554ed1228684c58b74b8191e5f799f5c12d0b03d8c3108179f6c5e9a076da",
+      "epoch_shuffle_seed": 20260840,
+      "frames": 13543,
+      "frozen_perception_state_unchanged": true,
+      "global_q_update_index": 5929,
+      "global_update_index": 9317,
+      "gradient_qualification": {
+        "disconnected_tensors": [],
+        "missing_gradient_batches": [],
+        "named_ranker_tensors": [
+          "reduce.weight",
+          "reduce.bias",
+          "depthwise.weight",
+          "depthwise.bias",
+          "score.weight"
+        ],
+        "never_nonzero_tensors": [],
+        "observed_updates": 847,
+        "qualified": true,
+        "window": 847,
+        "zero_gradient_batches": []
+      },
+      "group_contributing_updates": {
+        "A": 847,
+        "D": 847,
+        "G": 847,
+        "S": 847
+      },
+      "group_excluded_updates": {},
+      "holdout_frames_in_optimizer_batches": 0,
+      "max_pre_clip_global_grad_norm": 819.0054321289062,
+      "mean_distillation_loss": 2021.0212797234726,
+      "mean_normalized_group_contribution": {
+        "A": 9.37139235864726,
+        "D": 2.161733095528216,
+        "G": 44.81238468327806,
+        "S": 6.157333591023417
+      },
+      "mean_total_loss": 217.72784186028815,
+      "optimizer_updates": 847,
+      "peak_allocated_vram_mib": 22903.15576171875,
+      "peak_reserved_vram_mib": 23550.0,
+      "q_update_counts": {
+        "0.30": 283,
+        "0.50": 282,
+        "0.70": 282
+      },
+      "stage": "q_aware",
+      "wall_seconds": 561.771675825119
+    },
+    {
+      "candidate_checkpoint": "ranker_epoch_12.pt",
+      "candidate_checkpoint_sha256": "91737439b4a9f1ac1576b3ca4c50603395cb193ec06e02b2d0a3c9c1fef75470",
+      "clipped_fraction": 1.0,
+      "clipped_updates": 847,
+      "epoch": 12,
+      "epoch_sample_id_sha256": "2c88a0cf20223b8b30b3cb10a0ffe0ea941c42471c241cf94ee6db6e92ea7223",
+      "epoch_shuffle_seed": 20260841,
+      "frames": 13543,
+      "frozen_perception_state_unchanged": true,
+      "global_q_update_index": 6776,
+      "global_update_index": 10164,
+      "gradient_qualification": {
+        "disconnected_tensors": [],
+        "missing_gradient_batches": [],
+        "named_ranker_tensors": [
+          "reduce.weight",
+          "reduce.bias",
+          "depthwise.weight",
+          "depthwise.bias",
+          "score.weight"
+        ],
+        "never_nonzero_tensors": [],
+        "observed_updates": 847,
+        "qualified": true,
+        "window": 847,
+        "zero_gradient_batches": []
+      },
+      "group_contributing_updates": {
+        "A": 847,
+        "D": 847,
+        "G": 847,
+        "S": 847
+      },
+      "group_excluded_updates": {},
+      "holdout_frames_in_optimizer_batches": 0,
+      "max_pre_clip_global_grad_norm": 1115.9716796875,
+      "mean_distillation_loss": 2288.4917446168,
+      "mean_normalized_group_contribution": {
+        "A": 9.557806178617692,
+        "D": 2.2159482121731986,
+        "G": 47.792035575495376,
+        "S": 6.282960708880958
+      },
+      "mean_total_loss": 245.31136479653603,
+      "optimizer_updates": 847,
+      "peak_allocated_vram_mib": 22903.048828125,
+      "peak_reserved_vram_mib": 23550.0,
+      "q_update_counts": {
+        "0.30": 282,
+        "0.50": 283,
+        "0.70": 282
+      },
+      "stage": "q_aware",
+      "wall_seconds": 560.3846004009247
+    }
+  ],
+  "frozen_state_comparisons": [
+    {
+      "compared_tensors": 371,
+      "epoch": 4,
+      "parameters_and_buffers_exactly_unchanged": true
+    },
+    {
+      "compared_tensors": 371,
+      "epoch": 8,
+      "parameters_and_buffers_exactly_unchanged": true
+    },
+    {
+      "compared_tensors": 371,
+      "epoch": 12,
+      "parameters_and_buffers_exactly_unchanged": true
+    }
+  ],
+  "generated_utc": "2026-09-02T03:18:52.842072+00:00",
+  "optimization": {
+    "effective_batch": 16,
+    "final_partial_batch_retained": true,
+    "grad_clip_global_norm": 5.0,
+    "gradient_accumulation_steps": 1,
+    "learning_rate": 0.001,
+    "lr_schedule": "constant",
+    "optimizer": "AdamW",
+    "owned_parameters": 2144,
+    "physical_batch": 16,
+    "trainable_component": "ranker only",
+    "weight_decay": 0.0001
+  },
+  "perception_binding": {
+    "checkpoint_epoch": 26,
+    "checkpoint_path": "experiments/route_b_v3_1_splitfusion_fcos_r50_fpn_p2_p7_v1_numerical_recovery_v1/20260830_recovered_epoch10_gate_v1/checkpoints/epoch_026.pt",
+    "checkpoint_sha256": "da14d21edbd374c1c3abce02ca4674b9f4097becfba9759aba945cea160a297f",
+    "checkpoint_training_source_commit": "0d5697b46e901d4494572b2e9a9863326947d24c",
+    "eval_mode": true,
+    "perception_forward_lock_path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_person_p025_calibration_v1/PERCEPTION_FORWARD_LOCK_P025_V1.json",
+    "perception_forward_lock_sha256": "86d6f13ae9168b33b697df5b785c5f7c320afc52cfdcded5b632d94a6d943fe1",
+    "perception_parameters_requires_grad": false,
+    "person_output_threshold": 0.25,
+    "recovery_build_report": {
+      "architecture_and_state_dict_unchanged": true,
+      "coco_car_bias_sha256": "6c9760f1fd54aff7181fcff3cc30a11daafade9c5fc60bc7284fc2e0bca0de14",
+      "coco_car_index": 3,
+      "coco_car_weight_sha256": "9130a2f343e8162c2ea2baf66b34c359a393d331680d6a0f2aaab498b1c80489",
+      "coco_person_bias_sha256": "45a2cc2d30dc1477cf094c1f59f8a11104121b05960140ecefa8ef7d38f1a9a2",
+      "coco_person_index": 1,
+      "coco_person_weight_sha256": "81a7a980256b77cd98a3fa949857568d6501995b649e86463a656f84d9c877ce",
+      "complete_official_outputs": 91,
+      "official_weight_path": "/home/shr_aisvcs/.cache/torch/hub/checkpoints/fcos_resnet50_fpn_coco-99b0c9b7.pth",
+      "project_person_bias_sha256": "45a2cc2d30dc1477cf094c1f59f8a11104121b05960140ecefa8ef7d38f1a9a2",
+      "project_person_weight_sha256": "81a7a980256b77cd98a3fa949857568d6501995b649e86463a656f84d9c877ce",
+      "project_vehicle_bias_sha256": "6c9760f1fd54aff7181fcff3cc30a11daafade9c5fc60bc7284fc2e0bca0de14",
+      "project_vehicle_weight_sha256": "9130a2f343e8162c2ea2baf66b34c359a393d331680d6a0f2aaab498b1c80489",
+      "radar_stem_exact_zero": true,
+      "recovery_yaw_tau": 0.01,
+      "rgb_stem_exact": true,
+      "shared_training_inference_normalizer": true
+    },
+    "runtime": "splitfusion_fcos_r50_fpn_p2_p7_v1_numerical_recovery_v1.build_recovery_model",
+    "selected_yaw_tau": 0.01,
+    "service_policy": "splitfusion_fcos_r50_fpn_p2_p7_person_p025_calibration_v1.apply_p025_service_policy"
+  },
+  "recovery_checkpoints": {
+    "epoch_01.pt": "993c0d068daa228d6afa89b47c4b9f8e03c2645c6cc759fa669ce6538d7c4584",
+    "epoch_02.pt": "e84e19fab86992ffa7c6b2cdfc834bb39ed294a38ab1752bec9396fefd612ed0",
+    "epoch_03.pt": "ed6ee7e8c1003a86e6a81fd33071b7df3e84e1904cc1641dfca0c8ca879e794c",
+    "epoch_04.pt": "3d7084abc5bdd6c31e4623a602ace90fad5a60cc37721f7f146d25617ad846fb",
+    "epoch_05.pt": "9524cc23233f046bcacb249451f5799b58784d8169bb0dcedba34bfa5f8897e6",
+    "epoch_06.pt": "c4ecb907bc4076f1c8c041f32bccfd7415306a1590e72e9fc71e34b140420f1f",
+    "epoch_07.pt": "b59d123662cbf871c8b87fa88fa580afb69d362b34210eebb8d7cb3947cd5067",
+    "epoch_08.pt": "ae6afcfc3a7a0362862d4b80853ad0cebdc20ce375a94251e6710486567164fd",
+    "epoch_09.pt": "82b88468f71805a755ed1ad7ab58af46d9884d0fbccb85b49d91a030d69a51e4",
+    "epoch_10.pt": "e72c358f122327bdf73e88c141e5f2c9fafe92ebf2900f50c8ae84ab1dfb9adc",
+    "epoch_11.pt": "098929d21a5c5c36ec338c3d33aff8c1e82e5daf678ed997b79f555ed02b2ce8",
+    "epoch_12.pt": "efa44f7e62a7f7c5a70690a62c859d996bf4b77441929986a67516e4502e6f52"
+  },
+  "reference_medians": {
+    "A": 0.013652884401381016,
+    "D": 0.7242346405982971,
+    "G": 0.10442040860652924,
+    "S": 0.09630495309829712
+  },
+  "resumed_from": null,
+  "schema": "splitfusion_fcos_hybrid_q_phase5_training_v1",
+  "scope": {
+    "augmentation": false,
+    "carla_launched": false,
+    "epochs": 12,
+    "holdout_evaluated_here": false,
+    "holdout_frames_in_optimizer_batches": 0,
+    "quantization_or_zstd_run": false,
+    "seed": 20260829,
+    "train_fit_only_optimizer_batches": true,
+    "validation_or_test_accessed": false
+  },
+  "smoke": {
+    "checks": [
+      "both stages executed on the real data, mask, loss and optimizer path",
+      "cached teacher maps joined by exact sample id",
+      "frozen perception parameters and buffers exactly unchanged"
+    ],
+    "disposable_ranker_retained": false,
+    "global_q_update_index_after_smoke": 3,
+    "passed": true,
+    "seconds": 5.185484409332275,
+    "stages": [
+      {
+        "group_excluded_updates": {},
+        "mean_distillation_loss": 9.978356838226318,
+        "mean_normalized_group_contribution": {},
+        "mean_total_loss": 9.978356838226318,
+        "optimizer_updates": 2,
+        "q_update_counts": {},
+        "stage": "distillation"
+      },
+      {
+        "group_excluded_updates": {},
+        "mean_distillation_loss": 9.975943565368652,
+        "mean_normalized_group_contribution": {
+          "A": 6.686832282457233,
+          "D": 2.1455444202491045,
+          "G": 39.41855731009549,
+          "S": 6.654366439751551
+        },
+        "mean_total_loss": 14.723918596903482,
+        "optimizer_updates": 3,
+        "q_update_counts": {
+          "0.30": 1,
+          "0.50": 1,
+          "0.70": 1
+        },
+        "stage": "q_aware"
+      }
+    ]
+  },
+  "source_delta": {
+    "added_since_phase4": [
+      "phase5_common.py",
+      "phase5_holdout.py",
+      "phase5_training.py"
+    ],
+    "changed_since_phase4": [
+      "README.md",
+      "contract.py"
+    ],
+    "frozen_semantics_modules_unchanged": [
+      "ranker.py",
+      "selection.py",
+      "codec.py",
+      "guards.py",
+      "training.py",
+      "teacher_cache.py",
+      "gpu_qualification.py",
+      "locked_config.json",
+      "__init__.py"
+    ]
+  },
+  "split": {
+    "cached_equals_registered_train_set": true,
+    "duplicate_cached_frame_ids": 0,
+    "fit_frames": 13543,
+    "fit_sample_id_sha256": "3e20cceeec48718b7df763f95bf873f3febbb435256c36104996631f86fa252e",
+    "holdout_frames": 3284,
+    "holdout_sample_id_sha256": "8c7c4cc617626b31df7bcb68f89bf72649d05e1934e316002b2dd8a8d5754f0a",
+    "locked_test_split_present": false,
+    "manifest_rows": 20172,
+    "missing_cached_frame_ids": 0,
+    "reserved_split_intersections": {
+      "val": 0
+    },
+    "split_frame_counts": {
+      "train": 16827,
+      "val": 3345
+    }
+  },
+  "teacher_cache_shards": {
+    "count": 66,
+    "sha256": {
+      "shards/teacher_shard_00000.pt": "903e64c0f12cac31e2ecfca7b364f399d8183afb7724c9b8981efc1bb277da46",
+      "shards/teacher_shard_00001.pt": "6550e0e22c73f883c1d7da8921e4dbb5fc58f77b6048338e9114794de42fb33c",
+      "shards/teacher_shard_00002.pt": "d6825862f5ecb129dd29e40d6012b5b6ddcd699c97fda92c4d28cddeff930328",
+      "shards/teacher_shard_00003.pt": "175ddb262497ff6b10b1d2788bbcbba47bf84e7fd0265e85a29f71b20f372115",
+      "shards/teacher_shard_00004.pt": "be15f6f9d9428ac9536f481a190d83bb2c37490443e67047ca6f00d1ac4b9685",
+      "shards/teacher_shard_00005.pt": "c94697f64305de378756f7ee9410faf6026d171b949296cf5e705ee61b3f0c1b",
+      "shards/teacher_shard_00006.pt": "cc6c46b908ffee0d0991b894c31196000abc43a27ad91f03594d0e35e838da9d",
+      "shards/teacher_shard_00007.pt": "77cbb1082535b059042865495a88e7147b84c8057b911558c91130cd1f8b77b8",
+      "shards/teacher_shard_00008.pt": "ffa42a35f207ea89cc1f4619929deeade83a4c4641c43d3d75a710c83b994020",
+      "shards/teacher_shard_00009.pt": "8b4fa2e7ef8e06e36ba7a0e4688240fe295573a1e9266edf73a95920c16d367e",
+      "shards/teacher_shard_00010.pt": "49ec4ca3200a2936688f5d9287b97055b14d8866b2771e0b1a881493f0e30a31",
+      "shards/teacher_shard_00011.pt": "e5fe7caacabf6acb333a60eb8281fe584ec09ac3a69690de03ae33ddfc0e2273",
+      "shards/teacher_shard_00012.pt": "d3722ac6e21269060029c2494fe68eb0ae730f44c51d18048968f236dd435447",
+      "shards/teacher_shard_00013.pt": "649f7959332ad4cca9756cef72b094ddc3763d2c35bbbf7258a5583f22a9609f",
+      "shards/teacher_shard_00014.pt": "d4be1ccdfe4c00074ef77ab114ee84b8f4141d0ca35ca94cc39a394ac06bcaab",
+      "shards/teacher_shard_00015.pt": "ca719f6b340aa9a15464b5c0ea8e792c0ed1c2d9e267e99087d419871372723d",
+      "shards/teacher_shard_00016.pt": "f46644cb0cf95e2aee7f72f9c2ff4a226548e6f89fe97cce2e0cbae12c2d328c",
+      "shards/teacher_shard_00017.pt": "2f32ff96a2d80aad8ba4d4e20ca43f138a0ccfc3e24eaa2f36dc379f743d7adf",
+      "shards/teacher_shard_00018.pt": "e1b2db3ed242452b9b9f20a7a76ec9261d6c7d3cf0888a3dc403cf443afc0d32",
+      "shards/teacher_shard_00019.pt": "d8d068bb8ce2979aff894ff4643df9f06d53c338212ac4526f1c52e9e71007ce",
+      "shards/teacher_shard_00020.pt": "0eb59da4ea8430b4bfce177235838311f6297a290608b3c44ccbbfe6ddaad96c",
+      "shards/teacher_shard_00021.pt": "d51bdd6db8051eac83d8062513f7263b700e65a203146bffb8bd88fc88b29987",
+      "shards/teacher_shard_00022.pt": "d52207374f65a5c82d624fe0cdf47bc9dc7c885b83636920d1072ad93a6fcfa4",
+      "shards/teacher_shard_00023.pt": "03ebe6cfeff377c309d87395bf7fc55aa42197477d548a398ef320c7d79239c5",
+      "shards/teacher_shard_00024.pt": "e74217c50b5ad752cc1429b850f0b6c9d1c823ecce7b19cb853021c6c790fa2a",
+      "shards/teacher_shard_00025.pt": "05e8c64fa2061c2fca538f05bb84565fe059f52846bdff04c49c0d9d514c2c17",
+      "shards/teacher_shard_00026.pt": "a3b1c09d8a52ec8aebf29a8b9ca757536ded5de7c0d9afeccdb77ec1995811f4",
+      "shards/teacher_shard_00027.pt": "027e8fd926cbda44e1d7618efd7ccb3d318fb6475c7d803ec13015b73357a6e8",
+      "shards/teacher_shard_00028.pt": "6867d378931331787d9b44919904a0ca5f6d45cd2db2271dc2b8916f0612de3b",
+      "shards/teacher_shard_00029.pt": "23d344294e1dcd715b357b0f00f0ec8e1af5994ead047e21583624f5d051e556",
+      "shards/teacher_shard_00030.pt": "ae4f2c3f577622f194a2f6ee05bad765dc205550fb0bc29561b814b417691c05",
+      "shards/teacher_shard_00031.pt": "7e8036a5d22ba13639a816fbfe29916083bbeb7af04d0b134e0e191e78d1d0c5",
+      "shards/teacher_shard_00032.pt": "7209f26d81ecbdbcccc4b52aaca6ef49b07882f818924aa9b848c990a4dcd8e7",
+      "shards/teacher_shard_00033.pt": "3a5d4e73e22f02300f463e073e2ae5aa481a96defbf7eb256b918fd330a3b62e",
+      "shards/teacher_shard_00034.pt": "86e5c1183c410facf419a1426e4bcff02b2f26f21eb89799b9d356b7726b2873",
+      "shards/teacher_shard_00035.pt": "da458a6ab9a10bf5506328fe5656884f81a5a0425036add26bde059080f7ffb1",
+      "shards/teacher_shard_00036.pt": "999865fac69137a28a2c1953a83771d6cb7d086d2a4441b3de82ffca9c043f35",
+      "shards/teacher_shard_00037.pt": "50cfa84490da200090f9b57ad06b7283a5419d0396adc9003b5223ea623eedeb",
+      "shards/teacher_shard_00038.pt": "1d607ea2026d740a636e511b07382dfc9c9cbd665efdf394f52e2c0089e4be93",
+      "shards/teacher_shard_00039.pt": "d802c5d4669719f4c22628895e490680497aa543a12cc0cea87d42c3e802004a",
+      "shards/teacher_shard_00040.pt": "7da39704e228aa9fc6353830d58ba07357e693f61608da472c53285c2916a2ee",
+      "shards/teacher_shard_00041.pt": "0d3ee99147b90885cadef9fb8524e7ebb5b85e1ce22b130ceb442fa94e16131d",
+      "shards/teacher_shard_00042.pt": "0a757b19aa4a99ec4f7e5e073572c507e5b92386c0742428923eb1ae47e18cf2",
+      "shards/teacher_shard_00043.pt": "d31cb47b2442ad2160dfa454822472cc1d4ad9e058bb2584d0a596556b3e17c2",
+      "shards/teacher_shard_00044.pt": "4cb78cb1d5c0761209fb71f5ad51a0a7222bcf6b8c35a3fa9d3f0a4c9e7e8e37",
+      "shards/teacher_shard_00045.pt": "85529de9d8a42ac19208640922053c5e4c2f6bee805ef6c6876000b69faff4d7",
+      "shards/teacher_shard_00046.pt": "f436a34dc65f7119b491aa40d4aeedc82bb61e3011acaa3e62941b3cd6ed7a69",
+      "shards/teacher_shard_00047.pt": "05b3bddf27e2443da6f07782a186331459783a0e8ce080532f6d06ff1e0d8d1c",
+      "shards/teacher_shard_00048.pt": "501da22bbba8c21b53ac4bb47c6abb64ff8831929a318c47d4299b62fc614d5b",
+      "shards/teacher_shard_00049.pt": "65b5d9ea3b82ce0ddae6399d58f4d089f42cacb7cbbfea0c685efb4f5a18dafd",
+      "shards/teacher_shard_00050.pt": "2d0f334ba963d5c1d1fa8bfa533da9f2a1f37aa0403a66f0f1e0bca2f01373c3",
+      "shards/teacher_shard_00051.pt": "296ee4c100447f2f5f1d6de8150c0ca98f3912af546c148e918a5ec24bfb2357",
+      "shards/teacher_shard_00052.pt": "135366c8d64a5b540844488489455702da881c845b51c43f26b08cffb2afb730",
+      "shards/teacher_shard_00053.pt": "38efd65404dc7f5b6f6879a8ce0ee4d9557adf6daf5fc01292ca548ad120f952",
+      "shards/teacher_shard_00054.pt": "494950fae152f4c43f305304c1eb821f66f82a9ae4dbb3bfc493403503faa02e",
+      "shards/teacher_shard_00055.pt": "2babe02dac956ad7d66e1870e04fec2693be35c674b547192a1f78452b23efe7",
+      "shards/teacher_shard_00056.pt": "2743c9d4022995b52d97e956741d67c56b8d1c3b64db1303a7186385fa80fd90",
+      "shards/teacher_shard_00057.pt": "785f6fcd98ca694c9c6876b87220f4a98f108e8d87a5d6f64a5dc9a7f0f73dba",
+      "shards/teacher_shard_00058.pt": "47781b1432905662d71722c3824ba500ca80c083a5c48f4b4f0e224eecb2f0e0",
+      "shards/teacher_shard_00059.pt": "a6078316cc0d5f91da348cc2b5b2c545db27978d4c96df8b33287818b1a87894",
+      "shards/teacher_shard_00060.pt": "d5769aa4a7a5b3bd4415938c3f87927024f5acf1ea9852181511c35b9bf6decd",
+      "shards/teacher_shard_00061.pt": "a81c11ba92a3eac853b762ac7e88c8eeeb3c159e8e234b79dce666879fa9810a",
+      "shards/teacher_shard_00062.pt": "d88851b3da77f2d7751720fd2608e089699f21cdb8b91279b0414295afc2a069",
+      "shards/teacher_shard_00063.pt": "05da1a573693ec9ff4a8be2018145266bda84f03db929a302ef74299df24db7d",
+      "shards/teacher_shard_00064.pt": "e50632e139c6895d071ef6b3d12f6a20c8f42c8fb629a543f968807ff13ee78a",
+      "shards/teacher_shard_00065.pt": "8f0dcbe8cfa01877a08750c847f062d5c61a5c4e4a2be48d26369f1b97e81c5e"
+    },
+    "total_bytes": 1452208370,
+    "verified": 66
+  },
+  "teacher_store": {
+    "bytes": 1447391232,
+    "c2_tensors_cached": false,
+    "frames": 16827,
+    "gib": 1.3479881286621094,
+    "holdout_maps_blocked_from_training": true,
+    "preloaded_once": true
+  },
+  "terminal": "HYBRID_Q_PHASE5_TRAINING_COMPLETE",
+  "totals": {
+    "optimizer_updates": 10164,
+    "q_aware_updates": 6776,
+    "wall_seconds": 4871.707258224487
+  }
+}

@@ -1,0 +1,603 @@
+{
+  "schema": "splitfusion_fcos_hybrid_q_phase5_training_v1",
+  "epochs": [
+    {
+      "epoch": 1,
+      "stage": "distillation",
+      "optimizer_updates": 847,
+      "frames": 13543,
+      "mean_total_loss": 9.320575734378314,
+      "mean_distillation_loss": 9.320575734378314,
+      "mean_normalized_group_contribution": {},
+      "group_contributing_updates": {},
+      "group_excluded_updates": {},
+      "q_update_counts": {},
+      "clipped_updates": 0,
+      "clipped_fraction": 0.0,
+      "max_pre_clip_global_grad_norm": 0.9332941770553589,
+      "peak_allocated_vram_mib": 2205.806640625,
+      "peak_reserved_vram_mib": 2494.0,
+      "wall_seconds": 98.0793707370758,
+      "gradient_qualification": {
+        "window": 847,
+        "observed_updates": 847,
+        "named_ranker_tensors": [
+          "reduce.weight",
+          "reduce.bias",
+          "depthwise.weight",
+          "depthwise.bias",
+          "score.weight"
+        ],
+        "qualified": true,
+        "disconnected_tensors": [],
+        "never_nonzero_tensors": [],
+        "zero_gradient_batches": [],
+        "missing_gradient_batches": []
+      },
+      "epoch_shuffle_seed": 20260830,
+      "epoch_sample_id_sha256": "5ef63470c71aea35565123594dabd414cae9f91879bbb1f74b32502c6fa808c3",
+      "holdout_frames_in_optimizer_batches": 0,
+      "global_update_index": 847,
+      "global_q_update_index": 0,
+      "frozen_perception_state_unchanged": true
+    },
+    {
+      "epoch": 2,
+      "stage": "distillation",
+      "optimizer_updates": 847,
+      "frames": 13543,
+      "mean_total_loss": 9.198461244351185,
+      "mean_distillation_loss": 9.198461244351185,
+      "mean_normalized_group_contribution": {},
+      "group_contributing_updates": {},
+      "group_excluded_updates": {},
+      "q_update_counts": {},
+      "clipped_updates": 0,
+      "clipped_fraction": 0.0,
+      "max_pre_clip_global_grad_norm": 0.7667236328125,
+      "peak_allocated_vram_mib": 2205.806640625,
+      "peak_reserved_vram_mib": 2512.0,
+      "wall_seconds": 96.23997664451599,
+      "gradient_qualification": {
+        "window": 847,
+        "observed_updates": 847,
+        "named_ranker_tensors": [
+          "reduce.weight",
+          "reduce.bias",
+          "depthwise.weight",
+          "depthwise.bias",
+          "score.weight"
+        ],
+        "qualified": true,
+        "disconnected_tensors": [],
+        "never_nonzero_tensors": [],
+        "zero_gradient_batches": [],
+        "missing_gradient_batches": []
+      },
+      "epoch_shuffle_seed": 20260831,
+      "epoch_sample_id_sha256": "10af8322c56db613ce6b5eb0bd3caaa0c3579e2e12b5a4e0226a9e1b2785e3a9",
+      "holdout_frames_in_optimizer_batches": 0,
+      "global_update_index": 1694,
+      "global_q_update_index": 0,
+      "frozen_perception_state_unchanged": true
+    },
+    {
+      "epoch": 3,
+      "stage": "distillation",
+      "optimizer_updates": 847,
+      "frames": 13543,
+      "mean_total_loss": 9.16970170684238,
+      "mean_distillation_loss": 9.16970170684238,
+      "mean_normalized_group_contribution": {},
+      "group_contributing_updates": {},
+      "group_excluded_updates": {},
+      "q_update_counts": {},
+      "clipped_updates": 0,
+      "clipped_fraction": 0.0,
+      "max_pre_clip_global_grad_norm": 0.7720115184783936,
+      "peak_allocated_vram_mib": 2205.806640625,
+      "peak_reserved_vram_mib": 2512.0,
+      "wall_seconds": 96.0380470752716,
+      "gradient_qualification": {
+        "window": 847,
+        "observed_updates": 847,
+        "named_ranker_tensors": [
+          "reduce.weight",
+          "reduce.bias",
+          "depthwise.weight",
+          "depthwise.bias",
+          "score.weight"
+        ],
+        "qualified": true,
+        "disconnected_tensors": [],
+        "never_nonzero_tensors": [],
+        "zero_gradient_batches": [],
+        "missing_gradient_batches": []
+      },
+      "epoch_shuffle_seed": 20260832,
+      "epoch_sample_id_sha256": "be62f8d98e77f210880418262ef4763a23409fe9be931cc749f75ab58cc3ef77",
+      "holdout_frames_in_optimizer_batches": 0,
+      "global_update_index": 2541,
+      "global_q_update_index": 0,
+      "frozen_perception_state_unchanged": true
+    },
+    {
+      "epoch": 4,
+      "stage": "distillation",
+      "optimizer_updates": 847,
+      "frames": 13543,
+      "mean_total_loss": 9.161322264913403,
+      "mean_distillation_loss": 9.161322264913403,
+      "mean_normalized_group_contribution": {},
+      "group_contributing_updates": {},
+      "group_excluded_updates": {},
+      "q_update_counts": {},
+      "clipped_updates": 0,
+      "clipped_fraction": 0.0,
+      "max_pre_clip_global_grad_norm": 0.8090175986289978,
+      "peak_allocated_vram_mib": 2205.806640625,
+      "peak_reserved_vram_mib": 2512.0,
+      "wall_seconds": 96.39213299751282,
+      "gradient_qualification": {
+        "window": 847,
+        "observed_updates": 847,
+        "named_ranker_tensors": [
+          "reduce.weight",
+          "reduce.bias",
+          "depthwise.weight",
+          "depthwise.bias",
+          "score.weight"
+        ],
+        "qualified": true,
+        "disconnected_tensors": [],
+        "never_nonzero_tensors": [],
+        "zero_gradient_batches": [],
+        "missing_gradient_batches": []
+      },
+      "epoch_shuffle_seed": 20260833,
+      "epoch_sample_id_sha256": "dc510ebfbf66782c90c7caaec861e8fbf018d4d5fae61e34f845508c6bb1452b",
+      "holdout_frames_in_optimizer_batches": 0,
+      "global_update_index": 3388,
+      "global_q_update_index": 0,
+      "frozen_perception_state_unchanged": true,
+      "candidate_checkpoint": "ranker_epoch_04.pt",
+      "candidate_checkpoint_sha256": "07781c56a4c0f306f16d332f64627ce6b9458e154f40ab9fef89f89909b79cb5"
+    },
+    {
+      "epoch": 5,
+      "stage": "q_aware",
+      "optimizer_updates": 847,
+      "frames": 13543,
+      "mean_total_loss": 31.133920661392573,
+      "mean_distillation_loss": 250.213038005401,
+      "mean_normalized_group_contribution": {
+        "A": 9.70604255714342,
+        "D": 1.2336544116208998,
+        "G": 10.329519509312057,
+        "S": 3.1812492157280747
+      },
+      "group_contributing_updates": {
+        "A": 847,
+        "D": 847,
+        "G": 847,
+        "S": 847
+      },
+      "group_excluded_updates": {},
+      "q_update_counts": {
+        "0.30": 283,
+        "0.50": 282,
+        "0.70": 282
+      },
+      "clipped_updates": 830,
+      "clipped_fraction": 0.9799291617473436,
+      "max_pre_clip_global_grad_norm": 224.6371612548828,
+      "peak_allocated_vram_mib": 22903.705078125,
+      "peak_reserved_vram_mib": 23550.0,
+      "wall_seconds": 558.5529651641846,
+      "gradient_qualification": {
+        "window": 847,
+        "observed_updates": 847,
+        "named_ranker_tensors": [
+          "reduce.weight",
+          "reduce.bias",
+          "depthwise.weight",
+          "depthwise.bias",
+          "score.weight"
+        ],
+        "qualified": true,
+        "disconnected_tensors": [],
+        "never_nonzero_tensors": [],
+        "zero_gradient_batches": [],
+        "missing_gradient_batches": []
+      },
+      "epoch_shuffle_seed": 20260834,
+      "epoch_sample_id_sha256": "239aa37d47c7280c758eaf62c734583c5591bb3cc689dbe46cf2ba013ba3ca5f",
+      "holdout_frames_in_optimizer_batches": 0,
+      "global_update_index": 4235,
+      "global_q_update_index": 847,
+      "frozen_perception_state_unchanged": true
+    },
+    {
+      "epoch": 6,
+      "stage": "q_aware",
+      "optimizer_updates": 847,
+      "frames": 13543,
+      "mean_total_loss": 71.52475122859374,
+      "mean_distillation_loss": 630.4641049147497,
+      "mean_normalized_group_contribution": {
+        "A": 8.640968548687042,
+        "D": 1.4765916097528542,
+        "G": 19.49399777712208,
+        "S": 4.301801411497912
+      },
+      "group_contributing_updates": {
+        "A": 847,
+        "D": 847,
+        "G": 847,
+        "S": 847
+      },
+      "group_excluded_updates": {},
+      "q_update_counts": {
+        "0.30": 282,
+        "0.50": 283,
+        "0.70": 282
+      },
+      "clipped_updates": 847,
+      "clipped_fraction": 1.0,
+      "max_pre_clip_global_grad_norm": 297.79730224609375,
+      "peak_allocated_vram_mib": 22903.1337890625,
+      "peak_reserved_vram_mib": 23550.0,
+      "wall_seconds": 558.964195728302,
+      "gradient_qualification": {
+        "window": 847,
+        "observed_updates": 847,
+        "named_ranker_tensors": [
+          "reduce.weight",
+          "reduce.bias",
+          "depthwise.weight",
+          "depthwise.bias",
+          "score.weight"
+        ],
+        "qualified": true,
+        "disconnected_tensors": [],
+        "never_nonzero_tensors": [],
+        "zero_gradient_batches": [],
+        "missing_gradient_batches": []
+      },
+      "epoch_shuffle_seed": 20260835,
+      "epoch_sample_id_sha256": "aff2a98d5236c915f205a1cf9d61b094727621340b820a7a1776177a5263c202",
+      "holdout_frames_in_optimizer_batches": 0,
+      "global_update_index": 5082,
+      "global_q_update_index": 1694,
+      "frozen_perception_state_unchanged": true
+    },
+    {
+      "epoch": 7,
+      "stage": "q_aware",
+      "optimizer_updates": 847,
+      "frames": 13543,
+      "mean_total_loss": 105.49356467326952,
+      "mean_distillation_loss": 949.9912447338262,
+      "mean_normalized_group_contribution": {
+        "A": 8.689482625405551,
+        "D": 1.685530960760279,
+        "G": 26.69425394478958,
+        "S": 4.90848748119891
+      },
+      "group_contributing_updates": {
+        "A": 847,
+        "D": 847,
+        "G": 847,
+        "S": 847
+      },
+      "group_excluded_updates": {},
+      "q_update_counts": {
+        "0.30": 282,
+        "0.50": 282,
+        "0.70": 283
+      },
+      "clipped_updates": 847,
+      "clipped_fraction": 1.0,
+      "max_pre_clip_global_grad_norm": 439.1025085449219,
+      "peak_allocated_vram_mib": 22903.3974609375,
+      "peak_reserved_vram_mib": 23550.0,
+      "wall_seconds": 561.6541783809662,
+      "gradient_qualification": {
+        "window": 847,
+        "observed_updates": 847,
+        "named_ranker_tensors": [
+          "reduce.weight",
+          "reduce.bias",
+          "depthwise.weight",
+          "depthwise.bias",
+          "score.weight"
+        ],
+        "qualified": true,
+        "disconnected_tensors": [],
+        "never_nonzero_tensors": [],
+        "zero_gradient_batches": [],
+        "missing_gradient_batches": []
+      },
+      "epoch_shuffle_seed": 20260836,
+      "epoch_sample_id_sha256": "bc7dc0035202ad9d9d602123b82393fc2123bed5ad637724f0f187631c514a01",
+      "holdout_frames_in_optimizer_batches": 0,
+      "global_update_index": 5929,
+      "global_q_update_index": 2541,
+      "frozen_perception_state_unchanged": true
+    },
+    {
+      "epoch": 8,
+      "stage": "q_aware",
+      "optimizer_updates": 847,
+      "frames": 13543,
+      "mean_total_loss": 134.90733204090608,
+      "mean_distillation_loss": 1222.4644816465052,
+      "mean_normalized_group_contribution": {
+        "A": 8.838495089574359,
+        "D": 1.8888237672131174,
+        "G": 34.44170939561299,
+        "S": 5.474498686215573
+      },
+      "group_contributing_updates": {
+        "A": 847,
+        "D": 847,
+        "G": 847,
+        "S": 847
+      },
+      "group_excluded_updates": {},
+      "q_update_counts": {
+        "0.30": 283,
+        "0.50": 282,
+        "0.70": 282
+      },
+      "clipped_updates": 847,
+      "clipped_fraction": 1.0,
+      "max_pre_clip_global_grad_norm": 653.0616455078125,
+      "peak_allocated_vram_mib": 22903.26806640625,
+      "peak_reserved_vram_mib": 23550.0,
+      "wall_seconds": 561.687305688858,
+      "gradient_qualification": {
+        "window": 847,
+        "observed_updates": 847,
+        "named_ranker_tensors": [
+          "reduce.weight",
+          "reduce.bias",
+          "depthwise.weight",
+          "depthwise.bias",
+          "score.weight"
+        ],
+        "qualified": true,
+        "disconnected_tensors": [],
+        "never_nonzero_tensors": [],
+        "zero_gradient_batches": [],
+        "missing_gradient_batches": []
+      },
+      "epoch_shuffle_seed": 20260837,
+      "epoch_sample_id_sha256": "60d691415dcaeba9f8e5ff233649ec12b31135d128c2efc659d8df956a9bd838",
+      "holdout_frames_in_optimizer_batches": 0,
+      "global_update_index": 6776,
+      "global_q_update_index": 3388,
+      "frozen_perception_state_unchanged": true,
+      "candidate_checkpoint": "ranker_epoch_08.pt",
+      "candidate_checkpoint_sha256": "a2af4367d2d7d6896825e46b0279cea3d8ce90cb42b38266b29e637ffcf23395"
+    },
+    {
+      "epoch": 9,
+      "stage": "q_aware",
+      "optimizer_updates": 847,
+      "frames": 13543,
+      "mean_total_loss": 165.56098305658298,
+      "mean_distillation_loss": 1516.384917528317,
+      "mean_normalized_group_contribution": {
+        "A": 9.042440701533753,
+        "D": 2.0035119692603813,
+        "G": 38.83845275576604,
+        "S": 5.8055478958550255
+      },
+      "group_contributing_updates": {
+        "A": 847,
+        "D": 847,
+        "G": 847,
+        "S": 847
+      },
+      "group_excluded_updates": {},
+      "q_update_counts": {
+        "0.30": 282,
+        "0.50": 283,
+        "0.70": 282
+      },
+      "clipped_updates": 847,
+      "clipped_fraction": 1.0,
+      "max_pre_clip_global_grad_norm": 765.1455688476562,
+      "peak_allocated_vram_mib": 22903.36083984375,
+      "peak_reserved_vram_mib": 23550.0,
+      "wall_seconds": 560.0051369667053,
+      "gradient_qualification": {
+        "window": 847,
+        "observed_updates": 847,
+        "named_ranker_tensors": [
+          "reduce.weight",
+          "reduce.bias",
+          "depthwise.weight",
+          "depthwise.bias",
+          "score.weight"
+        ],
+        "qualified": true,
+        "disconnected_tensors": [],
+        "never_nonzero_tensors": [],
+        "zero_gradient_batches": [],
+        "missing_gradient_batches": []
+      },
+      "epoch_shuffle_seed": 20260838,
+      "epoch_sample_id_sha256": "52abf720f50d6af8b824e52cb5f1dc332912eca953cba3eda7acfa5d3c67dff9",
+      "holdout_frames_in_optimizer_batches": 0,
+      "global_update_index": 7623,
+      "global_q_update_index": 4235,
+      "frozen_perception_state_unchanged": true
+    },
+    {
+      "epoch": 10,
+      "stage": "q_aware",
+      "optimizer_updates": 847,
+      "frames": 13543,
+      "mean_total_loss": 195.77248336629856,
+      "mean_distillation_loss": 1807.9289581046617,
+      "mean_normalized_group_contribution": {
+        "A": 9.23177421919862,
+        "D": 2.099851381053366,
+        "G": 42.553018589504774,
+        "S": 6.033695726501934
+      },
+      "group_contributing_updates": {
+        "A": 847,
+        "D": 847,
+        "G": 847,
+        "S": 847
+      },
+      "group_excluded_updates": {},
+      "q_update_counts": {
+        "0.30": 282,
+        "0.50": 282,
+        "0.70": 283
+      },
+      "clipped_updates": 847,
+      "clipped_fraction": 1.0,
+      "max_pre_clip_global_grad_norm": 781.561767578125,
+      "peak_allocated_vram_mib": 22903.14404296875,
+      "peak_reserved_vram_mib": 23550.0,
+      "wall_seconds": 561.6086618900299,
+      "gradient_qualification": {
+        "window": 847,
+        "observed_updates": 847,
+        "named_ranker_tensors": [
+          "reduce.weight",
+          "reduce.bias",
+          "depthwise.weight",
+          "depthwise.bias",
+          "score.weight"
+        ],
+        "qualified": true,
+        "disconnected_tensors": [],
+        "never_nonzero_tensors": [],
+        "zero_gradient_batches": [],
+        "missing_gradient_batches": []
+      },
+      "epoch_shuffle_seed": 20260839,
+      "epoch_sample_id_sha256": "633bd4ecad2f1f8ff6ce8ca9f7037db842c0c84714669ae82dbeca306b33c3ce",
+      "holdout_frames_in_optimizer_batches": 0,
+      "global_update_index": 8470,
+      "global_q_update_index": 5082,
+      "frozen_perception_state_unchanged": true
+    },
+    {
+      "epoch": 11,
+      "stage": "q_aware",
+      "optimizer_updates": 847,
+      "frames": 13543,
+      "mean_total_loss": 217.72784186028815,
+      "mean_distillation_loss": 2021.0212797234726,
+      "mean_normalized_group_contribution": {
+        "A": 9.37139235864726,
+        "D": 2.161733095528216,
+        "G": 44.81238468327806,
+        "S": 6.157333591023417
+      },
+      "group_contributing_updates": {
+        "A": 847,
+        "D": 847,
+        "G": 847,
+        "S": 847
+      },
+      "group_excluded_updates": {},
+      "q_update_counts": {
+        "0.30": 283,
+        "0.50": 282,
+        "0.70": 282
+      },
+      "clipped_updates": 847,
+      "clipped_fraction": 1.0,
+      "max_pre_clip_global_grad_norm": 819.0054321289062,
+      "peak_allocated_vram_mib": 22903.15576171875,
+      "peak_reserved_vram_mib": 23550.0,
+      "wall_seconds": 561.771675825119,
+      "gradient_qualification": {
+        "window": 847,
+        "observed_updates": 847,
+        "named_ranker_tensors": [
+          "reduce.weight",
+          "reduce.bias",
+          "depthwise.weight",
+          "depthwise.bias",
+          "score.weight"
+        ],
+        "qualified": true,
+        "disconnected_tensors": [],
+        "never_nonzero_tensors": [],
+        "zero_gradient_batches": [],
+        "missing_gradient_batches": []
+      },
+      "epoch_shuffle_seed": 20260840,
+      "epoch_sample_id_sha256": "c3d554ed1228684c58b74b8191e5f799f5c12d0b03d8c3108179f6c5e9a076da",
+      "holdout_frames_in_optimizer_batches": 0,
+      "global_update_index": 9317,
+      "global_q_update_index": 5929,
+      "frozen_perception_state_unchanged": true
+    },
+    {
+      "epoch": 12,
+      "stage": "q_aware",
+      "optimizer_updates": 847,
+      "frames": 13543,
+      "mean_total_loss": 245.31136479653603,
+      "mean_distillation_loss": 2288.4917446168,
+      "mean_normalized_group_contribution": {
+        "A": 9.557806178617692,
+        "D": 2.2159482121731986,
+        "G": 47.792035575495376,
+        "S": 6.282960708880958
+      },
+      "group_contributing_updates": {
+        "A": 847,
+        "D": 847,
+        "G": 847,
+        "S": 847
+      },
+      "group_excluded_updates": {},
+      "q_update_counts": {
+        "0.30": 282,
+        "0.50": 283,
+        "0.70": 282
+      },
+      "clipped_updates": 847,
+      "clipped_fraction": 1.0,
+      "max_pre_clip_global_grad_norm": 1115.9716796875,
+      "peak_allocated_vram_mib": 22903.048828125,
+      "peak_reserved_vram_mib": 23550.0,
+      "wall_seconds": 560.3846004009247,
+      "gradient_qualification": {
+        "window": 847,
+        "observed_updates": 847,
+        "named_ranker_tensors": [
+          "reduce.weight",
+          "reduce.bias",
+          "depthwise.weight",
+          "depthwise.bias",
+          "score.weight"
+        ],
+        "qualified": true,
+        "disconnected_tensors": [],
+        "never_nonzero_tensors": [],
+        "zero_gradient_batches": [],
+        "missing_gradient_batches": []
+      },
+      "epoch_shuffle_seed": 20260841,
+      "epoch_sample_id_sha256": "2c88a0cf20223b8b30b3cb10a0ffe0ea941c42471c241cf94ee6db6e92ea7223",
+      "holdout_frames_in_optimizer_batches": 0,
+      "global_update_index": 10164,
+      "global_q_update_index": 6776,
+      "frozen_perception_state_unchanged": true,
+      "candidate_checkpoint": "ranker_epoch_12.pt",
+      "candidate_checkpoint_sha256": "91737439b4a9f1ac1576b3ca4c50603395cb193ec06e02b2d0a3c9c1fef75470"
+    }
+  ]
+}

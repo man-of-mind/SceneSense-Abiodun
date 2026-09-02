@@ -363,3 +363,114 @@ def load_locked_config() -> dict[str, Any]:
     if int(config["seed"]) != RANKER_INIT_SEED:
         raise ValueError("locked_config seed drift")
     return config
+
+
+# ---------------------------------------------------------------------------
+# Phase 5: ranker training and train-holdout checkpoint selection
+# ---------------------------------------------------------------------------
+
+# Bound Phase-4 artifact. The manifest hash binds all 66 shard hashes, so verifying
+# the manifest and then every shard against it is one closed identity chain.
+TEACHER_CACHE_RELPATH = (
+    "experiments/splitfusion_fcos_hybrid_q_v1/20260901_180439_phase4_teacher_cache"
+)
+TEACHER_CACHE_MANIFEST_SHA256 = (
+    "e1ef600eb83c1924a52c37dbdbf0b435990eaaae4f1db1b0e07d9b1acd7fc273"
+)
+FIT_REFERENCE_MEDIANS_SHA256 = (
+    "f91570c7e9b7b895b9c02ae5831c382b68f5a4f6b7a20fa9aed6c5bcf552729e"
+)
+LOCKED_CONFIG_SHA256 = (
+    "b2b0d8427bd867f46058ebba49ac6a183eb89413b4d69326fef93b150ebfcde6"
+)
+TEACHER_CACHE_SHARD_COUNT = 66
+
+# The frozen Phase-4 fit-partition reference medians the q-aware objective divides by.
+# Held here as an independent check on fit_reference_medians.json, not as its source.
+FROZEN_FIT_REFERENCE_MEDIANS = {
+    "D": 0.7242346405982971,
+    "G": 0.10442040860652924,
+    "S": 0.09630495309829712,
+    "A": 0.013652884401381016,
+}
+
+# Locked Phase-5 training schedule.
+TRAINING_EPOCHS = DISTILLATION_EPOCHS + Q_AWARE_EPOCHS  # 12
+TRAINING_BATCH_SIZE = 16
+GRADIENT_ACCUMULATION_STEPS = 1
+DROP_LAST_TRAINING_BATCH = False
+EPOCH_SHUFFLE_SEED_BASE = RANKER_INIT_SEED  # generator seed = base + epoch
+
+
+def epoch_shuffle_seed(epoch: int) -> int:
+    """Deterministic epoch-specific shuffle seed: 20260829 + epoch, epochs 1..12."""
+    value = int(epoch)
+    if not 1 <= value <= TRAINING_EPOCHS:
+        raise ValueError(f"epoch {epoch!r} is outside 1..{TRAINING_EPOCHS}")
+    return EPOCH_SHUFFLE_SEED_BASE + value
+
+
+def stage_for_epoch(epoch: int) -> str:
+    """Epochs 1-4 are distillation (stage A); 5-12 are q-aware preservation (stage B)."""
+    value = int(epoch)
+    if not 1 <= value <= TRAINING_EPOCHS:
+        raise ValueError(f"epoch {epoch!r} is outside 1..{TRAINING_EPOCHS}")
+    return "distillation" if value <= DISTILLATION_EPOCHS else "q_aware"
+
+
+# Locked Phase-5 holdout evaluation. q=0.90 and q=0.98 are NOT evaluated in Phase 5.
+HOLDOUT_BASELINE_Q = 0.00
+HOLDOUT_EVALUATION_Q_VALUES = Q_AWARE_TRAINING_CYCLE  # 0.30, 0.50, 0.70
+HOLDOUT_CANDIDATE_EPOCHS = CHECKPOINT_EPOCHS  # 4, 8, 12
+
+# Existing frozen scoring settings, restated so drift fails closed. None of these is
+# a Phase-5 choice: the vehicle score point is the canonical 0.20 applied to the
+# calibrated service score (equivalently base >= 0.5224518340619145), and the person
+# service threshold is the locked p025 output filter.
+PRIMARY_CONTRACT = "v010"
+VEHICLE_SCORE_THRESHOLD = 0.20
+PERSON_SERVICE_SCORE_THRESHOLD = 0.25
+PERSON_AVO_THRESHOLD = 0.65
+PERSON_LONG_RANGE_BINS = ("20_30m", "30_40m")
+HOLDOUT_AVO_TABLE_RELPATH = (
+    "experiments/splitfusion_fcos_person_p025_calibration_v1/"
+    "holdout_actor_volume_observability_table.csv"
+)
+HOLDOUT_AVO_QUALIFIED_ACTOR_FRAMES = 4703
+HOLDOUT_AVO_OBSERVABLE_ACTOR_FRAMES = 2556
+HOLDOUT_STRUCTURAL_ACTOR_FRAMES = 21054
+HOLDOUT_RAW_PERSON_ACTOR_FRAMES = 25757
+
+# Registered holdout preservation gates, relative to the exact q=0 holdout baseline.
+# "loss" gates are baseline - candidate; "increase" gates are candidate - baseline.
+HOLDOUT_PRESERVATION_GATES = (
+    ("vehicle_precision", "loss", 0.01),
+    ("vehicle_recall", "loss", 0.01),
+    ("vehicle_f1", "loss", 0.01),
+    ("person_avo_precision", "loss", 0.015),
+    ("person_avo_recall", "loss", 0.015),
+    ("person_avo_f1", "loss", 0.015),
+    ("vehicle_xy_mae_m", "increase", 0.05),
+    ("person_avo_xy_mae_m", "increase", 0.05),
+    ("vehicle_iou", "loss", 0.01),
+    ("person_box_mask_iou", "loss", 0.01),
+    ("foreground_miou", "loss", 0.01),
+    ("person_avo_recall_20_40m", "loss", 0.03),
+)
+PROTECTED_METRICS = tuple(name for name, _direction, _bound in HOLDOUT_PRESERVATION_GATES)
+
+PHASE5_TERMINAL_SELECTED = "HYBRID_Q_PHASE5_CHECKPOINT_SELECTED"
+PHASE5_TERMINAL_NOT_SAFE = "ROI_DROP_NOT_SAFE_ON_TRAIN_HOLDOUT"
+PHASE5_TERMINAL_FAILED = "HYBRID_Q_PHASE5_FAILED"
+
+
+def gate_degradation(metric: str, baseline: float, candidate: float) -> float:
+    """Signed degradation of one protected metric: positive is worse than baseline."""
+    for name, direction, _bound in HOLDOUT_PRESERVATION_GATES:
+        if name == metric:
+            return (
+                float(baseline) - float(candidate)
+                if direction == "loss"
+                else float(candidate) - float(baseline)
+            )
+    raise ValueError(f"{metric!r} is not a registered protected metric")
