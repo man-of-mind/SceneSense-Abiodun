@@ -1,0 +1,118 @@
+{
+  "all_ranges_decoded_c2_and_outputs_finite": true,
+  "binding": {
+    "frozen_perception_checkpoint": {
+      "path": "experiments/route_b_v3_1_splitfusion_fcos_r50_fpn_p2_p7_v1_numerical_recovery_v1/20260830_recovered_epoch10_gate_v1/checkpoints/epoch_026.pt",
+      "sha256": "da14d21edbd374c1c3abce02ca4674b9f4097becfba9759aba945cea160a297f"
+    },
+    "hybrid_q_locked_config": {
+      "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1/locked_config.json",
+      "sha256": "b2b0d8427bd867f46058ebba49ac6a183eb89413b4d69326fef93b150ebfcde6"
+    },
+    "perception_forward_lock": {
+      "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_person_p025_calibration_v1/PERCEPTION_FORWARD_LOCK_P025_V1.json",
+      "sha256": "86d6f13ae9168b33b697df5b785c5f7c320afc52cfdcded5b632d94a6d943fe1"
+    },
+    "phase6_fp32_validation_curve": {
+      "path": "experiments/splitfusion_fcos_hybrid_q_v1/20260902_182401_phase6_validation_curve/validation_curve.json",
+      "sha256": "54987920a7430564425664e82511d1121e77935beabfbd4cf2f34bee5cadfc74"
+    },
+    "protected_source_sha256": {
+      "codec.py": "7b3833398a84fea31f65b86ec294c6675727390035b5761d372fd5a3cbba7b79",
+      "continuous_q.py": "8ea72faed324c29b7106bd5f6277699bd7e7ba16a66073905f9ff28c69bab23c",
+      "guards.py": "77d8d8bfd168e74a7f0b6a7e3c8e7abc4c3549a86cda392feb394d7580a33031",
+      "locked_config.json": "b2b0d8427bd867f46058ebba49ac6a183eb89413b4d69326fef93b150ebfcde6",
+      "ranker.py": "462536991f195651a1ee641f8e83444882ec370a8dffab72f13f0d770422b353",
+      "selection.py": "ccc2b12919b078eac7af6131418989567d618d42f7b908b2db74df42e0342a71",
+      "zstd_transport.py": "57d1846b3fdc4084266e5a8adcc7abf99556ed2b187befec729003fcdb77edec"
+    },
+    "stable_epoch4_ranker": {
+      "path": "experiments/splitfusion_fcos_hybrid_q_v1/20260901_185725_phase5_ranker_training/checkpoints/ranker_epoch_04.pt",
+      "sha256": "07781c56a4c0f306f16d332f64627ce6b9458e154f40ab9fef89f89909b79cb5"
+    },
+    "uint8_implementation": {
+      "codec": {
+        "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1/uint8_codec.py",
+        "sha256": "b6f07723860821e93c0dc2aeec456073617942b5ed8446f4555fe87b2c7ca803"
+      },
+      "implementation_base_commit": "bdd95b1221e24ac113d1f26842f9be21648621d8",
+      "mandatory_zstd_wrapper": {
+        "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1/uint8_zstd_transport.py",
+        "sha256": "db1f79e3786f2d5a12e367b688fd79401bc5e5c8f10523a7bbf7418f14aaa11d"
+      }
+    }
+  },
+  "dropped_cells_exact_zero": true,
+  "event_order": [
+    "full_original_fp32_c2_ranges_computed_once",
+    "q0:ranker_bypassed",
+    "q3000:rank_original_fp32_then_quantize"
+  ],
+  "frames": 1,
+  "frozen_model_state_unchanged": true,
+  "frozen_ranker_state_unchanged": true,
+  "generated_utc": "2026-09-02T22:36:51.268634+00:00",
+  "q030_selection_on_original_fp32_before_quantization": true,
+  "q0_ranker_bypassed": true,
+  "q_values": [
+    0.0,
+    0.3
+  ],
+  "ranges_computed_once_and_reused": true,
+  "results": [
+    {
+      "compressed_bytes": 3605951,
+      "decoded_c2_finite": true,
+      "error": {
+        "constant_channels": 0,
+        "dropped_cells_exact_zero": true,
+        "half_step_bound_passed": true,
+        "max_half_step_plus_fp32_tolerance": 0.014855322428047657,
+        "max_retained_absolute_error": 0.01484796404838562,
+        "nonconstant_channels": 256
+      },
+      "model_outputs_finite": true,
+      "output_tensors_checked": 122,
+      "q": 0.0,
+      "q_e4": 0,
+      "range_pairs_finite": true,
+      "ranker_invocations": 0,
+      "retained_cells": 21504,
+      "selection_on_original_fp32_before_quantization": true,
+      "sparse_bytes": 5507116,
+      "zstd_round_trip_exact": true
+    },
+    {
+      "compressed_bytes": 2539055,
+      "decoded_c2_finite": true,
+      "error": {
+        "constant_channels": 0,
+        "dropped_cells_exact_zero": true,
+        "half_step_bound_passed": true,
+        "max_half_step_plus_fp32_tolerance": 0.014855322428047657,
+        "max_retained_absolute_error": 0.01484796404838562,
+        "nonconstant_channels": 256
+      },
+      "model_outputs_finite": true,
+      "output_tensors_checked": 122,
+      "q": 0.3,
+      "q_e4": 3000,
+      "range_pairs_finite": true,
+      "ranker_invocations": 1,
+      "retained_cells": 15053,
+      "selection_on_original_fp32_before_quantization": true,
+      "sparse_bytes": 3858348,
+      "zstd_round_trip_exact": true
+    }
+  ],
+  "retained_half_step_bounds_passed": true,
+  "run_identity_sha256": "84d8b71c9363063641c10c978ebb001d64bc36bd62ff4fdaa3caed201a656fa0",
+  "runner_sha256": "705aab576d1e5b79ae08ec93d7303c3288c0c88e89419e8f55efc75779486188",
+  "schema": "splitfusion_fcos_hybrid_q_phase8b_uint8_smoke_v1",
+  "shared_uint8_codes_identical": true,
+  "terminal": "HYBRID_Q_UINT8_VALIDATION_SMOKE_COMPLETE",
+  "test_or_carla_access": false,
+  "training_or_tuning": false,
+  "validation_frame": "canonical_v3_05_val_30_30_s601_tm1601_000000_frame249",
+  "zstd_round_trips_exact": true
+}

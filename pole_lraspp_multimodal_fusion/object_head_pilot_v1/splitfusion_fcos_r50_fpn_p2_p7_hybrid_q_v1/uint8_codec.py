@@ -39,8 +39,8 @@ class PreparedUint8Frame:
 
     c2: torch.Tensor
     channel_ranges: torch.Tensor  # [256, 2], min then max, FP32
-    c2_version: int
-    ranges_version: int
+    c2_version: int | None
+    ranges_version: int | None
 
 
 @dataclass(frozen=True)
@@ -128,6 +128,22 @@ def _require_valid_ranges(ranges: torch.Tensor, *, what: str) -> torch.Tensor:
     return ranges
 
 
+def _tensor_version(tensor: torch.Tensor) -> int | None:
+    """Return the mutation counter, or None for inference-mode tensors.
+
+    PyTorch intentionally omits version counters from tensors created inside
+    ``torch.inference_mode()``.  Those are the tensors produced by the frozen
+    validation path, so absence of the optional mutation diagnostic must not
+    make the transport unusable there.
+    """
+    try:
+        return int(tensor._version)
+    except RuntimeError as error:
+        if "Inference tensors do not track version counter" not in str(error):
+            raise
+        return None
+
+
 def prepare(c2: torch.Tensor) -> PreparedUint8Frame:
     """Compute all per-channel ranges once from one complete original FP32 C2."""
     guards.require_frozen_c2(c2)
@@ -138,8 +154,8 @@ def prepare(c2: torch.Tensor) -> PreparedUint8Frame:
     return PreparedUint8Frame(
         c2=c2,
         channel_ranges=ranges,
-        c2_version=int(c2._version),
-        ranges_version=int(ranges._version),
+        c2_version=_tensor_version(c2),
+        ranges_version=_tensor_version(ranges),
     )
 
 
@@ -147,9 +163,9 @@ def _require_prepared(prepared: PreparedUint8Frame) -> PreparedUint8Frame:
     if not isinstance(prepared, PreparedUint8Frame):
         raise guards.HybridQPayloadError("encode requires a PreparedUint8Frame")
     guards.require_frozen_c2(prepared.c2, what="prepared original C2")
-    if int(prepared.c2._version) != int(prepared.c2_version):
+    if _tensor_version(prepared.c2) != prepared.c2_version:
         raise guards.HybridQPayloadError("prepared original C2 changed after range analysis")
-    if int(prepared.channel_ranges._version) != int(prepared.ranges_version):
+    if _tensor_version(prepared.channel_ranges) != prepared.ranges_version:
         raise guards.HybridQPayloadError("prepared channel ranges changed after analysis")
     _require_valid_ranges(prepared.channel_ranges, what="prepared channel ranges")
     return prepared

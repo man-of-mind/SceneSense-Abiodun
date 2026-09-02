@@ -115,6 +115,17 @@ class Uint8TransportChecks(unittest.TestCase):
             payload.total_bytes, uint8_codec.analytical_size(0.50).total_bytes
         )
 
+        # Frozen validation creates C2 under torch.inference_mode(), whose
+        # tensors intentionally have no mutation-version counter.
+        with torch.inference_mode():
+            inference_c2 = c2.clone()
+            inference_prepared = uint8_codec.prepare(inference_c2)
+            inference_payload = uint8_codec.encode(
+                inference_prepared, 0.50, selection
+            )
+            inference_decoded, _ = uint8_codec.decode(inference_payload)
+        self.assertTrue(torch.equal(inference_decoded, decoded))
+
     def test_transport_integrity_continuous_q_zstd_and_fail_closed(self) -> None:
         c2 = synthetic_c2()
         prepared = uint8_zstd_transport.prepare_frame(c2)
