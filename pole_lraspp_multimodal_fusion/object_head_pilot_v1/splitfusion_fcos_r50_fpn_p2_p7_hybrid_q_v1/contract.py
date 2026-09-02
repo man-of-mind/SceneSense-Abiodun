@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import math
 from pathlib import Path
@@ -73,6 +74,49 @@ Q_AWARE_OBJECTIVE = (
     "+ 0.1 * distillation loss"
 )
 REFERENCE_MEDIAN_SOURCE = "fit_train"
+
+# Locked train fit/holdout split (Phase 4). The partition is by episode over the
+# registered `split == "train"` manifest rows, taken in manifest order. The two
+# holdout episodes are reserved for checkpoint selection: they must never
+# contribute to the frozen reference medians or to any optimizer step. Phase 3
+# touched some holdout frames in a disposable qualification; that use is not
+# carried forward.
+TRAIN_MANIFEST_SHA256 = (
+    "5d65e6eb14aadea11ca6bab6e82f0c94c31a50746611d167d282d8988a4504c2"
+)
+TRAIN_TOTAL_FRAMES = 16827
+TRAIN_FIT_FRAMES = 13543
+TRAIN_HOLDOUT_FRAMES = 3284
+TRAIN_HOLDOUT_EPISODES = (
+    "canonical_v3_03_train_30_30_s503_tm1503",
+    "canonical_v3_04_train_50_50_s504_tm1504",
+)
+TRAIN_FIT_EPISODES = (
+    "canonical_v3_01_train_30_30_s501_tm1501",
+    "canonical_v3_02_train_50_50_s502_tm1502",
+    "extra_v3_09_train_30_30_s801_tm1801",
+    "extra_v3_10_train_50_50_s802_tm1802",
+    "extra_v3_11_train_30_30_s803_tm1803",
+    "extra_v3_12_train_50_50_s804_tm1804",
+    "extra_v3_13_train_30_30_s805_tm1805",
+    "extra_v3_14_train_50_50_s806_tm1806",
+)
+TRAIN_FIT_SAMPLE_ID_SHA256 = (
+    "3e20cceeec48718b7df763f95bf873f3febbb435256c36104996631f86fa252e"
+)
+TRAIN_HOLDOUT_SAMPLE_ID_SHA256 = (
+    "8c7c4cc617626b31df7bcb68f89bf72649d05e1934e316002b2dd8a8d5754f0a"
+)
+SPLIT_LABELS = ("fit", "holdout")
+
+# Locked teacher-cache generation parameters. The cache batch size is part of the
+# contract because batch construction determines the per-batch task-loss values
+# that the frozen reference medians are taken over.
+TEACHER_CACHE_BATCH_SIZE = 16
+TEACHER_CACHE_SHARD_FRAMES = 256
+TEACHER_CACHE_MIN_GPU_TOTAL_GIB = 30.0
+TEACHER_CACHE_MAP_DTYPE = "float32"
+TEACHER_CACHE_COMPRESSION = "none"
 
 # Locked optimization.
 OPTIMIZER = "AdamW"
@@ -179,6 +223,24 @@ def registered_keep_table(cells: int = SPLIT_CELLS) -> dict[float, int]:
     return {q: keep_count(q, cells) for q in REGISTERED_Q_VALUES}
 
 
+def sample_id_digest(sample_ids: Any) -> str:
+    """Order-sensitive identity digest of a frame list: sha256 of newline-terminated ids."""
+    digest = hashlib.sha256()
+    for sample_id in sample_ids:
+        digest.update(str(sample_id).encode("utf-8"))
+        digest.update(b"\n")
+    return digest.hexdigest()
+
+
+def split_for_episode(episode_id: str) -> str:
+    """Locked fit/holdout label of a registered training episode."""
+    if episode_id in TRAIN_HOLDOUT_EPISODES:
+        return "holdout"
+    if episode_id in TRAIN_FIT_EPISODES:
+        return "fit"
+    raise ValueError(f"episode {episode_id!r} is not a registered training episode")
+
+
 def load_locked_config() -> dict[str, Any]:
     """Read locked_config.json and fail closed on any drift from these constants."""
     with locked_config_path().open("r", encoding="utf-8") as handle:
@@ -263,6 +325,40 @@ def load_locked_config() -> dict[str, Any]:
         raise ValueError("locked_config straight-through temperature drift")
     if surrogate["boundary"] != STRAIGHT_THROUGH_BOUNDARY:
         raise ValueError("locked_config straight-through boundary drift")
+
+    split = config["train_split"]
+    if split["manifest_sha256"] != TRAIN_MANIFEST_SHA256:
+        raise ValueError("locked_config train manifest sha256 drift")
+    if int(split["total_frames"]) != TRAIN_TOTAL_FRAMES:
+        raise ValueError("locked_config train frame count drift")
+    if int(split["fit_frames"]) != TRAIN_FIT_FRAMES:
+        raise ValueError("locked_config fit frame count drift")
+    if int(split["holdout_frames"]) != TRAIN_HOLDOUT_FRAMES:
+        raise ValueError("locked_config holdout frame count drift")
+    if int(split["fit_frames"]) + int(split["holdout_frames"]) != TRAIN_TOTAL_FRAMES:
+        raise ValueError("locked_config split does not partition the train set")
+    if tuple(split["holdout_episodes"]) != TRAIN_HOLDOUT_EPISODES:
+        raise ValueError("locked_config holdout episode drift")
+    if tuple(split["fit_episodes"]) != TRAIN_FIT_EPISODES:
+        raise ValueError("locked_config fit episode drift")
+    if set(TRAIN_FIT_EPISODES) & set(TRAIN_HOLDOUT_EPISODES):
+        raise ValueError("locked_config fit and holdout episodes overlap")
+    if split["fit_sample_id_sha256"] != TRAIN_FIT_SAMPLE_ID_SHA256:
+        raise ValueError("locked_config fit frame identity drift")
+    if split["holdout_sample_id_sha256"] != TRAIN_HOLDOUT_SAMPLE_ID_SHA256:
+        raise ValueError("locked_config holdout frame identity drift")
+
+    cache = config["teacher_cache"]
+    if int(cache["batch_size"]) != TEACHER_CACHE_BATCH_SIZE:
+        raise ValueError("locked_config teacher-cache batch size drift")
+    if int(cache["shard_frames"]) != TEACHER_CACHE_SHARD_FRAMES:
+        raise ValueError("locked_config teacher-cache shard size drift")
+    if cache["map_dtype"] != TEACHER_CACHE_MAP_DTYPE:
+        raise ValueError("locked_config teacher-cache map dtype drift")
+    if cache["compression"] != TEACHER_CACHE_COMPRESSION:
+        raise ValueError("locked_config teacher-cache compression drift")
+    if bool(cache["augmentation"]) != AUGMENTATION_ENABLED:
+        raise ValueError("locked_config teacher-cache augmentation drift")
 
     if int(config["seed"]) != RANKER_INIT_SEED:
         raise ValueError("locked_config seed drift")

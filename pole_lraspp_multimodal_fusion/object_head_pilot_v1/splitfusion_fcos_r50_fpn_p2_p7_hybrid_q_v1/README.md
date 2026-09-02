@@ -1,13 +1,18 @@
 # Hybrid-q v1 — spatial transport sparsification at the frozen C2 split
 
-Phase 3 status: **source corrected, frozen model integrated, one bounded train-only GPU
-qualification executed.** `gpu_qualification.py` loads the frozen epoch-26 checkpoint, reads
-train-split frames with augmentation disabled and uses CUDA. It does **not** build a teacher
-cache, train an epoch, read validation or test data, run evaluation, or launch CARLA.
+Phase 4 status: **the frozen train-only teacher cache and the four fit-reference medians are
+built.** `gpu_qualification.py` (Phase 3) qualified the path on GPU; `teacher_cache.py` (Phase 4)
+then cached teacher supervision for all 16,827 training frames and froze the reference medians.
+Neither trains the ranker, takes an optimizer step, reads validation or test data, runs
+evaluation, or launches CARLA.
 
-Result: `experiments/splitfusion_fcos_hybrid_q_v1/20260902_004213_phase3_gpu_qualification/`
-(`qualification_result.json`, `PHASE3_QUALIFICATION_SUMMARY.md`), terminal
-`HYBRID_Q_PHASE3_QUALIFIED`.
+Results:
+`experiments/splitfusion_fcos_hybrid_q_v1/20260902_004213_phase3_gpu_qualification/`, terminal
+`HYBRID_Q_PHASE3_QUALIFIED`; and
+`experiments/splitfusion_fcos_hybrid_q_v1/20260901_180439_phase4_teacher_cache/`
+(`teacher_cache_manifest.json`, `fit_reference_medians.json`,
+`PHASE4_TEACHER_CACHE_SUMMARY.md`), terminal `HYBRID_Q_PHASE4_TEACHER_CACHE_COMPLETE`. The cache
+shards themselves are large and deliberately untracked.
 
 The machine-readable contract is [locked_config.json](locked_config.json); `contract.load_locked_config()`
 reads it and fails closed on any drift from the module constants.
@@ -191,10 +196,12 @@ No class-specific rewritten losses, target-region side channels, RGB, radar, pre
 GT enter the ranker runtime.
 
 `gradient_mass` is the raw pre-normalization L1 mass per group and is **diagnostic only**.
-`task_losses` holds dense task-loss values **separately**, for future train-only
-reference-scale construction. `TeacherCacheRecord` carries teacher maps, validity flags,
-identifiers, `gradient_mass`, `task_losses` and the checkpoint hash — **full C2 tensors are
-deliberately not cached**.
+`task_losses` holds dense task-loss values **separately**, and Phase 4 used them to build the
+frozen fit-train reference medians. `TeacherCacheRecord` declares the per-record content:
+teacher maps, validity flags, identifiers, `gradient_mass`, `task_losses` and the checkpoint
+hash — **full C2 tensors are deliberately not cached**. The Phase-4 shard is the columnar
+realization of that record plus the `fit`/`holdout` split label; checkpoint, locked-config and
+package-source hashes are held once per shard and so bind every record in it.
 
 ## Locked training semantics (not executed)
 
@@ -213,8 +220,7 @@ mean(valid masked task loss / frozen train-reference median for that task) + 0.1
 ```
 
 `training.ReferenceMedians` requires `source == "fit_train"`; validation- or test-derived
-scale is rejected. Those medians do not exist yet and must be produced from fit-training
-data in a later phase.
+scale is rejected. Those medians now exist and are frozen — see the Phase-4 section below.
 
 **Optimization** — AdamW, lr `1e-3`, weight decay `1e-4`, constant LR, global ranker
 gradient-norm clip `5.0`, checkpoints after epochs **4, 8, 12**, **no augmentation** so
@@ -285,13 +291,66 @@ frame carrying both vehicle and person GT:
   tuning or selection rewrite. zstd was not run.
 
 The provisional reference scales used inside that window are **disposable** and must not become
-the Phase-4 frozen medians.
+the Phase-4 frozen medians. They did not: Phase 4 recomputed all four medians from 847 fit-only
+batches, and every value differs (e.g. G 0.12767770 disposable vs 0.10442041 frozen).
+
+## Locked train fit/holdout split
+
+Bound in `locked_config.json` (`train_split`) and enforced by `contract.py`, which fails closed
+on episode-name, count and frame-identity drift. The partition is by episode over the registered
+`split == "train"` manifest rows in manifest order.
+
+| partition | episodes | frames | ordered-sample-id sha256 |
+| --- | --- | --- | --- |
+| fit | 8 | 13,543 | `3e20ccee…fa252e` |
+| holdout | `canonical_v3_03_train_30_30_s503_tm1503`, `canonical_v3_04_train_50_50_s504_tm1504` | 3,284 | `8c7c4cc6…754f0a` |
+
+The holdout partition is for **checkpoint selection only**: it must never contribute to the frozen
+reference medians or to any optimizer step. Phase 3's seeded qualification batches included some
+holdout frames; that was disposable qualification and is not carried into any Phase-4 number.
+
+## Phase 4 teacher cache and reference medians (executed)
+
+One create-only generation, `teacher_cache.py`, artifact
+`experiments/splitfusion_fcos_hybrid_q_v1/20260901_180439_phase4_teacher_cache`. Terminal
+`HYBRID_Q_PHASE4_TEACHER_CACHE_COMPLETE`. No ranker was constructed, no optimizer existed, no
+optimizer step was taken, and no validation or test frame was read.
+
+All **16,827** training frames were cached — 13,543 fit and 3,284 holdout — in **66** split-pure,
+uncompressed 256-frame shards totalling 1.35 GiB, each written via temporary file then atomic
+rename with a recorded sha256. Physical batch 16, augmentation off, seed 20260829, bf16 tail with
+the fp32 C2 boundary. 755 s wall clock; peak allocated 23,476.3 MiB. Maps are FP32 and are not
+converted to FP16. A bounded smoke (one fit batch, one holdout batch) exercised the real
+write/read path first and its temporary output was then removed.
+
+Teacher validity: D, S and A valid on all 16,827 frames; **G valid on 16,098**, with 729
+`zero_gradient` exclusions. Those are legitimate absent supervision — 721 frames carry zero
+POSITIVE GT objects and 8 carry a single GT object that matched no FCOS location — so they are
+reported, not failed. Every frame retains at least three valid groups. Minimum map value
+`6.82e-07`, minimum map mass `0.99999982`.
+
+Frozen fit-reference medians, over 847 fit batches in registered order (846 x 16 + 1 x 7), holdout
+batched separately and contributing nothing:
+
+| group | frozen median | contributing fit batches |
+| --- | --- | --- |
+| D | 0.7242346405982971 | 847 |
+| G | 0.1044204086065292 | 834 |
+| S | 0.0963049530982971 | 847 |
+| A | 0.0136528844013810 | 847 |
+
+G's 13 rejected batches are those whose geometry loss was exactly zero, so its median is taken
+over an even count and exercises the two-central-value rule.
+
+This artifact is teacher supervision and loss scale only. It is **not** evidence about accuracy,
+payload, latency or transport at any q.
 
 ## Phase boundaries
 
-Not done and not authorized by this commit: teacher-cache generation, training, validation or
-test evaluation, OAI/CARLA transport measurement, quantization, zstd and the AE families. The
-test set remains untouched and reserved for independent publication confirmation.
+Not done and not authorized by this commit: ranker training (distillation and the q-aware
+stage), validation or test evaluation, OAI/CARLA transport measurement, quantization, zstd and
+the AE families. The test set remains untouched and reserved for independent publication
+confirmation.
 
 ## Commands
 
@@ -302,9 +361,13 @@ Only the first is in scope for this commit beyond the Phase-3 qualification abov
 python3 -m unittest pole_lraspp_multimodal_fusion.object_head_pilot_v1.\
 splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1.tests.test_synthetic -v
 
-# Phase 4+ (NOT run here):
-#   teacher-cache generation (maps, validity, gradient_mass, task_losses; no C2)
-#   fit-train reference-median construction
+# Phase 4 (executed once; create-only, and the shards are not tracked):
+python3 -m pole_lraspp_multimodal_fusion.object_head_pilot_v1.\
+splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1.teacher_cache \
+  --execute HYBRID_Q_PHASE4_TEACHER_CACHE \
+  --output experiments/splitfusion_fcos_hybrid_q_v1/<timestamp>_phase4_teacher_cache
+
+# Phase 5+ (NOT run here):
 #   4 distillation epochs, then 8 q-aware epochs over the 0.30/0.50/0.70 cycle
 #   frozen-validation sweep over q in {0.00, 0.30, 0.50, 0.70, 0.90, 0.98}
 #   measured payload / UE / network / edge / end-to-end latency over OAI

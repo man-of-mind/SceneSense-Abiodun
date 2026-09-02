@@ -1,7 +1,7 @@
 {
   "schema": "splitfusion_fcos_hybrid_q_transport_v1",
   "decision_date": "2026-09-01",
-  "status": "phase3_ranker_corrected_and_train_only_gpu_qualified_training_not_executed",
+  "status": "phase4_train_only_teacher_cache_and_fit_reference_medians_built_ranker_training_not_executed",
   "scope": "transport-only spatial sparsification at the frozen fused C2 split",
   "seed": 20260829,
   "perception_binding": {
@@ -23,8 +23,17 @@
     "frozen_model_runtime_mode": "eval"
   },
   "c2_contract": {
-    "shape": [256, 112, 192],
-    "batched_ranker_shape": ["B", 256, 112, 192],
+    "shape": [
+      256,
+      112,
+      192
+    ],
+    "batched_ranker_shape": [
+      "B",
+      256,
+      112,
+      192
+    ],
     "cells": 21504,
     "dtype": "float32",
     "spatial_index_order": "row_major",
@@ -60,12 +69,42 @@
     "selection": "keep highest-scoring cells; ties prefer the lower row-major spatial index",
     "q0_behaviour": "bypass ranking and sparse masking; return the validated input tensor object",
     "values": [
-      {"q": 0.00, "keep_count": 21504, "drop_count": 0, "role": "parity"},
-      {"q": 0.30, "keep_count": 15053, "drop_count": 6451, "role": "q_aware_training"},
-      {"q": 0.50, "keep_count": 10752, "drop_count": 10752, "role": "q_aware_training"},
-      {"q": 0.70, "keep_count": 6451, "drop_count": 15053, "role": "q_aware_training"},
-      {"q": 0.90, "keep_count": 2150, "drop_count": 19354, "role": "evaluation_stress"},
-      {"q": 0.98, "keep_count": 430, "drop_count": 21074, "role": "evaluation_stress"}
+      {
+        "q": 0.0,
+        "keep_count": 21504,
+        "drop_count": 0,
+        "role": "parity"
+      },
+      {
+        "q": 0.3,
+        "keep_count": 15053,
+        "drop_count": 6451,
+        "role": "q_aware_training"
+      },
+      {
+        "q": 0.5,
+        "keep_count": 10752,
+        "drop_count": 10752,
+        "role": "q_aware_training"
+      },
+      {
+        "q": 0.7,
+        "keep_count": 6451,
+        "drop_count": 15053,
+        "role": "q_aware_training"
+      },
+      {
+        "q": 0.9,
+        "keep_count": 2150,
+        "drop_count": 19354,
+        "role": "evaluation_stress"
+      },
+      {
+        "q": 0.98,
+        "keep_count": 430,
+        "drop_count": 21074,
+        "role": "evaluation_stress"
+      }
     ]
   },
   "ranker": {
@@ -76,10 +115,21 @@
       "ReLU",
       "Conv2d 8->1 kernel 1x1 bias=False"
     ],
-    "forbidden": ["BatchNorm", "attention", "second backbone", "object-level ROI model"],
+    "forbidden": [
+      "BatchNorm",
+      "attention",
+      "second backbone",
+      "object-level ROI model"
+    ],
     "final_layer_bias": false,
     "final_layer_bias_rationale": "a global scalar score offset is unidentifiable: it cannot change cell ranking, exact-cardinality selection or the hard mask, and listwise softmax distillation is invariant to it",
-    "named_trainable_tensors": ["reduce.weight", "reduce.bias", "depthwise.weight", "depthwise.bias", "score.weight"],
+    "named_trainable_tensors": [
+      "reduce.weight",
+      "reduce.bias",
+      "depthwise.weight",
+      "depthwise.bias",
+      "score.weight"
+    ],
     "parameter_count": 2144,
     "mac_count_112x192": 45760512,
     "init_seed": 20260829,
@@ -110,7 +160,12 @@
     "executed_in_this_phase": false,
     "disposable_qualification_updates_taken": 4,
     "teacher": {
-      "groups": ["D", "G", "S", "A"],
+      "groups": [
+        "D",
+        "G",
+        "S",
+        "A"
+      ],
       "group_definitions": {
         "D": "FCOS classification, box regression and centerness",
         "G": "registered geometry loss",
@@ -148,11 +203,18 @@
     "q_aware": {
       "epochs": 8,
       "q_per_optimizer_update": 1,
-      "cycle": [0.30, 0.50, 0.70],
+      "cycle": [
+        0.3,
+        0.5,
+        0.7
+      ],
       "cycle_order": "deterministic repeated cycle",
-      "parity_q": 0.00,
+      "parity_q": 0.0,
       "parity_note": "q=0 is parity monitoring only and must not produce a ranker-training gradient",
-      "evaluation_stress_q": [0.90, 0.98],
+      "evaluation_stress_q": [
+        0.9,
+        0.98
+      ],
       "objective": "mean(valid masked task loss / frozen train-reference median for that task) + 0.1 * distillation loss",
       "distillation_weight": 0.1,
       "reference_median_source": "fit_train",
@@ -165,7 +227,11 @@
       "lr_schedule": "constant",
       "grad_clip_global_norm": 5.0,
       "grad_clip_scope": "ranker parameters only",
-      "checkpoint_epochs": [4, 8, 12],
+      "checkpoint_epochs": [
+        4,
+        8,
+        12
+      ],
       "augmentation": false,
       "augmentation_rationale": "cached teacher maps must remain aligned with canonical frames",
       "optimizer_ownership": "ranker parameters only"
@@ -196,5 +262,97 @@
     "bitmask compression diagnostic",
     "selection vectorization, pending Phase-3 latency measurement",
     "payload, UE, network, edge and end-to-end latency measurement"
-  ]
+  ],
+  "train_split": {
+    "source": "registered dataset manifest rows with split == 'train', in manifest order",
+    "manifest_relpath": "experiments/route_b_v3_1_expanded_train_camera_plane_v1/20260828_094151/dataset/manifest.csv",
+    "manifest_sha256": "5d65e6eb14aadea11ca6bab6e82f0c94c31a50746611d167d282d8988a4504c2",
+    "partition": "by episode; no episode is split across fit and holdout",
+    "total_frames": 16827,
+    "fit_frames": 13543,
+    "holdout_frames": 3284,
+    "holdout_episodes": [
+      "canonical_v3_03_train_30_30_s503_tm1503",
+      "canonical_v3_04_train_50_50_s504_tm1504"
+    ],
+    "fit_episodes": [
+      "canonical_v3_01_train_30_30_s501_tm1501",
+      "canonical_v3_02_train_50_50_s502_tm1502",
+      "extra_v3_09_train_30_30_s801_tm1801",
+      "extra_v3_10_train_50_50_s802_tm1802",
+      "extra_v3_11_train_30_30_s803_tm1803",
+      "extra_v3_12_train_50_50_s804_tm1804",
+      "extra_v3_13_train_30_30_s805_tm1805",
+      "extra_v3_14_train_50_50_s806_tm1806"
+    ],
+    "sample_id_digest": "sha256 over the ordered sample ids, each terminated by a newline",
+    "fit_sample_id_sha256": "3e20cceeec48718b7df763f95bf873f3febbb435256c36104996631f86fa252e",
+    "holdout_sample_id_sha256": "8c7c4cc617626b31df7bcb68f89bf72649d05e1934e316002b2dd8a8d5754f0a",
+    "holdout_role": "checkpoint selection only",
+    "holdout_prohibitions": [
+      "must not contribute to the frozen fit reference medians",
+      "must not contribute to any optimizer step"
+    ],
+    "phase3_holdout_contact": "the Phase-3 seeded qualification batches included some holdout frames; that use was disposable qualification only and does not influence Phase-4 reference medians, optimizer training or checkpoint selection",
+    "validation_and_test": "not read by any Phase-4 stage; the locked test split remains unopened"
+  },
+  "teacher_cache": {
+    "built_in_this_phase": true,
+    "mode": "create_only",
+    "frames": 16827,
+    "batch_size": 16,
+    "batch_size_rationale": "batch construction determines the per-batch q=0 task-loss values that the frozen reference medians are taken over, so it is part of the contract",
+    "batching": "fit and holdout are batched separately so no holdout frame can enter a fit batch",
+    "frame_order": "registered manifest order within each partition",
+    "augmentation": false,
+    "q": 0.0,
+    "ranker_involved": false,
+    "optimizer_steps": 0,
+    "map_shape": [
+      112,
+      192
+    ],
+    "map_dtype": "float32",
+    "map_dtype_prohibition": "cached maps must not be stored as float16",
+    "shard_frames": 256,
+    "shard_purity": "a shard never mixes fit and holdout frames",
+    "compression": "none",
+    "write_protocol": "temporary file then atomic rename; sha256 recorded per shard",
+    "record_fields": [
+      "sample_id",
+      "episode_id",
+      "split",
+      "importance",
+      "valid_groups",
+      "excluded_groups",
+      "gradient_mass",
+      "task_losses"
+    ],
+    "shard_level_fields": [
+      "perception_checkpoint_sha256",
+      "locked_config_sha256",
+      "hybrid_q_source_sha256"
+    ],
+    "excludes": [
+      "C2 tensors",
+      "RGB",
+      "radar",
+      "ground truth",
+      "model outputs",
+      "validation information",
+      "test information"
+    ],
+    "reference_medians": {
+      "source": "fit_train",
+      "statistic": "conventional median; the two central values are averaged for an even count",
+      "admitted_values": "finite positive q=0 task losses only",
+      "holdout_contribution": "none",
+      "groups": [
+        "D",
+        "G",
+        "S",
+        "A"
+      ]
+    }
+  }
 }
