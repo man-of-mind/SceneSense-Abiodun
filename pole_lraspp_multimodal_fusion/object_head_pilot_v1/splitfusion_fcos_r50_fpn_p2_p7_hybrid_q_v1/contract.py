@@ -474,3 +474,247 @@ def gate_degradation(metric: str, baseline: float, candidate: float) -> float:
                 else float(candidate) - float(baseline)
             )
     raise ValueError(f"{metric!r} is not a registered protected metric")
+
+
+# ---------------------------------------------------------------------------
+# Phase 6: fixed-validation accuracy-payload curve measurement
+# ---------------------------------------------------------------------------
+#
+# Phase 6 is a *measurement* phase. It does not train, tune, recalibrate, select a
+# checkpoint or change any threshold. It measures the complete validation
+# accuracy-payload curve of the one stable Phase-5 checkpoint over the whole
+# registered q ladder, so that each q becomes a characterized transport action.
+
+VALIDATION_FRAMES = 3345
+VALIDATION_EPISODES = (
+    "canonical_v3_05_val_30_30_s601_tm1601",
+    "canonical_v3_06_val_50_50_s602_tm1602",
+)
+VALIDATION_BASELINE_Q = 0.00
+
+# The Phase-5 holdout runner evaluated only the q-aware training cycle. Phase 6
+# measures the whole registered ladder, including the two evaluation-stress rungs
+# that Phase 5 deliberately left unmeasured. Nothing else about q semantics moves:
+# 0.90 and 0.98 were already registered q values, so `guards.require_valid_q`,
+# `selection` and `codec` accept them unchanged.
+VALIDATION_EVALUATION_Q_VALUES = Q_AWARE_TRAINING_CYCLE + EVALUATION_STRESS_Q_VALUES
+
+# The single stable Phase-5 checkpoint: end of the distillation stage, before the
+# q-aware stage. Epochs 8 and 12 are excluded because the q-aware stage
+# demonstrably diverged on the reserved train-holdout (worst absolute protected
+# degradation 0.2402 -> 0.8235 versus 0.0379 at epoch 4). Phase 6 must not load
+# or evaluate them.
+VALIDATION_RANKER_EPOCH = 4
+VALIDATION_RANKER_RELPATH = (
+    "experiments/splitfusion_fcos_hybrid_q_v1/"
+    "20260901_185725_phase5_ranker_training/checkpoints/ranker_epoch_04.pt"
+)
+VALIDATION_RANKER_SHA256 = (
+    "07781c56a4c0f306f16d332f64627ce6b9458e154f40ab9fef89f89909b79cb5"
+)
+VALIDATION_EXCLUDED_RANKER_EPOCHS = (8, 12)
+VALIDATION_EXCLUDED_RANKER_REASON = (
+    "the Phase-5 q-aware stage diverged; those checkpoints are not reopened and "
+    "the training failure is unchanged by this measurement phase"
+)
+VALIDATION_RANKER_STAGE = "distillation_only"
+
+# Frozen p025 q=0 validation result. Phase 6 reuses it verbatim and never reruns
+# q=0 inference. The existing prediction set is re-scored by the identical Phase-6
+# scoring functions purely to prove the q>0 rows are comparable; that is scoring,
+# not inference, and the published values below must be reproduced exactly.
+FROZEN_Q0_PREDICTION_ROOT = (
+    "experiments/splitfusion_fcos_service_candidate_v1/predictions"
+)
+FROZEN_Q0_DETECTIONS_SHA256 = (
+    "a682a1fc5eabb2e59e07449a8c6b5fc604077b40ef094b57dc30c5a18d7ec260"
+)
+FROZEN_Q0_INFERENCE_MANIFEST_SHA256 = (
+    "3b930b9ad4bd6e4f0b93d269fdcb599facc145fd988bb67159581230bef38153"
+)
+FROZEN_Q0_SEGMENTATION_MANIFEST_SHA256 = (
+    "52d6131e674adbfc75d8ea449a4f3be54a51fd993d3cb818cca23e8d759078f7"
+)
+FROZEN_Q0_EVALUATION_SHA256 = (
+    "81fb31b4c3423a3a381946afdf1012d435116bbba7fc75d7cb5553225a616773"
+)
+VALIDATION_AVO_TABLE_RELPATH = (
+    "experiments/actor_volume_observability_model_comparison_v1/"
+    "20260901_repaired_tolerance_cpu_once/actor_volume_observability_table.csv"
+)
+VALIDATION_AVO_TABLE_SHA256 = (
+    "abb976f388ad33e8806d080750e9e7fbe1b1eb60e7e18ea55bedc60dce011386"
+)
+P025_VALIDATION_CONFIRMATION_RELPATH = (
+    "experiments/splitfusion_fcos_person_p025_calibration_v1/"
+    "validation_confirmation.json"
+)
+P025_VALIDATION_CONFIRMATION_SHA256 = (
+    "ce1bc88736064d8dba59a3bb578ab47db2d0400857f704af2c591701f4dd403b"
+)
+
+# Published frozen p025 q=0 validation values, restated here so any scoring-path
+# drift fails closed instead of silently rebasing the curve. Vehicle and
+# segmentation come from the frozen q=0 evaluation (the p025 person filter
+# provably touches no vehicle field); person comes from the p025 confirmation.
+FROZEN_Q0_VALIDATION_METRICS = {
+    "vehicle_precision": 0.9315917644454283,
+    "vehicle_recall": 0.8684346300691363,
+    "vehicle_f1": 0.8989052069425901,
+    "vehicle_xy_mae_m": 0.4786754207718958,
+    "vehicle_iou": 0.8990128473391599,
+    "person_box_mask_iou": 0.5278940800907954,
+    "foreground_miou": 0.7134534637149776,
+    "person_avo_precision": 0.7041866849691146,
+    "person_avo_recall": 0.7132429614181439,
+    "person_avo_f1": 0.708685891901226,
+    "person_avo_xy_mae_m": 0.8121813463526099,
+    "person_canonical_precision": 0.7966862271315154,
+    "person_canonical_recall": 0.5960743801652892,
+    "person_canonical_f1": 0.6819323386024523,
+    "person_canonical_xy_mae_m": 0.8395157289651327,
+}
+# 20-40 m person recall is the exact union of the two published long-range bins:
+# (731 + 277) / (1004 + 741).
+FROZEN_Q0_PERSON_RECALL_20_40M_TP = 1008
+FROZEN_Q0_PERSON_RECALL_20_40M_GT = 1745
+
+# The nine original absolute service targets, verbatim from the registered
+# evaluator `splitfusion_fcos_r50_fpn_p2_p7_v1/evaluate.py:service`. These are
+# absolute deployment targets and are *not* a Phase-6 choice.
+ABSOLUTE_SERVICE_TARGETS = (
+    ("vehicle_precision", 0.80, "higher"),
+    ("vehicle_recall", 0.85, "higher"),
+    ("person_precision", 0.80, "higher"),
+    ("person_recall", 0.80, "higher"),
+    ("vehicle_xy_mae_m", 1.00, "lower"),
+    ("person_xy_mae_m", 1.20, "lower"),
+    ("vehicle_iou", 0.85, "higher"),
+    ("person_box_mask_iou", 0.50, "higher"),
+    ("foreground_miou", 0.675, "higher"),
+)
+FROZEN_Q0_SERVICE_PASS_COUNT = 7
+FROZEN_Q0_FAILED_SERVICE_GATES = ("person_precision", "person_recall")
+
+# Descriptive action-profile classification. Registered *before* the measurement so
+# the labels describe fixed results instead of being fitted to them. Evaluated as a
+# priority cascade: the first matching rule wins. Every bound is a degradation
+# relative to the exact frozen q=0 validation row; none of these is a pass/fail
+# acceptance gate, and no q is discarded for landing in a lower band.
+VALIDATION_PROFILE_CASCADE = (
+    (
+        "unusable",
+        "person AVO F1 or vehicle F1 collapses by more than 0.20 absolute, or at "
+        "most three of the nine absolute service targets survive",
+    ),
+    (
+        "accuracy-first",
+        "every registered near-lossless preservation gate passes",
+    ),
+    (
+        "balanced",
+        "person AVO F1 loss <= 0.05, vehicle F1 loss <= 0.02 and foreground mIoU "
+        "loss <= 0.02",
+    ),
+    (
+        "localization-preserving/segmentation-reduced",
+        "both XY MAE increases stay within 0.10 m while foreground mIoU loss "
+        "exceeds 0.02",
+    ),
+    (
+        "emergency-bandwidth",
+        "still finite and scientifically usable, but detection or segmentation "
+        "quality is materially reduced",
+    ),
+)
+PROFILE_UNUSABLE_F1_COLLAPSE = 0.20
+PROFILE_UNUSABLE_MAX_SERVICE_PASS = 3
+PROFILE_BALANCED_PERSON_F1_LOSS = 0.05
+PROFILE_BALANCED_VEHICLE_F1_LOSS = 0.02
+PROFILE_BALANCED_SEGMENTATION_LOSS = 0.02
+PROFILE_LOCALIZATION_XY_INCREASE = 0.10
+
+PHASE6_TERMINAL = "HYBRID_Q_PHASE6_VALIDATION_CURVE_COMPLETE"
+PHASE6_SCHEMA = "splitfusion_fcos_hybrid_q_phase6_validation_curve_v1"
+
+
+def continuous_keep_count(q: float, cells: int = SPLIT_CELLS) -> int:
+    """Readiness-only keep count for an arbitrary future q: K(q) = round((1-q)*N).
+
+    This is the deterministic keep-count convention a future continuous-q agent
+    would use, bounded to the supported range 1..N. It is documentation and a
+    constructibility diagnostic only: the production discrete contract still runs
+    through `keep_count`/`drop_count`, and this function is never used to serve a
+    transport payload. Rounding is half-up, matching `drop_count`.
+    """
+    value = float(q)
+    if not 0.0 <= value < 1.0:
+        raise ValueError(f"q must satisfy 0 <= q < 1, got {q!r}")
+    total = int(cells)
+    keep = int(math.floor((1.0 - value) * total + 0.5))
+    return max(1, min(total, keep))
+
+
+def continuous_keep_count_agrees_with_registered(cells: int = SPLIT_CELLS) -> bool:
+    """True when K(q) = round((1-q)*N) reproduces every registered keep count."""
+    return all(
+        continuous_keep_count(q, cells) == keep_count(q, cells)
+        for q in REGISTERED_Q_VALUES
+        if q > 0.0
+    )
+
+
+def snap_continuous_q(q: float) -> float:
+    """Snap a requested continuous q down to the nearest validated, less-aggressive q.
+
+    Until a denser validation sweep exists, an unmeasured q must not be served on
+    the assumption that its accuracy interpolates between neighbours. The
+    conservative choice is the largest registered q that is <= the request, which
+    drops no more cells than requested and whose accuracy has been measured.
+    """
+    value = float(q)
+    if not 0.0 <= value < 1.0:
+        raise ValueError(f"q must satisfy 0 <= q < 1, got {q!r}")
+    return max(item for item in REGISTERED_Q_VALUES if item <= value)
+
+
+def absolute_service_gates(metrics: Any) -> dict[str, Any]:
+    """The nine original absolute service targets, evaluated verbatim.
+
+    Mirrors `splitfusion_fcos_r50_fpn_p2_p7_v1/evaluate.py:service`, including its
+    attainment-ratio convention and its treatment of a non-finite metric as a
+    failure with an undefined ratio.
+    """
+    rows: dict[str, Any] = {}
+    ratios: list[Any] = []
+    for name, target, direction in ABSOLUTE_SERVICE_TARGETS:
+        try:
+            value = float(metrics[name])
+        except (KeyError, TypeError, ValueError):
+            value = float("nan")
+        finite = math.isfinite(value)
+        passed = finite and (
+            value >= target if direction == "higher" else value <= target
+        )
+        ratio = (
+            (value / target if direction == "higher" else target / max(value, 1e-12))
+            if finite
+            else None
+        )
+        rows[name] = {
+            "value": value if finite else None,
+            "target": target,
+            "direction": direction,
+            "passed": passed,
+            "attainment_ratio": ratio,
+        }
+        ratios.append(ratio)
+    return {
+        "targets": rows,
+        "pass_count": sum(row["passed"] for row in rows.values()),
+        "all_pass": all(row["passed"] for row in rows.values()),
+        "failed": sorted(name for name, row in rows.items() if not row["passed"]),
+        "minimum_attainment_ratio": (
+            min(ratios) if all(value is not None for value in ratios) else None
+        ),
+    }
