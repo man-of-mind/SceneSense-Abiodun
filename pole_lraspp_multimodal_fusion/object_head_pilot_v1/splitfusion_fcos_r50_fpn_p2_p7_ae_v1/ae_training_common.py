@@ -17,7 +17,7 @@ import os
 import random
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Mapping, Sequence
+from typing import Any, Callable, Mapping, Sequence
 
 import numpy as np
 import torch
@@ -631,12 +631,16 @@ def restore_rng(state: Mapping[str, Any]) -> None:
     np.random.set_state(state["numpy"])
 
 
-def _atomic_torch_save(payload: Mapping[str, Any], path: Path) -> str:
-    """Write beside the destination, fsync, then rename into place."""
+def _atomic_write(path: Path, write: Callable[[Any], None]) -> str:
+    """Write beside the destination, fsync, rename into place, fsync the directory.
+
+    After this returns, `path` either does not exist or holds the complete new
+    contents; a torn or half-written file is not a reachable state.
+    """
     path.parent.mkdir(parents=True, exist_ok=True)
     staging = path.with_name(path.name + ".partial")
     with staging.open("wb") as stream:
-        torch.save(dict(payload), stream)
+        write(stream)
         stream.flush()
         os.fsync(stream.fileno())
     os.replace(staging, path)
@@ -646,6 +650,16 @@ def _atomic_torch_save(payload: Mapping[str, Any], path: Path) -> str:
     finally:
         os.close(directory)
     return sha256_file(path)
+
+
+def _atomic_torch_save(payload: Mapping[str, Any], path: Path) -> str:
+    return _atomic_write(path, lambda stream: torch.save(dict(payload), stream))
+
+
+def atomic_write_json(document: Mapping[str, Any], path: Path) -> str:
+    """A JSON document written with exactly a checkpoint's durability."""
+    raw = (json.dumps(dict(document), indent=2, default=str) + "\n").encode("utf-8")
+    return _atomic_write(path, lambda stream: stream.write(raw))
 
 
 def binding_fields(binding: Mapping[str, Any]) -> dict[str, Any]:
@@ -840,6 +854,7 @@ def load_noae_holdout_reference() -> dict[float, dict[str, Any]]:
 __all__ = [
     "AeTeacherStore",
     "TeacherShardPlan",
+    "atomic_write_json",
     "bind_frozen_inputs",
     "binding_fields",
     "build_ae",

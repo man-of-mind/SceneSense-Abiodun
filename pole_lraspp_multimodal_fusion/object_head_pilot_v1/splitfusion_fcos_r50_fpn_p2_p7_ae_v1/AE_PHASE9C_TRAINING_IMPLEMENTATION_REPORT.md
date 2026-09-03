@@ -14,6 +14,12 @@ never edited (`git diff HEAD` over the hybrid-q package is empty).
 > [Review corrections](#review-corrections-2026-09-02). Nothing in the AE
 > architecture, objective, optimizer, schedule, q cycle, checkpoint epochs,
 > scoring, thresholds or ranking criteria changed.
+>
+> **Revision, 2026-09-02 — epoch commit order.** The recovery checkpoint is now
+> written last and is the sole durable declaration that an epoch completed. See
+> [Epoch commit order](#epoch-commit-order-2026-09-02). Again no scientific
+> configuration, AE code, loss, optimizer, q cycle, scorer, ranking rule or
+> split behaviour changed.
 
 ## New files
 
@@ -125,8 +131,10 @@ recorded alongside the clip count, clip fraction and max pre-clip norm.
 ### Checkpoints
 
 Every epoch writes `recovery/epoch_NN.pt` through a write-beside → `fsync` →
-`os.replace` → directory-`fsync` sequence. The payload carries everything an
-exact resume needs: AE `state_dict`, AdamW `state_dict`, epoch and next epoch,
+`os.replace` → directory-`fsync` sequence, **last**, after that epoch's
+candidate checkpoint and `epoch_summaries.json` (see
+[Epoch commit order](#epoch-commit-order-2026-09-02)). The payload carries
+everything an exact resume needs: AE `state_dict`, AdamW `state_dict`, epoch and next epoch,
 global update index, **Stage-B cycle position** and the next q it implies, torch
 / CUDA / Python / NumPy RNG, the sampler/order identity (seed, batch size,
 drop_last, batch count, sample-id digest), the full locked configuration, and
@@ -214,7 +222,7 @@ AE128 checkpoint that later deployment-path UINT8+zstd validation will use.
    reported `decided_at_criterion` at every level, assert input order does not
    matter, and assert an incomplete or duplicated q sweep fails closed.
 
-The review corrections add nine more checks to the same file; they are listed
+The review corrections add ten more checks to the same file; they are listed
 with the correction they cover below.
 
 <a id="review-corrections-2026-09-02"></a>
@@ -334,6 +342,7 @@ for selection, and the per-frame summaries are unchanged.
 | `test_global_loss_is_unchanged_under_regrouping` | 4 |
 | `test_a_single_batch_reproduces_the_committed_loss_exactly` | 4 |
 | `test_the_unweighted_mean_of_batch_ratios_is_the_number_that_moves` | 4 |
+| `test_resume_survives_both_interruption_windows` | [epoch commit order](#epoch-commit-order-2026-09-02) |
 
 The split-purity check runs the production call path — a spy replaces
 `teacher_cache.load_shard` on the module and no loader is injected — over a
@@ -348,13 +357,73 @@ The tie-breaker check regroups the same 12 synthetic frames into `(12)`,
 ratios are bit-identical, and separately that the discarded per-batch mean does
 move. `torch.cuda.is_initialized()` is `False` after the whole file runs.
 
+<a id="epoch-commit-order-2026-09-02"></a>
+
+## Epoch commit order (2026-09-02)
+
+**Problem.** The trainer wrote the recovery checkpoint *before* the candidate
+checkpoint and `epoch_summaries.json`. An interruption in that window left a
+recovery checkpoint declaring epoch E complete while E's candidate or summary
+was missing, and resume — which requires a candidate for every completed
+candidate epoch — then refused the run outright. The recovery checkpoint also
+embedded a summary written before the candidate existed, so it could not name
+it.
+
+**Correction.** For each successfully completed epoch the writes are now, all
+atomic (write-beside → `fsync` → `os.replace` → directory `fsync`):
+
+1. the candidate checkpoint, if this is a candidate epoch, written and hashed;
+2. that filename and hash added to the epoch summary;
+3. `epoch_summaries.json`, through the new `common.atomic_write_json()` — the
+   same durability the checkpoints already had, replacing a plain `write_text`;
+4. the recovery checkpoint **last**, embedding the final summary including the
+   candidate metadata.
+
+The existence of `recovery/epoch_E.pt` is therefore the sole durable declaration
+that epoch E completed. An interruption can leave a candidate or a summary for
+an epoch with no recovery checkpoint — that epoch is simply rerun and its files
+atomically replaced — but never the reverse.
+
+**Resume.** The contiguous verified recovery checkpoints are authoritative:
+
+- the canonical epoch summaries are reconstructed from the `epoch_summary`
+  embedded in those checkpoints, not from the external file;
+- `read_recovery` now also requires a candidate epoch's embedded summary to name
+  its candidate, and the candidate file's sha256 must equal the hash the
+  recovery checkpoint recorded;
+- `verify_external_summaries()` checks whatever `epoch_summaries.json` survived
+  against that canonical record, tolerating exactly the two states the write
+  order can produce — a missing or unparseable/truncated file, and one extra
+  tail entry for an epoch whose recovery checkpoint was never written — while
+  refusing a foreign schema or any disagreement about a completed epoch;
+- candidate files for epochs past the last verified recovery are ignored and
+  reported (`stale_candidate_files()`); they belong to an epoch that did not
+  complete and are atomically replaced when it is rerun;
+- for every candidate epoch at or below the last verified recovery the candidate
+  checkpoint is required, hash-checked and re-loaded through `load_candidate`;
+- `epoch_summaries.json` is atomically rewritten from the canonical record
+  before training continues, and no epoch holding a valid recovery checkpoint is
+  replayed.
+
+`test_resume_survives_both_interruption_windows` covers both windows in one
+test: epoch 8 declared complete with the summary file absent and, separately,
+truncated to invalid JSON; and epoch 8's candidate plus summary present with its
+recovery checkpoint missing, so epoch 7 is the last completed epoch. It asserts
+the selected epoch, the restored counters (no replay), the reconstructed
+summary/recovery/candidate inventories, that `ae128_epoch_08.pt` is excluded and
+reported as stale in the second window, and that the rewritten file on disk holds
+exactly the canonical epochs. The refusal test now checks that a *disagreeing* or
+foreign-schema external summary is still refused, since a merely truncated one is
+now legitimate.
+
 ## What was run
 
-`py_compile` over the package, the focused Phase-9C tests, the existing test
-suites as a regression check, and `git status` / `git diff` checks.
+`py_compile` on the changed modules, the focused Phase-9C test file, and
+`git diff --check`. (The four earlier corrections were additionally checked
+against the existing test suites: 93 tests, all passing.)
 
 ```
-Ran 93 tests   OK      # 82 pre-existing + 11 focused Phase-9C checks
+Ran 12 tests   OK      # the focused Phase-9C file
 ```
 
 The only file this implementation phase read is the frozen noAE holdout summary

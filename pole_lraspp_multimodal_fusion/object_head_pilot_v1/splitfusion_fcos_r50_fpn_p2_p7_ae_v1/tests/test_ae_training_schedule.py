@@ -229,9 +229,15 @@ def cpu_rng_state() -> dict[str, Any]:
 
 def write_partial_run(
     output: Path, partition: teacher_cache.SplitPartition, dataset: Any, binding: dict,
-    *, through_epoch: int,
+    *, through_epoch: int, uncommitted_epoch: bool = False,
 ) -> tuple[dict[str, str], dict[str, str], list[dict[str, Any]]]:
-    """Write epochs 1..`through_epoch` exactly as the trainer writes them."""
+    """Write epochs 1..`through_epoch` in the trainer's exact commit order.
+
+    Per epoch: the candidate checkpoint, then `epoch_summaries.json`, then the
+    recovery checkpoint last. With `uncommitted_epoch=True` the next epoch's
+    candidate and summary are also written but its recovery checkpoint is not —
+    exactly what an interruption between those two writes leaves on disk.
+    """
     recovery_dir = output / "recovery"
     checkpoint_dir = output / "checkpoints"
     recovery_dir.mkdir(parents=True)
@@ -245,8 +251,9 @@ def write_partial_run(
     recovery_hashes: dict[str, str] = {}
     candidate_hashes: dict[str, str] = {}
     summaries: list[dict[str, Any]] = []
+    last = through_epoch + 1 if uncommitted_epoch else through_epoch
     with mock.patch.object(common, "rng_state", cpu_rng_state):
-        for epoch in range(1, through_epoch + 1):
+        for epoch in range(1, last + 1):
             identity = ae_training.order_identity(partition, epoch, dataset)
             updates = epoch * common.batches_per_epoch()
             position = ae_training.expected_stage_b_position(epoch)
@@ -257,18 +264,6 @@ def write_partial_run(
                 "global_update_index": updates,
                 "stage_b_cycle_position": position,
             }
-            name = ae_training.recovery_filename(epoch)
-            recovery_hashes[name] = common.save_recovery(
-                recovery_dir / name,
-                epoch=epoch,
-                autoencoder=autoencoder,
-                optimizer=optimizer,
-                global_update_index=updates,
-                stage_b_position=position,
-                order_identity=identity,
-                summary=summary,
-                binding=binding,
-            )
             if epoch in common.AE_CANDIDATE_EPOCHS:
                 candidate = common.candidate_filename(epoch)
                 candidate_hashes[candidate] = common.save_candidate(
@@ -282,10 +277,22 @@ def write_partial_run(
                 summary["candidate_checkpoint"] = candidate
                 summary["candidate_checkpoint_sha256"] = candidate_hashes[candidate]
             summaries.append(summary)
-    (output / "epoch_summaries.json").write_text(
-        json.dumps({"schema": ae_training.SCHEMA, "epochs": summaries}, indent=2) + "\n",
-        encoding="utf-8",
-    )
+            ae_training.write_epoch_summaries(output, summaries)
+            if epoch > through_epoch:
+                # The interruption: this epoch is never declared complete.
+                break
+            name = ae_training.recovery_filename(epoch)
+            recovery_hashes[name] = common.save_recovery(
+                recovery_dir / name,
+                epoch=epoch,
+                autoencoder=autoencoder,
+                optimizer=optimizer,
+                global_update_index=updates,
+                stage_b_position=position,
+                order_identity=identity,
+                summary=summary,
+                binding=binding,
+            )
     return recovery_hashes, candidate_hashes, summaries
 
 
@@ -651,6 +658,128 @@ class AeExactResumeChecks(unittest.TestCase):
                 {common.candidate_filename(epoch) for epoch in common.AE_CANDIDATE_EPOCHS},
             )
 
+    def test_resume_survives_both_interruption_windows(self) -> None:
+        """A recovery checkpoint is the only durable declaration of an epoch.
+
+        Window 1: the recovery checkpoint exists but the external summary file
+        was never finished. Window 2: the candidate and the summary exist for the
+        next epoch but its recovery checkpoint does not. Both must resume from
+        the last verified recovery epoch, rebuild the canonical inventories from
+        the recovery checkpoints, and replay nothing already completed.
+        """
+        partition, dataset = registered_shape_partition()
+        binding = synthetic_binding()
+
+        def resume(output: Path):
+            autoencoder = build_split_feature_ae(common.AE_TRAINING_BOTTLENECK)
+            state = ae_training.TrainingState()
+            result = ae_training.restore_completed_epochs(
+                output=output,
+                recovery_dir=output / "recovery",
+                checkpoint_dir=output / "checkpoints",
+                autoencoder=autoencoder,
+                optimizer=common.build_ae_optimizer(
+                    autoencoder,
+                    lr=common.learning_rate_for_stage(common.AE_STAGE_A),
+                    frozen_modules=(),
+                ),
+                state=state,
+                binding=binding,
+                partition=partition,
+                dataset=dataset,
+                device=torch.device("cpu"),
+            )
+            return state, result
+
+        def on_disk(output: Path) -> list[int]:
+            document = json.loads(
+                (output / "epoch_summaries.json").read_text(encoding="utf-8")
+            )
+            self.assertEqual(document["schema"], ae_training.SCHEMA)
+            return [int(summary["epoch"]) for summary in document["epochs"]]
+
+        with tempfile.TemporaryDirectory() as raw:
+            # Window 1: epoch 8 is declared complete, the summary file is not.
+            for damage in ("absent", "truncated"):
+                output = Path(raw) / f"window1_{damage}"
+                written_recovery, written_candidates, _ = write_partial_run(
+                    output, partition, dataset, binding, through_epoch=8
+                )
+                summary_path = output / "epoch_summaries.json"
+                if damage == "absent":
+                    summary_path.unlink()
+                else:
+                    # A torn write: the file exists but does not parse.
+                    text = summary_path.read_text(encoding="utf-8")
+                    summary_path.write_text(text[: len(text) // 2], encoding="utf-8")
+
+                state, (
+                    completed,
+                    summaries,
+                    recovery_hashes,
+                    candidate_hashes,
+                ) = resume(output)
+
+                self.assertEqual(completed, 8)
+                self.assertEqual(
+                    state.global_update_index, 8 * common.batches_per_epoch()
+                )
+                self.assertEqual(
+                    state.stage_b_position, 4 * common.batches_per_epoch()
+                )
+                # Canonical record rebuilt from the recovery checkpoints alone.
+                self.assertEqual(
+                    [summary["epoch"] for summary in summaries], list(range(1, 9))
+                )
+                self.assertEqual(recovery_hashes, written_recovery)
+                self.assertEqual(candidate_hashes, written_candidates)
+                self.assertEqual(
+                    set(candidate_hashes), {"ae128_epoch_04.pt", "ae128_epoch_08.pt"}
+                )
+                # And the external file is rewritten from it.
+                self.assertEqual(on_disk(output), list(range(1, 9)))
+                self.assertEqual(ae_training.stale_candidate_files(output / "checkpoints", 8), [])
+
+            # Window 2: epoch 8's candidate and summary landed, its recovery
+            # checkpoint did not, so epoch 7 is the last completed epoch.
+            output = Path(raw) / "window2"
+            written_recovery, written_candidates, written_summaries = write_partial_run(
+                output, partition, dataset, binding, through_epoch=7,
+                uncommitted_epoch=True,
+            )
+            self.assertEqual(sorted(written_recovery), [f"epoch_{e:02d}.pt" for e in range(1, 8)])
+            self.assertEqual(
+                set(written_candidates), {"ae128_epoch_04.pt", "ae128_epoch_08.pt"}
+            )
+            self.assertEqual(len(written_summaries), 8)
+            self.assertEqual(on_disk(output), list(range(1, 9)))
+            self.assertTrue(
+                (output / "checkpoints" / common.candidate_filename(8)).is_file()
+            )
+            self.assertFalse(
+                (output / "recovery" / ae_training.recovery_filename(8)).is_file()
+            )
+
+            state, (completed, summaries, recovery_hashes, candidate_hashes) = resume(
+                output
+            )
+
+            self.assertEqual(completed, 7)
+            self.assertEqual(state.global_update_index, 7 * common.batches_per_epoch())
+            self.assertEqual(state.stage_b_position, 3 * common.batches_per_epoch())
+            self.assertEqual(
+                [summary["epoch"] for summary in summaries], list(range(1, 8))
+            )
+            self.assertEqual(recovery_hashes, written_recovery)
+            # Epoch 8's candidate is from an epoch that never completed.
+            self.assertEqual(set(candidate_hashes), {"ae128_epoch_04.pt"})
+            self.assertEqual(
+                ae_training.stale_candidate_files(output / "checkpoints", completed),
+                ["ae128_epoch_08.pt"],
+            )
+            # The extra tail entry is discarded from the external record.
+            self.assertEqual(on_disk(output), list(range(1, 8)))
+
     def test_resume_refuses_an_empty_or_new_directory_and_a_broken_record(self) -> None:
         partition, dataset = registered_shape_partition()
         binding = synthetic_binding()
@@ -692,18 +821,33 @@ class AeExactResumeChecks(unittest.TestCase):
             with self.assertRaises(guards.HybridQConfigError):
                 resume(gapped)
 
-            # So is an epoch-summary record that does not cover 1..completed.
-            short = Path(raw) / "short_summaries"
-            write_partial_run(short, partition, dataset, binding, through_epoch=8)
+            # A truncated summary file is tolerated (it is written before the
+            # recovery checkpoint), but an external summary that *disagrees*
+            # about a completed epoch is another run's file and is refused.
+            foreign = Path(raw) / "foreign_summaries"
+            write_partial_run(foreign, partition, dataset, binding, through_epoch=8)
             document = json.loads(
-                (short / "epoch_summaries.json").read_text(encoding="utf-8")
+                (foreign / "epoch_summaries.json").read_text(encoding="utf-8")
             )
-            document["epochs"] = document["epochs"][:-1]
-            (short / "epoch_summaries.json").write_text(
+            document["epochs"][2]["epoch_sample_id_sha256"] = "0" * 64
+            (foreign / "epoch_summaries.json").write_text(
                 json.dumps(document, indent=2) + "\n", encoding="utf-8"
             )
             with self.assertRaises(guards.HybridQConfigError):
-                resume(short)
+                resume(foreign)
+
+            # A foreign schema is refused too.
+            schema = Path(raw) / "foreign_schema"
+            write_partial_run(schema, partition, dataset, binding, through_epoch=8)
+            document = json.loads(
+                (schema / "epoch_summaries.json").read_text(encoding="utf-8")
+            )
+            document["schema"] = "some_other_run_v1"
+            (schema / "epoch_summaries.json").write_text(
+                json.dumps(document, indent=2) + "\n", encoding="utf-8"
+            )
+            with self.assertRaises(guards.HybridQConfigError):
+                resume(schema)
 
             # A missing candidate for a completed candidate epoch is refused.
             without = Path(raw) / "without_candidate"

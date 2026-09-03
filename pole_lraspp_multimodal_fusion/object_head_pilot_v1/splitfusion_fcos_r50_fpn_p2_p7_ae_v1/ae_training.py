@@ -12,6 +12,14 @@ q = {0, 0.30, 0.50, 0.70} for epochs 5-12, one q per batch, with the cycle
 position carried across epoch boundaries so the 6,776 Stage-B updates split
 exactly 1,694 per q. q=0.90 and q=0.98 are evaluation/emergency settings and are
 never optimized.
+
+Per epoch the writes are ordered candidate checkpoint, then
+`epoch_summaries.json`, then the recovery checkpoint, each atomic.
+`recovery/epoch_E.pt` is therefore the sole durable declaration that epoch E
+completed, and it embeds that epoch's final summary including its candidate
+metadata. An interruption can leave a candidate or a summary for an epoch with
+no recovery checkpoint — that epoch is simply rerun and its files atomically
+replaced — but never the reverse.
 """
 
 from __future__ import annotations
@@ -26,7 +34,7 @@ import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Mapping, Sequence
 
 import numpy as np
 import torch
@@ -408,6 +416,31 @@ def expected_stage_b_position(epoch: int) -> int:
     return stage_b_epochs * common.batches_per_epoch()
 
 
+def write_epoch_summaries(
+    output: Path, summaries: Sequence[Mapping[str, Any]]
+) -> str:
+    """Atomically replace the external epoch-summary file."""
+    return common.atomic_write_json(
+        {"schema": SCHEMA, "epochs": [dict(summary) for summary in summaries]},
+        output / "epoch_summaries.json",
+    )
+
+
+def stale_candidate_files(checkpoint_dir: Path, completed: int) -> list[str]:
+    """Candidate files for epochs past the last verified recovery checkpoint.
+
+    Those epochs did not complete, so their candidate is not evidence of
+    anything. They are left alone here and atomically replaced when the epoch is
+    rerun.
+    """
+    return sorted(
+        common.candidate_filename(epoch)
+        for epoch in common.AE_CANDIDATE_EPOCHS
+        if epoch > int(completed)
+        and (checkpoint_dir / common.candidate_filename(epoch)).is_file()
+    )
+
+
 def read_recovery(
     path: Path,
     epoch: int,
@@ -451,6 +484,17 @@ def read_recovery(
         raise guards.HybridQConfigError(f"{path.name} epoch-summary epoch drift")
     if summary["epoch_sample_id_sha256"] != identity["sample_id_sha256"]:
         raise guards.HybridQConfigError(f"{path.name} epoch-summary order drift")
+    # Written after the candidate, so a candidate epoch's recovery must name it.
+    expected_candidate = (
+        common.candidate_filename(epoch)
+        if int(epoch) in common.AE_CANDIDATE_EPOCHS
+        else None
+    )
+    if summary.get("candidate_checkpoint") != expected_candidate:
+        raise guards.HybridQConfigError(
+            f"{path.name} embedded summary names candidate "
+            f"{summary.get('candidate_checkpoint')!r}, expected {expected_candidate!r}"
+        )
     return payload
 
 
@@ -473,6 +517,67 @@ def load_recovery(
     return payload
 
 
+def verify_external_summaries(
+    output: Path, canonical: Sequence[Mapping[str, Any]]
+) -> dict[str, Any]:
+    """Check whatever `epoch_summaries.json` survived against the canonical record.
+
+    The file is written before the epoch's recovery checkpoint, so exactly two
+    disagreements are expected after an interruption and both are tolerated:
+    it may be missing or truncated (the process died before or during the write),
+    and it may carry one extra tail entry for an epoch whose recovery checkpoint
+    was never written. Anything it does say about a completed epoch must agree.
+    """
+    path = output / "epoch_summaries.json"
+    report: dict[str, Any] = {
+        "path": path.name,
+        "present": path.is_file(),
+        "canonical_epochs": len(canonical),
+        "verified_prefix_epochs": 0,
+        "tolerated": [],
+    }
+    if not path.is_file():
+        report["tolerated"].append("absent; rewritten from the recovery checkpoints")
+        return report
+    try:
+        document = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        report["tolerated"].append("unreadable/truncated; rewritten from the recovery checkpoints")
+        return report
+    if document.get("schema") != SCHEMA:
+        raise guards.HybridQConfigError("epoch-summary schema drift")
+
+    external = list(document.get("epochs", []))
+    report["external_epochs"] = len(external)
+    if len(external) < len(canonical):
+        report["tolerated"].append(
+            f"truncated at {len(external)} of {len(canonical)} completed epochs"
+        )
+    elif len(external) > len(canonical):
+        report["tolerated"].append(
+            f"{len(external) - len(canonical)} tail entr"
+            f"{'y' if len(external) - len(canonical) == 1 else 'ies'} past the last "
+            "recovery checkpoint discarded"
+        )
+    for position, summary in enumerate(canonical):
+        if position >= len(external):
+            break
+        observed = external[position]
+        if int(observed["epoch"]) != int(summary["epoch"]):
+            raise guards.HybridQConfigError(
+                f"epoch_summaries.json position {position} holds epoch "
+                f"{observed['epoch']}, the recovery record says {summary['epoch']}"
+            )
+        for field_name in ("epoch_sample_id_sha256", "candidate_checkpoint_sha256"):
+            if field_name in observed and observed[field_name] != summary.get(field_name):
+                raise guards.HybridQConfigError(
+                    f"epoch_summaries.json epoch {observed['epoch']} {field_name} "
+                    "disagrees with its recovery checkpoint"
+                )
+        report["verified_prefix_epochs"] = position + 1
+    return report
+
+
 def restore_completed_epochs(
     *,
     output: Path,
@@ -488,11 +593,16 @@ def restore_completed_epochs(
 ) -> tuple[int, list[dict[str, Any]], dict[str, str], dict[str, str]]:
     """Rebuild the full bookkeeping of a partially completed run.
 
-    Every already-completed epoch's recovery file is verified and hashed, and
-    every candidate checkpoint already written is verified and hashed, so a run
-    resumed after epoch 4 or 8 still finishes holding the complete
-    epoch-{4,8,12} candidate set and the complete recovery-hash record. Only the
-    last recovery checkpoint restores state; no completed epoch is replayed.
+    The contiguous verified recovery checkpoints are authoritative: each one is
+    written last for its epoch and embeds that epoch's final summary, candidate
+    metadata included, so the canonical record is reconstructed from them rather
+    than from the external summary file. Every candidate epoch at or below the
+    last verified recovery must have its candidate checkpoint, and it is
+    verified against the hash the recovery checkpoint recorded; candidate files
+    for later epochs belong to an epoch that did not complete and are ignored.
+    `epoch_summaries.json` is then rewritten atomically from that canonical
+    record. Only the last recovery checkpoint restores state; no epoch holding a
+    valid recovery checkpoint is replayed.
     """
     if not output.is_dir():
         raise guards.HybridQConfigError(
@@ -515,41 +625,23 @@ def restore_completed_epochs(
             f"recovery checkpoints {epochs} are not the contiguous set 1..{completed}"
         )
 
-    summary_path = output / "epoch_summaries.json"
-    if not summary_path.is_file():
-        raise guards.HybridQConfigError(f"--resume requires {summary_path}")
-    document = json.loads(summary_path.read_text(encoding="utf-8"))
-    if document["schema"] != SCHEMA:
-        raise guards.HybridQConfigError("epoch-summary schema drift")
-    epoch_summaries = list(document["epochs"])
-    recorded = [int(summary["epoch"]) for summary in epoch_summaries]
-    if recorded != list(range(1, completed + 1)):
-        raise guards.HybridQConfigError(
-            f"epoch_summaries.json holds epochs {recorded}, not exactly "
-            f"1..{completed} with no duplicate or missing epoch"
-        )
-
+    epoch_summaries: list[dict[str, Any]] = []
     recovery_hashes: dict[str, str] = {}
     candidate_hashes: dict[str, str] = {}
     for epoch, path in found:
         identity = order_identity(partition, epoch, dataset)
         if epoch == completed:
-            load_recovery(
+            payload = load_recovery(
                 path, epoch, autoencoder, optimizer, state, binding, identity
             )
             autoencoder.to(device)
         else:
             # Verified in full, but only the last checkpoint restores state.
-            read_recovery(path, epoch, binding, identity)
+            payload = read_recovery(path, epoch, binding, identity)
+        summary = dict(payload["epoch_summary"])
+        del payload
+        epoch_summaries.append(summary)
         recovery_hashes[path.name] = sha256_file(path)
-        # The persisted summary must be this run's, not another run's file.
-        if epoch_summaries[epoch - 1].get("epoch_sample_id_sha256") != identity[
-            "sample_id_sha256"
-        ]:
-            raise guards.HybridQConfigError(
-                f"epoch_summaries.json epoch {epoch} does not match its recovery "
-                "checkpoint's order identity"
-            )
         if epoch not in common.AE_CANDIDATE_EPOCHS:
             continue
         candidate_path = checkpoint_dir / common.candidate_filename(epoch)
@@ -558,7 +650,7 @@ def restore_completed_epochs(
                 f"epoch {epoch} completed but {candidate_path.name} is missing"
             )
         digest = sha256_file(candidate_path)
-        if epoch_summaries[epoch - 1].get("candidate_checkpoint_sha256") != digest:
+        if summary.get("candidate_checkpoint_sha256") != digest:
             raise guards.HybridQConfigError(f"{candidate_path.name} sha256 drift")
         # Verifies the schema, epoch, bottleneck, every binding and finiteness.
         restored, _metadata = common.load_candidate(
@@ -567,6 +659,13 @@ def restore_completed_epochs(
         del restored
         candidate_hashes[candidate_path.name] = digest
 
+    external = verify_external_summaries(output, epoch_summaries)
+    write_epoch_summaries(output, epoch_summaries)
+    if external["tolerated"]:
+        print(
+            f"[ae128] epoch_summaries.json: {'; '.join(external['tolerated'])}",
+            flush=True,
+        )
     return completed, epoch_summaries, recovery_hashes, candidate_hashes
 
 
@@ -680,12 +779,18 @@ def main() -> int:
         )
         resumed_from = completed
         started_epoch = completed + 1
+        stale = stale_candidate_files(checkpoint_dir, completed)
         print(
             f"[ae128] resumed from completed epoch {completed}; continuing at "
             f"epoch {started_epoch} with global update {state.global_update_index} "
             f"and Stage-B cycle position {state.stage_b_position}; "
             f"{len(recovery_hashes)} recovery and {len(candidate_hashes)} candidate "
-            "checkpoints reconstructed, no completed epoch replayed",
+            "checkpoints reconstructed, no completed epoch replayed"
+            + (
+                f"; ignoring {stale} from an epoch that did not complete"
+                if stale
+                else ""
+            ),
             flush=True,
         )
 
@@ -726,18 +831,11 @@ def main() -> int:
         summary["frozen_ranker_state_unchanged"] = True
         summary["frozen_tensors_compared"] = len(model_hashes) + len(ranker_hashes)
 
-        recovery_path = recovery_dir / recovery_filename(epoch)
-        recovery_hashes[recovery_path.name] = common.save_recovery(
-            recovery_path,
-            epoch=epoch,
-            autoencoder=autoencoder,
-            optimizer=optimizer,
-            global_update_index=state.global_update_index,
-            stage_b_position=state.stage_b_position,
-            order_identity=identity,
-            summary=summary,
-            binding=binding,
-        )
+        # Commit order, all atomic: the candidate first, then the external
+        # summary file, then the recovery checkpoint last. `recovery/epoch_E.pt`
+        # is the sole durable declaration that epoch E completed, so an
+        # interruption can never leave a declared epoch whose candidate or
+        # summary is missing.
         if epoch in common.AE_CANDIDATE_EPOCHS:
             candidate_path = checkpoint_dir / common.candidate_filename(epoch)
             candidate_hashes[candidate_path.name] = common.save_candidate(
@@ -752,10 +850,21 @@ def main() -> int:
             summary["candidate_checkpoint_sha256"] = candidate_hashes[candidate_path.name]
 
         epoch_summaries.append(summary)
-        (output / "epoch_summaries.json").write_text(
-            json.dumps({"schema": SCHEMA, "epochs": epoch_summaries}, indent=2, default=str)
-            + "\n",
-            encoding="utf-8",
+        write_epoch_summaries(output, epoch_summaries)
+
+        recovery_path = recovery_dir / recovery_filename(epoch)
+        recovery_hashes[recovery_path.name] = common.save_recovery(
+            recovery_path,
+            epoch=epoch,
+            autoencoder=autoencoder,
+            optimizer=optimizer,
+            global_update_index=state.global_update_index,
+            stage_b_position=state.stage_b_position,
+            order_identity=identity,
+            # The final summary, candidate metadata included, so this checkpoint
+            # alone can reconstruct the canonical record of the epoch.
+            summary=summary,
+            binding=binding,
         )
         print(
             json.dumps(
@@ -824,6 +933,12 @@ def main() -> int:
         "configuration": common.training_configuration(),
         "teacher_store": store_provenance,
         "resumed_from_completed_epoch": resumed_from,
+        "epoch_commit_order": (
+            "per epoch, all atomic: candidate checkpoint, then "
+            "epoch_summaries.json, then the recovery checkpoint last; "
+            "recovery/epoch_E.pt is the sole durable declaration that epoch E "
+            "completed and embeds that epoch's final summary"
+        ),
         "realized_stage_b_q_counts": observed_q_counts,
         "binding": binding,
         "perception_binding": perception,
