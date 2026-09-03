@@ -1,5 +1,21 @@
 # Phase 9D — selected AE128 UINT8 + mandatory-zstd validation (implementation)
 
+> **Executed 2026-09-03.** This document describes the implementing commit
+> (`eec52b0`) and the statement below refers to *that* commit, not to the
+> project state today. The single authorized validation run has since been
+> executed exactly once from `eec52b0`; its result is
+> `experiments/splitfusion_fcos_ae_v1/20260903_phase9d_ae128_uint8_validation/`
+> (`AE_PHASE9D_UINT8_VALIDATION_REPORT.md`,
+> `phase9d_ae128_uint8_validation.json`, terminal
+> `SPLITFUSION_AE128_UINT8_VALIDATION_COMPLETE`). The preregistered rule was
+> applied verbatim and returned
+> **`AE128_UINT8_ZSTD_DEPLOYMENT_NOT_ACCEPTED`**: q=0 met its condition
+> (12/12 same-q preservation gates, 7/9 absolute service gates against the
+> registered 7/9 baseline), but no primary q qualified — q=0.30 and q=0.50 each
+> lost `person_avo_recall` and q=0.70 lost `person_avo_f1`,
+> `person_avo_precision` and `vehicle_precision`. Nothing was retuned, removed
+> or rerun in response.
+
 Implementation only. Nothing was executed: no inference, no CUDA context, no
 validation pass, no training, no CARLA. The dirty `OAI/openairinterface5g`
 working tree was left untouched. Only `py_compile`, the two new focused CPU

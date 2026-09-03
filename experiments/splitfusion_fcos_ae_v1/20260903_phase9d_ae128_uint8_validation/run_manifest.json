@@ -1,0 +1,273 @@
+{
+  "acceptance_rule": "AE128 UINT8+zstd deployment is accepted if and only if both hold: (1) q=0 passes all 12 same-q preservation gates against the frozen noAE UINT8+zstd validation result and retains at least the baseline 7/9 absolute service gates; and (2) at least one of q in {0.30, 0.50, 0.70} passes all 12 same-q preservation gates without reducing the absolute service-gate count below the frozen noAE UINT8+zstd count at that same q. q=0.90 and q=0.98 are stress/emergency profiles regardless of their results and cannot make or break acceptance. Every q is reported independently, and no setting is tuned or removed after observing a result.",
+  "created_utc": "2026-09-03T17:11:09.024040+00:00",
+  "q_values": [
+    0.0,
+    0.3,
+    0.5,
+    0.7,
+    0.9,
+    0.98
+  ],
+  "resume_rule": "skip an exactly complete setting; rerun only an unfinished q",
+  "run_identity": {
+    "acceptance_rule": "AE128 UINT8+zstd deployment is accepted if and only if both hold: (1) q=0 passes all 12 same-q preservation gates against the frozen noAE UINT8+zstd validation result and retains at least the baseline 7/9 absolute service gates; and (2) at least one of q in {0.30, 0.50, 0.70} passes all 12 same-q preservation gates without reducing the absolute service-gate count below the frozen noAE UINT8+zstd count at that same q. q=0.90 and q=0.98 are stress/emergency profiles regardless of their results and cannot make or break acceptance. Every q is reported independently, and no setting is tuned or removed after observing a result.",
+    "binding": {
+      "ae128_holdout_selection_decision": {
+        "path": "experiments/splitfusion_fcos_ae_v1/20260902_220623_phase9c_ae128_training/holdout_selection/holdout_selection.json",
+        "sha256": "69e49deac302fc46c1eec56036e3ab3d769b3aac10b76541cfb4abb80f878194"
+      },
+      "ae_package_source_sha256": {
+        "AE_PHASE9A_IMPLEMENTATION_REPORT.md": "6e9f2fbeccee5b47747987850a348fd93eda521cc58d6bd7b53defe7e26338b7",
+        "AE_PHASE9B_GPU_QUALIFICATION_REPORT.md": "c8e2e056c600941885103ada6cdf0220a959b651924e708dab003d54a495f742",
+        "AE_PHASE9C_TRAINING_IMPLEMENTATION_REPORT.md": "926779c3a939b2923f233623fb9ae843762c430cd001ed02b5d734260723e538",
+        "AE_PHASE9D_UINT8_VALIDATION_IMPLEMENTATION_REPORT.md": "672363a47d55aa6bb59e9519647db59014860593b8de775657436bd03bc0b2e1",
+        "__init__.py": "442d74420abe3ccc7671497aeb8a1a0210bf0af40ccddb25a8f2aed3c4db1ec9",
+        "ae_composition.py": "3e54ea2dc8599c0579349e4ce430a34a2d2343764402aee5113e1c2d54dfa608",
+        "ae_contract.py": "ccd8dbf5a86a4b2e9373f15edbd975754c954123d1893c37a336cf206b9d1f2f",
+        "ae_family_dispatch.py": "64eaddd5e561948841d75a06b18fe44c6603b101a50df18e9e2b8a87ee4c0c9c",
+        "ae_gpu_qualification.py": "a9f351184a42cb854700cd0539b08a897ec71dc87a5ef18cd3f5714ab8436041",
+        "ae_holdout_selection.py": "a3dcde29ff2a3508de471c08cb6674384a305111aaf0bba969062495e994b526",
+        "ae_loss.py": "21476d284a20bd186428be113c951e6bb9bf0871d42edaec28a50a7ea7711978",
+        "ae_model.py": "4f2ec0a69cf127ebac44f6147124705d54785ab400ed033a83ad1e339735b542",
+        "ae_training.py": "edde6e4a49ab94a928ea465d0a3d8ce53806208021763439cfbf6ef628565547",
+        "ae_training_common.py": "7c5af221a86cdd654117201b32fb5a494b808779bd97fcef11a0a08a08e41f57",
+        "ae_uint8_transport.py": "4162b162d554f764332d469b6ca7b5038298e77a563a9de73c1622cd99531423",
+        "ae_uint8_validation.py": "d3e742d697c8c3beaaee49e53c0eae7bb1924a7e277b0f6c9a003a5365ac4853",
+        "tests/__init__.py": "04a977c0b181d0acacdfec54f4c3112893dbaa30a87cefcca2ed97d2d09fc44f",
+        "tests/test_ae_model.py": "3ff6e465746dca24bf3e6c433803b4fd15c650195790b2762fd712a999dc127d",
+        "tests/test_ae_training_schedule.py": "00bae65ae8fcdb477e83360bd058ce425fc9d8b4b090a0e4d214ef1c29053f49",
+        "tests/test_ae_transport.py": "44fdf57efaa48251526709aafa3dc0edf6970bbea1d9b7b43ff990d763c8d28d",
+        "tests/test_ae_uint8_validation.py": "29ad69934f217e6db6abfe31ce0f139031ae1949526675986e24f25ebcc76214"
+      },
+      "authorized_bindings_match_request": {
+        "frozen_perception_checkpoint": true,
+        "hybrid_q_locked_config": true,
+        "p025_forward_lock": true,
+        "stable_epoch4_ranker": true
+      },
+      "fit_reference_medians": {
+        "medians": {
+          "A": 0.013652884401381016,
+          "D": 0.7242346405982971,
+          "G": 0.10442040860652924,
+          "S": 0.09630495309829712
+        },
+        "path": "experiments/splitfusion_fcos_hybrid_q_v1/20260901_180439_phase4_teacher_cache/fit_reference_medians.json",
+        "sha256": "f91570c7e9b7b895b9c02ae5831c382b68f5a4f6b7a20fa9aed6c5bcf552729e"
+      },
+      "framed_fp32_noae_q0_payload_bytes": 22020140,
+      "frozen_checkpoint": {
+        "epoch": 26,
+        "path": "experiments/route_b_v3_1_splitfusion_fcos_r50_fpn_p2_p7_v1_numerical_recovery_v1/20260830_recovered_epoch10_gate_v1/checkpoints/epoch_026.pt",
+        "sha256": "da14d21edbd374c1c3abce02ca4674b9f4097becfba9759aba945cea160a297f"
+      },
+      "hybrid_q_locked_config": {
+        "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1/locked_config.json",
+        "schema": "splitfusion_fcos_hybrid_q_transport_v1",
+        "sha256": "b2b0d8427bd867f46058ebba49ac6a183eb89413b4d69326fef93b150ebfcde6"
+      },
+      "hybrid_q_source_delta_since_phase4": {
+        "added_since_phase4": [
+          "UINT8_IMPLEMENTATION_REPORT.md",
+          "continuous_q.py",
+          "low_q_validation.py",
+          "phase5_common.py",
+          "phase5_holdout.py",
+          "phase5_training.py",
+          "phase6_validation.py",
+          "phase7_zstd_measurement.py",
+          "phase8b_uint8_validation.py",
+          "tests/test_continuous_q.py",
+          "tests/test_uint8_transport.py",
+          "uint8_codec.py",
+          "uint8_zstd_transport.py",
+          "zstd_transport.py"
+        ],
+        "changed_since_phase4": [
+          "README.md",
+          "contract.py"
+        ],
+        "frozen_semantics_modules_unchanged": [
+          "ranker.py",
+          "selection.py",
+          "codec.py",
+          "guards.py",
+          "training.py",
+          "teacher_cache.py",
+          "gpu_qualification.py",
+          "locked_config.json",
+          "__init__.py"
+        ]
+      },
+      "hybrid_q_source_sha256": {
+        "IMPLEMENTATION_REVIEW_PACKET_PHASE1.md": "7b4ff3748b10c7142104177f7bd982224d369600d5d53c7aac9ce564f2a62b48",
+        "README.md": "9a172a7879c783ca11f6ed9c898d438700bec55cbc4f536e2a86681cd7b0410a",
+        "UINT8_IMPLEMENTATION_REPORT.md": "bc7668f4402e96584eeda0abd3c715be95f00f5b311580696b34d96e72cf5460",
+        "__init__.py": "9319a2b3ce9d492e1577908148ef31187ed648ef81944365dd907dee717b206c",
+        "codec.py": "7b3833398a84fea31f65b86ec294c6675727390035b5761d372fd5a3cbba7b79",
+        "continuous_q.py": "8ea72faed324c29b7106bd5f6277699bd7e7ba16a66073905f9ff28c69bab23c",
+        "contract.py": "748eb39c0913c9d4c449784d23b7ec752307ed47eafb1b0ef0ae25df4b4f3d4c",
+        "gpu_qualification.py": "0032b9ac7edb89ec1b01616ea563bec73d04c20b164d6bbf8297f36d30eea7e6",
+        "guards.py": "77d8d8bfd168e74a7f0b6a7e3c8e7abc4c3549a86cda392feb394d7580a33031",
+        "locked_config.json": "b2b0d8427bd867f46058ebba49ac6a183eb89413b4d69326fef93b150ebfcde6",
+        "low_q_validation.py": "3bcecbb838e23eb5e732e0edb8d25125eb79742ce997ab091c40f7be6ef4cfe4",
+        "phase5_common.py": "0d30eeba0effe57df79fff25946d42ae569b102ca4e9f8d9db24fe286480636d",
+        "phase5_holdout.py": "b6dfef020eeef2c3050e23abf104412d29f954d07696b7fcfe02fb6b89a07312",
+        "phase5_training.py": "fbc44f2e4969d9f970b6968f677a5ac5e0cf171cfc25d342346c24769f571336",
+        "phase6_validation.py": "e3cb904e6cbf8490138284dbec4263b404c17c52e9bc9965963e79f9d372f07c",
+        "phase7_zstd_measurement.py": "edb3095b74df81501e153ab66d17bbf223b0897b49c4490c5b02dccad59a5387",
+        "phase8b_uint8_validation.py": "705aab576d1e5b79ae08ec93d7303c3288c0c88e89419e8f55efc75779486188",
+        "ranker.py": "462536991f195651a1ee641f8e83444882ec370a8dffab72f13f0d770422b353",
+        "selection.py": "ccc2b12919b078eac7af6131418989567d618d42f7b908b2db74df42e0342a71",
+        "teacher_cache.py": "14f866d483c245f14078c6234a357427bccc4bfa1dd533b138677f1e17f579be",
+        "tests/__init__.py": "1c1c24c4edd4acf7bd8af46b63f47089fa1d86aa6481b9e43923be8810cf1692",
+        "tests/test_continuous_q.py": "dc4531a2d01fd4de37f37f052f1482cc12003c09adb51398bb13c307fcefd243",
+        "tests/test_synthetic.py": "de2388e391a069a38a712b20bdc1b19215c3d3c5cf51e45a2062460f97fd346b",
+        "tests/test_uint8_transport.py": "198591b01544827a733b890c1522216dc70c9756203d16ed621273e699cb0588",
+        "training.py": "a10775a3a9f3e051e3456c6c85cdc76fff47f417e9bd24ddecb6633dcda1161a",
+        "uint8_codec.py": "b6f07723860821e93c0dc2aeec456073617942b5ed8446f4555fe87b2c7ca803",
+        "uint8_zstd_transport.py": "db1f79e3786f2d5a12e367b688fd79401bc5e5c8f10523a7bbf7418f14aaa11d",
+        "zstd_transport.py": "57d1846b3fdc4084266e5a8adcc7abf99556ed2b187befec729003fcdb77edec"
+      },
+      "noae_uint8_zstd_validation_reference": {
+        "path": "experiments/splitfusion_fcos_hybrid_q_v1/20260902_223610_phase8b_uint8_validation/phase8b_uint8_validation.json",
+        "sha256": "a2779f5fb0a585b1c317dc755b5ab577fa7c34963ab7945cb704e0d4146bb029"
+      },
+      "perception_forward_lock": {
+        "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_person_p025_calibration_v1/PERCEPTION_FORWARD_LOCK_P025_V1.json",
+        "sha256": "86d6f13ae9168b33b697df5b785c5f7c320afc52cfdcded5b632d94a6d943fe1"
+      },
+      "phase4_recorded_source_sha256": {
+        "IMPLEMENTATION_REVIEW_PACKET_PHASE1.md": "7b4ff3748b10c7142104177f7bd982224d369600d5d53c7aac9ce564f2a62b48",
+        "README.md": "cd0648771bce7efad5785b95c11b5e5be04260d208d8f146d3e6090251c6748e",
+        "__init__.py": "9319a2b3ce9d492e1577908148ef31187ed648ef81944365dd907dee717b206c",
+        "codec.py": "7b3833398a84fea31f65b86ec294c6675727390035b5761d372fd5a3cbba7b79",
+        "contract.py": "d3d0fd9d3e904bec7b13d32885b738b62c5bed51d9a7207ffe1ec1b7f2e2041d",
+        "gpu_qualification.py": "0032b9ac7edb89ec1b01616ea563bec73d04c20b164d6bbf8297f36d30eea7e6",
+        "guards.py": "77d8d8bfd168e74a7f0b6a7e3c8e7abc4c3549a86cda392feb394d7580a33031",
+        "locked_config.json": "b2b0d8427bd867f46058ebba49ac6a183eb89413b4d69326fef93b150ebfcde6",
+        "ranker.py": "462536991f195651a1ee641f8e83444882ec370a8dffab72f13f0d770422b353",
+        "selection.py": "ccc2b12919b078eac7af6131418989567d618d42f7b908b2db74df42e0342a71",
+        "teacher_cache.py": "14f866d483c245f14078c6234a357427bccc4bfa1dd533b138677f1e17f579be",
+        "tests/__init__.py": "1c1c24c4edd4acf7bd8af46b63f47089fa1d86aa6481b9e43923be8810cf1692",
+        "tests/test_synthetic.py": "de2388e391a069a38a712b20bdc1b19215c3d3c5cf51e45a2062460f97fd346b",
+        "training.py": "a10775a3a9f3e051e3456c6c85cdc76fff47f417e9bd24ddecb6633dcda1161a"
+      },
+      "routing": {
+        "checkpoint_identity_authority": "the full SHA-256 recorded here; the truncated 32-bit tag authenticates nothing",
+        "routing_tag": 204186532,
+        "routing_tag_bytes": 4,
+        "routing_tag_derivation": "leading 32 bits of the full selected-checkpoint SHA-256, via ae_contract.routing_tag_from_sha256",
+        "routing_tag_hex": "0x0c2ba3a4",
+        "routing_tag_is_checkpoint_identity": false,
+        "routing_tag_role": "per-frame decoder-routing discriminator, so a frame delayed or reordered across a profile switch is refused instead of decoded by a different AE",
+        "selected_checkpoint_path": "experiments/splitfusion_fcos_ae_v1/20260902_220623_phase9c_ae128_training/checkpoints/ae128_epoch_08.pt",
+        "selected_checkpoint_sha256": "0c2ba3a495684c0f8222492f554eb3de7c7a76181e0bd4b4a83529897db30f72"
+      },
+      "selected_ae128_checkpoint": {
+        "path": "experiments/splitfusion_fcos_ae_v1/20260902_220623_phase9c_ae128_training/checkpoints/ae128_epoch_08.pt",
+        "sha256": "0c2ba3a495684c0f8222492f554eb3de7c7a76181e0bd4b4a83529897db30f72"
+      },
+      "stable_epoch4_ranker": {
+        "epoch": 4,
+        "path": "experiments/splitfusion_fcos_hybrid_q_v1/20260901_185725_phase5_ranker_training/checkpoints/ranker_epoch_04.pt",
+        "sha256": "07781c56a4c0f306f16d332f64627ce6b9458e154f40ab9fef89f89909b79cb5"
+      },
+      "teacher_cache_manifest": {
+        "path": "experiments/splitfusion_fcos_hybrid_q_v1/20260901_180439_phase4_teacher_cache/teacher_cache_manifest.json",
+        "sha256": "e1ef600eb83c1924a52c37dbdbf0b435990eaaae4f1db1b0e07d9b1acd7fc273"
+      },
+      "teacher_cache_shards": {
+        "count": 66,
+        "sha256": {
+          "shards/teacher_shard_00000.pt": "903e64c0f12cac31e2ecfca7b364f399d8183afb7724c9b8981efc1bb277da46",
+          "shards/teacher_shard_00001.pt": "6550e0e22c73f883c1d7da8921e4dbb5fc58f77b6048338e9114794de42fb33c",
+          "shards/teacher_shard_00002.pt": "d6825862f5ecb129dd29e40d6012b5b6ddcd699c97fda92c4d28cddeff930328",
+          "shards/teacher_shard_00003.pt": "175ddb262497ff6b10b1d2788bbcbba47bf84e7fd0265e85a29f71b20f372115",
+          "shards/teacher_shard_00004.pt": "be15f6f9d9428ac9536f481a190d83bb2c37490443e67047ca6f00d1ac4b9685",
+          "shards/teacher_shard_00005.pt": "c94697f64305de378756f7ee9410faf6026d171b949296cf5e705ee61b3f0c1b",
+          "shards/teacher_shard_00006.pt": "cc6c46b908ffee0d0991b894c31196000abc43a27ad91f03594d0e35e838da9d",
+          "shards/teacher_shard_00007.pt": "77cbb1082535b059042865495a88e7147b84c8057b911558c91130cd1f8b77b8",
+          "shards/teacher_shard_00008.pt": "ffa42a35f207ea89cc1f4619929deeade83a4c4641c43d3d75a710c83b994020",
+          "shards/teacher_shard_00009.pt": "8b4fa2e7ef8e06e36ba7a0e4688240fe295573a1e9266edf73a95920c16d367e",
+          "shards/teacher_shard_00010.pt": "49ec4ca3200a2936688f5d9287b97055b14d8866b2771e0b1a881493f0e30a31",
+          "shards/teacher_shard_00011.pt": "e5fe7caacabf6acb333a60eb8281fe584ec09ac3a69690de03ae33ddfc0e2273",
+          "shards/teacher_shard_00012.pt": "d3722ac6e21269060029c2494fe68eb0ae730f44c51d18048968f236dd435447",
+          "shards/teacher_shard_00013.pt": "649f7959332ad4cca9756cef72b094ddc3763d2c35bbbf7258a5583f22a9609f",
+          "shards/teacher_shard_00014.pt": "d4be1ccdfe4c00074ef77ab114ee84b8f4141d0ca35ca94cc39a394ac06bcaab",
+          "shards/teacher_shard_00015.pt": "ca719f6b340aa9a15464b5c0ea8e792c0ed1c2d9e267e99087d419871372723d",
+          "shards/teacher_shard_00016.pt": "f46644cb0cf95e2aee7f72f9c2ff4a226548e6f89fe97cce2e0cbae12c2d328c",
+          "shards/teacher_shard_00017.pt": "2f32ff96a2d80aad8ba4d4e20ca43f138a0ccfc3e24eaa2f36dc379f743d7adf",
+          "shards/teacher_shard_00018.pt": "e1b2db3ed242452b9b9f20a7a76ec9261d6c7d3cf0888a3dc403cf443afc0d32",
+          "shards/teacher_shard_00019.pt": "d8d068bb8ce2979aff894ff4643df9f06d53c338212ac4526f1c52e9e71007ce",
+          "shards/teacher_shard_00020.pt": "0eb59da4ea8430b4bfce177235838311f6297a290608b3c44ccbbfe6ddaad96c",
+          "shards/teacher_shard_00021.pt": "d51bdd6db8051eac83d8062513f7263b700e65a203146bffb8bd88fc88b29987",
+          "shards/teacher_shard_00022.pt": "d52207374f65a5c82d624fe0cdf47bc9dc7c885b83636920d1072ad93a6fcfa4",
+          "shards/teacher_shard_00023.pt": "03ebe6cfeff377c309d87395bf7fc55aa42197477d548a398ef320c7d79239c5",
+          "shards/teacher_shard_00024.pt": "e74217c50b5ad752cc1429b850f0b6c9d1c823ecce7b19cb853021c6c790fa2a",
+          "shards/teacher_shard_00025.pt": "05e8c64fa2061c2fca538f05bb84565fe059f52846bdff04c49c0d9d514c2c17",
+          "shards/teacher_shard_00026.pt": "a3b1c09d8a52ec8aebf29a8b9ca757536ded5de7c0d9afeccdb77ec1995811f4",
+          "shards/teacher_shard_00027.pt": "027e8fd926cbda44e1d7618efd7ccb3d318fb6475c7d803ec13015b73357a6e8",
+          "shards/teacher_shard_00028.pt": "6867d378931331787d9b44919904a0ca5f6d45cd2db2271dc2b8916f0612de3b",
+          "shards/teacher_shard_00029.pt": "23d344294e1dcd715b357b0f00f0ec8e1af5994ead047e21583624f5d051e556",
+          "shards/teacher_shard_00030.pt": "ae4f2c3f577622f194a2f6ee05bad765dc205550fb0bc29561b814b417691c05",
+          "shards/teacher_shard_00031.pt": "7e8036a5d22ba13639a816fbfe29916083bbeb7af04d0b134e0e191e78d1d0c5",
+          "shards/teacher_shard_00032.pt": "7209f26d81ecbdbcccc4b52aaca6ef49b07882f818924aa9b848c990a4dcd8e7",
+          "shards/teacher_shard_00033.pt": "3a5d4e73e22f02300f463e073e2ae5aa481a96defbf7eb256b918fd330a3b62e",
+          "shards/teacher_shard_00034.pt": "86e5c1183c410facf419a1426e4bcff02b2f26f21eb89799b9d356b7726b2873",
+          "shards/teacher_shard_00035.pt": "da458a6ab9a10bf5506328fe5656884f81a5a0425036add26bde059080f7ffb1",
+          "shards/teacher_shard_00036.pt": "999865fac69137a28a2c1953a83771d6cb7d086d2a4441b3de82ffca9c043f35",
+          "shards/teacher_shard_00037.pt": "50cfa84490da200090f9b57ad06b7283a5419d0396adc9003b5223ea623eedeb",
+          "shards/teacher_shard_00038.pt": "1d607ea2026d740a636e511b07382dfc9c9cbd665efdf394f52e2c0089e4be93",
+          "shards/teacher_shard_00039.pt": "d802c5d4669719f4c22628895e490680497aa543a12cc0cea87d42c3e802004a",
+          "shards/teacher_shard_00040.pt": "7da39704e228aa9fc6353830d58ba07357e693f61608da472c53285c2916a2ee",
+          "shards/teacher_shard_00041.pt": "0d3ee99147b90885cadef9fb8524e7ebb5b85e1ce22b130ceb442fa94e16131d",
+          "shards/teacher_shard_00042.pt": "0a757b19aa4a99ec4f7e5e073572c507e5b92386c0742428923eb1ae47e18cf2",
+          "shards/teacher_shard_00043.pt": "d31cb47b2442ad2160dfa454822472cc1d4ad9e058bb2584d0a596556b3e17c2",
+          "shards/teacher_shard_00044.pt": "4cb78cb1d5c0761209fb71f5ad51a0a7222bcf6b8c35a3fa9d3f0a4c9e7e8e37",
+          "shards/teacher_shard_00045.pt": "85529de9d8a42ac19208640922053c5e4c2f6bee805ef6c6876000b69faff4d7",
+          "shards/teacher_shard_00046.pt": "f436a34dc65f7119b491aa40d4aeedc82bb61e3011acaa3e62941b3cd6ed7a69",
+          "shards/teacher_shard_00047.pt": "05b3bddf27e2443da6f07782a186331459783a0e8ce080532f6d06ff1e0d8d1c",
+          "shards/teacher_shard_00048.pt": "501da22bbba8c21b53ac4bb47c6abb64ff8831929a318c47d4299b62fc614d5b",
+          "shards/teacher_shard_00049.pt": "65b5d9ea3b82ce0ddae6399d58f4d089f42cacb7cbbfea0c685efb4f5a18dafd",
+          "shards/teacher_shard_00050.pt": "2d0f334ba963d5c1d1fa8bfa533da9f2a1f37aa0403a66f0f1e0bca2f01373c3",
+          "shards/teacher_shard_00051.pt": "296ee4c100447f2f5f1d6de8150c0ca98f3912af546c148e918a5ec24bfb2357",
+          "shards/teacher_shard_00052.pt": "135366c8d64a5b540844488489455702da881c845b51c43f26b08cffb2afb730",
+          "shards/teacher_shard_00053.pt": "38efd65404dc7f5b6f6879a8ce0ee4d9557adf6daf5fc01292ca548ad120f952",
+          "shards/teacher_shard_00054.pt": "494950fae152f4c43f305304c1eb821f66f82a9ae4dbb3bfc493403503faa02e",
+          "shards/teacher_shard_00055.pt": "2babe02dac956ad7d66e1870e04fec2693be35c674b547192a1f78452b23efe7",
+          "shards/teacher_shard_00056.pt": "2743c9d4022995b52d97e956741d67c56b8d1c3b64db1303a7186385fa80fd90",
+          "shards/teacher_shard_00057.pt": "785f6fcd98ca694c9c6876b87220f4a98f108e8d87a5d6f64a5dc9a7f0f73dba",
+          "shards/teacher_shard_00058.pt": "47781b1432905662d71722c3824ba500ca80c083a5c48f4b4f0e224eecb2f0e0",
+          "shards/teacher_shard_00059.pt": "a6078316cc0d5f91da348cc2b5b2c545db27978d4c96df8b33287818b1a87894",
+          "shards/teacher_shard_00060.pt": "d5769aa4a7a5b3bd4415938c3f87927024f5acf1ea9852181511c35b9bf6decd",
+          "shards/teacher_shard_00061.pt": "a81c11ba92a3eac853b762ac7e88c8eeeb3c159e8e234b79dce666879fa9810a",
+          "shards/teacher_shard_00062.pt": "d88851b3da77f2d7751720fd2608e089699f21cdb8b91279b0414295afc2a069",
+          "shards/teacher_shard_00063.pt": "05da1a573693ec9ff4a8be2018145266bda84f03db929a302ef74299df24db7d",
+          "shards/teacher_shard_00064.pt": "e50632e139c6895d071ef6b3d12f6a20c8f42c8fb629a543f968807ff13ee78a",
+          "shards/teacher_shard_00065.pt": "8f0dcbe8cfa01877a08750c847f062d5c61a5c4e4a2be48d26369f1b97e81c5e"
+        },
+        "total_bytes": 1452208370,
+        "verified": 66
+      }
+    },
+    "holdout_decision_sha256": "69e49deac302fc46c1eec56036e3ab3d769b3aac10b76541cfb4abb80f878194",
+    "noae_reference_sha256": "a2779f5fb0a585b1c317dc755b5ab577fa7c34963ab7945cb704e0d4146bb029",
+    "q_e4": [
+      0,
+      3000,
+      5000,
+      7000,
+      9000,
+      9800
+    ],
+    "routing_tag": 204186532,
+    "runner_sha256": "d3e742d697c8c3beaaee49e53c0eae7bb1924a7e277b0f6c9a003a5365ac4853",
+    "schema": "splitfusion_fcos_ae128_phase9d_uint8_validation_v1",
+    "selected_checkpoint_sha256": "0c2ba3a495684c0f8222492f554eb3de7c7a76181e0bd4b4a83529897db30f72",
+    "sha256": "51b2e42ef7c5aa6702f8474e27496281734f19e4ecc98d567b8bcd7494362bca",
+    "validation_frames": 3345
+  },
+  "schema": "splitfusion_fcos_ae128_phase9d_uint8_validation_v1"
+}

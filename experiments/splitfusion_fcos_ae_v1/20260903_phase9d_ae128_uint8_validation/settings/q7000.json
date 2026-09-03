@@ -1,0 +1,527 @@
+{
+  "absolute_service_gates": {
+    "all_pass": false,
+    "failed": [
+      "foreground_miou",
+      "person_box_mask_iou",
+      "person_precision",
+      "person_recall",
+      "vehicle_iou"
+    ],
+    "minimum_attainment_ratio": 0.7521952479338843,
+    "pass_count": 4,
+    "targets": {
+      "foreground_miou": {
+        "attainment_ratio": 0.9212468637444087,
+        "direction": "higher",
+        "passed": false,
+        "target": 0.675,
+        "value": 0.6218416330274759
+      },
+      "person_box_mask_iou": {
+        "attainment_ratio": 0.9441221835421925,
+        "direction": "higher",
+        "passed": false,
+        "target": 0.5,
+        "value": 0.47206109177109623
+      },
+      "person_precision": {
+        "attainment_ratio": 0.8712234519892311,
+        "direction": "higher",
+        "passed": false,
+        "target": 0.8,
+        "value": 0.6969787615913849
+      },
+      "person_recall": {
+        "attainment_ratio": 0.7521952479338843,
+        "direction": "higher",
+        "passed": false,
+        "target": 0.8,
+        "value": 0.6017561983471075
+      },
+      "person_xy_mae_m": {
+        "attainment_ratio": 1.4087022909578033,
+        "direction": "lower",
+        "passed": true,
+        "target": 1.2,
+        "value": 0.8518478373341022
+      },
+      "vehicle_iou": {
+        "attainment_ratio": 0.9077907932751242,
+        "direction": "higher",
+        "passed": false,
+        "target": 0.85,
+        "value": 0.7716221742838556
+      },
+      "vehicle_precision": {
+        "attainment_ratio": 1.132237619508003,
+        "direction": "higher",
+        "passed": true,
+        "target": 0.8,
+        "value": 0.9057900956064024
+      },
+      "vehicle_recall": {
+        "attainment_ratio": 1.0236301723248376,
+        "direction": "higher",
+        "passed": true,
+        "target": 0.85,
+        "value": 0.8700856464761119
+      },
+      "vehicle_xy_mae_m": {
+        "attainment_ratio": 1.8793259199315744,
+        "direction": "lower",
+        "passed": true,
+        "target": 1.0,
+        "value": 0.5321056818268167
+      }
+    }
+  },
+  "all_outputs_and_metrics_finite": true,
+  "canonical_person_metrics": {
+    "person_f1": 0.645876645876646,
+    "person_precision": 0.6969787615913849,
+    "person_recall": 0.6017561983471075,
+    "person_xy_mae_m": 0.8518478373341022
+  },
+  "completed_utc": "2026-09-03T17:34:49.623454+00:00",
+  "component_latency": {
+    "batch_size_for_tail": 8,
+    "evidence_scope": "current-host diagnostic only; no Raspberry Pi and no OAI latency is claimed or implied",
+    "excludes": [
+      "RGB/radar loading and collation",
+      "frozen backbone front inference",
+      "postprocessing, p025 service policy and scoring",
+      "segmentation write-out"
+    ],
+    "frozen_tail_per_batch": {
+      "max_ms": 79.06508,
+      "mean_ms": 77.13593288782816,
+      "median_ms": 77.347595,
+      "min_ms": 14.761481,
+      "p5_ms": 75.98748280000001,
+      "p95_ms": 78.29042790000001
+    },
+    "receive": {
+      "max_ms": 38.557889,
+      "mean_ms": 21.699021693273544,
+      "median_ms": 21.460808,
+      "min_ms": 16.179795,
+      "p5_ms": 16.9100164,
+      "p95_ms": 27.132218599999998
+    },
+    "receive_includes": [
+      "exactly one zstd decompression",
+      "AE header inspection and preloaded-decoder selection",
+      "UINT8 dequantization and zero scatter",
+      "AE128 decoder"
+    ],
+    "transmit": {
+      "max_ms": 14.816167,
+      "mean_ms": 4.301356886995515,
+      "median_ms": 4.217721,
+      "min_ms": 3.588522,
+      "p5_ms": 3.696256,
+      "p95_ms": 5.1997637999999995
+    },
+    "transmit_includes": [
+      "stable epoch-4 ranker and continuous-q selection (q>0 only)",
+      "AE128 encoder on the complete frame",
+      "per-channel range computation from the complete latent",
+      "UINT8 quantization and sparse AE framing",
+      "mandatory zstd level-1 compression"
+    ]
+  },
+  "detections": 124893,
+  "detections_csv_sha256": "57f5e0d78c3df0feabc0c25047eeec18aef2785396a2c26c5d7847b151829d71",
+  "dropped_cells": 15053,
+  "frames": 3345,
+  "frozen_perception_state_unchanged": true,
+  "inference_passes_for_this_q": 1,
+  "integrity": {
+    "ae128_encoder_bypassed": false,
+    "all_outputs_finite": true,
+    "batched_or_cross_frame_selection_used": false,
+    "decoder_selected_from_received_header_bytes": true,
+    "dropped_cells_scattered_to_exact_zero": true,
+    "local_packet_metadata_used_for_selection": false,
+    "output_tensors_checked": 188640,
+    "q0_ranker_bypassed": false,
+    "ranges_evidence": "structurally enforced by the hash-bound, unmodified ae_uint8_transport.encode_frame, which prepares the ranges from the complete pre-drop latent and is covered by the committed AE transport test; this pass does not re-derive them, because doing so would need a second encode of every frame",
+    "ranges_from_complete_latent_before_dropping": true,
+    "ranked_original_fp32_c2_per_frame": true,
+    "ranker_invocations": 3345,
+    "reconstruction_is_identity_at_any_q": false,
+    "retained_uint8_cells_equal_selected_indices": true,
+    "selection_independent_per_frame": true,
+    "zstd_decompressions": 3345
+  },
+  "metrics": {
+    "foreground_miou": 0.6218416330274759,
+    "person_avo_f1": 0.6485289465359064,
+    "person_avo_precision": 0.5950653120464441,
+    "person_avo_recall": 0.7125477928397637,
+    "person_avo_recall_20_40m": 0.5822349570200573,
+    "person_avo_xy_mae_m": 0.8142804955001882,
+    "person_box_mask_iou": 0.47206109177109623,
+    "vehicle_f1": 0.8875789473684211,
+    "vehicle_iou": 0.7716221742838556,
+    "vehicle_precision": 0.9057900956064024,
+    "vehicle_recall": 0.8700856464761119,
+    "vehicle_xy_mae_m": 0.5321056818268167
+  },
+  "noae_same_q_reference": {
+    "absolute_service_pass_count": 4,
+    "canonical_person_metrics": {
+      "person_f1": 0.665907797381901,
+      "person_precision": 0.7414448669201521,
+      "person_recall": 0.6043388429752066,
+      "person_xy_mae_m": 0.8636079275993035
+    },
+    "failed_absolute_service_gates": [
+      "foreground_miou",
+      "person_box_mask_iou",
+      "person_precision",
+      "person_recall",
+      "vehicle_iou"
+    ],
+    "metrics": {
+      "foreground_miou": 0.5816300026686223,
+      "person_avo_f1": 0.6727184308639974,
+      "person_avo_precision": 0.6303159173754557,
+      "person_avo_recall": 0.7212374000695169,
+      "person_avo_recall_20_40m": 0.5959885386819485,
+      "person_avo_xy_mae_m": 0.8194615957287846,
+      "person_box_mask_iou": 0.4596647654360441,
+      "vehicle_f1": 0.8851495726495726,
+      "vehicle_iou": 0.7035952399012005,
+      "vehicle_precision": 0.917598848155942,
+      "vehicle_recall": 0.854916933237024,
+      "vehicle_xy_mae_m": 0.5338088468743897
+    },
+    "pre_zstd_bytes": 1656236,
+    "q": 0.7,
+    "q_e4": 7000,
+    "retained_cells": 6451,
+    "zstd_bytes": {
+      "maximum": 1090566,
+      "median": 1063190.0,
+      "minimum": 1036023,
+      "p95": 1078546.4
+    }
+  },
+  "payload": {
+    "analytical_breakdown": {
+      "header_bytes": 50,
+      "mask_bytes": 2688,
+      "range_bytes": 1024,
+      "value_bytes": 825728
+    },
+    "analytical_pre_zstd_bytes": 829490,
+    "family": "AE128",
+    "pre_zstd_bytes": {
+      "maximum": 829490,
+      "mean": 829490.0,
+      "median": 829490.0,
+      "minimum": 829490,
+      "p95": 829490.0,
+      "samples": 3345
+    },
+    "transported_latent_channels": 128,
+    "zstd": {
+      "backend": "cext",
+      "binding_version": "0.25.0",
+      "implementation": "python-zstandard",
+      "module": "zstandard",
+      "settings": {
+        "dict_data": null,
+        "level": 1,
+        "level_search_performed": false,
+        "one_frame_per_camera_frame": true,
+        "threads": 0,
+        "write_checksum": true,
+        "write_content_size": true,
+        "write_dict_id": false
+      },
+      "zstd_library_version": "1.5.7"
+    },
+    "zstd_bytes": {
+      "maximum": 742922,
+      "mean": 733069.4759342301,
+      "median": 733074.0,
+      "minimum": 703613,
+      "p95": 737449.6,
+      "samples": 3345
+    },
+    "zstd_level_tuned_here": false,
+    "zstd_mandatory": true
+  },
+  "peak_allocated_vram_mib": 2977.37451171875,
+  "peak_reserved_vram_mib": 3592.0,
+  "person_service_outputs": 3781,
+  "prediction_artifacts": {
+    "durability_order": [
+      "atomically write settings/<q>.json",
+      "remove working_predictions/<q>",
+      "atomically write cleanup/<q>.json"
+    ],
+    "removal_marker": "cleanup/q7000.json",
+    "removed_before_this_record": false,
+    "root": "experiments/splitfusion_fcos_ae_v1/20260903_phase9d_ae128_uint8_validation/working_predictions/q7000",
+    "rule": "this record is the durable scientific completion record for this q and is fsynced into place before its predictions are removed, so an interruption can only lose scratch predictions"
+  },
+  "prediction_root": "experiments/splitfusion_fcos_ae_v1/20260903_phase9d_ae128_uint8_validation/working_predictions/q7000",
+  "profile_status": {
+    "designation": "primary profile",
+    "executable": true,
+    "influences_acceptance": true,
+    "is_stress_anchor": false,
+    "removed_for_gate_miss": false
+  },
+  "protected_metric_deltas_vs_noae_uint8_zstd_same_q": {
+    "foreground_miou": {
+      "ae128_uint8_zstd_same_q": 0.6218416330274759,
+      "bound": 0.01,
+      "degradation": -0.040211630358853556,
+      "delta_ae_minus_noae": 0.040211630358853556,
+      "noae_uint8_zstd_same_q": 0.5816300026686223,
+      "normalized_degradation": -4.021163035885356,
+      "passed": true
+    },
+    "person_avo_f1": {
+      "ae128_uint8_zstd_same_q": 0.6485289465359064,
+      "bound": 0.015,
+      "degradation": 0.024189484328090982,
+      "delta_ae_minus_noae": -0.024189484328090982,
+      "noae_uint8_zstd_same_q": 0.6727184308639974,
+      "normalized_degradation": 1.6126322885393989,
+      "passed": false
+    },
+    "person_avo_precision": {
+      "ae128_uint8_zstd_same_q": 0.5950653120464441,
+      "bound": 0.015,
+      "degradation": 0.035250605329011586,
+      "delta_ae_minus_noae": -0.035250605329011586,
+      "noae_uint8_zstd_same_q": 0.6303159173754557,
+      "normalized_degradation": 2.3500403552674394,
+      "passed": false
+    },
+    "person_avo_recall": {
+      "ae128_uint8_zstd_same_q": 0.7125477928397637,
+      "bound": 0.015,
+      "degradation": 0.008689607229753205,
+      "delta_ae_minus_noae": -0.008689607229753205,
+      "noae_uint8_zstd_same_q": 0.7212374000695169,
+      "normalized_degradation": 0.5793071486502137,
+      "passed": true
+    },
+    "person_avo_recall_20_40m": {
+      "ae128_uint8_zstd_same_q": 0.5822349570200573,
+      "bound": 0.03,
+      "degradation": 0.013753581661891112,
+      "delta_ae_minus_noae": -0.013753581661891112,
+      "noae_uint8_zstd_same_q": 0.5959885386819485,
+      "normalized_degradation": 0.4584527220630371,
+      "passed": true
+    },
+    "person_avo_xy_mae_m": {
+      "ae128_uint8_zstd_same_q": 0.8142804955001882,
+      "bound": 0.05,
+      "degradation": -0.005181100228596414,
+      "delta_ae_minus_noae": -0.005181100228596414,
+      "noae_uint8_zstd_same_q": 0.8194615957287846,
+      "normalized_degradation": -0.10362200457192827,
+      "passed": true
+    },
+    "person_box_mask_iou": {
+      "ae128_uint8_zstd_same_q": 0.47206109177109623,
+      "bound": 0.01,
+      "degradation": -0.01239632633505211,
+      "delta_ae_minus_noae": 0.01239632633505211,
+      "noae_uint8_zstd_same_q": 0.4596647654360441,
+      "normalized_degradation": -1.239632633505211,
+      "passed": true
+    },
+    "vehicle_f1": {
+      "ae128_uint8_zstd_same_q": 0.8875789473684211,
+      "bound": 0.01,
+      "degradation": -0.0024293747188485204,
+      "delta_ae_minus_noae": 0.0024293747188485204,
+      "noae_uint8_zstd_same_q": 0.8851495726495726,
+      "normalized_degradation": -0.24293747188485204,
+      "passed": true
+    },
+    "vehicle_iou": {
+      "ae128_uint8_zstd_same_q": 0.7716221742838556,
+      "bound": 0.01,
+      "degradation": -0.06802693438265506,
+      "delta_ae_minus_noae": 0.06802693438265506,
+      "noae_uint8_zstd_same_q": 0.7035952399012005,
+      "normalized_degradation": -6.802693438265505,
+      "passed": true
+    },
+    "vehicle_precision": {
+      "ae128_uint8_zstd_same_q": 0.9057900956064024,
+      "bound": 0.01,
+      "degradation": 0.011808752549539503,
+      "delta_ae_minus_noae": -0.011808752549539503,
+      "noae_uint8_zstd_same_q": 0.917598848155942,
+      "normalized_degradation": 1.1808752549539503,
+      "passed": false
+    },
+    "vehicle_recall": {
+      "ae128_uint8_zstd_same_q": 0.8700856464761119,
+      "bound": 0.01,
+      "degradation": -0.015168713239087861,
+      "delta_ae_minus_noae": 0.015168713239087861,
+      "noae_uint8_zstd_same_q": 0.854916933237024,
+      "normalized_degradation": -1.516871323908786,
+      "passed": true
+    },
+    "vehicle_xy_mae_m": {
+      "ae128_uint8_zstd_same_q": 0.5321056818268167,
+      "bound": 0.05,
+      "degradation": -0.001703165047572952,
+      "delta_ae_minus_noae": -0.001703165047572952,
+      "noae_uint8_zstd_same_q": 0.5338088468743897,
+      "normalized_degradation": -0.03406330095145904,
+      "passed": true
+    }
+  },
+  "q": 0.7,
+  "q_e4": 7000,
+  "retained_cells": 6451,
+  "run_identity_sha256": "51b2e42ef7c5aa6702f8474e27496281734f19e4ecc98d567b8bcd7494362bca",
+  "same_q_preservation_vs_noae_uint8_zstd": {
+    "all_passed": false,
+    "baseline": "frozen noAE UINT8+zstd validation result at the same q",
+    "failed": [
+      "person_avo_f1",
+      "person_avo_precision",
+      "vehicle_precision"
+    ],
+    "gates": {
+      "foreground_miou": {
+        "ae": 0.6218416330274759,
+        "bound": 0.01,
+        "degradation": -0.040211630358853556,
+        "direction": "loss",
+        "noae_same_q": 0.5816300026686223,
+        "normalized_degradation": -4.021163035885356,
+        "passed": true
+      },
+      "person_avo_f1": {
+        "ae": 0.6485289465359064,
+        "bound": 0.015,
+        "degradation": 0.024189484328090982,
+        "direction": "loss",
+        "noae_same_q": 0.6727184308639974,
+        "normalized_degradation": 1.6126322885393989,
+        "passed": false
+      },
+      "person_avo_precision": {
+        "ae": 0.5950653120464441,
+        "bound": 0.015,
+        "degradation": 0.035250605329011586,
+        "direction": "loss",
+        "noae_same_q": 0.6303159173754557,
+        "normalized_degradation": 2.3500403552674394,
+        "passed": false
+      },
+      "person_avo_recall": {
+        "ae": 0.7125477928397637,
+        "bound": 0.015,
+        "degradation": 0.008689607229753205,
+        "direction": "loss",
+        "noae_same_q": 0.7212374000695169,
+        "normalized_degradation": 0.5793071486502137,
+        "passed": true
+      },
+      "person_avo_recall_20_40m": {
+        "ae": 0.5822349570200573,
+        "bound": 0.03,
+        "degradation": 0.013753581661891112,
+        "direction": "loss",
+        "noae_same_q": 0.5959885386819485,
+        "normalized_degradation": 0.4584527220630371,
+        "passed": true
+      },
+      "person_avo_xy_mae_m": {
+        "ae": 0.8142804955001882,
+        "bound": 0.05,
+        "degradation": -0.005181100228596414,
+        "direction": "increase",
+        "noae_same_q": 0.8194615957287846,
+        "normalized_degradation": -0.10362200457192827,
+        "passed": true
+      },
+      "person_box_mask_iou": {
+        "ae": 0.47206109177109623,
+        "bound": 0.01,
+        "degradation": -0.01239632633505211,
+        "direction": "loss",
+        "noae_same_q": 0.4596647654360441,
+        "normalized_degradation": -1.239632633505211,
+        "passed": true
+      },
+      "vehicle_f1": {
+        "ae": 0.8875789473684211,
+        "bound": 0.01,
+        "degradation": -0.0024293747188485204,
+        "direction": "loss",
+        "noae_same_q": 0.8851495726495726,
+        "normalized_degradation": -0.24293747188485204,
+        "passed": true
+      },
+      "vehicle_iou": {
+        "ae": 0.7716221742838556,
+        "bound": 0.01,
+        "degradation": -0.06802693438265506,
+        "direction": "loss",
+        "noae_same_q": 0.7035952399012005,
+        "normalized_degradation": -6.802693438265505,
+        "passed": true
+      },
+      "vehicle_precision": {
+        "ae": 0.9057900956064024,
+        "bound": 0.01,
+        "degradation": 0.011808752549539503,
+        "direction": "loss",
+        "noae_same_q": 0.917598848155942,
+        "normalized_degradation": 1.1808752549539503,
+        "passed": false
+      },
+      "vehicle_recall": {
+        "ae": 0.8700856464761119,
+        "bound": 0.01,
+        "degradation": -0.015168713239087861,
+        "direction": "loss",
+        "noae_same_q": 0.854916933237024,
+        "normalized_degradation": -1.516871323908786,
+        "passed": true
+      },
+      "vehicle_xy_mae_m": {
+        "ae": 0.5321056818268167,
+        "bound": 0.05,
+        "degradation": -0.001703165047572952,
+        "direction": "increase",
+        "noae_same_q": 0.5338088468743897,
+        "normalized_degradation": -0.03406330095145904,
+        "passed": true
+      }
+    },
+    "gates_passed": 9,
+    "gates_total": 12,
+    "worst_degradation": 0.035250605329011586,
+    "worst_normalized_degradation": 2.3500403552674394
+  },
+  "schema": "splitfusion_fcos_ae128_phase9d_uint8_setting_v1",
+  "segmentation_manifest_sha256": "e71b92aaa513b3e7b905e001bd57fc45425edcebbccec5ebb9a255cd0df983bf",
+  "selected_ae128_state_unchanged": true,
+  "stable_ranker_state_unchanged": true,
+  "terminal": "SPLITFUSION_AE128_UINT8_Q_SETTING_COMPLETE",
+  "test_or_carla_access": false,
+  "threshold_nms_or_gate_change": false,
+  "training_or_tuning": false,
+  "vehicle_service_outputs": 121112,
+  "wall_seconds": 297.5752866268158
+}
