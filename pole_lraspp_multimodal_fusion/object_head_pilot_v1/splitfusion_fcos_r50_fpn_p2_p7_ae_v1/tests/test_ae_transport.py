@@ -363,5 +363,48 @@ class AeTransportChecks(unittest.TestCase):
                 ae_uint8_transport.decode(good)  # type: ignore[arg-type]
 
 
+    @unittest.skipUnless(torch.cuda.is_available(), "requires an accelerator")
+    def test_receive_reconstructs_with_a_device_resident_decoder(self) -> None:
+        """A decoder the runtime placed on an accelerator must still receive.
+
+        `decode_sparse` rebuilds the latent from host bytes and therefore always
+        returns it on CPU. Phase-9B GPU qualification found that both deployable
+        receive paths then handed that CPU latent straight to a CUDA-resident
+        decoder, so the edge path failed on device mismatch. Both paths now read
+        the device off the selected decoder itself.
+        """
+        device = torch.device("cuda:0")
+        c2 = synthetic_c2().to(device)
+        ranker = CountingRanker(c2)
+        wire = CountingWireCodec()
+        autoencoder = build_split_feature_ae(128).to(device).bind_routing_tag(0x11110080)
+        preloaded = ae_family_dispatch.PreloadedAeDecoders([autoencoder])
+
+        for q in (BYPASS_Q, REGISTERED_Q):
+            with self.subTest(q=q), torch.no_grad():
+                result = ae_uint8_transport.encode_frame(
+                    c2, autoencoder, ranker, q, wire_codec=wire
+                )
+                latent, keep_mask, _, _ = ae_uint8_transport.decode_sparse(
+                    wire.decompress_bytes(result.packet.data)
+                )
+                self.assertEqual(latent.device.type, "cpu")
+                expected = autoencoder.decode(
+                    latent.to(device), keep_mask.to(device)
+                )
+
+                received = preloaded.receive(result.packet.data, wire_codec=wire)
+                self.assertEqual(received.c2.device, expected.device)
+                self.assertEqual(tuple(received.c2.shape), contract.SPLIT_SHAPE)
+                self.assertTrue(torch.equal(received.c2, expected))
+
+                direct, decoded_q = ae_uint8_transport.reconstruct_c2(
+                    result.packet, autoencoder, wire_codec=wire
+                )
+                self.assertEqual(direct.device, expected.device)
+                self.assertEqual(decoded_q, quantize_q(q).wire_q)
+                self.assertTrue(torch.equal(direct, expected))
+
+
 if __name__ == "__main__":  # pragma: no cover
     unittest.main()

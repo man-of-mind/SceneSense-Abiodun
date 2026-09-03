@@ -202,7 +202,10 @@ class PreloadedAeDecoders:
 
         # Reuse the already-decompressed bytes: no second zstd pass.
         latent, keep_mask, q, _ = ae_uint8_transport.decode_sparse(sparse)
-        reconstructed = autoencoder.decode(latent, keep_mask)
+        # The wire is host bytes, so the latent is rebuilt on CPU; hand it to
+        # the selected decoder on whichever device that decoder actually lives.
+        device = ae_uint8_transport.decoder_device(autoencoder)
+        reconstructed = autoencoder.decode(latent.to(device), keep_mask.to(device))
         guards.require_frozen_c2(reconstructed, what="reconstructed C2")
         return ReceivedFrame(
             c2=reconstructed,

@@ -546,6 +546,19 @@ def decode_sparse(
 # ---------------------------------------------------------------------------
 
 
+def decoder_device(autoencoder: SplitFeatureAE) -> torch.device:
+    """Device the selected decoder's own parameters live on.
+
+    `decode_sparse` rebuilds the latent on CPU because it reads host bytes, so a
+    decoder that the runtime has placed on an accelerator must be handed its
+    input on that device. Reading it from the decoder itself keeps the receive
+    path device-agnostic instead of assuming CPU.
+    """
+    if not isinstance(autoencoder, SplitFeatureAE):
+        raise guards.HybridQConfigError("expected a SplitFeatureAE")
+    return next(autoencoder.parameters()).device
+
+
 def require_family_agreement(
     parsed: InspectedAePayload | AeZstdPacket, autoencoder: SplitFeatureAE
 ) -> SplitFeatureAE:
@@ -711,6 +724,7 @@ def reconstruct_c2(
         raise guards.HybridQConfigError("reconstruct_c2 requires a SplitFeatureAE")
     latent, keep_mask, q, parsed = decode(packet, wire_codec=wire_codec)
     require_family_agreement(parsed, autoencoder)
-    reconstructed = autoencoder.decode(latent, keep_mask)
+    device = decoder_device(autoencoder)
+    reconstructed = autoencoder.decode(latent.to(device), keep_mask.to(device))
     guards.require_frozen_c2(reconstructed, what="reconstructed C2")
     return reconstructed, q
