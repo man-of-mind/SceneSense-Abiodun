@@ -6,7 +6,10 @@ nothing is trained, inferred, selected or evaluated. Three checks:
 1. token / bottleneck / family / schema / seed separation, including the refusal
    of the out-of-scope 128-channel family and of any AE128 label;
 2. family-specific checkpoint naming and optimizer ownership;
-3. recovery and holdout isolation through the shared family-aware path.
+3. recovery and holdout isolation through the shared family-aware path;
+4. the public holdout CLI cannot perform a partial or bounded selection;
+5. a valid durable pass is reused on --resume while a missing one stays
+   eligible to run, and an invalid record is refused rather than re-measured.
 
 The AE128 fixtures are imported from the Phase-9C test file rather than copied,
 so both families are checked against the same synthetic partition and binding.
@@ -15,6 +18,8 @@ so both families are checked against the same synthetic partition and binding.
 from __future__ import annotations
 
 import ast
+import inspect
+import io
 import sys
 import tempfile
 import unittest
@@ -26,8 +31,16 @@ import torch
 
 from ...splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1 import contract, guards
 from ...splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1.gpu_qualification import sha256_file
-from .. import ae_contract, ae_loss, ae_phase10_common as family, ae_phase10_training
+from .. import (
+    ae_contract,
+    ae_holdout_selection,
+    ae_loss,
+    ae_phase10_common as family,
+    ae_phase10_holdout_selection as selection,
+    ae_phase10_training,
+)
 from .. import ae_training_common as common
+from ...splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1 import continuous_q
 from ..ae_model import ae_parameters
 from .test_ae_training_schedule import (
     cpu_rng_state,
@@ -520,6 +533,211 @@ class Phase10RecoveryAndHoldoutIsolationChecks(unittest.TestCase):
                 [name for name in names if "holdout_selection" in name],
                 msg="the trainer must not import a selection runner",
             )
+
+
+def synthetic_evaluation(
+    bottleneck: int, epoch: int, plan: Any, checkpoint: str, digest: str
+) -> dict[str, Any]:
+    """A complete, finite pass payload of exactly the shape the runner writes."""
+    metrics = {name: 0.5 for name in contract.PROTECTED_METRICS}
+    gate_result = common.evaluate_same_q_gates(dict(metrics), dict(metrics))
+    return {
+        **family.family_fields(bottleneck),
+        "configuration": (
+            f"{family.family_slug(bottleneck)}_epoch{epoch:02d}_q{plan.wire_q:.2f}"
+        ),
+        "epoch": epoch,
+        "q": plan.wire_q,
+        "q_e4": plan.q_e4,
+        "frames": contract.TRAIN_HOLDOUT_FRAMES,
+        "prediction_root": (
+            f"predictions/{family.family_slug(bottleneck)}_epoch{epoch:02d}"
+            f"_q{plan.q_e4:04d}"
+        ),
+        "retained_cells": contract.keep_count(plan.wire_q),
+        "dropped_cells": contract.drop_count(plan.wire_q),
+        "ranker_invoked": not plan.is_bypass,
+        "ranker_invocations": 0 if plan.is_bypass else contract.TRAIN_HOLDOUT_FRAMES,
+        "transport": common.AE_HOLDOUT_QUANTIZER,
+        "checkpoint": checkpoint,
+        "checkpoint_sha256": digest,
+        "metrics": metrics,
+        "reconstruction": {
+            "frames": contract.TRAIN_HOLDOUT_FRAMES,
+            **{name: 0.25 for name in selection.RECONSTRUCTION_TOTALS},
+        },
+        "gate_result": gate_result,
+    }
+
+
+class Phase10HoldoutCommandChecks(unittest.TestCase):
+    """The scientific selection command has no bounded or partial mode."""
+
+    def test_public_holdout_cli_cannot_run_a_partial_selection(self) -> None:
+        parser = selection.build_parser()
+        options = {
+            option
+            for action in parser._actions
+            for option in action.option_strings
+        }
+        self.assertEqual(
+            options,
+            {
+                "-h",
+                "--help",
+                "--execute",
+                "--bottleneck",
+                "--training",
+                "--workers",
+                "--keep-segmentation",
+                "--resume",
+            },
+        )
+        # Nothing on the public surface can shorten a pass.
+        for name in ("smoke", "limit", "batches", "frames", "subset", "partial"):
+            self.assertFalse(
+                [option for option in options if name in option],
+                msg=f"{name!r} must not be selectable from the holdout CLI",
+            )
+        base = [
+            "--execute",
+            family.holdout_token(64),
+            "--bottleneck",
+            "64",
+            "--training",
+            "run",
+        ]
+        parsed = parser.parse_args(base)
+        self.assertFalse(parsed.resume)
+        self.assertFalse(
+            [name for name in vars(parsed) if "smoke" in name or "limit" in name]
+        )
+        for rejected in (
+            ["--smoke-batches", "1"],
+            ["--limit", "1"],
+            ["--frames", "8"],
+        ):
+            with self.assertRaises(SystemExit):
+                with mock.patch("sys.stderr", new=io.StringIO()):
+                    parser.parse_args(base + rejected)
+
+        # The bounded helper still exists for CPU tests ...
+        self.assertIn("limit", inspect.signature(ae_holdout_selection.run_pass).parameters)
+        # ... and the runner never reaches it with anything but None.
+        calls = [
+            node
+            for node in ast.walk(ast.parse(Path(selection.__file__).read_text()))
+            if isinstance(node, ast.Call)
+            and getattr(node.func, "id", getattr(node.func, "attr", None)) == "run_pass"
+        ]
+        self.assertTrue(calls)
+        for call in calls:
+            limits = [word for word in call.keywords if word.arg == "limit"]
+            self.assertEqual(len(limits), 1)
+            self.assertIsInstance(limits[0].value, ast.Constant)
+            self.assertIsNone(limits[0].value.value)
+
+
+class Phase10SettingRecoveryChecks(unittest.TestCase):
+    """A completed pass is reused on resume; anything else is refused."""
+
+    def test_valid_setting_is_reused_and_missing_settings_stay_pending(self) -> None:
+        bottleneck = 64
+        run_sha256 = "9" * 64
+        plans = {plan.q_e4: plan for plan in selection.registered_plans()}
+        candidate_hashes = {
+            family.candidate_filename(bottleneck, epoch): f"{epoch:064d}"
+            for epoch in common.AE_CANDIDATE_EPOCHS
+        }
+        done_epoch = common.AE_CANDIDATE_EPOCHS[0]
+        done_plan = plans[continuous_q.quantize_q(0.30).q_e4]
+        checkpoint = family.candidate_filename(bottleneck, done_epoch)
+
+        with tempfile.TemporaryDirectory() as raw:
+            settings_dir = Path(raw) / selection.SETTINGS_DIRNAME
+            settings_dir.mkdir()
+            record_name = family.setting_record_filename(
+                bottleneck, done_epoch, done_plan.q_e4
+            )
+            self.assertEqual(record_name, "ae64_epoch04_q3000.json")
+            record = selection.build_setting_record(
+                bottleneck=bottleneck,
+                run_identity_sha256=run_sha256,
+                epoch=done_epoch,
+                plan=done_plan,
+                checkpoint=checkpoint,
+                checkpoint_sha256=candidate_hashes[checkpoint],
+                evaluation=synthetic_evaluation(
+                    bottleneck,
+                    done_epoch,
+                    done_plan,
+                    checkpoint,
+                    candidate_hashes[checkpoint],
+                ),
+            )
+            common.atomic_write_json(record, settings_dir / record_name)
+
+            reusable, pending = selection.collect_completed_settings(
+                settings_dir,
+                bottleneck=bottleneck,
+                run_identity_sha256=run_sha256,
+                candidate_hashes=candidate_hashes,
+            )
+            # Exactly the completed pass is reused; the other eleven still run.
+            self.assertEqual(list(reusable), [(done_epoch, done_plan.q_e4)])
+            self.assertEqual(len(pending), 11)
+            self.assertNotIn((done_epoch, done_plan.q_e4), pending)
+            self.assertEqual(
+                sorted(pending + list(reusable)), sorted(selection.expected_pairs())
+            )
+            evaluation = reusable[(done_epoch, done_plan.q_e4)]
+            self.assertEqual(evaluation["epoch"], done_epoch)
+            self.assertEqual(evaluation["frames"], contract.TRAIN_HOLDOUT_FRAMES)
+            self.assertEqual(
+                evaluation["gate_result"]["gates_total"], selection.GATE_COUNT
+            )
+            self.assertEqual(evaluation["family"], "AE64")
+
+            # A record written under a different run identity is refused.
+            with self.assertRaises(guards.HybridQConfigError):
+                selection.collect_completed_settings(
+                    settings_dir,
+                    bottleneck=bottleneck,
+                    run_identity_sha256="1" * 64,
+                    candidate_hashes=candidate_hashes,
+                )
+            # ... as is one whose checkpoint hash no longer matches, and one
+            # whose pass was not complete. Neither is overwritten or re-measured.
+            for mutate in (
+                {"checkpoint_sha256": "2" * 64},
+                {"frames": 12},
+                {"inference_passes": 2},
+                {"retained_cells": 7},
+            ):
+                broken = dict(record)
+                broken.update(mutate)
+                common.atomic_write_json(broken, settings_dir / record_name)
+                with self.assertRaises(
+                    (guards.HybridQConfigError, guards.HybridQPayloadError)
+                ):
+                    selection.collect_completed_settings(
+                        settings_dir,
+                        bottleneck=bottleneck,
+                        run_identity_sha256=run_sha256,
+                        candidate_hashes=candidate_hashes,
+                    )
+                self.assertTrue((settings_dir / record_name).is_file())
+
+            # A foreign file in the settings directory is refused outright.
+            common.atomic_write_json(record, settings_dir / record_name)
+            (settings_dir / "ae32_epoch04_q3000.json").write_text("{}", encoding="utf-8")
+            with self.assertRaises(guards.HybridQOwnershipError):
+                selection.collect_completed_settings(
+                    settings_dir,
+                    bottleneck=bottleneck,
+                    run_identity_sha256=run_sha256,
+                    candidate_hashes=candidate_hashes,
+                )
 
 
 if __name__ == "__main__":  # pragma: no cover

@@ -27,7 +27,12 @@ from typing import Any, Mapping, Sequence
 
 import torch
 
-from ..splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1 import contract, guards, training
+from ..splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1 import (
+    contract,
+    continuous_q,
+    guards,
+    training,
+)
 from . import ae_contract, ae_loss
 from . import ae_training_common as common
 from .ae_model import SplitFeatureAE, ae_parameters, build_split_feature_ae
@@ -271,6 +276,40 @@ def holdout_report_filename(bottleneck: int) -> str:
     return require_family_labelled(
         f"ae{size}_holdout_selection.json", size, what="holdout report filename"
     )
+
+
+def holdout_manifest_schema(bottleneck: int) -> str:
+    return _schema(bottleneck, "holdout_run_manifest")
+
+
+def holdout_setting_schema(bottleneck: int) -> str:
+    return _schema(bottleneck, "holdout_setting")
+
+
+def holdout_manifest_filename(bottleneck: int) -> str:
+    size = require_phase10_bottleneck(bottleneck)
+    return require_family_labelled(
+        f"ae{size}_holdout_run_manifest.json", size, what="holdout manifest filename"
+    )
+
+
+def setting_record_filename(bottleneck: int, epoch: int, q_e4: int) -> str:
+    """One completed checkpoint/q pass, named by family, epoch and q."""
+    size = require_phase10_bottleneck(bottleneck)
+    if int(epoch) not in common.AE_CANDIDATE_EPOCHS:
+        raise guards.HybridQConfigError(
+            f"epoch {epoch} is not a registered candidate epoch "
+            f"{common.AE_CANDIDATE_EPOCHS}"
+        )
+    value = int(q_e4)
+    if value not in {
+        continuous_q.quantize_q(float(q)).q_e4 for q in common.AE_HOLDOUT_Q_VALUES
+    }:
+        raise guards.HybridQConfigError(
+            f"q_e4={value} is not a registered Phase-10A selection q"
+        )
+    name = f"ae{size}_epoch{int(epoch):02d}_q{value:04d}.json"
+    return require_family_labelled(name, size, what="setting record filename")
 
 
 # ---------------------------------------------------------------------------
@@ -633,9 +672,12 @@ __all__ = [
     "epoch_summaries_filename",
     "family_fields",
     "family_label",
+    "holdout_manifest_filename",
+    "holdout_manifest_schema",
     "holdout_report_filename",
     "holdout_schema",
     "holdout_selection_dir",
+    "holdout_setting_schema",
     "holdout_terminal",
     "holdout_token",
     "load_candidate",
@@ -647,6 +689,7 @@ __all__ = [
     "require_token_agrees_with_bottleneck",
     "save_candidate",
     "save_recovery",
+    "setting_record_filename",
     "training_configuration",
     "training_report_filename",
     "training_schema",

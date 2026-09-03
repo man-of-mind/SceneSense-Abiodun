@@ -12,6 +12,16 @@ diff HEAD` over every protected file is empty:
 `ae_training.py`, `ae_holdout_selection.py`, `ae_uint8_validation.py` and every
 AE128 artifact under `experiments/splitfusion_fcos_ae_v1/`.
 
+> **Revision — launch-safety correction (three focused changes).** `--smoke-batches`
+> is removed from the public selection CLI, so no partial run can emit a report,
+> a decision or a terminal; the selection command gained a durable per-pass
+> recovery manifest plus one record per completed checkpoint/q pass and a
+> `--resume` that reuses only fully validated records; and `load_training_run`
+> now requires the training terminal's recorded digest to equal the training
+> report's current sha256. No protected AE128 module, scientific configuration,
+> model, loss, schedule, scorer, gate, q value or dataset behaviour changed. See
+> [Holdout selection](#holdout-selection).
+
 ## New files
 
 | File | Role |
@@ -37,10 +47,10 @@ python3 -m ...ae_v1.ae_phase10_training \
   --execute SPLITFUSION_AE32_PHASE10_TRAINING --bottleneck 32 --output <new-empty-dir> [--resume]
 
 python3 -m ...ae_v1.ae_phase10_holdout_selection \
-  --execute SPLITFUSION_AE64_PHASE10_HOLDOUT_SELECTION --bottleneck 64 --training <completed-ae64-run>
+  --execute SPLITFUSION_AE64_PHASE10_HOLDOUT_SELECTION --bottleneck 64 --training <completed-ae64-run> [--resume]
 
 python3 -m ...ae_v1.ae_phase10_holdout_selection \
-  --execute SPLITFUSION_AE32_PHASE10_HOLDOUT_SELECTION --bottleneck 32 --training <completed-ae32-run>
+  --execute SPLITFUSION_AE32_PHASE10_HOLDOUT_SELECTION --bottleneck 32 --training <completed-ae32-run> [--resume]
 ```
 
 Suggested run directories, following the existing convention:
@@ -180,7 +190,18 @@ outright rather than parsed.
 A separate module and command. It refuses to start unless the family's
 `SPLITFUSION_AE<B>_PHASE10_TRAINING_COMPLETE` marker, `ae<B>_training_report.json`,
 its terminal, its family block, its locked configuration and its three candidate
-hashes all check out, and its output directory is create-only.
+hashes all check out, and its output directory is create-only. The marker holds
+the sha256 the trainer wrote for the report it had just produced, and that digest
+must still equal the report's current hash: a report edited, replaced or
+truncated since the run ended is refused rather than selected against.
+
+**There is no bounded or partial mode.** The public CLI is exactly
+`--execute --bottleneck --training --workers --keep-segmentation --resume`;
+every pass evaluates all 3,284 frames (`score_pass(..., require_defined=True)`),
+and `main` reaches `run_pass` only with `limit=None`. The internal bounded helper
+remains importable for CPU tests but is unreachable from the command, so no
+partial execution can emit a holdout-selection report, a checkpoint decision or
+the completion terminal.
 
 * Candidates 4/8/12 at q = {0, 0.30, 0.50, 0.70} — 12 passes, one per
   checkpoint/q pair, over the 3,284 reserved train-holdout frames.
@@ -200,13 +221,49 @@ hashes all check out, and its output directory is create-only.
 * The report states explicitly that selecting a checkpoint is **not** a
   service-readiness claim.
 
+### Durable per-pass recovery
+
+Before the first pass the run atomically writes
+`ae<B>_holdout_run_manifest.json`, binding the family and bottleneck, the
+training-run path, the training report's sha256, all three candidate checkpoint
+hashes, every frozen binding (`common.binding_fields`, which carries the whole AE
+package and hybrid-q source maps), the frozen noAE reference path and hash, the
+scorer identity, the exact epochs {4, 8, 12}, the exact q {0, 0.30, 0.50, 0.70},
+the 3,284 holdout frames and the named runner sources. One sha256 over that
+canonical document is the **run identity**.
+
+After each complete inference-and-scoring pass one compact record
+`settings/ae<B>_epochNN_qEEEE.json` is written atomically and immediately read
+back through the same validator a later resume would use. A record is reusable
+only if all of the following hold: run identity; family block; epoch and q/q_e4
+(cross-checked against each other); candidate checkpoint name and sha256; 3,284
+frames and exactly one inference pass; keep/drop counts equal to
+`contract.keep_count`/`drop_count`; ranker use and invocation count for that q;
+FP32 transport; the complete finite protected-metric set; the complete finite
+reconstruction totals; a complete 12-gate result whose pass count and
+`all_passed` flag agree with its own gates; and the frozen-state /
+no-training / no-validation-or-test / no-bounded-pass declarations.
+
+`--resume` requires an existing manifest whose identity is bit-identical to the
+live one, reuses every valid record without rerunning its inference, runs only
+the missing checkpoint/q pairs (loading a candidate checkpoint only when one of
+its q is missing), and **refuses** rather than overwriting or re-measuring any
+record that fails validation, any foreign file in the settings directory, or a
+selection that already completed. Prediction directories are untracked scratch:
+a prediction directory with no valid record belongs to an interrupted pass, so it
+is discarded with an explicit log line and that pair is re-measured in full. The
+ranking, the report and the terminal are emitted only once
+`collect_completed_settings` returns exactly the twelve expected pairs, all
+revalidated, and the reported evaluations are read back from those durable
+records.
+
 **Phase-9D deployment validation is deliberately not implemented**, because the
 selected AE64/AE32 checkpoint hashes do not exist yet. Nothing here derives a
 routing tag, writes a wire frame or measures a byte count.
 
 ## Focused CPU tests
 
-`tests/test_ae_phase10_family.py`, three tests, no CUDA / checkpoint / shard /
+`tests/test_ae_phase10_family.py`, five tests, no CUDA / checkpoint / shard /
 dataset access. AE128 fixtures (`registered_shape_partition`, `synthetic_binding`,
 `cpu_rng_state`) are imported from the Phase-9C test file rather than copied.
 
@@ -229,17 +286,30 @@ dataset access. AE128 fixtures (`registered_shape_partition`, `synthetic_binding
    `holdout_selection*` directory stops training; importing either selection
    runner stops training (observed firing for real in this process); and the
    trainer's own source is parsed to prove it imports no selection runner.
+4. **The public holdout CLI cannot run a partial selection.** The option set is
+   exactly the seven public flags; nothing containing `smoke`, `limit`,
+   `batches`, `frames`, `subset` or `partial` is accepted; `--smoke-batches`,
+   `--limit` and `--frames` all exit; the internal bounded helper still exists;
+   and every `run_pass` call site in the runner is parsed and required to pass a
+   literal `limit=None`.
+5. **A valid durable pass is reused on resume while a missing one stays
+   eligible.** One valid setting record is reused and the other eleven pairs
+   remain pending; a record under a different run identity, a wrong checkpoint
+   hash, a short frame count, a second inference pass, a wrong keep count and a
+   foreign file in the settings directory are each refused, and the refused
+   record is left untouched on disk rather than overwritten.
 
 ## What was run
 
 ```
 python3 -m py_compile   (the three new modules and the new test file)   OK
-Ran 21 tests   OK    # the whole ae_v1 suite: 18 existing + 3 new
+Ran 23 tests   OK    # the whole ae_v1 suite: 18 existing + 5 new
 Ran 79 tests   OK    # the frozen hybrid-q suite, unchanged
 git diff --check                                                        clean
 ```
 
-Both command-line interfaces were exercised with `--help` and with one
+Both command-line interfaces were exercised with `--help` (confirming
+`--smoke-batches` is gone and `--resume` is present) and the trainer with one
 deliberately mismatched token/bottleneck pair, which failed closed before CUDA,
 before any file was created and before any data path was touched. Nothing else
 was executed.
@@ -260,18 +330,23 @@ was executed.
    * **AE128 Phase 9D still re-runs cleanly**: it allowlists added files and
      requires only that the checkpoint- and transport-semantics modules be
      byte-identical, and this phase changed none of them.
-2. **Selection output blocks a later resume.** Once `holdout_selection_ae<B>/`
+2. **The run identity is strict by design.** A selection `--resume` is refused
+   unless every bound input — including the whole AE package source map — is
+   bit-identical to the interrupted run. Do not add, edit or remove any AE
+   package file (source, test or report) between starting a selection and
+   resuming it.
+3. **Selection output blocks a later resume.** Once `holdout_selection_ae<B>/`
    exists, the trainer refuses to run in that directory. This is intended; if a
    run genuinely has to be resumed after selection, the selection output must be
    moved aside deliberately.
-3. **Resource sequencing.** Each command requires `cuda:0`, and one family per
+4. **Resource sequencing.** Each command requires `cuda:0`, and one family per
    process means four sequential runs. On the RTX 5090 the AE128 equivalents took
    ~22 min (training) and ~54 min (12 selection passes); AE64 and AE32 are
    smaller, so budget roughly that or less per family. Host memory holds the
    ~1.08 GiB fit teacher store during training (~0.26 GiB holdout during
    selection); AE128 peaked at ~4.2 GiB allocated / ~4.6 GiB reserved VRAM, and
    the two smaller families sit below that.
-4. **Unproven at runtime.** Nothing in this phase has been executed against real
+5. **Unproven at runtime.** Nothing in this phase has been executed against real
    data or a GPU. The AE128 procedure it extends is proven, and the reused code
    paths are the proven ones, but the first real launch is still the first launch:
    expect to validate epoch 1 wall time, VRAM peak and the per-q loss report
