@@ -283,6 +283,54 @@ def set_learning_rate(optimizer: torch.optim.Optimizer, lr: float) -> float:
 
 
 # ---------------------------------------------------------------------------
+# Registered same-q preservation gates against a frozen noAE reference
+# ---------------------------------------------------------------------------
+
+
+SAME_Q_GATE_COUNT = len(contract.HOLDOUT_PRESERVATION_GATES)
+
+
+def evaluate_same_q_gates(
+    reference: Mapping[str, float],
+    candidate: Mapping[str, float],
+    *,
+    baseline: str = "frozen noAE holdout result at the same q",
+) -> dict[str, Any]:
+    """Registered preservation gates, scored against the noAE result at the same q.
+
+    `baseline` only names which frozen noAE result the caller passed in, so a
+    later phase comparing against a different frozen noAE measurement records
+    its own reference instead of inheriting this one's label. The gate set, the
+    bounds, the degradation sign convention and the pass rule are unchanged.
+    """
+    rows: dict[str, Any] = {}
+    for name, direction, bound in contract.HOLDOUT_PRESERVATION_GATES:
+        degradation = contract.gate_degradation(name, reference[name], candidate[name])
+        rows[name] = {
+            "direction": direction,
+            "bound": bound,
+            "noae_same_q": float(reference[name]),
+            "ae": float(candidate[name]),
+            "degradation": degradation,
+            "normalized_degradation": degradation / float(bound),
+            "passed": degradation <= bound,
+        }
+    passed = sum(1 for row in rows.values() if row["passed"])
+    return {
+        "baseline": str(baseline),
+        "gates": rows,
+        "gates_total": SAME_Q_GATE_COUNT,
+        "gates_passed": passed,
+        "all_passed": passed == SAME_Q_GATE_COUNT,
+        "failed": sorted(name for name, row in rows.items() if not row["passed"]),
+        "worst_degradation": max(row["degradation"] for row in rows.values()),
+        "worst_normalized_degradation": max(
+            row["normalized_degradation"] for row in rows.values()
+        ),
+    }
+
+
+# ---------------------------------------------------------------------------
 # Sample-id-keyed Phase-4 teacher store, one split at a time
 # ---------------------------------------------------------------------------
 

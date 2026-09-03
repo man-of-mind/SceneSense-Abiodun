@@ -434,35 +434,11 @@ def run_pass(
 # ---------------------------------------------------------------------------
 
 
-def evaluate_same_q_gates(
-    reference: Mapping[str, float], candidate: Mapping[str, float]
-) -> dict[str, Any]:
-    """Registered preservation gates, scored against the noAE result at the same q."""
-    rows: dict[str, Any] = {}
-    for name, direction, bound in contract.HOLDOUT_PRESERVATION_GATES:
-        degradation = contract.gate_degradation(name, reference[name], candidate[name])
-        rows[name] = {
-            "direction": direction,
-            "bound": bound,
-            "noae_same_q": float(reference[name]),
-            "ae": float(candidate[name]),
-            "degradation": degradation,
-            "normalized_degradation": degradation / float(bound),
-            "passed": degradation <= bound,
-        }
-    passed = sum(1 for row in rows.values() if row["passed"])
-    return {
-        "baseline": "frozen noAE holdout result at the same q",
-        "gates": rows,
-        "gates_total": GATE_COUNT,
-        "gates_passed": passed,
-        "all_passed": passed == GATE_COUNT,
-        "failed": sorted(name for name, row in rows.items() if not row["passed"]),
-        "worst_degradation": max(row["degradation"] for row in rows.values()),
-        "worst_normalized_degradation": max(
-            row["normalized_degradation"] for row in rows.values()
-        ),
-    }
+# The registered same-q preservation gates live in the shared module, so a later
+# phase that compares against a different frozen noAE measurement reuses the one
+# definition instead of importing this train-holdout selection runner into a
+# validation process. Re-exported under the name this runner and its report use.
+evaluate_same_q_gates = common.evaluate_same_q_gates
 
 
 # ---------------------------------------------------------------------------

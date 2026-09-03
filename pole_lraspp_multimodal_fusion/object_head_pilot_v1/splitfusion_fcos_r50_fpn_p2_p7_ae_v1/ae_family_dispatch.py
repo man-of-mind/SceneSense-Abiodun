@@ -50,6 +50,25 @@ class WireFamily:
 
 
 @dataclass(frozen=True)
+class ReceiveDiagnostics:
+    """Exactly the receive-path intermediates `receive` itself used.
+
+    Handed back only when `receive(..., diagnostics=True)` asks for them, so the
+    deployable default keeps nothing but the reconstructed C2 alive. Nothing here
+    is recomputed: an auditor checking these fields is checking the very frame
+    that was decoded, which is why a validation pass can prove that the retained
+    cells were the selected ones, that the dropped cells scattered to exact zero
+    and that the decoder came from the received header -- without decompressing
+    the frame a second time or restating any codec step.
+    """
+
+    parsed: ae_uint8_transport.InspectedAePayload
+    latent: torch.Tensor  # dense [B,112,192] FP32, after dequantize/zero-scatter
+    keep_mask: torch.Tensor  # bool [112,192], read back off the wire
+    decoder: SplitFeatureAE  # the object `select_for_header` returned
+
+
+@dataclass(frozen=True)
 class ReceivedFrame:
     """One received wire frame, reconstructed by the decoder it declared."""
 
@@ -59,6 +78,7 @@ class ReceivedFrame:
     keep_count: int
     compressed_bytes: int
     uncompressed_bytes: int
+    diagnostics: ReceiveDiagnostics | None = None
 
 
 def identify_sparse_frame(data: bytes) -> WireFamily:
@@ -168,6 +188,7 @@ class PreloadedAeDecoders:
         *,
         wire_codec: ZstdWireCodec | None = None,
         expected_packet: ae_uint8_transport.AeZstdPacket | None = None,
+        diagnostics: bool = False,
     ) -> ReceivedFrame:
         """Deployable edge path: received zstd bytes in, reconstructed C2 out.
 
@@ -176,6 +197,12 @@ class PreloadedAeDecoders:
         header, so a delayed or reordered frame is routed by what it actually
         carries. `expected_packet` is an optional local cross-check and is never
         needed to discover the decoder.
+
+        `diagnostics=True` additionally returns the intermediates this call
+        already produced. It changes no decode step and adds no work; it only
+        stops holding them being impossible, which is what an integrity audit of
+        a validation pass needs. The default is off so deployment does not keep a
+        latent alive per frame.
         """
         if not isinstance(frame_bytes, (bytes, bytearray, memoryview)):
             raise guards.HybridQPayloadError("receive requires the raw wire bytes")
@@ -220,4 +247,14 @@ class PreloadedAeDecoders:
             keep_count=int(parsed.header.keep_count),
             compressed_bytes=len(compressed),
             uncompressed_bytes=len(sparse),
+            diagnostics=(
+                ReceiveDiagnostics(
+                    parsed=parsed,
+                    latent=latent,
+                    keep_mask=keep_mask,
+                    decoder=autoencoder,
+                )
+                if diagnostics
+                else None
+            ),
         )
