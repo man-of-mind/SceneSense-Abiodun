@@ -6,6 +6,10 @@ count/mask, byte-exact zstd round trip, bounded UINT8 retained error, exact
 zero-scatter, correct decoder output shape, per-frame family provenance, and
 malformed-payload rejection. No checkpoint, CUDA, dataset, cache, inference,
 validation or CARLA is touched.
+
+Dispatch is exercised over the **raw compressed bytes**, which is the only thing
+guaranteed to cross the network; the local packet dataclass is used solely as an
+optional cross-check.
 """
 
 from __future__ import annotations
@@ -42,6 +46,22 @@ def synthetic_scores() -> torch.Tensor:
     )
 
 
+class CountingWireCodec(ZstdWireCodec):
+    """Counts decompressions so the receive path can be shown to do exactly one."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.decompressions = 0
+
+    def decompress(self, frame: bytes, *, expected_bytes: int | None = None) -> bytes:
+        self.decompressions += 1
+        return super().decompress(frame, expected_bytes=expected_bytes)
+
+    def decompress_bytes(self, frame: bytes) -> bytes:
+        self.decompressions += 1
+        return super().decompress_bytes(frame)
+
+
 class CountingRanker:
     """Asserts it is handed the original FP32 C2 object, never a latent."""
 
@@ -75,13 +95,19 @@ class AeTransportChecks(unittest.TestCase):
     def test_end_to_end_transport_provenance_and_fail_closed(self) -> None:
         c2 = synthetic_c2()
         ranker = CountingRanker(c2)
-        wire = ZstdWireCodec()
+        wire = CountingWireCodec()
         autoencoders = {
-            bottleneck: build_split_feature_ae(bottleneck).bind_checkpoint(
+            bottleneck: build_split_feature_ae(bottleneck).bind_routing_tag(
                 0x11110000 + bottleneck
             )
             for bottleneck in ae_contract.AE_BOTTLENECKS
         }
+
+        # An unbound routing tag is refused by the deployable encode path.
+        with self.assertRaises(guards.HybridQConfigError):
+            ae_uint8_transport.encode_frame(
+                c2, build_split_feature_ae(64), ranker, 0.50, wire_codec=wire
+            )
         keep_indices_by_q: dict[float, torch.Tensor] = {}
 
         with torch.no_grad():
@@ -120,7 +146,7 @@ class AeTransportChecks(unittest.TestCase):
                             prepared,
                             q,
                             result.selection,
-                            checkpoint_binding=autoencoder.checkpoint_binding,
+                            routing_tag=autoencoder.routing_tag,
                         )
                         restored = ae_uint8_transport.decompress_payload(
                             result.packet, wire_codec=wire
@@ -145,7 +171,7 @@ class AeTransportChecks(unittest.TestCase):
                         self.assertEqual(parsed.family_id, autoencoder.family_id)
                         self.assertEqual(parsed.bottleneck, bottleneck)
                         self.assertEqual(
-                            parsed.checkpoint_binding, autoencoder.checkpoint_binding
+                            parsed.routing_tag, autoencoder.routing_tag
                         )
                         self.assertEqual(tuple(parsed.values.shape), (plan.keep_count, bottleneck))
                         self.assertTrue(torch.equal(parsed.keep_mask, result.keep_mask))
@@ -208,18 +234,66 @@ class AeTransportChecks(unittest.TestCase):
             self.assertEqual(identity.family_name, "AE64")
             self.assertEqual(identity.transported_channels, 64)
 
+            # --- dispatch on the raw compressed bytes alone -----------------
+            # Nothing but the byte string is handed to the edge here.
+            reference, reference_q = ae_uint8_transport.reconstruct_c2(
+                packet, ae64, wire_codec=wire
+            )
+            wire.decompressions = 0
+            received = preloaded.receive(packet.data, wire_codec=wire)
+            self.assertEqual(wire.decompressions, 1)  # decompressed exactly once
+            self.assertEqual(received.family.family_name, "AE64")
+            self.assertEqual(received.family.transported_channels, 64)
+            self.assertEqual(received.family.routing_tag, ae64.routing_tag)
+            self.assertEqual(received.keep_count, quantize_q(REGISTERED_Q).keep_count)
+            self.assertEqual(received.compressed_bytes, len(packet.data))
+            self.assertEqual(
+                received.uncompressed_bytes, packet.uncompressed_bytes
+            )
+            self.assertEqual(received.q, reference_q)
+            self.assertEqual(tuple(received.c2.shape), contract.SPLIT_SHAPE)
+            self.assertTrue(torch.equal(received.c2, reference))
+            # The optional local cross-check agrees, but is never needed above.
+            self.assertTrue(
+                torch.equal(
+                    preloaded.receive(
+                        packet.data, wire_codec=wire, expected_packet=packet
+                    ).c2,
+                    reference,
+                )
+            )
+
+            # An unbound decoder cannot be preloaded for routing at all.
+            with self.assertRaises(guards.HybridQConfigError):
+                ae_family_dispatch.PreloadedAeDecoders([build_split_feature_ae(64)])
+
             # A packet delayed across a profile switch must not be decoded by
             # whichever AE happens to be selected now.
             for wrong in (autoencoders[128], autoencoders[32]):
                 with self.assertRaises(guards.HybridQPayloadError):
                     ae_uint8_transport.reconstruct_c2(packet, wrong, wire_codec=wire)
-            rebound = build_split_feature_ae(64).bind_checkpoint(0xDEADBEEF)
+            rebound = build_split_feature_ae(64).bind_routing_tag(0xDEADBEEF)
             with self.assertRaises(guards.HybridQPayloadError):
                 ae_uint8_transport.reconstruct_c2(packet, rebound, wire_codec=wire)
             with self.assertRaises(guards.HybridQPayloadError):
                 ae_family_dispatch.PreloadedAeDecoders(
                     [autoencoders[128]]
                 ).select_for_packet(packet)
+            # Same refusal when only the bytes are available: the family the
+            # header declares has no preloaded decoder here.
+            with self.assertRaises(guards.HybridQPayloadError):
+                ae_family_dispatch.PreloadedAeDecoders([autoencoders[128]]).receive(
+                    packet.data, wire_codec=wire
+                )
+            # A local cross-check that disagrees with the bytes is refused.
+            with self.assertRaises(guards.HybridQPayloadError):
+                preloaded.receive(
+                    packet.data,
+                    wire_codec=wire,
+                    expected_packet=ae_uint8_transport.encode_frame(
+                        c2, autoencoders[32], ranker, REGISTERED_Q, wire_codec=wire
+                    ).packet,
+                )
 
             # --- malformed payload rejection -------------------------------
             good = ae_uint8_transport.decompress_payload(packet, wire_codec=wire)
@@ -243,6 +317,7 @@ class AeTransportChecks(unittest.TestCase):
                 ),
                 "unregistered bottleneck": _rebuild_header(good, 5, 96),
                 "spatial dimensions": _rebuild_header(good, 6, 111),
+                "unbound routing tag": _rebuild_header(good, 4, 0),
                 "q": _rebuild_header(good, 8, 9801),
                 "keep count": _rebuild_header(good, 9, plan.keep_count + 1),
                 "mask length": _rebuild_header(good, 10, contract.mask_byte_count() + 1),
@@ -256,22 +331,20 @@ class AeTransportChecks(unittest.TestCase):
             }
             for name, bad_sparse in malformed.items():
                 with self.subTest(malformed=name):
-                    compressed = wire.compress(bad_sparse)
-                    bad_packet = ae_uint8_transport.AeZstdPacket(
-                        data=compressed.data,
-                        uncompressed_bytes=compressed.uncompressed_bytes,
-                        family_id=packet.family_id,
-                        checkpoint_binding=packet.checkpoint_binding,
-                        bottleneck=packet.bottleneck,
-                    )
+                    # Rejected on the deployable byte path, with no local
+                    # dataclass metadata available to lean on.
                     with self.assertRaises(guards.HybridQError):
-                        ae_uint8_transport.reconstruct_c2(
-                            bad_packet, ae64, wire_codec=wire
+                        preloaded.receive(
+                            wire.compress(bad_sparse).data, wire_codec=wire
                         )
 
-            # A header binding that disagrees with the envelope is refused even
-            # though both are individually well formed.
-            rebound_header = _rebuild_header(good, 4, packet.checkpoint_binding + 1)
+            # A header routing tag that disagrees with the preloaded decoder is
+            # refused even though it is individually well formed.
+            rebound_header = _rebuild_header(good, 4, packet.routing_tag + 1)
+            with self.assertRaises(guards.HybridQPayloadError):
+                preloaded.receive(
+                    wire.compress(rebound_header).data, wire_codec=wire
+                )
             compressed = wire.compress(rebound_header)
             with self.assertRaises(guards.HybridQPayloadError):
                 ae_uint8_transport.decode(
@@ -279,7 +352,7 @@ class AeTransportChecks(unittest.TestCase):
                         data=compressed.data,
                         uncompressed_bytes=compressed.uncompressed_bytes,
                         family_id=packet.family_id,
-                        checkpoint_binding=packet.checkpoint_binding,
+                        routing_tag=packet.routing_tag,
                         bottleneck=packet.bottleneck,
                     ),
                     wire_codec=wire,

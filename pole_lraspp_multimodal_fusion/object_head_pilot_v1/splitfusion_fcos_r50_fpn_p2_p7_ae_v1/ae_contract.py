@@ -65,7 +65,7 @@ def mask_channel_index(bottleneck: int) -> int:
 # The validated noAE UINT8 wire is frozen and is not re-framed here: its own
 # envelope already identifies it unambiguously (magic HQ8\0, codec id 1, 256
 # transported channels), which maps to family id 0. The new AE wire carries an
-# explicit family id field plus a checkpoint-binding word.
+# explicit family id field plus a 32-bit routing tag.
 
 AE_FAMILY_NOAE = 0
 AE_FAMILY_AE128 = 1
@@ -89,10 +89,17 @@ AE_BOTTLENECK_FAMILIES = {
     bottleneck: family for family, bottleneck in AE_FAMILY_BOTTLENECKS.items()
 }
 
-# No checkpoint exists in Phase 9A, and none is loaded. An unbound AE reports 0;
-# a later deployment binds each preloaded pair to its registered checkpoint.
-AE_UNBOUND_CHECKPOINT_BINDING = 0
-AE_CHECKPOINT_BINDING_BYTES = 4
+# The routing tag is a 32-bit *discriminator* that lets the edge route a frame to
+# the preloaded decoder that produced it. It is deliberately not a cryptographic
+# checkpoint identity: 32 bits cannot authenticate a checkpoint, and the
+# authoritative full SHA-256 stays bound by the existing profile registry. Its
+# job is to stop a packet delayed across a profile switch from silently reaching
+# a different AE, not to prove provenance against an adversary.
+#
+# 0 means "unbound". A freshly constructed AE is unbound because Phase 9A loads
+# no checkpoint, and the deployable encode and dispatch paths both refuse it.
+AE_UNBOUND_ROUTING_TAG = 0
+AE_ROUTING_TAG_BYTES = 4
 
 
 def family_for_bottleneck(bottleneck: int) -> int:
@@ -123,37 +130,53 @@ def family_name(family_id: int) -> str:
     return AE_FAMILY_IDS.get(int(family_id), f"unregistered({int(family_id)})")
 
 
-def require_checkpoint_binding(binding: int) -> int:
-    """One unsigned 32-bit provenance word identifying the bound checkpoint."""
-    if isinstance(binding, bool) or not isinstance(binding, int):
+def require_routing_tag(tag: int) -> int:
+    """Field validator: one unsigned 32-bit routing tag, unbound (0) allowed."""
+    if isinstance(tag, bool) or not isinstance(tag, int):
         raise guards.HybridQConfigError(
-            f"checkpoint binding must be an int, got {type(binding).__name__}"
+            f"routing tag must be an int, got {type(tag).__name__}"
         )
-    if not 0 <= binding < 2 ** (8 * AE_CHECKPOINT_BINDING_BYTES):
+    if not 0 <= tag < 2 ** (8 * AE_ROUTING_TAG_BYTES):
         raise guards.HybridQConfigError(
-            f"checkpoint binding {binding} does not fit in "
-            f"{AE_CHECKPOINT_BINDING_BYTES} unsigned bytes"
+            f"routing tag {tag} does not fit in {AE_ROUTING_TAG_BYTES} unsigned bytes"
         )
-    return int(binding)
+    return int(tag)
 
 
-def checkpoint_binding_from_sha256(digest: str) -> int:
-    """Derive the binding word from a registered checkpoint SHA-256 hex digest.
+def require_bound_routing_tag(tag: int, *, what: str = "routing tag") -> int:
+    """Deployable-path validator: an unbound (0) tag is refused.
 
-    Pure string arithmetic on a digest the caller already holds; this reads no
-    file and loads no checkpoint.
+    Encoding or dispatching with an unbound tag would give every family the same
+    tag, which defeats the whole point of routing a delayed packet back to the
+    AE that produced it.
+    """
+    value = require_routing_tag(tag)
+    if value == AE_UNBOUND_ROUTING_TAG:
+        raise guards.HybridQConfigError(
+            f"{what} is unbound (0); the deployable path requires a bound "
+            "routing tag from the profile registry"
+        )
+    return value
+
+
+def routing_tag_from_sha256(digest: str) -> int:
+    """Derive the routing tag from a registered checkpoint SHA-256 hex digest.
+
+    Truncation to 32 bits is intentional and lossy: the result is a routing
+    discriminator, not the checkpoint identity. The full digest stays with the
+    profile registry, which remains the authority on which checkpoint a
+    preloaded pair actually holds. Pure string arithmetic on a digest the caller
+    already holds; this reads no file and loads no checkpoint.
     """
     if not isinstance(digest, str) or len(digest) != 64:
         raise guards.HybridQConfigError(
-            "checkpoint binding requires a 64-character SHA-256 hex digest"
+            "a routing tag requires a 64-character SHA-256 hex digest"
         )
     try:
-        leading = int(digest[: 2 * AE_CHECKPOINT_BINDING_BYTES], 16)
+        leading = int(digest[: 2 * AE_ROUTING_TAG_BYTES], 16)
     except ValueError as error:
-        raise guards.HybridQConfigError(
-            "checkpoint binding digest is not hexadecimal"
-        ) from error
-    return require_checkpoint_binding(leading)
+        raise guards.HybridQConfigError("routing tag digest is not hexadecimal") from error
+    return require_bound_routing_tag(leading, what="routing tag derived from digest")
 
 
 # ---------------------------------------------------------------------------

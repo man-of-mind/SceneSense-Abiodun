@@ -1,9 +1,11 @@
 """One CPU-only synthetic check of the AE families themselves.
 
 Covers, for B in {128, 64, 32}: deterministic and RNG-neutral initialization,
-exact tensor shapes, keep-mask input behaviour, finite forward/backward, and
-optimizer ownership restricted to the AE. No checkpoint, CUDA, dataset, cache,
-inference, validation or CARLA is touched.
+exact tensor shapes, keep-mask input behaviour, batched training composition
+with independent per-frame selection, finite forward/backward, the Phase-4
+teacher-cache loss interface, and optimizer ownership restricted to the AE. No
+checkpoint, CUDA, dataset, cache, inference, validation or CARLA is touched, and
+no teacher cache is built or rebuilt.
 """
 
 from __future__ import annotations
@@ -15,6 +17,7 @@ from torch import nn
 
 from ...splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1 import contract, guards
 from ...splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1.ranker import build_ranker
+from ...splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1.teacher_cache import SHARD_SCHEMA
 from .. import ae_composition, ae_contract, ae_loss
 from ..ae_model import SplitFeatureAE, build_split_feature_ae
 
@@ -25,26 +28,66 @@ def synthetic_c2(frames: int = 1, *, seed: int = 7) -> torch.Tensor:
     return torch.randn(shape, generator=generator, dtype=torch.float32)
 
 
-def synthetic_importance(frames: int, *, seed: int = 11) -> dict[str, torch.Tensor]:
+def synthetic_shard(frames: int, *, valid=("D", "G", "S"), seed: int = 11) -> dict:
+    """A shard payload with exactly the fields the Phase-4 cache actually stores.
+
+    One combined FP32 importance map per frame plus `valid_groups` /
+    `excluded_groups`; there are deliberately no separate D/G/S/A maps, because
+    the real cache has none. Nothing is written to disk.
+    """
     generator = torch.Generator().manual_seed(seed)
-    maps = {}
-    for offset, group in enumerate(contract.TEACHER_GROUPS[:3]):  # D, G, S valid
-        raw = torch.rand(
-            frames,
-            contract.SPLIT_HEIGHT,
-            contract.SPLIT_WIDTH,
-            generator=generator,
-            dtype=torch.float32,
-        ) + float(offset)
-        maps[group] = raw / raw.reshape(frames, -1).sum(dim=1).reshape(frames, 1, 1)
-    maps["A"] = None  # an unavailable task map is ignored, not fatal
-    return maps
+    raw = torch.rand(
+        frames,
+        contract.SPLIT_HEIGHT,
+        contract.SPLIT_WIDTH,
+        generator=generator,
+        dtype=torch.float32,
+    )
+    combined = raw / raw.reshape(frames, -1).sum(dim=1).reshape(frames, 1, 1)
+    excluded = {
+        group: "zero_gradient" for group in contract.TEACHER_GROUPS if group not in valid
+    }
+    return {
+        "schema": SHARD_SCHEMA,
+        "shard_index": 0,
+        "frames": frames,
+        "split": "fit",
+        "sample_ids": [f"synthetic_{index:04d}" for index in range(frames)],
+        "splits": ["fit"] * frames,
+        "importance": combined,
+        "valid_groups": [list(valid) for _ in range(frames)],
+        "excluded_groups": [dict(excluded) for _ in range(frames)],
+    }
+
+
+class SeparatedScoreRanker:
+    """Batched stub whose frames occupy disjoint, ordered score ranges.
+
+    Frame 1 outscores every cell of frame 0, so a single global top-K over the
+    flattened batch would starve frame 0 entirely. Per-frame selection must
+    still give both frames the same keep count.
+    """
+
+    def __init__(self) -> None:
+        self.calls = 0
+
+    def __call__(self, c2: torch.Tensor) -> torch.Tensor:
+        if c2.dim() != 4:
+            raise AssertionError("batched ranker did not receive a batched C2")
+        self.calls += 1
+        frames = int(c2.shape[0])
+        base = torch.arange(contract.SPLIT_CELLS, dtype=torch.float32)
+        offsets = torch.arange(frames, dtype=torch.float32) * 1.0e6
+        return (base.reshape(1, -1) + offsets.reshape(-1, 1)).reshape(
+            frames, *contract.SPLIT_SPATIAL_SHAPE
+        )
 
 
 class AeModelChecks(unittest.TestCase):
-    def test_families_initialize_shape_mask_and_train_ownership(self) -> None:
+    def test_families_initialize_shape_mask_batch_and_train_ownership(self) -> None:
         c2 = synthetic_c2(frames=2)
         frame = c2[0]
+        teacher = ae_loss.CachedTeacherBatch.from_shard(synthetic_shard(2))
         seeds = set()
 
         for bottleneck in ae_contract.AE_BOTTLENECKS:
@@ -66,6 +109,10 @@ class AeModelChecks(unittest.TestCase):
                 self.assertEqual(
                     autoencoder.family_id, ae_contract.family_for_bottleneck(bottleneck)
                 )
+                # A fresh AE is unbound and stays unusable on deployable paths.
+                self.assertFalse(autoencoder.is_bound)
+                with self.assertRaises(guards.HybridQConfigError):
+                    autoencoder.bind_routing_tag(ae_contract.AE_UNBOUND_ROUTING_TAG)
 
                 # --- registered initial values --------------------------------
                 projection = autoencoder.project.weight.reshape(
@@ -167,29 +214,72 @@ class AeModelChecks(unittest.TestCase):
                 self.assertEqual(complexity.encoder_macs, cells * bottleneck * 265)
                 self.assertEqual(complexity.decoder_macs, cells * 256 * (bottleneck + 10))
 
-                # --- finite forward/backward, AE-only optimizer ---------------
+                # --- batched training composition -----------------------------
                 ranker = build_ranker()
                 ranker.eval()
                 for parameter in ranker.parameters():
                     parameter.requires_grad_(False)
 
+                bypass = ae_composition.compose_batch(c2, autoencoder, ranker, 0.00)
+                self.assertIsNone(bypass.selections)
+                self.assertEqual(
+                    tuple(bypass.keep_mask.shape), (2, *contract.SPLIT_SPATIAL_SHAPE)
+                )
+                self.assertTrue(bool(bypass.keep_mask.all()))
+                self.assertTrue(torch.equal(bypass.masked_latent, bypass.latent))
+
+                stub = SeparatedScoreRanker()
+                batched = ae_composition.compose_batch(c2, autoencoder, stub, 0.50)
+                self.assertEqual(stub.calls, 1)  # one batched ranker pass
+                self.assertEqual(len(batched.selections), 2)
+                keep = contract.keep_count(0.50)
+                # Independent per-frame top-K: a single global top-K over the
+                # flattened batch would have left frame 0 with zero cells.
+                counts = batched.keep_mask.reshape(2, -1).sum(dim=1)
+                self.assertEqual([int(value) for value in counts], [keep, keep])
+                self.assertEqual(
+                    tuple(batched.masked_latent.shape), (2, bottleneck, 112, 192)
+                )
+                for index in range(2):
+                    dropped = ~batched.keep_mask[index]
+                    self.assertTrue(
+                        bool((batched.masked_latent[index][:, dropped] == 0.0).all())
+                    )
+                    self.assertTrue(
+                        torch.equal(
+                            batched.masked_latent[index][:, batched.keep_mask[index]],
+                            batched.latent[index][:, batched.keep_mask[index]],
+                        )
+                    )
+                self.assertFalse(batched.keep_mask.requires_grad)
+                with self.assertRaises(guards.HybridQConfigError):
+                    ae_composition.compose_batch(c2, autoencoder, stub, 0.90)
+                with self.assertRaises(guards.HybridQPayloadError):
+                    ae_composition.compose_batch(frame, autoencoder, stub, 0.50)
+
+                # --- finite forward/backward, AE-only optimizer ---------------
                 optimizer = torch.optim.AdamW(
                     autoencoder.parameters(), lr=contract.LEARNING_RATE
                 )
                 ae_loss.require_ae_only_optimizer(optimizer, autoencoder)
                 ae_loss.require_frozen_companions([ranker])
 
-                selection, keep_mask = ae_composition.detached_hard_mask(
-                    ranker.score_cells(frame), 0.50
+                trained = ae_composition.compose_batch(
+                    c2, autoencoder, ranker, ae_loss.stage_b_q_for_update(2)
                 )
-                self.assertIsNotNone(selection)
-                fresh_latent = autoencoder.encode(c2)
-                masked = fresh_latent * keep_mask.to(fresh_latent.dtype)
+                self.assertEqual(trained.plan.wire_q, 0.50)
                 loss = ae_loss.task_aware_reconstruction_loss(
-                    c2, autoencoder.decode(masked, keep_mask), synthetic_importance(2)
+                    c2,
+                    autoencoder.decode(trained.masked_latent, trained.keep_mask),
+                    teacher,
                 )
-                self.assertEqual(loss.valid_groups, ("D", "G", "S"))
-                self.assertEqual(loss.excluded_groups["A"], "absent")
+                self.assertEqual(loss.frames, 2)
+                self.assertEqual(loss.min_valid_groups_observed, 3)
+                self.assertEqual(
+                    loss.group_availability, {"D": 2, "G": 2, "S": 2, "A": 0}
+                )
+                self.assertEqual(loss.excluded_groups, {"A": {"zero_gradient": 2}})
+                self.assertNotIn("group_terms", loss.report())
                 self.assertTrue(torch.isfinite(loss.total))
                 optimizer.zero_grad(set_to_none=True)
                 loss.total.backward()
@@ -214,18 +304,45 @@ class AeModelChecks(unittest.TestCase):
             with self.assertRaises(guards.HybridQConfigError):
                 SplitFeatureAE(bad)
 
-        # Fewer than three valid task maps is a hard failure, not a silent mean.
+        # --- Phase-4 teacher-cache interface --------------------------------
         thin = build_split_feature_ae(32)
+        shard = synthetic_shard(4)
+        sliced = ae_loss.CachedTeacherBatch.from_shard(shard, offsets=[1, 3])
+        self.assertEqual(sliced.frames, 2)
+        self.assertTrue(
+            torch.equal(sliced.importance, shard["importance"].index_select(
+                0, torch.tensor([1, 3])
+            ))
+        )
+        # A shard without the stored fields, or with fabricated per-group maps,
+        # is not a substitute for the real representation.
+        for missing in ("importance", "valid_groups", "excluded_groups"):
+            broken = {key: value for key, value in shard.items() if key != missing}
+            with self.assertRaises(guards.HybridQPayloadError):
+                ae_loss.CachedTeacherBatch.from_shard(broken)
+        with self.assertRaises(guards.HybridQConfigError):
+            ae_loss.CachedTeacherBatch.from_shard(
+                {**shard, "valid_groups": [["D", "G", "X"]] * 4}
+            )
+
+        # Fewer than three valid groups on any frame is a hard failure.
         with self.assertRaises(guards.HybridQConfigError):
             ae_loss.task_aware_reconstruction_loss(
-                frame,
-                thin(frame),
-                {"D": synthetic_importance(1)["D"][0], "G": None, "S": None},
+                c2,
+                thin(c2),
+                ae_loss.CachedTeacherBatch.from_shard(
+                    synthetic_shard(2, valid=("D", "G"))
+                ),
+            )
+        # Raw maps are not accepted: the cache stores one combined map.
+        with self.assertRaises(guards.HybridQConfigError):
+            ae_loss.task_aware_reconstruction_loss(
+                c2, thin(c2), {"D": shard["importance"]}
             )
         # The training objective never accepts quantized inputs.
         with self.assertRaises(guards.HybridQPayloadError):
             ae_loss.task_aware_reconstruction_loss(
-                frame.to(torch.uint8), thin(frame), synthetic_importance(1)
+                c2.to(torch.uint8), thin(c2), teacher
             )
         self.assertEqual(
             [ae_loss.stage_b_q_for_update(index) for index in range(5)],

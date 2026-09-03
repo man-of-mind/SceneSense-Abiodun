@@ -11,8 +11,14 @@ and preloaded AE128/AE64/AE32 pairs, and selects q and quantizer settings at
 runtime. Because a packet can be delayed or reordered across a profile switch,
 selection is driven by the frame's own envelope, never by the currently selected
 profile. Any disagreement between the frame's family id, its transported latent
-channel count and the selected decoder's registered checkpoint binding fails
-closed.
+channel count and the selected decoder's routing tag fails closed.
+
+Only the compressed zstd byte string is guaranteed to cross the network, so
+`receive` is the deployable entry point: it takes those raw bytes, decompresses
+them exactly once, and discovers the decoder from the authoritative inner AE
+header. Python dataclass fields are not wire provenance; an `AeZstdPacket` may
+be cross-checked when it happens to be available locally, but it is never
+required to find the decoder.
 
 Training never uses this: a training run selects one bottleneck family
 explicitly and keeps it for the whole run.
@@ -23,8 +29,11 @@ from __future__ import annotations
 from collections.abc import Iterable
 from dataclasses import dataclass
 
+import torch
+
 from ..splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1 import guards
 from ..splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1 import uint8_codec
+from ..splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1.zstd_transport import ZstdWireCodec
 from . import ae_contract, ae_uint8_transport
 from .ae_model import SplitFeatureAE
 
@@ -36,8 +45,20 @@ class WireFamily:
     family_id: int
     family_name: str
     transported_channels: int
-    checkpoint_binding: int
+    routing_tag: int
     codec: str
+
+
+@dataclass(frozen=True)
+class ReceivedFrame:
+    """One received wire frame, reconstructed by the decoder it declared."""
+
+    c2: torch.Tensor  # [256,112,192] FP32
+    q: float
+    family: WireFamily
+    keep_count: int
+    compressed_bytes: int
+    uncompressed_bytes: int
 
 
 def identify_sparse_frame(data: bytes) -> WireFamily:
@@ -56,7 +77,7 @@ def identify_sparse_frame(data: bytes) -> WireFamily:
             family_id=parsed.family_id,
             family_name=ae_contract.family_name(parsed.family_id),
             transported_channels=parsed.bottleneck,
-            checkpoint_binding=parsed.checkpoint_binding,
+            routing_tag=parsed.routing_tag,
             codec="ae_latent_uint8",
         )
     if payload[:4] == uint8_codec.MAGIC:
@@ -66,7 +87,7 @@ def identify_sparse_frame(data: bytes) -> WireFamily:
             family_id=ae_contract.AE_FAMILY_NOAE,
             family_name=ae_contract.family_name(ae_contract.AE_FAMILY_NOAE),
             transported_channels=int(parsed_noae.header.channels),
-            checkpoint_binding=ae_contract.AE_UNBOUND_CHECKPOINT_BINDING,
+            routing_tag=ae_contract.AE_UNBOUND_ROUTING_TAG,  # noAE has no AE pair
             codec="per_channel_uint8",
         )
     raise guards.HybridQPayloadError("frame carries no recognized wire identity")
@@ -96,6 +117,12 @@ class PreloadedAeDecoders:
                 raise guards.HybridQConfigError(
                     f"family {ae_contract.family_name(family)} was supplied twice"
                 )
+            # An unbound decoder cannot be routed to, so it is refused here
+            # rather than at the first frame that needed it.
+            ae_contract.require_bound_routing_tag(
+                autoencoder.routing_tag,
+                what=f"preloaded {autoencoder.family_name} routing tag",
+            )
             by_family[family] = autoencoder
         if not by_family:
             raise guards.HybridQConfigError("no preloaded AE decoder was supplied")
@@ -119,11 +146,75 @@ class PreloadedAeDecoders:
             )
         return ae_uint8_transport.require_family_agreement(packet, autoencoder)
 
-    def reconstruct(
-        self, packet: ae_uint8_transport.AeZstdPacket, *, wire_codec=None
-    ) -> tuple[object, float]:
-        """Select this packet's decoder, then reconstruct C2 with exactly it."""
-        autoencoder = self.select_for_packet(packet)
-        return ae_uint8_transport.reconstruct_c2(
-            packet, autoencoder, wire_codec=wire_codec
+    def select_for_header(
+        self, parsed: ae_uint8_transport.InspectedAePayload
+    ) -> SplitFeatureAE:
+        """Pick the decoder the *inner AE header* declares, or fail closed."""
+        if not isinstance(parsed, ae_uint8_transport.InspectedAePayload):
+            raise guards.HybridQPayloadError(
+                "decoder selection requires an inspected AE header"
+            )
+        autoencoder = self._by_family.get(int(parsed.family_id))
+        if autoencoder is None:
+            raise guards.HybridQPayloadError(
+                f"no preloaded decoder for frame family "
+                f"{ae_contract.family_name(parsed.family_id)}"
+            )
+        return ae_uint8_transport.require_family_agreement(parsed, autoencoder)
+
+    def receive(
+        self,
+        frame_bytes: bytes | bytearray | memoryview,
+        *,
+        wire_codec: ZstdWireCodec | None = None,
+        expected_packet: ae_uint8_transport.AeZstdPacket | None = None,
+    ) -> ReceivedFrame:
+        """Deployable edge path: received zstd bytes in, reconstructed C2 out.
+
+        The bytes are decompressed exactly once. Everything after that -- which
+        decoder to use, which q, which keep set -- is read from the inner AE
+        header, so a delayed or reordered frame is routed by what it actually
+        carries. `expected_packet` is an optional local cross-check and is never
+        needed to discover the decoder.
+        """
+        if not isinstance(frame_bytes, (bytes, bytearray, memoryview)):
+            raise guards.HybridQPayloadError("receive requires the raw wire bytes")
+        compressed = bytes(frame_bytes)
+        if not compressed:
+            raise guards.HybridQPayloadError("received an empty wire frame")
+
+        decompressor = wire_codec if wire_codec is not None else ZstdWireCodec()
+        # Exactly one decompression for the whole receive path.
+        sparse = decompressor.decompress_bytes(compressed)
+
+        parsed = ae_uint8_transport.inspect(sparse)
+        autoencoder = self.select_for_header(parsed)
+        if expected_packet is not None:
+            if not isinstance(expected_packet, ae_uint8_transport.AeZstdPacket):
+                raise guards.HybridQPayloadError(
+                    "the optional cross-check must be an AeZstdPacket"
+                )
+            ae_uint8_transport.require_family_agreement(expected_packet, autoencoder)
+            if expected_packet.uncompressed_bytes != len(sparse):
+                raise guards.HybridQPayloadError(
+                    "local packet metadata disagrees with the received frame length"
+                )
+
+        # Reuse the already-decompressed bytes: no second zstd pass.
+        latent, keep_mask, q, _ = ae_uint8_transport.decode_sparse(sparse)
+        reconstructed = autoencoder.decode(latent, keep_mask)
+        guards.require_frozen_c2(reconstructed, what="reconstructed C2")
+        return ReceivedFrame(
+            c2=reconstructed,
+            q=q,
+            family=WireFamily(
+                family_id=parsed.family_id,
+                family_name=ae_contract.family_name(parsed.family_id),
+                transported_channels=parsed.bottleneck,
+                routing_tag=parsed.routing_tag,
+                codec="ae_latent_uint8",
+            ),
+            keep_count=int(parsed.header.keep_count),
+            compressed_bytes=len(compressed),
+            uncompressed_bytes=len(sparse),
         )

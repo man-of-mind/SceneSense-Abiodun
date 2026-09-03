@@ -42,10 +42,10 @@ touched here; it is a separate later measurement.
 | --- | --- |
 | `ae_contract.py` | AE constants, family ids, and fail-closed validators (reuses the frozen contract and guard error classes) |
 | `ae_model.py` | `SplitFeatureAE` and `build_split_feature_ae` |
-| `ae_composition.py` | latent mask / composition helper (ranker + encoder + drop ordering) |
-| `ae_loss.py` | task-aware reconstruction loss and the trainer-facing masking/schedule/ownership interfaces |
+| `ae_composition.py` | latent mask / composition helper, single frame (`compose`) and batched training (`compose_batch`) |
+| `ae_loss.py` | task-aware reconstruction loss over the Phase-4 teacher cache, plus the trainer-facing masking/schedule/ownership interfaces |
 | `ae_uint8_transport.py` | AE-latent UINT8 wire plus the mandatory zstd wrapper |
-| `ae_family_dispatch.py` | minimal per-packet decoder-selection adapter (added per the runtime-switching clarification) |
+| `ae_family_dispatch.py` | minimal per-frame decoder-selection adapter over the received wire bytes |
 | `tests/test_ae_model.py`, `tests/test_ae_transport.py` | the two CPU synthetic checks |
 
 ## Architecture
@@ -113,6 +113,13 @@ are arithmetic, not timings: **no latency was measured.**
 3. Because the ranker is AE-independent, one q-independent cell ordering induces
    the keep set for every family: AE128, AE64 and AE32 transport exactly the
    same cells at the same q (checked in the transport test).
+   In the batched training form, `compose_batch` encodes the whole
+   `[N,256,112,192]` batch, runs the ranker once on the batch under `no_grad`,
+   and then takes a **stable top-K independently per frame**, stacking the
+   per-frame masks into `[N,112,192]`. Candidates are never flattened across the
+   batch and no single global top-K set is ever formed, so every frame keeps
+   exactly `keep_count` cells and no frame can spend another frame's budget. One
+   q applies to the whole batch, taken from the locked Stage-B cycle.
 4. All B latent channels of a retained cell stay together (cell-major wire).
 5. q=0 bypasses the ranker but **not** the AE.
 6. Arbitrary q in [0, 0.98] at 1e-4 resolution is mechanically supported by
@@ -133,7 +140,7 @@ Fixed 50-byte little-endian header, `"<4sHHHIIIIIIIIQ"`:
 | 4 | 2 | version | 1 |
 | 6 | 2 | codec id | 2 (`ae_latent_uint8`) |
 | 8 | 2 | family id | 1=AE128, 2=AE64, 3=AE32 (0=noAE never valid here) |
-| 10 | 4 | checkpoint binding | 32-bit provenance word; 0 = unbound |
+| 10 | 4 | routing tag | 32-bit routing discriminator; 0 (unbound) is refused |
 | 14 | 4 | B | latent channels, must match the family id |
 | 18 | 4 | H | 112 |
 | 22 | 4 | W | 192 |
@@ -159,7 +166,8 @@ ascending channel order, and the UINT8 value block.
 - Constant channels (span <= 1e-12) encode as code 0 and decode to the channel
   minimum; the epsilon is imported from the noAE codec so the two cannot drift.
 - Rejected fail-closed: bad magic/version/codec identity, unregistered or
-  disagreeing family id, unregistered B, wrong H/W, off-grid or out-of-range q,
+  disagreeing family id, an unbound routing tag, unregistered B, wrong H/W,
+  off-grid or out-of-range q,
   wrong keep count, wrong mask/range/value block lengths, bitmask popcount
   disagreement, set padding bits, non-finite or reversed ranges, truncation and
   trailing bytes.
@@ -187,10 +195,9 @@ predicted by them and has not been measured.
 
 ## Per-frame model-family provenance
 
-Added per the runtime-switching clarification, as an interface/provenance
-safeguard only. Phase 9A implements **no** model loading, no live switching and
-no new registry, and does not duplicate the existing profile/model framework or
-copy the frozen tail.
+An interface and provenance safeguard only. Phase 9A implements **no** model
+loading, no live switching and no new registry, and does not duplicate the
+existing profile/model framework or copy the frozen tail.
 
 The existing noAE envelope does not carry an explicit profile/family id — it is
 identified only implicitly by magic `HQ8\0` + codec id 1 + 256 channels — so the
@@ -198,15 +205,28 @@ family id is carried explicitly in the new AE header instead of being inferred
 from mutable global state. `ae_family_dispatch.identify_sparse_frame` maps both
 wires onto one `WireFamily` (noAE = family 0) without re-framing the frozen one.
 
-`PreloadedAeDecoders` is a read-only view over AE pairs the existing preloaded
-mechanism already constructed. `select_for_packet` picks the decoder that the
-*individual packet* declares, and `require_family_agreement` fails closed unless
-three facts agree: family id, transported latent channel count, and the
-registered checkpoint binding. A packet delayed or reordered across a profile
-switch is therefore refused rather than reconstructed by the wrong AE. Phase 9A
-loads no checkpoint, so `checkpoint_binding` defaults to 0 (unbound);
-`bind_checkpoint` and `checkpoint_binding_from_sha256` are pure interface hooks
-that touch no file.
+**Dispatch runs on the received bytes.** Only the compressed zstd byte string is
+guaranteed to cross the network, so Python dataclass fields are not treated as
+wire provenance. `PreloadedAeDecoders.receive(frame_bytes)` is the deployable
+edge entry point: it takes the raw compressed bytes, decompresses them **exactly
+once**, inspects the authoritative inner AE header, selects the already-preloaded
+decoder from the header's family id / latent channel count / routing tag,
+dequantizes and zero-scatters from the bytes it already has (no second zstd
+pass), and reconstructs C2 with exactly that decoder. An `AeZstdPacket` may be
+supplied as an optional local cross-check via `expected_packet`, but it is never
+required to discover the decoder. Any disagreement fails closed, so a frame
+delayed or reordered across a profile switch is refused rather than
+reconstructed by the wrong AE.
+
+The 32-bit field is a **routing tag**, not a cryptographic checkpoint identity —
+32 truncated bits cannot authenticate a checkpoint, and the authoritative full
+SHA-256 remains bound by the profile registry. Its only job is to route a frame
+back to the AE that produced it. `routing_tag_from_sha256` derives one from a
+digest the caller already holds (no file access). An unbound tag (0) is refused
+everywhere it matters: `encode_frame`/`encode` will not emit one, `inspect`
+rejects one on the wire, `require_family_agreement` rejects an unbound selected
+decoder, and `PreloadedAeDecoders` refuses to register an unbound pair at all.
+A freshly constructed AE is unbound until `bind_routing_tag` is called.
 
 Training does not use any of this: a training run selects one bottleneck family
 explicitly and keeps it.
@@ -227,28 +247,41 @@ data; it is also stated in the module docstring:
   and retained for later evaluation;
 - no fake quantization and no zstd inside training — the loss refuses non-FP32
   inputs — so one AE checkpoint can later serve UINT8/UINT6/UINT4;
-- ranker masks are hard and detached (`ae_composition.detached_hard_mask`); no
-  gradient can enter the ranker.
+- ranker masks are hard and detached (`ae_composition.detached_hard_mask`,
+  `ae_composition.compose_batch`); no gradient can enter the ranker.
 
 ### Task-aware reconstruction loss
 
-Two unit-weighted, scale-free components, each reported separately, over the
-existing Phase-4 D/G/S/A importance-map interface (`TeacherMapResult` or a plain
-group mapping both accepted):
+Supervision is consumed **exactly as the Phase-4 teacher cache stores it**. A
+shard holds, per frame, one combined FP32 `importance` map plus `valid_groups`
+and `excluded_groups`; it does **not** hold four separate D/G/S/A maps.
+`CachedTeacherBatch.from_shard(payload, offsets)` slices a loaded shard into a
+training batch reading only those three fields, and `from_teacher_maps` builds
+the same object from in-memory `TeacherMapResult`s, which is the representation
+the cache writer itself consumes. No cache is built or rebuilt.
+
+Two unit-weighted, scale-free components, each reported separately:
 
 ```
 e(h,w)     = sum_c (C2_hat - C2)^2          g(h,w) = sum_c C2^2
 plain      = sum e / sum g
-group_t    = sum_hw I_t * e / sum_hw I_t * g
-importance = mean over valid t of group_t          (equal weight)
-total      = plain + importance
+combined   = sum_hw I * e / sum_hw I * g
+total      = plain + combined
 ```
 
-An unavailable, non-finite, negative, zero-mass or zero-reference-energy map is
-ignored with a recorded reason; **at least three valid groups are required** or
-the call fails closed. No raw multitask detection/segmentation loss weight is
-introduced: the task maps enter only as spatial weightings of the same
-reconstruction error.
+`I` is the cached combined map (already L1-normalized per frame by the Phase-4
+producer; re-normalized here defensively, a no-op on a well-formed entry). Both
+ratios are taken over the whole batch so the two components are normalized
+consistently.
+
+**Every** frame in the batch must carry at least three valid D/G/S/A groups
+according to the cached `valid_groups`, or the call fails closed naming the thin
+batch positions. Group availability and exclusion reasons are reported as
+metadata only — there is deliberately **no per-group reconstruction term**,
+because there is no per-group map to compute one from, and fabricating one would
+invent supervision the cache does not contain. No raw multitask
+detection/segmentation loss weight is introduced: the cached map enters only as a
+spatial weighting of the same reconstruction error.
 
 ## What was run
 
@@ -261,10 +294,16 @@ diff` check against `69bad51`.
    exact unbatched and batched tensor shapes, the rank-B projection identity at
    init (and explicitly *not* an identity map), keep-mask input behaviour
    including the `None`/all-one equivalence and malformed-mask rejection, closed-
-   form parameter and MAC counts, finite forward/backward with no gradient
+   form parameter and MAC counts, batched composition at q=0 and q=0.50 with
+   equal per-frame keep counts under a ranker whose frames occupy disjoint score
+   ranges (a global top-K would have starved frame 0), exact per-frame
+   zero-scatter, Stage-B q enforcement, finite forward/backward with no gradient
    reaching the ranker, AE-only optimizer ownership (and rejection of an
-   intruding parameter), unregistered-family rejection, the <3-valid-group
-   failure, the non-FP32 loss-input refusal, and the Stage-B q cycle.
+   intruding parameter), unregistered-family rejection, shard-style
+   `CachedTeacherBatch` construction and slicing, rejection of a shard missing a
+   stored field or naming an unregistered group, the <3-valid-group per-frame
+   failure, refusal of raw per-group maps, the non-FP32 loss-input refusal, and
+   the Stage-B q cycle.
 2. `tests/test_ae_transport.py` — end to end at q=0, q=0.50 (registered) and
    q=0.2345 (arbitrary), for all three families: the ranker receives the
    original FP32 C2 object, q=0 bypasses it while the AE still runs, exact keep
@@ -272,8 +311,11 @@ diff` check against `69bad51`.
    pre-q latent, byte-exact zstd round trip against independently rebuilt sparse
    bytes, analytical size agreement, bounded UINT8 retained error
    (<= span/510 + FP32 slack), exact zero-scatter, correct [256,112,192] decoder
-   output, non-identity at q=0, per-packet decoder selection, wrong-family and
-   wrong-binding refusal, and 17 malformed-payload rejections.
+   output, non-identity at q=0, dispatch from the raw compressed bytes alone
+   with exactly one decompression and a result identical to the packet path,
+   refusal of an unbound routing tag on encode and on registration, wrong-family
+   and wrong-tag refusal, disagreeing optional cross-check refusal, and 18
+   malformed-payload rejections routed through the byte path.
 
 Both pass, as do the frozen package's existing `test_uint8_transport` and
 `test_continuous_q` (4 tests) — the frozen wire is unaffected.

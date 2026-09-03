@@ -14,6 +14,9 @@ exactly the same cells at the same q. q=0 bypasses the ranker (there is nothing
 to rank when nothing is dropped) but never bypasses the AE, and the reconstruction
 at q=0 is therefore **not** an identity - channel compression is lossy.
 
+`compose` resolves one frame; `compose_batch` is the training-side batched form
+and selects independently per frame, never across the batch.
+
 Selection, q semantics and the 1e-4 wire grid are reused unchanged from the
 frozen `continuous_q` interface, so any q in [0, 0.98] is mechanically
 supported here. Executability is not measured accuracy: q=0.90 and q=0.98
@@ -134,6 +137,120 @@ def compose(
         bottleneck=autoencoder.bottleneck,
         latent=latent,
         selection=selection,
+        keep_mask=keep_mask,
+        masked_latent=masked,
+    )
+
+
+@dataclass(frozen=True)
+class BatchedLatentComposition:
+    """One training batch resolved at one q, with per-frame keep masks."""
+
+    plan: continuous_q.ContinuousQ
+    bottleneck: int
+    latent: torch.Tensor  # dense [N,B,112,192] FP32, before dropping
+    selections: tuple[CellSelection, ...] | None  # None exactly at q=0
+    keep_mask: torch.Tensor  # bool [N,112,192]; all True at q=0
+    masked_latent: torch.Tensor  # zero-scattered [N,B,112,192] FP32
+
+    @property
+    def frames(self) -> int:
+        return int(self.latent.shape[0])
+
+    @property
+    def keep_count(self) -> int:
+        """Per-frame keep count; identical for every frame at one q."""
+        return int(self.plan.keep_count)
+
+
+def compose_batch(
+    c2: torch.Tensor,
+    autoencoder: SplitFeatureAE,
+    ranker,
+    q: float,
+    *,
+    stage_b_only: bool = True,
+) -> BatchedLatentComposition:
+    """Batched training composition: encode the batch, then drop per frame.
+
+    One q applies to the whole batch, matching the locked Stage-B cycle, and by
+    default only a Stage-B q is accepted (`ae_loss.stage_b_q_for_update` is the
+    intended source). Selection is then run **independently for every frame**:
+    each frame gets its own stable top-K over its own scores, so every frame
+    keeps exactly `keep_count` cells. Candidates are never flattened across the
+    batch and no single global top-K set is ever formed -- that would let a
+    high-scoring frame spend another frame's budget.
+
+    All masks are hard, boolean and detached, and the ranker runs under
+    `no_grad`, so no gradient can reach it. Gradient still flows to the AE
+    encoder through the retained cells.
+    """
+    if not isinstance(autoencoder, SplitFeatureAE):
+        raise guards.HybridQConfigError("compose_batch requires a SplitFeatureAE")
+    if not isinstance(c2, torch.Tensor) or c2.dim() != 4:
+        raise guards.HybridQPayloadError(
+            "compose_batch requires a batched [N,256,112,192] C2 tensor"
+        )
+    guards.require_frozen_batched_c2(c2, what="batched C2")
+    plan = continuous_q.quantize_q(q)
+    if stage_b_only and contract._q_to_e4(plan.wire_q) not in {
+        contract._q_to_e4(float(value)) for value in ae_contract.AE_STAGE_B_Q_CYCLE
+    }:
+        raise guards.HybridQConfigError(
+            f"q={plan.wire_q!r} is not in the locked Stage-B cycle "
+            f"{ae_contract.AE_STAGE_B_Q_CYCLE}"
+        )
+    frames = int(c2.shape[0])
+
+    # 1. The encoder always runs, on the complete batch.
+    latent = autoencoder.encode(c2)
+    if tuple(latent.shape) != (
+        frames,
+        autoencoder.bottleneck,
+        ae_contract.AE_LATENT_HEIGHT,
+        ae_contract.AE_LATENT_WIDTH,
+    ):
+        raise guards.HybridQPayloadError(
+            f"AE encoder returned {list(latent.shape)} for a {frames}-frame batch"
+        )
+
+    # 2. Ranking reads the original FP32 C2 batch, under no_grad.
+    if plan.is_bypass:
+        selections = None
+        keep_mask = all_keep_mask(device=c2.device, frames=frames)
+    else:
+        with torch.no_grad():
+            scores = ranker(c2.detach())
+        if tuple(scores.shape) != (frames, *ae_contract.AE_LATENT_SPATIAL_SHAPE):
+            raise guards.HybridQPayloadError(
+                f"batched ranker returned {list(scores.shape)}, expected "
+                f"{[frames, *ae_contract.AE_LATENT_SPATIAL_SHAPE]}"
+            )
+        # Independent per-frame stable top-K. No cross-frame candidate pool.
+        per_frame = [
+            continuous_q.select_cells(scores[index].detach(), plan.wire_q)
+            for index in range(frames)
+        ]
+        selections = tuple(per_frame)
+        keep_mask = torch.stack(
+            [mask_from_selection(selection) for selection in per_frame]
+        ).to(device=c2.device)
+
+    ae_contract.require_keep_mask(keep_mask[0], what="per-frame keep mask")
+    if tuple(keep_mask.shape) != (frames, *ae_contract.AE_LATENT_SPATIAL_SHAPE):
+        raise guards.HybridQPayloadError("stacked keep mask does not cover the batch")
+    counts = keep_mask.reshape(frames, -1).sum(dim=1)
+    for index in range(frames):
+        guards.require_keep_cardinality(int(counts[index]), plan.keep_count)
+
+    # 3. Drop cells, all B latent channels of a cell together, per frame.
+    plane = keep_mask.detach().to(dtype=latent.dtype).unsqueeze(1)
+    masked = latent * plane
+    return BatchedLatentComposition(
+        plan=plan,
+        bottleneck=autoencoder.bottleneck,
+        latent=latent,
+        selections=selections,
         keep_mask=keep_mask,
         masked_latent=masked,
     )

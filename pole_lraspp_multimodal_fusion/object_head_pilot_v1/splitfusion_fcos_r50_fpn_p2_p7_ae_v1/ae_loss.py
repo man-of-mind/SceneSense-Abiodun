@@ -19,29 +19,39 @@ Locked intended later protocol
 - No fake quantization and no zstd inside training. The AE is trained in FP32,
   so one AE checkpoint can later serve UINT8, UINT6 or UINT4 without retraining.
   This module accordingly refuses non-float inputs.
-- Ranker masks are hard and detached (`ae_composition.detached_hard_mask`), so
-  no gradient can enter the ranker.
+- Ranker masks are hard and detached (`ae_composition.detached_hard_mask`,
+  `ae_composition.compose_batch`), so no gradient can enter the ranker.
+
+Teacher supervision comes from the **existing** Phase-4 teacher cache, consumed
+exactly as it is stored. A shard holds, per frame, one combined FP32 importance
+map plus `valid_groups` / `excluded_groups` metadata. It does **not** hold four
+separate D/G/S/A maps, so this module neither expects nor fabricates them, and
+reports no per-group reconstruction term. The cache is not rebuilt.
 
 Objective
 ---------
-Two unit-weighted components, both scale-free, reported separately:
+Two unit-weighted, scale-free components, reported separately:
 
-    plain      = ||C2_hat - C2||^2 / ||C2||^2
-    group_t    = sum_hw I_t(h,w) * e(h,w) / sum_hw I_t(h,w) * g(h,w)
-    importance = mean over valid t of group_t
-    total      = plain + importance
+    e(h,w)     = sum_c (C2_hat - C2)^2        g(h,w) = sum_c C2^2
+    plain      = sum e / sum g
+    combined   = sum_hw I * e / sum_hw I * g
+    total      = plain + combined
 
-with e(h,w) = sum_c (C2_hat - C2)^2 and g(h,w) = sum_c C2^2, and I_t the
-existing Phase-4 L1-normalized D/G/S/A importance map. Groups are combined with
-equal weight, an unavailable map is ignored, and at least three of the four
-groups must be valid. No raw multitask detection/segmentation loss weight is
-introduced anywhere: the task maps enter only as spatial weightings of the same
-reconstruction error.
+`I` is the cached combined map, which the Phase-4 producer already L1-normalized
+per frame; it is re-normalized here defensively, which is a no-op on a
+well-formed cache entry. Both ratios are taken over the whole batch, so the two
+components are normalized consistently.
+
+Per-frame `valid_groups` decides admissibility: **every** frame in the batch
+must carry at least three valid D/G/S/A groups, or the call fails closed. Group
+availability and exclusions are reported as metadata only. No raw multitask
+detection/segmentation loss weight is introduced anywhere: the cached map enters
+only as a spatial weighting of the same reconstruction error.
 """
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 
 import torch
@@ -51,28 +61,175 @@ from . import ae_contract
 from .ae_model import SplitFeatureAE, ae_parameters
 
 
+@dataclass(frozen=True)
+class CachedTeacherBatch:
+    """Exactly the Phase-4 teacher-cache fields, for one training batch.
+
+    Mirrors a shard slice: one combined importance map per frame plus that
+    frame's validity metadata. There is deliberately no per-group map field,
+    because the cache does not store one.
+    """
+
+    importance: torch.Tensor  # [N,112,192] FP32 combined map
+    valid_groups: tuple[tuple[str, ...], ...]
+    excluded_groups: tuple[dict[str, str], ...]
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.importance, torch.Tensor):
+            raise guards.HybridQPayloadError("cached importance must be a torch.Tensor")
+        if self.importance.dim() != 3:
+            raise guards.HybridQPayloadError(
+                f"cached importance must be [N,H,W], got {list(self.importance.shape)}"
+            )
+        if self.importance.dtype is not torch.float32:
+            raise guards.HybridQPayloadError(
+                f"cached importance must be float32, got {self.importance.dtype}"
+            )
+        if tuple(self.importance.shape[1:]) != contract.SPLIT_SPATIAL_SHAPE:
+            raise guards.HybridQPayloadError(
+                f"cached importance maps must be {list(contract.SPLIT_SPATIAL_SHAPE)}, "
+                f"got {list(self.importance.shape[1:])}"
+            )
+        frames = int(self.importance.shape[0])
+        if len(self.valid_groups) != frames or len(self.excluded_groups) != frames:
+            raise guards.HybridQPayloadError(
+                "cached validity metadata does not cover every frame in the batch"
+            )
+        for groups in self.valid_groups:
+            unknown = set(groups) - set(ae_contract.AE_TASK_GROUPS)
+            if unknown:
+                raise guards.HybridQConfigError(
+                    f"unregistered valid task group(s) {sorted(unknown)}; only "
+                    f"{list(ae_contract.AE_TASK_GROUPS)} are locked"
+                )
+            if len(set(groups)) != len(groups):
+                raise guards.HybridQPayloadError("cached valid groups contain duplicates")
+        for excluded in self.excluded_groups:
+            unknown = set(excluded) - set(ae_contract.AE_TASK_GROUPS)
+            if unknown:
+                raise guards.HybridQConfigError(
+                    f"unregistered excluded task group(s) {sorted(unknown)}"
+                )
+
+    @property
+    def frames(self) -> int:
+        return int(self.importance.shape[0])
+
+    def group_availability(self) -> dict[str, int]:
+        """How many frames of this batch counted each group as valid."""
+        return {
+            group: sum(1 for groups in self.valid_groups if group in groups)
+            for group in ae_contract.AE_TASK_GROUPS
+        }
+
+    def exclusion_reasons(self) -> dict[str, dict[str, int]]:
+        """Recorded exclusion reasons per group, as counts over the batch."""
+        reasons: dict[str, dict[str, int]] = {}
+        for excluded in self.excluded_groups:
+            for group, reason in excluded.items():
+                bucket = reasons.setdefault(group, {})
+                bucket[str(reason)] = bucket.get(str(reason), 0) + 1
+        return {group: dict(sorted(bucket.items())) for group, bucket in sorted(reasons.items())}
+
+    @classmethod
+    def from_shard(
+        cls, payload: Mapping[str, object], offsets: Sequence[int] | None = None
+    ) -> "CachedTeacherBatch":
+        """Slice one loaded Phase-4 shard (`teacher_cache.load_shard`) into a batch.
+
+        Reads only `importance`, `valid_groups` and `excluded_groups` — the
+        fields the shard actually stores. `offsets` selects the frames of this
+        batch; `None` takes the whole shard. Nothing is written and no cache is
+        rebuilt.
+        """
+        missing = {"importance", "valid_groups", "excluded_groups"} - set(payload)
+        if missing:
+            raise guards.HybridQPayloadError(
+                f"teacher shard is missing required field(s) {sorted(missing)}"
+            )
+        maps = payload["importance"]
+        valid = list(payload["valid_groups"])
+        excluded = list(payload["excluded_groups"])
+        if not isinstance(maps, torch.Tensor):
+            raise guards.HybridQPayloadError("shard importance must be a torch.Tensor")
+        if len(valid) != int(maps.shape[0]) or len(excluded) != int(maps.shape[0]):
+            raise guards.HybridQPayloadError("shard metadata length disagrees with maps")
+        if offsets is not None:
+            index = [int(offset) for offset in offsets]
+            if not index:
+                raise guards.HybridQConfigError("a teacher batch must hold a frame")
+            if any(not 0 <= offset < int(maps.shape[0]) for offset in index):
+                raise guards.HybridQPayloadError("shard offset out of range")
+            maps = maps.index_select(0, torch.tensor(index, dtype=torch.int64))
+            valid = [valid[offset] for offset in index]
+            excluded = [excluded[offset] for offset in index]
+        return cls(
+            importance=maps.to(torch.float32).contiguous(),
+            valid_groups=tuple(tuple(str(name) for name in groups) for groups in valid),
+            excluded_groups=tuple(
+                {str(key): str(value) for key, value in dict(entry).items()}
+                for entry in excluded
+            ),
+        )
+
+    @classmethod
+    def from_teacher_maps(
+        cls, results: Sequence[training.TeacherMapResult]
+    ) -> "CachedTeacherBatch":
+        """Build a batch from in-memory Phase-4 results, as the cache writer does.
+
+        `build_teacher_maps` produces exactly one combined map plus validity
+        metadata per frame, which is what a shard stores; this is the same
+        representation without a round trip through disk.
+        """
+        if not results:
+            raise guards.HybridQConfigError("a teacher batch must hold a frame")
+        maps = []
+        for result in results:
+            if not isinstance(result, training.TeacherMapResult):
+                raise guards.HybridQPayloadError("expected Phase-4 TeacherMapResult objects")
+            if result.importance is None:
+                raise guards.HybridQPayloadError(
+                    "a frame with no valid teacher group is not supervisable"
+                )
+            maps.append(result.importance.detach().to(torch.float32))
+        return cls(
+            importance=torch.stack(maps).contiguous(),
+            valid_groups=tuple(tuple(result.valid_groups) for result in results),
+            excluded_groups=tuple(dict(result.excluded_groups) for result in results),
+        )
+
+
 @dataclass
 class AeReconstructionLoss:
-    """Every component reported separately; `total` is the only scalar to step."""
+    """Both components reported separately; `total` is the only scalar to step.
+
+    There is no per-group reconstruction term, because the cache stores one
+    combined map. Group availability and exclusions are metadata.
+    """
 
     total: torch.Tensor
     plain: torch.Tensor
-    importance: torch.Tensor
-    group_terms: dict[str, torch.Tensor] = field(default_factory=dict)
-    valid_groups: tuple[str, ...] = ()
-    excluded_groups: dict[str, str] = field(default_factory=dict)
+    combined_importance: torch.Tensor
+    frames: int = 0
+    group_availability: dict[str, int] = field(default_factory=dict)
+    excluded_groups: dict[str, dict[str, int]] = field(default_factory=dict)
+    min_valid_groups_observed: int = 0
 
-    def report(self) -> dict[str, float | list[str] | dict[str, float] | dict[str, str]]:
-        """Detached scalars for logging; never used as part of the graph."""
+    def report(self) -> dict[str, object]:
+        """Detached scalars and metadata for logging; never part of the graph."""
         return {
             "total": float(self.total.detach()),
             "plain_reconstruction": float(self.plain.detach()),
-            "importance_reconstruction": float(self.importance.detach()),
-            "group_terms": {
-                name: float(value.detach()) for name, value in self.group_terms.items()
+            "combined_importance_reconstruction": float(
+                self.combined_importance.detach()
+            ),
+            "frames": int(self.frames),
+            "group_availability": dict(self.group_availability),
+            "excluded_groups": {
+                group: dict(reasons) for group, reasons in self.excluded_groups.items()
             },
-            "valid_groups": list(self.valid_groups),
-            "excluded_groups": dict(self.excluded_groups),
+            "min_valid_groups_observed": int(self.min_valid_groups_observed),
         }
 
 
@@ -101,73 +258,19 @@ def _require_loss_tensor(tensor: torch.Tensor, what: str) -> torch.Tensor:
     return tensor if tensor.dim() == 4 else tensor.unsqueeze(0)
 
 
-def _collect_group_maps(
-    importance_maps: Mapping[str, torch.Tensor | None] | training.TeacherMapResult,
-    frames: int,
-) -> tuple[dict[str, torch.Tensor], dict[str, str]]:
-    """Normalize and validate the Phase-4 D/G/S/A maps, recording exclusions."""
-    if isinstance(importance_maps, training.TeacherMapResult):
-        raw: Mapping[str, torch.Tensor | None] = {
-            name: importance_maps.group_maps[name]
-            for name in importance_maps.valid_groups
-        }
-        excluded = dict(importance_maps.excluded_groups)
-    else:
-        if not isinstance(importance_maps, Mapping):
-            raise guards.HybridQConfigError(
-                "importance maps must be a mapping or a TeacherMapResult"
-            )
-        unknown = set(importance_maps) - set(ae_contract.AE_TASK_GROUPS)
-        if unknown:
-            raise guards.HybridQConfigError(
-                f"unregistered task group(s) {sorted(unknown)}; only "
-                f"{list(ae_contract.AE_TASK_GROUPS)} are locked"
-            )
-        raw = importance_maps
-        excluded = {}
-
-    maps: dict[str, torch.Tensor] = {}
-    for group in ae_contract.AE_TASK_GROUPS:
-        candidate = raw.get(group) if hasattr(raw, "get") else None
-        if candidate is None:
-            excluded.setdefault(group, "absent")
-            continue
-        if not isinstance(candidate, torch.Tensor):
-            excluded[group] = "not_a_tensor"
-            continue
-        weights = candidate.detach().to(torch.float32)
-        if weights.dim() == 2:
-            weights = weights.unsqueeze(0).expand(frames, -1, -1)
-        elif weights.dim() != 3 or int(weights.shape[0]) != frames:
-            excluded[group] = "frame_count_mismatch"
-            continue
-        if tuple(weights.shape[-2:]) != contract.SPLIT_SPATIAL_SHAPE:
-            excluded[group] = "wrong_spatial_shape"
-            continue
-        if not bool(torch.isfinite(weights).all()):
-            excluded[group] = "non_finite"
-            continue
-        if bool((weights < 0).any()):
-            excluded[group] = "negative_importance"
-            continue
-        mass = weights.reshape(frames, -1).sum(dim=1)
-        if not bool((mass > 0).all()):
-            excluded[group] = "zero_mass"
-            continue
-        # Locked per-frame L1 normalization, matching the Phase-4 interface.
-        maps[group] = weights / mass.reshape(frames, 1, 1)
-        excluded.pop(group, None)
-    return maps, excluded
-
-
 def task_aware_reconstruction_loss(
     c2: torch.Tensor,
     reconstructed: torch.Tensor,
-    importance_maps: Mapping[str, torch.Tensor | None] | training.TeacherMapResult,
+    teacher: CachedTeacherBatch,
     *,
     min_valid_groups: int = ae_contract.AE_MIN_VALID_TASK_GROUPS,
 ) -> AeReconstructionLoss:
-    """Feature reconstruction loss, plain plus equal-weight task-importance."""
+    """Plain plus cached-combined-importance normalized C2 reconstruction."""
+    if not isinstance(teacher, CachedTeacherBatch):
+        raise guards.HybridQConfigError(
+            "teacher supervision must be a CachedTeacherBatch built from the "
+            "Phase-4 cache representation"
+        )
     target = _require_loss_tensor(c2, "reference C2").detach()
     estimate = _require_loss_tensor(reconstructed, "reconstructed C2")
     if target.shape != estimate.shape:
@@ -178,6 +281,43 @@ def task_aware_reconstruction_loss(
     guards.require_finite(target, "reference C2")
 
     frames = int(target.shape[0])
+    if teacher.frames != frames:
+        raise guards.HybridQPayloadError(
+            f"teacher batch covers {teacher.frames} frames, C2 batch has {frames}"
+        )
+
+    # Every frame must carry enough valid groups; a thin frame is refused rather
+    # than quietly averaged in.
+    per_frame_valid = [len(groups) for groups in teacher.valid_groups]
+    observed_minimum = min(per_frame_valid)
+    if observed_minimum < int(min_valid_groups):
+        thin = [
+            position
+            for position, count in enumerate(per_frame_valid)
+            if count < int(min_valid_groups)
+        ]
+        raise guards.HybridQConfigError(
+            f"task-aware reconstruction requires at least {int(min_valid_groups)} "
+            f"valid D/G/S/A groups per frame; batch positions {thin} carry "
+            f"{[per_frame_valid[position] for position in thin]}"
+        )
+
+    weights = teacher.importance.detach().to(
+        device=target.device, dtype=torch.float32
+    )
+    guards.require_finite(weights, "cached combined importance map")
+    if bool((weights < 0).any()):
+        raise guards.HybridQNumericalError(
+            "cached combined importance map must be non-negative"
+        )
+    mass = weights.reshape(frames, -1).sum(dim=1)
+    if not bool((mass > 0).all()):
+        raise guards.HybridQNumericalError(
+            "a cached combined importance map has no positive mass"
+        )
+    # Defensive re-normalization; the Phase-4 producer already L1-normalizes.
+    weights = weights / mass.reshape(frames, 1, 1)
+
     squared_error = (estimate - target).pow(2)
     cell_error = squared_error.sum(dim=1)  # [N,H,W]
     cell_energy = target.pow(2).sum(dim=1)  # [N,H,W]
@@ -189,41 +329,23 @@ def task_aware_reconstruction_loss(
         )
     plain = squared_error.sum() / reference_energy
 
-    maps, excluded = _collect_group_maps(importance_maps, frames)
-    group_terms: dict[str, torch.Tensor] = {}
-    for group in ae_contract.AE_TASK_GROUPS:
-        weights = maps.get(group)
-        if weights is None:
-            excluded.setdefault(group, "absent")
-            continue
-        denominator = (weights * cell_energy).sum()
-        if float(denominator) <= 0.0:
-            # The map's mass sits entirely where the reference has no energy;
-            # that group carries no usable normalization for this frame.
-            excluded[group] = "zero_reference_energy"
-            continue
-        group_terms[group] = (weights * cell_error).sum() / denominator
-        excluded.pop(group, None)
-
-    valid = tuple(group for group in ae_contract.AE_TASK_GROUPS if group in group_terms)
-    if len(valid) < int(min_valid_groups):
-        raise guards.HybridQConfigError(
-            f"task-aware reconstruction requires at least {int(min_valid_groups)} "
-            f"valid D/G/S/A maps, got {len(valid)} {list(valid)}; "
-            f"excluded={dict(sorted(excluded.items()))}"
+    weighted_energy = (weights * cell_energy).sum()
+    if float(weighted_energy) <= 0.0:
+        raise guards.HybridQNumericalError(
+            "the cached importance mass sits where the reference C2 has no energy"
         )
+    combined = (weights * cell_error).sum() / weighted_energy
 
-    weight = 1.0 / len(valid)
-    importance = sum(group_terms[group] * weight for group in valid)
-    total = plain + importance
+    total = plain + combined
     guards.require_finite(total.detach(), "task-aware reconstruction loss")
     return AeReconstructionLoss(
         total=total,
         plain=plain,
-        importance=importance,
-        group_terms=group_terms,
-        valid_groups=valid,
-        excluded_groups=dict(sorted(excluded.items())),
+        combined_importance=combined,
+        frames=frames,
+        group_availability=teacher.group_availability(),
+        excluded_groups=teacher.exclusion_reasons(),
+        min_valid_groups_observed=observed_minimum,
     )
 
 

@@ -14,11 +14,15 @@ Deterministic value order, cell-major: retained cells in ascending row-major
 cell index, and within one cell the B latent channels in ascending channel
 index. All B channels of a retained cell therefore stay contiguous on the wire.
 
-Every frame carries its own model-family identity: an explicit family id
-(AE128/AE64/AE32) and a 32-bit checkpoint-binding word, alongside the latent
-channel count. The edge therefore selects a decoder per packet instead of
-trusting whichever profile is currently selected, and a packet that was delayed
-across a profile switch is refused rather than decoded by the wrong AE. The
+Every frame carries its own model-family identity *inside the framed bytes*: an
+explicit family id (AE128/AE64/AE32), a 32-bit routing tag and the latent
+channel count. That header, not any Python dataclass field, is the authoritative
+provenance, because only the compressed byte string is guaranteed to cross the
+network. The edge therefore selects a decoder per packet instead of trusting
+whichever profile is currently selected, and a packet delayed across a profile
+switch is refused rather than decoded by the wrong AE. The routing tag is a
+discriminator, not a checkpoint identity; the full SHA-256 stays with the
+profile registry. An unbound (0) tag is refused on the deployable paths. The
 frozen noAE wire is not re-framed: its own envelope (magic HQ8\0, codec id 1,
 256 channels) already identifies family 0.
 
@@ -87,7 +91,7 @@ class AeUint8Header:
     version: int
     codec_id: int
     family_id: int
-    checkpoint_binding: int
+    routing_tag: int
     bottleneck: int
     height: int
     width: int
@@ -105,7 +109,7 @@ class AeSparsePayload:
     data: bytes
     q: float
     family_id: int
-    checkpoint_binding: int
+    routing_tag: int
     bottleneck: int
     keep_count: int
     header_bytes: int
@@ -125,7 +129,7 @@ class InspectedAePayload:
     header: AeUint8Header
     q: float
     family_id: int
-    checkpoint_binding: int
+    routing_tag: int
     bottleneck: int
     keep_indices: torch.Tensor  # ascending row-major int64
     keep_mask: torch.Tensor  # bool [112,192], reconstructed for the decoder
@@ -156,7 +160,7 @@ class AeZstdPacket:
     data: bytes
     uncompressed_bytes: int
     family_id: int
-    checkpoint_binding: int
+    routing_tag: int
     bottleneck: int
 
     @property
@@ -295,7 +299,7 @@ def encode_sparse(
     q: float,
     selection: CellSelection | None = None,
     *,
-    checkpoint_binding: int = ae_contract.AE_UNBOUND_CHECKPOINT_BINDING,
+    routing_tag: int,
 ) -> AeSparsePayload:
     """Frame retained latent cells as UINT8 using the once-computed ranges.
 
@@ -304,7 +308,7 @@ def encode_sparse(
     """
     prepared = _require_prepared(prepared)
     size = prepared.bottleneck
-    binding = ae_contract.require_checkpoint_binding(checkpoint_binding)
+    tag = ae_contract.require_bound_routing_tag(routing_tag, what="encoder routing tag")
     plan = continuous_q.quantize_q(q, cells=ae_contract.AE_LATENT_CELLS)
     cell_major = (
         prepared.latent.detach()
@@ -349,7 +353,7 @@ def encode_sparse(
         FORMAT_VERSION,
         CODEC_ID_AE_LATENT_UINT8,
         prepared.family_id,
-        binding,
+        tag,
         size,
         ae_contract.AE_LATENT_HEIGHT,
         ae_contract.AE_LATENT_WIDTH,
@@ -363,7 +367,7 @@ def encode_sparse(
         data=header + mask + ranges + values,
         q=plan.wire_q,
         family_id=prepared.family_id,
-        checkpoint_binding=binding,
+        routing_tag=tag,
         bottleneck=size,
         keep_count=plan.keep_count,
         header_bytes=HEADER_BYTES,
@@ -414,7 +418,9 @@ def inspect(
             f"AE header family {ae_contract.family_name(header.family_id)} does not "
             f"transport {size} latent channels"
         )
-    ae_contract.require_checkpoint_binding(header.checkpoint_binding)
+    # Only a bound tag can be routed to a preloaded decoder, so an unbound tag
+    # on the wire is malformed rather than merely uninformative.
+    ae_contract.require_bound_routing_tag(header.routing_tag, what="header routing tag")
     if (header.height, header.width) != ae_contract.AE_LATENT_SPATIAL_SHAPE:
         raise guards.HybridQPayloadError(
             "AE header spatial dimensions do not match the frozen 112x192 split"
@@ -492,7 +498,7 @@ def inspect(
         header=header,
         q=plan.wire_q,
         family_id=int(header.family_id),
-        checkpoint_binding=int(header.checkpoint_binding),
+        routing_tag=int(header.routing_tag),
         bottleneck=size,
         keep_indices=keep_indices,
         keep_mask=keep_mask,
@@ -546,12 +552,20 @@ def require_family_agreement(
     """Refuse to decode a frame with an AE that did not produce it.
 
     Three independent facts must agree: the family id, the transported latent
-    channel count and the registered checkpoint binding. A packet that was
-    delayed or reordered across a runtime profile switch therefore fails closed
-    instead of being reconstructed by whichever AE is currently selected.
+    channel count and the routing tag. A packet that was delayed or reordered
+    across a runtime profile switch therefore fails closed instead of being
+    reconstructed by whichever AE is currently selected.
+
+    `parsed` should normally be an `InspectedAePayload`, i.e. facts read out of
+    the received bytes. An `AeZstdPacket` may be passed when its fields are
+    locally available, but dataclass fields are not wire provenance and must not
+    be what the edge discovers the decoder from.
     """
     if not isinstance(autoencoder, SplitFeatureAE):
         raise guards.HybridQConfigError("family agreement requires a SplitFeatureAE")
+    ae_contract.require_bound_routing_tag(
+        autoencoder.routing_tag, what="selected decoder routing tag"
+    )
     if int(parsed.family_id) != int(autoencoder.family_id):
         raise guards.HybridQPayloadError(
             f"packet family {ae_contract.family_name(parsed.family_id)} does not match "
@@ -562,10 +576,10 @@ def require_family_agreement(
             f"packet transports {int(parsed.bottleneck)} latent channels, selected "
             f"decoder has {autoencoder.bottleneck}"
         )
-    if int(parsed.checkpoint_binding) != int(autoencoder.checkpoint_binding):
+    if int(parsed.routing_tag) != int(autoencoder.routing_tag):
         raise guards.HybridQPayloadError(
-            f"packet checkpoint binding {int(parsed.checkpoint_binding)} does not "
-            f"match the selected decoder binding {autoencoder.checkpoint_binding}"
+            f"packet routing tag {int(parsed.routing_tag)} does not match the "
+            f"selected decoder tag {autoencoder.routing_tag}"
         )
     return autoencoder
 
@@ -584,7 +598,7 @@ def _compress(payload: AeSparsePayload, wire_codec: ZstdWireCodec | None) -> AeZ
         data=compressed.data,
         uncompressed_bytes=compressed.uncompressed_bytes,
         family_id=payload.family_id,
-        checkpoint_binding=payload.checkpoint_binding,
+        routing_tag=payload.routing_tag,
         bottleneck=payload.bottleneck,
     )
 
@@ -594,13 +608,11 @@ def encode(
     q: float,
     selection: CellSelection | None = None,
     *,
-    checkpoint_binding: int = ae_contract.AE_UNBOUND_CHECKPOINT_BINDING,
+    routing_tag: int,
     wire_codec: ZstdWireCodec | None = None,
 ) -> AeZstdPacket:
     """Frame one prepared latent and always wrap it in the existing zstd codec."""
-    payload = encode_sparse(
-        prepared, q, selection, checkpoint_binding=checkpoint_binding
-    )
+    payload = encode_sparse(prepared, q, selection, routing_tag=routing_tag)
     return _compress(payload, wire_codec)
 
 
@@ -619,13 +631,16 @@ def encode_frame(
     complete latent, so every q of this frame shares one set of ranges and a
     retained cell quantizes to the same code at every q.
     """
+    ae_contract.require_bound_routing_tag(
+        autoencoder.routing_tag, what=f"{autoencoder.family_name} routing tag"
+    )
     composition = ae_composition.compose(c2, autoencoder, ranker, q)
     prepared = prepare(composition.latent.detach())
     payload = encode_sparse(
         prepared,
         composition.plan.wire_q,
         composition.selection,
-        checkpoint_binding=autoencoder.checkpoint_binding,
+        routing_tag=autoencoder.routing_tag,
     )
     if payload.family_id != autoencoder.family_id:
         raise guards.HybridQPayloadError(
@@ -673,9 +688,9 @@ def decode(
         raise guards.HybridQPayloadError(
             "decoded family id disagrees with the packet envelope"
         )
-    if parsed.checkpoint_binding != packet.checkpoint_binding:
+    if parsed.routing_tag != packet.routing_tag:
         raise guards.HybridQPayloadError(
-            "decoded checkpoint binding disagrees with the packet envelope"
+            "decoded routing tag disagrees with the packet envelope"
         )
     return latent, keep_mask, q, parsed
 

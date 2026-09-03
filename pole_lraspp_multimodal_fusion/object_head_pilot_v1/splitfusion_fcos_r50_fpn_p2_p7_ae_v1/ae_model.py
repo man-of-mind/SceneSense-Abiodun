@@ -71,8 +71,9 @@ class SplitFeatureAE(nn.Module):
         self.init_seed = ae_contract.ae_init_seed(self.bottleneck)
         self.family_id = ae_contract.family_for_bottleneck(self.bottleneck)
         self.family_name = ae_contract.family_name(self.family_id)
-        # Provenance only: Phase 9A loads no checkpoint, so this stays unbound.
-        self.checkpoint_binding = ae_contract.AE_UNBOUND_CHECKPOINT_BINDING
+        # Routing only: Phase 9A loads no checkpoint, so this starts unbound and
+        # the deployable encode/dispatch paths refuse it until it is bound.
+        self.routing_tag = ae_contract.AE_UNBOUND_ROUTING_TAG
 
         # Layer construction itself draws from the RNG (default conv init), so
         # the fork covers construction as well as the explicit initialization.
@@ -226,15 +227,20 @@ class SplitFeatureAE(nn.Module):
 
     # -- deployment provenance --------------------------------------------
 
-    def bind_checkpoint(self, binding: int) -> "SplitFeatureAE":
-        """Record which registered checkpoint this preloaded pair carries.
+    def bind_routing_tag(self, tag: int) -> "SplitFeatureAE":
+        """Record the routing tag the profile registry assigned to this pair.
 
-        Interface hook only: it stores one 32-bit provenance word so a decoded
-        packet can be refused when it was produced by a different AE. It loads
-        nothing and does not touch parameters.
+        Interface hook only: it stores one 32-bit discriminator so a decoded
+        packet can be refused when a different AE produced it. It is not a
+        checkpoint identity -- the authoritative SHA-256 stays with the profile
+        registry. This loads nothing and does not touch parameters.
         """
-        self.checkpoint_binding = ae_contract.require_checkpoint_binding(binding)
+        self.routing_tag = ae_contract.require_bound_routing_tag(tag)
         return self
+
+    @property
+    def is_bound(self) -> bool:
+        return self.routing_tag != ae_contract.AE_UNBOUND_ROUTING_TAG
 
     def wire_identity(self) -> dict[str, int | str]:
         """Exactly the family fields the per-frame envelope must agree with."""
@@ -242,7 +248,7 @@ class SplitFeatureAE(nn.Module):
             "family_id": self.family_id,
             "family_name": self.family_name,
             "bottleneck": self.bottleneck,
-            "checkpoint_binding": self.checkpoint_binding,
+            "routing_tag": self.routing_tag,
         }
 
     # -- static accounting -------------------------------------------------
