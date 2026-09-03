@@ -30,8 +30,54 @@ original FP32 C2
 One inference/evaluation pass per q, enforced three ways: `run_validation_pass`
 refuses an unregistered q, each completed q is persisted atomically as
 `settings/qNNNN.json` carrying `inference_passes_for_this_q = 1`, and a rerun
-reuses an exactly-complete setting instead of measuring it again. Test data is
+reuses a fully validated setting instead of measuring it again. Test data is
 never opened and CARLA is never launched.
+
+## Durability order per q
+
+`DURABILITY_ORDER` is fixed and the loop follows it exactly:
+
+1. atomically write `settings/<q>.json` — write-beside, fsync, rename, fsync the
+   directory. **This JSON is the durable scientific completion record.**
+2. only after that write succeeds: remove `working_predictions/<q>`;
+3. atomically write `cleanup/<q>.json`, the cleanup-complete marker, last.
+
+So an interruption can lose at most a scratch prediction directory, never a
+completed measurement. The record is written *before* removal, so it no longer
+claims removal: it carries a `prediction_artifacts` block with
+`removed_before_this_record: false` and names the marker that will record the
+removal, and `load_durable_setting` refuses a record that claims otherwise. The
+marker binds the setting's SHA-256, so a marker can only ever vouch for the
+exact record it was written for.
+
+`reuse_or_complete` is the whole resume step for one q and measures nothing,
+ever. It returns `None` only when no setting JSON exists — the single case in
+which the caller may run a pass. Otherwise it validates the record in full via
+`load_durable_setting`, and if the cleanup marker is absent or does not bind
+that record it removes any surviving prediction directory and writes the marker.
+Both cleanup halves are idempotent, so an interruption anywhere in the window is
+resolved by finishing the cleanup rather than by remeasuring. A setting JSON
+that fails validation raises rather than being reused *or* silently remeasured.
+
+`load_durable_setting` validates, not spot-checks: schema and terminal, run
+identity, both `q` and `q_e4`, 3,345 frames, exactly one inference pass, the
+registered keep and drop cardinality, the exact analytical pre-zstd payload size
+against every measured pre-zstd statistic, one payload sample per frame with all
+statistics finite, `zstd_mandatory`, the expected ranker invocation count (0 at
+q=0) and 3,345 zstd decompressions, every integrity flag that must be true and
+every one that must be false, the finite-result and frozen-state flags, the
+no-training / no-gate-change / no-test-access flags, the complete and finite
+protected and canonical metric sets, nine self-consistent absolute service gates,
+twelve self-consistent same-q preservation gates with the expected baseline
+label, the full protected-metric delta set, and a same-q noAE reference for the
+right q and keep count.
+
+Freshly measured rows go through the same door: the loop writes the setting,
+re-reads it through `load_durable_setting`, and appends *that*, so the in-memory
+row is exactly the durable bytes and the writer's own output is required to
+satisfy the resume validator. `finalize` additionally records every cleanup
+marker's hash and refuses to emit a result unless every completed q has both a
+durable setting and a marker that binds it.
 
 ## Bound artifacts
 
@@ -223,10 +269,11 @@ removed; all six semantics modules unchanged.
 
 ## Tests
 
-Two focused CPU tests, `tests/test_ae_uint8_validation.py`. Each records the
-process-global `torch.cuda.is_initialized()` flag on entry and asserts it is
-exactly where it found it on exit, so neither test creates a CUDA context
-regardless of what ran before it in the same process.
+Three focused CPU tests in the one Phase-9D test module,
+`tests/test_ae_uint8_validation.py` — no new test file or suite was added. Each
+records the process-global `torch.cuda.is_initialized()` flag on entry and
+asserts it is exactly where it found it on exit, so no test creates a CUDA
+context regardless of what ran before it in the same process.
 
 1. **The acceptance rule, applied verbatim** over synthetic per-q rows: both
    conditions met accepts and names the qualifying q; q=0 losing one gate blocks
@@ -252,5 +299,18 @@ regardless of what ran before it in the same process.
    absent. The checkpoint is opened only to read its metadata; its tensors are
    never built into a model or moved to a device.
 
-Result: 2 new tests pass, and the three pre-existing AE test files still pass
-(15 tests) unchanged.
+3. **The interruption window**, reproduced exactly: a durable setting written
+   for q=0.30 by the real `_setting_document`, a populated scratch prediction
+   directory, and no cleanup marker. `reuse_or_complete` then returns the
+   durable record byte-for-byte, and with `_atomic_json` recorded the **only**
+   write is the cleanup marker — the setting is not rewritten — while
+   `run_validation_pass` is patched to raise, so remeasuring the q would fail
+   the test. The prediction directory is gone, the marker carries the cleanup
+   terminal and binds the setting's SHA-256, and a second resume writes nothing
+   further. A record with a wrong frame count is refused rather than reused or
+   remeasured, and a q with no record at all returns `None`, the one case that
+   permits a pass. Because the fixture is built by the real writer, this also
+   pins that `_setting_document`'s output satisfies `load_durable_setting`.
+
+Result: 3 tests in the Phase-9D module pass, and the three pre-existing AE test
+files still pass (15 tests) unchanged — 18 together.

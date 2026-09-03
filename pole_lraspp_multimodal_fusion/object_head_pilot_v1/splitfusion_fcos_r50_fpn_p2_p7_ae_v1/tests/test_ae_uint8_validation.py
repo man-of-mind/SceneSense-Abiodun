@@ -12,14 +12,20 @@ to a device.
 2. the exact selected-checkpoint and routing binding: the three bound SHA-256
    constants, the chain from the holdout decision to this checkpoint, the
    routing tag derived from the full digest, and the fail-closed AE package
-   source delta.
+   source delta;
+3. the interruption window between a durable per-q setting and its cleanup: the
+   setting is validated and reused, only the cleanup is finished, and the q is
+   never remeasured.
 """
 
 from __future__ import annotations
 
 import copy
+import json
+import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 import torch
 
@@ -216,8 +222,6 @@ class SelectedCheckpointBindingTest(unittest.TestCase):
 
         # 2. The bound Phase-9C decision selects this epoch and records exactly
         #    this checkpoint hash, and it is refused if a frozen input moves.
-        import json
-
         decision = json.loads(
             (root / validation.HOLDOUT_DECISION_RELPATH).read_text(encoding="utf-8")
         )
@@ -358,6 +362,179 @@ class SelectedCheckpointBindingTest(unittest.TestCase):
             }
             with self.subTest(missing=name), self.assertRaises(guards.HybridQConfigError):
                 validation.require_selected_bindings(missing, binding)
+
+        self.assertEqual(torch.cuda.is_initialized(), cuda_before)
+
+
+DURABLE_Q = 0.30
+
+
+def durable_setting(prediction_root: Path, identity: dict) -> dict:
+    """One structurally complete per-q setting, built by the real writer.
+
+    The record is produced by `_setting_document` from a frozen noAE reference
+    row used as both reference and candidate, so it also pins that the writer's
+    own output satisfies the resume-path validator.
+    """
+    plan = quantize_q(DURABLE_Q)
+    reference = validation.load_noae_reference()[plan.q_e4]
+    analytical = validation.ae_uint8_transport.analytical_size(
+        plan.wire_q, validation.AE_BOTTLENECK
+    )
+    frames = contract.VALIDATION_FRAMES
+    metrics = dict(reference["metrics"])
+    canonical = dict(reference["canonical_person_metrics"])
+    raw = {
+        "q": plan.wire_q,
+        "q_e4": plan.q_e4,
+        "frames": frames,
+        "prediction_root": str(prediction_root),
+        "retained_cells": plan.keep_count,
+        "dropped_cells": plan.drop_count,
+        "payload": {
+            "transported_latent_channels": validation.AE_BOTTLENECK,
+            "analytical_pre_zstd_bytes": analytical.total_bytes,
+            "pre_zstd_bytes": validation._byte_stats([analytical.total_bytes] * frames),
+            "zstd_bytes": validation._byte_stats(
+                [int(analytical.total_bytes * 0.6)] * frames
+            ),
+            "zstd_mandatory": True,
+        },
+        "integrity": {
+            "ranker_invocations": 0 if plan.is_bypass else frames,
+            "q0_ranker_bypassed": plan.is_bypass,
+            "ae128_encoder_bypassed": False,
+            "ranked_original_fp32_c2_per_frame": not plan.is_bypass,
+            "selection_independent_per_frame": True,
+            "batched_or_cross_frame_selection_used": False,
+            "ranges_from_complete_latent_before_dropping": True,
+            "retained_uint8_cells_equal_selected_indices": True,
+            "dropped_cells_scattered_to_exact_zero": True,
+            "zstd_decompressions": frames,
+            "decoder_selected_from_received_header_bytes": True,
+            "local_packet_metadata_used_for_selection": False,
+            "reconstruction_is_identity_at_any_q": False,
+            "all_outputs_finite": True,
+        },
+    }
+    scored = {
+        "metrics": metrics,
+        "canonical_person_metrics": canonical,
+        "absolute_service_gates": contract.absolute_service_gates(
+            {
+                "vehicle_precision": metrics["vehicle_precision"],
+                "vehicle_recall": metrics["vehicle_recall"],
+                "vehicle_xy_mae_m": metrics["vehicle_xy_mae_m"],
+                "vehicle_iou": metrics["vehicle_iou"],
+                "person_box_mask_iou": metrics["person_box_mask_iou"],
+                "foreground_miou": metrics["foreground_miou"],
+                "person_precision": canonical["person_precision"],
+                "person_recall": canonical["person_recall"],
+                "person_xy_mae_m": canonical["person_xy_mae_m"],
+            }
+        ),
+    }
+    return validation._setting_document(
+        raw=raw, scored=scored, reference=reference, identity=identity
+    )
+
+
+class DurableSettingRecoveryTest(unittest.TestCase):
+    """The interruption window between a durable setting and its cleanup."""
+
+    def test_interrupted_cleanup_reuses_the_durable_setting(self) -> None:
+        cuda_before = torch.cuda.is_initialized()
+        identity = {"sha256": "f" * 64}
+        plan = quantize_q(DURABLE_Q)
+        slug = validation._q_slug(DURABLE_Q)
+
+        with tempfile.TemporaryDirectory() as raw_output:
+            output = Path(raw_output)
+            prediction_root = output / "working_predictions" / slug
+            (prediction_root / "segmentation").mkdir(parents=True)
+            (prediction_root / "detections.csv").write_text("x", encoding="utf-8")
+            (prediction_root / "segmentation" / "a.png").write_bytes(bytes(1))
+            setting_path = output / "settings" / f"{slug}.json"
+
+            # Exactly the interruption window: the setting is durably on disk and
+            # nothing after it ran.
+            digest = validation._atomic_json(
+                setting_path, durable_setting(prediction_root, identity)
+            )
+            self.assertTrue(setting_path.is_file())
+            self.assertTrue(prediction_root.is_dir())
+            self.assertFalse(
+                validation.cleanup_is_complete(output, DURABLE_Q, identity, digest)
+            )
+
+            written: list[str] = []
+            real_atomic_json = validation._atomic_json
+
+            def recording_atomic_json(path, document):
+                written.append(str(path))
+                return real_atomic_json(path, document)
+
+            with mock.patch.object(
+                validation, "_atomic_json", side_effect=recording_atomic_json
+            ), mock.patch.object(
+                validation,
+                "run_validation_pass",
+                side_effect=AssertionError("a durable q was remeasured"),
+            ):
+                reused = validation.reuse_or_complete(
+                    output=output, q=DURABLE_Q, identity=identity
+                )
+
+                # The durable record is reused byte-for-byte, not rebuilt.
+                self.assertIsNotNone(reused)
+                self.assertEqual(
+                    reused, json.loads(setting_path.read_text(encoding="utf-8"))
+                )
+                self.assertEqual(int(reused["q_e4"]), plan.q_e4)
+                self.assertEqual(sha256_file(setting_path), digest)
+
+                # Only the cleanup was completed: the sole write is the marker.
+                marker_path = validation.cleanup_marker_path(output, DURABLE_Q)
+                self.assertEqual(written, [str(marker_path)])
+                self.assertFalse(prediction_root.exists())
+                marker = json.loads(marker_path.read_text(encoding="utf-8"))
+                self.assertEqual(marker["terminal"], validation.CLEANUP_TERMINAL)
+                self.assertEqual(marker["schema"], validation.CLEANUP_SCHEMA)
+                self.assertEqual(marker["setting_sha256"], digest)
+                self.assertEqual(int(marker["q_e4"]), plan.q_e4)
+                self.assertTrue(
+                    marker["prediction_artifacts_removed_after_scoring"]
+                )
+                self.assertTrue(
+                    validation.cleanup_is_complete(
+                        output, DURABLE_Q, identity, digest
+                    )
+                )
+
+                # A further resume is a no-op: no write, no measurement.
+                again = validation.reuse_or_complete(
+                    output=output, q=DURABLE_Q, identity=identity
+                )
+                self.assertEqual(again, reused)
+                self.assertEqual(written, [str(marker_path)])
+                self.assertEqual(sha256_file(setting_path), digest)
+
+            # An incomplete record is never reused, and never silently
+            # remeasured either: it fails closed.
+            damaged = json.loads(setting_path.read_text(encoding="utf-8"))
+            damaged["frames"] = contract.VALIDATION_FRAMES - 1
+            real_atomic_json(setting_path, damaged)
+            with self.assertRaises(guards.HybridQConfigError):
+                validation.reuse_or_complete(
+                    output=output, q=DURABLE_Q, identity=identity
+                )
+
+            # No durable record at all is the one case that permits a pass.
+            self.assertIsNone(
+                validation.reuse_or_complete(
+                    output=output, q=0.70, identity=identity
+                )
+            )
 
         self.assertEqual(torch.cuda.is_initialized(), cuda_before)
 

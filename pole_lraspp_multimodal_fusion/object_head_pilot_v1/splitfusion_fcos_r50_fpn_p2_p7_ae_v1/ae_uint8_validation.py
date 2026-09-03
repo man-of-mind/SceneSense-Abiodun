@@ -34,6 +34,13 @@ Each measured q is compared against the frozen noAE UINT8+zstd validation result
 at the **same q**, so the reported degradation isolates the AE128 latent
 transport instead of re-measuring the ROI drop the noAE path already pays.
 
+Per q the durability order is fixed: the setting JSON is the scientific
+completion record and is fsynced into place *first*, that q's scratch
+predictions are removed only afterwards, and the cleanup marker is written last.
+An interruption can therefore lose at most a scratch prediction directory, never
+a completed measurement, and a resume finishes the unfinished cleanup rather
+than remeasuring the q.
+
 Acceptance is preregistered here, before any Phase-9D number exists, and is
 evaluated verbatim; q=0.90 and q=0.98 are stress/emergency profiles whatever
 they measure, and no setting is tuned or removed after observing a result. The
@@ -107,8 +114,22 @@ from .ae_model import build_split_feature_ae
 EXECUTE_TOKEN = "SPLITFUSION_AE128_PHASE9D_UINT8_VALIDATION"
 TERMINAL = "SPLITFUSION_AE128_UINT8_VALIDATION_COMPLETE"
 SETTING_TERMINAL = "SPLITFUSION_AE128_UINT8_Q_SETTING_COMPLETE"
+CLEANUP_TERMINAL = "SPLITFUSION_AE128_UINT8_Q_PREDICTIONS_REMOVED"
 SCHEMA = "splitfusion_fcos_ae128_phase9d_uint8_validation_v1"
 SETTING_SCHEMA = "splitfusion_fcos_ae128_phase9d_uint8_setting_v1"
+CLEANUP_SCHEMA = "splitfusion_fcos_ae128_phase9d_uint8_cleanup_v1"
+
+# Durability order per q, and the reason for it. The per-q setting JSON is the
+# scientific completion record, so it is written and fsynced into place *first*.
+# Only then are that q's scratch predictions removed, and the cleanup marker is
+# written last. An interruption can therefore lose at most a scratch prediction
+# directory -- never a completed measurement -- and resume finishes the cleanup
+# instead of remeasuring the q.
+DURABILITY_ORDER = (
+    "atomically write settings/<q>.json",
+    "remove working_predictions/<q>",
+    "atomically write cleanup/<q>.json",
+)
 
 DATALOADER_WORKERS = 8
 INFERENCE_BATCH = 8
@@ -1201,6 +1222,17 @@ def _setting_document(
             "executable": True,
             "removed_for_gate_miss": False,
         },
+        "prediction_artifacts": {
+            "root": str(raw["prediction_root"]),
+            "removed_before_this_record": False,
+            "removal_marker": f"cleanup/{_q_slug(q)}.json",
+            "durability_order": list(DURABILITY_ORDER),
+            "rule": (
+                "this record is the durable scientific completion record for "
+                "this q and is fsynced into place before its predictions are "
+                "removed, so an interruption can only lose scratch predictions"
+            ),
+        },
         "all_outputs_and_metrics_finite": True,
         "frozen_perception_state_unchanged": True,
         "stable_ranker_state_unchanged": True,
@@ -1212,24 +1244,270 @@ def _setting_document(
     }
 
 
-def _load_completed(path: Path, q: float, identity: Mapping[str, Any]) -> dict[str, Any]:
+def cleanup_marker_path(output: Path, q: float) -> Path:
+    return output / "cleanup" / f"{_q_slug(q)}.json"
+
+
+def load_durable_setting(
+    path: Path, q: float, identity: Mapping[str, Any]
+) -> dict[str, Any]:
+    """Fully validate one durable per-q setting record before it may be reused.
+
+    A setting JSON is the only thing that lets Phase 9D skip a q, so it is
+    validated in full rather than spot-checked: identity and q, the registered
+    frame count and single pass, the registered keep/drop cardinality and exact
+    payload size, the finite-result flags, the expected ranker and zstd
+    decompression counts, the frozen-state flags, and the complete metric and
+    gate structure. Anything short of a complete, self-consistent record raises
+    instead of being reused or silently remeasured.
+    """
     document = json.loads(path.read_text(encoding="utf-8"))
     plan = continuous_q.quantize_q(q)
+
+    def fail(reason: str) -> None:
+        raise guards.HybridQConfigError(f"{path}: {reason}")
+
     if (
         document.get("schema") != SETTING_SCHEMA
         or document.get("terminal") != SETTING_TERMINAL
     ):
-        raise guards.HybridQConfigError(f"incomplete setting artifact {path}")
-    if int(document.get("q_e4", -1)) != plan.q_e4:
-        raise guards.HybridQConfigError(f"q mismatch in completed setting {path}")
+        fail("incomplete or foreign setting artifact")
     if document.get("run_identity_sha256") != identity["sha256"]:
-        raise guards.HybridQConfigError(f"run identity mismatch in {path}")
+        fail("run identity mismatch")
+    if int(document.get("q_e4", -1)) != plan.q_e4:
+        fail("q_e4 mismatch")
+    if continuous_q.quantize_q(float(document.get("q", -1.0))).q_e4 != plan.q_e4:
+        fail("q mismatch")
     if int(document.get("frames", -1)) != contract.VALIDATION_FRAMES:
-        raise guards.HybridQConfigError(f"frame count mismatch in {path}")
+        fail("frame count mismatch")
     if int(document.get("inference_passes_for_this_q", -1)) != 1:
-        raise guards.HybridQConfigError(f"inference count mismatch in {path}")
-    if not bool(document.get("all_outputs_and_metrics_finite")):
-        raise guards.HybridQConfigError(f"non-finite completed setting {path}")
+        fail("inference pass count mismatch")
+    if int(document.get("retained_cells", -1)) != plan.keep_count:
+        fail("retained-cell count mismatch")
+    if int(document.get("dropped_cells", -1)) != plan.drop_count:
+        fail("dropped-cell count mismatch")
+
+    # Payload: the pre-zstd size is exact and analytical, so every statistic of
+    # it must be that one value, and the wire must have one sample per frame.
+    analytical = ae_uint8_transport.analytical_size(plan.wire_q, AE_BOTTLENECK)
+    payload = document.get("payload")
+    if not isinstance(payload, Mapping):
+        fail("no payload block")
+    if int(payload.get("transported_latent_channels", -1)) != AE_BOTTLENECK:
+        fail("transported latent width mismatch")
+    if int(payload.get("analytical_pre_zstd_bytes", -1)) != analytical.total_bytes:
+        fail("analytical pre-zstd payload size mismatch")
+    pre_zstd = payload.get("pre_zstd_bytes")
+    zstd = payload.get("zstd_bytes")
+    if not isinstance(pre_zstd, Mapping) or not isinstance(zstd, Mapping):
+        fail("no measured payload statistics")
+    for name in ("mean", "median", "p95", "minimum", "maximum"):
+        if float(pre_zstd.get(name, -1.0)) != float(analytical.total_bytes):
+            fail(f"measured pre-zstd {name} is not the analytical payload size")
+    for block, label in ((pre_zstd, "pre-zstd"), (zstd, "zstd")):
+        if int(block.get("samples", -1)) != contract.VALIDATION_FRAMES:
+            fail(f"{label} payload sample count mismatch")
+        if not all(
+            math.isfinite(float(block[name]))
+            for name in ("mean", "median", "p95", "minimum", "maximum")
+        ):
+            fail(f"non-finite {label} payload statistic")
+    if not bool(payload.get("zstd_mandatory")):
+        fail("the record does not report zstd as mandatory")
+
+    # Integrity: exactly the invocation and decompression counts one pass owes.
+    integrity = document.get("integrity")
+    if not isinstance(integrity, Mapping):
+        fail("no integrity block")
+    expected_ranker_calls = 0 if plan.is_bypass else contract.VALIDATION_FRAMES
+    if int(integrity.get("ranker_invocations", -1)) != expected_ranker_calls:
+        fail("ranker invocation count mismatch")
+    if bool(integrity.get("q0_ranker_bypassed")) != plan.is_bypass:
+        fail("q=0 ranker-bypass flag mismatch")
+    if int(integrity.get("zstd_decompressions", -1)) != contract.VALIDATION_FRAMES:
+        fail("zstd decompression count mismatch")
+    for flag in (
+        "all_outputs_finite",
+        "retained_uint8_cells_equal_selected_indices",
+        "dropped_cells_scattered_to_exact_zero",
+        "decoder_selected_from_received_header_bytes",
+        "ranges_from_complete_latent_before_dropping",
+        "selection_independent_per_frame",
+    ):
+        if not bool(integrity.get(flag)):
+            fail(f"integrity flag {flag} is not set")
+    for flag in (
+        "ae128_encoder_bypassed",
+        "local_packet_metadata_used_for_selection",
+        "reconstruction_is_identity_at_any_q",
+        "batched_or_cross_frame_selection_used",
+    ):
+        if bool(integrity.get(flag, True)):
+            fail(f"integrity flag {flag} must be false")
+
+    # Finite-result and frozen-state declarations.
+    for flag in (
+        "all_outputs_and_metrics_finite",
+        "frozen_perception_state_unchanged",
+        "stable_ranker_state_unchanged",
+        "selected_ae128_state_unchanged",
+    ):
+        if not bool(document.get(flag)):
+            fail(f"{flag} is not set")
+    for flag in ("training_or_tuning", "threshold_nms_or_gate_change", "test_or_carla_access"):
+        if bool(document.get(flag, True)):
+            fail(f"{flag} must be false")
+
+    # Complete metric and gate structure.
+    metrics = document.get("metrics")
+    if not isinstance(metrics, Mapping) or set(metrics) != set(contract.PROTECTED_METRICS):
+        fail("protected metric set is incomplete")
+    canonical = document.get("canonical_person_metrics")
+    if not isinstance(canonical, Mapping) or set(canonical) != set(_CSV_CANONICAL):
+        fail("canonical person metric set is incomplete")
+    if not all(
+        math.isfinite(float(value))
+        for value in list(metrics.values()) + list(canonical.values())
+    ):
+        fail("a recorded metric is non-finite")
+
+    service = document.get("absolute_service_gates")
+    if not isinstance(service, Mapping) or len(service.get("targets", ())) != SERVICE_GATE_COUNT:
+        fail("absolute service-gate set is incomplete")
+    targets = service["targets"]
+    if {name for name, _target, _direction in contract.ABSOLUTE_SERVICE_TARGETS} != set(targets):
+        fail("absolute service-gate names drift")
+    passed = sum(1 for row in targets.values() if bool(row.get("passed")))
+    if int(service.get("pass_count", -1)) != passed:
+        fail("absolute service-gate pass count is inconsistent")
+    if sorted(service.get("failed", ())) != sorted(
+        name for name, row in targets.items() if not bool(row.get("passed"))
+    ):
+        fail("absolute service-gate failure list is inconsistent")
+
+    preservation = document.get("same_q_preservation_vs_noae_uint8_zstd")
+    if not isinstance(preservation, Mapping):
+        fail("no same-q preservation block")
+    gates = preservation.get("gates")
+    if not isinstance(gates, Mapping) or set(gates) != set(contract.PROTECTED_METRICS):
+        fail("same-q preservation gate set is incomplete")
+    if int(preservation.get("gates_total", -1)) != GATE_COUNT:
+        fail("same-q preservation gate count drift")
+    gates_passed = sum(1 for row in gates.values() if bool(row.get("passed")))
+    if int(preservation.get("gates_passed", -1)) != gates_passed:
+        fail("same-q preservation pass count is inconsistent")
+    if bool(preservation.get("all_passed")) != (gates_passed == GATE_COUNT):
+        fail("same-q preservation all-passed flag is inconsistent")
+    if preservation.get("baseline") != SAME_Q_BASELINE_LABEL:
+        fail("same-q preservation baseline label drift")
+    deltas = document.get("protected_metric_deltas_vs_noae_uint8_zstd_same_q")
+    if not isinstance(deltas, Mapping) or set(deltas) != set(contract.PROTECTED_METRICS):
+        fail("protected metric delta set is incomplete")
+
+    reference = document.get("noae_same_q_reference")
+    if not isinstance(reference, Mapping):
+        fail("no frozen noAE same-q reference")
+    if int(reference.get("q_e4", -1)) != plan.q_e4:
+        fail("the recorded noAE reference is for a different q")
+    if int(reference.get("retained_cells", -1)) != plan.keep_count:
+        fail("the recorded noAE reference keep count drifts")
+    if not 0 <= int(reference.get("absolute_service_pass_count", -1)) <= SERVICE_GATE_COUNT:
+        fail("the recorded noAE reference service-gate count is unusable")
+
+    artifacts = document.get("prediction_artifacts")
+    if not isinstance(artifacts, Mapping):
+        fail("no prediction-artifact block")
+    if bool(artifacts.get("removed_before_this_record", True)):
+        fail("the record claims its predictions were removed before it was written")
+    return document
+
+
+def complete_cleanup(
+    *,
+    output: Path,
+    q: float,
+    identity: Mapping[str, Any],
+    setting_sha256: str,
+    prediction_root: Path,
+) -> dict[str, Any]:
+    """Remove one q's scratch predictions, then mark the cleanup durable.
+
+    Called only after that q's setting JSON is durably on disk. Idempotent: a
+    resume that finds the directory already gone still writes the marker, and a
+    resume that finds the marker complete does not come here at all.
+    """
+    plan = continuous_q.quantize_q(q)
+    if prediction_root.exists():
+        shutil.rmtree(prediction_root)
+    document = {
+        "schema": CLEANUP_SCHEMA,
+        "terminal": CLEANUP_TERMINAL,
+        "completed_utc": datetime.now(timezone.utc).isoformat(),
+        "run_identity_sha256": identity["sha256"],
+        "q": plan.wire_q,
+        "q_e4": plan.q_e4,
+        "setting_path": f"settings/{_q_slug(q)}.json",
+        "setting_sha256": str(setting_sha256),
+        "prediction_root": str(prediction_root),
+        "prediction_artifacts_removed_after_scoring": True,
+        "durability_order": list(DURABILITY_ORDER),
+    }
+    _atomic_json(document_path := cleanup_marker_path(output, q), document)
+    return {**document, "path": str(document_path)}
+
+
+def cleanup_is_complete(
+    output: Path, q: float, identity: Mapping[str, Any], setting_sha256: str
+) -> bool:
+    """True only for a marker that belongs to exactly this durable setting."""
+    path = cleanup_marker_path(output, q)
+    if not path.is_file():
+        return False
+    document = json.loads(path.read_text(encoding="utf-8"))
+    plan = continuous_q.quantize_q(q)
+    return bool(
+        document.get("schema") == CLEANUP_SCHEMA
+        and document.get("terminal") == CLEANUP_TERMINAL
+        and document.get("run_identity_sha256") == identity["sha256"]
+        and int(document.get("q_e4", -1)) == plan.q_e4
+        and document.get("setting_sha256") == str(setting_sha256)
+        and bool(document.get("prediction_artifacts_removed_after_scoring"))
+    )
+
+
+def reuse_or_complete(
+    *, output: Path, q: float, identity: Mapping[str, Any]
+) -> dict[str, Any] | None:
+    """Resume step for one q. Measures nothing, ever.
+
+    Returns the fully validated durable setting when one exists, having finished
+    that q's cleanup if an interruption left it unfinished. Returns None only
+    when no durable record exists, which is the single case in which the caller
+    is allowed to run the inference/evaluation pass.
+    """
+    setting_path = output / "settings" / f"{_q_slug(q)}.json"
+    if not setting_path.is_file():
+        return None
+    document = load_durable_setting(setting_path, q, identity)
+    digest = sha256_file(setting_path)
+    if not cleanup_is_complete(output, q, identity, digest):
+        marker = complete_cleanup(
+            output=output,
+            q=q,
+            identity=identity,
+            setting_sha256=digest,
+            prediction_root=output / "working_predictions" / _q_slug(q),
+        )
+        print(
+            json.dumps(
+                {
+                    "completed_interrupted_cleanup_for_q": q,
+                    "reran_inference": False,
+                    "marker": marker["path"],
+                }
+            ),
+            flush=True,
+        )
     return document
 
 
@@ -1501,7 +1779,10 @@ def _report_text(document: Mapping[str, Any]) -> str:
         "an identity reconstruction",
         "- frozen perception, stable ranker and selected AE128 parameters and "
         "buffers were unchanged",
-        "- predictions were removed after scoring; only compact evidence is kept",
+        "- per q the setting JSON was fsynced into place first, its predictions "
+        "were removed only afterwards, and the cleanup marker was written last, "
+        "so an interruption could only lose scratch predictions",
+        "- only compact evidence is retained; no prediction directory survives",
         "",
     ]
     return "\n".join(lines)
@@ -1648,6 +1929,19 @@ def finalize(
             }
             for row in rows
         },
+        "durability": {
+            "order_per_q": list(DURABILITY_ORDER),
+            "setting_json_is_the_completion_record": True,
+            "predictions_removed_only_after_the_setting_is_durable": True,
+            "cleanup_markers": {
+                _q_slug(row["q"]): {
+                    "path": f"cleanup/{_q_slug(row['q'])}.json",
+                    "terminal": CLEANUP_TERMINAL,
+                    "sha256": sha256_file(cleanup_marker_path(output, float(row["q"]))),
+                }
+                for row in rows
+            },
+        },
         "integrity": {
             "zstd_decompressions": sum(
                 int(row["integrity"]["zstd_decompressions"]) for row in rows
@@ -1667,6 +1961,15 @@ def finalize(
             "frozen_perception_state_unchanged": True,
             "stable_ranker_state_unchanged": True,
             "selected_ae128_state_unchanged": True,
+            "every_q_has_a_durable_setting_and_cleanup_marker": all(
+                cleanup_is_complete(
+                    output,
+                    float(row["q"]),
+                    identity,
+                    sha256_file(output / "settings" / f"{_q_slug(row['q'])}.json"),
+                )
+                for row in rows
+            ),
         },
         "wall_seconds_this_invocation": time.time() - started,
     }
@@ -1675,6 +1978,10 @@ def finalize(
         raise guards.HybridQPayloadError("final zstd decompression count drift")
     if not integrity["all_outputs_and_metrics_finite"]:
         raise guards.HybridQNumericalError("final result contains a non-finite row")
+    if not integrity["every_q_has_a_durable_setting_and_cleanup_marker"]:
+        raise guards.HybridQConfigError(
+            "a completed q is missing its durable setting or its cleanup marker"
+        )
 
     _atomic_json(output / "phase9d_ae128_uint8_validation.json", document)
     _atomic_write(output / "phase9d_ae128_uint8_validation.csv", _csv_text(rows))
@@ -1759,11 +2066,11 @@ def main() -> int:
     for q in Q_VALUES:
         slug = _q_slug(q)
         setting_path = settings_dir / f"{slug}.json"
-        if setting_path.exists():
-            completed_rows.append(_load_completed(setting_path, q, identity))
-            leftover = work_dir / slug
-            if leftover.exists():
-                shutil.rmtree(leftover)
+        # A q with a valid durable record is never remeasured; at most its
+        # interrupted cleanup is finished.
+        reused = reuse_or_complete(output=output, q=q, identity=identity)
+        if reused is not None:
+            completed_rows.append(reused)
             print(
                 json.dumps({"reused_completed_q": q, "setting": str(setting_path)}),
                 flush=True,
@@ -1795,9 +2102,19 @@ def main() -> int:
         setting = _setting_document(
             raw=raw, scored=scored, reference=reference, identity=identity
         )
-        shutil.rmtree(prediction_root)
-        setting["prediction_artifacts_removed_after_scoring"] = True
+        # The scientific completion record goes down first, fsynced into place,
+        # and is then re-read through the same validator the resume path uses,
+        # so the in-memory row is exactly the durable bytes.
         digest = _atomic_json(setting_path, setting)
+        setting = load_durable_setting(setting_path, q, identity)
+        # Only now: drop the scratch predictions, then mark the cleanup durable.
+        complete_cleanup(
+            output=output,
+            q=q,
+            identity=identity,
+            setting_sha256=digest,
+            prediction_root=prediction_root,
+        )
         completed_rows.append(setting)
         preservation = setting["same_q_preservation_vs_noae_uint8_zstd"]
         print(
