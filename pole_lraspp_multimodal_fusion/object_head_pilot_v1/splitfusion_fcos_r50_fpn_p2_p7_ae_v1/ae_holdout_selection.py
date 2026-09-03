@@ -26,9 +26,11 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import math
 import platform
 import shutil
 import time
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping, Sequence
@@ -87,8 +89,10 @@ RANKING_RULE = (
     "2) then maximize the total preservation gates passed across all four q; "
     "3) then minimize the worst normalized protected-metric degradation "
     "(degradation divided by that metric's registered gate bound); "
-    "4) then minimize the mean holdout task-aware reconstruction loss over the "
-    "four q; "
+    "4) then minimize the mean over the four q of the global holdout task-aware "
+    "reconstruction loss, where global means each ratio is a total numerator "
+    "over a total denominator accumulated across all holdout frames rather than "
+    "an unweighted mean of per-batch ratios; "
     "5) then prefer the earlier epoch"
 )
 RANKING_CRITERIA = (
@@ -103,6 +107,107 @@ RANKING_CRITERIA = (
 # ---------------------------------------------------------------------------
 # One AE checkpoint/q holdout pass
 # ---------------------------------------------------------------------------
+
+
+@dataclass
+class HoldoutReconstructionTotals:
+    """Batching-independent global reconstruction ratios over the whole holdout.
+
+    The committed task-aware loss is a *ratio of sums*: plain is the total
+    squared error over the total reference energy, and combined-importance is the
+    same ratio under the per-frame L1-normalized importance weights. An
+    unweighted mean of per-batch ratios is therefore not the loss over the
+    holdout — it depends on how the frames happened to be grouped, and the short
+    final batch is over-weighted. This accumulates the four sums per frame and
+    divides once at the end, so regrouping the same frames into different batch
+    sizes cannot move the number that criterion 4 ranks on.
+    """
+
+    plain_numerator: list[float] = field(default_factory=list)
+    plain_denominator: list[float] = field(default_factory=list)
+    weighted_numerator: list[float] = field(default_factory=list)
+    weighted_denominator: list[float] = field(default_factory=list)
+
+    @property
+    def frames(self) -> int:
+        return len(self.plain_numerator)
+
+    def observe(
+        self,
+        c2: torch.Tensor,
+        reconstructed: torch.Tensor,
+        teacher: ae_loss.CachedTeacherBatch,
+    ) -> None:
+        """Accumulate one batch's per-frame numerators and denominators."""
+        with torch.no_grad():
+            target = c2.detach().float()
+            estimate = reconstructed.detach().float()
+            frames = int(target.shape[0])
+            if teacher.frames != frames:
+                raise guards.HybridQPayloadError(
+                    f"teacher batch covers {teacher.frames} frames, C2 batch has {frames}"
+                )
+            cell_error = (estimate - target).pow(2).sum(dim=1)
+            cell_energy = target.pow(2).sum(dim=1)
+            # Exactly the loss's own weights: per-frame L1-normalized, which is
+            # what makes the four sums additive across frames.
+            weights = teacher.importance.detach().to(
+                device=target.device, dtype=torch.float32
+            )
+            mass = weights.reshape(frames, -1).sum(dim=1)
+            if not bool((mass > 0).all()):
+                raise guards.HybridQNumericalError(
+                    "a cached importance map has no positive mass"
+                )
+            weights = weights / mass.reshape(frames, 1, 1)
+
+            # Each per-frame spatial reduction is taken in float64 over that
+            # frame's cells alone, so a frame contributes the same four numbers
+            # whatever else shares its batch.
+            rows = {
+                "plain_numerator": cell_error.reshape(frames, -1).double().sum(dim=1),
+                "plain_denominator": cell_energy.reshape(frames, -1).double().sum(dim=1),
+                "weighted_numerator": (weights * cell_error)
+                .reshape(frames, -1)
+                .double()
+                .sum(dim=1),
+                "weighted_denominator": (weights * cell_energy)
+                .reshape(frames, -1)
+                .double()
+                .sum(dim=1),
+            }
+            for name, values in rows.items():
+                guards.require_finite(values, f"per-frame {name}")
+                getattr(self, name).extend(float(value) for value in values.cpu())
+
+    def totals(self) -> dict[str, float]:
+        """The four exact sums and the three global ratios they define."""
+        if self.frames == 0:
+            raise guards.HybridQConfigError("no holdout frame was accumulated")
+        plain_numerator = math.fsum(self.plain_numerator)
+        plain_denominator = math.fsum(self.plain_denominator)
+        weighted_numerator = math.fsum(self.weighted_numerator)
+        weighted_denominator = math.fsum(self.weighted_denominator)
+        if plain_denominator <= 0.0:
+            raise guards.HybridQNumericalError(
+                "the holdout reference C2 has zero energy"
+            )
+        if weighted_denominator <= 0.0:
+            raise guards.HybridQNumericalError(
+                "the holdout importance mass sits where the reference C2 has no energy"
+            )
+        global_plain = plain_numerator / plain_denominator
+        global_combined = weighted_numerator / weighted_denominator
+        return {
+            "frames": self.frames,
+            "plain_squared_error_numerator": plain_numerator,
+            "plain_reference_energy_denominator": plain_denominator,
+            "combined_importance_numerator": weighted_numerator,
+            "combined_importance_reference_energy_denominator": weighted_denominator,
+            "global_plain_reconstruction": global_plain,
+            "global_combined_importance_reconstruction": global_combined,
+            "global_total_loss": global_plain + global_combined,
+        }
 
 
 def run_pass(
@@ -153,6 +258,7 @@ def run_pass(
     batch_combined: list[float] = []
     frame_plain: list[float] = []
     frame_weighted: list[float] = []
+    totals = HoldoutReconstructionTotals()
     min_valid_groups = len(contract.TEACHER_GROUPS)
     detection_count = 0
     person_count = 0
@@ -197,6 +303,7 @@ def run_pass(
                 min_valid_groups = min(
                     min_valid_groups, int(report["min_valid_groups_observed"])
                 )
+                totals.observe(c2, hat, teacher)
                 errors = per_frame_errors(c2, hat, teacher)
                 frame_plain.extend(errors["plain"])
                 frame_weighted.extend(errors["importance_weighted"])
@@ -293,17 +400,28 @@ def run_pass(
         "ranker_invocations": ranker_invocations,
         "transport": common.AE_HOLDOUT_QUANTIZER,
         "reconstruction": {
-            "mean_total_loss": float(np.mean(batch_totals)),
-            "mean_plain_reconstruction": float(np.mean(batch_plain)),
-            "mean_combined_importance_reconstruction": float(np.mean(batch_combined)),
-            "batches": len(batch_totals),
+            **totals.totals(),
+            "definition": (
+                "the committed task-aware loss evaluated once over the whole "
+                "holdout: each ratio divides a total numerator by a total "
+                "denominator accumulated per frame, so it does not depend on how "
+                "the frames were batched"
+            ),
+            "batch_diagnostics": {
+                "mean_total_loss": float(np.mean(batch_totals)),
+                "mean_plain_reconstruction": float(np.mean(batch_plain)),
+                "mean_combined_importance_reconstruction": float(np.mean(batch_combined)),
+                "batches": len(batch_totals),
+                "note": (
+                    "unweighted mean of per-batch ratios; diagnostic only, and "
+                    "not used by the checkpoint ranking, because it depends on "
+                    "the batch grouping and over-weights the short final batch"
+                ),
+            },
             "per_frame_plain": _summarize(frame_plain),
             "per_frame_importance_weighted": _summarize(frame_weighted),
+            "per_frame_note": "per-frame errors are normalized within each frame",
             "min_valid_groups_observed": min_valid_groups,
-            "definition": (
-                "the committed task-aware loss, averaged over inference batches; "
-                "per-frame errors are normalized within each frame"
-            ),
         },
         "wall_seconds": time.time() - started,
         "peak_allocated_vram_mib": torch.cuda.max_memory_allocated(device) / 2 ** 20,
@@ -376,7 +494,7 @@ def aggregate_by_checkpoint(records: Sequence[Mapping[str, Any]]) -> list[dict[s
             f"{q:.2f}": int(rows[q]["gate_result"]["gates_passed"]) for q in wanted
         }
         losses = [
-            float(rows[q]["reconstruction"]["mean_total_loss"]) for q in wanted
+            float(rows[q]["reconstruction"]["global_total_loss"]) for q in wanted
         ]
         aggregated.append(
             {
@@ -390,8 +508,8 @@ def aggregate_by_checkpoint(records: Sequence[Mapping[str, Any]]) -> list[dict[s
                     for q in wanted
                 ),
                 "mean_holdout_reconstruction_loss": float(np.mean(losses)),
-                "per_q_mean_reconstruction_loss": {
-                    f"{q:.2f}": float(rows[q]["reconstruction"]["mean_total_loss"])
+                "per_q_global_reconstruction_loss": {
+                    f"{q:.2f}": float(rows[q]["reconstruction"]["global_total_loss"])
                     for q in wanted
                 },
                 "all_gates_passed_at_every_q": all(
@@ -431,6 +549,13 @@ def rank_checkpoints(records: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
     return {
         "rule": RANKING_RULE,
         "criteria_in_order": list(RANKING_CRITERIA),
+        "reconstruction_loss_definition": (
+            "criterion 4 uses global_total_loss: the plain and "
+            "combined-importance ratios are each formed from numerator and "
+            "denominator sums accumulated over every holdout frame, so the value "
+            "is independent of the inference batch grouping. The per-batch means "
+            "are retained as diagnostics only"
+        ),
         "normalized_degradation_definition": (
             "signed protected-metric degradation divided by that metric's "
             "registered preservation-gate bound, so metrics with different "
@@ -607,8 +732,8 @@ def main() -> int:
                         "worst_normalized_degradation": round(
                             scored["gate_result"]["worst_normalized_degradation"], 4
                         ),
-                        "mean_reconstruction_loss": round(
-                            scored["reconstruction"]["mean_total_loss"], 6
+                        "global_reconstruction_loss": round(
+                            scored["reconstruction"]["global_total_loss"], 6
                         ),
                     }
                 ),
@@ -642,6 +767,7 @@ def main() -> int:
             "uint8_zstd_uint6_uint4_run": False,
             "stress_q_values_not_evaluated": list(common.AE_EXCLUDED_Q),
             "validation_or_test_accessed": False,
+            "fit_teacher_shards_deserialized": 0,
             "training_run_here": False,
             "threshold_calibration_nms_or_visibility_changed": False,
             "carla_launched": False,
@@ -655,6 +781,7 @@ def main() -> int:
         "binding": binding,
         "perception_binding": perception,
         "hybrid_q_source_delta_since_phase4": delta,
+        "teacher_store": store.provenance(),
         "training_run": {
             "path": str(training_dir),
             "candidate_checkpoints": dict(training_report["candidate_checkpoints"]),

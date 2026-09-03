@@ -291,10 +291,10 @@ def set_learning_rate(optimizer: torch.optim.Optimizer, lr: float) -> float:
 class AeTeacherStore:
     """Cached teacher records for exactly one split, keyed by sample ID.
 
-    The whole 66-shard cache is walked so identity and coverage are reconciled
-    against the registered partition, but tensors are retained for the requested
-    split only. Asking for a frame of the other split raises rather than
-    silently returning supervision from a split that must not be used.
+    Only the shards the manifest labels as `split` are ever deserialized. The
+    opposite split's shards are named, counted and hash-verified from manifest
+    metadata and then left closed, so this store cannot hold a single map of the
+    split it is not for. Asking for a frame of the other split raises.
     """
 
     split: str
@@ -303,6 +303,9 @@ class AeTeacherStore:
     valid_groups: tuple[tuple[str, ...], ...]
     excluded_groups: tuple[dict[str, str], ...]
     other_split_ids: frozenset[str]
+    manifest_sha256: str = ""
+    loaded_shards: tuple[str, ...] = ()
+    withheld_shards: tuple[str, ...] = ()
 
     @property
     def frames(self) -> int:
@@ -311,6 +314,26 @@ class AeTeacherStore:
     @property
     def bytes(self) -> int:
         return int(self.maps.numel()) * self.maps.element_size()
+
+    def provenance(self) -> dict[str, Any]:
+        """What was opened and what was excluded, for the run record."""
+        other = next(
+            label for label in contract.SPLIT_LABELS if label != self.split
+        )
+        return {
+            "split_loaded": self.split,
+            "teacher_cache_manifest_sha256": self.manifest_sha256,
+            "shards_opened": len(self.loaded_shards),
+            "shards_withheld_unopened": len(self.withheld_shards),
+            f"{other}_shards_deserialized": 0,
+            f"{other}_maps_loaded": 0,
+            f"{other}_ids_excluded": len(self.other_split_ids),
+            "maps_loaded": self.frames,
+            "policy": (
+                "manifest and binary shard hashes are inspected in full; "
+                f"torch.load is called only on {self.split} shards"
+            ),
+        }
 
     def record(self, sample_id: str) -> tuple[torch.Tensor, tuple[str, ...], dict[str, str]]:
         key = str(sample_id)
@@ -337,52 +360,209 @@ class AeTeacherStore:
         )
 
 
-def load_ae_teacher_store(
-    partition: teacher_cache.SplitPartition, split: str
-) -> AeTeacherStore:
-    """Load the Phase-4 cache and retain the records of exactly one split."""
+@dataclass(frozen=True)
+class TeacherShardPlan:
+    """Which shards one split may open, decided from manifest metadata alone.
+
+    Nothing here interprets a shard payload. The split decision, the frame
+    accounting and the exact sample-ID coverage come from the manifest and from
+    the registered `SplitPartition`; the opposite split's shards are named only
+    so the run record can show they stayed closed.
+    """
+
+    split: str
+    other_split: str
+    manifest_sha256: str
+    selected: tuple[Mapping[str, Any], ...]
+    withheld: tuple[str, ...]
+    expected_ids: tuple[str, ...]
+    other_split_ids: frozenset[str]
+    selected_frames: int
+    withheld_frames: int
+
+
+def plan_teacher_shards(
+    cache_root: Path, partition: teacher_cache.SplitPartition, split: str
+) -> TeacherShardPlan:
+    """Read the whole manifest for provenance, then admit one split's shards.
+
+    Reading manifest metadata and hashing shard bytes is provenance, not
+    supervision. Deserializing an opposite-split tensor payload is what must not
+    happen, so the manifest alone decides what may be opened.
+    """
     if split not in contract.SPLIT_LABELS:
         raise guards.HybridQConfigError(f"{split!r} is not a registered split label")
-    cache_root = phase5_common.teacher_cache_root()
-    manifest = json.loads(
-        (cache_root / "teacher_cache_manifest.json").read_text(encoding="utf-8")
-    )
+    other_split = next(label for label in contract.SPLIT_LABELS if label != split)
+
+    manifest_path = cache_root / "teacher_cache_manifest.json"
+    manifest_sha256 = sha256_file(manifest_path)
+    if manifest_sha256 != contract.TEACHER_CACHE_MANIFEST_SHA256:
+        raise guards.HybridQConfigError("Phase-4 teacher-cache manifest sha256 drift")
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if manifest["schema"] != teacher_cache.MANIFEST_SCHEMA:
+        raise guards.HybridQConfigError("teacher-cache manifest schema drift")
+    if manifest["terminal"] != "HYBRID_Q_PHASE4_TEACHER_CACHE_COMPLETE":
+        raise guards.HybridQConfigError("teacher-cache manifest is not a complete cache")
+    if (
+        manifest["perception_binding"]["checkpoint_sha256"]
+        != contract.FROZEN_CHECKPOINT_SHA256
+    ):
+        raise guards.HybridQConfigError("teacher-cache manifest checkpoint binding drift")
+    if int(manifest["split"]["validation_or_test_frames"]) != 0:
+        raise guards.HybridQConfigError("teacher cache reports validation/test frames")
+
     entries = list(manifest["shards"]["entries"])
     if len(entries) != contract.TEACHER_CACHE_SHARD_COUNT:
         raise guards.HybridQConfigError("teacher-cache shard count drift")
+
+    selected: list[Mapping[str, Any]] = []
+    withheld: list[str] = []
+    frames_by_split = {label: 0 for label in contract.SPLIT_LABELS}
+    for entry in entries:
+        path = str(entry["path"])
+        label = str(entry["split"])
+        if label not in contract.SPLIT_LABELS:
+            raise guards.HybridQConfigError(f"{path} has an unregistered split label")
+        frames = int(entry["frames"])
+        if frames <= 0:
+            raise guards.HybridQConfigError(f"{path} declares {frames} frames")
+        # Split purity is required of every admitted shard, from the manifest's
+        # own per-split frame counts, before anything is deserialized.
+        counts = {name: int(entry[f"{name}_frames"]) for name in contract.SPLIT_LABELS}
+        if counts[label] != frames or sum(counts.values()) != frames:
+            raise guards.HybridQConfigError(
+                f"{path} is not split-pure: {counts} under label {label!r}"
+            )
+        frames_by_split[label] += frames
+        if label == split:
+            selected.append(dict(entry))
+        else:
+            withheld.append(path)
+
+    if sum(frames_by_split.values()) != contract.TRAIN_TOTAL_FRAMES:
+        raise guards.HybridQConfigError(
+            f"the manifest accounts for {sum(frames_by_split.values())} frames "
+            f"!= {contract.TRAIN_TOTAL_FRAMES}"
+        )
+    if int(manifest["split"]["total_frames"]) != contract.TRAIN_TOTAL_FRAMES:
+        raise guards.HybridQConfigError("teacher-cache manifest total frame-count drift")
+    for label in contract.SPLIT_LABELS:
+        if int(manifest["split"][f"{label}_frames"]) != frames_by_split[label]:
+            raise guards.HybridQConfigError(
+                f"manifest {label} frame count disagrees with its shard entries"
+            )
+
+    expected_ids = tuple(
+        partition.fit_sample_ids if split == "fit" else partition.holdout_sample_ids
+    )
+    other_ids = frozenset(
+        partition.holdout_sample_ids if split == "fit" else partition.fit_sample_ids
+    )
+    if len(set(expected_ids)) != len(expected_ids):
+        raise guards.HybridQConfigError(f"the registered {split} ids are not unique")
+    if set(expected_ids) & other_ids:
+        raise guards.HybridQConfigError("the registered split partitions overlap")
+    # Exact sample-ID coverage of both splits, checked against the manifest
+    # digests without opening a shard of either split.
+    for label, ids in (
+        ("fit", partition.fit_sample_ids),
+        ("holdout", partition.holdout_sample_ids),
+    ):
+        if manifest["split"][f"{label}_sample_id_sha256"] != contract.sample_id_digest(ids):
+            raise guards.HybridQConfigError(
+                f"the manifest {label} sample-ID digest disagrees with the "
+                "registered partition"
+            )
+    if frames_by_split[split] != len(expected_ids):
+        raise guards.HybridQConfigError(
+            f"the manifest holds {frames_by_split[split]} {split} frames, the "
+            f"registered partition has {len(expected_ids)}"
+        )
+    if frames_by_split[other_split] != len(other_ids):
+        raise guards.HybridQConfigError(
+            f"the manifest holds {frames_by_split[other_split]} {other_split} "
+            f"frames, the registered partition has {len(other_ids)}"
+        )
+    if not selected:
+        raise guards.HybridQConfigError(f"the teacher cache holds no {split} shard")
+
+    selected.sort(key=lambda entry: int(entry["shard_index"]))
+    return TeacherShardPlan(
+        split=str(split),
+        other_split=str(other_split),
+        manifest_sha256=manifest_sha256,
+        selected=tuple(selected),
+        withheld=tuple(withheld),
+        expected_ids=expected_ids,
+        other_split_ids=other_ids,
+        selected_frames=frames_by_split[split],
+        withheld_frames=frames_by_split[other_split],
+    )
+
+
+def load_ae_teacher_store(
+    partition: teacher_cache.SplitPartition,
+    split: str,
+    *,
+    shard_loader: Any = None,
+) -> AeTeacherStore:
+    """Deserialize exactly one split's teacher shards and nothing else.
+
+    Training calls this with `split="fit"` and never deserializes a holdout
+    shard; holdout selection calls it with `split="holdout"` and never
+    deserializes a fit shard. `shard_loader` exists so a test can observe which
+    paths are opened; production always uses `teacher_cache.load_shard`.
+    """
+    cache_root = phase5_common.teacher_cache_root()
+    plan = plan_teacher_shards(cache_root, partition, split)
+    load = teacher_cache.load_shard if shard_loader is None else shard_loader
 
     blocks: list[torch.Tensor] = []
     index: dict[str, int] = {}
     valid: list[tuple[str, ...]] = []
     excluded: list[dict[str, str]] = []
-    other: set[str] = set()
-    seen: set[str] = set()
-    cursor = 0
-    for entry in entries:
-        payload = teacher_cache.load_shard(cache_root / entry["path"])
+    loaded: list[str] = []
+    for entry in plan.selected:
+        path = cache_root / entry["path"]
+        # Hash first, deserialize second.
+        if path.stat().st_size != int(entry["bytes"]):
+            raise guards.HybridQPayloadError(f"{entry['path']} byte size drift")
+        if sha256_file(path) != entry["sha256"]:
+            raise guards.HybridQPayloadError(f"{entry['path']} sha256 drift")
+
+        payload = load(path)
         if payload["schema"] != teacher_cache.SHARD_SCHEMA:
             raise guards.HybridQConfigError(f"{entry['path']} schema drift")
         if payload["perception_checkpoint_sha256"] != contract.FROZEN_CHECKPOINT_SHA256:
             raise guards.HybridQConfigError(f"{entry['path']} checkpoint binding drift")
+        labels = {str(value) for value in payload["splits"]}
+        if str(payload["split"]) != split or labels != {split}:
+            raise guards.HybridQOwnershipError(
+                f"{entry['path']} is not a pure {split} shard: {sorted(labels)}"
+            )
+        frames = int(entry["frames"])
+        if len(payload["sample_ids"]) != frames or len(payload["splits"]) != frames:
+            raise guards.HybridQPayloadError(f"{entry['path']} identifier count drift")
         maps = payload["importance"]
         if maps.dtype is not torch.float32:
             raise guards.HybridQPayloadError(f"{entry['path']} maps are not FP32")
-        if tuple(maps.shape[1:]) != contract.SPLIT_SPATIAL_SHAPE:
+        if tuple(maps.shape) != (frames,) + contract.SPLIT_SPATIAL_SHAPE:
             raise guards.HybridQPayloadError(f"{entry['path']} map shape drift")
-        keep: list[int] = []
+
         for offset, sample_id in enumerate(payload["sample_ids"]):
             key = str(sample_id)
-            if key in seen:
+            if key in index:
                 raise guards.HybridQConfigError(f"duplicate cached frame {key}")
-            seen.add(key)
-            label = str(payload["splits"][offset])
-            if contract.split_for_episode(str(payload["episode_ids"][offset])) != label:
-                raise guards.HybridQConfigError(f"{key} split label disagrees with its episode")
-            if label != split:
-                other.add(key)
-                continue
-            keep.append(offset)
-            index[key] = cursor + len(keep) - 1
+            if key in plan.other_split_ids:
+                raise guards.HybridQOwnershipError(
+                    f"{key} is a registered {plan.other_split} frame but was "
+                    f"cached in a {split} shard"
+                )
+            if contract.split_for_episode(str(payload["episode_ids"][offset])) != split:
+                raise guards.HybridQConfigError(
+                    f"{key} split label disagrees with its episode"
+                )
+            index[key] = len(index)
             groups = tuple(str(name) for name in payload["valid_groups"][offset])
             if len(groups) < ae_contract.AE_MIN_VALID_TASK_GROUPS:
                 raise guards.HybridQConfigError(
@@ -396,28 +576,19 @@ def load_ae_teacher_store(
                     for name, reason in dict(payload["excluded_groups"][offset]).items()
                 }
             )
-        if keep:
-            selected = maps.index_select(0, torch.tensor(keep, dtype=torch.int64))
-            blocks.append(selected.contiguous())
-            cursor += len(keep)
-        del payload
+        blocks.append(maps.contiguous())
+        loaded.append(str(entry["path"]))
+        del payload, maps
 
-    if len(seen) != contract.TRAIN_TOTAL_FRAMES:
+    if len(index) != plan.selected_frames:
         raise guards.HybridQConfigError(
-            f"teacher cache holds {len(seen)} unique frames != {contract.TRAIN_TOTAL_FRAMES}"
+            f"the opened {split} shards carry {len(index)} frames != the "
+            f"manifest's {plan.selected_frames}"
         )
-    expected_ids = set(
-        partition.fit_sample_ids if split == "fit" else partition.holdout_sample_ids
-    )
-    if set(index) != expected_ids:
+    if set(index) != set(plan.expected_ids):
         raise guards.HybridQConfigError(
             f"cached {split} frames disagree with the registered partition"
         )
-    if set(index) & other:
-        raise guards.HybridQConfigError("split partitions overlap in the teacher store")
-
-    if not blocks:
-        raise guards.HybridQConfigError(f"the teacher cache holds no {split} frame")
     maps = torch.cat(blocks, dim=0)
     del blocks
     if int(maps.shape[0]) != len(index):
@@ -432,7 +603,10 @@ def load_ae_teacher_store(
         index=index,
         valid_groups=tuple(valid),
         excluded_groups=tuple(excluded),
-        other_split_ids=frozenset(other),
+        other_split_ids=plan.other_split_ids,
+        manifest_sha256=plan.manifest_sha256,
+        loaded_shards=tuple(loaded),
+        withheld_shards=plan.withheld,
     )
 
 
@@ -474,7 +648,8 @@ def _atomic_torch_save(payload: Mapping[str, Any], path: Path) -> str:
     return sha256_file(path)
 
 
-def _binding_fields(binding: Mapping[str, Any]) -> dict[str, Any]:
+def binding_fields(binding: Mapping[str, Any]) -> dict[str, Any]:
+    """Every saved source binding, all of which a load must reproduce exactly."""
     return {
         "perception_checkpoint_sha256": contract.FROZEN_CHECKPOINT_SHA256,
         "stable_ranker_sha256": binding["stable_epoch4_ranker"]["sha256"],
@@ -483,6 +658,25 @@ def _binding_fields(binding: Mapping[str, Any]) -> dict[str, Any]:
         "hybrid_q_source_sha256": binding["hybrid_q_source_sha256"],
         "ae_package_source_sha256": binding["ae_package_source_sha256"],
     }
+
+
+def require_bindings(
+    payload: Mapping[str, Any], binding: Mapping[str, Any], *, what: str
+) -> dict[str, Any]:
+    """Fail closed unless every saved binding field matches the live one.
+
+    Every field `binding_fields()` writes is enforced, including the per-file
+    `hybrid_q_source_sha256` and `ae_package_source_sha256` maps: a source,
+    mapping or configuration edit between writing a checkpoint and loading it is
+    drift, not a detail to skip.
+    """
+    expected = binding_fields(binding)
+    for name, value in expected.items():
+        if name not in payload:
+            raise guards.HybridQConfigError(f"{what} does not carry {name}")
+        if payload[name] != value:
+            raise guards.HybridQConfigError(f"{what} {name} drift")
+    return expected
 
 
 def save_recovery(
@@ -522,7 +716,7 @@ def save_recovery(
         "order_identity": dict(order_identity),
         "epoch_summary": dict(summary),
         "configuration": training_configuration(),
-        **_binding_fields(binding),
+        **binding_fields(binding),
     }
     return _atomic_torch_save(payload, path)
 
@@ -552,7 +746,7 @@ def save_candidate(
         "global_update_index": int(global_update_index),
         "stage_b_cycle_position": int(stage_b_position),
         "configuration": training_configuration(),
-        **_binding_fields(binding),
+        **binding_fields(binding),
     }
     return _atomic_torch_save(payload, path)
 
@@ -572,11 +766,7 @@ def load_candidate(
         raise guards.HybridQConfigError(f"{path.name} epoch drift")
     if int(payload["bottleneck"]) != AE_TRAINING_BOTTLENECK:
         raise guards.HybridQConfigError(f"{path.name} bottleneck drift")
-    for name, expected in _binding_fields(binding).items():
-        if name.endswith("_source_sha256"):
-            continue
-        if payload[name] != expected:
-            raise guards.HybridQConfigError(f"{path.name} {name} drift")
+    require_bindings(payload, binding, what=path.name)
     autoencoder = build_split_feature_ae(AE_TRAINING_BOTTLENECK)
     autoencoder.load_state_dict(payload["autoencoder"])
     if autoencoder.parameter_count() != int(payload["parameter_count"]):
@@ -649,7 +839,9 @@ def load_noae_holdout_reference() -> dict[float, dict[str, Any]]:
 
 __all__ = [
     "AeTeacherStore",
+    "TeacherShardPlan",
     "bind_frozen_inputs",
+    "binding_fields",
     "build_ae",
     "build_ae_optimizer",
     "freeze",
@@ -657,6 +849,8 @@ __all__ = [
     "load_candidate",
     "load_noae_holdout_reference",
     "load_stable_ranker",
+    "plan_teacher_shards",
+    "require_bindings",
     "state_hashes",
     "training_configuration",
 ]

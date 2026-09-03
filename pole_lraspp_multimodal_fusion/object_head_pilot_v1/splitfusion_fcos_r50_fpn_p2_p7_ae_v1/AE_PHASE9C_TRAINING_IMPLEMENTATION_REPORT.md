@@ -4,11 +4,16 @@ Implementation only, for review. **No checkpoint was loaded, no CUDA was used,
 no dataset or teacher-cache shard was read, and nothing was trained, inferred or
 evaluated.** Neither runner is launched here, and neither launches the other.
 
-Nothing existing changed: `git status` shows four new files and no modification
-to any tracked file. The AE architecture, the AE loss, the AE wire format, the
-ranker, the perception model, the p025 scorer and every frozen hybrid-q file are
-imported and reused, never edited (`git diff HEAD` over the hybrid-q package is
-empty).
+The AE architecture, the AE loss, the AE wire format, the ranker, the perception
+model, the p025 scorer and every frozen hybrid-q file are imported and reused,
+never edited (`git diff HEAD` over the hybrid-q package is empty).
+
+> **Revision, 2026-09-02 — four review corrections.** Split-pure teacher
+> loading, exact-resume bookkeeping, full source-binding enforcement and a
+> batching-independent holdout tie-breaker. See
+> [Review corrections](#review-corrections-2026-09-02). Nothing in the AE
+> architecture, objective, optimizer, schedule, q cycle, checkpoint epochs,
+> scoring, thresholds or ranking criteria changed.
 
 ## New files
 
@@ -17,7 +22,7 @@ empty).
 | `ae_training_common.py` | locked configuration, exact schedule, sample-id-keyed teacher store, atomic checkpoint format, frozen-noAE reference loader |
 | `ae_training.py` | the scientific AE128 trainer (fit frames only) |
 | `ae_holdout_selection.py` | holdout evaluation and the preregistered checkpoint ranking |
-| `tests/test_ae_training_schedule.py` | the two authorized focused CPU tests |
+| `tests/test_ae_training_schedule.py` | the focused CPU tests (one file, extended by the review corrections) |
 
 ## Two separate commands
 
@@ -89,13 +94,13 @@ cached combined importance map and the `valid_groups`/`excluded_groups` metadata
 are consumed — no per-group maps, no invented D/G/S/A losses, no fake
 quantization and no zstd anywhere in training.
 
-`AeTeacherStore` walks all 66 shards to reconcile identity and coverage against
-the registered partition but **retains tensors for one split only**. The trainer
-loads it with `split="fit"`, so a holdout sample id is not merely refused at
-serve time — its map is never held. Batches are joined to cached records by
-exact sample ID (`store.batch(sample_ids)`), never by position, and each epoch
-additionally re-checks the observed sample-id sequence against the seeded order,
-full fit coverage, and the empty intersection with the holdout ids.
+`AeTeacherStore` holds one split and **deserializes only that split's shards**
+(see [Review corrections](#review-corrections-2026-09-02)). The trainer loads it
+with `split="fit"`, so a holdout map is never read, let alone held. Batches are
+joined to cached records by exact sample ID (`store.batch(sample_ids)`), never by
+position, and each epoch additionally re-checks the observed sample-id sequence
+against the seeded order, full fit coverage, and the empty intersection with the
+holdout ids.
 
 ### Runtime safeguards, per update and per epoch
 
@@ -149,8 +154,9 @@ from the Phase-5 holdout module and used verbatim.
 Reported per pass: all vehicle and person-AVO precision/recall/F1, vehicle and
 person XY MAE, vehicle IoU, person box-mask IoU, foreground mIoU, the p025
 service outputs, person AVO recall in 20–40 m, and the reconstruction losses
-(mean total / plain / combined-importance over inference batches, plus per-frame
-plain and importance-weighted error median/p95/max over all 3,284 frames).
+(the global task-aware loss with its exact numerators and denominators, the
+per-batch means kept as diagnostics, plus per-frame plain and
+importance-weighted error median/p95/max over all 3,284 frames).
 
 ### Comparison baseline
 
@@ -180,7 +186,9 @@ Applied verbatim, in order, over the three candidates:
    normalized means the signed degradation divided by that metric's registered
    gate bound, so the 0.01, 0.015, 0.03 and 0.05 bounds are comparable;
 4. then minimize the **mean holdout task-aware reconstruction loss** over the
-   four q;
+   four q, where each q's value is the *global* loss — a total numerator over a
+   total denominator accumulated across every holdout frame, not an unweighted
+   mean of per-batch ratios;
 5. then prefer the **earlier** epoch.
 
 There are 12 registered preservation gates, so each q contributes 0–12. The rule
@@ -192,7 +200,7 @@ and `all_gates_passed_at_every_q` per candidate.
 AE128 checkpoint that later deployment-path UINT8+zstd validation will use.
 `selection_is_a_service_ready_claim` is recorded as `false` in the report.
 
-## Two focused CPU tests
+## Focused CPU tests
 
 1. `test_stage_schedule_and_balanced_stage_b_q_counts` — stage boundaries and
    both learning rates, out-of-range epochs refused, batch 16 with the final
@@ -206,13 +214,147 @@ AE128 checkpoint that later deployment-path UINT8+zstd validation will use.
    reported `decided_at_criterion` at every level, assert input order does not
    matter, and assert an incomplete or duplicated q sweep fails closed.
 
-## What was run
+The review corrections add nine more checks to the same file; they are listed
+with the correction they cover below.
 
-`py_compile` over the package, the two focused tests, the existing test suites as
-a regression check, and `git status` / `git diff` checks.
+<a id="review-corrections-2026-09-02"></a>
+
+## Review corrections (2026-09-02)
+
+Four focused corrections, applied before any training is authorized. No
+architecture, objective, optimizer, schedule, q-cycle, checkpoint-epoch,
+scoring, threshold or ranking-criterion change; no checkpoint or real data was
+loaded, no CUDA context was created, and neither runner was launched.
+
+### 1. Split-pure teacher loading
+
+`load_ae_teacher_store` previously walked all 66 shards and `torch.load`ed every
+one of them, discarding the maps of the split it was not for. Reading the tensor
+payload of a holdout shard inside the trainer is exactly what the split is meant
+to prevent, so the discard came too late.
+
+The split decision now happens before anything is deserialized, in the new pure
+`plan_teacher_shards(cache_root, partition, split)`:
+
+- the complete manifest is read for provenance and its sha256 is checked against
+  `contract.TEACHER_CACHE_MANIFEST_SHA256`, along with its schema, terminal,
+  perception-checkpoint binding, `validation_or_test_frames == 0`, entry count
+  and total frame count;
+- every entry must be split-pure by its own manifest counts
+  (`fit_frames`/`holdout_frames`), and only entries whose manifest `split` equals
+  the requested split are admitted;
+- `other_split_ids` is derived from the registered `SplitPartition`, never by
+  opening the opposite split, and both splits' exact sample-ID coverage is
+  reconciled against the manifest's `fit_sample_id_sha256` /
+  `holdout_sample_id_sha256` digests and frame counts.
+
+`load_ae_teacher_store` then verifies each admitted shard's byte size and sha256
+**before** calling the loader, and re-checks split purity in the payload itself
+(`split` and every entry of `splits` must equal the requested split, and no
+registered opposite-split id may appear). Manifest and hash inspection is
+provenance and is retained in full; deserializing an opposite-split tensor
+payload is what can no longer happen. Training with `split="fit"` never opens a
+holdout shard, and holdout selection with `split="holdout"` never opens a fit
+shard.
+
+Reporting changed accordingly: the trainer now prints *"N holdout IDs excluded,
+M holdout shards never opened"* rather than "holdout maps withheld", and both
+run records carry `store.provenance()` with
+`holdout_shards_deserialized: 0` / `holdout_maps_loaded: 0` (and the mirrored
+`fit_teacher_shards_deserialized: 0` on the selection side).
+
+### 2. Exact-resume bookkeeping
+
+`--resume` previously restored only the newest recovery checkpoint and started
+with empty `recovery_hashes` and `candidate_hashes`, so a run resumed after
+epoch 4 or 8 would fail the final candidate-set check even though the epoch-4
+and epoch-8 candidates existed on disk.
+
+`restore_completed_epochs()` now rebuilds the whole record:
+
+- `--resume` refuses a missing output directory, a missing `recovery/`, an empty
+  `recovery/`, a missing `epoch_summaries.json` and a non-contiguous recovery
+  sequence;
+- `completed_recovery_epochs()` parses each filename strictly and `read_recovery`
+  requires the filename epoch to equal the embedded epoch;
+- each completed epoch's checkpoint is verified for schema, stage, bottleneck,
+  every binding, the locked configuration, `global_update_index == epoch × 847`,
+  the implied Stage-B cycle position, the sampler/order identity and its own
+  epoch summary;
+- `epoch_summaries.json` must hold exactly epochs 1..completed with no duplicate
+  or missing epoch, and each entry's order digest must match its recovery
+  checkpoint;
+- `recovery_hashes` and `candidate_hashes` are reconstructed from every already
+  completed file after SHA-256 and metadata verification, with each candidate
+  additionally re-loaded through `load_candidate`;
+- only the last recovery checkpoint restores weights, optimizer state, counters
+  and RNG — no completed epoch is replayed.
+
+### 3. Every saved source binding is enforced
+
+`load_candidate` skipped any field ending in `_source_sha256`, and
+`load_recovery` compared only four hard-coded names. Both now call the new
+`common.require_bindings()`, which enforces every field
+`common.binding_fields()` writes — including the per-file
+`hybrid_q_source_sha256` and `ae_package_source_sha256` maps. Any mapping, file
+or configuration drift between writing a checkpoint and loading it fails closed.
+
+### 4. Batching-independent holdout tie-breaker
+
+The committed task-aware loss is a ratio of sums, so an unweighted mean of
+per-batch ratios depends on how the frames were grouped and over-weights the
+short final batch. Criterion 4 was ranking on exactly that number.
+
+`HoldoutReconstructionTotals` now accumulates, per frame and in float64, the
+plain squared-error numerator, the plain reference-energy denominator, the
+combined-importance numerator and the combined-importance reference-energy
+denominator, and the pass reports
 
 ```
-Ran 84 tests   OK      # 82 pre-existing + the 2 new focused checks
+global_plain    = plain_numerator    / plain_denominator
+global_combined = weighted_numerator / weighted_denominator
+global_total    = global_plain + global_combined
+```
+
+with all four exact sums recorded. Criterion 4 — unchanged as a criterion, and
+still fourth — now ranks on `global_total_loss`. The per-batch means survive as
+`reconstruction.batch_diagnostics` with an explicit note that they are not used
+for selection, and the per-frame summaries are unchanged.
+
+### Added coverage
+
+| Check | Correction |
+| --- | --- |
+| `test_fit_never_invokes_the_shard_loader_on_a_holdout_entry` | 1 |
+| `test_a_shard_that_is_not_split_pure_is_refused_before_any_load` | 1 |
+| `test_manifest_sample_id_coverage_must_match_the_registered_partition` | 1 |
+| `test_resume_after_epoch_eight_reconstructs_recovery_and_candidate_hashes` | 2 |
+| `test_resume_refuses_an_empty_or_new_directory_and_a_broken_record` | 2 |
+| `test_every_saved_source_binding_is_enforced_on_load` | 2, 3 |
+| `test_global_loss_is_unchanged_under_regrouping` | 4 |
+| `test_a_single_batch_reproduces_the_committed_loss_exactly` | 4 |
+| `test_the_unweighted_mean_of_batch_ratios_is_the_number_that_moves` | 4 |
+
+The split-purity check runs the production call path — a spy replaces
+`teacher_cache.load_shard` on the module and no loader is injected — over a
+synthetic 66-entry manifest whose two fit shards exist on disk and whose 64
+holdout shard files are deliberately never created, so "no holdout shard was
+opened" is enforced by the filesystem as well as by the spy. The resume check
+writes epochs 1..8 with the real `save_recovery`/`save_candidate`, resumes with a
+fresh AE and optimizer, and asserts the reconstructed hashes equal the written
+ones and that adding epoch 12 satisfies the trainer's final candidate-set check.
+The tie-breaker check regroups the same 12 synthetic frames into `(12)`,
+`(8,4)`, `(5,5,2)`, `(1)×12` and `(7,1,3,1)` and asserts the four sums and three
+ratios are bit-identical, and separately that the discarded per-batch mean does
+move. `torch.cuda.is_initialized()` is `False` after the whole file runs.
+
+## What was run
+
+`py_compile` over the package, the focused Phase-9C tests, the existing test
+suites as a regression check, and `git status` / `git diff` checks.
+
+```
+Ran 93 tests   OK      # 82 pre-existing + 11 focused Phase-9C checks
 ```
 
 The only file this implementation phase read is the frozen noAE holdout summary

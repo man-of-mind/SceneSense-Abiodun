@@ -378,48 +378,196 @@ def order_identity(partition: SplitPartition, epoch: int, dataset: Any) -> dict[
     }
 
 
-def latest_recovery(recovery_dir: Path) -> tuple[int, Path] | None:
-    candidates = sorted(recovery_dir.glob("epoch_*.pt"))
-    if not candidates:
-        return None
-    path = candidates[-1]
-    return int(path.stem.split("_")[1]), path
+def recovery_filename(epoch: int) -> str:
+    return f"epoch_{common.require_training_epoch(epoch):02d}.pt"
 
 
-def load_recovery(
+def completed_recovery_epochs(recovery_dir: Path) -> list[tuple[int, Path]]:
+    """Every recovery file on disk, as (epoch, path), oldest first.
+
+    The filename epoch is parsed strictly; the payload's own epoch is checked
+    against it in `read_recovery`, so a renamed file cannot be resumed from.
+    """
+    found: list[tuple[int, Path]] = []
+    for path in sorted(recovery_dir.glob("epoch_*.pt")):
+        stem = path.stem.split("_")
+        if len(stem) != 2 or not stem[1].isdigit():
+            raise guards.HybridQConfigError(
+                f"{path.name} is not a recovery checkpoint filename"
+            )
+        epoch = common.require_training_epoch(int(stem[1]))
+        if path.name != recovery_filename(epoch):
+            raise guards.HybridQConfigError(f"{path.name} recovery filename drift")
+        found.append((epoch, path))
+    return found
+
+
+def expected_stage_b_position(epoch: int) -> int:
+    """Stage-B updates taken after `epoch` completed, under the locked schedule."""
+    stage_b_epochs = max(0, common.require_training_epoch(epoch) - common.AE_STAGE_A_EPOCHS)
+    return stage_b_epochs * common.batches_per_epoch()
+
+
+def read_recovery(
     path: Path,
-    autoencoder: torch.nn.Module,
-    optimizer: torch.optim.Optimizer,
-    state: TrainingState,
+    epoch: int,
     binding: Mapping[str, Any],
+    identity: Mapping[str, Any],
 ) -> dict[str, Any]:
+    """Verify one recovery checkpoint completely, without mutating any state."""
     payload = torch.load(path, map_location="cpu", weights_only=False)
     if payload["schema"] != common.AE_RECOVERY_SCHEMA:
         raise guards.HybridQConfigError("AE recovery schema drift")
-    for name in (
-        "perception_checkpoint_sha256",
-        "stable_ranker_sha256",
-        "locked_config_sha256",
-        "teacher_cache_manifest_sha256",
-    ):
-        expected = {
-            "perception_checkpoint_sha256": contract.FROZEN_CHECKPOINT_SHA256,
-            "stable_ranker_sha256": binding["stable_epoch4_ranker"]["sha256"],
-            "locked_config_sha256": binding["hybrid_q_locked_config"]["sha256"],
-            "teacher_cache_manifest_sha256": binding["teacher_cache_manifest"]["sha256"],
-        }[name]
-        if payload[name] != expected:
-            raise guards.HybridQConfigError(f"recovery {name} drift; refusing to resume")
+    if int(payload["epoch"]) != int(epoch):
+        raise guards.HybridQConfigError(
+            f"{path.name} carries epoch {payload['epoch']}; the filename says {epoch}"
+        )
+    if payload["stage"] != common.stage_for_epoch(epoch):
+        raise guards.HybridQConfigError(f"{path.name} stage drift")
+    if int(payload["bottleneck"]) != common.AE_TRAINING_BOTTLENECK:
+        raise guards.HybridQConfigError(f"{path.name} bottleneck drift")
+    # Every saved binding, including the per-file source hashes.
+    common.require_bindings(payload, binding, what=f"recovery {path.name}")
     if payload["configuration"] != common.training_configuration():
         raise guards.HybridQConfigError(
             "recovery was written under a different training configuration"
         )
+    # The completed-epoch count implies both counters exactly.
+    expected_updates = int(epoch) * common.batches_per_epoch()
+    if int(payload["global_update_index"]) != expected_updates:
+        raise guards.HybridQConfigError(
+            f"{path.name} global update index {payload['global_update_index']} != "
+            f"{expected_updates} after {epoch} completed epochs"
+        )
+    if int(payload["stage_b_cycle_position"]) != expected_stage_b_position(epoch):
+        raise guards.HybridQConfigError(
+            f"{path.name} Stage-B cycle position {payload['stage_b_cycle_position']} "
+            f"!= {expected_stage_b_position(epoch)} after {epoch} completed epochs"
+        )
+    if dict(payload["order_identity"]) != dict(identity):
+        raise guards.HybridQConfigError(f"{path.name} sampler/order identity drift")
+    summary = dict(payload["epoch_summary"])
+    if int(summary["epoch"]) != int(epoch):
+        raise guards.HybridQConfigError(f"{path.name} epoch-summary epoch drift")
+    if summary["epoch_sample_id_sha256"] != identity["sample_id_sha256"]:
+        raise guards.HybridQConfigError(f"{path.name} epoch-summary order drift")
+    return payload
+
+
+def load_recovery(
+    path: Path,
+    epoch: int,
+    autoencoder: torch.nn.Module,
+    optimizer: torch.optim.Optimizer,
+    state: TrainingState,
+    binding: Mapping[str, Any],
+    identity: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Verify, then restore weights, optimizer state, counters and RNG."""
+    payload = read_recovery(path, epoch, binding, identity)
     autoencoder.load_state_dict(payload["autoencoder"])
     optimizer.load_state_dict(payload["optimizer"])
     state.global_update_index = int(payload["global_update_index"])
     state.stage_b_position = int(payload["stage_b_cycle_position"])
     common.restore_rng(payload["rng"])
     return payload
+
+
+def restore_completed_epochs(
+    *,
+    output: Path,
+    recovery_dir: Path,
+    checkpoint_dir: Path,
+    autoencoder: torch.nn.Module,
+    optimizer: torch.optim.Optimizer,
+    state: TrainingState,
+    binding: Mapping[str, Any],
+    partition: SplitPartition,
+    dataset: Any,
+    device: torch.device,
+) -> tuple[int, list[dict[str, Any]], dict[str, str], dict[str, str]]:
+    """Rebuild the full bookkeeping of a partially completed run.
+
+    Every already-completed epoch's recovery file is verified and hashed, and
+    every candidate checkpoint already written is verified and hashed, so a run
+    resumed after epoch 4 or 8 still finishes holding the complete
+    epoch-{4,8,12} candidate set and the complete recovery-hash record. Only the
+    last recovery checkpoint restores state; no completed epoch is replayed.
+    """
+    if not output.is_dir():
+        raise guards.HybridQConfigError(
+            f"--resume requires an existing training directory: {output} does not exist"
+        )
+    if not recovery_dir.is_dir():
+        raise guards.HybridQConfigError(
+            f"--resume requires {recovery_dir}; refusing to resume into a new directory"
+        )
+    found = completed_recovery_epochs(recovery_dir)
+    if not found:
+        raise guards.HybridQConfigError(
+            "--resume requires at least one recovery checkpoint; refusing to "
+            "resume into an empty directory"
+        )
+    epochs = [epoch for epoch, _ in found]
+    completed = epochs[-1]
+    if epochs != list(range(1, completed + 1)):
+        raise guards.HybridQConfigError(
+            f"recovery checkpoints {epochs} are not the contiguous set 1..{completed}"
+        )
+
+    summary_path = output / "epoch_summaries.json"
+    if not summary_path.is_file():
+        raise guards.HybridQConfigError(f"--resume requires {summary_path}")
+    document = json.loads(summary_path.read_text(encoding="utf-8"))
+    if document["schema"] != SCHEMA:
+        raise guards.HybridQConfigError("epoch-summary schema drift")
+    epoch_summaries = list(document["epochs"])
+    recorded = [int(summary["epoch"]) for summary in epoch_summaries]
+    if recorded != list(range(1, completed + 1)):
+        raise guards.HybridQConfigError(
+            f"epoch_summaries.json holds epochs {recorded}, not exactly "
+            f"1..{completed} with no duplicate or missing epoch"
+        )
+
+    recovery_hashes: dict[str, str] = {}
+    candidate_hashes: dict[str, str] = {}
+    for epoch, path in found:
+        identity = order_identity(partition, epoch, dataset)
+        if epoch == completed:
+            load_recovery(
+                path, epoch, autoencoder, optimizer, state, binding, identity
+            )
+            autoencoder.to(device)
+        else:
+            # Verified in full, but only the last checkpoint restores state.
+            read_recovery(path, epoch, binding, identity)
+        recovery_hashes[path.name] = sha256_file(path)
+        # The persisted summary must be this run's, not another run's file.
+        if epoch_summaries[epoch - 1].get("epoch_sample_id_sha256") != identity[
+            "sample_id_sha256"
+        ]:
+            raise guards.HybridQConfigError(
+                f"epoch_summaries.json epoch {epoch} does not match its recovery "
+                "checkpoint's order identity"
+            )
+        if epoch not in common.AE_CANDIDATE_EPOCHS:
+            continue
+        candidate_path = checkpoint_dir / common.candidate_filename(epoch)
+        if not candidate_path.is_file():
+            raise guards.HybridQConfigError(
+                f"epoch {epoch} completed but {candidate_path.name} is missing"
+            )
+        digest = sha256_file(candidate_path)
+        if epoch_summaries[epoch - 1].get("candidate_checkpoint_sha256") != digest:
+            raise guards.HybridQConfigError(f"{candidate_path.name} sha256 drift")
+        # Verifies the schema, epoch, bottleneck, every binding and finiteness.
+        restored, _metadata = common.load_candidate(
+            candidate_path, epoch, torch.device("cpu"), binding
+        )
+        del restored
+        candidate_hashes[candidate_path.name] = digest
+
+    return completed, epoch_summaries, recovery_hashes, candidate_hashes
 
 
 # ---------------------------------------------------------------------------
@@ -441,6 +589,10 @@ def main() -> int:
     output = Path(args.output)
     if output.exists() and not args.resume:
         raise guards.HybridQConfigError(f"create-only: {output} already exists")
+    if args.resume and not output.is_dir():
+        raise guards.HybridQConfigError(
+            f"--resume requires an existing training directory: {output} does not exist"
+        )
     if not torch.cuda.is_available():
         raise RuntimeError("Phase-9C AE128 training requires CUDA")
     device = torch.device("cuda:0")
@@ -480,9 +632,12 @@ def main() -> int:
     store = common.load_ae_teacher_store(partition, "fit")
     if store.split != "fit" or store.frames != contract.TRAIN_FIT_FRAMES:
         raise guards.HybridQConfigError("the optimizer teacher store is not the fit split")
+    store_provenance = store.provenance()
     print(
         f"[ae128] fit teacher store: {store.bytes / 2 ** 30:.2f} GiB, "
-        f"{store.frames} maps; {len(store.other_split_ids)} holdout maps withheld",
+        f"{store.frames} maps from {len(store.loaded_shards)} fit shards; "
+        f"{len(store.other_split_ids)} holdout IDs excluded, "
+        f"{len(store.withheld_shards)} holdout shards never opened",
         flush=True,
     )
 
@@ -504,24 +659,35 @@ def main() -> int:
     candidate_hashes: dict[str, str] = {}
     started_epoch = 1
 
+    resumed_from: int | None = None
     if args.resume:
-        found = latest_recovery(recovery_dir)
-        if found is not None:
-            completed, path = found
-            load_recovery(path, autoencoder, optimizer, state, binding)
-            autoencoder.to(device)
-            started_epoch = completed + 1
-            summary_path = output / "epoch_summaries.json"
-            if summary_path.is_file():
-                epoch_summaries = json.loads(summary_path.read_text(encoding="utf-8"))[
-                    "epochs"
-                ]
-            print(
-                f"[ae128] resumed from completed epoch {completed}; continuing at "
-                f"epoch {started_epoch} with Stage-B cycle position "
-                f"{state.stage_b_position}",
-                flush=True,
-            )
+        (
+            completed,
+            epoch_summaries,
+            recovery_hashes,
+            candidate_hashes,
+        ) = restore_completed_epochs(
+            output=output,
+            recovery_dir=recovery_dir,
+            checkpoint_dir=checkpoint_dir,
+            autoencoder=autoencoder,
+            optimizer=optimizer,
+            state=state,
+            binding=binding,
+            partition=partition,
+            dataset=dataset,
+            device=device,
+        )
+        resumed_from = completed
+        started_epoch = completed + 1
+        print(
+            f"[ae128] resumed from completed epoch {completed}; continuing at "
+            f"epoch {started_epoch} with global update {state.global_update_index} "
+            f"and Stage-B cycle position {state.stage_b_position}; "
+            f"{len(recovery_hashes)} recovery and {len(candidate_hashes)} candidate "
+            "checkpoints reconstructed, no completed epoch replayed",
+            flush=True,
+        )
 
     run_started = time.time()
     for epoch in range(started_epoch, common.AE_TRAINING_EPOCHS + 1):
@@ -560,7 +726,7 @@ def main() -> int:
         summary["frozen_ranker_state_unchanged"] = True
         summary["frozen_tensors_compared"] = len(model_hashes) + len(ranker_hashes)
 
-        recovery_path = recovery_dir / f"epoch_{epoch:02d}.pt"
+        recovery_path = recovery_dir / recovery_filename(epoch)
         recovery_hashes[recovery_path.name] = common.save_recovery(
             recovery_path,
             epoch=epoch,
@@ -641,6 +807,8 @@ def main() -> int:
             "optimization_frames": contract.TRAIN_FIT_FRAMES,
             "holdout_opened_here": False,
             "holdout_frames_in_optimizer_batches": 0,
+            "holdout_teacher_shards_deserialized": 0,
+            "holdout_teacher_maps_loaded": 0,
             "validation_or_test_accessed": False,
             "augmentation": common.AE_AUGMENTATION,
             "fake_quantization_or_zstd_in_training": False,
@@ -654,6 +822,8 @@ def main() -> int:
             "device": torch.cuda.get_device_name(device),
         },
         "configuration": common.training_configuration(),
+        "teacher_store": store_provenance,
+        "resumed_from_completed_epoch": resumed_from,
         "realized_stage_b_q_counts": observed_q_counts,
         "binding": binding,
         "perception_binding": perception,
