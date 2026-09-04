@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+import tempfile
 import unittest
 
 import numpy as np
 
+from ...splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1 import guards
+from .. import run_layout_feasibility as runner
 from ..layout_transforms import Layout, ValueBlockPlan, inverse, transform
 
 
@@ -25,6 +29,23 @@ class LayoutRoundTripTest(unittest.TestCase):
                 transformed = transform(inner, plan, layout)
                 self.assertEqual(transformed[: plan.value_offset], inner[: plan.value_offset])
                 self.assertEqual(inverse(transformed, plan, layout), inner)
+
+
+class OutputPathCreationTest(unittest.TestCase):
+    def test_create_only_leaf_refuses_reuse_and_inputs_remain_strict(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "experiments").mkdir()
+            relative = "experiments/new_namespace/previously_nonexistent_leaf"
+            created = runner._create_output_directory(relative, repository_root=root)
+            self.assertEqual(
+                created,
+                (root / "experiments/new_namespace/previously_nonexistent_leaf").resolve(strict=True),
+            )
+            with self.assertRaises(guards.HybridQConfigError):
+                runner._create_output_directory(relative, repository_root=root)
+            with self.assertRaises(FileNotFoundError):
+                runner._root_path("experiments/missing_input.json", repository_root=root)
 
 
 if __name__ == "__main__":  # pragma: no cover

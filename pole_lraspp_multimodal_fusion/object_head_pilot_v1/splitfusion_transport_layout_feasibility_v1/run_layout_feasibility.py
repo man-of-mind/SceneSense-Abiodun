@@ -79,8 +79,53 @@ class Samples:
     prefix_checks: int = 0
 
 
-def _root_path(relative: str) -> Path:
-    return (contract.repository_root() / relative).resolve(strict=True)
+def _repository_root(repository_root: Path | None = None) -> Path:
+    """Return the existing repository root; inputs never use a lax resolver."""
+    root = contract.repository_root() if repository_root is None else repository_root
+    return Path(root).resolve(strict=True)
+
+
+def _root_path(relative: str, *, repository_root: Path | None = None) -> Path:
+    """Resolve an existing input artifact beneath an existing repository root."""
+    return (_repository_root(repository_root) / relative).resolve(strict=True)
+
+
+def _is_beneath(candidate: Path, root: Path) -> bool:
+    try:
+        candidate.relative_to(root)
+    except ValueError:
+        return False
+    return True
+
+
+def _create_output_directory(
+    relative: str = OUTPUT_RELPATH, *, repository_root: Path | None = None
+) -> Path:
+    """Create the requested run leaf once, without weakening input resolution.
+
+    ``relative`` is resolved non-strictly only while its final leaf does not
+    exist.  The existing experiments root and the completed directory are both
+    strictly resolved and containment-checked.
+    """
+    root = _repository_root(repository_root)
+    experiments = (root / "experiments").resolve(strict=True)
+    candidate = (root / relative).resolve(strict=False)
+    if candidate == experiments or not _is_beneath(candidate, experiments):
+        raise guards.HybridQConfigError("layout output must be beneath experiments root")
+    if candidate.exists():
+        raise guards.HybridQConfigError(f"create-only output already exists: {candidate}")
+    candidate.parent.mkdir(parents=True, exist_ok=True)
+    parent = candidate.parent.resolve(strict=True)
+    if not _is_beneath(parent, experiments):
+        raise guards.HybridQConfigError("layout output parent escaped experiments root")
+    try:
+        candidate.mkdir(parents=False, exist_ok=False)
+    except FileExistsError as exc:
+        raise guards.HybridQConfigError(f"create-only output already exists: {candidate}") from exc
+    created = candidate.resolve(strict=True)
+    if not _is_beneath(created, experiments):
+        raise guards.HybridQConfigError("created layout output escaped experiments root")
+    return created
 
 
 def _require_hash(relative: str, expected: str) -> dict[str, str]:
@@ -355,9 +400,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="bounded lossless transport layout feasibility")
     parser.add_argument("--execute", required=True, choices=(EXECUTE_TOKEN,))
     args = parser.parse_args()
-    output = _root_path(OUTPUT_RELPATH)
-    if output.exists():
-        raise guards.HybridQConfigError(f"create-only output already exists: {output}")
+    output = _create_output_directory()
     binding = preflight()
     if not torch.cuda.is_available():
         raise RuntimeError("layout feasibility study requires CUDA on cuda:0")
@@ -429,7 +472,6 @@ def main() -> int:
         "integrity": {"required_round_trips": REQUIRED_ROUND_TRIPS, "exact_round_trips": exact, "header_mask_range_bytes_unchanged_checks": exact, "frozen_state_unchanged": True, "payload_blobs_retained_after_measurement": 0, "production_codec_modified": False, "phase11d_modified": False},
         "resources": {"wall_seconds": time.perf_counter() - started, "peak_allocated_bytes": int(torch.cuda.max_memory_allocated(device)), "peak_reserved_bytes": int(torch.cuda.max_memory_reserved(device)), "device": torch.cuda.get_device_name(device), "python": platform.python_version(), "torch": torch.__version__, "zstandard": zstandard.__version__},
     }
-    output.mkdir(parents=True, exist_ok=False)
     report_hash = _atomic_write(output / "transport_layout_feasibility.json", json.dumps(document, indent=2, sort_keys=True) + "\n")
     _atomic_write(output / "transport_layout_feasibility.csv", _csv(rows))
     _atomic_write(output / "TRANSPORT_LAYOUT_FEASIBILITY_REPORT.md", _markdown(document))
