@@ -52,8 +52,9 @@ SCHEMA = "splitfusion_transport_layout_feasibility_v1"
 STARTING_HEAD = "447eb0205f258016189fc20564eacd0211e863cf"
 OUTPUT_RELPATH = (
     "experiments/splitfusion_fcos_transport_layout_feasibility_v1/"
-    "20260903_layout_feasibility_once"
+    "20260903_layout_feasibility_cuda_retry1"
 )
+EXPECTED_CUDA_DEVICE = "NVIDIA GeForce RTX 5090"
 FRAMES = phase7.SAMPLE_FRAMES
 PROFILES = phase11c.PROFILES
 LAYOUTS = (Layout.CURRENT_CELL_MAJOR, Layout.CHANNEL_MAJOR, Layout.CHANNEL_MAJOR_MODULAR_DELTA)
@@ -400,11 +401,18 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="bounded lossless transport layout feasibility")
     parser.add_argument("--execute", required=True, choices=(EXECUTE_TOKEN,))
     args = parser.parse_args()
-    output = _create_output_directory()
-    binding = preflight()
     if not torch.cuda.is_available():
         raise RuntimeError("layout feasibility study requires CUDA on cuda:0")
+    if torch.cuda.device_count() != 1:
+        raise RuntimeError("layout feasibility study requires exactly one CUDA device")
     device = torch.device("cuda:0")
+    if torch.cuda.get_device_name(device) != EXPECTED_CUDA_DEVICE:
+        raise RuntimeError(f"layout feasibility study requires {EXPECTED_CUDA_DEVICE} on cuda:0")
+    probe = torch.empty(1, device=device)
+    torch.cuda.synchronize(device)
+    del probe
+    output = _create_output_directory()
+    binding = preflight()
     started = time.perf_counter()
     checkpoint_payloads = binding["phase11c_preflight"]["checkpoint_payloads"]
     model, base, perception = load_frozen_perception(device)
