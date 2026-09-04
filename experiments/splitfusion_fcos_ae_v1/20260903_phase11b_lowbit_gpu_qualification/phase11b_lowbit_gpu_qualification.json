@@ -1,0 +1,1776 @@
+{
+  "current_live_ae_package_source_hashes": {
+    "AE_PHASE10A_AE64_AE32_IMPLEMENTATION_REPORT.md": "4440470a514e4e529adeadd1dca2d4b3e107e8e544e2c00bef3fedb4aa92af30",
+    "AE_PHASE10B_UINT8_VALIDATION_IMPLEMENTATION_REPORT.md": "7480fb0141bd0095f9974bb7a4216ce2374af0c7d437057a07643a5ac0cf4a4a",
+    "AE_PHASE11A_UINT6_UINT4_IMPLEMENTATION_REPORT.md": "a1a2081f0795c5600e04a7e848967fb751e5be50e233e98ea4abe620e56826ea",
+    "AE_PHASE9A_IMPLEMENTATION_REPORT.md": "6e9f2fbeccee5b47747987850a348fd93eda521cc58d6bd7b53defe7e26338b7",
+    "AE_PHASE9B_GPU_QUALIFICATION_REPORT.md": "c8e2e056c600941885103ada6cdf0220a959b651924e708dab003d54a495f742",
+    "AE_PHASE9C_TRAINING_IMPLEMENTATION_REPORT.md": "926779c3a939b2923f233623fb9ae843762c430cd001ed02b5d734260723e538",
+    "AE_PHASE9D_UINT8_VALIDATION_IMPLEMENTATION_REPORT.md": "50ecc0d94ce0e55c8aa703f4e178f37cf78ea12b46c89d3bd13add9908703d57",
+    "__init__.py": "442d74420abe3ccc7671497aeb8a1a0210bf0af40ccddb25a8f2aed3c4db1ec9",
+    "ae_composition.py": "3e54ea2dc8599c0579349e4ce430a34a2d2343764402aee5113e1c2d54dfa608",
+    "ae_contract.py": "ccd8dbf5a86a4b2e9373f15edbd975754c954123d1893c37a336cf206b9d1f2f",
+    "ae_family_dispatch.py": "64eaddd5e561948841d75a06b18fe44c6603b101a50df18e9e2b8a87ee4c0c9c",
+    "ae_gpu_qualification.py": "a9f351184a42cb854700cd0539b08a897ec71dc87a5ef18cd3f5714ab8436041",
+    "ae_holdout_selection.py": "a3dcde29ff2a3508de471c08cb6674384a305111aaf0bba969062495e994b526",
+    "ae_loss.py": "21476d284a20bd186428be113c951e6bb9bf0871d42edaec28a50a7ea7711978",
+    "ae_model.py": "4f2ec0a69cf127ebac44f6147124705d54785ab400ed033a83ad1e339735b542",
+    "ae_phase10_common.py": "4fea48129c5cb80c7436376d3de2eae943ee1b5c1c487d6eb3562d37331734c9",
+    "ae_phase10_holdout_selection.py": "7fb8f49bdbac976fdf7eb111cc5d1877311ce655906b4dbc83d15a0197b0b9c0",
+    "ae_phase10_training.py": "fa9b1a253fc9ca00ea8bb75c919ec3be2953ac297c512a88e0f6b56293253ee5",
+    "ae_phase10b_uint8_validation.py": "978e05004c0215664b45df889d463878636fbd4202f3c2b5244052b2eb88c7ef",
+    "ae_phase11b_gpu_qualification.py": "be04018fbe28d806ed34993f8d3dd9383b8658de87515cf7f3925b65ba727e9f",
+    "ae_training.py": "edde6e4a49ab94a928ea465d0a3d8ce53806208021763439cfbf6ef628565547",
+    "ae_training_common.py": "7c5af221a86cdd654117201b32fb5a494b808779bd97fcef11a0a08a08e41f57",
+    "ae_uint8_transport.py": "4162b162d554f764332d469b6ca7b5038298e77a563a9de73c1622cd99531423",
+    "ae_uint8_validation.py": "d3e742d697c8c3beaaee49e53c0eae7bb1924a7e277b0f6c9a003a5365ac4853",
+    "lowbit_dispatch.py": "8e25fa64feeb22d4315957faaa216e0ea672170f09250cdc2930d705a621b0ce",
+    "lowbit_transport.py": "c708389982b10968978002d2d8423984d857229021149d51ec0d135619d69f12",
+    "tests/__init__.py": "04a977c0b181d0acacdfec54f4c3112893dbaa30a87cefcca2ed97d2d09fc44f",
+    "tests/test_ae_model.py": "3ff6e465746dca24bf3e6c433803b4fd15c650195790b2762fd712a999dc127d",
+    "tests/test_ae_phase10_family.py": "d73015af4a41d02170b06a88bcde35f5e9f57a5a7fb5a39fac981fa5b7f32365",
+    "tests/test_ae_phase10b_validation.py": "1e186e658c828ffa3b29403f53aeb5806cd67b9c6c1a58b3577f8ddd6d74974b",
+    "tests/test_ae_training_schedule.py": "00bae65ae8fcdb477e83360bd058ce425fc9d8b4b090a0e4d214ef1c29053f49",
+    "tests/test_ae_transport.py": "44fdf57efaa48251526709aafa3dc0edf6970bbea1d9b7b43ff990d763c8d28d",
+    "tests/test_ae_uint8_validation.py": "29ad69934f217e6db6abfe31ce0f139031ae1949526675986e24f25ebcc76214",
+    "tests/test_lowbit_transport.py": "15e3d9efa223d2b41f14bc0cf1d5f7c3fe9d5c23d7ff13d0458eea788e499198"
+  },
+  "environment": {
+    "cuda": "12.8",
+    "device": "NVIDIA GeForce RTX 5090",
+    "executable": "/usr/bin/python3",
+    "python": "3.10.12",
+    "torch": "2.10.0.dev20251114+cu128"
+  },
+  "executed_repository_source_hashes": {
+    "pole_lraspp_multimodal_fusion/object_head_pilot_v1/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/__init__.py": "442d74420abe3ccc7671497aeb8a1a0210bf0af40ccddb25a8f2aed3c4db1ec9",
+    "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/ae_composition.py": "3e54ea2dc8599c0579349e4ce430a34a2d2343764402aee5113e1c2d54dfa608",
+    "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/ae_contract.py": "ccd8dbf5a86a4b2e9373f15edbd975754c954123d1893c37a336cf206b9d1f2f",
+    "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/ae_family_dispatch.py": "64eaddd5e561948841d75a06b18fe44c6603b101a50df18e9e2b8a87ee4c0c9c",
+    "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/ae_gpu_qualification.py": "a9f351184a42cb854700cd0539b08a897ec71dc87a5ef18cd3f5714ab8436041",
+    "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/ae_loss.py": "21476d284a20bd186428be113c951e6bb9bf0871d42edaec28a50a7ea7711978",
+    "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/ae_model.py": "4f2ec0a69cf127ebac44f6147124705d54785ab400ed033a83ad1e339735b542",
+    "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/ae_phase10_common.py": "4fea48129c5cb80c7436376d3de2eae943ee1b5c1c487d6eb3562d37331734c9",
+    "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/ae_phase11b_gpu_qualification.py": "be04018fbe28d806ed34993f8d3dd9383b8658de87515cf7f3925b65ba727e9f",
+    "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/ae_training_common.py": "7c5af221a86cdd654117201b32fb5a494b808779bd97fcef11a0a08a08e41f57",
+    "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/ae_uint8_transport.py": "4162b162d554f764332d469b6ca7b5038298e77a563a9de73c1622cd99531423",
+    "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/lowbit_dispatch.py": "8e25fa64feeb22d4315957faaa216e0ea672170f09250cdc2930d705a621b0ce",
+    "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/lowbit_transport.py": "c708389982b10968978002d2d8423984d857229021149d51ec0d135619d69f12",
+    "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_candidate_quality_v1/__init__.py": "5708326d45fec7669fe44eead474a9c6780d52b52736174f8f5d6d977bd2fcb4",
+    "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_candidate_quality_v1/labeling.py": "dcd51ed22b6880a65114a2b97e39ee5bbc89575056af9bee9ae65082fb2030ee",
+    "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_candidate_quality_v1/quality.py": "d5f9e8fcff2b37ce740caaa5d015580f0923a9cf1ce4f6df93ef3d249ade0a99",
+    "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1/__init__.py": "9319a2b3ce9d492e1577908148ef31187ed648ef81944365dd907dee717b206c",
+    "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1/codec.py": "7b3833398a84fea31f65b86ec294c6675727390035b5761d372fd5a3cbba7b79",
+    "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1/continuous_q.py": "8ea72faed324c29b7106bd5f6277699bd7e7ba16a66073905f9ff28c69bab23c",
+    "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1/contract.py": "748eb39c0913c9d4c449784d23b7ec752307ed47eafb1b0ef0ae25df4b4f3d4c",
+    "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1/gpu_qualification.py": "0032b9ac7edb89ec1b01616ea563bec73d04c20b164d6bbf8297f36d30eea7e6",
+    "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1/guards.py": "77d8d8bfd168e74a7f0b6a7e3c8e7abc4c3549a86cda392feb394d7580a33031",
+    "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1/phase5_common.py": "0d30eeba0effe57df79fff25946d42ae569b102ca4e9f8d9db24fe286480636d",
+    "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1/ranker.py": "462536991f195651a1ee641f8e83444882ec370a8dffab72f13f0d770422b353",
+    "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1/selection.py": "ccc2b12919b078eac7af6131418989567d618d42f7b908b2db74df42e0342a71",
+    "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1/teacher_cache.py": "14f866d483c245f14078c6234a357427bccc4bfa1dd533b138677f1e17f579be",
+    "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1/training.py": "a10775a3a9f3e051e3456c6c85cdc76fff47f417e9bd24ddecb6633dcda1161a",
+    "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1/uint8_codec.py": "b6f07723860821e93c0dc2aeec456073617942b5ed8446f4555fe87b2c7ca803",
+    "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1/zstd_transport.py": "57d1846b3fdc4084266e5a8adcc7abf99556ed2b187befec729003fcdb77edec",
+    "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_person_instance_consolidation_v1/__init__.py": "e0cf27b46dcbd56013530bd531d25ff95050b73a65f7a67be91c4151aa98fc8e",
+    "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_person_instance_consolidation_v1/core.py": "951002c210990a68c61bae5292c4c679a204ca3fb8615e4f9fb14e6180214b36",
+    "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_person_p025_calibration_v1/__init__.py": "53c81c2d006ab8dd969a9d614bf9d222790a35e7dd66507b1266f4a639bb1b75",
+    "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_person_p025_calibration_v1/policy.py": "e65639b5078c7a583a401b261bc1301ca4bdd66b5aff74f08f560da877048bee",
+    "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_person_p025_calibration_v1/provenance.py": "650e171ad2018ddd864c51b86f04474d93072a221b5e4fe26767d3ebf8a0f94f",
+    "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_person_p025_calibration_v1/runtime.py": "5e20f6541029dd517f723fa7ba932a21df3c03f3135ac46c5ff0de4c17b6008b",
+    "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_service_candidate_v1/__init__.py": "bf0b1f78fed09398382bd5720a1270a7d6bca190968410294e0fd2ef89d8db3c",
+    "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_service_candidate_v1/provenance.py": "f5b9beb9853181606c26ea46ee1e225bb66fa80318736e6c09b229274c0eef0f",
+    "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_service_candidate_v1/runtime.py": "1dd4a822e9741d48a8cdcba7a99c38acfc827ac5cf6b85edec1335b7e1cadea6",
+    "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_v1/common.py": "8895d0b0e966ef35b838df191d916d3e02519b95ca003de712c1409317307636",
+    "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_v1/data.py": "b2530718dfc04e6436baa4a8ea0135cedc901210918e829b8050579948dc9047",
+    "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_v1/evaluate.py": "107908651aa7e43aae1c3b55b288fa03f62beb59e0f86d03503144dd8b5cbdd8",
+    "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_v1/infer.py": "b34308f9ad6fa6524511c2d5e43fab335d5d4c1024914e7c2f5719a5950b3194",
+    "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_v1/losses.py": "898ed8f13db1ef59c367bf5f26ed6f7fe1f4acb24f9a279768db7c9b0db915a3",
+    "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_v1/model.py": "457992bf675fd9ff209f382fc21b537957b54989a9f61ae507e8a0677ac9958c",
+    "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_v1/train.py": "3c6368d7995d88fff802aa7fdc812c68849fa646f56f99381abc0769a020ac26",
+    "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_v1_numerical_recovery_v1/__init__.py": "4b00df2395fcaa372f7ff6767992a01e6e11f7a89734f2773fe817e02fa7282d",
+    "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_v1_numerical_recovery_v1/audit.py": "b929ae2729db07f364d3b80eedfdc7c6d60358179ad0c6fcb9da35fb3d6c89ce",
+    "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_v1_numerical_recovery_v1/base_runtime.py": "32fac974fda3cfdc4b8ed8cbcffa2bc070ad1474a93efab4b458b44e77930f3f",
+    "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_v1_numerical_recovery_v1/contracts.py": "bfd01a1a0bb5a8910e8e30db780f9e7be518af9f2af717008216424bf1b284d8",
+    "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_v1_numerical_recovery_v1/recovery_losses.py": "16163387f955db6859f8c3ad442997e712ca6ef04b031d0d31858d5c0adb38df",
+    "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_v1_numerical_recovery_v1/recovery_model.py": "fb76fbcf31b9a8a1d6e4f3744846bce863c4d7c362d52257ed55e632569c117b",
+    "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_v1_numerical_recovery_v1/safe_math.py": "e18fae0630c0a1420a786f9db245b28ee344a9c5cde4ca08a27080df82c8332c"
+  },
+  "fit_frame": {
+    "dataset_index": 14314,
+    "fit_frames_registered": 13543,
+    "registered_split": "fit",
+    "row_keys": [
+      "anchor_pitch",
+      "anchor_roll",
+      "anchor_x",
+      "anchor_y",
+      "anchor_yaw",
+      "anchor_z",
+      "camera_cx",
+      "camera_cy",
+      "camera_fov",
+      "camera_fx",
+      "camera_fy",
+      "camera_height",
+      "camera_inverse_matrix_json",
+      "camera_matrix_json",
+      "camera_pitch",
+      "camera_roll",
+      "camera_width",
+      "camera_x",
+      "camera_y",
+      "camera_yaw",
+      "camera_z",
+      "experiment_id",
+      "frame_id",
+      "gt_contract",
+      "instance_raw_path",
+      "map_name",
+      "mask_path",
+      "object_ignore_mask_path",
+      "pedestrian_density",
+      "person_pixels",
+      "radar_frame_id",
+      "radar_horizontal_fov",
+      "radar_inverse_matrix_json",
+      "radar_matrix_json",
+      "radar_parked_evidence_points",
+      "radar_points",
+      "radar_points_path",
+      "radar_range_m",
+      "radar_stationary_points",
+      "radar_tensor_path",
+      "radar_timestamp",
+      "radar_to_camera_matrix_json",
+      "radar_vertical_fov",
+      "rgb_path",
+      "sample_id",
+      "scenario_id",
+      "split",
+      "timestamp",
+      "traffic_density",
+      "traffic_light_id",
+      "traffic_light_opendrive_id",
+      "vehicle_pixels",
+      "view_id"
+    ],
+    "sample_id": "extra_v3_13_train_30_30_s805_tm1805_000761_frame3271",
+    "train_holdout_frames_registered_but_unread": 3284
+  },
+  "frozen_inputs": {
+    "AE128": {
+      "path": "experiments/splitfusion_fcos_ae_v1/20260902_220623_phase9c_ae128_training/checkpoints/ae128_epoch_08.pt",
+      "selection_path": "experiments/splitfusion_fcos_ae_v1/20260902_220623_phase9c_ae128_training/holdout_selection/holdout_selection.json",
+      "selection_sha256": "69e49deac302fc46c1eec56036e3ab3d769b3aac10b76541cfb4abb80f878194",
+      "sha256": "0c2ba3a495684c0f8222492f554eb3de7c7a76181e0bd4b4a83529897db30f72"
+    },
+    "AE32": {
+      "path": "experiments/splitfusion_fcos_ae_v1/20260903_phase10_ae32_training/checkpoints/ae32_epoch_08.pt",
+      "selection_path": "experiments/splitfusion_fcos_ae_v1/20260903_phase10_ae32_training/holdout_selection_ae32/ae32_holdout_selection.json",
+      "selection_sha256": "e3dfbfb736bb8847ad11d92b1573f88058e1c4319ac4a0180284db2171afac34",
+      "sha256": "e2f867757e8db0620316c092264ac7eb53d12bb5ef66ed14475eb40693d1f271"
+    },
+    "AE64": {
+      "path": "experiments/splitfusion_fcos_ae_v1/20260903_phase10_ae64_training/checkpoints/ae64_epoch_12.pt",
+      "selection_path": "experiments/splitfusion_fcos_ae_v1/20260903_phase10_ae64_training/holdout_selection_ae64/ae64_holdout_selection.json",
+      "selection_sha256": "0d2fe444574d3fdc9aee287448084bf2cfc1efa2d0ec6944ac07355d9ff7c87e",
+      "sha256": "dd7c5124e27114584ab2083e59160a3ff2a2d040d0a37d22564ac98c838aa8e0"
+    },
+    "perception": {
+      "path": "experiments/route_b_v3_1_splitfusion_fcos_r50_fpn_p2_p7_v1_numerical_recovery_v1/20260830_recovered_epoch10_gate_v1/checkpoints/epoch_026.pt",
+      "sha256": "da14d21edbd374c1c3abce02ca4674b9f4097becfba9759aba945cea160a297f"
+    },
+    "ranker": {
+      "path": "experiments/splitfusion_fcos_hybrid_q_v1/20260901_185725_phase5_ranker_training/checkpoints/ranker_epoch_04.pt",
+      "sha256": "07781c56a4c0f306f16d332f64627ce6b9458e154f40ab9fef89f89909b79cb5"
+    }
+  },
+  "frozen_state_after": {
+    "AE128": {
+      "aggregate_sha256": "15c9da2d4f547575a44ff3adc8011e224aaf5d83d9e998ea8f99eb51edced037",
+      "tensor_count": 8
+    },
+    "AE32": {
+      "aggregate_sha256": "b450dfe3abe4e8d3348d8f5409ed216303f467a9f9a161822570428745fa151e",
+      "tensor_count": 8
+    },
+    "AE64": {
+      "aggregate_sha256": "ccc749b1260f22009c06e3ad0033cd127bd3589f119ef7b134ef2329dd30e338",
+      "tensor_count": 8
+    },
+    "perception": {
+      "aggregate_sha256": "bdb3a245f26fb17a9b0185c6c140ebd3774aa5f3f6b4d984b7e1d9665c1f3a53",
+      "tensor_count": 371
+    },
+    "ranker": {
+      "aggregate_sha256": "604fb51428e30801699fcc5af30b7a6a2d190113ce2a4761e752f7252ad6a621",
+      "tensor_count": 5
+    }
+  },
+  "frozen_state_before": {
+    "AE128": {
+      "aggregate_sha256": "15c9da2d4f547575a44ff3adc8011e224aaf5d83d9e998ea8f99eb51edced037",
+      "tensor_count": 8
+    },
+    "AE32": {
+      "aggregate_sha256": "b450dfe3abe4e8d3348d8f5409ed216303f467a9f9a161822570428745fa151e",
+      "tensor_count": 8
+    },
+    "AE64": {
+      "aggregate_sha256": "ccc749b1260f22009c06e3ad0033cd127bd3589f119ef7b134ef2329dd30e338",
+      "tensor_count": 8
+    },
+    "perception": {
+      "aggregate_sha256": "bdb3a245f26fb17a9b0185c6c140ebd3774aa5f3f6b4d984b7e1d9665c1f3a53",
+      "tensor_count": 371
+    },
+    "ranker": {
+      "aggregate_sha256": "604fb51428e30801699fcc5af30b7a6a2d190113ce2a4761e752f7252ad6a621",
+      "tensor_count": 5
+    }
+  },
+  "generated_utc": "2026-09-04T03:08:33.404251+00:00",
+  "historical_checkpoint_source_bindings": {
+    "AE128": {
+      "accepted_historical_to_current_transitions": [
+        {
+          "current_sha256": "64eaddd5e561948841d75a06b18fe44c6603b101a50df18e9e2b8a87ee4c0c9c",
+          "historical_sha256": "b0f56c65f43cb53b13c1700a2c1a8373f777c2a142dd878b96b8a17ef465fec0",
+          "path": "ae_family_dispatch.py",
+          "reason": "opt-in receive diagnostics expose already-decoded intermediates; the default receive path and AE reconstruction arithmetic are unchanged"
+        },
+        {
+          "current_sha256": "a3dcde29ff2a3508de471c08cb6674384a305111aaf0bba969062495e994b526",
+          "historical_sha256": "6ca4d1bb8f5253b33e9149fe751bf4aa198e3c8ff295d62ac267ccafb80e51be",
+          "path": "ae_holdout_selection.py",
+          "reason": "same-q evaluation-gate implementation was relocated and re-exported; this holdout-selection runner is not imported for Phase 11B execution"
+        },
+        {
+          "current_sha256": "7c5af221a86cdd654117201b32fb5a494b808779bd97fcef11a0a08a08e41f57",
+          "historical_sha256": "6802aba8d996f312b7609749f84db908c002fc992131c68e0edfcf1f7242283a",
+          "path": "ae_training_common.py",
+          "reason": "same-q evaluation-gate utility was added to shared provenance code; no AE model-forward arithmetic or checkpoint tensor interpretation changed"
+        }
+      ],
+      "checkpoint_selection_source_maps_identical": true,
+      "historical_file_count": 18,
+      "historical_files_exactly_current": [
+        "AE_PHASE9A_IMPLEMENTATION_REPORT.md",
+        "AE_PHASE9B_GPU_QUALIFICATION_REPORT.md",
+        "AE_PHASE9C_TRAINING_IMPLEMENTATION_REPORT.md",
+        "__init__.py",
+        "ae_composition.py",
+        "ae_contract.py",
+        "ae_gpu_qualification.py",
+        "ae_loss.py",
+        "ae_model.py",
+        "ae_training.py",
+        "ae_uint8_transport.py",
+        "tests/__init__.py",
+        "tests/test_ae_model.py",
+        "tests/test_ae_training_schedule.py",
+        "tests/test_ae_transport.py"
+      ],
+      "live_file_count": 34,
+      "numerical_ae_sources_exactly_checkpoint_compatible": {
+        "ae_composition.py": "3e54ea2dc8599c0579349e4ce430a34a2d2343764402aee5113e1c2d54dfa608",
+        "ae_contract.py": "ccd8dbf5a86a4b2e9373f15edbd975754c954123d1893c37a336cf206b9d1f2f",
+        "ae_model.py": "4f2ec0a69cf127ebac44f6147124705d54785ab400ed033a83ad1e339735b542"
+      },
+      "removed": []
+    },
+    "AE32": {
+      "accepted_historical_to_current_transitions": [],
+      "checkpoint_selection_source_maps_identical": true,
+      "historical_file_count": 26,
+      "historical_files_exactly_current": [
+        "AE_PHASE10A_AE64_AE32_IMPLEMENTATION_REPORT.md",
+        "AE_PHASE9A_IMPLEMENTATION_REPORT.md",
+        "AE_PHASE9B_GPU_QUALIFICATION_REPORT.md",
+        "AE_PHASE9C_TRAINING_IMPLEMENTATION_REPORT.md",
+        "AE_PHASE9D_UINT8_VALIDATION_IMPLEMENTATION_REPORT.md",
+        "__init__.py",
+        "ae_composition.py",
+        "ae_contract.py",
+        "ae_family_dispatch.py",
+        "ae_gpu_qualification.py",
+        "ae_holdout_selection.py",
+        "ae_loss.py",
+        "ae_model.py",
+        "ae_phase10_common.py",
+        "ae_phase10_holdout_selection.py",
+        "ae_phase10_training.py",
+        "ae_training.py",
+        "ae_training_common.py",
+        "ae_uint8_transport.py",
+        "ae_uint8_validation.py",
+        "tests/__init__.py",
+        "tests/test_ae_model.py",
+        "tests/test_ae_phase10_family.py",
+        "tests/test_ae_training_schedule.py",
+        "tests/test_ae_transport.py",
+        "tests/test_ae_uint8_validation.py"
+      ],
+      "live_file_count": 34,
+      "numerical_ae_sources_exactly_checkpoint_compatible": {
+        "ae_composition.py": "3e54ea2dc8599c0579349e4ce430a34a2d2343764402aee5113e1c2d54dfa608",
+        "ae_contract.py": "ccd8dbf5a86a4b2e9373f15edbd975754c954123d1893c37a336cf206b9d1f2f",
+        "ae_model.py": "4f2ec0a69cf127ebac44f6147124705d54785ab400ed033a83ad1e339735b542"
+      },
+      "removed": []
+    },
+    "AE64": {
+      "accepted_historical_to_current_transitions": [],
+      "checkpoint_selection_source_maps_identical": true,
+      "historical_file_count": 26,
+      "historical_files_exactly_current": [
+        "AE_PHASE10A_AE64_AE32_IMPLEMENTATION_REPORT.md",
+        "AE_PHASE9A_IMPLEMENTATION_REPORT.md",
+        "AE_PHASE9B_GPU_QUALIFICATION_REPORT.md",
+        "AE_PHASE9C_TRAINING_IMPLEMENTATION_REPORT.md",
+        "AE_PHASE9D_UINT8_VALIDATION_IMPLEMENTATION_REPORT.md",
+        "__init__.py",
+        "ae_composition.py",
+        "ae_contract.py",
+        "ae_family_dispatch.py",
+        "ae_gpu_qualification.py",
+        "ae_holdout_selection.py",
+        "ae_loss.py",
+        "ae_model.py",
+        "ae_phase10_common.py",
+        "ae_phase10_holdout_selection.py",
+        "ae_phase10_training.py",
+        "ae_training.py",
+        "ae_training_common.py",
+        "ae_uint8_transport.py",
+        "ae_uint8_validation.py",
+        "tests/__init__.py",
+        "tests/test_ae_model.py",
+        "tests/test_ae_phase10_family.py",
+        "tests/test_ae_training_schedule.py",
+        "tests/test_ae_transport.py",
+        "tests/test_ae_uint8_validation.py"
+      ],
+      "live_file_count": 34,
+      "numerical_ae_sources_exactly_checkpoint_compatible": {
+        "ae_composition.py": "3e54ea2dc8599c0579349e4ce430a34a2d2343764402aee5113e1c2d54dfa608",
+        "ae_contract.py": "ccd8dbf5a86a4b2e9373f15edbd975754c954123d1893c37a336cf206b9d1f2f",
+        "ae_model.py": "4f2ec0a69cf127ebac44f6147124705d54785ab400ed033a83ad1e339735b542"
+      },
+      "removed": []
+    }
+  },
+  "integrity": {
+    "all_analytical_sizes_match_measured_pre_zstd": true,
+    "all_dropped_cells_exact_zero": true,
+    "all_frozen_states_unchanged": true,
+    "all_header_checks_passed": true,
+    "all_reconstructed_c2_finite_fp32_cuda0": true,
+    "all_retained_affine_bounds_passed": true,
+    "all_tail_outputs_finite_and_structurally_identical": true,
+    "frozen_state_equal": {
+      "AE128": true,
+      "AE32": true,
+      "AE64": true,
+      "perception": true,
+      "ranker": true
+    },
+    "q0_ranker_bypassed": true,
+    "q50_masks_and_indices_identical": true,
+    "ranker_invocations": 8,
+    "required_ranker_invocations": 8,
+    "required_zstd_decompressions": 16,
+    "settings_completed": 16,
+    "settings_required": 16,
+    "zstd_decompressions": 16
+  },
+  "perception_binding": {
+    "checkpoint_epoch": 26,
+    "checkpoint_path": "experiments/route_b_v3_1_splitfusion_fcos_r50_fpn_p2_p7_v1_numerical_recovery_v1/20260830_recovered_epoch10_gate_v1/checkpoints/epoch_026.pt",
+    "checkpoint_sha256": "da14d21edbd374c1c3abce02ca4674b9f4097becfba9759aba945cea160a297f",
+    "checkpoint_training_source_commit": "0d5697b46e901d4494572b2e9a9863326947d24c",
+    "eval_mode": true,
+    "perception_forward_lock_path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_person_p025_calibration_v1/PERCEPTION_FORWARD_LOCK_P025_V1.json",
+    "perception_forward_lock_sha256": "86d6f13ae9168b33b697df5b785c5f7c320afc52cfdcded5b632d94a6d943fe1",
+    "perception_parameters_requires_grad": false,
+    "person_output_threshold": 0.25,
+    "recovery_build_report": {
+      "architecture_and_state_dict_unchanged": true,
+      "coco_car_bias_sha256": "6c9760f1fd54aff7181fcff3cc30a11daafade9c5fc60bc7284fc2e0bca0de14",
+      "coco_car_index": 3,
+      "coco_car_weight_sha256": "9130a2f343e8162c2ea2baf66b34c359a393d331680d6a0f2aaab498b1c80489",
+      "coco_person_bias_sha256": "45a2cc2d30dc1477cf094c1f59f8a11104121b05960140ecefa8ef7d38f1a9a2",
+      "coco_person_index": 1,
+      "coco_person_weight_sha256": "81a7a980256b77cd98a3fa949857568d6501995b649e86463a656f84d9c877ce",
+      "complete_official_outputs": 91,
+      "official_weight_path": "/home/shr_aisvcs/.cache/torch/hub/checkpoints/fcos_resnet50_fpn_coco-99b0c9b7.pth",
+      "project_person_bias_sha256": "45a2cc2d30dc1477cf094c1f59f8a11104121b05960140ecefa8ef7d38f1a9a2",
+      "project_person_weight_sha256": "81a7a980256b77cd98a3fa949857568d6501995b649e86463a656f84d9c877ce",
+      "project_vehicle_bias_sha256": "6c9760f1fd54aff7181fcff3cc30a11daafade9c5fc60bc7284fc2e0bca0de14",
+      "project_vehicle_weight_sha256": "9130a2f343e8162c2ea2baf66b34c359a393d331680d6a0f2aaab498b1c80489",
+      "radar_stem_exact_zero": true,
+      "recovery_yaw_tau": 0.01,
+      "rgb_stem_exact": true,
+      "shared_training_inference_normalizer": true
+    },
+    "runtime": "splitfusion_fcos_r50_fpn_p2_p7_v1_numerical_recovery_v1.build_recovery_model",
+    "selected_yaw_tau": 0.01,
+    "service_policy": "splitfusion_fcos_r50_fpn_p2_p7_person_p025_calibration_v1.apply_p025_service_policy"
+  },
+  "phase11b_device_repair_source_transition": {
+    "current_sha256": "8e25fa64feeb22d4315957faaa216e0ea672170f09250cdc2930d705a621b0ce",
+    "historical_sha256": "f16cf06274beed584020c3ab15fae2a8ac43faa4d5894bfdb951a178525c3e14",
+    "path": "lowbit_dispatch.py",
+    "reason": "the receiver now supplies an explicit torch.device for noAE C2 tail placement; packet bytes, quantization and AE mathematics are unchanged"
+  },
+  "resources": {
+    "peak_allocated_bytes": 445905920,
+    "peak_reserved_bytes": 580911104,
+    "wall_seconds": 3.7218765346333385
+  },
+  "schema": "splitfusion_fcos_phase11b_lowbit_gpu_qualification_v1",
+  "scope": {
+    "calibration_used": false,
+    "carla_used": false,
+    "fit_training_frames_read": 1,
+    "front_forwards": 1,
+    "frozen_fp32_c2_computed_exactly_once": true,
+    "gradients_used": false,
+    "latency_distribution_claimed": false,
+    "nms_used": false,
+    "optimizer_created": false,
+    "payload_blobs_retained": false,
+    "qualification_only": true,
+    "reconstructed_c2_retained": false,
+    "scoring_used": false,
+    "tail_outputs_retained": false,
+    "test_frames_read": 0,
+    "threshold_change": false,
+    "train_holdout_frames_read": 0,
+    "training_or_tuning": false,
+    "validation_frames_read": 0,
+    "warmup_loops": 0
+  },
+  "selection_bindings": {
+    "AE128": {
+      "schema": "splitfusion_fcos_ae128_phase9c_holdout_selection_v1",
+      "selected_checkpoint": "ae128_epoch_08.pt",
+      "selected_checkpoint_sha256": "0c2ba3a495684c0f8222492f554eb3de7c7a76181e0bd4b4a83529897db30f72",
+      "selected_epoch": 8,
+      "selection_reports_validation_or_test_access": false,
+      "terminal": "SPLITFUSION_AE128_HOLDOUT_CHECKPOINT_SELECTED"
+    },
+    "AE32": {
+      "schema": "splitfusion_fcos_ae32_phase10a_holdout_selection_v1",
+      "selected_checkpoint": "ae32_epoch_08.pt",
+      "selected_checkpoint_sha256": "e2f867757e8db0620316c092264ac7eb53d12bb5ef66ed14475eb40693d1f271",
+      "selected_epoch": 8,
+      "selection_reports_validation_or_test_access": false,
+      "terminal": "SPLITFUSION_AE32_PHASE10_HOLDOUT_CHECKPOINT_SELECTED"
+    },
+    "AE64": {
+      "schema": "splitfusion_fcos_ae64_phase10a_holdout_selection_v1",
+      "selected_checkpoint": "ae64_epoch_12.pt",
+      "selected_checkpoint_sha256": "dd7c5124e27114584ab2083e59160a3ff2a2d040d0a37d22564ac98c838aa8e0",
+      "selected_epoch": 12,
+      "selection_reports_validation_or_test_access": false,
+      "terminal": "SPLITFUSION_AE64_PHASE10_HOLDOUT_CHECKPOINT_SELECTED"
+    }
+  },
+  "settings": [
+    {
+      "analytical_pre_zstd_bytes": 4130868,
+      "bit_width": 6,
+      "compressed_bytes_diagnostic_only": 2777188,
+      "decoder_selected_from_received_inner_header": true,
+      "dropped_cells_exact_zero_before_decoder_or_tail": true,
+      "family": "noAE",
+      "family_id": 0,
+      "header": {
+        "bit_width": 6,
+        "family_id": 0,
+        "keep_count": 21504,
+        "mask_bytes": 0,
+        "packed_value_bytes": 4128768,
+        "q_e4": 0,
+        "range_bytes": 2048,
+        "routing_tag": 0,
+        "transported_channels": 256
+      },
+      "keep_count": 21504,
+      "matching_preloaded_ae_decoder": false,
+      "measured_pre_zstd_bytes": 4130868,
+      "noae_direct_to_c2_without_ae_decoder": true,
+      "q50_selection_digest": null,
+      "q_e4": 0,
+      "q_requested": 0.0,
+      "q_wire": 0.0,
+      "quantizer": "UINT6",
+      "ranker_invocations": 0,
+      "reconstructed_c2": {
+        "device": "cuda:0",
+        "dtype": "float32",
+        "finite": true,
+        "shape": [
+          256,
+          112,
+          192
+        ]
+      },
+      "retained_affine_error": {
+        "fp32_numerical_allowance": "8 * eps(float32) * max(abs(min), abs(max), 1)",
+        "maximum_bound": 0.05421053618192673,
+        "maximum_error": 0.05419564247131348,
+        "satisfies_per_channel_affine_bound": true
+      },
+      "tail_output_tensors": 78,
+      "tail_outputs_finite": true,
+      "zstd_decompressions": 1
+    },
+    {
+      "analytical_pre_zstd_bytes": 2069172,
+      "bit_width": 6,
+      "compressed_bytes_diagnostic_only": 1397349,
+      "decoder_selected_from_received_inner_header": true,
+      "dropped_cells_exact_zero_before_decoder_or_tail": true,
+      "family": "noAE",
+      "family_id": 0,
+      "header": {
+        "bit_width": 6,
+        "family_id": 0,
+        "keep_count": 10752,
+        "mask_bytes": 2688,
+        "packed_value_bytes": 2064384,
+        "q_e4": 5000,
+        "range_bytes": 2048,
+        "routing_tag": 0,
+        "transported_channels": 256
+      },
+      "keep_count": 10752,
+      "matching_preloaded_ae_decoder": false,
+      "measured_pre_zstd_bytes": 2069172,
+      "noae_direct_to_c2_without_ae_decoder": true,
+      "q50_selection_digest": {
+        "keep_indices_sha256": "30219d281593f4d8c661c90f4dea6295ec3f18aab3a54d2c2fb294cd81d88e92",
+        "mask_sha256": "9e5d545bd7d8268476e2ac793151186c37ab795429678f1c137cc2e909de2937"
+      },
+      "q_e4": 5000,
+      "q_requested": 0.5,
+      "q_wire": 0.5,
+      "quantizer": "UINT6",
+      "ranker_invocations": 1,
+      "reconstructed_c2": {
+        "device": "cuda:0",
+        "dtype": "float32",
+        "finite": true,
+        "shape": [
+          256,
+          112,
+          192
+        ]
+      },
+      "retained_affine_error": {
+        "fp32_numerical_allowance": "8 * eps(float32) * max(abs(min), abs(max), 1)",
+        "maximum_bound": 0.05421053618192673,
+        "maximum_error": 0.05419564247131348,
+        "satisfies_per_channel_affine_bound": true
+      },
+      "tail_output_tensors": 78,
+      "tail_outputs_finite": true,
+      "zstd_decompressions": 1
+    },
+    {
+      "analytical_pre_zstd_bytes": 2754612,
+      "bit_width": 4,
+      "compressed_bytes_diagnostic_only": 1525386,
+      "decoder_selected_from_received_inner_header": true,
+      "dropped_cells_exact_zero_before_decoder_or_tail": true,
+      "family": "noAE",
+      "family_id": 0,
+      "header": {
+        "bit_width": 4,
+        "family_id": 0,
+        "keep_count": 21504,
+        "mask_bytes": 0,
+        "packed_value_bytes": 2752512,
+        "q_e4": 0,
+        "range_bytes": 2048,
+        "routing_tag": 0,
+        "transported_channels": 256
+      },
+      "keep_count": 21504,
+      "matching_preloaded_ae_decoder": false,
+      "measured_pre_zstd_bytes": 2754612,
+      "noae_direct_to_c2_without_ae_decoder": true,
+      "q50_selection_digest": null,
+      "q_e4": 0,
+      "q_requested": 0.0,
+      "q_wire": 0.0,
+      "quantizer": "UINT4",
+      "ranker_invocations": 0,
+      "reconstructed_c2": {
+        "device": "cuda:0",
+        "dtype": "float32",
+        "finite": true,
+        "shape": [
+          256,
+          112,
+          192
+        ]
+      },
+      "retained_affine_error": {
+        "fp32_numerical_allowance": "8 * eps(float32) * max(abs(min), abs(max), 1)",
+        "maximum_bound": 0.22766341269016266,
+        "maximum_error": 0.22765325009822845,
+        "satisfies_per_channel_affine_bound": true
+      },
+      "tail_output_tensors": 78,
+      "tail_outputs_finite": true,
+      "zstd_decompressions": 1
+    },
+    {
+      "analytical_pre_zstd_bytes": 1381044,
+      "bit_width": 4,
+      "compressed_bytes_diagnostic_only": 800510,
+      "decoder_selected_from_received_inner_header": true,
+      "dropped_cells_exact_zero_before_decoder_or_tail": true,
+      "family": "noAE",
+      "family_id": 0,
+      "header": {
+        "bit_width": 4,
+        "family_id": 0,
+        "keep_count": 10752,
+        "mask_bytes": 2688,
+        "packed_value_bytes": 1376256,
+        "q_e4": 5000,
+        "range_bytes": 2048,
+        "routing_tag": 0,
+        "transported_channels": 256
+      },
+      "keep_count": 10752,
+      "matching_preloaded_ae_decoder": false,
+      "measured_pre_zstd_bytes": 1381044,
+      "noae_direct_to_c2_without_ae_decoder": true,
+      "q50_selection_digest": {
+        "keep_indices_sha256": "30219d281593f4d8c661c90f4dea6295ec3f18aab3a54d2c2fb294cd81d88e92",
+        "mask_sha256": "9e5d545bd7d8268476e2ac793151186c37ab795429678f1c137cc2e909de2937"
+      },
+      "q_e4": 5000,
+      "q_requested": 0.5,
+      "q_wire": 0.5,
+      "quantizer": "UINT4",
+      "ranker_invocations": 1,
+      "reconstructed_c2": {
+        "device": "cuda:0",
+        "dtype": "float32",
+        "finite": true,
+        "shape": [
+          256,
+          112,
+          192
+        ]
+      },
+      "retained_affine_error": {
+        "fp32_numerical_allowance": "8 * eps(float32) * max(abs(min), abs(max), 1)",
+        "maximum_bound": 0.22766341269016266,
+        "maximum_error": 0.22765325009822845,
+        "satisfies_per_channel_affine_bound": true
+      },
+      "tail_output_tensors": 78,
+      "tail_outputs_finite": true,
+      "zstd_decompressions": 1
+    },
+    {
+      "analytical_pre_zstd_bytes": 2065460,
+      "bit_width": 6,
+      "compressed_bytes_diagnostic_only": 1893307,
+      "decoder_selected_from_received_inner_header": true,
+      "dropped_cells_exact_zero_before_decoder_or_tail": true,
+      "family": "AE128",
+      "family_id": 1,
+      "header": {
+        "bit_width": 6,
+        "family_id": 1,
+        "keep_count": 21504,
+        "mask_bytes": 0,
+        "packed_value_bytes": 2064384,
+        "q_e4": 0,
+        "range_bytes": 1024,
+        "routing_tag": 204186532,
+        "transported_channels": 128
+      },
+      "keep_count": 21504,
+      "matching_preloaded_ae_decoder": true,
+      "measured_pre_zstd_bytes": 2065460,
+      "noae_direct_to_c2_without_ae_decoder": false,
+      "q50_selection_digest": null,
+      "q_e4": 0,
+      "q_requested": 0.0,
+      "q_wire": 0.0,
+      "quantizer": "UINT6",
+      "ranker_invocations": 0,
+      "reconstructed_c2": {
+        "device": "cuda:0",
+        "dtype": "float32",
+        "finite": true,
+        "shape": [
+          256,
+          112,
+          192
+        ]
+      },
+      "retained_affine_error": {
+        "fp32_numerical_allowance": "8 * eps(float32) * max(abs(min), abs(max), 1)",
+        "maximum_bound": 0.0275579821318388,
+        "maximum_error": 0.027552813291549683,
+        "satisfies_per_channel_affine_bound": true
+      },
+      "tail_output_tensors": 78,
+      "tail_outputs_finite": true,
+      "zstd_decompressions": 1
+    },
+    {
+      "analytical_pre_zstd_bytes": 1035956,
+      "bit_width": 6,
+      "compressed_bytes_diagnostic_only": 969682,
+      "decoder_selected_from_received_inner_header": true,
+      "dropped_cells_exact_zero_before_decoder_or_tail": true,
+      "family": "AE128",
+      "family_id": 1,
+      "header": {
+        "bit_width": 6,
+        "family_id": 1,
+        "keep_count": 10752,
+        "mask_bytes": 2688,
+        "packed_value_bytes": 1032192,
+        "q_e4": 5000,
+        "range_bytes": 1024,
+        "routing_tag": 204186532,
+        "transported_channels": 128
+      },
+      "keep_count": 10752,
+      "matching_preloaded_ae_decoder": true,
+      "measured_pre_zstd_bytes": 1035956,
+      "noae_direct_to_c2_without_ae_decoder": false,
+      "q50_selection_digest": {
+        "keep_indices_sha256": "30219d281593f4d8c661c90f4dea6295ec3f18aab3a54d2c2fb294cd81d88e92",
+        "mask_sha256": "9e5d545bd7d8268476e2ac793151186c37ab795429678f1c137cc2e909de2937"
+      },
+      "q_e4": 5000,
+      "q_requested": 0.5,
+      "q_wire": 0.5,
+      "quantizer": "UINT6",
+      "ranker_invocations": 1,
+      "reconstructed_c2": {
+        "device": "cuda:0",
+        "dtype": "float32",
+        "finite": true,
+        "shape": [
+          256,
+          112,
+          192
+        ]
+      },
+      "retained_affine_error": {
+        "fp32_numerical_allowance": "8 * eps(float32) * max(abs(min), abs(max), 1)",
+        "maximum_bound": 0.0275579821318388,
+        "maximum_error": 0.027551621198654175,
+        "satisfies_per_channel_affine_bound": true
+      },
+      "tail_output_tensors": 78,
+      "tail_outputs_finite": true,
+      "zstd_decompressions": 1
+    },
+    {
+      "analytical_pre_zstd_bytes": 1377332,
+      "bit_width": 4,
+      "compressed_bytes_diagnostic_only": 940366,
+      "decoder_selected_from_received_inner_header": true,
+      "dropped_cells_exact_zero_before_decoder_or_tail": true,
+      "family": "AE128",
+      "family_id": 1,
+      "header": {
+        "bit_width": 4,
+        "family_id": 1,
+        "keep_count": 21504,
+        "mask_bytes": 0,
+        "packed_value_bytes": 1376256,
+        "q_e4": 0,
+        "range_bytes": 1024,
+        "routing_tag": 204186532,
+        "transported_channels": 128
+      },
+      "keep_count": 21504,
+      "matching_preloaded_ae_decoder": true,
+      "measured_pre_zstd_bytes": 1377332,
+      "noae_direct_to_c2_without_ae_decoder": false,
+      "q50_selection_digest": null,
+      "q_e4": 0,
+      "q_requested": 0.0,
+      "q_wire": 0.0,
+      "quantizer": "UINT4",
+      "ranker_invocations": 0,
+      "reconstructed_c2": {
+        "device": "cuda:0",
+        "dtype": "float32",
+        "finite": true,
+        "shape": [
+          256,
+          112,
+          192
+        ]
+      },
+      "retained_affine_error": {
+        "fp32_numerical_allowance": "8 * eps(float32) * max(abs(min), abs(max), 1)",
+        "maximum_bound": 0.1157352551817894,
+        "maximum_error": 0.11572235822677612,
+        "satisfies_per_channel_affine_bound": true
+      },
+      "tail_output_tensors": 78,
+      "tail_outputs_finite": true,
+      "zstd_decompressions": 1
+    },
+    {
+      "analytical_pre_zstd_bytes": 691892,
+      "bit_width": 4,
+      "compressed_bytes_diagnostic_only": 504573,
+      "decoder_selected_from_received_inner_header": true,
+      "dropped_cells_exact_zero_before_decoder_or_tail": true,
+      "family": "AE128",
+      "family_id": 1,
+      "header": {
+        "bit_width": 4,
+        "family_id": 1,
+        "keep_count": 10752,
+        "mask_bytes": 2688,
+        "packed_value_bytes": 688128,
+        "q_e4": 5000,
+        "range_bytes": 1024,
+        "routing_tag": 204186532,
+        "transported_channels": 128
+      },
+      "keep_count": 10752,
+      "matching_preloaded_ae_decoder": true,
+      "measured_pre_zstd_bytes": 691892,
+      "noae_direct_to_c2_without_ae_decoder": false,
+      "q50_selection_digest": {
+        "keep_indices_sha256": "30219d281593f4d8c661c90f4dea6295ec3f18aab3a54d2c2fb294cd81d88e92",
+        "mask_sha256": "9e5d545bd7d8268476e2ac793151186c37ab795429678f1c137cc2e909de2937"
+      },
+      "q_e4": 5000,
+      "q_requested": 0.5,
+      "q_wire": 0.5,
+      "quantizer": "UINT4",
+      "ranker_invocations": 1,
+      "reconstructed_c2": {
+        "device": "cuda:0",
+        "dtype": "float32",
+        "finite": true,
+        "shape": [
+          256,
+          112,
+          192
+        ]
+      },
+      "retained_affine_error": {
+        "fp32_numerical_allowance": "8 * eps(float32) * max(abs(min), abs(max), 1)",
+        "maximum_bound": 0.1157352551817894,
+        "maximum_error": 0.11572235822677612,
+        "satisfies_per_channel_affine_bound": true
+      },
+      "tail_output_tensors": 78,
+      "tail_outputs_finite": true,
+      "zstd_decompressions": 1
+    },
+    {
+      "analytical_pre_zstd_bytes": 1032756,
+      "bit_width": 6,
+      "compressed_bytes_diagnostic_only": 967647,
+      "decoder_selected_from_received_inner_header": true,
+      "dropped_cells_exact_zero_before_decoder_or_tail": true,
+      "family": "AE64",
+      "family_id": 2,
+      "header": {
+        "bit_width": 6,
+        "family_id": 2,
+        "keep_count": 21504,
+        "mask_bytes": 0,
+        "packed_value_bytes": 1032192,
+        "q_e4": 0,
+        "range_bytes": 512,
+        "routing_tag": 3715911972,
+        "transported_channels": 64
+      },
+      "keep_count": 21504,
+      "matching_preloaded_ae_decoder": true,
+      "measured_pre_zstd_bytes": 1032756,
+      "noae_direct_to_c2_without_ae_decoder": false,
+      "q50_selection_digest": null,
+      "q_e4": 0,
+      "q_requested": 0.0,
+      "q_wire": 0.0,
+      "quantizer": "UINT6",
+      "ranker_invocations": 0,
+      "reconstructed_c2": {
+        "device": "cuda:0",
+        "dtype": "float32",
+        "finite": true,
+        "shape": [
+          256,
+          112,
+          192
+        ]
+      },
+      "retained_affine_error": {
+        "fp32_numerical_allowance": "8 * eps(float32) * max(abs(min), abs(max), 1)",
+        "maximum_bound": 0.02719084732234478,
+        "maximum_error": 0.027187973260879517,
+        "satisfies_per_channel_affine_bound": true
+      },
+      "tail_output_tensors": 78,
+      "tail_outputs_finite": true,
+      "zstd_decompressions": 1
+    },
+    {
+      "analytical_pre_zstd_bytes": 519348,
+      "bit_width": 6,
+      "compressed_bytes_diagnostic_only": 491590,
+      "decoder_selected_from_received_inner_header": true,
+      "dropped_cells_exact_zero_before_decoder_or_tail": true,
+      "family": "AE64",
+      "family_id": 2,
+      "header": {
+        "bit_width": 6,
+        "family_id": 2,
+        "keep_count": 10752,
+        "mask_bytes": 2688,
+        "packed_value_bytes": 516096,
+        "q_e4": 5000,
+        "range_bytes": 512,
+        "routing_tag": 3715911972,
+        "transported_channels": 64
+      },
+      "keep_count": 10752,
+      "matching_preloaded_ae_decoder": true,
+      "measured_pre_zstd_bytes": 519348,
+      "noae_direct_to_c2_without_ae_decoder": false,
+      "q50_selection_digest": {
+        "keep_indices_sha256": "30219d281593f4d8c661c90f4dea6295ec3f18aab3a54d2c2fb294cd81d88e92",
+        "mask_sha256": "9e5d545bd7d8268476e2ac793151186c37ab795429678f1c137cc2e909de2937"
+      },
+      "q_e4": 5000,
+      "q_requested": 0.5,
+      "q_wire": 0.5,
+      "quantizer": "UINT6",
+      "ranker_invocations": 1,
+      "reconstructed_c2": {
+        "device": "cuda:0",
+        "dtype": "float32",
+        "finite": true,
+        "shape": [
+          256,
+          112,
+          192
+        ]
+      },
+      "retained_affine_error": {
+        "fp32_numerical_allowance": "8 * eps(float32) * max(abs(min), abs(max), 1)",
+        "maximum_bound": 0.02719084732234478,
+        "maximum_error": 0.027187973260879517,
+        "satisfies_per_channel_affine_bound": true
+      },
+      "tail_output_tensors": 78,
+      "tail_outputs_finite": true,
+      "zstd_decompressions": 1
+    },
+    {
+      "analytical_pre_zstd_bytes": 688692,
+      "bit_width": 4,
+      "compressed_bytes_diagnostic_only": 498997,
+      "decoder_selected_from_received_inner_header": true,
+      "dropped_cells_exact_zero_before_decoder_or_tail": true,
+      "family": "AE64",
+      "family_id": 2,
+      "header": {
+        "bit_width": 4,
+        "family_id": 2,
+        "keep_count": 21504,
+        "mask_bytes": 0,
+        "packed_value_bytes": 688128,
+        "q_e4": 0,
+        "range_bytes": 512,
+        "routing_tag": 3715911972,
+        "transported_channels": 64
+      },
+      "keep_count": 21504,
+      "matching_preloaded_ae_decoder": true,
+      "measured_pre_zstd_bytes": 688692,
+      "noae_direct_to_c2_without_ae_decoder": false,
+      "q50_selection_digest": null,
+      "q_e4": 0,
+      "q_requested": 0.0,
+      "q_wire": 0.0,
+      "quantizer": "UINT4",
+      "ranker_invocations": 0,
+      "reconstructed_c2": {
+        "device": "cuda:0",
+        "dtype": "float32",
+        "finite": true,
+        "shape": [
+          256,
+          112,
+          192
+        ]
+      },
+      "retained_affine_error": {
+        "fp32_numerical_allowance": "8 * eps(float32) * max(abs(min), abs(max), 1)",
+        "maximum_bound": 0.11419477313756943,
+        "maximum_error": 0.11419156193733215,
+        "satisfies_per_channel_affine_bound": true
+      },
+      "tail_output_tensors": 78,
+      "tail_outputs_finite": true,
+      "zstd_decompressions": 1
+    },
+    {
+      "analytical_pre_zstd_bytes": 347316,
+      "bit_width": 4,
+      "compressed_bytes_diagnostic_only": 263302,
+      "decoder_selected_from_received_inner_header": true,
+      "dropped_cells_exact_zero_before_decoder_or_tail": true,
+      "family": "AE64",
+      "family_id": 2,
+      "header": {
+        "bit_width": 4,
+        "family_id": 2,
+        "keep_count": 10752,
+        "mask_bytes": 2688,
+        "packed_value_bytes": 344064,
+        "q_e4": 5000,
+        "range_bytes": 512,
+        "routing_tag": 3715911972,
+        "transported_channels": 64
+      },
+      "keep_count": 10752,
+      "matching_preloaded_ae_decoder": true,
+      "measured_pre_zstd_bytes": 347316,
+      "noae_direct_to_c2_without_ae_decoder": false,
+      "q50_selection_digest": {
+        "keep_indices_sha256": "30219d281593f4d8c661c90f4dea6295ec3f18aab3a54d2c2fb294cd81d88e92",
+        "mask_sha256": "9e5d545bd7d8268476e2ac793151186c37ab795429678f1c137cc2e909de2937"
+      },
+      "q_e4": 5000,
+      "q_requested": 0.5,
+      "q_wire": 0.5,
+      "quantizer": "UINT4",
+      "ranker_invocations": 1,
+      "reconstructed_c2": {
+        "device": "cuda:0",
+        "dtype": "float32",
+        "finite": true,
+        "shape": [
+          256,
+          112,
+          192
+        ]
+      },
+      "retained_affine_error": {
+        "fp32_numerical_allowance": "8 * eps(float32) * max(abs(min), abs(max), 1)",
+        "maximum_bound": 0.11419477313756943,
+        "maximum_error": 0.11419156193733215,
+        "satisfies_per_channel_affine_bound": true
+      },
+      "tail_output_tensors": 78,
+      "tail_outputs_finite": true,
+      "zstd_decompressions": 1
+    },
+    {
+      "analytical_pre_zstd_bytes": 516404,
+      "bit_width": 6,
+      "compressed_bytes_diagnostic_only": 477037,
+      "decoder_selected_from_received_inner_header": true,
+      "dropped_cells_exact_zero_before_decoder_or_tail": true,
+      "family": "AE32",
+      "family_id": 3,
+      "header": {
+        "bit_width": 6,
+        "family_id": 3,
+        "keep_count": 21504,
+        "mask_bytes": 0,
+        "packed_value_bytes": 516096,
+        "q_e4": 0,
+        "range_bytes": 256,
+        "routing_tag": 3807930229,
+        "transported_channels": 32
+      },
+      "keep_count": 21504,
+      "matching_preloaded_ae_decoder": true,
+      "measured_pre_zstd_bytes": 516404,
+      "noae_direct_to_c2_without_ae_decoder": false,
+      "q50_selection_digest": null,
+      "q_e4": 0,
+      "q_requested": 0.0,
+      "q_wire": 0.0,
+      "quantizer": "UINT6",
+      "ranker_invocations": 0,
+      "reconstructed_c2": {
+        "device": "cuda:0",
+        "dtype": "float32",
+        "finite": true,
+        "shape": [
+          256,
+          112,
+          192
+        ]
+      },
+      "retained_affine_error": {
+        "fp32_numerical_allowance": "8 * eps(float32) * max(abs(min), abs(max), 1)",
+        "maximum_bound": 0.033933766186237335,
+        "maximum_error": 0.03392982482910156,
+        "satisfies_per_channel_affine_bound": true
+      },
+      "tail_output_tensors": 78,
+      "tail_outputs_finite": true,
+      "zstd_decompressions": 1
+    },
+    {
+      "analytical_pre_zstd_bytes": 261044,
+      "bit_width": 6,
+      "compressed_bytes_diagnostic_only": 244204,
+      "decoder_selected_from_received_inner_header": true,
+      "dropped_cells_exact_zero_before_decoder_or_tail": true,
+      "family": "AE32",
+      "family_id": 3,
+      "header": {
+        "bit_width": 6,
+        "family_id": 3,
+        "keep_count": 10752,
+        "mask_bytes": 2688,
+        "packed_value_bytes": 258048,
+        "q_e4": 5000,
+        "range_bytes": 256,
+        "routing_tag": 3807930229,
+        "transported_channels": 32
+      },
+      "keep_count": 10752,
+      "matching_preloaded_ae_decoder": true,
+      "measured_pre_zstd_bytes": 261044,
+      "noae_direct_to_c2_without_ae_decoder": false,
+      "q50_selection_digest": {
+        "keep_indices_sha256": "30219d281593f4d8c661c90f4dea6295ec3f18aab3a54d2c2fb294cd81d88e92",
+        "mask_sha256": "9e5d545bd7d8268476e2ac793151186c37ab795429678f1c137cc2e909de2937"
+      },
+      "q_e4": 5000,
+      "q_requested": 0.5,
+      "q_wire": 0.5,
+      "quantizer": "UINT6",
+      "ranker_invocations": 1,
+      "reconstructed_c2": {
+        "device": "cuda:0",
+        "dtype": "float32",
+        "finite": true,
+        "shape": [
+          256,
+          112,
+          192
+        ]
+      },
+      "retained_affine_error": {
+        "fp32_numerical_allowance": "8 * eps(float32) * max(abs(min), abs(max), 1)",
+        "maximum_bound": 0.033933766186237335,
+        "maximum_error": 0.03392982482910156,
+        "satisfies_per_channel_affine_bound": true
+      },
+      "tail_output_tensors": 78,
+      "tail_outputs_finite": true,
+      "zstd_decompressions": 1
+    },
+    {
+      "analytical_pre_zstd_bytes": 344372,
+      "bit_width": 4,
+      "compressed_bytes_diagnostic_only": 242454,
+      "decoder_selected_from_received_inner_header": true,
+      "dropped_cells_exact_zero_before_decoder_or_tail": true,
+      "family": "AE32",
+      "family_id": 3,
+      "header": {
+        "bit_width": 4,
+        "family_id": 3,
+        "keep_count": 21504,
+        "mask_bytes": 0,
+        "packed_value_bytes": 344064,
+        "q_e4": 0,
+        "range_bytes": 256,
+        "routing_tag": 3807930229,
+        "transported_channels": 32
+      },
+      "keep_count": 21504,
+      "matching_preloaded_ae_decoder": true,
+      "measured_pre_zstd_bytes": 344372,
+      "noae_direct_to_c2_without_ae_decoder": false,
+      "q50_selection_digest": null,
+      "q_e4": 0,
+      "q_requested": 0.0,
+      "q_wire": 0.0,
+      "quantizer": "UINT4",
+      "ranker_invocations": 0,
+      "reconstructed_c2": {
+        "device": "cuda:0",
+        "dtype": "float32",
+        "finite": true,
+        "shape": [
+          256,
+          112,
+          192
+        ]
+      },
+      "retained_affine_error": {
+        "fp32_numerical_allowance": "8 * eps(float32) * max(abs(min), abs(max), 1)",
+        "maximum_bound": 0.1425134390592575,
+        "maximum_error": 0.1425078809261322,
+        "satisfies_per_channel_affine_bound": true
+      },
+      "tail_output_tensors": 78,
+      "tail_outputs_finite": true,
+      "zstd_decompressions": 1
+    },
+    {
+      "analytical_pre_zstd_bytes": 175028,
+      "bit_width": 4,
+      "compressed_bytes_diagnostic_only": 129143,
+      "decoder_selected_from_received_inner_header": true,
+      "dropped_cells_exact_zero_before_decoder_or_tail": true,
+      "family": "AE32",
+      "family_id": 3,
+      "header": {
+        "bit_width": 4,
+        "family_id": 3,
+        "keep_count": 10752,
+        "mask_bytes": 2688,
+        "packed_value_bytes": 172032,
+        "q_e4": 5000,
+        "range_bytes": 256,
+        "routing_tag": 3807930229,
+        "transported_channels": 32
+      },
+      "keep_count": 10752,
+      "matching_preloaded_ae_decoder": true,
+      "measured_pre_zstd_bytes": 175028,
+      "noae_direct_to_c2_without_ae_decoder": false,
+      "q50_selection_digest": {
+        "keep_indices_sha256": "30219d281593f4d8c661c90f4dea6295ec3f18aab3a54d2c2fb294cd81d88e92",
+        "mask_sha256": "9e5d545bd7d8268476e2ac793151186c37ab795429678f1c137cc2e909de2937"
+      },
+      "q_e4": 5000,
+      "q_requested": 0.5,
+      "q_wire": 0.5,
+      "quantizer": "UINT4",
+      "ranker_invocations": 1,
+      "reconstructed_c2": {
+        "device": "cuda:0",
+        "dtype": "float32",
+        "finite": true,
+        "shape": [
+          256,
+          112,
+          192
+        ]
+      },
+      "retained_affine_error": {
+        "fp32_numerical_allowance": "8 * eps(float32) * max(abs(min), abs(max), 1)",
+        "maximum_bound": 0.1425134390592575,
+        "maximum_error": 0.14249110221862793,
+        "satisfies_per_channel_affine_bound": true
+      },
+      "tail_output_tensors": 78,
+      "tail_outputs_finite": true,
+      "zstd_decompressions": 1
+    }
+  ],
+  "terminal": "SPLITFUSION_LOWBIT_PHASE11B_GPU_QUALIFIED",
+  "transport": {
+    "bit_widths": [
+      6,
+      4
+    ],
+    "families": [
+      "noAE",
+      "AE128",
+      "AE64",
+      "AE32"
+    ],
+    "public_encode_ae": "lowbit_transport.encode_ae_frame",
+    "public_encode_noae": "lowbit_transport.encode_noae_frame",
+    "public_receive": "PreloadedLowBitDecoders.receive",
+    "q_values": [
+      0.0,
+      0.5
+    ],
+    "tail_signature": {
+      "output.anchors[0]": [
+        28668,
+        4
+      ],
+      "output.c2": [
+        1,
+        256,
+        112,
+        192
+      ],
+      "output.dense_depth_log1p": [
+        1,
+        1,
+        432,
+        768
+      ],
+      "output.dense_depth_log1p_stride4": [
+        1,
+        1,
+        112,
+        192
+      ],
+      "output.detection.bbox_ctrness": [
+        1,
+        28668,
+        1
+      ],
+      "output.detection.bbox_regression": [
+        1,
+        28668,
+        4
+      ],
+      "output.detection.classification_tower[0]": [
+        1,
+        256,
+        112,
+        192
+      ],
+      "output.detection.classification_tower[1]": [
+        1,
+        256,
+        56,
+        96
+      ],
+      "output.detection.classification_tower[2]": [
+        1,
+        256,
+        28,
+        48
+      ],
+      "output.detection.classification_tower[3]": [
+        1,
+        256,
+        14,
+        24
+      ],
+      "output.detection.classification_tower[4]": [
+        1,
+        256,
+        7,
+        12
+      ],
+      "output.detection.classification_tower[5]": [
+        1,
+        256,
+        4,
+        6
+      ],
+      "output.detection.cls_logits": [
+        1,
+        28668,
+        2
+      ],
+      "output.detection.per_level.bbox_ctrness[0]": [
+        1,
+        21504,
+        1
+      ],
+      "output.detection.per_level.bbox_ctrness[1]": [
+        1,
+        5376,
+        1
+      ],
+      "output.detection.per_level.bbox_ctrness[2]": [
+        1,
+        1344,
+        1
+      ],
+      "output.detection.per_level.bbox_ctrness[3]": [
+        1,
+        336,
+        1
+      ],
+      "output.detection.per_level.bbox_ctrness[4]": [
+        1,
+        84,
+        1
+      ],
+      "output.detection.per_level.bbox_ctrness[5]": [
+        1,
+        24,
+        1
+      ],
+      "output.detection.per_level.bbox_regression[0]": [
+        1,
+        21504,
+        4
+      ],
+      "output.detection.per_level.bbox_regression[1]": [
+        1,
+        5376,
+        4
+      ],
+      "output.detection.per_level.bbox_regression[2]": [
+        1,
+        1344,
+        4
+      ],
+      "output.detection.per_level.bbox_regression[3]": [
+        1,
+        336,
+        4
+      ],
+      "output.detection.per_level.bbox_regression[4]": [
+        1,
+        84,
+        4
+      ],
+      "output.detection.per_level.bbox_regression[5]": [
+        1,
+        24,
+        4
+      ],
+      "output.detection.per_level.cls_logits[0]": [
+        1,
+        21504,
+        2
+      ],
+      "output.detection.per_level.cls_logits[1]": [
+        1,
+        5376,
+        2
+      ],
+      "output.detection.per_level.cls_logits[2]": [
+        1,
+        1344,
+        2
+      ],
+      "output.detection.per_level.cls_logits[3]": [
+        1,
+        336,
+        2
+      ],
+      "output.detection.per_level.cls_logits[4]": [
+        1,
+        84,
+        2
+      ],
+      "output.detection.per_level.cls_logits[5]": [
+        1,
+        24,
+        2
+      ],
+      "output.detection.regression_tower[0]": [
+        1,
+        256,
+        112,
+        192
+      ],
+      "output.detection.regression_tower[1]": [
+        1,
+        256,
+        56,
+        96
+      ],
+      "output.detection.regression_tower[2]": [
+        1,
+        256,
+        28,
+        48
+      ],
+      "output.detection.regression_tower[3]": [
+        1,
+        256,
+        14,
+        24
+      ],
+      "output.detection.regression_tower[4]": [
+        1,
+        256,
+        7,
+        12
+      ],
+      "output.detection.regression_tower[5]": [
+        1,
+        256,
+        4,
+        6
+      ],
+      "output.features.p2": [
+        1,
+        256,
+        112,
+        192
+      ],
+      "output.features.p3": [
+        1,
+        256,
+        56,
+        96
+      ],
+      "output.features.p4": [
+        1,
+        256,
+        28,
+        48
+      ],
+      "output.features.p5": [
+        1,
+        256,
+        14,
+        24
+      ],
+      "output.features.p6": [
+        1,
+        256,
+        7,
+        12
+      ],
+      "output.features.p7": [
+        1,
+        256,
+        4,
+        6
+      ],
+      "output.geometry[0].depth_bin_logits": [
+        1,
+        21504,
+        2,
+        33
+      ],
+      "output.geometry[0].depth_bin_residuals": [
+        1,
+        21504,
+        2,
+        32
+      ],
+      "output.geometry[0].log_dimensions": [
+        1,
+        21504,
+        2,
+        3
+      ],
+      "output.geometry[0].physical_ray": [
+        1,
+        21504,
+        2,
+        2
+      ],
+      "output.geometry[0].yaw": [
+        1,
+        21504,
+        2,
+        2
+      ],
+      "output.geometry[1].depth_bin_logits": [
+        1,
+        5376,
+        2,
+        33
+      ],
+      "output.geometry[1].depth_bin_residuals": [
+        1,
+        5376,
+        2,
+        32
+      ],
+      "output.geometry[1].log_dimensions": [
+        1,
+        5376,
+        2,
+        3
+      ],
+      "output.geometry[1].physical_ray": [
+        1,
+        5376,
+        2,
+        2
+      ],
+      "output.geometry[1].yaw": [
+        1,
+        5376,
+        2,
+        2
+      ],
+      "output.geometry[2].depth_bin_logits": [
+        1,
+        1344,
+        2,
+        33
+      ],
+      "output.geometry[2].depth_bin_residuals": [
+        1,
+        1344,
+        2,
+        32
+      ],
+      "output.geometry[2].log_dimensions": [
+        1,
+        1344,
+        2,
+        3
+      ],
+      "output.geometry[2].physical_ray": [
+        1,
+        1344,
+        2,
+        2
+      ],
+      "output.geometry[2].yaw": [
+        1,
+        1344,
+        2,
+        2
+      ],
+      "output.geometry[3].depth_bin_logits": [
+        1,
+        336,
+        2,
+        33
+      ],
+      "output.geometry[3].depth_bin_residuals": [
+        1,
+        336,
+        2,
+        32
+      ],
+      "output.geometry[3].log_dimensions": [
+        1,
+        336,
+        2,
+        3
+      ],
+      "output.geometry[3].physical_ray": [
+        1,
+        336,
+        2,
+        2
+      ],
+      "output.geometry[3].yaw": [
+        1,
+        336,
+        2,
+        2
+      ],
+      "output.geometry[4].depth_bin_logits": [
+        1,
+        84,
+        2,
+        33
+      ],
+      "output.geometry[4].depth_bin_residuals": [
+        1,
+        84,
+        2,
+        32
+      ],
+      "output.geometry[4].log_dimensions": [
+        1,
+        84,
+        2,
+        3
+      ],
+      "output.geometry[4].physical_ray": [
+        1,
+        84,
+        2,
+        2
+      ],
+      "output.geometry[4].yaw": [
+        1,
+        84,
+        2,
+        2
+      ],
+      "output.geometry[5].depth_bin_logits": [
+        1,
+        24,
+        2,
+        33
+      ],
+      "output.geometry[5].depth_bin_residuals": [
+        1,
+        24,
+        2,
+        32
+      ],
+      "output.geometry[5].log_dimensions": [
+        1,
+        24,
+        2,
+        3
+      ],
+      "output.geometry[5].physical_ray": [
+        1,
+        24,
+        2,
+        2
+      ],
+      "output.geometry[5].yaw": [
+        1,
+        24,
+        2,
+        2
+      ],
+      "output.resnet_features.0": [
+        1,
+        512,
+        56,
+        96
+      ],
+      "output.resnet_features.1": [
+        1,
+        1024,
+        28,
+        48
+      ],
+      "output.resnet_features.2": [
+        1,
+        2048,
+        14,
+        24
+      ],
+      "output.semantic_logits": [
+        1,
+        3,
+        432,
+        768
+      ],
+      "output.semantic_logits_stride4": [
+        1,
+        3,
+        112,
+        192
+      ]
+    },
+    "zstd": {
+      "backend": "cext",
+      "binding_version": "0.25.0",
+      "implementation": "python-zstandard",
+      "module": "zstandard",
+      "settings": {
+        "dict_data": null,
+        "level": 1,
+        "level_search_performed": false,
+        "one_frame_per_camera_frame": true,
+        "threads": 0,
+        "write_checksum": true,
+        "write_content_size": true,
+        "write_dict_id": false
+      },
+      "zstd_library_version": "1.5.7"
+    }
+  }
+}
