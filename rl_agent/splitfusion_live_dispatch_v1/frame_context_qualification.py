@@ -34,16 +34,17 @@ from .frame_context import (
     STATIC_INTRINSIC_TENSOR_SHA256,
     camera_world_matrix,
 )
+from .context_tail import normalize_service_frame_id
 from .registry import ActionProfile, SplitActionRegistry
 
 
 EXECUTE_TOKEN = "SPLITFUSION_FRAME_CONTEXT_BINDING_QUALIFICATION"
 SCHEMA = "scenesense.splitfusion_frame_context_binding_qualification.v1"
 TERMINAL = "SPLITFUSION_FRAME_CONTEXT_BINDING_QUALIFIED"
-STARTING_HEAD = "cc6bc92f6f8224fb7ab5a37c31b01a0383f7cae0"
+STARTING_HEAD = "ba0c03d0711a68b5851ff5cecae551c2f8e47d3f"
 OUTPUT_RELPATH = (
     "experiments/splitfusion_live_dispatch_v1/"
-    "20260904_phase13c_frame_context_qualification"
+    "20260904_phase13c_frame_context_qualification_retry1"
 )
 ACTION_IDS = (0, 20, 46, 71)
 TRANSACTIONS = 32
@@ -297,10 +298,14 @@ def _qualify_transaction(
         == STATIC_INTRINSIC_TENSOR_SHA256,
         "direct-reference intrinsic hash drift",
     )
+    direct_row = dict(source)
+    direct_row["frame_id"] = normalize_service_frame_id(
+        source["frame_id"], context.frame_id
+    )
     direct_tail = phase13b.FrozenP025TailAdapter(
         model=runtime["model"],
         base=runtime["base"],
-        row=source,
+        row=direct_row,
         calibration=direct_calibration,
         ledger=ledger,
     )
@@ -486,6 +491,7 @@ def _qualify_transaction(
         direct_perception,
         direct_calibration,
         direct_tail,
+        direct_row,
         reconstructed,
     )
     return result

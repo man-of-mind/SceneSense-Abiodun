@@ -18,6 +18,9 @@ from rl_agent.splitfusion_live_dispatch_v1.frame_context import (
     Pose6D,
     StaticCameraRegistry,
 )
+from rl_agent.splitfusion_live_dispatch_v1.context_tail import (
+    bind_context_service_record_identity,
+)
 from rl_agent.splitfusion_live_dispatch_v1.registry import (
     DispatchContractError,
     SplitActionRegistry,
@@ -209,6 +212,21 @@ class PreloadedDispatchTest(unittest.TestCase):
         outer = unpack_envelope(prepared.wire_bytes)
         self.assertEqual(outer.protocol_version, 2)
         self.assertEqual(outer.frame_context, context)
+        self.assertNotEqual(context.frame_id, context.sequence_id)
+        service_record = bind_context_service_record_identity(
+            {"sample_id": "source-frame", "frame_id": str(context.frame_id)},
+            context,
+        )
+        self.assertEqual(service_record["frame_id"], context.frame_id)
+        self.assertIs(type(service_record["frame_id"]), int)
+        self.assertEqual(service_record["stream_id"], context.stream_id)
+        with self.assertRaisesRegex(
+            DispatchContractError, "does not equal FrameContext"
+        ):
+            bind_context_service_record_identity(
+                {"sample_id": "source-frame", "frame_id": context.sequence_id},
+                context,
+            )
         self.assertEqual(prepared.outer_envelope_bytes, 180 + len(context.stream_id))
         result = edge.process(
             prepared.wire_bytes, transmitted_action_id=profile.action_id

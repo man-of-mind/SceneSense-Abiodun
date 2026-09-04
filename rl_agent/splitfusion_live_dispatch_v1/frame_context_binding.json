@@ -27,16 +27,16 @@
   "source_sha256": {
     "phase2_map_sharing/transport.py": "c8d8d0b253356c11776e9c35b7d6b1bef009bfc980e4cecfcbba84ae95734a6e",
     "rl_agent/splitfusion_live_dispatch_v1/__init__.py": "b94ce4fc2c1f9f4e3625213f72c3ae858ad678edeb15fe06f6f98db13972b347",
-    "rl_agent/splitfusion_live_dispatch_v1/context_tail.py": "221e365c09fede5b5f464550df2a33d6c7daaa36b77cf7bc7a8e01e09507bf0b",
+    "rl_agent/splitfusion_live_dispatch_v1/context_tail.py": "5212bc76b81a8ca574d9f2b786376b5ed06843dd5f9a0b3c45ebe02faed373bb",
     "rl_agent/splitfusion_live_dispatch_v1/edge_runtime.py": "4b5f89eb49b11300cd6762e356a599affa32158479a76f1ad91a8c404d2d6125",
     "rl_agent/splitfusion_live_dispatch_v1/envelope.py": "e49a70e1f92097cd42735f2aea2cd1171a6e4be2a361ab6834e518bfb213b418",
     "rl_agent/splitfusion_live_dispatch_v1/frame_context.py": "845c3886f8862ce3f1cd618323b5b7c8baba05b043e5709ff0cd83d36fc33676",
-    "rl_agent/splitfusion_live_dispatch_v1/frame_context_qualification.py": "b320d05ca2ec087d92886bba9574e1e8f9e7d6dbfcf46cd2d94c1b186f650776",
+    "rl_agent/splitfusion_live_dispatch_v1/frame_context_qualification.py": "468b32ba8c391a0f07785c8ead54794662916f55723e4389213068f884be0868",
     "rl_agent/splitfusion_live_dispatch_v1/phase13b_qualification.py": "e90881e23061d14c8f0cc96a0d2ebd37cbcb063d7b3785a358b27691f4d4a310",
     "rl_agent/splitfusion_live_dispatch_v1/phase13c_measurement.py": "1e79dd45c000bf65bd3d8c845356ef482bb8c186c7d3c46c2ff4afa4da6b03fa",
     "rl_agent/splitfusion_live_dispatch_v1/registry.py": "d199d33a8f4f283f89c4b101b3b2100e87ec9392366b38ca0165e70ba7c8c8fc",
     "rl_agent/splitfusion_live_dispatch_v1/runtime_support.py": "173787565cf83134e01a969f0f1d1e0162ea5129598da9bb7f00b042636d78c7",
-    "rl_agent/splitfusion_live_dispatch_v1/tests/test_dispatch.py": "c05d4cc5c31bcb38d0f04affec1dc712f38bf84d35ca7ab57aaa82bd5d4cc336",
+    "rl_agent/splitfusion_live_dispatch_v1/tests/test_dispatch.py": "eac1f4f3e21528ec5a66c8a975bdb173d1f9fcdf5b5ea304c5bc968b6681cb71",
     "rl_agent/splitfusion_live_dispatch_v1/timing.py": "f928e20a2148cc2cf9738285da31e43f025332133feb61026c93d2b97aaae1dd",
     "rl_agent/splitfusion_live_dispatch_v1/transport.py": "5c8bd3d1bb18818334a28266822b30d475bc67dc016dcf04df7db595e159222f",
     "rl_agent/splitfusion_live_dispatch_v1/ue_runtime.py": "a02d16a262cc72f5ae006689f1e7c982e46e537bc600076e7eed0bfe89c2485c"
@@ -63,5 +63,24 @@
       "non-finite pose",
       "duplicate context"
     ]
+  },
+  "frame_id_repair": {
+    "starting_head": "ba0c03d0711a68b5851ff5cecae551c2f8e47d3f",
+    "failed_output_preserved": "experiments/splitfusion_live_dispatch_v1/20260904_phase13c_frame_context_qualification",
+    "retry_output": "experiments/splitfusion_live_dispatch_v1/20260904_phase13c_frame_context_qualification_retry1",
+    "diagnosis": {
+      "source_frame_id": "3194",
+      "source_frame_id_type": "str",
+      "context_frame_id": 3194,
+      "context_frame_id_type": "int",
+      "transport_sequence_id": 1,
+      "emitted_frame_id": 3194,
+      "emitted_frame_id_type": "int",
+      "direct_reference_frame_id": "3194",
+      "direct_reference_frame_id_type": "str"
+    },
+    "repair": "normalize the fit-manifest frame scalar to an exact uint64-compatible integer at the direct-reference service-schema boundary",
+    "focused_test": "rl_agent.splitfusion_live_dispatch_v1.tests.test_dispatch.PreloadedDispatchTest.test_sfd1_v2_frame_context_validates_before_decode_and_tracks_session",
+    "focused_test_result": "1 test OK"
   }
 }

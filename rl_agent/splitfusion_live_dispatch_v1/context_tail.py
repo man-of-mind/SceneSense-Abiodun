@@ -46,6 +46,50 @@ def _require_tree_finite(value: Any, label: str) -> int:
     return count
 
 
+def normalize_service_frame_id(value: object, canonical_frame_id: int) -> int:
+    """Normalize a manifest scalar at the context/service schema boundary."""
+    _require(
+        isinstance(canonical_frame_id, int)
+        and not isinstance(canonical_frame_id, bool)
+        and 0 <= canonical_frame_id < (1 << 64),
+        "canonical service frame_id is outside uint64",
+    )
+    if isinstance(value, int) and not isinstance(value, bool):
+        observed = value
+    elif (
+        isinstance(value, str)
+        and value.isascii()
+        and value.isdecimal()
+        and str(int(value, 10)) == value
+    ):
+        observed = int(value, 10)
+    else:
+        raise DispatchContractError(
+            "service frame_id is not an integer or canonical decimal integer"
+        )
+    _require(
+        observed == canonical_frame_id,
+        "service frame_id does not equal FrameContext canonical_frame_id",
+    )
+    return int(canonical_frame_id)
+
+
+def bind_context_service_record_identity(
+    record: Mapping[str, Any], context: FrameContextV1
+) -> dict[str, Any]:
+    """Bind service identity to context; transport sequence is never consulted."""
+    normalized = dict(record)
+    _require("frame_id" in normalized, "service record lacks frame_id")
+    normalized["frame_id"] = normalize_service_frame_id(
+        normalized["frame_id"], context.frame_id
+    )
+    return {
+        "stream_id": context.stream_id,
+        "capture_timestamp_ns": context.capture_timestamp_ns,
+        **normalized,
+    }
+
+
 @dataclass
 class ContextTailSnapshot:
     perception: Mapping[str, torch.Tensor]
@@ -175,12 +219,7 @@ class ContextualFrozenP025TailAdapter:
             snapshot.original_indices,
         )
         records = tuple(
-            {
-                "stream_id": context.stream_id,
-                "capture_timestamp_ns": context.capture_timestamp_ns,
-                **record,
-            }
-            for record in rows
+            bind_context_service_record_identity(record, context) for record in rows
         )
         for record in records:
             _require(
