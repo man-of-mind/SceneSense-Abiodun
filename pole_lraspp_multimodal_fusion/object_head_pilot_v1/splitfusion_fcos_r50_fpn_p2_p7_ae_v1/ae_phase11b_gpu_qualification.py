@@ -13,6 +13,7 @@ import hashlib
 import json
 import os
 import platform
+import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -122,17 +123,42 @@ FAMILIES = (
     ("AE32", ae_contract.AE_FAMILY_AE32, 32),
 )
 
-# A selected checkpoint's package map predates Phase 11.  Historic files are
-# immutable.  The five additions below are the complete, explicit delta; this
-# local comparison intentionally does not relax any existing binding helper.
-PHASE11_ADDED_SOURCES = frozenset(
-    {
-        "AE_PHASE11A_UINT6_UINT4_IMPLEMENTATION_REPORT.md",
-        "lowbit_dispatch.py",
-        "lowbit_transport.py",
-        "tests/test_lowbit_transport.py",
-        "ae_phase11b_gpu_qualification.py",
-    }
+# The AE128 candidate predates these exact, reviewed late-phase changes.  Each
+# entry binds a source filename *and* its historical and current SHA-256 values;
+# a filename alone is never an admission rule.  AE64 and AE32 were selected
+# after this evolution and therefore require exact source-map equality.
+AE128_ACCEPTED_SOURCE_TRANSITIONS: dict[str, dict[str, str]] = {
+    "ae_family_dispatch.py": {
+        "historical_sha256": "b0f56c65f43cb53b13c1700a2c1a8373f777c2a142dd878b96b8a17ef465fec0",
+        "current_sha256": "64eaddd5e561948841d75a06b18fe44c6603b101a50df18e9e2b8a87ee4c0c9c",
+        "reason": (
+            "opt-in receive diagnostics expose already-decoded intermediates; "
+            "the default receive path and AE reconstruction arithmetic are unchanged"
+        ),
+    },
+    "ae_holdout_selection.py": {
+        "historical_sha256": "6ca4d1bb8f5253b33e9149fe751bf4aa198e3c8ff295d62ac267ccafb80e51be",
+        "current_sha256": "a3dcde29ff2a3508de471c08cb6674384a305111aaf0bba969062495e994b526",
+        "reason": (
+            "same-q evaluation-gate implementation was relocated and re-exported; "
+            "this holdout-selection runner is not imported for Phase 11B execution"
+        ),
+    },
+    "ae_training_common.py": {
+        "historical_sha256": "6802aba8d996f312b7609749f84db908c002fc992131c68e0edfcf1f7242283a",
+        "current_sha256": "7c5af221a86cdd654117201b32fb5a494b808779bd97fcef11a0a08a08e41f57",
+        "reason": (
+            "same-q evaluation-gate utility was added to shared provenance code; "
+            "no AE model-forward arithmetic or checkpoint tensor interpretation changed"
+        ),
+    },
+}
+
+# These are the checkpoint-defined numerical modules used to construct an AE
+# and to produce the latent that reaches the low-bit quantizer.  They must be
+# exactly identical for every selected checkpoint; no transition is permitted.
+NUMERICAL_AE_SOURCES = frozenset(
+    {"ae_contract.py", "ae_model.py", "ae_composition.py"}
 )
 
 
@@ -232,49 +258,124 @@ def _live_ae_source_map() -> dict[str, str]:
     }
 
 
+def _loaded_repository_source_hashes() -> dict[str, str]:
+    """Hash every repository Python source module imported by this execution."""
+    root = contract.repository_root().resolve()
+    sources: dict[str, str] = {}
+    for module in tuple(sys.modules.values()):
+        path_value = getattr(module, "__file__", None)
+        if not path_value:
+            continue
+        path = Path(path_value)
+        if path.suffix != ".py" or not path.is_file():
+            continue
+        try:
+            relative = str(path.resolve().relative_to(root))
+        except ValueError:
+            continue
+        sources[relative] = sha256_file(path)
+    return dict(sorted(sources.items()))
+
+
 def _bind_historical_source_map(
-    family_name: str, recorded: Mapping[str, Any], live: Mapping[str, str]
+    family_name: str,
+    checkpoint_recorded: Mapping[str, Any],
+    selection_recorded: Mapping[str, Any],
+    live: Mapping[str, str],
 ) -> dict[str, Any]:
-    """Require byte identity for history and exactly the authorized additions."""
-    if not isinstance(recorded, Mapping) or not recorded:
+    """Bind historical records, then allow only exact reviewed transitions.
+
+    A checkpoint source map describes the historical numerical environment, not
+    a demand that an unrelated later evaluation module stay frozen forever.
+    The selection record is required to carry that same historical map.  Every
+    historical file still present today must either be byte-identical or match
+    one AE128 entry in ``AE128_ACCEPTED_SOURCE_TRANSITIONS`` exactly.
+    """
+    if not isinstance(checkpoint_recorded, Mapping) or not checkpoint_recorded:
         raise guards.HybridQConfigError(
             f"{family_name} checkpoint does not carry a historical source map"
         )
-    historical = {str(name): str(digest) for name, digest in recorded.items()}
-    changed = sorted(
-        name for name in historical if name in live and live[name] != historical[name]
-    )
-    removed = sorted(set(historical) - set(live))
-    added = sorted(set(live) - set(historical))
-    if changed:
+    if not isinstance(selection_recorded, Mapping) or not selection_recorded:
         raise guards.HybridQConfigError(
-            f"{family_name} historical AE source changed: {changed}"
+            f"{family_name} selection record does not carry a historical source map"
         )
+    historical = {
+        str(name): str(digest) for name, digest in checkpoint_recorded.items()
+    }
+    selected_historical = {
+        str(name): str(digest) for name, digest in selection_recorded.items()
+    }
+    if historical != selected_historical:
+        raise guards.HybridQConfigError(
+            f"{family_name} checkpoint and selection source maps disagree"
+        )
+    removed = sorted(set(historical) - set(live))
     if removed:
         raise guards.HybridQConfigError(
             f"{family_name} historical AE source removed: {removed}"
         )
-    if set(added) != PHASE11_ADDED_SOURCES:
-        raise guards.HybridQConfigError(
-            f"{family_name} source additions must be exactly "
-            f"{sorted(PHASE11_ADDED_SOURCES)}, found {added}"
+
+    exact: list[str] = []
+    transitions: list[dict[str, str]] = []
+    for name, historical_digest in sorted(historical.items()):
+        current_digest = live[name]
+        if current_digest == historical_digest:
+            exact.append(name)
+            continue
+        transition = AE128_ACCEPTED_SOURCE_TRANSITIONS.get(name)
+        if (
+            family_name != "AE128"
+            or transition is None
+            or transition["historical_sha256"] != historical_digest
+            or transition["current_sha256"] != current_digest
+        ):
+            raise guards.HybridQConfigError(
+                f"{family_name} historical source incompatibility for {name}: "
+                f"{historical_digest} -> {current_digest}"
+            )
+        transitions.append(
+            {
+                "path": name,
+                "historical_sha256": historical_digest,
+                "current_sha256": current_digest,
+                "reason": transition["reason"],
+            }
         )
+
+    expected_transitions = (
+        set(AE128_ACCEPTED_SOURCE_TRANSITIONS) if family_name == "AE128" else set()
+    )
+    observed_transitions = {row["path"] for row in transitions}
+    if observed_transitions != expected_transitions:
+        raise guards.HybridQConfigError(
+            f"{family_name} accepted transition set {sorted(observed_transitions)} "
+            f"!= required {sorted(expected_transitions)}"
+        )
+    numerical = {}
+    for name in sorted(NUMERICAL_AE_SOURCES):
+        if name not in historical:
+            raise guards.HybridQConfigError(
+                f"{family_name} historical source map omits numerical module {name}"
+            )
+        if historical[name] != live.get(name):
+            raise guards.HybridQConfigError(
+                f"{family_name} numerical module {name} is not checkpoint-compatible"
+            )
+        numerical[name] = live[name]
     return {
-        "historical_files_byte_identical": True,
+        "checkpoint_selection_source_maps_identical": True,
         "historical_file_count": len(historical),
         "live_file_count": len(live),
-        "changed": [],
         "removed": [],
-        "allowed_new_files": sorted(PHASE11_ADDED_SOURCES),
-        "added": [
-            {"path": name, "sha256": live[name]} for name in sorted(PHASE11_ADDED_SOURCES)
-        ],
+        "historical_files_exactly_current": exact,
+        "accepted_historical_to_current_transitions": transitions,
+        "numerical_ae_sources_exactly_checkpoint_compatible": numerical,
     }
 
 
 def _verify_selection_document(
     family_name: str, item: Mapping[str, str], bottleneck: int
-) -> dict[str, Any]:
+) -> tuple[dict[str, Any], Mapping[str, Any]]:
     """Bind each frozen selection record to the selected checkpoint it names."""
     path = _repository_path(item["selection_path"])
     document = json.loads(path.read_text(encoding="utf-8"))
@@ -303,26 +404,37 @@ def _verify_selection_document(
         raise guards.HybridQConfigError(
             f"{family_name} selection record reports validation/test access"
         )
-    return {
-        "schema": str(document["schema"]),
-        "terminal": str(document["terminal"]),
-        "selected_epoch": expected_epoch,
-        "selected_checkpoint": expected_name,
-        "selected_checkpoint_sha256": item["sha256"],
-        "selection_reports_validation_or_test_access": False,
-    }
+    source_map = document.get("binding", {}).get("ae_package_source_sha256")
+    if not isinstance(source_map, Mapping) or not source_map:
+        raise guards.HybridQConfigError(
+            f"{family_name} selection record omits its AE source map"
+        )
+    return (
+        {
+            "schema": str(document["schema"]),
+            "terminal": str(document["terminal"]),
+            "selected_epoch": expected_epoch,
+            "selected_checkpoint": expected_name,
+            "selected_checkpoint_sha256": item["sha256"],
+            "selection_reports_validation_or_test_access": False,
+        },
+        source_map,
+    )
 
 
-def _load_selected_autoencoder(
-    family_name: str,
-    bottleneck: int,
-    item: Mapping[str, str],
-    payload: Mapping[str, Any],
-    device: torch.device,
-) -> SplitFeatureAE:
-    """Build the registered family, load the hash-bound state, then freeze it."""
+def _validate_checkpoint_metadata(
+    family_name: str, bottleneck: int, payload: Mapping[str, Any]
+) -> None:
+    """Static checkpoint/configuration/tensor-interpretation validation."""
     expected_family = ae_contract.family_for_bottleneck(bottleneck)
     expected_epoch = {128: 8, 64: 12, 32: 8}[bottleneck]
+    expected_schema = (
+        common.AE_CANDIDATE_SCHEMA
+        if bottleneck == 128
+        else phase10.candidate_schema(bottleneck)
+    )
+    if payload.get("schema") != expected_schema:
+        raise guards.HybridQConfigError(f"{family_name} checkpoint schema drift")
     if int(payload["epoch"]) != expected_epoch:
         raise guards.HybridQConfigError(f"{family_name} checkpoint epoch drift")
     if int(payload["bottleneck"]) != bottleneck:
@@ -338,6 +450,59 @@ def _load_selected_autoencoder(
         raise guards.HybridQConfigError(
             f"{family_name} checkpoint locked configuration drift"
         )
+    # Strict CPU load verifies the selected tensor layout before CUDA is even
+    # considered. It executes no forward and initializes no CUDA context.
+    autoencoder = build_split_feature_ae(bottleneck)
+    autoencoder.load_state_dict(payload["autoencoder"], strict=True)
+    if autoencoder.parameter_count() != int(payload["parameter_count"]):
+        raise guards.HybridQConfigError(f"{family_name} parameter-count drift")
+    del autoencoder
+
+
+def phase11b_preflight() -> dict[str, Any]:
+    """Complete frozen-artifact and source compatibility preflight, CPU only."""
+    frozen_hashes = _verify_frozen_input_hashes()
+    live_sources = _live_ae_source_map()
+    checkpoint_payloads: dict[str, Mapping[str, Any]] = {}
+    source_bindings: dict[str, Any] = {}
+    selection_bindings: dict[str, Any] = {}
+    for family_name, _family_id, bottleneck in FAMILIES:
+        if bottleneck is None:
+            continue
+        item = FROZEN_INPUTS[family_name]
+        payload = torch.load(
+            _repository_path(item["path"]), map_location="cpu", weights_only=False
+        )
+        _validate_checkpoint_metadata(family_name, bottleneck, payload)
+        selection_binding, selection_source_map = _verify_selection_document(
+            family_name, item, bottleneck
+        )
+        source_bindings[family_name] = _bind_historical_source_map(
+            family_name,
+            payload.get("ae_package_source_sha256", {}),
+            selection_source_map,
+            live_sources,
+        )
+        checkpoint_payloads[family_name] = payload
+        selection_bindings[family_name] = selection_binding
+    return {
+        "frozen_hashes": frozen_hashes,
+        "live_ae_package_source_hashes": live_sources,
+        "checkpoint_payloads": checkpoint_payloads,
+        "historical_source_bindings": source_bindings,
+        "selection_bindings": selection_bindings,
+    }
+
+
+def _load_selected_autoencoder(
+    family_name: str,
+    bottleneck: int,
+    item: Mapping[str, str],
+    payload: Mapping[str, Any],
+    device: torch.device,
+) -> SplitFeatureAE:
+    """Build the registered family, load the hash-bound state, then freeze it."""
+    _validate_checkpoint_metadata(family_name, bottleneck, payload)
     autoencoder = build_split_feature_ae(bottleneck)
     autoencoder.load_state_dict(payload["autoencoder"], strict=True)
     if autoencoder.parameter_count() != int(payload["parameter_count"]):
@@ -776,10 +941,29 @@ def main() -> int:
         description="Phase-11B one-frame UINT6/UINT4 GPU qualification"
     )
     parser.add_argument("--execute", required=True, choices=(EXECUTE_TOKEN,))
+    parser.add_argument(
+        "--preflight-only",
+        action="store_true",
+        help="verify all frozen artifacts and source compatibility without CUDA",
+    )
     args = parser.parse_args()
-    del args
 
     output = contract.repository_root() / OUTPUT_RELPATH
+    preflight = phase11b_preflight()
+    if args.preflight_only:
+        print(
+            json.dumps(
+                {
+                    "preflight": "ok",
+                    "families": sorted(preflight["historical_source_bindings"]),
+                    "accepted_transitions": preflight["historical_source_bindings"][
+                        "AE128"
+                    ]["accepted_historical_to_current_transitions"],
+                },
+                sort_keys=True,
+            )
+        )
+        return 0
     if output.exists():
         raise guards.HybridQConfigError(f"create-only output already exists: {output}")
     if not torch.cuda.is_available():
@@ -787,23 +971,11 @@ def main() -> int:
     device = torch.device("cuda:0")
     started = time.perf_counter()
 
-    frozen_hashes = _verify_frozen_input_hashes()
-    live_sources = _live_ae_source_map()
-    checkpoint_payloads: dict[str, Mapping[str, Any]] = {}
-    source_bindings: dict[str, Any] = {}
-    selection_bindings: dict[str, Any] = {}
-    for family_name, _family_id, bottleneck in FAMILIES:
-        if bottleneck is None:
-            continue
-        item = FROZEN_INPUTS[family_name]
-        payload = torch.load(_repository_path(item["path"]), map_location="cpu", weights_only=False)
-        checkpoint_payloads[family_name] = payload
-        source_bindings[family_name] = _bind_historical_source_map(
-            family_name, payload.get("ae_package_source_sha256", {}), live_sources
-        )
-        selection_bindings[family_name] = _verify_selection_document(
-            family_name, item, bottleneck
-        )
+    frozen_hashes = preflight["frozen_hashes"]
+    live_sources = preflight["live_ae_package_source_hashes"]
+    checkpoint_payloads = preflight["checkpoint_payloads"]
+    source_bindings = preflight["historical_source_bindings"]
+    selection_bindings = preflight["selection_bindings"]
 
     model, base, perception_binding = load_frozen_perception(device)
     common.freeze(model)
@@ -963,6 +1135,8 @@ def main() -> int:
         "perception_binding": perception_binding,
         "historical_checkpoint_source_bindings": source_bindings,
         "selection_bindings": selection_bindings,
+        "current_live_ae_package_source_hashes": live_sources,
+        "executed_repository_source_hashes": _loaded_repository_source_hashes(),
         "fit_frame": fit_frame,
         "scope": {
             "qualification_only": True,
