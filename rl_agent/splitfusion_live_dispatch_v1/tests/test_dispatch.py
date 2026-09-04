@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import struct
 import unittest
 from dataclasses import asdict
 from unittest import mock
@@ -10,6 +11,13 @@ import torch
 from rl_agent.splitfusion_live_dispatch_v1 import phase13b_qualification as phase13b
 from rl_agent.splitfusion_live_dispatch_v1.edge_runtime import PreloadedSplitEdgeRuntime
 from rl_agent.splitfusion_live_dispatch_v1.envelope import pack_envelope, unpack_envelope
+from rl_agent.splitfusion_live_dispatch_v1.frame_context import (
+    STATIC_CAMERA_MODEL_SHA256,
+    STATIC_CAMERA_MOUNT_SHA256,
+    FrameContextV1,
+    Pose6D,
+    StaticCameraRegistry,
+)
 from rl_agent.splitfusion_live_dispatch_v1.registry import (
     DispatchContractError,
     SplitActionRegistry,
@@ -159,6 +167,95 @@ def _objects(registry):
 
 
 class PreloadedDispatchTest(unittest.TestCase):
+    def test_sfd1_v2_frame_context_validates_before_decode_and_tracks_session(self):
+        registry = SplitActionRegistry.from_runtime_binding(
+            verify_runtime_artifacts=False
+        )
+        cameras = StaticCameraRegistry.audited()
+        profile = registry.find("noAE", "UINT8", 0)
+        context = FrameContextV1(
+            stream_id="ue288/session-a",
+            frame_id=214,
+            sequence_id=7,
+            capture_timestamp_ns=12_500_000_000,
+            ego_world=Pose6D(-3.9741828441619873, 28.094629287719727,
+                             -0.10292118787765503, -0.048848289996385574,
+                             0.1552259624004364, 1.5732501745224),
+            camera_model_sha256=STATIC_CAMERA_MODEL_SHA256,
+            camera_mount_sha256=STATIC_CAMERA_MOUNT_SHA256,
+        )
+
+        def objects():
+            front, ranker, tail = _FakeFront(), _FakeRanker(), _FakeTail()
+            encoders, decoders = _objects(registry)
+            codec = _FakeCodec()
+            ue = PreloadedSplitUERuntime(
+                registry, front=front, ranker=ranker, ae_encoders=encoders,
+                device=torch.device("cpu"), codec=codec,
+            )
+            edge = PreloadedSplitEdgeRuntime(
+                registry, frozen_p025_tail=tail, ae_decoders=decoders,
+                tail_device=torch.device("cpu"), codec=codec,
+                camera_registry=cameras, require_frame_context=True,
+            )
+            return ue, edge, codec, tail
+
+        ue, edge, codec, tail = objects()
+        prepared = ue.prepare(
+            profile.action_id, object(), sequence_id=context.sequence_id,
+            capture_timestamp_ns=context.capture_timestamp_ns,
+            frame_context=context,
+        )
+        outer = unpack_envelope(prepared.wire_bytes)
+        self.assertEqual(outer.protocol_version, 2)
+        self.assertEqual(outer.frame_context, context)
+        self.assertEqual(prepared.outer_envelope_bytes, 180 + len(context.stream_id))
+        result = edge.process(
+            prepared.wire_bytes, transmitted_action_id=profile.action_id
+        )
+        self.assertEqual(result.metadata.frame_context, context)
+        self.assertEqual((codec.inspect_calls, codec.decode_calls, tail.calls), (1, 1, 1))
+        with self.assertRaisesRegex(DispatchContractError, "duplicate frame context"):
+            edge.process(prepared.wire_bytes, transmitted_action_id=profile.action_id)
+        self.assertEqual((codec.inspect_calls, codec.decode_calls, tail.calls), (1, 1, 1))
+
+        def refused_before_inspect(wire, pattern):
+            _ue, candidate_edge, candidate_codec, candidate_tail = objects()
+            with self.assertRaisesRegex(DispatchContractError, pattern):
+                candidate_edge.process(wire, transmitted_action_id=profile.action_id)
+            self.assertEqual(
+                (candidate_codec.inspect_calls, candidate_codec.decode_calls,
+                 candidate_tail.calls),
+                (0, 0, 0),
+            )
+
+        altered_sequence = bytearray(prepared.wire_bytes)
+        altered_sequence[12:20] = (context.sequence_id + 1).to_bytes(8, "little")
+        refused_before_inspect(bytes(altered_sequence), "sequence mismatch")
+        altered_timestamp = bytearray(prepared.wire_bytes)
+        altered_timestamp[20:28] = (context.capture_timestamp_ns + 1).to_bytes(8, "little")
+        refused_before_inspect(bytes(altered_timestamp), "timestamp mismatch")
+        nonfinite = bytearray(prepared.wire_bytes)
+        nonfinite[68:76] = struct.pack("<d", float("nan"))
+        refused_before_inspect(bytes(nonfinite), "pose is non-finite")
+
+        for field, digest, pattern in (
+            ("camera_model_sha256", "0" * 64, "unknown static-camera hash"),
+            ("camera_mount_sha256", "1" * 64, "unknown static mount hash"),
+        ):
+            changed = FrameContextV1(
+                **{
+                    **context.__dict__,
+                    field: digest,
+                    "stream_id": f"ue288/{field}",
+                }
+            )
+            changed_wire = ue.prepare(
+                profile.action_id, object(), sequence_id=changed.sequence_id,
+                capture_timestamp_ns=changed.capture_timestamp_ns,
+                frame_context=changed,
+            ).wire_bytes
+            refused_before_inspect(changed_wire, pattern)
     def test_phase13b_porcelain_status_preserves_leading_space_and_refuses_unknown(self):
         exact_status = (
             " m OAI/openairinterface5g\n"
@@ -368,7 +465,7 @@ class PreloadedDispatchTest(unittest.TestCase):
         with self.assertRaisesRegex(DispatchContractError, "control-plane action_id"):
             edge.process(prepared.wire_bytes, transmitted_action_id=q0.action_id + 1)
         unsupported = bytearray(prepared.wire_bytes)
-        unsupported[4:6] = (2).to_bytes(2, "little")
+        unsupported[4:6] = (3).to_bytes(2, "little")
         with self.assertRaisesRegex(DispatchContractError, "protocol version"):
             edge.process(bytes(unsupported), transmitted_action_id=q0.action_id)
         unregistered = pack_envelope(

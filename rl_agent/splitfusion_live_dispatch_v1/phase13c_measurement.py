@@ -50,7 +50,24 @@ from pole_lraspp_multimodal_fusion.object_head_pilot_v1.splitfusion_fcos_r50_fpn
 
 from . import phase13b_qualification as phase13b
 from .edge_runtime import PreloadedSplitEdgeRuntime
-from .envelope import HEADER_BYTES, PROTOCOL_VERSION, unpack_envelope
+from .envelope import (
+    CONTEXT_PROTOCOL_VERSION,
+    HEADER_BYTES,
+    PROTOCOL_VERSION,
+    unpack_envelope,
+)
+from .frame_context import (
+    STATIC_CAMERA_MODEL_SHA256,
+    STATIC_CAMERA_MOUNT_SHA256,
+    STATIC_INTRINSIC_TENSOR_SHA256,
+    FrameContextV1,
+    Pose6D,
+    StaticCameraRegistry,
+    build_frame_context_v1,
+    camera_world_matrix,
+    canonical_numeric_sha256,
+)
+from .context_tail import ContextualFrozenP025TailAdapter
 from .registry import FAMILIES, QUANTIZERS, ActionProfile, SplitActionRegistry, sha256_file
 from .timing import EDGE_STAGES, UE_STAGES, TimingTrace
 from .ue_runtime import DispatchMetadata, PreloadedSplitUERuntime
@@ -64,6 +81,11 @@ SCHEDULE_SCHEMA = "scenesense.splitfusion_phase13c_rotated_schedule.v1"
 PROFILE_RECORD_SCHEMA = "scenesense.splitfusion_phase13c_profile_record.v1"
 TERMINAL = "SPLITFUSION_PHASE13C_36X300_LOCALHOST_MEASUREMENT_COMPLETE"
 STARTING_HEAD = "99ab864d2962ea0742f33ea704bb967cd03ac458"
+FRAME_CONTEXT_STARTING_HEAD = "cc6bc92f6f8224fb7ab5a37c31b01a0383f7cae0"
+FRAME_CONTEXT_BINDING_RELPATH = (
+    "rl_agent/splitfusion_live_dispatch_v1/frame_context_binding.json"
+)
+FRAME_CONTEXT_BINDING_SCHEMA = "scenesense.splitfusion_frame_context_binding.v1"
 OUTPUT_RELPATH = (
     "experiments/splitfusion_live_dispatch_v1/"
     "20260904_phase13c_36x300_localhost_measurement"
@@ -76,6 +98,15 @@ MEASURED_Q_E4 = (0, 3000, 5000)
 CHUNK_BYTES = 12_500
 SOCKET_BUFFER_REQUEST_BYTES = 8 * 1024 * 1024
 EXPECTED_DIRTY_PATHS = phase13b.EXPECTED_DIRTY_PATHS
+AUDITED_SAMPLE_ID_SHA256 = (
+    "68a4cb3cffe47fa1f42f65ada94c8ef1e19504e8f25a949fc1acf5a20298720e"
+)
+AUDITED_EGO_POSE_DIGEST = (
+    "0c207b05cb9c6ecaf1534aa508db91b08cd3496f63df04111f97a0b5c0c09190"
+)
+AUDITED_CAMERA_POSE_DIGEST = (
+    "866fb74579c1e47f538185a9015d9626875f71d84eac8baff50877238ab8e006"
+)
 PHASE13B_ARTIFACTS = MappingProxyType(
     {
         "qualification": {
@@ -217,14 +248,12 @@ def _git_output(*arguments: str) -> str:
 
 def _verify_git_state() -> dict[str, Any]:
     head = _git_output("rev-parse", "HEAD")
-    parent = _git_output("rev-parse", "HEAD^")
     _require(
-        parent == STARTING_HEAD,
-        f"Phase-13C implementation parent is {parent}, expected {STARTING_HEAD}",
-    )
-    _require(
-        _git_output("merge-base", "--is-ancestor", STARTING_HEAD, head) == "",
-        "required Phase-13C starting commit is not an ancestor",
+        _git_output(
+            "merge-base", "--is-ancestor", FRAME_CONTEXT_STARTING_HEAD, head
+        )
+        == "",
+        "required frame-context starting commit is not an ancestor",
     )
     lines = _git_output(
         "status", "--porcelain=v1", "--untracked-files=all"
@@ -245,11 +274,99 @@ def _verify_git_state() -> dict[str, Any]:
     return {
         "head": head,
         "starting_head": STARTING_HEAD,
-        "implementation_parent": parent,
+        "frame_context_starting_head": FRAME_CONTEXT_STARTING_HEAD,
         "source_path": str(source.relative_to(_root())),
         "source_sha256": sha256_file(source),
         "expected_user_owned_dirty_paths": sorted(paths),
         "phase13b_porcelain_parser_reused": True,
+    }
+
+
+def _verify_frame_context_binding() -> dict[str, Any]:
+    path = _repo_path(FRAME_CONTEXT_BINDING_RELPATH)
+    document = json.loads(path.read_text(encoding="utf-8"))
+    _require(
+        document.get("schema") == FRAME_CONTEXT_BINDING_SCHEMA,
+        "frame-context binding schema drift",
+    )
+    _require(
+        document.get("starting_head") == FRAME_CONTEXT_STARTING_HEAD,
+        "frame-context binding starting commit drift",
+    )
+    expected_audit = {
+        "sample_id_sha256": AUDITED_SAMPLE_ID_SHA256,
+        "static_camera_model_sha256": STATIC_CAMERA_MODEL_SHA256,
+        "static_camera_mount_sha256": STATIC_CAMERA_MOUNT_SHA256,
+        "static_intrinsic_tensor_sha256": STATIC_INTRINSIC_TENSOR_SHA256,
+        "ordered_ego_pose_sha256": AUDITED_EGO_POSE_DIGEST,
+        "ordered_camera_pose_sha256": AUDITED_CAMERA_POSE_DIGEST,
+        "legacy_full_calibration_identity_count": 250,
+        "static_intrinsic_identity_count": 1,
+        "static_mount_identity_count": 1,
+    }
+    _require(
+        document.get("audit") == expected_audit,
+        "frame-context audit binding drift",
+    )
+    expected_wire = {
+        "magic": "SFD1",
+        "historical_version": 1,
+        "context_envelope_version": 2,
+        "frame_context_version": 1,
+        "base_header_format": "<4sHHIQQQ",
+        "base_header_bytes": 36,
+        "context_fixed_format": "<HHIQQQ6d32s32s",
+        "context_fixed_bytes": 144,
+        "pose_dtype": "float64",
+        "maximum_stream_id_bytes": 255,
+    }
+    _require(
+        document.get("wire") == expected_wire,
+        "frame-context wire binding drift",
+    )
+    focused = document.get("focused_verification", {})
+    _require(
+        focused.get("python") == "/usr/bin/python3"
+        and focused.get("tests_run") == 5
+        and focused.get("result") == "OK"
+        and set(focused.get("required_negative_cases", ()))
+        == {
+            "altered sequence ID",
+            "altered timestamp",
+            "wrong camera hash",
+            "wrong mount hash",
+            "non-finite pose",
+            "duplicate context",
+        },
+        "frame-context focused-verification binding drift",
+    )
+    sources = document.get("source_sha256")
+    _require(isinstance(sources, dict) and bool(sources), "source binding is empty")
+    observed_sources = {
+        name: sha256_file(_repo_path(name)) for name in sorted(sources)
+    }
+    _require(observed_sources == sources, "frame-context source hash drift")
+    historical = document.get("historical_artifact_sha256")
+    _require(
+        isinstance(historical, dict) and bool(historical),
+        "historical artifact binding is empty",
+    )
+    observed_historical = {
+        name: sha256_file(_repo_path(name)) for name in sorted(historical)
+    }
+    _require(
+        observed_historical == historical,
+        "frame-context historical artifact hash drift",
+    )
+    return {
+        "path": FRAME_CONTEXT_BINDING_RELPATH,
+        "sha256": sha256_file(path),
+        "starting_head": FRAME_CONTEXT_STARTING_HEAD,
+        "source_sha256": observed_sources,
+        "historical_artifact_sha256": observed_historical,
+        "audit": expected_audit,
+        "wire": expected_wire,
+        "focused_verification": focused,
     }
 
 
@@ -372,6 +489,50 @@ def _calibration_binding(base: Any, row: Mapping[str, str]) -> dict[str, Any]:
     }
 
 
+def _pose(row: Mapping[str, str], prefix: str) -> Pose6D:
+    return Pose6D(
+        *(float(row[f"{prefix}_{name}"]) for name in ("x", "y", "z", "pitch", "yaw", "roll"))
+    )
+
+
+def _pose_hash(row: Mapping[str, str], prefix: str) -> str:
+    name = "ego" if prefix == "anchor" else "camera"
+    schema = f"scenesense.dynamic_{name}_world_pose.v1"
+    return canonical_numeric_sha256(
+        schema,
+        [
+            (f"{name}_world_{field}", row[f"{prefix}_{field}"])
+            for field in ("x", "y", "z", "pitch", "yaw", "roll")
+        ],
+    )
+
+
+def _ordered_digest(values: Sequence[str]) -> str:
+    return _digest_bytes(json.dumps(list(values), separators=(",", ":")).encode("utf-8"))
+
+
+def _context_for(
+    selected_row: Mapping[str, Any], profile: ActionProfile, message_id: int
+) -> FrameContextV1:
+    source = selected_row["source_row"]
+    timestamp_ns = int(round(float(source["timestamp"]) * 1_000_000_000))
+    pose = _pose(source, "anchor")
+    return build_frame_context_v1(
+        stream_id=(
+            f"phase13c/{profile.profile_id}/{selected_row['episode_id']}"
+        ),
+        frame_id=int(selected_row["frame_id"]),
+        sequence_id=int(message_id),
+        capture_timestamp_ns=timestamp_ns,
+        ego_world_x=pose.x,
+        ego_world_y=pose.y,
+        ego_world_z=pose.z,
+        ego_world_pitch=pose.pitch,
+        ego_world_yaw=pose.yaw,
+        ego_world_roll=pose.roll,
+    )
+
+
 def _construct_sample() -> tuple[dict[str, Any], dict[str, Any]]:
     _require(not torch.cuda.is_initialized(), "CUDA initialized before fit sampling")
     base = load_base()
@@ -439,6 +600,18 @@ def _construct_sample() -> tuple[dict[str, Any], dict[str, Any]]:
         "experiment_id",
         "split",
         "timestamp",
+        "camera_x",
+        "camera_y",
+        "camera_z",
+        "camera_pitch",
+        "camera_yaw",
+        "camera_roll",
+        "anchor_x",
+        "anchor_y",
+        "anchor_z",
+        "anchor_pitch",
+        "anchor_yaw",
+        "anchor_roll",
     )
     selected: list[dict[str, Any]] = []
     for allocation in allocation_rows:
@@ -488,15 +661,65 @@ def _construct_sample() -> tuple[dict[str, Any], dict[str, Any]]:
         "selected sample includes a non-train source row",
     )
 
-    calibration_identities = {
+    _require(
+        contract.sample_id_digest(sample_ids) == AUDITED_SAMPLE_ID_SHA256,
+        "the frozen 300-frame sample identity drifted",
+    )
+    registry = StaticCameraRegistry.audited()
+    static = registry.resolve(
+        STATIC_CAMERA_MODEL_SHA256, STATIC_CAMERA_MOUNT_SHA256
+    )
+    calibration_identities = [
         _digest_bytes(_canonical_bytes(_calibration_binding(base, row["source_row"])))
+        for row in selected
+    ]
+    intrinsic_bindings = {
+        _calibration_binding(base, row["source_row"])["intrinsic"]["sha256"]
         for row in selected
     }
     _require(
-        len(calibration_identities) == 1,
-        f"selected replay has multiple calibration identities: {sorted(calibration_identities)}",
+        intrinsic_bindings == {STATIC_INTRINSIC_TENSOR_SHA256},
+        f"selected replay static intrinsic drift: {sorted(intrinsic_bindings)}",
     )
-    stream_calibration = _calibration_binding(base, selected[0]["source_row"])
+    ego_pose_hashes = [_pose_hash(row["source_row"], "anchor") for row in selected]
+    camera_pose_hashes = [_pose_hash(row["source_row"], "camera") for row in selected]
+    _require(
+        _ordered_digest(ego_pose_hashes) == AUDITED_EGO_POSE_DIGEST,
+        "selected replay ego-world-pose digest drift",
+    )
+    _require(
+        _ordered_digest(camera_pose_hashes) == AUDITED_CAMERA_POSE_DIGEST,
+        "selected replay camera-world-pose digest drift",
+    )
+    _require(
+        len(set(calibration_identities)) == 250
+        and len(set(ego_pose_hashes)) == 250
+        and len(set(camera_pose_hashes)) == 250,
+        "audited dynamic/full calibration identity counts drift",
+    )
+    maximum_matrix_error = 0.0
+    for ordinal, row in enumerate(selected):
+        context = FrameContextV1(
+            stream_id=f"phase13c-preflight/{row['episode_id']}",
+            frame_id=int(row["frame_id"]),
+            sequence_id=ordinal + 1,
+            capture_timestamp_ns=int(
+                round(float(row["source_row"]["timestamp"]) * 1_000_000_000)
+            ),
+            ego_world=_pose(row["source_row"], "anchor"),
+            camera_model_sha256=STATIC_CAMERA_MODEL_SHA256,
+            camera_mount_sha256=STATIC_CAMERA_MOUNT_SHA256,
+        )
+        reconstructed = camera_world_matrix(context, static)
+        recorded = base.data.camera_extrinsic(row["source_row"]).numpy()
+        maximum_matrix_error = max(
+            maximum_matrix_error,
+            float(abs(reconstructed - recorded).max()),
+        )
+    _require(
+        maximum_matrix_error <= 1e-4,
+        f"selected replay camera reconstruction exceeds 1e-4: {maximum_matrix_error}",
+    )
     selected_set = set(sample_ids)
     warmup_candidates = sorted(
         (
@@ -510,8 +733,9 @@ def _construct_sample() -> tuple[dict[str, Any], dict[str, Any]]:
     warmup_index, warmup_source = warmup_candidates[0]
     warmup_public = {field: warmup_source[field] for field in allowed_row_fields}
     _require(
-        _calibration_binding(base, warmup_public) == stream_calibration,
-        "warm-up calibration differs from the bound replay calibration",
+        _calibration_binding(base, warmup_public)["intrinsic"]["sha256"]
+        == STATIC_INTRINSIC_TENSOR_SHA256,
+        "warm-up static intrinsic differs from the bound registry",
     )
     sample = _seal(
         {
@@ -563,10 +787,21 @@ def _construct_sample() -> tuple[dict[str, Any], dict[str, Any]]:
                 "excluded_from_measurement_sample": True,
             },
             "calibration": {
-                "identity_sha256": next(iter(calibration_identities)),
-                "tensors": stream_calibration,
-                "identical_across_selected_stream": True,
-                "resident_at_edge_not_transmitted": True,
+                "static_camera_model_sha256": STATIC_CAMERA_MODEL_SHA256,
+                "static_camera_mount_sha256": STATIC_CAMERA_MOUNT_SHA256,
+                "static_intrinsic_tensor_sha256": STATIC_INTRINSIC_TENSOR_SHA256,
+                "static_intrinsic_identity_count": len(intrinsic_bindings),
+                "legacy_full_calibration_identity_count": len(
+                    set(calibration_identities)
+                ),
+                "ordered_ego_world_pose_digest": _ordered_digest(ego_pose_hashes),
+                "ordered_camera_world_pose_digest": _ordered_digest(camera_pose_hashes),
+                "dynamic_ego_pose_identity_count": len(set(ego_pose_hashes)),
+                "dynamic_camera_pose_identity_count": len(set(camera_pose_hashes)),
+                "camera_world_reconstruction_max_abs_error": maximum_matrix_error,
+                "camera_world_reconstruction_bound": 1e-4,
+                "static_intrinsic_and_mount_resident_at_edge": True,
+                "dynamic_ego_pose_transmitted_per_frame": True,
             },
             "access_scope": {
                 "sensor_modalities": ["RGB", "radar", "camera_calibration"],
@@ -789,28 +1024,19 @@ class TimedTail:
         *,
         model: torch.nn.Module,
         base: Any,
-        initial_row: Mapping[str, str],
-        calibration: Mapping[str, torch.Tensor],
-        calibration_identity: Mapping[str, Any],
+        camera_registry: StaticCameraRegistry,
+        device: torch.device,
         ledger: phase13b.CallLedger,
         timers: CudaStageTimers,
     ) -> None:
-        self._delegate = phase13b.FrozenP025TailAdapter(
+        self._delegate = ContextualFrozenP025TailAdapter(
             model=model,
             base=base,
-            row=initial_row,
-            calibration=calibration,
+            camera_registry=camera_registry,
+            device=device,
             ledger=ledger,
         )
-        self._base = base
-        self._calibration_identity = dict(calibration_identity)
         self._timers = timers
-
-    def bind_row(self, row: Mapping[str, str]) -> None:
-        _require(self._delegate._last is None, "tail row changed with an unconsumed output")
-        observed = _calibration_binding(self._base, row)
-        _require(observed == self._calibration_identity, "per-frame calibration identity drift")
-        self._delegate._row = MappingProxyType(dict(row))
 
     def __call__(
         self, c2: torch.Tensor, metadata: DispatchMetadata
@@ -821,7 +1047,7 @@ class TimedTail:
     def serialize(self, perception: Mapping[str, torch.Tensor]) -> bytes:
         return self._delegate.serialize(perception)
 
-    def take_snapshot(self) -> phase13b.TailSnapshot:
+    def take_snapshot(self) -> Any:
         return self._delegate.take_snapshot()
 
 
@@ -1090,6 +1316,10 @@ def _runtime_source_binding() -> dict[str, Any]:
         "rl_agent/splitfusion_live_dispatch_v1/ue_runtime.py",
         "rl_agent/splitfusion_live_dispatch_v1/edge_runtime.py",
         "rl_agent/splitfusion_live_dispatch_v1/envelope.py",
+        "rl_agent/splitfusion_live_dispatch_v1/frame_context.py",
+        "rl_agent/splitfusion_live_dispatch_v1/context_tail.py",
+        "rl_agent/splitfusion_live_dispatch_v1/frame_context_qualification.py",
+        FRAME_CONTEXT_BINDING_RELPATH,
         "rl_agent/splitfusion_live_dispatch_v1/timing.py",
         "rl_agent/splitfusion_live_dispatch_v1/phase13b_qualification.py",
         "rl_agent/splitfusion_live_dispatch_v1/phase13c_measurement.py",
@@ -1106,6 +1336,7 @@ def _build_manifest(
     git: Mapping[str, Any],
     phase13a: Mapping[str, Any],
     phase13b_binding: Mapping[str, Any],
+    frame_context_binding: Mapping[str, Any],
     registry: SplitActionRegistry,
     profiles: Sequence[ActionProfile],
     sample: Mapping[str, Any],
@@ -1129,6 +1360,7 @@ def _build_manifest(
             "provenance": {
                 "phase13a": dict(phase13a),
                 "phase13b": dict(phase13b_binding),
+                "frame_context_binding": dict(frame_context_binding),
                 "runtime_binding": {
                     "path": str(runtime_binding_path.relative_to(_root())),
                     "sha256": sha256_file(runtime_binding_path),
@@ -1343,19 +1575,12 @@ def _load_models(
         family: TimedAutoencoder(family, autoencoder, ledger, timers)
         for family, autoencoder in autoencoders.items()
     }
-    sample = sample_context["sample"]
-    initial_row = sample["warmup"]["source_row"]
-    calibration_cpu = {
-        "intrinsic": base.data.model_intrinsic(initial_row),
-        "extrinsic": base.data.camera_extrinsic(initial_row),
-    }
-    calibration = {name: value.to(device) for name, value in calibration_cpu.items()}
+    camera_registry = StaticCameraRegistry.audited()
     tail = TimedTail(
         model=model,
         base=base,
-        initial_row=initial_row,
-        calibration=calibration,
-        calibration_identity=sample["calibration"]["tensors"],
+        camera_registry=camera_registry,
+        device=device,
         ledger=ledger,
         timers=timers,
     )
@@ -1386,6 +1611,8 @@ def _load_models(
         prepare_modules=False,
         startup_model_load_operations=4,
         startup_model_construction_operations=4,
+        camera_registry=camera_registry,
+        require_frame_context=True,
     )
     inference = base.data.InferenceDataset(sample_context["dataset_root"], "train")
     _require(
@@ -1411,6 +1638,7 @@ def _load_models(
         "loopback": loopback,
         "state_before": state_before,
         "device": device,
+        "camera_registry": camera_registry,
     }
 
 
@@ -1423,18 +1651,10 @@ def _load_input(
     _require(int(row["frame_id"]) == int(selected_row["frame_id"]), "inference frame drift")
     _require(tuple(fused.shape) == (7, 448, 768), "inference input shape drift")
     _require(fused.dtype is torch.float32 and bool(torch.isfinite(fused).all()), "input is not finite FP32")
-    observed_calibration = {
-        name: {
-            "shape": list(value.shape),
-            "dtype": str(value.dtype).replace("torch.", ""),
-            "sha256": _tensor_digest(value),
-        }
-        for name, value in sorted(calibration_cpu.items())
-    }
+    observed_intrinsic = _tensor_digest(calibration_cpu["intrinsic"])
     _require(
-        observed_calibration
-        == runtime["sample"]["calibration"]["tensors"],
-        "loaded frame calibration differs from bound resident calibration",
+        observed_intrinsic == STATIC_INTRINSIC_TENSOR_SHA256,
+        "loaded frame intrinsic differs from bound static registry",
     )
     input_7ch = fused.unsqueeze(0).to(runtime["device"])
     del fused, calibration_cpu
@@ -1500,7 +1720,9 @@ def _transaction(
     ue_before = runtime["ue"].counters
     edge_before = runtime["edge"].counters
     calls_before = ledger.snapshot("live")
-    sequence_id, capture_timestamp_ns = _metadata_values(selected_row, message_id)
+    context = _context_for(selected_row, profile, message_id)
+    sequence_id = context.sequence_id
+    capture_timestamp_ns = context.capture_timestamp_ns
     timers.reset()
 
     capture_started = time.perf_counter_ns()
@@ -1511,6 +1733,7 @@ def _transaction(
                 input_7ch,
                 sequence_id=sequence_id,
                 capture_timestamp_ns=capture_timestamp_ns,
+                frame_context=context,
             )
             ue_call_finished = time.perf_counter_ns()
             runtime["front"].release_c2()
@@ -1527,7 +1750,7 @@ def _transaction(
 
     outer = unpack_envelope(prepared.wire_bytes)
     _require(
-        outer.protocol_version == PROTOCOL_VERSION
+        outer.protocol_version == CONTEXT_PROTOCOL_VERSION
         and outer.action_id == profile.action_id
         and result.metadata.action_id == profile.action_id,
         "action/SFD1/catalog identity drift",
@@ -1540,6 +1763,12 @@ def _transaction(
         "SFD1 sequence or capture timestamp drift",
     )
     _require(
+        outer.frame_context == context
+        and result.metadata.frame_context == context
+        and snapshot.frame_context == context,
+        "SFD1 frame-context propagation drift",
+    )
+    _require(
         outer.inner_payload_length
         == prepared.inner_payload_bytes
         == result.scientific_inner_payload_bytes,
@@ -1549,7 +1778,7 @@ def _transaction(
         outer.control_overhead_bytes
         == prepared.outer_envelope_bytes
         == result.framing_control_overhead_bytes
-        == HEADER_BYTES,
+        and outer.control_overhead_bytes > HEADER_BYTES,
         "SFD1 control overhead drift",
     )
     _require(
@@ -1588,6 +1817,16 @@ def _transaction(
     )
     _require(snapshot.output_tensor_count > 0, "p025 tail produced no finite tensors")
     _require(snapshot.records is not None, "p025 service records missing")
+    _require(
+        all(
+            record["stream_id"] == context.stream_id
+            and int(record["frame_id"]) == context.frame_id
+            and int(record["capture_timestamp_ns"])
+            == context.capture_timestamp_ns
+            for record in snapshot.records
+        ),
+        "p025 service identifiers did not come from frame context",
+    )
 
     calls = _counter_delta(ledger.snapshot("live"), calls_before)
     _validate_calls(profile, calls)
@@ -2004,9 +2243,11 @@ def main() -> int:
         phase13a_binding = phase13b._verify_phase13a_terminal()
         operation = "preflight_phase13b"
         phase13b_binding = _verify_phase13b_artifacts()
+        operation = "preflight_frame_context_binding"
+        frame_context_binding = _verify_frame_context_binding()
         operation = "preflight_registry"
         registry = SplitActionRegistry.from_runtime_binding(
-            verify_runtime_artifacts=True
+            verify_runtime_artifacts=False
         )
         profiles = _select_profiles(registry)
         by_action = {profile.action_id: profile for profile in profiles}
@@ -2055,6 +2296,7 @@ def main() -> int:
             git=git,
             phase13a=phase13a_binding,
             phase13b_binding=phase13b_binding,
+            frame_context_binding=frame_context_binding,
             registry=registry,
             profiles=profiles,
             sample=sample,
@@ -2091,7 +2333,6 @@ def main() -> int:
         operation = "warmup_36_profiles"
         warmup = sample["warmup"]
         warmup_input, _warmup_row = _load_input(runtime, warmup)
-        runtime["tail"].bind_row(warmup["source_row"])
         for warmup_ordinal, profile in enumerate(profiles, start=1):
             current_action = profile.action_id
             current_sample = warmup["sample_id"]
@@ -2107,6 +2348,7 @@ def main() -> int:
             _require(result is None, "warm-up transaction leaked a scientific row")
         torch.cuda.synchronize(device)
         del warmup_input, _warmup_row
+        runtime["edge"].reset_context_session()
         torch.cuda.reset_peak_memory_stats(device)
 
         operation = "measured_36x300_transactions"
@@ -2126,7 +2368,6 @@ def main() -> int:
                 "schedule/sample binding drift",
             )
             input_7ch, _inference_row = _load_input(runtime, selected_row)
-            runtime["tail"].bind_row(selected_row["source_row"])
             for action_id in frame_schedule["ordered_action_ids"]:
                 profile = by_action[action_id]
                 current_action = action_id

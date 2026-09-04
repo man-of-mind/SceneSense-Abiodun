@@ -8,7 +8,13 @@ from typing import Any, Mapping
 
 import torch
 
-from .envelope import HEADER_BYTES, PROTOCOL_VERSION, pack_envelope
+from .envelope import (
+    CONTEXT_PROTOCOL_VERSION,
+    HEADER_BYTES,
+    PROTOCOL_VERSION,
+    pack_envelope,
+)
+from .frame_context import FrameContextV1
 from .registry import ActionProfile, DispatchContractError, SplitActionRegistry
 from .runtime_support import OperationCounters, OperationSnapshot, prepare_preloaded_module
 from .timing import StageRecorder, TimingTrace, UE_STAGES
@@ -37,6 +43,7 @@ class DispatchMetadata:
     wire_version: int
     segmentation_installable: bool
     segmentation_behavior: str
+    frame_context: FrameContextV1 | None = None
 
 
 @dataclass(frozen=True)
@@ -54,9 +61,11 @@ def metadata_for(
     *,
     sequence_id: int,
     capture_timestamp_ns: int,
+    protocol_version: int = PROTOCOL_VERSION,
+    frame_context: FrameContextV1 | None = None,
 ) -> DispatchMetadata:
     return DispatchMetadata(
-        protocol_version=PROTOCOL_VERSION,
+        protocol_version=protocol_version,
         action_id=profile.action_id,
         profile_id=profile.profile_id,
         sequence_id=sequence_id,
@@ -73,6 +82,7 @@ def metadata_for(
         wire_version=profile.wire.version,
         segmentation_installable=profile.segmentation_installable,
         segmentation_behavior=profile.segmentation_behavior,
+        frame_context=frame_context,
     )
 
 
@@ -149,6 +159,7 @@ class PreloadedSplitUERuntime:
         *,
         sequence_id: int,
         capture_timestamp_ns: int,
+        frame_context: FrameContextV1 | None = None,
     ) -> EncodedSplitFrame:
         profile = self._registry.resolve(action_id)
         timing = StageRecorder(UE_STAGES)
@@ -187,17 +198,24 @@ class PreloadedSplitUERuntime:
                 action_id=profile.action_id,
                 sequence_id=sequence_id,
                 capture_timestamp_ns=capture_timestamp_ns,
+                frame_context=frame_context,
             )
         self._counters.frames_completed += 1
         return EncodedSplitFrame(
             wire_bytes=wire,
             inner_payload_bytes=len(inner),
-            outer_envelope_bytes=HEADER_BYTES,
+            outer_envelope_bytes=len(wire) - len(inner),
             total_transmitted_bytes=len(wire),
             metadata=metadata_for(
                 profile,
                 sequence_id=sequence_id,
                 capture_timestamp_ns=capture_timestamp_ns,
+                protocol_version=(
+                    CONTEXT_PROTOCOL_VERSION
+                    if frame_context is not None
+                    else PROTOCOL_VERSION
+                ),
+                frame_context=frame_context,
             ),
             timing=timing.snapshot(),
         )

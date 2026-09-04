@@ -9,6 +9,7 @@ from typing import Any, Callable, Mapping
 import torch
 
 from .envelope import EnvelopeError, SplitEnvelope, unpack_envelope
+from .frame_context import FrameContextSessionValidator, StaticCameraRegistry
 from .registry import DispatchContractError, SplitActionRegistry
 from .runtime_support import OperationCounters, OperationSnapshot, prepare_preloaded_module
 from .timing import EDGE_STAGES, StageRecorder, TimingTrace
@@ -47,6 +48,9 @@ class PreloadedSplitEdgeRuntime:
         prepare_modules: bool = True,
         startup_model_load_operations: int = 0,
         startup_model_construction_operations: int = 0,
+        camera_registry: StaticCameraRegistry | None = None,
+        require_frame_context: bool = False,
+        context_session: FrameContextSessionValidator | None = None,
     ) -> None:
         if not isinstance(tail_device, torch.device):
             raise DispatchContractError("tail_device must be a torch.device")
@@ -60,6 +64,17 @@ class PreloadedSplitEdgeRuntime:
         self._tail_device = tail_device
         self._codec = codec if codec is not None else ProductionSplitCodec()
         self._output_serializer = output_serializer or (lambda _output: None)
+        self._camera_registry = camera_registry
+        self._require_frame_context = bool(require_frame_context)
+        self._context_session = (
+            context_session
+            if context_session is not None
+            else FrameContextSessionValidator()
+        )
+        if self._require_frame_context and self._camera_registry is None:
+            raise DispatchContractError(
+                "frame-context edge requires a static camera registry"
+            )
         self._counters = OperationCounters(
             startup_model_load_operations=startup_model_load_operations,
             startup_model_construction_operations=startup_model_construction_operations,
@@ -79,6 +94,9 @@ class PreloadedSplitEdgeRuntime:
     @property
     def counters(self) -> OperationSnapshot:
         return self._counters.snapshot()
+
+    def reset_context_session(self, stream_id: str | None = None) -> None:
+        self._context_session.reset(stream_id)
 
     @staticmethod
     def _outer(frame_bytes: bytes | bytearray | memoryview) -> SplitEnvelope:
@@ -102,6 +120,18 @@ class PreloadedSplitEdgeRuntime:
                     "control-plane action_id disagrees with outer envelope"
                 )
             profile = self._registry.resolve(transmitted_action_id)
+            context = outer.frame_context
+            if self._require_frame_context and context is None:
+                raise DispatchContractError("SFD1 v2 frame context is required")
+            if context is not None:
+                if self._camera_registry is None:
+                    raise DispatchContractError(
+                        "SFD1 v2 frame context has no edge camera registry"
+                    )
+                self._camera_registry.resolve(
+                    context.camera_model_sha256, context.camera_mount_sha256
+                )
+                self._context_session.accept(context)
             inspected = self._codec.inspect(outer.inner_payload, timing=timing)
             require_inner_agreement(profile, inspected.identity)
             decoder = (
@@ -132,6 +162,8 @@ class PreloadedSplitEdgeRuntime:
                 profile,
                 sequence_id=outer.sequence_id,
                 capture_timestamp_ns=outer.capture_timestamp_ns,
+                protocol_version=outer.protocol_version,
+                frame_context=context,
             )
             with timing.stage("frozen_tail"):
                 self._counters.tail_dispatches += 1
