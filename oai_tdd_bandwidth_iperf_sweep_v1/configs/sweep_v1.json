@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "experiment_name": "oai_tdd_bandwidth_iperf_sweep_v1",
+  "output_root": "experiments/oai_tdd_bandwidth_iperf_sweep_v1",
+  "ue": {
+    "imsi": "001010000000001",
+    "dnn": "oai",
+    "interface": "oaitun_ue1",
+    "static_ip": "10.0.0.2",
+    "ext_dn_ip": "192.168.70.135",
+    "iperf_port": 5201,
+    "numerology": 1,
+    "band": 78,
+    "rfsim_server": "127.0.0.1",
+    "config": "ue.conf"
+  },
+  "radio": {
+    "min_rxtxtime": 6,
+    "gnb_startup_wait_s": 22,
+    "attach_timeout_s": 120,
+    "core_timeout_s": 150,
+    "ue_attempts_per_stack": 2,
+    "stack_attempts_per_cell": 2,
+    "configurations": [
+      {
+        "id": "bw40_tdd7d2u",
+        "bandwidth_mhz": 40,
+        "prb": 106,
+        "downlink_slots": 7,
+        "uplink_slots": 2,
+        "gnb_source": "gnb.sa.band78.fr1.106PRB.usrpb210.conf",
+        "ue_frequency_hz": 3619200000,
+        "ue_ssb": null
+      },
+      {
+        "id": "bw40_tdd4d5u",
+        "bandwidth_mhz": 40,
+        "prb": 106,
+        "downlink_slots": 4,
+        "uplink_slots": 5,
+        "gnb_source": "gnb.sa.band78.fr1.106PRB.ulheavy.scenesense_rfsim.conf",
+        "ue_frequency_hz": 3619200000,
+        "ue_ssb": null
+      },
+      {
+        "id": "bw100_tdd7d2u",
+        "bandwidth_mhz": 100,
+        "prb": 273,
+        "downlink_slots": 7,
+        "uplink_slots": 2,
+        "gnb_source": "gnb.sa.band78.fr1.273PRB.scenesense_rfsim.conf",
+        "ue_frequency_hz": 3649260000,
+        "ue_ssb": 516
+      },
+      {
+        "id": "bw100_tdd4d5u",
+        "bandwidth_mhz": 100,
+        "prb": 273,
+        "downlink_slots": 4,
+        "uplink_slots": 5,
+        "derive_from": "bw100_tdd7d2u",
+        "ue_frequency_hz": 3649260000,
+        "ue_ssb": 516
+      }
+    ]
+  },
+  "smoke": {
+    "rates_mbps": [5],
+    "repetitions": 1,
+    "omit_s": 0,
+    "duration_s": 10,
+    "ping_interval_s": 0.2,
+    "enable_ttracer": true
+  },
+  "full": {
+    "rates_mbps": [5, 10, 15, 20, 30, 45, 70, 100],
+    "extension_rates_mbps": [150, 200, 300],
+    "repetitions": 3,
+    "omit_s": 5,
+    "duration_s": 45,
+    "ping_interval_s": 0.1,
+    "enable_ttracer": true,
+    "tcp_once_per_configuration_repetition": true,
+    "tcp_duration_s": 45,
+    "tcp_omit_s": 5
+  },
+  "udp": {
+    "datagram_bytes": 1200,
+    "capacity_goodput_ratio_min": 0.95,
+    "capacity_loss_percent_max": 1.0
+  },
+  "cleanup": {
+    "grace_s": 4,
+    "docker_down_timeout_s": 20
+  }
+}
