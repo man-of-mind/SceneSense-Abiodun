@@ -154,6 +154,16 @@ AE128_ACCEPTED_SOURCE_TRANSITIONS: dict[str, dict[str, str]] = {
     },
 }
 
+PHASE11B_DEVICE_REPAIR_SOURCE_TRANSITION = {
+    "path": "lowbit_dispatch.py",
+    "historical_sha256": "f16cf06274beed584020c3ab15fae2a8ac43faa4d5894bfdb951a178525c3e14",
+    "current_sha256": "8e25fa64feeb22d4315957faaa216e0ea672170f09250cdc2930d705a621b0ce",
+    "reason": (
+        "the receiver now supplies an explicit torch.device for noAE C2 tail "
+        "placement; packet bytes, quantization and AE mathematics are unchanged"
+    ),
+}
+
 # These are the checkpoint-defined numerical modules used to construct an AE
 # and to produce the latent that reaches the low-bit quantizer.  They must be
 # exactly identical for every selected checkpoint; no transition is permitted.
@@ -463,6 +473,12 @@ def phase11b_preflight() -> dict[str, Any]:
     """Complete frozen-artifact and source compatibility preflight, CPU only."""
     frozen_hashes = _verify_frozen_input_hashes()
     live_sources = _live_ae_source_map()
+    repair_transition = dict(PHASE11B_DEVICE_REPAIR_SOURCE_TRANSITION)
+    repair_path = repair_transition["path"]
+    if live_sources.get(repair_path) != repair_transition["current_sha256"]:
+        raise guards.HybridQConfigError(
+            "Phase-11B device-repair source transition does not match live bytes"
+        )
     checkpoint_payloads: dict[str, Mapping[str, Any]] = {}
     source_bindings: dict[str, Any] = {}
     selection_bindings: dict[str, Any] = {}
@@ -491,6 +507,7 @@ def phase11b_preflight() -> dict[str, Any]:
         "checkpoint_payloads": checkpoint_payloads,
         "historical_source_bindings": source_bindings,
         "selection_bindings": selection_bindings,
+        "phase11b_device_repair_source_transition": repair_transition,
     }
 
 
@@ -792,8 +809,12 @@ def _qualify_setting(
             raise guards.HybridQPayloadError("q=0.50 did not retain exactly 10,752 cells")
 
     if family_id == ae_contract.AE_FAMILY_NOAE:
-        if diagnostics.decoder is not None or received.c2 is not diagnostics.decoded_feature:
-            raise guards.HybridQPayloadError("noAE frame did not route directly to C2")
+        if diagnostics.decoder is not None:
+            raise guards.HybridQPayloadError("noAE frame unexpectedly selected a decoder")
+        if received.c2.device != decoders.tail_device:
+            raise guards.HybridQPayloadError(
+                "noAE frame did not route to the configured tail device"
+            )
     else:
         autoencoder = autoencoders[family_name]
         if diagnostics.decoder is not autoencoder:
@@ -959,6 +980,9 @@ def main() -> int:
                     "accepted_transitions": preflight["historical_source_bindings"][
                         "AE128"
                     ]["accepted_historical_to_current_transitions"],
+                    "device_repair_source_transition": preflight[
+                        "phase11b_device_repair_source_transition"
+                    ],
                 },
                 sort_keys=True,
             )
@@ -976,6 +1000,7 @@ def main() -> int:
     checkpoint_payloads = preflight["checkpoint_payloads"]
     source_bindings = preflight["historical_source_bindings"]
     selection_bindings = preflight["selection_bindings"]
+    repair_transition = preflight["phase11b_device_repair_source_transition"]
 
     model, base, perception_binding = load_frozen_perception(device)
     common.freeze(model)
@@ -1017,7 +1042,11 @@ def main() -> int:
             raise guards.HybridQPayloadError("frozen qualification C2 is not on cuda:0")
 
         ranker = _CountingRanker(ranker_model)
-        decoders = lowbit_dispatch.PreloadedLowBitDecoders(autoencoders.values())
+        decoders = lowbit_dispatch.PreloadedLowBitDecoders(
+            autoencoders.values(), tail_device=device
+        )
+        if decoders.tail_device != device:
+            raise guards.HybridQConfigError("receiver tail-device configuration drift")
         expected_decoder_families = tuple(
             ae_contract.family_for_bottleneck(size) for size in (128, 64, 32)
         )
@@ -1134,6 +1163,7 @@ def main() -> int:
         "frozen_inputs": frozen_hashes,
         "perception_binding": perception_binding,
         "historical_checkpoint_source_bindings": source_bindings,
+        "phase11b_device_repair_source_transition": repair_transition,
         "selection_bindings": selection_bindings,
         "current_live_ae_package_source_hashes": live_sources,
         "executed_repository_source_hashes": _loaded_repository_source_hashes(),

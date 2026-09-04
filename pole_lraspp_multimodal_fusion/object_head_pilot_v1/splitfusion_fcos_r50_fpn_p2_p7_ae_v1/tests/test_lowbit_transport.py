@@ -2,14 +2,20 @@
 
 from __future__ import annotations
 
+import hashlib
 import struct
 import unittest
+from dataclasses import fields
 
 import torch
 
 from ...splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1 import contract, guards
+from ...splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1.gpu_qualification import (
+    load_frozen_perception,
+)
 from ...splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1.zstd_transport import ZstdWireCodec
-from .. import ae_contract, lowbit_dispatch, lowbit_transport
+from .. import ae_contract, ae_training_common, lowbit_dispatch, lowbit_transport
+from ..ae_gpu_qualification import require_tree_finite
 from ..ae_model import build_split_feature_ae
 
 
@@ -32,9 +38,9 @@ class Ranker:
         if c2 is not self.expected:
             raise AssertionError("ranker did not receive original C2")
         self.calls += 1
-        return torch.arange(contract.SPLIT_CELLS, dtype=torch.float32).reshape(
-            contract.SPLIT_SPATIAL_SHAPE
-        )
+        return torch.arange(
+            contract.SPLIT_CELLS, dtype=torch.float32, device=c2.device
+        ).reshape(contract.SPLIT_SPATIAL_SHAPE)
 
 
 def feature() -> torch.Tensor:
@@ -69,7 +75,11 @@ class LowBitTransportChecks(unittest.TestCase):
         c2 = feature()
         ranker = Ranker(c2)
         ae32 = build_split_feature_ae(32).bind_routing_tag(0x1234ABCD)
-        decoders = lowbit_dispatch.PreloadedLowBitDecoders([ae32])
+        cpu = torch.device("cpu")
+        decoders = lowbit_dispatch.PreloadedLowBitDecoders(
+            [ae32], tail_device=cpu
+        )
+        self.assertEqual(decoders.tail_device, cpu)
         wire = CountingWireCodec()
 
         # Every family uses the same accounting rule; q=0 carries no mask.
@@ -118,6 +128,7 @@ class LowBitTransportChecks(unittest.TestCase):
                         self.assertEqual(received.family.bit_width, bits)
                         self.assertEqual(received.keep_count, transport.plan.keep_count)
                         self.assertEqual(tuple(received.c2.shape), contract.SPLIT_SHAPE)
+                        self.assertEqual(received.c2.device, cpu)
                         self.assertTrue(bool(torch.isfinite(received.c2).all()))
                         self.assertIsNotNone(received.diagnostics)
                         self.assertTrue(
@@ -162,6 +173,82 @@ class LowBitTransportChecks(unittest.TestCase):
                 ]
                 with self.assertRaises(guards.HybridQPayloadError):
                     lowbit_transport.inspect(malformed)
+
+    @unittest.skipUnless(torch.cuda.is_available(), "focused smoke requires CUDA")
+    def test_noae_public_receive_targets_configured_cuda_tail(self) -> None:
+        device = torch.device("cuda:0")
+        model, _base, _binding = load_frozen_perception(device)
+        ae_training_common.freeze(model)
+        c2 = feature().to(device)
+        ranker = Ranker(c2)
+        decoders = lowbit_dispatch.PreloadedLowBitDecoders(
+            [], tail_device=device
+        )
+        wire = CountingWireCodec()
+
+        self.assertEqual(decoders.tail_device, device)
+        for q in (0.0, 0.5):
+            with self.subTest(q=q), torch.inference_mode():
+                ranker_before = ranker.calls
+                transport = lowbit_transport.encode_noae_frame(
+                    c2, ranker, q, 6, wire_codec=wire
+                )
+                expected_calls = 0 if q == 0.0 else 1
+                self.assertEqual(ranker.calls - ranker_before, expected_calls)
+                self.assertEqual(transport.selection is None, q == 0.0)
+
+                wire_bytes = bytes(transport.packet.data)
+                wire_sha256 = hashlib.sha256(wire_bytes).hexdigest()
+                analytical = lowbit_transport.analytical_size(
+                    q, ae_contract.AE_FAMILY_NOAE, 6
+                )
+                self.assertEqual(
+                    transport.packet.uncompressed_bytes, analytical.total_bytes
+                )
+
+                wire.decompressions = 0
+                received = decoders.receive(
+                    wire_bytes, wire_codec=wire, diagnostics=True
+                )
+                self.assertEqual(wire.decompressions, 1)
+                self.assertEqual(hashlib.sha256(wire_bytes).hexdigest(), wire_sha256)
+                self.assertEqual(received.uncompressed_bytes, analytical.total_bytes)
+                self.assertEqual(received.c2.device, device)
+                self.assertEqual(received.c2.device, next(model.parameters()).device)
+                self.assertIsNotNone(received.diagnostics)
+
+                diagnostics = received.diagnostics
+                packet_fields = {field.name for field in fields(transport.packet)}
+                header_fields = {field.name for field in fields(diagnostics.parsed.header)}
+                self.assertTrue(
+                    {"device", "tail_device", "output_device"}.isdisjoint(
+                        packet_fields | header_fields
+                    )
+                )
+
+                source = c2.detach().cpu().reshape(contract.SPLIT_CHANNELS, -1)
+                recovered = diagnostics.decoded_feature.reshape(
+                    contract.SPLIT_CHANNELS, -1
+                )
+                retained = diagnostics.parsed.keep_indices.to(torch.int64)
+                ranges = diagnostics.parsed.channel_ranges
+                spans = ranges[:, 1] - ranges[:, 0]
+                magnitude = torch.maximum(
+                    ranges[:, 0].abs(), ranges[:, 1].abs()
+                ).clamp_min(1.0)
+                bound = spans / (2.0 * ((1 << 6) - 1)) + (
+                    8.0 * torch.finfo(torch.float32).eps * magnitude
+                )
+                error = (
+                    recovered.index_select(1, retained)
+                    - source.index_select(1, retained)
+                ).abs().amax(dim=1)
+                self.assertTrue(bool((error <= bound).all()))
+                dropped = ~diagnostics.keep_mask.reshape(-1)
+                self.assertTrue(bool((recovered[:, dropped] == 0.0).all()))
+
+                outputs = model.decode_tail(received.c2.unsqueeze(0), dense=True)
+                self.assertGreater(require_tree_finite(outputs), 0)
 
 
 if __name__ == "__main__":

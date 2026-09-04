@@ -52,9 +52,23 @@ class ReceivedLowBitFrame:
 
 
 class PreloadedLowBitDecoders:
-    """Read-only view over AE decoders constructed by the existing runtime."""
+    """Read-only receiver routing to one explicitly configured tail device.
 
-    def __init__(self, autoencoders: Iterable[SplitFeatureAE]) -> None:
+    AE packets obtain their execution device from the header-selected decoder.
+    noAE packets have no decoder from which to infer one, so their decoded C2 is
+    moved to ``tail_device``.  That device is receiver configuration and is
+    never derived from packet bytes.
+    """
+
+    def __init__(
+        self,
+        autoencoders: Iterable[SplitFeatureAE],
+        *,
+        tail_device: torch.device,
+    ) -> None:
+        if not isinstance(tail_device, torch.device):
+            raise guards.HybridQConfigError("tail_device must be a torch.device")
+        self._tail_device = tail_device
         by_family: dict[int, SplitFeatureAE] = {}
         for autoencoder in autoencoders:
             if not isinstance(autoencoder, SplitFeatureAE):
@@ -72,8 +86,18 @@ class PreloadedLowBitDecoders:
                 autoencoder.routing_tag,
                 what=f"preloaded {autoencoder.family_name} routing tag",
             )
+            decoder_device = ae_uint8_transport.decoder_device(autoencoder)
+            if decoder_device != self._tail_device:
+                raise guards.HybridQConfigError(
+                    f"preloaded {autoencoder.family_name} decoder is on "
+                    f"{decoder_device}, receiver tail is on {self._tail_device}"
+                )
             by_family[family] = autoencoder
         self._by_family = by_family
+
+    @property
+    def tail_device(self) -> torch.device:
+        return self._tail_device
 
     @property
     def families(self) -> tuple[int, ...]:
@@ -148,7 +172,10 @@ class PreloadedLowBitDecoders:
         if parsed.family_id == ae_contract.AE_FAMILY_NOAE:
             decoder = None
             guards.require_frozen_c2(decoded, what="received noAE low-bit C2")
-            reconstructed = decoded
+            reconstructed = decoded.to(self._tail_device)
+            guards.require_frozen_c2(
+                reconstructed, what="device-placed noAE low-bit C2"
+            )
         else:
             decoder = self._select(parsed)
             device = ae_uint8_transport.decoder_device(decoder)
