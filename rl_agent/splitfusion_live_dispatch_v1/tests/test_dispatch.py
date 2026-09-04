@@ -7,6 +7,7 @@ from unittest import mock
 
 import torch
 
+from rl_agent.splitfusion_live_dispatch_v1 import phase13b_qualification as phase13b
 from rl_agent.splitfusion_live_dispatch_v1.edge_runtime import PreloadedSplitEdgeRuntime
 from rl_agent.splitfusion_live_dispatch_v1.envelope import pack_envelope, unpack_envelope
 from rl_agent.splitfusion_live_dispatch_v1.registry import (
@@ -158,6 +159,37 @@ def _objects(registry):
 
 
 class PreloadedDispatchTest(unittest.TestCase):
+    def test_phase13b_porcelain_status_preserves_leading_space_and_refuses_unknown(self):
+        exact_status = (
+            " m OAI/openairinterface5g\n"
+            " M pole_lraspp_multimodal_fusion/object_head_pilot_v1/"
+            "lraspp_to_splitfusion_fcos_report_v1/FULL_TECHNICAL_REPORT_AVO_V2.md\n"
+        )
+        completed = mock.Mock(stdout=exact_status)
+        with mock.patch.object(phase13b.subprocess, "run", return_value=completed):
+            porcelain = phase13b._git_output(
+                "status", "--porcelain=v1", "--untracked-files=all"
+            )
+        self.assertEqual(porcelain.splitlines()[0][3:], "OAI/openairinterface5g")
+
+        exact_git = (
+            "repair-commit",
+            phase13b.PHASE13B_IMPLEMENTATION_COMMIT,
+            phase13b.PHASE13A_COMMIT,
+            porcelain,
+        )
+        with mock.patch.object(phase13b, "_git_output", side_effect=exact_git):
+            audit = phase13b._verify_git_state()
+        self.assertEqual(
+            audit["expected_user_owned_dirty_paths"],
+            sorted(phase13b.EXPECTED_DIRTY_PATHS),
+        )
+
+        unknown_git = (*exact_git[:3], porcelain + "\n?? unknown-path")
+        with mock.patch.object(phase13b, "_git_output", side_effect=unknown_git):
+            with self.assertRaisesRegex(RuntimeError, "unexpected dirty paths"):
+                phase13b._verify_git_state()
+
     def test_representative_action_switches_reuse_only_preloaded_objects(self):
         registry = SplitActionRegistry.from_runtime_binding(
             verify_runtime_artifacts=False

@@ -93,6 +93,7 @@ EXPECTED_DIRTY_PATHS = frozenset(
 )
 PHASE13A_TERMINAL = "SPLITFUSION_LIVE_DISPATCH_IMPLEMENTATION_READY_FOR_REVIEW"
 PHASE13A_COMMIT = "219bd004ef74550128228062768dac7c6fa6525b"
+PHASE13B_IMPLEMENTATION_COMMIT = "71cfc1951c3bd5baca897eaf2483029f5ca9f0c2"
 PHASE11B_EVIDENCE = {
     "path": (
         "experiments/splitfusion_fcos_ae_v1/"
@@ -182,15 +183,21 @@ def _git_output(*arguments: str) -> str:
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
-    ).stdout.strip()
+    ).stdout.rstrip("\r\n")
 
 
 def _verify_git_state() -> dict[str, Any]:
     head = _git_output("rev-parse", "HEAD")
     parent = _git_output("rev-parse", "HEAD^")
     _require(
-        parent == PHASE13A_COMMIT,
-        f"Phase-13B implementation parent is {parent}, expected {PHASE13A_COMMIT}",
+        parent == PHASE13B_IMPLEMENTATION_COMMIT,
+        "Phase-13B repair parent is "
+        f"{parent}, expected {PHASE13B_IMPLEMENTATION_COMMIT}",
+    )
+    phase13a = _git_output("rev-parse", "HEAD^^")
+    _require(
+        phase13a == PHASE13A_COMMIT,
+        f"Phase-13B implementation base is {phase13a}, expected {PHASE13A_COMMIT}",
     )
     lines = _git_output(
         "status", "--porcelain=v1", "--untracked-files=all"
@@ -210,7 +217,8 @@ def _verify_git_state() -> dict[str, Any]:
     )
     return {
         "head": head,
-        "phase13a_parent_commit": parent,
+        "phase13b_implementation_commit": parent,
+        "phase13a_commit": phase13a,
         "implementation_source": str(source.relative_to(_root())),
         "implementation_source_sha256": sha256_file(source),
         "expected_user_owned_dirty_paths": sorted(paths),
@@ -1422,7 +1430,10 @@ def main() -> int:
             "implementation_source": {
                 "path": runtime["git"]["implementation_source"],
                 "sha256": runtime["git"]["implementation_source_sha256"],
-                "phase13a_parent_commit": runtime["git"]["phase13a_parent_commit"],
+                "phase13b_implementation_commit": runtime["git"][
+                    "phase13b_implementation_commit"
+                ],
+                "phase13a_commit": runtime["git"]["phase13a_commit"],
             },
             "phase13a_binding": runtime["phase13a"],
             "phase11b_sample_binding": runtime["phase11b"],
