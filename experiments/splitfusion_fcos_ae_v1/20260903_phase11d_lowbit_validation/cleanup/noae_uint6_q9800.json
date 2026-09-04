@@ -1,0 +1,10 @@
+{
+  "prediction_artifacts_removed_after_durable_record": true,
+  "prediction_root": "experiments/splitfusion_fcos_ae_v1/20260903_phase11d_lowbit_validation/working_predictions/noae_uint6_q9800",
+  "retained_by_keep_segmentation": false,
+  "run_identity_sha256": "4a5ee4a138d68869182e8d747240765280421a2c87eda5eafd1ae2c589334407",
+  "schema": "splitfusion_fcos_phase11d_lowbit_cleanup_v1",
+  "setting_key": "noae_uint6_q9800",
+  "setting_sha256": "3d983fc41243d2ef2c80b94dc95b9ee64faf28fd71477da41c0b58e2b81fe032",
+  "terminal": "SPLITFUSION_LOWBIT_PHASE11D_SETTING_CLEANUP_COMPLETE"
+}
