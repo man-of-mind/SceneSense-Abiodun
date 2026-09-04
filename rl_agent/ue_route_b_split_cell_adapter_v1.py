@@ -93,29 +93,50 @@ def load_yaml(path: Path) -> dict[str, Any]:
     return value
 
 
+def load_json(path: Path) -> Any:
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
 def write_json_create_only(path: Path, value: Mapping[str, Any]) -> None:
     with path.open("x", encoding="utf-8") as handle:
         json.dump(value, handle, indent=2, sort_keys=True, allow_nan=False)
         handle.write("\n")
 
 
-def action_row(campaign: Mapping[str, Any], action_id: str) -> dict[str, str]:
-    registry = repo_path(str(campaign["actions"]["technical_registry_csv"]))
-    require(registry.is_file(), f"technical action registry missing: {registry}")
+def action_row(campaign: Mapping[str, Any], action_id: int | str) -> dict[str, Any]:
+    actions = campaign["actions"]
+    catalog_path = repo_path(str(actions["catalog_json"]))
+    require(catalog_path.is_file(), f"locked action catalog missing: {catalog_path}")
     require(
-        sha256_file(registry) == str(campaign["actions"]["technical_registry_sha256"]),
-        "technical action registry hash drift",
+        sha256_file(catalog_path) == str(actions["catalog_sha256"]),
+        "locked action catalog hash drift",
     )
-    with registry.open(newline="", encoding="utf-8") as handle:
-        rows = [dict(row) for row in csv.DictReader(handle)]
-    matches = [row for row in rows if row.get("profile_id") == action_id]
-    require(len(matches) == 1, f"resolved action is not unique in registry: {action_id}")
-    row = matches[0]
+    catalog = load_json(catalog_path)
+    require(catalog.get("schema") == actions["catalog_schema"], "action catalog schema drift")
+    rows = catalog.get("profiles")
+    require(isinstance(rows, list) and len(rows) == 72, "action catalog inventory drift")
+    matches = [row for row in rows if str(row.get("action_id")) == str(action_id)]
+    require(len(matches) == 1, f"resolved action is not unique in catalog: {action_id}")
+    profile = matches[0]
     require(
-        row.get("certification_status") == campaign["actions"]["required_certification_status"],
-        f"resolved action is not certified: {action_id}",
+        profile.get("execution_mode") == "SPLIT"
+        and profile.get("capabilities", {}).get("transport_valid") is True
+        and profile.get("capabilities", {}).get("agent_action_enabled") is True,
+        f"resolved action is not enabled and transport-valid: {action_id}",
     )
-    return row
+    checkpoint = profile.get("ae_checkpoint") or profile.get("perception_checkpoint")
+    require(isinstance(checkpoint, dict), f"resolved action lacks a checkpoint binding: {action_id}")
+    quantizer = str(profile["quantizer"]).lower()
+    return {
+        **profile,
+        "model_family": str(profile["family"]).lower(),
+        "checkpoint_path": str(checkpoint["path"]),
+        "checkpoint_sha256": str(checkpoint["sha256"]),
+        "quantization_mode": f"per_channel_{quantizer}",
+        "roi_drop_fraction": format(float(profile["q"]), "g"),
+        "entropy_coder": "zstd",
+        "zstd_level": int(profile["zstd_level"]),
+    }
 
 
 def validate_resolved_contract(
@@ -145,13 +166,32 @@ def validate_resolved_contract(
     require(campaign["network"]["catch_up_policy"] == "SKIP_OBSOLETE_NEVER_BURST", "target-SNR catch-up drift")
     require(float(campaign["network"]["clean_restore_noise_power_db"]) == -50.0, "RFsim restore drift")
     require(tuple(campaign["cell"]["expected_outputs"]) == EXPECTED_OUTPUTS, "registered output set drift")
-    row = action_row(campaign, str(cell["action_id"]))
+    radio = campaign.get("network", {}).get("radio_baseline", {})
+    require(
+        radio.get("profile_id") == "OAI_N78_100MHZ_273PRB_4D5U_V1"
+        and radio.get("selection_status") == "LOCKED",
+        "real adapter launch refused: radio profile is not the locked n78 100-MHz/273-PRB baseline",
+    )
+    require(
+        radio.get("target_snr_mapping_status") == "QUALIFIED_ON_OAI_N78_100MHZ_273PRB_4D5U_V1"
+        and campaign["network"].get("mapping_calibration_radio_profile_id")
+        == "OAI_N78_100MHZ_273PRB_4D5U_V1",
+        "real adapter launch refused: legacy 40-MHz/106-PRB RFsim mapping is not valid for this campaign",
+    )
+    require(
+        campaign["runtime"].get("oai_radio_runtime_binding_status") == "BOUND_SPLITFUSION_100MHZ_4D5U"
+        and campaign["runtime"].get("oai_registered_profile_launcher_status")
+        == "QUALIFIED_SPLITFUSION_100MHZ_4D5U",
+        "real adapter launch refused: 100-MHz/273-PRB runtime/launcher is not qualified",
+    )
+    row = action_row(campaign, cell["action_id"])
+    require(row["profile_id"] == str(cell["profile_id"]), "resolved catalog profile/action mismatch")
     require(row["model_family"] == str(cell["model_family"]), "resolved model family/action mismatch")
     require(row["entropy_coder"] == "zstd", "certified action transport must remain zstd")
     return resolved, campaign, row
 
 
-def launcher_binding(campaign: Mapping[str, Any], row: Mapping[str, str]) -> dict[str, Any]:
+def launcher_binding(campaign: Mapping[str, Any], row: Mapping[str, Any]) -> dict[str, Any]:
     launcher = repo_path(str(campaign["runtime"]["oai_registered_profile_launcher"]))
     registry = ROOT / "rl_agent/registries/ue_split_profile_registry_v1/ue_split_profile_registry.csv"
     env = os.environ.copy()
@@ -172,10 +212,14 @@ def launcher_binding(campaign: Mapping[str, Any], row: Mapping[str, str]) -> dic
     require(binding.get("profile_identity", {}).get("checkpoint_sha256") == row["checkpoint_sha256"], "launcher checkpoint binding drift")
     require(binding.get("profile_identity", {}).get("quantization_mode") == row["quantization_mode"], "launcher quantizer binding drift")
     require(str(binding.get("profile_identity", {}).get("roi_drop_fraction")) == str(row["roi_drop_fraction"]), "launcher q binding drift")
+    require(
+        arg_value(binding.get("front_args", []), "--zstd-level") == str(row["zstd_level"]),
+        "launcher zstd-level binding drift",
+    )
     return binding
 
 
-def attach_oai(campaign: Mapping[str, Any], row: Mapping[str, str]) -> None:
+def attach_oai(campaign: Mapping[str, Any], row: Mapping[str, Any]) -> None:
     launcher = repo_path(str(campaign["runtime"]["oai_registered_profile_launcher"]))
     registry = ROOT / "rl_agent/registries/ue_split_profile_registry_v1/ue_split_profile_registry.csv"
     env = os.environ.copy()
@@ -1796,20 +1840,18 @@ def contract_check(configs: Sequence[Path]) -> int:
             "target_snr_mapping_status": radio["target_snr_mapping_status"],
             "radio_runtime_binding_status": campaign["runtime"]["oai_radio_runtime_binding_status"],
         })
-    registry = repo_path(str(load_yaml(configs[0].resolve())["actions"]["technical_registry_csv"]))
-    with registry.open(newline="", encoding="utf-8") as handle:
-        runtime_hashes = {row["certified_runtime_sha256"] for row in csv.DictReader(handle)}
-    certified_runtime = ROOT / "uplink_only_spatial_map_pipeline/carla_fusion_staleness_scenario_uplink_only_v2.py"
+    campaign = load_yaml(configs[0].resolve())
+    certified_runtime = repo_path(str(campaign["runtime"]["split_inference_runtime"]))
     require(
-        runtime_hashes == {sha256_file(certified_runtime)},
-        "certified split runtime hash changed while adding evaluation evidence",
+        sha256_file(certified_runtime) == str(campaign["runtime"]["split_inference_runtime_sha256"]),
+        "configured split runtime hash changed while adding evaluation evidence",
     )
     print(json.dumps({
         "status": "ADAPTER_CONTRACT_DRY_RUN_PASS", "configs": reports,
         "external_processes_started": 0, "ego_owner": "Route B",
         "clock_owner": "Route B through imported SamplingWorld",
         "adapter_forbidden_clock_calls": forbidden_calls,
-        "certified_split_runtime_sha256": sha256_file(certified_runtime),
+        "configured_split_runtime_sha256": sha256_file(certified_runtime),
         "exact_installed_frame_history": "PASS",
         "primary_match_distance_m": 3.0,
         "oriented_footprint_iou": "PASS",

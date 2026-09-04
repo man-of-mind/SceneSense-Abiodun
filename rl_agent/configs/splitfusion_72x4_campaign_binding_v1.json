@@ -1,0 +1,220 @@
+{
+  "schema": "scenesense.splitfusion_72x4_campaign_binding.v1",
+  "status": "BOUND_CONFIGURATION_ONLY_REAL_LAUNCH_BLOCKED",
+  "source_base_commit": "c0c25e143a9f50e859d933de42c35166bf7faae7",
+  "catalog": {
+    "path": "rl_agent/splitfusion_action_catalog_v1/splitfusion_72_action_catalog.json",
+    "commit": "4e237d719df91e83cfdc568e5f20b542d9482ad7",
+    "sha256": "07e0690f8a55bdd6068b8b283d14b7e165ccbf44742dd0a9568cfdd5dcac54c3",
+    "git_blob": "482ac2021f06c1a6ee1257b5f4f2ae95a3d22da2",
+    "schema": "splitfusion_72_action_catalog_v1",
+    "byte_identical_to_lock": true,
+    "semantics_authority": "ALL_ACTION_SEMANTICS_LOADED_FROM_THIS_LOCKED_CATALOG",
+    "campaign_local_action_metric_or_payload_copy": false
+  },
+  "radio": {
+    "path": "rl_agent/configs/oai_radio_baseline_100mhz_4d5u_v1.json",
+    "commit": "7a3e53d349f4de2ac71a6423e11188fadc1295f1",
+    "sha256": "fd604a37cfbc416412440dd447fe43cea9a94d3b65d69dd5e4e975de01a3dbf4",
+    "profile_id": "OAI_N78_100MHZ_273PRB_4D5U_V1",
+    "selection_status": "LOCKED",
+    "band": 78,
+    "bandwidth_mhz": 100,
+    "prb": 273,
+    "numerology": 1,
+    "tdd": {
+      "downlink_slots": 4,
+      "downlink_symbols": 6,
+      "uplink_slots": 5,
+      "uplink_symbols": 4
+    },
+    "pdu_session_5qi": 6
+  },
+  "campaign": {
+    "path": "rl_agent/configs/ue_288_campaign_v1.yaml",
+    "sha256": "aa7c620a655ef4d05551a172e5434dbdcb2ac8a3c284742389f5839d06e71d24",
+    "campaign_id": "ue_288_route_b_traffic_50_50_v1",
+    "action_selection": "all_catalog_actions",
+    "cell_identity": "a{action_id:02d}__{network_profile_id.lower()}"
+  },
+  "pilot": {
+    "path": "rl_agent/configs/ue_16_cell_integration_pilot_v1.yaml",
+    "sha256": "20b0704d0a02c46c13e7563de99f643ddf528461d9eb6e162e1c83cb4a223c2c",
+    "campaign_id": "ue_16_cell_route_b_traffic_50_50_integration_pilot_v1",
+    "action_selection": "explicit_profile_ids",
+    "actions": [
+      {
+        "action_id": 0,
+        "profile_id": "split_noae_uint8_q0000"
+      },
+      {
+        "action_id": 71,
+        "profile_id": "split_ae32_uint4_q9800"
+      },
+      {
+        "action_id": 46,
+        "profile_id": "split_ae64_uint6_q9000"
+      },
+      {
+        "action_id": 20,
+        "profile_id": "split_ae128_uint8_q5000"
+      }
+    ]
+  },
+  "network": {
+    "definition": {
+      "path": "rl_agent/configs/network_profile_design_v2.json",
+      "sha256": "056247e5731c1ae9ac281432034e1b79d1e6da24ab4a2d579a7fe2d85917e483",
+      "schema": "scenesense.network_profile_design.v2"
+    },
+    "schedule": {
+      "sample_period_ms": 100,
+      "reference_prefix_samples": 4200,
+      "continuation": "CONTINUE_SAME_RNG_AND_MARKOV_STATE_INDEFINITELY",
+      "catch_up_policy": "SKIP_OBSOLETE_NEVER_BURST"
+    },
+    "trace_storage": {
+      "physical_file_count": 1,
+      "logical_trace_count": 4,
+      "path": "rl_agent/experiments/network_profile_design_v2/20260822_route_b_v2/traces.csv",
+      "sha256": "32f1be66e976cba322803c128eefdeb81a8d31ed64bd253ff85ea1ab0583303d"
+    },
+    "profiles": [
+      {
+        "profile_id": "FAVORABLE_STABLE",
+        "trace_id": "GM_V2_FAVORABLE_STABLE_SEED_2026082101",
+        "trace_path": "rl_agent/experiments/network_profile_design_v2/20260822_route_b_v2/traces.csv",
+        "trace_file_sha256": "32f1be66e976cba322803c128eefdeb81a8d31ed64bd253ff85ea1ab0583303d",
+        "trace_semantic_sha256": "8cad86e2e1ee98176c75b872132eb68f7d770f889d7330fa4a9932c45c172de6",
+        "seed": 2026082101,
+        "initial_distribution": "STATIONARY",
+        "transition_matrix": [
+          [0.8, 0.2, 0.0],
+          [0.05, 0.85, 0.1],
+          [0.0, 0.02, 0.98]
+        ]
+      },
+      {
+        "profile_id": "MID_VARIABLE",
+        "trace_id": "GM_V2_MID_VARIABLE_SEED_2026082102",
+        "trace_path": "rl_agent/experiments/network_profile_design_v2/20260822_route_b_v2/traces.csv",
+        "trace_file_sha256": "32f1be66e976cba322803c128eefdeb81a8d31ed64bd253ff85ea1ab0583303d",
+        "trace_semantic_sha256": "0d2ef7ff9e7f342c772d0d88a4cec4e9ce9ac1c9946c1402d3087c55c8f0f811",
+        "seed": 2026082102,
+        "initial_distribution": "STATIONARY",
+        "transition_matrix": [
+          [0.85, 0.15, 0.0],
+          [0.05, 0.9, 0.05],
+          [0.0, 0.15, 0.85]
+        ]
+      },
+      {
+        "profile_id": "ADVERSE_STABLE",
+        "trace_id": "GM_V2_ADVERSE_STABLE_SEED_2026082103",
+        "trace_path": "rl_agent/experiments/network_profile_design_v2/20260822_route_b_v2/traces.csv",
+        "trace_file_sha256": "32f1be66e976cba322803c128eefdeb81a8d31ed64bd253ff85ea1ab0583303d",
+        "trace_semantic_sha256": "380925bb530945b11b8e79ab93e88d5a555de540ce859756d6c5ad08584e98a0",
+        "seed": 2026082103,
+        "initial_distribution": "STATIONARY",
+        "transition_matrix": [
+          [0.98, 0.02, 0.0],
+          [0.1, 0.85, 0.05],
+          [0.0, 0.2, 0.8]
+        ]
+      },
+      {
+        "profile_id": "FADE_RECOVERY",
+        "trace_id": "GM_V2_FADE_RECOVERY_SEED_2026082104",
+        "trace_path": "rl_agent/experiments/network_profile_design_v2/20260822_route_b_v2/traces.csv",
+        "trace_file_sha256": "32f1be66e976cba322803c128eefdeb81a8d31ed64bd253ff85ea1ab0583303d",
+        "trace_semantic_sha256": "ef2ae2d6448d9c7f3208bc81123d301a1a9f5d9b16be3bac4412c8cecf94e7c0",
+        "seed": 2026082104,
+        "initial_distribution": "STATIONARY",
+        "transition_matrix": [
+          [0.97, 0.03, 0.0],
+          [0.01, 0.98, 0.01],
+          [0.0, 0.03, 0.97]
+        ]
+      }
+    ]
+  },
+  "implementation_bindings": {
+    "campaign_supervisor": {
+      "path": "rl_agent/ue_288_campaign_supervisor.py",
+      "sha256": "7bd6e9c995fa19e5797fcdefb1422d235f391021ea3c0fe12b7c58de1c97e273"
+    },
+    "splitfusion_cell_adapter": {
+      "path": "rl_agent/ue_route_b_split_cell_adapter_v1.py",
+      "sha256": "8a0093e422452f32ba56fe36f610a4e1a8059877bee28f8091965f28eb0eb0bd"
+    }
+  },
+  "inventory": {
+    "split_actions": 72,
+    "network_profiles": 4,
+    "campaign_cells": 288,
+    "pilot_actions": 4,
+    "pilot_cells": 16,
+    "action_id_range": [0, 71],
+    "action_ids_contiguous": true,
+    "profile_ids_unique": true,
+    "family_quantizer_q_cartesian_complete": true,
+    "transport_valid_actions": 72,
+    "agent_enabled_actions": 72,
+    "campaign_cells_unique": true,
+    "pilot_cells_unique": true
+  },
+  "mapping": {
+    "order": "network profiles in campaign order, then catalog profiles in action_id order",
+    "canonical_record_fields": [
+      "action_id",
+      "cell_id",
+      "network_profile_id",
+      "profile_id"
+    ],
+    "canonical_serialization": "UTF-8 JSON list with sort_keys=true and separators=(',', ':')",
+    "campaign_288_sha256": "add96c8f117c4cb8ba427c670ba1698d4a2b8aea84129b4d32ac47fdc56025b1",
+    "pilot_16_sha256": "e01565c640b180eeaa7e41d0024541860b4affd0cbdc80a544b7ec3cac12d1ad"
+  },
+  "mode_boundary": {
+    "included": ["SPLIT"],
+    "excluded": ["LOCAL_CPU", "LOCAL_GPU", "SKIP"]
+  },
+  "real_launch_safety": {
+    "status": "BLOCKED_PENDING_100MHZ_4D5U_RADIO_REQUALIFICATION_AND_RUNTIME_BINDING",
+    "legacy_launch_refused": true,
+    "legacy_mapping_profile_id": "OAI_N78_40MHZ_106PRB_7D2U_LEGACY",
+    "legacy_launcher_status": "SUPERSEDED_106PRB_LAUNCHER_RETAINED_FOR_PROVENANCE_DO_NOT_LAUNCH",
+    "fail_closed_before_process_launch_on": [
+      "40_MHZ_RADIO",
+      "106_PRB_RADIO",
+      "LEGACY_SNR_RFSIM_MAPPING",
+      "UNBOUND_RADIO_PROFILE",
+      "CHANGED_TRACE_HASH",
+      "UNREGISTERED_ACTION",
+      "UNREGISTERED_NETWORK_PROFILE"
+    ],
+    "rfsim_recalibrated_in_this_phase": false
+  },
+  "localhost_followup_contract": {
+    "status": "RECORDED_NOT_EXECUTED",
+    "execution_mode": "SPLIT",
+    "families": ["noAE", "AE128", "AE64", "AE32"],
+    "quantizers": ["UINT8", "UINT6", "UINT4"],
+    "q": [0.0, 0.3, 0.5],
+    "profiles": 36,
+    "frames_per_profile": 300,
+    "total_frame_profiles": 10800,
+    "dispatcher": "localhost/live",
+    "metrics": [
+      "front_latency",
+      "encode_compress_latency",
+      "transport_latency",
+      "decode_decompress_latency",
+      "back_latency",
+      "end_to_end_latency",
+      "payload",
+      "delivery_rate"
+    ],
+    "remaining_q_values_retained_for_full_network_campaign": [0.7, 0.9, 0.98]
+  }
+}

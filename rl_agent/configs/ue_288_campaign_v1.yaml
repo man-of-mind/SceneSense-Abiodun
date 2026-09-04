@@ -5,28 +5,15 @@ full_sweep_authorized: false
 stop_on_first_failure: true
 
 actions:
-  architecture_binding_status: PENDING_SPLITFUSION_FINAL_VALIDATION_AND_REGISTRY_REBUILD
-  technical_registry_csv: rl_agent/registries/ue_split_technical_registry_v1/ue_split_technical_registry.csv
-  technical_registry_sha256: 6de6e88e6c03abcef4a907dc9bea367938f99cc34f0161497df9901f840daec4
-  required_certification_status: TECHNICALLY_VALID_A1_IDENTITY_A2_SMOKE
-  selection: all_registered
+  architecture_binding_status: SPLITFUSION_72_ACTION_CATALOG_BOUND
+  catalog_json: rl_agent/splitfusion_action_catalog_v1/splitfusion_72_action_catalog.json
+  catalog_sha256: 07e0690f8a55bdd6068b8b283d14b7e165ccbf44742dd0a9568cfdd5dcac54c3
+  catalog_commit: 4e237d719df91e83cfdc568e5f20b542d9482ad7
+  catalog_schema: splitfusion_72_action_catalog_v1
+  selection: all_catalog_actions
   expected_count: 72
-  identity_field: profile_id
-  final_model_registry_entries:
-    registry_config: rl_agent/configs/ue_split_profile_registry_v1.json
-    json_pointer_root: /factor_contract/models
-    noae:
-      checkpoint_path: __REQUIRED_FINAL_MODEL_PATH_NOAE__
-      checkpoint_sha256: __REQUIRED_FINAL_MODEL_SHA256_NOAE__
-    ae32:
-      checkpoint_path: __REQUIRED_FINAL_MODEL_PATH_AE32__
-      checkpoint_sha256: __REQUIRED_FINAL_MODEL_SHA256_AE32__
-    ae64:
-      checkpoint_path: __REQUIRED_FINAL_MODEL_PATH_AE64__
-      checkpoint_sha256: __REQUIRED_FINAL_MODEL_SHA256_AE64__
-    ae128:
-      checkpoint_path: __REQUIRED_FINAL_MODEL_PATH_AE128__
-      checkpoint_sha256: __REQUIRED_FINAL_MODEL_SHA256_AE128__
+  identity_field: action_id
+  cell_mapping_sha256: add96c8f117c4cb8ba427c670ba1698d4a2b8aea84129b4d32ac47fdc56025b1
 
 network:
   radio_baseline:
@@ -36,6 +23,7 @@ network:
     selection_status: LOCKED
     target_snr_mapping_status: PENDING_100MHZ_4D5U_REQUALIFICATION
   design_config: rl_agent/configs/network_profile_design_v2.json
+  design_config_sha256: 056247e5731c1ae9ac281432034e1b79d1e6da24ab4a2d579a7fe2d85917e483
   traces_csv: rl_agent/experiments/network_profile_design_v2/20260822_route_b_v2/traces.csv
   traces_sha256: 32f1be66e976cba322803c128eefdeb81a8d31ed64bd253ff85ea1ab0583303d
   summary_csv: rl_agent/experiments/network_profile_design_v2/20260822_route_b_v2/profile_summary.csv
@@ -105,9 +93,11 @@ runtime:
   oai_registered_profile_launcher_status: SUPERSEDED_106PRB_LAUNCHER_RETAINED_FOR_PROVENANCE_DO_NOT_LAUNCH
   oai_radio_runtime_binding_status: PENDING_SPLITFUSION_100MHZ_4D5U_BINDING
   split_inference_runtime: uplink_only_spatial_map_pipeline/carla_fusion_staleness_scenario_uplink_only_v2.py
+  split_inference_runtime_sha256: a99a88f5e4fe60e0964f71a48e5f3c5e544c270c28ffb7c20c2a825347efc991
   map_install_runtime: uplink_only_spatial_map_pipeline/spatial_map_server_moving_ego_uplink_only_baseline.py
   target_snr_runtime: rl_agent/ue_target_snr_cell_runtime_v1.py
   required_route_b_split_cell_adapter: rl_agent/ue_route_b_split_cell_adapter_v1.py
+  required_route_b_split_cell_adapter_sha256: 8a0093e422452f32ba56fe36f610a4e1a8059877bee28f8091965f28eb0eb0bd
   install_feedback:
     ack_status: ACK_INSTALLED
     ack_semantics: decoded_result_accepted_and_installed_into_map
@@ -196,8 +186,8 @@ cell:
     - segmentation_iou
 
 authorization:
-  models_must_be_resolved_before_real_launch: true
-  splitfusion_registry_must_be_rebuilt_before_real_launch: true
+  catalog_must_remain_hash_bound: true
+  catalog_checkpoints_must_match_before_real_launch: true
   selected_radio_must_be_100mhz_273prb_4d5u: true
   radio_runtime_must_be_bound_before_real_launch: true
   target_snr_mapping_must_be_requalified_on_selected_radio: true

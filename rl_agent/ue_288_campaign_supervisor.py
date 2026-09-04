@@ -40,7 +40,12 @@ RADIO_PROFILE_ID = "OAI_N78_100MHZ_273PRB_4D5U_V1"
 RADIO_MAPPING_QUALIFIED = "QUALIFIED_ON_OAI_N78_100MHZ_273PRB_4D5U_V1"
 RADIO_RUNTIME_BOUND = "BOUND_SPLITFUSION_100MHZ_4D5U"
 RADIO_LAUNCHER_QUALIFIED = "QUALIFIED_SPLITFUSION_100MHZ_4D5U"
-ARCHITECTURE_BOUND = "SPLITFUSION_FINAL_VALIDATED_AND_REGISTRY_BOUND"
+ARCHITECTURE_BOUND = "SPLITFUSION_72_ACTION_CATALOG_BOUND"
+ACTION_CATALOG_COMMIT = "4e237d719df91e83cfdc568e5f20b542d9482ad7"
+ACTION_CATALOG_SCHEMA = "splitfusion_72_action_catalog_v1"
+FAMILIES = ("noAE", "AE128", "AE64", "AE32")
+QUANTIZERS = ("UINT8", "UINT6", "UINT4")
+Q_E4 = (0, 3000, 5000, 7000, 9000, 9800)
 
 
 class CampaignError(RuntimeError):
@@ -51,8 +56,8 @@ class CampaignError(RuntimeError):
 class Cell:
     cell_id: str
     action_index: int
-    action_id: str
-    display_action_id: str
+    action_id: int
+    profile_id: str
     model_family: str
     network_profile_id: str
     trace_id: str
@@ -99,40 +104,62 @@ def write_create_only(path: Path, payload: str) -> None:
         handle.write(payload)
 
 
-def read_registry(config: Mapping[str, Any]) -> list[dict[str, str]]:
+def read_catalog(config: Mapping[str, Any]) -> list[dict[str, Any]]:
     actions = config["actions"]
-    path = repo_path(str(actions["technical_registry_csv"]))
-    require(path.is_file(), f"technical registry missing: {path}")
+    path = repo_path(str(actions["catalog_json"]))
+    require(path.is_file(), f"locked action catalog missing: {path}")
     require(
-        sha256_file(path) == str(actions["technical_registry_sha256"]),
-        "technical registry SHA-256 drift",
+        sha256_file(path) == str(actions["catalog_sha256"]),
+        "locked action catalog SHA-256 drift",
     )
-    with path.open(newline="", encoding="utf-8") as handle:
-        rows = list(csv.DictReader(handle))
-    require(len(rows) == 72, f"technical registry must contain exactly 72 actions, found {len(rows)}")
-    require(len({row["profile_id"] for row in rows}) == 72, "technical registry profile IDs are not unique")
+    require(actions.get("catalog_commit") == ACTION_CATALOG_COMMIT, "locked action catalog commit drift")
+    require(actions.get("catalog_schema") == ACTION_CATALOG_SCHEMA, "configured action catalog schema drift")
+    catalog = load_json(path)
+    require(catalog.get("schema") == ACTION_CATALOG_SCHEMA, "action catalog schema drift")
+    rows = catalog.get("profiles")
+    require(isinstance(rows, list), "action catalog profiles must be a list")
+    require(len(rows) == 72, f"action catalog must contain exactly 72 actions, found {len(rows)}")
+    require(len({row["profile_id"] for row in rows}) == 72, "action catalog profile IDs are not unique")
     require(
-        [int(row["action_index"]) for row in rows] == list(range(72)),
-        "technical registry action_index must be contiguous 0..71",
+        [int(row["action_id"]) for row in rows] == list(range(72)),
+        "action catalog IDs must be contiguous 0..71",
     )
-    expected_status = str(actions["required_certification_status"])
-    invalid = [row["profile_id"] for row in rows if row["certification_status"] != expected_status]
-    require(not invalid, f"uncertified action rows: {invalid[:4]}")
+    expected_product = {
+        (family, quantizer, q_e4)
+        for family in FAMILIES
+        for quantizer in QUANTIZERS
+        for q_e4 in Q_E4
+    }
+    actual_product = {
+        (str(row["family"]), str(row["quantizer"]), int(row["q_e4"]))
+        for row in rows
+    }
+    require(actual_product == expected_product, "action catalog Cartesian coverage drift")
+    invalid = [
+        row["profile_id"]
+        for row in rows
+        if row.get("execution_mode") != "SPLIT"
+        or row.get("capabilities", {}).get("transport_valid") is not True
+        or row.get("capabilities", {}).get("agent_action_enabled") is not True
+    ]
+    require(not invalid, f"disabled or transport-invalid catalog actions: {invalid[:4]}")
+    forbidden_copies = {"profiles", "metrics", "perception", "payload"} & set(actions)
+    require(not forbidden_copies, f"campaign-local action semantics are forbidden: {sorted(forbidden_copies)}")
     return rows
 
 
-def selected_actions(config: Mapping[str, Any], registry: Sequence[dict[str, str]]) -> list[dict[str, str]]:
+def selected_actions(config: Mapping[str, Any], catalog: Sequence[dict[str, Any]]) -> list[dict[str, Any]]:
     actions = config["actions"]
     selection = str(actions["selection"])
-    if selection == "all_registered":
-        chosen = list(registry)
-    elif selection == "explicit_display_profile_ids":
-        requested = list(actions.get("display_profile_ids", []))
+    if selection == "all_catalog_actions":
+        chosen = list(catalog)
+    elif selection == "explicit_profile_ids":
+        requested = list(actions.get("profile_ids", []))
         require(len(requested) == len(set(requested)), "pilot action selectors are duplicated")
-        by_display = {row["display_profile_id"]: row for row in registry}
-        missing = [value for value in requested if value not in by_display]
-        require(not missing, f"pilot action selectors are absent from registry: {missing}")
-        chosen = [by_display[value] for value in requested]
+        by_profile = {row["profile_id"]: row for row in catalog}
+        missing = [value for value in requested if value not in by_profile]
+        require(not missing, f"pilot action selectors are absent from catalog: {missing}")
+        chosen = [by_profile[value] for value in requested]
     else:
         raise CampaignError(f"unsupported fixed action selection: {selection}")
     expected = int(actions["expected_count"])
@@ -149,20 +176,34 @@ def network_profiles(config: Mapping[str, Any]) -> list[dict[str, Any]]:
     return profiles
 
 
+def cell_mapping_sha256(cells: Sequence[Cell]) -> str:
+    mapping = [
+        {
+            "action_id": cell.action_id,
+            "cell_id": cell.cell_id,
+            "network_profile_id": cell.network_profile_id,
+            "profile_id": cell.profile_id,
+        }
+        for cell in cells
+    ]
+    encoded = json.dumps(mapping, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
 def enumerate_cells(config: Mapping[str, Any]) -> list[Cell]:
-    registry = read_registry(config)
-    actions = selected_actions(config, registry)
+    catalog = read_catalog(config)
+    actions = selected_actions(config, catalog)
     profiles = network_profiles(config)
     cells: list[Cell] = []
     for profile in profiles:
         for row in actions:
             cells.append(
                 Cell(
-                    cell_id=f"a{int(row['action_index']):02d}__{profile['profile_id'].lower()}",
-                    action_index=int(row["action_index"]),
-                    action_id=row["profile_id"],
-                    display_action_id=row["display_profile_id"],
-                    model_family=row["model_family"],
+                    cell_id=f"a{int(row['action_id']):02d}__{profile['profile_id'].lower()}",
+                    action_index=int(row["action_id"]),
+                    action_id=int(row["action_id"]),
+                    profile_id=str(row["profile_id"]),
+                    model_family=str(row["family"]).lower(),
                     network_profile_id=str(profile["profile_id"]),
                     trace_id=str(profile["trace_id"]),
                     seed=int(profile["seed"]),
@@ -174,11 +215,21 @@ def enumerate_cells(config: Mapping[str, Any]) -> list[Cell]:
         len({(cell.action_id, cell.network_profile_id) for cell in cells}) == len(cells),
         "action/network Cartesian product contains duplicates",
     )
+    require(
+        cell_mapping_sha256(cells) == str(config["actions"]["cell_mapping_sha256"]),
+        "action/network mapping digest drift",
+    )
     return cells
 
 
 def verify_file_hashes(config: Mapping[str, Any]) -> None:
     network = config["network"]
+    design_path = repo_path(str(network["design_config"]))
+    require(design_path.is_file(), f"missing network design input: {design_path}")
+    require(
+        sha256_file(design_path) == str(network["design_config_sha256"]),
+        "network design SHA-256 drift",
+    )
     for path_key, hash_key in (
         ("traces_csv", "traces_sha256"),
         ("summary_csv", "summary_sha256"),
@@ -196,6 +247,19 @@ def verify_file_hashes(config: Mapping[str, Any]) -> None:
         path = repo_path(str(route[path_key]))
         require(path.is_file(), f"missing Route B input: {path}")
         require(sha256_file(path) == str(route[hash_key]), f"{path_key} SHA-256 drift")
+    runtime = config["runtime"]
+    adapter = repo_path(str(runtime["required_route_b_split_cell_adapter"]))
+    require(adapter.is_file(), f"missing SplitFusion cell adapter: {adapter}")
+    require(
+        sha256_file(adapter) == str(runtime["required_route_b_split_cell_adapter_sha256"]),
+        "SplitFusion cell adapter SHA-256 drift",
+    )
+    split_runtime = repo_path(str(runtime["split_inference_runtime"]))
+    require(split_runtime.is_file(), f"missing split inference runtime: {split_runtime}")
+    require(
+        sha256_file(split_runtime) == str(runtime["split_inference_runtime_sha256"]),
+        "split inference runtime SHA-256 drift",
+    )
 
 
 def verify_radio_baseline(config: Mapping[str, Any]) -> dict[str, Any]:
@@ -392,44 +456,31 @@ def verify_trace_prefixes(config: Mapping[str, Any]) -> dict[str, str]:
     return observed_hashes
 
 
-def unresolved_models(config: Mapping[str, Any]) -> list[str]:
-    unresolved: list[str] = []
-    models = config["actions"]["final_model_registry_entries"]
-    for family in ("noae", "ae32", "ae64", "ae128"):
-        for field in ("checkpoint_path", "checkpoint_sha256"):
-            value = str(models[family][field])
-            if not value or value.startswith(UNRESOLVED_PREFIX):
-                unresolved.append(f"{family}.{field}")
-    return unresolved
-
-
 def apply_model_overrides(config: dict[str, Any], overrides: Sequence[str]) -> None:
-    for raw in overrides:
-        family, separator, value = raw.partition("=")
-        path, at, digest = value.rpartition("@")
-        require(separator == "=" and at == "@", f"invalid --model {raw!r}; expected FAMILY=PATH@SHA256")
-        require(family in {"noae", "ae32", "ae64", "ae128"}, f"unknown model family: {family}")
-        require(path and SHA256_RE.fullmatch(digest) is not None, f"invalid path/hash in --model {raw!r}")
-        config["actions"]["final_model_registry_entries"][family] = {
-            "checkpoint_path": path,
-            "checkpoint_sha256": digest,
-        }
+    require(not overrides, "--model overrides are forbidden by the immutable SplitFusion action catalog")
 
 
-def verify_resolved_models(config: Mapping[str, Any], registry: Sequence[dict[str, str]]) -> None:
-    missing = unresolved_models(config)
-    require(not missing, "real launch refused: unresolved final models: " + ", ".join(missing))
-    models = config["actions"]["final_model_registry_entries"]
-    for family in ("noae", "ae32", "ae64", "ae128"):
-        model_path = repo_path(str(models[family]["checkpoint_path"]))
-        expected_hash = str(models[family]["checkpoint_sha256"])
-        require(model_path.is_file(), f"final {family} model missing: {model_path}")
-        require(SHA256_RE.fullmatch(expected_hash) is not None, f"invalid final {family} SHA-256")
-        require(sha256_file(model_path) == expected_hash, f"final {family} model SHA-256 mismatch")
-        rows = [row for row in registry if row["model_family"] == family]
-        require(rows and {row["checkpoint_sha256"] for row in rows} == {expected_hash}, f"{family} is not bound to the final hash in the action registry")
-        registry_paths = {repo_path(row["checkpoint_path"]) for row in rows}
-        require(registry_paths == {model_path}, f"{family} final path is not bound in the action registry")
+def verify_resolved_models(config: Mapping[str, Any], catalog: Sequence[dict[str, Any]]) -> None:
+    bindings: dict[str, str] = {}
+    for row in catalog:
+        candidates = [row.get("perception_checkpoint"), row.get("ae_checkpoint")]
+        ranker = row.get("ranker", {})
+        if isinstance(ranker, dict):
+            candidates.append(ranker.get("checkpoint"))
+        for binding in candidates:
+            if binding is None:
+                continue
+            require(isinstance(binding, dict), "catalog checkpoint binding is not a mapping")
+            path = str(binding.get("path", ""))
+            digest = str(binding.get("sha256", ""))
+            require(path and SHA256_RE.fullmatch(digest) is not None, "catalog checkpoint path/hash is invalid")
+            require(path not in bindings or bindings[path] == digest, f"conflicting catalog checkpoint hashes: {path}")
+            bindings[path] = digest
+    require(bindings, "action catalog contains no checkpoint bindings")
+    for path, digest in bindings.items():
+        checkpoint = repo_path(path)
+        require(checkpoint.is_file(), f"catalog checkpoint missing: {checkpoint}")
+        require(sha256_file(checkpoint) == digest, f"catalog checkpoint SHA-256 mismatch: {path}")
 
 
 def adapter_value(config: Mapping[str, Any], override: str | None = None) -> str:
@@ -701,9 +752,9 @@ def run_campaign(args: argparse.Namespace) -> int:
     apply_model_overrides(config, args.model)
     if args.maximum_loop_sim_s is not None:
         config["_maximum_loop_sim_s_override"] = float(args.maximum_loop_sim_s)
-    registry = read_registry(config)
-    verify_resolved_models(config, registry)
+    catalog = read_catalog(config)
     verify_real_launch_readiness(config)
+    verify_resolved_models(config, catalog)
     adapter_raw = adapter_value(config, args.route_b_split_cell_adapter)
     require(not adapter_raw.startswith(UNRESOLVED_PREFIX), "real launch refused: qualified Route B split cell adapter is unresolved")
     adapter = repo_path(adapter_raw)
@@ -753,6 +804,15 @@ def validate_command(args: argparse.Namespace) -> int:
     require(len(campaign_cells) == 288, "full campaign did not enumerate 288 cells")
     require(len(pilot_cells) == 16, "integration pilot did not enumerate 16 cells")
     require(campaign_hashes == pilot_hashes, "pilot/full trace hashes differ")
+    for key in ("catalog_json", "catalog_sha256", "catalog_commit", "catalog_schema"):
+        require(
+            campaign["actions"][key] == pilot["actions"][key],
+            f"pilot/full action catalog {key} bindings differ",
+        )
+    require(
+        campaign["network"]["profiles"] == pilot["network"]["profiles"],
+        "pilot/full network profile bindings differ",
+    )
     require(
         campaign["network"]["radio_baseline"] == pilot["network"]["radio_baseline"],
         "pilot/full selected OAI radio baselines differ",
@@ -775,11 +835,16 @@ def validate_command(args: argparse.Namespace) -> int:
         "trace_prefix_hashes": campaign_hashes,
         "resume_ledger_dry_run": resume_ledger_dry_run(campaign_cells),
         "real_launch_blockers": {
-            "campaign_models": unresolved_models(campaign),
-            "pilot_models": unresolved_models(pilot),
+            "catalog_models": "hash-bound; files are checked only by the guarded real-launch preflight",
             "campaign_bindings": real_launch_blockers(campaign),
             "pilot_bindings": real_launch_blockers(pilot),
         },
+        "campaign_mapping_sha256": cell_mapping_sha256(campaign_cells),
+        "pilot_mapping_sha256": cell_mapping_sha256(pilot_cells),
+        "pilot_actions": [
+            {"action_id": cell.action_id, "profile_id": cell.profile_id}
+            for cell in pilot_cells[:4]
+        ],
         "selected_oai_radio_profile": campaign["network"]["radio_baseline"],
         "qualified_route_b_split_cell_adapter": adapter_value(campaign),
         "external_processes_started": 0,
@@ -804,7 +869,7 @@ def build_parser() -> argparse.ArgumentParser:
         action="append",
         default=[],
         metavar="FAMILY=PATH@SHA256",
-        help="supply each final model without mutating the unresolved source YAML",
+        help="legacy compatibility argument; any override is refused by the locked catalog",
     )
     run.add_argument("--route-b-split-cell-adapter", default=None)
     run.add_argument("--carla-port", type=int, default=2000)
