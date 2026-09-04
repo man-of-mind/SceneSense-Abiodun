@@ -36,6 +36,11 @@ SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 UNRESOLVED_PREFIX = "__REQUIRED_"
 TERMINAL_NAMES = ("PASSED.json", "FAILED.json", "INTERRUPTED.json")
 LEDGER_SCHEMA = "scenesense.ue_288_campaign_ledger.v1"
+RADIO_PROFILE_ID = "OAI_N78_100MHZ_273PRB_4D5U_V1"
+RADIO_MAPPING_QUALIFIED = "QUALIFIED_ON_OAI_N78_100MHZ_273PRB_4D5U_V1"
+RADIO_RUNTIME_BOUND = "BOUND_SPLITFUSION_100MHZ_4D5U"
+RADIO_LAUNCHER_QUALIFIED = "QUALIFIED_SPLITFUSION_100MHZ_4D5U"
+ARCHITECTURE_BOUND = "SPLITFUSION_FINAL_VALIDATED_AND_REGISTRY_BOUND"
 
 
 class CampaignError(RuntimeError):
@@ -193,6 +198,79 @@ def verify_file_hashes(config: Mapping[str, Any]) -> None:
         require(sha256_file(path) == str(route[hash_key]), f"{path_key} SHA-256 drift")
 
 
+def verify_radio_baseline(config: Mapping[str, Any]) -> dict[str, Any]:
+    network = config["network"]
+    binding = network.get("radio_baseline")
+    require(isinstance(binding, dict), "selected OAI radio baseline is missing")
+    profile_path = repo_path(str(binding["profile_config"]))
+    require(profile_path.is_file(), f"selected OAI radio baseline is missing: {profile_path}")
+    profile_hash = str(binding["profile_config_sha256"])
+    require(SHA256_RE.fullmatch(profile_hash) is not None, "selected OAI radio baseline hash is invalid")
+    require(sha256_file(profile_path) == profile_hash, "selected OAI radio baseline SHA-256 drift")
+    profile = load_json(profile_path)
+    require(profile.get("schema") == "scenesense.oai_radio_baseline.v1", "OAI radio baseline schema drift")
+    require(profile.get("profile_id") == RADIO_PROFILE_ID, "OAI radio baseline profile ID drift")
+    require(binding.get("profile_id") == RADIO_PROFILE_ID, "campaign OAI radio profile ID drift")
+    require(binding.get("selection_status") == "LOCKED", "OAI radio baseline is not locked")
+    radio = profile.get("radio", {})
+    require(int(radio.get("band", -1)) == 78, "OAI radio band must be n78")
+    require(int(radio.get("bandwidth_mhz", -1)) == 100, "OAI radio bandwidth must be 100 MHz")
+    require(int(radio.get("prb", -1)) == 273, "OAI radio allocation must be 273 PRBs")
+    require(int(radio.get("numerology", -1)) == 1, "OAI radio numerology must be 1")
+    tdd = radio.get("tdd", {})
+    require(int(tdd.get("downlink_slots", -1)) == 4, "OAI TDD downlink-slot count must be 4")
+    require(int(tdd.get("uplink_slots", -1)) == 5, "OAI TDD uplink-slot count must be 5")
+    require(int(tdd.get("downlink_symbols", -1)) == 6, "OAI TDD downlink-symbol count must be 6")
+    require(int(tdd.get("uplink_symbols", -1)) == 4, "OAI TDD uplink-symbol count must be 4")
+    require(int(radio.get("pdu_session_5qi", -1)) == 6, "campaign PDU session must retain 5QI 6")
+    mapping_status = str(binding.get("target_snr_mapping_status", ""))
+    require(
+        mapping_status in {"PENDING_100MHZ_4D5U_REQUALIFICATION", RADIO_MAPPING_QUALIFIED},
+        "unsupported target-SNR mapping qualification state",
+    )
+    calibration_profile = str(network.get("mapping_calibration_radio_profile_id", ""))
+    if mapping_status == RADIO_MAPPING_QUALIFIED:
+        require(calibration_profile == RADIO_PROFILE_ID, "qualified target-SNR mapping is not bound to the selected radio")
+    else:
+        require(
+            calibration_profile == "OAI_N78_40MHZ_106PRB_7D2U_LEGACY",
+            "pending mapping must identify the retained 106-PRB calibration as legacy",
+        )
+    return profile
+
+
+def real_launch_blockers(config: Mapping[str, Any]) -> list[str]:
+    blockers: list[str] = []
+    if str(config["actions"].get("architecture_binding_status", "")) != ARCHITECTURE_BOUND:
+        blockers.append("splitfusion_final_validation_and_action_registry")
+    baseline = config["network"]["radio_baseline"]
+    if str(baseline.get("target_snr_mapping_status", "")) != RADIO_MAPPING_QUALIFIED:
+        blockers.append("target_snr_mapping_requalification_on_100mhz_4d5u")
+    if str(config["network"].get("mapping_calibration_radio_profile_id", "")) != RADIO_PROFILE_ID:
+        blockers.append("target_snr_mapping_radio_binding")
+    runtime = config["runtime"]
+    if str(runtime.get("oai_radio_runtime_binding_status", "")) != RADIO_RUNTIME_BOUND:
+        blockers.append("splitfusion_100mhz_4d5u_runtime_binding")
+    if str(runtime.get("oai_registered_profile_launcher_status", "")) != RADIO_LAUNCHER_QUALIFIED:
+        blockers.append("splitfusion_100mhz_4d5u_launcher_qualification")
+    launcher_hash = str(runtime.get("oai_registered_profile_launcher_sha256", ""))
+    if SHA256_RE.fullmatch(launcher_hash) is None:
+        blockers.append("splitfusion_100mhz_4d5u_launcher_hash")
+    return blockers
+
+
+def verify_real_launch_readiness(config: Mapping[str, Any]) -> None:
+    blockers = real_launch_blockers(config)
+    require(not blockers, "real launch refused: unresolved campaign bindings: " + ", ".join(blockers))
+    runtime = config["runtime"]
+    launcher = repo_path(str(runtime["oai_registered_profile_launcher"]))
+    require(launcher.is_file(), f"qualified OAI launcher missing: {launcher}")
+    require(
+        sha256_file(launcher) == str(runtime["oai_registered_profile_launcher_sha256"]),
+        "qualified OAI launcher SHA-256 drift",
+    )
+
+
 def verify_route_contract(config: Mapping[str, Any]) -> None:
     route = config["route_b"]
     require(route["density"] == "traffic_50_50", "agent campaign density is not hard-locked to traffic_50_50")
@@ -232,6 +310,8 @@ def verify_output_contract(config: Mapping[str, Any]) -> None:
     require(cell["skip_statuses"] == ["PASSED"], "resume may skip only PASSED cells")
     radio = set(cell["radio_trace_fields"])
     for field in (
+        "radio_profile_id", "radio_profile_sha256", "bandwidth_mhz", "prb",
+        "downlink_slots", "uplink_slots",
         "profile_id", "trace_id", "seed", "step_index", "target_snr_db",
         "mapped_rfsim_command_db", "achieved_snr_db", "command_send_monotonic_ns",
         "command_ack_monotonic_ns", "command_timing_status",
@@ -361,6 +441,7 @@ def validate_static(config_path: Path) -> tuple[dict[str, Any], list[Cell], dict
     require(config.get("schema") == "scenesense.ue_288_campaign.v1", "campaign schema drift")
     require(config.get("stop_on_first_failure") is True, "campaign must stop on the first failed/interrupted cell")
     verify_file_hashes(config)
+    verify_radio_baseline(config)
     verify_route_contract(config)
     verify_measurement_contract(config)
     verify_output_contract(config)
@@ -622,6 +703,7 @@ def run_campaign(args: argparse.Namespace) -> int:
         config["_maximum_loop_sim_s_override"] = float(args.maximum_loop_sim_s)
     registry = read_registry(config)
     verify_resolved_models(config, registry)
+    verify_real_launch_readiness(config)
     adapter_raw = adapter_value(config, args.route_b_split_cell_adapter)
     require(not adapter_raw.startswith(UNRESOLVED_PREFIX), "real launch refused: qualified Route B split cell adapter is unresolved")
     adapter = repo_path(adapter_raw)
@@ -671,6 +753,10 @@ def validate_command(args: argparse.Namespace) -> int:
     require(len(campaign_cells) == 288, "full campaign did not enumerate 288 cells")
     require(len(pilot_cells) == 16, "integration pilot did not enumerate 16 cells")
     require(campaign_hashes == pilot_hashes, "pilot/full trace hashes differ")
+    require(
+        campaign["network"]["radio_baseline"] == pilot["network"]["radio_baseline"],
+        "pilot/full selected OAI radio baselines differ",
+    )
     require(campaign["route_b"] == pilot["route_b"], "pilot/full Route B contract differs")
     require(
         campaign["measurement_contract"] == pilot["measurement_contract"],
@@ -691,7 +777,10 @@ def validate_command(args: argparse.Namespace) -> int:
         "real_launch_blockers": {
             "campaign_models": unresolved_models(campaign),
             "pilot_models": unresolved_models(pilot),
+            "campaign_bindings": real_launch_blockers(campaign),
+            "pilot_bindings": real_launch_blockers(pilot),
         },
+        "selected_oai_radio_profile": campaign["network"]["radio_baseline"],
         "qualified_route_b_split_cell_adapter": adapter_value(campaign),
         "external_processes_started": 0,
     }

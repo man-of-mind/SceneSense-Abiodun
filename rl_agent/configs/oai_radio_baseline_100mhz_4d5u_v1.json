@@ -1,0 +1,68 @@
+{
+  "schema": "scenesense.oai_radio_baseline.v1",
+  "profile_id": "OAI_N78_100MHZ_273PRB_4D5U_V1",
+  "decision": {
+    "status": "SELECTED_FOR_UE_288_CAMPAIGN_PENDING_RUNTIME_AND_SNR_MAPPING_QUALIFICATION",
+    "selected_configuration": "bw100_tdd4d5u",
+    "selection_basis": "Highest measured uplink TCP capacity and strongest 300 Mbps UDP delivery among the tested 40/100 MHz and 7D2U/4D5U configurations",
+    "selected_at": "2026-09-04"
+  },
+  "radio": {
+    "band": 78,
+    "bandwidth_mhz": 100,
+    "prb": 273,
+    "numerology": 1,
+    "subcarrier_spacing_khz": 30,
+    "ue_frequency_hz": 3649260000,
+    "ue_ssb": 516,
+    "absolute_frequency_ssb": 641280,
+    "tdd": {
+      "dl_ul_transmission_periodicity_enum": 6,
+      "downlink_slots": 4,
+      "downlink_symbols": 6,
+      "uplink_slots": 5,
+      "uplink_symbols": 4
+    },
+    "ue_count": 1,
+    "ue_static_ip": "10.0.0.2",
+    "pdu_session_5qi": 6
+  },
+  "capacity_evidence": {
+    "experiment_id": "oai_tdd_bandwidth_iperf_sweep_v1/20260903_234715_full",
+    "terminal": "OAI_TDD_BANDWIDTH_IPERF_SWEEP_COMPLETE",
+    "completed_cells": 144,
+    "repetitions_per_configuration": 3,
+    "results_csv_sha256": "8fae3220dc02640d108de86d6bdc9918bd2f79be46745feca15c1dcf2990e3a7",
+    "terminal_json_sha256": "2f358ec7f28a06222b979dd1ad2198a3f0634f6d46a6215dc64d06dc3af48151",
+    "contract_snapshot_sha256": "2429602abdb11f597e003b9a55365e32ebf264b4c96f0dcc4a6ecb0c2a5108cc",
+    "selected_gnb_snapshot_sha256": "d5f317413fbef79f69501adfce2428c1300941938def0d6e554de1c16c2b08a8",
+    "selected_tcp_max_receiver_median_mbps": 388.99872441447974,
+    "selected_tcp_loaded_rtt_p95_median_ms": 70.9,
+    "selected_udp_300_loss_median_percent": 0.23452427767162476,
+    "selected_udp_300_derived_delivered_goodput_median_mbps": 299.29642716698515,
+    "selected_udp_300_loaded_rtt_p95_median_ms": 103.60000000000002,
+    "comparison_40mhz_4d5u": {
+      "tcp_max_receiver_median_mbps": 281.75775778146954,
+      "tcp_loaded_rtt_p95_median_ms": 87.32000000000001,
+      "udp_300_loss_median_percent": 2.57109516166767,
+      "udp_300_derived_delivered_goodput_median_mbps": 292.286714514997,
+      "udp_300_loaded_rtt_p95_median_ms": 1417.6
+    },
+    "measurement_boundary": "Single-UE OAI RFsim host measurements with 5QI 6; not over-the-air capacity and not a multi-UE scheduler result",
+    "udp_parser_note": "The retained iperf3 receiver_mbps field mirrors offered sender rate in this iperf3 version; UDP delivered goodput above is derived from offered rate times one minus measured loss"
+  },
+  "campaign_binding": {
+    "markov_gaussian_target_snr_traces": "REUSE_UNCHANGED",
+    "existing_target_snr_mapping": "CALIBRATED_ON_40MHZ_106PRB_7D2U_DO_NOT_REUSE_AS_100MHZ_EVIDENCE",
+    "required_target_snr_mapping_status": "PENDING_100MHZ_4D5U_REQUALIFICATION",
+    "runtime_launcher_status": "PENDING_SPLITFUSION_100MHZ_4D5U_BINDING",
+    "qos_status": "5QI_6_FIXED_NOT_A_SWEEP_FACTOR"
+  },
+  "launch_gates": [
+    "Final noAE and AE family checkpoints and action registry are hash-bound",
+    "A 100MHz 273PRB 4D5U SplitFusion launcher and gNB configuration are hash-bound",
+    "The target-SNR-to-RFsim command mapping is recalibrated and replay-qualified under this exact radio profile",
+    "Offline 288/16-cell contract validation passes",
+    "All 16 integration-pilot cells pass before the 288-cell sweep is explicitly authorized"
+  ]
+}

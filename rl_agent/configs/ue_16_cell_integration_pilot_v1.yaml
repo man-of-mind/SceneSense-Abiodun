@@ -5,6 +5,7 @@ full_sweep_authorized: false
 stop_on_first_failure: true
 
 actions:
+  architecture_binding_status: PENDING_SPLITFUSION_FINAL_VALIDATION_AND_REGISTRY_REBUILD
   technical_registry_csv: rl_agent/registries/ue_split_technical_registry_v1/ue_split_technical_registry.csv
   technical_registry_sha256: 6de6e88e6c03abcef4a907dc9bea367938f99cc34f0161497df9901f840daec4
   required_certification_status: TECHNICALLY_VALID_A1_IDENTITY_A2_SMOKE
@@ -21,6 +22,12 @@ actions:
     ae128: {checkpoint_path: __REQUIRED_FINAL_MODEL_PATH_AE128__, checkpoint_sha256: __REQUIRED_FINAL_MODEL_SHA256_AE128__}
 
 network:
+  radio_baseline:
+    profile_config: rl_agent/configs/oai_radio_baseline_100mhz_4d5u_v1.json
+    profile_config_sha256: fd604a37cfbc416412440dd447fe43cea9a94d3b65d69dd5e4e975de01a3dbf4
+    profile_id: OAI_N78_100MHZ_273PRB_4D5U_V1
+    selection_status: LOCKED
+    target_snr_mapping_status: PENDING_100MHZ_4D5U_REQUALIFICATION
   design_config: rl_agent/configs/network_profile_design_v2.json
   traces_csv: rl_agent/experiments/network_profile_design_v2/20260822_route_b_v2/traces.csv
   traces_sha256: 32f1be66e976cba322803c128eefdeb81a8d31ed64bd253ff85ea1ab0583303d
@@ -28,6 +35,7 @@ network:
   summary_sha256: 75514d0d08b3a3a22159dd2abbcda77e42c9d34e24d920a04e5a18e776e70317
   mapping_csv: rl_agent/experiments/oai_target_snr_replay_pilot_v1/20260822_live_01/target_to_rfsim_mapping.csv
   mapping_sha256: 347a86570d1a1142c5c26c41bb3e6d894ec3f9253d6cda6cd3ac8e60d449c201
+  mapping_calibration_radio_profile_id: OAI_N78_40MHZ_106PRB_7D2U_LEGACY
   sample_period_ms: 100
   prefix_samples: 4200
   catch_up_policy: SKIP_OBSOLETE_NEVER_BURST
@@ -74,6 +82,9 @@ measurement_contract:
 runtime:
   carla_lifecycle_helper: data_collection/run_route_b_collection_supervised_v1.py
   oai_registered_profile_launcher: uplink_only_spatial_map_pipeline/run_track1_oai_default106_ttracer_10fps_v2.sh
+  oai_registered_profile_launcher_sha256: __REQUIRED_SPLITFUSION_100MHZ_4D5U_LAUNCHER_SHA256__
+  oai_registered_profile_launcher_status: SUPERSEDED_106PRB_LAUNCHER_RETAINED_FOR_PROVENANCE_DO_NOT_LAUNCH
+  oai_radio_runtime_binding_status: PENDING_SPLITFUSION_100MHZ_4D5U_BINDING
   split_inference_runtime: uplink_only_spatial_map_pipeline/carla_fusion_staleness_scenario_uplink_only_v2.py
   map_install_runtime: uplink_only_spatial_map_pipeline/spatial_map_server_moving_ego_uplink_only_baseline.py
   target_snr_runtime: rl_agent/ue_target_snr_cell_runtime_v1.py
@@ -97,12 +108,16 @@ cell:
   terminal_files: [PASSED.json, FAILED.json, INTERRUPTED.json]
   exactly_one_terminal: true
   expected_outputs: [per_frame_metrics.csv, radio_trace.csv, map_feedback.csv, perception_metrics.csv, resolved_config.yaml, RESULTS_SUMMARY.json, manifest.json]
-  radio_trace_fields: [profile_id, trace_id, seed, step_index, target_snr_db, mapped_rfsim_command_db, achieved_snr_db, scheduled_monotonic_ns, command_send_monotonic_ns, command_ack_monotonic_ns, command_send_wall_ns, command_ack_wall_ns, command_timing_status]
+  radio_trace_fields: [radio_profile_id, radio_profile_sha256, bandwidth_mhz, prb, downlink_slots, uplink_slots, profile_id, trace_id, seed, step_index, target_snr_db, mapped_rfsim_command_db, achieved_snr_db, scheduled_monotonic_ns, command_send_monotonic_ns, command_ack_monotonic_ns, command_send_wall_ns, command_ack_wall_ns, command_timing_status]
   map_feedback_fields: [experiment_id, cell_id, stream_id, capture_id, frame_id, capture_at, action_id, service_deadline_at, edge_install_at, install_timestamp, feedback_emit_at, feedback_received_at, ack_timeout_at, result_status, status, terminal, accepted, late, timeout_seen, rejection_reason]
   perception_metric_fields: [frame_id, class_name, tp, fp, fn, precision, recall, valid_empty, coverage, feedback_status, exact_frame_prediction_available, object_gt_evidence_available, segmentation_evidence_available, source_time_world_xy_error_m, aligned_world_xy_error_m, dimension_error_m, footprint_iou, segmentation_iou]
 
 authorization:
   models_must_be_resolved_before_real_launch: true
+  splitfusion_registry_must_be_rebuilt_before_real_launch: true
+  selected_radio_must_be_100mhz_273prb_4d5u: true
+  radio_runtime_must_be_bound_before_real_launch: true
+  target_snr_mapping_must_be_requalified_on_selected_radio: true
   this_pilot_must_pass_before_full_sweep: true
   required_passed_cells: 16
   full_sweep_remains_unauthorized: true
