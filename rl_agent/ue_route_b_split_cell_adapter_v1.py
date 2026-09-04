@@ -1780,10 +1780,22 @@ def contract_check(configs: Sequence[Path]) -> int:
         require(float(contract.get("max_gt_distance_m", -1.0)) == 40.0, "GT max distance is not 40.0 m")
         require(float(contract.get("min_gt_area_px", -1.0)) == 12.0, "GT min area is not 12.0 px")
         require(float(contract.get("expected_prepared_hz", -1.0)) == 10.0, "prepared cadence is not 10 Hz")
+        radio = campaign.get("network", {}).get("radio_baseline", {})
+        require(
+            radio.get("profile_id") == "OAI_N78_100MHZ_273PRB_4D5U_V1"
+            and radio.get("selection_status") == "LOCKED",
+            "campaign is not bound to the locked 100-MHz/4D5U radio baseline",
+        )
         require("terminal" in campaign["cell"]["map_feedback_fields"], "terminal feedback marker is missing")
         expected = int(campaign["actions"]["expected_count"]) * 4
         require(int(campaign["cell"]["count"]) == expected, "campaign Cartesian count drift")
-        reports.append({"config": str(config_path), "cells": expected})
+        reports.append({
+            "config": str(config_path),
+            "cells": expected,
+            "radio_profile_id": radio["profile_id"],
+            "target_snr_mapping_status": radio["target_snr_mapping_status"],
+            "radio_runtime_binding_status": campaign["runtime"]["oai_radio_runtime_binding_status"],
+        })
     registry = repo_path(str(load_yaml(configs[0].resolve())["actions"]["technical_registry_csv"]))
     with registry.open(newline="", encoding="utf-8") as handle:
         runtime_hashes = {row["certified_runtime_sha256"] for row in csv.DictReader(handle)}
@@ -1802,6 +1814,8 @@ def contract_check(configs: Sequence[Path]) -> int:
         "primary_match_distance_m": 3.0,
         "oriented_footprint_iou": "PASS",
         "segmentation_evaluation_path": "POST_MAP_PUBLISH_OUT_OF_BAND",
+        "selected_oai_radio_profile": "OAI_N78_100MHZ_273PRB_4D5U_V1",
+        "real_launch_status": "BLOCKED_UNTIL_SPLITFUSION_MODELS_RADIO_RUNTIME_AND_SNR_MAPPING_ARE_BOUND",
     }, indent=2, sort_keys=True))
     return 0
 
