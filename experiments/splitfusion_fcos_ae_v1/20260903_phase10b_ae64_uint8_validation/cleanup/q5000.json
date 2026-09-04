@@ -1,0 +1,22 @@
+{
+  "bottleneck": 64,
+  "completed_utc": "2026-09-04T00:33:20.505363+00:00",
+  "durability_order": [
+    "atomically write settings/<q>.json",
+    "remove working_predictions/<q>",
+    "atomically write cleanup/<q>.json"
+  ],
+  "family": "AE64",
+  "family_id": 2,
+  "init_seed": 20260893,
+  "phase": "phase10b",
+  "prediction_artifacts_removed_after_scoring": true,
+  "prediction_root": "experiments/splitfusion_fcos_ae_v1/20260903_phase10b_ae64_uint8_validation/working_predictions/q5000",
+  "q": 0.5,
+  "q_e4": 5000,
+  "run_identity_sha256": "848aff19c6baa6b9d3d74816b1676cea5142f755c5b3324c67f13271c0ee4a03",
+  "schema": "splitfusion_fcos_ae64_phase10b_uint8_cleanup_v1",
+  "setting_path": "settings/q5000.json",
+  "setting_sha256": "491810f4531fb63e27dad83ec93bb3d79370f08ae89225f21db5cc1c82efa04b",
+  "terminal": "SPLITFUSION_AE64_PHASE10B_UINT8_Q_PREDICTIONS_REMOVED"
+}

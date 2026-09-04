@@ -1,0 +1,225 @@
+{
+  "bottleneck": 32,
+  "cleanup_directory": "cleanup",
+  "created_utc": "2026-09-04T00:46:36.354643+00:00",
+  "durability_order_per_q": [
+    "atomically write settings/<q>.json",
+    "remove working_predictions/<q>",
+    "atomically write cleanup/<q>.json"
+  ],
+  "expected_settings": [
+    "q0000.json",
+    "q3000.json",
+    "q5000.json",
+    "q7000.json",
+    "q9000.json",
+    "q9800.json"
+  ],
+  "family": "AE32",
+  "family_id": 3,
+  "init_seed": 20260861,
+  "phase": "phase10b",
+  "q_values": [
+    0.0,
+    0.3,
+    0.5,
+    0.7,
+    0.9,
+    0.98
+  ],
+  "resume_rule": "--resume requires a bit-identical run identity, reuses only fully validated durable settings, never remeasures a valid q, and refuses rather than overwrites an invalid record",
+  "run_identity": {
+    "absolute_service_gate_count": 9,
+    "acceptance_rule": "AE32 UINT8+zstd deployment is accepted if and only if both hold: (1) q=0 passes all 12 same-q preservation gates against the frozen noAE UINT8+zstd validation result and retains at least the baseline 7/9 absolute service gates; and (2) at least one of q in {0.30, 0.50, 0.70} passes all 12 same-q preservation gates without reducing the absolute service-gate count below the frozen noAE UINT8+zstd count at that same q. q=0.90 and q=0.98 are stress/emergency profiles regardless of their results and cannot make or break acceptance. Every q is reported independently, and no setting is tuned or removed after observing a result.",
+    "acceptance_rule_source": "phase9d_preregistered_acceptance_rule_reused_unchanged",
+    "baseline_absolute_service_pass_count": 7,
+    "binding": {
+      "ae_package_source_sha256": {
+        "AE_PHASE10A_AE64_AE32_IMPLEMENTATION_REPORT.md": "4440470a514e4e529adeadd1dca2d4b3e107e8e544e2c00bef3fedb4aa92af30",
+        "AE_PHASE10B_UINT8_VALIDATION_IMPLEMENTATION_REPORT.md": "7480fb0141bd0095f9974bb7a4216ce2374af0c7d437057a07643a5ac0cf4a4a",
+        "AE_PHASE9A_IMPLEMENTATION_REPORT.md": "6e9f2fbeccee5b47747987850a348fd93eda521cc58d6bd7b53defe7e26338b7",
+        "AE_PHASE9B_GPU_QUALIFICATION_REPORT.md": "c8e2e056c600941885103ada6cdf0220a959b651924e708dab003d54a495f742",
+        "AE_PHASE9C_TRAINING_IMPLEMENTATION_REPORT.md": "926779c3a939b2923f233623fb9ae843762c430cd001ed02b5d734260723e538",
+        "AE_PHASE9D_UINT8_VALIDATION_IMPLEMENTATION_REPORT.md": "50ecc0d94ce0e55c8aa703f4e178f37cf78ea12b46c89d3bd13add9908703d57",
+        "__init__.py": "442d74420abe3ccc7671497aeb8a1a0210bf0af40ccddb25a8f2aed3c4db1ec9",
+        "ae_composition.py": "3e54ea2dc8599c0579349e4ce430a34a2d2343764402aee5113e1c2d54dfa608",
+        "ae_contract.py": "ccd8dbf5a86a4b2e9373f15edbd975754c954123d1893c37a336cf206b9d1f2f",
+        "ae_family_dispatch.py": "64eaddd5e561948841d75a06b18fe44c6603b101a50df18e9e2b8a87ee4c0c9c",
+        "ae_gpu_qualification.py": "a9f351184a42cb854700cd0539b08a897ec71dc87a5ef18cd3f5714ab8436041",
+        "ae_holdout_selection.py": "a3dcde29ff2a3508de471c08cb6674384a305111aaf0bba969062495e994b526",
+        "ae_loss.py": "21476d284a20bd186428be113c951e6bb9bf0871d42edaec28a50a7ea7711978",
+        "ae_model.py": "4f2ec0a69cf127ebac44f6147124705d54785ab400ed033a83ad1e339735b542",
+        "ae_phase10_common.py": "4fea48129c5cb80c7436376d3de2eae943ee1b5c1c487d6eb3562d37331734c9",
+        "ae_phase10_holdout_selection.py": "7fb8f49bdbac976fdf7eb111cc5d1877311ce655906b4dbc83d15a0197b0b9c0",
+        "ae_phase10_training.py": "fa9b1a253fc9ca00ea8bb75c919ec3be2953ac297c512a88e0f6b56293253ee5",
+        "ae_phase10b_uint8_validation.py": "978e05004c0215664b45df889d463878636fbd4202f3c2b5244052b2eb88c7ef",
+        "ae_training.py": "edde6e4a49ab94a928ea465d0a3d8ce53806208021763439cfbf6ef628565547",
+        "ae_training_common.py": "7c5af221a86cdd654117201b32fb5a494b808779bd97fcef11a0a08a08e41f57",
+        "ae_uint8_transport.py": "4162b162d554f764332d469b6ca7b5038298e77a563a9de73c1622cd99531423",
+        "ae_uint8_validation.py": "d3e742d697c8c3beaaee49e53c0eae7bb1924a7e277b0f6c9a003a5365ac4853",
+        "tests/__init__.py": "04a977c0b181d0acacdfec54f4c3112893dbaa30a87cefcca2ed97d2d09fc44f",
+        "tests/test_ae_model.py": "3ff6e465746dca24bf3e6c433803b4fd15c650195790b2762fd712a999dc127d",
+        "tests/test_ae_phase10_family.py": "d73015af4a41d02170b06a88bcde35f5e9f57a5a7fb5a39fac981fa5b7f32365",
+        "tests/test_ae_phase10b_validation.py": "1e186e658c828ffa3b29403f53aeb5806cd67b9c6c1a58b3577f8ddd6d74974b",
+        "tests/test_ae_training_schedule.py": "00bae65ae8fcdb477e83360bd058ce425fc9d8b4b090a0e4d214ef1c29053f49",
+        "tests/test_ae_transport.py": "44fdf57efaa48251526709aafa3dc0edf6970bbea1d9b7b43ff990d763c8d28d",
+        "tests/test_ae_uint8_validation.py": "29ad69934f217e6db6abfe31ce0f139031ae1949526675986e24f25ebcc76214"
+      },
+      "hybrid_q_source_sha256": {
+        "IMPLEMENTATION_REVIEW_PACKET_PHASE1.md": "7b4ff3748b10c7142104177f7bd982224d369600d5d53c7aac9ce564f2a62b48",
+        "README.md": "9a172a7879c783ca11f6ed9c898d438700bec55cbc4f536e2a86681cd7b0410a",
+        "UINT8_IMPLEMENTATION_REPORT.md": "bc7668f4402e96584eeda0abd3c715be95f00f5b311580696b34d96e72cf5460",
+        "__init__.py": "9319a2b3ce9d492e1577908148ef31187ed648ef81944365dd907dee717b206c",
+        "codec.py": "7b3833398a84fea31f65b86ec294c6675727390035b5761d372fd5a3cbba7b79",
+        "continuous_q.py": "8ea72faed324c29b7106bd5f6277699bd7e7ba16a66073905f9ff28c69bab23c",
+        "contract.py": "748eb39c0913c9d4c449784d23b7ec752307ed47eafb1b0ef0ae25df4b4f3d4c",
+        "gpu_qualification.py": "0032b9ac7edb89ec1b01616ea563bec73d04c20b164d6bbf8297f36d30eea7e6",
+        "guards.py": "77d8d8bfd168e74a7f0b6a7e3c8e7abc4c3549a86cda392feb394d7580a33031",
+        "locked_config.json": "b2b0d8427bd867f46058ebba49ac6a183eb89413b4d69326fef93b150ebfcde6",
+        "low_q_validation.py": "3bcecbb838e23eb5e732e0edb8d25125eb79742ce997ab091c40f7be6ef4cfe4",
+        "phase5_common.py": "0d30eeba0effe57df79fff25946d42ae569b102ca4e9f8d9db24fe286480636d",
+        "phase5_holdout.py": "b6dfef020eeef2c3050e23abf104412d29f954d07696b7fcfe02fb6b89a07312",
+        "phase5_training.py": "fbc44f2e4969d9f970b6968f677a5ac5e0cf171cfc25d342346c24769f571336",
+        "phase6_validation.py": "e3cb904e6cbf8490138284dbec4263b404c17c52e9bc9965963e79f9d372f07c",
+        "phase7_zstd_measurement.py": "edb3095b74df81501e153ab66d17bbf223b0897b49c4490c5b02dccad59a5387",
+        "phase8b_uint8_validation.py": "705aab576d1e5b79ae08ec93d7303c3288c0c88e89419e8f55efc75779486188",
+        "ranker.py": "462536991f195651a1ee641f8e83444882ec370a8dffab72f13f0d770422b353",
+        "selection.py": "ccc2b12919b078eac7af6131418989567d618d42f7b908b2db74df42e0342a71",
+        "teacher_cache.py": "14f866d483c245f14078c6234a357427bccc4bfa1dd533b138677f1e17f579be",
+        "tests/__init__.py": "1c1c24c4edd4acf7bd8af46b63f47089fa1d86aa6481b9e43923be8810cf1692",
+        "tests/test_continuous_q.py": "dc4531a2d01fd4de37f37f052f1482cc12003c09adb51398bb13c307fcefd243",
+        "tests/test_synthetic.py": "de2388e391a069a38a712b20bdc1b19215c3d3c5cf51e45a2062460f97fd346b",
+        "tests/test_uint8_transport.py": "198591b01544827a733b890c1522216dc70c9756203d16ed621273e699cb0588",
+        "training.py": "a10775a3a9f3e051e3456c6c85cdc76fff47f417e9bd24ddecb6633dcda1161a",
+        "uint8_codec.py": "b6f07723860821e93c0dc2aeec456073617942b5ed8446f4555fe87b2c7ca803",
+        "uint8_zstd_transport.py": "db1f79e3786f2d5a12e367b688fd79401bc5e5c8f10523a7bbf7418f14aaa11d",
+        "zstd_transport.py": "57d1846b3fdc4084266e5a8adcc7abf99556ed2b187befec729003fcdb77edec"
+      },
+      "locked_config_sha256": "b2b0d8427bd867f46058ebba49ac6a183eb89413b4d69326fef93b150ebfcde6",
+      "perception_checkpoint_sha256": "da14d21edbd374c1c3abce02ca4674b9f4097becfba9759aba945cea160a297f",
+      "stable_ranker_sha256": "07781c56a4c0f306f16d332f64627ce6b9458e154f40ab9fef89f89909b79cb5",
+      "teacher_cache_manifest_sha256": "e1ef600eb83c1924a52c37dbdbf0b435990eaaae4f1db1b0e07d9b1acd7fc273"
+    },
+    "bottleneck": 32,
+    "command": "SPLITFUSION_AE32_PHASE10B_UINT8_VALIDATION",
+    "family": "AE32",
+    "family_id": 3,
+    "holdout_decision_sha256": "e3dfbfb736bb8847ad11d92b1573f88058e1c4319ac4a0180284db2171afac34",
+    "inference_passes_per_q": 1,
+    "init_seed": 20260861,
+    "latent_channels": 32,
+    "noae_reference_sha256": "a2779f5fb0a585b1c317dc755b5ab577fa7c34963ab7945cb704e0d4146bb029",
+    "phase": "phase10b",
+    "preservation_gate_count": 12,
+    "q": [
+      0.0,
+      0.3,
+      0.5,
+      0.7,
+      0.9,
+      0.98
+    ],
+    "q_e4": [
+      0,
+      3000,
+      5000,
+      7000,
+      9000,
+      9800
+    ],
+    "routing_tag": 3807930229,
+    "runner_sha256": "978e05004c0215664b45df889d463878636fbd4202f3c2b5244052b2eb88c7ef",
+    "runner_sources": {
+      "ae_composition.py": "3e54ea2dc8599c0579349e4ce430a34a2d2343764402aee5113e1c2d54dfa608",
+      "ae_contract.py": "ccd8dbf5a86a4b2e9373f15edbd975754c954123d1893c37a336cf206b9d1f2f",
+      "ae_family_dispatch.py": "64eaddd5e561948841d75a06b18fe44c6603b101a50df18e9e2b8a87ee4c0c9c",
+      "ae_model.py": "4f2ec0a69cf127ebac44f6147124705d54785ab400ed033a83ad1e339735b542",
+      "ae_phase10_common.py": "4fea48129c5cb80c7436376d3de2eae943ee1b5c1c487d6eb3562d37331734c9",
+      "ae_phase10b_uint8_validation.py": "978e05004c0215664b45df889d463878636fbd4202f3c2b5244052b2eb88c7ef",
+      "ae_training_common.py": "7c5af221a86cdd654117201b32fb5a494b808779bd97fcef11a0a08a08e41f57",
+      "ae_uint8_transport.py": "4162b162d554f764332d469b6ca7b5038298e77a563a9de73c1622cd99531423",
+      "ae_uint8_validation.py": "d3e742d697c8c3beaaee49e53c0eae7bb1924a7e277b0f6c9a003a5365ac4853"
+    },
+    "schema": "splitfusion_fcos_ae32_phase10b_uint8_validation_v1",
+    "secondary_classification": {
+      "masking_policy": "perception degradation changes a profile's tier and therefore its reward; it never permanently masks the action. Only technical invalidity (INVALID) or a hard state-dependent resource constraint (STATE_INFEASIBLE) may mask an action.",
+      "object_requirements": [
+        [
+          "vehicle_precision",
+          0.8,
+          "higher"
+        ],
+        [
+          "vehicle_recall",
+          0.85,
+          "higher"
+        ],
+        [
+          "vehicle_xy_mae_m",
+          1.0,
+          "lower"
+        ],
+        [
+          "person_avo_precision",
+          0.7,
+          "higher"
+        ],
+        [
+          "person_avo_recall",
+          0.7,
+          "higher"
+        ],
+        [
+          "person_avo_f1",
+          0.7,
+          "higher"
+        ],
+        [
+          "person_avo_xy_mae_m",
+          1.2,
+          "lower"
+        ],
+        [
+          "person_avo_recall_0_30m",
+          0.7,
+          "higher"
+        ]
+      ],
+      "segmentation_install_requirements": [
+        [
+          "vehicle_iou",
+          0.85,
+          "higher"
+        ],
+        [
+          "person_box_mask_iou",
+          0.5,
+          "higher"
+        ],
+        [
+          "foreground_miou",
+          0.675,
+          "higher"
+        ]
+      ],
+      "segmentation_install_rule": "segmentation_installable = vehicle_iou >= 0.85 and person_box_mask_iou >= 0.50 and foreground_miou >= 0.675. A 12/12 relative-preservation result does not by itself authorize replacing the spatial-map segmentation layer. Install new segmentation only when segmentation_installable is true; otherwise retain the previous segmentation layer with its original timestamp.",
+      "service_ready_rule": "SERVICE_READY is a separate absolute result: all nine registered absolute service gates pass at this profile. It is never derived from, implied by or substituted for a 12/12 relative preservation result.",
+      "threshold_provenance": "Holdout-informed thresholds frozen before AE64/AE32 held-out deployment validation. The validation frames were not used for AE training or checkpoint selection.",
+      "tiers": [
+        "FULL_PRESERVATION",
+        "LOCALIZATION_PRIORITY",
+        "EMERGENCY_ONLY",
+        "INVALID",
+        "STATE_INFEASIBLE"
+      ]
+    },
+    "selected_checkpoint_sha256": "e2f867757e8db0620316c092264ac7eb53d12bb5ef66ed14475eb40693d1f271",
+    "selected_epoch": 8,
+    "sha256": "ad522517dbe1a4d7f02f6f9e018d706e985878a7abe2177af933833b0f732584",
+    "validation_frames": 3345
+  },
+  "run_identity_sha256": "ad522517dbe1a4d7f02f6f9e018d706e985878a7abe2177af933833b0f732584",
+  "schema": "splitfusion_fcos_ae32_phase10b_uint8_validation_v1",
+  "settings_directory": "settings",
+  "terminal_when_complete": "SPLITFUSION_AE32_PHASE10B_UINT8_VALIDATION_COMPLETE"
+}
