@@ -94,6 +94,16 @@ EXPECTED_DIRTY_PATHS = frozenset(
 PHASE13A_TERMINAL = "SPLITFUSION_LIVE_DISPATCH_IMPLEMENTATION_READY_FOR_REVIEW"
 PHASE13A_COMMIT = "219bd004ef74550128228062768dac7c6fa6525b"
 PHASE13B_IMPLEMENTATION_COMMIT = "71cfc1951c3bd5baca897eaf2483029f5ca9f0c2"
+PHASE13B_PORCELAIN_REPAIR_COMMIT = "b25247f3dbed5f0abecd45584157a46b9987f3bb"
+GPU_INFRASTRUCTURE_BASENAMES = frozenset(
+    {
+        "xorg",
+        "gnome-shell",
+        "gnome-remote-desktop-daemon",
+        "firefox",
+        "nvidia-cuda-mps-server",
+    }
+)
 PHASE11B_EVIDENCE = {
     "path": (
         "experiments/splitfusion_fcos_ae_v1/"
@@ -190,11 +200,17 @@ def _verify_git_state() -> dict[str, Any]:
     head = _git_output("rev-parse", "HEAD")
     parent = _git_output("rev-parse", "HEAD^")
     _require(
-        parent == PHASE13B_IMPLEMENTATION_COMMIT,
-        "Phase-13B repair parent is "
-        f"{parent}, expected {PHASE13B_IMPLEMENTATION_COMMIT}",
+        parent == PHASE13B_PORCELAIN_REPAIR_COMMIT,
+        "Phase-13B workload-policy repair parent is "
+        f"{parent}, expected {PHASE13B_PORCELAIN_REPAIR_COMMIT}",
     )
-    phase13a = _git_output("rev-parse", "HEAD^^")
+    implementation = _git_output("rev-parse", "HEAD^^")
+    _require(
+        implementation == PHASE13B_IMPLEMENTATION_COMMIT,
+        "Phase-13B implementation commit is "
+        f"{implementation}, expected {PHASE13B_IMPLEMENTATION_COMMIT}",
+    )
+    phase13a = _git_output("rev-parse", "HEAD^^^")
     _require(
         phase13a == PHASE13A_COMMIT,
         f"Phase-13B implementation base is {phase13a}, expected {PHASE13A_COMMIT}",
@@ -217,7 +233,8 @@ def _verify_git_state() -> dict[str, Any]:
     )
     return {
         "head": head,
-        "phase13b_implementation_commit": parent,
+        "phase13b_porcelain_repair_commit": parent,
+        "phase13b_implementation_commit": implementation,
         "phase13a_commit": phase13a,
         "implementation_source": str(source.relative_to(_root())),
         "implementation_source_sha256": sha256_file(source),
@@ -291,6 +308,149 @@ def _phase11b_sample_binding() -> tuple[dict[str, Any], dict[str, str]]:
     }
 
 
+def _normalized_executable_basename(value: str) -> str:
+    return Path(str(value).strip()).name.casefold()
+
+
+def _parse_compute_apps(output: str) -> list[dict[str, Any]]:
+    records = []
+    for line in output.splitlines():
+        if not line.strip():
+            continue
+        fields = [field.strip() for field in line.split(",", 2)]
+        _require(
+            len(fields) == 3 and fields[0].isdigit(),
+            f"invalid nvidia-smi process row: {line!r}",
+        )
+        records.append(
+            {
+                "pid": int(fields[0]),
+                "process_name": fields[1],
+                "executable_basename": _normalized_executable_basename(fields[1]),
+                "used_gpu_memory_mib": fields[2],
+            }
+        )
+    return records
+
+
+def _audit_gpu_workloads(
+    compute_apps: str,
+    *,
+    mps_client_commands: list[dict[str, Any]],
+    current_pid: int,
+) -> dict[str, Any]:
+    infrastructure = []
+    competing = []
+    for record in _parse_compute_apps(compute_apps):
+        if record["pid"] == current_pid:
+            continue
+        if record["executable_basename"] in GPU_INFRASTRUCTURE_BASENAMES:
+            infrastructure.append(record)
+        else:
+            competing.append({"source": "nvidia-smi", **record})
+    for record in mps_client_commands:
+        if int(record["pid"]) != current_pid:
+            competing.append({"source": "mps-client-command", **record})
+    _require(not competing, f"unrelated scientific CUDA workload present: {competing}")
+    return {
+        "allowed_infrastructure_processes": infrastructure,
+        "mps_client_process_commands": [
+            record
+            for record in mps_client_commands
+            if int(record["pid"]) != current_pid
+        ],
+        "unrelated_scientific_compute_processes": [],
+    }
+
+
+def _mps_control_pids(command: str) -> list[int]:
+    result = subprocess.run(
+        ("nvidia-cuda-mps-control",),
+        input=f"{command}\n",
+        check=True,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    tokens = result.stdout.split()
+    _require(
+        all(token.isdigit() for token in tokens),
+        f"invalid MPS response to {command!r}",
+    )
+    return [int(token) for token in tokens]
+
+
+def _mps_client_commands(compute_apps: str, *, current_pid: int) -> dict[str, Any]:
+    records = _parse_compute_apps(compute_apps)
+    observed_servers = {
+        int(record["pid"])
+        for record in records
+        if record["executable_basename"] == "nvidia-cuda-mps-server"
+    }
+    if not observed_servers:
+        return {
+            "server_pids": [],
+            "client_pids": [],
+            "client_commands": [],
+            "read_only_client_command_check": True,
+        }
+    control_servers = set(_mps_control_pids("get_server_list"))
+    _require(
+        observed_servers <= control_servers,
+        "nvidia-smi MPS server is absent from the MPS control server list",
+    )
+    client_pids = sorted(
+        {
+            client_pid
+            for server_pid in sorted(observed_servers)
+            for client_pid in _mps_control_pids(f"get_client_list {server_pid}")
+        }
+    )
+    inspected_pids = [pid for pid in client_pids if pid != current_pid]
+    commands = []
+    if inspected_pids:
+        result = subprocess.run(
+            (
+                "ps",
+                "-ww",
+                "-o",
+                "pid=,args=",
+                "-p",
+                ",".join(str(pid) for pid in inspected_pids),
+            ),
+            check=True,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        for line in result.stdout.splitlines():
+            fields = line.strip().split(None, 1)
+            _require(
+                len(fields) == 2 and fields[0].isdigit(),
+                f"invalid ps process row: {line!r}",
+            )
+            command = fields[1]
+            commands.append(
+                {
+                    "pid": int(fields[0]),
+                    "executable_basename": _normalized_executable_basename(
+                        command.split(None, 1)[0]
+                    ),
+                    "command": command,
+                }
+            )
+        _require(
+            {int(record["pid"]) for record in commands} == set(inspected_pids),
+            "an active MPS client command could not be resolved",
+        )
+    return {
+        "server_pids": sorted(observed_servers),
+        "client_pids": client_pids,
+        "client_commands": commands,
+        "read_only_client_command_check": True,
+    }
+
+
 def _gpu_preflight() -> dict[str, Any]:
     _require(torch.cuda.is_available(), "CUDA is unavailable to /usr/bin/python3")
     count = int(torch.cuda.device_count())
@@ -310,15 +470,12 @@ def _gpu_preflight() -> dict[str, Any]:
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     ).stdout.strip()
-    unrelated = []
-    for line in processes.splitlines():
-        if not line.strip():
-            continue
-        pid_text = line.split(",", 1)[0].strip()
-        if pid_text.isdigit() and int(pid_text) == os.getpid():
-            continue
-        unrelated.append(line.strip())
-    _require(not unrelated, f"unrelated CUDA workload present: {unrelated}")
+    mps = _mps_client_commands(processes, current_pid=os.getpid())
+    workload_audit = _audit_gpu_workloads(
+        processes,
+        mps_client_commands=mps["client_commands"],
+        current_pid=os.getpid(),
+    )
 
     gpu_line = subprocess.run(
         (
@@ -345,7 +502,11 @@ def _gpu_preflight() -> dict[str, Any]:
         "device_name": name,
         "device_capability": list(torch.cuda.get_device_capability(device)),
         "nvidia_smi_gpu": gpu_line,
-        "unrelated_compute_processes": [],
+        "gpu_workload_policy": {
+            "infrastructure_basenames": sorted(GPU_INFRASTRUCTURE_BASENAMES),
+            **workload_audit,
+            "mps": mps,
+        },
         "tiny_allocation_and_synchronization": True,
     }
 
@@ -1432,6 +1593,9 @@ def main() -> int:
                 "sha256": runtime["git"]["implementation_source_sha256"],
                 "phase13b_implementation_commit": runtime["git"][
                     "phase13b_implementation_commit"
+                ],
+                "phase13b_porcelain_repair_commit": runtime["git"][
+                    "phase13b_porcelain_repair_commit"
                 ],
                 "phase13a_commit": runtime["git"]["phase13a_commit"],
             },

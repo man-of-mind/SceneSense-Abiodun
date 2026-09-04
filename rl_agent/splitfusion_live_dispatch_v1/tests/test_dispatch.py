@@ -173,7 +173,8 @@ class PreloadedDispatchTest(unittest.TestCase):
         self.assertEqual(porcelain.splitlines()[0][3:], "OAI/openairinterface5g")
 
         exact_git = (
-            "repair-commit",
+            "workload-policy-repair-commit",
+            phase13b.PHASE13B_PORCELAIN_REPAIR_COMMIT,
             phase13b.PHASE13B_IMPLEMENTATION_COMMIT,
             phase13b.PHASE13A_COMMIT,
             porcelain,
@@ -185,10 +186,42 @@ class PreloadedDispatchTest(unittest.TestCase):
             sorted(phase13b.EXPECTED_DIRTY_PATHS),
         )
 
-        unknown_git = (*exact_git[:3], porcelain + "\n?? unknown-path")
+        unknown_git = (*exact_git[:4], porcelain + "\n?? unknown-path")
         with mock.patch.object(phase13b, "_git_output", side_effect=unknown_git):
             with self.assertRaisesRegex(RuntimeError, "unexpected dirty paths"):
                 phase13b._verify_git_state()
+
+    def test_phase13b_gpu_workload_policy_accepts_infrastructure_and_refuses_python(self):
+        baseline = (
+            "2564, /usr/lib/xorg/Xorg, 31\n"
+            "3086, /usr/bin/gnome-shell, 72\n"
+            "3031, /usr/libexec/gnome-remote-desktop-daemon, 502\n"
+            "2081845, /snap/firefox/firefox, 18\n"
+            "2016454, nvidia-cuda-mps-server, 54\n"
+        )
+        accepted = phase13b._audit_gpu_workloads(
+            baseline, mps_client_commands=[], current_pid=9000
+        )
+        self.assertEqual(
+            {
+                row["executable_basename"]
+                for row in accepted["allowed_infrastructure_processes"]
+            },
+            phase13b.GPU_INFRASTRUCTURE_BASENAMES,
+        )
+        scientific_client = [
+            {
+                "pid": 4242,
+                "executable_basename": "python3",
+                "command": "/usr/bin/python3 -u train_model.py --device cuda:0",
+            }
+        ]
+        with self.assertRaisesRegex(RuntimeError, "scientific CUDA workload"):
+            phase13b._audit_gpu_workloads(
+                baseline,
+                mps_client_commands=scientific_client,
+                current_pid=9000,
+            )
 
     def test_representative_action_switches_reuse_only_preloaded_objects(self):
         registry = SplitActionRegistry.from_runtime_binding(
