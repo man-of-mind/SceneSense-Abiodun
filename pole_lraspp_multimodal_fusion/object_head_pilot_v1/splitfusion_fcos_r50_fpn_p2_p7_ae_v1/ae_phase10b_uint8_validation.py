@@ -929,7 +929,83 @@ LOCALIZATION_OBJECT_REQUIREMENTS = (
     ("person_avo_recall", 0.70, "higher"),
     ("person_avo_f1", 0.70, "higher"),
     ("person_avo_xy_mae_m", 1.20, "lower"),
-    ("person_avo_recall_20_40m", 0.70, "higher"),
+    ("person_avo_recall_0_30m", 0.70, "higher"),
+)
+
+# ---------------------------------------------------------------------------
+# Frozen pedestrian operating ranges (contract correction)
+#
+# The completed range-aware person support feasibility study did not corroborate
+# on train-holdout episode 04, so no range-aware runtime policy is implemented
+# and the frozen p025 perception path is unchanged. What changes here is only
+# which range the absolute tier gate is *read on*: the primary operating range
+# is 0-30 m, and 30-40 m is retained as reported extended-range stress.
+#
+# This boundary is EVALUATION-ONLY. It is expressed on ground-truth distance,
+# which exists only in the evaluator, so it cannot be a runtime action even in
+# principle. Deployment continues to emit every detection the frozen p025
+# pipeline accepts, throughout its existing range: nothing here filters,
+# suppresses, relabels, rescores, reorders or truncates a runtime detection, and
+# no range test is applied to model output. (The rejected feasibility policies
+# A/B/C were different in kind -- they gated on *predicted* radial distance,
+# which is runtime-computable -- and they are deliberately not implemented.)
+# ---------------------------------------------------------------------------
+
+PEDESTRIAN_PRIMARY_RANGE_BINS = ("00_10m", "10_20m", "20_30m")
+PEDESTRIAN_EXTENDED_RANGE_BINS = ("30_40m",)
+PEDESTRIAN_BOUNDARY_BIN = "20_30m"
+PEDESTRIAN_PRIMARY_RANGE = "0 <= gt_distance_m < 30"
+PEDESTRIAN_EXTENDED_DIAGNOSTIC_RANGE = "30 <= gt_distance_m <= 40"
+PERSON_PRIMARY_RANGE_RECALL_METRIC = "person_avo_recall_0_30m"
+PERSON_HISTORICAL_LONG_RANGE_RECALL_METRIC = "person_avo_recall_20_40m"
+RANGE_STRATIFIED_KEY = "person_range_stratified"
+
+PEDESTRIAN_RANGE_PROVENANCE = (
+    "The 0-30 m primary operating range was selected from frozen noAE "
+    "range-stratified analysis and literature context before Phase-10B AE64/AE32 "
+    "validation. The 30-40 m results remain reported as extended-range stress. "
+    "Independent test-set confirmation has not been performed."
+)
+
+EVALUATION_ONLY_BOUNDARY_RULE = (
+    "The 30 m boundary is evaluation-only. It does not filter, suppress, "
+    "relabel, rescore or otherwise change any runtime detection. Deployment "
+    "continues to emit every detection accepted by the frozen p025 pipeline "
+    "throughout its existing range. Ground-truth distance is available only to "
+    "the evaluator, so the boundary is not runtime-computable and is never "
+    "applied to model output."
+)
+
+# Recorded verbatim beside every classification so the declaration travels with
+# the number it qualifies.
+EVALUATION_ONLY_BOUNDARY_DECLARATIONS = {
+    "boundary_is_evaluation_only": True,
+    "boundary_quantity": "ground-truth distance, evaluator-only",
+    "boundary_runtime_computable": False,
+    "runtime_detections_filtered_by_range": False,
+    "runtime_detections_suppressed_by_range": False,
+    "runtime_detections_relabelled_by_range": False,
+    "runtime_detections_rescored_by_range": False,
+    "deployment_emits_all_p025_detections_at_every_range": True,
+    "frozen_p025_perception_path_changed": False,
+    "range_aware_runtime_policy_implemented": False,
+    "rejected_feasibility_policies_abc_implemented": False,
+}
+
+PER_BAND_PRECISION_UNAVAILABLE_REASON = (
+    "The frozen AVO scorer publishes each distance bin as a recall slice "
+    "(eligible_gt / tp / fn) only: a false positive is not attributed to a "
+    "range, because doing so would require binning predictions by predicted "
+    "distance, which is new matching logic this correction does not introduce. "
+    "Per-band precision is therefore not derivable from the frozen artifacts, "
+    "and aggregate AVO precision remains the precision gate."
+)
+
+RANGE_METRIC_UNAVAILABLE_REASON = (
+    "The frozen noAE UINT8+zstd reference document publishes the twelve "
+    "protected metrics without per-bin distance slices, so "
+    f"{PERSON_PRIMARY_RANGE_RECALL_METRIC} cannot be derived for those rows. It "
+    "is recorded as not evaluable rather than as failing."
 )
 
 # The three segmentation outputs. They are measured and reported, and they
@@ -1070,9 +1146,144 @@ def _requirement_rows(
     }
 
 
-def localization_requirements(metrics: Mapping[str, Any]) -> dict[str, Any]:
-    """The eight absolute AVO/object requirements, evaluated as registered."""
-    result = _requirement_rows(LOCALIZATION_OBJECT_REQUIREMENTS, metrics)
+def person_range_stratification(
+    distance_bins: Mapping[str, Any], metrics: Mapping[str, Any]
+) -> dict[str, Any]:
+    """Range-stratified person reporting, derived from the frozen recall slices.
+
+    Nothing is matched, scored or inferred here. Every number is a sum or a ratio
+    of the per-bin ``eligible_gt`` / ``tp`` / ``fn`` counts the frozen AVO scorer
+    already produced, so the 0-30 m recall is a strict partition of exactly the
+    same accounting as the aggregate. Only the primary-range recall is a tier
+    gate; every other row is report-only.
+    """
+    bins: dict[str, Any] = {}
+    for name in PEDESTRIAN_PRIMARY_RANGE_BINS + PEDESTRIAN_EXTENDED_RANGE_BINS:
+        bucket = distance_bins.get(name)
+        if not isinstance(bucket, Mapping):
+            raise guards.HybridQConfigError(f"missing frozen distance bin: {name}")
+        eligible = int(bucket["eligible_gt"])
+        tp, fn = int(bucket["tp"]), int(bucket["fn"])
+        if tp + fn != eligible:
+            raise guards.HybridQConfigError(
+                f"distance-bin TP+FN denominator failure: {name}"
+            )
+        bins[name] = {
+            "eligible_gt": eligible,
+            "tp": tp,
+            "fn": fn,
+            "recall": (tp / eligible) if eligible else None,
+            "xy_mae_m": bucket.get("xy_mae_m"),
+            "precision": None,
+            "precision_available": False,
+            "is_tier_gate": False,
+        }
+
+    def cumulative(names: Sequence[str]) -> dict[str, Any]:
+        eligible = sum(int(bins[name]["eligible_gt"]) for name in names)
+        tp = sum(int(bins[name]["tp"]) for name in names)
+        fn = sum(int(bins[name]["fn"]) for name in names)
+        if tp + fn != eligible:
+            raise guards.HybridQConfigError(
+                f"cumulative TP+FN denominator failure: {tuple(names)}"
+            )
+        return {
+            "bins": list(names),
+            "eligible_gt": eligible,
+            "tp": tp,
+            "fn": fn,
+            "recall": (tp / eligible) if eligible else None,
+            "precision": None,
+            "precision_available": False,
+        }
+
+    primary = cumulative(PEDESTRIAN_PRIMARY_RANGE_BINS)
+    extended = cumulative(PEDESTRIAN_EXTENDED_RANGE_BINS)
+    historical = cumulative(contract.PERSON_LONG_RANGE_BINS)
+
+    # The historical 20-40 m recall is kept for comparison, and it must reproduce
+    # the protected metric exactly: same counts, same formula.
+    recorded = float(metrics[PERSON_HISTORICAL_LONG_RANGE_RECALL_METRIC])
+    derived = float(historical["recall"]) if historical["recall"] is not None else 0.0
+    if derived != recorded:
+        raise guards.HybridQConfigError(
+            "derived 20-40 m person recall does not reproduce the protected metric"
+        )
+
+    primary_recall = primary["recall"] if primary["recall"] is not None else 0.0
+    return {
+        PERSON_PRIMARY_RANGE_RECALL_METRIC: float(primary_recall),
+        "primary_operating_range": PEDESTRIAN_PRIMARY_RANGE,
+        "extended_diagnostic_range": PEDESTRIAN_EXTENDED_DIAGNOSTIC_RANGE,
+        "primary_operating_range_detail": {**primary, "is_tier_gate": True},
+        "extended_range_stress": {
+            **extended,
+            "is_tier_gate": False,
+            "role": "extended-range stress, reported and never gated",
+        },
+        "boundary_band": {
+            **bins[PEDESTRIAN_BOUNDARY_BIN],
+            "band": PEDESTRIAN_BOUNDARY_BIN,
+            "role": (
+                "reported separately so the cumulative 0-30 m result cannot hide "
+                "boundary-band behaviour"
+            ),
+        },
+        "historical_20_40m": {
+            **historical,
+            "is_tier_gate": False,
+            "role": "historical comparison against the superseded 20-40 m gate",
+            "reproduces_protected_metric": True,
+        },
+        "bins": bins,
+        "precision_by_range": {
+            "available": False,
+            "reason": PER_BAND_PRECISION_UNAVAILABLE_REASON,
+            "precision_gate": "person_avo_precision, aggregate AVO view",
+        },
+        "range_provenance": PEDESTRIAN_RANGE_PROVENANCE,
+        "derived_from": (
+            "frozen AVO scorer per-bin eligible_gt/tp/fn; no new matching, "
+            "scoring or inference logic"
+        ),
+        "evaluation_only_boundary_rule": EVALUATION_ONLY_BOUNDARY_RULE,
+        **dict(EVALUATION_ONLY_BOUNDARY_DECLARATIONS),
+    }
+
+
+def localization_requirements(
+    metrics: Mapping[str, Any],
+    *,
+    range_stratified: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    """The eight absolute AVO/object requirements, evaluated as registered.
+
+    The primary-range person recall is not one of the twelve protected metrics,
+    so it is supplied from the range stratification rather than read out of
+    ``metrics``. Where that stratification does not exist -- the frozen noAE
+    reference document publishes no per-bin slices -- the requirement is recorded
+    as *not evaluable* and the result fails closed instead of reporting a
+    fabricated miss.
+    """
+    if range_stratified is None:
+        evaluated = tuple(
+            row
+            for row in LOCALIZATION_OBJECT_REQUIREMENTS
+            if row[0] != PERSON_PRIMARY_RANGE_RECALL_METRIC
+        )
+        values: Mapping[str, Any] = dict(metrics)
+        not_evaluable = [PERSON_PRIMARY_RANGE_RECALL_METRIC]
+    else:
+        evaluated = LOCALIZATION_OBJECT_REQUIREMENTS
+        values = {
+            **dict(metrics),
+            PERSON_PRIMARY_RANGE_RECALL_METRIC: float(
+                range_stratified[PERSON_PRIMARY_RANGE_RECALL_METRIC]
+            ),
+        }
+        not_evaluable = []
+
+    result = _requirement_rows(evaluated, values)
     result["basis"] = "absolute AVO>=0.65 person view and vehicle object metrics"
     result["segmentation_excluded"] = list(
         SEGMENTATION_EXCLUDED_FROM_LOCALIZATION_CLASSIFICATION
@@ -1081,6 +1292,20 @@ def localization_requirements(metrics: Mapping[str, Any]) -> dict[str, Any]:
     result["independent_test_set_confirmation"] = False
     result["untouched_test_set_confirmation"] = False
     result["test_split_accessed"] = False
+    result["registered_total"] = len(LOCALIZATION_OBJECT_REQUIREMENTS)
+    result["not_evaluable"] = list(not_evaluable)
+    result["all_registered_requirements_evaluated"] = not not_evaluable
+    if not_evaluable:
+        result["not_evaluable_reason"] = RANGE_METRIC_UNAVAILABLE_REASON
+        # Fail closed: an unevaluated requirement is never a pass.
+        result["all_passed"] = False
+    result["primary_operating_range"] = PEDESTRIAN_PRIMARY_RANGE
+    result["extended_diagnostic_range"] = PEDESTRIAN_EXTENDED_DIAGNOSTIC_RANGE
+    result["extended_range_is_a_tier_gate"] = False
+    result["superseded_requirement"] = PERSON_HISTORICAL_LONG_RANGE_RECALL_METRIC
+    result["range_provenance"] = PEDESTRIAN_RANGE_PROVENANCE
+    result["evaluation_only_boundary_rule"] = EVALUATION_ONLY_BOUNDARY_RULE
+    result.update(dict(EVALUATION_ONLY_BOUNDARY_DECLARATIONS))
     return result
 
 
@@ -1166,8 +1391,14 @@ def classify_profile(
     metrics = dict(row["metrics"])
     canonical = dict(row["canonical_person_metrics"])
 
+    stratified = row.get(RANGE_STRATIFIED_KEY)
+    if not isinstance(stratified, Mapping):
+        raise guards.HybridQConfigError(
+            "the measured row carries no person range stratification"
+        )
+
     integrity = integrity_verdict(row)
-    localization = localization_requirements(metrics)
+    localization = localization_requirements(metrics, range_stratified=stratified)
     segmentation = segmentation_installability(metrics)
     service = service_readiness(row)
 
@@ -1214,6 +1445,7 @@ def classify_profile(
             "implies_service_ready": False,
         },
         "localization_priority": localization,
+        "person_range_stratified": dict(stratified),
         "segmentation": segmentation,
         "service_readiness": service,
         "canonical_person_diagnostics": {
@@ -1363,7 +1595,11 @@ def reference_feasibility(bottleneck: int) -> dict[str, Any]:
                 "q": float(reference["q"]),
                 "q_e4": int(reference["q_e4"]),
                 "object_requirements_passed": localization["passed_count"],
-                "object_requirements_total": localization["total"],
+                "object_requirements_evaluated": localization["total"],
+                "object_requirements_registered_total": localization[
+                    "registered_total"
+                ],
+                "not_evaluable_object_requirements": localization["not_evaluable"],
                 "failed_object_requirements": localization["failed"],
                 "object_requirements_all_passed": localization["all_passed"],
                 "segmentation_installable": segmentation["segmentation_installable"],
@@ -1382,6 +1618,12 @@ def reference_feasibility(bottleneck: int) -> dict[str, Any]:
             "registration-time visibility of how hard the absolute requirements "
             "are on the frozen noAE UINT8+zstd path itself"
         ),
+        "not_evaluable_requirements": [PERSON_PRIMARY_RANGE_RECALL_METRIC],
+        "not_evaluable_reason": RANGE_METRIC_UNAVAILABLE_REASON,
+        "primary_operating_range": PEDESTRIAN_PRIMARY_RANGE,
+        "extended_diagnostic_range": PEDESTRIAN_EXTENDED_DIAGNOSTIC_RANGE,
+        "range_provenance": PEDESTRIAN_RANGE_PROVENANCE,
+        "evaluation_only_boundary_rule": EVALUATION_ONLY_BOUNDARY_RULE,
         "per_q": out,
     }
 
@@ -1971,6 +2213,9 @@ def _setting_document(
         **dict(raw),
         "metrics": dict(scored["metrics"]),
         "canonical_person_metrics": dict(scored["canonical_person_metrics"]),
+        RANGE_STRATIFIED_KEY: person_range_stratification(
+            scored["person_avo_detail"]["distance_bins"], scored["metrics"]
+        ),
         "canonical_person_metrics_role": (
             "diagnostic only; the gates and the secondary localization-priority "
             "classification use the AVO>=0.65 person view"
@@ -2163,6 +2408,25 @@ def load_durable_setting(
         for value in list(metrics.values()) + list(canonical.values())
     ):
         fail("a recorded metric is non-finite")
+
+    stratified = document.get(RANGE_STRATIFIED_KEY)
+    if not isinstance(stratified, Mapping):
+        fail("no person range-stratification block")
+    recorded_bins = stratified.get("bins")
+    if not isinstance(recorded_bins, Mapping) or set(recorded_bins) != set(
+        PEDESTRIAN_PRIMARY_RANGE_BINS + PEDESTRIAN_EXTENDED_RANGE_BINS
+    ):
+        fail("person range-stratification bin set is incomplete")
+    rebuilt = person_range_stratification(recorded_bins, metrics)
+    if float(
+        stratified.get(PERSON_PRIMARY_RANGE_RECALL_METRIC, float("nan"))
+    ) != float(rebuilt[PERSON_PRIMARY_RANGE_RECALL_METRIC]):
+        fail("recorded primary-range person recall is inconsistent with its bins")
+    if not all(
+        bool(stratified.get(name)) == bool(value)
+        for name, value in EVALUATION_ONLY_BOUNDARY_DECLARATIONS.items()
+    ):
+        fail("evaluation-only range declarations drift")
 
     service = document.get("absolute_service_gates")
     if not isinstance(service, Mapping) or len(
@@ -2406,6 +2670,12 @@ def _csv_text(bottleneck: int, rows: Sequence[Mapping[str, Any]]) -> str:
         "failed_localization_requirements", "segmentation_installable",
         "segmentation_install_action", "failed_segmentation_requirements",
         "service_ready",
+        # Range-stratified person reporting. Only person_avo_recall_0_30m is a
+        # tier gate; the rest are reported and never gated. Per-band precision is
+        # not derivable from the frozen recall slices.
+        "person_avo_recall_0_30m", "person_avo_recall_00_10m",
+        "person_avo_recall_10_20m", "person_avo_recall_20_30m",
+        "person_avo_recall_30_40m", "person_avo_recall_20_40m_historical",
     ]
     columns += [f"degradation_{name}" for name in _CSV_METRICS]
     stream = io.StringIO(newline="")
@@ -2419,6 +2689,7 @@ def _csv_text(bottleneck: int, rows: Sequence[Mapping[str, Any]]) -> str:
         secondary = row["secondary_classification"]
         localization = secondary["localization_priority"]
         segmentation = secondary["segmentation"]
+        stratified = row[RANGE_STRATIFIED_KEY]
         writer.writerow(
             {
                 "family": row["family"],
@@ -2472,6 +2743,17 @@ def _csv_text(bottleneck: int, rows: Sequence[Mapping[str, Any]]) -> str:
                 "segmentation_install_action": segmentation["action"],
                 "failed_segmentation_requirements": ";".join(segmentation["failed"]),
                 "service_ready": secondary["service_readiness"]["service_ready"],
+                "person_avo_recall_0_30m": stratified[
+                    PERSON_PRIMARY_RANGE_RECALL_METRIC
+                ],
+                **{
+                    f"person_avo_recall_{name}": stratified["bins"][name]["recall"]
+                    for name in PEDESTRIAN_PRIMARY_RANGE_BINS
+                    + PEDESTRIAN_EXTENDED_RANGE_BINS
+                },
+                "person_avo_recall_20_40m_historical": stratified[
+                    "historical_20_40m"
+                ]["recall"],
                 **{
                     f"degradation_{name}": deltas[name]["degradation"]
                     for name in _CSV_METRICS
@@ -2554,7 +2836,8 @@ def _report_text(bottleneck: int, document: Mapping[str, Any]) -> str:
         "## Accuracy",
         "",
         "| q | vehicle P/R/F1/XY | canonical-p025 person P/R/F1/XY | "
-        "AVO>=0.65 person P/R/F1/XY | person 20–40 m recall | vehicle IoU | "
+        "AVO>=0.65 person P/R/F1/XY | person 20–40 m recall (historical) | "
+        "vehicle IoU | "
         "person box-mask IoU | foreground mIoU | service gates | same-q gates | "
         "profile |",
         "| ---: | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |",
@@ -2582,6 +2865,44 @@ def _report_text(bottleneck: int, document: Mapping[str, Any]) -> str:
         "Canonical-p025 person metrics are diagnostics. The twelve preservation "
         "gates and the secondary localization-priority classification both use "
         "the AVO>=0.65 visible-object person view.",
+        "",
+        "## Pedestrian range stratification",
+        "",
+        f"Primary operating range: `{PEDESTRIAN_PRIMARY_RANGE}`. Extended "
+        f"diagnostic range: `{PEDESTRIAN_EXTENDED_DIAGNOSTIC_RANGE}`. Only "
+        f"`{PERSON_PRIMARY_RANGE_RECALL_METRIC} >= 0.70` is an absolute tier "
+        "gate; every other row below is reported and never gated.",
+        "",
+        EVALUATION_ONLY_BOUNDARY_RULE,
+        "",
+        "| q | 0-10 m R | 10-20 m R | 20-30 m R | **0-30 m R (gate)** | "
+        "30-40 m R (stress) | 20-40 m R (historical) |",
+        "| ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+    ]
+
+    def _recall(value: Any) -> str:
+        return "n/a" if value is None else f"{float(value):.6f}"
+
+    for row in rows:
+        stratified = row[RANGE_STRATIFIED_KEY]
+        bins = stratified["bins"]
+        lines.append(
+            f"| {row['q']:.2f} | {_recall(bins['00_10m']['recall'])} | "
+            f"{_recall(bins['10_20m']['recall'])} | "
+            f"{_recall(bins['20_30m']['recall'])} | "
+            f"**{_recall(stratified[PERSON_PRIMARY_RANGE_RECALL_METRIC])}** | "
+            f"{_recall(bins['30_40m']['recall'])} | "
+            f"{_recall(stratified['historical_20_40m']['recall'])} |"
+        )
+    lines += [
+        "",
+        "20-30 m is shown on its own so the cumulative 0-30 m result cannot hide "
+        "boundary-band behaviour, and 30-40 m is retained as extended-range "
+        "stress. " + PER_BAND_PRECISION_UNAVAILABLE_REASON,
+        "",
+        "Range provenance:",
+        "",
+        "> " + PEDESTRIAN_RANGE_PROVENANCE,
         "",
         "## Failed gates and exact degradations",
         "",

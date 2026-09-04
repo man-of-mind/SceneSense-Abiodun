@@ -26,6 +26,7 @@ moved to a device.
 from __future__ import annotations
 
 import json
+import math
 import tempfile
 import unittest
 from pathlib import Path
@@ -400,6 +401,55 @@ def ladder(**overrides: dict) -> list[dict]:
 
 DURABLE_Q = 0.30
 
+# The published frozen validation AVO GT per distance bin. GT does not move with
+# q, so one eligible-GT vector serves every row.
+BIN_ELIGIBLE_GT = {"00_10m": 124, "10_20m": 1008, "20_30m": 1004, "30_40m": 741}
+NEAR_BINS = ("00_10m", "10_20m", "20_30m")
+GT_20_40M = BIN_ELIGIBLE_GT["20_30m"] + BIN_ELIGIBLE_GT["30_40m"]
+GT_0_30M = sum(BIN_ELIGIBLE_GT[name] for name in NEAR_BINS)
+
+
+def reference_bins(q: float, *, tp_20_30m: int | None = None) -> dict:
+    """Per-bin recall slices consistent with the frozen 20-40 m metric at this q.
+
+    The recorded ``person_avo_recall_20_40m`` is ``tp/1745`` for an integer tp, so
+    recovering tp and dividing again reproduces the published float exactly --
+    which is what the writer's own cross-check requires. ``tp_20_30m`` moves TP
+    between the two long-range bins, so a fixture can change the 0-30 m recall
+    while leaving the historical 20-40 m recall untouched: that is precisely the
+    distinction the corrected gate is built on.
+    """
+    recorded = float(reference_metrics(q)["person_avo_recall_20_40m"])
+    tp_long = round(recorded * GT_20_40M)
+    assert tp_long / GT_20_40M == recorded, "fixture cannot reproduce the frozen metric"
+    if tp_20_30m is None:
+        tp_20_30m = tp_long - min(BIN_ELIGIBLE_GT["30_40m"], tp_long)
+    tp_30_40m = tp_long - tp_20_30m
+    assert 0 <= tp_20_30m <= BIN_ELIGIBLE_GT["20_30m"]
+    assert 0 <= tp_30_40m <= BIN_ELIGIBLE_GT["30_40m"]
+    tp = {
+        "00_10m": BIN_ELIGIBLE_GT["00_10m"],
+        "10_20m": BIN_ELIGIBLE_GT["10_20m"],
+        "20_30m": tp_20_30m,
+        "30_40m": tp_30_40m,
+    }
+    return {
+        name: {
+            "eligible_gt": BIN_ELIGIBLE_GT[name],
+            "tp": tp[name],
+            "fn": BIN_ELIGIBLE_GT[name] - tp[name],
+            "recall": tp[name] / BIN_ELIGIBLE_GT[name],
+            "xy_mae_m": 0.5,
+        }
+        for name in BIN_ELIGIBLE_GT
+    }
+
+
+def passing_primary_tp() -> int:
+    """The smallest 20-30 m TP that lifts 0-30 m recall to the 0.70 bar."""
+    near = BIN_ELIGIBLE_GT["00_10m"] + BIN_ELIGIBLE_GT["10_20m"]
+    return math.ceil(0.70 * GT_0_30M) - near
+
 
 def reference_metrics(q: float) -> dict:
     """The frozen noAE UINT8+zstd protected metrics at one q.
@@ -412,7 +462,12 @@ def reference_metrics(q: float) -> dict:
 
 
 def durable_setting(
-    bottleneck: int, predictions: Path, identity: dict, *, q: float = DURABLE_Q
+    bottleneck: int,
+    predictions: Path,
+    identity: dict,
+    *,
+    q: float = DURABLE_Q,
+    tp_20_30m: int | None = None,
 ) -> dict:
     """One structurally complete per-q setting, built by the real writer.
 
@@ -480,6 +535,9 @@ def durable_setting(
     scored = {
         "metrics": metrics,
         "canonical_person_metrics": canonical,
+        "person_avo_detail": {
+            "distance_bins": reference_bins(q, tp_20_30m=tp_20_30m)
+        },
         "absolute_service_gates": contract.absolute_service_gates(
             {
                 "vehicle_precision": metrics["vehicle_precision"],
@@ -595,9 +653,81 @@ class Phase10bAcceptanceAndResumeChecks(unittest.TestCase):
                     ("person_avo_recall", 0.70, "higher"),
                     ("person_avo_f1", 0.70, "higher"),
                     ("person_avo_xy_mae_m", 1.20, "lower"),
-                    ("person_avo_recall_20_40m", 0.70, "higher"),
+                    ("person_avo_recall_0_30m", 0.70, "higher"),
                 ),
             )
+
+            # The frozen pedestrian operating ranges, the provenance wording, and
+            # the evaluation-only character of the 30 m boundary.
+            self.assertEqual(
+                validation.PEDESTRIAN_PRIMARY_RANGE_BINS,
+                ("00_10m", "10_20m", "20_30m"),
+            )
+            self.assertEqual(
+                validation.PEDESTRIAN_EXTENDED_RANGE_BINS, ("30_40m",)
+            )
+            self.assertEqual(
+                validation.PEDESTRIAN_PRIMARY_RANGE, "0 <= gt_distance_m < 30"
+            )
+            self.assertEqual(
+                validation.PEDESTRIAN_EXTENDED_DIAGNOSTIC_RANGE,
+                "30 <= gt_distance_m <= 40",
+            )
+            for sentence in (
+                "The 0-30 m primary operating range was selected from frozen noAE "
+                "range-stratified analysis and literature context before "
+                "Phase-10B AE64/AE32 validation.",
+                "The 30-40 m results remain reported as extended-range stress.",
+                "Independent test-set confirmation has not been performed.",
+            ):
+                self.assertIn(sentence, validation.PEDESTRIAN_RANGE_PROVENANCE)
+            self.assertTrue(
+                validation.EVALUATION_ONLY_BOUNDARY_DECLARATIONS[
+                    "boundary_is_evaluation_only"
+                ]
+            )
+            self.assertTrue(
+                validation.EVALUATION_ONLY_BOUNDARY_DECLARATIONS[
+                    "deployment_emits_all_p025_detections_at_every_range"
+                ]
+            )
+            for flag in (
+                "boundary_runtime_computable",
+                "runtime_detections_filtered_by_range",
+                "runtime_detections_suppressed_by_range",
+                "runtime_detections_relabelled_by_range",
+                "runtime_detections_rescored_by_range",
+                "frozen_p025_perception_path_changed",
+                "range_aware_runtime_policy_implemented",
+                "rejected_feasibility_policies_abc_implemented",
+            ):
+                self.assertFalse(
+                    validation.EVALUATION_ONLY_BOUNDARY_DECLARATIONS[flag], flag
+                )
+            self.assertIn(
+                "does not filter, suppress, relabel, rescore or otherwise change "
+                "any runtime detection",
+                validation.EVALUATION_ONLY_BOUNDARY_RULE,
+            )
+
+            # The other seven object requirements are untouched by the swap.
+            self.assertEqual(
+                [name for name, _t, _d in validation.LOCALIZATION_OBJECT_REQUIREMENTS
+                 if name != "person_avo_recall_0_30m"],
+                [
+                    "vehicle_precision", "vehicle_recall", "vehicle_xy_mae_m",
+                    "person_avo_precision", "person_avo_recall", "person_avo_f1",
+                    "person_avo_xy_mae_m",
+                ],
+            )
+            # The superseded 20-40 m requirement is gone from the gate set but
+            # survives as a protected metric, so history stays comparable.
+            self.assertNotIn(
+                "person_avo_recall_20_40m",
+                [name for name, _t, _d in validation.LOCALIZATION_OBJECT_REQUIREMENTS],
+            )
+            self.assertIn("person_avo_recall_20_40m", contract.PROTECTED_METRICS)
+            self.assertEqual(len(contract.HOLDOUT_PRESERVATION_GATES), GATES)
             self.assertEqual(
                 validation.SEGMENTATION_INSTALL_REQUIREMENTS,
                 (
@@ -735,14 +865,56 @@ class Phase10bAcceptanceAndResumeChecks(unittest.TestCase):
             )
             self.assertEqual(flipped["failed"], ["foreground_miou"])
 
+            # Without a range stratification the primary-range requirement is
+            # *not evaluable*, so the result fails closed and records why rather
+            # than reporting a fabricated miss. This is the frozen noAE reference
+            # document's situation: it publishes no per-bin slices.
+            unstratified = validation.localization_requirements(metrics)
+            self.assertEqual(unstratified["failed"], [])
+            self.assertEqual(
+                unstratified["not_evaluable"], ["person_avo_recall_0_30m"]
+            )
+            self.assertFalse(unstratified["all_registered_requirements_evaluated"])
+            self.assertFalse(unstratified["all_passed"])
+            self.assertEqual(unstratified["total"], 7)
+            self.assertEqual(unstratified["registered_total"], 8)
+
+            # With the stratification the default fixture misses exactly the one
+            # corrected requirement.
+            stratified = rows[0][validation.RANGE_STRATIFIED_KEY]
+            self.assertEqual(
+                validation.localization_requirements(
+                    metrics, range_stratified=stratified
+                )["failed"],
+                ["person_avo_recall_0_30m"],
+            )
+
             # A row whose relative rule fails but whose absolute object
             # requirements all pass is LOCALIZATION_PRIORITY, not EMERGENCY_ONLY.
+            # The promotion moves TP between the two long-range bins, so the
+            # historical 20-40 m recall is byte-identical and only the corrected
+            # 0-30 m gate changes -- the whole point of the correction.
+            with tempfile.TemporaryDirectory() as scratch:
+                promoted = durable_setting(
+                    size,
+                    Path(scratch),
+                    {"sha256": "a" * 64},
+                    q=0.0,
+                    tp_20_30m=passing_primary_tp(),
+                )
             self.assertEqual(
-                validation.localization_requirements(metrics)["failed"],
-                ["person_avo_recall_20_40m"],
+                promoted[validation.RANGE_STRATIFIED_KEY]["historical_20_40m"][
+                    "recall"
+                ],
+                stratified["historical_20_40m"]["recall"],
             )
-            promoted = dict(rows[1])
-            promoted["metrics"] = {**metrics, "person_avo_recall_20_40m": 0.80}
+            self.assertGreaterEqual(
+                promoted[validation.RANGE_STRATIFIED_KEY][
+                    "person_avo_recall_0_30m"
+                ],
+                0.70,
+            )
+            self.assertLess(stratified["person_avo_recall_0_30m"], 0.70)
             localization = validation.classify_profile(
                 bottleneck=size,
                 row=promoted,
@@ -753,6 +925,88 @@ class Phase10bAcceptanceAndResumeChecks(unittest.TestCase):
                 localization["tier"], validation.TIER_LOCALIZATION_PRIORITY
             )
             self.assertTrue(localization["localization_priority"]["all_passed"])
+            self.assertTrue(
+                localization["localization_priority"][
+                    "all_registered_requirements_evaluated"
+                ]
+            )
+
+            # The 0-30 m recall is a plain sum of the frozen 0-10, 10-20 and
+            # 20-30 m TP/FN counts -- no new matching or inference.
+            bins = stratified["bins"]
+            near_tp = sum(int(bins[name]["tp"]) for name in NEAR_BINS)
+            near_gt = sum(int(bins[name]["eligible_gt"]) for name in NEAR_BINS)
+            self.assertEqual(near_gt, GT_0_30M)
+            self.assertEqual(
+                stratified["person_avo_recall_0_30m"], near_tp / near_gt
+            )
+            for name, bucket in bins.items():
+                self.assertEqual(
+                    int(bucket["tp"]) + int(bucket["fn"]),
+                    int(bucket["eligible_gt"]),
+                    name,
+                )
+                self.assertFalse(bucket["precision_available"], name)
+                self.assertIsNone(bucket["precision"], name)
+                self.assertFalse(bucket["is_tier_gate"], name)
+
+            # 20-30 m is reported on its own so the cumulative result cannot hide
+            # the boundary band; 30-40 m stays reported and ungated; the original
+            # 20-40 m recall survives for historical comparison and reproduces
+            # the protected metric exactly.
+            self.assertEqual(stratified["boundary_band"]["band"], "20_30m")
+            self.assertEqual(
+                stratified["boundary_band"]["recall"], bins["20_30m"]["recall"]
+            )
+            self.assertFalse(stratified["extended_range_stress"]["is_tier_gate"])
+            self.assertEqual(
+                stratified["extended_range_stress"]["bins"], ["30_40m"]
+            )
+            self.assertTrue(stratified["primary_operating_range_detail"]["is_tier_gate"])
+            self.assertFalse(stratified["historical_20_40m"]["is_tier_gate"])
+            self.assertEqual(
+                stratified["historical_20_40m"]["recall"],
+                rows[0]["metrics"]["person_avo_recall_20_40m"],
+            )
+            self.assertFalse(stratified["precision_by_range"]["available"])
+            self.assertIn(
+                "not derivable from the frozen artifacts",
+                stratified["precision_by_range"]["reason"],
+            )
+
+            # The evaluation-only declarations travel with the classification.
+            for name, value in validation.EVALUATION_ONLY_BOUNDARY_DECLARATIONS.items():
+                self.assertEqual(
+                    localization["localization_priority"][name], value, name
+                )
+                self.assertEqual(
+                    localization["person_range_stratified"][name], value, name
+                )
+
+            # The frozen noAE reference document publishes no per-bin slices, so
+            # registration-time feasibility records the corrected requirement as
+            # not evaluable instead of counting it as a miss.
+            feasibility = validation.reference_feasibility(size)
+            self.assertEqual(
+                feasibility["not_evaluable_requirements"],
+                ["person_avo_recall_0_30m"],
+            )
+            for entry in feasibility["per_q"]:
+                self.assertEqual(
+                    entry["not_evaluable_object_requirements"],
+                    ["person_avo_recall_0_30m"],
+                )
+                self.assertEqual(entry["object_requirements_evaluated"], 7)
+                self.assertEqual(entry["object_requirements_registered_total"], 8)
+                self.assertFalse(entry["object_requirements_all_passed"])
+                self.assertNotIn(
+                    "person_avo_recall_0_30m", entry["failed_object_requirements"]
+                )
+            # q=0 now clears all seven evaluable object requirements: the
+            # superseded 20-40 m bar was the only one it missed.
+            self.assertEqual(feasibility["per_q"][0]["q"], 0.0)
+            self.assertEqual(feasibility["per_q"][0]["object_requirements_passed"], 7)
+            self.assertEqual(feasibility["per_q"][0]["failed_object_requirements"], [])
 
             # The same row with an object requirement missed is EMERGENCY_ONLY,
             # and degradation never masks the action.

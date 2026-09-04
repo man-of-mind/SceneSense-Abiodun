@@ -426,3 +426,98 @@ access, CARLA. Not changed: any threshold, NMS setting, calibration, scorer,
 model, q value, codec, gate, the primary acceptance rule, checkpoint selection,
 or any completed Phase-9C/9D/10A artifact. Not created: any Phase-10B run
 directory or result.
+
+---
+
+## Amendment 001 — pedestrian operating range correction
+
+Applied before Phase-10B validation ran; nothing above was remeasured, and no
+Phase-10B number exists yet. Everything above this line records the contract as
+originally registered and is left intact.
+
+### Why
+
+The "Flag for review" above stands: `person_avo_recall_20_40m >= 0.70` is missed
+at every q on the frozen noAE reference path itself (0.5777 at q=0), so
+`LOCALIZATION_PRIORITY` was unreachable as registered. The completed range-aware
+person semantic-support feasibility study
+(`..._person_p025_calibration_v1/RANGE_AWARE_SUPPORT_FEASIBILITY_V1.md`) then
+tested whether long-range recall could be recovered instead of the bar being
+moved. It did not corroborate on train-holdout episode 04, so **policies A/B/C
+are not implemented and the frozen p025 perception path is unchanged.** What is
+corrected here is only the range the tier gate is read on.
+
+### The correction
+
+Frozen pedestrian operating ranges:
+
+- primary: `0 <= gt_distance_m < 30`
+- extended diagnostic: `30 <= gt_distance_m <= 40`
+
+In `LOCALIZATION_OBJECT_REQUIREMENTS`, `person_avo_recall_20_40m >= 0.70` is
+replaced by `person_avo_recall_0_30m >= 0.70`. **The other seven object
+requirements are unchanged**, as are the twelve preservation gates, the nine
+service gates, the segmentation-installation rule, every checkpoint, codec,
+threshold and q value, and the `EMERGENCY_ONLY` status of q=0.90/0.98.
+
+`person_avo_recall_0_30m` is a plain sum of the 0-10, 10-20 and 20-30 m
+`tp` / `fn` / `eligible_gt` counts the frozen AVO scorer already produces: no new
+matching, scoring or inference logic. Those per-bin slices were previously
+computed and discarded, so the durable per-q record now carries a
+`person_range_stratified` block, validated on the resume path.
+
+### The 30 m boundary is evaluation-only
+
+It does not filter, suppress, relabel, rescore or otherwise change any runtime
+detection. Deployment continues to emit every detection accepted by the frozen
+p025 pipeline throughout its existing range. The boundary is expressed on
+ground-truth distance, which exists only in the evaluator, so it is not
+runtime-computable even in principle. This is recorded as a set of explicit
+declarations that travel with every classification and are pinned by the test.
+It is also what distinguishes this correction from the rejected policies A/B/C,
+which would have gated on *predicted* radial distance at runtime.
+
+### Still reported, never gated
+
+Per-band recall for 0-10, 10-20, 20-30 and 30-40 m; the 20-30 m boundary band
+separately, so the cumulative 0-30 m result cannot hide boundary behaviour;
+30-40 m as extended-range stress; and the original 20-40 m recall for historical
+comparison, which remains one of the twelve protected metrics and is
+cross-checked to reproduce exactly.
+
+**Per-band precision is not reported, because it is not derivable.** The frozen
+AVO scorer publishes each distance bin as a recall slice (`eligible_gt` / `tp` /
+`fn`) only; a false positive is not attributed to a range, and attributing one
+would mean binning predictions by predicted distance — new matching logic this
+correction does not introduce. The block records
+`precision_by_range.available: false` with that reason rather than omitting it
+silently. Aggregate AVO precision remains the precision gate.
+
+### Registration-time feasibility
+
+The frozen noAE reference document publishes the twelve protected metrics
+without per-bin slices, so `person_avo_recall_0_30m` **cannot be evaluated on
+those rows**. `reference_feasibility` records it as not evaluable and fails
+closed, rather than reporting a fabricated miss: per q it now reports 7 evaluated
+of 8 registered, with `not_evaluable_object_requirements:
+["person_avo_recall_0_30m"]`. q=0 clears all seven evaluable requirements — the
+superseded 20-40 m bar was the only one it missed.
+
+### Provenance
+
+> The 0-30 m primary operating range was selected from frozen noAE
+> range-stratified analysis and literature context before Phase-10B AE64/AE32
+> validation. The 30-40 m results remain reported as extended-range stress.
+> Independent test-set confirmation has not been performed.
+
+### What was run
+
+- `python3 -m py_compile` on the runner and the test — clean.
+- The existing Phase-10B test file, updated in place, no new test file — **4
+  tests, OK**. No broader suite was run.
+- `git diff --check` — clean.
+- Out-of-band (not committed as a test): the CSV writer produces 66 columns × 6
+  rows and the new report section renders on six synthetic rows, confirming every
+  new field name resolves.
+
+Validation was not run.
