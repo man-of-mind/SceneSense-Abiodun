@@ -528,7 +528,7 @@ def phase11d_preflight() -> dict[str, Any]:
         raise guards.HybridQConfigError("live Phase-11D source map omits a low-bit dependency")
     fp32_q0 = _load_fp32_q0_reference()
     zstd = implementation_report()
-    if int(zstd.get("level", -1)) != ZSTD_LEVEL:
+    if int(zstd.get("settings", {}).get("level", -1)) != ZSTD_LEVEL:
         raise guards.HybridQConfigError("mandatory zstd implementation is not level 1")
     return {
         "historical_checkpoint_and_source_provenance": historical,
