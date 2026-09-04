@@ -239,6 +239,18 @@ PHASE11C_ARTIFACTS = {
         "198585a7384382b6c858a4f17595b132b008e7ef8f9a58d2c595032acdb1b5c2",
     ),
 }
+LAYOUT_FEASIBILITY_ARTIFACTS = {
+    "report": (
+        "experiments/splitfusion_fcos_transport_layout_feasibility_v1/"
+        "20260903_layout_feasibility_cuda_retry1/transport_layout_feasibility.json",
+        "5535bc080a12d3aa3eb17ef99e20a39361e4e908b971c7f67a9ced4ad10c6071",
+    ),
+    "terminal": (
+        "experiments/splitfusion_fcos_transport_layout_feasibility_v1/"
+        "20260903_layout_feasibility_cuda_retry1/TRANSPORT_LAYOUT_FEASIBILITY_COMPLETE",
+        "aed941acd79994c52c1e94516f312a84c1202a5c720eac62093ef685441d67b5",
+    ),
+}
 FP32_Q0_REFERENCE = {
     "path": (
         "experiments/splitfusion_fcos_hybrid_q_v1/"
@@ -419,9 +431,15 @@ def _verify_completed_phase_artifacts() -> dict[str, Any]:
     bound = {
         "phase11b": {name: _require_hash(*item) for name, item in PHASE11B_ARTIFACTS.items()},
         "phase11c": {name: _require_hash(*item) for name, item in PHASE11C_ARTIFACTS.items()},
+        "layout_feasibility": {
+            name: _require_hash(*item) for name, item in LAYOUT_FEASIBILITY_ARTIFACTS.items()
+        },
     }
     p11b = json.loads(_repository_path(PHASE11B_ARTIFACTS["report"][0]).read_text(encoding="utf-8"))
     p11c = json.loads(_repository_path(PHASE11C_ARTIFACTS["report"][0]).read_text(encoding="utf-8"))
+    layout = json.loads(
+        _repository_path(LAYOUT_FEASIBILITY_ARTIFACTS["report"][0]).read_text(encoding="utf-8")
+    )
     if p11b.get("terminal") != phase11b.TERMINAL:
         raise guards.HybridQConfigError("Phase-11B report terminal drift")
     if _repository_path(PHASE11B_ARTIFACTS["terminal"][0]).read_text(encoding="utf-8") != (
@@ -440,6 +458,26 @@ def _verify_completed_phase_artifacts() -> dict[str, Any]:
         row = by_level.get(level)
         if not isinstance(row, Mapping) or float(row.get("incremental_size_saving_bytes", 0)) >= 0 or float(row.get("incremental_codec_ms", 0)) <= 0:
             raise guards.HybridQConfigError("Phase-11C does not support fixed zstd L1")
+    if (
+        layout.get("schema") != "splitfusion_transport_layout_feasibility_v1"
+        or layout.get("terminal") != "TRANSPORT_LAYOUT_FEASIBILITY_COMPLETE"
+    ):
+        raise guards.HybridQConfigError("layout-feasibility report identity drift")
+    if _repository_path(LAYOUT_FEASIBILITY_ARTIFACTS["terminal"][0]).read_text(encoding="utf-8") != (
+        "TRANSPORT_LAYOUT_FEASIBILITY_COMPLETE "
+        f"{LAYOUT_FEASIBILITY_ARTIFACTS['report'][1]}\n"
+    ):
+        raise guards.HybridQConfigError("layout-feasibility terminal does not bind report")
+    layout_classification = layout.get("classification")
+    layout_integrity = layout.get("integrity")
+    if (
+        not isinstance(layout_classification, Mapping)
+        or layout_classification.get("classification") != "NOT_USEFUL"
+        or bool(layout_classification.get("production_layout_change_recommended", True))
+        or not isinstance(layout_integrity, Mapping)
+        or bool(layout_integrity.get("production_codec_modified", True))
+    ):
+        raise guards.HybridQConfigError("layout-feasibility production decision drift")
     return {
         **bound,
         "zstd_campaign_decision": {
@@ -449,6 +487,13 @@ def _verify_completed_phase_artifacts() -> dict[str, Any]:
             "perception_decision": False,
             "raspberry_pi_oai_latency_confirmation_pending": True,
             "zstd_level_is_not_an_rl_action": True,
+        },
+        "layout_campaign_decision": {
+            "classification": "NOT_USEFUL",
+            "production_layout_retained": "CURRENT_CELL_MAJOR",
+            "production_codecs_unchanged": True,
+            "report_sha256": LAYOUT_FEASIBILITY_ARTIFACTS["report"][1],
+            "terminal_sha256": LAYOUT_FEASIBILITY_ARTIFACTS["terminal"][1],
         },
     }
 
@@ -923,6 +968,7 @@ def run_identity(preflight: Mapping[str, Any]) -> dict[str, Any]:
         "catalog": [{"family": row.family.name, "family_id": row.family.family_id, "bits": row.bit_width, "q": row.q, "q_e4": row.q_e4} for row in CATALOG],
         "validation_frames": contract.VALIDATION_FRAMES, "one_pass_per_setting": True,
         "zstd_campaign": preflight["completed_phase_evidence"]["zstd_campaign_decision"],
+        "layout_campaign": preflight["completed_phase_evidence"]["layout_campaign_decision"],
         "historical_provenance": preflight["historical_checkpoint_and_source_provenance"]["frozen_hashes"],
         "uint8_reference_sha256": {name: spec.sha256 for name, spec in UINT8_REFERENCES.items()},
         "live_lowbit_execution_source_sha256": preflight["live_lowbit_execution_source_sha256"],
@@ -976,6 +1022,7 @@ def _report_text(document: Mapping[str, Any]) -> str:
         "Fixed catalog: 4 families × UINT6/UINT4 × six registered q anchors = 48 settings. Each row is one full registered 3,345-frame validation pass through the public low-bit/zstd-1/raw-byte-dispatch/frozen-tail path.", "",
         "Every row compares to the completed same-family, same-q UINT8 record and reports absolute metrics plus deltas to dense FP32 q=0. Phase-10B's corrected 0–30 m AVO person-recall classification contract is used without changing detection emission at other ranges.", "",
         "Zstd L1 is fixed campaign configuration, bound to Phase-11C aggregate evidence: L3/L5 were larger and higher host cost. This is not a perception decision or RL action; Raspberry Pi/OAI latency remains pending.", "",
+        "The completed layout-feasibility study is hash-bound as NOT_USEFUL, so the production CURRENT_CELL_MAJOR layout and production codecs remain unchanged.", "",
         "Durability is per setting: atomically fsync its record, then remove scratch (unless retained explicitly), then atomically write cleanup. Resume reuses only fully valid exact records and refuses invalid ones.", "",
         f"Completed settings: {len(document['curve'])}/48.", "",
     ))
