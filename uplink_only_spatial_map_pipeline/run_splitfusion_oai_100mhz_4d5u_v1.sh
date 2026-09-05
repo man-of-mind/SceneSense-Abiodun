@@ -37,6 +37,7 @@ done
 for required in \
   "${RAN_BUILD}/nr-softmodem" \
   "${RAN_BUILD}/nr-uesoftmodem" \
+  "${RAN_BUILD}/libtelnetsrv.so" \
   "${CN_DIR}/docker-compose.yaml"; do
   if [[ ! -e "${required}" ]]; then
     echo "ERROR: required OAI input is missing: ${required}" >&2

@@ -52,7 +52,7 @@
   },
   "launcher": {
     "path": "uplink_only_spatial_map_pipeline/run_splitfusion_oai_100mhz_4d5u_v1.sh",
-    "sha256": "71e363d4354247576f1f6c4afc64d23bda17a70bed94bbe91879a369532f7679",
+    "sha256": "8e02f0913338a187bff1de24bfea09d7eca03607da0e383ef8ad4a005b64ce61",
     "execution_token": "SPLITFUSION_OAI_100MHZ_4D5U_ATTACH",
     "radio_profile_id": "OAI_N78_100MHZ_273PRB_4D5U_V1",
     "status": "IMPLEMENTED_NOT_LIVE_EXECUTED"
