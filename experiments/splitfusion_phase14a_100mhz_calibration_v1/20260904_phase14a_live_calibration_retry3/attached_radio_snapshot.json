@@ -1,0 +1,55 @@
+{
+  "effective_gnb_sha256": "330b23d4f4ab74c388f9f20105ef29e989f3e79f4b088d73e82376549b0a2211",
+  "effective_ue_sha256": "ab06afcc1cfc2bb777fa35973811aaad655032f6541e1b4565541cac9cc04f97",
+  "gnb_command_sha256": "6bf6e57178df38a40011b09e530e1b0c0e03fc438268a201f97944dc31c64e5b",
+  "gnb_pid": 2876783,
+  "gnb_process_topology": {
+    "background_system_worker_pid": 2876785,
+    "endpoint_roles_verified": true,
+    "main_pid": 2876783,
+    "process_group_id": 2876780,
+    "same_executable_process_count": 3,
+    "schema": "scenesense.oai_softmodem_fork_topology.v1",
+    "session_id": 2876780,
+    "source_contract": {
+      "background_system_direct_child_count": 1,
+      "main_calls_start_background_system": true,
+      "t_config_init_direct_child_count": 1
+    },
+    "tracer_worker_pid": 2876959,
+    "worker_pids": [
+      2876785,
+      2876959
+    ]
+  },
+  "launcher_sha256": "8e02f0913338a187bff1de24bfea09d7eca03607da0e383ef8ad4a005b64ce61",
+  "pdu_session_5qi": 6,
+  "radio_materialization_path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_oai_100mhz_4d5u_v1/20260904_phase14a_live_calibration_retry3/radio_materialization.json",
+  "radio_materialization_sha256": "32aaa713227fe2ecf36810613ccaaa3a7b7a50e65441f4dab4bccfbd8ca8f326",
+  "radio_profile_id": "OAI_N78_100MHZ_273PRB_4D5U_V1",
+  "schema": "scenesense.splitfusion_phase14a_attached_radio_state.v1",
+  "status": "ATTACHED_STABLE_100MHZ_4D5U_ONE_UE",
+  "ue_command_sha256": "49911cc54b400ef090b7502577c49f7d589c4bbe561f7b8fef559d3daea91630",
+  "ue_interface": "oaitun_ue1",
+  "ue_pid": 2877313,
+  "ue_process_topology": {
+    "background_system_worker_pid": 2877315,
+    "endpoint_roles_verified": true,
+    "main_pid": 2877313,
+    "process_group_id": 2877309,
+    "same_executable_process_count": 3,
+    "schema": "scenesense.oai_softmodem_fork_topology.v1",
+    "session_id": 2877309,
+    "source_contract": {
+      "background_system_direct_child_count": 1,
+      "main_calls_start_background_system": true,
+      "t_config_init_direct_child_count": 1
+    },
+    "tracer_worker_pid": 2877327,
+    "worker_pids": [
+      2877315,
+      2877327
+    ]
+  },
+  "ue_static_ip": "10.0.0.2"
+}

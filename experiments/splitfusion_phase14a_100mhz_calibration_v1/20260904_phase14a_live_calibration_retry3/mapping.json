@@ -1,0 +1,80 @@
+{
+  "anchors": [
+    {
+      "achieved_median_pusch_snr_db": 5.0,
+      "noise_power_db": -2.0,
+      "source": "PHASE14A_100MHZ_ANCHOR_11"
+    },
+    {
+      "achieved_median_pusch_snr_db": 6.5,
+      "noise_power_db": -3.0,
+      "source": "PHASE14A_100MHZ_ANCHOR_10"
+    },
+    {
+      "achieved_median_pusch_snr_db": 8.5,
+      "noise_power_db": -4.0,
+      "source": "PHASE14A_100MHZ_ANCHOR_09"
+    },
+    {
+      "achieved_median_pusch_snr_db": 10.0,
+      "noise_power_db": -5.0,
+      "source": "PHASE14A_100MHZ_ANCHOR_08"
+    },
+    {
+      "achieved_median_pusch_snr_db": 12.0,
+      "noise_power_db": -6.0,
+      "source": "PHASE14A_100MHZ_ANCHOR_07"
+    },
+    {
+      "achieved_median_pusch_snr_db": 14.0,
+      "noise_power_db": -7.0,
+      "source": "PHASE14A_100MHZ_ANCHOR_06"
+    },
+    {
+      "achieved_median_pusch_snr_db": 15.5,
+      "noise_power_db": -8.0,
+      "source": "PHASE14A_100MHZ_ANCHOR_05"
+    },
+    {
+      "achieved_median_pusch_snr_db": 17.5,
+      "noise_power_db": -9.0,
+      "source": "PHASE14A_100MHZ_ANCHOR_04"
+    },
+    {
+      "achieved_median_pusch_snr_db": 19.5,
+      "noise_power_db": -10.0,
+      "source": "PHASE14A_100MHZ_ANCHOR_03"
+    },
+    {
+      "achieved_median_pusch_snr_db": 21.5,
+      "noise_power_db": -11.0,
+      "source": "PHASE14A_100MHZ_ANCHOR_02"
+    },
+    {
+      "achieved_median_pusch_snr_db": 23.5,
+      "noise_power_db": -12.0,
+      "source": "PHASE14A_100MHZ_ANCHOR_01"
+    },
+    {
+      "achieved_median_pusch_snr_db": 25.5,
+      "noise_power_db": -13.0,
+      "source": "PHASE14A_100MHZ_ANCHOR_00"
+    }
+  ],
+  "gates": {
+    "command_granularity_db": 0.25,
+    "complete_target_range_covered": true,
+    "interpolation": "MONOTONIC_PIECEWISE_LINEAR_INVERSE",
+    "measured_lower_db": 5.0,
+    "measured_upper_db": 25.5,
+    "required_lower_db": 5.5,
+    "required_upper_db": 24.5,
+    "strictly_monotonic": true
+  },
+  "legacy_mapping_used": false,
+  "mapping_qualified_for_campaign": false,
+  "profile_replay_required": true,
+  "radio_profile_id": "OAI_N78_100MHZ_273PRB_4D5U_V1",
+  "schema": "scenesense.splitfusion_phase14a_target_snr_mapping.v1",
+  "status": "MEASURED_100MHZ_MAPPING_PENDING_FOUR_PROFILE_REPLAY"
+}

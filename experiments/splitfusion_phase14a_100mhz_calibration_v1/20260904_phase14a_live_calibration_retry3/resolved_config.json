@@ -1,0 +1,107 @@
+{
+  "actuator": {
+    "channel_model_name": "rfsimu_channel_ue0",
+    "channel_model_owner": "rfsimulator",
+    "channel_model_type": "AWGN",
+    "clean_restore_noise_power_db": -50.0,
+    "max_response_bytes": 1048576,
+    "path_loss_db": 0.0,
+    "response_timeout_s": 2.0,
+    "telnet_host": "127.0.0.1",
+    "telnet_port": 9090
+  },
+  "calibration": {
+    "command_granularity_db": 0.25,
+    "commanded_noise_power_db": [
+      -13.0,
+      -12.0,
+      -11.0,
+      -10.0,
+      -9.0,
+      -8.0,
+      -7.0,
+      -6.0,
+      -5.0,
+      -4.0,
+      -3.0,
+      -2.0
+    ],
+    "mapping": "MONOTONIC_PIECEWISE_LINEAR_INVERSE",
+    "monotonicity": "STRICT_ACHIEVED_SNR_DECREASE_AS_NOISE_COMMAND_INCREASES",
+    "profile_replay": "DEFERRED_TO_LATER_SEPARATELY_AUTHORIZED_LIVE_PHASE",
+    "target_lower_db": 5.5,
+    "target_upper_db": 24.5,
+    "uncertainty": "EMPIRICAL_P05_P95_AND_HALF_WIDTH"
+  },
+  "cleanup": {
+    "leave_attached_oai_state_running": true,
+    "restore_before_process_cleanup": true,
+    "stop_only_runner_owned_processes": true
+  },
+  "execution_token": "SPLITFUSION_PHASE14A_100MHZ_CALIBRATION",
+  "experiment_id": "splitfusion_phase14a_100mhz_calibration_v1",
+  "paths": {
+    "channel_source": "OAI/openairinterface5g/targets/PROJECTS/GENERIC-NR-5GC/CONF/channelmod_rfsimu.conf",
+    "gnb_source": "OAI/openairinterface5g/targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb.sa.band78.fr1.273PRB.scenesense_rfsim.conf",
+    "oai_cn": "OAI/oai-cn5g",
+    "oai_ran_build": "OAI/openairinterface5g/cmake_targets/ran_build/build",
+    "output_root": "experiments/splitfusion_phase14a_100mhz_calibration_v1",
+    "radio_state_root": "experiments/splitfusion_oai_100mhz_4d5u_v1",
+    "sender": "oai_layer_latency/carla_shaped_udp_burst_sender.py",
+    "sink": "bursty_traffic/udp_sink.py",
+    "subscriber_sql": "OAI/oai-cn5g/database/oai_db.sql",
+    "t_messages": "OAI/openairinterface5g/common/utils/T/T_messages.txt",
+    "ue_source": "OAI/openairinterface5g/targets/PROJECTS/GENERIC-NR-5GC/CONF/ue.conf"
+  },
+  "radio": {
+    "absolute_frequency_ssb": 641280,
+    "band": 78,
+    "bandwidth_mhz": 100,
+    "downlink_slots": 4,
+    "downlink_symbols": 6,
+    "ext_dn_ip": "192.168.70.135",
+    "imsi": "001010000000001",
+    "min_rxtxtime": 6,
+    "numerology": 1,
+    "pdu_session_5qi": 6,
+    "prb": 273,
+    "profile_id": "OAI_N78_100MHZ_273PRB_4D5U_V1",
+    "subcarrier_spacing_khz": 30,
+    "ue_count": 1,
+    "ue_frequency_hz": 3649260000,
+    "ue_interface": "oaitun_ue1",
+    "ue_ssb": 516,
+    "ue_static_ip": "10.0.0.2",
+    "uplink_slots": 5,
+    "uplink_symbols": 4
+  },
+  "schema": "scenesense.splitfusion_phase14a_100mhz_calibration_config.v1",
+  "source_sha256": {
+    "channel_source": "a47ade413b36ecf66f6df666bead124974705636cb134dd09a539b34bce7d760",
+    "gnb_source": "03fb7ac7b4df6ce88f5a2e3e7a26211b78ad89e7d313632ca088e6b364742ffb",
+    "selected_gnb_before_channelmod": "d5f317413fbef79f69501adfce2428c1300941938def0d6e554de1c16c2b08a8",
+    "subscriber_sql": "f2da19a4deaa9715b7c9b8789937a98fe6654245b6573e98f4cb835917e36805",
+    "ue_source": "b20bf2d9d8da9bd15b1f822836b7235dafa16b29f4e097e6ca3749729494c944"
+  },
+  "status": "IMPLEMENTED_NOT_LIVE_AUTHORIZED",
+  "telemetry": {
+    "gnb_port": 2021,
+    "gnb_relay_port": 2031,
+    "measurement_s": 5.0,
+    "minimum_anchor_mcs_samples": 30,
+    "minimum_anchor_pusch_samples": 120,
+    "minimum_baseline_mcs_samples": 10,
+    "minimum_baseline_pusch_samples": 20,
+    "required_force_ul_mcs": -1,
+    "required_mcs_table": 0,
+    "settle_s": 3.0
+  },
+  "traffic": {
+    "chunk_bytes": 60000,
+    "fps": 10.0,
+    "frame_bytes": 25000,
+    "frames": 1400,
+    "remote_port": 56140,
+    "sink_timeout_s": 10.0
+  }
+}
