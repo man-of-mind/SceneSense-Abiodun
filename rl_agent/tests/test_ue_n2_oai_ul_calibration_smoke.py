@@ -10,6 +10,7 @@ from pathlib import Path
 from unittest import mock
 
 import rl_agent.splitfusion_phase14a_100mhz_calibration_v1 as phase14a
+import rl_agent.splitfusion_phase14b_four_profile_replay_v1 as phase14b
 import rl_agent.ue_n2_oai_ul_calibration_smoke as n2
 
 
@@ -79,6 +80,59 @@ class UEN2OwnedRunnerTests(unittest.TestCase):
 
     def runner(self, name: str = "run") -> n2.Runner:
         return n2.Runner(n2.DEFAULT_CONFIG, self.root / name)
+
+    def test_phase14b_frozen_prefix_continuation_and_no_burst(self) -> None:
+        config = phase14b.load_json(phase14b.DEFAULT_CONFIG)
+        provenance = phase14b.verify_provenance(phase14b.DEFAULT_CONFIG)
+        self.assertEqual(
+            provenance["mapping_sha256"],
+            "841ee69e53d7325570652a0f4baa7ae7f554a2204c4e775ce963a064cabd2677",
+        )
+        prepared = phase14b.prepare_frozen_profiles(config)
+        self.assertEqual(
+            [row["profile_id"] for row in prepared],
+            list(phase14b.PROFILE_ORDER),
+        )
+        for row in prepared:
+            self.assertEqual(len(row["prefix"]), 4200)
+            self.assertEqual(
+                row["trace_sha256"],
+                next(
+                    frozen["trace_sha256"]
+                    for frozen in config["profiles"]
+                    if frozen["profile_id"] == row["profile_id"]
+                ),
+            )
+            self.assertNotEqual(row["continuation"], row["prefix"][0])
+            self.assertNotEqual(row["continuation"], row["prefix"][-1])
+
+        period = 100_000_000
+        first = phase14b.plan_scheduler_action(
+            scheduled_ns=1_000_000_000,
+            period_ns=period,
+            now_ns=1_000_000_000,
+            previous_send_ns=None,
+        )
+        delayed = phase14b.plan_scheduler_action(
+            scheduled_ns=1_100_000_000,
+            period_ns=period,
+            now_ns=1_100_000_000,
+            previous_send_ns=1_050_000_000,
+        )
+        obsolete = phase14b.plan_scheduler_action(
+            scheduled_ns=1_200_000_000,
+            period_ns=period,
+            now_ns=1_300_000_000,
+            previous_send_ns=1_150_000_000,
+        )
+        self.assertEqual(first["eligible_send_ns"], 1_000_000_000)
+        self.assertEqual(delayed["eligible_send_ns"], 1_150_000_000)
+        self.assertGreaterEqual(
+            delayed["eligible_send_ns"] - 1_050_000_000,
+            period,
+        )
+        self.assertEqual(obsolete["status"], "SKIP_OBSOLETE_NEVER_BURST")
+        self.assertIsNone(obsolete["eligible_send_ns"])
 
     def test_phase14a_process_topology_accepts_one_forked_service(self) -> None:
         expected = Path("/opt/oai/nr-softmodem")

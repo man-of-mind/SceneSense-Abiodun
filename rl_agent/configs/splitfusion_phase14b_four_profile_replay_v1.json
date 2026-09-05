@@ -1,0 +1,194 @@
+{
+  "schema": "scenesense.splitfusion_phase14b_four_profile_replay_config.v1",
+  "status": "IMPLEMENTED_NOT_EXECUTED",
+  "execution_token": "SPLITFUSION_PHASE14B_FOUR_PROFILE_REPLAY",
+  "output_root": "experiments/splitfusion_phase14b_four_profile_replay_v1",
+  "provenance": {
+    "phase14a_evidence_commit": "8034d9d1f68f390cd6779775c7967c2788a4ccea",
+    "phase14a_calibration_terminal": {
+      "path": "experiments/splitfusion_phase14a_100mhz_calibration_v1/20260904_phase14a_live_calibration_retry3/SPLITFUSION_PHASE14A_100MHZ_CALIBRATION_CAPTURE_COMPLETE_PENDING_REPLAY",
+      "sha256": "2e2aae9578e174ba7bc6663596337b83fcfbede2c24416b2be31797c5ee7e99a"
+    },
+    "phase14a_manifest": {
+      "path": "experiments/splitfusion_phase14a_100mhz_calibration_v1/20260904_phase14a_live_calibration_retry3/manifest.json",
+      "sha256": "5f14b43dedf7aa947598442ffd2823dea155476ad396b6665fc32e37ddb96091"
+    },
+    "phase14a_mapping": {
+      "path": "experiments/splitfusion_phase14a_100mhz_calibration_v1/20260904_phase14a_live_calibration_retry3/mapping.json",
+      "sha256": "841ee69e53d7325570652a0f4baa7ae7f554a2204c4e775ce963a064cabd2677"
+    },
+    "phase14a_calibration_summary": {
+      "path": "experiments/splitfusion_phase14a_100mhz_calibration_v1/20260904_phase14a_live_calibration_retry3/calibration_summary.json",
+      "sha256": "02ccdcfb22c0bfa8e16c213a41f935427196327a938d91a92610f3ba83ddb328"
+    },
+    "phase14a_anchor_table": {
+      "path": "experiments/splitfusion_phase14a_100mhz_calibration_v1/20260904_phase14a_live_calibration_retry3/anchor_summary.csv",
+      "sha256": "279027290439a2fce3600675b0057df6bcc36a65cf4ae8400cdb4ed148a0829b"
+    },
+    "phase14a_campaign_binding": {
+      "path": "rl_agent/configs/splitfusion_phase14a_campaign_binding_v1.json",
+      "historical_commit": "c53224b8b95aaf983643832004113b07eafe6fb1",
+      "historical_sha256": "1708018018060f7fd2c69ed8fb1cb557126ca183fe01e593641997a39cdce043",
+      "topology_amendment_commit": "c91c83dd3b69461abdb45a4f8249d9aba08667e8",
+      "current_sha256": "ec6e11b2ca781ad6346a1f20f2f1f63d8686c34c270694ea4ee58ac72c868447"
+    },
+    "phase14a_config": {
+      "path": "rl_agent/configs/splitfusion_phase14a_100mhz_calibration_v1.json",
+      "sha256": "ad541f71f5659e1bb08d7d2c48a45086dfbd5bf45e669b32adfb320ddcab5cd9"
+    },
+    "qualified_topology_validator": {
+      "path": "rl_agent/splitfusion_phase14a_100mhz_calibration_v1.py",
+      "sha256": "09fb82c0ba644a44bdf5fb5e5ad92269c1daa31ffbeee1fc0864d5b7ce688c93",
+      "commit": "c91c83dd3b69461abdb45a4f8249d9aba08667e8"
+    },
+    "radio_profile": {
+      "path": "rl_agent/configs/oai_radio_baseline_100mhz_4d5u_v1.json",
+      "sha256": "fd604a37cfbc416412440dd447fe43cea9a94d3b65d69dd5e4e975de01a3dbf4"
+    },
+    "network_profile_design": {
+      "path": "rl_agent/configs/network_profile_design_v2.json",
+      "sha256": "056247e5731c1ae9ac281432034e1b79d1e6da24ab4a2d579a7fe2d85917e483"
+    },
+    "network_profile_prefix": {
+      "path": "rl_agent/experiments/network_profile_design_v2/20260822_route_b_v2/traces.csv",
+      "sha256": "32f1be66e976cba322803c128eefdeb81a8d31ed64bd253ff85ea1ab0583303d"
+    },
+    "network_profile_summary": {
+      "path": "rl_agent/experiments/network_profile_design_v2/20260822_route_b_v2/profile_summary.csv",
+      "sha256": "75514d0d08b3a3a22159dd2abbcda77e42c9d34e24d920a04e5a18e776e70317"
+    },
+    "continuous_profile_runtime": {
+      "path": "rl_agent/ue_target_snr_cell_runtime_v1.py",
+      "sha256": "292352b13d72330d6ffcedfb4236480cda5fa80ab6d29059af1adbfb1d398203"
+    }
+  },
+  "radio": {
+    "profile_id": "OAI_N78_100MHZ_273PRB_4D5U_V1",
+    "band": 78,
+    "bandwidth_mhz": 100,
+    "prb": 273,
+    "numerology": 1,
+    "downlink_slots": 4,
+    "downlink_symbols": 6,
+    "uplink_slots": 5,
+    "uplink_symbols": 4,
+    "ue_count": 1,
+    "ue_static_ip": "10.0.0.2",
+    "pdu_session_5qi": 6
+  },
+  "scheduler": {
+    "required_mcs_table": 0,
+    "required_force_ul_mcs": -1
+  },
+  "profiles": [
+    {
+      "profile_id": "FAVORABLE_STABLE",
+      "trace_id": "GM_V2_FAVORABLE_STABLE_SEED_2026082101",
+      "seed": 2026082101,
+      "trace_sha256": "8cad86e2e1ee98176c75b872132eb68f7d770f889d7330fa4a9932c45c172de6",
+      "transition_matrix": [[0.8, 0.2, 0.0], [0.05, 0.85, 0.1], [0.0, 0.02, 0.98]],
+      "sample_4200_state_index": 2,
+      "sample_4200_target_snr_db": 21.49202630981798
+    },
+    {
+      "profile_id": "MID_VARIABLE",
+      "trace_id": "GM_V2_MID_VARIABLE_SEED_2026082102",
+      "seed": 2026082102,
+      "trace_sha256": "0d2ef7ff9e7f342c772d0d88a4cec4e9ce9ac1c9946c1402d3087c55c8f0f811",
+      "transition_matrix": [[0.85, 0.15, 0.0], [0.05, 0.9, 0.05], [0.0, 0.15, 0.85]],
+      "sample_4200_state_index": 1,
+      "sample_4200_target_snr_db": 15.110631344123627
+    },
+    {
+      "profile_id": "ADVERSE_STABLE",
+      "trace_id": "GM_V2_ADVERSE_STABLE_SEED_2026082103",
+      "seed": 2026082103,
+      "trace_sha256": "380925bb530945b11b8e79ab93e88d5a555de540ce859756d6c5ad08584e98a0",
+      "transition_matrix": [[0.98, 0.02, 0.0], [0.1, 0.85, 0.05], [0.0, 0.2, 0.8]],
+      "sample_4200_state_index": 0,
+      "sample_4200_target_snr_db": 7.825044115452667
+    },
+    {
+      "profile_id": "FADE_RECOVERY",
+      "trace_id": "GM_V2_FADE_RECOVERY_SEED_2026082104",
+      "seed": 2026082104,
+      "trace_sha256": "ef2ae2d6448d9c7f3208bc81123d301a1a9f5d9b16be3bac4412c8cecf94e7c0",
+      "transition_matrix": [[0.97, 0.03, 0.0], [0.01, 0.98, 0.01], [0.0, 0.03, 0.97]],
+      "sample_4200_state_index": 1,
+      "sample_4200_target_snr_db": 16.765681420544418
+    }
+  ],
+  "replay": {
+    "samples_per_profile": 4200,
+    "sample_period_ms": 100,
+    "duration_s_per_profile": 420.0,
+    "command_granularity_db": 0.25,
+    "measured_mapping_lower_db": 5.0,
+    "measured_mapping_upper_db": 25.5,
+    "target_lower_db": 5.5,
+    "target_upper_db": 24.5,
+    "profile_clean_lead_s": 1.0,
+    "catch_up_policy": "SKIP_OBSOLETE_NEVER_BURST",
+    "reference_prefix_is_runtime_cap": false,
+    "continuation": "CONTINUE_SAME_RNG_AND_MARKOV_STATE_AFTER_SAMPLE_4199",
+    "campaign_cell_start": "SAMPLE_ZERO",
+    "forbidden_continuation": ["WRAP", "HOLD_FINAL", "RESEED"]
+  },
+  "observation_alignment": {
+    "timestamp_semantics": "COLLECTOR_INGEST_MONOTONIC_NOT_RF_APPLICATION_TIMESTAMP",
+    "command_ack_guard_ms": 15.0,
+    "guard_basis": "GREATER_THAN_PHASE14A_100MHZ_MAX_OBSERVED_TRACER_INGEST_DELAY_11.854475_MS",
+    "window_start": "COMMAND_ACK_MONOTONIC_PLUS_FIXED_GUARD",
+    "window_end": "MINIMUM_OF_ABSOLUTE_INTERVAL_END_AND_NEXT_COMMAND_SEND",
+    "minimum_pusch_samples_per_window": 3,
+    "minimum_mcs_samples_per_window": 1,
+    "empty_and_underpopulated_windows_are_explicit": true,
+    "posthoc_lag_or_window_optimization_forbidden": true
+  },
+  "traffic": {
+    "method": "CARLA_SHAPED_UDP_10HZ_WITHOUT_CARLA",
+    "fps": 10.0,
+    "total_frames": 18000,
+    "frame_bytes": 25000,
+    "chunk_bytes": 60000,
+    "remote_port": 56140,
+    "sink_timeout_s": 10.0,
+    "constant_across_profiles": true
+  },
+  "acceptance": {
+    "minimum_command_ack_ratio": 0.99,
+    "maximum_command_ack_p95_ms": 100.0,
+    "minimum_observation_coverage": 0.90,
+    "maximum_tracking_mae_db": 1.5,
+    "maximum_absolute_bias_db": 1.0,
+    "maximum_tracking_p95_absolute_error_db": 3.0,
+    "reported_quantiles": [0.05, 0.25, 0.5, 0.75, 0.95],
+    "fade_recovery": {
+      "large_step_threshold_db": 3.0,
+      "expected_state_transition_count": 104,
+      "expected_large_step_count": 345,
+      "minimum_subset_observation_coverage": 0.80,
+      "maximum_subset_mae_db": 2.0,
+      "maximum_subset_absolute_bias_db": 1.5,
+      "maximum_subset_p95_absolute_error_db": 4.0
+    },
+    "old_40mhz_replay_is_evidence": false,
+    "old_40mhz_gate_rationale_only": true
+  },
+  "durability": {
+    "create_only_initial_run": true,
+    "immutable_run_manifest": "run_manifest.json",
+    "profile_record_directory": "profiles",
+    "resume_reuses_only_accepted_atomic_profile_records": true,
+    "partial_profile_recording": "MEMORY_ONLY_DISCARDED_AND_REPLAYED_FROM_SAMPLE_ZERO",
+    "final_artifacts": [
+      "qualification.json",
+      "profile_summary.csv",
+      "REPORT.md",
+      "artifact_manifest.json",
+      "SPLITFUSION_PHASE14B_FOUR_PROFILE_REPLAY_QUALIFIED"
+    ],
+    "raw_tracer_or_traffic_logs_in_final_output": false,
+    "clean_restore_noise_power_db": -50.0
+  }
+}
