@@ -492,22 +492,117 @@ def materialize_radio(config_path: Path, binding_path: Path, output_value: str) 
     return materialized
 
 
-def process_rows(name: str) -> list[tuple[int, str]]:
+PERMITTED_SOFTMODEM_WRAPPER_EXECUTABLES = frozenset(
+    {"bash", "dash", "env", "nohup", "setsid", "sh", "sudo"}
+)
+
+
+def process_table() -> list[dict[str, Any]]:
+    # procps EXE is the resolved /proc/<pid>/exe target.  Query it as root so
+    # root-owned softmodems cannot be mistaken for their sudo/shell wrappers.
     completed = subprocess.run(
-        ["pgrep", "-a", "-x", name],
+        ["sudo", "-n", "ps", "-eo", "pid=,ppid=,comm=,exe=,args="],
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         check=False,
     )
-    if completed.returncode not in (0, 1):
-        raise Phase14AError(f"process query failed for {name}: {completed.stderr.strip()}")
-    rows: list[tuple[int, str]] = []
+    require(completed.returncode == 0, f"process query failed: {completed.stderr.strip()}")
+    rows: list[dict[str, Any]] = []
     for line in completed.stdout.splitlines():
-        pid_text, separator, command = line.strip().partition(" ")
-        require(separator != "" and pid_text.isdigit(), f"malformed process row: {line!r}")
-        rows.append((int(pid_text), command))
+        fields = line.strip().split(None, 4)
+        require(len(fields) >= 4, f"malformed process row: {line!r}")
+        pid_text, ppid_text, command_name, executable = fields[:4]
+        require(pid_text.isdigit() and ppid_text.isdigit(), f"malformed process row: {line!r}")
+        rows.append(
+            {
+                "pid": int(pid_text),
+                "ppid": int(ppid_text),
+                "command_name": command_name,
+                "executable": executable,
+                "command": fields[4] if len(fields) == 5 else command_name,
+            }
+        )
     return rows
+
+
+def _is_process_ancestor(
+    ancestor_pid: int,
+    descendant_pid: int,
+    parent_by_pid: Mapping[int, int],
+) -> bool:
+    current = parent_by_pid.get(descendant_pid)
+    visited: set[int] = set()
+    while current is not None and current > 0 and current not in visited:
+        if current == ancestor_pid:
+            return True
+        visited.add(current)
+        current = parent_by_pid.get(current)
+    return False
+
+
+def select_softmodem_process(
+    rows: Sequence[Mapping[str, Any]],
+    *,
+    command_name: str,
+    expected_executable: Path,
+) -> dict[str, Any]:
+    expected = str(expected_executable)
+    parent_by_pid = {int(row["pid"]): int(row["ppid"]) for row in rows}
+    matching = [row for row in rows if str(row["command_name"]) == command_name]
+    executable_matches = [
+        row for row in rows if str(row["executable"]) == expected
+    ]
+    leaves = [
+        row
+        for row in executable_matches
+        if not any(
+            int(other["pid"]) != int(row["pid"])
+            and _is_process_ancestor(int(row["pid"]), int(other["pid"]), parent_by_pid)
+            for other in executable_matches
+        )
+    ]
+    require(
+        len(leaves) == 1,
+        f"expected exactly one independent {command_name} executable leaf at {expected}, "
+        f"observed leaves={[int(row['pid']) for row in leaves]} "
+        f"matches={[int(row['pid']) for row in executable_matches]}",
+    )
+    selected = leaves[0]
+    for row in executable_matches:
+        if int(row["pid"]) != int(selected["pid"]):
+            require(
+                _is_process_ancestor(int(row["pid"]), int(selected["pid"]), parent_by_pid),
+                f"independent {command_name} executable process: {int(row['pid'])}",
+            )
+    for row in matching:
+        if str(row["executable"]) == expected:
+            continue
+        wrapper = Path(str(row["executable"])).name
+        require(
+            wrapper in PERMITTED_SOFTMODEM_WRAPPER_EXECUTABLES
+            and _is_process_ancestor(int(row["pid"]), int(selected["pid"]), parent_by_pid),
+            f"unrecognized matching {command_name} process: pid={int(row['pid'])} "
+            f"executable={row['executable']}",
+        )
+    return dict(selected)
+
+
+def running_softmodems(config: Mapping[str, Any]) -> dict[str, dict[str, Any]]:
+    rows = process_table()
+    build = repo_path(str(config["paths"]["oai_ran_build"]))
+    return {
+        "gnb": select_softmodem_process(
+            rows,
+            command_name="nr-softmodem",
+            expected_executable=(build / "nr-softmodem").resolve(strict=True),
+        ),
+        "ue": select_softmodem_process(
+            rows,
+            command_name="nr-uesoftmodem",
+            expected_executable=(build / "nr-uesoftmodem").resolve(strict=True),
+        ),
+    }
 
 
 def tunnel_ip(interface: str) -> str | None:
@@ -560,12 +655,12 @@ def attached_radio_snapshot(
             sha256_file(path) == materialization[f"effective_{prefix}_sha256"],
             f"effective {prefix} config hash drift",
         )
-    gnb = process_rows("nr-softmodem")
-    ue = process_rows("nr-uesoftmodem")
-    require(len(gnb) == 1 and len(ue) == 1, f"expected one gNB/UE process, observed {gnb}/{ue}")
+    softmodems = running_softmodems(config)
+    gnb = softmodems["gnb"]
+    ue = softmodems["ue"]
     radio = config["radio"]
-    gnb_cmd = gnb[0][1]
-    ue_cmd = ue[0][1]
+    gnb_cmd = str(gnb["command"])
+    ue_cmd = str(ue["command"])
     require(str(materialization["effective_gnb_path"]) in gnb_cmd, "gNB did not use materialized 100-MHz config")
     require("--rfsim" in gnb_cmd and "--rfsimulator.[0].options chanmod" in gnb_cmd, "gNB RFsim/chanmod binding missing")
     require("--telnetsrv" in gnb_cmd, "gNB calibration control server is absent")
@@ -588,9 +683,9 @@ def attached_radio_snapshot(
         "radio_materialization_sha256": sha256_file(materialization_path),
         "effective_gnb_sha256": materialization["effective_gnb_sha256"],
         "effective_ue_sha256": materialization["effective_ue_sha256"],
-        "gnb_pid": gnb[0][0],
+        "gnb_pid": int(gnb["pid"]),
         "gnb_command_sha256": sha256_bytes(gnb_cmd.encode()),
-        "ue_pid": ue[0][0],
+        "ue_pid": int(ue["pid"]),
         "ue_command_sha256": sha256_bytes(ue_cmd.encode()),
         "ue_interface": radio["ue_interface"],
         "ue_static_ip": observed_ip,
@@ -844,8 +939,7 @@ class AttachedCalibration:
 
     def health(self) -> None:
         radio = self.config["radio"]
-        require(len(process_rows("nr-softmodem")) == 1, "gNB process count changed")
-        require(len(process_rows("nr-uesoftmodem")) == 1, "UE process count changed")
+        running_softmodems(self.config)
         require(tunnel_ip(str(radio["ue_interface"])) == radio["ue_static_ip"], "UE tunnel identity changed")
         for process in self.processes:
             require(process.process.poll() is None, f"runner-owned process exited: {process.name}")

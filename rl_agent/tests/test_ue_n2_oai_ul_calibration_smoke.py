@@ -9,6 +9,7 @@ from datetime import datetime
 from pathlib import Path
 from unittest import mock
 
+import rl_agent.splitfusion_phase14a_100mhz_calibration_v1 as phase14a
 import rl_agent.ue_n2_oai_ul_calibration_smoke as n2
 
 
@@ -78,6 +79,54 @@ class UEN2OwnedRunnerTests(unittest.TestCase):
 
     def runner(self, name: str = "run") -> n2.Runner:
         return n2.Runner(n2.DEFAULT_CONFIG, self.root / name)
+
+    def test_phase14a_process_topology_selects_one_executable_leaf(self) -> None:
+        expected = Path("/opt/oai/nr-softmodem")
+        rows = [
+            {
+                "pid": 10,
+                "ppid": 1,
+                "command_name": "nr-softmodem",
+                "executable": "/usr/bin/sudo",
+                "command": "sudo nr-softmodem",
+            },
+            {
+                "pid": 11,
+                "ppid": 10,
+                "command_name": "nr-softmodem",
+                "executable": "/usr/bin/bash",
+                "command": "bash nr-softmodem",
+            },
+            {
+                "pid": 12,
+                "ppid": 11,
+                "command_name": "nr-softmodem",
+                "executable": str(expected),
+                "command": str(expected),
+            },
+        ]
+        selected = phase14a.select_softmodem_process(
+            rows,
+            command_name="nr-softmodem",
+            expected_executable=expected,
+        )
+        self.assertEqual(selected["pid"], 12)
+
+        rows.append(
+            {
+                "pid": 20,
+                "ppid": 1,
+                "command_name": "nr-softmodem",
+                "executable": str(expected),
+                "command": str(expected),
+            }
+        )
+        with self.assertRaisesRegex(phase14a.Phase14AError, "exactly one independent"):
+            phase14a.select_softmodem_process(
+                rows,
+                command_name="nr-softmodem",
+                expected_executable=expected,
+            )
 
     def test_config_freezes_bounded_partial_smoke(self) -> None:
         self.assertEqual(self.config["schedule"]["commanded_noise_plateaus_db"], ["-10", "-8", "-5", "-4"])
