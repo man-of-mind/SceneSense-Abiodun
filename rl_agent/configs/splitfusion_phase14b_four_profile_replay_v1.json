@@ -76,6 +76,17 @@
     "ue_static_ip": "10.0.0.2",
     "pdu_session_5qi": 6
   },
+  "radio_lifecycle": {
+    "scope": "ONE_FRESH_OAI_RFSIM_LIFECYCLE_PER_PROFILE",
+    "launcher_execution_token": "SPLITFUSION_OAI_100MHZ_4D5U_ATTACH",
+    "launcher_timeout_s": 180.0,
+    "fresh_attachment_per_profile": true,
+    "fresh_traffic_and_parser_state_per_profile": true,
+    "require_cold_state_before_each_profile": true,
+    "restore_noise_power_db": -50.0,
+    "full_teardown_before_next_profile": true,
+    "durable_record_after_full_teardown_only": true
+  },
   "scheduler": {
     "required_mcs_table": 0,
     "required_force_ul_mcs": -1
@@ -179,14 +190,14 @@
     "create_only_initial_run": true,
     "immutable_run_manifest": "run_manifest.json",
     "profile_record_directory": "profiles",
-    "resume_reuses_only_accepted_atomic_profile_records": true,
+    "resume_reuses_only_complete_atomic_profile_records": true,
     "partial_profile_recording": "MEMORY_ONLY_DISCARDED_AND_REPLAYED_FROM_SAMPLE_ZERO",
     "final_artifacts": [
       "qualification.json",
       "profile_summary.csv",
       "REPORT.md",
       "artifact_manifest.json",
-      "SPLITFUSION_PHASE14B_FOUR_PROFILE_REPLAY_QUALIFIED"
+      "SPLITFUSION_PHASE14B_FOUR_PROFILE_REPLAY_COMPLETE"
     ],
     "raw_tracer_or_traffic_logs_in_final_output": false,
     "clean_restore_noise_power_db": -50.0

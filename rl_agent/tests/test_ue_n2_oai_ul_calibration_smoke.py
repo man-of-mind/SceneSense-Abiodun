@@ -81,7 +81,7 @@ class UEN2OwnedRunnerTests(unittest.TestCase):
     def runner(self, name: str = "run") -> n2.Runner:
         return n2.Runner(n2.DEFAULT_CONFIG, self.root / name)
 
-    def test_phase14b_frozen_prefix_continuation_and_no_burst(self) -> None:
+    def test_phase14b_frozen_prefix_lifecycle_and_no_burst(self) -> None:
         config = phase14b.load_json(phase14b.DEFAULT_CONFIG)
         provenance = phase14b.verify_provenance(phase14b.DEFAULT_CONFIG)
         self.assertEqual(
@@ -105,6 +105,24 @@ class UEN2OwnedRunnerTests(unittest.TestCase):
             )
             self.assertNotEqual(row["continuation"], row["prefix"][0])
             self.assertNotEqual(row["continuation"], row["prefix"][-1])
+
+        radio_namespace = phase14b.resolve_radio_namespace(
+            config,
+            Path("experiments/splitfusion_oai_100mhz_4d5u_v1/focused_lifecycle_test"),
+        )
+        lifecycle = phase14b.profile_lifecycle_plan(config, radio_namespace)
+        self.assertEqual(len(lifecycle), 4)
+        self.assertEqual(len({row["radio_state_path"] for row in lifecycle}), 4)
+        self.assertTrue(all(row["requires_cold_start"] for row in lifecycle))
+        self.assertTrue(all(row["fresh_qualified_gnb_topology"] for row in lifecycle))
+        self.assertTrue(all(row["fresh_qualified_ue_topology"] for row in lifecycle))
+        self.assertTrue(all(row["fresh_traffic_process"] for row in lifecycle))
+        self.assertTrue(all(row["counters_sequence_timing_and_parser_state_reset"] for row in lifecycle))
+        self.assertTrue(all(row["generator_start_index"] == 0 for row in lifecycle))
+        self.assertTrue(all(row["settings"] == 4200 for row in lifecycle))
+        self.assertTrue(all(row["durable_record_after_full_teardown_only"] for row in lifecycle))
+        self.assertTrue(config["durability"]["resume_reuses_only_complete_atomic_profile_records"])
+        self.assertEqual(phase14b.SUCCESS_TERMINAL, "SPLITFUSION_PHASE14B_FOUR_PROFILE_REPLAY_COMPLETE")
 
         period = 100_000_000
         first = phase14b.plan_scheduler_action(
