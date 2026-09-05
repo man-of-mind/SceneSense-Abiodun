@@ -1,0 +1,212 @@
+{
+  "all_profiles_passed": false,
+  "campaign_288_authorized": false,
+  "clean_restore_verified": true,
+  "cleanup_clean": true,
+  "independent_radio_lifecycle_count": 4,
+  "mapping_qualified_for_16_cell_review": false,
+  "mapping_sha256": "841ee69e53d7325570652a0f4baa7ae7f554a2204c4e775ce963a064cabd2677",
+  "pilot_16_authorized": false,
+  "profile_count": 4,
+  "profile_order": [
+    "FAVORABLE_STABLE",
+    "MID_VARIABLE",
+    "ADVERSE_STABLE",
+    "FADE_RECOVERY"
+  ],
+  "profile_summaries": [
+    {
+      "accepted_observation_windows": 776,
+      "achieved_pusch_snr_db": {
+        "count": 776,
+        "mean": 19.734536082474225,
+        "population_stddev": 4.328127323102535,
+        "quantiles": {
+          "q05": 8.5,
+          "q25": 20.0,
+          "q50": 21.5,
+          "q75": 22.5,
+          "q95": 23.5
+        }
+      },
+      "all_gates_passed": false,
+      "bias_achieved_minus_target_db": 0.10094755491084864,
+      "command_ack_latency_ms_max": 5.632202,
+      "command_ack_latency_ms_p50": 0.10816,
+      "command_ack_latency_ms_p95": 0.34963604999999987,
+      "command_ack_ratio": 0.9947619047619047,
+      "commands_acknowledged": 4178,
+      "commands_skipped_obsolete": 22,
+      "empty_observation_windows": 2938,
+      "observation_coverage": 0.18476190476190477,
+      "observed_rntis": [
+        46613
+      ],
+      "profile_id": "FAVORABLE_STABLE",
+      "target_snr_db": {
+        "count": 4200,
+        "mean": 19.643281635191393,
+        "population_stddev": 4.013723595429981,
+        "quantiles": {
+          "q05": 9.232641937104228,
+          "q25": 19.32487172910757,
+          "q50": 21.227765456379036,
+          "q75": 22.146286384446228,
+          "q95": 23.31094191457734
+        }
+      },
+      "targets": 4200,
+      "trace_id": "GM_V2_FAVORABLE_STABLE_SEED_2026082101",
+      "trace_sha256": "8cad86e2e1ee98176c75b872132eb68f7d770f889d7330fa4a9932c45c172de6",
+      "tracking_mae_db": 0.32154637143107334,
+      "tracking_p95_absolute_error_db": 0.7202040603333923,
+      "underpopulated_observation_windows": 464
+    },
+    {
+      "accepted_observation_windows": 1874,
+      "achieved_pusch_snr_db": {
+        "count": 1874,
+        "mean": 15.03948772678762,
+        "population_stddev": 3.976255425425682,
+        "quantiles": {
+          "q05": 8.0,
+          "q25": 13.5,
+          "q50": 15.0,
+          "q75": 16.5,
+          "q95": 22.25
+        }
+      },
+      "all_gates_passed": false,
+      "bias_achieved_minus_target_db": 0.027506910424343355,
+      "command_ack_latency_ms_max": 5.669149,
+      "command_ack_latency_ms_p50": 0.223998,
+      "command_ack_latency_ms_p95": 0.4719037499999999,
+      "command_ack_ratio": 0.9952380952380953,
+      "commands_acknowledged": 4180,
+      "commands_skipped_obsolete": 20,
+      "empty_observation_windows": 771,
+      "observation_coverage": 0.4461904761904762,
+      "observed_rntis": [
+        25253
+      ],
+      "profile_id": "MID_VARIABLE",
+      "target_snr_db": {
+        "count": 4200,
+        "mean": 15.141748891401575,
+        "population_stddev": 4.246482815408543,
+        "quantiles": {
+          "q05": 7.754234631339113,
+          "q25": 13.62382718528147,
+          "q50": 15.046489771938164,
+          "q75": 16.6391871989289,
+          "q95": 22.441970795998394
+        }
+      },
+      "targets": 4200,
+      "trace_id": "GM_V2_MID_VARIABLE_SEED_2026082102",
+      "trace_sha256": "0d2ef7ff9e7f342c772d0d88a4cec4e9ce9ac1c9946c1402d3087c55c8f0f811",
+      "tracking_mae_db": 0.2533785619799706,
+      "tracking_p95_absolute_error_db": 0.6309897635570829,
+      "underpopulated_observation_windows": 1535
+    },
+    {
+      "accepted_observation_windows": 2896,
+      "achieved_pusch_snr_db": {
+        "count": 2896,
+        "mean": 10.168508287292818,
+        "population_stddev": 3.5463774683078193,
+        "quantiles": {
+          "q05": 7.0,
+          "q25": 8.0,
+          "q50": 8.5,
+          "q75": 10.5,
+          "q95": 17.0
+        }
+      },
+      "all_gates_passed": false,
+      "bias_achieved_minus_target_db": -0.057409773338824084,
+      "command_ack_latency_ms_max": 4.505094,
+      "command_ack_latency_ms_p50": 0.1084605,
+      "command_ack_latency_ms_p95": 0.36561325,
+      "command_ack_ratio": 0.9957142857142857,
+      "commands_acknowledged": 4182,
+      "commands_skipped_obsolete": 18,
+      "empty_observation_windows": 770,
+      "observation_coverage": 0.6895238095238095,
+      "observed_rntis": [
+        61106
+      ],
+      "profile_id": "ADVERSE_STABLE",
+      "target_snr_db": {
+        "count": 4200,
+        "mean": 9.94590788997401,
+        "population_stddev": 3.543769089708599,
+        "quantiles": {
+          "q05": 6.697346500249679,
+          "q25": 7.817082737627308,
+          "q50": 8.74063338782694,
+          "q75": 10.105617975062547,
+          "q95": 16.559050633165167
+        }
+      },
+      "targets": 4200,
+      "trace_id": "GM_V2_ADVERSE_STABLE_SEED_2026082103",
+      "trace_sha256": "380925bb530945b11b8e79ab93e88d5a555de540ce859756d6c5ad08584e98a0",
+      "tracking_mae_db": 0.21447896066447092,
+      "tracking_p95_absolute_error_db": 0.5414270999851416,
+      "underpopulated_observation_windows": 516
+    },
+    {
+      "accepted_observation_windows": 578,
+      "achieved_pusch_snr_db": {
+        "count": 578,
+        "mean": 15.289792387543253,
+        "population_stddev": 4.350398656331141,
+        "quantiles": {
+          "q05": 7.5,
+          "q25": 13.5,
+          "q50": 15.5,
+          "q75": 17.0,
+          "q95": 22.5
+        }
+      },
+      "all_gates_passed": false,
+      "bias_achieved_minus_target_db": -0.0006687667840902825,
+      "command_ack_latency_ms_max": 4.634692,
+      "command_ack_latency_ms_p50": 0.108359,
+      "command_ack_latency_ms_p95": 0.35898439999999987,
+      "command_ack_ratio": 0.9935714285714285,
+      "commands_acknowledged": 4173,
+      "commands_skipped_obsolete": 27,
+      "empty_observation_windows": 3186,
+      "observation_coverage": 0.1376190476190476,
+      "observed_rntis": [
+        47552
+      ],
+      "profile_id": "FADE_RECOVERY",
+      "target_snr_db": {
+        "count": 4200,
+        "mean": 15.764132817201215,
+        "population_stddev": 4.302089770716438,
+        "quantiles": {
+          "q05": 7.860569969059061,
+          "q25": 13.9607916562357,
+          "q50": 15.26600183875069,
+          "q75": 19.36868312714005,
+          "q95": 22.636113681408315
+        }
+      },
+      "targets": 4200,
+      "trace_id": "GM_V2_FADE_RECOVERY_SEED_2026082104",
+      "trace_sha256": "ef2ae2d6448d9c7f3208bc81123d301a1a9f5d9b16be3bac4412c8cecf94e7c0",
+      "tracking_mae_db": 0.2681828299847542,
+      "tracking_p95_absolute_error_db": 0.7189301189668961,
+      "underpopulated_observation_windows": 409
+    }
+  ],
+  "radio_profile_id": "OAI_N78_100MHZ_273PRB_4D5U_V1",
+  "schema": "scenesense.splitfusion_phase14b_four_profile_replay.v1",
+  "status": "FOUR_PROFILE_REPLAY_COMPLETE",
+  "targets_per_profile": 4200,
+  "total_scheduled_targets": 16800
+}

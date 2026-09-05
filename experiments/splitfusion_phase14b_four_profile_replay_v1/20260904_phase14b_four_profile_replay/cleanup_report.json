@@ -1,0 +1,13 @@
+{
+  "attached_oai_processes_stopped": true,
+  "cleanup_clean": true,
+  "errors": [],
+  "independent_radio_lifecycle_count": 4,
+  "oai_core_containers_stopped": true,
+  "restore_target_noise_power_db": -50.0,
+  "restore_verified": true,
+  "runner_owned_processes_stopped": true,
+  "schema": "scenesense.splitfusion_phase14b_cleanup.v1",
+  "temporary_raw_tracer_and_traffic_logs_removed": true,
+  "ue_tunnels_removed": true
+}
