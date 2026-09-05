@@ -495,13 +495,16 @@ def materialize_radio(config_path: Path, binding_path: Path, output_value: str) 
 PERMITTED_SOFTMODEM_WRAPPER_EXECUTABLES = frozenset(
     {"bash", "dash", "env", "nohup", "setsid", "sh", "sudo"}
 )
+EXPECTED_SOFTMODEM_PROCESS_COUNT = 3
+RFSIM_TCP_PORT = 4043
+UE_T_TRACER_PORT = 2023
 
 
 def process_table() -> list[dict[str, Any]]:
     # procps EXE is the resolved /proc/<pid>/exe target.  Query it as root so
     # root-owned softmodems cannot be mistaken for their sudo/shell wrappers.
     completed = subprocess.run(
-        ["sudo", "-n", "ps", "-eo", "pid=,ppid=,comm=,exe=,args="],
+        ["sudo", "-n", "ps", "-eo", "pid=,ppid=,pgid=,sid=,comm=,exe=,args="],
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -510,17 +513,22 @@ def process_table() -> list[dict[str, Any]]:
     require(completed.returncode == 0, f"process query failed: {completed.stderr.strip()}")
     rows: list[dict[str, Any]] = []
     for line in completed.stdout.splitlines():
-        fields = line.strip().split(None, 4)
-        require(len(fields) >= 4, f"malformed process row: {line!r}")
-        pid_text, ppid_text, command_name, executable = fields[:4]
-        require(pid_text.isdigit() and ppid_text.isdigit(), f"malformed process row: {line!r}")
+        fields = line.strip().split(None, 6)
+        require(len(fields) >= 6, f"malformed process row: {line!r}")
+        pid_text, ppid_text, pgid_text, sid_text, command_name, executable = fields[:6]
+        require(
+            all(value.isdigit() for value in (pid_text, ppid_text, pgid_text, sid_text)),
+            f"malformed process row: {line!r}",
+        )
         rows.append(
             {
                 "pid": int(pid_text),
                 "ppid": int(ppid_text),
+                "process_group_id": int(pgid_text),
+                "session_id": int(sid_text),
                 "command_name": command_name,
                 "executable": executable,
-                "command": fields[4] if len(fields) == 5 else command_name,
+                "command": fields[6] if len(fields) == 7 else command_name,
             }
         )
     return rows
@@ -546,6 +554,8 @@ def select_softmodem_process(
     *,
     command_name: str,
     expected_executable: Path,
+    service_endpoint_owner_pids: set[int] | None = None,
+    tracer_endpoint_owner_pids: set[int] | None = None,
 ) -> dict[str, Any]:
     expected = str(expected_executable)
     parent_by_pid = {int(row["pid"]): int(row["ppid"]) for row in rows}
@@ -553,28 +563,38 @@ def select_softmodem_process(
     executable_matches = [
         row for row in rows if str(row["executable"]) == expected
     ]
-    leaves = [
+    roots = [
         row
         for row in executable_matches
-        if not any(
-            int(other["pid"]) != int(row["pid"])
-            and _is_process_ancestor(int(row["pid"]), int(other["pid"]), parent_by_pid)
-            for other in executable_matches
-        )
+        if int(row["ppid"]) not in {int(other["pid"]) for other in executable_matches}
     ]
     require(
-        len(leaves) == 1,
-        f"expected exactly one independent {command_name} executable leaf at {expected}, "
-        f"observed leaves={[int(row['pid']) for row in leaves]} "
-        f"matches={[int(row['pid']) for row in executable_matches]}",
+        len(executable_matches) == EXPECTED_SOFTMODEM_PROCESS_COUNT and len(roots) == 1,
+        f"expected exactly one {command_name} service topology containing one main and "
+        f"two same-executable workers at {expected}, observed roots="
+        f"{[int(row['pid']) for row in roots]} matches="
+        f"{[int(row['pid']) for row in executable_matches]}",
     )
-    selected = leaves[0]
-    for row in executable_matches:
-        if int(row["pid"]) != int(selected["pid"]):
-            require(
-                _is_process_ancestor(int(row["pid"]), int(selected["pid"]), parent_by_pid),
-                f"independent {command_name} executable process: {int(row['pid'])}",
-            )
+    selected = roots[0]
+    selected_pid = int(selected["pid"])
+    workers = [row for row in executable_matches if int(row["ppid"]) == selected_pid]
+    require(
+        len(workers) == 2
+        and {int(row["pid"]) for row in executable_matches}
+        == {selected_pid, *(int(row["pid"]) for row in workers)},
+        f"{command_name} topology is not one main with exactly two direct workers: "
+        f"main={selected_pid} rows="
+        f"{[(int(row['pid']), int(row['ppid'])) for row in executable_matches]}",
+    )
+    require(
+        len({int(row["process_group_id"]) for row in executable_matches}) == 1
+        and len({int(row["session_id"]) for row in executable_matches}) == 1,
+        f"{command_name} main/workers do not share one process group and session",
+    )
+    require(
+        len({str(row["command"]) for row in executable_matches}) == 1,
+        f"{command_name} main/workers do not share the launched argv",
+    )
     for row in matching:
         if str(row["executable"]) == expected:
             continue
@@ -585,22 +605,137 @@ def select_softmodem_process(
             f"unrecognized matching {command_name} process: pid={int(row['pid'])} "
             f"executable={row['executable']}",
         )
-    return dict(selected)
+
+    worker_pids = {int(row["pid"]) for row in workers}
+    topology: dict[str, Any] = {
+        "schema": "scenesense.oai_softmodem_fork_topology.v1",
+        "source_contract": {
+            "main_calls_start_background_system": True,
+            "background_system_direct_child_count": 1,
+            "t_config_init_direct_child_count": 1,
+        },
+        "main_pid": selected_pid,
+        "worker_pids": sorted(worker_pids),
+        "same_executable_process_count": len(executable_matches),
+        "process_group_id": int(selected["process_group_id"]),
+        "session_id": int(selected["session_id"]),
+    }
+    if service_endpoint_owner_pids is not None or tracer_endpoint_owner_pids is not None:
+        require(
+            service_endpoint_owner_pids == {selected_pid},
+            f"{command_name} service endpoint owners are not exactly the main: "
+            f"{sorted(service_endpoint_owner_pids or set())}",
+        )
+        tracer_workers = worker_pids & (tracer_endpoint_owner_pids or set())
+        require(
+            tracer_endpoint_owner_pids == tracer_workers and len(tracer_workers) == 1,
+            f"{command_name} tracer endpoint is not owned by exactly one direct worker: "
+            f"{sorted(tracer_endpoint_owner_pids or set())}",
+        )
+        tracer_pid = next(iter(tracer_workers))
+        background_pid = next(iter(worker_pids - {tracer_pid}))
+        topology.update(
+            {
+                "tracer_worker_pid": tracer_pid,
+                "background_system_worker_pid": background_pid,
+                "endpoint_roles_verified": True,
+            }
+        )
+    else:
+        topology["endpoint_roles_verified"] = False
+    result = dict(selected)
+    result["topology"] = topology
+    return result
 
 
-def running_softmodems(config: Mapping[str, Any]) -> dict[str, dict[str, Any]]:
+def tcp_process_sockets() -> list[dict[str, Any]]:
+    completed = subprocess.run(
+        ["sudo", "-n", "ss", "-H", "-tanp"],
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    require(completed.returncode == 0, f"TCP process socket query failed: {completed.stderr.strip()}")
+    sockets: list[dict[str, Any]] = []
+    for line in completed.stdout.splitlines():
+        fields = line.split()
+        require(len(fields) >= 5, f"malformed TCP socket row: {line!r}")
+        sockets.append(
+            {
+                "state": fields[0],
+                "local_port": _socket_endpoint_port(fields[3]),
+                "peer_port": _socket_endpoint_port(fields[4]),
+                "owner_pids": {int(value) for value in re.findall(r"pid=(\d+)", line)},
+            }
+        )
+    return sockets
+
+
+def _socket_endpoint_port(endpoint: str) -> int | None:
+    value = endpoint.rsplit(":", 1)[-1]
+    return int(value) if value.isdigit() else None
+
+
+def endpoint_owner_pids(
+    sockets: Sequence[Mapping[str, Any]],
+    *,
+    local_port: int | None = None,
+    peer_port: int | None = None,
+) -> set[int]:
+    require((local_port is None) != (peer_port is None), "exactly one endpoint port is required")
+    field = "local_port" if local_port is not None else "peer_port"
+    port = local_port if local_port is not None else peer_port
+    return {
+        int(pid)
+        for row in sockets
+        if row[field] == port
+        for pid in row["owner_pids"]
+    }
+
+
+def running_softmodems(
+    config: Mapping[str, Any],
+    *,
+    verify_endpoint_roles: bool = False,
+) -> dict[str, dict[str, Any]]:
     rows = process_table()
     build = repo_path(str(config["paths"]["oai_ran_build"]))
+    sockets = tcp_process_sockets() if verify_endpoint_roles else []
+    require(not verify_endpoint_roles or sockets, "no TCP process sockets available for role validation")
+    gnb_service_owners = (
+        endpoint_owner_pids(sockets, local_port=RFSIM_TCP_PORT)
+        if verify_endpoint_roles
+        else None
+    )
+    gnb_tracer_owners = endpoint_owner_pids(
+        sockets,
+        local_port=int(config["telemetry"]["gnb_port"]),
+    ) if verify_endpoint_roles else None
+    ue_service_owners = (
+        endpoint_owner_pids(sockets, peer_port=RFSIM_TCP_PORT)
+        if verify_endpoint_roles
+        else None
+    )
+    ue_tracer_owners = (
+        endpoint_owner_pids(sockets, local_port=UE_T_TRACER_PORT)
+        if verify_endpoint_roles
+        else None
+    )
     return {
         "gnb": select_softmodem_process(
             rows,
             command_name="nr-softmodem",
             expected_executable=(build / "nr-softmodem").resolve(strict=True),
+            service_endpoint_owner_pids=gnb_service_owners,
+            tracer_endpoint_owner_pids=gnb_tracer_owners,
         ),
         "ue": select_softmodem_process(
             rows,
             command_name="nr-uesoftmodem",
             expected_executable=(build / "nr-uesoftmodem").resolve(strict=True),
+            service_endpoint_owner_pids=ue_service_owners,
+            tracer_endpoint_owner_pids=ue_tracer_owners,
         ),
     }
 
@@ -655,7 +790,7 @@ def attached_radio_snapshot(
             sha256_file(path) == materialization[f"effective_{prefix}_sha256"],
             f"effective {prefix} config hash drift",
         )
-    softmodems = running_softmodems(config)
+    softmodems = running_softmodems(config, verify_endpoint_roles=True)
     gnb = softmodems["gnb"]
     ue = softmodems["ue"]
     radio = config["radio"]
@@ -685,8 +820,10 @@ def attached_radio_snapshot(
         "effective_ue_sha256": materialization["effective_ue_sha256"],
         "gnb_pid": int(gnb["pid"]),
         "gnb_command_sha256": sha256_bytes(gnb_cmd.encode()),
+        "gnb_process_topology": gnb["topology"],
         "ue_pid": int(ue["pid"]),
         "ue_command_sha256": sha256_bytes(ue_cmd.encode()),
+        "ue_process_topology": ue["topology"],
         "ue_interface": radio["ue_interface"],
         "ue_static_ip": observed_ip,
         "pdu_session_5qi": int(radio["pdu_session_5qi"]),
@@ -774,6 +911,7 @@ class AttachedCalibration:
         self.current_rnti: int | None = None
         self.nonclean_attempted = False
         self.restored = False
+        self.attached_radio: dict[str, Any] | None = None
 
     def spawn(
         self,
@@ -802,6 +940,7 @@ class AttachedCalibration:
     def preflight(self) -> dict[str, Any]:
         audit = reconcile_contract(self.config_path, self.binding_path)
         radio = validate_recorded_radio(self.config_path, self.binding_path, self.radio_state)
+        self.attached_radio = radio
         carla_absent()
         require(tcp_listening(int(self.config["telemetry"]["gnb_port"])), "gNB T-tracer port is unavailable")
         require(tcp_listening(int(self.config["actuator"]["telnet_port"])), "gNB telnet actuator is unavailable")
@@ -939,7 +1078,16 @@ class AttachedCalibration:
 
     def health(self) -> None:
         radio = self.config["radio"]
-        running_softmodems(self.config)
+        require(self.attached_radio is not None, "attached radio identity was not established")
+        softmodems = running_softmodems(self.config)
+        for name in ("gnb", "ue"):
+            current = softmodems[name]["topology"]
+            recorded = self.attached_radio[f"{name}_process_topology"]
+            require(
+                current["main_pid"] == recorded["main_pid"]
+                and current["worker_pids"] == recorded["worker_pids"],
+                f"{name} process topology changed after attachment",
+            )
         require(tunnel_ip(str(radio["ue_interface"])) == radio["ue_static_ip"], "UE tunnel identity changed")
         for process in self.processes:
             require(process.process.poll() is None, f"runner-owned process exited: {process.name}")

@@ -80,12 +80,14 @@ class UEN2OwnedRunnerTests(unittest.TestCase):
     def runner(self, name: str = "run") -> n2.Runner:
         return n2.Runner(n2.DEFAULT_CONFIG, self.root / name)
 
-    def test_phase14a_process_topology_selects_one_executable_leaf(self) -> None:
+    def test_phase14a_process_topology_accepts_one_forked_service(self) -> None:
         expected = Path("/opt/oai/nr-softmodem")
         rows = [
             {
                 "pid": 10,
                 "ppid": 1,
+                "process_group_id": 10,
+                "session_id": 10,
                 "command_name": "nr-softmodem",
                 "executable": "/usr/bin/sudo",
                 "command": "sudo nr-softmodem",
@@ -93,6 +95,8 @@ class UEN2OwnedRunnerTests(unittest.TestCase):
             {
                 "pid": 11,
                 "ppid": 10,
+                "process_group_id": 10,
+                "session_id": 10,
                 "command_name": "nr-softmodem",
                 "executable": "/usr/bin/bash",
                 "command": "bash nr-softmodem",
@@ -100,6 +104,26 @@ class UEN2OwnedRunnerTests(unittest.TestCase):
             {
                 "pid": 12,
                 "ppid": 11,
+                "process_group_id": 10,
+                "session_id": 10,
+                "command_name": "nr-softmodem",
+                "executable": str(expected),
+                "command": str(expected),
+            },
+            {
+                "pid": 13,
+                "ppid": 12,
+                "process_group_id": 10,
+                "session_id": 10,
+                "command_name": "nr-softmodem",
+                "executable": str(expected),
+                "command": str(expected),
+            },
+            {
+                "pid": 14,
+                "ppid": 12,
+                "process_group_id": 10,
+                "session_id": 10,
                 "command_name": "nr-softmodem",
                 "executable": str(expected),
                 "command": str(expected),
@@ -109,19 +133,28 @@ class UEN2OwnedRunnerTests(unittest.TestCase):
             rows,
             command_name="nr-softmodem",
             expected_executable=expected,
+            service_endpoint_owner_pids={12},
+            tracer_endpoint_owner_pids={14},
         )
         self.assertEqual(selected["pid"], 12)
+        self.assertEqual(selected["topology"]["background_system_worker_pid"], 13)
+        self.assertEqual(selected["topology"]["tracer_worker_pid"], 14)
 
-        rows.append(
-            {
-                "pid": 20,
-                "ppid": 1,
-                "command_name": "nr-softmodem",
-                "executable": str(expected),
-                "command": str(expected),
-            }
+        rows.extend(
+            [
+                {
+                    "pid": pid,
+                    "ppid": ppid,
+                    "process_group_id": 20,
+                    "session_id": 20,
+                    "command_name": "nr-softmodem",
+                    "executable": str(expected),
+                    "command": str(expected),
+                }
+                for pid, ppid in ((20, 1), (21, 20), (22, 20))
+            ]
         )
-        with self.assertRaisesRegex(phase14a.Phase14AError, "exactly one independent"):
+        with self.assertRaisesRegex(phase14a.Phase14AError, "exactly one.*service topology"):
             phase14a.select_softmodem_process(
                 rows,
                 command_name="nr-softmodem",
