@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import math
+import time
 from dataclasses import dataclass
 from types import MappingProxyType
 from typing import Any, Mapping
@@ -99,6 +100,7 @@ class ContextTailSnapshot:
     outputs: Mapping[str, Any]
     camera_world: torch.Tensor
     frame_context: FrameContextV1
+    camera_pose_reconstruct_ns: int
     output_tensor_count: int
     records: tuple[dict[str, Any], ...] | None = None
     serialized_records: bytes | None = None
@@ -164,9 +166,13 @@ class ContextualFrozenP025TailAdapter:
         key = (context.camera_model_sha256, context.camera_mount_sha256)
         _require(key in self._static, "tail static calibration is not preloaded")
         static = self._static[key]
+        camera_pose_reconstruct_started = time.perf_counter_ns()
         camera_world_cpu = camera_world_matrix(context, static["spec"])
         camera_world = torch.tensor(
             camera_world_cpu, dtype=torch.float64, device=self._device
+        )
+        camera_pose_reconstruct_ns = (
+            time.perf_counter_ns() - camera_pose_reconstruct_started
         )
         calibration = {
             "intrinsic": static["intrinsic"],
@@ -199,6 +205,7 @@ class ContextualFrozenP025TailAdapter:
             outputs=outputs,
             camera_world=camera_world,
             frame_context=context,
+            camera_pose_reconstruct_ns=camera_pose_reconstruct_ns,
             output_tensor_count=tensor_count,
         )
         return perception

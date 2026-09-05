@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass
 from types import MappingProxyType
 from typing import Any, Mapping
@@ -52,6 +53,7 @@ class EncodedSplitFrame:
     inner_payload_bytes: int
     outer_envelope_bytes: int
     total_transmitted_bytes: int
+    frame_context_encode_ns: int
     metadata: DispatchMetadata
     timing: TimingTrace
 
@@ -193,6 +195,7 @@ class PreloadedSplitUERuntime:
                 )
             if not isinstance(inner, bytes) or not inner:
                 raise DispatchContractError("UE codec returned an empty or non-bytes payload")
+            frame_context_encode_started = time.perf_counter_ns()
             wire = pack_envelope(
                 inner,
                 action_id=profile.action_id,
@@ -200,12 +203,16 @@ class PreloadedSplitUERuntime:
                 capture_timestamp_ns=capture_timestamp_ns,
                 frame_context=frame_context,
             )
+            frame_context_encode_ns = (
+                time.perf_counter_ns() - frame_context_encode_started
+            )
         self._counters.frames_completed += 1
         return EncodedSplitFrame(
             wire_bytes=wire,
             inner_payload_bytes=len(inner),
             outer_envelope_bytes=len(wire) - len(inner),
             total_transmitted_bytes=len(wire),
+            frame_context_encode_ns=frame_context_encode_ns,
             metadata=metadata_for(
                 profile,
                 sequence_id=sequence_id,

@@ -51,6 +51,7 @@ from pole_lraspp_multimodal_fusion.object_head_pilot_v1.splitfusion_fcos_r50_fpn
 from . import phase13b_qualification as phase13b
 from .edge_runtime import PreloadedSplitEdgeRuntime
 from .envelope import (
+    CONTEXT_FIXED_BYTES,
     CONTEXT_PROTOCOL_VERSION,
     HEADER_BYTES,
     PROTOCOL_VERSION,
@@ -82,6 +83,9 @@ PROFILE_RECORD_SCHEMA = "scenesense.splitfusion_phase13c_profile_record.v1"
 TERMINAL = "SPLITFUSION_PHASE13C_36X300_LOCALHOST_MEASUREMENT_COMPLETE"
 STARTING_HEAD = "99ab864d2962ea0742f33ea704bb967cd03ac458"
 FRAME_CONTEXT_STARTING_HEAD = "cc6bc92f6f8224fb7ab5a37c31b01a0383f7cae0"
+FRAME_CONTEXT_IMPLEMENTATION_COMMIT = "ba0c03d0711a68b5851ff5cecae551c2f8e47d3f"
+FRAME_ID_REPAIR_COMMIT = "56275cd3a0fd553268f98a873eb3e3bc9a58d34c"
+FRAME_CONTEXT_EVIDENCE_COMMIT = "3e9649e0b51e8baeb0994632db58a74d75e1f6b3"
 FRAME_CONTEXT_BINDING_RELPATH = (
     "rl_agent/splitfusion_live_dispatch_v1/frame_context_binding.json"
 )
@@ -90,6 +94,7 @@ OUTPUT_RELPATH = (
     "experiments/splitfusion_live_dispatch_v1/"
     "20260904_phase13c_36x300_localhost_measurement"
 )
+RUN_STREAM_ID = "20260904_phase13c_36x300_localhost_measurement"
 DEVICE_NAME = "NVIDIA GeForce RTX 5090"
 FRAMES = 300
 PROFILE_COUNT = 36
@@ -106,6 +111,33 @@ AUDITED_EGO_POSE_DIGEST = (
 )
 AUDITED_CAMERA_POSE_DIGEST = (
     "866fb74579c1e47f538185a9015d9626875f71d84eac8baff50877238ab8e006"
+)
+AUDITED_EPISODE_ALLOCATIONS = (34, 34, 34, 39, 40, 46, 33, 40)
+QUALIFIED_FRAME_CONTEXT_ARTIFACTS = MappingProxyType(
+    {
+        "qualification": {
+            "path": (
+                "experiments/splitfusion_live_dispatch_v1/"
+                "20260904_phase13c_frame_context_qualification_retry1/qualification.json"
+            ),
+            "sha256": "fd76558c7400b76e95139b447e67e26289eb8e3d50b6b42035ac633eb2827391",
+        },
+        "report": {
+            "path": (
+                "experiments/splitfusion_live_dispatch_v1/"
+                "20260904_phase13c_frame_context_qualification_retry1/REPORT.md"
+            ),
+            "sha256": "041b5cc12f5ab28c79d9f73bdab95787a1dc57389054483ec0c4d735d9d49f3e",
+        },
+        "terminal": {
+            "path": (
+                "experiments/splitfusion_live_dispatch_v1/"
+                "20260904_phase13c_frame_context_qualification_retry1/"
+                "SPLITFUSION_FRAME_CONTEXT_BINDING_QUALIFIED"
+            ),
+            "sha256": "852f38ae3638626f9761bccf7c5f3b1683e7f40400b5851d28d7ecbc8a0bb5d4",
+        },
+    }
 )
 PHASE13B_ARTIFACTS = MappingProxyType(
     {
@@ -139,10 +171,12 @@ LATENCY_FIELDS = (
     "ae_encode_gpu_ms",
     "quantize_pack_ms",
     "zstd_compress_ms",
+    "frame_context_encode_ms",
     "sfd1_fragment_send_ms",
     "ue_prepare_ms",
     "localhost_delivery_ms",
-    "envelope_validate_ms",
+    "envelope_context_validate_ms",
+    "camera_pose_reconstruct_ms",
     "zstd_decompress_ms",
     "dequant_scatter_ms",
     "ae_decode_gpu_ms",
@@ -157,7 +191,13 @@ LATENCY_FIELDS = (
 )
 PAYLOAD_FIELDS = (
     "scientific_inner_bytes",
-    "sfd1_bytes",
+    "sfd1_base_header_bytes",
+    "sfd1_fixed_context_bytes",
+    "sfd1_stream_id_bytes",
+    "sfd1_context_overhead_bytes",
+    "complete_sfd1_v2_bytes",
+    "udp_chunk_header_bytes",
+    "estimated_ip_udp_wire_bytes",
     "udp_application_bytes",
     "estimated_on_wire_bytes",
     "datagram_count",
@@ -248,6 +288,20 @@ def _git_output(*arguments: str) -> str:
 
 def _verify_git_state() -> dict[str, Any]:
     head = _git_output("rev-parse", "HEAD")
+    parent = _git_output("rev-parse", "HEAD^")
+    _require(
+        parent == FRAME_CONTEXT_EVIDENCE_COMMIT,
+        "Phase-13C integration commit is not directly based on the qualified evidence commit",
+    )
+    for required in (
+        FRAME_CONTEXT_IMPLEMENTATION_COMMIT,
+        FRAME_ID_REPAIR_COMMIT,
+        FRAME_CONTEXT_EVIDENCE_COMMIT,
+    ):
+        _require(
+            _git_output("merge-base", "--is-ancestor", required, head) == "",
+            f"required Phase-13C context commit is not an ancestor: {required}",
+        )
     _require(
         _git_output(
             "merge-base", "--is-ancestor", FRAME_CONTEXT_STARTING_HEAD, head
@@ -273,8 +327,12 @@ def _verify_git_state() -> dict[str, Any]:
     source = _repo_path("rl_agent/splitfusion_live_dispatch_v1/phase13c_measurement.py")
     return {
         "head": head,
+        "parent": parent,
         "starting_head": STARTING_HEAD,
         "frame_context_starting_head": FRAME_CONTEXT_STARTING_HEAD,
+        "frame_context_implementation_commit": FRAME_CONTEXT_IMPLEMENTATION_COMMIT,
+        "frame_id_repair_commit": FRAME_ID_REPAIR_COMMIT,
+        "frame_context_evidence_commit": FRAME_CONTEXT_EVIDENCE_COMMIT,
         "source_path": str(source.relative_to(_root())),
         "source_sha256": sha256_file(source),
         "expected_user_owned_dirty_paths": sorted(paths),
@@ -358,6 +416,32 @@ def _verify_frame_context_binding() -> dict[str, Any]:
         observed_historical == historical,
         "frame-context historical artifact hash drift",
     )
+    expected_integration = {
+        "starting_head": FRAME_CONTEXT_EVIDENCE_COMMIT,
+        "qualified_implementation_commit": FRAME_CONTEXT_IMPLEMENTATION_COMMIT,
+        "qualified_frame_id_repair_commit": FRAME_ID_REPAIR_COMMIT,
+        "qualified_evidence_commit": FRAME_CONTEXT_EVIDENCE_COMMIT,
+        "qualified_json_sha256": QUALIFIED_FRAME_CONTEXT_ARTIFACTS[
+            "qualification"
+        ]["sha256"],
+        "qualified_report_sha256": QUALIFIED_FRAME_CONTEXT_ARTIFACTS["report"][
+            "sha256"
+        ],
+        "qualified_terminal_sha256": QUALIFIED_FRAME_CONTEXT_ARTIFACTS[
+            "terminal"
+        ]["sha256"],
+        "semantic_change": False,
+        "measurement_only_changes": [
+            "actual SFD1 v2 frame-context encode timing",
+            "actual edge camera-pose reconstruction timing",
+            "complete SFD1 v2 and UDP byte accounting",
+            "run/profile/episode stream identity",
+        ],
+    }
+    _require(
+        document.get("phase13c_measurement_integration") == expected_integration,
+        "Phase-13C measurement integration binding drift",
+    )
     return {
         "path": FRAME_CONTEXT_BINDING_RELPATH,
         "sha256": sha256_file(path),
@@ -367,6 +451,106 @@ def _verify_frame_context_binding() -> dict[str, Any]:
         "audit": expected_audit,
         "wire": expected_wire,
         "focused_verification": focused,
+        "phase13c_measurement_integration": expected_integration,
+    }
+
+
+def _verify_qualified_frame_context_artifacts() -> dict[str, Any]:
+    artifacts: dict[str, Any] = {}
+    for name, binding in QUALIFIED_FRAME_CONTEXT_ARTIFACTS.items():
+        path = _repo_path(binding["path"])
+        observed = sha256_file(path)
+        _require(
+            observed == binding["sha256"],
+            f"qualified frame-context {name} hash drift",
+        )
+        artifacts[name] = {"path": binding["path"], "sha256": observed}
+    qualification = json.loads(
+        _repo_path(
+            QUALIFIED_FRAME_CONTEXT_ARTIFACTS["qualification"]["path"]
+        ).read_text(encoding="utf-8")
+    )
+    _require(
+        qualification.get("schema")
+        == "scenesense.splitfusion_frame_context_binding_qualification.v1"
+        and qualification.get("terminal")
+        == "SPLITFUSION_FRAME_CONTEXT_BINDING_QUALIFIED"
+        and qualification.get("status")
+        == "32_OF_32_DYNAMIC_LOCALIZATION_TRANSACTIONS_QUALIFIED",
+        "qualified frame-context schema, terminal or status drift",
+    )
+    implementation = qualification.get("implementation", {})
+    _require(
+        implementation.get("implementation_commit") == FRAME_ID_REPAIR_COMMIT
+        and implementation.get("implementation_parent")
+        == FRAME_CONTEXT_IMPLEMENTATION_COMMIT,
+        "qualified frame-context implementation transition drift",
+    )
+    gates = qualification.get("gates", {})
+    frozen_state_equal = gates.get("frozen_state_equal", {})
+    _require(
+        gates.get("expected_transactions") == 32
+        and gates.get("transactions_completed") == 32
+        and gates.get("all_reconstructed_c2_finite_fp32_cuda0") is True
+        and gates.get("all_udp_reassembly_exact") is True
+        and gates.get("context_identifiers_from_source_and_service_records") is True
+        and gates.get("classes_scores_order_nonworld_fields_bit_identical") is True
+        and gates.get("local_xyz_bit_identical") is True
+        and gates.get("segmentation_logits_and_labels_bit_identical") is True
+        and gates.get("stream_session_reset_between_profile_replays") is True
+        and set(frozen_state_equal) == {"perception", "ranker", "AE128", "AE64", "AE32"}
+        and all(frozen_state_equal.values())
+        and len(qualification.get("transactions", ())) == 32
+        and len(qualification.get("action_results", ())) == 4,
+        "qualified frame-context functional gates are incomplete",
+    )
+    _require(
+        float(gates.get("maximum_camera_matrix_error", math.inf))
+        <= float(gates.get("camera_matrix_error_bound", -1.0))
+        and float(gates.get("maximum_world_xyz_error_m", math.inf))
+        <= float(gates.get("world_coordinate_error_bound_m", -1.0))
+        and float(gates.get("maximum_service_record_world_error_m", math.inf))
+        <= float(gates.get("world_coordinate_error_bound_m", -1.0)),
+        "qualified frame-context numerical bound failed",
+    )
+    audit = qualification.get("audit_bindings", {})
+    _require(
+        audit.get("frozen_300_sample_id_sha256") == AUDITED_SAMPLE_ID_SHA256
+        and audit.get("static_camera_model_sha256")
+        == STATIC_CAMERA_MODEL_SHA256
+        and audit.get("static_camera_mount_sha256")
+        == STATIC_CAMERA_MOUNT_SHA256
+        and audit.get("ordered_ego_pose_digest") == AUDITED_EGO_POSE_DIGEST
+        and audit.get("ordered_camera_pose_digest")
+        == AUDITED_CAMERA_POSE_DIGEST,
+        "qualified frame-context audit binding drift",
+    )
+    scope = qualification.get("scope", {})
+    _require(
+        scope.get("holdout_frames_read") == 0
+        and scope.get("validation_frames_read") == 0
+        and scope.get("test_frames_read") == 0
+        and scope.get("training_tuning_scoring") is False
+        and scope.get("carla_oai_rfsim_launched") is False
+        and scope.get("retained_predictions_payloads_or_datagrams") is False,
+        "qualified frame-context scope gate drift",
+    )
+    terminal = _repo_path(QUALIFIED_FRAME_CONTEXT_ARTIFACTS["terminal"]["path"])
+    _require(
+        terminal.read_text(encoding="utf-8").strip()
+        == (
+            "SPLITFUSION_FRAME_CONTEXT_BINDING_QUALIFIED "
+            + QUALIFIED_FRAME_CONTEXT_ARTIFACTS["qualification"]["sha256"]
+        ),
+        "qualified frame-context terminal does not bind its JSON",
+    )
+    return {
+        **artifacts,
+        "evidence_commit": FRAME_CONTEXT_EVIDENCE_COMMIT,
+        "implementation_commit": FRAME_CONTEXT_IMPLEMENTATION_COMMIT,
+        "frame_id_repair_commit": FRAME_ID_REPAIR_COMMIT,
+        "transactions_completed": 32,
+        "gates": dict(gates),
     }
 
 
@@ -519,7 +703,7 @@ def _context_for(
     pose = _pose(source, "anchor")
     return build_frame_context_v1(
         stream_id=(
-            f"phase13c/{profile.profile_id}/{selected_row['episode_id']}"
+            f"{RUN_STREAM_ID}/{profile.profile_id}/{selected_row['episode_id']}"
         ),
         frame_id=int(selected_row["frame_id"]),
         sequence_id=int(message_id),
@@ -594,6 +778,11 @@ def _construct_sample() -> tuple[dict[str, Any], dict[str, Any]]:
         and sum(row["final_allocation"] for row in allocation_rows) == FRAMES
         and all(row["final_allocation"] >= 1 for row in allocation_rows),
         "largest-remainder allocation contract failed",
+    )
+    _require(
+        tuple(row["final_allocation"] for row in allocation_rows)
+        == AUDITED_EPISODE_ALLOCATIONS,
+        "audited eight-episode allocation vector drift",
     )
 
     allowed_row_fields = tuple(base.data.InferenceDataset._ROW_FIELDS) + (
@@ -791,6 +980,8 @@ def _construct_sample() -> tuple[dict[str, Any], dict[str, Any]]:
                 "static_camera_mount_sha256": STATIC_CAMERA_MOUNT_SHA256,
                 "static_intrinsic_tensor_sha256": STATIC_INTRINSIC_TENSOR_SHA256,
                 "static_intrinsic_identity_count": len(intrinsic_bindings),
+                "static_camera_model_identity_count": 1,
+                "static_mount_identity_count": 1,
                 "legacy_full_calibration_identity_count": len(
                     set(calibration_identities)
                 ),
@@ -1337,6 +1528,7 @@ def _build_manifest(
     phase13a: Mapping[str, Any],
     phase13b_binding: Mapping[str, Any],
     frame_context_binding: Mapping[str, Any],
+    qualified_frame_context: Mapping[str, Any],
     registry: SplitActionRegistry,
     profiles: Sequence[ActionProfile],
     sample: Mapping[str, Any],
@@ -1361,6 +1553,7 @@ def _build_manifest(
                 "phase13a": dict(phase13a),
                 "phase13b": dict(phase13b_binding),
                 "frame_context_binding": dict(frame_context_binding),
+                "qualified_frame_context": dict(qualified_frame_context),
                 "runtime_binding": {
                     "path": str(runtime_binding_path.relative_to(_root())),
                     "sha256": sha256_file(runtime_binding_path),
@@ -1396,6 +1589,12 @@ def _build_manifest(
                 "pipelining": False,
                 "c2_reuse": False,
                 "raw_input_may_remain_resident_within_source_frame": True,
+                "stream_identity_prefix": RUN_STREAM_ID,
+                "stream_identity_fields": [
+                    "measurement_run",
+                    "profile_id",
+                    "episode_id",
+                ],
                 "transport_layout": "CURRENT_CELL_MAJOR",
                 "zstd_level": 1,
                 "measurement_class": "live CUDA/localhost replay",
@@ -1423,10 +1622,12 @@ def _build_manifest(
                     "ae_encode_gpu_ms": "CUDA-event selected AE encode duration; exact zero for noAE",
                     "quantize_pack_ms": "existing UE quantize_pack host boundary",
                     "zstd_compress_ms": "existing UE mandatory-zstd compression host boundary",
+                    "frame_context_encode_ms": "host construction of FrameContext plus actual SFD1 v2 envelope encoding",
                     "sfd1_fragment_send_ms": "host chunk construction through last UDP send completion",
-                    "ue_prepare_ms": "existing total UE prepare boundary including SFD1 construction",
+                    "ue_prepare_ms": "host boundary from context construction start through UE prepare return",
                     "localhost_delivery_ms": "immediately before first send through receiver reassembly completion",
-                    "envelope_validate_ms": "combined SFD1/catalog prefix before zstd-decompression boundary",
+                    "envelope_context_validate_ms": "combined SFD1 v2 context/session/catalog validation prefix before zstd-decompression boundary",
+                    "camera_pose_reconstruct_ms": "host camera-world reconstruction from transmitted ego pose and the preloaded mount",
                     "zstd_decompress_ms": "existing edge zstd-decompression host boundary",
                     "dequant_scatter_ms": "existing edge unpack_dequantize host boundary",
                     "ae_decode_gpu_ms": "CUDA-event selected AE decode duration; exact zero for noAE",
@@ -1472,6 +1673,34 @@ def _build_manifest(
                 "secondary_compression": False,
                 "retransmission": False,
                 "localhost_diagnostic_not_oai_binding": True,
+            },
+            "byte_accounting": {
+                "payload_fields": list(PAYLOAD_FIELDS),
+                "sfd1_base_header_bytes": HEADER_BYTES,
+                "sfd1_fixed_context_bytes": CONTEXT_FIXED_BYTES,
+                "udp_chunk_header_bytes_per_datagram": CHUNK_HEADER.size,
+                "estimated_ipv4_udp_bytes_per_datagram": 28,
+                "equations_verified_per_transaction": {
+                    "sfd1_context_overhead_bytes": (
+                        "sfd1_fixed_context_bytes + sfd1_stream_id_bytes"
+                    ),
+                    "complete_sfd1_v2_bytes": (
+                        "scientific_inner_bytes + sfd1_base_header_bytes + "
+                        "sfd1_context_overhead_bytes"
+                    ),
+                    "udp_chunk_header_bytes": (
+                        "datagram_count * udp_chunk_header_bytes_per_datagram"
+                    ),
+                    "estimated_ip_udp_wire_bytes": (
+                        "datagram_count * estimated_ipv4_udp_bytes_per_datagram"
+                    ),
+                    "udp_application_bytes": (
+                        "complete_sfd1_v2_bytes + udp_chunk_header_bytes"
+                    ),
+                    "estimated_on_wire_bytes": (
+                        "udp_application_bytes + estimated_ip_udp_wire_bytes"
+                    ),
+                },
             },
             "environment": {
                 **dict(gpu),
@@ -1720,12 +1949,13 @@ def _transaction(
     ue_before = runtime["ue"].counters
     edge_before = runtime["edge"].counters
     calls_before = ledger.snapshot("live")
+    timers.reset()
+    capture_started = time.perf_counter_ns()
     context = _context_for(selected_row, profile, message_id)
+    context_constructed = time.perf_counter_ns()
     sequence_id = context.sequence_id
     capture_timestamp_ns = context.capture_timestamp_ns
-    timers.reset()
 
-    capture_started = time.perf_counter_ns()
     with phase13b._hot_path_guard():
         with ledger.section("live"):
             prepared = runtime["ue"].prepare(
@@ -1769,6 +1999,12 @@ def _transaction(
         "SFD1 frame-context propagation drift",
     )
     _require(
+        context.frame_id == int(selected_row["frame_id"])
+        and context.stream_id
+        == f"{RUN_STREAM_ID}/{profile.profile_id}/{selected_row['episode_id']}",
+        "source frame or stream identity drift",
+    )
+    _require(
         outer.inner_payload_length
         == prepared.inner_payload_bytes
         == result.scientific_inner_payload_bytes,
@@ -1778,7 +2014,10 @@ def _transaction(
         outer.control_overhead_bytes
         == prepared.outer_envelope_bytes
         == result.framing_control_overhead_bytes
-        and outer.control_overhead_bytes > HEADER_BYTES,
+        and outer.control_overhead_bytes
+        == HEADER_BYTES
+        + CONTEXT_FIXED_BYTES
+        + len(context.stream_id.encode("utf-8")),
         "SFD1 control overhead drift",
     )
     _require(
@@ -1820,9 +2059,10 @@ def _transaction(
     _require(
         all(
             record["stream_id"] == context.stream_id
-            and int(record["frame_id"]) == context.frame_id
-            and int(record["capture_timestamp_ns"])
-            == context.capture_timestamp_ns
+            and type(record["frame_id"]) is int
+            and record["frame_id"] == context.frame_id
+            and type(record["capture_timestamp_ns"]) is int
+            and record["capture_timestamp_ns"] == context.capture_timestamp_ns
             for record in snapshot.records
         ),
         "p025 service identifiers did not come from frame context",
@@ -1855,10 +2095,21 @@ def _transaction(
     edge_timing = _trace_durations(result.timing, EDGE_STAGES)
     edge_total = _trace_boundary(result.timing, "total_edge_processing")
     edge_zstd = _trace_boundary(result.timing, "zstd_decompression")
-    envelope_validate_ms = (
+    envelope_context_validate_ms = (
         edge_zstd.started_monotonic_ns - edge_total.started_monotonic_ns
     ) / 1_000_000.0
-    _require(envelope_validate_ms >= 0.0, "negative envelope validation time")
+    _require(
+        envelope_context_validate_ms >= 0.0,
+        "negative envelope/context validation time",
+    )
+    frame_context_encode_ns = (
+        context_constructed - capture_started + prepared.frame_context_encode_ns
+    )
+    _require(frame_context_encode_ns >= 0, "negative frame-context encode time")
+    _require(
+        snapshot.camera_pose_reconstruct_ns >= 0,
+        "negative camera-pose reconstruction time",
+    )
     exclusive_ns = {
         "capture_partition_ue_call_ms": ue_call_finished - capture_started,
         "capture_partition_ue_to_first_send_ms": (
@@ -1881,12 +2132,36 @@ def _transaction(
         sum(exclusive_ns.values()) == capture_finished - capture_started,
         "exclusive capture partition does not equal end-to-end interval",
     )
+    stream_id_bytes = len(context.stream_id.encode("utf-8"))
+    context_overhead_bytes = CONTEXT_FIXED_BYTES + stream_id_bytes
+    complete_sfd1_v2_bytes = prepared.total_transmitted_bytes
+    udp_chunk_header_bytes = delivery.chunk_header_bytes
+    estimated_ip_udp_wire_bytes = delivery.estimated_ip_udp_bytes
+    _require(
+        HEADER_BYTES == 36
+        and CONTEXT_FIXED_BYTES == 144
+        and CHUNK_HEADER.size == 8
+        and context_overhead_bytes == CONTEXT_FIXED_BYTES + stream_id_bytes
+        and complete_sfd1_v2_bytes
+        == prepared.inner_payload_bytes + HEADER_BYTES + context_overhead_bytes
+        and udp_chunk_header_bytes == delivery.datagrams * CHUNK_HEADER.size
+        and estimated_ip_udp_wire_bytes == delivery.datagrams * 28
+        and delivery.udp_application_bytes
+        == complete_sfd1_v2_bytes + udp_chunk_header_bytes
+        and delivery.estimated_on_wire_bytes
+        == delivery.udp_application_bytes + estimated_ip_udp_wire_bytes,
+        "SFD1 v2 or UDP byte-accounting equation drift",
+    )
     record = {
         "transaction_ordinal": transaction_ordinal,
         "frame_ordinal": int(selected_row.get("sample_ordinal", -1)),
         "sample_id": selected_row["sample_id"],
         "episode_id": selected_row["episode_id"],
         "frame_id": int(selected_row["frame_id"]),
+        "stream_id": context.stream_id,
+        "sequence_id": context.sequence_id,
+        "capture_timestamp_ns": context.capture_timestamp_ns,
+        "sfd1_protocol_version": outer.protocol_version,
         "action_id": profile.action_id,
         "family": profile.family,
         "quantizer": profile.quantizer,
@@ -1900,10 +2175,14 @@ def _transaction(
         ),
         "quantize_pack_ms": ue_timing["quantize_pack"],
         "zstd_compress_ms": ue_timing["zstd_compression"],
+        "frame_context_encode_ms": frame_context_encode_ns / 1_000_000.0,
         "sfd1_fragment_send_ms": delivery.fragment_send_ms,
-        "ue_prepare_ms": ue_timing["total_ue_preparation"],
+        "ue_prepare_ms": (ue_call_finished - capture_started) / 1_000_000.0,
         "localhost_delivery_ms": delivery.localhost_delivery_ms,
-        "envelope_validate_ms": envelope_validate_ms,
+        "envelope_context_validate_ms": envelope_context_validate_ms,
+        "camera_pose_reconstruct_ms": (
+            snapshot.camera_pose_reconstruct_ns / 1_000_000.0
+        ),
         "zstd_decompress_ms": edge_timing["zstd_decompression"],
         "dequant_scatter_ms": edge_timing["unpack_dequantize"],
         "ae_decode_gpu_ms": timers.value(
@@ -1928,7 +2207,13 @@ def _transaction(
             capture_finished - capture_started
         ) / 1_000_000.0,
         "scientific_inner_bytes": prepared.inner_payload_bytes,
-        "sfd1_bytes": prepared.total_transmitted_bytes,
+        "sfd1_base_header_bytes": HEADER_BYTES,
+        "sfd1_fixed_context_bytes": CONTEXT_FIXED_BYTES,
+        "sfd1_stream_id_bytes": stream_id_bytes,
+        "sfd1_context_overhead_bytes": context_overhead_bytes,
+        "complete_sfd1_v2_bytes": complete_sfd1_v2_bytes,
+        "udp_chunk_header_bytes": udp_chunk_header_bytes,
+        "estimated_ip_udp_wire_bytes": estimated_ip_udp_wire_bytes,
         "udp_application_bytes": delivery.udp_application_bytes,
         "estimated_on_wire_bytes": delivery.estimated_on_wire_bytes,
         "datagram_count": delivery.datagrams,
@@ -2156,7 +2441,7 @@ def _report(document: Mapping[str, Any]) -> str:
             f"{profile['q']:.2f} | {summary['counts']['completed']} | "
             f"{latency['median']:.3f} | {latency['p95']:.3f} | "
             f"{payload['scientific_inner_bytes']['median']} | "
-            f"{payload['sfd1_bytes']['median']} | "
+            f"{payload['complete_sfd1_v2_bytes']['median']} | "
             f"{payload['estimated_on_wire_bytes']['median']} | "
             f"{payload['datagram_count']['median']} | "
             f"{summary['measured_sequential_throughput_frames_per_second']:.3f} |"
@@ -2166,7 +2451,7 @@ def _report(document: Mapping[str, Any]) -> str:
             "",
             f"All {integrity['completed_profile_frames']:,} transactions completed with exact reassembly, one compression, one decompression and one frozen tail call each. Frozen perception, ranker, and AE states were unchanged.",
             "",
-            "Component timings are diagnostic boundaries. `localhost_delivery_ms` overlaps the send portion of `sfd1_fragment_send_ms`; no double-counted component sum is presented. End-to-end time is measured independently from frozen-front start through serialized edge return.",
+            "Component timings are diagnostic boundaries. `localhost_delivery_ms` overlaps the send portion of `sfd1_fragment_send_ms`; no double-counted component sum is presented. End-to-end time is measured independently from frame-context construction through serialized edge return.",
             "",
             "Remaining blockers are 100-MHz RFsim calibration and the 16-cell OAI pilot. The 288-cell OAI campaign was not launched.",
         ]
@@ -2245,6 +2530,8 @@ def main() -> int:
         phase13b_binding = _verify_phase13b_artifacts()
         operation = "preflight_frame_context_binding"
         frame_context_binding = _verify_frame_context_binding()
+        operation = "preflight_qualified_frame_context"
+        qualified_frame_context = _verify_qualified_frame_context_artifacts()
         operation = "preflight_registry"
         registry = SplitActionRegistry.from_runtime_binding(
             verify_runtime_artifacts=False
@@ -2297,6 +2584,7 @@ def main() -> int:
             phase13a=phase13a_binding,
             phase13b_binding=phase13b_binding,
             frame_context_binding=frame_context_binding,
+            qualified_frame_context=qualified_frame_context,
             registry=registry,
             profiles=profiles,
             sample=sample,
@@ -2359,7 +2647,6 @@ def main() -> int:
             if profile.action_id not in completed_records
         }
         transaction_ordinal = 0
-        next_message_id = PROFILE_COUNT + 1
         for frame_schedule, selected_row in zip(
             schedule["frames"], sample["selected_rows"], strict=True
         ):
@@ -2381,12 +2668,11 @@ def main() -> int:
                     profile=profile,
                     selected_row=selected_row,
                     input_7ch=input_7ch,
-                    message_id=next_message_id,
+                    message_id=PROFILE_COUNT + transaction_ordinal + 1,
                     transaction_ordinal=transaction_ordinal,
                     warmup=False,
                 )
                 _require(row is not None, "measured transaction produced no scalar row")
-                next_message_id += 1
                 transaction_ordinal += 1
                 progress[action_id]["delivered"] += int(row["delivered"])
                 progress[action_id]["decoded"] += int(row["decoded"])
@@ -2436,6 +2722,27 @@ def main() -> int:
                 }
             )
         summaries = [record["summary"] for record in ordered_records]
+        measurement_rows = [
+            row for record in ordered_records for row in record["measurements"]
+        ]
+        _require(len(measurement_rows) == TRANSACTIONS, "scalar-row inventory drift")
+        _require(
+            len({(row["stream_id"], row["frame_id"]) for row in measurement_rows})
+            == TRANSACTIONS,
+            "(stream_id, frame_id) source identities are not globally unique",
+        )
+        _require(
+            len({row["sequence_id"] for row in measurement_rows}) == TRANSACTIONS
+            and min(row["sequence_id"] for row in measurement_rows)
+            == PROFILE_COUNT + 1
+            and max(row["sequence_id"] for row in measurement_rows)
+            == PROFILE_COUNT + TRANSACTIONS
+            and all(
+                row["sfd1_protocol_version"] == CONTEXT_PROTOCOL_VERSION
+                for row in measurement_rows
+            ),
+            "SFD1 v2 sequence identity inventory drift",
+        )
         total_counts = {
             name: sum(int(summary["counts"][name]) for summary in summaries)
             for name in ("attempted", "delivered", "decoded", "completed")
@@ -2516,6 +2823,13 @@ def main() -> int:
                 "frozen_state_equal": frozen_equal,
                 "all_gradients_absent": True,
                 "calibration_resident_not_transmitted": True,
+                "sfd1_v2_frame_context_every_transaction": True,
+                "stream_frame_source_identities_unique": TRANSACTIONS,
+                "transport_sequence_ids_unique": TRANSACTIONS,
+                "service_identifiers_from_frame_context": True,
+                "static_camera_model_sha256": STATIC_CAMERA_MODEL_SHA256,
+                "static_camera_mount_sha256": STATIC_CAMERA_MOUNT_SHA256,
+                "dynamic_ego_pose_finite_every_transaction": True,
                 "retained_feature_payload_datagram_prediction_blobs": 0,
             },
             "scope": {
