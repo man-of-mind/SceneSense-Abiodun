@@ -651,7 +651,7 @@ def tcp_listening(port: int) -> bool:
         check=False,
     )
     require(completed.returncode == 0, f"TCP listener query failed: {completed.stderr.strip()}")
-    return any(re.search(rf":{int(port)}\\b", line) for line in completed.stdout.splitlines())
+    return any(re.search(rf":{int(port)}\b", line) for line in completed.stdout.splitlines())
 
 
 class AttachedCalibration:
