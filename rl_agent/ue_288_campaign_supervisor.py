@@ -904,7 +904,7 @@ def _stop_phase15_application(config: Mapping[str, Any]) -> dict[str, Any]:
                 pass
     remaining = [pid for pid in stopped if (Path("/proc") / str(pid)).exists()]
     require(not remaining, f"owned Phase-15 application processes survived: {remaining}")
-    edge_deadline = time.monotonic() + 5.0
+    edge_deadline = time.monotonic() + 30.0
     while True:
         edge_remaining = subprocess.run(
             ("sudo", "-n", "docker", "inspect", "oai-perception-rx"),

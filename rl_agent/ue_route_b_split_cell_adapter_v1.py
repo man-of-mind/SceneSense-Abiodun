@@ -338,7 +338,7 @@ def start_live_edge(
             "FUSION_BACK_REMOTE_HOST_1": str(runtime["ue_bind_host"]),
             "FUSION_BACK_DEVICE": "cuda",
             "SPLITFUSION_EDGE_STATE_ROOT": str(edge_scratch),
-            "FUSION_BACK_SCRIPT": "/work/abiodun/rl_agent/splitfusion_live_dispatch_v1/live_pilot_runtime.py",
+            "FUSION_BACK_SCRIPT": "-m rl_agent.splitfusion_live_dispatch_v1.live_pilot_runtime",
             "FUSION_REMOTE_PORT_1": str(runtime["edge_receive_port"]),
             "FUSION_REMOTE_SOURCE_PORT_1": str(runtime["edge_source_port"]),
             "FUSION_CAMERA_RESULT_PORT_1": str(runtime["camera_result_port"]),
@@ -1885,7 +1885,7 @@ def run(args: argparse.Namespace) -> int:
         with (attempt_dir / "map_feedback.csv").open("x", newline="", encoding="utf-8") as handle:
             csv.DictWriter(handle, fieldnames=list(feedback_fields)).writeheader()
     if not (attempt_dir / "radio_trace.csv").exists():
-        from rl_agent.ue_target_snr_cell_runtime_v1 import FIELDS as radio_fields
+        from rl_agent.splitfusion_live_dispatch_v1.live_pilot_target_snr_runtime import FIELDS as radio_fields
         with (attempt_dir / "radio_trace.csv").open("x", newline="", encoding="utf-8") as handle:
             csv.DictWriter(handle, fieldnames=list(radio_fields)).writeheader()
 
