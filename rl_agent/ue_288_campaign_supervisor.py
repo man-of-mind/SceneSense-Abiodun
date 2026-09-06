@@ -904,11 +904,16 @@ def _stop_phase15_application(config: Mapping[str, Any]) -> dict[str, Any]:
                 pass
     remaining = [pid for pid in stopped if (Path("/proc") / str(pid)).exists()]
     require(not remaining, f"owned Phase-15 application processes survived: {remaining}")
-    edge_remaining = subprocess.run(
-        ("sudo", "-n", "docker", "inspect", "oai-perception-rx"),
-        stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL, check=False,
-    )
+    edge_deadline = time.monotonic() + 5.0
+    while True:
+        edge_remaining = subprocess.run(
+            ("sudo", "-n", "docker", "inspect", "oai-perception-rx"),
+            stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL, check=False,
+        )
+        if edge_remaining.returncode != 0 or time.monotonic() >= edge_deadline:
+            break
+        time.sleep(0.05)
     require(edge_remaining.returncode != 0, "owned Phase-15 edge container survived cleanup")
     return {
         "edge_container_down_returncode": int(edge.returncode),
