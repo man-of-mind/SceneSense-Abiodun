@@ -1,0 +1,768 @@
+{
+  "cells": [
+    {
+      "ack_timeout_ms": 500.0,
+      "ack_within_timeout_fraction": 0.9195979899497487,
+      "ack_within_timeout_installations": 183,
+      "action_id": 20,
+      "attempt_dir": "experiments/splitfusion_phase15_preparation_optimization_v1/20260906_actions20_71_favorable/cells/a20__favorable_stable/attempts/attempt_0001",
+      "captures_sent": 2968,
+      "cell_id": "a20__favorable_stable",
+      "cleanup": {
+        "edge_stopped": true,
+        "live_dispatch_stopped": true,
+        "map_process_stopped": true,
+        "target_snr_restore_status": "restored_and_read_back",
+        "target_snr_restored": true
+      },
+      "cold_teardown_verified": true,
+      "counter_reconciliation": {
+        "all_identities_hold": true,
+        "edge_masks_persisted_match_results_transmitted": {
+          "holds": true,
+          "persisted": 208,
+          "transmitted": 208
+        },
+        "edge_reassembled_equals_admitted_plus_dropped_plus_rejected": {
+          "admitted": 760,
+          "after_reassembly_deadline_drops": 2141,
+          "holds": true,
+          "reassembled": 2901,
+          "rejected": 0
+        },
+        "edge_results_transmitted_never_exceed_tail_completions": {
+          "completions": 422,
+          "holds": true,
+          "transmitted": 208
+        },
+        "edge_tail_completions_never_exceed_starts": {
+          "completions": 422,
+          "holds": true,
+          "pre_tail_deadline_refusals": 33,
+          "process_starts": 455,
+          "starts": 422
+        },
+        "installed_maps_never_exceed_published_results": {
+          "holds": true,
+          "installed": 199,
+          "published": 199
+        },
+        "published_results_never_exceed_reassembled_results": {
+          "holds": true,
+          "published": 199,
+          "reassembled": 208
+        },
+        "ue_sent_rows_equal_transmitted_messages": {
+          "holds": true,
+          "sent_rows": 2968,
+          "transmitted_messages": 2968
+        }
+      },
+      "counter_reconciliation_holds": true,
+      "deadline_drops_by_stage": {
+        "EDGE_AFTER_REASSEMBLY": 2141,
+        "EDGE_BEFORE_DECODE": 21,
+        "EDGE_BEFORE_PUBLICATION": 214,
+        "EDGE_BEFORE_TAIL": 33,
+        "UE_BEFORE_MAP_PUBLICATION": 9
+      },
+      "dense_label_map_on_radio": false,
+      "duplicate_result_messages": 0,
+      "eligible_preparation_frames": 3026,
+      "evaluation_masks_hash_mismatched_ue": 0,
+      "evaluation_masks_hash_verified_edge": 208,
+      "evaluation_masks_hash_verified_ue": 208,
+      "evaluation_masks_persisted_edge": 208,
+      "evidence_preservation": {
+        "hash_mismatched_masks": 0,
+        "hash_verified_masks": 208,
+        "manifest_records": 208,
+        "preservation_failures": 0,
+        "preserved_bytes": 183423872,
+        "preserved_masks": 199,
+        "quota_elided_masks": 0,
+        "required_frames": 199
+      },
+      "first_half_median_install_aoi_ms": 446.17557525634766,
+      "incomplete_reassemblies_expired_edge": 67,
+      "install_aoi_monotone_fraction": 0.5151515151515151,
+      "installation_ack_frames": 199,
+      "installation_ack_rate": 0.06704851752021564,
+      "installed_frames_with_aoi": 199,
+      "late_feedback_rows": 2969,
+      "max_install_aoi_ms": 578.1679153442383,
+      "mean_feature_datagrams": 97.14083557951483,
+      "mean_payload_bytes": 1207717.1674528301,
+      "mean_result_datagrams": 3.9903846153846154,
+      "median_front_ms": 24.437901,
+      "median_frozen_tail_ms": 123.458811,
+      "median_install_aoi_ms": 448.51112365722656,
+      "median_pre_front_compute_ms": 32.34053496271372,
+      "median_queue_wait_ms": 47.34748788177967,
+      "median_radar_prepare_ms": 22.632592357695103,
+      "median_radar_window_ms": 5.1997024565935135,
+      "median_receipt_latency_ms": 446.0411071777344,
+      "median_result_datagrams": 4.0,
+      "median_rgb_convert_ms": 2.8779739513993263,
+      "median_scene_snapshot_ms": 0.1162094995379448,
+      "median_sensor_wait_ms": 10.057400912046432,
+      "minimum_sensor_preparation_coverage": 0.95,
+      "network_profile_id": "FAVORABLE_STABLE",
+      "p95_install_aoi_ms": 501.3301372528076,
+      "p95_pre_front_compute_ms": 60.24715583771467,
+      "p95_queue_wait_ms": 105.21182138472795,
+      "p95_radar_prepare_ms": 44.380489736795425,
+      "p95_radar_window_ms": 13.188601471483707,
+      "p95_rgb_convert_ms": 7.480966858565807,
+      "p95_scene_snapshot_ms": 0.3097420558333397,
+      "p95_sensor_wait_ms": 25.107008405029774,
+      "performance_warnings": [],
+      "preparation_coverage": 0.9808327825512227,
+      "preparation_coverage_met": true,
+      "processing_expiry_ms": 500.0,
+      "queue_depth_high_water_edge": 1,
+      "queue_replacement_frames": 57,
+      "realtime_recovery": {
+        "ack_timeout_s": 0.5,
+        "ack_within_timeout_fraction": 0.9195979899497487,
+        "ack_within_timeout_installations": 183,
+        "counter_reconciliation": {
+          "all_identities_hold": true,
+          "edge_masks_persisted_match_results_transmitted": {
+            "holds": true,
+            "persisted": 208,
+            "transmitted": 208
+          },
+          "edge_reassembled_equals_admitted_plus_dropped_plus_rejected": {
+            "admitted": 760,
+            "after_reassembly_deadline_drops": 2141,
+            "holds": true,
+            "reassembled": 2901,
+            "rejected": 0
+          },
+          "edge_results_transmitted_never_exceed_tail_completions": {
+            "completions": 422,
+            "holds": true,
+            "transmitted": 208
+          },
+          "edge_tail_completions_never_exceed_starts": {
+            "completions": 422,
+            "holds": true,
+            "pre_tail_deadline_refusals": 33,
+            "process_starts": 455,
+            "starts": 422
+          },
+          "installed_maps_never_exceed_published_results": {
+            "holds": true,
+            "installed": 199,
+            "published": 199
+          },
+          "published_results_never_exceed_reassembled_results": {
+            "holds": true,
+            "published": 199,
+            "reassembled": 208
+          },
+          "ue_sent_rows_equal_transmitted_messages": {
+            "holds": true,
+            "sent_rows": 2968,
+            "transmitted_messages": 2968
+          }
+        },
+        "deadline_drops_by_stage": {
+          "EDGE_AFTER_REASSEMBLY": 2141,
+          "EDGE_BEFORE_DECODE": 21,
+          "EDGE_BEFORE_PUBLICATION": 214,
+          "EDGE_BEFORE_TAIL": 33,
+          "UE_BEFORE_MAP_PUBLICATION": 9
+        },
+        "deadline_expiry_stage_counts_ue_rows": {},
+        "dense_label_map_on_radio": false,
+        "duplicate_result_messages": 0,
+        "edge_counters_file": {
+          "ack_timeout_s": 0.5,
+          "action_id": 20,
+          "available": true,
+          "call_ledger": {
+            "ae_decoder_AE128": 455,
+            "service_record_serialization": 422,
+            "tail": 422
+          },
+          "cell_id": "a20__favorable_stable",
+          "counters": {
+            "compact_results_transmitted": 208,
+            "deadline_drop_EDGE_AFTER_REASSEMBLY": 2141,
+            "deadline_drop_EDGE_BEFORE_DECODE": 21,
+            "deadline_drop_EDGE_BEFORE_PUBLICATION": 214,
+            "deadline_drop_EDGE_BEFORE_TAIL": 33,
+            "edge_pending_depth_high_water": 1,
+            "edge_pending_replacements": 284,
+            "edge_process_starts": 455,
+            "edge_queue_admissions": 760,
+            "evaluation_masks_hash_verified": 208,
+            "evaluation_masks_persisted": 208,
+            "evaluation_masks_submitted": 208,
+            "feature_datagrams_duplicate": 0,
+            "feature_datagrams_received": 286814,
+            "feature_messages_reassembled": 2901,
+            "incomplete_reassemblies_expired": 67,
+            "reassembly_buffer_evictions": 67,
+            "reassembly_pending_high_water": 36,
+            "result_bytes_transmitted": 8968322,
+            "result_datagrams_per_message_high_water": 6,
+            "result_datagrams_transmitted": 830,
+            "tail_completions": 422,
+            "tail_starts": 422
+          },
+          "edge_operation_counters": {
+            "ae_decoder_dispatches": 455,
+            "ae_encoder_dispatches": 0,
+            "frames_attempted": 455,
+            "frames_completed": 422,
+            "hot_path_model_construction_operations": 0,
+            "hot_path_model_load_operations": 0,
+            "ranker_dispatches": 0,
+            "startup_eval_transitions": 0,
+            "startup_model_construction_operations": 4,
+            "startup_model_load_operations": 4,
+            "startup_module_device_moves": 0,
+            "startup_parameter_freezes": 0,
+            "startup_preloaded_objects": 4,
+            "tail_dispatches": 455
+          },
+          "failures": [],
+          "incomplete_reassemblies_expired": 67,
+          "pending_depth": 0,
+          "processing_expiry_s": 0.5,
+          "reassembly_pending_messages": 0,
+          "run_id": "splitfusion_16_cell_live_carla_oai_pilot_v1",
+          "schema": "splitfusion_edge_counters.v1",
+          "service_deadline_s": 0.1,
+          "updated_at_unix_s": 1788721141.697362
+        },
+        "evaluation_masks_hash_mismatched": 0,
+        "evaluation_masks_hash_verified": 208,
+        "evaluation_masks_manifest_records": 208,
+        "install_aoi_monotonic_fraction": 0.5151515151515151,
+        "install_aoi_ms_max": 578.1679153442383,
+        "install_aoi_ms_median": 448.51112365722656,
+        "install_aoi_ms_p95": 501.3301372528076,
+        "late_feedback_rows": 2969,
+        "late_nonterminal_feedback_rows": 1,
+        "maps_installed": 199,
+        "prepare_status_counts": {
+          "DROPPED_INCOMPLETE_RADAR_WINDOW": 1,
+          "DROPPED_REPLACED_BY_NEWER_FRAME": 57,
+          "SENT": 2968,
+          "WARMUP_NO_COMPLETE_RADAR_WINDOW": 1
+        },
+        "processing_expiry_s": 0.5,
+        "registered_deadline_stages": [
+          "UE_AFTER_PREPARATION",
+          "UE_BEFORE_SEND",
+          "EDGE_AFTER_REASSEMBLY",
+          "EDGE_BEFORE_DECODE",
+          "EDGE_BEFORE_TAIL",
+          "EDGE_BEFORE_PUBLICATION",
+          "UE_BEFORE_MAP_PUBLICATION"
+        ],
+        "service_deadline_and_ack_timeout_are_distinct": true,
+        "service_deadline_s": 0.1,
+        "service_on_time_fraction": 0.0,
+        "service_on_time_installations": 0,
+        "terminal_feedback_rows": 2968,
+        "timely_installation_fraction": 0.0,
+        "timely_installations": 0,
+        "ue_counters": {
+          "evaluation_masks_hash_verified": 208,
+          "evaluation_tickets_completed": 2968,
+          "evaluation_tickets_queued": 2968,
+          "maps_installed": 199,
+          "preparation_offers": 3027,
+          "preparation_pending_replacements": 57
+        },
+        "ue_transport_counters": {
+          "deadline_drop_UE_BEFORE_MAP_PUBLICATION": 9,
+          "feature_datagrams_transmitted": 288314,
+          "feature_messages_transmitted": 2968,
+          "result_datagrams_received": 830,
+          "result_messages_reassembled": 208,
+          "results_expired_before_map_publication": 9,
+          "results_published_to_map": 199
+        }
+      },
+      "reassembly_buffer_evictions_edge": 67,
+      "receipt_ack_frames": 208,
+      "receipt_ack_rate": 0.07008086253369272,
+      "result_bytes_transmitted_edge": 8968322,
+      "scheduled_frames": 3027,
+      "second_half_median_install_aoi_ms": 449.72801208496094,
+      "service_deadline_ms": 100.0,
+      "service_on_time_fraction": 0.0,
+      "service_on_time_installations": 0,
+      "stale_before_send_frames": 0,
+      "structural_failures": [],
+      "structural_status": "PASS",
+      "sustainable_preparation_fps": 9.806130521306,
+      "tail_devices": [
+        "cuda:0"
+      ],
+      "terminal_feedback_outcomes": {
+        "ACK_INSTALLED": 198,
+        "TIMEOUT_NO_ACK": 2770
+      },
+      "terminal_status": "PASSED",
+      "timely_installation_fraction": 0.0,
+      "timely_installations": 0
+    },
+    {
+      "ack_timeout_ms": 500.0,
+      "ack_within_timeout_fraction": 0.9959040374488005,
+      "ack_within_timeout_installations": 1702,
+      "action_id": 71,
+      "attempt_dir": "experiments/splitfusion_phase15_preparation_optimization_v1/20260906_actions20_71_favorable/cells/a71__favorable_stable/attempts/attempt_0001",
+      "captures_sent": 2931,
+      "cell_id": "a71__favorable_stable",
+      "cleanup": {
+        "edge_stopped": true,
+        "live_dispatch_stopped": true,
+        "map_process_stopped": true,
+        "target_snr_restore_status": "restored_and_read_back",
+        "target_snr_restored": true
+      },
+      "cold_teardown_verified": true,
+      "counter_reconciliation": {
+        "all_identities_hold": true,
+        "edge_masks_persisted_match_results_transmitted": {
+          "holds": true,
+          "persisted": 1714,
+          "transmitted": 1714
+        },
+        "edge_reassembled_equals_admitted_plus_dropped_plus_rejected": {
+          "admitted": 2931,
+          "after_reassembly_deadline_drops": 0,
+          "holds": true,
+          "reassembled": 2931,
+          "rejected": 0
+        },
+        "edge_results_transmitted_never_exceed_tail_completions": {
+          "completions": 1751,
+          "holds": true,
+          "transmitted": 1714
+        },
+        "edge_tail_completions_never_exceed_starts": {
+          "completions": 1751,
+          "holds": true,
+          "pre_tail_deadline_refusals": 1,
+          "process_starts": 1752,
+          "starts": 1751
+        },
+        "installed_maps_never_exceed_published_results": {
+          "holds": true,
+          "installed": 1709,
+          "published": 1709
+        },
+        "published_results_never_exceed_reassembled_results": {
+          "holds": true,
+          "published": 1709,
+          "reassembled": 1714
+        },
+        "ue_sent_rows_equal_transmitted_messages": {
+          "holds": true,
+          "sent_rows": 2931,
+          "transmitted_messages": 2931
+        }
+      },
+      "counter_reconciliation_holds": true,
+      "deadline_drops_by_stage": {
+        "EDGE_BEFORE_DECODE": 1,
+        "EDGE_BEFORE_PUBLICATION": 37,
+        "EDGE_BEFORE_TAIL": 1,
+        "UE_AFTER_PREPARATION": 1,
+        "UE_BEFORE_MAP_PUBLICATION": 5,
+        "UE_BEFORE_SEND": 1
+      },
+      "dense_label_map_on_radio": false,
+      "duplicate_result_messages": 0,
+      "eligible_preparation_frames": 2987,
+      "evaluation_masks_hash_mismatched_ue": 0,
+      "evaluation_masks_hash_verified_edge": 1714,
+      "evaluation_masks_hash_verified_ue": 1714,
+      "evaluation_masks_persisted_edge": 1714,
+      "evidence_preservation": {
+        "hash_mismatched_masks": 0,
+        "hash_verified_masks": 1714,
+        "manifest_records": 1714,
+        "preservation_failures": 0,
+        "preserved_bytes": 1072891392,
+        "preserved_masks": 1164,
+        "quota_elided_masks": 545,
+        "required_frames": 1709
+      },
+      "first_half_median_install_aoi_ms": 305.86814880371094,
+      "incomplete_reassemblies_expired_edge": 0,
+      "install_aoi_monotone_fraction": 0.5111241217798594,
+      "installation_ack_frames": 1709,
+      "installation_ack_rate": 0.5830774479699761,
+      "installed_frames_with_aoi": 1709,
+      "late_feedback_rows": 2934,
+      "max_install_aoi_ms": 567.9566860198975,
+      "mean_feature_datagrams": 1.0,
+      "mean_payload_bytes": 6408.201296485841,
+      "mean_result_datagrams": 4.841306884480747,
+      "median_front_ms": 19.419341,
+      "median_frozen_tail_ms": 111.370886,
+      "median_install_aoi_ms": 305.94921112060547,
+      "median_pre_front_compute_ms": 32.730042934417725,
+      "median_queue_wait_ms": 47.76321444660425,
+      "median_radar_prepare_ms": 22.387824952602386,
+      "median_radar_window_ms": 5.399937741458416,
+      "median_receipt_latency_ms": 297.0128059387207,
+      "median_result_datagrams": 5.0,
+      "median_rgb_convert_ms": 3.23665514588356,
+      "median_scene_snapshot_ms": 0.11927355080842972,
+      "median_sensor_wait_ms": 10.079240426421165,
+      "minimum_sensor_preparation_coverage": 0.95,
+      "network_profile_id": "FAVORABLE_STABLE",
+      "p95_install_aoi_ms": 401.3223648071289,
+      "p95_pre_front_compute_ms": 62.71798722445965,
+      "p95_queue_wait_ms": 100.06976313889027,
+      "p95_radar_prepare_ms": 45.24881672114134,
+      "p95_radar_window_ms": 13.83183617144823,
+      "p95_rgb_convert_ms": 7.84536637365818,
+      "p95_scene_snapshot_ms": 0.27594901621341705,
+      "p95_sensor_wait_ms": 27.84302458167076,
+      "performance_warnings": [],
+      "preparation_coverage": 0.9812520924004018,
+      "preparation_coverage_met": true,
+      "processing_expiry_ms": 500.0,
+      "queue_depth_high_water_edge": 1,
+      "queue_replacement_frames": 53,
+      "realtime_recovery": {
+        "ack_timeout_s": 0.5,
+        "ack_within_timeout_fraction": 0.9959040374488005,
+        "ack_within_timeout_installations": 1702,
+        "counter_reconciliation": {
+          "all_identities_hold": true,
+          "edge_masks_persisted_match_results_transmitted": {
+            "holds": true,
+            "persisted": 1714,
+            "transmitted": 1714
+          },
+          "edge_reassembled_equals_admitted_plus_dropped_plus_rejected": {
+            "admitted": 2931,
+            "after_reassembly_deadline_drops": 0,
+            "holds": true,
+            "reassembled": 2931,
+            "rejected": 0
+          },
+          "edge_results_transmitted_never_exceed_tail_completions": {
+            "completions": 1751,
+            "holds": true,
+            "transmitted": 1714
+          },
+          "edge_tail_completions_never_exceed_starts": {
+            "completions": 1751,
+            "holds": true,
+            "pre_tail_deadline_refusals": 1,
+            "process_starts": 1752,
+            "starts": 1751
+          },
+          "installed_maps_never_exceed_published_results": {
+            "holds": true,
+            "installed": 1709,
+            "published": 1709
+          },
+          "published_results_never_exceed_reassembled_results": {
+            "holds": true,
+            "published": 1709,
+            "reassembled": 1714
+          },
+          "ue_sent_rows_equal_transmitted_messages": {
+            "holds": true,
+            "sent_rows": 2931,
+            "transmitted_messages": 2931
+          }
+        },
+        "deadline_drops_by_stage": {
+          "EDGE_BEFORE_DECODE": 1,
+          "EDGE_BEFORE_PUBLICATION": 37,
+          "EDGE_BEFORE_TAIL": 1,
+          "UE_AFTER_PREPARATION": 1,
+          "UE_BEFORE_MAP_PUBLICATION": 5,
+          "UE_BEFORE_SEND": 1
+        },
+        "deadline_expiry_stage_counts_ue_rows": {
+          "UE_AFTER_PREPARATION": 1,
+          "UE_BEFORE_SEND": 1
+        },
+        "dense_label_map_on_radio": false,
+        "duplicate_result_messages": 0,
+        "edge_counters_file": {
+          "ack_timeout_s": 0.5,
+          "action_id": 71,
+          "available": true,
+          "call_ledger": {
+            "ae_decoder_AE32": 1752,
+            "service_record_serialization": 1751,
+            "tail": 1751
+          },
+          "cell_id": "a71__favorable_stable",
+          "counters": {
+            "compact_results_transmitted": 1714,
+            "deadline_drop_EDGE_BEFORE_DECODE": 1,
+            "deadline_drop_EDGE_BEFORE_PUBLICATION": 37,
+            "deadline_drop_EDGE_BEFORE_TAIL": 1,
+            "edge_pending_depth_high_water": 1,
+            "edge_pending_replacements": 1178,
+            "edge_process_starts": 1752,
+            "edge_queue_admissions": 2931,
+            "evaluation_masks_hash_verified": 1714,
+            "evaluation_masks_persisted": 1714,
+            "evaluation_masks_submitted": 1714,
+            "feature_datagrams_duplicate": 0,
+            "feature_datagrams_received": 2931,
+            "feature_messages_reassembled": 2931,
+            "result_bytes_transmitted": 93032867,
+            "result_datagrams_per_message_high_water": 7,
+            "result_datagrams_transmitted": 8298,
+            "tail_completions": 1751,
+            "tail_starts": 1751
+          },
+          "edge_operation_counters": {
+            "ae_decoder_dispatches": 1752,
+            "ae_encoder_dispatches": 0,
+            "frames_attempted": 1752,
+            "frames_completed": 1751,
+            "hot_path_model_construction_operations": 0,
+            "hot_path_model_load_operations": 0,
+            "ranker_dispatches": 0,
+            "startup_eval_transitions": 0,
+            "startup_model_construction_operations": 4,
+            "startup_model_load_operations": 4,
+            "startup_module_device_moves": 0,
+            "startup_parameter_freezes": 0,
+            "startup_preloaded_objects": 4,
+            "tail_dispatches": 1752
+          },
+          "failures": [],
+          "incomplete_reassemblies_expired": 0,
+          "pending_depth": 0,
+          "processing_expiry_s": 0.5,
+          "reassembly_pending_messages": 0,
+          "run_id": "splitfusion_16_cell_live_carla_oai_pilot_v1",
+          "schema": "splitfusion_edge_counters.v1",
+          "service_deadline_s": 0.1,
+          "updated_at_unix_s": 1788721552.602509
+        },
+        "evaluation_masks_hash_mismatched": 0,
+        "evaluation_masks_hash_verified": 1714,
+        "evaluation_masks_manifest_records": 1714,
+        "install_aoi_monotonic_fraction": 0.5111241217798594,
+        "install_aoi_ms_max": 567.9566860198975,
+        "install_aoi_ms_median": 305.94921112060547,
+        "install_aoi_ms_p95": 401.3223648071289,
+        "late_feedback_rows": 2934,
+        "late_nonterminal_feedback_rows": 3,
+        "maps_installed": 1709,
+        "prepare_status_counts": {
+          "DROPPED_INCOMPLETE_RADAR_WINDOW": 1,
+          "DROPPED_REPLACED_BY_NEWER_FRAME": 53,
+          "SENT": 2931,
+          "STALE_BEFORE_SEND": 2,
+          "WARMUP_NO_COMPLETE_RADAR_WINDOW": 1
+        },
+        "processing_expiry_s": 0.5,
+        "registered_deadline_stages": [
+          "UE_AFTER_PREPARATION",
+          "UE_BEFORE_SEND",
+          "EDGE_AFTER_REASSEMBLY",
+          "EDGE_BEFORE_DECODE",
+          "EDGE_BEFORE_TAIL",
+          "EDGE_BEFORE_PUBLICATION",
+          "UE_BEFORE_MAP_PUBLICATION"
+        ],
+        "service_deadline_and_ack_timeout_are_distinct": true,
+        "service_deadline_s": 0.1,
+        "service_on_time_fraction": 0.0,
+        "service_on_time_installations": 0,
+        "terminal_feedback_rows": 2931,
+        "timely_installation_fraction": 0.0,
+        "timely_installations": 0,
+        "ue_counters": {
+          "evaluation_masks_hash_verified": 1714,
+          "evaluation_tickets_completed": 2931,
+          "evaluation_tickets_queued": 2931,
+          "maps_installed": 1709,
+          "preparation_offers": 2988,
+          "preparation_pending_replacements": 53,
+          "stale_before_send": 2
+        },
+        "ue_transport_counters": {
+          "deadline_drop_UE_AFTER_PREPARATION": 1,
+          "deadline_drop_UE_BEFORE_MAP_PUBLICATION": 5,
+          "deadline_drop_UE_BEFORE_SEND": 1,
+          "feature_datagrams_transmitted": 2931,
+          "feature_messages_transmitted": 2931,
+          "result_datagrams_received": 8298,
+          "result_messages_reassembled": 1714,
+          "results_expired_before_map_publication": 5,
+          "results_published_to_map": 1709,
+          "stale_before_send": 2
+        }
+      },
+      "reassembly_buffer_evictions_edge": 0,
+      "receipt_ack_frames": 1714,
+      "receipt_ack_rate": 0.5847833503923575,
+      "result_bytes_transmitted_edge": 93032867,
+      "scheduled_frames": 2988,
+      "second_half_median_install_aoi_ms": 305.95993995666504,
+      "service_deadline_ms": 100.0,
+      "service_on_time_fraction": 0.0,
+      "service_on_time_installations": 0,
+      "stale_before_send_frames": 2,
+      "structural_failures": [],
+      "structural_status": "PASS",
+      "sustainable_preparation_fps": 9.817353139929764,
+      "tail_devices": [
+        "cuda:0"
+      ],
+      "terminal_feedback_outcomes": {
+        "ACK_INSTALLED": 1706,
+        "TIMEOUT_NO_ACK": 1225
+      },
+      "terminal_status": "PASSED",
+      "timely_installation_fraction": 0.0,
+      "timely_installations": 0
+    }
+  ],
+  "classification": "PRE_288_PREPARATION_PATH_QUALIFICATION",
+  "finished_at_unix_s": 1788721624.294798,
+  "full_288_campaign_authorized_or_launched": false,
+  "immutable_inputs": {
+    "audit_json_sha256": "58b72a1fd522bf3553847c5fa045ea1b6340270394794f7f2218042dceaa58f5",
+    "audit_manifest_sha256": "ec3d387d92e7a0a8bb00fc11f86c5bc69911c6973424607cbeeaf8b157780754",
+    "audit_report_sha256": "b469bd9b14e678a8bc04ff9c1870ee123844a2848811c57718675fa6f0bfb00e",
+    "audit_root": "experiments/splitfusion_phase15_retry4_latency_audit_v1/20260906_root_cause_audit",
+    "audit_terminal": "ROOT_CAUSE_LOCALIZED",
+    "post_repair_classification": "POST_REPAIR_REALTIME_QUALIFICATION",
+    "source_recovery": "experiments/splitfusion_phase15_realtime_recovery_v1/20260906_actions20_71_favorable_fade_retry1_reevaluated",
+    "source_recovery_evaluation_sha256": "5ad21a21733fcfd52bc00c489d34b08e6e2de721af6e954ebe13da466331031c",
+    "source_recovery_terminal_sha256": "fe824d84f6d89e7cac68b1c475b4cf68e95d7e3dd5cb9663c22f1e9715968e54",
+    "structural_integration_classification": "STRUCTURAL_INTEGRATION_QUALIFICATION",
+    "structural_integration_pilot_qualification_sha256": "3c31d81c2bb9b18a93f4968daaaaa831d82e3a414f73e021acac0e51aff6c311",
+    "structural_integration_pilot_root": "experiments/splitfusion_16_cell_live_carla_oai_pilot_v1/20260905_live_carla_oai_pilot_retry4"
+  },
+  "readiness": {
+    "campaign_rate_interpretation": "If the unchanged 0.95 target is missed while the pre-front p95 keeps up with the 100 ms arrival period, report the measured sustainable synchronized CARLA rate; do not relabel it as 10 FPS.",
+    "checks": {
+      "avoidable_pre_front_compute_keeps_up_with_100ms_arrival_period": {
+        "detail": {
+          "a20__favorable_stable": 60.24715583771467,
+          "a71__favorable_stable": 62.71798722445965
+        },
+        "holds": true
+      },
+      "both_cells_pass_structural_and_teardown_checks": {
+        "detail": {
+          "a20__favorable_stable": [
+            "PASSED",
+            "PASS",
+            true
+          ],
+          "a71__favorable_stable": [
+            "PASSED",
+            "PASS",
+            true
+          ]
+        },
+        "holds": true
+      },
+      "bounded_latest_frame_queues_remain_valid": {
+        "detail": {
+          "a20__favorable_stable": [
+            1,
+            true
+          ],
+          "a71__favorable_stable": [
+            1,
+            true
+          ]
+        },
+        "holds": true
+      },
+      "preparation_timing_is_complete": {
+        "detail": {
+          "a20__favorable_stable": {
+            "pre_front_compute_median_ms": 32.34053496271372,
+            "pre_front_compute_p95_ms": 60.24715583771467,
+            "radar_prepare_median_ms": 22.632592357695103,
+            "radar_prepare_p95_ms": 44.380489736795425,
+            "sensor_wait_median_ms": 10.057400912046432
+          },
+          "a71__favorable_stable": {
+            "pre_front_compute_median_ms": 32.730042934417725,
+            "pre_front_compute_p95_ms": 62.71798722445965,
+            "radar_prepare_median_ms": 22.387824952602386,
+            "radar_prepare_p95_ms": 45.24881672114134,
+            "sensor_wait_median_ms": 10.079240426421165
+          }
+        },
+        "holds": true
+      },
+      "service_and_feedback_boundaries_are_distinct": {
+        "detail": {
+          "a20__favorable_stable": [
+            100.0,
+            500.0
+          ],
+          "a71__favorable_stable": [
+            100.0,
+            500.0
+          ]
+        },
+        "holds": true
+      }
+    },
+    "failed_checks": [],
+    "performance_outcomes_not_validity_gates": {
+      "preparation_coverage_target_0_95": {
+        "detail": {
+          "a20__favorable_stable": {
+            "coverage": 0.9808327825512227,
+            "queue_replacements": 57,
+            "sustainable_fps": 9.806130521306,
+            "target": 0.95,
+            "target_met": true
+          },
+          "a71__favorable_stable": {
+            "coverage": 0.9812520924004018,
+            "queue_replacements": 53,
+            "sustainable_fps": 9.817353139929764,
+            "target": 0.95,
+            "target_met": true
+          }
+        },
+        "met_in_both_cells": true,
+        "target_weakened": false
+      },
+      "service_target_100ms": {
+        "detail": {
+          "a20__favorable_stable": {
+            "installed": 199,
+            "within_100ms": 0,
+            "within_500ms_ack_timeout": 183
+          },
+          "a71__favorable_stable": {
+            "installed": 1709,
+            "within_100ms": 0,
+            "within_500ms_ack_timeout": 1702
+          }
+        },
+        "met_in_both_cells": false
+      }
+    },
+    "preparation_path_ready": true
+  },
+  "schema": "scenesense.splitfusion_phase15_preparation_optimization.v1",
+  "status": "SPLITFUSION_PHASE15_PREPARATION_PATH_READY"
+}
