@@ -64,10 +64,16 @@ PER_FRAME_FIELDS = (
     "raw_radar_closing_count", "raw_radar_receding_count",
     "raw_radar_stationary_count", "raw_radar_min_range_m",
     "raw_radar_mean_range_m", "radar_projected_points", "ego_speed_mps",
+    "profile_id", "model_family", "quantizer", "q_e4", "routing_tag",
     "scientific_inner_bytes", "sfd1_overhead_bytes", "sfd1_bytes", "datagrams",
     "udp_application_bytes", "estimated_wire_bytes", "front_timing_ns",
+    "capture_started_ns", "ue_prepare_finished_ns", "send_finished_ns",
     "edge_result_received_ns", "edge_timing_ns", "edge_result_datagrams",
-    "decoded", "finite", "decoder_identity",
+    "feature_received_datagrams", "feature_duplicate_datagrams",
+    "decoded", "finite", "decoder_identity", "reconstructed_device",
+    "frame_context_valid", "camera_pose_reconstruct_ns",
+    "finite_output_tensor_count", "service_record_count",
+    "edge_call_ledger", "edge_counters",
     "error",
 )
 EDGE_SEGMENTATION_EVIDENCE_FLAG = "--edge-segmentation-evidence-dir"
@@ -291,6 +297,27 @@ def tail_running() -> bool:
     return completed.returncode == 0 and completed.stdout.strip() == "true"
 
 
+def create_cell_edge_state_root(temporary_dir: Path) -> Path:
+    """Create the one writable mount owned by this cell's live edge."""
+
+    owner = Path(temporary_dir).resolve(strict=True)
+    edge_state = owner / "splitfusion_edge_state"
+    try:
+        edge_state.mkdir(parents=False, exist_ok=False, mode=0o700)
+    except FileExistsError as exc:
+        raise AdapterError(f"cell edge-state path already exists: {edge_state}") from exc
+    resolved = edge_state.resolve(strict=True)
+    require(resolved.parent == owner, "cell edge-state path escaped its runtime directory")
+    require(os.access(resolved, os.W_OK | os.X_OK), "cell edge-state root is not writable")
+    return resolved
+
+
+def _bounded_log_tail(path: Path, limit: int = 8192) -> str:
+    if not path.is_file():
+        return ""
+    return path.read_bytes()[-limit:].decode("utf-8", errors="replace")
+
+
 def start_live_edge(
     campaign: Mapping[str, Any], cell: Mapping[str, Any], temporary_dir: Path
 ) -> Path:
@@ -298,11 +325,9 @@ def start_live_edge(
 
     runtime = campaign["runtime"]
     require(not tail_running(), "a previous phase-owned edge container is still running")
-    shared_root = ROOT / "torch_cache"
-    require(shared_root.is_dir(), "shared edge cache mount is missing")
-    edge_scratch = Path(tempfile.mkdtemp(prefix="splitfusion_live_edge_", dir=shared_root))
+    edge_scratch = create_cell_edge_state_root(temporary_dir)
     ready_host = edge_scratch / "ready.json"
-    ready_container = Path("/work/torch_cache") / edge_scratch.name / "ready.json"
+    ready_container = Path("/work/torch_cache/ready.json")
     config_container = Path("/work/abiodun") / "rl_agent/configs/splitfusion_16_cell_live_carla_oai_pilot_v1.json"
     env = os.environ.copy()
     env.update(
@@ -312,6 +337,7 @@ def start_live_edge(
             "FUSION_BACK_REMOTE_HOST": str(runtime["ue_bind_host"]),
             "FUSION_BACK_REMOTE_HOST_1": str(runtime["ue_bind_host"]),
             "FUSION_BACK_DEVICE": "cuda",
+            "SPLITFUSION_EDGE_STATE_ROOT": str(edge_scratch),
             "FUSION_BACK_SCRIPT": "/work/abiodun/rl_agent/splitfusion_live_dispatch_v1/live_pilot_runtime.py",
             "FUSION_REMOTE_PORT_1": str(runtime["edge_receive_port"]),
             "FUSION_REMOTE_SOURCE_PORT_1": str(runtime["edge_source_port"]),
@@ -319,19 +345,31 @@ def start_live_edge(
             "FUSION_BACK_EXTRA_ARGS": " ".join(
                 (
                     "--edge", "--config", str(config_container), "--action-id", str(cell["action_id"]),
+                    "--allowed-action-ids", ",".join(
+                        str(value)
+                        for value in campaign.get("_qualification", {}).get(
+                            "action_ids", [cell["action_id"]]
+                        )
+                    ),
                     "--ready-file", str(ready_container), "--edge-port", str(runtime["edge_receive_port"]),
                     "--result-host", str(runtime["ue_bind_host"]), "--result-port", str(runtime["camera_result_port"]),
                 )
             ),
         }
     )
+    launcher_log = Path(temporary_dir) / "edge_launcher.log"
     try:
-        completed = subprocess.run(
-            [str(ROOT / "scripts/receiver_container_fusion_back_up.sh")], cwd=str(ROOT), env=env,
-            check=False, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-            timeout=180.0,
+        with launcher_log.open("xb") as stream:
+            completed = subprocess.run(
+                [str(ROOT / "scripts/receiver_container_fusion_back_up.sh")], cwd=str(ROOT), env=env,
+                check=False, stdin=subprocess.DEVNULL, stdout=stream,
+                stderr=subprocess.STDOUT, timeout=180.0,
+            )
+        require(
+            completed.returncode == 0,
+            f"qualified edge container startup failed rc={completed.returncode}; "
+            f"launcher_tail={_bounded_log_tail(launcher_log)!r}",
         )
-        require(completed.returncode == 0, f"qualified edge container startup failed rc={completed.returncode}")
         deadline = time.monotonic() + 180.0
         while time.monotonic() < deadline:
             require(tail_running(), "qualified edge container exited before preload completed")
@@ -339,17 +377,29 @@ def start_live_edge(
                 ready = json.loads(ready_host.read_text(encoding="utf-8"))
                 require(
                     ready.get("schema") == "splitfusion_live_edge_ready.v1"
-                    and int(ready.get("action_id", -1)) == int(cell["action_id"])
+                    and ready.get("allowed_action_ids") == [
+                        int(value)
+                        for value in campaign.get("_qualification", {}).get(
+                            "action_ids", [cell["action_id"]]
+                        )
+                    ]
                     and ready.get("tail_device") == "cuda:0",
                     "edge preload ready record identity/device drift",
                 )
                 return edge_scratch
             time.sleep(0.25)
         raise AdapterError("qualified edge did not complete preload readiness")
-    except Exception:
+    except Exception as exc:
+        container_logs = subprocess.run(
+            ["sudo", "docker", "logs", "--tail", "80", "oai-perception-rx"],
+            cwd=str(ROOT), check=False, stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+        ).stdout[-8192:]
         stop_tail()
         shutil.rmtree(edge_scratch, ignore_errors=True)
-        raise
+        raise AdapterError(
+            f"{type(exc).__name__}: {exc}; edge_container_tail={container_logs!r}"
+        ) from exc
 
 
 def stop_live_edge(edge_scratch: Path | None) -> bool:
@@ -359,6 +409,40 @@ def stop_live_edge(edge_scratch: Path | None) -> bool:
     if edge_scratch is not None:
         shutil.rmtree(edge_scratch, ignore_errors=True)
     return stopped and not tail_running()
+
+
+def inspect_live_edge_mounts(edge_scratch: Path) -> dict[str, Any]:
+    """Bind the running consumer to the exact read-only code and cell state."""
+
+    completed = subprocess.run(
+        ["sudo", "docker", "inspect", "-f", "{{json .Mounts}}", "oai-perception-rx"],
+        cwd=str(ROOT), check=False, stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+    )
+    require(completed.returncode == 0, "cannot inspect qualified edge mounts")
+    mounts = json.loads(completed.stdout)
+
+    def selected(destination: str) -> dict[str, Any]:
+        rows = [row for row in mounts if row.get("Destination") == destination]
+        require(len(rows) == 1, f"edge container mount is not unique: {destination}")
+        return rows[0]
+
+    state = selected("/work/torch_cache")
+    repository = selected("/work/abiodun")
+    require(
+        Path(str(state["Source"])).resolve(strict=True) == edge_scratch.resolve(strict=True)
+        and bool(state.get("RW")) is True,
+        "edge state mount source/mode drift",
+    )
+    require(
+        Path(str(repository["Source"])).resolve(strict=True) == ROOT.resolve(strict=True)
+        and bool(repository.get("RW")) is False,
+        "edge repository mount source/mode drift",
+    )
+    return {
+        "state": {"source": str(state["Source"]), "destination": "/work/torch_cache", "rw": True},
+        "repository": {"source": str(repository["Source"]), "destination": "/work/abiodun", "rw": False},
+    }
 
 
 def start_map_process(
@@ -384,19 +468,22 @@ def start_map_process(
         str(int(campaign["measurement_contract"]["installed_frame_history_size"])),
     ]
     process = subprocess.Popen(argv, cwd=str(ROOT), stdin=subprocess.DEVNULL)
-    deadline = time.monotonic() + 30.0
-    url = f"http://127.0.0.1:{api_port}/healthz"
-    while time.monotonic() < deadline:
-        require(process.poll() is None, "per-cell map process exited during startup")
-        try:
-            with urllib.request.urlopen(url, timeout=1.0) as response:
-                if response.status == 200:
-                    return process
-        except (OSError, urllib.error.URLError):
-            pass
-        time.sleep(0.5)
-    process.terminate()
-    raise AdapterError("per-cell map process did not become ready")
+    try:
+        deadline = time.monotonic() + 30.0
+        url = f"http://127.0.0.1:{api_port}/healthz"
+        while time.monotonic() < deadline:
+            require(process.poll() is None, "per-cell map process exited during startup")
+            try:
+                with urllib.request.urlopen(url, timeout=1.0) as response:
+                    if response.status == 200:
+                        return process
+            except (OSError, urllib.error.URLError):
+                pass
+            time.sleep(0.5)
+        raise AdapterError("per-cell map process did not become ready")
+    except BaseException:
+        stop_process(process)
+        raise
 
 
 def stop_process(process: subprocess.Popen[Any] | None, timeout_s: float = 15.0) -> bool:
@@ -462,6 +549,21 @@ def stop_target_snr(
         value = json.loads(summary.read_text(encoding="utf-8"))
         restored = bool(value.get("clean_restore_verified"))
     return rc == 0 and restored and destination.is_file()
+
+
+def verify_clean_rfsim_without_runtime(campaign: Mapping[str, Any]) -> bool:
+    """Read back the clean channel when no target runtime ever mutated it."""
+
+    from rl_agent import splitfusion_phase14a_100mhz_calibration_v1 as phase14a
+    from rl_agent import splitfusion_phase14b_corrected_four_profile_replay_v1 as phase14b
+
+    config = phase14a.load_json(repo_path(str(campaign["runtime"]["phase14a_config"])))
+    report = phase14b.restore_interrupted_radio(config)
+    return bool(
+        report is not None
+        and report.get("verified") is True
+        and math.isclose(float(report.get("noise_power_db", math.nan)), -50.0, abs_tol=1e-6)
+    )
 
 
 def mean_or_nan(values: Sequence[float]) -> float:
@@ -603,6 +705,22 @@ class PassiveSplitCollector:
         self.edge_evidence_dir = Path(edge_evidence_dir)
         self.parked = parked
         self.stream_id = f"ue288_{cell['cell_id']}"
+        qualification = campaign.get("_qualification")
+        self.qualification_action_ids: tuple[int, ...] = ()
+        self.qualification_capture_limit: int | None = None
+        if qualification is not None:
+            require(isinstance(qualification, dict), "qualification contract is not a mapping")
+            self.qualification_action_ids = tuple(
+                int(value) for value in qualification.get("action_ids", ())
+            )
+            self.qualification_capture_limit = int(
+                qualification.get("capture_limit", 0)
+            )
+            require(
+                self.qualification_action_ids == (0, 20, 46, 71)
+                and self.qualification_capture_limit == 20,
+                "live qualification action/capture contract drift",
+            )
         contract = campaign["measurement_contract"]
         self.match_distance_m = float(contract["match_distance_m"])
         self.max_gt_distance_m = float(contract["max_gt_distance_m"])
@@ -664,7 +782,9 @@ class PassiveSplitCollector:
         )
         self.actor_tracker = parked.ActorStationaryTracker(0.35, 5.0)
         self.aligned_actor_tracker = parked.ActorStationaryTracker(0.35, 5.0)
-        self.intrinsics = camera_intrinsics(int(model_size[0]), int(model_size[1]), 120.0)
+        self.intrinsics = camera_intrinsics(
+            int(self.model_size[0]), int(self.model_size[1]), 120.0
+        )
         self.feedback = InstallFeedbackLedger(
             output_csv=attempt_dir / "map_feedback.csv",
             experiment_id=str(campaign["campaign_id"]), cell_id=str(cell["cell_id"]),
@@ -746,6 +866,11 @@ class PassiveSplitCollector:
         self.last_frame = int(frame_id)
         if self.first_frame is None:
             self.first_frame = int(frame_id)
+        if (
+            self.qualification_capture_limit is not None
+            and self.sent >= self.qualification_capture_limit
+        ):
+            return
         if (int(route_tick) - 1) % 2:
             return
         token = {
@@ -858,6 +983,11 @@ class PassiveSplitCollector:
                 self.prepared_queue.task_done()
 
     def _process_token(self, token: Mapping[str, Any]) -> None:
+        if (
+            self.qualification_capture_limit is not None
+            and self.sent >= self.qualification_capture_limit
+        ):
+            return
         frame_id = int(token["frame_id"])
         records = self._records_for(frame_id)
         if records is None:
@@ -892,11 +1022,16 @@ class PassiveSplitCollector:
         )
         frame_bgr = carla_image_to_bgr(image)
         capture_id = f"{self.stream_id}:{frame_id}"
+        action_id = (
+            self.qualification_action_ids[self.sent % len(self.qualification_action_ids)]
+            if self.qualification_action_ids
+            else int(self.cell["action_id"])
+        )
         deadline = float(capture_wall) + self.service_deadline_s
         timeout_at = float(capture_wall) + self.ack_timeout_s
         self.feedback.register_capture(
             stream_id=self.stream_id, capture_id=capture_id, frame_id=frame_id,
-            capture_at=float(capture_wall), action_id=str(self.cell["action_id"]),
+            capture_at=float(capture_wall), action_id=str(action_id),
             service_deadline_at=deadline, ack_timeout_at=timeout_at,
         )
         queue_wait_ms = (time.perf_counter() - float(token["scheduled_perf"])) * 1000.0
@@ -911,7 +1046,7 @@ class PassiveSplitCollector:
             ego_pose=(float(location.x), float(location.y), float(location.z),
                       float(rotation.pitch), float(rotation.yaw), float(rotation.roll)),
             stream_id=self.stream_id, carla_timestamp=float(radar_measurement.timestamp),
-            capture_id=capture_id,
+            capture_id=capture_id, action_id=action_id,
         )
         self.sent += 1
         self.sent_frames.add(frame_id)
@@ -925,6 +1060,7 @@ class PassiveSplitCollector:
         self._append_row(
             {
                 **token, "capture_id": capture_id, "carla_timestamp": float(radar_measurement.timestamp),
+                "action_id": action_id,
                 "capture_wall_s": float(capture_wall), "service_deadline_at": deadline,
                 "prepare_status": "SENT", "processing_late": int(time.time() > deadline),
                 "queue_wait_ms": queue_wait_ms, "front_ms": front.get("front_ms", ""),
@@ -1288,7 +1424,12 @@ class PassiveSplitCollector:
         with self.rows_lock:
             rows = list(self.rows)
         scheduled_ticks = [int(row.get("route_tick", 0)) for row in rows]
-        expected_ticks = list(range(1, int(self.route_ticks) + 1, 2))
+        expected_last_tick = (
+            max(scheduled_ticks, default=0)
+            if self.qualification_capture_limit is not None
+            else int(self.route_ticks)
+        )
+        expected_ticks = list(range(1, expected_last_tick + 1, 2))
         schedule_ok = sorted(scheduled_ticks) == expected_ticks
         if not schedule_ok:
             failures.append("10 Hz prepared-input scheduling phase/count contract failed")
@@ -1318,10 +1459,12 @@ class PassiveSplitCollector:
         terminal_counts: dict[str, int] = {}
         outcome_counts: dict[str, int] = {}
         ack_frames: set[int] = set()
+        ack_actions: set[int] = set()
         for feedback_row in feedback_rows:
             status = str(feedback_row.get("status") or "")
             if status == "ACK_INSTALLED":
                 ack_frames.add(int(feedback_row["frame_id"]))
+                ack_actions.add(int(feedback_row["action_id"]))
             if str(feedback_row.get("terminal", "")).lower() in {"1", "true"}:
                 capture_id = str(feedback_row.get("capture_id") or "")
                 terminal_counts[capture_id] = terminal_counts.get(capture_id, 0) + 1
@@ -1337,6 +1480,32 @@ class PassiveSplitCollector:
                 "exactly-one terminal feedback contract failed: "
                 f"sent_counts={invalid_terminal_counts} unexpected={unexpected_terminals}"
             )
+        action_counts: dict[int, int] = {}
+        for sent_row in sent_rows:
+            action_id = int(sent_row["action_id"])
+            action_counts[action_id] = action_counts.get(action_id, 0) + 1
+        if self.qualification_capture_limit is not None:
+            expected_action_counts = {
+                action_id: self.qualification_capture_limit
+                // len(self.qualification_action_ids)
+                for action_id in self.qualification_action_ids
+            }
+            if len(sent_rows) != self.qualification_capture_limit:
+                failures.append(
+                    "live qualification did not produce exactly "
+                    f"{self.qualification_capture_limit} sent captures"
+                )
+            if action_counts != expected_action_counts:
+                failures.append(
+                    "live qualification action counts drift: "
+                    f"observed={action_counts} expected={expected_action_counts}"
+                )
+            missing_ack_actions = sorted(set(self.qualification_action_ids) - ack_actions)
+            if missing_ack_actions:
+                failures.append(
+                    "live qualification lacks ACK_INSTALLED for actions "
+                    f"{missing_ack_actions}"
+                )
 
         exact_frames = set(self.installed_predictions)
         missing_exact = sorted(ack_frames - exact_frames)
@@ -1415,6 +1584,8 @@ class PassiveSplitCollector:
             "terminal_feedback_records": sum(terminal_counts.values()),
             "terminal_feedback_outcomes": dict(sorted(outcome_counts.items())),
             "ack_installed_frames": len(ack_frames),
+            "action_capture_counts": dict(sorted(action_counts.items())),
+            "ack_installed_actions": sorted(ack_actions),
             "exact_frame_perception_records": len(ack_frames & exact_frames),
             "exact_frame_perception_coverage": exact_coverage,
             "exact_frame_segmentation_records": len(ack_frames & set(self.segmentation_quality)),
@@ -1591,6 +1762,8 @@ def run(args: argparse.Namespace) -> int:
     target_output = Path()
     target_stop = Path()
     edge_scratch: Path | None = None
+    edge_startup: dict[str, Any] = {}
+    edge_mounts: dict[str, Any] = {}
     collector: PassiveSplitCollector | None = None
     route_detail: dict[str, Any] = {}
     structural_acceptance: dict[str, Any] = {
@@ -1598,7 +1771,13 @@ def run(args: argparse.Namespace) -> int:
         "failures": ["Route B split collector did not reach structural validation"],
     }
     failures: list[str] = []
-    cleanup = {"target_snr_restored": False, "map_process_stopped": False, "live_dispatch_stopped": False, "edge_stopped": False}
+    cleanup: dict[str, Any] = {
+        "target_snr_restored": False,
+        "target_snr_restore_status": "not_evaluated",
+        "map_process_stopped": False,
+        "live_dispatch_stopped": False,
+        "edge_stopped": False,
+    }
     started = time.time()
     with (
         tempfile.TemporaryDirectory(prefix="ue_288_cell_runtime_") as raw_tmp,
@@ -1614,6 +1793,8 @@ def run(args: argparse.Namespace) -> int:
                 feedback_port=args.feedback_port,
             )
             edge_scratch = start_live_edge(campaign, cell, temporary)
+            edge_startup = load_json(edge_scratch / "ready.json")
+            edge_mounts = inspect_live_edge_mounts(edge_scratch)
             # The target runtime reads the campaign root, not the resolved-cell
             # wrapper. Supply an isolated copy containing exactly that mapping.
             campaign_copy = temporary / "campaign.yaml"
@@ -1660,14 +1841,35 @@ def run(args: argparse.Namespace) -> int:
                         target_process, target_output, target_stop,
                         attempt_dir / "radio_trace.csv",
                     )
+                    cleanup["target_snr_restore_status"] = (
+                        "restored_and_read_back"
+                        if cleanup["target_snr_restored"]
+                        else "restore_or_read_back_failed"
+                    )
                 except Exception as exc:
                     failures.append(f"target-SNR cleanup: {type(exc).__name__}: {exc}")
+            else:
+                try:
+                    cleanup["target_snr_restored"] = verify_clean_rfsim_without_runtime(campaign)
+                    cleanup["target_snr_restore_status"] = (
+                        "restoration_not_required_clean_state_verified"
+                        if cleanup["target_snr_restored"]
+                        else "clean_state_read_back_failed"
+                    )
+                except Exception as exc:
+                    failures.append(f"clean RFsim read-back: {type(exc).__name__}: {exc}")
             cleanup["map_process_stopped"] = stop_process(map_process)
             cleanup["live_dispatch_stopped"] = bool(
                 collector is not None and collector.cleanup_ok
             )
             cleanup["edge_stopped"] = stop_live_edge(edge_scratch)
-            if not all(cleanup.values()):
+            if not all(
+                bool(cleanup[name])
+                for name in (
+                    "target_snr_restored", "map_process_stopped",
+                    "live_dispatch_stopped", "edge_stopped",
+                )
+            ):
                 failures.append("one or more adapter-owned runtime resources failed cleanup")
 
     # If setup failed before the sensor collector existed, still materialize the
@@ -1702,6 +1904,8 @@ def run(args: argparse.Namespace) -> int:
         "route": route_detail, "split_frames_sent": collector.sent if collector else 0,
         "split_frames_dropped": collector.dropped if collector else 0,
         "live_dispatch": collector.live_summary if collector else {},
+        "edge_startup": edge_startup,
+        "edge_mounts": edge_mounts,
         "cleanup": cleanup, "failures": failures,
         "started_at_unix_s": started, "finished_at_unix_s": time.time(),
     }

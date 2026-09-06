@@ -15,7 +15,7 @@ services:
             - TORCH_HOME=/work/torch_cache
             - MPLBACKEND=Agg
         volumes:
-            - ../torch_cache:/work/torch_cache:rw
+            - ${SPLITFUSION_EDGE_STATE_ROOT:-../torch_cache}:/work/torch_cache:rw
         gpus: all
         command:
             - /bin/bash

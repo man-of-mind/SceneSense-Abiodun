@@ -19,7 +19,18 @@ if ! sudo docker info 2>/dev/null | grep -qi "nvidia"; then
     exit 1
 fi
 
-mkdir -p "$(dirname "$0")/../torch_cache"
+if [ -n "${SPLITFUSION_EDGE_STATE_ROOT:-}" ]; then
+    if [ ! -d "${SPLITFUSION_EDGE_STATE_ROOT}" ] || [ ! -w "${SPLITFUSION_EDGE_STATE_ROOT}" ]; then
+        echo "[fusion_back_up] ERROR: supplied edge state root must be an existing writable directory."
+        exit 1
+    fi
+    SPLITFUSION_EDGE_STATE_ROOT="$(realpath -e "${SPLITFUSION_EDGE_STATE_ROOT}")"
+else
+    SPLITFUSION_EDGE_STATE_ROOT="$(dirname "$0")/../torch_cache"
+    mkdir -p "${SPLITFUSION_EDGE_STATE_ROOT}"
+    SPLITFUSION_EDGE_STATE_ROOT="$(realpath -e "${SPLITFUSION_EDGE_STATE_ROOT}")"
+fi
+export SPLITFUSION_EDGE_STATE_ROOT
 
 export FUSION_BACK_BIND_HOST="${FUSION_BACK_BIND_HOST:-0.0.0.0}"
 export FUSION_BACK_REMOTE_HOST="${FUSION_BACK_REMOTE_HOST:-${OAI_UE_IP}}"
@@ -53,6 +64,7 @@ echo "[fusion_back_up] remote UE IP worker 2: ${FUSION_BACK_REMOTE_HOST_2}"
 echo "[fusion_back_up] dual workers: ${FUSION_BACK_DUAL}"
 echo "[fusion_back_up] script: ${FUSION_BACK_SCRIPT}"
 echo "[fusion_back_up] checkpoint: ${FUSION_BACK_CHECKPOINT}"
+echo "[fusion_back_up] edge state root: ${SPLITFUSION_EDGE_STATE_ROOT}"
 echo "[fusion_back_up] back log every: ${FUSION_BACK_LOG_EVERY}"
 echo "[fusion_back_up] worker 1 ports: recv ${FUSION_REMOTE_PORT_1}, send ${FUSION_REMOTE_SOURCE_PORT_1}->${FUSION_CAMERA_RESULT_PORT_1}"
 echo "[fusion_back_up] worker 2 ports: recv ${FUSION_REMOTE_PORT_2}, send ${FUSION_REMOTE_SOURCE_PORT_2}->${FUSION_CAMERA_RESULT_PORT_2}"
@@ -74,6 +86,7 @@ sudo FUSION_BACK_BIND_HOST="${FUSION_BACK_BIND_HOST}" \
     FUSION_REMOTE_PORT_2="${FUSION_REMOTE_PORT_2}" \
     FUSION_REMOTE_SOURCE_PORT_2="${FUSION_REMOTE_SOURCE_PORT_2}" \
     FUSION_CAMERA_RESULT_PORT_2="${FUSION_CAMERA_RESULT_PORT_2}" \
+    SPLITFUSION_EDGE_STATE_ROOT="${SPLITFUSION_EDGE_STATE_ROOT}" \
     docker compose -f docker-compose.yaml -f docker-compose.fusion-back.yaml up -d --build --force-recreate
 
 echo "[fusion_back_up] container state:"

@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import json
 import struct
+import tempfile
 import unittest
 from dataclasses import asdict
+from pathlib import Path
 from unittest import mock
 
 import torch
@@ -32,6 +34,10 @@ from rl_agent.splitfusion_live_dispatch_v1.transport import (
     expected_inner_identity,
 )
 from rl_agent.splitfusion_live_dispatch_v1.ue_runtime import PreloadedSplitUERuntime
+from rl_agent.ue_route_b_split_cell_adapter_v1 import (
+    AdapterError,
+    create_cell_edge_state_root,
+)
 
 
 class _FakeC2:
@@ -170,6 +176,32 @@ def _objects(registry):
 
 
 class PreloadedDispatchTest(unittest.TestCase):
+    def test_phase15_edge_state_is_fresh_cell_scoped_and_explicitly_mounted(self):
+        with tempfile.TemporaryDirectory() as raw_owner:
+            owner = Path(raw_owner)
+            state = create_cell_edge_state_root(owner)
+            self.assertEqual(state.parent, owner.resolve(strict=True))
+            self.assertEqual(state.name, "splitfusion_edge_state")
+            self.assertTrue(state.is_dir())
+            with self.assertRaisesRegex(AdapterError, "already exists"):
+                create_cell_edge_state_root(owner)
+        compose = (
+            Path(__file__).resolve().parents[3]
+            / "receiver_container/docker-compose.fusion-back.yaml"
+        ).read_text(encoding="utf-8")
+        helper = (
+            Path(__file__).resolve().parents[3]
+            / "scripts/receiver_container_fusion_back_up.sh"
+        ).read_text(encoding="utf-8")
+        self.assertIn(
+            "${SPLITFUSION_EDGE_STATE_ROOT:-../torch_cache}:/work/torch_cache:rw",
+            compose,
+        )
+        self.assertIn(
+            'SPLITFUSION_EDGE_STATE_ROOT="${SPLITFUSION_EDGE_STATE_ROOT}"',
+            helper,
+        )
+
     def test_sfd1_v2_frame_context_validates_before_decode_and_tracks_session(self):
         registry = SplitActionRegistry.from_runtime_binding(
             verify_runtime_artifacts=False

@@ -19,6 +19,7 @@ import json
 import os
 import re
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
@@ -50,6 +51,8 @@ FAMILIES = ("noAE", "AE128", "AE64", "AE32")
 QUANTIZERS = ("UINT8", "UINT6", "UINT4")
 Q_E4 = (0, 3000, 5000, 7000, 9000, 9800)
 LIVE_PILOT_TOKEN = "SPLITFUSION_16_CELL_LIVE_CARLA_OAI_PILOT"
+PHASE15_QUALIFICATION_SCHEMA = "scenesense.splitfusion_phase15_live_deployment_qualification.v1"
+PHASE15_QUALIFICATION_TERMINAL = "SPLITFUSION_PHASE15_LIVE_DEPLOYMENT_QUALIFIED"
 LIVE_PILOT_EXPECTED_DIRTY_PATHS = {
     "OAI/openairinterface5g",
     "pole_lraspp_multimodal_fusion/object_head_pilot_v1/lraspp_to_splitfusion_fcos_report_v1/FULL_TECHNICAL_REPORT_AVO_V2.md",
@@ -86,6 +89,25 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _compact_log_diagnostics(root: Path, *, include_tails: bool) -> list[dict[str, Any]]:
+    """Summarize ephemeral service logs before their unconditional removal."""
+
+    records: list[dict[str, Any]] = []
+    if not root.is_dir():
+        return records
+    for path in sorted(candidate for candidate in root.rglob("*") if candidate.is_file()):
+        raw = path.read_bytes()
+        record: dict[str, Any] = {
+            "path": str(path.relative_to(root)),
+            "bytes": len(raw),
+            "sha256": hashlib.sha256(raw).hexdigest(),
+        }
+        if include_tails:
+            record["tail"] = raw[-8192:].decode("utf-8", errors="replace").splitlines()[-40:]
+        records.append(record)
+    return records
+
+
 def repo_path(value: str) -> Path:
     path = Path(value)
     return path.resolve() if path.is_absolute() else (ROOT / path).resolve()
@@ -107,8 +129,10 @@ def atomic_json(path: Path, value: Any) -> None:
     os.replace(temporary, path)
 
 
-def verify_live_pilot_worktree() -> dict[str, Any]:
-    """Accept only the three declared user-owned paths without trimming XY."""
+def verify_live_pilot_worktree(
+    *, owned_resume_root: Path | None = None,
+) -> dict[str, Any]:
+    """Accept declared user paths plus untracked files in an exact resume root."""
 
     completed = subprocess.run(
         ["git", "status", "--porcelain=v1", "--untracked-files=all"], cwd=str(ROOT),
@@ -116,15 +140,38 @@ def verify_live_pilot_worktree() -> dict[str, Any]:
     )
     records = completed.stdout.splitlines()
     paths: list[str] = []
+    resume_paths: list[str] = []
+    resume_prefix = ""
+    if owned_resume_root is not None:
+        experiments = (ROOT / "experiments").resolve(strict=True)
+        resume_root = owned_resume_root.resolve(strict=True)
+        try:
+            resume_relative = resume_root.relative_to(ROOT.resolve(strict=True))
+            resume_root.relative_to(experiments)
+        except ValueError as exc:
+            raise CampaignError("live-pilot resume root escapes experiments/repository") from exc
+        resume_prefix = str(resume_relative).rstrip("/") + "/"
     for line in records:
         require(len(line) >= 4, f"unparseable porcelain record: {line!r}")
         require(" -> " not in line[3:], "renamed user-owned paths are not authorized")
-        paths.append(line[3:])
+        path = line[3:]
+        if resume_prefix and path.startswith(resume_prefix):
+            require(line[:2] == "??", "resume evidence may only be untracked")
+            resume_paths.append(path)
+        else:
+            paths.append(path)
     require(
         set(paths) == LIVE_PILOT_EXPECTED_DIRTY_PATHS and len(paths) == len(LIVE_PILOT_EXPECTED_DIRTY_PATHS),
         f"unexpected worktree paths: {sorted(paths)}",
     )
-    return {"head": subprocess.run(["git", "rev-parse", "HEAD"], cwd=str(ROOT), check=True, text=True, stdout=subprocess.PIPE).stdout.strip(), "dirty_paths": sorted(paths)}
+    return {
+        "head": subprocess.run(
+            ["git", "rev-parse", "HEAD"], cwd=str(ROOT), check=True,
+            text=True, stdout=subprocess.PIPE,
+        ).stdout.strip(),
+        "dirty_paths": sorted(paths),
+        "owned_resume_untracked_paths": len(resume_paths),
+    }
 
 
 def write_create_only(path: Path, payload: str) -> None:
@@ -300,6 +347,16 @@ def verify_file_hashes(config: Mapping[str, Any]) -> None:
             target_runtime.is_file() and sha256_file(target_runtime) == str(runtime["target_snr_runtime_sha256"]),
             "qualified continuous target-SNR runtime SHA-256 drift",
         )
+        deployment = config.get("deployment")
+        require(isinstance(deployment, dict), "live-pilot deployment bindings are missing")
+        for name, item in deployment.items():
+            require(isinstance(item, dict), f"deployment binding is invalid: {name}")
+            path = repo_path(str(item.get("path", "")))
+            require(path.is_file(), f"deployment dependency is missing: {name}")
+            require(
+                sha256_file(path) == str(item.get("sha256", "")),
+                f"deployment dependency SHA-256 drift: {name}",
+            )
 
 
 def verify_live_pilot_provenance(config: Mapping[str, Any]) -> None:
@@ -737,26 +794,55 @@ def _start_live_radio(
     namespace, radio_state = _live_radio_state(config, cell, attempt)
     phase14b.require_cold_profile_runtime(base, radio_state)
     launcher = repo_path(str(runtime["oai_registered_profile_launcher"]))
-    with (service_log_dir / "oai_launcher.log").open("xb") as stream:
-        launched = subprocess.run(
-            [str(launcher), "--execute", "SPLITFUSION_OAI_100MHZ_4D5U_ATTACH", "--output", str(radio_state)],
-            cwd=str(ROOT), stdin=subprocess.DEVNULL, stdout=stream, stderr=subprocess.STDOUT,
-            check=False, timeout=240.0,
-        )
-    require(launched.returncode == 0, f"qualified OAI launcher failed rc={launched.returncode}")
-    attached_path = radio_state / "ATTACHED_RADIO_STATE.json"
-    require(attached_path.is_file(), "qualified OAI launcher omitted attached-radio snapshot")
-    attached = load_json(attached_path)
-    require(attached.get("status") == "ATTACHED_STABLE_100MHZ_4D5U_ONE_UE", "radio attachment status drift")
-    for name in ("gnb", "ue"):
-        topology = attached.get(f"{name}_process_topology", {})
+    try:
+        with (service_log_dir / "oai_launcher.log").open("xb") as stream:
+            launched = subprocess.run(
+                [str(launcher), "--execute", "SPLITFUSION_OAI_100MHZ_4D5U_ATTACH", "--output", str(radio_state)],
+                cwd=str(ROOT), stdin=subprocess.DEVNULL, stdout=stream, stderr=subprocess.STDOUT,
+                check=False, timeout=240.0,
+            )
         require(
-            topology.get("endpoint_roles_verified") is True
-            and int(topology.get("same_executable_process_count", -1)) == 3
-            and len(topology.get("worker_pids", ())) == 2,
-            f"qualified {name} three-process topology drift",
+            launched.returncode == 0,
+            f"qualified OAI launcher failed rc={launched.returncode}",
         )
-    return namespace, radio_state, attached
+        attached_path = radio_state / "ATTACHED_RADIO_STATE.json"
+        require(attached_path.is_file(), "qualified OAI launcher omitted attached-radio snapshot")
+        attached = load_json(attached_path)
+        require(attached.get("status") == "ATTACHED_STABLE_100MHZ_4D5U_ONE_UE", "radio attachment status drift")
+        for name in ("gnb", "ue"):
+            topology = attached.get(f"{name}_process_topology", {})
+            require(
+                topology.get("endpoint_roles_verified") is True
+                and int(topology.get("same_executable_process_count", -1)) == 3
+                and len(topology.get("worker_pids", ())) == 2,
+                f"qualified {name} three-process topology drift",
+            )
+        clean = phase14b.restore_interrupted_radio(base)
+        require(
+            clean is not None
+            and clean.get("verified") is True
+            and float(clean.get("noise_power_db", float("nan"))) == -50.0,
+            "attached RFsim channel is not verified at noise_power_dB=-50",
+        )
+        return namespace, radio_state, {**attached, "clean_noise_preflight": clean}
+    except BaseException as exc:
+        restored = None
+        restore_error = ""
+        try:
+            restored = phase14b.restore_interrupted_radio(base)
+        except BaseException as restore_exc:
+            restore_error = f"{type(restore_exc).__name__}: {restore_exc}"
+        cleanup = phase14b.teardown_profile_runtime(
+            base, radio_state, namespace, None,
+            restore_verified=bool(
+                not restore_error
+                and (restored is None or restored.get("verified"))
+            ),
+        )
+        raise CampaignError(
+            f"{type(exc).__name__}: {exc}; partial radio restore_error={restore_error!r} "
+            f"cleanup={cleanup}"
+        ) from exc
 
 
 def _stop_live_radio(
@@ -771,6 +857,168 @@ def _stop_live_radio(
         base, radio_state, namespace, attached, restore_verified=bool(restored and restored.get("verified")),
     )
     require(bool(report.get("all_lifecycle_gates_passed")), "live-pilot radio teardown/cold proof failed")
+    return report
+
+
+def _stop_phase15_application(config: Mapping[str, Any]) -> dict[str, Any]:
+    """Stop only application resources owned after a cold Phase-15 startup."""
+
+    edge = subprocess.run(
+        [str(ROOT / "scripts/receiver_container_down.sh")], cwd=str(ROOT),
+        stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL, check=False,
+    )
+    from rl_agent import splitfusion_phase14a_100mhz_calibration_v1 as phase14a
+
+    owned_sources = {
+        str(repo_path(str(config["runtime"][name])))
+        for name in (
+            "required_route_b_split_cell_adapter", "map_install_runtime",
+            "target_snr_runtime",
+        )
+    }
+    stopped: list[int] = []
+    for row in phase14a.process_table():
+        pid = int(row["pid"])
+        command = str(row.get("command", ""))
+        if any(source in command for source in owned_sources):
+            try:
+                os.kill(pid, signal.SIGTERM)
+                stopped.append(pid)
+            except ProcessLookupError:
+                pass
+    deadline = time.monotonic() + 5.0
+    while time.monotonic() < deadline:
+        surviving = [
+            pid for pid in stopped
+            if (Path("/proc") / str(pid)).exists()
+        ]
+        if not surviving:
+            break
+        time.sleep(0.05)
+    else:
+        for pid in surviving:
+            try:
+                os.kill(pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+    remaining = [pid for pid in stopped if (Path("/proc") / str(pid)).exists()]
+    require(not remaining, f"owned Phase-15 application processes survived: {remaining}")
+    edge_remaining = subprocess.run(
+        ("sudo", "-n", "docker", "inspect", "oai-perception-rx"),
+        stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL, check=False,
+    )
+    require(edge_remaining.returncode != 0, "owned Phase-15 edge container survived cleanup")
+    return {
+        "edge_container_down_returncode": int(edge.returncode),
+        "owned_host_processes_stopped": stopped,
+        "owned_host_processes_remaining": [],
+    }
+
+
+def _require_phase15_application_cold(config: Mapping[str, Any]) -> dict[str, Any]:
+    """Require absence of the edge/CARLA/adapter state not covered by Phase 14."""
+
+    from rl_agent import splitfusion_phase14a_100mhz_calibration_v1 as phase14a
+
+    sources = {
+        str(repo_path(str(config["runtime"][name])))
+        for name in (
+            "required_route_b_split_cell_adapter", "map_install_runtime",
+            "target_snr_runtime", "live_dispatch_bridge",
+        )
+    }
+    active = []
+    for row in phase14a.process_table():
+        command = str(row.get("command", ""))
+        executable = Path(str(row.get("executable", ""))).name
+        if executable.startswith("CarlaUnreal") or any(source in command for source in sources):
+            active.append({"pid": int(row["pid"]), "executable": executable})
+    require(not active, f"stale Phase-15 application processes exist: {active}")
+    edge = subprocess.run(
+        ("sudo", "-n", "docker", "inspect", "oai-perception-rx"),
+        stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL, check=False,
+    )
+    require(edge.returncode != 0, "stale Phase-15 edge container exists")
+    stale_tmp = sorted(
+        path.name
+        for prefix in (
+            "ue_288_cell_runtime_*", "ue_288_seg_eval_*",
+            "splitfusion_pilot_*", "splitfusion_live_edge_*",
+        )
+        for path in Path("/tmp").glob(prefix)
+    )
+    require(not stale_tmp, f"stale Phase-15 temporary runtime paths exist: {stale_tmp}")
+    stale_shm = sorted(
+        path.name
+        for path in Path("/dev/shm").iterdir()
+        if any(token in path.name.casefold() for token in ("carla", "splitfusion", "oai"))
+    )
+    require(not stale_shm, f"stale Phase-15 shared-memory objects exist: {stale_shm}")
+
+    runtime = config["runtime"]
+    requested = {
+        "tcp": {2000, 8010, 35001},
+        "udp": {
+            int(runtime["edge_receive_port"]), int(runtime["edge_source_port"]),
+            int(runtime["camera_result_port"]), int(runtime["map_ingest_port"]),
+            39401,
+        },
+    }
+    occupied: dict[str, list[int]] = {}
+    for protocol, arguments in (
+        ("tcp", ("ss", "-H", "-ltnp")),
+        ("udp", ("ss", "-H", "-lunp")),
+    ):
+        completed = subprocess.run(
+            arguments, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE, text=True, check=False,
+        )
+        require(completed.returncode == 0, f"cannot audit Phase-15 {protocol} listeners")
+        used = {
+            int(fields[3].rsplit(":", 1)[-1])
+            for line in completed.stdout.splitlines()
+            if len((fields := line.split())) >= 5
+            and fields[3].rsplit(":", 1)[-1].isdigit()
+        }
+        occupied[protocol] = sorted(requested[protocol] & used)
+        require(
+            not occupied[protocol],
+            f"stale/conflicting Phase-15 {protocol} listeners exist: {occupied[protocol]}",
+        )
+    return {
+        "application_processes": [], "edge_container_absent": True,
+        "runtime_temporary_paths": [], "shared_memory_objects": [],
+        "conflicting_tcp_ports": [], "conflicting_udp_ports": [],
+    }
+
+
+def _phase15_gpu_audit() -> dict[str, Any]:
+    """Run the approved infrastructure-aware GPU policy in a short-lived process."""
+
+    code = (
+        "import json; from rl_agent.splitfusion_live_dispatch_v1."
+        "phase13b_qualification import _gpu_preflight; "
+        "print(json.dumps(_gpu_preflight(), sort_keys=True))"
+    )
+    completed = subprocess.run(
+        ("/usr/bin/python3", "-c", code), cwd=str(ROOT),
+        stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        text=True, check=False, timeout=90.0,
+    )
+    require(
+        completed.returncode == 0 and completed.stdout.splitlines(),
+        "Phase-15 GPU/workload audit failed: "
+        + (completed.stderr.strip() or completed.stdout.strip()),
+    )
+    report = json.loads(completed.stdout.splitlines()[-1])
+    require(
+        report.get("device_count") == 1
+        and report.get("device_name") == "NVIDIA GeForce RTX 5090",
+        "Phase-15 GPU identity drift",
+    )
     return report
 
 
@@ -863,8 +1111,12 @@ def run_one_cell(
     except Exception as exc:
         detail = {"reason": f"{type(exc).__name__}: {exc}", "adapter_returncode": child_rc}
     finally:
+        try:
+            cleanup["application"] = _stop_phase15_application(config)
+        except Exception as exc:
+            cleanup["application_error"] = f"{type(exc).__name__}: {exc}"
         if server is not None and pgid is not None:
-            cleanup = lifecycle.stop_carla(server, pgid, port)
+            cleanup["carla"] = lifecycle.stop_carla(server, pgid, port)
         if radio_namespace is not None and radio_state is not None:
             try:
                 cleanup["radio"] = _stop_live_radio(
@@ -873,12 +1125,25 @@ def run_one_cell(
                 cleanup["radio_shutdown_verified"] = True
             except Exception as exc:
                 cleanup["radio_error"] = f"{type(exc).__name__}: {exc}"
-        if not cleanup.get("shutdown_verified"):
+        try:
+            cleanup["application_cold"] = _require_phase15_application_cold(config)
+        except Exception as exc:
+            cleanup["application_cold_error"] = f"{type(exc).__name__}: {exc}"
+        if server is not None and pgid is not None and not cleanup.get("carla", {}).get("shutdown_verified"):
             status = "FAILED" if status != "INTERRUPTED" else status
             detail["cleanup_error"] = "fresh CARLA process group or RPC port survived cleanup"
+        if cleanup.get("application_error"):
+            status = "FAILED" if status != "INTERRUPTED" else status
+            detail["application_cleanup_error"] = cleanup["application_error"]
+        if cleanup.get("application_cold_error"):
+            status = "FAILED" if status != "INTERRUPTED" else status
+            detail["application_cold_error"] = cleanup["application_cold_error"]
         if radio_namespace is not None and not cleanup.get("radio_shutdown_verified"):
             status = "FAILED" if status != "INTERRUPTED" else status
             detail["radio_cleanup_error"] = "qualified radio lifecycle did not restore and prove cold cleanup"
+        detail["service_diagnostics"] = _compact_log_diagnostics(
+            service_log_dir, include_tails=status != "PASSED"
+        )
         terminal = write_terminal(
             attempt_dir,
             status,
@@ -918,15 +1183,111 @@ def verify_pilot_gate(path: Path) -> None:
     require(passed == 16 and len(cells) == 16, f"full sweep requires all 16 pilot cells PASSED; found {passed}/16")
 
 
+def verify_phase15_qualification(path: Path) -> dict[str, Any]:
+    """Require a hash-bound successful live qualification before the pilot."""
+
+    root = path.resolve(strict=True)
+    try:
+        root.relative_to((ROOT / "experiments").resolve(strict=True))
+    except ValueError as exc:
+        raise CampaignError("Phase-15 qualification root escapes experiments") from exc
+    qualification_path = root / "qualification.json"
+    manifest_path = root / "artifact_manifest.json"
+    report_path = root / "REPORT.md"
+    terminal_path = root / PHASE15_QUALIFICATION_TERMINAL
+    for artifact in (qualification_path, manifest_path, report_path, terminal_path):
+        require(artifact.is_file(), f"Phase-15 qualification artifact missing: {artifact}")
+    qualification = load_json(qualification_path)
+    preflight_path = root / "preflight_inventory.json"
+    preflight = load_json(preflight_path)
+    require(
+        qualification.get("preflight_inventory_sha256") == sha256_file(preflight_path)
+        and preflight.get("status") == "PASS",
+        "Phase-15 qualification/preflight binding drift",
+    )
+    manifest = load_json(manifest_path)
+    require(
+        manifest.get("schema") == "scenesense.splitfusion_phase15_live_deployment_artifacts.v1",
+        "Phase-15 qualification artifact manifest schema drift",
+    )
+    manifest_files = manifest.get("files", ())
+    require(
+        isinstance(manifest_files, list)
+        and {str(item.get("path")) for item in manifest_files}
+        == {
+            "preflight_inventory.json", "qualification.json", "REPORT.md",
+            "runtime/RESULTS_SUMMARY.json", "runtime/manifest.json",
+            "runtime/per_frame_metrics.csv", "runtime/map_feedback.csv",
+            "runtime/radio_trace.csv",
+        },
+        "Phase-15 qualification artifact inventory drift",
+    )
+    for item in manifest_files:
+        raw_artifact = root / str(item.get("path", ""))
+        require(raw_artifact.is_file(), f"Phase-15 qualification artifact missing: {raw_artifact}")
+        artifact = raw_artifact.resolve(strict=True)
+        try:
+            artifact.relative_to(root)
+        except ValueError as exc:
+            raise CampaignError("Phase-15 qualification manifest path escapes its root") from exc
+        require(
+            artifact.stat().st_size == int(item.get("bytes", -1))
+            and sha256_file(artifact) == str(item.get("sha256", "")),
+            f"Phase-15 qualification artifact drift: {item.get('path')}",
+        )
+    require(
+        qualification.get("schema") == PHASE15_QUALIFICATION_SCHEMA
+        and qualification.get("status") == PHASE15_QUALIFICATION_TERMINAL
+        and int(qualification.get("captures", -1)) == 20
+        and qualification.get("action_counts") == {"0": 5, "20": 5, "46": 5, "71": 5}
+        and qualification.get("cold_cleanup_verified") is True,
+        "Phase-15 live qualification gates are not complete",
+    )
+    terminal = load_json(terminal_path)
+    require(
+        terminal.get("status") == PHASE15_QUALIFICATION_TERMINAL
+        and terminal.get("qualification_sha256") == sha256_file(qualification_path)
+        and terminal.get("artifact_manifest_sha256") == sha256_file(manifest_path),
+        "Phase-15 qualification terminal/hash binding drift",
+    )
+    image = subprocess.run(
+        ("sudo", "-n", "docker", "image", "inspect", "oai-perception-rx:latest"),
+        stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE, text=True, check=False,
+    )
+    require(image.returncode == 0, "qualified Phase-15 edge image is absent")
+    image_value = json.loads(image.stdout)
+    require(
+        isinstance(image_value, list) and len(image_value) == 1
+        and image_value[0].get("Id") == preflight.get("edge_image", {}).get("image_id"),
+        "qualified Phase-15 edge image identity drift",
+    )
+    return {
+        "root": str(root.relative_to(ROOT)),
+        "qualification_sha256": sha256_file(qualification_path),
+        "artifact_manifest_sha256": sha256_file(manifest_path),
+        "report_sha256": sha256_file(report_path),
+        "terminal_sha256": sha256_file(terminal_path),
+        "edge_image_id": image_value[0]["Id"],
+    }
+
+
 def run_campaign(args: argparse.Namespace) -> int:
     config_path = args.config.resolve()
     config, cells, _hashes = validate_static(config_path)
     live_pilot = config.get("campaign_kind") == "live_pilot_16"
     if live_pilot:
         require(args.execute == LIVE_PILOT_TOKEN, "exact live-pilot execution token is required")
-        worktree = verify_live_pilot_worktree()
+        worktree = verify_live_pilot_worktree(
+            owned_resume_root=args.output_root if args.resume else None
+        )
+        require(args.qualification_root is not None, "live pilot requires --qualification-root")
+        live_qualification = verify_phase15_qualification(args.qualification_root)
+        _phase15_gpu_audit()
+        _require_phase15_application_cold(config)
     else:
         worktree = {}
+        live_qualification = {}
     apply_model_overrides(config, args.model)
     if args.maximum_loop_sim_s is not None:
         config["_maximum_loop_sim_s_override"] = float(args.maximum_loop_sim_s)
@@ -975,6 +1336,7 @@ def run_campaign(args: argparse.Namespace) -> int:
             "required_cells": 16, "full_288_campaign_authorized": False,
             "phase14b_mapping_evidence": "COMMAND_VALIDITY_COVERAGE",
             "phase14b_probe_started": False,
+            "phase15_live_qualification": live_qualification,
         }
         if args.resume:
             require(manifest_path.is_file(), "live-pilot resume lacks immutable manifest")
@@ -1024,26 +1386,24 @@ def live_preflight_command(args: argparse.Namespace) -> int:
     except ValueError as exc:
         raise CampaignError("live pilot output must remain beneath experiments") from exc
     require(not output.exists(), f"create-only live-pilot output exists: {output}")
-    import torch
-
-    require(torch.cuda.is_available() and torch.cuda.device_count() == 1, "live preflight requires exactly one CUDA device")
-    require(torch.cuda.get_device_name(0) == "NVIDIA GeForce RTX 5090", "live preflight CUDA device drift")
-    tiny = torch.empty(1, device="cuda:0")
-    tiny.zero_()
-    torch.cuda.synchronize(0)
-    del tiny
+    require(args.qualification_root is not None, "live pilot requires --qualification-root")
+    live_qualification = verify_phase15_qualification(args.qualification_root)
+    gpu = _phase15_gpu_audit()
     from rl_agent import splitfusion_phase14a_100mhz_calibration_v1 as phase14a
     from rl_agent import splitfusion_phase14b_corrected_four_profile_replay_v1 as phase14b
 
     radio = phase14a.load_json(repo_path(str(config["runtime"]["phase14a_config"])))
     phase14b.require_cold_profile_runtime(radio, output / "preflight_no_output")
+    application_cold = _require_phase15_application_cold(config)
     print(json.dumps({
         "status": "SPLITFUSION_16_CELL_LIVE_CARLA_OAI_PILOT_PREFLIGHT_PASS",
         "head": worktree["head"], "dirty_paths": worktree["dirty_paths"],
         "cell_count": len(cells), "trace_prefix_hashes": trace_hashes,
-        "cuda_device": torch.cuda.get_device_name(0), "output_absent": True,
+        "cuda_device": gpu["device_name"], "gpu": gpu, "output_absent": True,
         "phase14b_mapping_evidence": "COMMAND_VALIDITY_COVERAGE",
         "probe_forbidden": True, "external_processes_started": 0,
+        "phase15_live_qualification": live_qualification,
+        "application_cold": application_cold,
     }, indent=2, sort_keys=True))
     return 0
 
@@ -1066,13 +1426,49 @@ def finalize_live_pilot(
         with per_frame.open(newline="", encoding="utf-8") as handle:
             frame_rows = list(csv.DictReader(handle))
         sent = [row for row in frame_rows if row.get("prepare_status") == "SENT"]
-        installed = int(summary.get("structural_acceptance", {}).get("ack_installed_frames", 0))
+        structural = summary.get("structural_acceptance", {})
+        installed = int(structural.get("ack_installed_frames", 0))
+        with (attempt_dir / "map_feedback.csv").open(newline="", encoding="utf-8") as handle:
+            feedback_rows = list(csv.DictReader(handle))
+        terminal_feedback = [
+            row for row in feedback_rows
+            if str(row.get("terminal", "")).casefold() in {"1", "true"}
+        ]
+        installed_feedback = [row for row in feedback_rows if row.get("status") == "ACK_INSTALLED"]
+        aoi_ms = [
+            (float(row["install_timestamp"]) - float(row["capture_at"])) * 1000.0
+            for row in installed_feedback
+            if row.get("install_timestamp") not in (None, "")
+            and row.get("capture_at") not in (None, "")
+        ]
         latencies = [
             (float(row["edge_result_received_ns"]) - float(row["capture_started_ns"])) / 1e6
             for row in sent
             if row.get("edge_result_received_ns") not in (None, "") and row.get("capture_started_ns") not in (None, "")
         ]
         payloads = [int(row["sfd1_bytes"]) for row in sent if row.get("sfd1_bytes") not in (None, "")]
+        with (attempt_dir / "radio_trace.csv").open(newline="", encoding="utf-8") as handle:
+            radio_rows = list(csv.DictReader(handle))
+        targets = [float(row["target_snr_db"]) for row in radio_rows if row.get("target_snr_db") not in (None, "")]
+        commands = [float(row["mapped_rfsim_command_db"]) for row in radio_rows if row.get("mapped_rfsim_command_db") not in (None, "")]
+        timing_counts: dict[str, int] = {}
+        for radio_row in radio_rows:
+            status = str(radio_row.get("command_timing_status") or "")
+            timing_counts[status] = timing_counts.get(status, 0) + 1
+        feedback_counts: dict[str, int] = {}
+        for feedback_row in terminal_feedback:
+            status = str(feedback_row.get("status") or "")
+            feedback_counts[status] = feedback_counts.get(status, 0) + 1
+        duplicate_feature_datagrams = sum(
+            int(row["feature_duplicate_datagrams"])
+            for row in sent if row.get("feature_duplicate_datagrams") not in (None, "")
+        )
+        feature_datagrams = sum(
+            int(row["feature_received_datagrams"])
+            for row in sent if row.get("feature_received_datagrams") not in (None, "")
+        )
+        passed_terminal = load_json(attempt_dir / "PASSED.json")
+        passed_cleanup = passed_terminal.get("carla_cleanup", {})
         rows.append({
             "cell_id": cell.cell_id, "action_id": cell.action_id, "profile_id": cell.profile_id,
             "network_profile_id": cell.network_profile_id, "attempt": int(passed["attempt"]),
@@ -1080,9 +1476,34 @@ def finalize_live_pilot(
             "captures_sent": len(sent), "ack_installed_frames": installed,
             "delivery_rate": (installed / len(sent)) if sent else 0.0,
             "mean_capture_to_edge_result_ms": (sum(latencies) / len(latencies)) if latencies else None,
+            "maximum_capture_to_edge_result_ms": max(latencies) if latencies else None,
+            "mean_install_aoi_ms": (sum(aoi_ms) / len(aoi_ms)) if aoi_ms else None,
+            "maximum_install_aoi_ms": max(aoi_ms) if aoi_ms else None,
             "mean_sfd1_bytes": (sum(payloads) / len(payloads)) if payloads else None,
-            "radio_trace_rows": sum(1 for _ in (attempt_dir / "radio_trace.csv").open(encoding="utf-8")) - 1,
-            "cold_cleanup_verified": bool(load_json(attempt_dir / "PASSED.json").get("carla_cleanup", {}).get("radio_shutdown_verified")),
+            "total_sfd1_bytes": sum(payloads),
+            "prepared_queue_drops": int(summary.get("split_frames_dropped", 0)),
+            "feature_datagrams": feature_datagrams,
+            "duplicate_feature_datagrams": duplicate_feature_datagrams,
+            "terminal_feedback_outcomes": json.dumps(feedback_counts, sort_keys=True, separators=(",", ":")),
+            "socket_buffers": json.dumps(summary.get("live_dispatch", {}).get("socket_buffers", {}), sort_keys=True, separators=(",", ":")),
+            "radio_trace_rows": len(radio_rows),
+            "radio_target_min_db": min(targets) if targets else None,
+            "radio_target_mean_db": (sum(targets) / len(targets)) if targets else None,
+            "radio_target_max_db": max(targets) if targets else None,
+            "radio_command_min_db": min(commands) if commands else None,
+            "radio_command_mean_db": (sum(commands) / len(commands)) if commands else None,
+            "radio_command_max_db": max(commands) if commands else None,
+            "radio_timing_outcomes": json.dumps(timing_counts, sort_keys=True, separators=(",", ":")),
+            "route_density": config["route_b"]["density"],
+            "route_scenario_seed": int(config["route_b"]["scenario_seed"]),
+            "route_traffic_manager_seed": int(config["route_b"]["traffic_manager_seed"]),
+            "route_ticks": int(structural.get("route_ticks", 0)),
+            "sensor_preparation_coverage": structural.get("sensor_preparation_coverage"),
+            "cold_cleanup_verified": all((
+                bool(passed_cleanup.get("radio_shutdown_verified")),
+                bool(passed_cleanup.get("carla", {}).get("shutdown_verified")),
+                not passed_cleanup.get("application_cold_error"),
+            )),
             "attempt_manifest_sha256": sha256_file(attempt_dir / "manifest.json"),
         })
     require(len(rows) == 16 and len({row["cell_id"] for row in rows}) == 16, "final pilot cell inventory drift")
@@ -1216,6 +1637,7 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--cell-id", help="run exactly one registered cell (bounded integration smoke)")
     run.add_argument("--maximum-loop-sim-s", type=float, help="bounded Route B smoke override")
     run.add_argument("--execute")
+    run.add_argument("--qualification-root", type=Path)
     run.add_argument("--resume", action="store_true")
     run.set_defaults(func=run_campaign)
 
@@ -1223,6 +1645,7 @@ def build_parser() -> argparse.ArgumentParser:
     preflight.add_argument("--config", type=Path, required=True)
     preflight.add_argument("--output-root", type=Path, required=True)
     preflight.add_argument("--execute", required=True)
+    preflight.add_argument("--qualification-root", type=Path)
     preflight.set_defaults(func=live_preflight_command)
     return parser
 

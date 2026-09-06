@@ -37,6 +37,7 @@ from pole_lraspp_multimodal_fusion.object_head_pilot_v1.splitfusion_fcos_r50_fpn
 
 from .context_tail import ContextualFrozenP025TailAdapter
 from .edge_runtime import PreloadedSplitEdgeRuntime
+from .envelope import unpack_envelope
 from .frame_context import StaticCameraRegistry, build_frame_context_v1
 from .registry import SplitActionRegistry
 from .transport import ProductionSplitCodec
@@ -128,19 +129,22 @@ class _AE:
 
 def _preload_ue(device: torch.device) -> tuple[PreloadedSplitUERuntime, _Ledger, list[Any]]:
     registry = SplitActionRegistry.from_runtime_binding()
-    historical = phase11b.phase11b_preflight()
     model, _base, _binding = load_frozen_perception(device)
     phase11b.common.freeze(model)
     ranker = phase11b._load_ranker(device)
-    autoencoders = {
-        family: phase11b._load_selected_autoencoder(
-            family, bottleneck, phase11b.FROZEN_INPUTS[family],
-            historical["checkpoint_payloads"][family], device,
+    autoencoders = {}
+    for family, _family_id, bottleneck in phase11b.FAMILIES:
+        if bottleneck is None:
+            continue
+        item = phase11b.FROZEN_INPUTS[family]
+        payload = torch.load(
+            phase11b._repository_path(item["path"]),
+            map_location="cpu", weights_only=False,
         )
-        for family, _family_id, bottleneck in phase11b.FAMILIES
-        if bottleneck is not None
-    }
-    historical["checkpoint_payloads"].clear()
+        autoencoders[family] = phase11b._load_selected_autoencoder(
+            family, bottleneck, item, payload, device,
+        )
+        del payload
     guards.require_frozen_perception([model, ranker, *autoencoders.values()])
     guards.require_eval_mode([model, ranker, *autoencoders.values()])
     ledger = _Ledger()
@@ -156,18 +160,21 @@ def _preload_ue(device: torch.device) -> tuple[PreloadedSplitUERuntime, _Ledger,
 
 def _preload_edge(device: torch.device) -> tuple[PreloadedSplitEdgeRuntime, ContextualFrozenP025TailAdapter, _Ledger, list[Any]]:
     registry = SplitActionRegistry.from_runtime_binding()
-    historical = phase11b.phase11b_preflight()
     model, base, _binding = load_frozen_perception(device)
     phase11b.common.freeze(model)
-    autoencoders = {
-        family: phase11b._load_selected_autoencoder(
-            family, bottleneck, phase11b.FROZEN_INPUTS[family],
-            historical["checkpoint_payloads"][family], device,
+    autoencoders = {}
+    for family, _family_id, bottleneck in phase11b.FAMILIES:
+        if bottleneck is None:
+            continue
+        item = phase11b.FROZEN_INPUTS[family]
+        payload = torch.load(
+            phase11b._repository_path(item["path"]),
+            map_location="cpu", weights_only=False,
         )
-        for family, _family_id, bottleneck in phase11b.FAMILIES
-        if bottleneck is not None
-    }
-    historical["checkpoint_payloads"].clear()
+        autoencoders[family] = phase11b._load_selected_autoencoder(
+            family, bottleneck, item, payload, device,
+        )
+        del payload
     guards.require_frozen_perception([model, *autoencoders.values()])
     guards.require_eval_mode([model, *autoencoders.values()])
     ledger = _Ledger()
@@ -214,6 +221,21 @@ class LivePilotCellRuntime:
         self.registry = SplitActionRegistry.from_runtime_binding()
         self.profile = self.registry.resolve(int(cell["action_id"]))
         _require(self.profile.profile_id == str(cell["profile_id"]), "cell/catalog identity mismatch")
+        qualification = campaign.get("_qualification")
+        self.allowed_action_ids = (
+            tuple(int(value) for value in qualification["action_ids"])
+            if isinstance(qualification, Mapping)
+            else (self.profile.action_id,)
+        )
+        _require(
+            len(self.allowed_action_ids) == len(set(self.allowed_action_ids))
+            and all(0 <= value < 72 for value in self.allowed_action_ids),
+            "live action allowlist is invalid",
+        )
+        self.allowed_profiles = {
+            action_id: self.registry.resolve(action_id)
+            for action_id in self.allowed_action_ids
+        }
         self.ue, self._ledger, self._models = _preload_ue(self.device)
         self.attempt_dir, self.evidence_dir = Path(attempt_dir), Path(evidence_dir)
         self.evidence_dir.mkdir(parents=True, exist_ok=True)
@@ -244,9 +266,13 @@ class LivePilotCellRuntime:
 
     def submit(self, *, frame_bgr: np.ndarray, radar_tensor: np.ndarray, frame_id: int,
                capture_timestamp_ns: int, ego_pose: tuple[float, float, float, float, float, float],
-               stream_id: str, carla_timestamp: float, capture_id: str) -> dict[str, Any]:
+               stream_id: str, carla_timestamp: float, capture_id: str,
+               action_id: int | None = None) -> dict[str, Any]:
         _require(not self.errors, self.errors[0] if self.errors else "edge service failed")
         _require(self.thread.is_alive(), "result service exited")
+        selected_action = self.profile.action_id if action_id is None else int(action_id)
+        _require(selected_action in self.allowed_profiles, "action is outside the live allowlist")
+        profile = self.allowed_profiles[selected_action]
         started = time.perf_counter_ns()
         input_7ch = _prepare_live_input(frame_bgr, radar_tensor, self.device)
         context = build_frame_context_v1(
@@ -255,23 +281,28 @@ class LivePilotCellRuntime:
             ego_world_z=ego_pose[2], ego_world_pitch=ego_pose[3], ego_world_yaw=ego_pose[4], ego_world_roll=ego_pose[5],
         )
         with torch.inference_mode():
-            prepared = self.ue.prepare(self.profile.action_id, input_7ch, sequence_id=context.sequence_id,
+            prepared = self.ue.prepare(profile.action_id, input_7ch, sequence_id=context.sequence_id,
                                        capture_timestamp_ns=context.capture_timestamp_ns, frame_context=context)
         chunks = chunk_payload(prepared.wire_bytes, message_id=int(frame_id), chunk_bytes=self.chunk_bytes)
         sent_started = time.perf_counter_ns()
-        for chunk in chunks:
-            self.sender.sendto(chunk, self.remote)
-        sent_finished = time.perf_counter_ns()
         with self.lock:
             self.metrics[int(frame_id)] = {
                 "capture_id": str(capture_id), "frame_id": int(frame_id), "stream_id": str(stream_id),
+                "action_id": profile.action_id, "profile_id": profile.profile_id,
+                "model_family": profile.family, "quantizer": profile.quantizer,
+                "q_e4": profile.q_e4, "routing_tag": profile.routing_tag,
                 "carla_timestamp": float(carla_timestamp), "capture_started_ns": started,
-                "ue_prepare_finished_ns": sent_started, "send_finished_ns": sent_finished,
+                "ue_prepare_finished_ns": sent_started,
                 "scientific_inner_bytes": int(prepared.inner_payload_bytes),
                 "sfd1_overhead_bytes": int(prepared.outer_envelope_bytes), "sfd1_bytes": int(prepared.total_transmitted_bytes),
                 "datagrams": len(chunks), "udp_application_bytes": sum(map(len, chunks)),
                 "estimated_wire_bytes": sum(len(chunk) + 28 for chunk in chunks), "front_timing_ns": _trace_ns(prepared.timing),
             }
+        for chunk in chunks:
+            self.sender.sendto(chunk, self.remote)
+        sent_finished = time.perf_counter_ns()
+        with self.lock:
+            self.metrics[int(frame_id)]["send_finished_ns"] = sent_finished
             self.sent += 1
         return {"front_ms": (sent_started - started) / 1e6, "payload_bytes": len(prepared.wire_bytes),
                 "payload_bytes_uncompressed": prepared.inner_payload_bytes, "payload_chunks": len(chunks)}
@@ -292,10 +323,11 @@ class LivePilotCellRuntime:
                     continue
                 value = json.loads(complete.payload.decode("utf-8"))
                 _require(value.get("schema") == "splitfusion_edge_result.v1", "edge result schema drift")
-                _require(int(value["action_id"]) == self.profile.action_id, "edge action identity drift")
                 _require(int(value["frame_id"]) == complete.message_id, "result chunk/frame identity drift")
                 metric = self.metrics.get(int(value["frame_id"]))
                 _require(metric is not None, "edge result has no transmitted UE frame")
+                _require(int(value["action_id"]) == int(metric["action_id"]), "edge action identity drift")
+                _require(str(value["profile_id"]) == str(metric["profile_id"]), "edge profile identity drift")
                 _require(str(value["stream_id"]) == str(metric["stream_id"]), "edge stream identity drift")
                 labels = np.frombuffer(base64.b64decode(value["semantic_labels_b64"], validate=True), dtype=np.uint8)
                 shape = tuple(int(x) for x in value["semantic_labels_shape"])
@@ -317,7 +349,16 @@ class LivePilotCellRuntime:
                 with self.lock:
                     metric.update({"edge_result_received_ns": received_ns, "edge_timing_ns": value["edge_timing_ns"],
                                    "duplicate_datagrams": int(complete.duplicate_chunks), "decoded": True, "finite": bool(value["finite"]),
-                                   "decoder_identity": str(value["decoder_identity"]), "edge_result_datagrams": int(complete.chunk_count)})
+                                   "decoder_identity": str(value["decoder_identity"]), "edge_result_datagrams": int(complete.chunk_count),
+                                   "feature_received_datagrams": int(value["feature_received_datagrams"]),
+                                   "feature_duplicate_datagrams": int(value["feature_duplicate_datagrams"]),
+                                   "reconstructed_device": str(value["reconstructed_device"]),
+                                   "frame_context_valid": bool(value["frame_context_valid"]),
+                                   "camera_pose_reconstruct_ns": int(value["camera_pose_reconstruct_ns"]),
+                                   "finite_output_tensor_count": int(value["finite_output_tensor_count"]),
+                                   "service_record_count": int(value["service_record_count"]),
+                                   "edge_call_ledger": dict(value["edge_call_ledger"]),
+                                   "edge_counters": dict(value["edge_counters"])})
                     self.completed += 1
             except Exception as exc:
                 with self.lock:
@@ -343,15 +384,20 @@ class LivePilotCellRuntime:
                 "ue_counters": self.ue.counters.__dict__}
 
 
-def run_edge_service(*, config_path: Path, action_id: int, ready_file: Path, edge_port: int,
-                     result_host: str, result_port: int) -> int:
+def run_edge_service(*, config_path: Path, action_id: int, allowed_action_ids: tuple[int, ...],
+                     ready_file: Path, edge_port: int, result_host: str, result_port: int) -> int:
     campaign = _load_json(config_path)
     runtime = campaign["runtime"]
     _require(int(runtime["sfd1_protocol_version"]) == 2 and runtime["udp_fragment_header"] == "!IHH", "edge protocol binding drift")
     _require(torch.cuda.is_available() and torch.cuda.get_device_name(0) == "NVIDIA GeForce RTX 5090", "edge CUDA device unavailable")
     device = torch.device("cuda:0")
     registry = SplitActionRegistry.from_runtime_binding()
-    profile = registry.resolve(int(action_id))
+    _require(
+        allowed_action_ids and len(allowed_action_ids) == len(set(allowed_action_ids)),
+        "edge action allowlist is empty or duplicated",
+    )
+    profiles = {value: registry.resolve(value) for value in allowed_action_ids}
+    _require(int(action_id) in profiles, "edge fixed action is outside its allowlist")
     edge, tail, ledger, models = _preload_edge(device)
     request = int(runtime["socket_buffer_request_bytes"])
     receiver = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -363,8 +409,11 @@ def run_edge_service(*, config_path: Path, action_id: int, ready_file: Path, edg
     reassembler = ChunkReassembler(timeout_s=2.0, max_chunks=4096)
     ready_file.parent.mkdir(parents=True, exist_ok=True)
     with ready_file.open("x", encoding="utf-8") as handle:
-        json.dump({"schema": "splitfusion_live_edge_ready.v1", "action_id": profile.action_id,
-                   "profile_id": profile.profile_id, "tail_device": str(edge.tail_device),
+        json.dump({"schema": "splitfusion_live_edge_ready.v1", "action_id": int(action_id),
+                   "allowed_action_ids": list(allowed_action_ids),
+                   "profiles": {str(key): value.profile_id for key, value in profiles.items()},
+                   "tail_device": str(edge.tail_device),
+                   "state_root": str(ready_file.parent), "state_root_writable": True,
                    "edge_receive_reported_bytes": receiver.getsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF),
                    "edge_send_reported_bytes": sender.getsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF)}, handle, sort_keys=True)
     try:
@@ -378,7 +427,10 @@ def run_edge_service(*, config_path: Path, action_id: int, ready_file: Path, edg
             if complete is None:
                 continue
             edge_received_ns = time.perf_counter_ns()
-            result = edge.process(complete.payload, transmitted_action_id=profile.action_id)
+            outer = unpack_envelope(complete.payload)
+            _require(outer.action_id in profiles, "received action is outside the edge allowlist")
+            profile = profiles[outer.action_id]
+            result = edge.process(complete.payload, transmitted_action_id=outer.action_id)
             _finite_tree(result.perception)
             snapshot = tail.take_snapshot()
             context = result.metadata.frame_context
@@ -388,6 +440,13 @@ def run_edge_service(*, config_path: Path, action_id: int, ready_file: Path, edg
                      "profile_id": profile.profile_id, "decoder_identity": profile.decoder_identity,
                      "stream_id": context.stream_id, "frame_id": context.frame_id,
                      "capture_timestamp_ns": context.capture_timestamp_ns, "finite": True,
+                     "frame_context_valid": True, "reconstructed_device": str(edge.tail_device),
+                     "camera_pose_reconstruct_ns": int(snapshot.camera_pose_reconstruct_ns),
+                     "finite_output_tensor_count": int(snapshot.output_tensor_count),
+                     "service_record_count": len(snapshot.records or ()),
+                     "feature_received_datagrams": int(complete.chunk_count),
+                     "feature_duplicate_datagrams": int(complete.duplicate_chunks),
+                     "edge_call_ledger": ledger.snapshot(), "edge_counters": edge.counters.__dict__,
                      "edge_received_ns": edge_received_ns, "tail_finished_ns": time.perf_counter_ns(),
                      "edge_timing_ns": _trace_ns(result.timing), "records": list(snapshot.records or ()),
                      "semantic_labels_shape": list(labels.shape),
@@ -406,13 +465,19 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--edge", action="store_true")
     parser.add_argument("--config", type=Path)
     parser.add_argument("--action-id", type=int)
+    parser.add_argument("--allowed-action-ids")
     parser.add_argument("--ready-file", type=Path)
     parser.add_argument("--edge-port", type=int, default=51002)
     parser.add_argument("--result-host", default="10.0.0.2")
     parser.add_argument("--result-port", type=int, default=51004)
     args, _ignored = parser.parse_known_args(argv)
     _require(args.edge and args.config and args.action_id is not None and args.ready_file, "edge mode and all qualified bindings are required")
+    allowed_action_ids = tuple(
+        int(value)
+        for value in str(args.allowed_action_ids or args.action_id).split(",")
+    )
     return run_edge_service(config_path=args.config.resolve(strict=True), action_id=int(args.action_id),
+                            allowed_action_ids=allowed_action_ids,
                             ready_file=args.ready_file, edge_port=int(args.edge_port),
                             result_host=str(args.result_host), result_port=int(args.result_port))
 
