@@ -29,14 +29,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# Blackwell / RTX 5090 needs a PyTorch build with sm_120 support. The cu128
-# nightly wheel path is the known-good track for this machine as of the Phase 2
-# handoff; keep numpy below 2 because apt's python3-opencv is built against
-# the NumPy 1.x C API and fails with NumPy 2.x (`_ARRAY_API not found`).
+# Blackwell / RTX 5090 needs a PyTorch build with sm_120 support. Pin the
+# mutually compatible cu128 nightly snapshot qualified on this machine; an
+# unpinned nightly install can combine adjacent publication dates whose exact
+# torch requirements conflict. Keep numpy below 2 because apt's python3-opencv
+# is built against the NumPy 1.x C API and fails with NumPy 2.x
+# (`_ARRAY_API not found`).
 RUN python3 -m pip install --upgrade pip setuptools wheel \
     && python3 -m pip install "numpy>=1.26,<2" \
     && python3 -m pip install filelock typing-extensions sympy networkx jinja2 fsspec \
-    && python3 -m pip install --pre torch torchvision torchaudio \
+    && python3 -m pip install --pre \
+        "torch==2.10.0.dev20251114+cu128" \
+        "torchvision==0.25.0.dev20251117+cu128" \
+        "torchaudio==2.10.0.dev20251117+cu128" \
         --index-url https://download.pytorch.org/whl/nightly/cu128
 
 # Keep optional entropy codecs in their own layer so codec-only edits do not

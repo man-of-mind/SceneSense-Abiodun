@@ -153,7 +153,7 @@
     "frozen_phase14_target_runtime": {"path":"rl_agent/ue_target_snr_cell_runtime_v1.py","sha256":"292352b13d72330d6ffcedfb4236480cda5fa80ab6d29059af1adbfb1d398203"},
     "perception_train_only_priors": {"path":"experiments/route_b_v3_1_splitfusion_fcos_r50_fpn_p2_p7_v1/20260829_214123/TRAIN_ONLY_PRIORS.json","sha256":"90ce336604ff83ccd7ea813ae4c12434b6f122b90a906e83d36742ff7f6700f0"},
     "carla_lifecycle": {"path":"data_collection/run_route_b_collection_supervised_v1.py","sha256":"eb27207eec33659465542f427abdced77a3bac5c25165d8ae51441269e462fe1"},
-    "edge_image_dockerfile": {"path":"receiver_container/Dockerfile","sha256":"864feba0a1062e4528627e780e370e94a4fe11d701adf34778f66e4bba0ee77a"},
+    "edge_image_dockerfile": {"path":"receiver_container/Dockerfile","sha256":"7f2bd5da3d8a6b55218ca79953affe2dfe8a94c416234b22871369f45c32c539"},
     "edge_image_entrypoint": {"path":"receiver_container/entrypoint.sh","sha256":"5a9367c35ff1674d5f517f6adc4bc20bf496c146c4301aa76be228285750efe2"},
     "edge_base_compose": {"path":"receiver_container/docker-compose.yaml","sha256":"b1cbc368f2d6857232bc89e6d05ca3db2eac4bb2c88a327be3aa52a188d7aa3a"},
     "edge_split_compose": {"path":"receiver_container/docker-compose.fusion-back.yaml","sha256":"a0c5177171f75c1fc43ac9ec321bd43ad007c6d2af3d05ce5790da01162d804f"},
