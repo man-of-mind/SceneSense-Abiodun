@@ -1586,12 +1586,28 @@ class PassiveSplitCollector:
             len(ack_frames & exact_frames) / len(ack_frames) if ack_frames else None
         )
         missing_segmentation = sorted(ack_frames - set(self.segmentation_quality))
-        if missing_segmentation:
-            reasons = {
-                frame_id: self.segmentation_evidence_errors.get(frame_id, "UNSPECIFIED")
-                for frame_id in missing_segmentation[:8]
-            }
-            failures.append(f"ACK-installed frames lack exact segmentation IoU: {reasons}")
+        missing_segmentation_reasons = {
+            frame_id: self.segmentation_evidence_errors.get(frame_id, "UNSPECIFIED")
+            for frame_id in missing_segmentation
+        }
+        retention_expired = sorted(
+            frame_id for frame_id, reason in missing_segmentation_reasons.items()
+            if reason == "DECODED_MASK_NOT_OBSERVED_WITHIN_RETENTION"
+        )
+        fatal_missing_segmentation = {
+            frame_id: reason for frame_id, reason in missing_segmentation_reasons.items()
+            if frame_id not in retention_expired
+        }
+        if retention_expired:
+            performance_warnings.append(
+                "segmentation IoU unavailable after the registered evidence-retention window; "
+                f"late installed frames={retention_expired[:8]}"
+            )
+        if fatal_missing_segmentation:
+            failures.append(
+                "ACK-installed frames lack exact segmentation IoU for a non-retention reason: "
+                f"{dict(list(fatal_missing_segmentation.items())[:8])}"
+            )
 
         perception_path = self.attempt_dir / "perception_metrics.csv"
         with perception_path.open(newline="", encoding="utf-8") as handle:
@@ -1664,6 +1680,12 @@ class PassiveSplitCollector:
             "exact_frame_perception_records": len(ack_frames & exact_frames),
             "exact_frame_perception_coverage": exact_coverage,
             "exact_frame_segmentation_records": len(ack_frames & set(self.segmentation_quality)),
+            "segmentation_evidence_install_coverage": (
+                len(ack_frames & set(self.segmentation_quality)) / len(ack_frames)
+                if ack_frames else None
+            ),
+            "segmentation_retention_expired_installed_frames": retention_expired,
+            "segmentation_evidence_unavailability_is_measured_not_structurally_invalid": True,
             "performance_warnings": performance_warnings,
             "low_preparation_or_delivery_is_measured_not_structurally_invalid": True,
             "failures": failures,

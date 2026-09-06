@@ -1141,10 +1141,17 @@ def run_one_cell(
                 cleanup["radio_shutdown_verified"] = True
             except Exception as exc:
                 cleanup["radio_error"] = f"{type(exc).__name__}: {exc}"
-        try:
-            cleanup["application_cold"] = _require_phase15_application_cold(config)
-        except Exception as exc:
-            cleanup["application_cold_error"] = f"{type(exc).__name__}: {exc}"
+        detail["service_diagnostics"] = _compact_log_diagnostics(
+            service_log_dir, include_tails=status != "PASSED"
+        )
+        shutil.rmtree(service_log_dir, ignore_errors=True)
+        if service_log_dir.exists():
+            cleanup["application_cold_error"] = "phase-owned service log directory survived cleanup"
+        else:
+            try:
+                cleanup["application_cold"] = _require_phase15_application_cold(config)
+            except Exception as exc:
+                cleanup["application_cold_error"] = f"{type(exc).__name__}: {exc}"
         if server is not None and pgid is not None and not cleanup.get("carla", {}).get("shutdown_verified"):
             status = "FAILED" if status != "INTERRUPTED" else status
             detail["cleanup_error"] = "fresh CARLA process group or RPC port survived cleanup"
@@ -1157,9 +1164,6 @@ def run_one_cell(
         if radio_namespace is not None and not cleanup.get("radio_shutdown_verified"):
             status = "FAILED" if status != "INTERRUPTED" else status
             detail["radio_cleanup_error"] = "qualified radio lifecycle did not restore and prove cold cleanup"
-        detail["service_diagnostics"] = _compact_log_diagnostics(
-            service_log_dir, include_tails=status != "PASSED"
-        )
         terminal = write_terminal(
             attempt_dir,
             status,
@@ -1172,7 +1176,6 @@ def run_one_cell(
                 "carla_cleanup": cleanup,
             },
         )
-        shutil.rmtree(service_log_dir, ignore_errors=True)
     return {
         "attempt": attempt,
         "attempt_dir": str(attempt_dir.relative_to(campaign_root)),
@@ -1511,6 +1514,13 @@ def finalize_live_pilot(
             "route_completed": bool(summary.get("route", {}).get("route_completed")),
             "eligible_preparation_frames": int(structural.get("eligible_preparation_frames", 0)),
             "captures_sent": len(sent), "ack_installed_frames": installed,
+            "segmentation_evidence_records": int(structural.get("exact_frame_segmentation_records", 0)),
+            "segmentation_evidence_install_coverage": structural.get(
+                "segmentation_evidence_install_coverage"
+            ),
+            "segmentation_retention_expired_installed_frames": structural.get(
+                "segmentation_retention_expired_installed_frames", []
+            ),
             "preparation_rate": float(structural.get("sensor_preparation_coverage", 0.0)),
             "conditional_delivery_rate_given_sent": (installed / len(sent)) if sent else 0.0,
             "delivery_rate": (

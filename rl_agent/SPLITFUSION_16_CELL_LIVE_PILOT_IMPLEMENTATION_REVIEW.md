@@ -22,3 +22,9 @@
 - Qualification transmits smallest-first in the fixed order 71/46/20/0 and drains for up to three seconds after each attempt, ending the prior cross-action backlog without changing any pilot cell's fixed-action 10 Hz workload.
 - Per-cell structural validity continues to fail on corrupt/mismatched/non-finite execution, missing accounting, crashed services, incomplete teardown, or an unrecorded 10 Hz opportunity. Preparation coverage and delivery rate are recorded as performance outcomes, including zeros, so infeasible profiles remain visible to the later agent instead of being censored.
 - An asynchronous CARLA radar window with fewer than four callbacks is recorded as an unavailable preparation opportunity in the denominator. It is never passed to perception and does not invalidate otherwise complete cell evidence.
+
+## 4. Retry12 audit and first-cell correction
+
+- The user explicitly authorized immutable retry12 to replace another mixed-action qualification. The separate reclassification artifact preserves its original failure, binds every source hash, discloses the post-observation amendment, records all four UE/edge branches and one real OAI installation, and authorizes only this pilot.
+- A late installed result whose segmentation evidence misses the five-second evaluation-retention window is now reported as unavailable segmentation evidence. Only that named retention-expiry outcome is nonfatal; decoding/evaluation errors and every other missing-evidence reason still fail closed.
+- Per-cell diagnostics are captured and their phase-owned temporary directory is removed before the application-cold assertion. This avoids counting the cell's own still-live log directory as contamination while continuing to fail if its removal does not succeed.

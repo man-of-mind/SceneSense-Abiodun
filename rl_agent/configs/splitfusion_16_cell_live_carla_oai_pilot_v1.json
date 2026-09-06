@@ -91,7 +91,7 @@
     "split_inference_runtime": "rl_agent/splitfusion_live_dispatch_v1/runtime_binding.json",
     "split_inference_runtime_sha256": "604450c7f0f791a480ba4e5ed6b286a2b6f68497735372a7a63ed92e93585551",
     "required_route_b_split_cell_adapter": "rl_agent/ue_route_b_split_cell_adapter_v1.py",
-    "required_route_b_split_cell_adapter_sha256": "835c92be9fbc080762262b77a5cd5cadd7c67e618f1c87c5b42804a90d0d6017",
+    "required_route_b_split_cell_adapter_sha256": "3343fcbeba169084749a020b528a5ad06a550fff64bd915f308123dffeae9d72",
     "map_install_runtime": "uplink_only_spatial_map_pipeline/spatial_map_server_moving_ego_uplink_only_baseline.py",
     "map_install_runtime_sha256": "cc301919b767688f1eab0923d4a935791b06a6cda3d0d5f565484aeae4b05bc1",
     "target_snr_runtime": "rl_agent/splitfusion_live_dispatch_v1/live_pilot_target_snr_runtime.py",
@@ -148,7 +148,7 @@
     "perception_metric_fields": ["frame_id", "class_name", "tp", "fp", "fn", "precision", "recall", "valid_empty", "coverage", "feedback_status", "exact_frame_prediction_available", "object_gt_evidence_available", "segmentation_evidence_available", "source_time_world_xy_error_m", "aligned_world_xy_error_m", "dimension_error_m", "footprint_iou", "segmentation_iou"]
   },
   "deployment": {
-    "phase15_supervisor": {"path":"rl_agent/ue_288_campaign_supervisor.py","sha256":"56ee36bcc7457ff3317aeb8d422408f212acaae3ece122f977aba5b894e40b7e"},
+    "phase15_supervisor": {"path":"rl_agent/ue_288_campaign_supervisor.py","sha256":"d973f936b987e463659066c575075f5d1ee96abfac42d16e3a7606387f3c9a9f"},
     "phase15_qualification_runner": {"path":"rl_agent/phase15_live_deployment_qualification_v1.py","sha256":"ccb90d543b9e4e3f1cd5c9401f66dc1e9c3d63ba1def7d91b6cd74f7c489c64b"},
     "frozen_phase14_target_runtime": {"path":"rl_agent/ue_target_snr_cell_runtime_v1.py","sha256":"292352b13d72330d6ffcedfb4236480cda5fa80ab6d29059af1adbfb1d398203"},
     "perception_train_only_priors": {"path":"experiments/route_b_v3_1_splitfusion_fcos_r50_fpn_p2_p7_v1/20260829_214123/TRAIN_ONLY_PRIORS.json","sha256":"90ce336604ff83ccd7ea813ae4c12434b6f122b90a906e83d36742ff7f6700f0"},
