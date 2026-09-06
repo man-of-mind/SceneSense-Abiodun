@@ -311,6 +311,24 @@ def create_cell_edge_state_root(temporary_dir: Path) -> Path:
     require(os.access(resolved, os.W_OK | os.X_OK), "cell edge-state root is not writable")
     return resolved
 
+def seed_cell_edge_state(campaign: Mapping[str, Any], edge_state: Path) -> None:
+    """Seed immutable constructor weights into an otherwise fresh cell cache."""
+
+    record = campaign["deployment"]["fcos_constructor_weights"]
+    source = repo_path(str(record["path"]))
+    require(source.name == "fcos_resnet50_fpn_coco-99b0c9b7.pth", "FCOS cache filename drift")
+    require(sha256_file(source) == str(record["sha256"]), "FCOS cache seed hash drift")
+    checkpoint_dir = edge_state / "hub/checkpoints"
+    checkpoint_dir.mkdir(parents=True, exist_ok=False)
+    destination = checkpoint_dir / source.name
+    try:
+        os.link(source, destination)
+    except OSError:
+        shutil.copy2(source, destination)
+    require(sha256_file(destination) == str(record["sha256"]), "seeded FCOS cache hash drift")
+
+
+
 
 def _bounded_log_tail(path: Path, limit: int = 8192) -> str:
     if not path.is_file():
@@ -326,6 +344,7 @@ def start_live_edge(
     runtime = campaign["runtime"]
     require(not tail_running(), "a previous phase-owned edge container is still running")
     edge_scratch = create_cell_edge_state_root(temporary_dir)
+    seed_cell_edge_state(campaign, edge_scratch)
     ready_host = edge_scratch / "ready.json"
     ready_container = Path("/work/torch_cache/ready.json")
     config_container = Path("/work/abiodun") / "rl_agent/configs/splitfusion_16_cell_live_carla_oai_pilot_v1.json"
