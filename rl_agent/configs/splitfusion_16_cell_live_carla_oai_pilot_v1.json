@@ -157,7 +157,7 @@
     "edge_image_dockerfile": {"path":"receiver_container/Dockerfile","sha256":"d4b2aac6b3b081e04af1a25e7372c529ba7718c83ee9fe533d77306922b1c195"},
     "edge_image_entrypoint": {"path":"receiver_container/entrypoint.sh","sha256":"5a9367c35ff1674d5f517f6adc4bc20bf496c146c4301aa76be228285750efe2"},
     "edge_base_compose": {"path":"receiver_container/docker-compose.yaml","sha256":"aa45477d63d40799a45115f6db5f07a1eb2440217f43b32173c8536f759c0857"},
-    "edge_split_compose": {"path":"receiver_container/docker-compose.fusion-back.yaml","sha256":"a060e71be02eb9ca78b1c2df9ddd8e3fbe69343f6e6bf3e9a12fa48646e83b26"},
+    "edge_split_compose": {"path":"receiver_container/docker-compose.fusion-back.yaml","sha256":"84a6804049a9e195dea1a9ffd92860d6840dd98e295d17d490547753dc80e237"},
     "edge_launcher": {"path":"scripts/receiver_container_fusion_back_up.sh","sha256":"db6ea6387d590fdca94445288f183310181c5acbac7ec6b4adf8c337431eb246"}
   },
   "authorization": {"pilot_16_authorized": true,"campaign_288_authorized": false,"required_passed_cells":16,"full_sweep_remains_unauthorized":true}
