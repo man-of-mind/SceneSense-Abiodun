@@ -148,7 +148,7 @@
     "perception_metric_fields": ["frame_id", "class_name", "tp", "fp", "fn", "precision", "recall", "valid_empty", "coverage", "feedback_status", "exact_frame_prediction_available", "object_gt_evidence_available", "segmentation_evidence_available", "source_time_world_xy_error_m", "aligned_world_xy_error_m", "dimension_error_m", "footprint_iou", "segmentation_iou"]
   },
   "deployment": {
-    "phase15_supervisor": {"path":"rl_agent/ue_288_campaign_supervisor.py","sha256":"3756d6d6107743ca0657806445e05a3601c7e16e68e47f390c0af7196bf92676"},
+    "phase15_supervisor": {"path":"rl_agent/ue_288_campaign_supervisor.py","sha256":"56ee36bcc7457ff3317aeb8d422408f212acaae3ece122f977aba5b894e40b7e"},
     "phase15_qualification_runner": {"path":"rl_agent/phase15_live_deployment_qualification_v1.py","sha256":"ccb90d543b9e4e3f1cd5c9401f66dc1e9c3d63ba1def7d91b6cd74f7c489c64b"},
     "frozen_phase14_target_runtime": {"path":"rl_agent/ue_target_snr_cell_runtime_v1.py","sha256":"292352b13d72330d6ffcedfb4236480cda5fa80ab6d29059af1adbfb1d398203"},
     "perception_train_only_priors": {"path":"experiments/route_b_v3_1_splitfusion_fcos_r50_fpn_p2_p7_v1/20260829_214123/TRAIN_ONLY_PRIORS.json","sha256":"90ce336604ff83ccd7ea813ae4c12434b6f122b90a906e83d36742ff7f6700f0"},

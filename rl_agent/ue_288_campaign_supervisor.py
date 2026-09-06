@@ -914,7 +914,7 @@ def _stop_phase15_application(config: Mapping[str, Any]) -> dict[str, Any]:
     remaining = [pid for pid in stopped if (Path("/proc") / str(pid)).exists()]
     require(not remaining, f"owned Phase-15 application processes survived: {remaining}")
     edge_state = subprocess.run(
-        ("sudo", "-n", "docker", "inspect", "-f", "{{.State.Running}}", "oai-perception-rx"),
+        ("sudo", "-n", "docker", "container", "inspect", "-f", "{{.State.Running}}", "oai-perception-rx"),
         stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
         stderr=subprocess.DEVNULL, text=True, check=False,
     )
@@ -953,7 +953,7 @@ def _require_phase15_application_cold(config: Mapping[str, Any]) -> dict[str, An
             active.append({"pid": int(row["pid"]), "executable": executable})
     require(not active, f"stale Phase-15 application processes exist: {active}")
     edge = subprocess.run(
-        ("sudo", "-n", "docker", "inspect", "oai-perception-rx"),
+        ("sudo", "-n", "docker", "container", "inspect", "oai-perception-rx"),
         stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL, check=False,
     )
