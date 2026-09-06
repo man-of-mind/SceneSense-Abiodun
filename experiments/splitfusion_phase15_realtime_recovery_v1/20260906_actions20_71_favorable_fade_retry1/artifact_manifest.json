@@ -1,0 +1,30 @@
+{
+  "files": [
+    {
+      "bytes": 2544,
+      "path": "cell_summary.csv",
+      "sha256": "e81109e66f5a9dce9cdb5cd2feace336cb5398521f61412422fb780fc71e1d71"
+    },
+    {
+      "bytes": 51412,
+      "path": "PROSPECTIVE_EVALUATION.json",
+      "sha256": "d3e38d49520e5e1ce24f57bf84cc0a6d355ca545e7bb6e201d54bec049009190"
+    },
+    {
+      "bytes": 2045,
+      "path": "REPORT.md",
+      "sha256": "e51946baf7e94f49978fb801514d70bc76c1ed3651d597c3021a62e87209de9d"
+    },
+    {
+      "bytes": 3419,
+      "path": "run_manifest.json",
+      "sha256": "bf47d24743dd4f58bd833fcfd008d084f0128765ea947a0fc4f53e5024e99d30"
+    },
+    {
+      "bytes": 1727,
+      "path": "campaign_ledger.json",
+      "sha256": "4ee6760860238554b00696a3d2b12383060bc410213705410be38c7e5271a9e4"
+    }
+  ],
+  "schema": "scenesense.splitfusion_phase15_realtime_recovery_artifacts.v1"
+}

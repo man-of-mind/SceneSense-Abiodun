@@ -1,0 +1,310 @@
+{
+  "cells": [
+    {
+      "action_id": 20,
+      "attempt_dir": "experiments/splitfusion_phase15_realtime_recovery_v1/20260906_actions20_71_favorable_fade/cells/a20__favorable_stable/attempts/attempt_0001",
+      "cell_id": "a20__favorable_stable",
+      "cold_teardown_verified": false,
+      "counter_reconciliation_holds": false,
+      "deadline_drops_by_stage": {},
+      "dense_label_map_on_radio": null,
+      "evaluation_error": "FileNotFoundError: [Errno 2] No such file or directory: '/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_phase15_realtime_recovery_v1/20260906_actions20_71_favorable_fade/cells/a20__favorable_stable/attempts/attempt_0001/RESULTS_SUMMARY.json'",
+      "evaluation_masks_hash_mismatched_ue": null,
+      "evaluation_masks_hash_verified_ue": 0,
+      "first_half_median_install_aoi_ms": null,
+      "install_aoi_monotone_fraction": null,
+      "median_install_aoi_ms": null,
+      "minimum_sensor_preparation_coverage": null,
+      "network_profile_id": "FAVORABLE_STABLE",
+      "preparation_coverage": null,
+      "preparation_coverage_met": false,
+      "queue_depth_high_water_edge": null,
+      "realtime_recovery": {},
+      "second_half_median_install_aoi_ms": null,
+      "structural_status": "UNEVALUABLE",
+      "sustainable_preparation_fps": null,
+      "terminal_status": "FAILED",
+      "timely_installations": 0
+    },
+    {
+      "action_id": 71,
+      "attempt_dir": "experiments/splitfusion_phase15_realtime_recovery_v1/20260906_actions20_71_favorable_fade/cells/a71__favorable_stable/attempts/attempt_0001",
+      "cell_id": "a71__favorable_stable",
+      "cold_teardown_verified": false,
+      "counter_reconciliation_holds": false,
+      "deadline_drops_by_stage": {},
+      "dense_label_map_on_radio": null,
+      "evaluation_error": "FileNotFoundError: [Errno 2] No such file or directory: '/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_phase15_realtime_recovery_v1/20260906_actions20_71_favorable_fade/cells/a71__favorable_stable/attempts/attempt_0001/RESULTS_SUMMARY.json'",
+      "evaluation_masks_hash_mismatched_ue": null,
+      "evaluation_masks_hash_verified_ue": 0,
+      "first_half_median_install_aoi_ms": null,
+      "install_aoi_monotone_fraction": null,
+      "median_install_aoi_ms": null,
+      "minimum_sensor_preparation_coverage": null,
+      "network_profile_id": "FAVORABLE_STABLE",
+      "preparation_coverage": null,
+      "preparation_coverage_met": false,
+      "queue_depth_high_water_edge": null,
+      "realtime_recovery": {},
+      "second_half_median_install_aoi_ms": null,
+      "structural_status": "UNEVALUABLE",
+      "sustainable_preparation_fps": null,
+      "terminal_status": "FAILED",
+      "timely_installations": 0
+    },
+    {
+      "action_id": 20,
+      "attempt_dir": "experiments/splitfusion_phase15_realtime_recovery_v1/20260906_actions20_71_favorable_fade/cells/a20__fade_recovery/attempts/attempt_0001",
+      "cell_id": "a20__fade_recovery",
+      "cold_teardown_verified": false,
+      "counter_reconciliation_holds": false,
+      "deadline_drops_by_stage": {},
+      "dense_label_map_on_radio": null,
+      "evaluation_error": "FileNotFoundError: [Errno 2] No such file or directory: '/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_phase15_realtime_recovery_v1/20260906_actions20_71_favorable_fade/cells/a20__fade_recovery/attempts/attempt_0001/RESULTS_SUMMARY.json'",
+      "evaluation_masks_hash_mismatched_ue": null,
+      "evaluation_masks_hash_verified_ue": 0,
+      "first_half_median_install_aoi_ms": null,
+      "install_aoi_monotone_fraction": null,
+      "median_install_aoi_ms": null,
+      "minimum_sensor_preparation_coverage": null,
+      "network_profile_id": "FADE_RECOVERY",
+      "preparation_coverage": null,
+      "preparation_coverage_met": false,
+      "queue_depth_high_water_edge": null,
+      "realtime_recovery": {},
+      "second_half_median_install_aoi_ms": null,
+      "structural_status": "UNEVALUABLE",
+      "sustainable_preparation_fps": null,
+      "terminal_status": "FAILED",
+      "timely_installations": 0
+    },
+    {
+      "action_id": 71,
+      "attempt_dir": "experiments/splitfusion_phase15_realtime_recovery_v1/20260906_actions20_71_favorable_fade/cells/a71__fade_recovery/attempts/attempt_0001",
+      "cell_id": "a71__fade_recovery",
+      "cold_teardown_verified": false,
+      "counter_reconciliation_holds": false,
+      "deadline_drops_by_stage": {},
+      "dense_label_map_on_radio": null,
+      "evaluation_error": "FileNotFoundError: [Errno 2] No such file or directory: '/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_phase15_realtime_recovery_v1/20260906_actions20_71_favorable_fade/cells/a71__fade_recovery/attempts/attempt_0001/RESULTS_SUMMARY.json'",
+      "evaluation_masks_hash_mismatched_ue": null,
+      "evaluation_masks_hash_verified_ue": 0,
+      "first_half_median_install_aoi_ms": null,
+      "install_aoi_monotone_fraction": null,
+      "median_install_aoi_ms": null,
+      "minimum_sensor_preparation_coverage": null,
+      "network_profile_id": "FADE_RECOVERY",
+      "preparation_coverage": null,
+      "preparation_coverage_met": false,
+      "queue_depth_high_water_edge": null,
+      "realtime_recovery": {},
+      "second_half_median_install_aoi_ms": null,
+      "structural_status": "UNEVALUABLE",
+      "sustainable_preparation_fps": null,
+      "terminal_status": "FAILED",
+      "timely_installations": 0
+    }
+  ],
+  "classification": "POST_REPAIR_REALTIME_QUALIFICATION",
+  "finished_at_unix_s": 1788716563.3393018,
+  "full_288_campaign_authorized": false,
+  "gates": {
+    "checks": {
+      "a71_median_aoi_not_above_a20_beyond_preregistered_tolerance": {
+        "detail": {
+          "FADE_RECOVERY": {
+            "holds": false,
+            "reason": "missing median AoI"
+          },
+          "FAVORABLE_STABLE": {
+            "holds": false,
+            "reason": "missing median AoI"
+          }
+        },
+        "holds": false
+      },
+      "all_counter_identities_reconcile": {
+        "detail": {
+          "a20__fade_recovery": false,
+          "a20__favorable_stable": false,
+          "a71__fade_recovery": false,
+          "a71__favorable_stable": false
+        },
+        "holds": false
+      },
+      "cold_teardown_verified_for_every_cell": {
+        "detail": {
+          "a20__fade_recovery": false,
+          "a20__favorable_stable": false,
+          "a71__fade_recovery": false,
+          "a71__favorable_stable": false
+        },
+        "holds": false
+      },
+      "downstream_queue_depth_remains_bounded": {
+        "detail": {
+          "a20__fade_recovery": null,
+          "a20__favorable_stable": null,
+          "a71__fade_recovery": null,
+          "a71__favorable_stable": null
+        },
+        "holds": true
+      },
+      "every_cell_reached_a_terminal_and_passed_structural_checks": {
+        "detail": {
+          "a20__fade_recovery": [
+            "FAILED",
+            "UNEVALUABLE"
+          ],
+          "a20__favorable_stable": [
+            "FAILED",
+            "UNEVALUABLE"
+          ],
+          "a71__fade_recovery": [
+            "FAILED",
+            "UNEVALUABLE"
+          ],
+          "a71__favorable_stable": [
+            "FAILED",
+            "UNEVALUABLE"
+          ]
+        },
+        "holds": false
+      },
+      "expired_frames_are_dropped_before_later_expensive_stages": {
+        "detail": {
+          "a20__fade_recovery": {},
+          "a20__favorable_stable": {},
+          "a71__fade_recovery": {},
+          "a71__favorable_stable": {}
+        },
+        "holds": true
+      },
+      "fade_recovery_returns_to_steady_state_without_retained_backlog": {
+        "detail": {
+          "a20__fade_recovery": [
+            null,
+            null
+          ],
+          "a71__fade_recovery": [
+            null,
+            null
+          ]
+        },
+        "holds": true
+      },
+      "installed_frame_aoi_does_not_increase_monotonically": {
+        "detail": {
+          "a20__fade_recovery": null,
+          "a20__favorable_stable": null,
+          "a71__fade_recovery": null,
+          "a71__favorable_stable": null
+        },
+        "holds": true
+      },
+      "no_dense_label_map_on_the_radio_return_path": {
+        "detail": {
+          "a20__fade_recovery": null,
+          "a20__favorable_stable": null,
+          "a71__fade_recovery": null,
+          "a71__favorable_stable": null
+        },
+        "holds": false
+      },
+      "no_seconds_long_median_install_aoi": {
+        "detail": {
+          "a20__fade_recovery": null,
+          "a20__favorable_stable": null,
+          "a71__fade_recovery": null,
+          "a71__favorable_stable": null
+        },
+        "holds": false
+      },
+      "nonzero_on_time_installations_in_every_cell": {
+        "detail": {
+          "a20__fade_recovery": 0,
+          "a20__favorable_stable": 0,
+          "a71__fade_recovery": 0,
+          "a71__favorable_stable": 0
+        },
+        "holds": false
+      },
+      "preparation_coverage_against_unchanged_target": {
+        "detail": {
+          "a20__fade_recovery": {
+            "met": false,
+            "preparation_coverage": null,
+            "sustainable_preparation_fps": null,
+            "target": null
+          },
+          "a20__favorable_stable": {
+            "met": false,
+            "preparation_coverage": null,
+            "sustainable_preparation_fps": null,
+            "target": null
+          },
+          "a71__fade_recovery": {
+            "met": false,
+            "preparation_coverage": null,
+            "sustainable_preparation_fps": null,
+            "target": null
+          },
+          "a71__favorable_stable": {
+            "met": false,
+            "preparation_coverage": null,
+            "sustainable_preparation_fps": null,
+            "target": null
+          }
+        },
+        "holds": false,
+        "target_weakened": false
+      },
+      "required_evaluation_masks_are_hash_valid": {
+        "detail": {
+          "a20__fade_recovery": [
+            0,
+            null
+          ],
+          "a20__favorable_stable": [
+            0,
+            null
+          ],
+          "a71__fade_recovery": [
+            0,
+            null
+          ],
+          "a71__favorable_stable": [
+            0,
+            null
+          ]
+        },
+        "holds": false
+      }
+    },
+    "failed_checks": [
+      "every_cell_reached_a_terminal_and_passed_structural_checks",
+      "no_dense_label_map_on_the_radio_return_path",
+      "all_counter_identities_reconcile",
+      "cold_teardown_verified_for_every_cell",
+      "nonzero_on_time_installations_in_every_cell",
+      "required_evaluation_masks_are_hash_valid",
+      "no_seconds_long_median_install_aoi",
+      "a71_median_aoi_not_above_a20_beyond_preregistered_tolerance"
+    ],
+    "preparation_coverage_shortfall": true,
+    "recovery_validated": false
+  },
+  "preregistered_gates": {
+    "aoi_median_ceiling_ms": 2000.0,
+    "aoi_median_ordering_rationale": "one rounded edge service period; the audit measured a 169.7-182.5 ms median frozen tail across actions",
+    "aoi_median_ordering_tolerance_ms": 200.0,
+    "aoi_monotone_fraction_ceiling": 0.9,
+    "install_deadline_increased": false,
+    "install_deadline_ms": 500,
+    "preparation_coverage_target": 0.95,
+    "preparation_coverage_target_weakened": false
+  },
+  "schema": "scenesense.splitfusion_phase15_realtime_recovery_evaluation.v1",
+  "status": "SPLITFUSION_PHASE15_REALTIME_RECOVERY_NOT_VALIDATED",
+  "structural_integration_qualification": "experiments/splitfusion_16_cell_live_carla_oai_pilot_v1/20260905_live_carla_oai_pilot_retry4"
+}

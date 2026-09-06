@@ -1,0 +1,20 @@
+{
+  "files": [
+    {
+      "bytes": 53009,
+      "path": "PROSPECTIVE_EVALUATION.json",
+      "sha256": "5ad21a21733fcfd52bc00c489d34b08e6e2de721af6e954ebe13da466331031c"
+    },
+    {
+      "bytes": 2544,
+      "path": "cell_summary.csv",
+      "sha256": "e81109e66f5a9dce9cdb5cd2feace336cb5398521f61412422fb780fc71e1d71"
+    },
+    {
+      "bytes": 2920,
+      "path": "REPORT.md",
+      "sha256": "d18e00bfda823d012334508df3037d04dfd32c55c6653749537992dbdc3cf4e3"
+    }
+  ],
+  "schema": "scenesense.splitfusion_phase15_realtime_recovery_artifacts.v1"
+}

@@ -1,0 +1,45 @@
+{
+  "campaign_id": "splitfusion_16_cell_live_carla_oai_pilot_v1",
+  "cells": {
+    "a20__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a20__fade_recovery/attempts/attempt_0001",
+        "status": "FAILED",
+        "terminal": "cells/a20__fade_recovery/attempts/attempt_0001/FAILED.json",
+        "terminal_sha256": "88af68b81c65632d732cc89c39280f04a6556f1737130f288805d284cf33b661"
+      }
+    ],
+    "a20__favorable_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a20__favorable_stable/attempts/attempt_0001",
+        "status": "FAILED",
+        "terminal": "cells/a20__favorable_stable/attempts/attempt_0001/FAILED.json",
+        "terminal_sha256": "7203918394080a8240c166c92ce8f69c6655ee270efea031711d9b8312495839"
+      }
+    ],
+    "a71__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a71__fade_recovery/attempts/attempt_0001",
+        "status": "FAILED",
+        "terminal": "cells/a71__fade_recovery/attempts/attempt_0001/FAILED.json",
+        "terminal_sha256": "59ecc29c1fd648f7f8aaa212eafb33de913adabd59dfeb9db9388ac22a39fb55"
+      }
+    ],
+    "a71__favorable_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a71__favorable_stable/attempts/attempt_0001",
+        "status": "FAILED",
+        "terminal": "cells/a71__favorable_stable/attempts/attempt_0001/FAILED.json",
+        "terminal_sha256": "9c9197eda4f4be28ef6ae5ff7bd2525ef2e6fb5012a2b6f42e0f2ffd78de0334"
+      }
+    ]
+  },
+  "config_sha256": "2184ed2cecb9235069e10352dc01d06b2fc50be0416c988864dd984de00a285b",
+  "created_at_unix_s": 1788716557.2273374,
+  "schema": "scenesense.ue_288_campaign_ledger.v1",
+  "updated_at_unix_s": 1788716563.3390584
+}

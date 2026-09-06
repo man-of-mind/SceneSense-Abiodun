@@ -1,0 +1,45 @@
+{
+  "campaign_id": "splitfusion_16_cell_live_carla_oai_pilot_v1",
+  "cells": {
+    "a20__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a20__fade_recovery/attempts/attempt_0001",
+        "status": "PASSED",
+        "terminal": "cells/a20__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "c7e288a21d1ee9591170e57bfab6a06b525a05d7872fc6e5220df13a67d581d9"
+      }
+    ],
+    "a20__favorable_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a20__favorable_stable/attempts/attempt_0001",
+        "status": "PASSED",
+        "terminal": "cells/a20__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "6bc77f1a388c95d68ab2ed4ac6fcd93e51e2e54f5734b79bc12b556258b78c6f"
+      }
+    ],
+    "a71__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a71__fade_recovery/attempts/attempt_0001",
+        "status": "PASSED",
+        "terminal": "cells/a71__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "b50eb6a42e6a32bfd44080775e317a00037348807c068172bbf180838d3671fa"
+      }
+    ],
+    "a71__favorable_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a71__favorable_stable/attempts/attempt_0001",
+        "status": "PASSED",
+        "terminal": "cells/a71__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "d41bb1bf6cfa2c0e7bb88676bb5a3af58b3b34c4d18c19ab75f628b1188bbde8"
+      }
+    ]
+  },
+  "config_sha256": "be3a01473425323734cfb6adcd053b19fdd0daa08b06da0a7198fbf0d869824d",
+  "created_at_unix_s": 1788716819.0014431,
+  "schema": "scenesense.ue_288_campaign_ledger.v1",
+  "updated_at_unix_s": 1788718648.5086207
+}
