@@ -31,12 +31,6 @@ ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CAMPAIGN = ROOT / "rl_agent/configs/ue_288_campaign_v1.yaml"
 DEFAULT_OAI = ROOT / "rl_agent/configs/ue_n3e_fallback_snr_floor_v1.json"
 FIELDS = (
-    "radio_profile_id",
-    "radio_profile_sha256",
-    "bandwidth_mhz",
-    "prb",
-    "downlink_slots",
-    "uplink_slots",
     "profile_id",
     "trace_id",
     "seed",
@@ -207,10 +201,6 @@ def run(args: argparse.Namespace) -> int:
     require(network["catch_up_policy"] == "SKIP_OBSOLETE_NEVER_BURST", "catch-up policy drift")
     require(float(network["clean_restore_noise_power_db"]) == -50.0, "clean restore must be -50 dB")
     sequence, prefix, frozen = prepare_sequence(campaign=campaign, profile_id=args.profile_id)
-    baseline = network["radio_baseline"]
-    radio_document = load_json(repo_path(str(baseline["profile_config"])))
-    radio = radio_document["radio"]
-    _require(str(baseline["profile_id"]) == "OAI_N78_100MHZ_273PRB_4D5U_V1", "radio profile drift")
     replay = load_replay_module()
     mapping = load_mapping(repo_path(str(network["mapping_csv"])), replay)
     granularity = float(args.command_granularity_db)
@@ -235,15 +225,7 @@ def run(args: argparse.Namespace) -> int:
             writer = csv.DictWriter(handle, fieldnames=list(FIELDS))
             writer.writeheader()
             handle.flush()
-            # The Route-B adapter owns the sole capture/control clock.  Do not
-            # advance a profile during OAI, model, or CARLA warm-up: its first
-            # target is armed by the first accepted live capture.
-            if args.start_file is not None:
-                while not stop_event.is_set() and not args.start_file.exists():
-                    stop_event.wait(0.02)
-                if stop_event.is_set() or (args.stop_file and args.stop_file.exists()):
-                    return 0
-            anchor = time.monotonic_ns()
+            anchor = time.monotonic_ns() + period_ns
             while not stop_event.is_set() and not (args.stop_file and args.stop_file.exists()):
                 scheduled = anchor + step * period_ns
                 interval_end = scheduled + period_ns
@@ -260,12 +242,6 @@ def run(args: argparse.Namespace) -> int:
                 command_value = f"{mapped:.12g}"
                 command_text = f"channelmod modify {model_index} noise_power_dB {command_value}"
                 base = {
-                    "radio_profile_id": baseline["profile_id"],
-                    "radio_profile_sha256": baseline["profile_config_sha256"],
-                    "bandwidth_mhz": int(radio["bandwidth_mhz"]),
-                    "prb": int(radio["prb"]),
-                    "downlink_slots": int(radio["tdd"]["downlink_slots"]),
-                    "uplink_slots": int(radio["tdd"]["uplink_slots"]),
                     "profile_id": args.profile_id,
                     "trace_id": frozen["trace_id"],
                     "seed": int(frozen["seed"]),
@@ -346,7 +322,6 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--profile-id", required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--stop-file", type=Path)
-    parser.add_argument("--start-file", type=Path)
     parser.add_argument("--oai-config", type=Path, default=DEFAULT_OAI)
     parser.add_argument("--command-granularity-db", type=float, default=0.25)
     return parser
