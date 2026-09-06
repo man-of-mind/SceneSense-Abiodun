@@ -18,8 +18,10 @@ import importlib.util
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
+import tempfile
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -32,6 +34,7 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CAMPAIGN = ROOT / "rl_agent/configs/ue_288_campaign_v1.yaml"
 DEFAULT_PILOT = ROOT / "rl_agent/configs/ue_16_cell_integration_pilot_v1.yaml"
+DEFAULT_LIVE_PILOT = ROOT / "rl_agent/configs/splitfusion_16_cell_live_carla_oai_pilot_v1.json"
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 UNRESOLVED_PREFIX = "__REQUIRED_"
 TERMINAL_NAMES = ("PASSED.json", "FAILED.json", "INTERRUPTED.json")
@@ -46,6 +49,12 @@ ACTION_CATALOG_SCHEMA = "splitfusion_72_action_catalog_v1"
 FAMILIES = ("noAE", "AE128", "AE64", "AE32")
 QUANTIZERS = ("UINT8", "UINT6", "UINT4")
 Q_E4 = (0, 3000, 5000, 7000, 9000, 9800)
+LIVE_PILOT_TOKEN = "SPLITFUSION_16_CELL_LIVE_CARLA_OAI_PILOT"
+LIVE_PILOT_EXPECTED_DIRTY_PATHS = {
+    "OAI/openairinterface5g",
+    "pole_lraspp_multimodal_fusion/object_head_pilot_v1/lraspp_to_splitfusion_fcos_report_v1/FULL_TECHNICAL_REPORT_AVO_V2.md",
+    "oaitelnet.history",
+}
 
 
 class CampaignError(RuntimeError):
@@ -96,6 +105,26 @@ def atomic_json(path: Path, value: Any) -> None:
     temporary = path.with_suffix(path.suffix + ".tmp")
     temporary.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     os.replace(temporary, path)
+
+
+def verify_live_pilot_worktree() -> dict[str, Any]:
+    """Accept only the three declared user-owned paths without trimming XY."""
+
+    completed = subprocess.run(
+        ["git", "status", "--porcelain=v1", "--untracked-files=all"], cwd=str(ROOT),
+        check=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+    )
+    records = completed.stdout.splitlines()
+    paths: list[str] = []
+    for line in records:
+        require(len(line) >= 4, f"unparseable porcelain record: {line!r}")
+        require(" -> " not in line[3:], "renamed user-owned paths are not authorized")
+        paths.append(line[3:])
+    require(
+        set(paths) == LIVE_PILOT_EXPECTED_DIRTY_PATHS and len(paths) == len(LIVE_PILOT_EXPECTED_DIRTY_PATHS),
+        f"unexpected worktree paths: {sorted(paths)}",
+    )
+    return {"head": subprocess.run(["git", "rev-parse", "HEAD"], cwd=str(ROOT), check=True, text=True, stdout=subprocess.PIPE).stdout.strip(), "dirty_paths": sorted(paths)}
 
 
 def write_create_only(path: Path, payload: str) -> None:
@@ -260,6 +289,55 @@ def verify_file_hashes(config: Mapping[str, Any]) -> None:
         sha256_file(split_runtime) == str(runtime["split_inference_runtime_sha256"]),
         "split inference runtime SHA-256 drift",
     )
+    if config.get("campaign_kind") == "live_pilot_16":
+        bridge = repo_path(str(runtime["live_dispatch_bridge"]))
+        require(
+            bridge.is_file() and sha256_file(bridge) == str(runtime["live_dispatch_bridge_sha256"]),
+            "qualified SFD1-v2 live dispatcher bridge SHA-256 drift",
+        )
+        target_runtime = repo_path(str(runtime["target_snr_runtime"]))
+        require(
+            target_runtime.is_file() and sha256_file(target_runtime) == str(runtime["target_snr_runtime_sha256"]),
+            "qualified continuous target-SNR runtime SHA-256 drift",
+        )
+
+
+def verify_live_pilot_provenance(config: Mapping[str, Any]) -> None:
+    """Bind the later-qualified evidence without rewriting historical contracts."""
+
+    if config.get("campaign_kind") != "live_pilot_16":
+        return
+    provenance = config.get("provenance")
+    require(isinstance(provenance, dict), "live pilot provenance is missing")
+    for name in ("phase12b_campaign_binding", "phase13a_runtime_binding", "phase14a_mapping_json"):
+        item = provenance.get(name)
+        require(isinstance(item, dict), f"live pilot provenance missing {name}")
+        path = repo_path(str(item.get("path", "")))
+        require(path.is_file() and sha256_file(path) == str(item.get("sha256", "")), f"live pilot provenance drift: {name}")
+    corrected = provenance.get("phase14b_corrected")
+    require(isinstance(corrected, dict), "corrected Phase-14B provenance is missing")
+    for name in ("qualification", "report", "artifact_manifest", "terminal"):
+        item = corrected.get(name)
+        require(isinstance(item, dict), f"corrected Phase-14B {name} binding missing")
+        path = repo_path(str(item.get("path", "")))
+        require(path.is_file() and sha256_file(path) == str(item.get("sha256", "")), f"corrected Phase-14B {name} hash drift")
+    qualification = load_json(repo_path(str(corrected["qualification"]["path"])))
+    require(
+        qualification.get("status") == "FOUR_PROFILE_REPLAY_COMPLETE"
+        and qualification.get("all_profiles_passed") is True
+        and qualification.get("mapping_qualified_for_16_cell_review") is True
+        and qualification.get("campaign_288_authorized") is False,
+        "corrected Phase-14B is not a qualified 16-cell-only mapping evidence record",
+    )
+    terminal = load_json(repo_path(str(corrected["terminal"]["path"])))
+    require(
+        terminal.get("status") == "SPLITFUSION_PHASE14B_CORRECTED_FOUR_PROFILE_REPLAY_COMPLETE"
+        and terminal.get("qualification_sha256") == str(corrected["qualification"]["sha256"])
+        and terminal.get("artifact_manifest_sha256") == str(corrected["artifact_manifest"]["sha256"]),
+        "corrected Phase-14B terminal does not bind the qualification",
+    )
+    require(corrected.get("accepted_mapping_evidence") == "COMMAND_VALIDITY_COVERAGE", "wrong Phase-14B mapping evidence")
+    require(corrected.get("probe_forbidden_during_pilot") is True, "Phase-14B probe is not forbidden for live pilot")
 
 
 def verify_radio_baseline(config: Mapping[str, Any]) -> dict[str, Any]:
@@ -489,13 +567,17 @@ def adapter_value(config: Mapping[str, Any], override: str | None = None) -> str
 
 def validate_static(config_path: Path) -> tuple[dict[str, Any], list[Cell], dict[str, str]]:
     config = load_yaml(config_path)
-    require(config.get("schema") == "scenesense.ue_288_campaign.v1", "campaign schema drift")
+    require(
+        config.get("schema") in {"scenesense.ue_288_campaign.v1", "scenesense.splitfusion_16_cell_live_carla_oai_pilot.v1"},
+        "campaign schema drift",
+    )
     require(config.get("stop_on_first_failure") is True, "campaign must stop on the first failed/interrupted cell")
     verify_file_hashes(config)
     verify_radio_baseline(config)
     verify_route_contract(config)
     verify_measurement_contract(config)
     verify_output_contract(config)
+    verify_live_pilot_provenance(config)
     cells = enumerate_cells(config)
     hashes = verify_trace_prefixes(config)
     network = config["network"]
@@ -623,6 +705,75 @@ def write_terminal(attempt_dir: Path, status: str, detail: Mapping[str, Any]) ->
     return path
 
 
+def _live_radio_state(config: Mapping[str, Any], cell: Cell, attempt: int) -> tuple[Path, Path]:
+    """Return a fresh Phase-14A-compatible scratch leaf for one cell only."""
+
+    profile_order = [str(row["profile_id"]) for row in config["network"]["profiles"]]
+    index = profile_order.index(cell.network_profile_id)
+    namespace = (
+        ROOT / "experiments/splitfusion_oai_100mhz_4d5u_v1"
+        / "splitfusion_16_cell_live_pilot_radio_scratch"
+        / cell.cell_id / f"attempt_{attempt:04d}"
+    )
+    state = namespace / f"{index:02d}_{cell.network_profile_id}"
+    require(not state.exists(), f"live-pilot radio scratch already exists: {state}")
+    return namespace, state
+
+
+def _start_live_radio(
+    config: Mapping[str, Any], cell: Cell, attempt: int, service_log_dir: Path
+) -> tuple[Path, Path, Mapping[str, Any]]:
+    """Use the qualified launcher and record its sealed three-process topology."""
+
+    from rl_agent import splitfusion_phase14a_100mhz_calibration_v1 as phase14a
+    from rl_agent import splitfusion_phase14b_corrected_four_profile_replay_v1 as phase14b
+
+    runtime = config["runtime"]
+    phase14a_config_path = repo_path(str(runtime["phase14a_config"]))
+    phase14a_binding_path = repo_path(str(runtime["phase14a_binding"]))
+    require(sha256_file(phase14a_config_path) == str(runtime["phase14a_config_sha256"]), "Phase-14A config hash drift")
+    require(sha256_file(phase14a_binding_path) == str(runtime["phase14a_binding_sha256"]), "Phase-14A binding hash drift")
+    base = phase14a.load_json(phase14a_config_path)
+    namespace, radio_state = _live_radio_state(config, cell, attempt)
+    phase14b.require_cold_profile_runtime(base, radio_state)
+    launcher = repo_path(str(runtime["oai_registered_profile_launcher"]))
+    with (service_log_dir / "oai_launcher.log").open("xb") as stream:
+        launched = subprocess.run(
+            [str(launcher), "--execute", "SPLITFUSION_OAI_100MHZ_4D5U_ATTACH", "--output", str(radio_state)],
+            cwd=str(ROOT), stdin=subprocess.DEVNULL, stdout=stream, stderr=subprocess.STDOUT,
+            check=False, timeout=240.0,
+        )
+    require(launched.returncode == 0, f"qualified OAI launcher failed rc={launched.returncode}")
+    attached_path = radio_state / "ATTACHED_RADIO_STATE.json"
+    require(attached_path.is_file(), "qualified OAI launcher omitted attached-radio snapshot")
+    attached = load_json(attached_path)
+    require(attached.get("status") == "ATTACHED_STABLE_100MHZ_4D5U_ONE_UE", "radio attachment status drift")
+    for name in ("gnb", "ue"):
+        topology = attached.get(f"{name}_process_topology", {})
+        require(
+            topology.get("endpoint_roles_verified") is True
+            and int(topology.get("same_executable_process_count", -1)) == 3
+            and len(topology.get("worker_pids", ())) == 2,
+            f"qualified {name} three-process topology drift",
+        )
+    return namespace, radio_state, attached
+
+
+def _stop_live_radio(
+    config: Mapping[str, Any], namespace: Path, radio_state: Path, attached: Mapping[str, Any] | None
+) -> Mapping[str, Any]:
+    from rl_agent import splitfusion_phase14a_100mhz_calibration_v1 as phase14a
+    from rl_agent import splitfusion_phase14b_corrected_four_profile_replay_v1 as phase14b
+
+    base = phase14a.load_json(repo_path(str(config["runtime"]["phase14a_config"])))
+    restored = phase14b.restore_interrupted_radio(base)
+    report = phase14b.teardown_profile_runtime(
+        base, radio_state, namespace, attached, restore_verified=bool(restored and restored.get("verified")),
+    )
+    require(bool(report.get("all_lifecycle_gates_passed")), "live-pilot radio teardown/cold proof failed")
+    return report
+
+
 def run_one_cell(
     *,
     config: Mapping[str, Any],
@@ -644,16 +795,25 @@ def run_one_cell(
     resolved_path = attempt_dir / "resolved_config.yaml"
     write_create_only(resolved_path, yaml.safe_dump(resolved, sort_keys=False))
     lifecycle = import_lifecycle_helper(config)
-    service_log_dir = campaign_root / "service_logs" / cell.cell_id / f"attempt_{attempt:04d}"
-    service_log_dir.mkdir(parents=True, exist_ok=False)
+    # Launcher and CARLA logs are bounded operational diagnostics, never pilot
+    # evidence.  Keep them outside the create-only campaign and remove them
+    # after the cell terminal is durable.
+    service_log_dir = Path(tempfile.mkdtemp(prefix=f"splitfusion_pilot_{cell.cell_id}_"))
     carla_log = service_log_dir / "carla_server.log"
     server = None
     pgid = None
+    radio_namespace: Path | None = None
+    radio_state: Path | None = None
+    attached_radio: Mapping[str, Any] | None = None
     status = "FAILED"
     child_rc: int | None = None
-    cleanup: dict[str, Any] = {"shutdown_verified": False}
+    cleanup: dict[str, Any] = {"shutdown_verified": False, "radio_shutdown_verified": False}
     started = time.time()
     try:
+        if config.get("campaign_kind") == "live_pilot_16":
+            radio_namespace, radio_state, attached_radio = _start_live_radio(
+                config, cell, attempt, service_log_dir
+            )
         server, pgid = lifecycle.start_carla(port, carla_log)
         version = lifecycle.wait_for_rpc(port, 180.0)
         require(version is not None, "fresh Epic CARLA did not become RPC-ready")
@@ -705,9 +865,20 @@ def run_one_cell(
     finally:
         if server is not None and pgid is not None:
             cleanup = lifecycle.stop_carla(server, pgid, port)
+        if radio_namespace is not None and radio_state is not None:
+            try:
+                cleanup["radio"] = _stop_live_radio(
+                    config, radio_namespace, radio_state, attached_radio
+                )
+                cleanup["radio_shutdown_verified"] = True
+            except Exception as exc:
+                cleanup["radio_error"] = f"{type(exc).__name__}: {exc}"
         if not cleanup.get("shutdown_verified"):
             status = "FAILED" if status != "INTERRUPTED" else status
             detail["cleanup_error"] = "fresh CARLA process group or RPC port survived cleanup"
+        if radio_namespace is not None and not cleanup.get("radio_shutdown_verified"):
+            status = "FAILED" if status != "INTERRUPTED" else status
+            detail["radio_cleanup_error"] = "qualified radio lifecycle did not restore and prove cold cleanup"
         terminal = write_terminal(
             attempt_dir,
             status,
@@ -720,6 +891,7 @@ def run_one_cell(
                 "carla_cleanup": cleanup,
             },
         )
+        shutil.rmtree(service_log_dir, ignore_errors=True)
     return {
         "attempt": attempt,
         "attempt_dir": str(attempt_dir.relative_to(campaign_root)),
@@ -749,6 +921,12 @@ def verify_pilot_gate(path: Path) -> None:
 def run_campaign(args: argparse.Namespace) -> int:
     config_path = args.config.resolve()
     config, cells, _hashes = validate_static(config_path)
+    live_pilot = config.get("campaign_kind") == "live_pilot_16"
+    if live_pilot:
+        require(args.execute == LIVE_PILOT_TOKEN, "exact live-pilot execution token is required")
+        worktree = verify_live_pilot_worktree()
+    else:
+        worktree = {}
     apply_model_overrides(config, args.model)
     if args.maximum_loop_sim_s is not None:
         config["_maximum_loop_sim_s_override"] = float(args.maximum_loop_sim_s)
@@ -772,9 +950,37 @@ def run_campaign(args: argparse.Namespace) -> int:
         require(len(selected) == 1, f"unknown --cell-id: {args.cell_id}")
         cells = selected
 
-    campaign_root = args.output_root.resolve()
-    campaign_root.mkdir(parents=True, exist_ok=True)
+    campaign_root = args.output_root.resolve(strict=False)
+    if live_pilot:
+        experiments = (ROOT / "experiments").resolve(strict=True)
+        try:
+            campaign_root.relative_to(experiments)
+        except ValueError as exc:
+            raise CampaignError("live pilot output must remain beneath experiments") from exc
+        if args.resume:
+            require(campaign_root.is_dir(), "live-pilot resume output does not exist")
+        else:
+            require(not campaign_root.exists(), f"create-only live-pilot output exists: {campaign_root}")
+            campaign_root.parent.mkdir(parents=True, exist_ok=True)
+            campaign_root.mkdir(parents=False, exist_ok=False)
+    else:
+        campaign_root.mkdir(parents=True, exist_ok=True)
     config_digest = sha256_file(config_path)
+    if live_pilot:
+        manifest_path = campaign_root / "pilot_manifest.json"
+        expected_manifest = {
+            "schema": "scenesense.splitfusion_16_cell_live_carla_oai_pilot_manifest.v1",
+            "campaign_id": config["campaign_id"], "config_sha256": config_digest,
+            "git": worktree, "cell_mapping_sha256": cell_mapping_sha256(cells),
+            "required_cells": 16, "full_288_campaign_authorized": False,
+            "phase14b_mapping_evidence": "COMMAND_VALIDITY_COVERAGE",
+            "phase14b_probe_started": False,
+        }
+        if args.resume:
+            require(manifest_path.is_file(), "live-pilot resume lacks immutable manifest")
+            require(load_json(manifest_path) == expected_manifest, "live-pilot immutable manifest drift")
+        else:
+            write_create_only(manifest_path, json.dumps(expected_manifest, indent=2, sort_keys=True) + "\n")
     ledger_path = campaign_root / str(config["cell"]["resume_ledger"])
     ledger = load_ledger(ledger_path, str(config["campaign_id"]), config_digest)
     for cell in cells:
@@ -795,12 +1001,144 @@ def run_campaign(args: argparse.Namespace) -> int:
         atomic_json(ledger_path, ledger)
         if result["status"] in {"FAILED", "INTERRUPTED"}:
             return 130 if result["status"] == "INTERRUPTED" else 1
+    if live_pilot:
+        finalize_live_pilot(campaign_root, config, cells, ledger)
     return 0
+
+
+def live_preflight_command(args: argparse.Namespace) -> int:
+    """Perform all guarded live-pilot checks without creating an output leaf."""
+
+    config_path = args.config.resolve(strict=True)
+    config, cells, trace_hashes = validate_static(config_path)
+    require(config.get("campaign_kind") == "live_pilot_16", "preflight is only for the qualified live pilot")
+    require(args.execute == LIVE_PILOT_TOKEN, "exact live-pilot execution token is required")
+    require(len(cells) == 16, "live pilot must retain exactly 16 cells")
+    worktree = verify_live_pilot_worktree()
+    verify_real_launch_readiness(config)
+    verify_resolved_models(config, read_catalog(config))
+    output = args.output_root.resolve(strict=False)
+    experiments = (ROOT / "experiments").resolve(strict=True)
+    try:
+        output.relative_to(experiments)
+    except ValueError as exc:
+        raise CampaignError("live pilot output must remain beneath experiments") from exc
+    require(not output.exists(), f"create-only live-pilot output exists: {output}")
+    import torch
+
+    require(torch.cuda.is_available() and torch.cuda.device_count() == 1, "live preflight requires exactly one CUDA device")
+    require(torch.cuda.get_device_name(0) == "NVIDIA GeForce RTX 5090", "live preflight CUDA device drift")
+    tiny = torch.empty(1, device="cuda:0")
+    tiny.zero_()
+    torch.cuda.synchronize(0)
+    del tiny
+    from rl_agent import splitfusion_phase14a_100mhz_calibration_v1 as phase14a
+    from rl_agent import splitfusion_phase14b_corrected_four_profile_replay_v1 as phase14b
+
+    radio = phase14a.load_json(repo_path(str(config["runtime"]["phase14a_config"])))
+    phase14b.require_cold_profile_runtime(radio, output / "preflight_no_output")
+    print(json.dumps({
+        "status": "SPLITFUSION_16_CELL_LIVE_CARLA_OAI_PILOT_PREFLIGHT_PASS",
+        "head": worktree["head"], "dirty_paths": worktree["dirty_paths"],
+        "cell_count": len(cells), "trace_prefix_hashes": trace_hashes,
+        "cuda_device": torch.cuda.get_device_name(0), "output_absent": True,
+        "phase14b_mapping_evidence": "COMMAND_VALIDITY_COVERAGE",
+        "probe_forbidden": True, "external_processes_started": 0,
+    }, indent=2, sort_keys=True))
+    return 0
+
+
+def finalize_live_pilot(
+    campaign_root: Path, config: Mapping[str, Any], cells: Sequence[Cell], ledger: Mapping[str, Any]
+) -> None:
+    """Create only compact, hash-bound evidence after all sixteen cells pass."""
+
+    require(config.get("campaign_kind") == "live_pilot_16", "only the live pilot has this finalizer")
+    expected_outputs = config["cell"]["expected_outputs"]
+    rows: list[dict[str, Any]] = []
+    for cell in cells:
+        attempts = ledger["cells"].get(cell.cell_id, [])
+        require(passed_attempt_exists(campaign_root, attempts, expected_outputs), f"cell lacks a valid passed attempt: {cell.cell_id}")
+        passed = next(row for row in attempts if row.get("status") == "PASSED")
+        attempt_dir = campaign_root / str(passed["attempt_dir"])
+        summary = load_json(attempt_dir / "RESULTS_SUMMARY.json")
+        per_frame = attempt_dir / "per_frame_metrics.csv"
+        with per_frame.open(newline="", encoding="utf-8") as handle:
+            frame_rows = list(csv.DictReader(handle))
+        sent = [row for row in frame_rows if row.get("prepare_status") == "SENT"]
+        installed = int(summary.get("structural_acceptance", {}).get("ack_installed_frames", 0))
+        latencies = [
+            (float(row["edge_result_received_ns"]) - float(row["capture_started_ns"])) / 1e6
+            for row in sent
+            if row.get("edge_result_received_ns") not in (None, "") and row.get("capture_started_ns") not in (None, "")
+        ]
+        payloads = [int(row["sfd1_bytes"]) for row in sent if row.get("sfd1_bytes") not in (None, "")]
+        rows.append({
+            "cell_id": cell.cell_id, "action_id": cell.action_id, "profile_id": cell.profile_id,
+            "network_profile_id": cell.network_profile_id, "attempt": int(passed["attempt"]),
+            "route_completed": bool(summary.get("route", {}).get("route_completed")),
+            "captures_sent": len(sent), "ack_installed_frames": installed,
+            "delivery_rate": (installed / len(sent)) if sent else 0.0,
+            "mean_capture_to_edge_result_ms": (sum(latencies) / len(latencies)) if latencies else None,
+            "mean_sfd1_bytes": (sum(payloads) / len(payloads)) if payloads else None,
+            "radio_trace_rows": sum(1 for _ in (attempt_dir / "radio_trace.csv").open(encoding="utf-8")) - 1,
+            "cold_cleanup_verified": bool(load_json(attempt_dir / "PASSED.json").get("carla_cleanup", {}).get("radio_shutdown_verified")),
+            "attempt_manifest_sha256": sha256_file(attempt_dir / "manifest.json"),
+        })
+    require(len(rows) == 16 and len({row["cell_id"] for row in rows}) == 16, "final pilot cell inventory drift")
+    summary_path = campaign_root / "cell_summary.csv"
+    with summary_path.open("x", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
+        writer.writeheader()
+        writer.writerows(rows)
+    qualification = {
+        "schema": "splitfusion_16_cell_live_carla_oai_pilot_qualification.v1",
+        "status": "SPLITFUSION_16_CELL_LIVE_CARLA_OAI_PILOT_COMPLETE",
+        "campaign_id": config["campaign_id"], "required_cells": 16, "valid_completed_cells": 16,
+        "cell_mapping_sha256": config["actions"]["cell_mapping_sha256"],
+        "phase14b_mapping_evidence": "COMMAND_VALIDITY_COVERAGE", "probe_executed": False,
+        "full_288_campaign_authorized": False, "cells": rows,
+    }
+    qualification_path = campaign_root / "qualification.json"
+    write_create_only(qualification_path, json.dumps(qualification, indent=2, sort_keys=True) + "\n")
+    report_path = campaign_root / "REPORT.md"
+    report = ["# SplitFusion 16-cell live CARLA/OAI pilot", "", "All sixteen registered cells completed with fresh radio/CARLA lifecycles.", "", "| Cell | Action | Network profile | Captures | ACK installed | Delivery |", "|---|---:|---|---:|---:|---:|"]
+    report.extend(
+        f"| {row['cell_id']} | {row['action_id']} | {row['network_profile_id']} | {row['captures_sent']} | {row['ack_installed_frames']} | {row['delivery_rate']:.6f} |"
+        for row in rows
+    )
+    write_create_only(report_path, "\n".join(report) + "\n")
+    artifact = campaign_root / "artifact_manifest.json"
+    artifact_value = {"schema": "splitfusion_16_cell_live_carla_oai_pilot_artifacts.v1", "files": [
+        {"path": path.name, "sha256": sha256_file(path), "bytes": path.stat().st_size}
+        for path in (summary_path, qualification_path, report_path, campaign_root / "pilot_manifest.json", campaign_root / str(config["cell"]["resume_ledger"]))
+    ]}
+    write_create_only(artifact, json.dumps(artifact_value, indent=2, sort_keys=True) + "\n")
+    terminal = campaign_root / "SPLITFUSION_16_CELL_LIVE_CARLA_OAI_PILOT_COMPLETE"
+    write_create_only(terminal, "SPLITFUSION_16_CELL_LIVE_CARLA_OAI_PILOT_COMPLETE\n")
 
 
 def validate_command(args: argparse.Namespace) -> int:
     campaign, campaign_cells, campaign_hashes = validate_static(args.campaign.resolve())
     pilot, pilot_cells, pilot_hashes = validate_static(args.pilot.resolve())
+    if pilot.get("campaign_kind") == "live_pilot_16":
+        require(len(pilot_cells) == 16, "qualified live pilot did not enumerate 16 cells")
+        require([cell.network_profile_id for cell in pilot_cells[::4]] == [
+            "FAVORABLE_STABLE", "MID_VARIABLE", "ADVERSE_STABLE", "FADE_RECOVERY",
+        ], "live-pilot profile order drift")
+        require([cell.action_id for cell in pilot_cells[:4]] == [0, 71, 46, 20], "registered live-pilot action order drift")
+        print(json.dumps({
+            "status": "LIVE_16_CELL_OFFLINE_VALIDATION_PASS",
+            "external_processes_started": 0,
+            "pilot_cells": len(pilot_cells),
+            "pilot_mapping_sha256": cell_mapping_sha256(pilot_cells),
+            "trace_prefix_hashes": pilot_hashes,
+            "phase14b_corrected_mapping_evidence": "COMMAND_VALIDITY_COVERAGE",
+            "phase14b_probe_forbidden_during_pilot": True,
+            "full_288_campaign_unauthorized": True,
+            "resume_ledger_dry_run": resume_ledger_dry_run(pilot_cells),
+        }, indent=2, sort_keys=True))
+        return 0
     require(len(campaign_cells) == 288, "full campaign did not enumerate 288 cells")
     require(len(pilot_cells) == 16, "integration pilot did not enumerate 16 cells")
     require(campaign_hashes == pilot_hashes, "pilot/full trace hashes differ")
@@ -877,7 +1215,15 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--pilot-ledger", type=Path)
     run.add_argument("--cell-id", help="run exactly one registered cell (bounded integration smoke)")
     run.add_argument("--maximum-loop-sim-s", type=float, help="bounded Route B smoke override")
+    run.add_argument("--execute")
+    run.add_argument("--resume", action="store_true")
     run.set_defaults(func=run_campaign)
+
+    preflight = subparsers.add_parser("preflight", help="read-only live-pilot gate")
+    preflight.add_argument("--config", type=Path, required=True)
+    preflight.add_argument("--output-root", type=Path, required=True)
+    preflight.add_argument("--execute", required=True)
+    preflight.set_defaults(func=live_preflight_command)
     return parser
 
 

@@ -18,6 +18,7 @@ import json
 import math
 import os
 import queue
+import shutil
 import signal
 import subprocess
 import sys
@@ -29,7 +30,6 @@ import urllib.parse
 import urllib.request
 from collections import OrderedDict
 from pathlib import Path
-from types import SimpleNamespace
 from typing import Any, Mapping, Sequence
 
 import numpy as np
@@ -39,6 +39,10 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
+
+from rl_agent.splitfusion_live_dispatch_v1.live_pilot_runtime import (  # noqa: E402
+    LivePilotCellRuntime,
+)
 
 ADAPTER_SCHEMA = "scenesense.ue_route_b_split_cell_adapter.v1"
 EXPECTED_OUTPUTS = (
@@ -60,9 +64,20 @@ PER_FRAME_FIELDS = (
     "raw_radar_closing_count", "raw_radar_receding_count",
     "raw_radar_stationary_count", "raw_radar_min_range_m",
     "raw_radar_mean_range_m", "radar_projected_points", "ego_speed_mps",
+    "scientific_inner_bytes", "sfd1_overhead_bytes", "sfd1_bytes", "datagrams",
+    "udp_application_bytes", "estimated_wire_bytes", "front_timing_ns",
+    "edge_result_received_ns", "edge_timing_ns", "edge_result_datagrams",
+    "decoded", "finite", "decoder_identity",
     "error",
 )
 EDGE_SEGMENTATION_EVIDENCE_FLAG = "--edge-segmentation-evidence-dir"
+CAMERA_MOUNT = (1.8, 0.0, 1.55, -4.0, 0.0, 0.0)
+RADAR_MOUNT = (2.0, 0.0, 1.0, 0.0, 0.0, 0.0)
+CLASS_ID_BACKGROUND, CLASS_ID_VEHICLE, CLASS_ID_PERSON = 0, 1, 2
+_CARLA_3CLASS_LUT = np.zeros(256, dtype=np.uint8)
+for _tag in (1, 2, 4, 6, 7, 14, 19):
+    _CARLA_3CLASS_LUT[_tag] = CLASS_ID_VEHICLE
+_CARLA_3CLASS_LUT[15] = CLASS_ID_PERSON
 
 
 class AdapterError(RuntimeError):
@@ -72,6 +87,58 @@ class AdapterError(RuntimeError):
 def require(condition: bool, message: str) -> None:
     if not condition:
         raise AdapterError(message)
+
+
+def camera_intrinsics(width: int, height: int, fov_deg: float) -> np.ndarray:
+    focal = (float(width) / 2.0) / math.tan(math.radians(float(fov_deg)) / 2.0)
+    return np.asarray(((focal, 0.0, width / 2.0), (0.0, focal, height / 2.0), (0.0, 0.0, 1.0)), dtype=np.float64)
+
+
+def sensor_transform(values: tuple[float, float, float, float, float, float]) -> Any:
+    import carla
+
+    x, y, z, pitch, yaw, roll = values
+    return carla.Transform(carla.Location(x=x, y=y, z=z), carla.Rotation(pitch=pitch, yaw=yaw, roll=roll))
+
+
+def actor_world_matrix(actor: Any) -> np.ndarray:
+    return np.asarray(actor.get_transform().get_matrix(), dtype=np.float64)
+
+
+def actor_world_inverse_matrix(actor: Any) -> np.ndarray:
+    return np.asarray(actor.get_transform().get_inverse_matrix(), dtype=np.float64)
+
+
+def carla_image_to_bgr(image: Any) -> np.ndarray:
+    return np.frombuffer(image.raw_data, dtype=np.uint8).reshape((image.height, image.width, 4))[:, :, :3].copy()
+
+
+def semantic_gt_3class(image: Any) -> np.ndarray:
+    tags = np.frombuffer(image.raw_data, dtype=np.uint8).reshape((image.height, image.width, 4))[:, :, 2]
+    return _CARLA_3CLASS_LUT[tags]
+
+
+def segmentation_quality_columns(predicted: np.ndarray, ground_truth: np.ndarray) -> dict[str, object]:
+    import cv2
+
+    if predicted.shape != ground_truth.shape:
+        ground_truth = cv2.resize(ground_truth, (predicted.shape[1], predicted.shape[0]), interpolation=cv2.INTER_NEAREST)
+    ious: dict[int, float] = {}
+    present: list[float] = []
+    for class_id in (CLASS_ID_BACKGROUND, CLASS_ID_VEHICLE, CLASS_ID_PERSON):
+        union = int(np.logical_or(predicted == class_id, ground_truth == class_id).sum())
+        value = float("nan") if union == 0 else int(np.logical_and(predicted == class_id, ground_truth == class_id).sum()) / union
+        ious[class_id] = value
+        if math.isfinite(value):
+            present.append(value)
+    fg_union = int(np.logical_or(predicted != 0, ground_truth != 0).sum())
+    return {
+        "gt_camera_available": 1, "miou_binary": float("nan") if fg_union == 0 else int(np.logical_and(predicted != 0, ground_truth != 0).sum()) / fg_union,
+        "miou_3class_macro": float(np.mean(present)) if present else float("nan"),
+        "miou_vehicle_iou": ious[CLASS_ID_VEHICLE], "miou_person_iou": ious[CLASS_ID_PERSON],
+        "gt_vehicle_pixels": int(np.count_nonzero(ground_truth == CLASS_ID_VEHICLE)),
+        "gt_person_pixels": int(np.count_nonzero(ground_truth == CLASS_ID_PERSON)),
+    }
 
 
 def repo_path(value: str) -> Path:
@@ -184,121 +251,27 @@ def validate_resolved_contract(
         == "QUALIFIED_SPLITFUSION_100MHZ_4D5U",
         "real adapter launch refused: 100-MHz/273-PRB runtime/launcher is not qualified",
     )
+    runtime = campaign["runtime"]
+    require(
+        runtime.get("split_inference_runtime")
+        == "rl_agent/splitfusion_live_dispatch_v1/runtime_binding.json"
+        and int(runtime.get("sfd1_protocol_version", 0)) == 2
+        and runtime.get("frame_context_required") is True,
+        "real adapter launch refused: Phase-13 SFD1-v2 dispatcher is not bound",
+    )
+    require(
+        runtime.get("udp_fragment_header") == "!IHH"
+        and int(runtime.get("udp_chunk_bytes", 0)) == 12_500
+        and int(runtime.get("socket_buffer_request_bytes", 0)) == 8 * 1024 * 1024
+        and int(runtime.get("edge_receive_port", 0)) == 51002
+        and int(runtime.get("camera_result_port", 0)) == 51004,
+        "real adapter launch refused: qualified UDP buffer/fragment contract drift",
+    )
     row = action_row(campaign, cell["action_id"])
     require(row["profile_id"] == str(cell["profile_id"]), "resolved catalog profile/action mismatch")
     require(row["model_family"] == str(cell["model_family"]), "resolved model family/action mismatch")
     require(row["entropy_coder"] == "zstd", "certified action transport must remain zstd")
     return resolved, campaign, row
-
-
-def launcher_binding(campaign: Mapping[str, Any], row: Mapping[str, Any]) -> dict[str, Any]:
-    launcher = repo_path(str(campaign["runtime"]["oai_registered_profile_launcher"]))
-    registry = ROOT / "rl_agent/registries/ue_split_profile_registry_v1/ue_split_profile_registry.csv"
-    env = os.environ.copy()
-    env.update(
-        {
-            "UE_SPLIT_PROFILE_ID": str(row["profile_id"]),
-            "UE_SPLIT_PROFILE_REGISTRY_CSV": str(registry),
-            "UE_PROFILE_BINDING_ONLY": "1",
-        }
-    )
-    completed = subprocess.run(
-        [str(launcher)], cwd=str(ROOT), env=env, check=False,
-        stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
-    )
-    require(completed.returncode == 0, f"registered launcher binding failed: {completed.stderr.strip()}")
-    binding = json.loads(completed.stdout)
-    require(binding.get("profile_id") == row["profile_id"], "launcher resolved a different action")
-    require(binding.get("profile_identity", {}).get("checkpoint_sha256") == row["checkpoint_sha256"], "launcher checkpoint binding drift")
-    require(binding.get("profile_identity", {}).get("quantization_mode") == row["quantization_mode"], "launcher quantizer binding drift")
-    require(str(binding.get("profile_identity", {}).get("roi_drop_fraction")) == str(row["roi_drop_fraction"]), "launcher q binding drift")
-    require(
-        arg_value(binding.get("front_args", []), "--zstd-level") == str(row["zstd_level"]),
-        "launcher zstd-level binding drift",
-    )
-    return binding
-
-
-def attach_oai(campaign: Mapping[str, Any], row: Mapping[str, Any]) -> None:
-    launcher = repo_path(str(campaign["runtime"]["oai_registered_profile_launcher"]))
-    registry = ROOT / "rl_agent/registries/ue_split_profile_registry_v1/ue_split_profile_registry.csv"
-    env = os.environ.copy()
-    env.update(
-        {
-            "UE_SPLIT_PROFILE_ID": str(row["profile_id"]),
-            "UE_SPLIT_PROFILE_REGISTRY_CSV": str(registry),
-            "ATTACH_ONLY": "1",
-            "RFSIM_CHANMOD": "1",
-            "ENABLE_SOFTMODEM_TTRACER": "0",
-            "RECORD_GNB": "0",
-        }
-    )
-    completed = subprocess.run(
-        [str(launcher)], cwd=str(ROOT), env=env, check=False,
-        stdin=subprocess.DEVNULL,
-    )
-    require(completed.returncode == 0, f"registered OAI attach failed rc={completed.returncode}")
-
-
-def arg_value(argv: Sequence[str], flag: str) -> str:
-    try:
-        index = list(argv).index(flag)
-        return str(argv[index + 1])
-    except (ValueError, IndexError) as exc:
-        raise AdapterError(f"registered binding lacks {flag}") from exc
-
-
-def start_tail(
-    campaign: Mapping[str, Any],
-    binding: Mapping[str, Any],
-    *,
-    stream_id: str,
-    spatial_map_port: int,
-    edge_evidence_container_dir: Path,
-) -> None:
-    edge_args = [str(value) for value in binding["edge_args"]]
-    filtered: list[str] = []
-    skip_flags = {"--fusion-checkpoint", "--quantization-mode", "--entropy-coder"}
-    index = 0
-    while index < len(edge_args):
-        if edge_args[index] in skip_flags:
-            index += 2
-        else:
-            filtered.append(edge_args[index])
-            index += 1
-    filtered.extend(
-        [
-            "--uplink-only-spatial-map", "--edge-result-mode", "none",
-            "--edge-receive-queue-size", "32", "--spatial-map-stream",
-            "--spatial-map-host", "127.0.0.1", "--spatial-map-port", str(spatial_map_port),
-            "--spatial-map-stream-id", stream_id, "--camera-resolution", "custom",
-            "--camera-width", "1280", "--camera-height", "720", "--camera-fov", "120",
-            EDGE_SEGMENTATION_EVIDENCE_FLAG, str(edge_evidence_container_dir),
-        ]
-    )
-    env = os.environ.copy()
-    env.update(
-        {
-            "FUSION_BACK_REMOTE_HOST": "10.0.0.2",
-            "FUSION_BACK_REMOTE_HOST_1": "10.0.0.2",
-            "FUSION_BACK_DUAL": "0",
-            # The wrapper imports and runs the unchanged certified runtime. Its
-            # only hook queues the already-decoded mask after normal map
-            # publication; registered feature/map packets remain unchanged.
-            "FUSION_BACK_SCRIPT": "/work/abiodun/rl_agent/ue_route_b_split_cell_adapter_v1.py",
-            "FUSION_BACK_CHECKPOINT": str(binding["checkpoint_paths"]["container"]),
-            "FUSION_QUANTIZATION_MODE": arg_value(edge_args, "--quantization-mode"),
-            "FUSION_ENTROPY_CODER": arg_value(edge_args, "--entropy-coder"),
-            "FUSION_BACK_LOG_EVERY": "50",
-            "FUSION_REMOTE_PORT_1": "51002",
-            "FUSION_REMOTE_SOURCE_PORT_1": "51013",
-            "FUSION_CAMERA_RESULT_PORT_1": "51004",
-            "FUSION_BACK_EXTRA_ARGS": " ".join(filtered),
-        }
-    )
-    helper = ROOT / "scripts/receiver_container_fusion_back_up.sh"
-    completed = subprocess.run([str(helper)], cwd=str(ROOT), env=env, check=False, stdin=subprocess.DEVNULL)
-    require(completed.returncode == 0, f"registered tail helper failed rc={completed.returncode}")
 
 
 def stop_tail() -> bool:
@@ -316,6 +289,76 @@ def tail_running() -> bool:
         stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True,
     )
     return completed.returncode == 0 and completed.stdout.strip() == "true"
+
+
+def start_live_edge(
+    campaign: Mapping[str, Any], cell: Mapping[str, Any], temporary_dir: Path
+) -> Path:
+    """Start exactly the qualified SFD1-v2 edge in the OAI-network GPU container."""
+
+    runtime = campaign["runtime"]
+    require(not tail_running(), "a previous phase-owned edge container is still running")
+    shared_root = ROOT / "torch_cache"
+    require(shared_root.is_dir(), "shared edge cache mount is missing")
+    edge_scratch = Path(tempfile.mkdtemp(prefix="splitfusion_live_edge_", dir=shared_root))
+    ready_host = edge_scratch / "ready.json"
+    ready_container = Path("/work/torch_cache") / edge_scratch.name / "ready.json"
+    config_container = Path("/work/abiodun") / "rl_agent/configs/splitfusion_16_cell_live_carla_oai_pilot_v1.json"
+    env = os.environ.copy()
+    env.update(
+        {
+            "FUSION_BACK_DUAL": "0",
+            "FUSION_BACK_BIND_HOST": "0.0.0.0",
+            "FUSION_BACK_REMOTE_HOST": str(runtime["ue_bind_host"]),
+            "FUSION_BACK_REMOTE_HOST_1": str(runtime["ue_bind_host"]),
+            "FUSION_BACK_DEVICE": "cuda",
+            "FUSION_BACK_SCRIPT": "/work/abiodun/rl_agent/splitfusion_live_dispatch_v1/live_pilot_runtime.py",
+            "FUSION_REMOTE_PORT_1": str(runtime["edge_receive_port"]),
+            "FUSION_REMOTE_SOURCE_PORT_1": str(runtime["edge_source_port"]),
+            "FUSION_CAMERA_RESULT_PORT_1": str(runtime["camera_result_port"]),
+            "FUSION_BACK_EXTRA_ARGS": " ".join(
+                (
+                    "--edge", "--config", str(config_container), "--action-id", str(cell["action_id"]),
+                    "--ready-file", str(ready_container), "--edge-port", str(runtime["edge_receive_port"]),
+                    "--result-host", str(runtime["ue_bind_host"]), "--result-port", str(runtime["camera_result_port"]),
+                )
+            ),
+        }
+    )
+    try:
+        completed = subprocess.run(
+            [str(ROOT / "scripts/receiver_container_fusion_back_up.sh")], cwd=str(ROOT), env=env,
+            check=False, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            timeout=180.0,
+        )
+        require(completed.returncode == 0, f"qualified edge container startup failed rc={completed.returncode}")
+        deadline = time.monotonic() + 180.0
+        while time.monotonic() < deadline:
+            require(tail_running(), "qualified edge container exited before preload completed")
+            if ready_host.is_file():
+                ready = json.loads(ready_host.read_text(encoding="utf-8"))
+                require(
+                    ready.get("schema") == "splitfusion_live_edge_ready.v1"
+                    and int(ready.get("action_id", -1)) == int(cell["action_id"])
+                    and ready.get("tail_device") == "cuda:0",
+                    "edge preload ready record identity/device drift",
+                )
+                return edge_scratch
+            time.sleep(0.25)
+        raise AdapterError("qualified edge did not complete preload readiness")
+    except Exception:
+        stop_tail()
+        shutil.rmtree(edge_scratch, ignore_errors=True)
+        raise
+
+
+def stop_live_edge(edge_scratch: Path | None) -> bool:
+    """Stop only this phase-owned container and its newly-created readiness leaf."""
+
+    stopped = stop_tail()
+    if edge_scratch is not None:
+        shutil.rmtree(edge_scratch, ignore_errors=True)
+    return stopped and not tail_running()
 
 
 def start_map_process(
@@ -379,13 +422,15 @@ def start_target_snr(
     campaign_path: Path,
     profile_id: str,
     temporary_dir: Path,
+    start_file: Path,
 ) -> tuple[subprocess.Popen[bytes], Path, Path]:
     runtime = repo_path(str(campaign["runtime"]["target_snr_runtime"]))
     output = temporary_dir / "radio_trace.csv"
     stop_file = temporary_dir / "stop_target_snr"
     process = subprocess.Popen(
         [sys.executable, str(runtime), "--campaign", str(campaign_path),
-         "--profile-id", profile_id, "--output", str(output), "--stop-file", str(stop_file)],
+         "--profile-id", profile_id, "--output", str(output), "--stop-file", str(stop_file),
+         "--start-file", str(start_file)],
         cwd=str(ROOT), stdin=subprocess.DEVNULL,
     )
     return process, output, stop_file
@@ -417,26 +462,6 @@ def stop_target_snr(
         value = json.loads(summary.read_text(encoding="utf-8"))
         restored = bool(value.get("clean_restore_verified"))
     return rc == 0 and restored and destination.is_file()
-
-
-def split_args(front_args: Sequence[str], runtime: Any) -> argparse.Namespace:
-    argv = [
-        "split-runtime", "--role", "front", "--bind-host", "10.0.0.2",
-        "--remote-host", "192.168.70.140", "--camera-source-port", "51001",
-        "--remote-port", "51002", "--remote-source-port", "51013",
-        "--camera-result-port", "51004", "--front-device", "cuda",
-        "--camera-resolution", "custom", "--camera-width", "1280",
-        "--camera-height", "720", "--camera-fov", "120", "--fps", "10",
-        "--world-tick-hz", "20", "--sensor-every-tick", "--headless",
-        *[str(value) for value in front_args],
-    ]
-    previous = sys.argv
-    try:
-        sys.argv = argv
-        parsed = runtime.parse_args()
-    finally:
-        sys.argv = previous
-    return parsed
 
 
 def mean_or_nan(values: Sequence[float]) -> float:
@@ -545,56 +570,6 @@ class DecodedSegmentationEvidenceWriter:
         self.thread.join(timeout=5.0)
 
 
-def run_edge_evaluation_wrapper(argv: Sequence[str]) -> int:
-    """Run the certified tail with an out-of-band post-publish mask hook."""
-    values = list(argv)
-    try:
-        index = values.index(EDGE_SEGMENTATION_EVIDENCE_FLAG)
-        evidence_dir = Path(values[index + 1])
-    except (ValueError, IndexError) as exc:
-        raise AdapterError("edge evaluation wrapper lacks its evidence directory") from exc
-    del values[index:index + 2]
-    require(evidence_dir.is_absolute(), "edge segmentation evidence directory must be absolute")
-
-    from uplink_only_spatial_map_pipeline import carla_fusion_staleness_scenario_uplink_only_v2 as split
-
-    writer = DecodedSegmentationEvidenceWriter(evidence_dir)
-    original_publish = split.SpatialMapResultPublisher.publish_from_payload
-
-    def publish_with_evidence(
-        publisher: Any,
-        *,
-        source_payload: dict[str, object],
-        result: dict[str, object],
-        timing: dict[str, object],
-    ) -> None:
-        # Normal spatial publication is invoked first and without modification.
-        original_publish(
-            publisher,
-            source_payload=source_payload,
-            result=result,
-            timing=timing,
-        )
-        mask = result.get("mask")
-        if isinstance(mask, np.ndarray):
-            writer.submit(
-                str(source_payload.get("stream_id") or publisher.stream_id),
-                int(source_payload.get("frame_id", result.get("frame_id", -1))),
-                mask,
-            )
-
-    split.SpatialMapResultPublisher.publish_from_payload = publish_with_evidence
-    previous = sys.argv
-    try:
-        sys.argv = [previous[0], *values]
-        split.main()
-    finally:
-        split.SpatialMapResultPublisher.publish_from_payload = original_publish
-        writer.close()
-        sys.argv = previous
-    return 0
-
-
 class PassiveSplitCollector:
     """Certified split sensors plus evaluation-only GT on Route B's exact ego."""
 
@@ -615,7 +590,6 @@ class PassiveSplitCollector:
         import carla_collect_parked_ego_fusion_training_data as parked
         from data_collection.radar_sweep_aggregator_v1 import RadarSweepAggregator
         from rl_agent.ue_map_install_feedback_v1 import InstallFeedbackLedger
-        from uplink_only_spatial_map_pipeline import carla_fusion_staleness_scenario_uplink_only_v2 as split
 
         self.world = world
         self.ego = ego
@@ -628,7 +602,6 @@ class PassiveSplitCollector:
         self.feedback_port = int(feedback_port)
         self.edge_evidence_dir = Path(edge_evidence_dir)
         self.parked = parked
-        self.split = split
         self.stream_id = f"ue288_{cell['cell_id']}"
         contract = campaign["measurement_contract"]
         self.match_distance_m = float(contract["match_distance_m"])
@@ -671,31 +644,27 @@ class PassiveSplitCollector:
         self.first_frame: int | None = None
         self.last_frame: int | None = None
         self.cleanup_ok = False
+        self.live_summary: dict[str, Any] = {}
 
-        args = split_args(binding["front_args"], split)
-        self.split_runtime_args = args
-        device = split.od_demo.resolve_device(args.front_device)
-        model, model_size = split.load_fusion_model(args, device)
-        self.model_size = model_size
-        transport = split._transport_config_from_args(args)
-        self.sender = split.od_collect.UDPMessageSocket(
-            bind_port=int(args.camera_source_port), remote_port=int(args.remote_port),
-            chunk_bytes=int(args.chunk_bytes), socket_timeout=float(args.socket_timeout),
-            host=str(args.bind_host), remote_host=str(args.remote_host),
-            entropy_coder=transport.make_entropy_coder(),
+        # The historical LR-ASPP/M-prime camera transport is deliberately not
+        # instantiated here.  Route B provides only live RGB/radar preparation;
+        # the qualified SFD1-v2 SplitFusion stack owns front, ranker, optional
+        # AE, decode, frozen tail, p025 serialization, and map publication.
+        self.model_size = (768, 448)
+        self.live = LivePilotCellRuntime(
+            campaign=campaign, cell=cell, attempt_dir=attempt_dir,
+            map_host="127.0.0.1", map_port=int(campaign["runtime"]["map_ingest_port"]),
+            evidence_dir=self.edge_evidence_dir,
         )
-        registered = getattr(args, "_ue_registered_profile", None)
-        self.head = split.CameraSideFusionInference(
-            model=model, sender=self.sender, transport=transport, device=device,
-            model_input_size=model_size, registered_profile=registered,
-        )
+        self.target_start_file = Path(str(campaign["_target_start_file"])).resolve()
+        self.profile_activated = False
         self.tracker = parked.StationaryTrackAccumulator(
             stationary_velocity_mps=0.35, parked_threshold_s=5.0,
             association_grid_m=1.5, max_stale_s=2.0,
         )
         self.actor_tracker = parked.ActorStationaryTracker(0.35, 5.0)
         self.aligned_actor_tracker = parked.ActorStationaryTracker(0.35, 5.0)
-        self.intrinsics = split.intrinsics_at(int(model_size[0]), int(model_size[1]), 120.0)
+        self.intrinsics = camera_intrinsics(int(model_size[0]), int(model_size[1]), 120.0)
         self.feedback = InstallFeedbackLedger(
             output_csv=attempt_dir / "map_feedback.csv",
             experiment_id=str(campaign["campaign_id"]), cell_id=str(cell["cell_id"]),
@@ -715,20 +684,6 @@ class PassiveSplitCollector:
 
     def _spawn_sensors(self) -> None:
         bp_lib = self.world.get_blueprint_library()
-        args = SimpleNamespace(
-            ego_camera_x=self.split.DEFAULT_EGO_CAMERA_X,
-            ego_camera_y=self.split.DEFAULT_EGO_CAMERA_Y,
-            ego_camera_z=self.split.DEFAULT_EGO_CAMERA_Z,
-            ego_camera_pitch=self.split.DEFAULT_EGO_CAMERA_PITCH,
-            ego_camera_yaw=self.split.DEFAULT_EGO_CAMERA_YAW,
-            ego_camera_roll=self.split.DEFAULT_EGO_CAMERA_ROLL,
-            ego_radar_x=self.split.DEFAULT_EGO_RADAR_X,
-            ego_radar_y=self.split.DEFAULT_EGO_RADAR_Y,
-            ego_radar_z=self.split.DEFAULT_EGO_RADAR_Z,
-            ego_radar_pitch=self.split.DEFAULT_EGO_RADAR_PITCH,
-            ego_radar_yaw=self.split.DEFAULT_EGO_RADAR_YAW,
-            ego_radar_roll=self.split.DEFAULT_EGO_RADAR_ROLL,
-        )
         rgb_bp = bp_lib.find("sensor.camera.rgb")
         rgb_bp.set_attribute("image_size_x", "1280")
         rgb_bp.set_attribute("image_size_y", "720")
@@ -745,13 +700,13 @@ class PassiveSplitCollector:
         radar_bp.set_attribute("vertical_fov", "30")
         radar_bp.set_attribute("points_per_second", "200000")
         radar_bp.set_attribute("sensor_tick", "0.0")
-        self.camera = self.world.spawn_actor(rgb_bp, self.split._ego_camera_transform(args), attach_to=self.ego)
+        self.camera = self.world.spawn_actor(rgb_bp, sensor_transform(CAMERA_MOUNT), attach_to=self.ego)
         self.semantic_camera = self.world.spawn_actor(
             semantic_bp,
-            self.split._ego_camera_transform(args),
+            sensor_transform(CAMERA_MOUNT),
             attach_to=self.ego,
         )
-        self.radar = self.world.spawn_actor(radar_bp, self.split._ego_radar_transform(args), attach_to=self.ego)
+        self.radar = self.world.spawn_actor(radar_bp, sensor_transform(RADAR_MOUNT), attach_to=self.ego)
         self.sensors = [self.camera, self.semantic_camera, self.radar]
         self.camera.listen(self._on_rgb)
         self.semantic_camera.listen(self._on_semantic)
@@ -918,15 +873,15 @@ class PassiveSplitCollector:
             if not self.aggregator.has_window(sweep_index):
                 self._append_row({**token, "carla_timestamp": radar_measurement.timestamp, "prepare_status": "WARMUP_NO_COMPLETE_RADAR_WINDOW"})
                 return
-            radar_inverse = self.split.actor_world_inverse_matrix(self.radar)
+            radar_inverse = actor_world_inverse_matrix(self.radar)
             detections, window_meta = self.aggregator.window_detections(
                 sweep_index, sensor_inverse_matrix=radar_inverse,
                 reference_timestamp_s=float(radar_measurement.timestamp),
             )
         require(window_meta["callbacks"] == 4, f"accepted window requires four radar callbacks, got {window_meta['callbacks']}")
-        camera_matrix = self.split.actor_world_matrix(self.camera)
-        camera_inverse = self.split.actor_world_inverse_matrix(self.camera)
-        radar_matrix = self.split.actor_world_matrix(self.radar)
+        camera_matrix = actor_world_matrix(self.camera)
+        camera_inverse = actor_world_inverse_matrix(self.camera)
+        radar_matrix = actor_world_matrix(self.radar)
         radar_tensor, radar_points, radar_summary = self.parked.build_radar_sample(
             detections=detections, sensor_matrix=radar_matrix,
             camera_inverse_matrix=camera_inverse, camera_intrinsics=self.intrinsics,
@@ -935,7 +890,7 @@ class PassiveSplitCollector:
             max_range_m=120.0, max_abs_velocity_mps=20.0,
             parked_threshold_s=5.0, point_radius_px=4, rasterizer="fast",
         )
-        frame_bgr = self.split.od_demo.camera_image_to_bgr(image)
+        frame_bgr = carla_image_to_bgr(image)
         capture_id = f"{self.stream_id}:{frame_id}"
         deadline = float(capture_wall) + self.service_deadline_s
         timeout_at = float(capture_wall) + self.ack_timeout_s
@@ -945,15 +900,18 @@ class PassiveSplitCollector:
             service_deadline_at=deadline, ack_timeout_at=timeout_at,
         )
         queue_wait_ms = (time.perf_counter() - float(token["scheduled_perf"])) * 1000.0
-        front = self.head.process(
-            frame_id=frame_id, frame_bgr=frame_bgr, radar_tensor=radar_tensor,
-            camera_matrix=camera_matrix, camera_intrinsics_input=self.intrinsics,
-            display_size=(1280, 720), carla_timestamp=float(radar_measurement.timestamp),
-            camera_transform_payload=self.split._carla_transform_payload(self.camera.get_transform()),
-            stream_id=self.stream_id, capture_perf=float(capture_perf),
-            capture_wall_s=float(capture_wall),
-            prep_timing={"capture_pipeline_queue_wait_ms": queue_wait_ms,
-                         "capture_pipeline_queue_depth": int(token["queue_depth"])},
+        if not self.profile_activated:
+            self.target_start_file.touch(exist_ok=False)
+            self.profile_activated = True
+        transform = self.ego.get_transform()
+        location, rotation = transform.location, transform.rotation
+        front = self.live.submit(
+            frame_bgr=frame_bgr, radar_tensor=radar_tensor, frame_id=frame_id,
+            capture_timestamp_ns=int(round(float(capture_wall) * 1_000_000_000)),
+            ego_pose=(float(location.x), float(location.y), float(location.z),
+                      float(rotation.pitch), float(rotation.yaw), float(rotation.roll)),
+            stream_id=self.stream_id, carla_timestamp=float(radar_measurement.timestamp),
+            capture_id=capture_id,
         )
         self.sent += 1
         self.sent_frames.add(frame_id)
@@ -1005,12 +963,7 @@ class PassiveSplitCollector:
                             "SEMANTIC_GT_EXACT_FRAME_MISSING"
                         )
                     else:
-                        gt_tags = self.split.trained_seg_demo.carla_semantic_image_to_tags(
-                            semantic_image
-                        )
-                        gt_3class = self.split.trained_seg_demo.map_carla_tags_to_3class(
-                            gt_tags
-                        )
+                        gt_3class = semantic_gt_3class(semantic_image)
                         pending[int(frame_id)] = (gt_3class, time.monotonic())
                 except Exception as exc:
                     self.segmentation_evidence_errors[int(frame_id)] = (
@@ -1027,19 +980,17 @@ class PassiveSplitCollector:
                 if evidence_path.is_file():
                     try:
                         predicted = np.load(evidence_path, allow_pickle=False)
-                        quality = self.split._segmentation_quality_columns(
-                            predicted, gt_3class
-                        )
+                        quality = segmentation_quality_columns(predicted, gt_3class)
                         quality["prediction_vehicle_pixels"] = int(
                             np.count_nonzero(
                                 predicted
-                                == self.split.trained_seg_demo.CLASS_ID_VEHICLE
+                                == CLASS_ID_VEHICLE
                             )
                         )
                         quality["prediction_person_pixels"] = int(
                             np.count_nonzero(
                                 predicted
-                                == self.split.trained_seg_demo.CLASS_ID_PERSON
+                                == CLASS_ID_PERSON
                             )
                         )
                         with self.gt_lock:
@@ -1147,8 +1098,8 @@ class PassiveSplitCollector:
                     aligned = self._ground_truth(
                         frame_id=frame_id,
                         timestamp=aligned_timestamp,
-                        camera_matrix=self.split.actor_world_matrix(self.camera),
-                        camera_inverse=self.split.actor_world_inverse_matrix(self.camera),
+                        camera_matrix=actor_world_matrix(self.camera),
+                        camera_inverse=actor_world_inverse_matrix(self.camera),
                         radar_points={"world_xyz": np.zeros((0, 3), dtype=np.float32)},
                         stationary_tracker=self.aligned_actor_tracker,
                     )
@@ -1196,7 +1147,8 @@ class PassiveSplitCollector:
             except Exception:
                 sensor_ok = False
         try:
-            self.sender.close()
+            self.live_summary = self.live.close()
+            sensor_ok = not bool(self.live_summary.get("errors")) and sensor_ok
         except Exception:
             sensor_ok = False
         try:
@@ -1218,7 +1170,8 @@ class PassiveSplitCollector:
             writer.writeheader()
             with self.rows_lock:
                 for row in sorted(self.rows, key=lambda item: (int(item.get("route_tick", 0)), str(item.get("prepare_status", "")))):
-                    writer.writerow({field: row.get(field, "") for field in PER_FRAME_FIELDS})
+                    metric = self.live.take_metric(int(row["frame_id"])) if row.get("prepare_status") == "SENT" else None
+                    writer.writerow({field: ({**row, **(metric or {})}).get(field, "") for field in PER_FRAME_FIELDS})
 
     def write_perception(self) -> None:
         from pole_lraspp_multimodal_fusion.pole_lraspp_multimodal_fusion.object_targets import greedy_match_predictions
@@ -1632,11 +1585,12 @@ def run(args: argparse.Namespace) -> int:
     resolved_path = args.resolved_config.resolve()
     resolved, campaign, row = validate_resolved_contract(resolved_path, attempt_dir)
     cell = resolved["cell"]
-    binding = launcher_binding(campaign, row)
+    binding: dict[str, Any] = {"dispatcher": "phase13_sfd1_v2"}
     map_process: subprocess.Popen[Any] | None = None
     target_process: subprocess.Popen[Any] | None = None
     target_output = Path()
     target_stop = Path()
+    edge_scratch: Path | None = None
     collector: PassiveSplitCollector | None = None
     route_detail: dict[str, Any] = {}
     structural_acceptance: dict[str, Any] = {
@@ -1644,39 +1598,32 @@ def run(args: argparse.Namespace) -> int:
         "failures": ["Route B split collector did not reach structural validation"],
     }
     failures: list[str] = []
-    cleanup = {"target_snr_restored": False, "map_process_stopped": False, "tail_stopped": False}
+    cleanup = {"target_snr_restored": False, "map_process_stopped": False, "live_dispatch_stopped": False, "edge_stopped": False}
     started = time.time()
-    edge_cache_root = ROOT / "torch_cache"
-    require(edge_cache_root.is_dir(), f"shared tail cache mount missing: {edge_cache_root}")
     with (
         tempfile.TemporaryDirectory(prefix="ue_288_cell_runtime_") as raw_tmp,
-        tempfile.TemporaryDirectory(
-            prefix="ue_288_seg_eval_", dir=str(edge_cache_root)
-        ) as edge_evidence_raw,
+        tempfile.TemporaryDirectory(prefix="ue_288_seg_eval_") as edge_evidence_raw,
     ):
         temporary = Path(raw_tmp)
         edge_evidence_dir = Path(edge_evidence_raw)
-        edge_evidence_container_dir = Path("/work/torch_cache") / edge_evidence_dir.name
         try:
-            attach_oai(campaign, row)
             map_process = start_map_process(
                 campaign, temporary_dir=temporary, action_id=str(cell["action_id"]),
                 carla_host=args.carla_host, carla_port=args.carla_port,
                 api_port=args.map_api_port, udp_port=args.spatial_map_port,
                 feedback_port=args.feedback_port,
             )
-            start_tail(
-                campaign, binding, stream_id=f"ue288_{cell['cell_id']}",
-                spatial_map_port=args.spatial_map_port,
-                edge_evidence_container_dir=edge_evidence_container_dir,
-            )
+            edge_scratch = start_live_edge(campaign, cell, temporary)
             # The target runtime reads the campaign root, not the resolved-cell
             # wrapper. Supply an isolated copy containing exactly that mapping.
             campaign_copy = temporary / "campaign.yaml"
+            target_start = temporary / "target_snr_start"
+            campaign["_target_start_file"] = str(target_start)
             campaign_copy.write_text(yaml.safe_dump(campaign, sort_keys=False), encoding="utf-8")
             target_process, target_output, target_stop = start_target_snr(
                 campaign, campaign_path=campaign_copy,
                 profile_id=str(cell["network_profile_id"]), temporary_dir=temporary,
+                start_file=target_start,
             )
             time.sleep(1.0)
             require(target_process.poll() is None, "target-SNR runtime exited during startup")
@@ -1692,8 +1639,6 @@ def run(args: argparse.Namespace) -> int:
                 failures.append("per-cell map process exited before cell cleanup")
             if target_process.poll() is not None:
                 failures.append("target-SNR runtime exited before cell cleanup")
-            if not tail_running():
-                failures.append("registered tail container exited before cell cleanup")
             if not route_ok:
                 failures.append("qualified Route B did not complete with a clean split adapter")
             if collector is None:
@@ -1718,7 +1663,10 @@ def run(args: argparse.Namespace) -> int:
                 except Exception as exc:
                     failures.append(f"target-SNR cleanup: {type(exc).__name__}: {exc}")
             cleanup["map_process_stopped"] = stop_process(map_process)
-            cleanup["tail_stopped"] = stop_tail()
+            cleanup["live_dispatch_stopped"] = bool(
+                collector is not None and collector.cleanup_ok
+            )
+            cleanup["edge_stopped"] = stop_live_edge(edge_scratch)
             if not all(cleanup.values()):
                 failures.append("one or more adapter-owned runtime resources failed cleanup")
 
@@ -1753,6 +1701,7 @@ def run(args: argparse.Namespace) -> int:
         "structural_acceptance": structural_acceptance,
         "route": route_detail, "split_frames_sent": collector.sent if collector else 0,
         "split_frames_dropped": collector.dropped if collector else 0,
+        "live_dispatch": collector.live_summary if collector else {},
         "cleanup": cleanup, "failures": failures,
         "started_at_unix_s": started, "finished_at_unix_s": time.time(),
     }
@@ -1798,10 +1747,6 @@ def contract_check(configs: Sequence[Path]) -> int:
         "installed_frame_history[history_key] = normalized" in map_source
         and "get_fusion_stream_installed_frame" in map_source,
         "map runtime lacks bounded exact installed-frame history",
-    )
-    require(
-        source.index("original_publish(") < source.index("writer.submit("),
-        "decoded-mask evidence must be queued only after normal map publication",
     )
     identical = {
         "world_x": 2.0,
@@ -1855,9 +1800,9 @@ def contract_check(configs: Sequence[Path]) -> int:
         "exact_installed_frame_history": "PASS",
         "primary_match_distance_m": 3.0,
         "oriented_footprint_iou": "PASS",
-        "segmentation_evaluation_path": "POST_MAP_PUBLISH_OUT_OF_BAND",
+        "segmentation_evaluation_path": "EDGE_RESULT_OVER_SFD1_QUALIFIED_UDP",
         "selected_oai_radio_profile": "OAI_N78_100MHZ_273PRB_4D5U_V1",
-        "real_launch_status": "BLOCKED_UNTIL_SPLITFUSION_MODELS_RADIO_RUNTIME_AND_SNR_MAPPING_ARE_BOUND",
+        "real_launch_status": "QUALIFIED_CONTRACT_PENDING_GUARDED_LIVE_PREFLIGHT",
     }, indent=2, sort_keys=True))
     return 0
 
@@ -1879,12 +1824,6 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: Sequence[str] | None = None) -> int:
     values = list(sys.argv[1:] if argv is None else argv)
-    if EDGE_SEGMENTATION_EVIDENCE_FLAG in values:
-        try:
-            return run_edge_evaluation_wrapper(values)
-        except (AdapterError, OSError, ValueError, KeyError) as exc:
-            print(f"Route B edge evaluation wrapper error: {exc}", file=sys.stderr)
-            return 2
     args = build_parser().parse_args(values)
     try:
         if args.contract_check:
