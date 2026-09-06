@@ -41,7 +41,14 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from rl_agent.splitfusion_live_dispatch_v1.live_pilot_runtime import (  # noqa: E402
+    DEADLINE_STAGES,
+    UE_STAGE_AFTER_PREPARATION,
+    DeadlineExpired,
+    LatestFramePendingSlot,
     LivePilotCellRuntime,
+    _Counters,
+    check_deadline,
+    install_deadline_s,
 )
 
 ADAPTER_SCHEMA = "scenesense.ue_route_b_split_cell_adapter.v1"
@@ -74,9 +81,25 @@ PER_FRAME_FIELDS = (
     "frame_context_valid", "camera_pose_reconstruct_ns",
     "finite_output_tensor_count", "service_record_count",
     "edge_call_ledger", "edge_counters",
+    # Phase-15 real-time recovery accounting. FEATURE_RECEIVED is diagnostic
+    # only; MAP_INSTALLED is the terminal service-success event and the one
+    # measured against the authoritative capture-based deadline.
+    "deadline_expiry_stage", "deadline_expiry_age_ms", "replaced_by_frame_id",
+    "feature_received_at", "map_publication_status", "map_installed_at",
+    "install_aoi_ms", "edge_receipt_wall_s", "edge_tail_complete_wall_s",
+    "edge_evidence_install_wall_s", "edge_evidence_installation_status",
+    "edge_evidence_sha256", "edge_terminal_reason", "evaluation_gt_status",
     "error",
 )
 EDGE_SEGMENTATION_EVIDENCE_FLAG = "--edge-segmentation-evidence-dir"
+# The evaluation label map is persisted by the edge on its own per-cell mount
+# and never base64-encoded into the radio return path.
+EDGE_EVIDENCE_LEAF = "segmentation_evidence"
+PRESERVED_EVIDENCE_LEAF = "segmentation_evidence"
+# Registered preservation quota for raw label maps. The complete hash manifest
+# is always retained; raw arrays are preserved for installed frames up to this
+# many bytes per cell so a cell can never exhaust the host filesystem.
+PRESERVED_EVIDENCE_QUOTA_BYTES = 1 << 30
 CAMERA_MOUNT = (1.8, 0.0, 1.55, -4.0, 0.0, 0.0)
 RADAR_MOUNT = (2.0, 0.0, 1.0, 0.0, 0.0, 0.0)
 CLASS_ID_BACKGROUND, CLASS_ID_VEHICLE, CLASS_ID_PERSON = 0, 1, 2
@@ -348,6 +371,14 @@ def start_live_edge(
     require(not tail_running(), "a previous phase-owned edge container is still running")
     edge_scratch = create_cell_edge_state_root(temporary_dir)
     seed_cell_edge_state(campaign, edge_scratch)
+    # The edge container runs as root while this directory tree is owned by the
+    # host user, so the evaluation-evidence leaf is created here with group and
+    # other write permission. Otherwise the host could not unlink the
+    # root-created label maps during cold teardown.
+    evidence_host = edge_scratch / EDGE_EVIDENCE_LEAF
+    evidence_host.mkdir(parents=False, exist_ok=False, mode=0o777)
+    os.chmod(evidence_host, 0o777)
+    evidence_container = Path("/work/torch_cache") / EDGE_EVIDENCE_LEAF
     ready_host = edge_scratch / "ready.json"
     ready_container = Path("/work/torch_cache/ready.json")
     config_container = Path("/work/abiodun") / "rl_agent/configs/splitfusion_16_cell_live_carla_oai_pilot_v1.json"
@@ -376,6 +407,9 @@ def start_live_edge(
                     ),
                     "--ready-file", str(ready_container), "--edge-port", str(runtime["edge_receive_port"]),
                     "--result-host", str(runtime["ue_bind_host"]), "--result-port", str(runtime["camera_result_port"]),
+                    EDGE_SEGMENTATION_EVIDENCE_FLAG, str(evidence_container),
+                    "--run-id", str(campaign["campaign_id"]),
+                    "--cell-id", str(cell["cell_id"]),
                 )
             ),
         }
@@ -406,7 +440,10 @@ def start_live_edge(
                             "action_ids", [cell["action_id"]]
                         )
                     ]
-                    and ready.get("tail_device") == "cuda:0",
+                    and ready.get("tail_device") == "cuda:0"
+                    and ready.get("dense_label_map_on_radio") is False
+                    and str(ready.get("evaluation_evidence_dir") or "")
+                    == str(evidence_container),
                     "edge preload ready record identity/device drift",
                 )
                 return edge_scratch
@@ -651,56 +688,147 @@ def segmentation_evidence_name(stream_id: str, frame_id: int) -> str:
     return f"{stream_digest}_{int(frame_id)}.npy"
 
 
-class DecodedSegmentationEvidenceWriter:
-    """Bounded, non-blocking edge-side sink for evaluation-only decoded masks."""
+def _monotonic_fraction(series: Sequence[tuple[float, float]]) -> float | None:
+    """Fraction of consecutive installed frames whose AoI did not decrease.
 
-    def __init__(self, output_dir: Path) -> None:
-        self.output_dir = Path(output_dir)
-        self.output_dir.mkdir(parents=True, exist_ok=True)
-        self.queue: "queue.Queue[tuple[str, int, np.ndarray] | None]" = queue.Queue(maxsize=32)
-        self.stop_event = threading.Event()
-        self.thread = threading.Thread(target=self._run, name="decoded-seg-evidence", daemon=True)
-        self.thread.start()
+    A repaired data plane holds AoI near the service period; a value close to
+    1.0 is the signature of the backlog the retry4 audit measured, where every
+    admitted frame was served from an ever-older queue.
+    """
 
-    def submit(self, stream_id: str, frame_id: int, mask: np.ndarray) -> None:
-        try:
-            # The inference result owns this array and never mutates it after
-            # publication. Retaining the reference avoids synchronous copying.
-            self.queue.put_nowait((str(stream_id), int(frame_id), mask))
-        except queue.Full:
-            print(
-                f"[SegEval] evidence queue full; frame {frame_id} was not retained",
-                file=sys.stderr,
-            )
+    ordered = [value for _key, value in sorted(series, key=lambda item: item[0])]
+    if len(ordered) < 2:
+        return None
+    increases = sum(
+        1 for index in range(1, len(ordered)) if ordered[index] >= ordered[index - 1]
+    )
+    return increases / (len(ordered) - 1)
 
-    def _run(self) -> None:
-        while not self.stop_event.is_set() or not self.queue.empty():
-            try:
-                item = self.queue.get(timeout=0.1)
-            except queue.Empty:
+
+class FrozenActor:
+    """An immutable actor view pinned to one synchronized CARLA frame.
+
+    Evaluation-only ground truth is no longer built on the real-time
+    preparation worker, so it can no longer read live actor state: by the time
+    it runs, the actors have moved. This proxy exposes exactly the surface the
+    unmodified ``carla_collect_parked_ego_fusion_training_data`` row builder
+    uses, backed by the transform and velocity recorded in the world snapshot
+    taken at the frame the features were actually derived from. Static geometry
+    (``type_id``, ``bounding_box``) is immutable for an actor's lifetime and is
+    carried by reference.
+    """
+
+    __slots__ = ("id", "type_id", "bounding_box", "_transform", "_velocity")
+
+    def __init__(self, *, actor_id: int, type_id: str, bounding_box: Any,
+                 transform: Any, velocity: Any) -> None:
+        self.id = int(actor_id)
+        self.type_id = str(type_id)
+        self.bounding_box = bounding_box
+        self._transform = transform
+        self._velocity = velocity
+
+    def get_transform(self) -> Any:
+        return self._transform
+
+    def get_location(self) -> Any:
+        return self._transform.location
+
+    def get_velocity(self) -> Any:
+        return self._velocity
+
+
+class FrozenActorList:
+    """A snapshot-backed stand-in for ``carla.ActorList`` with ``filter``."""
+
+    __slots__ = ("_actors",)
+
+    def __init__(self, actors: Sequence[FrozenActor]) -> None:
+        self._actors = tuple(actors)
+
+    def filter(self, pattern: str) -> tuple[FrozenActor, ...]:
+        import fnmatch
+
+        return tuple(
+            actor for actor in self._actors
+            if fnmatch.fnmatch(actor.type_id, str(pattern))
+        )
+
+    def __iter__(self):
+        return iter(self._actors)
+
+    def __len__(self) -> int:
+        return len(self._actors)
+
+
+class FrozenWorld:
+    """Expose only ``get_actors`` so the shared row builder stays unmodified."""
+
+    __slots__ = ("_actors",)
+
+    def __init__(self, actors: FrozenActorList) -> None:
+        self._actors = actors
+
+    def get_actors(self) -> FrozenActorList:
+        return self._actors
+
+
+class SceneSnapshotSource:
+    """Build immutable per-frame actor snapshots without live world queries.
+
+    ``world.get_actors()`` is an RPC and actor geometry never changes, so the
+    static registry is refreshed on the evaluation thread only. The real-time
+    worker pays for one already-cached ``world.get_snapshot()`` plus a dict of
+    transforms.
+    """
+
+    def __init__(self, world: Any, *, ego_id: int, refresh_interval_s: float = 2.0) -> None:
+        self.world = world
+        self.ego_id = int(ego_id)
+        self.refresh_interval_s = float(refresh_interval_s)
+        self._static: dict[int, tuple[str, Any]] = {}
+        self._refreshed_at = 0.0
+        self._lock = threading.Lock()
+
+    def refresh_static(self, *, force: bool = False) -> None:
+        """Refresh immutable actor identity/geometry off the real-time path."""
+
+        now = time.monotonic()
+        with self._lock:
+            if not force and now - self._refreshed_at < self.refresh_interval_s:
+                return
+        registry: dict[int, tuple[str, Any]] = {}
+        for actor in self.world.get_actors():
+            type_id = str(getattr(actor, "type_id", ""))
+            if not (type_id.startswith("vehicle.") or type_id.startswith("walker.pedestrian.")):
                 continue
-            if item is None:
-                self.queue.task_done()
-                break
-            stream_id, frame_id, mask = item
-            path = self.output_dir / segmentation_evidence_name(stream_id, frame_id)
-            temporary = path.with_suffix(path.suffix + ".tmp")
             try:
-                with temporary.open("xb") as handle:
-                    np.save(handle, mask.astype(np.uint8, copy=False), allow_pickle=False)
-                os.replace(temporary, path)
-            except Exception as exc:
-                print(f"[SegEval] frame {frame_id} evidence write failed: {exc}", file=sys.stderr)
-            finally:
-                self.queue.task_done()
+                registry[int(actor.id)] = (type_id, actor.bounding_box)
+            except RuntimeError:
+                continue
+        with self._lock:
+            self._static = registry
+            self._refreshed_at = now
 
-    def close(self) -> None:
-        self.stop_event.set()
-        try:
-            self.queue.put_nowait(None)
-        except queue.Full:
-            pass
-        self.thread.join(timeout=5.0)
+    def capture(self, world_snapshot: Any) -> FrozenWorld:
+        """Freeze the scene exactly as of ``world_snapshot``."""
+
+        with self._lock:
+            static = dict(self._static)
+        actors: list[FrozenActor] = []
+        for actor_id, (type_id, bounding_box) in static.items():
+            if actor_id == self.ego_id:
+                continue
+            item = world_snapshot.find(int(actor_id))
+            if item is None:
+                continue
+            actors.append(
+                FrozenActor(
+                    actor_id=actor_id, type_id=type_id, bounding_box=bounding_box,
+                    transform=item.get_transform(), velocity=item.get_velocity(),
+                )
+            )
+        return FrozenWorld(FrozenActorList(actors))
 
 
 class PassiveSplitCollector:
@@ -773,16 +901,35 @@ class PassiveSplitCollector:
         self.segmentation_evidence_retention_s = float(
             contract["segmentation_evidence_retention_s"]
         )
-        self.service_deadline_s = float(campaign["cell"]["service_deadline_ms"]) / 1000.0
-        self.ack_timeout_s = float(campaign["cell"]["ack_timeout_ms"]) / 1000.0
+        # One authoritative absolute capture-based service deadline governs
+        # UE staleness, every edge stage, publication and timeout accounting.
+        # The registered 100 ms service target is retained as a reported-only
+        # tight threshold so no registered number is silently redefined, but
+        # nothing enforces two different deadline values.
+        self.install_deadline_s = install_deadline_s(campaign)
+        self.tight_service_target_s = (
+            float(campaign["cell"]["service_deadline_ms"]) / 1000.0
+        )
+        self.ack_timeout_s = self.install_deadline_s
         self.sensor_condition = threading.Condition()
         self.images: "OrderedDict[int, tuple[Any, float, float]]" = OrderedDict()
         self.semantic_images: "OrderedDict[int, Any]" = OrderedDict()
         self.radars: "OrderedDict[int, Any]" = OrderedDict()
         self.aggregator = RadarSweepAggregator(keep_sweeps=12)
         self.aggregator_error = ""
-        self.prepared_queue: "queue.Queue[dict[str, Any] | None]" = queue.Queue(maxsize=4)
+        # Bounded latest-frame-first preparation: at most one pending
+        # unprepared frame per stream, a newer opportunity replaces an older
+        # pending one, and a frame already executing is never interrupted.
+        self.prepared_queue = LatestFramePendingSlot()
         self.segmentation_queue: "queue.Queue[int | None]" = queue.Queue(maxsize=32)
+        # Evaluation-only work (ground truth, mask evidence, diagnostics) runs
+        # here so it can never consume the real-time preparation period.
+        self.evaluation_queue: "queue.Queue[dict[str, Any] | None]" = queue.Queue(maxsize=64)
+        self.transport_counters = _Counters()
+        self.scene_source: SceneSnapshotSource | None = None
+        self.evaluation_errors: dict[int, str] = {}
+        self.installed_at: dict[int, float] = {}
+        self.evidence_manifest: dict[int, dict[str, Any]] = {}
         self.stop_event = threading.Event()
         self.segmentation_stop_event = threading.Event()
         self.rows_lock = threading.Lock()
@@ -832,15 +979,23 @@ class PassiveSplitCollector:
             bind_host="127.0.0.1", bind_port=self.feedback_port,
         )
         self._spawn_sensors()
+        self.scene_source = SceneSnapshotSource(self.world, ego_id=int(self.ego.id))
+        self.scene_source.refresh_static(force=True)
         self.worker = threading.Thread(target=self._worker, name="route-b-split-front", daemon=True)
         self.segmentation_worker = threading.Thread(
             target=self._segmentation_worker,
             name="route-b-segmentation-evaluation",
             daemon=True,
         )
+        self.evaluation_worker = threading.Thread(
+            target=self._evaluation_worker,
+            name="route-b-object-gt-evaluation",
+            daemon=True,
+        )
         self.feedback_worker = threading.Thread(target=self._feedback_worker, name="route-b-map-feedback", daemon=True)
         self.worker.start()
         self.segmentation_worker.start()
+        self.evaluation_worker.start()
         self.feedback_worker.start()
 
     def _spawn_sensors(self) -> None:
@@ -917,13 +1072,33 @@ class PassiveSplitCollector:
         token = {
             "frame_id": int(frame_id), "route_tick": int(route_tick),
             "scheduled_perf": time.perf_counter(), "scheduled_wall": time.time(),
-            "queue_depth": self.prepared_queue.qsize(),
+            "queue_depth": self.prepared_queue.depth(),
         }
-        try:
-            self.prepared_queue.put_nowait(token)
-        except queue.Full:
+        # Latest-frame-first: a newer complete opportunity displaces an older
+        # pending one so the worker always serves the freshest frame instead of
+        # draining an ever-older FIFO backlog.
+        admitted, displaced = self.prepared_queue.offer(
+            self.stream_id, token, sequence=int(frame_id)
+        )
+        self.transport_counters.bump("preparation_offers")
+        if not admitted:
             self.dropped += 1
-            self._append_row({**token, "prepare_status": "DROPPED_QUEUE_FULL", "processing_late": 1})
+            self.transport_counters.bump("preparation_offer_refused")
+            self._append_row({
+                **token,
+                "prepare_status": "DROPPED_PREPARATION_SLOT_CLOSED",
+                "processing_late": 1,
+            })
+            return
+        if displaced is not None:
+            self.dropped += 1
+            self.transport_counters.bump("preparation_pending_replacements")
+            self._append_row({
+                **displaced,
+                "prepare_status": "DROPPED_REPLACED_BY_NEWER_FRAME",
+                "replaced_by_frame_id": int(frame_id),
+                "processing_late": 1,
+            })
 
     def _records_for(self, frame_id: int, timeout_s: float = 0.25) -> tuple[Any, float, float, Any] | None:
         deadline = time.monotonic() + timeout_s
@@ -981,13 +1156,19 @@ class PassiveSplitCollector:
         camera_inverse: np.ndarray,
         radar_points: Mapping[str, Any],
         stationary_tracker: Any | None = None,
+        world: Any | None = None,
+        camera_location: Any | None = None,
     ) -> list[dict[str, Any]]:
         from pole_lraspp_multimodal_fusion.pole_lraspp_multimodal_fusion.object_targets import valid_localization_objects
 
         rows = self.parked.build_object_rows(
-            world=self.world, ego_vehicle=self.ego,
+            world=self.world if world is None else world, ego_vehicle=self.ego,
             sample_base={"timestamp": float(timestamp), "frame_id": int(frame_id)},
-            camera_location=self.camera.get_transform().location,
+            camera_location=(
+                self.camera.get_transform().location
+                if camera_location is None
+                else camera_location
+            ),
             camera_matrix=camera_matrix, camera_inverse_matrix=camera_inverse,
             intrinsics=self.intrinsics, width=int(self.model_size[0]), height=int(self.model_size[1]),
             max_distance_m=140.0,
@@ -1004,24 +1185,27 @@ class PassiveSplitCollector:
         )
 
     def _worker(self) -> None:
+        """The real-time preparation worker.
+
+        This thread contains only work required to acquire the synchronized
+        sensor input, run the front/ranker/AE path, encode, send and record
+        minimal timing/accounting metadata. Evaluation-only ground truth, mask
+        evidence handling and diagnostic formatting run on other threads.
+        """
+
         while True:
-            try:
-                token = self.prepared_queue.get(timeout=0.1)
-            except queue.Empty:
+            taken = self.prepared_queue.take(timeout=0.1)
+            if taken is None:
                 if self.stop_event.is_set():
                     return
                 continue
-            if token is None:
-                self.prepared_queue.task_done()
-                return
+            _stream_id, token = taken
             try:
                 self._process_token(token)
             except Exception as exc:
                 message = f"frame {token['frame_id']}: {type(exc).__name__}: {exc}"
                 self.failures.append(message)
                 self._append_row({**token, "prepare_status": "SPLIT_PROCESSING_FAILED", "error": message})
-            finally:
-                self.prepared_queue.task_done()
 
     def _process_token(self, token: Mapping[str, Any]) -> None:
         if (
@@ -1063,6 +1247,33 @@ class PassiveSplitCollector:
                 "processing_late": 1,
             })
             return
+        # The synchronized sensor input is now prepared. Enforce the one
+        # authoritative capture-based deadline before spending rasterization,
+        # front/AE and encode work on a frame that can never install in time.
+        try:
+            check_deadline(
+                UE_STAGE_AFTER_PREPARATION,
+                int(round(float(capture_wall) * 1_000_000_000)),
+                self.install_deadline_s,
+            )
+        except DeadlineExpired as expired:
+            self.dropped += 1
+            self.transport_counters.bump("stale_before_send")
+            self.transport_counters.bump(f"deadline_drop_{expired.stage}")
+            self._append_row({
+                **token,
+                "carla_timestamp": float(radar_measurement.timestamp),
+                "capture_wall_s": float(capture_wall),
+                "service_deadline_at": float(capture_wall) + self.install_deadline_s,
+                "prepare_status": "STALE_BEFORE_SEND",
+                "processing_late": 1,
+                "deadline_expiry_stage": expired.stage,
+                "deadline_expiry_age_ms": expired.age_ms,
+                "queue_wait_ms": (
+                    time.perf_counter() - float(token["scheduled_perf"])
+                ) * 1000.0,
+            })
+            return
         camera_matrix = actor_world_matrix(self.camera)
         camera_inverse = actor_world_inverse_matrix(self.camera)
         radar_matrix = actor_world_matrix(self.radar)
@@ -1081,61 +1292,103 @@ class PassiveSplitCollector:
             if self.qualification_transmit_order
             else int(self.cell["action_id"])
         )
-        deadline = float(capture_wall) + self.service_deadline_s
-        timeout_at = float(capture_wall) + self.ack_timeout_s
-        self.feedback.register_capture(
-            stream_id=self.stream_id, capture_id=capture_id, frame_id=frame_id,
-            capture_at=float(capture_wall), action_id=str(action_id),
-            service_deadline_at=deadline, ack_timeout_at=timeout_at,
-        )
+        capture_timestamp_ns = int(round(float(capture_wall) * 1_000_000_000))
+        # The one authoritative absolute capture-based service deadline.
+        deadline = float(capture_wall) + self.install_deadline_s
         queue_wait_ms = (time.perf_counter() - float(token["scheduled_perf"])) * 1000.0
         if not self.profile_activated:
             self.target_start_file.touch(exist_ok=False)
             self.profile_activated = True
         transform = self.ego.get_transform()
         location, rotation = transform.location, transform.rotation
-        front = self.live.submit(
-            frame_bgr=frame_bgr, radar_tensor=radar_tensor, frame_id=frame_id,
-            capture_timestamp_ns=int(round(float(capture_wall) * 1_000_000_000)),
-            ego_pose=(float(location.x), float(location.y), float(location.z),
-                      float(rotation.pitch), float(rotation.yaw), float(rotation.roll)),
-            stream_id=self.stream_id, carla_timestamp=float(radar_measurement.timestamp),
-            capture_id=capture_id, action_id=action_id,
+        # Freeze the scene at exactly this synchronized frame so evaluation can
+        # run off the real-time path and still use the correct scene state.
+        scene = None
+        if self.scene_source is not None:
+            try:
+                scene = self.scene_source.capture(self.world.get_snapshot())
+            except Exception as exc:
+                self.evaluation_errors[frame_id] = (
+                    f"SCENE_SNAPSHOT_FAILED:{type(exc).__name__}:{exc}"
+                )
+        # Register the capture only once the UE has committed to sending it, so
+        # a frame refused as stale never creates a terminal feedback obligation.
+        self.feedback.register_capture(
+            stream_id=self.stream_id, capture_id=capture_id, frame_id=frame_id,
+            capture_at=float(capture_wall), action_id=str(action_id),
+            service_deadline_at=deadline, ack_timeout_at=deadline,
         )
+        try:
+            front = self.live.submit(
+                frame_bgr=frame_bgr, radar_tensor=radar_tensor, frame_id=frame_id,
+                capture_timestamp_ns=capture_timestamp_ns,
+                ego_pose=(float(location.x), float(location.y), float(location.z),
+                          float(rotation.pitch), float(rotation.yaw), float(rotation.roll)),
+                stream_id=self.stream_id, carla_timestamp=float(radar_measurement.timestamp),
+                capture_id=capture_id, action_id=action_id,
+            )
+        except BaseException:
+            self.feedback.discard_capture(capture_id)
+            raise
+        velocity = self.ego.get_velocity()
+        ego_speed = math.sqrt(float(velocity.x) ** 2 + float(velocity.y) ** 2 + float(velocity.z) ** 2)
+        activity = self._radar_activity(window_meta, radar_summary)
+        common = {
+            **token, "capture_id": capture_id,
+            "carla_timestamp": float(radar_measurement.timestamp),
+            "action_id": action_id, "capture_wall_s": float(capture_wall),
+            "service_deadline_at": deadline, "queue_wait_ms": queue_wait_ms,
+            "window_sweeps": "|".join(str(v) for v in window_meta["sweep_indices"]),
+            "window_callbacks": window_meta["callbacks"],
+            "window_returns": window_meta["returns"],
+            "window_span_s": window_meta["window_span_s"],
+            "ego_speed_mps": ego_speed, **activity,
+        }
+        if not front.get("sent", False):
+            # Expired between preparation and transmission: the radio never
+            # carried it and it owns no terminal feedback obligation.
+            self.feedback.discard_capture(capture_id)
+            self.dropped += 1
+            self.transport_counters.bump("stale_before_send")
+            self._append_row({
+                **common,
+                "prepare_status": str(front.get("prepare_status") or "STALE_BEFORE_SEND"),
+                "processing_late": 1,
+                "deadline_expiry_stage": str(front.get("stale_stage") or ""),
+                "deadline_expiry_age_ms": front.get("stale_age_ms", ""),
+            })
+            return
         self.sent += 1
         self.sent_frames.add(frame_id)
         try:
             self.segmentation_queue.put_nowait(frame_id)
         except queue.Full:
             self.segmentation_evidence_errors[frame_id] = "GT_EVALUATION_QUEUE_FULL"
-        velocity = self.ego.get_velocity()
-        ego_speed = math.sqrt(float(velocity.x) ** 2 + float(velocity.y) ** 2 + float(velocity.z) ** 2)
-        activity = self._radar_activity(window_meta, radar_summary)
-        self._append_row(
-            {
-                **token, "capture_id": capture_id, "carla_timestamp": float(radar_measurement.timestamp),
-                "action_id": action_id,
-                "capture_wall_s": float(capture_wall), "service_deadline_at": deadline,
-                "prepare_status": "SENT", "processing_late": int(time.time() > deadline),
-                "queue_wait_ms": queue_wait_ms, "front_ms": front.get("front_ms", ""),
-                "payload_bytes": front.get("payload_bytes", ""),
-                "payload_bytes_uncompressed": front.get("payload_bytes_uncompressed", ""),
-                "payload_chunks": front.get("payload_chunks", ""),
-                "window_sweeps": "|".join(str(v) for v in window_meta["sweep_indices"]),
-                "window_callbacks": window_meta["callbacks"], "window_returns": window_meta["returns"],
-                "window_span_s": window_meta["window_span_s"], "ego_speed_mps": ego_speed,
-                **activity,
-            }
-        )
-        # Evaluation-only GT is acquired after encode/send, so it cannot affect
-        # action handling, feature construction, transport, decoding, or install.
-        gt = self._ground_truth(
-            frame_id=frame_id, timestamp=float(radar_measurement.timestamp),
-            camera_matrix=camera_matrix, camera_inverse=camera_inverse,
-            radar_points=radar_points,
-        )
-        with self.gt_lock:
-            self.source_gt[frame_id] = gt
+        # Evaluation-only ground truth is handed to its own bounded queue with
+        # the frozen scene, so it can never consume the real-time period.
+        try:
+            self.evaluation_queue.put_nowait({
+                "frame_id": frame_id,
+                "timestamp": float(radar_measurement.timestamp),
+                "camera_matrix": camera_matrix,
+                "camera_inverse": camera_inverse,
+                "camera_location": self.camera.get_transform().location,
+                "radar_points": radar_points,
+                "scene": scene,
+            })
+            self.transport_counters.bump("evaluation_tickets_queued")
+        except queue.Full:
+            self.transport_counters.bump("evaluation_tickets_dropped_queue_full")
+            self.evaluation_errors[frame_id] = "OBJECT_GT_EVALUATION_QUEUE_FULL"
+        self._append_row({
+            **common,
+            "prepare_status": "SENT",
+            "processing_late": int(time.time() > deadline),
+            "front_ms": front.get("front_ms", ""),
+            "payload_bytes": front.get("payload_bytes", ""),
+            "payload_bytes_uncompressed": front.get("payload_bytes_uncompressed", ""),
+            "payload_chunks": front.get("payload_chunks", ""),
+        })
         if self.qualification_interframe_drain_s > 0.0:
             drain_deadline = time.monotonic() + self.qualification_interframe_drain_s
             while time.monotonic() < drain_deadline and not self.stop_event.is_set():
@@ -1143,6 +1396,373 @@ class PassiveSplitCollector:
                 if metric and metric.get("edge_result_received_ns") not in (None, ""):
                     break
                 time.sleep(0.02)
+
+    def _recovery_accounting(
+        self,
+        rows: Sequence[Mapping[str, Any]],
+        feedback_rows: Sequence[Mapping[str, Any]],
+    ) -> dict[str, Any]:
+        """Reconcile the Phase-15 real-time counters into one auditable block."""
+
+        ue = self.transport_counters.snapshot()
+        transport = dict(self.live_summary.get("transport_counters") or {})
+        if not transport:
+            transport = self.live.counters.snapshot()
+        edge = self._read_edge_counters()
+        status_counts: dict[str, int] = {}
+        for row in rows:
+            status = str(row.get("prepare_status") or "")
+            status_counts[status] = status_counts.get(status, 0) + 1
+        expiry_stages: dict[str, int] = {}
+        for row in rows:
+            stage = str(row.get("deadline_expiry_stage") or "")
+            if stage:
+                expiry_stages[stage] = expiry_stages.get(stage, 0) + 1
+        with self.gt_lock:
+            installed = dict(self.installed_at)
+            manifest = {int(key): dict(value) for key, value in self.evidence_manifest.items()}
+        aoi_ms: list[float] = []
+        for row in rows:
+            frame_id = int(row.get("frame_id") or -1)
+            capture_wall = row.get("capture_wall_s")
+            if frame_id in installed and capture_wall not in (None, ""):
+                aoi_ms.append(
+                    (float(installed[frame_id]) - float(capture_wall)) * 1000.0
+                )
+        aoi_ms.sort()
+
+        def quantile(values: list[float], fraction: float) -> float | None:
+            if not values:
+                return None
+            index = min(len(values) - 1, max(0, int(round(fraction * (len(values) - 1)))))
+            return float(values[index])
+
+        timely = [value for value in aoi_ms if value <= self.install_deadline_s * 1000.0]
+        edge_deadline_drops = {
+            key.replace("deadline_drop_", ""): int(value)
+            for key, value in {**edge.get("counters", {}), **transport}.items()
+            if key.startswith("deadline_drop_")
+        }
+        for key, value in ue.items():
+            if key.startswith("deadline_drop_"):
+                stage = key.replace("deadline_drop_", "")
+                edge_deadline_drops[stage] = edge_deadline_drops.get(stage, 0) + int(value)
+        return {
+            "install_deadline_s": self.install_deadline_s,
+            "install_deadline_is_single_authoritative_value": True,
+            "reported_only_tight_service_target_s": self.tight_service_target_s,
+            "dense_label_map_on_radio": False,
+            "prepare_status_counts": status_counts,
+            "deadline_expiry_stage_counts_ue_rows": expiry_stages,
+            "deadline_drops_by_stage": dict(sorted(edge_deadline_drops.items())),
+            "registered_deadline_stages": list(DEADLINE_STAGES),
+            "ue_counters": dict(sorted(ue.items())),
+            "ue_transport_counters": dict(sorted(transport.items())),
+            "edge_counters_file": edge,
+            "maps_installed": len(installed),
+            "install_aoi_ms_median": quantile(aoi_ms, 0.5),
+            "install_aoi_ms_p95": quantile(aoi_ms, 0.95),
+            "install_aoi_ms_max": (max(aoi_ms) if aoi_ms else None),
+            "timely_installations": len(timely),
+            "timely_installation_fraction": (
+                len(timely) / len(aoi_ms) if aoi_ms else None
+            ),
+            "install_aoi_monotonic_fraction": _monotonic_fraction(
+                [
+                    (float(row.get("capture_wall_s") or 0.0),
+                     (float(installed[int(row["frame_id"])]) - float(row["capture_wall_s"])) * 1000.0)
+                    for row in rows
+                    if int(row.get("frame_id") or -1) in installed
+                    and row.get("capture_wall_s") not in (None, "")
+                ]
+            ),
+            "evaluation_masks_manifest_records": len(manifest),
+            "evaluation_masks_hash_verified": sum(
+                1 for value in manifest.values() if value.get("hash_verified")
+            ),
+            "evaluation_masks_hash_mismatched": sum(
+                1 for value in manifest.values() if not value.get("hash_verified")
+            ),
+            "terminal_feedback_rows": sum(
+                1 for row in feedback_rows
+                if str(row.get("terminal", "")).lower() in {"1", "true"}
+            ),
+            "late_feedback_rows": sum(
+                1 for row in feedback_rows
+                if str(row.get("late", "")).lower() in {"1", "true"}
+            ),
+            "late_nonterminal_feedback_rows": sum(
+                1 for row in feedback_rows
+                if str(row.get("late", "")).lower() in {"1", "true"}
+                and str(row.get("terminal", "")).lower() not in {"1", "true"}
+            ),
+            "duplicate_result_messages": int(transport.get("duplicate_result_messages", 0)),
+            "counter_reconciliation": self._reconcile_counters(
+                rows, ue, transport, edge, len(installed)
+            ),
+        }
+
+    def _reconcile_counters(
+        self,
+        rows: Sequence[Mapping[str, Any]],
+        ue: Mapping[str, int],
+        transport: Mapping[str, int],
+        edge: Mapping[str, Any],
+        installed: int,
+    ) -> dict[str, Any]:
+        """State each funnel identity and whether the counters satisfy it."""
+
+        edge_counts = dict(edge.get("counters", {})) if edge.get("available") else {}
+        sent_rows = sum(1 for row in rows if str(row.get("prepare_status")) == "SENT")
+
+        def drops(prefix: str, source: Mapping[str, int]) -> int:
+            return sum(
+                int(value) for key, value in source.items()
+                if key.startswith(f"deadline_drop_{prefix}")
+            )
+
+        checks: dict[str, Any] = {
+            "ue_sent_rows_equal_transmitted_messages": {
+                "sent_rows": sent_rows,
+                "transmitted_messages": int(transport.get("feature_messages_transmitted", 0)),
+                "holds": sent_rows == int(transport.get("feature_messages_transmitted", 0)),
+            },
+            "installed_maps_never_exceed_published_results": {
+                "installed": installed,
+                "published": int(transport.get("results_published_to_map", 0)),
+                "holds": installed <= int(transport.get("results_published_to_map", 0)),
+            },
+            "published_results_never_exceed_reassembled_results": {
+                "published": int(transport.get("results_published_to_map", 0)),
+                "reassembled": int(transport.get("result_messages_reassembled", 0)),
+                "holds": int(transport.get("results_published_to_map", 0))
+                <= int(transport.get("result_messages_reassembled", 0)),
+            },
+        }
+        if edge_counts:
+            reassembled = int(edge_counts.get("feature_messages_reassembled", 0))
+            admitted = int(edge_counts.get("edge_queue_admissions", 0))
+            after_reassembly_drops = drops("EDGE_AFTER_REASSEMBLY", edge_counts)
+            rejected = sum(
+                int(edge_counts.get(name, 0))
+                for name in (
+                    "feature_envelope_rejected", "feature_action_outside_allowlist",
+                    "feature_missing_frame_context", "edge_admission_refused_not_freshest",
+                )
+            )
+            process_starts = int(edge_counts.get("edge_process_starts", 0))
+            tail_starts = int(edge_counts.get("tail_starts", 0))
+            tail_completions = int(edge_counts.get("tail_completions", 0))
+            transmitted = int(edge_counts.get("compact_results_transmitted", 0))
+            checks["edge_reassembled_equals_admitted_plus_dropped_plus_rejected"] = {
+                "reassembled": reassembled,
+                "admitted": admitted,
+                "after_reassembly_deadline_drops": after_reassembly_drops,
+                "rejected": rejected,
+                "holds": reassembled == admitted + after_reassembly_drops + rejected,
+            }
+            checks["edge_tail_completions_never_exceed_starts"] = {
+                "process_starts": process_starts,
+                "starts": tail_starts, "completions": tail_completions,
+                "pre_tail_deadline_refusals": drops("EDGE_BEFORE_TAIL", edge_counts),
+                "holds": tail_completions <= tail_starts <= process_starts,
+            }
+            checks["edge_results_transmitted_never_exceed_tail_completions"] = {
+                "transmitted": transmitted, "completions": tail_completions,
+                "holds": transmitted <= tail_completions,
+            }
+            checks["edge_masks_persisted_match_results_transmitted"] = {
+                "persisted": int(edge_counts.get("evaluation_masks_persisted", 0)),
+                "transmitted": transmitted,
+                "holds": int(edge_counts.get("evaluation_masks_persisted", 0)) <= transmitted,
+            }
+        checks["all_identities_hold"] = all(
+            bool(value.get("holds")) for value in checks.values()
+            if isinstance(value, dict) and "holds" in value
+        )
+        return checks
+
+    def _read_edge_counters(self) -> dict[str, Any]:
+        """Read the edge counters the edge persists outside the result path."""
+
+        path = self.edge_evidence_dir.parent / "edge_counters.json"
+        if not path.is_file():
+            return {"available": False, "reason": "edge counters file absent"}
+        try:
+            value = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            return {"available": False, "reason": f"{type(exc).__name__}: {exc}"}
+        value["available"] = True
+        return value
+
+    def _verify_evidence_hash(
+        self, frame_id: int, evidence_path: Path, predicted: np.ndarray
+    ) -> None:
+        """Verify one persisted label map against its edge-written sidecar."""
+
+        sidecar = evidence_path.with_suffix(".json")
+        if not sidecar.is_file():
+            self.transport_counters.bump("evaluation_masks_missing_sidecar")
+            self.segmentation_evidence_errors.setdefault(
+                int(frame_id), "SEGMENTATION_EVIDENCE_SIDECAR_MISSING"
+            )
+            return
+        try:
+            record = json.loads(sidecar.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            self.transport_counters.bump("evaluation_masks_unreadable_sidecar")
+            return
+        digest = hashlib.sha256(
+            np.ascontiguousarray(predicted).tobytes()
+        ).hexdigest()
+        expected = str(record.get("sha256") or "")
+        matches = (
+            digest == expected
+            and int(record.get("frame_id", -1)) == int(frame_id)
+            and str(record.get("stream_id") or "") == self.stream_id
+        )
+        with self.gt_lock:
+            self.evidence_manifest[int(frame_id)] = {
+                "evidence_name": evidence_path.name,
+                "sha256": digest,
+                "declared_sha256": expected,
+                "hash_verified": bool(matches),
+                "bytes": int(evidence_path.stat().st_size),
+                "shape": [int(value) for value in predicted.shape],
+                "dtype": str(predicted.dtype),
+                "action_id": record.get("action_id", ""),
+                "capture_timestamp_ns": record.get("capture_timestamp_ns", ""),
+            }
+        if matches:
+            self.transport_counters.bump("evaluation_masks_hash_verified")
+        else:
+            self.transport_counters.bump("evaluation_masks_hash_mismatched")
+            self.segmentation_evidence_errors.setdefault(
+                int(frame_id), "SEGMENTATION_EVIDENCE_HASH_MISMATCH"
+            )
+
+    def preserve_evidence(self, destination: Path) -> dict[str, Any]:
+        """Preserve required label maps under a registered per-cell quota.
+
+        The complete hash manifest is always retained. Raw arrays are preserved
+        for the frames evaluation actually requires -- the ACK-installed ones --
+        up to the registered byte quota, so one cell can never exhaust the host
+        filesystem while leaving the accounting incomplete.
+        """
+
+        destination = Path(destination)
+        destination.mkdir(parents=True, exist_ok=True)
+        with self.gt_lock:
+            manifest = {int(key): dict(value) for key, value in self.evidence_manifest.items()}
+            required = sorted(self.ack_installed_frames)
+        preserved = 0
+        preserved_bytes = 0
+        elided = 0
+        failed = 0
+        for frame_id in required:
+            record = manifest.get(int(frame_id))
+            if record is None:
+                continue
+            source = self.edge_evidence_dir / str(record["evidence_name"])
+            if not source.is_file():
+                continue
+            size = int(record.get("bytes", 0))
+            if preserved_bytes + size > PRESERVED_EVIDENCE_QUOTA_BYTES:
+                elided += 1
+                record["preserved"] = False
+                record["preservation_status"] = "ELIDED_BY_REGISTERED_QUOTA"
+                continue
+            try:
+                shutil.copy2(source, destination / source.name)
+                sidecar = source.with_suffix(".json")
+                if sidecar.is_file():
+                    shutil.copy2(sidecar, destination / sidecar.name)
+                preserved += 1
+                preserved_bytes += size
+                record["preserved"] = True
+                record["preservation_status"] = "PRESERVED"
+            except OSError as exc:
+                failed += 1
+                record["preserved"] = False
+                record["preservation_status"] = f"PRESERVATION_FAILED:{exc.__class__.__name__}"
+        write_json_create_only(
+            destination / "segmentation_evidence_manifest.json",
+            {
+                "schema": "scenesense.segmentation_evidence_manifest.v1",
+                "cell_id": str(self.cell["cell_id"]),
+                "action_id": int(self.cell["action_id"]),
+                "stream_id": self.stream_id,
+                "quota_bytes": PRESERVED_EVIDENCE_QUOTA_BYTES,
+                "required_frames": len(required),
+                "preserved_masks": preserved,
+                "preserved_bytes": preserved_bytes,
+                "quota_elided_masks": elided,
+                "preservation_failures": failed,
+                "hash_verified_masks": sum(
+                    1 for value in manifest.values() if value.get("hash_verified")
+                ),
+                "hash_mismatched_masks": sum(
+                    1 for value in manifest.values() if not value.get("hash_verified")
+                ),
+                "masks": [manifest[key] for key in sorted(manifest)],
+            },
+        )
+        return {
+            "required_frames": len(required),
+            "preserved_masks": preserved,
+            "preserved_bytes": preserved_bytes,
+            "quota_elided_masks": elided,
+            "preservation_failures": failed,
+            "manifest_records": len(manifest),
+            "hash_verified_masks": sum(
+                1 for value in manifest.values() if value.get("hash_verified")
+            ),
+            "hash_mismatched_masks": sum(
+                1 for value in manifest.values() if not value.get("hash_verified")
+            ),
+        }
+
+    def _evaluation_worker(self) -> None:
+        """Build evaluation-only object ground truth off the real-time path.
+
+        Each ticket carries the scene frozen at the synchronized CARLA frame the
+        features came from, so deferring this work does not change which scene
+        state the ground truth describes. Nothing here is ever fed back to the
+        front, edge, map, action or route controller.
+        """
+
+        while True:
+            try:
+                ticket = self.evaluation_queue.get(timeout=0.05)
+            except queue.Empty:
+                if self.stop_event.is_set() and self.evaluation_queue.empty():
+                    return
+                continue
+            if ticket is None:
+                self.evaluation_queue.task_done()
+                return
+            frame_id = int(ticket["frame_id"])
+            try:
+                if self.scene_source is not None:
+                    self.scene_source.refresh_static()
+                gt = self._ground_truth(
+                    frame_id=frame_id, timestamp=float(ticket["timestamp"]),
+                    camera_matrix=ticket["camera_matrix"],
+                    camera_inverse=ticket["camera_inverse"],
+                    radar_points=ticket["radar_points"],
+                    world=ticket.get("scene"),
+                    camera_location=ticket.get("camera_location"),
+                )
+                with self.gt_lock:
+                    self.source_gt[frame_id] = gt
+                self.transport_counters.bump("evaluation_tickets_completed")
+            except Exception as exc:
+                self.evaluation_errors[frame_id] = (
+                    f"OBJECT_GT_EVALUATION_FAILED:{type(exc).__name__}:{exc}"
+                )
+                self.transport_counters.bump("evaluation_tickets_failed")
+            finally:
+                self.evaluation_queue.task_done()
 
     def _segmentation_worker(self) -> None:
         pending: dict[int, tuple[np.ndarray, float]] = {}
@@ -1177,6 +1797,10 @@ class PassiveSplitCollector:
                 if evidence_path.is_file():
                     try:
                         predicted = np.load(evidence_path, allow_pickle=False)
+                        # The edge persisted this label map on its own mount and
+                        # bound it to a SHA-256 in a sidecar published first, so
+                        # the evidence is verified here rather than trusted.
+                        self._verify_evidence_hash(candidate, evidence_path, predicted)
                         quality = segmentation_quality_columns(predicted, gt_3class)
                         quality["prediction_vehicle_pixels"] = int(
                             np.count_nonzero(
@@ -1280,6 +1904,12 @@ class PassiveSplitCollector:
                 with self.gt_lock:
                     if status == "ACK_INSTALLED":
                         self.ack_installed_frames.add(frame_id)
+                        install_at = received.get("install_timestamp", "")
+                        if install_at not in (None, ""):
+                            # MAP_INSTALLED is the terminal service-success
+                            # event; a receipt ACK never reaches this branch.
+                            self.installed_at[frame_id] = float(install_at)
+                            self.transport_counters.bump("maps_installed")
                 if status != "ACK_INSTALLED":
                     continue
                 predictions = self._map_snapshot(frame_id)
@@ -1312,22 +1942,39 @@ class PassiveSplitCollector:
                     self.aligned_gt[frame_id] = aligned
 
     def finish(self) -> bool:
+        # The bounded slot holds at most one pending frame, so draining is
+        # bounded by one preparation period rather than by a queue depth.
         deadline = time.monotonic() + 10.0
-        while self.prepared_queue.unfinished_tasks and time.monotonic() < deadline:
+        while self.prepared_queue.depth() and time.monotonic() < deadline:
             time.sleep(0.1)
         ack_deadline = time.monotonic() + 2.0
         while self.feedback.pending and time.monotonic() < ack_deadline:
             time.sleep(0.1)
         self.feedback.record_expired(time.time() + self.ack_timeout_s + 1.0)
         self.stop_event.set()
-        try:
-            self.prepared_queue.put_nowait(None)
-        except queue.Full:
-            pass
+        for abandoned in self.prepared_queue.close():
+            self.dropped += 1
+            self.transport_counters.bump("preparation_abandoned_at_teardown")
+            self._append_row({
+                **abandoned,
+                "prepare_status": "DROPPED_PREPARATION_SLOT_CLOSED",
+                "processing_late": 1,
+            })
         with self.sensor_condition:
             self.sensor_condition.notify_all()
         self.worker.join(timeout=5.0)
         self.feedback_worker.join(timeout=3.0)
+        object_gt_deadline = time.monotonic() + 5.0
+        while (
+            self.evaluation_queue.unfinished_tasks
+            and time.monotonic() < object_gt_deadline
+        ):
+            time.sleep(0.05)
+        try:
+            self.evaluation_queue.put_nowait(None)
+        except queue.Full:
+            pass
+        self.evaluation_worker.join(timeout=5.0)
         evaluation_deadline = time.monotonic() + 5.0
         while self.segmentation_queue.unfinished_tasks and time.monotonic() < evaluation_deadline:
             time.sleep(0.05)
@@ -1357,6 +2004,7 @@ class PassiveSplitCollector:
             and not self.worker.is_alive()
             and not self.feedback_worker.is_alive()
             and not self.segmentation_worker.is_alive()
+            and not self.evaluation_worker.is_alive()
         )
         return self.cleanup_ok
 
@@ -1366,9 +2014,41 @@ class PassiveSplitCollector:
             writer = csv.DictWriter(handle, fieldnames=list(PER_FRAME_FIELDS))
             writer.writeheader()
             with self.rows_lock:
-                for row in sorted(self.rows, key=lambda item: (int(item.get("route_tick", 0)), str(item.get("prepare_status", "")))):
-                    metric = self.live.take_metric(int(row["frame_id"])) if row.get("prepare_status") == "SENT" else None
-                    writer.writerow({field: ({**row, **(metric or {})}).get(field, "") for field in PER_FRAME_FIELDS})
+                rows = sorted(
+                    self.rows,
+                    key=lambda item: (
+                        int(item.get("route_tick", 0)),
+                        str(item.get("prepare_status", "")),
+                    ),
+                )
+            with self.gt_lock:
+                installed = dict(self.installed_at)
+                evaluation_errors = dict(self.evaluation_errors)
+                object_gt = set(self.source_gt)
+            for row in rows:
+                frame_id = int(row["frame_id"])
+                metric = (
+                    self.live.take_metric(frame_id)
+                    if row.get("prepare_status") == "SENT"
+                    else None
+                )
+                merged: dict[str, Any] = {**row, **(metric or {})}
+                install_at = installed.get(frame_id)
+                if install_at is not None:
+                    # MAP_INSTALLED, measured from the original CARLA capture.
+                    merged["map_installed_at"] = install_at
+                    capture_wall = merged.get("capture_wall_s")
+                    if capture_wall not in (None, ""):
+                        merged["install_aoi_ms"] = (
+                            float(install_at) - float(capture_wall)
+                        ) * 1000.0
+                if row.get("prepare_status") == "SENT":
+                    merged["evaluation_gt_status"] = evaluation_errors.get(
+                        frame_id, "OK" if frame_id in object_gt else "PENDING"
+                    )
+                writer.writerow(
+                    {field: merged.get(field, "") for field in PER_FRAME_FIELDS}
+                )
 
     def write_perception(self) -> None:
         from pole_lraspp_multimodal_fusion.pole_lraspp_multimodal_fusion.object_targets import greedy_match_predictions
@@ -1659,6 +2339,7 @@ class PassiveSplitCollector:
 
         return {
             "status": "PASS" if not failures else "FAIL",
+            "realtime_recovery": self._recovery_accounting(rows, feedback_rows),
             "expected_prepared_hz": self.expected_prepared_hz,
             "route_ticks": int(self.route_ticks),
             "scheduled_frames": len(rows),
@@ -1885,12 +2566,13 @@ def run(args: argparse.Namespace) -> int:
         "edge_stopped": False,
     }
     started = time.time()
-    with (
-        tempfile.TemporaryDirectory(prefix="ue_288_cell_runtime_") as raw_tmp,
-        tempfile.TemporaryDirectory(prefix="ue_288_seg_eval_") as edge_evidence_raw,
-    ):
+    evidence_preservation: dict[str, Any] = {}
+    with tempfile.TemporaryDirectory(prefix="ue_288_cell_runtime_") as raw_tmp:
         temporary = Path(raw_tmp)
-        edge_evidence_dir = Path(edge_evidence_raw)
+        # The evaluation label map is written by the edge on its own per-cell
+        # mount, so the consumer reads the edge evidence leaf directly instead
+        # of a UE-side directory fed by the radio payload.
+        edge_evidence_dir = Path(temporary) / "unstarted_edge_evidence"
         try:
             map_process = start_map_process(
                 campaign, temporary_dir=temporary, action_id=str(cell["action_id"]),
@@ -1899,6 +2581,11 @@ def run(args: argparse.Namespace) -> int:
                 feedback_port=args.feedback_port,
             )
             edge_scratch = start_live_edge(campaign, cell, temporary)
+            edge_evidence_dir = edge_scratch / EDGE_EVIDENCE_LEAF
+            require(
+                edge_evidence_dir.is_dir(),
+                "edge evaluation-evidence mount leaf is missing",
+            )
             edge_startup = load_json(edge_scratch / "ready.json")
             edge_mounts = inspect_live_edge_mounts(edge_scratch)
             # The target runtime reads the campaign root, not the resolved-cell
@@ -1968,6 +2655,15 @@ def run(args: argparse.Namespace) -> int:
             cleanup["live_dispatch_stopped"] = bool(
                 collector is not None and collector.cleanup_ok
             )
+            if collector is not None and edge_scratch is not None:
+                try:
+                    evidence_preservation = collector.preserve_evidence(
+                        attempt_dir / PRESERVED_EVIDENCE_LEAF
+                    )
+                except Exception as exc:
+                    failures.append(
+                        f"segmentation evidence preservation: {type(exc).__name__}: {exc}"
+                    )
             cleanup["edge_stopped"] = stop_live_edge(edge_scratch)
             if not all(
                 bool(cleanup[name])
@@ -2012,6 +2708,7 @@ def run(args: argparse.Namespace) -> int:
         "live_dispatch": collector.live_summary if collector else {},
         "edge_startup": edge_startup,
         "edge_mounts": edge_mounts,
+        "segmentation_evidence_preservation": evidence_preservation,
         "cleanup": cleanup, "failures": failures,
         "started_at_unix_s": started, "finished_at_unix_s": time.time(),
     }
@@ -2110,7 +2807,7 @@ def contract_check(configs: Sequence[Path]) -> int:
         "exact_installed_frame_history": "PASS",
         "primary_match_distance_m": 3.0,
         "oriented_footprint_iou": "PASS",
-        "segmentation_evaluation_path": "EDGE_RESULT_OVER_SFD1_QUALIFIED_UDP",
+        "segmentation_evaluation_path": "EDGE_PERSISTED_EVIDENCE_MOUNT_HASH_VERIFIED",
         "selected_oai_radio_profile": "OAI_N78_100MHZ_273PRB_4D5U_V1",
         "real_launch_status": "QUALIFIED_CONTRACT_PENDING_GUARDED_LIVE_PREFLIGHT",
     }, indent=2, sort_keys=True))

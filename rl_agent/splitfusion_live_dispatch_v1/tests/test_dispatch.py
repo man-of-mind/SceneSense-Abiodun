@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import struct
 import tempfile
+import time
 import unittest
 from dataclasses import asdict
 from pathlib import Path
@@ -468,6 +469,68 @@ class PreloadedDispatchTest(unittest.TestCase):
         self.assertEqual((ue.counters.hot_path_model_load_operations, edge.counters.hot_path_model_load_operations), (0, 0))
         self.assertEqual((ue.counters.hot_path_model_construction_operations, edge.counters.hot_path_model_construction_operations), (0, 0))
         self.assertEqual(registry.startup_audit.catalog_reads, 1)
+
+    def test_latest_frame_and_deadline_keep_stale_work_out_of_the_tail(self):
+        """Phase-15 recovery: freshness and the deadline gate the tail.
+
+        The retry4 audit measured an implicit FIFO backlog whose depth in
+        frames grew as the payload shrank, and a 500 ms deadline that cancelled
+        nothing. A newer frame must displace an older pending one, and an
+        expired capture must never reach frozen-tail inference.
+        """
+
+        from rl_agent.splitfusion_live_dispatch_v1.live_pilot_runtime import (
+            EDGE_STAGE_BEFORE_TAIL,
+            DeadlineExpired,
+            LatestFramePendingSlot,
+            _DeadlineGuardedTail,
+            check_deadline,
+            deadline_at_s,
+        )
+
+        deadline_s = 0.5
+        slot = LatestFramePendingSlot()
+
+        # Latest-frame-first: at most one pending frame, newest wins, and the
+        # displaced frame is handed back so it can be recorded exactly.
+        admitted, displaced = slot.offer("stream-a", "frame-1", sequence=1)
+        self.assertTrue(admitted)
+        self.assertIsNone(displaced)
+        admitted, displaced = slot.offer("stream-a", "frame-2", sequence=2)
+        self.assertTrue(admitted)
+        self.assertEqual(displaced, "frame-1")
+        self.assertEqual(slot.depth(), 1)
+        # An out-of-order arrival never displaces fresher pending work.
+        admitted, displaced = slot.offer("stream-a", "frame-0", sequence=0)
+        self.assertFalse(admitted)
+        self.assertIsNone(displaced)
+        self.assertEqual(slot.take(timeout=0.1), ("stream-a", "frame-2"))
+        self.assertIsNone(slot.take(timeout=0.01))
+
+        # One authoritative absolute deadline, derived identically everywhere.
+        capture_ns = 1_000_000_000_000
+        self.assertAlmostEqual(
+            deadline_at_s(capture_ns, deadline_s), capture_ns / 1e9 + deadline_s
+        )
+
+        calls = []
+        guarded = _DeadlineGuardedTail(
+            lambda c2, metadata: calls.append(metadata.capture_timestamp_ns),
+            lambda stage, capture: check_deadline(stage, capture, deadline_s),
+        )
+        fresh = mock.Mock(capture_timestamp_ns=int(time.time() * 1e9))
+        guarded(object(), fresh)
+        self.assertEqual(len(calls), 1)
+
+        stale = mock.Mock(
+            capture_timestamp_ns=int((time.time() - 5.0) * 1e9)
+        )
+        with self.assertRaises(DeadlineExpired) as raised:
+            guarded(object(), stale)
+        self.assertEqual(raised.exception.stage, EDGE_STAGE_BEFORE_TAIL)
+        self.assertGreater(raised.exception.age_ms, deadline_s * 1000.0)
+        # The expired capture never reached frozen-tail inference.
+        self.assertEqual(len(calls), 1)
 
     def test_q0_bypasses_ranker_and_mismatches_stop_before_decode_or_tail(self):
         registry = SplitActionRegistry.from_runtime_binding(

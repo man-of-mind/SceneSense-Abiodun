@@ -4,22 +4,31 @@ The UE owns only the frozen front/ranker/encoders. The separately started
 ``oai-perception-rx`` service owns only the frozen tail/decoders. Both
 directions use the existing production ``!IHH`` fragmentation header; neither
 direction adds feature compression beyond the mandatory inner zstd level 1.
+
+Phase-15 real-time recovery (see
+``experiments/splitfusion_phase15_retry4_latency_audit_v1/20260906_root_cause_audit``):
+the dense 720x1280 evaluation label map no longer rides the radio return path.
+It is persisted atomically on the edge's own evidence mount and only compact
+object/service records plus a compact terminal ACK travel back to the UE. Both
+endpoints run a bounded latest-frame-first pending slot instead of an implicit
+FIFO backlog, and one authoritative capture-based service deadline is enforced
+at every stage so expired work never reaches a later expensive stage.
 """
 
 from __future__ import annotations
 
 import argparse
-import base64
 import hashlib
 import json
 import os
+import queue
 import socket
 import threading
 import time
 import zlib
-from collections import Counter
+from collections import Counter, OrderedDict
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Callable, Mapping
 
 import cv2
 import numpy as np
@@ -45,8 +54,50 @@ from .transport import ProductionSplitCodec
 from .ue_runtime import PreloadedSplitUERuntime
 
 
+EDGE_RESULT_SCHEMA = "splitfusion_edge_result.v2"
+OBJECT_MAP_UPDATE_SCHEMA = "splitfusion_object_map_update.v1"
+EDGE_TERMINAL_ACK_SCHEMA = "splitfusion_edge_terminal_ack.v1"
+EDGE_COUNTERS_SCHEMA = "splitfusion_edge_counters.v1"
+EVIDENCE_SIDECAR_SCHEMA = "splitfusion_segmentation_evidence.v1"
+
+# One authoritative absolute capture-based service deadline governs every
+# stage. Both endpoints derive the identical value from the frame's capture
+# timestamp, which already travels in the SFD1-v2 envelope, plus this single
+# configured offset. No stage carries an independent deadline value.
+INSTALL_DEADLINE_CONFIG_KEY = "ack_timeout_ms"
+
+UE_STAGE_AFTER_PREPARATION = "UE_AFTER_PREPARATION"
+UE_STAGE_BEFORE_SEND = "UE_BEFORE_SEND"
+UE_STAGE_BEFORE_MAP_PUBLICATION = "UE_BEFORE_MAP_PUBLICATION"
+EDGE_STAGE_AFTER_REASSEMBLY = "EDGE_AFTER_REASSEMBLY"
+EDGE_STAGE_BEFORE_DECODE = "EDGE_BEFORE_DECODE"
+EDGE_STAGE_BEFORE_TAIL = "EDGE_BEFORE_TAIL"
+EDGE_STAGE_BEFORE_PUBLICATION = "EDGE_BEFORE_PUBLICATION"
+DEADLINE_STAGES = (
+    UE_STAGE_AFTER_PREPARATION,
+    UE_STAGE_BEFORE_SEND,
+    EDGE_STAGE_AFTER_REASSEMBLY,
+    EDGE_STAGE_BEFORE_DECODE,
+    EDGE_STAGE_BEFORE_TAIL,
+    EDGE_STAGE_BEFORE_PUBLICATION,
+    UE_STAGE_BEFORE_MAP_PUBLICATION,
+)
+
+
 class LivePilotRuntimeError(RuntimeError):
     """The live dispatch, result identity, or map handoff was invalid."""
+
+
+class DeadlineExpired(RuntimeError):
+    """The authoritative capture-based service deadline expired at one stage."""
+
+    def __init__(self, stage: str, *, capture_timestamp_ns: int, age_ms: float) -> None:
+        super().__init__(
+            f"service deadline expired at {stage} (age {age_ms:.1f} ms)"
+        )
+        self.stage = str(stage)
+        self.capture_timestamp_ns = int(capture_timestamp_ns)
+        self.age_ms = float(age_ms)
 
 
 def _require(condition: bool, message: str) -> None:
@@ -54,12 +105,153 @@ def _require(condition: bool, message: str) -> None:
         raise LivePilotRuntimeError(message)
 
 
+def install_deadline_s(campaign: Mapping[str, Any]) -> float:
+    """Return the one authoritative capture-based service deadline offset."""
+
+    value = float(campaign["cell"][INSTALL_DEADLINE_CONFIG_KEY]) / 1000.0
+    _require(value > 0.0, "configured install deadline must be positive")
+    return value
+
+
+def deadline_at_s(capture_timestamp_ns: int, deadline_s: float) -> float:
+    """The absolute wall-clock instant this capture must be installed by."""
+
+    return int(capture_timestamp_ns) / 1_000_000_000.0 + float(deadline_s)
+
+
+def check_deadline(
+    stage: str, capture_timestamp_ns: int, deadline_s: float, *, now_s: float | None = None
+) -> float:
+    """Raise :class:`DeadlineExpired` when this capture can no longer be timely.
+
+    ``capture_timestamp_ns`` is the original CARLA capture instant on the one
+    physical host wall clock, so the same comparison is valid in the UE process
+    and inside the edge container.
+    """
+
+    observed = time.time() if now_s is None else float(now_s)
+    limit = deadline_at_s(capture_timestamp_ns, deadline_s)
+    age_ms = (observed - int(capture_timestamp_ns) / 1_000_000_000.0) * 1000.0
+    if observed > limit:
+        raise DeadlineExpired(
+            stage, capture_timestamp_ns=int(capture_timestamp_ns), age_ms=age_ms
+        )
+    return age_ms
+
+
+class _Counters:
+    """Thread-safe named counters reconciled into the cell evidence."""
+
+    def __init__(self) -> None:
+        self._counts: Counter[str] = Counter()
+        self._lock = threading.Lock()
+
+    def bump(self, name: str, amount: int = 1) -> None:
+        with self._lock:
+            self._counts[str(name)] += int(amount)
+
+    def set_max(self, name: str, value: int) -> None:
+        with self._lock:
+            if int(value) > self._counts[str(name)]:
+                self._counts[str(name)] = int(value)
+
+    def set_value(self, name: str, value: int) -> None:
+        with self._lock:
+            self._counts[str(name)] = int(value)
+
+    def snapshot(self) -> dict[str, int]:
+        with self._lock:
+            return dict(self._counts)
+
+
+class LatestFramePendingSlot:
+    """Bounded latest-frame-first pending work, at most one frame per stream.
+
+    This replaces the implicit FIFO backlog that the retry4 audit measured. A
+    newer complete opportunity replaces an older pending opportunity and the
+    replaced item is returned so the caller can record it with an exact reason.
+    A frame already handed to a worker is never interrupted.
+    """
+
+    def __init__(self, *, capacity_per_stream: int = 1) -> None:
+        if int(capacity_per_stream) != 1:
+            raise ValueError("exactly one pending frame per stream is supported")
+        self._pending: "OrderedDict[str, Any]" = OrderedDict()
+        self._condition = threading.Condition()
+        self._closed = False
+
+    def offer(
+        self, stream_id: str, item: Any, *, sequence: int
+    ) -> tuple[bool, Any | None]:
+        """Try to admit ``item``.
+
+        Returns ``(admitted, displaced)``. ``displaced`` is the older pending
+        item this admission replaced, if any, so the caller can record it with
+        an exact reason. When ``admitted`` is false the offered item itself was
+        refused, either because the slot is closed or because pending work is
+        already fresher; the caller owns recording that drop.
+        """
+
+        with self._condition:
+            if self._closed:
+                return False, None
+            previous = self._pending.get(str(stream_id))
+            if previous is not None and int(previous[0]) >= int(sequence):
+                # An out-of-order arrival must never displace fresher pending
+                # work; the stale arrival is itself the dropped opportunity.
+                return False, None
+            self._pending[str(stream_id)] = (int(sequence), item)
+            self._pending.move_to_end(str(stream_id))
+            self._condition.notify()
+            return True, (None if previous is None else previous[1])
+
+    def take(self, timeout: float) -> tuple[str, Any] | None:
+        deadline = time.monotonic() + float(timeout)
+        with self._condition:
+            while not self._pending:
+                if self._closed:
+                    return None
+                remaining = deadline - time.monotonic()
+                if remaining <= 0.0:
+                    return None
+                self._condition.wait(timeout=remaining)
+            stream_id, (_sequence, item) = self._pending.popitem(last=False)
+            return str(stream_id), item
+
+    def depth(self) -> int:
+        with self._condition:
+            return len(self._pending)
+
+    def close(self) -> list[Any]:
+        with self._condition:
+            self._closed = True
+            dropped = [item for _sequence, item in self._pending.values()]
+            self._pending.clear()
+            self._condition.notify_all()
+            return dropped
+
+
+def _atomic_write_bytes(path: Path, payload: bytes) -> None:
+    """Publish ``payload`` so no reader can ever observe a partial file."""
+
+    staging = path.with_suffix(path.suffix + ".tmp")
+    try:
+        with staging.open("wb") as handle:
+            handle.write(payload)
+            handle.flush()
+            os.fsync(handle.fileno())
+    except BaseException:
+        staging.unlink(missing_ok=True)
+        raise
+    os.replace(staging, path)
+
+
 def _write_decoded_evidence(evidence: Path, mask: np.ndarray) -> None:
     """Publish an evaluation-only mask so no reader can observe a partial file.
 
     The adapter's segmentation evaluator polls for this exact name and loads it
-    as soon as it exists, so the array is staged under a temporary name and
-    renamed into place.
+    as soon as it exists, so the array is staged under a temporary name, flushed
+    and fsynced, then renamed into place.
     """
 
     if evidence.exists():
@@ -68,10 +260,122 @@ def _write_decoded_evidence(evidence: Path, mask: np.ndarray) -> None:
     try:
         with staging.open("wb") as handle:
             np.save(handle, mask, allow_pickle=False)
+            handle.flush()
+            os.fsync(handle.fileno())
     except BaseException:
         staging.unlink(missing_ok=True)
         raise
     os.replace(staging, evidence)
+
+
+def segmentation_evidence_name(stream_id: str, frame_id: int) -> str:
+    """The exact evidence name the adapter's segmentation evaluator polls for."""
+
+    stream_digest = hashlib.sha256(str(stream_id).encode("utf-8")).hexdigest()[:16]
+    return f"{stream_digest}_{int(frame_id)}.npy"
+
+
+class EdgeEvaluationEvidenceWriter:
+    """Bounded, non-blocking edge-side sink for evaluation-only label maps.
+
+    The label map is evaluation evidence, not deployment feedback, so it is
+    persisted on the edge's own writable per-cell mount and never base64-encoded
+    into the radio return path. Writing runs on this dedicated thread so the
+    receive, tail and result-transmission paths never block on a ~900 KB write.
+    """
+
+    def __init__(self, output_dir: Path, counters: _Counters, *, depth: int = 8) -> None:
+        self.output_dir = Path(output_dir)
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+        self._counters = counters
+        self._queue: "queue.Queue[tuple[Path, np.ndarray, dict[str, Any]] | None]" = (
+            queue.Queue(maxsize=int(depth))
+        )
+        self._stop = threading.Event()
+        self._thread = threading.Thread(
+            target=self._run, name="edge-evaluation-evidence", daemon=True
+        )
+        self._thread.start()
+
+    def submit(self, mask: np.ndarray, sidecar: Mapping[str, Any]) -> str:
+        """Queue one mask; returns the recorded installation status."""
+
+        path = self.output_dir / str(sidecar["evidence_name"])
+        try:
+            self._queue.put_nowait((path, mask, dict(sidecar)))
+        except queue.Full:
+            self._counters.bump("evaluation_masks_dropped_writer_backpressure")
+            return "EVALUATION_EVIDENCE_WRITER_SATURATED"
+        self._counters.bump("evaluation_masks_submitted")
+        return "EVALUATION_EVIDENCE_WRITE_SUBMITTED"
+
+    def _run(self) -> None:
+        while True:
+            try:
+                item = self._queue.get(timeout=0.1)
+            except queue.Empty:
+                if self._stop.is_set():
+                    return
+                continue
+            if item is None:
+                return
+            path, mask, sidecar = item
+            try:
+                digest = hashlib.sha256(
+                    np.ascontiguousarray(mask).tobytes()
+                ).hexdigest()
+                verified = digest == str(sidecar.get("sha256") or "")
+                # The sidecar is published first: the consumer polls for the
+                # .npy name, so the binding metadata and digest must already be
+                # readable by the time that name appears.
+                _atomic_write_bytes(
+                    path.with_suffix(".json"),
+                    json.dumps(
+                        {**sidecar, "hash_verified": bool(verified)},
+                        sort_keys=True,
+                        separators=(",", ":"),
+                    ).encode("utf-8"),
+                )
+                _write_decoded_evidence(path, mask)
+                self._counters.bump("evaluation_masks_persisted")
+                if verified:
+                    self._counters.bump("evaluation_masks_hash_verified")
+                else:
+                    self._counters.bump("evaluation_masks_hash_mismatched")
+            except Exception:
+                self._counters.bump("evaluation_masks_write_failed")
+            finally:
+                self._queue.task_done()
+
+    def close(self, timeout: float = 5.0) -> None:
+        self._stop.set()
+        deadline = time.monotonic() + float(timeout)
+        while not self._queue.empty() and time.monotonic() < deadline:
+            time.sleep(0.02)
+        self._thread.join(timeout=1.0)
+
+
+class _DeadlineGuardedTail:
+    """Refuse frozen-tail inference for a capture that can no longer be timely.
+
+    ``edge_runtime`` and ``context_tail`` are SHA-256 pinned by the SFD1-v2
+    frame-context authority, so the pre-tail deadline gate is installed as this
+    callable wrapper around the unmodified frozen tail rather than as an edit to
+    either pinned module. The wrapped object is only ever asked for inference;
+    serialization and snapshot consumption still go to the real tail.
+    """
+
+    def __init__(
+        self,
+        tail: Callable[..., Any],
+        guard: Callable[[str, int], None],
+    ) -> None:
+        self._tail = tail
+        self._guard = guard
+
+    def __call__(self, c2: Any, metadata: Any) -> Any:
+        self._guard(EDGE_STAGE_BEFORE_TAIL, int(metadata.capture_timestamp_ns))
+        return self._tail(c2, metadata)
 
 
 def _load_json(path: Path) -> dict[str, Any]:
@@ -99,18 +403,8 @@ def _trace_ns(trace: Any) -> dict[str, int]:
     }
 
 
-class _Ledger:
-    def __init__(self) -> None:
-        self._counts: Counter[str] = Counter()
-        self._lock = threading.Lock()
-
-    def bump(self, name: str) -> None:
-        with self._lock:
-            self._counts[str(name)] += 1
-
-    def snapshot(self) -> dict[str, int]:
-        with self._lock:
-            return dict(self._counts)
+class _Ledger(_Counters):
+    """Frozen-module call ledger; identical accounting to :class:`_Counters`."""
 
 
 class _Front:
@@ -179,7 +473,11 @@ def _preload_ue(device: torch.device) -> tuple[PreloadedSplitUERuntime, _Ledger,
     return runtime, ledger, [model, ranker, *autoencoders.values()]
 
 
-def _preload_edge(device: torch.device) -> tuple[PreloadedSplitEdgeRuntime, ContextualFrozenP025TailAdapter, _Ledger, list[Any]]:
+def _preload_edge(
+    device: torch.device,
+    *,
+    deadline_guard: Callable[[str, int], None] | None = None,
+) -> tuple[PreloadedSplitEdgeRuntime, ContextualFrozenP025TailAdapter, _Ledger, list[Any]]:
     registry = SplitActionRegistry.from_runtime_binding()
     model, base, _binding = load_frozen_perception(device)
     phase11b.common.freeze(model)
@@ -204,8 +502,12 @@ def _preload_edge(device: torch.device) -> tuple[PreloadedSplitEdgeRuntime, Cont
         model=model, base=base, camera_registry=StaticCameraRegistry.audited(),
         device=device, ledger=ledger,
     )
+    # The deadline gate wraps only the inference call. Serialization and
+    # snapshot consumption still go to the unmodified frozen tail, so the
+    # scientific model path and its pinned identity are unchanged.
+    dispatch_tail = tail if deadline_guard is None else _DeadlineGuardedTail(tail, deadline_guard)
     runtime = PreloadedSplitEdgeRuntime(
-        registry, frozen_p025_tail=tail, ae_decoders=wrapped, tail_device=device,
+        registry, frozen_p025_tail=dispatch_tail, ae_decoders=wrapped, tail_device=device,
         codec=ProductionSplitCodec(), output_serializer=tail.serialize,
         prepare_modules=False, startup_model_load_operations=4,
         startup_model_construction_operations=4, camera_registry=StaticCameraRegistry.audited(),
@@ -277,8 +579,48 @@ class LivePilotCellRuntime:
         self.metrics: dict[int, dict[str, Any]] = {}
         self.errors: list[str] = []
         self.sent = self.completed = 0
+        # One authoritative capture-based service deadline, shared with the edge.
+        self.deadline_s = install_deadline_s(campaign)
+        self.counters = _Counters()
+        self._published_frames: set[int] = set()
+        self._stale_frames: dict[int, dict[str, Any]] = {}
         self.thread = threading.Thread(target=self._result_loop, name="splitfusion-sfd1-result", daemon=True)
         self.thread.start()
+
+    def _record_stale(
+        self,
+        expired: DeadlineExpired,
+        *,
+        frame_id: int,
+        capture_id: str,
+        stream_id: str,
+        profile: Any,
+    ) -> dict[str, Any]:
+        """Account a capture that expired before the UE would have sent it."""
+
+        self.counters.bump("stale_before_send")
+        self.counters.bump(f"deadline_drop_{expired.stage}")
+        record = {
+            "sent": False,
+            "stale_stage": expired.stage,
+            "stale_age_ms": expired.age_ms,
+            "prepare_status": "STALE_BEFORE_SEND",
+            "front_ms": "",
+            "payload_bytes": "",
+            "payload_bytes_uncompressed": "",
+            "payload_chunks": "",
+        }
+        with self.lock:
+            self._stale_frames[int(frame_id)] = {
+                "capture_id": str(capture_id),
+                "frame_id": int(frame_id),
+                "stream_id": str(stream_id),
+                "action_id": profile.action_id,
+                "profile_id": profile.profile_id,
+                "deadline_expiry_stage": expired.stage,
+                "deadline_expiry_age_ms": expired.age_ms,
+            }
+        return record
 
     def socket_buffer_report(self) -> dict[str, int]:
         return {"requested_bytes": int(self.campaign["runtime"]["socket_buffer_request_bytes"]),
@@ -294,6 +636,17 @@ class LivePilotCellRuntime:
         selected_action = self.profile.action_id if action_id is None else int(action_id)
         _require(selected_action in self.allowed_profiles, "action is outside the live allowlist")
         profile = self.allowed_profiles[selected_action]
+        # The capture is already stale before any encode work: do not spend the
+        # front/ranker/AE path or the radio on a frame that can never install.
+        try:
+            check_deadline(
+                UE_STAGE_AFTER_PREPARATION, capture_timestamp_ns, self.deadline_s
+            )
+        except DeadlineExpired as expired:
+            return self._record_stale(
+                expired, frame_id=frame_id, capture_id=capture_id,
+                stream_id=stream_id, profile=profile,
+            )
         started = time.perf_counter_ns()
         input_7ch = _prepare_live_input(frame_bgr, radar_tensor, self.device)
         context = build_frame_context_v1(
@@ -306,6 +659,15 @@ class LivePilotCellRuntime:
                                        capture_timestamp_ns=context.capture_timestamp_ns, frame_context=context)
         chunks = chunk_payload(prepared.wire_bytes, message_id=int(frame_id), chunk_bytes=self.chunk_bytes)
         sent_started = time.perf_counter_ns()
+        # Immediately before transmission: encode is done, but if the capture
+        # expired meanwhile the radio must not carry work that cannot install.
+        try:
+            check_deadline(UE_STAGE_BEFORE_SEND, capture_timestamp_ns, self.deadline_s)
+        except DeadlineExpired as expired:
+            return self._record_stale(
+                expired, frame_id=frame_id, capture_id=capture_id,
+                stream_id=stream_id, profile=profile,
+            )
         with self.lock:
             self.metrics[int(frame_id)] = {
                 "capture_id": str(capture_id), "frame_id": int(frame_id), "stream_id": str(stream_id),
@@ -321,69 +683,173 @@ class LivePilotCellRuntime:
             }
         for chunk in chunks:
             self.sender.sendto(chunk, self.remote)
+            self.counters.bump("feature_datagrams_transmitted")
         sent_finished = time.perf_counter_ns()
         with self.lock:
             self.metrics[int(frame_id)]["send_finished_ns"] = sent_finished
+            self.metrics[int(frame_id)]["service_deadline_at"] = deadline_at_s(
+                capture_timestamp_ns, self.deadline_s
+            )
             self.sent += 1
-        return {"front_ms": (sent_started - started) / 1e6, "payload_bytes": len(prepared.wire_bytes),
-                "payload_bytes_uncompressed": prepared.inner_payload_bytes, "payload_chunks": len(chunks)}
+        self.counters.bump("feature_messages_transmitted")
+        return {"sent": True, "front_ms": (sent_started - started) / 1e6,
+                "payload_bytes": len(prepared.wire_bytes),
+                "payload_bytes_uncompressed": prepared.inner_payload_bytes,
+                "payload_chunks": len(chunks)}
 
     def _result_loop(self) -> None:
+        """Ingest compact edge results; never block on a dense payload.
+
+        The result message no longer carries the 720x1280 label map, so this
+        loop performs only small-JSON work and returns to ``recvfrom``. The
+        evaluation label map is persisted by the edge on its own evidence mount
+        and is never required here to determine that the edge installed a map.
+        """
+
+        expired_seen = 0
         while not self.stop_event.is_set():
             try:
                 datagram, address = self.receiver.recvfrom(65535)
             except socket.timeout:
                 self.reassembler.expire(time.monotonic())
+                if self.reassembler.expired_messages != expired_seen:
+                    self.counters.bump(
+                        "result_incomplete_reassemblies_expired",
+                        self.reassembler.expired_messages - expired_seen,
+                    )
+                    expired_seen = self.reassembler.expired_messages
                 continue
             except OSError:
                 return
             received_ns = time.perf_counter_ns()
+            received_wall = time.time()
+            self.counters.bump("result_datagrams_received")
             try:
                 complete = self.reassembler.ingest(str(address), datagram, received_at_s=time.monotonic())
                 if complete is None:
                     continue
+                self.counters.bump("result_messages_reassembled")
                 value = json.loads(complete.payload.decode("utf-8"))
-                _require(value.get("schema") == "splitfusion_edge_result.v1", "edge result schema drift")
+                _require(value.get("schema") == EDGE_RESULT_SCHEMA, "edge result schema drift")
                 _require(int(value["frame_id"]) == complete.message_id, "result chunk/frame identity drift")
-                metric = self.metrics.get(int(value["frame_id"]))
+                frame_id = int(value["frame_id"])
+                metric = self.metrics.get(frame_id)
                 _require(metric is not None, "edge result has no transmitted UE frame")
                 _require(int(value["action_id"]) == int(metric["action_id"]), "edge action identity drift")
                 _require(str(value["profile_id"]) == str(metric["profile_id"]), "edge profile identity drift")
                 _require(str(value["stream_id"]) == str(metric["stream_id"]), "edge stream identity drift")
-                labels = np.frombuffer(base64.b64decode(value["semantic_labels_b64"], validate=True), dtype=np.uint8)
-                shape = tuple(int(x) for x in value["semantic_labels_shape"])
-                _require(shape == (720, 1280) and labels.size == 720 * 1280, "edge segmentation shape drift")
-                evidence = self.evidence_dir / f"{hashlib.sha256(str(value['stream_id']).encode()).hexdigest()[:16]}_{int(value['frame_id'])}.npy"
-                _write_decoded_evidence(evidence, labels.reshape(shape))
+                _require(
+                    "semantic_labels_b64" not in value,
+                    "dense evaluation label map must not ride the radio return path",
+                )
+                update = value["object_map_update"]
+                _require(
+                    update.get("schema") == OBJECT_MAP_UPDATE_SCHEMA
+                    and int(update["frame_id"]) == frame_id
+                    and str(update["stream_id"]) == str(metric["stream_id"]),
+                    "object map update schema/identity drift",
+                )
+                terminal = value["edge_terminal_ack"]
+                _require(
+                    terminal.get("schema") == EDGE_TERMINAL_ACK_SCHEMA
+                    and int(terminal["frame_id"]) == frame_id,
+                    "edge terminal ACK schema/identity drift",
+                )
+                with self.lock:
+                    duplicate = frame_id in self._published_frames
+                if duplicate:
+                    # A late or duplicate edge terminal must never reinstall an
+                    # obsolete map for a frame already published.
+                    self.counters.bump("duplicate_result_messages")
+                    continue
+                capture_timestamp_ns = int(value["capture_timestamp_ns"])
+                try:
+                    check_deadline(
+                        UE_STAGE_BEFORE_MAP_PUBLICATION,
+                        capture_timestamp_ns,
+                        self.deadline_s,
+                        now_s=received_wall,
+                    )
+                except DeadlineExpired as expired:
+                    # FEATURE_RECEIVED is diagnostic only; an expired capture is
+                    # never published, so it can never install an obsolete map.
+                    self.counters.bump(f"deadline_drop_{expired.stage}")
+                    self.counters.bump("results_expired_before_map_publication")
+                    with self.lock:
+                        metric.update(self._receipt_fields(
+                            value, complete, received_ns, received_wall, terminal
+                        ))
+                        metric["map_publication_status"] = "EXPIRED_BEFORE_PUBLICATION"
+                        metric["deadline_expiry_stage"] = expired.stage
+                        metric["deadline_expiry_age_ms"] = expired.age_ms
+                        self.completed += 1
+                    continue
                 published = {
                     "schema": "fusion_object_spatial_map.v1", "stream_id": value["stream_id"],
-                    "frame_id": int(value["frame_id"]), "capture_id": metric["capture_id"],
-                    "capture_timestamp": int(value["capture_timestamp_ns"]) / 1_000_000_000.0,
+                    "frame_id": frame_id, "capture_id": metric["capture_id"],
+                    "capture_timestamp": capture_timestamp_ns / 1_000_000_000.0,
                     "action_id": str(value["action_id"]), "carla_timestamp": metric["carla_timestamp"],
-                    "objects": value["records"], "segmentation": {"available": True},
+                    "objects": update["records"],
+                    # Segmentation remains part of the edge spatial-map install;
+                    # only its dense evaluation evidence left the radio payload.
+                    "segmentation": {
+                        "available": True,
+                        "evidence": dict(terminal.get("evidence") or {}),
+                        "installation_status": str(terminal.get("installation_status") or ""),
+                    },
                     "timing": {"t_edge_recv_perf": float(value["edge_received_ns"]) / 1e9,
                                "t_tail_done_perf": float(value["tail_finished_ns"]) / 1e9,
                                "t_map_publish_perf": time.perf_counter()},
                 }
                 self.map_socket.sendto(zlib.compress(json.dumps(published, allow_nan=False, separators=(",", ":")).encode("utf-8"), level=1), self.map_remote)
+                self.counters.bump("results_published_to_map")
                 with self.lock:
-                    metric.update({"edge_result_received_ns": received_ns, "edge_timing_ns": value["edge_timing_ns"],
-                                   "duplicate_datagrams": int(complete.duplicate_chunks), "decoded": True, "finite": bool(value["finite"]),
-                                   "decoder_identity": str(value["decoder_identity"]), "edge_result_datagrams": int(complete.chunk_count),
-                                   "feature_received_datagrams": int(value["feature_received_datagrams"]),
-                                   "feature_duplicate_datagrams": int(value["feature_duplicate_datagrams"]),
-                                   "reconstructed_device": str(value["reconstructed_device"]),
-                                   "frame_context_valid": bool(value["frame_context_valid"]),
-                                   "camera_pose_reconstruct_ns": int(value["camera_pose_reconstruct_ns"]),
-                                   "finite_output_tensor_count": int(value["finite_output_tensor_count"]),
-                                   "service_record_count": int(value["service_record_count"]),
-                                   "edge_call_ledger": dict(value["edge_call_ledger"]),
-                                   "edge_counters": dict(value["edge_counters"])})
+                    self._published_frames.add(frame_id)
+                    metric.update(self._receipt_fields(
+                        value, complete, received_ns, received_wall, terminal
+                    ))
+                    metric["map_publication_status"] = "PUBLISHED"
                     self.completed += 1
             except Exception as exc:
                 with self.lock:
                     self.errors.append(f"{type(exc).__name__}: {exc}")
                 return
+
+    @staticmethod
+    def _receipt_fields(
+        value: Mapping[str, Any],
+        complete: Any,
+        received_ns: int,
+        received_wall: float,
+        terminal: Mapping[str, Any],
+    ) -> dict[str, Any]:
+        """FEATURE_RECEIVED diagnostics plus the compact edge terminal ACK."""
+
+        return {
+            "edge_result_received_ns": received_ns,
+            "feature_received_at": received_wall,
+            "edge_timing_ns": value["edge_timing_ns"],
+            "duplicate_datagrams": int(complete.duplicate_chunks),
+            "decoded": True,
+            "finite": bool(value["finite"]),
+            "decoder_identity": str(value["decoder_identity"]),
+            "edge_result_datagrams": int(complete.chunk_count),
+            "feature_received_datagrams": int(value["feature_received_datagrams"]),
+            "feature_duplicate_datagrams": int(value["feature_duplicate_datagrams"]),
+            "reconstructed_device": str(value["reconstructed_device"]),
+            "frame_context_valid": bool(value["frame_context_valid"]),
+            "camera_pose_reconstruct_ns": int(value["camera_pose_reconstruct_ns"]),
+            "finite_output_tensor_count": int(value["finite_output_tensor_count"]),
+            "service_record_count": int(value["service_record_count"]),
+            "edge_call_ledger": dict(value["edge_call_ledger"]),
+            "edge_counters": dict(value["edge_counters"]),
+            "edge_receipt_wall_s": terminal.get("edge_receipt_wall_s", ""),
+            "edge_tail_complete_wall_s": terminal.get("tail_complete_wall_s", ""),
+            "edge_evidence_install_wall_s": terminal.get("evidence_install_wall_s", ""),
+            "edge_evidence_installation_status": str(terminal.get("installation_status") or ""),
+            "edge_evidence_sha256": str((terminal.get("evidence") or {}).get("sha256") or ""),
+            "edge_terminal_reason": str(terminal.get("terminal_reason") or ""),
+        }
 
     def take_metric(self, frame_id: int) -> dict[str, Any] | None:
         with self.lock:
@@ -399,13 +865,34 @@ class LivePilotCellRuntime:
                 item.close()
             except OSError:
                 pass
+        with self.lock:
+            stale = {int(key): dict(value) for key, value in self._stale_frames.items()}
+            published = len(self._published_frames)
         return {"sent": self.sent, "edge_completed": self.completed, "result_thread_alive": self.thread.is_alive(),
                 "errors": list(self.errors), "socket_buffers": buffers, "call_ledger": self._ledger.snapshot(),
-                "ue_counters": self.ue.counters.__dict__}
+                "ue_counters": self.ue.counters.__dict__,
+                "install_deadline_s": self.deadline_s,
+                "results_published_to_map": published,
+                "stale_before_send_frames": stale,
+                "transport_counters": self.counters.snapshot()}
+
+    def stale_frames(self) -> dict[int, dict[str, Any]]:
+        with self.lock:
+            return {int(key): dict(value) for key, value in self._stale_frames.items()}
 
 
 def run_edge_service(*, config_path: Path, action_id: int, allowed_action_ids: tuple[int, ...],
-                     ready_file: Path, edge_port: int, result_host: str, result_port: int) -> int:
+                     ready_file: Path, edge_port: int, result_host: str, result_port: int,
+                     evidence_dir: Path | None = None, run_id: str = "", cell_id: str = "") -> int:
+    """Serve one cell's frozen tail with a bounded, deadline-enforced pipeline.
+
+    The receive/reassembly path runs on its own thread and never blocks on tail
+    inference or result transmission. Admitted frames wait in an explicit
+    bounded latest-frame-first slot, so the kernel receive buffer can no longer
+    act as a hidden byte-bounded FIFO whose depth in frames grows as the payload
+    shrinks. Every stage re-checks the one authoritative capture-based deadline.
+    """
+
     campaign = _load_json(config_path)
     runtime = campaign["runtime"]
     _require(int(runtime["sfd1_protocol_version"]) == 2 and runtime["udp_fragment_header"] == "!IHH", "edge protocol binding drift")
@@ -418,7 +905,21 @@ def run_edge_service(*, config_path: Path, action_id: int, allowed_action_ids: t
     )
     profiles = {value: registry.resolve(value) for value in allowed_action_ids}
     _require(int(action_id) in profiles, "edge fixed action is outside its allowlist")
-    edge, tail, ledger, models = _preload_edge(device)
+    deadline_s = install_deadline_s(campaign)
+    counters = _Counters()
+
+    def guard(stage: str, capture_timestamp_ns: int) -> None:
+        check_deadline(stage, capture_timestamp_ns, deadline_s)
+        if stage == EDGE_STAGE_BEFORE_TAIL:
+            # Counted only once the gate has passed, so "tail starts" means
+            # inference actually began and the shortfall against process starts
+            # is exactly the pre-tail deadline refusals.
+            counters.bump("tail_starts")
+
+    edge, tail, ledger, models = _preload_edge(device, deadline_guard=guard)
+    evidence: EdgeEvaluationEvidenceWriter | None = None
+    if evidence_dir is not None:
+        evidence = EdgeEvaluationEvidenceWriter(Path(evidence_dir), counters)
     request = int(runtime["socket_buffer_request_bytes"])
     receiver = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     receiver.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, request)
@@ -427,6 +928,290 @@ def run_edge_service(*, config_path: Path, action_id: int, allowed_action_ids: t
     sender = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sender.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, request)
     reassembler = ChunkReassembler(timeout_s=2.0, max_chunks=4096)
+    pending = LatestFramePendingSlot()
+    stop_event = threading.Event()
+    failures: list[str] = []
+    counters_path = Path(ready_file).parent / "edge_counters.json"
+    chunk_bytes = int(runtime["udp_chunk_bytes"])
+
+    def publish_counters() -> None:
+        """Persist edge counters outside the result path.
+
+        The retry4 audit could not separate uplink loss from edge buffering
+        because every edge counter rode inside a returned result. These
+        counters are now durable on the edge's own mount regardless of whether
+        any result survives the downlink.
+        """
+
+        try:
+            _atomic_write_bytes(
+                counters_path,
+                json.dumps(
+                    {
+                        "schema": EDGE_COUNTERS_SCHEMA,
+                        "run_id": str(run_id),
+                        "cell_id": str(cell_id),
+                        "action_id": int(action_id),
+                        "install_deadline_s": deadline_s,
+                        "pending_depth": pending.depth(),
+                        "incomplete_reassemblies_expired": int(reassembler.expired_messages),
+                        "reassembly_pending_messages": len(reassembler.pending),
+                        "counters": counters.snapshot(),
+                        "edge_operation_counters": dict(edge.counters.__dict__),
+                        "call_ledger": ledger.snapshot(),
+                        "failures": failures[:8],
+                        "updated_at_unix_s": time.time(),
+                    },
+                    sort_keys=True,
+                    separators=(",", ":"),
+                ).encode("utf-8"),
+            )
+        except Exception:
+            counters.bump("edge_counter_publication_failed")
+
+    expired_seen = 0
+
+    def reconcile_expiries() -> None:
+        """Attribute incomplete feature reassemblies the audit could not see.
+
+        ``ChunkReassembler`` has no capacity cap, so a buffered partial message
+        is only ever released by its timeout: eviction and expiry are the same
+        event and are counted under both registered names.
+        """
+
+        nonlocal expired_seen
+        observed = int(reassembler.expired_messages)
+        if observed != expired_seen:
+            delta = observed - expired_seen
+            counters.bump("incomplete_reassemblies_expired", delta)
+            counters.bump("reassembly_buffer_evictions", delta)
+            expired_seen = observed
+
+    def receive_loop() -> None:
+        """Drain the socket and admit only fresh, complete feature messages."""
+
+        while not stop_event.is_set():
+            try:
+                datagram, address = receiver.recvfrom(65535)
+            except socket.timeout:
+                reassembler.expire(time.monotonic())
+                reconcile_expiries()
+                continue
+            except OSError:
+                return
+            counters.bump("feature_datagrams_received")
+            try:
+                complete = reassembler.ingest(
+                    str(address), datagram, received_at_s=time.monotonic()
+                )
+            except ValueError:
+                counters.bump("feature_datagrams_malformed")
+                continue
+            reconcile_expiries()
+            counters.set_max("reassembly_pending_high_water", len(reassembler.pending))
+            if complete is None:
+                continue
+            received_wall = time.time()
+            received_ns = time.perf_counter_ns()
+            counters.bump("feature_messages_reassembled")
+            counters.bump("feature_datagrams_duplicate", int(complete.duplicate_chunks))
+            try:
+                outer = unpack_envelope(complete.payload)
+            except Exception:
+                counters.bump("feature_envelope_rejected")
+                continue
+            if outer.action_id not in profiles:
+                counters.bump("feature_action_outside_allowlist")
+                continue
+            context = outer.frame_context
+            if context is None:
+                counters.bump("feature_missing_frame_context")
+                continue
+            try:
+                check_deadline(
+                    EDGE_STAGE_AFTER_REASSEMBLY,
+                    outer.capture_timestamp_ns,
+                    deadline_s,
+                    now_s=received_wall,
+                )
+            except DeadlineExpired as expired:
+                counters.bump(f"deadline_drop_{expired.stage}")
+                continue
+            item = {
+                "payload": complete.payload,
+                "action_id": int(outer.action_id),
+                "message_id": int(complete.message_id),
+                "capture_timestamp_ns": int(outer.capture_timestamp_ns),
+                "chunk_count": int(complete.chunk_count),
+                "duplicate_chunks": int(complete.duplicate_chunks),
+                "edge_received_ns": received_ns,
+                "edge_received_wall_s": received_wall,
+            }
+            admitted, displaced = pending.offer(
+                str(context.stream_id), item, sequence=int(outer.sequence_id)
+            )
+            if not admitted:
+                counters.bump("edge_admission_refused_not_freshest")
+                continue
+            counters.bump("edge_queue_admissions")
+            counters.set_max("edge_pending_depth_high_water", pending.depth())
+            if displaced is not None:
+                counters.bump("edge_pending_replacements")
+
+    def process_loop() -> None:
+        """Decode, run the frozen tail and return one compact result."""
+
+        while not stop_event.is_set():
+            taken = pending.take(timeout=0.1)
+            if taken is None:
+                continue
+            _stream_id, item = taken
+            capture_timestamp_ns = int(item["capture_timestamp_ns"])
+            try:
+                check_deadline(
+                    EDGE_STAGE_BEFORE_DECODE, capture_timestamp_ns, deadline_s
+                )
+            except DeadlineExpired as expired:
+                counters.bump(f"deadline_drop_{expired.stage}")
+                continue
+            counters.bump("edge_process_starts")
+            try:
+                result = edge.process(
+                    item["payload"], transmitted_action_id=int(item["action_id"])
+                )
+            except DeadlineExpired as expired:
+                # Refused before inference, so no tail snapshot was produced.
+                counters.bump(f"deadline_drop_{expired.stage}")
+                continue
+            except Exception as exc:
+                counters.bump("edge_processing_failed")
+                failures.append(f"{type(exc).__name__}: {exc}")
+                continue
+            tail_finished_ns = time.perf_counter_ns()
+            tail_finished_wall = time.time()
+            counters.bump("tail_completions")
+            # The frozen tail holds exactly one unconsumed snapshot and refuses
+            # the next frame until it is taken, so it is consumed first and
+            # unconditionally -- including when this result is then discarded.
+            try:
+                snapshot = tail.take_snapshot()
+            except Exception as exc:
+                counters.bump("edge_snapshot_failed")
+                failures.append(f"{type(exc).__name__}: {exc}")
+                continue
+            try:
+                _finite_tree(result.perception)
+            except Exception as exc:
+                counters.bump("edge_nonfinite_perception")
+                failures.append(f"{type(exc).__name__}: {exc}")
+                continue
+            context = result.metadata.frame_context
+            if context is None or context.frame_id != int(item["message_id"]):
+                counters.bump("edge_frame_identity_rejected")
+                failures.append("SFD1/chunk frame identity drift")
+                continue
+            profile = profiles[int(item["action_id"])]
+            try:
+                check_deadline(
+                    EDGE_STAGE_BEFORE_PUBLICATION, capture_timestamp_ns, deadline_s
+                )
+            except DeadlineExpired as expired:
+                counters.bump(f"deadline_drop_{expired.stage}")
+                continue
+            records = list(snapshot.records or ())
+            installation_status = "EVALUATION_EVIDENCE_NOT_CONFIGURED"
+            evidence_meta: dict[str, Any] = {}
+            evidence_install_wall = ""
+            if evidence is not None:
+                labels = (
+                    snapshot.semantic_labels.detach()
+                    .to(device="cpu", dtype=torch.uint8)
+                    .contiguous()
+                    .numpy()
+                )
+                digest = hashlib.sha256(labels.tobytes()).hexdigest()
+                evidence_meta = {
+                    "evidence_name": segmentation_evidence_name(
+                        context.stream_id, context.frame_id
+                    ),
+                    "schema": EVIDENCE_SIDECAR_SCHEMA,
+                    "run_id": str(run_id),
+                    "cell_id": str(cell_id),
+                    "action_id": int(profile.action_id),
+                    "profile_id": str(profile.profile_id),
+                    "stream_id": str(context.stream_id),
+                    "frame_id": int(context.frame_id),
+                    "capture_timestamp_ns": int(context.capture_timestamp_ns),
+                    "shape": [int(value) for value in labels.shape],
+                    "dtype": str(labels.dtype),
+                    "bytes": int(labels.nbytes),
+                    "sha256": digest,
+                }
+                installation_status = evidence.submit(labels, evidence_meta)
+                evidence_install_wall = time.time()
+            terminal_ack = {
+                "schema": EDGE_TERMINAL_ACK_SCHEMA,
+                "run_id": str(run_id),
+                "cell_id": str(cell_id),
+                "action_id": int(profile.action_id),
+                "stream_id": str(context.stream_id),
+                "frame_id": int(context.frame_id),
+                "capture_timestamp_ns": int(context.capture_timestamp_ns),
+                "capture_wall_s": int(context.capture_timestamp_ns) / 1_000_000_000.0,
+                "edge_receipt_wall_s": float(item["edge_received_wall_s"]),
+                "tail_complete_wall_s": tail_finished_wall,
+                "evidence_install_wall_s": evidence_install_wall,
+                "service_deadline_at": deadline_at_s(capture_timestamp_ns, deadline_s),
+                "installation_status": installation_status,
+                "evidence": evidence_meta,
+                "terminal_reason": "EDGE_SERVICE_COMPLETE",
+            }
+            value = {
+                "schema": EDGE_RESULT_SCHEMA,
+                "action_id": profile.action_id,
+                "profile_id": profile.profile_id,
+                "decoder_identity": profile.decoder_identity,
+                "stream_id": context.stream_id,
+                "frame_id": context.frame_id,
+                "capture_timestamp_ns": context.capture_timestamp_ns,
+                "finite": True,
+                "frame_context_valid": True,
+                "reconstructed_device": str(edge.tail_device),
+                "camera_pose_reconstruct_ns": int(snapshot.camera_pose_reconstruct_ns),
+                "finite_output_tensor_count": int(snapshot.output_tensor_count),
+                "service_record_count": len(records),
+                "feature_received_datagrams": int(item["chunk_count"]),
+                "feature_duplicate_datagrams": int(item["duplicate_chunks"]),
+                "edge_call_ledger": ledger.snapshot(),
+                "edge_counters": {**dict(edge.counters.__dict__), **counters.snapshot()},
+                "edge_received_ns": int(item["edge_received_ns"]),
+                "tail_finished_ns": tail_finished_ns,
+                "edge_timing_ns": _trace_ns(result.timing),
+                # Compact world-frame object/track state, versioned separately
+                # from the terminal ACK so neither depends on the other.
+                "object_map_update": {
+                    "schema": OBJECT_MAP_UPDATE_SCHEMA,
+                    "stream_id": str(context.stream_id),
+                    "frame_id": int(context.frame_id),
+                    "capture_timestamp_ns": int(context.capture_timestamp_ns),
+                    "action_id": int(profile.action_id),
+                    "records": records,
+                },
+                "edge_terminal_ack": terminal_ack,
+            }
+            payload = json.dumps(value, allow_nan=False, separators=(",", ":")).encode("utf-8")
+            chunks = chunk_payload(
+                payload, message_id=context.frame_id, chunk_bytes=chunk_bytes
+            )
+            for chunk in chunks:
+                sender.sendto(chunk, (str(result_host), int(result_port)))
+                counters.bump("result_datagrams_transmitted")
+            counters.bump("compact_results_transmitted")
+            counters.bump("result_bytes_transmitted", len(payload))
+            counters.set_max("result_datagrams_per_message_high_water", len(chunks))
+            # Counters are published by the supervising loop's heartbeat, not
+            # here: an fsync per frame would sit on the processing path.
+
     ready_file.parent.mkdir(parents=True, exist_ok=True)
     with ready_file.open("x", encoding="utf-8") as handle:
         json.dump({"schema": "splitfusion_live_edge_ready.v1", "action_id": int(action_id),
@@ -434,47 +1219,32 @@ def run_edge_service(*, config_path: Path, action_id: int, allowed_action_ids: t
                    "profiles": {str(key): value.profile_id for key, value in profiles.items()},
                    "tail_device": str(edge.tail_device),
                    "state_root": str(ready_file.parent), "state_root_writable": True,
+                   "install_deadline_s": deadline_s,
+                   "dense_label_map_on_radio": False,
+                   "edge_result_schema": EDGE_RESULT_SCHEMA,
+                   "evaluation_evidence_dir": str(evidence_dir) if evidence_dir else "",
                    "edge_receive_reported_bytes": receiver.getsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF),
                    "edge_send_reported_bytes": sender.getsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF)}, handle, sort_keys=True)
+    publish_counters()
+    receiver_thread = threading.Thread(target=receive_loop, name="edge-feature-receive", daemon=True)
+    processor_thread = threading.Thread(target=process_loop, name="edge-tail-process", daemon=True)
+    receiver_thread.start()
+    processor_thread.start()
     try:
-        while True:
-            try:
-                datagram, address = receiver.recvfrom(65535)
-            except socket.timeout:
-                reassembler.expire(time.monotonic())
-                continue
-            complete = reassembler.ingest(str(address), datagram, received_at_s=time.monotonic())
-            if complete is None:
-                continue
-            edge_received_ns = time.perf_counter_ns()
-            outer = unpack_envelope(complete.payload)
-            _require(outer.action_id in profiles, "received action is outside the edge allowlist")
-            profile = profiles[outer.action_id]
-            result = edge.process(complete.payload, transmitted_action_id=outer.action_id)
-            _finite_tree(result.perception)
-            snapshot = tail.take_snapshot()
-            context = result.metadata.frame_context
-            _require(context is not None and context.frame_id == complete.message_id, "SFD1/chunk frame identity drift")
-            labels = snapshot.semantic_labels.detach().to(device="cpu", dtype=torch.uint8).contiguous().numpy()
-            value = {"schema": "splitfusion_edge_result.v1", "action_id": profile.action_id,
-                     "profile_id": profile.profile_id, "decoder_identity": profile.decoder_identity,
-                     "stream_id": context.stream_id, "frame_id": context.frame_id,
-                     "capture_timestamp_ns": context.capture_timestamp_ns, "finite": True,
-                     "frame_context_valid": True, "reconstructed_device": str(edge.tail_device),
-                     "camera_pose_reconstruct_ns": int(snapshot.camera_pose_reconstruct_ns),
-                     "finite_output_tensor_count": int(snapshot.output_tensor_count),
-                     "service_record_count": len(snapshot.records or ()),
-                     "feature_received_datagrams": int(complete.chunk_count),
-                     "feature_duplicate_datagrams": int(complete.duplicate_chunks),
-                     "edge_call_ledger": ledger.snapshot(), "edge_counters": edge.counters.__dict__,
-                     "edge_received_ns": edge_received_ns, "tail_finished_ns": time.perf_counter_ns(),
-                     "edge_timing_ns": _trace_ns(result.timing), "records": list(snapshot.records or ()),
-                     "semantic_labels_shape": list(labels.shape),
-                     "semantic_labels_b64": base64.b64encode(labels.tobytes()).decode("ascii")}
-            payload = json.dumps(value, allow_nan=False, separators=(",", ":")).encode("utf-8")
-            for chunk in chunk_payload(payload, message_id=context.frame_id, chunk_bytes=int(runtime["udp_chunk_bytes"])):
-                sender.sendto(chunk, (str(result_host), int(result_port)))
+        while receiver_thread.is_alive() and processor_thread.is_alive():
+            time.sleep(1.0)
+            publish_counters()
+        return 1
     finally:
+        stop_event.set()
+        for dropped in pending.close():
+            counters.bump("edge_pending_dropped_at_shutdown")
+            del dropped
+        receiver_thread.join(timeout=2.0)
+        processor_thread.join(timeout=5.0)
+        if evidence is not None:
+            evidence.close()
+        publish_counters()
         receiver.close()
         sender.close()
         del models, ledger
@@ -490,6 +1260,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--edge-port", type=int, default=51002)
     parser.add_argument("--result-host", default="10.0.0.2")
     parser.add_argument("--result-port", type=int, default=51004)
+    parser.add_argument("--edge-segmentation-evidence-dir", type=Path, default=None)
+    parser.add_argument("--run-id", default="")
+    parser.add_argument("--cell-id", default="")
     args, _ignored = parser.parse_known_args(argv)
     _require(args.edge and args.config and args.action_id is not None and args.ready_file, "edge mode and all qualified bindings are required")
     allowed_action_ids = tuple(
@@ -499,7 +1272,9 @@ def main(argv: list[str] | None = None) -> int:
     return run_edge_service(config_path=args.config.resolve(strict=True), action_id=int(args.action_id),
                             allowed_action_ids=allowed_action_ids,
                             ready_file=args.ready_file, edge_port=int(args.edge_port),
-                            result_host=str(args.result_host), result_port=int(args.result_port))
+                            result_host=str(args.result_host), result_port=int(args.result_port),
+                            evidence_dir=args.edge_segmentation_evidence_dir,
+                            run_id=str(args.run_id), cell_id=str(args.cell_id))
 
 
 if __name__ == "__main__":
