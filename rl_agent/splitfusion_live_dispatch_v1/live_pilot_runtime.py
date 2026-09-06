@@ -630,7 +630,16 @@ class LivePilotCellRuntime:
     def submit(self, *, frame_bgr: np.ndarray, radar_tensor: np.ndarray, frame_id: int,
                capture_timestamp_ns: int, ego_pose: tuple[float, float, float, float, float, float],
                stream_id: str, carla_timestamp: float, capture_id: str,
-               action_id: int | None = None) -> dict[str, Any]:
+               action_id: int | None = None,
+               on_commit: Callable[[], None] | None = None) -> dict[str, Any]:
+        """Prepare and transmit one capture, or refuse it as already stale.
+
+        ``on_commit`` runs exactly once, after the pre-transmission deadline
+        gate has passed and before the first datagram leaves. A capture refused
+        as stale therefore never reaches it, so the caller can register its
+        feedback obligation there and never has to retract one.
+        """
+
         _require(not self.errors, self.errors[0] if self.errors else "edge service failed")
         _require(self.thread.is_alive(), "result service exited")
         selected_action = self.profile.action_id if action_id is None else int(action_id)
@@ -668,6 +677,8 @@ class LivePilotCellRuntime:
                 expired, frame_id=frame_id, capture_id=capture_id,
                 stream_id=stream_id, profile=profile,
             )
+        if on_commit is not None:
+            on_commit()
         with self.lock:
             self.metrics[int(frame_id)] = {
                 "capture_id": str(capture_id), "frame_id": int(frame_id), "stream_id": str(stream_id),

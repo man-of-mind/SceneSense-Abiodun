@@ -1311,25 +1311,26 @@ class PassiveSplitCollector:
                 self.evaluation_errors[frame_id] = (
                     f"SCENE_SNAPSHOT_FAILED:{type(exc).__name__}:{exc}"
                 )
-        # Register the capture only once the UE has committed to sending it, so
-        # a frame refused as stale never creates a terminal feedback obligation.
-        self.feedback.register_capture(
-            stream_id=self.stream_id, capture_id=capture_id, frame_id=frame_id,
-            capture_at=float(capture_wall), action_id=str(action_id),
-            service_deadline_at=deadline, ack_timeout_at=deadline,
-        )
-        try:
-            front = self.live.submit(
-                frame_bgr=frame_bgr, radar_tensor=radar_tensor, frame_id=frame_id,
-                capture_timestamp_ns=capture_timestamp_ns,
-                ego_pose=(float(location.x), float(location.y), float(location.z),
-                          float(rotation.pitch), float(rotation.yaw), float(rotation.roll)),
-                stream_id=self.stream_id, carla_timestamp=float(radar_measurement.timestamp),
-                capture_id=capture_id, action_id=action_id,
+        # The capture's feedback obligation is created at the moment the UE
+        # commits to transmitting -- after the pre-send deadline gate and
+        # before the first datagram leaves. A frame refused as stale therefore
+        # never registers, so no registration is ever retracted, and an ACK can
+        # never arrive for an unregistered capture.
+        def register() -> None:
+            self.feedback.register_capture(
+                stream_id=self.stream_id, capture_id=capture_id, frame_id=frame_id,
+                capture_at=float(capture_wall), action_id=str(action_id),
+                service_deadline_at=deadline, ack_timeout_at=deadline,
             )
-        except BaseException:
-            self.feedback.discard_capture(capture_id)
-            raise
+
+        front = self.live.submit(
+            frame_bgr=frame_bgr, radar_tensor=radar_tensor, frame_id=frame_id,
+            capture_timestamp_ns=capture_timestamp_ns,
+            ego_pose=(float(location.x), float(location.y), float(location.z),
+                      float(rotation.pitch), float(rotation.yaw), float(rotation.roll)),
+            stream_id=self.stream_id, carla_timestamp=float(radar_measurement.timestamp),
+            capture_id=capture_id, action_id=action_id, on_commit=register,
+        )
         velocity = self.ego.get_velocity()
         ego_speed = math.sqrt(float(velocity.x) ** 2 + float(velocity.y) ** 2 + float(velocity.z) ** 2)
         activity = self._radar_activity(window_meta, radar_summary)
@@ -1346,8 +1347,7 @@ class PassiveSplitCollector:
         }
         if not front.get("sent", False):
             # Expired between preparation and transmission: the radio never
-            # carried it and it owns no terminal feedback obligation.
-            self.feedback.discard_capture(capture_id)
+            # carried it and it never registered a feedback obligation.
             self.dropped += 1
             self.transport_counters.bump("stale_before_send")
             self._append_row({

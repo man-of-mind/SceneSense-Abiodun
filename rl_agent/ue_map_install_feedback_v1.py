@@ -167,19 +167,6 @@ class InstallFeedbackLedger:
             self.pending.pop(capture_id, None)
         return message
 
-    def discard_capture(self, capture_id: str) -> bool:
-        """Drop a registration for a capture the UE never transmitted.
-
-        A frame refused as stale before transmission owns no terminal feedback
-        obligation, so it must leave no pending entry behind that a watchdog
-        would later report as a spurious ``TIMEOUT_NO_ACK``.
-        """
-
-        with self.lock:
-            if str(capture_id) in self.timed_out:
-                return False
-            return self.pending.pop(str(capture_id), None) is not None
-
     def record_reassembly_failure(self, *, capture_id: str, reason: str) -> None:
         """Record an identifiable edge reassembly terminal without inference."""
         with self.lock:
