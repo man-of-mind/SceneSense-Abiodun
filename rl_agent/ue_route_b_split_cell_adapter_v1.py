@@ -282,7 +282,10 @@ def validate_resolved_contract(
 
 def stop_tail() -> bool:
     completed = subprocess.run(
-        [str(ROOT / "scripts/receiver_container_down.sh")], cwd=str(ROOT), check=False,
+        [
+            "sudo", "-n", "docker", "compose", "-f", "docker-compose.yaml",
+            "-f", "docker-compose.fusion-back.yaml", "down", "--remove-orphans",
+        ], cwd=str(ROOT / "receiver_container"), check=False,
         stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
     )
     return completed.returncode == 0
@@ -357,6 +360,7 @@ def start_live_edge(
             "FUSION_BACK_REMOTE_HOST_1": str(runtime["ue_bind_host"]),
             "FUSION_BACK_DEVICE": "cuda",
             "SPLITFUSION_EDGE_STATE_ROOT": str(edge_scratch),
+            "SPLITFUSION_FCOS_WEIGHT_PATH": str(repo_path(str(campaign["deployment"]["fcos_constructor_weights"]["path"]))),
             "FUSION_BACK_SCRIPT": "-m rl_agent.splitfusion_live_dispatch_v1.live_pilot_runtime",
             "FUSION_REMOTE_PORT_1": str(runtime["edge_receive_port"]),
             "FUSION_REMOTE_SOURCE_PORT_1": str(runtime["edge_source_port"]),

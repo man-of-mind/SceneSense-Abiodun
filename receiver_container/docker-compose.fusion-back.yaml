@@ -16,6 +16,7 @@ services:
             - MPLBACKEND=Agg
         volumes:
             - ${SPLITFUSION_EDGE_STATE_ROOT:-../torch_cache}:/work/torch_cache:rw
+            - ${SPLITFUSION_FCOS_WEIGHT_PATH:?SPLITFUSION_FCOS_WEIGHT_PATH is required}:/home/shr_aisvcs/.cache/torch/hub/checkpoints/fcos_resnet50_fpn_coco-99b0c9b7.pth:ro
         gpus: all
         command:
             - /bin/bash

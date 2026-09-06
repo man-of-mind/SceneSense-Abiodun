@@ -864,7 +864,10 @@ def _stop_phase15_application(config: Mapping[str, Any]) -> dict[str, Any]:
     """Stop only application resources owned after a cold Phase-15 startup."""
 
     edge = subprocess.run(
-        [str(ROOT / "scripts/receiver_container_down.sh")], cwd=str(ROOT),
+        [
+            "sudo", "-n", "docker", "compose", "-f", "docker-compose.yaml",
+            "-f", "docker-compose.fusion-back.yaml", "down", "--remove-orphans",
+        ], cwd=str(ROOT / "receiver_container"),
         stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL, check=False,
     )
