@@ -288,7 +288,17 @@ def stop_tail() -> bool:
         ], cwd=str(ROOT / "receiver_container"), check=False,
         stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
     )
-    return completed.returncode == 0
+    deadline = time.monotonic() + 180.0
+    while True:
+        remaining = subprocess.run(
+            ("sudo", "-n", "docker", "inspect", "oai-perception-rx"),
+            cwd=str(ROOT), check=False, stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        )
+        if remaining.returncode != 0 or time.monotonic() >= deadline:
+            break
+        time.sleep(0.05)
+    return completed.returncode == 0 and remaining.returncode != 0
 
 
 def tail_running() -> bool:
@@ -720,6 +730,14 @@ class PassiveSplitCollector:
         feedback_port: int,
         edge_evidence_dir: Path,
     ) -> None:
+        from pole_lraspp_multimodal_fusion.pole_lraspp_multimodal_fusion import (
+            radar_fusion as nested_radar_fusion,
+        )
+
+        legacy_radar_name = "pole_lraspp_multimodal_fusion.radar_fusion"
+        existing_radar = sys.modules.get(legacy_radar_name)
+        require(existing_radar in (None, nested_radar_fusion), "radar-fusion module identity drift")
+        sys.modules.setdefault(legacy_radar_name, nested_radar_fusion)
         import carla_collect_parked_ego_fusion_training_data as parked
         from data_collection.radar_sweep_aggregator_v1 import RadarSweepAggregator
         from rl_agent.ue_map_install_feedback_v1 import InstallFeedbackLedger
