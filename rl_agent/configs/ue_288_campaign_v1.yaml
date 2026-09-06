@@ -206,6 +206,41 @@ cell:
     - footprint_iou
     - segmentation_iou
 
+deployment:
+  phase15_supervisor:
+    path: rl_agent/ue_288_campaign_supervisor.py
+    sha256: d973f936b987e463659066c575075f5d1ee96abfac42d16e3a7606387f3c9a9f
+  phase15_qualification_runner:
+    path: rl_agent/phase15_live_deployment_qualification_v1.py
+    sha256: ccb90d543b9e4e3f1cd5c9401f66dc1e9c3d63ba1def7d91b6cd74f7c489c64b
+  frozen_phase14_target_runtime:
+    path: rl_agent/ue_target_snr_cell_runtime_v1.py
+    sha256: 292352b13d72330d6ffcedfb4236480cda5fa80ab6d29059af1adbfb1d398203
+  perception_train_only_priors:
+    path: experiments/route_b_v3_1_splitfusion_fcos_r50_fpn_p2_p7_v1/20260829_214123/TRAIN_ONLY_PRIORS.json
+    sha256: 90ce336604ff83ccd7ea813ae4c12434b6f122b90a906e83d36742ff7f6700f0
+  fcos_constructor_weights:
+    path: experiments/splitfusion_phase15_runtime_cache_v1/torch/hub/checkpoints/fcos_resnet50_fpn_coco-99b0c9b7.pth
+    sha256: 99b0c9b7cfb1527d782db86b91d207f00547c792fb4103fc612b651d0a07b9e7
+  carla_lifecycle:
+    path: data_collection/run_route_b_collection_supervised_v1.py
+    sha256: eb27207eec33659465542f427abdced77a3bac5c25165d8ae51441269e462fe1
+  edge_image_dockerfile:
+    path: receiver_container/Dockerfile
+    sha256: d4b2aac6b3b081e04af1a25e7372c529ba7718c83ee9fe533d77306922b1c195
+  edge_image_entrypoint:
+    path: receiver_container/entrypoint.sh
+    sha256: 5a9367c35ff1674d5f517f6adc4bc20bf496c146c4301aa76be228285750efe2
+  edge_base_compose:
+    path: receiver_container/docker-compose.yaml
+    sha256: aa45477d63d40799a45115f6db5f07a1eb2440217f43b32173c8536f759c0857
+  edge_split_compose:
+    path: receiver_container/docker-compose.fusion-back.yaml
+    sha256: 6d00149c7d9a9502af1ea701e3494aed0a7bbf9dbb1412f0c2b1e1b7b0f9061a
+  edge_launcher:
+    path: scripts/receiver_container_fusion_back_up.sh
+    sha256: db6ea6387d590fdca94445288f183310181c5acbac7ec6b4adf8c337431eb246
+
 authorization:
   catalog_must_remain_hash_bound: true
   catalog_checkpoints_must_match_before_real_launch: true

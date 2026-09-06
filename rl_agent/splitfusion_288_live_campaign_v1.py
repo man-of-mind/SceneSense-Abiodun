@@ -48,6 +48,35 @@ def verify_record(name: str, record: Mapping[str, Any]) -> Path:
     return path
 
 
+def verify_campaign_deployment(config: Mapping[str, Any]) -> None:
+    """Validate the exact top-level map consumed by the live cell adapter."""
+
+    deployment = config.get("deployment")
+    require(isinstance(deployment, dict), "full campaign deployment bindings are missing")
+    required = {
+        "phase15_supervisor",
+        "phase15_qualification_runner",
+        "frozen_phase14_target_runtime",
+        "perception_train_only_priors",
+        "fcos_constructor_weights",
+        "carla_lifecycle",
+        "edge_image_dockerfile",
+        "edge_image_entrypoint",
+        "edge_base_compose",
+        "edge_split_compose",
+        "edge_launcher",
+    }
+    require(set(deployment) == required, "full campaign deployment inventory drift")
+    for name, record in deployment.items():
+        require(isinstance(record, dict), f"invalid campaign deployment binding: {name}")
+        verify_record(f"deployment.{name}", record)
+    weights = deployment["fcos_constructor_weights"]
+    require(
+        Path(str(weights["path"])).name == "fcos_resnet50_fpn_coco-99b0c9b7.pth",
+        "FCOS constructor-weight cache filename drift",
+    )
+
+
 def verify_binding(config_path: Path, binding_path: Path) -> tuple[dict[str, Any], dict[str, Any]]:
     binding = load_json(binding_path)
     require(binding.get("schema") == BINDING_SCHEMA, "288 campaign binding schema drift")
@@ -139,6 +168,7 @@ def validate(config_path: Path, binding_path: Path) -> dict[str, Any]:
     require(len({cell.network_profile_id for cell in cells}) == 4, "campaign does not contain four profiles")
     supervisor.verify_real_launch_readiness(config)
     supervisor.verify_resolved_models(config, supervisor.read_catalog(config))
+    verify_campaign_deployment(config)
     binding, preparation = verify_binding(config_path, binding_path)
     return {
         "status": "SPLITFUSION_288_CELL_LIVE_CAMPAIGN_OFFLINE_PREFLIGHT_PASS",

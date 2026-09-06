@@ -35,3 +35,18 @@ Offline reconciliation command:
 
 No OAI, RFsim, CARLA, CUDA, model inference or campaign cell is started by that
 command.
+
+## Amendment 001 — live-consumer deployment map
+
+The first authorized launch from `db2e16f` stopped before radio startup with
+`KeyError: 'deployment'`: the dependencies were hash-bound in the separate
+campaign binding but the full YAML omitted the top-level map consumed directly
+by `seed_cell_edge_state()`. No scientific transaction occurred and the failed
+create-only output is retained.
+
+The full YAML now carries the exact deployment inventory used by the completed
+pilot, including the pinned FCOS constructor-weight cache. The offline gate
+requires the complete inventory, verifies every file/hash, and explicitly
+checks the cache filename expected by the adapter. A missing or malformed
+deployment map therefore fails offline before any output, CARLA, radio or CUDA
+operation.
