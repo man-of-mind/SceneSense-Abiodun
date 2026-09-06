@@ -535,10 +535,18 @@ def start_target_snr(
     start_file: Path,
 ) -> tuple[subprocess.Popen[bytes], Path, Path]:
     runtime = repo_path(str(campaign["runtime"]["target_snr_runtime"]))
+    try:
+        runtime_module = ".".join(runtime.relative_to(ROOT).with_suffix("").parts)
+    except ValueError as exc:
+        raise AdapterError("target-SNR runtime is outside the repository") from exc
+    require(
+        runtime_module == "rl_agent.splitfusion_live_dispatch_v1.live_pilot_target_snr_runtime",
+        "target-SNR module identity drift",
+    )
     output = temporary_dir / "radio_trace.csv"
     stop_file = temporary_dir / "stop_target_snr"
     process = subprocess.Popen(
-        [sys.executable, str(runtime), "--campaign", str(campaign_path),
+        [sys.executable, "-m", runtime_module, "--campaign", str(campaign_path),
          "--profile-id", profile_id, "--output", str(output), "--stop-file", str(stop_file),
          "--start-file", str(start_file)],
         cwd=str(ROOT), stdin=subprocess.DEVNULL,
