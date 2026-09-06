@@ -89,7 +89,7 @@
     "phase14a_binding": "rl_agent/configs/splitfusion_phase14a_campaign_binding_v1.json",
     "phase14a_binding_sha256": "ec6e11b2ca781ad6346a1f20f2f1f63d8686c34c270694ea4ee58ac72c868447",
     "split_inference_runtime": "rl_agent/splitfusion_live_dispatch_v1/runtime_binding.json",
-    "split_inference_runtime_sha256": "d521b21bc630c2ffd9f7c03c21f27f096f011e8315b41b4d38f7fbebbab3ce51",
+    "split_inference_runtime_sha256": "604450c7f0f791a480ba4e5ed6b286a2b6f68497735372a7a63ed92e93585551",
     "required_route_b_split_cell_adapter": "rl_agent/ue_route_b_split_cell_adapter_v1.py",
     "required_route_b_split_cell_adapter_sha256": "f09c72ff6a3d47f42f08b54d57aa32d898c6314af6a99c4aecb9ffbf337d18bb",
     "map_install_runtime": "uplink_only_spatial_map_pipeline/spatial_map_server_moving_ego_uplink_only_baseline.py",
@@ -114,7 +114,13 @@
   },
   "provenance": {
     "phase12b_campaign_binding": {"path":"rl_agent/configs/splitfusion_72x4_campaign_binding_v1.json","sha256":"85418003558823f8dc4a35e110112a20fb5e19fb2962f3dfa9362c1b0cb1ec32"},
-    "phase13a_runtime_binding": {"path":"rl_agent/splitfusion_live_dispatch_v1/runtime_binding.json","sha256":"d521b21bc630c2ffd9f7c03c21f27f096f011e8315b41b4d38f7fbebbab3ce51"},
+    "phase13a_runtime_binding": {"path":"rl_agent/splitfusion_live_dispatch_v1/runtime_binding.json","sha256":"604450c7f0f791a480ba4e5ed6b286a2b6f68497735372a7a63ed92e93585551"},
+    "phase13c_runtime_binding_transition": {
+      "old_sha256": "d521b21bc630c2ffd9f7c03c21f27f096f011e8315b41b4d38f7fbebbab3ce51",
+      "new_sha256": "604450c7f0f791a480ba4e5ed6b286a2b6f68497735372a7a63ed92e93585551",
+      "authority_path": "rl_agent/splitfusion_live_dispatch_v1/frame_context_binding.json",
+      "authority_sha256": "e3ae7d23d26cc9e43938004823252f70b4ab56b3c03d28d51048e66061364a56"
+    },
     "phase14a_mapping_json": {"path":"experiments/splitfusion_phase14a_100mhz_calibration_v1/20260904_phase14a_live_calibration_retry3/mapping.json","sha256":"841ee69e53d7325570652a0f4baa7ae7f554a2204c4e775ce963a064cabd2677"},
     "phase14b_corrected": {
       "qualification": {"path":"experiments/splitfusion_phase14b_corrected_four_profile_replay_v1/20260905_corrected_four_profile_replay/qualification.json","sha256":"ad8b0c9c49209a6a2325cab58faf858019847b496b5ee793447a5be20d0b21a8"},

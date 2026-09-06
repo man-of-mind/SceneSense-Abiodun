@@ -185,17 +185,17 @@
     {
       "role": "runtime UE source",
       "path": "rl_agent/splitfusion_live_dispatch_v1/ue_runtime.py",
-      "sha256": "3c51a1055c7eab81a93d766b02d4e0e8f4a411978fbc9fc49d69c9e014f2eaba"
+      "sha256": "a72f6ab4b122adb232e4b5927fadd6e0e5381c1fe0201bbf502b28cf2ade1029"
     },
     {
       "role": "runtime edge source",
       "path": "rl_agent/splitfusion_live_dispatch_v1/edge_runtime.py",
-      "sha256": "6afb62c7da0b99afe98f749e8201b187399ba8aef02743a51c5c89c32ad62fff"
+      "sha256": "4b5f89eb49b11300cd6762e356a599affa32158479a76f1ad91a8c404d2d6125"
     },
     {
       "role": "runtime outer-envelope source",
       "path": "rl_agent/splitfusion_live_dispatch_v1/envelope.py",
-      "sha256": "387e307a0bd3db5905c16f6d80a1033d8ca6a054c4df059a1660c438daaa47a1"
+      "sha256": "e49a70e1f92097cd42735f2aea2cd1171a6e4be2a361ab6834e518bfb213b418"
     },
     {
       "role": "runtime timing source",
@@ -210,9 +210,33 @@
     {
       "role": "runtime package export source",
       "path": "rl_agent/splitfusion_live_dispatch_v1/__init__.py",
-      "sha256": "77c61fd5978f3c157ca6fe68a2df89976cd9b9f7f6d1e2f7cf36254125511e9c"
+      "sha256": "b94ce4fc2c1f9f4e3625213f72c3ae858ad678edeb15fe06f6f98db13972b347"
     }
   ],
+  "phase13c_source_hash_transition": {
+    "authority": {
+      "path": "rl_agent/splitfusion_live_dispatch_v1/frame_context_binding.json",
+      "sha256": "e3ae7d23d26cc9e43938004823252f70b4ab56b3c03d28d51048e66061364a56"
+    },
+    "transitions": {
+      "rl_agent/splitfusion_live_dispatch_v1/ue_runtime.py": {
+        "old_sha256": "3c51a1055c7eab81a93d766b02d4e0e8f4a411978fbc9fc49d69c9e014f2eaba",
+        "new_sha256": "a72f6ab4b122adb232e4b5927fadd6e0e5381c1fe0201bbf502b28cf2ade1029"
+      },
+      "rl_agent/splitfusion_live_dispatch_v1/edge_runtime.py": {
+        "old_sha256": "6afb62c7da0b99afe98f749e8201b187399ba8aef02743a51c5c89c32ad62fff",
+        "new_sha256": "4b5f89eb49b11300cd6762e356a599affa32158479a76f1ad91a8c404d2d6125"
+      },
+      "rl_agent/splitfusion_live_dispatch_v1/envelope.py": {
+        "old_sha256": "387e307a0bd3db5905c16f6d80a1033d8ca6a054c4df059a1660c438daaa47a1",
+        "new_sha256": "e49a70e1f92097cd42735f2aea2cd1171a6e4be2a361ab6834e518bfb213b418"
+      },
+      "rl_agent/splitfusion_live_dispatch_v1/__init__.py": {
+        "old_sha256": "77c61fd5978f3c157ca6fe68a2df89976cd9b9f7f6d1e2f7cf36254125511e9c",
+        "new_sha256": "b94ce4fc2c1f9f4e3625213f72c3ae858ad678edeb15fe06f6f98db13972b347"
+      }
+    }
+  },
   "dispatch_contract": {
     "actions": 72,
     "action_id_range": [0, 71],

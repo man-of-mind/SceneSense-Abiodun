@@ -177,6 +177,9 @@ def _objects(registry):
 
 class PreloadedDispatchTest(unittest.TestCase):
     def test_phase15_edge_state_is_fresh_cell_scoped_and_explicitly_mounted(self):
+        self.assertEqual(
+            len(SplitActionRegistry.from_runtime_binding().profiles), 72
+        )
         with tempfile.TemporaryDirectory() as raw_owner:
             owner = Path(raw_owner)
             state = create_cell_edge_state_root(owner)
