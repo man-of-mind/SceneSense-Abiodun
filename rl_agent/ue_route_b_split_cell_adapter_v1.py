@@ -738,6 +738,8 @@ class PassiveSplitCollector:
         self.stream_id = f"ue288_{cell['cell_id']}"
         qualification = campaign.get("_qualification")
         self.qualification_action_ids: tuple[int, ...] = ()
+        self.qualification_transmit_order: tuple[int, ...] = ()
+        self.qualification_interframe_drain_s = 0.0
         self.qualification_capture_limit: int | None = None
         if qualification is not None:
             require(isinstance(qualification, dict), "qualification contract is not a mapping")
@@ -747,10 +749,18 @@ class PassiveSplitCollector:
             self.qualification_capture_limit = int(
                 qualification.get("capture_limit", 0)
             )
+            self.qualification_transmit_order = tuple(
+                int(value) for value in qualification.get("transmit_order", ())
+            )
+            self.qualification_interframe_drain_s = float(
+                qualification.get("interframe_drain_s", 0.0)
+            )
             require(
                 self.qualification_action_ids == (0, 20, 46, 71)
+                and self.qualification_transmit_order == (71, 46, 20, 0)
+                and self.qualification_interframe_drain_s == 3.0
                 and self.qualification_capture_limit == 20,
-                "live qualification action/capture contract drift",
+                "live qualification action/order/drain/capture contract drift",
             )
         contract = campaign["measurement_contract"]
         self.match_distance_m = float(contract["match_distance_m"])
@@ -1067,8 +1077,8 @@ class PassiveSplitCollector:
         frame_bgr = carla_image_to_bgr(image)
         capture_id = f"{self.stream_id}:{frame_id}"
         action_id = (
-            self.qualification_action_ids[self.sent % len(self.qualification_action_ids)]
-            if self.qualification_action_ids
+            self.qualification_transmit_order[self.sent % len(self.qualification_transmit_order)]
+            if self.qualification_transmit_order
             else int(self.cell["action_id"])
         )
         deadline = float(capture_wall) + self.service_deadline_s
@@ -1126,6 +1136,13 @@ class PassiveSplitCollector:
         )
         with self.gt_lock:
             self.source_gt[frame_id] = gt
+        if self.qualification_interframe_drain_s > 0.0:
+            drain_deadline = time.monotonic() + self.qualification_interframe_drain_s
+            while time.monotonic() < drain_deadline and not self.stop_event.is_set():
+                metric = self.live.take_metric(frame_id)
+                if metric and metric.get("edge_result_received_ns") not in (None, ""):
+                    break
+                time.sleep(0.02)
 
     def _segmentation_worker(self) -> None:
         pending: dict[int, tuple[np.ndarray, float]] = {}
@@ -1641,6 +1658,8 @@ class PassiveSplitCollector:
             "ack_installed_frames": len(ack_frames),
             "action_capture_counts": dict(sorted(action_counts.items())),
             "ack_installed_actions": sorted(ack_actions),
+            "qualification_transmit_order": list(self.qualification_transmit_order),
+            "qualification_interframe_drain_s": self.qualification_interframe_drain_s,
             "qualification_actions_without_live_install": missing_ack_actions,
             "exact_frame_perception_records": len(ack_frames & exact_frames),
             "exact_frame_perception_coverage": exact_coverage,

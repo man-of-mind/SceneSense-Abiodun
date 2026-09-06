@@ -32,6 +32,8 @@ TOKEN = "SPLITFUSION_PHASE15_LIVE_DEPLOYMENT_QUALIFICATION"
 SCHEMA = "scenesense.splitfusion_phase15_live_deployment_qualification.v1"
 TERMINAL = "SPLITFUSION_PHASE15_LIVE_DEPLOYMENT_QUALIFIED"
 ACTIONS = (0, 20, 46, 71)
+QUALIFICATION_TRANSMIT_ORDER = (71, 46, 20, 0)
+QUALIFICATION_INTERFRAME_DRAIN_S = 3.0
 CAPTURES = 20
 FROZEN_PHASE14_TARGET_SHA256 = (
     "292352b13d72330d6ffcedfb4236480cda5fa80ab6d29059af1adbfb1d398203"
@@ -605,7 +607,7 @@ def evaluate_runtime(runtime_dir: Path, config: Mapping[str, Any]) -> dict[str, 
     action_counts = Counter(int(row["action_id"]) for row in sent)
     require(action_counts == Counter({value: 5 for value in ACTIONS}), f"action counts drift: {action_counts}")
     require(
-        [int(row["action_id"]) for row in sent] == list(ACTIONS) * 5,
+        [int(row["action_id"]) for row in sent] == list(QUALIFICATION_TRANSMIT_ORDER) * 5,
         "qualification action cycle order drift",
     )
     frame_ids = [int(row["frame_id"]) for row in sent]
@@ -773,7 +775,9 @@ def write_success(root: Path, inventory: Mapping[str, Any], result: Mapping[str,
     qualification = {
         "schema": SCHEMA, "status": TERMINAL,
         "captures": CAPTURES, "action_counts": dict(result["action_counts"]),
-        "action_order": list(ACTIONS), "captures_per_action": 5,
+        "allowed_action_ids": list(ACTIONS),
+        "action_order": list(QUALIFICATION_TRANSMIT_ORDER), "captures_per_action": 5,
+        "qualification_interframe_drain_s": QUALIFICATION_INTERFRAME_DRAIN_S,
         "network_profile": "FAVORABLE_STABLE", "network_start_sample": 0,
         "result": dict(result), "cold_cleanup_verified": True,
         "cleanup": dict(cleanup), "preflight_inventory_sha256": sha256_file(root / "preflight_inventory.json"),
@@ -844,6 +848,8 @@ def run_qualification(args: argparse.Namespace) -> int:
         qualification_config = json.loads(json.dumps(config))
         qualification_config["_qualification"] = {
             "action_ids": list(ACTIONS), "capture_limit": CAPTURES,
+            "transmit_order": list(QUALIFICATION_TRANSMIT_ORDER),
+            "interframe_drain_s": QUALIFICATION_INTERFRAME_DRAIN_S,
             "purpose": "infrastructure qualification only",
         }
         resolved = {
