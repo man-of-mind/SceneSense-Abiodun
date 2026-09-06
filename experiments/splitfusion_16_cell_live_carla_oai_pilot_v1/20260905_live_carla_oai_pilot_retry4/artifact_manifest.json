@@ -1,0 +1,30 @@
+{
+  "files": [
+    {
+      "bytes": 14147,
+      "path": "cell_summary.csv",
+      "sha256": "3e4f992fe9a0cb4baf68a0b02cfc1f74c889fd8e79c6aba47f932fab4e57ef6b"
+    },
+    {
+      "bytes": 39741,
+      "path": "qualification.json",
+      "sha256": "3c31d81c2bb9b18a93f4968daaaaa831d82e3a414f73e021acac0e51aff6c311"
+    },
+    {
+      "bytes": 1843,
+      "path": "REPORT.md",
+      "sha256": "d38cf1459d292f2dd142c19418d85805a221f36b049947d399e16a170dd51336"
+    },
+    {
+      "bytes": 1502,
+      "path": "pilot_manifest.json",
+      "sha256": "efd7925697ea4d70a9372e86bfe66a72645b140aeaa193fbf48c2fe775474e47"
+    },
+    {
+      "bytes": 5944,
+      "path": "campaign_ledger.json",
+      "sha256": "7699c7f1edf9631bf4687fa75f67584baf127dfcf81c62bf75a621424ed69303"
+    }
+  ],
+  "schema": "splitfusion_16_cell_live_carla_oai_pilot_artifacts.v1"
+}
