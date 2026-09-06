@@ -80,7 +80,7 @@
     "artifacts": {
       "runtime_binding": {
         "path": "rl_agent/splitfusion_live_dispatch_v1/runtime_binding.json",
-        "sha256": "d521b21bc630c2ffd9f7c03c21f27f096f011e8315b41b4d38f7fbebbab3ce51"
+        "sha256": "604450c7f0f791a480ba4e5ed6b286a2b6f68497735372a7a63ed92e93585551"
       },
       "registry": {
         "path": "rl_agent/splitfusion_live_dispatch_v1/registry.py",
@@ -102,6 +102,13 @@
         "path": "rl_agent/splitfusion_action_catalog_v1/splitfusion_72_action_catalog.json",
         "sha256": "07e0690f8a55bdd6068b8b283d14b7e165ccbf44742dd0a9568cfdd5dcac54c3"
       }
+    },
+    "runtime_binding_transition": {
+      "old_sha256": "d521b21bc630c2ffd9f7c03c21f27f096f011e8315b41b4d38f7fbebbab3ce51",
+      "new_sha256": "604450c7f0f791a480ba4e5ed6b286a2b6f68497735372a7a63ed92e93585551",
+      "authority_path": "rl_agent/splitfusion_live_dispatch_v1/frame_context_binding.json",
+      "authority_sha256": "e3ae7d23d26cc9e43938004823252f70b4ab56b3c03d28d51048e66061364a56",
+      "scope": "Phase-13C SFD1-v2 source reconciliation; no radio semantic change"
     }
   },
   "frame_context": {
