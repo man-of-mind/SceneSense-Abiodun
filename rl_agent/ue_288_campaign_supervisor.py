@@ -51,6 +51,10 @@ FAMILIES = ("noAE", "AE128", "AE64", "AE32")
 QUANTIZERS = ("UINT8", "UINT6", "UINT4")
 Q_E4 = (0, 3000, 5000, 7000, 9000, 9800)
 LIVE_PILOT_TOKEN = "SPLITFUSION_16_CELL_LIVE_CARLA_OAI_PILOT"
+# Registered campaign kinds that drive real CARLA/OAI hardware.  Both consume the
+# identical qualified fresh-radio lifecycle, so neither may be special-cased out of
+# the launcher, attachment or teardown path.
+LIVE_CAMPAIGN_KINDS = ("live_pilot_16", "full_288")
 PHASE15_QUALIFICATION_SCHEMA = "scenesense.splitfusion_phase15_live_deployment_qualification.v1"
 PHASE15_RECLASSIFIED_QUALIFICATION_SCHEMA = (
     "scenesense.splitfusion_phase15_live_deployment_reclassified_qualification.v1"
@@ -85,6 +89,12 @@ class Cell:
 def require(condition: bool, message: str) -> None:
     if not condition:
         raise CampaignError(message)
+
+
+def is_live_campaign(config: Mapping[str, Any]) -> bool:
+    """True for every registered kind that drives live CARLA/OAI hardware."""
+
+    return str(config.get("campaign_kind", "")) in LIVE_CAMPAIGN_KINDS
 
 
 def sha256_file(path: Path) -> str:
@@ -342,7 +352,7 @@ def verify_file_hashes(config: Mapping[str, Any]) -> None:
         sha256_file(split_runtime) == str(runtime["split_inference_runtime_sha256"]),
         "split inference runtime SHA-256 drift",
     )
-    if config.get("campaign_kind") == "live_pilot_16":
+    if is_live_campaign(config):
         bridge = repo_path(str(runtime["live_dispatch_bridge"]))
         require(
             bridge.is_file() and sha256_file(bridge) == str(runtime["live_dispatch_bridge_sha256"]),
@@ -1074,7 +1084,7 @@ def run_one_cell(
     cleanup: dict[str, Any] = {"shutdown_verified": False, "radio_shutdown_verified": False}
     started = time.time()
     try:
-        if config.get("campaign_kind") == "live_pilot_16":
+        if is_live_campaign(config):
             radio_namespace, radio_state, attached_radio = _start_live_radio(
                 config, cell, attempt, service_log_dir
             )

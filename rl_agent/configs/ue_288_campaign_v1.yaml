@@ -209,7 +209,7 @@ cell:
 deployment:
   phase15_supervisor:
     path: rl_agent/ue_288_campaign_supervisor.py
-    sha256: d973f936b987e463659066c575075f5d1ee96abfac42d16e3a7606387f3c9a9f
+    sha256: a7a232e543962863a8888dd1ddbafb3c7b81a8edbb5d459e20b4bf2c2d5fc5c8
   phase15_qualification_runner:
     path: rl_agent/phase15_live_deployment_qualification_v1.py
     sha256: ccb90d543b9e4e3f1cd5c9401f66dc1e9c3d63ba1def7d91b6cd74f7c489c64b
