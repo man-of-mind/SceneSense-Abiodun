@@ -52,6 +52,12 @@ QUANTIZERS = ("UINT8", "UINT6", "UINT4")
 Q_E4 = (0, 3000, 5000, 7000, 9000, 9800)
 LIVE_PILOT_TOKEN = "SPLITFUSION_16_CELL_LIVE_CARLA_OAI_PILOT"
 PHASE15_QUALIFICATION_SCHEMA = "scenesense.splitfusion_phase15_live_deployment_qualification.v1"
+PHASE15_RECLASSIFIED_QUALIFICATION_SCHEMA = (
+    "scenesense.splitfusion_phase15_live_deployment_reclassified_qualification.v1"
+)
+PHASE15_RECLASSIFIED_ARTIFACT_SCHEMA = (
+    "scenesense.splitfusion_phase15_live_deployment_reclassified_artifacts.v1"
+)
 PHASE15_QUALIFICATION_TERMINAL = "SPLITFUSION_PHASE15_LIVE_DEPLOYMENT_QUALIFIED"
 LIVE_PILOT_EXPECTED_DIRTY_PATHS = {
     "OAI/openairinterface5g",
@@ -1208,28 +1214,33 @@ def verify_phase15_qualification(path: Path) -> dict[str, Any]:
     for artifact in (qualification_path, manifest_path, report_path, terminal_path):
         require(artifact.is_file(), f"Phase-15 qualification artifact missing: {artifact}")
     qualification = load_json(qualification_path)
-    preflight_path = root / "preflight_inventory.json"
-    preflight = load_json(preflight_path)
-    require(
-        qualification.get("preflight_inventory_sha256") == sha256_file(preflight_path)
-        and preflight.get("status") == "PASS",
-        "Phase-15 qualification/preflight binding drift",
-    )
     manifest = load_json(manifest_path)
+    reclassified = (
+        qualification.get("schema") == PHASE15_RECLASSIFIED_QUALIFICATION_SCHEMA
+    )
+    expected_manifest_schema = (
+        PHASE15_RECLASSIFIED_ARTIFACT_SCHEMA
+        if reclassified
+        else "scenesense.splitfusion_phase15_live_deployment_artifacts.v1"
+    )
     require(
-        manifest.get("schema") == "scenesense.splitfusion_phase15_live_deployment_artifacts.v1",
+        manifest.get("schema") == expected_manifest_schema,
         "Phase-15 qualification artifact manifest schema drift",
     )
     manifest_files = manifest.get("files", ())
-    require(
-        isinstance(manifest_files, list)
-        and {str(item.get("path")) for item in manifest_files}
-        == {
+    expected_manifest_files = (
+        {"qualification.json", "REPORT.md"}
+        if reclassified
+        else {
             "preflight_inventory.json", "qualification.json", "REPORT.md",
             "runtime/RESULTS_SUMMARY.json", "runtime/manifest.json",
             "runtime/per_frame_metrics.csv", "runtime/map_feedback.csv",
             "runtime/radio_trace.csv",
-        },
+        }
+    )
+    require(
+        isinstance(manifest_files, list)
+        and {str(item.get("path")) for item in manifest_files} == expected_manifest_files,
         "Phase-15 qualification artifact inventory drift",
     )
     for item in manifest_files:
@@ -1245,8 +1256,22 @@ def verify_phase15_qualification(path: Path) -> dict[str, Any]:
             and sha256_file(artifact) == str(item.get("sha256", "")),
             f"Phase-15 qualification artifact drift: {item.get('path')}",
         )
+    if reclassified:
+        from rl_agent.phase15_retry12_offline_reclassification_v1 import verify_reclassification_for_pilot
+        preflight_path = verify_reclassification_for_pilot(root, qualification)
+    else:
+        preflight_path = root / "preflight_inventory.json"
+    preflight = load_json(preflight_path)
     require(
-        qualification.get("schema") == PHASE15_QUALIFICATION_SCHEMA
+        qualification.get("preflight_inventory_sha256") == sha256_file(preflight_path)
+        and preflight.get("status") == "PASS",
+        "Phase-15 qualification/preflight binding drift",
+    )
+    require(
+        qualification.get("schema") in {
+            PHASE15_QUALIFICATION_SCHEMA,
+            PHASE15_RECLASSIFIED_QUALIFICATION_SCHEMA,
+        }
         and qualification.get("status") == PHASE15_QUALIFICATION_TERMINAL
         and int(qualification.get("captures", -1)) == 20
         and qualification.get("action_counts") == {"0": 5, "20": 5, "46": 5, "71": 5}
@@ -1279,6 +1304,7 @@ def verify_phase15_qualification(path: Path) -> dict[str, Any]:
         "report_sha256": sha256_file(report_path),
         "terminal_sha256": sha256_file(terminal_path),
         "edge_image_id": image_value[0]["Id"],
+        "evidence_kind": "offline_reclassification" if reclassified else "live_qualification",
     }
 
 
