@@ -21,16 +21,16 @@ network:
     profile_config_sha256: fd604a37cfbc416412440dd447fe43cea9a94d3b65d69dd5e4e975de01a3dbf4
     profile_id: OAI_N78_100MHZ_273PRB_4D5U_V1
     selection_status: LOCKED
-    target_snr_mapping_status: PENDING_100MHZ_4D5U_REQUALIFICATION
+    target_snr_mapping_status: QUALIFIED_ON_OAI_N78_100MHZ_273PRB_4D5U_V1
   design_config: rl_agent/configs/network_profile_design_v2.json
   design_config_sha256: 056247e5731c1ae9ac281432034e1b79d1e6da24ab4a2d579a7fe2d85917e483
   traces_csv: rl_agent/experiments/network_profile_design_v2/20260822_route_b_v2/traces.csv
   traces_sha256: 32f1be66e976cba322803c128eefdeb81a8d31ed64bd253ff85ea1ab0583303d
   summary_csv: rl_agent/experiments/network_profile_design_v2/20260822_route_b_v2/profile_summary.csv
   summary_sha256: 75514d0d08b3a3a22159dd2abbcda77e42c9d34e24d920a04e5a18e776e70317
-  mapping_csv: rl_agent/experiments/oai_target_snr_replay_pilot_v1/20260822_live_01/target_to_rfsim_mapping.csv
-  mapping_sha256: 347a86570d1a1142c5c26c41bb3e6d894ec3f9253d6cda6cd3ac8e60d449c201
-  mapping_calibration_radio_profile_id: OAI_N78_40MHZ_106PRB_7D2U_LEGACY
+  mapping_csv: experiments/splitfusion_phase14a_100mhz_calibration_v1/20260904_phase14a_live_calibration_retry3/target_to_rfsim_mapping.csv
+  mapping_sha256: f1cc9c48bd5cd55d2de2421d07c23dd3deff2bca3497e3a5d5e87aaa11ec2a3d
+  mapping_calibration_radio_profile_id: OAI_N78_100MHZ_273PRB_4D5U_V1
   sample_period_ms: 100
   prefix_samples: 4200
   catch_up_policy: SKIP_OBSOLETE_NEVER_BURST
@@ -88,16 +88,37 @@ measurement_contract:
 
 runtime:
   carla_lifecycle_helper: data_collection/run_route_b_collection_supervised_v1.py
-  oai_registered_profile_launcher: uplink_only_spatial_map_pipeline/run_track1_oai_default106_ttracer_10fps_v2.sh
-  oai_registered_profile_launcher_sha256: __REQUIRED_SPLITFUSION_100MHZ_4D5U_LAUNCHER_SHA256__
-  oai_registered_profile_launcher_status: SUPERSEDED_106PRB_LAUNCHER_RETAINED_FOR_PROVENANCE_DO_NOT_LAUNCH
-  oai_radio_runtime_binding_status: PENDING_SPLITFUSION_100MHZ_4D5U_BINDING
-  split_inference_runtime: uplink_only_spatial_map_pipeline/carla_fusion_staleness_scenario_uplink_only_v2.py
-  split_inference_runtime_sha256: a99a88f5e4fe60e0964f71a48e5f3c5e544c270c28ffb7c20c2a825347efc991
+  oai_registered_profile_launcher: uplink_only_spatial_map_pipeline/run_splitfusion_oai_100mhz_4d5u_v1.sh
+  oai_registered_profile_launcher_sha256: 8e02f0913338a187bff1de24bfea09d7eca03607da0e383ef8ad4a005b64ce61
+  oai_registered_profile_launcher_status: QUALIFIED_SPLITFUSION_100MHZ_4D5U
+  oai_radio_runtime_binding_status: BOUND_SPLITFUSION_100MHZ_4D5U
+  phase14a_config: rl_agent/configs/splitfusion_phase14a_100mhz_calibration_v1.json
+  phase14a_config_sha256: ad541f71f5659e1bb08d7d2c48a45086dfbd5bf45e669b32adfb320ddcab5cd9
+  phase14a_binding: rl_agent/configs/splitfusion_phase14a_campaign_binding_v1.json
+  phase14a_binding_sha256: 103aeda31a37594c89e820daf1794d28af0440f5e4324450cac01266f5540004
+  split_inference_runtime: rl_agent/splitfusion_live_dispatch_v1/runtime_binding.json
+  split_inference_runtime_sha256: 604450c7f0f791a480ba4e5ed6b286a2b6f68497735372a7a63ed92e93585551
   map_install_runtime: uplink_only_spatial_map_pipeline/spatial_map_server_moving_ego_uplink_only_baseline.py
-  target_snr_runtime: rl_agent/ue_target_snr_cell_runtime_v1.py
+  map_install_runtime_sha256: cc301919b767688f1eab0923d4a935791b06a6cda3d0d5f565484aeae4b05bc1
+  target_snr_runtime: rl_agent/splitfusion_live_dispatch_v1/live_pilot_target_snr_runtime.py
+  target_snr_runtime_sha256: b43b71dfdeb12d51d6eae9d1d8d59e3b44ddbe3c18a587b4f851b275fd5b9018
+  live_dispatch_bridge: rl_agent/splitfusion_live_dispatch_v1/live_pilot_runtime.py
+  live_dispatch_bridge_sha256: ce568a89fa262916e7b6f737a5d1f7fc310428de96ff170eb56eca303411f894
   required_route_b_split_cell_adapter: rl_agent/ue_route_b_split_cell_adapter_v1.py
-  required_route_b_split_cell_adapter_sha256: 8a0093e422452f32ba56fe36f610a4e1a8059877bee28f8091965f28eb0eb0bd
+  required_route_b_split_cell_adapter_sha256: 17f74171c99cd749104ef22b81ad954c82d1a3fe267dd0b7734e08b0e23b33ff
+  sfd1_protocol_version: 2
+  frame_context_required: true
+  udp_fragment_header: "!IHH"
+  udp_chunk_bytes: 12500
+  ue_bind_host: 10.0.0.2
+  edge_remote_host: 192.168.70.140
+  edge_receive_port: 51002
+  edge_source_port: 51013
+  camera_result_port: 51004
+  map_ingest_port: 39310
+  socket_buffer_request_bytes: 8388608
+  no_secondary_feature_compression: true
+  retransmission: false
   install_feedback:
     ack_status: ACK_INSTALLED
     ack_semantics: decoded_result_accepted_and_installed_into_map
@@ -193,6 +214,10 @@ authorization:
   target_snr_mapping_must_be_requalified_on_selected_radio: true
   integration_pilot_must_pass_before_full_sweep: true
   required_pilot_passed_cells: 16
+  realtime_recovery_must_be_validated: true
+  preparation_path_must_pass_before_full_sweep: true
+  low_delivery_or_missed_deadline_is_a_measured_outcome: true
+  service_deadline_and_ack_timeout_must_remain_distinct: true
   full_sweep_requires_explicit_flag: true
 
 runtime_estimate_w10275:

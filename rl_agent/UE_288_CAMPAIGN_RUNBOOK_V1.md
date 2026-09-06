@@ -2,13 +2,13 @@
 
 This is a focused launch contract for a 72-action by four-network-profile
 response surface, `traffic_50_50`, and qualified Route B. The Cartesian design
-remains fixed at 288 cells. The former action registry is retained only until
-the final SplitFusion noAE/Hybrid-q/AE validations are bound into its
-replacement; it must not be used to launch the campaign.
+remains fixed at 288 cells. The final 72-action SplitFusion registry, qualified
+100-MHz radio path, live dispatcher and prerequisite evidence are now bound.
+Execution still requires a separate explicit authorization.
 
 ## Current terminal
 
-`RADIO_LOCKED_100MHZ_4D5U_PENDING_SPLITFUSION_BINDINGS_SNR_REQUALIFICATION_AND_16_CELL_PILOT`
+`SPLITFUSION_288_LIVE_CAMPAIGN_READY_FOR_AUTHORIZATION`
 
 ## Locked OAI radio baseline
 
@@ -26,12 +26,10 @@ single-UE host/RFsim measurements, not over-the-air or multi-UE capacity
 claims.
 
 The four saved Markov/Gaussian **target-SNR traces, seeds, transition models,
-and 100-ms schedule remain unchanged**. Their RFsim command mapping does not:
-the retained `target_to_rfsim_mapping.csv` was measured under the former
-40-MHz/106-PRB/7D2U radio. It remains provenance only and must be recalibrated
-and replay-qualified under the locked 100-MHz/4D5U profile before any pilot
-cell can run. Likewise, the current `default106` launcher is explicitly marked
-superseded and the supervisor refuses to launch it.
+and 100-ms schedule remain unchanged**. The RFsim command mapping has been
+recalibrated and replay-qualified under the locked 100-MHz/4D5U profile. The
+campaign uses `run_splitfusion_oai_100mhz_4d5u_v1.sh`; the former 40-MHz
+mapping and `default106` launchers remain provenance only.
 
 The qualified adapter accepts the supervisor's narrow command interface:
 
@@ -51,17 +49,13 @@ stamped into every resolved cell, results summary, and manifest.
 
 ## Offline validation
 
-This command parses both YAML files, verifies the locked radio artifact,
-frozen input hashes and Route B locks, reproduces all four accepted
-4,200-sample trace-prefix hashes, proves the 72 x 4 and 4 x 4 Cartesian
-products, and simulates PASSED/FAILED/INTERRUPTED resume behavior. It starts no
-external process and writes no experiment data. A pass here confirms contract
-integrity while reporting the unresolved real-launch blockers.
+This command verifies the final campaign, live runtime and evidence bindings;
+reproduces all four accepted 4,200-sample trace-prefix hashes; and proves the
+72 x 4 Cartesian product. It starts no external process and writes no
+experiment data.
 
 ```bash
-python3 rl_agent/ue_288_campaign_supervisor.py validate \
-  --campaign rl_agent/configs/ue_288_campaign_v1.yaml \
-  --pilot rl_agent/configs/ue_16_cell_integration_pilot_v1.yaml
+/usr/bin/python3 -m rl_agent.splitfusion_288_live_campaign_v1 validate
 ```
 
 The adapter-specific dry contract check is:
@@ -73,44 +67,42 @@ The adapter-specific dry contract check is:
   --campaign rl_agent/configs/ue_16_cell_integration_pilot_v1.yaml
 ```
 
-## Required order before the 16-cell pilot
+## Completed prerequisites
 
-1. Complete the final SplitFusion noAE, Hybrid-q and AE deployment-path
-   validations.
-2. Rebuild and hash-bind the 72-action registry to those final checkpoints and
-   codecs; do not reuse the LR-ASPP/M-prime registry.
-3. Bind and qualify a SplitFusion OAI launcher using the exact locked
-   100-MHz/273-PRB/4D5U radio configuration.
-4. Recalibrate the target-SNR-to-RFsim command mapping under that exact radio,
-   then repeat the short four-profile replay qualification. The Gaussian/
-   Markov target traces themselves are not regenerated.
-5. Re-run offline validation, then run the 16-cell integration pilot. Only a
-   16/16 PASSED ledger can unlock the explicit 288-cell launch.
+- Final noAE/AE128/AE64/AE32 UINT8/UINT6/UINT4 validation and the 72-action
+  registry are complete.
+- The 100-MHz/273-PRB/4D5U OAI launcher, RFsim mapping and four-profile replay
+  are qualified.
+- The 16-cell live pilot completed 16/16 with fresh CARLA/OAI lifecycles and
+  cold teardown.
+- The result-path/freshness repair completed its four-cell qualification.
+- The preparation path passed two prospective cells at 0.9808 and 0.9813
+  coverage, above the 0.95 campaign threshold.
 
-## Future 16-cell pilot command
+These qualifications do not claim that a split action meets the 100-ms service
+target. The 100-ms service target and 500-ms ACK horizon remain separate, and
+missed deadlines remain measured campaign outcomes.
 
-After all five prerequisites above are satisfied, the final model paths and
-hashes must agree in the model config and the rebuilt operational and technical
-registries. The launch guard also verifies the qualified 100-MHz launcher hash
-and the selected-radio identity of the new RFsim mapping before creating the
-campaign output root.
+## Explicit full-campaign command
+
+Use only the final gate below; do not invoke the historical supervisor directly.
+Choose a new create-only output leaf. On an interrupted campaign, use the same
+leaf with `--resume`; only hash-verified PASSED cells are skipped.
 
 ```bash
-python3 rl_agent/ue_288_campaign_supervisor.py run \
-  --config rl_agent/configs/ue_16_cell_integration_pilot_v1.yaml \
-  --output-root rl_agent/experiments/ue_16_cell_integration_pilot_v1/<PILOT_RUN_ID> \
-  --model noae=<FINAL_NOAE_PATH>@<FINAL_NOAE_SHA256> \
-  --model ae32=<FINAL_AE32_PATH>@<FINAL_AE32_SHA256> \
-  --model ae64=<FINAL_AE64_PATH>@<FINAL_AE64_SHA256> \
-  --model ae128=<FINAL_AE128_PATH>@<FINAL_AE128_SHA256>
+/usr/bin/python3 -m rl_agent.splitfusion_288_live_campaign_v1 run \
+  --output-root experiments/splitfusion_288_live_campaign_v1/<RUN_ID> \
+  --qualification-root experiments/splitfusion_phase15_live_deployment_qualification_v1/20260905_live_qualification_retry12_reclassified_v1 \
+  --pilot-ledger experiments/splitfusion_16_cell_live_carla_oai_pilot_v1/20260905_live_carla_oai_pilot_retry4/campaign_ledger.json \
+  --execute SPLITFUSION_288_CELL_LIVE_CARLA_OAI_CAMPAIGN \
+  --authorize-full-sweep
 ```
 
-The full sweep remains unauthorized until one ledger contains exactly 16
-PASSED pilot cells. A later full launch additionally requires both
-`--authorize-full-sweep` and `--pilot-ledger PATH`; the supervisor refuses a
-full launch without those gates. The W10275 baseline is 678.75 seconds per
-cell, or 54.3 hours for 288 cells before OAI attach, cleanup, and retry
-overhead.
+The repository binding does not self-authorize the full sweep. The command
+requires the explicit token and `--authorize-full-sweep`, and refuses launch
+unless the bound 16-cell ledger and all later qualification evidence revalidate.
+The historical W10275 estimate is 54.3 hours for 288 cells before retry
+overhead; the fresh-lifecycle pilot suggests the actual total may differ.
 
 ## Runtime contracts already implemented
 
