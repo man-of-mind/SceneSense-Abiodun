@@ -87,6 +87,7 @@ EXECUTION_TOKEN = "SPLITFUSION_PHASE14B_CORRECTED_FOUR_PROFILE_REPLAY"
 SUCCESS_TERMINAL = "SPLITFUSION_PHASE14B_CORRECTED_FOUR_PROFILE_REPLAY_COMPLETE"
 RADIO_ATTACH_TOKEN = "SPLITFUSION_OAI_100MHZ_4D5U_ATTACH"
 SCHEMA = "scenesense.splitfusion_phase14b_corrected_four_profile_replay.v1"
+PROBE_QUALIFICATION_RADIO_STATE_LEAF = "PQ_PROBE_QUALIFICATION"
 
 
 class Phase14BError(RuntimeError):
@@ -875,6 +876,7 @@ def identifiable_phase14b_runtime_groups(config: Mapping[str, Any]) -> list[int]
     relay_port = int(config["telemetry"]["gnb_relay_port"])
     sender = str(repo_path(str(config["paths"]["sender"])))
     sink = str(repo_path(str(config["paths"]["sink"])))
+    probe_sender = str(PROBE_SENDER_PATH.resolve(strict=True))
     multi = str(tracer / "multi")
     csv_tool = str(tracer / "csv")
 
@@ -883,6 +885,7 @@ def identifiable_phase14b_runtime_groups(config: Mapping[str, Any]) -> list[int]
         return (
             sender in fields
             or sink in fields
+            or probe_sender in fields
             or (multi in fields and phase14a.command_has_pair(command, "-lp", str(relay_port)))
             or (csv_tool in fields and phase14a.command_has_pair(command, "-p", str(relay_port)))
         )
@@ -968,7 +971,8 @@ def _remove_owned_radio_scratch(radio_state: Path, radio_namespace: Path) -> Non
         return
     resolved = radio_state.resolve(strict=True)
     require(resolved.parent == radio_namespace.resolve(strict=False), f"refusing to remove non-owned radio scratch: {resolved}")
-    require(resolved.name in {f"{index:02d}_{profile}" for index, profile in enumerate(PROFILE_ORDER)}, f"unexpected radio scratch leaf: {resolved}")
+    allowed_leaves = {f"{index:02d}_{profile}" for index, profile in enumerate(PROFILE_ORDER)} | {PROBE_QUALIFICATION_RADIO_STATE_LEAF}
+    require(resolved.name in allowed_leaves, f"unexpected radio scratch leaf: {resolved}")
     shutil.rmtree(resolved)
     if radio_namespace.is_dir() and not any(radio_namespace.iterdir()):
         radio_namespace.rmdir()
@@ -1629,19 +1633,27 @@ class CorrectedFourProfileReplay(phase14a.AttachedCalibration):
             ],
             "logs/probe_sender.log",
         )
+        # Captured immediately after spawn (not after the readiness sleep
+        # below) so it matches the sender CSV's full row count in
+        # stop_traffic_and_measure -- otherwise achieved_pps would be
+        # computed over a shorter runtime than the packets it counts.
+        self.traffic_started_monotonic_ns = time.monotonic_ns()
         probe_window_s = float(traffic["readiness_probe_window_s"])
         time.sleep(probe_window_s)
         self.health()
         after = tunnel_counters(interface)
         tx_before, tx_after = before.get("tx_bytes"), after.get("tx_bytes")
         delta = (tx_after - tx_before) if tx_before is not None and tx_after is not None else None
+        expected_bytes = float(traffic["rate_hz"]) * int(traffic["datagram_bytes"]) * probe_window_s
+        minimum_delta = float(traffic["readiness_min_tunnel_tx_fraction"]) * expected_bytes
         require(
-            delta is not None and delta >= int(traffic["readiness_min_tunnel_tx_byte_delta"]),
-            f"probe traffic readiness check found no UE tunnel TX growth in {probe_window_s}s: {delta}",
+            delta is not None and delta >= minimum_delta,
+            f"probe traffic readiness check found insufficient UE tunnel TX growth in {probe_window_s}s: "
+            f"{delta} < {minimum_delta} (expected ~{expected_bytes:.0f})",
         )
-        self.traffic_started_monotonic_ns = time.monotonic_ns()
         self.traffic_readiness = {
             "tunnel_tx_byte_delta_at_readiness": delta,
+            "expected_tunnel_tx_bytes_at_readiness": expected_bytes,
             "probe_window_s": probe_window_s,
         }
         self.traffic_measurement = None
@@ -1657,6 +1669,7 @@ class CorrectedFourProfileReplay(phase14a.AttachedCalibration):
         sink = next((p for p in self.processes if p.name == "probe_sink"), None)
         require(sender is not None and sink is not None, "probe traffic processes are not tracked")
         alive_before_stop = sender.process.poll() is None and sink.process.poll() is None
+        require(alive_before_stop, "probe sender/sink process exited before the profile finished")
         runtime_s = (time.monotonic_ns() - int(started_ns)) / 1e9
         sender.stop()
         sink.stop()
@@ -2053,6 +2066,10 @@ class CorrectedFourProfileReplay(phase14a.AttachedCalibration):
 
         require(self.durable_output is not None, "durable output is unavailable")
         pq = self.phase14b["probe_qualification"]
+        require(
+            str(pq["radio_state_leaf"]) == PROBE_QUALIFICATION_RADIO_STATE_LEAF,
+            "probe qualification radio-state leaf drift from the allow-listed teardown constant",
+        )
         radio_state = self.probe_radio_namespace / str(pq["radio_state_leaf"])
         period_ms = int(self.phase14b["replay"]["sample_period_ms"])
         steps = int(round(float(pq["duration_s"]) * 1000.0 / period_ms))
@@ -2084,6 +2101,7 @@ class CorrectedFourProfileReplay(phase14a.AttachedCalibration):
             require(self.current_rnti is not None, "single RNTI was not established")
             rows, observed_rntis, scheduler_ok = self.replay_probe_qualification(model_index, steps, target_snr_db)
             traffic_measurement = self.stop_traffic_and_measure()
+            self.health(force_topology=True)
         except BaseException as exc:
             primary_error = f"{type(exc).__name__}: {exc}"
         finally:

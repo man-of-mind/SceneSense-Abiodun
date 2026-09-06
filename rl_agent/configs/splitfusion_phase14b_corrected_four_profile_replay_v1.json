@@ -228,7 +228,7 @@
       "sender": "rl_agent/phase14b_probe_sender_v1.py",
       "sink": "bursty_traffic/udp_sink.py"
     },
-    "readiness_min_tunnel_tx_byte_delta": 1,
+    "readiness_min_tunnel_tx_fraction": 0.5,
     "readiness_probe_window_s": 2.0,
     "constant_across_profiles": true,
     "tuned_per_profile": false,
