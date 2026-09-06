@@ -12,6 +12,7 @@ import argparse
 import base64
 import hashlib
 import json
+import os
 import socket
 import threading
 import time
@@ -51,6 +52,26 @@ class LivePilotRuntimeError(RuntimeError):
 def _require(condition: bool, message: str) -> None:
     if not condition:
         raise LivePilotRuntimeError(message)
+
+
+def _write_decoded_evidence(evidence: Path, mask: np.ndarray) -> None:
+    """Publish an evaluation-only mask so no reader can observe a partial file.
+
+    The adapter's segmentation evaluator polls for this exact name and loads it
+    as soon as it exists, so the array is staged under a temporary name and
+    renamed into place.
+    """
+
+    if evidence.exists():
+        raise FileExistsError(f"duplicate decoded segmentation evidence: {evidence}")
+    staging = evidence.with_suffix(evidence.suffix + ".tmp")
+    try:
+        with staging.open("wb") as handle:
+            np.save(handle, mask, allow_pickle=False)
+    except BaseException:
+        staging.unlink(missing_ok=True)
+        raise
+    os.replace(staging, evidence)
 
 
 def _load_json(path: Path) -> dict[str, Any]:
@@ -333,8 +354,7 @@ class LivePilotCellRuntime:
                 shape = tuple(int(x) for x in value["semantic_labels_shape"])
                 _require(shape == (720, 1280) and labels.size == 720 * 1280, "edge segmentation shape drift")
                 evidence = self.evidence_dir / f"{hashlib.sha256(str(value['stream_id']).encode()).hexdigest()[:16]}_{int(value['frame_id'])}.npy"
-                with evidence.open("xb") as handle:
-                    np.save(handle, labels.reshape(shape), allow_pickle=False)
+                _write_decoded_evidence(evidence, labels.reshape(shape))
                 published = {
                     "schema": "fusion_object_spatial_map.v1", "stream_id": value["stream_id"],
                     "frame_id": int(value["frame_id"]), "capture_id": metric["capture_id"],

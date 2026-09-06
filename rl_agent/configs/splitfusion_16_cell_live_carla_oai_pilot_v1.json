@@ -97,7 +97,7 @@
     "target_snr_runtime": "rl_agent/splitfusion_live_dispatch_v1/live_pilot_target_snr_runtime.py",
     "target_snr_runtime_sha256": "b43b71dfdeb12d51d6eae9d1d8d59e3b44ddbe3c18a587b4f851b275fd5b9018",
     "live_dispatch_bridge": "rl_agent/splitfusion_live_dispatch_v1/live_pilot_runtime.py",
-    "live_dispatch_bridge_sha256": "67aabdb48ec913ece3c2a045f27725a6ebbbf9dc4f4e15303166333962eb04d5",
+    "live_dispatch_bridge_sha256": "e29ba418780bcbf7c8a745d006ea0db0c71ce1624ec5754a3926aed626da095a",
     "sfd1_protocol_version": 2,
     "frame_context_required": true,
     "udp_fragment_header": "!IHH",
