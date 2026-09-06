@@ -9,6 +9,7 @@ from dataclasses import asdict
 from pathlib import Path
 from unittest import mock
 
+import numpy as np
 import torch
 
 from rl_agent.splitfusion_live_dispatch_v1 import phase13b_qualification as phase13b
@@ -474,21 +475,31 @@ class PreloadedDispatchTest(unittest.TestCase):
         """Phase-15 recovery: freshness and the deadline gate the tail.
 
         The retry4 audit measured an implicit FIFO backlog whose depth in
-        frames grew as the payload shrank, and a 500 ms deadline that cancelled
-        nothing. A newer frame must displace an older pending one, and an
-        expired capture must never reach frozen-tail inference.
+        frames grew as the payload shrank, and a 500 ms processing horizon that
+        cancelled nothing. A newer frame must displace an older pending one,
+        and an expired capture must never reach frozen-tail inference. The
+        earlier 100 ms service target remains separately represented.
         """
 
         from rl_agent.splitfusion_live_dispatch_v1.live_pilot_runtime import (
             EDGE_STAGE_BEFORE_TAIL,
             DeadlineExpired,
+            FastStationaryTrackAccumulator,
             LatestFramePendingSlot,
             _DeadlineGuardedTail,
+            ack_timeout_s,
             check_deadline,
             deadline_at_s,
+            service_deadline_s,
+        )
+        from pole_lraspp_multimodal_fusion.pole_lraspp_multimodal_fusion.radar_fusion import (
+            StationaryTrackAccumulator,
         )
 
-        deadline_s = 0.5
+        campaign = {"cell": {"service_deadline_ms": 100, "ack_timeout_ms": 500}}
+        service_s = service_deadline_s(campaign)
+        deadline_s = ack_timeout_s(campaign)
+        self.assertEqual((service_s, deadline_s), (0.1, 0.5))
         slot = LatestFramePendingSlot()
 
         # Latest-frame-first: at most one pending frame, newest wins, and the
@@ -507,10 +518,13 @@ class PreloadedDispatchTest(unittest.TestCase):
         self.assertEqual(slot.take(timeout=0.1), ("stream-a", "frame-2"))
         self.assertIsNone(slot.take(timeout=0.01))
 
-        # One authoritative absolute deadline, derived identically everywhere.
+        # Both absolute instants are capture-derived and remain distinct.
         capture_ns = 1_000_000_000_000
         self.assertAlmostEqual(
             deadline_at_s(capture_ns, deadline_s), capture_ns / 1e9 + deadline_s
+        )
+        self.assertAlmostEqual(
+            deadline_at_s(capture_ns, service_s), capture_ns / 1e9 + service_s
         )
 
         calls = []
@@ -531,6 +545,24 @@ class PreloadedDispatchTest(unittest.TestCase):
         self.assertGreater(raised.exception.age_ms, deadline_s * 1000.0)
         # The expired capture never reached frozen-tail inference.
         self.assertEqual(len(calls), 1)
+
+        # The vectorized live tracker is bit-identical to the frozen reference,
+        # including within-cell moving resets and stale-track eviction.
+        rng = np.random.default_rng(20260906)
+        reference = StationaryTrackAccumulator()
+        optimized = FastStationaryTrackAccumulator()
+        for step in range(6):
+            points = rng.normal(size=(4096, 4)).astype(np.float32)
+            points[:, :2] = np.round(points[:, :2] * 25.0, 1)
+            points[:, 3] = rng.choice(
+                np.asarray((-1.0, 0.0, 0.1, 0.4), dtype=np.float32),
+                size=len(points),
+            )
+            observed_at = 100.0 + step * (0.1 if step < 5 else 3.0)
+            expected = reference.update(points, observed_at)
+            actual = optimized.update(points, observed_at)
+            self.assertTrue(np.array_equal(actual, expected))
+            self.assertEqual(optimized.tracks_snapshot(), reference._tracks)
 
     def test_q0_bypasses_ranker_and_mismatches_stop_before_decode_or_tail(self):
         registry = SplitActionRegistry.from_runtime_binding(

@@ -11,8 +11,9 @@ the dense 720x1280 evaluation label map no longer rides the radio return path.
 It is persisted atomically on the edge's own evidence mount and only compact
 object/service records plus a compact terminal ACK travel back to the UE. Both
 endpoints run a bounded latest-frame-first pending slot instead of an implicit
-FIFO backlog, and one authoritative capture-based service deadline is enforced
-at every stage so expired work never reaches a later expensive stage.
+FIFO backlog.  The frozen 100 ms capture-to-install service target remains
+distinct from the 500 ms feedback/processing horizon: a result between them is
+late-accepted, while work older than the feedback horizon is discarded.
 """
 
 from __future__ import annotations
@@ -60,11 +61,12 @@ EDGE_TERMINAL_ACK_SCHEMA = "splitfusion_edge_terminal_ack.v1"
 EDGE_COUNTERS_SCHEMA = "splitfusion_edge_counters.v1"
 EVIDENCE_SIDECAR_SCHEMA = "splitfusion_segmentation_evidence.v1"
 
-# One authoritative absolute capture-based service deadline governs every
-# stage. Both endpoints derive the identical value from the frame's capture
-# timestamp, which already travels in the SFD1-v2 envelope, plus this single
-# configured offset. No stage carries an independent deadline value.
-INSTALL_DEADLINE_CONFIG_KEY = "ack_timeout_ms"
+# These are deliberately different contracts.  The service target classifies
+# capture-to-install timeliness; the longer ACK timeout bounds useful work and
+# declares missing feedback.  Both endpoints derive both absolute instants
+# from the capture timestamp already carried by SFD1-v2.
+SERVICE_DEADLINE_CONFIG_KEY = "service_deadline_ms"
+ACK_TIMEOUT_CONFIG_KEY = "ack_timeout_ms"
 
 UE_STAGE_AFTER_PREPARATION = "UE_AFTER_PREPARATION"
 UE_STAGE_BEFORE_SEND = "UE_BEFORE_SEND"
@@ -89,11 +91,11 @@ class LivePilotRuntimeError(RuntimeError):
 
 
 class DeadlineExpired(RuntimeError):
-    """The authoritative capture-based service deadline expired at one stage."""
+    """The capture-based processing/feedback horizon expired at one stage."""
 
     def __init__(self, stage: str, *, capture_timestamp_ns: int, age_ms: float) -> None:
         super().__init__(
-            f"service deadline expired at {stage} (age {age_ms:.1f} ms)"
+            f"processing horizon expired at {stage} (age {age_ms:.1f} ms)"
         )
         self.stage = str(stage)
         self.capture_timestamp_ns = int(capture_timestamp_ns)
@@ -105,11 +107,20 @@ def _require(condition: bool, message: str) -> None:
         raise LivePilotRuntimeError(message)
 
 
-def install_deadline_s(campaign: Mapping[str, Any]) -> float:
-    """Return the one authoritative capture-based service deadline offset."""
+def service_deadline_s(campaign: Mapping[str, Any]) -> float:
+    """Return the frozen desired capture-to-install service target."""
 
-    value = float(campaign["cell"][INSTALL_DEADLINE_CONFIG_KEY]) / 1000.0
-    _require(value > 0.0, "configured install deadline must be positive")
+    value = float(campaign["cell"][SERVICE_DEADLINE_CONFIG_KEY]) / 1000.0
+    _require(value > 0.0, "configured service deadline must be positive")
+    return value
+
+
+def ack_timeout_s(campaign: Mapping[str, Any]) -> float:
+    """Return the capture-based feedback timeout and processing horizon."""
+
+    service = service_deadline_s(campaign)
+    value = float(campaign["cell"][ACK_TIMEOUT_CONFIG_KEY]) / 1000.0
+    _require(value > service, "ACK timeout must exceed the service deadline")
     return value
 
 
@@ -122,7 +133,7 @@ def deadline_at_s(capture_timestamp_ns: int, deadline_s: float) -> float:
 def check_deadline(
     stage: str, capture_timestamp_ns: int, deadline_s: float, *, now_s: float | None = None
 ) -> float:
-    """Raise :class:`DeadlineExpired` when this capture can no longer be timely.
+    """Raise :class:`DeadlineExpired` when the supplied horizon has elapsed.
 
     ``capture_timestamp_ns`` is the original CARLA capture instant on the one
     physical host wall clock, so the same comparison is valid in the UE process
@@ -162,6 +173,158 @@ class _Counters:
     def snapshot(self) -> dict[str, int]:
         with self._lock:
             return dict(self._counts)
+
+
+class FastStationaryTrackAccumulator:
+    """Point-order-equivalent stationary tracking grouped by spatial cell.
+
+    The dataset implementation walks every radar return in Python.  A live
+    two-sweep window contains about 37k returns, making that loop the dominant
+    avoidable preparation cost.  Keys are independent, so this implementation
+    groups them in NumPy while preserving the exact within-cell point order and
+    reset behavior of the reference accumulator.
+    """
+
+    def __init__(
+        self,
+        stationary_velocity_mps: float = 0.35,
+        parked_threshold_s: float = 5.0,
+        association_grid_m: float = 1.5,
+        max_stale_s: float = 2.0,
+    ) -> None:
+        self.stationary_velocity_mps = float(stationary_velocity_mps)
+        self.parked_threshold_s = float(parked_threshold_s)
+        self.association_grid_m = float(association_grid_m)
+        self.max_stale_s = float(max_stale_s)
+        self._keys = np.zeros((0,), dtype=np.uint64)
+        self._ages = np.zeros((0,), dtype=np.float64)
+        self._last_seen = np.zeros((0,), dtype=np.float64)
+        self._x = np.zeros((0,), dtype=np.float64)
+        self._y = np.zeros((0,), dtype=np.float64)
+
+    def _key(self, x: float, y: float) -> tuple[int, int]:
+        scale = max(0.05, self.association_grid_m)
+        return int(round(float(x) / scale)), int(round(float(y) / scale))
+
+    @staticmethod
+    def _pack_keys(x: np.ndarray, y: np.ndarray) -> np.ndarray:
+        x64 = np.rint(x.astype(np.float64, copy=False)).astype(np.int64)
+        y64 = np.rint(y.astype(np.float64, copy=False)).astype(np.int64)
+        limit = np.iinfo(np.int32)
+        _require(
+            bool(np.all((x64 >= limit.min) & (x64 <= limit.max)))
+            and bool(np.all((y64 >= limit.min) & (y64 <= limit.max))),
+            "stationary tracker grid key exceeds int32",
+        )
+        xbits = x64.astype(np.int32).view(np.uint32).astype(np.uint64)
+        ybits = y64.astype(np.int32).view(np.uint32).astype(np.uint64)
+        return (xbits << np.uint64(32)) | ybits
+
+    @staticmethod
+    def _unpack_key(value: np.uint64) -> tuple[int, int]:
+        raw = int(value)
+        x = np.array([raw >> 32], dtype=np.uint32).view(np.int32)[0]
+        y = np.array([raw & 0xFFFFFFFF], dtype=np.uint32).view(np.int32)[0]
+        return int(x), int(y)
+
+    def tracks_snapshot(self) -> dict[tuple[int, int], dict[str, float]]:
+        """Expose reference-shaped state for qualification, never hot-path use."""
+
+        return {
+            self._unpack_key(key): {
+                "age_s": float(self._ages[index]),
+                "last_seen_s": float(self._last_seen[index]),
+                "x": float(self._x[index]),
+                "y": float(self._y[index]),
+            }
+            for index, key in enumerate(self._keys)
+        }
+
+    def update(self, world_velocity_points: np.ndarray, frame_time_s: float) -> np.ndarray:
+        points = np.asarray(world_velocity_points)
+        if points.size == 0:
+            return np.zeros((0,), dtype=np.float32)
+        _require(
+            points.ndim == 2 and points.shape[1] >= 4,
+            "stationary tracker input must be [N,>=4]",
+        )
+        now = float(frame_time_s)
+        scale = max(0.05, self.association_grid_m)
+        packed = self._pack_keys(
+            points[:, 0].astype(np.float64, copy=False) / scale,
+            points[:, 1].astype(np.float64, copy=False) / scale,
+        )
+        unique_keys, inverse = np.unique(packed, return_inverse=True)
+        order = np.argsort(inverse, kind="stable")
+        counts = np.bincount(inverse, minlength=len(unique_keys))
+        starts = np.cumsum(counts) - counts
+        stationary = (
+            np.abs(points[:, 3].astype(np.float64, copy=False))
+            <= self.stationary_velocity_mps
+        )
+        ages = np.zeros((points.shape[0],), dtype=np.float32)
+
+        previous_age = np.zeros(len(unique_keys), dtype=np.float64)
+        previous_seen = np.full(len(unique_keys), now, dtype=np.float64)
+        if self._keys.size:
+            prior_positions = np.searchsorted(self._keys, unique_keys)
+            in_bounds = prior_positions < len(self._keys)
+            matched = np.zeros(len(unique_keys), dtype=bool)
+            matched[in_bounds] = (
+                self._keys[prior_positions[in_bounds]] == unique_keys[in_bounds]
+            )
+            previous_age[matched] = self._ages[prior_positions[matched]]
+            previous_seen[matched] = self._last_seen[prior_positions[matched]]
+        dt = np.maximum(0.0, now - previous_seen)
+        first_indices = order[starts]
+        first_age = np.where(
+            stationary[first_indices],
+            np.minimum(self.parked_threshold_s * 3.0, previous_age + dt),
+            0.0,
+        )
+
+        # The first moving return resets a key. Subsequent returns for that key
+        # see dt=0 in the reference loop and therefore retain zero age.
+        group_ids = inverse[order]
+        positions_in_group = np.arange(len(order), dtype=np.int64) - starts[group_ids]
+        first_moving = counts.astype(np.int64, copy=True)
+        moving_positions = np.flatnonzero(~stationary[order])
+        if moving_positions.size:
+            np.minimum.at(
+                first_moving,
+                group_ids[moving_positions],
+                positions_in_group[moving_positions],
+            )
+        prefix = positions_in_group < first_moving[group_ids]
+        ages[order[prefix]] = first_age[group_ids[prefix]].astype(np.float32)
+        final_age = np.where(first_moving == counts, first_age, 0.0)
+        last_indices = order[starts + counts - 1]
+
+        retain = np.zeros(len(self._keys), dtype=bool)
+        if self._keys.size:
+            current_positions = np.searchsorted(unique_keys, self._keys)
+            current_bounds = current_positions < len(unique_keys)
+            is_current = np.zeros(len(self._keys), dtype=bool)
+            is_current[current_bounds] = (
+                unique_keys[current_positions[current_bounds]]
+                == self._keys[current_bounds]
+            )
+            stale_after = max(self.max_stale_s, self.association_grid_m)
+            retain = (~is_current) & ((now - self._last_seen) <= stale_after)
+        merged_keys = np.concatenate((self._keys[retain], unique_keys))
+        merged_order = np.argsort(merged_keys, kind="stable")
+        self._keys = merged_keys[merged_order]
+        self._ages = np.concatenate((self._ages[retain], final_age))[merged_order]
+        self._last_seen = np.concatenate(
+            (self._last_seen[retain], np.full(len(unique_keys), now, dtype=np.float64))
+        )[merged_order]
+        self._x = np.concatenate(
+            (self._x[retain], points[last_indices, 0].astype(np.float64, copy=False))
+        )[merged_order]
+        self._y = np.concatenate(
+            (self._y[retain], points[last_indices, 1].astype(np.float64, copy=False))
+        )[merged_order]
+        return ages
 
 
 class LatestFramePendingSlot:
@@ -579,8 +742,11 @@ class LivePilotCellRuntime:
         self.metrics: dict[int, dict[str, Any]] = {}
         self.errors: list[str] = []
         self.sent = self.completed = 0
-        # One authoritative capture-based service deadline, shared with the edge.
-        self.deadline_s = install_deadline_s(campaign)
+        self.service_deadline_s = service_deadline_s(campaign)
+        self.ack_timeout_s = ack_timeout_s(campaign)
+        # Expensive work is abandoned at the feedback horizon.  Crossing the
+        # earlier service target is reported as LATE_ACCEPTED, not hidden.
+        self.deadline_s = self.ack_timeout_s
         self.counters = _Counters()
         self._published_frames: set[int] = set()
         self._stale_frames: dict[int, dict[str, Any]] = {}
@@ -699,7 +865,10 @@ class LivePilotCellRuntime:
         with self.lock:
             self.metrics[int(frame_id)]["send_finished_ns"] = sent_finished
             self.metrics[int(frame_id)]["service_deadline_at"] = deadline_at_s(
-                capture_timestamp_ns, self.deadline_s
+                capture_timestamp_ns, self.service_deadline_s
+            )
+            self.metrics[int(frame_id)]["ack_timeout_at"] = deadline_at_s(
+                capture_timestamp_ns, self.ack_timeout_s
             )
             self.sent += 1
         self.counters.bump("feature_messages_transmitted")
@@ -882,7 +1051,9 @@ class LivePilotCellRuntime:
         return {"sent": self.sent, "edge_completed": self.completed, "result_thread_alive": self.thread.is_alive(),
                 "errors": list(self.errors), "socket_buffers": buffers, "call_ledger": self._ledger.snapshot(),
                 "ue_counters": self.ue.counters.__dict__,
-                "install_deadline_s": self.deadline_s,
+                "service_deadline_s": self.service_deadline_s,
+                "ack_timeout_s": self.ack_timeout_s,
+                "processing_expiry_s": self.deadline_s,
                 "results_published_to_map": published,
                 "stale_before_send_frames": stale,
                 "transport_counters": self.counters.snapshot()}
@@ -901,7 +1072,9 @@ def run_edge_service(*, config_path: Path, action_id: int, allowed_action_ids: t
     inference or result transmission. Admitted frames wait in an explicit
     bounded latest-frame-first slot, so the kernel receive buffer can no longer
     act as a hidden byte-bounded FIFO whose depth in frames grows as the payload
-    shrinks. Every stage re-checks the one authoritative capture-based deadline.
+    shrinks. Every expensive stage re-checks the 500 ms capture-based
+    processing horizon; the distinct 100 ms service target is still carried
+    and reported for timeliness classification.
     """
 
     campaign = _load_json(config_path)
@@ -916,7 +1089,8 @@ def run_edge_service(*, config_path: Path, action_id: int, allowed_action_ids: t
     )
     profiles = {value: registry.resolve(value) for value in allowed_action_ids}
     _require(int(action_id) in profiles, "edge fixed action is outside its allowlist")
-    deadline_s = install_deadline_s(campaign)
+    service_s = service_deadline_s(campaign)
+    deadline_s = ack_timeout_s(campaign)
     counters = _Counters()
 
     def guard(stage: str, capture_timestamp_ns: int) -> None:
@@ -963,7 +1137,9 @@ def run_edge_service(*, config_path: Path, action_id: int, allowed_action_ids: t
                         "run_id": str(run_id),
                         "cell_id": str(cell_id),
                         "action_id": int(action_id),
-                        "install_deadline_s": deadline_s,
+                        "service_deadline_s": service_s,
+                        "ack_timeout_s": deadline_s,
+                        "processing_expiry_s": deadline_s,
                         "pending_depth": pending.depth(),
                         "incomplete_reassemblies_expired": int(reassembler.expired_messages),
                         "reassembly_pending_messages": len(reassembler.pending),
@@ -1172,7 +1348,8 @@ def run_edge_service(*, config_path: Path, action_id: int, allowed_action_ids: t
                 "edge_receipt_wall_s": float(item["edge_received_wall_s"]),
                 "tail_complete_wall_s": tail_finished_wall,
                 "evidence_install_wall_s": evidence_install_wall,
-                "service_deadline_at": deadline_at_s(capture_timestamp_ns, deadline_s),
+                "service_deadline_at": deadline_at_s(capture_timestamp_ns, service_s),
+                "ack_timeout_at": deadline_at_s(capture_timestamp_ns, deadline_s),
                 "installation_status": installation_status,
                 "evidence": evidence_meta,
                 "terminal_reason": "EDGE_SERVICE_COMPLETE",
@@ -1230,7 +1407,9 @@ def run_edge_service(*, config_path: Path, action_id: int, allowed_action_ids: t
                    "profiles": {str(key): value.profile_id for key, value in profiles.items()},
                    "tail_device": str(edge.tail_device),
                    "state_root": str(ready_file.parent), "state_root_writable": True,
-                   "install_deadline_s": deadline_s,
+                   "service_deadline_s": service_s,
+                   "ack_timeout_s": deadline_s,
+                   "processing_expiry_s": deadline_s,
                    "dense_label_map_on_radio": False,
                    "edge_result_schema": EDGE_RESULT_SCHEMA,
                    "evaluation_evidence_dir": str(evidence_dir) if evidence_dir else "",

@@ -17,8 +17,8 @@ by this runner and is never launched from it.
 Every scientific invariant is inherited unchanged from the same campaign
 configuration: action catalog and IDs, q values, ranker/AE checkpoints,
 UINT8/UINT6/UINT4 codecs, inner zstd level 1, SNR traces and mapping, the
-CARLA route and traffic, perception thresholds, the 500 ms installation
-deadline, and model scoring/segmentation.
+CARLA route and traffic, perception thresholds, the 100 ms service target,
+the separate 500 ms feedback timeout, and model scoring/segmentation.
 """
 
 from __future__ import annotations
@@ -183,8 +183,21 @@ def evaluate_cell(attempt_dir: Path) -> dict[str, Any]:
         if capture is not None and installed is not None:
             aoi.append((capture, (installed - capture) * 1000.0))
     aoi_values = [value for _capture, value in aoi]
-    deadline_ms = float(recovery.get("install_deadline_s") or 0.5) * 1000.0
-    timely = [value for value in aoi_values if value <= deadline_ms]
+    service_deadline_ms = float(
+        recovery.get("service_deadline_s") or 0.1
+    ) * 1000.0
+    ack_timeout_ms = float(recovery.get("ack_timeout_s") or 0.5) * 1000.0
+    service_on_time = [
+        value for value in aoi_values if value <= service_deadline_ms
+    ]
+    ack_within_timeout = [
+        row for row in feedback
+        if str(row.get("status") or "") == "ACK_INSTALLED"
+        and str(row.get("terminal", "")).lower() in {"1", "true"}
+        and _float(row.get("feedback_received_at")) is not None
+        and _float(row.get("ack_timeout_at")) is not None
+        and float(row["feedback_received_at"]) <= float(row["ack_timeout_at"])
+    ]
     receipt_latencies = []
     for row in sent:
         capture = _float(row.get("capture_wall_s"))
@@ -213,6 +226,13 @@ def evaluate_cell(attempt_dir: Path) -> dict[str, Any]:
     front = [value for value in front if value is not None]
     queue_waits = [_float(row.get("queue_wait_ms")) for row in sent]
     queue_waits = [value for value in queue_waits if value is not None]
+    preparation_timings: dict[str, list[float]] = {}
+    for field in (
+        "sensor_wait_ms", "radar_window_ms", "radar_prepare_ms",
+        "rgb_convert_ms", "scene_snapshot_ms", "pre_front_compute_ms",
+    ):
+        values = [_float(row.get(field)) for row in sent]
+        preparation_timings[field] = [value for value in values if value is not None]
     installed_count = sum(
         1 for row in feedback if str(row.get("status")) == "ACK_INSTALLED"
     )
@@ -279,11 +299,24 @@ def evaluate_cell(attempt_dir: Path) -> dict[str, Any]:
         "installation_ack_frames": installed_count,
         "installation_ack_rate": (installed_count / len(sent)) if sent else None,
         "installed_frames_with_aoi": len(aoi_values),
-        "timely_installations": len(timely),
+        # Historical field names remain in the CSV but now carry their frozen
+        # contract meaning: timely means installed within the 100 ms service
+        # target, not merely observed before the 500 ms ACK timeout.
+        "timely_installations": len(service_on_time),
         "timely_installation_fraction": (
-            len(timely) / len(aoi_values) if aoi_values else None
+            len(service_on_time) / len(aoi_values) if aoi_values else None
         ),
-        "install_deadline_ms": deadline_ms,
+        "service_on_time_installations": len(service_on_time),
+        "service_on_time_fraction": (
+            len(service_on_time) / len(aoi_values) if aoi_values else None
+        ),
+        "ack_within_timeout_installations": len(ack_within_timeout),
+        "ack_within_timeout_fraction": (
+            len(ack_within_timeout) / len(aoi_values) if aoi_values else None
+        ),
+        "service_deadline_ms": service_deadline_ms,
+        "ack_timeout_ms": ack_timeout_ms,
+        "processing_expiry_ms": ack_timeout_ms,
         "median_install_aoi_ms": _quantile(aoi_values, 0.5),
         "p95_install_aoi_ms": _quantile(aoi_values, 0.95),
         "max_install_aoi_ms": (max(aoi_values) if aoi_values else None),
@@ -292,6 +325,15 @@ def evaluate_cell(attempt_dir: Path) -> dict[str, Any]:
         "second_half_median_install_aoi_ms": _quantile(second_half, 0.5),
         "median_front_ms": _quantile(front, 0.5),
         "median_queue_wait_ms": _quantile(queue_waits, 0.5),
+        "p95_queue_wait_ms": _quantile(queue_waits, 0.95),
+        **{
+            f"median_{field}": _quantile(values, 0.5)
+            for field, values in preparation_timings.items()
+        },
+        **{
+            f"p95_{field}": _quantile(values, 0.95)
+            for field, values in preparation_timings.items()
+        },
         "median_frozen_tail_ms": _quantile(tails, 0.5),
         "tail_devices": devices,
         "incomplete_reassemblies_expired_edge": int(
@@ -524,10 +566,20 @@ SUMMARY_FIELDS = (
     "mean_payload_bytes", "mean_feature_datagrams", "mean_result_datagrams",
     "receipt_ack_rate", "median_receipt_latency_ms", "installation_ack_rate",
     "timely_installations", "timely_installation_fraction",
+    "service_on_time_installations", "service_on_time_fraction",
+    "ack_within_timeout_installations", "ack_within_timeout_fraction",
+    "service_deadline_ms", "ack_timeout_ms", "processing_expiry_ms",
     "median_install_aoi_ms", "p95_install_aoi_ms", "max_install_aoi_ms",
     "install_aoi_monotone_fraction", "first_half_median_install_aoi_ms",
     "second_half_median_install_aoi_ms", "median_front_ms",
-    "median_queue_wait_ms", "median_frozen_tail_ms",
+    "median_queue_wait_ms", "p95_queue_wait_ms",
+    "median_sensor_wait_ms", "p95_sensor_wait_ms",
+    "median_radar_window_ms", "p95_radar_window_ms",
+    "median_radar_prepare_ms", "p95_radar_prepare_ms",
+    "median_rgb_convert_ms", "p95_rgb_convert_ms",
+    "median_scene_snapshot_ms", "p95_scene_snapshot_ms",
+    "median_pre_front_compute_ms", "p95_pre_front_compute_ms",
+    "median_frozen_tail_ms",
     "incomplete_reassemblies_expired_edge", "evaluation_masks_persisted_edge",
     "evaluation_masks_hash_verified_ue", "evaluation_masks_hash_mismatched_ue",
     "dense_label_map_on_radio", "counter_reconciliation_holds",
@@ -802,8 +854,10 @@ def main(argv: Sequence[str] | None = None) -> int:
                 "minimum_sensor_preparation_coverage"
             ],
             "preparation_coverage_target_weakened": False,
-            "install_deadline_ms": config["cell"]["ack_timeout_ms"],
-            "install_deadline_increased": False,
+            "service_deadline_ms": config["cell"]["service_deadline_ms"],
+            "ack_timeout_ms": config["cell"]["ack_timeout_ms"],
+            "service_deadline_unchanged": True,
+            "ack_timeout_unchanged": True,
         },
         "started_at_unix_s": time.time(),
     }

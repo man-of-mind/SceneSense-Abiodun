@@ -44,11 +44,13 @@ from rl_agent.splitfusion_live_dispatch_v1.live_pilot_runtime import (  # noqa: 
     DEADLINE_STAGES,
     UE_STAGE_AFTER_PREPARATION,
     DeadlineExpired,
+    FastStationaryTrackAccumulator,
     LatestFramePendingSlot,
     LivePilotCellRuntime,
     _Counters,
+    ack_timeout_s,
     check_deadline,
-    install_deadline_s,
+    service_deadline_s,
 )
 
 ADAPTER_SCHEMA = "scenesense.ue_route_b_split_cell_adapter.v1"
@@ -64,8 +66,10 @@ EXPECTED_OUTPUTS = (
 PER_FRAME_FIELDS = (
     "cell_id", "action_id", "network_profile_id", "stream_id", "capture_id",
     "frame_id", "route_tick", "carla_timestamp", "capture_wall_s",
-    "service_deadline_at", "prepare_status", "processing_late", "queue_depth",
-    "queue_wait_ms", "front_ms", "payload_bytes", "payload_bytes_uncompressed",
+    "service_deadline_at", "ack_timeout_at", "prepare_status", "processing_late", "queue_depth",
+    "queue_wait_ms", "sensor_wait_ms", "radar_window_ms", "radar_prepare_ms",
+    "rgb_convert_ms", "scene_snapshot_ms", "pre_front_compute_ms", "front_ms",
+    "payload_bytes", "payload_bytes_uncompressed",
     "payload_chunks", "window_sweeps", "window_callbacks", "window_returns",
     "window_span_s", "raw_radar_return_count", "raw_radar_valid_range_count",
     "raw_radar_closing_count", "raw_radar_receding_count",
@@ -901,16 +905,10 @@ class PassiveSplitCollector:
         self.segmentation_evidence_retention_s = float(
             contract["segmentation_evidence_retention_s"]
         )
-        # One authoritative absolute capture-based service deadline governs
-        # UE staleness, every edge stage, publication and timeout accounting.
-        # The registered 100 ms service target is retained as a reported-only
-        # tight threshold so no registered number is silently redefined, but
-        # nothing enforces two different deadline values.
-        self.install_deadline_s = install_deadline_s(campaign)
-        self.tight_service_target_s = (
-            float(campaign["cell"]["service_deadline_ms"]) / 1000.0
-        )
-        self.ack_timeout_s = self.install_deadline_s
+        # The 100 ms service target classifies on-time installs.  The separate
+        # 500 ms ACK timeout bounds useful processing and missing feedback.
+        self.service_deadline_s = service_deadline_s(campaign)
+        self.ack_timeout_s = ack_timeout_s(campaign)
         self.sensor_condition = threading.Condition()
         self.images: "OrderedDict[int, tuple[Any, float, float]]" = OrderedDict()
         self.semantic_images: "OrderedDict[int, Any]" = OrderedDict()
@@ -964,7 +962,7 @@ class PassiveSplitCollector:
         )
         self.target_start_file = Path(str(campaign["_target_start_file"])).resolve()
         self.profile_activated = False
-        self.tracker = parked.StationaryTrackAccumulator(
+        self.tracker = FastStationaryTrackAccumulator(
             stationary_velocity_mps=0.35, parked_threshold_s=5.0,
             association_grid_m=1.5, max_stale_s=2.0,
         )
@@ -1214,13 +1212,22 @@ class PassiveSplitCollector:
         ):
             return
         frame_id = int(token["frame_id"])
+        process_started_perf = time.perf_counter()
         records = self._records_for(frame_id)
+        sensor_ready_perf = time.perf_counter()
+        sensor_wait_ms = (sensor_ready_perf - process_started_perf) * 1000.0
         if records is None:
             self.dropped += 1
-            self._append_row({**token, "prepare_status": "DROPPED_SENSOR_LATE_OR_MISSING", "processing_late": 1})
+            self._append_row({
+                **token,
+                "prepare_status": "DROPPED_SENSOR_LATE_OR_MISSING",
+                "processing_late": 1,
+                "sensor_wait_ms": sensor_wait_ms,
+            })
             return
         require(not self.aggregator_error, self.aggregator_error)
         image, capture_wall, capture_perf, radar_measurement = records
+        radar_window_started_perf = time.perf_counter()
         with self.sensor_condition:
             if self.aggregator.anchor_s is None:
                 self.aggregator.set_anchor(float(radar_measurement.timestamp))
@@ -1233,6 +1240,7 @@ class PassiveSplitCollector:
                 sweep_index, sensor_inverse_matrix=radar_inverse,
                 reference_timestamp_s=float(radar_measurement.timestamp),
             )
+        radar_window_ms = (time.perf_counter() - radar_window_started_perf) * 1000.0
         if int(window_meta["callbacks"]) != 4:
             # CARLA sensor callbacks are asynchronous. A short sweep is an
             # unavailable preparation opportunity, not corruption of the
@@ -1247,14 +1255,14 @@ class PassiveSplitCollector:
                 "processing_late": 1,
             })
             return
-        # The synchronized sensor input is now prepared. Enforce the one
-        # authoritative capture-based deadline before spending rasterization,
-        # front/AE and encode work on a frame that can never install in time.
+        # The synchronized sensor input is now prepared.  The 100 ms target is
+        # a classification boundary; the later ACK timeout is the processing
+        # horizon after which work can no longer provide useful feedback.
         try:
             check_deadline(
                 UE_STAGE_AFTER_PREPARATION,
                 int(round(float(capture_wall) * 1_000_000_000)),
-                self.install_deadline_s,
+                self.ack_timeout_s,
             )
         except DeadlineExpired as expired:
             self.dropped += 1
@@ -1264,7 +1272,8 @@ class PassiveSplitCollector:
                 **token,
                 "carla_timestamp": float(radar_measurement.timestamp),
                 "capture_wall_s": float(capture_wall),
-                "service_deadline_at": float(capture_wall) + self.install_deadline_s,
+                "service_deadline_at": float(capture_wall) + self.service_deadline_s,
+                "ack_timeout_at": float(capture_wall) + self.ack_timeout_s,
                 "prepare_status": "STALE_BEFORE_SEND",
                 "processing_late": 1,
                 "deadline_expiry_stage": expired.stage,
@@ -1272,11 +1281,14 @@ class PassiveSplitCollector:
                 "queue_wait_ms": (
                     time.perf_counter() - float(token["scheduled_perf"])
                 ) * 1000.0,
+                "sensor_wait_ms": sensor_wait_ms,
+                "radar_window_ms": radar_window_ms,
             })
             return
         camera_matrix = actor_world_matrix(self.camera)
         camera_inverse = actor_world_inverse_matrix(self.camera)
         radar_matrix = actor_world_matrix(self.radar)
+        radar_prepare_started_perf = time.perf_counter()
         radar_tensor, radar_points, radar_summary = self.parked.build_radar_sample(
             detections=detections, sensor_matrix=radar_matrix,
             camera_inverse_matrix=camera_inverse, camera_intrinsics=self.intrinsics,
@@ -1285,7 +1297,10 @@ class PassiveSplitCollector:
             max_range_m=120.0, max_abs_velocity_mps=20.0,
             parked_threshold_s=5.0, point_radius_px=4, rasterizer="fast",
         )
+        radar_prepare_ms = (time.perf_counter() - radar_prepare_started_perf) * 1000.0
+        rgb_convert_started_perf = time.perf_counter()
         frame_bgr = carla_image_to_bgr(image)
+        rgb_convert_ms = (time.perf_counter() - rgb_convert_started_perf) * 1000.0
         capture_id = f"{self.stream_id}:{frame_id}"
         action_id = (
             self.qualification_transmit_order[self.sent % len(self.qualification_transmit_order)]
@@ -1293,8 +1308,8 @@ class PassiveSplitCollector:
             else int(self.cell["action_id"])
         )
         capture_timestamp_ns = int(round(float(capture_wall) * 1_000_000_000))
-        # The one authoritative absolute capture-based service deadline.
-        deadline = float(capture_wall) + self.install_deadline_s
+        service_deadline_at = float(capture_wall) + self.service_deadline_s
+        ack_timeout_at = float(capture_wall) + self.ack_timeout_s
         queue_wait_ms = (time.perf_counter() - float(token["scheduled_perf"])) * 1000.0
         if not self.profile_activated:
             self.target_start_file.touch(exist_ok=False)
@@ -1304,6 +1319,7 @@ class PassiveSplitCollector:
         # Freeze the scene at exactly this synchronized frame so evaluation can
         # run off the real-time path and still use the correct scene state.
         scene = None
+        scene_snapshot_started_perf = time.perf_counter()
         if self.scene_source is not None:
             try:
                 scene = self.scene_source.capture(self.world.get_snapshot())
@@ -1311,6 +1327,10 @@ class PassiveSplitCollector:
                 self.evaluation_errors[frame_id] = (
                     f"SCENE_SNAPSHOT_FAILED:{type(exc).__name__}:{exc}"
                 )
+        scene_snapshot_ms = (time.perf_counter() - scene_snapshot_started_perf) * 1000.0
+        pre_front_compute_ms = (
+            time.perf_counter() - sensor_ready_perf
+        ) * 1000.0
         # The capture's feedback obligation is created at the moment the UE
         # commits to transmitting -- after the pre-send deadline gate and
         # before the first datagram leaves. A frame refused as stale therefore
@@ -1320,7 +1340,8 @@ class PassiveSplitCollector:
             self.feedback.register_capture(
                 stream_id=self.stream_id, capture_id=capture_id, frame_id=frame_id,
                 capture_at=float(capture_wall), action_id=str(action_id),
-                service_deadline_at=deadline, ack_timeout_at=deadline,
+                service_deadline_at=service_deadline_at,
+                ack_timeout_at=ack_timeout_at,
             )
 
         front = self.live.submit(
@@ -1338,7 +1359,15 @@ class PassiveSplitCollector:
             **token, "capture_id": capture_id,
             "carla_timestamp": float(radar_measurement.timestamp),
             "action_id": action_id, "capture_wall_s": float(capture_wall),
-            "service_deadline_at": deadline, "queue_wait_ms": queue_wait_ms,
+            "service_deadline_at": service_deadline_at,
+            "ack_timeout_at": ack_timeout_at,
+            "queue_wait_ms": queue_wait_ms,
+            "sensor_wait_ms": sensor_wait_ms,
+            "radar_window_ms": radar_window_ms,
+            "radar_prepare_ms": radar_prepare_ms,
+            "rgb_convert_ms": rgb_convert_ms,
+            "scene_snapshot_ms": scene_snapshot_ms,
+            "pre_front_compute_ms": pre_front_compute_ms,
             "window_sweeps": "|".join(str(v) for v in window_meta["sweep_indices"]),
             "window_callbacks": window_meta["callbacks"],
             "window_returns": window_meta["returns"],
@@ -1383,7 +1412,7 @@ class PassiveSplitCollector:
         self._append_row({
             **common,
             "prepare_status": "SENT",
-            "processing_late": int(time.time() > deadline),
+            "processing_late": int(time.time() > service_deadline_at),
             "front_ms": front.get("front_ms", ""),
             "payload_bytes": front.get("payload_bytes", ""),
             "payload_bytes_uncompressed": front.get("payload_bytes_uncompressed", ""),
@@ -1437,7 +1466,18 @@ class PassiveSplitCollector:
             index = min(len(values) - 1, max(0, int(round(fraction * (len(values) - 1)))))
             return float(values[index])
 
-        timely = [value for value in aoi_ms if value <= self.install_deadline_s * 1000.0]
+        service_on_time = [
+            value for value in aoi_ms
+            if value <= self.service_deadline_s * 1000.0
+        ]
+        ack_within_timeout = [
+            row for row in feedback_rows
+            if str(row.get("status") or "") == "ACK_INSTALLED"
+            and str(row.get("terminal", "")).lower() in {"1", "true"}
+            and row.get("feedback_received_at") not in (None, "")
+            and row.get("ack_timeout_at") not in (None, "")
+            and float(row["feedback_received_at"]) <= float(row["ack_timeout_at"])
+        ]
         edge_deadline_drops = {
             key.replace("deadline_drop_", ""): int(value)
             for key, value in {**edge.get("counters", {}), **transport}.items()
@@ -1448,9 +1488,10 @@ class PassiveSplitCollector:
                 stage = key.replace("deadline_drop_", "")
                 edge_deadline_drops[stage] = edge_deadline_drops.get(stage, 0) + int(value)
         return {
-            "install_deadline_s": self.install_deadline_s,
-            "install_deadline_is_single_authoritative_value": True,
-            "reported_only_tight_service_target_s": self.tight_service_target_s,
+            "service_deadline_s": self.service_deadline_s,
+            "ack_timeout_s": self.ack_timeout_s,
+            "processing_expiry_s": self.ack_timeout_s,
+            "service_deadline_and_ack_timeout_are_distinct": True,
             "dense_label_map_on_radio": False,
             "prepare_status_counts": status_counts,
             "deadline_expiry_stage_counts_ue_rows": expiry_stages,
@@ -1463,9 +1504,20 @@ class PassiveSplitCollector:
             "install_aoi_ms_median": quantile(aoi_ms, 0.5),
             "install_aoi_ms_p95": quantile(aoi_ms, 0.95),
             "install_aoi_ms_max": (max(aoi_ms) if aoi_ms else None),
-            "timely_installations": len(timely),
+            # Backward-compatible names now retain their contract meaning:
+            # "timely" is the 100 ms service target, never the 500 ms ACK
+            # observation timeout.
+            "timely_installations": len(service_on_time),
             "timely_installation_fraction": (
-                len(timely) / len(aoi_ms) if aoi_ms else None
+                len(service_on_time) / len(aoi_ms) if aoi_ms else None
+            ),
+            "service_on_time_installations": len(service_on_time),
+            "service_on_time_fraction": (
+                len(service_on_time) / len(aoi_ms) if aoi_ms else None
+            ),
+            "ack_within_timeout_installations": len(ack_within_timeout),
+            "ack_within_timeout_fraction": (
+                len(ack_within_timeout) / len(aoi_ms) if aoi_ms else None
             ),
             "install_aoi_monotonic_fraction": _monotonic_fraction(
                 [
