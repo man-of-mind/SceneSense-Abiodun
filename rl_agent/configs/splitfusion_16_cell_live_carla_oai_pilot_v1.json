@@ -91,7 +91,7 @@
     "split_inference_runtime": "rl_agent/splitfusion_live_dispatch_v1/runtime_binding.json",
     "split_inference_runtime_sha256": "604450c7f0f791a480ba4e5ed6b286a2b6f68497735372a7a63ed92e93585551",
     "required_route_b_split_cell_adapter": "rl_agent/ue_route_b_split_cell_adapter_v1.py",
-    "required_route_b_split_cell_adapter_sha256": "c5eee0713af16da98554f458087c98f25e342546cc2fb10232731a0e9de3c142",
+    "required_route_b_split_cell_adapter_sha256": "bfb0365a3ad4b13457f9d3fdf8b56dabe8d338e8a669eb88d4527c70dc2553bd",
     "map_install_runtime": "uplink_only_spatial_map_pipeline/spatial_map_server_moving_ego_uplink_only_baseline.py",
     "map_install_runtime_sha256": "cc301919b767688f1eab0923d4a935791b06a6cda3d0d5f565484aeae4b05bc1",
     "target_snr_runtime": "rl_agent/splitfusion_live_dispatch_v1/live_pilot_target_snr_runtime.py",
@@ -157,7 +157,7 @@
     "edge_image_dockerfile": {"path":"receiver_container/Dockerfile","sha256":"d4b2aac6b3b081e04af1a25e7372c529ba7718c83ee9fe533d77306922b1c195"},
     "edge_image_entrypoint": {"path":"receiver_container/entrypoint.sh","sha256":"5a9367c35ff1674d5f517f6adc4bc20bf496c146c4301aa76be228285750efe2"},
     "edge_base_compose": {"path":"receiver_container/docker-compose.yaml","sha256":"aa45477d63d40799a45115f6db5f07a1eb2440217f43b32173c8536f759c0857"},
-    "edge_split_compose": {"path":"receiver_container/docker-compose.fusion-back.yaml","sha256":"84a6804049a9e195dea1a9ffd92860d6840dd98e295d17d490547753dc80e237"},
+    "edge_split_compose": {"path":"receiver_container/docker-compose.fusion-back.yaml","sha256":"6d00149c7d9a9502af1ea701e3494aed0a7bbf9dbb1412f0c2b1e1b7b0f9061a"},
     "edge_launcher": {"path":"scripts/receiver_container_fusion_back_up.sh","sha256":"db6ea6387d590fdca94445288f183310181c5acbac7ec6b4adf8c337431eb246"}
   },
   "authorization": {"pilot_16_authorized": true,"campaign_288_authorized": false,"required_passed_cells":16,"full_sweep_remains_unauthorized":true}

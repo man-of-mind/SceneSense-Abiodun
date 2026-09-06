@@ -730,14 +730,6 @@ class PassiveSplitCollector:
         feedback_port: int,
         edge_evidence_dir: Path,
     ) -> None:
-        from pole_lraspp_multimodal_fusion.pole_lraspp_multimodal_fusion import (
-            radar_fusion as nested_radar_fusion,
-        )
-
-        legacy_radar_name = "pole_lraspp_multimodal_fusion.radar_fusion"
-        existing_radar = sys.modules.get(legacy_radar_name)
-        require(existing_radar in (None, nested_radar_fusion), "radar-fusion module identity drift")
-        sys.modules.setdefault(legacy_radar_name, nested_radar_fusion)
         import carla_collect_parked_ego_fusion_training_data as parked
         from data_collection.radar_sweep_aggregator_v1 import RadarSweepAggregator
         from rl_agent.ue_map_install_feedback_v1 import InstallFeedbackLedger
@@ -1656,6 +1648,14 @@ def run_route_b(
     edge_evidence_dir: Path,
     maximum_loop_sim_s: float,
 ) -> tuple[bool, dict[str, Any], PassiveSplitCollector | None]:
+    from pole_lraspp_multimodal_fusion.pole_lraspp_multimodal_fusion import (
+        radar_fusion as nested_radar_fusion,
+    )
+
+    legacy_radar_name = "pole_lraspp_multimodal_fusion.radar_fusion"
+    existing_radar = sys.modules.get(legacy_radar_name)
+    require(existing_radar in (None, nested_radar_fusion), "radar-fusion module identity drift")
+    sys.modules.setdefault(legacy_radar_name, nested_radar_fusion)
     import data_collection.run_route_b_density_loop as density
     from data_collection.run_route_b_perception_collection_v2 import (
         ClientProxy, SamplingWorld, intervention_policy,
