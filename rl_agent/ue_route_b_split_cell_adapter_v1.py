@@ -288,17 +288,7 @@ def stop_tail() -> bool:
         ], cwd=str(ROOT / "receiver_container"), check=False,
         stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
     )
-    deadline = time.monotonic() + 180.0
-    while True:
-        remaining = subprocess.run(
-            ("sudo", "-n", "docker", "inspect", "oai-perception-rx"),
-            cwd=str(ROOT), check=False, stdin=subprocess.DEVNULL,
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-        )
-        if remaining.returncode != 0 or time.monotonic() >= deadline:
-            break
-        time.sleep(0.05)
-    return completed.returncode == 0 and remaining.returncode != 0
+    return completed.returncode == 0 and not tail_running()
 
 
 def tail_running() -> bool:
@@ -1648,14 +1638,13 @@ def run_route_b(
     edge_evidence_dir: Path,
     maximum_loop_sim_s: float,
 ) -> tuple[bool, dict[str, Any], PassiveSplitCollector | None]:
-    from pole_lraspp_multimodal_fusion.pole_lraspp_multimodal_fusion import (
-        radar_fusion as nested_radar_fusion,
-    )
+    import pole_lraspp_multimodal_fusion as fusion_namespace
+    legacy_package = ROOT / "pole_lraspp_multimodal_fusion" / "pole_lraspp_multimodal_fusion"
+    require(legacy_package.is_dir(), "legacy fusion package is missing")
+    namespace_paths = {Path(value).resolve() for value in fusion_namespace.__path__}
+    if legacy_package.resolve() not in namespace_paths:
+        fusion_namespace.__path__.append(str(legacy_package.resolve()))
 
-    legacy_radar_name = "pole_lraspp_multimodal_fusion.radar_fusion"
-    existing_radar = sys.modules.get(legacy_radar_name)
-    require(existing_radar in (None, nested_radar_fusion), "radar-fusion module identity drift")
-    sys.modules.setdefault(legacy_radar_name, nested_radar_fusion)
     import data_collection.run_route_b_density_loop as density
     from data_collection.run_route_b_perception_collection_v2 import (
         ClientProxy, SamplingWorld, intervention_policy,
