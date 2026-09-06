@@ -87,6 +87,30 @@ takes no observation → the Phase-1 hypothesis was unrepresentable, not rejecte
 calibrated LOCAL actions; Phase-2 object-selective map sharing. Reopening RL requires a *new* pre-registered gap on
 an expanded contract, not a retune of these gates.
 
+## Phase-15 real-time recovery (2026-09-06) — VALIDATED
+- The retry4 deadline failure is repaired and validated on four fresh Route-B cells
+  (`experiments/splitfusion_phase15_realtime_recovery_v1/20260906_actions20_71_favorable_fade_retry1`,
+  verdict in `..._retry1_reevaluated`, `POST_REPAIR_REALTIME_QUALIFICATION`). The dense 720x1280
+  label map is off the radio (result datagrams 102-103 -> 4-5 median) and persisted hash-verified on
+  the edge mount; one authoritative capture-based 500 ms deadline is enforced at every stage; both
+  FIFOs are bounded latest-frame-first. Median capture-to-install AoI 3,889/33,905/110,237 ms ->
+  460/357/486/353 ms; timely installs 0/35,870 -> 176/1,968/3/1,749; the payload-inverse AoI ordering
+  is **inverted** (a71 now below a20). All 12 validity gates pass; terminal accounting exact.
+- **Preparation coverage is 0.889-0.920, still below the unchanged 0.95 target** (up from 0.67-0.76).
+  The target was not weakened. Remaining bottleneck is CARLA sensor-window assembly + radar
+  rasterisation (~90 ms of a ~110-114 ms worker period; model path is only 18-23 ms), so closing it
+  needs the preparation path parallelised, not a threshold moved.
+- **Action 20 is uplink-limited, not defective:** at ~97 datagrams/frame only 218/2,839 features
+  arrive complete and fresh (FAVORABLE_STABLE) and 6/3,285 (FADE_RECOVERY, 1,156 incomplete
+  reassemblies). That is the payload/deadline frontier, and it is the main input to any later
+  split-profile characterization.
+- The 16-cell retry4 pilot is retained as `STRUCTURAL_INTEGRATION_QUALIFICATION`; it was not rerun.
+  The 288-cell campaign remains unauthorized.
+- **Pin warning:** three independent SHA-256 pin layers guard this path (campaign config, the
+  Phase-14A binding's `map_install.artifacts`, and the SFD1-v2 authority). The first launch attempt
+  died at the OAI launcher because `ue_map_install_feedback_v1.py` is pinned in the Phase-14A
+  binding. Verify all enforced pins before any live launch.
+
 ## Current work (scope-reset 2026-08-20)
 - **Binding path:** follow
   `rl_agent/UE_AGENT_EXECUTION_CHECKLIST_V2.md`. Qualify the repeatable route,
