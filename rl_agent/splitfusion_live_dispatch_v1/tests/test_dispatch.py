@@ -192,6 +192,10 @@ class PreloadedDispatchTest(unittest.TestCase):
             Path(__file__).resolve().parents[3]
             / "receiver_container/docker-compose.fusion-back.yaml"
         ).read_text(encoding="utf-8")
+        base_compose = (
+            Path(__file__).resolve().parents[3]
+            / "receiver_container/docker-compose.yaml"
+        ).read_text(encoding="utf-8")
         helper = (
             Path(__file__).resolve().parents[3]
             / "scripts/receiver_container_fusion_back_up.sh"
@@ -199,6 +203,14 @@ class PreloadedDispatchTest(unittest.TestCase):
         self.assertIn(
             "${SPLITFUSION_EDGE_STATE_ROOT:-../torch_cache}:/work/torch_cache:rw",
             compose,
+        )
+        self.assertIn(
+            "PYTHONPATH=/work/abiodun:/work/abiodun/rl_agent/feature_ae",
+            base_compose,
+        )
+        self.assertNotIn(
+            "PYTHONPATH=/work/abiodun/pole_lraspp_multimodal_fusion:",
+            base_compose,
         )
         self.assertIn(
             'SPLITFUSION_EDGE_STATE_ROOT="${SPLITFUSION_EDGE_STATE_ROOT}"',

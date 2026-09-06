@@ -473,7 +473,7 @@ print('PHASE15_CONTAINER_PROBE=' + json.dumps(report, sort_keys=True))
             "--network", "none", "--gpus", "all",
             "--entrypoint", "/usr/bin/python3",
             "-e", f"PHASE15_ARTIFACT_CHECKS={json.dumps(checks, separators=(',', ':'))}",
-            "-e", "PYTHONPATH=/work/abiodun/pole_lraspp_multimodal_fusion:/work/abiodun:/work/abiodun/rl_agent/feature_ae",
+            "-e", "PYTHONPATH=/work/abiodun:/work/abiodun/rl_agent/feature_ae",
             "-v", f"{ROOT}:/work/abiodun:ro",
             "-v", f"{Path(raw_state).resolve()}:/work/torch_cache:rw",
             EDGE_IMAGE, "-c", probe_code,
