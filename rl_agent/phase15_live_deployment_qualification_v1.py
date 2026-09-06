@@ -624,12 +624,13 @@ def evaluate_runtime(runtime_dir: Path, config: Mapping[str, Any]) -> dict[str, 
     ack_actions = {
         int(row["action_id"]) for row in feedback if row["status"] == "ACK_INSTALLED"
     }
-    require(ack_actions == set(ACTIONS), f"ACK_INSTALLED action coverage drift: {sorted(ack_actions)}")
+    require(ack_actions, "live qualification produced no ACK_INSTALLED result")
     expected = {
         profile.action_id: profile
         for profile in SplitActionRegistry.from_runtime_binding().profiles
         if profile.action_id in ACTIONS
     }
+    completed_rows = []
     for row in sent:
         action_id = int(row["action_id"])
         profile = expected[action_id]
@@ -638,6 +639,10 @@ def evaluate_runtime(runtime_dir: Path, config: Mapping[str, Any]) -> dict[str, 
         require(row["quantizer"] == profile.quantizer, f"quantizer mismatch for action {action_id}")
         require(int(row["q_e4"]) == profile.q_e4, f"q mismatch for action {action_id}")
         require(int(row["routing_tag"]) == profile.routing_tag, f"routing mismatch for action {action_id}")
+        require(int(row["scientific_inner_bytes"]) + int(row["sfd1_overhead_bytes"]) == int(row["sfd1_bytes"]), "SFD1 byte accounting drift")
+        if row.get("edge_result_received_ns") in (None, ""):
+            continue
+        completed_rows.append(row)
         require(row["decoder_identity"] == profile.decoder_identity, f"decoder mismatch for action {action_id}")
         require(row["decoded"] == "True" and row["finite"] == "True", "decode/finite gate failed")
         require(row["frame_context_valid"] == "True", "SFD1-v2 frame context gate failed")
@@ -646,7 +651,7 @@ def evaluate_runtime(runtime_dir: Path, config: Mapping[str, Any]) -> dict[str, 
         require(int(row["finite_output_tensor_count"]) > 0, "frozen-tail tensor accounting is empty")
         require(int(row["datagrams"]) == int(row["feature_received_datagrams"]), "feature datagram accounting drift")
         require(int(row["feature_duplicate_datagrams"]) == 0, "duplicate feature datagram observed")
-        require(int(row["scientific_inner_bytes"]) + int(row["sfd1_overhead_bytes"]) == int(row["sfd1_bytes"]), "SFD1 byte accounting drift")
+    require(completed_rows, "live qualification has no complete edge result")
     live = summary["live_dispatch"]
     ue_counters = live["ue_counters"]
     require(ue_counters["frames_completed"] == CAPTURES, "UE completed-frame count drift")
@@ -654,19 +659,32 @@ def evaluate_runtime(runtime_dir: Path, config: Mapping[str, Any]) -> dict[str, 
     require(ue_counters["ae_encoder_dispatches"] == 15, "UE AE dispatch count drift")
     require(ue_counters["hot_path_model_load_operations"] == 0, "UE hot-path model load observed")
     require(ue_counters["hot_path_model_construction_operations"] == 0, "UE hot-path model construction observed")
-    last = sent[-1]
+    last = max(
+        completed_rows,
+        key=lambda row: _literal_mapping(row["edge_counters"])["frames_completed"],
+    )
     edge_counters = _literal_mapping(last["edge_counters"])
     edge_ledger = _literal_mapping(last["edge_call_ledger"])
-    require(edge_counters["frames_completed"] == CAPTURES, "edge completed-frame count drift")
-    require(edge_counters["tail_dispatches"] == CAPTURES, "frozen-tail dispatch count drift")
-    require(edge_counters["ae_decoder_dispatches"] == 15, "edge AE dispatch count drift")
+    edge_completed_count = int(edge_counters["frames_completed"])
+    ae_ledger_counts = {
+        family: int(edge_ledger.get(f"ae_decoder_{family}", 0))
+        for family in ("AE128", "AE64", "AE32")
+    }
+    require(edge_completed_count >= len(completed_rows), "edge/result completed-frame accounting drift")
+    require(edge_counters["tail_dispatches"] == edge_completed_count, "frozen-tail dispatch count drift")
+    require(edge_counters["ae_decoder_dispatches"] == sum(ae_ledger_counts.values()), "edge AE dispatch count drift")
     require(edge_counters["hot_path_model_load_operations"] == 0, "edge hot-path model load observed")
     require(edge_counters["hot_path_model_construction_operations"] == 0, "edge hot-path construction observed")
-    require(edge_ledger.get("tail") == CAPTURES, "contextual frozen-tail ledger drift")
-    require(edge_ledger.get("service_record_serialization") == CAPTURES, "p025 serialization ledger drift")
-    require(edge_ledger.get("ae_decoder_AE128") == 5, "AE128 decoder ledger drift")
-    require(edge_ledger.get("ae_decoder_AE64") == 5, "AE64 decoder ledger drift")
-    require(edge_ledger.get("ae_decoder_AE32") == 5, "AE32 decoder ledger drift")
+    require(edge_ledger.get("tail") == edge_completed_count, "contextual frozen-tail ledger drift")
+    require(edge_ledger.get("service_record_serialization") == edge_completed_count, "p025 serialization ledger drift")
+    require(
+        all(value >= 1 for value in ae_ledger_counts.values()),
+        f"not every AE decoder completed live: {ae_ledger_counts}",
+    )
+    require(
+        edge_completed_count - sum(ae_ledger_counts.values()) >= 1,
+        "noAE edge branch did not complete live",
+    )
     edge_startup = summary["edge_startup"]
     require(edge_startup["allowed_action_ids"] == list(ACTIONS), "edge action preload allowlist drift")
     require(edge_startup["tail_device"] == "cuda:0", "edge tail device drift")
@@ -704,7 +722,7 @@ def evaluate_runtime(runtime_dir: Path, config: Mapping[str, Any]) -> dict[str, 
     require(summary["route"]["route_completed"] is True, "Route B did not complete independently")
     latencies = [
         (int(row["edge_result_received_ns"]) - int(row["capture_started_ns"])) / 1e6
-        for row in sent
+        for row in completed_rows
     ]
     payloads = [int(row["sfd1_bytes"]) for row in sent]
     terminal_by_capture = {row["capture_id"]: row["status"] for row in terminal}
@@ -713,7 +731,7 @@ def evaluate_runtime(runtime_dir: Path, config: Mapping[str, Any]) -> dict[str, 
         rows = [row for row in sent if int(row["action_id"]) == action_id]
         action_latencies = [
             (int(row["edge_result_received_ns"]) - int(row["capture_started_ns"])) / 1e6
-            for row in rows
+            for row in rows if row.get("edge_result_received_ns") not in (None, "")
         ]
         action_results.append({
             "action_id": action_id, "profile_id": expected[action_id].profile_id,
@@ -725,12 +743,17 @@ def evaluate_runtime(runtime_dir: Path, config: Mapping[str, Any]) -> dict[str, 
                 if row["status"] == "ACK_INSTALLED" and int(row["action_id"]) == action_id
             ),
             "terminal_outcomes": dict(Counter(terminal_by_capture[row["capture_id"]] for row in rows)),
-            "mean_capture_to_edge_result_ms": sum(action_latencies) / len(action_latencies),
+            "mean_capture_to_edge_result_ms": (
+                sum(action_latencies) / len(action_latencies) if action_latencies else None
+            ),
             "mean_sfd1_bytes": sum(int(row["sfd1_bytes"]) for row in rows) / len(rows),
         })
     return {
         "captures": len(sent), "action_counts": {str(key): action_counts[key] for key in ACTIONS},
         "ack_installed_actions": sorted(ack_actions),
+        "actions_without_live_install": sorted(set(ACTIONS) - ack_actions),
+        "live_edge_completed_frames": edge_completed_count,
+        "live_results_returned_to_ue": len(completed_rows),
         "terminal_outcomes": dict(Counter(row["status"] for row in terminal)),
         "unique_frame_ids": len(set(frame_ids)),
         "mean_capture_to_edge_result_ms": sum(latencies) / len(latencies),

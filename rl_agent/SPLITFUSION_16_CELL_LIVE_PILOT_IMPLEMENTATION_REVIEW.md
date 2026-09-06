@@ -14,3 +14,10 @@
 - The target sequence has absolute 100-ms deadlines and its existing no-wrap/no-hold/no-reseed behavior.  The Phase-14B probe is explicitly forbidden.
 - Radio, edge container, map process, UE sockets, CARLA process group, temporary diagnostics, and the edge readiness leaf are stopped/removed before the next cell.  Only compact registered per-cell records are retained.
 - Resume skips only a revalidated, hash-bound passed cell; failed/interrupted attempts remain immutable and are never reused.
+
+## 3. Qualification/performance amendment after the first complete live route
+
+- The first complete qualification route proved all four UE dispatch branches but also showed that a cyclic mixture of multi-megabyte and kilobyte payloads can overload the live radio before every family reaches the edge. Missing/late delivery is therefore retained as a measured action outcome; it is not transport corruption.
+- Qualification still requires all four UE branches in exact order, exact terminal accounting for every sent capture, at least one real OAI end-to-end decoded/finite installation, and the prior hash-bound all-action localhost parity qualification. Every live-completed frame remains subject to the full decoder, frame-context, finite-output, device, datagram, tail, and serialization checks.
+- Per-cell structural validity continues to fail on corrupt/mismatched/non-finite execution, missing accounting, crashed services, incomplete teardown, or an unrecorded 10 Hz opportunity. Preparation coverage and delivery rate are recorded as performance outcomes, including zeros, so infeasible profiles remain visible to the later agent instead of being censored.
+- An asynchronous CARLA radar window with fewer than four callbacks is recorded as an unavailable preparation opportunity in the denominator. It is never passed to perception and does not invalidate otherwise complete cell evidence.

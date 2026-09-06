@@ -91,7 +91,7 @@
     "split_inference_runtime": "rl_agent/splitfusion_live_dispatch_v1/runtime_binding.json",
     "split_inference_runtime_sha256": "604450c7f0f791a480ba4e5ed6b286a2b6f68497735372a7a63ed92e93585551",
     "required_route_b_split_cell_adapter": "rl_agent/ue_route_b_split_cell_adapter_v1.py",
-    "required_route_b_split_cell_adapter_sha256": "4bb4f899c4c2cad03562e391c5e3c8e815fe5a3dece237a421cd5c74c8d75d6e",
+    "required_route_b_split_cell_adapter_sha256": "b44b4194501f8a224212b218890c5b60593f96d05392e637d5a7d0840126c821",
     "map_install_runtime": "uplink_only_spatial_map_pipeline/spatial_map_server_moving_ego_uplink_only_baseline.py",
     "map_install_runtime_sha256": "cc301919b767688f1eab0923d4a935791b06a6cda3d0d5f565484aeae4b05bc1",
     "target_snr_runtime": "rl_agent/splitfusion_live_dispatch_v1/live_pilot_target_snr_runtime.py",
@@ -148,8 +148,8 @@
     "perception_metric_fields": ["frame_id", "class_name", "tp", "fp", "fn", "precision", "recall", "valid_empty", "coverage", "feedback_status", "exact_frame_prediction_available", "object_gt_evidence_available", "segmentation_evidence_available", "source_time_world_xy_error_m", "aligned_world_xy_error_m", "dimension_error_m", "footprint_iou", "segmentation_iou"]
   },
   "deployment": {
-    "phase15_supervisor": {"path":"rl_agent/ue_288_campaign_supervisor.py","sha256":"dc3fbac0dc4f214a8782184441e2039bc94da120974be072caa0a281272d8050"},
-    "phase15_qualification_runner": {"path":"rl_agent/phase15_live_deployment_qualification_v1.py","sha256":"5f4fdd1e46f8f9416a23a5af92f64fe38a1ca0abcbe45a0841411e21e438418d"},
+    "phase15_supervisor": {"path":"rl_agent/ue_288_campaign_supervisor.py","sha256":"582b522faccddc579b5b0fdc212061a2361c8da7f239815994253969b1022c66"},
+    "phase15_qualification_runner": {"path":"rl_agent/phase15_live_deployment_qualification_v1.py","sha256":"da0a3cdd9b586ae1d8c85c705f3b3f36b646b3b07f3b3cd06081cfbc72ea2950"},
     "frozen_phase14_target_runtime": {"path":"rl_agent/ue_target_snr_cell_runtime_v1.py","sha256":"292352b13d72330d6ffcedfb4236480cda5fa80ab6d29059af1adbfb1d398203"},
     "perception_train_only_priors": {"path":"experiments/route_b_v3_1_splitfusion_fcos_r50_fpn_p2_p7_v1/20260829_214123/TRAIN_ONLY_PRIORS.json","sha256":"90ce336604ff83ccd7ea813ae4c12434b6f122b90a906e83d36742ff7f6700f0"},
     "fcos_constructor_weights": {"path":"experiments/splitfusion_phase15_runtime_cache_v1/torch/hub/checkpoints/fcos_resnet50_fpn_coco-99b0c9b7.pth","sha256":"99b0c9b7cfb1527d782db86b91d207f00547c792fb4103fc612b651d0a07b9e7"},

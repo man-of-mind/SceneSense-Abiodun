@@ -1483,8 +1483,14 @@ def finalize_live_pilot(
             "cell_id": cell.cell_id, "action_id": cell.action_id, "profile_id": cell.profile_id,
             "network_profile_id": cell.network_profile_id, "attempt": int(passed["attempt"]),
             "route_completed": bool(summary.get("route", {}).get("route_completed")),
+            "eligible_preparation_frames": int(structural.get("eligible_preparation_frames", 0)),
             "captures_sent": len(sent), "ack_installed_frames": installed,
-            "delivery_rate": (installed / len(sent)) if sent else 0.0,
+            "preparation_rate": float(structural.get("sensor_preparation_coverage", 0.0)),
+            "conditional_delivery_rate_given_sent": (installed / len(sent)) if sent else 0.0,
+            "delivery_rate": (
+                installed / int(structural["eligible_preparation_frames"])
+                if int(structural.get("eligible_preparation_frames", 0)) else 0.0
+            ),
             "mean_capture_to_edge_result_ms": (sum(latencies) / len(latencies)) if latencies else None,
             "maximum_capture_to_edge_result_ms": max(latencies) if latencies else None,
             "mean_install_aoi_ms": (sum(aoi_ms) / len(aoi_ms)) if aoi_ms else None,
@@ -1533,9 +1539,9 @@ def finalize_live_pilot(
     qualification_path = campaign_root / "qualification.json"
     write_create_only(qualification_path, json.dumps(qualification, indent=2, sort_keys=True) + "\n")
     report_path = campaign_root / "REPORT.md"
-    report = ["# SplitFusion 16-cell live CARLA/OAI pilot", "", "All sixteen registered cells completed with fresh radio/CARLA lifecycles.", "", "| Cell | Action | Network profile | Captures | ACK installed | Delivery |", "|---|---:|---|---:|---:|---:|"]
+    report = ["# SplitFusion 16-cell live CARLA/OAI pilot", "", "All sixteen registered cells completed with fresh radio/CARLA lifecycles.", "", "| Cell | Action | Network profile | Eligible | Sent | ACK installed | Preparation | Delivery overall | Delivery given sent |", "|---|---:|---|---:|---:|---:|---:|---:|---:|"]
     report.extend(
-        f"| {row['cell_id']} | {row['action_id']} | {row['network_profile_id']} | {row['captures_sent']} | {row['ack_installed_frames']} | {row['delivery_rate']:.6f} |"
+        f"| {row['cell_id']} | {row['action_id']} | {row['network_profile_id']} | {row['eligible_preparation_frames']} | {row['captures_sent']} | {row['ack_installed_frames']} | {row['preparation_rate']:.6f} | {row['delivery_rate']:.6f} | {row['conditional_delivery_rate_given_sent']:.6f} |"
         for row in rows
     )
     write_create_only(report_path, "\n".join(report) + "\n")
