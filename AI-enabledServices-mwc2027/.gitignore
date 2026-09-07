@@ -1,0 +1,19 @@
+__pycache__/
+*.py[cod]
+*.so
+
+# Local environments and editor metadata
+.venv/
+venv/
+.idea/
+.vscode/
+
+# CARLA captures and generated experiment output
+_out/
+manual_recording.rec
+experiments/
+*.log
+
+# Temporary/atomic route-recorder artifacts
+.*.tmp
+*.checkpoint.json

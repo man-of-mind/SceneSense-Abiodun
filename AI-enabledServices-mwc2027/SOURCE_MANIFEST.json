@@ -1,0 +1,51 @@
+{
+  "manifest_version": 2,
+  "copied_on": "2026-08-17",
+  "updated_on": "2026-08-31",
+  "source_root": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab",
+  "path_semantics": "files keys are repository-relative destinations; archive_sources maps byte-identical archives to source-root-relative origins; archive_repository_snapshots records historical files preserved from an earlier repository commit",
+  "archive_sources": {
+    "archive/v9/manual_control_ar_v9.py": "manual_control_ar_v9.py",
+    "archive/v9/pedestrian_head_camera_client_v9.py": "pedestrian_head_camera_client_v9.py",
+    "archive/v11/manual_control_ar_v11.py": "manual_control_ar_v11.py",
+    "archive/v11/pedestrian_head_camera_client_v11.py": "pedestrian_head_camera_client_v11.py"
+  },
+  "archive_repository_snapshots": {
+    "archive/v5/spawn_blocker_v5.py": {
+      "commit": "f067456",
+      "path": "spawn_blocker_v5.py"
+    }
+  },
+  "runtime": {
+    "python": "3.10.12",
+    "carla": "0.10.0",
+    "required_map": "Carla/Maps/Town10HD_Opt"
+  },
+  "files": {
+    "pedestrian_head_camera_client_v13.py": "f7ed91ff414e37071940cef17db8caa5d3c527c1a3f9002b557bb05e9ced2b32",
+    "manual_control_ar_v13.py": "9c57f49a41c53ea6ff23cf6be82ced78cfa8ba711dd8415e511139fad690222d",
+    "cooperative_occlusion_v1.py": "f10cc7a740feff88b013837f0ac2a3232ea641060ef766ce668c8a686cd93faf",
+    "test_manual_control_ar_v13_occlusion.py": "1cc6e72385f0f24b0df75c6b5bf0aec2f20b93c0d84663d7122bb10cbc37d1f3",
+    "spatial_map_coop/MANUAL_CONTROL_AR_V13_COOPERATIVE_OCCLUSION.md": "7b5ca5deb8e123c6a3fc1d0891ae5de284fc46484e749f319375b187bc892094",
+    "manual_control_ar_v12.py": "cc4cede7c81b885504ab412a504010095e941a7a39b2107aa331fbdd2db6bd2b",
+    "archive/v9/pedestrian_head_camera_client_v9.py": "e69313c85360abda14ad8c5e5bfbe3ba4eda2ce56eda062f6aa6661d80b754e7",
+    "archive/v9/manual_control_ar_v9.py": "725283b1853c5f0ddf11deb3b76a65af43d35771743c6b5dc76b1ef092a8f44d",
+    "archive/v11/pedestrian_head_camera_client_v11.py": "1edb0388eea30e4165c067f31972d56fd56e37600bdea006212ae1cd8a8d2fb4",
+    "archive/v11/manual_control_ar_v11.py": "11a043740800886d09e520f80f5f986fc39befb0ed8a54e36c4e9540d2ea156c",
+    "archive/v5/spawn_blocker_v5.py": "e31d8514a7d00086c94d67ddf80de6952fbc2453fc400c7bc93f410a78f4c208",
+    "spawn_blocker_v5.py": "cdce2df254d613033662ef452426ed226d1602e07e4b1a44364d5c66a0ca5a63",
+    "test_spawn_blocker_network_profile.py": "7f82eaf764c02a503f6c939e3cf5719f20dbbd39fef610b21df52438d113712f",
+    "network_degradation_profile_v1.py": "e0f6d6385e15088473c3b44de74596891ea3faacd5f3610d4e56369f6270a5d4",
+    "physical_ai_scenario_controller_ui_v1.py": "be98ba29507bd82911498312d2ed681c43910859614d4cec56a8244aedf0d4aa",
+    "physical_ai_scenario_controller_ui_v2.py": "c6d0bce2319df90a18e5ceb6f34051f36016081e8617bd390b9e7918f0ba8071",
+    "physical_ai_scenario_controller_ui_v3.py": "ea877a82257148679fd4fa2b9cb037f5d723348dec843140abe35237a5a35ffb",
+    "traffic_light_pole_camera_ui_client_v1.py": "569770e931293e344d915262fc16754b15d3c8f9dba6f1bc59501a2d749523fd",
+    "ego_route_config.py": "9430c8292880d09ea4af6d3dd990d1a2b40fd270003c88e44c1510525d06c1ac",
+    "pedestrian_route_config.py": "e3d0b456fa605ad108ca784b4e6700f3f0acf06c767ff06ccfdca13d4ddd1ab7",
+    "physical_ai_scenario_config_v2.yaml": "2ecdd6333486d5a16718ae6a920c2856cc539efab315e95cd35a5954a6531278",
+    "traffic_lights_data.json": "158f6e6d9b40be294483637c305da6f0dbc8cc0480b6e337df7d357f969fd9d3",
+    "my_ego_route.json": "f525a03678d67f69d13d4f1d7a96d3835891ff1b6ee16f13cd9f00dee4d44da0",
+    "ego_pedestrian_route_v1.json": "ded188f9f1727ea569279a6dded190ea600c0bc89cdb98193e98f8dc2bb04891",
+    "recorded_pedestrian_route_1.json": "113dfa8c683176242312bf0c5349ff0ca86da00d775f688637bac456529c0706"
+  }
+}

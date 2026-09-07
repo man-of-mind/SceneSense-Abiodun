@@ -1,0 +1,10 @@
+# Tested with Python 3.10.12 and CARLA 0.10.0.
+#
+# CARLA is intentionally not installed from PyPI here. Use the Python module
+# and stock agents package shipped with the matching CARLA 0.10.0 release.
+numpy==1.26.4
+opencv-python==4.10.0.84
+pygame==2.6.1
+PyYAML==6.0.3
+networkx==3.4.2
+shapely==2.1.2
