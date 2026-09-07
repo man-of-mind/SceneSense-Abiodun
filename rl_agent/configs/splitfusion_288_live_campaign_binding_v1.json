@@ -5,7 +5,7 @@
   "campaign_288_authorized": false,
   "campaign_config": {
     "path": "rl_agent/configs/ue_288_campaign_v1.yaml",
-    "sha256": "617882a20687e3d3f72143721c0c639be638a8e4254d58f759148f5b1cb4603f"
+    "sha256": "cda00536342354ce648c2c622ee6d3fd66285bfcfcfdeb031a638a18dceacb97"
   },
   "implementation": {
     "campaign_gate": {
@@ -18,7 +18,7 @@
     },
     "cell_adapter": {
       "path": "rl_agent/ue_route_b_split_cell_adapter_v1.py",
-      "sha256": "17f74171c99cd749104ef22b81ad954c82d1a3fe267dd0b7734e08b0e23b33ff"
+      "sha256": "8f892b180d07c44d6a390dec700422a258532126e308594ad6c990a10cff9e20"
     },
     "live_dispatch_bridge": {
       "path": "rl_agent/splitfusion_live_dispatch_v1/live_pilot_runtime.py",

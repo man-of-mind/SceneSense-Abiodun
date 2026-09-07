@@ -105,7 +105,7 @@ runtime:
   live_dispatch_bridge: rl_agent/splitfusion_live_dispatch_v1/live_pilot_runtime.py
   live_dispatch_bridge_sha256: ce568a89fa262916e7b6f737a5d1f7fc310428de96ff170eb56eca303411f894
   required_route_b_split_cell_adapter: rl_agent/ue_route_b_split_cell_adapter_v1.py
-  required_route_b_split_cell_adapter_sha256: 17f74171c99cd749104ef22b81ad954c82d1a3fe267dd0b7734e08b0e23b33ff
+  required_route_b_split_cell_adapter_sha256: 8f892b180d07c44d6a390dec700422a258532126e308594ad6c990a10cff9e20
   sfd1_protocol_version: 2
   frame_context_required: true
   udp_fragment_header: "!IHH"

@@ -102,8 +102,29 @@ EDGE_EVIDENCE_LEAF = "segmentation_evidence"
 PRESERVED_EVIDENCE_LEAF = "segmentation_evidence"
 # Registered preservation quota for raw label maps. The complete hash manifest
 # is always retained; raw arrays are preserved for installed frames up to this
-# many bytes per cell so a cell can never exhaust the host filesystem.
+# many bytes per cell so a cell can never exhaust the host filesystem. With the
+# registered sampling policy below this ceiling is a secondary guard only.
 PRESERVED_EVIDENCE_QUOTA_BYTES = 1 << 30
+# Registered raw-label-map sampling policy. Every evaluated mask keeps its full
+# manifest metadata, source hash and verification result; raw arrays are kept
+# only for this many ACK-installed frames per cell, chosen deterministically
+# from the sorted eligible frame IDs alone. A 288-cell campaign cannot complete
+# while retaining roughly 1 GiB of raw masks per cell.
+EVIDENCE_SAMPLE_FRAMES = 16
+EVIDENCE_SELECTION_RULE_VERSION = "endpoint_inclusive_evenly_spaced_sorted_ack_installed_v1"
+# Exact installed-map-record retrieval. An ACK_INSTALLED feedback message proves
+# the map server inserted the record under state_lock before emitting feedback,
+# so a failed read is a retrieval fault rather than a missing installation. The
+# retrieval therefore runs off the feedback-receive path, distinguishes
+# transient faults from authoritative NOT_FOUND, and retries only the former
+# inside a fixed total deadline. Permanent failure remains structurally fatal.
+EXACT_RECORD_HTTP_TIMEOUT_S = 0.5
+EXACT_RECORD_RETRIEVAL_DEADLINE_S = 5.0
+EXACT_RECORD_RETRIEVAL_MAX_ATTEMPTS = 6
+EXACT_RECORD_RETRIEVAL_BACKOFF_S = 0.05
+EXACT_RECORD_RETRIEVAL_BACKOFF_CAP_S = 0.4
+EXACT_RECORD_QUEUE_MAXSIZE = 4096
+EXACT_RECORD_DRAIN_S = 30.0
 CAMERA_MOUNT = (1.8, 0.0, 1.55, -4.0, 0.0, 0.0)
 RADAR_MOUNT = (2.0, 0.0, 1.0, 0.0, 0.0, 0.0)
 CLASS_ID_BACKGROUND, CLASS_ID_VEHICLE, CLASS_ID_PERSON = 0, 1, 2
@@ -201,6 +222,43 @@ def write_json_create_only(path: Path, value: Mapping[str, Any]) -> None:
     with path.open("x", encoding="utf-8") as handle:
         json.dump(value, handle, indent=2, sort_keys=True, allow_nan=False)
         handle.write("\n")
+
+
+def frame_id_list_sha256(frame_ids: Sequence[int]) -> str:
+    """Bind a frame-ID inventory so an elided mask can never be a silent gap."""
+
+    encoded = json.dumps([int(value) for value in frame_ids], separators=(",", ":"))
+    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+
+
+def select_evidence_frames(
+    eligible: Sequence[int], count: int = EVIDENCE_SAMPLE_FRAMES
+) -> list[int]:
+    """Pick a deterministic endpoint-inclusive evenly spaced frame sample.
+
+    Selection reads nothing but the sorted eligible frame IDs -- never metrics,
+    classes, IoU, payload, success quality or network outcome -- so which masks
+    survive is independent of what they show.
+    """
+
+    require(int(count) >= 2, "evidence sampling requires at least two frames")
+    ordered = sorted({int(value) for value in eligible})
+    total = len(ordered)
+    if total <= int(count):
+        return ordered
+    span = total - 1
+    divisor = int(count) - 1
+    # Integer half-up rounding keeps the sample identical on every host.
+    indices = [(index * span + divisor // 2) // divisor for index in range(int(count))]
+    require(
+        indices[0] == 0 and indices[-1] == span,
+        "evidence sampling must include the first and last eligible frame",
+    )
+    require(
+        len(set(indices)) == int(count),
+        "evidence sampling produced a duplicate index",
+    )
+    return [ordered[index] for index in indices]
 
 
 def action_row(campaign: Mapping[str, Any], action_id: int | str) -> dict[str, Any]:
@@ -936,6 +994,11 @@ class PassiveSplitCollector:
         self.source_gt: dict[int, list[dict[str, Any]]] = {}
         self.aligned_gt: dict[int, list[dict[str, Any]]] = {}
         self.installed_predictions: dict[int, list[dict[str, Any]]] = {}
+        self.exact_retrieval_status: dict[int, dict[str, Any]] = {}
+        self.exact_retrieval_stop_event = threading.Event()
+        self.exact_retrieval_queue: queue.Queue[int | None] = queue.Queue(
+            maxsize=EXACT_RECORD_QUEUE_MAXSIZE
+        )
         self.segmentation_quality: dict[int, dict[str, object]] = {}
         self.segmentation_evidence_errors: dict[int, str] = {}
         self.ack_installed_frames: set[int] = set()
@@ -991,10 +1054,16 @@ class PassiveSplitCollector:
             daemon=True,
         )
         self.feedback_worker = threading.Thread(target=self._feedback_worker, name="route-b-map-feedback", daemon=True)
+        self.exact_record_worker = threading.Thread(
+            target=self._exact_record_worker,
+            name="route-b-exact-installed-record",
+            daemon=True,
+        )
         self.worker.start()
         self.segmentation_worker.start()
         self.evaluation_worker.start()
         self.feedback_worker.start()
+        self.exact_record_worker.start()
 
     def _spawn_sensors(self) -> None:
         bp_lib = self.world.get_blueprint_library()
@@ -1694,33 +1763,47 @@ class PassiveSplitCollector:
             )
 
     def preserve_evidence(self, destination: Path) -> dict[str, Any]:
-        """Preserve required label maps under a registered per-cell quota.
+        """Preserve a deterministic sample of installed label maps.
 
-        The complete hash manifest is always retained. Raw arrays are preserved
-        for the frames evaluation actually requires -- the ACK-installed ones --
-        up to the registered byte quota, so one cell can never exhaust the host
-        filesystem while leaving the accounting incomplete.
+        Every evaluated mask keeps its complete manifest metadata, source hash
+        and hash-verification result, so nothing about evaluation, scoring or
+        acceptance depends on this step. Raw arrays are retained only for a
+        deterministic, endpoint-inclusive, evenly spaced sample of ACK-installed
+        frames drawn from the sorted eligible frame IDs alone, which bounds
+        per-cell disk use independently of delivery, payload or network outcome.
+        A 288-cell campaign cannot complete while keeping every raw mask.
         """
 
         destination = Path(destination)
         destination.mkdir(parents=True, exist_ok=True)
         with self.gt_lock:
             manifest = {int(key): dict(value) for key, value in self.evidence_manifest.items()}
-            required = sorted(self.ack_installed_frames)
+            installed = sorted(self.ack_installed_frames)
+        eligible = [frame_id for frame_id in installed if frame_id in manifest]
+        selected = select_evidence_frames(eligible, EVIDENCE_SAMPLE_FRAMES)
+        selected_frames = set(selected)
         preserved = 0
         preserved_bytes = 0
-        elided = 0
+        sampling_elided = 0
+        quota_elided = 0
+        unavailable = 0
         failed = 0
-        for frame_id in required:
-            record = manifest.get(int(frame_id))
-            if record is None:
+        for frame_id in eligible:
+            record = manifest[frame_id]
+            if frame_id not in selected_frames:
+                sampling_elided += 1
+                record["preserved"] = False
+                record["preservation_status"] = "ELIDED_BY_REGISTERED_SAMPLING_POLICY"
                 continue
             source = self.edge_evidence_dir / str(record["evidence_name"])
             if not source.is_file():
+                unavailable += 1
+                record["preserved"] = False
+                record["preservation_status"] = "SOURCE_UNAVAILABLE"
                 continue
             size = int(record.get("bytes", 0))
             if preserved_bytes + size > PRESERVED_EVIDENCE_QUOTA_BYTES:
-                elided += 1
+                quota_elided += 1
                 record["preserved"] = False
                 record["preservation_status"] = "ELIDED_BY_REGISTERED_QUOTA"
                 continue
@@ -1737,42 +1820,50 @@ class PassiveSplitCollector:
                 failed += 1
                 record["preserved"] = False
                 record["preservation_status"] = f"PRESERVATION_FAILED:{exc.__class__.__name__}"
-        write_json_create_only(
-            destination / "segmentation_evidence_manifest.json",
-            {
-                "schema": "scenesense.segmentation_evidence_manifest.v1",
-                "cell_id": str(self.cell["cell_id"]),
-                "action_id": int(self.cell["action_id"]),
-                "stream_id": self.stream_id,
-                "quota_bytes": PRESERVED_EVIDENCE_QUOTA_BYTES,
-                "required_frames": len(required),
-                "preserved_masks": preserved,
-                "preserved_bytes": preserved_bytes,
-                "quota_elided_masks": elided,
-                "preservation_failures": failed,
-                "hash_verified_masks": sum(
-                    1 for value in manifest.values() if value.get("hash_verified")
-                ),
-                "hash_mismatched_masks": sum(
-                    1 for value in manifest.values() if not value.get("hash_verified")
-                ),
-                "masks": [manifest[key] for key in sorted(manifest)],
-            },
-        )
-        return {
-            "required_frames": len(required),
-            "preserved_masks": preserved,
-            "preserved_bytes": preserved_bytes,
-            "quota_elided_masks": elided,
-            "preservation_failures": failed,
-            "manifest_records": len(manifest),
+        for frame_id, record in manifest.items():
+            if "preservation_status" not in record:
+                record["preserved"] = False
+                record["preservation_status"] = "NOT_ACK_INSTALLED_NOT_ELIGIBLE"
+        accounting = {
+            "selection_rule_version": EVIDENCE_SELECTION_RULE_VERSION,
+            "selection_sample_size": EVIDENCE_SAMPLE_FRAMES,
+            "selection_depends_only_on_sorted_installed_frame_ids": True,
+            "nonselected_masks_are_intentionally_elided_by_registered_sampling_policy": True,
+            "quota_bytes": PRESERVED_EVIDENCE_QUOTA_BYTES,
+            "installed_frames": len(installed),
+            "eligible_frames": len(eligible),
+            "eligible_frame_ids_sha256": frame_id_list_sha256(eligible),
+            "selected_frames": len(selected),
+            "selected_frame_ids": list(selected),
+            "selected_frame_ids_sha256": frame_id_list_sha256(selected),
+            "evaluated_masks": len(manifest),
             "hash_verified_masks": sum(
                 1 for value in manifest.values() if value.get("hash_verified")
             ),
             "hash_mismatched_masks": sum(
                 1 for value in manifest.values() if not value.get("hash_verified")
             ),
+            "preserved_masks": preserved,
+            "preserved_bytes": preserved_bytes,
+            "sampling_elided_masks": sampling_elided,
+            "quota_elided_masks": quota_elided,
+            "source_unavailable_masks": unavailable,
+            "preservation_failures": failed,
+            "manifest_records": len(manifest),
         }
+        write_json_create_only(
+            destination / "segmentation_evidence_manifest.json",
+            {
+                "schema": "scenesense.segmentation_evidence_manifest.v2",
+                "cell_id": str(self.cell["cell_id"]),
+                "action_id": int(self.cell["action_id"]),
+                "stream_id": self.stream_id,
+                **accounting,
+                "eligible_frame_ids": list(eligible),
+                "masks": [manifest[key] for key in sorted(manifest)],
+            },
+        )
+        return accounting
 
     def _evaluation_worker(self) -> None:
         """Build evaluation-only object ground truth off the real-time path.
@@ -1895,24 +1986,52 @@ class PassiveSplitCollector:
                         )
                     return
 
-    def _map_snapshot(self, expected_frame: int) -> list[dict[str, Any]] | None:
+    def _fetch_installed_record(
+        self, expected_frame: int
+    ) -> tuple[str, list[dict[str, Any]] | None]:
+        """Read one exact installed record and classify why it failed.
+
+        Transient transport faults must never be confused with an authoritative
+        NOT_FOUND: the former is retryable, the latter means the record is truly
+        absent from the bounded install history and the cell is structurally
+        invalid.
+        """
+
         encoded_stream = urllib.parse.quote(self.stream_id, safe="")
         url = (
             f"http://127.0.0.1:{self.map_api_port}"
             f"/api/fusion_streams/installed/{encoded_stream}/{int(expected_frame)}"
         )
         try:
-            with urllib.request.urlopen(url, timeout=0.5) as response:
-                value = json.loads(response.read().decode("utf-8"))
-        except (OSError, urllib.error.URLError, json.JSONDecodeError):
-            return None
+            with urllib.request.urlopen(
+                url, timeout=EXACT_RECORD_HTTP_TIMEOUT_S
+            ) as response:
+                payload = response.read().decode("utf-8")
+        except urllib.error.HTTPError as exc:
+            # HTTPError precedes URLError/OSError: it carries the status code.
+            if int(exc.code) == 404:
+                return "NOT_FOUND", None
+            return "TRANSIENT_HTTP_STATUS", None
+        except (urllib.error.URLError, OSError):
+            return "TRANSIENT_TRANSPORT", None
+        except UnicodeDecodeError:
+            return "MALFORMED_PAYLOAD", None
+        try:
+            value = json.loads(payload)
+        except json.JSONDecodeError:
+            return "MALFORMED_PAYLOAD", None
+        if not isinstance(value, dict):
+            return "MALFORMED_PAYLOAD", None
         record = value.get("record") if isinstance(value.get("record"), dict) else {}
+        if str(value.get("status") or "") != "INSTALLED":
+            return "IDENTITY_MISMATCH", None
+        record_frame = record.get("frame_id")
         if (
-            value.get("status") != "INSTALLED"
-            or str(record.get("stream_id") or "") != self.stream_id
-            or int(record.get("frame_id") or -1) != int(expected_frame)
+            str(record.get("stream_id") or "") != self.stream_id
+            or record_frame is None
+            or int(record_frame) != int(expected_frame)
         ):
-            return None
+            return "IDENTITY_MISMATCH", None
         predictions: list[dict[str, Any]] = []
         for obj in record.get("objects", []):
             location = obj.get("location", {})
@@ -1932,7 +2051,117 @@ class PassiveSplitCollector:
                     "score": float(obj.get("score", 0.0)),
                 }
             )
-        return predictions
+        return "OK", predictions
+
+    def _enqueue_exact_retrieval(self, frame_id: int) -> None:
+        """Hand one ACK-installed frame to the retrieval worker, never blocking."""
+
+        try:
+            self.exact_retrieval_queue.put_nowait(int(frame_id))
+        except queue.Full:
+            with self.gt_lock:
+                self.exact_retrieval_status[int(frame_id)] = {
+                    "status": "PERMANENT_FAILURE",
+                    "reason": "RETRIEVAL_QUEUE_FULL",
+                    "attempts": 0,
+                }
+            self.transport_counters.bump("exact_record_tickets_dropped_queue_full")
+            self.failures.append(
+                f"exact installed map record missing after ACK for frame {frame_id}"
+            )
+            return
+        self.transport_counters.bump("exact_record_tickets_queued")
+
+    def _exact_record_worker(self) -> None:
+        """Retrieve exact installed map records off the feedback-receive path.
+
+        The feedback receiver must never wait on HTTP: a single stalled read
+        used to block reception long enough for later ACKs to expire. This
+        worker is evaluation-only -- nothing it produces reaches the front,
+        edge, map, action or route controller, and the radio ACK payload is
+        unchanged.
+        """
+
+        while True:
+            try:
+                ticket = self.exact_retrieval_queue.get(timeout=0.05)
+            except queue.Empty:
+                if self.exact_retrieval_stop_event.is_set():
+                    return
+                continue
+            if ticket is None:
+                self.exact_retrieval_queue.task_done()
+                return
+            try:
+                self._retrieve_exact_record(int(ticket))
+            except Exception as exc:
+                self.failures.append(
+                    f"exact installed map record retrieval frame {int(ticket)}: "
+                    f"{type(exc).__name__}: {exc}"
+                )
+            finally:
+                self.exact_retrieval_queue.task_done()
+
+    def _retrieve_exact_record(self, frame_id: int) -> None:
+        """Retry only transient faults, inside one fixed total deadline."""
+
+        deadline = time.monotonic() + EXACT_RECORD_RETRIEVAL_DEADLINE_S
+        backoff = EXACT_RECORD_RETRIEVAL_BACKOFF_S
+        attempts = 0
+        outcome = "TRANSIENT_TRANSPORT"
+        predictions: list[dict[str, Any]] | None = None
+        while attempts < EXACT_RECORD_RETRIEVAL_MAX_ATTEMPTS:
+            attempts += 1
+            outcome, predictions = self._fetch_installed_record(frame_id)
+            if not outcome.startswith("TRANSIENT"):
+                break
+            if time.monotonic() + backoff >= deadline:
+                break
+            time.sleep(backoff)
+            backoff = min(backoff * 2.0, EXACT_RECORD_RETRIEVAL_BACKOFF_CAP_S)
+        self.transport_counters.bump("exact_record_retrieval_attempts", attempts)
+        if outcome != "OK" or predictions is None:
+            with self.gt_lock:
+                self.exact_retrieval_status[int(frame_id)] = {
+                    "status": "PERMANENT_FAILURE",
+                    "reason": outcome,
+                    "attempts": attempts,
+                }
+            self.transport_counters.bump("exact_record_permanent_failures")
+            self.failures.append(
+                f"exact installed map record missing after ACK for frame {frame_id}"
+            )
+            return
+        if attempts > 1:
+            self.transport_counters.bump("exact_record_retrieval_recovered_after_retry")
+        try:
+            aligned_timestamp = float(
+                self.world.get_snapshot().timestamp.elapsed_seconds
+            )
+            aligned = self._ground_truth(
+                frame_id=frame_id,
+                timestamp=aligned_timestamp,
+                camera_matrix=actor_world_matrix(self.camera),
+                camera_inverse=actor_world_inverse_matrix(self.camera),
+                radar_points={"world_xyz": np.zeros((0, 3), dtype=np.float32)},
+                stationary_tracker=self.aligned_actor_tracker,
+            )
+        except Exception as exc:
+            self.failures.append(
+                f"aligned GT frame {frame_id}: {type(exc).__name__}: {exc}"
+            )
+            aligned = []
+        with self.gt_lock:
+            # Predictions are stored only after exact stream/frame validation.
+            self.installed_predictions[int(frame_id)] = predictions
+            # Current GT is evaluation-only and is never fed back to the front,
+            # edge, map, action, or route controller.
+            self.aligned_gt[int(frame_id)] = aligned
+            self.exact_retrieval_status[int(frame_id)] = {
+                "status": "RETRIEVED",
+                "reason": "OK",
+                "attempts": attempts,
+            }
 
     def _feedback_worker(self) -> None:
         while not self.stop_event.is_set():
@@ -1964,34 +2193,10 @@ class PassiveSplitCollector:
                             self.transport_counters.bump("maps_installed")
                 if status != "ACK_INSTALLED":
                     continue
-                predictions = self._map_snapshot(frame_id)
-                if predictions is None:
-                    self.failures.append(
-                        f"exact installed map record missing after ACK for frame {frame_id}"
-                    )
-                    continue
-                try:
-                    aligned_timestamp = float(
-                        self.world.get_snapshot().timestamp.elapsed_seconds
-                    )
-                    aligned = self._ground_truth(
-                        frame_id=frame_id,
-                        timestamp=aligned_timestamp,
-                        camera_matrix=actor_world_matrix(self.camera),
-                        camera_inverse=actor_world_inverse_matrix(self.camera),
-                        radar_points={"world_xyz": np.zeros((0, 3), dtype=np.float32)},
-                        stationary_tracker=self.aligned_actor_tracker,
-                    )
-                except Exception as exc:
-                    self.failures.append(
-                        f"aligned GT frame {frame_id}: {type(exc).__name__}: {exc}"
-                    )
-                    aligned = []
-                with self.gt_lock:
-                    self.installed_predictions[frame_id] = predictions
-                    # Current GT is evaluation-only and is never fed back to
-                    # the front, edge, map, action, or route controller.
-                    self.aligned_gt[frame_id] = aligned
+                # The authoritative ACK/install timestamp and counters are
+                # already recorded above. Exact-record retrieval is handed to a
+                # dedicated worker so reception never waits on HTTP.
+                self._enqueue_exact_retrieval(frame_id)
 
     def finish(self) -> bool:
         # The bounded slot holds at most one pending frame, so draining is
@@ -2016,6 +2221,26 @@ class PassiveSplitCollector:
             self.sensor_condition.notify_all()
         self.worker.join(timeout=5.0)
         self.feedback_worker.join(timeout=3.0)
+        # No further tickets can be produced once the feedback worker has
+        # stopped, so drain exact-record retrieval before coverage is evaluated.
+        exact_deadline = time.monotonic() + EXACT_RECORD_DRAIN_S
+        while (
+            self.exact_retrieval_queue.unfinished_tasks
+            and time.monotonic() < exact_deadline
+        ):
+            time.sleep(0.05)
+        if self.exact_retrieval_queue.unfinished_tasks:
+            self.failures.append(
+                "exact installed map record retrieval did not drain within the "
+                f"registered {EXACT_RECORD_DRAIN_S:.0f}s window; "
+                f"outstanding={self.exact_retrieval_queue.unfinished_tasks}"
+            )
+        self.exact_retrieval_stop_event.set()
+        try:
+            self.exact_retrieval_queue.put_nowait(None)
+        except queue.Full:
+            pass
+        self.exact_record_worker.join(timeout=5.0)
         object_gt_deadline = time.monotonic() + 5.0
         while (
             self.evaluation_queue.unfinished_tasks
@@ -2314,6 +2539,41 @@ class PassiveSplitCollector:
         missing_exact = sorted(ack_frames - exact_frames)
         if missing_exact:
             failures.append(f"ACK-installed frames lack exact map records: {missing_exact[:8]}")
+        with self.gt_lock:
+            retrieval = {
+                int(key): dict(value)
+                for key, value in self.exact_retrieval_status.items()
+            }
+        retrieval_attempts = [int(row.get("attempts", 0)) for row in retrieval.values()]
+        permanent = sorted(
+            frame_id
+            for frame_id, row in retrieval.items()
+            if str(row.get("status")) == "PERMANENT_FAILURE"
+        )
+        permanent_reasons: dict[str, int] = {}
+        for frame_id in permanent:
+            reason = str(retrieval[frame_id].get("reason") or "UNSPECIFIED")
+            permanent_reasons[reason] = permanent_reasons.get(reason, 0) + 1
+        exact_retrieval_accounting = {
+            "registered_attempt_timeout_s": EXACT_RECORD_HTTP_TIMEOUT_S,
+            "registered_total_deadline_s": EXACT_RECORD_RETRIEVAL_DEADLINE_S,
+            "registered_max_attempts": EXACT_RECORD_RETRIEVAL_MAX_ATTEMPTS,
+            "registered_drain_s": EXACT_RECORD_DRAIN_S,
+            "tickets_resolved": len(retrieval),
+            "retrieved": sum(
+                1 for row in retrieval.values() if str(row.get("status")) == "RETRIEVED"
+            ),
+            "recovered_after_retry": sum(
+                1
+                for row in retrieval.values()
+                if str(row.get("status")) == "RETRIEVED" and int(row.get("attempts", 1)) > 1
+            ),
+            "permanent_failures": len(permanent),
+            "permanent_failure_frames": permanent[:8],
+            "permanent_failure_reasons": dict(sorted(permanent_reasons.items())),
+            "max_attempts_observed": max(retrieval_attempts) if retrieval_attempts else 0,
+            "permanent_failure_is_structurally_fatal": True,
+        }
         exact_coverage = (
             len(ack_frames & exact_frames) / len(ack_frames) if ack_frames else None
         )
@@ -2412,6 +2672,7 @@ class PassiveSplitCollector:
             "qualification_actions_without_live_install": missing_ack_actions,
             "exact_frame_perception_records": len(ack_frames & exact_frames),
             "exact_frame_perception_coverage": exact_coverage,
+            "exact_record_retrieval": exact_retrieval_accounting,
             "exact_frame_segmentation_records": len(ack_frames & set(self.segmentation_quality)),
             "segmentation_evidence_install_coverage": (
                 len(ack_frames & set(self.segmentation_quality)) / len(ack_frames)
