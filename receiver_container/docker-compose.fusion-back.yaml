@@ -15,7 +15,8 @@ services:
             - TORCH_HOME=/work/torch_cache
             - MPLBACKEND=Agg
         volumes:
-            - ../torch_cache:/work/torch_cache:rw
+            - ${SPLITFUSION_EDGE_STATE_ROOT:-../torch_cache}:/work/torch_cache:rw
+            - ${SPLITFUSION_FCOS_WEIGHT_PATH:-../experiments/splitfusion_phase15_runtime_cache_v1/torch/hub/checkpoints/fcos_resnet50_fpn_coco-99b0c9b7.pth}:/home/shr_aisvcs/.cache/torch/hub/checkpoints/fcos_resnet50_fpn_coco-99b0c9b7.pth:ro
         gpus: all
         command:
             - /bin/bash
@@ -29,5 +30,5 @@ services:
                   wait;
                 else
                   echo "[fusion-back] starting single worker";
-                  python3 -u ${FUSION_BACK_SCRIPT:-/work/abiodun/carla_split_inference_udp_fusion_object_pole_client_spatial_stream_oai.py} --role back --bind-host ${FUSION_BACK_BIND_HOST:-0.0.0.0} --remote-host ${FUSION_BACK_REMOTE_HOST_1:-10.0.0.2} --back-device ${FUSION_BACK_DEVICE:-cuda} --fusion-checkpoint ${FUSION_BACK_CHECKPOINT:-/work/abiodun/checkpoints/fusion_object_best.pt} --quantization-mode ${FUSION_QUANTIZATION_MODE:-per_channel_uint8} --entropy-coder ${FUSION_ENTROPY_CODER:-zlib} --back-log-every ${FUSION_BACK_LOG_EVERY:-30} --remote-port ${FUSION_REMOTE_PORT_1:-51002} --remote-source-port ${FUSION_REMOTE_SOURCE_PORT_1:-51003} --camera-result-port ${FUSION_CAMERA_RESULT_PORT_1:-51004} ${FUSION_BACK_EXTRA_ARGS:-};
+                  exec python3 -u ${FUSION_BACK_SCRIPT:-/work/abiodun/carla_split_inference_udp_fusion_object_pole_client_spatial_stream_oai.py} --role back --bind-host ${FUSION_BACK_BIND_HOST:-0.0.0.0} --remote-host ${FUSION_BACK_REMOTE_HOST_1:-10.0.0.2} --back-device ${FUSION_BACK_DEVICE:-cuda} --fusion-checkpoint ${FUSION_BACK_CHECKPOINT:-/work/abiodun/checkpoints/fusion_object_best.pt} --quantization-mode ${FUSION_QUANTIZATION_MODE:-per_channel_uint8} --entropy-coder ${FUSION_ENTROPY_CODER:-zlib} --back-log-every ${FUSION_BACK_LOG_EVERY:-30} --remote-port ${FUSION_REMOTE_PORT_1:-51002} --remote-source-port ${FUSION_REMOTE_SOURCE_PORT_1:-51003} --camera-result-port ${FUSION_CAMERA_RESULT_PORT_1:-51004} ${FUSION_BACK_EXTRA_ARGS:-};
                 fi

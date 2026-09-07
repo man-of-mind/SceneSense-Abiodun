@@ -1,0 +1,15 @@
+{
+  "clean_noise_power_db": -50.0,
+  "cpu_reconciliation": "PHASE14A_CPU_RECONCILIATION_PASSED",
+  "effective_gnb_path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_oai_100mhz_4d5u_v1/20260904_phase14a_live_calibration_retry3/effective_gnb_100mhz_4d5u_clean_minus50.conf",
+  "effective_gnb_sha256": "330b23d4f4ab74c388f9f20105ef29e989f3e79f4b088d73e82376549b0a2211",
+  "effective_ue_path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_oai_100mhz_4d5u_v1/20260904_phase14a_live_calibration_retry3/effective_ue_100mhz_clean_minus50.conf",
+  "effective_ue_sha256": "ab06afcc1cfc2bb777fa35973811aaad655032f6541e1b4565541cac9cc04f97",
+  "radio_profile_id": "OAI_N78_100MHZ_273PRB_4D5U_V1",
+  "schema": "scenesense.splitfusion_phase14a_radio_materialization.v1",
+  "selected_gnb_before_channelmod_sha256": "d5f317413fbef79f69501adfce2428c1300941938def0d6e554de1c16c2b08a8",
+  "source_channel_sha256": "a47ade413b36ecf66f6df666bead124974705636cb134dd09a539b34bce7d760",
+  "source_gnb_sha256": "03fb7ac7b4df6ce88f5a2e3e7a26211b78ad89e7d313632ca088e6b364742ffb",
+  "source_ue_sha256": "b20bf2d9d8da9bd15b1f822836b7235dafa16b29f4e097e6ca3749729494c944",
+  "status": "MATERIALIZED_NOT_LAUNCHED"
+}

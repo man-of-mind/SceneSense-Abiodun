@@ -1,0 +1,123 @@
+{
+  "schema": "scenesense.splitfusion_288_live_campaign_binding.v1",
+  "status": "READY_FOR_EXPLICIT_AUTHORIZATION",
+  "execution_token": "SPLITFUSION_288_CELL_LIVE_CARLA_OAI_CAMPAIGN",
+  "campaign_288_authorized": false,
+  "campaign_config": {
+    "path": "rl_agent/configs/ue_288_campaign_v1.yaml",
+    "sha256": "cda00536342354ce648c2c622ee6d3fd66285bfcfcfdeb031a638a18dceacb97"
+  },
+  "implementation": {
+    "campaign_gate": {
+      "path": "rl_agent/splitfusion_288_live_campaign_v1.py",
+      "sha256": "7b1cbb565692cc50ba26a78d8a4f409af61d40c0a5adea5078d85fb540afd0f4"
+    },
+    "campaign_supervisor": {
+      "path": "rl_agent/ue_288_campaign_supervisor.py",
+      "sha256": "a7a232e543962863a8888dd1ddbafb3c7b81a8edbb5d459e20b4bf2c2d5fc5c8"
+    },
+    "cell_adapter": {
+      "path": "rl_agent/ue_route_b_split_cell_adapter_v1.py",
+      "sha256": "8f892b180d07c44d6a390dec700422a258532126e308594ad6c990a10cff9e20"
+    },
+    "live_dispatch_bridge": {
+      "path": "rl_agent/splitfusion_live_dispatch_v1/live_pilot_runtime.py",
+      "sha256": "ce568a89fa262916e7b6f737a5d1f7fc310428de96ff170eb56eca303411f894"
+    },
+    "target_snr_runtime": {
+      "path": "rl_agent/splitfusion_live_dispatch_v1/live_pilot_target_snr_runtime.py",
+      "sha256": "b43b71dfdeb12d51d6eae9d1d8d59e3b44ddbe3c18a587b4f851b275fd5b9018"
+    },
+    "runtime_binding": {
+      "path": "rl_agent/splitfusion_live_dispatch_v1/runtime_binding.json",
+      "sha256": "604450c7f0f791a480ba4e5ed6b286a2b6f68497735372a7a63ed92e93585551"
+    },
+    "oai_launcher": {
+      "path": "uplink_only_spatial_map_pipeline/run_splitfusion_oai_100mhz_4d5u_v1.sh",
+      "sha256": "8e02f0913338a187bff1de24bfea09d7eca03607da0e383ef8ad4a005b64ce61"
+    },
+    "map_install_runtime": {
+      "path": "uplink_only_spatial_map_pipeline/spatial_map_server_moving_ego_uplink_only_baseline.py",
+      "sha256": "cc301919b767688f1eab0923d4a935791b06a6cda3d0d5f565484aeae4b05bc1"
+    }
+  },
+  "evidence": {
+    "phase14b_mapping_qualification": {
+      "path": "experiments/splitfusion_phase14b_corrected_four_profile_replay_v1/20260905_corrected_four_profile_replay/qualification.json",
+      "sha256": "ad8b0c9c49209a6a2325cab58faf858019847b496b5ee793447a5be20d0b21a8"
+    },
+    "phase15_live_qualification": {
+      "path": "experiments/splitfusion_phase15_live_deployment_qualification_v1/20260905_live_qualification_retry12_reclassified_v1/qualification.json",
+      "sha256": "d92f201d6ba94a71c428ce83b27dc556ce84552e3b2add672b007a754af9647b"
+    },
+    "phase15_live_qualification_manifest": {
+      "path": "experiments/splitfusion_phase15_live_deployment_qualification_v1/20260905_live_qualification_retry12_reclassified_v1/artifact_manifest.json",
+      "sha256": "314ba52d7e8899915ad6b724703701c8ba4c5864390f52c3b4f477fcea9386b0"
+    },
+    "phase15_live_qualification_terminal": {
+      "path": "experiments/splitfusion_phase15_live_deployment_qualification_v1/20260905_live_qualification_retry12_reclassified_v1/SPLITFUSION_PHASE15_LIVE_DEPLOYMENT_QUALIFIED",
+      "sha256": "dbe53064d1bbcad5ad64040ecfdddbf7a0c4610a4aed2d2f0a20a3a11ff549d0"
+    },
+    "phase15_structural_pilot_qualification": {
+      "path": "experiments/splitfusion_16_cell_live_carla_oai_pilot_v1/20260905_live_carla_oai_pilot_retry4/qualification.json",
+      "sha256": "3c31d81c2bb9b18a93f4968daaaaa831d82e3a414f73e021acac0e51aff6c311"
+    },
+    "phase15_structural_pilot_manifest": {
+      "path": "experiments/splitfusion_16_cell_live_carla_oai_pilot_v1/20260905_live_carla_oai_pilot_retry4/artifact_manifest.json",
+      "sha256": "97e1a1f827972907db1344a6f3426f28f1eb8e21f2b29dbf66ffeaa930e7502b"
+    },
+    "phase15_structural_pilot_ledger": {
+      "path": "experiments/splitfusion_16_cell_live_carla_oai_pilot_v1/20260905_live_carla_oai_pilot_retry4/campaign_ledger.json",
+      "sha256": "7699c7f1edf9631bf4687fa75f67584baf127dfcf81c62bf75a621424ed69303"
+    },
+    "phase15_structural_pilot_terminal": {
+      "path": "experiments/splitfusion_16_cell_live_carla_oai_pilot_v1/20260905_live_carla_oai_pilot_retry4/SPLITFUSION_16_CELL_LIVE_CARLA_OAI_PILOT_COMPLETE",
+      "sha256": "648d1dda647e81e8291510012a58edb46f55d49108450bb89ba08f3e939c47ff"
+    },
+    "phase15_realtime_recovery_evaluation": {
+      "path": "experiments/splitfusion_phase15_realtime_recovery_v1/20260906_actions20_71_favorable_fade_retry1_reevaluated/PROSPECTIVE_EVALUATION.json",
+      "sha256": "5ad21a21733fcfd52bc00c489d34b08e6e2de721af6e954ebe13da466331031c"
+    },
+    "phase15_realtime_recovery_manifest": {
+      "path": "experiments/splitfusion_phase15_realtime_recovery_v1/20260906_actions20_71_favorable_fade_retry1_reevaluated/artifact_manifest.json",
+      "sha256": "68405c0d382af52c6c3276117f9d2f8890bdcaea0906b9c1e14504116f9da8ba"
+    },
+    "phase15_realtime_recovery_terminal": {
+      "path": "experiments/splitfusion_phase15_realtime_recovery_v1/20260906_actions20_71_favorable_fade_retry1_reevaluated/SPLITFUSION_PHASE15_REALTIME_RECOVERY_VALIDATED",
+      "sha256": "fe824d84f6d89e7cac68b1c475b4cf68e95d7e3dd5cb9663c22f1e9715968e54"
+    },
+    "phase15_preparation_qualification": {
+      "path": "experiments/splitfusion_phase15_preparation_optimization_v1/20260906_actions20_71_favorable/qualification.json",
+      "sha256": "cbf173d05084410d74060b1e01dfb4397c49749509291b2e9a88947896931070"
+    },
+    "phase15_preparation_manifest": {
+      "path": "experiments/splitfusion_phase15_preparation_optimization_v1/20260906_actions20_71_favorable/artifact_manifest.json",
+      "sha256": "d4004cd3dfa38e02cd1feb8550f2cc1d1ec90b49aae6e9d5f4c7fcf900b6a834"
+    },
+    "phase15_preparation_ledger": {
+      "path": "experiments/splitfusion_phase15_preparation_optimization_v1/20260906_actions20_71_favorable/campaign_ledger.json",
+      "sha256": "9b5a2da9e2a8401631adffff9c8c6681144df31cfc98b70f56828670f7a49192"
+    },
+    "phase15_preparation_terminal": {
+      "path": "experiments/splitfusion_phase15_preparation_optimization_v1/20260906_actions20_71_favorable/SPLITFUSION_PHASE15_PREPARATION_PATH_READY",
+      "sha256": "e0ae2c3a87cd32f6a9ad379cd4c6c3dad46c69811cdea2f3671d06e9ee9da675"
+    }
+  },
+  "scientific_interpretation": {
+    "structural_pilot_role": "STRUCTURAL_INTEGRATION_QUALIFICATION",
+    "realtime_repair_role": "RESULT_PATH_AND_FRESHNESS_QUALIFICATION",
+    "preparation_role": "SENSOR_PREPARATION_QUALIFICATION",
+    "minimum_preparation_coverage": 0.95,
+    "service_deadline_ms": 100,
+    "ack_timeout_ms": 500,
+    "service_deadline_and_ack_timeout_are_distinct": true,
+    "missed_deadlines_are_measured_outcomes": true,
+    "claims_100ms_service_ready": false,
+    "stop_conditions": [
+      "corrupt_or_nonfinite_transport",
+      "identity_or_accounting_mismatch",
+      "process_or_lifecycle_failure",
+      "dirty_teardown"
+    ]
+  }
+}

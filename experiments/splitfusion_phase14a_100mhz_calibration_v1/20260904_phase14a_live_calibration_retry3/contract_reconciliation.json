@@ -1,0 +1,70 @@
+{
+  "ack_status": "ACK_INSTALLED",
+  "campaigns_authorized": false,
+  "dispatcher_action_count": 72,
+  "launcher": {
+    "path": "uplink_only_spatial_map_pipeline/run_splitfusion_oai_100mhz_4d5u_v1.sh",
+    "sha256": "8e02f0913338a187bff1de24bfea09d7eca03607da0e383ef8ad4a005b64ce61"
+  },
+  "legacy_mapping_id": "OAI_N78_40MHZ_106PRB_7D2U_LEGACY",
+  "legacy_mapping_rejected": true,
+  "mapping_status": "PENDING_LIVE_100MHZ_CALIBRATION_AND_FOUR_PROFILE_REPLAY",
+  "network_profiles": [
+    {
+      "profile_id": "FAVORABLE_STABLE",
+      "same_rng_and_markov_state_continued": true,
+      "sample_4200_state": 2,
+      "sample_4200_target_snr_db": 21.49202630981798,
+      "seed": 2026082101,
+      "trace_semantic_sha256": "8cad86e2e1ee98176c75b872132eb68f7d770f889d7330fa4a9932c45c172de6"
+    },
+    {
+      "profile_id": "MID_VARIABLE",
+      "same_rng_and_markov_state_continued": true,
+      "sample_4200_state": 1,
+      "sample_4200_target_snr_db": 15.110631344123627,
+      "seed": 2026082102,
+      "trace_semantic_sha256": "0d2ef7ff9e7f342c772d0d88a4cec4e9ce9ac1c9946c1402d3087c55c8f0f811"
+    },
+    {
+      "profile_id": "ADVERSE_STABLE",
+      "same_rng_and_markov_state_continued": true,
+      "sample_4200_state": 0,
+      "sample_4200_target_snr_db": 7.825044115452667,
+      "seed": 2026082103,
+      "trace_semantic_sha256": "380925bb530945b11b8e79ab93e88d5a555de540ce859756d6c5ad08584e98a0"
+    },
+    {
+      "profile_id": "FADE_RECOVERY",
+      "same_rng_and_markov_state_continued": true,
+      "sample_4200_state": 1,
+      "sample_4200_target_snr_db": 16.765681420544418,
+      "seed": 2026082104,
+      "trace_semantic_sha256": "ef2ae2d6448d9c7f3208bc81123d301a1a9f5d9b16be3bac4412c8cecf94e7c0"
+    }
+  ],
+  "phase13c_evidence_commit_is_ancestor": true,
+  "profile_replay_performed": false,
+  "radio": {
+    "band": 78,
+    "bandwidth_mhz": 100,
+    "numerology": 1,
+    "pdu_session_5qi": 6,
+    "prb": 273,
+    "selected_gnb_snapshot_sha256": "d5f317413fbef79f69501adfce2428c1300941938def0d6e554de1c16c2b08a8",
+    "subscriber": {
+      "imsi": "001010000000001",
+      "pdu_session_5qi": 6,
+      "subscriber_sql_sha256": "f2da19a4deaa9715b7c9b8789937a98fe6654245b6573e98f4cb835917e36805",
+      "ue_static_ip": "10.0.0.2"
+    },
+    "tdd": "4D5U",
+    "ue_count": 1,
+    "ue_source_sha256": "b20bf2d9d8da9bd15b1f822836b7235dafa16b29f4e097e6ca3749729494c944",
+    "ue_static_ip": "10.0.0.2"
+  },
+  "radio_profile_id": "OAI_N78_100MHZ_273PRB_4D5U_V1",
+  "reference_prefix_is_runtime_cap": false,
+  "sfd1_version": 2,
+  "status": "PHASE14A_CPU_RECONCILIATION_PASSED"
+}

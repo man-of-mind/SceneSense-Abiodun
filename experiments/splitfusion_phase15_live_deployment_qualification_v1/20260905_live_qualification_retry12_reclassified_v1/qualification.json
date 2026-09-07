@@ -1,0 +1,338 @@
+{
+  "action_counts": {
+    "0": 5,
+    "20": 5,
+    "46": 5,
+    "71": 5
+  },
+  "action_order": [
+    0,
+    20,
+    46,
+    71
+  ],
+  "allowed_action_ids": [
+    0,
+    20,
+    46,
+    71
+  ],
+  "campaign_288_authorized": false,
+  "captures": 20,
+  "captures_per_action": 5,
+  "cold_cleanup_verified": true,
+  "network_profile": "FAVORABLE_STABLE",
+  "network_start_sample": 0,
+  "pilot_16_authorized_by_qualification": true,
+  "preflight_inventory_sha256": "693acc830b290409e2efffddff805723db8be270a30985b5370377aaf186fefd",
+  "reclassification": {
+    "all_action_localhost_qualification_bound": true,
+    "all_four_edge_branches_verified": true,
+    "all_four_ue_branches_verified": true,
+    "at_least_one_real_oai_installation_verified": true,
+    "audit_head": "558e1bc3cb3a413a69489a6c0b048b6065b1f843",
+    "cold_teardown_verified": true,
+    "exact_terminal_accounting_verified": true,
+    "historical_adapter_nonzero_exit_was_caused_only_by_superseded_outcome_gates": true,
+    "new_live_measurement_performed": false,
+    "original_failed_record_preserved": true,
+    "post_observation_protocol_amendment": true,
+    "protocol_amendment_commit": "4f122ea4222a6edb9cecf090d25c20502bbab0c4",
+    "schema": "scenesense.splitfusion_phase15_retry12_offline_reclassification.v1",
+    "source_files": [
+      {
+        "bytes": 13579,
+        "path": "FAILED.json",
+        "sha256": "9a86dcba088f0aef7eda31811d421d079e112536c01f4ecd38cfc84ace90288f"
+      },
+      {
+        "bytes": 21319,
+        "path": "preflight_inventory.json",
+        "sha256": "693acc830b290409e2efffddff805723db8be270a30985b5370377aaf186fefd"
+      },
+      {
+        "bytes": 5973,
+        "path": "runtime/RESULTS_SUMMARY.json",
+        "sha256": "9fb6997a6dd3a5b2f779057a15453823126ed76958130054f543eac22789bf96"
+      },
+      {
+        "bytes": 1645,
+        "path": "runtime/manifest.json",
+        "sha256": "624e6ef0d6ca3b6ea999a5f1069a59e42bda0c941c47060d8aa6ed658bca027e"
+      },
+      {
+        "bytes": 20366,
+        "path": "runtime/per_frame_metrics.csv",
+        "sha256": "47c46d0157797c4c64ed6401bb579cb2ae12488070649044f67993bcffdfcc24"
+      },
+      {
+        "bytes": 7685,
+        "path": "runtime/map_feedback.csv",
+        "sha256": "81c67c8507298369e94f26544bd03458971f99f92d92ae3c272aa49c527e0da6"
+      },
+      {
+        "bytes": 1128816,
+        "path": "runtime/radio_trace.csv",
+        "sha256": "4b91ab7df0d4c2e4618936c443cfddd0b9e9be07f7307e111ede85199163865b"
+      }
+    ],
+    "source_head": "b85fc257a1c77e786e5aa3df854e23721e9fcf92",
+    "source_root": "experiments/splitfusion_phase15_live_deployment_qualification_v1/20260905_live_qualification_retry12"
+  },
+  "result": {
+    "ack_installed_actions": [
+      71
+    ],
+    "action_counts": {
+      "0": 5,
+      "20": 5,
+      "46": 5,
+      "71": 5
+    },
+    "actions": [
+      {
+        "ack_installed": 0,
+        "action_id": 0,
+        "captures": 5,
+        "family": "noAE",
+        "mean_capture_to_edge_result_ms": null,
+        "mean_sfd1_bytes": 3647155.4,
+        "profile_id": "split_noae_uint8_q0000",
+        "q": 0.0,
+        "quantizer": "UINT8",
+        "terminal_outcomes": {
+          "TIMEOUT_NO_ACK": 5
+        }
+      },
+      {
+        "ack_installed": 0,
+        "action_id": 20,
+        "captures": 5,
+        "family": "AE128",
+        "mean_capture_to_edge_result_ms": null,
+        "mean_sfd1_bytes": 1198442.8,
+        "profile_id": "split_ae128_uint8_q5000",
+        "q": 0.5,
+        "quantizer": "UINT8",
+        "terminal_outcomes": {
+          "TIMEOUT_NO_ACK": 5
+        }
+      },
+      {
+        "ack_installed": 0,
+        "action_id": 46,
+        "captures": 5,
+        "family": "AE64",
+        "mean_capture_to_edge_result_ms": null,
+        "mean_sfd1_bytes": 100366.6,
+        "profile_id": "split_ae64_uint6_q9000",
+        "q": 0.9,
+        "quantizer": "UINT6",
+        "terminal_outcomes": {
+          "TIMEOUT_NO_ACK": 5
+        }
+      },
+      {
+        "ack_installed": 1,
+        "action_id": 71,
+        "captures": 5,
+        "family": "AE32",
+        "mean_capture_to_edge_result_ms": 2452.210239,
+        "mean_sfd1_bytes": 6547.0,
+        "profile_id": "split_ae32_uint4_q9800",
+        "q": 0.98,
+        "quantizer": "UINT4",
+        "terminal_outcomes": {
+          "TIMEOUT_NO_ACK": 5
+        }
+      }
+    ],
+    "actions_without_live_install": [
+      0,
+      20,
+      46
+    ],
+    "captures": 20,
+    "edge_call_ledger": {
+      "ae_decoder_AE128": 1,
+      "ae_decoder_AE32": 1,
+      "ae_decoder_AE64": 1,
+      "service_record_serialization": 4,
+      "tail": 4
+    },
+    "edge_counters": {
+      "ae_decoder_dispatches": 3,
+      "ae_encoder_dispatches": 0,
+      "frames_attempted": 4,
+      "frames_completed": 4,
+      "hot_path_model_construction_operations": 0,
+      "hot_path_model_load_operations": 0,
+      "ranker_dispatches": 0,
+      "startup_eval_transitions": 0,
+      "startup_model_construction_operations": 4,
+      "startup_model_load_operations": 4,
+      "startup_module_device_moves": 0,
+      "startup_parameter_freezes": 0,
+      "startup_preloaded_objects": 4,
+      "tail_dispatches": 4
+    },
+    "edge_mounts": {
+      "repository": {
+        "destination": "/work/abiodun",
+        "rw": false,
+        "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun"
+      },
+      "state": {
+        "destination": "/work/torch_cache",
+        "rw": true,
+        "source": "/tmp/ue_288_cell_runtime_ibd1q8i8/splitfusion_edge_state"
+      }
+    },
+    "edge_startup": {
+      "action_id": 0,
+      "allowed_action_ids": [
+        0,
+        20,
+        46,
+        71
+      ],
+      "edge_receive_reported_bytes": 16777216,
+      "edge_send_reported_bytes": 16777216,
+      "profiles": {
+        "0": "split_noae_uint8_q0000",
+        "20": "split_ae128_uint8_q5000",
+        "46": "split_ae64_uint6_q9000",
+        "71": "split_ae32_uint4_q9800"
+      },
+      "schema": "splitfusion_live_edge_ready.v1",
+      "state_root": "/work/torch_cache",
+      "state_root_writable": true,
+      "tail_device": "cuda:0"
+    },
+    "live_edge_completed_frames": 4,
+    "live_results_returned_to_ue": 1,
+    "maximum_capture_to_edge_result_ms": 2452.210239,
+    "mean_capture_to_edge_result_ms": 2452.210239,
+    "mean_sfd1_bytes": 1238127.95,
+    "performance_outcomes": {
+      "conditional_delivery_rate_given_sent": 0.05,
+      "eligible_preparation_frames": 41,
+      "incomplete_radar_windows_recorded_as_dropped_under_amendment": 1,
+      "installed_frames": 1,
+      "low_preparation_or_delivery_is_measured_not_structurally_invalid": true,
+      "overall_delivery_rate": 0.024390243902439025,
+      "preparation_rate": 0.4878048780487805,
+      "sent_frames": 20
+    },
+    "radio_first_step": 0,
+    "radio_steps": 3008,
+    "route": {
+      "density_status": "INTERVENED",
+      "error": "",
+      "intervention_policy": {
+        "forced_overtaking": false,
+        "intervention_count": 5,
+        "intervention_events": [
+          {
+            "action": "DESTROYED",
+            "actor_id": 62,
+            "actor_type": "vehicle.nissan.patrol",
+            "sim_s": 126.45,
+            "x": 100.62,
+            "y": 34.92
+          },
+          {
+            "action": "DESTROYED",
+            "actor_id": 85,
+            "actor_type": "vehicle.nissan.patrol",
+            "sim_s": 211.0,
+            "x": -22.46,
+            "y": -68.19
+          },
+          {
+            "action": "DESTROYED",
+            "actor_id": 56,
+            "actor_type": "vehicle.dodge.charger",
+            "sim_s": 216.45,
+            "x": 104.26,
+            "y": 27.18
+          },
+          {
+            "action": "DESTROYED",
+            "actor_id": 76,
+            "actor_type": "vehicle.lincoln.mkz",
+            "sim_s": 216.45,
+            "x": 102.71,
+            "y": 17.18
+          },
+          {
+            "action": "DESTROYED",
+            "actor_id": 77,
+            "actor_type": "vehicle.taxi.ford",
+            "sim_s": 216.45,
+            "x": 95.53,
+            "y": 24.14
+          }
+        ],
+        "interventions_permitted_and_expected": true,
+        "maximum_overtakes": 0,
+        "permitted_actions": [
+          "RELOCATED",
+          "DESTROYED"
+        ],
+        "roadblock_clearing": true,
+        "scenario_interventions": true,
+        "unexpected_intervention_events": []
+      },
+      "route_abort_reason": "",
+      "route_completed": true,
+      "route_runner_returncode": 1
+    },
+    "socket_buffers": {
+      "edge_receive_reported_bytes": 16777216,
+      "edge_send_reported_bytes": 16777216,
+      "requested_bytes": 8388608,
+      "ue_result_receive_reported_bytes": 16777216,
+      "ue_send_reported_bytes": 16777216
+    },
+    "structural_acceptance": {
+      "accounting_failure": false,
+      "corruption_or_identity_failure": false,
+      "dirty_teardown": false,
+      "historical_failures_reclassified_as_performance": [
+        "10 Hz prepared-input scheduling phase/count contract failed",
+        "frame 583: AdapterError: accepted window requires four radar callbacks, got 3",
+        "live qualification lacks ACK_INSTALLED for actions [0, 20, 46]",
+        "qualified Route B did not complete with a clean split adapter",
+        "sensor/preparation coverage below campaign minimum: 0.487805 < 0.950000"
+      ],
+      "nonfinite_output": false,
+      "operational_process_failure": false,
+      "status": "PASS_AFTER_AUTHORIZED_OFFLINE_RECLASSIFICATION"
+    },
+    "terminal_outcomes": {
+      "TIMEOUT_NO_ACK": 20
+    },
+    "total_sfd1_bytes": 24762559,
+    "ue_counters": {
+      "ae_decoder_dispatches": 0,
+      "ae_encoder_dispatches": 15,
+      "frames_attempted": 20,
+      "frames_completed": 20,
+      "hot_path_model_construction_operations": 0,
+      "hot_path_model_load_operations": 0,
+      "ranker_dispatches": 15,
+      "startup_eval_transitions": 0,
+      "startup_model_construction_operations": 5,
+      "startup_model_load_operations": 5,
+      "startup_module_device_moves": 0,
+      "startup_parameter_freezes": 0,
+      "startup_preloaded_objects": 5,
+      "tail_dispatches": 0
+    },
+    "unique_frame_ids": 20
+  },
+  "retained_rgb_radar_payloads_predictions": false,
+  "schema": "scenesense.splitfusion_phase15_live_deployment_reclassified_qualification.v1",
+  "status": "SPLITFUSION_PHASE15_LIVE_DEPLOYMENT_QUALIFIED"
+}

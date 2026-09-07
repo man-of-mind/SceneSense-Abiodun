@@ -1,0 +1,111 @@
+{
+  "action_id": 71,
+  "direct_diagnostic_calls": {
+    "ae_decoder_AE32": 1,
+    "ae_encoder_AE32": 1,
+    "direct_zstd_compressions": 1,
+    "direct_zstd_decompressions": 1,
+    "ranker": 1,
+    "service_record_serialization": 1,
+    "tail": 1
+  },
+  "live_calls": {
+    "ae_decoder_AE32": 1,
+    "ae_encoder_AE32": 1,
+    "front": 1,
+    "live_edge_zstd_decompressions": 1,
+    "live_ue_zstd_compressions": 1,
+    "phase13a_codec_decode": 1,
+    "phase13a_codec_encode": 1,
+    "phase13a_codec_inspect": 1,
+    "ranker": 1,
+    "service_record_serialization": 1,
+    "tail": 1
+  },
+  "parity": {
+    "detection_count": 49,
+    "detection_mapping_sha256": "5a43990785a23f71d53434c03c60d31d10ec8d8d408abf8286249c599b10f182",
+    "detections_all_fields_and_order_exact": true,
+    "exact_detection_fields": 23,
+    "inner_codec_bytes_exact": true,
+    "keep_count_exact": true,
+    "reconstructed_c2_exact": true,
+    "segmentation_labels_exact": true,
+    "segmentation_labels_sha256": "fc7ddee12b0c42895054639635ffc47d93c0fe50a576aa79e5ab792df271490c",
+    "segmentation_logits_exact": true,
+    "segmentation_logits_sha256": "3863c400c3d10508e1221047ca4f7fa35473890b9df35e6e40c7e43ae2f94e71",
+    "selected_indices_count": 430,
+    "selected_indices_exact": true,
+    "selected_indices_sha256": "b86304b25895264108251656c19f435e00214093209a644770ee5e61822ae590",
+    "serialized_service_records_exact": true,
+    "serialized_service_records_sha256": "181d9400895626bdd028a4957c7598a338f93fdb017fa7e7999b32fb0b278158",
+    "service_record_count": 49
+  },
+  "phase13a_edge_counter_delta": {
+    "ae_decoder_dispatches": 1,
+    "frames_attempted": 1,
+    "frames_completed": 1,
+    "tail_dispatches": 1
+  },
+  "phase13a_ue_counter_delta": {
+    "ae_encoder_dispatches": 1,
+    "frames_attempted": 1,
+    "frames_completed": 1,
+    "ranker_dispatches": 1
+  },
+  "profile_id": "split_ae32_uint4_q9800",
+  "reconstructed_c2": {
+    "device": "cuda:0",
+    "dtype": "float32",
+    "finite": true,
+    "sha256": "948b82a3021c5674ce054aa7bd4ede3a7468d05f77ee78559895e2f4cc07c7af",
+    "shape": [
+      256,
+      112,
+      192
+    ]
+  },
+  "resolved_catalog_identity": {
+    "bit_width": 4,
+    "family": "AE32",
+    "family_id": 3,
+    "keep_count": 430,
+    "latent_width": 32,
+    "q_e4": 9800,
+    "quantizer": "UINT4",
+    "routing_tag": 3807930229,
+    "segmentation_installable": false,
+    "wire_codec_id": 3,
+    "wire_magic_ascii": "HQLB",
+    "wire_version": 1
+  },
+  "sfd1": {
+    "capture_timestamp_ns": 159334037758,
+    "framing_control_overhead_bytes": 36,
+    "protocol_version": 1,
+    "reassembled_exact": true,
+    "reassembled_sha256": "646e2fffea88cc263e54f7208d8c6a9d24987fa9ae363032932187024a03d243",
+    "scientific_inner_payload_bytes": 6050,
+    "sequence_id": 3271,
+    "total_application_bytes": 6086,
+    "transmitted_sha256": "646e2fffea88cc263e54f7208d8c6a9d24987fa9ae363032932187024a03d243"
+  },
+  "timing_instrumentation": {
+    "clock": "time.monotonic_ns",
+    "durations_nonnegative": true,
+    "edge_boundaries_present": true,
+    "latency_measured_or_published": false,
+    "ordering_valid": true,
+    "ue_boundaries_present": true
+  },
+  "udp": {
+    "chunk_header_bytes": 8,
+    "datagrams": 1,
+    "diagnostic_chunk_bytes_including_header": 12500,
+    "duplicate_datagrams": 0,
+    "estimated_ip_udp_bytes": 28,
+    "estimated_on_wire_bytes": 6122,
+    "sfd1_bytes_per_full_chunk": 12492,
+    "udp_application_bytes": 6094
+  }
+}

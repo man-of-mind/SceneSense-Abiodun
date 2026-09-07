@@ -1,0 +1,805 @@
+{
+  "actions": [
+    {
+      "action_id": 0,
+      "direct_diagnostic_calls": {
+        "direct_zstd_compressions": 1,
+        "direct_zstd_decompressions": 1,
+        "service_record_serialization": 1,
+        "tail": 1
+      },
+      "live_calls": {
+        "front": 1,
+        "live_edge_zstd_decompressions": 1,
+        "live_ue_zstd_compressions": 1,
+        "phase13a_codec_decode": 1,
+        "phase13a_codec_encode": 1,
+        "phase13a_codec_inspect": 1,
+        "service_record_serialization": 1,
+        "tail": 1
+      },
+      "parity": {
+        "detection_count": 39,
+        "detection_mapping_sha256": "9973bf79bb88d33310e5ce844cec3440169e00be890ff6e109a1699a01476d74",
+        "detections_all_fields_and_order_exact": true,
+        "exact_detection_fields": 23,
+        "inner_codec_bytes_exact": true,
+        "keep_count_exact": true,
+        "reconstructed_c2_exact": true,
+        "segmentation_labels_exact": true,
+        "segmentation_labels_sha256": "24af34fc1069288fea4eeb2569c7c0172b6d39c4d98a26843767a5d4bad4b99b",
+        "segmentation_logits_exact": true,
+        "segmentation_logits_sha256": "ce6e5ca61d6745f7b22d9ef5539e0101ab29f6b54c0b87b120f7aea37c7c0678",
+        "selected_indices_count": 21504,
+        "selected_indices_exact": true,
+        "selected_indices_sha256": "68848e0921743c09eb20c1d93cbccfd35703c8be04e00cc0c440637b7038f84e",
+        "serialized_service_records_exact": true,
+        "serialized_service_records_sha256": "d02f667dd3ebca753ebcb8c002dea20ec3ccc009259b6d265aec171b47bdfc84",
+        "service_record_count": 39
+      },
+      "phase13a_edge_counter_delta": {
+        "frames_attempted": 1,
+        "frames_completed": 1,
+        "tail_dispatches": 1
+      },
+      "phase13a_ue_counter_delta": {
+        "frames_attempted": 1,
+        "frames_completed": 1
+      },
+      "profile_id": "split_noae_uint8_q0000",
+      "reconstructed_c2": {
+        "device": "cuda:0",
+        "dtype": "float32",
+        "finite": true,
+        "sha256": "552b549d1833e59691ac10cb0bc475ea0de77fd5b732609085c4c9aae64fb251",
+        "shape": [
+          256,
+          112,
+          192
+        ]
+      },
+      "resolved_catalog_identity": {
+        "bit_width": 8,
+        "family": "noAE",
+        "family_id": 0,
+        "keep_count": 21504,
+        "latent_width": null,
+        "q_e4": 0,
+        "quantizer": "UINT8",
+        "routing_tag": 0,
+        "segmentation_installable": true,
+        "wire_codec_id": 1,
+        "wire_magic_ascii": "HQ8\\0",
+        "wire_version": 1
+      },
+      "sfd1": {
+        "capture_timestamp_ns": 159334037758,
+        "framing_control_overhead_bytes": 36,
+        "protocol_version": 1,
+        "reassembled_exact": true,
+        "reassembled_sha256": "63e38dae06ac5999185e3e8cb6d144f5ec1fd757c11a58b7840b6addf87a7815",
+        "scientific_inner_payload_bytes": 3583848,
+        "sequence_id": 3271,
+        "total_application_bytes": 3583884,
+        "transmitted_sha256": "63e38dae06ac5999185e3e8cb6d144f5ec1fd757c11a58b7840b6addf87a7815"
+      },
+      "timing_instrumentation": {
+        "clock": "time.monotonic_ns",
+        "durations_nonnegative": true,
+        "edge_boundaries_present": true,
+        "latency_measured_or_published": false,
+        "ordering_valid": true,
+        "ue_boundaries_present": true
+      },
+      "udp": {
+        "chunk_header_bytes": 2296,
+        "datagrams": 287,
+        "diagnostic_chunk_bytes_including_header": 12500,
+        "duplicate_datagrams": 0,
+        "estimated_ip_udp_bytes": 8036,
+        "estimated_on_wire_bytes": 3594216,
+        "sfd1_bytes_per_full_chunk": 12492,
+        "udp_application_bytes": 3586180
+      }
+    },
+    {
+      "action_id": 20,
+      "direct_diagnostic_calls": {
+        "ae_decoder_AE128": 1,
+        "ae_encoder_AE128": 1,
+        "direct_zstd_compressions": 1,
+        "direct_zstd_decompressions": 1,
+        "ranker": 1,
+        "service_record_serialization": 1,
+        "tail": 1
+      },
+      "live_calls": {
+        "ae_decoder_AE128": 1,
+        "ae_encoder_AE128": 1,
+        "front": 1,
+        "live_edge_zstd_decompressions": 1,
+        "live_ue_zstd_compressions": 1,
+        "phase13a_codec_decode": 1,
+        "phase13a_codec_encode": 1,
+        "phase13a_codec_inspect": 1,
+        "ranker": 1,
+        "service_record_serialization": 1,
+        "tail": 1
+      },
+      "parity": {
+        "detection_count": 41,
+        "detection_mapping_sha256": "2d251abfbcd168f57118a747170b244826c14df7286e9d6c6444a3c1809b912b",
+        "detections_all_fields_and_order_exact": true,
+        "exact_detection_fields": 23,
+        "inner_codec_bytes_exact": true,
+        "keep_count_exact": true,
+        "reconstructed_c2_exact": true,
+        "segmentation_labels_exact": true,
+        "segmentation_labels_sha256": "5ef445e44f12898f8203d1feba9af26c10286fd861deaf73a5556b2185caa36e",
+        "segmentation_logits_exact": true,
+        "segmentation_logits_sha256": "fb8072b9aa3dcd8308596fec4992931a3579d846957d0aa5a6b73103c460c33b",
+        "selected_indices_count": 10752,
+        "selected_indices_exact": true,
+        "selected_indices_sha256": "234458c7b9cf67d395b13145733e2e3b7fe76e696cddd809a5e3cdea7305db2a",
+        "serialized_service_records_exact": true,
+        "serialized_service_records_sha256": "138f20f618ba716f16997c1dbcd56f1e03414ecf2e9e15dbea1ed4c44b775478",
+        "service_record_count": 41
+      },
+      "phase13a_edge_counter_delta": {
+        "ae_decoder_dispatches": 1,
+        "frames_attempted": 1,
+        "frames_completed": 1,
+        "tail_dispatches": 1
+      },
+      "phase13a_ue_counter_delta": {
+        "ae_encoder_dispatches": 1,
+        "frames_attempted": 1,
+        "frames_completed": 1,
+        "ranker_dispatches": 1
+      },
+      "profile_id": "split_ae128_uint8_q5000",
+      "reconstructed_c2": {
+        "device": "cuda:0",
+        "dtype": "float32",
+        "finite": true,
+        "sha256": "ed0b6fe47515aa2a0a3b013a364956688887dbbde7428242ba4ada47d8a3bab3",
+        "shape": [
+          256,
+          112,
+          192
+        ]
+      },
+      "resolved_catalog_identity": {
+        "bit_width": 8,
+        "family": "AE128",
+        "family_id": 1,
+        "keep_count": 10752,
+        "latent_width": 128,
+        "q_e4": 5000,
+        "quantizer": "UINT8",
+        "routing_tag": 204186532,
+        "segmentation_installable": true,
+        "wire_codec_id": 2,
+        "wire_magic_ascii": "AE8\\0",
+        "wire_version": 1
+      },
+      "sfd1": {
+        "capture_timestamp_ns": 159334037758,
+        "framing_control_overhead_bytes": 36,
+        "protocol_version": 1,
+        "reassembled_exact": true,
+        "reassembled_sha256": "b8081a385c116d2650beddd759214ada9ccc7f634f2d4f33b262cb9082188620",
+        "scientific_inner_payload_bytes": 1213648,
+        "sequence_id": 3271,
+        "total_application_bytes": 1213684,
+        "transmitted_sha256": "b8081a385c116d2650beddd759214ada9ccc7f634f2d4f33b262cb9082188620"
+      },
+      "timing_instrumentation": {
+        "clock": "time.monotonic_ns",
+        "durations_nonnegative": true,
+        "edge_boundaries_present": true,
+        "latency_measured_or_published": false,
+        "ordering_valid": true,
+        "ue_boundaries_present": true
+      },
+      "udp": {
+        "chunk_header_bytes": 784,
+        "datagrams": 98,
+        "diagnostic_chunk_bytes_including_header": 12500,
+        "duplicate_datagrams": 0,
+        "estimated_ip_udp_bytes": 2744,
+        "estimated_on_wire_bytes": 1217212,
+        "sfd1_bytes_per_full_chunk": 12492,
+        "udp_application_bytes": 1214468
+      }
+    },
+    {
+      "action_id": 46,
+      "direct_diagnostic_calls": {
+        "ae_decoder_AE64": 1,
+        "ae_encoder_AE64": 1,
+        "direct_zstd_compressions": 1,
+        "direct_zstd_decompressions": 1,
+        "ranker": 1,
+        "service_record_serialization": 1,
+        "tail": 1
+      },
+      "live_calls": {
+        "ae_decoder_AE64": 1,
+        "ae_encoder_AE64": 1,
+        "front": 1,
+        "live_edge_zstd_decompressions": 1,
+        "live_ue_zstd_compressions": 1,
+        "phase13a_codec_decode": 1,
+        "phase13a_codec_encode": 1,
+        "phase13a_codec_inspect": 1,
+        "ranker": 1,
+        "service_record_serialization": 1,
+        "tail": 1
+      },
+      "parity": {
+        "detection_count": 39,
+        "detection_mapping_sha256": "05179b735a563431a09d3b60285fb0b2e1627fe03c499a83f7fd6d8d61fadef7",
+        "detections_all_fields_and_order_exact": true,
+        "exact_detection_fields": 23,
+        "inner_codec_bytes_exact": true,
+        "keep_count_exact": true,
+        "reconstructed_c2_exact": true,
+        "segmentation_labels_exact": true,
+        "segmentation_labels_sha256": "c849b25fa9b179c74ec0e8486ee74cf2724dae846abdb5368eb55cc6006b4baa",
+        "segmentation_logits_exact": true,
+        "segmentation_logits_sha256": "47272bceebc35767c69bb098923d4442d195781d34839a281a492e3c9c70ba39",
+        "selected_indices_count": 2150,
+        "selected_indices_exact": true,
+        "selected_indices_sha256": "91ff7a1b2cf198da50dfc1f4e081962d4f69b0efce37e225e7d1cd2ba0b338ea",
+        "serialized_service_records_exact": true,
+        "serialized_service_records_sha256": "a5883a71223fa7390ef8a5762bd32e0a9ec1caa48611dd63532a7e2e0f551ab1",
+        "service_record_count": 39
+      },
+      "phase13a_edge_counter_delta": {
+        "ae_decoder_dispatches": 1,
+        "frames_attempted": 1,
+        "frames_completed": 1,
+        "tail_dispatches": 1
+      },
+      "phase13a_ue_counter_delta": {
+        "ae_encoder_dispatches": 1,
+        "frames_attempted": 1,
+        "frames_completed": 1,
+        "ranker_dispatches": 1
+      },
+      "profile_id": "split_ae64_uint6_q9000",
+      "reconstructed_c2": {
+        "device": "cuda:0",
+        "dtype": "float32",
+        "finite": true,
+        "sha256": "a197b5ddecce43a98cc32620b5149c89175c20e0f470aa7b04408dc28867bb4f",
+        "shape": [
+          256,
+          112,
+          192
+        ]
+      },
+      "resolved_catalog_identity": {
+        "bit_width": 6,
+        "family": "AE64",
+        "family_id": 2,
+        "keep_count": 2150,
+        "latent_width": 64,
+        "q_e4": 9000,
+        "quantizer": "UINT6",
+        "routing_tag": 3715911972,
+        "segmentation_installable": false,
+        "wire_codec_id": 3,
+        "wire_magic_ascii": "HQLB",
+        "wire_version": 1
+      },
+      "sfd1": {
+        "capture_timestamp_ns": 159334037758,
+        "framing_control_overhead_bytes": 36,
+        "protocol_version": 1,
+        "reassembled_exact": true,
+        "reassembled_sha256": "777526e73177f38c42dec711707f7cb69097402823a602b45fee849def89bca4",
+        "scientific_inner_payload_bytes": 99634,
+        "sequence_id": 3271,
+        "total_application_bytes": 99670,
+        "transmitted_sha256": "777526e73177f38c42dec711707f7cb69097402823a602b45fee849def89bca4"
+      },
+      "timing_instrumentation": {
+        "clock": "time.monotonic_ns",
+        "durations_nonnegative": true,
+        "edge_boundaries_present": true,
+        "latency_measured_or_published": false,
+        "ordering_valid": true,
+        "ue_boundaries_present": true
+      },
+      "udp": {
+        "chunk_header_bytes": 64,
+        "datagrams": 8,
+        "diagnostic_chunk_bytes_including_header": 12500,
+        "duplicate_datagrams": 0,
+        "estimated_ip_udp_bytes": 224,
+        "estimated_on_wire_bytes": 99958,
+        "sfd1_bytes_per_full_chunk": 12492,
+        "udp_application_bytes": 99734
+      }
+    },
+    {
+      "action_id": 71,
+      "direct_diagnostic_calls": {
+        "ae_decoder_AE32": 1,
+        "ae_encoder_AE32": 1,
+        "direct_zstd_compressions": 1,
+        "direct_zstd_decompressions": 1,
+        "ranker": 1,
+        "service_record_serialization": 1,
+        "tail": 1
+      },
+      "live_calls": {
+        "ae_decoder_AE32": 1,
+        "ae_encoder_AE32": 1,
+        "front": 1,
+        "live_edge_zstd_decompressions": 1,
+        "live_ue_zstd_compressions": 1,
+        "phase13a_codec_decode": 1,
+        "phase13a_codec_encode": 1,
+        "phase13a_codec_inspect": 1,
+        "ranker": 1,
+        "service_record_serialization": 1,
+        "tail": 1
+      },
+      "parity": {
+        "detection_count": 49,
+        "detection_mapping_sha256": "5a43990785a23f71d53434c03c60d31d10ec8d8d408abf8286249c599b10f182",
+        "detections_all_fields_and_order_exact": true,
+        "exact_detection_fields": 23,
+        "inner_codec_bytes_exact": true,
+        "keep_count_exact": true,
+        "reconstructed_c2_exact": true,
+        "segmentation_labels_exact": true,
+        "segmentation_labels_sha256": "fc7ddee12b0c42895054639635ffc47d93c0fe50a576aa79e5ab792df271490c",
+        "segmentation_logits_exact": true,
+        "segmentation_logits_sha256": "3863c400c3d10508e1221047ca4f7fa35473890b9df35e6e40c7e43ae2f94e71",
+        "selected_indices_count": 430,
+        "selected_indices_exact": true,
+        "selected_indices_sha256": "b86304b25895264108251656c19f435e00214093209a644770ee5e61822ae590",
+        "serialized_service_records_exact": true,
+        "serialized_service_records_sha256": "181d9400895626bdd028a4957c7598a338f93fdb017fa7e7999b32fb0b278158",
+        "service_record_count": 49
+      },
+      "phase13a_edge_counter_delta": {
+        "ae_decoder_dispatches": 1,
+        "frames_attempted": 1,
+        "frames_completed": 1,
+        "tail_dispatches": 1
+      },
+      "phase13a_ue_counter_delta": {
+        "ae_encoder_dispatches": 1,
+        "frames_attempted": 1,
+        "frames_completed": 1,
+        "ranker_dispatches": 1
+      },
+      "profile_id": "split_ae32_uint4_q9800",
+      "reconstructed_c2": {
+        "device": "cuda:0",
+        "dtype": "float32",
+        "finite": true,
+        "sha256": "948b82a3021c5674ce054aa7bd4ede3a7468d05f77ee78559895e2f4cc07c7af",
+        "shape": [
+          256,
+          112,
+          192
+        ]
+      },
+      "resolved_catalog_identity": {
+        "bit_width": 4,
+        "family": "AE32",
+        "family_id": 3,
+        "keep_count": 430,
+        "latent_width": 32,
+        "q_e4": 9800,
+        "quantizer": "UINT4",
+        "routing_tag": 3807930229,
+        "segmentation_installable": false,
+        "wire_codec_id": 3,
+        "wire_magic_ascii": "HQLB",
+        "wire_version": 1
+      },
+      "sfd1": {
+        "capture_timestamp_ns": 159334037758,
+        "framing_control_overhead_bytes": 36,
+        "protocol_version": 1,
+        "reassembled_exact": true,
+        "reassembled_sha256": "646e2fffea88cc263e54f7208d8c6a9d24987fa9ae363032932187024a03d243",
+        "scientific_inner_payload_bytes": 6050,
+        "sequence_id": 3271,
+        "total_application_bytes": 6086,
+        "transmitted_sha256": "646e2fffea88cc263e54f7208d8c6a9d24987fa9ae363032932187024a03d243"
+      },
+      "timing_instrumentation": {
+        "clock": "time.monotonic_ns",
+        "durations_nonnegative": true,
+        "edge_boundaries_present": true,
+        "latency_measured_or_published": false,
+        "ordering_valid": true,
+        "ue_boundaries_present": true
+      },
+      "udp": {
+        "chunk_header_bytes": 8,
+        "datagrams": 1,
+        "diagnostic_chunk_bytes_including_header": 12500,
+        "duplicate_datagrams": 0,
+        "estimated_ip_udp_bytes": 28,
+        "estimated_on_wire_bytes": 6122,
+        "sfd1_bytes_per_full_chunk": 12492,
+        "udp_application_bytes": 6094
+      }
+    }
+  ],
+  "environment": {
+    "device": "cuda:0",
+    "device_capability": [
+      12,
+      0
+    ],
+    "device_count": 1,
+    "device_name": "NVIDIA GeForce RTX 5090",
+    "executable": "/usr/bin/python3",
+    "gpu_workload_policy": {
+      "allowed_infrastructure_processes": [
+        {
+          "executable_basename": "gnome-remote-desktop-daemon",
+          "pid": 3031,
+          "process_name": "/usr/libexec/gnome-remote-desktop-daemon",
+          "used_gpu_memory_mib": "502"
+        },
+        {
+          "executable_basename": "nvidia-cuda-mps-server",
+          "pid": 2016454,
+          "process_name": "nvidia-cuda-mps-server",
+          "used_gpu_memory_mib": "54"
+        }
+      ],
+      "infrastructure_basenames": [
+        "firefox",
+        "gnome-remote-desktop-daemon",
+        "gnome-shell",
+        "nvidia-cuda-mps-server",
+        "xorg"
+      ],
+      "mps": {
+        "client_commands": [],
+        "client_pids": [],
+        "read_only_client_command_check": true,
+        "server_pids": [
+          2016454
+        ]
+      },
+      "mps_client_process_commands": [],
+      "unrelated_scientific_compute_processes": []
+    },
+    "nvidia_smi_gpu": "0, NVIDIA GeForce RTX 5090, 575.57.08",
+    "python": "3.10.12",
+    "tiny_allocation_and_synchronization": true,
+    "torch": "2.10.0.dev20251114+cu128",
+    "torch_cuda": "12.8"
+  },
+  "fit_frame": {
+    "calibration": {
+      "extrinsic": {
+        "dtype": "float64",
+        "sha256": "f9e4f12dbd687e51708c66f732097f2df6f7d4686e7925f511a9763e5692ddb1",
+        "shape": [
+          4,
+          4
+        ]
+      },
+      "intrinsic": {
+        "dtype": "float32",
+        "sha256": "5de4959514a8c858facd02eedacc8226ed27583284465badd0636ca21b23e031",
+        "shape": [
+          3,
+          3
+        ]
+      }
+    },
+    "camera_matrix_json_sha256": "7a97055365fe8122f67d7f2f01691f5b53f92ac0da48a81d608197b06919d850",
+    "dataset_index": 14314,
+    "fit_frames_registered": 13543,
+    "input_view": "InferenceDataset(train): RGB+radar+camera calibration only",
+    "phase11b_evidence_bound": true,
+    "radar_frames_read": 1,
+    "registered_split": "fit",
+    "rgb_frames_read": 1,
+    "row_keys": [
+      "anchor_pitch",
+      "anchor_roll",
+      "anchor_x",
+      "anchor_y",
+      "anchor_yaw",
+      "anchor_z",
+      "camera_cx",
+      "camera_cy",
+      "camera_fov",
+      "camera_fx",
+      "camera_fy",
+      "camera_height",
+      "camera_inverse_matrix_json",
+      "camera_matrix_json",
+      "camera_pitch",
+      "camera_roll",
+      "camera_width",
+      "camera_x",
+      "camera_y",
+      "camera_yaw",
+      "camera_z",
+      "experiment_id",
+      "frame_id",
+      "gt_contract",
+      "instance_raw_path",
+      "map_name",
+      "mask_path",
+      "object_ignore_mask_path",
+      "pedestrian_density",
+      "person_pixels",
+      "radar_frame_id",
+      "radar_horizontal_fov",
+      "radar_inverse_matrix_json",
+      "radar_matrix_json",
+      "radar_parked_evidence_points",
+      "radar_points",
+      "radar_points_path",
+      "radar_range_m",
+      "radar_stationary_points",
+      "radar_tensor_path",
+      "radar_timestamp",
+      "radar_to_camera_matrix_json",
+      "radar_vertical_fov",
+      "rgb_path",
+      "sample_id",
+      "scenario_id",
+      "split",
+      "timestamp",
+      "traffic_density",
+      "traffic_light_id",
+      "traffic_light_opendrive_id",
+      "vehicle_pixels",
+      "view_id"
+    ],
+    "sample_id": "extra_v3_13_train_30_30_s805_tm1805_000761_frame3271",
+    "semantic_or_depth_labels_read": 0,
+    "train_holdout_frames_registered_but_unread": 3284
+  },
+  "implementation_commit": "8156c6b3e7c6fa791be16d978994baff48a04a89",
+  "implementation_source": {
+    "path": "rl_agent/splitfusion_live_dispatch_v1/phase13b_qualification.py",
+    "phase13a_commit": "219bd004ef74550128228062768dac7c6fa6525b",
+    "phase13b_implementation_commit": "71cfc1951c3bd5baca897eaf2483029f5ca9f0c2",
+    "phase13b_porcelain_repair_commit": "b25247f3dbed5f0abecd45584157a46b9987f3bb",
+    "sha256": "e90881e23061d14c8f0cc96a0d2ebd37cbcb063d7b3785a358b27691f4d4a310"
+  },
+  "integrity": {
+    "all_direct_path_parity_exact": true,
+    "all_gradients_absent": true,
+    "all_p025_detections_emitted_at_every_distance": true,
+    "calibration_resident_not_transmitted": true,
+    "direct_diagnostic_tail_calls": 4,
+    "direct_diagnostic_zstd_decompressions": 4,
+    "frozen_state_equal": {
+      "AE128": true,
+      "AE32": true,
+      "AE64": true,
+      "perception": true,
+      "ranker": true
+    },
+    "live_tail_calls": 4,
+    "live_zstd_decompressions": 4,
+    "no_30m_runtime_filter": true,
+    "requested_actions_resolved_from_catalog": [
+      0,
+      20,
+      46,
+      71
+    ],
+    "sfd1_messages_delivered": 4
+  },
+  "per_action_records": [
+    {
+      "path": "actions/action_00.json",
+      "sha256": "3bc651f3026322ee908ccd649c789e8ef1bd4d06a3dd96d367b92c0ffedf91bf"
+    },
+    {
+      "path": "actions/action_20.json",
+      "sha256": "fd5b767c6459607b6c869b84238a7a485da09d281d9ed286237c6ad2f1a28d8a"
+    },
+    {
+      "path": "actions/action_46.json",
+      "sha256": "e0b50ebad01f5dad79de39f4f2a7850fb7d05ab060317bd9c98a4f6d959e7b57"
+    },
+    {
+      "path": "actions/action_71.json",
+      "sha256": "b4d07bcb34131169b625317ea92ad12c9174e10b36e7aca7fbb47bf9aff17795"
+    }
+  ],
+  "perception_binding": {
+    "checkpoint_epoch": 26,
+    "checkpoint_path": "experiments/route_b_v3_1_splitfusion_fcos_r50_fpn_p2_p7_v1_numerical_recovery_v1/20260830_recovered_epoch10_gate_v1/checkpoints/epoch_026.pt",
+    "checkpoint_sha256": "da14d21edbd374c1c3abce02ca4674b9f4097becfba9759aba945cea160a297f",
+    "checkpoint_training_source_commit": "0d5697b46e901d4494572b2e9a9863326947d24c",
+    "eval_mode": true,
+    "perception_forward_lock_path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_person_p025_calibration_v1/PERCEPTION_FORWARD_LOCK_P025_V1.json",
+    "perception_forward_lock_sha256": "86d6f13ae9168b33b697df5b785c5f7c320afc52cfdcded5b632d94a6d943fe1",
+    "perception_parameters_requires_grad": false,
+    "person_output_threshold": 0.25,
+    "recovery_build_report": {
+      "architecture_and_state_dict_unchanged": true,
+      "coco_car_bias_sha256": "6c9760f1fd54aff7181fcff3cc30a11daafade9c5fc60bc7284fc2e0bca0de14",
+      "coco_car_index": 3,
+      "coco_car_weight_sha256": "9130a2f343e8162c2ea2baf66b34c359a393d331680d6a0f2aaab498b1c80489",
+      "coco_person_bias_sha256": "45a2cc2d30dc1477cf094c1f59f8a11104121b05960140ecefa8ef7d38f1a9a2",
+      "coco_person_index": 1,
+      "coco_person_weight_sha256": "81a7a980256b77cd98a3fa949857568d6501995b649e86463a656f84d9c877ce",
+      "complete_official_outputs": 91,
+      "official_weight_path": "/home/shr_aisvcs/.cache/torch/hub/checkpoints/fcos_resnet50_fpn_coco-99b0c9b7.pth",
+      "project_person_bias_sha256": "45a2cc2d30dc1477cf094c1f59f8a11104121b05960140ecefa8ef7d38f1a9a2",
+      "project_person_weight_sha256": "81a7a980256b77cd98a3fa949857568d6501995b649e86463a656f84d9c877ce",
+      "project_vehicle_bias_sha256": "6c9760f1fd54aff7181fcff3cc30a11daafade9c5fc60bc7284fc2e0bca0de14",
+      "project_vehicle_weight_sha256": "9130a2f343e8162c2ea2baf66b34c359a393d331680d6a0f2aaab498b1c80489",
+      "radar_stem_exact_zero": true,
+      "recovery_yaw_tau": 0.01,
+      "rgb_stem_exact": true,
+      "shared_training_inference_normalizer": true
+    },
+    "runtime": "splitfusion_fcos_r50_fpn_p2_p7_v1_numerical_recovery_v1.build_recovery_model",
+    "selected_yaw_tau": 0.01,
+    "service_policy": "splitfusion_fcos_r50_fpn_p2_p7_person_p025_calibration_v1.apply_p025_service_policy"
+  },
+  "phase11b_sample_binding": {
+    "device_repair_transition": {
+      "current_sha256": "8e25fa64feeb22d4315957faaa216e0ea672170f09250cdc2930d705a621b0ce",
+      "historical_sha256": "f16cf06274beed584020c3ab15fae2a8ac43faa4d5894bfdb951a178525c3e14",
+      "path": "lowbit_dispatch.py",
+      "reason": "the receiver now supplies an explicit torch.device for noAE C2 tail placement; packet bytes, quantization and AE mathematics are unchanged"
+    },
+    "evidence_path": "experiments/splitfusion_fcos_ae_v1/20260903_phase11b_lowbit_gpu_qualification/phase11b_lowbit_gpu_qualification.json",
+    "evidence_sha256": "379aa07148e3e47384cfbebbe0ede5990c07f11b8a4bdef056d6a533cee5fc01",
+    "families": [
+      "AE128",
+      "AE32",
+      "AE64"
+    ],
+    "historical_provenance_checks_passed": true,
+    "terminal_path": "experiments/splitfusion_fcos_ae_v1/20260903_phase11b_lowbit_gpu_qualification/SPLITFUSION_LOWBIT_PHASE11B_GPU_QUALIFIED",
+    "terminal_sha256": "83f41560a3327c4207834f5725e5e313ceb6b3e0f9e22ea1f8c37b6dcf0b56e2"
+  },
+  "phase13a_binding": {
+    "runtime_binding_path": "rl_agent/splitfusion_live_dispatch_v1/runtime_binding.json",
+    "runtime_binding_sha256": "d521b21bc630c2ffd9f7c03c21f27f096f011e8315b41b4d38f7fbebbab3ce51",
+    "terminal_path": "rl_agent/splitfusion_live_dispatch_v1/SPLITFUSION_LIVE_DISPATCH_IMPLEMENTATION_READY_FOR_REVIEW",
+    "terminal_sha256": "1af2f4a87e09856338b712ea53bdf8f30a118e3c35efad7387bd1e01be5d28a9"
+  },
+  "registry_startup_audit": {
+    "action_count": 72,
+    "artifact_hash_operations": 31,
+    "campaign_binding_reads": 1,
+    "campaign_terminal_reads": 1,
+    "catalog_reads": 1,
+    "catalog_terminal_reads": 1,
+    "runtime_binding_reads": 1,
+    "verified_runtime_artifacts": true
+  },
+  "resources": {
+    "peak_allocated_bytes": 455391232,
+    "peak_reserved_bytes": 580911104,
+    "wall_seconds": 4.661387409083545
+  },
+  "schema": "scenesense.splitfusion_live_dispatch_phase13b_qualification.v1",
+  "scope": {
+    "campaign_288_status": "BLOCKED_PENDING_LATER_LOCALHOST_MEASUREMENT_RFSIM_CALIBRATION_AND_16_CELL_OAI_PILOT",
+    "campaign_launched": false,
+    "depth_gt_frames_read": 0,
+    "fit_training_frames_read": 1,
+    "fps_or_throughput_claimed": false,
+    "latency_measured_or_published": false,
+    "oai_or_rfsim_used": false,
+    "payload_or_tensor_artifacts_retained": false,
+    "scoring_used": false,
+    "semantic_gt_frames_read": 0,
+    "test_frames_read": 0,
+    "train_holdout_frames_read": 0,
+    "training_or_tuning": false,
+    "validation_frames_read": 0
+  },
+  "startup_objects": {
+    "checkpoint_deserializations": {
+      "AE128": 1,
+      "AE32": 1,
+      "AE64": 1,
+      "perception": 1,
+      "ranker": 1
+    },
+    "edge": {
+      "device": "cuda:0",
+      "objects": [
+        "frozen_tail_p025_adapter_with_resident_calibration",
+        "AE128_decoder",
+        "AE64_decoder",
+        "AE32_decoder"
+      ],
+      "phase13a_counters": {
+        "ae_decoder_dispatches": 3,
+        "ae_encoder_dispatches": 0,
+        "frames_attempted": 4,
+        "frames_completed": 4,
+        "hot_path_model_construction_operations": 0,
+        "hot_path_model_load_operations": 0,
+        "ranker_dispatches": 0,
+        "startup_eval_transitions": 0,
+        "startup_model_construction_operations": 4,
+        "startup_model_load_operations": 4,
+        "startup_module_device_moves": 0,
+        "startup_parameter_freezes": 0,
+        "startup_preloaded_objects": 4,
+        "tail_dispatches": 4
+      }
+    },
+    "hot_path_load_construct_move_eval_mutate_registry_rebuild": 0,
+    "resident_modules_prepared_before_hot_path": true,
+    "transient_cpu_ae_checkpoint_contract_validators": 3,
+    "ue": {
+      "device": "cuda:0",
+      "objects": [
+        "frozen_front",
+        "stable_epoch4_ranker",
+        "AE128_encoder",
+        "AE64_encoder",
+        "AE32_encoder"
+      ],
+      "phase13a_counters": {
+        "ae_decoder_dispatches": 0,
+        "ae_encoder_dispatches": 3,
+        "frames_attempted": 4,
+        "frames_completed": 4,
+        "hot_path_model_construction_operations": 0,
+        "hot_path_model_load_operations": 0,
+        "ranker_dispatches": 3,
+        "startup_eval_transitions": 0,
+        "startup_model_construction_operations": 5,
+        "startup_model_load_operations": 5,
+        "startup_module_device_moves": 0,
+        "startup_parameter_freezes": 0,
+        "startup_preloaded_objects": 5,
+        "tail_dispatches": 0
+      }
+    }
+  },
+  "status": "FOUR_ACTION_GPU_LOOPBACK_FUNCTIONALLY_QUALIFIED_NOT_LATENCY_MEASURED",
+  "terminal": "SPLITFUSION_LIVE_DISPATCH_FOUR_ACTION_GPU_LOOPBACK_QUALIFIED",
+  "udp": {
+    "chunk_bytes_including_header": 12500,
+    "concurrent_receive_and_reassembly": true,
+    "diagnostic_only_not_oai_binding": true,
+    "fragmentation_header": "!IHH",
+    "receiver_ready_before_first_transmission": true,
+    "receiver_sockets_created": 1,
+    "reported_receive_buffer_bytes": 16777216,
+    "reported_send_buffer_bytes": 16777216,
+    "requested_socket_buffer_bytes": 8388608,
+    "retransmission": false,
+    "secondary_compression_or_pickle": false,
+    "sender_sockets_created": 1,
+    "sockets_reused_for_all_actions": true,
+    "totals": {
+      "chunk_header_bytes": 3152,
+      "datagrams": 394,
+      "estimated_ip_udp_bytes": 11032,
+      "estimated_on_wire_bytes": 4917508,
+      "messages": 4,
+      "scientific_inner_payload_bytes": 4903180,
+      "sfd1_application_bytes": 4903324,
+      "sfd1_control_overhead_bytes": 144,
+      "udp_application_bytes": 4906476
+    },
+    "transport": "real localhost UDP"
+  }
+}

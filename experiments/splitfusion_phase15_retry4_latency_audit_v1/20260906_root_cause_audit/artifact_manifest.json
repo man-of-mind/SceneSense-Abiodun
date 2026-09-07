@@ -1,0 +1,25 @@
+{
+  "files": [
+    {
+      "bytes": 22387,
+      "path": "REPORT.md",
+      "sha256": "b469bd9b14e678a8bc04ff9c1870ee123844a2848811c57718675fa6f0bfb00e"
+    },
+    {
+      "bytes": 154353,
+      "path": "audit.json",
+      "sha256": "58b72a1fd522bf3553847c5fa045ea1b6340270394794f7f2218042dceaa58f5"
+    },
+    {
+      "bytes": 7914,
+      "path": "funnel_by_cell.csv",
+      "sha256": "50a45071a95b640d4f419eaf2809935294e63f1be53c8e8b45f04cc5ff605ae7"
+    },
+    {
+      "bytes": 41353,
+      "path": "latency_by_action_profile.csv",
+      "sha256": "1fc8f320ee291db074d7ecae02cd5bb98a39925f342efab7c9f8a42205413347"
+    }
+  ],
+  "schema": "splitfusion_phase15_retry4_latency_audit_artifacts.v1"
+}

@@ -1,0 +1,232 @@
+{
+  "all_profiles_passed": true,
+  "campaign_288_authorized": false,
+  "clean_restore_verified": true,
+  "cleanup_clean": true,
+  "independent_radio_lifecycle_count": 4,
+  "mapping_qualified_for_16_cell_review": true,
+  "mapping_sha256": "841ee69e53d7325570652a0f4baa7ae7f554a2204c4e775ce963a064cabd2677",
+  "pilot_16_authorized": false,
+  "profile_count": 4,
+  "profile_order": [
+    "FAVORABLE_STABLE",
+    "MID_VARIABLE",
+    "ADVERSE_STABLE",
+    "FADE_RECOVERY"
+  ],
+  "profile_summaries": [
+    {
+      "accepted_observation_windows": 4180,
+      "achieved_pusch_snr_db": {
+        "count": 4180,
+        "mean": 19.886124401913875,
+        "population_stddev": 4.047783379918478,
+        "quantiles": {
+          "q05": 9.5,
+          "q25": 19.75,
+          "q50": 21.5,
+          "q75": 22.5,
+          "q95": 23.5
+        }
+      },
+      "all_gates_passed": true,
+      "bias_achieved_minus_target_db": 0.22983230827681916,
+      "command_ack_latency_ms_max": 5.124939,
+      "command_ack_latency_ms_p50": 0.21317000000000003,
+      "command_ack_latency_ms_p95": 0.45802905,
+      "command_ack_ratio": 0.9957142857142857,
+      "command_validity_coverage": 0.9995217599234816,
+      "commands_acknowledged": 4182,
+      "commands_skipped_obsolete": 18,
+      "empty_observation_windows": 1,
+      "nominal_accepted_observation_windows": 2724,
+      "nominal_empty_observation_windows": 728,
+      "nominal_schedule_coverage": 0.6485714285714286,
+      "nominal_underpopulated_observation_windows": 730,
+      "observation_coverage": 0.9995217599234816,
+      "observed_rntis": [
+        56470
+      ],
+      "profile_id": "FAVORABLE_STABLE",
+      "target_snr_db": {
+        "count": 4200,
+        "mean": 19.643281635191393,
+        "population_stddev": 4.013723595429981,
+        "quantiles": {
+          "q05": 9.232641937104228,
+          "q25": 19.32487172910757,
+          "q50": 21.227765456379036,
+          "q75": 22.146286384446228,
+          "q95": 23.31094191457734
+        }
+      },
+      "targets": 4200,
+      "trace_id": "GM_V2_FAVORABLE_STABLE_SEED_2026082101",
+      "trace_sha256": "8cad86e2e1ee98176c75b872132eb68f7d770f889d7330fa4a9932c45c172de6",
+      "tracking_mae_db": 0.30162169396607563,
+      "tracking_p95_absolute_error_db": 0.6846486240259063,
+      "underpopulated_observation_windows": 1
+    },
+    {
+      "accepted_observation_windows": 4179,
+      "achieved_pusch_snr_db": {
+        "count": 4179,
+        "mean": 15.345058626465661,
+        "population_stddev": 4.331675473742198,
+        "quantiles": {
+          "q05": 8.0,
+          "q25": 13.5,
+          "q50": 15.5,
+          "q75": 17.0,
+          "q95": 22.5
+        }
+      },
+      "all_gates_passed": true,
+      "bias_achieved_minus_target_db": 0.1878444187311566,
+      "command_ack_latency_ms_max": 4.572901,
+      "command_ack_latency_ms_p50": 0.0971305,
+      "command_ack_latency_ms_p95": 0.28476825,
+      "command_ack_ratio": 0.9966666666666667,
+      "command_validity_coverage": 0.9983277591973244,
+      "commands_acknowledged": 4186,
+      "commands_skipped_obsolete": 14,
+      "empty_observation_windows": 3,
+      "nominal_accepted_observation_windows": 3068,
+      "nominal_empty_observation_windows": 577,
+      "nominal_schedule_coverage": 0.7304761904761905,
+      "nominal_underpopulated_observation_windows": 541,
+      "observation_coverage": 0.9983277591973244,
+      "observed_rntis": [
+        57988
+      ],
+      "profile_id": "MID_VARIABLE",
+      "target_snr_db": {
+        "count": 4200,
+        "mean": 15.141748891401575,
+        "population_stddev": 4.246482815408543,
+        "quantiles": {
+          "q05": 7.754234631339113,
+          "q25": 13.62382718528147,
+          "q50": 15.046489771938164,
+          "q75": 16.6391871989289,
+          "q95": 22.441970795998394
+        }
+      },
+      "targets": 4200,
+      "trace_id": "GM_V2_MID_VARIABLE_SEED_2026082102",
+      "trace_sha256": "0d2ef7ff9e7f342c772d0d88a4cec4e9ce9ac1c9946c1402d3087c55c8f0f811",
+      "tracking_mae_db": 0.27975725025794873,
+      "tracking_p95_absolute_error_db": 0.663465770773207,
+      "underpopulated_observation_windows": 4
+    },
+    {
+      "accepted_observation_windows": 4151,
+      "achieved_pusch_snr_db": {
+        "count": 4151,
+        "mean": 10.009033967718622,
+        "population_stddev": 3.6184414906224074,
+        "quantiles": {
+          "q05": 7.0,
+          "q25": 8.0,
+          "q50": 8.5,
+          "q75": 10.0,
+          "q95": 17.0
+        }
+      },
+      "all_gates_passed": true,
+      "bias_achieved_minus_target_db": 0.03713810621661913,
+      "command_ack_latency_ms_max": 3.855653,
+      "command_ack_latency_ms_p50": 0.096725,
+      "command_ack_latency_ms_p95": 0.294379,
+      "command_ack_ratio": 0.9954761904761905,
+      "command_validity_coverage": 0.9928246830901698,
+      "commands_acknowledged": 4181,
+      "commands_skipped_obsolete": 19,
+      "empty_observation_windows": 12,
+      "nominal_accepted_observation_windows": 2684,
+      "nominal_empty_observation_windows": 818,
+      "nominal_schedule_coverage": 0.6390476190476191,
+      "nominal_underpopulated_observation_windows": 679,
+      "observation_coverage": 0.9928246830901698,
+      "observed_rntis": [
+        10988
+      ],
+      "profile_id": "ADVERSE_STABLE",
+      "target_snr_db": {
+        "count": 4200,
+        "mean": 9.94590788997401,
+        "population_stddev": 3.543769089708599,
+        "quantiles": {
+          "q05": 6.697346500249679,
+          "q25": 7.817082737627308,
+          "q50": 8.74063338782694,
+          "q75": 10.105617975062547,
+          "q95": 16.559050633165167
+        }
+      },
+      "targets": 4200,
+      "trace_id": "GM_V2_ADVERSE_STABLE_SEED_2026082103",
+      "trace_sha256": "380925bb530945b11b8e79ab93e88d5a555de540ce859756d6c5ad08584e98a0",
+      "tracking_mae_db": 0.18953213389974896,
+      "tracking_p95_absolute_error_db": 0.5263314623149871,
+      "underpopulated_observation_windows": 18
+    },
+    {
+      "accepted_observation_windows": 4175,
+      "achieved_pusch_snr_db": {
+        "count": 4175,
+        "mean": 15.97820359281437,
+        "population_stddev": 4.380728524077216,
+        "quantiles": {
+          "q05": 8.0,
+          "q25": 14.0,
+          "q50": 15.5,
+          "q75": 19.5,
+          "q95": 23.0
+        }
+      },
+      "all_gates_passed": true,
+      "bias_achieved_minus_target_db": 0.20829249343802073,
+      "command_ack_latency_ms_max": 5.577429,
+      "command_ack_latency_ms_p50": 0.098778,
+      "command_ack_latency_ms_p95": 0.31506439999999997,
+      "command_ack_ratio": 0.995,
+      "command_validity_coverage": 0.9990428332136875,
+      "commands_acknowledged": 4179,
+      "commands_skipped_obsolete": 21,
+      "empty_observation_windows": 0,
+      "nominal_accepted_observation_windows": 2701,
+      "nominal_empty_observation_windows": 830,
+      "nominal_schedule_coverage": 0.643095238095238,
+      "nominal_underpopulated_observation_windows": 648,
+      "observation_coverage": 0.9990428332136875,
+      "observed_rntis": [
+        21067
+      ],
+      "profile_id": "FADE_RECOVERY",
+      "target_snr_db": {
+        "count": 4200,
+        "mean": 15.764132817201215,
+        "population_stddev": 4.302089770716438,
+        "quantiles": {
+          "q05": 7.860569969059061,
+          "q25": 13.9607916562357,
+          "q50": 15.26600183875069,
+          "q75": 19.36868312714005,
+          "q95": 22.636113681408315
+        }
+      },
+      "targets": 4200,
+      "trace_id": "GM_V2_FADE_RECOVERY_SEED_2026082104",
+      "trace_sha256": "ef2ae2d6448d9c7f3208bc81123d301a1a9f5d9b16be3bac4412c8cecf94e7c0",
+      "tracking_mae_db": 0.2757427110103132,
+      "tracking_p95_absolute_error_db": 0.6594146922487979,
+      "underpopulated_observation_windows": 4
+    }
+  ],
+  "radio_profile_id": "OAI_N78_100MHZ_273PRB_4D5U_V1",
+  "schema": "scenesense.splitfusion_phase14b_corrected_four_profile_replay.v1",
+  "status": "FOUR_PROFILE_REPLAY_COMPLETE",
+  "targets_per_profile": 4200,
+  "total_scheduled_targets": 16800
+}

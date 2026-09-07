@@ -1,0 +1,900 @@
+{
+  "absolute_metrics_and_deltas_vs_dense_fp32_q0": {
+    "foreground_miou": {
+      "delta_lowbit_minus_fp32_q0": -0.015497147798025357,
+      "dense_fp32_q0": 0.7134534637149776,
+      "lowbit": 0.6979563159169523,
+      "ratio_lowbit_over_fp32_q0": 0.9782786844746241
+    },
+    "person_avo_f1": {
+      "delta_lowbit_minus_fp32_q0": -0.03064535136068547,
+      "dense_fp32_q0": 0.708685891901226,
+      "lowbit": 0.6780405405405405,
+      "ratio_lowbit_over_fp32_q0": 0.9567574976292081
+    },
+    "person_avo_precision": {
+      "delta_lowbit_minus_fp32_q0": -0.04464018480480314,
+      "dense_fp32_q0": 0.7041866849691146,
+      "lowbit": 0.6595465001643115,
+      "ratio_lowbit_over_fp32_q0": 0.9366074568610154
+    },
+    "person_avo_recall": {
+      "delta_lowbit_minus_fp32_q0": -0.015641293013555768,
+      "dense_fp32_q0": 0.7132429614181439,
+      "lowbit": 0.6976016684045881,
+      "ratio_lowbit_over_fp32_q0": 0.9780701754385965
+    },
+    "person_avo_recall_20_40m": {
+      "delta_lowbit_minus_fp32_q0": -0.025787965616045794,
+      "dense_fp32_q0": 0.5776504297994269,
+      "lowbit": 0.5518624641833811,
+      "ratio_lowbit_over_fp32_q0": 0.9553571428571429
+    },
+    "person_avo_xy_mae_m": {
+      "delta_lowbit_minus_fp32_q0": -0.0070861283209390225,
+      "dense_fp32_q0": 0.8121813463526099,
+      "lowbit": 0.8050952180316708,
+      "ratio_lowbit_over_fp32_q0": 0.9912751895216976
+    },
+    "person_box_mask_iou": {
+      "delta_lowbit_minus_fp32_q0": -0.01698475215914541,
+      "dense_fp32_q0": 0.5278940800907954,
+      "lowbit": 0.51090932793165,
+      "ratio_lowbit_over_fp32_q0": 0.9678254543861827
+    },
+    "vehicle_f1": {
+      "delta_lowbit_minus_fp32_q0": -0.0029896689240340724,
+      "dense_fp32_q0": 0.8989052069425901,
+      "lowbit": 0.8959155380185561,
+      "ratio_lowbit_over_fp32_q0": 0.99667409989291
+    },
+    "vehicle_iou": {
+      "delta_lowbit_minus_fp32_q0": -0.014009543436905303,
+      "dense_fp32_q0": 0.8990128473391599,
+      "lowbit": 0.8850033039022546,
+      "ratio_lowbit_over_fp32_q0": 0.9844167483497374
+    },
+    "vehicle_precision": {
+      "delta_lowbit_minus_fp32_q0": -0.004636010280140934,
+      "dense_fp32_q0": 0.9315917644454283,
+      "lowbit": 0.9269557541652874,
+      "ratio_lowbit_over_fp32_q0": 0.995023560257748
+    },
+    "vehicle_recall": {
+      "delta_lowbit_minus_fp32_q0": -0.0015478278815396207,
+      "dense_fp32_q0": 0.8684346300691363,
+      "lowbit": 0.8668868021875967,
+      "ratio_lowbit_over_fp32_q0": 0.9982176806083649
+    },
+    "vehicle_xy_mae_m": {
+      "delta_lowbit_minus_fp32_q0": 0.017412294355247826,
+      "dense_fp32_q0": 0.4786754207718958,
+      "lowbit": 0.4960877151271436,
+      "ratio_lowbit_over_fp32_q0": 1.0363759942534114
+    }
+  },
+  "absolute_service_gates": {
+    "all_pass": false,
+    "failed": [
+      "person_precision",
+      "person_recall"
+    ],
+    "minimum_attainment_ratio": 0.7270144628099173,
+    "pass_count": 7,
+    "targets": {
+      "foreground_miou": {
+        "attainment_ratio": 1.0340093569140034,
+        "direction": "higher",
+        "passed": true,
+        "target": 0.675,
+        "value": 0.6979563159169523
+      },
+      "person_box_mask_iou": {
+        "attainment_ratio": 1.0218186558633,
+        "direction": "higher",
+        "passed": true,
+        "target": 0.5,
+        "value": 0.51090932793165
+      },
+      "person_precision": {
+        "attainment_ratio": 0.9324279562769129,
+        "direction": "higher",
+        "passed": false,
+        "target": 0.8,
+        "value": 0.7459423650215303
+      },
+      "person_recall": {
+        "attainment_ratio": 0.7270144628099173,
+        "direction": "higher",
+        "passed": false,
+        "target": 0.8,
+        "value": 0.5816115702479339
+      },
+      "person_xy_mae_m": {
+        "attainment_ratio": 1.4335199673744405,
+        "direction": "lower",
+        "passed": true,
+        "target": 1.2,
+        "value": 0.837100303665708
+      },
+      "vehicle_iou": {
+        "attainment_ratio": 1.0411803575320642,
+        "direction": "higher",
+        "passed": true,
+        "target": 0.85,
+        "value": 0.8850033039022546
+      },
+      "vehicle_precision": {
+        "attainment_ratio": 1.1586946927066093,
+        "direction": "higher",
+        "passed": true,
+        "target": 0.8,
+        "value": 0.9269557541652874
+      },
+      "vehicle_recall": {
+        "attainment_ratio": 1.019866826103055,
+        "direction": "higher",
+        "passed": true,
+        "target": 0.85,
+        "value": 0.8668868021875967
+      },
+      "vehicle_xy_mae_m": {
+        "attainment_ratio": 2.0157725529319093,
+        "direction": "lower",
+        "passed": true,
+        "target": 1.0,
+        "value": 0.4960877151271436
+      }
+    }
+  },
+  "all_outputs_and_metrics_finite": true,
+  "all_selected_ae_states_unchanged": true,
+  "bit_width": 4,
+  "canonical_person_metrics": {
+    "person_f1": 0.6536061529531273,
+    "person_precision": 0.7459423650215303,
+    "person_recall": 0.5816115702479339,
+    "person_xy_mae_m": 0.837100303665708
+  },
+  "classification": {
+    "full_preservation": true,
+    "localization_priority": {
+      "all_passed": false,
+      "all_registered_requirements_evaluated": true,
+      "basis": "absolute AVO>=0.65 person view and vehicle object metrics",
+      "boundary_is_evaluation_only": true,
+      "boundary_quantity": "ground-truth distance, evaluator-only",
+      "boundary_runtime_computable": false,
+      "deployment_emits_all_p025_detections_at_every_range": true,
+      "evaluation_only_boundary_rule": "The 30 m boundary is evaluation-only. It does not filter, suppress, relabel, rescore or otherwise change any runtime detection. Deployment continues to emit every detection accepted by the frozen p025 pipeline throughout its existing range. Ground-truth distance is available only to the evaluator, so the boundary is not runtime-computable and is never applied to model output.",
+      "extended_diagnostic_range": "30 <= gt_distance_m <= 40",
+      "extended_range_is_a_tier_gate": false,
+      "failed": [
+        "person_avo_f1",
+        "person_avo_precision",
+        "person_avo_recall"
+      ],
+      "frozen_p025_perception_path_changed": false,
+      "independent_test_set_confirmation": false,
+      "not_evaluable": [],
+      "passed_count": 5,
+      "primary_operating_range": "0 <= gt_distance_m < 30",
+      "range_aware_runtime_policy_implemented": false,
+      "range_provenance": "The 0-30 m primary operating range was selected from frozen noAE range-stratified analysis and literature context before Phase-10B AE64/AE32 validation. The 30-40 m results remain reported as extended-range stress. Independent test-set confirmation has not been performed.",
+      "registered_total": 8,
+      "rejected_feasibility_policies_abc_implemented": false,
+      "requirements": {
+        "person_avo_f1": {
+          "direction": "higher",
+          "finite": true,
+          "passed": false,
+          "target": 0.7,
+          "value": 0.6780405405405405
+        },
+        "person_avo_precision": {
+          "direction": "higher",
+          "finite": true,
+          "passed": false,
+          "target": 0.7,
+          "value": 0.6595465001643115
+        },
+        "person_avo_recall": {
+          "direction": "higher",
+          "finite": true,
+          "passed": false,
+          "target": 0.7,
+          "value": 0.6976016684045881
+        },
+        "person_avo_recall_0_30m": {
+          "direction": "higher",
+          "finite": true,
+          "passed": true,
+          "target": 0.7,
+          "value": 0.8202247191011236
+        },
+        "person_avo_xy_mae_m": {
+          "direction": "lower",
+          "finite": true,
+          "passed": true,
+          "target": 1.2,
+          "value": 0.8050952180316708
+        },
+        "vehicle_precision": {
+          "direction": "higher",
+          "finite": true,
+          "passed": true,
+          "target": 0.8,
+          "value": 0.9269557541652874
+        },
+        "vehicle_recall": {
+          "direction": "higher",
+          "finite": true,
+          "passed": true,
+          "target": 0.85,
+          "value": 0.8668868021875967
+        },
+        "vehicle_xy_mae_m": {
+          "direction": "lower",
+          "finite": true,
+          "passed": true,
+          "target": 1.0,
+          "value": 0.4960877151271436
+        }
+      },
+      "runtime_detections_filtered_by_range": false,
+      "runtime_detections_relabelled_by_range": false,
+      "runtime_detections_rescored_by_range": false,
+      "runtime_detections_suppressed_by_range": false,
+      "segmentation_excluded": [
+        "vehicle_iou",
+        "person_box_mask_iou",
+        "foreground_miou"
+      ],
+      "superseded_requirement": "person_avo_recall_20_40m",
+      "test_split_accessed": false,
+      "threshold_provenance": "Holdout-informed thresholds frozen before AE64/AE32 held-out deployment validation. The validation frames were not used for AE training or checkpoint selection.",
+      "total": 8,
+      "untouched_test_set_confirmation": false
+    },
+    "perception_degradation_masks_action": false,
+    "person_range_stratified": {
+      "bins": {
+        "00_10m": {
+          "eligible_gt": 124,
+          "fn": 9,
+          "is_tier_gate": false,
+          "precision": null,
+          "precision_available": false,
+          "recall": 0.9274193548387096,
+          "tp": 115,
+          "xy_mae_m": 0.33366305240594385
+        },
+        "10_20m": {
+          "eligible_gt": 1008,
+          "fn": 79,
+          "is_tier_gate": false,
+          "precision": null,
+          "precision_available": false,
+          "recall": 0.9216269841269841,
+          "tp": 929,
+          "xy_mae_m": 0.5961138003799175
+        },
+        "20_30m": {
+          "eligible_gt": 1004,
+          "fn": 296,
+          "is_tier_gate": false,
+          "precision": null,
+          "precision_available": false,
+          "recall": 0.7051792828685259,
+          "tp": 708,
+          "xy_mae_m": 1.0104401086690904
+        },
+        "30_40m": {
+          "eligible_gt": 741,
+          "fn": 486,
+          "is_tier_gate": false,
+          "precision": null,
+          "precision_available": false,
+          "recall": 0.3441295546558704,
+          "tp": 255,
+          "xy_mae_m": 1.2089158198910537
+        }
+      },
+      "boundary_band": {
+        "band": "20_30m",
+        "eligible_gt": 1004,
+        "fn": 296,
+        "is_tier_gate": false,
+        "precision": null,
+        "precision_available": false,
+        "recall": 0.7051792828685259,
+        "role": "reported separately so the cumulative 0-30 m result cannot hide boundary-band behaviour",
+        "tp": 708,
+        "xy_mae_m": 1.0104401086690904
+      },
+      "boundary_is_evaluation_only": true,
+      "boundary_quantity": "ground-truth distance, evaluator-only",
+      "boundary_runtime_computable": false,
+      "deployment_emits_all_p025_detections_at_every_range": true,
+      "derived_from": "frozen AVO scorer per-bin eligible_gt/tp/fn; no new matching, scoring or inference logic",
+      "evaluation_only_boundary_rule": "The 30 m boundary is evaluation-only. It does not filter, suppress, relabel, rescore or otherwise change any runtime detection. Deployment continues to emit every detection accepted by the frozen p025 pipeline throughout its existing range. Ground-truth distance is available only to the evaluator, so the boundary is not runtime-computable and is never applied to model output.",
+      "extended_diagnostic_range": "30 <= gt_distance_m <= 40",
+      "extended_range_stress": {
+        "bins": [
+          "30_40m"
+        ],
+        "eligible_gt": 741,
+        "fn": 486,
+        "is_tier_gate": false,
+        "precision": null,
+        "precision_available": false,
+        "recall": 0.3441295546558704,
+        "role": "extended-range stress, reported and never gated",
+        "tp": 255
+      },
+      "frozen_p025_perception_path_changed": false,
+      "historical_20_40m": {
+        "bins": [
+          "20_30m",
+          "30_40m"
+        ],
+        "eligible_gt": 1745,
+        "fn": 782,
+        "is_tier_gate": false,
+        "precision": null,
+        "precision_available": false,
+        "recall": 0.5518624641833811,
+        "reproduces_protected_metric": true,
+        "role": "historical comparison against the superseded 20-40 m gate",
+        "tp": 963
+      },
+      "person_avo_recall_0_30m": 0.8202247191011236,
+      "precision_by_range": {
+        "available": false,
+        "precision_gate": "person_avo_precision, aggregate AVO view",
+        "reason": "The frozen AVO scorer publishes each distance bin as a recall slice (eligible_gt / tp / fn) only: a false positive is not attributed to a range, because doing so would require binning predictions by predicted distance, which is new matching logic this correction does not introduce. Per-band precision is therefore not derivable from the frozen artifacts, and aggregate AVO precision remains the precision gate."
+      },
+      "primary_operating_range": "0 <= gt_distance_m < 30",
+      "primary_operating_range_detail": {
+        "bins": [
+          "00_10m",
+          "10_20m",
+          "20_30m"
+        ],
+        "eligible_gt": 2136,
+        "fn": 384,
+        "is_tier_gate": true,
+        "precision": null,
+        "precision_available": false,
+        "recall": 0.8202247191011236,
+        "tp": 1752
+      },
+      "range_aware_runtime_policy_implemented": false,
+      "range_provenance": "The 0-30 m primary operating range was selected from frozen noAE range-stratified analysis and literature context before Phase-10B AE64/AE32 validation. The 30-40 m results remain reported as extended-range stress. Independent test-set confirmation has not been performed.",
+      "rejected_feasibility_policies_abc_implemented": false,
+      "runtime_detections_filtered_by_range": false,
+      "runtime_detections_relabelled_by_range": false,
+      "runtime_detections_rescored_by_range": false,
+      "runtime_detections_suppressed_by_range": false
+    },
+    "segmentation": {
+      "action": "install_new_segmentation",
+      "all_passed": true,
+      "failed": [],
+      "passed_count": 3,
+      "requirements": {
+        "foreground_miou": {
+          "direction": "higher",
+          "finite": true,
+          "passed": true,
+          "target": 0.675,
+          "value": 0.6979563159169523
+        },
+        "person_box_mask_iou": {
+          "direction": "higher",
+          "finite": true,
+          "passed": true,
+          "target": 0.5,
+          "value": 0.51090932793165
+        },
+        "vehicle_iou": {
+          "direction": "higher",
+          "finite": true,
+          "passed": true,
+          "target": 0.85,
+          "value": 0.8850033039022546
+        }
+      },
+      "rule": "segmentation_installable = vehicle_iou >= 0.85 and person_box_mask_iou >= 0.50 and foreground_miou >= 0.675. A 12/12 relative-preservation result does not by itself authorize replacing the spatial-map segmentation layer. Install new segmentation only when segmentation_installable is true; otherwise retain the previous segmentation layer with its original timestamp.",
+      "segmentation_installable": true,
+      "segmentation_layer_installed_here": false,
+      "total": 3,
+      "twelve_of_twelve_preservation_authorizes_install": false
+    },
+    "service_readiness": {
+      "absolute_service_gate_count": 9,
+      "absolute_service_pass_count": 7,
+      "derived_from_relative_preservation": false,
+      "failed_absolute_service_gates": [
+        "person_precision",
+        "person_recall"
+      ],
+      "registered_baseline_absolute_service_pass_count": 7,
+      "rule": "SERVICE_READY is a separate absolute result: all nine registered absolute service gates pass at this profile. It is never derived from, implied by or substituted for a 12/12 relative preservation result.",
+      "service_ready": false,
+      "terminal": null
+    },
+    "state_infeasible": {
+      "assigned_by_offline_validation": false,
+      "reserved_for": "runtime resource/network infeasibility only",
+      "tier": "STATE_INFEASIBLE"
+    },
+    "stress_anchor_forced_emergency_only": false,
+    "tier": "FULL_PRESERVATION",
+    "tier_reason": "all 12 same-family/same-q UINT8 preservation gates pass"
+  },
+  "completed_utc": "2026-09-04T08:16:03.321513+00:00",
+  "component_latency": {
+    "evidence_scope": "current-host diagnostic only; Raspberry Pi/OAI latency remains pending",
+    "frozen_tail_per_batch": {
+      "max_ms": 79.060062,
+      "mean_ms": 77.34517791408115,
+      "median_ms": 77.528373,
+      "min_ms": 16.001092,
+      "p5_ms": 76.268007,
+      "p95_ms": 78.4722902
+    },
+    "transport_receive": {
+      "max_ms": 46.214429,
+      "mean_ms": 19.497859027204782,
+      "median_ms": 19.463313,
+      "min_ms": 16.806171,
+      "p5_ms": 17.8141124,
+      "p95_ms": 20.8395254
+    }
+  },
+  "dense_fp32_q0_reference": {
+    "path": "experiments/splitfusion_fcos_hybrid_q_v1/20260902_182401_phase6_validation_curve/validation_curve.json",
+    "sha256": "54987920a7430564425664e82511d1121e77935beabfbd4cf2f34bee5cadfc74"
+  },
+  "detections": 118804,
+  "detections_csv_sha256": "165c34a05341fe841e7ca83691b1fede1119c0e76df8a6b4534899b0fd20ec61",
+  "dropped_cells": 6451,
+  "family": "AE64",
+  "family_id": 2,
+  "frames": 3345,
+  "frozen_perception_state_unchanged": true,
+  "inference_passes_for_this_setting": 1,
+  "integrity": {
+    "all_outputs_finite": true,
+    "decoder_selected_from_raw_packet_metadata": true,
+    "dropped_cells_reconstruct_to_exact_zero": true,
+    "exactly_one_decompression_per_frame": true,
+    "maximum_registered_affine_error_bound": 0.15411899983882904,
+    "maximum_retained_affine_error": 0.15410874783992767,
+    "output_tensors_checked": 188640,
+    "packet_fields_control_output_device": false,
+    "q0_ranker_bypassed": false,
+    "ranker_invocations": 3345,
+    "reconstructed_c2_on_configured_tail_device": true,
+    "retained_lowbit_values_within_registered_error_bound": true,
+    "transmitted_mask_equals_selected_indices": true,
+    "zstd_decompressions": 3345
+  },
+  "latent_channels": 64,
+  "metrics": {
+    "foreground_miou": 0.6979563159169523,
+    "person_avo_f1": 0.6780405405405405,
+    "person_avo_precision": 0.6595465001643115,
+    "person_avo_recall": 0.6976016684045881,
+    "person_avo_recall_20_40m": 0.5518624641833811,
+    "person_avo_xy_mae_m": 0.8050952180316708,
+    "person_box_mask_iou": 0.51090932793165,
+    "vehicle_f1": 0.8959155380185561,
+    "vehicle_iou": 0.8850033039022546,
+    "vehicle_precision": 0.9269557541652874,
+    "vehicle_recall": 0.8668868021875967,
+    "vehicle_xy_mae_m": 0.4960877151271436
+  },
+  "one_pass_declaration": true,
+  "payload": {
+    "analytical_breakdown": {
+      "header_bytes": 52,
+      "mask_bytes": 2688,
+      "range_bytes": 512,
+      "value_bytes": 481696
+    },
+    "analytical_pre_zstd_bytes": 484948,
+    "family_id": 2,
+    "pre_zstd_bytes": {
+      "maximum": 484948,
+      "mean": 484948.0,
+      "median": 484948.0,
+      "minimum": 484948,
+      "p95": 484948.0,
+      "samples": 3345
+    },
+    "routing_tag": 3715911972,
+    "transported_channels": 64,
+    "zstd": {
+      "backend": "cext",
+      "binding_version": "0.25.0",
+      "implementation": "python-zstandard",
+      "module": "zstandard",
+      "settings": {
+        "dict_data": null,
+        "level": 1,
+        "level_search_performed": false,
+        "one_frame_per_camera_frame": true,
+        "threads": 0,
+        "write_checksum": true,
+        "write_content_size": true,
+        "write_dict_id": false
+      },
+      "zstd_library_version": "1.5.7"
+    },
+    "zstd_bytes": {
+      "maximum": 374417,
+      "mean": 356904.27623318386,
+      "median": 359970.0,
+      "minimum": 317935,
+      "p95": 369130.0,
+      "samples": 3345
+    },
+    "zstd_level": 1,
+    "zstd_mandatory": true
+  },
+  "payload_ratios": {
+    "vs_framed_fp32_noae_q0": 0.016347307510306473,
+    "vs_same_family_same_q_uint8_zstd": 0.41750706631608614,
+    "vs_same_family_uint8_zstd_q0": 0.2960160322487005
+  },
+  "peak_allocated_vram_mib": 2903.8935546875,
+  "peak_reserved_vram_mib": 3424.0,
+  "person_avo_detail": {
+    "distance_bins": {
+      "00_10m": {
+        "eligible_gt": 124,
+        "fn": 9,
+        "recall": 0.9274193548387096,
+        "tp": 115,
+        "xy_mae_m": 0.33366305240594385
+      },
+      "10_20m": {
+        "eligible_gt": 1008,
+        "fn": 79,
+        "recall": 0.9216269841269841,
+        "tp": 929,
+        "xy_mae_m": 0.5961138003799175
+      },
+      "20_30m": {
+        "eligible_gt": 1004,
+        "fn": 296,
+        "recall": 0.7051792828685259,
+        "tp": 708,
+        "xy_mae_m": 1.0104401086690904
+      },
+      "30_40m": {
+        "eligible_gt": 741,
+        "fn": 486,
+        "recall": 0.3441295546558704,
+        "tp": 255,
+        "xy_mae_m": 1.2089158198910537
+      }
+    },
+    "episodes": {
+      "canonical_v3_05_val_30_30_s601_tm1601": {
+        "avo_ignored_gt": 537,
+        "avo_ignored_predictions": 46,
+        "f1": 0.7144622991347341,
+        "fn": 275,
+        "fp": 187,
+        "ignored_predictions": 54,
+        "observable_gt": 853,
+        "precision": 0.7555555555555555,
+        "recall": 0.6776084407971864,
+        "structural_ignored_gt": 7633,
+        "structural_ignored_predictions": 8,
+        "tp": 578,
+        "xy_mae_m": 0.8113394433429804
+      },
+      "canonical_v3_06_val_50_50_s602_tm1602": {
+        "avo_ignored_gt": 1862,
+        "avo_ignored_predictions": 207,
+        "f1": 0.6643421664342166,
+        "fn": 595,
+        "fp": 849,
+        "ignored_predictions": 224,
+        "observable_gt": 2024,
+        "precision": 0.6273046532045654,
+        "recall": 0.7060276679841897,
+        "structural_ignored_gt": 13147,
+        "structural_ignored_predictions": 17,
+        "tp": 1429,
+        "xy_mae_m": 0.8025695621674725
+      }
+    },
+    "observable_gt_20_40m": 1745,
+    "overall": {
+      "avo_ignored_gt": 2399,
+      "avo_ignored_predictions": 253,
+      "f1": 0.6780405405405405,
+      "fn": 870,
+      "fp": 1036,
+      "ignored_predictions": 278,
+      "observable_gt": 2877,
+      "precision": 0.6595465001643115,
+      "recall": 0.6976016684045881,
+      "structural_ignored_gt": 20780,
+      "structural_ignored_predictions": 25,
+      "tp": 2007,
+      "xy_mae_m": 0.8050952180316708
+    },
+    "prediction_rows_all_classes": 118804,
+    "tp_20_40m": 963
+  },
+  "person_service_outputs": 3321,
+  "prediction_artifacts": {
+    "durability_order": [
+      "atomically write settings/<family>_<bits>_<q>.json",
+      "remove working_predictions/<family>_<bits>_<q> only after that record",
+      "atomically write cleanup/<family>_<bits>_<q>.json"
+    ],
+    "removed_before_this_record": false,
+    "root": "experiments/splitfusion_fcos_ae_v1/20260903_phase11d_lowbit_validation/working_predictions/ae64_uint4_q3000"
+  },
+  "prediction_root": "experiments/splitfusion_fcos_ae_v1/20260903_phase11d_lowbit_validation/working_predictions/ae64_uint4_q3000",
+  "q": 0.3,
+  "q_e4": 3000,
+  "quantizer": "UINT4",
+  "retained_cells": 15053,
+  "run_identity_sha256": "4a5ee4a138d68869182e8d747240765280421a2c87eda5eafd1ae2c589334407",
+  "same_family_same_q_uint8_preservation": {
+    "all_passed": true,
+    "baseline": "completed same-family/same-q UINT8+zstd result",
+    "failed": [],
+    "gates": {
+      "foreground_miou": {
+        "ae": 0.6979563159169523,
+        "bound": 0.01,
+        "degradation": 0.0007427731575857521,
+        "direction": "loss",
+        "noae_same_q": 0.698699089074538,
+        "normalized_degradation": 0.07427731575857521,
+        "passed": true
+      },
+      "person_avo_f1": {
+        "ae": 0.6780405405405405,
+        "bound": 0.015,
+        "degradation": 0.0018585343122771159,
+        "direction": "loss",
+        "noae_same_q": 0.6798990748528176,
+        "normalized_degradation": 0.12390228748514107,
+        "passed": true
+      },
+      "person_avo_precision": {
+        "ae": 0.6595465001643115,
+        "bound": 0.015,
+        "degradation": -0.0008111677001654272,
+        "direction": "loss",
+        "noae_same_q": 0.6587353324641461,
+        "normalized_degradation": -0.05407784667769515,
+        "passed": true
+      },
+      "person_avo_recall": {
+        "ae": 0.6976016684045881,
+        "bound": 0.015,
+        "degradation": 0.0048661800486617945,
+        "direction": "loss",
+        "noae_same_q": 0.7024678484532499,
+        "normalized_degradation": 0.3244120032441197,
+        "passed": true
+      },
+      "person_avo_recall_20_40m": {
+        "ae": 0.5518624641833811,
+        "bound": 0.03,
+        "degradation": 0.009169054441260704,
+        "direction": "loss",
+        "noae_same_q": 0.5610315186246418,
+        "normalized_degradation": 0.3056351480420235,
+        "passed": true
+      },
+      "person_avo_xy_mae_m": {
+        "ae": 0.8050952180316708,
+        "bound": 0.05,
+        "degradation": -0.009030083233219743,
+        "direction": "increase",
+        "noae_same_q": 0.8141253012648906,
+        "normalized_degradation": -0.18060166466439487,
+        "passed": true
+      },
+      "person_box_mask_iou": {
+        "ae": 0.51090932793165,
+        "bound": 0.01,
+        "degradation": 0.000553975965422282,
+        "direction": "loss",
+        "noae_same_q": 0.5114633038970723,
+        "normalized_degradation": 0.0553975965422282,
+        "passed": true
+      },
+      "vehicle_f1": {
+        "ae": 0.8959155380185561,
+        "bound": 0.01,
+        "degradation": 0.001220920148137128,
+        "direction": "loss",
+        "noae_same_q": 0.8971364581666932,
+        "normalized_degradation": 0.12209201481371279,
+        "passed": true
+      },
+      "vehicle_iou": {
+        "ae": 0.8850033039022546,
+        "bound": 0.01,
+        "degradation": 0.0009315703497492223,
+        "direction": "loss",
+        "noae_same_q": 0.8859348742520038,
+        "normalized_degradation": 0.09315703497492223,
+        "passed": true
+      },
+      "vehicle_precision": {
+        "ae": 0.9269557541652874,
+        "bound": 0.01,
+        "degradation": 0.0013161504915212285,
+        "direction": "loss",
+        "noae_same_q": 0.9282719046568086,
+        "normalized_degradation": 0.13161504915212285,
+        "passed": true
+      },
+      "vehicle_recall": {
+        "ae": 0.8668868021875967,
+        "bound": 0.01,
+        "degradation": 0.0011350737797957144,
+        "direction": "loss",
+        "noae_same_q": 0.8680218759673924,
+        "normalized_degradation": 0.11350737797957144,
+        "passed": true
+      },
+      "vehicle_xy_mae_m": {
+        "ae": 0.4960877151271436,
+        "bound": 0.05,
+        "degradation": -0.0017005359523393215,
+        "direction": "increase",
+        "noae_same_q": 0.49778825107948294,
+        "normalized_degradation": -0.03401071904678643,
+        "passed": true
+      }
+    },
+    "gates_passed": 12,
+    "gates_total": 12,
+    "worst_degradation": 0.009169054441260704,
+    "worst_normalized_degradation": 0.3244120032441197
+  },
+  "same_family_same_q_uint8_reference": {
+    "absolute_service_gates": {
+      "all_pass": false,
+      "failed": [
+        "person_precision",
+        "person_recall"
+      ],
+      "minimum_attainment_ratio": 0.7328254132231404,
+      "pass_count": 7,
+      "targets": {
+        "foreground_miou": {
+          "attainment_ratio": 1.035109761591908,
+          "direction": "higher",
+          "passed": true,
+          "target": 0.675,
+          "value": 0.698699089074538
+        },
+        "person_box_mask_iou": {
+          "attainment_ratio": 1.0229266077941446,
+          "direction": "higher",
+          "passed": true,
+          "target": 0.5,
+          "value": 0.5114633038970723
+        },
+        "person_precision": {
+          "attainment_ratio": 0.9324679592507393,
+          "direction": "higher",
+          "passed": false,
+          "target": 0.8,
+          "value": 0.7459743674005915
+        },
+        "person_recall": {
+          "attainment_ratio": 0.7328254132231404,
+          "direction": "higher",
+          "passed": false,
+          "target": 0.8,
+          "value": 0.5862603305785123
+        },
+        "person_xy_mae_m": {
+          "attainment_ratio": 1.4308409038770757,
+          "direction": "lower",
+          "passed": true,
+          "target": 1.2,
+          "value": 0.8386676651110699
+        },
+        "vehicle_iou": {
+          "attainment_ratio": 1.0422763226494163,
+          "direction": "higher",
+          "passed": true,
+          "target": 0.85,
+          "value": 0.8859348742520038
+        },
+        "vehicle_precision": {
+          "attainment_ratio": 1.1603398808210108,
+          "direction": "higher",
+          "passed": true,
+          "target": 0.8,
+          "value": 0.9282719046568086
+        },
+        "vehicle_recall": {
+          "attainment_ratio": 1.0212022070204618,
+          "direction": "higher",
+          "passed": true,
+          "target": 0.85,
+          "value": 0.8680218759673924
+        },
+        "vehicle_xy_mae_m": {
+          "attainment_ratio": 2.0088863042296428,
+          "direction": "lower",
+          "passed": true,
+          "target": 1.0,
+          "value": 0.49778825107948294
+        }
+      }
+    },
+    "canonical_person_metrics": {
+      "person_f1": 0.6565437454808387,
+      "person_precision": 0.7459743674005915,
+      "person_recall": 0.5862603305785123,
+      "person_xy_mae_m": 0.8386676651110699
+    },
+    "checkpoint_sha256": "dd7c5124e27114584ab2083e59160a3ff2a2d040d0a37d22564ac98c838aa8e0",
+    "family": "AE64",
+    "metrics": {
+      "foreground_miou": 0.698699089074538,
+      "person_avo_f1": 0.6798990748528176,
+      "person_avo_precision": 0.6587353324641461,
+      "person_avo_recall": 0.7024678484532499,
+      "person_avo_recall_20_40m": 0.5610315186246418,
+      "person_avo_xy_mae_m": 0.8141253012648906,
+      "person_box_mask_iou": 0.5114633038970723,
+      "vehicle_f1": 0.8971364581666932,
+      "vehicle_iou": 0.8859348742520038,
+      "vehicle_precision": 0.9282719046568086,
+      "vehicle_recall": 0.8680218759673924,
+      "vehicle_xy_mae_m": 0.49778825107948294
+    },
+    "payload": {
+      "pre_zstd_bytes": {
+        "maximum": 966642,
+        "mean": 966642.0,
+        "median": 966642.0,
+        "minimum": 966642,
+        "p95": 966642.0,
+        "samples": 3345
+      },
+      "zstd_bytes": {
+        "maximum": 873498,
+        "mean": 861951.3076233184,
+        "median": 862189.0,
+        "minimum": 845791,
+        "p95": 867327.4,
+        "samples": 3345
+      }
+    },
+    "q": 0.3,
+    "q_e4": 3000,
+    "retained_cells": 15053,
+    "selection_sha256": "0d2fe444574d3fdc9aee287448084bf2cfc1efa2d0ec6944ac07355d9ff7c87e",
+    "source_path": "experiments/splitfusion_fcos_ae_v1/20260903_phase10b_ae64_uint8_validation/phase10b_ae64_uint8_validation.json",
+    "source_sha256": "eead1786a5d12294b9d61d9271431049aac28540a20f2c4608db33ab66de3aad"
+  },
+  "schema": "splitfusion_fcos_phase11d_lowbit_setting_v1",
+  "segmentation_manifest_sha256": "e71b92aaa513b3e7b905e001bd57fc45425edcebbccec5ebb9a255cd0df983bf",
+  "setting_key": "ae64_uint4_q3000",
+  "stable_ranker_state_unchanged": true,
+  "terminal": "SPLITFUSION_LOWBIT_PHASE11D_SETTING_COMPLETE",
+  "vehicle_service_outputs": 115483,
+  "wall_seconds": 261.2068359851837
+}

@@ -1,0 +1,20 @@
+{
+  "all_anchor_observation_gates_passed": true,
+  "anchor_count": 12,
+  "campaign_mapping_qualified": false,
+  "manifest_sha256": "5f14b43dedf7aa947598442ffd2823dea155476ad396b6665fc32e37ddb96091",
+  "mapping_gate": {
+    "command_granularity_db": 0.25,
+    "complete_target_range_covered": true,
+    "interpolation": "MONOTONIC_PIECEWISE_LINEAR_INVERSE",
+    "measured_lower_db": 5.0,
+    "measured_upper_db": 25.5,
+    "required_lower_db": 5.5,
+    "required_upper_db": 24.5,
+    "strictly_monotonic": true
+  },
+  "profile_replay_performed": false,
+  "radio_profile_id": "OAI_N78_100MHZ_273PRB_4D5U_V1",
+  "restore_verified": true,
+  "status": "CALIBRATION_CAPTURE_COMPLETE_PENDING_FOUR_PROFILE_REPLAY"
+}

@@ -1,0 +1,252 @@
+{
+  "schema": "scenesense.splitfusion_phase14a_campaign_binding.v1",
+  "status": "IMPLEMENTATION_READY_PENDING_LIVE_100MHZ_CALIBRATION_AND_REPLAY",
+  "starting_head": "34db0e145d49cb17eeaaaa1fb7a528b021dbf836",
+  "implementation_terminal": {
+    "path": "rl_agent/configs/SPLITFUSION_PHASE14A_100MHZ_CALIBRATION_IMPLEMENTATION_READY",
+    "sha256": "9b0f5a418a726bc5647f4680d87a45ddf9d0d9193d6b6cdd96e3804adcc3b7e1"
+  },
+  "phase13c_evidence": {
+    "commit": "34db0e145d49cb17eeaaaa1fb7a528b021dbf836",
+    "status": "QUALIFIED_36_ACTIONS_X_300_FIT_FRAMES_SFD1_V2_LOCALHOST",
+    "artifacts": {
+      "qualification": {
+        "path": "experiments/splitfusion_live_dispatch_v1/20260904_phase13c_36x300_localhost_measurement/qualification.json",
+        "sha256": "915e78980e91c78158b0fcedf0a8acfa3e454651d0ee5350000fa977172539c3"
+      },
+      "profile_summary": {
+        "path": "experiments/splitfusion_live_dispatch_v1/20260904_phase13c_36x300_localhost_measurement/profile_summary.csv",
+        "sha256": "8021cada5cc10d70a8125bd2327e491f30bd2e32c744fd559cca56cc934c7031"
+      },
+      "report": {
+        "path": "experiments/splitfusion_live_dispatch_v1/20260904_phase13c_36x300_localhost_measurement/REPORT.md",
+        "sha256": "199ac297619789563cceb3822ade806bb264f1671b808770fbd0e2890437d757"
+      },
+      "terminal": {
+        "path": "experiments/splitfusion_live_dispatch_v1/20260904_phase13c_36x300_localhost_measurement/SPLITFUSION_PHASE13C_36X300_LOCALHOST_MEASUREMENT_COMPLETE",
+        "sha256": "1541c12505b91d00cbec809f0ecda79a5f55158a4958871ae931b681575029ad"
+      }
+    }
+  },
+  "capacity_evidence": {
+    "experiment_id": "oai_tdd_bandwidth_iperf_sweep_v1/20260903_234715_full",
+    "completed_cells": 144,
+    "selected_configuration": "bw100_tdd4d5u",
+    "selected_gnb_snapshot_sha256": "d5f317413fbef79f69501adfce2428c1300941938def0d6e554de1c16c2b08a8",
+    "results_csv_sha256": "8fae3220dc02640d108de86d6bdc9918bd2f79be46745feca15c1dcf2990e3a7",
+    "terminal_json_sha256": "2f358ec7f28a06222b979dd1ad2198a3f0634f6d46a6215dc64d06dc3af48151",
+    "artifacts": {
+      "radio_lock": {
+        "path": "rl_agent/configs/oai_radio_baseline_100mhz_4d5u_v1.json",
+        "sha256": "fd604a37cfbc416412440dd447fe43cea9a94d3b65d69dd5e4e975de01a3dbf4"
+      },
+      "sweep_contract": {
+        "path": "oai_tdd_bandwidth_iperf_sweep_v1/configs/sweep_v1.json",
+        "sha256": "4abb9bee253e0671c2049caa36753c8460a0213df7cfae72867ba0f048b2fb33"
+      },
+      "sweep_runner": {
+        "path": "oai_tdd_bandwidth_iperf_sweep_v1/run_oai_tdd_bandwidth_iperf_sweep_v1.py",
+        "sha256": "88ad45491d0a6710d5638f14beeedb30cf20b8fcc20b7038bd5aef17c8044e7d"
+      }
+    }
+  },
+  "launcher": {
+    "path": "uplink_only_spatial_map_pipeline/run_splitfusion_oai_100mhz_4d5u_v1.sh",
+    "sha256": "8e02f0913338a187bff1de24bfea09d7eca03607da0e383ef8ad4a005b64ce61",
+    "execution_token": "SPLITFUSION_OAI_100MHZ_4D5U_ATTACH",
+    "radio_profile_id": "OAI_N78_100MHZ_273PRB_4D5U_V1",
+    "status": "IMPLEMENTED_NOT_LIVE_EXECUTED"
+  },
+  "radio": {
+    "profile_id": "OAI_N78_100MHZ_273PRB_4D5U_V1",
+    "band": 78,
+    "bandwidth_mhz": 100,
+    "prb": 273,
+    "numerology": 1,
+    "tdd": {
+      "downlink_slots": 4,
+      "downlink_symbols": 6,
+      "uplink_slots": 5,
+      "uplink_symbols": 4
+    },
+    "ue_count": 1,
+    "ue_static_ip": "10.0.0.2",
+    "pdu_session_5qi": 6
+  },
+  "dispatcher": {
+    "status": "PHASE13A_IMPLEMENTATION_PHASE13B_GPU_LOOPBACK_PHASE13C_36X300_QUALIFIED",
+    "preloaded_objects": true,
+    "hot_path_reload_forbidden": true,
+    "artifacts": {
+      "runtime_binding": {
+        "path": "rl_agent/splitfusion_live_dispatch_v1/runtime_binding.json",
+        "sha256": "604450c7f0f791a480ba4e5ed6b286a2b6f68497735372a7a63ed92e93585551"
+      },
+      "registry": {
+        "path": "rl_agent/splitfusion_live_dispatch_v1/registry.py",
+        "sha256": "d199d33a8f4f283f89c4b101b3b2100e87ec9392366b38ca0165e70ba7c8c8fc"
+      },
+      "ue_runtime": {
+        "path": "rl_agent/splitfusion_live_dispatch_v1/ue_runtime.py",
+        "sha256": "a72f6ab4b122adb232e4b5927fadd6e0e5381c1fe0201bbf502b28cf2ade1029"
+      },
+      "edge_runtime": {
+        "path": "rl_agent/splitfusion_live_dispatch_v1/edge_runtime.py",
+        "sha256": "4b5f89eb49b11300cd6762e356a599affa32158479a76f1ad91a8c404d2d6125"
+      },
+      "sfd1_envelope": {
+        "path": "rl_agent/splitfusion_live_dispatch_v1/envelope.py",
+        "sha256": "e49a70e1f92097cd42735f2aea2cd1171a6e4be2a361ab6834e518bfb213b418"
+      },
+      "action_catalog": {
+        "path": "rl_agent/splitfusion_action_catalog_v1/splitfusion_72_action_catalog.json",
+        "sha256": "07e0690f8a55bdd6068b8b283d14b7e165ccbf44742dd0a9568cfdd5dcac54c3"
+      }
+    },
+    "runtime_binding_transition": {
+      "old_sha256": "d521b21bc630c2ffd9f7c03c21f27f096f011e8315b41b4d38f7fbebbab3ce51",
+      "new_sha256": "604450c7f0f791a480ba4e5ed6b286a2b6f68497735372a7a63ed92e93585551",
+      "authority_path": "rl_agent/splitfusion_live_dispatch_v1/frame_context_binding.json",
+      "authority_sha256": "e3ae7d23d26cc9e43938004823252f70b4ab56b3c03d28d51048e66061364a56",
+      "scope": "Phase-13C SFD1-v2 source reconciliation; no radio semantic change"
+    }
+  },
+  "frame_context": {
+    "protocol": "SFD1",
+    "protocol_version": 2,
+    "status": "QUALIFIED",
+    "binding": {
+      "path": "rl_agent/splitfusion_live_dispatch_v1/frame_context_binding.json",
+      "sha256": "e3ae7d23d26cc9e43938004823252f70b4ab56b3c03d28d51048e66061364a56"
+    },
+    "artifacts": {
+      "frame_context_source": {
+        "path": "rl_agent/splitfusion_live_dispatch_v1/frame_context.py",
+        "sha256": "845c3886f8862ce3f1cd618323b5b7c8baba05b043e5709ff0cd83d36fc33676"
+      },
+      "context_tail": {
+        "path": "rl_agent/splitfusion_live_dispatch_v1/context_tail.py",
+        "sha256": "1781f3013967c464aa8f8de0eb6b46bccb5f3ff00a305c6f6d56012383859fe1"
+      }
+    }
+  },
+  "map_install": {
+    "ack_status": "ACK_INSTALLED",
+    "ack_semantics": "DECODED_RESULT_ACCEPTED_AND_INSTALLED_UNDER_MAP_LOCK",
+    "forbidden_ack_semantics": ["INFERENCE_COMPLETE", "EDGE_RECEIVED"],
+    "identity": ["stream_id", "frame_id"],
+    "artifacts": {
+      "feedback_runtime": {
+        "path": "rl_agent/ue_map_install_feedback_v1.py",
+        "sha256": "2222b82af270007df938563ff9d9386811a60b7996e776875c38123731025ec8"
+      },
+      "map_runtime": {
+        "path": "uplink_only_spatial_map_pipeline/spatial_map_server_moving_ego_uplink_only_baseline.py",
+        "sha256": "cc301919b767688f1eab0923d4a935791b06a6cda3d0d5f565484aeae4b05bc1"
+      }
+    }
+  },
+  "network_profiles": {
+    "design": {
+      "path": "rl_agent/configs/network_profile_design_v2.json",
+      "sha256": "056247e5731c1ae9ac281432034e1b79d1e6da24ab4a2d579a7fe2d85917e483"
+    },
+    "accepted_prefix": {
+      "path": "rl_agent/experiments/network_profile_design_v2/20260822_route_b_v2/traces.csv",
+      "sha256": "32f1be66e976cba322803c128eefdeb81a8d31ed64bd253ff85ea1ab0583303d"
+    },
+    "runtime": {
+      "path": "rl_agent/ue_target_snr_cell_runtime_v1.py",
+      "sha256": "292352b13d72330d6ffcedfb4236480cda5fa80ab6d29059af1adbfb1d398203"
+    },
+    "sample_period_ms": 100,
+    "reference_prefix_samples": 4200,
+    "reference_prefix_is_runtime_cap": false,
+    "continuation": "CONTINUE_SAME_RNG_AND_MARKOV_STATE_AFTER_SAMPLE_4199",
+    "campaign_cell_start": "SAMPLE_ZERO",
+    "stop_condition": "EPISODE_OR_CONTROLLER_STOP_ONLY",
+    "catch_up_policy": "SKIP_OBSOLETE_NEVER_BURST",
+    "forbidden_continuation": ["WRAP", "HOLD_FINAL", "RESEED"],
+    "profiles": [
+      {
+        "profile_id": "FAVORABLE_STABLE",
+        "seed": 2026082101,
+        "trace_semantic_sha256": "8cad86e2e1ee98176c75b872132eb68f7d770f889d7330fa4a9932c45c172de6",
+        "transition_matrix": [[0.8, 0.2, 0.0], [0.05, 0.85, 0.1], [0.0, 0.02, 0.98]]
+      },
+      {
+        "profile_id": "MID_VARIABLE",
+        "seed": 2026082102,
+        "trace_semantic_sha256": "0d2ef7ff9e7f342c772d0d88a4cec4e9ce9ac1c9946c1402d3087c55c8f0f811",
+        "transition_matrix": [[0.85, 0.15, 0.0], [0.05, 0.9, 0.05], [0.0, 0.15, 0.85]]
+      },
+      {
+        "profile_id": "ADVERSE_STABLE",
+        "seed": 2026082103,
+        "trace_semantic_sha256": "380925bb530945b11b8e79ab93e88d5a555de540ce859756d6c5ad08584e98a0",
+        "transition_matrix": [[0.98, 0.02, 0.0], [0.1, 0.85, 0.05], [0.0, 0.2, 0.8]]
+      },
+      {
+        "profile_id": "FADE_RECOVERY",
+        "seed": 2026082104,
+        "trace_semantic_sha256": "ef2ae2d6448d9c7f3208bc81123d301a1a9f5d9b16be3bac4412c8cecf94e7c0",
+        "transition_matrix": [[0.97, 0.03, 0.0], [0.01, 0.98, 0.01], [0.0, 0.03, 0.97]]
+      }
+    ]
+  },
+  "mapping": {
+    "status": "PENDING_LIVE_100MHZ_CALIBRATION_AND_FOUR_PROFILE_REPLAY",
+    "qualified": false,
+    "radio_profile_id": "OAI_N78_100MHZ_273PRB_4D5U_V1",
+    "artifact_path_template": "experiments/splitfusion_phase14a_100mhz_calibration_v1/<AUTHORIZED_RUN_ID>/mapping.json",
+    "legacy_mapping_id": "OAI_N78_40MHZ_106PRB_7D2U_LEGACY",
+    "legacy_mapping_path": "rl_agent/experiments/oai_target_snr_replay_pilot_v1/20260822_live_01/target_to_rfsim_mapping.csv",
+    "legacy_mapping_permitted": false
+  },
+  "legacy_rejection": {
+    "radio_id": "OAI_N78_40MHZ_106PRB_7D2U_LEGACY",
+    "reject_bandwidth_mhz": 40,
+    "reject_prb": 106,
+    "forbidden_launcher_paths": [
+      "uplink_only_spatial_map_pipeline/run_track1_oai_default106_ttracer_10fps.sh",
+      "uplink_only_spatial_map_pipeline/run_track1_oai_default106_ttracer_10fps_v2.sh"
+    ],
+    "forbidden_launcher_sha256": [
+      "4bd64a5992a50daeb33b5da45a41495350c91ef599f9b105fe4e7f67fc7c09da",
+      "fd2f1dd9530ab35536dfaa9f69b25bce7ae44c9e8905dda1a24b96d7a24b2cf4"
+    ]
+  },
+  "calibration": {
+    "runner": {
+      "path": "rl_agent/splitfusion_phase14a_100mhz_calibration_v1.py",
+      "sha256": "09fb82c0ba644a44bdf5fb5e5ad92269c1daa31ffbeee1fc0864d5b7ce688c93"
+    },
+    "status": "IMPLEMENTED_NOT_EXECUTED",
+    "config": {
+      "path": "rl_agent/configs/splitfusion_phase14a_100mhz_calibration_v1.json",
+      "sha256": "ad541f71f5659e1bb08d7d2c48a45086dfbd5bf45e669b32adfb320ddcab5cd9"
+    },
+    "reuse": {
+      "actuator_and_live_tracer": {
+        "path": "rl_agent/ue_n2_oai_ul_calibration_smoke.py",
+        "sha256": "f309ab018aed383dfe5bdbdfcde32e3a796bd663d1e2c59f0f5a02c4428a497a"
+      },
+      "pusch_mcs_parsing": {
+        "path": "rl_agent/ue_n3_oai_ul_command_calibration_v1.py",
+        "sha256": "30cf1615f51c7cd0ebe4087f7b6ca66f37a563f2d5c452e474ae838a23c8878b"
+      },
+      "interpolation": {
+        "path": "rl_agent/oai_target_snr_replay_pilot_v1.py",
+        "sha256": "b07c50d0000f543248be15da3c03c4bd0911197d13b00fc3adf67ab23bd07e4a"
+      }
+    },
+    "legacy_measured_anchor_values_reused": false,
+    "four_profile_replay_in_this_phase": false
+  },
+  "campaign_authorization": {
+    "pilot_16_authorized": false,
+    "campaign_288_authorized": false,
+    "next_required_authority": "ONE_LIVE_100MHZ_4D5U_RADIO_ATTACH_AND_CALIBRATION_RUN",
+    "later_required_authority": "ONE_SHORT_FOUR_PROFILE_REPLAY_THEN_SEPARATE_16_CELL_REVIEW"
+  }
+}

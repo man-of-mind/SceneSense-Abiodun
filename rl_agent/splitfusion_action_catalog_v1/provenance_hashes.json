@@ -1,0 +1,153 @@
+{
+  "builder": {
+    "path": "rl_agent/splitfusion_action_catalog_v1/build_catalog.py",
+    "sha256": "336294fc1016b62d520178905d8e4ff1d41ebf7a2456cc28611ae99a3f7621cc"
+  },
+  "frozen_evidence_base_commit": "ba681dbd33514d80d96784ac4cd0d67f3151e800",
+  "generated_artifacts": {
+    "CATALOG_REPORT.md": "6487f557b90733ce08520716f325657b406b3fa9fdc9422f3f17f9bd1dddfc41",
+    "SPLITFUSION_72_PROFILE_ACTION_CATALOG_LOCKED": "b370a246944cea64a13aa88e3e30e98732bc824a8321d917c051c4644b47241b",
+    "splitfusion_72_action_catalog.csv": "0512cb39982178e8c7c96a65ed26e272b3aa3a5aec0020a8dd9cf1cdb6696fbb",
+    "splitfusion_72_action_catalog.json": "07e0690f8a55bdd6068b8b283d14b7e165ccbf44742dd0a9568cfdd5dcac54c3"
+  },
+  "input_bindings": {
+    "ae128_checkpoint": {
+      "path": "experiments/splitfusion_fcos_ae_v1/20260902_220623_phase9c_ae128_training/checkpoints/ae128_epoch_08.pt",
+      "sha256": "0c2ba3a495684c0f8222492f554eb3de7c7a76181e0bd4b4a83529897db30f72"
+    },
+    "ae128_selection": {
+      "path": "experiments/splitfusion_fcos_ae_v1/20260902_220623_phase9c_ae128_training/holdout_selection/holdout_selection.json",
+      "sha256": "69e49deac302fc46c1eec56036e3ab3d769b3aac10b76541cfb4abb80f878194"
+    },
+    "ae32_checkpoint": {
+      "path": "experiments/splitfusion_fcos_ae_v1/20260903_phase10_ae32_training/checkpoints/ae32_epoch_08.pt",
+      "sha256": "e2f867757e8db0620316c092264ac7eb53d12bb5ef66ed14475eb40693d1f271"
+    },
+    "ae32_selection": {
+      "path": "experiments/splitfusion_fcos_ae_v1/20260903_phase10_ae32_training/holdout_selection_ae32/ae32_holdout_selection.json",
+      "sha256": "e3dfbfb736bb8847ad11d92b1573f88058e1c4319ac4a0180284db2171afac34"
+    },
+    "ae64_checkpoint": {
+      "path": "experiments/splitfusion_fcos_ae_v1/20260903_phase10_ae64_training/checkpoints/ae64_epoch_12.pt",
+      "sha256": "dd7c5124e27114584ab2083e59160a3ff2a2d040d0a37d22564ac98c838aa8e0"
+    },
+    "ae64_selection": {
+      "path": "experiments/splitfusion_fcos_ae_v1/20260903_phase10_ae64_training/holdout_selection_ae64/ae64_holdout_selection.json",
+      "sha256": "0d2fe444574d3fdc9aee287448084bf2cfc1efa2d0ec6944ac07355d9ff7c87e"
+    },
+    "ae_uint8_codec": {
+      "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/ae_uint8_transport.py",
+      "sha256": "4162b162d554f764332d469b6ca7b5038298e77a563a9de73c1622cd99531423"
+    },
+    "hybrid_q_locked_config": {
+      "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1/locked_config.json",
+      "sha256": "b2b0d8427bd867f46058ebba49ac6a183eb89413b4d69326fef93b150ebfcde6"
+    },
+    "layout_report": {
+      "path": "experiments/splitfusion_fcos_transport_layout_feasibility_v1/20260903_layout_feasibility_cuda_retry1/transport_layout_feasibility.json",
+      "sha256": "5535bc080a12d3aa3eb17ef99e20a39361e4e908b971c7f67a9ced4ad10c6071"
+    },
+    "layout_terminal": {
+      "path": "experiments/splitfusion_fcos_transport_layout_feasibility_v1/20260903_layout_feasibility_cuda_retry1/TRANSPORT_LAYOUT_FEASIBILITY_COMPLETE",
+      "sha256": "aed941acd79994c52c1e94516f312a84c1202a5c720eac62093ef685441d67b5"
+    },
+    "lowbit_codec": {
+      "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/lowbit_transport.py",
+      "sha256": "c708389982b10968978002d2d8423984d857229021149d51ec0d135619d69f12"
+    },
+    "network_profile_v1": {
+      "path": "rl_agent/configs/network_profile_design_v1.json",
+      "sha256": "97d3bf835fcb611f00704f9d69c0d0958d94bd703059ed814099f064ceffb2f5"
+    },
+    "network_profile_v2": {
+      "path": "rl_agent/configs/network_profile_design_v2.json",
+      "sha256": "056247e5731c1ae9ac281432034e1b79d1e6da24ab4a2d579a7fe2d85917e483"
+    },
+    "noae_uint8_codec": {
+      "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1/uint8_codec.py",
+      "sha256": "b6f07723860821e93c0dc2aeec456073617942b5ed8446f4555fe87b2c7ca803"
+    },
+    "p025_forward_lock": {
+      "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_person_p025_calibration_v1/PERCEPTION_FORWARD_LOCK_P025_V1.json",
+      "sha256": "86d6f13ae9168b33b697df5b785c5f7c320afc52cfdcded5b632d94a6d943fe1"
+    },
+    "perception_checkpoint": {
+      "path": "experiments/route_b_v3_1_splitfusion_fcos_r50_fpn_p2_p7_v1_numerical_recovery_v1/20260830_recovered_epoch10_gate_v1/checkpoints/epoch_026.pt",
+      "sha256": "da14d21edbd374c1c3abce02ca4674b9f4097becfba9759aba945cea160a297f"
+    },
+    "phase11b_report": {
+      "path": "experiments/splitfusion_fcos_ae_v1/20260903_phase11b_lowbit_gpu_qualification/phase11b_lowbit_gpu_qualification.json",
+      "sha256": "379aa07148e3e47384cfbebbe0ede5990c07f11b8a4bdef056d6a533cee5fc01"
+    },
+    "phase11b_terminal": {
+      "path": "experiments/splitfusion_fcos_ae_v1/20260903_phase11b_lowbit_gpu_qualification/SPLITFUSION_LOWBIT_PHASE11B_GPU_QUALIFIED",
+      "sha256": "83f41560a3327c4207834f5725e5e313ceb6b3e0f9e22ea1f8c37b6dcf0b56e2"
+    },
+    "phase11c_report": {
+      "path": "experiments/splitfusion_fcos_ae_v1/20260903_phase11c_zstd_level_sweep/phase11c_zstd_level_sweep.json",
+      "sha256": "4bcd2eddff502cc55d799bfdf5af920ccc1378ae87bd2c0d6017d3d2586c7b2d"
+    },
+    "phase11c_terminal": {
+      "path": "experiments/splitfusion_fcos_ae_v1/20260903_phase11c_zstd_level_sweep/HYBRID_Q_PHASE11C_ZSTD_LEVEL_SWEEP_COMPLETE",
+      "sha256": "198585a7384382b6c858a4f17595b132b008e7ef8f9a58d2c595032acdb1b5c2"
+    },
+    "phase11d_manifest": {
+      "path": "experiments/splitfusion_fcos_ae_v1/20260903_phase11d_lowbit_validation/run_manifest.json",
+      "sha256": "117844888f8eac2e0133ebc37ba61a29dff5abf593dfc3a9d54b2bed96125e23"
+    },
+    "phase11d_report": {
+      "path": "experiments/splitfusion_fcos_ae_v1/20260903_phase11d_lowbit_validation/phase11d_lowbit_validation.json",
+      "sha256": "2680e6dc21469e6fdcabe1ce79e9d2d333d9a137c639cd033338b9b1c01c2862"
+    },
+    "phase11d_terminal": {
+      "path": "experiments/splitfusion_fcos_ae_v1/20260903_phase11d_lowbit_validation/SPLITFUSION_LOWBIT_PHASE11D_VALIDATION_COMPLETE",
+      "sha256": "c79d41ca1fef1618a6f7e556a3c01594c11ef539d050efde1716ed174cf53983"
+    },
+    "ranker_checkpoint": {
+      "path": "experiments/splitfusion_fcos_hybrid_q_v1/20260901_185725_phase5_ranker_training/checkpoints/ranker_epoch_04.pt",
+      "sha256": "07781c56a4c0f306f16d332f64627ce6b9458e154f40ab9fef89f89909b79cb5"
+    },
+    "uint8_ae128_report": {
+      "path": "experiments/splitfusion_fcos_ae_v1/20260903_phase9d_ae128_uint8_validation/phase9d_ae128_uint8_validation.json",
+      "sha256": "89cc7c706fc3383106a5680d3d54d5fb514dcd5d808c13d9eaf1a2c380785963"
+    },
+    "uint8_ae128_terminal": {
+      "path": "experiments/splitfusion_fcos_ae_v1/20260903_phase9d_ae128_uint8_validation/SPLITFUSION_AE128_UINT8_VALIDATION_COMPLETE",
+      "sha256": "c375e0d87a2ac5aa9a00b66b6684a29a03b2188f826cc23781318f22db25c588"
+    },
+    "uint8_ae32_report": {
+      "path": "experiments/splitfusion_fcos_ae_v1/20260903_phase10b_ae32_uint8_validation/phase10b_ae32_uint8_validation.json",
+      "sha256": "db4b944eb5992a82e9fe6b0befd2e3bcf583629a6f27ad2ad6cb4075f03a90ec"
+    },
+    "uint8_ae32_terminal": {
+      "path": "experiments/splitfusion_fcos_ae_v1/20260903_phase10b_ae32_uint8_validation/SPLITFUSION_AE32_PHASE10B_UINT8_VALIDATION_COMPLETE",
+      "sha256": "3bd2b240a368019dce7ff0607ed61eec7097e614a2e627a9369d2ce9aea5c553"
+    },
+    "uint8_ae64_report": {
+      "path": "experiments/splitfusion_fcos_ae_v1/20260903_phase10b_ae64_uint8_validation/phase10b_ae64_uint8_validation.json",
+      "sha256": "eead1786a5d12294b9d61d9271431049aac28540a20f2c4608db33ab66de3aad"
+    },
+    "uint8_ae64_terminal": {
+      "path": "experiments/splitfusion_fcos_ae_v1/20260903_phase10b_ae64_uint8_validation/SPLITFUSION_AE64_PHASE10B_UINT8_VALIDATION_COMPLETE",
+      "sha256": "cd84b9894b29e7533b9fe665790d55e5905118e4e77121a06ce5e7e521945a27"
+    },
+    "uint8_noae_report": {
+      "path": "experiments/splitfusion_fcos_hybrid_q_v1/20260902_223610_phase8b_uint8_validation/phase8b_uint8_validation.json",
+      "sha256": "a2779f5fb0a585b1c317dc755b5ab577fa7c34963ab7945cb704e0d4146bb029"
+    },
+    "uint8_noae_terminal": {
+      "path": "experiments/splitfusion_fcos_hybrid_q_v1/20260902_223610_phase8b_uint8_validation/HYBRID_Q_UINT8_VALIDATION_COMPLETE",
+      "sha256": "e4f534996dd5ae3e43ef037c34133cbfd5601e4a6407f1df6177b0d051c8b254"
+    }
+  },
+  "schema": "splitfusion_72_action_catalog_provenance_v1",
+  "validation": {
+    "agent_action_enabled": 72,
+    "durable_records_reconciled": 72,
+    "input_hashes_verified": 32,
+    "network_binding_status": "UNRESOLVED_MULTIPLE_CONFLICTING_DEFINITIONS",
+    "profiles": 72,
+    "same_family_same_q_references_reconciled": 48,
+    "transport_valid": 72
+  }
+}

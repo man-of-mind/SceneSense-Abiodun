@@ -1,0 +1,57 @@
+{
+  "outputs": [
+    {
+      "bytes": 2168,
+      "path": "REPORT.md",
+      "sha256": "ce7277762d6c7930a78b7f01c27654e7a4c61c0d382980772af66715f7eaf1c2"
+    },
+    {
+      "bytes": 424,
+      "path": "cleanup_report.json",
+      "sha256": "86cca121fc234d023dfab69e02b969a8a1875cfd4b02e9688207fde5732c7aa2"
+    },
+    {
+      "bytes": 522341,
+      "path": "probe_qualification.json",
+      "sha256": "a60dd0caea54eb1d62f8059c6891ef9ea199ee307535ace5ef57de112eaf3d69"
+    },
+    {
+      "bytes": 1788,
+      "path": "profile_summary.csv",
+      "sha256": "3a96f66367088d5b8c26ad0c4def4e3d6c76ef0949a26f3a171dd8d3237246fc"
+    },
+    {
+      "bytes": 27030057,
+      "path": "profiles/00_FAVORABLE_STABLE.json",
+      "sha256": "287a7d2439c4339bda94d7e57dc877b05bbb5ddbd4ab7ff33c3f80a2022afdc4"
+    },
+    {
+      "bytes": 30136389,
+      "path": "profiles/01_MID_VARIABLE.json",
+      "sha256": "a48106cdb7bf949ace2f3f3e7782c6dda13a0b28b155784dac666aedc52fb37e"
+    },
+    {
+      "bytes": 30576112,
+      "path": "profiles/02_ADVERSE_STABLE.json",
+      "sha256": "7d52f71b20f135684dd3261d613f5ccf88eadad761472682cf3f3230a7a7c283"
+    },
+    {
+      "bytes": 29968012,
+      "path": "profiles/03_FADE_RECOVERY.json",
+      "sha256": "eb6808315acf3be3df4fa9a84166ba8d7419b4e4cbccbf5e16fc3e5cf82d0de3"
+    },
+    {
+      "bytes": 8051,
+      "path": "qualification.json",
+      "sha256": "ad8b0c9c49209a6a2325cab58faf858019847b496b5ee793447a5be20d0b21a8"
+    },
+    {
+      "bytes": 17280,
+      "path": "run_manifest.json",
+      "sha256": "9898e271b935a915a6e0ad8c6f8bee52a672b56367309b99929c5001054197c7"
+    }
+  ],
+  "raw_tracer_or_traffic_logs_retained": false,
+  "schema": "scenesense.splitfusion_phase14b_artifact_manifest.v1",
+  "status": "FOUR_PROFILE_REPLAY_COMPLETE"
+}

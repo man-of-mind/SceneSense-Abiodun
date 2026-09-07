@@ -1,0 +1,528 @@
+{
+  "created_utc": "2026-09-04T04:57:19.883903+00:00",
+  "durability_order_per_setting": [
+    "atomically write settings/<family>_<bits>_<q>.json",
+    "remove working_predictions/<family>_<bits>_<q> only after that record",
+    "atomically write cleanup/<family>_<bits>_<q>.json"
+  ],
+  "expected_setting_count": 48,
+  "expected_settings": [
+    "noae_uint6_q0000",
+    "noae_uint6_q3000",
+    "noae_uint6_q5000",
+    "noae_uint6_q7000",
+    "noae_uint6_q9000",
+    "noae_uint6_q9800",
+    "noae_uint4_q0000",
+    "noae_uint4_q3000",
+    "noae_uint4_q5000",
+    "noae_uint4_q7000",
+    "noae_uint4_q9000",
+    "noae_uint4_q9800",
+    "ae128_uint6_q0000",
+    "ae128_uint6_q3000",
+    "ae128_uint6_q5000",
+    "ae128_uint6_q7000",
+    "ae128_uint6_q9000",
+    "ae128_uint6_q9800",
+    "ae128_uint4_q0000",
+    "ae128_uint4_q3000",
+    "ae128_uint4_q5000",
+    "ae128_uint4_q7000",
+    "ae128_uint4_q9000",
+    "ae128_uint4_q9800",
+    "ae64_uint6_q0000",
+    "ae64_uint6_q3000",
+    "ae64_uint6_q5000",
+    "ae64_uint6_q7000",
+    "ae64_uint6_q9000",
+    "ae64_uint6_q9800",
+    "ae64_uint4_q0000",
+    "ae64_uint4_q3000",
+    "ae64_uint4_q5000",
+    "ae64_uint4_q7000",
+    "ae64_uint4_q9000",
+    "ae64_uint4_q9800",
+    "ae32_uint6_q0000",
+    "ae32_uint6_q3000",
+    "ae32_uint6_q5000",
+    "ae32_uint6_q7000",
+    "ae32_uint6_q9000",
+    "ae32_uint6_q9800",
+    "ae32_uint4_q0000",
+    "ae32_uint4_q3000",
+    "ae32_uint4_q5000",
+    "ae32_uint4_q7000",
+    "ae32_uint4_q9000",
+    "ae32_uint4_q9800"
+  ],
+  "resume_rule": "--resume validates and reuses only a complete exact record; invalid records are refused and only missing settings run",
+  "run_identity": {
+    "catalog": [
+      {
+        "bits": 6,
+        "family": "noAE",
+        "family_id": 0,
+        "q": 0.0,
+        "q_e4": 0
+      },
+      {
+        "bits": 6,
+        "family": "noAE",
+        "family_id": 0,
+        "q": 0.3,
+        "q_e4": 3000
+      },
+      {
+        "bits": 6,
+        "family": "noAE",
+        "family_id": 0,
+        "q": 0.5,
+        "q_e4": 5000
+      },
+      {
+        "bits": 6,
+        "family": "noAE",
+        "family_id": 0,
+        "q": 0.7,
+        "q_e4": 7000
+      },
+      {
+        "bits": 6,
+        "family": "noAE",
+        "family_id": 0,
+        "q": 0.9,
+        "q_e4": 9000
+      },
+      {
+        "bits": 6,
+        "family": "noAE",
+        "family_id": 0,
+        "q": 0.98,
+        "q_e4": 9800
+      },
+      {
+        "bits": 4,
+        "family": "noAE",
+        "family_id": 0,
+        "q": 0.0,
+        "q_e4": 0
+      },
+      {
+        "bits": 4,
+        "family": "noAE",
+        "family_id": 0,
+        "q": 0.3,
+        "q_e4": 3000
+      },
+      {
+        "bits": 4,
+        "family": "noAE",
+        "family_id": 0,
+        "q": 0.5,
+        "q_e4": 5000
+      },
+      {
+        "bits": 4,
+        "family": "noAE",
+        "family_id": 0,
+        "q": 0.7,
+        "q_e4": 7000
+      },
+      {
+        "bits": 4,
+        "family": "noAE",
+        "family_id": 0,
+        "q": 0.9,
+        "q_e4": 9000
+      },
+      {
+        "bits": 4,
+        "family": "noAE",
+        "family_id": 0,
+        "q": 0.98,
+        "q_e4": 9800
+      },
+      {
+        "bits": 6,
+        "family": "AE128",
+        "family_id": 1,
+        "q": 0.0,
+        "q_e4": 0
+      },
+      {
+        "bits": 6,
+        "family": "AE128",
+        "family_id": 1,
+        "q": 0.3,
+        "q_e4": 3000
+      },
+      {
+        "bits": 6,
+        "family": "AE128",
+        "family_id": 1,
+        "q": 0.5,
+        "q_e4": 5000
+      },
+      {
+        "bits": 6,
+        "family": "AE128",
+        "family_id": 1,
+        "q": 0.7,
+        "q_e4": 7000
+      },
+      {
+        "bits": 6,
+        "family": "AE128",
+        "family_id": 1,
+        "q": 0.9,
+        "q_e4": 9000
+      },
+      {
+        "bits": 6,
+        "family": "AE128",
+        "family_id": 1,
+        "q": 0.98,
+        "q_e4": 9800
+      },
+      {
+        "bits": 4,
+        "family": "AE128",
+        "family_id": 1,
+        "q": 0.0,
+        "q_e4": 0
+      },
+      {
+        "bits": 4,
+        "family": "AE128",
+        "family_id": 1,
+        "q": 0.3,
+        "q_e4": 3000
+      },
+      {
+        "bits": 4,
+        "family": "AE128",
+        "family_id": 1,
+        "q": 0.5,
+        "q_e4": 5000
+      },
+      {
+        "bits": 4,
+        "family": "AE128",
+        "family_id": 1,
+        "q": 0.7,
+        "q_e4": 7000
+      },
+      {
+        "bits": 4,
+        "family": "AE128",
+        "family_id": 1,
+        "q": 0.9,
+        "q_e4": 9000
+      },
+      {
+        "bits": 4,
+        "family": "AE128",
+        "family_id": 1,
+        "q": 0.98,
+        "q_e4": 9800
+      },
+      {
+        "bits": 6,
+        "family": "AE64",
+        "family_id": 2,
+        "q": 0.0,
+        "q_e4": 0
+      },
+      {
+        "bits": 6,
+        "family": "AE64",
+        "family_id": 2,
+        "q": 0.3,
+        "q_e4": 3000
+      },
+      {
+        "bits": 6,
+        "family": "AE64",
+        "family_id": 2,
+        "q": 0.5,
+        "q_e4": 5000
+      },
+      {
+        "bits": 6,
+        "family": "AE64",
+        "family_id": 2,
+        "q": 0.7,
+        "q_e4": 7000
+      },
+      {
+        "bits": 6,
+        "family": "AE64",
+        "family_id": 2,
+        "q": 0.9,
+        "q_e4": 9000
+      },
+      {
+        "bits": 6,
+        "family": "AE64",
+        "family_id": 2,
+        "q": 0.98,
+        "q_e4": 9800
+      },
+      {
+        "bits": 4,
+        "family": "AE64",
+        "family_id": 2,
+        "q": 0.0,
+        "q_e4": 0
+      },
+      {
+        "bits": 4,
+        "family": "AE64",
+        "family_id": 2,
+        "q": 0.3,
+        "q_e4": 3000
+      },
+      {
+        "bits": 4,
+        "family": "AE64",
+        "family_id": 2,
+        "q": 0.5,
+        "q_e4": 5000
+      },
+      {
+        "bits": 4,
+        "family": "AE64",
+        "family_id": 2,
+        "q": 0.7,
+        "q_e4": 7000
+      },
+      {
+        "bits": 4,
+        "family": "AE64",
+        "family_id": 2,
+        "q": 0.9,
+        "q_e4": 9000
+      },
+      {
+        "bits": 4,
+        "family": "AE64",
+        "family_id": 2,
+        "q": 0.98,
+        "q_e4": 9800
+      },
+      {
+        "bits": 6,
+        "family": "AE32",
+        "family_id": 3,
+        "q": 0.0,
+        "q_e4": 0
+      },
+      {
+        "bits": 6,
+        "family": "AE32",
+        "family_id": 3,
+        "q": 0.3,
+        "q_e4": 3000
+      },
+      {
+        "bits": 6,
+        "family": "AE32",
+        "family_id": 3,
+        "q": 0.5,
+        "q_e4": 5000
+      },
+      {
+        "bits": 6,
+        "family": "AE32",
+        "family_id": 3,
+        "q": 0.7,
+        "q_e4": 7000
+      },
+      {
+        "bits": 6,
+        "family": "AE32",
+        "family_id": 3,
+        "q": 0.9,
+        "q_e4": 9000
+      },
+      {
+        "bits": 6,
+        "family": "AE32",
+        "family_id": 3,
+        "q": 0.98,
+        "q_e4": 9800
+      },
+      {
+        "bits": 4,
+        "family": "AE32",
+        "family_id": 3,
+        "q": 0.0,
+        "q_e4": 0
+      },
+      {
+        "bits": 4,
+        "family": "AE32",
+        "family_id": 3,
+        "q": 0.3,
+        "q_e4": 3000
+      },
+      {
+        "bits": 4,
+        "family": "AE32",
+        "family_id": 3,
+        "q": 0.5,
+        "q_e4": 5000
+      },
+      {
+        "bits": 4,
+        "family": "AE32",
+        "family_id": 3,
+        "q": 0.7,
+        "q_e4": 7000
+      },
+      {
+        "bits": 4,
+        "family": "AE32",
+        "family_id": 3,
+        "q": 0.9,
+        "q_e4": 9000
+      },
+      {
+        "bits": 4,
+        "family": "AE32",
+        "family_id": 3,
+        "q": 0.98,
+        "q_e4": 9800
+      }
+    ],
+    "execute": "SPLITFUSION_LOWBIT_PHASE11D_VALIDATION",
+    "historical_provenance": {
+      "AE128": {
+        "path": "experiments/splitfusion_fcos_ae_v1/20260902_220623_phase9c_ae128_training/checkpoints/ae128_epoch_08.pt",
+        "selection_path": "experiments/splitfusion_fcos_ae_v1/20260902_220623_phase9c_ae128_training/holdout_selection/holdout_selection.json",
+        "selection_sha256": "69e49deac302fc46c1eec56036e3ab3d769b3aac10b76541cfb4abb80f878194",
+        "sha256": "0c2ba3a495684c0f8222492f554eb3de7c7a76181e0bd4b4a83529897db30f72"
+      },
+      "AE32": {
+        "path": "experiments/splitfusion_fcos_ae_v1/20260903_phase10_ae32_training/checkpoints/ae32_epoch_08.pt",
+        "selection_path": "experiments/splitfusion_fcos_ae_v1/20260903_phase10_ae32_training/holdout_selection_ae32/ae32_holdout_selection.json",
+        "selection_sha256": "e3dfbfb736bb8847ad11d92b1573f88058e1c4319ac4a0180284db2171afac34",
+        "sha256": "e2f867757e8db0620316c092264ac7eb53d12bb5ef66ed14475eb40693d1f271"
+      },
+      "AE64": {
+        "path": "experiments/splitfusion_fcos_ae_v1/20260903_phase10_ae64_training/checkpoints/ae64_epoch_12.pt",
+        "selection_path": "experiments/splitfusion_fcos_ae_v1/20260903_phase10_ae64_training/holdout_selection_ae64/ae64_holdout_selection.json",
+        "selection_sha256": "0d2fe444574d3fdc9aee287448084bf2cfc1efa2d0ec6944ac07355d9ff7c87e",
+        "sha256": "dd7c5124e27114584ab2083e59160a3ff2a2d040d0a37d22564ac98c838aa8e0"
+      },
+      "perception": {
+        "path": "experiments/route_b_v3_1_splitfusion_fcos_r50_fpn_p2_p7_v1_numerical_recovery_v1/20260830_recovered_epoch10_gate_v1/checkpoints/epoch_026.pt",
+        "sha256": "da14d21edbd374c1c3abce02ca4674b9f4097becfba9759aba945cea160a297f"
+      },
+      "ranker": {
+        "path": "experiments/splitfusion_fcos_hybrid_q_v1/20260901_185725_phase5_ranker_training/checkpoints/ranker_epoch_04.pt",
+        "sha256": "07781c56a4c0f306f16d332f64627ce6b9458e154f40ab9fef89f89909b79cb5"
+      }
+    },
+    "layout_campaign": {
+      "classification": "NOT_USEFUL",
+      "production_codecs_unchanged": true,
+      "production_layout_retained": "CURRENT_CELL_MAJOR",
+      "report_sha256": "5535bc080a12d3aa3eb17ef99e20a39361e4e908b971c7f67a9ced4ad10c6071",
+      "terminal_sha256": "aed941acd79994c52c1e94516f312a84c1202a5c720eac62093ef685441d67b5"
+    },
+    "live_execution_source_sha256": {
+      "data_collection/__init__.py": "a5667663bb3391d3f71ac20ac4a7824670f13a940ba0963a0fbbf1515d942866",
+      "data_collection/route_b_publication_actor_volume_observability_model_comparison_v1/__init__.py": "975a8d8dd32b1056edecb344467c5bfcd258c4605de7dc0fdcc56db2e3ba7ece",
+      "data_collection/route_b_publication_actor_volume_observability_model_comparison_v1/run_comparison.py": "fee680fd81319151fcfe0b42977afbd0f373712fa3fe2ce04d9b2bf85cc2cbc5",
+      "data_collection/route_b_publication_actor_volume_visibility_v1/__init__.py": "784836022f6c92292a8e41c55166c588a3db92420d1fe41c6290a943b80315f7",
+      "data_collection/route_b_publication_actor_volume_visibility_v1/agreement.py": "a5ebb150cbbdeebaafedb61b99c9130291ee5574d63a1aa9a418dcd559fcce28",
+      "data_collection/route_b_publication_actor_volume_visibility_v1/core.py": "02d39fd1d15c31ab8323f0ece09e951e8fc0e42aecf5de06a120918276f1d3e4",
+      "data_collection/route_b_publication_actor_volume_visibility_v1/run_audit.py": "cc6a0afa9997d6d1ccc603ec990046e8c6b0fcbe9ba9b442abaad0589efa7701",
+      "data_collection/route_b_publication_actor_volume_visibility_v1/scoring.py": "3942b8c35c990c27676fc66c13f80ed8011e2a2ddc0768cac5c6e531f85b00dd",
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/__init__.py": "442d74420abe3ccc7671497aeb8a1a0210bf0af40ccddb25a8f2aed3c4db1ec9",
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/ae_composition.py": "3e54ea2dc8599c0579349e4ce430a34a2d2343764402aee5113e1c2d54dfa608",
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/ae_contract.py": "ccd8dbf5a86a4b2e9373f15edbd975754c954123d1893c37a336cf206b9d1f2f",
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/ae_family_dispatch.py": "64eaddd5e561948841d75a06b18fe44c6603b101a50df18e9e2b8a87ee4c0c9c",
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/ae_gpu_qualification.py": "a9f351184a42cb854700cd0539b08a897ec71dc87a5ef18cd3f5714ab8436041",
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/ae_loss.py": "21476d284a20bd186428be113c951e6bb9bf0871d42edaec28a50a7ea7711978",
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/ae_model.py": "4f2ec0a69cf127ebac44f6147124705d54785ab400ed033a83ad1e339735b542",
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/ae_phase10_common.py": "4fea48129c5cb80c7436376d3de2eae943ee1b5c1c487d6eb3562d37331734c9",
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/ae_phase10b_uint8_validation.py": "978e05004c0215664b45df889d463878636fbd4202f3c2b5244052b2eb88c7ef",
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/ae_phase11b_gpu_qualification.py": "be04018fbe28d806ed34993f8d3dd9383b8658de87515cf7f3925b65ba727e9f",
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/ae_phase11d_lowbit_validation.py": "10f90ced712ca683916ec81c358226ca272328c2063f10587efd24e451e46c40",
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/ae_training_common.py": "7c5af221a86cdd654117201b32fb5a494b808779bd97fcef11a0a08a08e41f57",
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/ae_uint8_transport.py": "4162b162d554f764332d469b6ca7b5038298e77a563a9de73c1622cd99531423",
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/ae_uint8_validation.py": "d3e742d697c8c3beaaee49e53c0eae7bb1924a7e277b0f6c9a003a5365ac4853",
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/lowbit_dispatch.py": "8e25fa64feeb22d4315957faaa216e0ea672170f09250cdc2930d705a621b0ce",
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/lowbit_transport.py": "c708389982b10968978002d2d8423984d857229021149d51ec0d135619d69f12",
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_candidate_quality_v1/__init__.py": "5708326d45fec7669fe44eead474a9c6780d52b52736174f8f5d6d977bd2fcb4",
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_candidate_quality_v1/labeling.py": "dcd51ed22b6880a65114a2b97e39ee5bbc89575056af9bee9ae65082fb2030ee",
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_candidate_quality_v1/quality.py": "d5f9e8fcff2b37ce740caaa5d015580f0923a9cf1ce4f6df93ef3d249ade0a99",
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1/__init__.py": "9319a2b3ce9d492e1577908148ef31187ed648ef81944365dd907dee717b206c",
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1/codec.py": "7b3833398a84fea31f65b86ec294c6675727390035b5761d372fd5a3cbba7b79",
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1/continuous_q.py": "8ea72faed324c29b7106bd5f6277699bd7e7ba16a66073905f9ff28c69bab23c",
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1/contract.py": "748eb39c0913c9d4c449784d23b7ec752307ed47eafb1b0ef0ae25df4b4f3d4c",
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1/gpu_qualification.py": "0032b9ac7edb89ec1b01616ea563bec73d04c20b164d6bbf8297f36d30eea7e6",
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1/guards.py": "77d8d8bfd168e74a7f0b6a7e3c8e7abc4c3549a86cda392feb394d7580a33031",
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1/low_q_validation.py": "3bcecbb838e23eb5e732e0edb8d25125eb79742ce997ab091c40f7be6ef4cfe4",
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1/phase5_common.py": "0d30eeba0effe57df79fff25946d42ae569b102ca4e9f8d9db24fe286480636d",
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1/phase6_validation.py": "e3cb904e6cbf8490138284dbec4263b404c17c52e9bc9965963e79f9d372f07c",
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1/phase7_zstd_measurement.py": "edb3095b74df81501e153ab66d17bbf223b0897b49c4490c5b02dccad59a5387",
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1/phase8b_uint8_validation.py": "705aab576d1e5b79ae08ec93d7303c3288c0c88e89419e8f55efc75779486188",
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1/ranker.py": "462536991f195651a1ee641f8e83444882ec370a8dffab72f13f0d770422b353",
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1/selection.py": "ccc2b12919b078eac7af6131418989567d618d42f7b908b2db74df42e0342a71",
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1/teacher_cache.py": "14f866d483c245f14078c6234a357427bccc4bfa1dd533b138677f1e17f579be",
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1/training.py": "a10775a3a9f3e051e3456c6c85cdc76fff47f417e9bd24ddecb6633dcda1161a",
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1/uint8_codec.py": "b6f07723860821e93c0dc2aeec456073617942b5ed8446f4555fe87b2c7ca803",
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1/zstd_transport.py": "57d1846b3fdc4084266e5a8adcc7abf99556ed2b187befec729003fcdb77edec",
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_person_instance_consolidation_v1/__init__.py": "e0cf27b46dcbd56013530bd531d25ff95050b73a65f7a67be91c4151aa98fc8e",
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_person_instance_consolidation_v1/core.py": "951002c210990a68c61bae5292c4c679a204ca3fb8615e4f9fb14e6180214b36",
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_person_p025_calibration_v1/__init__.py": "53c81c2d006ab8dd969a9d614bf9d222790a35e7dd66507b1266f4a639bb1b75",
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_person_p025_calibration_v1/policy.py": "e65639b5078c7a583a401b261bc1301ca4bdd66b5aff74f08f560da877048bee",
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_person_p025_calibration_v1/provenance.py": "650e171ad2018ddd864c51b86f04474d93072a221b5e4fe26767d3ebf8a0f94f",
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_person_p025_calibration_v1/runtime.py": "5e20f6541029dd517f723fa7ba932a21df3c03f3135ac46c5ff0de4c17b6008b",
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_service_candidate_v1/__init__.py": "bf0b1f78fed09398382bd5720a1270a7d6bca190968410294e0fd2ef89d8db3c",
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_service_candidate_v1/provenance.py": "f5b9beb9853181606c26ea46ee1e225bb66fa80318736e6c09b229274c0eef0f",
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_service_candidate_v1/runtime.py": "1dd4a822e9741d48a8cdcba7a99c38acfc827ac5cf6b85edec1335b7e1cadea6",
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_v1_numerical_recovery_v1/__init__.py": "4b00df2395fcaa372f7ff6767992a01e6e11f7a89734f2773fe817e02fa7282d",
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_v1_numerical_recovery_v1/audit.py": "b929ae2729db07f364d3b80eedfdc7c6d60358179ad0c6fcb9da35fb3d6c89ce",
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_v1_numerical_recovery_v1/base_runtime.py": "32fac974fda3cfdc4b8ed8cbcffa2bc070ad1474a93efab4b458b44e77930f3f",
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_v1_numerical_recovery_v1/contracts.py": "bfd01a1a0bb5a8910e8e30db780f9e7be518af9f2af717008216424bf1b284d8",
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_v1_numerical_recovery_v1/recovery_losses.py": "16163387f955db6859f8c3ad442997e712ca6ef04b031d0d31858d5c0adb38df",
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_v1_numerical_recovery_v1/recovery_model.py": "fb76fbcf31b9a8a1d6e4f3744846bce863c4d7c362d52257ed55e632569c117b",
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_v1_numerical_recovery_v1/safe_math.py": "e18fae0630c0a1420a786f9db245b28ee344a9c5cde4ca08a27080df82c8332c"
+    },
+    "live_lowbit_execution_source_sha256": {
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/ae_composition.py": "3e54ea2dc8599c0579349e4ce430a34a2d2343764402aee5113e1c2d54dfa608",
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/ae_model.py": "4f2ec0a69cf127ebac44f6147124705d54785ab400ed033a83ad1e339735b542",
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/lowbit_dispatch.py": "8e25fa64feeb22d4315957faaa216e0ea672170f09250cdc2930d705a621b0ce",
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/lowbit_transport.py": "c708389982b10968978002d2d8423984d857229021149d51ec0d135619d69f12",
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1/zstd_transport.py": "57d1846b3fdc4084266e5a8adcc7abf99556ed2b187befec729003fcdb77edec"
+    },
+    "one_pass_per_setting": true,
+    "runner_sha256": "10f90ced712ca683916ec81c358226ca272328c2063f10587efd24e451e46c40",
+    "schema": "splitfusion_fcos_phase11d_lowbit_validation_v1",
+    "sha256": "4a5ee4a138d68869182e8d747240765280421a2c87eda5eafd1ae2c589334407",
+    "uint8_reference_sha256": {
+      "AE128": "89cc7c706fc3383106a5680d3d54d5fb514dcd5d808c13d9eaf1a2c380785963",
+      "AE32": "db4b944eb5992a82e9fe6b0befd2e3bcf583629a6f27ad2ad6cb4075f03a90ec",
+      "AE64": "eead1786a5d12294b9d61d9271431049aac28540a20f2c4608db33ab66de3aad",
+      "noAE": "a2779f5fb0a585b1c317dc755b5ab577fa7c34963ab7945cb704e0d4146bb029"
+    },
+    "validation_frames": 3345,
+    "zstd_campaign": {
+      "basis": "completed Phase-11C aggregate comparisons: L3/L5 were larger and higher host cost",
+      "fixed_for_phase11d": true,
+      "level": 1,
+      "perception_decision": false,
+      "raspberry_pi_oai_latency_confirmation_pending": true,
+      "zstd_level_is_not_an_rl_action": true
+    }
+  },
+  "run_identity_sha256": "4a5ee4a138d68869182e8d747240765280421a2c87eda5eafd1ae2c589334407",
+  "schema": "splitfusion_fcos_phase11d_lowbit_validation_v1",
+  "terminal_when_complete": "SPLITFUSION_LOWBIT_PHASE11D_VALIDATION_COMPLETE"
+}

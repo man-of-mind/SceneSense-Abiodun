@@ -1,0 +1,3811 @@
+{
+  "action_binding": {
+    "actions": {
+      "0": {
+        "bit_width": 8,
+        "catalog_agrees": true,
+        "catalog_profile_id": "split_noae_uint8_q0000",
+        "expected_profile_id": "split_noae_uint8_q0000",
+        "family": "noAE",
+        "keep_count": 21504,
+        "q_e4": 0,
+        "quantizer": "UINT8",
+        "transported_channels": 256
+      },
+      "20": {
+        "bit_width": 8,
+        "catalog_agrees": true,
+        "catalog_profile_id": "split_ae128_uint8_q5000",
+        "expected_profile_id": "split_ae128_uint8_q5000",
+        "family": "AE128",
+        "keep_count": 10752,
+        "q_e4": 5000,
+        "quantizer": "UINT8",
+        "transported_channels": 128
+      },
+      "46": {
+        "bit_width": 6,
+        "catalog_agrees": true,
+        "catalog_profile_id": "split_ae64_uint6_q9000",
+        "expected_profile_id": "split_ae64_uint6_q9000",
+        "family": "AE64",
+        "keep_count": 2150,
+        "q_e4": 9000,
+        "quantizer": "UINT6",
+        "transported_channels": 64
+      },
+      "71": {
+        "bit_width": 4,
+        "catalog_agrees": true,
+        "catalog_profile_id": "split_ae32_uint4_q9800",
+        "expected_profile_id": "split_ae32_uint4_q9800",
+        "family": "AE32",
+        "keep_count": 430,
+        "q_e4": 9800,
+        "quantizer": "UINT4",
+        "transported_channels": 32
+      }
+    },
+    "catalog_sha256": "07e0690f8a55bdd6068b8b283d14b7e165ccbf44742dd0a9568cfdd5dcac54c3",
+    "disagreements": [],
+    "verified": true
+  },
+  "audited_evidence_root": "experiments/splitfusion_16_cell_live_carla_oai_pilot_v1/20260905_live_carla_oai_pilot_retry4",
+  "cells": [
+    {
+      "aoi_growth": {
+        "monotone_fraction": null,
+        "quartile_median_aoi_ms": [],
+        "samples": 0
+      },
+      "funnel": {
+        "action_id": 0,
+        "cell_id": "a00__favorable_stable",
+        "network_profile_id": "FAVORABLE_STABLE",
+        "prepare_status_counts": {
+          "DROPPED_INCOMPLETE_RADAR_WINDOW": 1,
+          "DROPPED_QUEUE_FULL": 982,
+          "DROPPED_SENSOR_LATE_OR_MISSING": 5,
+          "SENT": 2012,
+          "WARMUP_NO_COMPLETE_RADAR_WINDOW": 13
+        },
+        "profile_id": "split_noae_uint8_q0000",
+        "route_span_s": 301.1870901584625,
+        "route_ticks": 6025,
+        "s01_preparation_opportunities": 3013,
+        "s02_eligible_preparation_frames": 3000,
+        "s03_prepared_queue_admissions": 2031,
+        "s04_preparation_starts": 2031,
+        "s05_radar_complete_frames": 2012,
+        "s06_encoded_frames": 2012,
+        "s07_feature_messages_sent": 2012,
+        "s08_feature_datagrams_sent": 579644,
+        "s09_feature_datagrams_observed_at_receiver": "UNAVAILABLE",
+        "s09b_feature_datagrams_in_surviving_messages": 0,
+        "s09c_surviving_messages_with_datagram_count_mismatch": 0,
+        "s09d_duplicate_feature_datagrams": 0,
+        "s10_edge_fully_reassembled_messages_lower_bound": 0,
+        "s11_incomplete_or_expired_reassemblies": "UNAVAILABLE",
+        "s12_edge_queue_admissions": "NOT_INSTRUMENTED_NO_APPLICATION_QUEUE",
+        "s12b_edge_queue_drops": "NOT_INSTRUMENTED_NO_APPLICATION_QUEUE",
+        "s13_tail_starts_lower_bound": 0,
+        "s14_tail_completions_lower_bound": 0,
+        "s15_result_publications_lower_bound": 0,
+        "s16_result_datagrams_sent": "UNAVAILABLE",
+        "s16b_median_result_datagrams_per_message": null,
+        "s17_result_messages_ingested_at_ue": 0,
+        "s18_maps_installed": 0,
+        "s19_feedback_emitted": 0,
+        "s20_feedback_received_within_ack_timeout": 0,
+        "s20b_feedback_received_after_ack_timeout": 0,
+        "s21_installs_within_service_deadline": 0,
+        "terminal_feedback_outcomes": {
+          "TIMEOUT_NO_ACK": 2012
+        }
+      },
+      "intervals": {
+        "capture_to_feedback_receipt_ms": {
+          "clock_domain": "host_wall_clock_time_time_s",
+          "maximum": null,
+          "median": null,
+          "missing": 0,
+          "p95": null,
+          "samples": 0
+        },
+        "capture_to_installation_aoi_ms": {
+          "clock_domain": "host_wall_clock_time_time_s",
+          "maximum": null,
+          "median": null,
+          "missing": 0,
+          "p95": null,
+          "samples": 0
+        },
+        "cross_domain_residual_wall_aoi_minus_perf_round_trip_ms": {
+          "clock_domain": "cross_check",
+          "maximum": null,
+          "median": null,
+          "missing": 0,
+          "p95": null,
+          "samples": 0
+        },
+        "edge_ae_decode_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": null,
+          "median": null,
+          "missing": 0,
+          "p95": null,
+          "samples": 0
+        },
+        "edge_frozen_tail_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": null,
+          "median": null,
+          "missing": 0,
+          "p95": null,
+          "samples": 0
+        },
+        "edge_output_serialization_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": null,
+          "median": null,
+          "missing": 0,
+          "p95": null,
+          "samples": 0
+        },
+        "edge_total_edge_processing_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": null,
+          "median": null,
+          "missing": 0,
+          "p95": null,
+          "samples": 0
+        },
+        "edge_unpack_dequantize_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": null,
+          "median": null,
+          "missing": 0,
+          "p95": null,
+          "samples": 0
+        },
+        "edge_zstd_decompression_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": null,
+          "median": null,
+          "missing": 0,
+          "p95": null,
+          "samples": 0
+        },
+        "encoding_complete_to_ue_send_complete_ms": {
+          "clock_domain": "ue_process_perf_counter_ns",
+          "maximum": 20.654452,
+          "median": 1.4423504999999999,
+          "missing": 0,
+          "p95": 3.676387,
+          "samples": 2012
+        },
+        "feedback_emission_to_feedback_receipt_ms": {
+          "clock_domain": "host_wall_clock_time_time_s",
+          "maximum": null,
+          "median": null,
+          "missing": 0,
+          "p95": null,
+          "samples": 0
+        },
+        "installation_to_feedback_emission_ms": {
+          "clock_domain": "host_wall_clock_time_time_s",
+          "maximum": null,
+          "median": null,
+          "missing": 0,
+          "p95": null,
+          "samples": 0
+        },
+        "preparation_start_to_encoding_complete_ms": {
+          "clock_domain": "ue_process_perf_counter_ns",
+          "maximum": 276.569355,
+          "median": 38.243512499999994,
+          "missing": 0,
+          "p95": 68.570079,
+          "samples": 2012
+        },
+        "ue_send_complete_to_result_received_round_trip_ms": {
+          "clock_domain": "ue_process_perf_counter_ns",
+          "maximum": null,
+          "median": null,
+          "missing": 0,
+          "p95": null,
+          "samples": 0
+        },
+        "world_tick_schedule_to_preparation_start_ms": {
+          "clock_domain": "ue_process_perf_counter_ns",
+          "maximum": 1091.108719818294,
+          "median": 553.0773000791669,
+          "missing": 0,
+          "p95": 819.4224825128913,
+          "samples": 2012
+        }
+      },
+      "payload": {
+        "complete_message_rate_at_edge": 0.0,
+        "edge_admission_rate": "IDENTICAL_TO_complete_message_rate_at_edge: the edge has no admission stage separate from completing a reassembly, so admission and complete-message arrival are one event",
+        "edge_service_rate_hz_lower_bound": null,
+        "installation_rate": 0.0,
+        "median_application_envelope_bytes": 3586563.5,
+        "median_feature_datagrams_per_frame": 288.0,
+        "median_result_bytes_upper_bound": null,
+        "median_result_datagrams_per_message": null,
+        "median_scientific_inner_bytes": 3586356.5,
+        "median_udp_application_bytes": 3588867.5,
+        "offered_downlink_mbytes_per_s_upper_bound": null,
+        "offered_uplink_mbytes_per_s": 23.974471834768696,
+        "result_survival_rate_edge_to_ue": null,
+        "tail_completion_rate": 0.0,
+        "timely_feedback_rate": 0.0
+      },
+      "preparation_attribution": {
+        "bounded_preparation_queue_overflow": 982,
+        "evaluator_or_gt_work": "NOT_SEPARATELY_CLASSIFIED",
+        "front_inference_or_encoding_throughput": "NOT_SEPARATELY_CLASSIFIED",
+        "missing_or_incomplete_radar_window": 1,
+        "scheduler_delay": "NOT_SEPARATELY_CLASSIFIED",
+        "sensor_synchronisation_late_or_missing": 5,
+        "shutdown_boundary": "NOT_SEPARATELY_CLASSIFIED",
+        "split_processing_failure": 0,
+        "warmup_before_first_complete_radar_window": 13
+      },
+      "preparation_stationarity": {
+        "coverage_range": 0.10225763612217798,
+        "quartile_coverage": [
+          0.6308100929614874,
+          0.7330677290836654,
+          0.6533864541832669,
+          0.6538461538461539
+        ],
+        "quartile_median_queue_wait_ms": [
+          553.0506763607264,
+          496.8087850138545,
+          568.7623047269881,
+          579.1699774563313
+        ],
+        "stationary": true
+      },
+      "reconciliation": []
+    },
+    {
+      "aoi_growth": {
+        "monotone_fraction": 0.9863013698630136,
+        "quartile_median_aoi_ms": [
+          7082.393288612366,
+          29072.47042655945,
+          65222.52011299133,
+          163833.41884613037
+        ],
+        "samples": 74
+      },
+      "funnel": {
+        "action_id": 71,
+        "cell_id": "a71__favorable_stable",
+        "network_profile_id": "FAVORABLE_STABLE",
+        "prepare_status_counts": {
+          "DROPPED_INCOMPLETE_RADAR_WINDOW": 1,
+          "DROPPED_QUEUE_FULL": 942,
+          "SENT": 2645,
+          "WARMUP_NO_COMPLETE_RADAR_WINDOW": 4
+        },
+        "profile_id": "split_ae32_uint4_q9800",
+        "route_span_s": 409.71507596969604,
+        "route_ticks": 7184,
+        "s01_preparation_opportunities": 3592,
+        "s02_eligible_preparation_frames": 3588,
+        "s03_prepared_queue_admissions": 2650,
+        "s04_preparation_starts": 2650,
+        "s05_radar_complete_frames": 2645,
+        "s06_encoded_frames": 2645,
+        "s07_feature_messages_sent": 2645,
+        "s08_feature_datagrams_sent": 2645,
+        "s09_feature_datagrams_observed_at_receiver": "UNAVAILABLE",
+        "s09b_feature_datagrams_in_surviving_messages": 74,
+        "s09c_surviving_messages_with_datagram_count_mismatch": 0,
+        "s09d_duplicate_feature_datagrams": 0,
+        "s10_edge_fully_reassembled_messages_lower_bound": 1277,
+        "s11_incomplete_or_expired_reassemblies": "UNAVAILABLE",
+        "s12_edge_queue_admissions": "NOT_INSTRUMENTED_NO_APPLICATION_QUEUE",
+        "s12b_edge_queue_drops": "NOT_INSTRUMENTED_NO_APPLICATION_QUEUE",
+        "s13_tail_starts_lower_bound": 1277,
+        "s14_tail_completions_lower_bound": 1277,
+        "s15_result_publications_lower_bound": 1277,
+        "s16_result_datagrams_sent": "UNAVAILABLE",
+        "s16b_median_result_datagrams_per_message": 103.0,
+        "s17_result_messages_ingested_at_ue": 74,
+        "s18_maps_installed": 74,
+        "s19_feedback_emitted": 74,
+        "s20_feedback_received_within_ack_timeout": 0,
+        "s20b_feedback_received_after_ack_timeout": 74,
+        "s21_installs_within_service_deadline": 0,
+        "terminal_feedback_outcomes": {
+          "TIMEOUT_NO_ACK": 2645
+        }
+      },
+      "intervals": {
+        "capture_to_feedback_receipt_ms": {
+          "clock_domain": "host_wall_clock_time_time_s",
+          "maximum": 218509.6616744995,
+          "median": 30875.211119651794,
+          "missing": 0,
+          "p95": 200554.23140525818,
+          "samples": 74
+        },
+        "capture_to_installation_aoi_ms": {
+          "clock_domain": "host_wall_clock_time_time_s",
+          "maximum": 218507.59744644165,
+          "median": 30875.120043754578,
+          "missing": 0,
+          "p95": 200554.15844917297,
+          "samples": 74
+        },
+        "cross_domain_residual_wall_aoi_minus_perf_round_trip_ms": {
+          "clock_domain": "cross_check",
+          "maximum": 1093.5050712795346,
+          "median": 544.1726836427006,
+          "missing": 0,
+          "p95": 963.056981025511,
+          "samples": 74
+        },
+        "edge_ae_decode_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 15.396783,
+          "median": 1.1965555,
+          "missing": 0,
+          "p95": 3.906762,
+          "samples": 74
+        },
+        "edge_frozen_tail_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 1040.129587,
+          "median": 179.8815255,
+          "missing": 0,
+          "p95": 351.915729,
+          "samples": 74
+        },
+        "edge_output_serialization_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 315.161324,
+          "median": 23.9241,
+          "missing": 0,
+          "p95": 64.814829,
+          "samples": 74
+        },
+        "edge_total_edge_processing_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 1328.717544,
+          "median": 270.006661,
+          "missing": 0,
+          "p95": 610.650816,
+          "samples": 74
+        },
+        "edge_unpack_dequantize_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 132.501978,
+          "median": 59.999324,
+          "missing": 0,
+          "p95": 91.591875,
+          "samples": 74
+        },
+        "edge_zstd_decompression_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 0.031114,
+          "median": 0.0213065,
+          "missing": 0,
+          "p95": 0.026149,
+          "samples": 74
+        },
+        "encoding_complete_to_ue_send_complete_ms": {
+          "clock_domain": "ue_process_perf_counter_ns",
+          "maximum": 5.493275,
+          "median": 0.051102,
+          "missing": 0,
+          "p95": 0.225956,
+          "samples": 2645
+        },
+        "feedback_emission_to_feedback_receipt_ms": {
+          "clock_domain": "host_wall_clock_time_time_s",
+          "maximum": 27.29058265686035,
+          "median": 0.09548664093017578,
+          "missing": 0,
+          "p95": 3.2978057861328125,
+          "samples": 74
+        },
+        "installation_to_feedback_emission_ms": {
+          "clock_domain": "host_wall_clock_time_time_s",
+          "maximum": 1.3549327850341797,
+          "median": 0.010132789611816406,
+          "missing": 0,
+          "p95": 0.0152587890625,
+          "samples": 74
+        },
+        "preparation_start_to_encoding_complete_ms": {
+          "clock_domain": "ue_process_perf_counter_ns",
+          "maximum": 308.968438,
+          "median": 16.285688,
+          "missing": 0,
+          "p95": 36.937407,
+          "samples": 2645
+        },
+        "ue_send_complete_to_result_received_round_trip_ms": {
+          "clock_domain": "ue_process_perf_counter_ns",
+          "maximum": 217768.497486,
+          "median": 30316.733998,
+          "missing": 0,
+          "p95": 200042.034099,
+          "samples": 74
+        },
+        "world_tick_schedule_to_preparation_start_ms": {
+          "clock_domain": "ue_process_perf_counter_ns",
+          "maximum": 1402.22039911896,
+          "median": 563.5613584890962,
+          "missing": 0,
+          "p95": 903.1196422874928,
+          "samples": 2645
+        }
+      },
+      "payload": {
+        "complete_message_rate_at_edge": 0.48279773156899813,
+        "edge_admission_rate": "IDENTICAL_TO_complete_message_rate_at_edge: the edge has no admission stage separate from completing a reassembly, so admission and complete-message arrival are one event",
+        "edge_service_rate_hz_lower_bound": 3.1168001250079733,
+        "installation_rate": 0.027977315689981096,
+        "median_application_envelope_bytes": 6437.0,
+        "median_feature_datagrams_per_frame": 1.0,
+        "median_result_bytes_upper_bound": 1286676.0,
+        "median_result_datagrams_per_message": 103.0,
+        "median_scientific_inner_bytes": 6230.0,
+        "median_udp_application_bytes": 6445.0,
+        "offered_downlink_mbytes_per_s_upper_bound": 4.010311917644759,
+        "offered_uplink_mbytes_per_s": 0.04160702400236026,
+        "result_survival_rate_edge_to_ue": 0.05794831636648395,
+        "tail_completion_rate": 0.48279773156899813,
+        "timely_feedback_rate": 0.0
+      },
+      "preparation_attribution": {
+        "bounded_preparation_queue_overflow": 942,
+        "evaluator_or_gt_work": "NOT_SEPARATELY_CLASSIFIED",
+        "front_inference_or_encoding_throughput": "NOT_SEPARATELY_CLASSIFIED",
+        "missing_or_incomplete_radar_window": 1,
+        "scheduler_delay": "NOT_SEPARATELY_CLASSIFIED",
+        "sensor_synchronisation_late_or_missing": 0,
+        "shutdown_boundary": "NOT_SEPARATELY_CLASSIFIED",
+        "split_processing_failure": 0,
+        "warmup_before_first_complete_radar_window": 4
+      },
+      "preparation_stationarity": {
+        "coverage_range": 0.16592427616926497,
+        "quartile_coverage": [
+          0.7082405345211581,
+          0.8195991091314031,
+          0.7639198218262806,
+          0.6536748329621381
+        ],
+        "quartile_median_queue_wait_ms": [
+          607.894963119179,
+          420.9454273805022,
+          522.3850952461362,
+          672.328419983387
+        ],
+        "stationary": true
+      },
+      "reconciliation": []
+    },
+    {
+      "aoi_growth": {
+        "monotone_fraction": 0.8240740740740741,
+        "quartile_median_aoi_ms": [
+          31648.043155670166,
+          33436.21373176575,
+          36396.83699607849,
+          33823.01616668701
+        ],
+        "samples": 109
+      },
+      "funnel": {
+        "action_id": 46,
+        "cell_id": "a46__favorable_stable",
+        "network_profile_id": "FAVORABLE_STABLE",
+        "prepare_status_counts": {
+          "DROPPED_INCOMPLETE_RADAR_WINDOW": 1,
+          "DROPPED_QUEUE_FULL": 973,
+          "SENT": 2609,
+          "WARMUP_NO_COMPLETE_RADAR_WINDOW": 8
+        },
+        "profile_id": "split_ae64_uint6_q9000",
+        "route_span_s": 428.7072355747223,
+        "route_ticks": 7181,
+        "s01_preparation_opportunities": 3591,
+        "s02_eligible_preparation_frames": 3583,
+        "s03_prepared_queue_admissions": 2618,
+        "s04_preparation_starts": 2618,
+        "s05_radar_complete_frames": 2609,
+        "s06_encoded_frames": 2609,
+        "s07_feature_messages_sent": 2609,
+        "s08_feature_datagrams_sent": 23038,
+        "s09_feature_datagrams_observed_at_receiver": "UNAVAILABLE",
+        "s09b_feature_datagrams_in_surviving_messages": 958,
+        "s09c_surviving_messages_with_datagram_count_mismatch": 0,
+        "s09d_duplicate_feature_datagrams": 0,
+        "s10_edge_fully_reassembled_messages_lower_bound": 1070,
+        "s11_incomplete_or_expired_reassemblies": "UNAVAILABLE",
+        "s12_edge_queue_admissions": "NOT_INSTRUMENTED_NO_APPLICATION_QUEUE",
+        "s12b_edge_queue_drops": "NOT_INSTRUMENTED_NO_APPLICATION_QUEUE",
+        "s13_tail_starts_lower_bound": 1070,
+        "s14_tail_completions_lower_bound": 1070,
+        "s15_result_publications_lower_bound": 1070,
+        "s16_result_datagrams_sent": "UNAVAILABLE",
+        "s16b_median_result_datagrams_per_message": 102,
+        "s17_result_messages_ingested_at_ue": 109,
+        "s18_maps_installed": 109,
+        "s19_feedback_emitted": 109,
+        "s20_feedback_received_within_ack_timeout": 0,
+        "s20b_feedback_received_after_ack_timeout": 109,
+        "s21_installs_within_service_deadline": 0,
+        "terminal_feedback_outcomes": {
+          "TIMEOUT_NO_ACK": 2609
+        }
+      },
+      "intervals": {
+        "capture_to_feedback_receipt_ms": {
+          "clock_domain": "host_wall_clock_time_time_s",
+          "maximum": 39675.93193054199,
+          "median": 33721.7857837677,
+          "missing": 0,
+          "p95": 37749.762773513794,
+          "samples": 109
+        },
+        "capture_to_installation_aoi_ms": {
+          "clock_domain": "host_wall_clock_time_time_s",
+          "maximum": 39675.859689712524,
+          "median": 33721.72021865845,
+          "missing": 0,
+          "p95": 37747.85590171814,
+          "samples": 109
+        },
+        "cross_domain_residual_wall_aoi_minus_perf_round_trip_ms": {
+          "clock_domain": "cross_check",
+          "maximum": 1289.4913422926038,
+          "median": 485.11138765002397,
+          "missing": 0,
+          "p95": 916.179422184814,
+          "samples": 109
+        },
+        "edge_ae_decode_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 41.208555,
+          "median": 1.508998,
+          "missing": 0,
+          "p95": 5.715075,
+          "samples": 109
+        },
+        "edge_frozen_tail_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 1026.505417,
+          "median": 171.746284,
+          "missing": 0,
+          "p95": 370.99637,
+          "samples": 109
+        },
+        "edge_output_serialization_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 264.955886,
+          "median": 20.771137,
+          "missing": 0,
+          "p95": 127.464874,
+          "samples": 109
+        },
+        "edge_total_edge_processing_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 1315.507003,
+          "median": 370.369363,
+          "missing": 0,
+          "p95": 601.727054,
+          "samples": 109
+        },
+        "edge_unpack_dequantize_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 288.81902,
+          "median": 159.300993,
+          "missing": 0,
+          "p95": 244.792612,
+          "samples": 109
+        },
+        "edge_zstd_decompression_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 0.947602,
+          "median": 0.082115,
+          "missing": 0,
+          "p95": 0.128347,
+          "samples": 109
+        },
+        "encoding_complete_to_ue_send_complete_ms": {
+          "clock_domain": "ue_process_perf_counter_ns",
+          "maximum": 7.560685,
+          "median": 0.098218,
+          "missing": 0,
+          "p95": 0.58845,
+          "samples": 2609
+        },
+        "feedback_emission_to_feedback_receipt_ms": {
+          "clock_domain": "host_wall_clock_time_time_s",
+          "maximum": 28.537750244140625,
+          "median": 0.07462501525878906,
+          "missing": 0,
+          "p95": 5.573272705078125,
+          "samples": 109
+        },
+        "installation_to_feedback_emission_ms": {
+          "clock_domain": "host_wall_clock_time_time_s",
+          "maximum": 0.7369518280029297,
+          "median": 0.010967254638671875,
+          "missing": 0,
+          "p95": 0.0247955322265625,
+          "samples": 109
+        },
+        "preparation_start_to_encoding_complete_ms": {
+          "clock_domain": "ue_process_perf_counter_ns",
+          "maximum": 318.602424,
+          "median": 21.099397,
+          "missing": 0,
+          "p95": 41.532295,
+          "samples": 2609
+        },
+        "ue_send_complete_to_result_received_round_trip_ms": {
+          "clock_domain": "ue_process_perf_counter_ns",
+          "maximum": 39207.797261,
+          "median": 33112.401531,
+          "missing": 0,
+          "p95": 37143.048836,
+          "samples": 109
+        },
+        "world_tick_schedule_to_preparation_start_ms": {
+          "clock_domain": "ue_process_perf_counter_ns",
+          "maximum": 1394.6033464744687,
+          "median": 580.0336580723524,
+          "missing": 0,
+          "p95": 988.0433855578303,
+          "samples": 2609
+        }
+      },
+      "payload": {
+        "complete_message_rate_at_edge": 0.4101188194710617,
+        "edge_admission_rate": "IDENTICAL_TO_complete_message_rate_at_edge: the edge has no admission stage separate from completing a reassembly, so admission and complete-message arrival are one event",
+        "edge_service_rate_hz_lower_bound": 2.4958757660471127,
+        "installation_rate": 0.04177845917976236,
+        "median_application_envelope_bytes": 100149.0,
+        "median_feature_datagrams_per_frame": 9.0,
+        "median_result_bytes_upper_bound": 1274184,
+        "median_result_datagrams_per_message": 102,
+        "median_scientific_inner_bytes": 99942.0,
+        "median_udp_application_bytes": 100221.0,
+        "offered_downlink_mbytes_per_s_upper_bound": 3.180204967084974,
+        "offered_uplink_mbytes_per_s": 0.6099187681063187,
+        "result_survival_rate_edge_to_ue": 0.10186915887850467,
+        "tail_completion_rate": 0.4101188194710617,
+        "timely_feedback_rate": 0.0
+      },
+      "preparation_attribution": {
+        "bounded_preparation_queue_overflow": 973,
+        "evaluator_or_gt_work": "NOT_SEPARATELY_CLASSIFIED",
+        "front_inference_or_encoding_throughput": "NOT_SEPARATELY_CLASSIFIED",
+        "missing_or_incomplete_radar_window": 1,
+        "scheduler_delay": "NOT_SEPARATELY_CLASSIFIED",
+        "sensor_synchronisation_late_or_missing": 0,
+        "shutdown_boundary": "NOT_SEPARATELY_CLASSIFIED",
+        "split_processing_failure": 0,
+        "warmup_before_first_complete_radar_window": 8
+      },
+      "preparation_stationarity": {
+        "coverage_range": 0.13697104677060123,
+        "quartile_coverage": [
+          0.7012263099219621,
+          0.821826280623608,
+          0.6982182628062361,
+          0.6848552338530067
+        ],
+        "quartile_median_queue_wait_ms": [
+          596.6351479291916,
+          465.36419866606593,
+          634.1508999466896,
+          693.4453789144754
+        ],
+        "stationary": true
+      },
+      "reconciliation": []
+    },
+    {
+      "aoi_growth": {
+        "monotone_fraction": 0.48,
+        "quartile_median_aoi_ms": [
+          2833.9518308639526,
+          4436.039447784424,
+          2585.775375366211,
+          4150.8519649505615
+        ],
+        "samples": 26
+      },
+      "funnel": {
+        "action_id": 20,
+        "cell_id": "a20__favorable_stable",
+        "network_profile_id": "FAVORABLE_STABLE",
+        "prepare_status_counts": {
+          "DROPPED_INCOMPLETE_RADAR_WINDOW": 1,
+          "DROPPED_QUEUE_FULL": 949,
+          "SENT": 2072,
+          "WARMUP_NO_COMPLETE_RADAR_WINDOW": 9
+        },
+        "profile_id": "split_ae128_uint8_q5000",
+        "route_span_s": 368.9928603172302,
+        "route_ticks": 6061,
+        "s01_preparation_opportunities": 3031,
+        "s02_eligible_preparation_frames": 3022,
+        "s03_prepared_queue_admissions": 2082,
+        "s04_preparation_starts": 2082,
+        "s05_radar_complete_frames": 2072,
+        "s06_encoded_frames": 2072,
+        "s07_feature_messages_sent": 2072,
+        "s08_feature_datagrams_sent": 201269,
+        "s09_feature_datagrams_observed_at_receiver": "UNAVAILABLE",
+        "s09b_feature_datagrams_in_surviving_messages": 2528,
+        "s09c_surviving_messages_with_datagram_count_mismatch": 0,
+        "s09d_duplicate_feature_datagrams": 0,
+        "s10_edge_fully_reassembled_messages_lower_bound": 825,
+        "s11_incomplete_or_expired_reassemblies": "UNAVAILABLE",
+        "s12_edge_queue_admissions": "NOT_INSTRUMENTED_NO_APPLICATION_QUEUE",
+        "s12b_edge_queue_drops": "NOT_INSTRUMENTED_NO_APPLICATION_QUEUE",
+        "s13_tail_starts_lower_bound": 825,
+        "s14_tail_completions_lower_bound": 825,
+        "s15_result_publications_lower_bound": 825,
+        "s16_result_datagrams_sent": "UNAVAILABLE",
+        "s16b_median_result_datagrams_per_message": 102.0,
+        "s17_result_messages_ingested_at_ue": 26,
+        "s18_maps_installed": 26,
+        "s19_feedback_emitted": 26,
+        "s20_feedback_received_within_ack_timeout": 0,
+        "s20b_feedback_received_after_ack_timeout": 26,
+        "s21_installs_within_service_deadline": 0,
+        "terminal_feedback_outcomes": {
+          "TIMEOUT_NO_ACK": 2072
+        }
+      },
+      "intervals": {
+        "capture_to_feedback_receipt_ms": {
+          "clock_domain": "host_wall_clock_time_time_s",
+          "maximum": 6477.483034133911,
+          "median": 3177.48486995697,
+          "missing": 0,
+          "p95": 4805.822134017944,
+          "samples": 26
+        },
+        "capture_to_installation_aoi_ms": {
+          "clock_domain": "host_wall_clock_time_time_s",
+          "maximum": 6477.363109588623,
+          "median": 3177.3451566696167,
+          "missing": 0,
+          "p95": 4804.972887039185,
+          "samples": 26
+        },
+        "cross_domain_residual_wall_aoi_minus_perf_round_trip_ms": {
+          "clock_domain": "cross_check",
+          "maximum": 1910.9407980427245,
+          "median": 743.9260336551513,
+          "missing": 0,
+          "p95": 1030.9119242812499,
+          "samples": 26
+        },
+        "edge_ae_decode_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 43.12536,
+          "median": 2.8592815,
+          "missing": 0,
+          "p95": 34.948898,
+          "samples": 26
+        },
+        "edge_frozen_tail_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 1056.085439,
+          "median": 202.97066949999999,
+          "missing": 0,
+          "p95": 719.499513,
+          "samples": 26
+        },
+        "edge_output_serialization_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 615.887084,
+          "median": 35.598001,
+          "missing": 0,
+          "p95": 357.828229,
+          "samples": 26
+        },
+        "edge_total_edge_processing_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 1500.488196,
+          "median": 466.8205905,
+          "missing": 0,
+          "p95": 1129.100843,
+          "samples": 26
+        },
+        "edge_unpack_dequantize_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 427.990418,
+          "median": 183.033656,
+          "missing": 0,
+          "p95": 284.382378,
+          "samples": 26
+        },
+        "edge_zstd_decompression_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 22.017173,
+          "median": 1.10913,
+          "missing": 0,
+          "p95": 5.072326,
+          "samples": 26
+        },
+        "encoding_complete_to_ue_send_complete_ms": {
+          "clock_domain": "ue_process_perf_counter_ns",
+          "maximum": 17.595174,
+          "median": 0.537607,
+          "missing": 0,
+          "p95": 2.645519,
+          "samples": 2072
+        },
+        "feedback_emission_to_feedback_receipt_ms": {
+          "clock_domain": "host_wall_clock_time_time_s",
+          "maximum": 4.21905517578125,
+          "median": 0.10883808135986328,
+          "missing": 0,
+          "p95": 2.4421215057373047,
+          "samples": 26
+        },
+        "installation_to_feedback_emission_ms": {
+          "clock_domain": "host_wall_clock_time_time_s",
+          "maximum": 0.015735626220703125,
+          "median": 0.010251998901367188,
+          "missing": 0,
+          "p95": 0.0133514404296875,
+          "samples": 26
+        },
+        "preparation_start_to_encoding_complete_ms": {
+          "clock_domain": "ue_process_perf_counter_ns",
+          "maximum": 311.444507,
+          "median": 29.287177,
+          "missing": 0,
+          "p95": 55.059527,
+          "samples": 2072
+        },
+        "ue_send_complete_to_result_received_round_trip_ms": {
+          "clock_domain": "ue_process_perf_counter_ns",
+          "maximum": 5597.614624,
+          "median": 2441.3519189999997,
+          "missing": 0,
+          "p95": 4200.359534,
+          "samples": 26
+        },
+        "world_tick_schedule_to_preparation_start_ms": {
+          "clock_domain": "ue_process_perf_counter_ns",
+          "maximum": 1867.3817766830325,
+          "median": 666.2770668044686,
+          "missing": 0,
+          "p95": 1001.5104683116078,
+          "samples": 2072
+        }
+      },
+      "payload": {
+        "complete_message_rate_at_edge": 0.3981660231660232,
+        "edge_admission_rate": "IDENTICAL_TO_complete_message_rate_at_edge: the edge has no admission stage separate from completing a reassembly, so admission and complete-message arrival are one event",
+        "edge_service_rate_hz_lower_bound": 2.2358156179247795,
+        "installation_rate": 0.012548262548262547,
+        "median_application_envelope_bytes": 1207824.5,
+        "median_feature_datagrams_per_frame": 97.0,
+        "median_result_bytes_upper_bound": 1274184.0,
+        "median_result_datagrams_per_message": 102.0,
+        "median_scientific_inner_bytes": 1207617.5,
+        "median_udp_application_bytes": 1208600.5,
+        "offered_downlink_mbytes_per_s_upper_bound": 2.8488404873098676,
+        "offered_uplink_mbytes_per_s": 6.7866360174207,
+        "result_survival_rate_edge_to_ue": 0.03151515151515152,
+        "tail_completion_rate": 0.3981660231660232,
+        "timely_feedback_rate": 0.0
+      },
+      "preparation_attribution": {
+        "bounded_preparation_queue_overflow": 949,
+        "evaluator_or_gt_work": "NOT_SEPARATELY_CLASSIFIED",
+        "front_inference_or_encoding_throughput": "NOT_SEPARATELY_CLASSIFIED",
+        "missing_or_incomplete_radar_window": 1,
+        "scheduler_delay": "NOT_SEPARATELY_CLASSIFIED",
+        "sensor_synchronisation_late_or_missing": 0,
+        "shutdown_boundary": "NOT_SEPARATELY_CLASSIFIED",
+        "split_processing_failure": 0,
+        "warmup_before_first_complete_radar_window": 9
+      },
+      "preparation_stationarity": {
+        "coverage_range": 0.06200527704485492,
+        "quartile_coverage": [
+          0.665785997357992,
+          0.7203166226912929,
+          0.658311345646438,
+          0.6899736147757256
+        ],
+        "quartile_median_queue_wait_ms": [
+          679.4040743261576,
+          580.371418967843,
+          701.2042067945004,
+          692.8473077714443
+        ],
+        "stationary": true
+      },
+      "reconciliation": []
+    },
+    {
+      "aoi_growth": {
+        "monotone_fraction": null,
+        "quartile_median_aoi_ms": [],
+        "samples": 0
+      },
+      "funnel": {
+        "action_id": 0,
+        "cell_id": "a00__mid_variable",
+        "network_profile_id": "MID_VARIABLE",
+        "prepare_status_counts": {
+          "DROPPED_INCOMPLETE_RADAR_WINDOW": 1,
+          "DROPPED_QUEUE_FULL": 885,
+          "SENT": 2185,
+          "WARMUP_NO_COMPLETE_RADAR_WINDOW": 4
+        },
+        "profile_id": "split_noae_uint8_q0000",
+        "route_span_s": 307.2448761463165,
+        "route_ticks": 6150,
+        "s01_preparation_opportunities": 3075,
+        "s02_eligible_preparation_frames": 3071,
+        "s03_prepared_queue_admissions": 2190,
+        "s04_preparation_starts": 2190,
+        "s05_radar_complete_frames": 2185,
+        "s06_encoded_frames": 2185,
+        "s07_feature_messages_sent": 2185,
+        "s08_feature_datagrams_sent": 630614,
+        "s09_feature_datagrams_observed_at_receiver": "UNAVAILABLE",
+        "s09b_feature_datagrams_in_surviving_messages": 0,
+        "s09c_surviving_messages_with_datagram_count_mismatch": 0,
+        "s09d_duplicate_feature_datagrams": 0,
+        "s10_edge_fully_reassembled_messages_lower_bound": 0,
+        "s11_incomplete_or_expired_reassemblies": "UNAVAILABLE",
+        "s12_edge_queue_admissions": "NOT_INSTRUMENTED_NO_APPLICATION_QUEUE",
+        "s12b_edge_queue_drops": "NOT_INSTRUMENTED_NO_APPLICATION_QUEUE",
+        "s13_tail_starts_lower_bound": 0,
+        "s14_tail_completions_lower_bound": 0,
+        "s15_result_publications_lower_bound": 0,
+        "s16_result_datagrams_sent": "UNAVAILABLE",
+        "s16b_median_result_datagrams_per_message": null,
+        "s17_result_messages_ingested_at_ue": 0,
+        "s18_maps_installed": 0,
+        "s19_feedback_emitted": 0,
+        "s20_feedback_received_within_ack_timeout": 0,
+        "s20b_feedback_received_after_ack_timeout": 0,
+        "s21_installs_within_service_deadline": 0,
+        "terminal_feedback_outcomes": {
+          "TIMEOUT_NO_ACK": 2185
+        }
+      },
+      "intervals": {
+        "capture_to_feedback_receipt_ms": {
+          "clock_domain": "host_wall_clock_time_time_s",
+          "maximum": null,
+          "median": null,
+          "missing": 0,
+          "p95": null,
+          "samples": 0
+        },
+        "capture_to_installation_aoi_ms": {
+          "clock_domain": "host_wall_clock_time_time_s",
+          "maximum": null,
+          "median": null,
+          "missing": 0,
+          "p95": null,
+          "samples": 0
+        },
+        "cross_domain_residual_wall_aoi_minus_perf_round_trip_ms": {
+          "clock_domain": "cross_check",
+          "maximum": null,
+          "median": null,
+          "missing": 0,
+          "p95": null,
+          "samples": 0
+        },
+        "edge_ae_decode_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": null,
+          "median": null,
+          "missing": 0,
+          "p95": null,
+          "samples": 0
+        },
+        "edge_frozen_tail_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": null,
+          "median": null,
+          "missing": 0,
+          "p95": null,
+          "samples": 0
+        },
+        "edge_output_serialization_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": null,
+          "median": null,
+          "missing": 0,
+          "p95": null,
+          "samples": 0
+        },
+        "edge_total_edge_processing_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": null,
+          "median": null,
+          "missing": 0,
+          "p95": null,
+          "samples": 0
+        },
+        "edge_unpack_dequantize_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": null,
+          "median": null,
+          "missing": 0,
+          "p95": null,
+          "samples": 0
+        },
+        "edge_zstd_decompression_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": null,
+          "median": null,
+          "missing": 0,
+          "p95": null,
+          "samples": 0
+        },
+        "encoding_complete_to_ue_send_complete_ms": {
+          "clock_domain": "ue_process_perf_counter_ns",
+          "maximum": 15.339435,
+          "median": 1.409462,
+          "missing": 0,
+          "p95": 3.434335,
+          "samples": 2185
+        },
+        "feedback_emission_to_feedback_receipt_ms": {
+          "clock_domain": "host_wall_clock_time_time_s",
+          "maximum": null,
+          "median": null,
+          "missing": 0,
+          "p95": null,
+          "samples": 0
+        },
+        "installation_to_feedback_emission_ms": {
+          "clock_domain": "host_wall_clock_time_time_s",
+          "maximum": null,
+          "median": null,
+          "missing": 0,
+          "p95": null,
+          "samples": 0
+        },
+        "preparation_start_to_encoding_complete_ms": {
+          "clock_domain": "ue_process_perf_counter_ns",
+          "maximum": 269.976002,
+          "median": 37.888673,
+          "missing": 0,
+          "p95": 64.994648,
+          "samples": 2185
+        },
+        "ue_send_complete_to_result_received_round_trip_ms": {
+          "clock_domain": "ue_process_perf_counter_ns",
+          "maximum": null,
+          "median": null,
+          "missing": 0,
+          "p95": null,
+          "samples": 0
+        },
+        "world_tick_schedule_to_preparation_start_ms": {
+          "clock_domain": "ue_process_perf_counter_ns",
+          "maximum": 1127.7475487440825,
+          "median": 525.7896995171905,
+          "missing": 0,
+          "p95": 762.9730040207505,
+          "samples": 2185
+        }
+      },
+      "payload": {
+        "complete_message_rate_at_edge": 0.0,
+        "edge_admission_rate": "IDENTICAL_TO_complete_message_rate_at_edge: the edge has no admission stage separate from completing a reassembly, so admission and complete-message arrival are one event",
+        "edge_service_rate_hz_lower_bound": null,
+        "installation_rate": 0.0,
+        "median_application_envelope_bytes": 3597576.0,
+        "median_feature_datagrams_per_frame": 288.0,
+        "median_result_bytes_upper_bound": null,
+        "median_result_datagrams_per_message": null,
+        "median_scientific_inner_bytes": 3597373.0,
+        "median_udp_application_bytes": 3599880.0,
+        "offered_downlink_mbytes_per_s_upper_bound": null,
+        "offered_uplink_mbytes_per_s": 25.600875427631767,
+        "result_survival_rate_edge_to_ue": null,
+        "tail_completion_rate": 0.0,
+        "timely_feedback_rate": 0.0
+      },
+      "preparation_attribution": {
+        "bounded_preparation_queue_overflow": 885,
+        "evaluator_or_gt_work": "NOT_SEPARATELY_CLASSIFIED",
+        "front_inference_or_encoding_throughput": "NOT_SEPARATELY_CLASSIFIED",
+        "missing_or_incomplete_radar_window": 1,
+        "scheduler_delay": "NOT_SEPARATELY_CLASSIFIED",
+        "sensor_synchronisation_late_or_missing": 0,
+        "shutdown_boundary": "NOT_SEPARATELY_CLASSIFIED",
+        "split_processing_failure": 0,
+        "warmup_before_first_complete_radar_window": 4
+      },
+      "preparation_stationarity": {
+        "coverage_range": 0.11833550065019516,
+        "quartile_coverage": [
+          0.6770833333333334,
+          0.7815344603381015,
+          0.7204161248374512,
+          0.6631989596879063
+        ],
+        "quartile_median_queue_wait_ms": [
+          547.1852221526206,
+          450.01057256013155,
+          533.562442753464,
+          560.7621655799448
+        ],
+        "stationary": true
+      },
+      "reconciliation": []
+    },
+    {
+      "aoi_growth": {
+        "monotone_fraction": 1.0,
+        "quartile_median_aoi_ms": [
+          18801.45287513733,
+          110005.23042678833,
+          113014.58740234375,
+          137436.2291097641
+        ],
+        "samples": 61
+      },
+      "funnel": {
+        "action_id": 71,
+        "cell_id": "a71__mid_variable",
+        "network_profile_id": "MID_VARIABLE",
+        "prepare_status_counts": {
+          "DROPPED_INCOMPLETE_RADAR_WINDOW": 1,
+          "DROPPED_QUEUE_FULL": 738,
+          "SENT": 2246,
+          "WARMUP_NO_COMPLETE_RADAR_WINDOW": 4
+        },
+        "profile_id": "split_ae32_uint4_q9800",
+        "route_span_s": 330.74164628982544,
+        "route_ticks": 5977,
+        "s01_preparation_opportunities": 2989,
+        "s02_eligible_preparation_frames": 2985,
+        "s03_prepared_queue_admissions": 2251,
+        "s04_preparation_starts": 2251,
+        "s05_radar_complete_frames": 2246,
+        "s06_encoded_frames": 2246,
+        "s07_feature_messages_sent": 2246,
+        "s08_feature_datagrams_sent": 2246,
+        "s09_feature_datagrams_observed_at_receiver": "UNAVAILABLE",
+        "s09b_feature_datagrams_in_surviving_messages": 61,
+        "s09c_surviving_messages_with_datagram_count_mismatch": 0,
+        "s09d_duplicate_feature_datagrams": 0,
+        "s10_edge_fully_reassembled_messages_lower_bound": 962,
+        "s11_incomplete_or_expired_reassemblies": "UNAVAILABLE",
+        "s12_edge_queue_admissions": "NOT_INSTRUMENTED_NO_APPLICATION_QUEUE",
+        "s12b_edge_queue_drops": "NOT_INSTRUMENTED_NO_APPLICATION_QUEUE",
+        "s13_tail_starts_lower_bound": 962,
+        "s14_tail_completions_lower_bound": 962,
+        "s15_result_publications_lower_bound": 962,
+        "s16_result_datagrams_sent": "UNAVAILABLE",
+        "s16b_median_result_datagrams_per_message": 103,
+        "s17_result_messages_ingested_at_ue": 61,
+        "s18_maps_installed": 61,
+        "s19_feedback_emitted": 61,
+        "s20_feedback_received_within_ack_timeout": 0,
+        "s20b_feedback_received_after_ack_timeout": 61,
+        "s21_installs_within_service_deadline": 0,
+        "terminal_feedback_outcomes": {
+          "TIMEOUT_NO_ACK": 2246
+        }
+      },
+      "intervals": {
+        "capture_to_feedback_receipt_ms": {
+          "clock_domain": "host_wall_clock_time_time_s",
+          "maximum": 166008.3384513855,
+          "median": 111275.72798728943,
+          "missing": 0,
+          "p95": 162162.8828048706,
+          "samples": 61
+        },
+        "capture_to_installation_aoi_ms": {
+          "clock_domain": "host_wall_clock_time_time_s",
+          "maximum": 165998.50511550903,
+          "median": 111275.65360069275,
+          "missing": 0,
+          "p95": 162162.80889511108,
+          "samples": 61
+        },
+        "cross_domain_residual_wall_aoi_minus_perf_round_trip_ms": {
+          "clock_domain": "cross_check",
+          "maximum": 853.0242143243377,
+          "median": 287.25989970349474,
+          "missing": 0,
+          "p95": 676.5756223474164,
+          "samples": 61
+        },
+        "edge_ae_decode_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 31.432004,
+          "median": 1.521873,
+          "missing": 0,
+          "p95": 14.392275,
+          "samples": 61
+        },
+        "edge_frozen_tail_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 1006.422735,
+          "median": 185.136197,
+          "missing": 0,
+          "p95": 903.769011,
+          "samples": 61
+        },
+        "edge_output_serialization_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 345.204127,
+          "median": 34.270793,
+          "missing": 0,
+          "p95": 165.902145,
+          "samples": 61
+        },
+        "edge_total_edge_processing_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 1432.572105,
+          "median": 277.00159,
+          "missing": 0,
+          "p95": 1083.087465,
+          "samples": 61
+        },
+        "edge_unpack_dequantize_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 114.23446,
+          "median": 54.336103,
+          "missing": 0,
+          "p95": 99.145628,
+          "samples": 61
+        },
+        "edge_zstd_decompression_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 0.59762,
+          "median": 0.021309,
+          "missing": 0,
+          "p95": 0.026189,
+          "samples": 61
+        },
+        "encoding_complete_to_ue_send_complete_ms": {
+          "clock_domain": "ue_process_perf_counter_ns",
+          "maximum": 3.401586,
+          "median": 0.0448485,
+          "missing": 0,
+          "p95": 0.098018,
+          "samples": 2246
+        },
+        "feedback_emission_to_feedback_receipt_ms": {
+          "clock_domain": "host_wall_clock_time_time_s",
+          "maximum": 18.424510955810547,
+          "median": 0.09036064147949219,
+          "missing": 0,
+          "p95": 4.221200942993164,
+          "samples": 61
+        },
+        "installation_to_feedback_emission_ms": {
+          "clock_domain": "host_wall_clock_time_time_s",
+          "maximum": 0.026226043701171875,
+          "median": 0.010728836059570312,
+          "missing": 0,
+          "p95": 0.015020370483398438,
+          "samples": 61
+        },
+        "preparation_start_to_encoding_complete_ms": {
+          "clock_domain": "ue_process_perf_counter_ns",
+          "maximum": 314.27161,
+          "median": 15.666349,
+          "missing": 0,
+          "p95": 37.138925,
+          "samples": 2246
+        },
+        "ue_send_complete_to_result_received_round_trip_ms": {
+          "clock_domain": "ue_process_perf_counter_ns",
+          "maximum": 165791.013505,
+          "median": 111002.747438,
+          "missing": 0,
+          "p95": 161761.422071,
+          "samples": 61
+        },
+        "world_tick_schedule_to_preparation_start_ms": {
+          "clock_domain": "ue_process_perf_counter_ns",
+          "maximum": 1135.450336150825,
+          "median": 532.7439154498279,
+          "missing": 0,
+          "p95": 825.1331597566605,
+          "samples": 2246
+        }
+      },
+      "payload": {
+        "complete_message_rate_at_edge": 0.42831700801424755,
+        "edge_admission_rate": "IDENTICAL_TO_complete_message_rate_at_edge: the edge has no admission stage separate from completing a reassembly, so admission and complete-message arrival are one event",
+        "edge_service_rate_hz_lower_bound": 2.9086146567614577,
+        "installation_rate": 0.02715939447907391,
+        "median_application_envelope_bytes": 6393.0,
+        "median_feature_datagrams_per_frame": 1.0,
+        "median_result_bytes_upper_bound": 1286676,
+        "median_result_datagrams_per_message": 103,
+        "median_scientific_inner_bytes": 6190.0,
+        "median_udp_application_bytes": 6401.0,
+        "offered_downlink_mbytes_per_s_upper_bound": 3.7424446721032054,
+        "offered_uplink_mbytes_per_s": 0.04346790360776609,
+        "result_survival_rate_edge_to_ue": 0.06340956340956341,
+        "tail_completion_rate": 0.42831700801424755,
+        "timely_feedback_rate": 0.0
+      },
+      "preparation_attribution": {
+        "bounded_preparation_queue_overflow": 738,
+        "evaluator_or_gt_work": "NOT_SEPARATELY_CLASSIFIED",
+        "front_inference_or_encoding_throughput": "NOT_SEPARATELY_CLASSIFIED",
+        "missing_or_incomplete_radar_window": 1,
+        "scheduler_delay": "NOT_SEPARATELY_CLASSIFIED",
+        "sensor_synchronisation_late_or_missing": 0,
+        "shutdown_boundary": "NOT_SEPARATELY_CLASSIFIED",
+        "split_processing_failure": 0,
+        "warmup_before_first_complete_radar_window": 4
+      },
+      "preparation_stationarity": {
+        "coverage_range": 0.10735276220747514,
+        "quartile_coverage": [
+          0.7081659973226239,
+          0.7898259705488622,
+          0.7001338688085676,
+          0.8074866310160428
+        ],
+        "quartile_median_queue_wait_ms": [
+          597.1407629549503,
+          420.7607191056013,
+          595.571007579565,
+          507.0607350207865
+        ],
+        "stationary": true
+      },
+      "reconciliation": []
+    },
+    {
+      "aoi_growth": {
+        "monotone_fraction": 0.82,
+        "quartile_median_aoi_ms": [
+          9425.94838142395,
+          33356.92572593689,
+          34590.68179130554,
+          32728.88493537903
+        ],
+        "samples": 51
+      },
+      "funnel": {
+        "action_id": 46,
+        "cell_id": "a46__mid_variable",
+        "network_profile_id": "MID_VARIABLE",
+        "prepare_status_counts": {
+          "DROPPED_INCOMPLETE_RADAR_WINDOW": 1,
+          "DROPPED_QUEUE_FULL": 785,
+          "SENT": 2214,
+          "WARMUP_NO_COMPLETE_RADAR_WINDOW": 10
+        },
+        "profile_id": "split_ae64_uint6_q9000",
+        "route_span_s": 360.51012659072876,
+        "route_ticks": 6020,
+        "s01_preparation_opportunities": 3010,
+        "s02_eligible_preparation_frames": 3000,
+        "s03_prepared_queue_admissions": 2225,
+        "s04_preparation_starts": 2225,
+        "s05_radar_complete_frames": 2214,
+        "s06_encoded_frames": 2214,
+        "s07_feature_messages_sent": 2214,
+        "s08_feature_datagrams_sent": 19320,
+        "s09_feature_datagrams_observed_at_receiver": "UNAVAILABLE",
+        "s09b_feature_datagrams_in_surviving_messages": 444,
+        "s09c_surviving_messages_with_datagram_count_mismatch": 0,
+        "s09d_duplicate_feature_datagrams": 0,
+        "s10_edge_fully_reassembled_messages_lower_bound": 865,
+        "s11_incomplete_or_expired_reassemblies": "UNAVAILABLE",
+        "s12_edge_queue_admissions": "NOT_INSTRUMENTED_NO_APPLICATION_QUEUE",
+        "s12b_edge_queue_drops": "NOT_INSTRUMENTED_NO_APPLICATION_QUEUE",
+        "s13_tail_starts_lower_bound": 865,
+        "s14_tail_completions_lower_bound": 865,
+        "s15_result_publications_lower_bound": 865,
+        "s16_result_datagrams_sent": "UNAVAILABLE",
+        "s16b_median_result_datagrams_per_message": 103,
+        "s17_result_messages_ingested_at_ue": 51,
+        "s18_maps_installed": 51,
+        "s19_feedback_emitted": 51,
+        "s20_feedback_received_within_ack_timeout": 0,
+        "s20b_feedback_received_after_ack_timeout": 51,
+        "s21_installs_within_service_deadline": 0,
+        "terminal_feedback_outcomes": {
+          "TIMEOUT_NO_ACK": 2214
+        }
+      },
+      "intervals": {
+        "capture_to_feedback_receipt_ms": {
+          "clock_domain": "host_wall_clock_time_time_s",
+          "maximum": 37682.36446380615,
+          "median": 33265.58232307434,
+          "missing": 0,
+          "p95": 37373.92258644104,
+          "samples": 51
+        },
+        "capture_to_installation_aoi_ms": {
+          "clock_domain": "host_wall_clock_time_time_s",
+          "maximum": 37681.626319885254,
+          "median": 33265.50197601318,
+          "missing": 0,
+          "p95": 37373.85702133179,
+          "samples": 51
+        },
+        "cross_domain_residual_wall_aoi_minus_perf_round_trip_ms": {
+          "clock_domain": "cross_check",
+          "maximum": 990.1473330960725,
+          "median": 463.6670999123544,
+          "missing": 0,
+          "p95": 854.0681884212681,
+          "samples": 51
+        },
+        "edge_ae_decode_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 15.678246,
+          "median": 1.949115,
+          "missing": 0,
+          "p95": 8.050537,
+          "samples": 51
+        },
+        "edge_frozen_tail_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 791.620615,
+          "median": 162.492802,
+          "missing": 0,
+          "p95": 450.848595,
+          "samples": 51
+        },
+        "edge_output_serialization_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 258.073822,
+          "median": 23.088622,
+          "missing": 0,
+          "p95": 207.842288,
+          "samples": 51
+        },
+        "edge_total_edge_processing_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 1013.455651,
+          "median": 352.187426,
+          "missing": 0,
+          "p95": 823.973699,
+          "samples": 51
+        },
+        "edge_unpack_dequantize_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 243.851719,
+          "median": 165.186066,
+          "missing": 0,
+          "p95": 225.449874,
+          "samples": 51
+        },
+        "edge_zstd_decompression_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 0.342115,
+          "median": 0.081323,
+          "missing": 0,
+          "p95": 0.125766,
+          "samples": 51
+        },
+        "encoding_complete_to_ue_send_complete_ms": {
+          "clock_domain": "ue_process_perf_counter_ns",
+          "maximum": 8.656364,
+          "median": 0.09788,
+          "missing": 0,
+          "p95": 0.534769,
+          "samples": 2214
+        },
+        "feedback_emission_to_feedback_receipt_ms": {
+          "clock_domain": "host_wall_clock_time_time_s",
+          "maximum": 5.114316940307617,
+          "median": 0.07343292236328125,
+          "missing": 0,
+          "p95": 3.23486328125,
+          "samples": 51
+        },
+        "installation_to_feedback_emission_ms": {
+          "clock_domain": "host_wall_clock_time_time_s",
+          "maximum": 0.5304813385009766,
+          "median": 0.009775161743164062,
+          "missing": 0,
+          "p95": 0.01430511474609375,
+          "samples": 51
+        },
+        "preparation_start_to_encoding_complete_ms": {
+          "clock_domain": "ue_process_perf_counter_ns",
+          "maximum": 308.035793,
+          "median": 20.759188,
+          "missing": 0,
+          "p95": 42.263625,
+          "samples": 2214
+        },
+        "ue_send_complete_to_result_received_round_trip_ms": {
+          "clock_domain": "ue_process_perf_counter_ns",
+          "maximum": 37285.753142,
+          "median": 32740.906635,
+          "missing": 0,
+          "p95": 36805.355867,
+          "samples": 51
+        },
+        "world_tick_schedule_to_preparation_start_ms": {
+          "clock_domain": "ue_process_perf_counter_ns",
+          "maximum": 1234.9634934216738,
+          "median": 599.5689798146486,
+          "missing": 0,
+          "p95": 905.2057014778256,
+          "samples": 2214
+        }
+      },
+      "payload": {
+        "complete_message_rate_at_edge": 0.39069557362240287,
+        "edge_admission_rate": "IDENTICAL_TO_complete_message_rate_at_edge: the edge has no admission stage separate from completing a reassembly, so admission and complete-message arrival are one event",
+        "edge_service_rate_hz_lower_bound": 2.3993778154864325,
+        "installation_rate": 0.023035230352303523,
+        "median_application_envelope_bytes": 100117.0,
+        "median_feature_datagrams_per_frame": 9.0,
+        "median_result_bytes_upper_bound": 1286676,
+        "median_result_datagrams_per_message": 103,
+        "median_scientific_inner_bytes": 99914.0,
+        "median_udp_application_bytes": 100189.0,
+        "offered_downlink_mbytes_per_s_upper_bound": 3.087221850118821,
+        "offered_uplink_mbytes_per_s": 0.6152904721365031,
+        "result_survival_rate_edge_to_ue": 0.058959537572254334,
+        "tail_completion_rate": 0.39069557362240287,
+        "timely_feedback_rate": 0.0
+      },
+      "preparation_attribution": {
+        "bounded_preparation_queue_overflow": 785,
+        "evaluator_or_gt_work": "NOT_SEPARATELY_CLASSIFIED",
+        "front_inference_or_encoding_throughput": "NOT_SEPARATELY_CLASSIFIED",
+        "missing_or_incomplete_radar_window": 1,
+        "scheduler_delay": "NOT_SEPARATELY_CLASSIFIED",
+        "sensor_synchronisation_late_or_missing": 0,
+        "shutdown_boundary": "NOT_SEPARATELY_CLASSIFIED",
+        "split_processing_failure": 0,
+        "warmup_before_first_complete_radar_window": 10
+      },
+      "preparation_stationarity": {
+        "coverage_range": 0.03585657370517925,
+        "quartile_coverage": [
+          0.7247340425531915,
+          0.751660026560425,
+          0.75,
+          0.7158034528552457
+        ],
+        "quartile_median_queue_wait_ms": [
+          614.8659428581595,
+          562.5490928068757,
+          594.5483185350895,
+          638.58128990978
+        ],
+        "stationary": true
+      },
+      "reconciliation": []
+    },
+    {
+      "aoi_growth": {
+        "monotone_fraction": 0.5694444444444444,
+        "quartile_median_aoi_ms": [
+          3081.3546180725098,
+          5267.324209213257,
+          3548.9898920059204,
+          3779.3304920196533
+        ],
+        "samples": 73
+      },
+      "funnel": {
+        "action_id": 20,
+        "cell_id": "a20__mid_variable",
+        "network_profile_id": "MID_VARIABLE",
+        "prepare_status_counts": {
+          "DROPPED_INCOMPLETE_RADAR_WINDOW": 1,
+          "DROPPED_QUEUE_FULL": 929,
+          "DROPPED_SENSOR_LATE_OR_MISSING": 29,
+          "SENT": 2017,
+          "WARMUP_NO_COMPLETE_RADAR_WINDOW": 12
+        },
+        "profile_id": "split_ae128_uint8_q5000",
+        "route_span_s": 379.074494600296,
+        "route_ticks": 5976,
+        "s01_preparation_opportunities": 2988,
+        "s02_eligible_preparation_frames": 2976,
+        "s03_prepared_queue_admissions": 2059,
+        "s04_preparation_starts": 2059,
+        "s05_radar_complete_frames": 2017,
+        "s06_encoded_frames": 2017,
+        "s07_feature_messages_sent": 2017,
+        "s08_feature_datagrams_sent": 195682,
+        "s09_feature_datagrams_observed_at_receiver": "UNAVAILABLE",
+        "s09b_feature_datagrams_in_surviving_messages": 7082,
+        "s09c_surviving_messages_with_datagram_count_mismatch": 0,
+        "s09d_duplicate_feature_datagrams": 0,
+        "s10_edge_fully_reassembled_messages_lower_bound": 862,
+        "s11_incomplete_or_expired_reassemblies": "UNAVAILABLE",
+        "s12_edge_queue_admissions": "NOT_INSTRUMENTED_NO_APPLICATION_QUEUE",
+        "s12b_edge_queue_drops": "NOT_INSTRUMENTED_NO_APPLICATION_QUEUE",
+        "s13_tail_starts_lower_bound": 862,
+        "s14_tail_completions_lower_bound": 862,
+        "s15_result_publications_lower_bound": 862,
+        "s16_result_datagrams_sent": "UNAVAILABLE",
+        "s16b_median_result_datagrams_per_message": 102,
+        "s17_result_messages_ingested_at_ue": 73,
+        "s18_maps_installed": 73,
+        "s19_feedback_emitted": 73,
+        "s20_feedback_received_within_ack_timeout": 0,
+        "s20b_feedback_received_after_ack_timeout": 73,
+        "s21_installs_within_service_deadline": 0,
+        "terminal_feedback_outcomes": {
+          "TIMEOUT_NO_ACK": 2017
+        }
+      },
+      "intervals": {
+        "capture_to_feedback_receipt_ms": {
+          "clock_domain": "host_wall_clock_time_time_s",
+          "maximum": 7939.318656921387,
+          "median": 3779.421806335449,
+          "missing": 0,
+          "p95": 6426.36513710022,
+          "samples": 73
+        },
+        "capture_to_installation_aoi_ms": {
+          "clock_domain": "host_wall_clock_time_time_s",
+          "maximum": 7935.5785846710205,
+          "median": 3779.3304920196533,
+          "missing": 0,
+          "p95": 6426.304817199707,
+          "samples": 73
+        },
+        "cross_domain_residual_wall_aoi_minus_perf_round_trip_ms": {
+          "clock_domain": "cross_check",
+          "maximum": 1250.135994456543,
+          "median": 790.8896904106441,
+          "missing": 0,
+          "p95": 1173.0643383684082,
+          "samples": 73
+        },
+        "edge_ae_decode_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 167.066369,
+          "median": 3.158853,
+          "missing": 0,
+          "p95": 11.382352,
+          "samples": 73
+        },
+        "edge_frozen_tail_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 1701.735833,
+          "median": 169.084107,
+          "missing": 0,
+          "p95": 542.75069,
+          "samples": 73
+        },
+        "edge_output_serialization_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 307.178992,
+          "median": 20.308924,
+          "missing": 0,
+          "p95": 46.929984,
+          "samples": 73
+        },
+        "edge_total_edge_processing_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 2193.336023,
+          "median": 385.794284,
+          "missing": 0,
+          "p95": 896.712928,
+          "samples": 73
+        },
+        "edge_unpack_dequantize_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 298.042187,
+          "median": 178.443958,
+          "missing": 0,
+          "p95": 253.367116,
+          "samples": 73
+        },
+        "edge_zstd_decompression_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 21.593665,
+          "median": 1.043343,
+          "missing": 0,
+          "p95": 2.248352,
+          "samples": 73
+        },
+        "encoding_complete_to_ue_send_complete_ms": {
+          "clock_domain": "ue_process_perf_counter_ns",
+          "maximum": 16.311454,
+          "median": 0.567818,
+          "missing": 0,
+          "p95": 2.773612,
+          "samples": 2017
+        },
+        "feedback_emission_to_feedback_receipt_ms": {
+          "clock_domain": "host_wall_clock_time_time_s",
+          "maximum": 18.032312393188477,
+          "median": 0.10085105895996094,
+          "missing": 0,
+          "p95": 9.186267852783203,
+          "samples": 73
+        },
+        "installation_to_feedback_emission_ms": {
+          "clock_domain": "host_wall_clock_time_time_s",
+          "maximum": 0.8513927459716797,
+          "median": 0.011444091796875,
+          "missing": 0,
+          "p95": 0.015020370483398438,
+          "samples": 73
+        },
+        "preparation_start_to_encoding_complete_ms": {
+          "clock_domain": "ue_process_perf_counter_ns",
+          "maximum": 286.32582,
+          "median": 31.970674,
+          "missing": 0,
+          "p95": 59.95422,
+          "samples": 2017
+        },
+        "ue_send_complete_to_result_received_round_trip_ms": {
+          "clock_domain": "ue_process_perf_counter_ns",
+          "maximum": 7426.220478,
+          "median": 2814.1008,
+          "missing": 0,
+          "p95": 5735.421292,
+          "samples": 73
+        },
+        "world_tick_schedule_to_preparation_start_ms": {
+          "clock_domain": "ue_process_perf_counter_ns",
+          "maximum": 1351.1797804385424,
+          "median": 684.3854282051325,
+          "missing": 0,
+          "p95": 1048.718934878707,
+          "samples": 2017
+        }
+      },
+      "payload": {
+        "complete_message_rate_at_edge": 0.42736737729300944,
+        "edge_admission_rate": "IDENTICAL_TO_complete_message_rate_at_edge: the edge has no admission stage separate from completing a reassembly, so admission and complete-message arrival are one event",
+        "edge_service_rate_hz_lower_bound": 2.273959372837549,
+        "installation_rate": 0.03619236489836391,
+        "median_application_envelope_bytes": 1206395.0,
+        "median_feature_datagrams_per_frame": 97.0,
+        "median_result_bytes_upper_bound": 1274184,
+        "median_result_datagrams_per_message": 102,
+        "median_scientific_inner_bytes": 1206192.0,
+        "median_udp_application_bytes": 1207171.0,
+        "offered_downlink_mbytes_per_s_upper_bound": 2.8974426495196397,
+        "offered_uplink_mbytes_per_s": 6.42318051381265,
+        "result_survival_rate_edge_to_ue": 0.08468677494199536,
+        "tail_completion_rate": 0.42736737729300944,
+        "timely_feedback_rate": 0.0
+      },
+      "preparation_attribution": {
+        "bounded_preparation_queue_overflow": 929,
+        "evaluator_or_gt_work": "NOT_SEPARATELY_CLASSIFIED",
+        "front_inference_or_encoding_throughput": "NOT_SEPARATELY_CLASSIFIED",
+        "missing_or_incomplete_radar_window": 1,
+        "scheduler_delay": "NOT_SEPARATELY_CLASSIFIED",
+        "sensor_synchronisation_late_or_missing": 29,
+        "shutdown_boundary": "NOT_SEPARATELY_CLASSIFIED",
+        "split_processing_failure": 0,
+        "warmup_before_first_complete_radar_window": 12
+      },
+      "preparation_stationarity": {
+        "coverage_range": 0.05756358768406966,
+        "quartile_coverage": [
+          0.6586345381526104,
+          0.7068273092369478,
+          0.6492637215528781,
+          0.6854082998661312
+        ],
+        "quartile_median_queue_wait_ms": [
+          668.8050297088921,
+          588.9796651899815,
+          754.3840855360031,
+          691.1629484966397
+        ],
+        "stationary": true
+      },
+      "reconciliation": []
+    },
+    {
+      "aoi_growth": {
+        "monotone_fraction": null,
+        "quartile_median_aoi_ms": [],
+        "samples": 0
+      },
+      "funnel": {
+        "action_id": 0,
+        "cell_id": "a00__adverse_stable",
+        "network_profile_id": "ADVERSE_STABLE",
+        "prepare_status_counts": {
+          "DROPPED_INCOMPLETE_RADAR_WINDOW": 1,
+          "DROPPED_QUEUE_FULL": 1098,
+          "DROPPED_SENSOR_LATE_OR_MISSING": 25,
+          "SENT": 2457,
+          "WARMUP_NO_COMPLETE_RADAR_WINDOW": 13
+        },
+        "profile_id": "split_noae_uint8_q0000",
+        "route_span_s": 359.5911900997162,
+        "route_ticks": 7187,
+        "s01_preparation_opportunities": 3594,
+        "s02_eligible_preparation_frames": 3581,
+        "s03_prepared_queue_admissions": 2496,
+        "s04_preparation_starts": 2496,
+        "s05_radar_complete_frames": 2457,
+        "s06_encoded_frames": 2457,
+        "s07_feature_messages_sent": 2457,
+        "s08_feature_datagrams_sent": 707655,
+        "s09_feature_datagrams_observed_at_receiver": "UNAVAILABLE",
+        "s09b_feature_datagrams_in_surviving_messages": 0,
+        "s09c_surviving_messages_with_datagram_count_mismatch": 0,
+        "s09d_duplicate_feature_datagrams": 0,
+        "s10_edge_fully_reassembled_messages_lower_bound": 0,
+        "s11_incomplete_or_expired_reassemblies": "UNAVAILABLE",
+        "s12_edge_queue_admissions": "NOT_INSTRUMENTED_NO_APPLICATION_QUEUE",
+        "s12b_edge_queue_drops": "NOT_INSTRUMENTED_NO_APPLICATION_QUEUE",
+        "s13_tail_starts_lower_bound": 0,
+        "s14_tail_completions_lower_bound": 0,
+        "s15_result_publications_lower_bound": 0,
+        "s16_result_datagrams_sent": "UNAVAILABLE",
+        "s16b_median_result_datagrams_per_message": null,
+        "s17_result_messages_ingested_at_ue": 0,
+        "s18_maps_installed": 0,
+        "s19_feedback_emitted": 0,
+        "s20_feedback_received_within_ack_timeout": 0,
+        "s20b_feedback_received_after_ack_timeout": 0,
+        "s21_installs_within_service_deadline": 0,
+        "terminal_feedback_outcomes": {
+          "TIMEOUT_NO_ACK": 2457
+        }
+      },
+      "intervals": {
+        "capture_to_feedback_receipt_ms": {
+          "clock_domain": "host_wall_clock_time_time_s",
+          "maximum": null,
+          "median": null,
+          "missing": 0,
+          "p95": null,
+          "samples": 0
+        },
+        "capture_to_installation_aoi_ms": {
+          "clock_domain": "host_wall_clock_time_time_s",
+          "maximum": null,
+          "median": null,
+          "missing": 0,
+          "p95": null,
+          "samples": 0
+        },
+        "cross_domain_residual_wall_aoi_minus_perf_round_trip_ms": {
+          "clock_domain": "cross_check",
+          "maximum": null,
+          "median": null,
+          "missing": 0,
+          "p95": null,
+          "samples": 0
+        },
+        "edge_ae_decode_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": null,
+          "median": null,
+          "missing": 0,
+          "p95": null,
+          "samples": 0
+        },
+        "edge_frozen_tail_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": null,
+          "median": null,
+          "missing": 0,
+          "p95": null,
+          "samples": 0
+        },
+        "edge_output_serialization_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": null,
+          "median": null,
+          "missing": 0,
+          "p95": null,
+          "samples": 0
+        },
+        "edge_total_edge_processing_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": null,
+          "median": null,
+          "missing": 0,
+          "p95": null,
+          "samples": 0
+        },
+        "edge_unpack_dequantize_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": null,
+          "median": null,
+          "missing": 0,
+          "p95": null,
+          "samples": 0
+        },
+        "edge_zstd_decompression_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": null,
+          "median": null,
+          "missing": 0,
+          "p95": null,
+          "samples": 0
+        },
+        "encoding_complete_to_ue_send_complete_ms": {
+          "clock_domain": "ue_process_perf_counter_ns",
+          "maximum": 27.84424,
+          "median": 1.381802,
+          "missing": 0,
+          "p95": 3.313645,
+          "samples": 2457
+        },
+        "feedback_emission_to_feedback_receipt_ms": {
+          "clock_domain": "host_wall_clock_time_time_s",
+          "maximum": null,
+          "median": null,
+          "missing": 0,
+          "p95": null,
+          "samples": 0
+        },
+        "installation_to_feedback_emission_ms": {
+          "clock_domain": "host_wall_clock_time_time_s",
+          "maximum": null,
+          "median": null,
+          "missing": 0,
+          "p95": null,
+          "samples": 0
+        },
+        "preparation_start_to_encoding_complete_ms": {
+          "clock_domain": "ue_process_perf_counter_ns",
+          "maximum": 249.087639,
+          "median": 37.311766,
+          "missing": 0,
+          "p95": 64.657653,
+          "samples": 2457
+        },
+        "ue_send_complete_to_result_received_round_trip_ms": {
+          "clock_domain": "ue_process_perf_counter_ns",
+          "maximum": null,
+          "median": null,
+          "missing": 0,
+          "p95": null,
+          "samples": 0
+        },
+        "world_tick_schedule_to_preparation_start_ms": {
+          "clock_domain": "ue_process_perf_counter_ns",
+          "maximum": 1125.3836210817099,
+          "median": 518.7624096870422,
+          "missing": 0,
+          "p95": 778.6781555041671,
+          "samples": 2457
+        }
+      },
+      "payload": {
+        "complete_message_rate_at_edge": 0.0,
+        "edge_admission_rate": "IDENTICAL_TO_complete_message_rate_at_edge: the edge has no admission stage separate from completing a reassembly, so admission and complete-message arrival are one event",
+        "edge_service_rate_hz_lower_bound": null,
+        "installation_rate": 0.0,
+        "median_application_envelope_bytes": 3585227.0,
+        "median_feature_datagrams_per_frame": 288.0,
+        "median_result_bytes_upper_bound": null,
+        "median_result_datagrams_per_message": null,
+        "median_scientific_inner_bytes": 3585022.0,
+        "median_udp_application_bytes": 3587531.0,
+        "offered_downlink_mbytes_per_s_upper_bound": null,
+        "offered_uplink_mbytes_per_s": 24.512735321896187,
+        "result_survival_rate_edge_to_ue": null,
+        "tail_completion_rate": 0.0,
+        "timely_feedback_rate": 0.0
+      },
+      "preparation_attribution": {
+        "bounded_preparation_queue_overflow": 1098,
+        "evaluator_or_gt_work": "NOT_SEPARATELY_CLASSIFIED",
+        "front_inference_or_encoding_throughput": "NOT_SEPARATELY_CLASSIFIED",
+        "missing_or_incomplete_radar_window": 1,
+        "scheduler_delay": "NOT_SEPARATELY_CLASSIFIED",
+        "sensor_synchronisation_late_or_missing": 25,
+        "shutdown_boundary": "NOT_SEPARATELY_CLASSIFIED",
+        "split_processing_failure": 0,
+        "warmup_before_first_complete_radar_window": 13
+      },
+      "preparation_stationarity": {
+        "coverage_range": 0.20398438254829043,
+        "quartile_coverage": [
+          0.6469933184855234,
+          0.8220244716351501,
+          0.6180400890868597,
+          0.6473859844271412
+        ],
+        "quartile_median_queue_wait_ms": [
+          551.7744896933436,
+          421.62167839705944,
+          568.4629268944263,
+          582.7190959826112
+        ],
+        "stationary": true
+      },
+      "reconciliation": []
+    },
+    {
+      "aoi_growth": {
+        "monotone_fraction": 0.8837209302325582,
+        "quartile_median_aoi_ms": [
+          7737.469434738159,
+          108906.59594535828,
+          110356.93097114563,
+          158127.1312236786
+        ],
+        "samples": 44
+      },
+      "funnel": {
+        "action_id": 71,
+        "cell_id": "a71__adverse_stable",
+        "network_profile_id": "ADVERSE_STABLE",
+        "prepare_status_counts": {
+          "DROPPED_INCOMPLETE_RADAR_WINDOW": 1,
+          "DROPPED_QUEUE_FULL": 767,
+          "DROPPED_SENSOR_LATE_OR_MISSING": 3,
+          "SENT": 2251,
+          "WARMUP_NO_COMPLETE_RADAR_WINDOW": 7
+        },
+        "profile_id": "split_ae32_uint4_q9800",
+        "route_span_s": 346.1013729572296,
+        "route_ticks": 6058,
+        "s01_preparation_opportunities": 3029,
+        "s02_eligible_preparation_frames": 3022,
+        "s03_prepared_queue_admissions": 2262,
+        "s04_preparation_starts": 2262,
+        "s05_radar_complete_frames": 2251,
+        "s06_encoded_frames": 2251,
+        "s07_feature_messages_sent": 2251,
+        "s08_feature_datagrams_sent": 2251,
+        "s09_feature_datagrams_observed_at_receiver": "UNAVAILABLE",
+        "s09b_feature_datagrams_in_surviving_messages": 44,
+        "s09c_surviving_messages_with_datagram_count_mismatch": 0,
+        "s09d_duplicate_feature_datagrams": 0,
+        "s10_edge_fully_reassembled_messages_lower_bound": 1020,
+        "s11_incomplete_or_expired_reassemblies": "UNAVAILABLE",
+        "s12_edge_queue_admissions": "NOT_INSTRUMENTED_NO_APPLICATION_QUEUE",
+        "s12b_edge_queue_drops": "NOT_INSTRUMENTED_NO_APPLICATION_QUEUE",
+        "s13_tail_starts_lower_bound": 1020,
+        "s14_tail_completions_lower_bound": 1020,
+        "s15_result_publications_lower_bound": 1020,
+        "s16_result_datagrams_sent": "UNAVAILABLE",
+        "s16b_median_result_datagrams_per_message": 103.0,
+        "s17_result_messages_ingested_at_ue": 44,
+        "s18_maps_installed": 44,
+        "s19_feedback_emitted": 44,
+        "s20_feedback_received_within_ack_timeout": 0,
+        "s20b_feedback_received_after_ack_timeout": 44,
+        "s21_installs_within_service_deadline": 0,
+        "terminal_feedback_outcomes": {
+          "TIMEOUT_NO_ACK": 2251
+        }
+      },
+      "intervals": {
+        "capture_to_feedback_receipt_ms": {
+          "clock_domain": "host_wall_clock_time_time_s",
+          "maximum": 161175.55499076843,
+          "median": 110230.3751707077,
+          "missing": 0,
+          "p95": 158527.52876281738,
+          "samples": 44
+        },
+        "capture_to_installation_aoi_ms": {
+          "clock_domain": "host_wall_clock_time_time_s",
+          "maximum": 161175.47631263733,
+          "median": 110230.1778793335,
+          "missing": 0,
+          "p95": 158527.28486061096,
+          "samples": 44
+        },
+        "cross_domain_residual_wall_aoi_minus_perf_round_trip_ms": {
+          "clock_domain": "cross_check",
+          "maximum": 1187.0922448730416,
+          "median": 493.3497486606939,
+          "missing": 0,
+          "p95": 1031.3561097954098,
+          "samples": 44
+        },
+        "edge_ae_decode_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 4.394015,
+          "median": 0.90207,
+          "missing": 0,
+          "p95": 3.160396,
+          "samples": 44
+        },
+        "edge_frozen_tail_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 646.439084,
+          "median": 178.1904895,
+          "missing": 0,
+          "p95": 324.251869,
+          "samples": 44
+        },
+        "edge_output_serialization_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 155.176875,
+          "median": 31.376175000000003,
+          "missing": 0,
+          "p95": 135.247712,
+          "samples": 44
+        },
+        "edge_total_edge_processing_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 753.728919,
+          "median": 278.33273599999995,
+          "missing": 0,
+          "p95": 487.058487,
+          "samples": 44
+        },
+        "edge_unpack_dequantize_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 119.971063,
+          "median": 62.668859,
+          "missing": 0,
+          "p95": 95.769217,
+          "samples": 44
+        },
+        "edge_zstd_decompression_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 0.034614,
+          "median": 0.0208215,
+          "missing": 0,
+          "p95": 0.025656,
+          "samples": 44
+        },
+        "encoding_complete_to_ue_send_complete_ms": {
+          "clock_domain": "ue_process_perf_counter_ns",
+          "maximum": 5.519859,
+          "median": 0.044037,
+          "missing": 0,
+          "p95": 0.166545,
+          "samples": 2251
+        },
+        "feedback_emission_to_feedback_receipt_ms": {
+          "clock_domain": "host_wall_clock_time_time_s",
+          "maximum": 5.123376846313477,
+          "median": 0.09965896606445312,
+          "missing": 0,
+          "p95": 2.5663375854492188,
+          "samples": 44
+        },
+        "installation_to_feedback_emission_ms": {
+          "clock_domain": "host_wall_clock_time_time_s",
+          "maximum": 0.01811981201171875,
+          "median": 0.010848045349121094,
+          "missing": 0,
+          "p95": 0.013828277587890625,
+          "samples": 44
+        },
+        "preparation_start_to_encoding_complete_ms": {
+          "clock_domain": "ue_process_perf_counter_ns",
+          "maximum": 332.094345,
+          "median": 15.7326,
+          "missing": 0,
+          "p95": 34.880419,
+          "samples": 2251
+        },
+        "ue_send_complete_to_result_received_round_trip_ms": {
+          "clock_domain": "ue_process_perf_counter_ns",
+          "maximum": 160902.947389,
+          "median": 110064.8352425,
+          "missing": 0,
+          "p95": 158060.000571,
+          "samples": 44
+        },
+        "world_tick_schedule_to_preparation_start_ms": {
+          "clock_domain": "ue_process_perf_counter_ns",
+          "maximum": 1388.9789748936892,
+          "median": 534.0171726420522,
+          "missing": 0,
+          "p95": 925.5623398348689,
+          "samples": 2251
+        }
+      },
+      "payload": {
+        "complete_message_rate_at_edge": 0.45313194135939583,
+        "edge_admission_rate": "IDENTICAL_TO_complete_message_rate_at_edge: the edge has no admission stage separate from completing a reassembly, so admission and complete-message arrival are one event",
+        "edge_service_rate_hz_lower_bound": 2.947113417334086,
+        "installation_rate": 0.019546868058640605,
+        "median_application_envelope_bytes": 6406.0,
+        "median_feature_datagrams_per_frame": 1.0,
+        "median_result_bytes_upper_bound": 1286676.0,
+        "median_result_datagrams_per_message": 103.0,
+        "median_scientific_inner_bytes": 6201.0,
+        "median_udp_application_bytes": 6414.0,
+        "offered_downlink_mbytes_per_s_upper_bound": 3.791980103361752,
+        "offered_uplink_mbytes_per_s": 0.041715853007564356,
+        "result_survival_rate_edge_to_ue": 0.043137254901960784,
+        "tail_completion_rate": 0.45313194135939583,
+        "timely_feedback_rate": 0.0
+      },
+      "preparation_attribution": {
+        "bounded_preparation_queue_overflow": 767,
+        "evaluator_or_gt_work": "NOT_SEPARATELY_CLASSIFIED",
+        "front_inference_or_encoding_throughput": "NOT_SEPARATELY_CLASSIFIED",
+        "missing_or_incomplete_radar_window": 1,
+        "scheduler_delay": "NOT_SEPARATELY_CLASSIFIED",
+        "sensor_synchronisation_late_or_missing": 3,
+        "shutdown_boundary": "NOT_SEPARATELY_CLASSIFIED",
+        "split_processing_failure": 0,
+        "warmup_before_first_complete_radar_window": 7
+      },
+      "preparation_stationarity": {
+        "coverage_range": 0.12813738441215328,
+        "quartile_coverage": [
+          0.6948480845442536,
+          0.8229854689564069,
+          0.7516512549537648,
+          0.7031662269129287
+        ],
+        "quartile_median_queue_wait_ms": [
+          599.3472361005843,
+          328.1690254807472,
+          541.7279992252588,
+          577.2453648969531
+        ],
+        "stationary": true
+      },
+      "reconciliation": []
+    },
+    {
+      "aoi_growth": {
+        "monotone_fraction": 0.6956521739130435,
+        "quartile_median_aoi_ms": [
+          32581.292390823364,
+          32659.761667251587,
+          35215.76702594757,
+          36463.48834037781
+        ],
+        "samples": 47
+      },
+      "funnel": {
+        "action_id": 46,
+        "cell_id": "a46__adverse_stable",
+        "network_profile_id": "ADVERSE_STABLE",
+        "prepare_status_counts": {
+          "DROPPED_INCOMPLETE_RADAR_WINDOW": 1,
+          "DROPPED_QUEUE_FULL": 947,
+          "DROPPED_SENSOR_LATE_OR_MISSING": 48,
+          "SENT": 2016,
+          "WARMUP_NO_COMPLETE_RADAR_WINDOW": 15
+        },
+        "profile_id": "split_ae64_uint6_q9000",
+        "route_span_s": 353.5930030345917,
+        "route_ticks": 6054,
+        "s01_preparation_opportunities": 3027,
+        "s02_eligible_preparation_frames": 3012,
+        "s03_prepared_queue_admissions": 2080,
+        "s04_preparation_starts": 2080,
+        "s05_radar_complete_frames": 2016,
+        "s06_encoded_frames": 2016,
+        "s07_feature_messages_sent": 2016,
+        "s08_feature_datagrams_sent": 17638,
+        "s09_feature_datagrams_observed_at_receiver": "UNAVAILABLE",
+        "s09b_feature_datagrams_in_surviving_messages": 415,
+        "s09c_surviving_messages_with_datagram_count_mismatch": 0,
+        "s09d_duplicate_feature_datagrams": 0,
+        "s10_edge_fully_reassembled_messages_lower_bound": 881,
+        "s11_incomplete_or_expired_reassemblies": "UNAVAILABLE",
+        "s12_edge_queue_admissions": "NOT_INSTRUMENTED_NO_APPLICATION_QUEUE",
+        "s12b_edge_queue_drops": "NOT_INSTRUMENTED_NO_APPLICATION_QUEUE",
+        "s13_tail_starts_lower_bound": 881,
+        "s14_tail_completions_lower_bound": 881,
+        "s15_result_publications_lower_bound": 881,
+        "s16_result_datagrams_sent": "UNAVAILABLE",
+        "s16b_median_result_datagrams_per_message": 102,
+        "s17_result_messages_ingested_at_ue": 47,
+        "s18_maps_installed": 47,
+        "s19_feedback_emitted": 47,
+        "s20_feedback_received_within_ack_timeout": 0,
+        "s20b_feedback_received_after_ack_timeout": 47,
+        "s21_installs_within_service_deadline": 0,
+        "terminal_feedback_outcomes": {
+          "TIMEOUT_NO_ACK": 2016
+        }
+      },
+      "intervals": {
+        "capture_to_feedback_receipt_ms": {
+          "clock_domain": "host_wall_clock_time_time_s",
+          "maximum": 58142.36903190613,
+          "median": 34788.73062133789,
+          "missing": 0,
+          "p95": 48749.2561340332,
+          "samples": 47
+        },
+        "capture_to_installation_aoi_ms": {
+          "clock_domain": "host_wall_clock_time_time_s",
+          "maximum": 58142.27509498596,
+          "median": 34787.710189819336,
+          "missing": 0,
+          "p95": 48749.178647994995,
+          "samples": 47
+        },
+        "cross_domain_residual_wall_aoi_minus_perf_round_trip_ms": {
+          "clock_domain": "cross_check",
+          "maximum": 1252.2829361933618,
+          "median": 822.3380647352278,
+          "missing": 0,
+          "p95": 1192.8207497163094,
+          "samples": 47
+        },
+        "edge_ae_decode_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 28.454789,
+          "median": 2.267852,
+          "missing": 0,
+          "p95": 7.294236,
+          "samples": 47
+        },
+        "edge_frozen_tail_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 710.283555,
+          "median": 187.78931,
+          "missing": 0,
+          "p95": 573.251052,
+          "samples": 47
+        },
+        "edge_output_serialization_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 157.366775,
+          "median": 28.454572,
+          "missing": 0,
+          "p95": 132.89366,
+          "samples": 47
+        },
+        "edge_total_edge_processing_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 944.896215,
+          "median": 380.40024,
+          "missing": 0,
+          "p95": 807.637895,
+          "samples": 47
+        },
+        "edge_unpack_dequantize_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 329.955811,
+          "median": 159.95398,
+          "missing": 0,
+          "p95": 257.3793,
+          "samples": 47
+        },
+        "edge_zstd_decompression_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 1.224475,
+          "median": 0.086483,
+          "missing": 0,
+          "p95": 0.409569,
+          "samples": 47
+        },
+        "encoding_complete_to_ue_send_complete_ms": {
+          "clock_domain": "ue_process_perf_counter_ns",
+          "maximum": 6.197439,
+          "median": 0.1006875,
+          "missing": 0,
+          "p95": 0.829785,
+          "samples": 2016
+        },
+        "feedback_emission_to_feedback_receipt_ms": {
+          "clock_domain": "host_wall_clock_time_time_s",
+          "maximum": 23.02408218383789,
+          "median": 0.10776519775390625,
+          "missing": 0,
+          "p95": 10.725736618041992,
+          "samples": 47
+        },
+        "installation_to_feedback_emission_ms": {
+          "clock_domain": "host_wall_clock_time_time_s",
+          "maximum": 0.06985664367675781,
+          "median": 0.010728836059570312,
+          "missing": 0,
+          "p95": 0.01621246337890625,
+          "samples": 47
+        },
+        "preparation_start_to_encoding_complete_ms": {
+          "clock_domain": "ue_process_perf_counter_ns",
+          "maximum": 325.395684,
+          "median": 23.005129,
+          "missing": 0,
+          "p95": 42.88223,
+          "samples": 2016
+        },
+        "ue_send_complete_to_result_received_round_trip_ms": {
+          "clock_domain": "ue_process_perf_counter_ns",
+          "maximum": 57377.504,
+          "median": 34061.133324,
+          "missing": 0,
+          "p95": 48116.673574,
+          "samples": 47
+        },
+        "world_tick_schedule_to_preparation_start_ms": {
+          "clock_domain": "ue_process_perf_counter_ns",
+          "maximum": 1264.1177885234356,
+          "median": 592.277783434838,
+          "missing": 0,
+          "p95": 1000.8186418563128,
+          "samples": 2016
+        }
+      },
+      "payload": {
+        "complete_message_rate_at_edge": 0.43700396825396826,
+        "edge_admission_rate": "IDENTICAL_TO_complete_message_rate_at_edge: the edge has no admission stage separate from completing a reassembly, so admission and complete-message arrival are one event",
+        "edge_service_rate_hz_lower_bound": 2.491565139692011,
+        "installation_rate": 0.023313492063492064,
+        "median_application_envelope_bytes": 100110.0,
+        "median_feature_datagrams_per_frame": 9.0,
+        "median_result_bytes_upper_bound": 1274184,
+        "median_result_datagrams_per_message": 102,
+        "median_scientific_inner_bytes": 99905.0,
+        "median_udp_application_bytes": 100182.0,
+        "offered_downlink_mbytes_per_s_upper_bound": 3.174712435953325,
+        "offered_uplink_mbytes_per_s": 0.5711846961526039,
+        "result_survival_rate_edge_to_ue": 0.053348467650397274,
+        "tail_completion_rate": 0.43700396825396826,
+        "timely_feedback_rate": 0.0
+      },
+      "preparation_attribution": {
+        "bounded_preparation_queue_overflow": 947,
+        "evaluator_or_gt_work": "NOT_SEPARATELY_CLASSIFIED",
+        "front_inference_or_encoding_throughput": "NOT_SEPARATELY_CLASSIFIED",
+        "missing_or_incomplete_radar_window": 1,
+        "scheduler_delay": "NOT_SEPARATELY_CLASSIFIED",
+        "sensor_synchronisation_late_or_missing": 48,
+        "shutdown_boundary": "NOT_SEPARATELY_CLASSIFIED",
+        "split_processing_failure": 0,
+        "warmup_before_first_complete_radar_window": 15
+      },
+      "preparation_stationarity": {
+        "coverage_range": 0.14714166893823433,
+        "quartile_coverage": [
+          0.6137566137566137,
+          0.760898282694848,
+          0.6605019815059445,
+          0.6287978863936592
+        ],
+        "quartile_median_queue_wait_ms": [
+          580.2859663963318,
+          355.0034845247865,
+          651.653251145035,
+          687.7316245809197
+        ],
+        "stationary": true
+      },
+      "reconciliation": []
+    },
+    {
+      "aoi_growth": {
+        "monotone_fraction": 0.6521739130434783,
+        "quartile_median_aoi_ms": [
+          12094.577193260193,
+          13512.984991073608,
+          14335.436582565308,
+          10948.996424674988
+        ],
+        "samples": 24
+      },
+      "funnel": {
+        "action_id": 20,
+        "cell_id": "a20__adverse_stable",
+        "network_profile_id": "ADVERSE_STABLE",
+        "prepare_status_counts": {
+          "DROPPED_INCOMPLETE_RADAR_WINDOW": 1,
+          "DROPPED_QUEUE_FULL": 997,
+          "DROPPED_SENSOR_LATE_OR_MISSING": 14,
+          "SENT": 2064,
+          "WARMUP_NO_COMPLETE_RADAR_WINDOW": 11
+        },
+        "profile_id": "split_ae128_uint8_q5000",
+        "route_span_s": 333.7793607711792,
+        "route_ticks": 6173,
+        "s01_preparation_opportunities": 3087,
+        "s02_eligible_preparation_frames": 3076,
+        "s03_prepared_queue_admissions": 2090,
+        "s04_preparation_starts": 2090,
+        "s05_radar_complete_frames": 2064,
+        "s06_encoded_frames": 2064,
+        "s07_feature_messages_sent": 2064,
+        "s08_feature_datagrams_sent": 200148,
+        "s09_feature_datagrams_observed_at_receiver": "UNAVAILABLE",
+        "s09b_feature_datagrams_in_surviving_messages": 2329,
+        "s09c_surviving_messages_with_datagram_count_mismatch": 0,
+        "s09d_duplicate_feature_datagrams": 0,
+        "s10_edge_fully_reassembled_messages_lower_bound": 419,
+        "s11_incomplete_or_expired_reassemblies": "UNAVAILABLE",
+        "s12_edge_queue_admissions": "NOT_INSTRUMENTED_NO_APPLICATION_QUEUE",
+        "s12b_edge_queue_drops": "NOT_INSTRUMENTED_NO_APPLICATION_QUEUE",
+        "s13_tail_starts_lower_bound": 419,
+        "s14_tail_completions_lower_bound": 419,
+        "s15_result_publications_lower_bound": 419,
+        "s16_result_datagrams_sent": "UNAVAILABLE",
+        "s16b_median_result_datagrams_per_message": 103.0,
+        "s17_result_messages_ingested_at_ue": 24,
+        "s18_maps_installed": 24,
+        "s19_feedback_emitted": 24,
+        "s20_feedback_received_within_ack_timeout": 0,
+        "s20b_feedback_received_after_ack_timeout": 24,
+        "s21_installs_within_service_deadline": 0,
+        "terminal_feedback_outcomes": {
+          "TIMEOUT_NO_ACK": 2064
+        }
+      },
+      "intervals": {
+        "capture_to_feedback_receipt_ms": {
+          "clock_domain": "host_wall_clock_time_time_s",
+          "maximum": 14645.42841911316,
+          "median": 12889.69624042511,
+          "missing": 0,
+          "p95": 14595.644235610962,
+          "samples": 24
+        },
+        "capture_to_installation_aoi_ms": {
+          "clock_domain": "host_wall_clock_time_time_s",
+          "maximum": 14645.35903930664,
+          "median": 12889.554381370544,
+          "missing": 0,
+          "p95": 14595.452070236206,
+          "samples": 24
+        },
+        "cross_domain_residual_wall_aoi_minus_perf_round_trip_ms": {
+          "clock_domain": "cross_check",
+          "maximum": 1207.804514535157,
+          "median": 860.88307443335,
+          "missing": 0,
+          "p95": 1134.0824390986327,
+          "samples": 24
+        },
+        "edge_ae_decode_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 25.8923,
+          "median": 2.8673260000000003,
+          "missing": 0,
+          "p95": 15.931059,
+          "samples": 24
+        },
+        "edge_frozen_tail_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 876.196395,
+          "median": 185.2743515,
+          "missing": 0,
+          "p95": 853.99906,
+          "samples": 24
+        },
+        "edge_output_serialization_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 230.405232,
+          "median": 29.4683805,
+          "missing": 0,
+          "p95": 189.975838,
+          "samples": 24
+        },
+        "edge_total_edge_processing_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 1233.696288,
+          "median": 412.5845035,
+          "missing": 0,
+          "p95": 1218.028429,
+          "samples": 24
+        },
+        "edge_unpack_dequantize_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 324.137632,
+          "median": 144.9527405,
+          "missing": 0,
+          "p95": 240.319147,
+          "samples": 24
+        },
+        "edge_zstd_decompression_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 7.528374,
+          "median": 0.987504,
+          "missing": 0,
+          "p95": 6.09214,
+          "samples": 24
+        },
+        "encoding_complete_to_ue_send_complete_ms": {
+          "clock_domain": "ue_process_perf_counter_ns",
+          "maximum": 15.420379,
+          "median": 0.6190095,
+          "missing": 0,
+          "p95": 2.038083,
+          "samples": 2064
+        },
+        "feedback_emission_to_feedback_receipt_ms": {
+          "clock_domain": "host_wall_clock_time_time_s",
+          "maximum": 4.29534912109375,
+          "median": 0.17082691192626953,
+          "missing": 0,
+          "p95": 1.4986991882324219,
+          "samples": 24
+        },
+        "installation_to_feedback_emission_ms": {
+          "clock_domain": "host_wall_clock_time_time_s",
+          "maximum": 0.33402442932128906,
+          "median": 0.009655952453613281,
+          "missing": 0,
+          "p95": 0.015020370483398438,
+          "samples": 24
+        },
+        "preparation_start_to_encoding_complete_ms": {
+          "clock_domain": "ue_process_perf_counter_ns",
+          "maximum": 341.684167,
+          "median": 26.6051655,
+          "missing": 0,
+          "p95": 53.080606,
+          "samples": 2064
+        },
+        "ue_send_complete_to_result_received_round_trip_ms": {
+          "clock_domain": "ue_process_perf_counter_ns",
+          "maximum": 13778.007171,
+          "median": 12015.1946905,
+          "missing": 0,
+          "p95": 13695.498676,
+          "samples": 24
+        },
+        "world_tick_schedule_to_preparation_start_ms": {
+          "clock_domain": "ue_process_perf_counter_ns",
+          "maximum": 1401.2971362099051,
+          "median": 568.6670807190239,
+          "missing": 0,
+          "p95": 1051.998189650476,
+          "samples": 2064
+        }
+      },
+      "payload": {
+        "complete_message_rate_at_edge": 0.20300387596899225,
+        "edge_admission_rate": "IDENTICAL_TO_complete_message_rate_at_edge: the edge has no admission stage separate from completing a reassembly, so admission and complete-message arrival are one event",
+        "edge_service_rate_hz_lower_bound": 1.2553202781379984,
+        "installation_rate": 0.011627906976744186,
+        "median_application_envelope_bytes": 1206855.0,
+        "median_feature_datagrams_per_frame": 97.0,
+        "median_result_bytes_upper_bound": 1286676.0,
+        "median_result_datagrams_per_message": 103.0,
+        "median_scientific_inner_bytes": 1206650.0,
+        "median_udp_application_bytes": 1207631.0,
+        "offered_downlink_mbytes_per_s_upper_bound": 1.6151904741934873,
+        "offered_uplink_mbytes_per_s": 7.4676588098230425,
+        "result_survival_rate_edge_to_ue": 0.057279236276849645,
+        "tail_completion_rate": 0.20300387596899225,
+        "timely_feedback_rate": 0.0
+      },
+      "preparation_attribution": {
+        "bounded_preparation_queue_overflow": 997,
+        "evaluator_or_gt_work": "NOT_SEPARATELY_CLASSIFIED",
+        "front_inference_or_encoding_throughput": "NOT_SEPARATELY_CLASSIFIED",
+        "missing_or_incomplete_radar_window": 1,
+        "scheduler_delay": "NOT_SEPARATELY_CLASSIFIED",
+        "sensor_synchronisation_late_or_missing": 14,
+        "shutdown_boundary": "NOT_SEPARATELY_CLASSIFIED",
+        "split_processing_failure": 0,
+        "warmup_before_first_complete_radar_window": 11
+      },
+      "preparation_stationarity": {
+        "coverage_range": 0.17746113989637302,
+        "quartile_coverage": [
+          0.6679636835278858,
+          0.7435233160621761,
+          0.6968911917098446,
+          0.5660621761658031
+        ],
+        "quartile_median_queue_wait_ms": [
+          634.446520358324,
+          432.4428802356124,
+          513.3658153936267,
+          771.6799760237336
+        ],
+        "stationary": true
+      },
+      "reconciliation": []
+    },
+    {
+      "aoi_growth": {
+        "monotone_fraction": null,
+        "quartile_median_aoi_ms": [],
+        "samples": 0
+      },
+      "funnel": {
+        "action_id": 0,
+        "cell_id": "a00__fade_recovery",
+        "network_profile_id": "FADE_RECOVERY",
+        "prepare_status_counts": {
+          "DROPPED_INCOMPLETE_RADAR_WINDOW": 1,
+          "DROPPED_QUEUE_FULL": 970,
+          "DROPPED_SENSOR_LATE_OR_MISSING": 8,
+          "SENT": 2087,
+          "WARMUP_NO_COMPLETE_RADAR_WINDOW": 9
+        },
+        "profile_id": "split_noae_uint8_q0000",
+        "route_span_s": 307.2076323032379,
+        "route_ticks": 6149,
+        "s01_preparation_opportunities": 3075,
+        "s02_eligible_preparation_frames": 3066,
+        "s03_prepared_queue_admissions": 2105,
+        "s04_preparation_starts": 2105,
+        "s05_radar_complete_frames": 2087,
+        "s06_encoded_frames": 2087,
+        "s07_feature_messages_sent": 2087,
+        "s08_feature_datagrams_sent": 602195,
+        "s09_feature_datagrams_observed_at_receiver": "UNAVAILABLE",
+        "s09b_feature_datagrams_in_surviving_messages": 0,
+        "s09c_surviving_messages_with_datagram_count_mismatch": 0,
+        "s09d_duplicate_feature_datagrams": 0,
+        "s10_edge_fully_reassembled_messages_lower_bound": 0,
+        "s11_incomplete_or_expired_reassemblies": "UNAVAILABLE",
+        "s12_edge_queue_admissions": "NOT_INSTRUMENTED_NO_APPLICATION_QUEUE",
+        "s12b_edge_queue_drops": "NOT_INSTRUMENTED_NO_APPLICATION_QUEUE",
+        "s13_tail_starts_lower_bound": 0,
+        "s14_tail_completions_lower_bound": 0,
+        "s15_result_publications_lower_bound": 0,
+        "s16_result_datagrams_sent": "UNAVAILABLE",
+        "s16b_median_result_datagrams_per_message": null,
+        "s17_result_messages_ingested_at_ue": 0,
+        "s18_maps_installed": 0,
+        "s19_feedback_emitted": 0,
+        "s20_feedback_received_within_ack_timeout": 0,
+        "s20b_feedback_received_after_ack_timeout": 0,
+        "s21_installs_within_service_deadline": 0,
+        "terminal_feedback_outcomes": {
+          "TIMEOUT_NO_ACK": 2087
+        }
+      },
+      "intervals": {
+        "capture_to_feedback_receipt_ms": {
+          "clock_domain": "host_wall_clock_time_time_s",
+          "maximum": null,
+          "median": null,
+          "missing": 0,
+          "p95": null,
+          "samples": 0
+        },
+        "capture_to_installation_aoi_ms": {
+          "clock_domain": "host_wall_clock_time_time_s",
+          "maximum": null,
+          "median": null,
+          "missing": 0,
+          "p95": null,
+          "samples": 0
+        },
+        "cross_domain_residual_wall_aoi_minus_perf_round_trip_ms": {
+          "clock_domain": "cross_check",
+          "maximum": null,
+          "median": null,
+          "missing": 0,
+          "p95": null,
+          "samples": 0
+        },
+        "edge_ae_decode_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": null,
+          "median": null,
+          "missing": 0,
+          "p95": null,
+          "samples": 0
+        },
+        "edge_frozen_tail_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": null,
+          "median": null,
+          "missing": 0,
+          "p95": null,
+          "samples": 0
+        },
+        "edge_output_serialization_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": null,
+          "median": null,
+          "missing": 0,
+          "p95": null,
+          "samples": 0
+        },
+        "edge_total_edge_processing_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": null,
+          "median": null,
+          "missing": 0,
+          "p95": null,
+          "samples": 0
+        },
+        "edge_unpack_dequantize_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": null,
+          "median": null,
+          "missing": 0,
+          "p95": null,
+          "samples": 0
+        },
+        "edge_zstd_decompression_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": null,
+          "median": null,
+          "missing": 0,
+          "p95": null,
+          "samples": 0
+        },
+        "encoding_complete_to_ue_send_complete_ms": {
+          "clock_domain": "ue_process_perf_counter_ns",
+          "maximum": 49.903985,
+          "median": 1.383967,
+          "missing": 0,
+          "p95": 3.592957,
+          "samples": 2087
+        },
+        "feedback_emission_to_feedback_receipt_ms": {
+          "clock_domain": "host_wall_clock_time_time_s",
+          "maximum": null,
+          "median": null,
+          "missing": 0,
+          "p95": null,
+          "samples": 0
+        },
+        "installation_to_feedback_emission_ms": {
+          "clock_domain": "host_wall_clock_time_time_s",
+          "maximum": null,
+          "median": null,
+          "missing": 0,
+          "p95": null,
+          "samples": 0
+        },
+        "preparation_start_to_encoding_complete_ms": {
+          "clock_domain": "ue_process_perf_counter_ns",
+          "maximum": 249.404059,
+          "median": 38.855089,
+          "missing": 0,
+          "p95": 65.882644,
+          "samples": 2087
+        },
+        "ue_send_complete_to_result_received_round_trip_ms": {
+          "clock_domain": "ue_process_perf_counter_ns",
+          "maximum": null,
+          "median": null,
+          "missing": 0,
+          "p95": null,
+          "samples": 0
+        },
+        "world_tick_schedule_to_preparation_start_ms": {
+          "clock_domain": "ue_process_perf_counter_ns",
+          "maximum": 1183.1278819590807,
+          "median": 536.2746575847268,
+          "missing": 0,
+          "p95": 806.496980600059,
+          "samples": 2087
+        }
+      },
+      "payload": {
+        "complete_message_rate_at_edge": 0.0,
+        "edge_admission_rate": "IDENTICAL_TO_complete_message_rate_at_edge: the edge has no admission stage separate from completing a reassembly, so admission and complete-message arrival are one event",
+        "edge_service_rate_hz_lower_bound": null,
+        "installation_rate": 0.0,
+        "median_application_envelope_bytes": 3595248.0,
+        "median_feature_datagrams_per_frame": 288.0,
+        "median_result_bytes_upper_bound": null,
+        "median_result_datagrams_per_message": null,
+        "median_scientific_inner_bytes": 3595044.0,
+        "median_udp_application_bytes": 3597552.0,
+        "offered_downlink_mbytes_per_s_upper_bound": null,
+        "offered_uplink_mbytes_per_s": 24.439793268511405,
+        "result_survival_rate_edge_to_ue": null,
+        "tail_completion_rate": 0.0,
+        "timely_feedback_rate": 0.0
+      },
+      "preparation_attribution": {
+        "bounded_preparation_queue_overflow": 970,
+        "evaluator_or_gt_work": "NOT_SEPARATELY_CLASSIFIED",
+        "front_inference_or_encoding_throughput": "NOT_SEPARATELY_CLASSIFIED",
+        "missing_or_incomplete_radar_window": 1,
+        "scheduler_delay": "NOT_SEPARATELY_CLASSIFIED",
+        "sensor_synchronisation_late_or_missing": 8,
+        "shutdown_boundary": "NOT_SEPARATELY_CLASSIFIED",
+        "split_processing_failure": 0,
+        "warmup_before_first_complete_radar_window": 9
+      },
+      "preparation_stationarity": {
+        "coverage_range": 0.0975292587776333,
+        "quartile_coverage": [
+          0.6549479166666666,
+          0.7464239271781534,
+          0.6644993498049415,
+          0.6488946684005201
+        ],
+        "quartile_median_queue_wait_ms": [
+          567.4342690035701,
+          465.114270336926,
+          558.8600793853402,
+          590.8974893391132
+        ],
+        "stationary": true
+      },
+      "reconciliation": []
+    },
+    {
+      "aoi_growth": {
+        "monotone_fraction": 0.9514563106796117,
+        "quartile_median_aoi_ms": [
+          37237.32054233551,
+          99517.81678199768,
+          145878.6497116089,
+          170746.94800376892
+        ],
+        "samples": 104
+      },
+      "funnel": {
+        "action_id": 71,
+        "cell_id": "a71__fade_recovery",
+        "network_profile_id": "FADE_RECOVERY",
+        "prepare_status_counts": {
+          "DROPPED_INCOMPLETE_RADAR_WINDOW": 1,
+          "DROPPED_QUEUE_FULL": 776,
+          "DROPPED_SENSOR_LATE_OR_MISSING": 1,
+          "SENT": 2225,
+          "WARMUP_NO_COMPLETE_RADAR_WINDOW": 8
+        },
+        "profile_id": "split_ae32_uint4_q9800",
+        "route_span_s": 348.5818085670471,
+        "route_ticks": 6022,
+        "s01_preparation_opportunities": 3011,
+        "s02_eligible_preparation_frames": 3003,
+        "s03_prepared_queue_admissions": 2235,
+        "s04_preparation_starts": 2235,
+        "s05_radar_complete_frames": 2225,
+        "s06_encoded_frames": 2225,
+        "s07_feature_messages_sent": 2225,
+        "s08_feature_datagrams_sent": 2225,
+        "s09_feature_datagrams_observed_at_receiver": "UNAVAILABLE",
+        "s09b_feature_datagrams_in_surviving_messages": 104,
+        "s09c_surviving_messages_with_datagram_count_mismatch": 0,
+        "s09d_duplicate_feature_datagrams": 0,
+        "s10_edge_fully_reassembled_messages_lower_bound": 1089,
+        "s11_incomplete_or_expired_reassemblies": "UNAVAILABLE",
+        "s12_edge_queue_admissions": "NOT_INSTRUMENTED_NO_APPLICATION_QUEUE",
+        "s12b_edge_queue_drops": "NOT_INSTRUMENTED_NO_APPLICATION_QUEUE",
+        "s13_tail_starts_lower_bound": 1089,
+        "s14_tail_completions_lower_bound": 1089,
+        "s15_result_publications_lower_bound": 1089,
+        "s16_result_datagrams_sent": "UNAVAILABLE",
+        "s16b_median_result_datagrams_per_message": 103.0,
+        "s17_result_messages_ingested_at_ue": 104,
+        "s18_maps_installed": 104,
+        "s19_feedback_emitted": 104,
+        "s20_feedback_received_within_ack_timeout": 0,
+        "s20b_feedback_received_after_ack_timeout": 104,
+        "s21_installs_within_service_deadline": 0,
+        "terminal_feedback_outcomes": {
+          "TIMEOUT_NO_ACK": 2225
+        }
+      },
+      "intervals": {
+        "capture_to_feedback_receipt_ms": {
+          "clock_domain": "host_wall_clock_time_time_s",
+          "maximum": 183104.79068756104,
+          "median": 110244.624376297,
+          "missing": 0,
+          "p95": 179442.5392150879,
+          "samples": 104
+        },
+        "capture_to_installation_aoi_ms": {
+          "clock_domain": "host_wall_clock_time_time_s",
+          "maximum": 183104.71773147583,
+          "median": 110244.4794178009,
+          "missing": 0,
+          "p95": 179442.45433807373,
+          "samples": 104
+        },
+        "cross_domain_residual_wall_aoi_minus_perf_round_trip_ms": {
+          "clock_domain": "cross_check",
+          "maximum": 1042.3584311673476,
+          "median": 580.4398231316522,
+          "missing": 0,
+          "p95": 891.6212568969786,
+          "samples": 104
+        },
+        "edge_ae_decode_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 14.288354,
+          "median": 1.6893669999999998,
+          "missing": 0,
+          "p95": 6.807468,
+          "samples": 104
+        },
+        "edge_frozen_tail_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 961.857989,
+          "median": 191.8094025,
+          "missing": 0,
+          "p95": 689.576577,
+          "samples": 104
+        },
+        "edge_output_serialization_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 466.292593,
+          "median": 30.3904955,
+          "missing": 0,
+          "p95": 191.098911,
+          "samples": 104
+        },
+        "edge_total_edge_processing_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 1225.946272,
+          "median": 301.988363,
+          "missing": 0,
+          "p95": 955.513339,
+          "samples": 104
+        },
+        "edge_unpack_dequantize_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 145.876096,
+          "median": 61.531158500000004,
+          "missing": 0,
+          "p95": 100.050809,
+          "samples": 104
+        },
+        "edge_zstd_decompression_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 1.458391,
+          "median": 0.0219595,
+          "missing": 0,
+          "p95": 0.033514,
+          "samples": 104
+        },
+        "encoding_complete_to_ue_send_complete_ms": {
+          "clock_domain": "ue_process_perf_counter_ns",
+          "maximum": 11.176997,
+          "median": 0.045508,
+          "missing": 0,
+          "p95": 0.12002,
+          "samples": 2225
+        },
+        "feedback_emission_to_feedback_receipt_ms": {
+          "clock_domain": "host_wall_clock_time_time_s",
+          "maximum": 17.47584342956543,
+          "median": 0.07677078247070312,
+          "missing": 0,
+          "p95": 1.8658638000488281,
+          "samples": 104
+        },
+        "installation_to_feedback_emission_ms": {
+          "clock_domain": "host_wall_clock_time_time_s",
+          "maximum": 0.024557113647460938,
+          "median": 0.01049041748046875,
+          "missing": 0,
+          "p95": 0.013828277587890625,
+          "samples": 104
+        },
+        "preparation_start_to_encoding_complete_ms": {
+          "clock_domain": "ue_process_perf_counter_ns",
+          "maximum": 315.368902,
+          "median": 16.574613,
+          "missing": 0,
+          "p95": 35.411301,
+          "samples": 2225
+        },
+        "ue_send_complete_to_result_received_round_trip_ms": {
+          "clock_domain": "ue_process_perf_counter_ns",
+          "maximum": 182671.734218,
+          "median": 109672.8537965,
+          "missing": 0,
+          "p95": 178791.703525,
+          "samples": 104
+        },
+        "world_tick_schedule_to_preparation_start_ms": {
+          "clock_domain": "ue_process_perf_counter_ns",
+          "maximum": 1290.078217163682,
+          "median": 563.8409731909633,
+          "missing": 0,
+          "p95": 887.2144538909197,
+          "samples": 2225
+        }
+      },
+      "payload": {
+        "complete_message_rate_at_edge": 0.48943820224719103,
+        "edge_admission_rate": "IDENTICAL_TO_complete_message_rate_at_edge: the edge has no admission stage separate from completing a reassembly, so admission and complete-message arrival are one event",
+        "edge_service_rate_hz_lower_bound": 3.1240872966855897,
+        "installation_rate": 0.046741573033707864,
+        "median_application_envelope_bytes": 6418.0,
+        "median_feature_datagrams_per_frame": 1.0,
+        "median_result_bytes_upper_bound": 1286676.0,
+        "median_result_datagrams_per_message": 103.0,
+        "median_scientific_inner_bytes": 6214.0,
+        "median_udp_application_bytes": 6426.0,
+        "offered_downlink_mbytes_per_s_upper_bound": 4.019688146550228,
+        "offered_uplink_mbytes_per_s": 0.04101720069321952,
+        "result_survival_rate_edge_to_ue": 0.09550045913682277,
+        "tail_completion_rate": 0.48943820224719103,
+        "timely_feedback_rate": 0.0
+      },
+      "preparation_attribution": {
+        "bounded_preparation_queue_overflow": 776,
+        "evaluator_or_gt_work": "NOT_SEPARATELY_CLASSIFIED",
+        "front_inference_or_encoding_throughput": "NOT_SEPARATELY_CLASSIFIED",
+        "missing_or_incomplete_radar_window": 1,
+        "scheduler_delay": "NOT_SEPARATELY_CLASSIFIED",
+        "sensor_synchronisation_late_or_missing": 1,
+        "shutdown_boundary": "NOT_SEPARATELY_CLASSIFIED",
+        "split_processing_failure": 0,
+        "warmup_before_first_complete_radar_window": 8
+      },
+      "preparation_stationarity": {
+        "coverage_range": 0.07875589839224661,
+        "quartile_coverage": [
+          0.6968085106382979,
+          0.7755644090305445,
+          0.7171314741035857,
+          0.7662682602921647
+        ],
+        "quartile_median_queue_wait_ms": [
+          582.0553572848439,
+          478.9702366106212,
+          608.4095067344606,
+          569.6995258331299
+        ],
+        "stationary": true
+      },
+      "reconciliation": []
+    },
+    {
+      "aoi_growth": {
+        "monotone_fraction": 0.7246376811594203,
+        "quartile_median_aoi_ms": [
+          33146.6920375824,
+          33945.8441734314,
+          34876.13654136658,
+          34526.08370780945
+        ],
+        "samples": 70
+      },
+      "funnel": {
+        "action_id": 46,
+        "cell_id": "a46__fade_recovery",
+        "network_profile_id": "FADE_RECOVERY",
+        "prepare_status_counts": {
+          "DROPPED_INCOMPLETE_RADAR_WINDOW": 1,
+          "DROPPED_QUEUE_FULL": 714,
+          "DROPPED_SENSOR_LATE_OR_MISSING": 9,
+          "SENT": 2278,
+          "WARMUP_NO_COMPLETE_RADAR_WINDOW": 11
+        },
+        "profile_id": "split_ae64_uint6_q9000",
+        "route_span_s": 357.0009458065033,
+        "route_ticks": 6025,
+        "s01_preparation_opportunities": 3013,
+        "s02_eligible_preparation_frames": 3002,
+        "s03_prepared_queue_admissions": 2299,
+        "s04_preparation_starts": 2299,
+        "s05_radar_complete_frames": 2278,
+        "s06_encoded_frames": 2278,
+        "s07_feature_messages_sent": 2278,
+        "s08_feature_datagrams_sent": 19954,
+        "s09_feature_datagrams_observed_at_receiver": "UNAVAILABLE",
+        "s09b_feature_datagrams_in_surviving_messages": 625,
+        "s09c_surviving_messages_with_datagram_count_mismatch": 0,
+        "s09d_duplicate_feature_datagrams": 0,
+        "s10_edge_fully_reassembled_messages_lower_bound": 877,
+        "s11_incomplete_or_expired_reassemblies": "UNAVAILABLE",
+        "s12_edge_queue_admissions": "NOT_INSTRUMENTED_NO_APPLICATION_QUEUE",
+        "s12b_edge_queue_drops": "NOT_INSTRUMENTED_NO_APPLICATION_QUEUE",
+        "s13_tail_starts_lower_bound": 877,
+        "s14_tail_completions_lower_bound": 877,
+        "s15_result_publications_lower_bound": 877,
+        "s16_result_datagrams_sent": "UNAVAILABLE",
+        "s16b_median_result_datagrams_per_message": 102.0,
+        "s17_result_messages_ingested_at_ue": 70,
+        "s18_maps_installed": 70,
+        "s19_feedback_emitted": 70,
+        "s20_feedback_received_within_ack_timeout": 0,
+        "s20b_feedback_received_after_ack_timeout": 70,
+        "s21_installs_within_service_deadline": 0,
+        "terminal_feedback_outcomes": {
+          "TIMEOUT_NO_ACK": 2278
+        }
+      },
+      "intervals": {
+        "capture_to_feedback_receipt_ms": {
+          "clock_domain": "host_wall_clock_time_time_s",
+          "maximum": 40636.59191131592,
+          "median": 34088.632106781006,
+          "missing": 0,
+          "p95": 37373.90685081482,
+          "samples": 70
+        },
+        "capture_to_installation_aoi_ms": {
+          "clock_domain": "host_wall_clock_time_time_s",
+          "maximum": 40636.52205467224,
+          "median": 34088.56022357941,
+          "missing": 0,
+          "p95": 37373.828411102295,
+          "samples": 70
+        },
+        "cross_domain_residual_wall_aoi_minus_perf_round_trip_ms": {
+          "clock_domain": "cross_check",
+          "maximum": 1079.0306825823973,
+          "median": 609.4247016208501,
+          "missing": 0,
+          "p95": 1014.4114938309358,
+          "samples": 70
+        },
+        "edge_ae_decode_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 159.746729,
+          "median": 1.6131575,
+          "missing": 0,
+          "p95": 6.309323,
+          "samples": 70
+        },
+        "edge_frozen_tail_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 2164.574412,
+          "median": 167.65302400000002,
+          "missing": 0,
+          "p95": 442.196866,
+          "samples": 70
+        },
+        "edge_output_serialization_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 452.853862,
+          "median": 22.330156,
+          "missing": 0,
+          "p95": 187.317183,
+          "samples": 70
+        },
+        "edge_total_edge_processing_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 2780.927017,
+          "median": 353.94314299999996,
+          "missing": 0,
+          "p95": 816.528155,
+          "samples": 70
+        },
+        "edge_unpack_dequantize_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 256.108006,
+          "median": 157.175547,
+          "missing": 0,
+          "p95": 223.055436,
+          "samples": 70
+        },
+        "edge_zstd_decompression_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 1.812012,
+          "median": 0.0818085,
+          "missing": 0,
+          "p95": 0.160477,
+          "samples": 70
+        },
+        "encoding_complete_to_ue_send_complete_ms": {
+          "clock_domain": "ue_process_perf_counter_ns",
+          "maximum": 35.986016,
+          "median": 0.096356,
+          "missing": 0,
+          "p95": 0.73925,
+          "samples": 2278
+        },
+        "feedback_emission_to_feedback_receipt_ms": {
+          "clock_domain": "host_wall_clock_time_time_s",
+          "maximum": 14.95671272277832,
+          "median": 0.07271766662597656,
+          "missing": 0,
+          "p95": 3.148794174194336,
+          "samples": 70
+        },
+        "installation_to_feedback_emission_ms": {
+          "clock_domain": "host_wall_clock_time_time_s",
+          "maximum": 0.035762786865234375,
+          "median": 0.011444091796875,
+          "missing": 0,
+          "p95": 0.0133514404296875,
+          "samples": 70
+        },
+        "preparation_start_to_encoding_complete_ms": {
+          "clock_domain": "ue_process_perf_counter_ns",
+          "maximum": 313.81549,
+          "median": 20.100535,
+          "missing": 0,
+          "p95": 41.073866,
+          "samples": 2278
+        },
+        "ue_send_complete_to_result_received_round_trip_ms": {
+          "clock_domain": "ue_process_perf_counter_ns",
+          "maximum": 40179.018418,
+          "median": 33520.4043305,
+          "missing": 0,
+          "p95": 36996.809482,
+          "samples": 70
+        },
+        "world_tick_schedule_to_preparation_start_ms": {
+          "clock_domain": "ue_process_perf_counter_ns",
+          "maximum": 1221.343306824565,
+          "median": 513.4714469313622,
+          "missing": 0,
+          "p95": 910.9635632485151,
+          "samples": 2278
+        }
+      },
+      "payload": {
+        "complete_message_rate_at_edge": 0.3849868305531168,
+        "edge_admission_rate": "IDENTICAL_TO_complete_message_rate_at_edge: the edge has no admission stage separate from completing a reassembly, so admission and complete-message arrival are one event",
+        "edge_service_rate_hz_lower_bound": 2.456576124802032,
+        "installation_rate": 0.030728709394205442,
+        "median_application_envelope_bytes": 100119.0,
+        "median_feature_datagrams_per_frame": 9.0,
+        "median_result_bytes_upper_bound": 1274184.0,
+        "median_result_datagrams_per_message": 102.0,
+        "median_scientific_inner_bytes": 99915.0,
+        "median_udp_application_bytes": 100191.0,
+        "offered_downlink_mbytes_per_s_upper_bound": 3.130129993004752,
+        "offered_uplink_mbytes_per_s": 0.63931230625844,
+        "result_survival_rate_edge_to_ue": 0.07981755986316989,
+        "tail_completion_rate": 0.3849868305531168,
+        "timely_feedback_rate": 0.0
+      },
+      "preparation_attribution": {
+        "bounded_preparation_queue_overflow": 714,
+        "evaluator_or_gt_work": "NOT_SEPARATELY_CLASSIFIED",
+        "front_inference_or_encoding_throughput": "NOT_SEPARATELY_CLASSIFIED",
+        "missing_or_incomplete_radar_window": 1,
+        "scheduler_delay": "NOT_SEPARATELY_CLASSIFIED",
+        "sensor_synchronisation_late_or_missing": 9,
+        "shutdown_boundary": "NOT_SEPARATELY_CLASSIFIED",
+        "split_processing_failure": 0,
+        "warmup_before_first_complete_radar_window": 11
+      },
+      "preparation_stationarity": {
+        "coverage_range": 0.1394422310756972,
+        "quartile_coverage": [
+          0.6679946879150066,
+          0.8074369189907038,
+          0.7742363877822045,
+          0.7745358090185677
+        ],
+        "quartile_median_queue_wait_ms": [
+          583.0087391659617,
+          444.59661142900586,
+          536.5588683634996,
+          492.45039420202374
+        ],
+        "stationary": true
+      },
+      "reconciliation": []
+    },
+    {
+      "aoi_growth": {
+        "monotone_fraction": 0.6190476190476191,
+        "quartile_median_aoi_ms": [
+          9223.405718803406,
+          3506.1250925064087,
+          3293.5855388641357,
+          3999.5962381362915
+        ],
+        "samples": 64
+      },
+      "funnel": {
+        "action_id": 20,
+        "cell_id": "a20__fade_recovery",
+        "network_profile_id": "FADE_RECOVERY",
+        "prepare_status_counts": {
+          "DROPPED_INCOMPLETE_RADAR_WINDOW": 1,
+          "DROPPED_QUEUE_FULL": 1087,
+          "SENT": 2492,
+          "WARMUP_NO_COMPLETE_RADAR_WINDOW": 15
+        },
+        "profile_id": "split_ae128_uint8_q5000",
+        "route_span_s": 454.8064155578613,
+        "route_ticks": 7190,
+        "s01_preparation_opportunities": 3595,
+        "s02_eligible_preparation_frames": 3580,
+        "s03_prepared_queue_admissions": 2508,
+        "s04_preparation_starts": 2508,
+        "s05_radar_complete_frames": 2492,
+        "s06_encoded_frames": 2492,
+        "s07_feature_messages_sent": 2492,
+        "s08_feature_datagrams_sent": 241800,
+        "s09_feature_datagrams_observed_at_receiver": "UNAVAILABLE",
+        "s09b_feature_datagrams_in_surviving_messages": 6198,
+        "s09c_surviving_messages_with_datagram_count_mismatch": 0,
+        "s09d_duplicate_feature_datagrams": 0,
+        "s10_edge_fully_reassembled_messages_lower_bound": 1036,
+        "s11_incomplete_or_expired_reassemblies": "UNAVAILABLE",
+        "s12_edge_queue_admissions": "NOT_INSTRUMENTED_NO_APPLICATION_QUEUE",
+        "s12b_edge_queue_drops": "NOT_INSTRUMENTED_NO_APPLICATION_QUEUE",
+        "s13_tail_starts_lower_bound": 1036,
+        "s14_tail_completions_lower_bound": 1036,
+        "s15_result_publications_lower_bound": 1036,
+        "s16_result_datagrams_sent": "UNAVAILABLE",
+        "s16b_median_result_datagrams_per_message": 102.0,
+        "s17_result_messages_ingested_at_ue": 64,
+        "s18_maps_installed": 64,
+        "s19_feedback_emitted": 64,
+        "s20_feedback_received_within_ack_timeout": 0,
+        "s20b_feedback_received_after_ack_timeout": 64,
+        "s21_installs_within_service_deadline": 0,
+        "terminal_feedback_outcomes": {
+          "TIMEOUT_NO_ACK": 2492
+        }
+      },
+      "intervals": {
+        "capture_to_feedback_receipt_ms": {
+          "clock_domain": "host_wall_clock_time_time_s",
+          "maximum": 12342.20552444458,
+          "median": 4001.2454986572266,
+          "missing": 0,
+          "p95": 12017.477989196777,
+          "samples": 64
+        },
+        "capture_to_installation_aoi_ms": {
+          "clock_domain": "host_wall_clock_time_time_s",
+          "maximum": 12342.136144638062,
+          "median": 3999.5962381362915,
+          "missing": 0,
+          "p95": 12017.402648925781,
+          "samples": 64
+        },
+        "cross_domain_residual_wall_aoi_minus_perf_round_trip_ms": {
+          "clock_domain": "cross_check",
+          "maximum": 1300.611678768677,
+          "median": 789.4509436237793,
+          "missing": 0,
+          "p95": 1108.0141248193358,
+          "samples": 64
+        },
+        "edge_ae_decode_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 17.55573,
+          "median": 2.7767825,
+          "missing": 0,
+          "p95": 8.089436,
+          "samples": 64
+        },
+        "edge_frozen_tail_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 751.959669,
+          "median": 162.6701905,
+          "missing": 0,
+          "p95": 475.1411,
+          "samples": 64
+        },
+        "edge_output_serialization_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 181.206291,
+          "median": 22.5970715,
+          "missing": 0,
+          "p95": 93.570892,
+          "samples": 64
+        },
+        "edge_total_edge_processing_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 1035.221682,
+          "median": 381.63705100000004,
+          "missing": 0,
+          "p95": 833.303567,
+          "samples": 64
+        },
+        "edge_unpack_dequantize_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 284.196599,
+          "median": 183.38516750000002,
+          "missing": 0,
+          "p95": 260.276732,
+          "samples": 64
+        },
+        "edge_zstd_decompression_ms": {
+          "clock_domain": "edge_container_perf_counter_ns",
+          "maximum": 2.698164,
+          "median": 1.011752,
+          "missing": 0,
+          "p95": 2.337899,
+          "samples": 64
+        },
+        "encoding_complete_to_ue_send_complete_ms": {
+          "clock_domain": "ue_process_perf_counter_ns",
+          "maximum": 20.092948,
+          "median": 0.5505125,
+          "missing": 0,
+          "p95": 2.449682,
+          "samples": 2492
+        },
+        "feedback_emission_to_feedback_receipt_ms": {
+          "clock_domain": "host_wall_clock_time_time_s",
+          "maximum": 30.587434768676758,
+          "median": 0.09775161743164062,
+          "missing": 0,
+          "p95": 5.183219909667969,
+          "samples": 64
+        },
+        "installation_to_feedback_emission_ms": {
+          "clock_domain": "host_wall_clock_time_time_s",
+          "maximum": 1.3318061828613281,
+          "median": 0.01049041748046875,
+          "missing": 0,
+          "p95": 0.013589859008789062,
+          "samples": 64
+        },
+        "preparation_start_to_encoding_complete_ms": {
+          "clock_domain": "ue_process_perf_counter_ns",
+          "maximum": 345.162497,
+          "median": 28.8989755,
+          "missing": 0,
+          "p95": 55.343425,
+          "samples": 2492
+        },
+        "ue_send_complete_to_result_received_round_trip_ms": {
+          "clock_domain": "ue_process_perf_counter_ns",
+          "maximum": 12049.235079,
+          "median": 3022.186232,
+          "missing": 0,
+          "p95": 11699.104169,
+          "samples": 64
+        },
+        "world_tick_schedule_to_preparation_start_ms": {
+          "clock_domain": "ue_process_perf_counter_ns",
+          "maximum": 1395.4586200416088,
+          "median": 680.6995440274477,
+          "missing": 0,
+          "p95": 1023.228719830513,
+          "samples": 2492
+        }
+      },
+      "payload": {
+        "complete_message_rate_at_edge": 0.4157303370786517,
+        "edge_admission_rate": "IDENTICAL_TO_complete_message_rate_at_edge: the edge has no admission stage separate from completing a reassembly, so admission and complete-message arrival are one event",
+        "edge_service_rate_hz_lower_bound": 2.277892229662706,
+        "installation_rate": 0.025682182985553772,
+        "median_application_envelope_bytes": 1206898.5,
+        "median_feature_datagrams_per_frame": 97.0,
+        "median_result_bytes_upper_bound": 1274184.0,
+        "median_result_datagrams_per_message": 102.0,
+        "median_scientific_inner_bytes": 1206694.5,
+        "median_udp_application_bytes": 1207674.5,
+        "offered_downlink_mbytes_per_s_upper_bound": 2.9024538327605454,
+        "offered_uplink_mbytes_per_s": 6.617155675582423,
+        "result_survival_rate_edge_to_ue": 0.06177606177606178,
+        "tail_completion_rate": 0.4157303370786517,
+        "timely_feedback_rate": 0.0
+      },
+      "preparation_attribution": {
+        "bounded_preparation_queue_overflow": 1087,
+        "evaluator_or_gt_work": "NOT_SEPARATELY_CLASSIFIED",
+        "front_inference_or_encoding_throughput": "NOT_SEPARATELY_CLASSIFIED",
+        "missing_or_incomplete_radar_window": 1,
+        "scheduler_delay": "NOT_SEPARATELY_CLASSIFIED",
+        "sensor_synchronisation_late_or_missing": 0,
+        "shutdown_boundary": "NOT_SEPARATELY_CLASSIFIED",
+        "split_processing_failure": 0,
+        "warmup_before_first_complete_radar_window": 15
+      },
+      "preparation_stationarity": {
+        "coverage_range": 0.15059544012030202,
+        "quartile_coverage": [
+          0.6146993318485523,
+          0.7652947719688543,
+          0.7130144605116796,
+          0.6796440489432704
+        ],
+        "quartile_median_queue_wait_ms": [
+          746.3045539334416,
+          601.0596426203847,
+          674.2900256067514,
+          741.9363642111421
+        ],
+        "stationary": true
+      },
+      "reconciliation": []
+    }
+  ],
+  "clock_discipline": {
+    "cross_check": "Wall-clock capture->install AoI minus UE-perf send->result round trip has per-cell medians spanning 287-861 ms across 12 cells. That residual is exactly the unmeasured capture->send head. It is computed on the installed subset only (24-109 frames per cell), so it is noisier than the full-population head, but it sits in the same 0.3-0.9 s band as the independently measured prepared-queue wait (per-cell medians 513-684 ms) plus front time (16-39 ms), and it is two to three orders of magnitude smaller than the 3 s-110 s AoI spread that the two clocks independently agree on. A constant offset, drift, unit mismatch or timestamp reuse large enough to manufacture that spread would necessarily show up in this residual, and does not. No timestamp was corrected post hoc.",
+    "domains": [
+      {
+        "domain": "ue_process_perf_counter_ns",
+        "fields": "capture_started_ns, ue_prepare_finished_ns, send_finished_ns, edge_result_received_ns, queue_wait_ms \u2014 one process, differences valid"
+      },
+      {
+        "domain": "edge_container_perf_counter_ns",
+        "fields": "edge_timing_ns stage boundaries, edge_received_ns, tail_finished_ns \u2014 separate container process; only intra-domain DURATIONS are used"
+      },
+      {
+        "domain": "host_wall_clock_time_time_s",
+        "fields": "capture_at, service_deadline_at, install_timestamp, feedback_emit_at, feedback_received_at, ack_timeout_at \u2014 all time.time() on the one physical host (the map server is a local subprocess bound to 127.0.0.1), so differences are valid"
+      }
+    ],
+    "unavailable": {
+      "complete_edge_receive_to_edge_processing_start": "live_pilot_runtime.run_edge_service calls edge.process() on the same statement that stamps edge_received_ns; the two instants are not separately recorded.",
+      "edge_queue_wait": "No application-level edge queue exists in source. Feature datagrams wait only in the kernel SO_RCVBUF, which is not instrumented and emits no drop counter.",
+      "feature_datagrams_observed_at_receiver": "feature_received_datagrams is carried inside the edge result, so it exists only for messages that both completed at the edge and returned intact to the UE.",
+      "incomplete_or_expired_feature_reassemblies": "ChunkReassembler.expired_messages is never exported by either endpoint, and a feature message that never completes produces no record anywhere.",
+      "result_publication_to_ue_ingestion": "Publication is edge_container_perf_counter_ns, UE ingestion is ue_process_perf_counter_ns; offset unproven.",
+      "tail_completion_to_result_publication": "tail_finished_ns is edge_container_perf_counter_ns and is not retained in per_frame_metrics.csv; the publication instant is not stamped at all.",
+      "ue_ingestion_to_installation": "UE ingestion is ue_process_perf_counter_ns, installation is host_wall_clock_time_time_s; offset unproven. The wall-clock capture->installation AoI is reported instead.",
+      "ue_send_to_complete_edge_receive": "Same unproven ue_process_perf_counter_ns -> edge_container_perf_counter_ns offset; only the UE-observed round trip is computable.",
+      "ue_send_to_first_edge_receive": "UE send uses ue_process_perf_counter_ns; the only edge receive timestamp (edge_received_ns) uses edge_container_perf_counter_ns. No pairing event is recorded in both domains, so the offset is unproven."
+    }
+  },
+  "conclusion": "ROOT_CAUSE_LOCALIZED",
+  "evidence_verification": {
+    "all_verified": true,
+    "campaign_terminal_present": true,
+    "campaign_terminal_sha256": "648d1dda647e81e8291510012a58edb46f55d49108450bb89ba08f3e939c47ff",
+    "chain_of_custody": "artifact_manifest.json (committed) -> cell_summary.csv -> attempt_manifest_sha256 -> per-cell manifest.json -> untracked per-cell CSVs",
+    "checks_run": 133,
+    "mismatches": [],
+    "pilot_manifest_sha256": "efd7925697ea4d70a9372e86bfe66a72645b140aeaa193fbf48c2fe775474e47",
+    "qualification_sha256": "3c31d81c2bb9b18a93f4968daaaaa831d82e3a414f73e021acac0e51aff6c311",
+    "report_sha256": "d38cf1459d292f2dd142c19418d85805a221f36b049947d399e16a170dd51336"
+  },
+  "follow_up_measurement": "Two cells only \u2014 actions **20** (`split_ae128_uint8_q5000`) and **71** (`split_ae32_uint4_q9800`) under **FAVORABLE_STABLE**, one route each \u2014 with the mask removed from the result path, an explicit bounded latest-frame-first edge queue, deadline-based discard, and the two new loss counters. Those two actions bracket the payload range by ~190x and are the two extremes of the observed inverse AoI ordering, so they are jointly sufficient to falsify the fix. The predicted direction and magnitude, to be pre-registered by Abiodun before the run rather than set by this audit, is: installed-frame AoI for the two actions converges to within roughly one edge service period instead of differing by ~30x; result survival rises by more than an order of magnitude from the measured <=8% upper bound; and AoI stops growing monotonically through the route for action 71. A second 16-cell pilot is NOT requested and would add no discriminating power until this two-cell probe settles the mechanism.",
+  "funnel_reconciliation_problems": [],
+  "hypotheses": {
+    "H1_large_feature_messages_fail_multi_datagram": {
+      "evidence": "Action 0 sends 288.0 datagrams/frame and produced 0 installs in 4/4 cells, while action 71 sends 1.0 datagram/frame yet still reached the edge on only 0.468 of sent frames. Fragment count therefore explains action 0 but cannot explain the 0.36-0.46 edge completion rate shared by actions 20, 46 and 71 across a 190x payload range.",
+      "verdict": "CONFIRMED_FOR_ACTION_0_CONTRADICTED_AS_GENERAL_CAUSE"
+    },
+    "H2_small_messages_overload_downstream_fifo": {
+      "evidence": "The edge is a single blocking recvfrom loop with no application queue, so the kernel SO_RCVBUF (16,777,216 reported bytes) is the only buffer and it is bounded in BYTES, not frames. Median capture->install AoI orders strictly inversely with payload: {0: None, 20: 3889, 46: 33905, 71: 110237} ms for actions 0/20/46/71 at 3.59 MB / 1.21 MB / 100 kB / 6.4 kB per frame. Per-action median AoI monotone fraction {0: None, 20: 0.59, 46: 0.77, 71: 0.97}: action 71 AoI rises almost strictly monotonically through its route (never saturating inside ~430 s), while actions 20 and 46 plateau at a fixed backlog depth. That is the signature of a FIFO whose depth in frames, not in bytes, sets the delay.",
+      "verdict": "CONFIRMED"
+    },
+    "H3_expired_frames_keep_consuming_work": {
+      "evidence": "`service_deadline_at`/`ack_timeout_at` occur in the runtime only where a CSV row is labelled (`ue_map_install_feedback_v1.py:148` and `:198`) and where the capture deadline is first computed (`ue_route_b_split_cell_adapter_v1.py:1084`). They appear nowhere in `live_pilot_runtime.py` or the map server, so no edge admission, tail, publication or install step is ever gated on them. Installed frames carry median AoI up to 110237 ms against a 500 ms ack timeout, so post-timeout work is measured, not merely possible.",
+      "verdict": "CONFIRMED"
+    },
+    "H4_result_downlink_is_the_bottleneck": {
+      "evidence": "The median result message is 102-103 datagrams in every cell (per-message range 101-105), regardless of action, because the payload is a base64 720x1280 uint8 label map. Across all 16 cells the edge is directly observed to have tail-completed at least 11,183 frames while only 747 results returned intact to the UE. Because the edge counters are LOWER bounds, the per-action survival rates {0: None, 20: 0.0595, 46: 0.0694, 71: 0.0607} are UPPER bounds: the true result-path survival is at most ~7% and may be lower. The uplink cannot explain this, because the same bound holds for action 71, whose feature is a single datagram.",
+      "verdict": "CONFIRMED"
+    },
+    "H5_tail_on_unintended_device_or_high_latency": {
+      "evidence": "reconstructed_device is ['cuda:0'] on every decoded frame and edge ready.json declares tail_device cuda:0, so the device is the intended one. Median frozen_tail is {0: None, 20: 177.2, 46: 169.7, 71: 182.5} ms by action, which alone caps the edge below 6 Hz against a 10 Hz offer.",
+      "verdict": "CONTRADICTED_ON_DEVICE_CONFIRMED_ON_LATENCY"
+    },
+    "H6_timestamp_domain_mismatch_creates_artificial_latency": {
+      "evidence": "Wall-clock capture->install AoI and UE-perf send->result round trip are measured on two independent clocks. Their per-frame residual is the unmeasured capture->send head, and its per-cell medians span 287-861 ms across 12 cells (computed on the installed subset only, so it is noisier than the full-population head). That is the same order as the independently measured prepared-queue wait plus front time, and two to three orders of magnitude below the 3 s-110 s AoI spread the two clocks agree on. A domain offset, drift, unit error or timestamp reuse large enough to manufacture that spread would have to appear in this residual and does not. No timestamp was corrected post hoc.",
+      "verdict": "CONTRADICTED"
+    },
+    "H7_evaluation_work_reduces_preparation_coverage": {
+      "evidence": "ue_route_b_split_cell_adapter_v1._process_token calls _ground_truth on the single preparation worker thread after send, and _feedback_worker/_segmentation_worker run further GT and mask work in the same interpreter. Measured preparation_start->encoding_complete is only 16-39 ms while the achieved worker period implied by coverage is ~135-150 ms, so ~110-120 ms per frame is spent outside split inference. No per-stage timer separates GT from radar/image assembly.",
+      "verdict": "STRONGLY_SUPPORTED_MAGNITUDE_UNRESOLVED"
+    },
+    "H8_radar_sync_or_scheduling_causes_most_prepared_drops": {
+      "evidence": "Of 14697 classified preparation losses, 14539 (98.93%) are DROPPED_QUEUE_FULL, 142 (0.97%) are DROPPED_SENSOR_LATE_OR_MISSING and 16 (0.11%) are DROPPED_INCOMPLETE_RADAR_WINDOW. Radar synchronisation accounts for roughly one percent of preparation loss.",
+      "verdict": "CONTRADICTED"
+    }
+  },
+  "inference": [
+    "The edge socket receive buffer is bounded in bytes (16,777,216 reported), not in frames, so its depth in FRAMES is inversely proportional to payload size: ~4.7 frames at action 0's 3.59 MB, ~14 at action 20's 1.21 MB, ~167 at action 46's 100 kB and ~2,620 at action 71's 6.4 kB. With a measured edge service rate of only 2.2-3.1 Hz against a ~6-7 Hz offer, backlog accumulates until the buffer saturates, and the saturated backlog delay is (buffer frames / service rate). That predicts a few seconds for action 20, tens of seconds for action 46, and a backlog that cannot saturate inside a ~430 s route for action 71 \u2014 which is exactly the measured ordering and exactly the measured monotone AoI growth for action 71.",
+    "The inverse latency ordering is therefore REAL and mechanistic, not a clock artifact and not a property of the radio: a smaller payload buys more admitted frames, and every admitted frame is served FIFO from an ever-older backlog.",
+    "Action 0's zero installs are consistent with uplink fragment loss: 288 datagrams/frame at ~6 frames/s is ~196 Mbps offered on the uplink, far above the registered 100 MHz 4D5U profile, and one lost fragment of 288 destroys the message. A weaker but independent bound: if action 0's edge had completed as many frames as action 20's (419-1036), then at action 20's measured ~6% result survival rate the probability of observing zero returned results across four cells is negligible. Action 0 almost certainly failed on the uplink, not on the downlink \u2014 but see the unresolved list, because no edge-side evidence survives for it.",
+    "The 100 ms service deadline is unreachable before the network is even reached. The prepared-queue wait alone has per-cell medians of 513-684 ms, and the front adds 16-39 ms, so a frame is already 0.5-0.7 s old at the instant the UE finishes sending it. Even a zero-latency transport and a zero-latency edge could not have produced a single on-deadline install in this pilot. This is measured on one clock inside one process and does not depend on any cross-domain assumption.",
+    "Preparation coverage of 0.67-0.76 follows arithmetically from a single-threaded worker serving ~7.4 frames/s against a 10 Hz opportunity stream through a depth-4 FIFO. Split inference accounts for only 16-39 ms of that ~135-150 ms worker period."
+  ],
+  "localized_bottleneck_stage": "stage 15-17: result publication and downlink delivery of the ~1.23 MB / ~102-datagram edge result, compounded by a byte-bounded kernel FIFO at the edge (stage 12) that makes installed-frame AoI grow inversely with feature payload, and preceded by a UE preparation head (stages 4-7) that alone exceeds the 100 ms service deadline",
+  "per_action": [
+    {
+      "action_id": 0,
+      "edge_tail_completions_lower_bound": 0,
+      "installation_rate": 0.0,
+      "installs": 0,
+      "median_aoi_ms": null,
+      "median_feature_datagrams_per_frame": 288.0,
+      "median_result_datagrams_per_message": null,
+      "median_udp_application_bytes": 3593209.75,
+      "profile_id": "split_noae_uint8_q0000",
+      "result_survival_rate": null,
+      "results_at_ue": 0,
+      "sent": 8741,
+      "tail_completion_rate": 0.0,
+      "timely_feedback": 0
+    },
+    {
+      "action_id": 20,
+      "edge_tail_completions_lower_bound": 3142,
+      "installation_rate": 0.021631000578369,
+      "installs": 187,
+      "median_aoi_ms": 3889.4633650779724,
+      "median_feature_datagrams_per_frame": 97.0,
+      "median_result_datagrams_per_message": 102.0,
+      "median_udp_application_bytes": 1207652.75,
+      "profile_id": "split_ae128_uint8_q5000",
+      "result_survival_rate": 0.059516231699554424,
+      "results_at_ue": 187,
+      "sent": 8645,
+      "tail_completion_rate": 0.3634470792365529,
+      "timely_feedback": 0
+    },
+    {
+      "action_id": 46,
+      "edge_tail_completions_lower_bound": 3693,
+      "installation_rate": 0.030382801360096523,
+      "installs": 277,
+      "median_aoi_ms": 33905.14022111893,
+      "median_feature_datagrams_per_frame": 9.0,
+      "median_result_datagrams_per_message": 102.0,
+      "median_udp_application_bytes": 100190.0,
+      "profile_id": "split_ae64_uint6_q9000",
+      "result_survival_rate": 0.07500676956404008,
+      "results_at_ue": 277,
+      "sent": 9117,
+      "tail_completion_rate": 0.40506745640013164,
+      "timely_feedback": 0
+    },
+    {
+      "action_id": 71,
+      "edge_tail_completions_lower_bound": 4348,
+      "installation_rate": 0.030212447955588768,
+      "installs": 283,
+      "median_aoi_ms": 110237.3286485672,
+      "median_feature_datagrams_per_frame": 1.0,
+      "median_result_datagrams_per_message": 103.0,
+      "median_udp_application_bytes": 6420.0,
+      "profile_id": "split_ae32_uint4_q9800",
+      "result_survival_rate": 0.06508739650413983,
+      "results_at_ue": 283,
+      "sent": 9367,
+      "tail_completion_rate": 0.4641827692964663,
+      "timely_feedback": 0
+    }
+  ],
+  "preparation_losses": {
+    "classified": {
+      "bounded_preparation_queue_overflow": 14539,
+      "missing_or_incomplete_radar_window": 16,
+      "sensor_synchronisation_late_or_missing": 142,
+      "split_processing_failure": 0
+    },
+    "stationary_in_every_cell": true,
+    "total_classified": 14697,
+    "warmup_excluded": 153
+  },
+  "remediation": [
+    "Take the segmentation mask off the deployment downlink WITHOUT losing it. `semantic_labels_b64` makes every result ~1.23 MB in ~102 datagrams for every action, and that fixed cost is what destroys installed-frame delivery. The mask is evaluation-only evidence, and the edge already has a writable state mount (`/work/torch_cache`), so it can be persisted edge-side and correlated offline by frame_id while only the object records travel the downlink. This preserves segmentation evidence coverage and the measurement contract; it must not be implemented as simply deleting the mask.",
+    "Make the edge non-blocking: drain `recvfrom` on a dedicated thread into an explicit bounded, latest-frame-first queue with a classified drop counter, so the kernel byte-buffer stops acting as a hidden unbounded FIFO and the payload-inverse AoI ordering disappears.",
+    "Enforce the deadline. Carry `capture_timestamp_ns` (already in the SFD1 v2 envelope) into an explicit obsolescence test at edge admission, before the tail, and at map install, and count each discard. Today nothing reads the deadline, so 100% of the edge's work after the first few seconds is spent on frames that can never be timely.",
+    "Move evaluation-only ground truth off the preparation worker onto its own bounded queue, and add a per-stage timer so preparation coverage loss becomes attributable rather than inferred.",
+    "Instrument the two blind stages: export `ChunkReassembler.expired_messages` and per-message expected/received datagram counts at both endpoints, and add a result-path sender counter. Without these, uplink loss and buffer overflow remain permanently inseparable.",
+    "Re-derive the 100 ms `service_deadline_ms` only after the 0.5-0.7 s capture->send head is fixed; the threshold itself is not the defect and must not be relaxed to manufacture a pass."
+  ],
+  "schema": "scenesense.splitfusion_phase15_retry4_latency_audit.v1",
+  "scope": "offline_forensic_audit_read_only_no_experiment_executed",
+  "source_facts": [
+    "`ue_route_b_split_cell_adapter_v1.py:784` \u2014 `prepared_queue` is a FIFO `queue.Queue(maxsize=4)`. `on_world_tick` uses `put_nowait` and classifies overflow as `DROPPED_QUEUE_FULL`. There is no latest-frame-first policy: the oldest queued frame is always served first.",
+    "`ue_route_b_split_cell_adapter_v1.py:1006-1026` \u2014 exactly **one** worker thread drains that queue, and `_process_token` runs radar-window assembly, radar rasterisation, front inference, encode, send **and** the evaluation-only `_ground_truth` call serially on it.",
+    "`ue_route_b_split_cell_adapter_v1.py:1084-1085` \u2014 `service_deadline_at` and `ack_timeout_at` are computed here and then only ever written into rows or compared to label a row `late` (`ue_map_install_feedback_v1.py:148` and `:198`). Neither identifier occurs anywhere in `live_pilot_runtime.py` or the map server, so no edge admission, decode, tail, publication or install step is gated on the deadline. A 500 ms timeout cancels and obsoletes nothing.",
+    "`splitfusion_live_dispatch_v1/live_pilot_runtime.py:440-475` \u2014 the edge is a single blocking `recvfrom` loop; reassembly, decode, frozen tail, label copy, base64, JSON and 100+ `sendto` calls all run inline. While one frame is processed the socket is not drained, so the only buffer is the kernel SO_RCVBUF.",
+    "`splitfusion_live_dispatch_v1/live_pilot_runtime.py:473` \u2014 every result carries `semantic_labels_b64`, a base64 720x1280 uint8 mask, so the result message is ~1.23 MB for **every** action, independent of the feature payload it answers.",
+    "`phase2_map_sharing/transport.py:39-101` \u2014 `ChunkReassembler` is all-or-nothing with a 2 s timeout and no retransmission (`runtime.retransmission = false`). One lost datagram destroys the whole message and the loss is never counted at either endpoint.",
+    "`splitfusion_live_dispatch_v1/live_pilot_runtime.py:331-357` \u2014 the UE result loop is also a single thread, and it performs a 1.23 MB base64 decode, a 921,600-byte `np.save` to disk and a zlib compression per result before returning to `recvfrom`. Result delivery is serialised and blocking.",
+    "`uplink_only_spatial_map_pipeline/spatial_map_server_moving_ego_uplink_only_baseline.py:1713` \u2014 install and `_emit_install_feedback` are unconditional; the map server never inspects a deadline.",
+    "`rl_agent/ue_map_install_feedback_v1.py:192` \u2014 `record_expired` does not remove the capture from `pending`, so a capture receives a `TIMEOUT_NO_ACK` terminal row at capture+500 ms and a later ACK is appended as a second, non-terminal, `late=True` diagnostic row. The 100% `TIMEOUT_NO_ACK` terminal distribution alongside non-zero `ack_installed_frames` is therefore correct accounting, not a defect.",
+    "Edge `ready.json` declares `tail_device: cuda:0` and every decoded frame reports `reconstructed_device = cuda:0`. The tail ran on the intended device."
+  ],
+  "totals": {
+    "edge_tail_completions_lower_bound": 11183,
+    "installs": 747,
+    "installs_within_service_deadline": 0,
+    "results_at_ue": 747,
+    "sent": 35870,
+    "timely_feedback": 0
+  },
+  "unresolved": [
+    "How many feature datagrams actually arrived at the edge. Neither endpoint exports `ChunkReassembler.expired_messages`, and a message that never completes leaves no record, so uplink radio loss cannot be separated from kernel-socket-buffer overflow at the edge.",
+    "How many result datagrams the edge actually sent and how many arrived. The result path has no sender-side counter and no per-datagram receipt record, so the measured 3-6% result survival cannot be decomposed into downlink radio loss versus UE receive-buffer overflow versus UE result-loop blocking.",
+    "Whether action 0 ever completed a single message at the edge. No result returned, and every edge-side counter travels only inside a returned result, so action 0 has no edge-side evidence whatsoever.",
+    "The split between evaluation-only ground-truth work and radar/image assembly inside the ~110-120 ms of non-split worker time. `_process_token` has no per-stage timer around `_ground_truth`.",
+    "Whether the ~180 ms median frozen-tail latency is inherent to the tail or reflects GPU contention with the co-resident UE front on the same cuda:0 device. Nothing records GPU occupancy or per-process utilisation."
+  ]
+}

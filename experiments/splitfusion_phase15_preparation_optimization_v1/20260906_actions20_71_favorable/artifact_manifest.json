@@ -1,0 +1,30 @@
+{
+  "files": [
+    {
+      "bytes": 3181,
+      "path": "run_manifest.json",
+      "sha256": "3fe0446530b2c1eb19d21003ec26b30b0bb93c3a0fb4c205b2cef028d677b3fd"
+    },
+    {
+      "bytes": 1027,
+      "path": "campaign_ledger.json",
+      "sha256": "9b5a2da9e2a8401631adffff9c8c6681144df31cfc98b70f56828670f7a49192"
+    },
+    {
+      "bytes": 29146,
+      "path": "qualification.json",
+      "sha256": "cbf173d05084410d74060b1e01dfb4397c49749509291b2e9a88947896931070"
+    },
+    {
+      "bytes": 2721,
+      "path": "cell_summary.csv",
+      "sha256": "8b35f4b6edf06131ef942bc9d8e50373dfb07ac0c1c4a2e01629aeeeff392de3"
+    },
+    {
+      "bytes": 1267,
+      "path": "REPORT.md",
+      "sha256": "fae8384b98443044bc612e3608f7907d1336a88239780aaaf31589973ff45b5b"
+    }
+  ],
+  "schema": "scenesense.splitfusion_phase15_preparation_artifacts.v1"
+}

@@ -9,6 +9,8 @@ from datetime import datetime
 from pathlib import Path
 from unittest import mock
 
+import rl_agent.splitfusion_phase14a_100mhz_calibration_v1 as phase14a
+import rl_agent.splitfusion_phase14b_four_profile_replay_v1 as phase14b
 import rl_agent.ue_n2_oai_ul_calibration_smoke as n2
 
 
@@ -78,6 +80,158 @@ class UEN2OwnedRunnerTests(unittest.TestCase):
 
     def runner(self, name: str = "run") -> n2.Runner:
         return n2.Runner(n2.DEFAULT_CONFIG, self.root / name)
+
+    def test_phase14b_frozen_prefix_lifecycle_and_no_burst(self) -> None:
+        config = phase14b.load_json(phase14b.DEFAULT_CONFIG)
+        provenance = phase14b.verify_provenance(phase14b.DEFAULT_CONFIG)
+        self.assertEqual(
+            provenance["mapping_sha256"],
+            "841ee69e53d7325570652a0f4baa7ae7f554a2204c4e775ce963a064cabd2677",
+        )
+        prepared = phase14b.prepare_frozen_profiles(config)
+        self.assertEqual(
+            [row["profile_id"] for row in prepared],
+            list(phase14b.PROFILE_ORDER),
+        )
+        for row in prepared:
+            self.assertEqual(len(row["prefix"]), 4200)
+            self.assertEqual(
+                row["trace_sha256"],
+                next(
+                    frozen["trace_sha256"]
+                    for frozen in config["profiles"]
+                    if frozen["profile_id"] == row["profile_id"]
+                ),
+            )
+            self.assertNotEqual(row["continuation"], row["prefix"][0])
+            self.assertNotEqual(row["continuation"], row["prefix"][-1])
+
+        radio_namespace = phase14b.resolve_radio_namespace(
+            config,
+            Path("experiments/splitfusion_oai_100mhz_4d5u_v1/focused_lifecycle_test"),
+        )
+        lifecycle = phase14b.profile_lifecycle_plan(config, radio_namespace)
+        self.assertEqual(len(lifecycle), 4)
+        self.assertEqual(len({row["radio_state_path"] for row in lifecycle}), 4)
+        self.assertTrue(all(row["requires_cold_start"] for row in lifecycle))
+        self.assertTrue(all(row["fresh_qualified_gnb_topology"] for row in lifecycle))
+        self.assertTrue(all(row["fresh_qualified_ue_topology"] for row in lifecycle))
+        self.assertTrue(all(row["fresh_traffic_process"] for row in lifecycle))
+        self.assertTrue(all(row["counters_sequence_timing_and_parser_state_reset"] for row in lifecycle))
+        self.assertTrue(all(row["generator_start_index"] == 0 for row in lifecycle))
+        self.assertTrue(all(row["settings"] == 4200 for row in lifecycle))
+        self.assertTrue(all(row["durable_record_after_full_teardown_only"] for row in lifecycle))
+        self.assertTrue(config["durability"]["resume_reuses_only_complete_atomic_profile_records"])
+        self.assertEqual(phase14b.SUCCESS_TERMINAL, "SPLITFUSION_PHASE14B_FOUR_PROFILE_REPLAY_COMPLETE")
+
+        period = 100_000_000
+        first = phase14b.plan_scheduler_action(
+            scheduled_ns=1_000_000_000,
+            period_ns=period,
+            now_ns=1_000_000_000,
+            previous_send_ns=None,
+        )
+        delayed = phase14b.plan_scheduler_action(
+            scheduled_ns=1_100_000_000,
+            period_ns=period,
+            now_ns=1_100_000_000,
+            previous_send_ns=1_050_000_000,
+        )
+        obsolete = phase14b.plan_scheduler_action(
+            scheduled_ns=1_200_000_000,
+            period_ns=period,
+            now_ns=1_300_000_000,
+            previous_send_ns=1_150_000_000,
+        )
+        self.assertEqual(first["eligible_send_ns"], 1_000_000_000)
+        self.assertEqual(delayed["eligible_send_ns"], 1_150_000_000)
+        self.assertGreaterEqual(
+            delayed["eligible_send_ns"] - 1_050_000_000,
+            period,
+        )
+        self.assertEqual(obsolete["status"], "SKIP_OBSOLETE_NEVER_BURST")
+        self.assertIsNone(obsolete["eligible_send_ns"])
+
+    def test_phase14a_process_topology_accepts_one_forked_service(self) -> None:
+        expected = Path("/opt/oai/nr-softmodem")
+        rows = [
+            {
+                "pid": 10,
+                "ppid": 1,
+                "process_group_id": 10,
+                "session_id": 10,
+                "command_name": "nr-softmodem",
+                "executable": "/usr/bin/sudo",
+                "command": "sudo nr-softmodem",
+            },
+            {
+                "pid": 11,
+                "ppid": 10,
+                "process_group_id": 10,
+                "session_id": 10,
+                "command_name": "nr-softmodem",
+                "executable": "/usr/bin/bash",
+                "command": "bash nr-softmodem",
+            },
+            {
+                "pid": 12,
+                "ppid": 11,
+                "process_group_id": 10,
+                "session_id": 10,
+                "command_name": "nr-softmodem",
+                "executable": str(expected),
+                "command": str(expected),
+            },
+            {
+                "pid": 13,
+                "ppid": 12,
+                "process_group_id": 10,
+                "session_id": 10,
+                "command_name": "nr-softmodem",
+                "executable": str(expected),
+                "command": str(expected),
+            },
+            {
+                "pid": 14,
+                "ppid": 12,
+                "process_group_id": 10,
+                "session_id": 10,
+                "command_name": "nr-softmodem",
+                "executable": str(expected),
+                "command": str(expected),
+            },
+        ]
+        selected = phase14a.select_softmodem_process(
+            rows,
+            command_name="nr-softmodem",
+            expected_executable=expected,
+            service_endpoint_owner_pids={12},
+            tracer_endpoint_owner_pids={14},
+        )
+        self.assertEqual(selected["pid"], 12)
+        self.assertEqual(selected["topology"]["background_system_worker_pid"], 13)
+        self.assertEqual(selected["topology"]["tracer_worker_pid"], 14)
+
+        rows.extend(
+            [
+                {
+                    "pid": pid,
+                    "ppid": ppid,
+                    "process_group_id": 20,
+                    "session_id": 20,
+                    "command_name": "nr-softmodem",
+                    "executable": str(expected),
+                    "command": str(expected),
+                }
+                for pid, ppid in ((20, 1), (21, 20), (22, 20))
+            ]
+        )
+        with self.assertRaisesRegex(phase14a.Phase14AError, "exactly one.*service topology"):
+            phase14a.select_softmodem_process(
+                rows,
+                command_name="nr-softmodem",
+                expected_executable=expected,
+            )
 
     def test_config_freezes_bounded_partial_smoke(self) -> None:
         self.assertEqual(self.config["schedule"]["commanded_noise_plateaus_db"], ["-10", "-8", "-5", "-4"])

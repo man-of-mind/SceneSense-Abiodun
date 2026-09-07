@@ -1,0 +1,153 @@
+{
+  "campaign_id": "splitfusion_16_cell_live_carla_oai_pilot_v1",
+  "cells": {
+    "a00__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a00__adverse_stable/attempts/attempt_0001",
+        "status": "PASSED",
+        "terminal": "cells/a00__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "1cf5b3a9704d15628d269425f1b101629d356fd064911984c101198b47e72214"
+      }
+    ],
+    "a00__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a00__fade_recovery/attempts/attempt_0001",
+        "status": "PASSED",
+        "terminal": "cells/a00__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "9c73ccd4042a593d4239fcf8e7f72e661ad81237e6434750036670514691b530"
+      }
+    ],
+    "a00__favorable_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a00__favorable_stable/attempts/attempt_0001",
+        "status": "PASSED",
+        "terminal": "cells/a00__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "0e7562c4f6cd55d4b179443f5e250c3247fea86bbcacc16e6fc91c2a97268174"
+      }
+    ],
+    "a00__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a00__mid_variable/attempts/attempt_0001",
+        "status": "PASSED",
+        "terminal": "cells/a00__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "15c6721a3809f339c834ee846e605e47a3aab6d8b9837452e72533e533cab667"
+      }
+    ],
+    "a20__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a20__adverse_stable/attempts/attempt_0001",
+        "status": "PASSED",
+        "terminal": "cells/a20__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "e3791d7e48d32ee5bd1c13c4e07f5d319392a2613ec7289b411842f7863d5fa8"
+      }
+    ],
+    "a20__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a20__fade_recovery/attempts/attempt_0001",
+        "status": "PASSED",
+        "terminal": "cells/a20__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "447b636fea45df3371071b7af19b2c1c7123f1640547a8f8877cf8b352be006e"
+      }
+    ],
+    "a20__favorable_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a20__favorable_stable/attempts/attempt_0001",
+        "status": "PASSED",
+        "terminal": "cells/a20__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "97dc295a685ed3767f5ccf081400a6c06b6eacc0a2c28b6ef89fce51340dc825"
+      }
+    ],
+    "a20__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a20__mid_variable/attempts/attempt_0001",
+        "status": "PASSED",
+        "terminal": "cells/a20__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "c0713a3731efe6e51f80d76198402222cd1ae55e9cbf82490a23a4690de8945a"
+      }
+    ],
+    "a46__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a46__adverse_stable/attempts/attempt_0001",
+        "status": "PASSED",
+        "terminal": "cells/a46__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "07afc4ebc5d02a1527182ac6ec71b8392f9a79d1a9d14dc2c0608387120698df"
+      }
+    ],
+    "a46__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a46__fade_recovery/attempts/attempt_0001",
+        "status": "PASSED",
+        "terminal": "cells/a46__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "c0078a879ad7550410b730a134fd3dff4ac33df8298cfc0649c02649ee6a7493"
+      }
+    ],
+    "a46__favorable_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a46__favorable_stable/attempts/attempt_0001",
+        "status": "PASSED",
+        "terminal": "cells/a46__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "f13cee93a6f706f1180a03b06e09f6c071790e3ae3e139eb9b4f04f95e38bf3e"
+      }
+    ],
+    "a46__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a46__mid_variable/attempts/attempt_0001",
+        "status": "PASSED",
+        "terminal": "cells/a46__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "9ec5150cfb2f80c3abef097e2a1755e53a3543b6ac333c428101a35e72e1b8a4"
+      }
+    ],
+    "a71__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a71__adverse_stable/attempts/attempt_0001",
+        "status": "PASSED",
+        "terminal": "cells/a71__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "2979723a078b5b6798e1c9bdb5d9d8a621b5da0008e97da8c864bf9ffe450289"
+      }
+    ],
+    "a71__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a71__fade_recovery/attempts/attempt_0001",
+        "status": "PASSED",
+        "terminal": "cells/a71__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "9fb345a69c94469002ee9af0b6910b3d8e3fde415e6372c11f2d2ffb4994c5e1"
+      }
+    ],
+    "a71__favorable_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a71__favorable_stable/attempts/attempt_0001",
+        "status": "PASSED",
+        "terminal": "cells/a71__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "04a2b50420ff6d9d9076417f03af0a01c2220949d3ca36cccd89e4800e531f6c"
+      }
+    ],
+    "a71__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a71__mid_variable/attempts/attempt_0001",
+        "status": "PASSED",
+        "terminal": "cells/a71__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "8c3566f0eb99c401f2c37d2e9fdd466de48db0582792092635db425344251883"
+      }
+    ]
+  },
+  "config_sha256": "bc8979b7df493af6775798faa7763a3993145413c6c8fd5857b81e2bea8edc52",
+  "created_at_unix_s": 1788679935.928215,
+  "schema": "scenesense.ue_288_campaign_ledger.v1",
+  "updated_at_unix_s": 1788687554.0185103
+}
