@@ -53,43 +53,43 @@ candidate rather than ordinary multiclass classification.
 
 An MDP is commonly written
 
-\[
+$$
 \mathcal{M}=(\mathcal{S},\mathcal{A},P,R,\gamma).
-\]
+$$
 
-- \(s_t\in\mathcal{S}\): the environment state at decision time \(t\).
-- \(a_t\in\mathcal{A}\): the selected action.
-- \(P(s_{t+1}\mid s_t,a_t)\): how the environment evolves.
-- \(R(s_t,a_t,s_{t+1})\): the immediate reward.
-- \(\gamma\in[0,1)\): how strongly future reward matters.
+- $s_t\in\mathcal{S}$: the environment state at decision time $t$.
+- $a_t\in\mathcal{A}$: the selected action.
+- $P(s_{t+1}\mid s_t,a_t)$: how the environment evolves.
+- $R(s_t,a_t,s_{t+1})$: the immediate reward.
+- $\gamma\in[0,1)$: how strongly future reward matters.
 
 The discounted return is
 
-\[
+$$
 G_t=\sum_{k=0}^{\infty}\gamma^k r_{t+k}.
-\]
+$$
 
-A larger \(\gamma\) makes the policy care more about future map freshness and
+A larger $\gamma$ makes the policy care more about future map freshness and
 queue consequences.  It should be related to a physical time horizon, not
 chosen only because `0.99` is common.  For a 100 ms decision interval, a
-continuous-time half-life \(T_{1/2}\) corresponds to
+continuous-time half-life $T_{1/2}$ corresponds to
 
-\[
+$$
 \gamma=2^{-\Delta t/T_{1/2}}.
-\]
+$$
 
-For example, a two-second half-life with \(\Delta t=0.1\) s gives
-\(\gamma\approx0.966\).
+For example, a two-second half-life with $\Delta t=0.1$ s gives
+$\gamma\approx0.966$.
 
 ### 3.2 Policy
 
 A policy is a conditional distribution over actions:
 
-\[
+$$
 \pi_\theta(a_t\mid s_t).
-\]
+$$
 
-The parameters \(\theta\) are the neural-network weights.  During training the
+The parameters $\theta$ are the neural-network weights.  During training the
 policy samples actions so it can explore.  During evaluation it can select the
 highest-probability feasible action or sample under a fixed, reported rule.
 
@@ -97,22 +97,22 @@ highest-probability feasible action or sample under a fixed, reported rule.
 
 The value function is the expected future return from a state:
 
-\[
+$$
 V^\pi(s)=\mathbb{E}_\pi[G_t\mid s_t=s].
-\]
+$$
 
 The action-value function also conditions on the first action:
 
-\[
+$$
 Q^\pi(s,a)=\mathbb{E}_\pi[G_t\mid s_t=s,a_t=a].
-\]
+$$
 
 The advantage asks whether an action is better than the policy's normal choice
 at that state:
 
-\[
+$$
 A^\pi(s,a)=Q^\pi(s,a)-V^\pi(s).
-\]
+$$
 
 PPO uses estimated advantages to increase the probability of actions that did
 better than expected and decrease the probability of actions that did worse.
@@ -124,20 +124,20 @@ scheduler telemetry, previous outcomes, local utilization and a current causal
 sensor/radar summary.  It does not know the next fade, the true unobserved
 object set, or whether the next fragmented message will arrive intact.
 
-A POMDP distinguishes latent state \(s_t\) from observation \(o_t\):
+A POMDP distinguishes latent state $s_t$ from observation $o_t$:
 
-\[
+$$
 o_t\sim O(o_t\mid s_t).
-\]
+$$
 
 The policy should act on causal observation history.  A GRU constructs a
 learned summary
 
-\[
+$$
 h_t=f_\theta(h_{t-1},o_t),
 \qquad
 \pi(a_t\mid h_t).
-\]
+$$
 
 Why recurrence is useful here: an observed SNR of 12 dB can mean something
 different while entering a fade than while recovering from one.  Queue trend,
@@ -173,29 +173,29 @@ turning missing values into zero confuses "not measured" with a real zero.
 
 Let the top-level mode be
 
-\[
+$$
 m_t\in\{\text{SPLIT},\text{LOCAL},\text{SKIP}\}.
-\]
+$$
 
-For `SPLIT`, let \(p_t\in\{0,\ldots,71\}\) be the registered profile.  The
+For `SPLIT`, let $p_t\in\{0,\ldots,71\}$ be the registered profile.  The
 policy factorizes as
 
-\[
+$$
 \pi(a_t\mid h_t)
 =\pi_m(m_t\mid h_t)
 \begin{cases}
 \pi_p(p_t\mid h_t,m_t=\text{SPLIT}), & m_t=\text{SPLIT},\\
 1, & m_t\in\{\text{LOCAL},\text{SKIP}\}.
 \end{cases}
-\]
+$$
 
 For a split action, its log probability is
 
-\[
+$$
 \log\pi(a_t\mid h_t)
 =\log\pi_m(\text{SPLIT}\mid h_t)
 +\log\pi_p(p_t\mid h_t,\text{SPLIT}).
-\]
+$$
 
 This is more faithful than one opaque flat label because the first decision is
 *where or whether to compute*, while the second is *how to encode a split
@@ -210,18 +210,18 @@ latency, energy and quality measurements.
 ## 7. What “continuous ROI” means in this project
 
 The project's q knob is not an arbitrary image crop or a learned rectangular
-ROI.  The stable ranker orders \(N=112\times192=21{,}504\) feature cells.  The
+ROI.  The stable ranker orders $N=112\times192=21{,}504$ feature cells.  The
 codec drops
 
-\[
+$$
 D(q)=\operatorname{round}(qN)
-\]
+$$
 
 lowest-ranked cells and keeps
 
-\[
+$$
 K(q)=N-D(q).
-\]
+$$
 
 Examples:
 
@@ -235,7 +235,7 @@ Examples:
 | 0.98 | 430 |
 
 Thus q can be represented by a continuous scalar, but the executed keep set is
-piecewise constant: it changes only when rounding changes \(D(q)\).  The policy
+piecewise constant: it changes only when rounding changes $D(q)$.  The policy
 should never directly output 21,504 cell decisions.  That would replace a
 qualified stable ranker with a huge combinatorial action and require an
 entirely new perception-training contract.
@@ -256,16 +256,16 @@ cell.
 After a dense-q study demonstrates predictable interpolation, the split policy
 can factor into
 
-1. a categorical branch \(b\) for 4 families × 3 quantizers = 12 branches;
-2. a bounded continuous q distribution conditioned on \(h_t\) and \(b\).
+1. a categorical branch $b$ for 4 families × 3 quantizers = 12 branches;
+2. a bounded continuous q distribution conditioned on $h_t$ and $b$.
 
 A Beta distribution is natural because its support is bounded:
 
-\[
+$$
 u_t\sim\operatorname{Beta}(\alpha_\theta,\beta_\theta),
 \qquad
 q_t=q_{\min}+(q_{\max}-q_{\min})u_t.
-\]
+$$
 
 The primary validated interval should be established prospectively.  The q=.90
 and .98 settings are emergency/stress anchors and should not automatically
@@ -277,18 +277,46 @@ would change, but the PPO foundation would not.
 
 ## 8. Invalid-action masking
 
-Let \(M_t(a)\in\{0,1\}\) say whether an action is executable in the current
-state.  If the network emits logit \(z_a\), the masked policy is
+Here, **invalid** has a deliberately narrow meaning: the requested operation
+cannot be executed correctly in the current state.  It does not mean that an
+action is slow, inaccurate, dominated, or likely to receive a poor reward.
+Those are valid but unattractive actions, and learning when to avoid them is
+the policy's job.
 
-\[
+This distinction matters scientifically:
+
+| Kind of action | Example | Treatment |
+|---|---|---|
+| Always invalid | corrupt header, non-finite reconstruction, unknown decoder | reject and mask |
+| State-infeasible | required GPU/model unavailable now, hard in-flight exclusion | mask only in that state |
+| Valid but poor | large payload in a fade, emergency q with weak perception | leave available and learn from its outcome |
+
+Trying to teach hard invalidity using only a negative reward wastes samples
+on operations that have no meaningful physical transition.  It can also make
+the recorded transition depend on an arbitrary failure fallback rather than
+the action the policy requested.  A deterministic mask instead defines the
+actual state-dependent feasible action set
+
+$$
+\mathcal{A}(h_t)=\{a:M_t(a)=1\}.
+$$
+
+The policy still learns freely *within* that feasible set.  The mask therefore
+encodes engineering truth, not a preferred operating policy.
+
+Let $M_t(a)\in\{0,1\}$ say whether an action is executable in the current
+state.  If the network emits logit $z_a$, the masked policy is
+
+$$
 \pi_M(a\mid h_t)=
 \frac{M_t(a)e^{z_a}}
 {\sum_b M_t(b)e^{z_b}}.
-\]
+$$
 
 In code, invalid logits are replaced with a large negative value before the
 categorical distribution is constructed.  At least one mode must remain
-available.
+available; in this project, `SKIP` is the natural fail-safe when neither
+`SPLIT` nor `LOCAL` is currently executable.
 
 Mask actions for hard facts such as:
 
@@ -305,21 +333,21 @@ actions remain invalid, while poor but valid profiles remain agent-enabled.
 
 ## 9. PPO mathematics
 
-PPO collects trajectories with an old policy \(\pi_{\theta_{old}}\), estimates
+PPO collects trajectories with an old policy $\pi_{\theta_{old}}$, estimates
 advantages, and updates a new policy without allowing one batch to change it
 too aggressively.
 
 The probability ratio is
 
-\[
+$$
 r_t(\theta)=
 \frac{\pi_\theta(a_t\mid h_t)}
 {\pi_{\theta_{old}}(a_t\mid h_t)}.
-\]
+$$
 
 The clipped policy objective is
 
-\[
+$$
 L^{clip}(\theta)=
 \mathbb{E}_t\left[
 \min\left(
@@ -327,7 +355,7 @@ r_t(\theta)\hat A_t,
 \operatorname{clip}(r_t(\theta),1-\epsilon,1+\epsilon)\hat A_t
 \right)
 \right].
-\]
+$$
 
 If an update tries to make an advantageous action vastly more likely, or a bad
 action vastly less likely, clipping limits how much that sample can drive the
@@ -335,17 +363,17 @@ update.
 
 Generalized advantage estimation starts from temporal-difference residuals
 
-\[
+$$
 \delta_t=r_t+\gamma V(h_{t+1})-V(h_t)
-\]
+$$
 
 and forms
 
-\[
+$$
 \hat A_t=\sum_{l=0}^{\infty}(\gamma\lambda)^l\delta_{t+l}.
-\]
+$$
 
-The parameter \(\lambda\) trades lower variance against greater bias.  The
+The parameter $\lambda$ trades lower variance against greater bias.  The
 complete training loss normally combines the negative clipped objective, a
 value-regression loss and an entropy bonus.  Recurrent training must preserve
 sequence order, reset hidden state at episode boundaries and mask padded
@@ -361,23 +389,23 @@ Some preferences can trade against one another; others cannot.
 - Critical-object freshness deserves explicit risk accounting rather than an
   arbitrary giant penalty.
 
-Let \(J_R(\theta)\) be expected reward and \(J_{C_i}(\theta)\) expected cost for
-constraint \(i\), with allowed budget \(d_i\):
+Let $J_R(\theta)$ be expected reward and $J_{C_i}(\theta)$ expected cost for
+constraint $i$, with allowed budget $d_i$:
 
-\[
+$$
 \max_\theta J_R(\theta)
 \quad\text{subject to}\quad
 J_{C_i}(\theta)\le d_i.
-\]
+$$
 
 A practical PPO implementation can use nonnegative Lagrange multipliers:
 
-\[
+$$
 \mathcal{L}(\theta,\boldsymbol\eta)
 =J_R(\theta)
 -\sum_i\eta_i\left(J_{C_i}(\theta)-d_i\right),
 \qquad \eta_i\ge0.
-\]
+$$
 
 If a cost remains above its budget, its multiplier increases and makes that
 violation more expensive.  This is a practical constrained-learning method,
@@ -386,25 +414,25 @@ and explicit fallback behavior.
 
 ## 11. Freshness and localization mathematics
 
-For map object \(j\), define age of information
+For map object $j$, define age of information
 
-\[
+$$
 A_{j,t}=t-t^{capture}_{j,newest}.
-\]
+$$
 
 A conservative position-error bound is
 
-\[
+$$
 E^{bound}_{j,t}
 \le E^{model}_{j,a}+v^{relative}_{j,t}A_{j,t}.
-\]
+$$
 
 The square-root composition
 
-\[
+$$
 E^{rms}_{j,t}\approx
 \sqrt{(E^{model}_{j,a})^2+(v^{relative}_{j,t}A_{j,t})^2}
-\]
+$$
 
 can be reported as a sensitivity model, but it should not be called the safety
 bound.
@@ -423,29 +451,29 @@ localization risk.
 The cleanest reward is based on the **post-outcome map**, not the label of the
 selected action.
 
-Let \(U_{map,t+1}\) summarize useful object coverage, confidence, localization
+Let $U_{map,t+1}$ summarize useful object coverage, confidence, localization
 quality and a smaller segmentation term after delivery/drop/skip has been
 resolved.  Then a provisional scalar utility is
 
-\[
+$$
 r_t =
 w_U U_{map,t+1}
 -w_A C_{airtime,t}
 -w_E C_{energy,t}
 -w_C C_{compute,t}
 -w_S\mathbf{1}[m_t\ne m_{t-1}].
-\]
+$$
 
 Separate cost critics can represent:
 
-\[
+$$
 C_{risk,t}=\max_j
 w_j\left[\frac{E^{bound}_{j,t+1}}{\epsilon_j}-1\right]_+,
-\]
+$$
 
 and an unobserved-critical-object cost that does not disappear merely because
-matched XY error is good.  Here \([x]_+=\max(x,0)\), \(w_j\) increases with
-object criticality, and \(\epsilon_j\) is the registered tolerance.
+matched XY error is good.  Here $[x]_+=\max(x,0)$, $w_j$ increases with
+object criticality, and $\epsilon_j$ is the registered tolerance.
 
 Important accounting rules:
 
