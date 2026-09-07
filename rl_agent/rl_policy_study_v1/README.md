@@ -44,6 +44,14 @@ contract.
 4. Reward normalization and sensitivity study.
 5. Surrogate training followed by a separately authorized live evaluation.
 
+## Reading the equations
+
+The study uses the Markdown math syntax supported by VS Code and GitHub:
+`$...$` for inline equations and `$$...$$` for display equations.  In VS Code,
+use the built-in **Markdown: Open Preview to the Side** command (`Ctrl+K V` on
+Linux/Windows) and ensure `markdown.math.enabled` has not been set to `false`.
+No extension is required.
+
 ## Current decisions
 
 | Question | Provisional decision | Why |
