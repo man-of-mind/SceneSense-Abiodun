@@ -22,9 +22,12 @@ Model: **200k-pps RGB+radar fusion** (accuracy sweet spot; zero extra transport 
    each car's detections in its **own color** (Car A blue, Car B another), no association/fusion yet.
 3. **Replay + synthetic occlusion baseline — complete.** Recorded/synthetic scenes can be replayed
    offline; FoV-membership reasoning passes the known synthetic truck/pedestrian scene.
-4. **Real cooperative reasoning — current research gap.** Add cross-source association and fusion,
-   ray/visibility-grid occlusion disambiguation, real CARLA ground truth, precision/recall evaluation,
-   then the vehicle warning/feedback loop.
+4. **Real cooperative reasoning — initial implementation, live qualification pending.**
+   `multi_ue_v1/` now provides strict multi-UE ingress, freshness/alignment/class/position/size
+   filtering, one-to-one Hungarian association, and conservative freshest-source tracks with full
+   provenance. It is integrated behind the server's explicit `--multi-ue-v1` mode. It does not yet
+   estimate covariance, perform JPDA, classify occlusion from model tracks, or issue warnings; see
+   `multi_ue_v1/README.md` for the exact boundary and two-ego run command.
 
 ## What changed vs the baseline server
 `spatial_map_server_moving_ego.py` is a copy of `../../real_time_spatial_map_server_fusion_object_v2.py`
@@ -56,7 +59,6 @@ python3 abiodun/spatial_map_coop/spatial_map_server_moving_ego.py \
 ```bash
 cd /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun
 source /home/shr_aisvcs/workarea/carla_0_10_env/carla_0_10_venv/bin/activate
-export PYTHONPATH="$PWD/pole_lraspp_multimodal_fusion:$PWD:${PYTHONPATH:-}"
 python3 carla_split_inference_udp_fusion_object_pole_client_spatial_stream_oai.py \
   --role loopback \
   --sensor-platform ego_vehicle --no-ego-freeze \
@@ -89,7 +91,6 @@ same loop:
 ```bash
 cd /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun
 source /home/shr_aisvcs/workarea/carla_0_10_env/carla_0_10_venv/bin/activate
-export PYTHONPATH="$PWD/pole_lraspp_multimodal_fusion:$PWD:${PYTHONPATH:-}"
 python3 carla_split_inference_udp_fusion_object_pole_client_spatial_stream_oai.py \
   --role loopback --headless \
   --sensor-platform ego_vehicle --no-ego-freeze \
@@ -103,6 +104,8 @@ python3 carla_split_inference_udp_fusion_object_pole_client_spatial_stream_oai.p
   --camera-source-port 51101 --remote-port 51102 --remote-source-port 51103 --camera-result-port 51104 \
   --result-timeout 1.5
 ```
+- Do not export `PYTHONPATH` for either CARLA client; doing so can select the
+  stale `neu_collab/` module copy instead of the `abiodun/` implementation.
 - B spawns at the **same route start (index 80)** but `--ego-spawn-forward-offset-m -15` places it
   **~15 m behind car A** on the same lane. Both drive the identical loop, so they view the *same* objects
   at *different closeness* (the cooperative-perception premise). Tune -10…-20 for the gap.

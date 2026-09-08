@@ -2,8 +2,12 @@ import copy
 import unittest
 
 from spatial_map_coop.multi_ue_v1 import (
+    INGRESS_ENVELOPE_SCHEMA,
+    AssociationPolicy,
     MultiUEContractError,
     MultiUEFrameBuffer,
+    MultiUESpatialMapService,
+    create_flask_app,
     from_splitfusion_edge_result,
 )
 
@@ -63,6 +67,19 @@ def edge_result(stream_id, frame_id, capture_ns, x_coord):
         "action_id": 71,
         "object_map_update": update,
     }
+
+
+def policy(minimum_confidence=0.0):
+    return AssociationPolicy(
+        maximum_observation_age_ns=200_000_000,
+        alignment_tolerance_ns=50_000_000,
+        maximum_pair_time_delta_ns=50_000_000,
+        maximum_xy_distance_m=2.0,
+        maximum_relative_size_difference=0.4,
+        track_match_distance_m=3.0,
+        track_stale_after_ns=500_000_000,
+        minimum_confidence=minimum_confidence,
+    )
 
 
 class MultiUEIngressTests(unittest.TestCase):
@@ -126,6 +143,119 @@ class MultiUEIngressTests(unittest.TestCase):
                 ue_id="ue-a",
                 session_id="drive-1",
                 received_timestamp_ns=1_020_000_000,
+            )
+        service = MultiUESpatialMapService(policy())
+        service.ingest_splitfusion(
+            edge_result("stream-a", 10, 1_000_000_000, 5.0),
+            ue_id="ue-a",
+            session_id="drive-1",
+            received_timestamp_ns=1_020_000_000,
+        )
+        with self.assertRaises(MultiUEContractError):
+            service.ingest_splitfusion(
+                edge_result("stream-b", 11, 1_010_000_000, 5.0),
+                ue_id="ue-a",
+                session_id="drive-1",
+                received_timestamp_ns=1_020_000_000,
+            )
+
+    def test_http_two_ue_delivery_forms_one_provenance_preserving_track(self):
+        service = MultiUESpatialMapService(policy())
+        client = create_flask_app(service).test_client()
+        for ue_id, stream_id, frame_id, capture_ns, x_coord in (
+            ("ue-a", "stream-a", 10, 1_000_000_000, 5.0),
+            ("ue-b", "stream-b", 20, 1_030_000_000, 5.4),
+        ):
+            response = client.post(
+                "/api/multi_ue/v1/updates",
+                json={
+                    "schema": INGRESS_ENVELOPE_SCHEMA,
+                    "ue_id": ue_id,
+                    "session_id": "drive-1",
+                    "payload": edge_result(stream_id, frame_id, capture_ns, x_coord),
+                },
+            )
+            self.assertEqual(response.status_code, 202, response.get_json())
+        response = client.get(
+            "/api/multi_ue/v1/spatial_map",
+            query_string={
+                "clock_domain": "unix_wall_ns",
+                "snapshot_timestamp_ns": 1_060_000_000,
+            },
+        )
+        self.assertEqual(response.status_code, 200, response.get_json())
+        document = response.get_json()
+        self.assertEqual(document["input_source_count"], 2)
+        self.assertEqual(document["association_count"], 1)
+        self.assertEqual(len(document["tracks"]), 1)
+        track = document["tracks"][0]
+        self.assertEqual(track["selected_ue_id"], "ue-b")
+        self.assertEqual(track["world_xyz"][0], 5.4)
+        self.assertEqual(len(track["contributing_sources"]), 2)
+        self.assertEqual(len(track["contributing_observation_hashes"]), 2)
+        self.assertEqual(document["associations"][0]["position_combination"],
+                         "NONE_SELECTED_SOURCE_ONLY")
+
+    def test_confidence_and_alignment_are_explicit_filters(self):
+        service = MultiUESpatialMapService(policy(minimum_confidence=0.5))
+        old = edge_result("stream-old", 1, 900_000_000, 5.0)
+        low = edge_result("stream-low", 2, 1_030_000_000, 5.2)
+        low["object_map_update"]["records"][0]["score"] = 0.4
+        service.ingest_splitfusion(
+            old, ue_id="ue-old", session_id="drive", received_timestamp_ns=1_040_000_000
+        )
+        service.ingest_splitfusion(
+            low, ue_id="ue-low", session_id="drive", received_timestamp_ns=1_040_000_000
+        )
+        document = service.snapshot(
+            clock_domain="unix_wall_ns", snapshot_timestamp_ns=1_050_000_000
+        ).as_dict()
+        self.assertEqual(document["accepted_observation_count"], 0)
+        self.assertEqual(
+            {item["reason"] for item in document["rejected_observations"]},
+            {"SOURCE_OUTSIDE_ALIGNMENT_WINDOW", "BELOW_REGISTERED_CONFIDENCE"},
+        )
+        aged = service.snapshot(
+            clock_domain="unix_wall_ns", snapshot_timestamp_ns=1_300_000_000
+        ).as_dict()
+        self.assertIn(
+            "OBSERVATION_TOO_OLD",
+            {item["reason"] for item in aged["rejected_observations"]},
+        )
+
+    def test_hungarian_assignment_is_one_to_one_and_track_update_is_idempotent(self):
+        service = MultiUESpatialMapService(policy())
+        first = edge_result("stream-a", 10, 1_000_000_000, 0.0)
+        first_second = copy.deepcopy(first["object_map_update"]["records"][0])
+        first_second.update(
+            {"candidate_identity": "10:1:8", "point_index": 8, "world_x": 10.0}
+        )
+        first["object_map_update"]["records"].append(first_second)
+        second = edge_result("stream-b", 20, 1_010_000_000, 9.7)
+        second_second = copy.deepcopy(second["object_map_update"]["records"][0])
+        second_second.update(
+            {"candidate_identity": "20:1:8", "point_index": 8, "world_x": 0.3}
+        )
+        second["object_map_update"]["records"].append(second_second)
+        service.ingest_splitfusion(
+            first, ue_id="ue-a", session_id="drive", received_timestamp_ns=1_020_000_000
+        )
+        service.ingest_splitfusion(
+            second, ue_id="ue-b", session_id="drive", received_timestamp_ns=1_020_000_000
+        )
+        snapshot = service.snapshot(
+            clock_domain="unix_wall_ns", snapshot_timestamp_ns=1_030_000_000
+        )
+        self.assertEqual(len(snapshot.association.associations), 2)
+        self.assertEqual([item.source_count for item in snapshot.association.associations], [2, 2])
+        self.assertEqual([track.update_count for track in snapshot.tracks], [1, 1])
+        repeated = service.snapshot(
+            clock_domain="unix_wall_ns", snapshot_timestamp_ns=1_040_000_000
+        )
+        self.assertEqual([track.update_count for track in repeated.tracks], [1, 1])
+        with self.assertRaises(ValueError):
+            service.snapshot(
+                clock_domain="unix_wall_ns", snapshot_timestamp_ns=1_039_999_999
             )
 
 

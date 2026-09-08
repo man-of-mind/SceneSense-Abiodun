@@ -34,6 +34,17 @@ import numpy as np
 from flask import Flask, Response, jsonify, request
 from matplotlib.patches import Ellipse, Polygon
 
+try:
+    from spatial_map_coop.multi_ue_v1 import (
+        AssociationPolicy,
+        MultiUEContractError,
+        MultiUESpatialMapService,
+    )
+except ModuleNotFoundError:
+    # Direct-script invocation from neu_collab/ places this file's directory,
+    # rather than abiodun/, on sys.path.
+    from multi_ue_v1 import AssociationPolicy, MultiUEContractError, MultiUESpatialMapService
+
 # This server lives in abiodun/spatial_map_coop/ but reuses extract_traffic_lights.py
 # from the neu_collab root; make that importable regardless of CWD.
 _NEU_COLLAB_ROOT = os.path.abspath(
@@ -74,6 +85,8 @@ fusion_lock = threading.Lock()
 latest_streams: Dict[str, Dict[str, object]] = {}
 fusion_tracks: Dict[str, Dict[str, object]] = {}
 next_track_id = 1
+multi_ue_service: Optional[MultiUESpatialMapService] = None
+multi_ue_source_map: Dict[str, str] = {}
 static_map_cache: Dict[str, object] = {
     "loaded_at": 0.0,
     "map_name": None,
@@ -251,7 +264,90 @@ def parse_args() -> argparse.Namespace:
             "(0 = centered on ego; 0.5 = biased ahead, showing more road in front than behind)."
         ),
     )
+    parser.add_argument(
+        "--multi-ue-v1",
+        action="store_true",
+        help=(
+            "Use the conservative multi-UE v1 filtering/Hungarian/selected-source "
+            "track path instead of the historical greedy confidence-weighted fusion."
+        ),
+    )
+    parser.add_argument(
+        "--multi-ue-source",
+        action="append",
+        default=[],
+        metavar="STREAM_ID=UE_ID",
+        help="Explicit stable stream-to-UE identity; repeat once per live UE.",
+    )
+    parser.add_argument(
+        "--multi-ue-session-id",
+        default="",
+        help="Required stable drive/session identity when --multi-ue-v1 is enabled.",
+    )
+    parser.add_argument(
+        "--multi-ue-maximum-age-ms",
+        type=float,
+        default=500.0,
+        help="Initial engineering freshness limit; report separately from service readiness.",
+    )
+    parser.add_argument(
+        "--multi-ue-alignment-ms",
+        type=float,
+        default=100.0,
+        help="Maximum source-frame capture spread admitted to association.",
+    )
     return parser.parse_args()
+
+
+def _parse_multi_ue_sources(values: Sequence[str]) -> Dict[str, str]:
+    result: Dict[str, str] = {}
+    used_ue_ids: Set[str] = set()
+    for raw_value in values:
+        stream_id, separator, ue_id = str(raw_value).partition("=")
+        stream_id = stream_id.strip()
+        ue_id = ue_id.strip()
+        if not separator or not stream_id or not ue_id:
+            raise ValueError("--multi-ue-source must use nonempty STREAM_ID=UE_ID")
+        if stream_id in result:
+            raise ValueError(f"duplicate multi-UE stream identity: {stream_id}")
+        if ue_id in used_ue_ids:
+            raise ValueError(f"duplicate stable UE identity: {ue_id}")
+        result[stream_id] = ue_id
+        used_ue_ids.add(ue_id)
+    return result
+
+
+def _initialize_multi_ue_service() -> None:
+    global multi_ue_service, multi_ue_source_map
+    cfg = _config()
+    if not bool(cfg.multi_ue_v1):
+        multi_ue_service = None
+        multi_ue_source_map = {}
+        return
+    session_id = str(cfg.multi_ue_session_id or "").strip()
+    if not session_id:
+        raise ValueError("--multi-ue-session-id is required with --multi-ue-v1")
+    multi_ue_source_map = _parse_multi_ue_sources(cfg.multi_ue_source)
+    if len(multi_ue_source_map) < 2:
+        raise ValueError("--multi-ue-v1 requires at least two explicit UE sources")
+    maximum_age_ns = round(float(cfg.multi_ue_maximum_age_ms) * 1_000_000)
+    alignment_ns = round(float(cfg.multi_ue_alignment_ms) * 1_000_000)
+    policy = AssociationPolicy(
+        maximum_observation_age_ns=maximum_age_ns,
+        alignment_tolerance_ns=alignment_ns,
+        maximum_pair_time_delta_ns=alignment_ns,
+        maximum_xy_distance_m=float(cfg.association_radius_m),
+        maximum_relative_size_difference=float(cfg.association_dimension_ratio),
+        track_match_distance_m=float(cfg.track_match_radius_m),
+        track_stale_after_ns=round(float(cfg.track_stale_s) * 1_000_000_000),
+        minimum_confidence=float(cfg.min_object_score),
+        confidence_provenance=(
+            "UPSTREAM_SOURCE_FILTERED_OUTPUT_NO_ADDITIONAL_SCORE_GATE"
+            if float(cfg.min_object_score) == 0.0
+            else "OPERATOR_CONFIGURED_DEMO_SCORE_GATE_NOT_CALIBRATED_UNCERTAINTY"
+        ),
+    )
+    multi_ue_service = MultiUESpatialMapService(policy)
 
 
 def _config() -> argparse.Namespace:
@@ -1007,6 +1103,63 @@ def _active_anchor_keys(streams: Sequence[Dict[str, object]], now: float) -> set
     return active
 
 
+def _build_multi_ue_v1_objects() -> Tuple[List[Dict[str, object]], List[Dict[str, object]], Dict[str, object]]:
+    """Expose conservative tracks using the historical viewer's object shape."""
+    if multi_ue_service is None:
+        return [], [], {}
+    service_snapshot = multi_ue_service.snapshot_latest(clock_domain="carla_simulation_ns")
+    if service_snapshot is None:
+        return [], [], {"status": "WAITING_FOR_REGISTERED_UE_UPDATES"}
+    document = service_snapshot.as_dict()
+    tracks = []
+    for track in document["tracks"]:
+        source_keys = track["contributing_sources"]
+        tracks.append(
+            {
+                "track_id": track["track_id"],
+                "type": track["class_name"],
+                "score": track["score"],
+                "support_stream_count": len(source_keys),
+                "source_stream_ids": sorted({source[2] for source in source_keys}),
+                "is_common_object": len(source_keys) >= max(1, int(_config().common_min_streams)),
+                "location": {
+                    "x": track["world_xyz"][0],
+                    "y": track["world_xyz"][1],
+                    "z": track["world_xyz"][2],
+                },
+                "dimensions": {
+                    "length": track["size_lwh"][0],
+                    "width": track["size_lwh"][1],
+                    "height": track["size_lwh"][2],
+                },
+                "yaw_deg": _object_map_yaw_deg(track["yaw_deg"]),
+                "model_yaw_deg": track["yaw_deg"],
+                "selected_ue_id": track["selected_ue_id"],
+                "selected_session_id": track["selected_session_id"],
+                "selected_stream_id": track["selected_stream_id"],
+                "source_stream_id": track["selected_stream_id"],
+                "selected_frame_id": track["selected_frame_id"],
+                "selected_observation_id": track["selected_observation_id"],
+                "selected_raw_record_sha256": track["selected_raw_record_sha256"],
+                "capture_timestamp_ns": track["capture_timestamp_ns"],
+                "age_ns": track["age_ns"],
+                "contributing_observation_hashes": track[
+                    "contributing_observation_hashes"
+                ],
+                "association_id": track["association_id"],
+                "update_count": track["update_count"],
+                "fusion_method": "SELECTED_FRESHEST_SOURCE_NO_POSITION_AVERAGING",
+                "distribution": {
+                    "source_stream_count": len(source_keys),
+                    "source_stream_ids": sorted({source[2] for source in source_keys}),
+                    "position_covariance_available": False,
+                    "confidence_used_as_position_covariance": False,
+                },
+            }
+        )
+    return tracks, document["associations"], document
+
+
 def _build_spatial_map_snapshot() -> Dict[str, object]:
     cfg = _config()
     now = time.time()
@@ -1052,7 +1205,17 @@ def _build_spatial_map_snapshot() -> Dict[str, object]:
             stale_streams.append(stream_info)
 
     raw_objects = raw_objects[: max(0, int(cfg.max_rendered_objects))]
-    fused_objects, object_associations = _fuse_and_smooth_objects(raw_objects)
+    multi_ue_diagnostic: Dict[str, object] = {}
+    if multi_ue_service is None:
+        fused_objects, object_associations = _fuse_and_smooth_objects(raw_objects)
+    elif not active_streams:
+        fused_objects, object_associations = [], []
+        multi_ue_diagnostic = {"status": "NO_WALL_CLOCK_FRESH_REGISTERED_STREAM"}
+    else:
+        fused_objects, object_associations, multi_ue_diagnostic = _build_multi_ue_v1_objects()
+        if bool(cfg.hide_single_stream_objects):
+            fused_objects = [obj for obj in fused_objects if bool(obj["is_common_object"])]
+        fused_objects = fused_objects[: max(0, int(cfg.max_rendered_objects))]
     active_keys = _active_anchor_keys(streams, now)
     focus_ids = _focus_traffic_light_ids()
     anchors = []
@@ -1085,6 +1248,11 @@ def _build_spatial_map_snapshot() -> Dict[str, object]:
             "udp_port": int(cfg.udp_port),
             "object_source": "learned_rgb_radar_fusion_head",
             "fusion_policy": {
+                "implementation": (
+                    "CONSERVATIVE_MULTI_UE_V1"
+                    if multi_ue_service is not None
+                    else "HISTORICAL_GREEDY_CONFIDENCE_WEIGHTED"
+                ),
                 "association_radius_m": float(cfg.association_radius_m),
                 "association_dimension_ratio": float(cfg.association_dimension_ratio),
                 "common_min_streams": int(cfg.common_min_streams),
@@ -1093,6 +1261,7 @@ def _build_spatial_map_snapshot() -> Dict[str, object]:
                 "hide_single_stream_objects": bool(cfg.hide_single_stream_objects),
                 "object_yaw_map_offset_deg": float(cfg.object_yaw_map_offset_deg),
             },
+            "multi_ue_v1": multi_ue_diagnostic,
             "focus_view": focus_view,
             "visualization": {
                 "latest_png": "/api/spatial_map/live.png",
@@ -1489,6 +1658,19 @@ def udp_listener_thread() -> None:
             normalized = _normalize_packet(payload, received_at)
             if normalized["schema"] and normalized["schema"] != SPATIAL_STREAM_SCHEMA:
                 print(f"[UDP] Warning: unexpected schema {normalized['schema']!r}")
+            if multi_ue_service is not None:
+                stream_id = str(normalized["stream_id"])
+                ue_id = multi_ue_source_map.get(stream_id)
+                if ue_id is None:
+                    raise MultiUEContractError(
+                        f"unregistered multi-UE stream identity: {stream_id}"
+                    )
+                multi_ue_service.ingest_legacy(
+                    payload,
+                    ue_id=ue_id,
+                    session_id=str(cfg.multi_ue_session_id),
+                    received_timestamp_ns=round(received_at * 1_000_000_000),
+                )
             with state_lock:
                 latest_streams[str(normalized["stream_id"])] = normalized
         except Exception as exc:
@@ -1720,8 +1902,10 @@ function draw(){
  // ROI box
  const bb=snap.metadata.focus_view.bounds;
  if(bb){const a=T(bb.x_min,bb.y_min),c=T(bb.x_max,bb.y_max);ctx.strokeStyle='rgba(120,180,255,.35)';ctx.lineWidth=1.5*DPR;ctx.strokeRect(Math.min(a[0],c[0]),Math.min(a[1],c[1]),Math.abs(c[0]-a[0]),Math.abs(c[1]-a[1]));}
- // objects — Stage 2: color by SOURCE stream when >1 car is streaming; else by type (Stage 1)
- const objs=snap.raw_spatial_map_objects||[];
+ // In conservative multi-UE mode draw one selected-source object per map track;
+ // historical Stage 2 continues to show the unassociated source distribution.
+ const conservative=((snap.metadata||{}).fusion_policy||{}).implementation==='CONSERVATIVE_MULTI_UE_V1';
+ const objs=(conservative?snap.spatial_map_objects:snap.raw_spatial_map_objects)||[];
  const actStreams=snap.active_streams||[];
  const srcs=[...new Set([...actStreams.map(s=>s.stream_id),...objs.map(o=>o.source_stream_id)].filter(Boolean))].sort();
  const bySource=srcs.length>1;
@@ -1776,6 +1960,7 @@ loadStatic();poll();draw();
 def main() -> None:
     global CONFIG
     CONFIG = parse_args()
+    _initialize_multi_ue_service()
     os.makedirs(str(CONFIG.output_dir), exist_ok=True)
 
     udp_thread = threading.Thread(target=udp_listener_thread, daemon=True)
