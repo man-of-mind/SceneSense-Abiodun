@@ -1,6 +1,6 @@
 # Multi-UE cooperative-map ingress v1
 
-Status: **initial filtering/association/server integration; live visual qualification pending**.
+Status: **filtering/association/server integration implemented; headless live action-50 demonstration ready for L10319**.
 
 This package is the first production-facing Task-2 layer. It validates compact
 world-frame object updates from multiple UE streams, retains a bounded history,
@@ -82,6 +82,40 @@ Then use the existing Stage-2 car-A and car-B commands in
 `spatial_map_coop/README.md`. A successful live check must show both registered
 UE streams and at least one two-source track in `/api/spatial_map/latest`.
 
+## Headless live two-UE/action-50 demonstration
+
+`live_two_ue_action50_v1.py` is the technology demonstration for this stage.
+It passively attaches the registered 1280x720/120-degree RGB camera and
+200k-pps/120-degree radar to two already-moving CARLA vehicles, executes the
+exact locked action 50 (`AE64 / UINT4 / q=0.50`) through the resident
+SplitFusion UE encoder and frozen edge tail, and delivers both compact
+world-frame object updates to `MultiUESpatialMapService`.
+
+This deliberately reuses one resident localhost model stack for the two
+logical UEs. It tests real CARLA sensors, real model detections, identity and
+clock binding, filtering, Hungarian association and map updates. It does not
+claim two-device networking or radio latency. It controls or destroys neither
+ego and changes no CARLA world setting, so it can attach to the existing
+two-ego moving scenario or another scenario/map.
+
+The nominal service always receives unmodified model outputs. A separate,
+fresh shadow service cycles through five deterministic faults: identical
+duplicate, same-identity/different-payload conflict, non-finite coordinate,
+one-second-old observation and +8 m XY bias. Faults can therefore never
+contaminate the nominal map. No RGB, radar or mask arrays are retained; the
+output consists only of compact JSONL observations, snapshots, fault outcomes,
+a summary and a hash manifest.
+
+The +8 m case is intentionally diagnostic rather than silently deleted. It
+should fail the association gate against its true counterpart, but because it
+is otherwise a valid finite detection, v1 may expose it as a separate
+single-source track. Eliminating that false track requires the later M-of-N
+tentative/confirmed track policy or a calibrated uncertainty/outlier model.
+
+The exact L10319 procedure is in
+`LIVE_TWO_UE_ACTION50_RUNBOOK.md`. A successful run must complete every fault
+case and observe at least one real association containing both UE sources.
+
 SciPy is required for `scipy.optimize.linear_sum_assignment`; both the system
 Python and the registered CARLA virtual environment currently provide it.
 
@@ -92,10 +126,9 @@ perform JPDA, classify occlusion from learned tracks, or send downlink warnings.
 The existing greedy confidence-weighted fusion remains historical evidence,
 not an implicit default.
 
-The next reviewed stage is:
+After this live demonstration, the next reviewed stages are:
 
-1. live-qualify the explicit two-UE server path and freeze clock
-   synchronization and maximum-lateness rules;
+1. freeze clock synchronization and maximum-lateness rules for deployment;
 2. add velocity/time compensation and a validated uncertainty model;
 3. compare the retained best-source rule against covariance-aware fusion on
    the same associations;

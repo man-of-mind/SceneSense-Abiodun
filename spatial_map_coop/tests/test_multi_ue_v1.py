@@ -10,6 +10,13 @@ from spatial_map_coop.multi_ue_v1 import (
     create_flask_app,
     from_splitfusion_edge_result,
 )
+from spatial_map_coop.multi_ue_v1.faults import (
+    FAULT_CASES,
+    STALE_OFFSET_NS,
+    XY_BIAS_M,
+    deterministic_fault_case,
+    mutate_edge_result,
+)
 
 
 def edge_result(stream_id, frame_id, capture_ns, x_coord):
@@ -83,6 +90,53 @@ def policy(minimum_confidence=0.0):
 
 
 class MultiUEIngressTests(unittest.TestCase):
+    def test_shadow_fault_schedule_and_mutations_are_deterministic(self):
+        self.assertEqual(
+            [deterministic_fault_case(index) for index in range(7)],
+            [*FAULT_CASES, *FAULT_CASES[:2]],
+        )
+        source = edge_result("stream-b", 20, 2_000_000_000, 5.0)
+        stale = mutate_edge_result(source, "STALE")
+        self.assertEqual(
+            stale["capture_timestamp_ns"],
+            source["capture_timestamp_ns"] - STALE_OFFSET_NS,
+        )
+        self.assertEqual(
+            stale["object_map_update"]["records"][0]["capture_timestamp_ns"],
+            stale["capture_timestamp_ns"],
+        )
+        biased = mutate_edge_result(source, "XY_BIAS")
+        self.assertEqual(
+            biased["object_map_update"]["records"][0]["world_x"],
+            source["object_map_update"]["records"][0]["world_x"] + XY_BIAS_M,
+        )
+        self.assertEqual(source["object_map_update"]["records"][0]["world_x"], 5.0)
+
+    def test_shadow_nonfinite_and_identity_conflict_fail_closed(self):
+        source = edge_result("stream-b", 20, 2_000_000_000, 5.0)
+        nonfinite = mutate_edge_result(source, "NONFINITE")
+        with self.assertRaises(MultiUEContractError):
+            from_splitfusion_edge_result(
+                nonfinite,
+                ue_id="ue-b",
+                session_id="drive",
+                received_timestamp_ns=2_010_000_000,
+            )
+        service = MultiUESpatialMapService(policy())
+        service.ingest_splitfusion(
+            source,
+            ue_id="ue-b",
+            session_id="drive",
+            received_timestamp_ns=2_010_000_000,
+        )
+        with self.assertRaises(MultiUEContractError):
+            service.ingest_splitfusion(
+                mutate_edge_result(source, "IDENTITY_CONFLICT"),
+                ue_id="ue-b",
+                session_id="drive",
+                received_timestamp_ns=2_010_000_000,
+            )
+
     def test_two_sources_form_one_aligned_raw_snapshot(self):
         buffer = MultiUEFrameBuffer(max_frames_per_source=2)
         first = from_splitfusion_edge_result(
