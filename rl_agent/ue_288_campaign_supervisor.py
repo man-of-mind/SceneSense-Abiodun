@@ -181,16 +181,21 @@ def verify_live_pilot_worktree(
             resume_paths.append(path)
         else:
             paths.append(path)
-    require(
-        set(paths) == LIVE_PILOT_EXPECTED_DIRTY_PATHS and len(paths) == len(LIVE_PILOT_EXPECTED_DIRTY_PATHS),
-        f"unexpected worktree paths: {sorted(paths)}",
-    )
+    # The guarantee is that nothing outside the declared user-owned set is
+    # dirty. Requiring every declared path to *be* dirty is stronger than the
+    # contract and fails when the operator legitimately git-ignores one of them
+    # (oaitelnet.history was added to .git/info/exclude on 2026-09-07), so the
+    # observed set must be contained in the declared set rather than equal it.
+    unexpected = sorted(set(paths) - LIVE_PILOT_EXPECTED_DIRTY_PATHS)
+    require(not unexpected, f"unexpected worktree paths: {unexpected}")
+    require(len(paths) == len(set(paths)), f"duplicate worktree records: {sorted(paths)}")
     return {
         "head": subprocess.run(
             ["git", "rev-parse", "HEAD"], cwd=str(ROOT), check=True,
             text=True, stdout=subprocess.PIPE,
         ).stdout.strip(),
         "dirty_paths": sorted(paths),
+        "declared_user_owned_paths": sorted(LIVE_PILOT_EXPECTED_DIRTY_PATHS),
         "owned_resume_untracked_paths": len(resume_paths),
     }
 
