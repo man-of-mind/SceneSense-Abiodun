@@ -91,7 +91,7 @@
     "split_inference_runtime": "rl_agent/splitfusion_live_dispatch_v1/runtime_binding.json",
     "split_inference_runtime_sha256": "604450c7f0f791a480ba4e5ed6b286a2b6f68497735372a7a63ed92e93585551",
     "required_route_b_split_cell_adapter": "rl_agent/ue_route_b_split_cell_adapter_v1.py",
-    "required_route_b_split_cell_adapter_sha256": "fdedf685d4e1685dc3b0822cf7eb1da176746da59b52e9fa09be31cc172fbc96",
+    "required_route_b_split_cell_adapter_sha256": "3589c7b1366d7b2309cf142b9210116697f14b4c9ad4f42de80ddc896803ae5b",
     "map_install_runtime": "uplink_only_spatial_map_pipeline/spatial_map_server_moving_ego_uplink_only_baseline.py",
     "map_install_runtime_sha256": "cc301919b767688f1eab0923d4a935791b06a6cda3d0d5f565484aeae4b05bc1",
     "target_snr_runtime": "rl_agent/splitfusion_live_dispatch_v1/live_pilot_target_snr_runtime.py",

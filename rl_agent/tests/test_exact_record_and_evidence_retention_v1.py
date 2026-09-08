@@ -457,3 +457,86 @@ class RouteSummaryRetentionTest(unittest.TestCase):
 
     def test_route_summary_is_a_registered_output(self) -> None:
         self.assertIn(adapter.ROUTE_SUMMARY_NAME, adapter.EXPECTED_OUTPUTS)
+
+
+class NoBrakingEventOutcomeTest(unittest.TestCase):
+    """retry7 cell a61 completed a clean uneventful loop; the density runner
+    returned PEDESTRIAN_BRAKING_NOT_EXERCISED and exited 1."""
+
+    @staticmethod
+    def _summary(**overrides):
+        summary = {
+            "loops_completed": 1,
+            "watchdog_aborted_any": False,
+            "intervention_count_total": 0,
+            "cleanup_succeeded": True,
+            "collision_incident_count_total": 0,
+            "collision_count_total": 0,
+            "collision_incidents": [],
+            "walker_brake_ticks_total": 0,
+            "driven_distance_m_median": 1251.6,
+            "planned_route_length_m": 1268.68,
+        }
+        summary.update(overrides)
+        return summary
+
+    def _classify(self, *, status=adapter.ROUTE_STATUS_NO_BRAKING, completed=True,
+                  summary_ok=True, **over):
+        return adapter.classify_route_outcome(
+            route_rc=1, density_status=status, route_completed=completed,
+            interventions_permitted=True, summary=self._summary(**over),
+            summary_ok=summary_ok,
+        )
+
+    def test_uneventful_completed_route_is_a_measured_outcome(self) -> None:
+        outcome = self._classify()
+        self.assertEqual(outcome["classification"], adapter.ROUTE_OUTCOME_NO_BRAKING)
+        self.assertIn(outcome["classification"], adapter.ROUTE_ACCEPTABLE_OUTCOMES)
+        self.assertEqual(outcome["fatal_reasons"], [])
+
+    def test_it_never_claims_braking_coverage_or_safety_success(self) -> None:
+        outcome = self._classify()
+        self.assertFalse(outcome["pedestrian_braking_exercised"])
+        self.assertEqual(outcome["walker_brake_ticks_total"], 0)
+        self.assertTrue(
+            outcome["does_not_claim_pedestrian_braking_coverage_or_safety_success"]
+        )
+        self.assertTrue(
+            outcome["no_braking_event_is_measured_outcome_not_braking_coverage"]
+        )
+
+    def test_braking_ticks_collisions_and_interventions_are_always_preserved(self) -> None:
+        outcome = self._classify(
+            status="FAIL", walker_brake_ticks_total=31,
+            intervention_count_total=0, collision_incident_count_total=3,
+            collision_count_total=7,
+        )
+        self.assertEqual(outcome["walker_brake_ticks_total"], 31)
+        self.assertTrue(outcome["pedestrian_braking_exercised"])
+        self.assertEqual(outcome["collision_incident_count"], 3)
+        self.assertEqual(outcome["collision_count"], 7)
+        self.assertEqual(outcome["intervention_count_total"], 0)
+
+    def test_every_required_proof_is_enforced(self) -> None:
+        for kwargs, needle in (
+            ({"completed": False}, "did not complete"),
+            ({"loops_completed": 2}, "did not complete"),
+            ({"watchdog_aborted_any": True}, "watchdog"),
+            ({"intervention_count_total": 1}, "interventions occurred"),
+            ({"cleanup_succeeded": False}, "cleanup_succeeded=false"),
+            ({"summary_ok": False}, "summary missing"),
+        ):
+            with self.subTest(kwargs=kwargs):
+                outcome = self._classify(**kwargs)
+                self.assertEqual(
+                    outcome["classification"], adapter.ROUTE_OUTCOME_FATAL, kwargs
+                )
+                self.assertTrue(
+                    any(needle in r for r in outcome["fatal_reasons"]),
+                    outcome["fatal_reasons"],
+                )
+
+    def test_collision_during_no_braking_status_is_not_silently_accepted(self) -> None:
+        outcome = self._classify(collision_incident_count_total=2)
+        self.assertEqual(outcome["classification"], adapter.ROUTE_OUTCOME_FATAL)
+        self.assertEqual(outcome["collision_incident_count"], 2)

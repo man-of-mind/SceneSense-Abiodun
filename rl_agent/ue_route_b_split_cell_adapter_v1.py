@@ -78,12 +78,20 @@ ROUTE_SUMMARY_PLACEHOLDER_SCHEMA = "scenesense.route_metrics_summary_absent.v1"
 ROUTE_OUTCOME_PASS = "ROUTE_RUNNER_PASS"
 ROUTE_OUTCOME_INTERVENED = "PERMITTED_INTERVENTION"
 ROUTE_OUTCOME_COLLISION_ONLY = "COLLISION_ONLY_MEASURED_OUTCOME"
+# An uneventful route: the loop completed with nothing to report, so the density
+# runner returned PEDESTRIAN_BRAKING_NOT_EXERCISED and exited 1. Whether a walker
+# happened to cross in front of the ego is a property of the traffic seed, not of
+# the split-inference system under test, so this is a measured scenario outcome.
+# It is explicitly NOT pedestrian-braking coverage and NOT a safety success.
+ROUTE_OUTCOME_NO_BRAKING = "COMPLETED_NO_BRAKING_EVENT"
 ROUTE_OUTCOME_FATAL = "FATAL_ROUTE_RUNNER_FAILURE"
 ROUTE_ACCEPTABLE_OUTCOMES = (
     ROUTE_OUTCOME_PASS,
     ROUTE_OUTCOME_INTERVENED,
     ROUTE_OUTCOME_COLLISION_ONLY,
+    ROUTE_OUTCOME_NO_BRAKING,
 )
+ROUTE_STATUS_NO_BRAKING = "PEDESTRIAN_BRAKING_NOT_EXERCISED"
 PER_FRAME_FIELDS = (
     "cell_id", "action_id", "network_profile_id", "stream_id", "capture_id",
     "frame_id", "route_tick", "carla_timestamp", "capture_wall_s",
@@ -339,6 +347,9 @@ def classify_route_outcome(
     incidents = (
         int(values.get("collision_incident_count_total", 0)) if summary_ok else 0
     )
+    brake_ticks = (
+        int(values.get("walker_brake_ticks_total", 0) or 0) if summary_ok else 0
+    )
     reasons: list[str] = []
     if int(route_rc) == 0:
         classification = ROUTE_OUTCOME_PASS
@@ -355,6 +366,17 @@ def classify_route_outcome(
         and incidents > 0
     ):
         classification = ROUTE_OUTCOME_COLLISION_ONLY
+    elif (
+        density_status == ROUTE_STATUS_NO_BRAKING
+        and summary_ok
+        and route_completed
+        and loops_completed == 1
+        and not watchdog
+        and interventions == 0
+        and incidents == 0
+        and runner_cleanup_ok
+    ):
+        classification = ROUTE_OUTCOME_NO_BRAKING
     else:
         classification = ROUTE_OUTCOME_FATAL
         if not summary_ok:
@@ -371,10 +393,12 @@ def classify_route_outcome(
                 reasons.append(f"route interventions occurred (count={interventions})")
             if not runner_cleanup_ok:
                 reasons.append("route runner reported cleanup_succeeded=false")
-            if incidents == 0:
+            if not reasons:
+                # Nothing above accounts for it, so it stays fatal by default
+                # rather than being absorbed into a known measured outcome.
                 reasons.append(
                     f"unexplained route runner returncode={route_rc} "
-                    f"status={density_status!r} with no collision incident"
+                    f"status={density_status!r}"
                 )
     return {
         "classification": classification,
@@ -392,6 +416,12 @@ def classify_route_outcome(
         "driven_distance_m_median": values.get("driven_distance_m_median"),
         "planned_route_length_m": values.get("planned_route_length_m"),
         "collision_is_measured_outcome_not_structural_failure": True,
+        # Braking is reported as observed and never asserted. A cell accepted as
+        # COMPLETED_NO_BRAKING_EVENT exercised no pedestrian braking at all, so
+        # it must never be read as braking coverage or as a safety success.
+        "pedestrian_braking_exercised": bool(brake_ticks > 0),
+        "no_braking_event_is_measured_outcome_not_braking_coverage": True,
+        "does_not_claim_pedestrian_braking_coverage_or_safety_success": True,
         "fatal_reasons": reasons,
     }
 
