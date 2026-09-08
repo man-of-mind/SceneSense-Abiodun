@@ -242,7 +242,25 @@ def build_continuation(
             continue
         rows = source_ledger.get("cells", {}).get(cell.cell_id) or []
         chosen = None
+        carried = False
         for row in rows:
+            if row.get("status") == supervisor.REUSED_STATUS:
+                # The source campaign itself reused this cell by reference.
+                # Carry the original reference forward verbatim so the chain
+                # stays one hop deep and still points at the cell that actually
+                # holds the scientific data.
+                chosen = {
+                    key: row[key]
+                    for key in (
+                        "status", "attempt", "source_campaign_root",
+                        "source_attempt_dir", "source_expected_outputs",
+                        "source_manifest_sha256", "source_terminal",
+                        "terminal_sha256", "route_metrics_summary_present",
+                    )
+                    if key in row
+                }
+                carried = True
+                break
             if row.get("status") != "PASSED":
                 continue
             attempt_dir = reuse_root / str(row["attempt_dir"])
@@ -275,7 +293,7 @@ def build_continuation(
             f"reused cell failed revalidation before reuse: {cell.cell_id}",
         )
         seeded[cell.cell_id] = [chosen]
-        reused.append({"cell_id": cell.cell_id, **chosen})
+        reused.append({"cell_id": cell.cell_id, "carried_forward": carried, **chosen})
     continuation = {
         "schema": CONTINUATION_SCHEMA,
         "source_campaign_root": str(reuse_root.relative_to(ROOT)),
@@ -295,6 +313,8 @@ def build_continuation(
         ),
         "amended_expected_outputs": list(config["cell"]["expected_outputs"]),
         "reused_cells": len(reused),
+        "reused_from_source_campaign": sum(1 for row in reused if not row["carried_forward"]),
+        "reused_references_carried_forward": sum(1 for row in reused if row["carried_forward"]),
         "rerun_cell_ids": sorted(rerun),
         "reused_cells_predate_durable_route_summary_requirement": True,
         "reused_cell_inventory": reused,
