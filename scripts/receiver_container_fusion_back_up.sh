@@ -13,8 +13,47 @@ if ! sudo docker network inspect oai-cn5g-public-net >/dev/null 2>&1; then
     exit 1
 fi
 
-if ! sudo docker info 2>/dev/null | grep -qi "nvidia"; then
-    echo "[fusion_back_up] ERROR: Docker does not report an NVIDIA runtime/CDI setup."
+# Structured, retried NVIDIA-runtime probe.
+#
+# This was `sudo docker info 2>/dev/null | grep -qi "nvidia"`: one shot, a
+# substring match against free-text output, stderr discarded. On 2026-09-07 it
+# killed the 288-cell campaign at cell a61 while the runtime was registered the
+# whole time -- dockerd logged an internal plugin-refcount error at that instant,
+# `docker info` returned nothing, and the discarded stderr left no evidence.
+# The probe now reads the exact Runtimes map key, retries a transient daemon
+# fault with a per-attempt timeout and bounded backoff, and prints every
+# attempt's combined output so a real failure is diagnosable from the launcher
+# log. It grants no capability it did not previously require.
+NVIDIA_RUNTIME_PROBE_ATTEMPTS="${NVIDIA_RUNTIME_PROBE_ATTEMPTS:-5}"
+NVIDIA_RUNTIME_PROBE_TIMEOUT_S="${NVIDIA_RUNTIME_PROBE_TIMEOUT_S:-20}"
+NVIDIA_RUNTIME_PROBE_NAME="nvidia"
+nvidia_runtime_present=0
+nvidia_probe_backoff_s=1
+for nvidia_probe_attempt in $(seq 1 "${NVIDIA_RUNTIME_PROBE_ATTEMPTS}"); do
+    nvidia_probe_rc=0
+    nvidia_probe_output="$(timeout "${NVIDIA_RUNTIME_PROBE_TIMEOUT_S}" \
+        sudo docker info --format '{{range $name, $runtime := .Runtimes}}{{$name}}
+{{end}}' 2>&1)" || nvidia_probe_rc=$?
+    if [ "${nvidia_probe_rc}" -eq 0 ] \
+        && printf '%s\n' "${nvidia_probe_output}" | grep -Fxq "${NVIDIA_RUNTIME_PROBE_NAME}"; then
+        nvidia_runtime_present=1
+        echo "[fusion_back_up] nvidia runtime probe: attempt ${nvidia_probe_attempt} ok;" \
+            "runtimes=$(printf '%s' "${nvidia_probe_output}" | tr '\n' ' ')"
+        break
+    fi
+    echo "[fusion_back_up] nvidia runtime probe: attempt ${nvidia_probe_attempt}/${NVIDIA_RUNTIME_PROBE_ATTEMPTS}" \
+        "failed rc=${nvidia_probe_rc}; output=<<${nvidia_probe_output}>>"
+    if [ "${nvidia_probe_attempt}" -lt "${NVIDIA_RUNTIME_PROBE_ATTEMPTS}" ]; then
+        sleep "${nvidia_probe_backoff_s}"
+        nvidia_probe_backoff_s=$((nvidia_probe_backoff_s * 2))
+        if [ "${nvidia_probe_backoff_s}" -gt 8 ]; then
+            nvidia_probe_backoff_s=8
+        fi
+    fi
+done
+if [ "${nvidia_runtime_present}" -ne 1 ]; then
+    echo "[fusion_back_up] ERROR: Docker does not report the '${NVIDIA_RUNTIME_PROBE_NAME}' runtime" \
+        "after ${NVIDIA_RUNTIME_PROBE_ATTEMPTS} probes."
     echo "[fusion_back_up] Install and configure nvidia-container-toolkit first."
     exit 1
 fi

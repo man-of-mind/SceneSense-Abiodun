@@ -5,7 +5,7 @@
   "campaign_288_authorized": false,
   "campaign_config": {
     "path": "rl_agent/configs/ue_288_campaign_v1.yaml",
-    "sha256": "b0900d4d49fef09ab53f0b688fd4738d943b32b646060b6e1816ec8847905535"
+    "sha256": "17596fead1260834907e14beace483963b9ce7c9bd4765035420998ed2b450f1"
   },
   "implementation": {
     "campaign_gate": {

@@ -240,7 +240,7 @@ deployment:
     sha256: 6d00149c7d9a9502af1ea701e3494aed0a7bbf9dbb1412f0c2b1e1b7b0f9061a
   edge_launcher:
     path: scripts/receiver_container_fusion_back_up.sh
-    sha256: db6ea6387d590fdca94445288f183310181c5acbac7ec6b4adf8c337431eb246
+    sha256: abf532c88d27fcf101dcecbfcf55f4994fd44cd287d5d1a9245ce0ca3b333610
 
 authorization:
   catalog_must_remain_hash_bound: true
