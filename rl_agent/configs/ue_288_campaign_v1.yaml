@@ -105,7 +105,7 @@ runtime:
   live_dispatch_bridge: rl_agent/splitfusion_live_dispatch_v1/live_pilot_runtime.py
   live_dispatch_bridge_sha256: ce568a89fa262916e7b6f737a5d1f7fc310428de96ff170eb56eca303411f894
   required_route_b_split_cell_adapter: rl_agent/ue_route_b_split_cell_adapter_v1.py
-  required_route_b_split_cell_adapter_sha256: 8f892b180d07c44d6a390dec700422a258532126e308594ad6c990a10cff9e20
+  required_route_b_split_cell_adapter_sha256: fdedf685d4e1685dc3b0822cf7eb1da176746da59b52e9fa09be31cc172fbc96
   sfd1_protocol_version: 2
   frame_context_required: true
   udp_fragment_header: "!IHH"
@@ -143,6 +143,7 @@ cell:
     - map_feedback.csv
     - perception_metrics.csv
     - resolved_config.yaml
+    - route_metrics_summary.json
     - RESULTS_SUMMARY.json
     - manifest.json
   radio_trace_fields:
@@ -209,7 +210,7 @@ cell:
 deployment:
   phase15_supervisor:
     path: rl_agent/ue_288_campaign_supervisor.py
-    sha256: a7a232e543962863a8888dd1ddbafb3c7b81a8edbb5d459e20b4bf2c2d5fc5c8
+    sha256: babfdf31b6f290595f64b1f095f084cf73c3f38a5b991a303627ff42831ce38c
   phase15_qualification_runner:
     path: rl_agent/phase15_live_deployment_qualification_v1.py
     sha256: ccb90d543b9e4e3f1cd5c9401f66dc1e9c3d63ba1def7d91b6cd74f7c489c64b

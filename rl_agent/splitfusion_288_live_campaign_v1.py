@@ -18,6 +18,7 @@ DEFAULT_BINDING = ROOT / "rl_agent/configs/splitfusion_288_live_campaign_binding
 TOKEN = "SPLITFUSION_288_CELL_LIVE_CARLA_OAI_CAMPAIGN"
 BINDING_SCHEMA = "scenesense.splitfusion_288_live_campaign_binding.v1"
 MANIFEST_SCHEMA = "scenesense.splitfusion_288_live_campaign_manifest.v1"
+CONTINUATION_SCHEMA = supervisor.CONTINUATION_SCHEMA
 COMPLETION_SCHEMA = "scenesense.splitfusion_288_live_campaign_completion.v1"
 TERMINAL = "SPLITFUSION_288_CELL_LIVE_CARLA_OAI_CAMPAIGN_COMPLETE"
 
@@ -191,6 +192,115 @@ def validate(config_path: Path, binding_path: Path) -> dict[str, Any]:
     }
 
 
+
+def build_continuation(
+    config: Mapping[str, Any],
+    cells: Sequence[Any],
+    output: Path,
+    reuse_root: Path,
+    rerun_cell_ids: Sequence[str],
+    config_path: Path,
+    binding_path: Path,
+    amended_head: str,
+) -> tuple[dict[str, Any], dict[str, list[dict[str, Any]]]]:
+    """Bind an immutable earlier campaign as the source of reused cells.
+
+    Reused cells are referenced, never copied or rewritten. Each reference
+    carries the source root, attempt directory, that campaign's own registered
+    output set, and the terminal and manifest hashes, all revalidated before
+    reuse. Cells named for rerun are deliberately excluded so they execute fresh
+    under the amended contract.
+    """
+
+    reuse_root = reuse_root.resolve(strict=True)
+    experiments = (ROOT / "experiments").resolve(strict=True)
+    try:
+        reuse_root.relative_to(experiments)
+    except ValueError as exc:
+        raise supervisor.CampaignError("reuse root must remain beneath experiments") from exc
+    require(reuse_root != output.resolve(strict=False), "reuse root must differ from the fresh output")
+    source_manifest_path = reuse_root / "campaign_manifest.json"
+    source_ledger_path = reuse_root / str(config["cell"]["resume_ledger"])
+    for artifact in (source_manifest_path, source_ledger_path):
+        require(artifact.is_file(), f"reuse root artifact missing: {artifact}")
+    source_manifest = load_json(source_manifest_path)
+    source_ledger = load_json(source_ledger_path)
+    require(
+        source_manifest.get("campaign_id") == config["campaign_id"]
+        and source_manifest.get("cell_mapping_sha256") == supervisor.cell_mapping_sha256(cells)
+        and int(source_manifest.get("required_cells", -1)) == 288,
+        "reuse root does not describe the same 288-cell campaign",
+    )
+    require(source_ledger.get("schema") == supervisor.LEDGER_SCHEMA, "reuse ledger schema drift")
+    rerun = {str(value) for value in rerun_cell_ids}
+    known = {cell.cell_id for cell in cells}
+    require(rerun <= known, f"unknown --rerun-cell-id values: {sorted(rerun - known)}")
+    seeded: dict[str, list[dict[str, Any]]] = {}
+    reused: list[dict[str, Any]] = []
+    for cell in cells:
+        if cell.cell_id in rerun:
+            continue
+        rows = source_ledger.get("cells", {}).get(cell.cell_id) or []
+        chosen = None
+        for row in rows:
+            if row.get("status") != "PASSED":
+                continue
+            attempt_dir = reuse_root / str(row["attempt_dir"])
+            manifest_path = attempt_dir / "manifest.json"
+            if not manifest_path.is_file():
+                continue
+            attempt_manifest = load_json(manifest_path)
+            registered = list(attempt_manifest.get("registered_outputs") or [])
+            if not registered:
+                continue
+            chosen = {
+                "status": supervisor.REUSED_STATUS,
+                "attempt": int(row.get("attempt", 1)),
+                "source_campaign_root": str(reuse_root.relative_to(ROOT)),
+                "source_attempt_dir": str(row["attempt_dir"]),
+                "source_expected_outputs": registered,
+                "source_manifest_sha256": supervisor.sha256_file(manifest_path),
+                # Named source_* so no reader resolves it against the fresh root.
+                "source_terminal": str(row.get("terminal", "")),
+                "terminal_sha256": str(row.get("terminal_sha256", "")),
+                "route_metrics_summary_present": bool(
+                    (attempt_dir / supervisor.ROUTE_SUMMARY_NAME).is_file()
+                ),
+            }
+            break
+        if chosen is None:
+            continue
+        require(
+            supervisor.reused_attempt_valid([chosen]),
+            f"reused cell failed revalidation before reuse: {cell.cell_id}",
+        )
+        seeded[cell.cell_id] = [chosen]
+        reused.append({"cell_id": cell.cell_id, **chosen})
+    continuation = {
+        "schema": CONTINUATION_SCHEMA,
+        "source_campaign_root": str(reuse_root.relative_to(ROOT)),
+        "source_campaign_manifest_sha256": supervisor.sha256_file(source_manifest_path),
+        "source_campaign_ledger_sha256": supervisor.sha256_file(source_ledger_path),
+        "source_starting_head": str(source_manifest.get("starting_head", "")),
+        "source_campaign_config_sha256": str(source_manifest.get("campaign_config_sha256", "")),
+        "source_binding_sha256": str(source_manifest.get("binding_sha256", "")),
+        "amended_starting_head": str(amended_head),
+        "amended_campaign_config_sha256": supervisor.sha256_file(config_path),
+        "amended_binding_sha256": supervisor.sha256_file(binding_path),
+        "amended_supervisor_sha256": supervisor.sha256_file(
+            (ROOT / "rl_agent/ue_288_campaign_supervisor.py").resolve(strict=True)
+        ),
+        "amended_cell_adapter_sha256": supervisor.sha256_file(
+            repo_path(str(config["runtime"]["required_route_b_split_cell_adapter"]))
+        ),
+        "amended_expected_outputs": list(config["cell"]["expected_outputs"]),
+        "reused_cells": len(reused),
+        "rerun_cell_ids": sorted(rerun),
+        "reused_cells_predate_durable_route_summary_requirement": True,
+        "reused_cell_inventory": reused,
+    }
+    return continuation, seeded
+
 def run(args: argparse.Namespace) -> int:
     config_path = args.config.resolve(strict=True)
     binding_path = args.binding.resolve(strict=True)
@@ -228,6 +338,12 @@ def run(args: argparse.Namespace) -> int:
         "ack_timeout_ms": report["ack_timeout_ms"],
         "claims_100ms_service_ready": False,
         "phase15_live_qualification": qualification,
+        "registered_outputs": list(config["cell"]["expected_outputs"]),
+        "reuse_campaign_root": (
+            str(args.reuse_campaign_root.resolve(strict=True).relative_to(ROOT))
+            if args.reuse_campaign_root is not None else ""
+        ),
+        "rerun_cell_ids": sorted(str(value) for value in args.rerun_cell_id),
         "created_at_unix_s": None,
     }
     if args.resume:
@@ -242,6 +358,33 @@ def run(args: argparse.Namespace) -> int:
         output.mkdir(parents=False, exist_ok=False)
         manifest["created_at_unix_s"] = time.time()
         supervisor.write_create_only(manifest_path, json.dumps(manifest, indent=2, sort_keys=True) + "\n")
+        if args.reuse_campaign_root is not None:
+            cells = supervisor.enumerate_cells(config)
+            continuation, seeded = build_continuation(
+                config, cells, output, args.reuse_campaign_root,
+                args.rerun_cell_id, config_path, binding_path, worktree["head"],
+            )
+            supervisor.write_create_only(
+                output / "campaign_continuation_binding.json",
+                json.dumps(continuation, indent=2, sort_keys=True) + "\n",
+            )
+            supervisor.write_create_only(
+                output / str(config["cell"]["resume_ledger"]),
+                json.dumps(
+                    {
+                        "schema": supervisor.LEDGER_SCHEMA,
+                        "campaign_id": str(config["campaign_id"]),
+                        "config_sha256": supervisor.sha256_file(config_path),
+                        "created_at_unix_s": time.time(),
+                        "updated_at_unix_s": time.time(),
+                        "continuation_binding_sha256": supervisor.sha256_file(
+                            output / "campaign_continuation_binding.json"
+                        ),
+                        "cells": seeded,
+                    },
+                    indent=2, sort_keys=True,
+                ) + "\n",
+            )
 
     completion_path = output / "campaign_completion.json"
     terminal_path = output / TERMINAL
@@ -285,15 +428,26 @@ def run(args: argparse.Namespace) -> int:
     ledger = load_json(ledger_path)
     cells = supervisor.enumerate_cells(config)
     expected_outputs = config["cell"]["expected_outputs"]
-    passed = sum(
-        supervisor.passed_attempt_exists(output, ledger["cells"].get(cell.cell_id, []), expected_outputs)
-        for cell in cells
+    require(
+        set(ledger.get("cells", {})) == {cell.cell_id for cell in cells},
+        "campaign ledger contains duplicate, missing or foreign cells",
     )
+    executed = 0
+    reused = 0
+    for cell in cells:
+        rows = ledger["cells"].get(cell.cell_id, [])
+        if supervisor.passed_attempt_exists(output, rows, expected_outputs):
+            executed += 1
+        elif supervisor.reused_attempt_valid(rows):
+            reused += 1
+    passed = executed + reused
     require(passed == 288 and len(ledger.get("cells", {})) == 288, "campaign completion inventory drift")
     completion = {
         "schema": COMPLETION_SCHEMA,
         "status": TERMINAL,
         "completed_cells": passed,
+        "executed_cells": executed,
+        "reused_cells": reused,
         "cell_mapping_sha256": report["cell_mapping_sha256"],
         "campaign_manifest_sha256": supervisor.sha256_file(manifest_path),
         "campaign_ledger_sha256": supervisor.sha256_file(ledger_path),
@@ -325,6 +479,8 @@ def build_parser() -> argparse.ArgumentParser:
     launch.add_argument("--execute", required=True)
     launch.add_argument("--authorize-full-sweep", action="store_true")
     launch.add_argument("--resume", action="store_true")
+    launch.add_argument("--reuse-campaign-root", type=Path, default=None)
+    launch.add_argument("--rerun-cell-id", action="append", default=[])
     launch.add_argument("--carla-port", type=int, default=2000)
     return parser
 

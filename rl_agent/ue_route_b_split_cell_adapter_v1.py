@@ -60,8 +60,29 @@ EXPECTED_OUTPUTS = (
     "map_feedback.csv",
     "perception_metrics.csv",
     "resolved_config.yaml",
+    "route_metrics_summary.json",
     "RESULTS_SUMMARY.json",
     "manifest.json",
+)
+# The route runner writes its summary into a per-cell temporary directory that
+# teardown removes. Cell a58 of retry5 returned rc=1 with a completed route and
+# no interventions, and the only evidence that could have classified it -- the
+# collision and cleanup fields -- was destroyed with that directory. The summary
+# is therefore persisted whole into the durable attempt directory, never reduced
+# to a log tail, and hash-bound into the manifest, terminal and ledger.
+ROUTE_SUMMARY_NAME = "route_metrics_summary.json"
+ROUTE_SUMMARY_PLACEHOLDER_SCHEMA = "scenesense.route_metrics_summary_absent.v1"
+# Route-runner outcome classifications. Only the precisely proven collision-only
+# case is a measured outcome; everything else with a nonzero return code stays
+# structurally fatal.
+ROUTE_OUTCOME_PASS = "ROUTE_RUNNER_PASS"
+ROUTE_OUTCOME_INTERVENED = "PERMITTED_INTERVENTION"
+ROUTE_OUTCOME_COLLISION_ONLY = "COLLISION_ONLY_MEASURED_OUTCOME"
+ROUTE_OUTCOME_FATAL = "FATAL_ROUTE_RUNNER_FAILURE"
+ROUTE_ACCEPTABLE_OUTCOMES = (
+    ROUTE_OUTCOME_PASS,
+    ROUTE_OUTCOME_INTERVENED,
+    ROUTE_OUTCOME_COLLISION_ONLY,
 )
 PER_FRAME_FIELDS = (
     "cell_id", "action_id", "network_profile_id", "stream_id", "capture_id",
@@ -222,6 +243,157 @@ def write_json_create_only(path: Path, value: Mapping[str, Any]) -> None:
     with path.open("x", encoding="utf-8") as handle:
         json.dump(value, handle, indent=2, sort_keys=True, allow_nan=False)
         handle.write("\n")
+
+
+def persist_route_summary(source: Path, attempt_dir: Path) -> dict[str, Any]:
+    """Copy the route summary into the durable attempt directory atomically.
+
+    The complete JSON is retained. The copy lands on a temporary name in the
+    destination directory and is then renamed, so a crash mid-write can never
+    leave a truncated summary that a later reader would treat as authoritative.
+    """
+
+    destination = attempt_dir / ROUTE_SUMMARY_NAME
+    if destination.exists():
+        return {
+            "persisted": False,
+            "reason": "ROUTE_SUMMARY_DESTINATION_ALREADY_EXISTS",
+            "sha256": "",
+            "bytes": 0,
+        }
+    if not source.is_file():
+        return {
+            "persisted": False,
+            "reason": "ROUTE_SUMMARY_NOT_WRITTEN_BY_ROUTE_RUNNER",
+            "sha256": "",
+            "bytes": 0,
+        }
+    staging = attempt_dir / f".{ROUTE_SUMMARY_NAME}.partial"
+    try:
+        shutil.copy2(source, staging)
+        with staging.open("rb") as handle:
+            os.fsync(handle.fileno())
+        os.replace(staging, destination)
+    except OSError as exc:
+        staging.unlink(missing_ok=True)
+        return {
+            "persisted": False,
+            "reason": f"ROUTE_SUMMARY_COPY_FAILED:{exc.__class__.__name__}",
+            "sha256": "",
+            "bytes": 0,
+        }
+    return {
+        "persisted": True,
+        "reason": "PERSISTED",
+        "sha256": sha256_file(destination),
+        "bytes": int(destination.stat().st_size),
+    }
+
+
+def validate_route_summary_identity(
+    summary: Mapping[str, Any], expected: Mapping[str, Any]
+) -> list[str]:
+    """Prove the persisted summary belongs to this exact cell invocation."""
+
+    mismatches: list[str] = []
+    for field, want in expected.items():
+        got = summary.get(field)
+        if isinstance(want, float):
+            ok = isinstance(got, (int, float)) and math.isclose(
+                float(got), float(want), rel_tol=0.0, abs_tol=1e-9
+            )
+        else:
+            ok = got == want
+        if not ok:
+            mismatches.append(f"{field}: expected {want!r} observed {got!r}")
+    return mismatches
+
+
+def classify_route_outcome(
+    *,
+    route_rc: int,
+    density_status: str,
+    route_completed: bool,
+    interventions_permitted: bool,
+    summary: Mapping[str, Any] | None,
+    summary_ok: bool,
+) -> dict[str, Any]:
+    """Decompose a route-runner result into one explicit, auditable reason.
+
+    A collision is a measured scenario outcome, so a collision-only rc=1 is
+    accepted -- but only when the persisted summary positively proves route
+    completion, no watchdog abort, no interventions, route-runner cleanup
+    success and at least one real collision incident. Any other nonzero return
+    code, including one with no proven cause, remains structurally fatal.
+    """
+
+    values = dict(summary or {})
+    loops_completed = int(values.get("loops_completed", 0)) if summary_ok else 0
+    watchdog = bool(values.get("watchdog_aborted_any", True)) if summary_ok else True
+    interventions = (
+        int(values.get("intervention_count_total", -1)) if summary_ok else -1
+    )
+    runner_cleanup_ok = (
+        bool(values.get("cleanup_succeeded", False)) if summary_ok else False
+    )
+    incidents = (
+        int(values.get("collision_incident_count_total", 0)) if summary_ok else 0
+    )
+    reasons: list[str] = []
+    if int(route_rc) == 0:
+        classification = ROUTE_OUTCOME_PASS
+    elif density_status == "INTERVENED" and interventions_permitted:
+        classification = ROUTE_OUTCOME_INTERVENED
+    elif (
+        density_status == "FAIL"
+        and summary_ok
+        and route_completed
+        and loops_completed == 1
+        and not watchdog
+        and interventions == 0
+        and runner_cleanup_ok
+        and incidents > 0
+    ):
+        classification = ROUTE_OUTCOME_COLLISION_ONLY
+    else:
+        classification = ROUTE_OUTCOME_FATAL
+        if not summary_ok:
+            reasons.append("durable route summary missing, malformed or identity mismatched")
+        else:
+            if not route_completed or loops_completed != 1:
+                reasons.append(
+                    f"route did not complete (completed={route_completed} "
+                    f"loops_completed={loops_completed})"
+                )
+            if watchdog:
+                reasons.append("route watchdog aborted")
+            if interventions != 0:
+                reasons.append(f"route interventions occurred (count={interventions})")
+            if not runner_cleanup_ok:
+                reasons.append("route runner reported cleanup_succeeded=false")
+            if incidents == 0:
+                reasons.append(
+                    f"unexplained route runner returncode={route_rc} "
+                    f"status={density_status!r} with no collision incident"
+                )
+    return {
+        "classification": classification,
+        "route_runner_returncode": int(route_rc),
+        "density_status": str(density_status),
+        "route_completed": bool(route_completed),
+        "loops_completed": loops_completed,
+        "watchdog_aborted_any": watchdog,
+        "intervention_count_total": interventions,
+        "route_runner_cleanup_succeeded": runner_cleanup_ok,
+        "collision_incident_count": incidents,
+        "collision_count": int(values.get("collision_count_total", 0)) if summary_ok else 0,
+        "collision_incidents": list(values.get("collision_incidents", []) or []),
+        "walker_brake_ticks_total": values.get("walker_brake_ticks_total"),
+        "driven_distance_m_median": values.get("driven_distance_m_median"),
+        "planned_route_length_m": values.get("planned_route_length_m"),
+        "collision_is_measured_outcome_not_structural_failure": True,
+        "fatal_reasons": reasons,
+    }
 
 
 def frame_id_list_sha256(frame_ids: Sequence[int]) -> str:
@@ -2713,6 +2885,14 @@ def run_route_b(
     )
 
     route = campaign["route_b"]
+    # The route runner labels its summary with the route file's name, so this is
+    # the identity the persisted summary must carry back.
+    route_identity = load_json(repo_path(str(route["route_json"])))
+    require(
+        str(route_identity.get("name") or ""),
+        "route configuration is missing the route name used as its summary identity",
+    )
+    route_identity = {"route_id": str(route_identity["name"])}
     with tempfile.TemporaryDirectory(prefix="ue_route_b_metrics_") as raw_tmp:
         temporary = Path(raw_tmp)
         density_argv = [
@@ -2770,27 +2950,73 @@ def run_route_b(
         finally:
             density.drive_one_loop_with_traffic = original_drive
             density.carla.Client = real_client_class
+        # Persist the summary before the temporary directory is torn down.
+        summary_path = temporary / ROUTE_SUMMARY_NAME
+        retention = persist_route_summary(summary_path, attempt_dir)
         density_summary: dict[str, Any] = {}
-        summary_path = temporary / "route_metrics_summary.json"
-        if summary_path.is_file():
-            density_summary = json.loads(summary_path.read_text(encoding="utf-8"))
+        summary_ok = False
+        identity_mismatches: list[str] = []
+        parse_error = ""
+        if retention["persisted"]:
+            try:
+                parsed = json.loads(
+                    (attempt_dir / ROUTE_SUMMARY_NAME).read_text(encoding="utf-8")
+                )
+            except (OSError, json.JSONDecodeError) as exc:
+                parse_error = f"{type(exc).__name__}: {exc}"
+            else:
+                if isinstance(parsed, dict):
+                    density_summary = parsed
+                    identity_mismatches = validate_route_summary_identity(
+                        density_summary,
+                        {
+                            "route_id": str(route_identity["route_id"]),
+                            "density": "traffic_50_50",
+                            "seed": int(route["scenario_seed"]),
+                            "loops": 1,
+                            "lane_offset_m": -0.5,
+                            "target_speed_kph": 25.0,
+                            "npc_vehicles_requested": 50,
+                            "npc_pedestrians_requested": 50,
+                        },
+                    )
+                    summary_ok = not identity_mismatches
+                else:
+                    parse_error = "route summary root is not a mapping"
         result = holder.get("route_result")
         policy = intervention_policy(result, True)
         density_status = str(density_summary.get("status", ""))
-        route_ok = route_rc == 0 or (
-            density_status == "INTERVENED" and bool(policy["interventions_permitted_and_expected"])
+        route_completed = bool(result and result.get("completed"))
+        outcome = classify_route_outcome(
+            route_rc=route_rc,
+            density_status=density_status,
+            route_completed=route_completed,
+            interventions_permitted=bool(policy["interventions_permitted_and_expected"]),
+            summary=density_summary,
+            summary_ok=summary_ok,
         )
         collector = holder.get("collector")
         accepted = bool(
-            route_ok and result and result.get("completed")
+            outcome["classification"] in ROUTE_ACCEPTABLE_OUTCOMES
+            and summary_ok
+            and route_completed
             and policy["interventions_permitted_and_expected"]
             and collector is not None and not collector.failures and collector.cleanup_ok
         )
         return accepted, {
             "route_runner_returncode": route_rc, "density_status": density_status,
-            "route_completed": bool(result and result.get("completed")),
+            "route_completed": route_completed,
             "route_abort_reason": str((result or {}).get("abort_reason", "")),
             "intervention_policy": policy, "error": error,
+            "route_summary_name": ROUTE_SUMMARY_NAME,
+            "route_summary_persisted": bool(retention["persisted"]),
+            "route_summary_retention_reason": str(retention["reason"]),
+            "route_summary_sha256": str(retention["sha256"]),
+            "route_summary_bytes": int(retention["bytes"]),
+            "route_summary_identity_ok": summary_ok,
+            "route_summary_identity_mismatches": identity_mismatches,
+            "route_summary_parse_error": parse_error,
+            "route_outcome": outcome,
         }, collector
 
 
@@ -2926,8 +3152,24 @@ def run(args: argparse.Namespace) -> int:
                 failures.append("per-cell map process exited before cell cleanup")
             if target_process.poll() is not None:
                 failures.append("target-SNR runtime exited before cell cleanup")
+            route_outcome = dict(route_detail.get("route_outcome") or {})
+            if not route_detail.get("route_summary_persisted"):
+                failures.append(
+                    "durable route summary was not persisted: "
+                    f"{route_detail.get('route_summary_retention_reason', 'UNKNOWN')}"
+                )
+            elif not route_detail.get("route_summary_identity_ok"):
+                failures.append(
+                    "durable route summary failed schema/identity validation: "
+                    f"{route_detail.get('route_summary_identity_mismatches') or route_detail.get('route_summary_parse_error')}"
+                )
             if not route_ok:
-                failures.append("qualified Route B did not complete with a clean split adapter")
+                classification = str(route_outcome.get("classification") or "UNCLASSIFIED")
+                reasons = route_outcome.get("fatal_reasons") or ["unclassified route failure"]
+                failures.append(
+                    f"qualified Route B did not complete with a clean split adapter "
+                    f"[{classification}]: {'; '.join(str(value) for value in reasons)}"
+                )
             if collector is None:
                 failures.append("Route B never entered drive_one_loop_with_traffic")
             else:
@@ -3003,6 +3245,25 @@ def run(args: argparse.Namespace) -> int:
         from rl_agent.splitfusion_live_dispatch_v1.live_pilot_target_snr_runtime import FIELDS as radio_fields
         with (attempt_dir / "radio_trace.csv").open("x", newline="", encoding="utf-8") as handle:
             csv.DictWriter(handle, fieldnames=list(radio_fields)).writeheader()
+    # A cell that failed before the route runner produced a summary still needs
+    # the registered artifact to exist, but it must never be mistaken for one.
+    # Writing the placeholder is itself a failure, so such a cell cannot pass.
+    if not (attempt_dir / ROUTE_SUMMARY_NAME).exists():
+        failures.append(
+            "durable route summary is absent; cell cannot be represented as a "
+            "completed measurement"
+        )
+        write_json_create_only(
+            attempt_dir / ROUTE_SUMMARY_NAME,
+            {
+                "schema": ROUTE_SUMMARY_PLACEHOLDER_SCHEMA,
+                "route_summary_available": False,
+                "cell_id": str(cell["cell_id"]),
+                "action_id": int(cell["action_id"]),
+                "network_profile_id": str(cell["network_profile_id"]),
+                "reason": "route runner did not produce a durable summary for this attempt",
+            },
+        )
 
     terminal_status = "PASSED" if not failures else "FAILED"
     summary = {
@@ -3016,7 +3277,20 @@ def run(args: argparse.Namespace) -> int:
         "one_clock_owner": "qualified_route_b_density_runner_via_SamplingWorld",
         "measurement_contract": dict(campaign["measurement_contract"]),
         "structural_acceptance": structural_acceptance,
-        "route": route_detail, "split_frames_sent": collector.sent if collector else 0,
+        "route": route_detail,
+        # Surfaced at the top level so a collision-completed cell is never read
+        # as a clean no-collision route.
+        "route_outcome_classification": str(
+            (route_detail.get("route_outcome") or {}).get("classification")
+            or "ROUTE_NOT_REACHED"
+        ),
+        "route_collision_outcome": dict(route_detail.get("route_outcome") or {}),
+        "route_metrics_summary_name": ROUTE_SUMMARY_NAME,
+        "route_metrics_summary_sha256": (
+            sha256_file(attempt_dir / ROUTE_SUMMARY_NAME)
+            if (attempt_dir / ROUTE_SUMMARY_NAME).is_file() else ""
+        ),
+        "split_frames_sent": collector.sent if collector else 0,
         "split_frames_dropped": collector.dropped if collector else 0,
         "live_dispatch": collector.live_summary if collector else {},
         "edge_startup": edge_startup,

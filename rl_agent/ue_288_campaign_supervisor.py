@@ -55,6 +55,11 @@ LIVE_PILOT_TOKEN = "SPLITFUSION_16_CELL_LIVE_CARLA_OAI_PILOT"
 # identical qualified fresh-radio lifecycle, so neither may be special-cased out of
 # the launcher, attachment or teardown path.
 LIVE_CAMPAIGN_KINDS = ("live_pilot_16", "full_288")
+# Durable per-attempt route-runner summary. Persisting and hash-binding it is
+# what makes a route-runner outcome classifiable after the fact.
+ROUTE_SUMMARY_NAME = "route_metrics_summary.json"
+REUSED_STATUS = "REUSED"
+CONTINUATION_SCHEMA = "scenesense.splitfusion_288_campaign_continuation_binding.v1"
 PHASE15_QUALIFICATION_SCHEMA = "scenesense.splitfusion_phase15_live_deployment_qualification.v1"
 PHASE15_RECLASSIFIED_QUALIFICATION_SCHEMA = (
     "scenesense.splitfusion_phase15_live_deployment_reclassified_qualification.v1"
@@ -515,6 +520,7 @@ def verify_output_contract(config: Mapping[str, Any]) -> None:
         "map_feedback.csv",
         "perception_metrics.csv",
         "resolved_config.yaml",
+        ROUTE_SUMMARY_NAME,
         "RESULTS_SUMMARY.json",
         "manifest.json",
     }
@@ -750,6 +756,74 @@ def passed_attempt_exists(
         ):
             return True
     return False
+
+
+def reused_attempt_valid(rows: Sequence[Mapping[str, Any]]) -> bool:
+    """Revalidate a cell reused by reference from an immutable earlier campaign.
+
+    Nothing is copied or rewritten: the row carries the source root, the source
+    attempt directory, the expected-output set that campaign registered, and the
+    terminal and manifest hashes. Every one is re-proven here before reuse, so a
+    mutated or truncated source cell can never be counted as durable.
+    """
+
+    for row in rows:
+        if row.get("status") != "REUSED":
+            continue
+        source_root = repo_path(str(row.get("source_campaign_root", "")))
+        attempt_dir = source_root / str(row.get("source_attempt_dir", ""))
+        try:
+            attempt_dir.resolve(strict=True).relative_to(source_root.resolve(strict=True))
+        except (OSError, ValueError):
+            continue
+        expected_outputs = list(row.get("source_expected_outputs", []) or [])
+        if not expected_outputs:
+            continue
+        terminals = terminal_files(attempt_dir)
+        if len(terminals) != 1 or terminals[0].name != "PASSED.json":
+            continue
+        if row.get("terminal_sha256") != sha256_file(terminals[0]):
+            continue
+        manifest_path = attempt_dir / "manifest.json"
+        if not manifest_path.is_file():
+            continue
+        if row.get("source_manifest_sha256") != sha256_file(manifest_path):
+            continue
+        try:
+            terminal = load_json(terminals[0])
+            summary = load_json(attempt_dir / "RESULTS_SUMMARY.json")
+            manifest = load_json(manifest_path)
+        except (OSError, json.JSONDecodeError):
+            continue
+        manifest_rows = manifest.get("files", []) if isinstance(manifest, dict) else []
+        manifest_hashes_valid = bool(manifest_rows) and all(
+            isinstance(item, dict)
+            and (attempt_dir / str(item.get("path", ""))).is_file()
+            and item.get("sha256") == sha256_file(attempt_dir / str(item["path"]))
+            for item in manifest_rows
+        )
+        if (
+            all((attempt_dir / name).is_file() for name in expected_outputs)
+            and manifest.get("registered_outputs") == expected_outputs
+            and manifest_hashes_valid
+            and terminal.get("status") == "PASSED"
+            and summary.get("status") == "PASSED"
+            and summary.get("terminal_status") == "PASSED"
+        ):
+            return True
+    return False
+
+
+def durable_attempt_exists(
+    campaign_root: Path,
+    ledger_rows: Sequence[Mapping[str, Any]],
+    expected_outputs: Sequence[str],
+) -> bool:
+    """A cell is durable when executed here and passed, or validly reused."""
+
+    if passed_attempt_exists(campaign_root, ledger_rows, expected_outputs):
+        return True
+    return reused_attempt_valid(ledger_rows)
 
 
 def next_attempt_dir(campaign_root: Path, cell: Cell, rows: Sequence[Mapping[str, Any]]) -> tuple[int, Path]:
@@ -1115,21 +1189,42 @@ def run_one_cell(
         summary_status = ""
         summary_terminal_status = ""
         summary_error = ""
+        route_outcome = ""
+        route_summary_sha256 = ""
+        route_summary_bound = False
         if not missing and (attempt_dir / "RESULTS_SUMMARY.json").is_file():
             try:
                 summary = load_json(attempt_dir / "RESULTS_SUMMARY.json")
                 summary_status = str(summary.get("status", ""))
                 summary_terminal_status = str(summary.get("terminal_status", ""))
+                route_outcome = str(summary.get("route_outcome_classification", ""))
+                route_summary_sha256 = str(summary.get("route_metrics_summary_sha256", ""))
             except (OSError, json.JSONDecodeError) as exc:
                 summary_error = f"{type(exc).__name__}: {exc}"
+        route_summary_path = attempt_dir / ROUTE_SUMMARY_NAME
+        # A cell may only be claimed as durable when the persisted route summary
+        # exists and the hash the adapter recorded still matches the file.
+        route_summary_bound = bool(
+            route_summary_sha256
+            and route_summary_path.is_file()
+            and sha256_file(route_summary_path) == route_summary_sha256
+        )
         summary_passed = summary_status == "PASSED" and summary_terminal_status == "PASSED"
-        status = "PASSED" if child_rc == 0 and not missing and summary_passed else "FAILED"
+        status = (
+            "PASSED"
+            if child_rc == 0 and not missing and summary_passed and route_summary_bound
+            else "FAILED"
+        )
         detail = {
             "adapter_returncode": child_rc,
             "missing_outputs": missing,
             "results_summary_status": summary_status,
             "results_summary_terminal_status": summary_terminal_status,
             "results_summary_error": summary_error,
+            "route_outcome_classification": route_outcome,
+            "route_metrics_summary_name": ROUTE_SUMMARY_NAME,
+            "route_metrics_summary_sha256": route_summary_sha256,
+            "route_metrics_summary_hash_bound": route_summary_bound,
         }
     except KeyboardInterrupt:
         status = "INTERRUPTED"
@@ -1192,6 +1287,9 @@ def run_one_cell(
         "status": status,
         "terminal": str(terminal.relative_to(campaign_root)),
         "terminal_sha256": sha256_file(terminal),
+        "route_metrics_summary_name": ROUTE_SUMMARY_NAME,
+        "route_metrics_summary_sha256": str(detail.get("route_metrics_summary_sha256", "")),
+        "route_outcome_classification": str(detail.get("route_outcome_classification", "")),
     }
 
 
@@ -1397,7 +1495,7 @@ def run_campaign(args: argparse.Namespace) -> int:
     for cell in cells:
         rows = ledger["cells"].setdefault(cell.cell_id, [])
         require(isinstance(rows, list), f"ledger rows are not a list for {cell.cell_id}")
-        if passed_attempt_exists(campaign_root, rows, config["cell"]["expected_outputs"]):
+        if durable_attempt_exists(campaign_root, rows, config["cell"]["expected_outputs"]):
             continue
         result = run_one_cell(
             config=config,

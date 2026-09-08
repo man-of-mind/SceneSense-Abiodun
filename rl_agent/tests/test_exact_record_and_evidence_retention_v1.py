@@ -326,3 +326,134 @@ class EvidencePreservationAccountingTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class RouteOutcomeClassificationTest(unittest.TestCase):
+    """Retry5 cell a58 returned rc=1 on a completed, intervention-free route and
+    the evidence that could classify it was deleted with the temp directory."""
+
+    @staticmethod
+    def _summary(**overrides):
+        summary = {
+            "loops_completed": 1,
+            "watchdog_aborted_any": False,
+            "intervention_count_total": 0,
+            "cleanup_succeeded": True,
+            "collision_incident_count_total": 1,
+            "collision_count_total": 3,
+            "collision_incidents": [
+                {"other_actor_type": "vehicle.audi.tt", "frame_id": 4242}
+            ],
+            "walker_brake_ticks_total": 70,
+        }
+        summary.update(overrides)
+        return summary
+
+    def _classify(self, *, rc=1, density_status="FAIL", completed=True, summary_ok=True, **over):
+        return adapter.classify_route_outcome(
+            route_rc=rc,
+            density_status=density_status,
+            route_completed=completed,
+            interventions_permitted=True,
+            summary=self._summary(**over),
+            summary_ok=summary_ok,
+        )
+
+    def test_collision_only_rc1_is_a_measured_accepted_outcome(self) -> None:
+        outcome = self._classify()
+        self.assertEqual(outcome["classification"], adapter.ROUTE_OUTCOME_COLLISION_ONLY)
+        self.assertIn(outcome["classification"], adapter.ROUTE_ACCEPTABLE_OUTCOMES)
+        self.assertEqual(outcome["fatal_reasons"], [])
+        # The collision must be reported, never hidden or zeroed.
+        self.assertEqual(outcome["collision_incident_count"], 1)
+        self.assertEqual(outcome["collision_count"], 3)
+        self.assertEqual(len(outcome["collision_incidents"]), 1)
+        self.assertEqual(outcome["walker_brake_ticks_total"], 70)
+
+    def test_route_runner_cleanup_failure_remains_fatal(self) -> None:
+        outcome = self._classify(cleanup_succeeded=False)
+        self.assertEqual(outcome["classification"], adapter.ROUTE_OUTCOME_FATAL)
+        self.assertNotIn(outcome["classification"], adapter.ROUTE_ACCEPTABLE_OUTCOMES)
+        self.assertTrue(
+            any("cleanup_succeeded=false" in reason for reason in outcome["fatal_reasons"])
+        )
+
+    def test_incomplete_route_watchdog_and_intervention_remain_fatal(self) -> None:
+        for kwargs, needle in (
+            ({"completed": False}, "did not complete"),
+            ({"loops_completed": 0}, "did not complete"),
+            ({"watchdog_aborted_any": True}, "watchdog"),
+            ({"intervention_count_total": 2}, "interventions occurred"),
+        ):
+            with self.subTest(kwargs=kwargs):
+                outcome = self._classify(**kwargs)
+                self.assertEqual(outcome["classification"], adapter.ROUTE_OUTCOME_FATAL)
+                self.assertTrue(
+                    any(needle in reason for reason in outcome["fatal_reasons"]),
+                    outcome["fatal_reasons"],
+                )
+
+    def test_unexplained_nonzero_return_code_remains_fatal(self) -> None:
+        outcome = self._classify(collision_incident_count_total=0)
+        self.assertEqual(outcome["classification"], adapter.ROUTE_OUTCOME_FATAL)
+        self.assertTrue(
+            any("unexplained route runner returncode" in r for r in outcome["fatal_reasons"])
+        )
+
+    def test_missing_summary_is_fatal_and_never_collision_only(self) -> None:
+        outcome = self._classify(summary_ok=False)
+        self.assertEqual(outcome["classification"], adapter.ROUTE_OUTCOME_FATAL)
+        self.assertTrue(any("summary missing" in r for r in outcome["fatal_reasons"]))
+
+    def test_clean_and_permitted_intervention_paths_are_unchanged(self) -> None:
+        self.assertEqual(
+            self._classify(rc=0, density_status="PASS")["classification"],
+            adapter.ROUTE_OUTCOME_PASS,
+        )
+        self.assertEqual(
+            self._classify(density_status="INTERVENED")["classification"],
+            adapter.ROUTE_OUTCOME_INTERVENED,
+        )
+
+
+class RouteSummaryRetentionTest(unittest.TestCase):
+    def test_summary_is_atomically_retained_and_hash_bound(self) -> None:
+        with tempfile.TemporaryDirectory() as scratch:
+            root = Path(scratch)
+            source = root / "tmp" / adapter.ROUTE_SUMMARY_NAME
+            source.parent.mkdir(parents=True)
+            payload = {"route_id": "unit-test-route", "status": "FAIL", "x": "y" * 4096}
+            source.write_text(json.dumps(payload), encoding="utf-8")
+            attempt = root / "attempt"
+            attempt.mkdir()
+            result = adapter.persist_route_summary(source, attempt)
+            self.assertTrue(result["persisted"])
+            durable = attempt / adapter.ROUTE_SUMMARY_NAME
+            self.assertEqual(result["sha256"], adapter.sha256_file(durable))
+            self.assertEqual(result["bytes"], durable.stat().st_size)
+            # Whole JSON retained, not a tail.
+            self.assertEqual(json.loads(durable.read_text()), payload)
+            # No staging file survives.
+            self.assertEqual([p.name for p in attempt.glob(".*partial")], [])
+
+    def test_absent_source_reports_a_reason_and_writes_nothing(self) -> None:
+        with tempfile.TemporaryDirectory() as scratch:
+            attempt = Path(scratch)
+            result = adapter.persist_route_summary(attempt / "missing.json", attempt)
+            self.assertFalse(result["persisted"])
+            self.assertEqual(result["reason"], "ROUTE_SUMMARY_NOT_WRITTEN_BY_ROUTE_RUNNER")
+            self.assertFalse((attempt / adapter.ROUTE_SUMMARY_NAME).exists())
+
+    def test_identity_mismatch_is_detected(self) -> None:
+        expected = {"route_id": "r", "density": "traffic_50_50", "seed": 31, "loops": 1}
+        self.assertEqual(
+            adapter.validate_route_summary_identity(dict(expected), expected), []
+        )
+        mismatches = adapter.validate_route_summary_identity(
+            {**expected, "seed": 32}, expected
+        )
+        self.assertEqual(len(mismatches), 1)
+        self.assertIn("seed", mismatches[0])
+
+    def test_route_summary_is_a_registered_output(self) -> None:
+        self.assertIn(adapter.ROUTE_SUMMARY_NAME, adapter.EXPECTED_OUTPUTS)
