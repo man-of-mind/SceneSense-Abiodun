@@ -16,6 +16,7 @@ import hashlib
 import json
 import math
 from pathlib import Path
+import random
 import sys
 import threading
 import time
@@ -167,6 +168,196 @@ def _camera_intrinsics(width: int, height: int, fov_deg: float) -> np.ndarray:
         ((focal, 0.0, width / 2.0), (0.0, focal, height / 2.0), (0.0, 0.0, 1.0)),
         dtype=np.float64,
     )
+
+
+def _offset_transform(transform: Any, *, forward_m: float, z_m: float = 0.0) -> Any:
+    """Return a CARLA transform translated in the actor's forward direction."""
+
+    import carla
+
+    forward = transform.get_forward_vector()
+    location = transform.location
+    return carla.Transform(
+        carla.Location(
+            x=float(location.x) + float(forward.x) * float(forward_m),
+            y=float(location.y) + float(forward.y) * float(forward_m),
+            z=float(location.z) + float(z_m),
+        ),
+        carla.Rotation(
+            pitch=float(transform.rotation.pitch),
+            yaw=float(transform.rotation.yaw),
+            roll=float(transform.rotation.roll),
+        ),
+    )
+
+
+def _fixed_route(world: Any, indices_text: str, spacing_m: float = 2.0) -> list[Any]:
+    """Build the existing Stage-2 route without importing its inference client."""
+
+    indices = [int(value.strip()) for value in str(indices_text).split(",") if value.strip()]
+    if not indices:
+        return []
+    spawn_points = list(world.get_map().get_spawn_points())
+    invalid = [value for value in indices if value < 0 or value >= len(spawn_points)]
+    _require(not invalid, f"invalid fixed-route spawn indices: {invalid}")
+    try:
+        from agents.navigation.global_route_planner import GlobalRoutePlanner
+    except ImportError:
+        GlobalRoutePlanner = None
+
+    key_points = [spawn_points[index].location for index in indices]
+    if GlobalRoutePlanner is None or len(key_points) < 2:
+        return key_points
+    planner = GlobalRoutePlanner(world.get_map(), float(spacing_m))
+    route: list[Any] = []
+    for start, end in zip(key_points[:-1], key_points[1:]):
+        trace = planner.trace_route(start, end)
+        values = [waypoint.transform.location for waypoint, _option in trace]
+        if not values:
+            values = [start, end]
+        for location in values:
+            if not route or float(route[-1].distance(location)) >= float(spacing_m):
+                route.append(location)
+    return route
+
+
+class _OwnedTwoEgoScenario:
+    """A lightweight CARLA clock/actor owner with no duplicate model pipeline."""
+
+    def __init__(self, client: Any, world: Any, args: argparse.Namespace) -> None:
+        self.client = client
+        self.world = world
+        self.args = args
+        self.traffic_manager = client.get_trafficmanager(int(args.tm_port))
+        self.original_settings = world.get_settings()
+        self.actors: list[Any] = []
+        self.ego_a: Any | None = None
+        self.ego_b: Any | None = None
+        self.settings_changed = False
+        self.tm_sync_enabled = False
+
+    def _spawn_ego(self, transform: Any, role_name: str) -> Any:
+        library = self.world.get_blueprint_library()
+        matches = list(library.filter(str(self.args.ego_blueprint)))
+        if not matches:
+            matches = list(library.filter("vehicle.*"))
+        _require(bool(matches), "CARLA exposes no vehicle blueprint")
+        blueprint = library.find(matches[0].id)
+        if blueprint.has_attribute("role_name"):
+            blueprint.set_attribute("role_name", str(role_name))
+        actor = self.world.try_spawn_actor(blueprint, transform)
+        _require(actor is not None, f"failed to spawn {role_name}")
+        self.actors.append(actor)
+        return actor
+
+    def start(self) -> tuple[Any, Any]:
+        existing = list(self.world.get_actors().filter("vehicle.*"))
+        existing += list(self.world.get_actors().filter("walker.pedestrian.*"))
+        _require(
+            not existing,
+            "owned scenario requires a fresh CARLA world with no vehicles or pedestrians",
+        )
+        try:
+            random.seed(int(self.args.scenario_seed))
+            settings = self.world.get_settings()
+            settings.synchronous_mode = True
+            settings.fixed_delta_seconds = 1.0 / float(self.args.scenario_fps)
+            self.world.apply_settings(settings)
+            self.settings_changed = True
+            self.traffic_manager.set_synchronous_mode(True)
+            self.tm_sync_enabled = True
+            self.traffic_manager.set_random_device_seed(int(self.args.scenario_seed))
+            self.traffic_manager.set_global_distance_to_leading_vehicle(2.5)
+            try:
+                self.world.set_pedestrians_seed(int(self.args.scenario_seed))
+            except (AttributeError, RuntimeError):
+                pass
+
+            spawn_points = list(self.world.get_map().get_spawn_points())
+            _require(bool(spawn_points), "CARLA map has no vehicle spawn points")
+            index = int(self.args.ego_spawn_index)
+            _require(0 <= index < len(spawn_points), "ego spawn index is outside this map")
+            base = spawn_points[index]
+            self.ego_a = self._spawn_ego(
+                _offset_transform(base, forward_m=0.0, z_m=0.15),
+                "scenesense_action50_ue_a",
+            )
+            self.ego_b = self._spawn_ego(
+                _offset_transform(base, forward_m=-float(self.args.ego_gap_m), z_m=0.15),
+                "scenesense_action50_ue_b",
+            )
+            route = _fixed_route(self.world, self.args.fixed_route_spawn_indices)
+            for ego in (self.ego_a, self.ego_b):
+                ego.set_autopilot(True, int(self.args.tm_port))
+                self.traffic_manager.ignore_lights_percentage(ego, 50.0)
+                self.traffic_manager.vehicle_percentage_speed_difference(ego, 60.0)
+                self.traffic_manager.distance_to_leading_vehicle(ego, 28.0)
+                self.traffic_manager.auto_lane_change(ego, False)
+                if route:
+                    self.traffic_manager.set_path(ego, list(route))
+
+            # Reuse the established CARLA-only population helpers. They do not
+            # construct or execute either perception model.
+            import carla_split_inference_udp_segmentation_trained_lraspp_pole_client as pole_client
+
+            anchor = self.ego_a.get_location()
+            vehicles = pole_client.spawn_background_vehicles_near(
+                self.client,
+                self.world,
+                self.traffic_manager,
+                anchor,
+                int(self.args.npc_vehicles),
+                float(self.args.spawn_radius_m),
+            )
+            walkers, controllers = pole_client.spawn_background_pedestrians_near(
+                self.client,
+                self.world,
+                anchor,
+                int(self.args.npc_pedestrians),
+                float(self.args.spawn_radius_m),
+            )
+            self.actors.extend(vehicles)
+            self.actors.extend(walkers)
+            self.actors.extend(controllers)
+            self.world.tick()
+            print(
+                "Owned two-ego scenario ready: "
+                f"ue_a={self.ego_a.id}, ue_b={self.ego_b.id}, "
+                f"vehicles={len(vehicles)}, pedestrians={len(walkers)}, "
+                f"route_points={len(route)}"
+            )
+            return self.ego_a, self.ego_b
+        except BaseException:
+            self.close()
+            raise
+
+    def tick(self) -> int:
+        return int(self.world.tick())
+
+    def close(self) -> None:
+        for actor in reversed(self.actors):
+            try:
+                if hasattr(actor, "stop"):
+                    actor.stop()
+            except RuntimeError:
+                pass
+            try:
+                actor.destroy()
+            except RuntimeError:
+                pass
+        self.actors.clear()
+        if self.tm_sync_enabled:
+            try:
+                self.traffic_manager.set_synchronous_mode(False)
+            except RuntimeError:
+                pass
+            self.tm_sync_enabled = False
+        if self.settings_changed:
+            try:
+                self.world.apply_settings(self.original_settings)
+            except RuntimeError:
+                pass
+            self.settings_changed = False
 
 
 def _image_bgr(image: Any) -> np.ndarray:
@@ -600,7 +791,7 @@ def run(args: argparse.Namespace) -> int:
         }, indent=2, sort_keys=True))
         return 0
 
-    _client, world = _connect_carla(
+    client, world = _connect_carla(
         args.carla_host, args.carla_port, args.carla_timeout_s
     )
 
@@ -613,11 +804,16 @@ def run(args: argparse.Namespace) -> int:
     output.mkdir()
     started_wall = time.time()
     source_a = source_b = None
+    owned_scenario: _OwnedTwoEgoScenario | None = None
     try:
         _require(torch.cuda.is_available(), "CUDA is unavailable")
         device = torch.device("cuda:0")
-        vehicle_a = _resolve_vehicle(world, args.ue_a_actor_id)
-        vehicle_b = _resolve_vehicle(world, args.ue_b_actor_id)
+        if args.spawn_two_egos:
+            owned_scenario = _OwnedTwoEgoScenario(client, world, args)
+            vehicle_a, vehicle_b = owned_scenario.start()
+        else:
+            vehicle_a = _resolve_vehicle(world, args.ue_a_actor_id)
+            vehicle_b = _resolve_vehicle(world, args.ue_b_actor_id)
         ue_runtime, ue_ledger, ue_models = runtime._preload_ue(device)
         edge_runtime, tail, edge_ledger, edge_models = runtime._preload_edge(device)
         del ue_models, edge_models
@@ -641,6 +837,16 @@ def run(args: argparse.Namespace) -> int:
             (output / "faults.jsonl").open("x", encoding="utf-8") as faults,
         ):
             while pair_count < int(args.max_pairs) and time.monotonic() < deadline:
+                if owned_scenario is not None:
+                    tick_frame = owned_scenario.tick()
+                    callback_deadline = time.monotonic() + float(args.sensor_timeout_s)
+                    while time.monotonic() < callback_deadline:
+                        if (
+                            tick_frame in source_a.ready_frames(last_frame)
+                            and tick_frame in source_b.ready_frames(last_frame)
+                        ):
+                            break
+                        time.sleep(0.005)
                 common = source_a.ready_frames(last_frame) & source_b.ready_frames(last_frame)
                 if frame_parity is not None:
                     common = {frame for frame in common if frame % args.frame_stride == frame_parity}
@@ -727,7 +933,7 @@ def run(args: argparse.Namespace) -> int:
                 "UI_QUALIFICATION",
             ],
             "profile": _profile_document(profile),
-            "actor_ids": {"ue-a": int(args.ue_a_actor_id), "ue-b": int(args.ue_b_actor_id)},
+            "actor_ids": {"ue-a": int(vehicle_a.id), "ue-b": int(vehicle_b.id)},
             "session_id": session_id,
             "clock_domain": CLOCK_DOMAIN,
             "paired_frames": pair_count,
@@ -737,6 +943,11 @@ def run(args: argparse.Namespace) -> int:
             "fault_case_counts": dict(sorted(fault_counts.items())),
             "association_policy": _policy().as_dict(),
             "resident_runtime_shared_by_logical_ues": True,
+            "scenario_ownership": (
+                "SELF_CONTAINED_OWNED_TWO_EGO"
+                if owned_scenario is not None
+                else "PASSIVE_EXISTING_EGOS"
+            ),
             "existing_ego_vehicles_controlled_or_destroyed": False,
             "sensor_contract": {
                 "rgb": {"width": 1280, "height": 720, "horizontal_fov_deg": 120.0},
@@ -783,6 +994,8 @@ def run(args: argparse.Namespace) -> int:
             source_b.close()
         if source_a is not None:
             source_a.close()
+        if owned_scenario is not None:
+            owned_scenario.close()
 
 
 def parse_args() -> argparse.Namespace:
@@ -792,6 +1005,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--carla-timeout-s", type=float, default=10.0)
     parser.add_argument("--list-vehicles", action="store_true")
     parser.add_argument("--preflight", action="store_true")
+    parser.add_argument("--spawn-two-egos", action="store_true")
     parser.add_argument("--execute")
     parser.add_argument("--ue-a-actor-id", type=int, default=-1)
     parser.add_argument("--ue-b-actor-id", type=int, default=-1)
@@ -799,15 +1013,38 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-pairs", type=int, default=20)
     parser.add_argument("--duration-s", type=float, default=180.0)
     parser.add_argument("--frame-stride", type=int, default=2)
+    parser.add_argument("--sensor-timeout-s", type=float, default=5.0)
+    parser.add_argument("--tm-port", type=int, default=8000)
+    parser.add_argument("--scenario-fps", type=float, default=10.0)
+    parser.add_argument("--scenario-seed", type=int, default=31)
+    parser.add_argument("--ego-blueprint", default="vehicle.lincoln.mkz")
+    parser.add_argument("--ego-spawn-index", type=int, default=80)
+    parser.add_argument("--ego-gap-m", type=float, default=15.0)
+    parser.add_argument("--fixed-route-spawn-indices", default="80,85,91,94,99,80")
+    parser.add_argument("--npc-vehicles", type=int, default=28)
+    parser.add_argument("--npc-pedestrians", type=int, default=35)
+    parser.add_argument("--spawn-radius-m", type=float, default=80.0)
     parser.add_argument("--output")
     args = parser.parse_args()
     if not args.list_vehicles and not args.preflight:
         if not args.output:
             parser.error("--output is required for execution")
-        if args.ue_a_actor_id < 0 or args.ue_b_actor_id < 0:
+        if not args.spawn_two_egos and (args.ue_a_actor_id < 0 or args.ue_b_actor_id < 0):
             parser.error("--ue-a-actor-id and --ue-b-actor-id are required")
-        if args.max_pairs < 1 or args.duration_s <= 0.0 or args.frame_stride < 1:
-            parser.error("max-pairs, duration-s, and frame-stride must be positive")
+        if args.spawn_two_egos and (args.ue_a_actor_id >= 0 or args.ue_b_actor_id >= 0):
+            parser.error("--spawn-two-egos cannot be combined with actor IDs")
+        if (
+            args.max_pairs < 1
+            or args.duration_s <= 0.0
+            or args.frame_stride < 1
+            or args.sensor_timeout_s <= 0.0
+            or args.scenario_fps <= 0.0
+            or args.ego_gap_m <= 0.0
+            or args.npc_vehicles < 0
+            or args.npc_pedestrians < 0
+            or args.spawn_radius_m <= 0.0
+        ):
+            parser.error("execution counts, rates, distances, and timeouts are invalid")
     return args
 
 

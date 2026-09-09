@@ -18,12 +18,19 @@ Do not merge it into the campaign branch while the 288-cell run is active.
 Do not export `PYTHONPATH`; activate the registered CARLA environment and run
 commands from the `abiodun` repository root.
 
-## 2. Start a moving two-vehicle CARLA scenario
+## 2. Start a fresh CARLA server
 
-Start CARLA and the existing Stage-2 moving two-ego scenario described in
-`spatial_map_coop/README.md`. Those clients own motion; this harness owns only
-its attached RGB/radar sensors. A different scenario is also valid provided
-two distinct moving vehicle actors observe some common vehicles or pedestrians.
+Start CARLA on port 2000 with Town10HD_Opt, but do not start the two historical
+Stage-2 inference clients. The primary run mode owns the two egos, one CARLA
+clock, background population, and only the four sensors required by this
+demonstration. This avoids loading three perception pipelines or relying on
+manually copied actor IDs from an earlier CARLA lifecycle.
+
+The CARLA world must initially contain no vehicles or pedestrians. Static map
+actors are expected and allowed.
+
+The older passive-attachment mode remains available for a separately managed
+scenario. Its live vehicle identities can be listed without loading CUDA:
 
 List the live vehicle identities without loading CUDA or a model:
 
@@ -32,8 +39,8 @@ python3 -m spatial_map_coop.multi_ue_v1.live_two_ue_action50_v1 \
   --list-vehicles --carla-host 127.0.0.1 --carla-port 2000
 ```
 
-Select the two actor IDs belonging to the egos. Do not choose NPC IDs. Their
-`role_name`, type and location are included to make the selection auditable.
+Never use an ID printed before a CARLA restart or after its owning client
+exits. CARLA actor IDs are lifecycle-local.
 
 ## 3. Preflight the locked profile
 
@@ -50,22 +57,29 @@ artifact from the qualified machine; never weaken the hash check.
 
 ## 4. Run once
 
-Choose a new, absent output leaf and substitute the two actor IDs:
+Choose a new, absent output leaf. The primary self-contained command is:
 
 ```bash
 python3 -u -m spatial_map_coop.multi_ue_v1.live_two_ue_action50_v1 \
   --execute SPLITFUSION_LIVE_TWO_UE_ACTION50_DEMO \
-  --ue-a-actor-id UE_A_ID \
-  --ue-b-actor-id UE_B_ID \
+  --spawn-two-egos \
+  --ego-spawn-index 80 --ego-gap-m 15 \
+  --npc-vehicles 28 --npc-pedestrians 35 \
   --max-pairs 20 \
   --duration-s 180 \
   --output experiments/spatial_map_multi_ue_v1/live_two_ue_action50_run1
 ```
 
-The harness selects common CARLA frame IDs, uses a two-tick stride, and runs
-the two sources sequentially through one resident RTX model stack. Therefore
-its `localhost_model_path_ms` is diagnostic compute time, not an end-to-end or
+This mode configures one 10 Hz synchronous clock, assigns distinct UE role
+names, drives both egos on the registered Stage-2 path, and destroys only the
+actors it created before restoring the original CARLA settings. The harness
+selects common CARLA frame IDs, uses a two-tick stride, and runs the two sources
+sequentially through one resident RTX model stack. Therefore its
+`localhost_model_path_ms` is diagnostic compute time, not an end-to-end or
 parallel-UE latency claim.
+
+For passive attachment instead, omit `--spawn-two-egos` and supply two IDs
+that are present in the immediately preceding `--list-vehicles` result.
 
 Success requires:
 

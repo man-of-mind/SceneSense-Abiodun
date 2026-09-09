@@ -85,18 +85,20 @@ UE streams and at least one two-source track in `/api/spatial_map/latest`.
 ## Headless live two-UE/action-50 demonstration
 
 `live_two_ue_action50_v1.py` is the technology demonstration for this stage.
-It passively attaches the registered 1280x720/120-degree RGB camera and
-200k-pps/120-degree radar to two already-moving CARLA vehicles, executes the
-exact locked action 50 (`AE64 / UINT4 / q=0.50`) through the resident
+Its primary self-contained mode creates and drives two lightweight CARLA egos,
+owns the single simulation clock, attaches the registered
+1280x720/120-degree RGB camera and 200k-pps/120-degree radar to each, executes
+the exact locked action 50 (`AE64 / UINT4 / q=0.50`) through the resident
 SplitFusion UE encoder and frozen edge tail, and delivers both compact
-world-frame object updates to `MultiUESpatialMapService`.
+world-frame object updates to `MultiUESpatialMapService`. A passive mode for
+two externally owned live vehicles remains available.
 
 This deliberately reuses one resident localhost model stack for the two
 logical UEs. It tests real CARLA sensors, real model detections, identity and
 clock binding, filtering, Hungarian association and map updates. It does not
-claim two-device networking or radio latency. It controls or destroys neither
-ego and changes no CARLA world setting, so it can attach to the existing
-two-ego moving scenario or another scenario/map.
+claim two-device networking or radio latency. In self-contained mode it
+destroys only its own actors and restores the prior CARLA settings. In passive
+mode it controls or destroys neither ego and changes no world setting.
 
 The nominal service always receives unmodified model outputs. A separate,
 fresh shadow service cycles through five deterministic faults: identical

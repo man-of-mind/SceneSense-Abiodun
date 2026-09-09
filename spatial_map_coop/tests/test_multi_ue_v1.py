@@ -1,5 +1,7 @@
 import copy
+import sys
 import unittest
+from unittest import mock
 
 from spatial_map_coop.multi_ue_v1 import (
     INGRESS_ENVELOPE_SCHEMA,
@@ -17,6 +19,7 @@ from spatial_map_coop.multi_ue_v1.faults import (
     deterministic_fault_case,
     mutate_edge_result,
 )
+from spatial_map_coop.multi_ue_v1 import live_two_ue_action50_v1 as live_action50
 
 
 def edge_result(stream_id, frame_id, capture_ns, x_coord):
@@ -90,6 +93,20 @@ def policy(minimum_confidence=0.0):
 
 
 class MultiUEIngressTests(unittest.TestCase):
+    def test_self_contained_live_cli_owns_actor_selection(self):
+        argv = [
+            "live_two_ue_action50_v1.py",
+            "--spawn-two-egos",
+            "--execute",
+            live_action50.EXECUTE_TOKEN,
+            "--output",
+            "unused-create-only-output",
+        ]
+        with mock.patch.object(sys, "argv", argv):
+            args = live_action50.parse_args()
+        self.assertTrue(args.spawn_two_egos)
+        self.assertEqual((args.ue_a_actor_id, args.ue_b_actor_id), (-1, -1))
+
     def test_shadow_fault_schedule_and_mutations_are_deterministic(self):
         self.assertEqual(
             [deterministic_fault_case(index) for index in range(7)],
