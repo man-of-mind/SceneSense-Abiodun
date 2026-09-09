@@ -1,6 +1,6 @@
 # SplitFusion RL policy study v1
 
-Status: **EDUCATIONAL DESIGN — NOT TRAINING OR DEPLOYMENT AUTHORITY**
+Status: **MEASURED STEPS 5–6 DESIGN — NOT TRAINING OR DEPLOYMENT AUTHORITY**
 
 This directory develops the first deployable-policy formulation for the
 SplitFusion UE controller.  It is deliberately written as a study: each design
@@ -20,10 +20,11 @@ components.
 
 ## Why this study is separate
 
-The active 288-cell campaign was launched from the main checkout.  This study
-lives on branch `rl-agent-study-v1` in a separate linked worktree based at
-commit `1c9e2ba`.  Nothing here should be copied into or merged with the active
-checkout until that campaign terminates.
+This study began on branch `rl-agent-study-v1` in a separate linked worktree so
+it could not alter the active 288-cell campaign. The completed campaign and
+Steps 1–4 consolidation were merged into the study branch after the campaign
+terminated. The study remains isolated until its evidence and formulation are
+reviewed; it does not modify the completed campaign.
 
 The older files in `rl_agent/policy/` remain useful historical evidence, but
 their dynamic-controller evaluation used noncausal post-tail information and
@@ -39,9 +40,14 @@ contract.
    - PPO and constrained-learning equations
    - discrete versus continuous ROI/drop control
    - causal inputs and forbidden information
-2. Empirical environment contract — after the 288-cell campaign completes.
+2. [Measured surface and policy formulation](MEASURED_SURFACE_AND_POLICY_FORMULATION.md)
+   - descriptive dominance and conditional outcome labels
+   - split-only causal observation and action contract
+   - reward/cost formulation
+   - training-data and stochastic-emulator requirements
 3. Initial policy-network implementation and hand-checkable synthetic cases.
-4. Reward normalization and sensitivity study.
+4. Causal per-frame dataset materialization, reward normalization and
+   sensitivity study.
 5. Surrogate training followed by a separately authorized live evaluation.
 
 ## Reading the equations
@@ -58,8 +64,8 @@ No extension is required.
 |---|---|---|
 | Primary learning algorithm | PPO | Stable policy-gradient starting point; supports a conditional mixed policy without flattening future continuous controls |
 | Memory | GRU | Network evolution, queues and map freshness are history-dependent and only partially observed |
-| Top-level action | `SPLIT`, `LOCAL`, `SKIP` | These have different physical execution paths and costs |
-| First SPLIT sub-action | One of 72 measured profiles | Every selected action has measured payload and perception evidence |
+| Current action | One of 72 measured `SPLIT` profiles | The 288 campaign directly measures these actions |
+| Future top-level action | `SPLIT`, `LOCAL`, `SKIP` | `LOCAL` and `SKIP` remain unavailable until their transitions are measured/frozen |
 | First ROI/drop control | Six discrete q anchors | Avoid learning through unvalidated interpolation |
 | Continuous-q extension | Explicitly designed, deferred | Requires a dense-q smoothness/interpolation study before promotion |
 | Invalid-action mask | Hard executability only | Poor but executable profiles remain available so the policy learns their consequences |
@@ -67,9 +73,14 @@ No extension is required.
 | Segmentation | Secondary utility, installation controlled by profile metadata | Object coverage, localization and freshness are primary |
 | Algorithmic novelty claim | None | The contribution is the measured, integrated system and policy evidence |
 
-## Evidence still required
+## Evidence status and remaining gates
 
-- Complete 288-cell measurements and a frozen parser/schema.
+- **Complete:** 288-cell measurements, verified consolidation and descriptive
+  Step-5 surface analysis.
+- Materialize the seven-feature causal per-frame transition table. The
+  aggregate 288-cell table is not directly a PPO replay buffer.
+- Freeze the freshness, radar-risk and compute-slack reducers and prove the
+  UE-visible availability time of the capacity lower bound.
 - Separate causal measurements for `LOCAL` on CPU/GPU and the compact result
   upload.  Until then, `LOCAL` can exist in the architecture but cannot be
   trained from invented outcomes.
