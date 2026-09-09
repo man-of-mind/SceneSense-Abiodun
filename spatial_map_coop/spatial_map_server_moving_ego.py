@@ -62,6 +62,8 @@ DEFAULT_UDP_PORT = 39201
 DEFAULT_API_PORT = 35011
 SPATIAL_STREAM_SCHEMA = "fusion_object_spatial_map.v1"
 FUSED_SPATIAL_MAP_SCHEMA = "fusion_object_spatial_map.fused.v2"
+SPLITFUSION_EDGE_RESULT_SCHEMA = "splitfusion_edge_result.v2"
+MULTI_UE_LIVE_VIEW_UPDATE_SCHEMA = "scenesense.multi_ue_live_view_update.v1"
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 OBJECT_COLOR_MAP = {
@@ -373,6 +375,16 @@ def _safe_int(value: object, default: int = 0) -> int:
         return int(default)
 
 
+def _required_finite(value: object, label: str) -> float:
+    try:
+        result = float(value)
+    except (TypeError, ValueError) as exc:
+        raise MultiUEContractError(f"{label} must be finite") from exc
+    if not math.isfinite(result):
+        raise MultiUEContractError(f"{label} must be finite")
+    return result
+
+
 def _wrap_degrees(value: float) -> float:
     wrapped = (float(value) + 180.0) % 360.0 - 180.0
     return 180.0 if wrapped == -180.0 else wrapped
@@ -627,17 +639,22 @@ def _normalize_object(
         return None
 
     object_type = str(obj.get("type") or "Unknown")
+    normalized_type = object_type.strip().lower().replace("_", "")
     motion_state = str(obj.get("motion_state") or "")
-    if object_type == "ParkedVehicle":
+    if normalized_type == "parkedvehicle":
         object_type = "Vehicle"
         motion_state = motion_state or "parked"
-    elif object_type == "MovingVehicle":
+    elif normalized_type == "movingvehicle":
         object_type = "Vehicle"
         motion_state = motion_state or "moving"
-    elif object_type in ("Person", "Walker"):
+    elif normalized_type in ("vehicle", "car", "truck", "bus"):
+        object_type = "Vehicle"
+    elif normalized_type in ("person", "pedestrian", "walker"):
         # model class name is "person"; map to the canonical map label so it gets the
         # Pedestrian color/legend instead of falling through to white "Unknown".
         object_type = "Pedestrian"
+    elif normalized_type in ("cyclist", "bicycle", "bike"):
+        object_type = "Cyclist"
 
     model_yaw_deg = _safe_float(obj.get("model_yaw_deg", obj.get("yaw_deg")), 0.0)
 
@@ -702,6 +719,114 @@ def _normalize_packet(payload: Dict[str, object], received_at: float) -> Dict[st
         "objects": objects,
         "object_count": len(objects),
         "source_script": str(payload.get("source_script") or ""),
+    }
+
+
+def _ingest_splitfusion_live_view_update(
+    envelope: Dict[str, object], received_at: float
+) -> Dict[str, object]:
+    """Ingest one compact action-profile result and expose its raw reports to the viewer."""
+
+    if multi_ue_service is None:
+        raise MultiUEContractError("multi-UE v1 is not enabled")
+    if envelope.get("schema") != MULTI_UE_LIVE_VIEW_UPDATE_SCHEMA:
+        raise MultiUEContractError("unexpected live-view update schema")
+    ue_id = str(envelope.get("ue_id") or "").strip()
+    session_id = str(envelope.get("session_id") or "").strip()
+    if not ue_id or session_id != str(_config().multi_ue_session_id):
+        raise MultiUEContractError("live-view UE/session identity mismatch")
+    if envelope.get("clock_domain") != "carla_simulation_ns":
+        raise MultiUEContractError("live-view update must use carla_simulation_ns")
+    payload = envelope.get("payload")
+    if not isinstance(payload, dict) or payload.get("schema") != SPLITFUSION_EDGE_RESULT_SCHEMA:
+        raise MultiUEContractError("live-view update lacks a SplitFusion edge result")
+    stream_id = str(payload.get("stream_id") or "")
+    if multi_ue_source_map.get(stream_id) != ue_id:
+        raise MultiUEContractError("live-view stream is not registered to this UE")
+    ego_pose = envelope.get("ego_pose")
+    if not isinstance(ego_pose, dict):
+        raise MultiUEContractError("live-view update lacks an ego pose")
+    location = ego_pose.get("location")
+    rotation = ego_pose.get("rotation")
+    if not isinstance(location, dict) or not isinstance(rotation, dict):
+        raise MultiUEContractError("live-view ego pose is malformed")
+    normalized_location = {
+        axis: _required_finite(location.get(axis), f"ego_pose.location.{axis}")
+        for axis in ("x", "y", "z")
+    }
+    normalized_rotation = {
+        axis: _required_finite(rotation.get(axis), f"ego_pose.rotation.{axis}")
+        for axis in ("pitch", "yaw", "roll")
+    }
+    capture_timestamp_ns = _safe_int(payload.get("capture_timestamp_ns"), -1)
+    if capture_timestamp_ns < 0:
+        raise MultiUEContractError("capture_timestamp_ns must be nonnegative")
+    result = multi_ue_service.ingest_splitfusion(
+        payload,
+        ue_id=ue_id,
+        session_id=session_id,
+        received_timestamp_ns=capture_timestamp_ns,
+        clock_domain="carla_simulation_ns",
+    )
+    update = payload.get("object_map_update")
+    records = update.get("records") if isinstance(update, dict) else None
+    if not isinstance(records, list):
+        raise MultiUEContractError("SplitFusion object records must be a list")
+    frame_id = _safe_int(payload.get("frame_id"), -1)
+    objects = []
+    for index, record in enumerate(records):
+        if not isinstance(record, dict):
+            raise MultiUEContractError("SplitFusion object record must be an object")
+        viewer_record = dict(record)
+        viewer_record["id"] = str(
+            record.get("candidate_identity", record.get("id", f"observation_{index}"))
+        )
+        viewer_record["type"] = str(record.get("class_name", record.get("type", "Unknown")))
+        normalized = _normalize_object(
+            viewer_record, stream_id=stream_id, frame_id=frame_id, index=index
+        )
+        if normalized is not None:
+            objects.append(normalized)
+    stream = {
+        "schema": SPLITFUSION_EDGE_RESULT_SCHEMA,
+        "stream_id": stream_id,
+        "node_id": ue_id,
+        "traffic_light_id": "",
+        "traffic_light_actor_id": -1,
+        "traffic_light_opendrive_id": "",
+        "frame_id": frame_id,
+        "timestamp": received_at,
+        "carla_timestamp": capture_timestamp_ns / 1_000_000_000.0,
+        "received_at": received_at,
+        "anchor": {
+            "actor_id": _safe_int(ego_pose.get("actor_id"), -1),
+            "transform": {
+                "location": normalized_location,
+                "rotation": normalized_rotation,
+            },
+        },
+        "camera": {
+            "location": normalized_location,
+            "rotation": normalized_rotation,
+            "fov": _required_finite(envelope.get("horizontal_fov_deg", 120.0), "horizontal_fov_deg"),
+        },
+        "segmentation": {},
+        "latency": {},
+        "objects": objects,
+        "object_count": len(objects),
+        "source_script": "live_two_ue_action50_v1",
+        "action_id": _safe_int(payload.get("action_id"), -1),
+        "profile_id": str(payload.get("profile_id") or ""),
+    }
+    with state_lock:
+        latest_streams[stream_id] = stream
+    return {
+        "status": "ACCEPTED",
+        "disposition": result.disposition,
+        "ue_id": ue_id,
+        "stream_id": stream_id,
+        "frame_id": frame_id,
+        "object_count": len(objects),
     }
 
 
@@ -1722,6 +1847,30 @@ def healthz():
     )
 
 
+@app.route("/api/multi_ue/v1/live_updates/healthz", methods=["GET"])
+def multi_ue_live_updates_healthz():
+    return jsonify(
+        {
+            "status": "ok" if multi_ue_service is not None else "disabled",
+            "schema": MULTI_UE_LIVE_VIEW_UPDATE_SCHEMA,
+            "session_id": str(getattr(_config(), "multi_ue_session_id", "")),
+            "registered_sources": dict(sorted(multi_ue_source_map.items())),
+        }
+    ), (200 if multi_ue_service is not None else 503)
+
+
+@app.route("/api/multi_ue/v1/live_updates", methods=["POST"])
+def post_multi_ue_live_update():
+    try:
+        envelope = request.get_json(force=True)
+        if not isinstance(envelope, dict):
+            raise MultiUEContractError("live-view update must be an object")
+        result = _ingest_splitfusion_live_view_update(envelope, time.time())
+        return jsonify(result), 202
+    except (MultiUEContractError, TypeError, ValueError) as exc:
+        return jsonify({"error": str(exc)}), 422
+
+
 @app.route("/api/spatial_map/latest", methods=["GET"])
 def get_spatial_map_latest():
     snapshot = _build_spatial_map_snapshot()
@@ -1866,18 +2015,29 @@ def get_live_viewer():
  #c{display:block;width:100vw;height:100vh}
  #hud{position:fixed;top:8px;left:10px;color:#cbd3dc;font-size:13px;line-height:1.6;text-shadow:0 1px 2px #000;pointer-events:none}
  #hud b{color:#fff}.v{color:#00d1ff}.p{color:#ff5fd1}.w{color:#ffcf66}
+ #controls{position:fixed;right:14px;bottom:14px;display:flex;gap:8px;padding:8px;background:rgba(8,11,16,.82);border:1px solid #46515d;border-radius:8px}
+ #controls button{color:#cbd3dc;background:#18212b;border:1px solid #56616c;border-radius:5px;padding:8px 12px;font-weight:650;cursor:pointer}
+ #controls button.active{color:#081018;background:#6ee787;border-color:#a7f3b5}
 </style></head><body>
 <canvas id="c"></canvas><div id="hud">connecting…</div>
+<div id="controls"><button id="rawBtn">R / 1 — raw reports</button><button id="filteredBtn">F / 2 — associated map</button></div>
 <script>
 const cv=document.getElementById('c'),ctx=cv.getContext('2d'),hud=document.getElementById('hud');
 let DPR=Math.max(1,window.devicePixelRatio||1);
 let statics={roads:[],buildings:[]},snap=null;
+let viewMode='associated',trackDisplay={};
 function resize(){cv.width=innerWidth*DPR;cv.height=innerHeight*DPR;}
 addEventListener('resize',resize);resize();
+function setViewMode(mode){viewMode=mode==='raw'?'raw':'associated';document.getElementById('rawBtn').classList.toggle('active',viewMode==='raw');document.getElementById('filteredBtn').classList.toggle('active',viewMode==='associated');}
+document.getElementById('rawBtn').onclick=()=>setViewMode('raw');
+document.getElementById('filteredBtn').onclick=()=>setViewMode('associated');
+addEventListener('keydown',e=>{const k=e.key.toLowerCase();if(k==='r'||k==='1')setViewMode('raw');if(k==='f'||k==='2')setViewMode('associated');if(k===' '){e.preventDefault();setViewMode(viewMode==='raw'?'associated':'raw');}});
+setViewMode('associated');
 async function loadStatic(){try{statics=await(await fetch('/api/spatial_map/static_geometry')).json();}catch(e){setTimeout(loadStatic,2000);}}
 async function poll(){try{snap=await(await fetch('/api/spatial_map/latest')).json();}catch(e){}setTimeout(poll,100);}
 function ego(){const fv=snap&&snap.metadata&&snap.metadata.focus_view;if(fv&&fv.ego_pose)return{x:fv.ego_pose.x,y:fv.ego_pose.y,yaw:fv.ego_pose.yaw_deg,r:(fv.radius_m||40)+(fv.padding_m||10)};return null;}
 let disp=null;            // smoothed display pose (interpolated toward target each frame)
+function smoothAssociated(objs,now){const seen=new Set(),out=[];for(const o of objs){const key=o.track_id||o.association_id;if(!key){out.push(o);continue;}seen.add(key);const l=o.location||{},tx=Number(l.x),ty=Number(l.y),stamp=Number(o.capture_timestamp_ns||0);let s=trackDisplay[key];if(!s){s={x:tx,y:ty,tx,ty,vx:0,vy:0,stamp,arrived:now};trackDisplay[key]=s;}else if(stamp!==s.stamp){const dt=(stamp-s.stamp)/1e9;if(dt>0){let vx=(tx-s.tx)/dt,vy=(ty-s.ty)/dt,sp=Math.hypot(vx,vy),mx=o.type==='Pedestrian'?4:(o.type==='Cyclist'?12:25);if(sp>mx){vx*=mx/sp;vy*=mx/sp;}s.vx=vx;s.vy=vy;}s.tx=tx;s.ty=ty;s.stamp=stamp;s.arrived=now;}const dtp=Math.min(.2,Math.max(0,(now-s.arrived)/1000)),px=s.tx+s.vx*dtp,py=s.ty+s.vy*dtp;s.x+=(px-s.x)*.18;s.y+=(py-s.y)*.18;out.push({...o,location:{...l,x:s.x,y:s.y}});}for(const key of Object.keys(trackDisplay)){if(!seen.has(key))delete trackDisplay[key];}return out;}
 function draw(){
  requestAnimationFrame(draw);
  const W=cv.width,H=cv.height;ctx.fillStyle='#080b10';ctx.fillRect(0,0,W,H);
@@ -1905,20 +2065,23 @@ function draw(){
  // In conservative multi-UE mode draw one selected-source object per map track;
  // historical Stage 2 continues to show the unassociated source distribution.
  const conservative=((snap.metadata||{}).fusion_policy||{}).implementation==='CONSERVATIVE_MULTI_UE_V1';
- const objs=(conservative?snap.spatial_map_objects:snap.raw_spatial_map_objects)||[];
+ const associated=conservative&&viewMode==='associated';
+ const sourceObjs=(associated?snap.spatial_map_objects:snap.raw_spatial_map_objects)||[];
+ const objs=associated?smoothAssociated(sourceObjs,performance.now()):sourceObjs;
  const actStreams=snap.active_streams||[];
- const srcs=[...new Set([...actStreams.map(s=>s.stream_id),...objs.map(o=>o.source_stream_id)].filter(Boolean))].sort();
+ const srcs=[...new Set([...actStreams.map(s=>s.stream_id),...sourceObjs.flatMap(o=>o.source_stream_ids||[o.source_stream_id])].filter(Boolean))].sort();
  const bySource=srcs.length>1;
  const PAL=['#00d1ff','#ff9f43','#8aff80','#c780ff','#ffd166','#ff5fd1'];
  const srcColor={};srcs.forEach((s,i)=>srcColor[s]=PAL[i%PAL.length]);
+ const bothColor='#6ee787';
  // canonical class footprints (model dims are unreliable) + nearest-road orientation (fixes model-yaw slant)
  const CANON={Vehicle:[4.6,2.0],Pedestrian:[0.8,0.8],Cyclist:[1.8,0.7]};
- const roadHdg=(x,y)=>{let bd=1e18,bh=null;for(const pl of (statics.roads||[])){for(let i=0;i<pl.length-1;i++){const ax=pl[i][0],ay=pl[i][1],dx=pl[i+1][0]-ax,dy=pl[i+1][1]-ay,s2=dx*dx+dy*dy;if(s2<1e-9)continue;let t=Math.max(0,Math.min(1,((x-ax)*dx+(y-ay)*dy)/s2));const px=ax+t*dx,py=ay+t*dy,d2=(x-px)*(x-px)+(y-py)*(y-py);if(d2<bd){bd=d2;bh=Math.atan2(dy,dx);}}}return (bh!==null&&bd<=225)?bh:null;};
- let nv=0,np=0;const perSrc={};
+ const roadHdg=(x,y)=>{let bd=1e18,bh=null;for(const pl of (statics.roads||[])){for(let i=0;i<pl.length-1;i++){const ax=pl[i][0],ay=pl[i][1],dx=pl[i+1][0]-ax,dy=pl[i+1][1]-ay,s2=dx*dx+dy*dy;if(s2<1e-9)continue;let t=Math.max(0,Math.min(1,((x-ax)*dx+(y-ay)*dy)/s2));const px=ax+t*dx,py=ay+t*dy,d2=(x-px)*(x-px)+(y-py)*(y-py);if(d2<bd){bd=d2;bh=Math.atan2(dy,dx);}}}return (bh!==null&&bd<=64)?bh:null;};
+ let nv=0,np=0,both=0;const perSrc={};
  for(const o of objs){
   const l=o.location||{},d=o.dimensions||{},ped=(o.type==='Pedestrian');ped?np++:nv++;
-  const sid=o.source_stream_id;perSrc[sid]=(perSrc[sid]||0)+1;
-  const col=bySource?(srcColor[sid]||'#ffffff'):(ped?'#ff5fd1':'#00d1ff');
+  const supports=o.source_stream_ids||[o.source_stream_id],sid=o.source_stream_id;if(associated&&supports.length>=2)both++;else supports.forEach(s=>perSrc[s]=(perSrc[s]||0)+1);
+  const col=associated&&supports.length>=2?bothColor:(bySource?(srcColor[supports[0]||sid]||'#ffffff'):(ped?'#ff5fd1':'#00d1ff'));
   const s=T(l.x,l.y),cs=CANON[o.type]||[(d.length||1),(d.width||1)];
   const L=Math.max(3,cs[0]*scale),Wd=Math.max(3,cs[1]*scale);
   let yaw=((o.map_yaw_deg!=null?o.map_yaw_deg:o.yaw_deg)||0)*Math.PI/180;
@@ -1928,10 +2091,10 @@ function draw(){
   ctx.restore();
   ctx.fillStyle=col;ctx.beginPath();ctx.arc(s[0],s[1],3*DPR,0,7);ctx.fill();
  }
- // legend (top-right) when coloring by source
+ // legend (top-right): raw sources, or A-only/B-only/A+B provenance.
  if(bySource){let ly=12*DPR;ctx.font=(13*DPR)+'px system-ui,Arial';ctx.textAlign='left';
-  for(const sid of srcs){ctx.fillStyle=srcColor[sid];ctx.fillRect(W-190*DPR,ly,12*DPR,12*DPR);
-   ctx.fillStyle='#cbd3dc';ctx.fillText(sid+' ('+(perSrc[sid]||0)+')',W-172*DPR,ly+11*DPR);ly+=20*DPR;}}
+  for(const sid of srcs){ctx.fillStyle=srcColor[sid];ctx.fillRect(W-230*DPR,ly,12*DPR,12*DPR);ctx.fillStyle='#cbd3dc';ctx.fillText((associated?'only ':'')+sid+' ('+(perSrc[sid]||0)+')',W-212*DPR,ly+11*DPR);ly+=20*DPR;}
+  if(associated){ctx.fillStyle=bothColor;ctx.fillRect(W-230*DPR,ly,12*DPR,12*DPR);ctx.fillStyle='#cbd3dc';ctx.fillText('A + B associated ('+both+')',W-212*DPR,ly+11*DPR);}}
  // ego markers — draw EVERY streaming car at its own sensor pose, colored by source, so both egos
  // show relative to the objects they detect (the followed car sits near center).
  let egoDrawn=0;
@@ -1949,7 +2112,7 @@ function draw(){
  if(!egoDrawn){ // fallback (old data w/o per-stream pose): followed ego at center
   ctx.save();ctx.translate(W/2,H/2);ctx.rotate(e.yaw*Math.PI/180);ctx.fillStyle='#ffcf66';ctx.beginPath();ctx.moveTo(10*DPR,0);ctx.lineTo(-7*DPR,-7*DPR);ctx.lineTo(-7*DPR,7*DPR);ctx.closePath();ctx.fill();ctx.restore();
  }
- hud.innerHTML='<b>ego</b> ('+e.x.toFixed(1)+', '+e.y.toFixed(1)+') yaw '+e.yaw.toFixed(0)+'&deg; &middot; <span class=v>'+nv+' veh</span> <span class=p>'+np+' ped</span> &middot; ROI '+R.toFixed(0)+' m &middot; frame '+(snap.frame_id==null?'—':snap.frame_id)+(stale?' &middot; <span class=w>holding…</span>':'');
+ hud.innerHTML='<b>'+(associated?'ASSOCIATED MAP':'RAW UE REPORTS')+'</b> &middot; press <b>R/F</b> or <b>1/2</b> to toggle<br><b>ego</b> ('+e.x.toFixed(1)+', '+e.y.toFixed(1)+') yaw '+e.yaw.toFixed(0)+'&deg; &middot; <span class=v>'+nv+' veh</span> <span class=p>'+np+' ped</span> &middot; ROI '+R.toFixed(0)+' m &middot; frame '+(snap.frame_id==null?'—':snap.frame_id)+(stale?' &middot; <span class=w>holding…</span>':'');
 }
 loadStatic();poll();draw();
 </script></body></html>

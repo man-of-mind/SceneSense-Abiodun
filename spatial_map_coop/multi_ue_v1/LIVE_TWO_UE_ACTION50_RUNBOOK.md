@@ -189,3 +189,54 @@ selected state retains complete source/hash provenance while invalid, stale and
 conflicting inputs are handled explicitly. It does not yet prove covariance-
 weighted fusion, persistent M-of-N track confirmation, occlusion reasoning,
 agent-selected actions, UI behavior or network performance.
+
+## 8. Record the live raw-versus-associated advisor demonstration
+
+This is the preferred presentation path. It uses one experiment and the existing
+Stage-2 browser map; the keyboard changes only what is drawn. It does not switch
+the association algorithm on or off inside the scientific service and therefore
+cannot alter the observations, tracks, counters, or retained evidence.
+
+Start a fresh CARLA server on port 2000. Do not launch the historical Stage-2 UE
+clients. In terminal 1, start the map service:
+
+```bash
+python3 -u spatial_map_coop/spatial_map_server_moving_ego.py \
+  --focus-follow-stream-id two-ue/ue-a \
+  --focus-radius-m 40 --focus-padding-m 0 \
+  --focus-follow-forward-bias 0.35 \
+  --stream-stale-s 10 \
+  --multi-ue-v1 \
+  --multi-ue-session-id two-ue-live-action50-v1 \
+  --multi-ue-source two-ue/ue-a=ue-a \
+  --multi-ue-source two-ue/ue-b=ue-b \
+  --output-dir /tmp/spatial_map_action50_live_view
+```
+
+Open `http://127.0.0.1:35011/api/spatial_map/viewer`. The default view is the
+associated map. Press `R` or `1` for raw reports, `F` or `2` for associated
+tracks, or Space to toggle. Buttons at the lower-right provide the same control.
+Raw mode shows the two UE report sets independently. Associated mode shows A-only
+and B-only tracks in their source colors and one green representation for an
+A+B association. A lane tangent may orient nearby vehicle rectangles for display,
+but it never changes their measured world-XY positions or scientific association.
+
+In terminal 2, run a longer single demonstration using a new output leaf:
+
+```bash
+python3 -u -m spatial_map_coop.multi_ue_v1.live_two_ue_action50_v1 \
+  --execute SPLITFUSION_LIVE_TWO_UE_ACTION50_DEMO \
+  --spawn-two-egos \
+  --ego-spawn-index 80 --ego-gap-m 15 \
+  --npc-vehicles 28 --npc-pedestrians 35 \
+  --max-pairs 80 --duration-s 300 \
+  --live-map-url http://127.0.0.1:35011 \
+  --output experiments/spatial_map_multi_ue_v1/live_two_ue_action50_live_view_run4
+```
+
+The harness preflights the live-map session and source identities before creating
+its output. Every accepted UE update is counted in `SUMMARY.json`. With 80 paired
+frames the recorded portion should last roughly 90 seconds on the qualified
+L10319 setup, although the duration is bounded by measured completion rather than
+claimed as a real-time rate. The experiment terminates by itself; stop the map
+server separately with Ctrl+C after recording.

@@ -21,6 +21,8 @@ import sys
 import threading
 import time
 from typing import Any, Mapping
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
 
 import numpy as np
 
@@ -67,6 +69,7 @@ COMPLETE_TERMINAL = "SPLITFUSION_LIVE_TWO_UE_ACTION50_DEMO_COMPLETE"
 ACTION_ID = 50
 EXPECTED_PROFILE = ("split_ae64_uint4_q5000", "AE64", "UINT4", 5000, 10752)
 CLOCK_DOMAIN = "carla_simulation_ns"
+LIVE_VIEW_UPDATE_SCHEMA = "scenesense.multi_ue_live_view_update.v1"
 CAMERA_MOUNT = (1.8, 0.0, 1.55, -4.0, 0.0, 0.0)
 RADAR_MOUNT = (2.0, 0.0, 1.0, 0.0, 0.0, 0.0)
 MODEL_SIZE = (768, 448)
@@ -99,6 +102,80 @@ def _append_json_line(handle: Any, value: Mapping[str, Any]) -> None:
     handle.write(json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False))
     handle.write("\n")
     handle.flush()
+
+
+def _live_map_endpoint(base_url: str, suffix: str) -> str:
+    base = str(base_url or "").strip().rstrip("/")
+    _require(base.startswith(("http://", "https://")), "live map URL must use HTTP(S)")
+    return f"{base}{suffix}"
+
+
+def _live_map_json_request(
+    url: str, *, timeout_s: float, payload: Mapping[str, Any] | None = None
+) -> dict[str, Any]:
+    body = None
+    headers = {"Accept": "application/json"}
+    method = "GET"
+    if payload is not None:
+        body = json.dumps(payload, sort_keys=True, allow_nan=False).encode("utf-8")
+        headers["Content-Type"] = "application/json"
+        method = "POST"
+    request = Request(url, data=body, headers=headers, method=method)
+    try:
+        with urlopen(request, timeout=float(timeout_s)) as response:
+            document = json.loads(response.read().decode("utf-8"))
+    except (HTTPError, URLError, TimeoutError, OSError, json.JSONDecodeError) as exc:
+        raise LiveTwoUEError(f"live map request failed at {url}: {exc}") from exc
+    _require(isinstance(document, dict), "live map response must be an object")
+    return document
+
+
+def _preflight_live_map(base_url: str, *, session_id: str, timeout_s: float) -> None:
+    if not str(base_url or "").strip():
+        return
+    document = _live_map_json_request(
+        _live_map_endpoint(base_url, "/api/multi_ue/v1/live_updates/healthz"),
+        timeout_s=timeout_s,
+    )
+    _require(document.get("status") == "ok", "live map multi-UE ingress is not enabled")
+    _require(document.get("schema") == LIVE_VIEW_UPDATE_SCHEMA, "live map schema drift")
+    _require(document.get("session_id") == session_id, "live map session mismatch")
+    _require(
+        document.get("registered_sources")
+        == {"two-ue/ue-a": "ue-a", "two-ue/ue-b": "ue-b"},
+        "live map registered source identities mismatch",
+    )
+
+
+def _publish_live_map_update(
+    base_url: str,
+    *,
+    ue_id: str,
+    session_id: str,
+    ego_pose: Mapping[str, Any],
+    payload: Mapping[str, Any],
+    timeout_s: float,
+) -> dict[str, Any] | None:
+    if not str(base_url or "").strip():
+        return None
+    envelope = {
+        "schema": LIVE_VIEW_UPDATE_SCHEMA,
+        "ue_id": ue_id,
+        "session_id": session_id,
+        "clock_domain": CLOCK_DOMAIN,
+        "horizontal_fov_deg": 120.0,
+        "ego_pose": dict(ego_pose),
+        "payload": dict(payload),
+    }
+    document = _live_map_json_request(
+        _live_map_endpoint(base_url, "/api/multi_ue/v1/live_updates"),
+        timeout_s=timeout_s,
+        payload=envelope,
+    )
+    _require(document.get("status") == "ACCEPTED", "live map rejected an update")
+    _require(document.get("disposition") == "ACCEPTED", "live map update was not unique")
+    _require(document.get("ue_id") == ue_id, "live map acknowledged the wrong UE")
+    return document
 
 
 def _policy() -> AssociationPolicy:
@@ -951,6 +1028,12 @@ def run(args: argparse.Namespace) -> int:
     _require(args.max_pairs >= len(FAULT_CASES), f"max-pairs must be >= {len(FAULT_CASES)}")
     output = Path(args.output).resolve()
     _require(not output.exists(), f"create-only output already exists: {output}")
+    session_id = str(args.session_id)
+    _preflight_live_map(
+        args.live_map_url,
+        session_id=session_id,
+        timeout_s=float(args.live_map_timeout_s),
+    )
     output.parent.mkdir(parents=True, exist_ok=True)
     output.mkdir()
     started_wall = time.time()
@@ -975,11 +1058,11 @@ def run(args: argparse.Namespace) -> int:
         source_a = _PassiveUESensors(world, vehicle_a, "two-ue/ue-a")
         source_b = _PassiveUESensors(world, vehicle_b, "two-ue/ue-b")
         service = MultiUESpatialMapService(_policy())
-        session_id = str(args.session_id)
         frame_parity: int | None = None
         nominal_multi_source = 0
         nominal_associations = 0
         compact_model_records = 0
+        live_map_updates_published = 0
         fault_counts: Counter[str] = Counter()
         fault_case_cursor = 0
         deadline = time.monotonic() + float(args.duration_s)
@@ -1013,6 +1096,12 @@ def run(args: argparse.Namespace) -> int:
                 last_frame = frame_id
                 if prepared_a is None or prepared_b is None:
                     continue
+                pose_a = _ego_pose_document(
+                    ue_id="ue-a", source=source_a, prepared_sensor=prepared_a
+                )
+                pose_b = _ego_pose_document(
+                    ue_id="ue-b", source=source_b, prepared_sensor=prepared_b
+                )
                 payload_a, row_a = _run_one(
                     source=source_a, prepared_sensor=prepared_a, ue_runtime=ue_runtime,
                     edge_runtime=edge_runtime, tail=tail, device=device, frame_id=frame_id,
@@ -1021,6 +1110,22 @@ def run(args: argparse.Namespace) -> int:
                     source=source_b, prepared_sensor=prepared_b, ue_runtime=ue_runtime,
                     edge_runtime=edge_runtime, tail=tail, device=device, frame_id=frame_id,
                 )
+                # Publish the paired observations consecutively only after both model
+                # paths finish. This keeps the browser's presentation service from
+                # spending the UE-B model interval on a mixed A-current/B-previous pair.
+                for ue_id, ego_pose, payload in (
+                    ("ue-a", pose_a, payload_a),
+                    ("ue-b", pose_b, payload_b),
+                ):
+                    if _publish_live_map_update(
+                        args.live_map_url,
+                        ue_id=ue_id,
+                        session_id=session_id,
+                        ego_pose=ego_pose,
+                        payload=payload,
+                        timeout_s=float(args.live_map_timeout_s),
+                    ) is not None:
+                        live_map_updates_published += 1
                 timestamp_ns = max(
                     int(payload_a["capture_timestamp_ns"]),
                     int(payload_b["capture_timestamp_ns"]),
@@ -1062,12 +1167,8 @@ def run(args: argparse.Namespace) -> int:
                     "multi_source_associations": multi_source,
                     "track_count": len(snapshot["tracks"]),
                     "ego_poses": [
-                        _ego_pose_document(
-                            ue_id="ue-a", source=source_a, prepared_sensor=prepared_a
-                        ),
-                        _ego_pose_document(
-                            ue_id="ue-b", source=source_b, prepared_sensor=prepared_b
-                        ),
+                        pose_a,
+                        pose_b,
                     ],
                     "source_observations": source_observations,
                     "associations": snapshot["associations"],
@@ -1133,6 +1234,13 @@ def run(args: argparse.Namespace) -> int:
                 },
             },
             "raw_sensor_frames_retained": 0,
+            "live_map_delivery": {
+                "enabled": bool(str(args.live_map_url or "").strip()),
+                "base_url": str(args.live_map_url or ""),
+                "updates_published": live_map_updates_published,
+                "expected_updates": pair_count * 2 if args.live_map_url else 0,
+                "viewer_mode_changes_scientific_state": False,
+            },
             "visualization_evidence": {
                 "ego_pose_records": pair_count * 2,
                 "compact_model_object_records": compact_model_records,
@@ -1219,6 +1327,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--npc-vehicles", type=int, default=28)
     parser.add_argument("--npc-pedestrians", type=int, default=35)
     parser.add_argument("--spawn-radius-m", type=float, default=80.0)
+    parser.add_argument(
+        "--live-map-url",
+        default="",
+        help="Optional running Stage-2 map server base URL for live raw/associated viewing.",
+    )
+    parser.add_argument("--live-map-timeout-s", type=float, default=2.0)
     parser.add_argument("--output")
     args = parser.parse_args()
     if not args.list_vehicles and not args.preflight:
@@ -1237,6 +1351,7 @@ def parse_args() -> argparse.Namespace:
             or args.npc_vehicles < 0
             or args.npc_pedestrians < 0
             or args.spawn_radius_m <= 0.0
+            or args.live_map_timeout_s <= 0.0
         ):
             parser.error("execution counts, rates, distances, and timeouts are invalid")
     return args
