@@ -1,0 +1,509 @@
+{
+  "clock_domains": {
+    "EDGE_PERF": {
+      "epoch_anchored": false,
+      "scope": "Edge process. Contributes durations only, never instants.",
+      "source": "time.perf_counter_ns() inside the edge container"
+    },
+    "UE_PERF": {
+      "epoch_anchored": false,
+      "scope": "The single UE client process. The CARLA route/sensor adapter and the live split dispatch run in that one process, so all UE_PERF readings are mutually comparable.",
+      "source": "time.perf_counter_ns() / time.perf_counter()",
+      "warning": "Not comparable with WALL_HOST. Any stage needing a UE_PERF instant against an edge WALL_HOST instant is reported unavailable, never estimated."
+    },
+    "WALL_HOST": {
+      "epoch_anchored": true,
+      "scope": "One physical host. The UE CARLA client, the edge Docker container (OAI CN5G bridge network 192.168.70.0/24) and the map process all read the same kernel clock, so these timestamps are mutually comparable.",
+      "source": "time.time() / CLOCK_REALTIME"
+    }
+  },
+  "distribution_fields": {
+    "count": "valid sample count",
+    "max": "maximum, where reported",
+    "mean": "arithmetic mean of valid samples",
+    "median": "nearest-rank p50, identical convention to the campaign runner",
+    "min": "minimum, where reported",
+    "negative_residual_count": "residual stages only: samples below zero",
+    "p90": "nearest-rank p90",
+    "p95": "nearest-rank p95",
+    "unavailable_or_excluded": "rows excluded, with exclusion_reason"
+  },
+  "registered_deadlines": {
+    "ack_timeout_ms": 500,
+    "claims_100ms_service_ready": false,
+    "distinct": true,
+    "service_deadline_ms": 100
+  },
+  "schema": "scenesense.splitfusion_288_offline_rl_dataset_consolidation.v1.latency_dictionary",
+  "scientific_rules_enforced": [
+    "pre-front sensor preparation is never called front_ms",
+    "sensor wait is never folded into network transport",
+    "no one-way transport is inferred across non-comparable clocks",
+    "the 500 ms ACK timeout is never treated as the 100 ms service target",
+    "within_100ms and within_500ms are reported separately",
+    "per-frame component medians are not expected to sum to the median end-to-end latency",
+    "derived residuals are labelled as residuals and carry a negative-residual count"
+  ],
+  "stages": {
+    "analytic_model_front_transport_back_feedback_ms": {
+      "clock_domain": "UE_PERF + EDGE_PERF durations + WALL_HOST leg",
+      "derivability": "DERIVED_COMPONENT_SUM",
+      "end_event": "n/a (component sum)",
+      "note": "The user's model_front + feature_transport + model_back + compact_feedback quantity, computed only from same-frame compatible timestamps. Explicitly NOT capture-to-install latency: it omits sensor preparation, the prepared-queue wait and UE dispatch overhead, and its transport term is a round-trip residual.",
+      "source_fields": [
+        "front_timing_ns.total_ue_preparation",
+        "send_finished_ns",
+        "edge_result_received_ns",
+        "edge_timing_ns.total_edge_processing",
+        "edge_timing_ns.frozen_tail",
+        "feature_received_at",
+        "map_installed_at"
+      ],
+      "start_event": "n/a (component sum)",
+      "unit": "ms"
+    },
+    "s10_ue_result_receipt_to_map_installation_ms": {
+      "clock_domain": "WALL_HOST",
+      "derivability": "AVAILABLE",
+      "end_event": "map_installed_at (authoritative MAP_INSTALLED)",
+      "note": "Stands in for publication->installation because publication has no own timestamp. feature_received_at is the UE's receipt of the compact edge result, not a feature arrival at the edge.",
+      "source_fields": [
+        "feature_received_at",
+        "map_installed_at"
+      ],
+      "start_event": "feature_received_at (UE compact result receipt)",
+      "unit": "ms"
+    },
+    "s11_feedback_emit_to_ue_receipt_ms": {
+      "clock_domain": "WALL_HOST",
+      "derivability": "PARTIALLY_AVAILABLE",
+      "end_event": "feedback_received_at",
+      "note": "feedback_emit_at is blank on TIMEOUT_NO_ACK rows.",
+      "source_fields": [
+        "feedback_emit_at",
+        "feedback_received_at"
+      ],
+      "start_event": "feedback_emit_at",
+      "unit": "ms"
+    },
+    "s11_map_install_to_ue_feedback_receipt_ms": {
+      "clock_domain": "WALL_HOST",
+      "derivability": "PARTIALLY_AVAILABLE",
+      "end_event": "feedback_received_at",
+      "note": "Defined only on ACK_INSTALLED rows.",
+      "source_fields": [
+        "install_timestamp",
+        "feedback_received_at"
+      ],
+      "start_event": "install_timestamp (map install)",
+      "unit": "ms"
+    },
+    "s12_ue_send_to_compact_result_receipt_ms_UE_PERF": {
+      "clock_domain": "UE_PERF",
+      "derivability": "AVAILABLE",
+      "end_event": "edge_result_received_ns",
+      "note": "A ROUND TRIP measured entirely inside the UE process. This is the compact result datagram, not the map-install ACK; the ACK leg is s14.",
+      "source_fields": [
+        "send_finished_ns",
+        "edge_result_received_ns"
+      ],
+      "start_event": "send_finished_ns",
+      "unit": "ms"
+    },
+    "s13_capture_to_install_aoi_ms": {
+      "clock_domain": "WALL_HOST",
+      "derivability": "AVAILABLE",
+      "end_event": "map_installed_at (authoritative MAP_INSTALLED)",
+      "note": "The registered end-to-end AoI, install_aoi_ms. Defined only for frames that reached MAP_INSTALLED. Recomputed here and checked against the campaign's registered median/p95.",
+      "source_fields": [
+        "capture_wall_s",
+        "map_installed_at",
+        "install_aoi_ms"
+      ],
+      "start_event": "capture_wall_s (camera capture instant)",
+      "unit": "ms"
+    },
+    "s14_capture_to_ue_feedback_aoi_ms": {
+      "clock_domain": "WALL_HOST",
+      "derivability": "AVAILABLE",
+      "end_event": "feedback_received_at",
+      "note": "Includes TIMEOUT_NO_ACK rows, whose receipt time is the 500 ms timeout sweep instant rather than a remote ACK.",
+      "source_fields": [
+        "capture_at",
+        "feedback_received_at"
+      ],
+      "start_event": "capture_at",
+      "unit": "ms"
+    },
+    "s1_pre_front_compute_ms": {
+      "clock_domain": "UE_PERF",
+      "derivability": "AVAILABLE",
+      "end_event": "scene snapshot complete, immediately before UE dispatch",
+      "note": "SUPERSET spanning radar window+prepare, rgb convert, scene snapshot and unattributed remainder. Not a sum of its components.",
+      "source_fields": [
+        "pre_front_compute_ms"
+      ],
+      "start_event": "sensor records available (sensor_ready_perf)",
+      "unit": "ms"
+    },
+    "s1_radar_prepare_ms": {
+      "clock_domain": "UE_PERF",
+      "derivability": "AVAILABLE",
+      "end_event": "radar tensor rasterised",
+      "note": "Radar rasterisation; the dominant pre-front cost.",
+      "source_fields": [
+        "radar_prepare_ms"
+      ],
+      "start_event": "radar sample build begins",
+      "unit": "ms"
+    },
+    "s1_radar_window_ms": {
+      "clock_domain": "UE_PERF",
+      "derivability": "AVAILABLE",
+      "end_event": "window detections returned",
+      "note": "Four-callback sweep window assembly.",
+      "source_fields": [
+        "radar_window_ms"
+      ],
+      "start_event": "radar multi-sweep window assembly begins",
+      "unit": "ms"
+    },
+    "s1_rgb_convert_ms": {
+      "clock_domain": "UE_PERF",
+      "derivability": "AVAILABLE",
+      "end_event": "BGR frame ready",
+      "note": "",
+      "source_fields": [
+        "rgb_convert_ms"
+      ],
+      "start_event": "CARLA image conversion begins",
+      "unit": "ms"
+    },
+    "s1_scene_snapshot_ms": {
+      "clock_domain": "UE_PERF",
+      "derivability": "AVAILABLE",
+      "end_event": "scene captured",
+      "note": "Offline-evaluation scene freeze, on the preparation path.",
+      "source_fields": [
+        "scene_snapshot_ms"
+      ],
+      "start_event": "world snapshot freeze begins",
+      "unit": "ms"
+    },
+    "s1_sensor_wait_ms": {
+      "clock_domain": "UE_PERF",
+      "derivability": "AVAILABLE",
+      "end_event": "synchronized camera+radar records are available (sensor_ready_perf)",
+      "note": "Pure sensor-window availability wait. Pre-front; not transport, not front_ms.",
+      "source_fields": [
+        "sensor_wait_ms"
+      ],
+      "start_event": "prepared-queue worker picks the frame up (process_started_perf)",
+      "unit": "ms"
+    },
+    "s2_derived_true_queue_wait_ms_RESIDUAL": {
+      "clock_domain": "UE_PERF",
+      "derivability": "DERIVED_RESIDUAL",
+      "end_event": "prepared-queue worker picks the frame up",
+      "note": "queue_wait_ms minus the same-frame, same-clock preparation components. Small negatives are possible from unattributed gaps; the negative count is reported.",
+      "source_fields": [
+        "queue_wait_ms",
+        "sensor_wait_ms",
+        "radar_window_ms",
+        "radar_prepare_ms",
+        "rgb_convert_ms"
+      ],
+      "start_event": "frame scheduled onto the prepared queue",
+      "unit": "ms"
+    },
+    "s2_queue_depth_at_dispatch": {
+      "clock_domain": "COUNT",
+      "derivability": "AVAILABLE",
+      "end_event": "n/a",
+      "note": "Structural queue-occupancy indicator recorded at dispatch.",
+      "source_fields": [
+        "queue_depth"
+      ],
+      "start_event": "n/a",
+      "unit": "frames"
+    },
+    "s2_recorded_queue_wait_ms_ENCLOSES_SENSOR_PREP": {
+      "clock_domain": "UE_PERF",
+      "derivability": "AVAILABLE_BUT_MISNAMED",
+      "end_event": "immediately before the scene snapshot / UE dispatch",
+      "note": "Despite the name this ENCLOSES the sensor wait and radar/RGB preparation. It is NOT a pure prepared-queue wait.",
+      "source_fields": [
+        "queue_wait_ms"
+      ],
+      "start_event": "frame scheduled onto the prepared queue (scheduled_perf)",
+      "unit": "ms"
+    },
+    "s3_ae_encode_ms": {
+      "clock_domain": "UE_PERF",
+      "derivability": "AVAILABLE",
+      "end_event": "latent produced",
+      "note": "Zero for the noAE family.",
+      "source_fields": [
+        "front_timing_ns.ae_encode"
+      ],
+      "start_event": "AE encode begins",
+      "unit": "ms"
+    },
+    "s3_front_backbone_ms": {
+      "clock_domain": "UE_PERF",
+      "derivability": "AVAILABLE",
+      "end_event": "front features produced",
+      "note": "The actual model front. This, not front_ms, is the front cost.",
+      "source_fields": [
+        "front_timing_ns.front_backbone"
+      ],
+      "start_event": "front backbone forward begins",
+      "unit": "ms"
+    },
+    "s3_front_ms_FULL_UE_DISPATCH_SPAN": {
+      "clock_domain": "UE_PERF",
+      "derivability": "AVAILABLE",
+      "end_event": "ue_prepare_finished_ns (encode complete, before the first datagram)",
+      "note": "SUPERSET of total_ue_preparation: also covers 7-channel input assembly, frame-context construction and payload chunking. It contains NO sensor preparation and NO network transport.",
+      "source_fields": [
+        "front_ms",
+        "capture_started_ns",
+        "ue_prepare_finished_ns"
+      ],
+      "start_event": "capture_started_ns (UE dispatch entry, after sensor preparation)",
+      "unit": "ms"
+    },
+    "s3_quantize_pack_ms": {
+      "clock_domain": "UE_PERF",
+      "derivability": "AVAILABLE",
+      "end_event": "wire buffer packed",
+      "note": "",
+      "source_fields": [
+        "front_timing_ns.quantize_pack"
+      ],
+      "start_event": "quantize/pack begins",
+      "unit": "ms"
+    },
+    "s3_ranker_selection_ms": {
+      "clock_domain": "UE_PERF",
+      "derivability": "AVAILABLE",
+      "end_event": "kept cells selected",
+      "note": "",
+      "source_fields": [
+        "front_timing_ns.ranker_selection"
+      ],
+      "start_event": "ranker selection begins",
+      "unit": "ms"
+    },
+    "s3_total_ue_preparation_ms": {
+      "clock_domain": "UE_PERF",
+      "derivability": "AVAILABLE",
+      "end_event": "UE prepare() return",
+      "note": "Instrumented UE preparation total; the model_front term of the user's analytical quantity.",
+      "source_fields": [
+        "front_timing_ns.total_ue_preparation"
+      ],
+      "start_event": "UE prepare() entry",
+      "unit": "ms"
+    },
+    "s3_zstd_compression_ms": {
+      "clock_domain": "UE_PERF",
+      "derivability": "AVAILABLE",
+      "end_event": "compressed payload ready",
+      "note": "The deployed entropy codec is zstd (lossless).",
+      "source_fields": [
+        "front_timing_ns.zstd_compression"
+      ],
+      "start_event": "zstd compression begins",
+      "unit": "ms"
+    },
+    "s4_datagram_send_loop_ms": {
+      "clock_domain": "UE_PERF",
+      "derivability": "AVAILABLE",
+      "end_event": "send_finished_ns",
+      "note": "Host-side sendto loop over all chunks. Socket handoff only; not a propagation or radio latency.",
+      "source_fields": [
+        "ue_prepare_finished_ns",
+        "send_finished_ns"
+      ],
+      "start_event": "ue_prepare_finished_ns",
+      "unit": "ms"
+    },
+    "s4_derived_ue_uninstrumented_span_ms": {
+      "clock_domain": "UE_PERF",
+      "derivability": "DERIVED_RESIDUAL",
+      "end_event": "n/a",
+      "note": "front_ms minus total_ue_preparation: input assembly, context build and chunking not covered by the instrumented timers.",
+      "source_fields": [
+        "front_ms",
+        "front_timing_ns.total_ue_preparation"
+      ],
+      "start_event": "n/a",
+      "unit": "ms"
+    },
+    "s5_capture_to_edge_receipt_ms_INCLUDES_SENSOR_AND_FRONT": {
+      "clock_domain": "WALL_HOST",
+      "derivability": "AVAILABLE",
+      "end_event": "complete edge receive/reassembly (edge_receipt_wall_s)",
+      "note": "Both boundaries are WALL_HOST so this is measured, but it INCLUDES sensor preparation and the whole UE front. It is not an uplink transport latency.",
+      "source_fields": [
+        "capture_wall_s",
+        "edge_receipt_wall_s"
+      ],
+      "start_event": "camera capture instant (capture_wall_s)",
+      "unit": "ms"
+    },
+    "s5_derived_roundtrip_residual_ms_RESIDUAL": {
+      "clock_domain": "UE_PERF (instants) + EDGE_PERF (duration)",
+      "derivability": "DERIVED_RESIDUAL",
+      "end_event": "edge_result_received_ns, less edge processing",
+      "note": "ROUND TRIP residual = feature uplink + edge queue + compact result downlink. Subtracting a same-frame EDGE_PERF duration from a UE_PERF interval is clock-safe. NOT one-way uplink.",
+      "source_fields": [
+        "send_finished_ns",
+        "edge_result_received_ns",
+        "edge_timing_ns.total_edge_processing"
+      ],
+      "start_event": "send_finished_ns",
+      "unit": "ms"
+    },
+    "s5_feature_uplink_one_way_ms": {
+      "clock_domain": "UE_PERF -> WALL_HOST (INCOMPATIBLE)",
+      "derivability": "UNAVAILABLE",
+      "end_event": "complete edge receive/reassembly (edge_receipt_wall_s)",
+      "note": "The two boundaries live in non-comparable clock domains and no simultaneous cross-clock reading is registered, so one-way uplink latency is not computed.",
+      "source_fields": [
+        "send_finished_ns",
+        "edge_receipt_wall_s"
+      ],
+      "start_event": "final UE send boundary (send_finished_ns)",
+      "unit": "ms"
+    },
+    "s6_derived_edge_queue_wait_ms_RESIDUAL": {
+      "clock_domain": "WALL_HOST less EDGE_PERF",
+      "derivability": "DERIVED_RESIDUAL",
+      "end_event": "edge processing entry",
+      "note": "Edge wall span minus the same-frame instrumented edge processing duration. Both are edge-local, so the subtraction is clock-safe.",
+      "source_fields": [
+        "edge_receipt_wall_s",
+        "edge_tail_complete_wall_s",
+        "edge_timing_ns.total_edge_processing"
+      ],
+      "start_event": "edge_receipt_wall_s",
+      "unit": "ms"
+    },
+    "s6_edge_receipt_to_tail_complete_ms": {
+      "clock_domain": "WALL_HOST",
+      "derivability": "AVAILABLE",
+      "end_event": "edge_tail_complete_wall_s",
+      "note": "Edge-internal span: queue wait + decode + tail inference.",
+      "source_fields": [
+        "edge_receipt_wall_s",
+        "edge_tail_complete_wall_s"
+      ],
+      "start_event": "edge_receipt_wall_s",
+      "unit": "ms"
+    },
+    "s7_ae_decode_ms": {
+      "clock_domain": "EDGE_PERF",
+      "derivability": "AVAILABLE",
+      "end_event": "latent decoded",
+      "note": "Zero for the noAE family.",
+      "source_fields": [
+        "edge_timing_ns.ae_decode"
+      ],
+      "start_event": "AE decode begins",
+      "unit": "ms"
+    },
+    "s7_unpack_dequantize_ms": {
+      "clock_domain": "EDGE_PERF",
+      "derivability": "AVAILABLE",
+      "end_event": "tensor reconstructed",
+      "note": "",
+      "source_fields": [
+        "edge_timing_ns.unpack_dequantize"
+      ],
+      "start_event": "unpack/dequantize begins",
+      "unit": "ms"
+    },
+    "s7_zstd_decompression_ms": {
+      "clock_domain": "EDGE_PERF",
+      "derivability": "AVAILABLE",
+      "end_event": "payload decompressed",
+      "note": "",
+      "source_fields": [
+        "edge_timing_ns.zstd_decompression"
+      ],
+      "start_event": "edge zstd decompression begins",
+      "unit": "ms"
+    },
+    "s8_frozen_tail_ms": {
+      "clock_domain": "EDGE_PERF",
+      "derivability": "AVAILABLE",
+      "end_event": "tail outputs produced",
+      "note": "The model_back term of the user's analytical quantity.",
+      "source_fields": [
+        "edge_timing_ns.frozen_tail"
+      ],
+      "start_event": "frozen tail forward begins",
+      "unit": "ms"
+    },
+    "s8_output_serialization_ms": {
+      "clock_domain": "EDGE_PERF",
+      "derivability": "AVAILABLE",
+      "end_event": "compact result serialized",
+      "note": "",
+      "source_fields": [
+        "edge_timing_ns.output_serialization"
+      ],
+      "start_event": "result serialization begins",
+      "unit": "ms"
+    },
+    "s8_total_edge_processing_ms": {
+      "clock_domain": "EDGE_PERF",
+      "derivability": "AVAILABLE",
+      "end_event": "edge process() return",
+      "note": "",
+      "source_fields": [
+        "edge_timing_ns.total_edge_processing"
+      ],
+      "start_event": "edge process() entry",
+      "unit": "ms"
+    },
+    "s9_tail_complete_to_edge_evidence_install_ms": {
+      "clock_domain": "WALL_HOST",
+      "derivability": "AVAILABLE",
+      "end_event": "edge_evidence_install_wall_s",
+      "note": "Edge-side segmentation-evidence write submission.",
+      "source_fields": [
+        "edge_tail_complete_wall_s",
+        "edge_evidence_install_wall_s"
+      ],
+      "start_event": "edge_tail_complete_wall_s",
+      "unit": "ms"
+    },
+    "s9_tail_complete_to_map_publication_ms": {
+      "clock_domain": "n/a",
+      "derivability": "UNAVAILABLE",
+      "end_event": "map publication",
+      "note": "Map publication is registered only as the categorical map_publication_status; no publication timestamp exists, so this boundary has no end event.",
+      "source_fields": [
+        "edge_tail_complete_wall_s",
+        "map_publication_status"
+      ],
+      "start_event": "edge_tail_complete_wall_s",
+      "unit": "ms"
+    },
+    "s9_tail_complete_to_ue_result_receipt_ms": {
+      "clock_domain": "WALL_HOST",
+      "derivability": "AVAILABLE",
+      "end_event": "feature_received_at (UE result receipt)",
+      "note": "Compact result downlink leg plus edge post-tail work.",
+      "source_fields": [
+        "edge_tail_complete_wall_s",
+        "feature_received_at"
+      ],
+      "start_event": "edge_tail_complete_wall_s",
+      "unit": "ms"
+    }
+  }
+}

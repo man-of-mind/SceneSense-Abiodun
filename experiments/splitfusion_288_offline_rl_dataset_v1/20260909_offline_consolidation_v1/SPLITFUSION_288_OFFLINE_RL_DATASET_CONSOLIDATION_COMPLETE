@@ -1,0 +1,28 @@
+{
+  "actions": 72,
+  "artifact_sha256": {
+    "REPORT.md": "5d7d8dac9705b4e47f3b5358217261bd34d21cd10d10ac5ff519693cb00ed109",
+    "action_72_summary.csv": "250eb6d9391c0de5a343d692484647bbdb181153ba64f7f4a447b0076f580a88",
+    "action_72x4_summary.csv": "280b372ed8b6a52bb3e5f1f69e6cbdc02dc851a6a597565fcab9ca9652f5998e",
+    "analysis_summary.json": "48358c2f27ffc2f3da8bf0f821c733914a03267f50da7adab4cbf70cbe239690",
+    "campaign_288_cell_table.csv": "3f3067d4c9d0ef3c0d2661c3d19d04306bcbd18ef6d21fa426148e0ee24d2e0d",
+    "latency_metric_dictionary.json": "92439634dc648ef9aabe8b98ee45a0b430356bc068b1d11c90f195835e040c29",
+    "metric_availability.json": "181dc89b860813f3dc4741540297e2247987c81a204e2564d155cc6a894c3f3e"
+  },
+  "campaign_completion_sha256": "696af4443635bda2da8d93a2b8fd89808cd5ef04dfe34d30ed7f32a248ee1ee8",
+  "campaign_evidence_unmodified": true,
+  "campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry8",
+  "cells": 288,
+  "claims_100ms_service_ready": false,
+  "network_profiles": [
+    "FAVORABLE_STABLE",
+    "MID_VARIABLE",
+    "ADVERSE_STABLE",
+    "FADE_RECOVERY"
+  ],
+  "no_live_system_launched": true,
+  "schema": "scenesense.splitfusion_288_offline_rl_dataset_consolidation.v1.terminal",
+  "status": "SPLITFUSION_288_OFFLINE_RL_DATASET_CONSOLIDATION_COMPLETE",
+  "steps_covered": "1-4 (verify, reconcile, aggregate, separate components)",
+  "steps_not_performed": "5-6 (pruning, Pareto, feasibility masking, reward, policy, training)"
+}

@@ -1,0 +1,613 @@
+{
+  "cells_total": 288,
+  "legend": {
+    "available": "derivable for every cell from registered fields",
+    "partially_available": "derivable for some cells; the rest are a measured zero or a registered absence",
+    "unavailable": "no registered field or no compatible clock/boundary; explicitly not estimated"
+  },
+  "metrics": {
+    "ack_installed_frames": {
+      "cells_total": 288,
+      "cells_with_data": 222,
+      "reason": "registered ack_installed_frames",
+      "status": "partially_available"
+    },
+    "action_id": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "registered identity/provenance field",
+      "status": "available"
+    },
+    "both_denominators": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "installed/sent, on-time/sent, ack/sent are computed alongside the registered installed-denominator fractions, and conditional stage survival ratios are given per hop",
+      "status": "available"
+    },
+    "catalog_payload_estimates": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "carried in separate catalog_* columns and never substituted for live bytes",
+      "status": "available"
+    },
+    "cell_id": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "registered identity/provenance field",
+      "status": "available"
+    },
+    "complete_edge_reassemblies": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "edge feature_messages_reassembled",
+      "status": "available"
+    },
+    "datagrams_per_frame_or_message": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "live measured datagrams",
+      "status": "available"
+    },
+    "edge_admissions": {
+      "cells_total": 288,
+      "cells_with_data": 242,
+      "reason": "edge_queue_admissions is a bump counter: present where non-zero, and legitimately zero in cells where nothing ever reassembled",
+      "status": "partially_available"
+    },
+    "estimated_wire_bytes": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "live measured estimated_wire_bytes",
+      "status": "available"
+    },
+    "executed_or_reused": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "registered identity/provenance field",
+      "status": "available"
+    },
+    "execution_status": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "registered identity/provenance field",
+      "status": "available"
+    },
+    "family": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "registered identity/provenance field",
+      "status": "available"
+    },
+    "feedback_within_500ms_ack_timeout": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "registered ack_within_timeout_installations, reported separately from the 100 ms figure",
+      "status": "available"
+    },
+    "frames_sent": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "registered sent_frames",
+      "status": "available"
+    },
+    "installed_within_100ms_service_reference": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "registered service_on_time_installations. Measured and overwhelmingly zero; that is an outcome, not missing data.",
+      "status": "available"
+    },
+    "intended_opportunities": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "expected_scheduled_frames at the registered 10 Hz",
+      "status": "available"
+    },
+    "keep_count": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "registered identity/provenance field",
+      "status": "available"
+    },
+    "late_installations_or_acks": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "late_feedback_rows and late_nonterminal_feedback_rows",
+      "status": "available"
+    },
+    "latency::analytic_model_front_transport_back_feedback_ms": {
+      "cells_total": 288,
+      "cells_with_data": 222,
+      "reason": "row lacked one of the four same-frame components",
+      "status": "partially_available"
+    },
+    "latency::s10_ue_result_receipt_to_map_installation_ms": {
+      "cells_total": 288,
+      "cells_with_data": 222,
+      "reason": "map_installed_at blank unless the authoritative ACK carried an install timestamp",
+      "status": "partially_available"
+    },
+    "latency::s11_feedback_emit_to_ue_receipt_ms": {
+      "cells_total": 288,
+      "cells_with_data": 222,
+      "reason": "feedback_emit_at is blank on TIMEOUT_NO_ACK rows and where the emitter did not stamp it",
+      "status": "partially_available"
+    },
+    "latency::s11_map_install_to_ue_feedback_receipt_ms": {
+      "cells_total": 288,
+      "cells_with_data": 222,
+      "reason": "install_timestamp blank on non-ACK_INSTALLED rows",
+      "status": "partially_available"
+    },
+    "latency::s12_ue_send_to_compact_result_receipt_ms_UE_PERF": {
+      "cells_total": 288,
+      "cells_with_data": 222,
+      "reason": "edge_result_received_ns blank when no compact result returned",
+      "status": "partially_available"
+    },
+    "latency::s13_capture_to_install_aoi_ms": {
+      "cells_total": 288,
+      "cells_with_data": 222,
+      "reason": "install_aoi_ms is defined only for frames that reached MAP_INSTALLED",
+      "status": "partially_available"
+    },
+    "latency::s14_capture_to_ue_feedback_aoi_ms": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "row lacked capture_at or feedback_received_at",
+      "status": "available"
+    },
+    "latency::s1_pre_front_compute_ms": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "blank on rows that never reached this stage",
+      "status": "available"
+    },
+    "latency::s1_radar_prepare_ms": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "blank on rows that never reached this stage",
+      "status": "available"
+    },
+    "latency::s1_radar_window_ms": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "blank on rows that never reached this stage",
+      "status": "available"
+    },
+    "latency::s1_rgb_convert_ms": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "blank on rows that never reached this stage",
+      "status": "available"
+    },
+    "latency::s1_scene_snapshot_ms": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "blank on rows that never reached this stage",
+      "status": "available"
+    },
+    "latency::s1_sensor_wait_ms": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "blank on rows that never reached this stage",
+      "status": "available"
+    },
+    "latency::s2_derived_true_queue_wait_ms_RESIDUAL": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "row lacked one of the same-clock component durations",
+      "status": "available"
+    },
+    "latency::s2_queue_depth_at_dispatch": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "derivable from registered fields",
+      "status": "available"
+    },
+    "latency::s2_recorded_queue_wait_ms_ENCLOSES_SENSOR_PREP": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "blank on rows that never reached this stage",
+      "status": "available"
+    },
+    "latency::s3_ae_encode_ms": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "front_timing_ns absent/unparseable or key not emitted for this family",
+      "status": "available"
+    },
+    "latency::s3_front_backbone_ms": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "front_timing_ns absent/unparseable or key not emitted for this family",
+      "status": "available"
+    },
+    "latency::s3_front_ms_FULL_UE_DISPATCH_SPAN": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "blank when the row never completed UE preparation",
+      "status": "available"
+    },
+    "latency::s3_quantize_pack_ms": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "front_timing_ns absent/unparseable or key not emitted for this family",
+      "status": "available"
+    },
+    "latency::s3_ranker_selection_ms": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "front_timing_ns absent/unparseable or key not emitted for this family",
+      "status": "available"
+    },
+    "latency::s3_total_ue_preparation_ms": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "front_timing_ns absent/unparseable or key not emitted for this family",
+      "status": "available"
+    },
+    "latency::s3_zstd_compression_ms": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "front_timing_ns absent/unparseable or key not emitted for this family",
+      "status": "available"
+    },
+    "latency::s4_datagram_send_loop_ms": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "row lacked a UE_PERF send boundary",
+      "status": "available"
+    },
+    "latency::s4_derived_ue_uninstrumented_span_ms": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "row lacked front_ms or total_ue_preparation",
+      "status": "available"
+    },
+    "latency::s5_capture_to_edge_receipt_ms_INCLUDES_SENSOR_AND_FRONT": {
+      "cells_total": 288,
+      "cells_with_data": 222,
+      "reason": "edge_receipt_wall_s blank when the message never fully reassembled at the edge",
+      "status": "partially_available"
+    },
+    "latency::s5_derived_roundtrip_residual_ms_RESIDUAL": {
+      "cells_total": 288,
+      "cells_with_data": 222,
+      "reason": "row lacked a UE_PERF round-trip boundary or edge_timing_ns",
+      "status": "partially_available"
+    },
+    "latency::s5_feature_uplink_one_way_ms": {
+      "cells_total": 288,
+      "cells_with_data": 0,
+      "reason": "NOT DERIVABLE: the final UE send boundary (send_finished_ns) is time.perf_counter_ns() in the UE process and is not epoch-anchored, while the complete edge receive boundary (edge_receipt_wall_s) is edge CLOCK_REALTIME. No simultaneous reading of both clocks is registered, and the offset is not per-frame recoverable, so no one-way uplink latency is computed.",
+      "status": "unavailable"
+    },
+    "latency::s6_derived_edge_queue_wait_ms_RESIDUAL": {
+      "cells_total": 288,
+      "cells_with_data": 222,
+      "reason": "row lacked an edge wall boundary or edge_timing_ns",
+      "status": "partially_available"
+    },
+    "latency::s6_edge_receipt_to_tail_complete_ms": {
+      "cells_total": 288,
+      "cells_with_data": 222,
+      "reason": "edge wall boundary blank when the frame never completed the tail",
+      "status": "partially_available"
+    },
+    "latency::s7_ae_decode_ms": {
+      "cells_total": 288,
+      "cells_with_data": 222,
+      "reason": "edge_timing_ns absent (frame never processed at the edge) or key not emitted",
+      "status": "partially_available"
+    },
+    "latency::s7_unpack_dequantize_ms": {
+      "cells_total": 288,
+      "cells_with_data": 222,
+      "reason": "edge_timing_ns absent (frame never processed at the edge) or key not emitted",
+      "status": "partially_available"
+    },
+    "latency::s7_zstd_decompression_ms": {
+      "cells_total": 288,
+      "cells_with_data": 222,
+      "reason": "edge_timing_ns absent (frame never processed at the edge) or key not emitted",
+      "status": "partially_available"
+    },
+    "latency::s8_frozen_tail_ms": {
+      "cells_total": 288,
+      "cells_with_data": 222,
+      "reason": "edge_timing_ns absent (frame never processed at the edge) or key not emitted",
+      "status": "partially_available"
+    },
+    "latency::s8_output_serialization_ms": {
+      "cells_total": 288,
+      "cells_with_data": 222,
+      "reason": "edge_timing_ns absent (frame never processed at the edge) or key not emitted",
+      "status": "partially_available"
+    },
+    "latency::s8_total_edge_processing_ms": {
+      "cells_total": 288,
+      "cells_with_data": 222,
+      "reason": "edge_timing_ns absent (frame never processed at the edge) or key not emitted",
+      "status": "partially_available"
+    },
+    "latency::s9_tail_complete_to_edge_evidence_install_ms": {
+      "cells_total": 288,
+      "cells_with_data": 222,
+      "reason": "evidence install boundary blank when no mask was submitted",
+      "status": "partially_available"
+    },
+    "latency::s9_tail_complete_to_map_publication_ms": {
+      "cells_total": 288,
+      "cells_with_data": 0,
+      "reason": "NOT DERIVABLE: map publication is registered only as the categorical map_publication_status; no map-publication timestamp is recorded, so the boundary has no end event.",
+      "status": "unavailable"
+    },
+    "latency::s9_tail_complete_to_ue_result_receipt_ms": {
+      "cells_total": 288,
+      "cells_with_data": 222,
+      "reason": "row lacked an edge tail boundary or a UE result receipt",
+      "status": "partially_available"
+    },
+    "map_publications": {
+      "cells_total": 288,
+      "cells_with_data": 222,
+      "reason": "ue results_published_to_map",
+      "status": "partially_available"
+    },
+    "network_profile": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "registered identity/provenance field",
+      "status": "available"
+    },
+    "payload_count_mean_median_p90_p95": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "computed for every variable payload quantity",
+      "status": "available"
+    },
+    "preparation_coverage": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "registered sensor_preparation_coverage",
+      "status": "available"
+    },
+    "preparation_drops_by_registered_reason": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "one column per registered prepare_status; absent status means zero",
+      "status": "available"
+    },
+    "prepared_frames": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "sent_frames / prepare_status SENT",
+      "status": "available"
+    },
+    "prepared_or_sustainable_fps": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "prepared FPS from sent frames over the cell wall duration; sustainable FPS from the median inter-send period",
+      "status": "available"
+    },
+    "profile_id": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "registered identity/provenance field",
+      "status": "available"
+    },
+    "q": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "registered identity/provenance field",
+      "status": "available"
+    },
+    "q_e4": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "registered identity/provenance field",
+      "status": "available"
+    },
+    "quantizer": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "registered identity/provenance field",
+      "status": "available"
+    },
+    "route_outcome_classification": {
+      "cells_total": 288,
+      "cells_with_data": 227,
+      "reason": "The registered route_outcome_classification exists only for the 227 executed cells. All 61 reused cells lack it: the 58 retry5-origin cells have no route summary at all, and the 3 retry6-origin cells have only the route runner's own metrics summary, whose 'status' field is the density/intervention state and NOT the registered classification. Those 61 cells are recorded as UNAVAILABLE_NOT_INFERRED; the raw runner status is carried separately in route_runner_status_raw_not_a_classification and is never promoted to a classification.",
+      "status": "partially_available"
+    },
+    "route_summary_available": {
+      "cells_total": 288,
+      "cells_with_data": 230,
+      "reason": "Durable route_metrics_summary.json presence, verified per cell. Present for the 227 executed cells and the 3 retry6-origin reused cells; absent for the 58 retry5-origin reused cells, which predate the durable route-summary requirement.",
+      "status": "partially_available"
+    },
+    "routing_tag": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "registered identity/provenance field",
+      "status": "available"
+    },
+    "scientific_inner_payload_bytes": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "live measured scientific_inner_bytes",
+      "status": "available"
+    },
+    "sfd1_application_envelope_overhead": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "live measured sfd1_overhead_bytes",
+      "status": "available"
+    },
+    "source_attempt": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "registered identity/provenance field",
+      "status": "available"
+    },
+    "source_campaign_root": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "registered identity/provenance field",
+      "status": "available"
+    },
+    "source_terminal_sha256": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "registered identity/provenance field",
+      "status": "available"
+    },
+    "split_frames_sent": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "registered split_frames_sent",
+      "status": "available"
+    },
+    "stale_rejected_dropped_by_stage": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "one column per registered deadline stage, plus prepare_status drops and incomplete_reassemblies_expired",
+      "status": "available"
+    },
+    "synchronized_sensor_opportunities": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "eligible_preparation_frames is the registered synchronized-opportunity denominator",
+      "status": "available"
+    },
+    "tail_completions": {
+      "cells_total": 288,
+      "cells_with_data": 231,
+      "reason": "edge tail_completions; zero where no frame reached the tail",
+      "status": "partially_available"
+    },
+    "terminal_timeout_no_ack": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "registered terminal_feedback_outcomes",
+      "status": "available"
+    },
+    "udp_fragmentation_header_overhead": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "udp_application_bytes minus sfd1_bytes gives chunk-header overhead; estimated_wire_bytes minus udp_application_bytes gives the 28 B/datagram IP+UDP allowance",
+      "status": "available"
+    },
+    "validation::absolute_service_gates_passed_total": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "frozen catalog field(s): absolute_service_ready / absolute_service_count",
+      "status": "available"
+    },
+    "validation::avo_precision_recall_localization": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "frozen catalog field(s): person_avo_precision / person_avo_recall / person_avo_xy_mae_m",
+      "status": "available"
+    },
+    "validation::diagnostic_recall_30_40m": {
+      "cells_total": 288,
+      "cells_with_data": 240,
+      "reason": "Same Phase-11D-only availability as the 0-30 m AVO recall.",
+      "status": "partially_available"
+    },
+    "validation::emergency_only_status": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "frozen catalog field(s): source_contract_tier == EMERGENCY_ONLY / stress_or_emergency_anchor",
+      "status": "available"
+    },
+    "validation::localization_gates_passed_total": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "frozen catalog field(s): localization_requirements_passed / localization_requirement_count / localization_requirements_evaluated",
+      "status": "available"
+    },
+    "validation::mask_accuracy": {
+      "reason": "No registered mask-accuracy field exists in the frozen validation evidence. foreground_miou and person_box_mask_iou are reported instead; a pixel mask accuracy is not reconstructed.",
+      "status": "unavailable"
+    },
+    "validation::person_avo_recall_0_30m": {
+      "cells_total": 288,
+      "cells_with_data": 240,
+      "reason": "Registered only for the 48 Phase-11D UINT6/UINT4 actions. The 24 historical UINT8 actions (phase8b noAE, phase9d AE128, phase10b AE32/AE64) have no per-range evidence; those cells stay null and are NOT reconstructed from incompatible historical aggregates.",
+      "status": "partially_available"
+    },
+    "validation::person_box_mask_iou": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "frozen catalog field(s): person_box_mask_iou",
+      "status": "available"
+    },
+    "validation::person_precision_recall": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "frozen catalog field(s): canonical_person_precision / canonical_person_recall",
+      "status": "available"
+    },
+    "validation::preservation_gates_passed_total": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "frozen catalog field(s): relative_preservation_passed / relative_preservation_count",
+      "status": "available"
+    },
+    "validation::registered_tier": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "frozen catalog field(s): source_contract_tier",
+      "status": "available"
+    },
+    "validation::segmentation_gates_passed_total": {
+      "reason": "No standalone segmentation gate pass/total counter is registered. Segmentation is registered as the boolean segmentation_installable plus the categorical segmentation_behavior, and foreground_miou; no gates-passed/total pair exists to report.",
+      "status": "unavailable"
+    },
+    "validation::segmentation_installability": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "frozen catalog field(s): segmentation_installable / segmentation_behavior",
+      "status": "available"
+    },
+    "validation::segmentation_miou": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "frozen catalog field(s): foreground_miou",
+      "status": "available"
+    },
+    "validation::vehicle_localization_and_iou": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "frozen catalog field(s): vehicle_xy_mae_m / vehicle_iou",
+      "status": "available"
+    },
+    "validation::vehicle_precision_recall": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "frozen catalog field(s): vehicle_precision / vehicle_recall / vehicle_f1",
+      "status": "available"
+    },
+    "wire_layout": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "registered identity/provenance field",
+      "status": "available"
+    },
+    "zero_delivery_flag": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "derived from maps_installed == 0",
+      "status": "available"
+    },
+    "zstd_level": {
+      "cells_total": 288,
+      "cells_with_data": 288,
+      "reason": "registered identity/provenance field",
+      "status": "available"
+    }
+  },
+  "schema": "scenesense.splitfusion_288_offline_rl_dataset_consolidation.v1.metric_availability"
+}
