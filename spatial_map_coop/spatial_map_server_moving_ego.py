@@ -2025,7 +2025,8 @@ def get_live_viewer():
 const cv=document.getElementById('c'),ctx=cv.getContext('2d'),hud=document.getElementById('hud');
 let DPR=Math.max(1,window.devicePixelRatio||1);
 let statics={roads:[],buildings:[]},snap=null;
-let viewMode='associated',trackDisplay={};
+let viewMode='associated',trackDisplay={},egoStreamDisplay={};
+const MAX_DISPLAY_TRACK_AGE_NS=750000000;
 function resize(){cv.width=innerWidth*DPR;cv.height=innerHeight*DPR;}
 addEventListener('resize',resize);resize();
 function setViewMode(mode){viewMode=mode==='raw'?'raw':'associated';document.getElementById('rawBtn').classList.toggle('active',viewMode==='raw');document.getElementById('filteredBtn').classList.toggle('active',viewMode==='associated');}
@@ -2034,20 +2035,20 @@ document.getElementById('filteredBtn').onclick=()=>setViewMode('associated');
 addEventListener('keydown',e=>{const k=e.key.toLowerCase();if(k==='r'||k==='1')setViewMode('raw');if(k==='f'||k==='2')setViewMode('associated');if(k===' '){e.preventDefault();setViewMode(viewMode==='raw'?'associated':'raw');}});
 setViewMode('associated');
 async function loadStatic(){try{statics=await(await fetch('/api/spatial_map/static_geometry')).json();}catch(e){setTimeout(loadStatic,2000);}}
-async function poll(){try{snap=await(await fetch('/api/spatial_map/latest')).json();}catch(e){}setTimeout(poll,100);}
-function ego(){const fv=snap&&snap.metadata&&snap.metadata.focus_view;if(fv&&fv.ego_pose)return{x:fv.ego_pose.x,y:fv.ego_pose.y,yaw:fv.ego_pose.yaw_deg,r:(fv.radius_m||40)+(fv.padding_m||10)};return null;}
-let disp=null;            // smoothed display pose (interpolated toward target each frame)
-function smoothAssociated(objs,now){const seen=new Set(),out=[];for(const o of objs){const key=o.track_id||o.association_id;if(!key){out.push(o);continue;}seen.add(key);const l=o.location||{},tx=Number(l.x),ty=Number(l.y),stamp=Number(o.capture_timestamp_ns||0);let s=trackDisplay[key];if(!s){s={x:tx,y:ty,tx,ty,vx:0,vy:0,stamp,arrived:now};trackDisplay[key]=s;}else if(stamp!==s.stamp){const dt=(stamp-s.stamp)/1e9;if(dt>0){let vx=(tx-s.tx)/dt,vy=(ty-s.ty)/dt,sp=Math.hypot(vx,vy),mx=o.type==='Pedestrian'?4:(o.type==='Cyclist'?12:25);if(sp>mx){vx*=mx/sp;vy*=mx/sp;}s.vx=vx;s.vy=vy;}s.tx=tx;s.ty=ty;s.stamp=stamp;s.arrived=now;}const dtp=Math.min(.2,Math.max(0,(now-s.arrived)/1000)),px=s.tx+s.vx*dtp,py=s.ty+s.vy*dtp;s.x+=(px-s.x)*.18;s.y+=(py-s.y)*.18;out.push({...o,location:{...l,x:s.x,y:s.y}});}for(const key of Object.keys(trackDisplay)){if(!seen.has(key))delete trackDisplay[key];}return out;}
+async function poll(){try{snap=await(await fetch('/api/spatial_map/latest')).json();}catch(e){}setTimeout(poll,50);}
+function ego(){const fv=snap&&snap.metadata&&snap.metadata.focus_view;if(!(fv&&fv.ego_pose))return null;const fs=(snap.active_streams||[]).find(s=>s.stream_id===fv.follow_stream_id);return{x:Number(fv.ego_pose.x),y:Number(fv.ego_pose.y),yaw:Number(fv.ego_pose.yaw_deg),r:(fv.radius_m||40)+(fv.padding_m||10),stamp:fs?Number(fs.frame_id):Number(snap.frame_id)};}
+const ease=t=>t*t*(3-2*t);
+function advanceDisplay(s,now){const u=ease(Math.max(0,Math.min(1,(now-s.started)/s.duration)));s.x=s.fromX+(s.toX-s.fromX)*u;s.y=s.fromY+(s.toY-s.fromY)*u;let dy=((s.toYaw-s.fromYaw+540)%360)-180;s.yaw=s.fromYaw+dy*u;return s;}
+let disp=null;            // one-update-delayed interpolation; presentation only
+function smoothEgo(tgt,now){if(!disp){disp={x:tgt.x,y:tgt.y,yaw:tgt.yaw,r:tgt.r,fromX:tgt.x,fromY:tgt.y,fromYaw:tgt.yaw,toX:tgt.x,toY:tgt.y,toYaw:tgt.yaw,stamp:tgt.stamp,started:now,updated:now,duration:500};return disp;}advanceDisplay(disp,now);if(tgt.stamp!==disp.stamp){const cadence=Math.max(250,Math.min(1600,now-disp.updated));Object.assign(disp,{fromX:disp.x,fromY:disp.y,fromYaw:disp.yaw,toX:tgt.x,toY:tgt.y,toYaw:tgt.yaw,stamp:tgt.stamp,started:now,updated:now,duration:cadence,r:tgt.r});}return advanceDisplay(disp,now);}
+function smoothStream(stream,now){const p=stream.sensor_pose||{},key=stream.stream_id,tx=Number(p.x),ty=Number(p.y),tyaw=Number(p.yaw_deg||0),stamp=Number(stream.frame_id);let s=egoStreamDisplay[key];if(!s){s={x:tx,y:ty,yaw:tyaw,fromX:tx,fromY:ty,fromYaw:tyaw,toX:tx,toY:ty,toYaw:tyaw,stamp,started:now,updated:now,duration:500};egoStreamDisplay[key]=s;}else{advanceDisplay(s,now);if(stamp!==s.stamp){const cadence=Math.max(250,Math.min(1600,now-s.updated));Object.assign(s,{fromX:s.x,fromY:s.y,fromYaw:s.yaw,toX:tx,toY:ty,toYaw:tyaw,stamp,started:now,updated:now,duration:cadence});}}advanceDisplay(s,now);return{...stream,sensor_pose:{...p,x:s.x,y:s.y,yaw_deg:s.yaw}};}
+function smoothAssociated(objs,now){const seen=new Set(),out=[];for(const o of objs){const key=o.track_id||o.association_id;if(!key){out.push(o);continue;}seen.add(key);const l=o.location||{},tx=Number(l.x),ty=Number(l.y),stamp=Number(o.capture_timestamp_ns||0);let s=trackDisplay[key];if(!s){s={x:tx,y:ty,yaw:0,fromX:tx,fromY:ty,fromYaw:0,toX:tx,toY:ty,toYaw:0,stamp,started:now,updated:now,duration:500};trackDisplay[key]=s;}else{advanceDisplay(s,now);if(stamp!==s.stamp){const cadence=Math.max(250,Math.min(1600,now-s.updated));Object.assign(s,{fromX:s.x,fromY:s.y,toX:tx,toY:ty,stamp,started:now,updated:now,duration:cadence});}}advanceDisplay(s,now);out.push({...o,location:{...l,x:s.x,y:s.y}});}for(const key of Object.keys(trackDisplay)){if(!seen.has(key))delete trackDisplay[key];}return out;}
 function draw(){
  requestAnimationFrame(draw);
  const W=cv.width,H=cv.height;ctx.fillStyle='#080b10';ctx.fillRect(0,0,W,H);
- const tgt=ego();          // latest published pose (may be null during a gap)
+ const now=performance.now(),tgt=ego(); // latest published pose (may be null during a gap)
  if(!tgt&&!disp){hud.innerHTML='<b class=w>waiting for ego stream…</b>';return;}
- if(tgt){                  // ease toward the target; the ~1Hz data glides instead of jumping
-  if(!disp)disp=Object.assign({},tgt);
-  const k=0.18;disp.x+=(tgt.x-disp.x)*k;disp.y+=(tgt.y-disp.y)*k;
-  let dyaw=((tgt.yaw-disp.yaw+540)%360)-180;disp.yaw+=dyaw*k;disp.r=tgt.r;
- }
+ if(tgt)smoothEgo(tgt,now);
  const e=disp,stale=!tgt;  // hold last pose during a gap instead of blanking
  const R=e.r,scale=Math.min(W,H)/2/R;
  const T=(wx,wy)=>[W/2+(wx-e.x)*scale,H/2+(wy-e.y)*scale]; // ego-centered, world y down
@@ -2066,14 +2067,18 @@ function draw(){
  // historical Stage 2 continues to show the unassociated source distribution.
  const conservative=((snap.metadata||{}).fusion_policy||{}).implementation==='CONSERVATIVE_MULTI_UE_V1';
  const associated=conservative&&viewMode==='associated';
- const sourceObjs=(associated?snap.spatial_map_objects:snap.raw_spatial_map_objects)||[];
- const objs=associated?smoothAssociated(sourceObjs,performance.now()):sourceObjs;
- const actStreams=snap.active_streams||[];
+ const allSourceObjs=(associated?snap.spatial_map_objects:snap.raw_spatial_map_objects)||[];
+ const sourceObjs=associated?allSourceObjs.filter(o=>Number(o.age_ns||0)<=MAX_DISPLAY_TRACK_AGE_NS):allSourceObjs;
+ const staleHidden=associated?allSourceObjs.length-sourceObjs.length:0;
+ const objs=associated?smoothAssociated(sourceObjs,now):sourceObjs;
+ const actStreams=(snap.active_streams||[]).map(s=>smoothStream(s,now));
  const srcs=[...new Set([...actStreams.map(s=>s.stream_id),...sourceObjs.flatMap(o=>o.source_stream_ids||[o.source_stream_id])].filter(Boolean))].sort();
  const bySource=srcs.length>1;
  const PAL=['#00d1ff','#ff9f43','#8aff80','#c780ff','#ffd166','#ff5fd1'];
  const srcColor={};srcs.forEach((s,i)=>srcColor[s]=PAL[i%PAL.length]);
  const bothColor='#6ee787';
+ // Measured sensor poses/FoVs explain which current observations are geometrically plausible.
+ for(const stream of actStreams){const sp=stream.sensor_pose;if(!sp||sp.x==null)continue;const p=T(sp.x,sp.y),col=srcColor[stream.stream_id]||'#ffcf66',yaw=Number(sp.yaw_deg||0)*Math.PI/180,half=Number(stream.fov_deg||120)*Math.PI/360,rr=Math.min(32,R)*scale;ctx.save();ctx.translate(p[0],p[1]);ctx.rotate(yaw);ctx.beginPath();ctx.moveTo(0,0);ctx.arc(0,0,rr,-half,half);ctx.closePath();ctx.globalAlpha=.08;ctx.fillStyle=col;ctx.fill();ctx.globalAlpha=.45;ctx.strokeStyle=col;ctx.lineWidth=1*DPR;ctx.stroke();ctx.restore();}
  // canonical class footprints (model dims are unreliable) + nearest-road orientation (fixes model-yaw slant)
  const CANON={Vehicle:[4.6,2.0],Pedestrian:[0.8,0.8],Cyclist:[1.8,0.7]};
  const roadHdg=(x,y)=>{let bd=1e18,bh=null;for(const pl of (statics.roads||[])){for(let i=0;i<pl.length-1;i++){const ax=pl[i][0],ay=pl[i][1],dx=pl[i+1][0]-ax,dy=pl[i+1][1]-ay,s2=dx*dx+dy*dy;if(s2<1e-9)continue;let t=Math.max(0,Math.min(1,((x-ax)*dx+(y-ay)*dy)/s2));const px=ax+t*dx,py=ay+t*dy,d2=(x-px)*(x-px)+(y-py)*(y-py);if(d2<bd){bd=d2;bh=Math.atan2(dy,dx);}}}return (bh!==null&&bd<=64)?bh:null;};
@@ -2112,7 +2117,7 @@ function draw(){
  if(!egoDrawn){ // fallback (old data w/o per-stream pose): followed ego at center
   ctx.save();ctx.translate(W/2,H/2);ctx.rotate(e.yaw*Math.PI/180);ctx.fillStyle='#ffcf66';ctx.beginPath();ctx.moveTo(10*DPR,0);ctx.lineTo(-7*DPR,-7*DPR);ctx.lineTo(-7*DPR,7*DPR);ctx.closePath();ctx.fill();ctx.restore();
  }
- hud.innerHTML='<b>'+(associated?'ASSOCIATED MAP':'RAW UE REPORTS')+'</b> &middot; press <b>R/F</b> or <b>1/2</b> to toggle<br><b>ego</b> ('+e.x.toFixed(1)+', '+e.y.toFixed(1)+') yaw '+e.yaw.toFixed(0)+'&deg; &middot; <span class=v>'+nv+' veh</span> <span class=p>'+np+' ped</span> &middot; ROI '+R.toFixed(0)+' m &middot; frame '+(snap.frame_id==null?'—':snap.frame_id)+(stale?' &middot; <span class=w>holding…</span>':'');
+ hud.innerHTML='<b>'+(associated?'ASSOCIATED MAP':'RAW UE REPORTS')+'</b> &middot; press <b>R/F</b> or <b>1/2</b> to toggle<br><b>ego</b> ('+e.x.toFixed(1)+', '+e.y.toFixed(1)+') yaw '+e.yaw.toFixed(0)+'&deg; &middot; <span class=v>'+nv+' veh</span> <span class=p>'+np+' ped</span> &middot; ROI '+R.toFixed(0)+' m &middot; frame '+(snap.frame_id==null?'—':snap.frame_id)+(staleHidden?' &middot; <span class=w>'+staleHidden+' stale held track(s) hidden</span>':'')+(stale?' &middot; <span class=w>holding…</span>':'');
 }
 loadStatic();poll();draw();
 </script></body></html>
