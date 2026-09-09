@@ -117,10 +117,11 @@ No raw RGB, radar tensors or semantic masks are stored. Preserve the directory
 and send it back without editing. Git may ignore `experiments/`, so transfer it
 explicitly rather than assuming `git push` includes it.
 
-## 6. Render an advisor-facing still and animation
+## 6. Render the global diagnostic
 
-The completed evidence can be visualized offline; do not rerun CARLA merely to
-record a presentation. From the isolated worktree, use an absent output leaf:
+The original completed evidence can be visualized offline as a global diagnostic;
+do not rerun CARLA merely to regenerate this view. From the isolated worktree,
+use an absent output leaf:
 
 ```bash
 python3 -m spatial_map_coop.multi_ue_v1.render_action50_evidence_v1 \
@@ -134,8 +135,51 @@ manifest bound to the successful source evidence and Town10HD static geometry.
 Stable track IDs move continuously; new and expired tracks fade instead of
 blinking. Cyan/orange indicates the selected UE observation and green identifies
 a track supported by both UEs. Interpolation is display-only and never changes
-the measured track inventory. The result is a world-frame technology diagram,
-not a camera view, CARLA ground truth, or a UI qualification.
+the measured track inventory. The result is a global world-frame technology
+diagram, not the final advisor demo, a camera view, CARLA ground truth, or a UI
+qualification.
+
+## 7. Collect and render the advisor before/after demonstration
+
+The global diagnostic does not retain the exact per-UE reports or ego poses
+needed to explain association visually. After pulling the presentation update
+on L10319, run the same short live demonstration once with a new output leaf:
+
+```bash
+python3 -u -m spatial_map_coop.multi_ue_v1.live_two_ue_action50_v1 \
+  --execute SPLITFUSION_LIVE_TWO_UE_ACTION50_DEMO \
+  --spawn-two-egos \
+  --ego-spawn-index 80 --ego-gap-m 15 \
+  --npc-vehicles 28 --npc-pedestrians 35 \
+  --max-pairs 20 --duration-s 180 \
+  --output experiments/spatial_map_multi_ue_v1/live_two_ue_action50_presentation_run3
+```
+
+This still retains no RGB, radar tensor, semantic mask or CARLA actor ground
+truth. It adds only two measured ego poses, both compact model-object report
+sets and their association identities to each of the 20 snapshot rows.
+
+Render the result offline:
+
+```bash
+python3 -m spatial_map_coop.multi_ue_v1.render_action50_before_after_v2 \
+  --run-dir experiments/spatial_map_multi_ue_v1/live_two_ue_action50_presentation_run3 \
+  --output experiments/spatial_map_multi_ue_v1/live_two_ue_action50_before_after_v2 \
+  --fps 15 --prediction-steps 8 --focus-radius-m 40 --forward-bias 0.35
+```
+
+The left panel is the counterfactual presentation view before cross-UE
+association: cyan UE-A and orange UE-B reports can overlap as duplicates. The
+right panel is the actual conservative map: cyan means A-only, orange B-only,
+and green A+B support represented as one track. Valid unmatched objects remain.
+
+Both panels follow UE-A within a 40 m radius and retain both ego markers.
+Vehicles use canonical display dimensions and the nearest Town10HD road tangent
+for display yaw, while pedestrians are not lane-aligned. No world XY value is
+snapped to a lane and lane geometry does not affect scientific association.
+Between measured frames the right panel uses a bounded, causal constant-velocity
+display predictor; the following measurement corrects it. That predictor is
+zero-learning presentation logic and never modifies the evidence or map state.
 
 ## Scientific interpretation
 

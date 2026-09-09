@@ -611,6 +611,47 @@ def _edge_payload(result: Any, snapshot: Any) -> dict[str, Any]:
     }
 
 
+def _ego_pose_document(
+    *, ue_id: str, source: _PassiveUESensors, prepared_sensor: Mapping[str, Any]
+) -> dict[str, Any]:
+    """Retain the compact, measured pose needed for an ego-following map view."""
+
+    transform = prepared_sensor["ego_transform"]
+    location, rotation = transform.location, transform.rotation
+    return {
+        "ue_id": ue_id,
+        "actor_id": int(source.vehicle.id),
+        "stream_id": source.stream_id,
+        "capture_timestamp_ns": int(prepared_sensor["capture_timestamp_ns"]),
+        "location": {
+            "x": float(location.x),
+            "y": float(location.y),
+            "z": float(location.z),
+        },
+        "rotation": {
+            "pitch": float(rotation.pitch),
+            "yaw": float(rotation.yaw),
+            "roll": float(rotation.roll),
+        },
+    }
+
+
+def _source_observation_document(
+    *, ue_id: str, payload: Mapping[str, Any]
+) -> dict[str, Any]:
+    """Retain compact model reports, never CARLA actors or raw sensor data."""
+
+    update = payload["object_map_update"]
+    return {
+        "ue_id": ue_id,
+        "stream_id": str(payload["stream_id"]),
+        "frame_id": int(payload["frame_id"]),
+        "capture_timestamp_ns": int(payload["capture_timestamp_ns"]),
+        "action_id": int(payload["action_id"]),
+        "records": list(update["records"]),
+    }
+
+
 def _run_one(
     *,
     source: _PassiveUESensors,
@@ -938,6 +979,7 @@ def run(args: argparse.Namespace) -> int:
         frame_parity: int | None = None
         nominal_multi_source = 0
         nominal_associations = 0
+        compact_model_records = 0
         fault_counts: Counter[str] = Counter()
         fault_case_cursor = 0
         deadline = time.monotonic() + float(args.duration_s)
@@ -1001,6 +1043,13 @@ def run(args: argparse.Namespace) -> int:
                 )
                 nominal_multi_source += multi_source
                 nominal_associations += int(snapshot["association_count"])
+                source_observations = [
+                    _source_observation_document(ue_id="ue-a", payload=payload_a),
+                    _source_observation_document(ue_id="ue-b", payload=payload_b),
+                ]
+                compact_model_records += sum(
+                    len(source["records"]) for source in source_observations
+                )
                 _append_json_line(observations, {**row_a, "ingest": result_a.disposition})
                 _append_json_line(observations, {**row_b, "ingest": result_b.disposition})
                 _append_json_line(snapshots, {
@@ -1012,6 +1061,16 @@ def run(args: argparse.Namespace) -> int:
                     "association_count": int(snapshot["association_count"]),
                     "multi_source_associations": multi_source,
                     "track_count": len(snapshot["tracks"]),
+                    "ego_poses": [
+                        _ego_pose_document(
+                            ue_id="ue-a", source=source_a, prepared_sensor=prepared_a
+                        ),
+                        _ego_pose_document(
+                            ue_id="ue-b", source=source_b, prepared_sensor=prepared_b
+                        ),
+                    ],
+                    "source_observations": source_observations,
+                    "associations": snapshot["associations"],
                     "tracks": snapshot["tracks"],
                 })
                 fault_case = deterministic_fault_case(fault_case_cursor)
@@ -1074,6 +1133,15 @@ def run(args: argparse.Namespace) -> int:
                 },
             },
             "raw_sensor_frames_retained": 0,
+            "visualization_evidence": {
+                "ego_pose_records": pair_count * 2,
+                "compact_model_object_records": compact_model_records,
+                "association_identity_records": nominal_associations,
+                "carla_actor_ground_truth_records": 0,
+                "raw_rgb_frames": 0,
+                "raw_radar_frames": 0,
+                "semantic_masks": 0,
+            },
             "elapsed_wall_s": time.time() - started_wall,
             "ue_operation_counters": asdict(ue_runtime.counters),
             "edge_operation_counters": asdict(edge_runtime.counters),

@@ -20,6 +20,7 @@ from spatial_map_coop.multi_ue_v1.faults import (
     mutate_edge_result,
 )
 from spatial_map_coop.multi_ue_v1 import live_two_ue_action50_v1 as live_action50
+from spatial_map_coop.multi_ue_v1 import render_action50_before_after_v2 as presentation
 
 
 def edge_result(stream_id, frame_id, capture_ns, x_coord):
@@ -93,6 +94,22 @@ def policy(minimum_confidence=0.0):
 
 
 class MultiUEIngressTests(unittest.TestCase):
+    def test_presentation_lane_yaw_never_snaps_measured_position(self):
+        guide = presentation._LaneGuide(
+            {"roads": [[[0.0, 0.0], [20.0, 0.0]]], "buildings": []}
+        )
+        record = {
+            "class_name": "vehicle",
+            "world_x": 5.0,
+            "world_y": 0.5,
+            "yaw_deg": 47.0,
+        }
+        corners, guided = presentation._footprint(record, guide)
+        self.assertTrue(guided)
+        self.assertAlmostEqual(sum(point[0] for point in corners) / 4.0, 5.0)
+        self.assertAlmostEqual(sum(point[1] for point in corners) / 4.0, 0.5)
+        self.assertAlmostEqual(corners[1][1], corners[0][1])
+
     def test_self_contained_live_cli_owns_actor_selection(self):
         argv = [
             "live_two_ue_action50_v1.py",
