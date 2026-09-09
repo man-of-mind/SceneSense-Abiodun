@@ -356,13 +356,27 @@ def run_live_action(
         "model_family": profile.family,
         "network_profile_id": common.NETWORK_PROFILE_ID,
     }
+    # Bind the cell's identity from the catalog row keyed by action_id, never
+    # from the order of a config list. The catalog spells the family in lower
+    # case ("ae128", "noae") where the registry uses the canonical "AE128" /
+    # "noAE", so the family is compared case-insensitively and the cell carries
+    # the catalog's own spelling for anything downstream that checks it.
     row = adapter.action_row(campaign, int(action_id))
     require(
-        str(row["profile_id"]) == profile.profile_id
-        and str(row["model_family"]) == profile.family
-        and str(row["entropy_coder"]) == "zstd",
-        "live cell action/catalog identity mismatch",
+        str(row["profile_id"]) == profile.profile_id,
+        f"action {action_id} catalog profile mismatch: "
+        f"{row['profile_id']!r} != {profile.profile_id!r}",
     )
+    require(
+        str(row["model_family"]).casefold() == profile.family.casefold(),
+        f"action {action_id} catalog family mismatch: "
+        f"{row['model_family']!r} vs registry {profile.family!r}",
+    )
+    require(
+        str(row["entropy_coder"]) == "zstd",
+        f"action {action_id} entropy codec drift: {row['entropy_coder']!r}",
+    )
+    cell["model_family"] = str(row["model_family"])
     started_at = time.time()
     print(f"[{cell_id}] cold preflight", flush=True)
     report: dict[str, Any] = {
