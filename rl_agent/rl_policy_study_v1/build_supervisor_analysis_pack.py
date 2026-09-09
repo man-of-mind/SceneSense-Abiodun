@@ -100,11 +100,23 @@ def configure_style() -> None:
 
 
 def save_figure(fig: plt.Figure, path: Path) -> None:
+    if path.suffix != ".png":
+        raise PackError(f"figure path must end in .png: {path}")
     fig.savefig(
         path,
         bbox_inches="tight",
         facecolor="white",
-        metadata={"Software": "SplitFusion supervisor analysis pack v1"},
+        metadata={"Software": "SplitFusion personal analysis pack v2"},
+    )
+    fig.savefig(
+        path.with_suffix(".pdf"),
+        bbox_inches="tight",
+        facecolor="white",
+        metadata={
+            "Creator": "SplitFusion personal analysis pack v2",
+            "CreationDate": None,
+            "ModDate": None,
+        },
     )
     plt.close(fig)
 
@@ -208,7 +220,7 @@ def plot_localhost(local: pd.DataFrame, output: Path) -> None:
     ):
         scatter_by_action(ax, local, "payload_kib", y, annotate=True)
         ax.set_xscale("log")
-        ax.set_xlabel("Scientific feature payload (KiB, log scale)")
+        ax.set_xlabel("Feature payload (KiB, log scale)")
         ax.set_ylabel(ylabel)
         ax.set_title(title)
     family_quant_legend(axes[0])
@@ -216,13 +228,6 @@ def plot_localhost(local: pd.DataFrame, output: Path) -> None:
         "36×300 localhost control: compression reduces software time, but this is not radio latency",
         fontsize=14,
         fontweight="bold",
-    )
-    fig.text(
-        0.5,
-        -0.01,
-        "Sensor capture/disk loading and OAI/RFsim are excluded. q ∈ {0, .30, .50}; 300 frames/action.",
-        ha="center",
-        fontsize=9,
     )
     save_figure(fig, output / "01_localhost_payload_vs_software_latency.png")
 
@@ -241,7 +246,7 @@ def plot_quality(action: pd.DataFrame, output: Path) -> None:
     for ax, (metric, label) in zip(axes, panels):
         scatter_by_action(ax, frame, "payload_kib", metric, annotate=True)
         ax.set_xscale("log")
-        ax.set_xlabel("Live scientific payload (KiB, log scale)")
+        ax.set_xlabel("Feature payload (KiB, log scale)")
         ax.set_ylabel(label)
         ax.set_title(label + " vs payload")
     family_quant_legend(axes[0])
@@ -249,13 +254,6 @@ def plot_quality(action: pd.DataFrame, output: Path) -> None:
         "Compression–quality frontier: bit width is comparatively cheap; extreme q is not",
         fontsize=14,
         fontweight="bold",
-    )
-    fig.text(
-        0.5,
-        -0.01,
-        "Quality comes from frozen offline validation and is an action prior—not reward credit when delivery fails.",
-        ha="center",
-        fontsize=9,
     )
     save_figure(fig, output / "02_payload_vs_validation_quality.png")
 
@@ -313,45 +311,78 @@ def plot_live_delivery(action_profile: pd.DataFrame, output: Path) -> None:
         ax.set_xscale("log")
         ax.set_ylim(-0.025, 0.72)
         ax.set_title(NETWORK_LABELS[network])
-        ax.set_xlabel("Live scientific payload (KiB, log scale)")
+        ax.set_xlabel("Feature payload (KiB, log scale)")
         ax.set_ylabel("Installed / sent")
     family_quant_legend(axes.flat[0])
     fig.suptitle(
-        "Live OAI/CARLA: payload strongly controls delivery, and the boundary shifts with channel process",
+        "OAI/CARLA: payload strongly controls delivery, and the boundary shifts with channel process",
         fontsize=14,
         fontweight="bold",
     )
     save_figure(fig, output / "04_live_payload_vs_delivery_by_network.png")
 
 
-def plot_post_send(action_profile: pd.DataFrame, output: Path) -> None:
+def plot_transport_residual(action_profile: pd.DataFrame, output: Path) -> None:
     frame = action_profile.copy()
     frame["payload_kib"] = frame["live_scientific_inner_bytes_median"] / 1024.0
-    latency = "s12_ue_send_to_compact_result_receipt_ms_UE_PERF__median"
-    fig, axes = plt.subplots(2, 2, figsize=(13.5, 9), sharex=True, sharey=True)
+    latency = "s5_derived_roundtrip_residual_ms_RESIDUAL__median"
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5.2))
     finite = frame[pd.to_numeric(frame[latency], errors="coerce").notna()].copy()
-    for ax, network in zip(axes.flat, NETWORKS):
-        part = finite[finite["network_profile"] == network]
-        scatter_by_action(ax, part, "payload_kib", latency, annotate=True)
-        ax.set_xscale("log")
-        ax.axhline(100.0, color="#cc0000", linestyle="--", linewidth=1.2)
-        ax.set_title(NETWORK_LABELS[network])
-        ax.set_xlabel("Live scientific payload (KiB, log scale)")
-        ax.set_ylabel("Send → compact-result receipt (ms)")
-    family_quant_legend(axes.flat[0])
+
+    network_colors = {
+        "FAVORABLE_STABLE": "#4C78A8",
+        "MID_VARIABLE": "#F58518",
+        "ADVERSE_STABLE": "#E45756",
+        "FADE_RECOVERY": "#54A24B",
+    }
+    for network in NETWORKS:
+        part = finite[finite["network_profile"] == network].sort_values("action_id")
+        axes[0].plot(
+            part["action_id"],
+            part[latency],
+            marker="o",
+            markersize=3.5,
+            linewidth=1.2,
+            color=network_colors[network],
+            label=NETWORK_LABELS[network],
+        )
+        axes[1].scatter(
+            part["payload_kib"],
+            part[latency],
+            s=34,
+            alpha=0.8,
+            color=network_colors[network],
+            edgecolors="white",
+            linewidths=0.4,
+            label=NETWORK_LABELS[network],
+        )
+    axes[0].set_xlabel("Action ID")
+    axes[0].set_ylabel("Transport residual (ms)")
+    axes[0].set_title("Action ordering")
+    for boundary in (17.5, 35.5, 53.5):
+        axes[0].axvline(boundary, color="#777777", linewidth=0.8, alpha=0.6)
+    axes[1].set_xscale("log")
+    axes[1].set_xlabel("Feature payload (KiB, log scale)")
+    axes[1].set_ylabel("Transport residual (ms)")
+    axes[1].set_title("Payload relationship")
+    axes[0].legend(loc="upper left")
+    axes[1].legend(loc="upper left")
+    axes[1].text(
+        0.98,
+        0.03,
+        "Uplink + edge queue + compact downlink\nOne-way uplink is not separately available",
+        transform=axes[1].transAxes,
+        ha="right",
+        va="bottom",
+        fontsize=8,
+        bbox={"boxstyle": "round,pad=0.3", "facecolor": "white", "alpha": 0.88, "edgecolor": "#bbbbbb"},
+    )
     fig.suptitle(
-        "Compatible-clock post-send turnaround (delivering cells only)",
+        "Action versus compatible-clock transport residual (delivering cells only)",
         fontsize=14,
         fontweight="bold",
     )
-    fig.text(
-        0.5,
-        -0.01,
-        "This includes feature uplink + edge processing + compact-result downlink. It is not one-way transport; blanks are zero-delivery cells.",
-        ha="center",
-        fontsize=9,
-    )
-    save_figure(fig, output / "05_post_send_turnaround_by_network.png")
+    save_figure(fig, output / "05_action_vs_transport_residual.png")
 
 
 def plot_heatmap(action: pd.DataFrame, output: Path) -> None:
@@ -387,11 +418,12 @@ def plot_heatmap(action: pd.DataFrame, output: Path) -> None:
 
 
 def weighted_network_table(
-    cell_table: pd.DataFrame, summary: dict
+    cell_table: pd.DataFrame, action_profile: pd.DataFrame
 ) -> pd.DataFrame:
     rows = []
     for network in NETWORKS:
         part = cell_table[cell_table["network_profile"] == network]
+        profile_part = action_profile[action_profile["network_profile"] == network]
         sent = int(part["frames_sent"].sum())
         installed = int(part["maps_installed"].sum())
         ack = int(part["ack_within_500ms_timeout"].sum())
@@ -408,10 +440,15 @@ def weighted_network_table(
                 "reassembled_per_sent": reassembled / sent,
                 "datagram_rx_per_tx": datagrams_rx / datagrams_tx,
                 "zero_delivery_actions": int((part["maps_installed"] == 0).sum()),
-                "install_aoi_ms_median_of_cell_medians": float(
-                    summary["aggregates"]["by_network_profile"][network][
-                        "install_aoi_ms_median_of_medians"
-                    ]
+                "transport_residual_ms_median_of_cells": float(
+                    profile_part[
+                        "s5_derived_roundtrip_residual_ms_RESIDUAL__median"
+                    ].median(skipna=True)
+                ),
+                "action_path_ms_median_of_cells": float(
+                    profile_part[
+                        "analytic_model_front_transport_back_feedback_ms__median"
+                    ].median(skipna=True)
                 ),
             }
         )
@@ -437,11 +474,11 @@ def plot_network_summary(network: pd.DataFrame, output: Path) -> None:
     axes[0].set_ylabel("Campaign-wide rate")
     axes[0].set_title("Channel process changes every survival stage")
     axes[0].legend(ncol=2)
-    bars = axes[1].bar(x, network["install_aoi_ms_median_of_cell_medians"], color="#E45756")
+    bars = axes[1].bar(x, network["action_path_ms_median_of_cells"], color="#E45756")
     axes[1].axhline(100.0, color="#222222", linestyle="--", linewidth=1.2, label="100 ms reference")
     axes[1].set_xticks(x, labels, rotation=18, ha="right")
-    axes[1].set_ylabel("Install AoI (ms)")
-    axes[1].set_title("Conditional AoI among delivering cells")
+    axes[1].set_ylabel("Action-controlled path (ms)")
+    axes[1].set_title("Front + transport residual + back + map feedback")
     for bar, zero in zip(bars, network["zero_delivery_actions"]):
         axes[1].text(
             bar.get_x() + bar.get_width() / 2,
@@ -456,41 +493,57 @@ def plot_network_summary(network: pd.DataFrame, output: Path) -> None:
     save_figure(fig, output / "07_network_profile_aggregate.png")
 
 
-def plot_latency_boundaries(summary: dict, output: Path) -> None:
+def plot_latency_boundaries(
+    summary: dict, action_profile: pd.DataFrame, output: Path
+) -> None:
     stages = dict(summary["aggregates"]["stage_medians"])
     selected = (
-        ("Pre-front sensor compute", "s1_pre_front_compute_ms"),
-        ("Full UE dispatch span", "s3_front_ms_FULL_UE_DISPATCH_SPAN"),
-        ("Capture → edge receipt", "s5_capture_to_edge_receipt_ms_INCLUDES_SENSOR_AND_FRONT"),
-        ("Edge receipt → tail complete", "s6_edge_receipt_to_tail_complete_ms"),
-        ("Frozen tail", "s8_frozen_tail_ms"),
+        ("UE front path (`front_ms`)", "s3_front_ms_FULL_UE_DISPATCH_SPAN"),
+        ("Transport residual", "s5_derived_roundtrip_residual_ms_RESIDUAL"),
+        ("Model back (`frozen_tail`)", "s8_frozen_tail_ms"),
         ("Result receipt → map install", "s10_ue_result_receipt_to_map_installation_ms"),
-        ("Capture → map install AoI", "s13_capture_to_install_aoi_ms"),
+        ("Map install → ACK receipt", "s11_map_install_to_ue_feedback_receipt_ms"),
     )
     values = []
     for label, key in selected:
         record = stages[key]
         values.append(float(record["median_of_medians"]))
-    fig, ax = plt.subplots(figsize=(11.5, 5.5))
+    fig, ax = plt.subplots(figsize=(11.5, 5.2))
     y = np.arange(len(selected))
-    colors = ["#72B7B2", "#4C78A8", "#F58518", "#E45756", "#B279A2", "#54A24B", "#D62728"]
+    colors = ["#4C78A8", "#F58518", "#B279A2", "#54A24B", "#72B7B2"]
     bars = ax.barh(y, values, color=colors)
     ax.set_yticks(y, [item[0] for item in selected])
     ax.invert_yaxis()
-    ax.axvline(100.0, color="#111111", linestyle="--", linewidth=1.3, label="100 ms reference")
+    ax.axvline(
+        100.0,
+        color="#111111",
+        linestyle="--",
+        linewidth=1.3,
+        label="100 ms service reference",
+    )
     ax.set_xlabel("Median of per-cell medians (ms)")
-    ax.set_title("Measured timing boundaries (not additive components)", fontweight="bold")
+    ax.set_title("Action-controlled latency breakdown (sensor preparation excluded)", fontweight="bold")
     for bar, value in zip(bars, values):
         ax.text(value + 4, bar.get_y() + bar.get_height() / 2, f"{value:.1f}", va="center")
-    ax.legend()
-    fig.text(
-        0.5,
-        -0.01,
-        "Some intervals overlap and use different valid samples. One-way feature-uplink and tail→publication latency are unavailable.",
-        ha="center",
-        fontsize=9,
+    sensor_median = float(stages["s1_pre_front_compute_ms"]["median_of_medians"])
+    sensor_p95 = float(action_profile["s1_pre_front_compute_ms__p95"].median())
+    ax.text(
+        0.98,
+        0.04,
+        (
+            f"Sensor preparation excluded: median {sensor_median:.1f} ms; "
+            f"median cell p95 {sensor_p95:.1f} ms\n"
+            "Transport residual = uplink + edge queue + compact downlink; "
+            "one-way uplink unavailable"
+        ),
+        transform=ax.transAxes,
+        ha="right",
+        va="bottom",
+        fontsize=8,
+        bbox={"boxstyle": "round,pad=0.35", "facecolor": "white", "alpha": 0.9, "edgecolor": "#bbbbbb"},
     )
-    save_figure(fig, output / "08_latency_boundaries_not_additive.png")
+    ax.legend()
+    save_figure(fig, output / "08_action_controlled_latency_breakdown.png")
 
 
 def markdown_table(frame: pd.DataFrame, formats: dict[str, str] | None = None) -> str:
@@ -515,7 +568,9 @@ def markdown_table(frame: pd.DataFrame, formats: dict[str, str] | None = None) -
     return "\n".join(lines) + "\n"
 
 
-def build_shortlist(action: pd.DataFrame) -> pd.DataFrame:
+def build_shortlist(
+    action: pd.DataFrame, action_profile: pd.DataFrame
+) -> pd.DataFrame:
     selected = action[action["action_id"].isin(SHORTLIST)].copy()
     selected["action"] = "a" + selected["action_id"].astype(int).astype(str)
     selected["configuration"] = (
@@ -529,15 +584,31 @@ def build_shortlist(action: pd.DataFrame) -> pd.DataFrame:
     selected["worst_install_rate"] = selected[
         [NETWORK_LABELS[n] for n in NETWORKS]
     ].min(axis=1)
-    selected["AoI_range_ms"] = selected.apply(
-        lambda row: (
-            f"{row['install_aoi_ms_median__across_profile_min']:.0f}–"
-            f"{row['install_aoi_ms_median__across_profile_max']:.0f}"
-            if int(row["install_aoi_ms_median__profiles_with_any_install"]) > 0
-            else "—"
-        ),
-        axis=1,
-    )
+    latency_rows = []
+    for action_id in SHORTLIST:
+        part = action_profile[action_profile["action_id"] == action_id]
+        transport = part[
+            "s5_derived_roundtrip_residual_ms_RESIDUAL__median"
+        ].dropna()
+        action_path = part[
+            "analytic_model_front_transport_back_feedback_ms__median"
+        ].dropna()
+        latency_rows.append(
+            {
+                "action_id": action_id,
+                "transport_residual_range_ms": (
+                    f"{transport.min():.0f}–{transport.max():.0f}"
+                    if len(transport)
+                    else "—"
+                ),
+                "action_path_range_ms": (
+                    f"{action_path.min():.0f}–{action_path.max():.0f}"
+                    if len(action_path)
+                    else "—"
+                ),
+            }
+        )
+    selected = selected.merge(pd.DataFrame(latency_rows), on="action_id", how="left")
     return selected[
         [
             "action",
@@ -552,7 +623,8 @@ def build_shortlist(action: pd.DataFrame) -> pd.DataFrame:
             "val_segmentation_installable",
             *[NETWORK_LABELS[n] for n in NETWORKS],
             "worst_install_rate",
-            "AoI_range_ms",
+            "transport_residual_range_ms",
+            "action_path_range_ms",
         ]
     ].sort_values("action", key=lambda s: s.str[1:].astype(int))
 
@@ -697,7 +769,8 @@ def write_interpretation(
         "ack_500ms_per_sent": "{:.3f}",
         "reassembled_per_sent": "{:.3f}",
         "datagram_rx_per_tx": "{:.3f}",
-        "install_aoi_ms_median_of_cell_medians": "{:.1f}",
+        "transport_residual_ms_median_of_cells": "{:.1f}",
+        "action_path_ms_median_of_cells": "{:.1f}",
     }
     boundary_fmt = {
         "largest_payload_with_delivery_KiB": "{:.1f}",
@@ -711,24 +784,24 @@ This pack joins three **separate** evidence domains: frozen model validation,
 does not manufacture the unavailable one-way feature-uplink latency and does
 not treat the 288 aggregate table as an on-policy PPO trajectory.
 
-## Supervisor discussion in five figures
+## Discussion in five figures
 
-1. `01_localhost_payload_vs_software_latency.png`: the clean software control.
+1. `01_localhost_payload_vs_software_latency.pdf`: the clean software control.
    Smaller features reduce UE preparation and improve sequential throughput,
    but this is localhost—not radio latency.
-2. `02_payload_vs_validation_quality.png`: compression versus validated model
+2. `02_payload_vs_validation_quality.pdf`: compression versus validated model
    quality. UINT4 often cuts bytes sharply with very little change from the
    matched UINT8 action; high q is the expensive quality decision.
-3. `04_live_payload_vs_delivery_by_network.png`: the live radio frontier. The
+3. `04_live_payload_vs_delivery_by_network.pdf`: the radio frontier. The
    payload at which delivery collapses shifts substantially by channel process.
-4. `05_post_send_turnaround_by_network.png`: compatible-clock UE send to compact
-   result receipt. This includes feature uplink, edge work and result downlink;
-   it is deliberately not called one-way transport.
-5. `06_action_network_delivery_heatmap.png`: all 288 cells without averaging
+4. `05_action_vs_transport_residual.pdf`: action and payload against the
+   compatible-clock residual containing uplink, edge queue and compact-result
+   downlink. It is deliberately not called one-way uplink latency.
+5. `06_action_network_delivery_heatmap.pdf`: all 288 cells without averaging
    away action-by-network interactions.
 
-Use `07_network_profile_aggregate.png` and
-`08_latency_boundaries_not_additive.png` as appendix slides.
+Use `07_network_profile_aggregate.pdf` and
+`08_action_controlled_latency_breakdown.pdf` as appendix slides.
 
 ## What each compression knob is doing
 
@@ -800,10 +873,12 @@ When delivery fails, the old map ages; the action receives **no** credit for the
 quality it would have produced. Do not separately award a full delivery bonus
 and a full AoI bonus if both encode the same state improvement.
 
-The 100 ms capture-to-install measurement includes pre-front sensor work. The
-action-comparison view should additionally retain post-send turnaround and each
-instrumented stage, but the plotted timing boundaries must not be summed because
-some overlap and have different valid samples.
+For action comparison, the presentation excludes sensor preparation and uses
+the measured UE front path, compatible-clock transport residual, frozen model
+back, and compact map-feedback terms. Sensor preparation remains reported as a
+separate workload fact. The transport residual includes uplink, edge queueing
+and compact-result downlink because true one-way uplink is not recoverable from
+the registered clock domains.
 
 ## Training readiness
 
@@ -826,7 +901,7 @@ fast but scientifically wrong.
 
 
 def write_presentation_guide(output: Path) -> None:
-    text = """# Suggested supervisor presentation order
+    text = """# Suggested discussion presentation order
 
 ## Slide 1 — Experimental surface
 
@@ -837,8 +912,8 @@ def write_presentation_guide(output: Path) -> None:
 
 ## Slide 2 — What the knobs buy
 
-Show `02_payload_vs_validation_quality.png` and
-`03_q_sweep_payload_and_person_quality.png`.
+Show `02_payload_vs_validation_quality.pdf` and
+`03_q_sweep_payload_and_person_quality.pdf`.
 
 Message: lower bit width is the low-cost compression lever; AE width changes
 both payload and representation quality; q creates the strongest compression
@@ -846,7 +921,7 @@ ladder and the clearest emergency-quality penalty.
 
 ## Slide 3 — Software control
 
-Show `01_localhost_payload_vs_software_latency.png`.
+Show `01_localhost_payload_vs_software_latency.pdf`.
 
 Message: smaller payloads improve a radio-free 36×300 control, so the later live
 patterns are not explained solely by model compute. Do not call localhost
@@ -854,8 +929,8 @@ delivery radio latency.
 
 ## Slide 4 — Action × network interaction
 
-Show `04_live_payload_vs_delivery_by_network.png` and, if room permits,
-`06_action_network_delivery_heatmap.png`.
+Show `04_live_payload_vs_delivery_by_network.pdf` and, if room permits,
+`06_action_network_delivery_heatmap.pdf`.
 
 Message: the feasible payload region contracts from favorable to adverse. This
 is the empirical justification for an adaptive policy rather than one fixed
@@ -863,12 +938,13 @@ compression setting.
 
 ## Slide 5 — Latency scope
 
-Show `05_post_send_turnaround_by_network.png` and use
-`08_latency_boundaries_not_additive.png` only to define timing boundaries.
+Show `05_action_vs_transport_residual.pdf` and use
+`08_action_controlled_latency_breakdown.pdf` to define the action-controlled
+front, transport-residual, back and feedback terms.
 
-Message: one-way feature-uplink latency is unavailable. We do have compatible-
-clock post-send turnaround and capture-to-install AoI. Zero actions installed
-within the 100 ms capture-based reference; a binary 100 ms reward cannot teach.
+Message: one-way feature-uplink latency is unavailable. The compatible-clock
+transport residual is the fair action comparison, but it also contains edge
+queueing and the compact downlink. Sensor preparation is reported separately.
 
 ## Slide 6 — Initial policy implication
 
@@ -960,13 +1036,13 @@ def main() -> int:
     plot_quality(action, output)
     plot_q_effect(action, output)
     plot_live_delivery(action_profile, output)
-    plot_post_send(action_profile, output)
+    plot_transport_residual(action_profile, output)
     plot_heatmap(action, output)
-    network = weighted_network_table(cell_table, summary)
+    network = weighted_network_table(cell_table, action_profile)
     plot_network_summary(network, output)
-    plot_latency_boundaries(summary, output)
+    plot_latency_boundaries(summary, action_profile, output)
 
-    shortlist = build_shortlist(action)
+    shortlist = build_shortlist(action, action_profile)
     q_effects = build_q_effects(action)
     quantizer = build_quantizer_effects(action)
     family = build_family_effects(action)
@@ -1006,7 +1082,7 @@ def main() -> int:
             continue
         artifacts[path.name] = {"bytes": path.stat().st_size, "sha256": sha256_file(path)}
     manifest = {
-        "schema": "scenesense.splitfusion.supervisor_analysis_pack.v1",
+        "schema": "scenesense.splitfusion.personal_analysis_pack.v2",
         "status": "COMPLETE",
         "source_sha256": {key: sha256_file(path) for key, path in inputs.items()},
         "source_paths": {key: str(path) for key, path in inputs.items()},
@@ -1028,7 +1104,7 @@ def main() -> int:
     (output / "artifact_manifest.json").write_text(
         json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
-    print("SPLITFUSION_SUPERVISOR_ANALYSIS_PACK_COMPLETE")
+    print("SPLITFUSION_PERSONAL_ANALYSIS_PACK_COMPLETE")
     print(json.dumps({"output": str(output), "artifacts": len(artifacts)}, indent=2))
     return 0
 
