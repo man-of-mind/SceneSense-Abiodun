@@ -1,0 +1,281 @@
+{
+  "action_binding": {
+    "actions": [
+      {
+        "action_id": 30,
+        "bit_width": 4,
+        "entropy_coder": "zstd",
+        "execution_mode": "SPLIT",
+        "family": "AE128",
+        "family_id": 1,
+        "keep_count": 21504,
+        "latent_width": 128,
+        "profile_id": "split_ae128_uint4_q0000",
+        "q_e4": 0,
+        "quantizer": "UINT4",
+        "routing_tag": 204186532,
+        "segmentation_behavior": "install_current_segmentation",
+        "segmentation_installable": true,
+        "transported_channels": 128,
+        "zstd_level": 1
+      },
+      {
+        "action_id": 15,
+        "bit_width": 4,
+        "entropy_coder": "zstd",
+        "execution_mode": "SPLIT",
+        "family": "noAE",
+        "family_id": 0,
+        "keep_count": 6451,
+        "latent_width": null,
+        "profile_id": "split_noae_uint4_q7000",
+        "q_e4": 7000,
+        "quantizer": "UINT4",
+        "routing_tag": 0,
+        "segmentation_behavior": "retain_previous_segmentation_layer_with_original_timestamp",
+        "segmentation_installable": false,
+        "transported_channels": 256,
+        "zstd_level": 1
+      },
+      {
+        "action_id": 50,
+        "bit_width": 4,
+        "entropy_coder": "zstd",
+        "execution_mode": "SPLIT",
+        "family": "AE64",
+        "family_id": 2,
+        "keep_count": 10752,
+        "latent_width": 64,
+        "profile_id": "split_ae64_uint4_q5000",
+        "q_e4": 5000,
+        "quantizer": "UINT4",
+        "routing_tag": 3715911972,
+        "segmentation_behavior": "retain_previous_segmentation_layer_with_original_timestamp",
+        "segmentation_installable": false,
+        "transported_channels": 64,
+        "zstd_level": 1
+      },
+      {
+        "action_id": 71,
+        "bit_width": 4,
+        "entropy_coder": "zstd",
+        "execution_mode": "SPLIT",
+        "family": "AE32",
+        "family_id": 3,
+        "keep_count": 430,
+        "latent_width": 32,
+        "profile_id": "split_ae32_uint4_q9800",
+        "q_e4": 9800,
+        "quantizer": "UINT4",
+        "routing_tag": 3807930229,
+        "segmentation_behavior": "retain_previous_segmentation_layer_with_original_timestamp",
+        "segmentation_installable": false,
+        "transported_channels": 32,
+        "zstd_level": 1
+      }
+    ],
+    "count": 4
+  },
+  "bindings": {
+    "bound_inputs": {
+      "phase2_map_sharing/transport.py": "c8d8d0b253356c11776e9c35b7d6b1bef009bfc980e4cecfcbba84ae95734a6e",
+      "receiver_container/docker-compose.fusion-back.yaml": "6d00149c7d9a9502af1ea701e3494aed0a7bbf9dbb1412f0c2b1e1b7b0f9061a",
+      "receiver_container/docker-compose.yaml": "aa45477d63d40799a45115f6db5f07a1eb2440217f43b32173c8536f759c0857",
+      "rl_agent/configs/splitfusion_16_cell_live_carla_oai_pilot_v1.json": "603d3c211fbe70934a3537ba090d16e66a0ac2ce1cb62015389c1e406cec2520",
+      "rl_agent/configs/splitfusion_phase14a_100mhz_calibration_v1.json": "ad541f71f5659e1bb08d7d2c48a45086dfbd5bf45e669b32adfb320ddcab5cd9",
+      "rl_agent/configs/splitfusion_phase14a_campaign_binding_v1.json": "103aeda31a37594c89e820daf1794d28af0440f5e4324450cac01266f5540004",
+      "rl_agent/splitfusion_live_dispatch_v1/context_tail.py": "1781f3013967c464aa8f8de0eb6b46bccb5f3ff00a305c6f6d56012383859fe1",
+      "rl_agent/splitfusion_live_dispatch_v1/edge_runtime.py": "4b5f89eb49b11300cd6762e356a599affa32158479a76f1ad91a8c404d2d6125",
+      "rl_agent/splitfusion_live_dispatch_v1/envelope.py": "e49a70e1f92097cd42735f2aea2cd1171a6e4be2a361ab6834e518bfb213b418",
+      "rl_agent/splitfusion_live_dispatch_v1/frame_context.py": "845c3886f8862ce3f1cd618323b5b7c8baba05b043e5709ff0cd83d36fc33676",
+      "rl_agent/splitfusion_live_dispatch_v1/live_pilot_runtime.py": "ce568a89fa262916e7b6f737a5d1f7fc310428de96ff170eb56eca303411f894",
+      "rl_agent/splitfusion_live_dispatch_v1/live_pilot_target_snr_runtime.py": "b43b71dfdeb12d51d6eae9d1d8d59e3b44ddbe3c18a587b4f851b275fd5b9018",
+      "rl_agent/splitfusion_live_dispatch_v1/phase13c_measurement.py": "fa04e483dcc38801b34f989f5cf58eac1a7d91b9641c1a98052c50640484ad29",
+      "rl_agent/splitfusion_live_dispatch_v1/runtime_binding.json": "604450c7f0f791a480ba4e5ed6b286a2b6f68497735372a7a63ed92e93585551",
+      "rl_agent/splitfusion_live_dispatch_v1/transport.py": "5c8bd3d1bb18818334a28266822b30d475bc67dc016dcf04df7db595e159222f",
+      "rl_agent/splitfusion_live_dispatch_v1/ue_runtime.py": "a72f6ab4b122adb232e4b5927fadd6e0e5381c1fe0201bbf502b28cf2ade1029",
+      "scripts/receiver_container_fusion_back_up.sh": "abf532c88d27fcf101dcecbfcf55f4994fd44cd287d5d1a9245ce0ca3b333610",
+      "uplink_only_spatial_map_pipeline/run_splitfusion_oai_100mhz_4d5u_v1.sh": "8e02f0913338a187bff1de24bfea09d7eca03607da0e383ef8ad4a005b64ce61"
+    },
+    "diagnostic_implementation_sources": {
+      "rl_agent/splitfusion_timing_diagnostic_v1/__init__.py": "4ecd776d1ddfa27b8e492a44c91e052858f371bf18889711ea8b318b53e2d7f0",
+      "rl_agent/splitfusion_timing_diagnostic_v1/diagnostic_common.py": "faf3373e4ac4b7ebc5fbaa3f5f653aef8fe920549bb187ffb7ada33162cf14df",
+      "rl_agent/splitfusion_timing_diagnostic_v1/edge_preload.py": "c5ccb893012f9af79be9dcd8982da7709b2273c4002fff5fd65b79be5c95704f",
+      "rl_agent/splitfusion_timing_diagnostic_v1/edge_service.py": "732dfa8be467c772eac04f89bac99d616b94ac05d01f6fa062e60491b71a3ca1",
+      "rl_agent/splitfusion_timing_diagnostic_v1/instrumented_tail.py": "1f0323252416993e4cfb18a5acd3f726c04993f6616610771183ea4ef0bd4493",
+      "rl_agent/splitfusion_timing_diagnostic_v1/runner.py": "01b78c7ff0273afae2ddcbafa27d26495d1e59dde3260f1f2d21aeb24b259289",
+      "rl_agent/splitfusion_timing_diagnostic_v1/tests/__init__.py": "869e78c9d903cab935d57b22638296818a2a81b5a1c8d685169c5c556f585d49",
+      "rl_agent/splitfusion_timing_diagnostic_v1/tests/test_diagnostic_contract.py": "6c8b155b86771cdfe86e67daefae013efe34bd044ef9c9441516a92cf2341ef8"
+    }
+  },
+  "cold_host_preflight": {
+    "application_processes": [],
+    "conflicting_tcp_ports": [],
+    "conflicting_udp_ports": [],
+    "edge_container_absent": true,
+    "label": "run/preflight",
+    "load_average": [
+      0.30810546875,
+      0.52734375,
+      0.46484375
+    ],
+    "shared_memory_objects": [],
+    "softmodems": [],
+    "temporary_runtime_paths": [],
+    "ue_tunnel_absent": true,
+    "verified_at_unix_s": 1788994635.8346913
+  },
+  "created_utc": "2026-09-09T22:57:16.229568+00:00",
+  "environment": {
+    "capability": "12.0",
+    "cuda_version": "12.8",
+    "device_count": 1,
+    "device_name": "NVIDIA GeForce RTX 5090",
+    "docker_runtimes": [
+      "io.containerd.runc.v2",
+      "nvidia",
+      "runc"
+    ],
+    "edge_image_id": "sha256:2be62d533b8077ceecab5455d5377f2f952b6a50d43ff8c04dc89ce18027d6ba",
+    "hostname": "W10275",
+    "nvidia_container_runtime_present": true,
+    "platform": "Linux-6.8.0-124-generic-x86_64-with-glibc2.35",
+    "python": "3.10.12",
+    "torch_version": "2.10.0.dev20251114+cu128"
+  },
+  "execution_token": "SPLITFUSION_TIMING_DIAGNOSTIC_V1_EXECUTE",
+  "git": {
+    "branch": "master",
+    "dirty_paths": [
+      "OAI/openairinterface5g",
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/lraspp_to_splitfusion_fcos_report_v1/FULL_TECHNICAL_REPORT_AVO_V2.md"
+    ],
+    "head": "60a9fbffe719bfa07cc11e67c21971c766f062fe",
+    "preserved_user_owned_dirty_paths": [
+      "OAI/openairinterface5g",
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/lraspp_to_splitfusion_fcos_report_v1/FULL_TECHNICAL_REPORT_AVO_V2.md"
+    ]
+  },
+  "instrumentation": {
+    "approach": "subclass of ContextualFrozenP025TailAdapter reproducing the production operation sequence with deferred-read CUDA event pairs and perf_counter boundaries; proved bit-identical to the production adapter before measurement",
+    "clock": "time.time_ns for cross-process joins; time.perf_counter_ns for stages",
+    "edge_deadline_policy": "CLASSIFY_AND_RECORD_NEVER_DROP",
+    "hash_bound_production_files_modified": [],
+    "production_tail_sha256": "1781f3013967c464aa8f8de0eb6b46bccb5f3ff00a305c6f6d56012383859fe1",
+    "production_tail_source": "rl_agent/splitfusion_live_dispatch_v1/context_tail.py"
+  },
+  "objective": "Decompose, without conflation, application-level one-way feature uplink handling through the live OAI 5G path and every edge stage from datagram receipt through compact result serialization, including pure model.decode_tail CUDA time.",
+  "output_relpath": "experiments/splitfusion_timing_diagnostic_v1/20260909_actions30_15_50_71_favorable_stable_retry1",
+  "radio_contract": {
+    "catch_up_policy": "SKIP_OBSOLETE_NEVER_BURST",
+    "clean_restore_noise_power_db": -50.0,
+    "cn5g_owner": "qualified_launcher",
+    "forbidden_after_prefix": [
+      "wrap",
+      "hold_final_value",
+      "reseed"
+    ],
+    "launcher": "uplink_only_spatial_map_pipeline/run_splitfusion_oai_100mhz_4d5u_v1.sh",
+    "launcher_status": "QUALIFIED_SPLITFUSION_100MHZ_4D5U",
+    "mapping_csv": "experiments/splitfusion_phase14a_100mhz_calibration_v1/20260904_phase14a_live_calibration_retry3/target_to_rfsim_mapping.csv",
+    "mapping_sha256": "f1cc9c48bd5cd55d2de2421d07c23dd3deff2bca3497e3a5d5e87aaa11ec2a3d",
+    "prefix_samples": 4200,
+    "radio_profile_id": "OAI_N78_100MHZ_273PRB_4D5U_V1"
+  },
+  "reference_points": {
+    "phase13c_controlled_tail_gpu_ms": 73.4,
+    "phase15_live_frozen_tail_ms": 111.6
+  },
+  "run_id": "20260909_actions30_15_50_71_favorable_stable_retry1",
+  "run_manifest_sha256": "696a64db112022df8bafe7d9eada38d3fe3d8fef264f269830f65957cecdb289",
+  "sample": {
+    "access_scope": {
+      "avo_read": false,
+      "boxes_read": false,
+      "depth_ground_truth_read": false,
+      "evaluation_records_read": false,
+      "semantic_ground_truth_read": false,
+      "sensor_modalities": [
+        "RGB",
+        "radar",
+        "camera_calibration"
+      ]
+    },
+    "phase13c_evidence_relpath": "experiments/splitfusion_live_dispatch_v1/20260904_phase13c_36x300_localhost_measurement",
+    "registered_split": "fit",
+    "sample_manifest_sha256": "ad2cb25ea8d64d8d774c9c455c09e169f9a3eb1b51bf6143e82dfacdecf10ee9",
+    "schema": "scenesense.splitfusion_phase13c_fit_sample.v1",
+    "selected_frame_count": 300,
+    "selected_sample_id_sha256": "68a4cb3cffe47fa1f42f65ada94c8ef1e19504e8f25a949fc1acf5a20298720e",
+    "warmup_excluded_from_measurement": true,
+    "warmup_sample_id": "canonical_v3_01_train_30_30_s501_tm1501_000001_frame218"
+  },
+  "schema": "scenesense.splitfusion_timing_diagnostic_manifest.v1",
+  "scope": {
+    "actions": [
+      30,
+      15,
+      50,
+      71
+    ],
+    "carla_launched": false,
+    "dataset_access": "fit_only_registered_phase13c_300_frame_sample",
+    "frames_per_action": 300,
+    "holdout_or_test_frames_read": false,
+    "network_profile_id": "FAVORABLE_STABLE",
+    "optimization_attempted": false,
+    "radio_lifecycles": 4,
+    "route_b": false,
+    "schedule_period_ms": 100,
+    "sixteen_cell_pilot": false,
+    "training_or_tuning": false,
+    "two_hundred_eighty_eight_cell_campaign": false
+  },
+  "synthetic_tests": {
+    "all_passed": true,
+    "results": {
+      "test_clock_anchor_shape": {
+        "anchor_fields_verified": true
+      },
+      "test_datagram_accounting_is_exact": {
+        "payload_sizes_checked": 7
+      },
+      "test_derived_timestamp_intervals": {
+        "delivered_rows": 1,
+        "derived_quantities_verified": 8,
+        "skipped_rows": 1
+      },
+      "test_incomplete_reassembly_expires": {
+        "expired_messages": 1
+      },
+      "test_negative_interval_is_detected": {
+        "negative_interval_detected": true
+      },
+      "test_obsolete_slot_policy": {
+        "policy": "SKIP_OBSOLETE_NEVER_BURST",
+        "schedule_period_ms": 100
+      },
+      "test_percentile_convention": {
+        "percentile_convention": "nearest_rank"
+      },
+      "test_stage_partition_is_complete": {
+        "stage_groups": 6,
+        "stages_covered": 9
+      }
+    },
+    "test_count": 8
+  },
+  "transport_contract": {
+    "camera_result_port": 51004,
+    "edge_receive_port": 51002,
+    "edge_remote_host": "192.168.70.140",
+    "entropy_coder": "zstd",
+    "inner_bytes_modified": false,
+    "retransmission": false,
+    "sfd1_protocol_version": 2,
+    "socket_buffer_request_bytes": 8388608,
+    "udp_chunk_bytes": 12500,
+    "udp_fragment_header": "!IHH",
+    "ue_bind_host": "10.0.0.2"
+  }
+}

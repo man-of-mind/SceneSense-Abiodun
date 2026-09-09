@@ -1,0 +1,7 @@
+{
+  "actions": [],
+  "failure": "DiagnosticError: the edge summary is not the final one",
+  "finished_utc": "2026-09-09T22:59:06.590812+00:00",
+  "run_id": "20260909_actions30_15_50_71_favorable_stable_retry1",
+  "terminal": "SPLITFUSION_TIMING_DIAGNOSTIC_V1_FAILED"
+}

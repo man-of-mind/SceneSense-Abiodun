@@ -1,0 +1,16 @@
+{
+  "artifact_count": 2,
+  "excluded_by_contract": [
+    "rgb_frames",
+    "radar_frames",
+    "c2_tensors",
+    "compressed_payload_blobs",
+    "predictions",
+    "raw_oai_tracer_logs"
+  ],
+  "schema": "scenesense.splitfusion_timing_diagnostic_artifact_manifest.v1",
+  "sha256": {
+    "NO_SCIENTIFIC_ROWS.json": "e756c139e9f074097fff286c02861d414e4175337a7c89297971a1a5fef1098b",
+    "RUN_MANIFEST.json": "9dc590514c62cefb5f2df844f66fe2d62c0ac5d6355a815ec2f02f2ea782669a"
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "failure": "DiagnosticError: the edge summary is not the final one",
+  "finished_utc": "2026-09-09T22:59:06.590210+00:00",
+  "reason": "no action completed, so no scientific row exists",
+  "run_id": "20260909_actions30_15_50_71_favorable_stable_retry1"
+}
