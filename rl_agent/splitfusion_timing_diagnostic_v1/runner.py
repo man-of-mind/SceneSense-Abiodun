@@ -94,7 +94,7 @@ MICROBENCH_WARMUP = 8
 # --------------------------------------------------------------------------
 
 
-def _git(*arguments: str) -> str:
+def _git_output(*arguments: str) -> str:
     completed = subprocess.run(
         ("git", *arguments),
         cwd=str(ROOT),
@@ -104,14 +104,47 @@ def _git(*arguments: str) -> str:
         text=True,
         check=False,
     )
-    require(completed.returncode == 0, f"git {' '.join(arguments)} failed: {completed.stderr.strip()}")
-    return completed.stdout.strip()
+    require(
+        completed.returncode == 0,
+        f"git {' '.join(arguments)} failed: {completed.stderr.strip()}",
+    )
+    return completed.stdout
+
+
+def _git(*arguments: str) -> str:
+    return _git_output(*arguments).strip()
+
+
+def _porcelain_paths() -> list[str]:
+    """Parse ``git status --porcelain`` without disturbing its status columns.
+
+    The two status characters are followed by one space, so the path begins at
+    index 3 of each *unmodified* line. Stripping the whole command output
+    would remove the first line's leading status space and shift that one path
+    by a character, which is exactly the defect this replaces.
+    """
+
+    paths: list[str] = []
+    pending_rename = False
+    for line in _git_output("status", "--porcelain", "-z").split("\0"):
+        if not line:
+            continue
+        if pending_rename:
+            # ``-z`` emits a rename/copy origin as its own field.
+            pending_rename = False
+            continue
+        require(
+            len(line) > 3 and line[2] == " ",
+            f"unparsable git porcelain entry: {line!r}",
+        )
+        pending_rename = line[0] in {"R", "C"} or line[1] in {"R", "C"}
+        paths.append(line[3:])
+    return paths
 
 
 def verify_git_state() -> dict[str, Any]:
     head = _git("rev-parse", "HEAD")
-    status = [line for line in _git("status", "--porcelain").splitlines() if line.strip()]
-    dirty = sorted(line[3:].strip() for line in status)
+    dirty = sorted(path for path in _porcelain_paths() if path)
     unexpected = sorted(set(dirty) - set(common.EXPECTED_DIRTY_PATHS))
     require(
         not unexpected,
