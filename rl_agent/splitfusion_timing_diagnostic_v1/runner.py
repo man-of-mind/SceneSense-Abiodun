@@ -941,6 +941,41 @@ def _edge_running() -> bool:
     return completed.returncode == 0 and completed.stdout.strip() == "true"
 
 
+def request_edge_shutdown(
+    stop_host: Path, summary_host: Path, *, timeout_s: float = 60.0
+) -> dict[str, Any]:
+    """Ask the edge to publish its final summary before the container stops.
+
+    ``docker compose down`` terminates the edge process, so the final summary
+    has to be requested and observed first. This writes the stop-file the edge
+    watches and waits for ``final`` to appear, rather than weakening the
+    integrity gate that requires it.
+    """
+
+    stop_host.touch(exist_ok=False)
+    deadline = time.monotonic() + float(timeout_s)
+    while time.monotonic() < deadline:
+        if summary_host.is_file():
+            try:
+                summary = common.load_json(summary_host)
+            except (OSError, json.JSONDecodeError):
+                summary = {}
+            if bool(summary.get("final")):
+                return {
+                    "graceful_shutdown_observed": True,
+                    "terminal_reason": summary.get("terminal_reason", ""),
+                    "waited_s": round(
+                        float(timeout_s) - (deadline - time.monotonic()), 3
+                    ),
+                }
+        time.sleep(0.25)
+    return {
+        "graceful_shutdown_observed": False,
+        "terminal_reason": "",
+        "waited_s": float(timeout_s),
+    }
+
+
 def _stop_edge_container() -> bool:
     subprocess.run(
         [
@@ -1039,6 +1074,7 @@ def start_edge_container(
                     "--records-file", str(container_state / "edge_records.jsonl"),
                     "--summary-file", str(container_state / "edge_summary.json"),
                     "--warmup-payload", str(container_state / "warmup_payloads.bin"),
+                    "--stop-file", str(container_state / "stop_edge"),
                     "--warmup-iterations", str(len(warmup_payloads)),
                     "--first-measured-sequence-id", str(FIRST_MEASURED_SEQUENCE_ID),
                     "--edge-port", str(runtime["edge_receive_port"]),
@@ -1087,6 +1123,7 @@ def start_edge_container(
                     "ready": ready,
                     "records_host": str(records_host),
                     "summary_host": str(summary_host),
+                    "stop_host": str(state_root / "stop_edge"),
                 }
             time.sleep(0.25)
         raise DiagnosticError("diagnostic edge did not become ready")
@@ -1772,9 +1809,16 @@ def run_action(
         telemetry = None
 
         require(_edge_running(), "the diagnostic edge exited during measurement")
-        require(_stop_edge_container(), "the diagnostic edge container did not stop")
         edge_records_path = Path(edge_meta["records_host"])
         edge_summary_path = Path(edge_meta["summary_host"])
+        report["edge_shutdown"] = request_edge_shutdown(
+            Path(edge_meta["stop_host"]), edge_summary_path
+        )
+        require(
+            bool(report["edge_shutdown"]["graceful_shutdown_observed"]),
+            "the diagnostic edge did not publish its final summary before shutdown",
+        )
+        require(_stop_edge_container(), "the diagnostic edge container did not stop")
         require(edge_summary_path.is_file(), "the edge published no final summary")
         edge_summary = common.load_json(edge_summary_path)
         require(bool(edge_summary.get("final")), "the edge summary is not the final one")

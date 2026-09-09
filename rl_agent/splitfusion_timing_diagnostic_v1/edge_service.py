@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import signal
 import socket
 import sys
 import threading
@@ -131,6 +132,7 @@ def run(args: argparse.Namespace) -> int:
     service_s = service_deadline_s(campaign)
     horizon_s = ack_timeout_s(campaign)
     counters = _Counters()
+    terminal_reason = ""
     records: list[dict[str, Any]] = []
     failures: list[str] = []
     records_lock = threading.Lock()
@@ -138,6 +140,7 @@ def run(args: argparse.Namespace) -> int:
     records_path = Path(args.records_file)
     summary_path = Path(args.summary_file)
     ready_path = Path(args.ready_file)
+    stop_path = Path(args.stop_file) if args.stop_file else None
 
     # ---- warm-up and equivalence proof, both before readiness -------------
     warmup_blob = Path(args.warmup_payload)
@@ -195,6 +198,17 @@ def run(args: argparse.Namespace) -> int:
     pending = LatestFramePendingSlot()
     stop_event = threading.Event()
     chunk_bytes = int(runtime["udp_chunk_bytes"])
+
+    # ``docker compose down`` terminates this process; without a handler the
+    # default SIGTERM disposition kills the interpreter outright and the final
+    # summary below is never published. The stop-file is the deterministic
+    # path the host uses; the signal handlers are the backstop.
+    def request_stop(signum: int, _frame: Any) -> None:
+        counters.bump(f"shutdown_signal_{int(signum)}")
+        stop_event.set()
+
+    for received in (signal.SIGTERM, signal.SIGINT):
+        signal.signal(received, request_stop)
     first_datagram_wall_ns: dict[tuple[str, int], int] = {}
     expired_seen = 0
 
@@ -221,6 +235,7 @@ def run(args: argparse.Namespace) -> int:
             "reassembly_pending_messages": len(reassembler.pending),
             "pending_depth": pending.depth(),
             "records_written": len(records),
+            "terminal_reason": terminal_reason,
             "failures": failures[:8],
             "start_clock_anchor": start_anchor,
             "clock_anchor": common.clock_anchor("edge_publish"),
@@ -505,11 +520,20 @@ def run(args: argparse.Namespace) -> int:
             sort_keys=True,
         )
     try:
-        while receiver_thread.is_alive() and processor_thread.is_alive():
-            time.sleep(1.0)
+        while True:
+            if stop_event.is_set():
+                terminal_reason = "STOP_REQUESTED"
+                break
+            if stop_path is not None and stop_path.exists():
+                terminal_reason = "STOP_FILE_OBSERVED"
+                break
+            if not (receiver_thread.is_alive() and processor_thread.is_alive()):
+                terminal_reason = "WORKER_THREAD_EXITED"
+                break
+            time.sleep(0.25)
             publish_records()
             publish_summary(final=False)
-        return 1
+        return 0 if terminal_reason != "WORKER_THREAD_EXITED" else 1
     finally:
         stop_event.set()
         for dropped in pending.close():
@@ -533,6 +557,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--records-file", required=True)
     parser.add_argument("--summary-file", required=True)
     parser.add_argument("--warmup-payload", required=True)
+    parser.add_argument("--stop-file")
     parser.add_argument("--warmup-iterations", type=int, default=12)
     parser.add_argument("--first-measured-sequence-id", type=int, default=1000)
     parser.add_argument("--edge-port", type=int, default=51002)
