@@ -26,10 +26,12 @@ additive wrapper installed at run time:
 
 from __future__ import annotations
 
+import json
 import queue
 import subprocess
 import threading
 import time
+from pathlib import Path
 from typing import Any, Mapping
 
 from . import diagnostic_common as common
@@ -244,12 +246,26 @@ class GpuSampler:
         }
 
 
+def _json_safe(value: Any) -> Any:
+    """Best-effort scalar coercion for collector rows crossing a process."""
+
+    if isinstance(value, (str, int, float, bool)) or value is None:
+        return value
+    for caster in (int, float):
+        try:
+            return caster(value)  # numpy scalars and similar
+        except (TypeError, ValueError):
+            continue
+    return str(value)
+
+
 def build_collector_class(base: type) -> type:
     """Subclass the deployed collector: bounded budget, evaluation off."""
 
     class BudgetedDiagnosticCollector(base):  # type: ignore[misc, valid-type]
         transmitted_budget = 300
         safety_timeout_s = 90.0
+        artifacts_dir: Path | None = None
 
         def __init__(self, **keywords: Any) -> None:
             super().__init__(**keywords)
@@ -266,6 +282,58 @@ def build_collector_class(base: type) -> type:
             self._deadline_monotonic: float | None = None
             self._stop_requested = False
             self.ticks_observed = 0
+            self._persist_lock = threading.Lock()
+
+        # -- durable handoff -------------------------------------------------
+
+        def persist_artifacts(self) -> dict[str, Any]:
+            """Write rows and summary before the route unwinds.
+
+            The CARLA client can abort on shutdown, so the measurement is put
+            on disk as soon as the budget is reached rather than only after the
+            route returns. Writes are atomic and repeatable.
+            """
+
+            directory = type(self).artifacts_dir
+            if directory is None:
+                return {"persisted": False, "reason": "no artifacts directory"}
+            directory = Path(directory)
+            directory.mkdir(parents=True, exist_ok=True)
+            with self._persist_lock:
+                with self.rows_lock:
+                    rows = [dict(row) for row in self.rows]
+                lines = [
+                    json.dumps(
+                        {key: _json_safe(value) for key, value in row.items()},
+                        sort_keys=True, separators=(",", ":"),
+                    )
+                    for row in rows
+                ]
+                rows_path = directory / "collector_rows.jsonl"
+                temporary = rows_path.with_name(rows_path.name + ".partial")
+                temporary.write_text("\n".join(lines) + ("\n" if lines else ""), encoding="utf-8")
+                temporary.replace(rows_path)
+                summary = self.diagnostic_summary()
+                summary_path = directory / "diagnostic_summary.json"
+                temporary = summary_path.with_name(summary_path.name + ".partial")
+                temporary.write_text(
+                    json.dumps(summary, sort_keys=True, indent=1, default=_json_safe)
+                    + "\n",
+                    encoding="utf-8",
+                )
+                temporary.replace(summary_path)
+                return {"persisted": True, "rows": len(rows)}
+
+        def finish(self) -> bool:
+            try:
+                return super().finish()
+            finally:
+                try:
+                    self.persist_artifacts()
+                except Exception as exc:  # persistence must not mask cleanup
+                    self.failures.append(
+                        f"artifact persistence: {type(exc).__name__}: {exc}"
+                    )
 
         # -- budget control -------------------------------------------------
 
@@ -307,6 +375,14 @@ def build_collector_class(base: type) -> type:
             if int(self.sent) > before and int(self.sent) >= self.transmitted_budget:
                 self.budget_reached_wall_ns = time.time_ns()
                 self._request_stop("TRANSMITTED_BUDGET_REACHED")
+                # Put the measurement on disk at the 300th frame, before the
+                # route and the CARLA client begin unwinding.
+                try:
+                    self.persist_artifacts()
+                except Exception as exc:
+                    self.failures.append(
+                        f"budget artifact persistence: {type(exc).__name__}: {exc}"
+                    )
 
         # -- reporting ------------------------------------------------------
 
@@ -350,3 +426,34 @@ def build_collector_class(base: type) -> type:
             }
 
     return BudgetedDiagnosticCollector
+
+
+def install_live_wrappers(
+    adapter: Any, *, transmitted_budget: int, safety_timeout_s: float,
+    artifacts_dir: Any = None,
+) -> dict[str, Any]:
+    """Swap in the instrumented runtime and the bounded collector at run time.
+
+    Both are subclasses of the qualified classes, installed by assignment, so
+    no SHA-256 pinned file is edited and the deep SFD1 authority is untouched.
+    The adapter resolves both names from its own module globals when the
+    collector is constructed, so the assignment is what takes effect.
+    """
+
+    original = {
+        "PassiveSplitCollector": adapter.PassiveSplitCollector,
+        "LivePilotCellRuntime": adapter.LivePilotCellRuntime,
+    }
+    collector_class = build_collector_class(adapter.PassiveSplitCollector)
+    collector_class.transmitted_budget = int(transmitted_budget)
+    collector_class.safety_timeout_s = float(safety_timeout_s)
+    if artifacts_dir is not None:
+        collector_class.artifacts_dir = Path(artifacts_dir)
+    adapter.LivePilotCellRuntime = build_runtime_class(adapter.LivePilotCellRuntime)
+    adapter.PassiveSplitCollector = collector_class
+    return original
+
+
+def restore_live_wrappers(adapter: Any, original: Mapping[str, Any]) -> None:
+    adapter.PassiveSplitCollector = original["PassiveSplitCollector"]
+    adapter.LivePilotCellRuntime = original["LivePilotCellRuntime"]

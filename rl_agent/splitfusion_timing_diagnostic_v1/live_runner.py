@@ -52,8 +52,8 @@ from .instrumented_tail import SERIALIZE_STAGE, TAIL_STAGES, TOTAL_STAGE
 from .live_capture import (
     GpuSampler,
     RouteBudgetReached,
-    build_collector_class,
-    build_runtime_class,
+    install_live_wrappers as _install_live_wrappers,
+    restore_live_wrappers as _restore_live_wrappers,
 )
 
 
@@ -74,6 +74,8 @@ MAP_API_PORT = 35001
 SPATIAL_MAP_PORT = 39310
 FEEDBACK_PORT = 39401
 CARLA_RPC_TIMEOUT_S = 240.0
+CHILD_MODULE = "rl_agent.splitfusion_timing_diagnostic_v1.live_cell_child"
+CHILD_TIMEOUT_S = 900.0
 
 ROUTE_B_BOUND_INPUTS = (
     ("route_json", "route_json_sha256"),
@@ -180,31 +182,6 @@ def synthetic_warmup_payloads(
             )
         payloads.append(bytes(prepared.wire_bytes))
     return payloads
-
-
-def _install_live_wrappers(adapter: Any) -> dict[str, Any]:
-    """Swap in the instrumented runtime and the bounded collector at run time.
-
-    Both are subclasses of the qualified classes, installed by assignment, so
-    no SHA-256 pinned file is edited and the deep SFD1 authority is untouched.
-    """
-
-    original = {
-        "PassiveSplitCollector": adapter.PassiveSplitCollector,
-        "LivePilotCellRuntime": adapter.LivePilotCellRuntime,
-    }
-    runtime_class = build_runtime_class(adapter.LivePilotCellRuntime)
-    collector_class = build_collector_class(adapter.PassiveSplitCollector)
-    collector_class.transmitted_budget = TRANSMITTED_BUDGET
-    collector_class.safety_timeout_s = SAFETY_TIMEOUT_S
-    adapter.LivePilotCellRuntime = runtime_class
-    adapter.PassiveSplitCollector = collector_class
-    return original
-
-
-def _restore_live_wrappers(adapter: Any, original: Mapping[str, Any]) -> None:
-    adapter.PassiveSplitCollector = original["PassiveSplitCollector"]
-    adapter.LivePilotCellRuntime = original["LivePilotCellRuntime"]
 
 
 def join_live_records(
@@ -398,12 +375,10 @@ def run_live_action(
     telemetry: Any = None
     server: Any = None
     pgid: int | None = None
-    map_process: Any = None
     target_process: Any = None
     target_output = Path()
     target_stop = Path()
     edge_meta: dict[str, Any] = {}
-    collector: Any = None
     gpu = GpuSampler()
     edge_records: list[dict[str, Any]] = []
     ue_clock_start = common.clock_anchor("ue_process_start")
@@ -424,14 +399,6 @@ def run_live_action(
         version = lifecycle.wait_for_rpc(CARLA_RPC_PORT, CARLA_RPC_TIMEOUT_S)
         require(version is not None, "fresh Epic CARLA did not become RPC-ready")
         report["carla"] = {"server_version": str(version), "rpc_port": CARLA_RPC_PORT}
-
-        print(f"[{cell_id}] starting the deployment map/install path", flush=True)
-        map_process = adapter.start_map_process(
-            campaign, temporary_dir=temporary, action_id=str(action_id),
-            carla_host="127.0.0.1", carla_port=CARLA_RPC_PORT,
-            api_port=MAP_API_PORT, udp_port=SPATIAL_MAP_PORT,
-            feedback_port=FEEDBACK_PORT,
-        )
 
         warmup_stream = f"diagwarmup_{cell_id}"
         print(f"[{cell_id}] starting the instrumented edge and warming it up", flush=True)
@@ -472,48 +439,93 @@ def run_live_action(
         require(target_process.poll() is None, "target-SNR runtime exited during startup")
 
         gpu.start()
-        original = _install_live_wrappers(adapter)
+        # The CARLA client runs out of process. The parent keeps the radio, the
+        # CARLA server process group, the edge container, the actuator, teardown
+        # and evidence -- none of which touch the CARLA client API -- so a
+        # client-side abort cannot destroy the teardown or the measurement.
+        cell_json = temporary / "cell.json"
+        common.atomic_create_json(cell_json, cell)
+        campaign_json = temporary / "campaign_child.json"
+        common.atomic_create_json(campaign_json, campaign)
+        artifacts = temporary / "child_artifacts"
+        artifacts.mkdir(parents=False, exist_ok=False)
+        child_argv = [
+            sys.executable, "-m", CHILD_MODULE,
+            "--campaign-json", str(campaign_json),
+            "--cell-json", str(cell_json),
+            "--attempt-dir", str(attempt_dir),
+            "--temporary-dir", str(temporary),
+            "--edge-evidence-dir", str(evidence_dir),
+            "--artifacts-dir", str(artifacts),
+            "--carla-port", str(CARLA_RPC_PORT),
+            "--map-api-port", str(MAP_API_PORT),
+            "--spatial-map-port", str(SPATIAL_MAP_PORT),
+            "--feedback-port", str(FEEDBACK_PORT),
+            "--transmitted-budget", str(TRANSMITTED_BUDGET),
+            "--safety-timeout-s", str(SAFETY_TIMEOUT_S),
+        ]
         print(
-            f"[{cell_id}] live capture: {TRANSMITTED_BUDGET} transmitted frames "
-            f"or {SAFETY_TIMEOUT_S:.0f} s",
+            f"[{cell_id}] live capture in a child process: "
+            f"{TRANSMITTED_BUDGET} transmitted frames or {SAFETY_TIMEOUT_S:.0f} s",
             flush=True,
         )
-        try:
-            route_ok, route_detail, collector = adapter.run_route_b(
-                campaign=campaign, cell=cell, row=row,
-                binding={"dispatcher": "phase13_sfd1_v2"},
-                attempt_dir=attempt_dir, carla_host="127.0.0.1",
-                carla_port=CARLA_RPC_PORT, map_api_port=MAP_API_PORT,
-                feedback_port=FEEDBACK_PORT, edge_evidence_dir=evidence_dir,
-                maximum_loop_sim_s=SAFETY_TIMEOUT_S,
-            )
-        finally:
-            _restore_live_wrappers(adapter, original)
+        child = subprocess.run(
+            child_argv, cwd=str(ROOT), stdin=subprocess.DEVNULL,
+            env=lifecycle.child_env(), timeout=CHILD_TIMEOUT_S, check=False,
+        )
         gpu.stop()
         report["gpu"] = gpu.summary()
-        report["route_detail"] = {
-            key: route_detail.get(key)
-            for key in (
-                "route_runner_returncode", "density_status", "route_completed",
-                "route_abort_reason", "error", "route_summary_identity_ok",
-                "route_summary_identity_mismatches",
-            )
+        report["child"] = {
+            "returncode": int(child.returncode),
+            "module": CHILD_MODULE,
+            "timeout_s": CHILD_TIMEOUT_S,
         }
-        report["route_accepted_by_campaign_gate"] = bool(route_ok)
-        require(collector is not None, "the route never entered its drive loop")
-        diagnostic = collector.diagnostic_summary()
+        child_result_path = artifacts / "child_result.json"
+        require(
+            child_result_path.is_file(),
+            f"the live cell child left no result record (rc={child.returncode})",
+        )
+        child_result = common.load_json(child_result_path)
+        report["child"].update(
+            {
+                "error": child_result.get("error", ""),
+                "map_process_started": child_result.get("map_process_started"),
+                "map_process_stopped": child_result.get("map_process_stopped"),
+            }
+        )
+        report["route_detail"] = child_result.get("route_detail", {})
+        report["route_accepted_by_campaign_gate"] = child_result.get(
+            "route_accepted_by_campaign_gate"
+        )
+        # A child abort after the budget was reached is survivable: the
+        # collector persists its rows and summary at the 300th frame, before
+        # any unwinding. Anything short of that is a real failure.
+        summary_path = artifacts / "diagnostic_summary.json"
+        rows_path = artifacts / "collector_rows.jsonl"
+        require(
+            summary_path.is_file() and rows_path.is_file(),
+            "the live cell child persisted no measurement: "
+            f"rc={child.returncode} error={child_result.get('error', '')!r}",
+        )
+        diagnostic = common.load_json(summary_path)
+        collector_rows = [
+            json.loads(line)
+            for line in rows_path.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
         report["capture"] = {
             key: value for key, value in diagnostic.items() if key != "send_boundaries"
         }
-        # A bounded cell deliberately does not complete the Route-B loop, so the
-        # campaign's own route/coverage gate cannot pass and is not used here.
         require(
             str(diagnostic["stop_reason"])
             in {"TRANSMITTED_BUDGET_REACHED", "SAFETY_TIMEOUT_EXPIRED"},
             f"live cell ended for an unregistered reason: {diagnostic['stop_reason']!r}; "
+            f"child_error={child_result.get('error', '')!r} "
             f"route_error={report['route_detail'].get('error')!r}",
         )
-        require(not diagnostic["failures"], f"collector failures: {diagnostic['failures']}")
+        require(
+            not diagnostic["failures"], f"collector failures: {diagnostic['failures']}"
+        )
 
         require(runner._edge_running(), "the instrumented edge exited during capture")
         report["edge_shutdown"] = runner.request_edge_shutdown(
@@ -566,8 +578,11 @@ def run_live_action(
             "maximum_wall_minus_monotonic_skew_ns": int(skew),
         }
         rows, accounting = join_live_records(
-            collector_rows=collector.rows,
-            send_boundaries=diagnostic["send_boundaries"],
+            collector_rows=collector_rows,
+            send_boundaries={
+                int(key): value
+                for key, value in (diagnostic.get("send_boundaries") or {}).items()
+            },
             edge_records=edge_records,
         )
         require(
@@ -593,7 +608,6 @@ def run_live_action(
             report["radio_telemetry"] = telemetry.summary()
         if runner._edge_running():
             report["edge_forced_stop"] = runner._stop_edge_container()
-        report["map_process_stopped"] = adapter.stop_process(map_process)
         if server is not None and pgid is not None:
             report["carla_teardown"] = lifecycle.stop_carla(server, pgid, CARLA_RPC_PORT)
         if radio_base is not None and radio_namespace is not None and radio_state is not None:
@@ -1685,7 +1699,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                             "final_restore_noise_power_db": report.get(
                                 "radio_teardown", {}
                             ).get("final_restore", {}).get("noise_power_db"),
-                            "map_process_stopped": report.get("map_process_stopped"),
+                            "child": report.get("child"),
                             "cell_scratch_removed": report.get("cell_scratch_removed"),
                             "capture": report.get("capture"),
                             "wall_seconds": report.get("wall_seconds"),
