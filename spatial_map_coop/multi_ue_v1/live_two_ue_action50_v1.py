@@ -318,6 +318,14 @@ class _OwnedTwoEgoScenario:
         self.ego_b: Any | None = None
         self.settings_changed = False
         self.tm_sync_enabled = False
+        self.clock_stop = threading.Event()
+        self.clock_condition = threading.Condition()
+        self.clock_thread: threading.Thread | None = None
+        self.clock_error = ""
+        self.latest_tick_frame = -1
+        self.last_delivered_tick_frame = -1
+        self.clock_tick_count = 0
+        self.clock_started_monotonic = 0.0
 
     def _spawn_ego(self, transform: Any, role_name: str) -> Any:
         library = self.world.get_blueprint_library()
@@ -418,10 +426,94 @@ class _OwnedTwoEgoScenario:
             self.close()
             raise
 
+    def _clock_loop(self) -> None:
+        next_deadline = time.monotonic()
+        while not self.clock_stop.is_set():
+            try:
+                frame_id = int(self.world.tick())
+            except Exception as exc:
+                with self.clock_condition:
+                    self.clock_error = f"{type(exc).__name__}: {exc}"
+                    self.clock_condition.notify_all()
+                return
+            with self.clock_condition:
+                self.latest_tick_frame = frame_id
+                self.clock_tick_count += 1
+                self.clock_condition.notify_all()
+            next_deadline += WORLD_DELTA_S
+            delay = next_deadline - time.monotonic()
+            if delay <= 0.0:
+                next_deadline = time.monotonic()
+                continue
+            self.clock_stop.wait(delay)
+
+    def start_clock(self) -> None:
+        """Advance synchronous CARLA independently of sequential UE inference."""
+
+        _require(self.clock_thread is None, "owned CARLA clock already started")
+        self.clock_stop.clear()
+        self.clock_started_monotonic = time.monotonic()
+        self.clock_thread = threading.Thread(
+            target=self._clock_loop,
+            name="two-ue-carla-20hz-clock",
+            daemon=True,
+        )
+        self.clock_thread.start()
+
     def tick(self) -> int:
-        return int(self.world.tick())
+        if self.clock_thread is None:
+            return int(self.world.tick())
+        deadline = time.monotonic() + float(self.args.sensor_timeout_s)
+        with self.clock_condition:
+            while (
+                self.latest_tick_frame <= self.last_delivered_tick_frame
+                and not self.clock_error
+                and self.clock_thread.is_alive()
+                and time.monotonic() < deadline
+            ):
+                self.clock_condition.wait(
+                    timeout=max(0.0, min(0.1, deadline - time.monotonic()))
+                )
+            _require(not self.clock_error, f"owned CARLA clock failed: {self.clock_error}")
+            _require(
+                self.latest_tick_frame > self.last_delivered_tick_frame,
+                "owned CARLA clock produced no fresh tick",
+            )
+            self.last_delivered_tick_frame = self.latest_tick_frame
+            return self.latest_tick_frame
+
+    def stop_clock(self) -> None:
+        thread = self.clock_thread
+        if thread is None:
+            return
+        self.clock_stop.set()
+        with self.clock_condition:
+            self.clock_condition.notify_all()
+        thread.join(timeout=float(self.args.carla_timeout_s) + 1.0)
+        if thread.is_alive():
+            print("Owned-scenario CARLA clock did not stop before cleanup")
+        self.clock_thread = None
+
+    def clock_diagnostics(self) -> dict[str, Any]:
+        with self.clock_condition:
+            elapsed = (
+                max(0.0, time.monotonic() - self.clock_started_monotonic)
+                if self.clock_started_monotonic > 0.0
+                else 0.0
+            )
+            return {
+                "configured_tick_hz": WORLD_TICK_HZ,
+                "completed_ticks": int(self.clock_tick_count),
+                "elapsed_wall_s": elapsed,
+                "achieved_tick_hz": (
+                    float(self.clock_tick_count) / elapsed if elapsed > 0.0 else 0.0
+                ),
+                "latest_tick_frame": int(self.latest_tick_frame),
+                "clock_error": self.clock_error or None,
+            }
 
     def close(self) -> None:
+        self.stop_clock()
         actor_ids: list[int] = []
         for actor in reversed(self.actors):
             try:
@@ -1057,6 +1149,8 @@ def run(args: argparse.Namespace) -> int:
         # accumulate an unbounded pre-anchor radar backlog during checkpoint IO.
         source_a = _PassiveUESensors(world, vehicle_a, "two-ue/ue-a")
         source_b = _PassiveUESensors(world, vehicle_b, "two-ue/ue-b")
+        if owned_scenario is not None:
+            owned_scenario.start_clock()
         service = MultiUESpatialMapService(_policy())
         frame_parity: int | None = None
         nominal_multi_source = 0
@@ -1218,6 +1312,11 @@ def run(args: argparse.Namespace) -> int:
                 if owned_scenario is not None
                 else "PASSIVE_EXISTING_EGOS"
             ),
+            "owned_carla_clock": (
+                owned_scenario.clock_diagnostics()
+                if owned_scenario is not None
+                else None
+            ),
             "existing_ego_vehicles_controlled_or_destroyed": False,
             "sensor_contract": {
                 "world_tick_hz": WORLD_TICK_HZ,
@@ -1287,6 +1386,11 @@ def run(args: argparse.Namespace) -> int:
                 "ue-a": _safe_sensor_diagnostics(source_a),
                 "ue-b": _safe_sensor_diagnostics(source_b),
             },
+            "owned_carla_clock": (
+                owned_scenario.clock_diagnostics()
+                if owned_scenario is not None
+                else None
+            ),
         }
         try:
             _write_json_create_only(output / "FAILED.json", failure)
@@ -1294,6 +1398,8 @@ def run(args: argparse.Namespace) -> int:
             pass
         raise
     finally:
+        if owned_scenario is not None:
+            owned_scenario.stop_clock()
         if source_b is not None:
             source_b.close()
         if source_a is not None:

@@ -229,10 +229,10 @@ python3 -u -m spatial_map_coop.multi_ue_v1.live_two_ue_action50_v1 \
   --execute SPLITFUSION_LIVE_TWO_UE_ACTION50_DEMO \
   --spawn-two-egos \
   --ego-spawn-index 80 --ego-gap-m 15 \
-  --npc-vehicles 12 --npc-pedestrians 10 \
+  --npc-vehicles 16 --npc-pedestrians 8 \
   --max-pairs 80 --duration-s 300 \
   --live-map-url http://127.0.0.1:35011 \
-  --output experiments/spatial_map_multi_ue_v1/live_two_ue_action50_live_view_run5
+  --output experiments/spatial_map_multi_ue_v1/live_two_ue_action50_live_view_run6
 ```
 
 The harness preflights the live-map session and source identities before creating
@@ -242,10 +242,11 @@ L10319 setup, although the duration is bounded by measured completion rather tha
 claimed as a real-time rate. The experiment terminates by itself; stop the map
 server separately with Ctrl+C after recording.
 
-The browser canvas redraws at the display refresh rate and requests snapshots at
-20 Hz, but new learned detections arrive only when both sequential UE model paths
-finish. Display interpolation makes those measured steps readable without
-inventing additional detections. The translucent cyan/orange wedges are the two
-measured 120-degree sensor FoVs. Associated tracks older than 750 ms of CARLA
-simulation time are hidden from this presentation view and counted in the HUD;
-they remain unchanged in the scientific service state and retained evidence.
+The owned synchronous CARLA clock advances in its own 20 Hz thread rather than
+waiting for the two sequential model paths. The browser canvas redraws at the
+display refresh rate and requests snapshots at 20 Hz; new learned detections still
+arrive only when both model paths finish. Display interpolation makes those
+measured steps readable without inventing additional detections. The translucent
+cyan/orange wedges are the two measured 120-degree sensor FoVs. The associated
+presentation renders only tracks supported by the current association snapshot;
+historical tracks remain unchanged in the scientific service state and evidence.

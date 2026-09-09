@@ -1236,8 +1236,19 @@ def _build_multi_ue_v1_objects() -> Tuple[List[Dict[str, object]], List[Dict[str
     if service_snapshot is None:
         return [], [], {"status": "WAITING_FOR_REGISTERED_UE_UPDATES"}
     document = service_snapshot.as_dict()
+    current_association_ids = {
+        str(association["association_id"])
+        for association in document["associations"]
+    }
+    retained_track_count = len(document["tracks"])
     tracks = []
     for track in document["tracks"]:
+        # The service deliberately retains tracks across missed observations. The
+        # raw/associated presentation comparison must instead use the same current
+        # observation snapshot on both sides; otherwise retained history can make
+        # "association on" appear to create objects. Persistence stays in service state.
+        if str(track["association_id"]) not in current_association_ids:
+            continue
         source_keys = track["contributing_sources"]
         tracks.append(
             {
@@ -1282,6 +1293,12 @@ def _build_multi_ue_v1_objects() -> Tuple[List[Dict[str, object]], List[Dict[str
                 },
             }
         )
+    document["viewer_projection"] = {
+        "policy": "CURRENT_ASSOCIATION_TRACKS_ONLY",
+        "rendered_track_count": len(tracks),
+        "retained_service_track_count": retained_track_count,
+        "historical_tracks_not_rendered": retained_track_count - len(tracks),
+    }
     return tracks, document["associations"], document
 
 

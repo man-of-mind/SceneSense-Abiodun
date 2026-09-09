@@ -1,5 +1,8 @@
 import copy
+from argparse import Namespace
+import itertools
 import sys
+import time
 import unittest
 from unittest import mock
 
@@ -94,6 +97,29 @@ def policy(minimum_confidence=0.0):
 
 
 class MultiUEIngressTests(unittest.TestCase):
+    def test_owned_scenario_clock_advances_while_consumer_is_idle(self):
+        counter = itertools.count(1)
+        world = mock.Mock()
+        world.get_settings.return_value = object()
+        world.tick.side_effect = lambda: next(counter)
+        client = mock.Mock()
+        scenario = live_action50._OwnedTwoEgoScenario(
+            client,
+            world,
+            Namespace(sensor_timeout_s=0.5, carla_timeout_s=0.1, tm_port=8000),
+        )
+        try:
+            scenario.start_clock()
+            first = scenario.tick()
+            time.sleep(0.12)
+            second = scenario.tick()
+            diagnostics = scenario.clock_diagnostics()
+        finally:
+            scenario.stop_clock()
+        self.assertGreater(second, first)
+        self.assertGreaterEqual(diagnostics["completed_ticks"], 2)
+        self.assertIsNone(diagnostics["clock_error"])
+
     def test_presentation_lane_yaw_never_snaps_measured_position(self):
         guide = presentation._LaneGuide(
             {"roads": [[[0.0, 0.0], [20.0, 0.0]]], "buildings": []}
