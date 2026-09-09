@@ -1899,7 +1899,18 @@ def run_action(
                     report.get("radio_actuation", {}).get("clean_restore_verified")
                 ),
             )
+        # This cell's scratch holds its payload blobs, its warm-up blob and the
+        # service logs, and its name carries the very prefix the cold proof
+        # treats as stale. Remove it here, before that proof and on every exit
+        # path, so no payload blob outlives a failed cell and the proof covers
+        # this cell's own state rather than tripping over it.
+        shutil.rmtree(temporary_dir, ignore_errors=True)
+        report["cell_scratch_removed"] = not temporary_dir.exists()
 
+    require(
+        bool(report.get("cell_scratch_removed")),
+        "the cell scratch directory holding payload blobs survived cleanup",
+    )
     report["cold_after"] = verify_cold_host(campaign, label=f"{cell_id}/after")
     results = dict(receiver.results) if receiver is not None else {}
     rows = join_records(
@@ -1920,11 +1931,6 @@ def run_action(
     report["per_frame_rows"] = rows
     report["finished_at_unix_s"] = time.time()
     report["wall_seconds"] = report["finished_at_unix_s"] - started_at
-    shutil.rmtree(temporary_dir, ignore_errors=True)
-    require(
-        not temporary_dir.exists(),
-        "the cell scratch directory holding payload blobs survived cleanup",
-    )
     del payloads
     return report
 
