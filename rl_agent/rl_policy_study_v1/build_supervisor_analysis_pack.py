@@ -474,11 +474,13 @@ def plot_network_summary(network: pd.DataFrame, output: Path) -> None:
     axes[0].set_ylabel("Campaign-wide rate")
     axes[0].set_title("Channel process changes every survival stage")
     axes[0].legend(ncol=2)
-    bars = axes[1].bar(x, network["action_path_ms_median_of_cells"], color="#E45756")
+    bars = axes[1].bar(
+        x, network["transport_residual_ms_median_of_cells"], color="#E45756"
+    )
     axes[1].axhline(100.0, color="#222222", linestyle="--", linewidth=1.2, label="100 ms reference")
     axes[1].set_xticks(x, labels, rotation=18, ha="right")
-    axes[1].set_ylabel("Action-controlled path (ms)")
-    axes[1].set_title("Front + transport residual + back + map feedback")
+    axes[1].set_ylabel("Transport residual (ms)")
+    axes[1].set_title("Compatible-clock network-path comparison")
     for bar, zero in zip(bars, network["zero_delivery_actions"]):
         axes[1].text(
             bar.get_x() + bar.get_width() / 2,
@@ -501,8 +503,6 @@ def plot_latency_boundaries(
         ("UE front path (`front_ms`)", "s3_front_ms_FULL_UE_DISPATCH_SPAN"),
         ("Transport residual", "s5_derived_roundtrip_residual_ms_RESIDUAL"),
         ("Model back (`frozen_tail`)", "s8_frozen_tail_ms"),
-        ("Result receipt → map install", "s10_ue_result_receipt_to_map_installation_ms"),
-        ("Map install → ACK receipt", "s11_map_install_to_ue_feedback_receipt_ms"),
     )
     values = []
     for label, key in selected:
@@ -510,7 +510,7 @@ def plot_latency_boundaries(
         values.append(float(record["median_of_medians"]))
     fig, ax = plt.subplots(figsize=(11.5, 5.2))
     y = np.arange(len(selected))
-    colors = ["#4C78A8", "#F58518", "#B279A2", "#54A24B", "#72B7B2"]
+    colors = ["#4C78A8", "#F58518", "#B279A2"]
     bars = ax.barh(y, values, color=colors)
     ax.set_yticks(y, [item[0] for item in selected])
     ax.invert_yaxis()
