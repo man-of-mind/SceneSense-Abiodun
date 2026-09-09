@@ -1,0 +1,13 @@
+{
+  "campaign_ledger_sha256": "dbbf3588fcaf542a6e3b2304a87267b58469c2dbd46bb1a9818cc2e82bb9d7f5",
+  "campaign_manifest_sha256": "dd2b5ce4326284888db6e6e28beae0863f79002d96964bc0d65321d48c3e326b",
+  "cell_mapping_sha256": "add96c8f117c4cb8ba427c670ba1698d4a2b8aea84129b4d32ac47fdc56025b1",
+  "claims_100ms_service_ready": false,
+  "completed_cells": 288,
+  "executed_cells": 227,
+  "finished_at_unix_s": 1788938185.3799248,
+  "low_delivery_or_missed_deadline_is_a_measured_outcome": true,
+  "reused_cells": 61,
+  "schema": "scenesense.splitfusion_288_live_campaign_completion.v1",
+  "status": "SPLITFUSION_288_CELL_LIVE_CARLA_OAI_CAMPAIGN_COMPLETE"
+}

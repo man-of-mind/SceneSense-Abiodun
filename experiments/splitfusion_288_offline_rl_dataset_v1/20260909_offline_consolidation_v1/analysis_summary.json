@@ -1,0 +1,600 @@
+{
+  "aggregates": {
+    "aoi_median_of_medians": 364.5439147949219,
+    "by_network_profile": {
+      "ADVERSE_STABLE": {
+        "ack_500ms_per_sent": 0.26240095104870104,
+        "ack_within_500ms": 58713,
+        "cells": 72,
+        "cells_with_install": 43,
+        "datagram_delivery_ratio": 0.4524887566108569,
+        "frames_sent": 223753,
+        "install_aoi_ms_median_of_medians": 399.7054100036621,
+        "installed_per_sent": 0.27018185231036007,
+        "installed_within_100ms": 0,
+        "maps_installed": 60454,
+        "on_time_100ms_per_sent": 0.0,
+        "zero_delivery_cells": 29
+      },
+      "FADE_RECOVERY": {
+        "ack_500ms_per_sent": 0.38594230553372993,
+        "ack_within_500ms": 85959,
+        "cells": 72,
+        "cells_with_install": 59,
+        "datagram_delivery_ratio": 0.6681652209716055,
+        "frames_sent": 222725,
+        "install_aoi_ms_median_of_medians": 353.9125919342041,
+        "installed_per_sent": 0.3904635761589404,
+        "installed_within_100ms": 0,
+        "maps_installed": 86966,
+        "on_time_100ms_per_sent": 0.0,
+        "zero_delivery_cells": 13
+      },
+      "FAVORABLE_STABLE": {
+        "ack_500ms_per_sent": 0.44637444000321913,
+        "ack_within_500ms": 99837,
+        "cells": 72,
+        "cells_with_install": 64,
+        "datagram_delivery_ratio": 0.7482360850613543,
+        "frames_sent": 223662,
+        "install_aoi_ms_median_of_medians": 344.5007801055908,
+        "installed_per_sent": 0.45109584998792823,
+        "installed_within_100ms": 0,
+        "maps_installed": 100893,
+        "on_time_100ms_per_sent": 0.0,
+        "zero_delivery_cells": 8
+      },
+      "MID_VARIABLE": {
+        "ack_500ms_per_sent": 0.3744067467668801,
+        "ack_within_500ms": 84884,
+        "cells": 72,
+        "cells_with_install": 56,
+        "datagram_delivery_ratio": 0.6379191492777295,
+        "frames_sent": 226716,
+        "install_aoi_ms_median_of_medians": 358.63423347473145,
+        "installed_per_sent": 0.3787161029658251,
+        "installed_within_100ms": 0,
+        "maps_installed": 85861,
+        "on_time_100ms_per_sent": 0.0,
+        "zero_delivery_cells": 16
+      }
+    },
+    "cells_with_install": 222,
+    "cells_with_on_time_install": 0,
+    "coverage_met_cells": 280,
+    "datagram_delivery_ratio": 0.6264823302811847,
+    "datagrams_median_range": [
+      1.0,
+      288.0
+    ],
+    "inner_bytes_median_range": [
+      6196.0,
+      3584999.0
+    ],
+    "low_coverage_cells": [
+      [
+        "a00__fade_recovery",
+        0.9312052834342323
+      ],
+      [
+        "a00__favorable_stable",
+        0.9454486765655261
+      ],
+      [
+        "a06__adverse_stable",
+        0.9440910612654838
+      ],
+      [
+        "a06__fade_recovery",
+        0.9391388798964067
+      ],
+      [
+        "a06__favorable_stable",
+        0.913290927351858
+      ],
+      [
+        "a06__mid_variable",
+        0.941728064300067
+      ],
+      [
+        "a12__favorable_stable",
+        0.9495382585751979
+      ],
+      [
+        "a18__fade_recovery",
+        0.9475593667546174
+      ]
+    ],
+    "low_coverage_range": [
+      0.913290927351858,
+      0.9495382585751979
+    ],
+    "prep_coverage": {
+      "count": 288,
+      "max": 0.9931729518855656,
+      "mean": 0.9758588039998034,
+      "median": 0.9776444929116684,
+      "min": 0.913290927351858,
+      "p90": 0.9866220735785953,
+      "p95": 0.9889860706187237
+    },
+    "prepare_status_totals": {
+      "DROPPED_INCOMPLETE_RADAR_WINDOW": 288,
+      "DROPPED_REPLACED_BY_NEWER_FRAME": 21726,
+      "DROPPED_SENSOR_LATE_OR_MISSING": 39,
+      "SENT": 896856,
+      "SPLIT_PROCESSING_FAILED": 0,
+      "STALE_BEFORE_SEND": 106,
+      "WARMUP_NO_COMPLETE_RADAR_WINDOW": 288
+    },
+    "route_outcome_counts": {
+      "COLLISION_ONLY_MEASURED_OUTCOME": 2,
+      "COMPLETED_NO_BRAKING_EVENT": 5,
+      "PERMITTED_INTERVENTION": 220
+    },
+    "sfd1_overhead_median": 205.0,
+    "stage_medians": [
+      [
+        "analytic_model_front_transport_back_feedback_ms",
+        {
+          "cells": 222,
+          "median_of_medians": 276.51210313146976
+        }
+      ],
+      [
+        "s10_ue_result_receipt_to_map_installation_ms",
+        {
+          "cells": 222,
+          "median_of_medians": 3.304719924926758
+        }
+      ],
+      [
+        "s11_feedback_emit_to_ue_receipt_ms",
+        {
+          "cells": 222,
+          "median_of_medians": 0.08916854858398438
+        }
+      ],
+      [
+        "s11_map_install_to_ue_feedback_receipt_ms",
+        {
+          "cells": 222,
+          "median_of_medians": 0.148773193359375
+        }
+      ],
+      [
+        "s12_ue_send_to_compact_result_receipt_ms_UE_PERF",
+        {
+          "cells": 222,
+          "median_of_medians": 284.100857
+        }
+      ],
+      [
+        "s13_capture_to_install_aoi_ms",
+        {
+          "cells": 222,
+          "median_of_medians": 364.5439147949219
+        }
+      ],
+      [
+        "s14_capture_to_ue_feedback_aoi_ms",
+        {
+          "cells": 288,
+          "median_of_medians": 500.64563751220703
+        }
+      ],
+      [
+        "s1_pre_front_compute_ms",
+        {
+          "cells": 288,
+          "median_of_medians": 33.78284256905317
+        }
+      ],
+      [
+        "s1_radar_prepare_ms",
+        {
+          "cells": 288,
+          "median_of_medians": 23.473097942769527
+        }
+      ],
+      [
+        "s1_radar_window_ms",
+        {
+          "cells": 288,
+          "median_of_medians": 5.59773575514555
+        }
+      ],
+      [
+        "s1_rgb_convert_ms",
+        {
+          "cells": 288,
+          "median_of_medians": 2.920295111835003
+        }
+      ],
+      [
+        "s1_scene_snapshot_ms",
+        {
+          "cells": 288,
+          "median_of_medians": 0.11635571718215942
+        }
+      ],
+      [
+        "s1_sensor_wait_ms",
+        {
+          "cells": 288,
+          "median_of_medians": 9.317643940448761
+        }
+      ],
+      [
+        "s2_derived_true_queue_wait_ms_RESIDUAL",
+        {
+          "cells": 288,
+          "median_of_medians": 0.18336158245801926
+        }
+      ],
+      [
+        "s2_queue_depth_at_dispatch",
+        {
+          "cells": 288,
+          "median_of_medians": 0.0
+        }
+      ],
+      [
+        "s2_recorded_queue_wait_ms_ENCLOSES_SENSOR_PREP",
+        {
+          "cells": 288,
+          "median_of_medians": 49.62173756211996
+        }
+      ],
+      [
+        "s3_ae_encode_ms",
+        {
+          "cells": 288,
+          "median_of_medians": 0.274401
+        }
+      ],
+      [
+        "s3_front_backbone_ms",
+        {
+          "cells": 288,
+          "median_of_medians": 1.344524
+        }
+      ],
+      [
+        "s3_front_ms_FULL_UE_DISPATCH_SPAN",
+        {
+          "cells": 288,
+          "median_of_medians": 24.817024
+        }
+      ],
+      [
+        "s3_front_timing_ns_unparseable_rows",
+        {
+          "cells": 0,
+          "median_of_medians": null
+        }
+      ],
+      [
+        "s3_quantize_pack_ms",
+        {
+          "cells": 288,
+          "median_of_medians": 8.656691
+        }
+      ],
+      [
+        "s3_ranker_selection_ms",
+        {
+          "cells": 288,
+          "median_of_medians": 3.651932
+        }
+      ],
+      [
+        "s3_total_ue_preparation_ms",
+        {
+          "cells": 288,
+          "median_of_medians": 16.420416
+        }
+      ],
+      [
+        "s3_zstd_compression_ms",
+        {
+          "cells": 288,
+          "median_of_medians": 0.428199
+        }
+      ],
+      [
+        "s4_datagram_send_loop_ms",
+        {
+          "cells": 288,
+          "median_of_medians": 0.244543
+        }
+      ],
+      [
+        "s4_derived_ue_uninstrumented_span_ms",
+        {
+          "cells": 288,
+          "median_of_medians": 7.330422000000002
+        }
+      ],
+      [
+        "s5_capture_to_edge_receipt_ms_INCLUDES_SENSOR_AND_FRONT",
+        {
+          "cells": 222,
+          "median_of_medians": 129.27794456481934
+        }
+      ],
+      [
+        "s5_derived_roundtrip_residual_ms_RESIDUAL",
+        {
+          "cells": 222,
+          "median_of_medians": 129.23401400000003
+        }
+      ],
+      [
+        "s5_feature_uplink_one_way_ms",
+        {
+          "cells": 0,
+          "median_of_medians": null
+        }
+      ],
+      [
+        "s6_derived_edge_queue_wait_ms_RESIDUAL",
+        {
+          "cells": 222,
+          "median_of_medians": 40.6063270328369
+        }
+      ],
+      [
+        "s6_edge_receipt_to_tail_complete_ms",
+        {
+          "cells": 222,
+          "median_of_medians": 190.78660011291504
+        }
+      ],
+      [
+        "s7_ae_decode_ms",
+        {
+          "cells": 222,
+          "median_of_medians": 1.079444
+        }
+      ],
+      [
+        "s7_unpack_dequantize_ms",
+        {
+          "cells": 222,
+          "median_of_medians": 5.724932
+        }
+      ],
+      [
+        "s7_zstd_decompression_ms",
+        {
+          "cells": 222,
+          "median_of_medians": 0.182963
+        }
+      ],
+      [
+        "s8_frozen_tail_ms",
+        {
+          "cells": 222,
+          "median_of_medians": 111.634367
+        }
+      ],
+      [
+        "s8_output_serialization_ms",
+        {
+          "cells": 222,
+          "median_of_medians": 19.629988
+        }
+      ],
+      [
+        "s8_total_edge_processing_ms",
+        {
+          "cells": 222,
+          "median_of_medians": 144.66937
+        }
+      ],
+      [
+        "s9_tail_complete_to_edge_evidence_install_ms",
+        {
+          "cells": 222,
+          "median_of_medians": 2.702474594116211
+        }
+      ],
+      [
+        "s9_tail_complete_to_map_publication_ms",
+        {
+          "cells": 0,
+          "median_of_medians": null
+        }
+      ],
+      [
+        "s9_tail_complete_to_ue_result_receipt_ms",
+        {
+          "cells": 222,
+          "median_of_medians": 11.554241180419922
+        }
+      ]
+    ],
+    "sustainable_fps": {
+      "count": 288,
+      "max": 10.547648326556068,
+      "mean": 10.227311946799633,
+      "median": 10.220661590009138,
+      "min": 9.993004927047298,
+      "p90": 10.330467251048612,
+      "p95": 10.372877164259942
+    },
+    "tier_counts": {
+      "EMERGENCY_ONLY": 28,
+      "FULL_PRESERVATION": 32,
+      "emergency-mode anchor": 2,
+      "primary anchor": 4,
+      "primary profile": 4,
+      "stress/emergency profile": 2
+    },
+    "total_ack_500ms": 329393,
+    "total_admissions": 602315,
+    "total_datagrams_rx": 28038030,
+    "total_datagrams_tx": 44754702,
+    "total_frames_sent": 896856,
+    "total_installed": 334174,
+    "total_on_time_100ms": 0,
+    "total_published": 334174,
+    "total_reassembled": 712732,
+    "total_tail_completions": 366225,
+    "total_timeout_no_ack": 564580,
+    "validation_sources": {
+      "experiments/splitfusion_fcos_ae_v1/20260903_phase10b_ae32_uint8_validation/phase10b_ae32_uint8_validation.json": {
+        "actions": 6,
+        "sha256": "db4b944eb5992a82e9fe6b0befd2e3bcf583629a6f27ad2ad6cb4075f03a90ec"
+      },
+      "experiments/splitfusion_fcos_ae_v1/20260903_phase10b_ae64_uint8_validation/phase10b_ae64_uint8_validation.json": {
+        "actions": 6,
+        "sha256": "eead1786a5d12294b9d61d9271431049aac28540a20f2c4608db33ab66de3aad"
+      },
+      "experiments/splitfusion_fcos_ae_v1/20260903_phase11d_lowbit_validation/phase11d_lowbit_validation.json": {
+        "actions": 48,
+        "sha256": "2680e6dc21469e6fdcabe1ce79e9d2d333d9a137c639cd033338b9b1c01c2862"
+      },
+      "experiments/splitfusion_fcos_ae_v1/20260903_phase9d_ae128_uint8_validation/phase9d_ae128_uint8_validation.json": {
+        "actions": 6,
+        "sha256": "89cc7c706fc3383106a5680d3d54d5fb514dcd5d808c13d9eaf1a2c380785963"
+      },
+      "experiments/splitfusion_fcos_hybrid_q_v1/20260902_223610_phase8b_uint8_validation/phase8b_uint8_validation.json": {
+        "actions": 6,
+        "sha256": "a2779f5fb0a585b1c317dc755b5ab577fa7c34963ab7945cb704e0d4146bb029"
+      }
+    },
+    "zero_delivery_cells": 66
+  },
+  "artifact_sha256": {
+    "action_72_summary.csv": "250eb6d9391c0de5a343d692484647bbdb181153ba64f7f4a447b0076f580a88",
+    "action_72x4_summary.csv": "280b372ed8b6a52bb3e5f1f69e6cbdc02dc851a6a597565fcab9ca9652f5998e",
+    "campaign_288_cell_table.csv": "3f3067d4c9d0ef3c0d2661c3d19d04306bcbd18ef6d21fa426148e0ee24d2e0d",
+    "latency_metric_dictionary.json": "92439634dc648ef9aabe8b98ee45a0b430356bc068b1d11c90f195835e040c29",
+    "metric_availability.json": "181dc89b860813f3dc4741540297e2247987c81a204e2564d155cc6a894c3f3e"
+  },
+  "claims_100ms_service_ready": false,
+  "output_row_counts": {
+    "action_72_summary.csv": 72,
+    "action_72x4_summary.csv": 288,
+    "campaign_288_cell_table.csv": 288
+  },
+  "provenance": {
+    "artifact_hashes": {
+      "SPLITFUSION_288_CELL_LIVE_CARLA_OAI_CAMPAIGN_COMPLETE": "87f8320aa07d85d142af8447c296944885893bedfd67912315350a518ebd7f7c",
+      "campaign_completion.json": "696af4443635bda2da8d93a2b8fd89808cd5ef04dfe34d30ed7f32a248ee1ee8",
+      "campaign_continuation_binding.json": "71f969c6e50d5d508d3b0f139354a59671384936c4464a18a246eea37b28007f",
+      "campaign_ledger.json": "dbbf3588fcaf542a6e3b2304a87267b58469c2dbd46bb1a9818cc2e82bb9d7f5",
+      "campaign_manifest.json": "dd2b5ce4326284888db6e6e28beae0863f79002d96964bc0d65321d48c3e326b"
+    },
+    "campaign_config_path": "rl_agent/configs/ue_288_campaign_v1.yaml",
+    "campaign_config_sha256": "f9c8382af5a4b16e95f71fa0e273437ee54eb114b5c39d3d428335a71c9e9057",
+    "campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry8",
+    "catalog_csv_sha256": "0512cb39982178e8c7c96a65ed26e272b3aa3a5aec0020a8dd9cf1cdb6696fbb",
+    "catalog_json_path": "rl_agent/splitfusion_action_catalog_v1/splitfusion_72_action_catalog.json",
+    "catalog_json_sha256": "07e0690f8a55bdd6068b8b283d14b7e165ccbf44742dd0a9568cfdd5dcac54c3",
+    "cell_mapping_sha256_rederived": "add96c8f117c4cb8ba427c670ba1698d4a2b8aea84129b4d32ac47fdc56025b1",
+    "continuation_chain": {
+      "declared_references_carried_forward": 61,
+      "declared_reused_cells": 61,
+      "declared_reused_from_source_campaign": 0,
+      "hops": [
+        {
+          "campaign_config_sha256": "17596fead1260834907e14beace483963b9ce7c9bd4765035420998ed2b450f1",
+          "campaign_ledger_sha256": "9909179b8b7c3b55828350ba079c86873c65103c2706451e98b9bef2dbe26a9c",
+          "campaign_manifest_sha256": "6157d97e1790d4e21bfabbcc34cbf90eb7ba69f4c3eecfab29e4dd4cdc64965e",
+          "campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry7",
+          "dispatch_binding_sha256": "24c0789dbb7b6dfb5b4e2bd057bd11f94c1fffcd0ff267218ab968e2859f3377",
+          "ledger_status_counts": {
+            "FAILED": 1,
+            "REUSED": 61
+          },
+          "rerun_cell_ids": [
+            "a61__favorable_stable"
+          ],
+          "reuse_campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry6",
+          "starting_head": "1672ddc8da92f3c074edb260083cfc2465186f19"
+        },
+        {
+          "campaign_config_sha256": "b0900d4d49fef09ab53f0b688fd4738d943b32b646060b6e1816ec8847905535",
+          "campaign_ledger_sha256": "831e428768600be6931490fa6c4837406ac7e6c59e4cb1aaefc2e40c07f71f94",
+          "campaign_manifest_sha256": "42fc741b75603ae7a6e712efbe222c3513ca723d6dddd55cd1b39276a6e53576",
+          "campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry6",
+          "dispatch_binding_sha256": "0478dedfbe8094bf773b723e64dfdb6f7c0a3fee5de3db0a92e318570a0c766c",
+          "ledger_status_counts": {
+            "FAILED": 1,
+            "PASSED": 3,
+            "REUSED": 58
+          },
+          "rerun_cell_ids": [
+            "a58__favorable_stable"
+          ],
+          "reuse_campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry5",
+          "starting_head": "d311f81247515814b675ac69e37bfdf74d4da713"
+        },
+        {
+          "campaign_config_sha256": "cda00536342354ce648c2c622ee6d3fd66285bfcfcfdeb031a638a18dceacb97",
+          "campaign_ledger_sha256": "7c527122f9df911f3dfc5c1f7193161d130c15306d063cd69a9a6cfb39d2461b",
+          "campaign_manifest_sha256": "ba82544da19ffc0dc1afc2731aed86fce3fb33130e751982a36192357c6fe9a3",
+          "campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry5",
+          "dispatch_binding_sha256": "56cef481e6bb6fdafc91452aca3e23cbccb0d9cd7baa39804bc62c5cdc58cab9",
+          "ledger_status_counts": {
+            "FAILED": 1,
+            "PASSED": 58
+          },
+          "rerun_cell_ids": null,
+          "reuse_campaign_root": null,
+          "starting_head": "1c9e2ba1ae6195b7a9396c64fa7a6f49c9786311"
+        }
+      ],
+      "immediate_source": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry7",
+      "reused_cells_predate_durable_route_summary_requirement": true
+    },
+    "declared_bindings": {
+      "campaign_ledger_sha256": "dbbf3588fcaf542a6e3b2304a87267b58469c2dbd46bb1a9818cc2e82bb9d7f5",
+      "campaign_manifest_sha256": "dd2b5ce4326284888db6e6e28beae0863f79002d96964bc0d65321d48c3e326b",
+      "cell_mapping_sha256": "add96c8f117c4cb8ba427c670ba1698d4a2b8aea84129b4d32ac47fdc56025b1",
+      "completion_sha256": "696af4443635bda2da8d93a2b8fd89808cd5ef04dfe34d30ed7f32a248ee1ee8"
+    },
+    "evidence_commit": "19c867623f26caca90d0ffcad319f7e68c625e74",
+    "starting_head": "19c867623f26caca90d0ffcad319f7e68c625e74",
+    "terminal_status": "SPLITFUSION_288_CELL_LIVE_CARLA_OAI_CAMPAIGN_COMPLETE"
+  },
+  "schema": "scenesense.splitfusion_288_offline_rl_dataset_consolidation.v1",
+  "steps_covered": "1-4",
+  "steps_not_performed": [
+    "action pruning",
+    "Pareto decisions",
+    "feasibility masking",
+    "reward design",
+    "RL-policy design",
+    "training"
+  ],
+  "verification": {
+    "aoi_reproduces_registered": 288,
+    "counter_reconciliation_holds": 288,
+    "distinct_actions": 72,
+    "distinct_profiles": 4,
+    "duplicate_cells": 0,
+    "durable_settings_verified": 72,
+    "executed_cells": 227,
+    "foreign_cells": 0,
+    "ledger_cells": 288,
+    "missing_cells": 0,
+    "reassembly_identity_holds": 288,
+    "registered_outputs_verified": 1958,
+    "reused_cells": 61,
+    "reused_with_route_summary": 3,
+    "reused_without_route_summary": 58,
+    "route_outcome_available": 227,
+    "route_summary_present": 230,
+    "status_counts": {
+      "PASSED": 227,
+      "REUSED": 61
+    },
+    "structural_pass": 288,
+    "unique_cells": 288,
+    "validation_rows_joined": 288
+  }
+}

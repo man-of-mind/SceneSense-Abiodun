@@ -1,0 +1,4018 @@
+{
+  "campaign_id": "ue_288_route_b_traffic_50_50_v1",
+  "cells": {
+    "a00__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a00__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "30db920e530c800fb5c4c4295fd0c536af38582289f7f010808be5b83012e221",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a00__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "4db080a915868dd4da008c5a3cb9377846d8a23dcf787d9390f00d894ae5409a"
+      }
+    ],
+    "a00__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a00__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "ab157e87390ace111a85257dc328d91127d9e6c09fe8c252215a370254412867",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a00__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "baa2d8ede880d374c142638d44986767d660b923fe00bf50eaabf08e33600158"
+      }
+    ],
+    "a00__favorable_stable": [
+      {
+        "attempt": 1,
+        "route_metrics_summary_present": false,
+        "source_attempt_dir": "cells/a00__favorable_stable/attempts/attempt_0001",
+        "source_campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry5",
+        "source_expected_outputs": [
+          "per_frame_metrics.csv",
+          "radio_trace.csv",
+          "map_feedback.csv",
+          "perception_metrics.csv",
+          "resolved_config.yaml",
+          "RESULTS_SUMMARY.json",
+          "manifest.json"
+        ],
+        "source_manifest_sha256": "e7df95f768a373a888c94c61ac9f8948deacae15706762cfc87d94ae841fc7f0",
+        "source_terminal": "cells/a00__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "status": "REUSED",
+        "terminal_sha256": "a20e3e8ba27f4ed3bb96a7e23cf2cefa54660d70db03283a682c254e3e3b782e"
+      }
+    ],
+    "a00__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a00__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "d19828557cd4dfcdd45ba2f88ffca7984cc630edc9c2c9327dc0edf4a1c6ec5a",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a00__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "996a27e2a6117f9d09010dd166696430a14f26f13319434567ae13c5bdaad47d"
+      }
+    ],
+    "a01__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a01__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "61986d11767d1c113b8382ceeaff52196405dbb386f38b6429bc8039834973f8",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a01__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "f8666ddc38f519cf6882b77eaaa9ef3c0da7f2ee9cbfbc3e371b509bf1a4840b"
+      }
+    ],
+    "a01__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a01__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "b0980e1c5be00a737b41507a1e4a3f6cd7df8a91325b9d4e89407e6529314a5c",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a01__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "d46f755b558931bd0fad5a2f2d867e68e1be877a8d0137bd5275ba9a8cc8976a"
+      }
+    ],
+    "a01__favorable_stable": [
+      {
+        "attempt": 1,
+        "route_metrics_summary_present": false,
+        "source_attempt_dir": "cells/a01__favorable_stable/attempts/attempt_0001",
+        "source_campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry5",
+        "source_expected_outputs": [
+          "per_frame_metrics.csv",
+          "radio_trace.csv",
+          "map_feedback.csv",
+          "perception_metrics.csv",
+          "resolved_config.yaml",
+          "RESULTS_SUMMARY.json",
+          "manifest.json"
+        ],
+        "source_manifest_sha256": "f130aac59c848a951c18df6db67d251ee1e725a49259a49994620ff0e9ceef84",
+        "source_terminal": "cells/a01__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "status": "REUSED",
+        "terminal_sha256": "fce48fa2beb30ffab166c535bad2eaaa84a4da77aa502a69630bfcb94acf1c1d"
+      }
+    ],
+    "a01__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a01__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "2cc66e59fd55f6c9cb5c8f10ed954cfe5c12c78ccb411a82065607c4fd848d8f",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a01__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "897bd9755936233deb16cb09cd8fa68d7b5daecf23ff5d1e293bb1d9c1e2c32a"
+      }
+    ],
+    "a02__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a02__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "034b97fcfd7afa79ffebfc656fd26faa43828ff89aea11b0754c281eb6d79011",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a02__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "553e91b95381aca5dff4f25d8fe98b96ed1e922483b00f73157a14fc196d12bb"
+      }
+    ],
+    "a02__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a02__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "4f3aa51de59961c0ca778c1c875904f484f1e192348b79f16104a9662838fb0f",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a02__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "a557b89f45b66b414b776c81e122efb525e67720e58664f9d045b3358f8028fd"
+      }
+    ],
+    "a02__favorable_stable": [
+      {
+        "attempt": 1,
+        "route_metrics_summary_present": false,
+        "source_attempt_dir": "cells/a02__favorable_stable/attempts/attempt_0001",
+        "source_campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry5",
+        "source_expected_outputs": [
+          "per_frame_metrics.csv",
+          "radio_trace.csv",
+          "map_feedback.csv",
+          "perception_metrics.csv",
+          "resolved_config.yaml",
+          "RESULTS_SUMMARY.json",
+          "manifest.json"
+        ],
+        "source_manifest_sha256": "8452f0b360db545dfa16db9c1e33dd0591f388c358077ed4ad02341d1666ab2f",
+        "source_terminal": "cells/a02__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "status": "REUSED",
+        "terminal_sha256": "7a4e7c1451b45e80e946c393b0269d7c8edb40f57644d3305f03919d418d3e23"
+      }
+    ],
+    "a02__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a02__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "fc9b352f19ac7ca2847e80575855da68d5b44b1c856a8b39c998d2772624d00f",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a02__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "987031645d5149390602a30bd96a29ccd2074cd3af5c315f4fb8cc932d1a67af"
+      }
+    ],
+    "a03__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a03__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "7ac91f2d5cda290f42a4953c16fa7b439588e1b5004659688be56ad778799cb3",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a03__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "aba407f58bace93288f719b02cb27c71a306045f1773d7afbd93e628a3112856"
+      }
+    ],
+    "a03__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a03__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "2cdb0f3aca8cc8c36e408b2a4723ede9604f54a26414f09a57cb293211b9ebcb",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a03__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "c22bd713204b0ce99050376d7a922b5ca9b3bf8dc306b814711ddde50e041741"
+      }
+    ],
+    "a03__favorable_stable": [
+      {
+        "attempt": 1,
+        "route_metrics_summary_present": false,
+        "source_attempt_dir": "cells/a03__favorable_stable/attempts/attempt_0001",
+        "source_campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry5",
+        "source_expected_outputs": [
+          "per_frame_metrics.csv",
+          "radio_trace.csv",
+          "map_feedback.csv",
+          "perception_metrics.csv",
+          "resolved_config.yaml",
+          "RESULTS_SUMMARY.json",
+          "manifest.json"
+        ],
+        "source_manifest_sha256": "ee8c5af84cfc25af05292a0b1e33b5b2c7ae4b8de37fb9ff39336f6819727347",
+        "source_terminal": "cells/a03__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "status": "REUSED",
+        "terminal_sha256": "ffd263ddc3011a6145b003bc0c520d9ab2b7ac65eb4fcb6877aeb925f7736f20"
+      }
+    ],
+    "a03__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a03__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "d4743b0062c6603147b0a6b16062887c1cd58ea51708c3e3560db2182d15ab7f",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a03__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "1f31ebda1eff8dd05d850a1ebaf16cfd87f1c0aba112568672ebf3d04695dcaa"
+      }
+    ],
+    "a04__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a04__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "bfb633ac5f7a6a00f486c1b713d91c0006eb3a21d8b9dc705a084ef190509d53",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a04__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "30581873e306a32d0a6e24f01b60caaf36ab92f35b644273eb0b2e848ea2b752"
+      }
+    ],
+    "a04__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a04__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "3ce1d4ad3e87fe25384c9ced6ef3f3460e42dea32d7d9ec424d0c7be0fb6ba30",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a04__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "b7aa0ceafc747382da145b47316186db6f28ed9a529d2e0938e63c551beeff1d"
+      }
+    ],
+    "a04__favorable_stable": [
+      {
+        "attempt": 1,
+        "route_metrics_summary_present": false,
+        "source_attempt_dir": "cells/a04__favorable_stable/attempts/attempt_0001",
+        "source_campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry5",
+        "source_expected_outputs": [
+          "per_frame_metrics.csv",
+          "radio_trace.csv",
+          "map_feedback.csv",
+          "perception_metrics.csv",
+          "resolved_config.yaml",
+          "RESULTS_SUMMARY.json",
+          "manifest.json"
+        ],
+        "source_manifest_sha256": "05fec7d77b3a1778ddcab0a1f6a10fdb07433016717c28c9467c72458e1a6690",
+        "source_terminal": "cells/a04__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "status": "REUSED",
+        "terminal_sha256": "7f3a19e75bda0e5cd503efc7047d366f1149598d5cb36878e3390cb80725b2b5"
+      }
+    ],
+    "a04__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a04__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "87bd0f136a053e76c165bda151cfb72ecdf10ead8bd0c8722ba05e6b6355eafa",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a04__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "14af8edd48dc21fa1abf9203a3a745d82c4973cbc0f5271d224b8566b4517cf7"
+      }
+    ],
+    "a05__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a05__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "18f9eb4ef60e3a06f57835b5404f697c2e9f206fd66812554647c80295e59520",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a05__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "347ec5fd92673ce977a2fd7ecabf80b8f04908719387f030efe47f17ce880c6b"
+      }
+    ],
+    "a05__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a05__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "df343c1a2da16f99313149c0c7b736739f57531c90e5f2c0c1cb1ca82a2078ba",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a05__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "4dec060d05343c3c8b690350842b9d77f367fda3905950ee89ae48457cf6230a"
+      }
+    ],
+    "a05__favorable_stable": [
+      {
+        "attempt": 1,
+        "route_metrics_summary_present": false,
+        "source_attempt_dir": "cells/a05__favorable_stable/attempts/attempt_0001",
+        "source_campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry5",
+        "source_expected_outputs": [
+          "per_frame_metrics.csv",
+          "radio_trace.csv",
+          "map_feedback.csv",
+          "perception_metrics.csv",
+          "resolved_config.yaml",
+          "RESULTS_SUMMARY.json",
+          "manifest.json"
+        ],
+        "source_manifest_sha256": "d515bb8e0285c624019926b1b63f9518116b062365709f42e7512a88214dac38",
+        "source_terminal": "cells/a05__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "status": "REUSED",
+        "terminal_sha256": "ef301dd4529f23a7dffdcacc9a2efcb44d8e16e20c96e1d1fbbf42788d69aeb6"
+      }
+    ],
+    "a05__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a05__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "15fd27aa0468e1f870e1f62ffa6856e327d74ee7713ff5d5671c6b6c9dc5e213",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a05__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "4f69850636de76a183be06d2b7046fa136170f65822fce1425070667ff2f147a"
+      }
+    ],
+    "a06__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a06__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "a21f940a1dec89f68f8fb8eadede6fdb6473944b5553dd78cc2f3be5cbb08ee6",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a06__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "fe258460b9cb6ca0efe508d1b4c06b7a8111d2ba1ac1beab0d4c9ae029d72e6f"
+      }
+    ],
+    "a06__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a06__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "8b7c91492398c127ad412a3424df02952053ff960bffef1e98d8c7a4aca647e3",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a06__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "ef5673fd8e91ce2bc39e2b161eb85aba03802d786f6405f788cf852e79d3d061"
+      }
+    ],
+    "a06__favorable_stable": [
+      {
+        "attempt": 1,
+        "route_metrics_summary_present": false,
+        "source_attempt_dir": "cells/a06__favorable_stable/attempts/attempt_0001",
+        "source_campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry5",
+        "source_expected_outputs": [
+          "per_frame_metrics.csv",
+          "radio_trace.csv",
+          "map_feedback.csv",
+          "perception_metrics.csv",
+          "resolved_config.yaml",
+          "RESULTS_SUMMARY.json",
+          "manifest.json"
+        ],
+        "source_manifest_sha256": "7b1a622530b0422dc9b8913f002a34799a791b6a8f4f284dd5b73aa465818c2f",
+        "source_terminal": "cells/a06__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "status": "REUSED",
+        "terminal_sha256": "6b2e6f50ada51082b48e2a8a27c02de7e655aea1da85017530a12fff5329d8e3"
+      }
+    ],
+    "a06__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a06__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "deaf7e50e6592ca7e3013c0eaa650968b765d865a4601ce99022a46d02855982",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a06__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "0b5e572710cea775d5b527173494e1d27dc55d331d3581f0fda4f5ac745bfe0b"
+      }
+    ],
+    "a07__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a07__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "21d274dd663f4f8dc995c6966c69c99bc59e80f9bdb1d957a8bb851a1d89d585",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a07__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "07c82bda6039fede4a85caf84a376fa477242c6817315c94eeb5556d0791e78e"
+      }
+    ],
+    "a07__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a07__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "9518a60c78d4b78a0ac20899728f8d54caeab582aa5a80cd6999958947bb4596",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a07__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "c8393654305d00f7c0e0a1dd645dbb5a86a7e0efdcccad823b0dc551f5a97e8b"
+      }
+    ],
+    "a07__favorable_stable": [
+      {
+        "attempt": 1,
+        "route_metrics_summary_present": false,
+        "source_attempt_dir": "cells/a07__favorable_stable/attempts/attempt_0001",
+        "source_campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry5",
+        "source_expected_outputs": [
+          "per_frame_metrics.csv",
+          "radio_trace.csv",
+          "map_feedback.csv",
+          "perception_metrics.csv",
+          "resolved_config.yaml",
+          "RESULTS_SUMMARY.json",
+          "manifest.json"
+        ],
+        "source_manifest_sha256": "9207ecabf0fd45bb1c77512b8008d2946040c2e08c0899d0faa6cfdb5e2bc6d2",
+        "source_terminal": "cells/a07__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "status": "REUSED",
+        "terminal_sha256": "d8f1fa8561294350ad779ef16fed36964a9cb945b09643bcb375fa2a990feb5d"
+      }
+    ],
+    "a07__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a07__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "c1aacdff4babb5db5cdefe615e521cb747bd7617fc85b34d93367e7e22a17b4f",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a07__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "2c3c583f9d6cb9c68c9546e6c4e0e752a7be229bcdfce14a90e648a6d6362768"
+      }
+    ],
+    "a08__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a08__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "964ceac0593903cc8f1b16252e57f0f95992e73e27094bc7ecd630de7368d00e",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a08__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "edb2fe14b23ce80c27b76792afe80d3b0ae6f4ee2e217bccd4f3a71e036c4222"
+      }
+    ],
+    "a08__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a08__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "3da5486b56cde66cf348d38f99e74e84fc7b338d8e67cae7bbd58dc8b62971bf",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a08__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "c78e8975b5cdf5b7c832a191bd973e820f55e0ef59a6cc0e2c8ed9b2177c7238"
+      }
+    ],
+    "a08__favorable_stable": [
+      {
+        "attempt": 1,
+        "route_metrics_summary_present": false,
+        "source_attempt_dir": "cells/a08__favorable_stable/attempts/attempt_0001",
+        "source_campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry5",
+        "source_expected_outputs": [
+          "per_frame_metrics.csv",
+          "radio_trace.csv",
+          "map_feedback.csv",
+          "perception_metrics.csv",
+          "resolved_config.yaml",
+          "RESULTS_SUMMARY.json",
+          "manifest.json"
+        ],
+        "source_manifest_sha256": "b84aa1c26561f7c9fa2d514d1e2cb58bf90aa9b263a4669406d1cc2b85180450",
+        "source_terminal": "cells/a08__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "status": "REUSED",
+        "terminal_sha256": "8bc674dce93785a10465dd1d34b26388f1ba11b1fb55fd5b33e561926873e387"
+      }
+    ],
+    "a08__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a08__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "0ee694278730756fd5ad6aef6409931b9486d83593b405a05e74dcbde92d9217",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a08__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "20a28475362895194e3ff7532604bed5476cbd56548f5bf8b29fb0668a174682"
+      }
+    ],
+    "a09__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a09__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "e398072662589619c5de199019925bf75fb3882a153b0ab8fd0b9afdee1ea91e",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a09__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "f6c57c1d3bf7b60edefd678282472feb933e7c3da343ace963009c0162e685ad"
+      }
+    ],
+    "a09__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a09__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "d4968edec0bf4b849950f4439769ecd519cbc3cd02708d34b01c547b20806971",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a09__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "20d0ac1a2192a70630f6d6328d97a00591327cdf3c330ff9eaf4500549514957"
+      }
+    ],
+    "a09__favorable_stable": [
+      {
+        "attempt": 1,
+        "route_metrics_summary_present": false,
+        "source_attempt_dir": "cells/a09__favorable_stable/attempts/attempt_0001",
+        "source_campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry5",
+        "source_expected_outputs": [
+          "per_frame_metrics.csv",
+          "radio_trace.csv",
+          "map_feedback.csv",
+          "perception_metrics.csv",
+          "resolved_config.yaml",
+          "RESULTS_SUMMARY.json",
+          "manifest.json"
+        ],
+        "source_manifest_sha256": "4c1762e27636ee5e7bde9b696c79c4c602200eea542aa6dff469410eaa4e3f8d",
+        "source_terminal": "cells/a09__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "status": "REUSED",
+        "terminal_sha256": "7541076fa4ebe31af2915bc22082c8f97677e982ace1e8e58bb6597ecfa35825"
+      }
+    ],
+    "a09__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a09__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "4ec53feba197fc70fa924f31fb6bd4732710d1fbe6e1fb6cbd2b5eec4c0e49c6",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a09__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "b2f36128e530c88a9be39c520913a63a752ae6a3edac7d61ddf792cbf9cf6233"
+      }
+    ],
+    "a10__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a10__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "0824555e9947fced1941d1fdc8bfc8516d18189afd1cc2ae2bc70d9c35c6a7ae",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a10__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "69058dfa58dc337e5c40dab7c5abaa78f0a9a77252c4f45b740604a2a2d016d5"
+      }
+    ],
+    "a10__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a10__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "951e9db59798f697b66d1874d377ebd8f32806fb11b85a5a0e9159458b17cc9b",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a10__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "5c23cdc53341133e76bb0e5e6035507532070209dca1c6f3b1699926991e6907"
+      }
+    ],
+    "a10__favorable_stable": [
+      {
+        "attempt": 1,
+        "route_metrics_summary_present": false,
+        "source_attempt_dir": "cells/a10__favorable_stable/attempts/attempt_0001",
+        "source_campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry5",
+        "source_expected_outputs": [
+          "per_frame_metrics.csv",
+          "radio_trace.csv",
+          "map_feedback.csv",
+          "perception_metrics.csv",
+          "resolved_config.yaml",
+          "RESULTS_SUMMARY.json",
+          "manifest.json"
+        ],
+        "source_manifest_sha256": "77c9b28db17def75f181ee044f5937a890ced1401442c08f3e36bcbc4077155c",
+        "source_terminal": "cells/a10__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "status": "REUSED",
+        "terminal_sha256": "01a902536c6a61318cf97c8f1abbd0853dbcb89487113c074ad24048643c8f1f"
+      }
+    ],
+    "a10__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a10__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "5384a09b89f9aaba18e6562b53d21c71787a61daf3af1594bc90cf59907d4ab8",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a10__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "50b4a1b07e0f7b69e5d1eebfdf46e620e964907e8eb1c68dda6f466c221887d3"
+      }
+    ],
+    "a11__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a11__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "446e222c1886bcda15f2ac986823cac9779400819e8146798312fba83c20f763",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a11__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "1e8409bc89076043e12dd09d9fae59bbea7ae7897ae730f9fbb3539d655beea6"
+      }
+    ],
+    "a11__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a11__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "3d523fa09a5463d8acbfee2ab8e4e77ffa13a8b37dd712ecc94e623a0a16751a",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a11__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "7d917a081743bb1f37dddb242ad8f8d86992487323311375bdfdbe814cbcfbd4"
+      }
+    ],
+    "a11__favorable_stable": [
+      {
+        "attempt": 1,
+        "route_metrics_summary_present": false,
+        "source_attempt_dir": "cells/a11__favorable_stable/attempts/attempt_0001",
+        "source_campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry5",
+        "source_expected_outputs": [
+          "per_frame_metrics.csv",
+          "radio_trace.csv",
+          "map_feedback.csv",
+          "perception_metrics.csv",
+          "resolved_config.yaml",
+          "RESULTS_SUMMARY.json",
+          "manifest.json"
+        ],
+        "source_manifest_sha256": "c9fbf7a46cccee01977e2eecba5a7c789482be8112e1fc117c00e089680af309",
+        "source_terminal": "cells/a11__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "status": "REUSED",
+        "terminal_sha256": "37d7ab30de606927fd1e3f56f810ffbb82efb824181df96a4664dd3c86388314"
+      }
+    ],
+    "a11__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a11__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "ea24817ecab19fbb4744d978bb6a3f72041d5b86f161013d6df36728e09cd4da",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a11__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "8daaa25818150e20b9bc69483d0a525fab6af4f2013e0ebe28ca22fa23e2b7e0"
+      }
+    ],
+    "a12__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a12__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "2a98a05340e9a39939fdc65b500ac851ac82d99f6ce8f79d2097212cf066dff9",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a12__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "98ac7ff39e890696b45b8d550aa2b506d914cc761d2f800f962056bf8060148f"
+      }
+    ],
+    "a12__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a12__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "3dfae1d9cfa5dc82cabd6875a89afaa070e4e915d8124002d6b57232c7993bfe",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a12__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "03469fad13605549fb83d62115028ea49f8ec3a175b10817a81437fb6d6a6453"
+      }
+    ],
+    "a12__favorable_stable": [
+      {
+        "attempt": 1,
+        "route_metrics_summary_present": false,
+        "source_attempt_dir": "cells/a12__favorable_stable/attempts/attempt_0001",
+        "source_campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry5",
+        "source_expected_outputs": [
+          "per_frame_metrics.csv",
+          "radio_trace.csv",
+          "map_feedback.csv",
+          "perception_metrics.csv",
+          "resolved_config.yaml",
+          "RESULTS_SUMMARY.json",
+          "manifest.json"
+        ],
+        "source_manifest_sha256": "bc12624b8b83699ad9f942959eb15b07de6c8088549f3069d5a08fca35eeb268",
+        "source_terminal": "cells/a12__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "status": "REUSED",
+        "terminal_sha256": "e3150c2a04e9dea9b23eeaeed3c715be3762fa63992a16152f99eb1de7b6b236"
+      }
+    ],
+    "a12__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a12__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "77921ea4fdfe3e58b209e6556f392791c6aca2cf0076e9f1d7a56b442903e033",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a12__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "0b748ba23580e4c5b2c6069660182735dda28e59913ab63813e33a9cdc11ff85"
+      }
+    ],
+    "a13__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a13__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "ec92c68945859bfa7d4008f30df66cebdb63379bc22f07beb4ddf771c7779b63",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a13__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "a1ff912e22310a09753903ea39c4b4f0e07af37ccfba4681b807f5d8c5808504"
+      }
+    ],
+    "a13__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a13__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "c9689c030cb71a945e34058f285bbe45ff4320e21eb915c78a60969d9862fe8a",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a13__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "25784355fdb00db235deb2c0df3ab2269d8b713f02c66c569f4ccbb376d8e73a"
+      }
+    ],
+    "a13__favorable_stable": [
+      {
+        "attempt": 1,
+        "route_metrics_summary_present": false,
+        "source_attempt_dir": "cells/a13__favorable_stable/attempts/attempt_0001",
+        "source_campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry5",
+        "source_expected_outputs": [
+          "per_frame_metrics.csv",
+          "radio_trace.csv",
+          "map_feedback.csv",
+          "perception_metrics.csv",
+          "resolved_config.yaml",
+          "RESULTS_SUMMARY.json",
+          "manifest.json"
+        ],
+        "source_manifest_sha256": "a5938586c2e79f2e8d39213fa5d09b869e6c1117c709163d737e5046421d9121",
+        "source_terminal": "cells/a13__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "status": "REUSED",
+        "terminal_sha256": "f8ad912828c24a58b07346c310190fd397b14cd2879baae89ba50750d9d16ff8"
+      }
+    ],
+    "a13__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a13__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "dfea5d77d80fcbae890900b77b464b3246a0fd99e04d3b0db1581b36b14c75c7",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a13__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "d7279297e14447a108fa33f3b5b5621caaba97b56542cff2c250e51f78b5f92a"
+      }
+    ],
+    "a14__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a14__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "c705eca6d375940f749f994253bed843d90f610e5dff46f0b0652c5e8c39aefc",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a14__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "371e339dedc0d63fc31dc1df26fdb16dcba1521044ef0a7b0f4112debd1bf38c"
+      }
+    ],
+    "a14__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a14__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "8553c2d1bcea8285f804d40ebd2d8bb3ca1c9f3431ff618965bf4ea39b4ddd2a",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a14__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "ab993d8b4f6a5b3f32d67f3a170a9dbf33565223747cb00c8fef9bc40bc78939"
+      }
+    ],
+    "a14__favorable_stable": [
+      {
+        "attempt": 1,
+        "route_metrics_summary_present": false,
+        "source_attempt_dir": "cells/a14__favorable_stable/attempts/attempt_0001",
+        "source_campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry5",
+        "source_expected_outputs": [
+          "per_frame_metrics.csv",
+          "radio_trace.csv",
+          "map_feedback.csv",
+          "perception_metrics.csv",
+          "resolved_config.yaml",
+          "RESULTS_SUMMARY.json",
+          "manifest.json"
+        ],
+        "source_manifest_sha256": "39b8ced6d72c1e2d4e8cac5c6a85cba64bb087e3f88e5f72596abf8ecf02d9d9",
+        "source_terminal": "cells/a14__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "status": "REUSED",
+        "terminal_sha256": "2152aa899f44602881b4a5e8b94a5eec517fa524e8512a068ee2c4d1b05aff13"
+      }
+    ],
+    "a14__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a14__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "0ac30656aa25041a4dcd4c02b99677a65b0ae8fd282832e4a152ad44955193c2",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a14__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "f6b9dcf7744266de5a242b863329fb90cb463e3be8eadb21c158281994cd2f69"
+      }
+    ],
+    "a15__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a15__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "580f4ea79d1e995517a7d27225341afc9cb3fb5e0de5de7332a963e65d390b95",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a15__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "88e9eb7c3d3153d041de66ed62012a138b2f61d1475655ebd3fadb8692e9e1d6"
+      }
+    ],
+    "a15__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a15__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "36b43bddb607fa092c1e08a0e83bc1dfd8ab54f0449b59f55cffa9392557b766",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a15__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "2f4b271313d4dee7a984846585a27c79b5e45268f6f8fadb5f1a34837a248397"
+      }
+    ],
+    "a15__favorable_stable": [
+      {
+        "attempt": 1,
+        "route_metrics_summary_present": false,
+        "source_attempt_dir": "cells/a15__favorable_stable/attempts/attempt_0001",
+        "source_campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry5",
+        "source_expected_outputs": [
+          "per_frame_metrics.csv",
+          "radio_trace.csv",
+          "map_feedback.csv",
+          "perception_metrics.csv",
+          "resolved_config.yaml",
+          "RESULTS_SUMMARY.json",
+          "manifest.json"
+        ],
+        "source_manifest_sha256": "8229c9fd68f02d6e1e841a8210cd229eb535072fbe78019f1c8af81045ee0ad8",
+        "source_terminal": "cells/a15__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "status": "REUSED",
+        "terminal_sha256": "fe5a890f39d9fff7d7603f81a104e7d90d789fceaa79d7d041706e750b42e5f0"
+      }
+    ],
+    "a15__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a15__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "315dc81ee2f5129b755cd776d56b2c3405872003c437b863aea715bb74aaa605",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a15__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "40594cf4d4b9918dc5ab8794276b27cecb60308e3984507453f9ba8bfcf9015a"
+      }
+    ],
+    "a16__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a16__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "607cd52bf6d9f2c2dafb55adc8a3f025850009414a96340443891b3f57a83215",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a16__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "7e9aad8cf5f5b8afd219f496b776675eda4c1700653f52253f41831790cc2116"
+      }
+    ],
+    "a16__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a16__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "c2b6dd980cb3b876eb6810ff1460cab2cafb8ab6a967e8e927f7b4a111466849",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a16__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "7d89a379442c6e2b784480f6a525a70207c539ed9361cd09c60c16ea1eb7a4f7"
+      }
+    ],
+    "a16__favorable_stable": [
+      {
+        "attempt": 1,
+        "route_metrics_summary_present": false,
+        "source_attempt_dir": "cells/a16__favorable_stable/attempts/attempt_0001",
+        "source_campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry5",
+        "source_expected_outputs": [
+          "per_frame_metrics.csv",
+          "radio_trace.csv",
+          "map_feedback.csv",
+          "perception_metrics.csv",
+          "resolved_config.yaml",
+          "RESULTS_SUMMARY.json",
+          "manifest.json"
+        ],
+        "source_manifest_sha256": "98c83cfb6f170cb384348a7e99223b7df65198169bb13d821ed367e97710bed7",
+        "source_terminal": "cells/a16__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "status": "REUSED",
+        "terminal_sha256": "fc9303809e5f8f37291e035e6c55c33f02e856f19ead4fbcf2af328e956a4731"
+      }
+    ],
+    "a16__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a16__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "83ec95b0c2cf4b71558129177c70a4dd2b31f24c1adc37ab65adfcee37cbc017",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a16__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "de663185f8a208d82e5efba19f4296af2c306a4b111edec64fd4e3b9cd81c079"
+      }
+    ],
+    "a17__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a17__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "2bf7c6f508c773ef507f8ad93c5f421dfa0175e0aaf341b3411ad940ef765fb6",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a17__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "d395319a870a9920f31242c4499a0ff7034681a7d74c0b16619e45f916a9ce86"
+      }
+    ],
+    "a17__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a17__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "01d814fbef969b5cc2a5c1ffb72bea3a3bf32f692d97aa9288d5ac528724104b",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a17__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "5ae26fbf033b6ca3a5d74f5287f244a663d6e1bf2132c121103a212f53a40fff"
+      }
+    ],
+    "a17__favorable_stable": [
+      {
+        "attempt": 1,
+        "route_metrics_summary_present": false,
+        "source_attempt_dir": "cells/a17__favorable_stable/attempts/attempt_0001",
+        "source_campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry5",
+        "source_expected_outputs": [
+          "per_frame_metrics.csv",
+          "radio_trace.csv",
+          "map_feedback.csv",
+          "perception_metrics.csv",
+          "resolved_config.yaml",
+          "RESULTS_SUMMARY.json",
+          "manifest.json"
+        ],
+        "source_manifest_sha256": "debfc0ef600549e2c982059e25464100d397b9beea5e4736891df0d73bb98c17",
+        "source_terminal": "cells/a17__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "status": "REUSED",
+        "terminal_sha256": "9a3529bc30c59f49e97609209806d0353362413978ba13b72f404230c51e4666"
+      }
+    ],
+    "a17__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a17__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "4044bba55b904d8f9aee91396b57003c0e8dd32f5de759a28f736b7a0141b98b",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a17__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "de48aa247ef7f33e7dd644ddf56fceb30486734eb79ebb6eb4b7db38464325d6"
+      }
+    ],
+    "a18__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a18__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "75a8e734aae04f8f730db3d4318978a93e1cba0d5c0f087ef8dbfa04030a3f25",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a18__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "d065e69ab1f31b99d0a62349c6ddf66491b325870d173e6eb3d88b0ec97f35c3"
+      }
+    ],
+    "a18__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a18__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "89e7d78cd8a442409beba0e8e39ba9e8ce0d453f3790df276f6bbc97e3a94585",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a18__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "0181ce9a17319d596385aa52e29f864df37cd80a958091b7cf862731f4ac5d14"
+      }
+    ],
+    "a18__favorable_stable": [
+      {
+        "attempt": 1,
+        "route_metrics_summary_present": false,
+        "source_attempt_dir": "cells/a18__favorable_stable/attempts/attempt_0001",
+        "source_campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry5",
+        "source_expected_outputs": [
+          "per_frame_metrics.csv",
+          "radio_trace.csv",
+          "map_feedback.csv",
+          "perception_metrics.csv",
+          "resolved_config.yaml",
+          "RESULTS_SUMMARY.json",
+          "manifest.json"
+        ],
+        "source_manifest_sha256": "31c68b703c20da3598cd4ee496716356fec7ce66a4355b5b16a2aede82a1e3cc",
+        "source_terminal": "cells/a18__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "status": "REUSED",
+        "terminal_sha256": "6b7c3705d698e2c60bdd5471c3b998e0b13ce2c711b2611bfda499368d8baecb"
+      }
+    ],
+    "a18__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a18__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "12d4f132a28dc5dcd84d7ed4ab1ad7029cee844c0d380b3af2782eeedfaf6c40",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a18__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "a0138b4c5fba3759ab85fef00c3956fc3707786200d44609064c372060277734"
+      }
+    ],
+    "a19__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a19__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "f066400b87cc30da9ce95d4ea26adf622120c42e357e50ca2db9f80f6c784c87",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a19__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "b3a40e7dcc6863aef9d62d0b8d107eeb24aab8e175a467d85985a57bdcbd3656"
+      }
+    ],
+    "a19__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a19__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "86928074c3295908bafec26ff94ef40bd9951e7fede9be64c73d0fe300ac01d2",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a19__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "f1617d3b047a1c3c94fc6b368071b254050396d8cd8939b718d52676651476a3"
+      }
+    ],
+    "a19__favorable_stable": [
+      {
+        "attempt": 1,
+        "route_metrics_summary_present": false,
+        "source_attempt_dir": "cells/a19__favorable_stable/attempts/attempt_0001",
+        "source_campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry5",
+        "source_expected_outputs": [
+          "per_frame_metrics.csv",
+          "radio_trace.csv",
+          "map_feedback.csv",
+          "perception_metrics.csv",
+          "resolved_config.yaml",
+          "RESULTS_SUMMARY.json",
+          "manifest.json"
+        ],
+        "source_manifest_sha256": "eeca622f720df4026912238631ff4890054373d34b741c4a6d31b35019ea1b67",
+        "source_terminal": "cells/a19__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "status": "REUSED",
+        "terminal_sha256": "e8e24105fa8b83d040c76ba9e91e6d7e65973d0f4999efb0c952f2c87face65f"
+      }
+    ],
+    "a19__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a19__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "40f2c392e64d260eb15e2ef7ed1afba57f61bbbfe7a06e521794459ea1f43e4a",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a19__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "e6b16712554e049721577132974f6c3ab0c82ed33255fa1d40712a60bd541612"
+      }
+    ],
+    "a20__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a20__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "dfd2c334c7138209a831fc700bec8a389bade1056cfeedff21568a24706240b4",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a20__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "ae63a33cbfada101f8ad1a964360cf3babb258e4b736def4292e561cb9fddaef"
+      }
+    ],
+    "a20__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a20__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "e934f7ffcf74c0ef3a2c376d4a8407faf5e2e0d25ac923c3a61adce8ce506785",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a20__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "06c90fcc806b96f952a8b76b9a905f413227d31fc9951bb145f2053cb485e973"
+      }
+    ],
+    "a20__favorable_stable": [
+      {
+        "attempt": 1,
+        "route_metrics_summary_present": false,
+        "source_attempt_dir": "cells/a20__favorable_stable/attempts/attempt_0001",
+        "source_campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry5",
+        "source_expected_outputs": [
+          "per_frame_metrics.csv",
+          "radio_trace.csv",
+          "map_feedback.csv",
+          "perception_metrics.csv",
+          "resolved_config.yaml",
+          "RESULTS_SUMMARY.json",
+          "manifest.json"
+        ],
+        "source_manifest_sha256": "ed6897a389f382bd3d9c0a85437ead5e2ca268b10d14bca996cbae0453cbe048",
+        "source_terminal": "cells/a20__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "status": "REUSED",
+        "terminal_sha256": "59d9e1048eab7b1e0f59f67e0d3a8fe0b4733113f895cb83b0a7215330d2ed3c"
+      }
+    ],
+    "a20__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a20__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "5d3ed77672b52ff74ad2a6888a855fd5f9bec04cc84c13277f724421a5e889ea",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a20__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "7ea0ab4621b7868ee19e5be5f4b6ecc05fc2a85c36a7ff5dd133abedf49e688e"
+      }
+    ],
+    "a21__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a21__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "d66d3fdb3ebc0e371e2b5f2a9c9ee61bb0bd5e140c0c119f67b37301867cea5d",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a21__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "dc6afe887c0bfe8a8bd73538c29d86b46506ac9454dd50d8813c0c57cff7b94f"
+      }
+    ],
+    "a21__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a21__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "f62048be42e814366646b4ac89e894d2f67e387a28bddb69a42e623c22979a29",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a21__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "5b96c0ed4d54f94e754a626cd29a000391ca92254ac9f3303ce118f81ef33936"
+      }
+    ],
+    "a21__favorable_stable": [
+      {
+        "attempt": 1,
+        "route_metrics_summary_present": false,
+        "source_attempt_dir": "cells/a21__favorable_stable/attempts/attempt_0001",
+        "source_campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry5",
+        "source_expected_outputs": [
+          "per_frame_metrics.csv",
+          "radio_trace.csv",
+          "map_feedback.csv",
+          "perception_metrics.csv",
+          "resolved_config.yaml",
+          "RESULTS_SUMMARY.json",
+          "manifest.json"
+        ],
+        "source_manifest_sha256": "c90e7578d5d43d621a1a07bf4ffbb4b01a90759642b72466e4624d59339c2e88",
+        "source_terminal": "cells/a21__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "status": "REUSED",
+        "terminal_sha256": "44e78f88d35511288d879d64b6a973e960cfe84ea3a9e4420de28b7a28539304"
+      }
+    ],
+    "a21__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a21__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "3f6afb2412cd3d0d2ee1136e799d319848d6bcbfa8f55934a08486cf6e67b7c6",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a21__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "3115de1d4e3512956a8af58707a5002ed5272c94201012f2c2643bd2af19d61b"
+      }
+    ],
+    "a22__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a22__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "1cd2d63c36659897486ed1caedd249017092e941af3de6f9c6c39a5be2219563",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a22__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "a14db9ed91a0082da8fbddcf28b94f250b67a955c528fd9b54879c083f6ac221"
+      }
+    ],
+    "a22__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a22__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "3c86421b38ec729c1ecbc0f90b64caaf6eed14f1f5bda62d4e2597470749363e",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a22__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "bae73a3a18e7487ae8031a271d2f336ce26f8da4a43e6cc5d23dcae19fff061e"
+      }
+    ],
+    "a22__favorable_stable": [
+      {
+        "attempt": 1,
+        "route_metrics_summary_present": false,
+        "source_attempt_dir": "cells/a22__favorable_stable/attempts/attempt_0001",
+        "source_campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry5",
+        "source_expected_outputs": [
+          "per_frame_metrics.csv",
+          "radio_trace.csv",
+          "map_feedback.csv",
+          "perception_metrics.csv",
+          "resolved_config.yaml",
+          "RESULTS_SUMMARY.json",
+          "manifest.json"
+        ],
+        "source_manifest_sha256": "27cd106b567e5242b7494cd5cb8d131a1d7f5eeee7c4d524a439efa6400dada2",
+        "source_terminal": "cells/a22__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "status": "REUSED",
+        "terminal_sha256": "0032d58f1c891cbf436f8d77a9412583460598d58a3f3139f99542fbcd6c5e39"
+      }
+    ],
+    "a22__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a22__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "72a1591f96397b066143452f0114d40bf88ac4977ec24fab4d7e3eef73c25330",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a22__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "b0dda1d641e0fb6a436b7d366d824c6c0558c03084ad6be88bae240a4753f72f"
+      }
+    ],
+    "a23__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a23__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "5434133638c84f401ad230e949d299a812d35c6fa9d7e532f83ede7db5d4c7c4",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a23__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "c5c82ce4d87aacff3bfe15e69b2cc40e2d0a141ff1ba4db7ace81165554343d2"
+      }
+    ],
+    "a23__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a23__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "960d6238fbae85a171572b40b0ff3cc5df6b22e8941932331b6644385fbbd197",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a23__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "27686ccabd2075cff866a28ae7aa4adace9c253f0f1bc07f65febffd33fbfc6f"
+      }
+    ],
+    "a23__favorable_stable": [
+      {
+        "attempt": 1,
+        "route_metrics_summary_present": false,
+        "source_attempt_dir": "cells/a23__favorable_stable/attempts/attempt_0001",
+        "source_campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry5",
+        "source_expected_outputs": [
+          "per_frame_metrics.csv",
+          "radio_trace.csv",
+          "map_feedback.csv",
+          "perception_metrics.csv",
+          "resolved_config.yaml",
+          "RESULTS_SUMMARY.json",
+          "manifest.json"
+        ],
+        "source_manifest_sha256": "d97ae0fce39a031cee1d97930c2328ff39cc052d9c005489fe6be1e265c0a8f0",
+        "source_terminal": "cells/a23__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "status": "REUSED",
+        "terminal_sha256": "19b097794747feb314e32a758bd923bf0d976b14b16882c8020f613c5673e233"
+      }
+    ],
+    "a23__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a23__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "1055d1cd8b258f47968068ff11afdf4e9e3ec9d700a835919000cb297449cf5c",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a23__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "ebf9d1c1dc0a6db23de4984fe2ba3edcb8fb5a74a70f8ce9a6e3c24d4778d176"
+      }
+    ],
+    "a24__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a24__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "3a827651942eed337f0c380f0cdb2579a8fa06c6795343058fbe7f298b90c49b",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a24__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "d1dc54df857b587b7499643f2acd220570e16989b9bb5e9101639ee963f743e8"
+      }
+    ],
+    "a24__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a24__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "3829de3b5f3133eef8057afaac9e46572144b7255b6abe514746a9dbdd8bab3e",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a24__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "77a20b798a86a0f012aa7f188a6f301d8a3ce191a4d1905b70240f1a8459f77e"
+      }
+    ],
+    "a24__favorable_stable": [
+      {
+        "attempt": 1,
+        "route_metrics_summary_present": false,
+        "source_attempt_dir": "cells/a24__favorable_stable/attempts/attempt_0001",
+        "source_campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry5",
+        "source_expected_outputs": [
+          "per_frame_metrics.csv",
+          "radio_trace.csv",
+          "map_feedback.csv",
+          "perception_metrics.csv",
+          "resolved_config.yaml",
+          "RESULTS_SUMMARY.json",
+          "manifest.json"
+        ],
+        "source_manifest_sha256": "fa6d27ca56d3bcc18840cfb7c4241ccc03aa8d5bbb3884a2869e65d9858b6df0",
+        "source_terminal": "cells/a24__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "status": "REUSED",
+        "terminal_sha256": "1c90cc7efd941d9d4618fbbbafe83c9c68aaeb6c9d47dc0abcddd58ed884c82a"
+      }
+    ],
+    "a24__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a24__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "0f6d01a36664bd755ae60915c36d863f39323e89a5e86d4d9c5dc4926e42152e",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a24__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "1d4a1ef05871f4793a3b5418230f50945648e91dcb374566883b53a9b743dcb4"
+      }
+    ],
+    "a25__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a25__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "442d2e43dec36c436fc91916ba1b1269a60809783a3dcf9efc36684d29d991b4",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a25__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "47a58460d87e4c537b956b125654b1a8611725f05b63821d65c2c7de76cac035"
+      }
+    ],
+    "a25__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a25__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "68c1b3074f8da1266e8e856d13c07d8d1c8bedb6513196e1b9b1d10a2ab3a24c",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a25__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "c64daec7dc15f4ad7543f8e314a7ecd44b9df0980caaa82b7504f6c9083b725b"
+      }
+    ],
+    "a25__favorable_stable": [
+      {
+        "attempt": 1,
+        "route_metrics_summary_present": false,
+        "source_attempt_dir": "cells/a25__favorable_stable/attempts/attempt_0001",
+        "source_campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry5",
+        "source_expected_outputs": [
+          "per_frame_metrics.csv",
+          "radio_trace.csv",
+          "map_feedback.csv",
+          "perception_metrics.csv",
+          "resolved_config.yaml",
+          "RESULTS_SUMMARY.json",
+          "manifest.json"
+        ],
+        "source_manifest_sha256": "1adc3fbb6c5cfe12640d2ce15af748db6dc5e6070fc9203944c7e0358bd25e79",
+        "source_terminal": "cells/a25__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "status": "REUSED",
+        "terminal_sha256": "a6d9227fe60a75d7c720cfdb5abf25ca5697e8b8db639a4ebc99c85a00d9b817"
+      }
+    ],
+    "a25__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a25__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "d70d88db52ee63671079f3774d292eaaf1360426ee4a625d8c1ccef5d816bb3d",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a25__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "1898d8246c0589eb77f12af8ba9a7b46eeb72b58b66fac9be82a3fd559a101a1"
+      }
+    ],
+    "a26__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a26__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "ada6da46ef3a5288f7828504a2757cf3d91b41a238ed329f09a7f75aeb2b109b",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a26__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "345a4c2fdc19d01c2d6020418248b5b68208b7679263a90b776751ac0a21b1f6"
+      }
+    ],
+    "a26__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a26__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "fcc918a3a1d8cd510fa2abc34768491214235531412a7733c37bd86e946e4b35",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a26__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "1e58a2ac48f65d9ba93110e54a8950492c216a6b5d8d51d84f0be1405a5e6bd1"
+      }
+    ],
+    "a26__favorable_stable": [
+      {
+        "attempt": 1,
+        "route_metrics_summary_present": false,
+        "source_attempt_dir": "cells/a26__favorable_stable/attempts/attempt_0001",
+        "source_campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry5",
+        "source_expected_outputs": [
+          "per_frame_metrics.csv",
+          "radio_trace.csv",
+          "map_feedback.csv",
+          "perception_metrics.csv",
+          "resolved_config.yaml",
+          "RESULTS_SUMMARY.json",
+          "manifest.json"
+        ],
+        "source_manifest_sha256": "f5f0fc45822dc7d18de1be399cf246574afc90c387aca3badd84c8ec5a4b082f",
+        "source_terminal": "cells/a26__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "status": "REUSED",
+        "terminal_sha256": "5036d7115c9e2d3c0d7a1599302f562ee018a7ce0f5d2c68bc8786e66ae963cb"
+      }
+    ],
+    "a26__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a26__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "13178399fd171baf437e07ba399628b2cd49df60215c0ebe6850a70e0af7bef3",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a26__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "2cd8a293d9a105f846f427d5d613621330a9cdfb98e69d62f840276605250f48"
+      }
+    ],
+    "a27__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a27__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "9c33fb625d044a6d28f0c2dcd15eb201cc14284f623450e8f1d76b20af8af5f1",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a27__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "0c88c5bef49d8ff4f02a632cfa5e1f4d6918d6a9a51c17236f743d18d4b274b1"
+      }
+    ],
+    "a27__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a27__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "bec8cbb4f6dbaf138d456b6e86cf33dae885753008f43be3d3b59bb0b03db6e0",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a27__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "e46ed27993caf8186718b6ec8f66cf31bdb0122d5e283829ddb07f9368a79a8e"
+      }
+    ],
+    "a27__favorable_stable": [
+      {
+        "attempt": 1,
+        "route_metrics_summary_present": false,
+        "source_attempt_dir": "cells/a27__favorable_stable/attempts/attempt_0001",
+        "source_campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry5",
+        "source_expected_outputs": [
+          "per_frame_metrics.csv",
+          "radio_trace.csv",
+          "map_feedback.csv",
+          "perception_metrics.csv",
+          "resolved_config.yaml",
+          "RESULTS_SUMMARY.json",
+          "manifest.json"
+        ],
+        "source_manifest_sha256": "79efb7c8bc186060ddacfa53e223dcd4325afcc54760d5f7e99955943b15da01",
+        "source_terminal": "cells/a27__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "status": "REUSED",
+        "terminal_sha256": "8bce257288399b441f07ae44a85421e9eb61661520f061d0e69cd1e6f2e90689"
+      }
+    ],
+    "a27__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a27__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "41a5b76c842b02e5015ff1100c6f59c3efe60c4e4d0c41402108f988feb238c1",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a27__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "bc1c377548a3350668be2d306ba1e4676f5739acdd17840d6b10ee53e7fada24"
+      }
+    ],
+    "a28__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a28__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "8f6aaa8ad7c5fff0e8c04359435171861d82331c4c13cd67bdfc721d35f5b5bd",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a28__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "40c8770c4eb7da784e96408068020d7d155eaa19d48dfa7ee006761595a01afa"
+      }
+    ],
+    "a28__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a28__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "2b3fb47a8649a68d743f316b2c365014b0d06d62d04f2d97231f956d8b66d2cc",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a28__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "9239b0e02be91801f9a70b9273a8aaa1be7f6e8923a928532eeba346300bb250"
+      }
+    ],
+    "a28__favorable_stable": [
+      {
+        "attempt": 1,
+        "route_metrics_summary_present": false,
+        "source_attempt_dir": "cells/a28__favorable_stable/attempts/attempt_0001",
+        "source_campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry5",
+        "source_expected_outputs": [
+          "per_frame_metrics.csv",
+          "radio_trace.csv",
+          "map_feedback.csv",
+          "perception_metrics.csv",
+          "resolved_config.yaml",
+          "RESULTS_SUMMARY.json",
+          "manifest.json"
+        ],
+        "source_manifest_sha256": "4ac1c1a33b38fcc6b639d8cc595ca85efe552d6454b71aec99d74d785e920245",
+        "source_terminal": "cells/a28__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "status": "REUSED",
+        "terminal_sha256": "e3534384d68e84af3cd1c7f17a33235fc8f42a787a6ed8e313130da1cab56ec3"
+      }
+    ],
+    "a28__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a28__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "1ccd6ca2c57fad73bb2d27bb12bb8b40f1d4a9acd242725a6925ac05a6bfd000",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a28__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "a4393432dc3e0ec37b330ed2d88a73142e5cb1d417c0da4b2d155799618071af"
+      }
+    ],
+    "a29__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a29__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "179b8d1603d08dac7eada84115e56f11f4aee7d9754b145678d1d6f3403246f7",
+        "route_outcome_classification": "COMPLETED_NO_BRAKING_EVENT",
+        "status": "PASSED",
+        "terminal": "cells/a29__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "c71e51f635a837997aea5273d0a5f6b8162ce3d6b1d80df2b491b6da8be2015d"
+      }
+    ],
+    "a29__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a29__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "032db3bffacb78d5821b2e707225660d32a8bbabc7960b147e5a7047b461be71",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a29__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "2db696b2248d3d76826219e0f00ee0b26dd76af2c8c7a5f548814f89f18be443"
+      }
+    ],
+    "a29__favorable_stable": [
+      {
+        "attempt": 1,
+        "route_metrics_summary_present": false,
+        "source_attempt_dir": "cells/a29__favorable_stable/attempts/attempt_0001",
+        "source_campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry5",
+        "source_expected_outputs": [
+          "per_frame_metrics.csv",
+          "radio_trace.csv",
+          "map_feedback.csv",
+          "perception_metrics.csv",
+          "resolved_config.yaml",
+          "RESULTS_SUMMARY.json",
+          "manifest.json"
+        ],
+        "source_manifest_sha256": "b2259b1fb1c8cf6332bf37f85712cbd04ae00c23ed9b6e9937f125d6ca2c044d",
+        "source_terminal": "cells/a29__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "status": "REUSED",
+        "terminal_sha256": "577f5a646fab3766ce50a559fd86db7bf214eef6b0b223930cb21439f6145b55"
+      }
+    ],
+    "a29__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a29__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "1de97634503b81aa62f588c71b69b71dbe587c3ae97f47ece0176507925ab2ab",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a29__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "2546fc81ae441bdde5a268fa0f7709bcaa0c987660c4e104ba98ff25cdb4802f"
+      }
+    ],
+    "a30__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a30__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "d6ada42a2be8c381cc2a05e043479155d26ec756b7da1f06b75d2e681e863f83",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a30__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "642b366818e7cd71c53446385c447237ce720c1895e40a274b632ce67af63c8d"
+      }
+    ],
+    "a30__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a30__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "6370947ad551d18f52c8e8fba8a7efb618fe60ec959ccabb68fab8ea4ffa793f",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a30__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "4fef0aebac04be7f899b3c60edf08b78d0860481d27dec106deec56420ceb746"
+      }
+    ],
+    "a30__favorable_stable": [
+      {
+        "attempt": 1,
+        "route_metrics_summary_present": false,
+        "source_attempt_dir": "cells/a30__favorable_stable/attempts/attempt_0001",
+        "source_campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry5",
+        "source_expected_outputs": [
+          "per_frame_metrics.csv",
+          "radio_trace.csv",
+          "map_feedback.csv",
+          "perception_metrics.csv",
+          "resolved_config.yaml",
+          "RESULTS_SUMMARY.json",
+          "manifest.json"
+        ],
+        "source_manifest_sha256": "fd97c07782e85b8c75c6c360a8b636b50b73faba83fc8bfbe23aa534a5c22987",
+        "source_terminal": "cells/a30__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "status": "REUSED",
+        "terminal_sha256": "114e838ffae09bf4b983170c88056978ebed2c94a2f81fef63d683f4e2c5f470"
+      }
+    ],
+    "a30__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a30__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "ad75a6a0d25fc369f631440ba9345239705584bfa4f59805d8d4f440a7a67b79",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a30__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "e4783cb922bf841b64d7fbbda80fa1c8315314fe2dfb85591c96692437294308"
+      }
+    ],
+    "a31__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a31__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "0561bc223c81c50da7ff847dd12711dfd6dcc8ce6d2512c70cfcb487a437243c",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a31__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "5ca704c7c670a2ea8ed3d7b25b122c3195f1537d486f6401bae23e57ed8e1753"
+      }
+    ],
+    "a31__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a31__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "c32ef729104b0dcc6e9de9f5fcae564b03b01f1545e1b17ac676123b98a29d35",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a31__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "1e34307d5d27e0f9d66f546ee42f7f635550acb50461dd7878c42ffb36755a0c"
+      }
+    ],
+    "a31__favorable_stable": [
+      {
+        "attempt": 1,
+        "route_metrics_summary_present": false,
+        "source_attempt_dir": "cells/a31__favorable_stable/attempts/attempt_0001",
+        "source_campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry5",
+        "source_expected_outputs": [
+          "per_frame_metrics.csv",
+          "radio_trace.csv",
+          "map_feedback.csv",
+          "perception_metrics.csv",
+          "resolved_config.yaml",
+          "RESULTS_SUMMARY.json",
+          "manifest.json"
+        ],
+        "source_manifest_sha256": "d2a37932b7e6d23daf5472f48ef1bbc548bcecdc398c57ddf270baf7d0326c60",
+        "source_terminal": "cells/a31__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "status": "REUSED",
+        "terminal_sha256": "4d2601bcbb2e0589bc5712706c6c23fc035b8329984760218fc478441fb699f8"
+      }
+    ],
+    "a31__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a31__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "8bf4093a1e186ca08b3ceb29ff27e47f1184575a52beac940970ed0765a88d94",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a31__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "f01db47e40997d9d9a2dc1cc158bfd6eee14c5fcb1662867f2e70c693e2b759a"
+      }
+    ],
+    "a32__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a32__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "79348f21665e3aefcbf256497a5be42f51315a03940cbc324b47b60013af42b1",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a32__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "65e793bb13f661276731c5072404939d2f9979ad774ed8b4655a84350fb2dbae"
+      }
+    ],
+    "a32__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a32__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "1c6dcd1bb03b6c10991897cb639865b62954b299102fd95793f75f0a65572df3",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a32__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "ff04636c4437ea3fb6c3a8badc39b19efe2d1a3806c94b80ce844ee8dd1805af"
+      }
+    ],
+    "a32__favorable_stable": [
+      {
+        "attempt": 1,
+        "route_metrics_summary_present": false,
+        "source_attempt_dir": "cells/a32__favorable_stable/attempts/attempt_0001",
+        "source_campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry5",
+        "source_expected_outputs": [
+          "per_frame_metrics.csv",
+          "radio_trace.csv",
+          "map_feedback.csv",
+          "perception_metrics.csv",
+          "resolved_config.yaml",
+          "RESULTS_SUMMARY.json",
+          "manifest.json"
+        ],
+        "source_manifest_sha256": "51aa37f21e696d6b931d8ddf57b31736595ad323ba7bc26caefe20426a4fa14f",
+        "source_terminal": "cells/a32__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "status": "REUSED",
+        "terminal_sha256": "5cb606c88c401e77fc460dee4c9689b570d8d8de91e013a2060179c7fc0a5b90"
+      }
+    ],
+    "a32__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a32__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "5dfcca89a905412c7f30269bd932e5760ed2080185bad1740d32ef2e9aff0f22",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a32__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "184e6a6e667bcf1f2464e9f26668a9931d7b17ad11d48232f16455a051328ebd"
+      }
+    ],
+    "a33__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a33__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "e3e7f8c07e980ef0aa829fe71f95936e1b85cde00ea41bd6851933fcfd0e8b68",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a33__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "a324a9c0415df10b90d07fb5b897cef6e4a8f80d2279c5169c0b10e83cc33bc9"
+      }
+    ],
+    "a33__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a33__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "052b6cc75ebecf298d234859d68baf84a2996e24da99d0f7602d1b81a42af963",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a33__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "765ce393fac6983195db02ea798765082666447e299a9f6136f405f8af7d7334"
+      }
+    ],
+    "a33__favorable_stable": [
+      {
+        "attempt": 1,
+        "route_metrics_summary_present": false,
+        "source_attempt_dir": "cells/a33__favorable_stable/attempts/attempt_0001",
+        "source_campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry5",
+        "source_expected_outputs": [
+          "per_frame_metrics.csv",
+          "radio_trace.csv",
+          "map_feedback.csv",
+          "perception_metrics.csv",
+          "resolved_config.yaml",
+          "RESULTS_SUMMARY.json",
+          "manifest.json"
+        ],
+        "source_manifest_sha256": "37be40c7e302b3a1b77ad82723db1ecaf568c4ef83dd2a0bb128518ea5dcd9e0",
+        "source_terminal": "cells/a33__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "status": "REUSED",
+        "terminal_sha256": "a6f5f34a41a941652291fee6ae2c5306f837c9986e23fe28c16de85b0876a7cf"
+      }
+    ],
+    "a33__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a33__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "8b53b26f3683a4307a93ead4319d9baf7ce6fc93e78c764583723e229f657cee",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a33__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "6b2df8b92f5d0bf6e2f8664c879de68147e568a81321d189918642af323a8250"
+      }
+    ],
+    "a34__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a34__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "34f48e8a02786e22a0634abb71989284feb84ea542b0b960cda84628a66b1a02",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a34__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "21a8905c7584899548f9f5a983e852ce6b74bd027e2c474bc7913e47ebacf312"
+      }
+    ],
+    "a34__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a34__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "af9b80baa2d3f396638da3b78d2f9af471bf650f64228209c6b4bdd482cc4299",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a34__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "172933fb7fc7810d258d5e7cf2a01bb8a7cf35c7eb9c25bfe381c3c0544d54d1"
+      }
+    ],
+    "a34__favorable_stable": [
+      {
+        "attempt": 1,
+        "route_metrics_summary_present": false,
+        "source_attempt_dir": "cells/a34__favorable_stable/attempts/attempt_0001",
+        "source_campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry5",
+        "source_expected_outputs": [
+          "per_frame_metrics.csv",
+          "radio_trace.csv",
+          "map_feedback.csv",
+          "perception_metrics.csv",
+          "resolved_config.yaml",
+          "RESULTS_SUMMARY.json",
+          "manifest.json"
+        ],
+        "source_manifest_sha256": "f09c160b06c28067a5393b2b5ba24254f3fe233cbd8c89b3493f479b23c569b4",
+        "source_terminal": "cells/a34__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "status": "REUSED",
+        "terminal_sha256": "fc022dd35da1de1d7873dcd50db6dfe06db3b185601ec19277c726781a45df00"
+      }
+    ],
+    "a34__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a34__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "e79c191b365fe70a35d29883b2ea9b1e7661bb8c12ac61e5e65b26d0650ebdf5",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a34__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "16d5d9ca3541b1c2f1f9c66c4dd22fc7eb0b2db4c6a2ab35a3e801845fd4c14e"
+      }
+    ],
+    "a35__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a35__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "2a15fbb96dfbc4b8a40aabdedd2314c9b12927411e82798b51775b0dfbe5131b",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a35__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "59c23aa79a89e1a96cd011dc4e3e075aefa638027fd276e107fed1bb4ef1713d"
+      }
+    ],
+    "a35__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a35__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "40dbc5712818b631001c40a6d39d379aa0d2289953724dd01028110c74998220",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a35__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "63767855444cdf258e9520ff5cacfb9decdbe1fd4e01213e170a9c5f387fa51e"
+      }
+    ],
+    "a35__favorable_stable": [
+      {
+        "attempt": 1,
+        "route_metrics_summary_present": false,
+        "source_attempt_dir": "cells/a35__favorable_stable/attempts/attempt_0001",
+        "source_campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry5",
+        "source_expected_outputs": [
+          "per_frame_metrics.csv",
+          "radio_trace.csv",
+          "map_feedback.csv",
+          "perception_metrics.csv",
+          "resolved_config.yaml",
+          "RESULTS_SUMMARY.json",
+          "manifest.json"
+        ],
+        "source_manifest_sha256": "4c795df4eef0f4bbf0a20c3c394659a81d89f9487161d4cc5b25f639d5ce92b9",
+        "source_terminal": "cells/a35__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "status": "REUSED",
+        "terminal_sha256": "66bbbaf11353095e19900b93e89bb18c1da37de8e424bd5a557c9ce5c5aaee10"
+      }
+    ],
+    "a35__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a35__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "7ed8139e1bc5fe4530e344ae01726a0aec3257bba5c2b41b4b794b1a255ab6ff",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a35__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "4a98f4ccc712aedfaaf2dad15b6090c1b5815e27c43a0e030917ace3928af8f4"
+      }
+    ],
+    "a36__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a36__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "8863711f1e6d3da804380fc79f61397638925013f029fc99048ff10286963ef1",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a36__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "ddf222ff5fbdf89704640490ed0782da72e04111fe2de3686b1c6c921f28214d"
+      }
+    ],
+    "a36__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a36__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "75cc80a6eeee7f6125d58ff55f5d2a8ba8da3c8c747e9b2559b4467083970ed4",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a36__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "d9400e944f6822f6f37be9526d944ea536332b3e84698181e77650ec16eb3c61"
+      }
+    ],
+    "a36__favorable_stable": [
+      {
+        "attempt": 1,
+        "route_metrics_summary_present": false,
+        "source_attempt_dir": "cells/a36__favorable_stable/attempts/attempt_0001",
+        "source_campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry5",
+        "source_expected_outputs": [
+          "per_frame_metrics.csv",
+          "radio_trace.csv",
+          "map_feedback.csv",
+          "perception_metrics.csv",
+          "resolved_config.yaml",
+          "RESULTS_SUMMARY.json",
+          "manifest.json"
+        ],
+        "source_manifest_sha256": "91ecbba7e288bc861395a0f15e7829072d201508d7d59bd7ef896531cf4250e7",
+        "source_terminal": "cells/a36__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "status": "REUSED",
+        "terminal_sha256": "5cfc9c80ebae729b4dace225100cf12edc606ee33b9b7865c034a85c4714c3de"
+      }
+    ],
+    "a36__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a36__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "f8d839ea6af37a7f564078aea8f864e0888baf2957a4b3d9e59c0355a2a37b92",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a36__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "75a4212af0d91532071298c51e98b36931523eaea72a6da56a3ffdb4026a9eb6"
+      }
+    ],
+    "a37__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a37__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "6c76c35736ab8309f769375e30fea169ea10ad0f2d402985fde50f79cd9d69fc",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a37__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "d9e1fe21919ea0753c2e679aff029b6537fd983b7df3c38a6800987b733f808f"
+      }
+    ],
+    "a37__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a37__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "9119f8691c0e964ee64de7a53ccccd5ff1ff2d97472e8dcfbe8764cd58bfd6af",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a37__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "5c31a662d38a3ece4db260f3e83d2297772c15a12698a9455fd0b04aff7a8be4"
+      }
+    ],
+    "a37__favorable_stable": [
+      {
+        "attempt": 1,
+        "route_metrics_summary_present": false,
+        "source_attempt_dir": "cells/a37__favorable_stable/attempts/attempt_0001",
+        "source_campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry5",
+        "source_expected_outputs": [
+          "per_frame_metrics.csv",
+          "radio_trace.csv",
+          "map_feedback.csv",
+          "perception_metrics.csv",
+          "resolved_config.yaml",
+          "RESULTS_SUMMARY.json",
+          "manifest.json"
+        ],
+        "source_manifest_sha256": "618855f59c91fca1bb6bd34121f5f35e5738b8a343ec92b91e9f1b94b3ba7f02",
+        "source_terminal": "cells/a37__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "status": "REUSED",
+        "terminal_sha256": "72411d7822a90baf6ac5a388a8a0acc02f15a13e9b25fa1929e4dcf932a5444d"
+      }
+    ],
+    "a37__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a37__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "8424755627d240166665eb781309de17bfd0a6c70f35e4aa05c400330bbcd22a",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a37__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "d277bc3aa69e2bfef2e028c639c2526bafeeb63b92aea52ec4646a9def75e0e4"
+      }
+    ],
+    "a38__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a38__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "ad78828e55e93d152c37fd860000fa304f6f756c22f61a1a38b40ef8ea180553",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a38__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "e951459431318f93d6a181b1f8e665c86595aa12cfb4fa0074ab8f674c94901d"
+      }
+    ],
+    "a38__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a38__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "58e7927aa85755794fcda7301aad77f39bde917affaa13dc36cf3ad799431af0",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a38__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "b1f7f6e30a1bc69eae39c67332dadf8452d0e10df9afc8006723a1a8d368efcf"
+      }
+    ],
+    "a38__favorable_stable": [
+      {
+        "attempt": 1,
+        "route_metrics_summary_present": false,
+        "source_attempt_dir": "cells/a38__favorable_stable/attempts/attempt_0001",
+        "source_campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry5",
+        "source_expected_outputs": [
+          "per_frame_metrics.csv",
+          "radio_trace.csv",
+          "map_feedback.csv",
+          "perception_metrics.csv",
+          "resolved_config.yaml",
+          "RESULTS_SUMMARY.json",
+          "manifest.json"
+        ],
+        "source_manifest_sha256": "feb466f3a270abb7a784478f1fe2a4cc24cbb012976e4046b9d65c4892ae3e54",
+        "source_terminal": "cells/a38__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "status": "REUSED",
+        "terminal_sha256": "6f3b3d55b20a3b1e443d9a296a2f923d928c4263131e1737ace5060d8f56e847"
+      }
+    ],
+    "a38__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a38__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "055a7d0d47d0b5a3b4791d1917dcade2b42ff0ed523a68f4cef0671480d67521",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a38__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "df431eedfd8961074eee559426aad387460810b96b0cc6d71506738370aacb42"
+      }
+    ],
+    "a39__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a39__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "1c43311a31d5cae9075aea9655116d53cc26932c8dcf3827c661b1f91f736de9",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a39__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "ccb60d625d99d1abcbc3b08701c99f5d25411a9999a35f71ad39390620066956"
+      }
+    ],
+    "a39__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a39__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "8933f080eea1ff77d902d21d3439260b5102deb9205ed2654358375a6b84eb53",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a39__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "887eb32821b01d3daae4a45650c2f4419bc71c62c8ba97c1ac9dfd20ea485f0b"
+      }
+    ],
+    "a39__favorable_stable": [
+      {
+        "attempt": 1,
+        "route_metrics_summary_present": false,
+        "source_attempt_dir": "cells/a39__favorable_stable/attempts/attempt_0001",
+        "source_campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry5",
+        "source_expected_outputs": [
+          "per_frame_metrics.csv",
+          "radio_trace.csv",
+          "map_feedback.csv",
+          "perception_metrics.csv",
+          "resolved_config.yaml",
+          "RESULTS_SUMMARY.json",
+          "manifest.json"
+        ],
+        "source_manifest_sha256": "9efd70a15ccc946a25c1eb5c4203e6633450eab05840e7ea28c9d5d8e94ade72",
+        "source_terminal": "cells/a39__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "status": "REUSED",
+        "terminal_sha256": "afb089e79736f6d4da33575f792065dc43a314f549af687c9cf95c615066ab74"
+      }
+    ],
+    "a39__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a39__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "bbbdff57a366cb814e9b936a9465f4a097931bc5f28cf553aa51f66e1fac9d29",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a39__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "9fccb0166d80b5fa766a578d0a2e42ca105930bcef9d98222108c4fb98758af0"
+      }
+    ],
+    "a40__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a40__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "f653bc799652e357413f448246fcfe629afdc5e96283855fc2047ff939267009",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a40__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "a49ec40df03cd6b490d350f0dc28beebf2f7cc85bc90535f141990d2d51151ab"
+      }
+    ],
+    "a40__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a40__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "0f78fe332fc58f6fd1a1a2f147e1f2ca30e0d0fc5c773eca6dc2058e31233682",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a40__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "92b13692bde616c31a218fa606aab49616a32fa10fe6f5e7f104ec8c64832439"
+      }
+    ],
+    "a40__favorable_stable": [
+      {
+        "attempt": 1,
+        "route_metrics_summary_present": false,
+        "source_attempt_dir": "cells/a40__favorable_stable/attempts/attempt_0001",
+        "source_campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry5",
+        "source_expected_outputs": [
+          "per_frame_metrics.csv",
+          "radio_trace.csv",
+          "map_feedback.csv",
+          "perception_metrics.csv",
+          "resolved_config.yaml",
+          "RESULTS_SUMMARY.json",
+          "manifest.json"
+        ],
+        "source_manifest_sha256": "a5d0a5ae09636c748c2498df0fae1384975e66d88bd694f04b9c8fb9ffddafa3",
+        "source_terminal": "cells/a40__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "status": "REUSED",
+        "terminal_sha256": "183c8d65778ce2b81d1ba2bd3ba994b8e0055bdc50b0a3018dc2d0c9a5429d2e"
+      }
+    ],
+    "a40__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a40__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "2b76bd0b4ba9db0982142e36fc62dd78bc6076139beea39e493e68b49261bdf2",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a40__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "f711bd541928acc92120f35663ee3d488a0fd392fe3c1093201fe9c136b5c83c"
+      }
+    ],
+    "a41__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a41__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "df280b63d5fd8f0d87c957059ebf5d018d9a041da4ac810d893cf0d908ac563b",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a41__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "6e34d79c4517069ace90f6d1a6cd87ca4d5682b97d7124d78ec9b1775f4e44ff"
+      }
+    ],
+    "a41__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a41__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "98b76003a8477fe97a12b613cc967a282c18ce16aff70a78871b57e5db502113",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a41__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "ca1899b4d3fc549a375bcf1fedd25ab5d696a6d0921b5e505f84e4ad63aff675"
+      }
+    ],
+    "a41__favorable_stable": [
+      {
+        "attempt": 1,
+        "route_metrics_summary_present": false,
+        "source_attempt_dir": "cells/a41__favorable_stable/attempts/attempt_0001",
+        "source_campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry5",
+        "source_expected_outputs": [
+          "per_frame_metrics.csv",
+          "radio_trace.csv",
+          "map_feedback.csv",
+          "perception_metrics.csv",
+          "resolved_config.yaml",
+          "RESULTS_SUMMARY.json",
+          "manifest.json"
+        ],
+        "source_manifest_sha256": "51ae27beff2853ee6001a852c84db5f26506173d2cc6e6399522802b842665a2",
+        "source_terminal": "cells/a41__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "status": "REUSED",
+        "terminal_sha256": "453422a2dcc58de51b5a1406038eb1c44069e6a5bdaa954a64e264ee1860863e"
+      }
+    ],
+    "a41__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a41__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "5f2a029ec3decd79fe35283caf5b302a95dcf9061a13eeeb5ced8fb47551f132",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a41__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "5e37c8dd73dda50d6a24f4a7ec11e24bd803aed87db79abfe10f6be6b9cefb5f"
+      }
+    ],
+    "a42__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a42__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "3c29efad1e47413650b46e23de6d804369dafce39cb5dd5eb3b9906e96a6451c",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a42__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "f40e49f18497839b94031d68d4316742369b9396e92537322b711ac0f8a718cb"
+      }
+    ],
+    "a42__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a42__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "45ab7d94a5a60227cb7f193681bdb5036368c126fb0c5c032663d95dc2761ec7",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a42__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "81af122056a690789bc2f95cc7252c32400fe8bd9d510739da9483670e37b97f"
+      }
+    ],
+    "a42__favorable_stable": [
+      {
+        "attempt": 1,
+        "route_metrics_summary_present": false,
+        "source_attempt_dir": "cells/a42__favorable_stable/attempts/attempt_0001",
+        "source_campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry5",
+        "source_expected_outputs": [
+          "per_frame_metrics.csv",
+          "radio_trace.csv",
+          "map_feedback.csv",
+          "perception_metrics.csv",
+          "resolved_config.yaml",
+          "RESULTS_SUMMARY.json",
+          "manifest.json"
+        ],
+        "source_manifest_sha256": "5c5f7a42b666fcc43d9527a286fafc706c70a1f35cd1f59b2884765b2168fe5d",
+        "source_terminal": "cells/a42__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "status": "REUSED",
+        "terminal_sha256": "4eb2fa5b96772a3fe4b47adbd68e977ee99ab66f72370629800695a07819a0e9"
+      }
+    ],
+    "a42__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a42__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "659d68c2bcd91af059e8f8c9031fc94b2925b63cb4d672dde85d32d2556812ee",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a42__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "c4581d339d500e9f634b1fb549d561472478cfd314c6f1f7500e42bcf839bfc9"
+      }
+    ],
+    "a43__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a43__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "0ebf10a559467bcdaf03a9341fefc073412ad4f32ef71eabc0e4951210f178bc",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a43__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "efe35053b54b77e66c30303ebb6456794be4a05cf66f8abae9ce1d3bea348fda"
+      }
+    ],
+    "a43__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a43__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "cd0a1f6dfe99f230538e48e1c02fc86c58026d494fbbf66bddf10fe1e7de8b72",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a43__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "00013c5dc28511097ded67df430614bab5c9c4764aecdfd446d895edc784010b"
+      }
+    ],
+    "a43__favorable_stable": [
+      {
+        "attempt": 1,
+        "route_metrics_summary_present": false,
+        "source_attempt_dir": "cells/a43__favorable_stable/attempts/attempt_0001",
+        "source_campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry5",
+        "source_expected_outputs": [
+          "per_frame_metrics.csv",
+          "radio_trace.csv",
+          "map_feedback.csv",
+          "perception_metrics.csv",
+          "resolved_config.yaml",
+          "RESULTS_SUMMARY.json",
+          "manifest.json"
+        ],
+        "source_manifest_sha256": "acef39b90c512331f73cd4c54e229118525194dace8505425c75053016ddaa5f",
+        "source_terminal": "cells/a43__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "status": "REUSED",
+        "terminal_sha256": "63459448122600e0250dbb4211d0ee9229cb0bbc1cd1cbdf0546e32848019259"
+      }
+    ],
+    "a43__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a43__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "8f21fbd8e9b34029a1458733e4837b4c0ff17eb9d6a9c1130e6d137b8341fffe",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a43__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "9424a93499a8f266f89cdcd4a2559f7fff8589075c314840f727c3ce78c128b4"
+      }
+    ],
+    "a44__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a44__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "530443ce89b0a51e667513a62868b3680f83021fbdb0fdfddcbf0f02979436cf",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a44__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "041086697d74b4373f89a11845f1a2d90b450f07b5f89b67f082212bbeccd9d7"
+      }
+    ],
+    "a44__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a44__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "8feb9f3f6894a118606ccce883c5a1dd699a4b8e14bd60440853224b2a8568e3",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a44__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "2c4f187eea006a69b0012ba1422943727a8f7065ed4df3824551465e594f25ef"
+      }
+    ],
+    "a44__favorable_stable": [
+      {
+        "attempt": 1,
+        "route_metrics_summary_present": false,
+        "source_attempt_dir": "cells/a44__favorable_stable/attempts/attempt_0001",
+        "source_campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry5",
+        "source_expected_outputs": [
+          "per_frame_metrics.csv",
+          "radio_trace.csv",
+          "map_feedback.csv",
+          "perception_metrics.csv",
+          "resolved_config.yaml",
+          "RESULTS_SUMMARY.json",
+          "manifest.json"
+        ],
+        "source_manifest_sha256": "2fa37c3a8966dfe7d55809d1383b9ed2d632bb0a5388d4dd00a1dd83504b8a5a",
+        "source_terminal": "cells/a44__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "status": "REUSED",
+        "terminal_sha256": "eec1288356ec89d03c17e75e546bb93eb09aefc7e4ea71f0bb7f0d3ab5992297"
+      }
+    ],
+    "a44__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a44__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "e2a26b66a9176ec0a86aa6487c7472fd24e3869ba70962c3e8fa4d7d57324942",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a44__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "2bcd94798dbd03e772e6439cdd5539709e0455b607f8b9cc4dc76777e180f79d"
+      }
+    ],
+    "a45__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a45__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "12c3bc58ec89cf81472622c729ae21ddec91b49983008ca1989f448b4f1da199",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a45__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "c57d4c43ca83846b275b9e9db719fba0cf70c79b08eaa3356354811f57d82c1a"
+      }
+    ],
+    "a45__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a45__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "20c1023e9aaea837f4c56e75581f0d0b5c672d31bfa6820a859202ecb646e6a6",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a45__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "4681b9d4cf7213026139b7ffd77959a97fb3a3db3473595637d4a383411e35de"
+      }
+    ],
+    "a45__favorable_stable": [
+      {
+        "attempt": 1,
+        "route_metrics_summary_present": false,
+        "source_attempt_dir": "cells/a45__favorable_stable/attempts/attempt_0001",
+        "source_campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry5",
+        "source_expected_outputs": [
+          "per_frame_metrics.csv",
+          "radio_trace.csv",
+          "map_feedback.csv",
+          "perception_metrics.csv",
+          "resolved_config.yaml",
+          "RESULTS_SUMMARY.json",
+          "manifest.json"
+        ],
+        "source_manifest_sha256": "28bd117ef171e3e12b3346eab23e539088fbc5831d64c22ccc9bd2059ab65734",
+        "source_terminal": "cells/a45__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "status": "REUSED",
+        "terminal_sha256": "c39c8a3ef211f3b3a31ecd96bba583a2c849992afe3f99a3e4e8d3cec69ce432"
+      }
+    ],
+    "a45__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a45__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "b27ae7745a33b39dd568063b931b2de6578acd41ac85226c8a97abb22a50b9e1",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a45__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "1b383a0e6d767de459f2c19aee6c8f371afb510762f0174c43530dce00935195"
+      }
+    ],
+    "a46__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a46__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "3b362af1459149ff10ae95d531078a829623b785bb2040cfd91beff135c64df5",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a46__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "e81e43f52097e3bfff78d44f7d35462ccc12c2710720ab61e78f46644193ab3a"
+      }
+    ],
+    "a46__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a46__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "88d1480cb6a25015ce84ae1cd977d0494debd51fb0cfdc0aa78438ffab3a424f",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a46__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "33bdc1a021be5a69638f2ccd073276486ff6b1a6cd2576cc9f54c4111dddebdd"
+      }
+    ],
+    "a46__favorable_stable": [
+      {
+        "attempt": 1,
+        "route_metrics_summary_present": false,
+        "source_attempt_dir": "cells/a46__favorable_stable/attempts/attempt_0001",
+        "source_campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry5",
+        "source_expected_outputs": [
+          "per_frame_metrics.csv",
+          "radio_trace.csv",
+          "map_feedback.csv",
+          "perception_metrics.csv",
+          "resolved_config.yaml",
+          "RESULTS_SUMMARY.json",
+          "manifest.json"
+        ],
+        "source_manifest_sha256": "093b0197a8983c383c270ab2048d994af6a1ec375da06ad5ea6fb1f405a91bd9",
+        "source_terminal": "cells/a46__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "status": "REUSED",
+        "terminal_sha256": "c7f892ade80afe1ebe3ca32402174166aae5693d63e81ebcdf9f8beb85247d91"
+      }
+    ],
+    "a46__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a46__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "e67312961df2039ae26a5835a13753b2a52cd592304f28c429f232938a4fdba2",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a46__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "c65a37a7dc5730a351f3a634b1649aa2f7179028baf74e070cdd86456792c00a"
+      }
+    ],
+    "a47__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a47__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "fab75a06bb5604566b7f232609fe09d3951aec0b999f6b3470abb8db123805a8",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a47__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "d7ee8ec2c08c5d49156c56d65e694ad58edd440e95a8c52642edd02a61c9638a"
+      }
+    ],
+    "a47__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a47__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "0a983d763b51d081e7ab1f08a9bbf4eea2bcda8748a0a89b17e52e15a8f7f31c",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a47__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "12b248ca23f67127ea0fe21e0fb643df3f1442e892590025044cb9130cbf17e4"
+      }
+    ],
+    "a47__favorable_stable": [
+      {
+        "attempt": 1,
+        "route_metrics_summary_present": false,
+        "source_attempt_dir": "cells/a47__favorable_stable/attempts/attempt_0001",
+        "source_campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry5",
+        "source_expected_outputs": [
+          "per_frame_metrics.csv",
+          "radio_trace.csv",
+          "map_feedback.csv",
+          "perception_metrics.csv",
+          "resolved_config.yaml",
+          "RESULTS_SUMMARY.json",
+          "manifest.json"
+        ],
+        "source_manifest_sha256": "bc8efdced2f9ae55769bb96de5b7d29a12a472e01a2c11b79cdabf7e2d1ec86b",
+        "source_terminal": "cells/a47__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "status": "REUSED",
+        "terminal_sha256": "7748278a361ec2e9f79e08a3d6e6237daf546f3e4db34ee31772c1b0699d0048"
+      }
+    ],
+    "a47__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a47__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "21e35113740e73abc8cce20de2c86e35c533b806fa3433bd7b3e68f3f3c31f58",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a47__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "91e7d8024cb282bc79c13acabc60225727c7adebfdbb0c36756ddb516c46ebb4"
+      }
+    ],
+    "a48__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a48__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "90383ce6febff764b02f06ffd85f9fa78192cea0bd2ff9e0ff1f30fd4120587c",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a48__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "a58c79d0b3d46b8c83c0914cd7d9c1f3e4ddc0c699dcb7e36e9f6137db910ebf"
+      }
+    ],
+    "a48__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a48__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "8dfec0364260ff68a070555633c96916ba78ccf896d52ba50b584ce8f8140a0a",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a48__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "c2646999be465d1f8519de32d69c7d34457f89ee65cb787f9f7e1d526acb9ad0"
+      }
+    ],
+    "a48__favorable_stable": [
+      {
+        "attempt": 1,
+        "route_metrics_summary_present": false,
+        "source_attempt_dir": "cells/a48__favorable_stable/attempts/attempt_0001",
+        "source_campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry5",
+        "source_expected_outputs": [
+          "per_frame_metrics.csv",
+          "radio_trace.csv",
+          "map_feedback.csv",
+          "perception_metrics.csv",
+          "resolved_config.yaml",
+          "RESULTS_SUMMARY.json",
+          "manifest.json"
+        ],
+        "source_manifest_sha256": "0f835e8c46633f648ec0e7061ce4017847b17660ed7466e81cd99d7099956cdd",
+        "source_terminal": "cells/a48__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "status": "REUSED",
+        "terminal_sha256": "6fdc404559c7a7b0fcddf1e9d9513f3d915edf3748e822752f061e0f427aeb32"
+      }
+    ],
+    "a48__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a48__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "a2b93829d37ceddc400e4ff10068b01d8a56bfa0f83ef23b5fdf5a0c590932a2",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a48__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "7f294a8802bd0bf60dee530a961b9e0bb43e0ba25e383de98eccccf8a93565ec"
+      }
+    ],
+    "a49__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a49__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "1c7da4556f5c3b013e75f446776120d6a63ac479313a8e9d95534bfdbd0ac446",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a49__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "0f1ca86b1df1ce486415539b52c880c9171bab4bb2467edd4e2d64f3dca6cf0d"
+      }
+    ],
+    "a49__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a49__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "21c44e88e578709f85e5cf02e6b4dd62000147ce9405a1e60adcad99ad8dc160",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a49__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "745a6fbac74da2f751eb0381872b0cf999d27aec93cec538aed344b0d24f9b8a"
+      }
+    ],
+    "a49__favorable_stable": [
+      {
+        "attempt": 1,
+        "route_metrics_summary_present": false,
+        "source_attempt_dir": "cells/a49__favorable_stable/attempts/attempt_0001",
+        "source_campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry5",
+        "source_expected_outputs": [
+          "per_frame_metrics.csv",
+          "radio_trace.csv",
+          "map_feedback.csv",
+          "perception_metrics.csv",
+          "resolved_config.yaml",
+          "RESULTS_SUMMARY.json",
+          "manifest.json"
+        ],
+        "source_manifest_sha256": "5210430205506cfc322dc284d129067d055b568433ada2c7dcaf065cf10cfa10",
+        "source_terminal": "cells/a49__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "status": "REUSED",
+        "terminal_sha256": "8d52e879452970c74dce11902893969de382a829076f850afb85037fc8a8c55b"
+      }
+    ],
+    "a49__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a49__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "cc1e9c181f822c0fa583a1b91ad6c669c6714a579462dddc4c9fc53167ec9b15",
+        "route_outcome_classification": "COLLISION_ONLY_MEASURED_OUTCOME",
+        "status": "PASSED",
+        "terminal": "cells/a49__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "073ba8255d06cff908c0724ac59d1a3110fb13353d56410b4c238729d6cadf90"
+      }
+    ],
+    "a50__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a50__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "c81e32ce2359eafdb8e5621aeeb44d7672ffabfe02f3d7f4bf15cbc34461dc92",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a50__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "a1c508cde56099d8fcf77cb43144a35075d67baa99564f118127c90dd8f99303"
+      }
+    ],
+    "a50__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a50__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "99cab6e15ed98a081a1fec47d15323c3ee1ff083379cb7b93806bdd5b00e6e08",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a50__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "3b0b1d399b8dab749673bada94fc196b2e4338bcc71d611c997f253bea931db6"
+      }
+    ],
+    "a50__favorable_stable": [
+      {
+        "attempt": 1,
+        "route_metrics_summary_present": false,
+        "source_attempt_dir": "cells/a50__favorable_stable/attempts/attempt_0001",
+        "source_campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry5",
+        "source_expected_outputs": [
+          "per_frame_metrics.csv",
+          "radio_trace.csv",
+          "map_feedback.csv",
+          "perception_metrics.csv",
+          "resolved_config.yaml",
+          "RESULTS_SUMMARY.json",
+          "manifest.json"
+        ],
+        "source_manifest_sha256": "752b5d1aaa005a86c4ee8403fe94b9e34934e4022563f2bac2d9c1815cfca8fd",
+        "source_terminal": "cells/a50__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "status": "REUSED",
+        "terminal_sha256": "d89fc86b826595463e29fd529ce92353b2d80011acea399bac91f7c4c48574cb"
+      }
+    ],
+    "a50__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a50__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "5e10767dfa24d624404e5218037edc2613edb959ffa995fb8861ce7e494fc8ad",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a50__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "04b2853dc771d0b0c421095c66ac2fccc5f3e92fd80374037f90496a28280a6b"
+      }
+    ],
+    "a51__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a51__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "5c6af69d10f3cfba930627478a4e6d841b16d0ba2be4e1931a25b4bb8a360b50",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a51__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "7589776ec25b7fc2b83a541436234abf4cb94a7ada7649c6d920fbfa1a69e313"
+      }
+    ],
+    "a51__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a51__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "983058dd4bac12d06443ed3a4b7a15b28aa4993fcb41932affb406d61ece644d",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a51__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "a3bb8eab10219c9287cf827c98cc3cec33aa8c960d1fa7e74f959e1718d3c889"
+      }
+    ],
+    "a51__favorable_stable": [
+      {
+        "attempt": 1,
+        "route_metrics_summary_present": false,
+        "source_attempt_dir": "cells/a51__favorable_stable/attempts/attempt_0001",
+        "source_campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry5",
+        "source_expected_outputs": [
+          "per_frame_metrics.csv",
+          "radio_trace.csv",
+          "map_feedback.csv",
+          "perception_metrics.csv",
+          "resolved_config.yaml",
+          "RESULTS_SUMMARY.json",
+          "manifest.json"
+        ],
+        "source_manifest_sha256": "bfbaa9778ede11e5ce4cc89805e2448972e99900fb5ba6eb44869b60d78bdc59",
+        "source_terminal": "cells/a51__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "status": "REUSED",
+        "terminal_sha256": "af85e0d6bb13964eaac7225730dd9cad3aad9187174ede99759718ed66d71327"
+      }
+    ],
+    "a51__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a51__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "e96e334144f01e50c64cde0f1b82c7db29d4afd08dfe94358406113cc1a16c03",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a51__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "5759f18ce549af43dddb107adca82bc0c6d07951027b948d1d995339f9190d0a"
+      }
+    ],
+    "a52__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a52__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "ddd009ff0d7809f9e79a76d6f3e7d53b9727797900b2ffd2fd7e0f896587a8cf",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a52__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "f5aaf81bd0d462858e15cdbbcba03bb567d71b48349aa3ec3b524ce7486f042f"
+      }
+    ],
+    "a52__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a52__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "c8f7c77e4d6f71458784f29bfc884a0a016c90a3690d9bf631e5a1ee66e6ce30",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a52__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "5eb46b67a380315ce829f316c3bb0d2b691ce74165fa30812221093df9f45086"
+      }
+    ],
+    "a52__favorable_stable": [
+      {
+        "attempt": 1,
+        "route_metrics_summary_present": false,
+        "source_attempt_dir": "cells/a52__favorable_stable/attempts/attempt_0001",
+        "source_campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry5",
+        "source_expected_outputs": [
+          "per_frame_metrics.csv",
+          "radio_trace.csv",
+          "map_feedback.csv",
+          "perception_metrics.csv",
+          "resolved_config.yaml",
+          "RESULTS_SUMMARY.json",
+          "manifest.json"
+        ],
+        "source_manifest_sha256": "1246ac67aff77f07dbd026391c9f655155177f8f666491d72636bd1e90d46add",
+        "source_terminal": "cells/a52__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "status": "REUSED",
+        "terminal_sha256": "8765901fb1093cbf2aa8b9ee2b9c9c1bc596af7e10bfb013288d222bb8f00f3a"
+      }
+    ],
+    "a52__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a52__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "a4b2e831f0bd07e510ef12139543af087e49125bcb45411e057a81364d799169",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a52__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "bf6d05d98c545503ee8d8d8b22b9f25eea3f20a6796031b14b94a55db08cab99"
+      }
+    ],
+    "a53__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a53__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "38e712b2c925028c58bf7f1e60c30c09d0757f849fc9ca58458fbfce61feafe3",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a53__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "7a52c5d1e0d09eda3af32e0460a09af1e8b37f08b8eefabee2ffd3de68786282"
+      }
+    ],
+    "a53__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a53__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "61195b0ac531ba641a22446979dca5b922901bf8fc23d336a45da5094bc7cf77",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a53__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "4cb85a5e97de15aba22e84b100c0353dd901c5a7509fa1510e68f8ae30315225"
+      }
+    ],
+    "a53__favorable_stable": [
+      {
+        "attempt": 1,
+        "route_metrics_summary_present": false,
+        "source_attempt_dir": "cells/a53__favorable_stable/attempts/attempt_0001",
+        "source_campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry5",
+        "source_expected_outputs": [
+          "per_frame_metrics.csv",
+          "radio_trace.csv",
+          "map_feedback.csv",
+          "perception_metrics.csv",
+          "resolved_config.yaml",
+          "RESULTS_SUMMARY.json",
+          "manifest.json"
+        ],
+        "source_manifest_sha256": "82d721990151d72c011dd4ab22da5b59c53304f386db9b78c8ea94e9a96a10f8",
+        "source_terminal": "cells/a53__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "status": "REUSED",
+        "terminal_sha256": "4b4933c13c6c4184b89e7799f5617d38d879554f417b2eac441f954362185983"
+      }
+    ],
+    "a53__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a53__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "14752d46b24b394fd515eff25ed6f4ea46e297f514741e8b45c959f639f78a1d",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a53__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "b792948f3f639ab3d46afe46e6f0b96c9d9961538ce324f61e628c77eacfcd3a"
+      }
+    ],
+    "a54__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a54__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "4c681469d9253a8ce3f18a3da3f8827a408f7833e4a0d25ced82bc1700ca67dd",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a54__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "bc07c086d474c30831f1c90b2a7fba9084aaa9cdd8206d78ff8d33d7b628e4c9"
+      }
+    ],
+    "a54__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a54__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "ec15a47de2d885c9a98b415a7003f0d61bfa7d0f13b32110cbc4a759617fbcae",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a54__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "95061a1ec14bb379903c2f9478615862bcde3531c111c551071334d982e97af7"
+      }
+    ],
+    "a54__favorable_stable": [
+      {
+        "attempt": 1,
+        "route_metrics_summary_present": false,
+        "source_attempt_dir": "cells/a54__favorable_stable/attempts/attempt_0001",
+        "source_campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry5",
+        "source_expected_outputs": [
+          "per_frame_metrics.csv",
+          "radio_trace.csv",
+          "map_feedback.csv",
+          "perception_metrics.csv",
+          "resolved_config.yaml",
+          "RESULTS_SUMMARY.json",
+          "manifest.json"
+        ],
+        "source_manifest_sha256": "5eeef32934badeafb539306e1c7f6d9845ccc71103d6d2c7bdb5ab012430c199",
+        "source_terminal": "cells/a54__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "status": "REUSED",
+        "terminal_sha256": "7c2d9a9da01100e707d60f9200bd9fa2af155b9b5e1fc704febc3f0ae79628fd"
+      }
+    ],
+    "a54__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a54__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "8868580f76d7259c514e2e77e092ac936b75c6f7de6124f11ee80d3aaa098f2d",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a54__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "97dad33d0c319f42ca6fc8d5130c0f8021ee71b0ef340cfa4dea64c9669912a3"
+      }
+    ],
+    "a55__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a55__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "09ca719856873ed722aa52dde2a35ef86329c8520fd3a133d346900642958c75",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a55__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "1315826fab4baa37c34232cb661d97ec8ab75902099ddbbf588cd13aae69c673"
+      }
+    ],
+    "a55__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a55__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "2730c4702bd9fd7165c74ebcbfa6b5cfbb8e40f7f63de9609c6509651aa908bc",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a55__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "53e26f6a6119475c4a93732e1d010fbb2aacca8f5524bac092036b25ecf2e2cf"
+      }
+    ],
+    "a55__favorable_stable": [
+      {
+        "attempt": 1,
+        "route_metrics_summary_present": false,
+        "source_attempt_dir": "cells/a55__favorable_stable/attempts/attempt_0001",
+        "source_campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry5",
+        "source_expected_outputs": [
+          "per_frame_metrics.csv",
+          "radio_trace.csv",
+          "map_feedback.csv",
+          "perception_metrics.csv",
+          "resolved_config.yaml",
+          "RESULTS_SUMMARY.json",
+          "manifest.json"
+        ],
+        "source_manifest_sha256": "07b2137f4dd6ebecc05c8b41678acce596d766ca75f6be7529306461c56fbe87",
+        "source_terminal": "cells/a55__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "status": "REUSED",
+        "terminal_sha256": "515a05602a31ae50aec46bdd51dee665060d8fbd2ec696671b6b2226beb128f9"
+      }
+    ],
+    "a55__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a55__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "1b6458f4f36c495e1d619b096507705f131cafd81b0b135010d94d1d58b04e45",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a55__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "44e3dbee1a74f12300819cec51f4b65e7961b3e91f517094e728fda7713d952c"
+      }
+    ],
+    "a56__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a56__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "d8922da9d471786de6c80af683de5cc2e92f86a3d95f1e6fc560dde785639c89",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a56__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "7fb29014a9dce1d71a7f08c9700a94df9e8ffd8b5913eb235851588c2a2e2d0c"
+      }
+    ],
+    "a56__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a56__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "4220e6384c910d5ced9384d9a02722875912f8fd7d615dd75c83944c171544e7",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a56__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "dd34fea0068648e7c8a5be4a60a8f6ab9f75cfd8734c0b146b489f3d78bcfedb"
+      }
+    ],
+    "a56__favorable_stable": [
+      {
+        "attempt": 1,
+        "route_metrics_summary_present": false,
+        "source_attempt_dir": "cells/a56__favorable_stable/attempts/attempt_0001",
+        "source_campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry5",
+        "source_expected_outputs": [
+          "per_frame_metrics.csv",
+          "radio_trace.csv",
+          "map_feedback.csv",
+          "perception_metrics.csv",
+          "resolved_config.yaml",
+          "RESULTS_SUMMARY.json",
+          "manifest.json"
+        ],
+        "source_manifest_sha256": "c8b1a42f2406ac6c1bc5c097b449ebe25234ebebfaa5f6bc75518f2ff3e9a5de",
+        "source_terminal": "cells/a56__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "status": "REUSED",
+        "terminal_sha256": "c0d1f22939afee2bb02df39edb1d490b44727051f3af58e7b643203f4c5c0dc9"
+      }
+    ],
+    "a56__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a56__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "a12c139ae2c684229c2e6a0189f0bec1623234a5217286bbd1afcd8973b1bf06",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a56__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "14d1041a08097e236cd985195ccfc32ed88285249035a71eb271250c81341e91"
+      }
+    ],
+    "a57__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a57__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "43aefd29110fd87517404e3757648caea104ce4dd1284943b23feaf24beb0362",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a57__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "6654f4a18cf9ba340aa120a1a9a604a02cefafcd467bd129179dba912a690111"
+      }
+    ],
+    "a57__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a57__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "fda08ba4deb47d833b98cbe2a2040f9ec384fa6c99989857f4b698d5868dee59",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a57__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "0fefb8f7b73cfa6bd42bb4ef7b03ab4a59cf8b0221fe83223d901ff7ae7e29d7"
+      }
+    ],
+    "a57__favorable_stable": [
+      {
+        "attempt": 1,
+        "route_metrics_summary_present": false,
+        "source_attempt_dir": "cells/a57__favorable_stable/attempts/attempt_0001",
+        "source_campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry5",
+        "source_expected_outputs": [
+          "per_frame_metrics.csv",
+          "radio_trace.csv",
+          "map_feedback.csv",
+          "perception_metrics.csv",
+          "resolved_config.yaml",
+          "RESULTS_SUMMARY.json",
+          "manifest.json"
+        ],
+        "source_manifest_sha256": "ce2ebad1c5663ae780eeafe03118c3d33c1deecbc8450d9fd1f8ec6998f9c26c",
+        "source_terminal": "cells/a57__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "status": "REUSED",
+        "terminal_sha256": "7b98384e405cf468f3a6aa6074ee7d3dff97d7cb35bef9c979a00581e5c47c8c"
+      }
+    ],
+    "a57__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a57__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "81006b164a1d894f61b33d91c1395ee95699967bd847a4cad4a29ea9efe5cf47",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a57__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "4f087c05bedb9afe981bd16db1241760613a17a2cc9f4fa8d5e017b23f9ef1d2"
+      }
+    ],
+    "a58__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a58__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "f92464ad56b63dff0aa846ae062025d0640b452d9266dccc6abf4098075c3918",
+        "route_outcome_classification": "COMPLETED_NO_BRAKING_EVENT",
+        "status": "PASSED",
+        "terminal": "cells/a58__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "046a5a7df2bd1444c700ac6488fd6beda32f2d93f17419e4c9a75230e1537798"
+      }
+    ],
+    "a58__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a58__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "f99d09161620e08f6fdf6893628dd05d5bf9f84f68ee27e57877de91aa294984",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a58__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "f75f31b700ea07bd74135247a2b83f81bf307430e23f886d6893a6492119274e"
+      }
+    ],
+    "a58__favorable_stable": [
+      {
+        "attempt": 1,
+        "route_metrics_summary_present": true,
+        "source_attempt_dir": "cells/a58__favorable_stable/attempts/attempt_0001",
+        "source_campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry6",
+        "source_expected_outputs": [
+          "per_frame_metrics.csv",
+          "radio_trace.csv",
+          "map_feedback.csv",
+          "perception_metrics.csv",
+          "resolved_config.yaml",
+          "route_metrics_summary.json",
+          "RESULTS_SUMMARY.json",
+          "manifest.json"
+        ],
+        "source_manifest_sha256": "2dbace654094f7509f1963f4f3659bfaab762f32fd949fd2efec8b630b45de29",
+        "source_terminal": "cells/a58__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "status": "REUSED",
+        "terminal_sha256": "1e4e2cf9de7c000cb3a23046b3c92b5c7078005d677d5e37b1809bcdcc84f841"
+      }
+    ],
+    "a58__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a58__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "8a3d748459356b3606cc23a55ae41f1fdd199163168aad6a59fdb651c58d58e1",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a58__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "e234962fb40f0b73b57da319f6ac98e5cf7c999fbc364aba19f686196b945c38"
+      }
+    ],
+    "a59__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a59__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "650abccfbc7f685fcf50fde924857799b687fc9d6d270a9fb3321db3ee8f7163",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a59__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "a3e22063d12c5ef17b42b45dc92732dcf2a071d63b6dd64f3bdd50d5b547640d"
+      }
+    ],
+    "a59__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a59__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "6bb5155643017b0f8a0c709ed49fd3694028f5d39d3cd1aa491d7b934e3fb5e7",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a59__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "ff3090376e0ceed1f04afe69830d6377a85eff1166c90a11ad88793a1a2a813d"
+      }
+    ],
+    "a59__favorable_stable": [
+      {
+        "attempt": 1,
+        "route_metrics_summary_present": true,
+        "source_attempt_dir": "cells/a59__favorable_stable/attempts/attempt_0001",
+        "source_campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry6",
+        "source_expected_outputs": [
+          "per_frame_metrics.csv",
+          "radio_trace.csv",
+          "map_feedback.csv",
+          "perception_metrics.csv",
+          "resolved_config.yaml",
+          "route_metrics_summary.json",
+          "RESULTS_SUMMARY.json",
+          "manifest.json"
+        ],
+        "source_manifest_sha256": "74ba9976995dda7062a6c1ebeff90fe6ec60400b31a9b52f8dbf99231f7fda05",
+        "source_terminal": "cells/a59__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "status": "REUSED",
+        "terminal_sha256": "ba52ae68d8a3812f7f33a131f807391949fb16e1ccdcaffd7a489f1e8fbf2103"
+      }
+    ],
+    "a59__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a59__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "b065c75fbbb0bdff8254d1c498b0c82671912137cea2d5cd2e552c9360a75857",
+        "route_outcome_classification": "COLLISION_ONLY_MEASURED_OUTCOME",
+        "status": "PASSED",
+        "terminal": "cells/a59__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "7f7dd2952935eff97f5b8fac2dac27bdae4572405a10956975141f1335ba9c0e"
+      }
+    ],
+    "a60__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a60__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "a2223577200869788f4fb9099ab6f6f1a803055b68d297ffc6b8ab65e3af6e28",
+        "route_outcome_classification": "COMPLETED_NO_BRAKING_EVENT",
+        "status": "PASSED",
+        "terminal": "cells/a60__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "5087d70a7399c0e5ab32dbc6e437eac8e0aabff0c997fc5c76d7376919f97e59"
+      }
+    ],
+    "a60__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a60__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "08a75b29b36d898830c8ef90b5d741531469bebb6bdd04257b62103da8a0cc99",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a60__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "d4d7f34b416b898500d973a4e4528c2aeea2d7895c116c55d456c9eb213bd1e7"
+      }
+    ],
+    "a60__favorable_stable": [
+      {
+        "attempt": 1,
+        "route_metrics_summary_present": true,
+        "source_attempt_dir": "cells/a60__favorable_stable/attempts/attempt_0001",
+        "source_campaign_root": "experiments/splitfusion_288_live_campaign_v1/20260907_full_288_retry6",
+        "source_expected_outputs": [
+          "per_frame_metrics.csv",
+          "radio_trace.csv",
+          "map_feedback.csv",
+          "perception_metrics.csv",
+          "resolved_config.yaml",
+          "route_metrics_summary.json",
+          "RESULTS_SUMMARY.json",
+          "manifest.json"
+        ],
+        "source_manifest_sha256": "8aace92f2eb12bd8b8cf7a02fce9859e35bf0456a85d33b9625da2d247aedf56",
+        "source_terminal": "cells/a60__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "status": "REUSED",
+        "terminal_sha256": "b84ee82645006f8d4b9b188213f4a242c02c7b7ba518d11a376bedaf49e12740"
+      }
+    ],
+    "a60__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a60__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "88adfbb1177e20b89cb67060ede9c94e3526199c650e3efa05cd0bdf8e57b9f1",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a60__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "19548b2bb70942707bec1071755d7823d7bddbb971ea7d1cc2cef3f3d2b21d43"
+      }
+    ],
+    "a61__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a61__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "df8c9267ed0edd86853aa0c260dc31ace5a2e59db5614b54352ae025d750af04",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a61__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "0d2ae081c4853f416255ba3ede45bc82632e852c5e72aa831c69ec3dc6181b55"
+      }
+    ],
+    "a61__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a61__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "bb5f5b04772528fbec24730c1d8d50a5603269725f8cc073192ea50694957f8c",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a61__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "3a5bcedf66fd0c363106c0ff62e6fa1cb75a0a59ae63c26ed6eb80937a7cf062"
+      }
+    ],
+    "a61__favorable_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a61__favorable_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "0ee558a71d0988dbde6acc9ec5739121b0e196f7a783bff212bc374949e57f24",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a61__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "f5ed9eaabd466f34d12606eea31a61e5f6f67db8dca22d3cb29d256a324c8224"
+      }
+    ],
+    "a61__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a61__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "50c432cbb86d9a8a5f03324db1748b010eb8a601d7cf0bd9b8d5233948ad5c95",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a61__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "b21d8c0df956ce949c122462d542047c6629612f0309c2c1df88b6e8af2e009b"
+      }
+    ],
+    "a62__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a62__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "eee7b365543ae4c0be55640787f3f165bd53f8116c61c519b1a08c510f7798a7",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a62__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "502084b4c5f6cc3ae4b27516ec91ab4a944f8f00cdf4e2fed6220a406722208a"
+      }
+    ],
+    "a62__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a62__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "3d98c000eb6658247dd99c5586a76b0df3c02f0b2c12542e22f203db2a4f037c",
+        "route_outcome_classification": "COMPLETED_NO_BRAKING_EVENT",
+        "status": "PASSED",
+        "terminal": "cells/a62__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "44568b9bc496cb9c17ab95e5c3a4c79e97ea5df9bdb8aaf05c87bc91e71e5ee3"
+      }
+    ],
+    "a62__favorable_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a62__favorable_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "635c0c1c32605c9f396c85fa0c7a812fe6d36fcf6dc02bc544496df98ba83567",
+        "route_outcome_classification": "COMPLETED_NO_BRAKING_EVENT",
+        "status": "PASSED",
+        "terminal": "cells/a62__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "d522a83d2f31e06ae4a30312c0a04ac7b8e490e3196ff426bac563571eea006a"
+      }
+    ],
+    "a62__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a62__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "1d00e797bf379e2f6ca088a5c32d0a6f75b6c6758246e9ce0465645f2ab0236a",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a62__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "cd799a503bb5a716ee431d97f432acfe59d8eb0d2d1c27568bfb92f23921339e"
+      }
+    ],
+    "a63__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a63__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "92ce54e80bc949a2f28b6529f9a4737bfeb6caf18b1b1e9d2a72e8e36024374f",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a63__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "576f1886f4c601b415572e47e879679733963b01f163bccbe498e0a2b86c92b0"
+      }
+    ],
+    "a63__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a63__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "154a1ce7d9dcf910c6f909314cd04fe09ad4ceac4fd256d3f8eccab4211594a9",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a63__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "be4a7b475adec92f498af253c647ff6b1be25c5d5c5c7fb0d9b37e268dda5624"
+      }
+    ],
+    "a63__favorable_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a63__favorable_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "51e47bf85ba43b2ed3b901e4766ce82be154f2b06a9d8b42e6399ea5173f2219",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a63__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "e9b576625d76f4c9dac539e497c500e5ed4672e3d5024507cbf4e20e5271363c"
+      }
+    ],
+    "a63__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a63__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "9618fe02d80f8cdb17c9afb9532bb18e4dea028ff3cfa6476729538e2eead95c",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a63__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "20fd0909eba23c170fcf2acb420899f08849fd4802317ed1efdb9358f6167c3e"
+      }
+    ],
+    "a64__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a64__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "40d08bf1640c46ec43883870ba806a2d88a7672d0f7de19705bbab43329148e8",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a64__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "157e2654414ec60f2df237c2d1c7e44a29d0f7b58fe1a0758e26c379eab7a709"
+      }
+    ],
+    "a64__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a64__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "1e975efcf200705d007a62bb4c04aa6e3f502ae4e1bf72bf134a1380f3335ee4",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a64__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "eba3a0d1239a249a36f6e7152c1e77282f89c545e427be81d28e5891411a4113"
+      }
+    ],
+    "a64__favorable_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a64__favorable_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "522e1b1fab650299b4ef60101cd1e3ba79a63a3b076985feec5ad7d075ccf392",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a64__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "527a8117c01d5181e8bf8f4003a70831e48630cbaf24ed7b76c19ed5caa032e2"
+      }
+    ],
+    "a64__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a64__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "7c29bb9ca170f15c57a6a7056684625c654667a38e496609b0a73ab8bd0e7cbd",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a64__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "b038dd80792d14b2872bc817ecb273509f19ed1ed3ba7c5cba52ed46452e623d"
+      }
+    ],
+    "a65__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a65__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "96c1611e021869220adcab10411c125aadd5cfe5110ed3ae32cbb2fff44f50eb",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a65__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "6eb0de4040391fa522c5385c0bc5cb6d62db07376a7110131cac4f67afa1c7c7"
+      }
+    ],
+    "a65__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a65__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "59128ef980ed0a99f18c0512766d65c573d32ba35a8a40951a0a29e8e897c9e1",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a65__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "c732f2d9da951e600b264fe14658f9743f476a4f6f4864bf5c96545f7105330c"
+      }
+    ],
+    "a65__favorable_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a65__favorable_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "a1887521cb40868159928e0b77ca5c7a19929763b680e7f9eed0a18137323034",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a65__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "0bcd7ad8952ea25a235108dba956283b5d828720b924288582ceaf2830aff3a6"
+      }
+    ],
+    "a65__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a65__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "3581bf582380a38c945380424ca84da662d5aaf954620eaefc6ef8f7cd1098ef",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a65__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "b0ed0895425ffc07576128b22b0f079b5cea2290d5111224d60c054f8f8a8f93"
+      }
+    ],
+    "a66__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a66__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "241001f3323f50fc761da8e52a455d32c76fe5af7960ca10eb684c5fcc067a45",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a66__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "a56abdc8195220ee4019278af6cccdcf94bd088b60a362823bc94708be27575d"
+      }
+    ],
+    "a66__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a66__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "8d220b7fb5e4392003a6b34b9eb9652f904477833594a94eceef2f757760c048",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a66__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "3894bc5871de69f7df4ca491aea10775a2acf8e995eda8fed1b715fdc7b77172"
+      }
+    ],
+    "a66__favorable_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a66__favorable_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "c1762f2f4f37122f8bfb4788217cfe677c114c2c0648ffa2a46b5a2d3d494586",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a66__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "42541ab5b46516d80c25aafd3a633a769117f18777c9bd010e28c8f3fe596a77"
+      }
+    ],
+    "a66__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a66__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "824410bed5194a873f474adc65d627a0b76dbb141a04bd14e05ebca289557aed",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a66__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "184746c8a651df8288fe317181e284e6dcfcb3bc71e250a1643fab5303784c2c"
+      }
+    ],
+    "a67__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a67__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "6d3b0259c2f9e06cd3411911446312c51b0803a9b588c73eadd28db2cd86a881",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a67__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "140f83f58d9ea4c831eb6182a96d695dd0bbbf86fdc8e66bb2922c4a9d5593a4"
+      }
+    ],
+    "a67__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a67__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "c900f1601635c6dc320d213561e84298b9bf2fc4c15026c876d1e842800e1a3a",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a67__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "4d71f65b216aaf8d37f07b96b29348aa0f0b981f4375111c9282bba19e00066e"
+      }
+    ],
+    "a67__favorable_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a67__favorable_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "d68a289fb3adf0365ff3b9dcfa74e17a7da97e9761cfe33bbc48f8fc480daa74",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a67__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "62fb4945437efa08b154a45009830c75a3d96b28286a50fa7f6c9207c25303ca"
+      }
+    ],
+    "a67__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a67__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "a999bb54d7e22c366bf5701191503e032cfae7ef1c1a3531c330d8ea954e353d",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a67__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "4b2596584a2e49bd181886448375bc1eb9dad1594913eefd490c067889df7a4d"
+      }
+    ],
+    "a68__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a68__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "3928fe1145e1d15fa467ef36a8cd482ffd85c22c98b8aca55b04b3a9c66c1224",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a68__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "1a8aa5ab18f0431fe0fe417900acd100e27e0639eac715eb1460259c0ac420ff"
+      }
+    ],
+    "a68__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a68__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "a091096cde01209e8786e0bf7892a1d0a26a0d01aebb2c0a856798b7e7fbd7e8",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a68__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "14fed07f73291f131b6624dcbbc1ae868fb04bdfbe4b51d0fda8885f6f9c4696"
+      }
+    ],
+    "a68__favorable_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a68__favorable_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "087b8be29d65d3a7f7d2286dccf47dc1fae8e91a59779f77ab0d7905b259a44c",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a68__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "a3202b229a052d43a15069e7d0e6c522f815444f7957434a086e4e007f5d9d5d"
+      }
+    ],
+    "a68__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a68__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "b78c5df21371b5be2e5df83e03a570f291fd4fec01b5b6a31f213ed6124390e5",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a68__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "a7cb03dd63a51227f98ee472fd5f3be210c9b76a8e502a33723a3d602a9cf58d"
+      }
+    ],
+    "a69__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a69__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "0d6401d3f51d6d6ba3497aa68e8e982f4f98f7e386d07fa4b4ed8f75c6ae8261",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a69__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "34171e03a44d24953c23a1847cdb8ac7925c8905f9da9aa6fb95a0065225b019"
+      }
+    ],
+    "a69__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a69__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "384bef0d3eb410bafdad9e8f50ea6ef792c2478dc591356d4f3ca27760187cd0",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a69__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "f3f2cb4e008361e2d1e960e3b7997bc99a2f689ead0c1cfeaab8a8b69001e08c"
+      }
+    ],
+    "a69__favorable_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a69__favorable_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "b11837195a60f6a67635f9a47fed7a26fec7d8a9ee495b71c4f490ac94fadc53",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a69__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "7f545795ba56e7f2ba41eb4b7c380f3ac4c3914ebbc368748f214cc546738d93"
+      }
+    ],
+    "a69__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a69__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "11e837f55379377e5c8b5bfd4aacdac8cab7a9afd8980ef7360a398397bcfea3",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a69__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "ef0eb1140a25b786856a6f85408354b87205b5b5d83aeaaa50d870fbfe1fed5a"
+      }
+    ],
+    "a70__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a70__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "3f90b04a7d10cb8870dba9b503b82a7e90047aa84d6b09dc729d51a341da5ac7",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a70__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "b596d541c89a262aad3f073860478400a466b7c2e607e9ec4fe24257f26a3ce4"
+      }
+    ],
+    "a70__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a70__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "cc1b5c71f3cf580bc3a904e3caee02ecb974769533cf62fca540e904dfb13777",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a70__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "3f88bbb646c0cf9fca66e19e74ec36af3b3bfb7a39cc56962a70f84b26196cf9"
+      }
+    ],
+    "a70__favorable_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a70__favorable_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "2141ec3fe0d56c92895f2246cd6077d8f092c95536a0a8cd12028f136aacb5e8",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a70__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "1abb22447f23cd156e50ebb613ad95ffad666c45a007bd0a398af29d82930e61"
+      }
+    ],
+    "a70__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a70__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "c51848165bd7dbfa2b044fe48f44b7968c17a411b538f42d37a7ef74875bb01a",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a70__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "e612e37a3bdcb08a15d079cd250d5a2a6d416e89bc5156eaf0fe078dae087713"
+      }
+    ],
+    "a71__adverse_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a71__adverse_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "1d0fb38beef19bc5ecd844674863d9aae87cb3e9590f9927e0165f7b7b2ef21a",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a71__adverse_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "881165979f808378c73692ca0653d27f14ec81ff46350c1024c534a96586b579"
+      }
+    ],
+    "a71__fade_recovery": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a71__fade_recovery/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "7632558b47d87f021e2cdc9955308ffa78420b04d93558e3b707980cd22ea3d8",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a71__fade_recovery/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "544ce115b88825e087303fa78e273c29a435c5a187b395b080dfc66f95f7112d"
+      }
+    ],
+    "a71__favorable_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a71__favorable_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "ab9bbfbb15de8ae0c9bec7e28b5fb73a48eb01828ba074eb7949251ab3978102",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a71__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "53183e5c4dbeba973a5cbbef6255014d3c16fc3f5701a7846cb8d6ca787f5fd1"
+      }
+    ],
+    "a71__mid_variable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a71__mid_variable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "5c1bca990861e521950f827f1a24a0f927388511830a7575ee27de5d4a45c4cd",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a71__mid_variable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "e07d4e20e00033584fe0f6fc63ac930b80b1f08c882ea09f32aea6f14b955c2d"
+      }
+    ]
+  },
+  "config_sha256": "f9c8382af5a4b16e95f71fa0e273437ee54eb114b5c39d3d428335a71c9e9057",
+  "continuation_binding_sha256": "71f969c6e50d5d508d3b0f139354a59671384936c4464a18a246eea37b28007f",
+  "created_at_unix_s": 1788839237.9677887,
+  "schema": "scenesense.ue_288_campaign_ledger.v1",
+  "updated_at_unix_s": 1788938183.495067
+}
