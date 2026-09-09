@@ -117,6 +117,26 @@ No raw RGB, radar tensors or semantic masks are stored. Preserve the directory
 and send it back without editing. Git may ignore `experiments/`, so transfer it
 explicitly rather than assuming `git push` includes it.
 
+## 6. Render an advisor-facing still and animation
+
+The completed evidence can be visualized offline; do not rerun CARLA merely to
+record a presentation. From the isolated worktree, use an absent output leaf:
+
+```bash
+python3 -m spatial_map_coop.multi_ue_v1.render_action50_evidence_v1 \
+  --run-dir experiments/spatial_map_multi_ue_v1/live_two_ue_action50_self_contained_run2 \
+  --output experiments/spatial_map_multi_ue_v1/live_two_ue_action50_visualization_v1 \
+  --fps 15 --interpolation-steps 5
+```
+
+This creates 20 measured PNG keyframes, a smoothly interpolated MP4, and a
+manifest bound to the successful source evidence and Town10HD static geometry.
+Stable track IDs move continuously; new and expired tracks fade instead of
+blinking. Cyan/orange indicates the selected UE observation and green identifies
+a track supported by both UEs. Interpolation is display-only and never changes
+the measured track inventory. The result is a world-frame technology diagram,
+not a camera view, CARLA ground truth, or a UI qualification.
+
 ## Scientific interpretation
 
 A pass demonstrates that two live UEs can deliver real learned detections into
