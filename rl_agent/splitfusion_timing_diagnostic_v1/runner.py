@@ -1003,6 +1003,7 @@ def start_edge_container(
     temporary_dir: Path,
     run_id: str,
     cell_id: str,
+    warmup_stream_id: str = "",
 ) -> tuple[Path, dict[str, Any]]:
     runtime = campaign["runtime"]
     require(not _edge_running(), "a previous edge container is still running")
@@ -1077,6 +1078,7 @@ def start_edge_container(
                     "--stop-file", str(container_state / "stop_edge"),
                     "--warmup-iterations", str(len(warmup_payloads)),
                     "--first-measured-sequence-id", str(FIRST_MEASURED_SEQUENCE_ID),
+                    "--warmup-stream-id", str(warmup_stream_id),
                     "--edge-port", str(runtime["edge_receive_port"]),
                     "--result-host", str(runtime["ue_bind_host"]),
                     "--result-port", str(runtime["camera_result_port"]),

@@ -310,6 +310,104 @@ def test_obsolete_slot_policy() -> dict[str, Any]:
     return {"schedule_period_ms": period // 1_000_000, "policy": "SKIP_OBSOLETE_NEVER_BURST"}
 
 
+def test_live_join_and_accounting() -> dict[str, Any]:
+    """The live join derives the amendment's quantities and rejects reversals."""
+
+    from ..live_runner import join_live_records
+
+    base = 1_000_000_000_000
+    collector_rows = [
+        {
+            "frame_id": 5000, "route_tick": 1, "capture_id": "s:5000", "action_id": 30,
+            "carla_timestamp": 100.0, "capture_wall_s": base / 1e9,
+            "prepare_status": "SENT", "queue_wait_ms": 1.2, "sensor_wait_ms": 3.4,
+            "radar_window_ms": 0.5, "radar_prepare_ms": 40.0, "rgb_convert_ms": 2.0,
+            "scene_snapshot_ms": 1.0, "pre_front_compute_ms": 50.0,
+            "window_callbacks": 4, "window_returns": 900, "ego_speed_mps": 6.0,
+            "front_ms": 45.0, "payload_bytes": 903_419,
+            "payload_bytes_uncompressed": 903_243, "payload_chunks": 73,
+        },
+        {"frame_id": 5001, "prepare_status": "DROPPED_INCOMPLETE_RADAR_WINDOW"},
+        {"frame_id": 5002, "prepare_status": "STALE_BEFORE_SEND"},
+    ]
+    boundaries = {
+        5000: {
+            "ue_first_send_wall_ns": base,
+            "ue_final_send_wall_ns": base + 4_000_000,
+            "ue_datagrams_observed": 73,
+        }
+    }
+    edge_records = [
+        {
+            "frame_id": 5000, "sequence_id": 5000,
+            "edge_first_datagram_wall_ns": base + 10_000_000,
+            "edge_complete_reassembly_wall_ns": base + 70_000_000,
+            "edge_admitted_wall_ns": base + 70_200_000,
+            "edge_worker_start_wall_ns": base + 71_000_000,
+            "edge_tail_finished_wall_ns": base + 160_000_000,
+            "edge_result_published_wall_ns": base + 162_000_000,
+            "feature_datagrams": 73, "duplicate_datagrams": 0,
+            "edge_service_wall_ms": 89.0, "deployed_tail_service_ms": 91.0,
+            "service_record_count": 15, "service_record_bytes": 2048,
+            "service_target_met": False, "processing_horizon_met": True,
+            "action_id": 30, "phase": "MEASURED",
+            "edge_stage_ns": {"frozen_tail": 88_000_000},
+            "tail_stage_wall_ns": {
+                "decode_tail_launch": 7_800_000,
+                "finite_check_outputs": 9_470_000,
+                "camera_aware_postprocess": 31_510_000,
+                "p025_service_filter": 7_530_000,
+            },
+            "tail_stage_cuda_ms": {"decode_tail_cuda": 14.8},
+        }
+    ]
+    rows, accounting = join_live_records(
+        collector_rows=collector_rows, send_boundaries=boundaries,
+        edge_records=edge_records,
+    )
+    _check(len(rows) == 1 and rows[0]["delivered"] is True, "one transmitted delivered row")
+    row = rows[0]
+    _check(row["ue_send_loop_ms"] == 4.0, "ue_send_loop_ms")
+    _check(row["application_feature_uplink_ms"] == 70.0, "application_feature_uplink_ms")
+    _check(row["post_send_to_reassembly_ms"] == 66.0, "post_send_to_reassembly_ms")
+    _check(
+        row["edge_first_to_complete_reassembly_ms"] == 60.0,
+        "edge_first_to_complete_reassembly_ms",
+    )
+    _check(row["edge_queue_wait_ms"] == 1.0, "edge_queue_wait_ms")
+    _check(row["deployed_tail_service_ms"] == 91.0, "deployed_tail_service_ms")
+    _check(row["decode_tail_cuda_ms"] == 14.8, "decode_tail_cuda_ms")
+    _check(row["detection_count"] == 15, "detection_count")
+    _check(abs(row["post_processing_ms"] - 39.04) < 1e-9, "post_processing_ms")
+    _check(
+        abs(row["decode_tail_inference_block_ms"] - 17.27) < 1e-9,
+        "decode_tail_inference_block_ms",
+    )
+    _check(
+        accounting["transmitted_rows"] == 1
+        and accounting["prepare_status_counts"]["STALE_BEFORE_SEND"] == 1
+        and accounting["prepare_status_counts"]["DROPPED_INCOMPLETE_RADAR_WINDOW"] == 1,
+        "preparation drops must be accounted separately from transmitted frames",
+    )
+    reversed_boundaries = {
+        5000: {
+            "ue_first_send_wall_ns": base + 500_000_000,
+            "ue_final_send_wall_ns": base + 500_000_001,
+            "ue_datagrams_observed": 73,
+        }
+    }
+    try:
+        join_live_records(
+            collector_rows=collector_rows[:1],
+            send_boundaries=reversed_boundaries, edge_records=edge_records,
+        )
+    except common.DiagnosticError:
+        pass
+    else:
+        _check(False, "a reversed send boundary must be rejected, not reported")
+    return {"derived_quantities_verified": 10, "drop_statuses_accounted": 2}
+
+
 TESTS = (
     test_derived_timestamp_intervals,
     test_negative_interval_is_detected,
@@ -319,6 +417,7 @@ TESTS = (
     test_stage_partition_is_complete,
     test_clock_anchor_shape,
     test_obsolete_slot_policy,
+    test_live_join_and_accounting,
 )
 
 

@@ -383,11 +383,18 @@ def run(args: argparse.Namespace) -> int:
             service_records = list(snapshot.records or ())
             serialized_bytes = len(snapshot.serialized_records or b"")
             semantic_shape = [int(value) for value in snapshot.semantic_labels.shape]
-            phase = (
-                WARMUP_PHASE
-                if int(item["sequence_id"]) < int(args.first_measured_sequence_id)
-                else MEASURED_PHASE
-            )
+            if str(args.warmup_stream_id):
+                phase = (
+                    WARMUP_PHASE
+                    if str(context.stream_id) == str(args.warmup_stream_id)
+                    else MEASURED_PHASE
+                )
+            else:
+                phase = (
+                    WARMUP_PHASE
+                    if int(item["sequence_id"]) < int(args.first_measured_sequence_id)
+                    else MEASURED_PHASE
+                )
             record = {
                 "schema": common.EDGE_RECORD_SCHEMA,
                 "run_id": str(args.run_id),
@@ -443,10 +450,7 @@ def run(args: argparse.Namespace) -> int:
                 ),
             }
             del snapshot, result
-            if phase == MEASURED_PHASE:
-                with records_lock:
-                    records.append(record)
-            else:
+            if phase != MEASURED_PHASE:
                 counters.bump("warmup_frames_processed")
             # One compact identity/accounting datagram returns to the UE. The
             # dense label map stays off the radio, exactly as Phase 15 requires.
@@ -470,13 +474,25 @@ def run(args: argparse.Namespace) -> int:
             blob = json.dumps(downlink, separators=(",", ":"), allow_nan=False).encode(
                 "utf-8"
             )
-            for chunk in chunk_payload(
+            result_chunks = chunk_payload(
                 blob, message_id=int(context.frame_id), chunk_bytes=chunk_bytes
-            ):
+            )
+            for chunk in result_chunks:
                 sender.sendto(chunk, (str(args.result_host), int(args.result_port)))
                 counters.bump("result_datagrams_transmitted")
+            published_wall_ns = time.time_ns()
             counters.bump("compact_results_transmitted")
             counters.bump("result_bytes_transmitted", len(blob))
+            # Deployed span: worker start through compact-result publication,
+            # so it carries serialization, publication and live contention.
+            record["edge_result_published_wall_ns"] = int(published_wall_ns)
+            record["deployed_tail_service_ms"] = (
+                published_wall_ns - worker_start_wall_ns
+            ) / 1e6
+            record["result_datagrams"] = len(result_chunks)
+            if phase == MEASURED_PHASE:
+                with records_lock:
+                    records.append(record)
 
     ready_path.parent.mkdir(parents=True, exist_ok=True)
     publish_records()
@@ -507,6 +523,7 @@ def run(args: argparse.Namespace) -> int:
                 "records_file": str(records_path),
                 "summary_file": str(summary_path),
                 "first_measured_sequence_id": int(args.first_measured_sequence_id),
+                "warmup_stream_id": str(args.warmup_stream_id),
                 "edge_receive_reported_bytes": receiver.getsockopt(
                     socket.SOL_SOCKET, socket.SO_RCVBUF
                 ),
@@ -560,6 +577,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--stop-file")
     parser.add_argument("--warmup-iterations", type=int, default=12)
     parser.add_argument("--first-measured-sequence-id", type=int, default=1000)
+    parser.add_argument("--warmup-stream-id", default="")
     parser.add_argument("--edge-port", type=int, default=51002)
     parser.add_argument("--result-host", default="10.0.0.2")
     parser.add_argument("--result-port", type=int, default=51004)
