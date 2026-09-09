@@ -373,8 +373,20 @@ def verify_actions(registry: SplitActionRegistry) -> dict[str, Any]:
 
 
 def construct_registered_sample() -> tuple[dict[str, Any], dict[str, Any]]:
-    """Reconstruct the exact registered Phase-13C fit-only 300-frame sample."""
+    """Reconstruct the exact registered Phase-13C fit-only 300-frame sample.
 
+    Phase-13C guards its fit sampling as a CPU-only deterministic step, so
+    this must run before anything initializes CUDA -- including the device
+    identity preflight and every model preload. The ordering is asserted here
+    rather than only inside Phase-13C so a reordering fails with a message
+    that names the cause.
+    """
+
+    require(
+        not torch.cuda.is_initialized(),
+        "the registered Phase-13C fit sampling must run before CUDA is "
+        "initialized; verify_cuda() and every model preload must follow it",
+    )
     sample, context = p13c._construct_sample()
     require(
         sample["schema"] == p13c.SAMPLE_SCHEMA,
@@ -2984,10 +2996,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     campaign_path = repo_path(common.PILOT_CONFIG_RELPATH)
     campaign = common.load_json(campaign_path)
 
-    print("preflight: git, bindings, CUDA, container runtime, cold host", flush=True)
+    print("preflight: git, bindings, container runtime, cold host", flush=True)
     git_state = verify_git_state()
     bindings = verify_bound_inputs()
-    cuda = verify_cuda()
     container = verify_container_runtime()
     cold = verify_cold_host(campaign, label="run/preflight")
     synthetic = run_synthetic_tests()
@@ -2998,8 +3009,12 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     registry = SplitActionRegistry.from_runtime_binding()
     actions = verify_actions(registry)
+    # The fit sampling is CPU-only by Phase-13C contract, so it precedes the
+    # CUDA identity preflight and every model preload.
     print("preflight: reconstructing the registered Phase-13C fit sample", flush=True)
     sample, sample_context = construct_registered_sample()
+    print("preflight: CUDA device identity", flush=True)
+    cuda = verify_cuda()
 
     run_id = output.name
     output.mkdir(parents=True, exist_ok=False)
