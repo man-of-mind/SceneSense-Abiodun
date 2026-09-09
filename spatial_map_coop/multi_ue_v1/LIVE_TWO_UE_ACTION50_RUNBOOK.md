@@ -70,11 +70,13 @@ python3 -u -m spatial_map_coop.multi_ue_v1.live_two_ue_action50_v1 \
   --output experiments/spatial_map_multi_ue_v1/live_two_ue_action50_run1
 ```
 
-This mode configures one 10 Hz synchronous clock, assigns distinct UE role
-names, drives both egos on the registered Stage-2 path, and destroys only the
-actors it created before restoring the original CARLA settings. The harness
-selects common CARLA frame IDs, uses a two-tick stride, and runs the two sources
-sequentially through one resident RTX model stack. Therefore its
+This mode configures the registered 20 Hz synchronous CARLA/sensor clock,
+assigns distinct UE role names, drives both egos on the registered Stage-2
+path, and destroys only the actors it created before restoring the original
+CARLA settings. The harness selects common CARLA frame IDs and prepares the
+model every two ticks at 10 Hz, preserving the required four radar callbacks
+across two 100 ms logical sweeps. It runs the two sources sequentially through
+one resident RTX model stack. Therefore its
 `localhost_model_path_ms` is diagnostic compute time, not an end-to-end or
 parallel-UE latency claim.
 
@@ -97,6 +99,10 @@ limitation, not evidence that confidence is positional uncertainty.
 If no two-source association occurs, the run fails honestly: the chosen egos
 did not jointly observe a compatible object. Reposition the scenario or choose
 a segment with overlapping views, then use a new create-only output leaf.
+
+If the run fails for another reason, `FAILED.json` includes compact per-UE
+camera/radar callback, logical-sweep, preparation-rejection and progress
+diagnostics. Preserve it and use a new create-only output leaf after review.
 
 ## 5. Return evidence for review
 

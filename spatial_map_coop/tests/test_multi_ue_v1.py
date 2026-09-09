@@ -106,7 +106,17 @@ class MultiUEIngressTests(unittest.TestCase):
             args = live_action50.parse_args()
         self.assertTrue(args.spawn_two_egos)
         self.assertEqual((args.ue_a_actor_id, args.ue_b_actor_id), (-1, -1))
+        self.assertEqual(args.frame_stride, live_action50.PREPARE_EVERY_N_TICKS)
+        self.assertEqual(live_action50.WORLD_TICK_HZ, 20.0)
         live_action50._require_actor_selection(args)
+        live_action50._require_sensor_clock_contract(args)
+
+        invalid = copy.copy(args)
+        invalid.frame_stride = 1
+        with self.assertRaisesRegex(
+            live_action50.LiveTwoUEError, "registered two-tick cadence"
+        ):
+            live_action50._require_sensor_clock_contract(invalid)
 
     def test_shadow_fault_schedule_and_mutations_are_deterministic(self):
         self.assertEqual(

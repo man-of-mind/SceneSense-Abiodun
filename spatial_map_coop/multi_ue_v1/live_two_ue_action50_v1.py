@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Headless live two-UE/action-50 cooperative-map demonstration.
 
-The harness attaches RGB and radar sensors to two *existing* moving CARLA
-vehicles.  It never controls or destroys either vehicle and does not change
-world settings.  Both logical UEs share one resident localhost SplitFusion
-runtime; this demonstrates model-to-map integration, not two-device latency.
+The primary mode owns two moving CARLA vehicles and their RGB/radar sensors;
+the optional passive mode attaches sensors to two caller-owned vehicles. Both
+logical UEs share one resident localhost SplitFusion runtime. This demonstrates
+model-to-map integration, not two-device latency.
 """
 
 from __future__ import annotations
@@ -44,7 +44,13 @@ if _LEGACY_FUSION_PACKAGE not in {
 
 from rl_agent.splitfusion_live_dispatch_v1.frame_context import build_frame_context_v1
 from rl_agent.splitfusion_live_dispatch_v1.registry import SplitActionRegistry
-from data_collection.radar_sweep_aggregator_v1 import RadarSweepAggregator, RadarSweepError
+from data_collection.radar_sweep_aggregator_v1 import (
+    PREPARE_EVERY_N_TICKS,
+    WORLD_DELTA_S,
+    WORLD_TICK_HZ,
+    RadarSweepAggregator,
+    RadarSweepError,
+)
 from pole_lraspp_multimodal_fusion.radar_fusion import build_radar_sample
 
 from .association import AssociationPolicy
@@ -261,7 +267,10 @@ class _OwnedTwoEgoScenario:
             random.seed(int(self.args.scenario_seed))
             settings = self.world.get_settings()
             settings.synchronous_mode = True
-            settings.fixed_delta_seconds = 1.0 / float(self.args.scenario_fps)
+            # The registered radar tensor is built from two 100 ms logical
+            # sweeps, each containing two callbacks from a 20 Hz CARLA sensor.
+            # The model remains 10 Hz because only every second tick is used.
+            settings.fixed_delta_seconds = WORLD_DELTA_S
             self.world.apply_settings(settings)
             self.settings_changed = True
             self.traffic_manager.set_synchronous_mode(True)
@@ -324,7 +333,8 @@ class _OwnedTwoEgoScenario:
                 "Owned two-ego scenario ready: "
                 f"ue_a={self.ego_a.id}, ue_b={self.ego_b.id}, "
                 f"vehicles={len(vehicles)}, pedestrians={len(walkers)}, "
-                f"route_points={len(route)}"
+                f"route_points={len(route)}, world_hz={WORLD_TICK_HZ:g}, "
+                f"prepared_hz={WORLD_TICK_HZ / PREPARE_EVERY_N_TICKS:g}"
             )
             return self.ego_a, self.ego_b
         except BaseException:
@@ -335,16 +345,42 @@ class _OwnedTwoEgoScenario:
         return int(self.world.tick())
 
     def close(self) -> None:
+        actor_ids: list[int] = []
         for actor in reversed(self.actors):
             try:
                 if hasattr(actor, "stop"):
                     actor.stop()
-            except RuntimeError:
+            except (AttributeError, RuntimeError):
                 pass
             try:
-                actor.destroy()
-            except RuntimeError:
+                actor_ids.append(int(actor.id))
+            except (AttributeError, RuntimeError, TypeError, ValueError):
                 pass
+        # Destroy the owned population in one server-side batch. Per-actor
+        # destroy RPCs are both slow and prone to cascading native errors when
+        # a long run is already unwinding. Reversed order puts walker
+        # controllers before their walkers and both egos last.
+        if actor_ids:
+            try:
+                import carla
+
+                responses = self.client.apply_batch_sync(
+                    [carla.command.DestroyActor(actor_id) for actor_id in actor_ids],
+                    True,
+                )
+                failures = [
+                    f"{actor_id}: {response.error}"
+                    for actor_id, response in zip(actor_ids, responses)
+                    if getattr(response, "error", None)
+                ]
+                if failures:
+                    print(
+                        "Owned-scenario batch cleanup reported "
+                        f"{len(failures)}/{len(actor_ids)} failures: "
+                        + "; ".join(failures[:5])
+                    )
+            except (ImportError, RuntimeError) as exc:
+                print(f"Owned-scenario batch cleanup could not be verified: {exc}")
         self.actors.clear()
         if self.tm_sync_enabled:
             try:
@@ -379,6 +415,10 @@ class _PassiveUESensors:
         self.radars: "OrderedDict[int, Any]" = OrderedDict()
         self.aggregator = RadarSweepAggregator(keep_sweeps=12)
         self.aggregator_error = ""
+        self.image_callbacks = 0
+        self.radar_callbacks = 0
+        self.prepare_attempts = 0
+        self.prepare_rejections: Counter[str] = Counter()
         self.tracker = runtime.FastStationaryTrackAccumulator(
             stationary_velocity_mps=0.35,
             parked_threshold_s=5.0,
@@ -428,12 +468,14 @@ class _PassiveUESensors:
         except RuntimeError:
             return
         with self.condition:
+            self.image_callbacks += 1
             self.images[int(image.frame)] = (image, ego_transform)
             self._prune(self.images)
             self.condition.notify_all()
 
     def _on_radar(self, radar: Any) -> None:
         with self.condition:
+            self.radar_callbacks += 1
             try:
                 self.aggregator.ingest(radar)
             except Exception as exc:
@@ -451,15 +493,18 @@ class _PassiveUESensors:
 
     def prepare(self, frame_id: int) -> dict[str, Any] | None:
         with self.condition:
+            self.prepare_attempts += 1
             _require(not self.aggregator_error, self.aggregator_error)
             image_item = self.images.get(int(frame_id))
             radar = self.radars.get(int(frame_id))
             if image_item is None or radar is None:
+                self.prepare_rejections["MISSING_COMMON_SENSOR_FRAME"] += 1
                 return None
             if self.aggregator.anchor_s is None:
                 self.aggregator.set_anchor(float(radar.timestamp))
             sweep_index = self.aggregator.sweep_index_for(float(radar.timestamp))
             if not self.aggregator.has_window(sweep_index):
+                self.prepare_rejections["INCOMPLETE_SWEEP_WINDOW"] += 1
                 return None
             radar_inverse = np.asarray(radar.transform.get_inverse_matrix(), dtype=np.float64)
             try:
@@ -469,8 +514,12 @@ class _PassiveUESensors:
                     reference_timestamp_s=float(radar.timestamp),
                 )
             except RadarSweepError:
+                self.prepare_rejections["RADAR_SWEEP_ERROR"] += 1
                 return None
         if int(window["callbacks"]) != 4:
+            self.prepare_rejections[
+                f"WINDOW_CALLBACK_COUNT_{int(window['callbacks'])}"
+            ] += 1
             return None
         image, ego_transform = image_item
         radar_matrix = np.asarray(radar.transform.get_matrix(), dtype=np.float64)
@@ -499,6 +548,32 @@ class _PassiveUESensors:
             "capture_timestamp_ns": int(round(float(image.timestamp) * 1_000_000_000)),
             "carla_timestamp_s": float(image.timestamp),
         }
+
+    def diagnostics(self) -> dict[str, Any]:
+        """Return compact sensor evidence suitable for a failed-run record."""
+
+        with self.condition:
+            sweep_reports = self.aggregator.all_sweep_reports()
+            return {
+                "stream_id": self.stream_id,
+                "image_callbacks": int(self.image_callbacks),
+                "radar_callbacks": int(self.radar_callbacks),
+                "common_buffered_frames": len(self.images.keys() & self.radars.keys()),
+                "prepare_attempts": int(self.prepare_attempts),
+                "prepare_rejections": dict(sorted(self.prepare_rejections.items())),
+                "aggregator_error": self.aggregator_error or None,
+                "radar_raw_callbacks": int(self.aggregator.raw_callbacks),
+                "radar_dropped_callback_frames": int(
+                    self.aggregator.dropped_callback_frames
+                ),
+                "expected_callbacks_per_sweep": int(
+                    self.aggregator.expected_callbacks_per_sweep
+                ),
+                "expected_window_callbacks": int(
+                    self.aggregator.expected_window_callbacks
+                ),
+                "recent_sweeps": sweep_reports[-6:],
+            }
 
     def close(self) -> None:
         for sensor in self.sensors:
@@ -760,6 +835,25 @@ def _require_actor_selection(args: argparse.Namespace) -> None:
     )
 
 
+def _require_sensor_clock_contract(args: argparse.Namespace) -> None:
+    """Prevent a valid CLI from silently violating the frozen radar cadence."""
+
+    if bool(args.spawn_two_egos):
+        _require(
+            int(args.frame_stride) == PREPARE_EVERY_N_TICKS,
+            "owned mode frame stride must equal the registered two-tick cadence",
+        )
+
+
+def _safe_sensor_diagnostics(source: _PassiveUESensors | None) -> dict[str, Any] | None:
+    if source is None:
+        return None
+    try:
+        return source.diagnostics()
+    except (AttributeError, RuntimeError, ValueError) as exc:
+        return {"diagnostic_error": f"{type(exc).__name__}: {exc}"}
+
+
 def _manifest(output: Path, summary: Mapping[str, Any]) -> dict[str, Any]:
     files = {}
     for name in ("observations.jsonl", "snapshots.jsonl", "faults.jsonl", "SUMMARY.json"):
@@ -812,6 +906,7 @@ def run(args: argparse.Namespace) -> int:
 
     _require(args.execute == EXECUTE_TOKEN, f"--execute must equal {EXECUTE_TOKEN}")
     _require_actor_selection(args)
+    _require_sensor_clock_contract(args)
     _require(args.max_pairs >= len(FAULT_CASES), f"max-pairs must be >= {len(FAULT_CASES)}")
     output = Path(args.output).resolve()
     _require(not output.exists(), f"create-only output already exists: {output}")
@@ -820,6 +915,8 @@ def run(args: argparse.Namespace) -> int:
     started_wall = time.time()
     source_a = source_b = None
     owned_scenario: _OwnedTwoEgoScenario | None = None
+    pair_count = 0
+    last_frame = -1
     try:
         _require(torch.cuda.is_available(), "CUDA is unavailable")
         device = torch.device("cuda:0")
@@ -838,9 +935,7 @@ def run(args: argparse.Namespace) -> int:
         source_b = _PassiveUESensors(world, vehicle_b, "two-ue/ue-b")
         service = MultiUESpatialMapService(_policy())
         session_id = str(args.session_id)
-        last_frame = -1
         frame_parity: int | None = None
-        pair_count = 0
         nominal_multi_source = 0
         nominal_associations = 0
         fault_counts: Counter[str] = Counter()
@@ -965,6 +1060,9 @@ def run(args: argparse.Namespace) -> int:
             ),
             "existing_ego_vehicles_controlled_or_destroyed": False,
             "sensor_contract": {
+                "world_tick_hz": WORLD_TICK_HZ,
+                "prepared_input_hz": WORLD_TICK_HZ / PREPARE_EVERY_N_TICKS,
+                "prepare_every_n_ticks": PREPARE_EVERY_N_TICKS,
                 "rgb": {"width": 1280, "height": 720, "horizontal_fov_deg": 120.0},
                 "radar": {
                     "points_per_second": 200000,
@@ -998,6 +1096,21 @@ def run(args: argparse.Namespace) -> int:
             "error_type": type(exc).__name__,
             "error": str(exc),
             "elapsed_wall_s": time.time() - started_wall,
+            "progress": {
+                "paired_frames": int(pair_count),
+                "requested_paired_frames": int(args.max_pairs),
+                "last_considered_frame": int(last_frame),
+            },
+            "sensor_clock_contract": {
+                "world_tick_hz": WORLD_TICK_HZ,
+                "world_delta_s": WORLD_DELTA_S,
+                "prepare_every_n_ticks": PREPARE_EVERY_N_TICKS,
+                "prepared_input_hz": WORLD_TICK_HZ / PREPARE_EVERY_N_TICKS,
+            },
+            "sensor_diagnostics": {
+                "ue-a": _safe_sensor_diagnostics(source_a),
+                "ue-b": _safe_sensor_diagnostics(source_b),
+            },
         }
         try:
             _write_json_create_only(output / "FAILED.json", failure)
@@ -1030,7 +1143,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--frame-stride", type=int, default=2)
     parser.add_argument("--sensor-timeout-s", type=float, default=5.0)
     parser.add_argument("--tm-port", type=int, default=8000)
-    parser.add_argument("--scenario-fps", type=float, default=10.0)
     parser.add_argument("--scenario-seed", type=int, default=31)
     parser.add_argument("--ego-blueprint", default="vehicle.lincoln.mkz")
     parser.add_argument("--ego-spawn-index", type=int, default=80)
@@ -1053,7 +1165,6 @@ def parse_args() -> argparse.Namespace:
             or args.duration_s <= 0.0
             or args.frame_stride < 1
             or args.sensor_timeout_s <= 0.0
-            or args.scenario_fps <= 0.0
             or args.ego_gap_m <= 0.0
             or args.npc_vehicles < 0
             or args.npc_pedestrians < 0

@@ -100,6 +100,11 @@ claim two-device networking or radio latency. In self-contained mode it
 destroys only its own actors and restores the prior CARLA settings. In passive
 mode it controls or destroys neither ego and changes no world setting.
 
+The self-contained clock is locked to the registered radar contract: CARLA
+and its free-running sensors tick at 20 Hz, two callbacks form each 100 ms
+logical sweep, and the model prepares every second tick at 10 Hz. This cadence
+is not an operator-tunable scenario rate.
+
 The nominal service always receives unmodified model outputs. A separate,
 fresh shadow service cycles through five deterministic faults: identical
 duplicate, same-identity/different-payload conflict, non-finite coordinate,
