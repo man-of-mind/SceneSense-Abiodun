@@ -25,6 +25,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
+from matplotlib.ticker import FuncFormatter, LogLocator
 import numpy as np
 import pandas as pd
 
@@ -89,8 +90,12 @@ def configure_style() -> None:
             "savefig.dpi": 220,
             "font.size": 10,
             "axes.titlesize": 12,
+            "axes.titleweight": "bold",
             "axes.labelsize": 10,
+            "axes.labelweight": "bold",
             "legend.fontsize": 8,
+            "xtick.labelsize": 10,
+            "ytick.labelsize": 10,
             "axes.grid": True,
             "grid.alpha": 0.22,
             "axes.spines.top": False,
@@ -99,9 +104,35 @@ def configure_style() -> None:
     )
 
 
+def payload_log_axis(ax: plt.Axes, *, axis: str) -> None:
+    """Use readable base-10 ticks while retaining the required payload range."""
+
+    target = ax.xaxis if axis == "x" else ax.yaxis
+    if axis == "x":
+        ax.set_xscale("log")
+    elif axis == "y":
+        ax.set_yscale("log")
+    else:
+        raise PackError(f"unsupported logarithmic axis: {axis}")
+    target.set_major_locator(LogLocator(base=10.0))
+    target.set_major_formatter(
+        FuncFormatter(
+            lambda value, _position: (
+                f"{value / 1000:g}k" if value >= 1000 else f"{value:g}"
+            )
+        )
+    )
+
+
 def save_figure(fig: plt.Figure, path: Path) -> None:
     if path.suffix != ".png":
         raise PackError(f"figure path must end in .png: {path}")
+    for ax in fig.axes:
+        ax.xaxis.label.set_fontweight("bold")
+        ax.yaxis.label.set_fontweight("bold")
+        ax.title.set_fontweight("bold")
+        for label in (*ax.get_xticklabels(), *ax.get_yticklabels()):
+            label.set_fontweight("bold")
     fig.savefig(
         path,
         bbox_inches="tight",
@@ -219,8 +250,8 @@ def plot_localhost(local: pd.DataFrame, output: Path) -> None:
         ),
     ):
         scatter_by_action(ax, local, "payload_kib", y, annotate=True)
-        ax.set_xscale("log")
-        ax.set_xlabel("Feature payload (KiB, log scale)")
+        payload_log_axis(ax, axis="x")
+        ax.set_xlabel("Feature payload (KiB; equal spacing = ×10)")
         ax.set_ylabel(ylabel)
         ax.set_title(title)
     family_quant_legend(axes[0])
@@ -239,14 +270,14 @@ def plot_quality(action: pd.DataFrame, output: Path) -> None:
     )
     panels = (
         ("val_vehicle_f1", "Vehicle F1"),
-        ("val_person_avo_f1", "AVO-person F1"),
+        ("val_person_avo_f1", "Person F1"),
         ("val_foreground_miou", "Foreground mIoU"),
     )
     fig, axes = plt.subplots(1, 3, figsize=(15.5, 4.5), sharex=True)
     for ax, (metric, label) in zip(axes, panels):
         scatter_by_action(ax, frame, "payload_kib", metric, annotate=True)
-        ax.set_xscale("log")
-        ax.set_xlabel("Feature payload (KiB, log scale)")
+        payload_log_axis(ax, axis="x")
+        ax.set_xlabel("Feature payload (KiB; equal spacing = ×10)")
         ax.set_ylabel(label)
         ax.set_title(label + " vs payload")
     family_quant_legend(axes[0])
@@ -263,8 +294,9 @@ def plot_q_effect(action: pd.DataFrame, output: Path) -> None:
     frame["payload_kib"] = (
         frame["live_scientific_inner_bytes_median__across_profile_mean"] / 1024.0
     )
-    fig, axes = plt.subplots(2, 2, figsize=(13.5, 9), sharex=True)
-    for ax, family in zip(axes.flat, FAMILIES):
+    fig, axes = plt.subplots(2, 2, figsize=(15.5, 9), sharex=True, sharey=True)
+    for index, (ax, family) in enumerate(zip(axes.flat, FAMILIES)):
+        _row, column = divmod(index, 2)
         part = frame[frame["family"] == family]
         quality_ax = ax.twinx()
         for quantizer in QUANTIZERS:
@@ -285,10 +317,14 @@ def plot_q_effect(action: pd.DataFrame, output: Path) -> None:
                 alpha=0.66,
                 linewidth=1.4,
             )
-        ax.set_yscale("log")
+        payload_log_axis(ax, axis="y")
         ax.set_title(family)
-        ax.set_ylabel("Payload (KiB, log)")
-        quality_ax.set_ylabel("AVO-person F1 (dashed)")
+        if column == 0:
+            ax.set_ylabel("Payload (KiB; equal spacing = ×10)")
+            quality_ax.tick_params(axis="y", right=False, labelright=False)
+        else:
+            ax.tick_params(axis="y", left=False, labelleft=False)
+            quality_ax.set_ylabel("Person F1 (dashed)", labelpad=10)
         quality_ax.set_ylim(0.28, 0.75)
         ax.set_xlabel("Dropped-channel fraction q")
         if family == "noAE":
@@ -298,6 +334,7 @@ def plot_q_effect(action: pd.DataFrame, output: Path) -> None:
         fontsize=14,
         fontweight="bold",
     )
+    fig.subplots_adjust(left=0.08, right=0.92, bottom=0.08, top=0.90, wspace=0.12, hspace=0.28)
     save_figure(fig, output / "03_q_sweep_payload_and_person_quality.png")
 
 
@@ -308,10 +345,10 @@ def plot_live_delivery(action_profile: pd.DataFrame, output: Path) -> None:
     for ax, network in zip(axes.flat, NETWORKS):
         part = frame[frame["network_profile"] == network]
         scatter_by_action(ax, part, "payload_kib", "rate_installed_per_sent", annotate=True)
-        ax.set_xscale("log")
+        payload_log_axis(ax, axis="x")
         ax.set_ylim(-0.025, 0.72)
         ax.set_title(NETWORK_LABELS[network])
-        ax.set_xlabel("Feature payload (KiB, log scale)")
+        ax.set_xlabel("Feature payload (KiB; equal spacing = ×10)")
         ax.set_ylabel("Installed / sent")
     family_quant_legend(axes.flat[0])
     fig.suptitle(
@@ -322,12 +359,36 @@ def plot_live_delivery(action_profile: pd.DataFrame, output: Path) -> None:
     save_figure(fig, output / "04_live_payload_vs_delivery_by_network.png")
 
 
-def plot_transport_residual(action_profile: pd.DataFrame, output: Path) -> None:
-    frame = action_profile.copy()
+def plot_feature_uplink_delivery(
+    action_profile: pd.DataFrame, cell_table: pd.DataFrame, output: Path
+) -> None:
+    frame = action_profile[
+        ["cell_id", "action_id", "network_profile", "live_scientific_inner_bytes_median"]
+    ].merge(
+        cell_table[
+            [
+                "cell_id",
+                "frames_sent",
+                "edge_complete_reassemblies",
+                "edge_feature_datagrams_received",
+                "ue_feature_datagrams_transmitted",
+            ]
+        ],
+        on="cell_id",
+        how="inner",
+        validate="one_to_one",
+    )
+    if len(frame) != 288:
+        raise PackError(f"feature-uplink join produced {len(frame)} rows, expected 288")
     frame["payload_kib"] = frame["live_scientific_inner_bytes_median"] / 1024.0
-    latency = "s5_derived_roundtrip_residual_ms_RESIDUAL__median"
+    frame["complete_feature_per_sent"] = (
+        frame["edge_complete_reassemblies"] / frame["frames_sent"]
+    )
+    frame["datagram_rx_per_tx"] = (
+        frame["edge_feature_datagrams_received"]
+        / frame["ue_feature_datagrams_transmitted"]
+    )
     fig, axes = plt.subplots(1, 2, figsize=(14, 5.2))
-    finite = frame[pd.to_numeric(frame[latency], errors="coerce").notna()].copy()
 
     network_colors = {
         "FAVORABLE_STABLE": "#4C78A8",
@@ -336,10 +397,10 @@ def plot_transport_residual(action_profile: pd.DataFrame, output: Path) -> None:
         "FADE_RECOVERY": "#54A24B",
     }
     for network in NETWORKS:
-        part = finite[finite["network_profile"] == network].sort_values("action_id")
+        part = frame[frame["network_profile"] == network].sort_values("action_id")
         axes[0].plot(
             part["action_id"],
-            part[latency],
+            part["complete_feature_per_sent"],
             marker="o",
             markersize=3.5,
             linewidth=1.2,
@@ -348,7 +409,7 @@ def plot_transport_residual(action_profile: pd.DataFrame, output: Path) -> None:
         )
         axes[1].scatter(
             part["payload_kib"],
-            part[latency],
+            part["datagram_rx_per_tx"],
             s=34,
             alpha=0.8,
             color=network_colors[network],
@@ -357,32 +418,24 @@ def plot_transport_residual(action_profile: pd.DataFrame, output: Path) -> None:
             label=NETWORK_LABELS[network],
         )
     axes[0].set_xlabel("Action ID")
-    axes[0].set_ylabel("Transport residual (ms)")
-    axes[0].set_title("Action ordering")
+    axes[0].set_ylabel("Complete feature messages / sent")
+    axes[0].set_title("Feature-message survival by action")
+    axes[0].set_ylim(-0.03, 1.03)
     for boundary in (17.5, 35.5, 53.5):
         axes[0].axvline(boundary, color="#777777", linewidth=0.8, alpha=0.6)
-    axes[1].set_xscale("log")
-    axes[1].set_xlabel("Feature payload (KiB, log scale)")
-    axes[1].set_ylabel("Transport residual (ms)")
-    axes[1].set_title("Payload relationship")
+    payload_log_axis(axes[1], axis="x")
+    axes[1].set_xlabel("Feature payload (KiB; equal spacing = ×10)")
+    axes[1].set_ylabel("Feature datagrams received / transmitted")
+    axes[1].set_title("Payload versus datagram survival")
+    axes[1].set_ylim(-0.03, 1.03)
     axes[0].legend(loc="upper left")
     axes[1].legend(loc="upper left")
-    axes[1].text(
-        0.98,
-        0.03,
-        "Uplink + edge queue + compact downlink\nOne-way uplink is not separately available",
-        transform=axes[1].transAxes,
-        ha="right",
-        va="bottom",
-        fontsize=8,
-        bbox={"boxstyle": "round,pad=0.3", "facecolor": "white", "alpha": 0.88, "edgecolor": "#bbbbbb"},
-    )
     fig.suptitle(
-        "Action versus compatible-clock transport residual (delivering cells only)",
+        "Feature-uplink delivery across actions and network profiles",
         fontsize=14,
         fontweight="bold",
     )
-    save_figure(fig, output / "05_action_vs_transport_residual.png")
+    save_figure(fig, output / "05_action_vs_feature_uplink_delivery.png")
 
 
 def plot_heatmap(action: pd.DataFrame, output: Path) -> None:
@@ -474,23 +527,19 @@ def plot_network_summary(network: pd.DataFrame, output: Path) -> None:
     axes[0].set_ylabel("Campaign-wide rate")
     axes[0].set_title("Channel process changes every survival stage")
     axes[0].legend(ncol=2)
-    bars = axes[1].bar(
-        x, network["transport_residual_ms_median_of_cells"], color="#E45756"
-    )
-    axes[1].axhline(100.0, color="#222222", linestyle="--", linewidth=1.2, label="100 ms reference")
+    bars = axes[1].bar(x, network["zero_delivery_actions"], color="#E45756")
     axes[1].set_xticks(x, labels, rotation=18, ha="right")
-    axes[1].set_ylabel("Transport residual (ms)")
-    axes[1].set_title("Compatible-clock network-path comparison")
+    axes[1].set_ylabel("Actions with zero map delivery")
+    axes[1].set_title("Network profile changes the infeasible region")
     for bar, zero in zip(bars, network["zero_delivery_actions"]):
         axes[1].text(
             bar.get_x() + bar.get_width() / 2,
-            bar.get_height() + 5,
-            f"{int(zero)} zero\nactions",
+            bar.get_height() + 0.6,
+            f"{int(zero)}",
             ha="center",
             va="bottom",
             fontsize=8,
         )
-    axes[1].legend()
     fig.suptitle("Network-profile behavior is structured, not noise", fontsize=14, fontweight="bold")
     save_figure(fig, output / "07_network_profile_aggregate.png")
 
@@ -500,17 +549,31 @@ def plot_latency_boundaries(
 ) -> None:
     stages = dict(summary["aggregates"]["stage_medians"])
     selected = (
-        ("UE front path (`front_ms`)", "s3_front_ms_FULL_UE_DISPATCH_SPAN"),
-        ("Transport residual", "s5_derived_roundtrip_residual_ms_RESIDUAL"),
-        ("Model back (`frozen_tail`)", "s8_frozen_tail_ms"),
+        ("UE dispatch (`front_ms`)", "s3_front_ms_FULL_UE_DISPATCH_SPAN"),
+        ("↳ FCOS front backbone", "s3_front_backbone_ms"),
+        ("Edge queue wait", "s6_derived_edge_queue_wait_ms_RESIDUAL"),
+        ("zstd decompression", "s7_zstd_decompression_ms"),
+        ("Unpack + dequantize", "s7_unpack_dequantize_ms"),
+        ("AE decoder", "s7_ae_decode_ms"),
+        ("FCOS tail service span", "s8_frozen_tail_ms"),
+        ("Result serialization", "s8_output_serialization_ms"),
     )
     values = []
     for label, key in selected:
         record = stages[key]
         values.append(float(record["median_of_medians"]))
-    fig, ax = plt.subplots(figsize=(11.5, 5.2))
+    fig, ax = plt.subplots(figsize=(12.5, 7.2))
     y = np.arange(len(selected))
-    colors = ["#4C78A8", "#F58518", "#B279A2"]
+    colors = [
+        "#4C78A8",
+        "#72B7B2",
+        "#F58518",
+        "#ECA82C",
+        "#ECA82C",
+        "#ECA82C",
+        "#B279A2",
+        "#54A24B",
+    ]
     bars = ax.barh(y, values, color=colors)
     ax.set_yticks(y, [item[0] for item in selected])
     ax.invert_yaxis()
@@ -522,7 +585,10 @@ def plot_latency_boundaries(
         label="100 ms service reference",
     )
     ax.set_xlabel("Median of per-cell medians (ms)")
-    ax.set_title("Action-controlled latency breakdown (sensor preparation excluded)", fontweight="bold")
+    ax.set_title(
+        "Recorded UE/model/edge spans (sensor preparation and one-way uplink excluded)",
+        fontweight="bold",
+    )
     for bar, value in zip(bars, values):
         ax.text(value + 4, bar.get_y() + bar.get_height() / 2, f"{value:.1f}", va="center")
     sensor_median = float(stages["s1_pre_front_compute_ms"]["median_of_medians"])
@@ -533,8 +599,9 @@ def plot_latency_boundaries(
         (
             f"Sensor preparation excluded: median {sensor_median:.1f} ms; "
             f"median cell p95 {sensor_p95:.1f} ms\n"
-            "Transport residual = uplink + edge queue + compact downlink; "
-            "one-way uplink unavailable"
+            "One-way feature-uplink latency was not timestamped in a shared clock and is not shown.\n"
+            "FCOS tail service span includes decode_tail, post-processing, service filtering, "
+            "and segmentation-label construction."
         ),
         transform=ax.transAxes,
         ha="right",
@@ -794,9 +861,9 @@ not treat the 288 aggregate table as an on-policy PPO trajectory.
    matched UINT8 action; high q is the expensive quality decision.
 3. `04_live_payload_vs_delivery_by_network.pdf`: the radio frontier. The
    payload at which delivery collapses shifts substantially by channel process.
-4. `05_action_vs_transport_residual.pdf`: action and payload against the
-   compatible-clock residual containing uplink, edge queue and compact-result
-   downlink. It is deliberately not called one-way uplink latency.
+4. `05_action_vs_feature_uplink_delivery.pdf`: action and payload against
+   complete feature-message and datagram survival. It is a delivery figure,
+   not a one-way latency estimate.
 5. `06_action_network_delivery_heatmap.pdf`: all 288 cells without averaging
    away action-by-network interactions.
 
@@ -873,12 +940,12 @@ When delivery fails, the old map ages; the action receives **no** credit for the
 quality it would have produced. Do not separately award a full delivery bonus
 and a full AoI bonus if both encode the same state improvement.
 
-For action comparison, the presentation excludes sensor preparation and uses
-the measured UE front path, compatible-clock transport residual, frozen model
-back, and compact map-feedback terms. Sensor preparation remains reported as a
-separate workload fact. The transport residual includes uplink, edge queueing
-and compact-result downlink because true one-way uplink is not recoverable from
-the registered clock domains.
+For action comparison, the presentation excludes sensor preparation. It shows
+direct feature-message/datagram survival and keeps UE dispatch, the actual FCOS
+front, edge queue/decode stages, the FCOS tail service span, and result
+serialization separate. It does **not** plot the compatible-clock round-trip
+residual as feature-uplink latency. True one-way uplink is not recoverable from
+this campaign's registered clock domains.
 
 ## Training readiness
 
@@ -938,13 +1005,15 @@ compression setting.
 
 ## Slide 5 — Latency scope
 
-Show `05_action_vs_transport_residual.pdf` and use
-`08_action_controlled_latency_breakdown.pdf` to define the action-controlled
-front, transport-residual, back and feedback terms.
+Show `05_action_vs_feature_uplink_delivery.pdf` and use
+`08_action_controlled_latency_breakdown.pdf` to distinguish UE dispatch,
+the actual FCOS front, edge queue/decode stages and the FCOS tail service span.
 
-Message: one-way feature-uplink latency is unavailable. The compatible-clock
-transport residual is the fair action comparison, but it also contains edge
-queueing and the compact downlink. Sensor preparation is reported separately.
+Message: one-way feature-uplink latency is unavailable because this campaign
+did not record UE send and edge receipt in a shared clock. Do not substitute
+the round-trip residual. Use feature-message/datagram survival for this corpus;
+record both wall-clock boundaries in the next live deployment. Sensor
+preparation remains separate.
 
 ## Slide 6 — Initial policy implication
 
@@ -1036,7 +1105,7 @@ def main() -> int:
     plot_quality(action, output)
     plot_q_effect(action, output)
     plot_live_delivery(action_profile, output)
-    plot_transport_residual(action_profile, output)
+    plot_feature_uplink_delivery(action_profile, cell_table, output)
     plot_heatmap(action, output)
     network = weighted_network_table(cell_table, action_profile)
     plot_network_summary(network, output)
