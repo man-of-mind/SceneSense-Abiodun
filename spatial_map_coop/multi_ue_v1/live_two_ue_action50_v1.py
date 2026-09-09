@@ -745,6 +745,21 @@ def _resolve_vehicle(world: Any, actor_id: int) -> Any:
     return actor
 
 
+def _require_actor_selection(args: argparse.Namespace) -> None:
+    """Validate external IDs only when the harness does not own the egos."""
+
+    if bool(args.spawn_two_egos):
+        _require(
+            int(args.ue_a_actor_id) < 0 and int(args.ue_b_actor_id) < 0,
+            "owned two-ego mode cannot accept external actor IDs",
+        )
+        return
+    _require(
+        int(args.ue_a_actor_id) != int(args.ue_b_actor_id),
+        "two distinct ego actor IDs are required",
+    )
+
+
 def _manifest(output: Path, summary: Mapping[str, Any]) -> dict[str, Any]:
     files = {}
     for name in ("observations.jsonl", "snapshots.jsonl", "faults.jsonl", "SUMMARY.json"):
@@ -796,7 +811,7 @@ def run(args: argparse.Namespace) -> int:
     )
 
     _require(args.execute == EXECUTE_TOKEN, f"--execute must equal {EXECUTE_TOKEN}")
-    _require(args.ue_a_actor_id != args.ue_b_actor_id, "two distinct ego actor IDs are required")
+    _require_actor_selection(args)
     _require(args.max_pairs >= len(FAULT_CASES), f"max-pairs must be >= {len(FAULT_CASES)}")
     output = Path(args.output).resolve()
     _require(not output.exists(), f"create-only output already exists: {output}")

@@ -106,6 +106,7 @@ class MultiUEIngressTests(unittest.TestCase):
             args = live_action50.parse_args()
         self.assertTrue(args.spawn_two_egos)
         self.assertEqual((args.ue_a_actor_id, args.ue_b_actor_id), (-1, -1))
+        live_action50._require_actor_selection(args)
 
     def test_shadow_fault_schedule_and_mutations_are_deterministic(self):
         self.assertEqual(
