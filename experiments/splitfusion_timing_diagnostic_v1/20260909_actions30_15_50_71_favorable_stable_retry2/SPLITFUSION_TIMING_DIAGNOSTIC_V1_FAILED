@@ -1,0 +1,7 @@
+{
+  "actions": [],
+  "failure": "DiagnosticError: [diag_a30__favorable_stable/after] stale temporary runtime paths: ['splitfusion_timing_diagnostic_diag_a30__favorable_stable_1kf_3bl4']",
+  "finished_utc": "2026-09-09T23:05:23.200169+00:00",
+  "run_id": "20260909_actions30_15_50_71_favorable_stable_retry2",
+  "terminal": "SPLITFUSION_TIMING_DIAGNOSTIC_V1_FAILED"
+}
