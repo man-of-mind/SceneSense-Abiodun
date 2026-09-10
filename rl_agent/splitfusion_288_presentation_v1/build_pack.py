@@ -128,13 +128,13 @@ def save(fig: plt.Figure, output: Path, stem: str) -> None:
         output / f"{stem}.png",
         bbox_inches="tight",
         facecolor="white",
-        metadata={"Software": "SplitFusion 288 presentation pack v4"},
+        metadata={"Software": "SplitFusion 288 presentation pack v6"},
     )
     fig.savefig(
         output / f"{stem}.pdf",
         bbox_inches="tight",
         facecolor="white",
-        metadata={"Creator": "SplitFusion 288 presentation pack v4", "CreationDate": None, "ModDate": None},
+        metadata={"Creator": "SplitFusion 288 presentation pack v6", "CreationDate": None, "ModDate": None},
     )
     plt.close(fig)
 
@@ -566,7 +566,7 @@ def plot_optimization(
 
 def write_talking_points(output: Path, network: pd.DataFrame, optimization: pd.DataFrame) -> None:
     savings = optimization["direct_saving_ms"]
-    text = f"""# SplitFusion 288-cell results — presentation talking points
+    text = rf"""# SplitFusion 288-cell results — presentation talking points
 
 ## Start with the experimental question
 
@@ -728,6 +728,36 @@ The measurements establish three coupled consequences of an action:
 That motivates a recurrent policy that observes recent channel/delivery/map
 state and selects family, quantizer and q to maximize useful fresh-map utility,
 not simply accuracy and not simply minimum payload.
+
+## Compact split-action reward
+
+Use the following display-math form in the presentation:
+
+$$
+r_t = I_t\,Q(a_t)\,\exp\!\left(-\frac{{\operatorname{{AoI}}_t}}{{\tau}}\right)
+      - \lambda_B\frac{{B(a_t)}}{{B_{{\max}}}}
+$$
+
+- $I_t$ is 1 when the selected split update is installed in the spatial map
+  and 0 otherwise. An undelivered prediction therefore receives no perception
+  utility.
+- $Q(a_t)$ is the normalized perception/localization quality associated with
+  the selected action.
+- $\exp(-\operatorname{{AoI}}_t/\tau)$ is a smooth freshness discount. It is
+  1 for a new update, about 0.368 when AoI equals $\tau$, and about 0.135 at
+  twice $\tau$. A smaller $\tau$ represents a freshness-sensitive application;
+  a larger $\tau$ tolerates older map information.
+- $B(a_t)$ is the selected action's feature payload. $B_{{\max}}$ is a fixed
+  normalization constant, not the instantaneous network capacity. For this
+  catalog it is the largest registered median feature payload: 3,580,215 bytes
+  (about 3.41 MiB, action 0). Consequently $B(a_t)/B_{{\max}}$ is dimensionless
+  and lies in approximately $[0,1]$.
+- $\lambda_B$ controls how strongly the agent trades perception utility for
+  lower communication cost.
+
+Speaker summary: an action is valuable only if it produces an installed update;
+its value then decreases smoothly as that update becomes older, while larger
+feature payloads pay an explicit communication penalty.
 """
     (output / "TALKING_POINTS.md").write_text(text, encoding="utf-8")
 
