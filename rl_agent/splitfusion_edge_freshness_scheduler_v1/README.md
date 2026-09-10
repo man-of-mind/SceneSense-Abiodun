@@ -14,8 +14,10 @@ tail inference, and before publication.
 
 The supervisor's 10 ms proposal is represented as an optional queue-wait
 budget. It is not a default and must be tested prospectively. The planned
-sweep is 0, 5, 10, 20, 50, and 100 ms plus latest-only scheduling without a
-fixed queue-wait budget.
+sweep is 0, 5, 10, 20, and 25 ms plus latest-only scheduling without a fixed
+queue-wait budget. Values above 25 ms are excluded initially because the
+measured path already has a large latency budget; they should be introduced
+only if later optimization materially changes that budget.
 
 ## Terminal feedback contract
 
@@ -58,8 +60,11 @@ primary objective. The prospective analysis must report at least:
 ## Safe parallelism boundary
 
 Arbitrary Python threads around one CUDA model are not safe preemption and do
-not guarantee latency improvement. The first live candidate should use a
-bounded pipeline with at most two frames in flight:
+not guarantee latency improvement. If frame 1 is executing while frames 2, 3,
+and 4 arrive, the pending slot successively replaces 2 with 3 and 3 with 4.
+After frame 1 reaches the next safe boundary, the worker takes frame 4 rather
+than draining frames 2 and 3. The first live candidate should use a bounded
+pipeline with at most two frames in flight:
 
 1. socket receive/reassembly thread;
 2. one GPU decode/tail worker, preserving model and CUDA-stream ownership;
