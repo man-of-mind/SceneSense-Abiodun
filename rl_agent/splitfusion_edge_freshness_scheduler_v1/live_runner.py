@@ -138,7 +138,11 @@ def _report_writer(
         f"- Sent frames: {utility.get('sent_frames')}",
         f"- Authoritative ACK-installed frames: {utility.get('ack_installed_frames')}",
         f"- Useful newer-map installations: {utility.get('useful_newer_map_installations')}",
-        f"- Intentional non-install terminals: {utility.get('intentional_non_install_terminals')}",
+        f"- Explicit scheduler non-install terminals: "
+        f"{utility.get('explicit_scheduler_non_install_terminals')}",
+        f"- Intentional freshness drops: "
+        f"{scheduler.get('intentional_freshness_drop_frames')}",
+        f"- Expired work: {scheduler.get('expired_work_frames')}",
         f"- True timeouts after excluding explicit scheduler outcomes: "
         f"{utility.get('true_timeout_without_scheduler_or_install')}",
         f"- Time-weighted map AoI after first install: "
@@ -195,9 +199,13 @@ def _flatten_cell(
         "useful_newer_map_installations": utility.get(
             "useful_newer_map_installations"
         ),
-        "intentional_non_install_terminals": utility.get(
-            "intentional_non_install_terminals"
+        "explicit_scheduler_non_install_terminals": utility.get(
+            "explicit_scheduler_non_install_terminals"
         ),
+        "intentional_freshness_drop_frames": scheduler.get(
+            "intentional_freshness_drop_frames"
+        ),
+        "expired_work_frames": scheduler.get("expired_work_frames"),
         "true_timeout_without_scheduler_or_install": utility.get(
             "true_timeout_without_scheduler_or_install"
         ),
@@ -315,14 +323,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         "frames under `FAVORABLE_STABLE`. Actual map installation is proven "
         "only by the existing UE-side `ACK_INSTALLED` feedback.",
         "",
-        "| action | policy | sent | installed | useful installs | intentional drops | true timeouts | median AoI | time-weighted AoI |",
-        "|---:|---|---:|---:|---:|---:|---:|---:|---:|",
+        "| action | policy | sent | installed | useful installs | intentional drops | expired | true timeouts | median AoI | time-weighted AoI |",
+        "|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|",
     ]
     for row in cells:
         report_lines.append(
             "| {action_id} | {scheduler_policy} | {sent_frames} | "
             "{ack_installed_frames} | {useful_newer_map_installations} | "
-            "{intentional_non_install_terminals} | "
+            "{intentional_freshness_drop_frames} | {expired_work_frames} | "
             "{true_timeout_without_scheduler_or_install} | "
             "{install_aoi_ms_median} | {time_weighted_map_aoi_ms} |".format(
                 **row

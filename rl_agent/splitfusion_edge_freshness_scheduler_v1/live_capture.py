@@ -414,7 +414,7 @@ def build_scheduler_collector_class(base: type) -> type:
                 "ack_installed_frames": len(installed),
                 "useful_newer_map_installations": useful,
                 "out_of_order_installations": out_of_order,
-                "intentional_non_install_terminals": len(scheduler_frames),
+                "explicit_scheduler_non_install_terminals": len(scheduler_frames),
                 "true_timeout_without_scheduler_or_install": len(true_timeout_frames),
                 "map_nack_without_scheduler": len(map_nack_without_scheduler),
                 "map_feedback_status_counts": dict(
