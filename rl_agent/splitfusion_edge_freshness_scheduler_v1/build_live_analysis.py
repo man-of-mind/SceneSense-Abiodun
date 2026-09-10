@@ -204,7 +204,9 @@ def run(source: Path, output: Path) -> dict[str, Any]:
     with (output / "action_policy_summary.csv").open(
         "x", newline="", encoding="utf-8"
     ) as handle:
-        writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
+        writer = csv.DictWriter(
+            handle, fieldnames=list(rows[0]), lineterminator="\n"
+        )
         writer.writeheader()
         writer.writerows(rows)
     report = [
