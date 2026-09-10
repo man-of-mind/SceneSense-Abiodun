@@ -33,6 +33,9 @@ import torch
 from phase2_map_sharing.transport import CHUNK_HEADER, ChunkReassembler, chunk_payload
 from rl_agent.splitfusion_live_dispatch_v1.envelope import unpack_envelope
 from rl_agent.splitfusion_live_dispatch_v1.live_pilot_runtime import (
+    EDGE_RESULT_SCHEMA,
+    EDGE_TERMINAL_ACK_SCHEMA,
+    OBJECT_MAP_UPDATE_SCHEMA,
     LatestFramePendingSlot,
     _Counters,
     _finite_tree,
@@ -277,6 +280,7 @@ def run(args: argparse.Namespace) -> int:
             except OSError:
                 return
             datagram_wall_ns = time.time_ns()
+            datagram_perf_ns = time.perf_counter_ns()
             counters.bump("feature_datagrams_received")
             if len(datagram) >= CHUNK_HEADER.size:
                 message_id, _index, _total = CHUNK_HEADER.unpack_from(datagram)
@@ -322,6 +326,8 @@ def run(args: argparse.Namespace) -> int:
                 "duplicate_chunks": int(complete.duplicate_chunks),
                 "edge_first_datagram_wall_ns": int(first_wall_ns),
                 "edge_complete_reassembly_wall_ns": int(complete_wall_ns),
+                "edge_received_perf_ns": int(datagram_perf_ns),
+                "edge_received_wall_s": complete_wall_ns / 1e9,
             }
             admitted, displaced = pending.offer(
                 str(context.stream_id), item, sequence=int(outer.sequence_id)
@@ -354,6 +360,7 @@ def run(args: argparse.Namespace) -> int:
                 failures.append(f"{type(exc).__name__}: {exc}")
                 continue
             tail_finished_wall_ns = time.time_ns()
+            tail_finished_perf_ns = time.perf_counter_ns()
             stage_timings = edge.tail.resolve_frame()
             counters.bump("tail_completions")
             try:
@@ -383,6 +390,9 @@ def run(args: argparse.Namespace) -> int:
             service_records = list(snapshot.records or ())
             serialized_bytes = len(snapshot.serialized_records or b"")
             semantic_shape = [int(value) for value in snapshot.semantic_labels.shape]
+            snapshot_camera_pose_ns = int(snapshot.camera_pose_reconstruct_ns)
+            snapshot_tensor_count = int(snapshot.output_tensor_count)
+            result_timing = result.timing
             if str(args.warmup_stream_id):
                 phase = (
                     WARMUP_PHASE
@@ -452,24 +462,70 @@ def run(args: argparse.Namespace) -> int:
             del snapshot, result
             if phase != MEASURED_PHASE:
                 counters.bump("warmup_frames_processed")
-            # One compact identity/accounting datagram returns to the UE. The
-            # dense label map stays off the radio, exactly as Phase 15 requires.
-            downlink = {
-                "schema": "splitfusion_timing_diagnostic_result.v1",
+            # The deployed UE result loop consumes this payload and drives map
+            # install and install feedback, so it must be the production
+            # `splitfusion_edge_result.v2` message. The diagnostic quantities
+            # ride alongside under their own key; the dense label map still
+            # stays off the radio.
+            terminal_ack = {
+                "schema": EDGE_TERMINAL_ACK_SCHEMA,
+                "run_id": str(args.run_id),
+                "cell_id": str(args.cell_id),
                 "action_id": int(profile.action_id),
-                "profile_id": profile.profile_id,
                 "stream_id": str(context.stream_id),
                 "frame_id": int(context.frame_id),
-                "sequence_id": int(item["sequence_id"]),
                 "capture_timestamp_ns": capture_ns,
-                "phase": phase,
+                "capture_wall_s": capture_ns / 1_000_000_000.0,
+                "edge_receipt_wall_s": float(item["edge_received_wall_s"]),
+                "tail_complete_wall_s": tail_finished_wall_ns / 1e9,
+                "evidence_install_wall_s": "",
+                "service_deadline_at": deadline_at_s(capture_ns, service_s),
+                "ack_timeout_at": deadline_at_s(capture_ns, horizon_s),
+                "installation_status": "EVALUATION_EVIDENCE_NOT_CONFIGURED",
+                "evidence": {},
+                "terminal_reason": "EDGE_SERVICE_COMPLETE",
+            }
+            downlink = {
+                "schema": EDGE_RESULT_SCHEMA,
+                "action_id": profile.action_id,
+                "profile_id": profile.profile_id,
+                "decoder_identity": profile.decoder_identity,
+                "stream_id": context.stream_id,
+                "frame_id": context.frame_id,
+                "capture_timestamp_ns": capture_ns,
+                "finite": True,
+                "frame_context_valid": True,
+                "reconstructed_device": str(edge.runtime.tail_device),
+                "camera_pose_reconstruct_ns": int(snapshot_camera_pose_ns),
+                "finite_output_tensor_count": int(snapshot_tensor_count),
                 "service_record_count": len(service_records),
-                "service_record_bytes": serialized_bytes,
-                "feature_datagrams": int(item["chunk_count"]),
-                "edge_worker_start_wall_ns": int(worker_start_wall_ns),
-                "edge_tail_finished_wall_ns": int(tail_finished_wall_ns),
-                "edge_service_wall_ms": record["edge_service_wall_ms"],
-                "dense_label_map_on_radio": False,
+                "feature_received_datagrams": int(item["chunk_count"]),
+                "feature_duplicate_datagrams": int(item["duplicate_chunks"]),
+                "edge_call_ledger": edge.ledger.snapshot(),
+                "edge_counters": {
+                    **dict(edge.runtime.counters.__dict__), **counters.snapshot()
+                },
+                "edge_received_ns": int(item["edge_received_perf_ns"]),
+                "tail_finished_ns": int(tail_finished_perf_ns),
+                "edge_timing_ns": _trace_ns(result_timing),
+                "object_map_update": {
+                    "schema": OBJECT_MAP_UPDATE_SCHEMA,
+                    "stream_id": str(context.stream_id),
+                    "frame_id": int(context.frame_id),
+                    "capture_timestamp_ns": capture_ns,
+                    "action_id": int(profile.action_id),
+                    "records": service_records,
+                },
+                "edge_terminal_ack": terminal_ack,
+                "diagnostic": {
+                    "phase": phase,
+                    "sequence_id": int(item["sequence_id"]),
+                    "service_record_bytes": serialized_bytes,
+                    "edge_worker_start_wall_ns": int(worker_start_wall_ns),
+                    "edge_tail_finished_wall_ns": int(tail_finished_wall_ns),
+                    "edge_service_wall_ms": record["edge_service_wall_ms"],
+                    "dense_label_map_on_radio": False,
+                },
             }
             blob = json.dumps(downlink, separators=(",", ":"), allow_nan=False).encode(
                 "utf-8"

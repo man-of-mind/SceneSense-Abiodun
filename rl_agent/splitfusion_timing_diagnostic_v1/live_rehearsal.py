@@ -38,14 +38,14 @@ import time
 from pathlib import Path
 from typing import Any, Sequence
 
+import numpy as np
 import torch
 
-from phase2_map_sharing.transport import chunk_payload
 from rl_agent.splitfusion_live_dispatch_v1.frame_context import build_frame_context_v1
 from rl_agent.splitfusion_live_dispatch_v1.registry import SplitActionRegistry
 
 from . import diagnostic_common as common
-from . import live_runner, runner
+from . import live_capture, live_runner, runner
 from .edge_preload import preload_ue
 
 
@@ -82,61 +82,100 @@ class _StubTelemetry:
 
 
 class _ChildShim:
-    """Stands in for ``subprocess`` inside live_runner for the child launch."""
+    """Stands in for ``subprocess`` inside live_runner for the child launch.
+
+    The stub drives the *deployed* ``LivePilotCellRuntime`` -- through the same
+    instrumented subclass the real child installs -- rather than raw sockets.
+    That is deliberate: the deployed runtime's result loop validates the edge's
+    return payload against the production `splitfusion_edge_result.v2` schema
+    and publishes to the map, and a stub that only sent datagrams could not see
+    a schema mismatch. Only CARLA and the route are absent.
+    """
 
     DEVNULL = subprocess.DEVNULL
 
-    def __init__(self, payloads: dict[int, bytes], state: dict[str, Any]) -> None:
-        self._payloads = payloads
+    def __init__(self, campaign: dict[str, Any], state: dict[str, Any]) -> None:
+        self._campaign = campaign
         self._state = state
 
     def run(self, argv: Sequence[str], **keywords: Any) -> Any:
+        from rl_agent import ue_route_b_split_cell_adapter_v1 as adapter
+
         values = list(argv)
         artifacts = Path(values[values.index("--artifacts-dir") + 1])
         budget = int(values[values.index("--transmitted-budget") + 1])
+        attempt_dir = Path(values[values.index("--attempt-dir") + 1])
+        evidence_dir = Path(values[values.index("--edge-evidence-dir") + 1])
         artifacts.mkdir(parents=True, exist_ok=True)
-        sender = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sender.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 8 * 1024 * 1024)
-        boundaries: dict[str, dict[str, int]] = {}
+
+        action_id = int(self._state["action_id"])
+        cell_id = str(self._state["cell_id"])
+        stream = f"ue288_{cell_id}"
+        campaign = dict(self._campaign)
+        campaign["_target_start_file"] = str(Path(attempt_dir).parent / "target_start")
+        cell = {
+            "cell_id": cell_id, "action_id": action_id,
+            "profile_id": self._state["profile_id"],
+            "model_family": self._state["model_family"],
+            "network_profile_id": common.NETWORK_PROFILE_ID,
+        }
+        runtime_class = live_capture.build_runtime_class(adapter.LivePilotCellRuntime)
+        live = runtime_class(
+            campaign=campaign, cell=cell, attempt_dir=attempt_dir,
+            map_host=LOOPBACK, map_port=MAP_PORT, evidence_dir=evidence_dir,
+        )
+        generator = np.random.default_rng(4242)
+        frame_bgr = generator.integers(0, 255, (720, 1280, 3), dtype=np.uint8)
+        radar_tensor = generator.random((4, 448, 768), dtype=np.float32)
         rows: list[dict[str, Any]] = []
+        transmitted = 0
         try:
-            for index, (frame_id, payload) in enumerate(sorted(self._payloads.items())):
-                first = time.time_ns()
-                chunks = chunk_payload(payload, message_id=frame_id, chunk_bytes=12_500)
-                for chunk in chunks:
-                    sender.sendto(chunk, (LOOPBACK, EDGE_PORT))
-                final = time.time_ns()
-                boundaries[str(frame_id)] = {
-                    "ue_first_send_wall_ns": first,
-                    "ue_final_send_wall_ns": final,
-                    "ue_datagrams_observed": len(chunks),
-                }
-                rows.append(
-                    {
-                        "frame_id": frame_id, "route_tick": index * 2 + 1,
-                        "capture_id": f"rehearsal:{frame_id}",
-                        "action_id": self._state["action_id"],
-                        "carla_timestamp": 100.0 + index * 0.1,
-                        "capture_wall_s": first / 1e9,
-                        "prepare_status": "SENT", "queue_wait_ms": 1.0,
-                        "sensor_wait_ms": 2.0, "radar_window_ms": 0.5,
-                        "radar_prepare_ms": 40.0, "rgb_convert_ms": 2.0,
-                        "scene_snapshot_ms": 1.0, "pre_front_compute_ms": 48.0,
-                        "window_callbacks": 4, "window_returns": 900,
-                        "ego_speed_mps": 6.0, "front_ms": 45.0,
-                        "payload_bytes": len(payload),
-                        "payload_bytes_uncompressed": len(payload) - 176,
-                        "payload_chunks": len(chunks),
-                    }
+            for index in range(budget):
+                frame_id = FIRST_FRAME_ID + index
+                capture_ns = time.time_ns()
+                front = live.submit(
+                    frame_bgr=frame_bgr, radar_tensor=radar_tensor,
+                    frame_id=frame_id, capture_timestamp_ns=capture_ns,
+                    ego_pose=(1.0, 2.0, 0.5, 0.0, 10.0, 0.0), stream_id=stream,
+                    carla_timestamp=100.0 + index * 0.1,
+                    capture_id=f"{stream}:{frame_id}", action_id=action_id,
                 )
-                time.sleep(0.12)
-            rows.append({"frame_id": 1, "prepare_status": "STALE_BEFORE_SEND"})
-            rows.append(
-                {"frame_id": 2, "prepare_status": "DROPPED_INCOMPLETE_RADAR_WINDOW"}
-            )
-            time.sleep(1.5)
+                if front.get("sent"):
+                    transmitted += 1
+                    rows.append(
+                        {
+                            "frame_id": frame_id, "route_tick": index * 2 + 1,
+                            "capture_id": f"{stream}:{frame_id}",
+                            "action_id": action_id,
+                            "carla_timestamp": 100.0 + index * 0.1,
+                            "capture_wall_s": capture_ns / 1e9,
+                            "prepare_status": "SENT", "queue_wait_ms": 1.0,
+                            "sensor_wait_ms": 2.0, "radar_window_ms": 0.5,
+                            "radar_prepare_ms": 40.0, "rgb_convert_ms": 2.0,
+                            "scene_snapshot_ms": 1.0, "pre_front_compute_ms": 48.0,
+                            "window_callbacks": 4, "window_returns": 900,
+                            "ego_speed_mps": 6.0,
+                            "front_ms": front.get("front_ms", ""),
+                            "payload_bytes": front.get("payload_bytes", ""),
+                            "payload_bytes_uncompressed": front.get(
+                                "payload_bytes_uncompressed", ""
+                            ),
+                            "payload_chunks": front.get("payload_chunks", ""),
+                        }
+                    )
+                else:
+                    rows.append({"frame_id": frame_id, "prepare_status": "STALE_BEFORE_SEND"})
+                time.sleep(0.1)
+            time.sleep(2.0)
+            boundaries = {
+                str(key): dict(value) for key, value in live.send_boundaries.items()
+            }
+            summary = live.close()
         finally:
-            sender.close()
+            pass
+        # The deployed result loop records its own failures; surfacing them here
+        # is the point of driving the real runtime.
+        errors = list(summary.get("errors") or [])
         (artifacts / "collector_rows.jsonl").write_text(
             "\n".join(
                 json.dumps(row, sort_keys=True, separators=(",", ":")) for row in rows
@@ -144,7 +183,6 @@ class _ChildShim:
             + "\n",
             encoding="utf-8",
         )
-        transmitted = sum(1 for row in rows if row["prepare_status"] == "SENT")
         common.atomic_create_json(
             artifacts / "diagnostic_summary.json",
             {
@@ -153,30 +191,38 @@ class _ChildShim:
                 "transmitted_frames": transmitted,
                 "reached_budget": transmitted >= budget,
                 "stop_reason": "TRANSMITTED_BUDGET_REACHED",
-                "preparation_opportunities_dropped": 2,
+                "preparation_opportunities_dropped": len(rows) - transmitted,
                 "route_ticks_observed": len(rows) * 2,
                 "route_started_wall_ns": 0, "budget_reached_wall_ns": 0,
                 "route_stopped_wall_ns": 0, "route_wall_seconds": 4.2,
-                "transport_counters": {}, "evaluation_scaffolding": {},
-                "send_boundaries": boundaries, "failures": [], "cleanup_ok": True,
+                "transport_counters": summary.get("counters", {}),
+                "evaluation_scaffolding": {},
+                "send_boundaries": boundaries,
+                "failures": errors, "cleanup_ok": True,
+                "deployed_result_loop_summary": {
+                    "sent": summary.get("sent"),
+                    "edge_completed": summary.get("edge_completed"),
+                    "results_published_to_map": summary.get("results_published_to_map"),
+                    "errors": errors,
+                },
             },
         )
         common.atomic_create_json(
             artifacts / "child_result.json",
             {
-                "cell_id": self._state["cell_id"], "action_id": self._state["action_id"],
+                "cell_id": cell_id, "action_id": action_id,
                 "route_accepted_by_campaign_gate": False,
-                "route_detail": {"error": "RouteBudgetReached: TRANSMITTED_BUDGET_REACHED"},
+                "route_detail": {"error": "rehearsal: no route"},
                 "stop_reason": "TRANSMITTED_BUDGET_REACHED",
-                "transmitted_frames": transmitted, "failures": [], "cleanup_ok": True,
-                "error": "", "map_process_started": True, "map_process_stopped": True,
-                "rehearsal": True,
+                "transmitted_frames": transmitted, "failures": errors,
+                "cleanup_ok": True, "error": "", "map_process_started": False,
+                "map_process_stopped": True, "rehearsal": True,
             },
         )
         return subprocess.CompletedProcess(values, 0)
 
 
-def _install_stubs(state: dict[str, Any], payloads: dict[int, dict[int, bytes]]) -> None:
+def _install_stubs(state: dict[str, Any]) -> None:
     def start_radio(campaign, *, cell_id, service_log_dir):
         namespace = Path(service_log_dir) / "rehearsal_radio"
         radio_state = namespace / "00_REHEARSAL"
@@ -336,7 +382,6 @@ def _install_stubs(state: dict[str, Any], payloads: dict[int, dict[int, bytes]])
     live_runner.runner.inspect_edge_mounts = lambda state_root: {"rehearsal": True}
     live_runner._lifecycle = lambda campaign: _StubLifecycle
     live_runner.subprocess = _ChildShim({}, state)
-    state["child_shim_payloads"] = payloads
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -367,37 +412,23 @@ def main(argv: Sequence[str] | None = None) -> int:
     registry = SplitActionRegistry.from_runtime_binding()
 
     state: dict[str, Any] = {}
-    _install_stubs(state, {})
+    _install_stubs(state)
 
     frames = int(args.frames)
+    live_runner.TRANSMITTED_BUDGET = frames
     reports = []
     for action_id in (int(value) for value in str(args.actions).split(",")):
         profile = registry.resolve(action_id)
-        generator = torch.Generator(device="cpu").manual_seed(4242)
-        base = torch.randn((1, 7, 448, 768), generator=generator, dtype=torch.float32)
-        stream = f"ue288_live_a{action_id:02d}__favorable_stable"
-        payloads: dict[int, bytes] = {}
-        anchor = time.time_ns()
-        for index in range(frames):
-            frame_id = FIRST_FRAME_ID + index
-            capture = anchor + index * 100_000_000
-            with torch.inference_mode():
-                prepared = ue.prepare(
-                    profile.action_id, base.to(device), sequence_id=frame_id,
-                    capture_timestamp_ns=capture,
-                    frame_context=build_frame_context_v1(
-                        stream_id=stream, frame_id=frame_id, sequence_id=frame_id,
-                        capture_timestamp_ns=capture, ego_world_x=1.0,
-                        ego_world_y=2.0, ego_world_z=0.5, ego_world_pitch=0.0,
-                        ego_world_yaw=10.0, ego_world_roll=0.0,
-                    ),
-                )
-            payloads[frame_id] = bytes(prepared.wire_bytes)
         cell_id = f"live_a{action_id:02d}__{common.NETWORK_PROFILE_ID.lower()}"
         live_runner.subprocess = _ChildShim(
-            payloads, {"cell_id": cell_id, "action_id": action_id}
+            campaign,
+            {
+                "cell_id": cell_id,
+                "action_id": action_id,
+                "profile_id": profile.profile_id,
+                "model_family": profile.family,
+            },
         )
-        live_runner.TRANSMITTED_BUDGET = frames
         reports.append(
             live_runner.run_live_action(
                 action_id=action_id, campaign=campaign, campaign_path=campaign_path,
@@ -436,7 +467,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             f"tail={counts['tail_completions']} "
             f"drops={counts['prepare_status_counts']} "
             f"child_rc={report['child']['returncode']} "
-            f"scratch_removed={report['cell_scratch_removed']}"
+            f"scratch_removed={report['cell_scratch_removed']} "
+            f"deployed_result_loop={report['capture'].get('deployed_result_loop_summary')}"
         )
     return 0
 
