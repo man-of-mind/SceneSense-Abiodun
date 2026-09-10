@@ -17,3 +17,18 @@ Required promotion gates:
 4. byte-identical serialized service records;
 5. unchanged feature payload, datagram, reassembly, and radio accounting;
 6. a measured service-time improvement on the four live diagnostic actions.
+
+## Qualification status
+
+All six gates passed in the four-action live CARLA/OAI qualification recorded
+under
+`experiments/splitfusion_edge_optimization_v1/20260909_live_actions30_15_50_71`.
+Median deployed edge-service savings were 44.3, 38.4, 45.0 and 41.1 ms for
+actions 30, 15, 50 and 71. Perception tensors, p025 indices, segmentation
+labels and serialized service records remained exact.
+
+The candidate remains explicit rather than silently replacing the frozen
+production tail. Promotion must update the runtime binding and its hashes. The
+historical 288-cell measurements remain valid as the pre-optimization radio
+and action surface; their AoI values must not be adjusted by subtracting a
+constant because the shorter service time also changes latest-frame queueing.
