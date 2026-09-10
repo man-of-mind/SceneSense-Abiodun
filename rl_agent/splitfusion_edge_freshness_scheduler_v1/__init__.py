@@ -10,6 +10,15 @@ from .scheduler import (
     TerminalFeedback,
     TerminalReason,
 )
+from .simulator import (
+    QueuePolicy,
+    SimulationConfig,
+    SimulationFrame,
+    SimulationOutcome,
+    SimulationReason,
+    SimulationResult,
+    simulate,
+)
 
 __all__ = (
     "AgentCredit",
@@ -20,4 +29,11 @@ __all__ = (
     "Stage",
     "TerminalFeedback",
     "TerminalReason",
+    "QueuePolicy",
+    "SimulationConfig",
+    "SimulationFrame",
+    "SimulationOutcome",
+    "SimulationReason",
+    "SimulationResult",
+    "simulate",
 )

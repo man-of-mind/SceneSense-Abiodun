@@ -91,6 +91,14 @@ ordering, p025, segmentation, and serialized-record gates.
 6. Rebuild the RL transition data with explicit terminal outcomes before PPO
    training.
 
+`run_sweep.py` implements the initial discrete-event screen over the qualified
+four-action live timing diagnostic. It first reproduces the measured
+single-worker/latest-pending behavior. The live evidence lacks timestamps for
+frames displaced before result return, so those timestamps are reconstructed
+by a frozen, within-action interpolation rule and remain labelled as imputed.
+The reproduction gate must pass before the counterfactual policy rows may be
+used. This first screen is not yet the full 288-cell environment simulator.
+
 The completed 288-cell campaign remains the authoritative original runtime
 surface. Counterfactual scheduling results must be labelled as simulation and
 must not overwrite measured cell records.
