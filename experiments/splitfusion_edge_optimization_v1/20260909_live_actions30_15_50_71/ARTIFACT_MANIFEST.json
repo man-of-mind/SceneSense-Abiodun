@@ -1,0 +1,24 @@
+{
+  "artifact_count": 10,
+  "excluded_by_contract": [
+    "rgb_frames",
+    "radar_frames",
+    "c2_tensors",
+    "compressed_payload_blobs",
+    "predictions",
+    "raw_oai_tracer_logs"
+  ],
+  "schema": "scenesense.splitfusion_timing_diagnostic_artifact_manifest.v1",
+  "sha256": {
+    "LIVE_DIAGNOSTIC_RESULTS.json": "5003cc70144154ba5e96995ae4f0d6533d34aad99549f0ee33dda1afe760db95",
+    "LIVE_RUN_MANIFEST.json": "3ae14de1b14ee1970b5ff46a882c521c2d6e77af4fdf0c2df37c5f7f726d154b",
+    "REPORT.md": "6d91b5a19c89672bca78fd02a3d4133c947e7ef838eebfc0b51211dff1593c4a",
+    "action_summary.csv": "bdc3b59894b7eb649ad9f80de731ad0af8a43249d585eeb5f06936f377c155cf",
+    "live_timing_breakdown.pdf": "85c389a26ea5b561849f3ca5012fc7870e327cde64396fdb7dbc9d0a3d8e9c14",
+    "live_timing_breakdown.png": "550db892df1c7fc48534fbb1f03efdb2f04a43b6d4361198c8324a486093360d",
+    "per_frame/action_15_split_noae_uint4_q7000.csv": "199e9082c23c4ca64cd280fa85b6297b6ef5b0d0bf441f7130a75af77f10010a",
+    "per_frame/action_30_split_ae128_uint4_q0000.csv": "197def8aaaf747783ba7e51e08f330c7fb78c2394d8f0fbe6259a827c7339549",
+    "per_frame/action_50_split_ae64_uint4_q5000.csv": "c4153727166c8a3ceb64e1744f1d492b366cba494853de0967ac4a591bcccd29",
+    "per_frame/action_71_split_ae32_uint4_q9800.csv": "a4d9c58eabaa1f67df1ca1c388d3e50a2714c6d65dfe747768eb2523dd9e3ae2"
+  }
+}

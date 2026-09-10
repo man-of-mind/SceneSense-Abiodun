@@ -1,0 +1,315 @@
+{
+  "action_binding": {
+    "actions": [
+      {
+        "action_id": 30,
+        "bit_width": 4,
+        "entropy_coder": "zstd",
+        "execution_mode": "SPLIT",
+        "family": "AE128",
+        "family_id": 1,
+        "keep_count": 21504,
+        "latent_width": 128,
+        "profile_id": "split_ae128_uint4_q0000",
+        "q_e4": 0,
+        "quantizer": "UINT4",
+        "routing_tag": 204186532,
+        "segmentation_behavior": "install_current_segmentation",
+        "segmentation_installable": true,
+        "transported_channels": 128,
+        "zstd_level": 1
+      },
+      {
+        "action_id": 15,
+        "bit_width": 4,
+        "entropy_coder": "zstd",
+        "execution_mode": "SPLIT",
+        "family": "noAE",
+        "family_id": 0,
+        "keep_count": 6451,
+        "latent_width": null,
+        "profile_id": "split_noae_uint4_q7000",
+        "q_e4": 7000,
+        "quantizer": "UINT4",
+        "routing_tag": 0,
+        "segmentation_behavior": "retain_previous_segmentation_layer_with_original_timestamp",
+        "segmentation_installable": false,
+        "transported_channels": 256,
+        "zstd_level": 1
+      },
+      {
+        "action_id": 50,
+        "bit_width": 4,
+        "entropy_coder": "zstd",
+        "execution_mode": "SPLIT",
+        "family": "AE64",
+        "family_id": 2,
+        "keep_count": 10752,
+        "latent_width": 64,
+        "profile_id": "split_ae64_uint4_q5000",
+        "q_e4": 5000,
+        "quantizer": "UINT4",
+        "routing_tag": 3715911972,
+        "segmentation_behavior": "retain_previous_segmentation_layer_with_original_timestamp",
+        "segmentation_installable": false,
+        "transported_channels": 64,
+        "zstd_level": 1
+      },
+      {
+        "action_id": 71,
+        "bit_width": 4,
+        "entropy_coder": "zstd",
+        "execution_mode": "SPLIT",
+        "family": "AE32",
+        "family_id": 3,
+        "keep_count": 430,
+        "latent_width": 32,
+        "profile_id": "split_ae32_uint4_q9800",
+        "q_e4": 9800,
+        "quantizer": "UINT4",
+        "routing_tag": 3807930229,
+        "segmentation_behavior": "retain_previous_segmentation_layer_with_original_timestamp",
+        "segmentation_installable": false,
+        "transported_channels": 32,
+        "zstd_level": 1
+      }
+    ],
+    "count": 4
+  },
+  "amendment": "Supersedes the earlier no-CARLA instruction and the Phase-13C fit-frame replay. Live CARLA capture only; no stored dataset frame is replayed and the full Route-B loop is not completed.",
+  "bindings": {
+    "bound_inputs": {
+      "phase2_map_sharing/transport.py": "c8d8d0b253356c11776e9c35b7d6b1bef009bfc980e4cecfcbba84ae95734a6e",
+      "receiver_container/docker-compose.fusion-back.yaml": "6d00149c7d9a9502af1ea701e3494aed0a7bbf9dbb1412f0c2b1e1b7b0f9061a",
+      "receiver_container/docker-compose.yaml": "aa45477d63d40799a45115f6db5f07a1eb2440217f43b32173c8536f759c0857",
+      "rl_agent/configs/splitfusion_16_cell_live_carla_oai_pilot_v1.json": "603d3c211fbe70934a3537ba090d16e66a0ac2ce1cb62015389c1e406cec2520",
+      "rl_agent/configs/splitfusion_phase14a_100mhz_calibration_v1.json": "ad541f71f5659e1bb08d7d2c48a45086dfbd5bf45e669b32adfb320ddcab5cd9",
+      "rl_agent/configs/splitfusion_phase14a_campaign_binding_v1.json": "103aeda31a37594c89e820daf1794d28af0440f5e4324450cac01266f5540004",
+      "rl_agent/splitfusion_live_dispatch_v1/context_tail.py": "1781f3013967c464aa8f8de0eb6b46bccb5f3ff00a305c6f6d56012383859fe1",
+      "rl_agent/splitfusion_live_dispatch_v1/edge_runtime.py": "4b5f89eb49b11300cd6762e356a599affa32158479a76f1ad91a8c404d2d6125",
+      "rl_agent/splitfusion_live_dispatch_v1/envelope.py": "e49a70e1f92097cd42735f2aea2cd1171a6e4be2a361ab6834e518bfb213b418",
+      "rl_agent/splitfusion_live_dispatch_v1/frame_context.py": "845c3886f8862ce3f1cd618323b5b7c8baba05b043e5709ff0cd83d36fc33676",
+      "rl_agent/splitfusion_live_dispatch_v1/live_pilot_runtime.py": "ce568a89fa262916e7b6f737a5d1f7fc310428de96ff170eb56eca303411f894",
+      "rl_agent/splitfusion_live_dispatch_v1/live_pilot_target_snr_runtime.py": "b43b71dfdeb12d51d6eae9d1d8d59e3b44ddbe3c18a587b4f851b275fd5b9018",
+      "rl_agent/splitfusion_live_dispatch_v1/phase13c_measurement.py": "fa04e483dcc38801b34f989f5cf58eac1a7d91b9641c1a98052c50640484ad29",
+      "rl_agent/splitfusion_live_dispatch_v1/runtime_binding.json": "604450c7f0f791a480ba4e5ed6b286a2b6f68497735372a7a63ed92e93585551",
+      "rl_agent/splitfusion_live_dispatch_v1/transport.py": "5c8bd3d1bb18818334a28266822b30d475bc67dc016dcf04df7db595e159222f",
+      "rl_agent/splitfusion_live_dispatch_v1/ue_runtime.py": "a72f6ab4b122adb232e4b5927fadd6e0e5381c1fe0201bbf502b28cf2ade1029",
+      "scripts/receiver_container_fusion_back_up.sh": "abf532c88d27fcf101dcecbfcf55f4994fd44cd287d5d1a9245ce0ca3b333610",
+      "uplink_only_spatial_map_pipeline/run_splitfusion_oai_100mhz_4d5u_v1.sh": "8e02f0913338a187bff1de24bfea09d7eca03607da0e383ef8ad4a005b64ce61"
+    },
+    "diagnostic_implementation_sources": {
+      "rl_agent/splitfusion_timing_diagnostic_v1/__init__.py": "4ecd776d1ddfa27b8e492a44c91e052858f371bf18889711ea8b318b53e2d7f0",
+      "rl_agent/splitfusion_timing_diagnostic_v1/diagnostic_common.py": "faf3373e4ac4b7ebc5fbaa3f5f653aef8fe920549bb187ffb7ada33162cf14df",
+      "rl_agent/splitfusion_timing_diagnostic_v1/edge_preload.py": "c5ccb893012f9af79be9dcd8982da7709b2273c4002fff5fd65b79be5c95704f",
+      "rl_agent/splitfusion_timing_diagnostic_v1/edge_service.py": "a54b946b551d573b40d76d643497821c81079ec3ac5d80d9719b2d71b1036f2a",
+      "rl_agent/splitfusion_timing_diagnostic_v1/instrumented_tail.py": "1f0323252416993e4cfb18a5acd3f726c04993f6616610771183ea4ef0bd4493",
+      "rl_agent/splitfusion_timing_diagnostic_v1/live_capture.py": "08b4499fc1e396cced717a6607f341b5a5871665e8688e723dc10b44f171a561",
+      "rl_agent/splitfusion_timing_diagnostic_v1/live_cell_child.py": "65549a96da94182a2bffce6b8b46e5ccbe6573b069391901fcab1797c0bf700c",
+      "rl_agent/splitfusion_timing_diagnostic_v1/live_rehearsal.py": "2423e71ce8aa9169b91785726de12e245fa1877bccd2b2cc2735cd61e4285d63",
+      "rl_agent/splitfusion_timing_diagnostic_v1/live_runner.py": "5ac7de9faeec163b5f7848cbbc8a4ee6672cc7972572ff41f10c00011eae4b88",
+      "rl_agent/splitfusion_timing_diagnostic_v1/rehearsal.py": "55992bae8fd49232ecab9d8456f08615c628b21dfd693dc1e2d6734c4ad71ce3",
+      "rl_agent/splitfusion_timing_diagnostic_v1/runner.py": "eb7b738998166d10e0b6fbe7facae01c79edd715c1487305560108872020abec",
+      "rl_agent/splitfusion_timing_diagnostic_v1/tests/__init__.py": "869e78c9d903cab935d57b22638296818a2a81b5a1c8d685169c5c556f585d49",
+      "rl_agent/splitfusion_timing_diagnostic_v1/tests/test_diagnostic_contract.py": "58bcddb9ce26e13083cebdb56173a60fcc3c5a888bc2cbd32400edc5adbf6b51"
+    }
+  },
+  "cold_host_preflight": {
+    "application_processes": [],
+    "conflicting_tcp_ports": [],
+    "conflicting_udp_ports": [],
+    "edge_container_absent": true,
+    "label": "run/preflight",
+    "load_average": [
+      0.18798828125,
+      0.22412109375,
+      0.23486328125
+    ],
+    "shared_memory_objects": [],
+    "softmodems": [],
+    "temporary_runtime_paths": [],
+    "ue_tunnel_absent": true,
+    "verified_at_unix_s": 1789019058.221983
+  },
+  "collector_configuration": {
+    "base_class": "ue_route_b_split_cell_adapter_v1.PassiveSplitCollector",
+    "exact_installed_record_retrieval": "DISABLED_FOR_DIAGNOSTIC",
+    "install_feedback": "ENABLED_DEPLOYMENT_FUNCTION",
+    "map_install": "ENABLED_DEPLOYMENT_FUNCTION",
+    "object_ground_truth": "DISABLED_FOR_DIAGNOSTIC",
+    "rationale": "the deployed service span must carry deployment contention without offline scoring work the deployed system never runs",
+    "segmentation_quality_scoring": "DISABLED_FOR_DIAGNOSTIC"
+  },
+  "created_utc": "2026-09-10T05:44:18.389043+00:00",
+  "environment": {
+    "capability": "12.0",
+    "cuda_version": "12.8",
+    "device_count": 1,
+    "device_name": "NVIDIA GeForce RTX 5090",
+    "docker_runtimes": [
+      "io.containerd.runc.v2",
+      "nvidia",
+      "runc"
+    ],
+    "edge_image_id": "sha256:2be62d533b8077ceecab5455d5377f2f952b6a50d43ff8c04dc89ce18027d6ba",
+    "hostname": "W10275",
+    "nvidia_container_runtime_present": true,
+    "platform": "Linux-6.8.0-124-generic-x86_64-with-glibc2.35",
+    "python": "3.10.12",
+    "torch_version": "2.10.0.dev20251114+cu128"
+  },
+  "execution_token": "SPLITFUSION_EDGE_OPTIMIZATION_FOUR_ACTION_LIVE_V1",
+  "git": {
+    "branch": "master",
+    "dirty_paths": [
+      "OAI/openairinterface5g",
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/lraspp_to_splitfusion_fcos_report_v1/FULL_TECHNICAL_REPORT_AVO_V2.md"
+    ],
+    "head": "ce6af96f258af663fd26b23423158a2ed0f87f41",
+    "preserved_user_owned_dirty_paths": [
+      "OAI/openairinterface5g",
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/lraspp_to_splitfusion_fcos_report_v1/FULL_TECHNICAL_REPORT_AVO_V2.md"
+    ]
+  },
+  "instrumentation": {
+    "approach": "the established live timing harness with a separate optimized edge preload; the frozen production model, action registry, wire format, UE path and radio path remain untouched",
+    "decode_tail_cuda": "dedicated CUDA event pair around model.decode_tail only",
+    "deployed_tail_service": "edge worker start -> compact result published",
+    "edge_deadline_policy": "CLASSIFY_AND_RECORD_NEVER_DROP",
+    "hash_bound_production_files_modified": [],
+    "optimized_edge_module": "rl_agent.splitfusion_edge_optimization_v1.edge_service",
+    "production_tail_source": "rl_agent/splitfusion_live_dispatch_v1/context_tail.py",
+    "uplink_clock_start": "wall clock immediately before the first UDP datagram send",
+    "warmup_input": "seeded synthetic 7-channel tensor, own stream, excluded"
+  },
+  "objective": "Measure the output-preserving edge optimization against the immutable four-action live CARLA/OAI baseline, retaining the original feature transport and full per-stage timing decomposition.",
+  "optimization_candidate": {
+    "baseline_results": "experiments/splitfusion_timing_diagnostic_v1/20260909_live_carla_actions30_15_50_71_retry3/LIVE_DIAGNOSTIC_RESULTS.json",
+    "baseline_results_sha256": "98a807e69c73190a7157dfb32293928f15aba23d3d0f634bd5af3104cb4299ab",
+    "edge_module": "rl_agent.splitfusion_edge_optimization_v1.edge_service",
+    "geometry_policy": "DECODE_GEOMETRY_FOR_ORDERED_POST_NMS_SURVIVORS",
+    "p025_policy": "FROZEN_GRID27_AND_PERSON_P025_EXACT",
+    "required_parity": "BIT_IDENTICAL_TENSORS_INDICES_SEGMENTATION_AND_SERVICE_BYTES",
+    "schema": "scenesense.splitfusion_edge_optimization_candidate.v1",
+    "serialization": "BATCHED_TENSOR_CPU_TRANSFER_BEFORE_FROZEN_ROW_BUILDER",
+    "sources": {
+      "rl_agent/splitfusion_edge_optimization_v1/edge_preload.py": "3cbe1cfa66720911e4cd707d2b5a91f0e87908a7f7cf4a728a79d06624e38875",
+      "rl_agent/splitfusion_edge_optimization_v1/edge_service.py": "9a7b7c4156b455ae52243907eb1aa1a9b1bcd0cab918179b0890bd2b687d505f",
+      "rl_agent/splitfusion_edge_optimization_v1/live_runner.py": "0aed50e8084a73399826b7a3afefba851b989fcf15c9388827f0b8bf51cfb42e",
+      "rl_agent/splitfusion_edge_optimization_v1/optimized_tail.py": "bb526e94952986d4a3c9740cc36cc8ace1ca6d5e076e4536d8c7d2de84a9a72e"
+    },
+    "world_coordinate_exactness": "PRESERVE_ORIGINAL_PER_LEVEL_MATRIX_BATCH_SHAPE"
+  },
+  "output_relpath": "experiments/splitfusion_edge_optimization_v1/20260909_live_actions30_15_50_71",
+  "radio_contract": {
+    "clean_restore_noise_power_db": -50.0,
+    "cn5g_owner": "qualified_launcher",
+    "forbidden_after_prefix": [
+      "wrap",
+      "hold_final_value",
+      "reseed"
+    ],
+    "launcher": "uplink_only_spatial_map_pipeline/run_splitfusion_oai_100mhz_4d5u_v1.sh",
+    "network_profile_restart_per_action": "identical_first_sample_at_first_transmitted_frame",
+    "prefix_samples": 4200,
+    "radio_profile_id": "OAI_N78_100MHZ_273PRB_4D5U_V1"
+  },
+  "reference_points": {
+    "phase13c_controlled_tail_gpu_ms": 73.4,
+    "phase15_live_frozen_tail_ms": 111.6
+  },
+  "route_b": {
+    "bound_inputs": {
+      "data_collection/routes/town10hd_opt_route_b_full_map_loop_v1.json": "fc4518a8746b9417a64616b8e544f59b16b5a31b7585298a316a59662ecfd6e5",
+      "data_collection/routes/town10hd_opt_route_b_full_map_loop_v1.progress.csv": "974593859368f24ee2bc4ac31b82118bf2e932d0de1c96858b8771e2dd4d90c0",
+      "data_collection/run_route_b_density_loop.py": "0f3147fad30cf9e03657c98373c8ef2783af04853ccefc97dc1acbdfa33b336b",
+      "rl_agent/ue_route_b_split_cell_adapter_v1.py": "3589c7b1366d7b2309cf142b9210116697f14b4c9ad4f42de80ddc896803ae5b"
+    },
+    "carla_quality": "Epic",
+    "density": "traffic_50_50",
+    "fresh_carla_per_action": true,
+    "full_route_loop_completed": false,
+    "pedestrians": 50,
+    "route_json": "data_collection/routes/town10hd_opt_route_b_full_map_loop_v1.json",
+    "scenario_seed": 31,
+    "traffic_manager_seed": 31,
+    "vehicles": 50
+  },
+  "run_id": "20260909_live_actions30_15_50_71",
+  "run_manifest_sha256": "bc184d1a445cc3acb412935fe234de9459bd19f1ee5bc4910838866ce0123371",
+  "schema": "scenesense.splitfusion_edge_optimization_live_manifest.v1",
+  "scope": {
+    "action_fixed_per_cell": true,
+    "actions": [
+      30,
+      15,
+      50,
+      71
+    ],
+    "baseline_actions": [
+      30,
+      15,
+      50,
+      71
+    ],
+    "carla_lifecycles": 4,
+    "dataset_frames_replayed": 0,
+    "full_route_b_loop_completed": false,
+    "holdout_or_test_frames_read": false,
+    "network_profile_id": "FAVORABLE_STABLE",
+    "optimization_attempted": true,
+    "optimization_changes_feature_transport": false,
+    "radio_lifecycles": 4,
+    "safety_timeout_s": 90.0,
+    "sixteen_cell_pilot": false,
+    "training_or_tuning": false,
+    "transmitted_frames_per_action": 300,
+    "two_hundred_eighty_eight_cell_campaign": false
+  },
+  "synthetic_tests": {
+    "all_passed": true,
+    "results": {
+      "test_clock_anchor_shape": {
+        "anchor_fields_verified": true
+      },
+      "test_datagram_accounting_is_exact": {
+        "payload_sizes_checked": 7
+      },
+      "test_derived_timestamp_intervals": {
+        "delivered_rows": 1,
+        "derived_quantities_verified": 8,
+        "skipped_rows": 1
+      },
+      "test_incomplete_reassembly_expires": {
+        "expired_messages": 1
+      },
+      "test_live_join_and_accounting": {
+        "derived_quantities_verified": 10,
+        "drop_statuses_accounted": 2
+      },
+      "test_negative_interval_is_detected": {
+        "negative_interval_detected": true
+      },
+      "test_obsolete_slot_policy": {
+        "policy": "SKIP_OBSOLETE_NEVER_BURST",
+        "schedule_period_ms": 100
+      },
+      "test_percentile_convention": {
+        "percentile_convention": "nearest_rank"
+      },
+      "test_stage_partition_is_complete": {
+        "stage_groups": 6,
+        "stages_covered": 9
+      }
+    },
+    "test_count": 9
+  },
+  "transport_contract": {
+    "entropy_coder": "zstd",
+    "inner_bytes_modified": false,
+    "retransmission": false,
+    "sfd1_protocol_version": 2,
+    "udp_chunk_bytes": 12500,
+    "udp_fragment_header": "!IHH"
+  }
+}
