@@ -32,3 +32,20 @@ production tail. Promotion must update the runtime binding and its hashes. The
 historical 288-cell measurements remain valid as the pre-optimization radio
 and action surface; their AoI values must not be adjusted by subtracting a
 constant because the shorter service time also changes latest-frame queueing.
+
+## Detached publication candidate
+
+`detached_tail.py` removes the optimized adapter's cross-frame singleton
+handoff without changing its model or scientific outputs. The sole compute
+owner runs the existing optimized tail and performs the consolidated CUDA-to-
+CPU transfer. It then emits a frame-scoped work product. A distinct publication
+owner constructs service records and JSON exclusively from those CPU tensors,
+so the next model call may overlap publication without concurrent calls into
+the frozen model.
+
+`qualify_detached_pipeline.py` compares this handoff against the established
+optimized adapter for bit-identical perception, p025 indices, segmentation and
+serialized bytes. It also exercises both selected scheduling policies with a
+single CUDA owner, a single publication owner, terminal reconciliation and
+reports whether stage overlap is actually observed; overlap is not forced to
+make the candidate pass. This is a microbenchmark, not a live CARLA/OAI result.
