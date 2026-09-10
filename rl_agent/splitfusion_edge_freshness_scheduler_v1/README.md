@@ -23,7 +23,8 @@ only if later optimization materially changes that budget.
 
 Every transmitted frame must receive exactly one terminal classification:
 
-- `MAP_INSTALLED`;
+- `RESULT_PUBLISHED` at the edge, kept distinct from the authoritative later
+  `MAP_INSTALLED` acknowledgement;
 - `SUPERSEDED_PENDING`;
 - `SUPERSEDED_BEFORE_DECODE`;
 - `SUPERSEDED_BEFORE_TAIL`;
@@ -88,9 +89,9 @@ ordering, p025, segmentation, and serialized-record gates.
 3. Sweep the queue-wait hypothesis and select by map freshness/utility, not by
    installed count alone.
 4. GPU parity and stage-overlap microbenchmark.
-5. Short live CARLA/OAI diagnostic, initially actions 50 and 71, with 300--500
-   prepared frames per action; expand to actions 30 and 15 only if needed to
-   characterize the payload frontier.
+5. Four short live CARLA/OAI cells: actions 50 and 71 under both registered
+   policies, with exactly 300 transmitted frames per cell; expand to actions
+   30 and 15 only if needed to characterize the payload frontier.
 6. Rebuild the RL transition data with explicit terminal outcomes before PPO
    training.
 
@@ -133,15 +134,18 @@ Pipeline feedback uses
 CPU contract it adds separately accounted publication time and publication-
 queue terminal outcomes.
 
-This is not yet a promoted live edge runtime. The current optimized tail keeps
-a singleton snapshot between its tail and serializer calls, so splitting that
-boundary requires a separate output-parity qualification. The deployed and
-hash-pinned edge remains unchanged.
+The detached handoff was subsequently qualified on the RTX 5090 with
+bit-identical perception tensors, p025 indices, segmentation labels and
+serialized service bytes. The deployed and hash-pinned edge remains unchanged;
+the live candidate is additive and must still pass the four-cell gate before
+any promotion decision.
 
-`runtime_bridge.py` binds this candidate to the existing SFD1 runtime without
-weakening that boundary. The sole compute owner calls the complete frozen edge
-operation and revalidates action, sequence, capture, stream, frame, and byte
-identities. Only the already-serialized, identity-checked result reaches the
-publication owner. This can overlap result publication/transmission with the
-next edge call, but it does not yet claim that post-processing or serialization
-itself has moved off the compute owner.
+`runtime_bridge.py` binds the original two-stage prototype to SFD1 without
+weakening that boundary. `live_edge_service.py` uses the separately qualified
+detached handoff: the sole compute owner performs validation, decode and the
+frozen tail, while the CPU publication owner serializes and sends the compact
+result. `live_capture.py` forwards explicit non-install scheduler outcomes to
+the existing UE feedback ledger as `NACK_REJECTED`, retaining the reason and
+outcome class. A successful edge publication is deliberately not called a map
+installation; only the existing map server's `ACK_INSTALLED` grants utility.
+`live_runner.py` owns the create-only four-cell comparison.

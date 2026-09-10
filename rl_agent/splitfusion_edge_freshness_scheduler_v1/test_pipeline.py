@@ -88,8 +88,8 @@ class BoundedTwoStagePipelineTest(unittest.TestCase):
         self.assertEqual(len(outcomes), 4)
         self.assertEqual(reasons(pipeline)[2], TerminalReason.SUPERSEDED_PENDING)
         self.assertEqual(reasons(pipeline)[3], TerminalReason.SUPERSEDED_PENDING)
-        self.assertEqual(reasons(pipeline)[1], TerminalReason.MAP_INSTALLED)
-        self.assertEqual(reasons(pipeline)[4], TerminalReason.MAP_INSTALLED)
+        self.assertEqual(reasons(pipeline)[1], TerminalReason.RESULT_PUBLISHED)
+        self.assertEqual(reasons(pipeline)[4], TerminalReason.RESULT_PUBLISHED)
 
     def test_25_ms_is_expiry_not_an_idle_worker_hold(self) -> None:
         calls: list[int] = []
@@ -115,7 +115,7 @@ class BoundedTwoStagePipelineTest(unittest.TestCase):
         immediate.start()
         immediate.offer(ticket(2), "value")
         immediate.close_and_join(timeout_s=2.0)
-        self.assertEqual(reasons(immediate)[2], TerminalReason.MAP_INSTALLED)
+        self.assertEqual(reasons(immediate)[2], TerminalReason.RESULT_PUBLISHED)
 
     def test_compute_and_publication_overlap_on_distinct_owner_threads(self) -> None:
         publication_started = threading.Event()

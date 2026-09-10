@@ -562,9 +562,9 @@ class BoundedTwoStagePipeline:
                 feedback.append(
                     self._feedback_locked(
                         item.ticket,
-                        reason=TerminalReason.MAP_INSTALLED,
-                        outcome_class=OutcomeClass.INSTALLED_UTILITY,
-                        stage=Stage.MAP_INSTALL,
+                        reason=TerminalReason.RESULT_PUBLISHED,
+                        outcome_class=OutcomeClass.PUBLICATION_SUCCESS,
+                        stage=Stage.PUBLICATION,
                         now_ns=finished_ns,
                         queue_wait_ns=item.queue_wait_ns,
                         compute_spent_ns=item.compute_spent_ns,

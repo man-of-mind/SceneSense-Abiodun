@@ -74,7 +74,7 @@ class RuntimeBridgeTest(unittest.TestCase):
         bridge.offer(frame, EdgeFrameRequest(b"SFD1", 71))
         outcomes = bridge.close_and_join(timeout_s=2.0)
         self.assertEqual(published, [(1, b"[]")])
-        self.assertEqual(outcomes[0].reason, TerminalReason.MAP_INSTALLED)
+        self.assertEqual(outcomes[0].reason, TerminalReason.RESULT_PUBLISHED)
         self.assertEqual(bridge.snapshot().compute_completed, 1)
 
     def test_context_identity_drift_fails_closed(self) -> None:
