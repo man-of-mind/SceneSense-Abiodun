@@ -13,7 +13,7 @@ from enum import Enum
 from typing import Any
 
 
-SCHEMA = "scenesense.splitfusion.edge_freshness_feedback.v1"
+SCHEMA = "scenesense.splitfusion.edge_freshness_feedback.v2"
 
 
 def _require(condition: bool, message: str) -> None:
@@ -26,6 +26,8 @@ class Stage(str, Enum):
     BEFORE_DECODE = "BEFORE_DECODE"
     BEFORE_TAIL = "BEFORE_TAIL"
     BEFORE_PUBLICATION = "BEFORE_PUBLICATION"
+    PENDING_PUBLICATION = "PENDING_PUBLICATION"
+    PUBLICATION = "PUBLICATION"
     MAP_INSTALL = "MAP_INSTALL"
 
 
@@ -35,11 +37,14 @@ class TerminalReason(str, Enum):
     SUPERSEDED_BEFORE_DECODE = "SUPERSEDED_BEFORE_DECODE"
     SUPERSEDED_BEFORE_TAIL = "SUPERSEDED_BEFORE_TAIL"
     SUPERSEDED_BEFORE_PUBLICATION = "SUPERSEDED_BEFORE_PUBLICATION"
+    SUPERSEDED_PUBLICATION_PENDING = "SUPERSEDED_PUBLICATION_PENDING"
     QUEUE_WAIT_BUDGET_EXCEEDED = "QUEUE_WAIT_BUDGET_EXCEEDED"
     PROCESSING_HORIZON_EXPIRED = "PROCESSING_HORIZON_EXPIRED"
     OUT_OF_ORDER_ARRIVAL = "OUT_OF_ORDER_ARRIVAL"
     TRANSPORT_INCOMPLETE = "TRANSPORT_INCOMPLETE"
     PROCESSING_FAILED = "PROCESSING_FAILED"
+    PUBLICATION_FAILED = "PUBLICATION_FAILED"
+    PIPELINE_ABORTED = "PIPELINE_ABORTED"
     IDENTITY_REJECTED = "IDENTITY_REJECTED"
 
 
@@ -106,6 +111,7 @@ class TerminalFeedback:
     queue_wait_ns: int
     bytes_already_sent: int
     compute_spent_ns: int = 0
+    publication_spent_ns: int = 0
     replacing_frame_id: int | None = None
     replacing_sequence_id: int | None = None
 
@@ -117,6 +123,10 @@ class TerminalFeedback:
         _require(self.queue_wait_ns >= 0, "queue_wait_ns must be non-negative")
         _require(self.bytes_already_sent >= 0, "bytes_already_sent is invalid")
         _require(self.compute_spent_ns >= 0, "compute_spent_ns is invalid")
+        _require(
+            self.publication_spent_ns >= 0,
+            "publication_spent_ns is invalid",
+        )
         if self.reason.value.startswith("SUPERSEDED_"):
             _require(
                 self.replacing_frame_id is not None
@@ -142,7 +152,12 @@ class TerminalFeedback:
             intentional_freshness_drop=intentional,
             charge_feature_bytes=self.bytes_already_sent,
             charge_compute_ns=self.compute_spent_ns,
+            charge_publication_ns=self.publication_spent_ns,
             wasted_feature_bytes=(self.bytes_already_sent if not installed else 0),
+            wasted_compute_ns=(self.compute_spent_ns if not installed else 0),
+            wasted_publication_ns=(
+                self.publication_spent_ns if not installed else 0
+            ),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -165,6 +180,7 @@ class TerminalFeedback:
             "feature_bytes": self.ticket.feature_bytes,
             "bytes_already_sent": self.bytes_already_sent,
             "compute_spent_ns": self.compute_spent_ns,
+            "publication_spent_ns": self.publication_spent_ns,
             "replacing_frame_id": self.replacing_frame_id,
             "replacing_sequence_id": self.replacing_sequence_id,
             "agent_credit": self.agent_credit().to_dict(),
@@ -179,7 +195,10 @@ class AgentCredit:
     intentional_freshness_drop: bool
     charge_feature_bytes: int
     charge_compute_ns: int
+    charge_publication_ns: int
     wasted_feature_bytes: int
+    wasted_compute_ns: int
+    wasted_publication_ns: int
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -189,7 +208,10 @@ class AgentCredit:
             "intentional_freshness_drop": self.intentional_freshness_drop,
             "charge_feature_bytes": self.charge_feature_bytes,
             "charge_compute_ns": self.charge_compute_ns,
+            "charge_publication_ns": self.charge_publication_ns,
             "wasted_feature_bytes": self.wasted_feature_bytes,
+            "wasted_compute_ns": self.wasted_compute_ns,
+            "wasted_publication_ns": self.wasted_publication_ns,
         }
 
 
@@ -439,5 +461,17 @@ class OutcomeAccounting:
             ),
             "wasted_feature_bytes": sum(
                 value.agent_credit().wasted_feature_bytes for value in values
+            ),
+            "compute_ns_charged": sum(
+                value.agent_credit().charge_compute_ns for value in values
+            ),
+            "publication_ns_charged": sum(
+                value.agent_credit().charge_publication_ns for value in values
+            ),
+            "wasted_compute_ns": sum(
+                value.agent_credit().wasted_compute_ns for value in values
+            ),
+            "wasted_publication_ns": sum(
+                value.agent_credit().wasted_publication_ns for value in values
             ),
         }

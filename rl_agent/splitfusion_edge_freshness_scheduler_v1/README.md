@@ -28,11 +28,14 @@ Every transmitted frame must receive exactly one terminal classification:
 - `SUPERSEDED_BEFORE_DECODE`;
 - `SUPERSEDED_BEFORE_TAIL`;
 - `SUPERSEDED_BEFORE_PUBLICATION`;
+- `SUPERSEDED_PUBLICATION_PENDING`;
 - `QUEUE_WAIT_BUDGET_EXCEEDED`;
 - `PROCESSING_HORIZON_EXPIRED`;
 - `OUT_OF_ORDER_ARRIVAL`;
 - `TRANSPORT_INCOMPLETE`;
-- `PROCESSING_FAILED`; or
+- `PROCESSING_FAILED`;
+- `PUBLICATION_FAILED`;
+- `PIPELINE_ABORTED`; or
 - `IDENTITY_REJECTED`.
 
 Supersession feedback carries the discarded frame identity, selected action,
@@ -102,3 +105,43 @@ used. This first screen is not yet the full 288-cell environment simulator.
 The completed 288-cell campaign remains the authoritative original runtime
 surface. Counterfactual scheduling results must be labelled as simulation and
 must not overwrite measured cell records.
+
+## Two-stage execution candidate
+
+`pipeline.py` implements the bounded concurrency primitive selected by the
+offline sweep. It supports exactly two prospective policies:
+
+- latest-only pending work with no fixed queue expiry; and
+- latest-only pending work with a 25 ms pre-compute queue-wait budget.
+
+An idle compute worker starts a frame immediately; 25 ms is an expiry ceiling,
+not an intentional hold. While frame 1 is active, arrivals 2, 3 and 4 occupy a
+single slot and successively supersede each other. Frame 1 is not interrupted;
+the compute worker next receives frame 4. A second depth-one slot permits the
+single CPU publication owner to overlap with the single compute owner. Pending
+publication results may likewise be replaced, but an active publication is not
+interrupted.
+
+The primitive is bound to one run/cell/stream. It deliberately does not hide a
+multi-UE fairness policy. Callback failures are structural and fail closed;
+normal close drains both stages. Every offered frame receives exactly one
+terminal outcome, and spent feature bytes, compute time, and publication time
+remain chargeable even when a frame is intentionally superseded.
+
+Pipeline feedback uses
+`scenesense.splitfusion.edge_freshness_feedback.v2`; compared with the earlier
+CPU contract it adds separately accounted publication time and publication-
+queue terminal outcomes.
+
+This is not yet a promoted live edge runtime. The current optimized tail keeps
+a singleton snapshot between its tail and serializer calls, so splitting that
+boundary requires a separate output-parity qualification. The deployed and
+hash-pinned edge remains unchanged.
+
+`runtime_bridge.py` binds this candidate to the existing SFD1 runtime without
+weakening that boundary. The sole compute owner calls the complete frozen edge
+operation and revalidates action, sequence, capture, stream, frame, and byte
+identities. Only the already-serialized, identity-checked result reaches the
+publication owner. This can overlap result publication/transmission with the
+next edge call, but it does not yet claim that post-processing or serialization
+itself has moved off the compute owner.

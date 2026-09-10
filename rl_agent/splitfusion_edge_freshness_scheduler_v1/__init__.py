@@ -19,6 +19,14 @@ from .simulator import (
     SimulationResult,
     simulate,
 )
+from .pipeline import (
+    BoundedTwoStagePipeline,
+    CandidatePolicy,
+    PipelineConfig,
+    PipelineSnapshot,
+    PipelineWorkerError,
+)
+from .runtime_bridge import EdgeFrameRequest, PipelinedSplitEdgeBridge
 
 __all__ = (
     "AgentCredit",
@@ -36,4 +44,11 @@ __all__ = (
     "SimulationReason",
     "SimulationResult",
     "simulate",
+    "BoundedTwoStagePipeline",
+    "CandidatePolicy",
+    "PipelineConfig",
+    "PipelineSnapshot",
+    "PipelineWorkerError",
+    "EdgeFrameRequest",
+    "PipelinedSplitEdgeBridge",
 )

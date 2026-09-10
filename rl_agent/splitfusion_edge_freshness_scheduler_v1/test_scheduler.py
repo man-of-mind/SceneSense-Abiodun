@@ -46,6 +46,10 @@ class FreshnessSchedulerTest(unittest.TestCase):
         self.assertFalse(credit.count_as_transport_failure)
         self.assertFalse(credit.installation_utility_eligible)
         self.assertEqual(credit.charge_feature_bytes, first.feature_bytes)
+        self.assertEqual(credit.charge_compute_ns, 0)
+        self.assertEqual(credit.charge_publication_ns, 0)
+        self.assertEqual(credit.wasted_compute_ns, 0)
+        self.assertEqual(credit.wasted_publication_ns, 0)
 
     def test_started_work_can_stop_at_boundary_but_running_kernel_is_not_preempted(self) -> None:
         scheduler = FreshnessScheduler(processing_horizon_ns=500 * MS)
