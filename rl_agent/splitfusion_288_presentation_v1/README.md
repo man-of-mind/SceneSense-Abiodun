@@ -14,5 +14,5 @@ Run from the repository root:
 
 ```bash
 python3 -m rl_agent.splitfusion_288_presentation_v1.build_pack \
-  --output experiments/splitfusion_rl_policy_design_v1/20260910_288_results_presentation_pack_v3
+  --output experiments/splitfusion_rl_policy_design_v1/20260910_288_results_presentation_pack_v4
 ```

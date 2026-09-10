@@ -25,6 +25,7 @@ EXPECTED_SHA256 = {
     "analysis": "48358c2f27ffc2f3da8bf0f821c733914a03267f50da7adab4cbf70cbe239690",
     "baseline_timing": "7b4113f721dfdebc92df5c6fc110c359c779fc14d9d87cfa65cf59c07bf58176",
     "baseline_result": "98a807e69c73190a7157dfb32293928f15aba23d3d0f634bd5af3104cb4299ab",
+    "optimized_timing": "bdc3b59894b7eb649ad9f80de731ad0af8a43249d585eeb5f06936f377c155cf",
     "optimized_result": "5003cc70144154ba5e96995ae4f0d6533d34aad99549f0ee33dda1afe760db95",
 }
 
@@ -127,13 +128,13 @@ def save(fig: plt.Figure, output: Path, stem: str) -> None:
         output / f"{stem}.png",
         bbox_inches="tight",
         facecolor="white",
-        metadata={"Software": "SplitFusion 288 presentation pack v3"},
+        metadata={"Software": "SplitFusion 288 presentation pack v4"},
     )
     fig.savefig(
         output / f"{stem}.pdf",
         bbox_inches="tight",
         facecolor="white",
-        metadata={"Creator": "SplitFusion 288 presentation pack v3", "CreationDate": None, "ModDate": None},
+        metadata={"Creator": "SplitFusion 288 presentation pack v4", "CreationDate": None, "ModDate": None},
     )
     plt.close(fig)
 
@@ -452,58 +453,113 @@ def stage(row: dict, key: str) -> float:
     return float(row["live_stage_group_medians_ms"][key])
 
 
-def plot_optimization(before_path: Path, after_path: Path, output: Path) -> pd.DataFrame:
+def edge_stage_values(row: pd.Series) -> dict[str, float]:
+    return {
+        "edge_queue": float(row["edge_queue_wait_ms_median"]),
+        "feature_reconstruction": sum(
+            float(row[key])
+            for key in (
+                "edge_zstd_decompression_ms_median",
+                "edge_unpack_dequantize_ms_median",
+                "edge_ae_decode_ms_median",
+            )
+        ),
+        "tail_inference": float(row["decode_tail_inference_block_ms_median"]),
+        "postprocess_p025": float(row["post_processing_ms_median"]),
+        "serialization": float(row["tail_output_serialization_ms_median"]),
+    }
+
+
+def plot_optimization(
+    before_timing: pd.DataFrame,
+    after_timing: pd.DataFrame,
+    before_path: Path,
+    after_path: Path,
+    output: Path,
+) -> pd.DataFrame:
     before = comparison_rows(before_path)
     after = comparison_rows(after_path)
+    before_indexed = before_timing.set_index("action_id")
+    after_indexed = after_timing.set_index("action_id")
     records = []
     for action in DIAGNOSTIC_ACTIONS:
         b = before[action]
         a = after[action]
-        records.append(
-            {
-                "action_id": action,
-                "profile_id": a["profile_id"],
-                "before_edge_service_ms": float(b["deployed_tail_service_ms"]["median"]),
-                "after_edge_service_ms": float(a["deployed_tail_service_ms"]["median"]),
-                "direct_saving_ms": float(b["deployed_tail_service_ms"]["median"] - a["deployed_tail_service_ms"]["median"]),
-                "before_edge_queue_ms": stage(b, "edge_queue_wait_ms"),
-                "after_edge_queue_ms": stage(a, "edge_queue_wait_ms"),
-            }
-        )
+        before_stages = edge_stage_values(before_indexed.loc[action])
+        after_stages = edge_stage_values(after_indexed.loc[action])
+        record = {
+            "action_id": action,
+            "profile_id": a["profile_id"],
+            "before_edge_service_ms": float(b["deployed_tail_service_ms"]["median"]),
+            "after_edge_service_ms": float(a["deployed_tail_service_ms"]["median"]),
+            "direct_saving_ms": float(b["deployed_tail_service_ms"]["median"] - a["deployed_tail_service_ms"]["median"]),
+        }
+        for name, value in before_stages.items():
+            record[f"before_{name}_ms"] = value
+        for name, value in after_stages.items():
+            record[f"after_{name}_ms"] = value
+        records.append(record)
     table = pd.DataFrame(records)
-    fig, axes = plt.subplots(1, 2, figsize=(14.4, 5.4), constrained_layout=True)
-    x = np.arange(4)
-    width = 0.36
-    axes[0].bar(x - width / 2, table["before_edge_service_ms"], width, label="Before", color="#A7B6C8")
-    axes[0].bar(x + width / 2, table["after_edge_service_ms"], width, label="After", color="#176B87")
-    for index, row in table.iterrows():
-        axes[0].text(index, row["before_edge_service_ms"] + 4, f"−{row['direct_saving_ms']:.1f} ms", ha="center", fontweight="bold")
-    axes[0].set_xticks(x, [f"A{a}" for a in DIAGNOSTIC_ACTIONS])
-    axes[0].set_xlabel("Action")
-    axes[0].set_ylabel("Median worker-start to result-publication time (ms)")
-    axes[0].set_ylim(0, 195)
-    axes[0].set_title("Direct deployed edge service")
-    axes[0].legend(frameon=False, prop={"weight": "bold"})
-
     stage_specs = (
-        ("Tail inference", "tail_inference_block"),
-        ("Camera-aware\npostprocess", "camera_aware_postprocess"),
-        ("p025 filter", "p025_service_filter"),
-        ("Serialization", "compact_result_serialization"),
-        ("Edge queue", "edge_queue_wait_ms"),
+        ("Edge queue", "edge_queue", "#E45756"),
+        ("Feature reconstruction", "feature_reconstruction", "#B279A2"),
+        ("FCOS tail inference", "tail_inference", "#54A24B"),
+        ("Postprocess + p025 filter", "postprocess_p025", "#EECA3B"),
+        ("Compact-result serialization", "serialization", "#9D755D"),
     )
-    sx = np.arange(len(stage_specs))
-    bvalues = [np.median([stage(before[a], key) for a in DIAGNOSTIC_ACTIONS]) for _, key in stage_specs]
-    avalues = [np.median([stage(after[a], key) for a in DIAGNOSTIC_ACTIONS]) for _, key in stage_specs]
-    axes[1].bar(sx - width / 2, bvalues, width, label="Before", color="#A7B6C8")
-    axes[1].bar(sx + width / 2, avalues, width, label="After", color="#176B87")
-    axes[1].set_xticks(sx, [label for label, _ in stage_specs])
-    axes[1].set_xlabel("Edge stage")
-    axes[1].set_ylabel("Median stage time across actions (ms)")
-    axes[1].set_ylim(0, 85)
-    axes[1].set_title("Where the saving came from")
-    axes[1].legend(frameon=False, prop={"weight": "bold"})
-    fig.suptitle("Output-preserving edge optimization (sensor preparation and radio transport excluded)", fontsize=15, fontweight="bold")
+    fig, axis = plt.subplots(figsize=(14.6, 8.0), constrained_layout=True)
+    y = np.asarray(
+        [group * 2.4 + offset for group in range(len(DIAGNOSTIC_ACTIONS)) for offset in (0.0, 0.82)]
+    )
+    labels = [
+        f"A{action}  {version}"
+        for action in DIAGNOSTIC_ACTIONS
+        for version in ("Before", "After")
+    ]
+    left = np.zeros(len(y), dtype=float)
+    for label, key, color in stage_specs:
+        values = np.asarray(
+            [
+                float(table.loc[table["action_id"] == action, f"{version}_{key}_ms"].iloc[0])
+                for action in DIAGNOSTIC_ACTIONS
+                for version in ("before", "after")
+            ]
+        )
+        bars = axis.barh(y, values, left=left, height=0.66, color=color, label=label)
+        for bar, value in zip(bars, values):
+            if value >= 10:
+                axis.text(
+                    bar.get_x() + bar.get_width() / 2,
+                    bar.get_y() + bar.get_height() / 2,
+                    f"{value:.0f}",
+                    ha="center",
+                    va="center",
+                    fontsize=8,
+                    fontweight="bold",
+                )
+        left += values
+    for group, action in enumerate(DIAGNOSTIC_ACTIONS):
+        record = table[table["action_id"] == action].iloc[0]
+        after_index = group * 2 + 1
+        axis.text(
+            left[after_index] + 3,
+            y[after_index],
+            f"direct service −{record['direct_saving_ms']:.1f} ms",
+            va="center",
+            fontsize=8,
+            fontweight="bold",
+            color="#176B87",
+        )
+        if group < len(DIAGNOSTIC_ACTIONS) - 1:
+            axis.axhline(group * 2.4 + 1.62, color="#999999", linewidth=0.7, alpha=0.35)
+    axis.set_yticks(y, labels)
+    axis.invert_yaxis()
+    axis.set_xlim(0, max(left) + 38)
+    axis.set_xlabel("Descriptive sum of median edge-stage spans (ms)")
+    axis.set_ylabel("Action and implementation")
+    axis.set_title("Same edge stages and colors as Figure 09; sensor, UE dispatch and OAI uplink excluded")
+    axis.legend(loc="upper center", bbox_to_anchor=(0.5, -0.10), ncol=3, frameon=True)
+    fig.suptitle("Output-preserving edge optimization: exact stage-for-stage comparison", fontsize=15, fontweight="bold")
     save(fig, output, "10_edge_optimization_before_after")
     return table
 
@@ -536,9 +592,16 @@ while producing a payload that the current channel can deliver freshly.
 
 ## Figure 02 — payload versus localization quality
 
-- XY MAE is physical centroid error in metres; lower is better.
-- Vehicle IoU and person box-mask IoU measure spatial overlap; higher is
-  better. They are not semantic-segmentation mIoU.
+- XY MAE is the mean planar Euclidean distance between a matched prediction's
+  world-XY centroid and the corresponding ground-truth centroid. Matching is
+  class-specific and limited to 3 m; lower is better.
+- Vehicle IoU and person box-mask IoU are aggregate semantic pixel-overlap
+  scores, not centroid distances and not per-object detection-box IoU. The
+  person ground truth is a filled projected box rather than a silhouette.
+- Person box-mask IoU genuinely peaks at 0.528 across the 72 actions. Thin,
+  small person regions make pixel overlap more sensitive to boundary errors,
+  and the filled-box target also limits how a predicted person silhouette can
+  overlap it. The registered service threshold was 0.50, not 0.60.
 - Agent connection: quality reward should not use F1 alone. A small, deliverable
   action can still incur localization or mask-quality debt.
 
@@ -628,13 +691,27 @@ while producing a payload that the current channel can deliver freshly.
 
 ## Figure 10 — optimization result
 
+- Before and after now use the same edge-stage categories, colors and action
+  ordering as Figure 09. Upstream sensor preparation, UE dispatch and OAI
+  transport are excluded because the optimization did not change them.
 - Output-preserving optimization reduced direct edge service by
   {savings.min():.1f}–{savings.max():.1f} ms across all four actions, with a
   mean saving of {savings.mean():.1f} ms.
+- The direct-service saving is worker start to result publication. Edge queue
+  is shown as a system consequence but is not included in that direct-service
+  number.
 - Perception tensors, p025 selections, segmentation labels and serialized
   records remained exact. Feature payloads and the radio bridge were unchanged.
-- Most savings came from camera-aware postprocessing and serialization, not
-  from changing the model.
+- Camera-aware postprocessing originally decoded geometry for candidates that
+  NMS later discarded; it now performs identical score/box/NMS decisions first
+  and computes geometry only for survivors. Serialization originally caused
+  repeated device-to-host scalar synchronizations; it now makes one aligned
+  tensor transfer before constructing the same records.
+- The p025 stage builds a person semantic mask, finds connected components,
+  associates person boxes with them, consolidates duplicate person candidates,
+  applies the locked 0.25 person threshold and calibrates vehicle scores. Its
+  own saving was modest; most of the improvement came from postprocessing and
+  serialization.
 - Do not subtract a constant from every historical AoI. Faster service changes
   queue replacement nonlinearly. The RL simulator should retain the 288-cell
   radio/delivery evidence and replay it with the optimized service-time
@@ -667,6 +744,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--analysis", type=Path, default=evidence / "analysis_summary.json")
     parser.add_argument("--baseline-timing", type=Path, default=baseline / "action_summary.csv")
     parser.add_argument("--baseline-result", type=Path, default=baseline / "LIVE_DIAGNOSTIC_RESULTS.json")
+    parser.add_argument("--optimized-timing", type=Path, default=optimized / "action_summary.csv")
     parser.add_argument("--optimized-result", type=Path, default=optimized / "LIVE_DIAGNOSTIC_RESULTS.json")
     parser.add_argument("--output", type=Path, required=True)
     return parser.parse_args()
@@ -681,6 +759,7 @@ def main() -> int:
         "analysis": require(args.analysis, EXPECTED_SHA256["analysis"], "analysis summary"),
         "baseline_timing": require(args.baseline_timing, EXPECTED_SHA256["baseline_timing"], "baseline timing"),
         "baseline_result": require(args.baseline_result, EXPECTED_SHA256["baseline_result"], "baseline result"),
+        "optimized_timing": require(args.optimized_timing, EXPECTED_SHA256["optimized_timing"], "optimized timing"),
         "optimized_result": require(args.optimized_result, EXPECTED_SHA256["optimized_result"], "optimized result"),
     }
     output = args.output.resolve(strict=False)
@@ -693,7 +772,8 @@ def main() -> int:
     action_profile = pd.read_csv(paths["action_profile"])
     cell = pd.read_csv(paths["cell"])
     timing = pd.read_csv(paths["baseline_timing"])
-    if len(action) != 72 or len(action_profile) != 288 or len(cell) != 288 or len(timing) != 4:
+    optimized_timing = pd.read_csv(paths["optimized_timing"])
+    if len(action) != 72 or len(action_profile) != 288 or len(cell) != 288 or len(timing) != 4 or len(optimized_timing) != 4:
         raise PresentationError("unexpected evidence row count")
     if sorted(action["action_id"].astype(int)) != list(range(72)):
         raise PresentationError("action inventory is not 0..71")
@@ -714,7 +794,13 @@ def main() -> int:
     plot_network_summary(network, output)
     plot_total_aoi(action_profile, output)
     plot_original_stages(timing, output)
-    optimization = plot_optimization(paths["baseline_result"], paths["optimized_result"], output)
+    optimization = plot_optimization(
+        timing,
+        optimized_timing,
+        paths["baseline_result"],
+        paths["optimized_result"],
+        output,
+    )
 
     network.to_csv(output / "network_profile_summary.csv", index=False, lineterminator="\n")
     optimization.to_csv(output / "edge_optimization_summary.csv", index=False, lineterminator="\n")
@@ -726,7 +812,7 @@ def main() -> int:
             continue
         artifacts[path.name] = {"bytes": path.stat().st_size, "sha256": sha256_file(path)}
     manifest = {
-        "schema": "scenesense.splitfusion.288_results_presentation_pack.v1",
+        "schema": "scenesense.splitfusion.288_results_presentation_pack.v2",
         "status": "COMPLETE",
         "source_paths": {name: str(path) for name, path in paths.items()},
         "source_sha256": {name: sha256_file(path) for name, path in paths.items()},
