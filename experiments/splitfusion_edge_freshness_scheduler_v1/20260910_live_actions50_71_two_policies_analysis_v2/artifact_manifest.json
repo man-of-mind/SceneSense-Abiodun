@@ -1,0 +1,8 @@
+{
+  "schema": "scenesense.splitfusion_freshness_four_cell_analysis.v1.artifacts",
+  "sha256": {
+    "REPORT.md": "b2fa60b9e94cffda9a380e6372b4451d32ea58cffa2776f7c6a6ec1905abf81f",
+    "action_policy_summary.csv": "ab5323ac141b3d2aa12d5726f0ddc9fed7d5532dbf1918dc35bf3aae0d87107e",
+    "analysis.json": "2c98fec7d00243ea9b3a412922cac7a50c2458ef9a70dd493ce35e7a3fd5f795"
+  }
+}
