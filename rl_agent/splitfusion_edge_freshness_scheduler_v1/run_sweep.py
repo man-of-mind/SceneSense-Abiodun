@@ -261,7 +261,9 @@ def _write_csv(path: Path, rows: Iterable[dict[str, Any]]) -> None:
     _require(bool(flattened), "refusing to write empty CSV")
     temporary = path.with_name(path.name + ".partial")
     with temporary.open("x", encoding="utf-8", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=list(flattened[0]))
+        writer = csv.DictWriter(
+            handle, fieldnames=list(flattened[0]), lineterminator="\n"
+        )
         writer.writeheader()
         writer.writerows(flattened)
         handle.flush()
