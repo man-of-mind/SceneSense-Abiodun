@@ -1,0 +1,79 @@
+{
+  "schema": "scenesense.splitfusion.detached_edge_pipeline_evidence.v1",
+  "status": "PARITY_ACCOUNTING_AND_OVERLAP_QUALIFIED",
+  "implementation_commits": {
+    "bounded_pipeline": "9b0eca8",
+    "detached_tail": "376169de2500574a4a2a2dd2950896f2182e707a"
+  },
+  "source_sha256": {
+    "detached_tail.py": "beebc3dec1c1f73dc016f01f7f580975da1db8c36822ab841d37ca54f95b9e36",
+    "qualify_detached_pipeline.py": "5bc7d559b435069e4ec8f2ae8e291c918259db8fb40a4ba0d027746b4571741f",
+    "pipeline.py": "177b0eb3881c137a15ee715cc76084057a10fd8e855b9bd284af524263dc0d4d",
+    "runtime_bridge.py": "2ecfb80a0f68518d38695c451c69522de798a7aedaa3b125cf5800a25af731ab"
+  },
+  "runtime": {
+    "device": "NVIDIA GeForce RTX 5090",
+    "torch_version": "2.10.0.dev20251114+cu128",
+    "cuda_version": "12.8"
+  },
+  "frozen_model": {
+    "state_sha256_before": "bdb3a245f26fb17a9b0185c6c140ebd3774aa5f3f6b4d984b7e1d9665c1f3a53",
+    "state_sha256_after": "bdb3a245f26fb17a9b0185c6c140ebd3774aa5f3f6b4d984b7e1d9665c1f3a53",
+    "unchanged": true
+  },
+  "parity": {
+    "frames": 8,
+    "perception_bitwise_identical": true,
+    "service_records_byte_identical": true,
+    "p025_indices_bitwise_identical": true,
+    "segmentation_labels_bitwise_identical": true,
+    "record_count_min": 47,
+    "record_count_max": 69,
+    "reference_service_median_ms": 46.684858,
+    "detached_compute_median_ms": 43.888646,
+    "detached_cpu_publication_median_ms": 2.718058
+  },
+  "stress_control_5ms": {
+    "input": "seeded synthetic C2, action-71 metadata",
+    "frames_per_policy": 24,
+    "latest_only_no_expiry": {
+      "installed": 4,
+      "superseded_pending": 20,
+      "queue_expired": 0,
+      "maximum_active_stage_workers": 2,
+      "stage_overlap_observed": true
+    },
+    "latest_only_25ms": {
+      "installed": 3,
+      "superseded_pending": 20,
+      "queue_expired": 1,
+      "maximum_active_stage_workers": 2,
+      "stage_overlap_observed": true
+    }
+  },
+  "normal_cadence_control_100ms": {
+    "input": "seeded synthetic C2, action-71 metadata",
+    "frames_per_policy": 12,
+    "latest_only_no_expiry": {
+      "installed": 12,
+      "superseded_pending": 0,
+      "queue_expired": 0,
+      "stage_overlap_observed": false
+    },
+    "latest_only_25ms": {
+      "installed": 12,
+      "superseded_pending": 0,
+      "queue_expired": 0,
+      "stage_overlap_observed": false
+    }
+  },
+  "scope": {
+    "cuda_model_loaded": true,
+    "dataset_frames_read": 0,
+    "carla_started": false,
+    "oai_or_rfsim_started": false,
+    "networking_started": false,
+    "live_performance_claim": false,
+    "policy_selected": false
+  }
+}

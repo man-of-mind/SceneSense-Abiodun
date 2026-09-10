@@ -1,0 +1,10 @@
+{
+  "schema": "scenesense.compact_artifact_manifest.v1",
+  "artifacts": {
+    "REPORT.md": "aca8b6386b9693d455e7ac11a1cb7ae2f9cd2bb04db88a41b1e4398cd882aa57",
+    "SPLITFUSION_DETACHED_EDGE_PIPELINE_CUDA_QUALIFIED": "62fce189e012abd5a9c704e4e615ffdbcb721114c9819507823a717d0f240766",
+    "qualification.json": "135951ecf531a282de17692576fa07bfd27d01fd4de7570a24a20a3a1b1c46a3"
+  },
+  "implementation_commit": "376169de2500574a4a2a2dd2950896f2182e707a",
+  "status": "COMPLETE"
+}
