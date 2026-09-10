@@ -1,0 +1,9 @@
+{
+  "policy_sweep_sha256": "1d8555ef683a26bc3b6a0682f9d00f93bfd24ab163b71611a1f8dc6ef49a9c91",
+  "report_sha256": "ef6d5f607e4ea8892b8c37e89ed1940f39a3e1801b7178f4355a34dd9c425dc4",
+  "reproduction_passed": true,
+  "results_sha256": "3a2a8c97205a7326c1447e621012d651f52be14b2d3ab0421c9523ad225ba78d",
+  "schema": "scenesense.splitfusion.edge_freshness_sweep_terminal.v1",
+  "status": "COMPLETE",
+  "terminal": "SPLITFUSION_EDGE_FRESHNESS_SCHEDULER_SWEEP_COMPLETE"
+}
