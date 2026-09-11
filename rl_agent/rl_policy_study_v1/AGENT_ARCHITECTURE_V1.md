@@ -47,6 +47,8 @@ ground truth, and the current frame's eventual tail result.
 
 `model.py` implements the initial network:
 
+![Split-only recurrent PPO architecture](AGENT_ARCHITECTURE_V1.svg)
+
 ```text
 causal observation
       │
@@ -76,9 +78,46 @@ For tracked object $i$, a useful starting map utility is
 
 $$
 U_t=
-\frac{\sum_i w_i q_{i,t}\exp(-A_{i,t}/\tau_i)}
+\frac{\sum_i w_i Q_{i,t}\exp(-A_{i,t}/\tau_i)}
      {\sum_i w_i+\varepsilon}.
 $$
+
+Here $Q_{i,t}$ means installed-map quality for object $i$; it is deliberately
+capitalized so it cannot be confused with the action's dropped-feature
+fraction $q$.
+
+### Reward-symbol dictionary
+
+| Symbol | Meaning |
+|---|---|
+| $t$ | Current decision epoch. |
+| $a_t$ | Selected split action: one of the 72 registered family/quantizer/$q$ profiles. |
+| $r_t$ | Immediate transition reward. |
+| $U_t$ | Utility of the spatial map before the transition. |
+| $U_{t+1}-U_t$ | Measured improvement or degradation in installed-map utility. An update that is not installed creates no fictitious quality credit. |
+| $i$ | One tracked object in the map. |
+| $w_i$ | Application importance of object $i$, such as a larger weight for a vulnerable road user on the ego path. |
+| $Q_{i,t}$ | Normalized installed quality/utility contribution for object $i$; this is not compression $q$. |
+| $A_{i,t}$ | Object-level Age of Information: current time minus capture time of the newest installed observation for object $i$. |
+| $\tau_i$ | Freshness tolerance. The freshness factor is $e^{-1}\approx0.368$ when $A_{i,t}=\tau_i$. |
+| $\varepsilon$ | Small positive denominator guard when there are no weighted map objects. |
+| $B_t$ | Feature bytes actually charged to the selected action. |
+| $B_{\max}$ | Fixed payload normalizer—the largest registered median action payload, not instantaneous network capacity. |
+| $C_t$ | Compute actually consumed, including spent work on an intentionally superseded frame. |
+| $C_{\max}$ | Fixed compute-cost normalizer. |
+| $\lambda_B$ | Communication-cost weight. |
+| $\lambda_C$ | Compute-cost weight. |
+| $\lambda_S$ | Action-switching penalty weight. |
+| $\mathbf{1}[a_t\ne a_{t-1}]$ | Indicator equal to 1 when the action changes and 0 otherwise. |
+
+PPO optimizes the discounted return
+
+$$
+G_t=\sum_{k=0}^{\infty}\gamma^k r_{t+k},
+$$
+
+where $\gamma\in[0,1)$ controls how strongly later consequences influence the
+current decision.
 
 A `SUPERSEDED_PENDING` frame receives no new-map utility because it was never
 installed, but it is still charged for bytes and compute already consumed. It

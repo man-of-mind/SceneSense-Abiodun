@@ -181,3 +181,17 @@ the existing UE feedback ledger as `NACK_REJECTED`, retaining the reason and
 outcome class. A successful edge publication is deliberately not called a map
 installation; only the existing map server's `ACK_INSTALLED` grants utility.
 `live_runner.py` owns the create-only four-cell comparison.
+
+## Final-edge 288-cell counterfactual
+
+`counterfactual_288_final_v3.py` reapplies the causal predicted-install,
+depth-one latest-only scheduler to all 288 measured cells using the final live
+edge-service calibration. It preserves every measured payload, complete-
+reassembly count and edge-admission count. AE128, AE64 and AE32 use the final
+v3 calibration; noAE conservatively retains its live-valid v2 calibration
+because the action-15 v3 run failed closed on non-finite camera-aware geometry.
+
+The result is explicitly a simulator output, not a live remeasurement. It may
+be used to rebuild counterfactual installation-rate and freshness plots, but it
+does not alter validation quality, payload, feature delivery or the original
+campaign evidence.
