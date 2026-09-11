@@ -13,6 +13,10 @@ information available to it:
    result.
 3. `SKIP`: send nothing and let existing map tracks become older.
 
+This is the eventual full controller. The first empirical implementation is
+intentionally narrower: it chooses only among the 72 measured `SPLIT` profiles.
+`LOCAL` and `SKIP` return only after their own transition evidence exists.
+
 If it chooses `SPLIT`, it must also select one of the 72 registered profiles:
 
 ```text
@@ -130,11 +134,11 @@ $$
 o_t\sim O(o_t\mid s_t).
 $$
 
-The policy should act on causal observation history.  A GRU constructs a
-learned summary
+The policy should act on causal observation history. The initial implementation
+uses an LSTM to construct a learned summary
 
 $$
-h_t=f_\theta(h_{t-1},o_t),
+(h_t,c_t)=f_\theta(h_{t-1},c_{t-1},o_t),
 \qquad
 \pi(a_t\mid h_t).
 $$
@@ -503,17 +507,18 @@ causal normalized observation o_t
               │
         2-layer MLP encoder
               │
-           GRU state h_t
-       ┌──────┼─────────┬────────────┐
-       │      │         │            │
-   mode head  split   reward V   cost values
-    (3 logits) head    (scalar)   (one/constraint)
-              (72 logits)
+        LSTM state (h_t, c_t)
+       ┌────────┼──────────┬────────────────┐
+       │        │          │                │
+  split head  reward V  cost values   next-SNR forecast
+  (72 logits) (scalar)  (one/constraint)  (auxiliary)
 ```
 
-The split head is evaluated only when `SPLIT` is chosen.  Both categorical
-heads apply their own executable-action masks.  The value heads share the
-causal encoder but have separate final layers.
+The first policy has only the 72-way split head. It applies a hard mask only to
+profiles that cannot execute correctly in the current runtime. The value,
+cost, and forecast heads share the causal encoder but have separate final
+layers. The next observed SNR becomes a supervised target only after the
+transition; the true future SNR is never a policy input.
 
 This architecture is intentionally modest.  The research question concerns
 the policy induced by measured communication/perception trade-offs, not whether
@@ -580,11 +585,10 @@ emulator:
 Training and evaluating on the identical 288 cells would measure memorization,
 not generalization.
 
-`LOCAL` and `SKIP` are not part of the 72×4 campaign.  `SKIP` has an analytical
+`LOCAL` and `SKIP` are not part of the 72×4 campaign. `SKIP` has an analytical
 state transition, but `LOCAL` requires separate CPU/GPU latency, energy,
-quality and compact-upload measurements.  Until those exist, the architecture
-may expose `LOCAL` while the training contract marks it unavailable; its
-outcomes must not be invented.
+quality and compact-upload measurements. Until those exist, neither is exposed
+by the first training environment; their outcomes must not be invented.
 
 ## 16. Freeze points before implementation
 
@@ -607,7 +611,7 @@ Only after these are frozen should we implement the policy network and trainer.
 
 **Is “Recurrent Hierarchical Masked PPO” an existing named algorithm?**
 
-No.  It is project shorthand for established components: PPO, a GRU/recurrent
+No. It is project shorthand for established components: PPO, an LSTM/recurrent
 policy, conditional action heads and invalid-action masking.  We should not
 present the phrase as a novel published algorithm.
 

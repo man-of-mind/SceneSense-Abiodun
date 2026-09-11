@@ -95,6 +95,18 @@ ordering, p025, segmentation, and serialized-record gates.
 6. Rebuild the RL transition data with explicit terminal outcomes before PPO
    training.
 
+Steps 1–5 are now complete. The live four-cell comparison provisionally chose
+latest-only scheduling with a 25 ms pre-compute expiry ceiling. The 25 ms value
+is still an expiry limit, never a deliberate hold.
+
+`two_stage_simulator.py` is the deterministic, non-preemptive two-stage model
+used for the full-288 counterfactual. `counterfactual_288.py` verifies all 288
+source per-frame hashes, preserves each cell's measured reassembly and edge-
+admission totals, applies the measured optimization delta by model family, and
+recomputes installations and time-weighted map AoI. Missing arrival identities
+are explicitly imputed; the output is therefore a counterfactual training
+model, not a live remeasurement.
+
 `run_sweep.py` implements the initial discrete-event screen over the qualified
 four-action live timing diagnostic. It first reproduces the measured
 single-worker/latest-pending behavior. The live evidence lacks timestamps for

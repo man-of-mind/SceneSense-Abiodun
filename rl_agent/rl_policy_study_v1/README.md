@@ -9,8 +9,8 @@ motivate it, and separated from choices that still need evidence.
 
 The selected starting point is:
 
-> **PPO with recurrent state, a hierarchical action policy, invalid-action
-> masks, and Lagrangian cost critics.**
+> **Split-only PPO with LSTM state, hard executability masks, an auxiliary
+> next-channel forecast head, and separately reported cost critics.**
 
 That sentence describes a composition of established techniques.  It is not
 the name of a single published algorithm and it is not presented as a new RL
@@ -18,12 +18,12 @@ algorithm.  `Recurrent Hierarchical Masked PPO` may be used as convenient
 project shorthand, but papers and presentations should spell out the
 components.
 
-## Why this study is separate
+## Repository status
 
-The active 288-cell campaign was launched from the main checkout.  This study
-lives on branch `rl-agent-study-v1` in a separate linked worktree based at
-commit `1c9e2ba`.  Nothing here should be copied into or merged with the active
-checkout until that campaign terminates.
+The study began in a separate worktree while the 288-cell campaign was active.
+After the campaign completed, its two documentation commits were integrated
+into `master`. The campaign evidence remains immutable; this directory is the
+new implementation boundary for the controller study.
 
 The older files in `rl_agent/policy/` remain useful historical evidence, but
 their dynamic-controller evaluation used noncausal post-tail information and
@@ -39,10 +39,15 @@ contract.
    - PPO and constrained-learning equations
    - discrete versus continuous ROI/drop control
    - causal inputs and forbidden information
-2. Empirical environment contract — after the 288-cell campaign completes.
+2. [Empirical environment contract](EMPIRICAL_ENVIRONMENT_CONTRACT.md)
 3. Initial policy-network implementation and hand-checkable synthetic cases.
 4. Reward normalization and sensitivity study.
 5. Surrogate training followed by a separately authorized live evaluation.
+
+`model.py` now implements step 3's architecture boundary. It is deliberately
+trainer-free: its CPU tests cover the 72-way output, fail-closed masks, LSTM
+state carry, value/cost head shapes, and forecast-loss gradient flow. This does
+not advance step 4 or authorize PPO training.
 
 ## Reading the equations
 
@@ -57,9 +62,8 @@ No extension is required.
 | Question | Provisional decision | Why |
 |---|---|---|
 | Primary learning algorithm | PPO | Stable policy-gradient starting point; supports a conditional mixed policy without flattening future continuous controls |
-| Memory | GRU | Network evolution, queues and map freshness are history-dependent and only partially observed |
-| Top-level action | `SPLIT`, `LOCAL`, `SKIP` | These have different physical execution paths and costs |
-| First SPLIT sub-action | One of 72 measured profiles | Every selected action has measured payload and perception evidence |
+| Memory | LSTM + auxiliary one-step channel forecast | Network evolution, queues and map freshness are partially observed; the forecast is learned from history, never supplied from the future |
+| Initial action space | 72 `SPLIT` profiles only | Every action has measured payload and perception evidence; `LOCAL`/`SKIP` await their own transition measurements |
 | First ROI/drop control | Six discrete q anchors | Avoid learning through unvalidated interpolation |
 | Continuous-q extension | Explicitly designed, deferred | Requires a dense-q smoothness/interpolation study before promotion |
 | Invalid-action mask | Hard executability only | Poor but executable profiles remain available so the policy learns their consequences |
@@ -69,12 +73,14 @@ No extension is required.
 
 ## Evidence still required
 
-- Complete 288-cell measurements and a frozen parser/schema.
+- A causal stateful switching environment that reproduces the fixed-action live
+  surface before PPO training.
 - Separate causal measurements for `LOCAL` on CPU/GPU and the compact result
   upload.  Until then, `LOCAL` can exist in the architecture but cannot be
   trained from invented outcomes.
-- A precise `SKIP` transition: tracks age, no new object is discovered, and no
-  transmission/compute cost is charged.
+- A precise `SKIP` transition before it is added in a later action-space
+  extension: tracks age, no new object is discovered, and no transmission or
+  compute cost is charged.
 - Independent trace seeds or live runs for final evaluation; training and
   reporting on the same four frozen traces would overstate generalization.
 - Dense-q evidence before replacing the 72-profile categorical choice with a
