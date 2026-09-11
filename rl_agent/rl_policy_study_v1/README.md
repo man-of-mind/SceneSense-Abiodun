@@ -44,6 +44,11 @@ contract.
 4. Reward normalization and sensitivity study.
 5. Surrogate training followed by a separately authorized live evaluation.
 
+The compact [preliminary architecture](AGENT_ARCHITECTURE_V1.md) connects the
+implemented network to the completed 288-cell evidence, latest-only edge
+scheduling, explicit supersession feedback, and the final edge-optimization
+measurements.
+
 `model.py` now implements step 3's architecture boundary. It is deliberately
 trainer-free: its CPU tests cover the 72-way output, fail-closed masks, LSTM
 state carry, value/cost head shapes, and forecast-loss gradient flow. This does
