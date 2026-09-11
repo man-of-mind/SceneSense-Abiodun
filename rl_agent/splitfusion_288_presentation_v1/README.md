@@ -26,7 +26,8 @@ python3 -m rl_agent.splitfusion_288_presentation_v1.build_final_simulated_pack
 The final builder gives every network profile a separate validation sheet
 (Figures 01a–01d, three panels each) and localization sheet (Figures 02a–02d,
 four panels each), while keeping their frozen action-level values unchanged.
-Marker size encodes profile-specific simulated installation probability.
+Every action has the same marker size in Figures 01–02; simulated installation
+probability is deliberately not mixed into the measured-quality figures.
 Figures 04, 06, 07 and 08 use the counterfactual final-edge result; Figures 03,
 05 and 09 retain the applicable measured evidence. Figure 10 uses the same
 eight stages and colors as Figure 09 and pairs the original and final paths.

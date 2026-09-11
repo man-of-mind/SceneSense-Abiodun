@@ -34,7 +34,7 @@ SIMULATION = ROOT / (
 )
 DEFAULT_OUTPUT = ROOT / (
     "experiments/splitfusion_rl_policy_design_v1/"
-    "20260911_288_results_final_simulated_pack_v2"
+    "20260911_288_results_final_simulated_pack_v3"
 )
 FINAL_TIMING_PATHS = {
     30: ROOT / (
@@ -168,7 +168,7 @@ def _facet_scatter(axis: plt.Axes, frame: pd.DataFrame, metric: str) -> None:
             axis.scatter(
                 part["payload_kib"],
                 part[metric],
-                s=18.0 + 105.0 * part["sim_rate_installed_per_sent"],
+                s=54.0,
                 c=base.FAMILY_COLORS[family],
                 marker=base.QUANT_MARKERS[quantizer],
                 alpha=0.78,
@@ -195,22 +195,10 @@ def _figure_legend(fig: plt.Figure, y: float) -> None:
         )
         for quantizer in base.QUANTIZERS
     ]
-    handles += [
-        Line2D(
-            [0],
-            [0],
-            marker="o",
-            linestyle="",
-            markersize=np.sqrt(size),
-            color="#777777",
-            label=f"{int(rate * 100)}% simulated install",
-        )
-        for rate, size in ((0.1, 18 + 105 * 0.1), (0.5, 18 + 105 * 0.5), (0.9, 18 + 105 * 0.9))
-    ]
     fig.legend(
         handles=handles,
         loc="lower center",
-        ncol=5,
+        ncol=7,
         frameon=True,
         bbox_to_anchor=(0.5, y),
     )
@@ -229,8 +217,8 @@ def plot_profile_quality(frame: pd.DataFrame, output: Path) -> None:
             axis.set_ylim(0.25, 1.0)
         _figure_legend(fig, 0.01)
         fig.suptitle(
-            f"Frozen validation quality — {base.NETWORK_LABELS[network]}\n"
-            "marker size = simulated map-install probability",
+            f"Measured payload versus frozen validation quality — "
+            f"{base.NETWORK_LABELS[network]}",
             fontsize=15,
             fontweight="bold",
             y=0.97,
@@ -261,8 +249,8 @@ def plot_profile_localization(frame: pd.DataFrame, output: Path) -> None:
             axis.set_title(ylabel)
         _figure_legend(fig, 0.005)
         fig.suptitle(
-            f"Frozen localization quality — {base.NETWORK_LABELS[network]}\n"
-            "marker size = simulated map-install probability",
+            f"Measured payload versus frozen localization quality — "
+            f"{base.NETWORK_LABELS[network]}",
             fontsize=15,
             fontweight="bold",
             y=0.97,
@@ -583,10 +571,9 @@ The validation and localization scores are frozen action-level measurements;
 they were not measured four times and are not medians across network profiles.
 Each network profile now has its own readable page: three quality panels in
 Figure 01 and four localization panels in Figure 02. Each page uses that
-profile's measured payload. Marker size represents the simulated installation
-probability, which is the network-dependent part. The same intrinsically good
-action can therefore be useful under favorable conditions but rarely installed
-under adverse conditions.
+profile's measured payload. Every action uses the same marker size: no
+simulated installation or AoI value is encoded in these two figures. The
+network-dependent counterfactual outcomes begin at Figure 04.
 
 ## Figure 03
 
@@ -713,7 +700,7 @@ def run(output: Path) -> dict:
         if path.is_file() and path.name != "artifact_manifest.json"
     }
     manifest = {
-        "schema": "scenesense.splitfusion.final_simulated_presentation_pack.v2",
+        "schema": "scenesense.splitfusion.final_simulated_presentation_pack.v3",
         "status": "COMPLETE",
         "source_paths": {name: str(path) for name, path in paths.items()},
         "source_sha256": {name: base.sha256_file(path) for name, path in paths.items()},
@@ -721,7 +708,7 @@ def run(output: Path) -> dict:
         "simulation_status": result["scientific_status"],
         "presentation_rules": [
             "VALIDATION_QUALITY_IS_NETWORK_INDEPENDENT_AND_FROZEN",
-            "PROFILE_FACETS_ENCODE_SIMULATED_INSTALL_PROBABILITY_BY_MARKER_SIZE",
+            "FIGURES_01_02_USE_UNIFORM_ACTION_MARKERS_WITH_NO_SIMULATION_ENCODING",
             "MEASURED_TRANSPORT_AND_REASSEMBLY_ARE_UNCHANGED",
             "FIGURES_04_06_07_08_USE_FINAL_EDGE_COUNTERFACTUAL",
             "FIGURES_03_05_09_RETAIN_MEASURED_ORIGINAL_VALUES",
