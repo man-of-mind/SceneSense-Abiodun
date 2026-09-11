@@ -90,6 +90,7 @@ def _report(root: Path, rows: Sequence[Mapping[str, Any]], runtime_s: float) -> 
 def main(argv: list[str] | None = None) -> int:
     selector = argparse.ArgumentParser(add_help=False)
     selector.add_argument("--actions")
+    selector.add_argument("--variants")
     selected, remaining = selector.parse_known_args(argv)
     if selected.actions:
         actions = tuple(int(value) for value in selected.actions.split(","))
@@ -98,10 +99,23 @@ def main(argv: list[str] | None = None) -> int:
         ):
             raise RuntimeError("action selection is empty, duplicated, or unregistered")
         runner.ACTIONS = actions
+    variants = VARIANTS
+    if selected.variants:
+        requested = tuple(value.strip() for value in selected.variants.split(","))
+        known = {str(variant["id"]): variant for variant in VARIANTS}
+        if (
+            not requested
+            or len(requested) != len(set(requested))
+            or any(value not in known for value in requested)
+        ):
+            raise RuntimeError(
+                "variant selection is empty, duplicated, or unregistered"
+            )
+        variants = tuple(known[value] for value in requested)
     runner.EXECUTE_TOKEN = EXECUTE_TOKEN
     runner.SUCCESS_TERMINAL = SUCCESS_TERMINAL
     runner.DEFAULT_OUTPUT = DEFAULT_OUTPUT
-    runner.VARIANTS = VARIANTS
+    runner.VARIANTS = variants
     runner.SOURCES = SOURCES
     runner._report = _report
     return runner.main(remaining)
