@@ -629,7 +629,9 @@ def run_live_action(
         if telemetry is not None:
             telemetry.stop()
             report["radio_telemetry"] = telemetry.summary()
-        if runner._edge_running():
+        if edge_meta:
+            # A failed worker may leave a stopped container. Compose-down is
+            # still required so the next create-only cell starts genuinely cold.
             report["edge_forced_stop"] = runner._stop_edge_container()
         if server is not None and pgid is not None:
             report["carla_teardown"] = lifecycle.stop_carla(server, pgid, CARLA_RPC_PORT)

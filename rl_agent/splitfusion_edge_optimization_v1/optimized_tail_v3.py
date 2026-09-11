@@ -164,15 +164,24 @@ class _DeferredFiniteValidator:
                     raise ValueError("v3 finite extra check contract drift")
                 checks.append(check.bool())
             combined = torch.stack(checks).all()
-        self._pending.append((label, combined))
+        self._pending.append((f"{label} contains non-finite values", combined))
         return len(tensors)
+
+    def launch_predicate(self, check: torch.Tensor, failure: str) -> None:
+        if check.device != self._device or check.numel() != 1:
+            raise ValueError("v3 finite predicate contract drift")
+        current = torch.cuda.current_stream(self._device)
+        self._stream.wait_stream(current)
+        with torch.cuda.stream(self._stream):
+            combined = check.bool()
+        self._pending.append((failure, combined))
 
     def resolve(self) -> None:
         self._stream.synchronize()
         pending, self._pending = self._pending, []
-        for label, combined in pending:
+        for failure, combined in pending:
             if not bool(combined):
-                raise RuntimeError(f"{label} contains non-finite values")
+                raise RuntimeError(failure)
 
 
 def apply_p025_service_policy_v3(
@@ -360,7 +369,10 @@ class OptimizedFrozenP025TailAdapterV3(OptimizedFrozenP025TailAdapterV2):
         tensor_count += self._finite_validator.launch(
             postprocessed,
             "v3 camera-aware postprocess output",
-            extra_checks=((postprocessed["dimensions"] > 0).all(),),
+        )
+        self._finite_validator.launch_predicate(
+            (postprocessed["dimensions"] > 0).all(),
+            "v3 camera-aware postprocess produced a non-positive dimension",
         )
         self._timing_finish("finite_check_postprocess")
 
