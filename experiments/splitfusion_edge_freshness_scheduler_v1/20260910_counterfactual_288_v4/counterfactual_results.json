@@ -1,0 +1,266 @@
+{
+  "aggregate": {
+    "by_network_profile": {
+      "ADVERSE_STABLE": {
+        "ack_installed": 83799,
+        "arrival_timestamps_imputed": 50874,
+        "arrival_timestamps_observed": 68128,
+        "cells": 72,
+        "edge_service_durations_imputed": 50874,
+        "edge_service_durations_observed": 68128,
+        "feature_bytes_charged": 138238974861,
+        "feature_bytes_without_useful_install": 126607981485,
+        "install_aoi_ms_cell_median": 317.61823,
+        "installed_within_100ms": 0,
+        "installed_within_500ms": 82402,
+        "measured_pre_queue_rejections": 28447,
+        "published": 83799,
+        "rate_installed_per_sent": 0.3745156489521928,
+        "rate_useful_install_per_sent": 0.36637721058488604,
+        "sent": 223753,
+        "source_ack_installed": 60454,
+        "source_install_aoi_ms_cell_median": 399.705344,
+        "source_installed_within_100ms": 0,
+        "source_installed_within_500ms": 58819,
+        "source_rate_installed_per_sent": 0.27018185231036007,
+        "source_rate_useful_install_per_sent": 0.27018185231036007,
+        "source_time_weighted_map_aoi_ms_cell_median": 642.3455275149894,
+        "source_useful_newer_map_installations": 60454,
+        "time_weighted_map_aoi_ms_cell_median": 415.89371915533735,
+        "transport_incomplete": 76304,
+        "useful_newer_map_installations": 81978
+      },
+      "FADE_RECOVERY": {
+        "ack_installed": 111116,
+        "arrival_timestamps_imputed": 66375,
+        "arrival_timestamps_observed": 87807,
+        "cells": 72,
+        "edge_service_durations_imputed": 66375,
+        "edge_service_durations_observed": 87807,
+        "feature_bytes_charged": 137309014676,
+        "feature_bytes_without_useful_install": 110579778727,
+        "install_aoi_ms_cell_median": 273.890219,
+        "installed_within_100ms": 6,
+        "installed_within_500ms": 110895,
+        "measured_pre_queue_rejections": 31184,
+        "published": 111116,
+        "rate_installed_per_sent": 0.49889325401279605,
+        "rate_useful_install_per_sent": 0.49521158379167135,
+        "sent": 222725,
+        "source_ack_installed": 86966,
+        "source_install_aoi_ms_cell_median": 353.912576,
+        "source_installed_within_100ms": 0,
+        "source_installed_within_500ms": 86032,
+        "source_rate_installed_per_sent": 0.3904635761589404,
+        "source_rate_useful_install_per_sent": 0.3904635761589404,
+        "source_time_weighted_map_aoi_ms_cell_median": 587.6122857219374,
+        "source_useful_newer_map_installations": 86966,
+        "time_weighted_map_aoi_ms_cell_median": 373.1374302041611,
+        "transport_incomplete": 37359,
+        "useful_newer_map_installations": 110296
+      },
+      "FAVORABLE_STABLE": {
+        "ack_installed": 125953,
+        "arrival_timestamps_imputed": 74055,
+        "arrival_timestamps_observed": 101631,
+        "cells": 72,
+        "edge_service_durations_imputed": 74055,
+        "edge_service_durations_observed": 101631,
+        "feature_bytes_charged": 137316098171,
+        "feature_bytes_without_useful_install": 98398963873,
+        "install_aoi_ms_cell_median": 262.041642,
+        "installed_within_100ms": 6,
+        "installed_within_500ms": 125766,
+        "measured_pre_queue_rejections": 22406,
+        "published": 125953,
+        "rate_installed_per_sent": 0.5631399164811188,
+        "rate_useful_install_per_sent": 0.5595854458960395,
+        "sent": 223662,
+        "source_ack_installed": 100893,
+        "source_install_aoi_ms_cell_median": 343.653632,
+        "source_installed_within_100ms": 0,
+        "source_installed_within_500ms": 99916,
+        "source_rate_installed_per_sent": 0.45109584998792823,
+        "source_rate_useful_install_per_sent": 0.45109584998792823,
+        "source_time_weighted_map_aoi_ms_cell_median": 528.9461212177989,
+        "source_useful_newer_map_installations": 100893,
+        "time_weighted_map_aoi_ms_cell_median": 362.78791725490174,
+        "transport_incomplete": 25570,
+        "useful_newer_map_installations": 125158
+      },
+      "MID_VARIABLE": {
+        "ack_installed": 108402,
+        "arrival_timestamps_imputed": 66834,
+        "arrival_timestamps_observed": 86611,
+        "cells": 72,
+        "edge_service_durations_imputed": 66834,
+        "edge_service_durations_observed": 86611,
+        "feature_bytes_charged": 140701966321,
+        "feature_bytes_without_useful_install": 116318532906,
+        "install_aoi_ms_cell_median": 270.275735,
+        "installed_within_100ms": 3,
+        "installed_within_500ms": 108224,
+        "measured_pre_queue_rejections": 28380,
+        "published": 108402,
+        "rate_installed_per_sent": 0.47814005187106334,
+        "rate_useful_install_per_sent": 0.4745584784488082,
+        "sent": 226716,
+        "source_ack_installed": 85861,
+        "source_install_aoi_ms_cell_median": 358.081024,
+        "source_installed_within_100ms": 0,
+        "source_installed_within_500ms": 84955,
+        "source_rate_installed_per_sent": 0.3787161029658251,
+        "source_rate_useful_install_per_sent": 0.3787161029658251,
+        "source_time_weighted_map_aoi_ms_cell_median": 546.5677404322144,
+        "source_useful_newer_map_installations": 85861,
+        "time_weighted_map_aoi_ms_cell_median": 373.1979366105105,
+        "transport_incomplete": 44891,
+        "useful_newer_map_installations": 107590
+      }
+    },
+    "overall": {
+      "ack_installed": 429270,
+      "arrival_timestamps_imputed": 258138,
+      "arrival_timestamps_observed": 344177,
+      "cells": 288,
+      "edge_service_durations_imputed": 258138,
+      "edge_service_durations_observed": 344177,
+      "feature_bytes_charged": 553566054029,
+      "feature_bytes_without_useful_install": 451905256991,
+      "install_aoi_ms_cell_median": 278.792084,
+      "installed_within_100ms": 15,
+      "installed_within_500ms": 427287,
+      "measured_pre_queue_rejections": 110417,
+      "published": 429270,
+      "rate_installed_per_sent": 0.47863871123123447,
+      "rate_useful_install_per_sent": 0.4739021648960368,
+      "sent": 896856,
+      "source_ack_installed": 334174,
+      "source_install_aoi_ms_cell_median": 364.543744,
+      "source_installed_within_100ms": 0,
+      "source_installed_within_500ms": 329722,
+      "source_rate_installed_per_sent": 0.3726060816898142,
+      "source_rate_useful_install_per_sent": 0.3726060816898142,
+      "source_time_weighted_map_aoi_ms_cell_median": 573.4770345742656,
+      "source_useful_newer_map_installations": 334174,
+      "time_weighted_map_aoi_ms_cell_median": 377.04594066986476,
+      "transport_incomplete": 184124,
+      "useful_newer_map_installations": 425022
+    }
+  },
+  "family_calibration": {
+    "AE128": {
+      "anchor_action_id": 30,
+      "application": "subtract the family median reduction from each original per-frame total_edge_processing duration, then reschedule; never subtract from AoI",
+      "baseline_total_edge_processing_ms_median": 158.779764,
+      "optimized_publication_ms_median": 2.6599505,
+      "optimized_publication_samples": 226,
+      "optimized_total_edge_processing_ms_median": 113.873155,
+      "total_edge_processing_reduction_ms": 44.906609
+    },
+    "AE32": {
+      "anchor_action_id": 71,
+      "application": "subtract the family median reduction from each original per-frame total_edge_processing duration, then reschedule; never subtract from AoI",
+      "baseline_total_edge_processing_ms_median": 133.941853,
+      "optimized_publication_ms_median": 3.277297,
+      "optimized_publication_samples": 284,
+      "optimized_total_edge_processing_ms_median": 92.337781,
+      "total_edge_processing_reduction_ms": 41.604072
+    },
+    "AE64": {
+      "anchor_action_id": 50,
+      "application": "subtract the family median reduction from each original per-frame total_edge_processing duration, then reschedule; never subtract from AoI",
+      "baseline_total_edge_processing_ms_median": 142.806145,
+      "optimized_publication_ms_median": 2.5434085,
+      "optimized_publication_samples": 274,
+      "optimized_total_edge_processing_ms_median": 97.046766,
+      "total_edge_processing_reduction_ms": 45.75937899999998
+    },
+    "noAE": {
+      "anchor_action_id": 15,
+      "application": "subtract the family median reduction from each original per-frame total_edge_processing duration, then reschedule; never subtract from AoI",
+      "baseline_total_edge_processing_ms_median": 158.269655,
+      "optimized_publication_ms_median": 3.086619,
+      "optimized_publication_samples": 230,
+      "optimized_total_edge_processing_ms_median": 119.814663,
+      "total_edge_processing_reduction_ms": 38.454992000000004
+    }
+  },
+  "inventory": {
+    "actions": 72,
+    "actions_without_observed_service_samples": [
+      0,
+      1,
+      2,
+      6,
+      7,
+      18,
+      19,
+      24
+    ],
+    "cells": 288,
+    "network_profiles": [
+      "ADVERSE_STABLE",
+      "FADE_RECOVERY",
+      "FAVORABLE_STABLE",
+      "MID_VARIABLE"
+    ],
+    "source_per_frame_hashes_verified": 288,
+    "terminal_reconciled_cells": 288
+  },
+  "limitations": [
+    "family-level optimization calibration is extrapolated from four favorable-profile anchors",
+    "missing source service and post-publication install delays are deterministic empirical imputations",
+    "per-cell reassembly/admission counts are exact but missing admitted identities and arrival delays are deterministic imputations",
+    "this fixed-action counterfactual surface is not yet a switching-policy trajectory",
+    "no 100 ms service-readiness claim"
+  ],
+  "policy": {
+    "compute_workers": 1,
+    "expiry_is_hold": false,
+    "pre_compute_queue_expiry_ms": 25,
+    "processing_horizon_ms": 500,
+    "publication_workers": 1,
+    "running_cuda_preempted": false,
+    "scheduler": "LATEST_ONLY_DEPTH_ONE_TWO_STAGE",
+    "service_reference_ms": 100
+  },
+  "provenance": {
+    "baseline_manifest_sha256": "965c72b5e48682b6defc0a03b683c72c0e7a3536606ed65c7df9a245da9ca23e",
+    "consolidation": {
+      "action_72_summary.csv": {
+        "path": "experiments/splitfusion_288_offline_rl_dataset_v1/20260909_offline_consolidation_v1/action_72_summary.csv",
+        "sha256": "250eb6d9391c0de5a343d692484647bbdb181153ba64f7f4a447b0076f580a88"
+      },
+      "action_72x4_summary.csv": {
+        "path": "experiments/splitfusion_288_offline_rl_dataset_v1/20260909_offline_consolidation_v1/action_72x4_summary.csv",
+        "sha256": "280b372ed8b6a52bb3e5f1f69e6cbdc02dc851a6a597565fcab9ca9652f5998e"
+      },
+      "analysis_summary.json": {
+        "path": "experiments/splitfusion_288_offline_rl_dataset_v1/20260909_offline_consolidation_v1/analysis_summary.json",
+        "sha256": "48358c2f27ffc2f3da8bf0f821c733914a03267f50da7adab4cbf70cbe239690"
+      },
+      "campaign_288_cell_table.csv": {
+        "path": "experiments/splitfusion_288_offline_rl_dataset_v1/20260909_offline_consolidation_v1/campaign_288_cell_table.csv",
+        "sha256": "3f3067d4c9d0ef3c0d2661c3d19d04306bcbd18ef6d21fa426148e0ee24d2e0d"
+      }
+    },
+    "implementation": {
+      "rl_agent/splitfusion_edge_freshness_scheduler_v1/counterfactual_288.py": "b1cfd7dbbb295626b348226493c9cc1d1f6161f5e19df4157b4b1b6ce5d72e8c",
+      "rl_agent/splitfusion_edge_freshness_scheduler_v1/two_stage_simulator.py": "19ba970147d5785577c5337baeac1d300365cf28219ddce92298fbacdf49e11a"
+    },
+    "optimized_manifest_sha256": "95a836cb126b368c5a35ac9ee7ab1c7ad16e6b4cdd3c6a69e6039b09a2df8535",
+    "policy_selection": {
+      "basis": "lower time-weighted and median map AoI in both action-50 and action-71 cells under the preregistered freshness-first rule",
+      "policy": "LATEST_ONLY_25_MS",
+      "scope": "provisional single-run live selection; not a claim of run-to-run variance or 100 ms service readiness",
+      "tradeoff": "fewer completed installations and more expiry/wasted already-sent bytes, most strongly for action 50"
+    },
+    "scheduler_analysis_manifest_sha256": "4ec836f5f371fb8359d4f981ba13e122135058d08b436fe7aff6f8ade46b6058",
+    "scheduler_analysis_sha256": "2c98fec7d00243ea9b3a412922cac7a50c2458ef9a70dd493ce35e7a3fd5f795",
+    "verified_compact_artifacts": 27
+  },
+  "schema": "scenesense.splitfusion_counterfactual_288.v4",
+  "scientific_status": "COUNTERFACTUAL_MODEL_NOT_LIVE_MEASUREMENT",
+  "status": "COMPLETE"
+}
