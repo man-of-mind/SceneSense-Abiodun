@@ -23,10 +23,12 @@ After the final edge calibration, build the simulator-aware pack with:
 python3 -m rl_agent.splitfusion_288_presentation_v1.build_final_simulated_pack
 ```
 
-The final builder facets validation and localization evidence by network
-profile while keeping their frozen action-level values unchanged. Marker size
-encodes the profile-specific simulated installation probability. Figures 04,
-06, 07 and 08 use the counterfactual final-edge result; Figures 03, 05 and 09
-retain the applicable measured evidence. Figure 10 compares only the original
-and final edge-processing targets, and the pack includes an unnumbered PPO
-architecture diagram plus a reward-symbol dictionary.
+The final builder gives every network profile a separate validation sheet
+(Figures 01a–01d, three panels each) and localization sheet (Figures 02a–02d,
+four panels each), while keeping their frozen action-level values unchanged.
+Marker size encodes profile-specific simulated installation probability.
+Figures 04, 06, 07 and 08 use the counterfactual final-edge result; Figures 03,
+05 and 09 retain the applicable measured evidence. Figure 10 uses the same
+eight stages and colors as Figure 09 and pairs the original and final paths.
+The self-contained architecture document embeds a portable SVG followed by
+its Mermaid source, matching the LR-ASPP/FCOS report convention.

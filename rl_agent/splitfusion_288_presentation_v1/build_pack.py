@@ -418,7 +418,7 @@ def plot_original_stages(timing: pd.DataFrame, output: Path) -> None:
         ("Feature uplink through OAI", lambda r: float(r["application_feature_uplink_ms_median"]), "#F58518"),
         ("Edge queue", lambda r: float(r["edge_queue_wait_ms_median"]), "#E45756"),
         ("Feature reconstruction", lambda r: sum(float(r[k]) for k in ("edge_zstd_decompression_ms_median", "edge_unpack_dequantize_ms_median", "edge_ae_decode_ms_median")), "#B279A2"),
-        ("FCOS tail inference", lambda r: float(r["decode_tail_inference_block_ms_median"]), "#54A24B"),
+        ("FCOS CUDA inference", lambda r: float(r["decode_tail_cuda_ms_median"]), "#54A24B"),
         ("Postprocess + p025 filter", lambda r: float(r["post_processing_ms_median"]), "#EECA3B"),
         ("Compact-result serialization", lambda r: float(r["tail_output_serialization_ms_median"]), "#9D755D"),
     )

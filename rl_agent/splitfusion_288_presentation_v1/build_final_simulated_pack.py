@@ -6,13 +6,13 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+import shutil
 
 import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
-from matplotlib.patches import FancyArrowPatch, FancyBboxPatch
 import numpy as np
 import pandas as pd
 
@@ -34,8 +34,30 @@ SIMULATION = ROOT / (
 )
 DEFAULT_OUTPUT = ROOT / (
     "experiments/splitfusion_rl_policy_design_v1/"
-    "20260911_288_results_final_simulated_pack_v1"
+    "20260911_288_results_final_simulated_pack_v2"
 )
+FINAL_TIMING_PATHS = {
+    30: ROOT / (
+        "experiments/splitfusion_edge_optimization_v3/"
+        "20260910_live_v2_vs_v3_actions30_50_71_retry1/"
+        "action30__v3_overlapped_final/action_summary.csv"
+    ),
+    15: ROOT / (
+        "experiments/splitfusion_edge_optimization_v3/"
+        "20260910_live_v2_vs_v3_actions30_15_50_71/"
+        "action15__v2_predicted_install_horizon/action_summary.csv"
+    ),
+    50: ROOT / (
+        "experiments/splitfusion_edge_optimization_v3/"
+        "20260910_live_v2_vs_v3_actions30_50_71_retry1/"
+        "action50__v3_overlapped_final/action_summary.csv"
+    ),
+    71: ROOT / (
+        "experiments/splitfusion_edge_optimization_v3/"
+        "20260910_live_v2_vs_v3_actions30_50_71_retry1/"
+        "action71__v3_overlapped_final/action_summary.csv"
+    ),
+}
 EXPECTED = {
     "action": base.EXPECTED_SHA256["action"],
     "action_profile": base.EXPECTED_SHA256["action_profile"],
@@ -44,6 +66,10 @@ EXPECTED = {
     "sim_manifest": "a0f8705833a64000d272fa2e1f81e06263856ccc0cb5930cdacd0c65580ac981",
     "sim_result": "2dff447678c8e265d175d7e8335bcf9f0e6492e28d296e0f207c5f32a33a81ba",
     "sim_cells": "a39b5f03a9282176616f2b99b03972deedeec46a026a0e268d58ea621097ba1c",
+    "final_timing_30": "6840b80401693888cbefaabb97d22553810bb822d8b26dc3b81ae82c00dee858",
+    "final_timing_15": "857a75b0364d87be387d2a8f6dc32f2366ae663df18eec4aa269dd308fdfe4fe",
+    "final_timing_50": "56e0315bc30a7271ea80b0569e20cff53c8939d7b6c73345ff93182d89a448b3",
+    "final_timing_71": "d58daa801144abd951f271ec8c2d467eefdab39cb8c759e22d78312bfd887c59",
 }
 QUALITY_PANELS = (
     ("val_vehicle_f1", "Vehicle F1"),
@@ -86,6 +112,9 @@ def _paths() -> dict[str, Path]:
             SIMULATION / "final_v3_288_cell_summary.csv", EXPECTED["sim_cells"], "simulator cells"
         ),
     }
+    for action_id, path in FINAL_TIMING_PATHS.items():
+        key = f"final_timing_{action_id}"
+        paths[key] = base.require(path, EXPECTED[key], f"final timing action {action_id}")
     manifest = json.loads(paths["sim_manifest"].read_text(encoding="utf-8"))
     for name, key in (
         ("counterfactual_results.json", "sim_result"),
@@ -149,7 +178,7 @@ def _facet_scatter(axis: plt.Axes, frame: pd.DataFrame, metric: str) -> None:
     base.annotate_actions(axis, frame, "payload_kib", metric)
 
 
-def _figure_legend(fig: plt.Figure) -> None:
+def _figure_legend(fig: plt.Figure, y: float) -> None:
     handles = [
         Line2D([0], [0], marker="o", linestyle="", color=color, label=family)
         for family, color in base.FAMILY_COLORS.items()
@@ -183,49 +212,66 @@ def _figure_legend(fig: plt.Figure) -> None:
         loc="lower center",
         ncol=5,
         frameon=True,
-        bbox_to_anchor=(0.5, -0.025),
+        bbox_to_anchor=(0.5, y),
     )
 
 
 def plot_profile_quality(frame: pd.DataFrame, output: Path) -> None:
-    fig, axes = plt.subplots(3, 4, figsize=(20.5, 13.0), constrained_layout=True)
-    for row, (metric, ylabel) in enumerate(QUALITY_PANELS):
-        for column, network in enumerate(base.NETWORKS):
-            axis = axes[row, column]
-            part = frame[frame["network_profile"] == network]
+    for letter, network in zip("abcd", base.NETWORKS):
+        part = frame[frame["network_profile"] == network]
+        fig, axes = plt.subplots(1, 3, figsize=(16.6, 6.2))
+        fig.subplots_adjust(left=0.055, right=0.99, top=0.79, bottom=0.22, wspace=0.16)
+        for axis, (metric, ylabel) in zip(axes, QUALITY_PANELS):
             _facet_scatter(axis, part, metric)
             base.payload_axis(axis)
             axis.set_ylabel(ylabel)
-            axis.set_title(base.NETWORK_LABELS[network])
+            axis.set_title(ylabel)
             axis.set_ylim(0.25, 1.0)
-    _figure_legend(fig)
-    fig.suptitle(
-        "Frozen validation quality by measured network profile\n"
-        "marker size = simulated map-install probability",
-        fontsize=15,
-        fontweight="bold",
-    )
-    base.save(fig, output, "01_payload_vs_validation_quality")
+        _figure_legend(fig, 0.01)
+        fig.suptitle(
+            f"Frozen validation quality — {base.NETWORK_LABELS[network]}\n"
+            "marker size = simulated map-install probability",
+            fontsize=15,
+            fontweight="bold",
+            y=0.97,
+        )
+        base.save(
+            fig,
+            output,
+            f"01{letter}_{network.lower()}_payload_vs_validation_quality",
+        )
 
 
 def plot_profile_localization(frame: pd.DataFrame, output: Path) -> None:
-    fig, axes = plt.subplots(4, 4, figsize=(20.5, 16.0), constrained_layout=True)
-    for row, (metric, ylabel) in enumerate(LOCALIZATION_PANELS):
-        for column, network in enumerate(base.NETWORKS):
-            axis = axes[row, column]
-            part = frame[frame["network_profile"] == network]
+    for letter, network in zip("abcd", base.NETWORKS):
+        part = frame[frame["network_profile"] == network]
+        fig, axes = plt.subplots(2, 2, figsize=(14.4, 10.7))
+        fig.subplots_adjust(
+            left=0.07,
+            right=0.99,
+            top=0.84,
+            bottom=0.14,
+            hspace=0.31,
+            wspace=0.16,
+        )
+        for axis, (metric, ylabel) in zip(axes.flat, LOCALIZATION_PANELS):
             _facet_scatter(axis, part, metric)
             base.payload_axis(axis)
             axis.set_ylabel(ylabel)
-            axis.set_title(base.NETWORK_LABELS[network])
-    _figure_legend(fig)
-    fig.suptitle(
-        "Frozen localization quality by measured network profile\n"
-        "marker size = simulated map-install probability",
-        fontsize=15,
-        fontweight="bold",
-    )
-    base.save(fig, output, "02_payload_vs_localization_quality")
+            axis.set_title(ylabel)
+        _figure_legend(fig, 0.005)
+        fig.suptitle(
+            f"Frozen localization quality — {base.NETWORK_LABELS[network]}\n"
+            "marker size = simulated map-install probability",
+            fontsize=15,
+            fontweight="bold",
+            y=0.97,
+        )
+        base.save(
+            fig,
+            output,
+            f"02{letter}_{network.lower()}_payload_vs_localization_quality",
+        )
 
 
 def plot_sim_install(frame: pd.DataFrame, output: Path) -> None:
@@ -320,87 +366,138 @@ def plot_sim_aoi(frame: pd.DataFrame, output: Path) -> None:
     base.save(fig, output, "08_payload_vs_total_installed_map_aoi")
 
 
+def _final_edge_stages(row: pd.Series) -> dict[str, float]:
+    """Return stage fields that remain interpretable across v2/v3 timing."""
+    return {
+        "edge_queue": float(row["edge_queue_wait_ms_median"]),
+        "feature_reconstruction": sum(
+            float(row[key])
+            for key in (
+                "edge_zstd_decompression_ms_median",
+                "edge_unpack_dequantize_ms_median",
+                "edge_ae_decode_ms_median",
+            )
+        ),
+        # CUDA-event time keeps the FCOS computation definition stable when
+        # v3 overlaps its host launch span with downstream CPU work.
+        "tail_inference": float(row["decode_tail_cuda_ms_median"]),
+        "postprocess_p025": float(row["post_processing_ms_median"]),
+        "serialization": float(row["edge_output_serialization_ms_median"]),
+    }
+
+
+def _original_edge_stages(row: pd.Series) -> dict[str, float]:
+    values = base.edge_stage_values(row)
+    values["tail_inference"] = float(row["decode_tail_cuda_ms_median"])
+    return values
+
+
 def plot_final_edge_comparison(
-    baseline: pd.DataFrame, result: dict, output: Path
+    baseline: pd.DataFrame, final_timing: pd.DataFrame, output: Path
 ) -> pd.DataFrame:
     original = baseline.set_index("action_id")
-    calibration = result["family_calibration"]
+    final = final_timing.set_index("action_id")
+    if set(base.DIAGNOSTIC_ACTIONS) != set(final.index.astype(int)):
+        raise base.PresentationError("final timing does not contain the four diagnostic actions")
     records = []
+    upstream_fields = {
+        "sensor_preparation": "prep_pre_front_compute_ms_median",
+        "ue_split_dispatch": "ue_front_ms_median",
+        "feature_uplink": "application_feature_uplink_ms_median",
+    }
     for action_id in base.DIAGNOSTIC_ACTIONS:
-        family = str(original.loc[action_id]["profile_id"]).split("_")[1]
-        family = {"noae": "noAE", "ae128": "AE128", "ae64": "AE64", "ae32": "AE32"}[family]
-        row = calibration[family]
-        records.append(
-            {
-                "action_id": action_id,
-                "family": family,
-                "original_edge_processing_ms": float(row["baseline_total_edge_processing_ms_median"]),
-                "final_edge_processing_ms": float(row["optimized_total_edge_processing_ms_median"]),
-                "saving_ms": float(row["total_edge_processing_reduction_ms"]),
-                "final_variant": row["target_variant"],
-            }
+        before_row = original.loc[action_id]
+        after_row = final.loc[action_id]
+        before_edge = _original_edge_stages(before_row)
+        after_edge = _final_edge_stages(after_row)
+        record = {
+            "action_id": action_id,
+            "profile_id": str(before_row["profile_id"]),
+            "final_variant": "v2 live-valid" if action_id == 15 else "v3 final",
+            "before_edge_processing_ms": float(before_row["edge_total_edge_processing_ms_median"]),
+            "final_edge_processing_ms": float(after_row["edge_total_edge_processing_ms_median"]),
+        }
+        record["edge_saving_ms"] = (
+            record["before_edge_processing_ms"] - record["final_edge_processing_ms"]
         )
+        for name, source in upstream_fields.items():
+            record[f"before_{name}_ms"] = float(before_row[source])
+            record[f"final_{name}_ms"] = float(before_row[source])
+        for name, value in before_edge.items():
+            record[f"before_{name}_ms"] = value
+        for name, value in after_edge.items():
+            record[f"final_{name}_ms"] = value
+        records.append(record)
     table = pd.DataFrame(records)
-    x = np.arange(len(table))
-    width = 0.36
-    fig, axis = plt.subplots(figsize=(12.8, 6.2), constrained_layout=True)
-    before = axis.bar(x - width / 2, table["original_edge_processing_ms"], width, label="Original", color="#9C9C9C")
-    after = axis.bar(x + width / 2, table["final_edge_processing_ms"], width, label="Final qualified target", color="#2A9D8F")
-    axis.set_xticks(x, [base.DIAGNOSTIC_LABELS[a] for a in base.DIAGNOSTIC_ACTIONS])
-    axis.set_ylabel("Median edge processing, worker start → publication (ms)")
-    axis.set_ylim(0, 185)
-    axis.set_title(
-        "Original versus final output-preserving edge implementation\n"
-        "A15 retains live-valid v2; A30/A50/A71 use final v3"
+    stage_specs = (
+        ("Sensor preparation compute", "sensor_preparation", "#72B7B2"),
+        ("UE split dispatch", "ue_split_dispatch", "#4C78A8"),
+        ("Feature uplink through OAI", "feature_uplink", "#F58518"),
+        ("Edge queue", "edge_queue", "#E45756"),
+        ("Feature reconstruction", "feature_reconstruction", "#B279A2"),
+        ("FCOS CUDA inference", "tail_inference", "#54A24B"),
+        ("Postprocess + p025 filter", "postprocess_p025", "#EECA3B"),
+        ("Compact-result serialization", "serialization", "#9D755D"),
     )
-    axis.legend()
-    for bars in (before, after):
-        for bar in bars:
-            axis.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 3, f"{bar.get_height():.1f}", ha="center", fontweight="bold")
-    for index, row in table.iterrows():
-        axis.text(index, 6, f"−{row['saving_ms']:.1f} ms", ha="center", color="white", fontweight="bold", fontsize=8)
+    y = np.asarray(
+        [group * 2.4 + offset for group in range(len(base.DIAGNOSTIC_ACTIONS)) for offset in (0.0, 0.82)]
+    )
+    labels = [
+        f"A{action}  {version}"
+        for action in base.DIAGNOSTIC_ACTIONS
+        for version in ("Before", "Final")
+    ]
+    left = np.zeros(len(y), dtype=float)
+    fig, axis = plt.subplots(figsize=(15.4, 9.0), constrained_layout=True)
+    for label, key, color in stage_specs:
+        values = np.asarray(
+            [
+                float(table.loc[table["action_id"] == action, f"{version}_{key}_ms"].iloc[0])
+                for action in base.DIAGNOSTIC_ACTIONS
+                for version in ("before", "final")
+            ]
+        )
+        bars = axis.barh(y, values, left=left, height=0.66, color=color, label=label)
+        for bar, value in zip(bars, values):
+            if value >= 16:
+                axis.text(
+                    bar.get_x() + bar.get_width() / 2,
+                    bar.get_y() + bar.get_height() / 2,
+                    f"{value:.0f}",
+                    ha="center",
+                    va="center",
+                    fontsize=8,
+                    fontweight="bold",
+                )
+        left += values
+    for group, action_id in enumerate(base.DIAGNOSTIC_ACTIONS):
+        row = table[table["action_id"] == action_id].iloc[0]
+        final_index = group * 2 + 1
+        axis.text(
+            left[final_index] + 4,
+            y[final_index],
+            f"edge −{row['edge_saving_ms']:.1f} ms",
+            va="center",
+            fontsize=8,
+            fontweight="bold",
+            color="#176B87",
+        )
+        if group < len(base.DIAGNOSTIC_ACTIONS) - 1:
+            axis.axhline(group * 2.4 + 1.62, color="#999999", linewidth=0.7, alpha=0.35)
+    axis.set_yticks(y, labels)
+    axis.invert_yaxis()
+    axis.set_xlim(0, max(left) + 45)
+    axis.set_xlabel("Descriptive sum of median stage spans (ms)")
+    axis.set_ylabel("Action and implementation")
+    axis.set_title("Same eight stages and colors as Figure 09; upstream medians held fixed")
+    axis.legend(loc="upper center", bbox_to_anchor=(0.5, -0.10), ncol=4, frameon=True)
+    fig.suptitle(
+        "Before versus final edge implementation (A15 v2; A30/A50/A71 v3)",
+        fontsize=15,
+        fontweight="bold",
+    )
     base.save(fig, output, "10_edge_optimization_before_after")
     return table
-
-
-def plot_agent_architecture(output: Path) -> None:
-    fig, axis = plt.subplots(figsize=(16.2, 7.4), constrained_layout=True)
-    axis.set_xlim(0, 16)
-    axis.set_ylim(0, 8)
-    axis.axis("off")
-
-    def box(x: float, y: float, w: float, h: float, title: str, body: str, color: str) -> None:
-        patch = FancyBboxPatch((x, y), w, h, boxstyle="round,pad=0.04,rounding_size=0.12", linewidth=1.8, edgecolor=color, facecolor=color + "18")
-        axis.add_patch(patch)
-        axis.text(x + w / 2, y + h - 0.32, title, ha="center", va="top", fontweight="bold", fontsize=11, color=color)
-        axis.text(x + w / 2, y + h / 2 - 0.12, body, ha="center", va="center", fontsize=9)
-
-    def arrow(x1: float, y1: float, x2: float, y2: float, label: str = "") -> None:
-        axis.add_patch(FancyArrowPatch((x1, y1), (x2, y2), arrowstyle="-|>", mutation_scale=14, linewidth=1.5, color="#333333"))
-        if label:
-            axis.text((x1 + x2) / 2, (y1 + y2) / 2 + 0.22, label, ha="center", fontsize=8, fontweight="bold")
-
-    box(0.25, 2.55, 2.65, 3.05, "Causal observation", "SNR / MCS / throughput\nmap AoI + risk\nrecent delivery outcomes\nprevious action + costs", "#3366CC")
-    box(3.55, 3.0, 2.05, 2.15, "Encoder", "availability flags\nLayerNorm\nMLP", "#7A5195")
-    box(6.25, 2.8, 2.35, 2.55, "LSTM memory", "history state $(h_t,c_t)$\nchannel dynamics\npartial observability", "#EF5675")
-    box(9.45, 5.45, 2.45, 1.25, "Policy head", "72 split-action logits", "#2A9D8F")
-    box(9.45, 3.75, 2.45, 1.25, "Value head", "expected return", "#4C78A8")
-    box(9.45, 2.05, 2.45, 1.25, "Cost critics", "bytes / compute / switching", "#F58518")
-    box(9.45, 0.35, 2.45, 1.25, "Forecast head", "next-SNR prediction\n(auxiliary loss only)", "#54A24B")
-    box(12.75, 4.55, 2.85, 1.65, "Split action", "family + quantizer + q\n$a_t \in \{0,\ldots,71\}$", "#264653")
-    box(12.75, 1.55, 2.85, 1.75, "Environment feedback", "installed-map utility\nAoI / terminal outcome\nbytes + compute charged", "#8C564B")
-    arrow(2.9, 4.05, 3.55, 4.05)
-    arrow(5.6, 4.05, 6.25, 4.05)
-    for target_y in (6.08, 4.38, 2.68, 0.98):
-        arrow(8.6, 4.05, 9.45, target_y)
-    arrow(11.9, 6.08, 12.75, 5.38, "masked sample")
-    arrow(14.15, 4.55, 14.15, 3.3)
-    axis.plot([12.75, 12.35, 8.15], [2.35, 0.10, 0.10], color="#333333", linewidth=1.5)
-    arrow(8.15, 0.10, 7.45, 2.8)
-    axis.text(10.25, 0.20, "next observation + reward", ha="center", fontsize=8, fontweight="bold")
-    axis.text(8.0, 7.55, "Split-only recurrent PPO architecture", ha="center", fontsize=16, fontweight="bold")
-    axis.text(8.0, 7.08, "Future SNR and current-frame outcomes are never policy inputs", ha="center", fontsize=10, color="#8B1E3F", fontweight="bold")
-    base.save(fig, output, "agent_architecture")
 
 
 def write_reward_dictionary(output: Path) -> None:
@@ -480,14 +577,16 @@ falls from {overall['source_install_aoi_ms_cell_median']:.1f} ms to
 {overall['source_time_weighted_map_aoi_ms_cell_median']:.1f} ms to
 {overall['time_weighted_map_aoi_ms_cell_median']:.1f} ms.
 
-## Figures 01–02
+## Figures 01a–01d and 02a–02d
 
 The validation and localization scores are frozen action-level measurements;
 they were not measured four times and are not medians across network profiles.
-Each column now uses that profile's measured payload. Marker size represents
-the simulated installation probability, which is the network-dependent part.
-The same intrinsically good action can therefore be useful under favorable
-conditions but rarely installed under adverse conditions.
+Each network profile now has its own readable page: three quality panels in
+Figure 01 and four localization panels in Figure 02. Each page uses that
+profile's measured payload. Marker size represents the simulated installation
+probability, which is the network-dependent part. The same intrinsically good
+action can therefore be useful under favorable conditions but rarely installed
+under adverse conditions.
 
 ## Figure 03
 
@@ -529,20 +628,23 @@ additive reconstruction of Figure 08.
 
 ## Figure 10
 
-Compares only the original edge processing with the final target. A30/A50/A71
-use final v3. NoAE uses the last live-valid v2 because action 15 failed v3
-closed on non-finite camera-aware geometry. The plot deliberately omits
-intermediate implementations. V3 overlaps GPU/CPU stages, so component times
-cannot be presented as an additive stack; worker-start-to-publication is the
-scientifically valid before/after total.
+Uses the same eight stage labels and colors as Figure 09, with paired `Before`
+and `Final` bars for each action. Sensor preparation, UE dispatch and OAI
+uplink are held at their original medians because this intervention changed
+only the edge path. A30/A50/A71 use final v3; A15 uses its last live-valid v2
+because its v3 run failed closed on non-finite camera-aware geometry. The
+stage medians are descriptive rather than an additive end-to-end identity;
+the annotation beside each final bar reports the directly measured edge-total
+saving.
 
 ## Agent transition
 
-The policy diagram connects the evidence to split-only recurrent PPO. The
-action determines intrinsic quality and payload; the channel and edge state
-determine whether the update arrives and remains useful; installed-object AoI
-determines freshness utility. The next-SNR head is an auxiliary training task,
-not access to future channel information.
+The architecture document follows the LR-ASPP/FCOS documentation style: a
+portable SVG followed by the Mermaid source. The LSTM keeps a compact memory
+of recent channel, delivery, map-freshness and action history. Its state feeds
+the PPO policy and critics, while a separate auxiliary head learns to forecast
+the next observed SNR. That forecast shapes useful temporal features during
+training; future SNR is never supplied to the acting policy.
 """
     (output / "TALKING_POINTS.md").write_text(text, encoding="utf-8")
 
@@ -557,6 +659,10 @@ def run(output: Path) -> dict:
     action_profile = pd.read_csv(paths["action_profile"])
     cell = pd.read_csv(paths["cell"])
     baseline = pd.read_csv(paths["baseline_timing"])
+    final_timing = pd.concat(
+        [pd.read_csv(paths[f"final_timing_{action_id}"]) for action_id in base.DIAGNOSTIC_ACTIONS],
+        ignore_index=True,
+    )
     simulated = pd.read_csv(paths["sim_cells"])
     result = json.loads(paths["sim_result"].read_text(encoding="utf-8"))
     if len(action) != 72 or len(action_profile) != 288 or len(simulated) != 288:
@@ -574,8 +680,16 @@ def run(output: Path) -> dict:
     plot_sim_network(network, output)
     plot_sim_aoi(frame, output)
     base.plot_original_stages(baseline, output)
-    optimization = plot_final_edge_comparison(baseline, result, output)
-    plot_agent_architecture(output)
+    optimization = plot_final_edge_comparison(baseline, final_timing, output)
+    architecture_dir = ROOT / "rl_agent/rl_policy_study_v1"
+    shutil.copy2(
+        architecture_dir / "AGENT_ARCHITECTURE_V1.md",
+        output / "AGENT_ARCHITECTURE_V1.md",
+    )
+    shutil.copy2(
+        architecture_dir / "AGENT_ARCHITECTURE_V1.svg",
+        output / "AGENT_ARCHITECTURE_V1.svg",
+    )
     write_reward_dictionary(output)
     write_talking_points(output, result, network)
     network.to_csv(output / "network_profile_summary.csv", index=False, lineterminator="\n")
@@ -599,7 +713,7 @@ def run(output: Path) -> dict:
         if path.is_file() and path.name != "artifact_manifest.json"
     }
     manifest = {
-        "schema": "scenesense.splitfusion.final_simulated_presentation_pack.v1",
+        "schema": "scenesense.splitfusion.final_simulated_presentation_pack.v2",
         "status": "COMPLETE",
         "source_paths": {name: str(path) for name, path in paths.items()},
         "source_sha256": {name: base.sha256_file(path) for name, path in paths.items()},
@@ -613,7 +727,10 @@ def run(output: Path) -> dict:
             "FIGURES_03_05_09_RETAIN_MEASURED_ORIGINAL_VALUES",
             "FIGURE_08_HAS_NO_100MS_REFERENCE_LINE",
             "FIGURE_10_HAS_NO_INTERMEDIATE_OPTIMIZATION_VARIANTS",
+            "FIGURE_10_REUSES_FIGURE_09_STAGE_DEFINITIONS_AND_COLORS",
+            "FIGURE_10_HOLDS_NON_EDGE_STAGE_MEDIANS_FIXED",
             "NOAE_FINAL_TARGET_IS_LIVE_VALID_V2_NOT_FAILED_V3",
+            "ARCHITECTURE_MD_EMBEDS_STATIC_SVG_AND_MERMAID_SOURCE",
         ],
         "artifacts": artifacts,
     }

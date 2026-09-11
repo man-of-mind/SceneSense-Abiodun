@@ -29,6 +29,23 @@ An auxiliary head predicts the next observed SNR from $h_t$. The true next SNR
 becomes a training target only after the transition; it is never supplied to
 the policy before the action.
 
+In plain language, the LSTM gives the agent a short-term memory. At decision
+epoch $t$, it receives the encoded current observation and its two memory
+vectors from epoch $t-1$:
+
+- the **cell state** $c_{t-1}$ carries longer-lived context, such as whether
+  the channel has been steadily degrading or recovering;
+- the **hidden state** $h_{t-1}$ is the compact summary exposed to the policy,
+  value and forecast heads; and
+- learned input, forget and output gates decide what new evidence to store,
+  what old evidence to retain and what part of the memory to expose.
+
+This matters because two epochs can have the same instantaneous SNR but imply
+different decisions. A falling SNR sequence may favor a smaller payload before
+congestion develops, whereas the same SNR during recovery may support a less
+aggressive action. Recent delivery, supersession and map-AoI history also help
+the memory distinguish a brief radio dip from a persistent service backlog.
+
 ## Causal observation groups
 
 The first simulator should expose normalized values and availability flags for:
@@ -49,19 +66,66 @@ ground truth, and the current frame's eventual tail result.
 
 ![Split-only recurrent PPO architecture](AGENT_ARCHITECTURE_V1.svg)
 
-```text
-causal observation
-      │
-LayerNorm → MLP encoder → LSTM memory
-                         ├─ 72-action policy logits
-                         ├─ reward-value critic
-                         ├─ separate cost critics
-                         └─ next-SNR forecast head
+```mermaid
+flowchart LR
+    OBS["Causal observation<br/>SNR, MCS, throughput<br/>map AoI and risk<br/>delivery and prior action"]
+    ENC["LayerNorm + MLP<br/>observation encoder"]
+    LSTM["LSTM memory<br/>hidden state h(t)<br/>cell state c(t)"]
+    POLICY["Policy head<br/>72 split-action logits"]
+    VALUE["Reward-value critic<br/>expected return"]
+    COST["Cost critics<br/>bytes, compute, switching"]
+    FORECAST["Auxiliary forecast head<br/>next observed SNR"]
+    ACTION["Executable split action<br/>family + quantizer + q"]
+    ENV["Environment feedback<br/>map utility and AoI<br/>terminal outcome and costs"]
+
+    OBS --> ENC --> LSTM
+    LSTM --> POLICY -->|masked sample| ACTION --> ENV
+    LSTM --> VALUE
+    LSTM --> COST
+    LSTM --> FORECAST
+    ENV -->|next causal observation and reward| OBS
+
+    classDef observation fill:#eaf1ff,stroke:#3366cc,stroke-width:2px;
+    classDef memory fill:#fdebf0,stroke:#ef5675,stroke-width:2px;
+    classDef head fill:#ecf8f5,stroke:#2a9d8f,stroke-width:2px;
+    classDef environment fill:#f8eeee,stroke:#8c564b,stroke-width:2px;
+    class OBS,ENC observation;
+    class LSTM memory;
+    class POLICY,VALUE,COST,FORECAST,ACTION head;
+    class ENV environment;
 ```
 
 This is PPO with recurrent state, hard executability masking and an auxiliary
 forecast objective. It is a composition of established techniques, not a new
 algorithm called “Recurrent Hierarchical Masked PPO.”
+
+### How the LSTM plugs into PPO
+
+The LSTM is not a separate controller placed in front of PPO. It replaces the
+memoryless feature layer inside the actor-critic network:
+
+1. The UE forms only the information available before choosing $a_t$.
+2. The encoder converts that observation to a compact feature vector.
+3. The LSTM updates $(h_t,c_t)$ from that feature and the previous memory.
+4. The policy head converts $h_t$ into probabilities over the 72 split actions.
+5. The value and cost heads use the same $h_t$ to estimate future reward and
+   resource consequences for PPO training.
+6. The forecast head predicts the SNR that will be observed at $t+1$. Its
+   error is an auxiliary training loss; its prediction is not manually inserted
+   into the observation and does not replace the policy output.
+
+During training, rollouts retain the observation, chosen action, reward,
+terminal flag and incoming LSTM state. PPO optimizes short contiguous
+sequences so gradients can teach the memory which past signals matter. The
+memory resets at the start of a new episode or UE session; in a future
+multi-UE deployment, each UE keeps its own state so histories cannot leak
+between vehicles.
+
+The forecast loss is useful only as a representation aid. It encourages
+$h_t$ to encode channel trend and temporal structure, which can improve action
+selection under fading and recovery. The first ablation must compare the same
+PPO architecture with and without this head; if it does not improve policy
+return or robustness, it should be removed.
 
 ## Reward and intentional supersession
 
