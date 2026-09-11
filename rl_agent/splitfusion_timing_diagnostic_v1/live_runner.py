@@ -527,7 +527,30 @@ def run_live_action(
             not diagnostic["failures"], f"collector failures: {diagnostic['failures']}"
         )
 
-        require(runner._edge_running(), "the instrumented edge exited during capture")
+        if not runner._edge_running():
+            edge_failure: dict[str, Any] = {}
+            summary_host = Path(edge_meta["summary_host"])
+            if summary_host.is_file():
+                try:
+                    summary = common.load_json(summary_host)
+                    edge_failure = {
+                        "terminal_reason": summary.get("terminal_reason"),
+                        "failures": summary.get("failures"),
+                        "pipeline_fatal_error": (
+                            summary.get("pipeline") or {}
+                        ).get("fatal_error"),
+                        "pipeline_terminal_reason_counts": summary.get(
+                            "pipeline_terminal_reason_counts"
+                        ),
+                    }
+                except (OSError, json.JSONDecodeError) as exc:
+                    edge_failure = {
+                        "summary_read_error": f"{type(exc).__name__}: {exc}"
+                    }
+            raise common.DiagnosticError(
+                "the instrumented edge exited during capture: "
+                + json.dumps(edge_failure, sort_keys=True)
+            )
         report["edge_shutdown"] = runner.request_edge_shutdown(
             Path(edge_meta["stop_host"]), Path(edge_meta["summary_host"])
         )

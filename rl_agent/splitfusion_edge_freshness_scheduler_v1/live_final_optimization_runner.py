@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import argparse
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
@@ -87,13 +88,23 @@ def _report(root: Path, rows: Sequence[Mapping[str, Any]], runtime_s: float) -> 
 
 
 def main(argv: list[str] | None = None) -> int:
+    selector = argparse.ArgumentParser(add_help=False)
+    selector.add_argument("--actions")
+    selected, remaining = selector.parse_known_args(argv)
+    if selected.actions:
+        actions = tuple(int(value) for value in selected.actions.split(","))
+        if not actions or len(actions) != len(set(actions)) or any(
+            action not in runner.ACTIONS for action in actions
+        ):
+            raise RuntimeError("action selection is empty, duplicated, or unregistered")
+        runner.ACTIONS = actions
     runner.EXECUTE_TOKEN = EXECUTE_TOKEN
     runner.SUCCESS_TERMINAL = SUCCESS_TERMINAL
     runner.DEFAULT_OUTPUT = DEFAULT_OUTPUT
     runner.VARIANTS = VARIANTS
     runner.SOURCES = SOURCES
     runner._report = _report
-    return runner.main(argv)
+    return runner.main(remaining)
 
 
 if __name__ == "__main__":
