@@ -75,3 +75,18 @@ accounting, frozen-state and real compute/publication-overlap gates.
 These are bounded CUDA microbenchmarks, not a live CARLA/OAI latency claim.
 `DetachedOptimizedTailAdapterV2` and its preload are additive; the qualified v1
 runtime remains untouched pending a prospective live comparison.
+
+## Overlapped v3 candidate
+
+V3 preserves the v2 model and geometry path while overlapping two independent
+operations after `decode_tail`: semantic person-mask connected components on a
+single CPU worker and camera-aware detection post-processing on the sole CUDA
+owner. It also removes a NumPy-to-Torch-to-NumPy component-label round trip,
+retains one authoritative full reconstructed-C2 finite scan instead of two
+consecutive identical scans, and carries the already-constructed service rows
+across the detached publication boundary rather than serializing JSON and
+immediately parsing it back.
+
+All asynchronous finite checks are resolved before an output can be published;
+the candidate remains fail closed. No model kernel is interrupted, no second
+model worker is introduced, and the latest-only scheduler is unchanged.
