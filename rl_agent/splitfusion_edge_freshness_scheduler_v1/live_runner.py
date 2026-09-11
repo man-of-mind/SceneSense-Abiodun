@@ -99,6 +99,9 @@ def _summary(report: Mapping[str, Any]) -> dict[str, Any]:
         capture.get("freshness_scheduler") or {}
     )
     value["map_utility"] = dict(capture.get("map_utility") or {})
+    value["map_install_records"] = [
+        dict(record) for record in (capture.get("map_install_records") or [])
+    ]
     value["edge_pipeline"] = dict(edge.get("pipeline") or {})
     value["edge_pipeline_terminal_reason_counts"] = dict(
         edge.get("pipeline_terminal_reason_counts") or {}

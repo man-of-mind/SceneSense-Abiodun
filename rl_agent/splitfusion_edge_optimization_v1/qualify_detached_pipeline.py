@@ -236,8 +236,22 @@ def _pipeline_policy(
         detached.serialize_product(product)
         published.append(ticket.sequence_id)
 
+    pipeline_config = (
+        PipelineConfig(
+            policy=policy,
+            processing_horizon_ns=500_000_000,
+            initial_predicted_compute_ns=30_000_000,
+            initial_predicted_publication_ns=3_000_000,
+            predicted_post_publication_install_ns=15_000_000,
+        )
+        if policy is CandidatePolicy.PREDICTED_INSTALL_HORIZON
+        else PipelineConfig(
+            policy=policy,
+            processing_horizon_ns=500_000_000,
+        )
+    )
     pipeline = BoundedTwoStagePipeline(
-        config=PipelineConfig(policy=policy, processing_horizon_ns=500_000_000),
+        config=pipeline_config,
         compute=compute,
         publish=publish,
     )

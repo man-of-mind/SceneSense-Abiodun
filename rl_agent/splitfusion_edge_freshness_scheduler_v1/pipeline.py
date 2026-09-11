@@ -38,6 +38,7 @@ def _require(condition: bool, message: str) -> None:
 class CandidatePolicy(str, Enum):
     LATEST_ONLY_NO_EXPIRY = "LATEST_ONLY_NO_EXPIRY"
     LATEST_ONLY_25_MS = "LATEST_ONLY_25_MS"
+    PREDICTED_INSTALL_HORIZON = "PREDICTED_INSTALL_HORIZON"
 
     @property
     def queue_wait_budget_ns(self) -> int | None:
@@ -50,6 +51,10 @@ class CandidatePolicy(str, Enum):
 class PipelineConfig:
     policy: CandidatePolicy
     processing_horizon_ns: int = 500 * MS
+    initial_predicted_compute_ns: int | None = None
+    initial_predicted_publication_ns: int | None = None
+    predicted_post_publication_install_ns: int | None = None
+    prediction_ewma_alpha: float = 0.2
 
     def __post_init__(self) -> None:
         _require(
@@ -57,6 +62,25 @@ class PipelineConfig:
             "policy must be a registered candidate",
         )
         _require(self.processing_horizon_ns > 0, "processing horizon is invalid")
+        predictions = (
+            self.initial_predicted_compute_ns,
+            self.initial_predicted_publication_ns,
+            self.predicted_post_publication_install_ns,
+        )
+        if self.policy is CandidatePolicy.PREDICTED_INSTALL_HORIZON:
+            _require(
+                all(value is not None and int(value) > 0 for value in predictions),
+                "predicted-install policy requires positive timing estimates",
+            )
+            _require(
+                0.0 < float(self.prediction_ewma_alpha) <= 1.0,
+                "prediction EWMA alpha is invalid",
+            )
+        else:
+            _require(
+                all(value is None for value in predictions),
+                "timing estimates require the predicted-install policy",
+            )
 
     @property
     def queue_wait_budget_ns(self) -> int | None:
@@ -83,6 +107,13 @@ class PipelineSnapshot:
     stage_overlap_observed: bool
     compute_owner_thread_id: int | None
     publication_owner_thread_id: int | None
+    predicted_compute_ns: int | None
+    predicted_publication_ns: int | None
+    predicted_post_publication_install_ns: int | None
+    prediction_compute_samples: int
+    prediction_publication_samples: int
+    prediction_admission_evaluations: int
+    prediction_admission_rejections: int
     fatal_error: str | None
 
 
@@ -164,6 +195,45 @@ class BoundedTwoStagePipeline:
         self._publication_pending_high_water = 0
         self._maximum_active_stage_workers = 0
         self._stage_overlap_observed = False
+        self._predicted_compute_ns = config.initial_predicted_compute_ns
+        self._predicted_publication_ns = config.initial_predicted_publication_ns
+        self._prediction_compute_samples = 0
+        self._prediction_publication_samples = 0
+        self._prediction_admission_evaluations = 0
+        self._prediction_admission_rejections = 0
+
+    def _update_prediction(self, previous: int | None, observed: int) -> int:
+        _require(observed >= 0, "observed service duration is invalid")
+        observed = max(1, int(observed))
+        if previous is None:
+            return int(observed)
+        alpha = float(self._config.prediction_ewma_alpha)
+        return max(1, int(round(alpha * observed + (1.0 - alpha) * previous)))
+
+    def _predicted_install_ns_locked(self, item: _WorkItem, now_ns: int) -> int:
+        compute_ns = self._predicted_compute_ns
+        publication_ns = self._predicted_publication_ns
+        install_ns = self._config.predicted_post_publication_install_ns
+        _require(
+            compute_ns is not None
+            and publication_ns is not None
+            and install_ns is not None,
+            "predicted-install timing state is unavailable",
+        )
+        # Active and pending publication are conservatively charged one current
+        # publication estimate each. No future duration of the admitted frame
+        # is read, and no running callback is interrupted.
+        publication_backlog = publication_ns * (
+            int(self._publication_active is not None)
+            + int(self._publication_pending is not None)
+        )
+        return int(
+            now_ns
+            + compute_ns
+            + publication_backlog
+            + publication_ns
+            + install_ns
+        )
 
     def start(self) -> None:
         with self._condition:
@@ -409,6 +479,33 @@ class BoundedTwoStagePipeline:
                         self._compute_active = None
                     self._deliver(feedback)
                     continue
+                if self._config.policy is CandidatePolicy.PREDICTED_INSTALL_HORIZON:
+                    with self._condition:
+                        self._prediction_admission_evaluations += 1
+                        predicted_install_ns = self._predicted_install_ns_locked(
+                            item, started_ns
+                        )
+                    if (
+                        predicted_install_ns - item.ticket.capture_timestamp_ns
+                        > self._config.processing_horizon_ns
+                    ):
+                        with self._condition:
+                            self._prediction_admission_rejections += 1
+                            feedback.append(
+                                self._feedback_locked(
+                                    item.ticket,
+                                    reason=(
+                                        TerminalReason.PREDICTED_MAP_INSTALL_HORIZON_EXCEEDED
+                                    ),
+                                    outcome_class=OutcomeClass.EXPIRED_WORK,
+                                    stage=Stage.BEFORE_DECODE,
+                                    now_ns=started_ns,
+                                    queue_wait_ns=queue_wait_ns,
+                                )
+                            )
+                            self._compute_active = None
+                        self._deliver(feedback)
+                        continue
                 with self._condition:
                     self._compute_started += 1
                     self._mark_stage_active_locked()
@@ -439,6 +536,12 @@ class BoundedTwoStagePipeline:
                 with self._condition:
                     self._compute_active = None
                     self._compute_completed += 1
+                    if self._config.policy is CandidatePolicy.PREDICTED_INSTALL_HORIZON:
+                        self._predicted_compute_ns = self._update_prediction(
+                            self._predicted_compute_ns,
+                            completed.compute_spent_ns,
+                        )
+                        self._prediction_compute_samples += 1
                     if self._fatal_error is not None:
                         feedback.append(
                             self._feedback_locked(
@@ -559,6 +662,12 @@ class BoundedTwoStagePipeline:
             finished_ns = self._now()
             with self._condition:
                 self._publication_completed += 1
+                if self._config.policy is CandidatePolicy.PREDICTED_INSTALL_HORIZON:
+                    self._predicted_publication_ns = self._update_prediction(
+                        self._predicted_publication_ns,
+                        finished_ns - started_ns,
+                    )
+                    self._prediction_publication_samples += 1
                 feedback.append(
                     self._feedback_locked(
                         item.ticket,
@@ -620,6 +729,17 @@ class BoundedTwoStagePipeline:
                 stage_overlap_observed=self._stage_overlap_observed,
                 compute_owner_thread_id=self._compute_owner_thread_id,
                 publication_owner_thread_id=self._publication_owner_thread_id,
+                predicted_compute_ns=self._predicted_compute_ns,
+                predicted_publication_ns=self._predicted_publication_ns,
+                predicted_post_publication_install_ns=(
+                    self._config.predicted_post_publication_install_ns
+                ),
+                prediction_compute_samples=self._prediction_compute_samples,
+                prediction_publication_samples=self._prediction_publication_samples,
+                prediction_admission_evaluations=(
+                    self._prediction_admission_evaluations
+                ),
+                prediction_admission_rejections=self._prediction_admission_rejections,
                 fatal_error=(
                     None
                     if self._fatal_error is None

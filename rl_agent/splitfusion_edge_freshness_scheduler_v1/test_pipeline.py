@@ -24,6 +24,7 @@ def ticket(
     sequence: int,
     *,
     arrival_ns: int | None = None,
+    capture_ns: int | None = None,
     stream_id: str = "ue-1",
 ) -> FrameTicket:
     arrival = time.time_ns() if arrival_ns is None else arrival_ns
@@ -34,7 +35,9 @@ def ticket(
         frame_id=1000 + sequence,
         sequence_id=sequence,
         action_id=71,
-        capture_timestamp_ns=max(0, arrival - MS),
+        capture_timestamp_ns=(
+            max(0, arrival - MS) if capture_ns is None else capture_ns
+        ),
         edge_arrival_timestamp_ns=arrival,
         feature_bytes=6464,
     )
@@ -157,6 +160,62 @@ class BoundedTwoStagePipelineTest(unittest.TestCase):
             next(iter(callback_threads["publish"])),
         )
 
+    def test_predicted_horizon_keeps_useful_and_rejects_obsolete_work(self) -> None:
+        now = time.time_ns()
+        computed: list[int] = []
+        useful = BoundedTwoStagePipeline(
+            config=PipelineConfig(
+                CandidatePolicy.PREDICTED_INSTALL_HORIZON,
+                initial_predicted_compute_ns=100 * MS,
+                initial_predicted_publication_ns=10 * MS,
+                predicted_post_publication_install_ns=5 * MS,
+            ),
+            compute=lambda frame, payload: computed.append(frame.sequence_id),
+            publish=lambda _frame, _value: None,
+        )
+        useful.start()
+        useful.offer(
+            ticket(
+                1,
+                arrival_ns=now - MS,
+                capture_ns=now - 100 * MS,
+            ),
+            None,
+            now_ns=now,
+        )
+        useful.close_and_join(timeout_s=2.0)
+        self.assertEqual(computed, [1])
+        self.assertEqual(reasons(useful)[1], TerminalReason.RESULT_PUBLISHED)
+        self.assertEqual(useful.snapshot().prediction_admission_evaluations, 1)
+        self.assertEqual(useful.snapshot().prediction_admission_rejections, 0)
+
+        obsolete = BoundedTwoStagePipeline(
+            config=PipelineConfig(
+                CandidatePolicy.PREDICTED_INSTALL_HORIZON,
+                initial_predicted_compute_ns=100 * MS,
+                initial_predicted_publication_ns=10 * MS,
+                predicted_post_publication_install_ns=5 * MS,
+            ),
+            compute=lambda _frame, payload: payload,
+            publish=lambda _frame, _value: None,
+        )
+        obsolete.start()
+        obsolete.offer(
+            ticket(
+                2,
+                arrival_ns=now - MS,
+                capture_ns=now - 450 * MS,
+            ),
+            None,
+            now_ns=now,
+        )
+        obsolete.close_and_join(timeout_s=2.0)
+        self.assertEqual(
+            reasons(obsolete)[2],
+            TerminalReason.PREDICTED_MAP_INSTALL_HORIZON_EXCEEDED,
+        )
+        self.assertEqual(obsolete.snapshot().prediction_admission_rejections, 1)
+
     def test_publication_pending_is_also_latest_only(self) -> None:
         publication_started = threading.Event()
         release_publication = threading.Event()
@@ -266,7 +325,11 @@ class BoundedTwoStagePipelineTest(unittest.TestCase):
     def test_only_registered_candidate_policies_exist(self) -> None:
         self.assertEqual(
             {policy.value for policy in CandidatePolicy},
-            {"LATEST_ONLY_NO_EXPIRY", "LATEST_ONLY_25_MS"},
+            {
+                "LATEST_ONLY_NO_EXPIRY",
+                "LATEST_ONLY_25_MS",
+                "PREDICTED_INSTALL_HORIZON",
+            },
         )
 
 

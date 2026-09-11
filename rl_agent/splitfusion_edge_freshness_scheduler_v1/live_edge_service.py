@@ -12,7 +12,7 @@ import threading
 import time
 from collections import Counter
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Callable, Mapping
 
 import torch
 
@@ -129,7 +129,15 @@ def _parity_and_warmup(
     return equivalence, warmup_ms
 
 
-def run(args: argparse.Namespace, *, policy: CandidatePolicy) -> int:
+def run(
+    args: argparse.Namespace,
+    *,
+    policy: CandidatePolicy,
+    pipeline_config_factory: Callable[
+        [argparse.Namespace, CandidatePolicy, int], PipelineConfig
+    ]
+    | None = None,
+) -> int:
     campaign = common.load_json(Path(args.config).resolve(strict=True))
     runtime = campaign["runtime"]
     common.require(
@@ -442,11 +450,22 @@ def run(args: argparse.Namespace, *, policy: CandidatePolicy) -> int:
             with records_lock:
                 records.append(record)
 
-    pipeline = BoundedTwoStagePipeline(
-        config=PipelineConfig(
+    processing_horizon_ns = int(round(horizon_s * 1e9))
+    pipeline_config = (
+        PipelineConfig(
             policy=policy,
-            processing_horizon_ns=int(round(horizon_s * 1e9)),
-        ),
+            processing_horizon_ns=processing_horizon_ns,
+        )
+        if pipeline_config_factory is None
+        else pipeline_config_factory(args, policy, processing_horizon_ns)
+    )
+    common.require(
+        pipeline_config.policy is policy
+        and pipeline_config.processing_horizon_ns == processing_horizon_ns,
+        "edge pipeline configuration changed the bound policy or horizon",
+    )
+    pipeline = BoundedTwoStagePipeline(
+        config=pipeline_config,
         compute=compute,
         publish=publish,
         feedback_sink=feedback_sink,
@@ -678,12 +697,20 @@ def main(
     argv: list[str] | None = None,
     *,
     forced_policy: CandidatePolicy | None = None,
+    pipeline_config_factory: Callable[
+        [argparse.Namespace, CandidatePolicy, int], PipelineConfig
+    ]
+    | None = None,
 ) -> int:
     args, _ignored = build_parser().parse_known_args(argv)
     common.require(bool(args.diagnostic_edge), "diagnostic edge mode is required")
     policy = forced_policy or CandidatePolicy.LATEST_ONLY_NO_EXPIRY
     try:
-        return run(args, policy=policy)
+        return run(
+            args,
+            policy=policy,
+            pipeline_config_factory=pipeline_config_factory,
+        )
     except common.DiagnosticError as exc:
         print(f"freshness edge contract error: {exc}", file=sys.stderr)
         return 2

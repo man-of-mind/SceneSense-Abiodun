@@ -437,6 +437,21 @@ def build_scheduler_collector_class(base: type) -> type:
                 ),
                 "time_weighted_duration_s": weighted_duration_s,
             }
+            # Retain the authoritative per-frame install boundary for the
+            # bounded payoff experiment. This is compact timing/accounting
+            # evidence, not a prediction, payload, image, mask or map record.
+            document["map_install_records"] = [
+                {
+                    "frame_id": int(frame),
+                    "capture_wall_s": float(captures[frame]),
+                    "install_timestamp_s": float(installed[frame]),
+                    "install_aoi_ms": (
+                        float(installed[frame]) - float(captures[frame])
+                    )
+                    * 1000.0,
+                }
+                for frame in sorted(set(installed) & set(captures))
+            ]
             return document
 
     return SchedulerAwareCollector
