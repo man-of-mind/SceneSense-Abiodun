@@ -1,0 +1,198 @@
+{
+  "delta_predicted_minus_fixed": {
+    "ack_installed": 86661,
+    "install_aoi_ms_cell_median": 19.314052000000004,
+    "time_weighted_map_aoi_ms_cell_median": 5.056760303568467,
+    "useful_newer_map_installations": 79177
+  },
+  "fixed_25_ms": {
+    "ack_installed": 429270,
+    "arrival_timestamps_imputed": 258138,
+    "arrival_timestamps_observed": 344177,
+    "cells": 288,
+    "edge_service_durations_imputed": 258138,
+    "edge_service_durations_observed": 344177,
+    "feature_bytes_charged": 553566054029,
+    "feature_bytes_without_useful_install": 451905256991,
+    "install_aoi_ms_cell_median": 278.792084,
+    "installed_within_100ms": 15,
+    "installed_within_500ms": 427287,
+    "measured_pre_queue_rejections": 110417,
+    "predicted_obsolete_count": 0,
+    "published": 429270,
+    "queue_expiry_count": 138894,
+    "rate_installed_per_sent": 0.47863871123123447,
+    "rate_useful_install_per_sent": 0.4739021648960368,
+    "sent": 896856,
+    "source_ack_installed": 334174,
+    "source_install_aoi_ms_cell_median": 364.543744,
+    "source_installed_within_100ms": 0,
+    "source_installed_within_500ms": 329722,
+    "source_rate_installed_per_sent": 0.3726060816898142,
+    "source_rate_useful_install_per_sent": 0.3726060816898142,
+    "source_time_weighted_map_aoi_ms_cell_median": 573.4770345742656,
+    "source_useful_newer_map_installations": 334174,
+    "time_weighted_map_aoi_ms_cell_median": 377.04594066986476,
+    "transport_incomplete": 184124,
+    "useful_newer_map_installations": 425022
+  },
+  "fixed_result_sha256": "e72d11814bed506a9bdc6a9057f93968e910a0d97bec62af419f03721670d89c",
+  "implementation_sha256": "d9a4a8f0977ada397ba40ff315ba9d313d55d43c9c50cd9faaa0b866029b28c2",
+  "policy": {
+    "current_frame_future_service_used": false,
+    "pending_slot": "LATEST_ONLY_DEPTH_ONE",
+    "predicted_map_install_horizon_ms": 500,
+    "service_reporting_target_ms": 100
+  },
+  "predicted_horizon": {
+    "ack_installed": 515931,
+    "arrival_timestamps_imputed": 258138,
+    "arrival_timestamps_observed": 344177,
+    "cells": 288,
+    "edge_service_durations_imputed": 258138,
+    "edge_service_durations_observed": 344177,
+    "feature_bytes_charged": 553566054029,
+    "feature_bytes_without_useful_install": 432410047294,
+    "install_aoi_ms_cell_median": 298.106136,
+    "installed_within_100ms": 12,
+    "installed_within_500ms": 511055,
+    "measured_pre_queue_rejections": 110417,
+    "predicted_obsolete_count": 1971,
+    "published": 515931,
+    "queue_expiry_count": 0,
+    "rate_installed_per_sent": 0.575266263480425,
+    "rate_useful_install_per_sent": 0.5621850107486598,
+    "sent": 896856,
+    "source_ack_installed": 334174,
+    "source_install_aoi_ms_cell_median": 364.543744,
+    "source_installed_within_100ms": 0,
+    "source_installed_within_500ms": 329722,
+    "source_rate_installed_per_sent": 0.3726060816898142,
+    "source_rate_useful_install_per_sent": 0.3726060816898142,
+    "source_time_weighted_map_aoi_ms_cell_median": 573.4770345742656,
+    "source_useful_newer_map_installations": 334174,
+    "time_weighted_map_aoi_ms_cell_median": 382.10270097343323,
+    "transport_incomplete": 184124,
+    "useful_newer_map_installations": 504199
+  },
+  "prediction_inputs": {
+    "AE128/ADVERSE_STABLE": {
+      "compute_ms": 111.213205,
+      "post_publication_install_ms": 71.490288,
+      "publication_ms": 2.65995
+    },
+    "AE128/FADE_RECOVERY": {
+      "compute_ms": 111.213205,
+      "post_publication_install_ms": 15.896797,
+      "publication_ms": 2.65995
+    },
+    "AE128/FAVORABLE_STABLE": {
+      "compute_ms": 111.213205,
+      "post_publication_install_ms": 15.419245,
+      "publication_ms": 2.65995
+    },
+    "AE128/MID_VARIABLE": {
+      "compute_ms": 111.213205,
+      "post_publication_install_ms": 15.624285,
+      "publication_ms": 2.65995
+    },
+    "AE32/ADVERSE_STABLE": {
+      "compute_ms": 89.060484,
+      "post_publication_install_ms": 71.490288,
+      "publication_ms": 3.277297
+    },
+    "AE32/FADE_RECOVERY": {
+      "compute_ms": 89.060484,
+      "post_publication_install_ms": 15.896797,
+      "publication_ms": 3.277297
+    },
+    "AE32/FAVORABLE_STABLE": {
+      "compute_ms": 89.060484,
+      "post_publication_install_ms": 15.419245,
+      "publication_ms": 3.277297
+    },
+    "AE32/MID_VARIABLE": {
+      "compute_ms": 89.060484,
+      "post_publication_install_ms": 15.624285,
+      "publication_ms": 3.277297
+    },
+    "AE64/ADVERSE_STABLE": {
+      "compute_ms": 94.503358,
+      "post_publication_install_ms": 71.490288,
+      "publication_ms": 2.543408
+    },
+    "AE64/FADE_RECOVERY": {
+      "compute_ms": 94.503358,
+      "post_publication_install_ms": 15.896797,
+      "publication_ms": 2.543408
+    },
+    "AE64/FAVORABLE_STABLE": {
+      "compute_ms": 94.503358,
+      "post_publication_install_ms": 15.419245,
+      "publication_ms": 2.543408
+    },
+    "AE64/MID_VARIABLE": {
+      "compute_ms": 94.503358,
+      "post_publication_install_ms": 15.624285,
+      "publication_ms": 2.543408
+    },
+    "noAE/ADVERSE_STABLE": {
+      "compute_ms": 116.728044,
+      "post_publication_install_ms": 71.490288,
+      "publication_ms": 3.086619
+    },
+    "noAE/FADE_RECOVERY": {
+      "compute_ms": 116.728044,
+      "post_publication_install_ms": 15.896797,
+      "publication_ms": 3.086619
+    },
+    "noAE/FAVORABLE_STABLE": {
+      "compute_ms": 116.728044,
+      "post_publication_install_ms": 15.419245,
+      "publication_ms": 3.086619
+    },
+    "noAE/MID_VARIABLE": {
+      "compute_ms": 116.728044,
+      "post_publication_install_ms": 15.624285,
+      "publication_ms": 3.086619
+    }
+  },
+  "schema": "scenesense.splitfusion.predicted_horizon_288.v2",
+  "scientific_status": "COUNTERFACTUAL_POLICY_HYPOTHESIS_NOT_LIVE_MEASUREMENT",
+  "source_provenance": {
+    "baseline_manifest_sha256": "965c72b5e48682b6defc0a03b683c72c0e7a3536606ed65c7df9a245da9ca23e",
+    "consolidation": {
+      "action_72_summary.csv": {
+        "path": "experiments/splitfusion_288_offline_rl_dataset_v1/20260909_offline_consolidation_v1/action_72_summary.csv",
+        "sha256": "250eb6d9391c0de5a343d692484647bbdb181153ba64f7f4a447b0076f580a88"
+      },
+      "action_72x4_summary.csv": {
+        "path": "experiments/splitfusion_288_offline_rl_dataset_v1/20260909_offline_consolidation_v1/action_72x4_summary.csv",
+        "sha256": "280b372ed8b6a52bb3e5f1f69e6cbdc02dc851a6a597565fcab9ca9652f5998e"
+      },
+      "analysis_summary.json": {
+        "path": "experiments/splitfusion_288_offline_rl_dataset_v1/20260909_offline_consolidation_v1/analysis_summary.json",
+        "sha256": "48358c2f27ffc2f3da8bf0f821c733914a03267f50da7adab4cbf70cbe239690"
+      },
+      "campaign_288_cell_table.csv": {
+        "path": "experiments/splitfusion_288_offline_rl_dataset_v1/20260909_offline_consolidation_v1/campaign_288_cell_table.csv",
+        "sha256": "3f3067d4c9d0ef3c0d2661c3d19d04306bcbd18ef6d21fa426148e0ee24d2e0d"
+      }
+    },
+    "implementation": {
+      "rl_agent/splitfusion_edge_freshness_scheduler_v1/counterfactual_288.py": "b1cfd7dbbb295626b348226493c9cc1d1f6161f5e19df4157b4b1b6ce5d72e8c",
+      "rl_agent/splitfusion_edge_freshness_scheduler_v1/two_stage_simulator.py": "c1532ba519f26e1d23656cd5741d502bf44603c00c315a62d3dde40a3823178e"
+    },
+    "optimized_manifest_sha256": "95a836cb126b368c5a35ac9ee7ab1c7ad16e6b4cdd3c6a69e6039b09a2df8535",
+    "policy_selection": {
+      "basis": "lower time-weighted and median map AoI in both action-50 and action-71 cells under the preregistered freshness-first rule",
+      "policy": "LATEST_ONLY_25_MS",
+      "scope": "provisional single-run live selection; not a claim of run-to-run variance or 100 ms service readiness",
+      "tradeoff": "fewer completed installations and more expiry/wasted already-sent bytes, most strongly for action 50"
+    },
+    "scheduler_analysis_manifest_sha256": "4ec836f5f371fb8359d4f981ba13e122135058d08b436fe7aff6f8ade46b6058",
+    "scheduler_analysis_sha256": "2c98fec7d00243ea9b3a412922cac7a50c2458ef9a70dd493ce35e7a3fd5f795",
+    "verified_compact_artifacts": 27
+  },
+  "status": "COMPLETE"
+}

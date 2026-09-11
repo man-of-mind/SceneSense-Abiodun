@@ -49,3 +49,29 @@ serialized bytes. It also exercises both selected scheduling policies with a
 single CUDA owner, a single publication owner, terminal reconciliation and
 reports whether stage overlap is actually observed; overlap is not forced to
 make the candidate pass. This is a microbenchmark, not a live CARLA/OAI result.
+
+## Synchronization-light v2 candidate
+
+`optimized_tail_v2.py` targets the remaining non-model edge overhead without
+changing FCOS inference. The numerical-recovery decoder historically performs
+and then discards per-tensor min/max/mean audits for every FPN level. Those
+scalar reads repeatedly synchronize CUDA. V2 retains fail-closed finite and
+positive-dimension checks at the adapter boundary, but batches the reductions
+to one host observation per device. It also moves redundant p025
+`index_select` self-equality assertions from every live frame into the strict
+v1/v2 promotion qualification.
+
+In two 20-frame paired deterministic runs on the RTX 5090, all perception
+tensors, p025 indices, segmentation labels and serialized service bytes were
+exact. Excluding the first frame, the additional median tail-adapter saving
+was 11.88--13.20 ms. In the final run, median tail-adapter time changed from
+43.01 ms to 29.80 ms; camera-aware post-processing changed from 13.70 ms to
+3.47 ms. The remaining total is already close to the independently measured
+20--21 ms FCOS inference plus the classical p025 work, so this candidate does
+not attempt to alter or parallelize the frozen FCOS model itself.
+The detached two-owner pipeline separately passed exact parity, terminal
+accounting, frozen-state and real compute/publication-overlap gates.
+
+These are bounded CUDA microbenchmarks, not a live CARLA/OAI latency claim.
+`DetachedOptimizedTailAdapterV2` and its preload are additive; the qualified v1
+runtime remains untouched pending a prospective live comparison.

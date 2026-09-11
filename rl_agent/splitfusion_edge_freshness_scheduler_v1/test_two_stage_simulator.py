@@ -73,6 +73,53 @@ class TwoStageSimulatorTest(unittest.TestCase):
             TwoStageReason.QUEUE_WAIT_BUDGET_EXCEEDED,
         )
 
+    def test_predicted_horizon_keeps_only_useful_pending_frame(self) -> None:
+        frames = [
+            frame(0, 0, capture_ms=0, compute_ms=100),
+            frame(1, 60, capture_ms=60, compute_ms=5),
+        ]
+        fixed = simulate_two_stage(
+            frames, config=TwoStageConfig(queue_wait_budget_ns=25 * MS)
+        )
+        predicted = simulate_two_stage(
+            frames,
+            config=TwoStageConfig(
+                queue_wait_budget_ns=None,
+                processing_horizon_ns=500 * MS,
+                predicted_compute_ns=100 * MS,
+                predicted_publication_ns=10 * MS,
+                predicted_post_publication_install_ns=5 * MS,
+            ),
+        )
+        self.assertEqual(
+            fixed.outcomes[1].reason,
+            TwoStageReason.QUEUE_WAIT_BUDGET_EXCEEDED,
+        )
+        self.assertEqual(
+            predicted.outcomes[1].reason,
+            TwoStageReason.RESULT_PUBLISHED,
+        )
+
+    def test_predicted_horizon_discards_only_update_that_would_finish_stale(self) -> None:
+        frames = [
+            frame(0, 0, capture_ms=0, compute_ms=450),
+            frame(1, 10, capture_ms=0, compute_ms=5),
+        ]
+        result = simulate_two_stage(
+            frames,
+            config=TwoStageConfig(
+                queue_wait_budget_ns=None,
+                processing_horizon_ns=500 * MS,
+                predicted_compute_ns=100 * MS,
+                predicted_publication_ns=10 * MS,
+                predicted_post_publication_install_ns=5 * MS,
+            ),
+        )
+        self.assertEqual(
+            result.outcomes[1].reason,
+            TwoStageReason.PREDICTED_MAP_INSTALL_HORIZON_EXCEEDED,
+        )
+
     def test_compute_and_publication_overlap(self) -> None:
         frames = [
             frame(0, 0, capture_ms=0, compute_ms=50, publication_ms=80),

@@ -1,0 +1,10 @@
+{
+  "artifacts": {
+    "REPORT.md": "b95d239f716d4d0a1db6fa6b2a38bc643ad7feb62ba2f9e3f606dcd6080a4d61",
+    "cell_comparison.csv": "ae924b74d3ad3c5af427404366d0c749c9dcac5b6ee727b3ad6ee95e9de03f71",
+    "comparison.json": "1e07d146ed39497625be62cf42e1a0569c9393c9297df5b9274700223739c990"
+  },
+  "schema": "scenesense.splitfusion.predicted_horizon_terminal.v1",
+  "status": "COMPLETE",
+  "terminal": "SPLITFUSION_PREDICTED_HORIZON_288_COUNTERFACTUAL_COMPLETE"
+}

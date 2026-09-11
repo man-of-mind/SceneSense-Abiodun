@@ -32,6 +32,9 @@ class TwoStageReason(str, Enum):
     PROCESSING_HORIZON_EXPIRED_BEFORE_COMPUTE = (
         "PROCESSING_HORIZON_EXPIRED_BEFORE_COMPUTE"
     )
+    PREDICTED_MAP_INSTALL_HORIZON_EXCEEDED = (
+        "PREDICTED_MAP_INSTALL_HORIZON_EXCEEDED"
+    )
     PROCESSING_HORIZON_EXPIRED_AFTER_COMPUTE = (
         "PROCESSING_HORIZON_EXPIRED_AFTER_COMPUTE"
     )
@@ -88,12 +91,31 @@ class TwoStageConfig:
     queue_wait_budget_ns: int | None
     processing_horizon_ns: int = 500_000_000
     service_target_ns: int = 100_000_000
+    predicted_compute_ns: int | None = None
+    predicted_publication_ns: int = 0
+    predicted_post_publication_install_ns: int = 0
 
     def __post_init__(self) -> None:
         if self.queue_wait_budget_ns is not None:
             _require(self.queue_wait_budget_ns >= 0, "queue budget is invalid")
         _require(self.processing_horizon_ns > 0, "processing horizon is invalid")
         _require(self.service_target_ns > 0, "service target is invalid")
+        if self.predicted_compute_ns is not None:
+            _require(self.predicted_compute_ns > 0, "compute prediction is invalid")
+            _require(
+                self.predicted_publication_ns >= 0,
+                "publication prediction is invalid",
+            )
+            _require(
+                self.predicted_post_publication_install_ns >= 0,
+                "install-delay prediction is invalid",
+            )
+        else:
+            _require(
+                self.predicted_publication_ns == 0
+                and self.predicted_post_publication_install_ns == 0,
+                "downstream predictions require a compute prediction",
+            )
 
 
 @dataclass(frozen=True)
@@ -207,6 +229,15 @@ class TwoStageResult:
             ),
             "processing_horizon_ms": self.config.processing_horizon_ns / 1e6,
             "service_target_ms": self.config.service_target_ns / 1e6,
+            "predicted_compute_ms": (
+                None
+                if self.config.predicted_compute_ns is None
+                else self.config.predicted_compute_ns / 1e6
+            ),
+            "predicted_publication_ms": self.config.predicted_publication_ns / 1e6,
+            "predicted_post_publication_install_ms": (
+                self.config.predicted_post_publication_install_ns / 1e6
+            ),
             "reason_counts": by_reason,
             "edge_results_published": len(published),
             "ack_installed_frames": len(installed),
@@ -374,6 +405,28 @@ def simulate_two_stage(
                     at_ns,
                 )
                 continue
+            if config.predicted_compute_ns is not None:
+                predicted_compute_finish = at_ns + config.predicted_compute_ns
+                publication_available = (
+                    at_ns
+                    if active_publication is None
+                    else active_publication[4]
+                )
+                predicted_publication_start = max(
+                    predicted_compute_finish, publication_available
+                )
+                predicted_install = (
+                    predicted_publication_start
+                    + config.predicted_publication_ns
+                    + config.predicted_post_publication_install_ns
+                )
+                if predicted_install - item.capture_ns > config.processing_horizon_ns:
+                    terminal(
+                        item,
+                        TwoStageReason.PREDICTED_MAP_INSTALL_HORIZON_EXCEEDED,
+                        at_ns,
+                    )
+                    continue
             active_compute = (item, at_ns, at_ns + item.compute_ns)
 
     def enqueue_publication(

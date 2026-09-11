@@ -119,6 +119,26 @@ The completed 288-cell campaign remains the authoritative original runtime
 surface. Counterfactual scheduling results must be labelled as simulation and
 must not overwrite measured cell records.
 
+## Predicted-usefulness candidate
+
+The fixed 25 ms pre-compute expiry has a known weak point: it discards the only
+pending frame solely because it waited longer than 25 ms, even when no fresher
+frame exists and that update can still be installed inside the registered
+500 ms processing horizon. `evaluate_predicted_horizon.py` tests an additive,
+causal alternative over the same reconstructed 288 cells. It keeps the
+depth-one latest-only slot, but admits the pending frame when a frozen
+family-level compute/publication estimate plus a profile-level install-delay
+estimate predicts a useful installation within 500 ms. It never uses the
+current frame's realized future service time.
+
+The offline comparison increased useful newer-map installations from 425,022
+to 504,199 and installed/sent from 0.4786 to 0.5753. The tradeoff was a higher
+median install AoI (278.8 to 298.1 ms) and time-weighted map AoI (377.0 to
+382.1 ms). This establishes a policy tradeoff rather than a production winner:
+the predicted policy must be tested live, and its prediction should eventually
+use a causal EWMA with the frozen medians as fallback. The 100 ms target remains
+a separately reported service target; it is not silently changed to 500 ms.
+
 ## Two-stage execution candidate
 
 `pipeline.py` implements the bounded concurrency primitive selected by the
