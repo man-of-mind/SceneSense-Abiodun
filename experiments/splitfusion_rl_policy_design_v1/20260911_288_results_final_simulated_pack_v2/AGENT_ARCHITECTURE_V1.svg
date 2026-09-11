@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="720" viewBox="0 0 1500 720" role="img" aria-labelledby="title desc">
+  <title id="title">Split-only recurrent PPO architecture</title>
+  <desc id="desc">Causal observations pass through an encoder and LSTM to policy, value, cost, and next-SNR forecast heads. The split action affects the environment, which returns map utility, freshness, and resource costs.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#333"/></marker>
+    <style>
+      .box { stroke-width: 3; rx: 18; ry: 18; }
+      .title { font: 700 25px sans-serif; }
+      .body { font: 19px sans-serif; fill: #202124; }
+      .head { font: 700 34px sans-serif; fill: #111; }
+      .note { font: 700 19px sans-serif; fill: #8b1e3f; }
+      .arrow { stroke: #333; stroke-width: 3; fill: none; marker-end: url(#arrow); }
+    </style>
+  </defs>
+  <rect width="1500" height="720" fill="white"/>
+  <text x="750" y="48" text-anchor="middle" class="head">Split-only recurrent PPO architecture</text>
+  <text x="750" y="79" text-anchor="middle" class="note">Future SNR and current-frame outcomes are never policy inputs</text>
+
+  <rect x="30" y="220" width="255" height="245" class="box" fill="#3366cc18" stroke="#3366cc"/>
+  <text x="157" y="260" text-anchor="middle" class="title" fill="#3366cc">Causal observation</text>
+  <text x="157" y="306" text-anchor="middle" class="body"><tspan x="157">SNR / MCS / throughput</tspan><tspan x="157" dy="30">map AoI + object risk</tspan><tspan x="157" dy="30">recent terminal outcomes</tspan><tspan x="157" dy="30">previous action + costs</tspan></text>
+
+  <rect x="350" y="260" width="190" height="165" class="box" fill="#7a519518" stroke="#7a5195"/>
+  <text x="445" y="300" text-anchor="middle" class="title" fill="#7a5195">Encoder</text>
+  <text x="445" y="340" text-anchor="middle" class="body"><tspan x="445">availability flags</tspan><tspan x="445" dy="29">LayerNorm + MLP</tspan></text>
+
+  <rect x="610" y="245" width="220" height="195" class="box" fill="#ef567518" stroke="#ef5675"/>
+  <text x="720" y="287" text-anchor="middle" class="title" fill="#ef5675">LSTM memory</text>
+  <text x="720" y="335" text-anchor="middle" class="body"><tspan x="720">history state (hₜ,cₜ)</tspan><tspan x="720" dy="30">channel dynamics</tspan><tspan x="720" dy="30">partial observability</tspan></text>
+
+  <rect x="900" y="105" width="215" height="100" class="box" fill="#2a9d8f18" stroke="#2a9d8f"/>
+  <text x="1007" y="143" text-anchor="middle" class="title" fill="#2a9d8f">Policy head</text><text x="1007" y="177" text-anchor="middle" class="body">72 action logits</text>
+  <rect x="900" y="235" width="215" height="100" class="box" fill="#4c78a818" stroke="#4c78a8"/>
+  <text x="1007" y="273" text-anchor="middle" class="title" fill="#4c78a8">Value head</text><text x="1007" y="307" text-anchor="middle" class="body">expected return</text>
+  <rect x="900" y="365" width="215" height="100" class="box" fill="#f5851818" stroke="#f58518"/>
+  <text x="1007" y="403" text-anchor="middle" class="title" fill="#f58518">Cost critics</text><text x="1007" y="437" text-anchor="middle" class="body">bytes / compute / switch</text>
+  <rect x="900" y="495" width="215" height="100" class="box" fill="#54a24b18" stroke="#54a24b"/>
+  <text x="1007" y="533" text-anchor="middle" class="title" fill="#54a24b">Forecast head</text><text x="1007" y="567" text-anchor="middle" class="body">next-SNR auxiliary loss</text>
+
+  <rect x="1210" y="150" width="255" height="135" class="box" fill="#26465318" stroke="#264653"/>
+  <text x="1337" y="190" text-anchor="middle" class="title" fill="#264653">Split action</text>
+  <text x="1337" y="230" text-anchor="middle" class="body"><tspan x="1337">family + quantizer + q</tspan><tspan x="1337" dy="30">aₜ ∈ {0,…,71}</tspan></text>
+  <rect x="1190" y="405" width="275" height="175" class="box" fill="#8c564b18" stroke="#8c564b"/>
+  <text x="1327" y="445" text-anchor="middle" class="title" fill="#8c564b">Environment feedback</text>
+  <text x="1327" y="488" text-anchor="middle" class="body"><tspan x="1327">installed-map utility</tspan><tspan x="1327" dy="30">AoI / terminal outcome</tspan><tspan x="1327" dy="30">bytes + compute charged</tspan></text>
+
+  <path d="M285,342 L350,342" class="arrow"/>
+  <path d="M540,342 L610,342" class="arrow"/>
+  <path d="M830,330 C860,250 865,155 900,155" class="arrow"/>
+  <path d="M830,335 L900,285" class="arrow"/>
+  <path d="M830,350 L900,415" class="arrow"/>
+  <path d="M830,365 C860,465 865,545 900,545" class="arrow"/>
+  <path d="M1115,155 L1210,205" class="arrow"/>
+  <path d="M1337,285 L1337,405" class="arrow"/>
+  <path d="M1190,500 C1050,675 720,675 720,440" class="arrow"/>
+  <text x="1162" y="152" class="body">masked sample</text>
+  <text x="850" y="670" class="body">next observation + reward</text>
+</svg>
