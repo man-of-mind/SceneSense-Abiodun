@@ -1,0 +1,148 @@
+{
+  "artifacts": {
+    "01_payload_vs_validation_quality.pdf": {
+      "bytes": 109531,
+      "sha256": "7e9bd561588df18e6b2c8a0f05f7c172c3b4241e832bb8788c2134a305e4f745"
+    },
+    "01_payload_vs_validation_quality.png": {
+      "bytes": 793938,
+      "sha256": "6206bc889fb8cc22703420822975893899d9bf1da6fb651d064db0586019e7ad"
+    },
+    "02_payload_vs_localization_quality.pdf": {
+      "bytes": 136469,
+      "sha256": "718771763d5c6380425cd820f466729a292ccbef657755f660be3cbb7132561a"
+    },
+    "02_payload_vs_localization_quality.png": {
+      "bytes": 1091444,
+      "sha256": "84a1d6c4f148e11d4525575f1dfe57bbf69078f0ed0f7c8278ed53d0521c03aa"
+    },
+    "03_q_sweep_payload_and_person_quality.pdf": {
+      "bytes": 32418,
+      "sha256": "5ff0cdcbf1ee6acc7df5dcd40bb942728ebd285bada105c6cbfed1b5808a9fa1"
+    },
+    "03_q_sweep_payload_and_person_quality.png": {
+      "bytes": 586971,
+      "sha256": "8201d217ae34efc6e885803d5f6c72a894a2038adfbe2d35e1544f189267cc73"
+    },
+    "04_payload_vs_map_install_rate.pdf": {
+      "bytes": 48684,
+      "sha256": "06f80dc744a265814a95ee1883b7e5a5d766e0aa62a35638abb18981ead4e54a"
+    },
+    "04_payload_vs_map_install_rate.png": {
+      "bytes": 331544,
+      "sha256": "94e452b511ce7c203f495abbe111cb400cfdcc98484c22c114afcb8a5d909e4d"
+    },
+    "05_payload_vs_feature_delivery.pdf": {
+      "bytes": 33769,
+      "sha256": "d58839ada13fda6dbd14c5e037bd09d98d4f70d065d0ecd139e39c9d7eedebbe"
+    },
+    "05_payload_vs_feature_delivery.png": {
+      "bytes": 285341,
+      "sha256": "37baefdf602a95c37e31f2abaa8b4b9cf8e86e45dcebc1d41eae6b4c615b99e0"
+    },
+    "06_action_network_map_install_heatmap.pdf": {
+      "bytes": 37850,
+      "sha256": "372e6956d15fc32e11a400635e99cf77a5ae61e3fc0140b1487ce30deffbd94a"
+    },
+    "06_action_network_map_install_heatmap.png": {
+      "bytes": 216055,
+      "sha256": "ad548a061a4f4cfd06a3e5e43f4a4e432df6cf360ee094eb3e77e97cc7f8ef0e"
+    },
+    "07_network_profile_summary.pdf": {
+      "bytes": 17769,
+      "sha256": "166b17235de35637054a1d1c48d0e04cb4ae5b6e127b4f6f779211ac38bae5f7"
+    },
+    "07_network_profile_summary.png": {
+      "bytes": 180934,
+      "sha256": "ebc90b6da46ef5b5e5f7dbf7e987e8831b21103dbf64138a735c10cf6b55c0ca"
+    },
+    "08_payload_vs_total_installed_map_aoi.pdf": {
+      "bytes": 47238,
+      "sha256": "276e564678ec9037adea9085f188b563ab876feb7b3be744650b36acea5a38ba"
+    },
+    "08_payload_vs_total_installed_map_aoi.png": {
+      "bytes": 364482,
+      "sha256": "1d0488f6e7ad5ede98c3e64df8d89eed5d604bd02bb96814dbf253e4f6aff396"
+    },
+    "09_original_four_action_latency_breakdown.pdf": {
+      "bytes": 33088,
+      "sha256": "9d6966f03e74d92c5d90365abf713c77b5360803d11b674a68116853f00815b7"
+    },
+    "09_original_four_action_latency_breakdown.png": {
+      "bytes": 206489,
+      "sha256": "6c456a19dbbd94948288177847140c4bb3e606d45c7505bfd37e743db7c269dd"
+    },
+    "10_edge_optimization_before_after.pdf": {
+      "bytes": 24497,
+      "sha256": "50a87ce1d246e288c589623e23bb35be927cc49dd5f22a9b02603c9267ec2688"
+    },
+    "10_edge_optimization_before_after.png": {
+      "bytes": 150244,
+      "sha256": "94da63d1edc5d545e7d539ee88f3adc733604d130a3a513ffa2fcdcbcb7bc3ef"
+    },
+    "REWARD_PARAMETER_DICTIONARY.md": {
+      "bytes": 2514,
+      "sha256": "11e0f86c41c3e708608cba156b072917cb6ddeb911f9c91b01c6364ced3ea2b7"
+    },
+    "TALKING_POINTS.md": {
+      "bytes": 3225,
+      "sha256": "eb603f126bbaa7da9d6bdf8eab28063ab553b4d528ffdff8545fda30c2a728d0"
+    },
+    "agent_architecture.pdf": {
+      "bytes": 34657,
+      "sha256": "22d952d6b23011f051232c668d722d28b07a3563a8711e026c608aca8a0778bb"
+    },
+    "agent_architecture.png": {
+      "bytes": 332096,
+      "sha256": "aecb13f3ef0b30f321c756b3c3747450592fc808d5e9c53e8cc85324fd5e1fd9"
+    },
+    "edge_optimization_summary.csv": {
+      "bytes": 379,
+      "sha256": "d0c40010a3d241a08e5c823d89eac140d2208afd12ce511534745ea1394a08dd"
+    },
+    "network_profile_summary.csv": {
+      "bytes": 317,
+      "sha256": "b9bd9954924be845b88c040a1638f35691f1c83f65310a0811be85f76461af77"
+    },
+    "simulated_action_profile_summary.csv": {
+      "bytes": 35312,
+      "sha256": "83e81bb90b4005f5de94c9172ff56bcd6642e045cbf9e566d26b6c444458d59c"
+    }
+  },
+  "presentation_rules": [
+    "VALIDATION_QUALITY_IS_NETWORK_INDEPENDENT_AND_FROZEN",
+    "PROFILE_FACETS_ENCODE_SIMULATED_INSTALL_PROBABILITY_BY_MARKER_SIZE",
+    "MEASURED_TRANSPORT_AND_REASSEMBLY_ARE_UNCHANGED",
+    "FIGURES_04_06_07_08_USE_FINAL_EDGE_COUNTERFACTUAL",
+    "FIGURES_03_05_09_RETAIN_MEASURED_ORIGINAL_VALUES",
+    "FIGURE_08_HAS_NO_100MS_REFERENCE_LINE",
+    "FIGURE_10_HAS_NO_INTERMEDIATE_OPTIMIZATION_VARIANTS",
+    "NOAE_FINAL_TARGET_IS_LIVE_VALID_V2_NOT_FAILED_V3"
+  ],
+  "row_counts": {
+    "action_profiles": 288,
+    "actions": 72,
+    "simulated_cells": 288
+  },
+  "schema": "scenesense.splitfusion.final_simulated_presentation_pack.v1",
+  "simulation_status": "COUNTERFACTUAL_MODEL_NOT_LIVE_REMEASUREMENT",
+  "source_paths": {
+    "action": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_288_offline_rl_dataset_v1/20260909_offline_consolidation_v1/action_72_summary.csv",
+    "action_profile": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_288_offline_rl_dataset_v1/20260909_offline_consolidation_v1/action_72x4_summary.csv",
+    "baseline_timing": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_timing_diagnostic_v1/20260909_live_carla_actions30_15_50_71_retry3/action_summary.csv",
+    "cell": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_288_offline_rl_dataset_v1/20260909_offline_consolidation_v1/campaign_288_cell_table.csv",
+    "sim_cells": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_edge_freshness_scheduler_v1/20260911_final_v3_predicted_horizon_288/final_v3_288_cell_summary.csv",
+    "sim_manifest": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_edge_freshness_scheduler_v1/20260911_final_v3_predicted_horizon_288/artifact_manifest.json",
+    "sim_result": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_edge_freshness_scheduler_v1/20260911_final_v3_predicted_horizon_288/counterfactual_results.json"
+  },
+  "source_sha256": {
+    "action": "250eb6d9391c0de5a343d692484647bbdb181153ba64f7f4a447b0076f580a88",
+    "action_profile": "280b372ed8b6a52bb3e5f1f69e6cbdc02dc851a6a597565fcab9ca9652f5998e",
+    "baseline_timing": "7b4113f721dfdebc92df5c6fc110c359c779fc14d9d87cfa65cf59c07bf58176",
+    "cell": "3f3067d4c9d0ef3c0d2661c3d19d04306bcbd18ef6d21fa426148e0ee24d2e0d",
+    "sim_cells": "a39b5f03a9282176616f2b99b03972deedeec46a026a0e268d58ea621097ba1c",
+    "sim_manifest": "a0f8705833a64000d272fa2e1f81e06263856ccc0cb5930cdacd0c65580ac981",
+    "sim_result": "2dff447678c8e265d175d7e8335bcf9f0e6492e28d296e0f207c5f32a33a81ba"
+  },
+  "status": "COMPLETE"
+}

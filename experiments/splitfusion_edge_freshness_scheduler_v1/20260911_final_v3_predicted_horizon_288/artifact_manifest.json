@@ -1,0 +1,9 @@
+{
+  "schema": "scenesense.splitfusion.final_v3_predicted_horizon_288.v1.artifacts",
+  "sha256": {
+    "REPORT.md": "963c58949a20b1d3ba0b7ff79dd1fba806dae8c24773e1d6817b0f8e0ff97136",
+    "counterfactual_results.json": "2dff447678c8e265d175d7e8335bcf9f0e6492e28d296e0f207c5f32a33a81ba",
+    "final_v3_288_cell_summary.csv": "a39b5f03a9282176616f2b99b03972deedeec46a026a0e268d58ea621097ba1c"
+  },
+  "status": "COMPLETE"
+}
