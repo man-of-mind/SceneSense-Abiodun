@@ -34,7 +34,7 @@ SIMULATION = ROOT / (
 )
 DEFAULT_OUTPUT = ROOT / (
     "experiments/splitfusion_rl_policy_design_v1/"
-    "20260911_288_results_final_simulated_pack_v3"
+    "20260911_288_results_final_simulated_pack_v4"
 )
 FINAL_TIMING_PATHS = {
     30: ROOT / (
@@ -275,6 +275,44 @@ def plot_sim_install(frame: pd.DataFrame, output: Path) -> None:
     base.family_quant_legend(axes.flat[0])
     fig.suptitle("Final-edge simulated map installation by network profile", fontsize=15, fontweight="bold")
     base.save(fig, output, "04_payload_vs_map_install_rate")
+
+
+def plot_feature_delivery_facets(frame: pd.DataFrame, output: Path) -> None:
+    figures = (
+        (
+            "complete_message_rate",
+            "Complete feature messages / sent frames",
+            "Complete application-message reassembly by network profile",
+            "05a_payload_vs_complete_message_reassembly",
+        ),
+        (
+            "datagram_receive_fraction",
+            "UDP datagrams received / UDP datagrams sent",
+            "UDP datagram reception by network profile (no retransmission)",
+            "05b_payload_vs_udp_datagram_reception",
+        ),
+    )
+    for metric, ylabel, title, stem in figures:
+        fig, axes = plt.subplots(2, 2, figsize=(14.4, 10.0))
+        fig.subplots_adjust(
+            left=0.07,
+            right=0.99,
+            top=0.88,
+            bottom=0.15,
+            hspace=0.31,
+            wspace=0.16,
+        )
+        for axis, network in zip(axes.flat, base.NETWORKS):
+            part = frame[frame["network_profile"] == network]
+            base.scatter_actions(axis, part, "payload_kib", metric, annotate=False)
+            base.payload_axis(axis)
+            axis.set_ylim(-0.025, 1.03)
+            axis.set_yticks(np.arange(0.0, 1.01, 0.2))
+            axis.set_ylabel(ylabel)
+            axis.set_title(base.NETWORK_LABELS[network])
+        _figure_legend(fig, 0.005)
+        fig.suptitle(title, fontsize=15, fontweight="bold", y=0.97)
+        base.save(fig, output, stem)
 
 
 def _sim_action_table(frame: pd.DataFrame) -> pd.DataFrame:
@@ -587,11 +625,14 @@ rates are {', '.join(f"{base.NETWORK_LABELS[row.network_profile]} {row.simulated
 The numerator is an authoritative simulated map installation; the denominator
 is every measured UE-sent feature.
 
-## Figure 05
+## Figures 05a–05b
 
-Unchanged measured radio evidence. UDP does not retransmit. Datagram reception
-means datagrams observed at the edge divided by datagrams sent; complete
-reassembly requires every fragment of a feature message.
+Unchanged measured radio evidence, now separated into four network-profile
+subplots so coincident points cannot hide one another. Figure 05a reports
+complete application-message reassembly; Figure 05b reports UDP datagram
+reception. UDP does not retransmit. Complete reassembly requires every fragment
+of a feature message. At small payloads all profiles approach 100%, so similar
+patterns across the four panels are a measured result rather than overplotting.
 
 ## Figures 06–07
 
@@ -661,7 +702,7 @@ def run(output: Path) -> dict:
     base.plot_q_sweep(action, output)
     plot_sim_install(frame, output)
     feature = base.feature_delivery_table(action_profile, cell)
-    base.plot_feature_delivery(feature, output)
+    plot_feature_delivery_facets(feature, output)
     base.plot_heatmap(_sim_action_table(frame), output)
     network = sim_network_summary(frame)
     plot_sim_network(network, output)
@@ -700,7 +741,7 @@ def run(output: Path) -> dict:
         if path.is_file() and path.name != "artifact_manifest.json"
     }
     manifest = {
-        "schema": "scenesense.splitfusion.final_simulated_presentation_pack.v3",
+        "schema": "scenesense.splitfusion.final_simulated_presentation_pack.v4",
         "status": "COMPLETE",
         "source_paths": {name: str(path) for name, path in paths.items()},
         "source_sha256": {name: base.sha256_file(path) for name, path in paths.items()},
@@ -709,6 +750,7 @@ def run(output: Path) -> dict:
         "presentation_rules": [
             "VALIDATION_QUALITY_IS_NETWORK_INDEPENDENT_AND_FROZEN",
             "FIGURES_01_02_USE_UNIFORM_ACTION_MARKERS_WITH_NO_SIMULATION_ENCODING",
+            "FIGURES_05A_05B_FACET_NETWORK_PROFILES_WITHOUT_OVERPLOT",
             "MEASURED_TRANSPORT_AND_REASSEMBLY_ARE_UNCHANGED",
             "FIGURES_04_06_07_08_USE_FINAL_EDGE_COUNTERFACTUAL",
             "FIGURES_03_05_09_RETAIN_MEASURED_ORIGINAL_VALUES",

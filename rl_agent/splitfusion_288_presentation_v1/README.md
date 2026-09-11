@@ -29,7 +29,9 @@ four panels each), while keeping their frozen action-level values unchanged.
 Every action has the same marker size in Figures 01–02; simulated installation
 probability is deliberately not mixed into the measured-quality figures.
 Figures 04, 06, 07 and 08 use the counterfactual final-edge result; Figures 03,
-05 and 09 retain the applicable measured evidence. Figure 10 uses the same
-eight stages and colors as Figure 09 and pairs the original and final paths.
+05a, 05b and 09 retain the applicable measured evidence. Figures 05a and 05b
+use four network-profile subplots so coincident delivery points cannot cover
+one another. Figure 10 uses the same eight stages and colors as Figure 09 and
+pairs the original and final paths.
 The self-contained architecture document embeds a portable SVG followed by
 its Mermaid source, matching the LR-ASPP/FCOS report convention.

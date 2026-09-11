@@ -293,7 +293,16 @@ def plot_install_rate(action_profile: pd.DataFrame, output: Path) -> None:
 
 
 def feature_delivery_table(action_profile: pd.DataFrame, cell: pd.DataFrame) -> pd.DataFrame:
-    frame = action_profile[["cell_id", "action_id", "network_profile", "live_scientific_inner_bytes_median"]].merge(
+    frame = action_profile[
+        [
+            "cell_id",
+            "action_id",
+            "network_profile",
+            "family",
+            "quantizer",
+            "live_scientific_inner_bytes_median",
+        ]
+    ].merge(
         cell[["cell_id", "frames_sent", "edge_complete_reassemblies", "edge_feature_datagrams_received", "ue_feature_datagrams_transmitted"]],
         on="cell_id",
         validate="one_to_one",
