@@ -1,0 +1,137 @@
+{
+  "action15_failure_sha256": "aca5a6eb5ea1e6e26156fd95ba739a4dd17a0f706c4075f27e415290a001c352",
+  "artifacts": {
+    "01_payload_vs_validation_quality.pdf": {
+      "bytes": 45291,
+      "sha256": "f985703ecc329b0c7609e2f762dc5ea5ec264dbaba2de5b57469656ec2e83614"
+    },
+    "01_payload_vs_validation_quality.png": {
+      "bytes": 264617,
+      "sha256": "a60c86feb155fa000ded9d304f57d9d80ec3b25c7708f90eda27083a01cb659f"
+    },
+    "02_payload_vs_localization_quality.pdf": {
+      "bytes": 51233,
+      "sha256": "291e5ce83abb5600e34584aab27fa0afac757b76a6a5cd58da0f1a8b42b6b600"
+    },
+    "02_payload_vs_localization_quality.png": {
+      "bytes": 386063,
+      "sha256": "fa6194d5cf2f2a3fbb07bd737da98f92f3786577e83a385295c90e0cb8067206"
+    },
+    "03_q_sweep_payload_and_person_quality.pdf": {
+      "bytes": 32418,
+      "sha256": "5ff0cdcbf1ee6acc7df5dcd40bb942728ebd285bada105c6cbfed1b5808a9fa1"
+    },
+    "03_q_sweep_payload_and_person_quality.png": {
+      "bytes": 586971,
+      "sha256": "8201d217ae34efc6e885803d5f6c72a894a2038adfbe2d35e1544f189267cc73"
+    },
+    "04_payload_vs_map_install_rate.pdf": {
+      "bytes": 48887,
+      "sha256": "996adbf4b523f5262023c0c5c0ea3052740850ae46faf02c7960dda1eb2e17fc"
+    },
+    "04_payload_vs_map_install_rate.png": {
+      "bytes": 352501,
+      "sha256": "565abd6a437e4b56dde8d88877157388b40c3f30cfaa684a3ede236e5a271d2a"
+    },
+    "05_payload_vs_feature_delivery.pdf": {
+      "bytes": 33769,
+      "sha256": "d58839ada13fda6dbd14c5e037bd09d98d4f70d065d0ecd139e39c9d7eedebbe"
+    },
+    "05_payload_vs_feature_delivery.png": {
+      "bytes": 285341,
+      "sha256": "37baefdf602a95c37e31f2abaa8b4b9cf8e86e45dcebc1d41eae6b4c615b99e0"
+    },
+    "06_action_network_map_install_heatmap.pdf": {
+      "bytes": 56792,
+      "sha256": "1bad74cf3a6302d131b7d01b84714cd146fdfb4dbfb1675a9ec3639e02f31aa5"
+    },
+    "06_action_network_map_install_heatmap.png": {
+      "bytes": 221698,
+      "sha256": "08f0929b5b8011ccdedad7446505cc5f6a7658ee9c1f0626e03dae7bff44ab66"
+    },
+    "07_network_profile_summary.pdf": {
+      "bytes": 17651,
+      "sha256": "e7dc6db3bda8531484aec0fc9cf0dfc8349d48ae4982fb262cd0122baf5992b4"
+    },
+    "07_network_profile_summary.png": {
+      "bytes": 180251,
+      "sha256": "855340ebcfcdaee745ce392ccc470341fc95aab27ec051c4046bc6dca812ea50"
+    },
+    "08_payload_vs_total_installed_map_aoi.pdf": {
+      "bytes": 47662,
+      "sha256": "18c7ed46cfce1e1cb95335f0f4bf7ac0086d060b2df4dcf049455ec4591f84ee"
+    },
+    "08_payload_vs_total_installed_map_aoi.png": {
+      "bytes": 357543,
+      "sha256": "7f1a94394067a57e0968b7cbdd0af576fc437e4b084269c6d0c9f37a4b4ee624"
+    },
+    "09_original_four_action_latency_breakdown.pdf": {
+      "bytes": 33088,
+      "sha256": "9d6966f03e74d92c5d90365abf713c77b5360803d11b674a68116853f00815b7"
+    },
+    "09_original_four_action_latency_breakdown.png": {
+      "bytes": 206489,
+      "sha256": "6c456a19dbbd94948288177847140c4bb3e606d45c7505bfd37e743db7c269dd"
+    },
+    "10_edge_optimization_before_after.pdf": {
+      "bytes": 30356,
+      "sha256": "7972f184f97436d515a7a2e5eaa1784c92ecae8fe86bd9f52816451a890106b9"
+    },
+    "10_edge_optimization_before_after.png": {
+      "bytes": 239162,
+      "sha256": "a0af7eeaf49abdd26fae517a6ab0b20ae9759eca1e28f67c816222c24fec3703"
+    },
+    "11_final_edge_service_v2_vs_v3.pdf": {
+      "bytes": 26663,
+      "sha256": "c8ea43ad55ab318b571cf85385abf0620c39f162e132f7341238a1bb7487eb14"
+    },
+    "11_final_edge_service_v2_vs_v3.png": {
+      "bytes": 175609,
+      "sha256": "10f18b373002b8e36ec8a24726c501088e9ce926b0e787789c152d4cb0163aa0"
+    },
+    "12_final_live_latency_intervals.pdf": {
+      "bytes": 26966,
+      "sha256": "a4afb030d6289cc27aee898eb703f0d06ced1d9626fc5e4d52c41567a2bcd5a8"
+    },
+    "12_final_live_latency_intervals.png": {
+      "bytes": 205493,
+      "sha256": "fb5cf208bdaddde37854dfdc90f21aad5bc48ab1c811171616efcd45f9f375c0"
+    },
+    "TALKING_POINTS.md": {
+      "bytes": 13028,
+      "sha256": "05f01d0d84233cd01f5e3df9d9e5e1ccf4c46bffcd4eff8a5959901fdd8490a9"
+    },
+    "edge_optimization_summary.csv": {
+      "bytes": 1019,
+      "sha256": "990357a731af0df155fdcfb93369c285ec86d22b2b84d5244c61fe3093affbac"
+    },
+    "final_edge_v2_v3_summary.csv": {
+      "bytes": 693,
+      "sha256": "cad941b388cb483f403dafe2e12d1dcf4b7c96fa61f9b131a5c1e4aa610dbc9b"
+    },
+    "network_profile_summary.csv": {
+      "bytes": 494,
+      "sha256": "9d7db7517495dcc19528e63ebd0c1e3360ee1e131b01624f8494063b89256964"
+    }
+  },
+  "base_manifest_sha256": "67a9cfa1cb787d37bb49c5eb01ec7e173be138c7a222f053145a0e704b2ae00e",
+  "final_live_contract": {
+    "actions": [
+      30,
+      50,
+      71
+    ],
+    "claims_100ms_service_ready": false,
+    "frames_per_cell": 300,
+    "network_profile": "FAVORABLE_STABLE",
+    "run_to_run_variance_characterized": false,
+    "variants": [
+      "V2_PREDICTED_INSTALL_HORIZON",
+      "V3_OVERLAPPED_FINAL"
+    ]
+  },
+  "live_manifest_sha256": "96fffa9d0f821af6fea571425f8190d482651d294d4354beaac0ca04057c675d",
+  "live_result_sha256": "61b02a53cd74959dc21896bb1b8ba0f67661507419e8c327235e319ba07adc45",
+  "schema": "scenesense.splitfusion.288_results_presentation_pack.v3",
+  "status": "COMPLETE"
+}

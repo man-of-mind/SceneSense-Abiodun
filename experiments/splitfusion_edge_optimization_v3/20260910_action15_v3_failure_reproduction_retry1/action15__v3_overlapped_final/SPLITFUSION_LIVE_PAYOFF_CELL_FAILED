@@ -1,0 +1,7 @@
+{
+  "actions": [],
+  "failure": "DiagnosticError: the instrumented edge exited during capture: {\"failures\": [\"pipeline offer: ValueError: pipeline is not accepting work\", \"pipeline drain: PipelineWorkerError: pipeline worker failed\"], \"pipeline_fatal_error\": \"RuntimeError: v3 camera-aware postprocess output contains non-finite values\", \"pipeline_terminal_reason_counts\": {\"PREDICTED_MAP_INSTALL_HORIZON_EXCEEDED\": 1, \"PROCESSING_FAILED\": 1, \"RESULT_PUBLISHED\": 66}, \"terminal_reason\": \"STOP_REQUESTED\"}",
+  "finished_utc": "2026-09-11T04:07:01.159123+00:00",
+  "run_id": "action15__v3_overlapped_final",
+  "terminal": "SPLITFUSION_LIVE_PAYOFF_CELL_FAILED"
+}

@@ -418,7 +418,9 @@ def main() -> int:
     with (output / "final_edge_v2_v3_summary.csv").open(
         "w", encoding="utf-8", newline=""
     ) as handle:
-        writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
+        writer = csv.DictWriter(
+            handle, fieldnames=list(rows[0]), lineterminator="\n"
+        )
         writer.writeheader()
         writer.writerows(rows)
     base_talking = (base / "TALKING_POINTS.md").read_text(encoding="utf-8")
