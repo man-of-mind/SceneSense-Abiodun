@@ -19,16 +19,24 @@
   },
   "component_boundaries": {
     "edge_map": "complete edge reassembly to direct spatial-map install",
+    "edge_queue": "complete edge reassembly to compute start plus compute finish to publication start",
+    "map_install": "direct publication-to-spatial-map install from live direct family anchor",
+    "model_tail": "pure decode_tail CUDA duration from final live family anchor",
     "network": "ue_prepare_finished_ns to complete edge reassembly",
     "physical_map_aoi_excludes_controller_feedback": true,
     "pure_front": "front_timing_ns.front_backbone only",
+    "tail_support": "optimized total edge processing minus pure decode_tail CUDA, from final live family anchor",
     "total": "capture_started_ns to direct spatial-map install",
     "ue_action": "capture_started_ns to ue_prepare_finished_ns"
   },
   "denominators": {
     "edge_map": "useful direct-map installations",
+    "edge_queue": "useful direct-map installations",
+    "map_install": "live direct-map family-anchor samples; repeated as a marginal for each family action/profile",
+    "model_tail": "final live family-anchor samples; repeated as a marginal for each family action/profile",
     "network": "frames with retained observed complete edge receipt",
     "pure_front": "all sent frames",
+    "tail_support": "final live family-anchor samples; repeated as a marginal for each family action/profile",
     "total": "useful direct-map installations",
     "ue_action": "all sent frames"
   },
@@ -135,16 +143,54 @@
     "results_sha256": "34f47f48594e1fab398ddb136d809e848a6304a202f77bb35862868afdcb651a",
     "validation_root": "experiments/splitfusion_direct_edge_map_v1/20260914_live_validation_retry1"
   },
+  "direct_map_stage_calibration": {
+    "definition": "measured install_latency_from_publish_ms on the live direct container-to-host map path",
+    "per_family_files": {
+      "AE128": [
+        {
+          "path": "experiments/splitfusion_direct_edge_map_v1/20260914_live_validation_retry1/cells/a30__favorable_stable/attempts/attempt_0002/direct_edge_map/direct_map_ingest.csv",
+          "samples": 999,
+          "sha256": "d8f7732804e4c90d2bd6c574d491ad848ad3b46ed5ccdfa098c5ac64c92accd6"
+        }
+      ],
+      "AE32": [
+        {
+          "path": "experiments/splitfusion_direct_edge_map_v1/20260914_live_validation_retry1/cells/a71__favorable_stable/attempts/attempt_0001/direct_edge_map/direct_map_ingest.csv",
+          "samples": 1797,
+          "sha256": "4520a0b037086508f7f281a353c5cca76316bb949a0ea76bf1f53d53e675ef5c"
+        }
+      ],
+      "AE64": [
+        {
+          "path": "experiments/splitfusion_direct_edge_map_v1/20260914_live_validation_retry1/cells/a50__favorable_stable/attempts/attempt_0001/direct_edge_map/direct_map_ingest.csv",
+          "samples": 1738,
+          "sha256": "0d6b9f29de29d51637746c07451e467a1c746159d601473fa60ac10e1c49627e"
+        }
+      ],
+      "noAE": [
+        {
+          "path": "experiments/splitfusion_direct_edge_map_v1/20260914_live_validation_retry1/cells/a15__favorable_stable/attempts/attempt_0001/direct_edge_map/direct_map_ingest.csv",
+          "samples": 1274,
+          "sha256": "5c8a4fbbb2538b41642313f8d238836443f770b4541bafb9a666b9645b85e13d"
+        }
+      ]
+    }
+  },
   "imputed_arrivals_excluded_from_network_latency": true,
   "inventory": {
     "actions": 72,
     "cells": 288,
     "profiles": 4
   },
+  "latency_percentile_warning": "stage P50/P95/P99 values are marginal percentiles with stage-specific denominators and must not be added to reconstruct a total percentile",
   "observed_network_intervals": 344177,
   "quality": {
-    "combined_quality": "sqrt(segmentation_miou * localization_overlap)",
-    "localization_overlap": "sqrt(vehicle_iou * person_box_mask_iou)",
+    "centroid_rms_m": "sqrt((vehicle_xy_mae_m^2 + person_xy_mae_m^2) / 2)",
+    "centroid_score": "exp(-centroid_rms_m / 1 metre)",
+    "combined_quality": "sqrt(segmentation_miou * localization_quality)",
+    "distance_reference_m": 1.0,
+    "localization_quality": "sqrt(overlap * centroid_score)",
+    "overlap": "sqrt(vehicle_iou * person_box_mask_iou)",
     "role": "provisional presentation coordinate, not PPO reward"
   },
   "schema": "scenesense.splitfusion.supervisor_analysis.v1",
@@ -156,10 +202,60 @@
     "numerical_preparation": "radar and RGB preparation are sequential in one route-b-split-front worker"
   },
   "source_bindings": {
-    "builder_sha256": "cdff4f3816f071dce7bdde070c5b271087ccc7bd7cc28d313116a751889f3c18",
+    "builder_sha256": "2a567ec1f6d3c36d32d95b182885f6669bd3398e3d3693c7174e4afdfcd57366",
     "campaign_cell_table_sha256": "3f3067d4c9d0ef3c0d2661c3d19d04306bcbd18ef6d21fa426148e0ee24d2e0d",
     "direct_counterfactual_manifest_sha256": "b1fcb402762abfc8ecc32ab8141b1daa0d41f5e88e408514ad9c4a10aaf5a501",
     "direct_live_validation_manifest_sha256": "f8db2c5200fc27845f4585039b1736ccdef3c2ac670cb41bb31e24228c666db7"
   },
-  "status": "COMPLETE"
+  "status": "COMPLETE",
+  "tail_stage_calibration": {
+    "AE128": {
+      "anchor_action_id": 30,
+      "decomposition": "pure tail is decode_tail_cuda_ms; tail support is measured optimized total edge processing minus pure tail",
+      "per_frame_path": "experiments/splitfusion_edge_optimization_v3/20260910_live_v2_vs_v3_actions30_50_71_retry1/action30__v3_overlapped_final/per_frame/action_30_split_ae128_uint4_q0000.csv",
+      "per_frame_sha256": "5e0421cbe53fd4e96cca80a4d80f052af221701c8891dff449614d461f493ab4",
+      "pure_model_tail_p50_ms": 21.248319625854492,
+      "pure_model_tail_p95_ms": 24.753183364868164,
+      "samples": 137,
+      "tail_support_p50_ms": 44.46672583361817,
+      "tail_support_p95_ms": 77.01588790979004,
+      "variant": "OVERLAPPED_OUTPUT_PRESERVING_V3"
+    },
+    "AE32": {
+      "anchor_action_id": 71,
+      "decomposition": "pure tail is decode_tail_cuda_ms; tail support is measured optimized total edge processing minus pure tail",
+      "per_frame_path": "experiments/splitfusion_edge_optimization_v3/20260910_live_v2_vs_v3_actions30_50_71_retry1/action71__v3_overlapped_final/per_frame/action_71_split_ae32_uint4_q9800.csv",
+      "per_frame_sha256": "145635eef4a1178cd3976bf5f4740d25164d6741fb426c6cce5f50fb9a0dce0d",
+      "pure_model_tail_p50_ms": 20.86115264892578,
+      "pure_model_tail_p95_ms": 24.514368057250977,
+      "samples": 297,
+      "tail_support_p50_ms": 21.83377756201172,
+      "tail_support_p95_ms": 35.06559986169434,
+      "variant": "OVERLAPPED_OUTPUT_PRESERVING_V3"
+    },
+    "AE64": {
+      "anchor_action_id": 50,
+      "decomposition": "pure tail is decode_tail_cuda_ms; tail support is measured optimized total edge processing minus pure tail",
+      "per_frame_path": "experiments/splitfusion_edge_optimization_v3/20260910_live_v2_vs_v3_actions30_50_71_retry1/action50__v3_overlapped_final/per_frame/action_50_split_ae64_uint4_q5000.csv",
+      "per_frame_sha256": "963c86df551fd29bafab663ac046f5f5e59aa18bd9d22f7ecf38c5520410a5cd",
+      "pure_model_tail_p50_ms": 21.2508487701416,
+      "pure_model_tail_p95_ms": 25.162912368774414,
+      "samples": 283,
+      "tail_support_p50_ms": 30.758406036254883,
+      "tail_support_p95_ms": 59.163400802978515,
+      "variant": "OVERLAPPED_OUTPUT_PRESERVING_V3"
+    },
+    "noAE": {
+      "anchor_action_id": 15,
+      "decomposition": "pure tail is decode_tail_cuda_ms; tail support is measured optimized total edge processing minus pure tail",
+      "per_frame_path": "experiments/splitfusion_edge_optimization_v3/20260910_live_v2_vs_v3_actions30_15_50_71/action15__v2_predicted_install_horizon/per_frame/action_15_split_noae_uint4_q7000.csv",
+      "per_frame_sha256": "6e318d3c45c56f54b120dfad5fbd0ec556965ee8000b6640bd90738fbd423878",
+      "pure_model_tail_p50_ms": 21.574016571044922,
+      "pure_model_tail_p95_ms": 25.28816032409668,
+      "samples": 258,
+      "tail_support_p50_ms": 52.131537749755864,
+      "tail_support_p95_ms": 88.67443737109375,
+      "variant": "SYNCHRONIZATION_LIGHT_V2"
+    }
+  }
 }

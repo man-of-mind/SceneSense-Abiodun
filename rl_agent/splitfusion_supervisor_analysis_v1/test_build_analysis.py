@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import math
 from types import SimpleNamespace
 
 from rl_agent.splitfusion_supervisor_analysis_v1.build_analysis import (
@@ -14,15 +15,20 @@ from rl_agent.splitfusion_supervisor_analysis_v1.build_analysis import (
 
 
 def test_quality_is_conservative_geometric_mean() -> None:
-    localization, combined = quality_score(
+    overlap, centroid_rms_m, centroid_score, localization, combined = quality_score(
         {
             "val_segmentation_miou": 0.81,
             "val_vehicle_iou": 0.64,
             "val_person_box_mask_iou": 0.25,
+            "val_vehicle_xy_mae_m": 0.6,
+            "val_canonical_person_xy_mae_m": 0.8,
         }
     )
-    assert abs(localization - 0.4) < 1e-12
-    assert abs(combined - (0.81 * 0.4) ** 0.5) < 1e-12
+    assert abs(overlap - 0.4) < 1e-12
+    assert abs(centroid_rms_m - math.sqrt(0.5)) < 1e-12
+    assert abs(centroid_score - math.exp(-math.sqrt(0.5))) < 1e-12
+    assert abs(localization - math.sqrt(overlap * centroid_score)) < 1e-12
+    assert abs(combined - math.sqrt(0.81 * localization)) < 1e-12
 
 
 def test_percentile_is_nearest_rank() -> None:

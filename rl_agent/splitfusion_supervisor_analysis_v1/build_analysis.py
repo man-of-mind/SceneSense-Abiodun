@@ -69,7 +69,11 @@ STAGES = {
     "pure_front": "Model front backbone",
     "ue_action": "UE action path",
     "network": "Feature uplink",
-    "edge_map": "Edge-to-map service",
+    "edge_queue": "Edge scheduler wait",
+    "model_tail": "FCOS model tail",
+    "tail_support": "Tail support processing",
+    "map_install": "Direct map install",
+    "edge_map": "Complete edge-to-map service",
     "total": "Action-to-map total",
 }
 SCATTER_STAGES = ("pure_front", "network", "edge_map", "total")
@@ -149,13 +153,111 @@ def stats(values: Sequence[float], prefix: str) -> dict[str, Any]:
     }
 
 
-def quality_score(row: Mapping[str, Any]) -> tuple[float, float]:
+LOCALIZATION_DISTANCE_REFERENCE_M = 1.0
+
+
+def quality_score(row: Mapping[str, Any]) -> tuple[float, float, float, float, float]:
     segmentation = float(row["val_segmentation_miou"])
     vehicle_iou = float(row["val_vehicle_iou"])
     person_iou = float(row["val_person_box_mask_iou"])
-    localization = math.sqrt(max(0.0, vehicle_iou) * max(0.0, person_iou))
+    vehicle_xy_mae_m = float(row["val_vehicle_xy_mae_m"])
+    person_xy_mae_m = float(row["val_canonical_person_xy_mae_m"])
+    overlap = math.sqrt(max(0.0, vehicle_iou) * max(0.0, person_iou))
+    centroid_rms_m = math.sqrt(
+        (max(0.0, vehicle_xy_mae_m) ** 2 + max(0.0, person_xy_mae_m) ** 2)
+        / 2.0
+    )
+    centroid_score = math.exp(-centroid_rms_m / LOCALIZATION_DISTANCE_REFERENCE_M)
+    localization = math.sqrt(overlap * centroid_score)
     combined = math.sqrt(max(0.0, segmentation) * localization)
-    return localization, combined
+    return overlap, centroid_rms_m, centroid_score, localization, combined
+
+
+def load_tail_stage_samples() -> tuple[dict[str, dict[str, list[float]]], dict[str, Any]]:
+    """Load pure-tail and non-model service from live optimization anchors.
+
+    These are kept as independent measured marginals. They are not forced
+    through the counterfactual service distribution because doing so would
+    distort the measured pure-tail CUDA duration.
+    """
+
+    pools: dict[str, dict[str, list[float]]] = {}
+    provenance: dict[str, Any] = {}
+    for family, (action_id, target_root, variant) in final_v3.TARGETS.items():
+        files = sorted((target_root / "per_frame").glob(f"action_{action_id}_*.csv"))
+        require(len(files) == 1, f"{family}: expected one optimized per-frame file")
+        support_ms: list[float] = []
+        pure_tail_ms: list[float] = []
+        for row in read_csv(files[0]):
+            total_ms = finite(row.get("edge_total_edge_processing_ms"))
+            tail_ms = finite(row.get("decode_tail_cuda_ms"))
+            if total_ms is None or tail_ms is None or total_ms <= 0 or tail_ms < 0:
+                continue
+            require(tail_ms <= total_ms + 1e-9, f"{family}: pure tail exceeds edge service")
+            pure_tail_ms.append(tail_ms)
+            support_ms.append(max(0.0, total_ms - tail_ms))
+        require(bool(pure_tail_ms), f"{family}: no pure-tail calibration samples")
+        pools[family] = {
+            "model_tail_ms": pure_tail_ms,
+            "tail_support_ms": support_ms,
+        }
+        provenance[family] = {
+            "anchor_action_id": action_id,
+            "variant": variant,
+            "per_frame_path": str(files[0].relative_to(ROOT)),
+            "per_frame_sha256": sha256(files[0]),
+            "samples": len(pure_tail_ms),
+            "pure_model_tail_p50_ms": percentile(pure_tail_ms, 0.50),
+            "pure_model_tail_p95_ms": percentile(pure_tail_ms, 0.95),
+            "tail_support_p50_ms": percentile(support_ms, 0.50),
+            "tail_support_p95_ms": percentile(support_ms, 0.95),
+            "decomposition": (
+                "pure tail is decode_tail_cuda_ms; tail support is measured "
+                "optimized total edge processing minus pure tail"
+            ),
+        }
+    return pools, provenance
+
+
+def load_direct_map_stage_samples() -> tuple[dict[str, list[float]], dict[str, Any]]:
+    """Load measured direct publication-to-install durations by family."""
+
+    action_to_family = {
+        int(action_id): family
+        for family, (action_id, _target_root, _variant) in final_v3.TARGETS.items()
+    }
+    pools: dict[str, list[float]] = defaultdict(list)
+    files: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for path in sorted(LIVE_DIRECT_ROOT.rglob("direct_map_ingest.csv")):
+        rows = read_csv(path)
+        action_ids = {int(row["action_id"]) for row in rows if row.get("action_id")}
+        require(len(action_ids) == 1, f"mixed direct-map action identities: {path}")
+        family = action_to_family[next(iter(action_ids))]
+        accepted = 0
+        for row in rows:
+            publish_ms = finite(row.get("install_latency_from_publish_ms"))
+            tail_ms = finite(row.get("install_latency_from_tail_ms"))
+            if publish_ms is None or tail_ms is None or tail_ms <= 0:
+                continue
+            require(0 <= publish_ms <= tail_ms + 1e-9, f"invalid direct-map substage: {path}")
+            pools[family].append(publish_ms)
+            accepted += 1
+        require(accepted > 0, f"no direct-map substage samples: {path}")
+        files[family].append(
+            {
+                "path": str(path.relative_to(ROOT)),
+                "sha256": sha256(path),
+                "samples": accepted,
+            }
+        )
+    require(set(pools) == set(final_v3.TARGETS), "direct-map substage family coverage drift")
+    return dict(pools), {
+        "definition": (
+            "measured install_latency_from_publish_ms on the live direct "
+            "container-to-host map path"
+        ),
+        "per_family_files": dict(files),
+    }
 
 
 def useful_outcomes(result: Any) -> list[Any]:
@@ -323,8 +425,15 @@ def action_balanced_latency(rows: Sequence[Mapping[str, Any]]) -> list[dict[str,
 
 def plot_latency_bars(rows: Sequence[Mapping[str, Any]], output: Path) -> list[str]:
     configure_plot()
-    fig, axes = plt.subplots(2, 2, figsize=(14, 9.5), sharey=False)
-    components = ("pure_front", "network", "edge_map")
+    fig, axes = plt.subplots(2, 2, figsize=(16.5, 10.5), sharey=False)
+    components = (
+        "pure_front",
+        "network",
+        "edge_queue",
+        "model_tail",
+        "tail_support",
+        "map_install",
+    )
     colors = ("#4C78A8", "#F58518", "#54A24B")
     x = np.arange(len(components))
     width = 0.23
@@ -334,7 +443,17 @@ def plot_latency_bars(rows: Sequence[Mapping[str, Any]], output: Path) -> list[s
             heights = [float(selected[stage][f"action_balanced_p{suffix}_ms"]) for stage in components]
             bars = ax.bar(x + (offset - 1) * width, heights, width, color=colors[offset], label=f"P{suffix}")
             ax.bar_label(bars, fmt="%.1f", fontsize=7, padding=2, fontweight="bold")
-        ax.set_xticks(x, [STAGES[stage] for stage in components])
+        ax.set_xticks(
+            x,
+            (
+                "UE model\nfront",
+                "Feature\nuplink",
+                "Edge\nqueue",
+                "FCOS model\ntail",
+                "Tail support\nprocessing",
+                "Direct map\ninstall",
+            ),
+        )
         ax.set_ylabel("Latency (ms)")
         ax.set_title(PROFILE_LABEL[profile])
         ax.grid(axis="y", alpha=0.25)
@@ -350,7 +469,14 @@ def plot_latency_bars(rows: Sequence[Mapping[str, Any]], output: Path) -> list[s
         bbox_to_anchor=(0.5, 0.962),
         frameon=False,
     )
-    fig.tight_layout(rect=(0, 0, 1, 0.91))
+    fig.text(
+        0.5,
+        0.012,
+        "Marginal percentiles are not additive. Tail stages use final live optimization anchors; direct install uses live direct-map traces.",
+        ha="center",
+        fontsize=9,
+    )
+    fig.tight_layout(rect=(0, 0.035, 1, 0.91))
     name = "05_latency_percentiles_by_profile"
     save_figure(fig, output / name)
     return [name + ".png", name + ".pdf"]
@@ -453,7 +579,17 @@ def make_report(
         "|---|---|---:|---:|---:|---:|",
     ]
     for profile in PROFILE_ORDER:
-        for stage in ("pure_front", "ue_action", "network", "edge_map", "total"):
+        for stage in (
+            "pure_front",
+            "ue_action",
+            "network",
+            "edge_queue",
+            "model_tail",
+            "tail_support",
+            "map_install",
+            "edge_map",
+            "total",
+        ):
             row = by_stage[(profile, stage)]
             lines.append(
                 f"| {PROFILE_LABEL[profile]} | {STAGES[stage]} | "
@@ -466,6 +602,7 @@ def make_report(
         [
             "",
             "Percentile aggregation is action-balanced: each displayed value is the median of the corresponding per-action cell percentile. It is not a pooled-frame percentile dominated by high-throughput actions.",
+            "The stage percentiles are marginals with different conditional denominators and must not be added to reconstruct an end-to-end percentile. Pure tail, tail support and direct map installation use the relevant live family-anchor distributions; edge queue and complete edge-to-map service come from the 288-cell causal replay.",
             "",
             "## Sensor preparation boundary",
             "",
@@ -483,16 +620,23 @@ def make_report(
             "## Quality definition",
             "",
             "$$",
-            "Q_{\\mathrm{loc}}=\\sqrt{\\mathrm{IoU}_{\\mathrm{vehicle}}\\,\\mathrm{IoU}_{\\mathrm{person}}},",
+            "Q_{\\mathrm{overlap}}=\\sqrt{\\mathrm{IoU}_{\\mathrm{vehicle}}\\,\\mathrm{IoU}_{\\mathrm{person}}},",
             "\\qquad",
-            "Q_{\\mathrm{joint}}=\\sqrt{mIoU_{\\mathrm{seg}}\\,Q_{\\mathrm{loc}}}.",
+            "e_{xy}=\\sqrt{\\frac{e_{\\mathrm{vehicle}}^2+e_{\\mathrm{person}}^2}{2}},",
+            "\\qquad Q_{xy}=\\exp(-e_{xy}/1\\,\\mathrm{m}),",
             "$$",
             "",
-            "All terms are frozen validation metrics in $[0,1]$. The geometric mean is conservative: an action cannot appear strong merely because one quality dimension hides a weak one.",
+            "$$",
+            "Q_{\\mathrm{loc}}=\\sqrt{Q_{\\mathrm{overlap}}Q_{xy}},",
+            "\\qquad",
+            "Q_{\\mathrm{joint}}=\\sqrt{mIoU_{\\mathrm{seg}}Q_{\\mathrm{loc}}}.",
+            "$$",
+            "",
+            "The overlap terms measure spatial box/footprint agreement; they are not the semantic-segmentation mIoU. Centroid XY MAE is explicit through a smooth one-metre reference scale. The one-metre value normalizes the presentation coordinate and is not a correctness gate. The geometric means are conservative: one strong dimension cannot hide a weak one.",
             "",
             "## Figure guide",
             "",
-            "Figures 01–04 show all available action/profile points and label Pareto-frontier action IDs. Figure 05 gives the requested P50/P95/P99 bars for model front, feature uplink and edge-to-map service. Figure 06 exposes the retained sensor-preparation boundaries.",
+            "Figures 01–04 show all available action/profile points and label Pareto-frontier action IDs. Figure 05 gives the requested P50/P95/P99 decomposition into UE model front, observed feature uplink, edge scheduling, pure FCOS tail, non-model tail support, and direct map installation. Figure 06 exposes the retained sensor-preparation boundaries.",
         ]
     )
     return "\n".join(lines) + "\n"
@@ -511,6 +655,8 @@ def run(output: Path) -> dict[str, Any]:
     bridge_ns, bridge_audit, bridge_hashes = timing.collect_clock_bridge(cells)
     final_v3._verify_final_sources()
     calibration, publication_samples = final_v3._final_calibration()
+    tail_stage_samples, tail_stage_provenance = load_tail_stage_samples()
+    direct_map_stage_samples, direct_map_stage_provenance = load_direct_map_stage_samples()
     direct_samples, delay_provenance = direct.load_direct_delay_samples(LIVE_DIRECT_ROOT)
     pooling = direct.choose_pooling(direct_samples)
     quality = source._quality_by_action()
@@ -582,14 +728,32 @@ def run(output: Path) -> dict[str, Any]:
             network_ms.append(max(0.0, value))
         observed_network_intervals += len(network_ms)
         edge_map_ms: list[float] = []
+        edge_queue_ms: list[float] = []
+        model_tail_ms = tail_stage_samples[family]["model_tail_ms"]
+        tail_support_ms = tail_stage_samples[family]["tail_support_ms"]
+        map_install_ms = direct_map_stage_samples[family]
         total_ms: list[float] = []
         for item in useful_outcomes(result):
             edge_map_ms.append((int(item.install_ns) - int(item.frame.arrival_ns)) / 1e6)
+            require(
+                item.compute_start_ns is not None
+                and item.compute_finish_ns is not None
+                and item.publication_start_ns is not None
+                and item.publication_finish_ns is not None,
+                f"{cell['cell_id']}: useful install lacks stage timing",
+            )
+            compute_wait_ns = int(item.compute_start_ns) - int(item.frame.arrival_ns)
+            publication_wait_ns = int(item.publication_start_ns) - int(item.compute_finish_ns)
+            require(compute_wait_ns >= 0, f"{cell['cell_id']}: negative compute wait")
+            require(publication_wait_ns >= 0, f"{cell['cell_id']}: negative publication wait")
+            edge_queue_ms.append((compute_wait_ns + publication_wait_ns) / 1e6)
             row = sent[int(item.frame.sequence_id)]
             action_start_ns = int(row["capture_started_ns"]) + bridge_ns
             total_ms.append((int(item.install_ns) - action_start_ns) / 1e6)
 
-        qloc, qjoint = quality_score(quality[int(cell["action_id"])])
+        qoverlap, centroid_rms_m, qxy, qloc, qjoint = quality_score(
+            quality[int(cell["action_id"])]
+        )
         record: dict[str, Any] = {
             "cell_id": cell["cell_id"],
             "action_id": int(cell["action_id"]),
@@ -600,7 +764,10 @@ def run(output: Path) -> dict[str, Any]:
             "q": float(cell["q"]),
             "median_payload_bytes": percentile([float(row["payload_bytes"]) for row in sent], 0.50),
             **quality[int(cell["action_id"])],
-            "localization_overlap": qloc,
+            "localization_overlap": qoverlap,
+            "localization_centroid_rms_m": centroid_rms_m,
+            "localization_centroid_score": qxy,
+            "localization_quality": qloc,
             "combined_quality": qjoint,
             "rate_reassembled_per_sent": int(counters["measured_reassemblies"]) / len(sent),
             "rate_admitted_per_sent": int(counters["measured_edge_admissions"]) / len(sent),
@@ -609,6 +776,10 @@ def run(output: Path) -> dict[str, Any]:
             **stats(ue_action_ms, "ue_action"),
             **stats(pure_front_ms, "pure_front"),
             **stats(network_ms, "network"),
+            **stats(edge_queue_ms, "edge_queue"),
+            **stats(model_tail_ms, "model_tail"),
+            **stats(tail_support_ms, "tail_support"),
+            **stats(map_install_ms, "map_install"),
             **stats(edge_map_ms, "edge_map"),
             **stats(total_ms, "total"),
         }
@@ -657,19 +828,31 @@ def run(output: Path) -> dict[str, Any]:
                 "ue_action": "capture_started_ns to ue_prepare_finished_ns",
                 "pure_front": "front_timing_ns.front_backbone only",
                 "network": "ue_prepare_finished_ns to complete edge reassembly",
+                "edge_queue": "complete edge reassembly to compute start plus compute finish to publication start",
+                "model_tail": "pure decode_tail CUDA duration from final live family anchor",
+                "tail_support": "optimized total edge processing minus pure decode_tail CUDA, from final live family anchor",
+                "map_install": "direct publication-to-spatial-map install from live direct family anchor",
                 "edge_map": "complete edge reassembly to direct spatial-map install",
                 "total": "capture_started_ns to direct spatial-map install",
                 "physical_map_aoi_excludes_controller_feedback": True,
             },
             "quality": {
-                "localization_overlap": "sqrt(vehicle_iou * person_box_mask_iou)",
-                "combined_quality": "sqrt(segmentation_miou * localization_overlap)",
+                "overlap": "sqrt(vehicle_iou * person_box_mask_iou)",
+                "centroid_rms_m": "sqrt((vehicle_xy_mae_m^2 + person_xy_mae_m^2) / 2)",
+                "centroid_score": "exp(-centroid_rms_m / 1 metre)",
+                "localization_quality": "sqrt(overlap * centroid_score)",
+                "combined_quality": "sqrt(segmentation_miou * localization_quality)",
+                "distance_reference_m": LOCALIZATION_DISTANCE_REFERENCE_M,
                 "role": "provisional presentation coordinate, not PPO reward",
             },
             "denominators": {
                 "ue_action": "all sent frames",
                 "pure_front": "all sent frames",
                 "network": "frames with retained observed complete edge receipt",
+                "edge_queue": "useful direct-map installations",
+                "model_tail": "final live family-anchor samples; repeated as a marginal for each family action/profile",
+                "tail_support": "final live family-anchor samples; repeated as a marginal for each family action/profile",
+                "map_install": "live direct-map family-anchor samples; repeated as a marginal for each family action/profile",
                 "edge_map": "useful direct-map installations",
                 "total": "useful direct-map installations",
             },
@@ -678,6 +861,12 @@ def run(output: Path) -> dict[str, Any]:
             "imputed_arrivals_excluded_from_network_latency": True,
             "direct_delay_provenance": delay_provenance,
             "direct_delay_pooling": pooling,
+            "tail_stage_calibration": tail_stage_provenance,
+            "direct_map_stage_calibration": direct_map_stage_provenance,
+            "latency_percentile_warning": (
+                "stage P50/P95/P99 values are marginal percentiles with stage-specific "
+                "denominators and must not be added to reconstruct a total percentile"
+            ),
             "sensor_threading_audit": {
                 "carla_callbacks": "camera and radar callbacks are distinct",
                 "numerical_preparation": "radar and RGB preparation are sequential in one route-b-split-front worker",
