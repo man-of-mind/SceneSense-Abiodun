@@ -69,7 +69,7 @@ STAGES = {
     "pure_front": "Model front backbone",
     "ue_action": "UE action path",
     "network": "Feature uplink",
-    "edge_queue": "Latest-only edge wait",
+    "edge_queue": "Tail-busy wait",
     "model_tail": "FCOS model tail",
     "tail_support": "Other tail processing",
     "map_install": "Map service",
@@ -352,29 +352,18 @@ def plot_quality_latency(rows: Sequence[Mapping[str, Any]], output: Path) -> lis
         fig, axes = plt.subplots(2, 2, figsize=(13.5, 9.5), sharey=True)
         for ax, profile in zip(axes.flat, PROFILE_ORDER):
             selected = [row for row in rows if row["network_profile"] == profile]
-            frontier = pareto_ids(selected, key)
             for family, color in FAMILY_COLOR.items():
                 group = [row for row in selected if row["family"] == family and row[key] != ""]
                 ax.scatter(
                     [float(row[key]) for row in group],
                     [100.0 * float(row["combined_quality"]) for row in group],
-                    s=30,
-                    alpha=0.78,
+                    s=52,
+                    alpha=0.92,
                     c=color,
-                    edgecolors="white",
-                    linewidths=0.4,
+                    edgecolors="#202020",
+                    linewidths=0.65,
                     label=family,
                 )
-            for row in selected:
-                if int(row["action_id"]) in frontier and row[key] != "":
-                    ax.annotate(
-                        str(row["action_id"]),
-                        (float(row[key]), 100.0 * float(row["combined_quality"])),
-                        xytext=(3, 3),
-                        textcoords="offset points",
-                        fontsize=7,
-                        fontweight="bold",
-                    )
             ax.set_title(PROFILE_LABEL[profile])
             ax.set_xlabel(f"{label} P50 (ms)")
             ax.set_ylabel("Combined validation quality (%)")
@@ -448,7 +437,7 @@ def plot_latency_bars(rows: Sequence[Mapping[str, Any]], output: Path) -> list[s
             (
                 "UE action\npath",
                 "Feature\nuplink",
-                "Latest-only\nedge wait",
+                "Tail-busy\nwait",
                 "FCOS model\ntail",
                 "Other tail\nprocessing",
                 "Map\nservice",
@@ -606,7 +595,7 @@ def make_report(
             "",
             "## Interpreting the long tails",
             "",
-            "- Latest-only scheduling removes FIFO backlog, not non-preemptive waiting. While one frame is executing, a single newest pending frame may still wait until that execution finishes; older pending frames are replaced. This produces a zero action-balanced P50 but a 44–48 ms P95.",
+            "- Latest-only scheduling removes FIFO backlog, not non-preemptive tail-busy waiting. While one frame is executing, a single newest pending frame may still wait until that execution finishes; older pending frames are replaced. This produces a zero action-balanced P50 but a 44–48 ms P95.",
             "- The 105.9 ms action-balanced P99 for other tail processing is measured in the final optimized live anchors. Frame-level inspection localizes its family-dependent spikes mainly to unpack/dequantization, camera-aware post-processing, p025 filtering, and compact serialization. The pure FCOS CUDA tail remains approximately 21.2/24.8/29.5 ms at P50/P95/P99.",
             "- Map service is direct publication-to-install on the edge-host path and does not traverse the radio. Its approximately 4.8 ms P50 but 42.6/113.1 ms P95/P99 comes from rare publisher scheduling and map-ingest/install stalls; it is not 5G downlink latency.",
             "",
@@ -642,7 +631,7 @@ def make_report(
             "",
             "## Figure guide",
             "",
-            "Figures 01–04 show all available action/profile points and label Pareto-frontier action IDs. Figure 05 gives the requested P50/P95/P99 decomposition into the complete UE action path, observed feature uplink, latest-only edge waiting, pure FCOS tail, other tail processing, and map service. Figure 06 exposes the retained sensor-preparation boundaries.",
+            "Figures 01–04 show all available action/profile points without per-point action labels; color identifies the split family. Figure 05 gives the requested P50/P95/P99 decomposition into the complete UE action path, observed feature uplink, tail-busy waiting under latest-only scheduling, pure FCOS tail, other tail processing, and map service. Figure 06 exposes the retained sensor-preparation boundaries.",
         ]
     )
     return "\n".join(lines) + "\n"
