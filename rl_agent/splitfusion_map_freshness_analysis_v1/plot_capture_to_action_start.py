@@ -28,7 +28,7 @@ SOURCE = ROOT / (
 )
 DEFAULT_OUTPUT = ROOT / (
     "experiments/splitfusion_map_freshness_policy_analysis_v1/"
-    "20260914_capture_to_action_start_diagnostic_v2"
+    "20260914_capture_to_action_start_per_profile_v1"
 )
 SCHEMA = "scenesense.splitfusion.capture_to_action_start_diagnostic.v1"
 TERMINAL = "SPLITFUSION_CAPTURE_TO_ACTION_START_DIAGNOSTIC_COMPLETE"
@@ -254,70 +254,50 @@ def raw_tail_diagnostic(
 
 
 def line_plot(rows: Sequence[Mapping[str, Any]], output: Path) -> list[Path]:
-    figure, axis = plt.subplots(figsize=(16.0, 6.3))
-    x = [int(row["cell_index"]) for row in rows]
-    for profile_index in range(4):
-        left = profile_index * 72 - 0.5
-        right = (profile_index + 1) * 72 - 0.5
-        if profile_index % 2:
-            axis.axvspan(left, right, color="#eeeeee", alpha=0.48, zorder=0)
-        axis.text(
-            (left + right) / 2,
-            0.965,
-            PROFILE_LABELS[PROFILE_ORDER[profile_index]],
-            transform=axis.get_xaxis_transform(),
-            ha="center",
-            va="bottom",
-            fontweight="bold",
-        )
-        if profile_index:
-            axis.axvline(left, color="#666666", linewidth=0.9, alpha=0.6)
-    specifications = (
-        ("capture_to_action_start_ms_median", "Median", "#2a6fbb", 1.7),
-        ("capture_to_action_start_ms_p95", "P95", "#e68613", 1.5),
-        ("capture_to_action_start_ms_p99", "P99", "#c23b3b", 1.4),
-    )
-    for field, label, color, width in specifications:
+    paths: list[Path] = []
+    colors = {
+        "FAVORABLE_STABLE": "#2a6fbb",
+        "MID_VARIABLE": "#e68613",
+        "FADE_RECOVERY": "#3b8f55",
+        "ADVERSE_STABLE": "#c23b3b",
+    }
+    for profile in PROFILE_ORDER:
+        selected = [row for row in rows if row["network_profile"] == profile]
+        require(len(selected) == 72, f"{profile}: expected 72 action cells")
+        selected.sort(key=lambda row: int(row["action_id"]))
+        x = [int(row["action_id"]) for row in selected]
+        y = [float(row["capture_to_action_start_ms_median"]) for row in selected]
+        figure, axis = plt.subplots(figsize=(12.0, 5.4))
         axis.plot(
             x,
-            [float(row[field]) for row in rows],
-            label=label,
-            color=color,
-            linewidth=width,
+            y,
+            color=colors[profile],
+            linewidth=1.8,
+            marker="o",
+            markersize=3.5,
         )
-    axis.axhline(
-        100,
-        color="#333333",
-        linestyle="--",
-        linewidth=1.2,
-        label="100 ms source interval",
-    )
-    ticks = list(range(0, 288, 12)) + [287]
-    labels = [str(tick % 72) for tick in ticks[:-1]] + ["71"]
-    axis.set_xticks(ticks, labels)
-    axis.set_xlabel("Action ID within each network-profile block")
-    axis.set_ylabel("RGB callback to tensor-assembly start (ms)")
-    axis.set_ylim(20, 190)
-    figure.suptitle(
-        "Capture-to-action-start delay across all 288 cells",
-        y=0.995,
-        fontweight="bold",
-    )
-    axis.grid(True, axis="y", alpha=0.22)
-    axis.legend(frameon=False, ncol=4, loc="upper left")
-    axis.tick_params(axis="both", labelsize=9, width=1.1)
-    for label in axis.get_xticklabels() + axis.get_yticklabels():
-        label.set_fontweight("bold")
-    axis.xaxis.label.set_fontweight("bold")
-    axis.yaxis.label.set_fontweight("bold")
-    figure.tight_layout()
-    paths = [
-        output / "01_capture_to_action_start_all_288_cells.png",
-        output / "01_capture_to_action_start_all_288_cells.pdf",
-    ]
-    figure.savefig(paths[0], dpi=220, bbox_inches="tight")
-    figure.savefig(paths[1], metadata=PDF_METADATA, bbox_inches="tight")
-    plt.close(figure)
+        axis.set_xticks(list(range(0, 72, 5)) + [71])
+        axis.set_xlim(-1, 72)
+        axis.set_ylim(25, 46)
+        axis.set_xlabel("Action ID")
+        axis.set_ylabel("Median RGB-callback-to-action-start delay (ms)")
+        axis.set_title(
+            f"{PROFILE_LABELS[profile]} network profile: all 72 actions",
+            fontweight="bold",
+        )
+        axis.grid(True, alpha=0.22)
+        axis.tick_params(axis="both", labelsize=9, width=1.1)
+        for label in axis.get_xticklabels() + axis.get_yticklabels():
+            label.set_fontweight("bold")
+        axis.xaxis.label.set_fontweight("bold")
+        axis.yaxis.label.set_fontweight("bold")
+        figure.tight_layout()
+        stem = f"01_{profile.lower()}_capture_to_action_start_by_action"
+        pair = [output / f"{stem}.png", output / f"{stem}.pdf"]
+        figure.savefig(pair[0], dpi=220, bbox_inches="tight")
+        figure.savefig(pair[1], metadata=PDF_METADATA, bbox_inches="tight")
+        plt.close(figure)
+        paths.extend(pair)
     return paths
 
 
@@ -343,6 +323,9 @@ def report(diagnostic: Mapping[str, Any]) -> str:
             f"p95 {dist['p95']:.1f} ms, p99 {dist['p99']:.1f} ms and maximum",
             f"{dist['maximum']:.1f} ms. {100 * diagnostic['bins']['LT_50']['fraction']:.1f}%",
             "of frames start action processing within 50 ms of the RGB callback.",
+            "The four presentation figures separate the network profiles and show",
+            "one measured cell median for every action. Percentiles remain in this",
+            "report and the JSON audit, but are deliberately omitted from the plots.",
             "",
             "## Why the p99 reaches about 143 ms",
             "",
