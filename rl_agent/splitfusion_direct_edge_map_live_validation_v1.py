@@ -400,12 +400,31 @@ def gate(cells: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
     def add(name: str, holds: bool, detail: Any) -> None:
         checks.append({"gate": name, "holds": bool(holds), "detail": detail})
 
+    # A cell that produced no transmitted frames carries no evidence either
+    # way. It fails its own gate loudly, and the property gates below are
+    # evaluated only over cells that actually have data, so one empty cell can
+    # no longer make every unrelated property look violated.
+    with_data = [row for row in cells if int(row.get("captures_sent", 0)) > 0]
+    empty = [row["cell_id"] for row in cells if int(row.get("captures_sent", 0)) == 0]
     add(
-        "every_registered_action_produced_a_cell",
+        "every_registered_action_produced_a_cell_with_data",
         len(cells) == len(ACTION_ORDER)
-        and {int(row["action_id"]) for row in cells} == set(ACTION_ORDER),
-        sorted(int(row["action_id"]) for row in cells),
+        and {int(row["action_id"]) for row in cells} == set(ACTION_ORDER)
+        and not empty,
+        {
+            "actions": sorted(int(row["action_id"]) for row in cells),
+            "cells_without_data": empty,
+        },
     )
+    cells = with_data
+    if not cells:
+        return {
+            "status": "FAIL",
+            "checks": checks,
+            "passed": sum(1 for check in checks if check["holds"]),
+            "total": len(checks),
+            "note": "no cell produced transmitted frames",
+        }
     add(
         "real_ue_feature_uplink_reached_the_edge",
         all(int(row["edge_feature_messages_reassembled"]) > 0 for row in cells),
@@ -580,6 +599,16 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--reevaluate-from", type=Path, default=None)
     parser.add_argument(
+        "--resume",
+        action="store_true",
+        help=(
+            "Continue into an existing campaign root using the registered "
+            "resume ledger: cells already PASSED are skipped, and a cell that "
+            "FAILED or was INTERRUPTED is retried under a new attempt number. "
+            "Every attempt directory remains create-only."
+        ),
+    )
+    parser.add_argument(
         "--actions",
         default="",
         help=(
@@ -597,6 +626,11 @@ def _evaluate_all(
     evaluated: list[dict[str, Any]] = []
     for cell in cells:
         attempts = sorted((campaign_root / "cells" / cell.cell_id / "attempts").glob("attempt_*"))
+        # Prefer a PASSED attempt; otherwise fall back to the newest one so a
+        # failed cell is still evaluated and reported rather than hidden.
+        passed = [item for item in attempts if (item / "PASSED.json").is_file()]
+        if passed:
+            attempts = passed
         if not attempts:
             evaluated.append(
                 {
@@ -779,9 +813,15 @@ def main(argv: Sequence[str] | None = None) -> int:
         raise supervisor.CampaignError(
             "validation output must remain beneath experiments"
         ) from exc
-    require(not campaign_root.exists(), f"create-only output exists: {campaign_root}")
-    campaign_root.parent.mkdir(parents=True, exist_ok=True)
-    campaign_root.mkdir(parents=False, exist_ok=False)
+    if args.resume:
+        require(
+            campaign_root.is_dir(),
+            f"--resume needs an existing campaign root: {campaign_root}",
+        )
+    else:
+        require(not campaign_root.exists(), f"create-only output exists: {campaign_root}")
+        campaign_root.parent.mkdir(parents=True, exist_ok=True)
+        campaign_root.mkdir(parents=False, exist_ok=False)
 
     manifest = {
         "schema": SCHEMA,
@@ -806,19 +846,35 @@ def main(argv: Sequence[str] | None = None) -> int:
         "another_288_live_campaign_authorized": False,
         "action_subset": list(requested),
         "is_full_registered_matrix": not requested,
+        "resumed": bool(args.resume),
         "started_at_unix_s": time.time(),
     }
-    supervisor.write_create_only(
-        campaign_root / "run_manifest.json",
-        json.dumps(manifest, indent=2, sort_keys=True) + "\n",
-    )
+    manifest_path = campaign_root / "run_manifest.json"
+    if args.resume and manifest_path.is_file():
+        # The original pre-registration stands; the resume is recorded beside
+        # it rather than overwriting it.
+        resume_path = campaign_root / f"resume_manifest_{int(time.time())}.json"
+        supervisor.write_create_only(
+            resume_path, json.dumps(manifest, indent=2, sort_keys=True) + "\n"
+        )
+    else:
+        supervisor.write_create_only(
+            manifest_path, json.dumps(manifest, indent=2, sort_keys=True) + "\n"
+        )
 
     ledger_path = campaign_root / str(config["cell"]["resume_ledger"])
     ledger = supervisor.load_ledger(
         ledger_path, str(config["campaign_id"]), manifest["config_sha256"]
     )
+    skip_statuses = set(config["cell"]["skip_statuses"])
     for cell in selected:
         rows = ledger["cells"].setdefault(cell.cell_id, [])
+        if args.resume and any(str(row.get("status")) in skip_statuses for row in rows):
+            print(
+                f"[DIRECT] === cell {cell.cell_id} already PASSED; skipping ===",
+                flush=True,
+            )
+            continue
         print(f"[DIRECT] === cell {cell.cell_id} (action {cell.action_id}) ===", flush=True)
         result = supervisor.run_one_cell(
             config=config,
