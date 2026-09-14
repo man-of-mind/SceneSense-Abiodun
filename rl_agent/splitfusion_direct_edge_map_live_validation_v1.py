@@ -397,7 +397,7 @@ def gate(cells: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
         checks.append({"gate": name, "holds": bool(holds), "detail": detail})
 
     add(
-        "every_action_produced_a_cell",
+        "every_registered_action_produced_a_cell",
         len(cells) == len(ACTION_ORDER)
         and {int(row["action_id"]) for row in cells} == set(ACTION_ORDER),
         sorted(int(row["action_id"]) for row in cells),
@@ -565,6 +565,15 @@ def build_parser() -> argparse.ArgumentParser:
         / "experiments/splitfusion_phase15_live_deployment_qualification_v1",
     )
     parser.add_argument("--reevaluate-from", type=Path, default=None)
+    parser.add_argument(
+        "--actions",
+        default="",
+        help=(
+            "Comma-separated subset of the registered actions to run. Used to "
+            "shake out integration on one action before the full matrix; a "
+            "subset run is explicitly marked as not the full validation."
+        ),
+    )
     return parser
 
 
@@ -706,6 +715,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     config_path = args.config.resolve(strict=True)
     config, cells, _hashes = supervisor.validate_static(config_path)
     selected = select_cells(cells)
+    requested = tuple(
+        int(value) for value in str(args.actions or "").split(",") if value.strip()
+    )
+    if requested:
+        unknown = sorted(set(requested) - set(ACTION_ORDER))
+        require(not unknown, f"unregistered actions requested: {unknown}")
+        selected = [cell for cell in selected if cell.action_id in requested]
 
     if args.reevaluate_from is not None:
         source = args.reevaluate_from.resolve(strict=True)
@@ -774,6 +790,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         "maximum_loop_sim_s": float(args.maximum_loop_sim_s),
         "complete_route_b_loop_required": False,
         "another_288_live_campaign_authorized": False,
+        "action_subset": list(requested),
+        "is_full_registered_matrix": not requested,
         "started_at_unix_s": time.time(),
     }
     supervisor.write_create_only(
@@ -815,6 +833,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "manifest": manifest,
         "cells": evaluated,
         "gates": gate([row for row in evaluated if not row.get("error")]),
+        "is_full_registered_matrix": not requested,
         "limitations": [
             "short live validation; no complete Route-B loop is claimed",
             "map->UE feedback is host-local because 10.0.0.2 is local to this host",
