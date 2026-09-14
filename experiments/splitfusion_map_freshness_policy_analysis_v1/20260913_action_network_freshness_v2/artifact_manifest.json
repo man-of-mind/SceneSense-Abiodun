@@ -1,0 +1,13 @@
+{
+  "schema": "scenesense.splitfusion.map_freshness_policy_analysis.v2.artifacts",
+  "sha256": {
+    "REPORT.md": "c9227ff0cb7fd785e6929c803f4feed07a3c9371c709ef6821b8d93fc7d8fbce",
+    "action_network_policy_freshness.csv": "40d4436ddaba4d37cdea584697da049b87aa5b968eddeaf857082a9893aed472",
+    "action_network_sensitivity.csv": "d690e752cc4535c965cf2d81ea77ebed241fe6c8854065323ec20ce2a088d98d",
+    "aligned_localization_by_action_profile.csv": "d63aafbb2d433c50f67688385275c203f13885348ee7f723ea30fa759a82ec5d",
+    "aligned_localization_by_profile_aoi_band.csv": "e6537d9f87e058bcf8710398be5167dd27f9cb8e70ba1b894adbc4399e954cbf",
+    "analysis.json": "80ccc78b4741737d288d7fb23322617386ca1587d30022d10dcf6b1793c1a044",
+    "quality_freshness_pareto.csv": "7b0a24f641c9ed8101b4444f911248c0b94a3fc4421a134e8c4791ea282bdd8d"
+  },
+  "status": "COMPLETE"
+}

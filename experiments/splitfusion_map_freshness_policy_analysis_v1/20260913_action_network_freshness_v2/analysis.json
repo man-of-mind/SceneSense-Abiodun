@@ -1,0 +1,372 @@
+{
+  "aggregate": {
+    "FIFO_NO_DISCARD": {
+      "by_network_profile": {
+        "ADVERSE_STABLE": {
+          "cells": 72,
+          "compute_queue_high_water_max": 103,
+          "edge_admissions": 119002,
+          "eventual_installs_after_full_drain": 119002,
+          "fresh_map_time_ms_le_150_fraction": 0.002057328910475559,
+          "fresh_map_time_ms_le_200_fraction": 0.019237228960351523,
+          "fresh_map_time_ms_le_250_fraction": 0.07266391461166809,
+          "map_aoi_ms_cell_median": 416.6878164714748,
+          "map_available_fraction_duration_weighted": 0.6252677679575255,
+          "queue_wait_ms_cell_median": 0.0,
+          "queue_wait_ms_max": 10290.142127,
+          "queue_wait_ms_p95_cell_median": 380.795063,
+          "rate_useful_install_per_sent": 0.48234437080173226,
+          "sent": 223753,
+          "superseded_compute": 0,
+          "superseded_publication": 0,
+          "timely_useful_install_yield_ms_le_150": 0.012737259388700933,
+          "timely_useful_install_yield_ms_le_200": 0.06637676366350395,
+          "timely_useful_install_yield_ms_le_250": 0.16427936161749787,
+          "useful_install_aoi_ms_cell_median": 278.658645,
+          "useful_installs_during_observation": 107926
+        },
+        "FADE_RECOVERY": {
+          "cells": 72,
+          "compute_queue_high_water_max": 60,
+          "edge_admissions": 154182,
+          "eventual_installs_after_full_drain": 154182,
+          "fresh_map_time_ms_le_150_fraction": 0.012073344084937198,
+          "fresh_map_time_ms_le_200_fraction": 0.08245671499534064,
+          "fresh_map_time_ms_le_250_fraction": 0.22233451700164922,
+          "map_aoi_ms_cell_median": 360.3540818004117,
+          "map_available_fraction_duration_weighted": 0.8603227270657919,
+          "queue_wait_ms_cell_median": 0.0,
+          "queue_wait_ms_max": 6109.307579,
+          "queue_wait_ms_p95_cell_median": 197.239727,
+          "rate_useful_install_per_sent": 0.6639039173869121,
+          "sent": 222725,
+          "superseded_compute": 0,
+          "superseded_publication": 0,
+          "timely_useful_install_yield_ms_le_150": 0.06700190818273656,
+          "timely_useful_install_yield_ms_le_200": 0.2331889100909193,
+          "timely_useful_install_yield_ms_le_250": 0.3900325513525648,
+          "useful_install_aoi_ms_cell_median": 235.42006450000002,
+          "useful_installs_during_observation": 147868
+        },
+        "FAVORABLE_STABLE": {
+          "cells": 72,
+          "compute_queue_high_water_max": 69,
+          "edge_admissions": 175686,
+          "eventual_installs_after_full_drain": 175686,
+          "fresh_map_time_ms_le_150_fraction": 0.015476138632776254,
+          "fresh_map_time_ms_le_200_fraction": 0.10307347681565414,
+          "fresh_map_time_ms_le_250_fraction": 0.269153573946119,
+          "map_aoi_ms_cell_median": 351.94109128745174,
+          "map_available_fraction_duration_weighted": 0.9792829655850612,
+          "queue_wait_ms_cell_median": 0.0,
+          "queue_wait_ms_max": 6943.468415,
+          "queue_wait_ms_p95_cell_median": 264.085225,
+          "rate_useful_install_per_sent": 0.757468859260849,
+          "sent": 223662,
+          "superseded_compute": 0,
+          "superseded_publication": 0,
+          "timely_useful_install_yield_ms_le_150": 0.08451145031341936,
+          "timely_useful_install_yield_ms_le_200": 0.28468403215566346,
+          "timely_useful_install_yield_ms_le_250": 0.4581421967075319,
+          "useful_install_aoi_ms_cell_median": 224.051265,
+          "useful_installs_during_observation": 169417
+        },
+        "MID_VARIABLE": {
+          "cells": 72,
+          "compute_queue_high_water_max": 62,
+          "edge_admissions": 153445,
+          "eventual_installs_after_full_drain": 153445,
+          "fresh_map_time_ms_le_150_fraction": 0.011562476308722177,
+          "fresh_map_time_ms_le_200_fraction": 0.07946053181711721,
+          "fresh_map_time_ms_le_250_fraction": 0.2144949547586133,
+          "map_aoi_ms_cell_median": 373.88911097467525,
+          "map_available_fraction_duration_weighted": 0.8231842298397147,
+          "queue_wait_ms_cell_median": 0.0,
+          "queue_wait_ms_max": 6196.196101,
+          "queue_wait_ms_p95_cell_median": 235.688581,
+          "rate_useful_install_per_sent": 0.6457329875262443,
+          "sent": 226716,
+          "superseded_compute": 0,
+          "superseded_publication": 0,
+          "timely_useful_install_yield_ms_le_150": 0.06363467951092998,
+          "timely_useful_install_yield_ms_le_200": 0.22437763545581255,
+          "timely_useful_install_yield_ms_le_250": 0.3737848233031634,
+          "useful_install_aoi_ms_cell_median": 242.1375375,
+          "useful_installs_during_observation": 146398
+        }
+      },
+      "overall": {
+        "cells": 288,
+        "compute_queue_high_water_max": 103,
+        "edge_admissions": 602315,
+        "eventual_installs_after_full_drain": 602315,
+        "fresh_map_time_ms_le_150_fraction": 0.01030683445646754,
+        "fresh_map_time_ms_le_200_fraction": 0.07114934158140317,
+        "fresh_map_time_ms_le_250_fraction": 0.1948789647698175,
+        "map_aoi_ms_cell_median": 371.6354532033438,
+        "map_available_fraction_duration_weighted": 0.8222841360232797,
+        "queue_wait_ms_cell_median": 0.0,
+        "queue_wait_ms_max": 10290.142127,
+        "queue_wait_ms_p95_cell_median": 256.2839715,
+        "rate_useful_install_per_sent": 0.6373475786525373,
+        "sent": 896856,
+        "superseded_compute": 0,
+        "superseded_publication": 0,
+        "timely_useful_install_yield_ms_le_150": 0.05697904680350023,
+        "timely_useful_install_yield_ms_le_200": 0.2021863041558511,
+        "timely_useful_install_yield_ms_le_250": 0.3465885270322103,
+        "useful_install_aoi_ms_cell_median": 243.61421475,
+        "useful_installs_during_observation": 571609
+      }
+    },
+    "LATEST_ONLY_NO_EXPIRY": {
+      "by_network_profile": {
+        "ADVERSE_STABLE": {
+          "cells": 72,
+          "compute_queue_high_water_max": 1,
+          "edge_admissions": 119002,
+          "eventual_installs_after_full_drain": 114375,
+          "fresh_map_time_ms_le_150_fraction": 0.002160838615320887,
+          "fresh_map_time_ms_le_200_fraction": 0.020571733823201897,
+          "fresh_map_time_ms_le_250_fraction": 0.07951086342839578,
+          "map_aoi_ms_cell_median": 349.5856642952291,
+          "map_available_fraction_duration_weighted": 0.6252677679575255,
+          "queue_wait_ms_cell_median": 0.0,
+          "queue_wait_ms_max": 234.640717,
+          "queue_wait_ms_p95_cell_median": 50.235369000000006,
+          "rate_useful_install_per_sent": 0.4702059860649913,
+          "sent": 223753,
+          "superseded_compute": 4624,
+          "superseded_publication": 3,
+          "timely_useful_install_yield_ms_le_150": 0.013429987530893441,
+          "timely_useful_install_yield_ms_le_200": 0.07200797307745595,
+          "timely_useful_install_yield_ms_le_250": 0.18330033563795792,
+          "useful_install_aoi_ms_cell_median": 271.74997099999996,
+          "useful_installs_during_observation": 105210
+        },
+        "FADE_RECOVERY": {
+          "cells": 72,
+          "compute_queue_high_water_max": 1,
+          "edge_admissions": 154182,
+          "eventual_installs_after_full_drain": 148942,
+          "fresh_map_time_ms_le_150_fraction": 0.012920884125574938,
+          "fresh_map_time_ms_le_200_fraction": 0.08941911431309658,
+          "fresh_map_time_ms_le_250_fraction": 0.2457002255039028,
+          "map_aoi_ms_cell_median": 304.2747005684404,
+          "map_available_fraction_duration_weighted": 0.8603227270657919,
+          "queue_wait_ms_cell_median": 0.0,
+          "queue_wait_ms_max": 200.398796,
+          "queue_wait_ms_p95_cell_median": 46.498485,
+          "rate_useful_install_per_sent": 0.645630261533281,
+          "sent": 222725,
+          "superseded_compute": 5238,
+          "superseded_publication": 2,
+          "timely_useful_install_yield_ms_le_150": 0.07202155124031878,
+          "timely_useful_install_yield_ms_le_200": 0.255988326411494,
+          "timely_useful_install_yield_ms_le_250": 0.4397395891794814,
+          "useful_install_aoi_ms_cell_median": 226.726022,
+          "useful_installs_during_observation": 143798
+        },
+        "FAVORABLE_STABLE": {
+          "cells": 72,
+          "compute_queue_high_water_max": 1,
+          "edge_admissions": 175686,
+          "eventual_installs_after_full_drain": 169630,
+          "fresh_map_time_ms_le_150_fraction": 0.016470943826268007,
+          "fresh_map_time_ms_le_200_fraction": 0.11117535259073485,
+          "fresh_map_time_ms_le_250_fraction": 0.29676011399793684,
+          "map_aoi_ms_cell_median": 293.0709529420393,
+          "map_available_fraction_duration_weighted": 0.9792829655850612,
+          "queue_wait_ms_cell_median": 0.0,
+          "queue_wait_ms_max": 217.456983,
+          "queue_wait_ms_p95_cell_median": 51.071669,
+          "rate_useful_install_per_sent": 0.736039202010176,
+          "sent": 223662,
+          "superseded_compute": 6054,
+          "superseded_publication": 2,
+          "timely_useful_install_yield_ms_le_150": 0.09011365363807888,
+          "timely_useful_install_yield_ms_le_200": 0.31167118240917097,
+          "timely_useful_install_yield_ms_le_250": 0.515970526955853,
+          "useful_install_aoi_ms_cell_median": 218.039723,
+          "useful_installs_during_observation": 164624
+        },
+        "MID_VARIABLE": {
+          "cells": 72,
+          "compute_queue_high_water_max": 1,
+          "edge_admissions": 153445,
+          "eventual_installs_after_full_drain": 147647,
+          "fresh_map_time_ms_le_150_fraction": 0.012344521048422695,
+          "fresh_map_time_ms_le_200_fraction": 0.08645529487116678,
+          "fresh_map_time_ms_le_250_fraction": 0.23848428682101452,
+          "map_aoi_ms_cell_median": 304.22061920049885,
+          "map_available_fraction_duration_weighted": 0.8231842298397147,
+          "queue_wait_ms_cell_median": 0.0,
+          "queue_wait_ms_max": 200.708229,
+          "queue_wait_ms_p95_cell_median": 51.416624999999996,
+          "rate_useful_install_per_sent": 0.6260872633603275,
+          "sent": 226716,
+          "superseded_compute": 5797,
+          "superseded_publication": 1,
+          "timely_useful_install_yield_ms_le_150": 0.06836747296176715,
+          "timely_useful_install_yield_ms_le_200": 0.24786075971700278,
+          "timely_useful_install_yield_ms_le_250": 0.4247384392808624,
+          "useful_install_aoi_ms_cell_median": 228.143935,
+          "useful_installs_during_observation": 141944
+        }
+      },
+      "overall": {
+        "cells": 288,
+        "compute_queue_high_water_max": 1,
+        "edge_admissions": 602315,
+        "eventual_installs_after_full_drain": 580594,
+        "fresh_map_time_ms_le_150_fraction": 0.010989841944444368,
+        "fresh_map_time_ms_le_200_fraction": 0.07700684153164136,
+        "fresh_map_time_ms_le_250_fraction": 0.21535896599060875,
+        "map_aoi_ms_cell_median": 307.98847899600923,
+        "map_available_fraction_duration_weighted": 0.8222841360232797,
+        "queue_wait_ms_cell_median": 0.0,
+        "queue_wait_ms_max": 234.640717,
+        "queue_wait_ms_p95_cell_median": 50.610356499999995,
+        "rate_useful_install_per_sent": 0.6194706842570045,
+        "sent": 896856,
+        "superseded_compute": 21713,
+        "superseded_publication": 8,
+        "timely_useful_install_yield_ms_le_150": 0.06099195411526488,
+        "timely_useful_install_yield_ms_le_200": 0.22191968387344232,
+        "timely_useful_install_yield_ms_le_250": 0.3909802688502948,
+        "useful_install_aoi_ms_cell_median": 233.20320875,
+        "useful_installs_during_observation": 555576
+      }
+    }
+  },
+  "budgets_ms": [
+    150,
+    200,
+    250
+  ],
+  "family_calibration": {
+    "AE128": {
+      "anchor_action_id": 30,
+      "application": "subtract the family median reduction from original per-frame edge service, retain residual variance, then causally reschedule",
+      "baseline_total_edge_processing_ms_median": 158.779764,
+      "optimized_publication_ms_median": 3.494736,
+      "optimized_publication_samples": 137,
+      "optimized_total_edge_processing_ms_median": 64.574661,
+      "target_profile": "FAVORABLE_STABLE",
+      "target_total_edge_processing_ms_median": 64.574661,
+      "target_variant": "OVERLAPPED_OUTPUT_PRESERVING_V3",
+      "total_edge_processing_reduction_ms": 94.205103
+    },
+    "AE32": {
+      "anchor_action_id": 71,
+      "application": "subtract the family median reduction from original per-frame edge service, retain residual variance, then causally reschedule",
+      "baseline_total_edge_processing_ms_median": 133.941853,
+      "optimized_publication_ms_median": 3.178109,
+      "optimized_publication_samples": 297,
+      "optimized_total_edge_processing_ms_median": 41.880343,
+      "target_profile": "FAVORABLE_STABLE",
+      "target_total_edge_processing_ms_median": 41.880343,
+      "target_variant": "OVERLAPPED_OUTPUT_PRESERVING_V3",
+      "total_edge_processing_reduction_ms": 92.06151
+    },
+    "AE64": {
+      "anchor_action_id": 50,
+      "application": "subtract the family median reduction from original per-frame edge service, retain residual variance, then causally reschedule",
+      "baseline_total_edge_processing_ms_median": 142.806145,
+      "optimized_publication_ms_median": 2.377036,
+      "optimized_publication_samples": 283,
+      "optimized_total_edge_processing_ms_median": 51.862178,
+      "target_profile": "FAVORABLE_STABLE",
+      "target_total_edge_processing_ms_median": 51.862178,
+      "target_variant": "OVERLAPPED_OUTPUT_PRESERVING_V3",
+      "total_edge_processing_reduction_ms": 90.94396699999999
+    },
+    "noAE": {
+      "anchor_action_id": 15,
+      "application": "subtract the family median reduction from original per-frame edge service, retain residual variance, then causally reschedule",
+      "baseline_total_edge_processing_ms_median": 158.269655,
+      "optimized_publication_ms_median": 4.115991,
+      "optimized_publication_samples": 258,
+      "optimized_total_edge_processing_ms_median": 73.864524,
+      "target_profile": "FAVORABLE_STABLE",
+      "target_total_edge_processing_ms_median": 73.864524,
+      "target_variant": "SYNCHRONIZATION_LIGHT_V2",
+      "total_edge_processing_reduction_ms": 84.405131
+    }
+  },
+  "interpretation_limits": [
+    "counterfactual queue replay, not live remeasurement",
+    "measured per-cell reassembly and admission totals remain fixed",
+    "missing admitted identities/timestamps retain deterministic imputations",
+    "family service calibration is extrapolated from one live anchor",
+    "quality-weighted freshness uses frozen action validation quality",
+    "aligned localization truth is sampled during post-ACK exact retrieval"
+  ],
+  "observation_tail_ms": 500.0,
+  "primary_policy": "LATEST_ONLY_NO_EXPIRY",
+  "provenance": {
+    "aligned_localization": {
+      "attempt_files_hash_verified": 576,
+      "interpretation": "source-time detection metrics and near-install exact-record-retrieval localization check; aligned matching support may differ from source matching"
+    },
+    "final_counterfactual_artifacts_verified": 3,
+    "final_counterfactual_manifest_sha256": "a0f8705833a64000d272fa2e1f81e06263856ccc0cb5930cdacd0c65580ac981",
+    "implementation": {
+      "rl_agent/splitfusion_map_freshness_analysis_v1/analyze_288.py": "b9d2df8fc29a9a2ce47a64574cd455671cfe6f8fc83d94e879301f4eece2d386",
+      "rl_agent/splitfusion_map_freshness_analysis_v1/queue_models.py": "edbc0c13439175c41d23dc021eac2ba945b5a416ac736b19df9d6079105fdeb8"
+    },
+    "source_per_frame_hashes_verified": 288,
+    "source_verification": {
+      "baseline_manifest_sha256": "965c72b5e48682b6defc0a03b683c72c0e7a3536606ed65c7df9a245da9ca23e",
+      "consolidation": {
+        "action_72_summary.csv": {
+          "path": "experiments/splitfusion_288_offline_rl_dataset_v1/20260909_offline_consolidation_v1/action_72_summary.csv",
+          "sha256": "250eb6d9391c0de5a343d692484647bbdb181153ba64f7f4a447b0076f580a88"
+        },
+        "action_72x4_summary.csv": {
+          "path": "experiments/splitfusion_288_offline_rl_dataset_v1/20260909_offline_consolidation_v1/action_72x4_summary.csv",
+          "sha256": "280b372ed8b6a52bb3e5f1f69e6cbdc02dc851a6a597565fcab9ca9652f5998e"
+        },
+        "analysis_summary.json": {
+          "path": "experiments/splitfusion_288_offline_rl_dataset_v1/20260909_offline_consolidation_v1/analysis_summary.json",
+          "sha256": "48358c2f27ffc2f3da8bf0f821c733914a03267f50da7adab4cbf70cbe239690"
+        },
+        "campaign_288_cell_table.csv": {
+          "path": "experiments/splitfusion_288_offline_rl_dataset_v1/20260909_offline_consolidation_v1/campaign_288_cell_table.csv",
+          "sha256": "3f3067d4c9d0ef3c0d2661c3d19d04306bcbd18ef6d21fa426148e0ee24d2e0d"
+        }
+      },
+      "final_edge": {
+        "action15_v3_failure_sha256": "aca5a6eb5ea1e6e26156fd95ba739a4dd17a0f706c4075f27e415290a001c352",
+        "final_live_manifest_sha256": "96fffa9d0f821af6fea571425f8190d482651d294d4354beaac0ca04057c675d",
+        "noae_live_manifest_sha256": "d8cf19d50a87c85a3847701dbab45f6231d4fcc23d920a050a1a1dbcbeeb64bd",
+        "noae_policy": "retain live-valid v2 edge service; do not extrapolate through the v3 non-finite action-15 result",
+        "predecessor_comparison_sha256": "1e07d146ed39497625be62cf42e1a0569c9393c9297df5b9274700223739c990",
+        "predecessor_manifest_sha256": "648fa97cc5e5adec73e60defb0f4822fa72d9c6a04f453531bb52cad9612339d",
+        "verified_live_artifacts": 59
+      },
+      "implementation": {
+        "rl_agent/splitfusion_edge_freshness_scheduler_v1/counterfactual_288.py": "b1cfd7dbbb295626b348226493c9cc1d1f6161f5e19df4157b4b1b6ce5d72e8c",
+        "rl_agent/splitfusion_edge_freshness_scheduler_v1/counterfactual_288_final_v3.py": "60b8d738725114fb5fb1564cb51a23f520bb72a17a895a59ae31a4bac0fa0fc1",
+        "rl_agent/splitfusion_edge_freshness_scheduler_v1/two_stage_simulator.py": "c1532ba519f26e1d23656cd5741d502bf44603c00c315a62d3dde40a3823178e"
+      },
+      "optimized_manifest_sha256": "95a836cb126b368c5a35ac9ee7ab1c7ad16e6b4cdd3c6a69e6039b09a2df8535",
+      "policy_selection": {
+        "basis": "lower time-weighted and median map AoI in both action-50 and action-71 cells under the preregistered freshness-first rule",
+        "policy": "LATEST_ONLY_25_MS",
+        "scope": "provisional single-run live selection; not a claim of run-to-run variance or 100 ms service readiness",
+        "tradeoff": "fewer completed installations and more expiry/wasted already-sent bytes, most strongly for action 50"
+      },
+      "scheduler_analysis_manifest_sha256": "4ec836f5f371fb8359d4f981ba13e122135058d08b436fe7aff6f8ade46b6058",
+      "scheduler_analysis_sha256": "2c98fec7d00243ea9b3a412922cac7a50c2458ef9a70dd493ce35e7a3fd5f795",
+      "verified_compact_artifacts": 27
+    }
+  },
+  "queue_policies": [
+    "FIFO_NO_DISCARD",
+    "LATEST_ONLY_NO_EXPIRY"
+  ],
+  "schema": "scenesense.splitfusion.map_freshness_policy_analysis.v2",
+  "scientific_status": "OFFLINE_COUNTERFACTUAL_NOT_LIVE_REMEASUREMENT",
+  "status": "COMPLETE"
+}
