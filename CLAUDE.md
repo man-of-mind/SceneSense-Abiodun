@@ -111,6 +111,37 @@ an expanded contract, not a retune of these gates.
   died at the OAI launcher because `ue_map_install_feedback_v1.py` is pinned in the Phase-14A
   binding. Verify all enforced pins before any live launch.
 
+## Direct edge-to-map architecture correction (2026-09-14) — VALIDATED
+
+The completed 288-cell campaign routed compact object results **edge -> UE `10.0.0.2:51004` over the radio
+downlink -> UE-forwarded publication -> map on localhost**. The spatial map is an edge application, so that
+detour was an architectural defect: it put the map update on the downlink and made installation depend on UE
+reachability. Corrected path: **edge inference -> direct edge-to-map publication/install -> compact
+feedback/agent-credit message to the UE**.
+
+- **Implementation is additive** in `rl_agent/splitfusion_direct_edge_map_v1/`. Every SHA-pinned module
+  (`live_pilot_runtime.py`, `ue_route_b_split_cell_adapter_v1.py`, the baseline map server,
+  `ue_map_install_feedback_v1.py`, `edge_runtime.py`, `context_tail.py`) is **imported unchanged** — hashes
+  still match their config pins. The architecture audit is `splitfusion_direct_edge_map_v1/PHASE_A_ARCHITECTURE_AUDIT.md`.
+- **Direct endpoint:** the host's address on the CN5G bridge, resolved from
+  `docker network inspect oai-cn5g-public-net` -> `192.168.70.129:39320`. Link-scope container-to-host; it never
+  enters the UPF, GTP or RFsim. The publisher refuses the UE tunnel, loopback, `0.0.0.0` and the UE result ports.
+- **Live validation DONE:** `experiments/splitfusion_direct_edge_map_v1/20260914_live_validation_retry1`,
+  4/4 cells PASSED, **16/16 gates PASS**, actions 15/30/50/71 under FAVORABLE_STABLE. Terminals exactly equal
+  frames sent (2967/2923/2969/2939). Live direct tail->install p50 = 9.0-14.5 ms; ACK arrival p50 = 0.75-2.84 ms,
+  measured separately and never folded into map AoI.
+- **Corrected 288-cell counterfactual DONE:**
+  `experiments/splitfusion_direct_edge_map_v1/20260914_direct_map_288_counterfactual`. Only
+  `post_publication_install_ns` changed; transport/admission/edge-service counts are asserted identical between
+  the two replays. Pre-registered Kruskal-Wallis retained **PER_FAMILY** pooling (p=8.9e-27).
+  **Headline:** the detour imported the downlink's channel dependence into map freshness. Post-edge install path
+  71.5 ms -> ~11-13 ms under ADVERSE_STABLE; median cell map AoI 343.6 -> 295.6 ms there, 307.2 -> 297.4 ms
+  overall. Corrected map AoI is nearly channel-independent (290.3/298.7/295.6/299.8 ms across the four profiles).
+- **Figures/tables:** `experiments/splitfusion_direct_edge_map_v1/20260914_presentation`.
+- **Scope:** the counterfactual is a model, not a remeasurement. `10.0.0.2` is local to this host
+  (`oaitun_ue1`), so map->UE feedback is host-local kernel delivery and the ACK latency is a **lower bound** on an
+  over-the-air control delay. **No further 288-cell live campaign is authorized.**
+
 ## Current work (scope-reset 2026-08-20)
 - **Binding path:** follow
   `rl_agent/UE_AGENT_EXECUTION_CHECKLIST_V2.md`. Qualify the repeatable route,
