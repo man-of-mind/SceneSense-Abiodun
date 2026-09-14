@@ -59,6 +59,7 @@
     "remote_port": 56240,
     "ext_dn_ip": "192.168.70.135",
     "ue_ip": "10.0.0.2",
+    "expected_receiver_nat_ip": "192.168.70.134",
     "ack_drain_s": 2.0,
     "map_sink_reassembly_timeout_s": 0.5,
     "socket_buffer_bytes": 16777216,

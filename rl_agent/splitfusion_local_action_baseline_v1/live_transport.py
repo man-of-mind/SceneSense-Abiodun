@@ -430,7 +430,7 @@ def run_profile(
                 "/usr/bin/python3", str(ROOT / "rl_agent/splitfusion_local_action_baseline_v1/map_sink.py"),
                 "--bind-host", str(config["measurement"]["ext_dn_ip"]),
                 "--port", str(config["measurement"]["remote_port"]),
-                "--expected-source-ip", str(config["measurement"]["ue_ip"]),
+                "--expected-source-ip", str(config["measurement"]["expected_receiver_nat_ip"]),
                 "--output", str(sink_output), "--stop-file", str(stop_file),
                 "--socket-buffer-bytes", str(config["measurement"]["socket_buffer_bytes"]),
                 "--reassembly-timeout-s", str(config["measurement"]["map_sink_reassembly_timeout_s"]),
@@ -455,12 +455,15 @@ def run_profile(
             count = int(config["measurement"]["samples_per_profile"])
             granularity = float(runner.phase14b["replay"]["command_granularity_db"])
             anchor = time.monotonic_ns() + period_ns
-            previous_send: int | None = None
             for step, (state_index, target) in enumerate(prepared["prefix"][:count]):
                 scheduled = anchor + step * period_ns
                 decision = phase14b.plan_scheduler_action(
                     scheduled_ns=scheduled, period_ns=period_ns,
-                    now_ns=time.monotonic_ns(), previous_send_ns=previous_send,
+                    # Capture cadence, rather than result-send time, is the
+                    # 100-ms authority. LOCAL compute naturally shifts every
+                    # result by ~27 ms but must not compound that offset into
+                    # later capture ticks.
+                    now_ns=time.monotonic_ns(), previous_send_ns=None,
                 )
                 base = {
                     "profile_id": profile_id, "step_index": step,
@@ -489,7 +492,6 @@ def run_profile(
                 for packet in packets:
                     sock.sendto(packet, (str(config["measurement"]["ext_dn_ip"]), int(config["measurement"]["remote_port"])))
                 send_ended = raw_ns()
-                previous_send = time.monotonic_ns()
                 rows.append({
                     **base, "schedule_status": "SENT_ONCE",
                     "command_noise_power_db": command_db,
