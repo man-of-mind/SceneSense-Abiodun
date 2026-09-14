@@ -1,0 +1,17 @@
+{
+  "schema": "scenesense.splitfusion.budget_quality_latency.v1.artifacts",
+  "sha256": {
+    "01_budget_action_counts.pdf": "328184bc9c462d19f17d525c8c177a7ed90dd2263b7aeab4be5902913b293a6f",
+    "01_budget_action_counts.png": "4dfebf1ed60185d9d0aacbd28083a30cec576f9790f38cdcdfa748a1be4d2d5d",
+    "02_latency_breakdown_by_network_profile.pdf": "33dc9064edb82bb83bf692596cd531f304fc86e2b4a24fbf9077448cb5415e6f",
+    "02_latency_breakdown_by_network_profile.png": "bcb802cc50626b6de44836d941999394ad5180a71fc4791b565b32b575a10c74",
+    "PRESENTATION_TABLES.md": "99830b3cb83fd682425db42f31ae522f3fde62b7308e363a9d713dc741b38ca6",
+    "analysis.json": "6dc2d193b232ab8fd4f4628e5315023363cd1be46a9e1c19e8a6244095febf15",
+    "budget_action_counts.csv": "6a0b0fda0bc72f33e9279e6fec436a3a108e6613c8622414fcbab580aa9e8a7c",
+    "eligible_action_model_performance.csv": "98257691eac932e3106ec318f4ac0955f623c622daa64512e265a2d19cf8e15d",
+    "latency_breakdown_by_action_network.csv": "022c8c63b3120ff788d63a2e04b0cfa17110b9c55322be41ec6b484932bfe801",
+    "latency_breakdown_by_network_profile.csv": "69439daa5d4ec373163ba694ba00b04b00ba1d105c18faa528419ec0fbd711fc",
+    "top5_quality_freshness_candidates.csv": "0170c39417d8135b78a438145a56e5932e283acb0e581eb6460a8e7ac73dca58"
+  },
+  "status": "COMPLETE"
+}

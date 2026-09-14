@@ -1,0 +1,100 @@
+{
+  "budget_count_rows": 16,
+  "budgets_ms": [
+    150,
+    200,
+    250,
+    300
+  ],
+  "cell_count": 288,
+  "eligible_action_rows": 160,
+  "interpretation_limits": [
+    "counterfactual replay over measured 288-cell transport and calibrated optimized edge service",
+    "model validation quality is frozen per action and does not vary by network profile",
+    "feature transfer includes UE sender and application reassembly and is not PHY-only latency",
+    "edge receipt to map install includes queue, compute, publication, and installation",
+    "latency profile rows are action-balanced medians of per-cell medians"
+  ],
+  "latency_action_rows": 288,
+  "latency_profile_rows": 4,
+  "primary_budget_rule": {
+    "clock": "PHYSICAL_CAPTURE_CLOCK",
+    "meaning": "physical map age is within budget for at least half of route time",
+    "minimum_fraction_of_complete_observation": 0.5,
+    "not_a_claim": "not a per-frame, worst-case, or always-fresh guarantee"
+  },
+  "provenance": {
+    "clock_bridge": {
+      "absolute_deviation_ms_max": 5.454918,
+      "absolute_deviation_ms_p50": 0.000109,
+      "absolute_deviation_ms_p95": 0.000708,
+      "absolute_deviation_ms_p99": 0.001099,
+      "absolute_deviation_ms_p999": 0.002392,
+      "anchor_count": 344177,
+      "bridge_application": "action_start_wall_ns = capture_started_ns + robust_global_median_offset_ns",
+      "bridge_definition": "feature_received_at_wall_ns - edge_result_received_ns",
+      "cells_with_anchors": 222,
+      "cells_without_anchors": 66,
+      "endpoint_anchor_count": 10000,
+      "global_median_offset_ns": 1783362416689303826,
+      "interpretation": "The median bridge is process-independent because perf_counter_ns uses the host monotonic clock. Rare positive deviations reflect preemption between the adjacent monotonic and wall-clock calls.",
+      "robust_first_to_last_offset_drift_ms": 3e-06,
+      "same_event_pair": true,
+      "same_physical_host": true
+    },
+    "source_artifacts_verified": 5,
+    "source_manifest_sha256": "e505100af47800b60fb385bf8667e6d6e589a3e0caa03a630a59c9eeb2a43c0c",
+    "source_per_frame_hashes_verified": 288,
+    "source_rows_reproduced_at_150_200_250_ms": 288,
+    "source_verification": {
+      "baseline_manifest_sha256": "965c72b5e48682b6defc0a03b683c72c0e7a3536606ed65c7df9a245da9ca23e",
+      "consolidation": {
+        "action_72_summary.csv": {
+          "path": "experiments/splitfusion_288_offline_rl_dataset_v1/20260909_offline_consolidation_v1/action_72_summary.csv",
+          "sha256": "250eb6d9391c0de5a343d692484647bbdb181153ba64f7f4a447b0076f580a88"
+        },
+        "action_72x4_summary.csv": {
+          "path": "experiments/splitfusion_288_offline_rl_dataset_v1/20260909_offline_consolidation_v1/action_72x4_summary.csv",
+          "sha256": "280b372ed8b6a52bb3e5f1f69e6cbdc02dc851a6a597565fcab9ca9652f5998e"
+        },
+        "analysis_summary.json": {
+          "path": "experiments/splitfusion_288_offline_rl_dataset_v1/20260909_offline_consolidation_v1/analysis_summary.json",
+          "sha256": "48358c2f27ffc2f3da8bf0f821c733914a03267f50da7adab4cbf70cbe239690"
+        },
+        "campaign_288_cell_table.csv": {
+          "path": "experiments/splitfusion_288_offline_rl_dataset_v1/20260909_offline_consolidation_v1/campaign_288_cell_table.csv",
+          "sha256": "3f3067d4c9d0ef3c0d2661c3d19d04306bcbd18ef6d21fa426148e0ee24d2e0d"
+        }
+      },
+      "final_edge": {
+        "action15_v3_failure_sha256": "aca5a6eb5ea1e6e26156fd95ba739a4dd17a0f706c4075f27e415290a001c352",
+        "final_live_manifest_sha256": "96fffa9d0f821af6fea571425f8190d482651d294d4354beaac0ca04057c675d",
+        "noae_live_manifest_sha256": "d8cf19d50a87c85a3847701dbab45f6231d4fcc23d920a050a1a1dbcbeeb64bd",
+        "noae_policy": "retain live-valid v2 edge service; do not extrapolate through the v3 non-finite action-15 result",
+        "predecessor_comparison_sha256": "1e07d146ed39497625be62cf42e1a0569c9393c9297df5b9274700223739c990",
+        "predecessor_manifest_sha256": "648fa97cc5e5adec73e60defb0f4822fa72d9c6a04f453531bb52cad9612339d",
+        "verified_live_artifacts": 59
+      },
+      "implementation": {
+        "rl_agent/splitfusion_edge_freshness_scheduler_v1/counterfactual_288.py": "b1cfd7dbbb295626b348226493c9cc1d1f6161f5e19df4157b4b1b6ce5d72e8c",
+        "rl_agent/splitfusion_edge_freshness_scheduler_v1/counterfactual_288_final_v3.py": "60b8d738725114fb5fb1564cb51a23f520bb72a17a895a59ae31a4bac0fa0fc1",
+        "rl_agent/splitfusion_edge_freshness_scheduler_v1/two_stage_simulator.py": "c1532ba519f26e1d23656cd5741d502bf44603c00c315a62d3dde40a3823178e"
+      },
+      "optimized_manifest_sha256": "95a836cb126b368c5a35ac9ee7ab1c7ad16e6b4cdd3c6a69e6039b09a2df8535",
+      "policy_selection": {
+        "basis": "lower time-weighted and median map AoI in both action-50 and action-71 cells under the preregistered freshness-first rule",
+        "policy": "LATEST_ONLY_25_MS",
+        "scope": "provisional single-run live selection; not a claim of run-to-run variance or 100 ms service readiness",
+        "tradeoff": "fewer completed installations and more expiry/wasted already-sent bytes, most strongly for action 50"
+      },
+      "scheduler_analysis_manifest_sha256": "4ec836f5f371fb8359d4f981ba13e122135058d08b436fe7aff6f8ade46b6058",
+      "scheduler_analysis_sha256": "2c98fec7d00243ea9b3a412922cac7a50c2458ef9a70dd493ce35e7a3fd5f795",
+      "verified_compact_artifacts": 27
+    }
+  },
+  "queue_policy": "LATEST_ONLY_NO_EXPIRY",
+  "schema": "scenesense.splitfusion.budget_quality_latency.v1",
+  "scientific_status": "OFFLINE_COUNTERFACTUAL_NOT_LIVE_REMEASUREMENT",
+  "status": "COMPLETE",
+  "top_candidate_rows": 80
+}
