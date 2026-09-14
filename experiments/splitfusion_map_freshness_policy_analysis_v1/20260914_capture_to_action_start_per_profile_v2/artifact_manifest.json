@@ -1,0 +1,18 @@
+{
+  "schema": "scenesense.splitfusion.capture_to_action_start_diagnostic.v1.artifacts",
+  "sha256": {
+    "01_adverse_stable_capture_to_action_start_by_action.pdf": "4471434b42800dce7f3bd7f2981d7357424eb5f4109315bf166ec7dff8011433",
+    "01_adverse_stable_capture_to_action_start_by_action.png": "0e3621d8726c6be0e73666710fa8374033188d64db8e0bc64150e63328605837",
+    "01_fade_recovery_capture_to_action_start_by_action.pdf": "8dc17e0af59b4f73aa6de6e6d171e4fef01c33b9f06b89cdd4bdb0681be85ffe",
+    "01_fade_recovery_capture_to_action_start_by_action.png": "169a9fe88f6ff2230e2a650c464471be812883fd2bf948c3347cfdf409472f1d",
+    "01_favorable_stable_capture_to_action_start_by_action.pdf": "1046630020794820cf7f38bae040a7fad64699da35ef78497a7eeeeb0eaa1ec2",
+    "01_favorable_stable_capture_to_action_start_by_action.png": "f7562f479e924267c92a0080a1e7923c32c3557c7e218d13bfa0029348c4e75d",
+    "01_mid_variable_capture_to_action_start_by_action.pdf": "28c719fa0da96578b0b1016ac8725bd1c68e91727b2aeb7b0c1b4767f17e43b5",
+    "01_mid_variable_capture_to_action_start_by_action.png": "2e1021cbd3e59fee30d48d84fae574b1a7f2fb2ddecc229531be86ac8e0c8a13",
+    "REPORT.md": "27746c300a22807eb7d575e9f43f08b39f72ff7849fab15e5b139f69478e6a61",
+    "capture_to_action_start_by_cell.csv": "d74781531abc5f6268ec3e3f40c70b5193fcbee99c094144d86df4e67fd4fc68",
+    "capture_to_action_start_tail_diagnostic.json": "f61975d3e2b32bcdac24428fe89915b643374d9609f6e5fffc21a6b3531ca23e"
+  },
+  "source_dual_clock_manifest_sha256": "e505100af47800b60fb385bf8667e6d6e589a3e0caa03a630a59c9eeb2a43c0c",
+  "status": "COMPLETE"
+}
