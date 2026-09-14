@@ -1,0 +1,81 @@
+{
+  "schema": "scenesense.splitfusion.local_action_baseline_config.v1",
+  "status": "FROZEN_FOR_ONE_MEASUREMENT",
+  "execution_token": "SPLITFUSION_LOCAL_COMPACT_RESULT_FOUR_PROFILE_MEASUREMENT",
+  "output_root": "experiments/splitfusion_local_action_baseline_v1",
+  "scientific_boundary": {
+    "action": "FULL_LOCAL_FCOS_THEN_COMPACT_OBJECT_RESULT_UPLOAD",
+    "sensor_preparation_included": false,
+    "local_compute_start": "NORMALIZED_SEVEN_CHANNEL_HOST_TENSOR_AVAILABLE",
+    "local_compute_end": "COMPACT_P025_OBJECT_RESULT_SERIALIZED_AND_ZLIB_COMPRESSED",
+    "map_install_end": "IDENTITY_VALIDATED_COMPACT_OBJECTS_INSTALLED_AT_EDGE_SINK",
+    "segmentation_transported": false,
+    "segmentation_earns_edge_map_credit": false,
+    "desktop_gpu_is_vehicle_proxy_only": true
+  },
+  "provenance": {
+    "radio_replay_config": {
+      "path": "rl_agent/configs/splitfusion_phase14b_corrected_four_profile_replay_v1.json",
+      "sha256": "0dafbe9150859111956618f9573b94c48ad83b9edd43d7b06bad9da04f577f69"
+    },
+    "current_phase14a_binding": {
+      "path": "rl_agent/configs/splitfusion_phase14a_campaign_binding_v1.json",
+      "sha256": "103aeda31a37594c89e820daf1794d28af0440f5e4324450cac01266f5540004"
+    },
+    "qualified_radio_launcher": {
+      "path": "uplink_only_spatial_map_pipeline/run_splitfusion_oai_100mhz_4d5u_v1.sh",
+      "sha256": "8e02f0913338a187bff1de24bfea09d7eca03607da0e383ef8ad4a005b64ce61"
+    },
+    "phase14a_mapping": {
+      "path": "experiments/splitfusion_phase14a_100mhz_calibration_v1/20260904_phase14a_live_calibration_retry3/mapping.json",
+      "sha256": "841ee69e53d7325570652a0f4baa7ae7f554a2204c4e775ce963a064cabd2677"
+    },
+    "compute_baseline_summary": {
+      "path": "experiments/splitfusion_local_action_baseline_v1/20260913_current_fcos_local_compute_v1/local_compute_summary.json",
+      "sha256": "912b3dc3aed0be86cd3b813820eb4d9a2a59533fdbdf781605c1bd2d2d4d03cb"
+    },
+    "compute_baseline_frames": {
+      "path": "experiments/splitfusion_local_action_baseline_v1/20260913_current_fcos_local_compute_v1/local_compute_per_frame.csv",
+      "sha256": "fcea7d20b6cd7e3b4b7606c4f71a4bf7e6cdfdfaada20bc40c734fc643c9d96b"
+    },
+    "compute_baseline_terminal": {
+      "path": "experiments/splitfusion_local_action_baseline_v1/20260913_current_fcos_local_compute_v1/SPLITFUSION_LOCAL_COMPUTE_BASELINE_COMPLETE",
+      "sha256": "2e4d42439a04fceb7d090eafb7fabb754737debbf8d1c18e6da63cb27e5a075b"
+    }
+  },
+  "measurement": {
+    "profile_order": [
+      "FAVORABLE_STABLE",
+      "MID_VARIABLE",
+      "ADVERSE_STABLE",
+      "FADE_RECOVERY"
+    ],
+    "samples_per_profile": 300,
+    "sample_period_ms": 100,
+    "profile_prefix_start": 0,
+    "generator_initializations_per_profile": 1,
+    "udp_chunk_bytes": 12500,
+    "udp_fragment_header": "!IHH",
+    "remote_port": 56240,
+    "ext_dn_ip": "192.168.70.135",
+    "ue_ip": "10.0.0.2",
+    "ack_drain_s": 2.0,
+    "map_sink_reassembly_timeout_s": 0.5,
+    "socket_buffer_bytes": 16777216,
+    "fresh_radio_lifecycle_per_profile": true,
+    "one_shot_no_application_retry": true,
+    "out_of_order_install_forbidden": true,
+    "raw_payload_retained": false,
+    "raw_predictions_retained": false,
+    "freshness_budgets_ms": [150, 200, 250]
+  },
+  "interpretation": {
+    "local_admission_requires_compute_and_four_profile_transport": true,
+    "split_is_not_required_to_meet_every_budget": true,
+    "zero_delivery_is_a_measured_outcome": true,
+    "no_100ms_freshness_gate": true,
+    "no_carla_claim": true,
+    "no_vehicle_hardware_compute_claim": true,
+    "phase14a_binding_transition_scope": "SFD1_V2_DISPATCH_PROVENANCE_ONLY_NO_RADIO_SEMANTIC_CHANGE"
+  }
+}
