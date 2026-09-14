@@ -1,0 +1,18 @@
+{
+  "schema": "scenesense.splitfusion.capture_to_action_start_diagnostic.v1.artifacts",
+  "sha256": {
+    "01_adverse_stable_capture_to_action_start_by_action.pdf": "17913b5a7f1442dc0faa82516621c3b36084f8c52b20429424921dfd845a4c4f",
+    "01_adverse_stable_capture_to_action_start_by_action.png": "0f5d57343eba8e7ab2e523d3f356667a4c099c2dd4b00a3c63e4bdd8e78e450b",
+    "01_fade_recovery_capture_to_action_start_by_action.pdf": "2032901e93131816fc79738dc66ebf9217a5c7f5c7d5d77742355df5b04d4724",
+    "01_fade_recovery_capture_to_action_start_by_action.png": "a79e41a37a44e21a04497342ed9abec81ba1110dfbfef8df7801015d230b0a55",
+    "01_favorable_stable_capture_to_action_start_by_action.pdf": "1d1c93c2e231c61b9c7c8a7a1f3495fdf824085149fea001cf267b2085064252",
+    "01_favorable_stable_capture_to_action_start_by_action.png": "3154cae5707889c7cdffea245a25267f55ec83100815d11de2f101eaa71d8540",
+    "01_mid_variable_capture_to_action_start_by_action.pdf": "e177d150496eff20aadb27661e0cfeadb488943a24af8ad8c218338d90bfae00",
+    "01_mid_variable_capture_to_action_start_by_action.png": "3068eb4fcf0639110bbd67892c443ba432124fc83c9f3f0ce24dea3a4b14cedf",
+    "REPORT.md": "8c7ab0afcacf4cf8f9d5504d9313d05143750f83dc30980b532d6133160b533b",
+    "capture_to_action_start_by_cell.csv": "d74781531abc5f6268ec3e3f40c70b5193fcbee99c094144d86df4e67fd4fc68",
+    "capture_to_action_start_tail_diagnostic.json": "f61975d3e2b32bcdac24428fe89915b643374d9609f6e5fffc21a6b3531ca23e"
+  },
+  "source_dual_clock_manifest_sha256": "e505100af47800b60fb385bf8667e6d6e589a3e0caa03a630a59c9eeb2a43c0c",
+  "status": "COMPLETE"
+}

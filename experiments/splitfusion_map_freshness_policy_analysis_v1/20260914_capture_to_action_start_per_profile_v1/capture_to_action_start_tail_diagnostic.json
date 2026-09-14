@@ -1,0 +1,96 @@
+{
+  "bins": {
+    "GE_100_LT_125": {
+      "count": 21358,
+      "fraction": 0.023814302407521387
+    },
+    "GE_125_LT_150": {
+      "count": 8357,
+      "fraction": 0.009318106808673857
+    },
+    "GE_150": {
+      "count": 7431,
+      "fraction": 0.008285611067997538
+    },
+    "GE_25_LT_50": {
+      "count": 544607,
+      "fraction": 0.6072401812554078
+    },
+    "GE_50_LT_75": {
+      "count": 135180,
+      "fraction": 0.1507265380395515
+    },
+    "GE_75_LT_100": {
+      "count": 51509,
+      "fraction": 0.05743285432667006
+    },
+    "LT_25": {
+      "count": 128414,
+      "fraction": 0.14318240609417787
+    },
+    "LT_50": {
+      "count": 673021,
+      "fraction": 0.7504225873495857
+    }
+  },
+  "boundary": {
+    "clock_bridge": "same-event UE result-receive monotonic/wall pair",
+    "end": "capture_started_ns: entry to seven-channel tensor assembly",
+    "start": "capture_wall_s: host receipt of raw RGB callback"
+  },
+  "cell_p99_range_ms": {
+    "maximum": 168.999279,
+    "median": 143.20848949999998,
+    "minimum": 108.082984
+  },
+  "component_distributions": {
+    "pre_front_compute_ms": {
+      "all_frames_median_ms": 33.28573610633612,
+      "all_frames_p95_ms": 64.7952351719141,
+      "p99_delay_tail_median_ms": 134.5040388405323,
+      "p99_delay_tail_p95_ms": 244.84505131840706
+    },
+    "radar_prepare_ms": {
+      "all_frames_median_ms": 23.198528215289116,
+      "all_frames_p95_ms": 46.75439093261957,
+      "p99_delay_tail_median_ms": 93.67622062563896,
+      "p99_delay_tail_p95_ms": 200.98011568188667
+    },
+    "radar_window_ms": {
+      "all_frames_median_ms": 5.533407907932997,
+      "all_frames_p95_ms": 14.074940234422684,
+      "p99_delay_tail_median_ms": 13.983034528791904,
+      "p99_delay_tail_p95_ms": 73.35509080439806
+    },
+    "rgb_convert_ms": {
+      "all_frames_median_ms": 2.8797327540814877,
+      "all_frames_p95_ms": 7.631106302142143,
+      "p99_delay_tail_median_ms": 5.371773615479469,
+      "p99_delay_tail_p95_ms": 24.461952969431877
+    },
+    "scene_snapshot_ms": {
+      "all_frames_median_ms": 0.11552684009075165,
+      "all_frames_p95_ms": 0.3035515546798706,
+      "p99_delay_tail_median_ms": 0.1285020262002945,
+      "p99_delay_tail_p95_ms": 1.404055394232273
+    },
+    "sensor_wait_ms": {
+      "all_frames_median_ms": 9.080734103918076,
+      "all_frames_p95_ms": 26.77603904157877,
+      "p99_delay_tail_median_ms": 0.005098059773445129,
+      "p99_delay_tail_p95_ms": 29.768461361527443
+    }
+  },
+  "distribution_ms": {
+    "maximum": 487.443412,
+    "median": 36.0508445,
+    "minimum": 12.527525,
+    "p95": 94.62965,
+    "p99": 143.183588
+  },
+  "p99_tail_count": 8969,
+  "p99_tail_threshold_ms": 143.183588,
+  "schema": "scenesense.splitfusion.capture_to_action_start_diagnostic.v1.raw_tail",
+  "sent_frames": 896856,
+  "source_per_frame_hashes_verified": 288
+}
