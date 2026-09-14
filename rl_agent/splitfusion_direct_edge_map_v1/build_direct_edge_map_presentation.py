@@ -608,7 +608,7 @@ def plot_e2e(output: Path, rows: Sequence[Mapping[str, Any]]) -> None:
     )
     x = np.arange(len(rows))
     bottom = np.zeros(len(rows))
-    figure, ax = plt.subplots(figsize=(12.0, 6.8), constrained_layout=True)
+    figure, ax = plt.subplots(figsize=(12.0, 7.6), constrained_layout=True)
     for label, key, color in components:
         values = np.array([float(row[key] or 0.0) for row in rows])
         ax.bar(x, values, bottom=bottom, label=label, color=color, width=0.62)
@@ -620,14 +620,34 @@ def plot_e2e(output: Path, rows: Sequence[Mapping[str, Any]]) -> None:
                     color="white" if color in {PALETTE["sensor"], PALETTE["queue"], PALETTE["edge"]} else "black",
                 )
         bottom += values
+    for index, value in enumerate(bottom):
+        ax.text(
+            index, value + 3.0, f"install at {value:.0f} ms",
+            ha="center", va="bottom", fontsize=9, fontweight="bold",
+        )
+    # The feedback bar is drawn in a detached band above a dashed separator so
+    # it can never be read as another additive stage of map age.
     feedback = np.array(
         [float(row["map_feedback_arrival_ms_live_median"] or 0.0) for row in rows]
     )
-    ax.bar(
-        x, feedback, bottom=bottom + 14.0, width=0.62, color=PALETTE["feedback"],
-        alpha=0.85, hatch="//",
-        label="Map-feedback arrival at UE (separate; NOT part of map AoI)",
+    band = float(bottom.max()) + 26.0
+    ax.axhline(band - 4.0, linestyle="--", linewidth=1.2, color="#555555")
+    ax.text(
+        -0.45, band - 6.0,
+        "below: physical map age   |   above: detached observation delay",
+        ha="left", va="top", fontsize=9, fontstyle="italic", color="#555555",
     )
+    ax.bar(
+        x, feedback, bottom=band, width=0.62, color=PALETTE["feedback"],
+        alpha=0.9, hatch="//",
+        label="Map-feedback arrival at UE, live (separate; NOT part of map AoI)",
+    )
+    for index, value in enumerate(feedback):
+        ax.text(
+            index, band + value + 1.0, f"{value:.2f}",
+            ha="center", va="bottom", fontsize=9, fontweight="bold",
+        )
+    ax.set_ylim(0, band + max(float(feedback.max()), 1.0) + 34.0)
     ax.set_xticks(x, labels)
     ax.set_ylabel("Latency (ms)", fontsize=12, fontweight="bold")
     ax.set_xlabel("Network profile", fontsize=12, fontweight="bold")
@@ -637,7 +657,10 @@ def plot_e2e(output: Path, rows: Sequence[Mapping[str, Any]]) -> None:
         "detached controller-observation delay",
         fontsize=12, fontweight="bold",
     )
-    ax.legend(fontsize=9, ncols=2, frameon=False, loc="upper left")
+    ax.legend(
+        fontsize=9, ncols=3, frameon=False, loc="upper center",
+        bbox_to_anchor=(0.5, -0.12),
+    )
     ax.grid(axis="y", linestyle=":", alpha=0.35)
     configure_axes(ax)
     save(figure, output, "05_corrected_e2e_decomposition")
