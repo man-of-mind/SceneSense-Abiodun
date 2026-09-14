@@ -1,0 +1,10 @@
+{
+  "schema": "scenesense.splitfusion.direct_edge_map_288_counterfactual.v1.artifacts",
+  "sha256": {
+    "REPORT.md": "81d2a4af40e29de5bcd0ad8441f6fd28438f9fd46d75ab7174c61ebd2a4e08c8",
+    "baseline_288_cell_summary.csv": "ff959b63459080222f3cb859eca1f902c5e61fea7f256bcf4919f4c80f3484e7",
+    "counterfactual_results.json": "7c0dffb7c773f5008cc4dd1e4e7c5afc0dd1a2b9bf64b5c220bae135a60c0ccc",
+    "direct_map_288_cell_summary.csv": "2e4d503af9a90394491b8a715455ef885c22e2815b0813d862e172621b5d5adc"
+  },
+  "status": "COMPLETE"
+}

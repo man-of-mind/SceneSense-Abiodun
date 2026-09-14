@@ -1,0 +1,131 @@
+{
+  "adapter_returncode": 0,
+  "attempt": 1,
+  "carla_cleanup": {
+    "application": {
+      "edge_container_absent_before_radio_teardown": true,
+      "edge_container_down_returncode": 0,
+      "edge_process_running_after_stop": false,
+      "owned_host_processes_remaining": [],
+      "owned_host_processes_stopped": []
+    },
+    "application_cold": {
+      "application_processes": [],
+      "conflicting_tcp_ports": [],
+      "conflicting_udp_ports": [],
+      "edge_container_absent": true,
+      "runtime_temporary_paths": [],
+      "shared_memory_objects": []
+    },
+    "carla": {
+      "already_exited": false,
+      "group_members_after_sigterm": [
+        {
+          "cmdline": "",
+          "pid": 976252
+        }
+      ],
+      "group_members_before_signal": [
+        {
+          "cmdline": "/bin/sh /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/CarlaUnreal.sh -RenderOffScreen -nosound -quality-level=Epic -carla-rpc-port=2000",
+          "pid": 976252
+        },
+        {
+          "cmdline": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/CarlaUnreal/Binaries/Linux/CarlaUnreal-Linux-Shipping CarlaUnreal -RenderOffScreen -nosound -quality-level=Epic -carla-rpc-port=200",
+          "pid": 976261
+        }
+      ],
+      "group_members_remaining": [],
+      "pgid": 976252,
+      "port_listening_after": false,
+      "port_listening_after_sigterm": false,
+      "port_listening_before_signal": true,
+      "rpc_port": 2000,
+      "shutdown_verified": true,
+      "sigkill_required": true,
+      "sigkill_result": "sent",
+      "sigterm_result": "sent",
+      "wrapper_returncode": -15
+    },
+    "radio": {
+      "all_lifecycle_gates_passed": true,
+      "cold_postflight": {
+        "no_oai_core_container": true,
+        "no_oai_rfsim_listener": true,
+        "no_softmodem_process": true,
+        "no_stale_profile_scratch": true,
+        "no_traffic_process": true,
+        "no_ue_tunnel": true
+      },
+      "errors": [],
+      "noise_power_db_restored_and_read_back": true,
+      "oai_core_compose_down": true,
+      "owned_process_group_signals": {
+        "gnb": [
+          {
+            "member_pids_before": [
+              975123,
+              975125,
+              975126,
+              975253
+            ],
+            "signal": "-INT"
+          }
+        ],
+        "ue": [
+          {
+            "member_pids_before": [
+              975583,
+              975587,
+              975589,
+              975600
+            ],
+            "signal": "-INT"
+          },
+          {
+            "member_pids_before": [
+              975589,
+              975600
+            ],
+            "signal": "-TERM"
+          }
+        ]
+      },
+      "radio_state_namespace_removed": true,
+      "radio_state_scratch_removed": true,
+      "traffic_and_telemetry_stopped": true,
+      "ue_tunnel_deleted_explicitly": false
+    },
+    "radio_shutdown_verified": true,
+    "shutdown_verified": false
+  },
+  "cell_id": "a50__favorable_stable",
+  "finished_at_unix_s": 1789420939.5455732,
+  "missing_outputs": [],
+  "results_summary_error": "",
+  "results_summary_status": "PASSED",
+  "results_summary_terminal_status": "PASSED",
+  "route_metrics_summary_hash_bound": true,
+  "route_metrics_summary_name": "route_metrics_summary.json",
+  "route_metrics_summary_sha256": "2851db1c6042a3eb823f59a6cc2d77b095a52cdd2917bd917bee4183d445e876",
+  "route_outcome_classification": "PERMITTED_INTERVENTION",
+  "service_diagnostics": [
+    {
+      "bytes": 486,
+      "path": "carla_server.log",
+      "sha256": "51a8e9f877ad3e14a6847e8920bf3b27658a2ad11f18b127e3e409ef0c6dbfed"
+    },
+    {
+      "bytes": 233354,
+      "path": "cell_adapter.log",
+      "sha256": "f51a09ba63758bd044c1132965c8110383c0d769b7f4287416ac7fd1e8ed8b5f"
+    },
+    {
+      "bytes": 8838,
+      "path": "oai_launcher.log",
+      "sha256": "ed1b9bf4b844a4e054366f420bd61de5680882f7c634440ff2824546f6c9296b"
+    }
+  ],
+  "started_at_unix_s": 1789420524.5901117,
+  "status": "PASSED"
+}

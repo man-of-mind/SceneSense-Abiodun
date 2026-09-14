@@ -1,0 +1,58 @@
+{
+  "action_subset": [],
+  "another_288_live_campaign_authorized": false,
+  "architecture": "DIRECT_EDGE_TO_MAP_V1",
+  "campaign_id": "splitfusion_direct_edge_map_live_validation_v1",
+  "complete_route_b_loop_required": false,
+  "config_sha256": "340f9b169367939f5658502f35f5d4275b10e421cb423235654c9f6c7da21fa4",
+  "direct_adapter_sha256": "07182199816eed226e15d8efe18aadd6d2722eff488d673eb5ef41754138d7a5",
+  "frames_per_action": 300,
+  "git": {
+    "declared_user_owned_paths": [
+      "OAI/openairinterface5g",
+      "oaitelnet.history",
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/lraspp_to_splitfusion_fcos_report_v1/FULL_TECHNICAL_REPORT_AVO_V2.md"
+    ],
+    "dirty_paths": [
+      "OAI/openairinterface5g",
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/lraspp_to_splitfusion_fcos_report_v1/FULL_TECHNICAL_REPORT_AVO_V2.md"
+    ],
+    "head": "0bd9dad436e040f2a7ddc99c57274b05f7a749b7",
+    "owned_resume_untracked_paths": 0
+  },
+  "is_full_registered_matrix": true,
+  "matrix": [
+    {
+      "action_id": 15,
+      "cell_id": "a15__favorable_stable",
+      "family": "noAE",
+      "network_profile_id": "FAVORABLE_STABLE",
+      "profile_id": "split_noae_uint4_q7000"
+    },
+    {
+      "action_id": 30,
+      "cell_id": "a30__favorable_stable",
+      "family": "AE128",
+      "network_profile_id": "FAVORABLE_STABLE",
+      "profile_id": "split_ae128_uint4_q0000"
+    },
+    {
+      "action_id": 50,
+      "cell_id": "a50__favorable_stable",
+      "family": "AE64",
+      "network_profile_id": "FAVORABLE_STABLE",
+      "profile_id": "split_ae64_uint4_q5000"
+    },
+    {
+      "action_id": 71,
+      "cell_id": "a71__favorable_stable",
+      "family": "AE32",
+      "network_profile_id": "FAVORABLE_STABLE",
+      "profile_id": "split_ae32_uint4_q9800"
+    }
+  ],
+  "maximum_loop_sim_s": 600.0,
+  "resumed": true,
+  "schema": "scenesense.splitfusion.direct_edge_map_live_validation.v1",
+  "started_at_unix_s": 1789421507.6059365
+}

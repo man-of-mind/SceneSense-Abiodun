@@ -1,0 +1,67 @@
+{
+  "campaign_id": "splitfusion_direct_edge_map_live_validation_v1",
+  "cells": {
+    "a15__favorable_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a15__favorable_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "74c099e4215df3948e3080042f76b213f7de7fa588a0b9a52194ca2ca0f38641",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a15__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "d2ed078a44962ed44dc3a2b61ac4a24ba4ef8ce388c9830cd3827d24f18d5502"
+      }
+    ],
+    "a30__favorable_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a30__favorable_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "",
+        "route_outcome_classification": "",
+        "status": "FAILED",
+        "terminal": "cells/a30__favorable_stable/attempts/attempt_0001/FAILED.json",
+        "terminal_sha256": "d20b91174b38d9dbb48c60da421d798efa40aac5a61c9a29350bbfdb2b14d3ef"
+      },
+      {
+        "attempt": 2,
+        "attempt_dir": "cells/a30__favorable_stable/attempts/attempt_0002",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "6595aa53d4d57ad4a0df544252b1a079c316867a0136e9cfe8bd84a4a5461f69",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a30__favorable_stable/attempts/attempt_0002/PASSED.json",
+        "terminal_sha256": "e17f785f9406aed2a72897b1a85dc540a2f1b9aa390cbe7e197dd7ec5a287758"
+      }
+    ],
+    "a50__favorable_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a50__favorable_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "2851db1c6042a3eb823f59a6cc2d77b095a52cdd2917bd917bee4183d445e876",
+        "route_outcome_classification": "PERMITTED_INTERVENTION",
+        "status": "PASSED",
+        "terminal": "cells/a50__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "9b251753c591b6053bf08af6a1ebf369cc9b92e7d47a4870260c7edf41414beb"
+      }
+    ],
+    "a71__favorable_stable": [
+      {
+        "attempt": 1,
+        "attempt_dir": "cells/a71__favorable_stable/attempts/attempt_0001",
+        "route_metrics_summary_name": "route_metrics_summary.json",
+        "route_metrics_summary_sha256": "6bab9e8db5351cfc161bb7acee33e68d6b60a53800e5ab113f6054245c8942a4",
+        "route_outcome_classification": "ROUTE_RUNNER_PASS",
+        "status": "PASSED",
+        "terminal": "cells/a71__favorable_stable/attempts/attempt_0001/PASSED.json",
+        "terminal_sha256": "eb1c965b044ff55bf391b29f3659b82686189ffb79f35dea63aeb04fdf708e16"
+      }
+    ]
+  },
+  "config_sha256": "340f9b169367939f5658502f35f5d4275b10e421cb423235654c9f6c7da21fa4",
+  "created_at_unix_s": 1789420099.5594735,
+  "schema": "scenesense.ue_288_campaign_ledger.v1",
+  "updated_at_unix_s": 1789421932.3727355
+}

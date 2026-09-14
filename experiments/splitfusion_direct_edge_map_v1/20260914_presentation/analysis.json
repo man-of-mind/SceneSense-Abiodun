@@ -1,0 +1,159 @@
+{
+  "budget_rows": 16,
+  "budgets_ms": [
+    150,
+    200,
+    250,
+    300
+  ],
+  "conditional_rows": 288,
+  "counterfactual_root": "experiments/splitfusion_direct_edge_map_v1/20260914_direct_map_288_counterfactual",
+  "e2e_rows": [
+    {
+      "direct_capture_to_install_ms_cell_median": 215.7445035,
+      "direct_map_publication_and_install_ms": 11.781454,
+      "edge_processing_ms": 57.68033,
+      "edge_queue_ms": 0.0,
+      "feature_uplink_and_edge_reassembly_ms": 54.890451,
+      "install_path_saving_ms": 3.6563870000000005,
+      "map_feedback_arrival_ms_live_median": 1.8816590309143066,
+      "network_profile": "FAVORABLE_STABLE",
+      "network_profile_label": "Favorable Stable",
+      "old_capture_to_install_ms_cell_median": 219.169579,
+      "old_result_return_and_map_install_ms": 15.437841,
+      "sensor_pre_action_ms": 37.193379,
+      "ue_action_preparation_ms": 24.901115
+    },
+    {
+      "direct_capture_to_install_ms_cell_median": 229.00077475,
+      "direct_map_publication_and_install_ms": 11.7231605,
+      "edge_processing_ms": 57.402364999999996,
+      "edge_queue_ms": 0.0,
+      "feature_uplink_and_edge_reassembly_ms": 66.13283200000001,
+      "install_path_saving_ms": 3.6436917499999986,
+      "map_feedback_arrival_ms_live_median": 1.8816590309143066,
+      "network_profile": "MID_VARIABLE",
+      "network_profile_label": "Mid Variable",
+      "old_capture_to_install_ms_cell_median": 231.87689899999998,
+      "old_result_return_and_map_install_ms": 15.366852249999999,
+      "sensor_pre_action_ms": 36.46246325,
+      "ue_action_preparation_ms": 24.54304025
+    },
+    {
+      "direct_capture_to_install_ms_cell_median": 220.91508075000002,
+      "direct_map_publication_and_install_ms": 11.664033,
+      "edge_processing_ms": 55.3925955,
+      "edge_queue_ms": 0.0,
+      "feature_uplink_and_edge_reassembly_ms": 62.628423749999996,
+      "install_path_saving_ms": 54.6535255,
+      "map_feedback_arrival_ms_live_median": 1.8816590309143066,
+      "network_profile": "ADVERSE_STABLE",
+      "network_profile_label": "Adverse Stable",
+      "old_capture_to_install_ms_cell_median": 275.429439,
+      "old_result_return_and_map_install_ms": 66.3175585,
+      "sensor_pre_action_ms": 36.672920749999996,
+      "ue_action_preparation_ms": 23.65085175
+    },
+    {
+      "direct_capture_to_install_ms_cell_median": 230.30853,
+      "direct_map_publication_and_install_ms": 11.767626,
+      "edge_processing_ms": 56.871843,
+      "edge_queue_ms": 0.0,
+      "feature_uplink_and_edge_reassembly_ms": 60.321027,
+      "install_path_saving_ms": 3.999948,
+      "map_feedback_arrival_ms_live_median": 1.8816590309143066,
+      "network_profile": "FADE_RECOVERY",
+      "network_profile_label": "Fade Recovery",
+      "old_capture_to_install_ms_cell_median": 229.2108405,
+      "old_result_return_and_map_install_ms": 15.767574,
+      "sensor_pre_action_ms": 38.226558999999995,
+      "ue_action_preparation_ms": 24.828049
+    }
+  ],
+  "eligible_actions": 43,
+  "extrapolations": [
+    "the live direct-map delay was measured only under FAVORABLE_STABLE and is applied to all four network profiles; the justification is physical -- the direct path is a container-to-host datagram on the CN5G bridge that never traverses the radio -- but it is an extrapolation and is not independently confirmed per profile",
+    "the live validation covers actions 15/30/50/71; every other action in a family inherits that family's measured delay",
+    "the edge service model, arrival model and quality are unchanged from the final optimized-edge analysis and are not re-measured"
+  ],
+  "limitations": [
+    "counterfactual model, not a live remeasurement of 288 cells",
+    "only the post-edge installation path changed; transport, admission and edge service are bit-identical to the baseline replay",
+    "agent-feedback arrival is excluded from physical map AoI by design",
+    "no 100-ms service-readiness claim",
+    "figures mixing simulator and live values label each explicitly and never merge them into one number"
+  ],
+  "matched_rows": 72,
+  "pooling_decision": {
+    "family_dependent": true,
+    "family_medians_ms": {
+      "AE128": 12.499809,
+      "AE32": 11.722326,
+      "AE64": 10.86545,
+      "noAE": 12.9361155
+    },
+    "family_sample_counts": {
+      "AE128": 999,
+      "AE32": 1797,
+      "AE64": 1738,
+      "noAE": 1274
+    },
+    "interpretation": "per-family pools retained because the live medians differ",
+    "kruskal_h": 124.3631585036934,
+    "kruskal_p": 8.863804312174521e-27,
+    "pairwise_mannwhitney": {
+      "AE128_vs_AE32": {
+        "median_delta_ms": 0.777483,
+        "p": 0.030822329407409987,
+        "u": 941773.0
+      },
+      "AE128_vs_AE64": {
+        "median_delta_ms": 1.634359,
+        "p": 2.817168641463965e-11,
+        "u": 1000607.0
+      },
+      "AE128_vs_noAE": {
+        "median_delta_ms": -0.4363065,
+        "p": 0.006001301607021007,
+        "u": 593690.5
+      },
+      "AE32_vs_AE64": {
+        "median_delta_ms": 0.856876,
+        "p": 2.8948743331500895e-11,
+        "u": 1763386.0
+      },
+      "AE32_vs_noAE": {
+        "median_delta_ms": -1.2137895,
+        "p": 8.693672883594439e-09,
+        "u": 1005379.0
+      },
+      "AE64_vs_noAE": {
+        "median_delta_ms": -2.0706655,
+        "p": 1.2854055747753944e-24,
+        "u": 865613.0
+      }
+    },
+    "pooled_median_ms": 11.859298,
+    "pooled_samples": 5808,
+    "preregistered_alpha": 0.05,
+    "rule": "PER_FAMILY"
+  },
+  "primary_budget_rule": {
+    "clock": "PHYSICAL_CAPTURE_CLOCK",
+    "meaning": "physical map age is within budget for at least half of route time",
+    "not_a_claim": "not a per-frame, worst-case, or always-fresh guarantee"
+  },
+  "primary_threshold": 0.5,
+  "quality_rows": 72,
+  "schema": "scenesense.splitfusion.direct_edge_map_presentation.v1",
+  "scientific_status": "COUNTERFACTUAL_SIMULATOR_PLUS_LIVE_SHORT_RUN",
+  "status": "COMPLETE",
+  "thresholds": [
+    0.25,
+    0.5,
+    0.75
+  ],
+  "upstream_latency_csv": "experiments/splitfusion_map_freshness_policy_analysis_v1/20260914_budget_quality_latency_v2/latency_breakdown_by_network_profile.csv",
+  "upstream_latency_sha256": "69439daa5d4ec373163ba694ba00b04b00ba1d105c18faa528419ec0fbd711fc",
+  "validation_root": "experiments/splitfusion_direct_edge_map_v1/20260914_live_validation_retry1"
+}

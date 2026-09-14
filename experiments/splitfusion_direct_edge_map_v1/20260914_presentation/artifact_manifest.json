@@ -1,0 +1,28 @@
+{
+  "schema": "scenesense.splitfusion.direct_edge_map_presentation.v1.artifacts",
+  "sha256": {
+    "01_budget_action_counts.pdf": "51627161c9d411af14008b18dcc3e2db82614e880766d53e7ffe8103f176ea7f",
+    "01_budget_action_counts.png": "f48622f5c9f0bc574fb6b42db2990f80f97d5e84e07e70deaaf595a3ac3e77ae",
+    "01b_budget_threshold_sensitivity.pdf": "6627d04c989b2ba120a2c6d91e5a26f6dedb02ce1fba06d02cf5b1606a86339c",
+    "01b_budget_threshold_sensitivity.png": "bc590166e3f647895002525df372f9c102c4efec1160a514b633f93ad13d60b3",
+    "02_eligible_action_model_quality.pdf": "62b7cb20c5a0e6aaa40146779fba01d1b3113748007ba228f4a1478acfb99bab",
+    "02_eligible_action_model_quality.png": "7bd7b9d90a8cd82a23d18daa09f71db9f70856ac1c09439a274bd4d75d7c6f00",
+    "03_matched_action_across_profiles.pdf": "4dad9746921d93d16de506349ebaa8ff46a9c053e109e2c7abc08eb6f0d25c7e",
+    "03_matched_action_across_profiles.png": "8089bd543f5ad5c0cebcf8f5e6c71fb2e9daf7434e31408ad2cfae794c6b337e",
+    "04_conditional_latency_with_delivery.pdf": "20a695a773017b8e6d5de32af2b61a555ee2110e4a4187f06fbf99f019e75464",
+    "04_conditional_latency_with_delivery.png": "f09c0f5ae7b591aaff05288218b438a1f3d6bb7b6416cb950e8310f1f3fe42ef",
+    "05_corrected_e2e_decomposition.pdf": "8c41af79726731ab2542c245e679bf601df5714f69dfe3225f3e36273e23b83b",
+    "05_corrected_e2e_decomposition.png": "56b13c8d486995ca7ca58837f88bb1b91d2268cb1f504f592ff3d0fce013e674",
+    "06_before_after_install_path.pdf": "da0f0b88101d1b246a6c89e0bf8928b90d88676c70de1332eb8bb212e9b31086",
+    "06_before_after_install_path.png": "33956f1065a87c54fdb323c0fc8ded45610684a0e7859c76fde984e42c4539eb",
+    "PRESENTATION_TABLES.md": "ae1051144fc2a13a9c88a6c61f80438f77663b58ea781e6f94bc018e3060fdd0",
+    "analysis.json": "04877067005ac662d8fd727428bf644ddea07385eb5f736cb40827549bd62f96",
+    "before_after_install_path.csv": "f5d08552c44062d724d82e00d4fe25f31b505de816f747eabffe6985cdd63bde",
+    "budget_action_counts.csv": "d03e4ead1ba69fbbedd2fcbebeca58b381ac02dbbb0095154ec1a6e1d40c842a",
+    "conditional_latency_with_delivery.csv": "96b54af34cc66cca987107517dd7e6a70ea4c05fa42fa35967a239c5427327ee",
+    "corrected_e2e_decomposition.csv": "f5d08552c44062d724d82e00d4fe25f31b505de816f747eabffe6985cdd63bde",
+    "eligible_action_model_performance.csv": "feef7e2572d2e3a49f05554b4910d5207e21a1583322584e0a567e7e5fc366bd",
+    "matched_action_across_profiles.csv": "c07c702483bbd0739ed852ff08424d34d9e9c4e4026d1b593138fd92e5259355"
+  },
+  "status": "COMPLETE"
+}

@@ -1,0 +1,8 @@
+{
+  "schema": "scenesense.splitfusion.direct_edge_map_live_validation.v1.artifacts",
+  "sha256": {
+    "DIRECT_VALIDATION_RESULTS.json": "34f47f48594e1fab398ddb136d809e848a6304a202f77bb35862868afdcb651a",
+    "REPORT.md": "e2e23aaa9538231178bde18731d8e8784dc166f19c341162cf2a07bc846dd5b2",
+    "direct_validation_summary.csv": "443f7212a52ed8246fb3434a62aeb02ebe39a4d0551303efc785b046d1896345"
+  }
+}

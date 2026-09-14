@@ -1,0 +1,26 @@
+{
+  "direct_ingest": {
+    "bind_host": "192.168.70.129",
+    "bind_port": 39320,
+    "counters": {
+      "direct_datagram_bytes_received": 22053561,
+      "direct_datagrams_received": 2633,
+      "direct_records_installed": 65270,
+      "direct_updates_installed": 1738,
+      "direct_updates_reassembled": 1746,
+      "direct_updates_stale_before_map": 8,
+      "feedback_bytes_emitted": 2960938,
+      "feedback_messages_emitted": 1746
+    },
+    "failures": [],
+    "feedback_remote_host": "10.0.0.2",
+    "feedback_remote_port": 51014,
+    "rows": 1746,
+    "schema": "splitfusion_direct_map_ingest_report.v1",
+    "terminal_identities": 1746
+  },
+  "legacy_loopback_listener_started": false,
+  "schema": "splitfusion_direct_map_report.v1",
+  "status": "COMPLETE",
+  "written_at_unix_s": 1789420870.8485956
+}

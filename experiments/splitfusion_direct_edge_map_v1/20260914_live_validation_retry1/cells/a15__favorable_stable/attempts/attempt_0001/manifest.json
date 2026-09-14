@@ -1,0 +1,62 @@
+{
+  "files": [
+    {
+      "bytes": 2475818,
+      "path": "per_frame_metrics.csv",
+      "sha256": "116db80f7fc6e3b66bb0e5297b502157e563d484f9be03f25d39726c3d37f781"
+    },
+    {
+      "bytes": 1151396,
+      "path": "radio_trace.csv",
+      "sha256": "454dd26d818e77f9071ceb571e4305e35568f956d6019cacef8b7189fb0919ca"
+    },
+    {
+      "bytes": 1409947,
+      "path": "map_feedback.csv",
+      "sha256": "a6ab8d0ac4e2dd5c7e0a9fcaf9e687b96e3d8c84576d411eb551593b26323a9e"
+    },
+    {
+      "bytes": 491440,
+      "path": "perception_metrics.csv",
+      "sha256": "ad9dfe80ab2106120911ca3be98f4473633907b970fbfba782239769540e9a57"
+    },
+    {
+      "bytes": 15662,
+      "path": "resolved_config.yaml",
+      "sha256": "7764b1168222ae7b5bc2ea7542e4b18ff1dbcd9d37dfc80f8298273e65e9d16f"
+    },
+    {
+      "bytes": 16974,
+      "path": "route_metrics_summary.json",
+      "sha256": "74c099e4215df3948e3080042f76b213f7de7fa588a0b9a52194ca2ca0f38641"
+    },
+    {
+      "bytes": 15203,
+      "path": "RESULTS_SUMMARY.json",
+      "sha256": "86db3cc5527fdd9147daf794018ca1cf486c4e25276aca45371171496249deba"
+    }
+  ],
+  "git_commit_at_launch": "d9ba63f1ad17c7d96ead74854a2afa97ce84321b",
+  "measurement_contract": {
+    "expected_prepared_hz": 10.0,
+    "installed_frame_history_size": 4096,
+    "match_distance_m": 3.0,
+    "max_gt_distance_m": 40.0,
+    "min_gt_area_px": 12.0,
+    "minimum_sensor_preparation_coverage": 0.95,
+    "segmentation_evidence_retention_s": 5.0
+  },
+  "registered_outputs": [
+    "per_frame_metrics.csv",
+    "radio_trace.csv",
+    "map_feedback.csv",
+    "perception_metrics.csv",
+    "resolved_config.yaml",
+    "route_metrics_summary.json",
+    "RESULTS_SUMMARY.json",
+    "manifest.json"
+  ],
+  "schema": "scenesense.ue_288_cell_manifest.v1",
+  "structural_acceptance_status": "PASS",
+  "terminal_status": "PASSED"
+}

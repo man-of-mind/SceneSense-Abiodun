@@ -1,0 +1,458 @@
+{
+  "action_id": 30,
+  "cell_id": "a30__favorable_stable",
+  "cleanup": {
+    "edge_stopped": true,
+    "live_dispatch_stopped": true,
+    "map_process_stopped": true,
+    "target_snr_restore_status": "restored_and_read_back",
+    "target_snr_restored": true
+  },
+  "edge_mounts": {
+    "repository": {
+      "destination": "/work/abiodun",
+      "rw": false,
+      "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun"
+    },
+    "state": {
+      "destination": "/work/torch_cache",
+      "rw": true,
+      "source": "/tmp/ue_288_cell_runtime_fc5s97zt/splitfusion_edge_state"
+    }
+  },
+  "edge_startup": {
+    "ack_timeout_s": 0.5,
+    "action_id": 30,
+    "allowed_action_ids": [
+      30
+    ],
+    "architecture": "DIRECT_EDGE_TO_MAP_V1",
+    "dense_label_map_on_radio": false,
+    "direct_map_host": "192.168.70.129",
+    "direct_map_port": 39320,
+    "edge_receive_reported_bytes": 16777216,
+    "evaluation_evidence_dir": "/work/torch_cache/segmentation_evidence",
+    "object_records_on_radio": false,
+    "processing_expiry_s": 0.5,
+    "profiles": {
+      "30": "split_ae128_uint4_q0000"
+    },
+    "schema": "splitfusion_direct_live_edge_ready.v1",
+    "service_deadline_s": 0.1,
+    "state_root": "/work/torch_cache",
+    "state_root_writable": true,
+    "tail_device": "cuda:0",
+    "ue_control_host": "10.0.0.2",
+    "ue_control_port": 51014
+  },
+  "failures": [],
+  "finished_at_unix_s": 1789421858.0704367,
+  "live_dispatch": {
+    "ack_timeout_s": 0.5,
+    "architecture": "DIRECT_EDGE_TO_MAP_V1",
+    "call_ledger": {
+      "ae_encoder_AE128": 2923,
+      "front": 2923
+    },
+    "control_counters": {
+      "control_bytes_received": 3156437,
+      "control_datagrams_received": 2916,
+      "edge_terminal_messages": 1869,
+      "map_feedback_messages": 1047
+    },
+    "edge_completed": 2916,
+    "errors": [],
+    "ledger": {
+      "late_nonterminal_messages": 882,
+      "obligations_closed": 2923,
+      "obligations_open": 0,
+      "terminal_outcomes": {
+        "FEEDBACK_TIMEOUT": 889,
+        "RESULT_INSTALLED": 994,
+        "STALE_BEFORE_EDGE": 18,
+        "STALE_BEFORE_MAP": 81,
+        "SUPERSEDED_PENDING": 941
+      }
+    },
+    "processing_expiry_s": 0.5,
+    "result_thread_alive": false,
+    "results_published_to_map": 2916,
+    "sent": 2923,
+    "service_deadline_s": 0.1,
+    "socket_buffers": {
+      "requested_bytes": 8388608,
+      "ue_result_receive_reported_bytes": 16777216,
+      "ue_send_reported_bytes": 16777216
+    },
+    "stale_before_send_frames": {},
+    "terminal_frames": 2916,
+    "transport_counters": {
+      "feature_datagrams_transmitted": 210909,
+      "feature_messages_transmitted": 2923
+    },
+    "ue_counters": {
+      "ae_decoder_dispatches": 0,
+      "ae_encoder_dispatches": 2923,
+      "frames_attempted": 2923,
+      "frames_completed": 2923,
+      "hot_path_model_construction_operations": 0,
+      "hot_path_model_load_operations": 0,
+      "ranker_dispatches": 0,
+      "startup_eval_transitions": 0,
+      "startup_model_construction_operations": 5,
+      "startup_model_load_operations": 5,
+      "startup_module_device_moves": 0,
+      "startup_parameter_freezes": 0,
+      "startup_preloaded_objects": 5,
+      "tail_dispatches": 0
+    },
+    "ue_published_object_updates": 0
+  },
+  "measurement_contract": {
+    "expected_prepared_hz": 10.0,
+    "installed_frame_history_size": 4096,
+    "match_distance_m": 3.0,
+    "max_gt_distance_m": 40.0,
+    "min_gt_area_px": 12.0,
+    "minimum_sensor_preparation_coverage": 0.95,
+    "segmentation_evidence_retention_s": 5.0
+  },
+  "network_profile_id": "FAVORABLE_STABLE",
+  "one_clock_owner": "qualified_route_b_density_runner_via_SamplingWorld",
+  "one_ego_owner": "qualified_route_b_density_runner",
+  "registered_feature_wire_codec": "zstd",
+  "route": {
+    "density_status": "INTERVENED",
+    "error": "",
+    "intervention_policy": {
+      "forced_overtaking": false,
+      "intervention_count": 2,
+      "intervention_events": [
+        {
+          "action": "DESTROYED",
+          "actor_id": 95,
+          "actor_type": "vehicle.mini.cooper",
+          "sim_s": 248.45,
+          "x": -95.54,
+          "y": 29.31
+        },
+        {
+          "action": "DESTROYED",
+          "actor_id": 61,
+          "actor_type": "vehicle.dodgecop.charger",
+          "sim_s": 276.2,
+          "x": -79.25,
+          "y": 24.71
+        }
+      ],
+      "interventions_permitted_and_expected": true,
+      "maximum_overtakes": 0,
+      "permitted_actions": [
+        "RELOCATED",
+        "DESTROYED"
+      ],
+      "roadblock_clearing": true,
+      "scenario_interventions": true,
+      "unexpected_intervention_events": []
+    },
+    "route_abort_reason": "",
+    "route_completed": true,
+    "route_outcome": {
+      "classification": "PERMITTED_INTERVENTION",
+      "collision_count": 32,
+      "collision_incident_count": 2,
+      "collision_incidents": [
+        {
+          "callback_count": 11,
+          "ego_speed_mps": 3.347,
+          "first_episode_simulation_time_s": 106.8,
+          "first_frame_id": 2734,
+          "first_simulation_time_s": 113.541,
+          "last_episode_simulation_time_s": 107.4,
+          "last_frame_id": 2746,
+          "last_simulation_time_s": 114.141,
+          "loop_index": 1,
+          "other_actor_id": 104,
+          "other_actor_type": "walker.pedestrian.0032",
+          "walker_braking_active": true,
+          "x": -113.89,
+          "y": 37.33
+        },
+        {
+          "callback_count": 21,
+          "ego_speed_mps": 3.873,
+          "first_episode_simulation_time_s": 289.65,
+          "first_frame_id": 6391,
+          "first_simulation_time_s": 296.391,
+          "last_episode_simulation_time_s": 290.65,
+          "last_frame_id": 6411,
+          "last_simulation_time_s": 297.391,
+          "loop_index": 1,
+          "other_actor_id": 74,
+          "other_actor_type": "vehicle.taxi.ford",
+          "walker_braking_active": false,
+          "x": -74.96,
+          "y": 25.72
+        }
+      ],
+      "collision_is_measured_outcome_not_structural_failure": true,
+      "density_status": "INTERVENED",
+      "does_not_claim_pedestrian_braking_coverage_or_safety_success": true,
+      "driven_distance_m_median": 1251.85,
+      "fatal_reasons": [],
+      "intervention_count_total": 2,
+      "loops_completed": 1,
+      "no_braking_event_is_measured_outcome_not_braking_coverage": true,
+      "pedestrian_braking_exercised": true,
+      "planned_route_length_m": 1268.68,
+      "route_completed": true,
+      "route_runner_cleanup_succeeded": true,
+      "route_runner_returncode": 1,
+      "walker_brake_ticks_total": 103,
+      "watchdog_aborted_any": false
+    },
+    "route_runner_returncode": 1,
+    "route_summary_bytes": 20181,
+    "route_summary_identity_mismatches": [],
+    "route_summary_identity_ok": true,
+    "route_summary_name": "route_metrics_summary.json",
+    "route_summary_parse_error": "",
+    "route_summary_persisted": true,
+    "route_summary_retention_reason": "PERSISTED",
+    "route_summary_sha256": "6595aa53d4d57ad4a0df544252b1a079c316867a0136e9cfe8bd84a4a5461f69"
+  },
+  "route_collision_outcome": {
+    "classification": "PERMITTED_INTERVENTION",
+    "collision_count": 32,
+    "collision_incident_count": 2,
+    "collision_incidents": [
+      {
+        "callback_count": 11,
+        "ego_speed_mps": 3.347,
+        "first_episode_simulation_time_s": 106.8,
+        "first_frame_id": 2734,
+        "first_simulation_time_s": 113.541,
+        "last_episode_simulation_time_s": 107.4,
+        "last_frame_id": 2746,
+        "last_simulation_time_s": 114.141,
+        "loop_index": 1,
+        "other_actor_id": 104,
+        "other_actor_type": "walker.pedestrian.0032",
+        "walker_braking_active": true,
+        "x": -113.89,
+        "y": 37.33
+      },
+      {
+        "callback_count": 21,
+        "ego_speed_mps": 3.873,
+        "first_episode_simulation_time_s": 289.65,
+        "first_frame_id": 6391,
+        "first_simulation_time_s": 296.391,
+        "last_episode_simulation_time_s": 290.65,
+        "last_frame_id": 6411,
+        "last_simulation_time_s": 297.391,
+        "loop_index": 1,
+        "other_actor_id": 74,
+        "other_actor_type": "vehicle.taxi.ford",
+        "walker_braking_active": false,
+        "x": -74.96,
+        "y": 25.72
+      }
+    ],
+    "collision_is_measured_outcome_not_structural_failure": true,
+    "density_status": "INTERVENED",
+    "does_not_claim_pedestrian_braking_coverage_or_safety_success": true,
+    "driven_distance_m_median": 1251.85,
+    "fatal_reasons": [],
+    "intervention_count_total": 2,
+    "loops_completed": 1,
+    "no_braking_event_is_measured_outcome_not_braking_coverage": true,
+    "pedestrian_braking_exercised": true,
+    "planned_route_length_m": 1268.68,
+    "route_completed": true,
+    "route_runner_cleanup_succeeded": true,
+    "route_runner_returncode": 1,
+    "walker_brake_ticks_total": 103,
+    "watchdog_aborted_any": false
+  },
+  "route_metrics_summary_name": "route_metrics_summary.json",
+  "route_metrics_summary_sha256": "6595aa53d4d57ad4a0df544252b1a079c316867a0136e9cfe8bd84a4a5461f69",
+  "route_outcome_classification": "PERMITTED_INTERVENTION",
+  "schema": "scenesense.ue_288_cell_results_summary.v1",
+  "segmentation_evidence_preservation": {
+    "eligible_frame_ids_sha256": "0a43921305c5e8d4a23f61fbdc1dc18cf5ae11f7c9e743f89e46f72d713b4e45",
+    "eligible_frames": 999,
+    "evaluated_masks": 1047,
+    "hash_mismatched_masks": 0,
+    "hash_verified_masks": 1047,
+    "installed_frames": 999,
+    "manifest_records": 1047,
+    "nonselected_masks_are_intentionally_elided_by_registered_sampling_policy": true,
+    "preservation_failures": 0,
+    "preserved_bytes": 14747648,
+    "preserved_masks": 16,
+    "quota_bytes": 1073741824,
+    "quota_elided_masks": 0,
+    "sampling_elided_masks": 983,
+    "selected_frame_ids": [
+      627,
+      1293,
+      1579,
+      2011,
+      2311,
+      2633,
+      2951,
+      3437,
+      3797,
+      4355,
+      4691,
+      4995,
+      5501,
+      5867,
+      6151,
+      6661
+    ],
+    "selected_frame_ids_sha256": "c2286de9cc9a0f5365f903058f1f08e756b204fea6e6bc46803efe488e95eb3c",
+    "selected_frames": 16,
+    "selection_depends_only_on_sorted_installed_frame_ids": true,
+    "selection_rule_version": "endpoint_inclusive_evenly_spaced_sorted_ack_installed_v1",
+    "selection_sample_size": 16,
+    "source_unavailable_masks": 0
+  },
+  "spatial_map_packet_codec": "zlib",
+  "split_frames_dropped": 108,
+  "split_frames_sent": 2923,
+  "started_at_unix_s": 1789421534.6838155,
+  "status": "PASSED",
+  "structural_acceptance": {
+    "ack_installed_actions": [
+      30
+    ],
+    "ack_installed_frames": 999,
+    "action_capture_counts": {
+      "30": 2923
+    },
+    "eligible_preparation_frames": 3031,
+    "exact_frame_perception_coverage": 1.0,
+    "exact_frame_perception_records": 999,
+    "exact_frame_segmentation_records": 999,
+    "exact_record_retrieval": {
+      "max_attempts_observed": 1,
+      "permanent_failure_frames": [],
+      "permanent_failure_is_structurally_fatal": true,
+      "permanent_failure_reasons": {},
+      "permanent_failures": 0,
+      "recovered_after_retry": 0,
+      "registered_attempt_timeout_s": 0.5,
+      "registered_drain_s": 30.0,
+      "registered_max_attempts": 6,
+      "registered_total_deadline_s": 5.0,
+      "retrieved": 999,
+      "tickets_resolved": 999
+    },
+    "expected_prepared_hz": 10.0,
+    "expected_scheduled_frames": 3032,
+    "failures": [],
+    "low_preparation_or_delivery_is_measured_not_structurally_invalid": true,
+    "minimum_sensor_preparation_coverage": 0.95,
+    "performance_warnings": [],
+    "qualification_actions_without_live_install": [],
+    "qualification_interframe_drain_s": 0.0,
+    "qualification_transmit_order": [],
+    "realtime_recovery": {
+      "ack_timeout_s": 0.5,
+      "ack_within_timeout_fraction": 0.982982982982983,
+      "ack_within_timeout_installations": 982,
+      "counter_reconciliation": {
+        "all_identities_hold": false,
+        "installed_maps_never_exceed_published_results": {
+          "holds": false,
+          "installed": 999,
+          "published": 0
+        },
+        "published_results_never_exceed_reassembled_results": {
+          "holds": true,
+          "published": 0,
+          "reassembled": 0
+        },
+        "ue_sent_rows_equal_transmitted_messages": {
+          "holds": true,
+          "sent_rows": 2923,
+          "transmitted_messages": 2923
+        }
+      },
+      "deadline_drops_by_stage": {},
+      "deadline_expiry_stage_counts_ue_rows": {},
+      "dense_label_map_on_radio": false,
+      "duplicate_result_messages": 0,
+      "edge_counters_file": {
+        "available": false,
+        "reason": "edge counters file absent"
+      },
+      "evaluation_masks_hash_mismatched": 0,
+      "evaluation_masks_hash_verified": 1047,
+      "evaluation_masks_manifest_records": 1047,
+      "install_aoi_monotonic_fraction": 0.5040080160320641,
+      "install_aoi_ms_max": 759.0277194976807,
+      "install_aoi_ms_median": 410.10522842407227,
+      "install_aoi_ms_p95": 489.884614944458,
+      "late_feedback_rows": 2765,
+      "late_nonterminal_feedback_rows": 882,
+      "maps_installed": 999,
+      "prepare_status_counts": {
+        "DROPPED_INCOMPLETE_RADAR_WINDOW": 1,
+        "DROPPED_REPLACED_BY_NEWER_FRAME": 107,
+        "SENT": 2923,
+        "WARMUP_NO_COMPLETE_RADAR_WINDOW": 1
+      },
+      "processing_expiry_s": 0.5,
+      "registered_deadline_stages": [
+        "UE_AFTER_PREPARATION",
+        "UE_BEFORE_SEND",
+        "EDGE_AFTER_REASSEMBLY",
+        "EDGE_BEFORE_DECODE",
+        "EDGE_BEFORE_TAIL",
+        "EDGE_BEFORE_PUBLICATION",
+        "UE_BEFORE_MAP_PUBLICATION"
+      ],
+      "service_deadline_and_ack_timeout_are_distinct": true,
+      "service_deadline_s": 0.1,
+      "service_on_time_fraction": 0.0,
+      "service_on_time_installations": 0,
+      "terminal_feedback_rows": 2923,
+      "timely_installation_fraction": 0.0,
+      "timely_installations": 0,
+      "ue_counters": {
+        "evaluation_masks_hash_verified": 1047,
+        "evaluation_tickets_completed": 2923,
+        "evaluation_tickets_queued": 2923,
+        "exact_record_retrieval_attempts": 999,
+        "exact_record_tickets_queued": 999,
+        "maps_installed": 999,
+        "preparation_offers": 3032,
+        "preparation_pending_replacements": 107
+      },
+      "ue_transport_counters": {
+        "feature_datagrams_transmitted": 210909,
+        "feature_messages_transmitted": 2923
+      }
+    },
+    "route_ticks": 6064,
+    "schedule_phase_and_count_ok": true,
+    "scheduled_frames": 3032,
+    "segmentation_evidence_install_coverage": 1.0,
+    "segmentation_evidence_unavailability_is_measured_not_structurally_invalid": true,
+    "segmentation_retention_expired_installed_frames": [],
+    "sensor_preparation_coverage": 0.9643681953150776,
+    "sensor_preparation_coverage_met": true,
+    "sent_frames": 2923,
+    "status": "PASS",
+    "terminal_feedback_outcomes": {
+      "ACK_INSTALLED": 994,
+      "NACK_REJECTED": 1040,
+      "TIMEOUT_NO_ACK": 889
+    },
+    "terminal_feedback_records": 2923
+  },
+  "terminal_status": "PASSED"
+}
