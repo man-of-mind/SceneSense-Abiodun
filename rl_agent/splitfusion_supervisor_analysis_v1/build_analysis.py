@@ -69,14 +69,14 @@ STAGES = {
     "pure_front": "Model front backbone",
     "ue_action": "UE action path",
     "network": "Feature uplink",
-    "edge_queue": "Edge scheduler wait",
+    "edge_queue": "Latest-only edge wait",
     "model_tail": "FCOS model tail",
-    "tail_support": "Tail support processing",
-    "map_install": "Direct map install",
+    "tail_support": "Other tail processing",
+    "map_install": "Map service",
     "edge_map": "Complete edge-to-map service",
     "total": "Action-to-map total",
 }
-SCATTER_STAGES = ("pure_front", "network", "edge_map", "total")
+SCATTER_STAGES = ("ue_action", "network", "edge_map", "total")
 PERCENTILES = (0.50, 0.95, 0.99)
 
 
@@ -427,7 +427,7 @@ def plot_latency_bars(rows: Sequence[Mapping[str, Any]], output: Path) -> list[s
     configure_plot()
     fig, axes = plt.subplots(2, 2, figsize=(16.5, 10.5), sharey=False)
     components = (
-        "pure_front",
+        "ue_action",
         "network",
         "edge_queue",
         "model_tail",
@@ -446,12 +446,12 @@ def plot_latency_bars(rows: Sequence[Mapping[str, Any]], output: Path) -> list[s
         ax.set_xticks(
             x,
             (
-                "UE model\nfront",
+                "UE action\npath",
                 "Feature\nuplink",
-                "Edge\nqueue",
+                "Latest-only\nedge wait",
                 "FCOS model\ntail",
-                "Tail support\nprocessing",
-                "Direct map\ninstall",
+                "Other tail\nprocessing",
+                "Map\nservice",
             ),
         )
         ax.set_ylabel("Latency (ms)")
@@ -472,7 +472,7 @@ def plot_latency_bars(rows: Sequence[Mapping[str, Any]], output: Path) -> list[s
     fig.text(
         0.5,
         0.012,
-        "Marginal percentiles are not additive. Tail stages use final live optimization anchors; direct install uses live direct-map traces.",
+        "Marginal percentiles are not additive. Tail stages use final live optimization anchors; map service uses live edge-to-map traces.",
         ha="center",
         fontsize=9,
     )
@@ -604,6 +604,12 @@ def make_report(
             "Percentile aggregation is action-balanced: each displayed value is the median of the corresponding per-action cell percentile. It is not a pooled-frame percentile dominated by high-throughput actions.",
             "The stage percentiles are marginals with different conditional denominators and must not be added to reconstruct an end-to-end percentile. Pure tail, tail support and direct map installation use the relevant live family-anchor distributions; edge queue and complete edge-to-map service come from the 288-cell causal replay.",
             "",
+            "## Interpreting the long tails",
+            "",
+            "- Latest-only scheduling removes FIFO backlog, not non-preemptive waiting. While one frame is executing, a single newest pending frame may still wait until that execution finishes; older pending frames are replaced. This produces a zero action-balanced P50 but a 44–48 ms P95.",
+            "- The 105.9 ms action-balanced P99 for other tail processing is measured in the final optimized live anchors. Frame-level inspection localizes its family-dependent spikes mainly to unpack/dequantization, camera-aware post-processing, p025 filtering, and compact serialization. The pure FCOS CUDA tail remains approximately 21.2/24.8/29.5 ms at P50/P95/P99.",
+            "- Map service is direct publication-to-install on the edge-host path and does not traverse the radio. Its approximately 4.8 ms P50 but 42.6/113.1 ms P95/P99 comes from rare publisher scheduling and map-ingest/install stalls; it is not 5G downlink latency.",
+            "",
             "## Sensor preparation boundary",
             "",
             "The existing 288 evidence supports a trustworthy breakdown only to the retained function boundaries: callback-to-worker scheduling, radar-window extraction, aggregate radar preparation, RGB conversion, and evaluation-snapshot capture. The inner radar projection/tracking/rasterization functions were not individually timed, so this report does not invent them.",
@@ -636,7 +642,7 @@ def make_report(
             "",
             "## Figure guide",
             "",
-            "Figures 01–04 show all available action/profile points and label Pareto-frontier action IDs. Figure 05 gives the requested P50/P95/P99 decomposition into UE model front, observed feature uplink, edge scheduling, pure FCOS tail, non-model tail support, and direct map installation. Figure 06 exposes the retained sensor-preparation boundaries.",
+            "Figures 01–04 show all available action/profile points and label Pareto-frontier action IDs. Figure 05 gives the requested P50/P95/P99 decomposition into the complete UE action path, observed feature uplink, latest-only edge waiting, pure FCOS tail, other tail processing, and map service. Figure 06 exposes the retained sensor-preparation boundaries.",
         ]
     )
     return "\n".join(lines) + "\n"
