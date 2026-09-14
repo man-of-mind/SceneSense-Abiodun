@@ -1,0 +1,20 @@
+{
+  "schema": "scenesense.splitfusion.map_freshness_dual_clock_plots.v1",
+  "sha256": {
+    "figures/01_old_vs_new_timing_boundaries.pdf": "0094b223dede79e49e3381f8234087bf579c72f5da68730303754c65705b179a",
+    "figures/01_old_vs_new_timing_boundaries.png": "6fb12d4037cdf37184832fe4d0106dee731ff7cf1eab79b0fd43b4ab633de53c",
+    "figures/02_old_vs_new_fresh_map_time.pdf": "49749fb2cc5381ec99626e5c3070205b0f21799ad099e15ab80a2cd8fe7ba61a",
+    "figures/02_old_vs_new_fresh_map_time.png": "cb99afc719ca076a7ba656237bb6251589e7560fb6347a529e41fd2c6ccb0a78",
+    "figures/03_best_action_by_clock_and_network.pdf": "05aa2246fca5a3f6c2c462cef73b637f2c27d90f955f7ec0e6c377c10d45b7bf",
+    "figures/03_best_action_by_clock_and_network.png": "945dd8f12021ff4ab91097df3590bd506b2ccf221e4055d71ba1827e443be536",
+    "figures/04_fifo_vs_latest_dual_clock.pdf": "5ccc3381231aefece1ff269cf8004eb0ad3ee761eab35acd846454e6e1f2ce9b",
+    "figures/04_fifo_vs_latest_dual_clock.png": "38ca7a0fc0903501300abee4ad9d15d0f558818f3c67a2acf2a358d44d12dd6c",
+    "figures/05_action_network_heatmap_150ms.pdf": "ec2d712e6533f1feb0fc3646c17c9584c34c32799aadcc02bf2809eaf806a002",
+    "figures/05_action_network_heatmap_150ms.png": "4ae83432a59ecf1c139390921df5bc90f27a6522997fae518b7a22f4da1af026",
+    "figures/05_action_network_heatmap_200ms.pdf": "1c20c9d54c471d52cdfbc6faf5acbf715e41e09c49663fb83fa51045b1cf64ff",
+    "figures/05_action_network_heatmap_200ms.png": "2052eae705775bbb30dae3ef6a8e1b5869f4bd546931d6d940e979a513c04bea",
+    "figures/05_action_network_heatmap_250ms.pdf": "97fbd63c430e3d4699e0bfd642552bd047afad515141b1f184441f8c4f43b3de",
+    "figures/05_action_network_heatmap_250ms.png": "834e3c66b8ea2e928978b56a601f4f3eeed5d74dc110980988969965bb313b24"
+  },
+  "status": "COMPLETE"
+}

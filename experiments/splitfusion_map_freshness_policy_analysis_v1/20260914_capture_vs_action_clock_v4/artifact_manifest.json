@@ -1,0 +1,11 @@
+{
+  "schema": "scenesense.splitfusion.map_freshness_dual_clock_analysis.v1.artifacts",
+  "sha256": {
+    "REPORT.md": "0b09312b4a3bc17d5ea18b8b70183c393a8aaaf1b97017d08083ec7fbe733119",
+    "action_network_dual_clock_freshness.csv": "9af3d68e89c4e28b8ec468c39d2e290cfaa5ccc78a937815143b466eeca183db",
+    "analysis.json": "7ac16d5dd15fa12fd955084920a3acb5e6f917064ff238c103ee14b444a027c0",
+    "eligible_actions_by_clock_profile_budget.csv": "8cd27566f4467b4370d1599e1c317061a8972c407043ebbc053b0fd433bf48a8",
+    "top_actions_by_clock_profile_budget.csv": "449cbf19bd75f0f7eba4a79f449918e8a36370d73dc06b27513f6a6460b151d9"
+  },
+  "status": "COMPLETE"
+}
