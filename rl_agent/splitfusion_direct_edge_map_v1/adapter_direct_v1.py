@@ -74,10 +74,26 @@ class CompatDirectLedger:
         self._profile_id = str(profile_id)
         self._inbox: "queue.Queue[tuple[Mapping[str, Any], float]]" = queue.Queue()
         self.contract_errors: list[str] = []
+        # A pending view owned by this object rather than delegated to the
+        # ledger.
+        #
+        # The supervising feedback worker snapshots ``pending`` before calling
+        # ``receive_once``, then calls ``record_expired``, then attributes the
+        # single returned message's status to *every* capture that left
+        # ``pending`` in between. If the watchdog closed other captures in that
+        # window they are silently credited with this message's status. That
+        # mis-credits timed-out captures as ACK_INSTALLED and then demands an
+        # exact installed map record for a frame that was never installed.
+        #
+        # Keeping the view here makes the difference exact: only the capture
+        # that ``receive_once`` actually closed leaves it.
+        self._pending: dict[str, Any] = {}
+        self._view_lock = threading.Lock()
 
     @property
     def pending(self) -> dict[str, Any]:
-        return self._ledger.pending
+        with self._view_lock:
+            return dict(self._pending)
 
     @property
     def timed_out(self) -> set[str]:
@@ -104,6 +120,8 @@ class CompatDirectLedger:
             service_deadline_at=service_deadline_at,
             ack_timeout_at=ack_timeout_at,
         )
+        with self._view_lock:
+            self._pending[str(capture_id)] = {"frame_id": int(frame_id)}
 
     def enqueue(self, message: Mapping[str, Any], received_at: float) -> None:
         self._inbox.put((dict(message), float(received_at)))
@@ -114,6 +132,10 @@ class CompatDirectLedger:
         except queue.Empty:
             return None
         row = self._ledger.record_message(message, received_at)
+        # Exactly this capture leaves the view, so the caller's
+        # before/after difference names exactly this message's capture.
+        with self._view_lock:
+            self._pending.pop(str(message.get("capture_id") or ""), None)
         return self._compat_view(message, row)
 
     @staticmethod
@@ -151,7 +173,24 @@ class CompatDirectLedger:
         }
 
     def record_expired(self, now: float | None = None) -> int:
+        """Write UE-local timeout terminals without disturbing the pending view.
+
+        The timed-out capture stays in the view until a message for it is
+        received or the cell finishes, so it can never be mistaken for the
+        capture that ``receive_once`` just closed.
+        """
+
         return self._ledger.record_expired(now)
+
+    def drain_view(self) -> int:
+        """Drop view entries the ledger has already closed. Used at teardown."""
+
+        with self._view_lock:
+            closed = set(self._ledger.closed)
+            removed = [key for key in self._pending if key in closed]
+            for key in removed:
+                self._pending.pop(key, None)
+            return len(removed)
 
     def record_reassembly_failure(self, *, capture_id: str, reason: str) -> None:
         # The direct architecture has no UE-side reassembly of object records,
@@ -164,6 +203,7 @@ class CompatDirectLedger:
         return self._ledger.summary()
 
     def close(self) -> None:
+        self.drain_view()
         self._ledger.close()
 
 
