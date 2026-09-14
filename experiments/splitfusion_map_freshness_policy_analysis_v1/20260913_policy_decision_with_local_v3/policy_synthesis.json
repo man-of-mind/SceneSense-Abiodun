@@ -1,0 +1,44 @@
+{
+  "all_local_sensor_p50_freshness_above_best_split": true,
+  "budgets_ms": [
+    150,
+    200,
+    250
+  ],
+  "local_action_status": "MEASURED_DESKTOP_PROXY_POLICY_CANDIDATE_NOT_VEHICLE_HARDWARE_QUALIFIED",
+  "local_candidates": 4,
+  "policy_conclusion": "INCLUDE_LOCAL_PROXY_ONLY_WITH_VEHICLE_COMPUTE_COST_AND_AVAILABILITY_STATE",
+  "preparation_sensitivity": {
+    "compute_only_pre_front_ms": {
+      "p50": 31.926313880831003,
+      "p95": 62.77405936270952
+    },
+    "samples": 600,
+    "source_artifacts_verified": 35,
+    "source_manifest_sha256": "e7e9156f9fd2b923d462f4600399ada582e7211b1d3bf09873e26804af933f54",
+    "total_sensor_sync_and_preparation_ms": {
+      "p50": 48.11464762315154,
+      "p95": 99.08381290733814
+    },
+    "use": "CONSTANT_P50_AND_P95_SENSITIVITY_OFFSETS_NOT_A_MATCHED_LOCAL_REMEASUREMENT"
+  },
+  "presentation_artifacts": [
+    "01_split_vs_local_map_freshness.png",
+    "01_split_vs_local_map_freshness.pdf",
+    "02_person_quality_weighted_freshness.png",
+    "02_person_quality_weighted_freshness.pdf",
+    "03_vehicle_quality_weighted_freshness.png",
+    "03_vehicle_quality_weighted_freshness.pdf"
+  ],
+  "provenance": {
+    "local_artifacts_verified": 30,
+    "local_manifest_sha256": "47a4436e0c37116347c49a0af4bceb592ed7dc9f8d63894d34001ff57a77304b",
+    "local_qualification_sha256": "b613ccd824963bc0e957d0735e12be19c5d1795dd173e14415eb1c5fbb72b0ae",
+    "split_artifacts_verified": 7,
+    "split_manifest_sha256": "1c4e7b0c227916ddf584891e48b7ac4c1805fb206235326b1cdb76edca66856f"
+  },
+  "schema": "scenesense.splitfusion.map_freshness_policy_synthesis.v3",
+  "split_candidates": 288,
+  "split_queue_policy": "LATEST_ONLY_NO_EXPIRY",
+  "status": "COMPLETE"
+}

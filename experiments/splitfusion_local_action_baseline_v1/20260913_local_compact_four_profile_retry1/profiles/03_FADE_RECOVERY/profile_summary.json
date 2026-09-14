@@ -1,0 +1,132 @@
+{
+  "ack_installed": 300,
+  "desktop_compute_replayed_before_one_shot_transport": true,
+  "fresh_install": {
+    "150": {
+      "count": 299,
+      "per_sent": 0.9966666666666667
+    },
+    "200": {
+      "count": 300,
+      "per_sent": 1.0
+    },
+    "250": {
+      "count": 300,
+      "per_sent": 1.0
+    }
+  },
+  "installation_rate_per_sent": 1.0,
+  "intended_intervals": 300,
+  "one_shot_no_retry_verified": true,
+  "probe_traffic_used_only_for_rnti_establishment": {
+    "achieved_pps": 100.3479504239043,
+    "datagram_bytes": 1200,
+    "is_campaign_throughput": false,
+    "is_splitfusion_application_traffic": false,
+    "method": "FIXED_RATE_LIGHTWEIGHT_UDP_PUSCH_OBSERVATION_PROBE",
+    "offered_bytes": 262800,
+    "offered_packets": 219,
+    "process_alive_throughout": true,
+    "rate_hz": 100.0,
+    "raw_payload_retained": false,
+    "readiness": {
+      "expected_tunnel_tx_bytes_at_readiness": 240000.0,
+      "probe_window_s": 2.0,
+      "tunnel_tx_byte_delta_at_readiness": 246828
+    },
+    "received_bytes": 262800,
+    "received_packets": 219,
+    "runtime_s": 2.182406308,
+    "schema": "scenesense.splitfusion_phase14b_corrected_traffic_measurement.v1"
+  },
+  "profile_id": "FADE_RECOVERY",
+  "rnti": 13805,
+  "schema": "scenesense.splitfusion.local_transport_profile.v1",
+  "sent_once": 300,
+  "sink": {
+    "ack_installed": 300,
+    "complete_messages": 300,
+    "datagrams_received": 369,
+    "duplicate_datagrams": 0,
+    "expired_reassemblies": 0,
+    "malformed_datagrams": 0,
+    "nack_rejected": 0,
+    "partial_at_stop": 0,
+    "schema": "scenesense.splitfusion.local_map_sink_summary.v1"
+  },
+  "skipped_obsolete": 0,
+  "timing_ms": {
+    "capture_to_ack_ms": {
+      "count": 300,
+      "maximum": 178.228744,
+      "mean": 73.91711800666673,
+      "minimum": 51.482902,
+      "p50": 73.056051,
+      "p90": 79.782123,
+      "p95": 90.22162,
+      "p99": 101.650095
+    },
+    "capture_to_map_install_ms": {
+      "count": 300,
+      "maximum": 171.893754,
+      "mean": 68.67231568999995,
+      "minimum": 48.923603,
+      "p50": 67.278969,
+      "p90": 73.771642,
+      "p95": 83.230221,
+      "p99": 95.442817
+    },
+    "local_to_ack_ms": {
+      "count": 300,
+      "maximum": 152.123088,
+      "mean": 47.23525190999997,
+      "minimum": 26.648809,
+      "p50": 46.12504,
+      "p90": 52.231679,
+      "p95": 64.71714,
+      "p99": 75.295293
+    },
+    "local_to_complete_message_ms": {
+      "count": 300,
+      "maximum": 145.222481,
+      "mean": 41.42993741333326,
+      "minimum": 23.671424,
+      "p50": 40.180703,
+      "p90": 45.489963,
+      "p95": 57.41286,
+      "p99": 68.471034
+    },
+    "local_to_first_datagram_ms": {
+      "count": 300,
+      "maximum": 145.222481,
+      "mean": 41.29890987999995,
+      "minimum": 23.671424,
+      "p50": 39.992023,
+      "p90": 45.463305,
+      "p95": 57.302756,
+      "p99": 68.471034
+    },
+    "local_to_map_install_ms": {
+      "count": 300,
+      "maximum": 145.788098,
+      "mean": 41.990449593333324,
+      "minimum": 24.08951,
+      "p50": 40.692234,
+      "p90": 46.178486,
+      "p95": 57.842222,
+      "p99": 68.871097
+    },
+    "map_install_to_ack_ms": {
+      "count": 300,
+      "maximum": 10.215924,
+      "mean": 5.244802316666667,
+      "minimum": 1.794707,
+      "p50": 6.025618,
+      "p90": 7.033611,
+      "p95": 7.257859,
+      "p99": 7.878978
+    }
+  },
+  "trace_id": "GM_V2_FADE_RECOVERY_SEED_2026082104",
+  "trace_sha256": "ef2ae2d6448d9c7f3208bc81123d301a1a9f5d9b16be3bac4412c8cecf94e7c0"
+}

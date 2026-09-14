@@ -1,0 +1,132 @@
+{
+  "ack_installed": 300,
+  "desktop_compute_replayed_before_one_shot_transport": true,
+  "fresh_install": {
+    "150": {
+      "count": 299,
+      "per_sent": 0.9966666666666667
+    },
+    "200": {
+      "count": 300,
+      "per_sent": 1.0
+    },
+    "250": {
+      "count": 300,
+      "per_sent": 1.0
+    }
+  },
+  "installation_rate_per_sent": 1.0,
+  "intended_intervals": 300,
+  "one_shot_no_retry_verified": true,
+  "probe_traffic_used_only_for_rnti_establishment": {
+    "achieved_pps": 100.34245560526057,
+    "datagram_bytes": 1200,
+    "is_campaign_throughput": false,
+    "is_splitfusion_application_traffic": false,
+    "method": "FIXED_RATE_LIGHTWEIGHT_UDP_PUSCH_OBSERVATION_PROBE",
+    "offered_bytes": 262800,
+    "offered_packets": 219,
+    "process_alive_throughout": true,
+    "rate_hz": 100.0,
+    "raw_payload_retained": false,
+    "readiness": {
+      "expected_tunnel_tx_bytes_at_readiness": 240000.0,
+      "probe_window_s": 2.0,
+      "tunnel_tx_byte_delta_at_readiness": 248056
+    },
+    "received_bytes": 262800,
+    "received_packets": 219,
+    "runtime_s": 2.182525818,
+    "schema": "scenesense.splitfusion_phase14b_corrected_traffic_measurement.v1"
+  },
+  "profile_id": "MID_VARIABLE",
+  "rnti": 39731,
+  "schema": "scenesense.splitfusion.local_transport_profile.v1",
+  "sent_once": 300,
+  "sink": {
+    "ack_installed": 300,
+    "complete_messages": 300,
+    "datagrams_received": 369,
+    "duplicate_datagrams": 0,
+    "expired_reassemblies": 0,
+    "malformed_datagrams": 0,
+    "nack_rejected": 0,
+    "partial_at_stop": 0,
+    "schema": "scenesense.splitfusion.local_map_sink_summary.v1"
+  },
+  "skipped_obsolete": 0,
+  "timing_ms": {
+    "capture_to_ack_ms": {
+      "count": 300,
+      "maximum": 164.99537,
+      "mean": 71.62480214666664,
+      "minimum": 50.908602,
+      "p50": 68.96662,
+      "p90": 80.625536,
+      "p95": 91.830571,
+      "p99": 116.022675
+    },
+    "capture_to_map_install_ms": {
+      "count": 300,
+      "maximum": 158.720467,
+      "mean": 65.91299131000002,
+      "minimum": 45.198887,
+      "p50": 63.492267,
+      "p90": 76.015972,
+      "p95": 86.658302,
+      "p99": 110.671804
+    },
+    "local_to_ack_ms": {
+      "count": 300,
+      "maximum": 137.802447,
+      "mean": 44.942936049999986,
+      "minimum": 24.384858,
+      "p50": 42.379825,
+      "p90": 55.499184,
+      "p95": 65.143287,
+      "p99": 89.062743
+    },
+    "local_to_complete_message_ms": {
+      "count": 300,
+      "maximum": 130.851005,
+      "mean": 38.70539923666665,
+      "minimum": 15.638394,
+      "p50": 36.525519,
+      "p90": 49.237184,
+      "p95": 58.631792,
+      "p99": 82.47516
+    },
+    "local_to_first_datagram_ms": {
+      "count": 300,
+      "maximum": 130.803404,
+      "mean": 38.59991216000002,
+      "minimum": 15.638394,
+      "p50": 36.525519,
+      "p90": 49.237184,
+      "p95": 58.631792,
+      "p99": 78.304176
+    },
+    "local_to_map_install_ms": {
+      "count": 300,
+      "maximum": 131.527544,
+      "mean": 39.23112521333332,
+      "minimum": 16.124047,
+      "p50": 37.178647,
+      "p90": 49.79438,
+      "p95": 59.003157,
+      "p99": 83.165104
+    },
+    "map_install_to_ack_ms": {
+      "count": 300,
+      "maximum": 9.192818,
+      "mean": 5.711810836666671,
+      "minimum": 2.156513,
+      "p50": 5.942797,
+      "p90": 7.642734,
+      "p95": 8.260811,
+      "p99": 8.734629
+    }
+  },
+  "trace_id": "GM_V2_MID_VARIABLE_SEED_2026082102",
+  "trace_sha256": "0d2ef7ff9e7f342c772d0d88a4cec4e9ce9ac1c9946c1402d3087c55c8f0f811"
+}

@@ -1,0 +1,8 @@
+{
+  "schema": "scenesense.splitfusion.local_compute_artifacts.v1",
+  "sha256": {
+    "local_compute_per_frame.csv": "fcea7d20b6cd7e3b4b7606c4f71a4bf7e6cdfdfaada20bc40c734fc643c9d96b",
+    "local_compute_summary.json": "912b3dc3aed0be86cd3b813820eb4d9a2a59533fdbdf781605c1bd2d2d4d03cb"
+  },
+  "status": "COMPLETE"
+}

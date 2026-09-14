@@ -1,0 +1,16 @@
+{
+  "schema": "scenesense.splitfusion.map_freshness_policy_synthesis.v3.artifacts",
+  "sha256": {
+    "01_split_vs_local_map_freshness.pdf": "f2a65ee6e324becd79105ea0fff64229b608dfe5f78284670a335776702aa653",
+    "01_split_vs_local_map_freshness.png": "cdcfec51cab29a3495ba9f3f9dc49e5ce102a4ec24b02aecb1eade9927f8d8e7",
+    "02_person_quality_weighted_freshness.pdf": "800bd582bb86cbf734004b8ddca5cc51ddf7df12061441fcfe8ba0fc66626b39",
+    "02_person_quality_weighted_freshness.png": "a59978935e6730a98057d8e39850814fc025780c72c8c4d121de7d86cdad7aa0",
+    "03_vehicle_quality_weighted_freshness.pdf": "4f72848ddfae4af75f64a6183a60d8d0f9b04146b2881c9d49a1c4c220b8550a",
+    "03_vehicle_quality_weighted_freshness.png": "59fa9f7c4ff4b605a25686caf9d07c6412cbd02c5c0a69ec803f8dd3e19f5b1c",
+    "SCIENTIFIC_SYNTHESIS.md": "b17fc52112494409e8882d7dc28895e25af7144740acb645b74c212921f2c701",
+    "best_split_vs_local_by_profile_budget.csv": "32c9ed05c325e13634ea440614e3edd99837d8f8c056f95c823a50f4828e9d47",
+    "local_profile_measurement_and_sensitivity.csv": "908b75273c3d49172c8696088b48d1f992949391b84d805621c69afb3de2d559",
+    "policy_synthesis.json": "ca933c9b7c563b1bc10ba41a2bfeaf95438408fc2c415274842e29d388ef387b",
+    "split_latest_action_profile.csv": "f0754a3c136a70bb233e85d6291f7e98ecdeb72a6b1571cc27324ee1397538e4"
+  }
+}

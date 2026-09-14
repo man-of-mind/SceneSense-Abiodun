@@ -1,0 +1,20 @@
+{
+  "checkpoint_sha256": "da14d21edbd374c1c3abce02ca4674b9f4097becfba9759aba945cea160a297f",
+  "compute_sample_manifest_sha256": "ad2cb25ea8d64d8d774c9c455c09e169f9a3eb1b51bf6143e82dfacdecf10ee9",
+  "config_path": "rl_agent/configs/splitfusion_local_action_baseline_v1.json",
+  "config_sha256": "b217c7599bb6d39888338910dc6c7efb1797a384ee10798eebeb022cec5c880f",
+  "freshness_budgets_ms": [
+    150,
+    200,
+    250
+  ],
+  "implementation_head": "0e4a816371f26fc5efe26f286877f8393f56b036",
+  "profile_order": [
+    "FAVORABLE_STABLE",
+    "MID_VARIABLE",
+    "ADVERSE_STABLE",
+    "FADE_RECOVERY"
+  ],
+  "schema": "scenesense.splitfusion.local_action_run_manifest.v1",
+  "selected_sample_id_sha256": "68a4cb3cffe47fa1f42f65ada94c8ef1e19504e8f25a949fc1acf5a20298720e"
+}

@@ -1,0 +1,774 @@
+{
+  "compute": {
+    "device": "cuda:0",
+    "device_name": "NVIDIA GeForce RTX 5090",
+    "frames": 300,
+    "object_count": {
+      "count": 300,
+      "maximum": 64.0,
+      "mean": 32.10666666666667,
+      "minimum": 8.0,
+      "p50": 31.0,
+      "p90": 47.0,
+      "p95": 50.0,
+      "p99": 58.0
+    },
+    "payload_bytes": {
+      "count": 300,
+      "maximum": 19785.0,
+      "mean": 10349.286666666667,
+      "minimum": 3021.0,
+      "p50": 10032.0,
+      "p90": 14869.0,
+      "p95": 15778.0,
+      "p99": 17904.0
+    },
+    "payload_unique_sha256": 300,
+    "quality": {
+      "delta_local_minus_split0": {
+        "foreground_miou": 4.5222493471497316e-05,
+        "person_avo_f1": 0.0004676598570272361,
+        "person_avo_xy_mae_m": -0.001050246058349913,
+        "person_box_mask_iou": 7.48034357190841e-05,
+        "vehicle_f1": 3.7201816575627156e-05,
+        "vehicle_iou": 1.5641551223910533e-05,
+        "vehicle_xy_mae_m": 0.0001252925111994152
+      },
+      "full_local_fp32_q0": {
+        "foreground_miou": 0.7134534637149776,
+        "person_avo_f1": 0.708685891901226,
+        "person_avo_precision": 0.7041866849691146,
+        "person_avo_recall": 0.7132429614181439,
+        "person_avo_recall_20_40m": 0.5776504297994269,
+        "person_avo_xy_mae_m": 0.8121813463526099,
+        "person_box_mask_iou": 0.5278940800907954,
+        "vehicle_f1": 0.8989052069425901,
+        "vehicle_iou": 0.8990128473391599,
+        "vehicle_precision": 0.9315917644454283,
+        "vehicle_recall": 0.8684346300691363,
+        "vehicle_xy_mae_m": 0.4786754207718958
+      },
+      "full_local_source": {
+        "path": "experiments/splitfusion_fcos_hybrid_q_v1/20260902_182401_phase6_validation_curve/validation_curve.json",
+        "sha256": "54987920a7430564425664e82511d1121e77935beabfbd4cf2f34bee5cadfc74"
+      },
+      "identity": "same frozen validation inputs and p025 service",
+      "split_action_0_uint8_q0": {
+        "foreground_miou": 0.7134082412215061,
+        "person_avo_f1": 0.7082182320441988,
+        "person_avo_xy_mae_m": 0.8132315924109598,
+        "person_box_mask_iou": 0.5278192766550763,
+        "vehicle_f1": 0.8988680051260145,
+        "vehicle_iou": 0.898997205787936,
+        "vehicle_xy_mae_m": 0.4785501282606964
+      },
+      "split_source": {
+        "path": "experiments/splitfusion_288_offline_rl_dataset_v1/20260909_offline_consolidation_v1/action_72_summary.csv",
+        "sha256": "250eb6d9391c0de5a343d692484647bbdb181153ba64f7f4a447b0076f580a88"
+      }
+    },
+    "schema": "scenesense.splitfusion.local_compute_summary.v1",
+    "segmentation_transported": false,
+    "serialized_record_bytes": {
+      "count": 300,
+      "maximum": 69989.0,
+      "mean": 34995.066666666666,
+      "minimum": 8628.0,
+      "p50": 33776.0,
+      "p90": 51311.0,
+      "p95": 54653.0,
+      "p99": 63112.0
+    },
+    "sustainable_sequential_fps_from_median": 37.67162249417785,
+    "target_device_status": "DESKTOP_RTX5090_PROXY_NOT_VEHICLE_HARDWARE",
+    "timing_ms": {
+      "compact_serialization_wall_ms": {
+        "count": 300,
+        "maximum": 3.626985,
+        "mean": 1.7624660166666668,
+        "minimum": 0.534766,
+        "p50": 1.706848,
+        "p90": 2.561468,
+        "p95": 2.681893,
+        "p95_confidence_interval": {
+          "lower_95": 2.585872,
+          "method": "deterministic_nonparametric_bootstrap",
+          "repetitions": 2000,
+          "seed": 2026091301,
+          "upper_95": 2.75423
+        },
+        "p99": 3.213263
+      },
+      "front_cuda_ms": {
+        "count": 300,
+        "maximum": 2.0737600326538086,
+        "mean": 1.0779779207706452,
+        "minimum": 0.9234560132026672,
+        "p50": 1.0178879499435425,
+        "p90": 1.2675199508666992,
+        "p95": 1.289023995399475,
+        "p95_confidence_interval": {
+          "lower_95": 1.2766400575637817,
+          "method": "deterministic_nonparametric_bootstrap",
+          "repetitions": 2000,
+          "seed": 2026091301,
+          "upper_95": 1.304927945137024
+        },
+        "p99": 1.4195200204849243
+      },
+      "front_wall_ms": {
+        "count": 300,
+        "maximum": 2.109085,
+        "mean": 1.1191711033333334,
+        "minimum": 0.954201,
+        "p50": 1.061798,
+        "p90": 1.31246,
+        "p95": 1.336729,
+        "p95_confidence_interval": {
+          "lower_95": 1.322809,
+          "method": "deterministic_nonparametric_bootstrap",
+          "repetitions": 2000,
+          "seed": 2026091301,
+          "upper_95": 1.354635
+        },
+        "p99": 1.464182
+      },
+      "h2d_ms": {
+        "count": 300,
+        "maximum": 1.363292,
+        "mean": 0.5006225566666667,
+        "minimum": 0.39472,
+        "p50": 0.49018,
+        "p90": 0.579565,
+        "p95": 0.605,
+        "p95_confidence_interval": {
+          "lower_95": 0.590126,
+          "method": "deterministic_nonparametric_bootstrap",
+          "repetitions": 2000,
+          "seed": 2026091301,
+          "upper_95": 0.610656
+        },
+        "p99": 0.663653
+      },
+      "local_result_available_ms": {
+        "count": 300,
+        "maximum": 31.390314,
+        "mean": 26.681866096666667,
+        "minimum": 23.723952,
+        "p50": 26.54518,
+        "p90": 28.258062,
+        "p95": 29.057777,
+        "p95_confidence_interval": {
+          "lower_95": 28.487356,
+          "method": "deterministic_nonparametric_bootstrap",
+          "repetitions": 2000,
+          "seed": 2026091301,
+          "upper_95": 29.248848
+        },
+        "p99": 29.7374
+      },
+      "optimized_tail_compute_wall_ms": {
+        "count": 300,
+        "maximum": 26.66289,
+        "mean": 22.81463807,
+        "minimum": 20.959811,
+        "p50": 22.699619,
+        "p90": 24.028088,
+        "p95": 24.652242,
+        "p95_confidence_interval": {
+          "lower_95": 24.337908,
+          "method": "deterministic_nonparametric_bootstrap",
+          "repetitions": 2000,
+          "seed": 2026091301,
+          "upper_95": 24.86021
+        },
+        "p99": 25.609231
+      }
+    },
+    "warmup_frames": 10
+  },
+  "interpretation": {
+    "local_admission_requires_compute_and_four_profile_transport": true,
+    "no_100ms_freshness_gate": true,
+    "no_carla_claim": true,
+    "no_vehicle_hardware_compute_claim": true,
+    "phase14a_binding_transition_scope": "SFD1_V2_DISPATCH_PROVENANCE_ONLY_NO_RADIO_SEMANTIC_CHANGE",
+    "split_is_not_required_to_meet_every_budget": true,
+    "zero_delivery_is_a_measured_outcome": true
+  },
+  "profiles": [
+    {
+      "ack_installed": 300,
+      "desktop_compute_replayed_before_one_shot_transport": true,
+      "fresh_install": {
+        "150": {
+          "count": 300,
+          "per_sent": 1.0
+        },
+        "200": {
+          "count": 300,
+          "per_sent": 1.0
+        },
+        "250": {
+          "count": 300,
+          "per_sent": 1.0
+        }
+      },
+      "installation_rate_per_sent": 1.0,
+      "intended_intervals": 300,
+      "one_shot_no_retry_verified": true,
+      "probe_traffic_used_only_for_rnti_establishment": {
+        "achieved_pps": 101.23518209187776,
+        "datagram_bytes": 1200,
+        "is_campaign_throughput": false,
+        "is_splitfusion_application_traffic": false,
+        "method": "FIXED_RATE_LIGHTWEIGHT_UDP_PUSCH_OBSERVATION_PROBE",
+        "offered_bytes": 265200,
+        "offered_packets": 221,
+        "process_alive_throughout": true,
+        "rate_hz": 100.0,
+        "raw_payload_retained": false,
+        "readiness": {
+          "expected_tunnel_tx_bytes_at_readiness": 240000.0,
+          "probe_window_s": 2.0,
+          "tunnel_tx_byte_delta_at_readiness": 248056
+        },
+        "received_bytes": 265200,
+        "received_packets": 221,
+        "runtime_s": 2.183035536,
+        "schema": "scenesense.splitfusion_phase14b_corrected_traffic_measurement.v1"
+      },
+      "profile_id": "FAVORABLE_STABLE",
+      "rnti": 48241,
+      "schema": "scenesense.splitfusion.local_transport_profile.v1",
+      "sent_once": 300,
+      "sink": {
+        "ack_installed": 300,
+        "complete_messages": 300,
+        "datagrams_received": 368,
+        "duplicate_datagrams": 0,
+        "expired_reassemblies": 0,
+        "malformed_datagrams": 0,
+        "nack_rejected": 0,
+        "partial_at_stop": 0,
+        "schema": "scenesense.splitfusion.local_map_sink_summary.v1"
+      },
+      "skipped_obsolete": 0,
+      "timing_ms": {
+        "capture_to_ack_ms": {
+          "count": 300,
+          "maximum": 123.506642,
+          "mean": 71.11587021000004,
+          "minimum": 49.386568,
+          "p50": 70.081892,
+          "p90": 79.759489,
+          "p95": 87.027336,
+          "p99": 102.1755
+        },
+        "capture_to_map_install_ms": {
+          "count": 300,
+          "maximum": 116.148232,
+          "mean": 65.3139680266667,
+          "minimum": 46.644738,
+          "p50": 64.999781,
+          "p90": 72.935817,
+          "p95": 79.951461,
+          "p99": 95.736709
+        },
+        "local_to_ack_ms": {
+          "count": 300,
+          "maximum": 97.508537,
+          "mean": 44.434004113333344,
+          "minimum": 24.828712,
+          "p50": 42.950692,
+          "p90": 51.735583,
+          "p95": 61.014317,
+          "p99": 76.460038
+        },
+        "local_to_complete_message_ms": {
+          "count": 300,
+          "maximum": 89.600255,
+          "mean": 38.06443536,
+          "minimum": 21.881701,
+          "p50": 37.50079,
+          "p90": 45.042393,
+          "p95": 53.189209,
+          "p99": 69.499521
+        },
+        "local_to_first_datagram_ms": {
+          "count": 300,
+          "maximum": 89.600255,
+          "mean": 37.963592890000015,
+          "minimum": 21.881701,
+          "p50": 37.500756,
+          "p90": 44.850442,
+          "p95": 53.099944,
+          "p99": 69.499521
+        },
+        "local_to_map_install_ms": {
+          "count": 300,
+          "maximum": 90.150127,
+          "mean": 38.63210193000002,
+          "minimum": 22.086882,
+          "p50": 38.057032,
+          "p90": 45.57753,
+          "p95": 53.807903,
+          "p99": 70.076558
+        },
+        "map_install_to_ack_ms": {
+          "count": 300,
+          "maximum": 9.37735,
+          "mean": 5.801902183333333,
+          "minimum": 2.134979,
+          "p50": 6.312691,
+          "p90": 8.294443,
+          "p95": 8.695849,
+          "p99": 9.139346
+        }
+      },
+      "trace_id": "GM_V2_FAVORABLE_STABLE_SEED_2026082101",
+      "trace_sha256": "8cad86e2e1ee98176c75b872132eb68f7d770f889d7330fa4a9932c45c172de6"
+    },
+    {
+      "ack_installed": 300,
+      "desktop_compute_replayed_before_one_shot_transport": true,
+      "fresh_install": {
+        "150": {
+          "count": 299,
+          "per_sent": 0.9966666666666667
+        },
+        "200": {
+          "count": 300,
+          "per_sent": 1.0
+        },
+        "250": {
+          "count": 300,
+          "per_sent": 1.0
+        }
+      },
+      "installation_rate_per_sent": 1.0,
+      "intended_intervals": 300,
+      "one_shot_no_retry_verified": true,
+      "probe_traffic_used_only_for_rnti_establishment": {
+        "achieved_pps": 100.34245560526057,
+        "datagram_bytes": 1200,
+        "is_campaign_throughput": false,
+        "is_splitfusion_application_traffic": false,
+        "method": "FIXED_RATE_LIGHTWEIGHT_UDP_PUSCH_OBSERVATION_PROBE",
+        "offered_bytes": 262800,
+        "offered_packets": 219,
+        "process_alive_throughout": true,
+        "rate_hz": 100.0,
+        "raw_payload_retained": false,
+        "readiness": {
+          "expected_tunnel_tx_bytes_at_readiness": 240000.0,
+          "probe_window_s": 2.0,
+          "tunnel_tx_byte_delta_at_readiness": 248056
+        },
+        "received_bytes": 262800,
+        "received_packets": 219,
+        "runtime_s": 2.182525818,
+        "schema": "scenesense.splitfusion_phase14b_corrected_traffic_measurement.v1"
+      },
+      "profile_id": "MID_VARIABLE",
+      "rnti": 39731,
+      "schema": "scenesense.splitfusion.local_transport_profile.v1",
+      "sent_once": 300,
+      "sink": {
+        "ack_installed": 300,
+        "complete_messages": 300,
+        "datagrams_received": 369,
+        "duplicate_datagrams": 0,
+        "expired_reassemblies": 0,
+        "malformed_datagrams": 0,
+        "nack_rejected": 0,
+        "partial_at_stop": 0,
+        "schema": "scenesense.splitfusion.local_map_sink_summary.v1"
+      },
+      "skipped_obsolete": 0,
+      "timing_ms": {
+        "capture_to_ack_ms": {
+          "count": 300,
+          "maximum": 164.99537,
+          "mean": 71.62480214666664,
+          "minimum": 50.908602,
+          "p50": 68.96662,
+          "p90": 80.625536,
+          "p95": 91.830571,
+          "p99": 116.022675
+        },
+        "capture_to_map_install_ms": {
+          "count": 300,
+          "maximum": 158.720467,
+          "mean": 65.91299131000002,
+          "minimum": 45.198887,
+          "p50": 63.492267,
+          "p90": 76.015972,
+          "p95": 86.658302,
+          "p99": 110.671804
+        },
+        "local_to_ack_ms": {
+          "count": 300,
+          "maximum": 137.802447,
+          "mean": 44.942936049999986,
+          "minimum": 24.384858,
+          "p50": 42.379825,
+          "p90": 55.499184,
+          "p95": 65.143287,
+          "p99": 89.062743
+        },
+        "local_to_complete_message_ms": {
+          "count": 300,
+          "maximum": 130.851005,
+          "mean": 38.70539923666665,
+          "minimum": 15.638394,
+          "p50": 36.525519,
+          "p90": 49.237184,
+          "p95": 58.631792,
+          "p99": 82.47516
+        },
+        "local_to_first_datagram_ms": {
+          "count": 300,
+          "maximum": 130.803404,
+          "mean": 38.59991216000002,
+          "minimum": 15.638394,
+          "p50": 36.525519,
+          "p90": 49.237184,
+          "p95": 58.631792,
+          "p99": 78.304176
+        },
+        "local_to_map_install_ms": {
+          "count": 300,
+          "maximum": 131.527544,
+          "mean": 39.23112521333332,
+          "minimum": 16.124047,
+          "p50": 37.178647,
+          "p90": 49.79438,
+          "p95": 59.003157,
+          "p99": 83.165104
+        },
+        "map_install_to_ack_ms": {
+          "count": 300,
+          "maximum": 9.192818,
+          "mean": 5.711810836666671,
+          "minimum": 2.156513,
+          "p50": 5.942797,
+          "p90": 7.642734,
+          "p95": 8.260811,
+          "p99": 8.734629
+        }
+      },
+      "trace_id": "GM_V2_MID_VARIABLE_SEED_2026082102",
+      "trace_sha256": "0d2ef7ff9e7f342c772d0d88a4cec4e9ce9ac1c9946c1402d3087c55c8f0f811"
+    },
+    {
+      "ack_installed": 300,
+      "desktop_compute_replayed_before_one_shot_transport": true,
+      "fresh_install": {
+        "150": {
+          "count": 294,
+          "per_sent": 0.98
+        },
+        "200": {
+          "count": 298,
+          "per_sent": 0.9933333333333333
+        },
+        "250": {
+          "count": 300,
+          "per_sent": 1.0
+        }
+      },
+      "installation_rate_per_sent": 1.0,
+      "intended_intervals": 300,
+      "one_shot_no_retry_verified": true,
+      "probe_traffic_used_only_for_rnti_establishment": {
+        "achieved_pps": 101.1147891780895,
+        "datagram_bytes": 1200,
+        "is_campaign_throughput": false,
+        "is_splitfusion_application_traffic": false,
+        "method": "FIXED_RATE_LIGHTWEIGHT_UDP_PUSCH_OBSERVATION_PROBE",
+        "offered_bytes": 265200,
+        "offered_packets": 221,
+        "process_alive_throughout": true,
+        "rate_hz": 100.0,
+        "raw_payload_retained": false,
+        "readiness": {
+          "expected_tunnel_tx_bytes_at_readiness": 240000.0,
+          "probe_window_s": 2.0,
+          "tunnel_tx_byte_delta_at_readiness": 246828
+        },
+        "received_bytes": 265200,
+        "received_packets": 221,
+        "runtime_s": 2.18563478,
+        "schema": "scenesense.splitfusion_phase14b_corrected_traffic_measurement.v1"
+      },
+      "profile_id": "ADVERSE_STABLE",
+      "rnti": 11365,
+      "schema": "scenesense.splitfusion.local_transport_profile.v1",
+      "sent_once": 300,
+      "sink": {
+        "ack_installed": 300,
+        "complete_messages": 300,
+        "datagrams_received": 369,
+        "duplicate_datagrams": 0,
+        "expired_reassemblies": 0,
+        "malformed_datagrams": 0,
+        "nack_rejected": 0,
+        "partial_at_stop": 0,
+        "schema": "scenesense.splitfusion.local_map_sink_summary.v1"
+      },
+      "skipped_obsolete": 0,
+      "timing_ms": {
+        "capture_to_ack_ms": {
+          "count": 300,
+          "maximum": 226.463853,
+          "mean": 76.59289375333333,
+          "minimum": 45.717326,
+          "p50": 72.316793,
+          "p90": 87.489673,
+          "p95": 109.38624,
+          "p99": 157.555185
+        },
+        "capture_to_map_install_ms": {
+          "count": 300,
+          "maximum": 223.648438,
+          "mean": 70.91956177666668,
+          "minimum": 42.623414,
+          "p50": 66.303539,
+          "p90": 82.159439,
+          "p95": 104.120248,
+          "p99": 151.380979
+        },
+        "local_to_ack_ms": {
+          "count": 300,
+          "maximum": 201.813707,
+          "mean": 49.911027656666626,
+          "minimum": 17.443763,
+          "p50": 45.580417,
+          "p90": 60.252256,
+          "p95": 82.715571,
+          "p99": 130.950288
+        },
+        "local_to_complete_message_ms": {
+          "count": 300,
+          "maximum": 198.585325,
+          "mean": 43.719687790000016,
+          "minimum": 14.156599,
+          "p50": 39.077599,
+          "p90": 54.579679,
+          "p95": 77.092502,
+          "p99": 125.226409
+        },
+        "local_to_first_datagram_ms": {
+          "count": 300,
+          "maximum": 198.585325,
+          "mean": 43.60309856666668,
+          "minimum": 14.156599,
+          "p50": 39.004805,
+          "p90": 54.219137,
+          "p95": 76.251087,
+          "p99": 125.226409
+        },
+        "local_to_map_install_ms": {
+          "count": 300,
+          "maximum": 198.998292,
+          "mean": 44.23769567999995,
+          "minimum": 14.623429,
+          "p50": 39.597962,
+          "p90": 54.975398,
+          "p95": 77.872835,
+          "p99": 125.684822
+        },
+        "map_install_to_ack_ms": {
+          "count": 300,
+          "maximum": 8.213519,
+          "mean": 5.673331976666663,
+          "minimum": 1.889003,
+          "p50": 6.034265,
+          "p90": 6.936089,
+          "p95": 7.162924,
+          "p99": 7.678523
+        }
+      },
+      "trace_id": "GM_V2_ADVERSE_STABLE_SEED_2026082103",
+      "trace_sha256": "380925bb530945b11b8e79ab93e88d5a555de540ce859756d6c5ad08584e98a0"
+    },
+    {
+      "ack_installed": 300,
+      "desktop_compute_replayed_before_one_shot_transport": true,
+      "fresh_install": {
+        "150": {
+          "count": 299,
+          "per_sent": 0.9966666666666667
+        },
+        "200": {
+          "count": 300,
+          "per_sent": 1.0
+        },
+        "250": {
+          "count": 300,
+          "per_sent": 1.0
+        }
+      },
+      "installation_rate_per_sent": 1.0,
+      "intended_intervals": 300,
+      "one_shot_no_retry_verified": true,
+      "probe_traffic_used_only_for_rnti_establishment": {
+        "achieved_pps": 100.3479504239043,
+        "datagram_bytes": 1200,
+        "is_campaign_throughput": false,
+        "is_splitfusion_application_traffic": false,
+        "method": "FIXED_RATE_LIGHTWEIGHT_UDP_PUSCH_OBSERVATION_PROBE",
+        "offered_bytes": 262800,
+        "offered_packets": 219,
+        "process_alive_throughout": true,
+        "rate_hz": 100.0,
+        "raw_payload_retained": false,
+        "readiness": {
+          "expected_tunnel_tx_bytes_at_readiness": 240000.0,
+          "probe_window_s": 2.0,
+          "tunnel_tx_byte_delta_at_readiness": 246828
+        },
+        "received_bytes": 262800,
+        "received_packets": 219,
+        "runtime_s": 2.182406308,
+        "schema": "scenesense.splitfusion_phase14b_corrected_traffic_measurement.v1"
+      },
+      "profile_id": "FADE_RECOVERY",
+      "rnti": 13805,
+      "schema": "scenesense.splitfusion.local_transport_profile.v1",
+      "sent_once": 300,
+      "sink": {
+        "ack_installed": 300,
+        "complete_messages": 300,
+        "datagrams_received": 369,
+        "duplicate_datagrams": 0,
+        "expired_reassemblies": 0,
+        "malformed_datagrams": 0,
+        "nack_rejected": 0,
+        "partial_at_stop": 0,
+        "schema": "scenesense.splitfusion.local_map_sink_summary.v1"
+      },
+      "skipped_obsolete": 0,
+      "timing_ms": {
+        "capture_to_ack_ms": {
+          "count": 300,
+          "maximum": 178.228744,
+          "mean": 73.91711800666673,
+          "minimum": 51.482902,
+          "p50": 73.056051,
+          "p90": 79.782123,
+          "p95": 90.22162,
+          "p99": 101.650095
+        },
+        "capture_to_map_install_ms": {
+          "count": 300,
+          "maximum": 171.893754,
+          "mean": 68.67231568999995,
+          "minimum": 48.923603,
+          "p50": 67.278969,
+          "p90": 73.771642,
+          "p95": 83.230221,
+          "p99": 95.442817
+        },
+        "local_to_ack_ms": {
+          "count": 300,
+          "maximum": 152.123088,
+          "mean": 47.23525190999997,
+          "minimum": 26.648809,
+          "p50": 46.12504,
+          "p90": 52.231679,
+          "p95": 64.71714,
+          "p99": 75.295293
+        },
+        "local_to_complete_message_ms": {
+          "count": 300,
+          "maximum": 145.222481,
+          "mean": 41.42993741333326,
+          "minimum": 23.671424,
+          "p50": 40.180703,
+          "p90": 45.489963,
+          "p95": 57.41286,
+          "p99": 68.471034
+        },
+        "local_to_first_datagram_ms": {
+          "count": 300,
+          "maximum": 145.222481,
+          "mean": 41.29890987999995,
+          "minimum": 23.671424,
+          "p50": 39.992023,
+          "p90": 45.463305,
+          "p95": 57.302756,
+          "p99": 68.471034
+        },
+        "local_to_map_install_ms": {
+          "count": 300,
+          "maximum": 145.788098,
+          "mean": 41.990449593333324,
+          "minimum": 24.08951,
+          "p50": 40.692234,
+          "p90": 46.178486,
+          "p95": 57.842222,
+          "p99": 68.871097
+        },
+        "map_install_to_ack_ms": {
+          "count": 300,
+          "maximum": 10.215924,
+          "mean": 5.244802316666667,
+          "minimum": 1.794707,
+          "p50": 6.025618,
+          "p90": 7.033611,
+          "p95": 7.257859,
+          "p99": 7.878978
+        }
+      },
+      "trace_id": "GM_V2_FADE_RECOVERY_SEED_2026082104",
+      "trace_sha256": "ef2ae2d6448d9c7f3208bc81123d301a1a9f5d9b16be3bac4412c8cecf94e7c0"
+    }
+  ],
+  "quality": {
+    "delta_local_minus_split0": {
+      "foreground_miou": 4.5222493471497316e-05,
+      "person_avo_f1": 0.0004676598570272361,
+      "person_avo_xy_mae_m": -0.001050246058349913,
+      "person_box_mask_iou": 7.48034357190841e-05,
+      "vehicle_f1": 3.7201816575627156e-05,
+      "vehicle_iou": 1.5641551223910533e-05,
+      "vehicle_xy_mae_m": 0.0001252925111994152
+    },
+    "full_local_fp32_q0": {
+      "foreground_miou": 0.7134534637149776,
+      "person_avo_f1": 0.708685891901226,
+      "person_avo_precision": 0.7041866849691146,
+      "person_avo_recall": 0.7132429614181439,
+      "person_avo_recall_20_40m": 0.5776504297994269,
+      "person_avo_xy_mae_m": 0.8121813463526099,
+      "person_box_mask_iou": 0.5278940800907954,
+      "vehicle_f1": 0.8989052069425901,
+      "vehicle_iou": 0.8990128473391599,
+      "vehicle_precision": 0.9315917644454283,
+      "vehicle_recall": 0.8684346300691363,
+      "vehicle_xy_mae_m": 0.4786754207718958
+    },
+    "full_local_source": {
+      "path": "experiments/splitfusion_fcos_hybrid_q_v1/20260902_182401_phase6_validation_curve/validation_curve.json",
+      "sha256": "54987920a7430564425664e82511d1121e77935beabfbd4cf2f34bee5cadfc74"
+    },
+    "identity": "same frozen validation inputs and p025 service",
+    "split_action_0_uint8_q0": {
+      "foreground_miou": 0.7134082412215061,
+      "person_avo_f1": 0.7082182320441988,
+      "person_avo_xy_mae_m": 0.8132315924109598,
+      "person_box_mask_iou": 0.5278192766550763,
+      "vehicle_f1": 0.8988680051260145,
+      "vehicle_iou": 0.898997205787936,
+      "vehicle_xy_mae_m": 0.4785501282606964
+    },
+    "split_source": {
+      "path": "experiments/splitfusion_288_offline_rl_dataset_v1/20260909_offline_consolidation_v1/action_72_summary.csv",
+      "sha256": "250eb6d9391c0de5a343d692484647bbdb181153ba64f7f4a447b0076f580a88"
+    }
+  },
+  "schema": "scenesense.splitfusion.local_action_baseline_summary.v1",
+  "status": "COMPLETE"
+}

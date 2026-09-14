@@ -1,0 +1,225 @@
+{
+  "attached": {
+    "effective_gnb_sha256": "330b23d4f4ab74c388f9f20105ef29e989f3e79f4b088d73e82376549b0a2211",
+    "effective_ue_sha256": "ab06afcc1cfc2bb777fa35973811aaad655032f6541e1b4565541cac9cc04f97",
+    "gnb_command_sha256": "7252626fed20fd18398e745a5d347215c0576b626372e78c09c9554d619a2bce",
+    "gnb_topology": {
+      "endpoint_roles_verified": true,
+      "same_executable_process_count": 3,
+      "schema": "scenesense.oai_softmodem_fork_topology.v1",
+      "source_contract": {
+        "background_system_direct_child_count": 1,
+        "main_calls_start_background_system": true,
+        "t_config_init_direct_child_count": 1
+      },
+      "worker_count": 2
+    },
+    "launcher_sha256": "8e02f0913338a187bff1de24bfea09d7eca03607da0e383ef8ad4a005b64ce61",
+    "pdu_session_5qi": 6,
+    "radio_profile_id": "OAI_N78_100MHZ_273PRB_4D5U_V1",
+    "ue_command_sha256": "ee689bb1af0e5ca301f3b7f5d73b8c48b424ca4a46256a9529cb3f0650c50184",
+    "ue_interface": "oaitun_ue1",
+    "ue_static_ip": "10.0.0.2",
+    "ue_topology": {
+      "endpoint_roles_verified": true,
+      "same_executable_process_count": 3,
+      "schema": "scenesense.oai_softmodem_fork_topology.v1",
+      "source_contract": {
+        "background_system_direct_child_count": 1,
+        "main_calls_start_background_system": true,
+        "t_config_init_direct_child_count": 1
+      },
+      "worker_count": 2
+    }
+  },
+  "cold_preflight": {
+    "no_oai_core_container": true,
+    "no_oai_rfsim_listener": true,
+    "no_softmodem_process": true,
+    "no_stale_profile_scratch": true,
+    "no_traffic_process": true,
+    "no_ue_tunnel": true
+  },
+  "launcher_stdout_sha256": "1ef474f7f3e8138bf491e0efce31e61a218e23373540bfff2d96feaa1af531f2",
+  "lifecycle": {
+    "all_lifecycle_gates_passed": true,
+    "cold_postflight": {
+      "no_oai_core_container": true,
+      "no_oai_rfsim_listener": true,
+      "no_softmodem_process": true,
+      "no_stale_profile_scratch": true,
+      "no_traffic_process": true,
+      "no_ue_tunnel": true
+    },
+    "errors": [],
+    "noise_power_db_restored_and_read_back": true,
+    "oai_core_compose_down": true,
+    "owned_process_group_signals": {
+      "gnb": [
+        {
+          "member_pids_before": [
+            596240,
+            596242,
+            596243,
+            596337
+          ],
+          "signal": "-INT"
+        }
+      ],
+      "ue": [
+        {
+          "member_pids_before": [
+            596681,
+            596685,
+            596687,
+            596697
+          ],
+          "signal": "-INT"
+        },
+        {
+          "member_pids_before": [
+            596687,
+            596697
+          ],
+          "signal": "-TERM"
+        }
+      ]
+    },
+    "radio_state_namespace_removed": true,
+    "radio_state_scratch_removed": true,
+    "traffic_and_telemetry_stopped": true,
+    "ue_tunnel_deleted_explicitly": false
+  },
+  "summary": {
+    "ack_installed": 300,
+    "desktop_compute_replayed_before_one_shot_transport": true,
+    "fresh_install": {
+      "150": {
+        "count": 294,
+        "per_sent": 0.98
+      },
+      "200": {
+        "count": 298,
+        "per_sent": 0.9933333333333333
+      },
+      "250": {
+        "count": 300,
+        "per_sent": 1.0
+      }
+    },
+    "installation_rate_per_sent": 1.0,
+    "intended_intervals": 300,
+    "one_shot_no_retry_verified": true,
+    "probe_traffic_used_only_for_rnti_establishment": {
+      "achieved_pps": 101.1147891780895,
+      "datagram_bytes": 1200,
+      "is_campaign_throughput": false,
+      "is_splitfusion_application_traffic": false,
+      "method": "FIXED_RATE_LIGHTWEIGHT_UDP_PUSCH_OBSERVATION_PROBE",
+      "offered_bytes": 265200,
+      "offered_packets": 221,
+      "process_alive_throughout": true,
+      "rate_hz": 100.0,
+      "raw_payload_retained": false,
+      "readiness": {
+        "expected_tunnel_tx_bytes_at_readiness": 240000.0,
+        "probe_window_s": 2.0,
+        "tunnel_tx_byte_delta_at_readiness": 246828
+      },
+      "received_bytes": 265200,
+      "received_packets": 221,
+      "runtime_s": 2.18563478,
+      "schema": "scenesense.splitfusion_phase14b_corrected_traffic_measurement.v1"
+    },
+    "profile_id": "ADVERSE_STABLE",
+    "rnti": 11365,
+    "schema": "scenesense.splitfusion.local_transport_profile.v1",
+    "sent_once": 300,
+    "sink": {
+      "ack_installed": 300,
+      "complete_messages": 300,
+      "datagrams_received": 369,
+      "duplicate_datagrams": 0,
+      "expired_reassemblies": 0,
+      "malformed_datagrams": 0,
+      "nack_rejected": 0,
+      "partial_at_stop": 0,
+      "schema": "scenesense.splitfusion.local_map_sink_summary.v1"
+    },
+    "skipped_obsolete": 0,
+    "timing_ms": {
+      "capture_to_ack_ms": {
+        "count": 300,
+        "maximum": 226.463853,
+        "mean": 76.59289375333333,
+        "minimum": 45.717326,
+        "p50": 72.316793,
+        "p90": 87.489673,
+        "p95": 109.38624,
+        "p99": 157.555185
+      },
+      "capture_to_map_install_ms": {
+        "count": 300,
+        "maximum": 223.648438,
+        "mean": 70.91956177666668,
+        "minimum": 42.623414,
+        "p50": 66.303539,
+        "p90": 82.159439,
+        "p95": 104.120248,
+        "p99": 151.380979
+      },
+      "local_to_ack_ms": {
+        "count": 300,
+        "maximum": 201.813707,
+        "mean": 49.911027656666626,
+        "minimum": 17.443763,
+        "p50": 45.580417,
+        "p90": 60.252256,
+        "p95": 82.715571,
+        "p99": 130.950288
+      },
+      "local_to_complete_message_ms": {
+        "count": 300,
+        "maximum": 198.585325,
+        "mean": 43.719687790000016,
+        "minimum": 14.156599,
+        "p50": 39.077599,
+        "p90": 54.579679,
+        "p95": 77.092502,
+        "p99": 125.226409
+      },
+      "local_to_first_datagram_ms": {
+        "count": 300,
+        "maximum": 198.585325,
+        "mean": 43.60309856666668,
+        "minimum": 14.156599,
+        "p50": 39.004805,
+        "p90": 54.219137,
+        "p95": 76.251087,
+        "p99": 125.226409
+      },
+      "local_to_map_install_ms": {
+        "count": 300,
+        "maximum": 198.998292,
+        "mean": 44.23769567999995,
+        "minimum": 14.623429,
+        "p50": 39.597962,
+        "p90": 54.975398,
+        "p95": 77.872835,
+        "p99": 125.684822
+      },
+      "map_install_to_ack_ms": {
+        "count": 300,
+        "maximum": 8.213519,
+        "mean": 5.673331976666663,
+        "minimum": 1.889003,
+        "p50": 6.034265,
+        "p90": 6.936089,
+        "p95": 7.162924,
+        "p99": 7.678523
+      }
+    },
+    "trace_id": "GM_V2_ADVERSE_STABLE_SEED_2026082103",
+    "trace_sha256": "380925bb530945b11b8e79ab93e88d5a555de540ce859756d6c5ad08584e98a0"
+  }
+}

@@ -1,0 +1,132 @@
+{
+  "ack_installed": 300,
+  "desktop_compute_replayed_before_one_shot_transport": true,
+  "fresh_install": {
+    "150": {
+      "count": 300,
+      "per_sent": 1.0
+    },
+    "200": {
+      "count": 300,
+      "per_sent": 1.0
+    },
+    "250": {
+      "count": 300,
+      "per_sent": 1.0
+    }
+  },
+  "installation_rate_per_sent": 1.0,
+  "intended_intervals": 300,
+  "one_shot_no_retry_verified": true,
+  "probe_traffic_used_only_for_rnti_establishment": {
+    "achieved_pps": 101.23518209187776,
+    "datagram_bytes": 1200,
+    "is_campaign_throughput": false,
+    "is_splitfusion_application_traffic": false,
+    "method": "FIXED_RATE_LIGHTWEIGHT_UDP_PUSCH_OBSERVATION_PROBE",
+    "offered_bytes": 265200,
+    "offered_packets": 221,
+    "process_alive_throughout": true,
+    "rate_hz": 100.0,
+    "raw_payload_retained": false,
+    "readiness": {
+      "expected_tunnel_tx_bytes_at_readiness": 240000.0,
+      "probe_window_s": 2.0,
+      "tunnel_tx_byte_delta_at_readiness": 248056
+    },
+    "received_bytes": 265200,
+    "received_packets": 221,
+    "runtime_s": 2.183035536,
+    "schema": "scenesense.splitfusion_phase14b_corrected_traffic_measurement.v1"
+  },
+  "profile_id": "FAVORABLE_STABLE",
+  "rnti": 48241,
+  "schema": "scenesense.splitfusion.local_transport_profile.v1",
+  "sent_once": 300,
+  "sink": {
+    "ack_installed": 300,
+    "complete_messages": 300,
+    "datagrams_received": 368,
+    "duplicate_datagrams": 0,
+    "expired_reassemblies": 0,
+    "malformed_datagrams": 0,
+    "nack_rejected": 0,
+    "partial_at_stop": 0,
+    "schema": "scenesense.splitfusion.local_map_sink_summary.v1"
+  },
+  "skipped_obsolete": 0,
+  "timing_ms": {
+    "capture_to_ack_ms": {
+      "count": 300,
+      "maximum": 123.506642,
+      "mean": 71.11587021000004,
+      "minimum": 49.386568,
+      "p50": 70.081892,
+      "p90": 79.759489,
+      "p95": 87.027336,
+      "p99": 102.1755
+    },
+    "capture_to_map_install_ms": {
+      "count": 300,
+      "maximum": 116.148232,
+      "mean": 65.3139680266667,
+      "minimum": 46.644738,
+      "p50": 64.999781,
+      "p90": 72.935817,
+      "p95": 79.951461,
+      "p99": 95.736709
+    },
+    "local_to_ack_ms": {
+      "count": 300,
+      "maximum": 97.508537,
+      "mean": 44.434004113333344,
+      "minimum": 24.828712,
+      "p50": 42.950692,
+      "p90": 51.735583,
+      "p95": 61.014317,
+      "p99": 76.460038
+    },
+    "local_to_complete_message_ms": {
+      "count": 300,
+      "maximum": 89.600255,
+      "mean": 38.06443536,
+      "minimum": 21.881701,
+      "p50": 37.50079,
+      "p90": 45.042393,
+      "p95": 53.189209,
+      "p99": 69.499521
+    },
+    "local_to_first_datagram_ms": {
+      "count": 300,
+      "maximum": 89.600255,
+      "mean": 37.963592890000015,
+      "minimum": 21.881701,
+      "p50": 37.500756,
+      "p90": 44.850442,
+      "p95": 53.099944,
+      "p99": 69.499521
+    },
+    "local_to_map_install_ms": {
+      "count": 300,
+      "maximum": 90.150127,
+      "mean": 38.63210193000002,
+      "minimum": 22.086882,
+      "p50": 38.057032,
+      "p90": 45.57753,
+      "p95": 53.807903,
+      "p99": 70.076558
+    },
+    "map_install_to_ack_ms": {
+      "count": 300,
+      "maximum": 9.37735,
+      "mean": 5.801902183333333,
+      "minimum": 2.134979,
+      "p50": 6.312691,
+      "p90": 8.294443,
+      "p95": 8.695849,
+      "p99": 9.139346
+    }
+  },
+  "trace_id": "GM_V2_FAVORABLE_STABLE_SEED_2026082101",
+  "trace_sha256": "8cad86e2e1ee98176c75b872132eb68f7d770f889d7330fa4a9932c45c172de6"
+}

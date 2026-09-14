@@ -1,0 +1,11 @@
+{
+  "ack_installed": 300,
+  "complete_messages": 300,
+  "datagrams_received": 369,
+  "duplicate_datagrams": 0,
+  "expired_reassemblies": 0,
+  "malformed_datagrams": 0,
+  "nack_rejected": 0,
+  "partial_at_stop": 0,
+  "schema": "scenesense.splitfusion.local_map_sink_summary.v1"
+}

@@ -1,0 +1,226 @@
+{
+  "dense_segmentation_retained": false,
+  "device": "cuda:0",
+  "device_name": "NVIDIA GeForce RTX 5090",
+  "frames": 300,
+  "model_binding": {
+    "checkpoint_epoch": 26,
+    "checkpoint_path": "experiments/route_b_v3_1_splitfusion_fcos_r50_fpn_p2_p7_v1_numerical_recovery_v1/20260830_recovered_epoch10_gate_v1/checkpoints/epoch_026.pt",
+    "checkpoint_sha256": "da14d21edbd374c1c3abce02ca4674b9f4097becfba9759aba945cea160a297f",
+    "checkpoint_training_source_commit": "0d5697b46e901d4494572b2e9a9863326947d24c",
+    "eval_mode": true,
+    "perception_forward_lock_path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_person_p025_calibration_v1/PERCEPTION_FORWARD_LOCK_P025_V1.json",
+    "perception_forward_lock_sha256": "86d6f13ae9168b33b697df5b785c5f7c320afc52cfdcded5b632d94a6d943fe1",
+    "perception_parameters_requires_grad": false,
+    "person_output_threshold": 0.25,
+    "recovery_build_report": {
+      "architecture_and_state_dict_unchanged": true,
+      "coco_car_bias_sha256": "6c9760f1fd54aff7181fcff3cc30a11daafade9c5fc60bc7284fc2e0bca0de14",
+      "coco_car_index": 3,
+      "coco_car_weight_sha256": "9130a2f343e8162c2ea2baf66b34c359a393d331680d6a0f2aaab498b1c80489",
+      "coco_person_bias_sha256": "45a2cc2d30dc1477cf094c1f59f8a11104121b05960140ecefa8ef7d38f1a9a2",
+      "coco_person_index": 1,
+      "coco_person_weight_sha256": "81a7a980256b77cd98a3fa949857568d6501995b649e86463a656f84d9c877ce",
+      "complete_official_outputs": 91,
+      "official_weight_path": "/home/shr_aisvcs/.cache/torch/hub/checkpoints/fcos_resnet50_fpn_coco-99b0c9b7.pth",
+      "project_person_bias_sha256": "45a2cc2d30dc1477cf094c1f59f8a11104121b05960140ecefa8ef7d38f1a9a2",
+      "project_person_weight_sha256": "81a7a980256b77cd98a3fa949857568d6501995b649e86463a656f84d9c877ce",
+      "project_vehicle_bias_sha256": "6c9760f1fd54aff7181fcff3cc30a11daafade9c5fc60bc7284fc2e0bca0de14",
+      "project_vehicle_weight_sha256": "9130a2f343e8162c2ea2baf66b34c359a393d331680d6a0f2aaab498b1c80489",
+      "radar_stem_exact_zero": true,
+      "recovery_yaw_tau": 0.01,
+      "rgb_stem_exact": true,
+      "shared_training_inference_normalizer": true
+    },
+    "runtime": "splitfusion_fcos_r50_fpn_p2_p7_v1_numerical_recovery_v1.build_recovery_model",
+    "selected_yaw_tau": 0.01,
+    "service_policy": "splitfusion_fcos_r50_fpn_p2_p7_person_p025_calibration_v1.apply_p025_service_policy"
+  },
+  "object_count": {
+    "count": 300,
+    "maximum": 64.0,
+    "mean": 32.10666666666667,
+    "minimum": 8.0,
+    "p50": 31.0,
+    "p90": 47.0,
+    "p95": 50.0,
+    "p99": 58.0
+  },
+  "payload_bytes": {
+    "count": 300,
+    "maximum": 19732.0,
+    "mean": 10319.31,
+    "minimum": 3009.0,
+    "p50": 9967.0,
+    "p90": 14836.0,
+    "p95": 15736.0,
+    "p99": 17873.0
+  },
+  "payload_unique_sha256": 300,
+  "quality": {
+    "delta_local_minus_split0": {
+      "foreground_miou": 4.5222493471497316e-05,
+      "person_avo_f1": 0.0004676598570272361,
+      "person_avo_xy_mae_m": -0.001050246058349913,
+      "person_box_mask_iou": 7.48034357190841e-05,
+      "vehicle_f1": 3.7201816575627156e-05,
+      "vehicle_iou": 1.5641551223910533e-05,
+      "vehicle_xy_mae_m": 0.0001252925111994152
+    },
+    "full_local_fp32_q0": {
+      "foreground_miou": 0.7134534637149776,
+      "person_avo_f1": 0.708685891901226,
+      "person_avo_precision": 0.7041866849691146,
+      "person_avo_recall": 0.7132429614181439,
+      "person_avo_recall_20_40m": 0.5776504297994269,
+      "person_avo_xy_mae_m": 0.8121813463526099,
+      "person_box_mask_iou": 0.5278940800907954,
+      "vehicle_f1": 0.8989052069425901,
+      "vehicle_iou": 0.8990128473391599,
+      "vehicle_precision": 0.9315917644454283,
+      "vehicle_recall": 0.8684346300691363,
+      "vehicle_xy_mae_m": 0.4786754207718958
+    },
+    "full_local_source": {
+      "path": "experiments/splitfusion_fcos_hybrid_q_v1/20260902_182401_phase6_validation_curve/validation_curve.json",
+      "sha256": "54987920a7430564425664e82511d1121e77935beabfbd4cf2f34bee5cadfc74"
+    },
+    "identity": "same frozen validation inputs and p025 service",
+    "split_action_0_uint8_q0": {
+      "foreground_miou": 0.7134082412215061,
+      "person_avo_f1": 0.7082182320441988,
+      "person_avo_xy_mae_m": 0.8132315924109598,
+      "person_box_mask_iou": 0.5278192766550763,
+      "vehicle_f1": 0.8988680051260145,
+      "vehicle_iou": 0.898997205787936,
+      "vehicle_xy_mae_m": 0.4785501282606964
+    },
+    "split_source": {
+      "path": "experiments/splitfusion_288_offline_rl_dataset_v1/20260909_offline_consolidation_v1/action_72_summary.csv",
+      "sha256": "250eb6d9391c0de5a343d692484647bbdb181153ba64f7f4a447b0076f580a88"
+    }
+  },
+  "raw_inputs_retained": false,
+  "raw_predictions_retained": false,
+  "sample_manifest_sha256": "ad2cb25ea8d64d8d774c9c455c09e169f9a3eb1b51bf6143e82dfacdecf10ee9",
+  "schema": "scenesense.splitfusion.local_compute_summary.v1",
+  "segmentation_transported": false,
+  "selected_sample_id_sha256": "68a4cb3cffe47fa1f42f65ada94c8ef1e19504e8f25a949fc1acf5a20298720e",
+  "serialized_record_bytes": {
+    "count": 300,
+    "maximum": 68453.0,
+    "mean": 34224.50666666667,
+    "minimum": 8436.0,
+    "p50": 33032.0,
+    "p90": 50183.0,
+    "p95": 53453.0,
+    "p99": 61720.0
+  },
+  "sustainable_sequential_fps_from_median": 36.67358147045292,
+  "target_device_status": "DESKTOP_RTX5090_PROXY_NOT_VEHICLE_HARDWARE",
+  "timing_ms": {
+    "compact_serialization_wall_ms": {
+      "count": 300,
+      "maximum": 3.467776,
+      "mean": 1.7938210266666665,
+      "minimum": 0.542133,
+      "p50": 1.725383,
+      "p90": 2.578112,
+      "p95": 2.745167,
+      "p95_confidence_interval": {
+        "lower_95": 2.690657,
+        "method": "deterministic_nonparametric_bootstrap",
+        "repetitions": 2000,
+        "seed": 2026091301,
+        "upper_95": 2.858806
+      },
+      "p99": 3.210928
+    },
+    "front_cuda_ms": {
+      "count": 300,
+      "maximum": 3.9519999027252197,
+      "mean": 1.1215783427158992,
+      "minimum": 0.9428799748420715,
+      "p50": 1.0453120470046997,
+      "p90": 1.278272032737732,
+      "p95": 1.3015999794006348,
+      "p95_confidence_interval": {
+        "lower_95": 1.2821439504623413,
+        "method": "deterministic_nonparametric_bootstrap",
+        "repetitions": 2000,
+        "seed": 2026091301,
+        "upper_95": 1.3299200534820557
+      },
+      "p99": 1.4145599603652954
+    },
+    "front_wall_ms": {
+      "count": 300,
+      "maximum": 3.991621,
+      "mean": 1.1640678666666668,
+      "minimum": 0.973882,
+      "p50": 1.092875,
+      "p90": 1.325485,
+      "p95": 1.3508,
+      "p95_confidence_interval": {
+        "lower_95": 1.329944,
+        "method": "deterministic_nonparametric_bootstrap",
+        "repetitions": 2000,
+        "seed": 2026091301,
+        "upper_95": 1.377013
+      },
+      "p99": 1.459493
+    },
+    "h2d_ms": {
+      "count": 300,
+      "maximum": 0.660381,
+      "mean": 0.5206790466666666,
+      "minimum": 0.412295,
+      "p50": 0.519123,
+      "p90": 0.582422,
+      "p95": 0.598507,
+      "p95_confidence_interval": {
+        "lower_95": 0.58712,
+        "method": "deterministic_nonparametric_bootstrap",
+        "repetitions": 2000,
+        "seed": 2026091301,
+        "upper_95": 0.601929
+      },
+      "p99": 0.612409
+    },
+    "local_result_available_ms": {
+      "count": 300,
+      "maximum": 35.672359,
+      "mean": 27.27807017,
+      "minimum": 24.203131,
+      "p50": 27.267585,
+      "p90": 28.782764,
+      "p95": 29.330284,
+      "p95_confidence_interval": {
+        "lower_95": 28.987909,
+        "method": "deterministic_nonparametric_bootstrap",
+        "repetitions": 2000,
+        "seed": 2026091301,
+        "upper_95": 29.720779
+      },
+      "p99": 30.851258
+    },
+    "optimized_tail_compute_wall_ms": {
+      "count": 300,
+      "maximum": 31.905318,
+      "mean": 23.309874733333334,
+      "minimum": 21.24527,
+      "p50": 23.170572,
+      "p90": 24.406844,
+      "p95": 25.014341,
+      "p95_confidence_interval": {
+        "lower_95": 24.702237,
+        "method": "deterministic_nonparametric_bootstrap",
+        "repetitions": 2000,
+        "seed": 2026091301,
+        "upper_95": 25.44196
+      },
+      "p99": 27.392947
+    }
+  },
+  "warmup_frames": 10
+}
