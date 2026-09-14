@@ -1,0 +1,12 @@
+{
+  "schema": "scenesense.splitfusion.capture_to_action_start_diagnostic.v1.artifacts",
+  "sha256": {
+    "01_capture_to_action_start_all_288_cells.pdf": "6499dc975f5c2eebc15aff48b757de797a568987c4afb85163155ef5b6e58efc",
+    "01_capture_to_action_start_all_288_cells.png": "f9e6760b45f520c579b646577d04484bb6bef738677ea9af4901f17ee46faf69",
+    "REPORT.md": "7f143eeba7b279162115244822d6b8546424877cf873dbe37f5f6acd9414cde4",
+    "capture_to_action_start_by_cell.csv": "d74781531abc5f6268ec3e3f40c70b5193fcbee99c094144d86df4e67fd4fc68",
+    "capture_to_action_start_tail_diagnostic.json": "f61975d3e2b32bcdac24428fe89915b643374d9609f6e5fffc21a6b3531ca23e"
+  },
+  "source_dual_clock_manifest_sha256": "e505100af47800b60fb385bf8667e6d6e589a3e0caa03a630a59c9eeb2a43c0c",
+  "status": "COMPLETE"
+}
