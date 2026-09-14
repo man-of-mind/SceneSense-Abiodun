@@ -49,10 +49,19 @@ implemented network to the completed 288-cell evidence, latest-only edge
 scheduling, explicit supersession feedback, and the final edge-optimization
 measurements.
 
-`model.py` now implements step 3's architecture boundary. It is deliberately
-trainer-free: its CPU tests cover the 72-way output, fail-closed masks, LSTM
-state carry, value/cost head shapes, and forecast-loss gradient flow. This does
-not advance step 4 or authorize PPO training.
+The [frame-by-frame timeline and delayed-feedback contract](AGENT_TIMELINE_AND_DELAYED_FEEDBACK_V1.md)
+specifies what happens when feedback for frame 1 has not arrived before frame
+2: the first transition remains pending, later feedback is joined by exact
+identity, and PPO updates only a terminally reconciled contiguous prefix.
+`delayed_feedback.py` implements and tests that accounting boundary without
+opening sockets or changing the live runtime.
+
+`model.py` and `delayed_feedback.py` now implement step 3's architecture and
+credit-assignment boundaries. They are deliberately trainer-free: CPU tests
+cover the 72-way output, fail-closed masks, LSTM state carry, value/cost head
+shapes, forecast-loss gradient flow, delayed/out-of-order terminal feedback,
+duplicate idempotence, and the rule that missing feedback is not loss. This
+does not advance step 4 or authorize PPO training.
 
 ## Reading the equations
 

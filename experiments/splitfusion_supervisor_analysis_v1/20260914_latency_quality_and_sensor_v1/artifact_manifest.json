@@ -1,0 +1,24 @@
+{
+  "schema": "scenesense.splitfusion.supervisor_analysis.v1.artifacts",
+  "sha256": {
+    "01_quality_vs_pure_front_p50.pdf": "f7bb6131f283effca01f8a09794bd61bb6e9733b9e2796b6d530daf06a4fe2d1",
+    "01_quality_vs_pure_front_p50.png": "70e399b892a6dd9c3c94a9905a15312299314e7aab1afda522857419f9995277",
+    "02_quality_vs_network_p50.pdf": "31d22e40080edde130b10e760bbfb90837e4d9316c8259e1919800976bbe2631",
+    "02_quality_vs_network_p50.png": "617241108d0990ccd7cdfe737c5e39224b5c97fc87c0b49b0f2748375db1d7da",
+    "03_quality_vs_edge_map_p50.pdf": "333380fbf3e9536e15b1bdb264344a3957a9fc893b331406b3a53a8723cca7b0",
+    "03_quality_vs_edge_map_p50.png": "44dfe08a4c7ba1666275a533a2e60feb7985a7ab33108015510eda4eaa5fd460",
+    "04_quality_vs_total_p50.pdf": "b0472b9d84374777e1cd238eaa47e146f0468c6261a287636ba586c2542c8ecd",
+    "04_quality_vs_total_p50.png": "18be05bdbafbb140e377e7f12f273853f76b85226ceb1579980b430f6633b77f",
+    "05_latency_percentiles_by_profile.pdf": "afd1ad8852e28b2d479d922561b3c1306ff0593ce3ec337a10f1dda49ff8b09f",
+    "05_latency_percentiles_by_profile.png": "25712de9687d5b7f366c7edf3461060dc02863488010bace72aaaaaa0aa21456",
+    "06_sensor_preparation_retained_breakdown.pdf": "853b81df4e3294c57e690b26ade0b7d2550014cd85a995b23494c430995e129b",
+    "06_sensor_preparation_retained_breakdown.png": "19ff301807a6c145af2f3c5767c9c6b546469f4a16644ccf15d6f1541fb711ae",
+    "REPORT.md": "54239942d1a5409e76f2a6a127bb66182178406c1794b12e1409a87300afae13",
+    "action_profile_quality_latency.csv": "9e08d13f57c45309ec61f9c80e7b67e8d9820276ecdbdd1acf91967151c63595",
+    "analysis_summary.json": "03bd34f439e3700e8fe1203b7c00e9122f02426b14bba366e06f5b10cd09d092",
+    "latency_percentiles_by_profile.csv": "20731f8098e7bd9e4af4556c284bf41135433a8f9e15a3111d64109dc42ff417",
+    "sensor_preparation_cell_percentiles.csv": "b7160cb3c87cd73223fa701150e40b0ed472941deebb5cb7808ce140d47e8285",
+    "sensor_preparation_profile_percentiles.csv": "24cdbb676c70596dc6cf65c0e94fdab7e27d2deaa922ff298e623bb2c48d47ec"
+  },
+  "status": "COMPLETE"
+}

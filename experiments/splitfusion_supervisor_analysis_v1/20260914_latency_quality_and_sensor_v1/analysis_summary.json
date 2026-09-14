@@ -1,0 +1,165 @@
+{
+  "clock_bridge": {
+    "absolute_deviation_ms_max": 5.454918,
+    "absolute_deviation_ms_p50": 0.000109,
+    "absolute_deviation_ms_p95": 0.000708,
+    "absolute_deviation_ms_p99": 0.001099,
+    "absolute_deviation_ms_p999": 0.002392,
+    "anchor_count": 344177,
+    "bridge_application": "action_start_wall_ns = capture_started_ns + robust_global_median_offset_ns",
+    "bridge_definition": "feature_received_at_wall_ns - edge_result_received_ns",
+    "cells_with_anchors": 222,
+    "cells_without_anchors": 66,
+    "endpoint_anchor_count": 10000,
+    "global_median_offset_ns": 1783362416689303826,
+    "interpretation": "The median bridge is process-independent because perf_counter_ns uses the host monotonic clock. Rare positive deviations reflect preemption between the adjacent monotonic and wall-clock calls.",
+    "robust_first_to_last_offset_drift_ms": 3e-06,
+    "same_event_pair": true,
+    "same_physical_host": true
+  },
+  "component_boundaries": {
+    "edge_map": "complete edge reassembly to direct spatial-map install",
+    "network": "ue_prepare_finished_ns to complete edge reassembly",
+    "physical_map_aoi_excludes_controller_feedback": true,
+    "pure_front": "front_timing_ns.front_backbone only",
+    "total": "capture_started_ns to direct spatial-map install",
+    "ue_action": "capture_started_ns to ue_prepare_finished_ns"
+  },
+  "denominators": {
+    "edge_map": "useful direct-map installations",
+    "network": "frames with retained observed complete edge receipt",
+    "pure_front": "all sent frames",
+    "total": "useful direct-map installations",
+    "ue_action": "all sent frames"
+  },
+  "direct_delay_pooling": {
+    "family_dependent": true,
+    "family_medians_ms": {
+      "AE128": 12.499809,
+      "AE32": 11.722326,
+      "AE64": 10.86545,
+      "noAE": 12.9361155
+    },
+    "family_sample_counts": {
+      "AE128": 999,
+      "AE32": 1797,
+      "AE64": 1738,
+      "noAE": 1274
+    },
+    "interpretation": "per-family pools retained because the live medians differ",
+    "kruskal_h": 124.3631585036934,
+    "kruskal_p": 8.863804312174521e-27,
+    "pairwise_mannwhitney": {
+      "AE128_vs_AE32": {
+        "median_delta_ms": 0.777483,
+        "p": 0.030822329407409987,
+        "u": 941773.0
+      },
+      "AE128_vs_AE64": {
+        "median_delta_ms": 1.634359,
+        "p": 2.817168641463965e-11,
+        "u": 1000607.0
+      },
+      "AE128_vs_noAE": {
+        "median_delta_ms": -0.4363065,
+        "p": 0.006001301607021007,
+        "u": 593690.5
+      },
+      "AE32_vs_AE64": {
+        "median_delta_ms": 0.856876,
+        "p": 2.8948743331500895e-11,
+        "u": 1763386.0
+      },
+      "AE32_vs_noAE": {
+        "median_delta_ms": -1.2137895,
+        "p": 8.693672883594439e-09,
+        "u": 1005379.0
+      },
+      "AE64_vs_noAE": {
+        "median_delta_ms": -2.0706655,
+        "p": 1.2854055747753944e-24,
+        "u": 865613.0
+      }
+    },
+    "pooled_median_ms": 11.859298,
+    "pooled_samples": 5808,
+    "preregistered_alpha": 0.05,
+    "rule": "PER_FAMILY"
+  },
+  "direct_delay_provenance": {
+    "manifest_sha256": "f8db2c5200fc27845f4585039b1736ccdef3c2ac670cb41bb31e24228c666db7",
+    "matches_replaced_quantity": "identical definition to the campaign's map_installed_at minus edge_tail_complete_wall_s, so the replacement is like-for-like",
+    "measured_quantity": "map install_timestamp minus edge tail_complete_wall_s, on the direct container-to-host path",
+    "per_family": {
+      "AE128": {
+        "action_id": 30,
+        "cell_id": "a30__favorable_stable",
+        "ingest_csv_sha256": "d8f7732804e4c90d2bd6c574d491ad848ad3b46ed5ccdfa098c5ac64c92accd6",
+        "mean_ms": 17.04942809009009,
+        "median_ms": 12.499809,
+        "network_profile_id": "FAVORABLE_STABLE",
+        "p95_ms": 42.504787,
+        "samples": 999
+      },
+      "AE32": {
+        "action_id": 71,
+        "cell_id": "a71__favorable_stable",
+        "ingest_csv_sha256": "4520a0b037086508f7f281a353c5cca76316bb949a0ea76bf1f53d53e675ef5c",
+        "mean_ms": 17.490746391764052,
+        "median_ms": 11.722326,
+        "network_profile_id": "FAVORABLE_STABLE",
+        "p95_ms": 52.425385,
+        "samples": 1797
+      },
+      "AE64": {
+        "action_id": 50,
+        "cell_id": "a50__favorable_stable",
+        "ingest_csv_sha256": "0d6b9f29de29d51637746c07451e467a1c746159d601473fa60ac10e1c49627e",
+        "mean_ms": 16.627880731300344,
+        "median_ms": 10.86545,
+        "network_profile_id": "FAVORABLE_STABLE",
+        "p95_ms": 48.469782,
+        "samples": 1738
+      },
+      "noAE": {
+        "action_id": 15,
+        "cell_id": "a15__favorable_stable",
+        "ingest_csv_sha256": "5c8a4fbbb2538b41642313f8d238836443f770b4541bafb9a666b9645b85e13d",
+        "mean_ms": 19.188096795133436,
+        "median_ms": 12.9361155,
+        "network_profile_id": "FAVORABLE_STABLE",
+        "p95_ms": 52.222013,
+        "samples": 1274
+      }
+    },
+    "results_sha256": "34f47f48594e1fab398ddb136d809e848a6304a202f77bb35862868afdcb651a",
+    "validation_root": "experiments/splitfusion_direct_edge_map_v1/20260914_live_validation_retry1"
+  },
+  "imputed_arrivals_excluded_from_network_latency": true,
+  "inventory": {
+    "actions": 72,
+    "cells": 288,
+    "profiles": 4
+  },
+  "observed_network_intervals": 344177,
+  "quality": {
+    "combined_quality": "sqrt(segmentation_miou * localization_overlap)",
+    "localization_overlap": "sqrt(vehicle_iou * person_box_mask_iou)",
+    "role": "provisional presentation coordinate, not PPO reward"
+  },
+  "schema": "scenesense.splitfusion.supervisor_analysis.v1",
+  "scientific_status": "OFFLINE_COUNTERFACTUAL_NOT_LIVE_REMEASUREMENT",
+  "sensor_threading_audit": {
+    "carla_callbacks": "camera and radar callbacks are distinct",
+    "evaluation": "separate bounded evaluation worker after immutable snapshot capture",
+    "inner_radar_limitation": "not separately timed in retained 288 evidence",
+    "numerical_preparation": "radar and RGB preparation are sequential in one route-b-split-front worker"
+  },
+  "source_bindings": {
+    "builder_sha256": "cdff4f3816f071dce7bdde070c5b271087ccc7bd7cc28d313116a751889f3c18",
+    "campaign_cell_table_sha256": "3f3067d4c9d0ef3c0d2661c3d19d04306bcbd18ef6d21fa426148e0ee24d2e0d",
+    "direct_counterfactual_manifest_sha256": "b1fcb402762abfc8ecc32ab8141b1daa0d41f5e88e408514ad9c4a10aaf5a501",
+    "direct_live_validation_manifest_sha256": "f8db2c5200fc27845f4585039b1736ccdef3c2ac670cb41bb31e24228c666db7"
+  },
+  "status": "COMPLETE"
+}

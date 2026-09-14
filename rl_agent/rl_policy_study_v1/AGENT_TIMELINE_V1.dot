@@ -1,0 +1,33 @@
+digraph AgentTimeline {
+  graph [rankdir=LR, bgcolor="white", pad="0.25", nodesep="0.28", ranksep="0.55", fontname="DejaVu Sans", labelloc="t", label="Frame-driven actions with delayed, identity-safe PPO feedback"];
+  node [shape=box, style="rounded,filled", fontname="DejaVu Sans", fontsize=10, color="#40566f", penwidth=1.3, margin="0.10,0.07"];
+  edge [fontname="DejaVu Sans", fontsize=9, color="#40566f", penwidth=1.2];
+
+  f1 [label="Frame f1 ready\nSNR / MCS / BSR", fillcolor="#eaf1ff"];
+  lstm1 [label="Encoder + LSTM\n(h0,c0) → (h1,c1)", fillcolor="#fdebf0"];
+  a1 [label="PPO action a1\n72-way SPLIT policy", fillcolor="#ecf8f5"];
+  p1 [label="OPEN pending ticket\n(session, UE, f1, a1)", fillcolor="#fff4d6"];
+  radio1 [label="Feature uplink\nOAI / RFsim", fillcolor="#eaf1ff"];
+  edge1 [label="Edge latest-only slot\nreassembly + service", fillcolor="#f2eefc"];
+  map1 [label="Direct spatial-map install\nquality + install time", fillcolor="#ecf8f5"];
+
+  f2 [label="Frame f2 ready\nbefore f1 feedback", fillcolor="#eaf1ff"];
+  pending [label="f1 remains PENDING\nnot inferred LOST", fillcolor="#fff4d6", color="#d18b00", penwidth=2.0];
+  lstm2 [label="Observe installed-frame lag\n+ pending age/count\nLSTM chooses a2", fillcolor="#fdebf0"];
+  a2 [label="OPEN ticket f2,a2\nand continue", fillcolor="#ecf8f5"];
+
+  ack [label="Compact terminal feedback\nfor exact f1,a1", fillcolor="#fce8e6", color="#c44e52", penwidth=2.0];
+  close [label="CLOSE f1 ticket\ncompute r1", fillcolor="#fff4d6"];
+  ppo [label="Terminal contiguous prefix\nGAE + PPO update", fillcolor="#ecf8f5"];
+  forecast [label="Auxiliary head predicts\nnext observed SNR", fillcolor="#f2eefc"];
+
+  f1 -> lstm1 -> a1 -> p1 -> radio1 -> edge1 -> map1;
+  lstm1 -> forecast [style=dashed, label="representation aid"];
+  f1 -> f2 [style=dotted, label="next 100 ms epoch", constraint=false];
+  f2 -> pending -> lstm2 -> a2;
+  p1 -> pending [style=dashed, color="#d18b00", label="still open"];
+  map1 -> ack [label="install precedes ACK"];
+  ack -> close [color="#c44e52"];
+  p1 -> close [style=dashed, color="#c44e52", label="exact identity join"];
+  close -> ppo;
+}

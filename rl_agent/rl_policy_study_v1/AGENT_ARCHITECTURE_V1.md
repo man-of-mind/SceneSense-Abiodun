@@ -52,13 +52,19 @@ The first simulator should expose normalized values and availability flags for:
 
 - current and lagged PUSCH SNR, MCS and delivered throughput;
 - recent complete-message delivery and terminal-outcome history;
-- current map AoI, critical-object AoI and time since a useful installation;
+- latest installed-frame lag, oldest-pending-frame lag, pending age/count and
+  time since a useful installation;
 - edge busy/pending state plus recent supersession and expiry outcomes;
 - previous action, payload, installation AoI and action-switch indicator; and
 - causal ego/object-risk summaries available before action selection.
 
 Forbidden inputs are the authored network-profile name, future SNR, CARLA
 ground truth, and the current frame's eventual tail result.
+
+The exact asynchronous attribution and missing-feedback behavior is frozen in
+[AGENT_TIMELINE_AND_DELAYED_FEEDBACK_V1.md](AGENT_TIMELINE_AND_DELAYED_FEEDBACK_V1.md).
+In particular, absence of feedback at the next frame means `PENDING`, not
+`LOST`; later feedback closes the exact frame/action ticket.
 
 ## Network
 
@@ -128,6 +134,13 @@ PPO architecture with and without this head; if it does not improve policy
 return or robustness, it should be removed.
 
 ## Reward and intentional supersession
+
+The equation below is the richer object-level utility candidate. The initial
+split-only implementation uses the smaller latency-discounted quality reward
+defined in
+[AGENT_TIMELINE_AND_DELAYED_FEEDBACK_V1.md](AGENT_TIMELINE_AND_DELAYED_FEEDBACK_V1.md),
+where frame ID supplies causal attribution and frame-lag state rather than an
+unbounded scalar reward input.
 
 The reward should use the change in installed-map utility:
 

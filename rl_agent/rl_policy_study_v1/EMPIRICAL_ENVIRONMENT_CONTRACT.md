@@ -34,8 +34,8 @@ availability bit for every telemetry group:
 
 - current and lagged PUSCH SNR, MCS, delivered throughput, and recent radio
   delivery outcomes;
-- current map AoI summaries, critical-track AoI, time since the latest useful
-  installation, and freshness slack;
+- latest installed-frame lag, oldest-pending-frame lag, pending age/count,
+  time since the latest useful installation, and availability flags;
 - edge busy/pending state and the most recent explicit terminal outcome;
 - previous action, payload, installation AoI, and action-switch indicator; and
 - causal ego/radar risk summaries that are available before action selection.
@@ -76,7 +76,13 @@ the forecast loss is required later to establish whether it helps.
 
 ## 4. Transition and feedback semantics
 
-Each transmitted frame receives exactly one terminal outcome. The learning
+Each transmitted frame opens a pending ticket keyed by session, UE, frame and
+action identity. If the next frame arrives first, the previous ticket remains
+`PENDING`; it is not inferred to be lost. The policy may choose the next action
+using pending age/count and installed-frame lag. Delayed or out-of-order
+feedback closes the exact ticket it names.
+
+Each ticket ultimately receives exactly one terminal outcome. The learning
 environment keeps these classes separate:
 
 - useful map installation;
@@ -90,13 +96,49 @@ environment keeps these classes separate:
 Intentional supersession is not relabelled as radio loss. It earns no new-map
 utility, but it remains charged for feature bytes and compute already spent.
 Structural faults terminate an episode and are not ordinary negative samples.
+Missing feedback may expire only after a cumulative terminal watermark or a
+durable edge-ledger reconciliation proves that no terminal record exists.
+Duplicate identical feedback is idempotent; an identity conflict is structural.
 
-## 5. Map-utility reward
+PPO rollout rows retain the old log probability, value estimate and incoming
+LSTM state when the ticket opens. Generalized-advantage estimation may consume
+only the terminally reconciled contiguous prefix, preserving on-policy credit
+when rewards arrive out of order.
 
-Let $\mathcal{O}_t$ be the tracked objects in the map after the transition. For
-object $i$, let $q_{i,t}\in[0,1]$ be an auditable task-quality score,
-$A_{i,t}$ its AoI, $w_i$ its criticality weight, and $\tau_i$ the registered
-freshness time constant. Define map utility
+## 5. Initial latency-discounted quality reward
+
+The first implementation does not feed an unbounded raw frame number to the
+network or make frame ID an arbitrary scalar reward. Frame identity provides
+credit attribution and derives the causal installed-frame lag
+
+$$
+\Delta f_t=f_t-f_{\mathrm{latest\ installed}}.
+$$
+
+For the action ticket belonging to frame $j$, the initial reward is
+
+$$
+r_j=
+\mathbf{1}_{\mathrm{installed}}
+\alpha Q_j\exp(-L_j/\tau)
+-\beta_D\mathbf{1}_{\mathrm{transport\ failure}}
+-\beta_B\frac{B_j}{B_{\max}}
+-\beta_C\frac{C_j}{C_{\max}}
+-\beta_S\mathbf{1}[a_j\ne a_{j-1}].
+$$
+
+$L_j$ ends at direct spatial-map installation; later controller-feedback
+latency is not physical map AoI. `SUPERSEDED_PENDING` earns no fictitious
+quality and no radio-loss penalty, but bytes and compute already spent remain
+charged. This represents freshness through install latency in reward and frame
+lag in the next causal observation without double-counting a second AoI term.
+
+### Deferred object-level refinement
+
+If later application evidence justifies per-object criticality and freshness
+tolerances, let $\mathcal{O}_t$ be the tracked objects in the map, $q_{i,t}$ an
+auditable task-quality score, $A_{i,t}$ object AoI, $w_i$ criticality, and
+$\tau_i$ a registered freshness constant:
 
 $$
 U_t=
@@ -105,39 +147,21 @@ w_i q_{i,t}\exp(-A_{i,t}/\tau_i)}
 {\sum_{i\in\mathcal{O}_t}w_i+\varepsilon}.
 $$
 
-The immediate reward uses the *change* in post-outcome map utility:
-
-$$
-r_t =
-(U_{t+1}-U_t)
--\lambda_B\frac{B_t}{B_{\max}}
--\lambda_C\frac{C_t}{C_{\max}}
--\lambda_S\mathbf{1}[a_t\ne a_{t-1}].
-$$
-
-- $B_t$ is the feature traffic charged to this action, including bytes spent on
-  a later-superseded frame.
-- $B_{\max}$ is a frozen normalization constant, initially the largest measured
-  registered action payload—not a bandwidth limit.
-- $C_t$ and $C_{\max}$ similarly normalize measured compute expenditure.
-- The switching term discourages oscillation without banning useful changes.
-
-The exponential factor equals one for a fresh object and decays smoothly as it
-ages. At $A_{i,t}=\tau_i$, freshness contributes $e^{-1}\approx0.368$ of its
-fresh value. This avoids turning the borrowed 100 ms service reference into an
-unsupported universal safety cliff.
-
-Reward weights and $\tau_i$ values are not frozen here. They require a
-normalization and sensitivity study on training-only transitions. Safety or
-resource requirements that must hold are represented as separately reported
-cost signals rather than hidden inside a single reward number.
+A later reward may use $U_{t+1}-U_t$, but this richer form is deferred and is
+not silently combined with the initial latency discount. Reward weights and
+freshness constants require a normalization and sensitivity study on
+training-only transitions. Safety or resource requirements that must hold are
+reported as separate cost signals rather than hidden inside one reward number.
 
 ## 6. Evidence that can and cannot train this environment
 
 The completed 288-cell live campaign is authoritative for the original runtime
 and provides all 72 actions under all four network processes. The optimized
-latest-only 288-cell counterfactual preserves measured per-cell reassembly and
-admission totals and recomputes map outcomes after the edge optimization.
+latest-only direct-map 288-cell counterfactual preserves measured per-cell
+reassembly and admission totals, removes the erroneous edge→UE→map detour, and
+recomputes map outcomes after the edge optimization. Compact record-free
+feedback returns separately to the UE and is excluded from physical
+map-installation age.
 
 It is suitable for:
 
