@@ -342,16 +342,20 @@ def evaluate_cell(
         "map_legacy_loopback_listener": str(
             map_ready.get("legacy_loopback_ingest_listener") or ""
         ),
-        "map_updates_reassembled": int(
+        # Authoritative: the ingest CSV is flushed per row, so it survives a
+        # map process that is signalled before it can write its end-of-run
+        # report. The report counter is retained only as a cross-check.
+        "map_updates_reassembled": len(ingest),
+        "map_reported_updates_reassembled": int(
             (map_report.get("direct_ingest") or {}).get("counters", {}).get(
                 "direct_updates_reassembled", 0
             )
         ),
         "map_updates_installed": len(installed),
-        "map_updates_duplicate": int(
-            (map_report.get("direct_ingest") or {}).get("counters", {}).get(
-                "direct_updates_duplicate", 0
-            )
+        "map_updates_duplicate": sum(
+            1
+            for row in ingest
+            if str(row.get("rejection_reason") or "") == "DUPLICATE_UPDATE_IGNORED"
         ),
         "map_updates_superseded": sum(
             1 for row in ingest if row.get("outcome") == "SUPERSEDED_PENDING"
@@ -556,7 +560,17 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
     parser.add_argument("--output-root", type=Path, required=True)
     parser.add_argument("--carla-port", type=int, default=2000)
-    parser.add_argument("--maximum-loop-sim-s", type=float, default=120.0)
+    parser.add_argument(
+        "--maximum-loop-sim-s",
+        type=float,
+        default=600.0,
+        help=(
+            "Route-B loop simulation budget. The default matches the adapter's "
+            "own default so the route runs to completion; truncating it makes "
+            "the route runner report a fatal non-completion that has nothing to "
+            "do with the architecture under test."
+        ),
+    )
     parser.add_argument("--frames-per-action", type=int, default=FRAMES_PER_ACTION)
     parser.add_argument(
         "--qualification-root",

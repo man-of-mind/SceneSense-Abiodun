@@ -222,7 +222,22 @@ def main(argv: Sequence[str] | None = None) -> int:
             json.dump(ready, handle, sort_keys=True)
 
     def _shutdown(_signum: int, _frame: Any) -> None:
+        """Persist the ingest report before the process goes away.
+
+        Flask's development server does not return from ``app.run`` on a signal,
+        so the ``finally`` block below is not reached on a normal supervised
+        teardown. The counters are written here instead, then the process exits
+        directly. The per-row ingest CSV is flushed per row and is authoritative
+        regardless.
+        """
+
         baseline.STOP_EVENT.set()
+        try:
+            service.close()
+            _write_report()
+            baseline._close_map_metrics_logger()
+        finally:
+            os._exit(0)
 
     signal.signal(signal.SIGINT, _shutdown)
     signal.signal(signal.SIGTERM, _shutdown)

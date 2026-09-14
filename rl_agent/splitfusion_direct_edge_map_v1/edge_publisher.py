@@ -58,14 +58,21 @@ class DirectMapPublisher:
         """Send one validated update; return its publication accounting."""
 
         protocol.validate_object_map_update(document)
-        payload = zlib.compress(protocol.encode(document), level=1)
-        chunks = chunk_payload(
-            payload,
-            message_id=int(document["frame_id"]),
-            chunk_bytes=self.chunk_bytes,
-        )
+        # The publish-start instant is stamped into the message before it is
+        # encoded, so the map can report install latency measured from the
+        # moment publication work began rather than inferring it.
         publish_start_wall_s = time.time()
         publish_start_ns = time.perf_counter_ns()
+        stamped = dict(document)
+        timing = dict(stamped.get("edge_timing") or {})
+        timing["publish_start_wall_s"] = publish_start_wall_s
+        stamped["edge_timing"] = timing
+        payload = zlib.compress(protocol.encode(stamped), level=1)
+        chunks = chunk_payload(
+            payload,
+            message_id=int(stamped["frame_id"]),
+            chunk_bytes=self.chunk_bytes,
+        )
         for chunk in chunks:
             self.socket.sendto(chunk, self.remote)
         publish_finish_ns = time.perf_counter_ns()
@@ -76,7 +83,7 @@ class DirectMapPublisher:
             self.counters["direct_map_datagrams_transmitted"] += len(chunks)
             self.counters["direct_map_payload_bytes"] += len(payload)
             self.counters["direct_map_datagram_bytes"] += datagram_bytes
-            self.counters["direct_map_records_published"] += int(document["record_count"])
+            self.counters["direct_map_records_published"] += int(stamped["record_count"])
         return {
             "publish_start_wall_s": publish_start_wall_s,
             "publish_finish_wall_s": publish_finish_wall_s,

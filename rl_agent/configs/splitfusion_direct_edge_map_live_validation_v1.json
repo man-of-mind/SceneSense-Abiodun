@@ -185,6 +185,7 @@
     "complete_route_b_loop_required": false,
     "feedback_path_note": "10.0.0.2 is a local address on this host (oaitun_ue1), so map->UE feedback is delivered by the kernel locally and does not traverse the radio. ACK latency is therefore a host-local controller-observation delay and a lower bound on an over-the-air control-plane delay.",
     "frames_per_action": 300,
+    "installed_frame_history_size_note": "raised from 256 to 4096. This is an evidence-retention buffer, not a scientific parameter: the contract only requires it to be bounded and nonempty. The corrected architecture installs far more frames per cell, so at 256 the adapter's exact-installed-record retrieval could lose a record to eviction before reading it (observed once in the a15 smoke run). The acceptance rule that every ACK-installed frame must have an exact map record is unchanged and remains enforced.",
     "network_profile": "FAVORABLE_STABLE",
     "protocol_version": 1
   },
@@ -192,7 +193,7 @@
   "full_sweep_authorized": false,
   "measurement_contract": {
     "expected_prepared_hz": 10.0,
-    "installed_frame_history_size": 256,
+    "installed_frame_history_size": 4096,
     "match_distance_m": 3.0,
     "max_gt_distance_m": 40.0,
     "min_gt_area_px": 12.0,
