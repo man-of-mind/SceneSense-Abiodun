@@ -1,0 +1,226 @@
+{
+  "action_id": 15,
+  "clock_bridge_offset_ns": 1783362416689303826,
+  "pairwise_one_second_alignment": {
+    "FADE_RECOVERY__ADVERSE_STABLE": {
+      "common_one_second_bins": 301,
+      "delay_correlation": -0.11042396322171133,
+      "speed_correlation": 0.9235234588167203
+    },
+    "FAVORABLE_STABLE__ADVERSE_STABLE": {
+      "common_one_second_bins": 301,
+      "delay_correlation": 0.05235357299819436,
+      "speed_correlation": 0.9168858379386106
+    },
+    "FAVORABLE_STABLE__FADE_RECOVERY": {
+      "common_one_second_bins": 302,
+      "delay_correlation": -0.04497049998197131,
+      "speed_correlation": 0.9593526192447129
+    },
+    "FAVORABLE_STABLE__MID_VARIABLE": {
+      "common_one_second_bins": 302,
+      "delay_correlation": -0.025037933886319058,
+      "speed_correlation": 0.9636597551521717
+    },
+    "MID_VARIABLE__ADVERSE_STABLE": {
+      "common_one_second_bins": 301,
+      "delay_correlation": -0.12313810429080482,
+      "speed_correlation": 0.9377330565111422
+    },
+    "MID_VARIABLE__FADE_RECOVERY": {
+      "common_one_second_bins": 302,
+      "delay_correlation": 0.09340283100971904,
+      "speed_correlation": 0.9638048211367933
+    }
+  },
+  "profiles": {
+    "ADVERSE_STABLE": {
+      "all_vs_p99_tail_medians": {
+        "absolute_acceleration_mps2": {
+          "all": 0.05614478846896077,
+          "p99_tail": 0.0938127949188072
+        },
+        "ego_speed_mps": {
+          "all": 6.745397536013355,
+          "p99_tail": 6.170990627572655
+        },
+        "pre_front_compute_ms": {
+          "all": 29.786504805088043,
+          "p99_tail": 83.31876387819648
+        },
+        "queue_wait_ms": {
+          "all": 41.38549603521824,
+          "p99_tail": 136.99164427816868
+        },
+        "radar_prepare_ms": {
+          "all": 21.300208754837513,
+          "p99_tail": 63.66553530097008
+        },
+        "raw_radar_return_count": {
+          "all": 37294.0,
+          "p99_tail": 37414.5
+        }
+      },
+      "delay_ms": {
+        "maximum": 200.59091,
+        "median": 31.006369,
+        "p95": 71.97799260000006,
+        "p99": 114.3605306000001
+      },
+      "duration_s": 300.85400795936584,
+      "frames": 2973,
+      "p99_tail_frames": 30,
+      "pearson_delay_correlation": {
+        "absolute_acceleration_mps2": 0.0017771448587964008,
+        "ego_speed_mps": 0.08050383727579884,
+        "pre_front_compute_ms": 0.7974915941670634,
+        "queue_wait_ms": 0.7702480219057393,
+        "radar_prepare_ms": 0.7594248472995864,
+        "raw_radar_return_count": -0.03443930353338818
+      }
+    },
+    "FADE_RECOVERY": {
+      "all_vs_p99_tail_medians": {
+        "absolute_acceleration_mps2": {
+          "all": 0.08121739786641606,
+          "p99_tail": 0.05433208514179888
+        },
+        "ego_speed_mps": {
+          "all": 6.376644651220407,
+          "p99_tail": 6.726395118600409
+        },
+        "pre_front_compute_ms": {
+          "all": 35.11909395456314,
+          "p99_tail": 130.45948464423418
+        },
+        "queue_wait_ms": {
+          "all": 54.3677881360054,
+          "p99_tail": 196.62747997790575
+        },
+        "radar_prepare_ms": {
+          "all": 24.830051697790623,
+          "p99_tail": 108.07085130363703
+        },
+        "raw_radar_return_count": {
+          "all": 37345.0,
+          "p99_tail": 38036.0
+        }
+      },
+      "delay_ms": {
+        "maximum": 386.119078,
+        "median": 39.691972,
+        "p95": 113.2776458,
+        "p99": 164.30848088000005
+      },
+      "duration_s": 301.38731813430786,
+      "frames": 2865,
+      "p99_tail_frames": 29,
+      "pearson_delay_correlation": {
+        "absolute_acceleration_mps2": 0.009708442799858144,
+        "ego_speed_mps": -0.03796207365555998,
+        "pre_front_compute_ms": 0.7912765562984299,
+        "queue_wait_ms": 0.8310300598830869,
+        "radar_prepare_ms": 0.7515096914773252,
+        "raw_radar_return_count": 0.06050958728680352
+      }
+    },
+    "FAVORABLE_STABLE": {
+      "all_vs_p99_tail_medians": {
+        "absolute_acceleration_mps2": {
+          "all": 0.0746922382748913,
+          "p99_tail": 0.0817161975483347
+        },
+        "ego_speed_mps": {
+          "all": 5.499062855052019,
+          "p99_tail": 6.798335840164733
+        },
+        "pre_front_compute_ms": {
+          "all": 36.239033564925194,
+          "p99_tail": 149.8725600540638
+        },
+        "queue_wait_ms": {
+          "all": 53.365145809948444,
+          "p99_tail": 209.0450436808169
+        },
+        "radar_prepare_ms": {
+          "all": 24.92441888898611,
+          "p99_tail": 107.41671361029148
+        },
+        "raw_radar_return_count": {
+          "all": 37429.0,
+          "p99_tail": 37198.5
+        }
+      },
+      "delay_ms": {
+        "maximum": 286.861122,
+        "median": 40.16233,
+        "p95": 103.54333609999999,
+        "p99": 164.32120978000003
+      },
+      "duration_s": 301.0051803588867,
+      "frames": 2907,
+      "p99_tail_frames": 30,
+      "pearson_delay_correlation": {
+        "absolute_acceleration_mps2": -0.018246781115551985,
+        "ego_speed_mps": -0.007340507941991336,
+        "pre_front_compute_ms": 0.8297628999023343,
+        "queue_wait_ms": 0.8762842146021893,
+        "radar_prepare_ms": 0.779432961924081,
+        "raw_radar_return_count": -0.00032197547585199117
+      }
+    },
+    "MID_VARIABLE": {
+      "all_vs_p99_tail_medians": {
+        "absolute_acceleration_mps2": {
+          "all": 0.09004474039663307,
+          "p99_tail": 0.09864247033041748
+        },
+        "ego_speed_mps": {
+          "all": 5.420012549003234,
+          "p99_tail": 6.750160128620347
+        },
+        "pre_front_compute_ms": {
+          "all": 33.24087616056204,
+          "p99_tail": 129.43173618987203
+        },
+        "queue_wait_ms": {
+          "all": 51.209982484579086,
+          "p99_tail": 158.2766124047339
+        },
+        "radar_prepare_ms": {
+          "all": 23.473097942769527,
+          "p99_tail": 72.51652888953686
+        },
+        "raw_radar_return_count": {
+          "all": 37925.0,
+          "p99_tail": 38423.0
+        }
+      },
+      "delay_ms": {
+        "maximum": 263.60686,
+        "median": 36.424966,
+        "p95": 89.563997,
+        "p99": 138.3570770000002
+      },
+      "duration_s": 303.0139145851135,
+      "frames": 2961,
+      "p99_tail_frames": 30,
+      "pearson_delay_correlation": {
+        "absolute_acceleration_mps2": -0.011637425964804044,
+        "ego_speed_mps": 0.005215307542141342,
+        "pre_front_compute_ms": 0.7878939738613989,
+        "queue_wait_ms": 0.8001116846570664,
+        "radar_prepare_ms": 0.7335341336369279,
+        "raw_radar_return_count": 0.08553525003573556
+      }
+    }
+  },
+  "schema": "scenesense.splitfusion.action15_frame_timeline.v1",
+  "source_per_frame_sha256": {
+    "ADVERSE_STABLE": "1e4e36d119408d63f11dd1f08744bfb0eb86110566c107fc4829df8c9cb1bea1",
+    "FADE_RECOVERY": "0f35f355c68e6f4fa48ce46c127a38199df358a17a117fa86cfaefa8f7801e9a",
+    "FAVORABLE_STABLE": "489c4cbd215229025380b147b721ef97308f2c20d61fbfe2659221ad9e091d58",
+    "MID_VARIABLE": "e301086a6855ccc69fe249b4e7760f8ebb10897716b0153ccbdb05eb2699f948"
+  },
+  "status": "COMPLETE"
+}

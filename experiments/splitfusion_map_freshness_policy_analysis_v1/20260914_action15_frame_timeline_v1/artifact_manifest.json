@@ -1,0 +1,17 @@
+{
+  "schema": "scenesense.splitfusion.action15_frame_timeline.v1.artifacts",
+  "sha256": {
+    "01_action15_adverse_stable_frame_timeline.pdf": "6e12375d042735d3775513708b014f48a411d93f887ab201604ad242caff8b52",
+    "01_action15_adverse_stable_frame_timeline.png": "a0948b84c3b902205a1b7ac4e35e976346e7607bbb9d4d5bc3ca114209a96771",
+    "01_action15_fade_recovery_frame_timeline.pdf": "5efe83ed8a459240b239d70dbfa5cfa44d158be6cb78f45a4ad40029dad431cc",
+    "01_action15_fade_recovery_frame_timeline.png": "e1e7b78f8e32abb9ec06e4c83c393d1f0de9ee1bf17c7e5005360d97e012bedb",
+    "01_action15_favorable_stable_frame_timeline.pdf": "7e8843acea0625050ce47f3b057601d511505e2dc88671b070c56ff3889cfc2c",
+    "01_action15_favorable_stable_frame_timeline.png": "3dd1eab849312b9978f2a9d8ae03cda354ff50a75df81f94956cff34a3c568f9",
+    "01_action15_mid_variable_frame_timeline.pdf": "c100807511d2288fb1cc158956d7252fc5b32dff4263b4820b0b75ca47d23ca5",
+    "01_action15_mid_variable_frame_timeline.png": "2e4c50cd1166f4f3b9f0ed22692f9f11a13d7a02666a1816c7173440e5248443",
+    "REPORT.md": "f544391c5ad5aee5e3cfb375974e5cf6fce16a63c628526bdb5e0c8a48fed422",
+    "action15_frame_timeline.csv": "dffa4079494a639fe2831e423b9365d3241a40b408af6d9cc53979145ca4b4e2",
+    "analysis.json": "71575d101f7b40e85b7fb4f1e6cca7cc1f0ffa33dac3b31cb80013a75de8e7e1"
+  },
+  "status": "COMPLETE"
+}
