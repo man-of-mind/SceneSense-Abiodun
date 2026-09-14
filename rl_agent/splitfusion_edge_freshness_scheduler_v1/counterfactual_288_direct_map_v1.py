@@ -228,18 +228,35 @@ def _direct_frames(
     return rebuilt, replaced
 
 
-def _fresh_fractions(result: Any, budgets_ms: Sequence[int]) -> dict[str, float | None]:
-    """Fraction of observed route time the physical map age is within budget."""
+def _fresh_fractions(result: Any, budgets_ms: Sequence[int]) -> dict[str, Any]:
+    """Physical map age integrated over the whole observation interval.
 
-    outcomes = [
-        item
+    Deliberately identical in definition to ``generalized_map_freshness`` in
+    ``build_budget_quality_latency``: the denominator is the full observation
+    duration, and map availability is reported separately rather than folded
+    into the freshness fraction.
+    """
+
+    captures = [int(item.frame.capture_ns) for item in result.outcomes]
+    output: dict[str, Any] = {
+        "map_observation_duration_s": 0.0,
+        "map_available_fraction": 0.0,
+        "time_weighted_map_aoi_ms_when_available": None,
+    }
+    for budget in budgets_ms:
+        output[f"fresh_map_time_ms_le_{budget}_fraction"] = 0.0
+    if not captures:
+        return output
+    start_ns = min(captures)
+    end_ns = max(captures) + source.HORIZON_NS
+    duration = end_ns - start_ns
+    _require(duration > 0, "non-positive observation duration")
+    output["map_observation_duration_s"] = duration / 1e9
+
+    installs = sorted(
+        (int(item.install_ns), int(item.frame.capture_ns))
         for item in result.outcomes
         if getattr(item, "install_ns", None) is not None
-    ]
-    if not outcomes:
-        return {f"fresh_map_fraction_{value}ms": None for value in budgets_ms}
-    installs = sorted(
-        ((int(item.install_ns), int(item.frame.capture_ns)) for item in outcomes)
     )
     useful: list[tuple[int, int]] = []
     newest = -1
@@ -247,31 +264,92 @@ def _fresh_fractions(result: Any, budgets_ms: Sequence[int]) -> dict[str, float 
         if capture_ns > newest:
             useful.append((install_ns, capture_ns))
             newest = capture_ns
-    captures = [int(item.frame.capture_ns) for item in result.outcomes]
-    end_ns = max(captures) + source.HORIZON_NS
-    relevant = [item for item in useful if item[0] < end_ns]
-    if not relevant:
-        return {f"fresh_map_fraction_{value}ms": None for value in budgets_ms}
-    start_ns = max(min(captures), relevant[0][0])
-    total_ns = end_ns - start_ns
-    fresh = {value: 0 for value in budgets_ms}
-    for index, (install_ns, capture_ns) in enumerate(relevant):
-        interval_start = max(start_ns, install_ns)
+    installed = [item for item in useful if item[0] < end_ns]
+    if not installed:
+        return output
+
+    first_install = max(start_ns, installed[0][0])
+    available = max(0, end_ns - first_install)
+    output["map_available_fraction"] = available / duration
+    area_ns2 = 0.0
+    fresh_ns = {budget: 0 for budget in budgets_ms}
+    for index, (install_ns, capture_ns) in enumerate(installed):
+        interval_start = max(first_install, install_ns)
         interval_end = (
-            min(end_ns, relevant[index + 1][0])
-            if index + 1 < len(relevant)
+            min(end_ns, installed[index + 1][0])
+            if index + 1 < len(installed)
             else end_ns
         )
         if interval_end <= interval_start:
             continue
+        age_start = interval_start - capture_ns
+        _require(age_start >= 0, "map installation predates capture")
+        interval = interval_end - interval_start
+        area_ns2 += float(age_start) * interval + 0.5 * float(interval) ** 2
         for budget in budgets_ms:
             crossing = capture_ns + budget * 1_000_000
-            covered = max(0, min(interval_end, crossing) - interval_start)
-            fresh[budget] += covered
-    return {
-        f"fresh_map_fraction_{budget}ms": fresh[budget] / total_ns
-        for budget in budgets_ms
-    }
+            fresh_ns[budget] += max(0, min(interval_end, crossing) - interval_start)
+    output["time_weighted_map_aoi_ms_when_available"] = (
+        area_ns2 / available / 1e6 if available else None
+    )
+    for budget in budgets_ms:
+        output[f"fresh_map_time_ms_le_{budget}_fraction"] = fresh_ns[budget] / duration
+    return output
+
+
+def _stage_summary(result: Any, prefix: str = "") -> dict[str, Any]:
+    """Median per-stage durations of the corrected end-to-end path, in ms.
+
+    Every stage is conditional on the frame reaching it, so each median is
+    reported beside the count it was computed from. A conditional latency is
+    never meaningful without its success probability, so callers pair these
+    with the delivery rates carried on the same row.
+    """
+
+    queue_ms: list[float] = []
+    compute_ms: list[float] = []
+    publication_ms: list[float] = []
+    publish_install_ms: list[float] = []
+    arrival_ms: list[float] = []
+    capture_install_ms: list[float] = []
+    for item in result.outcomes:
+        frame = item.frame
+        if frame.arrival_ns is not None:
+            arrival_ms.append((frame.arrival_ns - frame.capture_ns) / 1e6)
+        start = getattr(item, "compute_start_ns", None)
+        finish = getattr(item, "compute_finish_ns", None)
+        pub_finish = getattr(item, "publication_finish_ns", None)
+        install = getattr(item, "install_ns", None)
+        if start is not None and frame.arrival_ns is not None:
+            queue_ms.append((start - frame.arrival_ns) / 1e6)
+        if start is not None and finish is not None:
+            compute_ms.append((finish - start) / 1e6)
+        if finish is not None and pub_finish is not None:
+            publication_ms.append((pub_finish - finish) / 1e6)
+        if pub_finish is not None and install is not None:
+            publish_install_ms.append((install - pub_finish) / 1e6)
+        if install is not None:
+            capture_install_ms.append((install - frame.capture_ns) / 1e6)
+
+    def block(name: str, values: list[float]) -> dict[str, Any]:
+        return {
+            f"{prefix}{name}_ms_median": (
+                statistics.median(values) if values else None
+            ),
+            f"{prefix}{name}_ms_p95": (
+                source._percentile(values, 0.95) if values else None
+            ),
+            f"{prefix}{name}_count": len(values),
+        }
+
+    output: dict[str, Any] = {}
+    output.update(block("stage_uplink_and_reassembly", arrival_ms))
+    output.update(block("stage_edge_queue", queue_ms))
+    output.update(block("stage_edge_processing", compute_ms))
+    output.update(block("stage_edge_publication", publication_ms))
+    output.update(block("stage_direct_map_publish_install", publish_install_ms))
+    output.update(block("stage_capture_to_install", capture_install_ms))
+    return output
 
 
 def run(output: Path, validation_root: Path) -> dict[str, Any]:
@@ -343,6 +421,8 @@ def run(output: Path, validation_root: Path) -> dict[str, Any]:
             measured, source_hashes[cell["cell_id"]],
         )
         baseline_row.update(_fresh_fractions(baseline_result, BUDGETS_MS))
+        baseline_row.update(_stage_summary(baseline_result))
+        baseline_row["install_path"] = "EDGE_TO_UE_TO_MAP"
         baseline_rows.append(baseline_row)
 
         # -- corrected (direct edge -> map) ---------------------------------
@@ -381,12 +461,23 @@ def run(output: Path, validation_root: Path) -> dict[str, Any]:
             measured, source_hashes[cell["cell_id"]],
         )
         row.update(_fresh_fractions(result, BUDGETS_MS))
+        row.update(_stage_summary(result))
         row["edge_target_variant"] = calibration[family]["target_variant"]
         row["edge_target_anchor_action_id"] = calibration[family]["anchor_action_id"]
         row["install_path"] = "DIRECT_EDGE_TO_MAP"
         row["direct_post_publication_install_ms"] = direct_install_ns / 1e6
         row["baseline_post_publication_install_ms"] = baseline_install_ns / 1e6
         row["direct_install_frames_replaced"] = replaced
+        row["complete_reassembly_per_sent"] = (
+            row["measured_reassemblies"] / row["input_frames"]
+        )
+        row["edge_admission_per_sent"] = (
+            row["measured_edge_admissions"] / row["input_frames"]
+        )
+        row["zero_delivery"] = int(row["ack_installed_frames"] == 0)
+        baseline_row["complete_reassembly_per_sent"] = row["complete_reassembly_per_sent"]
+        baseline_row["edge_admission_per_sent"] = row["edge_admission_per_sent"]
+        baseline_row["zero_delivery"] = int(baseline_row["ack_installed_frames"] == 0)
         for key in (
             "reason_TRANSPORT_INCOMPLETE",
             "reason_MEASURED_PRE_QUEUE_REJECTION",
