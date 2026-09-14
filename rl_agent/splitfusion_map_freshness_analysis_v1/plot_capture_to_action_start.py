@@ -28,7 +28,7 @@ SOURCE = ROOT / (
 )
 DEFAULT_OUTPUT = ROOT / (
     "experiments/splitfusion_map_freshness_policy_analysis_v1/"
-    "20260914_capture_to_action_start_per_profile_v1"
+    "20260914_capture_to_action_start_per_profile_v2"
 )
 SCHEMA = "scenesense.splitfusion.capture_to_action_start_diagnostic.v1"
 TERMINAL = "SPLITFUSION_CAPTURE_TO_ACTION_START_DIAGNOSTIC_COMPLETE"
@@ -255,37 +255,39 @@ def raw_tail_diagnostic(
 
 def line_plot(rows: Sequence[Mapping[str, Any]], output: Path) -> list[Path]:
     paths: list[Path] = []
-    colors = {
-        "FAVORABLE_STABLE": "#2a6fbb",
-        "MID_VARIABLE": "#e68613",
-        "FADE_RECOVERY": "#3b8f55",
-        "ADVERSE_STABLE": "#c23b3b",
-    }
+    series = (
+        ("capture_to_action_start_ms_median", "Median", "#2a6fbb", "-", "o"),
+        ("capture_to_action_start_ms_p95", "P95", "#e68613", "--", "s"),
+        ("capture_to_action_start_ms_p99", "P99", "#c23b3b", ":", "^"),
+    )
     for profile in PROFILE_ORDER:
         selected = [row for row in rows if row["network_profile"] == profile]
         require(len(selected) == 72, f"{profile}: expected 72 action cells")
         selected.sort(key=lambda row: int(row["action_id"]))
         x = [int(row["action_id"]) for row in selected]
-        y = [float(row["capture_to_action_start_ms_median"]) for row in selected]
         figure, axis = plt.subplots(figsize=(12.0, 5.4))
-        axis.plot(
-            x,
-            y,
-            color=colors[profile],
-            linewidth=1.8,
-            marker="o",
-            markersize=3.5,
-        )
-        axis.set_xticks(list(range(0, 72, 5)) + [71])
+        for field, label, color, linestyle, marker in series:
+            axis.plot(
+                x,
+                [float(row[field]) for row in selected],
+                label=label,
+                color=color,
+                linestyle=linestyle,
+                linewidth=1.7,
+                marker=marker,
+                markersize=3.1,
+            )
+        axis.set_xticks(list(range(0, 70, 5)) + [71])
         axis.set_xlim(-1, 72)
-        axis.set_ylim(25, 46)
+        axis.set_ylim(20, 180)
         axis.set_xlabel("Action ID")
-        axis.set_ylabel("Median RGB-callback-to-action-start delay (ms)")
+        axis.set_ylabel("Delay from RGB callback to action start (ms)")
         axis.set_title(
             f"{PROFILE_LABELS[profile]} network profile: all 72 actions",
             fontweight="bold",
         )
         axis.grid(True, alpha=0.22)
+        axis.legend(frameon=False, ncol=3, loc="upper left")
         axis.tick_params(axis="both", labelsize=9, width=1.1)
         for label in axis.get_xticklabels() + axis.get_yticklabels():
             label.set_fontweight("bold")
@@ -324,8 +326,7 @@ def report(diagnostic: Mapping[str, Any]) -> str:
             f"{dist['maximum']:.1f} ms. {100 * diagnostic['bins']['LT_50']['fraction']:.1f}%",
             "of frames start action processing within 50 ms of the RGB callback.",
             "The four presentation figures separate the network profiles and show",
-            "one measured cell median for every action. Percentiles remain in this",
-            "report and the JSON audit, but are deliberately omitted from the plots.",
+            "the measured median, P95 and P99 frame-level delay for every action.",
             "",
             "## Why the p99 reaches about 143 ms",
             "",
