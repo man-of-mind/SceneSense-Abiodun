@@ -876,6 +876,23 @@ class CpuReservationTests(unittest.TestCase):
         finally:
             os.sched_setaffinity(0, set(available))
 
+    def test_empty_edge_reservations_survive_shell_tokenization(self) -> None:
+        import json as json_module
+        import shlex
+
+        from rl_agent.splitfusion_direct_edge_map_v1 import adapter_direct_v1
+
+        config_path = (
+            Path(__file__).resolve().parents[3]
+            / "rl_agent/configs/splitfusion_direct_edge_map_live_validation_v1.json"
+        )
+        campaign = json_module.loads(config_path.read_text(encoding="utf-8"))
+        arguments = adapter_direct_v1._edge_reservation_arguments(campaign)
+        self.assertEqual(
+            shlex.split(" ".join(arguments)),
+            ["--edge-compute-cpus=", "--edge-receive-cpus="],
+        )
+
 
 class MapServerArgumentSplitTests(unittest.TestCase):
     """The wrapper's options must never reach the baseline's own parser.

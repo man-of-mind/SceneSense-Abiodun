@@ -263,6 +263,15 @@ def _reservation(campaign: Mapping[str, Any], name: str, default: Any = "") -> A
     return value if isinstance(value, int) else str(value or "")
 
 
+def _edge_reservation_arguments(campaign: Mapping[str, Any]) -> tuple[str, str]:
+    """Serialize optional CPU sets without losing an explicit empty value."""
+
+    return (
+        f"--edge-compute-cpus={_reservation(campaign, 'edge_compute_cpus')}",
+        f"--edge-receive-cpus={_reservation(campaign, 'edge_receive_cpus')}",
+    )
+
+
 def start_direct_map_process(
     campaign: Mapping[str, Any],
     *,
@@ -411,10 +420,7 @@ def start_direct_live_edge(
                     pinned.EDGE_SEGMENTATION_EVIDENCE_FLAG, str(evidence_container),
                     "--run-id", str(campaign["campaign_id"]),
                     "--cell-id", str(cell["cell_id"]),
-                    "--edge-compute-cpus",
-                    _reservation(campaign, "edge_compute_cpus"),
-                    "--edge-receive-cpus",
-                    _reservation(campaign, "edge_receive_cpus"),
+                    *_edge_reservation_arguments(campaign),
                 )
             ),
         }
