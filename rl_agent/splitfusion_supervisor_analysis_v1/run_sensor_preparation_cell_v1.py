@@ -623,6 +623,22 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     cold_after = supervisor._require_phase15_application_cold(config)
     attempt = find_attempt(output, cell.cell_id)
+    if run_result.get("status") != "PASSED":
+        terminal_path = output / str(run_result["terminal"])
+        require(terminal_path.is_file(), "failed cell has no durable terminal")
+        failure = {
+            "schema": f"{SCHEMA}.runtime_failure",
+            "status": str(run_result.get("status")),
+            "cell_id": cell.cell_id,
+            "attempt": dict(run_result),
+            "terminal_sha256": supervisor.sha256_file(terminal_path),
+            "terminal": json.loads(terminal_path.read_text(encoding="utf-8")),
+            "final_host_cold": dict(cold_after),
+            "analysis_not_started": True,
+        }
+        supervisor.atomic_json(output / "RUNTIME_FAILURE.json", failure)
+        print(json.dumps({"status": failure["status"], "output": str(output)}, sort_keys=True))
+        return 1
     result = analyse(
         attempt, cell, SAMPLE_TARGET, WARMUP_SENT_FRAMES,
         run_result, cold_after,
