@@ -483,14 +483,20 @@ def stop_tail_preserving_edge_evidence() -> bool:
 
     The edge can only write inside its own mount, which lives in the cell's
     temporary directory and is deleted at teardown. The counters are the only
-    record that separates uplink loss from edge-side refusal, so they are copied
-    into the attempt directory first. A copy failure is recorded, never fatal.
+    record that separates uplink loss from edge-side refusal, and the
+    publication ledger is the only record of the edge-side send instants, so
+    both are copied into the attempt directory first. A copy failure is
+    recorded, never fatal.
     """
 
     scratch = _ENDPOINT.get("edge_scratch")
     if scratch:
         evidence = _direct_evidence_dir()
-        for name in ("direct_edge_counters.json", "ready.json"):
+        for name in (
+            "direct_edge_counters.json",
+            "ready.json",
+            "direct_edge_publication.csv",
+        ):
             source = Path(scratch) / name
             if not source.is_file():
                 continue

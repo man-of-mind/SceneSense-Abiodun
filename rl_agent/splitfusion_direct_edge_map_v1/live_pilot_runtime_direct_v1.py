@@ -104,23 +104,54 @@ PUBLICATION_FIELDS = (
 )
 
 
-def _write_publication_rows(directory: Path, rows: Sequence[Mapping[str, Any]]) -> None:
-    """Persist the edge-side publication stage stamps beside the counters.
+class _PublicationLedger:
+    """Append the edge-side publication stage stamps, flushed per row.
 
     The send instants cannot travel inside the message they describe, so the
     edge records them itself on the same wall clock the map uses and the
-    evaluator joins the two by (stream_id, frame_id).
+    evaluator joins the two by (stream_id, frame_id). The rows are flushed as
+    they are produced rather than at shutdown: the edge's mount is torn down
+    with the cell, so a file that only appears at exit does not survive to be
+    collected.
     """
 
-    path = directory / "direct_edge_publication.csv"
-    try:
-        with path.open("w", newline="", encoding="utf-8") as handle:
-            writer = csv.DictWriter(handle, fieldnames=list(PUBLICATION_FIELDS))
-            writer.writeheader()
-            for row in rows:
-                writer.writerow({name: row.get(name, "") for name in PUBLICATION_FIELDS})
-    except OSError:
-        pass
+    def __init__(self, directory: Path) -> None:
+        self.path = directory / "direct_edge_publication.csv"
+        self._handle = None
+        self._writer = None
+        try:
+            directory.mkdir(parents=True, exist_ok=True)
+            self._handle = self.path.open("w", newline="", encoding="utf-8")
+            self._writer = csv.DictWriter(
+                self._handle, fieldnames=list(PUBLICATION_FIELDS)
+            )
+            self._writer.writeheader()
+            self._handle.flush()
+        except OSError:
+            self._handle = None
+            self._writer = None
+
+    def append(self, row: Mapping[str, Any]) -> None:
+        if self._writer is None or self._handle is None:
+            return
+        try:
+            self._writer.writerow(
+                {name: row.get(name, "") for name in PUBLICATION_FIELDS}
+            )
+            self._handle.flush()
+        except (OSError, ValueError):
+            pass
+
+    def close(self) -> None:
+        if self._handle is None:
+            return
+        try:
+            self._handle.flush()
+            self._handle.close()
+        except OSError:
+            pass
+        self._handle = None
+        self._writer = None
 
 
 def run_direct_edge_service(
@@ -238,7 +269,7 @@ def run_direct_edge_service(
         control.send(message)
         counters.bump(f"edge_terminal_{outcome}")
 
-    publication_rows: list[dict[str, Any]] = []
+    publication_ledger = _PublicationLedger(counters_path.parent)
     reservations: list[dict[str, Any]] = []
 
     def publish_counters() -> None:
@@ -535,7 +566,7 @@ def run_direct_edge_service(
                 counters.bump("direct_map_publication_failed")
                 failures.append(f"{type(exc).__name__}: {exc}")
                 continue
-            publication_rows.append(
+            publication_ledger.append(
                 {
                     "run_id": str(run_id),
                     "cell_id": str(cell_id),
@@ -640,7 +671,7 @@ def run_direct_edge_service(
         processor_thread.join(timeout=5.0)
         if evidence is not None:
             evidence.close()
-        _write_publication_rows(counters_path.parent, publication_rows)
+        publication_ledger.close()
         publish_counters()
         receiver.close()
         publisher.close()

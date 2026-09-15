@@ -950,3 +950,42 @@ class MapServerArgumentSplitTests(unittest.TestCase):
             for option in action.option_strings
         }
         self.assertEqual(declared, set(server.DIRECT_ARGUMENTS))
+
+
+class PublicationLedgerTests(unittest.TestCase):
+    """The edge-side send instants must survive the cell's own teardown."""
+
+    def test_rows_are_readable_before_close(self) -> None:
+        import csv as csv_module
+
+        from rl_agent.splitfusion_direct_edge_map_v1.live_pilot_runtime_direct_v1 import (
+            PUBLICATION_FIELDS,
+            _PublicationLedger,
+        )
+
+        with TemporaryDirectory() as raw:
+            directory = Path(raw)
+            ledger = _PublicationLedger(directory)
+            try:
+                ledger.append({"stream_id": "s", "frame_id": 3, "record_count": 7})
+                # The edge's mount is deleted with the cell, so a ledger that
+                # only materialises at exit is never collected.
+                with ledger.path.open(newline="", encoding="utf-8") as handle:
+                    rows = list(csv_module.DictReader(handle))
+            finally:
+                ledger.close()
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0]["stream_id"], "s")
+            self.assertEqual(rows[0]["frame_id"], "3")
+            self.assertEqual(set(rows[0]), set(PUBLICATION_FIELDS))
+
+    def test_ledger_is_in_the_edge_evidence_copy_out(self) -> None:
+        import inspect
+
+        from rl_agent.splitfusion_direct_edge_map_v1 import adapter_direct_v1
+
+        source = inspect.getsource(
+            adapter_direct_v1.stop_tail_preserving_edge_evidence
+        )
+        self.assertIn("direct_edge_publication.csv", source)
+        self.assertIn("direct_edge_counters.json", source)
