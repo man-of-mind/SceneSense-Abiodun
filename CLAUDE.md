@@ -142,6 +142,37 @@ feedback/agent-credit message to the UE**.
   (`oaitun_ue1`), so map->UE feedback is host-local kernel delivery and the ACK latency is a **lower bound** on an
   over-the-air control delay. **No further 288-cell live campaign is authorized.**
 
+## Sensor-preparation optimization (2026-09-14) — VALIDATED
+
+`SENSOR_PREPARATION_OPTIMIZATION_VALIDATED`. Report:
+`rl_agent/splitfusion_sensor_optimization_v1/SENSOR_PREPARATION_OPTIMIZATION_V2_REPORT.md`;
+evidence `experiments/splitfusion_sensor_preparation_live_v1/20260914_v2_*`.
+
+- **Diagnosis:** the cost sat in two *already vectorized* stages. `np.maximum.at` (5 calls,
+  3.52 ms) dominated rasterization, and `FastStationaryTrackAccumulator` sorted the same data
+  twice (`np.unique(return_inverse)` + `argsort(inverse)` = 2.95 ms) because `inverse` is only a
+  rank-preserving relabelling of `packed`.
+- **Integrated, all bit-exact:** CUDA `scatter_reduce(amax)` + `max_pool2d` rasterizer
+  (7.03→1.02 ms incl. H2D/D2H/sync); single-sort tracker (4.62→2.94 ms); identity radar-resize
+  short circuit (`build_radar_sample` already rasterizes at 768x448).
+- **Live (full sent population):** sensor compute P50 45.844→32.024, P95 85.984→64.519,
+  P99 125.440→104.492 ms; radar chain P50 31.705→21.525 ms; coverage 0.956825→0.986347;
+  14/14 gates on both cells; 7-channel tensor and radar evidence exactly equal live.
+- **Targets NOT met** (P95<50, P99<100, chain 12–15 ms): they were anchored to a 37.662 ms
+  historical baseline, and today's contemporaneous baseline is 45.844 ms on a busier host.
+  In the pre-registered 500-frame window P99 *regresses* (107.3→117.4) while P50/P95 improve;
+  over the full population P99 improves. Both are reported — do not quote only one.
+- **Method note worth keeping:** the *previous* attempt was confounded because every stage,
+  touched or not, regressed together between its cells. The fix is a same-frame paired
+  measurement plus the baseline cell as an ordering control (production-vs-production still
+  shows 2.325 ms, so the raw 11.436 ms paired reduction corrects to ~9.1 ms).
+- **Largest remaining tail:** `radar_window_ms` P99 30.663 ms (P50 5.338) then
+  `spherical_to_world`. These are the world→spherical→world round trip: removing it saves
+  1.107 ms but shifts world XYZ by up to 6.49e-06 m, so it is **not bit-exact** and is left as
+  an explicit Abiodun decision, not taken.
+- **Do not repeat:** the normalization-constant cache (real but tiny), a shared flat-index
+  sort feeding `maximum.reduceat` (slower), and the `transform_points` rewrites (0.02 ms).
+
 ## Current work (scope-reset 2026-08-20)
 - **Binding path:** follow
   `rl_agent/UE_AGENT_EXECUTION_CHECKLIST_V2.md`. Qualify the repeatable route,
