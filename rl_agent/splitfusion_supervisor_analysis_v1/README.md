@@ -1,24 +1,28 @@
 # SplitFusion supervisor analysis v1
 
-This package turns the immutable 288-cell campaign and the qualified direct
-edge-to-map counterfactual into presentation-ready, auditable artifacts.
+This package turns the immutable 288-cell campaign and the subsequently
+live-validated sensor, edge, latest-only scheduling, and direct edge-to-map
+optimizations into presentation-ready, auditable counterfactual artifacts.
 
-It deliberately separates the recorded model front from four causal intervals:
+It deliberately separates these causal intervals:
 
-1. **Model front backbone:** the model's recorded `front_backbone` duration.
-2. **UE action path:** action start through tensor preparation, model front,
-   compression and serialization.
-3. **Feature uplink:** UE transmit-ready through complete edge reassembly.
-4. **Edge-to-map service:** edge reassembly through direct spatial-map install.
-5. **Action-to-map total:** action start through direct spatial-map install.
+1. **Optimized sensor compute:** production sensor-preparation work, excluding
+   CARLA sample wait.
+2. **UE action after tensor ready:** action start through model front,
+   ranker/selection, compression, serialization, and UDP send completion.
+3. **RGB-capture-to-send path:** RGB callback through optimized UE send.
+4. **Feature uplink:** send completion through complete edge reassembly.
+5. **Edge-to-map service:** reassembly through authoritative map install.
+6. **RGB-capture-to-map total:** the full physical freshness path.
 
 The first two clocks are joined only through the previously validated
 same-host monotonic-to-wall clock bridge. Stage percentiles always carry their
 own denominator; missing stages are never assigned a latency of zero.
 
-The presentation figures deliberately keep the quality dimensions separate:
+The presentation figures keep the quality dimensions separate:
 aggregate semantic-segmentation mIoU, vehicle overlap IoU, person box-mask
-IoU, vehicle centroid XY error, and person centroid XY error. The retained
+IoU, vehicle centroid XY error, and person centroid XY error. A sixth figure
+in each group restores the joint model-quality coordinate below. The retained
 evidence does not contain separate vehicle/person semantic-segmentation mIoU;
 the two object-overlap IoUs must not be relabelled as class-specific semantic
 segmentation.
@@ -48,10 +52,13 @@ python3 -m rl_agent.splitfusion_supervisor_analysis_v1.build_analysis
 
 No CARLA, OAI, Docker, RFsim, CUDA, or model inference is launched.
 
-`profiled_sensor_stages.py` supplies bit-preserving P1–Pn equivalents for a
-later short live diagnostic. It separates radar coordinate conversion,
+`profiled_sensor_stages.py` supplied bit-preserving P1–Pn equivalents for the
+completed live sensor diagnostic. It separates radar coordinate conversion,
 stationary tracking, camera projection, rasterization and evidence packaging;
 it also separates camera conversion/resize/packing, host-to-device copies,
 normalization, radar resize/packing and seven-channel concatenation. The CUDA
 version synchronizes timing events and is therefore diagnostic-only. It is not
-installed into the hash-pinned deployment path by this offline analysis.
+installed into the hash-pinned deployment path by this offline analysis. The
+validated optimized distribution is applied by equal-percentile mapping, not
+by subtracting a constant from every historical frame. Measured 288-cell radio
+reassembly/admission outcomes remain fixed.

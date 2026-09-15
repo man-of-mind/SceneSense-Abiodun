@@ -173,6 +173,23 @@ evidence `experiments/splitfusion_sensor_preparation_live_v1/20260914_v2_*`.
 - **Do not repeat:** the normalization-constant cache (real but tiny), a shared flat-index
   sort feeding `maximum.reduceat` (slower), and the `transform_points` rewrites (0.02 ms).
 
+## Optimized 288-cell policy analysis (2026-09-14) — COMPLETE
+
+`experiments/splitfusion_supervisor_analysis_v1/20260914_optimized_pipeline_policy_analysis_v2`
+replays the immutable 288-cell sent population with measured radio
+reassembly/admission outcomes fixed, equal-percentile live sensor optimization,
+newest repaired-v3 family edge medians, renderer-off direct map service, and the
+qualified one-slot latest-only scheduler. It is an offline counterfactual, not a
+second live campaign. Inventory: 896,856 sent; 712,732 complete reassemblies;
+602,315 measured edge admissions; 586,379 simulated map installations. Figures
+01a–04f keep semantic, vehicle/person overlap and centroid error separate and
+restore joint segmentation-localization quality as view `f`; Figure 05 is the
+P50/P95/P99 causal-stage breakdown and Figure 06 is the live P07–P25 sensor
+before/after breakdown. The joint score is a presentation coordinate, not a
+calibrated probability or the PPO reward. One send-finished/reassembly timestamp
+boundary inversion was excluded rather than clamped; all imputed scheduler
+arrivals remain excluded from the feature-uplink plots.
+
 ## Current work (scope-reset 2026-08-20)
 - **Binding path:** follow
   `rl_agent/UE_AGENT_EXECUTION_CHECKLIST_V2.md`. Qualify the repeatable route,

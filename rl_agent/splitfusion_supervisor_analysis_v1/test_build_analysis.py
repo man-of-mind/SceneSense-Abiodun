@@ -7,6 +7,7 @@ import math
 from types import SimpleNamespace
 
 from rl_agent.splitfusion_supervisor_analysis_v1.build_analysis import (
+    equal_percentile_map,
     pareto_ids,
     percentile,
     quality_score,
@@ -47,6 +48,14 @@ def test_pareto_minimizes_latency_and_maximizes_quality() -> None:
     assert pareto_ids(rows, "x") == {1, 3}
 
 
+def test_equal_percentile_map_preserves_distribution_rank() -> None:
+    baseline = [10.0, 20.0, 30.0, 40.0]
+    optimized = [1.0, 2.0, 3.0, 4.0]
+    assert equal_percentile_map(10.0, baseline, optimized) == 1.0
+    assert equal_percentile_map(25.0, baseline, optimized) == 2.0
+    assert equal_percentile_map(40.0, baseline, optimized) == 4.0
+
+
 def outcome(sequence: int, capture: int, install: int | None) -> SimpleNamespace:
     return SimpleNamespace(
         frame=SimpleNamespace(sequence_id=sequence, capture_ns=capture),
@@ -71,5 +80,6 @@ if __name__ == "__main__":
     test_quality_is_conservative_geometric_mean()
     test_percentile_is_nearest_rank()
     test_pareto_minimizes_latency_and_maximizes_quality()
+    test_equal_percentile_map_preserves_distribution_rank()
     test_useful_installations_drop_older_late_map()
     print("SUPERVISOR_ANALYSIS_UNIT_TEST_PASS")

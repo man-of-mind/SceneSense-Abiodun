@@ -5,7 +5,9 @@ from __future__ import annotations
 
 import argparse
 import ast
+import bisect
 import csv
+import dataclasses
 import hashlib
 import json
 import math
@@ -41,12 +43,28 @@ LIVE_DIRECT_ROOT = ROOT / (
     "experiments/splitfusion_direct_edge_map_v1/"
     "20260914_live_validation_retry1"
 )
+LATEST_EDGE_VALIDATION_ROOT = ROOT / (
+    "experiments/splitfusion_direct_edge_map_v1/"
+    "20260914_edge_optimization_validation_v1_retry1"
+)
+SENSOR_BASELINE_ROOT = ROOT / (
+    "experiments/splitfusion_sensor_preparation_live_v1/"
+    "20260914_v2_action50_favorable_baseline"
+)
+SENSOR_OPTIMIZED_ROOT = ROOT / (
+    "experiments/splitfusion_sensor_preparation_live_v1/"
+    "20260914_v2_action50_favorable_optimized_retry1"
+)
+SENSOR_PRESENTATION_ROOT = ROOT / (
+    "experiments/splitfusion_sensor_preparation_live_v1/"
+    "20260914_v2_optimization_presentation"
+)
 DEFAULT_OUTPUT = ROOT / (
     "experiments/splitfusion_supervisor_analysis_v1/"
-    "20260914_latency_quality_and_sensor_v1"
+    "20260914_optimized_pipeline_policy_analysis_v2"
 )
-SCHEMA = "scenesense.splitfusion.supervisor_analysis.v1"
-TERMINAL = "SPLITFUSION_SUPERVISOR_ANALYSIS_COMPLETE"
+SCHEMA = "scenesense.splitfusion.supervisor_analysis.optimized_pipeline.v2"
+TERMINAL = "SPLITFUSION_OPTIMIZED_PIPELINE_POLICY_ANALYSIS_COMPLETE"
 PROFILE_ORDER = (
     "FAVORABLE_STABLE",
     "MID_VARIABLE",
@@ -67,16 +85,18 @@ FAMILY_COLOR = {
 }
 STAGES = {
     "pure_front": "Model front backbone",
-    "ue_action": "UE action path",
+    "ue_action": "UE action after tensor ready",
+    "sensor_compute": "Optimized sensor computation",
+    "ue_pipeline": "Optimized UE capture-to-send path",
     "network": "Feature uplink",
     "edge_queue": "Tail-busy wait",
     "model_tail": "FCOS model tail",
     "tail_support": "Other tail processing",
     "map_install": "Map service",
     "edge_map": "Complete edge-to-map service",
-    "total": "Action-to-map total",
+    "total": "RGB-capture-to-map total",
 }
-SCATTER_STAGES = ("ue_action", "network", "edge_map", "total")
+SCATTER_STAGES = ("ue_pipeline", "network", "edge_map", "total")
 QUALITY_VIEWS = (
     {
         "letter": "a",
@@ -118,8 +138,27 @@ QUALITY_VIEWS = (
         "title": "Person localization error",
         "scale": 1.0,
     },
+    {
+        "letter": "f",
+        "key": "combined_quality",
+        "slug": "joint_model_quality",
+        "label": "Joint segmentation-localization quality (%)",
+        "title": "Joint model quality",
+        "scale": 100.0,
+    },
 )
 PERCENTILES = (0.50, 0.95, 0.99)
+
+# Newest family-wide repaired-v3 edge-compute medians.  The corresponding
+# publication ledger did not survive teardown, so the earlier hash-verified
+# family distributions retain their shape and are rescaled to these live
+# medians.  The source report publishes these values at 0.1 ms precision.
+LATEST_EDGE_COMPUTE_P50_MS = {
+    "noAE": 67.0,
+    "AE128": 66.8,
+    "AE64": 53.1,
+    "AE32": 46.5,
+}
 
 
 class AnalysisError(RuntimeError):
@@ -215,6 +254,208 @@ def quality_score(row: Mapping[str, Any]) -> tuple[float, float, float, float, f
     return overlap, centroid_rms_m, centroid_score, localization, combined
 
 
+def _verified_attempt_csv(root: Path, relative: str) -> Path:
+    """Resolve one hash-bound file from a single-cell attempt manifest."""
+
+    ledger = json.loads((root / "campaign_ledger.json").read_text(encoding="utf-8"))
+    attempts = list(ledger.get("attempts") or [])
+    require(
+        len(attempts) == 1 and attempts[0].get("status") == "PASSED",
+        f"{root}: expected exactly one passed attempt",
+    )
+    attempt = root / str(attempts[0]["attempt_dir"])
+    manifest_path = attempt / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    registered = {str(row["path"]): str(row["sha256"]) for row in manifest["files"]}
+    require(relative in registered, f"{root}: {relative} is not attempt-manifest bound")
+    path = attempt / relative
+    require(path.is_file(), f"{root}: missing {relative}")
+    require(sha256(path) == registered[relative], f"{root}: hash drift for {relative}")
+    return path
+
+
+def load_sensor_optimization() -> tuple[dict[str, Any], dict[str, Any]]:
+    """Load the live optimized sensor distribution and its contemporaneous control.
+
+    Source 288-cell values are transformed by equal-percentile mapping from the
+    live baseline to the live optimized distribution.  This applies a measured
+    distributional change instead of subtracting one constant from every frame.
+    """
+
+    presentation_manifest_path = SENSOR_PRESENTATION_ROOT / "artifact_manifest.json"
+    presentation_manifest = json.loads(
+        presentation_manifest_path.read_text(encoding="utf-8")
+    )
+    result_path = SENSOR_PRESENTATION_ROOT / "SENSOR_OPTIMIZATION_V2_RESULT.json"
+    require(
+        presentation_manifest["artifacts"][result_path.name] == sha256(result_path),
+        "sensor-optimization presentation result hash drift",
+    )
+    result = json.loads(result_path.read_text(encoding="utf-8"))
+    require(
+        result.get("verdict") == "SENSOR_PREPARATION_OPTIMIZATION_VALIDATED",
+        "sensor optimization is not live validated",
+    )
+
+    distributions: dict[str, list[float]] = {}
+    source_paths: dict[str, Any] = {}
+    for label, root in (
+        ("baseline", SENSOR_BASELINE_ROOT),
+        ("optimized", SENSOR_OPTIMIZED_ROOT),
+    ):
+        path = _verified_attempt_csv(root, "per_frame_metrics.csv")
+        values = []
+        production = []
+        for row in read_csv(path):
+            if row.get("prepare_status") != "SENT":
+                continue
+            prefront = finite(row.get("pre_front_compute_ms"))
+            snapshot = finite(row.get("scene_snapshot_ms"))
+            total = finite(row.get("profile_sensor_compute_production_estimate_ms"))
+            if prefront is None or snapshot is None or total is None:
+                continue
+            values.append(max(0.0, prefront - snapshot))
+            production.append(total)
+        require(len(values) >= 500, f"{label}: insufficient live sensor samples")
+        distributions[f"{label}_pre_action_ms"] = sorted(values)
+        distributions[f"{label}_production_ms"] = sorted(production)
+        source_paths[label] = {
+            "path": str(path.relative_to(ROOT)),
+            "sha256": sha256(path),
+            "samples": len(values),
+        }
+    return distributions, {
+        "method": (
+            "equal-percentile mapping from contemporaneous live baseline to "
+            "live optimized sensor-preparation distributions"
+        ),
+        "action_anchor": 50,
+        "network_profile_anchor": "FAVORABLE_STABLE",
+        "result_path": str(result_path.relative_to(ROOT)),
+        "result_sha256": sha256(result_path),
+        "presentation_manifest_sha256": sha256(presentation_manifest_path),
+        "sources": source_paths,
+        "full_population_p50_ms": {
+            "baseline": result["total_production_sensor_compute"]["full_sent_population"]["baseline"]["p50_ms"],
+            "optimized": result["total_production_sensor_compute"]["full_sent_population"]["optimized"]["p50_ms"],
+        },
+        "limitations": (
+            "one live action/profile anchors the action-independent sensor path; "
+            "the replay keeps the 288-cell sent population and radio outcomes fixed"
+        ),
+    }
+
+
+def equal_percentile_map(value: float, baseline: Sequence[float], optimized: Sequence[float]) -> float:
+    require(bool(baseline) and bool(optimized), "empty sensor calibration distribution")
+    rank = bisect.bisect_right(baseline, float(value))
+    probability = (rank - 0.5) / len(baseline)
+    probability = min(1.0, max(0.0, probability))
+    index = int(round(probability * (len(optimized) - 1)))
+    return float(optimized[index])
+
+
+def load_latest_map_service_samples() -> tuple[dict[str, list[float]], dict[str, Any]]:
+    """Renderer-off direct edge-to-map publication-to-install samples."""
+
+    ledger = json.loads(
+        (SENSOR_OPTIMIZED_ROOT / "campaign_ledger.json").read_text(encoding="utf-8")
+    )
+    attempt = SENSOR_OPTIMIZED_ROOT / str(ledger["attempts"][0]["attempt_dir"])
+    path = attempt / "direct_edge_map/direct_map_ingest.csv"
+    require(path.is_file(), "optimized renderer-off direct-map ingest ledger is absent")
+    values = [
+        float(row["install_latency_from_publish_ms"])
+        for row in read_csv(path)
+        if row.get("outcome") == "RESULT_INSTALLED"
+        and finite(row.get("install_latency_from_publish_ms")) is not None
+    ]
+    require(len(values) >= 400, "insufficient renderer-off map-service samples")
+    pools = {family: list(values) for family in LATEST_EDGE_COMPUTE_P50_MS}
+    return pools, {
+        "definition": "first direct-map datagram send to authoritative map install",
+        "renderer": "off",
+        "family_pooling": "single action-independent renderer-off pool",
+        "path": str(path.relative_to(ROOT)),
+        "sha256": sha256(path),
+        "samples": len(values),
+        "p50_ms": percentile(values, 0.50),
+        "p95_ms": percentile(values, 0.95),
+        "p99_ms": percentile(values, 0.99),
+    }
+
+
+def shift_arrivals_for_sensor_optimization(
+    frames: Sequence[Any],
+    sent: Sequence[Mapping[str, str]],
+    calibration: Mapping[str, Sequence[float]],
+) -> tuple[list[Any], list[float], list[float], list[float]]:
+    """Replace sensor compute while holding transport outcomes and delays fixed."""
+
+    baseline = calibration["baseline_pre_action_ms"]
+    optimized = calibration["optimized_pre_action_ms"]
+    rebuilt = []
+    optimized_pre_action: list[float] = []
+    optimized_production: list[float] = []
+    deltas: list[float] = []
+    require(len(frames) == len(sent), "sensor transform frame/row length drift")
+    for frame, row in zip(frames, sent):
+        old = max(
+            0.0,
+            float(row["pre_front_compute_ms"]) - float(row.get("scene_snapshot_ms") or 0.0),
+        )
+        new = equal_percentile_map(old, baseline, optimized)
+        new_production = equal_percentile_map(
+            old,
+            baseline,
+            calibration["optimized_production_ms"],
+        )
+        delta_ns = int(round((new - old) * 1e6))
+        arrival_ns = frame.arrival_ns
+        if arrival_ns is not None:
+            arrival_ns = max(int(frame.capture_ns), int(arrival_ns) + delta_ns)
+        rebuilt.append(dataclasses.replace(frame, arrival_ns=arrival_ns))
+        optimized_pre_action.append(new)
+        optimized_production.append(new_production)
+        deltas.append((arrival_ns - frame.arrival_ns) / 1e6 if frame.arrival_ns is not None else new - old)
+    return rebuilt, optimized_pre_action, optimized_production, deltas
+
+
+def rescale_edge_compute(
+    frames: Sequence[Any], family: str
+) -> tuple[list[Any], float | None]:
+    """Retain service shape but bind total edge processing to repaired-v3 data."""
+
+    current = [
+        float(frame.compute_ns + frame.publication_ns) / 1e6
+        for frame in frames
+        if frame.arrival_ns is not None
+    ]
+    # A measured zero-admission cell has no service duration to transform.
+    # Preserve it as zero delivery rather than fabricating an edge sample.
+    if not current:
+        return list(frames), None
+    current_p50 = percentile(current, 0.50)
+    require(current_p50 is not None and current_p50 > 0, f"{family}: invalid compute median")
+    factor = LATEST_EDGE_COMPUTE_P50_MS[family] / current_p50
+    rebuilt = []
+    for frame in frames:
+        if frame.arrival_ns is None:
+            rebuilt.append(frame)
+            continue
+        scaled_total_ns = max(
+            frame.publication_ns + 1,
+            int(round((frame.compute_ns + frame.publication_ns) * factor)),
+        )
+        rebuilt.append(
+            dataclasses.replace(
+                frame,
+                compute_ns=scaled_total_ns - frame.publication_ns,
+            )
+        )
+    return rebuilt, factor
+
+
 def load_tail_stage_samples() -> tuple[dict[str, dict[str, list[float]]], dict[str, Any]]:
     """Load pure-tail and non-model service from live optimization anchors.
 
@@ -239,6 +480,44 @@ def load_tail_stage_samples() -> tuple[dict[str, dict[str, list[float]]], dict[s
             pure_tail_ms.append(tail_ms)
             support_ms.append(max(0.0, total_ms - tail_ms))
         require(bool(pure_tail_ms), f"{family}: no pure-tail calibration samples")
+        source_total_p50 = percentile(
+            [tail + support for tail, support in zip(pure_tail_ms, support_ms)],
+            0.50,
+        )
+        target_total_p50 = LATEST_EDGE_COMPUTE_P50_MS[family]
+        require(
+            source_total_p50 is not None and source_total_p50 > 0,
+            f"{family}: invalid source total edge median",
+        )
+        # Preserve the measured pure FCOS CUDA duration.  Scale only the
+        # non-model support until the paired total reaches the newest live
+        # repaired-v3 median.  Binary search is deterministic and avoids the
+        # false assumption that medians are additive.
+        low, high = 0.0, 8.0
+        for _ in range(80):
+            factor = (low + high) / 2.0
+            candidate = percentile(
+                [
+                    tail + support * factor
+                    for tail, support in zip(pure_tail_ms, support_ms)
+                ],
+                0.50,
+            )
+            if candidate is not None and candidate < target_total_p50:
+                low = factor
+            else:
+                high = factor
+        support_factor = (low + high) / 2.0
+        support_ms = [value * support_factor for value in support_ms]
+        calibrated_total_p50 = percentile(
+            [tail + support for tail, support in zip(pure_tail_ms, support_ms)],
+            0.50,
+        )
+        require(
+            calibrated_total_p50 is not None
+            and abs(calibrated_total_p50 - target_total_p50) < 0.01,
+            f"{family}: newest edge median calibration failed",
+        )
         pools[family] = {
             "model_tail_ms": pure_tail_ms,
             "tail_support_ms": support_ms,
@@ -253,11 +532,30 @@ def load_tail_stage_samples() -> tuple[dict[str, dict[str, list[float]]], dict[s
             "pure_model_tail_p95_ms": percentile(pure_tail_ms, 0.95),
             "tail_support_p50_ms": percentile(support_ms, 0.50),
             "tail_support_p95_ms": percentile(support_ms, 0.95),
+            "source_total_edge_p50_ms": source_total_p50,
+            "latest_total_edge_p50_ms": target_total_p50,
+            "calibrated_total_edge_p50_ms": calibrated_total_p50,
+            "tail_support_scale_factor": support_factor,
             "decomposition": (
                 "pure tail is decode_tail_cuda_ms; tail support is measured "
-                "optimized total edge processing minus pure tail"
+                "optimized total edge processing minus pure tail, rescaled "
+                "to the newest repaired-v3 family median"
             ),
         }
+    report_path = (
+        ROOT
+        / "rl_agent/splitfusion_direct_edge_map_v1/"
+        "EDGE_OPTIMIZATION_VALIDATION_RESULTS.md"
+    )
+    provenance["newest_live_validation"] = {
+        "root": str(LATEST_EDGE_VALIDATION_ROOT.relative_to(ROOT)),
+        "artifact_manifest_sha256": sha256(
+            LATEST_EDGE_VALIDATION_ROOT / "artifact_manifest.json"
+        ),
+        "report_path": str(report_path.relative_to(ROOT)),
+        "report_sha256": sha256(report_path),
+        "published_precision_ms": 0.1,
+    }
     return pools, provenance
 
 
@@ -408,11 +706,11 @@ def plot_quality_latency(rows: Sequence[Mapping[str, Any]], output: Path) -> lis
                     ax.scatter(
                         [float(row[key]) for row in group],
                         [scale * float(row[quality_key]) for row in group],
-                        s=52,
-                        alpha=0.92,
+                        s=68,
+                        alpha=0.94,
                         c=color,
                         edgecolors="#202020",
-                        linewidths=0.65,
+                        linewidths=0.9,
                         label=family,
                     )
                 ax.set_title(PROFILE_LABEL[profile])
@@ -423,8 +721,9 @@ def plot_quality_latency(rows: Sequence[Mapping[str, Any]], output: Path) -> lis
                 for tick in ax.get_xticklabels() + ax.get_yticklabels():
                     tick.set_fontweight("bold")
             handles, legend_labels = axes.flat[0].get_legend_handles_labels()
+            sentence_label = label[0].lower() + label[1:]
             fig.suptitle(
-                f"{view['title']} vs {label.lower()} by network profile",
+                f"{view['title']} vs {sentence_label} by network profile",
                 y=0.995,
             )
             fig.legend(
@@ -468,8 +767,9 @@ def action_balanced_latency(rows: Sequence[Mapping[str, Any]]) -> list[dict[str,
 
 def plot_latency_bars(rows: Sequence[Mapping[str, Any]], output: Path) -> list[str]:
     configure_plot()
-    fig, axes = plt.subplots(2, 2, figsize=(16.5, 10.5), sharey=False)
+    fig, axes = plt.subplots(2, 2, figsize=(18.5, 10.5), sharey=False)
     components = (
+        "sensor_compute",
         "ue_action",
         "network",
         "edge_queue",
@@ -489,7 +789,8 @@ def plot_latency_bars(rows: Sequence[Mapping[str, Any]], output: Path) -> list[s
         ax.set_xticks(
             x,
             (
-                "UE action\npath",
+                "Sensor\ncompute",
+                "UE action after\ntensor ready",
                 "Feature\nuplink",
                 "Tail-busy\nwait",
                 "FCOS model\ntail",
@@ -521,6 +822,83 @@ def plot_latency_bars(rows: Sequence[Mapping[str, Any]], output: Path) -> list[s
     )
     fig.tight_layout(rect=(0, 0.035, 1, 0.91))
     name = "05_latency_percentiles_by_profile"
+    save_figure(fig, output / name)
+    return [name + ".png", name + ".pdf"]
+
+
+def sensor_optimization_stage_rows() -> list[dict[str, Any]]:
+    result_path = SENSOR_PRESENTATION_ROOT / "SENSOR_OPTIMIZATION_V2_RESULT.json"
+    result = json.loads(result_path.read_text(encoding="utf-8"))
+    rows: list[dict[str, Any]] = []
+    for item in result["stages_full_sent_population"]:
+        record: dict[str, Any] = {
+            "stage": item["stage"],
+            "field": item["field"],
+            "label": item["label"],
+            "changed_by_this_work": bool(item["changed_by_this_work"]),
+        }
+        for version in ("baseline", "optimized"):
+            for suffix in ("count", "p50_ms", "p95_ms", "p99_ms", "max_ms"):
+                record[f"{version}_{suffix}"] = item[version][suffix]
+        rows.append(record)
+    return rows
+
+
+def plot_optimized_sensor_breakdown(
+    rows: Sequence[Mapping[str, Any]], output: Path
+) -> list[str]:
+    """Figure 06: per-function live sensor timing before and after optimization."""
+
+    configure_plot()
+    radar = [row for row in rows if 7 <= int(str(row["stage"])[1:]) <= 13]
+    camera = [row for row in rows if 14 <= int(str(row["stage"])[1:]) <= 25]
+    fig, axes = plt.subplots(2, 3, figsize=(22, 11.5), sharey=False)
+    colors = {"baseline": "#9ECAE1", "optimized": "#2C7FB8"}
+    for row_index, (group, group_name) in enumerate(
+        ((radar, "Radar preparation"), (camera, "RGB and tensor preparation"))
+    ):
+        labels = [f"{row['stage']}\n{row['label']}" for row in group]
+        x = np.arange(len(group))
+        for column, suffix in enumerate((50, 95, 99)):
+            ax = axes[row_index, column]
+            width = 0.36
+            for offset, version in enumerate(("baseline", "optimized")):
+                heights = [float(row[f"{version}_p{suffix}_ms"]) for row in group]
+                ax.bar(
+                    x + (offset - 0.5) * width,
+                    heights,
+                    width,
+                    color=colors[version],
+                    label=version.capitalize(),
+                )
+            ax.set_xticks(x, labels, rotation=31, ha="right")
+            ax.set_ylabel("Latency (ms)")
+            ax.set_title(f"{group_name}: P{suffix}")
+            ax.grid(axis="y", alpha=0.25)
+            for tick in ax.get_xticklabels() + ax.get_yticklabels():
+                tick.set_fontweight("bold")
+    handles, labels = axes[0, 0].get_legend_handles_labels()
+    fig.suptitle(
+        "Live sensor-preparation function timing before and after optimization",
+        y=0.995,
+    )
+    fig.legend(
+        handles,
+        labels,
+        ncol=2,
+        loc="upper center",
+        bbox_to_anchor=(0.5, 0.965),
+        frameon=False,
+    )
+    fig.text(
+        0.5,
+        0.008,
+        "Component percentiles are marginal and are not additive; all rows use the full sent-frame population.",
+        ha="center",
+        fontsize=9,
+    )
+    fig.tight_layout(rect=(0, 0.035, 1, 0.92))
+    name = "06_sensor_preparation_optimized_breakdown"
     save_figure(fig, output / name)
     return [name + ".png", name + ".pdf"]
 
@@ -604,17 +982,22 @@ def make_report(
         (row["network_profile"], row["stage"]): row for row in latency_rows
     }
     lines = [
-        "# SplitFusion latency, quality, and sensor analysis",
+        "# SplitFusion optimized-pipeline latency and quality analysis",
         "",
-        "This report uses the corrected direct edge-to-map counterfactual. It is",
-        "an offline causal replay, not a live remeasurement of the 288 cells.",
+        "This is an offline causal replay of the immutable 288-cell sent-frame",
+        "population. It applies the subsequently live-validated sensor preparation,",
+        "repaired-v3 edge service, renderer-off direct edge-to-map service, and",
+        "latest-only scheduling. It is not a second 288-cell live campaign.",
         "",
-        "## Main interpretation",
+        "## What changed and what did not",
         "",
-        "- Validation quality is action-dependent and therefore repeats across network profiles; latency and survival move with the network.",
-        "- A point is absent from an edge/total plot when that cell produced no useful map installation. Absence is not encoded as zero latency.",
-        "- The combined score is a provisional presentation coordinate, not the PPO reward.",
-        "- Physical map installation ends at the edge-host map. Compact controller feedback to the UE is a later observation and is excluded from map AoI.",
+        "- The measured radio reassembly/admission outcomes and per-frame transport delays are held fixed. No missing uplink frame is fabricated.",
+        "- Sensor timing is changed by equal-percentile mapping from the contemporaneous live baseline distribution to the live optimized distribution; this is not a constant subtraction.",
+        "- The measured family service shapes are retained and rescaled to the newest repaired-v3 live edge-compute medians.",
+        "- Direct map service is sampled from the renderer-off live action-50 run. It is independent of split action and does not traverse the radio.",
+        "- Validation quality is action-dependent and unchanged by runtime optimization. Network profile changes delivery, latency, and freshness—not the offline quality anchor.",
+        "- A point is absent when its conditional stage has no trustworthy sample or no useful map installation; absence is never encoded as zero latency.",
+        "- Physical map age ends at authoritative map installation. The later compact UE feedback is excluded.",
         "",
         "## Action-balanced stage percentiles",
         "",
@@ -623,8 +1006,10 @@ def make_report(
     ]
     for profile in PROFILE_ORDER:
         for stage in (
+            "sensor_compute",
             "pure_front",
             "ue_action",
+            "ue_pipeline",
             "network",
             "edge_queue",
             "model_tail",
@@ -645,26 +1030,25 @@ def make_report(
         [
             "",
             "Percentile aggregation is action-balanced: each displayed value is the median of the corresponding per-action cell percentile. It is not a pooled-frame percentile dominated by high-throughput actions.",
-            "The stage percentiles are marginals with different conditional denominators and must not be added to reconstruct an end-to-end percentile. Pure tail, tail support and direct map installation use the relevant live family-anchor distributions; edge queue and complete edge-to-map service come from the 288-cell causal replay.",
+            "The stage percentiles are marginals with different conditional denominators and must not be added to reconstruct an end-to-end percentile. Figure 04 and the `total_*` columns provide the causally simulated RGB-capture-to-map distribution.",
             "",
-            "## Interpreting the long tails",
+            "## Scheduling and causal boundaries",
             "",
-            "- Latest-only scheduling removes FIFO backlog, not non-preemptive tail-busy waiting. While one frame is executing, a single newest pending frame may still wait until that execution finishes; older pending frames are replaced. This produces a zero action-balanced P50 but a 44–48 ms P95.",
-            "- The 105.9 ms action-balanced P99 for other tail processing is measured in the final optimized live anchors. Frame-level inspection localizes its family-dependent spikes mainly to unpack/dequantization, camera-aware post-processing, p025 filtering, and compact serialization. The pure FCOS CUDA tail remains approximately 21.2/24.8/29.5 ms at P50/P95/P99.",
-            "- Map service is direct publication-to-install on the edge-host path and does not traverse the radio. Its approximately 4.8 ms P50 but 42.6/113.1 ms P95/P99 comes from rare publisher scheduling and map-ingest/install stalls; it is not 5G downlink latency.",
+            "- Optimized sensor computation excludes waiting for CARLA to produce a synchronized sample. It covers the measured production preparation work before the action starts.",
+            "- UE action-after-tensor-ready runs from `capture_started_ns` through `send_finished_ns`: front inference, ranker/selection, compression/packing, serialization, and the UDP send loop.",
+            "- Optimized UE capture-to-send runs from the RGB callback timestamp through the shifted send completion, so it includes the pre-action preparation delay as well as the UE action path.",
+            "- Feature uplink runs from UE send completion to complete edge reassembly. Only retained same-clock observed receipts are plotted; imputed arrivals used by the scheduler are excluded from this metric.",
+            "- Latest-only scheduling removes a multi-frame FIFO but cannot preempt a running CUDA/tail call. At most one newest frame waits; older pending frames receive explicit `SUPERSEDED_PENDING` outcomes.",
+            "- Edge-to-map includes tail-busy waiting, edge processing/publication, and renderer-off map service. RGB-capture-to-map includes the entire causal path used for physical freshness.",
             "",
-            "## Sensor preparation boundary",
+            "## Sensor optimization",
             "",
-            "The existing 288 evidence supports a trustworthy breakdown only to the retained function boundaries: callback-to-worker scheduling, radar-window extraction, aggregate radar preparation, RGB conversion, and evaluation-snapshot capture. The inner radar projection/tracking/rasterization functions were not individually timed, so this report does not invent them.",
-            "",
-            "Camera and radar callbacks are distinct CARLA callback threads, but the numerical RGB conversion and radar-window/raster preparation used by one frame run sequentially inside the single `route-b-split-front` worker. Evaluation is already dispatched separately after its immutable scene snapshot is captured.",
-            "",
-            "`sensor_wait_ms` is shown only as a non-additive operational diagnostic because that wait can begin before the RGB capture event used as the action-age boundary.",
+            "Figure 06 uses the full sent-frame populations from the live action-50 FAVORABLE_STABLE baseline and optimized cells. It reports P07–P25 at their measured function boundaries. Camera and radar callbacks are distinct, but the numerical preparation for one selected frame remains sequential in the front worker. Component percentiles are marginal and cannot be summed.",
             "",
             "## Clock and denominator integrity",
             "",
             f"The same-host clock bridge used {int(bridge_audit['anchor_count']):,} anchors; its absolute error P99 was {float(bridge_audit['absolute_deviation_ms_p99']):.6f} ms.",
-            "Every stage carries its own count. Pure model-front and complete UE action timing use all sent frames; feature-uplink timing uses only retained observed complete edge receipts (never imputed arrivals); edge and total timing use useful direct-map installations.",
+            "Every stage carries its own count. Sensor, pure-front, UE-action, and UE-pipeline timing use all sent frames. Feature-uplink timing uses only retained observed complete edge receipts. Edge and total timing use useful direct-map installations.",
             "",
             "## Quality definition",
             "",
@@ -681,11 +1065,18 @@ def make_report(
             "Q_{\\mathrm{joint}}=\\sqrt{mIoU_{\\mathrm{seg}}Q_{\\mathrm{loc}}}.",
             "$$",
             "",
-            "The overlap terms measure spatial box/footprint agreement; they are not class-specific semantic-segmentation IoUs. Only aggregate foreground semantic mIoU is retained. Centroid XY MAE is explicit through a smooth one-metre reference scale. The one-metre value normalizes the presentation coordinate and is not a correctness gate. The geometric means are conservative: one strong dimension cannot hide a weak one.",
+            "The overlap terms measure spatial box/footprint agreement; they are not class-specific semantic-segmentation IoUs. Centroid XY MAE is explicit through a smooth one-metre reference scale. The one-metre value normalizes the presentation coordinate and is not a correctness gate. Geometric means are conservative: one strong dimension cannot hide a weak one. `Q_joint` is a presentation coordinate, not a calibrated probability and not yet the PPO reward.",
             "",
             "## Figure guide",
             "",
-            "Figures 01a–04e separate aggregate semantic mIoU, vehicle overlap IoU, person box-mask IoU, vehicle centroid error, and person centroid error for every latency stage. They show all available action/profile points without per-point action labels; color identifies the split family. Vehicle/person overlap IoU must not be presented as class-specific semantic segmentation. Figure 05 gives the requested P50/P95/P99 decomposition into the complete UE action path, observed feature uplink, tail-busy waiting under latest-only scheduling, pure FCOS tail, other tail processing, and map service. Figure 06 exposes the retained sensor-preparation boundaries.",
+            "Figures 01a–01f show quality against optimized RGB-capture-to-UE-send latency. Figures 02a–02f use observed feature-uplink latency. Figures 03a–03f use optimized edge-reassembly-to-map latency. Figures 04a–04f use optimized RGB-capture-to-map latency. Views a–e keep semantic mIoU, vehicle overlap, person box-mask overlap, vehicle centroid error, and person centroid error separate; view f restores joint model quality. Figure 05 gives action-balanced P50/P95/P99 causal-stage marginals. Figure 06 shows the measured live sensor function breakdown before and after optimization.",
+            "",
+            "## Limitations",
+            "",
+            "- Sensor optimization is anchored by one live action/profile because the sensor path is action-independent; run-to-run host variation remains possible.",
+            "- Newest edge medians are live for one action per family. The older hash-verified family distributions provide the residual shape because the newest publication ledger did not survive that validation run.",
+            "- Renderer-off map service is a single action-50 live pool and is intentionally treated as action-independent.",
+            "- The replay can estimate changed installation and freshness behavior under these measured transformations, but it is not a substitute for a new 288-cell live campaign.",
         ]
     )
     return "\n".join(lines) + "\n"
@@ -693,21 +1084,13 @@ def make_report(
 
 def run(output: Path) -> dict[str, Any]:
     require(not output.exists(), f"create-only output exists: {output}")
-    direct_manifest = json.loads((DIRECT_ROOT / "artifact_manifest.json").read_text())
-    for name, expected in direct_manifest["sha256"].items():
-        require(sha256(DIRECT_ROOT / name) == expected, f"direct artifact hash drift: {name}")
-    direct_rows = read_csv(DIRECT_ROOT / "direct_map_288_cell_summary.csv")
-    direct_index = {row["cell_id"]: row for row in direct_rows}
-    require(len(direct_index) == 288, "direct counterfactual is not 288 cells")
-
     cells = source._read_csv(source.CONSOLIDATION / "campaign_288_cell_table.csv")
     bridge_ns, bridge_audit, bridge_hashes = timing.collect_clock_bridge(cells)
     final_v3._verify_final_sources()
     calibration, publication_samples = final_v3._final_calibration()
+    sensor_calibration, sensor_provenance = load_sensor_optimization()
     tail_stage_samples, tail_stage_provenance = load_tail_stage_samples()
-    direct_map_stage_samples, direct_map_stage_provenance = load_direct_map_stage_samples()
-    direct_samples, delay_provenance = direct.load_direct_delay_samples(LIVE_DIRECT_ROOT)
-    pooling = direct.choose_pooling(direct_samples)
+    map_service_samples, map_service_provenance = load_latest_map_service_samples()
     quality = source._quality_by_action()
     (
         action_services,
@@ -720,8 +1103,10 @@ def run(output: Path) -> dict[str, Any]:
     require(pool_hashes == bridge_hashes, "per-frame source hash verification drift")
 
     rows: list[dict[str, Any]] = []
-    sensor_cell_rows: list[dict[str, Any]] = []
     observed_network_intervals = 0
+    network_boundary_inversions_excluded = 0
+    sensor_delta_samples: list[float] = []
+    edge_rescale_factors: dict[str, list[float]] = defaultdict(list)
     for number, cell in enumerate(cells, start=1):
         attempt = source._attempt(cell)
         sent = sorted(source._sent_rows(attempt), key=lambda row: float(row["capture_wall_s"]))
@@ -737,10 +1122,23 @@ def run(output: Path) -> dict[str, Any]:
             action_profile_arrival_pool=action_profile_arrivals.get((int(cell["action_id"]), cell["network_profile"]), ()),
             profile_arrival_pool=profile_arrivals[cell["network_profile"]],
         )
-        delay_pool = direct.delay_pool_for(family, direct_samples, pooling)
+        (
+            frames,
+            optimized_pre_action_ms,
+            optimized_sensor_compute_ms,
+            sensor_deltas_ms,
+        ) = shift_arrivals_for_sensor_optimization(frames, sent, sensor_calibration)
+        sensor_delta_samples.extend(sensor_deltas_ms)
+        frames, edge_rescale_factor = rescale_edge_compute(frames, family)
+        if edge_rescale_factor is not None:
+            edge_rescale_factors[family].append(edge_rescale_factor)
+        delay_pool = [
+            max(0, int(round(value * 1e6)))
+            for value in map_service_samples[family]
+        ]
         frames, _ = direct._direct_frames(frames, cell_id=cell["cell_id"], delay_pool=delay_pool)
         publication_ns = int(round(calibration[family]["optimized_publication_ms_median"] * 1e6))
-        total_ns = int(round(calibration[family]["optimized_total_edge_processing_ms_median"] * 1e6))
+        total_ns = int(round(LATEST_EDGE_COMPUTE_P50_MS[family] * 1e6))
         result = simulate_two_stage(
             frames,
             config=TwoStageConfig(
@@ -753,34 +1151,63 @@ def run(output: Path) -> dict[str, Any]:
             ),
         )
         summary = result.summary()
-        reference = direct_index[cell["cell_id"]]
-        require(int(summary["ack_installed_frames"]) == int(reference["ack_installed_frames"]), f"{cell['cell_id']}: direct installed count drift")
+        require(
+            sum(int(value) for value in summary["reason_counts"].values())
+            == len(sent),
+            f"{cell['cell_id']}: simulated terminal accounting drift",
+        )
+        require(
+            int(summary["ack_installed_frames"])
+            <= int(counters["measured_edge_admissions"]),
+            f"{cell['cell_id']}: installs exceed measured edge admissions",
+        )
 
         ue_action_ms: list[float] = []
+        ue_pipeline_ms: list[float] = []
         pure_front_ms: list[float] = []
-        for row in sent:
-            ue_action_ms.append((int(row["ue_prepare_finished_ns"]) - int(row["capture_started_ns"])) / 1e6)
+        for row, delta_ms in zip(sent, sensor_deltas_ms):
+            action_start_ns = int(row["capture_started_ns"])
+            send_finish_ns = int(row["send_finished_ns"])
+            ue_action_ms.append((send_finish_ns - action_start_ns) / 1e6)
+            capture_wall_ns = timing.wall_seconds_to_ns(row["capture_wall_s"])
+            optimized_send_wall_ns = send_finish_ns + bridge_ns + int(round(delta_ms * 1e6))
+            pipeline_ms = (optimized_send_wall_ns - capture_wall_ns) / 1e6
+            require(
+                pipeline_ms >= -0.001,
+                f"{cell['cell_id']}: optimized UE pipeline interval is negative",
+            )
+            ue_pipeline_ms.append(max(0.0, pipeline_ms))
             parsed = ast.literal_eval(row["front_timing_ns"])
             if finite(parsed.get("front_backbone")) is not None:
                 pure_front_ms.append(float(parsed["front_backbone"]) / 1e6)
         network_ms: list[float] = []
-        for frame, row in zip(frames, sent):
+        for frame, row, delta_ms in zip(frames, sent, sensor_deltas_ms):
             # The published replay imputes enough arrivals to reproduce the
             # measured aggregate admission counts. Those synthetic arrivals
             # are necessary for scheduling, but are not network measurements.
             # Plot only the retained, same-clock-bridge edge receipt here.
             if frame.arrival_ns is None or not row.get("edge_receipt_wall_s"):
                 continue
-            start_ns = int(row["ue_prepare_finished_ns"]) + bridge_ns
+            start_ns = (
+                int(row["send_finished_ns"])
+                + bridge_ns
+                + int(round(delta_ms * 1e6))
+            )
             value = (int(frame.arrival_ns) - start_ns) / 1e6
-            require(value >= -0.001, f"{cell['cell_id']}: causal uplink interval is negative")
+            # The receiver can timestamp the final datagram before the
+            # sender thread returns from its final sendto() call.  Such a row
+            # does not define a causal send-finished-to-reassembly interval;
+            # exclude it rather than clamping or changing the start boundary.
+            if value < -0.001:
+                network_boundary_inversions_excluded += 1
+                continue
             network_ms.append(max(0.0, value))
         observed_network_intervals += len(network_ms)
         edge_map_ms: list[float] = []
         edge_queue_ms: list[float] = []
         model_tail_ms = tail_stage_samples[family]["model_tail_ms"]
         tail_support_ms = tail_stage_samples[family]["tail_support_ms"]
-        map_install_ms = direct_map_stage_samples[family]
+        map_install_ms = map_service_samples[family]
         total_ms: list[float] = []
         for item in useful_outcomes(result):
             edge_map_ms.append((int(item.install_ns) - int(item.frame.arrival_ns)) / 1e6)
@@ -796,9 +1223,7 @@ def run(output: Path) -> dict[str, Any]:
             require(compute_wait_ns >= 0, f"{cell['cell_id']}: negative compute wait")
             require(publication_wait_ns >= 0, f"{cell['cell_id']}: negative publication wait")
             edge_queue_ms.append((compute_wait_ns + publication_wait_ns) / 1e6)
-            row = sent[int(item.frame.sequence_id)]
-            action_start_ns = int(row["capture_started_ns"]) + bridge_ns
-            total_ms.append((int(item.install_ns) - action_start_ns) / 1e6)
+            total_ms.append((int(item.install_ns) - int(item.frame.capture_ns)) / 1e6)
 
         qoverlap, centroid_rms_m, qxy, qloc, qjoint = quality_score(
             quality[int(cell["action_id"])]
@@ -811,6 +1236,11 @@ def run(output: Path) -> dict[str, Any]:
             "family": family,
             "quantizer": cell["quantizer"],
             "q": float(cell["q"]),
+            "frames_sent": len(sent),
+            "measured_complete_reassemblies": int(counters["measured_reassemblies"]),
+            "measured_edge_admissions": int(counters["measured_edge_admissions"]),
+            "simulated_map_installs": int(summary["ack_installed_frames"]),
+            "simulated_useful_newer_map_installs": int(summary["useful_newer_map_installations"]),
             "median_payload_bytes": percentile([float(row["payload_bytes"]) for row in sent], 0.50),
             **quality[int(cell["action_id"])],
             "localization_overlap": qoverlap,
@@ -821,8 +1251,12 @@ def run(output: Path) -> dict[str, Any]:
             "rate_reassembled_per_sent": int(counters["measured_reassemblies"]) / len(sent),
             "rate_admitted_per_sent": int(counters["measured_edge_admissions"]) / len(sent),
             "rate_installed_per_sent": int(summary["ack_installed_frames"]) / len(sent),
+            "rate_useful_installations_per_sent": int(summary["useful_newer_map_installations"]) / len(sent),
             "network_latency_observed_only": True,
+            **direct._fresh_fractions(result, (150, 200, 250, 300)),
             **stats(ue_action_ms, "ue_action"),
+            **stats(optimized_sensor_compute_ms, "sensor_compute"),
+            **stats(ue_pipeline_ms, "ue_pipeline"),
             **stats(pure_front_ms, "pure_front"),
             **stats(network_ms, "network"),
             **stats(edge_queue_ms, "edge_queue"),
@@ -832,34 +1266,47 @@ def run(output: Path) -> dict[str, Any]:
             **stats(edge_map_ms, "edge_map"),
             **stats(total_ms, "total"),
         }
+        for reason, count in sorted(summary["reason_counts"].items()):
+            record[f"terminal_{reason.lower()}"] = int(count)
         # CSV uses an empty string, rather than a fabricated zero, for an absent stage.
         record = {key: "" if value is None else value for key, value in record.items()}
         rows.append(record)
-
-        components = sensor_components(sent, bridge_ns)
-        sensor_record: dict[str, Any] = {
-            "cell_id": cell["cell_id"],
-            "action_id": int(cell["action_id"]),
-            "network_profile": cell["network_profile"],
-        }
-        for name, values in components.items():
-            sensor_record.update(stats(values, name.removesuffix("_ms")))
-        sensor_cell_rows.append(sensor_record)
         if number % 24 == 0:
             print(f"supervisor analysis: {number}/288 cells", flush=True)
 
-    require(len(rows) == 288 and len(sensor_cell_rows) == 288, "analysis inventory drift")
+    require(len(rows) == 288, "analysis inventory drift")
+    aggregate_counts = {
+        "frames_sent": sum(int(row["frames_sent"]) for row in rows),
+        "measured_complete_reassemblies": sum(
+            int(row["measured_complete_reassemblies"]) for row in rows
+        ),
+        "measured_edge_admissions": sum(
+            int(row["measured_edge_admissions"]) for row in rows
+        ),
+        "simulated_map_installs": sum(
+            int(row["simulated_map_installs"]) for row in rows
+        ),
+        "simulated_useful_newer_map_installs": sum(
+            int(row["simulated_useful_newer_map_installs"]) for row in rows
+        ),
+    }
+    require(
+        aggregate_counts["simulated_map_installs"]
+        <= aggregate_counts["measured_edge_admissions"]
+        <= aggregate_counts["measured_complete_reassemblies"]
+        <= aggregate_counts["frames_sent"],
+        "aggregate causal count ordering failed",
+    )
     latency_rows = action_balanced_latency(rows)
-    sensor_rows = sensor_profile_rows(sensor_cell_rows)
+    sensor_rows = sensor_optimization_stage_rows()
     output.mkdir(parents=True, exist_ok=False)
     write_csv(output / "action_profile_quality_latency.csv", rows)
     write_csv(output / "latency_percentiles_by_profile.csv", latency_rows)
-    write_csv(output / "sensor_preparation_cell_percentiles.csv", sensor_cell_rows)
-    write_csv(output / "sensor_preparation_profile_percentiles.csv", sensor_rows)
+    write_csv(output / "sensor_optimization_stage_percentiles.csv", sensor_rows)
     figure_names = []
     figure_names.extend(plot_quality_latency(rows, output))
     figure_names.extend(plot_latency_bars(latency_rows, output))
-    figure_names.extend(plot_sensor_breakdown(sensor_rows, output))
+    figure_names.extend(plot_optimized_sensor_breakdown(sensor_rows, output))
     atomic_json(
         output / "analysis_summary.json",
         {
@@ -867,22 +1314,25 @@ def run(output: Path) -> dict[str, Any]:
             "status": "COMPLETE",
             "scientific_status": "OFFLINE_COUNTERFACTUAL_NOT_LIVE_REMEASUREMENT",
             "inventory": {"cells": 288, "actions": 72, "profiles": 4},
+            "aggregate_counts": aggregate_counts,
             "source_bindings": {
                 "builder_sha256": sha256(Path(__file__).resolve()),
-                "direct_counterfactual_manifest_sha256": sha256(DIRECT_ROOT / "artifact_manifest.json"),
-                "direct_live_validation_manifest_sha256": sha256(LIVE_DIRECT_ROOT / "artifact_manifest.json"),
                 "campaign_cell_table_sha256": sha256(source.CONSOLIDATION / "campaign_288_cell_table.csv"),
+                "latest_edge_validation_manifest_sha256": sha256(LATEST_EDGE_VALIDATION_ROOT / "artifact_manifest.json"),
+                "sensor_optimization_manifest_sha256": sha256(SENSOR_PRESENTATION_ROOT / "artifact_manifest.json"),
             },
             "component_boundaries": {
-                "ue_action": "capture_started_ns to ue_prepare_finished_ns",
+                "sensor_compute": "live optimized production sensor computation; CARLA wait excluded",
+                "ue_action": "capture_started_ns to send_finished_ns after seven-channel input is ready",
+                "ue_pipeline": "RGB capture_wall_s to optimized send_finished wall time",
                 "pure_front": "front_timing_ns.front_backbone only",
-                "network": "ue_prepare_finished_ns to complete edge reassembly",
+                "network": "send_finished_ns to complete edge reassembly, observed receipts only",
                 "edge_queue": "complete edge reassembly to compute start plus compute finish to publication start",
                 "model_tail": "pure decode_tail CUDA duration from final live family anchor",
-                "tail_support": "optimized total edge processing minus pure decode_tail CUDA, from final live family anchor",
-                "map_install": "direct publication-to-spatial-map install from live direct family anchor",
+                "tail_support": "non-model edge work rescaled to newest repaired-v3 total edge median",
+                "map_install": "renderer-off direct publication-to-spatial-map install",
                 "edge_map": "complete edge reassembly to direct spatial-map install",
-                "total": "capture_started_ns to direct spatial-map install",
+                "total": "RGB capture_wall_s to direct spatial-map install",
                 "physical_map_aoi_excludes_controller_feedback": True,
             },
             "quality": {
@@ -895,23 +1345,45 @@ def run(output: Path) -> dict[str, Any]:
                 "role": "provisional presentation coordinate, not PPO reward",
             },
             "denominators": {
+                "sensor_compute": "all sent frames, distributionally mapped to live optimized production sensor compute",
                 "ue_action": "all sent frames",
+                "ue_pipeline": "all sent frames",
                 "pure_front": "all sent frames",
                 "network": "frames with retained observed complete edge receipt",
                 "edge_queue": "useful direct-map installations",
                 "model_tail": "final live family-anchor samples; repeated as a marginal for each family action/profile",
                 "tail_support": "final live family-anchor samples; repeated as a marginal for each family action/profile",
-                "map_install": "live direct-map family-anchor samples; repeated as a marginal for each family action/profile",
+                "map_install": "live renderer-off direct-map samples; repeated as an action-independent marginal",
                 "edge_map": "useful direct-map installations",
                 "total": "useful direct-map installations",
             },
             "clock_bridge": bridge_audit,
             "observed_network_intervals": observed_network_intervals,
+            "network_boundary_inversions_excluded": network_boundary_inversions_excluded,
             "imputed_arrivals_excluded_from_network_latency": True,
-            "direct_delay_provenance": delay_provenance,
-            "direct_delay_pooling": pooling,
+            "measured_radio_outcomes_held_fixed": True,
+            "sensor_optimization": sensor_provenance,
+            "sensor_delta_ms": {
+                "count": len(sensor_delta_samples),
+                "p50": percentile(sensor_delta_samples, 0.50),
+                "p95": percentile(sensor_delta_samples, 0.95),
+                "p99": percentile(sensor_delta_samples, 0.99),
+            },
+            "edge_rescale_factors": {
+                family: {
+                    "minimum": min(values),
+                    "maximum": max(values),
+                    "median": statistics.median(values),
+                }
+                for family, values in edge_rescale_factors.items()
+            },
             "tail_stage_calibration": tail_stage_provenance,
-            "direct_map_stage_calibration": direct_map_stage_provenance,
+            "direct_map_stage_calibration": map_service_provenance,
+            "scheduler": {
+                "policy": "non-preemptive compute with one latest pending slot",
+                "queue_wait_budget_ms": None,
+                "superseded_pending_is_explicit_terminal": True,
+            },
             "latency_percentile_warning": (
                 "stage P50/P95/P99 values are marginal percentiles with stage-specific "
                 "denominators and must not be added to reconstruct a total percentile"
@@ -920,7 +1392,7 @@ def run(output: Path) -> dict[str, Any]:
                 "carla_callbacks": "camera and radar callbacks are distinct",
                 "numerical_preparation": "radar and RGB preparation are sequential in one route-b-split-front worker",
                 "evaluation": "separate bounded evaluation worker after immutable snapshot capture",
-                "inner_radar_limitation": "not separately timed in retained 288 evidence",
+                "inner_radar_stages": "P07-P25 measured in the live sensor optimization",
             },
         },
     )
@@ -928,8 +1400,7 @@ def run(output: Path) -> dict[str, Any]:
     primary = (
         "action_profile_quality_latency.csv",
         "latency_percentiles_by_profile.csv",
-        "sensor_preparation_cell_percentiles.csv",
-        "sensor_preparation_profile_percentiles.csv",
+        "sensor_optimization_stage_percentiles.csv",
         "analysis_summary.json",
         "REPORT.md",
         *figure_names,
