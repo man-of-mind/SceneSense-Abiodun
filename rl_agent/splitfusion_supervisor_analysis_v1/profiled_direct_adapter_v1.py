@@ -69,6 +69,8 @@ PROFILE_FIELDS = (
     "profile_radar_evidence_exact",
     "profile_model_input_exact",
     "profile_equivalence_checked",
+    "ue_clock_anchor_wall_ns",
+    "ue_clock_anchor_perf_ns",
 )
 
 
@@ -283,12 +285,18 @@ class ProfiledPassiveSplitCollector(pinned.PassiveSplitCollector):
 
     def _process_token(self, token: Mapping[str, Any]) -> None:
         frame_id = int(token["frame_id"])
+        # Same-process, adjacent clock reads provide the explicit bridge needed
+        # for direct edge-to-map timing.  No edge-to-UE result path is assumed.
+        clock_anchor_wall_ns = time.time_ns()
+        clock_anchor_perf_ns = time.perf_counter_ns()
         process_started_ns = time.perf_counter_ns()
         self._recorder.begin(frame_id)
         self._recorder.local.collector = self
         self._recorder.add(
             {
                 "sensor_profile_mode": BASELINE_MODE,
+                "ue_clock_anchor_wall_ns": clock_anchor_wall_ns,
+                "ue_clock_anchor_perf_ns": clock_anchor_perf_ns,
                 "profile_worker_schedule_wait_ms": max(
                     0.0,
                     process_started_ns / 1e9 - float(token["scheduled_perf"]),

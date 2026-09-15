@@ -13,8 +13,12 @@ from rl_agent.splitfusion_supervisor_analysis_v1.profiled_sensor_stages import (
     prepare_live_input_profiled,
 )
 from rl_agent.splitfusion_supervisor_analysis_v1.run_sensor_preparation_cell_v1 import (
+    clock_bridge,
     complete_publication_join,
+    full_path_metrics,
+    sensor_stage_distributions,
 )
+from rl_agent import ue_288_campaign_supervisor as supervisor
 from rl_agent.splitfusion_direct_edge_map_live_validation_v1 import (
     DIRECT_STAGE_INTERVALS,
 )
@@ -107,8 +111,74 @@ def test_complete_publication_join_requires_every_boundary() -> None:
     assert incomplete["incomplete_examples"]
 
 
+def test_direct_clock_availability_and_same_domain_metrics() -> None:
+    sent = {
+        "stream_id": "ue-1",
+        "frame_id": "17",
+        "capture_started_ns": "1000000000",
+        "send_finished_ns": "1100000000",
+        "capture_wall_s": "1000.0",
+        # Deliberately nonsensical legacy fields prove they are not used.
+        "feature_received_at": "9000.0",
+        "edge_result_received_ns": "1",
+    }
+    publication = {
+        "stream_id": "ue-1",
+        "frame_id": "17",
+        "reassembly_complete_wall_s": "1000.2",
+        "compute_start_wall_s": "1000.21",
+        "tail_complete_wall_s": "1000.24",
+        "first_datagram_send_wall_s": "1000.245",
+    }
+    ingest = {
+        "stream_id": "ue-1",
+        "frame_id": "17",
+        "outcome": "RESULT_INSTALLED",
+        "map_ingest_at": "1000.25",
+        "map_install_at": "1000.30",
+    }
+    unavailable = clock_bridge([sent])
+    assert unavailable["availability"] == "UNAVAILABLE"
+    assert unavailable["legacy_edge_result_fields_used"] is False
+    result = full_path_metrics([sent], [ingest], [publication], unavailable)
+    metrics = result["metrics"]
+    assert result["cross_clock_subtraction_performed"] is False
+    assert metrics["ue_action"]["availability"] == "AVAILABLE"
+    assert metrics["ue_action"]["p50_ms"] == 100.0
+    assert abs(metrics["edge_compute"]["p50_ms"] - 30.0) < 1e-6
+    assert abs(metrics["map_service"]["p50_ms"] - 55.0) < 1e-6
+    assert abs(metrics["capture_to_install_aoi"]["p50_ms"] - 300.0) < 1e-6
+    assert metrics["feature_uplink"]["availability"] == "UNAVAILABLE"
+    assert metrics["feature_uplink"]["p50_ms"] is None
+    assert metrics["action_start_to_install"]["availability"] == "UNAVAILABLE"
+    assert metrics["action_start_to_install"]["p50_ms"] is None
+
+    anchored = dict(sent)
+    anchored.update(
+        {
+            "ue_clock_anchor_wall_ns": "1000000000000",
+            "ue_clock_anchor_perf_ns": "1000000000",
+        }
+    )
+    available = clock_bridge([anchored])
+    assert available["availability"] == "AVAILABLE"
+    assert available["deviation_within_bound"] is True
+    assert available["legacy_edge_result_fields_used"] is False
+
+
+def test_required_sensor_evidence_still_fails_closed() -> None:
+    try:
+        sensor_stage_distributions([{"profile_sensor_compute_production_estimate_ms": "1.0"}])
+    except supervisor.CampaignError as exc:
+        assert "required sensor-stage evidence is absent" in str(exc)
+    else:
+        raise AssertionError("missing required sensor-stage evidence was accepted")
+
+
 if __name__ == "__main__":
     test_radar_equivalence()
     test_seven_channel_equivalence_cpu()
     test_complete_publication_join_requires_every_boundary()
+    test_direct_clock_availability_and_same_domain_metrics()
+    test_required_sensor_evidence_still_fails_closed()
     print("PROFILED_SENSOR_STAGES_TEST_PASS")

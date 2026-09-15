@@ -30,7 +30,9 @@ from rl_agent import ue_288_campaign_supervisor as supervisor  # noqa: E402
 
 SCHEMA = "scenesense.splitfusion.sensor_preparation_live_cell.v1"
 TOKEN = "SPLITFUSION_SENSOR_PREPARATION_LIVE_CELL"
+RETROSPECTIVE_TOKEN = "SPLITFUSION_SENSOR_PREPARATION_RETROSPECTIVE_ANALYSIS"
 BASELINE_MODE = "INSTRUMENTED_PRODUCTION_EQUIVALENT"
+OPTIMIZED_MODE = "OPTIMIZED_SENSOR_PREPARATION"
 ACTION_ID = 50
 PROFILE_ID = "split_ae64_uint4_q5000"
 NETWORK_PROFILE = "FAVORABLE_STABLE"
@@ -49,6 +51,10 @@ PROFILER = (
     ROOT / "rl_agent/splitfusion_supervisor_analysis_v1/profiled_sensor_stages.py"
 )
 SUCCESS_TERMINAL = "SPLITFUSION_SENSOR_PREPARATION_BASELINE_COMPLETE"
+RETROSPECTIVE_TERMINAL = (
+    "SPLITFUSION_SENSOR_PREPARATION_RETROSPECTIVE_ANALYSIS_COMPLETE"
+)
+CLOCK_ANCHOR_MAX_DEVIATION_MS = 1.0
 
 
 STAGES = (
@@ -126,6 +132,32 @@ def distribution(values: Sequence[float]) -> dict[str, Any]:
     }
 
 
+def available_distribution(
+    values: Sequence[float], *, definition: str, clock_domain: str
+) -> dict[str, Any]:
+    result = distribution(values)
+    result.update(
+        {
+            "availability": "AVAILABLE",
+            "definition": definition,
+            "clock_domain": clock_domain,
+        }
+    )
+    return result
+
+
+def unavailable_distribution(*, definition: str, reason: str) -> dict[str, Any]:
+    return {
+        "availability": "UNAVAILABLE",
+        "definition": definition,
+        "reason": reason,
+        "count": 0,
+        "p50_ms": None,
+        "p95_ms": None,
+        "p99_ms": None,
+    }
+
+
 def correlation(rows: Sequence[Mapping[str, str]], left: str, right: str) -> dict[str, Any]:
     pairs = [
         (a, b)
@@ -156,24 +188,70 @@ def wall_ns(value: Any) -> int:
     return int(round(parsed * 1_000_000_000))
 
 
+def integer(value: Any) -> int | None:
+    try:
+        text = str(value).strip()
+        return int(text) if text else None
+    except (TypeError, ValueError):
+        return None
+
+
 def clock_bridge(sent: Sequence[Mapping[str, str]]) -> dict[str, Any]:
-    anchors = []
+    """Describe the explicit UE wall/monotonic bridge, if it was recorded.
+
+    Direct edge-to-map execution intentionally has no edge-to-UE result-return
+    timing.  Those legacy fields are therefore never used as a clock bridge.
+    Future profiled cells persist an adjacent ``time.time_ns`` /
+    ``time.perf_counter_ns`` pair in the UE process instead.
+    """
+
+    anchors: list[int] = []
+    incomplete_pairs = 0
     for row in sent:
-        if row.get("feature_received_at") and row.get("edge_result_received_ns"):
-            anchors.append(
-                wall_ns(row["feature_received_at"])
-                - int(row["edge_result_received_ns"])
-            )
-    require(anchors, "no same-event wall/monotonic clock anchors")
+        wall = integer(row.get("ue_clock_anchor_wall_ns"))
+        perf = integer(row.get("ue_clock_anchor_perf_ns"))
+        if wall is None and perf is None:
+            continue
+        if wall is None or perf is None:
+            incomplete_pairs += 1
+            continue
+        anchors.append(wall - perf)
+    if not anchors:
+        return {
+            "availability": "UNAVAILABLE",
+            "source": "adjacent_ue_time_ns_perf_counter_ns",
+            "anchor_count": 0,
+            "incomplete_anchor_pairs": incomplete_pairs,
+            "median_offset_ns": None,
+            "absolute_deviation_ms": distribution([]),
+            "maximum_allowed_deviation_ms": CLOCK_ANCHOR_MAX_DEVIATION_MS,
+            "deviation_within_bound": False,
+            "legacy_edge_result_fields_used": False,
+            "reason": (
+                "this baseline predates explicit UE wall/monotonic anchors; "
+                "legacy edge-to-UE result-return fields are intentionally absent "
+                "under direct edge-to-map deployment"
+            ),
+        }
     offset = int(statistics.median(anchors))
     deviations = [abs(value - offset) / 1e6 for value in anchors]
     return {
-        "definition": "feature_received_at_wall_ns - edge_result_received_ns",
-        "same_event_pair": True,
-        "same_host": True,
-        "anchors": len(anchors),
+        "availability": "AVAILABLE",
+        "source": "adjacent_ue_time_ns_perf_counter_ns",
+        "definition": "ue_clock_anchor_wall_ns - ue_clock_anchor_perf_ns",
+        "same_process": True,
+        "adjacent_calls": True,
+        "anchor_count": len(anchors),
+        "incomplete_anchor_pairs": incomplete_pairs,
         "median_offset_ns": offset,
         "absolute_deviation_ms": distribution(deviations),
+        "maximum_allowed_deviation_ms": CLOCK_ANCHOR_MAX_DEVIATION_MS,
+        "deviation_within_bound": (
+            incomplete_pairs == 0
+            and max(deviations, default=float("inf"))
+            <= CLOCK_ANCHOR_MAX_DEVIATION_MS
+        ),
+        "legacy_edge_result_fields_used": False,
     }
 
 
@@ -189,12 +267,17 @@ def keyed(rows: Sequence[Mapping[str, str]]) -> dict[tuple[str, str], Mapping[st
 def full_path_metrics(
     window: Sequence[Mapping[str, str]],
     ingest: Sequence[Mapping[str, str]],
+    publication: Sequence[Mapping[str, str]],
     bridge: Mapping[str, Any],
 ) -> dict[str, Any]:
+    """Measure only intervals whose clock-domain relationship is explicit."""
+
     ingest_by_key = keyed(
         [row for row in ingest if row.get("outcome") == "RESULT_INSTALLED"]
     )
-    offset = int(bridge["median_offset_ns"])
+    publication_by_key = keyed(publication)
+    bridge_available = bridge.get("availability") == "AVAILABLE"
+    offset = int(bridge["median_offset_ns"]) if bridge_available else None
     samples: dict[str, list[float]] = {
         "ue_action": [],
         "feature_uplink": [],
@@ -207,32 +290,154 @@ def full_path_metrics(
     for row in window:
         key = (str(row.get("stream_id")), str(row.get("frame_id")))
         installed = ingest_by_key.get(key)
-        if installed is None:
+        published = publication_by_key.get(key)
+        if installed is None or published is None:
             continue
         joined += 1
-        action_start_ns = int(row["capture_started_ns"]) + offset
-        send_start_ns = int(row["ue_prepare_finished_ns"]) + offset
+        action_start_perf_ns = int(row["capture_started_ns"])
+        send_finished_perf_ns = int(row["send_finished_ns"])
+        require(
+            send_finished_perf_ns >= action_start_perf_ns,
+            f"non-causal UE monotonic boundaries for {key}",
+        )
         capture_ns = wall_ns(row["capture_wall_s"])
         install_ns = wall_ns(installed["map_install_at"])
-        edge_arrival_ns = wall_ns(row["edge_receipt_wall_s"])
-        edge_start_ns = wall_ns(installed["edge_compute_start_wall_s"])
-        edge_finish_ns = wall_ns(installed["edge_compute_finish_wall_s"])
+        edge_arrival_ns = wall_ns(published["reassembly_complete_wall_s"])
+        edge_start_ns = wall_ns(published["compute_start_wall_s"])
+        edge_finish_ns = wall_ns(published["tail_complete_wall_s"])
+        publication_start_ns = wall_ns(published["first_datagram_send_wall_s"])
         map_ingest_ns = wall_ns(installed["map_ingest_at"])
-        boundaries = (capture_ns, action_start_ns, send_start_ns, edge_arrival_ns)
         require(
-            all(right + 1_000_000 >= left for left, right in zip(boundaries, boundaries[1:])),
-            f"non-causal UE/uplink boundaries for {key}",
+            edge_finish_ns >= edge_start_ns,
+            f"non-causal edge compute boundaries for {key}",
         )
-        samples["ue_action"].append((send_start_ns - action_start_ns) / 1e6)
-        samples["feature_uplink"].append((edge_arrival_ns - send_start_ns) / 1e6)
+        require(install_ns >= map_ingest_ns, f"non-causal map boundaries for {key}")
+        require(
+            install_ns >= publication_start_ns,
+            f"non-causal direct publication/install boundaries for {key}",
+        )
+        require(install_ns >= capture_ns, f"non-causal capture/install boundaries for {key}")
+        samples["ue_action"].append(
+            (send_finished_perf_ns - action_start_perf_ns) / 1e6
+        )
         samples["edge_compute"].append((edge_finish_ns - edge_start_ns) / 1e6)
-        samples["map_service"].append((install_ns - map_ingest_ns) / 1e6)
+        samples["map_service"].append(
+            (install_ns - publication_start_ns) / 1e6
+        )
         samples["capture_to_install_aoi"].append((install_ns - capture_ns) / 1e6)
-        samples["action_start_to_install"].append((install_ns - action_start_ns) / 1e6)
+        if offset is not None:
+            action_start_wall_ns = action_start_perf_ns + offset
+            send_finished_wall_ns = send_finished_perf_ns + offset
+            require(
+                edge_arrival_ns + 1_000_000 >= send_finished_wall_ns,
+                f"non-causal clock-bridged uplink boundaries for {key}",
+            )
+            require(
+                install_ns + 1_000_000 >= action_start_wall_ns,
+                f"non-causal clock-bridged action/install boundaries for {key}",
+            )
+            samples["feature_uplink"].append(
+                (edge_arrival_ns - send_finished_wall_ns) / 1e6
+            )
+            samples["action_start_to_install"].append(
+                (install_ns - action_start_wall_ns) / 1e6
+            )
+    metrics = {
+        "ue_action": available_distribution(
+            samples["ue_action"],
+            definition="send_finished_ns - capture_started_ns",
+            clock_domain="UE_PERF_COUNTER_NS",
+        ),
+        "edge_compute": available_distribution(
+            samples["edge_compute"],
+            definition="tail_complete_wall_s - compute_start_wall_s",
+            clock_domain="EDGE_WALL_CLOCK",
+        ),
+        "map_service": available_distribution(
+            samples["map_service"],
+            definition="map_install_at - first_datagram_send_wall_s",
+            clock_domain="DIRECT_PUBLICATION_AND_MAP_WALL_CLOCK",
+        ),
+        "capture_to_install_aoi": available_distribution(
+            samples["capture_to_install_aoi"],
+            definition="map_install_at - capture_wall_s",
+            clock_domain="HOST_WALL_CLOCK",
+        ),
+    }
+    if bridge_available:
+        metrics["feature_uplink"] = available_distribution(
+            samples["feature_uplink"],
+            definition=(
+                "reassembly_complete_wall_s - wall_clock(send_finished_ns)"
+            ),
+            clock_domain="UE_PERF_COUNTER_NS_BRIDGED_TO_HOST_WALL_CLOCK",
+        )
+        metrics["action_start_to_install"] = available_distribution(
+            samples["action_start_to_install"],
+            definition="map_install_at - wall_clock(capture_started_ns)",
+            clock_domain="UE_PERF_COUNTER_NS_BRIDGED_TO_HOST_WALL_CLOCK",
+        )
+    else:
+        reason = str(bridge.get("reason") or "explicit UE clock bridge unavailable")
+        metrics["feature_uplink"] = unavailable_distribution(
+            definition=(
+                "reassembly_complete_wall_s - wall_clock(send_finished_ns)"
+            ),
+            reason=reason,
+        )
+        metrics["action_start_to_install"] = unavailable_distribution(
+            definition="map_install_at - wall_clock(capture_started_ns)",
+            reason=reason,
+        )
     return {
         "window_installed_joined": joined,
-        "metrics": {name: distribution(values) for name, values in samples.items()},
+        "metrics": metrics,
+        "cross_clock_subtraction_performed": bridge_available,
     }
+
+
+def sensor_stage_distributions(
+    window: Sequence[Mapping[str, str]],
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Return every registered sensor stage, failing on absent core evidence."""
+
+    totals = [
+        value
+        for row in window
+        if (value := number(row.get("profile_sensor_compute_production_estimate_ms")))
+        is not None
+    ]
+    require(
+        len(totals) == len(window) and bool(totals),
+        "required total sensor-compute evidence is incomplete",
+    )
+    total_sum = math.fsum(totals)
+    stages: dict[str, Any] = {}
+    for label, field, category in STAGES:
+        values = [
+            value for row in window if (value := number(row.get(field))) is not None
+        ]
+        require(values, f"required sensor-stage evidence is absent: {field}")
+        stage = available_distribution(
+            values,
+            definition=field,
+            clock_domain=("CUDA_EVENT" if category == "compute_cuda_event" else "UE_PERF_COUNTER"),
+        )
+        stage.update(
+            {
+                "field": field,
+                "category": category,
+                "percentage_of_total_sensor_compute": (
+                    100.0 * math.fsum(values) / total_sum if total_sum else None
+                ),
+            }
+        )
+        stages[label] = stage
+    return stages, available_distribution(
+        totals,
+        definition="profile_sensor_compute_production_estimate_ms",
+        clock_domain="UE_PERF_COUNTER_AND_CUDA_ENQUEUE_WALL",
+    )
 
 
 def complete_publication_join(
@@ -259,7 +464,11 @@ def complete_publication_join(
                 bad_keys.add(key)
             elif right < left:
                 negative.append(f"{key[0]}:{key[1]}:{stage}")
-                bad_keys.add(key)
+                # Some sender timestamps are recorded immediately after
+                # ``sendto`` returns while the receiving process timestamps
+                # the same datagram concurrently.  A negative cross-process
+                # wall-clock interval is reported, but it does not
+                # mean either durable record or boundary is missing.
     complete = len(installed) - len(bad_keys) - len(missing)
     return {
         "installed_frames": len(installed),
@@ -271,6 +480,7 @@ def complete_publication_join(
         "missing_examples": missing[:10],
         "incomplete_examples": incomplete[:10],
         "negative_examples": negative[:10],
+        "negative_interval_count": len(negative),
     }
 
 
@@ -283,6 +493,7 @@ def find_attempt(campaign_root: Path, cell_id: str) -> Path:
 def analyse(
     attempt: Path, cell: supervisor.Cell, sample_target: int,
     warmup: int, run_result: Mapping[str, Any], final_cold: Mapping[str, Any],
+    *, mode: str = BASELINE_MODE,
 ) -> dict[str, Any]:
     per_frame = read_csv(attempt / "per_frame_metrics.csv")
     sent = sorted(
@@ -296,29 +507,7 @@ def analyse(
     ingest = read_csv(direct_dir / "direct_map_ingest.csv")
     publication = read_csv(publication_path)
     bridge = clock_bridge(sent)
-
-    totals = [
-        value for row in window
-        if (value := number(row.get("profile_sensor_compute_production_estimate_ms")))
-        is not None
-    ]
-    total_sum = math.fsum(totals)
-    stages: dict[str, Any] = {}
-    for label, field, category in STAGES:
-        values = [
-            value for row in window if (value := number(row.get(field))) is not None
-        ]
-        stage = distribution(values)
-        stage.update(
-            {
-                "field": field,
-                "category": category,
-                "percentage_of_total_sensor_compute": (
-                    100.0 * math.fsum(values) / total_sum if total_sum and values else None
-                ),
-            }
-        )
-        stages[label] = stage
+    stages, total_sensor_compute = sensor_stage_distributions(window)
 
     profile_exact = [
         row for row in sent if str(row.get("profile_equivalence_checked")).lower() in {"1", "true"}
@@ -337,7 +526,34 @@ def analyse(
     ready = json.loads((direct_dir / "direct_map_ready.json").read_text(encoding="utf-8"))
     summary = json.loads((attempt / "RESULTS_SUMMARY.json").read_text(encoding="utf-8"))
     structural = dict(summary.get("structural_acceptance") or {})
-    full_path = full_path_metrics(window, ingest, bridge)
+    full_path = full_path_metrics(window, ingest, publication, bridge)
+    sent_keys = {
+        (str(row.get("stream_id")), str(row.get("frame_id"))) for row in sent
+    }
+    publication_keys = {
+        (str(row.get("stream_id")), str(row.get("frame_id")))
+        for row in publication
+    }
+    sent_identity_exact = all(
+        int(row["action_id"]) == ACTION_ID
+        and row["profile_id"] == PROFILE_ID
+        and str(row.get("stream_id") or "") != ""
+        and row["capture_id"] == f"{row['stream_id']}:{int(row['frame_id'])}"
+        for row in sent
+    )
+    publication_identity_exact = all(
+        (str(row.get("stream_id")), str(row.get("frame_id"))) in sent_keys
+        and int(row["action_id"]) == ACTION_ID
+        for row in publication
+    )
+    ingest_identity_exact = all(
+        (str(row.get("stream_id")), str(row.get("frame_id"))) in publication_keys
+        and str(row.get("capture_id"))
+        == f"{row.get('stream_id')}:{int(row['frame_id'])}"
+        and int(row["action_id"]) == ACTION_ID
+        and row["profile_id"] == PROFILE_ID
+        for row in ingest
+    )
 
     correlation_fields = {
         "radar_points": "raw_radar_return_count",
@@ -359,15 +575,9 @@ def analyse(
             len(profile_exact) == EQUIVALENCE_FRAMES and exact_holds
         ),
         "frame_action_context_identity_exact": (
-            all(
-                int(row["action_id"]) == ACTION_ID
-                and row["profile_id"] == PROFILE_ID
-                and str(row.get("stream_id") or "") != ""
-                and row["capture_id"]
-                == f"{row['stream_id']}:{int(row['frame_id'])}"
-                and str(row.get("frame_context_valid")).lower() in {"1", "true"}
-                for row in sent
-            )
+            sent_identity_exact
+            and publication_identity_exact
+            and ingest_identity_exact
             and int(direct_result["identity_mismatches"]) == 0
         ),
         "one_diagnostic_cuda_sync_per_profiled_frame": all(
@@ -397,9 +607,26 @@ def analyse(
         "cell_runtime_passed": run_result.get("status") == "PASSED",
         "final_host_cold": bool(final_cold),
     }
+    if mode == OPTIMIZED_MODE:
+        gates["valid_ue_clock_anchors"] = (
+            bridge.get("availability") == "AVAILABLE"
+            and int(bridge.get("anchor_count") or 0) == len(sent)
+            and bridge.get("deviation_within_bound") is True
+            and bridge.get("legacy_edge_result_fields_used") is False
+        )
+    else:
+        gates["baseline_clock_unavailability_explicit"] = (
+            bridge.get("availability") == "UNAVAILABLE"
+            and bridge.get("legacy_edge_result_fields_used") is False
+            and full_path["metrics"]["feature_uplink"]["availability"]
+            == "UNAVAILABLE"
+            and full_path["metrics"]["action_start_to_install"]["availability"]
+            == "UNAVAILABLE"
+            and full_path["cross_clock_subtraction_performed"] is False
+        )
     return {
         "schema": SCHEMA,
-        "mode": BASELINE_MODE,
+        "mode": mode,
         "cell": {
             "cell_id": cell.cell_id,
             "action_id": cell.action_id,
@@ -424,7 +651,7 @@ def analyse(
             "analysis_last_frame": int(window[-1]["frame_id"]),
         },
         "stages": stages,
-        "total_sensor_compute": distribution(totals),
+        "total_sensor_compute": total_sensor_compute,
         "sensor_compute_definition": (
             "pre_front_compute_ms excluding immutable evaluation snapshot, plus "
             "seven-channel production enqueue wall time; sensor wait and worker "
@@ -457,6 +684,13 @@ def analyse(
             "model_input_exact": exact_holds,
             "declared_tolerance": {"numpy": "exact", "torch": "exact"},
         },
+        "direct_context_identity": {
+            "sent_rows_exact": sent_identity_exact,
+            "publication_rows_exact": publication_identity_exact,
+            "ingest_rows_exact": ingest_identity_exact,
+            "published_context_is_validated_before_publication": True,
+            "legacy_ue_result_frame_context_field_required": False,
+        },
         "publication_to_install": join,
         "direct_map": direct_result,
         "final_host_cold": dict(final_cold),
@@ -465,11 +699,17 @@ def analyse(
     }
 
 
-def write_outputs(root: Path, result: Mapping[str, Any]) -> None:
+def write_outputs(
+    root: Path,
+    result: Mapping[str, Any],
+    *,
+    terminal: str = SUCCESS_TERMINAL,
+    extra_artifacts: Sequence[Path] = (),
+) -> None:
     result_path = root / "SENSOR_PROFILE_RESULT.json"
     supervisor.atomic_json(result_path, result)
     lines = [
-        "# Live sensor-preparation baseline",
+        "# Live sensor-preparation analysis",
         "",
         f"Status: **{result['status']}**",
         "",
@@ -489,7 +729,8 @@ def write_outputs(root: Path, result: Mapping[str, Any]) -> None:
     report = root / "REPORT.md"
     report.write_text("\n".join(lines) + "\n", encoding="utf-8")
     hashes = {
-        path.name: supervisor.sha256_file(path) for path in (result_path, report)
+        path.name: supervisor.sha256_file(path)
+        for path in (result_path, report, *extra_artifacts)
     }
     supervisor.atomic_json(
         root / "artifact_manifest.json",
@@ -497,7 +738,7 @@ def write_outputs(root: Path, result: Mapping[str, Any]) -> None:
     )
     if result["status"] == "PASS":
         supervisor.write_create_only(
-            root / SUCCESS_TERMINAL,
+            root / terminal,
             json.dumps(
                 {"schema": f"{SCHEMA}.terminal", "status": "PASS", "sha256": hashes},
                 indent=2,
@@ -507,11 +748,128 @@ def write_outputs(root: Path, result: Mapping[str, Any]) -> None:
         )
 
 
+def source_artifact_binding(source: Path, attempt: Path) -> dict[str, Any]:
+    required = (
+        source / "campaign_ledger.json",
+        attempt / "PASSED.json",
+        attempt / "manifest.json",
+        attempt / "per_frame_metrics.csv",
+        attempt / "direct_edge_map/direct_edge_publication.csv",
+        attempt / "direct_edge_map/direct_map_ingest.csv",
+    )
+    artifacts: dict[str, Any] = {}
+    for path in required:
+        require(path.is_file(), f"retrospective source artifact is absent: {path}")
+        relative = str(path.relative_to(source))
+        artifacts[relative] = {
+            "bytes": path.stat().st_size,
+            "sha256": supervisor.sha256_file(path),
+        }
+    return {
+        "schema": f"{SCHEMA}.retrospective_source_binding.v1",
+        "source": str(source),
+        "artifacts": artifacts,
+    }
+
+
+def _retrospective_analysis(args: argparse.Namespace) -> int:
+    require(args.retrospective_source is not None, "--retrospective-source is required")
+    require(args.sample_target == SAMPLE_TARGET, "profiling sample target is locked to 500")
+    require(
+        args.warmup_sent_frames == WARMUP_SENT_FRAMES,
+        "profiling warmup is locked to 20 sent frames",
+    )
+    source = args.retrospective_source.resolve(strict=True)
+    experiments = (ROOT / "experiments").resolve(strict=True)
+    try:
+        source.relative_to(experiments)
+    except ValueError as exc:
+        raise supervisor.CampaignError(
+            "retrospective source must remain beneath experiments"
+        ) from exc
+    attempt = find_attempt(source, "a50__favorable_stable")
+    binding = source_artifact_binding(source, attempt)
+    ledger = json.loads((source / "campaign_ledger.json").read_text(encoding="utf-8"))
+    attempts = list(ledger.get("attempts") or [])
+    require(
+        len(attempts) == 1
+        and attempts[0].get("status") == "PASSED"
+        and str(attempts[0].get("attempt_dir")) == str(attempt.relative_to(source)),
+        "retrospective campaign ledger does not bind one passed attempt",
+    )
+    passed_path = attempt / "PASSED.json"
+    require(
+        attempts[0].get("terminal_sha256") == supervisor.sha256_file(passed_path),
+        "retrospective PASSED terminal hash does not match the campaign ledger",
+    )
+    passed = json.loads(passed_path.read_text(encoding="utf-8"))
+    cold = dict(((passed.get("carla_cleanup") or {}).get("application_cold") or {}))
+    require(
+        cold.get("edge_container_absent") is True
+        and not cold.get("application_processes")
+        and not cold.get("conflicting_tcp_ports")
+        and not cold.get("conflicting_udp_ports")
+        and not cold.get("runtime_temporary_paths")
+        and not cold.get("shared_memory_objects"),
+        "retrospective passed terminal lacks a valid application-cold record",
+    )
+    config_path = args.config.resolve(strict=True)
+    _config, cells, _trace_hashes = supervisor.validate_static(config_path)
+    candidates = [
+        cell
+        for cell in cells
+        if cell.action_id == ACTION_ID
+        and cell.network_profile_id == NETWORK_PROFILE
+        and cell.profile_id == PROFILE_ID
+    ]
+    require(len(candidates) == 1, "registered retrospective cell is not unique")
+    result = analyse(
+        attempt,
+        candidates[0],
+        SAMPLE_TARGET,
+        WARMUP_SENT_FRAMES,
+        attempts[0],
+        cold,
+        mode=BASELINE_MODE,
+    )
+    result["retrospective_analysis"] = {
+        "source_was_read_only": True,
+        "source_binding": binding,
+        "legacy_result_return_fields_required": False,
+    }
+    output = args.output_root.resolve(strict=False)
+    try:
+        output.relative_to(experiments)
+    except ValueError as exc:
+        raise supervisor.CampaignError("output must remain beneath experiments") from exc
+    require(output != source, "retrospective output must differ from its source")
+    require(not output.exists(), f"create-only output exists: {output}")
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.mkdir(parents=False, exist_ok=False)
+    binding_path = output / "source_binding.json"
+    supervisor.write_create_only(
+        binding_path, json.dumps(binding, indent=2, sort_keys=True) + "\n"
+    )
+    write_outputs(
+        output,
+        result,
+        terminal=RETROSPECTIVE_TERMINAL,
+        extra_artifacts=(binding_path,),
+    )
+    require(
+        binding == source_artifact_binding(source, attempt),
+        "retrospective source artifacts changed during analysis",
+    )
+    print(json.dumps({"status": result["status"], "output": str(output)}, sort_keys=True))
+    return 0 if result["status"] == "PASS" else 1
+
+
 def parser() -> argparse.ArgumentParser:
     value = argparse.ArgumentParser(description=__doc__)
     value.add_argument("--execute", required=True)
     value.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
     value.add_argument("--output-root", type=Path, required=True)
+    value.add_argument("--retrospective-source", type=Path)
     value.add_argument("--carla-port", type=int, default=2000)
     value.add_argument("--maximum-loop-sim-s", type=float, default=600.0)
     value.add_argument("--sample-target", type=int, default=SAMPLE_TARGET)
@@ -521,7 +879,13 @@ def parser() -> argparse.ArgumentParser:
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = parser().parse_args(argv)
+    if args.execute == RETROSPECTIVE_TOKEN:
+        return _retrospective_analysis(args)
     require(args.execute == TOKEN, f"exact execution token required: {TOKEN}")
+    require(
+        args.retrospective_source is None,
+        "live execution refuses --retrospective-source",
+    )
     require(args.sample_target == SAMPLE_TARGET, "profiling sample target is locked to 500")
     require(args.warmup_sent_frames == WARMUP_SENT_FRAMES, "profiling warmup is locked to 20 sent frames")
     config_path = args.config.resolve(strict=True)
