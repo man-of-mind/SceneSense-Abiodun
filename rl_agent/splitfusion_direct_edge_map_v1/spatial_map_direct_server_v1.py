@@ -71,6 +71,17 @@ def _direct_parser() -> argparse.ArgumentParser:
     parser.add_argument("--direct-ingest-cpus", default="")
     parser.add_argument("--direct-receive-cpus", default="")
     parser.add_argument("--direct-ingest-queue-capacity", type=int, default=64)
+    parser.add_argument(
+        "--direct-render",
+        choices=("on", "off"),
+        default="on",
+        help=(
+            "Run the baseline map renderer. Measured at 97 ms median per frame "
+            "on an empty state, held in one contiguous block, in the same "
+            "interpreter as the receive and ingest owners. Turn it off for a "
+            "measurement cell."
+        ),
+    )
     return parser
 
 
@@ -206,8 +217,18 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     service.start()
 
-    render = threading.Thread(target=baseline.render_thread, daemon=True)
-    render.start()
+    # The renderer is a visualisation aid, not part of the authoritative map
+    # state. One render measures 97 ms median on an empty state and the loop
+    # sleeps at most 20 ms, so it holds the GIL in ~100 ms contiguous blocks --
+    # in the same interpreter as the receive and ingest owners. That is the
+    # measured shape of the map-service tail: p99 stalls of 92-238 ms at the
+    # arrival stamp and at ingest validation, for work of 0.6-2.5 ms. Off for a
+    # measurement cell; the install path and every recorded outcome are
+    # identical either way.
+    render_enabled = str(direct.direct_render) == "on"
+    if render_enabled:
+        render = threading.Thread(target=baseline.render_thread, daemon=True)
+        render.start()
 
     def _write_report() -> None:
         if direct.direct_report_file is None:
@@ -217,6 +238,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             "status": "COMPLETE",
             "direct_ingest": service.report(),
             "legacy_loopback_listener_started": False,
+            "render_thread_started": bool(render_enabled),
             "written_at_unix_s": time.time(),
         }
         temporary = Path(str(direct.direct_report_file) + ".partial")
@@ -237,6 +259,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             "allowed_action_ids": list(allowed),
             "processing_horizon_ms": float(direct.direct_processing_horizon_ms),
             "installed_frame_history_size": int(cfg.installed_frame_history_size),
+            "render_thread_started": bool(render_enabled),
         }
         path = Path(direct.direct_ready_file)
         path.parent.mkdir(parents=True, exist_ok=True)

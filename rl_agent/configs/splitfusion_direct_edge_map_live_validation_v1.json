@@ -184,12 +184,13 @@
     "complete_route_b_loop_claimed": false,
     "complete_route_b_loop_required": false,
     "cpu_reservation": {
-      "edge_compute_cpus": "0-15",
-      "edge_receive_cpus": "16,17",
-      "map_ingest_cpus": "19",
+      "edge_compute_cpus": "",
+      "edge_receive_cpus": "",
+      "map_ingest_cpus": "",
       "map_ingest_queue_capacity": 64,
-      "map_receive_cpus": "18",
-      "rationale": "The retained validation measured a publication interval whose work is at most 2.3 ms on an idle host but whose live p99 is 58-107 ms, scattered through the cell, independent of payload size and uncorrelated with the map thread being busy: a run-queue signature. The OAI launcher is SHA-256 pinned and the radio's timing must not be perturbed, so nothing repins the softmodem or CARLA. These sets only stop the edge's own and the map's own owners from queueing behind each other, and the applied result is recorded per thread.",
+      "map_receive_cpus": "",
+      "map_render": "off",
+      "rationale": "Placement is now empty on purpose. A controlled experiment on this host (8 busy processes on the reserved cores) puts a one-core reservation and a four-core set within 0.4 ms of each other at p99 (2.99 vs 2.58 ms) and leaves the unpinned thread best of all (0.225 ms), so CPU placement is not the map-service tail and constraining these owners buys nothing. The measured cause is the baseline map renderer: one frame takes 97 ms median on an empty state and the loop sleeps at most 20 ms, so it holds the GIL in ~100 ms contiguous blocks in the same interpreter as the map's receive and ingest owners. That is the shape of the observed p99 stalls of 92-238 ms against 0.6-2.5 ms of work. The renderer is a visualisation aid and is off for a measurement cell; the install path is unchanged. The SHA-pinned OAI launcher and CARLA are untouched either way.",
       "softmodem_or_carla_repinned": false
     },
     "feedback_path_note": "10.0.0.2 is a local address on this host (oaitun_ue1), so map->UE feedback is delivered by the kernel locally and does not traverse the radio. ACK latency is therefore a host-local controller-observation delay and a lower bound on an over-the-air control-plane delay.",

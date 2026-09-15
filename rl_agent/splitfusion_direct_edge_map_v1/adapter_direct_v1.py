@@ -312,6 +312,8 @@ def start_direct_map_process(
         "--direct-ingest-cpus", _reservation(campaign, "map_ingest_cpus"),
         "--direct-ingest-queue-capacity",
         str(int(_reservation(campaign, "map_ingest_queue_capacity", 64))),
+        "--direct-render",
+        str(_reservation(campaign, "map_render", "on") or "on"),
     ]
     process = subprocess.Popen(argv, cwd=str(pinned.ROOT), stdin=subprocess.DEVNULL)
     try:

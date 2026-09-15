@@ -922,6 +922,7 @@ class MapServerArgumentSplitTests(unittest.TestCase):
             "--direct-ingest-cpus", reservation(campaign, "map_ingest_cpus"),
             "--direct-ingest-queue-capacity",
             str(int(reservation(campaign, "map_ingest_queue_capacity", 64))),
+            "--direct-render", str(reservation(campaign, "map_render", "on") or "on"),
         ]
 
     def test_no_wrapper_option_reaches_the_baseline_parser(self) -> None:
@@ -931,13 +932,28 @@ class MapServerArgumentSplitTests(unittest.TestCase):
 
         mine, rest = server._split_direct_arguments(self._argv())
         leaked = [token for token in rest if token.startswith("--direct-")]
+        self.assertIn("--direct-render", mine)
         leaked += [token for token in rest if token.startswith("--ue-feedback-")]
         self.assertEqual(leaked, [], f"wrapper options reached the baseline parser: {leaked}")
         parsed = server._parse_direct(mine)
         self.assertEqual(parsed.direct_map_port, 39320)
-        self.assertEqual(parsed.direct_ingest_queue_capacity, 64)
-        self.assertEqual(parsed.direct_ingest_cpus, "19")
-        self.assertEqual(parsed.direct_receive_cpus, "18")
+        # Every wrapper option must survive the split with the value the
+        # adapter sends, whatever the live config currently sets it to.
+        import json as json_module
+
+        config_path = (
+            Path(__file__).resolve().parents[3]
+            / "rl_agent/configs/splitfusion_direct_edge_map_live_validation_v1.json"
+        )
+        campaign = json_module.loads(config_path.read_text(encoding="utf-8"))
+        block = campaign["direct_edge_map"]["cpu_reservation"]
+        self.assertEqual(
+            parsed.direct_ingest_queue_capacity,
+            int(block["map_ingest_queue_capacity"]),
+        )
+        self.assertEqual(parsed.direct_ingest_cpus, str(block["map_ingest_cpus"]))
+        self.assertEqual(parsed.direct_receive_cpus, str(block["map_receive_cpus"]))
+        self.assertEqual(parsed.direct_render, str(block.get("map_render", "on")))
 
     def test_every_wrapper_option_is_in_the_split_list(self) -> None:
         from rl_agent.splitfusion_direct_edge_map_v1 import (

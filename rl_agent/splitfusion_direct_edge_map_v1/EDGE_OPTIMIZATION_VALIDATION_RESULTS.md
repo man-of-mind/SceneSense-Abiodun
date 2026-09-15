@@ -123,19 +123,59 @@ be computed and **31–40 percentage points more of the transmitted frames reach
 the map**, with capture-to-install freshness improving by 102–122 ms at p50.
 
 **The post-publication service tail regressed** at p95/p99, and for a50/a71 that
-surfaces as more ACK timeouts. Two things changed at once and are not separable
-in this run: the publication rate roughly doubled, and the latency-critical
-threads were pinned. The decomposition points at the pin: the two worst stall
-stages both run on the map ingest thread pinned to exactly **one** core, with an
-empty queue and a 5 µs lock.
+surfaces as more ACK timeouts.
 
-**Recommended next change (not validated live — the single authorised retry is
-spent):** widen `map_receive_cpus` / `map_ingest_cpus` from one core each to a
-shared small set, or drop map-side pinning and keep only the receive/ingest
-split. Because the SHA-pinned OAI launcher forbids repinning the softmodem, a
-one-core reservation removes the thread's ability to migrate away from
-contention it cannot displace, which is the opposite of what a reservation is
-for.
+### The cause: the map's own renderer holds the GIL for ~100 ms at a time
+
+My first reading was that the one-core CPU reservation was to blame. **A
+controlled experiment refutes that** — 8 busy processes pinned onto the reserved
+cores, measuring wake-up latency of a thread that does 1 ms of work every 10 ms:
+
+| reservation | p50 | p95 | p99 | max |
+|---|---:|---:|---:|---:|
+| single core | 0.053 | 2.99 | 2.99 | 2.99 |
+| four-core set | 0.053 | 2.58 | 2.58 | 2.58 |
+| unpinned (24 cores) | 0.139 | 0.177 | **0.225** | 2.71 |
+
+One core and four cores are within 0.4 ms of each other, and plain CPU
+contention on this host does not produce 100 ms stalls at all — two orders of
+magnitude short. CPU placement is not the tail.
+
+**The measured cause is the baseline map renderer.** `spatial_map_direct_server_v1`
+starts `baseline.render_thread` in the same interpreter as the map's receive and
+ingest owners. Timed directly on this host:
+
+* one render (`_build_spatial_map_snapshot` + matplotlib → PNG): **97.0 ms
+  median, 106.6 ms max**, on an *empty* state, so that is the floor;
+* the loop sleeps `max(0.02, interval - elapsed)`, so at `render_hz = 4` it
+  holds the GIL for ~97 ms out of every ~250 ms, in one contiguous block.
+
+That is the shape of every stall in §3:
+
+* `reassembly_complete → map_worker_start` p99 116–238 ms — the ingest owner
+  waiting for the GIL, with an empty queue;
+* `map_worker_start → association_start` p99 92–158 ms — the same owner, for
+  ~0.6 ms of work;
+* `serialization_start → first_datagram_receive` p99 116–130 ms — the *arrival
+  stamp* is taken by the map's receive owner, also in that interpreter.
+
+It explains why affinity had no effect (the GIL is process-wide), why one and
+two render blocks bracket the observed p99s, and why the tail worsened when the
+edge doubled its publication rate: twice as many updates land inside a ~97 ms
+block. It was also present in the baseline run, whose `publish_start →
+first_datagram` p99 of 83–107 ms is one render block.
+
+### Applied (not live-validated — the single authorised retry is spent)
+
+* `--direct-render off` for a measurement cell. The renderer is a visualisation
+  aid; the install path, the authoritative map state and every recorded outcome
+  are identical either way, and the choice is recorded in the map's ready and
+  report files.
+* CPU reservations set back to empty. The mechanism and its per-thread recording
+  are retained, but placement is not the cause and constraining these owners
+  buys nothing.
+
+Neither change touches the SHA-pinned OAI launcher or CARLA.
 
 ---
 
