@@ -47,18 +47,37 @@ SPATIAL_STREAM_SCHEMA = baseline.SPATIAL_STREAM_SCHEMA
 READY_SCHEMA = "splitfusion_direct_map_ready.v1"
 REPORT_SCHEMA = "splitfusion_direct_map_report.v1"
 
-DIRECT_ARGUMENTS = (
-    "--direct-map-host",
-    "--direct-map-port",
-    "--ue-feedback-host",
-    "--ue-feedback-port",
-    "--direct-run-id",
-    "--direct-cell-id",
-    "--direct-allowed-action-ids",
-    "--direct-processing-horizon-ms",
-    "--direct-ingest-csv",
-    "--direct-ready-file",
-    "--direct-report-file",
+def _direct_parser() -> argparse.ArgumentParser:
+    """This wrapper's own options, in one place.
+
+    ``DIRECT_ARGUMENTS`` is derived from this parser rather than being written
+    out a second time: a wrapper option missing from that list is silently
+    forwarded to the baseline's parser, which rejects it and takes the map
+    server down at launch.
+    """
+
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument("--direct-map-host", required=True)
+    parser.add_argument("--direct-map-port", type=int, required=True)
+    parser.add_argument("--ue-feedback-host", required=True)
+    parser.add_argument("--ue-feedback-port", type=int, required=True)
+    parser.add_argument("--direct-run-id", default="")
+    parser.add_argument("--direct-cell-id", default="")
+    parser.add_argument("--direct-allowed-action-ids", default="")
+    parser.add_argument("--direct-processing-horizon-ms", type=float, default=500.0)
+    parser.add_argument("--direct-ingest-csv", type=Path, default=None)
+    parser.add_argument("--direct-ready-file", type=Path, default=None)
+    parser.add_argument("--direct-report-file", type=Path, default=None)
+    parser.add_argument("--direct-ingest-cpus", default="")
+    parser.add_argument("--direct-receive-cpus", default="")
+    parser.add_argument("--direct-ingest-queue-capacity", type=int, default=64)
+    return parser
+
+
+DIRECT_ARGUMENTS = tuple(
+    option
+    for action in _direct_parser()._actions
+    for option in action.option_strings
 )
 
 
@@ -84,22 +103,7 @@ def _split_direct_arguments(argv: Sequence[str]) -> tuple[list[str], list[str]]:
 
 
 def _parse_direct(argv: Sequence[str]) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(add_help=False)
-    parser.add_argument("--direct-map-host", required=True)
-    parser.add_argument("--direct-map-port", type=int, required=True)
-    parser.add_argument("--ue-feedback-host", required=True)
-    parser.add_argument("--ue-feedback-port", type=int, required=True)
-    parser.add_argument("--direct-run-id", default="")
-    parser.add_argument("--direct-cell-id", default="")
-    parser.add_argument("--direct-allowed-action-ids", default="")
-    parser.add_argument("--direct-processing-horizon-ms", type=float, default=500.0)
-    parser.add_argument("--direct-ingest-csv", type=Path, default=None)
-    parser.add_argument("--direct-ready-file", type=Path, default=None)
-    parser.add_argument("--direct-report-file", type=Path, default=None)
-    parser.add_argument("--direct-ingest-cpus", default="")
-    parser.add_argument("--direct-receive-cpus", default="")
-    parser.add_argument("--direct-ingest-queue-capacity", type=int, default=64)
-    return parser.parse_args(list(argv))
+    return _direct_parser().parse_args(list(argv))
 
 
 def install_under_state_lock(

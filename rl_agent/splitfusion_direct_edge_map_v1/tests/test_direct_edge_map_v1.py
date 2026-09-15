@@ -875,3 +875,78 @@ class CpuReservationTests(unittest.TestCase):
             self.assertEqual(len(summary["threads"]), 2)
         finally:
             os.sched_setaffinity(0, set(available))
+
+
+class MapServerArgumentSplitTests(unittest.TestCase):
+    """The wrapper's options must never reach the baseline's own parser.
+
+    A wrapper option missing from the split list is forwarded to the baseline
+    parser, which rejects it and takes the map server down at launch. That
+    cannot be caught by importing the module, so this drives the real argv the
+    adapter builds.
+    """
+
+    def _argv(self) -> list[str]:
+        import json as json_module
+
+        from rl_agent.splitfusion_direct_edge_map_v1 import adapter_direct_v1
+
+        config_path = (
+            Path(__file__).resolve().parents[3]
+            / "rl_agent/configs/splitfusion_direct_edge_map_live_validation_v1.json"
+        )
+        campaign = json_module.loads(config_path.read_text(encoding="utf-8"))
+        runtime = campaign["runtime"]
+        reservation = adapter_direct_v1._reservation
+        return [
+            "--api-host", "127.0.0.1",
+            "--api-port", "8008",
+            "--default-action-id", "15",
+            "--carla-host", "127.0.0.1",
+            "--carla-port", "2000",
+            "--output-dir", "/tmp/map",
+            "--focus-follow-stream-id", "unused",
+            "--installed-frame-history-size", "4096",
+            "--direct-map-host", "192.168.70.129",
+            "--direct-map-port", str(int(runtime["direct_map_ingest_port"])),
+            "--ue-feedback-host", str(runtime["ue_bind_host"]),
+            "--ue-feedback-port", str(int(runtime["ue_control_port"])),
+            "--direct-run-id", str(campaign["campaign_id"]),
+            "--direct-cell-id", "a15__favorable_stable",
+            "--direct-allowed-action-ids", "15",
+            "--direct-processing-horizon-ms", "500.0",
+            "--direct-ingest-csv", "/tmp/direct_map_ingest.csv",
+            "--direct-ready-file", "/tmp/direct_map_ready.json",
+            "--direct-report-file", "/tmp/direct_map_report.json",
+            "--direct-receive-cpus", reservation(campaign, "map_receive_cpus"),
+            "--direct-ingest-cpus", reservation(campaign, "map_ingest_cpus"),
+            "--direct-ingest-queue-capacity",
+            str(int(reservation(campaign, "map_ingest_queue_capacity", 64))),
+        ]
+
+    def test_no_wrapper_option_reaches_the_baseline_parser(self) -> None:
+        from rl_agent.splitfusion_direct_edge_map_v1 import (
+            spatial_map_direct_server_v1 as server,
+        )
+
+        mine, rest = server._split_direct_arguments(self._argv())
+        leaked = [token for token in rest if token.startswith("--direct-")]
+        leaked += [token for token in rest if token.startswith("--ue-feedback-")]
+        self.assertEqual(leaked, [], f"wrapper options reached the baseline parser: {leaked}")
+        parsed = server._parse_direct(mine)
+        self.assertEqual(parsed.direct_map_port, 39320)
+        self.assertEqual(parsed.direct_ingest_queue_capacity, 64)
+        self.assertEqual(parsed.direct_ingest_cpus, "19")
+        self.assertEqual(parsed.direct_receive_cpus, "18")
+
+    def test_every_wrapper_option_is_in_the_split_list(self) -> None:
+        from rl_agent.splitfusion_direct_edge_map_v1 import (
+            spatial_map_direct_server_v1 as server,
+        )
+
+        declared = {
+            option
+            for action in server._direct_parser()._actions
+            for option in action.option_strings
+        }
+        self.assertEqual(declared, set(server.DIRECT_ARGUMENTS))
