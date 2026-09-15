@@ -18,8 +18,9 @@ is preempted.
 from __future__ import annotations
 
 import time
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from concurrent.futures import Future, ThreadPoolExecutor
+from dataclasses import dataclass
 from typing import Any
 
 import cv2
@@ -133,17 +134,73 @@ def _finish_person_components(
     return _connected_person_components_array(mask_cpu)
 
 
+@dataclass(frozen=True)
+class _PendingFiniteCheck:
+    """One deferred verdict plus every tensor that verdict was computed from.
+
+    ``tensors``/``extras`` are retained deliberately.  They keep the checked
+    storage alive until the validation stream has actually executed, and they
+    let ``resolve`` re-derive an authoritative synchronous verdict without
+    re-reading anything the producer may have replaced.
+    """
+
+    failure: str
+    combined: torch.Tensor
+    tensors: tuple[torch.Tensor, ...]
+    extras: tuple[torch.Tensor, ...]
+
+    def synchronously_satisfied(self) -> bool:
+        """Recompute the same predicate on the caller's own stream."""
+
+        return all(bool(torch.isfinite(tensor).all()) for tensor in self.tensors) and all(
+            bool(extra.bool().all()) for extra in self.extras
+        )
+
+
 class _DeferredFiniteValidator:
-    """Run fail-closed tensor validation on one non-model CUDA stream."""
+    """Run fail-closed tensor validation on one non-model CUDA stream.
+
+    The validation stream reads storage the *caller* allocated on the compute
+    stream and publishes a verdict tensor the caller later reads back.  The
+    CUDA caching allocator is stream-scoped: without ``record_stream`` it may
+    hand either block to an unrelated allocation before the other stream's
+    kernel has run, and the deferred verdict then describes recycled memory
+    rather than the checked output.  Both directions are therefore registered
+    with the allocator, every checked tensor is retained until ``resolve``,
+    and a negative verdict is confirmed synchronously before a frame is failed.
+    """
 
     def __init__(self, device: torch.device) -> None:
         self._device = device
         self._stream = torch.cuda.Stream(device=device)
-        self._pending: list[tuple[str, torch.Tensor]] = []
+        self._pending: list[_PendingFiniteCheck] = []
+        self._asynchronous_verdict_corrections = 0
+
+    @property
+    def asynchronous_verdict_corrections(self) -> int:
+        """Deferred verdicts the synchronous authority refused to confirm."""
+
+        return self._asynchronous_verdict_corrections
 
     def reset(self) -> None:
         if self._pending:
             raise RuntimeError("v3 finite validation was not resolved")
+
+    def discard(self) -> None:
+        """Drop the verdicts of a frame that is being abandoned.
+
+        Only an abandoned frame reaches this; it never publishes an output, so
+        no unresolved verdict can become a published result.
+        """
+
+        self._stream.synchronize()
+        self._pending.clear()
+
+    def _adopt(self, tensors: Sequence[torch.Tensor]) -> None:
+        """Register caller storage as in use by the validation stream."""
+
+        for tensor in tensors:
+            tensor.record_stream(self._stream)
 
     def launch(
         self,
@@ -155,16 +212,27 @@ class _DeferredFiniteValidator:
         tensors = _tree_tensors(value)
         if any(tensor.device != self._device for tensor in tensors):
             raise ValueError("v3 finite validation received a foreign device")
+        for check in extra_checks:
+            if check.device != self._device or check.numel() != 1:
+                raise ValueError("v3 finite extra check contract drift")
         current = torch.cuda.current_stream(self._device)
         self._stream.wait_stream(current)
+        self._adopt(tensors)
+        self._adopt(extra_checks)
         with torch.cuda.stream(self._stream):
             checks = [torch.isfinite(tensor).all() for tensor in tensors]
             for check in extra_checks:
-                if check.device != self._device or check.numel() != 1:
-                    raise ValueError("v3 finite extra check contract drift")
                 checks.append(check.bool())
             combined = torch.stack(checks).all()
-        self._pending.append((f"{label} contains non-finite values", combined))
+        combined.record_stream(current)
+        self._pending.append(
+            _PendingFiniteCheck(
+                failure=f"{label} contains non-finite values",
+                combined=combined,
+                tensors=tuple(tensors),
+                extras=tuple(extra_checks),
+            )
+        )
         return len(tensors)
 
     def launch_predicate(self, check: torch.Tensor, failure: str) -> None:
@@ -172,16 +240,30 @@ class _DeferredFiniteValidator:
             raise ValueError("v3 finite predicate contract drift")
         current = torch.cuda.current_stream(self._device)
         self._stream.wait_stream(current)
+        self._adopt((check,))
         with torch.cuda.stream(self._stream):
             combined = check.bool()
-        self._pending.append((failure, combined))
+        combined.record_stream(current)
+        self._pending.append(
+            _PendingFiniteCheck(
+                failure=failure, combined=combined, tensors=(), extras=(check,)
+            )
+        )
 
     def resolve(self) -> None:
         self._stream.synchronize()
         pending, self._pending = self._pending, []
-        for failure, combined in pending:
-            if not bool(combined):
-                raise RuntimeError(failure)
+        for item in pending:
+            if bool(item.combined):
+                continue
+            # The synchronous scan on the compute stream is the authority: it
+            # is the same predicate the qualified v2 adapter evaluates. A
+            # deferred verdict it refuses to confirm is a validator fault, not
+            # a non-finite output, and must never be attributed to geometry.
+            if item.synchronously_satisfied():
+                self._asynchronous_verdict_corrections += 1
+                continue
+            raise RuntimeError(item.failure)
 
 
 def apply_p025_service_policy_v3(
@@ -275,12 +357,19 @@ class OptimizedFrozenP025TailAdapterV3(OptimizedFrozenP025TailAdapterV2):
         self._component_stream = torch.cuda.Stream(device=self._device)
         self._component_ready = torch.cuda.Event(blocking=True)
         self._finite_validator = _DeferredFiniteValidator(self._device)
+        self._component_inflight = False
         self._person_mask_cpu = torch.empty(
             (CONTENT_H, CONTENT_W),
             dtype=torch.bool,
             device="cpu",
             pin_memory=True,
         )
+
+    @property
+    def asynchronous_verdict_corrections(self) -> int:
+        """Deferred finite verdicts the synchronous authority overturned."""
+
+        return self._finite_validator.asynchronous_verdict_corrections
 
     def _launch_person_components(
         self, semantic_logits: torch.Tensor
@@ -292,14 +381,24 @@ class OptimizedFrozenP025TailAdapterV3(OptimizedFrozenP025TailAdapterV2):
             and tuple(semantic_logits.shape[-2:]) == (CONTENT_H, CONTENT_W),
             "v3 semantic-logit shape drift",
         )
+        # The mask buffer and the completion event are reused every frame, so
+        # the previous frame's labeller must already have consumed them.
+        _require(
+            not self._component_inflight,
+            "v3 person-component buffer is still in flight",
+        )
         current = torch.cuda.current_stream(self._device)
         self._component_stream.wait_stream(current)
+        # The component stream reads compute-stream storage; without this the
+        # allocator may recycle the logits behind the argmax kernel.
+        semantic_logits.record_stream(self._component_stream)
         with torch.cuda.stream(self._component_stream):
             mask_gpu = semantic_logits.argmax(dim=1)[0].eq(
                 PERSON_SEMANTIC_CHANNEL
             )
             self._person_mask_cpu.copy_(mask_gpu, non_blocking=True)
             self._component_ready.record(self._component_stream)
+        self._component_inflight = True
         return self._component_executor.submit(
             _finish_person_components,
             self._component_ready,
@@ -347,6 +446,36 @@ class OptimizedFrozenP025TailAdapterV3(OptimizedFrozenP025TailAdapterV2):
         components_future = self._launch_person_components(
             outputs["semantic_logits"]
         )
+        try:
+            return self._finish(
+                components_future,
+                outputs=outputs,
+                calibration=calibration,
+                context=context,
+                static=static,
+                camera_world=camera_world,
+                pose_ns=pose_ns,
+            )
+        except BaseException:
+            # Never leave the reused mask buffer or the deferred verdicts
+            # attached to a frame that is being abandoned.
+            if self._component_inflight:
+                components_future.exception()
+                self._component_inflight = False
+            self._finite_validator.discard()
+            raise
+
+    def _finish(
+        self,
+        components_future: Future[tuple[np.ndarray, int]],
+        *,
+        outputs: Mapping[str, Any],
+        calibration: Mapping[str, torch.Tensor],
+        context: Any,
+        static: Mapping[str, Any],
+        camera_world: torch.Tensor,
+        pose_ns: int,
+    ) -> Mapping[str, torch.Tensor]:
         valid_calibration = (
             torch.isfinite(calibration["intrinsic"]).all()
             & torch.isfinite(calibration["extrinsic"]).all()
@@ -377,7 +506,10 @@ class OptimizedFrozenP025TailAdapterV3(OptimizedFrozenP025TailAdapterV2):
         self._timing_finish("finite_check_postprocess")
 
         self._timing_start("p025_service_filter")
-        components, _component_count = components_future.result()
+        try:
+            components, _component_count = components_future.result()
+        finally:
+            self._component_inflight = False
         perception, original_indices = apply_p025_service_policy_v3(
             postprocessed, components
         )

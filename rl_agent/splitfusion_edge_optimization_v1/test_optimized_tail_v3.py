@@ -20,6 +20,7 @@ from .optimized_tail import (
     tree_bitwise_equal,
 )
 from .optimized_tail_v3 import (
+    _DeferredFiniteValidator,
     _connected_person_components_array,
     apply_p025_service_policy_v3,
 )
@@ -142,6 +143,64 @@ class OptimizedTailV3Tests(unittest.TestCase):
             )
             self.assertTrue(tree_bitwise_equal(expected, observed))
             self.assertTrue(torch.equal(expected_indices, observed_indices))
+
+
+@unittest.skipUnless(torch.cuda.is_available(), "deferred validation is CUDA only")
+class DeferredFiniteValidatorTests(unittest.TestCase):
+    """The deferred verdict must describe the checked output, not recycled memory."""
+
+    DEVICE = "cuda:0"
+    ELEMENTS = 1 << 22
+
+    def test_verdict_survives_allocator_recycling_of_checked_storage(self) -> None:
+        # The validation stream reads compute-stream storage. If that storage is
+        # released before the isfinite kernel runs, the allocator may hand the
+        # block to the next compute-stream allocation. Every checked tensor here
+        # is all-zero, so a non-finite verdict can only describe recycled memory.
+        device = torch.device(self.DEVICE)
+        validator = _DeferredFiniteValidator(device)
+        for _ in range(40):
+            checked = torch.zeros(self.ELEMENTS, device=device, dtype=torch.float32)
+            wide = torch.zeros(
+                (64, self.ELEMENTS // 64), device=device, dtype=torch.float32
+            )
+            validator.launch({"checked": checked, "wide": wide}, "recycling probe")
+            del checked, wide
+            poison = [
+                torch.full(
+                    (self.ELEMENTS,), float("nan"), device=device, dtype=torch.float32
+                )
+                for _ in range(2)
+            ]
+            validator.resolve()
+            del poison
+        self.assertEqual(validator.asynchronous_verdict_corrections, 0)
+
+    def test_injected_nonfinite_still_stops_the_frame(self) -> None:
+        device = torch.device(self.DEVICE)
+        validator = _DeferredFiniteValidator(device)
+        validator.launch(
+            {"injected": torch.tensor([float("nan")], device=device)},
+            "injected fault",
+        )
+        with self.assertRaisesRegex(RuntimeError, "non-finite"):
+            validator.resolve()
+
+    def test_failed_predicate_still_stops_the_frame(self) -> None:
+        device = torch.device(self.DEVICE)
+        validator = _DeferredFiniteValidator(device)
+        validator.launch_predicate(
+            (torch.tensor([-1.0], device=device) > 0).all(), "non-positive dimension"
+        )
+        with self.assertRaisesRegex(RuntimeError, "non-positive dimension"):
+            validator.resolve()
+
+    def test_discard_releases_an_abandoned_frame(self) -> None:
+        device = torch.device(self.DEVICE)
+        validator = _DeferredFiniteValidator(device)
+        validator.launch({"a": torch.zeros(4, device=device)}, "abandoned")
+        validator.discard()
+        validator.reset()
 
 
 if __name__ == "__main__":
