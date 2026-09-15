@@ -19,6 +19,7 @@ superseded frame is credited as replaced work rather than as a radio failure.
 from __future__ import annotations
 
 import argparse
+import csv
 import hashlib
 import json
 import socket
@@ -35,6 +36,8 @@ from rl_agent.splitfusion_live_dispatch_v1.envelope import unpack_envelope
 from rl_agent.splitfusion_live_dispatch_v1.registry import SplitActionRegistry
 
 from . import protocol
+from .cpu_reservation import apply_thread_reservation, describe_reservation
+from .direct_v3_edge import EDGE_VARIANT, preload_direct_v3_edge
 from .edge_publisher import DirectMapPublisher, UEControlSender
 from .protocol import (
     OUTCOME_STALE_BEFORE_EDGE,
@@ -76,6 +79,50 @@ class _ForbiddenSocket:
         return None
 
 
+PUBLICATION_FIELDS = (
+    "run_id",
+    "cell_id",
+    "stream_id",
+    "frame_id",
+    "action_id",
+    "capture_timestamp_ns",
+    "reassembly_complete_wall_s",
+    "admission_wall_s",
+    "compute_start_wall_s",
+    "tail_complete_wall_s",
+    "evidence_install_wall_s",
+    "publication_ticket_ready_wall_s",
+    "publisher_worker_start_wall_s",
+    "serialization_start_wall_s",
+    "serialization_end_wall_s",
+    "first_datagram_send_wall_s",
+    "last_datagram_send_wall_s",
+    "direct_map_datagrams",
+    "direct_map_payload_bytes",
+    "record_count",
+    "publisher_thread",
+)
+
+
+def _write_publication_rows(directory: Path, rows: Sequence[Mapping[str, Any]]) -> None:
+    """Persist the edge-side publication stage stamps beside the counters.
+
+    The send instants cannot travel inside the message they describe, so the
+    edge records them itself on the same wall clock the map uses and the
+    evaluator joins the two by (stream_id, frame_id).
+    """
+
+    path = directory / "direct_edge_publication.csv"
+    try:
+        with path.open("w", newline="", encoding="utf-8") as handle:
+            writer = csv.DictWriter(handle, fieldnames=list(PUBLICATION_FIELDS))
+            writer.writeheader()
+            for row in rows:
+                writer.writerow({name: row.get(name, "") for name in PUBLICATION_FIELDS})
+    except OSError:
+        pass
+
+
 def run_direct_edge_service(
     *,
     config_path: Path,
@@ -90,6 +137,8 @@ def run_direct_edge_service(
     evidence_dir: Path | None = None,
     run_id: str = "",
     cell_id: str = "",
+    compute_cpus: str = "",
+    receive_cpus: str = "",
 ) -> int:
     """Serve one cell's frozen tail, publishing object maps straight to the map."""
 
@@ -123,7 +172,11 @@ def run_direct_edge_service(
         if stage == base.EDGE_STAGE_BEFORE_TAIL:
             counters.bump("tail_starts")
 
-    edge, tail, ledger, models = base._preload_edge(device, deadline_guard=guard)
+    # The repaired overlapped v3 tail, not the serial production tail. Its
+    # model, codec, catalog, thresholds and record schema are the frozen ones;
+    # only the tail's internal stage overlap differs, and its outputs are
+    # qualified bit-identical against the frozen reference adapter.
+    edge, tail, ledger, models = preload_direct_v3_edge(device, deadline_guard=guard)
     evidence: base.EdgeEvaluationEvidenceWriter | None = None
     if evidence_dir is not None:
         evidence = base.EdgeEvaluationEvidenceWriter(Path(evidence_dir), counters)
@@ -185,6 +238,9 @@ def run_direct_edge_service(
         control.send(message)
         counters.bump(f"edge_terminal_{outcome}")
 
+    publication_rows: list[dict[str, Any]] = []
+    reservations: list[dict[str, Any]] = []
+
     def publish_counters() -> None:
         try:
             base._atomic_write_bytes(
@@ -204,6 +260,11 @@ def run_direct_edge_service(
                         ),
                         "reassembly_pending_messages": len(reassembler.pending),
                         "counters": counters.snapshot(),
+                        "edge_tail_variant": str(edge.variant),
+                        "asynchronous_verdict_corrections": int(
+                            edge.asynchronous_verdict_corrections
+                        ),
+                        "cpu_reservation": describe_reservation(reservations),
                         "direct_map_publisher": publisher.snapshot(),
                         "ue_control": control.snapshot(),
                         "edge_operation_counters": dict(edge.counters.__dict__),
@@ -230,6 +291,9 @@ def run_direct_edge_service(
             expired_seen = observed
 
     def receive_loop() -> None:
+        reservations.append(
+            apply_thread_reservation(receive_cpus, label="direct-edge-feature-receive")
+        )
         while not stop_event.is_set():
             try:
                 datagram, address = receiver.recvfrom(65535)
@@ -315,6 +379,9 @@ def run_direct_edge_service(
                 )
 
     def process_loop() -> None:
+        reservations.append(
+            apply_thread_reservation(compute_cpus, label="direct-edge-tail-process")
+        )
         while not stop_event.is_set():
             taken = pending.take(timeout=0.1)
             if taken is None:
@@ -459,12 +526,58 @@ def run_direct_edge_service(
                 counters.bump("direct_update_construction_failed")
                 failures.append(f"direct update: {exc}")
                 continue
+            # The update document is complete: this is the instant a
+            # publication ticket becomes available to the publishing owner.
+            publication_ticket_ready_wall_s = time.time()
             try:
                 accounting = publisher.publish(update)
             except Exception as exc:
                 counters.bump("direct_map_publication_failed")
                 failures.append(f"{type(exc).__name__}: {exc}")
                 continue
+            publication_rows.append(
+                {
+                    "run_id": str(run_id),
+                    "cell_id": str(cell_id),
+                    "stream_id": str(context.stream_id),
+                    "frame_id": int(context.frame_id),
+                    "action_id": int(profile.action_id),
+                    "capture_timestamp_ns": int(context.capture_timestamp_ns),
+                    "reassembly_complete_wall_s": edge_timing[
+                        "reassembly_complete_wall_s"
+                    ],
+                    "admission_wall_s": edge_timing["admission_wall_s"],
+                    "compute_start_wall_s": edge_timing["compute_start_wall_s"],
+                    "tail_complete_wall_s": edge_timing["tail_complete_wall_s"],
+                    "evidence_install_wall_s": evidence_install_wall,
+                    "publication_ticket_ready_wall_s": (
+                        publication_ticket_ready_wall_s
+                    ),
+                    # Publication is performed by the compute owner in this
+                    # boundary, so the worker start is the call instant.
+                    "publisher_worker_start_wall_s": accounting[
+                        "publish_start_wall_s"
+                    ],
+                    "serialization_start_wall_s": accounting[
+                        "serialization_start_wall_s"
+                    ],
+                    "serialization_end_wall_s": accounting[
+                        "serialization_end_wall_s"
+                    ],
+                    "first_datagram_send_wall_s": accounting[
+                        "first_datagram_send_wall_s"
+                    ],
+                    "last_datagram_send_wall_s": accounting[
+                        "last_datagram_send_wall_s"
+                    ],
+                    "direct_map_datagrams": int(accounting["direct_map_datagrams"]),
+                    "direct_map_payload_bytes": int(
+                        accounting["direct_map_payload_bytes"]
+                    ),
+                    "record_count": int(update["record_count"]),
+                    "publisher_thread": threading.current_thread().name,
+                }
+            )
             counters.bump("direct_map_publications")
             counters.bump(
                 "direct_map_payload_bytes", int(accounting["direct_map_payload_bytes"])
@@ -527,6 +640,7 @@ def run_direct_edge_service(
         processor_thread.join(timeout=5.0)
         if evidence is not None:
             evidence.close()
+        _write_publication_rows(counters_path.parent, publication_rows)
         publish_counters()
         receiver.close()
         publisher.close()
@@ -708,6 +822,16 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--edge-segmentation-evidence-dir", type=Path, default=None)
     parser.add_argument("--run-id", default="")
     parser.add_argument("--cell-id", default="")
+    parser.add_argument(
+        "--edge-compute-cpus",
+        default="",
+        help="CPU set for the tail/compute owner, e.g. '0-15'. Advisory.",
+    )
+    parser.add_argument(
+        "--edge-receive-cpus",
+        default="",
+        help="CPU set for the feature receive owner, e.g. '16-17'. Advisory.",
+    )
     args, _ignored = parser.parse_known_args(list(argv) if argv is not None else None)
     _require(
         bool(args.edge)
@@ -737,6 +861,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         evidence_dir=args.edge_segmentation_evidence_dir,
         run_id=str(args.run_id),
         cell_id=str(args.cell_id),
+        compute_cpus=str(args.edge_compute_cpus),
+        receive_cpus=str(args.edge_receive_cpus),
     )
 
 

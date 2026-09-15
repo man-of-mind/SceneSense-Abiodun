@@ -718,3 +718,160 @@ class AgentCreditTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+
+
+class StageInstrumentationTests(unittest.TestCase):
+    """The publication and ingest stage boundaries must be complete and ordered."""
+
+    def test_publisher_reports_every_publication_stage_boundary(self) -> None:
+        publisher = DirectMapPublisher.__new__(DirectMapPublisher)
+        sink = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sink.bind(("127.0.0.1", 0))
+        publisher.remote = sink.getsockname()
+        publisher.chunk_bytes = 12500
+        from collections import Counter
+
+        publisher.counters = Counter()
+        publisher._lock = threading.Lock()
+        publisher.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        try:
+            accounting = publisher.publish(make_update(frame_id=91))
+        finally:
+            sink.close()
+            publisher.close()
+        ordered = (
+            "publish_start_wall_s",
+            "serialization_start_wall_s",
+            "serialization_end_wall_s",
+            "first_datagram_send_wall_s",
+            "last_datagram_send_wall_s",
+        )
+        for name in ordered:
+            self.assertIn(name, accounting)
+        values = [float(accounting[name]) for name in ordered]
+        self.assertEqual(values, sorted(values), accounting)
+
+    def test_ingest_rows_carry_an_ordered_map_side_decomposition(self) -> None:
+        installer = RecordingInstaller()
+        with TemporaryDirectory() as raw:
+            tmp = Path(raw)
+            service = make_service(tmp, installer)
+            try:
+                service.ingest(make_update(frame_id=101), ingest_at=time.time())
+            finally:
+                service.close()
+            rows = service.rows()
+        self.assertEqual(len(rows), 1)
+        row = rows[0]
+        for name in (
+            "last_datagram_at",
+            "reassembly_complete_at",
+            "map_worker_start_at",
+            "map_lock_request_at",
+            "map_lock_acquired_at",
+            "map_lock_released_at",
+            "association_start_at",
+            "association_end_at",
+            "ack_emit_at",
+            "ack_sent_at",
+        ):
+            self.assertIn(name, INGEST_FIELDS, name)
+            self.assertIn(name, row, name)
+        ordered = (
+            "map_worker_start_at",
+            "association_start_at",
+            "map_install_at",
+            "ack_emit_at",
+        )
+        values = [float(row[name]) for name in ordered]
+        self.assertEqual(values, sorted(values), row)
+
+    def test_receive_owner_hands_off_without_installing(self) -> None:
+        """A completed message must reach the map through the ingest owner."""
+
+        installer = RecordingInstaller()
+        with TemporaryDirectory() as raw:
+            tmp = Path(raw)
+            receiver = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            receiver.bind(("127.0.0.1", 0))
+            map_port = receiver.getsockname()[1]
+            receiver.close()
+            feedback_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            feedback_socket.bind(("127.0.0.1", 0))
+            feedback_socket.settimeout(5.0)
+            service = make_service(
+                tmp,
+                installer,
+                bind_port=map_port,
+                feedback_port=feedback_socket.getsockname()[1],
+            )
+            service.start()
+            try:
+                self.assertIsNot(service.thread, service.ingest_thread)
+                sender = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                payload = zlib.compress(
+                    protocol.encode(make_update(frame_id=57)), level=1
+                )
+                for chunk in chunk_payload(payload, message_id=57, chunk_bytes=12500):
+                    sender.sendto(chunk, ("127.0.0.1", map_port))
+                sender.close()
+                message = protocol.decode(feedback_socket.recvfrom(65535)[0])
+            finally:
+                service.close()
+                feedback_socket.close()
+            rows = service.rows()
+        self.assertEqual(message["outcome"], OUTCOME_RESULT_INSTALLED)
+        self.assertEqual(len(installer.installed), 1)
+        self.assertEqual(len(rows), 1)
+        row = rows[0]
+        # The install ran on the ingest owner, so the arrival stamp precedes
+        # the worker start rather than being taken after the install.
+        self.assertLessEqual(float(row["first_datagram_at"]), float(row["last_datagram_at"]))
+        self.assertLessEqual(
+            float(row["last_datagram_at"]), float(row["reassembly_complete_at"])
+        )
+        self.assertLessEqual(
+            float(row["reassembly_complete_at"]), float(row["map_worker_start_at"])
+        )
+        self.assertGreaterEqual(float(row["ingest_queue_wait_ms"]), 0.0)
+        self.assertEqual(
+            service.report()["counters"].get("direct_ingest_queue_blocked", 0), 0
+        )
+
+
+class CpuReservationTests(unittest.TestCase):
+    def test_cpu_set_parsing(self) -> None:
+        from rl_agent.splitfusion_direct_edge_map_v1.cpu_reservation import parse_cpu_set
+
+        self.assertEqual(parse_cpu_set(""), ())
+        self.assertEqual(parse_cpu_set("3"), (3,))
+        self.assertEqual(parse_cpu_set("2,0,1"), (0, 1, 2))
+        self.assertEqual(parse_cpu_set("0-3"), (0, 1, 2, 3))
+        self.assertEqual(parse_cpu_set("0-1,4"), (0, 1, 4))
+        with self.assertRaises(ValueError):
+            parse_cpu_set("5-2")
+
+    def test_reservation_is_advisory_and_reported(self) -> None:
+        import os
+
+        from rl_agent.splitfusion_direct_edge_map_v1.cpu_reservation import (
+            apply_thread_reservation,
+            describe_reservation,
+        )
+
+        available = sorted(os.sched_getaffinity(0))
+        record = apply_thread_reservation(str(available[0]), label="probe")
+        try:
+            self.assertTrue(record["applied"])
+            self.assertEqual(record["effective_cpus"], [available[0]])
+            # An unavailable CPU is reported, never silently dropped, and the
+            # cell is not failed over a placement request.
+            impossible = apply_thread_reservation("99999", label="impossible")
+            self.assertFalse(impossible["applied"])
+            self.assertEqual(impossible["unavailable_cpus"], [99999])
+            self.assertTrue(impossible["error"])
+            summary = describe_reservation([record, impossible])
+            self.assertFalse(summary["all_requested_applied"])
+            self.assertEqual(len(summary["threads"]), 2)
+        finally:
+            os.sched_setaffinity(0, set(available))

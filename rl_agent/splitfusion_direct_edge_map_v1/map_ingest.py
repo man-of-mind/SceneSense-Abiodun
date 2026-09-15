@@ -19,6 +19,7 @@ map-installation age.
 from __future__ import annotations
 
 import csv
+import queue
 import socket
 import threading
 import time
@@ -30,6 +31,7 @@ from typing import Any, Callable, Mapping
 from phase2_map_sharing.transport import ChunkReassembler
 
 from . import protocol
+from .cpu_reservation import apply_thread_reservation, describe_reservation
 from .protocol import (
     DirectMapProtocolError,
     OUTCOME_MAP_REJECTED,
@@ -74,7 +76,24 @@ INGEST_FIELDS = (
     "edge_admission_wall_s",
     "edge_compute_start_wall_s",
     "edge_compute_finish_wall_s",
+    "edge_publication_ticket_ready_wall_s",
+    "edge_serialization_start_wall_s",
+    "last_datagram_at",
+    "reassembly_complete_at",
+    "map_worker_start_at",
+    "map_lock_request_at",
+    "map_lock_acquired_at",
+    "map_lock_released_at",
+    "association_start_at",
+    "association_end_at",
+    "ack_emit_at",
+    "ack_sent_at",
+    "ingest_queue_wait_ms",
+    "ingest_queue_depth_at_enqueue",
 )
+
+
+_INGEST_STOP = object()
 
 
 class DirectMapIngestService:
@@ -95,6 +114,9 @@ class DirectMapIngestService:
         processing_horizon_s: float = 0.5,
         socket_buffer_request_bytes: int = 8 << 20,
         chunk_timeout_s: float = 2.0,
+        ingest_queue_capacity: int = 64,
+        ingest_cpus: str = "",
+        receive_cpus: str = "",
     ) -> None:
         protocol._require(
             not protocol.is_ue_address(bind_host, ("10.0.0.2",)),
@@ -132,7 +154,22 @@ class DirectMapIngestService:
         self.stop_event = threading.Event()
         self._started = False
         self._first_datagram_at: dict[int, float] = {}
+        self._last_datagram_at: dict[int, float] = {}
         self._rows: list[dict[str, Any]] = []
+        # The receive owner must never be inside validation, installation or
+        # feedback when a datagram arrives, or the recorded arrival instant is
+        # really a scheduling artefact of its own previous install. A bounded
+        # hand-off keeps the arrival stamp honest. It is a queue, not a drop
+        # policy: on overflow the receive owner blocks and the event is
+        # counted, so nothing is silently discarded.
+        self.ingest_queue_capacity = int(ingest_queue_capacity)
+        protocol._require(
+            self.ingest_queue_capacity >= 2,
+            "the map ingest hand-off must hold at least two completions",
+        )
+        self._ingest_queue: "queue.Queue[Any]" = queue.Queue(
+            maxsize=self.ingest_queue_capacity
+        )
         self.ingest_csv = Path(ingest_csv) if ingest_csv is not None else None
         self._handle = None
         self._writer = None
@@ -142,14 +179,21 @@ class DirectMapIngestService:
             self._writer = csv.DictWriter(self._handle, fieldnames=list(INGEST_FIELDS))
             self._writer.writeheader()
             self._handle.flush()
+        self.ingest_cpus = str(ingest_cpus)
+        self.receive_cpus = str(receive_cpus)
+        self.reservations: list[dict[str, Any]] = []
         self.thread = threading.Thread(
-            target=self._loop, name="direct-map-ingest", daemon=True
+            target=self._loop, name="direct-map-receive", daemon=True
+        )
+        self.ingest_thread = threading.Thread(
+            target=self._ingest_loop, name="direct-map-ingest", daemon=True
         )
 
     # -- lifecycle ---------------------------------------------------------
 
     def start(self) -> None:
         self._started = True
+        self.ingest_thread.start()
         self.thread.start()
 
     def close(self) -> dict[str, Any]:
@@ -158,6 +202,8 @@ class DirectMapIngestService:
         # started (an aborted cell launch, or synchronous ``ingest`` use).
         if self._started:
             self.thread.join(timeout=10.0)
+            self._ingest_queue.put(_INGEST_STOP)
+            self.ingest_thread.join(timeout=10.0)
         try:
             self.socket.close()
         except OSError:
@@ -181,6 +227,8 @@ class DirectMapIngestService:
                 "terminal_identities": len(self._terminal),
                 "failures": list(self.failures[:16]),
                 "rows": len(self._rows),
+                "ingest_queue_capacity": self.ingest_queue_capacity,
+                "cpu_reservation": describe_reservation(self.reservations),
             }
 
     def rows(self) -> list[dict[str, Any]]:
@@ -190,6 +238,11 @@ class DirectMapIngestService:
     # -- receive path ------------------------------------------------------
 
     def _loop(self) -> None:
+        """Receive owner: stamp arrival, reassemble, hand off. Nothing else."""
+
+        self.reservations.append(
+            apply_thread_reservation(self.receive_cpus, label="direct-map-receive")
+        )
         while not self.stop_event.is_set():
             try:
                 datagram, address = self.socket.recvfrom(65535)
@@ -202,6 +255,9 @@ class DirectMapIngestService:
             arrived_at = time.time()
             self.counters["direct_datagrams_received"] += 1
             self.counters["direct_datagram_bytes_received"] += len(datagram)
+            message_id = int(self._peek_message_id(datagram))
+            self._first_datagram_at.setdefault(message_id, arrived_at)
+            self._last_datagram_at[message_id] = arrived_at
             try:
                 complete = self.reassembler.ingest(
                     str(address), datagram, received_at_s=time.monotonic()
@@ -211,12 +267,39 @@ class DirectMapIngestService:
                 continue
             self._reconcile_expiries()
             if complete is None:
-                self._first_datagram_at.setdefault(int(self._peek_message_id(datagram)), arrived_at)
                 continue
-            first_at = self._first_datagram_at.pop(int(complete.message_id), arrived_at)
+            reassembly_complete_at = time.time()
+            first_at = self._first_datagram_at.pop(
+                int(complete.message_id), arrived_at
+            )
+            last_at = self._last_datagram_at.pop(int(complete.message_id), arrived_at)
             self.counters["direct_updates_reassembled"] += 1
+            stamps = {
+                "first_datagram_at": first_at,
+                "last_datagram_at": last_at,
+                "reassembly_complete_at": reassembly_complete_at,
+                "enqueued_at": time.time(),
+                "queue_depth_at_enqueue": self._ingest_queue.qsize(),
+            }
+            if self._ingest_queue.full():
+                # Back-pressure, not a drop: the obligation is preserved and
+                # the event is counted so it can never pass unnoticed.
+                self.counters["direct_ingest_queue_blocked"] += 1
+            self._ingest_queue.put((complete, stamps))
+
+    def _ingest_loop(self) -> None:
+        """Ingest owner: validate, install and acknowledge, off the receive path."""
+
+        self.reservations.append(
+            apply_thread_reservation(self.ingest_cpus, label="direct-map-ingest")
+        )
+        while True:
+            item = self._ingest_queue.get()
+            if item is _INGEST_STOP:
+                return
+            complete, stamps = item
             try:
-                self._handle_complete(complete, first_at, arrived_at)
+                self._handle_complete(complete, stamps)
             except Exception as exc:  # recorded, never fatal to the map
                 self.counters["direct_ingest_errors"] += 1
                 with self._lock:
@@ -242,7 +325,8 @@ class DirectMapIngestService:
             )
             self._expired_seen = observed
 
-    def _handle_complete(self, complete: Any, first_at: float, ingest_at: float) -> None:
+    def _handle_complete(self, complete: Any, stamps: Mapping[str, Any]) -> None:
+        worker_start_at = time.time()
         try:
             document = protocol.decode(zlib.decompress(complete.payload))
         except (zlib.error, DirectMapProtocolError) as exc:
@@ -252,10 +336,22 @@ class DirectMapIngestService:
             return
         self.ingest(
             document,
-            ingest_at=ingest_at,
-            first_datagram_at=first_at,
+            ingest_at=worker_start_at,
+            first_datagram_at=float(stamps["first_datagram_at"]),
             update_bytes=len(complete.payload),
             update_datagrams=int(complete.chunk_count),
+            stage_stamps={
+                "last_datagram_at": float(stamps["last_datagram_at"]),
+                "reassembly_complete_at": float(stamps["reassembly_complete_at"]),
+                "map_worker_start_at": worker_start_at,
+                "ingest_queue_wait_ms": (
+                    worker_start_at - float(stamps["enqueued_at"])
+                )
+                * 1000.0,
+                "ingest_queue_depth_at_enqueue": int(
+                    stamps["queue_depth_at_enqueue"]
+                ),
+            },
         )
 
     # -- validation, installation and feedback -----------------------------
@@ -269,10 +365,15 @@ class DirectMapIngestService:
         update_bytes: int = 0,
         update_datagrams: int = 0,
         emit: bool = True,
+        stage_stamps: Mapping[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Validate, install and acknowledge one direct object-map update."""
 
         first_at = ingest_at if first_datagram_at is None else float(first_datagram_at)
+        stamps: dict[str, Any] = dict(stage_stamps or {})
+        stamps.setdefault("last_datagram_at", first_at)
+        stamps.setdefault("reassembly_complete_at", ingest_at)
+        stamps.setdefault("map_worker_start_at", ingest_at)
         try:
             protocol.validate_object_map_update(document)
             self._validate_binding(document)
@@ -289,6 +390,7 @@ class DirectMapIngestService:
                 update_bytes=update_bytes,
                 update_datagrams=update_datagrams,
                 emit=emit,
+                stamps=stamps,
             )
 
         identity = protocol.update_identity(document)
@@ -315,6 +417,7 @@ class DirectMapIngestService:
                 update_bytes=update_bytes,
                 update_datagrams=update_datagrams,
                 emit=emit,
+                stamps=stamps,
             )
 
         age_s = ingest_at - capture_ns / 1_000_000_000.0
@@ -331,6 +434,7 @@ class DirectMapIngestService:
                 update_bytes=update_bytes,
                 update_datagrams=update_datagrams,
                 emit=emit,
+                stamps=stamps,
             )
 
         if capture_ns <= newest_capture:
@@ -349,10 +453,22 @@ class DirectMapIngestService:
                 update_datagrams=update_datagrams,
                 superseded_by_frame_id=newest_frame,
                 emit=emit,
+                stamps=stamps,
             )
 
+        association_start_at = time.time()
         installed = self._install(document, ingest_at)
         install_timestamp = float(installed["install_timestamp"])
+        stamps["association_start_at"] = association_start_at
+        for name in (
+            "association_end_at",
+            "map_lock_request_at",
+            "map_lock_acquired_at",
+            "map_lock_released_at",
+        ):
+            if name in installed:
+                stamps[name] = installed[name]
+        stamps.setdefault("association_end_at", install_timestamp)
         with self._lock:
             self._newest_capture_ns[stream_id] = capture_ns
             self._newest_frame_id[stream_id] = int(document["frame_id"])
@@ -368,6 +484,7 @@ class DirectMapIngestService:
             update_bytes=update_bytes,
             update_datagrams=update_datagrams,
             emit=emit,
+            stamps=stamps,
         )
 
     def _validate_binding(self, document: Mapping[str, Any]) -> None:
@@ -401,8 +518,11 @@ class DirectMapIngestService:
         rejection_reason: str = "",
         superseded_by_frame_id: int | None = None,
         emit: bool = True,
+        stamps: Mapping[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Emit feedback (strictly after installation) and record the row."""
+
+        stage = dict(stamps or {})
 
         map_age_ms = None
         if install_timestamp is not None:
@@ -433,9 +553,11 @@ class DirectMapIngestService:
             return {"outcome": outcome, "feedback": None, "feedback_bytes": 0}
 
         payload = protocol.encode(message)
+        ack_sent_at = ""
         if emit:
             try:
                 self.socket.sendto(payload, self.feedback_remote)
+                ack_sent_at = time.time()
                 self.counters["feedback_messages_emitted"] += 1
                 self.counters["feedback_bytes_emitted"] += len(payload)
             except OSError as exc:
@@ -495,6 +617,26 @@ class DirectMapIngestService:
             "edge_admission_wall_s": edge_timing.get("admission_wall_s", ""),
             "edge_compute_start_wall_s": edge_timing.get("compute_start_wall_s", ""),
             "edge_compute_finish_wall_s": edge_timing.get("compute_finish_wall_s", ""),
+            "edge_publication_ticket_ready_wall_s": edge_timing.get(
+                "publication_ticket_ready_wall_s", ""
+            ),
+            "edge_serialization_start_wall_s": edge_timing.get(
+                "serialization_start_wall_s", ""
+            ),
+            "last_datagram_at": stage.get("last_datagram_at", ""),
+            "reassembly_complete_at": stage.get("reassembly_complete_at", ""),
+            "map_worker_start_at": stage.get("map_worker_start_at", ""),
+            "map_lock_request_at": stage.get("map_lock_request_at", ""),
+            "map_lock_acquired_at": stage.get("map_lock_acquired_at", ""),
+            "map_lock_released_at": stage.get("map_lock_released_at", ""),
+            "association_start_at": stage.get("association_start_at", ""),
+            "association_end_at": stage.get("association_end_at", ""),
+            "ack_emit_at": feedback_emit_at,
+            "ack_sent_at": ack_sent_at,
+            "ingest_queue_wait_ms": stage.get("ingest_queue_wait_ms", ""),
+            "ingest_queue_depth_at_enqueue": stage.get(
+                "ingest_queue_depth_at_enqueue", ""
+            ),
         }
         with self._lock:
             self._rows.append(row)

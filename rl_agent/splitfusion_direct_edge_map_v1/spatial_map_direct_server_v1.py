@@ -96,6 +96,9 @@ def _parse_direct(argv: Sequence[str]) -> argparse.Namespace:
     parser.add_argument("--direct-ingest-csv", type=Path, default=None)
     parser.add_argument("--direct-ready-file", type=Path, default=None)
     parser.add_argument("--direct-report-file", type=Path, default=None)
+    parser.add_argument("--direct-ingest-cpus", default="")
+    parser.add_argument("--direct-receive-cpus", default="")
+    parser.add_argument("--direct-ingest-queue-capacity", type=int, default=64)
     return parser.parse_args(list(argv))
 
 
@@ -125,19 +128,31 @@ def install_under_state_lock(
         "source_script": "splitfusion_direct_edge_map_v1",
     }
     normalized = baseline._normalize_packet(payload, ingest_at)
-    install_timestamp = time.time()
+    association_end_at = time.time()
+    install_timestamp = association_end_at
     normalized["install_timestamp"] = install_timestamp
     history_key = (str(normalized["stream_id"]), int(normalized["frame_id"]))
+    # Lock ownership is deliberately only the insert: normalisation, the
+    # history limit read and every allocation happen outside it. The request
+    # and acquisition instants are reported separately so contention on the
+    # authoritative map state can be measured rather than assumed.
+    lock_request_at = time.time()
     with baseline.state_lock:
+        lock_acquired_at = time.time()
         baseline.latest_streams[str(normalized["stream_id"])] = normalized
         baseline.installed_frame_history[history_key] = normalized
         baseline.installed_frame_history.move_to_end(history_key)
         limit = max(1, int(baseline._config().installed_frame_history_size))
         while len(baseline.installed_frame_history) > limit:
             baseline.installed_frame_history.popitem(last=False)
+    lock_released_at = time.time()
     return {
         "install_timestamp": install_timestamp,
         "object_count": int(normalized["object_count"]),
+        "association_end_at": association_end_at,
+        "map_lock_request_at": lock_request_at,
+        "map_lock_acquired_at": lock_acquired_at,
+        "map_lock_released_at": lock_released_at,
     }
 
 
@@ -181,6 +196,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         expected_cell_id=str(direct.direct_cell_id),
         allowed_action_ids=allowed,
         processing_horizon_s=float(direct.direct_processing_horizon_ms) / 1000.0,
+        ingest_queue_capacity=int(direct.direct_ingest_queue_capacity),
+        ingest_cpus=str(direct.direct_ingest_cpus),
+        receive_cpus=str(direct.direct_receive_cpus),
     )
     service.start()
 

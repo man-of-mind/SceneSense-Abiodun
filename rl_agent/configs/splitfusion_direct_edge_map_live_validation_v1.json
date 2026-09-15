@@ -183,6 +183,15 @@
     "architecture": "DIRECT_EDGE_TO_MAP_V1",
     "complete_route_b_loop_claimed": false,
     "complete_route_b_loop_required": false,
+    "cpu_reservation": {
+      "edge_compute_cpus": "0-15",
+      "edge_receive_cpus": "16,17",
+      "map_ingest_cpus": "19",
+      "map_ingest_queue_capacity": 64,
+      "map_receive_cpus": "18",
+      "rationale": "The retained validation measured a publication interval whose work is at most 2.3 ms on an idle host but whose live p99 is 58-107 ms, scattered through the cell, independent of payload size and uncorrelated with the map thread being busy: a run-queue signature. The OAI launcher is SHA-256 pinned and the radio's timing must not be perturbed, so nothing repins the softmodem or CARLA. These sets only stop the edge's own and the map's own owners from queueing behind each other, and the applied result is recorded per thread.",
+      "softmodem_or_carla_repinned": false
+    },
     "feedback_path_note": "10.0.0.2 is a local address on this host (oaitun_ue1), so map->UE feedback is delivered by the kernel locally and does not traverse the radio. ACK latency is therefore a host-local controller-observation delay and a lower bound on an over-the-air control-plane delay.",
     "frames_per_action": 300,
     "installed_frame_history_size_note": "raised from 256 to 4096. This is an evidence-retention buffer, not a scientific parameter: the contract only requires it to be bounded and nonempty. The corrected architecture installs far more frames per cell, so at 256 the adapter's exact-installed-record retrieval could lose a record to eviction before reading it (observed once in the a15 smoke run). The acceptance rule that every ACK-installed frame must have an exact map record is unchanged and remains enforced.",

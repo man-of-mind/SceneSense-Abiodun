@@ -112,6 +112,83 @@ def select_cells(cells: Sequence[supervisor.Cell]) -> list[supervisor.Cell]:
     return [by_action[action] for action in ACTION_ORDER]
 
 
+# Every consecutive same-clock boundary from the moment the tail finishes to
+# the moment the map's acknowledgement leaves the host. The decomposition is
+# a partition: each stage begins where the previous one ended, so the stage
+# medians sum to the end-to-end median by construction.
+DIRECT_STAGE_INTERVALS = (
+    ("tail_complete_to_evidence_installed", "tail_complete_wall_s",
+     "evidence_install_wall_s"),
+    ("evidence_installed_to_ticket_ready", "evidence_install_wall_s",
+     "publication_ticket_ready_wall_s"),
+    ("ticket_ready_to_publisher_start", "publication_ticket_ready_wall_s",
+     "publisher_worker_start_wall_s"),
+    ("publisher_start_to_serialization_start", "publisher_worker_start_wall_s",
+     "serialization_start_wall_s"),
+    ("serialization", "serialization_start_wall_s", "serialization_end_wall_s"),
+    ("serialization_end_to_first_send", "serialization_end_wall_s",
+     "first_datagram_send_wall_s"),
+    ("first_send_to_last_send", "first_datagram_send_wall_s",
+     "last_datagram_send_wall_s"),
+    ("first_send_to_first_receive", "first_datagram_send_wall_s",
+     "first_datagram_at"),
+    ("last_send_to_last_receive", "last_datagram_send_wall_s", "last_datagram_at"),
+    ("first_receive_to_last_receive", "first_datagram_at", "last_datagram_at"),
+    ("last_receive_to_reassembly_complete", "last_datagram_at",
+     "reassembly_complete_at"),
+    ("reassembly_complete_to_map_worker_start", "reassembly_complete_at",
+     "map_worker_start_at"),
+    ("map_worker_start_to_association_start", "map_worker_start_at",
+     "association_start_at"),
+    ("association", "association_start_at", "association_end_at"),
+    ("association_end_to_lock_request", "association_end_at", "map_lock_request_at"),
+    ("map_lock_wait", "map_lock_request_at", "map_lock_acquired_at"),
+    ("map_lock_hold", "map_lock_acquired_at", "map_lock_released_at"),
+    ("lock_released_to_ack_emit", "map_lock_released_at", "ack_emit_at"),
+    ("ack_emit_to_ack_sent", "ack_emit_at", "ack_sent_at"),
+    ("end_to_end_tail_complete_to_install", "tail_complete_wall_s", "map_install_at"),
+    ("end_to_end_tail_complete_to_ack_sent", "tail_complete_wall_s", "ack_sent_at"),
+)
+
+
+def _stage_decomposition(
+    ingest_rows: Sequence[Mapping[str, str]],
+    publication_rows: Sequence[Mapping[str, str]],
+) -> dict[str, Any]:
+    """Join the edge publication ledger to the map ingest rows by identity."""
+
+    by_identity = {
+        (str(row.get("stream_id")), str(row.get("frame_id"))): row
+        for row in publication_rows
+    }
+    joined = 0
+    samples: dict[str, list[float]] = {name: [] for name, _a, _b in DIRECT_STAGE_INTERVALS}
+    negative: dict[str, int] = {}
+    for row in ingest_rows:
+        key = (str(row.get("stream_id")), str(row.get("frame_id")))
+        merged = dict(by_identity.get(key) or {})
+        if merged:
+            joined += 1
+        merged.update({k: v for k, v in row.items() if str(v) != ""})
+        for name, start, end in DIRECT_STAGE_INTERVALS:
+            begin, finish = _f(merged.get(start)), _f(merged.get(end))
+            if begin is None or finish is None:
+                continue
+            delta = (finish - begin) * 1000.0
+            if delta < 0.0:
+                negative[name] = negative.get(name, 0) + 1
+                continue
+            samples[name].append(delta)
+    return {
+        "publication_rows": len(publication_rows),
+        "ingest_rows_joined_to_publication": joined,
+        "negative_intervals": dict(sorted(negative.items())),
+        "stages": {
+            name: _distribution(values) for name, values in sorted(samples.items())
+        },
+    }
+
+
 def evaluate_cell(
     attempt_dir: Path, cell: supervisor.Cell, frames_per_action: int
 ) -> dict[str, Any]:
@@ -121,6 +198,7 @@ def evaluate_cell(
     per_frame = _read_csv(attempt_dir / "per_frame_metrics.csv")
     feedback = _read_csv(attempt_dir / "map_feedback.csv")
     ingest = _read_csv(direct / "direct_map_ingest.csv")
+    publication = _read_csv(direct / "direct_edge_publication.csv")
     sent = [row for row in per_frame if row.get("prepare_status") == "SENT"]
     sent.sort(key=lambda row: _f(row.get("capture_wall_s")) or 0.0)
     window = sent[:frames_per_action]
@@ -376,6 +454,22 @@ def evaluate_cell(
         "direct_tail_to_install_ms": _distribution(tail_to_install_ms),
         "direct_publish_to_ingest_ms": _distribution(publish_to_ingest_ms),
         "direct_ingest_to_install_ms": _distribution(ingest_to_install_ms),
+        "direct_stage_decomposition": _stage_decomposition(
+            [row for row in installed_window], publication
+        ),
+        "edge_tail_variant": str(edge_counters.get("edge_tail_variant") or ""),
+        "edge_asynchronous_verdict_corrections": int(
+            edge_counters.get("asynchronous_verdict_corrections", 0) or 0
+        ),
+        "edge_cpu_reservation": dict(edge_counters.get("cpu_reservation") or {}),
+        "map_cpu_reservation": dict(
+            (map_report.get("direct_ingest") or {}).get("cpu_reservation") or {}
+        ),
+        "map_ingest_queue_blocked": int(
+            (map_report.get("direct_ingest") or {})
+            .get("counters", {})
+            .get("direct_ingest_queue_blocked", 0)
+        ),
         "map_age_at_install_ms": _distribution(map_age_ms),
         "ack_observation_delay_ms": _distribution(ack_delay_ms),
         "direct_update_bytes": _distribution(direct_bytes),
@@ -453,6 +547,56 @@ def gate(cells: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
         ),
         {
             row["cell_id"]: f"{row['edge_direct_map_host']}:{row['edge_direct_map_port']}"
+            for row in cells
+        },
+    )
+    add(
+        "every_cell_ran_the_repaired_v3_edge_tail",
+        all(
+            row.get("edge_tail_variant") == "OVERLAPPED_OUTPUT_PRESERVING_V3_REPAIRED"
+            for row in cells
+        ),
+        {row["cell_id"]: row.get("edge_tail_variant") for row in cells},
+    )
+    add(
+        "no_deferred_finite_verdict_was_overturned",
+        all(
+            int(row.get("edge_asynchronous_verdict_corrections", 0)) == 0
+            for row in cells
+        ),
+        {
+            row["cell_id"]: row.get("edge_asynchronous_verdict_corrections")
+            for row in cells
+        },
+    )
+    add(
+        "map_ingest_handoff_never_applied_back_pressure",
+        all(int(row.get("map_ingest_queue_blocked", 0)) == 0 for row in cells),
+        {row["cell_id"]: row.get("map_ingest_queue_blocked") for row in cells},
+    )
+    add(
+        "every_installed_update_has_a_complete_stage_decomposition",
+        all(
+            int(
+                (row.get("direct_stage_decomposition") or {}).get(
+                    "ingest_rows_joined_to_publication", 0
+                )
+            )
+            > 0
+            and not (row.get("direct_stage_decomposition") or {}).get(
+                "negative_intervals"
+            )
+            for row in cells
+        ),
+        {
+            row["cell_id"]: {
+                "joined": (row.get("direct_stage_decomposition") or {}).get(
+                    "ingest_rows_joined_to_publication"
+                ),
+                "negative": (row.get("direct_stage_decomposition") or {}).get(
+                    "negative_intervals"
+                ),
+            }
             for row in cells
         },
     )

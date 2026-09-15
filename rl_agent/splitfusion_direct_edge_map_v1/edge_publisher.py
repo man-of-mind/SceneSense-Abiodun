@@ -55,17 +55,24 @@ class DirectMapPublisher:
             self.socket.bind((str(bind_host), 0))
 
     def publish(self, document: Mapping[str, Any]) -> dict[str, Any]:
-        """Send one validated update; return its publication accounting."""
+        """Send one validated update; return its publication accounting.
 
+        Every stage boundary is stamped on the same wall clock the map uses, so
+        publication can be decomposed into validation, serialization and the
+        datagram burst instead of being attributed as one opaque interval.
+        """
+
+        publish_start_wall_s = time.time()
+        publish_start_ns = time.perf_counter_ns()
         protocol.validate_object_map_update(document)
+        serialization_start_wall_s = time.time()
         # The publish-start instant is stamped into the message before it is
         # encoded, so the map can report install latency measured from the
         # moment publication work began rather than inferring it.
-        publish_start_wall_s = time.time()
-        publish_start_ns = time.perf_counter_ns()
         stamped = dict(document)
         timing = dict(stamped.get("edge_timing") or {})
         timing["publish_start_wall_s"] = publish_start_wall_s
+        timing["serialization_start_wall_s"] = serialization_start_wall_s
         stamped["edge_timing"] = timing
         payload = zlib.compress(protocol.encode(stamped), level=1)
         chunks = chunk_payload(
@@ -73,10 +80,14 @@ class DirectMapPublisher:
             message_id=int(stamped["frame_id"]),
             chunk_bytes=self.chunk_bytes,
         )
-        for chunk in chunks:
+        serialization_end_wall_s = time.time()
+        first_datagram_send_wall_s = 0.0
+        for index, chunk in enumerate(chunks):
+            if index == 0:
+                first_datagram_send_wall_s = time.time()
             self.socket.sendto(chunk, self.remote)
+        last_datagram_send_wall_s = time.time()
         publish_finish_ns = time.perf_counter_ns()
-        publish_finish_wall_s = time.time()
         datagram_bytes = sum(len(chunk) for chunk in chunks)
         with self._lock:
             self.counters["direct_map_updates_published"] += 1
@@ -86,7 +97,11 @@ class DirectMapPublisher:
             self.counters["direct_map_records_published"] += int(stamped["record_count"])
         return {
             "publish_start_wall_s": publish_start_wall_s,
-            "publish_finish_wall_s": publish_finish_wall_s,
+            "serialization_start_wall_s": serialization_start_wall_s,
+            "serialization_end_wall_s": serialization_end_wall_s,
+            "first_datagram_send_wall_s": first_datagram_send_wall_s,
+            "last_datagram_send_wall_s": last_datagram_send_wall_s,
+            "publish_finish_wall_s": last_datagram_send_wall_s,
             "publish_start_ns": publish_start_ns,
             "publish_finish_ns": publish_finish_ns,
             "publish_duration_ms": (publish_finish_ns - publish_start_ns) / 1e6,

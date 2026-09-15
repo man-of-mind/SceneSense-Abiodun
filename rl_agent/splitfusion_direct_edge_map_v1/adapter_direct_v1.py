@@ -255,6 +255,14 @@ def direct_ledger_factory(
     return compat
 
 
+def _reservation(campaign: Mapping[str, Any], name: str, default: Any = "") -> Any:
+    """Read one CPU-reservation setting; absent means no placement request."""
+
+    block = (campaign.get("direct_edge_map") or {}).get("cpu_reservation") or {}
+    value = block.get(name, default)
+    return value if isinstance(value, int) else str(value or "")
+
+
 def start_direct_map_process(
     campaign: Mapping[str, Any],
     *,
@@ -300,6 +308,10 @@ def start_direct_map_process(
         "--direct-ingest-csv", str(ingest_csv),
         "--direct-ready-file", str(ready_file),
         "--direct-report-file", str(report_file),
+        "--direct-receive-cpus", _reservation(campaign, "map_receive_cpus"),
+        "--direct-ingest-cpus", _reservation(campaign, "map_ingest_cpus"),
+        "--direct-ingest-queue-capacity",
+        str(int(_reservation(campaign, "map_ingest_queue_capacity", 64))),
     ]
     process = subprocess.Popen(argv, cwd=str(pinned.ROOT), stdin=subprocess.DEVNULL)
     try:
@@ -397,6 +409,10 @@ def start_direct_live_edge(
                     pinned.EDGE_SEGMENTATION_EVIDENCE_FLAG, str(evidence_container),
                     "--run-id", str(campaign["campaign_id"]),
                     "--cell-id", str(cell["cell_id"]),
+                    "--edge-compute-cpus",
+                    _reservation(campaign, "edge_compute_cpus"),
+                    "--edge-receive-cpus",
+                    _reservation(campaign, "edge_receive_cpus"),
                 )
             ),
         }
