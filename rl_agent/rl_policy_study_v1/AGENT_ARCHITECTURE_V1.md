@@ -135,12 +135,13 @@ return or robustness, it should be removed.
 
 ## Reward and intentional supersession
 
-The equation below is the richer object-level utility candidate. The initial
-split-only implementation uses the smaller latency-discounted quality reward
-defined in
-[AGENT_TIMELINE_AND_DELAYED_FEEDBACK_V1.md](AGENT_TIMELINE_AND_DELAYED_FEEDBACK_V1.md),
-where frame ID supplies causal attribution and frame-lag state rather than an
-unbounded scalar reward input.
+The equation below is the richer object-level utility candidate. The revised
+first-training discussion draft is
+[REWARD_FORMULATION_V2.md](REWARD_FORMULATION_V2.md); it keeps segmentation,
+localization and latency separately weighted and uses frame ID for exact
+causal attribution and frame-lag state rather than as an unbounded scalar
+reward input. The asynchronous timing contract remains in
+[AGENT_TIMELINE_AND_DELAYED_FEEDBACK_V1.md](AGENT_TIMELINE_AND_DELAYED_FEEDBACK_V1.md).
 
 The reward should use the change in installed-map utility:
 

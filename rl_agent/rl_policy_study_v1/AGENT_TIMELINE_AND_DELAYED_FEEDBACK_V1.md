@@ -2,6 +2,10 @@
 
 Status: **DESIGN CONTRACT — NO TRAINING OR DEPLOYMENT CLAIM**
 
+The newer three-component reward discussion is in
+[REWARD_FORMULATION_V2.md](REWARD_FORMULATION_V2.md). This document remains
+authoritative for delayed, missing and out-of-order feedback behavior.
+
 ## The ambiguity we must avoid
 
 If the UE chooses action $a_1$ for frame $f_1$ and no feedback has arrived when

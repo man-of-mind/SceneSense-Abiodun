@@ -387,7 +387,57 @@ flowchart TB
 
 The implemented model is P2–P7, not P2–P6. P2 was added; P3–P7 retain the official hierarchy.
 
-### 9.3 Seven-channel initialization and fusion
+### 9.3 Radar rasterization before channel fusion
+
+The radar does not naturally produce an image. Each CARLA return is a sparse
+measurement containing altitude, azimuth, depth and radial velocity. **Radar
+rasterization** converts those unordered points into a dense, camera-aligned
+four-channel tensor so that radar and RGB can be processed by one convolutional
+network.
+
+For each retained return, the preparation path:
+
+1. converts the spherical radar measurement to local Cartesian coordinates;
+2. transforms the point through the radar pose into world coordinates;
+3. transforms that world point into the current camera coordinate system;
+4. projects valid points onto image coordinates using the camera intrinsics;
+5. rejects points behind the camera, outside the image or otherwise invalid;
+   and
+6. paints the projected support into four registered image planes.
+
+The four planes, in their fixed input order, are:
+
+| Radar plane | Stored value | Plain-language meaning |
+|---|---|---|
+| Occupancy | `1` where a projected radar return has support | Where radar observed something |
+| Inverse range | $1-\operatorname{clip}(d,0,d_{\max})/d_{\max}$ | Nearer returns receive larger values |
+| Radial velocity | $\operatorname{clip}(v_r/v_{\max},-1,1)$ | Normalized signed motion toward/away from the radar |
+| Stationary age | $\operatorname{clip}(a/t_{\mathrm{park}},0,1)$ | How long the associated location has remained approximately stationary |
+
+When projected returns share image support, the implementation retains the
+maximum occupancy, inverse-range and stationary-age evidence; the signed
+velocity with the largest magnitude is retained. A small square support around
+each projected point makes the sparse measurements usable by the image-grid
+convolution. The optimized deployment implements the same operation with a
+scatter reduction and max pooling rather than a Python loop.
+
+The result is a prepared radar raster
+$R\in\mathbb{R}^{4\times432\times768}$ co-registered with the RGB image
+$I\in\mathbb{R}^{3\times432\times768}$. Channel concatenation forms
+
+$$
+X=\operatorname{concat}_{\mathrm{channel}}(I,R)
+\in\mathbb{R}^{7\times432\times768}.
+$$
+
+Sixteen zero-valued bottom rows produce the network input
+$7\times448\times768$. This operation is a deterministic representation
+change: it does not invent objects, and it is not radar intensity, a radar
+photograph or a separate inference branch. Its purpose is to preserve radar
+occupancy, range, motion and persistence evidence at spatial locations aligned
+with the camera before learned RGB-radar fusion begins.
+
+### 9.4 Seven-channel initialization and fusion
 
 The first operation is mathematically one convolution over seven channels:
 
@@ -395,7 +445,7 @@ The first operation is mathematically one convolution over seven channels:
 
 The three RGB weight slices were copied from the official COCO-pretrained FCOS ResNet-50 model. The four radar slices began at exact zero. This made the initial seven-channel convolution reproduce the pretrained RGB behavior while allowing radar contributions to be learned during Route B training. The tail never receives raw RGB or raw radar through a side channel; it receives only `C2` plus calibration metadata needed to convert camera rays to world coordinates.
 
-### 9.4 Detection followed by depth/geometry localization
+### 9.5 Detection followed by depth/geometry localization
 
 FCOS predicts candidate class, centerness and box offsets at P2–P7 locations. The geometry head predicts, at those same locations and separately for vehicle/person:
 
@@ -413,7 +463,7 @@ The implemented confidence score retains the official FCOS form:
 
 Centerness is therefore not mathematically customized for radar. It is nevertheless learned from the unified seven-channel representation, so radar can influence its features after training. Radar-relevant localization is handled explicitly by the separate depth/ray/geometry head operating on the same fused pyramid features.
 
-### 9.5 Split and future compression
+### 9.6 Split and future compression
 
 The clean noAE experiment transports raw FP32 C2: `[256,112,192]`, approximately 21.0 MiB per frame. Identity split/monolithic parity was exact. The future q/ROI, INT8/zstd and AE128/64/32 variants will operate at this same `Z=C2` boundary.
 
