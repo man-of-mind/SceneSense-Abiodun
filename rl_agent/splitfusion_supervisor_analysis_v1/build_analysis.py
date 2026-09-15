@@ -85,18 +85,17 @@ FAMILY_COLOR = {
 }
 STAGES = {
     "pure_front": "Model front backbone",
-    "ue_action": "UE action after tensor ready",
-    "sensor_compute": "Optimized sensor computation",
-    "ue_pipeline": "Optimized UE capture-to-send path",
+    "ue_action": "7-channel-concat-start-to-UDP-send path",
+    "sensor_compute": "Optimized sensor compute before concatenation",
     "network": "Feature uplink",
     "edge_queue": "Tail-busy wait",
     "model_tail": "FCOS model tail",
     "tail_support": "Other tail processing",
     "map_install": "Map service",
     "edge_map": "Complete edge-to-map service",
-    "total": "RGB-capture-to-map total",
+    "total": "Action-start-to-map total",
 }
-SCATTER_STAGES = ("ue_pipeline", "network", "edge_map", "total")
+SCATTER_STAGES = ("ue_action", "network", "edge_map", "total")
 QUALITY_VIEWS = (
     {
         "letter": "a",
@@ -306,19 +305,23 @@ def load_sensor_optimization() -> tuple[dict[str, Any], dict[str, Any]]:
         path = _verified_attempt_csv(root, "per_frame_metrics.csv")
         values = []
         production = []
+        concatenation = []
         for row in read_csv(path):
             if row.get("prepare_status") != "SENT":
                 continue
             prefront = finite(row.get("pre_front_compute_ms"))
             snapshot = finite(row.get("scene_snapshot_ms"))
             total = finite(row.get("profile_sensor_compute_production_estimate_ms"))
-            if prefront is None or snapshot is None or total is None:
+            concat = finite(row.get("profile_seven_channel_concatenate_ms"))
+            if prefront is None or snapshot is None or total is None or concat is None:
                 continue
             values.append(max(0.0, prefront - snapshot))
             production.append(total)
+            concatenation.append(concat)
         require(len(values) >= 500, f"{label}: insufficient live sensor samples")
         distributions[f"{label}_pre_action_ms"] = sorted(values)
         distributions[f"{label}_production_ms"] = sorted(production)
+        distributions[f"{label}_concatenation_ms"] = sorted(concatenation)
         source_paths[label] = {
             "path": str(path.relative_to(ROOT)),
             "sha256": sha256(path),
@@ -389,15 +392,22 @@ def shift_arrivals_for_sensor_optimization(
     frames: Sequence[Any],
     sent: Sequence[Mapping[str, str]],
     calibration: Mapping[str, Sequence[float]],
-) -> tuple[list[Any], list[float], list[float], list[float]]:
-    """Replace sensor compute while holding transport outcomes and delays fixed."""
+    bridge_ns: int,
+) -> tuple[list[Any], list[float], list[float], list[float], list[float], int]:
+    """Replace sensor compute while preserving measured transport outcomes.
+
+    Imputed capture-to-arrival samples are floored at the shifted UE send
+    completion so the scheduler never receives a feature before it was sent.
+    """
 
     baseline = calibration["baseline_pre_action_ms"]
     optimized = calibration["optimized_pre_action_ms"]
     rebuilt = []
     optimized_pre_action: list[float] = []
     optimized_production: list[float] = []
+    optimized_concatenation: list[float] = []
     deltas: list[float] = []
+    arrival_causal_floor_frames = 0
     require(len(frames) == len(sent), "sensor transform frame/row length drift")
     for frame, row in zip(frames, sent):
         old = max(
@@ -410,15 +420,44 @@ def shift_arrivals_for_sensor_optimization(
             baseline,
             calibration["optimized_production_ms"],
         )
+        new_concatenation = equal_percentile_map(
+            old,
+            baseline,
+            calibration["optimized_concatenation_ms"],
+        )
+        require(
+            new_concatenation <= new_production + 1e-9,
+            "seven-channel concatenation exceeds total production sensor compute",
+        )
         delta_ns = int(round((new - old) * 1e6))
         arrival_ns = frame.arrival_ns
         if arrival_ns is not None:
-            arrival_ns = max(int(frame.capture_ns), int(arrival_ns) + delta_ns)
+            shifted_send_finished_wall_ns = (
+                int(row["send_finished_ns"]) + int(bridge_ns) + delta_ns
+            )
+            shifted_arrival_ns = int(arrival_ns) + delta_ns
+            arrival_ns = max(
+                int(frame.capture_ns),
+                shifted_send_finished_wall_ns,
+                shifted_arrival_ns,
+            )
+            if arrival_ns != shifted_arrival_ns:
+                arrival_causal_floor_frames += 1
         rebuilt.append(dataclasses.replace(frame, arrival_ns=arrival_ns))
         optimized_pre_action.append(new)
         optimized_production.append(new_production)
-        deltas.append((arrival_ns - frame.arrival_ns) / 1e6 if frame.arrival_ns is not None else new - old)
-    return rebuilt, optimized_pre_action, optimized_production, deltas
+        optimized_concatenation.append(new_concatenation)
+        # This is the sensor-timeline shift, not the possibly larger causal
+        # floor applied to an imputed scheduler arrival above.
+        deltas.append(new - old)
+    return (
+        rebuilt,
+        optimized_pre_action,
+        optimized_production,
+        optimized_concatenation,
+        deltas,
+        arrival_causal_floor_frames,
+    )
 
 
 def rescale_edge_compute(
@@ -692,6 +731,51 @@ def plot_quality_latency(rows: Sequence[Mapping[str, Any]], output: Path) -> lis
         for view in QUALITY_VIEWS:
             quality_key = str(view["key"])
             scale = float(view["scale"])
+            if stage == "ue_action":
+                # The UE action is not caused by the radio profile. Pool its
+                # four independent live-cell medians per action so Figure 01
+                # does not present host/scene jitter as a network effect.
+                pooled: list[dict[str, Any]] = []
+                for action_id in range(72):
+                    action_rows = [
+                        row for row in rows if int(row["action_id"]) == action_id
+                    ]
+                    require(len(action_rows) == 4, f"action {action_id}: profile drift")
+                    record = dict(action_rows[0])
+                    values = [
+                        float(row[key]) for row in action_rows if row[key] != ""
+                    ]
+                    require(len(values) == 4, f"action {action_id}: UE timing absent")
+                    record[key] = statistics.median(values)
+                    pooled.append(record)
+                fig, ax = plt.subplots(figsize=(10.5, 7.5))
+                for family, color in FAMILY_COLOR.items():
+                    group = [row for row in pooled if row["family"] == family]
+                    ax.scatter(
+                        [float(row[key]) for row in group],
+                        [scale * float(row[quality_key]) for row in group],
+                        s=76,
+                        alpha=0.94,
+                        c=color,
+                        edgecolors="#202020",
+                        linewidths=0.95,
+                        label=family,
+                    )
+                ax.set_xlabel(f"{label} P50 (ms)")
+                ax.set_ylabel(str(view["label"]))
+                ax.set_title(
+                    f"{view['title']} vs 7-channel-concat-start-to-UDP-send latency"
+                )
+                ax.grid(alpha=0.25)
+                ax.legend(ncol=4, loc="upper center", frameon=False)
+                ax.tick_params(axis="both", labelsize=9, width=1.2)
+                for tick in ax.get_xticklabels() + ax.get_yticklabels():
+                    tick.set_fontweight("bold")
+                fig.tight_layout()
+                name = f"{number:02d}{view['letter']}_{view['slug']}_vs_{stage}_p50"
+                save_figure(fig, output / name)
+                names.extend([name + ".png", name + ".pdf"])
+                continue
             fig, axes = plt.subplots(2, 2, figsize=(13.5, 9.5), sharey=True)
             for ax, profile in zip(axes.flat, PROFILE_ORDER):
                 selected = [row for row in rows if row["network_profile"] == profile]
@@ -743,20 +827,43 @@ def plot_quality_latency(rows: Sequence[Mapping[str, Any]], output: Path) -> lis
 
 def action_balanced_latency(rows: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
     output: list[dict[str, Any]] = []
+    network_common_actions = set(range(72))
+    for profile in PROFILE_ORDER:
+        represented = {
+            int(row["action_id"])
+            for row in rows
+            if row["network_profile"] == profile and row["network_p50_ms"] != ""
+        }
+        network_common_actions &= represented
+    require(
+        bool(network_common_actions),
+        "no common observed feature-uplink action support",
+    )
     for profile in PROFILE_ORDER:
         selected = [row for row in rows if row["network_profile"] == profile]
         for stage, label in STAGES.items():
+            stage_rows = selected
+            support_rule = "ALL_AVAILABLE_ACTIONS"
+            if stage == "network":
+                stage_rows = [
+                    row
+                    for row in selected
+                    if int(row["action_id"]) in network_common_actions
+                ]
+                support_rule = "COMMON_ACTION_SUPPORT_ACROSS_ALL_PROFILES"
             record: dict[str, Any] = {
                 "network_profile": profile,
                 "stage": stage,
                 "stage_label": label,
                 "actions_total": len(selected),
+                "support_rule": support_rule,
+                "support_actions": len(stage_rows),
             }
             for probability in PERCENTILES:
                 suffix = int(probability * 100)
                 values = [
                     float(row[f"{stage}_p{suffix}_ms"])
-                    for row in selected
+                    for row in stage_rows
                     if row[f"{stage}_p{suffix}_ms"] != ""
                 ]
                 record[f"action_balanced_p{suffix}_ms"] = percentile(values, 0.50)
@@ -767,6 +874,13 @@ def action_balanced_latency(rows: Sequence[Mapping[str, Any]]) -> list[dict[str,
 
 def plot_latency_bars(rows: Sequence[Mapping[str, Any]], output: Path) -> list[str]:
     configure_plot()
+    network_supports = {
+        int(row["support_actions"])
+        for row in rows
+        if row["stage"] == "network"
+    }
+    require(len(network_supports) == 1, "network common-support count drift")
+    network_support = next(iter(network_supports))
     fig, axes = plt.subplots(2, 2, figsize=(18.5, 10.5), sharey=False)
     components = (
         "sensor_compute",
@@ -789,8 +903,8 @@ def plot_latency_bars(rows: Sequence[Mapping[str, Any]], output: Path) -> list[s
         ax.set_xticks(
             x,
             (
-                "Sensor\ncompute",
-                "UE action after\ntensor ready",
+                "Sensor compute\nbefore concat",
+                "7-channel concat\nto UDP send",
                 "Feature\nuplink",
                 "Tail-busy\nwait",
                 "FCOS model\ntail",
@@ -816,12 +930,63 @@ def plot_latency_bars(rows: Sequence[Mapping[str, Any]], output: Path) -> list[s
     fig.text(
         0.5,
         0.012,
-        "Marginal percentiles are not additive. Tail stages use final live optimization anchors; map service uses live edge-to-map traces.",
+        f"Marginal percentiles are not additive. Feature uplink uses the same {network_support} observed actions in every profile.",
         ha="center",
         fontsize=9,
     )
     fig.tight_layout(rect=(0, 0.035, 1, 0.91))
     name = "05_latency_percentiles_by_profile"
+    save_figure(fig, output / name)
+    return [name + ".png", name + ".pdf"]
+
+
+def plot_feature_delivery(
+    rows: Sequence[Mapping[str, Any]], output: Path
+) -> list[str]:
+    """Weighted complete application-message delivery for each radio profile."""
+
+    configure_plot()
+    percentages: list[float] = []
+    counts: list[tuple[int, int]] = []
+    for profile in PROFILE_ORDER:
+        selected = [row for row in rows if row["network_profile"] == profile]
+        sent = sum(int(row["frames_sent"]) for row in selected)
+        reassembled = sum(
+            int(row["measured_complete_reassemblies"]) for row in selected
+        )
+        require(0 <= reassembled <= sent, f"{profile}: invalid delivery accounting")
+        percentages.append(100.0 * reassembled / sent)
+        counts.append((reassembled, sent))
+    fig, ax = plt.subplots(figsize=(10.5, 6.8))
+    x = np.arange(len(PROFILE_ORDER))
+    colors = ("#4C78A8", "#F58518", "#E45756", "#54A24B")
+    bars = ax.bar(x, percentages, width=0.62, color=colors, edgecolor="#202020")
+    ax.bar_label(
+        bars,
+        labels=[
+            f"{value:.1f}%\n{reassembled:,}/{sent:,}"
+            for value, (reassembled, sent) in zip(percentages, counts)
+        ],
+        padding=4,
+        fontsize=11,
+        fontweight="bold",
+    )
+    ax.set_xticks(x, [PROFILE_LABEL[profile] for profile in PROFILE_ORDER])
+    ax.set_ylabel("Complete feature delivery (%)")
+    ax.set_ylim(0, 100)
+    ax.set_title("Measured complete feature delivery by network profile")
+    ax.grid(axis="y", alpha=0.25)
+    for tick in ax.get_xticklabels() + ax.get_yticklabels():
+        tick.set_fontweight("bold")
+    fig.text(
+        0.5,
+        0.012,
+        "Complete application reassemblies / frames sent, weighted over all 72 actions.",
+        ha="center",
+        fontsize=9,
+    )
+    fig.tight_layout(rect=(0, 0.035, 1, 1))
+    name = "07_feature_delivery_percentage_by_profile"
     save_figure(fig, output / name)
     return [name + ".png", name + ".pdf"]
 
@@ -981,6 +1146,16 @@ def make_report(
     by_stage = {
         (row["network_profile"], row["stage"]): row for row in latency_rows
     }
+    network_supports = {
+        int(row["support_actions"])
+        for row in latency_rows
+        if row["stage"] == "network"
+    }
+    require(len(network_supports) == 1, "network common-support count drift")
+    network_support = next(iter(network_supports))
+    arrival_causal_floor_frames = sum(
+        int(row["scheduler_arrival_causal_floor_frames"]) for row in rows
+    )
     lines = [
         "# SplitFusion optimized-pipeline latency and quality analysis",
         "",
@@ -991,7 +1166,8 @@ def make_report(
         "",
         "## What changed and what did not",
         "",
-        "- The measured radio reassembly/admission outcomes and per-frame transport delays are held fixed. No missing uplink frame is fabricated.",
+        "- The measured radio reassembly/admission outcomes and observed per-frame transport delays are held fixed. No missing uplink frame is fabricated.",
+        "- Scheduler-only imputed capture-to-arrival samples are causally floored at shifted UE send completion; observed uplink timing is never imputed into the network plots.",
         "- Sensor timing is changed by equal-percentile mapping from the contemporaneous live baseline distribution to the live optimized distribution; this is not a constant subtraction.",
         "- The measured family service shapes are retained and rescaled to the newest repaired-v3 live edge-compute medians.",
         "- Direct map service is sampled from the renderer-off live action-50 run. It is independent of split action and does not traverse the radio.",
@@ -1009,7 +1185,6 @@ def make_report(
             "sensor_compute",
             "pure_front",
             "ue_action",
-            "ue_pipeline",
             "network",
             "edge_queue",
             "model_tail",
@@ -1029,26 +1204,45 @@ def make_report(
     lines.extend(
         [
             "",
+            "## Complete feature delivery",
+            "",
+            "| Profile | Complete reassemblies | Frames sent | Delivery |",
+            "|---|---:|---:|---:|",
+        ]
+    )
+    for profile in PROFILE_ORDER:
+        selected = [row for row in rows if row["network_profile"] == profile]
+        sent = sum(int(row["frames_sent"]) for row in selected)
+        reassembled = sum(
+            int(row["measured_complete_reassemblies"]) for row in selected
+        )
+        lines.append(
+            f"| {PROFILE_LABEL[profile]} | {reassembled:,} | {sent:,} | "
+            f"{100.0 * reassembled / sent:.1f}% |"
+        )
+    lines.extend(
+        [
+            "",
             "Percentile aggregation is action-balanced: each displayed value is the median of the corresponding per-action cell percentile. It is not a pooled-frame percentile dominated by high-throughput actions.",
-            "The stage percentiles are marginals with different conditional denominators and must not be added to reconstruct an end-to-end percentile. Figure 04 and the `total_*` columns provide the causally simulated RGB-capture-to-map distribution.",
+            "The stage percentiles are marginals with different conditional denominators and must not be added to reconstruct an end-to-end percentile. Figure 04 and the `total_*` columns provide the causally simulated seven-channel-concatenation-start-to-map distribution.",
             "",
             "## Scheduling and causal boundaries",
             "",
-            "- Optimized sensor computation excludes waiting for CARLA to produce a synchronized sample. It covers the measured production preparation work before the action starts.",
-            "- UE action-after-tensor-ready runs from `capture_started_ns` through `send_finished_ns`: front inference, ranker/selection, compression/packing, serialization, and the UDP send loop.",
-            "- Optimized UE capture-to-send runs from the RGB callback timestamp through the shifted send completion, so it includes the pre-action preparation delay as well as the UE action path.",
+            "- Optimized sensor computation excludes waiting for CARLA to produce a synchronized sample and ends when seven-channel concatenation starts.",
+            "- The UE action path begins at seven-channel concatenation and continues through front inference, ranker/selection, compression/packing, serialization, and the UDP send loop. The 288 cells timestamp the boundary immediately after concatenation; the live optimized P23 distribution is therefore added explicitly.",
             "- Feature uplink runs from UE send completion to complete edge reassembly. Only retained same-clock observed receipts are plotted; imputed arrivals used by the scheduler are excluded from this metric.",
             "- Latest-only scheduling removes a multi-frame FIFO but cannot preempt a running CUDA/tail call. At most one newest frame waits; older pending frames receive explicit `SUPERSEDED_PENDING` outcomes.",
-            "- Edge-to-map includes tail-busy waiting, edge processing/publication, and renderer-off map service. RGB-capture-to-map includes the entire causal path used for physical freshness.",
+            "- Edge-to-map includes tail-busy waiting, edge processing/publication, and renderer-off map service. Action-start-to-map excludes sensor preparation, as requested. Capture-to-map remains in `capture_total_*` for physical freshness accounting but is not used in Figures 01 or 04.",
             "",
             "## Sensor optimization",
             "",
-            "Figure 06 uses the full sent-frame populations from the live action-50 FAVORABLE_STABLE baseline and optimized cells. It reports P07–P25 at their measured function boundaries. Camera and radar callbacks are distinct, but the numerical preparation for one selected frame remains sequential in the front worker. Component percentiles are marginal and cannot be summed.",
+            "Figure 06 uses the full sent-frame populations from the live action-50 FAVORABLE_STABLE baseline and optimized cells. It reports production stages P07–P23 plus P25 at their measured function boundaries; P24 is evaluation-only and P26 is diagnostic synchronization, so neither is included. Camera and radar callbacks are distinct, but the numerical preparation for one selected frame remains sequential in the front worker. Component percentiles are marginal and cannot be summed.",
             "",
             "## Clock and denominator integrity",
             "",
             f"The same-host clock bridge used {int(bridge_audit['anchor_count']):,} anchors; its absolute error P99 was {float(bridge_audit['absolute_deviation_ms_p99']):.6f} ms.",
-            "Every stage carries its own count. Sensor, pure-front, UE-action, and UE-pipeline timing use all sent frames. Feature-uplink timing uses only retained observed complete edge receipts. Edge and total timing use useful direct-map installations.",
+            f"Every stage carries its own count. Sensor, pure-front, and UE-action timing use all sent frames. Feature-uplink timing uses the same {network_support}-action observed support in every profile. Edge and total timing use useful direct-map installations.",
+            f"The scheduler causality floor affected {arrival_causal_floor_frames:,} imputed arrivals. It prevents a replay-only feature arrival from preceding that frame's shifted send completion; it does not change measured reassembly/admission counts or enter the observed-uplink plots.",
             "",
             "## Quality definition",
             "",
@@ -1069,7 +1263,7 @@ def make_report(
             "",
             "## Figure guide",
             "",
-            "Figures 01a–01f show quality against optimized RGB-capture-to-UE-send latency. Figures 02a–02f use observed feature-uplink latency. Figures 03a–03f use optimized edge-reassembly-to-map latency. Figures 04a–04f use optimized RGB-capture-to-map latency. Views a–e keep semantic mIoU, vehicle overlap, person box-mask overlap, vehicle centroid error, and person centroid error separate; view f restores joint model quality. Figure 05 gives action-balanced P50/P95/P99 causal-stage marginals. Figure 06 shows the measured live sensor function breakdown before and after optimization.",
+            "Figures 01a–01f show quality against the cross-profile-pooled seven-channel-concatenation-start-to-UDP-send latency. Figures 02a–02f use observed feature-uplink latency. Figures 03a–03f use optimized edge-reassembly-to-map latency. Figures 04a–04f use optimized seven-channel-concatenation-start-to-map latency. Views a–e keep semantic mIoU, vehicle overlap, person box-mask overlap, vehicle centroid error, and person centroid error separate; view f restores joint model quality. Figure 05 gives action-balanced P50/P95/P99 causal-stage marginals using common action support for uplink. Figure 06 shows the measured live sensor function breakdown before and after optimization. Figure 07 reports weighted complete feature delivery for each network profile.",
             "",
             "## Limitations",
             "",
@@ -1105,6 +1299,7 @@ def run(output: Path) -> dict[str, Any]:
     rows: list[dict[str, Any]] = []
     observed_network_intervals = 0
     network_boundary_inversions_excluded = 0
+    scheduler_arrival_causal_floor_frames = 0
     sensor_delta_samples: list[float] = []
     edge_rescale_factors: dict[str, list[float]] = defaultdict(list)
     for number, cell in enumerate(cells, start=1):
@@ -1125,9 +1320,24 @@ def run(output: Path) -> dict[str, Any]:
         (
             frames,
             optimized_pre_action_ms,
-            optimized_sensor_compute_ms,
+            optimized_sensor_production_ms,
+            optimized_concatenation_ms,
             sensor_deltas_ms,
-        ) = shift_arrivals_for_sensor_optimization(frames, sent, sensor_calibration)
+            cell_arrival_causal_floor_frames,
+        ) = shift_arrivals_for_sensor_optimization(
+            frames,
+            sent,
+            sensor_calibration,
+            bridge_ns,
+        )
+        scheduler_arrival_causal_floor_frames += cell_arrival_causal_floor_frames
+        optimized_sensor_compute_ms = [
+            production - concatenation
+            for production, concatenation in zip(
+                optimized_sensor_production_ms,
+                optimized_concatenation_ms,
+            )
+        ]
         sensor_delta_samples.extend(sensor_deltas_ms)
         frames, edge_rescale_factor = rescale_edge_compute(frames, family)
         if edge_rescale_factor is not None:
@@ -1163,20 +1373,13 @@ def run(output: Path) -> dict[str, Any]:
         )
 
         ue_action_ms: list[float] = []
-        ue_pipeline_ms: list[float] = []
         pure_front_ms: list[float] = []
-        for row, delta_ms in zip(sent, sensor_deltas_ms):
+        for row, concatenation_ms in zip(sent, optimized_concatenation_ms):
             action_start_ns = int(row["capture_started_ns"])
             send_finish_ns = int(row["send_finished_ns"])
-            ue_action_ms.append((send_finish_ns - action_start_ns) / 1e6)
-            capture_wall_ns = timing.wall_seconds_to_ns(row["capture_wall_s"])
-            optimized_send_wall_ns = send_finish_ns + bridge_ns + int(round(delta_ms * 1e6))
-            pipeline_ms = (optimized_send_wall_ns - capture_wall_ns) / 1e6
-            require(
-                pipeline_ms >= -0.001,
-                f"{cell['cell_id']}: optimized UE pipeline interval is negative",
+            ue_action_ms.append(
+                concatenation_ms + (send_finish_ns - action_start_ns) / 1e6
             )
-            ue_pipeline_ms.append(max(0.0, pipeline_ms))
             parsed = ast.literal_eval(row["front_timing_ns"])
             if finite(parsed.get("front_backbone")) is not None:
                 pure_front_ms.append(float(parsed["front_backbone"]) / 1e6)
@@ -1209,6 +1412,7 @@ def run(output: Path) -> dict[str, Any]:
         tail_support_ms = tail_stage_samples[family]["tail_support_ms"]
         map_install_ms = map_service_samples[family]
         total_ms: list[float] = []
+        capture_total_ms: list[float] = []
         for item in useful_outcomes(result):
             edge_map_ms.append((int(item.install_ns) - int(item.frame.arrival_ns)) / 1e6)
             require(
@@ -1223,7 +1427,33 @@ def run(output: Path) -> dict[str, Any]:
             require(compute_wait_ns >= 0, f"{cell['cell_id']}: negative compute wait")
             require(publication_wait_ns >= 0, f"{cell['cell_id']}: negative publication wait")
             edge_queue_ms.append((compute_wait_ns + publication_wait_ns) / 1e6)
-            total_ms.append((int(item.install_ns) - int(item.frame.capture_ns)) / 1e6)
+            sequence = int(item.frame.sequence_id)
+            row = sent[sequence]
+            optimized_action_start_wall_ns = (
+                int(row["capture_started_ns"])
+                + bridge_ns
+                + int(round(sensor_deltas_ms[sequence] * 1e6))
+                - int(round(optimized_concatenation_ms[sequence] * 1e6))
+            )
+            action_total = (
+                int(item.install_ns) - optimized_action_start_wall_ns
+            ) / 1e6
+            require(
+                action_total >= -0.001,
+                (
+                    f"{cell['cell_id']}: action-to-map interval is negative "
+                    f"for sequence {sequence}: {action_total:.6f} ms "
+                    f"(install={int(item.install_ns)}, "
+                    f"action_start={optimized_action_start_wall_ns}, "
+                    f"arrival={int(item.frame.arrival_ns)}, "
+                    f"sensor_delta_ms={sensor_deltas_ms[sequence]:.6f}, "
+                    f"concat_ms={optimized_concatenation_ms[sequence]:.6f})"
+                ),
+            )
+            total_ms.append(max(0.0, action_total))
+            capture_total_ms.append(
+                (int(item.install_ns) - int(item.frame.capture_ns)) / 1e6
+            )
 
         qoverlap, centroid_rms_m, qxy, qloc, qjoint = quality_score(
             quality[int(cell["action_id"])]
@@ -1253,10 +1483,12 @@ def run(output: Path) -> dict[str, Any]:
             "rate_installed_per_sent": int(summary["ack_installed_frames"]) / len(sent),
             "rate_useful_installations_per_sent": int(summary["useful_newer_map_installations"]) / len(sent),
             "network_latency_observed_only": True,
+            "scheduler_arrival_causal_floor_frames": cell_arrival_causal_floor_frames,
             **direct._fresh_fractions(result, (150, 200, 250, 300)),
             **stats(ue_action_ms, "ue_action"),
             **stats(optimized_sensor_compute_ms, "sensor_compute"),
-            **stats(ue_pipeline_ms, "ue_pipeline"),
+            **stats(optimized_sensor_production_ms, "sensor_compute_including_concat"),
+            **stats(optimized_concatenation_ms, "seven_channel_concat"),
             **stats(pure_front_ms, "pure_front"),
             **stats(network_ms, "network"),
             **stats(edge_queue_ms, "edge_queue"),
@@ -1265,6 +1497,7 @@ def run(output: Path) -> dict[str, Any]:
             **stats(map_install_ms, "map_install"),
             **stats(edge_map_ms, "edge_map"),
             **stats(total_ms, "total"),
+            **stats(capture_total_ms, "capture_total"),
         }
         for reason, count in sorted(summary["reason_counts"].items()):
             record[f"terminal_{reason.lower()}"] = int(count)
@@ -1307,6 +1540,7 @@ def run(output: Path) -> dict[str, Any]:
     figure_names.extend(plot_quality_latency(rows, output))
     figure_names.extend(plot_latency_bars(latency_rows, output))
     figure_names.extend(plot_optimized_sensor_breakdown(sensor_rows, output))
+    figure_names.extend(plot_feature_delivery(rows, output))
     atomic_json(
         output / "analysis_summary.json",
         {
@@ -1315,6 +1549,22 @@ def run(output: Path) -> dict[str, Any]:
             "scientific_status": "OFFLINE_COUNTERFACTUAL_NOT_LIVE_REMEASUREMENT",
             "inventory": {"cells": 288, "actions": 72, "profiles": 4},
             "aggregate_counts": aggregate_counts,
+            "complete_feature_delivery_by_profile": {
+                profile: {
+                    "complete_reassemblies": sum(
+                        int(row["measured_complete_reassemblies"])
+                        for row in rows
+                        if row["network_profile"] == profile
+                    ),
+                    "frames_sent": sum(
+                        int(row["frames_sent"])
+                        for row in rows
+                        if row["network_profile"] == profile
+                    ),
+                    "definition": "complete application reassemblies / frames sent",
+                }
+                for profile in PROFILE_ORDER
+            },
             "source_bindings": {
                 "builder_sha256": sha256(Path(__file__).resolve()),
                 "campaign_cell_table_sha256": sha256(source.CONSOLIDATION / "campaign_288_cell_table.csv"),
@@ -1322,9 +1572,10 @@ def run(output: Path) -> dict[str, Any]:
                 "sensor_optimization_manifest_sha256": sha256(SENSOR_PRESENTATION_ROOT / "artifact_manifest.json"),
             },
             "component_boundaries": {
-                "sensor_compute": "live optimized production sensor computation; CARLA wait excluded",
-                "ue_action": "capture_started_ns to send_finished_ns after seven-channel input is ready",
-                "ue_pipeline": "RGB capture_wall_s to optimized send_finished wall time",
+                "sensor_compute": "live optimized production sensor computation before P23 seven-channel concatenation; CARLA wait excluded",
+                "seven_channel_concat": "live optimized P23 seven-channel concatenation",
+                "sensor_compute_including_concat": "live optimized production sensor computation through P23 concatenation",
+                "ue_action": "P23 seven-channel concatenation start to send_finished_ns; P23 is distributionally assigned from the live optimized calibration",
                 "pure_front": "front_timing_ns.front_backbone only",
                 "network": "send_finished_ns to complete edge reassembly, observed receipts only",
                 "edge_queue": "complete edge reassembly to compute start plus compute finish to publication start",
@@ -1332,7 +1583,8 @@ def run(output: Path) -> dict[str, Any]:
                 "tail_support": "non-model edge work rescaled to newest repaired-v3 total edge median",
                 "map_install": "renderer-off direct publication-to-spatial-map install",
                 "edge_map": "complete edge reassembly to direct spatial-map install",
-                "total": "RGB capture_wall_s to direct spatial-map install",
+                "total": "P23 seven-channel concatenation start to direct spatial-map install",
+                "capture_total": "RGB capture_wall_s to direct spatial-map install, retained for physical freshness but excluded from Figures 01 and 04",
                 "physical_map_aoi_excludes_controller_feedback": True,
             },
             "quality": {
@@ -1345,9 +1597,10 @@ def run(output: Path) -> dict[str, Any]:
                 "role": "provisional presentation coordinate, not PPO reward",
             },
             "denominators": {
-                "sensor_compute": "all sent frames, distributionally mapped to live optimized production sensor compute",
+                "sensor_compute": "all sent frames, live optimized production sensor compute with P23 concatenation excluded",
                 "ue_action": "all sent frames",
-                "ue_pipeline": "all sent frames",
+                "seven_channel_concat": "all sent frames, distributionally mapped to the live optimized P23 distribution",
+                "sensor_compute_including_concat": "all sent frames, distributionally mapped to live optimized production sensor compute",
                 "pure_front": "all sent frames",
                 "network": "frames with retained observed complete edge receipt",
                 "edge_queue": "useful direct-map installations",
@@ -1356,10 +1609,16 @@ def run(output: Path) -> dict[str, Any]:
                 "map_install": "live renderer-off direct-map samples; repeated as an action-independent marginal",
                 "edge_map": "useful direct-map installations",
                 "total": "useful direct-map installations",
+                "capture_total": "useful direct-map installations",
             },
             "clock_bridge": bridge_audit,
             "observed_network_intervals": observed_network_intervals,
             "network_boundary_inversions_excluded": network_boundary_inversions_excluded,
+            "scheduler_arrival_causal_floor_frames": scheduler_arrival_causal_floor_frames,
+            "scheduler_arrival_causal_floor_reason": (
+                "capture-to-arrival imputations that predated the shifted UE send completion "
+                "were moved to send completion before latest-only scheduling"
+            ),
             "imputed_arrivals_excluded_from_network_latency": True,
             "measured_radio_outcomes_held_fixed": True,
             "sensor_optimization": sensor_provenance,
@@ -1392,7 +1651,7 @@ def run(output: Path) -> dict[str, Any]:
                 "carla_callbacks": "camera and radar callbacks are distinct",
                 "numerical_preparation": "radar and RGB preparation are sequential in one route-b-split-front worker",
                 "evaluation": "separate bounded evaluation worker after immutable snapshot capture",
-                "inner_radar_stages": "P07-P25 measured in the live sensor optimization",
+                "production_stages": "P07-P23 plus P25 measured in the live sensor optimization; P24 evaluation-only and P26 diagnostic synchronization excluded",
             },
         },
     )

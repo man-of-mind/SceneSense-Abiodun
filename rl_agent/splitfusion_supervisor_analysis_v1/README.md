@@ -6,18 +6,25 @@ optimizations into presentation-ready, auditable counterfactual artifacts.
 
 It deliberately separates these causal intervals:
 
-1. **Optimized sensor compute:** production sensor-preparation work, excluding
-   CARLA sample wait.
-2. **UE action after tensor ready:** action start through model front,
+1. **Optimized sensor compute:** production sensor-preparation work before
+   seven-channel concatenation, excluding CARLA sample wait.
+2. **UE action path:** seven-channel concatenation through model front,
    ranker/selection, compression, serialization, and UDP send completion.
-3. **RGB-capture-to-send path:** RGB callback through optimized UE send.
-4. **Feature uplink:** send completion through complete edge reassembly.
-5. **Edge-to-map service:** reassembly through authoritative map install.
-6. **RGB-capture-to-map total:** the full physical freshness path.
+3. **Feature uplink:** send completion through complete edge reassembly.
+4. **Edge-to-map service:** reassembly through authoritative map install.
+5. **Action-to-map total:** seven-channel-concatenation start through map
+   install, excluding sensor preparation.
+
+The CSV retains RGB-capture-to-map as `capture_total_*` for physical freshness
+accounting, but Figures 01 and 04 deliberately use the action boundary above.
 
 The first two clocks are joined only through the previously validated
 same-host monotonic-to-wall clock bridge. Stage percentiles always carry their
 own denominator; missing stages are never assigned a latency of zero.
+
+Feature-uplink profile percentiles use common action support with observed
+reassembly timing in all four profiles. Figure 07 separately reports complete
+application-message delivery / frames sent over all 72 actions per profile.
 
 The presentation figures keep the quality dimensions separate:
 aggregate semantic-segmentation mIoU, vehicle overlap IoU, person box-mask

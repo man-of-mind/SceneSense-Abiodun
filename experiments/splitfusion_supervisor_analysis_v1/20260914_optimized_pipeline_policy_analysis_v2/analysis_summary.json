@@ -3,8 +3,8 @@
     "frames_sent": 896856,
     "measured_complete_reassemblies": 712732,
     "measured_edge_admissions": 602315,
-    "simulated_map_installs": 586379,
-    "simulated_useful_newer_map_installs": 570973
+    "simulated_map_installs": 586853,
+    "simulated_useful_newer_map_installs": 573780
   },
   "clock_bridge": {
     "absolute_deviation_ms_max": 5.454918,
@@ -24,7 +24,30 @@
     "same_event_pair": true,
     "same_physical_host": true
   },
+  "complete_feature_delivery_by_profile": {
+    "ADVERSE_STABLE": {
+      "complete_reassemblies": 147449,
+      "definition": "complete application reassemblies / frames sent",
+      "frames_sent": 223753
+    },
+    "FADE_RECOVERY": {
+      "complete_reassemblies": 185366,
+      "definition": "complete application reassemblies / frames sent",
+      "frames_sent": 222725
+    },
+    "FAVORABLE_STABLE": {
+      "complete_reassemblies": 198092,
+      "definition": "complete application reassemblies / frames sent",
+      "frames_sent": 223662
+    },
+    "MID_VARIABLE": {
+      "complete_reassemblies": 181825,
+      "definition": "complete application reassemblies / frames sent",
+      "frames_sent": 226716
+    }
+  },
   "component_boundaries": {
+    "capture_total": "RGB capture_wall_s to direct spatial-map install, retained for physical freshness but excluded from Figures 01 and 04",
     "edge_map": "complete edge reassembly to direct spatial-map install",
     "edge_queue": "complete edge reassembly to compute start plus compute finish to publication start",
     "map_install": "renderer-off direct publication-to-spatial-map install",
@@ -32,24 +55,27 @@
     "network": "send_finished_ns to complete edge reassembly, observed receipts only",
     "physical_map_aoi_excludes_controller_feedback": true,
     "pure_front": "front_timing_ns.front_backbone only",
-    "sensor_compute": "live optimized production sensor computation; CARLA wait excluded",
+    "sensor_compute": "live optimized production sensor computation before P23 seven-channel concatenation; CARLA wait excluded",
+    "sensor_compute_including_concat": "live optimized production sensor computation through P23 concatenation",
+    "seven_channel_concat": "live optimized P23 seven-channel concatenation",
     "tail_support": "non-model edge work rescaled to newest repaired-v3 total edge median",
-    "total": "RGB capture_wall_s to direct spatial-map install",
-    "ue_action": "capture_started_ns to send_finished_ns after seven-channel input is ready",
-    "ue_pipeline": "RGB capture_wall_s to optimized send_finished wall time"
+    "total": "P23 seven-channel concatenation start to direct spatial-map install",
+    "ue_action": "P23 seven-channel concatenation start to send_finished_ns; P23 is distributionally assigned from the live optimized calibration"
   },
   "denominators": {
+    "capture_total": "useful direct-map installations",
     "edge_map": "useful direct-map installations",
     "edge_queue": "useful direct-map installations",
     "map_install": "live renderer-off direct-map samples; repeated as an action-independent marginal",
     "model_tail": "final live family-anchor samples; repeated as a marginal for each family action/profile",
     "network": "frames with retained observed complete edge receipt",
     "pure_front": "all sent frames",
-    "sensor_compute": "all sent frames, distributionally mapped to live optimized production sensor compute",
+    "sensor_compute": "all sent frames, live optimized production sensor compute with P23 concatenation excluded",
+    "sensor_compute_including_concat": "all sent frames, distributionally mapped to live optimized production sensor compute",
+    "seven_channel_concat": "all sent frames, distributionally mapped to the live optimized P23 distribution",
     "tail_support": "final live family-anchor samples; repeated as a marginal for each family action/profile",
     "total": "useful direct-map installations",
-    "ue_action": "all sent frames",
-    "ue_pipeline": "all sent frames"
+    "ue_action": "all sent frames"
   },
   "direct_map_stage_calibration": {
     "definition": "first direct-map datagram send to authoritative map install",
@@ -92,8 +118,8 @@
   },
   "latency_percentile_warning": "stage P50/P95/P99 values are marginal percentiles with stage-specific denominators and must not be added to reconstruct a total percentile",
   "measured_radio_outcomes_held_fixed": true,
-  "network_boundary_inversions_excluded": 1,
-  "observed_network_intervals": 344176,
+  "network_boundary_inversions_excluded": 0,
+  "observed_network_intervals": 344177,
   "quality": {
     "centroid_rms_m": "sqrt((vehicle_xy_mae_m^2 + person_xy_mae_m^2) / 2)",
     "centroid_score": "exp(-centroid_rms_m / 1 metre)",
@@ -108,12 +134,14 @@
     "queue_wait_budget_ms": null,
     "superseded_pending_is_explicit_terminal": true
   },
+  "scheduler_arrival_causal_floor_frames": 22666,
+  "scheduler_arrival_causal_floor_reason": "capture-to-arrival imputations that predated the shifted UE send completion were moved to send completion before latest-only scheduling",
   "schema": "scenesense.splitfusion.supervisor_analysis.optimized_pipeline.v2",
   "scientific_status": "OFFLINE_COUNTERFACTUAL_NOT_LIVE_REMEASUREMENT",
   "sensor_delta_ms": {
     "count": 896856,
     "p50": -9.289540350437164,
-    "p95": -6.965512,
+    "p95": -6.9655124098062515,
     "p99": -6.066761910915375
   },
   "sensor_optimization": {
@@ -144,11 +172,11 @@
   "sensor_threading_audit": {
     "carla_callbacks": "camera and radar callbacks are distinct",
     "evaluation": "separate bounded evaluation worker after immutable snapshot capture",
-    "inner_radar_stages": "P07-P25 measured in the live sensor optimization",
-    "numerical_preparation": "radar and RGB preparation are sequential in one route-b-split-front worker"
+    "numerical_preparation": "radar and RGB preparation are sequential in one route-b-split-front worker",
+    "production_stages": "P07-P23 plus P25 measured in the live sensor optimization; P24 evaluation-only and P26 diagnostic synchronization excluded"
   },
   "source_bindings": {
-    "builder_sha256": "fdcacd8f1d6d00076b54deb30870b215703d99423a9cb28ba9e2f4e409aa4b22",
+    "builder_sha256": "7e9e3f303f549d79af981419dc5f2c6b425291034f394bf459cce417c52b0b46",
     "campaign_cell_table_sha256": "3f3067d4c9d0ef3c0d2661c3d19d04306bcbd18ef6d21fa426148e0ee24d2e0d",
     "latest_edge_validation_manifest_sha256": "917f48629787626b6cc17b90f6cdddf31ca51f1aeba32653c18eb6af8d6010b4",
     "sensor_optimization_manifest_sha256": "bd962d99030de93d8c2e4008792eaf129a58a6c76de45b8b619e5555e5b2f8cb"
