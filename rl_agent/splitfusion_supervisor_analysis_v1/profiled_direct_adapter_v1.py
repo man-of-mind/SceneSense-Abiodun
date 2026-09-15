@@ -9,6 +9,8 @@ radar-window membership, action, model input, wire path, or map path.
 
 from __future__ import annotations
 
+import ctypes
+import json
 import sys
 import threading
 import time
@@ -29,16 +31,26 @@ from rl_agent.splitfusion_supervisor_analysis_v1.profiled_sensor_stages import (
     build_radar_sample_profiled,
     prepare_live_input_profiled,
 )
+from rl_agent.splitfusion_sensor_optimization_v1.optimized_stages import (  # noqa: E402
+    CudaRadarRasterizer,
+    SingleSortStationaryTrackAccumulator,
+)
 
 
 BASELINE_MODE = "INSTRUMENTED_PRODUCTION_EQUIVALENT"
 OPTIMIZED_MODE = "OPTIMIZED_SENSOR_PREPARATION"
+# V2 adds three bit-exact candidates on top of the cached normalization
+# constants: the single-sort stationary tracker, the CUDA scatter-max/max-pool
+# rasterizer, and the identity radar-resize short circuit.
+OPTIMIZED_V2_MODE = "OPTIMIZED_SENSOR_PREPARATION_V2"
+OPTIMIZED_MODES = (OPTIMIZED_MODE, OPTIMIZED_V2_MODE)
 PROFILE_FIELDS = (
     "sensor_profile_mode",
     "profile_rgb_callback_ms",
     "profile_radar_callback_ms",
     "profile_semantic_callback_ms",
     "profile_worker_schedule_wait_ms",
+    "profile_worker_cpu",
     "profile_rgb_callback_to_worker_ms",
     "profile_visible_actor_count",
     "profile_ego_acceleration_mps2",
@@ -66,6 +78,7 @@ PROFILE_FIELDS = (
     "profile_unattributed_pre_front_ms",
     "profile_sensor_compute_production_estimate_ms",
     "profile_sensor_compute_diagnostic_wall_ms",
+    "profile_reference_radar_total_ms",
     "profile_radar_tensor_exact",
     "profile_radar_evidence_exact",
     "profile_model_input_exact",
@@ -73,6 +86,48 @@ PROFILE_FIELDS = (
     "ue_clock_anchor_wall_ns",
     "ue_clock_anchor_perf_ns",
 )
+
+
+def _current_cpu() -> int:
+    """Which core the preparation worker actually woke up on.
+
+    Separating OS placement from computation is the only way to tell a slow
+    stage from a descheduled one.  ``os.sched_getcpu`` is not exposed by this
+    Python, so libc is called directly; the read costs well under a microsecond
+    and stays outside every timed interval.
+    """
+
+    try:
+        return int(ctypes.CDLL("libc.so.6").sched_getcpu())
+    except Exception:  # pragma: no cover - platform dependent.
+        return -1
+
+
+def threading_snapshot() -> dict[str, Any]:
+    """Thread-pool sizes and affinity as seen inside the live UE process."""
+
+    import os
+
+    snapshot: dict[str, Any] = {
+        "cpu_affinity_size": len(os.sched_getaffinity(0)),
+        "cpu_count": os.cpu_count(),
+        "worker_cpu_at_snapshot": _current_cpu(),
+    }
+    for name in ("OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS",
+                 "NUMEXPR_NUM_THREADS", "CUDA_VISIBLE_DEVICES"):
+        snapshot[name] = os.environ.get(name)
+    try:
+        import cv2
+
+        snapshot["cv2_num_threads"] = int(cv2.getNumThreads())
+    except Exception:
+        snapshot["cv2_num_threads"] = None
+    try:
+        snapshot["torch_num_threads"] = int(torch.get_num_threads())
+        snapshot["torch_num_interop_threads"] = int(torch.get_num_interop_threads())
+    except Exception:
+        snapshot["torch_num_threads"] = None
+    return snapshot
 
 
 class _FrameRecorder:
@@ -139,6 +194,9 @@ def _profiled_prepare(
         radar_tensor,
         device,
         normalization_constants=normalization_constants,
+        skip_identity_radar_resize=bool(
+            getattr(collector, "_mode", "") == OPTIMIZED_V2_MODE
+        ),
     )
     frame_id = _RECORDER.current()
     checked = bool(
@@ -185,7 +243,7 @@ class ProfiledPassiveSplitCollector(pinned.PassiveSplitCollector):
         contract = dict(campaign.get("_sensor_preparation_diagnostic") or {})
         self._mode = str(contract.get("mode") or "")
         pinned.require(
-            self._mode in {BASELINE_MODE, OPTIMIZED_MODE},
+            self._mode in {BASELINE_MODE, *OPTIMIZED_MODES},
             f"unsupported sensor preparation diagnostic mode: {contract.get('mode')!r}",
         )
         self._recorder = _FrameRecorder()
@@ -199,7 +257,7 @@ class ProfiledPassiveSplitCollector(pinned.PassiveSplitCollector):
         self._equivalence_seen = 0
         super().__init__(**kwargs)
         self._normalization_constants: tuple[torch.Tensor, torch.Tensor] | None = None
-        if self._mode == OPTIMIZED_MODE:
+        if self._mode in OPTIMIZED_MODES:
             self._normalization_constants = (
                 torch.tensor(
                     [0.485, 0.456, 0.406], device=self.live.device
@@ -208,6 +266,22 @@ class ProfiledPassiveSplitCollector(pinned.PassiveSplitCollector):
                     [0.229, 0.224, 0.225], device=self.live.device
                 ).view(1, 3, 1, 1),
             )
+        # V2 candidates. Each is a bit-exact drop-in; the production
+        # implementations stay imported and are exercised live as the reference.
+        self._rasterizer_override = None
+        if self._mode == OPTIMIZED_V2_MODE:
+            self._rasterizer_override = CudaRadarRasterizer(self.live.device)
+            optimized_tracker = SingleSortStationaryTrackAccumulator(
+                stationary_velocity_mps=float(self.tracker.stationary_velocity_mps),
+                parked_threshold_s=float(self.tracker.parked_threshold_s),
+                association_grid_m=float(self.tracker.association_grid_m),
+                max_stale_s=float(self.tracker.max_stale_s),
+            )
+            pinned.require(
+                self.tracker._keys.size == 0,
+                "the stationary tracker must be replaced before it accumulates state",
+            )
+            self.tracker = optimized_tracker
         original_parked = self.parked
         self._original_radar_builder = original_parked.build_radar_sample
         self._shadow_tracker = live_base.FastStationaryTrackAccumulator(
@@ -253,16 +327,25 @@ class ProfiledPassiveSplitCollector(pinned.PassiveSplitCollector):
         )
 
     def _profile_radar_sample(self, **kwargs: Any) -> Any:
+        if self._rasterizer_override is not None:
+            kwargs = dict(kwargs)
+            kwargs["rasterizer_override"] = self._rasterizer_override
         tensor, points, summary = build_radar_sample_profiled(**kwargs)
         checked = self._equivalence_seen < self._equivalence_frames
         tensor_exact: Any = ""
         evidence_exact: Any = ""
+        reference_total_ms: Any = ""
         if checked:
             reference_kwargs = dict(kwargs)
+            reference_kwargs.pop("rasterizer_override", None)
             reference_kwargs["tracker"] = self._shadow_tracker
+            # Paired, same-frame, same-input production timing. This is the one
+            # comparison that is immune to between-run host drift.
+            reference_started = time.perf_counter_ns()
             reference_tensor, reference_points, reference_summary = (
                 self._original_radar_builder(**reference_kwargs)
             )
+            reference_total_ms = (time.perf_counter_ns() - reference_started) / 1e6
             tensor_exact = bool(np.array_equal(tensor, reference_tensor))
             evidence_exact = bool(
                 points.keys() == reference_points.keys()
@@ -288,6 +371,7 @@ class ProfiledPassiveSplitCollector(pinned.PassiveSplitCollector):
                 },
                 "profile_radar_tensor_exact": tensor_exact,
                 "profile_radar_evidence_exact": evidence_exact,
+                "profile_reference_radar_total_ms": reference_total_ms,
             }
         )
         return tensor, points, {
@@ -319,6 +403,7 @@ class ProfiledPassiveSplitCollector(pinned.PassiveSplitCollector):
                 "sensor_profile_mode": self._mode,
                 "ue_clock_anchor_wall_ns": clock_anchor_wall_ns,
                 "ue_clock_anchor_perf_ns": clock_anchor_perf_ns,
+                "profile_worker_cpu": _current_cpu(),
                 "profile_worker_schedule_wait_ms": max(
                     0.0,
                     process_started_ns / 1e9 - float(token["scheduled_perf"]),
@@ -408,7 +493,7 @@ def install_sensor_profile_seams(campaign: Mapping[str, Any]) -> None:
 
     contract = dict(campaign.get("_sensor_preparation_diagnostic") or {})
     pinned.require(
-        contract.get("mode") in {BASELINE_MODE, OPTIMIZED_MODE},
+        contract.get("mode") in {BASELINE_MODE, *OPTIMIZED_MODES},
         "supported sensor-profile mode is required",
     )
     global _RECORDER
@@ -439,6 +524,11 @@ def main(argv: list[str] | None = None) -> int:
     endpoint = direct.install_direct_seams(campaign)
     install_sensor_profile_seams(campaign)
     mode = str((campaign.get("_sensor_preparation_diagnostic") or {}).get("mode"))
+    print(
+        "[SENSOR-PROFILE-THREADS] "
+        + json.dumps(threading_snapshot(), sort_keys=True),
+        flush=True,
+    )
     print(
         f"[SENSOR-PROFILE] mode={mode}; "
         "one end-of-pipeline CUDA timing synchronization; "

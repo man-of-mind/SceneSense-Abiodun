@@ -15,6 +15,9 @@ import numpy as np
 import torch
 
 from pole_lraspp_multimodal_fusion.pole_lraspp_multimodal_fusion import radar_fusion
+from rl_agent.splitfusion_sensor_optimization_v1.optimized_stages import (
+    radar_channels_already_sized,
+)
 
 
 def _elapsed_ms(start_ns: int) -> float:
@@ -59,13 +62,19 @@ def build_radar_sample_profiled(**kwargs: Any) -> tuple[np.ndarray, dict[str, np
         else np.zeros((0,), dtype=np.float32)
     )
 
-    name = str(kwargs.get("rasterizer", "legacy") or "legacy").strip().lower()
-    if name in ("legacy", "python"):
-        rasterize = radar_fusion.rasterize_radar_channels
-    elif name in ("fast", "vectorized"):
-        rasterize = radar_fusion.rasterize_radar_channels_fast
+    override = kwargs.get("rasterizer_override")
+    if override is not None:
+        # A bit-exact drop-in replacement selected by the optimized mode. It
+        # takes the identical keyword contract and returns the identical array.
+        rasterize = override
     else:
-        raise ValueError(f"unknown radar rasterizer {name!r}")
+        name = str(kwargs.get("rasterizer", "legacy") or "legacy").strip().lower()
+        if name in ("legacy", "python"):
+            rasterize = radar_fusion.rasterize_radar_channels
+        elif name in ("fast", "vectorized"):
+            rasterize = radar_fusion.rasterize_radar_channels_fast
+        else:
+            raise ValueError(f"unknown radar rasterizer {name!r}")
     started = time.perf_counter_ns()
     tensor = rasterize(
         width=kwargs["width"],
@@ -148,6 +157,7 @@ def prepare_live_input_profiled(
     radar_tensor: np.ndarray,
     device: torch.device,
     normalization_constants: tuple[torch.Tensor, torch.Tensor] | None = None,
+    skip_identity_radar_resize: bool = False,
 ) -> tuple[torch.Tensor, dict[str, float]]:
     """Equivalent seven-channel preparation with CPU/CUDA stage timing.
 
@@ -193,8 +203,13 @@ def prepare_live_input_profiled(
     )
 
     started = time.perf_counter_ns()
-    radar_host = torch.from_numpy(
-        np.ascontiguousarray(
+    if skip_identity_radar_resize and radar_channels_already_sized(radar_tensor, 768, 448):
+        # ``build_radar_sample`` already rasterizes at the model size, so this
+        # resize maps 768x448 onto itself. cv2.resize to an identical size is
+        # bit-exact for both interpolations, so the stack is the only work left.
+        radar_packed = np.ascontiguousarray(radar_tensor)
+    else:
+        radar_packed = np.ascontiguousarray(
             np.stack(
                 [
                     cv2.resize(
@@ -207,7 +222,7 @@ def prepare_live_input_profiled(
                 axis=0,
             )
         )
-    ).unsqueeze(0)
+    radar_host = torch.from_numpy(radar_packed).unsqueeze(0)
     radar_resize_pack_ms = _elapsed_ms(started)
     radar_device = _timed_operation(
         "profile_radar_h2d_ms",

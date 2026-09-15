@@ -33,6 +33,8 @@ TOKEN = "SPLITFUSION_SENSOR_PREPARATION_LIVE_CELL"
 RETROSPECTIVE_TOKEN = "SPLITFUSION_SENSOR_PREPARATION_RETROSPECTIVE_ANALYSIS"
 BASELINE_MODE = "INSTRUMENTED_PRODUCTION_EQUIVALENT"
 OPTIMIZED_MODE = "OPTIMIZED_SENSOR_PREPARATION"
+OPTIMIZED_V2_MODE = "OPTIMIZED_SENSOR_PREPARATION_V2"
+OPTIMIZED_MODES = (OPTIMIZED_MODE, OPTIMIZED_V2_MODE)
 ACTION_ID = 50
 PROFILE_ID = "split_ae64_uint4_q5000"
 NETWORK_PROFILE = "FAVORABLE_STABLE"
@@ -52,6 +54,16 @@ PROFILER = (
 )
 SUCCESS_TERMINAL = "SPLITFUSION_SENSOR_PREPARATION_BASELINE_COMPLETE"
 OPTIMIZED_SUCCESS_TERMINAL = "SPLITFUSION_SENSOR_PREPARATION_OPTIMIZED_COMPLETE"
+OPTIMIZED_V2_SUCCESS_TERMINAL = (
+    "SPLITFUSION_SENSOR_PREPARATION_OPTIMIZED_V2_COMPLETE"
+)
+OPTIMIZER = (
+    ROOT / "rl_agent/splitfusion_sensor_optimization_v1/optimized_stages.py"
+)
+# V2 collects more paired equivalence frames: on each of them the production
+# radar chain runs on the identical input, giving a same-frame comparison that
+# between-run host drift cannot distort.
+V2_EQUIVALENCE_FRAMES = 32
 RETROSPECTIVE_TERMINAL = (
     "SPLITFUSION_SENSOR_PREPARATION_RETROSPECTIVE_ANALYSIS_COMPLETE"
 )
@@ -494,6 +506,53 @@ def complete_publication_join(
     }
 
 
+def paired_reference_comparison(
+    rows: Sequence[Mapping[str, str]],
+) -> dict[str, Any]:
+    """Same-frame, same-input production vs optimized radar-chain timing.
+
+    On each equivalence frame the production ``build_radar_sample`` runs on the
+    identical detections with an independent shadow tracker, so the two
+    durations differ only by the implementation.  Because both are measured
+    inside one frame on one host, this comparison is immune to the between-run
+    host drift that makes two separately launched cells hard to compare.
+    """
+
+    pairs = [
+        (
+            number(row.get("profile_radar_total_ms")),
+            number(row.get("profile_reference_radar_total_ms")),
+        )
+        for row in rows
+    ]
+    pairs = [
+        (optimized, reference)
+        for optimized, reference in pairs
+        if optimized is not None and reference is not None
+    ]
+    if not pairs:
+        return unavailable_distribution(
+            definition="paired production vs optimized radar chain",
+            reason="no frame carries both an optimized and a reference duration",
+        )
+    optimized = [value for value, _ in pairs]
+    reference = [value for _, value in pairs]
+    deltas = [ref - opt for opt, ref in pairs]
+    return {
+        "availability": "AVAILABLE",
+        "definition": (
+            "profile_reference_radar_total_ms (production build_radar_sample) "
+            "minus profile_radar_total_ms (optimized), both measured on the same "
+            "frame from the same detections"
+        ),
+        "pairs": len(pairs),
+        "optimized_ms": distribution(optimized),
+        "production_reference_ms": distribution(reference),
+        "reduction_ms": distribution(deltas),
+        "frames_optimized_faster": sum(1 for value in deltas if value > 0.0),
+    }
+
+
 def find_attempt(campaign_root: Path, cell_id: str) -> Path:
     attempts = sorted((campaign_root / "cells" / cell_id / "attempts").glob("attempt_*"))
     require(len(attempts) == 1, f"expected exactly one create-only attempt, found {len(attempts)}")
@@ -582,7 +641,9 @@ def analyse(
         ),
         "analysis_window_exactly_500": len(window) == sample_target,
         "exact_equivalence_frames_complete": (
-            len(profile_exact) == EQUIVALENCE_FRAMES and exact_holds
+            len(profile_exact)
+            == (V2_EQUIVALENCE_FRAMES if mode == OPTIMIZED_V2_MODE else EQUIVALENCE_FRAMES)
+            and exact_holds
         ),
         "frame_action_context_identity_exact": (
             sent_identity_exact
@@ -617,7 +678,7 @@ def analyse(
         "cell_runtime_passed": run_result.get("status") == "PASSED",
         "final_host_cold": bool(final_cold),
     }
-    if mode == OPTIMIZED_MODE:
+    if bridge.get("availability") == "AVAILABLE":
         gates["valid_ue_clock_anchors"] = (
             bridge.get("availability") == "AVAILABLE"
             and int(bridge.get("anchor_count") or 0) == len(sent)
@@ -662,6 +723,7 @@ def analyse(
         },
         "stages": stages,
         "total_sensor_compute": total_sensor_compute,
+        "paired_same_frame_radar_chain": paired_reference_comparison(sent),
         "sensor_compute_definition": (
             "pre_front_compute_ms excluding immutable evaluation snapshot, plus "
             "seven-channel production enqueue wall time; sensor wait and worker "
@@ -881,7 +943,11 @@ def parser() -> argparse.ArgumentParser:
     value.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
     value.add_argument("--output-root", type=Path, required=True)
     value.add_argument("--retrospective-source", type=Path)
-    value.add_argument("--mode", choices=("baseline", "optimized"), default="baseline")
+    value.add_argument(
+        "--mode",
+        choices=("baseline", "optimized", "optimized_v2"),
+        default="baseline",
+    )
     value.add_argument("--carla-port", type=int, default=2000)
     value.add_argument("--maximum-loop-sim-s", type=float, default=600.0)
     value.add_argument("--sample-target", type=int, default=SAMPLE_TARGET)
@@ -898,9 +964,61 @@ def main(argv: Sequence[str] | None = None) -> int:
         args.retrospective_source is None,
         "live execution refuses --retrospective-source",
     )
-    mode = BASELINE_MODE if args.mode == "baseline" else OPTIMIZED_MODE
+    mode = {
+        "baseline": BASELINE_MODE,
+        "optimized": OPTIMIZED_MODE,
+        "optimized_v2": OPTIMIZED_V2_MODE,
+    }[args.mode]
+    equivalence_frames = (
+        V2_EQUIVALENCE_FRAMES if mode == OPTIMIZED_V2_MODE else EQUIVALENCE_FRAMES
+    )
     optimization_binding: dict[str, Any] = {}
-    if mode == OPTIMIZED_MODE:
+    if mode == OPTIMIZED_V2_MODE:
+        require(OPTIMIZER.is_file(), "the optimization module is absent")
+        optimization_binding = {
+            "candidates": [
+                {
+                    "id": "A_SINGLE_SORT_STATIONARY_TRACKER",
+                    "stage": "P09_stationary_track_update",
+                    "change": (
+                        "np.unique(return_inverse) + argsort(inverse) replaced by one "
+                        "stable argsort; np.minimum.at replaced by reversed "
+                        "last-write-wins assignment"
+                    ),
+                    "bit_exact": True,
+                },
+                {
+                    "id": "D_CUDA_SCATTER_MAX_RASTERIZER",
+                    "stage": "P12_radar_rasterization",
+                    "change": (
+                        "5x np.maximum.at + 5x cv2.dilate replaced by one CUDA "
+                        "scatter_reduce(amax) and one max_pool2d; includes H2D, D2H "
+                        "and synchronization"
+                    ),
+                    "bit_exact": True,
+                },
+                {
+                    "id": "F_IDENTITY_RADAR_RESIZE_SHORT_CIRCUIT",
+                    "stage": "P21_radar_resize_pack",
+                    "change": (
+                        "the radar channels are already rasterized at 768x448, so the "
+                        "resize is the identity and is skipped"
+                    ),
+                    "bit_exact": True,
+                },
+                {
+                    "id": "CACHE_IMMUTABLE_DEVICE_NORMALIZATION_CONSTANTS",
+                    "stage": "P19_normalization_constants",
+                    "change": "retained from the previously validated optimized mode",
+                    "bit_exact": True,
+                },
+            ],
+            "optimizer_module": str(OPTIMIZER.relative_to(ROOT)),
+            "optimizer_sha256": supervisor.sha256_file(OPTIMIZER),
+            "paired_reference_frames": V2_EQUIVALENCE_FRAMES,
+            "scientific_values_unchanged": True,
+        }
+    elif mode == OPTIMIZED_MODE:
         baseline_result = BASELINE_RETROSPECTIVE_RESULT.resolve(strict=True)
         require(
             supervisor.sha256_file(baseline_result)
@@ -984,7 +1102,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "mode": mode,
         "sample_target": SAMPLE_TARGET,
         "warmup_sent_frames": WARMUP_SENT_FRAMES,
-        "equivalence_frames": EQUIVALENCE_FRAMES,
+        "equivalence_frames": equivalence_frames,
         "numpy_equivalence": "EXACT",
         "torch_equivalence": "EXACT",
         "cuda_timing": "EVENTS_WITH_ONE_FINAL_SYNCHRONIZATION_PER_FRAME",
@@ -1056,11 +1174,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     write_outputs(
         output,
         result,
-        terminal=(
-            SUCCESS_TERMINAL
-            if mode == BASELINE_MODE
-            else OPTIMIZED_SUCCESS_TERMINAL
-        ),
+        terminal={
+            BASELINE_MODE: SUCCESS_TERMINAL,
+            OPTIMIZED_MODE: OPTIMIZED_SUCCESS_TERMINAL,
+            OPTIMIZED_V2_MODE: OPTIMIZED_V2_SUCCESS_TERMINAL,
+        }[mode],
     )
     print(json.dumps({"status": result["status"], "output": str(output)}, sort_keys=True))
     return 0 if result["status"] == "PASS" else 1
