@@ -77,6 +77,48 @@ STAGES = {
     "total": "Action-to-map total",
 }
 SCATTER_STAGES = ("ue_action", "network", "edge_map", "total")
+QUALITY_VIEWS = (
+    {
+        "letter": "a",
+        "key": "val_segmentation_miou",
+        "slug": "semantic_segmentation_miou",
+        "label": "Semantic segmentation mIoU (%)",
+        "title": "Semantic segmentation mIoU",
+        "scale": 100.0,
+    },
+    {
+        "letter": "b",
+        "key": "val_vehicle_iou",
+        "slug": "vehicle_overlap_iou",
+        "label": "Vehicle overlap IoU (%)",
+        "title": "Vehicle overlap IoU",
+        "scale": 100.0,
+    },
+    {
+        "letter": "c",
+        "key": "val_person_box_mask_iou",
+        "slug": "person_box_mask_iou",
+        "label": "Person box-mask IoU (%)",
+        "title": "Person box-mask IoU",
+        "scale": 100.0,
+    },
+    {
+        "letter": "d",
+        "key": "val_vehicle_xy_mae_m",
+        "slug": "vehicle_xy_error",
+        "label": "Vehicle centroid XY MAE (m; lower is better)",
+        "title": "Vehicle localization error",
+        "scale": 1.0,
+    },
+    {
+        "letter": "e",
+        "key": "val_canonical_person_xy_mae_m",
+        "slug": "person_xy_error",
+        "label": "Person centroid XY MAE (m; lower is better)",
+        "title": "Person localization error",
+        "scale": 1.0,
+    },
+)
 PERCENTILES = (0.50, 0.95, 0.99)
 
 
@@ -349,42 +391,54 @@ def plot_quality_latency(rows: Sequence[Mapping[str, Any]], output: Path) -> lis
     for number, stage in enumerate(SCATTER_STAGES, start=1):
         label = STAGES[stage]
         key = f"{stage}_p50_ms"
-        fig, axes = plt.subplots(2, 2, figsize=(13.5, 9.5), sharey=True)
-        for ax, profile in zip(axes.flat, PROFILE_ORDER):
-            selected = [row for row in rows if row["network_profile"] == profile]
-            for family, color in FAMILY_COLOR.items():
-                group = [row for row in selected if row["family"] == family and row[key] != ""]
-                ax.scatter(
-                    [float(row[key]) for row in group],
-                    [100.0 * float(row["combined_quality"]) for row in group],
-                    s=52,
-                    alpha=0.92,
-                    c=color,
-                    edgecolors="#202020",
-                    linewidths=0.65,
-                    label=family,
-                )
-            ax.set_title(PROFILE_LABEL[profile])
-            ax.set_xlabel(f"{label} P50 (ms)")
-            ax.set_ylabel("Combined validation quality (%)")
-            ax.grid(alpha=0.25)
-            ax.tick_params(axis="both", labelsize=9, width=1.2)
-            for tick in ax.get_xticklabels() + ax.get_yticklabels():
-                tick.set_fontweight("bold")
-        handles, labels = axes.flat[0].get_legend_handles_labels()
-        fig.suptitle(f"Validation quality vs {label.lower()} by network profile", y=0.995)
-        fig.legend(
-            handles,
-            labels,
-            ncol=4,
-            loc="upper center",
-            bbox_to_anchor=(0.5, 0.965),
-            frameon=False,
-        )
-        fig.tight_layout(rect=(0, 0, 1, 0.91))
-        name = f"{number:02d}_quality_vs_{stage}_p50"
-        save_figure(fig, output / name)
-        names.extend([name + ".png", name + ".pdf"])
+        for view in QUALITY_VIEWS:
+            quality_key = str(view["key"])
+            scale = float(view["scale"])
+            fig, axes = plt.subplots(2, 2, figsize=(13.5, 9.5), sharey=True)
+            for ax, profile in zip(axes.flat, PROFILE_ORDER):
+                selected = [row for row in rows if row["network_profile"] == profile]
+                for family, color in FAMILY_COLOR.items():
+                    group = [
+                        row
+                        for row in selected
+                        if row["family"] == family
+                        and row[key] != ""
+                        and row[quality_key] != ""
+                    ]
+                    ax.scatter(
+                        [float(row[key]) for row in group],
+                        [scale * float(row[quality_key]) for row in group],
+                        s=52,
+                        alpha=0.92,
+                        c=color,
+                        edgecolors="#202020",
+                        linewidths=0.65,
+                        label=family,
+                    )
+                ax.set_title(PROFILE_LABEL[profile])
+                ax.set_xlabel(f"{label} P50 (ms)")
+                ax.set_ylabel(str(view["label"]))
+                ax.grid(alpha=0.25)
+                ax.tick_params(axis="both", labelsize=9, width=1.2)
+                for tick in ax.get_xticklabels() + ax.get_yticklabels():
+                    tick.set_fontweight("bold")
+            handles, legend_labels = axes.flat[0].get_legend_handles_labels()
+            fig.suptitle(
+                f"{view['title']} vs {label.lower()} by network profile",
+                y=0.995,
+            )
+            fig.legend(
+                handles,
+                legend_labels,
+                ncol=4,
+                loc="upper center",
+                bbox_to_anchor=(0.5, 0.965),
+                frameon=False,
+            )
+            fig.tight_layout(rect=(0, 0, 1, 0.91))
+            name = f"{number:02d}{view['letter']}_{view['slug']}_vs_{stage}_p50"
+            save_figure(fig, output / name)
+            names.extend([name + ".png", name + ".pdf"])
     return names
 
 
@@ -627,11 +681,11 @@ def make_report(
             "Q_{\\mathrm{joint}}=\\sqrt{mIoU_{\\mathrm{seg}}Q_{\\mathrm{loc}}}.",
             "$$",
             "",
-            "The overlap terms measure spatial box/footprint agreement; they are not the semantic-segmentation mIoU. Centroid XY MAE is explicit through a smooth one-metre reference scale. The one-metre value normalizes the presentation coordinate and is not a correctness gate. The geometric means are conservative: one strong dimension cannot hide a weak one.",
+            "The overlap terms measure spatial box/footprint agreement; they are not class-specific semantic-segmentation IoUs. Only aggregate foreground semantic mIoU is retained. Centroid XY MAE is explicit through a smooth one-metre reference scale. The one-metre value normalizes the presentation coordinate and is not a correctness gate. The geometric means are conservative: one strong dimension cannot hide a weak one.",
             "",
             "## Figure guide",
             "",
-            "Figures 01–04 show all available action/profile points without per-point action labels; color identifies the split family. Figure 05 gives the requested P50/P95/P99 decomposition into the complete UE action path, observed feature uplink, tail-busy waiting under latest-only scheduling, pure FCOS tail, other tail processing, and map service. Figure 06 exposes the retained sensor-preparation boundaries.",
+            "Figures 01a–04e separate aggregate semantic mIoU, vehicle overlap IoU, person box-mask IoU, vehicle centroid error, and person centroid error for every latency stage. They show all available action/profile points without per-point action labels; color identifies the split family. Vehicle/person overlap IoU must not be presented as class-specific semantic segmentation. Figure 05 gives the requested P50/P95/P99 decomposition into the complete UE action path, observed feature uplink, tail-busy waiting under latest-only scheduling, pure FCOS tail, other tail processing, and map service. Figure 06 exposes the retained sensor-preparation boundaries.",
         ]
     )
     return "\n".join(lines) + "\n"

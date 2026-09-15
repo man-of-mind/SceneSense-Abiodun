@@ -88,8 +88,8 @@ Q_{\mathrm{loc}}=\sqrt{Q_{\mathrm{overlap}}Q_{xy}},
 Q_{\mathrm{joint}}=\sqrt{mIoU_{\mathrm{seg}}Q_{\mathrm{loc}}}.
 $$
 
-The overlap terms measure spatial box/footprint agreement; they are not the semantic-segmentation mIoU. Centroid XY MAE is explicit through a smooth one-metre reference scale. The one-metre value normalizes the presentation coordinate and is not a correctness gate. The geometric means are conservative: one strong dimension cannot hide a weak one.
+The overlap terms measure spatial box/footprint agreement; they are not class-specific semantic-segmentation IoUs. Only aggregate foreground semantic mIoU is retained. Centroid XY MAE is explicit through a smooth one-metre reference scale. The one-metre value normalizes the presentation coordinate and is not a correctness gate. The geometric means are conservative: one strong dimension cannot hide a weak one.
 
 ## Figure guide
 
-Figures 01–04 show all available action/profile points without per-point action labels; color identifies the split family. Figure 05 gives the requested P50/P95/P99 decomposition into the complete UE action path, observed feature uplink, tail-busy waiting under latest-only scheduling, pure FCOS tail, other tail processing, and map service. Figure 06 exposes the retained sensor-preparation boundaries.
+Figures 01a–04e separate aggregate semantic mIoU, vehicle overlap IoU, person box-mask IoU, vehicle centroid error, and person centroid error for every latency stage. They show all available action/profile points without per-point action labels; color identifies the split family. Vehicle/person overlap IoU must not be presented as class-specific semantic segmentation. Figure 05 gives the requested P50/P95/P99 decomposition into the complete UE action path, observed feature uplink, tail-busy waiting under latest-only scheduling, pure FCOS tail, other tail processing, and map service. Figure 06 exposes the retained sensor-preparation boundaries.

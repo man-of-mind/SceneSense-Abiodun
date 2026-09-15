@@ -202,7 +202,7 @@
     "numerical_preparation": "radar and RGB preparation are sequential in one route-b-split-front worker"
   },
   "source_bindings": {
-    "builder_sha256": "92879d44fc84478f80313518d77e0ab03e569ec5ca083dbd1fa73de23588541f",
+    "builder_sha256": "88082a6b3ec934a2034c7a83ca1948ac8eb739084d984e547fd3c36c6f1f9891",
     "campaign_cell_table_sha256": "3f3067d4c9d0ef3c0d2661c3d19d04306bcbd18ef6d21fa426148e0ee24d2e0d",
     "direct_counterfactual_manifest_sha256": "b1fcb402762abfc8ecc32ab8141b1daa0d41f5e88e408514ad9c4a10aaf5a501",
     "direct_live_validation_manifest_sha256": "f8db2c5200fc27845f4585039b1736ccdef3c2ac670cb41bb31e24228c666db7"

@@ -16,12 +16,25 @@ The first two clocks are joined only through the previously validated
 same-host monotonic-to-wall clock bridge. Stage percentiles always carry their
 own denominator; missing stages are never assigned a latency of zero.
 
-The quality axis is a provisional presentation score, not the PPO reward:
+The presentation figures deliberately keep the quality dimensions separate:
+aggregate semantic-segmentation mIoU, vehicle overlap IoU, person box-mask
+IoU, vehicle centroid XY error, and person centroid XY error. The retained
+evidence does not contain separate vehicle/person semantic-segmentation mIoU;
+the two object-overlap IoUs must not be relabelled as class-specific semantic
+segmentation.
+
+The CSV also retains a provisional combined presentation score, not the PPO
+reward:
 
 $$
-Q_{\mathrm{joint}}=
-\sqrt{Q_{\mathrm{seg}}\sqrt{Q_{\mathrm{vehicle\ IoU}}
-Q_{\mathrm{person\ box\ IoU}}}}.
+Q_{\mathrm{overlap}}=\sqrt{\mathrm{IoU}_{\mathrm{vehicle}}
+\mathrm{IoU}_{\mathrm{person}}},\qquad
+Q_{xy}=\exp\left(-\frac{\sqrt{(e_v^2+e_p^2)/2}}{1\,\mathrm m}\right),
+$$
+
+$$
+Q_{\mathrm{loc}}=\sqrt{Q_{\mathrm{overlap}}Q_{xy}},\qquad
+Q_{\mathrm{joint}}=\sqrt{mIoU_{\mathrm{seg}}Q_{\mathrm{loc}}}.
 $$
 
 The geometric mean prevents strong segmentation from hiding poor localization
