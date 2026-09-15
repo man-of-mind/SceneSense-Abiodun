@@ -147,6 +147,7 @@ def prepare_live_input_profiled(
     frame_bgr: np.ndarray,
     radar_tensor: np.ndarray,
     device: torch.device,
+    normalization_constants: tuple[torch.Tensor, torch.Tensor] | None = None,
 ) -> tuple[torch.Tensor, dict[str, float]]:
     """Equivalent seven-channel preparation with CPU/CUDA stage timing.
 
@@ -177,8 +178,11 @@ def prepare_live_input_profiled(
         cuda_events,
     )
     constants_started = time.perf_counter_ns()
-    mean = torch.tensor([0.485, 0.456, 0.406], device=device).view(1, 3, 1, 1)
-    std = torch.tensor([0.229, 0.224, 0.225], device=device).view(1, 3, 1, 1)
+    if normalization_constants is None:
+        mean = torch.tensor([0.485, 0.456, 0.406], device=device).view(1, 3, 1, 1)
+        std = torch.tensor([0.229, 0.224, 0.225], device=device).view(1, 3, 1, 1)
+    else:
+        mean, std = normalization_constants
     normalization_constants_wall_ms = _elapsed_ms(constants_started)
     rgb_normalized = _timed_operation(
         "profile_camera_normalize_ms",

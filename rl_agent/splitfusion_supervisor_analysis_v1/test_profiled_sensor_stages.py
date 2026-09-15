@@ -88,6 +88,23 @@ def test_seven_channel_equivalence_cpu() -> None:
     )
 
 
+def test_cached_normalization_constants_are_exact() -> None:
+    rng = np.random.default_rng(712)
+    frame = rng.integers(0, 256, size=(720, 1280, 3), dtype=np.uint8)
+    radar = rng.normal(size=(4, 432, 768)).astype(np.float32)
+    device = torch.device("cpu")
+    constants = (
+        torch.tensor([0.485, 0.456, 0.406], device=device).view(1, 3, 1, 1),
+        torch.tensor([0.229, 0.224, 0.225], device=device).view(1, 3, 1, 1),
+    )
+    expected = _prepare_live_input(frame, radar, device)
+    actual, measurements = prepare_live_input_profiled(
+        frame, radar, device, normalization_constants=constants
+    )
+    torch.testing.assert_close(actual, expected, rtol=0.0, atol=0.0)
+    assert measurements["profile_cuda_substage_synchronizations"] == 0.0
+
+
 def test_complete_publication_join_requires_every_boundary() -> None:
     publication = {"stream_id": "ue-1", "frame_id": "17"}
     installed = {
@@ -178,6 +195,7 @@ def test_required_sensor_evidence_still_fails_closed() -> None:
 if __name__ == "__main__":
     test_radar_equivalence()
     test_seven_channel_equivalence_cpu()
+    test_cached_normalization_constants_are_exact()
     test_complete_publication_join_requires_every_boundary()
     test_direct_clock_availability_and_same_domain_metrics()
     test_required_sensor_evidence_still_fails_closed()

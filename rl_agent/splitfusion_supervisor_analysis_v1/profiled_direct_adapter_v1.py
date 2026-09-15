@@ -32,6 +32,7 @@ from rl_agent.splitfusion_supervisor_analysis_v1.profiled_sensor_stages import (
 
 
 BASELINE_MODE = "INSTRUMENTED_PRODUCTION_EQUIVALENT"
+OPTIMIZED_MODE = "OPTIMIZED_SENSOR_PREPARATION"
 PROFILE_FIELDS = (
     "sensor_profile_mode",
     "profile_rgb_callback_ms",
@@ -127,9 +128,19 @@ def _profiled_prepare(
 
     if _RECORDER is None:
         raise pinned.AdapterError("sensor profile recorder was not installed")
-    output, timings = prepare_live_input_profiled(frame_bgr, radar_tensor, device)
-    frame_id = _RECORDER.current()
     collector = getattr(_RECORDER.local, "collector", None)
+    normalization_constants = (
+        getattr(collector, "_normalization_constants", None)
+        if collector is not None
+        else None
+    )
+    output, timings = prepare_live_input_profiled(
+        frame_bgr,
+        radar_tensor,
+        device,
+        normalization_constants=normalization_constants,
+    )
+    frame_id = _RECORDER.current()
     checked = bool(
         collector is not None
         and int(getattr(collector, "_equivalence_seen", 0))
@@ -172,8 +183,9 @@ class ProfiledPassiveSplitCollector(pinned.PassiveSplitCollector):
     def __init__(self, **kwargs: Any) -> None:
         campaign = kwargs["campaign"]
         contract = dict(campaign.get("_sensor_preparation_diagnostic") or {})
+        self._mode = str(contract.get("mode") or "")
         pinned.require(
-            contract.get("mode") == BASELINE_MODE,
+            self._mode in {BASELINE_MODE, OPTIMIZED_MODE},
             f"unsupported sensor preparation diagnostic mode: {contract.get('mode')!r}",
         )
         self._recorder = _FrameRecorder()
@@ -186,6 +198,16 @@ class ProfiledPassiveSplitCollector(pinned.PassiveSplitCollector):
         )
         self._equivalence_seen = 0
         super().__init__(**kwargs)
+        self._normalization_constants: tuple[torch.Tensor, torch.Tensor] | None = None
+        if self._mode == OPTIMIZED_MODE:
+            self._normalization_constants = (
+                torch.tensor(
+                    [0.485, 0.456, 0.406], device=self.live.device
+                ).view(1, 3, 1, 1),
+                torch.tensor(
+                    [0.229, 0.224, 0.225], device=self.live.device
+                ).view(1, 3, 1, 1),
+            )
         original_parked = self.parked
         self._original_radar_builder = original_parked.build_radar_sample
         self._shadow_tracker = live_base.FastStationaryTrackAccumulator(
@@ -294,7 +316,7 @@ class ProfiledPassiveSplitCollector(pinned.PassiveSplitCollector):
         self._recorder.local.collector = self
         self._recorder.add(
             {
-                "sensor_profile_mode": BASELINE_MODE,
+                "sensor_profile_mode": self._mode,
                 "ue_clock_anchor_wall_ns": clock_anchor_wall_ns,
                 "ue_clock_anchor_perf_ns": clock_anchor_perf_ns,
                 "profile_worker_schedule_wait_ms": max(
@@ -385,7 +407,10 @@ def install_sensor_profile_seams(campaign: Mapping[str, Any]) -> None:
     """Install the diagnostic seams after the qualified direct-map seams."""
 
     contract = dict(campaign.get("_sensor_preparation_diagnostic") or {})
-    pinned.require(contract.get("mode") == BASELINE_MODE, "baseline mode is required")
+    pinned.require(
+        contract.get("mode") in {BASELINE_MODE, OPTIMIZED_MODE},
+        "supported sensor-profile mode is required",
+    )
     global _RECORDER
     _RECORDER = None
     live_base._prepare_live_input = _profiled_prepare
@@ -413,8 +438,9 @@ def main(argv: list[str] | None = None) -> int:
     )
     endpoint = direct.install_direct_seams(campaign)
     install_sensor_profile_seams(campaign)
+    mode = str((campaign.get("_sensor_preparation_diagnostic") or {}).get("mode"))
     print(
-        "[SENSOR-PROFILE] instrumented production-equivalent preparation; "
+        f"[SENSOR-PROFILE] mode={mode}; "
         "one end-of-pipeline CUDA timing synchronization; "
         f"direct map {endpoint['host']}:{endpoint['port']}",
         flush=True,

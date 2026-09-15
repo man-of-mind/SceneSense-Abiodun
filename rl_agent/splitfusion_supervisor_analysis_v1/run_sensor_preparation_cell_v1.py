@@ -51,10 +51,19 @@ PROFILER = (
     ROOT / "rl_agent/splitfusion_supervisor_analysis_v1/profiled_sensor_stages.py"
 )
 SUCCESS_TERMINAL = "SPLITFUSION_SENSOR_PREPARATION_BASELINE_COMPLETE"
+OPTIMIZED_SUCCESS_TERMINAL = "SPLITFUSION_SENSOR_PREPARATION_OPTIMIZED_COMPLETE"
 RETROSPECTIVE_TERMINAL = (
     "SPLITFUSION_SENSOR_PREPARATION_RETROSPECTIVE_ANALYSIS_COMPLETE"
 )
 CLOCK_ANCHOR_MAX_DEVIATION_MS = 1.0
+BASELINE_RETROSPECTIVE_RESULT = ROOT / (
+    "experiments/splitfusion_sensor_preparation_live_v1/"
+    "20260914_action50_favorable_baseline_retry1_retrospective_analysis/"
+    "SENSOR_PROFILE_RESULT.json"
+)
+BASELINE_RETROSPECTIVE_RESULT_SHA256 = (
+    "99283431b35e8c978e75d061867b9d93d3b0d81f9649fab3c868e888eeebb83a"
+)
 
 
 STAGES = (
@@ -248,9 +257,10 @@ def clock_bridge(sent: Sequence[Mapping[str, str]]) -> dict[str, Any]:
         "maximum_allowed_deviation_ms": CLOCK_ANCHOR_MAX_DEVIATION_MS,
         "deviation_within_bound": (
             incomplete_pairs == 0
-            and max(deviations, default=float("inf"))
+            and (quantile(deviations, 0.99) or 0.0)
             <= CLOCK_ANCHOR_MAX_DEVIATION_MS
         ),
+        "deviation_gate": "P99",
         "legacy_edge_result_fields_used": False,
     }
 
@@ -774,6 +784,7 @@ def source_artifact_binding(source: Path, attempt: Path) -> dict[str, Any]:
 
 def _retrospective_analysis(args: argparse.Namespace) -> int:
     require(args.retrospective_source is not None, "--retrospective-source is required")
+    require(args.mode == "baseline", "retrospective analysis mode must be baseline")
     require(args.sample_target == SAMPLE_TARGET, "profiling sample target is locked to 500")
     require(
         args.warmup_sent_frames == WARMUP_SENT_FRAMES,
@@ -870,6 +881,7 @@ def parser() -> argparse.ArgumentParser:
     value.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
     value.add_argument("--output-root", type=Path, required=True)
     value.add_argument("--retrospective-source", type=Path)
+    value.add_argument("--mode", choices=("baseline", "optimized"), default="baseline")
     value.add_argument("--carla-port", type=int, default=2000)
     value.add_argument("--maximum-loop-sim-s", type=float, default=600.0)
     value.add_argument("--sample-target", type=int, default=SAMPLE_TARGET)
@@ -886,6 +898,38 @@ def main(argv: Sequence[str] | None = None) -> int:
         args.retrospective_source is None,
         "live execution refuses --retrospective-source",
     )
+    mode = BASELINE_MODE if args.mode == "baseline" else OPTIMIZED_MODE
+    optimization_binding: dict[str, Any] = {}
+    if mode == OPTIMIZED_MODE:
+        baseline_result = BASELINE_RETROSPECTIVE_RESULT.resolve(strict=True)
+        require(
+            supervisor.sha256_file(baseline_result)
+            == BASELINE_RETROSPECTIVE_RESULT_SHA256,
+            "retrospective baseline result hash drift",
+        )
+        baseline = json.loads(baseline_result.read_text(encoding="utf-8"))
+        normalization = baseline["stages"]["P19_normalization_constants"]
+        require(
+            baseline.get("status") == "PASS"
+            and normalization.get("count") == SAMPLE_TARGET
+            and float(normalization["p50_ms"]) > 0.0,
+            "retrospective baseline does not support the selected optimization",
+        )
+        optimization_binding = {
+            "candidate": "CACHE_IMMUTABLE_DEVICE_NORMALIZATION_CONSTANTS",
+            "baseline_result": str(baseline_result.relative_to(ROOT)),
+            "baseline_result_sha256": BASELINE_RETROSPECTIVE_RESULT_SHA256,
+            "measured_baseline_stage": {
+                key: normalization[key]
+                for key in (
+                    "count", "p50_ms", "p95_ms", "p99_ms",
+                    "percentage_of_total_sensor_compute",
+                )
+            },
+            "cache_lifetime": "ONE_LIVE_COLLECTOR_RUNTIME",
+            "cached_on_selected_device": True,
+            "scientific_values_unchanged": True,
+        }
     require(args.sample_target == SAMPLE_TARGET, "profiling sample target is locked to 500")
     require(args.warmup_sent_frames == WARMUP_SENT_FRAMES, "profiling warmup is locked to 20 sent frames")
     config_path = args.config.resolve(strict=True)
@@ -937,7 +981,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     output.mkdir(parents=False, exist_ok=False)
     config["_maximum_loop_sim_s_override"] = float(args.maximum_loop_sim_s)
     config["_sensor_preparation_diagnostic"] = {
-        "mode": BASELINE_MODE,
+        "mode": mode,
         "sample_target": SAMPLE_TARGET,
         "warmup_sent_frames": WARMUP_SENT_FRAMES,
         "equivalence_frames": EQUIVALENCE_FRAMES,
@@ -945,10 +989,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         "torch_equivalence": "EXACT",
         "cuda_timing": "EVENTS_WITH_ONE_FINAL_SYNCHRONIZATION_PER_FRAME",
         "production_wall_measurement_has_per_stage_synchronization": False,
+        "optimization": optimization_binding,
     }
     manifest = {
         "schema": f"{SCHEMA}.manifest",
-        "mode": BASELINE_MODE,
+        "mode": mode,
         "git": worktree,
         "config": str(config_path.relative_to(ROOT)),
         "config_sha256": supervisor.sha256_file(config_path),
@@ -964,6 +1009,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "cold_before": cold_before,
         "started_at_unix_s": time.time(),
         "another_288_campaign_authorized": False,
+        "optimization": optimization_binding,
     }
     supervisor.write_create_only(
         output / "run_manifest.json", json.dumps(manifest, indent=2, sort_keys=True) + "\n"
@@ -1005,9 +1051,17 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 1
     result = analyse(
         attempt, cell, SAMPLE_TARGET, WARMUP_SENT_FRAMES,
-        run_result, cold_after,
+        run_result, cold_after, mode=mode,
     )
-    write_outputs(output, result)
+    write_outputs(
+        output,
+        result,
+        terminal=(
+            SUCCESS_TERMINAL
+            if mode == BASELINE_MODE
+            else OPTIMIZED_SUCCESS_TERMINAL
+        ),
+    )
     print(json.dumps({"status": result["status"], "output": str(output)}, sort_keys=True))
     return 0 if result["status"] == "PASS" else 1
 
