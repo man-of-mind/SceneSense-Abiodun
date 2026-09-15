@@ -25,6 +25,9 @@ own denominator; missing stages are never assigned a latency of zero.
 Feature-uplink profile percentiles use common action support with observed
 reassembly timing in all four profiles. Figure 07 separately reports complete
 application-message delivery / frames sent over all 72 actions per profile.
+Figure 06 numbers its displayed production functions sequentially from P01 to
+P18; `sensor_optimization_stage_percentiles.csv` retains the live profiler's
+original identifier in `source_stage`.
 
 The presentation figures keep the quality dimensions separate:
 aggregate semantic-segmentation mIoU, vehicle overlap IoU, person box-mask

@@ -14,6 +14,7 @@ from rl_agent.splitfusion_supervisor_analysis_v1.build_analysis import (
     pareto_ids,
     percentile,
     quality_score,
+    sensor_optimization_stage_rows,
     shift_arrivals_for_sensor_optimization,
     useful_outcomes,
 )
@@ -142,6 +143,15 @@ def test_imputed_scheduler_arrival_cannot_precede_shifted_send() -> None:
     assert floor_count == 1
 
 
+def test_sensor_presentation_stages_are_sequential_and_auditable() -> None:
+    rows = sensor_optimization_stage_rows()
+    assert [row["stage"] for row in rows] == [
+        f"P{index:02d}" for index in range(1, len(rows) + 1)
+    ]
+    assert rows[0]["source_stage"] == "P07"
+    assert rows[-1]["source_stage"] == "P25"
+
+
 if __name__ == "__main__":
     test_quality_is_conservative_geometric_mean()
     test_percentile_is_nearest_rank()
@@ -150,4 +160,5 @@ if __name__ == "__main__":
     test_useful_installations_drop_older_late_map()
     test_network_percentiles_use_common_action_support()
     test_imputed_scheduler_arrival_cannot_precede_shifted_send()
+    test_sensor_presentation_stages_are_sequential_and_auditable()
     print("SUPERVISOR_ANALYSIS_UNIT_TEST_PASS")

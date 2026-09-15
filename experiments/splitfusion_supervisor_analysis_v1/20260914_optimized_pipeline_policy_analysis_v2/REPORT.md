@@ -83,7 +83,7 @@ The stage percentiles are marginals with different conditional denominators and 
 
 ## Sensor optimization
 
-Figure 06 uses the full sent-frame populations from the live action-50 FAVORABLE_STABLE baseline and optimized cells. It reports production stages P07–P23 plus P25 at their measured function boundaries; P24 is evaluation-only and P26 is diagnostic synchronization, so neither is included. Camera and radar callbacks are distinct, but the numerical preparation for one selected frame remains sequential in the front worker. Component percentiles are marginal and cannot be summed.
+Figure 06 uses the full sent-frame populations from the live action-50 FAVORABLE_STABLE baseline and optimized cells. Its presentation-local labels run sequentially from P01 to P18. The CSV retains each original profiler identifier in `source_stage`; those source identifiers are P07–P23 plus P25 because callback/wait, evaluation-only, and diagnostic synchronization stages are outside this production-compute breakdown. Camera and radar callbacks are distinct, but the numerical preparation for one selected frame remains sequential in the front worker. Component percentiles are marginal and cannot be summed.
 
 ## Clock and denominator integrity
 

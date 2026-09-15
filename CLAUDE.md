@@ -184,8 +184,8 @@ second live campaign. Inventory: 896,856 sent; 712,732 complete reassemblies;
 602,315 measured edge admissions; 586,853 simulated map installations. Figures
 01a–04f keep semantic, vehicle/person overlap and centroid error separate and
 restore joint segmentation-localization quality as view `f`; Figure 05 is the
-P50/P95/P99 causal-stage breakdown, Figure 06 is the live P07–P23 plus P25
-sensor before/after breakdown, and Figure 07 reports complete feature delivery
+P50/P95/P99 causal-stage breakdown, Figure 06 is the live sensor before/after
+breakdown with presentation-local labels P01–P18, and Figure 07 reports complete feature delivery
 by profile. Figures 01 and 04 begin at seven-channel concatenation rather than
 RGB capture. The joint score is a presentation coordinate, not a
 calibrated probability or the PPO reward. One send-finished/reassembly timestamp

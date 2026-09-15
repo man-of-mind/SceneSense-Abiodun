@@ -995,9 +995,16 @@ def sensor_optimization_stage_rows() -> list[dict[str, Any]]:
     result_path = SENSOR_PRESENTATION_ROOT / "SENSOR_OPTIMIZATION_V2_RESULT.json"
     result = json.loads(result_path.read_text(encoding="utf-8"))
     rows: list[dict[str, Any]] = []
-    for item in result["stages_full_sent_population"]:
+    for display_index, item in enumerate(
+        result["stages_full_sent_population"], start=1
+    ):
         record: dict[str, Any] = {
-            "stage": item["stage"],
+            # The live profiler uses P07-P23 and P25 because P01-P06 are
+            # callback/wait boundaries and P24/P26 are non-production stages.
+            # Figure 06 needs a simple presentation-local sequence, while the
+            # source identifier remains explicit for auditability.
+            "stage": f"P{display_index:02d}",
+            "source_stage": item["stage"],
             "field": item["field"],
             "label": item["label"],
             "changed_by_this_work": bool(item["changed_by_this_work"]),
@@ -1015,8 +1022,16 @@ def plot_optimized_sensor_breakdown(
     """Figure 06: per-function live sensor timing before and after optimization."""
 
     configure_plot()
-    radar = [row for row in rows if 7 <= int(str(row["stage"])[1:]) <= 13]
-    camera = [row for row in rows if 14 <= int(str(row["stage"])[1:]) <= 25]
+    radar = [
+        row
+        for row in rows
+        if 7 <= int(str(row["source_stage"])[1:]) <= 13
+    ]
+    camera = [
+        row
+        for row in rows
+        if 14 <= int(str(row["source_stage"])[1:]) <= 25
+    ]
     fig, axes = plt.subplots(2, 3, figsize=(22, 11.5), sharey=False)
     colors = {"baseline": "#9ECAE1", "optimized": "#2C7FB8"}
     for row_index, (group, group_name) in enumerate(
@@ -1236,7 +1251,7 @@ def make_report(
             "",
             "## Sensor optimization",
             "",
-            "Figure 06 uses the full sent-frame populations from the live action-50 FAVORABLE_STABLE baseline and optimized cells. It reports production stages P07–P23 plus P25 at their measured function boundaries; P24 is evaluation-only and P26 is diagnostic synchronization, so neither is included. Camera and radar callbacks are distinct, but the numerical preparation for one selected frame remains sequential in the front worker. Component percentiles are marginal and cannot be summed.",
+            "Figure 06 uses the full sent-frame populations from the live action-50 FAVORABLE_STABLE baseline and optimized cells. Its presentation-local labels run sequentially from P01 to P18. The CSV retains each original profiler identifier in `source_stage`; those source identifiers are P07–P23 plus P25 because callback/wait, evaluation-only, and diagnostic synchronization stages are outside this production-compute breakdown. Camera and radar callbacks are distinct, but the numerical preparation for one selected frame remains sequential in the front worker. Component percentiles are marginal and cannot be summed.",
             "",
             "## Clock and denominator integrity",
             "",
@@ -1651,7 +1666,8 @@ def run(output: Path) -> dict[str, Any]:
                 "carla_callbacks": "camera and radar callbacks are distinct",
                 "numerical_preparation": "radar and RGB preparation are sequential in one route-b-split-front worker",
                 "evaluation": "separate bounded evaluation worker after immutable snapshot capture",
-                "production_stages": "P07-P23 plus P25 measured in the live sensor optimization; P24 evaluation-only and P26 diagnostic synchronization excluded",
+                "presentation_stages": "P01-P18 sequential labels in Figure 06 and its CSV stage column",
+                "source_stage_mapping": "original live-profiler identifiers retained in source_stage (P07-P23 plus P25)",
             },
         },
     )

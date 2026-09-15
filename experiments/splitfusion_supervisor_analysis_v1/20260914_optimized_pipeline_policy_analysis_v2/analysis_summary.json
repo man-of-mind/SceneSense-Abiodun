@@ -173,10 +173,11 @@
     "carla_callbacks": "camera and radar callbacks are distinct",
     "evaluation": "separate bounded evaluation worker after immutable snapshot capture",
     "numerical_preparation": "radar and RGB preparation are sequential in one route-b-split-front worker",
-    "production_stages": "P07-P23 plus P25 measured in the live sensor optimization; P24 evaluation-only and P26 diagnostic synchronization excluded"
+    "presentation_stages": "P01-P18 sequential labels in Figure 06 and its CSV stage column",
+    "source_stage_mapping": "original live-profiler identifiers retained in source_stage (P07-P23 plus P25)"
   },
   "source_bindings": {
-    "builder_sha256": "7e9e3f303f549d79af981419dc5f2c6b425291034f394bf459cce417c52b0b46",
+    "builder_sha256": "ab52ddc55c319b6af3425215f34ee48d4c22abc80c5622987e4937f98a962184",
     "campaign_cell_table_sha256": "3f3067d4c9d0ef3c0d2661c3d19d04306bcbd18ef6d21fa426148e0ee24d2e0d",
     "latest_edge_validation_manifest_sha256": "917f48629787626b6cc17b90f6cdddf31ca51f1aeba32653c18eb6af8d6010b4",
     "sensor_optimization_manifest_sha256": "bd962d99030de93d8c2e4008792eaf129a58a6c76de45b8b619e5555e5b2f8cb"
