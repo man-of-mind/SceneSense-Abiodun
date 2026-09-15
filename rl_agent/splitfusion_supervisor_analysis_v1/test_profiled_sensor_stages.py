@@ -12,6 +12,12 @@ from rl_agent.splitfusion_supervisor_analysis_v1.profiled_sensor_stages import (
     build_radar_sample_profiled,
     prepare_live_input_profiled,
 )
+from rl_agent.splitfusion_supervisor_analysis_v1.run_sensor_preparation_cell_v1 import (
+    complete_publication_join,
+)
+from rl_agent.splitfusion_direct_edge_map_live_validation_v1 import (
+    DIRECT_STAGE_INTERVALS,
+)
 
 
 def radar_kwargs(tracker: radar_fusion.StationaryTrackAccumulator) -> dict[str, object]:
@@ -71,9 +77,38 @@ def test_seven_channel_equivalence_cpu() -> None:
     torch.testing.assert_close(actual, expected, rtol=0.0, atol=0.0)
     assert actual.shape == (1, 7, 448, 768)
     assert all(np.isfinite(value) and value >= 0.0 for value in measurements.values())
+    assert measurements["profile_cuda_substage_synchronizations"] == 0.0
+    assert (
+        measurements["profile_seven_channel_production_enqueue_wall_ms"]
+        <= measurements["profile_seven_channel_total_wall_ms"]
+    )
+
+
+def test_complete_publication_join_requires_every_boundary() -> None:
+    publication = {"stream_id": "ue-1", "frame_id": "17"}
+    installed = {
+        "stream_id": "ue-1",
+        "frame_id": "17",
+        "outcome": "RESULT_INSTALLED",
+    }
+    cursor = 1.0
+    for _name, start, finish in DIRECT_STAGE_INTERVALS:
+        publication.setdefault(start, str(cursor))
+        cursor += 0.001
+        installed.setdefault(finish, str(cursor))
+        publication.setdefault(finish, str(cursor))
+    complete = complete_publication_join([installed], [publication])
+    assert complete["complete_frames"] == 1
+    assert complete["complete_fraction"] == 1.0
+    installed.pop("map_install_at")
+    publication.pop("map_install_at", None)
+    incomplete = complete_publication_join([installed], [publication])
+    assert incomplete["complete_frames"] == 0
+    assert incomplete["incomplete_examples"]
 
 
 if __name__ == "__main__":
     test_radar_equivalence()
     test_seven_channel_equivalence_cpu()
+    test_complete_publication_join_requires_every_boundary()
     print("PROFILED_SENSOR_STAGES_TEST_PASS")

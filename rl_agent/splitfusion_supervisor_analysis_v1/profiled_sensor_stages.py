@@ -120,17 +120,27 @@ def build_radar_sample_profiled(**kwargs: Any) -> tuple[np.ndarray, dict[str, np
     return tensor, points, summary
 
 
-def _cuda_timed(operation: Any, device: torch.device) -> tuple[Any, float]:
+def _timed_operation(
+    name: str,
+    operation: Any,
+    device: torch.device,
+    cpu_timings: dict[str, float],
+    cuda_events: dict[str, tuple[torch.cuda.Event, torch.cuda.Event]],
+) -> Any:
+    """Run one stage without adding a per-stage CUDA synchronization."""
+
     if device.type != "cuda":
         started = time.perf_counter_ns()
-        return operation(), _elapsed_ms(started)
+        value = operation()
+        cpu_timings[name] = _elapsed_ms(started)
+        return value
     start = torch.cuda.Event(enable_timing=True)
     finish = torch.cuda.Event(enable_timing=True)
     start.record()
     value = operation()
     finish.record()
-    finish.synchronize()
-    return value, float(start.elapsed_time(finish))
+    cuda_events[name] = (start, finish)
+    return value
 
 
 def prepare_live_input_profiled(
@@ -157,12 +167,26 @@ def prepare_live_input_profiled(
     started = time.perf_counter_ns()
     rgb_host = torch.from_numpy(np.ascontiguousarray(rgb)).permute(2, 0, 1).unsqueeze(0)
     rgb_tensor_pack_ms = _elapsed_ms(started)
-    rgb_tensor, rgb_h2d_ms = _cuda_timed(
-        lambda: rgb_host.to(device=device, dtype=torch.float32).div_(255.0), device
+    cpu_timings: dict[str, float] = {}
+    cuda_events: dict[str, tuple[torch.cuda.Event, torch.cuda.Event]] = {}
+    rgb_tensor = _timed_operation(
+        "profile_camera_h2d_ms",
+        lambda: rgb_host.to(device=device, dtype=torch.float32).div_(255.0),
+        device,
+        cpu_timings,
+        cuda_events,
     )
+    constants_started = time.perf_counter_ns()
     mean = torch.tensor([0.485, 0.456, 0.406], device=device).view(1, 3, 1, 1)
     std = torch.tensor([0.229, 0.224, 0.225], device=device).view(1, 3, 1, 1)
-    rgb_normalized, rgb_normalize_ms = _cuda_timed(lambda: (rgb_tensor - mean) / std, device)
+    normalization_constants_wall_ms = _elapsed_ms(constants_started)
+    rgb_normalized = _timed_operation(
+        "profile_camera_normalize_ms",
+        lambda: (rgb_tensor - mean) / std,
+        device,
+        cpu_timings,
+        cuda_events,
+    )
 
     started = time.perf_counter_ns()
     radar_host = torch.from_numpy(
@@ -181,20 +205,47 @@ def prepare_live_input_profiled(
         )
     ).unsqueeze(0)
     radar_resize_pack_ms = _elapsed_ms(started)
-    radar_device, radar_h2d_ms = _cuda_timed(
-        lambda: radar_host.to(device=device, dtype=torch.float32), device
+    radar_device = _timed_operation(
+        "profile_radar_h2d_ms",
+        lambda: radar_host.to(device=device, dtype=torch.float32),
+        device,
+        cpu_timings,
+        cuda_events,
     )
-    combined, concatenate_ms = _cuda_timed(
-        lambda: torch.cat((rgb_normalized, radar_device), dim=1), device
+    combined = _timed_operation(
+        "profile_seven_channel_concatenate_ms",
+        lambda: torch.cat((rgb_normalized, radar_device), dim=1),
+        device,
+        cpu_timings,
+        cuda_events,
     )
+    production_enqueue_wall_ms = _elapsed_ms(total_started)
+    synchronization_started = time.perf_counter_ns()
+    if cuda_events:
+        # One barrier makes every event readable. It is intentionally confined
+        # to the diagnostic path and is never inserted between GPU substages.
+        next(reversed(cuda_events.values()))[1].synchronize()
+        cpu_timings.update(
+            {
+                name: float(start.elapsed_time(finish))
+                for name, (start, finish) in cuda_events.items()
+            }
+        )
+    diagnostic_sync_wait_ms = _elapsed_ms(synchronization_started)
     return combined, {
         "profile_camera_bgr_to_rgb_ms": bgr_to_rgb_ms,
         "profile_camera_resize_ms": rgb_resize_ms,
         "profile_camera_tensor_pack_ms": rgb_tensor_pack_ms,
-        "profile_camera_h2d_ms": rgb_h2d_ms,
-        "profile_camera_normalize_ms": rgb_normalize_ms,
+        "profile_camera_h2d_ms": cpu_timings["profile_camera_h2d_ms"],
+        "profile_camera_normalization_constants_wall_ms": normalization_constants_wall_ms,
+        "profile_camera_normalize_ms": cpu_timings["profile_camera_normalize_ms"],
         "profile_radar_resize_pack_ms": radar_resize_pack_ms,
-        "profile_radar_h2d_ms": radar_h2d_ms,
-        "profile_seven_channel_concatenate_ms": concatenate_ms,
+        "profile_radar_h2d_ms": cpu_timings["profile_radar_h2d_ms"],
+        "profile_seven_channel_concatenate_ms": cpu_timings[
+            "profile_seven_channel_concatenate_ms"
+        ],
+        "profile_seven_channel_production_enqueue_wall_ms": production_enqueue_wall_ms,
+        "profile_seven_channel_diagnostic_sync_wait_ms": diagnostic_sync_wait_ms,
+        "profile_cuda_substage_synchronizations": float(1 if cuda_events else 0),
         "profile_seven_channel_total_wall_ms": _elapsed_ms(total_started),
     }
