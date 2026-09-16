@@ -30,6 +30,7 @@ from rl_agent.splitfusion_quality_feedback_probe_v1.analyze_live_probe import (
 )
 from rl_agent.splitfusion_quality_feedback_probe_v1.packet_evidence import (
     QualityAckCapture,
+    _source_endpoint_matches,
     parse_quality_pcap,
 )
 
@@ -178,6 +179,21 @@ class ParentContractTests(unittest.TestCase):
 
 
 class PacketAndAnalysisTests(unittest.TestCase):
+    def test_udp_wildcard_local_ip_defers_to_packet_but_port_stays_exact(self) -> None:
+        packet = {"source_ip": "192.168.70.140", "source_port": 44798}
+        self.assertTrue(
+            _source_endpoint_matches(packet, ("0.0.0.0", 44798))
+        )
+        self.assertTrue(
+            _source_endpoint_matches(packet, ("192.168.70.140", 44798))
+        )
+        self.assertFalse(
+            _source_endpoint_matches(packet, ("192.168.70.141", 44798))
+        )
+        self.assertFalse(
+            _source_endpoint_matches(packet, ("0.0.0.0", 44799))
+        )
+
     def test_capture_is_explicitly_on_host_owned_ue_tunnel(self) -> None:
         capture = QualityAckCapture(
             Path("/tmp/unused"),

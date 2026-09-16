@@ -252,6 +252,26 @@ def _ledger_digests(path: Path) -> list[str]:
         ]
 
 
+def _source_endpoint_matches(
+    captured: Mapping[str, Any], socket_local: Iterable[Any]
+) -> bool:
+    """Match a packet to an unconnected UDP sender's local endpoint.
+
+    ``getsockname()`` on the quality sender reports ``0.0.0.0:<port>`` because
+    the socket is deliberately neither bound to a particular interface nor
+    connected.  Linux selects the concrete egress address only in ``sendto``.
+    The selected address is therefore proven by the tunnel packet itself,
+    while the bound ephemeral port must still match exactly.  A non-wildcard
+    socket address remains subject to exact IP equality.
+    """
+
+    local = list(socket_local)
+    if len(local) != 2 or int(captured["source_port"]) != int(local[1]):
+        return False
+    local_ip = str(local[0])
+    return local_ip in {"", "0.0.0.0"} or str(captured["source_ip"]) == local_ip
+
+
 def render_packet_evidence(
     attempt_dir: Path, *, ue_host: str, ue_port: int
 ) -> dict[str, Any]:
@@ -293,9 +313,7 @@ def render_packet_evidence(
         sent = edge_by_digest[str(row["message_sha256"])]
         local = list(sent.get("socket_local") or ())
         _require(
-            len(local) == 2
-            and str(row["source_ip"]) == str(local[0])
-            and int(row["source_port"]) == int(local[1]),
+            _source_endpoint_matches(row, local),
             "captured quality ACK source endpoint differs from edge send socket",
         )
     csv_path = attempt / "quality_ack_packets.csv"
@@ -321,6 +339,18 @@ def render_packet_evidence(
         "ue_messages": len(ue_digests),
         "digest_multisets_equal": True,
         "max_payload_bytes": max(int(row["payload_bytes"]) for row in rows),
+        "captured_source_endpoints": sorted(
+            {
+                f"{row['source_ip']}:{int(row['source_port'])}"
+                for row in rows
+            }
+        ),
+        "edge_socket_wildcard_bound": any(
+            str((edge_by_digest[str(row["message_sha256"])]
+                 .get("socket_local") or [""])[0]) in {"", "0.0.0.0"}
+            for row in rows
+        ),
+        "source_port_matches_edge_socket": True,
         "pcap_sha256": hashlib.sha256(pcap.read_bytes()).hexdigest(),
         "packet_csv_sha256": hashlib.sha256(csv_path.read_bytes()).hexdigest(),
         "capture_dropped_packets": 0,
