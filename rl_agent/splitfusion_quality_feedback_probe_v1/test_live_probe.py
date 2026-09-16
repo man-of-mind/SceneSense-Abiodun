@@ -178,7 +178,7 @@ class ParentContractTests(unittest.TestCase):
 
 
 class PacketAndAnalysisTests(unittest.TestCase):
-    def test_capture_is_explicitly_inside_ue_namespace(self) -> None:
+    def test_capture_is_explicitly_on_host_owned_ue_tunnel(self) -> None:
         capture = QualityAckCapture(
             Path("/tmp/unused"),
             interface="oaitun_ue1",
@@ -186,11 +186,11 @@ class PacketAndAnalysisTests(unittest.TestCase):
             ue_port=51014,
         )
         self.assertEqual(
-            capture.link_check_argv()[:7],
-            ("sudo", "-n", "ip", "netns", "exec", "UE", "ip"),
+            capture.link_check_argv()[:4],
+            ("sudo", "-n", "ip", "link"),
         )
         argv = capture.capture_argv()
-        self.assertEqual(argv[:7], ("sudo", "-n", "ip", "netns", "exec", "UE", "tcpdump"))
+        self.assertEqual(argv[:3], ("sudo", "-n", "tcpdump"))
         self.assertIn("oaitun_ue1", argv)
         self.assertIn("51014", argv)
 

@@ -3,7 +3,8 @@
 
 The quality sender lives in the edge container.  Its datagrams to the UE
 control endpoint must therefore emerge from the qualified OAI downlink on
-``oaitun_ue1``.  This module records that interface, decodes only the two
+the host-owned ``oaitun_ue1`` created by the UE softmodem.  This module records
+that interface, decodes only the two
 versioned quality schemas, and joins their canonical digests to both edge and
 UE durable ledgers.  Absence, capture loss, or a join mismatch fails closed.
 """
@@ -95,14 +96,12 @@ class QualityAckCapture:
 
     def link_check_argv(self) -> tuple[str, ...]:
         return (
-            "sudo", "-n", "ip", "netns", "exec", "UE",
-            "ip", "link", "show", self.interface,
+            "sudo", "-n", "ip", "link", "show", self.interface,
         )
 
     def capture_argv(self) -> tuple[str, ...]:
         return (
-            "sudo", "-n", "ip", "netns", "exec", "UE",
-            "tcpdump", "-i", self.interface, "-nn", "-U", "-s", "0",
+            "sudo", "-n", "tcpdump", "-i", self.interface, "-nn", "-U", "-s", "0",
             "-w", str(self.pcap), "udp", "and", "dst", "host",
             self.ue_host, "and", "dst", "port", str(self.ue_port),
         )

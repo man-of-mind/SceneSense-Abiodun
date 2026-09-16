@@ -50,7 +50,8 @@ the matrix. A fresh retry requires a fresh output root and fresh authorization.
   evaluation queue with a discarding queue.
 - The qualified collector `finish()` drains evaluation and feedback before the
   child copies quality evidence and stops the edge container.
-- A bounded `tcpdump` on `oaitun_ue1` proves that every compact quality ACK
+- A bounded `tcpdump` on the host-owned UE-softmodem tunnel `oaitun_ue1`
+  proves that every compact quality ACK
   traversed the OAI downlink. Its canonical message-digest multiset must equal
   both the edge sender report and UE quality ledger, with zero kernel drops.
 - `QUALITY_FEEDBACK_ANALYSIS.json`, `quality_feedback_timing_join.csv`, and
