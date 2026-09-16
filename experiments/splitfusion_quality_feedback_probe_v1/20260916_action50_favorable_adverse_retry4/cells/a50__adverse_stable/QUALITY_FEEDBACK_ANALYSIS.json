@@ -1,0 +1,458 @@
+{
+ "claims": {
+  "full_route_b_completed": false,
+  "packet_path_proven_on_oaitun_ue1": true,
+  "quality_feedback_is_deployable": false,
+  "quality_is_privileged_carla_ground_truth": true
+ },
+ "clock_domain": "time.time_ns shared host wall clock",
+ "fps_periods_ms": {
+  "10_fps": 100.0,
+  "8_fps": 125.0,
+  "9_fps": 111.11111111111111
+ },
+ "intervals": {
+  "ack_emit_start_to_ue_receive": {
+   "available": 279,
+   "coverage": 0.93,
+   "denominator_sent": 300,
+   "feedback_before_next_decision": {
+    "10_fps": {
+     "count": 279,
+     "fraction_of_available": 1.0,
+     "fraction_of_sent": 0.93,
+     "period_ms": 100.0
+    },
+    "8_fps": {
+     "count": 279,
+     "fraction_of_available": 1.0,
+     "fraction_of_sent": 0.93,
+     "period_ms": 125.0
+    },
+    "9_fps": {
+     "count": 279,
+     "fraction_of_available": 1.0,
+     "fraction_of_sent": 0.93,
+     "period_ms": 111.11111111111111
+    }
+   },
+   "max_ms": 33.700548,
+   "p50_ms": 5.879156,
+   "p95_ms": 9.726078099999999,
+   "p99_ms": 18.86401295999973,
+   "within_140ms_count": 279,
+   "within_140ms_fraction_of_available": 1.0,
+   "within_140ms_fraction_of_sent": 0.93
+  },
+  "capture_to_ue_receive": {
+   "available": 279,
+   "coverage": 0.93,
+   "denominator_sent": 300,
+   "feedback_before_next_decision": {
+    "10_fps": {
+     "count": 0,
+     "fraction_of_available": 0.0,
+     "fraction_of_sent": 0.0,
+     "period_ms": 100.0
+    },
+    "8_fps": {
+     "count": 0,
+     "fraction_of_available": 0.0,
+     "fraction_of_sent": 0.0,
+     "period_ms": 125.0
+    },
+    "9_fps": {
+     "count": 0,
+     "fraction_of_available": 0.0,
+     "fraction_of_sent": 0.0,
+     "period_ms": 111.11111111111111
+    }
+   },
+   "max_ms": 828.648373,
+   "p50_ms": 258.36526,
+   "p95_ms": 427.1394561999994,
+   "p99_ms": 641.0861479599996,
+   "within_140ms_count": 0,
+   "within_140ms_fraction_of_available": 0.0,
+   "within_140ms_fraction_of_sent": 0.0
+  },
+  "edge_socket_send_call_to_ue_receive": {
+   "available": 279,
+   "coverage": 0.93,
+   "denominator_sent": 300,
+   "feedback_before_next_decision": {
+    "10_fps": {
+     "count": 279,
+     "fraction_of_available": 1.0,
+     "fraction_of_sent": 0.93,
+     "period_ms": 100.0
+    },
+    "8_fps": {
+     "count": 279,
+     "fraction_of_available": 1.0,
+     "fraction_of_sent": 0.93,
+     "period_ms": 125.0
+    },
+    "9_fps": {
+     "count": 279,
+     "fraction_of_available": 1.0,
+     "fraction_of_sent": 0.93,
+     "period_ms": 111.11111111111111
+    }
+   },
+   "max_ms": 33.437064,
+   "p50_ms": 5.493764,
+   "p95_ms": 8.975739799999994,
+   "p99_ms": 18.241368339999763,
+   "within_140ms_count": 279,
+   "within_140ms_fraction_of_available": 1.0,
+   "within_140ms_fraction_of_sent": 0.93
+  },
+  "evaluation_completed_to_ue_receive": {
+   "available": 279,
+   "coverage": 0.93,
+   "denominator_sent": 300,
+   "feedback_before_next_decision": {
+    "10_fps": {
+     "count": 279,
+     "fraction_of_available": 1.0,
+     "fraction_of_sent": 0.93,
+     "period_ms": 100.0
+    },
+    "8_fps": {
+     "count": 279,
+     "fraction_of_available": 1.0,
+     "fraction_of_sent": 0.93,
+     "period_ms": 125.0
+    },
+    "9_fps": {
+     "count": 279,
+     "fraction_of_available": 1.0,
+     "fraction_of_sent": 0.93,
+     "period_ms": 111.11111111111111
+    }
+   },
+   "max_ms": 33.700548,
+   "p50_ms": 5.879156,
+   "p95_ms": 9.726078099999999,
+   "p99_ms": 18.86401295999973,
+   "within_140ms_count": 279,
+   "within_140ms_fraction_of_available": 1.0,
+   "within_140ms_fraction_of_sent": 0.93
+  },
+  "evaluation_enqueued_to_ue_receive": {
+   "available": 279,
+   "coverage": 0.93,
+   "denominator_sent": 300,
+   "feedback_before_next_decision": {
+    "10_fps": {
+     "count": 267,
+     "fraction_of_available": 0.956989247311828,
+     "fraction_of_sent": 0.89,
+     "period_ms": 100.0
+    },
+    "8_fps": {
+     "count": 268,
+     "fraction_of_available": 0.9605734767025089,
+     "fraction_of_sent": 0.8933333333333333,
+     "period_ms": 125.0
+    },
+    "9_fps": {
+     "count": 268,
+     "fraction_of_available": 0.9605734767025089,
+     "fraction_of_sent": 0.8933333333333333,
+     "period_ms": 111.11111111111111
+    }
+   },
+   "max_ms": 459.887712,
+   "p50_ms": 8.830718,
+   "p95_ms": 80.67489909999992,
+   "p99_ms": 356.0757571199981,
+   "within_140ms_count": 268,
+   "within_140ms_fraction_of_available": 0.9605734767025089,
+   "within_140ms_fraction_of_sent": 0.8933333333333333
+  },
+  "evaluation_started_to_ue_receive": {
+   "available": 279,
+   "coverage": 0.93,
+   "denominator_sent": 300,
+   "feedback_before_next_decision": {
+    "10_fps": {
+     "count": 271,
+     "fraction_of_available": 0.9713261648745519,
+     "fraction_of_sent": 0.9033333333333333,
+     "period_ms": 100.0
+    },
+    "8_fps": {
+     "count": 273,
+     "fraction_of_available": 0.978494623655914,
+     "fraction_of_sent": 0.91,
+     "period_ms": 125.0
+    },
+    "9_fps": {
+     "count": 272,
+     "fraction_of_available": 0.974910394265233,
+     "fraction_of_sent": 0.9066666666666666,
+     "period_ms": 111.11111111111111
+    }
+   },
+   "max_ms": 214.361614,
+   "p50_ms": 8.52488,
+   "p95_ms": 68.43505139999989,
+   "p99_ms": 165.19598827999994,
+   "within_140ms_count": 273,
+   "within_140ms_fraction_of_available": 0.978494623655914,
+   "within_140ms_fraction_of_sent": 0.91
+  },
+  "final_prediction_ready_to_ue_receive": {
+   "available": 279,
+   "coverage": 0.93,
+   "denominator_sent": 300,
+   "feedback_before_next_decision": {
+    "10_fps": {
+     "count": 267,
+     "fraction_of_available": 0.956989247311828,
+     "fraction_of_sent": 0.89,
+     "period_ms": 100.0
+    },
+    "8_fps": {
+     "count": 268,
+     "fraction_of_available": 0.9605734767025089,
+     "fraction_of_sent": 0.8933333333333333,
+     "period_ms": 125.0
+    },
+    "9_fps": {
+     "count": 268,
+     "fraction_of_available": 0.9605734767025089,
+     "fraction_of_sent": 0.8933333333333333,
+     "period_ms": 111.11111111111111
+    }
+   },
+   "max_ms": 460.423766,
+   "p50_ms": 9.468847,
+   "p95_ms": 81.27193089999992,
+   "p99_ms": 356.63565045999803,
+   "within_140ms_count": 268,
+   "within_140ms_fraction_of_available": 0.9605734767025089,
+   "within_140ms_fraction_of_sent": 0.8933333333333333
+  },
+  "first_feature_datagram_send_to_ue_receive": {
+   "available": 279,
+   "coverage": 0.93,
+   "denominator_sent": 300,
+   "feedback_before_next_decision": {
+    "10_fps": {
+     "count": 0,
+     "fraction_of_available": 0.0,
+     "fraction_of_sent": 0.0,
+     "period_ms": 100.0
+    },
+    "8_fps": {
+     "count": 9,
+     "fraction_of_available": 0.03225806451612903,
+     "fraction_of_sent": 0.03,
+     "period_ms": 125.0
+    },
+    "9_fps": {
+     "count": 0,
+     "fraction_of_available": 0.0,
+     "fraction_of_sent": 0.0,
+     "period_ms": 111.11111111111111
+    }
+   },
+   "max_ms": 738.036606,
+   "p50_ms": 173.819334,
+   "p95_ms": 302.08477749999975,
+   "p99_ms": 546.8536382199992,
+   "within_140ms_count": 29,
+   "within_140ms_fraction_of_available": 0.1039426523297491,
+   "within_140ms_fraction_of_sent": 0.09666666666666666
+  },
+  "model_action_start_to_ue_receive": {
+   "available": 279,
+   "coverage": 0.93,
+   "denominator_sent": 300,
+   "feedback_before_next_decision": {
+    "10_fps": {
+     "count": 0,
+     "fraction_of_available": 0.0,
+     "fraction_of_sent": 0.0,
+     "period_ms": 100.0
+    },
+    "8_fps": {
+     "count": 0,
+     "fraction_of_available": 0.0,
+     "fraction_of_sent": 0.0,
+     "period_ms": 125.0
+    },
+    "9_fps": {
+     "count": 0,
+     "fraction_of_available": 0.0,
+     "fraction_of_sent": 0.0,
+     "period_ms": 111.11111111111111
+    }
+   },
+   "max_ms": 779.602284,
+   "p50_ms": 207.695695,
+   "p95_ms": 345.57075709999873,
+   "p99_ms": 586.90484032,
+   "within_140ms_count": 6,
+   "within_140ms_fraction_of_available": 0.021505376344086023,
+   "within_140ms_fraction_of_sent": 0.02
+  },
+  "model_prepare_start_to_ue_receive": {
+   "available": 279,
+   "coverage": 0.93,
+   "denominator_sent": 300,
+   "feedback_before_next_decision": {
+    "10_fps": {
+     "count": 0,
+     "fraction_of_available": 0.0,
+     "fraction_of_sent": 0.0,
+     "period_ms": 100.0
+    },
+    "8_fps": {
+     "count": 0,
+     "fraction_of_available": 0.0,
+     "fraction_of_sent": 0.0,
+     "period_ms": 125.0
+    },
+    "9_fps": {
+     "count": 0,
+     "fraction_of_available": 0.0,
+     "fraction_of_sent": 0.0,
+     "period_ms": 111.11111111111111
+    }
+   },
+   "max_ms": 766.615895,
+   "p50_ms": 196.702181,
+   "p95_ms": 334.91596419999854,
+   "p99_ms": 576.0685394399997,
+   "within_140ms_count": 9,
+   "within_140ms_fraction_of_available": 0.03225806451612903,
+   "within_140ms_fraction_of_sent": 0.03
+  },
+  "sensor_ready_to_ue_receive": {
+   "available": 279,
+   "coverage": 0.93,
+   "denominator_sent": 300,
+   "feedback_before_next_decision": {
+    "10_fps": {
+     "count": 0,
+     "fraction_of_available": 0.0,
+     "fraction_of_sent": 0.0,
+     "period_ms": 100.0
+    },
+    "8_fps": {
+     "count": 0,
+     "fraction_of_available": 0.0,
+     "fraction_of_sent": 0.0,
+     "period_ms": 125.0
+    },
+    "9_fps": {
+     "count": 0,
+     "fraction_of_available": 0.0,
+     "fraction_of_sent": 0.0,
+     "period_ms": 111.11111111111111
+    }
+   },
+   "max_ms": 816.572794,
+   "p50_ms": 251.257063,
+   "p95_ms": 416.4061376999991,
+   "p99_ms": 641.0041649999997,
+   "within_140ms_count": 0,
+   "within_140ms_fraction_of_available": 0.0,
+   "within_140ms_fraction_of_sent": 0.0
+  }
+ },
+ "joined_csv_sha256": "f9113fda612083dfb8d3f905935651798474e2e9fd7b2ae9cc01978688a17367",
+ "population_denominators": {
+  "edge_quality_messages": 279,
+  "feature_messages_reassembled": 300,
+  "final_prediction_eligible": 279,
+  "not_eligible_no_final_prediction": 21,
+  "oaitun_quality_packets": 279,
+  "quality_ack_received": 279,
+  "quality_evaluated": 279,
+  "quality_evaluation_failed": 0,
+  "sent": 300,
+  "ue_ledger_rows_all_dispositions": 300,
+  "ue_quality_ack_rows": 279
+ },
+ "schema": "scenesense.quality_feedback_timing_analysis.v1",
+ "stage_intervals": {
+  "evaluation_queue_wait": {
+   "available": 279,
+   "coverage": 0.93,
+   "denominator_sent": 300,
+   "max_ms": 362.796147,
+   "p50_ms": 0.079684,
+   "p95_ms": 0.8350395999999959,
+   "p99_ms": 283.19157679999915,
+   "within_140ms_count": 273,
+   "within_140ms_fraction_of_available": 0.978494623655914,
+   "within_140ms_fraction_of_sent": 0.91
+  },
+  "final_prediction_to_quality_complete": {
+   "available": 279,
+   "coverage": 0.93,
+   "denominator_sent": 300,
+   "max_ms": 452.275429,
+   "p50_ms": 3.021452,
+   "p95_ms": 65.92472869999997,
+   "p99_ms": 350.61596297999813,
+   "within_140ms_count": 269,
+   "within_140ms_fraction_of_available": 0.96415770609319,
+   "within_140ms_fraction_of_sent": 0.8966666666666666
+  },
+  "model_ready_to_final_prediction": {
+   "available": 279,
+   "coverage": 0.93,
+   "denominator_sent": 300,
+   "max_ms": 303.733391,
+   "p50_ms": 21.814837,
+   "p95_ms": 32.6140997,
+   "p99_ms": 181.06541039999985,
+   "within_140ms_count": 275,
+   "within_140ms_fraction_of_available": 0.985663082437276,
+   "within_140ms_fraction_of_sent": 0.9166666666666666
+  },
+  "quality_ack_downlink": {
+   "available": 279,
+   "coverage": 0.93,
+   "denominator_sent": 300,
+   "max_ms": 33.437064,
+   "p50_ms": 5.493764,
+   "p95_ms": 8.975739799999994,
+   "p99_ms": 18.241368339999763,
+   "within_140ms_count": 279,
+   "within_140ms_fraction_of_available": 1.0,
+   "within_140ms_fraction_of_sent": 0.93
+  },
+  "quality_complete_to_socket_send": {
+   "available": 279,
+   "coverage": 0.93,
+   "denominator_sent": 300,
+   "max_ms": 7.437228,
+   "p50_ms": 0.226775,
+   "p95_ms": 0.5951857999999998,
+   "p99_ms": 1.2273700399999887,
+   "within_140ms_count": 279,
+   "within_140ms_fraction_of_available": 1.0,
+   "within_140ms_fraction_of_sent": 0.93
+  },
+  "quality_evaluation_compute": {
+   "available": 279,
+   "coverage": 0.93,
+   "denominator_sent": 300,
+   "max_ms": 206.078925,
+   "p50_ms": 2.219004,
+   "p95_ms": 59.459891599999956,
+   "p99_ms": 157.96913711999997,
+   "within_140ms_count": 274,
+   "within_140ms_fraction_of_available": 0.982078853046595,
+   "within_140ms_fraction_of_sent": 0.9133333333333333
+  }
+ },
+ "status": "PASS"
+}

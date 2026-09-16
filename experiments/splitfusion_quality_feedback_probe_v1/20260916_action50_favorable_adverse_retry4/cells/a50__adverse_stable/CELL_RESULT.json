@@ -1,0 +1,777 @@
+{
+ "action_id": 50,
+ "carla": {
+  "rpc_port": 2000,
+  "server_version": "0.10.0"
+ },
+ "cell_id": "qfb_20260916T201748Z_a50__adverse_stable",
+ "child": {
+  "action_id": 50,
+  "cell_id": "qfb_20260916T201748Z_a50__adverse_stable",
+  "cleanup": {
+   "edge_stopped": true,
+   "map_stopped": true,
+   "quality_evidence": true,
+   "target_snr_restored": true
+  },
+  "collector": {
+   "budget_reached_wall_ns": 1789590097908047829,
+   "collector_cleanup_ok": true,
+   "collector_failures": [],
+   "dropped_preparation_opportunities": 13,
+   "evaluation_queues_discarded": false,
+   "finished_wall_ns": 1789590103222039288,
+   "quality_and_evaluation_drain_complete": true,
+   "reached_budget": true,
+   "safety_timeout_s": 90.0,
+   "schema": "scenesense.quality_feedback_probe_collector.v1",
+   "started_wall_ns": 1789590066459703095,
+   "stop_reason": "TRANSMITTED_BUDGET_REACHED",
+   "ticks_observed": 629,
+   "transmitted_budget": 300,
+   "transmitted_frames": 300,
+   "transport_counters": {
+    "evaluation_masks_hash_verified": 273,
+    "evaluation_tickets_completed": 300,
+    "evaluation_tickets_queued": 300,
+    "exact_record_retrieval_attempts": 273,
+    "exact_record_tickets_queued": 273,
+    "maps_installed": 273,
+    "preparation_offers": 314,
+    "preparation_pending_replacements": 12
+   }
+  },
+  "edge_started": true,
+  "error": "",
+  "finished_at_unix_s": 1789590105.2343616,
+  "full_route_completed": false,
+  "full_route_completion_claimed": false,
+  "map_started": true,
+  "network_profile_id": "ADVERSE_STABLE",
+  "profile_id": "split_ae64_uint4_q5000",
+  "return_code": 0,
+  "route_detail": {
+   "density_status": "",
+   "error": "RouteBudgetReached: TRANSMITTED_BUDGET_REACHED",
+   "route_abort_reason": "",
+   "route_completed": false,
+   "route_runner_returncode": 2
+  },
+  "schema": "scenesense.quality_feedback_probe_live_child.v1",
+  "started_at_unix_s": 1789590051.3707113,
+  "target_snr_started": true,
+  "transmitted_budget": 300
+ },
+ "child_returncode": 0,
+ "cleanup": {
+  "all_gates_passed": true,
+  "application": {
+   "edge_container_absent_before_radio_teardown": true,
+   "edge_container_down_returncode": 0,
+   "edge_process_running_after_stop": false,
+   "owned_host_processes_remaining": [],
+   "owned_host_processes_stopped": []
+  },
+  "carla": {
+   "already_exited": false,
+   "group_members_after_sigterm": [
+    {
+     "cmdline": "",
+     "pid": 2383354
+    }
+   ],
+   "group_members_before_signal": [
+    {
+     "cmdline": "/bin/sh /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/CarlaUnreal.sh -RenderOffScreen -nosound -quality-level=Epic -carla-rpc-port=2000",
+     "pid": 2383354
+    },
+    {
+     "cmdline": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/CarlaUnreal/Binaries/Linux/CarlaUnreal-Linux-Shipping CarlaUnreal -RenderOffScreen -nosound -quality-level=Epic -carla-rpc-port=200",
+     "pid": 2383363
+    }
+   ],
+   "group_members_remaining": [],
+   "pgid": 2383354,
+   "port_listening_after": false,
+   "port_listening_after_sigterm": false,
+   "port_listening_before_signal": true,
+   "rpc_port": 2000,
+   "shutdown_verified": true,
+   "sigkill_required": true,
+   "sigkill_result": "sent",
+   "sigterm_result": "sent",
+   "wrapper_returncode": -15
+  },
+  "cold_after": {
+   "application_processes": [],
+   "conflicting_tcp_ports": [],
+   "conflicting_udp_ports": [],
+   "edge_container_absent": true,
+   "runtime_temporary_paths": [],
+   "shared_memory_objects": []
+  },
+  "radio": {
+   "all_lifecycle_gates_passed": true,
+   "cold_postflight": {
+    "no_oai_core_container": true,
+    "no_oai_rfsim_listener": true,
+    "no_softmodem_process": true,
+    "no_stale_profile_scratch": true,
+    "no_traffic_process": true,
+    "no_ue_tunnel": true
+   },
+   "errors": [],
+   "noise_power_db_restored_and_read_back": true,
+   "oai_core_compose_down": true,
+   "owned_process_group_signals": {
+    "gnb": [
+     {
+      "member_pids_before": [
+       2382278,
+       2382284,
+       2382287,
+       2382401
+      ],
+      "signal": "-INT"
+     }
+    ],
+    "ue": [
+     {
+      "member_pids_before": [
+       2382734,
+       2382738,
+       2382740,
+       2382756
+      ],
+      "signal": "-INT"
+     },
+     {
+      "member_pids_before": [
+       2382740,
+       2382756
+      ],
+      "signal": "-TERM"
+     }
+    ]
+   },
+   "radio_state_namespace_removed": true,
+   "radio_state_scratch_removed": true,
+   "traffic_and_telemetry_stopped": true,
+   "ue_tunnel_deleted_explicitly": false
+  },
+  "radio_shutdown_verified": true,
+  "service_scratch_removed": true
+ },
+ "cold_before": {
+  "application_processes": [],
+  "conflicting_tcp_ports": [],
+  "conflicting_udp_ports": [],
+  "edge_container_absent": true,
+  "runtime_temporary_paths": [],
+  "shared_memory_objects": []
+ },
+ "error": "",
+ "finished_at_unix_s": 1789590179.335533,
+ "full_route_b_completion_claimed": false,
+ "network_profile_id": "ADVERSE_STABLE",
+ "ordinal": 1,
+ "profile_id": "split_ae64_uint4_q5000",
+ "quality_ack_packet_evidence": {
+  "capture_dropped_packets": 0,
+  "captured_source_endpoints": [
+   "192.168.70.140:45988"
+  ],
+  "digest_multisets_equal": true,
+  "edge_messages": 279,
+  "edge_socket_wildcard_bound": true,
+  "filter_destination": "10.0.0.2:51014",
+  "interface": "oaitun_ue1",
+  "max_payload_bytes": 773,
+  "packet_csv_sha256": "8826bd6246c1c262551499d7792ce3f7db6b43502c685d5295008fed54d88a13",
+  "pcap_packets": 306,
+  "pcap_sha256": "9de7cebe47f0676503782afa7e545067344aebc1a53f9a737bd1107fa5bed5fe",
+  "quality_ack_packets": 279,
+  "schema": "scenesense.quality_ack_oaitun_packet_evidence.v1",
+  "source_port_matches_edge_socket": true,
+  "status": "PASS",
+  "ue_messages": 279
+ },
+ "quality_evidence": [
+  {
+   "bytes": 12134,
+   "path": "QUALITY_FEEDBACK_ANALYSIS.json",
+   "sha256": "b771ca3650bec18684bb65e4b7c367a6e0c9c96745622d60a2747e2c25c347a8"
+  },
+  {
+   "bytes": 1386,
+   "path": "QUALITY_FEEDBACK_REPORT.md",
+   "sha256": "fa721929b080c73e86e0363697c11f4a43f031ab0e6510f0dae1db2e927dee7e"
+  },
+  {
+   "bytes": 2628,
+   "path": "direct_edge_map/direct_edge_counters.json",
+   "sha256": "8ee47ec30d54245c100ec928e2220b51fc6a01ef1eea9016116fa934785cb13d"
+  },
+  {
+   "bytes": 113257,
+   "path": "direct_edge_map/direct_edge_publication.csv",
+   "sha256": "f7a2dbf14e741c3c0d2c327614bdbb4884a87203fc824802846de89fa235e534"
+  },
+  {
+   "bytes": 649,
+   "path": "direct_edge_map/direct_edge_ready.json",
+   "sha256": "c66fd3505d28badb046869afc3bd1b2f9d1be760cd6bf9b98b436e907611437a"
+  },
+  {
+   "bytes": 228373,
+   "path": "direct_edge_map/direct_map_ingest.csv",
+   "sha256": "93a42746e7ba96499e547e2263c8ee32d969d68fc841b3f3b91a1a112c71169d"
+  },
+  {
+   "bytes": 470,
+   "path": "direct_edge_map/direct_map_ready.json",
+   "sha256": "04e808f4225fd39f22d8c91e19cbdd8a48c3314067d2c557375f92043ef5fd74"
+  },
+  {
+   "bytes": 2591,
+   "path": "direct_edge_map/direct_map_report.json",
+   "sha256": "4e293816faa6ca26a57cc07d7a397a9d2fdc12c43573c2879c1ab05c5b2c17a6"
+  },
+  {
+   "bytes": 1324394,
+   "path": "direct_edge_map/quality_edge_report.json",
+   "sha256": "b1ddefa8eae379d564426fced0eddc4a0e8027de82f8c33a07056604f8184330"
+  },
+  {
+   "bytes": 239484,
+   "path": "quality_ack_oaitun_ue1.pcap",
+   "sha256": "9de7cebe47f0676503782afa7e545067344aebc1a53f9a737bd1107fa5bed5fe"
+  },
+  {
+   "bytes": 654,
+   "path": "quality_ack_packet_evidence.json",
+   "sha256": "cf525cd2384b7a360c349321e3e37ebfb735285abb655271fb5cd52f254834b0"
+  },
+  {
+   "bytes": 131923,
+   "path": "quality_ack_packets.csv",
+   "sha256": "8826bd6246c1c262551499d7792ce3f7db6b43502c685d5295008fed54d88a13"
+  },
+  {
+   "bytes": 167,
+   "path": "quality_ack_tcpdump.log",
+   "sha256": "5c37111198e2575e811563b7cd8f83d882a3a0f39de7a33450d3ce673a6747fe"
+  },
+  {
+   "bytes": 389536,
+   "path": "quality_feedback.csv",
+   "sha256": "f39763a7d1033dbab841bc58ea21fb7dc6e06a4f44794597bda8f113ec54e9cf"
+  },
+  {
+   "bytes": 45830,
+   "path": "quality_feedback_timing_join.csv",
+   "sha256": "f9113fda612083dfb8d3f905935651798474e2e9fd7b2ae9cc01978688a17367"
+  },
+  {
+   "bytes": 166209,
+   "path": "quality_policy_timing.csv",
+   "sha256": "df92d706f6e96b0387a6a8b537eff4f1ce00ab79291548c0ad08cdced40ffd7c"
+  }
+ ],
+ "quality_feedback_analysis": {
+  "claims": {
+   "full_route_b_completed": false,
+   "packet_path_proven_on_oaitun_ue1": true,
+   "quality_feedback_is_deployable": false,
+   "quality_is_privileged_carla_ground_truth": true
+  },
+  "clock_domain": "time.time_ns shared host wall clock",
+  "fps_periods_ms": {
+   "10_fps": 100.0,
+   "8_fps": 125.0,
+   "9_fps": 111.11111111111111
+  },
+  "intervals": {
+   "ack_emit_start_to_ue_receive": {
+    "available": 279,
+    "coverage": 0.93,
+    "denominator_sent": 300,
+    "feedback_before_next_decision": {
+     "10_fps": {
+      "count": 279,
+      "fraction_of_available": 1.0,
+      "fraction_of_sent": 0.93,
+      "period_ms": 100.0
+     },
+     "8_fps": {
+      "count": 279,
+      "fraction_of_available": 1.0,
+      "fraction_of_sent": 0.93,
+      "period_ms": 125.0
+     },
+     "9_fps": {
+      "count": 279,
+      "fraction_of_available": 1.0,
+      "fraction_of_sent": 0.93,
+      "period_ms": 111.11111111111111
+     }
+    },
+    "max_ms": 33.700548,
+    "p50_ms": 5.879156,
+    "p95_ms": 9.726078099999999,
+    "p99_ms": 18.86401295999973,
+    "within_140ms_count": 279,
+    "within_140ms_fraction_of_available": 1.0,
+    "within_140ms_fraction_of_sent": 0.93
+   },
+   "capture_to_ue_receive": {
+    "available": 279,
+    "coverage": 0.93,
+    "denominator_sent": 300,
+    "feedback_before_next_decision": {
+     "10_fps": {
+      "count": 0,
+      "fraction_of_available": 0.0,
+      "fraction_of_sent": 0.0,
+      "period_ms": 100.0
+     },
+     "8_fps": {
+      "count": 0,
+      "fraction_of_available": 0.0,
+      "fraction_of_sent": 0.0,
+      "period_ms": 125.0
+     },
+     "9_fps": {
+      "count": 0,
+      "fraction_of_available": 0.0,
+      "fraction_of_sent": 0.0,
+      "period_ms": 111.11111111111111
+     }
+    },
+    "max_ms": 828.648373,
+    "p50_ms": 258.36526,
+    "p95_ms": 427.1394561999994,
+    "p99_ms": 641.0861479599996,
+    "within_140ms_count": 0,
+    "within_140ms_fraction_of_available": 0.0,
+    "within_140ms_fraction_of_sent": 0.0
+   },
+   "edge_socket_send_call_to_ue_receive": {
+    "available": 279,
+    "coverage": 0.93,
+    "denominator_sent": 300,
+    "feedback_before_next_decision": {
+     "10_fps": {
+      "count": 279,
+      "fraction_of_available": 1.0,
+      "fraction_of_sent": 0.93,
+      "period_ms": 100.0
+     },
+     "8_fps": {
+      "count": 279,
+      "fraction_of_available": 1.0,
+      "fraction_of_sent": 0.93,
+      "period_ms": 125.0
+     },
+     "9_fps": {
+      "count": 279,
+      "fraction_of_available": 1.0,
+      "fraction_of_sent": 0.93,
+      "period_ms": 111.11111111111111
+     }
+    },
+    "max_ms": 33.437064,
+    "p50_ms": 5.493764,
+    "p95_ms": 8.975739799999994,
+    "p99_ms": 18.241368339999763,
+    "within_140ms_count": 279,
+    "within_140ms_fraction_of_available": 1.0,
+    "within_140ms_fraction_of_sent": 0.93
+   },
+   "evaluation_completed_to_ue_receive": {
+    "available": 279,
+    "coverage": 0.93,
+    "denominator_sent": 300,
+    "feedback_before_next_decision": {
+     "10_fps": {
+      "count": 279,
+      "fraction_of_available": 1.0,
+      "fraction_of_sent": 0.93,
+      "period_ms": 100.0
+     },
+     "8_fps": {
+      "count": 279,
+      "fraction_of_available": 1.0,
+      "fraction_of_sent": 0.93,
+      "period_ms": 125.0
+     },
+     "9_fps": {
+      "count": 279,
+      "fraction_of_available": 1.0,
+      "fraction_of_sent": 0.93,
+      "period_ms": 111.11111111111111
+     }
+    },
+    "max_ms": 33.700548,
+    "p50_ms": 5.879156,
+    "p95_ms": 9.726078099999999,
+    "p99_ms": 18.86401295999973,
+    "within_140ms_count": 279,
+    "within_140ms_fraction_of_available": 1.0,
+    "within_140ms_fraction_of_sent": 0.93
+   },
+   "evaluation_enqueued_to_ue_receive": {
+    "available": 279,
+    "coverage": 0.93,
+    "denominator_sent": 300,
+    "feedback_before_next_decision": {
+     "10_fps": {
+      "count": 267,
+      "fraction_of_available": 0.956989247311828,
+      "fraction_of_sent": 0.89,
+      "period_ms": 100.0
+     },
+     "8_fps": {
+      "count": 268,
+      "fraction_of_available": 0.9605734767025089,
+      "fraction_of_sent": 0.8933333333333333,
+      "period_ms": 125.0
+     },
+     "9_fps": {
+      "count": 268,
+      "fraction_of_available": 0.9605734767025089,
+      "fraction_of_sent": 0.8933333333333333,
+      "period_ms": 111.11111111111111
+     }
+    },
+    "max_ms": 459.887712,
+    "p50_ms": 8.830718,
+    "p95_ms": 80.67489909999992,
+    "p99_ms": 356.0757571199981,
+    "within_140ms_count": 268,
+    "within_140ms_fraction_of_available": 0.9605734767025089,
+    "within_140ms_fraction_of_sent": 0.8933333333333333
+   },
+   "evaluation_started_to_ue_receive": {
+    "available": 279,
+    "coverage": 0.93,
+    "denominator_sent": 300,
+    "feedback_before_next_decision": {
+     "10_fps": {
+      "count": 271,
+      "fraction_of_available": 0.9713261648745519,
+      "fraction_of_sent": 0.9033333333333333,
+      "period_ms": 100.0
+     },
+     "8_fps": {
+      "count": 273,
+      "fraction_of_available": 0.978494623655914,
+      "fraction_of_sent": 0.91,
+      "period_ms": 125.0
+     },
+     "9_fps": {
+      "count": 272,
+      "fraction_of_available": 0.974910394265233,
+      "fraction_of_sent": 0.9066666666666666,
+      "period_ms": 111.11111111111111
+     }
+    },
+    "max_ms": 214.361614,
+    "p50_ms": 8.52488,
+    "p95_ms": 68.43505139999989,
+    "p99_ms": 165.19598827999994,
+    "within_140ms_count": 273,
+    "within_140ms_fraction_of_available": 0.978494623655914,
+    "within_140ms_fraction_of_sent": 0.91
+   },
+   "final_prediction_ready_to_ue_receive": {
+    "available": 279,
+    "coverage": 0.93,
+    "denominator_sent": 300,
+    "feedback_before_next_decision": {
+     "10_fps": {
+      "count": 267,
+      "fraction_of_available": 0.956989247311828,
+      "fraction_of_sent": 0.89,
+      "period_ms": 100.0
+     },
+     "8_fps": {
+      "count": 268,
+      "fraction_of_available": 0.9605734767025089,
+      "fraction_of_sent": 0.8933333333333333,
+      "period_ms": 125.0
+     },
+     "9_fps": {
+      "count": 268,
+      "fraction_of_available": 0.9605734767025089,
+      "fraction_of_sent": 0.8933333333333333,
+      "period_ms": 111.11111111111111
+     }
+    },
+    "max_ms": 460.423766,
+    "p50_ms": 9.468847,
+    "p95_ms": 81.27193089999992,
+    "p99_ms": 356.63565045999803,
+    "within_140ms_count": 268,
+    "within_140ms_fraction_of_available": 0.9605734767025089,
+    "within_140ms_fraction_of_sent": 0.8933333333333333
+   },
+   "first_feature_datagram_send_to_ue_receive": {
+    "available": 279,
+    "coverage": 0.93,
+    "denominator_sent": 300,
+    "feedback_before_next_decision": {
+     "10_fps": {
+      "count": 0,
+      "fraction_of_available": 0.0,
+      "fraction_of_sent": 0.0,
+      "period_ms": 100.0
+     },
+     "8_fps": {
+      "count": 9,
+      "fraction_of_available": 0.03225806451612903,
+      "fraction_of_sent": 0.03,
+      "period_ms": 125.0
+     },
+     "9_fps": {
+      "count": 0,
+      "fraction_of_available": 0.0,
+      "fraction_of_sent": 0.0,
+      "period_ms": 111.11111111111111
+     }
+    },
+    "max_ms": 738.036606,
+    "p50_ms": 173.819334,
+    "p95_ms": 302.08477749999975,
+    "p99_ms": 546.8536382199992,
+    "within_140ms_count": 29,
+    "within_140ms_fraction_of_available": 0.1039426523297491,
+    "within_140ms_fraction_of_sent": 0.09666666666666666
+   },
+   "model_action_start_to_ue_receive": {
+    "available": 279,
+    "coverage": 0.93,
+    "denominator_sent": 300,
+    "feedback_before_next_decision": {
+     "10_fps": {
+      "count": 0,
+      "fraction_of_available": 0.0,
+      "fraction_of_sent": 0.0,
+      "period_ms": 100.0
+     },
+     "8_fps": {
+      "count": 0,
+      "fraction_of_available": 0.0,
+      "fraction_of_sent": 0.0,
+      "period_ms": 125.0
+     },
+     "9_fps": {
+      "count": 0,
+      "fraction_of_available": 0.0,
+      "fraction_of_sent": 0.0,
+      "period_ms": 111.11111111111111
+     }
+    },
+    "max_ms": 779.602284,
+    "p50_ms": 207.695695,
+    "p95_ms": 345.57075709999873,
+    "p99_ms": 586.90484032,
+    "within_140ms_count": 6,
+    "within_140ms_fraction_of_available": 0.021505376344086023,
+    "within_140ms_fraction_of_sent": 0.02
+   },
+   "model_prepare_start_to_ue_receive": {
+    "available": 279,
+    "coverage": 0.93,
+    "denominator_sent": 300,
+    "feedback_before_next_decision": {
+     "10_fps": {
+      "count": 0,
+      "fraction_of_available": 0.0,
+      "fraction_of_sent": 0.0,
+      "period_ms": 100.0
+     },
+     "8_fps": {
+      "count": 0,
+      "fraction_of_available": 0.0,
+      "fraction_of_sent": 0.0,
+      "period_ms": 125.0
+     },
+     "9_fps": {
+      "count": 0,
+      "fraction_of_available": 0.0,
+      "fraction_of_sent": 0.0,
+      "period_ms": 111.11111111111111
+     }
+    },
+    "max_ms": 766.615895,
+    "p50_ms": 196.702181,
+    "p95_ms": 334.91596419999854,
+    "p99_ms": 576.0685394399997,
+    "within_140ms_count": 9,
+    "within_140ms_fraction_of_available": 0.03225806451612903,
+    "within_140ms_fraction_of_sent": 0.03
+   },
+   "sensor_ready_to_ue_receive": {
+    "available": 279,
+    "coverage": 0.93,
+    "denominator_sent": 300,
+    "feedback_before_next_decision": {
+     "10_fps": {
+      "count": 0,
+      "fraction_of_available": 0.0,
+      "fraction_of_sent": 0.0,
+      "period_ms": 100.0
+     },
+     "8_fps": {
+      "count": 0,
+      "fraction_of_available": 0.0,
+      "fraction_of_sent": 0.0,
+      "period_ms": 125.0
+     },
+     "9_fps": {
+      "count": 0,
+      "fraction_of_available": 0.0,
+      "fraction_of_sent": 0.0,
+      "period_ms": 111.11111111111111
+     }
+    },
+    "max_ms": 816.572794,
+    "p50_ms": 251.257063,
+    "p95_ms": 416.4061376999991,
+    "p99_ms": 641.0041649999997,
+    "within_140ms_count": 0,
+    "within_140ms_fraction_of_available": 0.0,
+    "within_140ms_fraction_of_sent": 0.0
+   }
+  },
+  "joined_csv_sha256": "f9113fda612083dfb8d3f905935651798474e2e9fd7b2ae9cc01978688a17367",
+  "population_denominators": {
+   "edge_quality_messages": 279,
+   "feature_messages_reassembled": 300,
+   "final_prediction_eligible": 279,
+   "not_eligible_no_final_prediction": 21,
+   "oaitun_quality_packets": 279,
+   "quality_ack_received": 279,
+   "quality_evaluated": 279,
+   "quality_evaluation_failed": 0,
+   "sent": 300,
+   "ue_ledger_rows_all_dispositions": 300,
+   "ue_quality_ack_rows": 279
+  },
+  "schema": "scenesense.quality_feedback_timing_analysis.v1",
+  "stage_intervals": {
+   "evaluation_queue_wait": {
+    "available": 279,
+    "coverage": 0.93,
+    "denominator_sent": 300,
+    "max_ms": 362.796147,
+    "p50_ms": 0.079684,
+    "p95_ms": 0.8350395999999959,
+    "p99_ms": 283.19157679999915,
+    "within_140ms_count": 273,
+    "within_140ms_fraction_of_available": 0.978494623655914,
+    "within_140ms_fraction_of_sent": 0.91
+   },
+   "final_prediction_to_quality_complete": {
+    "available": 279,
+    "coverage": 0.93,
+    "denominator_sent": 300,
+    "max_ms": 452.275429,
+    "p50_ms": 3.021452,
+    "p95_ms": 65.92472869999997,
+    "p99_ms": 350.61596297999813,
+    "within_140ms_count": 269,
+    "within_140ms_fraction_of_available": 0.96415770609319,
+    "within_140ms_fraction_of_sent": 0.8966666666666666
+   },
+   "model_ready_to_final_prediction": {
+    "available": 279,
+    "coverage": 0.93,
+    "denominator_sent": 300,
+    "max_ms": 303.733391,
+    "p50_ms": 21.814837,
+    "p95_ms": 32.6140997,
+    "p99_ms": 181.06541039999985,
+    "within_140ms_count": 275,
+    "within_140ms_fraction_of_available": 0.985663082437276,
+    "within_140ms_fraction_of_sent": 0.9166666666666666
+   },
+   "quality_ack_downlink": {
+    "available": 279,
+    "coverage": 0.93,
+    "denominator_sent": 300,
+    "max_ms": 33.437064,
+    "p50_ms": 5.493764,
+    "p95_ms": 8.975739799999994,
+    "p99_ms": 18.241368339999763,
+    "within_140ms_count": 279,
+    "within_140ms_fraction_of_available": 1.0,
+    "within_140ms_fraction_of_sent": 0.93
+   },
+   "quality_complete_to_socket_send": {
+    "available": 279,
+    "coverage": 0.93,
+    "denominator_sent": 300,
+    "max_ms": 7.437228,
+    "p50_ms": 0.226775,
+    "p95_ms": 0.5951857999999998,
+    "p99_ms": 1.2273700399999887,
+    "within_140ms_count": 279,
+    "within_140ms_fraction_of_available": 1.0,
+    "within_140ms_fraction_of_sent": 0.93
+   },
+   "quality_evaluation_compute": {
+    "available": 279,
+    "coverage": 0.93,
+    "denominator_sent": 300,
+    "max_ms": 206.078925,
+    "p50_ms": 2.219004,
+    "p95_ms": 59.459891599999956,
+    "p99_ms": 157.96913711999997,
+    "within_140ms_count": 274,
+    "within_140ms_fraction_of_available": 0.982078853046595,
+    "within_140ms_fraction_of_sent": 0.9133333333333333
+   }
+  },
+  "status": "PASS"
+ },
+ "radio_attachment": {
+  "clean_noise_preflight": {
+   "after_sha256": "13aeb77640c2aca974ff9562e5763472d2005e23a4977c4f2b80b831f270f1f4",
+   "before_sha256": "13aeb77640c2aca974ff9562e5763472d2005e23a4977c4f2b80b831f270f1f4",
+   "noise_power_db": -50.0,
+   "response_sha256": "556ceeae93bb93ad2f1bba6c67c280742f9183212fa97aed333e26288d50d9d1",
+   "verified": true
+  },
+  "status": "ATTACHED_STABLE_100MHZ_4D5U_ONE_UE"
+ },
+ "registered_cell_id": "a50__adverse_stable",
+ "schema": "scenesense.quality_feedback_probe_live_cell.v1",
+ "service_logs": [
+  {
+   "bytes": 8922,
+   "path": "oai_launcher.log",
+   "present": true,
+   "sha256": "0c4f59c896cb347c0911013dcac3204b5ae52f5781bf9c0be6e8423d2cd7750a",
+   "tail": "001/02_ADVERSE_STABLE/effective_gnb_100mhz_4d5u_clean_minus50.conf\", \"effective_gnb_sha256\": \"330b23d4f4ab74c388f9f20105ef29e989f3e79f4b088d73e82376549b0a2211\", \"effective_ue_path\": \"/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_oai_100mhz_4d5u_v1/splitfusion_16_cell_live_pilot_radio_scratch/qfb_20260916T201748Z_a50__adverse_stable/attempt_0001/02_ADVERSE_STABLE/effective_ue_100mhz_clean_minus50.conf\", \"effective_ue_sha256\": \"ab06afcc1cfc2bb777fa35973811aaad655032f6541e1b4565541cac9cc04f97\", \"radio_profile_id\": \"OAI_N78_100MHZ_273PRB_4D5U_V1\", \"schema\": \"scenesense.splitfusion_phase14a_radio_materialization.v1\", \"selected_gnb_before_channelmod_sha256\": \"d5f317413fbef79f69501adfce2428c1300941938def0d6e554de1c16c2b08a8\", \"source_channel_sha256\": \"a47ade413b36ecf66f6df666bead124974705636cb134dd09a539b34bce7d760\", \"source_gnb_sha256\": \"03fb7ac7b4df6ce88f5a2e3e7a26211b78ad89e7d313632ca088e6b364742ffb\", \"source_ue_sha256\": \"b20bf2d9d8da9bd15b1f822836b7235dafa16b29f4e097e6ca3749729494c944\", \"status\": \"MATERIALIZED_NOT_LAUNCHED\"}\n Network oai-cn5g-public-net Creating \n Network oai-cn5g-public-net Creating \n Network oai-cn5g-public-net Created \n Network oai-cn5g-public-net Created \n Container mysql Creating \n Container oai-ext-dn Creating \n Container ims Creating \n Container oai-nrf Creating \n Container ims Created \n Container mysql Created \n Container oai-ext-dn Created \n Container oai-nrf Created \n Container oai-udr Creating \n Container oai-udr Created \n Container oai-udm Creating \n Container oai-udm Created \n Container oai-ausf Creating \n Container oai-ausf Created \n Container oai-amf Creating \n Container oai-amf Created \n Container oai-smf Creating \n Container oai-smf Created \n Container oai-upf Creating \n Container oai-upf Created \n Container ims Starting \n Container mysql Starting \n Container oai-ext-dn Starting \n Container oai-nrf Starting \n Container oai-nrf Started \n Container mysql Started \n Container oai-udr Starting \n Container oai-ext-dn Started \n Container ims Started \n Container oai-udr Started \n Container oai-udm Starting \n Container oai-udm Started \n Container oai-ausf Starting \n Container oai-ausf Started \n Container oai-amf Starting \n Container oai-amf Started \n Container oai-smf Starting \n Container oai-smf Started \n Container oai-upf Starting \n Container oai-upf Started \nTraceback (most recent call last):\n  File \"<string>\", line 1, in <module>\n  File \"/usr/lib/python3.10/json/__init__.py\", line 293, in load\n    return loads(fp.read(),\n  File \"/usr/lib/python3.10/json/__init__.py\", line 346, in loads\n    return _default_decoder.decode(s)\n  File \"/usr/lib/python3.10/json/decoder.py\", line 337, in decode\n    obj, end = self.raw_decode(s, idx=_w(s, 0).end())\n  File \"/usr/lib/python3.10/json/decoder.py\", line 355, in raw_decode\n    raise JSONDecodeError(\"Expecting value\", s, err.value) from None\njson.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)\nTraceback (most recent call last):\n  File \"<string>\", line 1, in <module>\n  File \"/usr/lib/python3.10/json/__init__.py\", line 293, in load\n    return loads(fp.read(),\n  File \"/usr/lib/python3.10/json/__init__.py\", line 346, in loads\n    return _default_decoder.decode(s)\n  File \"/usr/lib/python3.10/json/decoder.py\", line 337, in decode\n    obj, end = self.raw_decode(s, idx=_w(s, 0).end())\n  File \"/usr/lib/python3.10/json/decoder.py\", line 355, in raw_decode\n    raise JSONDecodeError(\"Expecting value\", s, err.value) from None\njson.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)\nTraceback (most recent call last):\n  File \"<string>\", line 1, in <module>\n  File \"/usr/lib/python3.10/json/__init__.py\", line 293, in load\n    return loads(fp.read(),\n  File \"/usr/lib/python3.10/json/__init__.py\", line 346, in loads\n    return _default_decoder.decode(s)\n  File \"/usr/lib/python3.10/json/decoder.py\", line 337, in decode\n    obj, end = self.raw_decode(s, idx=_w(s, 0).end())\n  File \"/usr/lib/python3.10/json/decoder.py\", line 355, in raw_decode\n    raise JSONDecodeError(\"Expecting value\", s, err.value) from None\njson.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)\nTraceback (most recent call last):\n  File \"<string>\", line 1, in <module>\n  File \"/usr/lib/python3.10/json/__init__.py\", line 293, in load\n    return loads(fp.read(),\n  File \"/usr/lib/python3.10/json/__init__.py\", line 346, in loads\n    return _default_decoder.decode(s)\n  File \"/usr/lib/python3.10/json/decoder.py\", line 337, in decode\n    obj, end = self.raw_decode(s, idx=_w(s, 0).end())\n  File \"/usr/lib/python3.10/json/decoder.py\", line 355, in raw_decode\n    raise JSONDecodeError(\"Expecting value\", s, err.value) from None\njson.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)\nTraceback (most recent call last):\n  File \"<string>\", line 1, in <module>\n  File \"/usr/lib/python3.10/json/__init__.py\", line 293, in load\n    return loads(fp.read(),\n  File \"/usr/lib/python3.10/json/__init__.py\", line 346, in loads\n    return _default_decoder.decode(s)\n  File \"/usr/lib/python3.10/json/decoder.py\", line 337, in decode\n    obj, end = self.raw_decode(s, idx=_w(s, 0).end())\n  File \"/usr/lib/python3.10/json/decoder.py\", line 355, in raw_decode\n    raise JSONDecodeError(\"Expecting value\", s, err.value) from None\njson.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)\n/home/shr_aisvcs/.local/lib/python3.10/site-packages/matplotlib/projections/__init__.py:63: UserWarning: Unable to import Axes3D. This may be due to multiple versions of Matplotlib being installed (e.g. as a system package and as a pip package). As a result, the 3D projection is not available.\n  warnings.warn(\"Unable to import Axes3D. This may be due to multiple versions of \"\n{\"effective_gnb_sha256\": \"330b23d4f4ab74c388f9f20105ef29e989f3e79f4b088d73e82376549b0a2211\", \"effective_ue_sha256\": \"ab06afcc1cfc2bb777fa35973811aaad655032f6541e1b4565541cac9cc04f97\", \"gnb_command_sha256\": \"e02a0898a6d16a08ab9c8c98d166d1c7a6f13fd6e6571c4689f655eabec2b51b\", \"gnb_pid\": 2382284, \"gnb_process_topology\": {\"background_system_worker_pid\": 2382287, \"endpoint_roles_verified\": true, \"main_pid\": 2382284, \"process_group_id\": 2382278, \"same_executable_process_count\": 3, \"schema\": \"scenesense.oai_softmodem_fork_topology.v1\", \"session_id\": 2382278, \"source_contract\": {\"background_system_direct_child_count\": 1, \"main_calls_start_background_system\": true, \"t_config_init_direct_child_count\": 1}, \"tracer_worker_pid\": 2382401, \"worker_pids\": [2382287, 2382401]}, \"launcher_sha256\": \"8e02f0913338a187bff1de24bfea09d7eca03607da0e383ef8ad4a005b64ce61\", \"pdu_session_5qi\": 6, \"radio_materialization_path\": \"/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_oai_100mhz_4d5u_v1/splitfusion_16_cell_live_pilot_radio_scratch/qfb_20260916T201748Z_a50__adverse_stable/attempt_0001/02_ADVERSE_STABLE/radio_materialization.json\", \"radio_materialization_sha256\": \"5a910ca007f4c0f56c97ff6ea78f0b0a04bdf5a4a485ba47a36a5c0b7ea46e5d\", \"radio_profile_id\": \"OAI_N78_100MHZ_273PRB_4D5U_V1\", \"schema\": \"scenesense.splitfusion_phase14a_attached_radio_state.v1\", \"status\": \"ATTACHED_STABLE_100MHZ_4D5U_ONE_UE\", \"ue_command_sha256\": \"dc5cf51b639704daff84d69be42bc8b9454b65aa0787c6b82655a5ed2b43e76f\", \"ue_interface\": \"oaitun_ue1\", \"ue_pid\": 2382738, \"ue_process_topology\": {\"background_system_worker_pid\": 2382740, \"endpoint_roles_verified\": true, \"main_pid\": 2382738, \"process_group_id\": 2382734, \"same_executable_process_count\": 3, \"schema\": \"scenesense.oai_softmodem_fork_topology.v1\", \"session_id\": 2382734, \"source_contract\": {\"background_system_direct_child_count\": 1, \"main_calls_start_background_system\": true, \"t_config_init_direct_child_count\": 1}, \"tracer_worker_pid\": 2382756, \"worker_pids\": [2382740, 2382756]}, \"ue_static_ip\": \"10.0.0.2\"}\nSPLITFUSION_OAI_100MHZ_4D5U_ATTACHED /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_oai_100mhz_4d5u_v1/splitfusion_16_cell_live_pilot_radio_scratch/qfb_20260916T201748Z_a50__adverse_stable/attempt_0001/02_ADVERSE_STABLE\n"
+  },
+  {
+   "bytes": 441,
+   "path": "carla_server.log",
+   "present": true,
+   "sha256": "f7d7dc79c12c5dad53dd1feb833dee1fb7788ca7401eac7047330c5505e0fa55",
+   "tail": "Shutdown handler: initialize.\n5.5.0-0+UE5 1013 0\nDisabling core dumps.\nMESA: warning: Driver does not support the 0x7d67 PCI ID.\nMESA: warning: Driver does not support the 0x7d67 PCI ID.\nMESA: warning: Driver does not support the 0x7d67 PCI ID.\nMESA: warning: Driver does not support the 0x7d67 PCI ID.\nFUnixPlatformMisc::RequestExitWithStatus\n\u0000FUnixPlatformMisc::RequestExit\n\u0000Exiting abnormally (error code: 143)\nShutdown handler: cleanup.\n"
+  },
+  {
+   "bytes": 3179,
+   "path": "edge_launcher.log",
+   "present": true,
+   "sha256": "db68524ab45c4c7cd9d1ac17bfca95944fac1a2309f82d834a79f7b214339132",
+   "tail": "[fusion_back_up] nvidia runtime probe: attempt 1 ok; runtimes=io.containerd.runc.v2 nvidia runc\n[fusion_back_up] docker compose up -d --build (RGB+radar fusion back-half, GPU)\n[fusion_back_up] remote UE IP worker 1: 10.0.0.2\n[fusion_back_up] remote UE IP worker 2: 10.0.0.2\n[fusion_back_up] dual workers: 0\n[fusion_back_up] script: -m rl_agent.splitfusion_quality_feedback_probe_v1.edge_runtime_quality_v1\n[fusion_back_up] checkpoint: /work/abiodun/checkpoints/fusion_object_best.pt\n[fusion_back_up] edge state root: /tmp/splitfusion_quality_probe_qfb_20260916T201748Z_a50__adverse_stable_edaw60fd/splitfusion_edge_state\n[fusion_back_up] back log every: 30\n[fusion_back_up] worker 1 ports: recv 51002, send 51013->51004\n[fusion_back_up] worker 2 ports: recv 51102, send 51103->51104\n Image oai-perception-rx:latest Building \n#1 [internal] load local bake definitions\n#1 reading from stdin 738B done\n#1 DONE 0.0s\n\n#2 [internal] load build definition from Dockerfile\n#2 transferring dockerfile: 2.52kB done\n#2 DONE 0.0s\n\n#3 [internal] load metadata for docker.io/nvidia/cuda:12.8.1-cudnn-runtime-ubuntu22.04\n#3 DONE 0.6s\n\n#4 [internal] load .dockerignore\n#4 transferring context: 2B done\n#4 DONE 0.0s\n\n#5 [1/7] FROM docker.io/nvidia/cuda:12.8.1-cudnn-runtime-ubuntu22.04@sha256:17e2934e1fa96152b14f78078bfbafd0f00f391df995dc6c641a720fce1202bb\n#5 DONE 0.0s\n\n#6 [internal] load build context\n#6 transferring context: 35B done\n#6 DONE 0.0s\n\n#7 [3/7] RUN python3 -m pip install --upgrade pip setuptools wheel     && python3 -m pip install \"numpy>=1.26,<2\"     && python3 -m pip install filelock typing-extensions sympy networkx jinja2 fsspec     && python3 -m pip install         \"torch==2.10.0+cu128\"         \"torchvision==0.25.0+cu128\"         \"torchaudio==2.10.0+cu128\"         --index-url https://download.pytorch.org/whl/cu128\n#7 CACHED\n\n#8 [4/7] RUN python3 -m pip install zstandard\n#8 CACHED\n\n#9 [6/7] COPY entrypoint.sh /entrypoint.sh\n#9 CACHED\n\n#10 [2/7] RUN apt-get update && apt-get install -y --no-install-recommends         python3 python3-pip python3-gi python3-gst-1.0 python3-opencv python3-numpy         gstreamer1.0-tools gstreamer1.0-plugins-base gstreamer1.0-plugins-good         gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly gstreamer1.0-libav         iproute2 iputils-ping iperf3 tcpdump         libgl1 libglib2.0-0 libgtk-3-0         ca-certificates     && rm -rf /var/lib/apt/lists/*\n#10 CACHED\n\n#11 [5/7] WORKDIR /work\n#11 CACHED\n\n#12 [7/7] RUN chmod +x /entrypoint.sh\n#12 CACHED\n\n#13 exporting to image\n#13 exporting layers done\n#13 writing image sha256:2be62d533b8077ceecab5455d5377f2f952b6a50d43ff8c04dc89ce18027d6ba done\n#13 naming to docker.io/library/oai-perception-rx:latest done\n#13 DONE 0.0s\n\n#14 resolving provenance for metadata file\n#14 DONE 0.0s\n Image oai-perception-rx:latest Built \n Container oai-perception-rx Creating \n Container oai-perception-rx Created \n Container oai-perception-rx Starting \n Container oai-perception-rx Started \n[fusion_back_up] container state:\nNAMES               STATUS                  PORTS\noai-perception-rx   Up Less than a second   \n\n[fusion_back_up] tail logs with:   sudo docker logs -f oai-perception-rx\n"
+  }
+ ],
+ "started_at_unix_s": 1789590024.5416238,
+ "status": "PASSED",
+ "wall_seconds": 154.79390907287598
+}

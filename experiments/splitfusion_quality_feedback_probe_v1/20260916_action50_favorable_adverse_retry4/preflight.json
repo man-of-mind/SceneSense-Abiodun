@@ -1,0 +1,60 @@
+{
+ "action_extension_rule": "an action is accepted only when its profile is selected and pinned by the supplied config",
+ "cells": [
+  {
+   "action_id": 50,
+   "action_index": 50,
+   "cell_id": "a50__favorable_stable",
+   "model_family": "ae64",
+   "network_profile_id": "FAVORABLE_STABLE",
+   "profile_id": "split_ae64_uint4_q5000",
+   "seed": 2026082101,
+   "trace_id": "GM_V2_FAVORABLE_STABLE_SEED_2026082101"
+  },
+  {
+   "action_id": 50,
+   "action_index": 50,
+   "cell_id": "a50__adverse_stable",
+   "model_family": "ae64",
+   "network_profile_id": "ADVERSE_STABLE",
+   "profile_id": "split_ae64_uint4_q5000",
+   "seed": 2026082103,
+   "trace_id": "GM_V2_ADVERSE_STABLE_SEED_2026082103"
+  }
+ ],
+ "config": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/configs/splitfusion_direct_edge_map_live_validation_v1.json",
+ "config_sha256": "fd9bdae329ca7e275520f13bce8737d4bdc23e285bff7fa0b23867a14ac4d6e2",
+ "evaluation_queues_discarded": false,
+ "external_processes_started": 0,
+ "fresh_carla_per_cell": true,
+ "fresh_oai_per_cell": true,
+ "full_route_b_completion_claimed": false,
+ "implementation_binding": {
+  "git_head": "02397ded07b5e2b92b0b7ed469314250a399a5c5",
+  "git_status_short": [
+   " m OAI/openairinterface5g",
+   " M pole_lraspp_multimodal_fusion/object_head_pilot_v1/lraspp_to_splitfusion_fcos_report_v1/FULL_TECHNICAL_REPORT_AVO_V2.md"
+  ],
+  "source_sha256": {
+   "rl_agent/splitfusion_quality_feedback_probe_v1/__init__.py": "c487c828445f4cd5b669e0c6302dbe8104ceb070ce3f131d1919a825c8435477",
+   "rl_agent/splitfusion_quality_feedback_probe_v1/adapter_quality_v1.py": "ae5e8a05b7b38104e991b51c97db548656792942eccd3517c6db65a182b7bc1b",
+   "rl_agent/splitfusion_quality_feedback_probe_v1/analyze_live_probe.py": "e4d8d02548040c2ebb75cefd9c0e8c2b807295700c0139b771d80b78aef47ab8",
+   "rl_agent/splitfusion_quality_feedback_probe_v1/coordinator.py": "e53ed1fd5d5a664543ae1beb393c704908c8fd38ab173db2c1c1f329d6a25d48",
+   "rl_agent/splitfusion_quality_feedback_probe_v1/edge_runtime_quality_v1.py": "991ad2294ee04684f4968055a43ab193c86d54584206a343a74c9a7c4e6e4a83",
+   "rl_agent/splitfusion_quality_feedback_probe_v1/gt_evidence.py": "1f91f511650030a5b63ba7558bb4b14529733412e5d1d28a5db0140feab68ab3",
+   "rl_agent/splitfusion_quality_feedback_probe_v1/ledger.py": "4b6d9381a16289d4d79159576822497c7165da8945a51782a2e4e989fd418e67",
+   "rl_agent/splitfusion_quality_feedback_probe_v1/live_cell_child.py": "ab77d409ade6a4af73a6a245a763488910669997348d08f8602486bdb7e4f330",
+   "rl_agent/splitfusion_quality_feedback_probe_v1/live_probe.py": "032c05cacef5e973c60708228f41be933a09f7343cdea79c8b56ee16e5748185",
+   "rl_agent/splitfusion_quality_feedback_probe_v1/packet_evidence.py": "be32da744f6c0eb1eef51447d86477fedb1fc8adebe0eb76488b2df1388781cb",
+   "rl_agent/splitfusion_quality_feedback_probe_v1/protocol.py": "6c066c0d2e841d558d7af8f73dd0023fdeb293701ac790b6510b23622540ec53",
+   "rl_agent/splitfusion_quality_feedback_probe_v1/scoring.py": "93ba7db816d1071ccdebf650c029b71f81e1314f27479934277592c3648e6149",
+   "rl_agent/splitfusion_quality_feedback_probe_v1/signal_shutdown.py": "d3caf9f2e1f38985b90fe54884f904c573050ee06b420edc5d78dbe35c1d98ba",
+   "rl_agent/splitfusion_quality_feedback_probe_v1/test_live_probe.py": "d20c147dda744e103fbfb34ef418c0f7bad58c9d685c5b766a050ee2d25f8b10",
+   "rl_agent/splitfusion_quality_feedback_probe_v1/test_quality_feedback_probe_v1.py": "70f22c875d4b5b4a559c397df40de5f2631a21d8e4b7bfd7fb6cad32c0d3b39b"
+  }
+ },
+ "safety_timeout_s": 90.0,
+ "schema": "scenesense.quality_feedback_probe_preflight.v1",
+ "status": "PASS",
+ "transmitted_budget_per_cell": 300
+}

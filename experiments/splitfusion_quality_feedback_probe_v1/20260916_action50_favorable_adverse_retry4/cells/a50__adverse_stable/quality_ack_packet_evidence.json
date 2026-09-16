@@ -1,0 +1,20 @@
+{
+ "capture_dropped_packets": 0,
+ "captured_source_endpoints": [
+  "192.168.70.140:45988"
+ ],
+ "digest_multisets_equal": true,
+ "edge_messages": 279,
+ "edge_socket_wildcard_bound": true,
+ "filter_destination": "10.0.0.2:51014",
+ "interface": "oaitun_ue1",
+ "max_payload_bytes": 773,
+ "packet_csv_sha256": "8826bd6246c1c262551499d7792ce3f7db6b43502c685d5295008fed54d88a13",
+ "pcap_packets": 306,
+ "pcap_sha256": "9de7cebe47f0676503782afa7e545067344aebc1a53f9a737bd1107fa5bed5fe",
+ "quality_ack_packets": 279,
+ "schema": "scenesense.quality_ack_oaitun_packet_evidence.v1",
+ "source_port_matches_edge_socket": true,
+ "status": "PASS",
+ "ue_messages": 279
+}

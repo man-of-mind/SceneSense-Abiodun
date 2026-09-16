@@ -1,0 +1,458 @@
+{
+ "claims": {
+  "full_route_b_completed": false,
+  "packet_path_proven_on_oaitun_ue1": true,
+  "quality_feedback_is_deployable": false,
+  "quality_is_privileged_carla_ground_truth": true
+ },
+ "clock_domain": "time.time_ns shared host wall clock",
+ "fps_periods_ms": {
+  "10_fps": 100.0,
+  "8_fps": 125.0,
+  "9_fps": 111.11111111111111
+ },
+ "intervals": {
+  "ack_emit_start_to_ue_receive": {
+   "available": 276,
+   "coverage": 0.92,
+   "denominator_sent": 300,
+   "feedback_before_next_decision": {
+    "10_fps": {
+     "count": 276,
+     "fraction_of_available": 1.0,
+     "fraction_of_sent": 0.92,
+     "period_ms": 100.0
+    },
+    "8_fps": {
+     "count": 276,
+     "fraction_of_available": 1.0,
+     "fraction_of_sent": 0.92,
+     "period_ms": 125.0
+    },
+    "9_fps": {
+     "count": 276,
+     "fraction_of_available": 1.0,
+     "fraction_of_sent": 0.92,
+     "period_ms": 111.11111111111111
+    }
+   },
+   "max_ms": 32.597948,
+   "p50_ms": 5.202525,
+   "p95_ms": 9.67918175,
+   "p99_ms": 15.252913,
+   "within_140ms_count": 276,
+   "within_140ms_fraction_of_available": 1.0,
+   "within_140ms_fraction_of_sent": 0.92
+  },
+  "capture_to_ue_receive": {
+   "available": 276,
+   "coverage": 0.92,
+   "denominator_sent": 300,
+   "feedback_before_next_decision": {
+    "10_fps": {
+     "count": 0,
+     "fraction_of_available": 0.0,
+     "fraction_of_sent": 0.0,
+     "period_ms": 100.0
+    },
+    "8_fps": {
+     "count": 0,
+     "fraction_of_available": 0.0,
+     "fraction_of_sent": 0.0,
+     "period_ms": 125.0
+    },
+    "9_fps": {
+     "count": 0,
+     "fraction_of_available": 0.0,
+     "fraction_of_sent": 0.0,
+     "period_ms": 111.11111111111111
+    }
+   },
+   "max_ms": 921.336635,
+   "p50_ms": 240.05437999999998,
+   "p95_ms": 743.92429425,
+   "p99_ms": 875.428181,
+   "within_140ms_count": 2,
+   "within_140ms_fraction_of_available": 0.007246376811594203,
+   "within_140ms_fraction_of_sent": 0.006666666666666667
+  },
+  "edge_socket_send_call_to_ue_receive": {
+   "available": 276,
+   "coverage": 0.92,
+   "denominator_sent": 300,
+   "feedback_before_next_decision": {
+    "10_fps": {
+     "count": 276,
+     "fraction_of_available": 1.0,
+     "fraction_of_sent": 0.92,
+     "period_ms": 100.0
+    },
+    "8_fps": {
+     "count": 276,
+     "fraction_of_available": 1.0,
+     "fraction_of_sent": 0.92,
+     "period_ms": 125.0
+    },
+    "9_fps": {
+     "count": 276,
+     "fraction_of_available": 1.0,
+     "fraction_of_sent": 0.92,
+     "period_ms": 111.11111111111111
+    }
+   },
+   "max_ms": 32.36651,
+   "p50_ms": 4.833303,
+   "p95_ms": 9.4569145,
+   "p99_ms": 14.782251,
+   "within_140ms_count": 276,
+   "within_140ms_fraction_of_available": 1.0,
+   "within_140ms_fraction_of_sent": 0.92
+  },
+  "evaluation_completed_to_ue_receive": {
+   "available": 276,
+   "coverage": 0.92,
+   "denominator_sent": 300,
+   "feedback_before_next_decision": {
+    "10_fps": {
+     "count": 276,
+     "fraction_of_available": 1.0,
+     "fraction_of_sent": 0.92,
+     "period_ms": 100.0
+    },
+    "8_fps": {
+     "count": 276,
+     "fraction_of_available": 1.0,
+     "fraction_of_sent": 0.92,
+     "period_ms": 125.0
+    },
+    "9_fps": {
+     "count": 276,
+     "fraction_of_available": 1.0,
+     "fraction_of_sent": 0.92,
+     "period_ms": 111.11111111111111
+    }
+   },
+   "max_ms": 32.597948,
+   "p50_ms": 5.202525,
+   "p95_ms": 9.67918175,
+   "p99_ms": 15.252913,
+   "within_140ms_count": 276,
+   "within_140ms_fraction_of_available": 1.0,
+   "within_140ms_fraction_of_sent": 0.92
+  },
+  "evaluation_enqueued_to_ue_receive": {
+   "available": 276,
+   "coverage": 0.92,
+   "denominator_sent": 300,
+   "feedback_before_next_decision": {
+    "10_fps": {
+     "count": 216,
+     "fraction_of_available": 0.782608695652174,
+     "fraction_of_sent": 0.72,
+     "period_ms": 100.0
+    },
+    "8_fps": {
+     "count": 221,
+     "fraction_of_available": 0.8007246376811594,
+     "fraction_of_sent": 0.7366666666666667,
+     "period_ms": 125.0
+    },
+    "9_fps": {
+     "count": 218,
+     "fraction_of_available": 0.7898550724637681,
+     "fraction_of_sent": 0.7266666666666667,
+     "period_ms": 111.11111111111111
+    }
+   },
+   "max_ms": 697.19644,
+   "p50_ms": 8.778775,
+   "p95_ms": 494.09583899999996,
+   "p99_ms": 629.056999,
+   "within_140ms_count": 222,
+   "within_140ms_fraction_of_available": 0.8043478260869565,
+   "within_140ms_fraction_of_sent": 0.74
+  },
+  "evaluation_started_to_ue_receive": {
+   "available": 276,
+   "coverage": 0.92,
+   "denominator_sent": 300,
+   "feedback_before_next_decision": {
+    "10_fps": {
+     "count": 238,
+     "fraction_of_available": 0.8623188405797102,
+     "fraction_of_sent": 0.7933333333333333,
+     "period_ms": 100.0
+    },
+    "8_fps": {
+     "count": 256,
+     "fraction_of_available": 0.927536231884058,
+     "fraction_of_sent": 0.8533333333333334,
+     "period_ms": 125.0
+    },
+    "9_fps": {
+     "count": 248,
+     "fraction_of_available": 0.8985507246376812,
+     "fraction_of_sent": 0.8266666666666667,
+     "period_ms": 111.11111111111111
+    }
+   },
+   "max_ms": 259.432056,
+   "p50_ms": 8.697783,
+   "p95_ms": 138.447124,
+   "p99_ms": 203.62063849999998,
+   "within_140ms_count": 262,
+   "within_140ms_fraction_of_available": 0.9492753623188406,
+   "within_140ms_fraction_of_sent": 0.8733333333333333
+  },
+  "final_prediction_ready_to_ue_receive": {
+   "available": 276,
+   "coverage": 0.92,
+   "denominator_sent": 300,
+   "feedback_before_next_decision": {
+    "10_fps": {
+     "count": 215,
+     "fraction_of_available": 0.7789855072463768,
+     "fraction_of_sent": 0.7166666666666667,
+     "period_ms": 100.0
+    },
+    "8_fps": {
+     "count": 221,
+     "fraction_of_available": 0.8007246376811594,
+     "fraction_of_sent": 0.7366666666666667,
+     "period_ms": 125.0
+    },
+    "9_fps": {
+     "count": 218,
+     "fraction_of_available": 0.7898550724637681,
+     "fraction_of_sent": 0.7266666666666667,
+     "period_ms": 111.11111111111111
+    }
+   },
+   "max_ms": 697.763108,
+   "p50_ms": 9.491232499999999,
+   "p95_ms": 494.57546749999995,
+   "p99_ms": 629.53117425,
+   "within_140ms_count": 222,
+   "within_140ms_fraction_of_available": 0.8043478260869565,
+   "within_140ms_fraction_of_sent": 0.74
+  },
+  "first_feature_datagram_send_to_ue_receive": {
+   "available": 276,
+   "coverage": 0.92,
+   "denominator_sent": 300,
+   "feedback_before_next_decision": {
+    "10_fps": {
+     "count": 12,
+     "fraction_of_available": 0.043478260869565216,
+     "fraction_of_sent": 0.04,
+     "period_ms": 100.0
+    },
+    "8_fps": {
+     "count": 67,
+     "fraction_of_available": 0.2427536231884058,
+     "fraction_of_sent": 0.22333333333333333,
+     "period_ms": 125.0
+    },
+    "9_fps": {
+     "count": 42,
+     "fraction_of_available": 0.15217391304347827,
+     "fraction_of_sent": 0.14,
+     "period_ms": 111.11111111111111
+    }
+   },
+   "max_ms": 828.603288,
+   "p50_ms": 153.163909,
+   "p95_ms": 610.574959,
+   "p99_ms": 759.509015,
+   "within_140ms_count": 113,
+   "within_140ms_fraction_of_available": 0.40942028985507245,
+   "within_140ms_fraction_of_sent": 0.37666666666666665
+  },
+  "model_action_start_to_ue_receive": {
+   "available": 276,
+   "coverage": 0.92,
+   "denominator_sent": 300,
+   "feedback_before_next_decision": {
+    "10_fps": {
+     "count": 2,
+     "fraction_of_available": 0.007246376811594203,
+     "fraction_of_sent": 0.006666666666666667,
+     "period_ms": 100.0
+    },
+    "8_fps": {
+     "count": 13,
+     "fraction_of_available": 0.04710144927536232,
+     "fraction_of_sent": 0.043333333333333335,
+     "period_ms": 125.0
+    },
+    "9_fps": {
+     "count": 4,
+     "fraction_of_available": 0.014492753623188406,
+     "fraction_of_sent": 0.013333333333333334,
+     "period_ms": 111.11111111111111
+    }
+   },
+   "max_ms": 881.962471,
+   "p50_ms": 187.878391,
+   "p95_ms": 653.6039325,
+   "p99_ms": 793.2657622500001,
+   "within_140ms_count": 28,
+   "within_140ms_fraction_of_available": 0.10144927536231885,
+   "within_140ms_fraction_of_sent": 0.09333333333333334
+  },
+  "model_prepare_start_to_ue_receive": {
+   "available": 276,
+   "coverage": 0.92,
+   "denominator_sent": 300,
+   "feedback_before_next_decision": {
+    "10_fps": {
+     "count": 3,
+     "fraction_of_available": 0.010869565217391304,
+     "fraction_of_sent": 0.01,
+     "period_ms": 100.0
+    },
+    "8_fps": {
+     "count": 23,
+     "fraction_of_available": 0.08333333333333333,
+     "fraction_of_sent": 0.07666666666666666,
+     "period_ms": 125.0
+    },
+    "9_fps": {
+     "count": 5,
+     "fraction_of_available": 0.018115942028985508,
+     "fraction_of_sent": 0.016666666666666666,
+     "period_ms": 111.11111111111111
+    }
+   },
+   "max_ms": 850.887356,
+   "p50_ms": 175.76381,
+   "p95_ms": 643.10985825,
+   "p99_ms": 780.084857,
+   "within_140ms_count": 56,
+   "within_140ms_fraction_of_available": 0.2028985507246377,
+   "within_140ms_fraction_of_sent": 0.18666666666666668
+  },
+  "sensor_ready_to_ue_receive": {
+   "available": 276,
+   "coverage": 0.92,
+   "denominator_sent": 300,
+   "feedback_before_next_decision": {
+    "10_fps": {
+     "count": 0,
+     "fraction_of_available": 0.0,
+     "fraction_of_sent": 0.0,
+     "period_ms": 100.0
+    },
+    "8_fps": {
+     "count": 3,
+     "fraction_of_available": 0.010869565217391304,
+     "fraction_of_sent": 0.01,
+     "period_ms": 125.0
+    },
+    "9_fps": {
+     "count": 0,
+     "fraction_of_available": 0.0,
+     "fraction_of_sent": 0.0,
+     "period_ms": 111.11111111111111
+    }
+   },
+   "max_ms": 921.280039,
+   "p50_ms": 227.1967425,
+   "p95_ms": 711.880531,
+   "p99_ms": 854.47949725,
+   "within_140ms_count": 3,
+   "within_140ms_fraction_of_available": 0.010869565217391304,
+   "within_140ms_fraction_of_sent": 0.01
+  }
+ },
+ "joined_csv_sha256": "a2740342de391e8888d6a517c9571e9c0548020070d6d8080806c9863995f1d6",
+ "population_denominators": {
+  "edge_quality_messages": 276,
+  "feature_messages_reassembled": 300,
+  "final_prediction_eligible": 276,
+  "not_eligible_no_final_prediction": 24,
+  "oaitun_quality_packets": 276,
+  "quality_ack_received": 276,
+  "quality_evaluated": 276,
+  "quality_evaluation_failed": 0,
+  "sent": 300,
+  "ue_ledger_rows_all_dispositions": 300,
+  "ue_quality_ack_rows": 276
+ },
+ "schema": "scenesense.quality_feedback_timing_analysis.v1",
+ "stage_intervals": {
+  "evaluation_queue_wait": {
+   "available": 276,
+   "coverage": 0.92,
+   "denominator_sent": 300,
+   "max_ms": 569.509532,
+   "p50_ms": 0.08883250000000001,
+   "p95_ms": 382.33257625,
+   "p99_ms": 499.21214050000003,
+   "within_140ms_count": 240,
+   "within_140ms_fraction_of_available": 0.8695652173913043,
+   "within_140ms_fraction_of_sent": 0.8
+  },
+  "final_prediction_to_quality_complete": {
+   "available": 276,
+   "coverage": 0.92,
+   "denominator_sent": 300,
+   "max_ms": 690.712951,
+   "p50_ms": 3.4773065,
+   "p95_ms": 492.13797175,
+   "p99_ms": 621.7287397499999,
+   "within_140ms_count": 222,
+   "within_140ms_fraction_of_available": 0.8043478260869565,
+   "within_140ms_fraction_of_sent": 0.74
+  },
+  "model_ready_to_final_prediction": {
+   "available": 276,
+   "coverage": 0.92,
+   "denominator_sent": 300,
+   "max_ms": 528.928357,
+   "p50_ms": 23.225807,
+   "p95_ms": 33.8834595,
+   "p99_ms": 123.15658124999999,
+   "within_140ms_count": 274,
+   "within_140ms_fraction_of_available": 0.9927536231884058,
+   "within_140ms_fraction_of_sent": 0.9133333333333333
+  },
+  "quality_ack_downlink": {
+   "available": 276,
+   "coverage": 0.92,
+   "denominator_sent": 300,
+   "max_ms": 32.36651,
+   "p50_ms": 4.833303,
+   "p95_ms": 9.4569145,
+   "p99_ms": 14.782251,
+   "within_140ms_count": 276,
+   "within_140ms_fraction_of_available": 1.0,
+   "within_140ms_fraction_of_sent": 0.92
+  },
+  "quality_complete_to_socket_send": {
+   "available": 276,
+   "coverage": 0.92,
+   "denominator_sent": 300,
+   "max_ms": 3.714522,
+   "p50_ms": 0.24521300000000001,
+   "p95_ms": 0.59251975,
+   "p99_ms": 1.11078725,
+   "within_140ms_count": 276,
+   "within_140ms_fraction_of_available": 1.0,
+   "within_140ms_fraction_of_sent": 0.92
+  },
+  "quality_evaluation_compute": {
+   "available": 276,
+   "coverage": 0.92,
+   "denominator_sent": 300,
+   "max_ms": 250.959072,
+   "p50_ms": 2.7023785,
+   "p95_ms": 129.91226375000002,
+   "p99_ms": 200.080893,
+   "within_140ms_count": 265,
+   "within_140ms_fraction_of_available": 0.9601449275362319,
+   "within_140ms_fraction_of_sent": 0.8833333333333333
+  }
+ },
+ "status": "PASS"
+}
