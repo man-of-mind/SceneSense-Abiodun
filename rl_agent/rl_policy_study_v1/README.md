@@ -9,8 +9,9 @@ motivate it, and separated from choices that still need evidence.
 
 The selected starting point is:
 
-> **Split-only PPO with LSTM state, hard executability masks, an auxiliary
-> next-channel forecast head, and separately reported cost critics.**
+> **Split-only PPO with LSTM state, hard executability masks, an explicit
+> causal next-100-ms radio-window mean-SNR forecast (mean plus uncertainty) supplied
+> to the current policy, and separately reported cost critics.**
 
 That sentence describes a composition of established techniques.  It is not
 the name of a single published algorithm and it is not presented as a new RL
@@ -52,16 +53,31 @@ measurements.
 The [frame-by-frame timeline and delayed-feedback contract](AGENT_TIMELINE_AND_DELAYED_FEEDBACK_V1.md)
 specifies what happens when feedback for frame 1 has not arrived before frame
 2: the first transition remains pending, later feedback is joined by exact
-identity, and PPO updates only a terminally reconciled contiguous prefix.
+identity. PPO uses a fixed-policy rollout horizon and updates only after every
+ticket through that horizon is terminally reconciled; a prefix alone is not
+update authority if an already-collected suffix remains unresolved.
 `delayed_feedback.py` implements and tests that accounting boundary without
 opening sockets or changing the live runtime.
 
-`model.py` and `delayed_feedback.py` now implement step 3's architecture and
-credit-assignment boundaries. They are deliberately trainer-free: CPU tests
+The first candidate runtime is `tail_only_v1` at nominal 9 FPS with a strict
+140-ms service deadline from sensor-compute start to compact tail-feedback
+receipt at the UE. Tail feedback closes the first PPO ticket; map outcome is
+retained as an independent audit stream. This is a candidate contract because
+the current replay ends at edge tail completion and has not yet measured the
+compact ACK return.
+
+`model.py`, `delayed_feedback.py` and `observation.py` now implement step 3's
+architecture, causal credit ledger and a versioned **minimal feedback-path
+adapter**. The adapter deliberately does not freeze the final training schema:
+the compact causal scene/risk summary still needs to be specified. They are
+trainer-free: CPU tests
 cover the 72-way output, fail-closed masks, LSTM state carry, value/cost head
-shapes, forecast-loss gradient flow, delayed/out-of-order terminal feedback,
-duplicate idempotence, and the rule that missing feedback is not loss. This
-does not advance step 4 or authorize PPO training.
+shapes, forecast-loss gradient flow, explicit mean/log-uncertainty influence on
+the current logits, the direct policy-gradient stop at the forecast head,
+causal prefix invariance, masked missing forecast targets, stored forecast
+features for PPO re-evaluation, cutoff-safe delayed/out-of-order feedback,
+duplicate idempotence, and the rule that missing feedback is not loss. This does not
+advance step 4 or authorize PPO training.
 
 ## Reading the equations
 
@@ -76,8 +92,11 @@ No extension is required.
 | Question | Provisional decision | Why |
 |---|---|---|
 | Primary learning algorithm | PPO | Stable policy-gradient starting point; supports a conditional mixed policy without flattening future continuous controls |
-| Memory | LSTM + auxiliary one-step channel forecast | Network evolution, queues and map freshness are partially observed; the forecast is learned from history, never supplied from the future |
+| Memory | LSTM + explicit next-100-ms radio-window mean-SNR forecast | Predicted mean and uncertainty are causal inputs to the current policy; the later observed window mean is only a training target |
 | Initial action space | 72 `SPLIT` profiles only | Every action has measured payload and perception evidence; `LOCAL`/`SKIP` await their own transition measurements |
+| Candidate cadence/deadline | 9 FPS / 140 ms to UE-received tail feedback | Creates a learnable deadline trade-off while retaining asynchronous tickets; it does not guarantee one-frame feedback |
+| First terminal boundary | `tail_only_v1` | Stops PPO credit at model-tail feedback while map behavior remains independently auditable |
+| `LOCAL` fallback | Shadow recommendation only | Do not execute or train it until causal local latency, quality, energy and result-upload measurements exist |
 | First ROI/drop control | Six discrete q anchors | Avoid learning through unvalidated interpolation |
 | Continuous-q extension | Explicitly designed, deferred | Requires a dense-q smoothness/interpolation study before promotion |
 | Invalid-action mask | Hard executability only | Poor but executable profiles remain available so the policy learns their consequences |
@@ -89,6 +108,10 @@ No extension is required.
 
 - A causal stateful switching environment that reproduces the fixed-action live
   surface before PPO training.
+- A trusted loader that resolves every action's quality anchors from the
+  hash-bound catalog; the contract skeleton validates supplied
+  source/version/hash fields but does not yet make a self-reported hash a
+  trusted lookup.
 - Separate causal measurements for `LOCAL` on CPU/GPU and the compact result
   upload.  Until then, `LOCAL` can exist in the architecture but cannot be
   trained from invented outcomes.

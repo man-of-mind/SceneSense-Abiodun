@@ -87,22 +87,27 @@ Policy/control lane:
 - Draw telemetry entering from an **OAI UE-softmodem** icon. Separate PHY
   signals—PUSCH SNR, UL MCS, and qualified HARQ/delivery history—from MAC
   signals—BSR/UL buffer occupancy, grants or delivered throughput.
-- Add service-state inputs: previous action and payload, pending ticket
-  age/count, latest installed-frame lag, time since last install, recent
-  supersession/failure outcomes, and optional compact scene/risk summary.
+- Add service-state inputs: current sensor-compute elapsed time and remaining
+  140-ms budget, previous action and payload, pending ticket
+  age/count, latest tail-feedback frame lag/age, last feedback latency divided
+  by 140 ms, deadline outcome, segmentation/localization quality anchor or
+  proxy plus provenance/availability, recent supersession/failure outcomes,
+  and optional compact scene/risk summary.
 - Feed normalized inputs and availability flags into `LayerNorm + MLP
   observation encoder`, then into an LSTM cell. Show both recurrent arrows:
   hidden state `h_t` as the exposed short-term summary and cell state `c_t` as
   longer-lived channel/service memory.
-- Fan `h_t` into the value head, cost critics and a calibrated channel-forecast
-  head. The forecast predicts the next service-window channel distribution,
-  shown as **predicted mean/minimum SNR plus uncertainty**, from information
+- Fan `h_t` into the value head, cost critics and a channel-forecast head. The
+  forecast predicts the next 100-ms radio-exposure-window channel distribution,
+  shown as **predicted mean SNR plus uncertainty**, from information
   available at time `t`. Feed a stop-gradient copy of that prediction together
   with `h_t` into the PPO policy head with **72 discrete action logits**, so the
   forecast proactively influences the current action. Make the causal boundary
   explicit: predicted future-channel statistics are allowed, but the true
   future SNR is never available or leaked at action selection. Show value and
-  cost heads estimating expected return and bytes/compute/switching costs.
+  cost heads estimating expected return and separate byte/compute costs;
+  show byte and compute as separate cost-critic targets, and show deadline
+  miss, proven transport failure and action switching as scalar penalties.
 - Route the sampled action back to the C2 compression module. Label q as one of
   six registered discrete anchors for the initial policy; place “continuous q:
   future extension after evidence” in a small muted note.
@@ -112,25 +117,28 @@ Delayed outcome/credit lane:
 - Show an exact pending-transition ledger keyed by `(session, UE, frame,
   action)`. Include a small two-frame inset: frame N+1 may arrive while frame N
   is still `PENDING`; missing immediate feedback is not labelled lost.
-- Show **two identity-bound feedback events**, not one premature terminal ACK.
-  First, immediately after synchronized edge model-tail completion, return a
-  record-free `TAIL_COMPLETED` progress ACK containing session/UE/frame/action
-  identity and tail-completion timing. It marks progress but leaves the ticket
-  open; it cannot yet claim realized quality or map installation. Second, after
-  post-processing and direct map handling, return terminal `MAP_OUTCOME` with
-  install/supersession/failure status, installed frame ID, segmentation quality,
-  localization quality, full action-to-map latency, final bytes/compute and an
-  optional replacement frame ID for `SUPERSEDED_PENDING`.
-- Show that out-of-order messages update or close the exact matching ticket.
-  Only the terminal outcome makes the complete reward eligible for PPO and
-  updates installed-frame lag. Show proven reassembly failure separately from
+- Show **two identity-bound event streams**. First, immediately after
+  synchronized edge model-tail completion, return a record-free
+  `TAIL_COMPLETED_ACK` containing session/UE/frame/action identity, the edge
+  completion event, actual byte/compute charges, separate
+  segmentation/localization quality anchors or qualified proxy, and quality
+  source/version/catalog hash. Then show the UE stamping the message's receipt
+  and deriving same-clock feedback latency and the strict 140-ms result. In
+  `tail_only_v1` this enriched UE record closes the first PPO service ticket. Second, after
+  post-processing and direct map handling, emit `MAP_OUTCOME` with
+  install/supersession/failure status and installed frame ID as a separate
+  audit/evaluation stream; it must not retroactively mutate a PPO transition.
+- Show that out-of-order messages close the exact matching service ticket. If
+  140 ms passes first, mark `DEADLINE_MISSED_PENDING`: a real deadline miss,
+  not proof of radio loss. Show proven reassembly failure separately from
   intentional supersession.
-- Include this compact two-phase draft reward beneath the ledger:
-  `r_j = r_j^tail + r_j^map`,
-  `r_j^tail = -w_T phi(T_j^tail) - early resource costs`,
-  `r_j^map = I_install(w_S S_j + w_G G_j) - proven-failure penalty - remaining costs`.
-  Show that terminal reconciliation charges every byte/compute cost not already
-  booked by the progress event, including frames that fail before tail completion.
+- Include this compact first-phase reward beneath the ledger:
+  `r_j = I_tail(w_S Sbar_a + w_G Gbar_a - w_T phi(T_feedback))`
+  `- beta_T D_miss - proven-failure penalty - switch penalty`.
+  Place normalized bytes and compute beside it as separate cost signals, not a
+  second subtraction from the reward.
+  Add “nominal 9 FPS = 111.1-ms frame period; feedback enters the next
+  observation cutoff after receipt and may affect frame N+2.”
   Add a note: “frame ID provides attribution and lag state; raw frame ID is not
   a scalar reward.”
 

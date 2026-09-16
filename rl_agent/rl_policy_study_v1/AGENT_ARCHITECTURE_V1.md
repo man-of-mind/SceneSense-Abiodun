@@ -45,7 +45,7 @@ vectors from epoch $t-1$:
 This matters because two epochs can have the same instantaneous SNR but imply
 different decisions. A falling SNR sequence may favor a smaller payload before
 congestion develops, whereas the same SNR during recovery may support a less
-aggressive action. Recent delivery, supersession and map-AoI history also help
+aggressive action. Recent delivery, supersession and tail-feedback history also help
 the memory distinguish a brief radio dip from a persistent service backlog.
 
 ## Causal observation groups
@@ -53,11 +53,17 @@ the memory distinguish a brief radio dip from a persistent service backlog.
 The first simulator should expose normalized values and availability flags for:
 
 - current and lagged PUSCH SNR, MCS and delivered throughput;
+- current-frame sensor-compute elapsed time and the remaining portion of the
+  140-ms service budget, both known when the split action is selected;
 - recent complete-message delivery and terminal-outcome history;
-- latest installed-frame lag, oldest-pending-frame lag, pending age/count and
-  time since a useful installation;
+- last received tail-feedback frame/action identity represented as lag, its
+  segmentation/localization quality anchor or deployable proxy plus
+  availability/provenance, feedback latency divided by 140 ms, deadline result
+  and feedback age;
+- oldest-pending-frame lag, pending age/count and the latest explicit terminal
+  outcome;
 - edge busy/pending state plus recent supersession and expiry outcomes;
-- previous action, payload, installation AoI and action-switch indicator; and
+- previous action and payload; and
 - causal ego/object-risk summaries available before action selection.
 
 Forbidden inputs are the authored network-profile name, future SNR, CARLA
@@ -66,7 +72,9 @@ ground truth, and the current frame's eventual tail result.
 The exact asynchronous attribution and missing-feedback behavior is frozen in
 [AGENT_TIMELINE_AND_DELAYED_FEEDBACK_V1.md](AGENT_TIMELINE_AND_DELAYED_FEEDBACK_V1.md).
 In particular, absence of feedback at the next frame means `PENDING`, not
-`LOST`; later feedback closes the exact frame/action ticket.
+`LOST`; crossing 140 ms yields `DEADLINE_MISSED_PENDING`, which is a service
+miss but still not a radio-loss diagnosis. Later feedback closes the exact
+frame/action ticket.
 
 ## Network
 
@@ -76,15 +84,15 @@ In particular, absence of feedback at the next frame means `PENDING`, not
 
 ```mermaid
 flowchart LR
-    OBS["Causal observation<br/>SNR, MCS, throughput<br/>map AoI and risk<br/>delivery and prior action"]
+    OBS["Causal observation<br/>SNR, MCS, throughput<br/>tail feedback quality/latency<br/>pending lag and prior action"]
     ENC["LayerNorm + MLP<br/>observation encoder"]
     LSTM["LSTM memory<br/>hidden state h(t)<br/>cell state c(t)"]
     POLICY["Policy head<br/>72 split-action logits"]
     VALUE["Reward-value critic<br/>expected return"]
-    COST["Cost critics<br/>bytes, compute, switching"]
+    COST["Cost critics<br/>bytes and compute"]
     FORECAST["Channel forecast head<br/>next-window mean + uncertainty"]
     ACTION["Executable split action<br/>family + quantizer + q"]
-    ENV["Environment feedback<br/>map utility and AoI<br/>terminal outcome and costs"]
+    ENV["Tail-service feedback<br/>frame/action identity<br/>quality anchor, latency, deadline<br/>terminal outcome and costs"]
 
     OBS --> ENC --> LSTM
     LSTM --> POLICY -->|masked sample| ACTION --> ENV
@@ -116,17 +124,27 @@ memoryless feature layer inside the actor-critic network:
 1. The UE forms only the information available before choosing $a_t$.
 2. The encoder converts that observation to a compact feature vector.
 3. The LSTM updates $(h_t,c_t)$ from that feature and the previous memory.
-4. The policy head converts $h_t$ into probabilities over the 72 split actions.
-5. The value and cost heads use the same $h_t$ to estimate future reward and
-   resource consequences for PPO training.
+4. The forecast head produces a causal next-window channel belief; the policy
+   head converts $[h_t;\operatorname{sg}(\widehat\mu_t,
+   \log\widehat\sigma_t)]$ into probabilities over the 72 split actions.
+5. The value and two cost heads use the same $h_t$ to estimate future reward,
+   normalized byte cost and compute cost. Those two resource terms are not
+   subtracted again from the v1 scalar reward. The action-switch, proven-loss
+   and 140-ms miss terms remain explicit scalar penalties.
 6. The forecast head predicts channel mean and uncertainty over the period in
    which $a_t$ will travel. A stop-gradient copy of that prediction is appended
-   to $h_t$ before the policy head, so it influences the current action but PPO
-   cannot distort the forecast merely to make one action easier to choose.
+   to $h_t$ before the policy head, so it influences the current action. This
+   blocks the direct policy-loss path into forecast-head parameters; the shared
+   encoder/LSTM remains coupled and must be controlled by the forecast loss and
+   tested for held-out prediction quality.
 
 During training, rollouts retain the observation, chosen action, reward,
-terminal flag and incoming LSTM state. PPO optimizes short contiguous
-sequences so gradients can teach the memory which past signals matter. The
+terminal flag, incoming LSTM state and the detached forecast features used by
+the sampled policy. PPO re-evaluation uses those stored forecast features;
+forecast-head updates therefore cannot silently change an old policy
+distribution. Parameters remain frozen while collecting a rollout, and actual
+policy KL is monitored after every optimizer step. PPO optimizes short
+contiguous sequences so gradients can teach the memory which past signals matter. The
 memory resets at the start of a new episode or UE session; in a future
 multi-UE deployment, each UE keeps its own state so histories cannot leak
 between vehicles.
@@ -134,41 +152,52 @@ between vehicles.
 Formally,
 
 $$
-(\widehat\mu_{t,H},\widehat\sigma_{t,H})=g_\psi(h_t),
+(\widehat\mu_{t,H_{\mathrm{ch}}},\widehat\sigma_{t,H_{\mathrm{ch}}})
+=g_\psi(h_t),
 $$
 
 $$
 \pi_\theta(a_t\mid o_{\le t})=
 \operatorname{softmax}\!\left(
-W_\pi[\,h_t;\operatorname{sg}(\widehat\mu_{t,H},
-\widehat\sigma_{t,H})\,]+b_\pi
+W_\pi[\,h_t;\operatorname{sg}(\widehat\mu_{t,H_{\mathrm{ch}}},
+\log\widehat\sigma_{t,H_{\mathrm{ch}}})\,]+b_\pi
 \right),
 $$
 
-where $H$ is a preregistered service horizon and `sg` means stop-gradient.
-The target may be next-window mean/minimum SNR rather than one noisy sample.
-The first ablation compares no forecast, auxiliary-only forecasting and the
-explicit detached forecast input. True future SNR is never available at action
-selection.
+where $H_{\mathrm{ch}}=100$ ms is the registered future radio-exposure window
+and `sg` means stop-gradient. It is deliberately distinct from the 140-ms
+end-to-end feedback deadline. The v1 target is the mean SNR observed over that
+next channel window, not one noisy sample.
+The registered three-arm ablation compares no forecast, auxiliary-only
+forecasting and the explicit detached forecast input. Future windows without a
+valid SNR target are masked from the forecast loss. True future SNR is never
+available at action selection.
 
-## Early progress feedback versus final map outcome
+## Tail-service feedback and deferred map outcome
 
 Model-tail completion can shorten control uncertainty, but it is not the same
-event as a successful spatial-map installation. Each exact frame/action ticket
-therefore supports two messages:
+event as a successful spatial-map installation. The first experiment registers
+`tail_only_v1`: the PPO service ticket ends at tail feedback, while map outcome
+is retained on an independent audit/evaluation stream.
 
-1. `TAIL_COMPLETED` is a non-terminal progress ACK emitted after synchronized
-   model-tail completion. It carries identity and timing and tells the next
-   observation that transport and tail inference succeeded.
-2. `MAP_OUTCOME` is the terminal record emitted after post-processing and map
-   handling. It records `INSTALLED`, `SUPERSEDED`, `REJECTED` or another
-   registered outcome and makes installed-map utility eligible for credit.
+1. After synchronized model-tail completion, the edge sends a compact
+   `TAIL_COMPLETED_ACK`. On the wire it carries exact frame/action identity,
+   the edge completion event, actual resource charges, separate
+   segmentation/localization quality anchors (or a qualified live proxy), and
+   quality source/version/catalog hash. When it arrives, the UE stamps the
+   receipt time and derives the same-clock feedback latency and 140-ms result.
+   The enriched UE record closes the first-phase service ticket.
+2. `MAP_OUTCOME` is emitted after post-processing and map handling. It records
+   `INSTALLED`, `SUPERSEDED`, `REJECTED` or another registered outcome, but it
+   does not retroactively mutate an already-consumed PPO transition.
 
-An early ACK cannot truthfully contain realized segmentation/localization
-accuracy, p025 object records or installed-frame ID before those later stages
-exist. In trace-driven training, quality may come from the frozen action table;
-live deployment requires a qualified proxy or fixed offline quality prior.
-Absence of either message at the next frame remains `PENDING`, not `LOST`.
+An early ACK cannot truthfully contain realized per-frame
+segmentation/localization accuracy, p025 object records or installed-frame ID
+before those later stages exist. In trace-driven training, quality comes from
+the frozen action table and receives credit only after tail completion; live
+deployment requires a qualified proxy or the fixed offline quality prior.
+Absence at the next frame remains `PENDING`, not `LOST`; crossing 140 ms marks
+`DEADLINE_MISSED_PENDING`, not radio failure.
 
 The timing proposal must also distinguish an illustrative marginal sum from a
 causal end-to-end sample. The slide estimate
@@ -184,21 +213,24 @@ to model-tail completion at P50 = 141.7, 148.9, 159.4 and 146.9 ms for
 Favorable, Mid, Adverse and Fade respectively. These remain counterfactual
 edge-ready times, not received-ACK times.
 
-At 10, 9 and 8 FPS, the next decision is nominally ready after roughly 130,
-141 and 155 ms respectively when sensor compute is about 30 ms. Nine FPS has
-no general P50 margin. Eight FPS has modest P50 headroom in Favorable, Mid and
-Fade, but remains about 4 ms short in Adverse before even adding the feedback
-return; every profile's P95 is above 200 ms. Use an 8/9/10-FPS sensitivity
-experiment to quantify probability, not as a guarantee, and retain the
-pending-ticket ledger at every rate.
+At 9 FPS, the next decision is nominally ready at roughly 141.1 ms when sensor
+compute is about 30 ms. A 140-ms budget is therefore a useful candidate
+deadline: among evidence-qualified actions, 18/72, 15/72, 11/72 and 14/72 have
+P50 edge-tail completion no greater than 140 ms in Favorable, Mid, Adverse and
+Fade respectively. No supported action has P95 no greater than 140 ms, and the
+ACK return is still excluded. The agent can learn which actions are likely to
+meet the budget, but late feedback remains normal and enters the next available
+decision, sometimes frame $j+2$. Retain the pending-ticket ledger and quantify
+8/9/10-FPS sensitivity rather than blocking the sensor pipeline.
 
 ### Expected policy runtime and training time
 
 The recurrent controller is small relative to the perception pipeline. The
-current observation-encoder/LSTM/four-head prototype has approximately 163k
-parameters (162,973 exactly). On this host, 3,000 single-thread, batch-one CPU
-forward passes through the complete actor-critic measured about 0.140 ms at
-P50, 0.147 ms at P95 and 0.154 ms at P99 after warm-up. LSTM inference is
+current 259-feature observation-encoder/LSTM/four-head prototype has
+approximately 192k parameters (192,483 exactly). On this host, 3,000
+single-thread, batch-one CPU forward passes through the complete actor-critic
+measured about 0.146 ms at P50, 0.157 ms at P95 and 0.182 ms at P99 after
+warm-up. LSTM inference is
 therefore not expected to be a service bottleneck next
 to tens of milliseconds of sensing, radio and perception work. These are
 microbenchmark values, not a live OAI deployment claim; the final integration
@@ -212,10 +244,10 @@ realistically a 6--24 hour workload. Report convergence in environment steps
 and wall time rather than promising a fixed duration before the environment is
 implemented.
 
-## Reward and intentional supersession
+## Deferred map-aware reward and intentional supersession
 
-The equation below is the richer object-level utility candidate. The revised
-first-training discussion draft is
+The equation below is a **later** object-level utility candidate, not the
+`tail_only_v1` reward. The revised first-training discussion draft is
 [REWARD_FORMULATION_V2.md](REWARD_FORMULATION_V2.md); it keeps segmentation,
 localization and latency separately weighted and uses frame ID for exact
 causal attribution and frame-lag state rather than as an unbounded scalar
@@ -304,5 +336,6 @@ latest-only scheduling decision.
 Before PPO training, implement a causal trace-driven environment and require it
 to reproduce held fixed-action statistics for payload, complete reassembly,
 supersession, edge completion, installation probability and map AoI. Training
-starts only after those checks pass. The first ablation compares the same PPO
-network with and without the auxiliary next-SNR forecast loss.
+starts only after those checks pass. The registered forecast ablation has three
+arms: no forecast, auxiliary-only forecast, and forecast supplied to the
+current policy.

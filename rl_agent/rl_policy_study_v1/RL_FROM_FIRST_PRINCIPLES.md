@@ -452,8 +452,14 @@ localization risk.
 
 ## 12. Reward: what should be optimized
 
-The cleanest reward is based on the **post-outcome map**, not the label of the
-selected action.
+The **current first experiment** is `tail_only_v1`. It uses separately weighted
+segmentation/localization quality anchors, UE-received tail-feedback latency, a
+latched 140-ms deadline miss, and a proven-transport-failure penalty. Frame ID
+binds the feedback to its action and becomes a lag feature; it is not itself a
+scalar reward. Bytes and compute are separate named cost-critic targets.
+
+The post-outcome map reward below is a **deferred map-aware extension**, not the
+reward used by `tail_only_v1`.
 
 Let $U_{map,t+1}$ summarize useful object coverage, confidence, localization
 quality and a smaller segmentation term after delivery/drop/skip has been
@@ -489,10 +495,12 @@ Important accounting rules:
    The old map remains installed and becomes older.
 4. Segmentation utility is credited only when policy metadata permits the new
    segmentation layer to replace the previous one.
-5. The 100 ms value is a service reference.  Actual transport, install AoI and
-   deadline misses remain continuous measured outcomes.
+5. The current first-phase candidate is a 140 ms deadline from sensor-compute
+   start to tail-feedback receipt at the UE, at nominal 9 FPS. Actual latency
+   and deadline misses remain continuous measured outcomes; a later map-aware
+   version may instead use physical install AoI.
 6. The 500 ms ACK timeout is an accounting boundary, not proof that a 450 ms
-   update met the 100 ms service reference.
+   update met the registered service deadline.
 
 No reward weights should be frozen until each term is normalized on training
 data and one-at-a-time sensitivity shows that no term numerically overwhelms
@@ -510,15 +518,25 @@ causal normalized observation o_t
         LSTM state (h_t, c_t)
        ┌────────┼──────────┬────────────────┐
        │        │          │                │
-  split head  reward V  cost values   next-SNR forecast
-  (72 logits) (scalar)  (one/constraint)  (auxiliary)
+  split head  reward V  cost values   100-ms radio forecast
+  (72 logits) (scalar)  (one/constraint)  (mean + uncertainty)
+       ▲                                      │
+       └───── stop-gradient forecast input ─────┘
 ```
 
 The first policy has only the 72-way split head. It applies a hard mask only to
 profiles that cannot execute correctly in the current runtime. The value,
 cost, and forecast heads share the causal encoder but have separate final
-layers. The next observed SNR becomes a supervised target only after the
-transition; the true future SNR is never a policy input.
+layers. For v1, the forecast target is the normalized mean SNR in the next
+registered 100-ms radio-exposure window, whose samples occur strictly after the action.
+The forecast head predicts that target's mean and positive scale from $h_t$;
+the split head consumes $[h_t;\operatorname{sg}(\widehat\mu_{t,H},
+\log\widehat\sigma_{t,H})]$ when producing the current action logits. The
+later observed target is never a policy input. Stop-gradient prevents a direct
+policy-loss path into the forecast-head parameters, but the shared encoder and
+LSTM remain coupled to both objectives. The predicted scale must not be called
+calibrated uncertainty until held-out likelihood and coverage tests validate
+that claim.
 
 This architecture is intentionally modest.  The research question concerns
 the policy induced by measured communication/perception trade-offs, not whether
