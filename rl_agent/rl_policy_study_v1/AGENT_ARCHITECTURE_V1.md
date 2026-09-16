@@ -25,9 +25,11 @@ $$
 (h_t,c_t)=\operatorname{LSTM}(e(o_t),h_{t-1},c_{t-1}).
 $$
 
-An auxiliary head predicts the next observed SNR from $h_t$. The true next SNR
-becomes a training target only after the transition; it is never supplied to
-the policy before the action.
+An auxiliary head predicts the channel distribution over the service interval
+of the action being selected. The **prediction itself** (mean and uncertainty)
+is supplied to the current policy, while the true future SNR becomes a target
+only after the transition. Thus the policy is proactive without leaking a
+future measurement.
 
 In plain language, the LSTM gives the agent a short-term memory. At decision
 epoch $t$, it receives the encoded current observation and its two memory
@@ -80,7 +82,7 @@ flowchart LR
     POLICY["Policy head<br/>72 split-action logits"]
     VALUE["Reward-value critic<br/>expected return"]
     COST["Cost critics<br/>bytes, compute, switching"]
-    FORECAST["Auxiliary forecast head<br/>next observed SNR"]
+    FORECAST["Channel forecast head<br/>next-window mean + uncertainty"]
     ACTION["Executable split action<br/>family + quantizer + q"]
     ENV["Environment feedback<br/>map utility and AoI<br/>terminal outcome and costs"]
 
@@ -89,6 +91,7 @@ flowchart LR
     LSTM --> VALUE
     LSTM --> COST
     LSTM --> FORECAST
+    FORECAST -.->|detached causal forecast| POLICY
     ENV -->|next causal observation and reward| OBS
 
     classDef observation fill:#eaf1ff,stroke:#3366cc,stroke-width:2px;
@@ -116,9 +119,10 @@ memoryless feature layer inside the actor-critic network:
 4. The policy head converts $h_t$ into probabilities over the 72 split actions.
 5. The value and cost heads use the same $h_t$ to estimate future reward and
    resource consequences for PPO training.
-6. The forecast head predicts the SNR that will be observed at $t+1$. Its
-   error is an auxiliary training loss; its prediction is not manually inserted
-   into the observation and does not replace the policy output.
+6. The forecast head predicts channel mean and uncertainty over the period in
+   which $a_t$ will travel. A stop-gradient copy of that prediction is appended
+   to $h_t$ before the policy head, so it influences the current action but PPO
+   cannot distort the forecast merely to make one action easier to choose.
 
 During training, rollouts retain the observation, chosen action, reward,
 terminal flag and incoming LSTM state. PPO optimizes short contiguous
@@ -127,11 +131,86 @@ memory resets at the start of a new episode or UE session; in a future
 multi-UE deployment, each UE keeps its own state so histories cannot leak
 between vehicles.
 
-The forecast loss is useful only as a representation aid. It encourages
-$h_t$ to encode channel trend and temporal structure, which can improve action
-selection under fading and recovery. The first ablation must compare the same
-PPO architecture with and without this head; if it does not improve policy
-return or robustness, it should be removed.
+Formally,
+
+$$
+(\widehat\mu_{t,H},\widehat\sigma_{t,H})=g_\psi(h_t),
+$$
+
+$$
+\pi_\theta(a_t\mid o_{\le t})=
+\operatorname{softmax}\!\left(
+W_\pi[\,h_t;\operatorname{sg}(\widehat\mu_{t,H},
+\widehat\sigma_{t,H})\,]+b_\pi
+\right),
+$$
+
+where $H$ is a preregistered service horizon and `sg` means stop-gradient.
+The target may be next-window mean/minimum SNR rather than one noisy sample.
+The first ablation compares no forecast, auxiliary-only forecasting and the
+explicit detached forecast input. True future SNR is never available at action
+selection.
+
+## Early progress feedback versus final map outcome
+
+Model-tail completion can shorten control uncertainty, but it is not the same
+event as a successful spatial-map installation. Each exact frame/action ticket
+therefore supports two messages:
+
+1. `TAIL_COMPLETED` is a non-terminal progress ACK emitted after synchronized
+   model-tail completion. It carries identity and timing and tells the next
+   observation that transport and tail inference succeeded.
+2. `MAP_OUTCOME` is the terminal record emitted after post-processing and map
+   handling. It records `INSTALLED`, `SUPERSEDED`, `REJECTED` or another
+   registered outcome and makes installed-map utility eligible for credit.
+
+An early ACK cannot truthfully contain realized segmentation/localization
+accuracy, p025 object records or installed-frame ID before those later stages
+exist. In trace-driven training, quality may come from the frozen action table;
+live deployment requires a qualified proxy or fixed offline quality prior.
+Absence of either message at the next frame remains `PENDING`, not `LOST`.
+
+The timing proposal must also distinguish an illustrative marginal sum from a
+causal end-to-end sample. The slide estimate
+
+$$
+30_{\rm sensor}+25_{\rm UE}+65_{\rm UL}+21_{\rm tail}=141\ \mathrm{ms}
+$$
+
+omits the action-dependent reconstruction required before the 21 ms FCOS tail
+and excludes the compact ACK return. The causal replay, on one 40-action common
+support with at least 100 samples per stage/profile, places sensor-compute start
+to model-tail completion at P50 = 141.7, 148.9, 159.4 and 146.9 ms for
+Favorable, Mid, Adverse and Fade respectively. These remain counterfactual
+edge-ready times, not received-ACK times.
+
+At 10, 9 and 8 FPS, the next decision is nominally ready after roughly 130,
+141 and 155 ms respectively when sensor compute is about 30 ms. Nine FPS has
+no general P50 margin. Eight FPS has modest P50 headroom in Favorable, Mid and
+Fade, but remains about 4 ms short in Adverse before even adding the feedback
+return; every profile's P95 is above 200 ms. Use an 8/9/10-FPS sensitivity
+experiment to quantify probability, not as a guarantee, and retain the
+pending-ticket ledger at every rate.
+
+### Expected policy runtime and training time
+
+The recurrent controller is small relative to the perception pipeline. The
+current observation-encoder/LSTM/four-head prototype has approximately 163k
+parameters (162,973 exactly). On this host, 3,000 single-thread, batch-one CPU
+forward passes through the complete actor-critic measured about 0.140 ms at
+P50, 0.147 ms at P95 and 0.154 ms at P99 after warm-up. LSTM inference is
+therefore not expected to be a service bottleneck next
+to tens of milliseconds of sensing, radio and perception work. These are
+microbenchmark values, not a live OAI deployment claim; the final integration
+must time observation assembly and policy inference together.
+
+Training time is dominated by trace-environment rollout and experimental
+replication rather than the LSTM itself. A first trace-driven run should take
+tens of minutes to a few hours per random seed; a defensible three-seed set
+with the no-forecast, auxiliary-only and explicit-forecast ablations is more
+realistically a 6--24 hour workload. Report convergence in environment steps
+and wall time rather than promising a fixed duration before the environment is
+implemented.
 
 ## Reward and intentional supersession
 
@@ -215,9 +294,10 @@ latest-only scheduling decision.
   service changes supersession, completion and installation nonlinearly.
 - Missing v3 actions require a conservative calibrated service model with an
   uncertainty flag, followed by fixed-action reproduction tests before PPO.
-- Action 15's v3 non-finite live output is a fail-closed reliability outcome;
-  it is not a latency sample and should be masked only if the corresponding
-  executable path remains invalid at deployment time.
+- Action 15's earlier v3 non-finite verdict was traced to missing cross-stream
+  CUDA tensor-lifetime ownership, not non-finite model output. The repaired v3
+  validator passed live and action 15 remains executable; the superseded false
+  verdict must not become an action mask.
 
 ## Next implementation gate
 

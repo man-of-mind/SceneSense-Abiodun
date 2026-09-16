@@ -2,8 +2,10 @@
 
 This module defines architecture only.  It does not authorize training and it
 does not read campaign evidence.  The policy has 72 SPLIT actions, LSTM memory,
-one reward-value critic, configurable cost critics, and an auxiliary one-step
-normalized-SNR prediction head.
+one reward-value critic, configurable cost critics, and a calibrated causal
+channel-forecast head. The predicted mean and uncertainty influence the
+current action through a stop-gradient policy input; the true future channel
+measurement is available only later as a forecast target.
 """
 
 from __future__ import annotations
@@ -26,8 +28,15 @@ class PolicyOutput:
     logits: Tensor
     reward_value: Tensor
     cost_values: Tensor
-    next_snr_prediction: Tensor
+    next_snr_mean: Tensor
+    next_snr_std: Tensor
     state: RecurrentState
+
+    @property
+    def next_snr_prediction(self) -> Tensor:
+        """Compatibility alias for the forecast mean."""
+
+        return self.next_snr_mean
 
 
 class SplitOnlyRecurrentActorCritic(nn.Module):
@@ -68,10 +77,10 @@ class SplitOnlyRecurrentActorCritic(nn.Module):
             num_layers=1,
             batch_first=True,
         )
-        self.policy_head = nn.Linear(self.hidden_dim, self.action_count)
+        self.policy_head = nn.Linear(self.hidden_dim + 2, self.action_count)
         self.reward_value_head = nn.Linear(self.hidden_dim, 1)
         self.cost_value_head = nn.Linear(self.hidden_dim, self.cost_count)
-        self.next_snr_head = nn.Linear(self.hidden_dim, 1)
+        self.next_snr_head = nn.Linear(self.hidden_dim, 2)
 
     def initial_state(
         self,
@@ -132,13 +141,26 @@ class SplitOnlyRecurrentActorCritic(nn.Module):
                 raise ValueError("cell-state shape is invalid")
         encoded = self.encoder(observation)
         memory, next_state = self.memory(encoded, (state.hidden, state.cell))
-        raw_logits = self.policy_head(memory)
+        forecast_raw = self.next_snr_head(memory)
+        next_snr_mean = forecast_raw[..., 0]
+        next_snr_std = nn.functional.softplus(forecast_raw[..., 1]) + 1e-4
+        # The calibrated prediction influences the current decision, while PPO
+        # policy gradients cannot corrupt the forecaster to manufacture easier
+        # logits. The forecast head is trained only from measurements observed
+        # after this action through ``forecast_loss``.
+        forecast_policy_input = torch.stack(
+            (next_snr_mean, torch.log(next_snr_std)), dim=-1
+        ).detach()
+        raw_logits = self.policy_head(
+            torch.cat((memory, forecast_policy_input), dim=-1)
+        )
         logits = raw_logits.masked_fill(~mask, torch.finfo(raw_logits.dtype).min)
         return PolicyOutput(
             logits=logits,
             reward_value=self.reward_value_head(memory).squeeze(-1),
             cost_values=self.cost_value_head(memory),
-            next_snr_prediction=self.next_snr_head(memory).squeeze(-1),
+            next_snr_mean=next_snr_mean,
+            next_snr_std=next_snr_std,
             state=RecurrentState(*next_state),
         )
 
@@ -148,12 +170,13 @@ class SplitOnlyRecurrentActorCritic(nn.Module):
 
     @staticmethod
     def forecast_loss(output: PolicyOutput, next_snr_target: Tensor) -> Tensor:
-        if next_snr_target.shape != output.next_snr_prediction.shape:
+        if next_snr_target.shape != output.next_snr_mean.shape:
             raise ValueError("next-SNR target shape is invalid")
         if not torch.isfinite(next_snr_target).all():
             raise ValueError("next-SNR target must be finite")
-        return nn.functional.huber_loss(
-            output.next_snr_prediction,
-            next_snr_target,
-            reduction="mean",
+        normalized_residual = (
+            next_snr_target - output.next_snr_mean
+        ) / output.next_snr_std
+        return torch.mean(
+            0.5 * normalized_residual.square() + torch.log(output.next_snr_std)
         )

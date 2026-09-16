@@ -26,7 +26,9 @@ class SplitOnlyRecurrentActorCriticTest(unittest.TestCase):
         self.assertEqual(tuple(output.logits.shape), (2, 5, 72))
         self.assertEqual(tuple(output.reward_value.shape), (2, 5))
         self.assertEqual(tuple(output.cost_values.shape), (2, 5, 3))
-        self.assertEqual(tuple(output.next_snr_prediction.shape), (2, 5))
+        self.assertEqual(tuple(output.next_snr_mean.shape), (2, 5))
+        self.assertEqual(tuple(output.next_snr_std.shape), (2, 5))
+        self.assertTrue((output.next_snr_std > 0).all())
         self.assertEqual(tuple(output.state.hidden.shape), (1, 2, 16))
         self.assertEqual(tuple(output.state.cell.shape), (1, 2, 16))
 
@@ -69,6 +71,20 @@ class SplitOnlyRecurrentActorCriticTest(unittest.TestCase):
         gradient = self.model.memory.weight_ih_l0.grad
         self.assertIsNotNone(gradient)
         self.assertGreater(float(gradient.abs().sum()), 0.0)
+
+    def test_forecast_influences_current_policy_without_policy_gradient_leak(self) -> None:
+        observation = torch.randn(1, 12)
+        mask = torch.ones(1, 72, dtype=torch.bool)
+        before = self.model(observation, action_mask=mask)
+        with torch.no_grad():
+            self.model.next_snr_head.bias[0].add_(2.0)
+        after = self.model(observation, action_mask=mask)
+        self.assertFalse(torch.equal(before.logits, after.logits))
+
+        self.model.zero_grad(set_to_none=True)
+        after.logits.sum().backward()
+        gradient = self.model.next_snr_head.weight.grad
+        self.assertTrue(gradient is None or torch.equal(gradient, torch.zeros_like(gradient)))
 
 
 if __name__ == "__main__":

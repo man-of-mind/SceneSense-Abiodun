@@ -8,8 +8,10 @@ digraph AgentTimeline {
   a1 [label="PPO action a1\n72-way SPLIT policy", fillcolor="#ecf8f5"];
   p1 [label="OPEN pending ticket\n(session, UE, f1, a1)", fillcolor="#fff4d6"];
   radio1 [label="Feature uplink\nOAI / RFsim", fillcolor="#eaf1ff"];
-  edge1 [label="Edge latest-only slot\nreassembly + service", fillcolor="#f2eefc"];
-  map1 [label="Direct spatial-map install\nquality + install time", fillcolor="#ecf8f5"];
+  edge1 [label="Edge latest-only slot\nreconstruct + model tail", fillcolor="#f2eefc"];
+  progress [label="TAIL_COMPLETED progress\nidentity + tail time\nticket remains open", fillcolor="#fff4d6", color="#d18b00", penwidth=2.0];
+  post [label="Post-process + filter\ndirect object-map update", fillcolor="#f2eefc"];
+  map1 [label="MAP_OUTCOME terminal\ninstall / supersede / fail\nquality + install time", fillcolor="#ecf8f5"];
 
   f2 [label="Frame f2 ready\nbefore f1 feedback", fillcolor="#eaf1ff"];
   pending [label="f1 remains PENDING\nnot inferred LOST", fillcolor="#fff4d6", color="#d18b00", penwidth=2.0];
@@ -19,13 +21,15 @@ digraph AgentTimeline {
   ack [label="Compact terminal feedback\nfor exact f1,a1", fillcolor="#fce8e6", color="#c44e52", penwidth=2.0];
   close [label="CLOSE f1 ticket\ncompute r1", fillcolor="#fff4d6"];
   ppo [label="Terminal contiguous prefix\nGAE + PPO update", fillcolor="#ecf8f5"];
-  forecast [label="Auxiliary head predicts\nnext observed SNR", fillcolor="#f2eefc"];
+  forecast [label="Forecast head predicts\nnext-window mean + uncertainty", fillcolor="#f2eefc"];
 
-  f1 -> lstm1 -> a1 -> p1 -> radio1 -> edge1 -> map1;
-  lstm1 -> forecast [style=dashed, label="representation aid"];
-  f1 -> f2 [style=dotted, label="next 100 ms epoch", constraint=false];
+  f1 -> lstm1 -> a1 -> p1 -> radio1 -> edge1 -> progress -> post -> map1;
+  lstm1 -> forecast [style=dashed, label="causal prediction"];
+  forecast -> a1 [style=dashed, color="#54a24b", label="detached current-policy input"];
+  f1 -> f2 [style=dotted, label="next frame epoch", constraint=false];
   f2 -> pending -> lstm2 -> a2;
   p1 -> pending [style=dashed, color="#d18b00", label="still open"];
+  progress -> pending [style=dashed, color="#d18b00", label="mark progress; do not close"];
   map1 -> ack [label="install precedes ACK"];
   ack -> close [color="#c44e52"];
   p1 -> close [style=dashed, color="#c44e52", label="exact identity join"];

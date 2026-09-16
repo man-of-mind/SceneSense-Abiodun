@@ -111,6 +111,62 @@ The first advisor decision is whether bytes, compute and switching remain in
 the scalar reward or move to separate cost critics. They are shown explicitly
 so their effect cannot be hidden inside the three primary weights.
 
+## Proposed two-phase feedback decomposition
+
+The proposed model-tail-complete ACK can arrive before post-processing and map
+installation, but it must remain a progress message rather than a false
+success. Let $T_j^{\mathrm{tail}}$ run from production sensor-compute start to
+synchronized model-tail completion at the edge. The edge may first emit
+
+$$
+\mathrm{TAIL\_COMPLETED}(k_j,T_j^{\mathrm{tail}}),
+$$
+
+and later emit the terminal `MAP_OUTCOME`. Let $z_j=1$ only when the early
+component has already been booked against the exact ticket, and let $I_j^T=1$
+when tail completion is ultimately proven. One non-overlapping decomposition is
+
+$$
+r_j=r_j^{\mathrm{tail}}+r_j^{\mathrm{map}},
+$$
+
+$$
+r_j^{\mathrm{tail}}=z_j\left[
+-w_T\phi_T(T_j^{\mathrm{tail}})
+-\lambda_B\frac{B_j^{\mathrm{tail}}}{B_{\max}}
+-\lambda_C\frac{C_j^{\mathrm{tail}}}{C_{\max}}
+\right],
+$$
+
+$$
+r_j^{\mathrm{map}}=
+\mathbf{1}_{\mathrm{installed}}(w_S S_j+w_G G_j)
+-\beta_D\mathbf{1}_{\mathrm{proven\ transport\ failure}}
+-(I_j^T-z_j)w_T\phi_T(T_j^{\mathrm{tail}})
+-\lambda_B\frac{B_j^{\mathrm{total}}-z_jB_j^{\mathrm{tail}}}{B_{\max}}
+-\lambda_C\frac{C_j^{\mathrm{total}}-z_jC_j^{\mathrm{tail}}}{C_{\max}}
+-\lambda_A\mathbf{1}[a_j\ne a_{j-1}].
+$$
+
+Both components remain attached to the same immutable ticket. The progress ACK
+can reduce uncertainty in the next observation, but PPO reconciles the final
+reward only after the map outcome. Realized $S_j$, $G_j$ and installed frame ID
+do not exist at pure model-tail completion; during trace-driven training they
+may be joined later from the frozen quality surface and simulated map outcome.
+This avoids rewarding a raw tail output that is subsequently superseded,
+rejected or never installed.
+
+Here $B_j^{\mathrm{tail}}$ and $C_j^{\mathrm{tail}}$ are only the resources
+known to have been consumed by the progress boundary; the `total` terms are
+the final ticket totals. If the progress packet is delayed or lost, $z_j=0$
+and the terminal event charges the latency (when tail completion is proven)
+and all consumed resources. If a frame fails or is superseded before tail
+completion, $I_j^T=z_j=0$: it receives no invented tail-latency term, but its
+actually consumed bytes and compute are still charged. This makes early and
+terminal accounting exhaustive without charging the same work twice. A
+constrained-PPO implementation may move these resource terms to cost critics,
+but the exact same reconciliation rule remains authoritative.
+
 ## Frame identity and delayed feedback
 
 Every action opens a ticket keyed by

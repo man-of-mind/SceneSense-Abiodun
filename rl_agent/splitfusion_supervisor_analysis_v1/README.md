@@ -11,20 +11,32 @@ It deliberately separates these causal intervals:
 2. **UE action path:** seven-channel concatenation through model front,
    ranker/selection, compression, serialization, and UDP send completion.
 3. **Feature uplink:** send completion through complete edge reassembly.
-4. **Edge-to-map service:** reassembly through authoritative map install.
-5. **Action-to-map total:** seven-channel-concatenation start through map
-   install, excluding sensor preparation.
+4. **Early edge control boundary:** reassembly through latest-only scheduler
+   wait, feature reconstruction and synchronized model-tail completion.
+5. **Early controller-ready total:** production sensor-compute start through
+   model-tail completion at the edge.
+6. **Physical map endpoints retained for audit:** reassembly/action/capture
+   through authoritative map install.
 
-The CSV retains RGB-capture-to-map as `capture_total_*` for physical freshness
-accounting, but Figures 01 and 04 deliberately use the action boundary above.
+The CSV retains `edge_map_*`, `total_*` and `capture_total_*` for physical
+freshness accounting. Figures 03 and 04 instead study the proposed early
+model-tail-complete boundary. That boundary is feedback-ready at the edge: it
+does not include the unmeasured compact-ACK return trip and does not prove that
+post-processing or map installation succeeded.
 
 The first two clocks are joined only through the previously validated
 same-host monotonic-to-wall clock bridge. Stage percentiles always carry their
 own denominator; missing stages are never assigned a latency of zero.
 
-Feature-uplink profile percentiles use common action support with observed
-reassembly timing in all four profiles. Figure 07 separately reports complete
-application-message delivery / frames sent over all 72 actions per profile.
+Cross-profile latency bars use one common action support across every displayed
+stage so adverse conditions cannot appear faster merely because heavy actions
+have no conditional latency sample. They require at least 100 frame samples per
+stage/profile so their empirical P99 is not a one-frame maximum. Figures 02--04
+plot P50 points only with at least 10 frame samples and label withheld and
+missing action counts explicitly; every lower-support value remains in the
+CSV. Figure 07 reports complete application
+reassembly, model-tail completion and map installation per frame sent over all
+72 actions; this keeps the latency clouds from hiding missing outcomes.
 Figure 06 numbers its displayed production functions sequentially from P01 to
 P18; `sensor_optimization_stage_percentiles.csv` retains the live profiler's
 original identifier in `source_stage`.

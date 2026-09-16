@@ -8,12 +8,15 @@ from types import SimpleNamespace
 
 from rl_agent.splitfusion_supervisor_analysis_v1.build_analysis import (
     PROFILE_ORDER,
+    SCATTER_STAGES,
     STAGES,
     action_balanced_latency,
+    edge_model_ready_components,
     equal_percentile_map,
     pareto_ids,
     percentile,
     quality_score,
+    retained_pre_frozen_ms,
     sensor_optimization_stage_rows,
     shift_arrivals_for_sensor_optimization,
     useful_outcomes,
@@ -45,6 +48,44 @@ def test_percentile_is_nearest_rank() -> None:
     assert percentile(values, 0.50) == 50.0
     assert percentile(values, 0.95) == 95.0
     assert percentile(values, 0.99) == 99.0
+
+
+def test_model_ready_boundary_includes_required_reconstruction() -> None:
+    row = {
+        "edge_zstd_decompression_ms": 1.0,
+        "edge_unpack_dequantize_ms": 4.0,
+        "edge_ae_decode_ms": 2.0,
+        "tail_camera_pose_reconstruct_ms": 0.5,
+        "decode_tail_cuda_ms": 21.0,
+        "decode_tail_inference_block_ms": 19.0,
+        "edge_frozen_tail_ms": 37.5,
+        "edge_total_edge_processing_ms": 50.0,
+        "edge_output_serialization_ms": 5.0,
+    }
+    assert edge_model_ready_components(row) == (13.0, 21.0, 50.0)
+    incoherent = dict(row, edge_total_edge_processing_ms=25.0)
+    assert edge_model_ready_components(incoherent) is None
+
+
+def test_scatter_endpoint_stops_at_model_tail_not_map_install() -> None:
+    assert SCATTER_STAGES == (
+        "ue_action",
+        "network",
+        "edge_model_ready",
+        "sensor_model_ready",
+    )
+
+
+def test_retained_pre_frozen_preserves_action_specific_work() -> None:
+    row = {
+        "edge_timing_ns": (
+            "{'zstd_decompression': 1000000, 'unpack_dequantize': 4000000, "
+            "'ae_decode': 2000000, 'frozen_tail': 21000000, "
+            "'output_serialization': 3000000, 'total_edge_processing': 30000000}"
+        )
+    }
+    assert retained_pre_frozen_ms(row) == 6.0
+    assert retained_pre_frozen_ms({"edge_timing_ns": ""}) is None
 
 
 def test_pareto_minimizes_latency_and_maximizes_quality() -> None:
@@ -84,25 +125,24 @@ def test_useful_installations_drop_older_late_map() -> None:
     assert [item.frame.sequence_id for item in useful_outcomes(result)] == [0, 1]
 
 
-def test_network_percentiles_use_common_action_support() -> None:
+def test_latency_percentiles_use_common_action_support() -> None:
     rows = []
     for profile_index, profile in enumerate(PROFILE_ORDER):
         for action_id in (0, 1):
             row = {"network_profile": profile, "action_id": action_id}
             for stage in STAGES:
+                row[f"{stage}_count"] = 200
                 for suffix in (50, 95, 99):
                     row[f"{stage}_p{suffix}_ms"] = float(
                         10 * profile_index + action_id + suffix
                     )
             if profile == "ADVERSE_STABLE" and action_id == 1:
-                for suffix in (50, 95, 99):
-                    row[f"network_p{suffix}_ms"] = ""
+                row["network_count"] = 4
             rows.append(row)
     summaries = action_balanced_latency(rows)
+    assert all(row["support_actions"] == 1 for row in summaries)
+    assert all(row["actions_with_p99"] == 1 for row in summaries)
     network = [row for row in summaries if row["stage"] == "network"]
-    assert len(network) == 4
-    assert all(row["support_actions"] == 1 for row in network)
-    assert all(row["actions_with_p99"] == 1 for row in network)
     assert [row["action_balanced_p99_ms"] for row in network] == [99, 109, 119, 129]
 
 
@@ -155,10 +195,13 @@ def test_sensor_presentation_stages_are_sequential_and_auditable() -> None:
 if __name__ == "__main__":
     test_quality_is_conservative_geometric_mean()
     test_percentile_is_nearest_rank()
+    test_model_ready_boundary_includes_required_reconstruction()
+    test_scatter_endpoint_stops_at_model_tail_not_map_install()
+    test_retained_pre_frozen_preserves_action_specific_work()
     test_pareto_minimizes_latency_and_maximizes_quality()
     test_equal_percentile_map_preserves_distribution_rank()
     test_useful_installations_drop_older_late_map()
-    test_network_percentiles_use_common_action_support()
+    test_latency_percentiles_use_common_action_support()
     test_imputed_scheduler_arrival_cannot_precede_shifted_send()
     test_sensor_presentation_stages_are_sequential_and_auditable()
     print("SUPERVISOR_ANALYSIS_UNIT_TEST_PASS")

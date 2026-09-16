@@ -43,13 +43,16 @@ sequenceDiagram
     S->>UE: frame f2 ready before feedback for f1
     Note over UE,P: f1 remains PENDING; it is not called lost
     UE->>UE: observe pending age/count + latest-installed frame lag
-    UE->>UE: LSTM(h1,c1), SNR forecast for next epoch
+    UE->>UE: LSTM(h1,c1), causal channel forecast influences a2
     UE->>P: OPEN(session, UE, f2, a2, logprob, value, h1, c1)
     UE->>R: feature(f2, a2, capture time, deadline)
 
-    E->>E: finish current frame; select newest pending frame
+    E->>E: reconstruct feature + complete model tail
+    E-->>UE: TAIL_COMPLETED(f1, a1, tail time)
+    UE->>P: mark f1 progress; ticket remains open
+    E->>E: post-process + filter compact object records
     E-->>M: direct object-map update
-    M-->>E: INSTALL(f1, quality, install time)
+    M-->>E: MAP_OUTCOME(f1, install status/time)
     E-->>UE: compact terminal feedback for f1
     UE->>P: CLOSE f1 by exact session/UE/frame/action identity
     P-->>UE: reward r1 becomes eligible for PPO rollout
@@ -63,9 +66,10 @@ sequenceDiagram
     end
 ```
 
-The auxiliary SNR forecast produced at epoch $t$ is trained against the SNR
-observed at $t+1$. It helps the LSTM encode a rising, falling or recovering
-channel trend; it does not use future SNR to choose the current action.
+The causal SNR forecast produced at epoch $t$ is trained against channel
+measurements observed later, but its predicted mean and uncertainty are used
+immediately when choosing $a_t$. This is proactive prediction, not future-data
+leakage: the true future SNR is unavailable until after the action.
 
 ## Pending-transition ledger
 
@@ -82,7 +86,8 @@ The immutable ticket retains:
 - bytes and compute already consumed; and
 - the registered deadline and reconciliation horizon.
 
-A ticket may close only with one terminal outcome:
+A `TAIL_COMPLETED` message updates progress but does not close a ticket. A
+ticket may close only with one terminal outcome:
 
 - `MAP_INSTALLED`;
 - `SUPERSEDED_PENDING`;

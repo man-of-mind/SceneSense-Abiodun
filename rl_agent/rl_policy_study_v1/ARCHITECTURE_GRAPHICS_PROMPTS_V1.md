@@ -94,12 +94,15 @@ Policy/control lane:
   observation encoder`, then into an LSTM cell. Show both recurrent arrows:
   hidden state `h_t` as the exposed short-term summary and cell state `c_t` as
   longer-lived channel/service memory.
-- Fan `h_t` into four heads: (1) PPO policy head with **72 discrete action
-  logits**, (2) value head estimating expected return, (3) cost critics for
-  bytes/compute/switching, and (4) an auxiliary head predicting next observed
-  SNR over roughly one decision interval. Make clear that the prediction trains
-  the representation for the next epoch; future SNR is never leaked into the
-  current action.
+- Fan `h_t` into the value head, cost critics and a calibrated channel-forecast
+  head. The forecast predicts the next service-window channel distribution,
+  shown as **predicted mean/minimum SNR plus uncertainty**, from information
+  available at time `t`. Feed a stop-gradient copy of that prediction together
+  with `h_t` into the PPO policy head with **72 discrete action logits**, so the
+  forecast proactively influences the current action. Make the causal boundary
+  explicit: predicted future-channel statistics are allowed, but the true
+  future SNR is never available or leaked at action selection. Show value and
+  cost heads estimating expected return and bytes/compute/switching costs.
 - Route the sampled action back to the C2 compression module. Label q as one of
   six registered discrete anchors for the initial policy; place “continuous q:
   future extension after evidence” in a small muted note.
@@ -109,15 +112,25 @@ Delayed outcome/credit lane:
 - Show an exact pending-transition ledger keyed by `(session, UE, frame,
   action)`. Include a small two-frame inset: frame N+1 may arrive while frame N
   is still `PENDING`; missing immediate feedback is not labelled lost.
-- From the edge tail/direct map installation, return a compact feedback packet
-  containing terminal outcome, installed frame ID, action ID, segmentation
-  quality, localization quality, action-to-map latency, bytes/compute and an
+- Show **two identity-bound feedback events**, not one premature terminal ACK.
+  First, immediately after synchronized edge model-tail completion, return a
+  record-free `TAIL_COMPLETED` progress ACK containing session/UE/frame/action
+  identity and tail-completion timing. It marks progress but leaves the ticket
+  open; it cannot yet claim realized quality or map installation. Second, after
+  post-processing and direct map handling, return terminal `MAP_OUTCOME` with
+  install/supersession/failure status, installed frame ID, segmentation quality,
+  localization quality, full action-to-map latency, final bytes/compute and an
   optional replacement frame ID for `SUPERSEDED_PENDING`.
-- Show that out-of-order feedback closes the matching ticket, produces reward
-  for that exact action, and updates the next observation using installed-frame
-  lag. Show proven reassembly failure separately from intentional supersession.
-- Include this compact draft reward beneath the ledger:
-  `r_j = I_install [w_S S_j + w_G G_j − w_T(1 − exp(−T_j/τ_T))] − proven-loss penalty − optional resource costs`.
+- Show that out-of-order messages update or close the exact matching ticket.
+  Only the terminal outcome makes the complete reward eligible for PPO and
+  updates installed-frame lag. Show proven reassembly failure separately from
+  intentional supersession.
+- Include this compact two-phase draft reward beneath the ledger:
+  `r_j = r_j^tail + r_j^map`,
+  `r_j^tail = -w_T phi(T_j^tail) - early resource costs`,
+  `r_j^map = I_install(w_S S_j + w_G G_j) - proven-failure penalty - remaining costs`.
+  Show that terminal reconciliation charges every byte/compute cost not already
+  booked by the progress event, including frames that fail before tail completion.
   Add a note: “frame ID provides attribution and lag state; raw frame ID is not
   a scalar reward.”
 

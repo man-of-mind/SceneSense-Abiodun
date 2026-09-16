@@ -61,10 +61,10 @@ SENSOR_PRESENTATION_ROOT = ROOT / (
 )
 DEFAULT_OUTPUT = ROOT / (
     "experiments/splitfusion_supervisor_analysis_v1/"
-    "20260914_optimized_pipeline_policy_analysis_v2"
+    "20260915_tail_completion_feedback_policy_analysis_v3"
 )
-SCHEMA = "scenesense.splitfusion.supervisor_analysis.optimized_pipeline.v2"
-TERMINAL = "SPLITFUSION_OPTIMIZED_PIPELINE_POLICY_ANALYSIS_COMPLETE"
+SCHEMA = "scenesense.splitfusion.supervisor_analysis.tail_completion_feedback.v3"
+TERMINAL = "SPLITFUSION_TAIL_COMPLETION_FEEDBACK_POLICY_ANALYSIS_COMPLETE"
 PROFILE_ORDER = (
     "FAVORABLE_STABLE",
     "MID_VARIABLE",
@@ -92,10 +92,18 @@ STAGES = {
     "model_tail": "FCOS model tail",
     "tail_support": "Other tail processing",
     "map_install": "Map service",
+    "edge_model_ready": "Edge reassembly to model-tail completion",
+    "sensor_model_ready": "Sensor-compute start to model-tail completion (ACK return excluded)",
     "edge_map": "Complete edge-to-map service",
     "total": "Action-start-to-map total",
 }
-SCATTER_STAGES = ("ue_action", "network", "edge_map", "total")
+SCATTER_STAGES = ("ue_action", "network", "edge_model_ready", "sensor_model_ready")
+# Presentation-only evidence floors. All samples remain in the CSV. Ten samples
+# keep a P50 point from being a one-frame anecdote; 100 samples are required in
+# the common-support percentile bars so an empirical P99 has at least one
+# observation in its upper one-percent tail.
+SCATTER_MIN_FRAME_SAMPLES = 10
+PERCENTILE_BAR_MIN_FRAME_SAMPLES = 100
 QUALITY_VIEWS = (
     {
         "letter": "a",
@@ -251,6 +259,187 @@ def quality_score(row: Mapping[str, Any]) -> tuple[float, float, float, float, f
     localization = math.sqrt(overlap * centroid_score)
     combined = math.sqrt(max(0.0, segmentation) * localization)
     return overlap, centroid_rms_m, centroid_score, localization, combined
+
+
+def edge_model_ready_components(
+    row: Mapping[str, Any],
+) -> tuple[float, float, float] | None:
+    """Return causal pre-model, model and containing-compute durations.
+
+    The deployed feature is compressed.  A model-tail-complete progress signal
+    therefore cannot be emitted after ``decode_tail_cuda_ms`` alone: zstd
+    decompression, unpack/dequantization, optional AE decoding, reconstructed-
+    C2 validation/synchronization and camera-pose reconstruction must happen
+    first. CUDA and wall timings for decode-tail overlap, so their maximum is
+    used rather than adding them.
+
+    A small number of diagnostic rows have marginal timers whose sum exceeds
+    the containing worker interval.  They cannot define an internal causal
+    boundary and are excluded instead of clipped.
+    """
+
+    required = (
+        "edge_zstd_decompression_ms",
+        "edge_unpack_dequantize_ms",
+        "edge_ae_decode_ms",
+        "tail_camera_pose_reconstruct_ms",
+        "decode_tail_cuda_ms",
+        "decode_tail_inference_block_ms",
+        "edge_frozen_tail_ms",
+        "edge_total_edge_processing_ms",
+    )
+    values = {key: finite(row.get(key)) for key in required}
+    if any(value is None for value in values.values()):
+        return None
+    numeric = {key: float(value) for key, value in values.items()}
+    if any(value < 0 for value in numeric.values()):
+        return None
+    # This field ends at completion of the compute/frozen-tail interval.
+    # Detached output serialization is reported separately and is not part of
+    # the containing interval.
+    containing_compute_ms = numeric["edge_total_edge_processing_ms"]
+    if containing_compute_ms <= 0:
+        return None
+    instrumented_pre_model_ms = (
+        numeric["edge_zstd_decompression_ms"]
+        + numeric["edge_unpack_dequantize_ms"]
+        + numeric["edge_ae_decode_ms"]
+    )
+    # The deployed worker also validates/synchronizes reconstructed C2 before
+    # entering the frozen tail.  It has no dedicated retained timer.  Attribute
+    # only the positive unexplained portion of the containing interval to that
+    # gap; negative timer overlap is never turned into negative work.
+    pre_tail_residual_ms = max(
+        0.0,
+        containing_compute_ms
+        - instrumented_pre_model_ms
+        - numeric["edge_frozen_tail_ms"],
+    )
+    pre_model_ms = (
+        instrumented_pre_model_ms
+        + pre_tail_residual_ms
+        + numeric["tail_camera_pose_reconstruct_ms"]
+    )
+    model_ms = max(
+        numeric["decode_tail_cuda_ms"],
+        numeric["decode_tail_inference_block_ms"],
+    )
+    if pre_model_ms + model_ms > containing_compute_ms + 1e-9:
+        return None
+    return pre_model_ms, model_ms, containing_compute_ms
+
+
+def retained_pre_frozen_ms(row: Mapping[str, Any]) -> float | None:
+    """Action-specific worker time before entry to the frozen tail.
+
+    The original 288 monolithic runtime's ``total_edge_processing`` encloses
+    both ``frozen_tail`` and ``output_serialization``. Subtracting both retains
+    decompression, unpacking, optional AE decode and the reconstructed-C2
+    validation/synchronization residual. This differs from the later detached
+    v3 anchor schema, whose compute-only total already excludes publication.
+    """
+
+    payload = row.get("edge_timing_ns")
+    if not payload:
+        return None
+    try:
+        timing_ns = ast.literal_eval(str(payload))
+        total_ns = int(timing_ns["total_edge_processing"])
+        frozen_ns = int(timing_ns["frozen_tail"])
+        serialization_ns = int(timing_ns["output_serialization"])
+    except (ValueError, SyntaxError, TypeError, KeyError):
+        return None
+    value_ns = total_ns - frozen_ns - serialization_ns
+    if (
+        total_ns <= 0
+        or frozen_ns < 0
+        or serialization_ns < 0
+        or value_ns < 0
+    ):
+        return None
+    return value_ns / 1e6
+
+
+def model_ready_internal_durations(
+    frames: Sequence[Any],
+    rows: Sequence[Mapping[str, Any]],
+    *,
+    family: str,
+    cell_id: str,
+    tail_stage_samples: Mapping[str, Mapping[str, Sequence[float]]],
+) -> tuple[list[Any], list[int | None], dict[str, int]]:
+    """Build action-specific compute and its internal tail-complete point.
+
+    Each admitted frame retains action/profile-specific pre-frozen work. A
+    paired live family sample supplies tail-to-ready and calibrated post-ready
+    work. This guarantees the internal endpoint is inside compute without
+    clipping, while avoiding the invalid assumption that every action in one
+    representation family has the anchor action's reconstruction cost.
+    """
+
+    require(len(frames) == len(rows), f"{cell_id}: frame/row length drift")
+    cell_pre_frozen_ns = [
+        int(round(value * 1e6))
+        for row in rows
+        if (value := retained_pre_frozen_ms(row)) is not None
+    ]
+    family_pre_frozen_ns = [
+        int(round(float(value) * 1e6))
+        for value in tail_stage_samples[family]["pre_frozen_ms"]
+    ]
+    tail_to_model_ready_ns = [
+        int(round(float(value) * 1e6))
+        for value in tail_stage_samples[family]["tail_to_model_ready_ms"]
+    ]
+    post_model_ready_ns = [
+        int(round(float(value) * 1e6))
+        for value in tail_stage_samples[family]["post_model_ready_ms"]
+    ]
+    require(bool(family_pre_frozen_ns), f"{family}: empty pre-frozen anchor")
+    require(bool(tail_to_model_ready_ns), f"{family}: empty tail-ready anchor")
+    require(
+        len(tail_to_model_ready_ns) == len(post_model_ready_ns),
+        f"{family}: tail/post pairing drift",
+    )
+
+    rebuilt: list[Any] = []
+    internal_durations: list[int | None] = []
+    source_counts: dict[str, int] = defaultdict(int)
+    for frame, row in zip(frames, rows):
+        if frame.arrival_ns is None:
+            rebuilt.append(frame)
+            internal_durations.append(None)
+            continue
+        sequence = int(frame.sequence_id)
+        exact_pre_frozen_ms = retained_pre_frozen_ms(row)
+        if exact_pre_frozen_ms is not None:
+            pre_frozen_ns = int(round(exact_pre_frozen_ms * 1e6))
+            source_name = "EXACT_FRAME"
+        elif cell_pre_frozen_ns:
+            pre_frozen_ns = source._deterministic_sample(
+                cell_pre_frozen_ns,
+                f"pre-frozen:{cell_id}:{sequence}",
+            )
+            source_name = "SAME_ACTION_PROFILE_CELL"
+        else:
+            pre_frozen_ns = source._deterministic_sample(
+                family_pre_frozen_ns,
+                f"family-pre-frozen:{cell_id}:{sequence}",
+            )
+            source_name = "FAMILY_ANCHOR_FALLBACK"
+        identity = f"tail-components:{cell_id}:{sequence}"
+        digest = hashlib.sha256(identity.encode("utf-8")).digest()
+        component_index = int.from_bytes(digest[:8], "big") % len(
+            tail_to_model_ready_ns
+        )
+        tail_ready_ns = tail_to_model_ready_ns[component_index]
+        post_ready_ns = post_model_ready_ns[component_index]
+        internal_ns = max(1, pre_frozen_ns + tail_ready_ns)
+        compute_ns = max(1, internal_ns + max(0, post_ready_ns))
+        rebuilt.append(dataclasses.replace(frame, compute_ns=compute_ns))
+        internal_durations.append(internal_ns)
+        source_counts[source_name] += 1
+    return rebuilt, internal_durations, dict(source_counts)
 
 
 def _verified_attempt_csv(root: Path, relative: str) -> Path:
@@ -460,47 +649,12 @@ def shift_arrivals_for_sensor_optimization(
     )
 
 
-def rescale_edge_compute(
-    frames: Sequence[Any], family: str
-) -> tuple[list[Any], float | None]:
-    """Retain service shape but bind total edge processing to repaired-v3 data."""
-
-    current = [
-        float(frame.compute_ns + frame.publication_ns) / 1e6
-        for frame in frames
-        if frame.arrival_ns is not None
-    ]
-    # A measured zero-admission cell has no service duration to transform.
-    # Preserve it as zero delivery rather than fabricating an edge sample.
-    if not current:
-        return list(frames), None
-    current_p50 = percentile(current, 0.50)
-    require(current_p50 is not None and current_p50 > 0, f"{family}: invalid compute median")
-    factor = LATEST_EDGE_COMPUTE_P50_MS[family] / current_p50
-    rebuilt = []
-    for frame in frames:
-        if frame.arrival_ns is None:
-            rebuilt.append(frame)
-            continue
-        scaled_total_ns = max(
-            frame.publication_ns + 1,
-            int(round((frame.compute_ns + frame.publication_ns) * factor)),
-        )
-        rebuilt.append(
-            dataclasses.replace(
-                frame,
-                compute_ns=scaled_total_ns - frame.publication_ns,
-            )
-        )
-    return rebuilt, factor
-
-
 def load_tail_stage_samples() -> tuple[dict[str, dict[str, list[float]]], dict[str, Any]]:
-    """Load pure-tail and non-model service from live optimization anchors.
+    """Load tail-stage marginals and the internal model-ready boundary.
 
-    These are kept as independent measured marginals. They are not forced
-    through the counterfactual service distribution because doing so would
-    distort the measured pure-tail CUDA duration.
+    Pure-tail and legacy support remain presentation marginals. The paired
+    pre-frozen/tail-to-ready/post-ready components drive the counterfactual
+    compute service so the measured pure-tail CUDA duration is not distorted.
     """
 
     pools: dict[str, dict[str, list[float]]] = {}
@@ -510,6 +664,11 @@ def load_tail_stage_samples() -> tuple[dict[str, dict[str, list[float]]], dict[s
         require(len(files) == 1, f"{family}: expected one optimized per-frame file")
         support_ms: list[float] = []
         pure_tail_ms: list[float] = []
+        model_ready_ms: list[float] = []
+        pre_frozen_ms: list[float] = []
+        tail_to_model_ready_ms: list[float] = []
+        post_model_ready_ms: list[float] = []
+        model_ready_rows_rejected = 0
         for row in read_csv(files[0]):
             total_ms = finite(row.get("edge_total_edge_processing_ms"))
             tail_ms = finite(row.get("decode_tail_cuda_ms"))
@@ -518,7 +677,37 @@ def load_tail_stage_samples() -> tuple[dict[str, dict[str, list[float]]], dict[s
             require(tail_ms <= total_ms + 1e-9, f"{family}: pure tail exceeds edge service")
             pure_tail_ms.append(tail_ms)
             support_ms.append(max(0.0, total_ms - tail_ms))
+            components = edge_model_ready_components(row)
+            if components is None:
+                model_ready_rows_rejected += 1
+                continue
+            pre_model_ms, synchronized_model_ms, containing_compute_ms = components
+            ready_ms = pre_model_ms + synchronized_model_ms
+            model_ready_ms.append(ready_ms)
+            frozen_ms = float(row["edge_frozen_tail_ms"])
+            pose_ms = float(row["tail_camera_pose_reconstruct_ms"])
+            pre_frozen_ms.append(
+                max(0.0, containing_compute_ms - frozen_ms)
+            )
+            tail_to_model_ready_ms.append(
+                pose_ms + synchronized_model_ms
+            )
+            post_model_ready_ms.append(containing_compute_ms - ready_ms)
         require(bool(pure_tail_ms), f"{family}: no pure-tail calibration samples")
+        require(
+            bool(pre_frozen_ms) and bool(tail_to_model_ready_ms),
+            f"{family}: no causal model-ready calibration samples",
+        )
+        require(
+            len(pre_frozen_ms)
+            == len(tail_to_model_ready_ms)
+            == len(post_model_ready_ms),
+            f"{family}: model-ready component pairing drift",
+        )
+        require(
+            all(value >= 0 for value in post_model_ready_ms),
+            f"{family}: negative post-model-ready duration",
+        )
         source_total_p50 = percentile(
             [tail + support for tail, support in zip(pure_tail_ms, support_ms)],
             0.50,
@@ -557,9 +746,47 @@ def load_tail_stage_samples() -> tuple[dict[str, dict[str, list[float]]], dict[s
             and abs(calibrated_total_p50 - target_total_p50) < 0.01,
             f"{family}: newest edge median calibration failed",
         )
+
+        # The internal-boundary replay keeps mandatory reconstruction and
+        # model-tail time physical. Only work after model-tail completion is
+        # scaled to the newest repaired-v3 compute-only family median.
+        low, high = 0.0, 8.0
+        for _ in range(80):
+            factor = (low + high) / 2.0
+            candidate = percentile(
+                [
+                    ready + post * factor
+                    for ready, post in zip(model_ready_ms, post_model_ready_ms)
+                ],
+                0.50,
+            )
+            if candidate is not None and candidate < target_total_p50:
+                low = factor
+            else:
+                high = factor
+        post_ready_factor = (low + high) / 2.0
+        post_model_ready_ms = [
+            value * post_ready_factor for value in post_model_ready_ms
+        ]
+        component_calibrated_p50 = percentile(
+            [
+                ready + post
+                for ready, post in zip(model_ready_ms, post_model_ready_ms)
+            ],
+            0.50,
+        )
+        require(
+            component_calibrated_p50 is not None
+            and abs(component_calibrated_p50 - target_total_p50) < 0.01,
+            f"{family}: component edge-compute calibration failed",
+        )
         pools[family] = {
             "model_tail_ms": pure_tail_ms,
             "tail_support_ms": support_ms,
+            "model_ready_ms": model_ready_ms,
+            "pre_frozen_ms": pre_frozen_ms,
+            "tail_to_model_ready_ms": tail_to_model_ready_ms,
+            "post_model_ready_ms": post_model_ready_ms,
         }
         provenance[family] = {
             "anchor_action_id": action_id,
@@ -569,16 +796,41 @@ def load_tail_stage_samples() -> tuple[dict[str, dict[str, list[float]]], dict[s
             "samples": len(pure_tail_ms),
             "pure_model_tail_p50_ms": percentile(pure_tail_ms, 0.50),
             "pure_model_tail_p95_ms": percentile(pure_tail_ms, 0.95),
+            "model_ready_preprocessing_plus_tail_p50_ms": percentile(
+                model_ready_ms, 0.50
+            ),
+            "model_ready_preprocessing_plus_tail_p95_ms": percentile(
+                model_ready_ms, 0.95
+            ),
+            "pre_frozen_p50_ms": percentile(pre_frozen_ms, 0.50),
+            "tail_to_model_ready_p50_ms": percentile(
+                tail_to_model_ready_ms, 0.50
+            ),
+            "post_model_ready_p50_ms": percentile(
+                post_model_ready_ms, 0.50
+            ),
+            "model_ready_rows_accepted": len(model_ready_ms),
+            "model_ready_rows_rejected_noncausal_marginal_sum": (
+                model_ready_rows_rejected
+            ),
             "tail_support_p50_ms": percentile(support_ms, 0.50),
             "tail_support_p95_ms": percentile(support_ms, 0.95),
             "source_total_edge_p50_ms": source_total_p50,
             "latest_total_edge_p50_ms": target_total_p50,
             "calibrated_total_edge_p50_ms": calibrated_total_p50,
             "tail_support_scale_factor": support_factor,
+            "post_model_ready_scale_factor": post_ready_factor,
+            "component_calibrated_compute_p50_ms": component_calibrated_p50,
             "decomposition": (
                 "pure tail is decode_tail_cuda_ms; tail support is measured "
                 "optimized total edge processing minus pure tail, rescaled "
                 "to the newest repaired-v3 family median"
+            ),
+            "model_ready_boundary": (
+                "worker start plus zstd decompression, unpack/dequantization, "
+                "AE decode, positive containing-interval residual for the "
+                "reconstructed-C2 validation/synchronization gap, camera-pose "
+                "reconstruction and synchronized decode-tail"
             ),
         }
     report_path = (
@@ -779,12 +1031,17 @@ def plot_quality_latency(rows: Sequence[Mapping[str, Any]], output: Path) -> lis
             fig, axes = plt.subplots(2, 2, figsize=(13.5, 9.5), sharey=True)
             for ax, profile in zip(axes.flat, PROFILE_ORDER):
                 selected = [row for row in rows if row["network_profile"] == profile]
+                represented = [row for row in selected if row[key] != ""]
+                plotted = [
+                    row
+                    for row in represented
+                    if int(row[f"{stage}_count"]) >= SCATTER_MIN_FRAME_SAMPLES
+                ]
                 for family, color in FAMILY_COLOR.items():
                     group = [
                         row
-                        for row in selected
+                        for row in plotted
                         if row["family"] == family
-                        and row[key] != ""
                         and row[quality_key] != ""
                     ]
                     ax.scatter(
@@ -801,13 +1058,36 @@ def plot_quality_latency(rows: Sequence[Mapping[str, Any]], output: Path) -> lis
                 ax.set_xlabel(f"{label} P50 (ms)")
                 ax.set_ylabel(str(view["label"]))
                 ax.grid(alpha=0.25)
+                support_name = "observed uplink" if stage == "network" else "tail-complete"
+                ax.text(
+                    0.98,
+                    0.025,
+                    f"{support_name}: {len(plotted)}/72 actions plotted\n"
+                    f"< {SCATTER_MIN_FRAME_SAMPLES} frames: "
+                    f"{len(represented) - len(plotted)}; no sample: {72 - len(represented)}",
+                    transform=ax.transAxes,
+                    ha="right",
+                    va="bottom",
+                    fontsize=8,
+                    fontweight="bold",
+                    bbox={"facecolor": "white", "alpha": 0.82, "edgecolor": "none"},
+                )
                 ax.tick_params(axis="both", labelsize=9, width=1.2)
                 for tick in ax.get_xticklabels() + ax.get_yticklabels():
                     tick.set_fontweight("bold")
             handles, legend_labels = axes.flat[0].get_legend_handles_labels()
             sentence_label = label[0].lower() + label[1:]
+            qualification = ""
+            if stage in ("edge_model_ready", "sensor_model_ready"):
+                qualification = (
+                    "\nOffline counterfactual; conditional on completion; "
+                    "ACK return excluded"
+                )
+            elif stage == "network":
+                qualification = "\nObserved complete reassemblies only"
             fig.suptitle(
-                f"{view['title']} vs {sentence_label} by network profile",
+                f"{view['title']} vs {sentence_label} by network profile"
+                f"{qualification}",
                 y=0.995,
             )
             fig.legend(
@@ -815,10 +1095,10 @@ def plot_quality_latency(rows: Sequence[Mapping[str, Any]], output: Path) -> lis
                 legend_labels,
                 ncol=4,
                 loc="upper center",
-                bbox_to_anchor=(0.5, 0.965),
+                bbox_to_anchor=(0.5, 0.925 if qualification else 0.965),
                 frameon=False,
             )
-            fig.tight_layout(rect=(0, 0, 1, 0.91))
+            fig.tight_layout(rect=(0, 0, 1, 0.87 if qualification else 0.91))
             name = f"{number:02d}{view['letter']}_{view['slug']}_vs_{stage}_p50"
             save_figure(fig, output / name)
             names.extend([name + ".png", name + ".pdf"])
@@ -827,36 +1107,40 @@ def plot_quality_latency(rows: Sequence[Mapping[str, Any]], output: Path) -> lis
 
 def action_balanced_latency(rows: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
     output: list[dict[str, Any]] = []
-    network_common_actions = set(range(72))
+    # Every cross-profile bar and report entry uses one fixed action population.
+    # Otherwise adverse conditions can look artificially faster merely because
+    # their heavy/non-delivering actions have no conditional latency sample.
+    common_actions = set(range(72))
     for profile in PROFILE_ORDER:
-        represented = {
-            int(row["action_id"])
-            for row in rows
-            if row["network_profile"] == profile and row["network_p50_ms"] != ""
-        }
-        network_common_actions &= represented
+        profile_rows = [row for row in rows if row["network_profile"] == profile]
+        for stage in STAGES:
+            represented = {
+                int(row["action_id"])
+                for row in profile_rows
+                if row[f"{stage}_p50_ms"] != ""
+                and int(row[f"{stage}_count"])
+                >= PERCENTILE_BAR_MIN_FRAME_SAMPLES
+            }
+            common_actions &= represented
     require(
-        bool(network_common_actions),
-        "no common observed feature-uplink action support",
+        bool(common_actions),
+        "no common action support across profiles and causal stages",
     )
     for profile in PROFILE_ORDER:
         selected = [row for row in rows if row["network_profile"] == profile]
         for stage, label in STAGES.items():
-            stage_rows = selected
-            support_rule = "ALL_AVAILABLE_ACTIONS"
-            if stage == "network":
-                stage_rows = [
-                    row
-                    for row in selected
-                    if int(row["action_id"]) in network_common_actions
-                ]
-                support_rule = "COMMON_ACTION_SUPPORT_ACROSS_ALL_PROFILES"
+            stage_rows = [
+                row for row in selected if int(row["action_id"]) in common_actions
+            ]
             record: dict[str, Any] = {
                 "network_profile": profile,
                 "stage": stage,
                 "stage_label": label,
                 "actions_total": len(selected),
-                "support_rule": support_rule,
+                "support_rule": (
+                    "COMMON_ACTION_SUPPORT_ACROSS_ALL_PROFILES_AND_STAGES_"
+                    f"MIN_{PERCENTILE_BAR_MIN_FRAME_SAMPLES}_SAMPLES"
+                ),
                 "support_actions": len(stage_rows),
             }
             for probability in PERCENTILES:
@@ -874,13 +1158,9 @@ def action_balanced_latency(rows: Sequence[Mapping[str, Any]]) -> list[dict[str,
 
 def plot_latency_bars(rows: Sequence[Mapping[str, Any]], output: Path) -> list[str]:
     configure_plot()
-    network_supports = {
-        int(row["support_actions"])
-        for row in rows
-        if row["stage"] == "network"
-    }
-    require(len(network_supports) == 1, "network common-support count drift")
-    network_support = next(iter(network_supports))
+    common_supports = {int(row["support_actions"]) for row in rows}
+    require(len(common_supports) == 1, "latency common-support count drift")
+    common_support = next(iter(common_supports))
     fig, axes = plt.subplots(2, 2, figsize=(18.5, 10.5), sharey=False)
     components = (
         "sensor_compute",
@@ -930,7 +1210,7 @@ def plot_latency_bars(rows: Sequence[Mapping[str, Any]], output: Path) -> list[s
     fig.text(
         0.5,
         0.012,
-        f"Marginal percentiles are not additive. Feature uplink uses the same {network_support} observed actions in every profile.",
+        f"Marginal percentiles are not additive. All bars use the same {common_support}-action support with at least {PERCENTILE_BAR_MIN_FRAME_SAMPLES} frame samples per stage/profile.",
         ha="center",
         fontsize=9,
     )
@@ -943,50 +1223,70 @@ def plot_latency_bars(rows: Sequence[Mapping[str, Any]], output: Path) -> list[s
 def plot_feature_delivery(
     rows: Sequence[Mapping[str, Any]], output: Path
 ) -> list[str]:
-    """Weighted complete application-message delivery for each radio profile."""
+    """Weighted feature, tail-completion and map-install rates by profile."""
 
     configure_plot()
-    percentages: list[float] = []
-    counts: list[tuple[int, int]] = []
+    series: dict[str, list[float]] = {
+        "Feature reassembled": [],
+        "Model tail completed": [],
+        "Map installed": [],
+    }
     for profile in PROFILE_ORDER:
         selected = [row for row in rows if row["network_profile"] == profile]
         sent = sum(int(row["frames_sent"]) for row in selected)
         reassembled = sum(
             int(row["measured_complete_reassemblies"]) for row in selected
         )
-        require(0 <= reassembled <= sent, f"{profile}: invalid delivery accounting")
-        percentages.append(100.0 * reassembled / sent)
-        counts.append((reassembled, sent))
-    fig, ax = plt.subplots(figsize=(10.5, 6.8))
+        model_ready = sum(
+            int(row["simulated_compute_completions"]) for row in selected
+        )
+        installed = sum(int(row["simulated_map_installs"]) for row in selected)
+        require(
+            0 <= installed <= model_ready <= reassembled <= sent,
+            f"{profile}: invalid completion accounting",
+        )
+        series["Feature reassembled"].append(100.0 * reassembled / sent)
+        series["Model tail completed"].append(100.0 * model_ready / sent)
+        series["Map installed"].append(100.0 * installed / sent)
+    fig, ax = plt.subplots(figsize=(12.5, 7.2))
     x = np.arange(len(PROFILE_ORDER))
-    colors = ("#4C78A8", "#F58518", "#E45756", "#54A24B")
-    bars = ax.bar(x, percentages, width=0.62, color=colors, edgecolor="#202020")
-    ax.bar_label(
-        bars,
-        labels=[
-            f"{value:.1f}%\n{reassembled:,}/{sent:,}"
-            for value, (reassembled, sent) in zip(percentages, counts)
-        ],
-        padding=4,
-        fontsize=11,
-        fontweight="bold",
-    )
+    width = 0.23
+    colors = ("#4C78A8", "#F58518", "#54A24B")
+    for offset, ((label, percentages), color) in enumerate(
+        zip(series.items(), colors)
+    ):
+        bars = ax.bar(
+            x + (offset - 1) * width,
+            percentages,
+            width,
+            color=color,
+            edgecolor="#202020",
+            label=label,
+        )
+        ax.bar_label(
+            bars,
+            labels=[f"{value:.1f}%" for value in percentages],
+            padding=3,
+            fontsize=9,
+            fontweight="bold",
+        )
     ax.set_xticks(x, [PROFILE_LABEL[profile] for profile in PROFILE_ORDER])
-    ax.set_ylabel("Complete feature delivery (%)")
+    ax.set_ylabel("Fraction of frames sent (%)")
     ax.set_ylim(0, 100)
-    ax.set_title("Measured complete feature delivery by network profile")
+    ax.set_title("Feature delivery, model-tail completion and map installation")
     ax.grid(axis="y", alpha=0.25)
+    ax.legend(ncol=3, loc="upper center", frameon=False)
     for tick in ax.get_xticklabels() + ax.get_yticklabels():
         tick.set_fontweight("bold")
     fig.text(
         0.5,
         0.012,
-        "Complete application reassemblies / frames sent, weighted over all 72 actions.",
+        "Weighted over all 72 actions. Feature delivery is measured; tail completion and map installation are counterfactual replay outcomes.",
         ha="center",
         fontsize=9,
     )
     fig.tight_layout(rect=(0, 0.035, 1, 1))
-    name = "07_feature_delivery_percentage_by_profile"
+    name = "07_delivery_and_completion_percentage_by_profile"
     save_figure(fig, output / name)
     return [name + ".png", name + ".pdf"]
 
@@ -1161,18 +1461,21 @@ def make_report(
     by_stage = {
         (row["network_profile"], row["stage"]): row for row in latency_rows
     }
-    network_supports = {
-        int(row["support_actions"])
-        for row in latency_rows
-        if row["stage"] == "network"
-    }
-    require(len(network_supports) == 1, "network common-support count drift")
-    network_support = next(iter(network_supports))
+    common_supports = {int(row["support_actions"]) for row in latency_rows}
+    require(len(common_supports) == 1, "latency common-support count drift")
+    common_support = next(iter(common_supports))
     arrival_causal_floor_frames = sum(
         int(row["scheduler_arrival_causal_floor_frames"]) for row in rows
     )
+    scheduler_arrivals_observed = sum(
+        int(row["scheduler_arrivals_observed"]) for row in rows
+    )
+    scheduler_arrivals_imputed = sum(
+        int(row["scheduler_arrivals_imputed"]) for row in rows
+    )
+    scheduler_arrivals_total = scheduler_arrivals_observed + scheduler_arrivals_imputed
     lines = [
-        "# SplitFusion optimized-pipeline latency and quality analysis",
+        "# SplitFusion model-tail-completion latency and quality analysis",
         "",
         "This is an offline causal replay of the immutable 288-cell sent-frame",
         "population. It applies the subsequently live-validated sensor preparation,",
@@ -1184,11 +1487,13 @@ def make_report(
         "- The measured radio reassembly/admission outcomes and observed per-frame transport delays are held fixed. No missing uplink frame is fabricated.",
         "- Scheduler-only imputed capture-to-arrival samples are causally floored at shifted UE send completion; observed uplink timing is never imputed into the network plots.",
         "- Sensor timing is changed by equal-percentile mapping from the contemporaneous live baseline distribution to the live optimized distribution; this is not a constant subtraction.",
-        "- The measured family service shapes are retained and rescaled to the newest repaired-v3 live edge-compute medians.",
+        "- Edge compute is composed from action/profile-specific pre-frozen work plus paired live family tail-to-ready and post-ready stages; only post-ready work is scaled to the newest repaired-v3 compute-only family medians.",
         "- Direct map service is sampled from the renderer-off live action-50 run. It is independent of split action and does not traverse the radio.",
         "- Validation quality is action-dependent and unchanged by runtime optimization. Network profile changes delivery, latency, and freshness—not the offline quality anchor.",
-        "- A point is absent when its conditional stage has no trustworthy sample or no useful map installation; absence is never encoded as zero latency.",
+        "- A point is absent when its conditional stage has no trustworthy sample; absence is never encoded as zero latency.",
+        f"- Presentation P50 scatter points require at least {SCATTER_MIN_FRAME_SAMPLES} frame samples. Cross-profile P50/P95/P99 bars require one common action support with at least {PERCENTILE_BAR_MIN_FRAME_SAMPLES} samples per stage/profile. Lower-support values remain in the CSV.",
         "- Physical map age ends at authoritative map installation. The later compact UE feedback is excluded.",
+        "- The proposed early endpoint ends at model-tail completion on the edge. It is a progress/feedback-ready boundary, not evidence that post-processing or map installation succeeded, and its return trip to the UE has not yet been measured.",
         "",
         "## Action-balanced stage percentiles",
         "",
@@ -1205,6 +1510,8 @@ def make_report(
             "model_tail",
             "tail_support",
             "map_install",
+            "edge_model_ready",
+            "sensor_model_ready",
             "edge_map",
             "total",
         ):
@@ -1219,10 +1526,10 @@ def make_report(
     lines.extend(
         [
             "",
-            "## Complete feature delivery",
+            "## Delivery and completion outcomes",
             "",
-            "| Profile | Complete reassemblies | Frames sent | Delivery |",
-            "|---|---:|---:|---:|",
+            "| Profile | Frames sent | Feature reassembled | Tail completed | Map installed |",
+            "|---|---:|---:|---:|---:|",
         ]
     )
     for profile in PROFILE_ORDER:
@@ -1231,15 +1538,21 @@ def make_report(
         reassembled = sum(
             int(row["measured_complete_reassemblies"]) for row in selected
         )
+        model_ready = sum(
+            int(row["simulated_compute_completions"]) for row in selected
+        )
+        installed = sum(int(row["simulated_map_installs"]) for row in selected)
         lines.append(
-            f"| {PROFILE_LABEL[profile]} | {reassembled:,} | {sent:,} | "
-            f"{100.0 * reassembled / sent:.1f}% |"
+            f"| {PROFILE_LABEL[profile]} | {sent:,} | "
+            f"{100.0 * reassembled / sent:.1f}% | "
+            f"{100.0 * model_ready / sent:.1f}% | "
+            f"{100.0 * installed / sent:.1f}% |"
         )
     lines.extend(
         [
             "",
             "Percentile aggregation is action-balanced: each displayed value is the median of the corresponding per-action cell percentile. It is not a pooled-frame percentile dominated by high-throughput actions.",
-            "The stage percentiles are marginals with different conditional denominators and must not be added to reconstruct an end-to-end percentile. Figure 04 and the `total_*` columns provide the causally simulated seven-channel-concatenation-start-to-map distribution.",
+            "The stage percentiles are marginals with different conditional denominators and must not be added to reconstruct an end-to-end percentile. Figure 04 and the `sensor_model_ready_*` columns provide the causally simulated production-sensor-compute-start-to-model-tail-completion distribution.",
             "",
             "## Scheduling and causal boundaries",
             "",
@@ -1247,7 +1560,9 @@ def make_report(
             "- The UE action path begins at seven-channel concatenation and continues through front inference, ranker/selection, compression/packing, serialization, and the UDP send loop. The 288 cells timestamp the boundary immediately after concatenation; the live optimized P23 distribution is therefore added explicitly.",
             "- Feature uplink runs from UE send completion to complete edge reassembly. Only retained same-clock observed receipts are plotted; imputed arrivals used by the scheduler are excluded from this metric.",
             "- Latest-only scheduling removes a multi-frame FIFO but cannot preempt a running CUDA/tail call. At most one newest frame waits; older pending frames receive explicit `SUPERSEDED_PENDING` outcomes.",
-            "- Edge-to-map includes tail-busy waiting, edge processing/publication, and renderer-off map service. Action-start-to-map excludes sensor preparation, as requested. Capture-to-map remains in `capture_total_*` for physical freshness accounting but is not used in Figures 01 or 04.",
+            "- Model-tail completion includes latest-only tail-busy waiting plus the feature reconstruction required before the model can run: zstd decompression, unpack/dequantization, optional AE decoding, camera-pose reconstruction, and synchronized `decode_tail`. It excludes camera-aware post-processing, p025 filtering, serialization, publication and map service.",
+            "- Figure 04 begins at production sensor-compute start and ends at model-tail completion on the edge. It therefore answers the proposed early-control question, but does not include the still-unimplemented compact progress-ACK return trip to the UE.",
+            "- The older map-install endpoints remain in the CSV as `edge_map_*`, `total_*`, and `capture_total_*`; they are not substituted with an early success claim.",
             "",
             "## Sensor optimization",
             "",
@@ -1256,7 +1571,7 @@ def make_report(
             "## Clock and denominator integrity",
             "",
             f"The same-host clock bridge used {int(bridge_audit['anchor_count']):,} anchors; its absolute error P99 was {float(bridge_audit['absolute_deviation_ms_p99']):.6f} ms.",
-            f"Every stage carries its own count. Sensor, pure-front, and UE-action timing use all sent frames. Feature-uplink timing uses the same {network_support}-action observed support in every profile. Edge and total timing use useful direct-map installations.",
+            f"Every action-level cross-profile percentile in this report and Figure 05 uses the same {common_support}-action support across all stages, with at least {PERCENTILE_BAR_MIN_FRAME_SAMPLES} frame samples per stage/profile. The per-cell CSV still retains every available sample and its actual denominator; Figures 02--04 require {SCATTER_MIN_FRAME_SAMPLES} samples for a displayed P50 and label low-support and absent outcomes rather than silently treating them as zero.",
             f"The scheduler causality floor affected {arrival_causal_floor_frames:,} imputed arrivals. It prevents a replay-only feature arrival from preceding that frame's shifted send completion; it does not change measured reassembly/admission counts or enter the observed-uplink plots.",
             "",
             "## Quality definition",
@@ -1278,13 +1593,17 @@ def make_report(
             "",
             "## Figure guide",
             "",
-            "Figures 01a–01f show quality against the cross-profile-pooled seven-channel-concatenation-start-to-UDP-send latency. Figures 02a–02f use observed feature-uplink latency. Figures 03a–03f use optimized edge-reassembly-to-map latency. Figures 04a–04f use optimized seven-channel-concatenation-start-to-map latency. Views a–e keep semantic mIoU, vehicle overlap, person box-mask overlap, vehicle centroid error, and person centroid error separate; view f restores joint model quality. Figure 05 gives action-balanced P50/P95/P99 causal-stage marginals using common action support for uplink. Figure 06 shows the measured live sensor function breakdown before and after optimization. Figure 07 reports weighted complete feature delivery for each network profile.",
+            "Figures 01a–01f show quality against the cross-profile-pooled seven-channel-concatenation-start-to-UDP-send latency. Figures 02a–02f use observed feature-uplink latency. Figures 03a–03f use edge-reassembly-to-model-tail-completion latency, including latest-only tail-busy waiting and required reconstruction. Figures 04a–04f use production-sensor-compute-start-to-model-tail-completion latency. Views a–e keep semantic mIoU, vehicle overlap, person box-mask overlap, vehicle centroid error, and person centroid error separate; view f restores joint model quality. Figure 05 gives action-balanced P50/P95/P99 causal-stage marginals on one common action support. Figure 06 shows the measured live sensor function breakdown before and after optimization. Figure 07 reports measured feature delivery plus counterfactual tail-completion and map-install rates for each network profile.",
             "",
             "## Limitations",
             "",
             "- Sensor optimization is anchored by one live action/profile because the sensor path is action-independent; run-to-run host variation remains possible.",
             "- Newest edge medians are live for one action per family. The older hash-verified family distributions provide the residual shape because the newest publication ledger did not survive that validation run.",
             "- Renderer-off map service is a single action-50 live pool and is intentionally treated as action-independent.",
+            "- Model-tail completion is reconstructed from each original action/profile's pre-frozen timing plus paired live family tail-to-ready and calibrated post-ready work because the retained 288 cells have no direct timestamp at that boundary. It must be confirmed by a short live early-ACK experiment before deployment claims.",
+            "- The NoAE per-frame internal-stage shape comes from the v2 diagnostic and is total-calibrated to the repaired-v3 live family median. A repaired-v3 NoAE per-frame decomposition remains a live-validation item.",
+            f"- Of {scheduler_arrivals_total:,} scheduler arrivals, {scheduler_arrivals_imputed:,} use within-cell/action/profile imputation for replay ordering. They are excluded from observed-uplink plots, but Figure 04 remains a counterfactual rather than a directly observed end-to-end distribution.",
+            "- The pure FCOS `decode_tail` duration alone is not the edge contribution: the compressed feature must be reconstructed before the tail can execute.",
             "- The replay can estimate changed installation and freshness behavior under these measured transformations, but it is not a substitute for a new 288-cell live campaign.",
         ]
     )
@@ -1316,7 +1635,9 @@ def run(output: Path) -> dict[str, Any]:
     network_boundary_inversions_excluded = 0
     scheduler_arrival_causal_floor_frames = 0
     sensor_delta_samples: list[float] = []
-    edge_rescale_factors: dict[str, list[float]] = defaultdict(list)
+    model_ready_timing_samples = 0
+    compute_completions = 0
+    model_ready_pre_frozen_source_counts: dict[str, int] = defaultdict(int)
     for number, cell in enumerate(cells, start=1):
         attempt = source._attempt(cell)
         sent = sorted(source._sent_rows(attempt), key=lambda row: float(row["capture_wall_s"]))
@@ -1354,23 +1675,41 @@ def run(output: Path) -> dict[str, Any]:
             )
         ]
         sensor_delta_samples.extend(sensor_deltas_ms)
-        frames, edge_rescale_factor = rescale_edge_compute(frames, family)
-        if edge_rescale_factor is not None:
-            edge_rescale_factors[family].append(edge_rescale_factor)
+        (
+            frames,
+            model_ready_internal_ns,
+            cell_pre_frozen_source_counts,
+        ) = model_ready_internal_durations(
+            frames,
+            sent,
+            family=family,
+            cell_id=cell["cell_id"],
+            tail_stage_samples=tail_stage_samples,
+        )
+        for source_name, count in cell_pre_frozen_source_counts.items():
+            model_ready_pre_frozen_source_counts[source_name] += int(count)
         delay_pool = [
             max(0, int(round(value * 1e6)))
             for value in map_service_samples[family]
         ]
         frames, _ = direct._direct_frames(frames, cell_id=cell["cell_id"], delay_pool=delay_pool)
         publication_ns = int(round(calibration[family]["optimized_publication_ms_median"] * 1e6))
-        total_ns = int(round(LATEST_EDGE_COMPUTE_P50_MS[family] * 1e6))
+        predicted_compute_ns = int(
+            statistics.median(
+                int(frame.compute_ns)
+                for frame in frames
+                if frame.arrival_ns is not None
+            )
+        ) if any(frame.arrival_ns is not None for frame in frames) else int(
+            round(LATEST_EDGE_COMPUTE_P50_MS[family] * 1e6)
+        )
         result = simulate_two_stage(
             frames,
             config=TwoStageConfig(
                 queue_wait_budget_ns=None,
                 processing_horizon_ns=source.HORIZON_NS,
                 service_target_ns=source.SERVICE_TARGET_NS,
-                predicted_compute_ns=max(1, total_ns - publication_ns),
+                predicted_compute_ns=predicted_compute_ns,
                 predicted_publication_ns=publication_ns,
                 predicted_post_publication_install_ns=int(statistics.median(delay_pool)),
             ),
@@ -1426,8 +1765,54 @@ def run(output: Path) -> dict[str, Any]:
         model_tail_ms = tail_stage_samples[family]["model_tail_ms"]
         tail_support_ms = tail_stage_samples[family]["tail_support_ms"]
         map_install_ms = map_service_samples[family]
+        edge_model_ready_ms: list[float] = []
+        sensor_model_ready_ms: list[float] = []
         total_ms: list[float] = []
         capture_total_ms: list[float] = []
+
+        cell_compute_completions = 0
+        for item in result.outcomes:
+            if item.compute_start_ns is None or item.compute_finish_ns is None:
+                continue
+            cell_compute_completions += 1
+            require(
+                item.frame.arrival_ns is not None,
+                f"{cell['cell_id']}: computed frame lacks edge arrival",
+            )
+            sequence = int(item.frame.sequence_id)
+            internal_ns = model_ready_internal_ns[sequence]
+            require(
+                internal_ns is not None,
+                f"{cell['cell_id']}: computed frame lacks model-ready boundary",
+            )
+            model_ready_ns = int(item.compute_start_ns) + internal_ns
+            require(
+                model_ready_ns <= int(item.compute_finish_ns),
+                f"{cell['cell_id']}: model-ready boundary exceeds compute finish",
+            )
+            row = sent[sequence]
+            action_start_wall_ns = (
+                int(row["capture_started_ns"])
+                + bridge_ns
+                + int(round(sensor_deltas_ms[sequence] * 1e6))
+                - int(round(optimized_concatenation_ms[sequence] * 1e6))
+            )
+            sensor_start_wall_ns = action_start_wall_ns - int(
+                round(optimized_sensor_compute_ms[sequence] * 1e6)
+            )
+            edge_interval_ms = (
+                model_ready_ns - int(item.frame.arrival_ns)
+            ) / 1e6
+            total_interval_ms = (model_ready_ns - sensor_start_wall_ns) / 1e6
+            require(
+                edge_interval_ms >= -0.001 and total_interval_ms >= -0.001,
+                f"{cell['cell_id']}: negative model-ready interval",
+            )
+            edge_model_ready_ms.append(max(0.0, edge_interval_ms))
+            sensor_model_ready_ms.append(max(0.0, total_interval_ms))
+
+        compute_completions += cell_compute_completions
+        model_ready_timing_samples += len(edge_model_ready_ms)
         for item in useful_outcomes(result):
             edge_map_ms.append((int(item.install_ns) - int(item.frame.arrival_ns)) / 1e6)
             require(
@@ -1484,6 +1869,14 @@ def run(output: Path) -> dict[str, Any]:
             "frames_sent": len(sent),
             "measured_complete_reassemblies": int(counters["measured_reassemblies"]),
             "measured_edge_admissions": int(counters["measured_edge_admissions"]),
+            "scheduler_arrivals_observed": int(counters["arrival_observed"]),
+            "scheduler_arrivals_imputed": int(
+                counters["arrival_imputed_within_cell"]
+                + counters["arrival_imputed_same_action_profile"]
+                + counters["arrival_imputed_same_profile"]
+            ),
+            "simulated_compute_completions": cell_compute_completions,
+            "model_ready_timing_samples": len(edge_model_ready_ms),
             "simulated_map_installs": int(summary["ack_installed_frames"]),
             "simulated_useful_newer_map_installs": int(summary["useful_newer_map_installations"]),
             "median_payload_bytes": percentile([float(row["payload_bytes"]) for row in sent], 0.50),
@@ -1510,6 +1903,8 @@ def run(output: Path) -> dict[str, Any]:
             **stats(model_tail_ms, "model_tail"),
             **stats(tail_support_ms, "tail_support"),
             **stats(map_install_ms, "map_install"),
+            **stats(edge_model_ready_ms, "edge_model_ready"),
+            **stats(sensor_model_ready_ms, "sensor_model_ready"),
             **stats(edge_map_ms, "edge_map"),
             **stats(total_ms, "total"),
             **stats(capture_total_ms, "capture_total"),
@@ -1531,15 +1926,38 @@ def run(output: Path) -> dict[str, Any]:
         "measured_edge_admissions": sum(
             int(row["measured_edge_admissions"]) for row in rows
         ),
+        "scheduler_arrivals_observed": sum(
+            int(row["scheduler_arrivals_observed"]) for row in rows
+        ),
+        "scheduler_arrivals_imputed": sum(
+            int(row["scheduler_arrivals_imputed"]) for row in rows
+        ),
         "simulated_map_installs": sum(
             int(row["simulated_map_installs"]) for row in rows
         ),
         "simulated_useful_newer_map_installs": sum(
             int(row["simulated_useful_newer_map_installs"]) for row in rows
         ),
+        "simulated_compute_completions": compute_completions,
+        "model_ready_timing_samples": model_ready_timing_samples,
     }
     require(
+        compute_completions
+        == sum(int(row["simulated_compute_completions"]) for row in rows),
+        "compute-completion count drift",
+    )
+    require(
+        model_ready_timing_samples
+        == sum(int(row["model_ready_timing_samples"]) for row in rows),
+        "model-ready timing-sample count drift",
+    )
+    require(
+        model_ready_timing_samples == compute_completions,
+        "model-ready decomposition accounting drift",
+    )
+    require(
         aggregate_counts["simulated_map_installs"]
+        <= aggregate_counts["simulated_compute_completions"]
         <= aggregate_counts["measured_edge_admissions"]
         <= aggregate_counts["measured_complete_reassemblies"]
         <= aggregate_counts["frames_sent"],
@@ -1563,6 +1981,11 @@ def run(output: Path) -> dict[str, Any]:
             "status": "COMPLETE",
             "scientific_status": "OFFLINE_COUNTERFACTUAL_NOT_LIVE_REMEASUREMENT",
             "inventory": {"cells": 288, "actions": 72, "profiles": 4},
+            "presentation_evidence_floors": {
+                "scatter_p50_min_frame_samples": SCATTER_MIN_FRAME_SAMPLES,
+                "common_support_p99_bar_min_frame_samples": PERCENTILE_BAR_MIN_FRAME_SAMPLES,
+                "role": "presentation only; all lower-support evidence remains in the CSV",
+            },
             "aggregate_counts": aggregate_counts,
             "complete_feature_delivery_by_profile": {
                 profile: {
@@ -1577,6 +2000,33 @@ def run(output: Path) -> dict[str, Any]:
                         if row["network_profile"] == profile
                     ),
                     "definition": "complete application reassemblies / frames sent",
+                }
+                for profile in PROFILE_ORDER
+            },
+            "completion_outcomes_by_profile": {
+                profile: {
+                    "frames_sent": sum(
+                        int(row["frames_sent"])
+                        for row in rows
+                        if row["network_profile"] == profile
+                    ),
+                    "complete_reassemblies": sum(
+                        int(row["measured_complete_reassemblies"])
+                        for row in rows
+                        if row["network_profile"] == profile
+                    ),
+                    "model_tail_completions": sum(
+                        int(row["simulated_compute_completions"])
+                        for row in rows
+                        if row["network_profile"] == profile
+                    ),
+                    "map_installations": sum(
+                        int(row["simulated_map_installs"])
+                        for row in rows
+                        if row["network_profile"] == profile
+                    ),
+                    "denominator": "frames_sent",
+                    "tail_and_map_status": "OFFLINE_COUNTERFACTUAL",
                 }
                 for profile in PROFILE_ORDER
             },
@@ -1597,6 +2047,17 @@ def run(output: Path) -> dict[str, Any]:
                 "model_tail": "pure decode_tail CUDA duration from final live family anchor",
                 "tail_support": "non-model edge work rescaled to newest repaired-v3 total edge median",
                 "map_install": "renderer-off direct publication-to-spatial-map install",
+                "edge_model_ready": (
+                    "complete edge reassembly through latest-only compute wait, "
+                    "feature reconstruction and synchronized model-tail completion; "
+                    "post-processing, publication and map install excluded"
+                ),
+                "sensor_model_ready": (
+                    "optimized production sensor-compute start through UE action, "
+                    "measured/imputed edge arrival preserving measured reassembly/"
+                    "admission counts, and edge model-tail completion; "
+                    "the proposed early feedback return trip is not measured or included"
+                ),
                 "edge_map": "complete edge reassembly to direct spatial-map install",
                 "total": "P23 seven-channel concatenation start to direct spatial-map install",
                 "capture_total": "RGB capture_wall_s to direct spatial-map install, retained for physical freshness but excluded from Figures 01 and 04",
@@ -1622,6 +2083,8 @@ def run(output: Path) -> dict[str, Any]:
                 "model_tail": "final live family-anchor samples; repeated as a marginal for each family action/profile",
                 "tail_support": "final live family-anchor samples; repeated as a marginal for each family action/profile",
                 "map_install": "live renderer-off direct-map samples; repeated as an action-independent marginal",
+                "edge_model_ready": "all counterfactual frames that completed composed edge compute",
+                "sensor_model_ready": "same compute-complete population as edge_model_ready",
                 "edge_map": "useful direct-map installations",
                 "total": "useful direct-map installations",
                 "capture_total": "useful direct-map installations",
@@ -1643,20 +2106,39 @@ def run(output: Path) -> dict[str, Any]:
                 "p95": percentile(sensor_delta_samples, 0.95),
                 "p99": percentile(sensor_delta_samples, 0.99),
             },
-            "edge_rescale_factors": {
-                family: {
-                    "minimum": min(values),
-                    "maximum": max(values),
-                    "median": statistics.median(values),
-                }
-                for family, values in edge_rescale_factors.items()
-            },
             "tail_stage_calibration": tail_stage_provenance,
+            "model_ready_pre_frozen_source_counts": dict(
+                sorted(model_ready_pre_frozen_source_counts.items())
+            ),
+            "edge_compute_composition": (
+                "action/profile-specific original pre-frozen work plus paired "
+                "live family tail-to-model-ready and calibrated post-ready work"
+            ),
             "direct_map_stage_calibration": map_service_provenance,
             "scheduler": {
                 "policy": "non-preemptive compute with one latest pending slot",
                 "queue_wait_budget_ms": None,
                 "superseded_pending_is_explicit_terminal": True,
+            },
+            "early_feedback_boundary": {
+                "endpoint": "model-tail-complete at edge",
+                "status": "OFFLINE_COUNTERFACTUAL_BOUNDARY_NOT_LIVE_ACK_VALIDATION",
+                "can_estimate_counterfactually": [
+                    "model-tail inference completion for admitted frames",
+                    "edge model-ready timestamp from composed service stages",
+                ],
+                "live_progress_ack_would_need_to_carry": [
+                    "session/UE/frame/action identity",
+                    "observed tail-completion timestamp",
+                    "explicit TAIL_COMPLETED non-terminal status",
+                ],
+                "cannot_yet_prove": [
+                    "post-processing completed",
+                    "spatial map installed",
+                    "realized segmentation accuracy",
+                    "realized localization accuracy",
+                ],
+                "ue_return_path_included": False,
             },
             "latency_percentile_warning": (
                 "stage P50/P95/P99 values are marginal percentiles with stage-specific "

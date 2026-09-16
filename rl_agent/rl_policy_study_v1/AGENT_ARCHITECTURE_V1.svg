@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1500" height="720" viewBox="0 0 1500 720" role="img" aria-labelledby="title desc">
   <title id="title">Split-only recurrent PPO architecture</title>
-  <desc id="desc">Causal observations pass through an encoder and LSTM to policy, value, cost, and next-SNR forecast heads. The split action affects the environment, which returns map utility, freshness, and resource costs.</desc>
+  <desc id="desc">Causal observations pass through an encoder and LSTM. A calibrated predicted next-window channel mean and uncertainty feed the current policy through a stop-gradient path; true future channel measurements are targets only after the action.</desc>
   <defs>
     <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#333"/></marker>
     <style>
@@ -10,11 +10,12 @@
       .head { font: 700 34px sans-serif; fill: #111; }
       .note { font: 700 19px sans-serif; fill: #8b1e3f; }
       .arrow { stroke: #333; stroke-width: 3; fill: none; marker-end: url(#arrow); }
+      .forecast { stroke: #54a24b; stroke-width: 3; stroke-dasharray: 9 7; fill: none; marker-end: url(#arrow); }
     </style>
   </defs>
   <rect width="1500" height="720" fill="white"/>
   <text x="750" y="48" text-anchor="middle" class="head">Split-only recurrent PPO architecture</text>
-  <text x="750" y="79" text-anchor="middle" class="note">Future SNR and current-frame outcomes are never policy inputs</text>
+  <text x="750" y="79" text-anchor="middle" class="note">Predicted channel statistics are causal policy inputs; true future measurements are never leaked</text>
 
   <rect x="30" y="220" width="255" height="245" class="box" fill="#3366cc18" stroke="#3366cc"/>
   <text x="157" y="260" text-anchor="middle" class="title" fill="#3366cc">Causal observation</text>
@@ -35,7 +36,7 @@
   <rect x="900" y="365" width="215" height="100" class="box" fill="#f5851818" stroke="#f58518"/>
   <text x="1007" y="403" text-anchor="middle" class="title" fill="#f58518">Cost critics</text><text x="1007" y="437" text-anchor="middle" class="body">bytes / compute / switch</text>
   <rect x="900" y="495" width="215" height="100" class="box" fill="#54a24b18" stroke="#54a24b"/>
-  <text x="1007" y="533" text-anchor="middle" class="title" fill="#54a24b">Forecast head</text><text x="1007" y="567" text-anchor="middle" class="body">next-SNR auxiliary loss</text>
+  <text x="1007" y="533" text-anchor="middle" class="title" fill="#54a24b">Forecast head</text><text x="1007" y="562" text-anchor="middle" class="body"><tspan x="1007">next-window mean + uncertainty</tspan><tspan x="1007" dy="25">calibration loss</tspan></text>
 
   <rect x="1210" y="150" width="255" height="135" class="box" fill="#26465318" stroke="#264653"/>
   <text x="1337" y="190" text-anchor="middle" class="title" fill="#264653">Split action</text>
@@ -50,6 +51,8 @@
   <path d="M830,335 L900,285" class="arrow"/>
   <path d="M830,350 L900,415" class="arrow"/>
   <path d="M830,365 C860,465 865,545 900,545" class="arrow"/>
+  <path d="M1115,545 C1170,545 1170,155 1115,155" class="forecast"/>
+  <text x="1176" y="350" text-anchor="middle" class="body" fill="#387c35" transform="rotate(-90 1176 350)">detached forecast influences current action</text>
   <path d="M1115,155 L1210,205" class="arrow"/>
   <path d="M1337,285 L1337,405" class="arrow"/>
   <path d="M1190,500 C1050,675 720,675 720,440" class="arrow"/>
