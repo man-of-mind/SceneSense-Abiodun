@@ -1,4 +1,11 @@
-"""Exact quality scorers imported from the qualified Route-B evaluator."""
+"""Exact quality scorers from the qualified Route-B evaluator.
+
+The edge image intentionally has a minimal Python environment and does not
+contain the host campaign adapter's YAML dependency.  The three small,
+side-effect-free formulae below therefore mirror the frozen Route-B evaluator
+instead of importing that entire host-only adapter.  Host regressions compare
+their outputs directly against the qualified functions.
+"""
 
 from __future__ import annotations
 
@@ -13,15 +20,122 @@ import numpy as np
 from pole_lraspp_multimodal_fusion.pole_lraspp_multimodal_fusion.object_targets import (
     greedy_match_predictions,
 )
-from rl_agent.ue_route_b_split_cell_adapter_v1 import (
-    mean_or_nan,
-    oriented_footprint_iou,
-    segmentation_quality_columns,
-)
+
+
+QUALIFIED_FORMULA_SOURCE = "rl_agent/ue_route_b_split_cell_adapter_v1.py"
+CLASS_ID_BACKGROUND, CLASS_ID_VEHICLE, CLASS_ID_PERSON = 0, 1, 2
 
 
 class QualityScoringError(RuntimeError):
     """The exact evaluator received invalid or mutable evidence."""
+
+
+def mean_or_nan(values: Sequence[float]) -> float:
+    """Frozen replica of the qualified finite-value mean."""
+
+    finite = [float(value) for value in values if math.isfinite(float(value))]
+    return float(sum(finite) / len(finite)) if finite else float("nan")
+
+
+def _yaw_deg(row: Mapping[str, Any]) -> float:
+    if row.get("model_yaw_deg") not in (None, ""):
+        return float(row["model_yaw_deg"])
+    if row.get("yaw_deg") not in (None, ""):
+        return float(row["yaw_deg"])
+    return math.degrees(
+        math.atan2(float(row.get("yaw_sin", 0.0)), float(row.get("yaw_cos", 1.0)))
+    )
+
+
+def oriented_footprint_iou(
+    prediction: Mapping[str, Any], truth: Mapping[str, Any]
+) -> float:
+    """Frozen qualified IoU of two oriented world-XY footprints."""
+
+    import cv2
+
+    def corners(row: Mapping[str, Any]) -> np.ndarray:
+        length = float(row["size_x"])
+        width = float(row["size_y"])
+        if not (length > 0.0 and width > 0.0):
+            raise QualityScoringError("footprint dimensions must be positive")
+        yaw = math.radians(_yaw_deg(row))
+        local = np.asarray(
+            [
+                [-0.5 * length, -0.5 * width],
+                [0.5 * length, -0.5 * width],
+                [0.5 * length, 0.5 * width],
+                [-0.5 * length, 0.5 * width],
+            ],
+            dtype=np.float64,
+        )
+        rotation = np.asarray(
+            [[math.cos(yaw), -math.sin(yaw)], [math.sin(yaw), math.cos(yaw)]],
+            dtype=np.float64,
+        )
+        center = np.asarray([float(row["world_x"]), float(row["world_y"])])
+        return (local @ rotation.T + center).astype(np.float32)
+
+    pred_corners = corners(prediction)
+    truth_corners = corners(truth)
+    intersection, _polygon = cv2.intersectConvexConvex(pred_corners, truth_corners)
+    pred_area = float(prediction["size_x"]) * float(prediction["size_y"])
+    truth_area = float(truth["size_x"]) * float(truth["size_y"])
+    union = pred_area + truth_area - float(intersection)
+    return (
+        max(0.0, min(1.0, float(intersection) / union))
+        if union > 0.0
+        else float("nan")
+    )
+
+
+def segmentation_quality_columns(
+    predicted: np.ndarray, ground_truth: np.ndarray
+) -> dict[str, object]:
+    """Frozen qualified three-class and foreground segmentation metrics."""
+
+    import cv2
+
+    if predicted.shape != ground_truth.shape:
+        ground_truth = cv2.resize(
+            ground_truth,
+            (predicted.shape[1], predicted.shape[0]),
+            interpolation=cv2.INTER_NEAREST,
+        )
+    ious: dict[int, float] = {}
+    present: list[float] = []
+    for class_id in (CLASS_ID_BACKGROUND, CLASS_ID_VEHICLE, CLASS_ID_PERSON):
+        union = int(
+            np.logical_or(predicted == class_id, ground_truth == class_id).sum()
+        )
+        value = (
+            float("nan")
+            if union == 0
+            else int(
+                np.logical_and(predicted == class_id, ground_truth == class_id).sum()
+            )
+            / union
+        )
+        ious[class_id] = value
+        if math.isfinite(value):
+            present.append(value)
+    fg_union = int(np.logical_or(predicted != 0, ground_truth != 0).sum())
+    return {
+        "gt_camera_available": 1,
+        "miou_binary": (
+            float("nan")
+            if fg_union == 0
+            else int(np.logical_and(predicted != 0, ground_truth != 0).sum())
+            / fg_union
+        ),
+        "miou_3class_macro": (
+            float(np.mean(present)) if present else float("nan")
+        ),
+        "miou_vehicle_iou": ious[CLASS_ID_VEHICLE],
+        "miou_person_iou": ious[CLASS_ID_PERSON],
+        "gt_vehicle_pixels": int(np.count_nonzero(ground_truth == CLASS_ID_VEHICLE)),
+        "gt_person_pixels": int(np.count_nonzero(ground_truth == CLASS_ID_PERSON)),
+    }
 
 
 def _number(value: Any) -> float | int | None:
@@ -52,7 +166,7 @@ def immutable_mask(value: np.ndarray) -> np.ndarray:
 def score_segmentation(
     predicted: np.ndarray, ground_truth: np.ndarray
 ) -> dict[str, Any]:
-    """Call the existing qualified segmentation formula, without a rewrite."""
+    """Evaluate using the host-parity-checked frozen segmentation formula."""
 
     columns = segmentation_quality_columns(predicted, ground_truth)
     return {str(key): _number(value) for key, value in columns.items()}

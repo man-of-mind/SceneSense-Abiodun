@@ -27,7 +27,15 @@ from .gt_evidence import (
     write_semantic_ground_truth,
 )
 from .ledger import QualityFeedbackLedger, QualityLedgerError
-from .scoring import QualityInputs, require_exact_parity, score_concurrent, score_serial
+from .scoring import (
+    QualityInputs,
+    mean_or_nan as edge_mean_or_nan,
+    oriented_footprint_iou as edge_oriented_footprint_iou,
+    require_exact_parity,
+    score_concurrent,
+    score_serial,
+    segmentation_quality_columns as edge_segmentation_quality_columns,
+)
 
 
 def identity(frame: int = 7) -> dict[str, object]:
@@ -165,6 +173,81 @@ class ProtocolTests(unittest.TestCase):
 
 
 class ScoringAndEvidenceTests(unittest.TestCase):
+    @staticmethod
+    def _normalize_formula_result(value: object) -> object:
+        if isinstance(value, dict):
+            return {
+                str(key): ScoringAndEvidenceTests._normalize_formula_result(item)
+                for key, item in value.items()
+            }
+        if isinstance(value, (float, np.floating)) and np.isnan(float(value)):
+            return None
+        if isinstance(value, (int, float, np.integer, np.floating)):
+            return float(value)
+        return value
+
+    def test_edge_formula_replicas_match_qualified_host_evaluator(self) -> None:
+        from rl_agent.ue_route_b_split_cell_adapter_v1 import (
+            mean_or_nan as qualified_mean_or_nan,
+            oriented_footprint_iou as qualified_oriented_footprint_iou,
+            segmentation_quality_columns as qualified_segmentation_quality_columns,
+        )
+
+        mask_cases = (
+            (
+                np.asarray([[0, 1, 2], [2, 1, 0]], dtype=np.uint8),
+                np.asarray([[0, 1, 2], [1, 2, 0]], dtype=np.uint8),
+            ),
+            (
+                np.zeros((3, 5), dtype=np.uint8),
+                np.zeros((2, 3), dtype=np.uint8),
+            ),
+            (
+                np.asarray([[1, 1], [2, 0]], dtype=np.uint8),
+                np.asarray([[2]], dtype=np.uint8),
+            ),
+        )
+        for predicted, truth in mask_cases:
+            self.assertEqual(
+                self._normalize_formula_result(
+                    edge_segmentation_quality_columns(predicted, truth)
+                ),
+                self._normalize_formula_result(
+                    qualified_segmentation_quality_columns(predicted, truth)
+                ),
+            )
+
+        footprint_cases = (
+            (
+                {"world_x": 0, "world_y": 0, "size_x": 4, "size_y": 2,
+                 "model_yaw_deg": 15},
+                {"world_x": 0.5, "world_y": -0.25, "size_x": 4.2,
+                 "size_y": 1.9, "yaw_deg": -10},
+            ),
+            (
+                {"world_x": 5, "world_y": 8, "size_x": 0.5, "size_y": 0.4,
+                 "yaw_sin": 1, "yaw_cos": 0},
+                {"world_x": 5, "world_y": 8, "size_x": 0.5, "size_y": 0.4,
+                 "yaw_sin": 1, "yaw_cos": 0},
+            ),
+            (
+                {"world_x": -2, "world_y": 1, "size_x": 1, "size_y": 1,
+                 "yaw_deg": ""},
+                {"world_x": 20, "world_y": 20, "size_x": 1, "size_y": 1},
+            ),
+        )
+        for prediction, truth in footprint_cases:
+            self.assertEqual(
+                edge_oriented_footprint_iou(prediction, truth),
+                qualified_oriented_footprint_iou(prediction, truth),
+            )
+
+        for values in ([1.0, 2.0, 4.0], [float("nan"), 2.0], [], [float("inf")]):
+            self.assertEqual(
+                self._normalize_formula_result(edge_mean_or_nan(values)),
+                self._normalize_formula_result(qualified_mean_or_nan(values)),
+            )
+
     def test_serial_and_concurrent_exact_parity(self) -> None:
         mask = np.asarray([[0, 1, 2], [0, 2, 1]], dtype=np.uint8)
         inputs = QualityInputs.own(
