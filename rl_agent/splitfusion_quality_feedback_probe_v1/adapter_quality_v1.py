@@ -15,6 +15,7 @@ import shutil
 import socket
 import subprocess
 import sys
+import threading
 import time
 from pathlib import Path
 from typing import Any, Callable, Mapping
@@ -386,6 +387,49 @@ class QualitySceneSnapshotSource(pinned.SceneSnapshotSource):
 
 
 class QualityPassiveSplitCollector(pinned.PassiveSplitCollector):
+    def __init__(self, **kwargs: Any) -> None:
+        self._quality_scene_lock = threading.Lock()
+        self._quality_scenes: dict[int, QualityFrozenWorld] = {}
+        super().__init__(**kwargs)
+
+    def on_world_tick(self, frame_id: int, route_tick: int) -> None:
+        """Freeze actor state at the exact CARLA tick before work is queued.
+
+        CARLA runs asynchronously during this bounded probe.  Asking for the
+        current snapshot later in the preparation worker can therefore return
+        frame N+1 (or newer).  Capture N here, at the tick boundary owned by
+        the route runner, and let the evaluation thread consume that immutable
+        scene later.
+        """
+
+        if (
+            (self.qualification_capture_limit is None
+             or self.sent < self.qualification_capture_limit)
+            and (int(route_tick) - 1) % 2 == 0
+        ):
+            snapshot = self.world.get_snapshot()
+            pinned.require(
+                int(snapshot.frame) == int(frame_id),
+                "owned world tick/snapshot frame drift",
+            )
+            pinned.require(
+                self.scene_source is not None,
+                "exact scene source is unavailable at the owned world tick",
+            )
+            frozen = self.scene_source.capture(snapshot)
+            pinned.require(
+                isinstance(frozen, QualityFrozenWorld)
+                and int(frozen.frozen_frame_id) == int(frame_id),
+                "exact scene snapshot identity drift",
+            )
+            with self._quality_scene_lock:
+                self._quality_scenes[int(frame_id)] = frozen
+                # This is only a defensive ceiling; normal evaluation pops
+                # each entry and never approaches it in a 300-frame cell.
+                while len(self._quality_scenes) > 512:
+                    self._quality_scenes.pop(min(self._quality_scenes))
+        super().on_world_tick(frame_id, route_tick)
+
     def _records_for(self, frame_id: int, timeout_s: float = 0.25) -> Any:
         records = super()._records_for(frame_id, timeout_s=timeout_s)
         if records is not None:
@@ -407,13 +451,28 @@ class QualityPassiveSplitCollector(pinned.PassiveSplitCollector):
         return image
 
     def _ground_truth(self, **kwargs: Any) -> list[dict[str, Any]]:
-        rows = super()._ground_truth(**kwargs)
         frame_id = int(kwargs["frame_id"])
-        world = kwargs.get("world")
-        if not isinstance(world, QualityFrozenWorld):
-            raise QualityAdapterError("object GT lacks an exact frozen CARLA snapshot")
+        # The qualified adapter's separate aligned/current diagnostic is
+        # identified by its dedicated tracker. A missing source-scene ticket
+        # must *not* fall through to live/current GT: source reward evidence
+        # remains fail-closed and always consumes the exact owned-tick cache.
+        aligned_current = (
+            kwargs.get("world") is None
+            and kwargs.get("stationary_tracker") is self.aligned_actor_tracker
+        )
+        if aligned_current:
+            return super()._ground_truth(**kwargs)
+        with self._quality_scene_lock:
+            world = self._quality_scenes.pop(frame_id, None)
+        if world is None:
+            raise QualityAdapterError(
+                f"object GT lacks exact owned-tick snapshot for frame {frame_id}"
+            )
         if int(world.frozen_frame_id) != frame_id:
             raise QualityAdapterError("object GT snapshot/frame drift")
+        exact_kwargs = dict(kwargs)
+        exact_kwargs["world"] = world
+        rows = super()._ground_truth(**exact_kwargs)
         write_object_ground_truth(
             self.edge_evidence_dir,
             identity=self.live.identity_for_frame(frame_id),

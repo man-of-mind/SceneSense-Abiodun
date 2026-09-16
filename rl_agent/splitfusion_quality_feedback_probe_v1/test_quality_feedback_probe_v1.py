@@ -10,6 +10,7 @@ import signal
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import unittest
 from pathlib import Path
@@ -275,6 +276,108 @@ class ScoringAndEvidenceTests(unittest.TestCase):
                     root, identity={**item, "frame_id": 8},
                     frozen_carla_frame_id=7, rows=objects(),
                 )
+
+    def test_source_quality_uses_owned_tick_snapshot_but_aligned_gt_does_not(self) -> None:
+        from unittest.mock import Mock, patch
+
+        import rl_agent.ue_route_b_split_cell_adapter_v1 as qualified
+        from . import adapter_quality_v1 as adapter
+
+        collector = object.__new__(adapter.QualityPassiveSplitCollector)
+        collector._quality_scene_lock = threading.Lock()
+        exact = adapter.QualityFrozenWorld(
+            qualified.FrozenActorList(()), frozen_frame_id=7
+        )
+        exact_without_ticket_scene = adapter.QualityFrozenWorld(
+            qualified.FrozenActorList(()), frozen_frame_id=8
+        )
+        collector._quality_scenes = {
+            7: exact,
+            8: exact_without_ticket_scene,
+        }
+        collector.aligned_actor_tracker = object()
+        collector.edge_evidence_dir = Path("/unused")
+        collector.live = Mock()
+        collector.live.identity_for_frame.return_value = identity(7)
+        rows = objects()
+        with (
+            patch.object(
+                qualified.PassiveSplitCollector,
+                "_ground_truth",
+                autospec=True,
+                return_value=rows,
+            ) as base,
+            patch.object(adapter, "write_object_ground_truth") as write_gt,
+        ):
+            ground_truth_args = {
+                "timestamp": 0.0,
+                "camera_matrix": np.eye(4),
+                "camera_inverse": np.eye(4),
+                "radar_points": {},
+            }
+            self.assertEqual(
+                collector._ground_truth(
+                    frame_id=7, world=object(), **ground_truth_args
+                ),
+                rows,
+            )
+            self.assertIs(base.call_args.kwargs["world"], exact)
+            write_gt.assert_called_once()
+            self.assertNotIn(7, collector._quality_scenes)
+
+            base.reset_mock()
+            write_gt.reset_mock()
+            self.assertEqual(
+                collector._ground_truth(
+                    frame_id=8, world=None, **ground_truth_args
+                ),
+                rows,
+            )
+            self.assertIs(
+                base.call_args.kwargs["world"], exact_without_ticket_scene
+            )
+            write_gt.assert_called_once()
+            self.assertNotIn(8, collector._quality_scenes)
+
+            base.reset_mock()
+            write_gt.reset_mock()
+            self.assertEqual(
+                collector._ground_truth(
+                    frame_id=9,
+                    world=None,
+                    stationary_tracker=collector.aligned_actor_tracker,
+                    **ground_truth_args,
+                ),
+                rows,
+            )
+            self.assertIsNone(base.call_args.kwargs["world"])
+            write_gt.assert_not_called()
+
+    def test_owned_world_tick_caches_exact_snapshot_before_queue_offer(self) -> None:
+        from unittest.mock import Mock, patch
+
+        import rl_agent.ue_route_b_split_cell_adapter_v1 as qualified
+        from . import adapter_quality_v1 as adapter
+
+        collector = object.__new__(adapter.QualityPassiveSplitCollector)
+        collector._quality_scene_lock = threading.Lock()
+        collector._quality_scenes = {}
+        collector.qualification_capture_limit = 300
+        collector.sent = 0
+        snapshot = Mock(frame=41)
+        collector.world = Mock()
+        collector.world.get_snapshot.return_value = snapshot
+        frozen = adapter.QualityFrozenWorld(
+            qualified.FrozenActorList(()), frozen_frame_id=41
+        )
+        collector.scene_source = Mock()
+        collector.scene_source.capture.return_value = frozen
+        with patch.object(
+            qualified.PassiveSplitCollector, "on_world_tick", autospec=True
+        ) as base:
+            collector.on_world_tick(41, 1)
+            self.assertIs(collector._quality_scenes[41], frozen)
+            base.assert_called_once_with(collector, 41, 1)
 
 
 class LedgerAndCoordinatorTests(unittest.TestCase):
