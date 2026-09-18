@@ -26,6 +26,7 @@ from . import hybrid_sac_models as hsm
 from .state_reward_transition_contract import POLICY_FEATURE_COUNT
 
 DTYPE = torch.float64
+REFERENCE_CONFIG = hsm.HybridSacModelConfig(dtype=DTYPE)
 
 
 def _state(batch: int = 5, seed: int = 17) -> torch.Tensor:
@@ -41,8 +42,8 @@ class ModelsTestBase(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
-        cls.actor = hsm.build_actor(seed=1234)
-        cls.critics = hsm.build_twin_critics(seed=5678)
+        cls.actor = hsm.build_actor(REFERENCE_CONFIG, seed=1234)
+        cls.critics = hsm.build_twin_critics(REFERENCE_CONFIG, seed=5678)
         cls.state = _state()
 
     def generator(self, seed: int = 99) -> torch.Generator:
@@ -62,6 +63,16 @@ class ContractBindingTest(ModelsTestBase):
         self.assertEqual(hsm.Q_SQUASH_SCALE, 0.49)
         self.assertEqual(hsm.PHASE_LABEL, "SYNTHETIC_HYBRID_SAC_SMOKE_TEST_ONLY")
         self.assertEqual((hsm.LOG_STD_MIN, hsm.LOG_STD_MAX), (-5.0, 2.0))
+
+    def test_default_training_dtype_is_float32(self) -> None:
+        config = hsm.HybridSacModelConfig()
+        self.assertEqual(config.dtype, torch.float32)
+        actor = hsm.build_actor(config, seed=7)
+        critics = hsm.build_twin_critics(config, seed=8)
+        self.assertTrue(all(p.dtype == torch.float32 for p in actor.parameters()))
+        self.assertTrue(
+            all(p.dtype == torch.float32 for p in critics.parameters())
+        )
 
     def test_architecture_is_two_hidden_layers_of_128(self) -> None:
         linear = [m for m in self.actor.encoder if isinstance(m, torch.nn.Linear)]
@@ -279,6 +290,32 @@ class QuantizationTest(ModelsTestBase):
         self.assertEqual(tuple(produced.shape), (4, 12))
         self.assertEqual(produced.dtype, torch.long)
 
+    def test_float32_fast_path_matches_contract_around_every_half_grid(self) -> None:
+        # For each q_e4 half-step, exercise the nearest representable float32
+        # value and both adjacent floats.  Expected values are computed from
+        # the tensor's actual binary value, not from a decimal literal that
+        # float32 cannot represent.
+        thresholds = (
+            torch.arange(0, ac.Q_E4_MAX, dtype=torch.float64) + 0.5
+        ) / float(ac.Q_E4_SCALE)
+        center = thresholds.to(torch.float32)
+        below = torch.nextafter(center, torch.full_like(center, float("-inf")))
+        above = torch.nextafter(center, torch.full_like(center, float("inf")))
+        values = torch.stack((below, center, above), dim=1).reshape(-1)
+        expected = torch.tensor(
+            [ac.round_half_up_q_e4(float(value)) for value in values],
+            dtype=torch.long,
+        )
+        self.assertTrue(torch.equal(hsm._quantize_q_e4_training(values), expected))
+
+    def test_float32_execution_boundary_delegates_to_contract(self) -> None:
+        values = (
+            torch.rand(1024, dtype=torch.float32, generator=self.generator(91))
+            * ac.Q_MAX
+        )
+        expected = [ac.round_half_up_q_e4(float(value)) for value in values]
+        self.assertEqual(hsm.quantize_q_e4(values).tolist(), expected)
+
     def test_straight_through_forward_is_the_exact_executed_value(self) -> None:
         sample = self.actor.sample_all_modes(
             self.state, generator=self.generator(8)
@@ -439,7 +476,7 @@ class EnumerationTest(ModelsTestBase):
 
         baseline = objective_value(self.actor)
         for mode in range(12):
-            actor = hsm.build_actor(seed=1234)
+            actor = hsm.build_actor(REFERENCE_CONFIG, seed=1234)
             with torch.no_grad():
                 actor.mean_head.bias[mode] += 1.0
             self.assertNotAlmostEqual(
@@ -504,13 +541,19 @@ class GradientRoutingTest(ModelsTestBase):
     """Gradients reach every actor head and never reach the targets."""
 
     def test_every_conditional_head_receives_finite_gradients(self) -> None:
-        actor = hsm.build_actor(seed=1234)
-        critics = hsm.build_twin_critics(seed=5678)
+        actor = hsm.build_actor(REFERENCE_CONFIG, seed=1234)
+        critics = hsm.build_twin_critics(REFERENCE_CONFIG, seed=5678)
         actor.zero_grad(set_to_none=True)
         breakdown = hsm.actor_objective(
             actor, critics, self.state, 0.2, 0.05, generator=self.generator(21)
         )
+        breakdown.sample.q_normalized_straight_through.retain_grad()
         breakdown.objective.backward()
+
+        q_grad = breakdown.sample.q_normalized_straight_through.grad
+        self.assertIsNotNone(q_grad)
+        self.assertTrue(torch.isfinite(q_grad).all())
+        self.assertTrue((q_grad.abs() > 0).any())
 
         for name, head in (
             ("mean_head", actor.mean_head),
@@ -538,13 +581,20 @@ class GradientRoutingTest(ModelsTestBase):
             self.assertIsNotNone(parameter.grad)
             self.assertTrue(torch.isfinite(parameter.grad).all())
 
+        # Actor loss must differentiate through Q with respect to q without
+        # allocating or contaminating gradients on critic parameters.
+        for online in (critics.critic_1, critics.critic_2):
+            for parameter in online.parameters():
+                self.assertTrue(parameter.requires_grad)
+                self.assertIsNone(parameter.grad)
+
     def test_target_critics_receive_no_gradients(self) -> None:
-        critics = hsm.build_twin_critics(seed=5678)
+        critics = hsm.build_twin_critics(REFERENCE_CONFIG, seed=5678)
         for target in (critics.target_1, critics.target_2):
             for parameter in target.parameters():
                 self.assertFalse(parameter.requires_grad)
 
-        actor = hsm.build_actor(seed=1234)
+        actor = hsm.build_actor(REFERENCE_CONFIG, seed=1234)
         value = hsm.soft_state_value(
             actor, critics, self.state, 0.2, 0.05, generator=self.generator(21)
         )
@@ -578,7 +628,7 @@ class TwinIndependenceTest(ModelsTestBase):
     """The twins are genuinely two networks, not two views of one."""
 
     def test_twin_critics_share_no_parameter_storage(self) -> None:
-        critics = hsm.build_twin_critics(seed=5678)
+        critics = hsm.build_twin_critics(REFERENCE_CONFIG, seed=5678)
         first = list(critics.critic_1.parameters())
         second = list(critics.critic_2.parameters())
         self.assertEqual(len(first), len(second))
@@ -605,7 +655,7 @@ class TwinIndependenceTest(ModelsTestBase):
         self.assertTrue(torch.equal(second[0], before))
 
     def test_targets_start_equal_to_their_own_online_critic(self) -> None:
-        critics = hsm.build_twin_critics(seed=5678)
+        critics = hsm.build_twin_critics(REFERENCE_CONFIG, seed=5678)
         for online, target in (
             (critics.critic_1, critics.target_1),
             (critics.critic_2, critics.target_2),
@@ -621,7 +671,7 @@ class PolyakTest(ModelsTestBase):
     """The soft update matches ``tau * online + (1 - tau) * target`` exactly."""
 
     def test_polyak_update_matches_a_hand_computed_example(self) -> None:
-        critics = hsm.build_twin_critics(seed=5678)
+        critics = hsm.build_twin_critics(REFERENCE_CONFIG, seed=5678)
         with torch.no_grad():
             for parameter in critics.critic_1.parameters():
                 parameter.fill_(1.0)
@@ -642,7 +692,7 @@ class PolyakTest(ModelsTestBase):
             self.assertTrue(torch.allclose(parameter, torch.zeros_like(parameter)))
 
     def test_tau_one_copies_the_online_critics(self) -> None:
-        critics = hsm.build_twin_critics(seed=5678)
+        critics = hsm.build_twin_critics(REFERENCE_CONFIG, seed=5678)
         with torch.no_grad():
             for parameter in critics.critic_1.parameters():
                 parameter.add_(0.5)
@@ -657,14 +707,14 @@ class PolyakTest(ModelsTestBase):
                 self.assertTrue(torch.equal(online_p, target_p))
 
     def test_polyak_keeps_targets_gradient_free(self) -> None:
-        critics = hsm.build_twin_critics(seed=5678)
+        critics = hsm.build_twin_critics(REFERENCE_CONFIG, seed=5678)
         critics.polyak_update(0.5)
         for target in (critics.target_1, critics.target_2):
             for parameter in target.parameters():
                 self.assertFalse(parameter.requires_grad)
 
     def test_invalid_tau_fails_closed(self) -> None:
-        critics = hsm.build_twin_critics(seed=5678)
+        critics = hsm.build_twin_critics(REFERENCE_CONFIG, seed=5678)
         for tau in (0.0, -0.1, 1.5, float("nan"), float("inf")):
             with self.assertRaises(hsm.InvalidHyperparameterError):
                 critics.polyak_update(tau)
@@ -717,6 +767,8 @@ class CriticTargetTest(ModelsTestBase):
         with self.assertRaises(hsm.InvalidHyperparameterError):
             hsm.critic_target(reward, done, value, 0.9, torch.tensor([0, 2]))
         with self.assertRaises(hsm.InvalidHyperparameterError):
+            hsm.critic_target(reward, done, value, 0.9, torch.tensor([1, 2]))
+        with self.assertRaises(hsm.InvalidHyperparameterError):
             hsm.critic_target(
                 reward, done, value, 0.9, torch.tensor([2.5, 2.0], dtype=DTYPE)
             )
@@ -728,6 +780,33 @@ class CriticTargetTest(ModelsTestBase):
                 reward, torch.tensor([0.5, 0.0], dtype=DTYPE), value, 0.9,
                 torch.tensor([2, 2]),
             )
+
+    def test_integer_bellman_values_are_refused_without_truncation(self) -> None:
+        with self.assertRaises(hsm.InvalidTensorError):
+            hsm.critic_target(
+                reward=torch.tensor([1.0], dtype=DTYPE),
+                done=torch.tensor([0]),
+                next_value=torch.tensor([10]),
+                gamma=0.9,
+                duration=torch.tensor([2]),
+            )
+        with self.assertRaises(hsm.InvalidTensorError):
+            hsm.critic_target(
+                reward=torch.tensor([1]),
+                done=torch.tensor([0]),
+                next_value=torch.tensor([10.0], dtype=DTYPE),
+                gamma=0.9,
+                duration=torch.tensor([2]),
+            )
+
+    def test_target_is_detached_by_construction(self) -> None:
+        reward = torch.tensor([1.0], dtype=DTYPE, requires_grad=True)
+        value = torch.tensor([10.0], dtype=DTYPE, requires_grad=True)
+        target = hsm.critic_target(
+            reward, torch.tensor([0]), value, 0.9, torch.tensor([2])
+        )
+        self.assertFalse(target.requires_grad)
+        self.assertAlmostEqual(float(target[0]), 9.1, places=12)
 
 
 class FailClosedTest(ModelsTestBase):
@@ -775,6 +854,23 @@ class FailClosedTest(ModelsTestBase):
             self.critics.critic_1(
                 state, good_onehot, torch.full((4,), float("nan"), dtype=DTYPE)
             )
+        malformed_onehot = good_onehot.clone()
+        malformed_onehot[0, 1] = 1.0
+        with self.assertRaises(hsm.InvalidTensorError):
+            self.critics.critic_1(state, malformed_onehot, good_q)
+        fractional_onehot = good_onehot.clone()
+        fractional_onehot[0, 0] = 0.5
+        with self.assertRaises(hsm.InvalidTensorError):
+            self.critics.critic_1(state, fractional_onehot, good_q)
+        for bad_q in (-0.001, 1.001):
+            with self.assertRaises(hsm.InvalidTensorError):
+                self.critics.critic_1(
+                    state, good_onehot, torch.full((4,), bad_q, dtype=DTYPE)
+                )
+        with self.assertRaises(hsm.InvalidTensorError):
+            self.critics.critic_1(
+                state, good_onehot, torch.zeros(4, dtype=torch.long)
+            )
 
     def test_non_finite_quantization_input_is_refused(self) -> None:
         for bad in (float("nan"), float("inf")):
@@ -819,9 +915,11 @@ class FailClosedTest(ModelsTestBase):
             hsm.mode_one_hot(torch.tensor([12]))
         with self.assertRaises(hsm.InvalidTensorError):
             hsm.mode_one_hot(torch.tensor([-1]))
+        with self.assertRaises(hsm.InvalidTensorError):
+            hsm.mode_one_hot(torch.tensor([], dtype=torch.long))
 
     def test_log_std_is_clamped_to_the_registered_interval(self) -> None:
-        actor = hsm.build_actor(seed=1234)
+        actor = hsm.build_actor(REFERENCE_CONFIG, seed=1234)
         with torch.no_grad():
             actor.log_std_head.bias.fill_(50.0)
         heads = actor(self.state)
@@ -836,9 +934,9 @@ class DeterminismTest(ModelsTestBase):
     """The same seed gives byte-identical CPU results."""
 
     def test_same_seed_gives_byte_identical_parameters(self) -> None:
-        first = hsm.build_actor(seed=2024)
-        second = hsm.build_actor(seed=2024)
-        other = hsm.build_actor(seed=2025)
+        first = hsm.build_actor(REFERENCE_CONFIG, seed=2024)
+        second = hsm.build_actor(REFERENCE_CONFIG, seed=2024)
+        other = hsm.build_actor(REFERENCE_CONFIG, seed=2025)
         first_state = first.state_dict()
         second_state = second.state_dict()
         self.assertEqual(sorted(first_state), sorted(second_state))
@@ -854,8 +952,8 @@ class DeterminismTest(ModelsTestBase):
         )
 
     def test_same_seed_gives_byte_identical_sampling(self) -> None:
-        first = hsm.build_actor(seed=2024)
-        second = hsm.build_actor(seed=2024)
+        first = hsm.build_actor(REFERENCE_CONFIG, seed=2024)
+        second = hsm.build_actor(REFERENCE_CONFIG, seed=2024)
         sample_a = first.sample_all_modes(
             self.state, generator=torch.Generator().manual_seed(7)
         )
@@ -874,8 +972,8 @@ class DeterminismTest(ModelsTestBase):
         torch.manual_seed(4242)
         expected = torch.randn(3, dtype=DTYPE)
         torch.manual_seed(4242)
-        hsm.build_actor(seed=99)
-        hsm.build_twin_critics(seed=100)
+        hsm.build_actor(REFERENCE_CONFIG, seed=99)
+        hsm.build_twin_critics(REFERENCE_CONFIG, seed=100)
         produced = torch.randn(3, dtype=DTYPE)
         self.assertEqual(expected.numpy().tobytes(), produced.numpy().tobytes())
 
@@ -883,8 +981,8 @@ class DeterminismTest(ModelsTestBase):
         values = [
             float(
                 hsm.actor_objective(
-                    hsm.build_actor(seed=1234),
-                    hsm.build_twin_critics(seed=5678),
+                    hsm.build_actor(REFERENCE_CONFIG, seed=1234),
+                    hsm.build_twin_critics(REFERENCE_CONFIG, seed=5678),
                     self.state,
                     0.2,
                     0.05,

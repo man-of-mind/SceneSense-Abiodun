@@ -65,22 +65,22 @@ phase.
 Two deliberate engineering decisions
 ------------------------------------
 
-**Quantization delegates to the contract.**  :func:`quantize_q_e4` calls
-:func:`action_contract.round_half_up_q_e4` element-wise rather than
-reimplementing half-up rounding in vectorized tensor arithmetic.  This is not
-stylistic.  The contract rounds through the shortest round-tripping decimal
-representation, so ``q = 0.70005`` is a true decimal tie and must round *up*
-to ``7001``; the natural tensor form ``floor(10000 * q + 0.5)`` yields ``7000``
-even in float64, and disagrees on many more values in float32.  A second
-implementation of a registered wire rule that silently disagrees on ties is
-exactly the drift this repository fails closed against, so there is only one
-implementation and the tensor path defers to it.
+**Wire quantization remains exact.**  The selected action at the execution
+boundary is passed through :func:`action_contract.round_half_up_q_e4`, the
+single registered decimal half-up implementation.  Batched float32 samples
+inside an actor update use a vectorized implementation after promotion to
+float64.  Exhaustive threshold-neighbour tests pin that fast path to the
+contract for the representable float32 inputs a float32 actor can emit.  The
+float64 reference path continues to delegate element-wise to the contract,
+because a hand-authored decimal tie such as ``0.70005`` can otherwise expose
+binary multiplication rounding.
 
-**The default dtype is float64.**  ``torch.float32`` cannot hold a five-decimal
-tie such as ``0.70005`` exactly, so a float32 actor would destroy the very tie
-semantics the wire contract defines.  These networks are tiny and CPU-only, so
-double precision costs nothing that matters here and additionally tightens
-determinism.  float32 remains selectable and is documented as tie-lossy.
+**The default training dtype is float32.**  Decimal tie semantics belong at
+the wire boundary; a stochastic neural policy emits binary floating-point
+values, not authored decimal literals.  Float32 has substantially finer
+resolution than the ``1e-4`` wire grid and avoids making GPU training depend
+on slow FP64 arithmetic.  Float64 remains available as an audit/reference
+configuration.
 
 Scope boundary
 --------------
@@ -106,12 +106,14 @@ from torch.nn import functional as F
 from .action_contract import (
     EXPECTED_MODE_COUNT,
     Q_E4_MAX,
+    Q_E4_MIN,
     Q_E4_SCALE,
     Q_MAX,
     Q_MIN,
     round_half_up_q_e4,
 )
 from .state_reward_transition_contract import POLICY_FEATURE_COUNT
+from .transaction_identity import MINIMUM_HOLD_TENSORS
 
 __all__ = [
     "ActorHeads",
@@ -245,6 +247,38 @@ def _check_positive_alpha(value: float, name: str) -> float:
     return numeric
 
 
+def _check_normalized_q(q_normalized: Tensor, name: str) -> Tensor:
+    """Require a finite floating critic action coordinate in ``[0, 1]``."""
+    if not isinstance(q_normalized, Tensor) or not torch.is_floating_point(
+        q_normalized
+    ):
+        raise InvalidTensorError(
+            f"{name} must be a floating-point tensor, got "
+            f"{getattr(q_normalized, 'dtype', type(q_normalized).__name__)}"
+        )
+    _check_finite(q_normalized, name)
+    if bool(((q_normalized < 0.0) | (q_normalized > 1.0)).any()):
+        raise InvalidTensorError(f"{name} entries must lie in [0, 1]")
+    return q_normalized
+
+
+def _check_one_hot(mode_onehot: Tensor, name: str) -> Tensor:
+    """Reject malformed categorical critic inputs instead of normalizing them."""
+    if not isinstance(mode_onehot, Tensor) or not torch.is_floating_point(
+        mode_onehot
+    ):
+        raise InvalidTensorError(
+            f"{name} must be a floating-point one-hot tensor, got "
+            f"{getattr(mode_onehot, 'dtype', type(mode_onehot).__name__)}"
+        )
+    _check_finite(mode_onehot, name)
+    if not bool(((mode_onehot == 0.0) | (mode_onehot == 1.0)).all()):
+        raise InvalidTensorError(f"{name} must contain only exact 0/1 entries")
+    if not bool((mode_onehot.sum(dim=1) == 1.0).all()):
+        raise InvalidTensorError(f"{name} must contain exactly one active mode per row")
+    return mode_onehot
+
+
 # --------------------------------------------------------------------------- #
 # Deterministic construction
 # --------------------------------------------------------------------------- #
@@ -269,6 +303,31 @@ def _local_torch_seed(seed: Optional[int]) -> Iterator[None]:
         torch.set_rng_state(state)
 
 
+@contextmanager
+def _frozen_online_critic_parameters(
+    critics: "TwinHybridCritics",
+) -> Iterator[None]:
+    """Freeze critic weights during the actor forward, then restore them.
+
+    Autograd must still differentiate the critic output with respect to the
+    actor's continuous action.  Detaching the Q value would destroy that path.
+    Marking only the critic parameters non-trainable during this forward keeps
+    ``dQ/dq`` while preventing actor backward from allocating or accumulating
+    critic parameter gradients.
+    """
+    parameters = tuple(
+        list(critics.critic_1.parameters()) + list(critics.critic_2.parameters())
+    )
+    prior = tuple(parameter.requires_grad for parameter in parameters)
+    try:
+        for parameter in parameters:
+            parameter.requires_grad_(False)
+        yield
+    finally:
+        for parameter, requires_grad in zip(parameters, prior):
+            parameter.requires_grad_(requires_grad)
+
+
 @dataclass(frozen=True)
 class HybridSacModelConfig:
     """Shapes and bounds shared by the actor and the critics.
@@ -283,7 +342,7 @@ class HybridSacModelConfig:
     hidden_depth: int = HIDDEN_DEPTH
     log_std_min: float = LOG_STD_MIN
     log_std_max: float = LOG_STD_MAX
-    dtype: torch.dtype = torch.float64
+    dtype: torch.dtype = torch.float32
 
     def __post_init__(self) -> None:
         for name in ("state_dim", "mode_count", "hidden_width", "hidden_depth"):
@@ -333,12 +392,12 @@ def _mlp_trunk(
 
 
 def quantize_q_e4(q: Tensor) -> Tensor:
-    """Apply the registered wire quantization element-wise.
+    """Apply the canonical registered wire quantization element-wise.
 
-    Implements ``q_e4 = clip(round_half_up(10000 * q), 0, 9800)`` by delegating
-    to :func:`action_contract.round_half_up_q_e4`, which is the single
-    registered implementation of that rule.  See the module docstring for why
-    this is not reimplemented in vectorized tensor arithmetic.
+    This is the execution/replay-identity boundary and therefore delegates all
+    values to :func:`action_contract.round_half_up_q_e4`.  The batched actor
+    update uses :func:`_quantize_q_e4_training` below to avoid a device
+    synchronization and Python loop for every hypothetical mode.
 
     Args:
         q: A floating-point tensor of requested qualities, any shape.
@@ -359,10 +418,33 @@ def quantize_q_e4(q: Tensor) -> Tensor:
             f"q must be a floating-point tensor, got dtype {q.dtype}"
         )
     _check_finite(q, "q")
-    flat = q.detach().reshape(-1).double().tolist()
+    flat = q.detach().reshape(-1).to(torch.float64).tolist()
     quantized = [round_half_up_q_e4(value) for value in flat]
-    return torch.tensor(quantized, dtype=torch.long, device=q.device).reshape(
-        q.shape
+    return torch.tensor(quantized, dtype=torch.long, device=q.device).reshape(q.shape)
+
+
+def _quantize_q_e4_training(q: Tensor) -> Tensor:
+    """Vectorized quantization for hypothetical all-mode actor samples.
+
+    Default float32 samples are promoted *before* scaling; direct float32
+    multiplication can cross a half-grid boundary.  Tests exercise the two
+    neighboring float32 values around every one of the 9,800 half-grid
+    thresholds against the canonical contract.  The opt-in float64 reference
+    path retains the canonical implementation because authored decimal ties
+    can otherwise expose binary multiplication rounding.
+    """
+    if q.dtype == torch.float64:
+        return quantize_q_e4(q)
+    if not torch.is_floating_point(q):
+        raise InvalidTensorError(
+            f"q must be a floating-point tensor, got dtype {q.dtype}"
+        )
+    _check_finite(q, "q")
+    scaled = q.detach().to(torch.float64) * float(Q_E4_SCALE)
+    return (
+        torch.floor(scaled + 0.5)
+        .clamp(min=Q_E4_MIN, max=Q_E4_MAX)
+        .to(torch.long)
     )
 
 
@@ -393,7 +475,7 @@ def _straight_through_executed_normalized_q(
 
 
 def mode_one_hot(
-    mode_index: Tensor, mode_count: int = MODE_COUNT, dtype: torch.dtype = torch.float64
+    mode_index: Tensor, mode_count: int = MODE_COUNT, dtype: torch.dtype = torch.float32
 ) -> Tensor:
     """One-hot encode a ``(batch,)`` mode index tensor as ``(batch, mode_count)``."""
     if mode_index.dim() != 1:
@@ -404,6 +486,8 @@ def mode_one_hot(
         raise InvalidTensorError(
             f"mode_index must be an integer tensor, got dtype {mode_index.dtype}"
         )
+    if mode_index.numel() == 0:
+        raise InvalidTensorError("mode_index batch is empty")
     if int(mode_index.min()) < 0 or int(mode_index.max()) >= mode_count:
         raise InvalidTensorError(
             f"mode_index entries must lie in [0, {mode_count - 1}]"
@@ -559,7 +643,7 @@ class ConditionalHybridActor(nn.Module):
         # Guard the registered range against any floating-point overshoot; the
         # clamp is a no-op for finite pre-squash values.
         q = q.clamp(min=Q_MIN, max=Q_MAX)
-        q_e4 = quantize_q_e4(q)
+        q_e4 = _quantize_q_e4_training(q)
         log_prob_discrete = F.log_softmax(heads.logits, dim=-1)
         return ModeConditionalSample(
             pre_squash=pre_squash,
@@ -656,8 +740,8 @@ class HybridQCritic(nn.Module):
                 f"q_normalized must have shape ({state.shape[0]},), got "
                 f"{tuple(q_normalized.shape)}"
             )
-        _check_finite(mode_onehot, "mode_onehot")
-        _check_finite(q_normalized, "q_normalized")
+        _check_one_hot(mode_onehot, "mode_onehot")
+        _check_normalized_q(q_normalized, "q_normalized")
         features = torch.cat(
             [state, mode_onehot.to(state.dtype), q_normalized.unsqueeze(1)], dim=1
         )
@@ -678,7 +762,7 @@ class HybridQCritic(nn.Module):
                 f"q_normalized must have shape ({batch}, {modes}), got "
                 f"{tuple(q_normalized.shape)}"
             )
-        _check_finite(q_normalized, "q_normalized")
+        _check_normalized_q(q_normalized, "q_normalized")
         expanded_state = state.unsqueeze(1).expand(batch, modes, state.shape[1])
         identity = torch.eye(modes, dtype=state.dtype, device=state.device)
         expanded_modes = identity.unsqueeze(0).expand(batch, modes, modes)
@@ -821,6 +905,7 @@ def soft_state_value(
     )
 
 
+@torch.no_grad()
 def critic_target(
     reward: Tensor,
     done: Tensor,
@@ -840,7 +925,8 @@ def critic_target(
         done: ``(batch,)`` terminal flag in ``{0, 1}``.
         next_value: ``(batch,)`` enumerated soft value of ``s'``.
         gamma: Scalar discount in ``(0, 1]``.
-        duration: ``(batch,)`` integer-valued hold duration, each ``>= 1``.
+        duration: ``(batch,)`` integer-valued hold duration, each at least the
+            frozen action-hold minimum (currently two prepared tensors).
     """
     numeric_gamma = float(gamma)
     if not math.isfinite(numeric_gamma) or not 0.0 < numeric_gamma <= 1.0:
@@ -865,14 +951,35 @@ def critic_target(
             f"shape, got {tuple(reward.shape)}, {tuple(done.shape)}, "
             f"{tuple(next_value.shape)}, {tuple(duration.shape)}"
         )
+    if not torch.is_floating_point(reward):
+        raise InvalidTensorError(
+            f"reward must be floating point, got dtype {reward.dtype}"
+        )
+    if not torch.is_floating_point(next_value):
+        raise InvalidTensorError(
+            f"next_value must be floating point, got dtype {next_value.dtype}; "
+            "integer Bellman values would truncate gamma"
+        )
+    expected_device = next_value.device
+    for tensor, name in (
+        (reward, "reward"),
+        (done, "done"),
+        (duration, "duration"),
+    ):
+        if tensor.device != expected_device:
+            raise InvalidTensorError(
+                f"{name} must be on {expected_device} with next_value, got "
+                f"{tensor.device}"
+            )
     duration_float = duration.to(next_value.dtype)
     if not torch.equal(duration_float, torch.floor(duration_float)):
         raise InvalidHyperparameterError(
             "duration must be integer-valued (whole prepared-frame intervals)"
         )
-    if float(duration_float.min()) < 1.0:
+    if float(duration_float.min()) < float(MINIMUM_HOLD_TENSORS):
         raise InvalidHyperparameterError(
-            "duration must be at least 1 prepared-frame interval"
+            f"duration must be at least the frozen {MINIMUM_HOLD_TENSORS}-tensor "
+            "action hold"
         )
     done_float = done.to(next_value.dtype)
     if not torch.all((done_float == 0.0) | (done_float == 1.0)):
@@ -921,15 +1028,18 @@ def actor_objective(
     what the system would actually transmit while ``mu`` and ``log_std`` still
     receive gradient.
 
-    The returned objective is a quantity to **minimize**.  Critic parameters
-    appear in the graph; the caller must step only the actor's parameters.
+    The returned objective is a quantity to **minimize**.  Online critic
+    parameters are frozen only while this graph is built: gradients still flow
+    through ``Q`` with respect to the sampled continuous action, but actor
+    backward cannot populate or contaminate critic parameter gradients.
     """
     alpha_d = _check_positive_alpha(alpha_d, "alpha_d")
     alpha_c = _check_positive_alpha(alpha_c, "alpha_c")
     sample = actor.sample_all_modes(state, generator=generator)
-    min_q = critics.min_q_all_modes(
-        state, sample.q_normalized_straight_through
-    )
+    with _frozen_online_critic_parameters(critics):
+        min_q = critics.min_q_all_modes(
+            state, sample.q_normalized_straight_through
+        )
     per_mode_term = (
         alpha_d * sample.log_prob_discrete
         + alpha_c * sample.log_prob_continuous
