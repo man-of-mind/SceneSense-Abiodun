@@ -33,8 +33,10 @@ This store keeps them structurally separate:
 
 * :class:`ActionQualityAnchor` -- **action-level** perception quality and
   payload identity.  These are properties of the offline-validated action
-  alone; they were measured once per action and are byte-identical across all
-  four network profiles (the store verifies this rather than assuming it).
+  alone.  Source A measures them once per action; for the subset repeated by
+  source B, the store proves byte-identical agreement across all four network
+  profiles.  Fields not repeated by source B remain hash-bound source-A
+  evidence and are not misrepresented as independently cross-verified.
 * :class:`NetworkProfileOutcome` -- **cell-level** transport, admission,
   delivery and latency outcomes under one authored network profile.  These do
   vary by profile and are the only profile-conditioned evidence here.
@@ -216,6 +218,42 @@ _A_PAYLOAD_IDENTITY_FIELDS: Tuple[str, ...] = (
     "wire_layout",
     "zstd_level",
     "routing_tag",
+    "val_decoder_identity",
+)
+
+#: Registered numeric ``val_*`` columns.  Keeping this list explicit prevents
+#: an invalid NaN/Inf in a numeric quality field from being mistaken for an
+#: arbitrary raw-text field, while hashes, paths, booleans and gate strings
+#: remain preserved verbatim in ``raw_quality`` only.
+_A_NUMERIC_QUALITY_FIELDS: Tuple[str, ...] = (
+    "val_relative_preservation_count",
+    "val_absolute_service_count",
+    "val_localization_requirement_count",
+    "val_localization_requirements_evaluated",
+    "val_vehicle_precision",
+    "val_vehicle_recall",
+    "val_vehicle_f1",
+    "val_vehicle_xy_mae_m",
+    "val_vehicle_iou",
+    "val_canonical_person_precision",
+    "val_canonical_person_recall",
+    "val_canonical_person_f1",
+    "val_canonical_person_xy_mae_m",
+    "val_person_avo_precision",
+    "val_person_avo_recall",
+    "val_person_avo_f1",
+    "val_person_avo_xy_mae_m",
+    "val_person_avo_recall_0_30m",
+    "val_person_avo_recall_30_40m_diagnostic",
+    "val_person_box_mask_iou",
+    "val_foreground_miou",
+    "val_ratio_vs_dense_fp32_q0",
+    "val_ratio_vs_same_family_same_q_uint8",
+    "val_absolute_service_gates_passed",
+    "val_localization_gates_passed",
+    "val_localization_gates_evaluated",
+    "val_mask_accuracy",
+    "val_segmentation_miou",
 )
 
 #: Per-profile metric bases of source A; each appears as ``<base>__<PROFILE>``.
@@ -234,6 +272,18 @@ _A_PROFILE_RATE_FIELDS: Tuple[str, ...] = (
     "rate_on_time_100ms_per_sent",
     "rate_ack_500ms_per_sent",
     "rate_datagrams_received_per_transmitted",
+)
+
+#: Per-sent rates whose numerator counts are retained in source A.  Datagram
+#: reception is deliberately absent: its denominator is transmitted datagrams,
+#: which this aggregate file does not retain, not ``frames_sent``.
+_A_RATE_COUNT_FIELDS: Mapping[str, str] = MappingProxyType(
+    {
+        "rate_reassembled_per_sent": "edge_complete_reassemblies",
+        "rate_installed_per_sent": "maps_installed",
+        "rate_on_time_100ms_per_sent": "installed_within_100ms_service_reference",
+        "rate_ack_500ms_per_sent": "ack_within_500ms_timeout",
+    }
 )
 
 #: Per-profile measured scalars that may legitimately be absent.
@@ -263,6 +313,15 @@ _B_RATE_FIELDS: Tuple[str, ...] = (
     "rate_admitted_per_sent",
     "rate_installed_per_sent",
     "rate_useful_installations_per_sent",
+)
+
+_B_RATE_COUNT_FIELDS: Mapping[str, str] = MappingProxyType(
+    {
+        "rate_reassembled_per_sent": "measured_complete_reassemblies",
+        "rate_admitted_per_sent": "measured_edge_admissions",
+        "rate_installed_per_sent": "simulated_map_installs",
+        "rate_useful_installations_per_sent": "simulated_useful_newer_map_installs",
+    }
 )
 
 #: Cell-level map-service scalars of source B (optional; absent when no install).
@@ -362,7 +421,7 @@ class ReplayInsertionForbiddenError(AnchorStoreError):
 
 
 class PolicyObservationLeakError(AnchorStoreError):
-    """An authored network-profile label reached a policy observation."""
+    """Profile-conditioned aggregate evidence reached a policy observation."""
 
 
 # --------------------------------------------------------------------------- #
@@ -513,7 +572,7 @@ def exact_q_e4(q: Any) -> Optional[int]:
 
 
 def assert_no_forbidden_policy_observation(mapping: Mapping[str, Any]) -> None:
-    """Reject any mapping bound for a policy observation that names a profile.
+    """Recursively reject policy input carrying authored profile identity.
 
     ``DESIGN.md`` section 4 forbids the authored network-profile name as a v1
     policy input: it is testbed metadata the deployed UE cannot observe, and a
@@ -524,11 +583,24 @@ def assert_no_forbidden_policy_observation(mapping: Mapping[str, Any]) -> None:
     Raises:
         PolicyObservationLeakError: if any forbidden field is present.
     """
-    leaked = sorted(FORBIDDEN_POLICY_OBSERVATION_FIELDS.intersection(mapping))
+    leaked = []
+
+    def visit(value: Any, path: str) -> None:
+        if isinstance(value, Mapping):
+            for key, child in value.items():
+                child_path = f"{path}.{key}" if path else str(key)
+                if key in FORBIDDEN_POLICY_OBSERVATION_FIELDS:
+                    leaked.append(child_path)
+                visit(child, child_path)
+        elif isinstance(value, (tuple, list)):
+            for index, child in enumerate(value):
+                visit(child, f"{path}[{index}]")
+
+    visit(mapping, "")
     if leaked:
         raise PolicyObservationLeakError(
             f"authored network-profile identity may not be a policy "
-            f"observation; remove {leaked}"
+            f"observation; remove {sorted(leaked)}"
         )
 
 
@@ -570,6 +642,27 @@ class LatencyStat:
                     f"latency stage {self.stage!r}: zero support but {key} "
                     f"carries the value {value!r}",
                 )
+            if value is not None:
+                _finite(float(value), f"{self.stage}_{key}_ms", self.source)
+                _require(
+                    value >= 0.0,
+                    f"latency stage {self.stage!r}: {key} is negative: "
+                    f"{value!r}",
+                )
+
+        ordered = [
+            (key, self.percentiles_ms[key])
+            for key in ("p50", "p95", "p99")
+            if key in self.percentiles_ms
+        ]
+        for (lower_name, lower), (upper_name, upper) in zip(ordered, ordered[1:]):
+            if lower is not None and upper is not None:
+                _require(
+                    lower <= upper,
+                    f"latency stage {self.stage!r}: percentiles are not "
+                    f"ordered ({lower_name}={lower!r} > "
+                    f"{upper_name}={upper!r})",
+                )
 
     @property
     def observed(self) -> bool:
@@ -609,9 +702,11 @@ class ActionQualityAnchor:
     """Action-level perception quality and payload identity for one anchor.
 
     Everything here is a property of the action itself, measured offline
-    against CARLA ground truth.  None of it depends on the radio: the store
-    verifies that all four network-profile cells report byte-identical quality
-    before constructing this record.
+    against CARLA ground truth.  None of it depends on the radio.  Source A is
+    the authoritative action-level record; the store additionally proves that
+    every quality field repeated by source B is byte-identical in all four
+    network-profile cells.  It makes no cross-source claim for fields source B
+    does not carry.
 
     ``raw_quality`` holds every registered ``val_*`` field of the source row
     **verbatim as text**, so the exact recorded evidence -- including gate
@@ -666,11 +761,11 @@ class NetworkProfileOutcome:
     """Transport, admission, delivery and latency outcome for one campaign cell.
 
     This is the only profile-conditioned evidence in the store.  The authored
-    ``network_profile`` label is retained here for analysis and provenance, and
-    is simultaneously registered in
-    :data:`FORBIDDEN_POLICY_OBSERVATION_FIELDS`: it may describe a measurement
-    but may never become a policy feature.  Use :meth:`policy_safe_dict` at any
-    boundary that feeds a model.
+    ``network_profile`` label is retained here for analysis and provenance.  A
+    whole cell aggregate also fingerprints the authored profile through its
+    outcome values and row digest, even if that label is removed.  Therefore
+    no projection of this object is a valid policy observation;
+    :meth:`policy_safe_dict` exists only to refuse that conversion loudly.
 
     Two independent zero-delivery facts are preserved, because the two sources
     measure different things and disagree in count (66 cells versus 46):
@@ -715,17 +810,22 @@ class NetworkProfileOutcome:
         return self.latency[stage]
 
     def policy_safe_dict(self) -> Dict[str, Any]:
-        """This outcome with every forbidden policy-observation field removed.
+        """Always refuse conversion of this aggregate to policy input.
 
-        The authored ``network_profile`` and the ``cell_id`` that embeds it are
-        stripped.  The result still describes a measured aggregate and remains
-        inadmissible as a causal transition.
+        Removing ``network_profile`` and ``cell_id`` is insufficient: the
+        profile-specific outcomes and the unique source-row digest still
+        fingerprint the authored condition.  A later policy feature builder
+        must start from causal runtime measurements, not sanitize this
+        aggregate.
+
+        Raises:
+            PolicyObservationLeakError: unconditionally.
         """
-        payload = self.to_canonical_dict()
-        for forbidden in FORBIDDEN_POLICY_OBSERVATION_FIELDS:
-            payload.pop(forbidden, None)
-        assert_no_forbidden_policy_observation(payload)
-        return payload
+        raise PolicyObservationLeakError(
+            "NetworkProfileOutcome is a profile-conditioned campaign-cell "
+            "aggregate; no policy-safe projection exists. Build policy state "
+            "from causal runtime measurements instead."
+        )
 
     def to_canonical_dict(self) -> Dict[str, Any]:
         """Deterministic serializable form."""
@@ -1047,8 +1147,10 @@ class AnchorEvidenceStore:
         summary_header: Sequence[str], latency_header: Sequence[str]
     ) -> None:
         """Require every registered column in both sources."""
-        summary_required = list(_A_IDENTITY_FIELDS) + list(
-            _A_PAYLOAD_IDENTITY_FIELDS
+        summary_required = (
+            list(_A_IDENTITY_FIELDS)
+            + list(_A_PAYLOAD_IDENTITY_FIELDS)
+            + list(_A_NUMERIC_QUALITY_FIELDS)
         )
         per_profile_bases = (
             list(_A_PROFILE_COUNT_FIELDS)
@@ -1268,6 +1370,29 @@ class AnchorEvidenceStore:
             f"{where}: keep+drop does not reconcile to {SPATIAL_CELLS} cells",
         )
 
+        observed_payload = (
+            _parse_optional_int(summary_row, "bit_width", where),
+            _parse_optional_int(summary_row, "latent_width", where),
+            _cell(summary_row, "wire_layout", where),
+            _parse_int(summary_row, "zstd_level", where),
+            _parse_int(summary_row, "routing_tag", where),
+            _cell(summary_row, "val_decoder_identity", where),
+        )
+        expected_payload = (
+            anchor.mode.bit_width,
+            anchor.mode.latent_width,
+            anchor.mode.wire_layout,
+            anchor.mode.zstd_level,
+            anchor.mode.routing_tag,
+            anchor.mode.decoder_identity,
+        )
+        if observed_payload != expected_payload:
+            raise EvidenceInventoryError(
+                f"{where}: payload identity does not reconcile with the "
+                f"frozen catalog: source {observed_payload} vs catalog "
+                f"{expected_payload}"
+            )
+
         for profile, row in cell_rows.items():
             cell_where = (
                 f"{SOURCE_PROFILE_LATENCY} action_id={anchor.action_id} "
@@ -1372,18 +1497,20 @@ class AnchorEvidenceStore:
                     f"the network profile",
                 )
 
-        quality_metrics = {}
-        for name, text in raw_quality.items():
-            stripped = text.strip()
+        quality_metrics: Dict[str, Optional[float]] = {}
+        for name in _A_NUMERIC_QUALITY_FIELDS:
+            stripped = _cell(summary_row, name, where).strip()
             if stripped == "":
                 quality_metrics[name] = None
                 continue
             try:
-                quality_metrics[name] = _finite(float(stripped), name, where)
-            except (ValueError, EvidenceIntegrityError):
-                # Non-numeric registered evidence (gate strings, digests,
-                # paths, booleans) stays in raw_quality only.
-                continue
+                parsed = float(stripped)
+            except ValueError as exc:
+                raise EvidenceIntegrityError(
+                    f"{where}: registered numeric quality field {name!r} is "
+                    f"not a float: {stripped!r}"
+                ) from exc
+            quality_metrics[name] = _finite(parsed, name, where)
 
         # Derived presentation quantities from source B.  DESIGN.md and the
         # analysis artifact both label these presentation coordinates, not a
@@ -1419,6 +1546,9 @@ class AnchorEvidenceStore:
             "wire_layout": _cell(summary_row, "wire_layout", where),
             "zstd_level": _parse_int(summary_row, "zstd_level", where),
             "routing_tag": _parse_int(summary_row, "routing_tag", where),
+            "decoder_identity": _cell(
+                summary_row, "val_decoder_identity", where
+            ),
         }
 
         return ActionQualityAnchor(
@@ -1492,10 +1622,73 @@ class AnchorEvidenceStore:
 
         for name, value in counts.items():
             _require(value >= 0, f"{where}: count {name!r} is negative: {value}")
+            _require(
+                value <= frames_sent,
+                f"{where}: count {name!r}={value} exceeds frames_sent="
+                f"{frames_sent}",
+            )
+
+        # Counts are not independent.  These partial orders are part of each
+        # source's stated pipeline and prevent individually plausible but
+        # jointly impossible rows from binding.
+        _require(
+            counts["replay_v3__measured_edge_admissions"]
+            <= counts["replay_v3__measured_complete_reassemblies"],
+            f"{where}: replay edge admissions exceed complete reassemblies",
+        )
+        _require(
+            counts["replay_v3__scheduler_arrivals_observed"]
+            + counts["replay_v3__scheduler_arrivals_imputed"]
+            == counts["replay_v3__measured_edge_admissions"],
+            f"{where}: observed+imputed scheduler arrivals do not equal edge "
+            f"admissions",
+        )
+        _require(
+            counts["replay_v3__simulated_compute_completions"]
+            <= counts["replay_v3__measured_edge_admissions"],
+            f"{where}: replay compute completions exceed edge admissions",
+        )
+        _require(
+            counts["replay_v3__model_ready_timing_samples"]
+            == counts["replay_v3__simulated_compute_completions"],
+            f"{where}: model-ready timing support disagrees with compute "
+            f"completions",
+        )
+        _require(
+            counts["replay_v3__simulated_map_installs"]
+            <= counts["replay_v3__simulated_compute_completions"],
+            f"{where}: replay map installs exceed compute completions",
+        )
+        _require(
+            counts["replay_v3__simulated_useful_newer_map_installs"]
+            <= counts["replay_v3__simulated_map_installs"],
+            f"{where}: useful replay map installs exceed all replay installs",
+        )
+        _require(
+            counts["live__maps_installed"]
+            <= counts["live__edge_complete_reassemblies"],
+            f"{where}: live map installs exceed complete reassemblies",
+        )
+        _require(
+            counts["live__installed_within_100ms_service_reference"]
+            <= counts["live__maps_installed"],
+            f"{where}: live on-time installs exceed all map installs",
+        )
+        _require(
+            counts["live__ack_within_500ms_timeout"]
+            <= counts["live__maps_installed"],
+            f"{where}: live ACKs within 500 ms exceed map installs",
+        )
 
         terminal_counts = {
             name: _parse_int(cell_row, name, where) for name in _B_TERMINAL_FIELDS
         }
+        for name, value in terminal_counts.items():
+            _require(
+                0 <= value <= frames_sent,
+                f"{where}: terminal count {name!r}={value} is outside "
+                f"[0, {frames_sent}]",
+            )
         terminal_total = sum(terminal_counts.values())
         _require(
             terminal_total == frames_sent,
@@ -1505,8 +1698,8 @@ class AnchorEvidenceStore:
 
         denominators = {
             "frames_sent": frames_sent,
-            "replay_v3__rate_denominator": frames_sent,
-            "live__rate_denominator": frames_sent,
+            "replay_v3__per_sent_rate_denominator": frames_sent,
+            "live__per_sent_rate_denominator": frames_sent,
             "terminal_denominator": frames_sent,
         }
 
@@ -1519,6 +1712,32 @@ class AnchorEvidenceStore:
             rates[f"live__{name}"] = _parse_optional_float(
                 summary_row, f"{name}__{profile}", a_where
             )
+        for qualified_name, value in rates.items():
+            _require(
+                value is not None,
+                f"{where}: registered rate {qualified_name!r} is absent",
+            )
+            _require(
+                0.0 <= value <= 1.0,
+                f"{where}: rate {qualified_name!r}={value!r} is outside "
+                f"[0, 1]",
+            )
+        for rate_name, count_name in _B_RATE_COUNT_FIELDS.items():
+            observed_rate = rates[f"replay_v3__{rate_name}"]
+            expected_rate = counts[f"replay_v3__{count_name}"] / frames_sent
+            _require(
+                observed_rate == expected_rate,
+                f"{where}: replay rate {rate_name!r}={observed_rate!r} does "
+                f"not equal {count_name}/frames_sent={expected_rate!r}",
+            )
+        for rate_name, count_name in _A_RATE_COUNT_FIELDS.items():
+            observed_rate = rates[f"live__{rate_name}"]
+            expected_rate = counts[f"live__{count_name}"] / frames_sent
+            _require(
+                observed_rate == expected_rate,
+                f"{a_where}: live rate {rate_name!r}={observed_rate!r} does "
+                f"not equal {count_name}/frames_sent={expected_rate!r}",
+            )
 
         measured_payload_bytes: Dict[str, Optional[float]] = {
             "replay_v3__median_payload_bytes": _parse_optional_float(
@@ -1528,6 +1747,28 @@ class AnchorEvidenceStore:
         for name in _A_PROFILE_OPTIONAL_FLOAT_FIELDS:
             measured_payload_bytes[f"live__{name}"] = _parse_optional_float(
                 summary_row, f"{name}__{profile}", a_where
+            )
+        for name in (
+            "replay_v3__median_payload_bytes",
+            "live__live_scientific_inner_bytes_median",
+            "live__live_estimated_wire_bytes_median",
+            "live__live_datagrams_per_message_median",
+        ):
+            value = measured_payload_bytes[name]
+            if value is not None:
+                _require(
+                    value >= 0.0,
+                    f"{where}: measured payload scalar {name!r} is negative: "
+                    f"{value!r}",
+                )
+        preparation_coverage = measured_payload_bytes[
+            "live__sensor_preparation_coverage"
+        ]
+        if preparation_coverage is not None:
+            _require(
+                0.0 <= preparation_coverage <= 1.0,
+                f"{where}: sensor preparation coverage "
+                f"{preparation_coverage!r} is outside [0, 1]",
             )
 
         map_service = {
@@ -1539,6 +1780,21 @@ class AnchorEvidenceStore:
                 cell_row, "scheduler_arrival_causal_floor_frames", where
             )
         )
+        for name, value in map_service.items():
+            if value is None:
+                continue
+            if name.endswith("_fraction"):
+                _require(
+                    0.0 <= value <= 1.0,
+                    f"{where}: map-service fraction {name!r}={value!r} is "
+                    f"outside [0, 1]",
+                )
+            else:
+                _require(
+                    value >= 0.0,
+                    f"{where}: map-service scalar {name!r} is negative: "
+                    f"{value!r}",
+                )
 
         latency: Dict[str, LatencyStat] = {}
         for stage in _B_LATENCY_STAGES:

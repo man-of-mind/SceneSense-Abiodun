@@ -290,6 +290,14 @@ class IdentityReconciliationTest(AnchorStoreTestBase):
                 payload["keep_count"] + payload["drop_count"], ac.SPATIAL_CELLS
             )
             self.assertEqual(payload["spatial_cells"], ac.SPATIAL_CELLS)
+            self.assertEqual(payload["bit_width"], anchor.mode.bit_width)
+            self.assertEqual(payload["latent_width"], anchor.mode.latent_width)
+            self.assertEqual(payload["wire_layout"], anchor.mode.wire_layout)
+            self.assertEqual(payload["zstd_level"], anchor.mode.zstd_level)
+            self.assertEqual(payload["routing_tag"], anchor.mode.routing_tag)
+            self.assertEqual(
+                payload["decoder_identity"], anchor.mode.decoder_identity
+            )
 
     def test_action_identity_drift_is_rejected(self) -> None:
         rows = _thawed(self.summary_rows)
@@ -311,6 +319,23 @@ class IdentityReconciliationTest(AnchorStoreTestBase):
         with self.assertRaises(st.EvidenceIntegrityError) as caught:
             self.rebind(latency_rows=rows)
         self.assertIn("catalog anchor", str(caught.exception))
+
+    def test_payload_identity_drift_is_rejected(self) -> None:
+        mutations = {
+            "bit_width": "4",
+            "latent_width": "999",
+            "wire_layout": "FOREIGN_LAYOUT",
+            "zstd_level": "9",
+            "routing_tag": "999",
+            "val_decoder_identity": "FOREIGN_DECODER",
+        }
+        for column, value in mutations.items():
+            with self.subTest(column=column):
+                rows = _thawed(self.summary_rows)
+                rows[0][column] = value
+                with self.assertRaises(st.EvidenceInventoryError) as caught:
+                    self.rebind(summary_rows=rows)
+                self.assertIn("payload identity", str(caught.exception))
 
 
 class QualitySeparationTest(AnchorStoreTestBase):
@@ -358,6 +383,21 @@ class QualitySeparationTest(AnchorStoreTestBase):
         self.assertIn("val_vehicle_iou", message)
         self.assertIn("must not depend on", message)
 
+    def test_nonfinite_numeric_quality_is_rejected_not_treated_as_text(self) -> None:
+        for invalid in ("NaN", "Infinity", "-Infinity"):
+            with self.subTest(invalid=invalid):
+                summary_rows = _thawed(self.summary_rows)
+                latency_rows = _thawed(self.latency_rows)
+                summary_rows[0]["val_vehicle_iou"] = invalid
+                for row in latency_rows:
+                    if row["action_id"] == "0":
+                        row["val_vehicle_iou"] = invalid
+                with self.assertRaises(st.EvidenceIntegrityError) as caught:
+                    self.rebind(
+                        summary_rows=summary_rows, latency_rows=latency_rows
+                    )
+                self.assertIn("not finite", str(caught.exception))
+
     def test_authored_profile_label_is_not_a_policy_observation(self) -> None:
         outcome = self.store.by_action_id(0).outcome("ADVERSE_STABLE")
         full = outcome.to_canonical_dict()
@@ -365,12 +405,21 @@ class QualitySeparationTest(AnchorStoreTestBase):
         with self.assertRaises(st.PolicyObservationLeakError):
             st.assert_no_forbidden_policy_observation(full)
 
-        safe = outcome.policy_safe_dict()
-        self.assertNotIn("network_profile", safe)
-        self.assertNotIn("cell_id", safe)
-        st.assert_no_forbidden_policy_observation(safe)
-        # The measured content itself is untouched by the guard.
-        self.assertEqual(safe["counts"], full["counts"])
+        with self.assertRaises(st.PolicyObservationLeakError) as caught:
+            outcome.policy_safe_dict()
+        self.assertIn("no policy-safe projection", str(caught.exception))
+
+    def test_policy_observation_guard_is_recursive(self) -> None:
+        st.assert_no_forbidden_policy_observation(
+            {"runtime": {"snr_db": 12.0}, "history": [{"mcs": 19}]}
+        )
+        for payload in (
+            {"nested": {"network_profile": "FAVORABLE_STABLE"}},
+            {"history": [{"cell_id": "a0__favorable_stable"}]},
+        ):
+            with self.subTest(payload=payload):
+                with self.assertRaises(st.PolicyObservationLeakError):
+                    st.assert_no_forbidden_policy_observation(payload)
 
 
 class ZeroDeliveryTest(AnchorStoreTestBase):
@@ -430,6 +479,49 @@ class ZeroDeliveryTest(AnchorStoreTestBase):
         with self.assertRaises(st.EvidenceIntegrityError) as caught:
             self.rebind(summary_rows=rows)
         self.assertIn("zero_delivery", str(caught.exception))
+
+
+class CountAndRateIntegrityTest(AnchorStoreTestBase):
+    """Counts, per-sent rates and denominators retain their real semantics."""
+
+    def test_count_larger_than_sent_is_rejected(self) -> None:
+        rows = _thawed(self.latency_rows)
+        rows[0]["scheduler_arrivals_observed"] = str(
+            int(rows[0]["frames_sent"]) + 1
+        )
+        with self.assertRaises(st.EvidenceIntegrityError) as caught:
+            self.rebind(latency_rows=rows)
+        self.assertIn("exceeds frames_sent", str(caught.exception))
+
+    def test_rate_outside_unit_interval_is_rejected(self) -> None:
+        rows = _thawed(self.summary_rows)
+        rows[0][
+            "rate_datagrams_received_per_transmitted__FAVORABLE_STABLE"
+        ] = "1.000001"
+        with self.assertRaises(st.EvidenceIntegrityError) as caught:
+            self.rebind(summary_rows=rows)
+        self.assertIn("outside [0, 1]", str(caught.exception))
+
+    def test_per_sent_rate_must_equal_count_over_sent(self) -> None:
+        rows = _thawed(self.latency_rows)
+        rows[0]["rate_reassembled_per_sent"] = "0.123456"
+        with self.assertRaises(st.EvidenceIntegrityError) as caught:
+            self.rebind(latency_rows=rows)
+        self.assertIn("does not equal", str(caught.exception))
+
+    def test_datagram_rate_is_not_mislabelled_with_frame_denominator(self) -> None:
+        outcome = self.store.by_action_id(0).outcome("FAVORABLE_STABLE")
+        self.assertIn(
+            "live__rate_datagrams_received_per_transmitted", outcome.rates
+        )
+        self.assertIn(
+            "live__per_sent_rate_denominator", outcome.denominators
+        )
+        self.assertNotIn("live__rate_denominator", outcome.denominators)
+        self.assertFalse(
+            any("datagram" in name for name in outcome.denominators),
+            "the source retains no transmitted-datagram denominator",
+        )
 
 
 class MissingLatencyTest(AnchorStoreTestBase):
@@ -496,6 +588,34 @@ class MissingLatencyTest(AnchorStoreTestBase):
                 support=-1,
                 percentiles_ms={},
             )
+
+    def test_latency_stat_rejects_negative_or_unordered_percentiles(self) -> None:
+        with self.assertRaises(st.EvidenceIntegrityError) as negative:
+            st.LatencyStat(
+                stage="network",
+                source=st.SOURCE_PROFILE_LATENCY,
+                support=12,
+                percentiles_ms={"p50": -0.1, "p95": 1.0, "p99": 2.0},
+            )
+        self.assertIn("negative", str(negative.exception))
+
+        with self.assertRaises(st.EvidenceIntegrityError) as unordered:
+            st.LatencyStat(
+                stage="network",
+                source=st.SOURCE_PROFILE_LATENCY,
+                support=12,
+                percentiles_ms={"p50": 2.0, "p95": 1.0, "p99": 3.0},
+            )
+        self.assertIn("not ordered", str(unordered.exception))
+
+    def test_mutated_unordered_latency_row_is_rejected(self) -> None:
+        rows = _thawed(self.latency_rows)
+        rows[0]["ue_action_p50_ms"] = "10.0"
+        rows[0]["ue_action_p95_ms"] = "5.0"
+        rows[0]["ue_action_p99_ms"] = "20.0"
+        with self.assertRaises(st.EvidenceIntegrityError) as caught:
+            self.rebind(latency_rows=rows)
+        self.assertIn("not ordered", str(caught.exception))
 
     def test_latency_support_drift_is_rejected(self) -> None:
         rows = _thawed(self.latency_rows)
