@@ -5,12 +5,17 @@ from __future__ import annotations
 
 import numpy as np
 import torch
+import cv2
 
 from pole_lraspp_multimodal_fusion.pole_lraspp_multimodal_fusion import radar_fusion
 from rl_agent.splitfusion_live_dispatch_v1.live_pilot_runtime import _prepare_live_input
 from rl_agent.splitfusion_supervisor_analysis_v1.profiled_sensor_stages import (
     build_radar_sample_profiled,
     prepare_live_input_profiled,
+    profile_current_sweep_p40,
+)
+from rl_agent.splitfusion_hybrid_sac_v1.scene_descriptors import (
+    camera_spatial_information,
 )
 from rl_agent.splitfusion_supervisor_analysis_v1.run_sensor_preparation_cell_v1 import (
     clock_bridge,
@@ -103,6 +108,77 @@ def test_cached_normalization_constants_are_exact() -> None:
     )
     torch.testing.assert_close(actual, expected, rtol=0.0, atol=0.0)
     assert measurements["profile_cuda_substage_synchronizations"] == 0.0
+
+
+def test_scene_si_is_read_only_and_uses_prepared_resolution() -> None:
+    rng = np.random.default_rng(713)
+    frame = rng.integers(0, 256, size=(720, 1280, 3), dtype=np.uint8)
+    radar = rng.normal(size=(4, 448, 768)).astype(np.float32)
+    expected = _prepare_live_input(frame, radar, torch.device("cpu"))
+    actual, measurements = prepare_live_input_profiled(
+        frame,
+        radar,
+        torch.device("cpu"),
+        skip_identity_radar_resize=True,
+        scene_descriptor_enabled=True,
+    )
+    torch.testing.assert_close(actual, expected, rtol=0.0, atol=0.0)
+    rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    rgb = cv2.resize(rgb, (768, 448), interpolation=cv2.INTER_LINEAR)
+    expected_si = camera_spatial_information(
+        cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY)
+    )
+    assert measurements["camera_si"] == expected_si
+    assert measurements["scene_descriptor_camera_status"] == "VALID"
+    assert measurements["profile_scene_luma_ms"] >= 0.0
+    assert measurements["profile_scene_si_ms"] >= 0.0
+
+
+def test_scene_descriptor_off_does_no_camera_work() -> None:
+    frame = np.zeros((720, 1280, 3), dtype=np.uint8)
+    radar = np.zeros((4, 448, 768), dtype=np.float32)
+    _actual, measurements = prepare_live_input_profiled(
+        frame,
+        radar,
+        torch.device("cpu"),
+        skip_identity_radar_resize=True,
+        scene_descriptor_enabled=False,
+    )
+    assert "camera_si" not in measurements
+    assert "scene_descriptor_camera_status" not in measurements
+    assert measurements["profile_scene_luma_ms"] == 0.0
+    assert measurements["profile_scene_si_ms"] == 0.0
+
+
+def test_p40_uses_only_current_100ms_sweep() -> None:
+    metadata = {
+        "raw_provenance": {
+            "original_range_m": np.asarray(
+                [10.0, 20.0, 1.0, 2.0], dtype=np.float32
+            ),
+            # The close 1/2-m returns belong to the previous sweep and must
+            # not influence the current-scene descriptor.
+            "sweep_offset": np.asarray([0, 0, 1, 1], dtype=np.uint8),
+        }
+    }
+    result = profile_current_sweep_p40(metadata, enabled=True)
+    assert result["scene_descriptor_radar_status"] == "VALID"
+    assert result["scene_descriptor_current_sweep_returns"] == 2
+    assert result["radar_p40"] == (0.75 + 0.5) / 2.0
+    assert result["profile_scene_p40_ms"] >= 0.0
+
+
+def test_p40_missing_current_sweep_is_explicit_not_zero() -> None:
+    metadata = {
+        "raw_provenance": {
+            "original_range_m": np.asarray([5.0], dtype=np.float32),
+            "sweep_offset": np.asarray([1], dtype=np.uint8),
+        }
+    }
+    result = profile_current_sweep_p40(metadata, enabled=True)
+    assert result["scene_descriptor_radar_status"] == "RadarUnavailableError"
+    assert result["radar_p40"] == ""
+    assert result["scene_descriptor_current_sweep_returns"] == 0
 
 
 def test_complete_publication_join_requires_every_boundary() -> None:

@@ -30,6 +30,11 @@ from rl_agent.splitfusion_live_dispatch_v1 import live_pilot_runtime as live_bas
 from rl_agent.splitfusion_supervisor_analysis_v1.profiled_sensor_stages import (  # noqa: E402
     build_radar_sample_profiled,
     prepare_live_input_profiled,
+    profile_current_sweep_p40,
+)
+from rl_agent.splitfusion_hybrid_sac_v1.scene_descriptors import (  # noqa: E402
+    SCHEMA_ID as SCENE_DESCRIPTOR_SCHEMA_ID,
+    SCHEMA_SHA256 as SCENE_DESCRIPTOR_SCHEMA_SHA256,
 )
 from rl_agent.splitfusion_sensor_optimization_v1.optimized_stages import (  # noqa: E402
     CudaRadarRasterizer,
@@ -44,6 +49,8 @@ OPTIMIZED_MODE = "OPTIMIZED_SENSOR_PREPARATION"
 # rasterizer, and the identity radar-resize short circuit.
 OPTIMIZED_V2_MODE = "OPTIMIZED_SENSOR_PREPARATION_V2"
 OPTIMIZED_MODES = (OPTIMIZED_MODE, OPTIMIZED_V2_MODE)
+SCENE_DESCRIPTOR_OFF = "OFF"
+SCENE_DESCRIPTOR_ON = "SI_P40_V1"
 PROFILE_FIELDS = (
     "sensor_profile_mode",
     "profile_rgb_callback_ms",
@@ -83,6 +90,21 @@ PROFILE_FIELDS = (
     "profile_radar_evidence_exact",
     "profile_model_input_exact",
     "profile_equivalence_checked",
+    "scene_descriptor_mode",
+    "scene_descriptor_schema_id",
+    "scene_descriptor_schema_sha256",
+    "scene_descriptor_status",
+    "scene_descriptor_camera_status",
+    "scene_descriptor_camera_error",
+    "scene_descriptor_radar_status",
+    "scene_descriptor_radar_error",
+    "scene_descriptor_current_sweep_returns",
+    "camera_si",
+    "radar_p40",
+    "profile_scene_luma_ms",
+    "profile_scene_si_ms",
+    "profile_scene_p40_ms",
+    "profile_scene_descriptor_total_ms",
     "ue_clock_anchor_wall_ns",
     "ue_clock_anchor_perf_ns",
 )
@@ -197,6 +219,10 @@ def _profiled_prepare(
         skip_identity_radar_resize=bool(
             getattr(collector, "_mode", "") == OPTIMIZED_V2_MODE
         ),
+        scene_descriptor_enabled=bool(
+            getattr(collector, "_scene_descriptor_mode", SCENE_DESCRIPTOR_OFF)
+            == SCENE_DESCRIPTOR_ON
+        ),
     )
     frame_id = _RECORDER.current()
     checked = bool(
@@ -250,12 +276,40 @@ class ProfiledPassiveSplitCollector(pinned.PassiveSplitCollector):
         global _RECORDER
         _RECORDER = self._recorder
         self._equivalence_frames = int(contract.get("equivalence_frames", 8))
+        self._scene_descriptor_mode = str(
+            contract.get("scene_descriptor_mode") or SCENE_DESCRIPTOR_OFF
+        )
+        pinned.require(
+            self._scene_descriptor_mode
+            in {SCENE_DESCRIPTOR_OFF, SCENE_DESCRIPTOR_ON},
+            "unsupported scene-descriptor profiling mode: "
+            f"{self._scene_descriptor_mode!r}",
+        )
         pinned.require(
             1 <= self._equivalence_frames <= 32,
             "live equivalence frame count must be in [1, 32]",
         )
         self._equivalence_seen = 0
         super().__init__(**kwargs)
+        original_window_detections = self.aggregator.window_detections
+
+        def window_detections_with_scene_descriptor(
+            *args: Any, **window_kwargs: Any
+        ) -> Any:
+            detections, window_meta = original_window_detections(
+                *args, **window_kwargs
+            )
+            self._recorder.add(
+                profile_current_sweep_p40(
+                    window_meta,
+                    enabled=self._scene_descriptor_mode == SCENE_DESCRIPTOR_ON,
+                )
+            )
+            return detections, window_meta
+
+        self.aggregator.window_detections = (  # type: ignore[method-assign]
+            window_detections_with_scene_descriptor
+        )
         self._normalization_constants: tuple[torch.Tensor, torch.Tensor] | None = None
         if self._mode in OPTIMIZED_MODES:
             self._normalization_constants = (
@@ -401,6 +455,9 @@ class ProfiledPassiveSplitCollector(pinned.PassiveSplitCollector):
         self._recorder.add(
             {
                 "sensor_profile_mode": self._mode,
+                "scene_descriptor_mode": self._scene_descriptor_mode,
+                "scene_descriptor_schema_id": SCENE_DESCRIPTOR_SCHEMA_ID,
+                "scene_descriptor_schema_sha256": SCENE_DESCRIPTOR_SCHEMA_SHA256,
                 "ue_clock_anchor_wall_ns": clock_anchor_wall_ns,
                 "ue_clock_anchor_perf_ns": clock_anchor_perf_ns,
                 "profile_worker_cpu": _current_cpu(),
@@ -473,6 +530,23 @@ class ProfiledPassiveSplitCollector(pinned.PassiveSplitCollector):
                     values["profile_sensor_compute_diagnostic_wall_ms"] = (
                         sensor_base + diagnostic
                     )
+                    values["profile_scene_descriptor_total_ms"] = sum(
+                        float(values.get(name) or 0.0)
+                        for name in (
+                            "profile_scene_luma_ms",
+                            "profile_scene_si_ms",
+                            "profile_scene_p40_ms",
+                        )
+                    )
+                    if self._scene_descriptor_mode == SCENE_DESCRIPTOR_OFF:
+                        values["scene_descriptor_status"] = "DISABLED"
+                    elif (
+                        values.get("scene_descriptor_camera_status") == "VALID"
+                        and values.get("scene_descriptor_radar_status") == "VALID"
+                    ):
+                        values["scene_descriptor_status"] = "VALID"
+                    else:
+                        values["scene_descriptor_status"] = "INVALID"
                     checked = self._equivalence_seen < self._equivalence_frames
                     values["profile_equivalence_checked"] = bool(checked)
                     if checked and row.get("prepare_status") == "SENT":
@@ -495,6 +569,11 @@ def install_sensor_profile_seams(campaign: Mapping[str, Any]) -> None:
     pinned.require(
         contract.get("mode") in {BASELINE_MODE, *OPTIMIZED_MODES},
         "supported sensor-profile mode is required",
+    )
+    pinned.require(
+        str(contract.get("scene_descriptor_mode") or SCENE_DESCRIPTOR_OFF)
+        in {SCENE_DESCRIPTOR_OFF, SCENE_DESCRIPTOR_ON},
+        "supported scene-descriptor profiling mode is required",
     )
     global _RECORDER
     _RECORDER = None

@@ -15,6 +15,13 @@ import numpy as np
 import torch
 
 from pole_lraspp_multimodal_fusion.pole_lraspp_multimodal_fusion import radar_fusion
+from rl_agent.splitfusion_hybrid_sac_v1.scene_descriptors import (
+    SCHEMA_ID as SCENE_DESCRIPTOR_SCHEMA_ID,
+    SCHEMA_SHA256 as SCENE_DESCRIPTOR_SCHEMA_SHA256,
+    SceneDescriptorError,
+    camera_spatial_information,
+    radar_proximity_p40,
+)
 from rl_agent.splitfusion_sensor_optimization_v1.optimized_stages import (
     radar_channels_already_sized,
 )
@@ -22,6 +29,55 @@ from rl_agent.splitfusion_sensor_optimization_v1.optimized_stages import (
 
 def _elapsed_ms(start_ns: int) -> float:
     return (time.perf_counter_ns() - start_ns) / 1e6
+
+
+def profile_current_sweep_p40(
+    window_meta: Any,
+    *,
+    enabled: bool,
+) -> dict[str, Any]:
+    """Profile P40 from only the current non-overlapping 100-ms sweep.
+
+    ``window_meta`` also describes the two-sweep/200-ms model window.  The
+    descriptor contract is intentionally narrower, so this function filters
+    raw provenance by ``sweep_offset == 0`` before invoking the frozen P40
+    implementation.  Missing or malformed radar is explicit and is never
+    converted to a numeric zero.
+    """
+
+    if not enabled:
+        return {
+            "radar_p40": "",
+            "profile_scene_p40_ms": 0.0,
+            "scene_descriptor_radar_status": "DISABLED",
+            "scene_descriptor_radar_error": "",
+            "scene_descriptor_current_sweep_returns": "",
+        }
+    started = time.perf_counter_ns()
+    try:
+        provenance = window_meta["raw_provenance"]
+        ranges = np.asarray(provenance["original_range_m"])
+        offsets = np.asarray(provenance["sweep_offset"])
+        if ranges.ndim != 1 or offsets.ndim != 1 or ranges.shape != offsets.shape:
+            raise ValueError(
+                "raw radar provenance range/sweep-offset vectors are not aligned"
+            )
+        current = ranges[offsets == 0]
+        value = radar_proximity_p40(current)
+        status = "VALID"
+        error = ""
+    except (KeyError, TypeError, ValueError, SceneDescriptorError) as exc:
+        current = np.asarray([], dtype=np.float32)
+        value = ""
+        status = type(exc).__name__
+        error = str(exc)
+    return {
+        "radar_p40": value,
+        "profile_scene_p40_ms": _elapsed_ms(started),
+        "scene_descriptor_radar_status": status,
+        "scene_descriptor_radar_error": error,
+        "scene_descriptor_current_sweep_returns": int(current.size),
+    }
 
 
 def build_radar_sample_profiled(**kwargs: Any) -> tuple[np.ndarray, dict[str, np.ndarray], dict[str, float]]:
@@ -158,7 +214,8 @@ def prepare_live_input_profiled(
     device: torch.device,
     normalization_constants: tuple[torch.Tensor, torch.Tensor] | None = None,
     skip_identity_radar_resize: bool = False,
-) -> tuple[torch.Tensor, dict[str, float]]:
+    scene_descriptor_enabled: bool = False,
+) -> tuple[torch.Tensor, dict[str, Any]]:
     """Equivalent seven-channel preparation with CPU/CUDA stage timing.
 
     CUDA events introduce an intentional synchronization barrier for profiling;
@@ -174,6 +231,24 @@ def prepare_live_input_profiled(
     started = time.perf_counter_ns()
     rgb = cv2.resize(rgb, (768, 448), interpolation=cv2.INTER_LINEAR)
     rgb_resize_ms = _elapsed_ms(started)
+
+    scene_luma_ms = 0.0
+    scene_si_ms = 0.0
+    camera_si: Any = ""
+    scene_camera_status = "DISABLED"
+    scene_camera_error = ""
+    if scene_descriptor_enabled:
+        started = time.perf_counter_ns()
+        luma = cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY)
+        scene_luma_ms = _elapsed_ms(started)
+        started = time.perf_counter_ns()
+        try:
+            camera_si = camera_spatial_information(luma)
+            scene_camera_status = "VALID"
+        except SceneDescriptorError as exc:
+            scene_camera_status = type(exc).__name__
+            scene_camera_error = str(exc)
+        scene_si_ms = _elapsed_ms(started)
 
     started = time.perf_counter_ns()
     rgb_host = torch.from_numpy(np.ascontiguousarray(rgb)).permute(2, 0, 1).unsqueeze(0)
@@ -251,9 +326,11 @@ def prepare_live_input_profiled(
             }
         )
     diagnostic_sync_wait_ms = _elapsed_ms(synchronization_started)
-    return combined, {
+    measurements: dict[str, Any] = {
         "profile_camera_bgr_to_rgb_ms": bgr_to_rgb_ms,
         "profile_camera_resize_ms": rgb_resize_ms,
+        "profile_scene_luma_ms": scene_luma_ms,
+        "profile_scene_si_ms": scene_si_ms,
         "profile_camera_tensor_pack_ms": rgb_tensor_pack_ms,
         "profile_camera_h2d_ms": cpu_timings["profile_camera_h2d_ms"],
         "profile_camera_normalization_constants_wall_ms": normalization_constants_wall_ms,
@@ -268,3 +345,14 @@ def prepare_live_input_profiled(
         "profile_cuda_substage_synchronizations": float(1 if cuda_events else 0),
         "profile_seven_channel_total_wall_ms": _elapsed_ms(total_started),
     }
+    if scene_descriptor_enabled:
+        measurements.update(
+            {
+                "camera_si": camera_si,
+                "scene_descriptor_camera_status": scene_camera_status,
+                "scene_descriptor_camera_error": scene_camera_error,
+                "scene_descriptor_schema_id": SCENE_DESCRIPTOR_SCHEMA_ID,
+                "scene_descriptor_schema_sha256": SCENE_DESCRIPTOR_SCHEMA_SHA256,
+            }
+        )
+    return combined, measurements
