@@ -213,7 +213,8 @@ def _analyse_attempt(
         and number(row.get("camera_si")) is not None
         and number(row.get("radar_p40")) is not None
         and 0.0 <= float(row["radar_p40"]) <= 1.0
-        and int(row.get("scene_descriptor_current_sweep_returns") or 0) > 0
+        and int(row.get("scene_descriptor_current_sweep_raw_returns") or 0) > 0
+        and int(row.get("scene_descriptor_current_sweep_valid_returns") or 0) > 0
         for row in window
     )
     descriptor_disabled = all(
@@ -311,8 +312,14 @@ def _analyse_attempt(
         "scene_values": {
             "camera_si": distribution(values("camera_si")),
             "radar_p40": distribution(values("radar_p40")),
-            "current_sweep_returns": distribution(
-                values("scene_descriptor_current_sweep_returns")
+            "current_sweep_raw_returns": distribution(
+                values("scene_descriptor_current_sweep_raw_returns")
+            ),
+            "current_sweep_valid_returns": distribution(
+                values("scene_descriptor_current_sweep_valid_returns")
+            ),
+            "current_sweep_invalid_returns": distribution(
+                values("scene_descriptor_current_sweep_invalid_returns")
             ),
         },
         "equivalence": {

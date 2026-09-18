@@ -163,7 +163,9 @@ def test_p40_uses_only_current_100ms_sweep() -> None:
     }
     result = profile_current_sweep_p40(metadata, enabled=True)
     assert result["scene_descriptor_radar_status"] == "VALID"
-    assert result["scene_descriptor_current_sweep_returns"] == 2
+    assert result["scene_descriptor_current_sweep_raw_returns"] == 2
+    assert result["scene_descriptor_current_sweep_valid_returns"] == 2
+    assert result["scene_descriptor_current_sweep_invalid_returns"] == 0
     assert result["radar_p40"] == (0.75 + 0.5) / 2.0
     assert result["profile_scene_p40_ms"] >= 0.0
 
@@ -178,7 +180,28 @@ def test_p40_missing_current_sweep_is_explicit_not_zero() -> None:
     result = profile_current_sweep_p40(metadata, enabled=True)
     assert result["scene_descriptor_radar_status"] == "RadarUnavailableError"
     assert result["radar_p40"] == ""
-    assert result["scene_descriptor_current_sweep_returns"] == 0
+    assert result["scene_descriptor_current_sweep_raw_returns"] == 0
+    assert result["scene_descriptor_current_sweep_valid_returns"] == 0
+    assert result["scene_descriptor_current_sweep_invalid_returns"] == 0
+
+
+def test_p40_uses_production_validity_mask_before_frozen_function() -> None:
+    metadata = {
+        "raw_provenance": {
+            "original_range_m": np.asarray(
+                [10.0, 20.0, 0.0, 120.001, np.nan, 2.0], dtype=np.float32
+            ),
+            # The valid 2-m previous-sweep return is excluded independently of
+            # the current-sweep validity filter.
+            "sweep_offset": np.asarray([0, 0, 0, 0, 0, 1], dtype=np.uint8),
+        }
+    }
+    result = profile_current_sweep_p40(metadata, enabled=True)
+    assert result["scene_descriptor_radar_status"] == "VALID"
+    assert result["radar_p40"] == (0.75 + 0.5) / 2.0
+    assert result["scene_descriptor_current_sweep_raw_returns"] == 5
+    assert result["scene_descriptor_current_sweep_valid_returns"] == 2
+    assert result["scene_descriptor_current_sweep_invalid_returns"] == 3
 
 
 def test_complete_publication_join_requires_every_boundary() -> None:

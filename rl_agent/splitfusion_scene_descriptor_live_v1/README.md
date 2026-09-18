@@ -16,9 +16,11 @@ are drained; full Route-B completion is neither required nor claimed.
 
 Camera SI is computed from the already-resized 768x448 RGB image, before
 tensor packing. P40 is computed from raw radar provenance belonging only to
-the current non-overlapping 100-ms sweep (`sweep_offset == 0`). Both operations
-are read-only, and live equivalence gates require the radar evidence and
-seven-channel model input to remain exactly equal to production.
+the current non-overlapping 100-ms sweep (`sweep_offset == 0`) after the same
+finite, positive, at-most-120-m validity mask already used by the production
+adapter. Raw, valid and rejected counts remain separately observable. Both
+operations are read-only, and live equivalence gates require the radar evidence
+and seven-channel model input to remain exactly equal to production.
 
 Offline preflight:
 

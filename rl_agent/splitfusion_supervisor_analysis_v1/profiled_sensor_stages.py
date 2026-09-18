@@ -51,9 +51,13 @@ def profile_current_sweep_p40(
             "profile_scene_p40_ms": 0.0,
             "scene_descriptor_radar_status": "DISABLED",
             "scene_descriptor_radar_error": "",
-            "scene_descriptor_current_sweep_returns": "",
+            "scene_descriptor_current_sweep_raw_returns": "",
+            "scene_descriptor_current_sweep_valid_returns": "",
+            "scene_descriptor_current_sweep_invalid_returns": "",
         }
     started = time.perf_counter_ns()
+    current_raw = np.asarray([], dtype=np.float32)
+    current = np.asarray([], dtype=np.float32)
     try:
         provenance = window_meta["raw_provenance"]
         ranges = np.asarray(provenance["original_range_m"])
@@ -62,12 +66,17 @@ def profile_current_sweep_p40(
             raise ValueError(
                 "raw radar provenance range/sweep-offset vectors are not aligned"
             )
-        current = ranges[offsets == 0]
+        current_raw = ranges[offsets == 0]
+        valid = (
+            np.isfinite(current_raw)
+            & (current_raw > 0.0)
+            & (current_raw <= 120.0)
+        )
+        current = current_raw[valid]
         value = radar_proximity_p40(current)
         status = "VALID"
         error = ""
     except (KeyError, TypeError, ValueError, SceneDescriptorError) as exc:
-        current = np.asarray([], dtype=np.float32)
         value = ""
         status = type(exc).__name__
         error = str(exc)
@@ -76,7 +85,11 @@ def profile_current_sweep_p40(
         "profile_scene_p40_ms": _elapsed_ms(started),
         "scene_descriptor_radar_status": status,
         "scene_descriptor_radar_error": error,
-        "scene_descriptor_current_sweep_returns": int(current.size),
+        "scene_descriptor_current_sweep_raw_returns": int(current_raw.size),
+        "scene_descriptor_current_sweep_valid_returns": int(current.size),
+        "scene_descriptor_current_sweep_invalid_returns": int(
+            current_raw.size - current.size
+        ),
     }
 
 
