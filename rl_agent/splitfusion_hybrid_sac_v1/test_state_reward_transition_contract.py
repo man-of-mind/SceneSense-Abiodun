@@ -26,9 +26,11 @@ import math
 import subprocess
 import sys
 import unittest
+import uuid
+from fractions import Fraction
 from pathlib import Path
 from types import MappingProxyType
-from typing import Any, Dict, Mapping, Optional
+from typing import Any, Dict, List, Mapping, Optional, Tuple
 
 from . import action_contract as ac
 from . import reward_ticket_controller as rtc
@@ -38,6 +40,7 @@ from . import transaction_identity as ti
 
 SESSION = "3f263fce-cc44-476e-93b5-19d09d439471"
 OTHER_SESSION = "9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d"
+LINEAGE = "6d5ef476-4ea5-4bf0-9db6-65c15ac06936"
 
 MS = 1_000_000
 T0 = 1_000_000_000
@@ -79,6 +82,28 @@ class BaseContractTest(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.contract = ac.load_contract()
         cls.protocol = src._load_quality_protocol()
+
+    def setUp(self) -> None:
+        # V1 has no durable decision identity.  The verifier owns one private
+        # process-wide registry, so a caller cannot erase an earlier claim by
+        # supplying a fresh registry.  Tests retain only the actual detail
+        # documents they pass to that verifier.
+        self.test_run_id = "unit-" + hashlib.sha256(
+            self.id().encode("utf-8")
+        ).hexdigest()[:20]
+        # Every unittest method represents an independent controller episode.
+        # Give it a deterministic but distinct lineage so the process-wide
+        # one-ACK-per-ticket registry does not conflate synthetic decisions
+        # from otherwise unrelated tests.
+        self.test_lineage_uuid = str(
+            uuid.uuid5(uuid.UUID(LINEAGE), self.id())
+        )
+        self.quality_detail_documents: Dict[str, Dict[str, Any]] = {}
+        self.quality_detail_eligibility: Dict[
+            str, src.EvaluationEligibilityV1
+        ] = {}
+        self._quality_ticket_index = 0
+        self._transition_index = 0
 
     # -- actions ----------------------------------------------------------- #
 
@@ -136,7 +161,7 @@ class BaseContractTest(unittest.TestCase):
             achieved_snr_db_clip_min=-5.0,
             achieved_snr_db_clip_max=35.0,
             bsr_log1p_scale=math.log1p(1_000_000.0),
-            snr_metric=src.SnrMetric.UL_PUSCH_POST_EQUALISER_SINR_DB,
+            snr_metric=src.SnrMetric.SIMULATOR_EFFECTIVE_UL_SNR_DB,
             mcs_table_id="oai_ul_table_1",
             mcs_table_max_index=27,
             bsr_scope=src.BsrScope.ALL_GROUPS_LATEST,
@@ -173,7 +198,7 @@ class BaseContractTest(unittest.TestCase):
     def _radio(self, **overrides: Any) -> src.RadioObservationV1:
         kwargs: Dict[str, Any] = dict(
             achieved_snr_db=18.25,
-            snr_metric=src.SnrMetric.UL_PUSCH_POST_EQUALISER_SINR_DB,
+            snr_metric=src.SnrMetric.SIMULATOR_EFFECTIVE_UL_SNR_DB,
             snr_direction=src.LinkDirection.UPLINK,
             snr_measured_ns=T0 - 30 * MS,
             mcs_index=13,
@@ -184,22 +209,166 @@ class BaseContractTest(unittest.TestCase):
             bsr_scope=src.BsrScope.ALL_GROUPS_LATEST,
             bsr_logical_channel_group=1,
             bsr_measured_ns=T0 - 25 * MS,
-            source_id="oai_ue_mac_stats_v1",
+            evidence_path=src.RadioEvidencePath.SIMULATOR_TESTBED_PRIVILEGED,
+            snr_source=src.SnrSource.SIMULATOR_TESTBED_PRIVILEGED,
+            mcs_source=src.McsSource.SIMULATOR_TESTBED_PRIVILEGED,
+            policy_availability=None,
+            source_id="simulator_testbed_radio_v1",
             source_sha256=HEX_C,
         )
         kwargs.update(overrides)
+        ran_epoch_id = "sim-ran-epoch-1"
+        control_session_id = "sim-control-session-1"
+
+        def event(label: str, index: int, measured_ns: int) -> Any:
+            return src.RadioEventProvenanceV1(
+                source_wall=src.RadioSourceWall.SIMULATOR_TESTBED,
+                source_event_id=label,
+                source_event_index=index,
+                source_event_timestamp_ns=WALL0 + index,
+                collector_ingest_wall_time_ns=WALL0 + 100 + index,
+                collector_ingest_monotonic_ns=measured_ns + 1,
+                ran_epoch_id=ran_epoch_id,
+                control_session_id=control_session_id,
+                raw_event_sha256=(HEX_A, HEX_B, HEX_C)[index - 1],
+            )
+
+        kwargs.setdefault(
+            "snr_event", event("SIMULATOR_SNR", 1, kwargs["snr_measured_ns"])
+        )
+        kwargs.setdefault(
+            "mcs_event", event("SIMULATOR_MCS", 2, kwargs["mcs_measured_ns"])
+        )
+        if "bsr_report" not in kwargs:
+            lcg = kwargs["bsr_logical_channel_group"]
+            if kwargs["bsr_scope"] is src.BsrScope.ALL_GROUPS_LATEST:
+                values = [0] * 8
+                values[lcg] = kwargs["bsr_bytes"]
+                valid_mask = (True,) * 8
+                reasons = (None,) * 8
+            else:
+                values = [None] * 8
+                values[lcg] = kwargs["bsr_bytes"]
+                valid_mask = tuple(index == lcg for index in range(8))
+                reasons = tuple(
+                    None
+                    if index == lcg
+                    else src.RadioMissingReason.NO_MATCHING_EVENT_IN_WINDOW
+                    for index in range(8)
+                )
+            kwargs["bsr_report"] = src.BsrReportV1(
+                lcg_bytes=tuple(values),
+                valid_mask=valid_mask,
+                missing_reasons=reasons,
+                scope=kwargs["bsr_scope"],
+                logical_channel_group=lcg,
+                report_type=src.BsrReportType.SIMULATOR_VECTOR,
+                source=src.BsrSource.SIMULATOR_TESTBED_PRIVILEGED,
+                measured_ns=kwargs["bsr_measured_ns"],
+                event=event("SIMULATOR_BSR", 3, kwargs["bsr_measured_ns"]),
+            )
+        if (
+            kwargs["evidence_path"]
+            is src.RadioEvidencePath.SIMULATOR_TESTBED_PRIVILEGED
+            and kwargs["snr_metric"]
+            is src.SnrMetric.SIMULATOR_EFFECTIVE_UL_SNR_DB
+            and kwargs["snr_direction"] is src.LinkDirection.UPLINK
+            and kwargs["mcs_direction"] is src.LinkDirection.UPLINK
+            and kwargs["snr_source"]
+            is src.SnrSource.SIMULATOR_TESTBED_PRIVILEGED
+            and kwargs["mcs_source"]
+            is src.McsSource.SIMULATOR_TESTBED_PRIVILEGED
+            and kwargs["policy_availability"] is None
+        ):
+            return src.RadioObservationV1.for_simulator_testbed(
+                achieved_snr_db=kwargs["achieved_snr_db"],
+                snr_measured_ns=kwargs["snr_measured_ns"],
+                mcs_index=kwargs["mcs_index"],
+                mcs_table_id=kwargs["mcs_table_id"],
+                mcs_measured_ns=kwargs["mcs_measured_ns"],
+                bsr_bytes=kwargs["bsr_bytes"],
+                bsr_scope=kwargs["bsr_scope"],
+                bsr_logical_channel_group=kwargs[
+                    "bsr_logical_channel_group"
+                ],
+                bsr_measured_ns=kwargs["bsr_measured_ns"],
+                snr_event=kwargs["snr_event"],
+                mcs_event=kwargs["mcs_event"],
+                bsr_report=kwargs["bsr_report"],
+                source_id=kwargs["source_id"],
+                source_sha256=kwargs["source_sha256"],
+            )
         return src.RadioObservationV1(**kwargs)
+
+    def _episode_start(self, **overrides: Any) -> src.EpisodeStartProofV1:
+        controller_genesis = overrides.pop("controller_genesis", None)
+        kwargs: Dict[str, Any] = dict(
+            session_uuid=SESSION,
+            first_decision_seq=1,
+            first_tensor_seq=10,
+            first_carla_frame_id=500,
+            episode_started_ns=T0,
+            source_id="unit_test_episode_controller",
+            source_sha256=HEX_A,
+        )
+        kwargs.update(overrides)
+        if controller_genesis is None:
+            controller = rtc.RewardTicketController(
+                kwargs["session_uuid"],
+                controller_lineage_uuid=self.test_lineage_uuid,
+            )
+            controller_genesis = controller.authorize_episode_start(
+                first_decision_seq=kwargs["first_decision_seq"],
+                first_tensor_seq=kwargs["first_tensor_seq"],
+                first_carla_frame_id=kwargs["first_carla_frame_id"],
+                state_observed_ns=kwargs["episode_started_ns"],
+            )
+        return src.EpisodeStartProofV1.from_controller_genesis(
+            controller_genesis,
+            source_id=kwargs["source_id"],
+            source_sha256=kwargs["source_sha256"],
+        )
 
     def _state(self, **overrides: Any) -> src.CausalStateV1:
         frame = overrides.pop("carla_frame_id", 500)
+        session = overrides.pop("session_uuid", SESSION)
+        observed_supplied = "observed_ns" in overrides
+        observed = overrides.pop("observed_ns", T0)
+        tensor_seq = overrides.pop("tensor_seq", 10)
+        previous = overrides.pop("previous", None)
+        episode_start = overrides.pop("episode_start", None)
+        if previous is not None and not observed_supplied:
+            observed = max(observed, previous.available_ns)
+        if previous is None and episode_start is None:
+            episode_start = self._episode_start(
+                session_uuid=session,
+                first_tensor_seq=tensor_seq,
+                first_carla_frame_id=frame,
+                episode_started_ns=observed,
+            )
+        scene = overrides.pop(
+            "scene",
+            self._scene(
+                carla_frame_id=frame, measured_ns=observed - 20 * MS
+            ),
+        )
+        radio = overrides.pop(
+            "radio",
+            self._radio(
+                snr_measured_ns=observed - 30 * MS,
+                bsr_measured_ns=observed - 25 * MS,
+                mcs_measured_ns=observed - 35 * MS,
+            ),
+        )
         kwargs: Dict[str, Any] = dict(
-            scene=self._scene(carla_frame_id=frame),
-            radio=self._radio(),
-            session_uuid=SESSION,
-            observed_ns=T0,
-            tensor_seq=10,
+            scene=scene,
+            radio=radio,
+            session_uuid=session,
+            observed_ns=observed,
+            tensor_seq=tensor_seq,
             carla_frame_id=frame,
-            previous=None,
+            previous=previous,
+            episode_start=episode_start,
         )
         kwargs.update(overrides)
         return src.CausalStateV1(**kwargs)
@@ -218,16 +387,32 @@ class BaseContractTest(unittest.TestCase):
         opened_ns: int = T0,
         resolution_offset_ns: int = 50 * MS,
         session_uuid: str = SESSION,
+        controller: Optional[rtc.RewardTicketController] = None,
+        policy_trace: Optional[src.PolicyDecisionTraceV1] = None,
     ) -> rtc.CompletedTicket:
         """Drive the real Phase-3b controller to produce a genuine ticket."""
         action = action if action is not None else self._action()
-        controller = rtc.RewardTicketController(session_uuid)
+        controller = controller or rtc.RewardTicketController(
+            session_uuid, controller_lineage_uuid=self.test_lineage_uuid
+        )
+        if controller.completed_count == 0 and controller.genesis_proof is None:
+            controller.authorize_episode_start(
+                first_decision_seq=decision_seq,
+                first_tensor_seq=first_tensor_seq,
+                first_carla_frame_id=first_frame_id,
+                state_observed_ns=opened_ns,
+            )
         controller.open_decision(
             decision_seq=decision_seq,
             tensor_seq=first_tensor_seq,
             carla_frame_id=first_frame_id,
             action=action,
             now_ns=opened_ns,
+            policy_decision_trace_sha256=(
+                None
+                if policy_trace is None
+                else policy_trace.canonical_sha256()
+            ),
         )
         terminal_offset = (
             B + 1
@@ -274,6 +459,37 @@ class BaseContractTest(unittest.TestCase):
         assert completed.terminal_class is terminal
         return completed
 
+    def _fresh_quality_ticket(
+        self,
+        *,
+        action: Optional[ti.ExecutedActionIdentity] = None,
+    ) -> rtc.CompletedTicket:
+        """Create one distinct controller decision for one quality sample.
+
+        The production contract permits one terminal quality ACK per completed
+        decision.  Counterfactual numeric tests therefore use independent
+        tickets rather than attaching several ACK documents to one decision.
+        """
+        self._quality_ticket_index += 1
+        index = self._quality_ticket_index
+        lineage = str(
+            uuid.uuid5(
+                uuid.UUID(self.test_lineage_uuid),
+                f"quality-sample-{index}",
+            )
+        )
+        controller = rtc.RewardTicketController(
+            SESSION, controller_lineage_uuid=lineage
+        )
+        return self._ticket(
+            action=action,
+            decision_seq=10_000 + index,
+            first_tensor_seq=20_000 + index,
+            first_frame_id=30_000 + index,
+            opened_ns=T0 + index * 100 * MS,
+            controller=controller,
+        )
+
     # -- ACK documents ----------------------------------------------------- #
 
     def _ack_quality(self, **overrides: Any) -> Dict[str, Any]:
@@ -299,8 +515,27 @@ class BaseContractTest(unittest.TestCase):
             gt_vehicle_pixels=1200,
             gt_person_pixels=300,
         )
-        vehicle.update(overrides.pop("vehicle", {}))
-        person.update(overrides.pop("person", {}))
+        vehicle_override = dict(overrides.pop("vehicle", {}))
+        person_override = dict(overrides.pop("person", {}))
+        vehicle.update(vehicle_override)
+        person.update(person_override)
+        # The repaired contract verifies recall against TP/(TP+FN).  Keep the
+        # synthetic production document internally consistent unless a test
+        # deliberately supplies an explicit contradictory recall.
+        for values, changed in (
+            (vehicle, vehicle_override),
+            (person, person_override),
+        ):
+            if ("tp" in changed or "fn" in changed) and "recall" not in changed:
+                support = int(values["tp"]) + int(values["fn"])
+                values["recall"] = (
+                    None if support == 0 else float(values["tp"]) / support
+                )
+            if int(values["tp"]) == 0:
+                if "source_time_world_xy_error_m" not in changed:
+                    values["source_time_world_xy_error_m"] = None
+                if "footprint_iou" not in changed:
+                    values["footprint_iou"] = None
         segmentation.update(overrides.pop("segmentation", {}))
         assert not overrides, overrides
         return {
@@ -313,13 +548,13 @@ class BaseContractTest(unittest.TestCase):
         action: ti.ExecutedActionIdentity,
         *,
         frame_id: int = 500,
-        run_id: str = "run-a",
+        run_id: Optional[str] = None,
         cell_id: str = "cell-a",
         stream_id: str = "stream-a",
         capture_timestamp_ns: int = WALL0,
     ) -> Dict[str, Any]:
         return {
-            "run_id": run_id,
+            "run_id": self.test_run_id if run_id is None else run_id,
             "cell_id": cell_id,
             "stream_id": stream_id,
             "frame_id": frame_id,
@@ -334,10 +569,22 @@ class BaseContractTest(unittest.TestCase):
         *,
         quality: Optional[Mapping[str, Any]] = None,
         evaluator_mode: str = "exact_carla_gt_v1",
+        ticket: Optional[rtc.CompletedTicket] = None,
+        eligibility: Optional[src.EvaluationEligibilityV1] = None,
+        pred_vehicle_pixels: Optional[int] = None,
+        pred_person_pixels: Optional[int] = None,
+        support_overrides: Optional[Mapping[str, Any]] = None,
         **identity_overrides: Any,
     ) -> Dict[str, Any]:
-        """Build a genuine ACK document with the real protocol builders."""
+        """Build a genuine ACK plus a synthetic complete retained detail.
+
+        The ACK itself is built/validated by the production v1 protocol.  The
+        Phase-4a.2 extension is test-only evidence: no live producer support is
+        implied.  The verifier receives the actual detail mapping separately.
+        """
         action = action if action is not None else self._action()
+        ticket = ticket if ticket is not None else self._ticket(action=action)
+        eligibility = eligibility or self._eligibility()
         identity = self._identity_fields(action, **identity_overrides)
         timing = {
             name: WALL0 + 1000 * (index + 1)
@@ -351,13 +598,229 @@ class BaseContractTest(unittest.TestCase):
             quality=payload,
             evaluator_mode=evaluator_mode,
         )
+
+        def _mask_counts(
+            class_name: str, default_pred_pixels: Optional[int] = None
+        ) -> Dict[str, int]:
+            segmentation = dict(payload["segmentation"])
+            gt = int(segmentation[f"gt_{class_name}_pixels"])
+            iou = segmentation[f"miou_{class_name}_iou"]
+            if iou is None:
+                if gt != 0:
+                    raise AssertionError("undefined IoU requires empty GT")
+                return {"gt": 0, "pred": 0, "intersection": 0, "union": 0}
+            value = float(iou)
+            if value == 0.0:
+                pred = gt if default_pred_pixels is None else default_pred_pixels
+                return {
+                    "gt": gt,
+                    "pred": pred,
+                    "intersection": 0,
+                    "union": gt + pred,
+                }
+            ratio = Fraction(str(value))
+            # Choose an integer union >= GT for which I/U is exact.
+            multiplier = max(1, (gt + ratio.denominator - 1) // ratio.denominator)
+            union = ratio.denominator * multiplier
+            intersection = ratio.numerator * multiplier
+            pred = union - gt + intersection
+            if pred < intersection:
+                raise AssertionError("could not construct consistent mask support")
+            return {
+                "gt": gt,
+                "pred": pred,
+                "intersection": intersection,
+                "union": union,
+            }
+
+        localization = dict(payload["localization"])
+        vehicle_count = int(localization["vehicle"]["tp"]) + int(
+            localization["vehicle"]["fn"]
+        )
+        person_count = int(localization["person"]["tp"]) + int(
+            localization["person"]["fn"]
+        )
+        vehicle_ids = list(range(1000, 1000 + vehicle_count))
+        person_ids = list(range(2000, 2000 + person_count))
+        vehicle_mask = _mask_counts("vehicle", pred_vehicle_pixels)
+        person_mask = _mask_counts("person", pred_person_pixels)
+
+        def _mask_indices(
+            mask: Mapping[str, int], offset: int
+        ) -> Tuple[List[int], List[int], int]:
+            """Build exact disjoint-block semantic supports from counts."""
+            gt = int(mask["gt"])
+            pred = int(mask["pred"])
+            intersection = int(mask["intersection"])
+            union = int(mask["union"])
+            gt_indices = list(range(offset, offset + gt))
+            pred_indices = list(range(offset, offset + intersection))
+            false_positive_count = pred - intersection
+            pred_indices.extend(
+                range(offset + gt, offset + gt + false_positive_count)
+            )
+            if len(set(gt_indices) | set(pred_indices)) != union:
+                raise AssertionError("mask support does not reproduce union")
+            return gt_indices, pred_indices, offset + union
+
+        vehicle_gt_indices, vehicle_pred_indices, next_offset = _mask_indices(
+            vehicle_mask, 0
+        )
+        person_gt_indices, person_pred_indices, total_pixels = _mask_indices(
+            person_mask, next_offset
+        )
+        # Every synthetic pixel is finite, positive and in range, so applying
+        # the registered depth domain leaves the exact support above intact.
+        depth_m = [10.0] * max(1, total_pixels)
+        actor_rows = [
+            {
+                "actor_id": actor_id,
+                "bearing_deg": 0.0,
+                "class_name": class_name,
+                "line_of_sight_visible": True,
+                "projected_support_pixels": 20,
+                "range_m": 10.0,
+                "visibility_score": 1.0,
+            }
+            for class_name, actor_ids in (
+                ("vehicle", vehicle_ids),
+                ("person", person_ids),
+            )
+            for actor_id in actor_ids
+        ]
+        actor_snapshot_sha = src.canonical_sha256(
+            {
+                "actors": sorted(actor_rows, key=lambda row: row["actor_id"]),
+                "record": "carla_gt_actor_snapshot_v1",
+            }
+        )
+        gt_labels_sha = src.canonical_sha256(
+            {
+                "person_indices": person_gt_indices,
+                "record": "semantic_gt_class_support_v1",
+                "vehicle_indices": vehicle_gt_indices,
+            }
+        )
+        pred_labels_sha = src.canonical_sha256(
+            {
+                "person_indices": person_pred_indices,
+                "record": "semantic_prediction_class_support_v1",
+                "vehicle_indices": vehicle_pred_indices,
+            }
+        )
+        domain_sha = src.canonical_sha256(
+            {
+                "domain_indices": list(range(len(depth_m))),
+                "max_range_m": float(eligibility.max_range_m),
+                "record": "segmentation_eligibility_domain_v1",
+                "rule": src.SEGMENTATION_DOMAIN_RULE,
+            }
+        )
+
+        def _localization_ledger(
+            class_name: str, actor_ids: List[int]
+        ) -> Tuple[List[Dict[str, Any]], List[int]]:
+            values = dict(localization[class_name])
+            tp = int(values["tp"])
+            xy_error = values["source_time_world_xy_error_m"]
+            footprint_iou = values["footprint_iou"]
+            # Invalid-ACK rejection tests still need a structurally complete
+            # source ledger so the production verifier, not this helper,
+            # catches the contradiction.
+            ledger_xy_error = 0.0 if xy_error is None else float(xy_error)
+            ledger_footprint_iou = (
+                0.0 if footprint_iou is None else float(footprint_iou)
+            )
+            matches = [
+                {
+                    "prediction_index": index,
+                    "gt_actor_id": actor_id,
+                    "xy_error_m": ledger_xy_error,
+                    "footprint_iou": ledger_footprint_iou,
+                }
+                for index, actor_id in enumerate(actor_ids[:tp])
+            ]
+            return matches, actor_ids[tp:]
+
+        vehicle_matches, unmatched_vehicle_gt = _localization_ledger(
+            "vehicle", vehicle_ids
+        )
+        person_matches, unmatched_person_gt = _localization_ledger(
+            "person", person_ids
+        )
+        vehicle_set_sha = src.canonical_sha256(
+            src.EvaluationEligibilityResultV1._actor_set_document(
+                "vehicle", tuple(vehicle_ids)
+            )
+        )
+        person_set_sha = src.canonical_sha256(
+            src.EvaluationEligibilityResultV1._actor_set_document(
+                "person", tuple(person_ids)
+            )
+        )
+        support: Dict[str, Any] = {
+            "schema": src.QUALITY_DETAIL_SUPPORT_SCHEMA,
+            "ue_id": eligibility.ue_id,
+            "session_uuid": ticket.session_uuid,
+            "decision_seq": ticket.decision_seq,
+            "reward_tensor_seq": ticket.reward_tensor_seq,
+            "executed_action_sha256": action.canonical_sha256(),
+            "frame_id": int(identity["frame_id"]),
+            "capture_timestamp_ns": int(identity["capture_timestamp_ns"]),
+            "eligibility_contract_sha256": (
+                eligibility.eligibility_contract_sha256
+            ),
+            "gt_actor_rows": actor_rows,
+            "gt_actor_snapshot_sha256": actor_snapshot_sha,
+            "segmentation_depth_m": depth_m,
+            "segmentation_gt_vehicle_indices": vehicle_gt_indices,
+            "segmentation_gt_person_indices": person_gt_indices,
+            "segmentation_pred_vehicle_indices": vehicle_pred_indices,
+            "segmentation_pred_person_indices": person_pred_indices,
+            "gt_segmentation_label_sha256": gt_labels_sha,
+            "prediction_segmentation_label_sha256": pred_labels_sha,
+            "segmentation_eligibility_mask_sha256": domain_sha,
+            "eligible_vehicle_actor_ids": vehicle_ids,
+            "eligible_person_actor_ids": person_ids,
+            "eligible_vehicle_actor_ids_sha256": vehicle_set_sha,
+            "eligible_person_actor_ids_sha256": person_set_sha,
+            "vehicle_localization_matches": vehicle_matches,
+            "person_localization_matches": person_matches,
+            "unmatched_vehicle_gt_actor_ids": unmatched_vehicle_gt,
+            "unmatched_person_gt_actor_ids": unmatched_person_gt,
+            "unmatched_vehicle_prediction_indices": [],
+            "unmatched_person_prediction_indices": [],
+        }
+        for class_name, mask in (
+            ("vehicle", vehicle_mask),
+            ("person", person_mask),
+        ):
+            for part, value in mask.items():
+                support[f"seg_{class_name}_{part}_pixels"] = value
+        if support_overrides:
+            support.update(dict(support_overrides))
+        # Actor-set digests are always derived, never independently asserted by
+        # the test helper.
+        for class_name in ("vehicle", "person"):
+            actor_ids = tuple(support[f"eligible_{class_name}_actor_ids"])
+            support[f"eligible_{class_name}_actor_ids_sha256"] = (
+                src.canonical_sha256(
+                    src.EvaluationEligibilityResultV1._actor_set_document(
+                        class_name, actor_ids
+                    )
+                )
+            )
+        detail[src.QUALITY_DETAIL_SUPPORT_KEY] = support
+        detail_sha = self.protocol.detail_digest(detail)
+        self.quality_detail_documents[detail_sha] = detail
+        self.quality_detail_eligibility[detail_sha] = eligibility
         return self.protocol.build_ack(
             identity_fields=identity,
             frozen_carla_frame_id=int(identity["frame_id"]),
             timing=timing,
             quality=payload,
             evaluator_mode=evaluator_mode,
-            detail_sha256=self.protocol.detail_digest(detail),
+            detail_sha256=detail_sha,
         )
 
     def _obligation(
@@ -366,7 +829,7 @@ class BaseContractTest(unittest.TestCase):
         **overrides: Any,
     ) -> src.QualityAckObligationV1:
         kwargs: Dict[str, Any] = dict(
-            run_id="run-a",
+            run_id=self.test_run_id,
             cell_id="cell-a",
             stream_id="stream-a",
             capture_timestamp_ns=WALL0,
@@ -378,14 +841,13 @@ class BaseContractTest(unittest.TestCase):
         kwargs: Dict[str, Any] = dict(
             ue_id="ue-1",
             eligibility_contract_id="route_b_range50_fov90_avo_v1",
-            eligibility_contract_sha256=HEX_A,
             max_range_m=50.0,
             fov_deg=90.0,
             visibility_rule=src.VisibilityRule.AVO_ACTOR_VISIBLE_OBJECT,
             segmentation_eligibility_masked=True,
         )
         kwargs.update(overrides)
-        return src.EvaluationEligibilityV1(**kwargs)
+        return src.EvaluationEligibilityV1.from_spec(**kwargs)
 
     def _binding(
         self,
@@ -398,15 +860,31 @@ class BaseContractTest(unittest.TestCase):
         obligation = obligation if obligation is not None else self._obligation(
             ticket
         )
+        eligibility = kwargs.pop("eligibility", None)
+        if eligibility is None and document is not None:
+            eligibility = self.quality_detail_eligibility.get(document["dh"])
+        if eligibility is None:
+            eligibility = self._eligibility()
         document = (
             document
             if document is not None
             else self._ack_document(
-                ticket.action, frame_id=ticket.reward_carla_frame_id
+                ticket.action,
+                ticket=ticket,
+                eligibility=eligibility,
+                frame_id=ticket.reward_carla_frame_id,
             )
         )
+        detail_document = kwargs.pop("detail_document", None)
+        if detail_document is None:
+            detail_document = self.quality_detail_documents.get(document["dh"])
         return src.QualityAckBindingV1.from_ack_document(
-            document, obligation=obligation, completed_ticket=ticket, **kwargs
+            document,
+            detail_document=detail_document,
+            obligation=obligation,
+            completed_ticket=ticket,
+            eligibility=eligibility,
+            **kwargs,
         )
 
     def _evidence(
@@ -423,7 +901,11 @@ class BaseContractTest(unittest.TestCase):
         binding = (
             binding
             if binding is not None
-            else self._binding(ticket, obligation=obligation)
+            else self._binding(
+                ticket,
+                obligation=obligation,
+                eligibility=eligibility or self._eligibility(),
+            )
         )
         return src.QualityEvidenceV1.for_verified_ack(
             binding,
@@ -437,35 +919,73 @@ class BaseContractTest(unittest.TestCase):
         ticket: Optional[rtc.CompletedTicket] = None,
         *,
         evidence: Optional[src.QualityEvidenceV1] = None,
-        pred_vehicle_pixels: int = 1100,
-        pred_person_pixels: int = 280,
-        vehicle_eligible_gt_instances: int = 4,
-        person_eligible_gt_instances: int = 2,
+        pred_vehicle_pixels: Optional[int] = None,
+        pred_person_pixels: Optional[int] = None,
+        vehicle_eligible_gt_instances: Optional[int] = None,
+        person_eligible_gt_instances: Optional[int] = None,
     ) -> src.QualityComponentsV1:
         if evidence is None:
             assert ticket is not None
             evidence = self._evidence(ticket)
-        return src.QualityComponentsV1.from_ack_binding(
-            evidence,
-            pred_vehicle_pixels=pred_vehicle_pixels,
-            pred_person_pixels=pred_person_pixels,
-            vehicle_eligible_gt_instances=vehicle_eligible_gt_instances,
-            person_eligible_gt_instances=person_eligible_gt_instances,
-        )
+        result = src.QualityComponentsV1.from_ack_binding(evidence)
+        # Backward-compatible *test assertions*, never inputs to production
+        # construction.  The factory has no loose-count API: all values were
+        # already derived from the verified detail document.
+        expected = {
+            "pred_vehicle_pixels": (
+                result.vehicle_segmentation.pred_pixels,
+                pred_vehicle_pixels,
+            ),
+            "pred_person_pixels": (
+                result.person_segmentation.pred_pixels,
+                pred_person_pixels,
+            ),
+            "vehicle_eligible_gt_instances": (
+                result.vehicle_localization.eligible_gt_instances,
+                vehicle_eligible_gt_instances,
+            ),
+            "person_eligible_gt_instances": (
+                result.person_localization.eligible_gt_instances,
+                person_eligible_gt_instances,
+            ),
+        }
+        for name, (actual, asserted) in expected.items():
+            if asserted is not None and actual != asserted:
+                raise src.QualityContractError(
+                    f"test assertion {name}={asserted} disagrees with the "
+                    f"verified detail value {actual}"
+                    "; the eligible ground-truth count and mask support are "
+                    "evidence, not caller inputs"
+                )
+        return result
 
     def _trace(
-        self, action: ti.ExecutedActionIdentity, **overrides: Any
+        self,
+        action: ti.ExecutedActionIdentity,
+        *,
+        state: Optional[src.CausalStateV1] = None,
+        normalization: Optional[src.StateNormalizationSpecV1] = None,
+        freshness: Optional[src.StateFreshnessPolicyV1] = None,
+        decision_seq: int = 1,
+        **overrides: Any,
     ) -> src.PolicyDecisionTraceV1:
+        state = state if state is not None else self._state()
+        normalization = normalization if normalization is not None else self._norm()
+        freshness = freshness if freshness is not None else self._freshness()
+        features = src.build_policy_features(state, normalization, freshness)
         kwargs: Dict[str, Any] = dict(
             sampled_mode_id=action.mode_id,
             sampled_q=float(action.q_e4) / ac.Q_E4_SCALE,
             executed_action=action,
-            log_prob_discrete=-1.25,
-            log_prob_continuous=-0.75,
             actor_version_sha256=HEX_B,
         )
         kwargs.update(overrides)
-        return src.PolicyDecisionTraceV1(**kwargs)
+        return src.PolicyDecisionTraceV1.for_decision(
+            state=state,
+            features=features,
+            decision_seq=decision_seq,
+            **kwargs,
+        )
 
     def _adjudication(
         self,
@@ -516,15 +1036,61 @@ class BaseContractTest(unittest.TestCase):
     def _full_transition(
         self,
         *,
-        terminal: rtc.TerminalClass = rtc.TerminalClass.REWARD_FINAL_EXACT,
+        terminal: rtc.TerminalClass = rtc.TerminalClass.ACTION_PATH_FAILURE,
         spec: Optional[src.RewardSpecV1] = None,
+        freshness: Optional[src.StateFreshnessPolicyV1] = None,
         extra_reuses: int = 0,
         previous_action: Optional[ti.ExecutedActionIdentity] = None,
         state_previous: Optional[src.PreviousOutcomeV1] = None,
     ) -> src.ReplayTransitionV1:
         spec = spec or self._reward_spec()
-        norm, fresh = self._norm(), self._freshness()
-        ticket = self._ticket(terminal=terminal, extra_reuses=extra_reuses)
+        norm, fresh = self._norm(), freshness or self._freshness()
+        identity_offset = extra_reuses * 100
+        if state_previous is not None:
+            raise AssertionError(
+                "the synthetic whole-transition helper covers genesis only; "
+                "successor lineage tests drive one shared controller directly"
+            )
+        action = self._action()
+        self._transition_index += 1
+        transition_lineage = str(
+            uuid.uuid5(
+                uuid.UUID(self.test_lineage_uuid),
+                f"whole-transition-{self._transition_index}",
+            )
+        )
+        controller = rtc.RewardTicketController(
+            SESSION, controller_lineage_uuid=transition_lineage
+        )
+        first_tensor_seq = 10 + identity_offset
+        first_frame_id = 500 + identity_offset
+        genesis = controller.authorize_episode_start(
+            first_decision_seq=1,
+            first_tensor_seq=first_tensor_seq,
+            first_carla_frame_id=first_frame_id,
+            state_observed_ns=T0,
+        )
+        state = self._state(
+            tensor_seq=first_tensor_seq,
+            carla_frame_id=first_frame_id,
+            episode_start=self._episode_start(controller_genesis=genesis),
+        )
+        trace = self._trace(
+            action,
+            state=state,
+            normalization=norm,
+            freshness=fresh,
+            decision_seq=1,
+        )
+        ticket = self._ticket(
+            terminal=terminal,
+            extra_reuses=extra_reuses,
+            first_tensor_seq=first_tensor_seq,
+            first_frame_id=first_frame_id,
+            action=action,
+            controller=controller,
+            policy_trace=trace,
+        )
         components = (
             self._components(ticket)
             if terminal is rtc.TerminalClass.REWARD_FINAL_EXACT
@@ -537,11 +1103,16 @@ class BaseContractTest(unittest.TestCase):
             previous_action=previous_action,
         )
         return src.build_replay_transition(
-            state=self._state(previous=state_previous),
-            next_state=self._next_state(ticket, outcome, spec),
+            state=state,
+            next_state=self._next_state(
+                ticket,
+                outcome,
+                spec,
+                carla_frame_id=ticket.reward_carla_frame_id + 1000,
+            ),
             completed_ticket=ticket,
             outcome=outcome,
-            policy_trace=self._trace(ticket.action),
+            policy_trace=trace,
             reward_spec=spec,
             normalization=norm,
             freshness=fresh,
@@ -559,8 +1130,8 @@ class ContractBehaviourTest(BaseContractTest):
         document = self._ack_document(
             ticket.action, frame_id=ticket.reward_carla_frame_id
         )
-        binding = src.QualityAckBindingV1.from_ack_document(
-            document, obligation=obligation, completed_ticket=ticket
+        binding = self._binding(
+            ticket, document=document, obligation=obligation
         )
         self.assertTrue(binding.is_attested)
 
@@ -591,10 +1162,10 @@ class ContractBehaviourTest(BaseContractTest):
             binding.completed_ticket_sha256, ticket.canonical_sha256()
         )
         # an agreeing caller hash is accepted as a cross-check
-        src.QualityAckBindingV1.from_ack_document(
-            document,
+        self._binding(
+            ticket,
+            document=document,
             obligation=obligation,
-            completed_ticket=ticket,
             expected_raw_ack_sha256=self.protocol.digest(document),
         )
         # the obligation binds the complete executed action
@@ -615,9 +1186,9 @@ class ContractBehaviourTest(BaseContractTest):
     def test_schema_binds_all_dependencies_including_the_protocol(self) -> None:
         descriptor = src.SCHEMA_DESCRIPTOR
         self.assertIsInstance(descriptor, MappingProxyType)
-        self.assertEqual(src.SCHEMA_VERSION, 2)
+        self.assertEqual(src.SCHEMA_VERSION, 4)
         self.assertEqual(src.SCHEMA_SHA256, _independent_sha256(descriptor))
-        self.assertIn("phase 4a.1", descriptor["revision_note"])
+        self.assertIn("phase 4a.2", descriptor["revision_note"])
 
         deps = descriptor["dependencies"]
         self.assertEqual(deps["action_catalog"]["sha256"], ac.CATALOG_SHA256)
@@ -635,7 +1206,7 @@ class ContractBehaviourTest(BaseContractTest):
             deps["reward_ticket_controller"]["schema_sha256"],
             rtc.CONTROLLER_SCHEMA_SHA256,
         )
-        self.assertEqual(deps["reward_ticket_controller"]["schema_version"], 2)
+        self.assertEqual(deps["reward_ticket_controller"]["schema_version"], 4)
         # the complete quality-protocol contract is bound by hash
         self.assertEqual(
             deps["quality_protocol"]["contract_sha256"],
@@ -654,6 +1225,20 @@ class ContractBehaviourTest(BaseContractTest):
         )
         self.assertEqual(
             tuple(contract["timing_fields"]), src.QUALITY_ACK_TIMING_FIELDS
+        )
+        self.assertFalse(descriptor["quality"]["learning_ready"])
+        self.assertFalse(
+            descriptor["quality_ack"]["obligation_precommit_authenticated"]
+        )
+        self.assertEqual(
+            descriptor["quality"]["producer_status"],
+            src.QualityProducerStatus.CONTRACT_FIXTURE_UNVERIFIED_SOURCE.value,
+        )
+        self.assertIn(
+            "fails closed",
+            descriptor["reward"]["terminal_handling"][
+                rtc.TerminalClass.REWARD_FINAL_EXACT.value
+            ],
         )
 
         # and the declared literals still match the real module exactly
@@ -700,13 +1285,14 @@ class ContractBehaviourTest(BaseContractTest):
 
     def test_quality_is_localization_based_and_monotone(self) -> None:
         spec = self._reward_spec()
-        ticket = self._ticket()
-        obligation = self._obligation(ticket)
         eligibility = self._eligibility()
 
         def _evaluate(**quality_overrides: Any) -> src.QualityEvaluationV1:
+            ticket = self._fresh_quality_ticket()
+            obligation = self._obligation(ticket)
             document = self._ack_document(
                 ticket.action,
+                ticket=ticket,
                 frame_id=ticket.reward_carla_frame_id,
                 quality=self._ack_quality(**quality_overrides),
             )
@@ -813,8 +1399,11 @@ class ContractBehaviourTest(BaseContractTest):
                 src.LocalizationCombiner.WEIGHTED_ARITHMETIC_MEAN
             )
         )
+        ticket = self._fresh_quality_ticket()
+        obligation = self._obligation(ticket)
         document = self._ack_document(
             ticket.action,
+            ticket=ticket,
             frame_id=ticket.reward_carla_frame_id,
             quality=self._ack_quality(
                 person={"tp": 0, "fn": 2, "recall": 0.0,
@@ -838,16 +1427,19 @@ class ContractBehaviourTest(BaseContractTest):
 
     def test_segmentation_exclusion_only_when_both_masks_empty(self) -> None:
         spec = self._reward_spec()
-        ticket = self._ticket()
-        obligation = self._obligation(ticket)
 
         def _components(
             *, seg_overrides: Mapping[str, Any], pred_v: int, pred_p: int
         ) -> src.QualityComponentsV1:
+            ticket = self._fresh_quality_ticket()
+            obligation = self._obligation(ticket)
             document = self._ack_document(
                 ticket.action,
+                ticket=ticket,
                 frame_id=ticket.reward_carla_frame_id,
                 quality=self._ack_quality(segmentation=dict(seg_overrides)),
+                pred_vehicle_pixels=pred_v,
+                pred_person_pixels=pred_p,
             )
             evidence = self._evidence(
                 ticket,
@@ -856,11 +1448,8 @@ class ContractBehaviourTest(BaseContractTest):
                     ticket, document=document, obligation=obligation
                 ),
             )
-            return self._components(
-                evidence=evidence,
-                pred_vehicle_pixels=pred_v,
-                pred_person_pixels=pred_p,
-            )
+            self.assertGreaterEqual(pred_v, 0)  # caller intent stays explicit
+            return self._components(evidence=evidence)
 
         # GT absent + predicted false-positive mask + IoU 0 stays VALID
         false_positive = _components(
@@ -908,18 +1497,32 @@ class ContractBehaviourTest(BaseContractTest):
 
     def test_reward_scalar_includes_switch_penalties(self) -> None:
         spec = self._reward_spec()
-        ticket = self._ticket()
-        components = self._components(ticket)
+        exact_ticket = self._ticket()
+        components = self._components(exact_ticket)
         previous = self._action(mode_id=5, q_e4=5000)
 
+        # The quality formula itself is fully testable, but the current live
+        # producer cannot authenticate the raw CARLA derivation.  It must not
+        # become a scalar learning reward merely because its fixture is
+        # internally consistent.
+        quality = spec.evaluate_quality(components)
+        self.assertGreater(quality.q_perc, 0.0)
+        with self.assertRaises(src.QualityProducerUnavailableError):
+            src.evaluate_completed_decision(
+                exact_ticket,
+                spec,
+                quality_components=components,
+                previous_action=previous,
+            )
+
+        # Switch-penalty integration remains executable on a controller-proven
+        # action-path failure, which requires no privileged quality oracle.
+        ticket = self._ticket(terminal=rtc.TerminalClass.ACTION_PATH_FAILURE)
         outcome = src.evaluate_completed_decision(
-            ticket,
-            spec,
-            quality_components=components,
-            previous_action=previous,
+            ticket, spec, previous_action=previous
         )
         self.assertTrue(outcome.is_attested)
-        assert outcome.quality is not None and outcome.latency is not None
+        assert outcome.latency is not None
         switch = outcome.switch_penalty
         self.assertTrue(switch.applicable)
         self.assertTrue(switch.mode_changed)
@@ -927,12 +1530,10 @@ class ContractBehaviourTest(BaseContractTest):
         self.assertAlmostEqual(
             switch.total, spec.lambda_mode + spec.lambda_q * 0.48, 12
         )
-        # r = w_Q Q - w_L (L/B) - lambda_m 1[mode changed] - lambda_q |dq|
+        # Registered failures retain the exact switching cost.
         self.assertAlmostEqual(
             outcome.scalar_reward,
-            spec.w_quality * outcome.quality.q_perc
-            - spec.w_latency * outcome.latency.normalized_latency
-            - switch.total,
+            spec.r_registered_failure - switch.total,
             12,
         )
         self.assertEqual(outcome.latency.l_ns, 50 * MS)
@@ -940,10 +1541,7 @@ class ContractBehaviourTest(BaseContractTest):
 
         # same mode, same q: no penalty at all
         same = src.evaluate_completed_decision(
-            ticket,
-            spec,
-            quality_components=components,
-            previous_action=ticket.action,
+            ticket, spec, previous_action=ticket.action
         )
         self.assertFalse(same.switch_penalty.mode_changed)
         self.assertEqual(same.switch_penalty.q_exec_delta, 0.0)
@@ -951,7 +1549,7 @@ class ContractBehaviourTest(BaseContractTest):
 
         # episode start: inapplicable, explicitly, not an indistinguishable zero
         first = src.evaluate_completed_decision(
-            ticket, spec, quality_components=components, previous_action=None
+            ticket, spec, previous_action=None
         )
         self.assertFalse(first.switch_penalty.applicable)
         self.assertIsNone(first.switch_penalty.mode_changed)
@@ -992,7 +1590,7 @@ class ContractBehaviourTest(BaseContractTest):
         # radio telemetry is typed
         self.assertIs(
             state.radio.snr_metric,
-            src.SnrMetric.UL_PUSCH_POST_EQUALISER_SINR_DB,
+            src.SnrMetric.SIMULATOR_EFFECTIVE_UL_SNR_DB,
         )
         self.assertIs(state.radio.snr_direction, src.LinkDirection.UPLINK)
         self.assertIs(state.radio.bsr_scope, src.BsrScope.ALL_GROUPS_LATEST)
@@ -1036,12 +1634,12 @@ class ContractBehaviourTest(BaseContractTest):
             vector.as_tuple(),
         )
 
-        # a previous decision fills exactly one mode slot and one terminal slot
-        ticket = self._ticket()
+        # A previous controller-proven failure fills exactly one mode and one
+        # terminal slot.  Exact-positive quality is deliberately unavailable
+        # until the raw CARLA producer is source-authenticated.
+        ticket = self._ticket(terminal=rtc.TerminalClass.ACTION_PATH_FAILURE)
         spec = self._reward_spec()
-        outcome = src.evaluate_completed_decision(
-            ticket, spec, quality_components=self._components(ticket)
-        )
+        outcome = src.evaluate_completed_decision(ticket, spec)
         previous = src.PreviousOutcomeV1.from_completed(ticket, outcome, spec)
         self.assertTrue(previous.is_attested)
         with_prev = self._state(previous=previous)
@@ -1049,7 +1647,9 @@ class ContractBehaviourTest(BaseContractTest):
             with_prev, norm, fresh
         ).as_mapping()
         self.assertEqual(prev_named["prev_present_mask"], 1.0)
-        self.assertEqual(prev_named["prev_terminal_onehot_exact"], 1.0)
+        self.assertEqual(
+            prev_named["prev_terminal_onehot_action_path_failure"], 1.0
+        )
         self.assertEqual(
             prev_named["prev_terminal_onehot_feedback_timeout"], 0.0
         )
@@ -1060,11 +1660,8 @@ class ContractBehaviourTest(BaseContractTest):
             ),
             1.0,
         )
-        self.assertEqual(prev_named["prev_quality_valid_mask"], 1.0)
-        assert outcome.quality is not None
-        self.assertAlmostEqual(
-            prev_named["prev_quality_normalized"], outcome.quality.q_perc, 12
-        )
+        self.assertEqual(prev_named["prev_quality_valid_mask"], 0.0)
+        self.assertEqual(prev_named["prev_quality_normalized"], 0.0)
         # the previous outcome is bound to its ticket, outcome and spec
         self.assertEqual(
             previous.completed_ticket_sha256, ticket.canonical_sha256()
@@ -1072,7 +1669,7 @@ class ContractBehaviourTest(BaseContractTest):
         self.assertEqual(previous.outcome_sha256, outcome.canonical_sha256())
         self.assertEqual(previous.reward_spec_sha256, spec.canonical_sha256())
         self.assertEqual(previous.resolution_ns, ticket.resolution_ns)
-        self.assertEqual(previous.quality_gt_source, "CARLA_GT_EXACT")
+        self.assertIsNone(previous.quality_gt_source)
         self.assertEqual(previous.latency_clock_domain, "UE_LOCAL_MONOTONIC")
 
         # a timeout and an action-path failure are distinguishable observations
@@ -1141,17 +1738,18 @@ class ContractBehaviourTest(BaseContractTest):
         trace = transition.policy_trace
         self.assertEqual(trace.sampled_mode_id, transition.executed_action.mode_id)
         self.assertEqual(trace.q_exec, transition.executed_action.q_e4 / 1e4)
-        self.assertLessEqual(trace.log_prob_discrete, 0.0)
-        self.assertLessEqual(trace.log_prob_continuous, 0.0)
         self.assertEqual(trace.actor_version_sha256, HEX_B)
+        self.assertNotIn("log_prob_discrete", trace.to_canonical_dict())
+        self.assertNotIn("log_prob_continuous", trace.to_canonical_dict())
         # an unrounded sample still quantizes correctly under half-up
         self._trace(
             self._action(mode_id=3, q_e4=9800), sampled_q=0.97996
         )
 
-        # both evidence hashes are bound into the transition
-        self.assertIsNotNone(transition.raw_quality_ack_sha256)
-        self.assertIsNotNone(transition.detailed_evidence_sha256)
+        # This replay item is a controller-proven action-path failure and must
+        # not smuggle in synthetic quality evidence.
+        self.assertIsNone(transition.raw_quality_ack_sha256)
+        self.assertIsNone(transition.detailed_evidence_sha256)
         payload = transition.to_canonical_dict()
         for key in (
             "raw_quality_ack_sha256", "detailed_evidence_sha256",
@@ -1190,7 +1788,8 @@ class ContractBehaviourTest(BaseContractTest):
         self.assertEqual(failed.costs.c_authoritative_failure, 1.0)
         self.assertAlmostEqual(failed.scalar_reward, -1.0, 12)
 
-        # timeout is censored until an adjudication bound to this ticket
+        # Timeout stays censored: Phase 4a.2 deliberately has no verified
+        # reconciliation carrier, so a free-form verdict cannot score it.
         timeout = self._ticket(terminal=rtc.TerminalClass.FEEDBACK_TIMEOUT)
         censored = src.evaluate_completed_decision(timeout, spec)
         self.assertIs(
@@ -1198,43 +1797,19 @@ class ContractBehaviourTest(BaseContractTest):
             src.LearningEligibility.CENSORED_PENDING_ADJUDICATION,
         )
         self.assertIsNone(censored.scalar_reward)
-        # a proven feedback-only loss is never punished
-        loss = src.evaluate_completed_decision(
-            timeout,
-            spec,
-            adjudication=self._adjudication(
-                timeout, src.Adjudication.FEEDBACK_ONLY_LOSS
-            ),
-        )
-        self.assertIs(
-            loss.eligibility,
-            src.LearningEligibility.CENSORED_FEEDBACK_ONLY_LOSS,
-        )
-        self.assertIsNone(loss.scalar_reward)
-        # an authoritative service failure becomes the registered negative
-        adjudicated = src.evaluate_completed_decision(
-            timeout,
-            spec,
-            adjudication=self._adjudication(
-                timeout, src.Adjudication.AUTHORITATIVE_SERVICE_FAILURE
-            ),
-        )
-        self.assertIs(adjudicated.eligibility, src.LearningEligibility.ELIGIBLE)
-        self.assertAlmostEqual(adjudicated.scalar_reward, -1.0, 12)
-        self.assertEqual(adjudicated.costs.c_authoritative_failure, 1.0)
-        # an adjudicated instrument fault is excluded
-        excluded = src.evaluate_completed_decision(
-            timeout,
-            spec,
-            adjudication=self._adjudication(
-                timeout, src.Adjudication.INFRASTRUCTURE_FAULT
-            ),
-        )
-        self.assertIs(
-            excluded.eligibility,
-            src.LearningEligibility.EXCLUDED_INFRASTRUCTURE_FAULT,
-        )
-        self.assertIsNone(excluded.scalar_reward)
+        for verdict in (
+            src.Adjudication.PENDING,
+            src.Adjudication.FEEDBACK_ONLY_LOSS,
+            src.Adjudication.AUTHORITATIVE_SERVICE_FAILURE,
+            src.Adjudication.INFRASTRUCTURE_FAULT,
+        ):
+            with self.subTest(verdict=verdict):
+                with self.assertRaises(src.AdjudicationError):
+                    src.evaluate_completed_decision(
+                        timeout,
+                        spec,
+                        adjudication=self._adjudication(timeout, verdict),
+                    )
 
         # a controller infrastructure fault is excluded and never a penalty
         fault = self._ticket(
@@ -1296,7 +1871,7 @@ assert (
 for banned in ("carla", "torch", "docker", "pycuda", "tensorflow"):
     assert banned not in sys.modules, banned
 assert not _hits, _hits
-assert contract.SCHEMA_VERSION == 2
+assert contract.SCHEMA_VERSION == 4
 print("IMPORT_CLEAN", contract.SCHEMA_SHA256)
 '''
         package_root = Path(__file__).resolve().parents[3]
@@ -1362,55 +1937,23 @@ print("IMPORT_CLEAN", contract.SCHEMA_SHA256)
             spec.evaluate_quality(components)
         self.assertIn("no per-UE perception reward", str(caught.exception))
 
-        # ... and the decision is CENSORED, not scored zero.  A frame with
-        # nothing eligible to perceive is not a failure of the action.
-        outcome = src.evaluate_completed_decision(
-            ticket, spec, quality_components=components
-        )
-        self.assertIs(
-            outcome.eligibility,
-            src.LearningEligibility.CENSORED_NO_ELIGIBLE_GROUND_TRUTH,
-        )
-        self.assertIsNone(outcome.scalar_reward)
-        self.assertIsNone(outcome.quality)
-        self.assertFalse(outcome.learning_eligible)
-        # the latency is still a real measurement and is preserved
-        assert outcome.latency is not None
-        self.assertEqual(outcome.latency.l_ns, 50 * MS)
-        self.assertEqual(outcome.costs.c_authoritative_failure, 0.0)
-        self.assertNotEqual(outcome.scalar_reward, 0.0)
-
-        # a transition over it carries no reward and re-derives cleanly
-        transition = src.build_replay_transition(
-            state=self._state(),
-            next_state=self._next_state(ticket, outcome, spec),
-            completed_ticket=ticket,
-            outcome=outcome,
-            policy_trace=self._trace(ticket.action),
-            reward_spec=spec,
-            normalization=self._norm(),
-            freshness=self._freshness(),
-        )
-        self.assertIsNone(transition.scalar_reward)
-        self.assertIsNone(transition.quality)
-        # the ACK was genuinely received and verified, so its evidence hashes
-        # stay bound even though the frame earned no reward -- the censoring is
-        # auditable rather than silent
-        self.assertIsNotNone(transition.quality_evidence)
-        self.assertIsNotNone(transition.raw_quality_ack_sha256)
-        self.assertIsNotNone(transition.detailed_evidence_sha256)
-        self.assertIsNotNone(transition.quality_components)
-        self.assertEqual(
-            transition.revalidate().canonical_sha256(),
-            outcome.canonical_sha256(),
-        )
+        # The fixture cannot even establish that the eligible set is empty:
+        # that fact also needs source-authenticated producer evidence.  So it
+        # is rejected before either censoring or scoring can enter replay.
+        with self.assertRaises(src.QualityProducerUnavailableError):
+            src.evaluate_completed_decision(
+                ticket, spec, quality_components=components
+            )
 
         # when every segmentation class is vacuous too, the modulation is the
         # identity rather than a punitive zero: there is no segmentation
         # evidence to modulate with.
+        vacuous_ticket = self._fresh_quality_ticket(action=ticket.action)
+        vacuous_obligation = self._obligation(vacuous_ticket)
         vacuous_seg = self._ack_document(
-            ticket.action,
-            frame_id=ticket.reward_carla_frame_id,
+            vacuous_ticket.action,
+            ticket=vacuous_ticket,
+            frame_id=vacuous_ticket.reward_carla_frame_id,
             quality=self._ack_quality(
                 segmentation={
                     "gt_vehicle_pixels": 0, "gt_person_pixels": 0,
@@ -1419,10 +1962,12 @@ print("IMPORT_CLEAN", contract.SCHEMA_SHA256)
             ),
         )
         seg_evidence = self._evidence(
-            ticket,
-            obligation=obligation,
+            vacuous_ticket,
+            obligation=vacuous_obligation,
             binding=self._binding(
-                ticket, document=vacuous_seg, obligation=obligation
+                vacuous_ticket,
+                document=vacuous_seg,
+                obligation=vacuous_obligation,
             ),
         )
         seg_components = self._components(
@@ -1438,28 +1983,42 @@ print("IMPORT_CLEAN", contract.SCHEMA_SHA256)
 
     def test_serialization_sweep_and_terminal_transitions(self) -> None:
         spec, norm, fresh = self._reward_spec(), self._norm(), self._freshness()
-        ticket = self._ticket()
-        components = self._components(ticket)
         # the switch penalty is derived from the decision the state carries,
         # so the two must be built together
+        controller = rtc.RewardTicketController(
+            SESSION, controller_lineage_uuid=self.test_lineage_uuid
+        )
         earlier = self._ticket(
             decision_seq=0, first_tensor_seq=4, first_frame_id=400,
             action=self._action(mode_id=5, q_e4=5000),
+            terminal=rtc.TerminalClass.ACTION_PATH_FAILURE,
+            controller=controller,
         )
-        earlier_outcome = src.evaluate_completed_decision(
-            earlier, spec, quality_components=self._components(earlier)
-        )
+        earlier_outcome = src.evaluate_completed_decision(earlier, spec)
         state = self._state(
             previous=src.PreviousOutcomeV1.from_completed(
                 earlier, earlier_outcome, spec
             )
         )
-        outcome = src.evaluate_completed_decision(
-            ticket, spec, quality_components=components,
-            previous_action=earlier.action,
+        trace = self._trace(
+            self._action(),
+            state=state,
+            normalization=norm,
+            freshness=fresh,
+            decision_seq=1,
         )
-        evaluation = outcome.quality
-        assert evaluation is not None
+        ticket = self._ticket(
+            opened_ns=T0 + 100 * MS,
+            terminal=rtc.TerminalClass.ACTION_PATH_FAILURE,
+            controller=controller,
+            action=trace.executed_action,
+            policy_trace=trace,
+        )
+        components = self._components(ticket)
+        evaluation = spec.evaluate_quality(components)
+        outcome = src.evaluate_completed_decision(
+            ticket, spec, previous_action=earlier.action,
+        )
         latency = outcome.latency
         assert latency is not None
 
@@ -1480,7 +2039,7 @@ print("IMPORT_CLEAN", contract.SCHEMA_SHA256)
             ("costs", outcome.costs),
             ("diagnostics", outcome.diagnostics),
             ("outcome", outcome),
-            ("policy_trace", self._trace(ticket.action)),
+            ("policy_trace", trace),
             ("previous", src.PreviousOutcomeV1.from_completed(
                 ticket, outcome, spec
             )),
@@ -1521,7 +2080,7 @@ print("IMPORT_CLEAN", contract.SCHEMA_SHA256)
             next_state=None,
             completed_ticket=ticket,
             outcome=outcome,
-            policy_trace=self._trace(ticket.action),
+            policy_trace=trace,
             reward_spec=spec,
             normalization=norm,
             freshness=fresh,
@@ -1536,7 +2095,10 @@ print("IMPORT_CLEAN", contract.SCHEMA_SHA256)
             next_state=None,
             completed_ticket=ticket,
             outcome=outcome,
-            policy_trace=self._trace(ticket.action),
+            policy_trace=self._trace(
+                ticket.action, state=state, normalization=norm,
+                freshness=fresh, decision_seq=ticket.decision_seq,
+            ),
             reward_spec=spec,
             normalization=norm,
             freshness=fresh,
@@ -1550,7 +2112,13 @@ print("IMPORT_CLEAN", contract.SCHEMA_SHA256)
                 next_state=None,
                 completed_ticket=ticket,
                 outcome=outcome,
-                policy_trace=self._trace(ticket.action),
+                policy_trace=self._trace(
+                    ticket.action,
+                    state=state,
+                    normalization=norm,
+                    freshness=fresh,
+                    decision_seq=ticket.decision_seq,
+                ),
                 reward_spec=spec,
                 normalization=norm,
                 freshness=fresh,
@@ -1589,9 +2157,7 @@ class AdversarialRejectionTest(BaseContractTest):
         # an ACK describing a different frame cannot bind
         wrong_frame = self._ack_document(ticket.action, frame_id=501)
         with self.assertRaises(src.QualityContractError) as caught:
-            src.QualityAckBindingV1.from_ack_document(
-                wrong_frame, obligation=obligation, completed_ticket=ticket
-            )
+            self._binding(ticket, document=wrong_frame, obligation=obligation)
         self.assertIn("frame", str(caught.exception))
 
         # a valid ACK for decision 1 cannot be replayed onto decision 2
@@ -1600,44 +2166,45 @@ class AdversarialRejectionTest(BaseContractTest):
             decision_seq=2, first_tensor_seq=20, first_frame_id=600
         )
         with self.assertRaises(src.QualityContractError):
-            src.QualityAckBindingV1.from_ack_document(
-                document,
+            self._binding(
+                other_ticket,
+                document=document,
                 obligation=self._obligation(other_ticket),
-                completed_ticket=other_ticket,
             )
         # nor onto a mismatched obligation/ticket pair
         with self.assertRaises(src.QualityContractError):
-            src.QualityAckBindingV1.from_ack_document(
-                document, obligation=obligation, completed_ticket=other_ticket
+            self._binding(
+                other_ticket, document=document, obligation=obligation
             )
         # a different run/cell/stream is refused too
         for field in ("run_id", "cell_id", "stream_id"):
             with self.subTest(field=field):
                 with self.assertRaises(src.QualityContractError):
-                    src.QualityAckBindingV1.from_ack_document(
-                        self._ack_document(
+                    self._binding(
+                        ticket,
+                        document=self._ack_document(
                             ticket.action, frame_id=500, **{field: "other"}
                         ),
                         obligation=obligation,
-                        completed_ticket=ticket,
                     )
         # a different capture timestamp is refused
         with self.assertRaises(src.QualityContractError):
-            src.QualityAckBindingV1.from_ack_document(
-                self._ack_document(
+            self._binding(
+                ticket,
+                document=self._ack_document(
                     ticket.action, frame_id=500,
                     capture_timestamp_ns=WALL0 + 1,
                 ),
                 obligation=obligation,
-                completed_ticket=ticket,
             )
         # and an ACK naming a different anchor action is refused
         with self.assertRaises(src.QualityContractError):
-            src.QualityAckBindingV1.from_ack_document(
-                self._ack_document(self._action(mode_id=5, q_e4=5000),
-                                   frame_id=500),
+            self._binding(
+                ticket,
+                document=self._ack_document(
+                    self._action(mode_id=5, q_e4=5000), frame_id=500
+                ),
                 obligation=obligation,
-                completed_ticket=ticket,
             )
 
     # ------------------------------------------------------------------ 2 -- #
@@ -1649,10 +2216,10 @@ class AdversarialRejectionTest(BaseContractTest):
             ticket.action, frame_id=ticket.reward_carla_frame_id
         )
         with self.assertRaises(src.QualityContractError) as caught:
-            src.QualityAckBindingV1.from_ack_document(
-                document,
+            self._binding(
+                ticket,
+                document=document,
                 obligation=obligation,
-                completed_ticket=ticket,
                 expected_raw_ack_sha256=HEX_A,
             )
         self.assertIn("recomputed", str(caught.exception))
@@ -1662,15 +2229,17 @@ class AdversarialRejectionTest(BaseContractTest):
             with self.subTest(document=type(impostor).__name__):
                 with self.assertRaises(src.QualityContractError):
                     src.QualityAckBindingV1.from_ack_document(
-                        impostor, obligation=obligation, completed_ticket=ticket
+                        impostor,
+                        detail_document={},
+                        obligation=obligation,
+                        completed_ticket=ticket,
+                        eligibility=self._eligibility(),
                     )
         # a tampered document fails the real validator, not a local check
         tampered = dict(document)
         tampered["pg"] = False
         with self.assertRaises(src.QualityContractError) as caught:
-            src.QualityAckBindingV1.from_ack_document(
-                tampered, obligation=obligation, completed_ticket=ticket
-            )
+            self._binding(ticket, document=tampered, obligation=obligation)
         self.assertIn("validator", str(caught.exception))
         # a failure ACK carries no scores and cannot be bound
         failed = dict(document)
@@ -1678,14 +2247,12 @@ class AdversarialRejectionTest(BaseContractTest):
         failed["q"] = []
         failed["r"] = "evaluator crashed"
         with self.assertRaises(src.QualityContractError):
-            src.QualityAckBindingV1.from_ack_document(
-                failed, obligation=obligation, completed_ticket=ticket
-            )
+            self._binding(ticket, document=failed, obligation=obligation)
         # a forged binding cannot be constructed directly and serialized
         real = self._binding(ticket)
         forged = src.QualityAckBindingV1(
             raw_quality_ack_sha256=HEX_A,
-            detailed_evidence_sha256=HEX_B,
+            detailed_evidence_sha256=real.detailed_evidence_sha256,
             ack_schema=src.QUALITY_ACK_SCHEMA,
             ack_protocol_version=1,
             ack_source=src.QUALITY_ACK_SOURCE,
@@ -1694,6 +2261,8 @@ class AdversarialRejectionTest(BaseContractTest):
             evaluator_mode="forged",
             obligation_sha256=obligation.canonical_sha256(),
             completed_ticket_sha256=ticket.canonical_sha256(),
+            eligibility_result=real.eligibility_result,
+            ack_use_registry_id="forged-registry",
         )
         self.assertFalse(forged.is_attested)
         with self.assertRaises(src.UnattestedRecordError):
@@ -1709,13 +2278,13 @@ class AdversarialRejectionTest(BaseContractTest):
 
         # the v1 ACK cannot name it, and nothing is snapped
         with self.assertRaises(src.OffAnchorQualityAckError) as caught:
-            src.QualityAckBindingV1.from_ack_document(
-                self._ack_document(
+            self._binding(
+                ticket,
+                document=self._ack_document(
                     self._action(mode_id=3, q_e4=5000),
                     frame_id=ticket.reward_carla_frame_id,
                 ),
                 obligation=obligation,
-                completed_ticket=ticket,
             )
         message = str(caught.exception)
         self.assertIn("nearest anchor", message)
@@ -1752,13 +2321,7 @@ class AdversarialRejectionTest(BaseContractTest):
             aggregate.require_causal_per_frame()
         self.assertIn("action average", str(caught.exception))
         with self.assertRaises(src.QualityContractError):
-            src.QualityComponentsV1.from_ack_binding(
-                aggregate,
-                pred_vehicle_pixels=1,
-                pred_person_pixels=1,
-                vehicle_eligible_gt_instances=1,
-                person_eligible_gt_instances=1,
-            )
+            src.QualityComponentsV1.from_ack_binding(aggregate)
         # an exact-feedback ticket with no ACK binding is not learning eligible
         anchor_ticket = self._ticket()
         with self.assertRaises(src.QualityContractError):
@@ -1819,16 +2382,11 @@ class AdversarialRejectionTest(BaseContractTest):
                         "source_time_world_xy_error_m": 0.0}
             ),
         )
-        bad_evidence = self._evidence(
-            ticket,
-            obligation=obligation,
-            binding=self._binding(
-                ticket, document=bad_document, obligation=obligation
-            ),
-        )
         with self.assertRaises(src.QualityContractError) as caught:
-            self._components(evidence=bad_evidence)
-        self.assertIn("no matched object", str(caught.exception))
+            self._binding(
+                ticket, document=bad_document, obligation=obligation
+            )
+        self.assertIn("no matched prediction", str(caught.exception))
 
         # recall > 0 requires a finite matched error
         missing_error = self._ack_document(
@@ -1838,22 +2396,20 @@ class AdversarialRejectionTest(BaseContractTest):
                 person={"tp": 1, "fn": 1, "source_time_world_xy_error_m": None}
             ),
         )
-        with self.assertRaises(src.UndefinedClassSupportError):
-            self._components(
-                evidence=self._evidence(
-                    ticket,
-                    obligation=obligation,
-                    binding=self._binding(
-                        ticket, document=missing_error, obligation=obligation
-                    ),
-                )
+        with self.assertRaises(src.QualityContractError) as caught:
+            self._binding(
+                ticket, document=missing_error, obligation=obligation
             )
+        self.assertIn("match-ledger mean", str(caught.exception))
 
         # GT presence with zero ELIGIBLE objects is excluded, not penalized:
         # the object was out of range / FoV / occluded for this UE.
+        ineligible_ticket = self._fresh_quality_ticket(action=ticket.action)
+        ineligible_obligation = self._obligation(ineligible_ticket)
         ineligible_doc = self._ack_document(
-            ticket.action,
-            frame_id=ticket.reward_carla_frame_id,
+            ineligible_ticket.action,
+            ticket=ineligible_ticket,
+            frame_id=ineligible_ticket.reward_carla_frame_id,
             quality=self._ack_quality(
                 person={"tp": 0, "fn": 0, "recall": None,
                         "source_time_world_xy_error_m": None}
@@ -1861,10 +2417,12 @@ class AdversarialRejectionTest(BaseContractTest):
         )
         ineligible = self._components(
             evidence=self._evidence(
-                ticket,
-                obligation=obligation,
+                ineligible_ticket,
+                obligation=ineligible_obligation,
                 binding=self._binding(
-                    ticket, document=ineligible_doc, obligation=obligation
+                    ineligible_ticket,
+                    document=ineligible_doc,
+                    obligation=ineligible_obligation,
                 ),
             ),
             person_eligible_gt_instances=0,
@@ -1876,7 +2434,8 @@ class AdversarialRejectionTest(BaseContractTest):
         self.assertGreater(excluded.q_perc, 0.0)
         # the eligibility rule and its hash travel with the record
         self.assertEqual(
-            ineligible.eligibility.eligibility_contract_sha256, HEX_A
+            ineligible.eligibility.eligibility_contract_sha256,
+            self._eligibility().eligibility_contract_sha256,
         )
         self.assertIs(
             ineligible.eligibility.reward_scope,
@@ -1900,6 +2459,7 @@ class AdversarialRejectionTest(BaseContractTest):
             quality=self._ack_quality(
                 segmentation={"gt_person_pixels": 0, "miou_person_iou": 0.0}
             ),
+            pred_person_pixels=450,
         )
         evidence = self._evidence(
             ticket,
@@ -1909,15 +2469,34 @@ class AdversarialRejectionTest(BaseContractTest):
             ),
         )
         # a predicted mask against absent GT is NOT excluded
-        components = self._components(evidence=evidence, pred_person_pixels=450)
+        components = self._components(evidence=evidence)
         self.assertTrue(components.person_segmentation.is_defined)
         self.assertIsNone(components.person_segmentation.exclusion_reason)
         evaluated = spec.evaluate_quality(components)
         self.assertIn("person", evaluated.segmentation_weights_used)
         self.assertEqual(evaluated.q_seg, 0.0)
         # and it demonstrably costs quality relative to no false positive
+        clean_ticket = self._fresh_quality_ticket(action=ticket.action)
+        clean_obligation = self._obligation(clean_ticket)
+        clean_document = self._ack_document(
+            clean_ticket.action,
+            ticket=clean_ticket,
+            frame_id=clean_ticket.reward_carla_frame_id,
+            quality=self._ack_quality(
+                segmentation={"gt_person_pixels": 0, "miou_person_iou": 0.0}
+            ),
+        )
+        clean_evidence = self._evidence(
+            clean_ticket,
+            obligation=clean_obligation,
+            binding=self._binding(
+                clean_ticket,
+                document=clean_document,
+                obligation=clean_obligation,
+            ),
+        )
         clean = spec.evaluate_quality(
-            self._components(evidence=evidence, pred_person_pixels=0)
+            self._components(evidence=clean_evidence)
         )
         self.assertFalse(clean.components.person_segmentation.is_defined)
         self.assertGreater(clean.q_perc, evaluated.q_perc)
@@ -2009,7 +2588,9 @@ class AdversarialRejectionTest(BaseContractTest):
         with self.assertRaises(src.UnattestedRecordError):
             dataclasses.replace(transition.outcome, scalar_reward=99.0)
         # a transition cannot be mutated either
-        with self.assertRaises(src.UnattestedRecordError):
+        with self.assertRaises(
+            (src.UnattestedRecordError, src.TransitionIdentityError)
+        ):
             dataclasses.replace(
                 transition, freshness_policy_sha256=HEX_A
             )
@@ -2037,13 +2618,17 @@ class AdversarialRejectionTest(BaseContractTest):
         self.assertIsNone(censored.scalar_reward)
         self.assertFalse(censored.learning_eligible)
 
-        # a PENDING verdict changes nothing
-        pending = src.evaluate_completed_decision(
-            timeout,
-            spec,
-            adjudication=self._adjudication(timeout, src.Adjudication.PENDING),
-        )
-        self.assertIsNone(pending.scalar_reward)
+        # Even a caller-labelled PENDING record is not accepted: until there is
+        # a reviewed reconciliation carrier, the controller's closure outcome
+        # above is the sole policy/replay fact.
+        with self.assertRaises(src.AdjudicationError):
+            src.evaluate_completed_decision(
+                timeout,
+                spec,
+                adjudication=self._adjudication(
+                    timeout, src.Adjudication.PENDING
+                ),
+            )
 
         # an outcome asserting eligibility with no adjudication is unattested,
         # and fails re-derivation inside a transition
@@ -2163,11 +2748,10 @@ class AdversarialRejectionTest(BaseContractTest):
 
     def test_reject_state_observed_after_ticket_opening(self) -> None:
         spec = self._reward_spec()
-        ticket = self._ticket(opened_ns=T0)
-        components = self._components(ticket)
-        outcome = src.evaluate_completed_decision(
-            ticket, spec, quality_components=components
+        ticket = self._ticket(
+            opened_ns=T0, terminal=rtc.TerminalClass.ACTION_PATH_FAILURE
         )
+        outcome = src.evaluate_completed_decision(ticket, spec)
         late_state = self._state(
             observed_ns=ticket.opened_ns + 1,
             scene=self._scene(measured_ns=ticket.opened_ns + 1),
@@ -2183,7 +2767,11 @@ class AdversarialRejectionTest(BaseContractTest):
                 next_state=self._next_state(ticket, outcome, spec),
                 completed_ticket=ticket,
                 outcome=outcome,
-                policy_trace=self._trace(ticket.action),
+                policy_trace=self._trace(
+                    ticket.action,
+                    state=late_state,
+                    decision_seq=ticket.decision_seq,
+                ),
                 reward_spec=spec,
                 normalization=self._norm(),
                 freshness=self._freshness(),
@@ -2206,26 +2794,15 @@ class AdversarialRejectionTest(BaseContractTest):
     # ----------------------------------------------------------------- 10 -- #
 
     def test_reject_next_state_observed_before_closure(self) -> None:
-        spec = self._reward_spec()
-        ticket = self._ticket()
-        outcome = src.evaluate_completed_decision(
-            ticket, spec, quality_components=self._components(ticket)
-        )
-        early = self._next_state(
-            ticket, outcome, spec, observed_ns=ticket.closed_ns - 1
-        )
-        with self.assertRaises(src.TransitionIdentityError) as caught:
-            src.build_replay_transition(
-                state=self._state(),
-                next_state=early,
-                completed_ticket=ticket,
-                outcome=outcome,
-                policy_trace=self._trace(ticket.action),
-                reward_spec=spec,
-                normalization=self._norm(),
-                freshness=self._freshness(),
+        valid = self._full_transition()
+        spec = valid.reward_spec
+        ticket = valid.completed_ticket
+        outcome = valid.outcome
+        with self.assertRaises(src.CausalStateError) as caught:
+            self._next_state(
+                ticket, outcome, spec, observed_ns=ticket.closed_ns - 1
             )
-        self.assertIn("closed at", str(caught.exception))
+        self.assertIn("became available", str(caught.exception))
 
         # and a successor that does not follow every held tensor
         stale_seq = self._next_state(
@@ -2233,11 +2810,11 @@ class AdversarialRejectionTest(BaseContractTest):
         )
         with self.assertRaises(src.TransitionIdentityError) as caught:
             src.build_replay_transition(
-                state=self._state(),
+                state=valid.state,
                 next_state=stale_seq,
                 completed_ticket=ticket,
                 outcome=outcome,
-                policy_trace=self._trace(ticket.action),
+                policy_trace=valid.policy_trace,
                 reward_spec=spec,
                 normalization=self._norm(),
                 freshness=self._freshness(),
@@ -2247,36 +2824,40 @@ class AdversarialRejectionTest(BaseContractTest):
     # ----------------------------------------------------------------- 11 -- #
 
     def test_reject_missing_unrelated_or_future_next_previous(self) -> None:
-        spec = self._reward_spec()
-        ticket = self._ticket()
-        outcome = src.evaluate_completed_decision(
-            ticket, spec, quality_components=self._components(ticket)
-        )
+        valid = self._full_transition()
+        spec = valid.reward_spec
+        ticket = valid.completed_ticket
+        outcome = valid.outcome
 
         def _build(next_state: Optional[src.CausalStateV1]) -> None:
             src.build_replay_transition(
-                state=self._state(),
+                state=valid.state,
                 next_state=next_state,
                 completed_ticket=ticket,
                 outcome=outcome,
-                policy_trace=self._trace(ticket.action),
+                policy_trace=valid.policy_trace,
                 reward_spec=spec,
                 normalization=self._norm(),
                 freshness=self._freshness(),
             )
 
         # absent previous
-        with self.assertRaises(src.TransitionIdentityError) as caught:
-            _build(self._next_state(ticket, outcome, spec, previous=None))
-        self.assertIn("is absent", str(caught.exception))
+        with self.assertRaises(src.CausalStateError) as caught:
+            self._next_state(
+                ticket,
+                outcome,
+                spec,
+                previous=None,
+                episode_start=None,
+            )
+        self.assertIn("exactly one predecessor proof", str(caught.exception))
 
         # unrelated previous: a different decision's completed outcome
         other = self._ticket(
-            decision_seq=5, first_tensor_seq=40, first_frame_id=700
+            decision_seq=5, first_tensor_seq=40, first_frame_id=700,
+            terminal=rtc.TerminalClass.ACTION_PATH_FAILURE,
         )
-        other_outcome = src.evaluate_completed_decision(
-            other, spec, quality_components=self._components(other)
-        )
+        other_outcome = src.evaluate_completed_decision(other, spec)
         unrelated = src.PreviousOutcomeV1.from_completed(
             other, other_outcome, spec
         )
@@ -2291,12 +2872,9 @@ class AdversarialRejectionTest(BaseContractTest):
         foreign_ticket = self._ticket(
             decision_seq=1, first_tensor_seq=10, first_frame_id=500,
             session_uuid=OTHER_SESSION,
+            terminal=rtc.TerminalClass.ACTION_PATH_FAILURE,
         )
-        foreign_outcome = src.evaluate_completed_decision(
-            foreign_ticket,
-            spec,
-            quality_components=self._components(foreign_ticket),
-        )
+        foreign_outcome = src.evaluate_completed_decision(foreign_ticket, spec)
         foreign_next = self._next_state(
             foreign_ticket, foreign_outcome, spec
         )
@@ -2320,12 +2898,14 @@ class AdversarialRejectionTest(BaseContractTest):
                 normalization=self._norm(),
                 freshness=self._freshness(),
             )
-        self.assertIn("must precede", str(caught.exception))
+        self.assertIn("precedes", str(caught.exception))
 
         # a forged previous-outcome record cannot be built at all
         import dataclasses
 
-        with self.assertRaises(src.UnattestedRecordError):
+        with self.assertRaises(
+            (src.UnattestedRecordError, src.CausalStateError)
+        ):
             dataclasses.replace(self_previous, quality_normalized=1.0)
         with self.assertRaises(src.UnattestedRecordError):
             dataclasses.replace(self_previous, decision_seq=99)
@@ -2339,11 +2919,17 @@ class AdversarialRejectionTest(BaseContractTest):
             completed_ticket_sha256=ticket.canonical_sha256(),
             outcome_sha256=outcome.canonical_sha256(),
             reward_spec_sha256=spec.canonical_sha256(),
+            available_ns=ticket.closed_ns,
             resolution_ns=ticket.resolution_ns,
             quality_normalized=1.0,
             latency_normalized=0.0,
             quality_gt_source="CARLA_GT_EXACT",
             latency_clock_domain="UE_LOCAL_MONOTONIC",
+            controller_lineage_uuid=ticket.controller_lineage_uuid,
+            lineage_ordinal=ticket.lineage_ordinal,
+            predecessor_completed_ticket_sha256=(
+                ticket.predecessor_completed_ticket_sha256
+            ),
         )
         self.assertFalse(hand_built.is_attested)
         with self.assertRaises(src.UnattestedRecordError):
@@ -2404,8 +2990,17 @@ class AdversarialRejectionTest(BaseContractTest):
         self.assertIn("registered fallback", str(caught.exception))
 
         # mismatched radio semantics cannot be scaled by the wrong constants
+        with self.assertRaises(src.NormalizationSpecError) as caught:
+            src.build_policy_features(
+                self._state(),
+                self._norm(
+                    snr_metric=src.SnrMetric.GNB_SCHEDULER_EMA_SNR_DB
+                ),
+                fresh,
+            )
+        self.assertIn("metric", str(caught.exception))
+
         for override, expected in (
-            ({"snr_metric": src.SnrMetric.UL_PUCCH_SNR_DB}, "metric"),
             ({"mcs_table_id": "oai_ul_table_2"}, "table"),
             (
                 {"bsr_scope": src.BsrScope.LOGICAL_CHANNEL_GROUP_LATEST},
@@ -2453,22 +3048,8 @@ class AdversarialRejectionTest(BaseContractTest):
         )
 
         # a transition binds the complete hash, so the two are distinguishable
-        spec = self._reward_spec()
-        ticket = self._ticket()
-        outcome = src.evaluate_completed_decision(
-            ticket, spec, quality_components=self._components(ticket)
-        )
         transitions = [
-            src.build_replay_transition(
-                state=self._state(),
-                next_state=self._next_state(ticket, outcome, spec),
-                completed_ticket=ticket,
-                outcome=outcome,
-                policy_trace=self._trace(ticket.action),
-                reward_spec=spec,
-                normalization=norm,
-                freshness=policy,
-            )
+            self._full_transition(freshness=policy)
             for policy in (original, relabelled)
         ]
         self.assertNotEqual(
@@ -2505,18 +3086,20 @@ class AdversarialRejectionTest(BaseContractTest):
             self._trace(action, sampled_mode_id=7)
         self.assertIn("sampled joint mode", str(caught.exception))
 
-        # log-probabilities must be non-positive
-        for field in ("log_prob_discrete", "log_prob_continuous"):
-            with self.subTest(field=field):
-                with self.assertRaises(src.StateRewardContractError):
-                    self._trace(action, **{field: 0.5})
+        # Hybrid SAC does not use behaviour-policy log-probabilities in an
+        # off-policy replay item.  The old caller-reported scalar fields are
+        # rejected instead of being preserved as unverifiable provenance.
+        for legacy_field in ("log_prob_discrete", "log_prob_continuous"):
+            with self.subTest(legacy_field=legacy_field):
+                with self.assertRaises(TypeError):
+                    self._trace(action, **{legacy_field: -0.5})
 
         # and the trace must describe the action the hold actually executed
         spec = self._reward_spec()
-        ticket = self._ticket(action=action)
-        outcome = src.evaluate_completed_decision(
-            ticket, spec, quality_components=self._components(ticket)
+        ticket = self._ticket(
+            action=action, terminal=rtc.TerminalClass.ACTION_PATH_FAILURE
         )
+        outcome = src.evaluate_completed_decision(ticket, spec)
         other_action = self._action(mode_id=5, q_e4=5000)
         with self.assertRaises(src.TransitionIdentityError) as caught:
             src.build_replay_transition(
@@ -2530,6 +3113,159 @@ class AdversarialRejectionTest(BaseContractTest):
                 freshness=self._freshness(),
             )
         self.assertIn("different executed action", str(caught.exception))
+
+
+class RadioEvidenceContractTest(BaseContractTest):
+    """Focused proofs for privileged/runtime/diagnostic radio separation."""
+
+    def test_runtime_collector_evidence_requires_measured_ue_availability(
+        self,
+    ) -> None:
+        import dataclasses
+
+        simulator = self._radio()
+
+        def event(
+            *, wall: src.RadioSourceWall, event_id: str, index: int
+        ) -> src.RadioEventProvenanceV1:
+            return src.RadioEventProvenanceV1(
+                source_wall=wall,
+                source_event_id=event_id,
+                source_event_index=index,
+                source_event_timestamp_ns=WALL0 + index,
+                collector_ingest_wall_time_ns=WALL0 + 100 + index,
+                collector_ingest_monotonic_ns=T0 - 10 * MS + index,
+                ran_epoch_id="ran-epoch-runtime-1",
+                control_session_id="control-session-runtime-1",
+                raw_event_sha256=(HEX_A, HEX_B, HEX_C)[index - 1],
+            )
+
+        snr_event = event(
+            wall=src.RadioSourceWall.GNB,
+            event_id="GNB_MAC_PUSCH_POWER_CONTROL",
+            index=1,
+        )
+        mcs_event = event(
+            wall=src.RadioSourceWall.UE,
+            event_id="NRUE_MAC_DCI_GRANT",
+            index=2,
+        )
+        bsr_event = event(
+            wall=src.RadioSourceWall.UE,
+            event_id="NRUE_MAC_BSR_STATUS",
+            index=3,
+        )
+        runtime_bsr = dataclasses.replace(
+            simulator.bsr_report,
+            report_type=src.BsrReportType.NR_LONG,
+            source=src.BsrSource.NRUE_MAC_BSR_STATUS,
+            event=bsr_event,
+        )
+        runtime_fields = dict(
+            evidence_path=src.RadioEvidencePath.UE_VISIBLE_RUNTIME,
+            snr_source=src.SnrSource.GNB_MAC_PUSCH_POWER_CONTROL,
+            snr_event=snr_event,
+            mcs_source=src.McsSource.NRUE_MAC_DCI_GRANT,
+            mcs_event=mcs_event,
+            bsr_report=runtime_bsr,
+        )
+
+        # Merely arriving at a collector never makes these post-action events
+        # causal policy inputs.
+        with self.assertRaises(src.CausalStateError) as caught:
+            dataclasses.replace(
+                simulator, policy_availability=None, **runtime_fields
+            )
+        self.assertIn("not yet admissible", str(caught.exception))
+
+        availability = src.RadioPolicyAvailabilityV1(
+            feedback_path_id="ue_feedback_path_v1",
+            policy_observation_available_monotonic_ns=T0 - 20 * MS,
+            decision_cutoff_monotonic_ns=T0,
+            ran_epoch_id="ran-epoch-runtime-1",
+            control_session_id="control-session-runtime-1",
+            availability_evidence_sha256=HEX_A,
+        )
+        # A well-shaped, caller-invented availability record is still not
+        # evidence.  Runtime admission stays frozen until a real UE-visible
+        # envelope verifier exists.
+        with self.assertRaises(src.CausalStateError) as caught:
+            dataclasses.replace(
+                simulator,
+                policy_availability=availability,
+                **runtime_fields,
+            )
+        self.assertIn("no measured UE-visible", str(caught.exception))
+
+        # Direct construction also cannot create policy-facing simulator data;
+        # only the privileged factory carries the private attestation.
+        direct = dataclasses.replace(simulator, _attestation=None)
+        with self.assertRaises(src.UnattestedRecordError):
+            self._state(radio=direct)
+
+    def test_missing_radio_values_are_diagnostic_and_never_filled(self) -> None:
+        simulator = self._radio()
+        # These are genuine measured zeros because their validity bits are set.
+        self.assertEqual(simulator.bsr_report.lcg_bytes[0], 0)
+        self.assertTrue(simulator.bsr_report.valid_mask[0])
+
+        missing = src.RadioMissingReason.NO_MATCHING_EVENT_IN_WINDOW
+        missing_bsr = src.BsrReportV1(
+            lcg_bytes=(None,) * 8,
+            valid_mask=(False,) * 8,
+            missing_reasons=(missing,) * 8,
+            scope=src.BsrScope.ALL_GROUPS_LATEST,
+            logical_channel_group=1,
+            report_type=src.BsrReportType.NR_LONG,
+            source=src.BsrSource.NRUE_MAC_BSR_STATUS,
+            measured_ns=None,
+            event=None,
+        )
+        diagnostic = src.RadioDiagnosticObservationV1(
+            achieved_snr_db=None,
+            snr_metric=(
+                src.SnrMetric.GNB_MAC_POWER_CONTROL_NORMALIZED_PUSCH_SNR_DB
+            ),
+            snr_direction=src.LinkDirection.UPLINK,
+            snr_measured_ns=None,
+            snr_source=src.SnrSource.GNB_MAC_PUSCH_POWER_CONTROL,
+            snr_event=None,
+            mcs_index=None,
+            mcs_table_id="oai_ul_table_1",
+            mcs_direction=src.LinkDirection.UPLINK,
+            mcs_measured_ns=None,
+            mcs_source=src.McsSource.GNB_MAC_UL_MCS_DECISION_FINAL,
+            mcs_event=None,
+            bsr_report=missing_bsr,
+            valid_mask=(False, False, False),
+            missing_reasons=(
+                src.RadioMissingReason.UL_OUTCOME_SOURCE_UNBOUND,
+                src.RadioMissingReason.UL_OUTCOME_SOURCE_UNBOUND,
+                missing,
+            ),
+            source_id="unbound_oai_collector_v1",
+            source_sha256=HEX_C,
+        )
+        self.assertFalse(diagnostic.to_canonical_dict()["causal_policy_eligible"])
+        with self.assertRaises(src.CausalStateError):
+            self._state(radio=diagnostic)
+
+        # A numeric zero under a false validity bit is a forbidden zero-fill,
+        # not an empty queue observation.
+        invalid_values = (0,) + (None,) * 7
+        with self.assertRaises(src.CausalStateError) as caught:
+            src.BsrReportV1(
+                lcg_bytes=invalid_values,
+                valid_mask=(False,) * 8,
+                missing_reasons=(missing,) * 8,
+                scope=src.BsrScope.ALL_GROUPS_LATEST,
+                logical_channel_group=1,
+                report_type=src.BsrReportType.NR_LONG,
+                source=src.BsrSource.NRUE_MAC_BSR_STATUS,
+                measured_ns=None,
+                event=None,
+            )
+        self.assertIn("zero fill and forward fill are forbidden", str(caught.exception))
 
 
 if __name__ == "__main__":  # pragma: no cover

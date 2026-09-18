@@ -19,6 +19,8 @@ Ten test methods:
 12. ``test_min_hold_timestamp_is_stamped_once_at_k_min`` (phase 3b.1)
 13. ``test_frame_non_readmission_is_session_lifetime`` (phase 3b.1)
 14. ``test_completed_ticket_timestamp_and_terminal_algebra`` (phase 3b.1)
+15. ``test_controller_issues_gap_tolerant_exact_ticket_lineage`` (phase 4a.2;
+    including a pre-decision genesis proof)
 
 The schema hash in test 9 is recomputed with a locally written canonicalizer
 rather than by calling the module's own helper, so the test does not merely
@@ -30,6 +32,7 @@ from __future__ import annotations
 import hashlib
 import json
 import unittest
+from dataclasses import replace
 from types import MappingProxyType
 from typing import Any, Mapping, Optional
 
@@ -39,10 +42,12 @@ from . import transaction_identity as ti
 
 SESSION = "3f263fce-cc44-476e-93b5-19d09d439471"
 OTHER_SESSION = "9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d"
+LINEAGE = "6d5ef476-4ea5-4bf0-9db6-65c15ac06936"
 
 MS = 1_000_000
 T0 = 1_000_000_000
 B = rtc.B_REWARD_DEADLINE_NS
+HEX_A = "a" * 64
 
 
 def _plain(value: Any) -> Any:
@@ -86,6 +91,7 @@ class RewardTicketControllerTest(unittest.TestCase):
         )
 
     def _controller(self, **kwargs: Any) -> rtc.RewardTicketController:
+        kwargs.setdefault("controller_lineage_uuid", LINEAGE)
         return rtc.RewardTicketController(SESSION, **kwargs)
 
     def _message(
@@ -332,7 +338,10 @@ class RewardTicketControllerTest(unittest.TestCase):
             carla_frame_id=202,
             now_ns=T0 + 40 * MS,
             next_decision_seq=1,
-            select_action=lambda: selected,
+            select_action=lambda: rtc.PolicyDecisionSelection(
+                action=selected,
+                policy_decision_trace_sha256=HEX_A,
+            ),
         )
         self.assertIs(
             third.disposition, rtc.AdmissionDisposition.OPENED_NEW_DECISION
@@ -340,6 +349,22 @@ class RewardTicketControllerTest(unittest.TestCase):
         self.assertEqual(third.decision_seq, 1)
         self.assertTrue(third.reward_requested)
         self.assertIs(third.action, selected)
+        controller.reuse_held_action(
+            tensor_seq=3,
+            carla_frame_id=203,
+            now_ns=T0 + 50 * MS,
+        )
+        final = controller.submit_feedback(
+            self._message(
+                selected,
+                decision_seq=1,
+                reward_tensor_seq=2,
+                carla_frame_id=202,
+            ),
+            T0 + 60 * MS,
+        ).completed_ticket
+        assert final is not None
+        self.assertEqual(final.policy_decision_trace_sha256, HEX_A)
 
     # ------------------------------------------------------------------ 3 -- #
 
@@ -960,8 +985,8 @@ class RewardTicketControllerTest(unittest.TestCase):
             rtc.CONTROLLER_SCHEMA_ID,
             "splitfusion_hybrid_sac_reward_ticket_controller_v1",
         )
-        self.assertEqual(rtc.CONTROLLER_SCHEMA_VERSION, 2)
-        self.assertIn("phase 3b.1", descriptor["revision_note"])
+        self.assertEqual(rtc.CONTROLLER_SCHEMA_VERSION, 4)
+        self.assertIn("pre-decision genesis proof", descriptor["revision_note"])
         self.assertEqual(
             rtc.CONTROLLER_SCHEMA_SHA256, _independent_sha256(descriptor)
         )
@@ -1231,7 +1256,22 @@ class RewardTicketControllerTest(unittest.TestCase):
         ):
             with self.subTest(session=bad_session):
                 with self.assertRaises(rtc.RewardTicketControllerError):
-                    rtc.RewardTicketController(bad_session)  # type: ignore[arg-type]
+                    rtc.RewardTicketController(
+                        bad_session,  # type: ignore[arg-type]
+                        controller_lineage_uuid=LINEAGE,
+                    )
+        for bad_lineage in (
+            None,
+            42,
+            "not-a-uuid",
+            LINEAGE.upper(),
+            LINEAGE.replace("-", ""),
+        ):
+            with self.subTest(controller_lineage_uuid=bad_lineage):
+                with self.assertRaises(rtc.RewardTicketControllerError):
+                    self._controller(
+                        controller_lineage_uuid=bad_lineage  # type: ignore[arg-type]
+                    )
 
         controller = self._controller()
 
@@ -1323,6 +1363,11 @@ class RewardTicketControllerTest(unittest.TestCase):
             resolution_ns=closed.resolution_ns,
             accepted_feedback_sha256=closed.accepted_feedback_sha256,
             min_hold_satisfied_ns=closed.min_hold_satisfied_ns,
+            controller_lineage_uuid=closed.controller_lineage_uuid,
+            lineage_ordinal=closed.lineage_ordinal,
+            predecessor_completed_ticket_sha256=(
+                closed.predecessor_completed_ticket_sha256
+            ),
         )
         for label, override in (
             ("hold type", {"hold": (closed.hold,)}),
@@ -1573,6 +1618,11 @@ class RewardTicketControllerTest(unittest.TestCase):
             resolution_ns=closed.resolution_ns,
             accepted_feedback_sha256=closed.accepted_feedback_sha256,
             min_hold_satisfied_ns=closed.min_hold_satisfied_ns,
+            controller_lineage_uuid=closed.controller_lineage_uuid,
+            lineage_ordinal=closed.lineage_ordinal,
+            predecessor_completed_ticket_sha256=(
+                closed.predecessor_completed_ticket_sha256
+            ),
         )
         # the real record satisfies the whole algebra
         self.assertEqual(closed.deadline_ns, closed.opened_ns + B)
@@ -1656,6 +1706,11 @@ class RewardTicketControllerTest(unittest.TestCase):
             resolution_ns=None,
             accepted_feedback_sha256=None,
             min_hold_satisfied_ns=expired.min_hold_satisfied_ns,
+            controller_lineage_uuid=expired.controller_lineage_uuid,
+            lineage_ordinal=expired.lineage_ordinal,
+            predecessor_completed_ticket_sha256=(
+                expired.predecessor_completed_ticket_sha256
+            ),
         )
         self.assertEqual(
             rtc.CompletedTicket(**timeout_valid).canonical_sha256(),
@@ -1678,6 +1733,94 @@ class RewardTicketControllerTest(unittest.TestCase):
             with self.subTest(case=label):
                 with self.assertRaises(rtc.RewardTicketControllerError):
                     rtc.CompletedTicket(**{**timeout_valid, **override})
+
+    def test_controller_issues_gap_tolerant_exact_ticket_lineage(self) -> None:
+        """Adjacency follows completion order, never ``decision_seq - 1``."""
+        controller = self._controller()
+        self.assertIsNone(controller.genesis_proof)
+        genesis = controller.authorize_episode_start(
+            first_decision_seq=5,
+            first_tensor_seq=10,
+            first_carla_frame_id=100,
+            state_observed_ns=T0,
+        )
+        # Issued and serializable before any decision or feedback exists.
+        self.assertEqual(controller.completed_count, 0)
+        self.assertIs(controller.state, rtc.ControllerState.READY)
+        self.assertTrue(genesis.is_attested)
+        self.assertEqual(genesis.session_uuid, SESSION)
+        self.assertEqual(genesis.controller_lineage_uuid, LINEAGE)
+        self.assertEqual(
+            genesis.to_canonical_dict()["controller_schema_sha256"],
+            rtc.CONTROLLER_SCHEMA_SHA256,
+        )
+        forged_genesis = rtc.ControllerGenesisProof(
+            session_uuid=SESSION,
+            controller_lineage_uuid=LINEAGE,
+            first_decision_seq=5,
+            first_tensor_seq=10,
+            first_carla_frame_id=100,
+            state_observed_ns=T0,
+        )
+        self.assertFalse(forged_genesis.is_attested)
+        with self.assertRaises(rtc.RewardTicketControllerError):
+            forged_genesis.to_canonical_dict()
+
+        action = self._action(mode_id=3, q_e4=5000)
+        first = self._complete_two_tensor_ticket(
+            controller,
+            decision_seq=5,
+            first_tensor_seq=10,
+            first_frame_id=100,
+            opened_ns=T0,
+            action=action,
+        )
+        second = self._complete_two_tensor_ticket(
+            controller,
+            decision_seq=19,
+            first_tensor_seq=20,
+            first_frame_id=200,
+            opened_ns=T0 + 500 * MS,
+            action=action,
+        )
+        self.assertTrue(first.lineage_is_attested)
+        self.assertTrue(second.lineage_is_attested)
+        self.assertEqual(first.controller_lineage_uuid, LINEAGE)
+        self.assertEqual(second.controller_lineage_uuid, LINEAGE)
+        self.assertEqual(first.lineage_ordinal, 0)
+        self.assertIsNone(first.predecessor_completed_ticket_sha256)
+        self.assertEqual(second.lineage_ordinal, 1)
+        self.assertEqual(
+            second.predecessor_completed_ticket_sha256,
+            first.canonical_sha256(),
+        )
+
+        # Copying all visible fields is still not controller provenance.
+        forged = rtc.CompletedTicket(
+            session_uuid=second.session_uuid,
+            decision_seq=second.decision_seq,
+            hold=second.hold,
+            terminal_class=second.terminal_class,
+            opened_ns=second.opened_ns,
+            deadline_ns=second.deadline_ns,
+            closed_ns=second.closed_ns,
+            resolution_ns=second.resolution_ns,
+            accepted_feedback_sha256=second.accepted_feedback_sha256,
+            min_hold_satisfied_ns=second.min_hold_satisfied_ns,
+            controller_lineage_uuid=second.controller_lineage_uuid,
+            lineage_ordinal=second.lineage_ordinal,
+            predecessor_completed_ticket_sha256=(
+                second.predecessor_completed_ticket_sha256
+            ),
+            controller_genesis_proof_sha256=(
+                second.controller_genesis_proof_sha256
+            ),
+        )
+        self.assertFalse(forged.lineage_is_attested)
+        with self.assertRaises(rtc.RewardTicketControllerError):
+            forged.require_lineage_attested()
+        with self.assertRaises(rtc.RewardTicketControllerError):
+            replace(second, closed_ns=second.closed_ns + 1)
 
 
 if __name__ == "__main__":  # pragma: no cover

@@ -78,7 +78,7 @@ from __future__ import annotations
 
 import uuid
 from collections import OrderedDict
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from enum import Enum
 from types import MappingProxyType
 from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple
@@ -124,7 +124,9 @@ __all__ = [
     "TerminalClass",
     "RewardFeedbackMessage",
     "AdmissionResult",
+    "PolicyDecisionSelection",
     "FeedbackOutcome",
+    "ControllerGenesisProof",
     "CompletedTicket",
     "GateStatus",
     "RewardTicketController",
@@ -409,13 +411,15 @@ def _declared_transition_literal() -> Dict[str, Tuple[str, ...]]:
 CONTROLLER_SCHEMA_DESCRIPTOR: Mapping[str, Any] = _deep_freeze(
     {
         "schema_id": "splitfusion_hybrid_sac_reward_ticket_controller_v1",
-        "version": 2,
+        "version": 4,
         "revision_note": (
-            "v2 (phase 3b.1) corrects min_hold_satisfied_ns to the admission "
-            "that first reached k_min rather than the closure instant, makes "
-            "frame non-readmission absolute over the session lifetime rather "
-            "than only over the retained terminal history, and hardens the "
-            "completed-ticket timestamp/terminal-consistency invariants"
+            "v4 adds a controller-issued, pre-decision genesis proof so the "
+            "first causal policy state never depends on a future completed "
+            "ticket, and commits the exact policy-decision trace digest at "
+            "ticket opening so replay state/action provenance cannot be "
+            "minted retrospectively. v3 controller-lifetime UUID, "
+            "gap-tolerant completion ordinal, exact predecessor-ticket hash "
+            "and construction attestation remain unchanged"
         ),
         "phase": (
             "one-ticket action-hold and feedback state machine only; no reward, "
@@ -540,6 +544,25 @@ CONTROLLER_SCHEMA_DESCRIPTOR: Mapping[str, Any] = _deep_freeze(
             "must serialize frame admission, feedback, clock/deadline "
             "observation and fault recording through one event loop or queue"
         ),
+        "causal_lineage": (
+            "the caller injects one durable canonical UUID allocated exactly "
+            "once per concrete controller lifetime; before the first policy "
+            "decision, authorize_episode_start issues a one-time attested "
+            "proof bound to its decision/tensor/frame and observation time; "
+            "every closed ticket is attested with the same UUID, "
+            "its zero-based completion ordinal, and the exact preceding "
+            "completed-ticket hash; a replay-eligible gate-time policy "
+            "selection atomically binds its reconciled action and exact "
+            "policy-decision trace digest before execution; decision_seq may "
+            "have gaps and is never used as an adjacency proof"
+        ),
+        "lineage_uniqueness_boundary": (
+            "the pure controller validates UUID shape but cannot prove global "
+            "uniqueness. Runtime must allocate and durably register a fresh "
+            "lineage UUID for every new controller lifetime, including after "
+            "restart. No restore constructor exists, so reusing a prior UUID "
+            "would fork a false second genesis and is forbidden"
+        ),
     }
 )
 
@@ -549,6 +572,44 @@ CONTROLLER_SCHEMA_SHA256: str = canonical_sha256(CONTROLLER_SCHEMA_DESCRIPTOR)
 
 #: Default bound on retained closed-ticket identities.
 DEFAULT_MAX_TERMINAL_HISTORY: int = 8
+
+
+# --------------------------------------------------------------------------- #
+# Controller-issued lineage attestations
+# --------------------------------------------------------------------------- #
+
+
+def _make_lineage_attestation_gate() -> Tuple[Callable, Callable]:
+    """Return a closure-private issuer/checker for controller lineage.
+
+    A directly constructed :class:`CompletedTicket` can still be useful for
+    low-level invariant tests, but it cannot prove where it sat in a controller
+    episode.  Only :meth:`RewardTicketController._close_ticket` receives the
+    issuer and can therefore make a ticket admissible as causal replay
+    evidence.  This is a construction guard, not a cryptographic boundary.
+    """
+    sentinel = object()
+
+    def issue(binding: str) -> Tuple[Any, str]:
+        return (sentinel, binding)
+
+    def is_valid(token: Any, binding: str) -> bool:
+        return (
+            type(token) is tuple
+            and len(token) == 2
+            and token[0] is sentinel
+            and token[1] == binding
+        )
+
+    return issue, is_valid
+
+
+_issue_ticket_lineage, _valid_ticket_lineage = (
+    _make_lineage_attestation_gate()
+)
+_issue_controller_genesis, _valid_controller_genesis = (
+    _make_lineage_attestation_gate()
+)
 
 
 # --------------------------------------------------------------------------- #
@@ -713,6 +774,80 @@ class RewardFeedbackMessage:
 
 
 @dataclass(frozen=True, slots=True)
+class ControllerGenesisProof:
+    """Controller-issued proof available before the first policy decision.
+
+    A first causal state cannot depend on the first ticket's eventual closure.
+    The controller therefore issues this immutable, one-time authorization
+    before any frame/action is admitted.  It binds the session, concrete
+    controller lineage and the proposed first decision/tensor/frame plus the
+    exact state-observation timestamp.  Opening the first decision consumes
+    that authorization only when every bound identity matches.
+
+    Direct construction is deliberately possible for low-level validation but
+    remains unattested and cannot be used as causal episode evidence.
+    """
+
+    session_uuid: str
+    controller_lineage_uuid: str
+    first_decision_seq: int
+    first_tensor_seq: int
+    first_carla_frame_id: int
+    state_observed_ns: int
+    _attestation: Any = field(default=None, compare=False, repr=False)
+
+    def __post_init__(self) -> None:
+        _canonical_uuid(self.session_uuid)
+        _canonical_uuid(self.controller_lineage_uuid)
+        _exact_non_negative_int(self.first_decision_seq, "first_decision_seq")
+        _exact_non_negative_int(self.first_tensor_seq, "first_tensor_seq")
+        _exact_non_negative_int(
+            self.first_carla_frame_id, "first_carla_frame_id"
+        )
+        _require_ns(self.state_observed_ns, "state_observed_ns")
+        if self._attestation is not None and not self.is_attested:
+            raise RewardTicketControllerError(
+                "controller-genesis attestation does not match its session/"
+                "lineage binding"
+            )
+
+    def _serialized_fields(self) -> Dict[str, Any]:
+        return {
+            "controller_lineage_uuid": self.controller_lineage_uuid,
+            "controller_schema_id": CONTROLLER_SCHEMA_ID,
+            "controller_schema_sha256": CONTROLLER_SCHEMA_SHA256,
+            "controller_schema_version": CONTROLLER_SCHEMA_VERSION,
+            "first_carla_frame_id": self.first_carla_frame_id,
+            "first_decision_seq": self.first_decision_seq,
+            "first_tensor_seq": self.first_tensor_seq,
+            "record": "controller_genesis_proof_v1",
+            "session_uuid": self.session_uuid,
+            "state_observed_ns": self.state_observed_ns,
+        }
+
+    def _binding(self) -> str:
+        return canonical_sha256(self._serialized_fields())
+
+    @property
+    def is_attested(self) -> bool:
+        return _valid_controller_genesis(self._attestation, self._binding())
+
+    def require_attested(self) -> None:
+        if not self.is_attested:
+            raise RewardTicketControllerError(
+                "controller genesis proof was not issued by a live "
+                "RewardTicketController"
+            )
+
+    def to_canonical_dict(self) -> Dict[str, Any]:
+        self.require_attested()
+        return self._serialized_fields()
+
+    def canonical_sha256(self) -> str:
+        return canonical_sha256(self.to_canonical_dict())
+
+
+@dataclass(frozen=True, slots=True)
 class CompletedTicket:
     """Immutable summary of exactly one completed reward ticket.
 
@@ -749,6 +884,17 @@ class CompletedTicket:
     resolution_ns: Optional[int]
     accepted_feedback_sha256: Optional[str]
     min_hold_satisfied_ns: int
+    # Phase-4a.2 causal-lineage and decision-commitment extension.  Directly
+    # constructed legacy tickets may omit these fields and are intentionally
+    # inadmissible as replay lineage evidence.  Controller-closed tickets
+    # always carry lineage/ordinal; replay additionally requires the exact
+    # pre-execution policy-trace commitment.
+    controller_lineage_uuid: Optional[str] = None
+    lineage_ordinal: Optional[int] = None
+    predecessor_completed_ticket_sha256: Optional[str] = None
+    controller_genesis_proof_sha256: Optional[str] = None
+    policy_decision_trace_sha256: Optional[str] = None
+    _lineage_attestation: Any = field(default=None, compare=False, repr=False)
 
     def __post_init__(self) -> None:
         if not isinstance(self.hold, ActionHoldManifest):
@@ -782,6 +928,55 @@ class CompletedTicket:
         if self.accepted_feedback_sha256 is not None:
             _require_sha256_hex(
                 self.accepted_feedback_sha256, "accepted_feedback_sha256"
+            )
+        if self.controller_genesis_proof_sha256 is not None:
+            _require_sha256_hex(
+                self.controller_genesis_proof_sha256,
+                "controller_genesis_proof_sha256",
+            )
+        if self.policy_decision_trace_sha256 is not None:
+            _require_sha256_hex(
+                self.policy_decision_trace_sha256,
+                "policy_decision_trace_sha256",
+            )
+
+        lineage_values = (
+            self.controller_lineage_uuid,
+            self.lineage_ordinal,
+        )
+        if any(value is not None for value in lineage_values) or (
+            self.predecessor_completed_ticket_sha256 is not None
+        ):
+            if self.controller_lineage_uuid is None or self.lineage_ordinal is None:
+                raise RewardTicketControllerError(
+                    "controller ticket lineage is all-or-nothing: "
+                    "controller_lineage_uuid and lineage_ordinal are both "
+                    "required"
+                )
+            _canonical_uuid(self.controller_lineage_uuid)
+            _exact_non_negative_int(self.lineage_ordinal, "lineage_ordinal")
+            if self.lineage_ordinal == 0:
+                if self.predecessor_completed_ticket_sha256 is not None:
+                    raise RewardTicketControllerError(
+                        "lineage ordinal 0 is the controller genesis ticket "
+                        "and cannot name a predecessor"
+                    )
+            else:
+                if self.predecessor_completed_ticket_sha256 is None:
+                    raise RewardTicketControllerError(
+                        f"lineage ordinal {self.lineage_ordinal} requires the "
+                        "exact predecessor completed-ticket digest"
+                    )
+                _require_sha256_hex(
+                    self.predecessor_completed_ticket_sha256,
+                    "predecessor_completed_ticket_sha256",
+                )
+        if self._lineage_attestation is not None and not (
+            self.lineage_is_attested
+        ):
+            raise RewardTicketControllerError(
+                "the completed-ticket lineage attestation does not match its "
+                "serialized lineage fields"
             )
 
         # -- cross-record consistency -------------------------------------- #
@@ -906,6 +1101,26 @@ class CompletedTicket:
             return None
         return self.resolution_ns - self.opened_ns
 
+    @property
+    def lineage_is_attested(self) -> bool:
+        """Whether the real controller issued this exact lineage record."""
+        return _valid_ticket_lineage(
+            self._lineage_attestation, self._lineage_binding()
+        )
+
+    def require_lineage_attested(self) -> None:
+        """Fail closed unless this ticket came from a controller close path."""
+        if not self.lineage_is_attested:
+            raise RewardTicketControllerError(
+                "completed ticket has no controller-issued lineage proof; a "
+                "direct/legacy ticket cannot establish episode or predecessor "
+                "provenance"
+            )
+
+    def _lineage_binding(self) -> str:
+        """Bind provenance to every serialized field of this exact ticket."""
+        return canonical_sha256(self.to_canonical_dict())
+
     # -- serialization ----------------------------------------------------- #
 
     def to_canonical_dict(self) -> Dict[str, Any]:
@@ -923,9 +1138,20 @@ class CompletedTicket:
             "hold": self.hold.to_canonical_dict(),
             "hold_duration_tensors": self.hold_duration_tensors,
             "learning_disposition": self.learning_disposition,
+            "controller_lineage_uuid": self.controller_lineage_uuid,
+            "controller_genesis_proof_sha256": (
+                self.controller_genesis_proof_sha256
+            ),
+            "lineage_ordinal": self.lineage_ordinal,
             "min_hold_satisfied_ns": self.min_hold_satisfied_ns,
             "minimum_hold_tensors": K_MIN_TENSORS,
             "opened_ns": self.opened_ns,
+            "predecessor_completed_ticket_sha256": (
+                self.predecessor_completed_ticket_sha256
+            ),
+            "policy_decision_trace_sha256": (
+                self.policy_decision_trace_sha256
+            ),
             "record": "reward_ticket_completion",
             "resolution_ns": self.resolution_ns,
             "reward_carla_frame_id": self.reward_carla_frame_id,
@@ -1002,6 +1228,34 @@ class AdmissionResult:
 
 
 @dataclass(frozen=True, slots=True)
+class PolicyDecisionSelection:
+    """Atomic gate-time policy result for a replay-eligible decision.
+
+    The actor produces the reconciled action and the canonical digest of its
+    already-built policy-decision trace in one callback.  The controller
+    commits both at admission, before any tensor executes.  A plain
+    :class:`ExecutedActionIdentity` remains accepted by :meth:`admit_frame`
+    for the lower-level Phase-3b control-only path, but such a ticket is
+    intentionally ineligible for causal replay.
+    """
+
+    action: ExecutedActionIdentity
+    policy_decision_trace_sha256: str
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.action, ExecutedActionIdentity):
+            raise RewardTicketControllerError(
+                "PolicyDecisionSelection.action must be an "
+                "ExecutedActionIdentity"
+            )
+        self.action.require_reconciled()
+        _require_sha256_hex(
+            self.policy_decision_trace_sha256,
+            "policy_decision_trace_sha256",
+        )
+
+
+@dataclass(frozen=True, slots=True)
 class FeedbackOutcome:
     """Immutable classification of one submitted terminal event.
 
@@ -1054,6 +1308,11 @@ class _ActiveTicket:
     opened_ns: int
     deadline_ns: int
     envelopes: List[TensorTransmissionEnvelope]
+    controller_lineage_uuid: str
+    lineage_ordinal: int
+    predecessor_completed_ticket_sha256: Optional[str]
+    controller_genesis_proof_sha256: Optional[str]
+    policy_decision_trace_sha256: Optional[str]
     #: The instant of the admission that first brought the hold to ``k_min``
     #: tensors.  ``None`` until that admission happens, and written exactly
     #: once thereafter -- never by feedback, a deadline, a fault or closure.
@@ -1107,6 +1366,14 @@ class RewardTicketController:
     ``now_ns``, which must be a non-negative Python ``int`` and must never
     regress.  The controller holds no clock of its own and never sleeps.
 
+    ``controller_lineage_uuid`` is also injected.  It must be a durable,
+    canonical UUID allocated once for this concrete controller/episode
+    lifetime; generating hidden randomness here would make replay hashes
+    irreproducible.  This pure class checks shape, not global uniqueness.  The
+    runtime must durably register a fresh UUID for every new controller,
+    including after process restart.  There is no restore constructor, so
+    reusing an old UUID would fork a false second genesis and is forbidden.
+
     Usage is either the two primitives -- :meth:`open_decision` and
     :meth:`reuse_held_action`, each of which fails closed when the gate
     disagrees -- or :meth:`admit_frame`, which observes the clock and routes to
@@ -1131,6 +1398,9 @@ class RewardTicketController:
 
     __slots__ = (
         "_session_uuid",
+        "_controller_lineage_uuid",
+        "_genesis_proof",
+        "_last_completed_ticket_sha256",
         "_max_terminal_history",
         "_state",
         "_ticket",
@@ -1146,9 +1416,19 @@ class RewardTicketController:
         self,
         session_uuid: str,
         *,
+        controller_lineage_uuid: str,
         max_terminal_history: int = DEFAULT_MAX_TERMINAL_HISTORY,
     ) -> None:
         self._session_uuid = _canonical_uuid(session_uuid)
+        # Explicit and durable: replay identity must not depend on process
+        # randomness. Runtime owns this episode/run identifier and must
+        # allocate/register a fresh value for every controller lifetime. This
+        # class has no durable restore path, so a restart is a new lineage.
+        self._controller_lineage_uuid = _canonical_uuid(
+            controller_lineage_uuid
+        )
+        self._genesis_proof: Optional[ControllerGenesisProof] = None
+        self._last_completed_ticket_sha256: Optional[str] = None
         if isinstance(max_terminal_history, bool) or type(
             max_terminal_history
         ) is not int:
@@ -1180,6 +1460,68 @@ class RewardTicketController:
     @property
     def session_uuid(self) -> str:
         return self._session_uuid
+
+    @property
+    def controller_lineage_uuid(self) -> str:
+        """Opaque identifier of this concrete controller/episode lifetime."""
+        return self._controller_lineage_uuid
+
+    @property
+    def genesis_proof(self) -> Optional[ControllerGenesisProof]:
+        """The issued first-state authorization, or ``None`` before issuance."""
+        return self._genesis_proof
+
+    def authorize_episode_start(
+        self,
+        *,
+        first_decision_seq: int,
+        first_tensor_seq: int,
+        first_carla_frame_id: int,
+        state_observed_ns: int,
+    ) -> ControllerGenesisProof:
+        """Issue the one-time first-state proof before the first decision.
+
+        Repeating the exact request before opening is idempotent.  A different
+        request, or any request after a decision has opened/completed, fails
+        closed.  This makes the proof temporal controller evidence rather than
+        a retrospective wrapper around a completed ticket.
+        """
+        observed_ns = self._require_clock(state_observed_ns)
+        _exact_non_negative_int(first_decision_seq, "first_decision_seq")
+        _exact_non_negative_int(first_tensor_seq, "first_tensor_seq")
+        _exact_non_negative_int(first_carla_frame_id, "first_carla_frame_id")
+        if (
+            self._completed_count != 0
+            or self._ticket is not None
+            or self._last_decision_seq is not None
+            or self._state is not ControllerState.READY
+        ):
+            raise IllegalTransitionError(
+                "episode-start authorization is available only before the "
+                "first decision opens"
+            )
+        candidate = ControllerGenesisProof(
+            session_uuid=self._session_uuid,
+            controller_lineage_uuid=self._controller_lineage_uuid,
+            first_decision_seq=first_decision_seq,
+            first_tensor_seq=first_tensor_seq,
+            first_carla_frame_id=first_carla_frame_id,
+            state_observed_ns=state_observed_ns,
+        )
+        if self._genesis_proof is not None:
+            if self._genesis_proof._binding() != candidate._binding():
+                raise IllegalTransitionError(
+                    "a different episode-start authorization was already "
+                    "issued for this controller"
+                )
+            self._last_observed_ns = observed_ns
+            return self._genesis_proof
+        self._genesis_proof = replace(
+            candidate,
+            _attestation=_issue_controller_genesis(candidate._binding()),
+        )
+        self._last_observed_ns = observed_ns
+        return self._genesis_proof
 
     @property
     def state(self) -> ControllerState:
@@ -1335,10 +1677,28 @@ class RewardTicketController:
             resolution_ns=ticket.resolution_ns,
             accepted_feedback_sha256=ticket.accepted_feedback_sha256,
             min_hold_satisfied_ns=min_hold_satisfied_ns,
+            controller_lineage_uuid=ticket.controller_lineage_uuid,
+            lineage_ordinal=ticket.lineage_ordinal,
+            predecessor_completed_ticket_sha256=(
+                ticket.predecessor_completed_ticket_sha256
+            ),
+            controller_genesis_proof_sha256=(
+                ticket.controller_genesis_proof_sha256
+            ),
+            policy_decision_trace_sha256=(
+                ticket.policy_decision_trace_sha256
+            ),
+        )
+        completed = replace(
+            completed,
+            _lineage_attestation=_issue_ticket_lineage(
+                completed._lineage_binding()
+            ),
         )
         self._transition(event, ControllerState.CLOSED)
         self._ticket = None
         self._remember(completed)
+        self._last_completed_ticket_sha256 = completed.canonical_sha256()
         self._completed_count += 1
         return completed
 
@@ -1430,6 +1790,7 @@ class RewardTicketController:
         carla_frame_id: int,
         action: ExecutedActionIdentity,
         now_ns: int,
+        policy_decision_trace_sha256: Optional[str] = None,
     ) -> AdmissionResult:
         """Open the single reward ticket on a frame that reached a ready gate.
 
@@ -1464,6 +1825,11 @@ class RewardTicketController:
                 f"{type(action).__name__}"
             )
         action.require_reconciled()
+        if policy_decision_trace_sha256 is not None:
+            _require_sha256_hex(
+                policy_decision_trace_sha256,
+                "policy_decision_trace_sha256",
+            )
         if (
             self._last_decision_seq is not None
             and decision_seq <= self._last_decision_seq
@@ -1476,6 +1842,26 @@ class RewardTicketController:
             )
         self._require_tensor_seq(tensor_seq)
         self._reject_readmitted_frame(carla_frame_id)
+
+        genesis = self._genesis_proof
+        if self._completed_count == 0 and genesis is not None:
+            expected = (
+                genesis.first_decision_seq,
+                genesis.first_tensor_seq,
+                genesis.first_carla_frame_id,
+            )
+            actual = (decision_seq, tensor_seq, carla_frame_id)
+            if actual != expected:
+                raise IllegalTransitionError(
+                    "first decision does not match its controller-issued "
+                    f"episode-start authorization: expected {expected}, got "
+                    f"{actual}"
+                )
+            if genesis.state_observed_ns > now_ns:
+                raise ClockRegressionError(
+                    "first decision opens before its authorized policy state "
+                    "was observed"
+                )
 
         envelope = TensorTransmissionEnvelope(
             transaction=TensorTransactionId(
@@ -1494,6 +1880,15 @@ class RewardTicketController:
             opened_ns=now_ns,
             deadline_ns=now_ns + B_REWARD_DEADLINE_NS,
             envelopes=[envelope],
+            controller_lineage_uuid=self._controller_lineage_uuid,
+            lineage_ordinal=self._completed_count,
+            predecessor_completed_ticket_sha256=(
+                self._last_completed_ticket_sha256
+            ),
+            controller_genesis_proof_sha256=(
+                None if genesis is None else genesis.canonical_sha256()
+            ),
+            policy_decision_trace_sha256=policy_decision_trace_sha256,
         )
         self._transition(TicketEvent.OPEN_DECISION, ControllerState.OPEN_UNRESOLVED)
         self._last_decision_seq = decision_seq
@@ -1611,15 +2006,17 @@ class RewardTicketController:
         carla_frame_id: int,
         now_ns: int,
         next_decision_seq: int,
-        select_action: Callable[[], ExecutedActionIdentity],
+        select_action: Callable[[], Any],
     ) -> AdmissionResult:
         """Route one prepared frame to exactly one admission primitive.
 
         ``next_decision_seq`` and ``select_action`` are consumed **only** when
-        the gate is available at ``now_ns``.  During a hold the actor is not
-        invoked and the candidate ``decision_seq`` is not consumed, which is the
-        section-3 rule that the policy may not run while a ticket is
-        outstanding.
+        the gate is available at ``now_ns``.  For replay-eligible operation the
+        callback returns :class:`PolicyDecisionSelection`, atomically carrying
+        both the action and its prebuilt decision-trace digest.  Returning a
+        bare action retains the Phase-3b control-only behavior, whose ticket is
+        deliberately rejected by causal replay.  During a hold the callback is
+        not invoked and the candidate ``decision_seq`` is not consumed.
         """
         if not callable(select_action):
             raise RewardTicketControllerError(
@@ -1628,13 +2025,20 @@ class RewardTicketController:
             )
         status = self.observe(now_ns)
         if status.gate_available:
-            action = select_action()
+            selected = select_action()
+            if isinstance(selected, PolicyDecisionSelection):
+                action = selected.action
+                trace_sha256 = selected.policy_decision_trace_sha256
+            else:
+                action = selected
+                trace_sha256 = None
             result = self.open_decision(
                 decision_seq=next_decision_seq,
                 tensor_seq=tensor_seq,
                 carla_frame_id=carla_frame_id,
                 action=action,
                 now_ns=now_ns,
+                policy_decision_trace_sha256=trace_sha256,
             )
         else:
             result = self.reuse_held_action(

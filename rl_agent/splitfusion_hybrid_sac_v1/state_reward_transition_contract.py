@@ -1,6 +1,6 @@
 """Versioned causal-state, reward-measurement and replay-transition contract.
 
-Phase 4a (repaired at 4a.1) of the SplitFusion conditional Hybrid-SAC
+Phase 4a (repaired through 4a.2) of the SplitFusion conditional Hybrid-SAC
 foundation.  Pure, deterministic, in-memory contract code over the four frozen
 dependencies.  It defines *what a transition is* and *how its reward is
 measured*; it does not learn, store, sample, simulate or communicate.
@@ -14,28 +14,30 @@ policy is feed-forward.
 
 Forgery resistance
 ------------------
-Every *derived* record -- the ACK binding, the quality evaluation, the latency
-measurement, the previous-outcome summary, the decision outcome and the replay
-transition -- carries a private construction attestation bound to a hash of its
-own serialized fields.  The attestation is issued only by the validating factory
-that recomputed the value from frozen sources, and it is refused on any record
-whose fields differ.  A directly constructed or mutated record is therefore
-**unattested**: it cannot serialize and cannot enter a transition.  This is a
-guard against mistaken or careless construction, not a security boundary --
-Python offers no true privacy.
+Every derived record -- including eligibility/quality, episode-start and
+previous-outcome records, policy features/traces, latency/outcome and replay --
+carries a private construction attestation bound to its serialized fields.  The
+attestation is issued only by the validating factory that recomputed the value
+from frozen sources, and it is refused when any field differs.  A directly
+constructed or mutated record is therefore **unattested**: it cannot serialize
+or enter a transition.  This guards against mistaken construction, not a
+determined attacker; Python offers no true privacy.
 
-:meth:`ReplayTransitionV1.revalidate` additionally recomputes the whole outcome
-from the raw components plus the reward spec and compares it, so a stored
+:meth:`ReplayTransitionV1.revalidate` additionally recomputes the outcome and
+both policy feature vectors from their full frozen sources, so a stored
 transition can be re-proved rather than trusted.
 
 Ground-truth boundary
 ---------------------
-Every quality component is ``CARLA_GT_EXACT``: a **privileged, non-deployable**
-oracle existing only inside the training/testbed instrument.  Because the causal
-state carries the *previous* decision's exact quality, the whole policy
-observation schema is marked
+The registered quality formula is defined over ``CARLA_GT_EXACT``: a
+**privileged, non-deployable** oracle that may exist only inside the
+training/testbed instrument.  Phase 4a.2 does not yet have an authenticated
+producer for those per-frame inputs.  Its v2 support path is therefore a
+self-consistent formula fixture and is rejected from learning/replay.  Because
+the eventual causal state would carry the *previous* decision's exact quality,
+the whole policy observation schema is marked
 ``POLICY_OBSERVATION_DEPLOYABILITY = "SIMULATOR_TESTBED_ONLY"``.  Nothing here
-implies physical deployability.
+implies physical deployability or that the current fixture is ground truth.
 
 Quality-ACK binding: anchor-only, document-verified, never snapped
 -----------------------------------------------------------------
@@ -46,14 +48,18 @@ one of the 72 **registered anchors**.  Hybrid SAC emits arbitrary continuous
 
 Therefore:
 
-* An :class:`QualityAckObligationV1` is created at *transmission* time and binds
-  the transport identity, the frame identity and the complete executed action.
-* :meth:`QualityAckBindingV1.from_ack_document` takes the **actual ACK
-  document**, calls the *real* protocol validator, computes the raw ACK
+* :class:`QualityAckObligationV1` binds the transport identity, frame identity
+  and complete executed action.  In the current contract it is a caller-built
+  identity assertion, not an authenticated proof that the commitment existed
+  before ACK arrival; this is another reason exact positive rewards remain
+  blocked pending the reviewed producer/protocol-v2 path.
+* :meth:`QualityAckBindingV1.from_ack_document` takes the **presented raw ACK
+  mapping**, calls the *real* protocol validator, computes the raw ACK
   SHA-256 itself, extracts ``dh``, retains all seven v1 identity fields, and
   cross-checks the ACK against both the obligation and the
-  :class:`~.reward_ticket_controller.CompletedTicket`.  A caller-supplied
-  opaque hash is never accepted as proof of anything.
+  :class:`~.reward_ticket_controller.CompletedTicket`.  This proves content
+  consistency, not receipt/storage provenance; a caller-supplied opaque hash
+  is never accepted as proof of anything.
 * An off-anchor action raises :class:`OffAnchorQualityAckError` and can **not**
   produce a learning-eligible exact-quality transition until an
   identity-bearing protocol-v2 carrier exists.  It is never snapped to a
@@ -84,6 +90,7 @@ binding, because it resolves its own dependency through an absolute
 from __future__ import annotations
 
 import math
+import threading
 import uuid
 from dataclasses import dataclass, field, replace
 from enum import Enum
@@ -125,7 +132,9 @@ from .reward_ticket_controller import (
     CONTROLLER_SCHEMA_SHA256,
     CONTROLLER_SCHEMA_VERSION,
     CompletedTicket,
+    ControllerGenesisProof,
     K_MIN_TENSORS,
+    RewardTicketControllerError,
     TERMINAL_LEARNING_DISPOSITION,
     TerminalClass,
 )
@@ -142,7 +151,9 @@ __all__ = [
     "UndefinedClassSupportError",
     "InsufficientQualitySupportError",
     "EvidenceGranularityError",
+    "QualityProducerUnavailableError",
     "QualityProtocolBindingError",
+    "QualityAckReuseError",
     "RewardSpecError",
     "AdjudicationError",
     "TransitionIdentityError",
@@ -171,10 +182,15 @@ __all__ = [
     "QUALITY_ACK_QUALITY_FIELDS",
     "QUALITY_ACK_ANCHOR_ACTION_COUNT",
     "QUALITY_ACK_IS_ANCHOR_ONLY",
+    "QUALITY_OBLIGATION_PRECOMMIT_AUTHENTICATED",
     "QUALITY_ACK_TIMING_CLOCK_DOMAIN",
     "QUALITY_ACK_FALSE_POSITIVE_COUNTS_AVAILABLE",
     "QUALITY_ACK_DERIVABLE_DETECTION_METRICS",
     "QUALITY_ACK_UNDERIVABLE_DETECTION_METRICS",
+    "QUALITY_DETAIL_SCHEMA",
+    "QUALITY_DETAIL_SUPPORT_KEY",
+    "QUALITY_DETAIL_SUPPORT_SCHEMA",
+    "QUALITY_DETAIL_SUPPORT_FIELDS",
     "PROTOCOL_V2_REQUIREMENT",
     "verify_quality_protocol_binding",
     # clocks / latency
@@ -190,6 +206,10 @@ __all__ = [
     "EvidenceKind",
     "EvidenceGranularity",
     "GroundTruthSource",
+    "QualityProducerStatus",
+    "EvaluationEligibilityV1",
+    "EvaluationEligibilityResultV1",
+    "QualityAckUseRegistryV1",
     "QualityAckObligationV1",
     "QualityAckBindingV1",
     "QualityEvidenceV1",
@@ -207,8 +227,21 @@ __all__ = [
     "SnrMetric",
     "LinkDirection",
     "BsrScope",
+    "RadioEvidencePath",
+    "RadioSourceWall",
+    "SnrSource",
+    "McsSource",
+    "BsrSource",
+    "BsrReportType",
+    "RadioMissingReason",
+    "RadioFillPolicy",
+    "RadioEventProvenanceV1",
+    "RadioPolicyAvailabilityV1",
+    "BsrReportV1",
     "SceneObservationV1",
     "RadioObservationV1",
+    "RadioDiagnosticObservationV1",
+    "EpisodeStartProofV1",
     "PreviousOutcomeV1",
     "CausalStateV1",
     "StateNormalizationSpecV1",
@@ -287,8 +320,32 @@ class EvidenceGranularityError(QualityContractError):
     """Aggregate evidence was offered where per-frame causal evidence is required."""
 
 
+class QualityProducerUnavailableError(QualityContractError):
+    """A self-consistent fixture lacks source-authenticated producer evidence.
+
+    Hashes over caller-supplied summaries prove only that those summaries were
+    not altered after hashing.  They do not prove that actor eligibility,
+    masks, matches or errors came from CARLA and the registered evaluator.
+    Until the producer derives and manifests them from the frozen raw source
+    artifacts, the record may test quality mathematics but may not enter
+    learning or replay.
+    """
+
+
 class QualityProtocolBindingError(QualityContractError):
     """The real quality-protocol module disagrees with the declared binding."""
+
+
+class QualityAckReuseError(QualityContractError):
+    """One v1 wire ACK was offered for a different decision binding.
+
+    Protocol v1 does not carry ``session_uuid``/``decision_seq``/
+    ``reward_tensor_seq`` or the complete executed-action identity.  A
+    process-scoped registry is therefore required as a fail-closed bridge: a
+    digest may be revalidated idempotently for the *same* obligation/ticket,
+    but can never be rebound to a different one.  Protocol v2 remains the
+    durable, cross-process solution.
+    """
 
 
 class RewardSpecError(StateRewardContractError):
@@ -478,9 +535,23 @@ def _make_attestation_gate(label: str) -> Tuple[Callable, Callable]:
 
 
 _issue_ack, _valid_ack = _make_attestation_gate("quality_ack_binding")
+_issue_eligibility_result, _valid_eligibility_result = _make_attestation_gate(
+    "evaluation_eligibility_result"
+)
+_issue_components, _valid_components = _make_attestation_gate(
+    "quality_components"
+)
 _issue_quality, _valid_quality = _make_attestation_gate("quality_evaluation")
 _issue_latency, _valid_latency = _make_attestation_gate("latency_measurement")
+_issue_episode_start, _valid_episode_start = _make_attestation_gate(
+    "episode_start_proof"
+)
 _issue_previous, _valid_previous = _make_attestation_gate("previous_outcome")
+_issue_radio, _valid_radio = _make_attestation_gate("radio_observation")
+_issue_features, _valid_features = _make_attestation_gate("policy_feature_vector")
+_issue_policy_trace, _valid_policy_trace = _make_attestation_gate(
+    "policy_decision_trace"
+)
 _issue_outcome, _valid_outcome = _make_attestation_gate("decision_outcome")
 _issue_transition, _valid_transition = _make_attestation_gate("replay_transition")
 
@@ -594,6 +665,7 @@ QUALITY_ACK_QUALITY_FIELDS: Tuple[str, ...] = (
 QUALITY_ACK_REQUIRED_ANCHOR_FIELDS: Tuple[str, ...] = ("action_id", "profile_id")
 QUALITY_ACK_ANCHOR_ACTION_COUNT: int = 72
 QUALITY_ACK_IS_ANCHOR_ONLY: bool = True
+QUALITY_OBLIGATION_PRECOMMIT_AUTHENTICATED: bool = False
 QUALITY_ACK_TIMING_CLOCK_DOMAIN: str = "WALL"
 
 #: The v1 ACK carries tp and fn but no false positives.
@@ -618,6 +690,70 @@ QUALITY_ACK_MISSING_REQUIRED_FIELDS: Tuple[str, ...] = (
     "vehicle_eligible_gt_instances",
     "person_eligible_gt_instances",
     "evaluation_eligibility_contract_sha256",
+)
+
+#: The existing v1 detail schema is retained on the edge, but historical/live
+#: rows do not contain enough information to prove the per-UE eligibility mask
+#: or even distinguish an empty predicted mask from an absent class.  Phase
+#: 4a.2 therefore requires this versioned, hash-bound extension *inside the
+#: actual detail document*.  Legacy detail rows without it fail closed; no
+#: counts are supplied out-of-band.
+QUALITY_DETAIL_SCHEMA: str = "splitfusion_privileged_quality_detail.v1"
+QUALITY_DETAIL_SUPPORT_KEY: str = "phase4a2_reward_support"
+QUALITY_DETAIL_SUPPORT_SCHEMA: str = (
+    "splitfusion_phase4a2_reward_support.v2"
+)
+QUALITY_DETAIL_SUPPORT_FIELDS: Tuple[str, ...] = (
+    "schema",
+    "ue_id",
+    "session_uuid",
+    "decision_seq",
+    "reward_tensor_seq",
+    "executed_action_sha256",
+    "frame_id",
+    "capture_timestamp_ns",
+    "eligibility_contract_sha256",
+    "gt_actor_rows",
+    "gt_actor_snapshot_sha256",
+    "segmentation_depth_m",
+    "segmentation_gt_vehicle_indices",
+    "segmentation_gt_person_indices",
+    "segmentation_pred_vehicle_indices",
+    "segmentation_pred_person_indices",
+    "gt_segmentation_label_sha256",
+    "prediction_segmentation_label_sha256",
+    "segmentation_eligibility_mask_sha256",
+    "eligible_vehicle_actor_ids",
+    "eligible_person_actor_ids",
+    "eligible_vehicle_actor_ids_sha256",
+    "eligible_person_actor_ids_sha256",
+    "vehicle_localization_matches",
+    "person_localization_matches",
+    "unmatched_vehicle_gt_actor_ids",
+    "unmatched_person_gt_actor_ids",
+    "unmatched_vehicle_prediction_indices",
+    "unmatched_person_prediction_indices",
+    "seg_vehicle_gt_pixels",
+    "seg_person_gt_pixels",
+    "seg_vehicle_pred_pixels",
+    "seg_person_pred_pixels",
+    "seg_vehicle_intersection_pixels",
+    "seg_person_intersection_pixels",
+    "seg_vehicle_union_pixels",
+    "seg_person_union_pixels",
+)
+
+# Exact semantics hashed into every eligibility specification.  These values
+# are intentionally explicit rather than hidden inside a producer: changing
+# any one of them creates a different contract hash and therefore a different
+# learning population.
+ELIGIBILITY_VISIBILITY_ALGORITHM_VERSION: str = (
+    "phase4a2_actor_geometry_visibility_v1"
+)
+ELIGIBILITY_VISIBILITY_THRESHOLD: float = 0.65
+ELIGIBILITY_MIN_PROJECTED_SUPPORT_PIXELS: int = 1
+SEGMENTATION_DOMAIN_RULE: str = (
+    "CAMERA_IMAGE_INTERSECT_FINITE_POSITIVE_DEPTH_LE_MAX_RANGE_V1"
 )
 
 #: The complete declared quality-protocol contract, hashed into this schema.
@@ -657,9 +793,11 @@ QUALITY_PROTOCOL_CONTRACT_SHA256: str = canonical_sha256(QUALITY_PROTOCOL_CONTRA
 PROTOCOL_V2_REQUIREMENT: str = (
     "a protocol-v2 quality ACK must carry the full ExecutedActionIdentity or "
     "its canonical SHA-256, because an arbitrary continuous q has no action_id "
-    "or profile_id and must never be snapped to a nearest anchor; until it "
-    "exists, an off-anchor action cannot produce a learning-eligible "
-    "exact-quality transition"
+    "or profile_id and must never be snapped to a nearest anchor; it must also "
+    "bind the raw quality-ACK digest into the controller-accepted feedback and "
+    "authenticate when the quality outcome became policy-visible. Until that "
+    "carrier and the reviewed source producer exist, no exact-positive quality "
+    "outcome may enter learning/replay and an off-anchor action is not scored"
 )
 
 _PROTOCOL_CACHE: Dict[str, Any] = {}
@@ -879,6 +1017,22 @@ class GroundTruthSource(Enum):
         return False
 
 
+class QualityProducerStatus(Enum):
+    """Whether the evidence was derived by an authenticated source producer.
+
+    Phase 4a.2 currently has only the contract-fixture path.  It verifies
+    internal arithmetic and binding, but all raw rows/arrays are still supplied
+    by the caller and the live v1 producer emits none of them.  A future value
+    may be added only together with a reviewed producer that reads the frozen
+    CARLA snapshot/calibration/depth/semantic/prediction artifacts itself and
+    persists their manifest before ACK emission.
+    """
+
+    CONTRACT_FIXTURE_UNVERIFIED_SOURCE = (
+        "CONTRACT_FIXTURE_UNVERIFIED_SOURCE"
+    )
+
+
 @dataclass(frozen=True, slots=True)
 class EvaluationEligibilityV1:
     """The hash-bound, UE-specific rule defining what this UE could perceive.
@@ -912,6 +1066,90 @@ class EvaluationEligibilityV1:
     visibility_rule: VisibilityRule
     segmentation_eligibility_masked: bool
     reward_scope: RewardScope = RewardScope.PER_UE_PERCEPTION
+
+    @staticmethod
+    def contract_document(
+        *,
+        eligibility_contract_id: str,
+        max_range_m: float,
+        fov_deg: float,
+        visibility_rule: VisibilityRule,
+        segmentation_eligibility_masked: bool,
+        reward_scope: RewardScope = RewardScope.PER_UE_PERCEPTION,
+    ) -> Dict[str, Any]:
+        """Canonical eligibility-spec document whose hash is authoritative.
+
+        The digest is derived from the actual range/FoV/visibility semantics;
+        accepting an unrelated caller-declared 64-hex string would provide no
+        evidence that the named contract is the one used by the evaluator.
+        ``ue_id`` is intentionally not part of the reusable *specification*;
+        the per-frame result below binds the concrete UE separately.
+        """
+        return {
+            "class_visibility_rules": {
+                "person": {
+                    "minimum_projected_support_pixels": (
+                        ELIGIBILITY_MIN_PROJECTED_SUPPORT_PIXELS
+                    ),
+                    "rule": visibility_rule.value,
+                    "threshold": ELIGIBILITY_VISIBILITY_THRESHOLD,
+                },
+                "vehicle": {
+                    "minimum_projected_support_pixels": (
+                        ELIGIBILITY_MIN_PROJECTED_SUPPORT_PIXELS
+                    ),
+                    "rule": visibility_rule.value,
+                    "threshold": ELIGIBILITY_VISIBILITY_THRESHOLD,
+                },
+            },
+            "eligibility_contract_id": eligibility_contract_id,
+            "fov_deg": float(fov_deg),
+            "max_range_m": float(max_range_m),
+            "record": "evaluation_eligibility_contract_v1",
+            "reward_scope": reward_scope.value,
+            "segmentation_domain_rule": SEGMENTATION_DOMAIN_RULE,
+            "segmentation_eligibility_masked": (
+                segmentation_eligibility_masked
+            ),
+            "visibility_algorithm_version": (
+                ELIGIBILITY_VISIBILITY_ALGORITHM_VERSION
+            ),
+            "visibility_rule": visibility_rule.value,
+        }
+
+    @classmethod
+    def from_spec(
+        cls,
+        *,
+        ue_id: str,
+        eligibility_contract_id: str,
+        max_range_m: float,
+        fov_deg: float,
+        visibility_rule: VisibilityRule,
+        segmentation_eligibility_masked: bool,
+        reward_scope: RewardScope = RewardScope.PER_UE_PERCEPTION,
+    ) -> "EvaluationEligibilityV1":
+        """Construct the rule with a digest recomputed from its semantics."""
+        document = cls.contract_document(
+            eligibility_contract_id=eligibility_contract_id,
+            max_range_m=max_range_m,
+            fov_deg=fov_deg,
+            visibility_rule=visibility_rule,
+            segmentation_eligibility_masked=segmentation_eligibility_masked,
+            reward_scope=reward_scope,
+        )
+        return cls(
+            ue_id=ue_id,
+            eligibility_contract_id=eligibility_contract_id,
+            eligibility_contract_sha256=canonical_sha256(document),
+            max_range_m=max_range_m,
+            fov_deg=fov_deg,
+            visibility_rule=visibility_rule,
+            segmentation_eligibility_masked=(
+                segmentation_eligibility_masked
+            ),
+            reward_scope=reward_scope,
+        )
 
     def __post_init__(self) -> None:
         E = QualityContractError
@@ -957,9 +1195,38 @@ class EvaluationEligibilityV1:
                 f"a different eligibility set and credit assignment and is not "
                 f"implemented here.  The two rewards must never be summed"
             )
+        expected_sha = canonical_sha256(
+            self.contract_document(
+                eligibility_contract_id=self.eligibility_contract_id,
+                max_range_m=self.max_range_m,
+                fov_deg=self.fov_deg,
+                visibility_rule=self.visibility_rule,
+                segmentation_eligibility_masked=(
+                    self.segmentation_eligibility_masked
+                ),
+                reward_scope=self.reward_scope,
+            )
+        )
+        if self.eligibility_contract_sha256 != expected_sha:
+            raise E(
+                "eligibility_contract_sha256 is disconnected from the "
+                "declared range/FoV/visibility semantics: expected "
+                f"{expected_sha}, got {self.eligibility_contract_sha256}.  "
+                "Construct the rule with EvaluationEligibilityV1.from_spec()"
+            )
 
     def to_canonical_dict(self) -> Dict[str, Any]:
         return {
+            "contract_document": self.contract_document(
+                eligibility_contract_id=self.eligibility_contract_id,
+                max_range_m=self.max_range_m,
+                fov_deg=self.fov_deg,
+                visibility_rule=self.visibility_rule,
+                segmentation_eligibility_masked=(
+                    self.segmentation_eligibility_masked
+                ),
+                reward_scope=self.reward_scope,
+            ),
             "eligibility_contract_id": self.eligibility_contract_id,
             "eligibility_contract_sha256": self.eligibility_contract_sha256,
             "fov_deg": float(self.fov_deg),
@@ -978,26 +1245,869 @@ class EvaluationEligibilityV1:
         return canonical_sha256(self.to_canonical_dict())
 
 
+@dataclass(frozen=True, slots=True)
+class EvaluationEligibilityResultV1(_Attested):
+    """Attested per-frame result of applying one eligibility contract.
+
+    This is evidence about a *particular UE and frame*, not merely a declared
+    rule.  It is issued only while verifying the presented digest-bound detail
+    mapping whose digest is carried by the ACK.  The result binds the source
+    GT snapshots, the exact eligible actor sets, the segmentation-eligibility
+    mask and the sufficient pixel statistics used to reproduce each IoU.
+
+    Historical ``splitfusion_privileged_quality_detail.v1`` rows without the
+    :data:`QUALITY_DETAIL_SUPPORT_KEY` extension cannot produce this record.
+    They remain scientifically useful historical evidence, but are explicitly
+    unsupported as exact Phase-4a.2 learning rewards.
+    """
+
+    eligibility: EvaluationEligibilityV1
+    run_id: str
+    cell_id: str
+    stream_id: str
+    frame_id: int
+    capture_timestamp_ns: int
+    session_uuid: str
+    decision_seq: int
+    reward_tensor_seq: int
+    executed_action_sha256: str
+    gt_actor_snapshot_sha256: str
+    gt_segmentation_label_sha256: str
+    prediction_segmentation_label_sha256: str
+    segmentation_eligibility_mask_sha256: str
+    eligible_vehicle_actor_ids: Tuple[int, ...]
+    eligible_person_actor_ids: Tuple[int, ...]
+    eligible_vehicle_actor_ids_sha256: str
+    eligible_person_actor_ids_sha256: str
+    seg_vehicle_gt_pixels: int
+    seg_person_gt_pixels: int
+    seg_vehicle_pred_pixels: int
+    seg_person_pred_pixels: int
+    seg_vehicle_intersection_pixels: int
+    seg_person_intersection_pixels: int
+    seg_vehicle_union_pixels: int
+    seg_person_union_pixels: int
+    detailed_evidence_sha256: str
+    _attestation: Any = field(default=None, compare=False, repr=False)
+
+    def __post_init__(self) -> None:
+        E = QualityContractError
+        if not isinstance(self.eligibility, EvaluationEligibilityV1):
+            raise E(
+                "eligibility must be a validated EvaluationEligibilityV1"
+            )
+        for name in ("run_id", "cell_id", "stream_id"):
+            _non_empty_str(getattr(self, name), name, E)
+        _non_negative_int(self.frame_id, "frame_id", E)
+        _positive_int(self.capture_timestamp_ns, "capture_timestamp_ns", E)
+        _canonical_uuid(self.session_uuid, E)
+        _non_negative_int(self.decision_seq, "decision_seq", E)
+        _non_negative_int(self.reward_tensor_seq, "reward_tensor_seq", E)
+        for name in (
+            "executed_action_sha256",
+            "gt_actor_snapshot_sha256",
+            "gt_segmentation_label_sha256",
+            "prediction_segmentation_label_sha256",
+            "segmentation_eligibility_mask_sha256",
+            "eligible_vehicle_actor_ids_sha256",
+            "eligible_person_actor_ids_sha256",
+            "detailed_evidence_sha256",
+        ):
+            _sha256_hex(getattr(self, name), name, E)
+        for name in (
+            "eligible_vehicle_actor_ids",
+            "eligible_person_actor_ids",
+        ):
+            actor_ids = getattr(self, name)
+            if type(actor_ids) is not tuple:
+                raise E(f"{name} must be a canonical tuple")
+            for index, actor_id in enumerate(actor_ids):
+                _non_negative_int(actor_id, f"{name}[{index}]", E)
+            if actor_ids != tuple(sorted(set(actor_ids))):
+                raise E(f"{name} must be sorted and duplicate-free")
+        for name in (
+            "seg_vehicle_gt_pixels",
+            "seg_person_gt_pixels",
+            "seg_vehicle_pred_pixels",
+            "seg_person_pred_pixels",
+            "seg_vehicle_intersection_pixels",
+            "seg_person_intersection_pixels",
+            "seg_vehicle_union_pixels",
+            "seg_person_union_pixels",
+        ):
+            _non_negative_int(getattr(self, name), name, E)
+        if self._attestation is not None and not _valid_eligibility_result(
+            self._attestation, self._binding()
+        ):
+            raise UnattestedRecordError(
+                "the eligibility result's attestation is not bound to its "
+                "serialized fields"
+            )
+
+    @property
+    def _checker(self) -> Callable:
+        return _valid_eligibility_result
+
+    @staticmethod
+    def _actor_set_document(
+        class_name: str, actor_ids: Tuple[int, ...]
+    ) -> Dict[str, Any]:
+        return {
+            "actor_ids": list(actor_ids),
+            "class_name": class_name,
+            "record": "eligible_actor_set_v1",
+        }
+
+    @classmethod
+    def _from_verified_support(
+        cls,
+        support: Mapping[str, Any],
+        *,
+        eligibility: EvaluationEligibilityV1,
+        obligation: "QualityAckObligationV1",
+        detailed_evidence_sha256: str,
+        ack_identity: Mapping[str, Any],
+        ack_quality: Mapping[str, Any],
+    ) -> "EvaluationEligibilityResultV1":
+        """Parse support only after its enclosing detail digest was verified."""
+        E = QualityContractError
+        if not isinstance(support, Mapping):
+            raise E(
+                f"{QUALITY_DETAIL_SUPPORT_KEY} must be a mapping; legacy v1 "
+                "detail rows without the Phase-4a.2 extension are unsupported"
+            )
+        if set(support) != set(QUALITY_DETAIL_SUPPORT_FIELDS):
+            missing = sorted(set(QUALITY_DETAIL_SUPPORT_FIELDS) - set(support))
+            extra = sorted(set(support) - set(QUALITY_DETAIL_SUPPORT_FIELDS))
+            raise E(
+                f"{QUALITY_DETAIL_SUPPORT_KEY} layout drift: missing={missing}, "
+                f"extra={extra}; current v1 details without complete proof "
+                "cannot be used as learning rewards"
+            )
+        if support["schema"] != QUALITY_DETAIL_SUPPORT_SCHEMA:
+            raise E(
+                f"quality-detail support schema must be "
+                f"{QUALITY_DETAIL_SUPPORT_SCHEMA!r}, got "
+                f"{support['schema']!r}"
+            )
+
+        expected_values = (
+            ("ue_id", eligibility.ue_id),
+            ("session_uuid", obligation.session_uuid),
+            ("decision_seq", obligation.decision_seq),
+            ("reward_tensor_seq", obligation.reward_tensor_seq),
+            ("executed_action_sha256", obligation.executed_action_sha256),
+            ("frame_id", obligation.frame_id),
+            ("capture_timestamp_ns", obligation.capture_timestamp_ns),
+            (
+                "eligibility_contract_sha256",
+                eligibility.eligibility_contract_sha256,
+            ),
+        )
+        for name, expected in expected_values:
+            if support[name] != expected:
+                raise E(
+                    f"quality-detail support {name}={support[name]!r} does "
+                    f"not match the pre-existing obligation/spec value "
+                    f"{expected!r}"
+                )
+        for name in QUALITY_ACK_IDENTITY_FIELDS:
+            detail_value = support.get(name)
+            if name in ("frame_id", "capture_timestamp_ns"):
+                if int(ack_identity[name]) != int(detail_value):
+                    raise E(
+                        f"quality-detail support {name}={detail_value!r} does "
+                        f"not match ACK {ack_identity[name]!r}"
+                    )
+
+        # Recompute the eligible actor sets from the actual hash-bound actor
+        # rows.  Merely checking a digest over a caller-supplied list is not a
+        # derivation: the same-cardinality set could otherwise be replaced by
+        # arbitrary actor IDs and re-hashed.  The raw rows are canonicalized,
+        # hashed and then evaluated under the exact registered geometry and
+        # visibility semantics.
+        raw_actor_rows = support["gt_actor_rows"]
+        if not isinstance(raw_actor_rows, list):
+            raise E("gt_actor_rows must be a JSON list")
+        canonical_actor_rows = []
+        seen_actor_ids = set()
+        derived_actor_sets: Dict[str, list] = {"vehicle": [], "person": []}
+        for index, raw_row in enumerate(raw_actor_rows):
+            if not isinstance(raw_row, Mapping):
+                raise E(f"gt_actor_rows[{index}] must be a mapping")
+            required = {
+                "actor_id",
+                "class_name",
+                "range_m",
+                "bearing_deg",
+                "line_of_sight_visible",
+                "visibility_score",
+                "projected_support_pixels",
+            }
+            if set(raw_row) != required:
+                raise E(
+                    f"gt_actor_rows[{index}] layout drift: "
+                    f"missing={sorted(required - set(raw_row))}, "
+                    f"extra={sorted(set(raw_row) - required)}"
+                )
+            actor_id = _non_negative_int(
+                raw_row["actor_id"], f"gt_actor_rows[{index}].actor_id", E
+            )
+            if actor_id in seen_actor_ids:
+                raise E(f"duplicate gt actor_id {actor_id}")
+            seen_actor_ids.add(actor_id)
+            class_name = raw_row["class_name"]
+            if class_name not in derived_actor_sets:
+                raise E(
+                    f"gt_actor_rows[{index}].class_name must be vehicle or "
+                    f"person, got {class_name!r}"
+                )
+            range_m = _finite_float(
+                raw_row["range_m"], f"gt_actor_rows[{index}].range_m", E
+            )
+            if range_m < 0.0:
+                raise E(f"gt_actor_rows[{index}].range_m must be >= 0")
+            bearing_deg = _finite_float(
+                raw_row["bearing_deg"],
+                f"gt_actor_rows[{index}].bearing_deg",
+                E,
+            )
+            line_of_sight_visible = _exact_bool(
+                raw_row["line_of_sight_visible"],
+                f"gt_actor_rows[{index}].line_of_sight_visible",
+                E,
+            )
+            visibility_score = _finite_in(
+                raw_row["visibility_score"],
+                f"gt_actor_rows[{index}].visibility_score",
+                0.0,
+                1.0,
+                E,
+            )
+            projected_support_pixels = _non_negative_int(
+                raw_row["projected_support_pixels"],
+                f"gt_actor_rows[{index}].projected_support_pixels",
+                E,
+            )
+            canonical_row = {
+                "actor_id": actor_id,
+                "bearing_deg": bearing_deg,
+                "class_name": class_name,
+                "line_of_sight_visible": line_of_sight_visible,
+                "projected_support_pixels": projected_support_pixels,
+                "range_m": range_m,
+                "visibility_score": visibility_score,
+            }
+            canonical_actor_rows.append(canonical_row)
+
+            geometry_eligible = (
+                range_m <= float(eligibility.max_range_m)
+                and abs(bearing_deg) <= float(eligibility.fov_deg) / 2.0
+                and projected_support_pixels
+                >= ELIGIBILITY_MIN_PROJECTED_SUPPORT_PIXELS
+            )
+            if eligibility.visibility_rule is VisibilityRule.LINE_OF_SIGHT_VISIBILITY:
+                visible = line_of_sight_visible
+            else:
+                visible = visibility_score >= ELIGIBILITY_VISIBILITY_THRESHOLD
+            if geometry_eligible and visible:
+                derived_actor_sets[class_name].append(actor_id)
+
+        canonical_actor_rows.sort(key=lambda row: int(row["actor_id"]))
+        actor_snapshot_document = {
+            "actors": canonical_actor_rows,
+            "record": "carla_gt_actor_snapshot_v1",
+        }
+        expected_actor_snapshot_sha = canonical_sha256(actor_snapshot_document)
+        _sha256_hex(
+            support["gt_actor_snapshot_sha256"],
+            "gt_actor_snapshot_sha256",
+            E,
+        )
+        if support["gt_actor_snapshot_sha256"] != expected_actor_snapshot_sha:
+            raise E(
+                "gt_actor_snapshot_sha256 does not match the canonical raw "
+                "actor rows"
+            )
+
+        actor_sets: Dict[str, Tuple[int, ...]] = {}
+        actor_digests: Dict[str, str] = {}
+        for class_name in ("vehicle", "person"):
+            ids = tuple(sorted(derived_actor_sets[class_name]))
+            list_name = f"eligible_{class_name}_actor_ids"
+            raw_ids = support[list_name]
+            if not isinstance(raw_ids, list):
+                raise E(f"{list_name} must be a JSON list")
+            claimed_ids = tuple(
+                _non_negative_int(value, f"{list_name}[{index}]", E)
+                for index, value in enumerate(raw_ids)
+            )
+            if claimed_ids != ids:
+                raise E(
+                    f"{list_name} was not derived from gt_actor_rows under "
+                    f"the registered range/FoV/visibility rule: expected "
+                    f"{ids}, got {claimed_ids}"
+                )
+            digest = canonical_sha256(cls._actor_set_document(class_name, ids))
+            digest_name = f"eligible_{class_name}_actor_ids_sha256"
+            _sha256_hex(support[digest_name], digest_name, E)
+            if support[digest_name] != digest:
+                raise E(
+                    f"{digest_name} does not match the derived actor-id set: "
+                    f"expected {digest}, got {support[digest_name]}"
+                )
+            actor_sets[class_name] = ids
+            actor_digests[class_name] = digest
+
+        # Preserve and verify the exact localization match ledger.  Aggregate
+        # TP/FN/error values alone cannot show *which* eligible actor was found,
+        # and therefore cannot support later scientific audit or detect an
+        # actor-identity substitution with unchanged cardinality.
+        for class_name in ("vehicle", "person"):
+            field_name = f"{class_name}_localization_matches"
+            raw_matches = support[field_name]
+            if not isinstance(raw_matches, list):
+                raise E(f"{field_name} must be a JSON list")
+            matched_actor_ids = []
+            matched_prediction_indices = []
+            xy_errors = []
+            footprint_ious = []
+            for index, raw_match in enumerate(raw_matches):
+                if not isinstance(raw_match, Mapping):
+                    raise E(f"{field_name}[{index}] must be a mapping")
+                required = {
+                    "prediction_index",
+                    "gt_actor_id",
+                    "xy_error_m",
+                    "footprint_iou",
+                }
+                if set(raw_match) != required:
+                    raise E(
+                        f"{field_name}[{index}] layout drift: "
+                        f"missing={sorted(required - set(raw_match))}, "
+                        f"extra={sorted(set(raw_match) - required)}"
+                    )
+                prediction_index = _non_negative_int(
+                    raw_match["prediction_index"],
+                    f"{field_name}[{index}].prediction_index",
+                    E,
+                )
+                actor_id = _non_negative_int(
+                    raw_match["gt_actor_id"],
+                    f"{field_name}[{index}].gt_actor_id",
+                    E,
+                )
+                xy_error = _finite_float(
+                    raw_match["xy_error_m"],
+                    f"{field_name}[{index}].xy_error_m",
+                    E,
+                )
+                if xy_error < 0.0:
+                    raise E(f"{field_name}[{index}].xy_error_m must be >= 0")
+                footprint_iou = _finite_in(
+                    raw_match["footprint_iou"],
+                    f"{field_name}[{index}].footprint_iou",
+                    0.0,
+                    1.0,
+                    E,
+                )
+                if actor_id not in actor_sets[class_name]:
+                    raise E(
+                        f"{field_name}[{index}] matches ineligible/unknown "
+                        f"{class_name} actor {actor_id}"
+                    )
+                matched_actor_ids.append(actor_id)
+                matched_prediction_indices.append(prediction_index)
+                xy_errors.append(xy_error)
+                footprint_ious.append(footprint_iou)
+            if len(set(matched_actor_ids)) != len(matched_actor_ids):
+                raise E(f"{field_name} matches one GT actor more than once")
+            if len(set(matched_prediction_indices)) != len(
+                matched_prediction_indices
+            ):
+                raise E(f"{field_name} reuses one prediction more than once")
+
+            unmatched_gt_name = f"unmatched_{class_name}_gt_actor_ids"
+            unmatched_gt = support[unmatched_gt_name]
+            if not isinstance(unmatched_gt, list):
+                raise E(f"{unmatched_gt_name} must be a JSON list")
+            unmatched_gt_ids = tuple(
+                _non_negative_int(value, f"{unmatched_gt_name}[{index}]", E)
+                for index, value in enumerate(unmatched_gt)
+            )
+            expected_unmatched_gt = tuple(
+                sorted(set(actor_sets[class_name]) - set(matched_actor_ids))
+            )
+            if unmatched_gt_ids != expected_unmatched_gt:
+                raise E(
+                    f"{unmatched_gt_name} must equal eligible minus matched: "
+                    f"expected {expected_unmatched_gt}, got {unmatched_gt_ids}"
+                )
+
+            unmatched_pred_name = (
+                f"unmatched_{class_name}_prediction_indices"
+            )
+            unmatched_pred = support[unmatched_pred_name]
+            if not isinstance(unmatched_pred, list):
+                raise E(f"{unmatched_pred_name} must be a JSON list")
+            unmatched_pred_indices = tuple(
+                _non_negative_int(
+                    value, f"{unmatched_pred_name}[{index}]", E
+                )
+                for index, value in enumerate(unmatched_pred)
+            )
+            if unmatched_pred_indices != tuple(
+                sorted(set(unmatched_pred_indices))
+            ):
+                raise E(
+                    f"{unmatched_pred_name} must be sorted and duplicate-free"
+                )
+            if set(unmatched_pred_indices) & set(matched_prediction_indices):
+                raise E(
+                    f"{unmatched_pred_name} overlaps matched predictions"
+                )
+
+            tp = _non_negative_int(
+                ack_quality[f"{class_name}_tp"], f"{class_name}_tp", E
+            )
+            fn = _non_negative_int(
+                ack_quality[f"{class_name}_fn"], f"{class_name}_fn", E
+            )
+            if tp != len(raw_matches) or fn != len(unmatched_gt_ids):
+                raise E(
+                    f"ACK {class_name} TP/FN ({tp}/{fn}) do not match the "
+                    f"verified match ledger ({len(raw_matches)}/"
+                    f"{len(unmatched_gt_ids)})"
+                )
+            ack_xy = ack_quality[f"{class_name}_xy_error_m"]
+            ack_footprint = ack_quality[f"{class_name}_footprint_iou"]
+            if raw_matches:
+                expected_xy = sum(xy_errors) / len(xy_errors)
+                expected_footprint = sum(footprint_ious) / len(footprint_ious)
+                if ack_xy is None or not math.isclose(
+                    float(ack_xy), expected_xy, rel_tol=1e-12, abs_tol=1e-12
+                ):
+                    raise E(
+                        f"ACK {class_name}_xy_error_m={ack_xy!r} disagrees "
+                        f"with match-ledger mean {expected_xy}"
+                    )
+                if ack_footprint is None or not math.isclose(
+                    float(ack_footprint),
+                    expected_footprint,
+                    rel_tol=1e-12,
+                    abs_tol=1e-12,
+                ):
+                    raise E(
+                        f"ACK {class_name}_footprint_iou="
+                        f"{ack_footprint!r} disagrees with match-ledger mean "
+                        f"{expected_footprint}"
+                    )
+            elif ack_xy is not None or ack_footprint is not None:
+                raise E(
+                    f"{class_name} has no matched prediction, so aggregate "
+                    "localization error/IoU must be absent"
+                )
+
+        # Recompute the segmentation evaluation domain and sufficient IoU
+        # statistics from raw per-pixel evidence.  The same finite, positive,
+        # in-range depth domain is applied to prediction and GT, so an in-domain
+        # false positive remains a penalty while out-of-domain pixels never
+        # enter either side of the comparison.
+        raw_depth = support["segmentation_depth_m"]
+        if not isinstance(raw_depth, list) or not raw_depth:
+            raise E("segmentation_depth_m must be a non-empty JSON list")
+        depth_values = []
+        domain_indices = set()
+        for index, value in enumerate(raw_depth):
+            if value is None:
+                depth_values.append(None)
+                continue
+            depth = _finite_float(value, f"segmentation_depth_m[{index}]", E)
+            depth_values.append(depth)
+            if 0.0 < depth <= float(eligibility.max_range_m):
+                domain_indices.add(index)
+
+        def _indices(field_name: str) -> Tuple[int, ...]:
+            raw = support[field_name]
+            if not isinstance(raw, list):
+                raise E(f"{field_name} must be a JSON list")
+            values = tuple(
+                _non_negative_int(value, f"{field_name}[{index}]", E)
+                for index, value in enumerate(raw)
+            )
+            if values != tuple(sorted(set(values))):
+                raise E(f"{field_name} must be sorted and duplicate-free")
+            if values and values[-1] >= len(depth_values):
+                raise E(
+                    f"{field_name} index {values[-1]} exceeds depth support "
+                    f"length {len(depth_values)}"
+                )
+            return values
+
+        raw_gt = {
+            class_name: _indices(f"segmentation_gt_{class_name}_indices")
+            for class_name in ("vehicle", "person")
+        }
+        raw_pred = {
+            class_name: _indices(f"segmentation_pred_{class_name}_indices")
+            for class_name in ("vehicle", "person")
+        }
+        if set(raw_gt["vehicle"]) & set(raw_gt["person"]):
+            raise E("GT vehicle/person semantic masks overlap")
+        if set(raw_pred["vehicle"]) & set(raw_pred["person"]):
+            raise E("predicted vehicle/person semantic masks overlap")
+
+        gt_label_document = {
+            "person_indices": list(raw_gt["person"]),
+            "record": "semantic_gt_class_support_v1",
+            "vehicle_indices": list(raw_gt["vehicle"]),
+        }
+        pred_label_document = {
+            "person_indices": list(raw_pred["person"]),
+            "record": "semantic_prediction_class_support_v1",
+            "vehicle_indices": list(raw_pred["vehicle"]),
+        }
+        domain_document = {
+            "domain_indices": sorted(domain_indices),
+            "max_range_m": float(eligibility.max_range_m),
+            "record": "segmentation_eligibility_domain_v1",
+            "rule": SEGMENTATION_DOMAIN_RULE,
+        }
+        expected_source_hashes = {
+            "gt_segmentation_label_sha256": canonical_sha256(gt_label_document),
+            "prediction_segmentation_label_sha256": canonical_sha256(
+                pred_label_document
+            ),
+            "segmentation_eligibility_mask_sha256": canonical_sha256(
+                domain_document
+            ),
+        }
+        for name, expected in expected_source_hashes.items():
+            _sha256_hex(support[name], name, E)
+            if support[name] != expected:
+                raise E(f"{name} does not match its raw per-pixel evidence")
+
+        pixels: Dict[str, int] = {}
+        for class_name in ("vehicle", "person"):
+            gt_set = set(raw_gt[class_name]) & domain_indices
+            pred_set = set(raw_pred[class_name]) & domain_indices
+            derived = {
+                "gt": len(gt_set),
+                "pred": len(pred_set),
+                "intersection": len(gt_set & pred_set),
+                "union": len(gt_set | pred_set),
+            }
+            for part, expected in derived.items():
+                name = f"seg_{class_name}_{part}_pixels"
+                claimed = _non_negative_int(support[name], name, E)
+                if claimed != expected:
+                    raise E(
+                        f"{name}={claimed} was not recomputed from the raw "
+                        f"GT/prediction masks and depth domain; expected "
+                        f"{expected}"
+                    )
+                pixels[name] = expected
+            gt = derived["gt"]
+            pred = derived["pred"]
+            intersection = derived["intersection"]
+            union = derived["union"]
+            if int(ack_quality[f"gt_{class_name}_pixels"]) != gt:
+                raise E(
+                    f"ACK gt_{class_name}_pixels does not match the masked "
+                    f"detail count {gt}"
+                )
+            ack_iou = ack_quality[f"seg_{class_name}_iou"]
+            expected_iou: Optional[float] = (
+                None if union == 0 else float(intersection) / float(union)
+            )
+            if expected_iou is None:
+                if ack_iou not in (None, 0, 0.0):
+                    raise E(
+                        f"{class_name} masks are both empty but ACK IoU is "
+                        f"{ack_iou!r}"
+                    )
+            elif ack_iou is None or not math.isclose(
+                float(ack_iou), expected_iou, rel_tol=1e-12, abs_tol=1e-12
+            ):
+                raise E(
+                    f"ACK seg_{class_name}_iou={ack_iou!r} cannot be "
+                    f"reproduced from intersection/union "
+                    f"{intersection}/{union}={expected_iou}"
+                )
+
+            eligible_count = len(actor_sets[class_name])
+            tp = _non_negative_int(
+                ack_quality[f"{class_name}_tp"], f"{class_name}_tp", E
+            )
+            fn = _non_negative_int(
+                ack_quality[f"{class_name}_fn"], f"{class_name}_fn", E
+            )
+            if tp + fn != eligible_count:
+                raise E(
+                    f"ACK {class_name}_tp + {class_name}_fn = {tp + fn}, "
+                    f"but the verified eligible actor set contains "
+                    f"{eligible_count}; recall cannot be attributed to this "
+                    "eligibility result"
+                )
+            ack_recall = ack_quality[f"{class_name}_recall"]
+            expected_recall: Optional[float] = (
+                None if eligible_count == 0 else float(tp) / eligible_count
+            )
+            if expected_recall is None:
+                if ack_recall is not None:
+                    raise E(
+                        f"{class_name} has no eligible objects, so recall must "
+                        f"be undefined; ACK carries {ack_recall!r}"
+                    )
+            elif ack_recall is None or not math.isclose(
+                float(ack_recall),
+                expected_recall,
+                rel_tol=1e-12,
+                abs_tol=1e-12,
+            ):
+                raise E(
+                    f"ACK {class_name}_recall={ack_recall!r} disagrees with "
+                    f"verified tp/eligible={tp}/{eligible_count}="
+                    f"{expected_recall}"
+                )
+
+        record = cls(
+            eligibility=eligibility,
+            run_id=str(ack_identity["run_id"]),
+            cell_id=str(ack_identity["cell_id"]),
+            stream_id=str(ack_identity["stream_id"]),
+            frame_id=int(support["frame_id"]),
+            capture_timestamp_ns=int(support["capture_timestamp_ns"]),
+            session_uuid=str(support["session_uuid"]),
+            decision_seq=int(support["decision_seq"]),
+            reward_tensor_seq=int(support["reward_tensor_seq"]),
+            executed_action_sha256=str(support["executed_action_sha256"]),
+            gt_actor_snapshot_sha256=str(support["gt_actor_snapshot_sha256"]),
+            gt_segmentation_label_sha256=str(
+                support["gt_segmentation_label_sha256"]
+            ),
+            prediction_segmentation_label_sha256=str(
+                support["prediction_segmentation_label_sha256"]
+            ),
+            segmentation_eligibility_mask_sha256=str(
+                support["segmentation_eligibility_mask_sha256"]
+            ),
+            eligible_vehicle_actor_ids=actor_sets["vehicle"],
+            eligible_person_actor_ids=actor_sets["person"],
+            eligible_vehicle_actor_ids_sha256=actor_digests["vehicle"],
+            eligible_person_actor_ids_sha256=actor_digests["person"],
+            seg_vehicle_gt_pixels=pixels["seg_vehicle_gt_pixels"],
+            seg_person_gt_pixels=pixels["seg_person_gt_pixels"],
+            seg_vehicle_pred_pixels=pixels["seg_vehicle_pred_pixels"],
+            seg_person_pred_pixels=pixels["seg_person_pred_pixels"],
+            seg_vehicle_intersection_pixels=pixels[
+                "seg_vehicle_intersection_pixels"
+            ],
+            seg_person_intersection_pixels=pixels[
+                "seg_person_intersection_pixels"
+            ],
+            seg_vehicle_union_pixels=pixels["seg_vehicle_union_pixels"],
+            seg_person_union_pixels=pixels["seg_person_union_pixels"],
+            detailed_evidence_sha256=detailed_evidence_sha256,
+        )
+        return replace(
+            record,
+            _attestation=_issue_eligibility_result(record._binding()),
+        )
+
+    @property
+    def vehicle_eligible_gt_instances(self) -> int:
+        return len(self.eligible_vehicle_actor_ids)
+
+    @property
+    def person_eligible_gt_instances(self) -> int:
+        return len(self.eligible_person_actor_ids)
+
+    @property
+    def producer_status(self) -> QualityProducerStatus:
+        """Current support is self-consistent, but not source-authenticated."""
+        return QualityProducerStatus.CONTRACT_FIXTURE_UNVERIFIED_SOURCE
+
+    @property
+    def learning_ready(self) -> bool:
+        """False until a reviewed raw-artifact producer issues the record."""
+        return False
+
+    def require_learning_ready(self) -> None:
+        if not self.learning_ready:
+            raise QualityProducerUnavailableError(
+                "the Phase-4a.2 quality support is a self-consistent contract "
+                "fixture, not source-authenticated learning evidence.  The "
+                "current live v1 producer strips actor/projection provenance "
+                "and persists aggregate scores only.  Upgrade the producer to "
+                "derive and manifest actor eligibility, depth-masked GT and "
+                "prediction masks, and the localization match ledger from "
+                "frozen CARLA source artifacts before admitting this reward"
+            )
+
+    def _serialized_fields(self) -> Dict[str, Any]:
+        return {
+            "capture_timestamp_ns": self.capture_timestamp_ns,
+            "cell_id": self.cell_id,
+            "decision_seq": self.decision_seq,
+            "detailed_evidence_sha256": self.detailed_evidence_sha256,
+            "eligibility": self.eligibility.to_canonical_dict(),
+            "eligible_person_actor_ids": list(
+                self.eligible_person_actor_ids
+            ),
+            "eligible_person_actor_ids_sha256": (
+                self.eligible_person_actor_ids_sha256
+            ),
+            "eligible_vehicle_actor_ids": list(
+                self.eligible_vehicle_actor_ids
+            ),
+            "eligible_vehicle_actor_ids_sha256": (
+                self.eligible_vehicle_actor_ids_sha256
+            ),
+            "executed_action_sha256": self.executed_action_sha256,
+            "frame_id": self.frame_id,
+            "gt_actor_snapshot_sha256": self.gt_actor_snapshot_sha256,
+            "gt_segmentation_label_sha256": (
+                self.gt_segmentation_label_sha256
+            ),
+            "prediction_segmentation_label_sha256": (
+                self.prediction_segmentation_label_sha256
+            ),
+            "producer_status": self.producer_status.value,
+            "learning_ready": self.learning_ready,
+            "record": "evaluation_eligibility_result_v1",
+            "reward_tensor_seq": self.reward_tensor_seq,
+            "run_id": self.run_id,
+            "seg_person_gt_pixels": self.seg_person_gt_pixels,
+            "seg_person_intersection_pixels": (
+                self.seg_person_intersection_pixels
+            ),
+            "seg_person_pred_pixels": self.seg_person_pred_pixels,
+            "seg_person_union_pixels": self.seg_person_union_pixels,
+            "seg_vehicle_gt_pixels": self.seg_vehicle_gt_pixels,
+            "seg_vehicle_intersection_pixels": (
+                self.seg_vehicle_intersection_pixels
+            ),
+            "seg_vehicle_pred_pixels": self.seg_vehicle_pred_pixels,
+            "seg_vehicle_union_pixels": self.seg_vehicle_union_pixels,
+            "segmentation_eligibility_mask_sha256": (
+                self.segmentation_eligibility_mask_sha256
+            ),
+            "session_uuid": self.session_uuid,
+            "stream_id": self.stream_id,
+        }
+
+
+class QualityAckUseRegistryV1:
+    """Process-wide bridge for the identity fields missing from a v1 ACK.
+
+    V1 omits the decision identity, so durable replay requires protocol v2.
+    This registry enforces a one-to-one mapping inside one verifier process:
+    one raw wire digest cannot be rebound to another obligation/ticket, and one
+    completed ticket cannot accept two conflicting raw ACK documents (including
+    a conflict hidden behind a caller-selected obligation).
+    Revalidating the exact same pair is idempotent; every different binding
+    fails closed.
+
+    The verifier uses one private module-owned instance.  A caller cannot pass
+    a fresh registry to erase an earlier claim.  That closes the in-process
+    ambiguity, while still making no cross-process durability claim; protocol
+    v2 is required for that.
+    """
+
+    __slots__ = ("registry_id", "_claims", "_bindings", "_lock")
+
+    def __init__(self, registry_id: str) -> None:
+        self.registry_id = _non_empty_str(
+            registry_id, "registry_id", QualityContractError
+        )
+        self._claims: Dict[str, Tuple[str, str]] = {}
+        # Ticket identity is the reverse-map key.  Keying this by the
+        # obligation as well would let a caller mint a second obligation with
+        # a different run/cell label and thereby attach a second ACK to the
+        # same completed decision.
+        self._bindings: Dict[str, Tuple[str, str]] = {}
+        self._lock = threading.Lock()
+
+    def claim(
+        self,
+        raw_quality_ack_sha256: str,
+        *,
+        obligation_sha256: str,
+        completed_ticket_sha256: str,
+    ) -> None:
+        E = QualityContractError
+        raw = _sha256_hex(raw_quality_ack_sha256, "raw ACK digest", E)
+        obligation = _sha256_hex(
+            obligation_sha256, "obligation_sha256", E
+        )
+        ticket = _sha256_hex(
+            completed_ticket_sha256, "completed_ticket_sha256", E
+        )
+        claim = (obligation, ticket)
+        with self._lock:
+            existing_claim = self._claims.get(raw)
+            if existing_claim is not None and existing_claim != claim:
+                raise QualityAckReuseError(
+                    f"v1 ACK digest {raw} is already bound in registry "
+                    f"{self.registry_id!r} to obligation/ticket "
+                    f"{existing_claim}; "
+                    f"refused different binding {claim}.  V1 lacks durable "
+                    "decision identity; protocol v2 is required across "
+                    "processes"
+                )
+            existing_binding = self._bindings.get(ticket)
+            binding = (raw, obligation)
+            if existing_binding is not None and existing_binding != binding:
+                raise QualityAckReuseError(
+                    f"completed ticket {ticket} is already bound in registry "
+                    f"{self.registry_id!r} to ACK/obligation "
+                    f"{existing_binding}; refused conflicting second "
+                    f"ACK/obligation {binding}"
+                )
+            self._claims[raw] = claim
+            self._bindings[ticket] = binding
+
+    def claim_count(self) -> int:
+        """Number of distinct wire ACK documents claimed in this registry."""
+        with self._lock:
+            return len(self._claims)
+
+
+# One verifier process has exactly one v1-ACK namespace.  Keeping this object
+# private is essential: accepting a caller-created registry would let the same
+# identity-poor ACK be rebound simply by supplying an empty registry.
+_PROCESS_QUALITY_ACK_USE_REGISTRY = QualityAckUseRegistryV1(
+    "splitfusion-phase4a2-process-v1"
+)
+
+
 # --------------------------------------------------------------------------- #
-# A. Transmission-time obligation and document-verified ACK binding
+# A. Retrospective identity obligation and document-verified ACK binding
 # --------------------------------------------------------------------------- #
 
 
 @dataclass(frozen=True, slots=True)
 class QualityAckObligationV1:
-    """The obligation recorded when the reward-requested tensor is transmitted.
+    """Identity assertion for the reward-requested tensor and expected ACK.
 
-    Created at **transmission** time, before any ACK exists, so the identity an
-    ACK must later match is fixed in advance rather than inferred from whatever
-    arrives.  It binds the transport identity (``run_id``/``cell_id``/
+    It binds the transport identity (``run_id``/``cell_id``/
     ``stream_id``), the frame identity (``frame_id`` and
     ``capture_timestamp_ns``), the decision identity (``session_uuid``,
     ``decision_seq``, ``reward_tensor_seq``) and the **complete** executed
     action.
 
-    The obligation is valid for an off-anchor action: the transmission really
-    happened.  What fails closed is *binding a v1 ACK to it*, because the v1
-    carrier cannot name an off-anchor action.
+    Phase 4a.2 has no durable transmission-time issuer or attestation for this
+    object.  :meth:`for_reward_tensor` reconstructs it from a completed ticket,
+    so this record proves cross-field agreement but does **not** prove that the
+    commitment predated ACK arrival.  Exact positive rewards remain blocked;
+    the real producer/protocol-v2 integration must persist an authenticated
+    obligation when the reward envelope is actually transmitted.
+
+    The identity assertion may describe an off-anchor action.  What fails
+    closed is *binding a v1 ACK to it*, because the v1 carrier cannot name an
+    off-anchor action; the assertion itself is not proof that transmission
+    occurred.
     """
 
     run_id: str
@@ -1037,7 +2147,11 @@ class QualityAckObligationV1:
         stream_id: str,
         capture_timestamp_ns: int,
     ) -> "QualityAckObligationV1":
-        """Derive the obligation from the ticket's reward-requested tensor."""
+        """Reconstruct a candidate obligation from a completed ticket.
+
+        This convenience path does not establish transmission-time provenance;
+        see the class-level fail-closed contract.
+        """
         if not isinstance(completed_ticket, CompletedTicket):
             raise QualityContractError(
                 f"completed_ticket must be a controller CompletedTicket, got "
@@ -1074,6 +2188,9 @@ class QualityAckObligationV1:
             "executed_action_sha256": self.executed_action_sha256,
             "frame_id": self.frame_id,
             "is_anchor_expressible": self.is_anchor_expressible,
+            "precommit_authenticated": (
+                QUALITY_OBLIGATION_PRECOMMIT_AUTHENTICATED
+            ),
             "record": "quality_ack_obligation_v1",
             "reward_tensor_seq": self.reward_tensor_seq,
             "run_id": self.run_id,
@@ -1114,6 +2231,8 @@ class QualityAckBindingV1(_Attested):
     evaluator_mode: str
     obligation_sha256: str
     completed_ticket_sha256: str
+    eligibility_result: EvaluationEligibilityResultV1
+    ack_use_registry_id: str
     _attestation: Any = field(default=None, compare=False, repr=False)
 
     def __post_init__(self) -> None:
@@ -1151,6 +2270,22 @@ class QualityAckBindingV1(_Attested):
                 )
             object.__setattr__(self, name, MappingProxyType(dict(value)))
         _non_empty_str(self.evaluator_mode, "evaluator_mode", E)
+        _non_empty_str(self.ack_use_registry_id, "ack_use_registry_id", E)
+        if not isinstance(
+            self.eligibility_result, EvaluationEligibilityResultV1
+        ):
+            raise E(
+                "eligibility_result must be an "
+                "EvaluationEligibilityResultV1 parsed from the actual detail"
+            )
+        self.eligibility_result.require_attested()
+        if (
+            self.eligibility_result.detailed_evidence_sha256
+            != self.detailed_evidence_sha256
+        ):
+            raise E(
+                "eligibility_result is bound to a different detail document"
+            )
         if self._attestation is not None and not _valid_ack(
             self._attestation, self._binding()
         ):
@@ -1170,8 +2305,10 @@ class QualityAckBindingV1(_Attested):
         cls,
         document: Mapping[str, Any],
         *,
+        detail_document: Mapping[str, Any],
         obligation: QualityAckObligationV1,
         completed_ticket: CompletedTicket,
+        eligibility: EvaluationEligibilityV1,
         expected_raw_ack_sha256: Optional[str] = None,
     ) -> "QualityAckBindingV1":
         """Verify a real ACK document against its obligation and ticket.
@@ -1195,15 +2332,28 @@ class QualityAckBindingV1(_Attested):
             )
         if not isinstance(obligation, QualityAckObligationV1):
             raise QualityContractError(
-                f"obligation must be a QualityAckObligationV1 recorded at "
-                f"transmission time, got {type(obligation).__name__}"
+                "obligation must be a QualityAckObligationV1 identity "
+                "assertion (not transmission-time provenance), got "
+                f"{type(obligation).__name__}"
             )
         if not isinstance(completed_ticket, CompletedTicket):
             raise QualityContractError(
                 f"completed_ticket must be a controller CompletedTicket, got "
                 f"{type(completed_ticket).__name__}"
             )
-
+        # ``CompletedTicket`` is a public frozen dataclass, so a type check
+        # alone does not prove that the controller actually closed it.
+        try:
+            completed_ticket.require_lineage_attested()
+        except RewardTicketControllerError as exc:
+            raise QualityContractError(
+                "completed_ticket lacks controller-issued lineage proof"
+            ) from exc
+        if not isinstance(eligibility, EvaluationEligibilityV1):
+            raise QualityContractError(
+                "eligibility must be the pre-registered "
+                "EvaluationEligibilityV1 used by the evaluator"
+            )
         action = obligation.executed_action
         if action.action_id is None or action.profile_id is None:
             raise OffAnchorQualityAckError(
@@ -1256,6 +2406,87 @@ class QualityAckBindingV1(_Attested):
                 f"the evaluated ACK must carry all "
                 f"{len(QUALITY_ACK_QUALITY_FIELDS)} score fields; got "
                 f"{sorted(quality)}"
+            )
+
+        # 2b. Verify the *actual* retained detail document named by ``dh``.
+        # Legacy details without the Phase-4a.2 support extension deliberately
+        # fail below; no caller-provided counts may fill that evidence gap.
+        if not isinstance(detail_document, Mapping):
+            raise QualityContractError(
+                "detail_document must be the presented digest-bound mapping; "
+                "the ACK's dh digest or loose support counts are not a "
+                "substitute"
+            )
+        detail_sha = protocol.detail_digest(detail_document)
+        _sha256_hex(
+            detail_sha, "recomputed detail digest", QualityContractError
+        )
+        if detail_sha != str(document["dh"]):
+            raise QualityContractError(
+                f"actual detail digest {detail_sha} does not match ACK dh "
+                f"{document['dh']}; score support is not bound to this ACK"
+            )
+        if detail_document.get("schema") != QUALITY_DETAIL_SCHEMA:
+            raise QualityContractError(
+                f"detail schema must be {QUALITY_DETAIL_SCHEMA!r}, got "
+                f"{detail_document.get('schema')!r}"
+            )
+        for field_name, required in (
+            ("privileged_carla_ground_truth", True),
+            ("deployable_feedback", False),
+            ("terminal", False),
+        ):
+            if detail_document.get(field_name) is not required:
+                raise QualityContractError(
+                    f"detail {field_name} must be {required!r}"
+                )
+        for name in QUALITY_ACK_IDENTITY_FIELDS:
+            if detail_document.get(name) != identity[name]:
+                raise QualityContractError(
+                    f"detail {name}={detail_document.get(name)!r} does not "
+                    f"match ACK {identity[name]!r}"
+                )
+        if int(detail_document.get("frozen_carla_frame_id", -1)) != int(
+            identity["frame_id"]
+        ):
+            raise QualityContractError(
+                "detail frozen_carla_frame_id does not match the ACK frame"
+            )
+        if detail_document.get("failure_reason") not in ("", None):
+            raise QualityContractError(
+                "an evaluated detail document cannot carry a failure reason"
+            )
+        if not isinstance(detail_document.get("timing"), Mapping) or not isinstance(
+            detail_document.get("quality"), Mapping
+        ):
+            raise QualityContractError(
+                "detail must retain its timing and nested quality mappings"
+            )
+        # Rebuilding the compact ACK from the actual detail proves that the
+        # retained quality/timing/evaluator fields are precisely those sent on
+        # the wire, not merely a different document with a matching identity.
+        try:
+            rebuilt_ack = protocol.build_ack(
+                identity_fields={
+                    name: detail_document[name]
+                    for name in QUALITY_ACK_IDENTITY_FIELDS
+                },
+                frozen_carla_frame_id=int(
+                    detail_document["frozen_carla_frame_id"]
+                ),
+                timing=detail_document["timing"],
+                quality=detail_document["quality"],
+                evaluator_mode=str(detail_document.get("evaluator_mode") or ""),
+                detail_sha256=detail_sha,
+            )
+        except Exception as exc:
+            raise QualityContractError(
+                f"the retained detail cannot reproduce a valid ACK: {exc}"
+            ) from exc
+        if dict(rebuilt_ack) != dict(document):
+            raise QualityContractError(
+                "the ACK rebuilt from the retained detail differs from the "
+                "wire ACK; timing, quality or evaluator provenance drifted"
             )
 
         # 3. against the transmission obligation
@@ -1325,17 +2556,40 @@ class QualityAckBindingV1(_Attested):
                 "hold actually executed"
             )
 
+        eligibility_result = EvaluationEligibilityResultV1._from_verified_support(
+            detail_document.get(QUALITY_DETAIL_SUPPORT_KEY),
+            eligibility=eligibility,
+            obligation=obligation,
+            detailed_evidence_sha256=detail_sha,
+            ack_identity=identity,
+            ack_quality=quality,
+        )
+
+        obligation_sha = obligation.canonical_sha256()
+        ticket_sha = completed_ticket.canonical_sha256()
+        # Claim only after *all* validation has succeeded.  The operation is
+        # idempotent for this exact binding and rejects reuse for another one.
+        _PROCESS_QUALITY_ACK_USE_REGISTRY.claim(
+            raw_sha,
+            obligation_sha256=obligation_sha,
+            completed_ticket_sha256=ticket_sha,
+        )
+
         record = cls(
             raw_quality_ack_sha256=raw_sha,
-            detailed_evidence_sha256=str(document["dh"]),
+            detailed_evidence_sha256=detail_sha,
             ack_schema=schema,
             ack_protocol_version=int(document["v"]),
             ack_source=str(document["src"]),
             identity_fields=identity,
             quality_fields=quality,
             evaluator_mode=str(document.get("m") or ""),
-            obligation_sha256=obligation.canonical_sha256(),
-            completed_ticket_sha256=completed_ticket.canonical_sha256(),
+            obligation_sha256=obligation_sha,
+            completed_ticket_sha256=ticket_sha,
+            eligibility_result=eligibility_result,
+            ack_use_registry_id=(
+                _PROCESS_QUALITY_ACK_USE_REGISTRY.registry_id
+            ),
         )
         return replace(
             record, _attestation=_issue_ack(record._binding())
@@ -1369,9 +2623,11 @@ class QualityAckBindingV1(_Attested):
             "ack_schema": self.ack_schema,
             "ack_source": self.ack_source,
             "anchor_only": QUALITY_ACK_IS_ANCHOR_ONLY,
+            "ack_use_registry_id": self.ack_use_registry_id,
             "completed_ticket_sha256": self.completed_ticket_sha256,
             "detailed_evidence_sha256": self.detailed_evidence_sha256,
             "evaluator_mode": self.evaluator_mode,
+            "eligibility_result": self.eligibility_result.to_canonical_dict(),
             "false_positive_counts_available": (
                 QUALITY_ACK_FALSE_POSITIVE_COUNTS_AVAILABLE
             ),
@@ -1443,6 +2699,19 @@ class QualityEvidenceV1:
                     f"{type(self.ack_binding).__name__}"
                 )
             self.ack_binding.require_attested()
+            if self.ack_binding.eligibility_result.eligibility != self.eligibility:
+                raise E(
+                    "evidence eligibility differs from the eligibility rule "
+                    "actually proven by the ACK-bound detail document"
+                )
+            if (
+                self.executed_action_sha256
+                != self.ack_binding.eligibility_result.executed_action_sha256
+            ):
+                raise E(
+                    "evidence executed_action_sha256 differs from the exact "
+                    "action identity bound by the ACK detail/obligation"
+                )
         # A per-frame causal ACK claim requires an actual verified document.
         if self.is_causal_per_frame and self.ack_binding is None:
             raise E(
@@ -1487,6 +2756,11 @@ class QualityEvidenceV1:
                 "the ACK binding was verified against a different obligation "
                 "than the one supplied here"
             )
+        if ack_binding.eligibility_result.eligibility != eligibility:
+            raise QualityContractError(
+                "the supplied eligibility rule differs from the one proven "
+                "inside the ACK-bound detail document"
+            )
         return cls(
             gt_source=gt_source,
             kind=EvidenceKind.PER_FRAME_CAUSAL_ACK,
@@ -1515,6 +2789,22 @@ class QualityEvidenceV1:
                 f"action average rather than a causal per-decision transition "
                 f"and must never stand in for one"
             )
+
+    @property
+    def learning_ready(self) -> bool:
+        return (
+            self.ack_binding is not None
+            and self.ack_binding.eligibility_result.learning_ready
+        )
+
+    def require_learning_ready(self) -> None:
+        """Require both causal granularity and source-authenticated production."""
+        self.require_causal_per_frame()
+        if self.ack_binding is None:  # defensive; constructor already refuses it
+            raise QualityProducerUnavailableError(
+                "per-frame quality evidence has no verified ACK binding"
+            )
+        self.ack_binding.eligibility_result.require_learning_ready()
 
     @property
     def raw_quality_ack_sha256(self) -> Optional[str]:
@@ -1552,6 +2842,7 @@ class QualityEvidenceV1:
             "gt_source": self.gt_source.value,
             "gt_source_detail": self.gt_source_detail,
             "is_causal_per_frame": self.is_causal_per_frame,
+            "learning_ready": self.learning_ready,
             "protocol_v2_requirement": PROTOCOL_V2_REQUIREMENT,
             "quality_protocol_contract_sha256": (
                 QUALITY_PROTOCOL_CONTRACT_SHA256
@@ -1743,7 +3034,7 @@ class _ClassSegmentation:
 
 
 @dataclass(frozen=True, slots=True)
-class QualityComponentsV1:
+class QualityComponentsV1(_Attested):
     """Raw per-frame quality inputs, carrying every available ACK field.
 
     Segmentation: per-class IoU with GT **and predicted** pixel counts.  The
@@ -1769,6 +3060,7 @@ class QualityComponentsV1:
     vehicle_localization: _ClassLocalization
     person_localization: _ClassLocalization
     seg_miou_3class: Optional[float] = None
+    _attestation: Any = field(default=None, compare=False, repr=False)
 
     def __post_init__(self) -> None:
         E = QualityContractError
@@ -1792,6 +3084,17 @@ class QualityComponentsV1:
                 )
         if self.seg_miou_3class is not None:
             _finite_in(self.seg_miou_3class, "seg_miou_3class", 0.0, 1.0, E)
+        if self._attestation is not None and not _valid_components(
+            self._attestation, self._binding()
+        ):
+            raise UnattestedRecordError(
+                "the quality components' attestation is not bound to their "
+                "serialized fields"
+            )
+
+    @property
+    def _checker(self) -> Callable:
+        return _valid_components
 
     # -- construction from the verified ACK plus the detailed supplement --- #
 
@@ -1799,17 +3102,14 @@ class QualityComponentsV1:
     def from_ack_binding(
         cls,
         evidence: QualityEvidenceV1,
-        *,
-        pred_vehicle_pixels: int,
-        pred_person_pixels: int,
-        vehicle_eligible_gt_instances: int,
-        person_eligible_gt_instances: int,
     ) -> "QualityComponentsV1":
         """Read the raw score fields out of the verified ACK binding.
 
-        The four supplementary arguments are exactly the fields the v1 wire
-        contract does not carry; they come from the hash-bound detailed evidence
-        row.  Everything else is read from the ACK itself rather than restated.
+        Every field absent from the v1 wire is taken from the attested
+        :class:`EvaluationEligibilityResultV1` parsed out of the *actual*
+        ``dh``-bound detail document.  There are deliberately no loose count
+        arguments: legacy v1 details that cannot prove them fail before this
+        factory is reached.
         """
         if not isinstance(evidence, QualityEvidenceV1):
             raise QualityContractError(
@@ -1823,6 +3123,8 @@ class QualityComponentsV1:
                 "this evidence carries none"
             )
         binding.require_attested()
+        support = binding.eligibility_result
+        support.require_attested()
         get = binding.ack_quality_field
 
         def _opt_float(value: Any, name: str) -> Optional[float]:
@@ -1839,34 +3141,24 @@ class QualityComponentsV1:
                 )
             return int(value)
 
-        return cls(
+        record = cls(
             evidence=evidence,
             vehicle_segmentation=_ClassSegmentation(
                 name="vehicle",
                 iou=_opt_float(get("seg_vehicle_iou"), "seg_vehicle_iou"),
                 gt_pixels=_req_int(get("gt_vehicle_pixels"), "gt_vehicle_pixels"),
-                pred_pixels=_non_negative_int(
-                    pred_vehicle_pixels,
-                    "pred_vehicle_pixels",
-                    QualityContractError,
-                ),
+                pred_pixels=support.seg_vehicle_pred_pixels,
             ),
             person_segmentation=_ClassSegmentation(
                 name="person",
                 iou=_opt_float(get("seg_person_iou"), "seg_person_iou"),
                 gt_pixels=_req_int(get("gt_person_pixels"), "gt_person_pixels"),
-                pred_pixels=_non_negative_int(
-                    pred_person_pixels,
-                    "pred_person_pixels",
-                    QualityContractError,
-                ),
+                pred_pixels=support.seg_person_pred_pixels,
             ),
             vehicle_localization=_ClassLocalization(
                 name="vehicle",
-                eligible_gt_instances=_non_negative_int(
-                    vehicle_eligible_gt_instances,
-                    "vehicle_eligible_gt_instances",
-                    QualityContractError,
+                eligible_gt_instances=(
+                    support.vehicle_eligible_gt_instances
                 ),
                 tp=_req_int(get("vehicle_tp"), "vehicle_tp"),
                 fn=_req_int(get("vehicle_fn"), "vehicle_fn"),
@@ -1879,11 +3171,7 @@ class QualityComponentsV1:
             ),
             person_localization=_ClassLocalization(
                 name="person",
-                eligible_gt_instances=_non_negative_int(
-                    person_eligible_gt_instances,
-                    "person_eligible_gt_instances",
-                    QualityContractError,
-                ),
+                eligible_gt_instances=support.person_eligible_gt_instances,
                 tp=_req_int(get("person_tp"), "person_tp"),
                 fn=_req_int(get("person_fn"), "person_fn"),
                 xy_error_m=_opt_float(
@@ -1894,6 +3182,9 @@ class QualityComponentsV1:
                 ),
             ),
             seg_miou_3class=_opt_float(get("seg_miou_3class"), "seg_miou_3class"),
+        )
+        return replace(
+            record, _attestation=_issue_components(record._binding())
         )
 
     # -- derived masks ----------------------------------------------------- #
@@ -1945,7 +3236,7 @@ class QualityComponentsV1:
             if component.is_defined and component.tp == 0
         )
 
-    def to_canonical_dict(self) -> Dict[str, Any]:
+    def _serialized_fields(self) -> Dict[str, Any]:
         return {
             "defined_localization_classes": list(
                 self.defined_localization_classes
@@ -1969,10 +3260,6 @@ class QualityComponentsV1:
             "vehicle_localization": self.vehicle_localization.to_canonical_dict(),
             "vehicle_segmentation": self.vehicle_segmentation.to_canonical_dict(),
         }
-
-    def canonical_sha256(self) -> str:
-        return canonical_sha256(self.to_canonical_dict())
-
 
 class LocalizationCombiner(Enum):
     """How per-class localization utilities combine into ``Q_loc``.
@@ -2302,6 +3589,7 @@ class RewardSpecV1:
                 f"components must be a QualityComponentsV1, got "
                 f"{type(components).__name__}"
             )
+        components.require_attested()
         components.evidence.require_causal_per_frame()
 
         # -- localization over the eligible GT set ------------------------- #
@@ -2751,9 +4039,12 @@ class SnrMetric(Enum):
     even though both are "dB".  Typing it makes a change a schema change.
     """
 
-    UL_PUSCH_POST_EQUALISER_SINR_DB = "UL_PUSCH_POST_EQUALISER_SINR_DB"
-    UL_PUCCH_SNR_DB = "UL_PUCCH_SNR_DB"
-    UL_SRS_WIDEBAND_SNR_DB = "UL_SRS_WIDEBAND_SNR_DB"
+    SIMULATOR_EFFECTIVE_UL_SNR_DB = "SIMULATOR_EFFECTIVE_UL_SNR_DB"
+    GNB_MAC_POWER_CONTROL_NORMALIZED_PUSCH_SNR_DB = (
+        "GNB_MAC_POWER_CONTROL_NORMALIZED_PUSCH_SNR_DB"
+    )
+    GNB_SCHEDULER_EMA_SNR_DB = "GNB_SCHEDULER_EMA_SNR_DB"
+    UE_PHY_DIAGNOSTIC_UNRELIABLE_DB = "UE_PHY_DIAGNOSTIC_UNRELIABLE_DB"
 
 
 class LinkDirection(Enum):
@@ -2770,6 +4061,350 @@ class BsrScope(Enum):
     LOGICAL_CHANNEL_GROUP_LATEST = "LOGICAL_CHANNEL_GROUP_LATEST"
     #: Bytes pending summed over all logical channel groups, latest report.
     ALL_GROUPS_LATEST = "ALL_GROUPS_LATEST"
+
+
+class RadioEvidencePath(Enum):
+    """How radio evidence is admitted, or deliberately not admitted, to policy."""
+
+    SIMULATOR_TESTBED_PRIVILEGED = "SIMULATOR_TESTBED_PRIVILEGED"
+    UE_VISIBLE_RUNTIME = "UE_VISIBLE_RUNTIME"
+    UNBOUND_COLLECTOR_DIAGNOSTIC = "UNBOUND_COLLECTOR_DIAGNOSTIC"
+
+
+class RadioSourceWall(Enum):
+    """The process wall on which the source event was produced.
+
+    This is intentionally separate from collector ingest and from the later
+    UE-local policy-availability measurement.
+    """
+
+    SIMULATOR_TESTBED = "SIMULATOR_TESTBED"
+    UE = "UE"
+    GNB = "GNB"
+
+
+class SnrSource(Enum):
+    """Typed origin of the radio link-quality scalar."""
+
+    SIMULATOR_TESTBED_PRIVILEGED = "SIMULATOR_TESTBED_PRIVILEGED"
+    UE_VISIBLE_MEASURED_FEEDBACK = "UE_VISIBLE_MEASURED_FEEDBACK"
+    GNB_MAC_PUSCH_POWER_CONTROL = "GNB_MAC_PUSCH_POWER_CONTROL"
+    GNB_MAC_UL_MCS_DECISION_EMA = "GNB_MAC_UL_MCS_DECISION_EMA"
+
+
+class McsSource(Enum):
+    """Typed origin of an uplink MCS observation."""
+
+    SIMULATOR_TESTBED_PRIVILEGED = "SIMULATOR_TESTBED_PRIVILEGED"
+    NRUE_MAC_DCI_GRANT = "NRUE_MAC_DCI_GRANT"
+    GNB_MAC_UL_MCS_DECISION_SELECTED = "GNB_MAC_UL_MCS_DECISION_SELECTED"
+    GNB_MAC_UL_MCS_DECISION_FINAL = "GNB_MAC_UL_MCS_DECISION_FINAL"
+    GNB_MAC_UL_SCHEDULED_GRANT = "GNB_MAC_UL_SCHEDULED_GRANT"
+
+
+class BsrSource(Enum):
+    """Typed origin of an uplink buffer report."""
+
+    SIMULATOR_TESTBED_PRIVILEGED = "SIMULATOR_TESTBED_PRIVILEGED"
+    NRUE_MAC_BSR_STATUS = "NRUE_MAC_BSR_STATUS"
+    NRUE_MAC_RLC_BUFFER_STATUS = "NRUE_MAC_RLC_BUFFER_STATUS"
+    GNB_MAC_UL_MCS_DECISION_ESTIMATED_BUFFER = (
+        "GNB_MAC_UL_MCS_DECISION_ESTIMATED_BUFFER"
+    )
+
+
+class BsrReportType(Enum):
+    """The representation from which the eight-LCG byte vector was read."""
+
+    SIMULATOR_VECTOR = "SIMULATOR_VECTOR"
+    NR_SHORT = "NR_SHORT"
+    NR_LONG = "NR_LONG"
+    RLC_BUFFER_SNAPSHOT = "RLC_BUFFER_SNAPSHOT"
+    GNB_SCHEDULER_ESTIMATE = "GNB_SCHEDULER_ESTIMATE"
+
+
+class RadioMissingReason(Enum):
+    """Frozen missing-value reasons from the UE-N1 raw-event envelope."""
+
+    NO_MATCHING_EVENT_IN_WINDOW = "NO_MATCHING_EVENT_IN_WINDOW"
+    TELEMETRY_RECORDER_NOT_READY = "TELEMETRY_RECORDER_NOT_READY"
+    TRACE_GAP_OR_DROP = "TRACE_GAP_OR_DROP"
+    RAN_EPOCH_OR_RNTI_JOIN_UNRESOLVED = "RAN_EPOCH_OR_RNTI_JOIN_UNRESOLVED"
+    UL_OUTCOME_SOURCE_UNBOUND = "UL_OUTCOME_SOURCE_UNBOUND"
+    OTHER_EXPLICIT = "OTHER_EXPLICIT"
+
+
+class RadioFillPolicy(Enum):
+    """The only admissible radio missing-value policy."""
+
+    OBSERVED_ONLY_NO_ZERO_OR_FORWARD_FILL = (
+        "OBSERVED_ONLY_NO_ZERO_OR_FORWARD_FILL"
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class RadioEventProvenanceV1:
+    """One source event with source-wall and collector clocks kept separate."""
+
+    source_wall: RadioSourceWall
+    source_event_id: str
+    source_event_index: int
+    source_event_timestamp_ns: int
+    collector_ingest_wall_time_ns: int
+    collector_ingest_monotonic_ns: int
+    ran_epoch_id: str
+    control_session_id: str
+    raw_event_sha256: str
+
+    def __post_init__(self) -> None:
+        E = CausalStateError
+        if not isinstance(self.source_wall, RadioSourceWall):
+            raise E(
+                "source_wall must be a typed RadioSourceWall, got "
+                f"{type(self.source_wall).__name__}: {self.source_wall!r}"
+            )
+        _non_empty_str(self.source_event_id, "source_event_id", E)
+        _non_negative_int(self.source_event_index, "source_event_index", E)
+        _non_negative_int(
+            self.source_event_timestamp_ns, "source_event_timestamp_ns", E
+        )
+        _non_negative_int(
+            self.collector_ingest_wall_time_ns,
+            "collector_ingest_wall_time_ns",
+            E,
+        )
+        _non_negative_int(
+            self.collector_ingest_monotonic_ns,
+            "collector_ingest_monotonic_ns",
+            E,
+        )
+        _non_empty_str(self.ran_epoch_id, "ran_epoch_id", E)
+        _non_empty_str(self.control_session_id, "control_session_id", E)
+        _sha256_hex(self.raw_event_sha256, "raw_event_sha256", E)
+
+    def to_canonical_dict(self) -> Dict[str, Any]:
+        return {
+            "collector_ingest_monotonic_ns": self.collector_ingest_monotonic_ns,
+            "collector_ingest_wall_time_ns": self.collector_ingest_wall_time_ns,
+            "control_session_id": self.control_session_id,
+            "ran_epoch_id": self.ran_epoch_id,
+            "raw_event_sha256": self.raw_event_sha256,
+            "record": "radio_event_provenance_v1",
+            "source_event_id": self.source_event_id,
+            "source_event_index": self.source_event_index,
+            "source_event_timestamp_ns": self.source_event_timestamp_ns,
+            "source_timestamp_clock": "CLOCK_REALTIME",
+            "source_wall": self.source_wall.value,
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class RadioPolicyAvailabilityV1:
+    """Shape reserved for a future verified UE-local availability carrier.
+
+    A directly constructed instance is not evidence and cannot make runtime
+    radio policy-admissible in Phase 4a.2.
+    """
+
+    feedback_path_id: str
+    policy_observation_available_monotonic_ns: int
+    decision_cutoff_monotonic_ns: int
+    ran_epoch_id: str
+    control_session_id: str
+    availability_evidence_sha256: str
+    measurement_source_wall: RadioSourceWall = RadioSourceWall.UE
+    clock_domain: ClockDomain = ClockDomain.UE_LOCAL_MONOTONIC
+
+    def __post_init__(self) -> None:
+        E = CausalStateError
+        _non_empty_str(self.feedback_path_id, "feedback_path_id", E)
+        _non_negative_int(
+            self.policy_observation_available_monotonic_ns,
+            "policy_observation_available_monotonic_ns",
+            E,
+        )
+        _non_negative_int(
+            self.decision_cutoff_monotonic_ns,
+            "decision_cutoff_monotonic_ns",
+            E,
+        )
+        if (
+            self.policy_observation_available_monotonic_ns
+            > self.decision_cutoff_monotonic_ns
+        ):
+            raise E(
+                "radio evidence became UE-visible after the decision cutoff: "
+                f"{self.policy_observation_available_monotonic_ns} > "
+                f"{self.decision_cutoff_monotonic_ns}"
+            )
+        _non_empty_str(self.ran_epoch_id, "availability ran_epoch_id", E)
+        _non_empty_str(
+            self.control_session_id, "availability control_session_id", E
+        )
+        _sha256_hex(
+            self.availability_evidence_sha256,
+            "availability_evidence_sha256",
+            E,
+        )
+        if self.measurement_source_wall is not RadioSourceWall.UE:
+            raise E(
+                "runtime policy availability must be measured at the UE, not "
+                f"on {getattr(self.measurement_source_wall, 'value', self.measurement_source_wall)!r}"
+            )
+        if self.clock_domain is not ClockDomain.UE_LOCAL_MONOTONIC:
+            raise ClockDomainError(
+                "runtime policy availability must use UE_LOCAL_MONOTONIC"
+            )
+
+    def to_canonical_dict(self) -> Dict[str, Any]:
+        return {
+            "availability_evidence_sha256": self.availability_evidence_sha256,
+            "clock_domain": self.clock_domain.value,
+            "control_session_id": self.control_session_id,
+            "decision_cutoff_monotonic_ns": self.decision_cutoff_monotonic_ns,
+            "feedback_path_id": self.feedback_path_id,
+            "measurement_source_wall": self.measurement_source_wall.value,
+            "policy_observation_available_monotonic_ns": (
+                self.policy_observation_available_monotonic_ns
+            ),
+            "ran_epoch_id": self.ran_epoch_id,
+            "record": "radio_policy_availability_v1",
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class BsrReportV1:
+    """An eight-LCG BSR/RLC vector with explicit validity and missingness.
+
+    A valid zero is represented as ``value=0, valid=True``.  A missing entry is
+    ``value=None, valid=False`` plus a typed reason.  Consequently neither zero
+    fill nor forward fill can be encoded as an innocent-looking observation.
+    """
+
+    lcg_bytes: Tuple[Optional[int], ...]
+    valid_mask: Tuple[bool, ...]
+    missing_reasons: Tuple[Optional[RadioMissingReason], ...]
+    scope: BsrScope
+    logical_channel_group: int
+    report_type: BsrReportType
+    source: BsrSource
+    measured_ns: Optional[int]
+    event: Optional[RadioEventProvenanceV1]
+    fill_policy: RadioFillPolicy = (
+        RadioFillPolicy.OBSERVED_ONLY_NO_ZERO_OR_FORWARD_FILL
+    )
+
+    def __post_init__(self) -> None:
+        E = CausalStateError
+        for name, value in (
+            ("lcg_bytes", self.lcg_bytes),
+            ("valid_mask", self.valid_mask),
+            ("missing_reasons", self.missing_reasons),
+        ):
+            if type(value) is not tuple or len(value) != 8:
+                raise E(f"{name} must be an immutable eight-LCG tuple")
+        if not isinstance(self.scope, BsrScope):
+            raise E("BSR scope must be a typed BsrScope")
+        lcg = _non_negative_int(
+            self.logical_channel_group, "bsr logical_channel_group", E
+        )
+        if lcg > 7:
+            raise E(f"bsr logical_channel_group must lie in [0, 7], got {lcg}")
+        if not isinstance(self.report_type, BsrReportType):
+            raise E("BSR report_type must be a typed BsrReportType")
+        if not isinstance(self.source, BsrSource):
+            raise E("BSR source must be a typed BsrSource")
+        if self.fill_policy is not RadioFillPolicy.OBSERVED_ONLY_NO_ZERO_OR_FORWARD_FILL:
+            raise E("radio BSR values may not be zero-filled or forward-filled")
+
+        any_valid = False
+        for index, (value, valid, reason) in enumerate(
+            zip(self.lcg_bytes, self.valid_mask, self.missing_reasons)
+        ):
+            _exact_bool(valid, f"bsr valid_mask[{index}]", E)
+            if valid:
+                any_valid = True
+                _non_negative_int(value, f"bsr lcg_bytes[{index}]", E)
+                if reason is not None:
+                    raise E(
+                        f"valid BSR LCG {index} cannot carry a missing reason"
+                    )
+            else:
+                if value is not None:
+                    raise E(
+                        f"missing BSR LCG {index} must be None, not {value!r}; "
+                        "zero fill and forward fill are forbidden"
+                    )
+                if not isinstance(reason, RadioMissingReason):
+                    raise E(
+                        f"missing BSR LCG {index} requires a typed missing reason"
+                    )
+        if self.measured_ns is not None:
+            _non_negative_int(self.measured_ns, "bsr measured_ns", E)
+        if any_valid and (self.measured_ns is None or self.event is None):
+            raise E("a BSR containing valid values requires time and event provenance")
+        if self.event is not None and not isinstance(
+            self.event, RadioEventProvenanceV1
+        ):
+            raise E("BSR event must be RadioEventProvenanceV1 or None")
+
+        expected_wall = {
+            BsrSource.SIMULATOR_TESTBED_PRIVILEGED: RadioSourceWall.SIMULATOR_TESTBED,
+            BsrSource.NRUE_MAC_BSR_STATUS: RadioSourceWall.UE,
+            BsrSource.NRUE_MAC_RLC_BUFFER_STATUS: RadioSourceWall.UE,
+            BsrSource.GNB_MAC_UL_MCS_DECISION_ESTIMATED_BUFFER: RadioSourceWall.GNB,
+        }[self.source]
+        if self.event is not None and self.event.source_wall is not expected_wall:
+            raise E(
+                f"BSR source {self.source.value} must originate on the "
+                f"{expected_wall.value} wall"
+            )
+
+    @property
+    def required_indices(self) -> Tuple[int, ...]:
+        if self.scope is BsrScope.ALL_GROUPS_LATEST:
+            return tuple(range(8))
+        return (self.logical_channel_group,)
+
+    @property
+    def complete_for_scope(self) -> bool:
+        return all(self.valid_mask[index] for index in self.required_indices)
+
+    def require_complete_for_policy(self) -> None:
+        if not self.complete_for_scope:
+            missing = [
+                index
+                for index in self.required_indices
+                if not self.valid_mask[index]
+            ]
+            raise CausalStateError(
+                f"policy-facing BSR is missing required LCGs {missing}; "
+                "missing values are not zero-filled or forward-filled"
+            )
+
+    @property
+    def total_bytes(self) -> int:
+        self.require_complete_for_policy()
+        return sum(int(self.lcg_bytes[index]) for index in self.required_indices)
+
+    def to_canonical_dict(self) -> Dict[str, Any]:
+        return {
+            "complete_for_scope": self.complete_for_scope,
+            "event": None if self.event is None else self.event.to_canonical_dict(),
+            "fill_policy": self.fill_policy.value,
+            "lcg_bytes": list(self.lcg_bytes),
+            "logical_channel_group": self.logical_channel_group,
+            "measured_ns": self.measured_ns,
+            "missing_reasons": [
+                None if reason is None else reason.value
+                for reason in self.missing_reasons
+            ],
+            "record": "bsr_report_v1",
+            "report_type": self.report_type.value,
+            "scope": self.scope.value,
+            "source": self.source.value,
+            "valid_mask": list(self.valid_mask),
+        }
 
 
 @dataclass(frozen=True, slots=True)
@@ -2842,12 +4477,14 @@ class SceneObservationV1:
 
 
 @dataclass(frozen=True, slots=True)
-class RadioObservationV1:
-    """Typed, timestamped UE-side radio telemetry.
+class RadioObservationV1(_Attested):
+    """Complete radio evidence explicitly admitted to the causal policy.
 
-    Every quantity declares its own semantics -- which SNR metric, which link
-    direction, which MCS table, what a BSR counts -- and its own measurement
-    instant.  Ages are derived, never supplied.
+    Phase 4a.2 admits simulator/testbed values only through the attested
+    privileged factory.  Runtime source types remain modeled so a later
+    protocol can be reviewed without changing meanings, but they fail closed:
+    no current repository artifact proves when those values became visible to
+    the UE policy.  Collector ingest is never treated as that proof.
     """
 
     achieved_snr_db: float
@@ -2862,9 +4499,17 @@ class RadioObservationV1:
     bsr_scope: BsrScope
     bsr_logical_channel_group: int
     bsr_measured_ns: int
+    evidence_path: RadioEvidencePath
+    snr_source: SnrSource
+    snr_event: RadioEventProvenanceV1
+    mcs_source: McsSource
+    mcs_event: RadioEventProvenanceV1
+    bsr_report: BsrReportV1
+    policy_availability: Optional[RadioPolicyAvailabilityV1]
     source_id: str
     source_sha256: str
     clock_domain: ClockDomain = ClockDomain.UE_LOCAL_MONOTONIC
+    _attestation: Any = field(default=None, compare=False, repr=False)
 
     def __post_init__(self) -> None:
         E = CausalStateError
@@ -2894,8 +4539,51 @@ class RadioObservationV1:
         _non_negative_int(
             self.bsr_logical_channel_group, "bsr_logical_channel_group", E
         )
+        if self.bsr_logical_channel_group > 7:
+            raise E("bsr_logical_channel_group must lie in [0, 7]")
         for name in ("snr_measured_ns", "mcs_measured_ns", "bsr_measured_ns"):
             _non_negative_int(getattr(self, name), name, E)
+        if not isinstance(self.evidence_path, RadioEvidencePath):
+            raise E("evidence_path must be a typed RadioEvidencePath")
+        if self.evidence_path is RadioEvidencePath.UNBOUND_COLLECTOR_DIAGNOSTIC:
+            raise E(
+                "unbound collector evidence is diagnostic-only and cannot be "
+                "constructed as RadioObservationV1"
+            )
+        if self.evidence_path is RadioEvidencePath.UE_VISIBLE_RUNTIME:
+            raise CausalStateError(
+                "UE-visible runtime radio evidence is not yet admissible: the "
+                "repository has no measured UE-visible feedback/IPC carrier "
+                "whose envelope and availability can be opened and hash-"
+                "verified.  Stock collector timestamps are post-action "
+                "diagnostics, not policy availability.  Use "
+                "RadioDiagnosticObservationV1 until that carrier exists"
+            )
+        if not isinstance(self.snr_source, SnrSource):
+            raise E("snr_source must be a typed SnrSource")
+        if not isinstance(self.snr_event, RadioEventProvenanceV1):
+            raise E("snr_event must be RadioEventProvenanceV1")
+        if not isinstance(self.mcs_source, McsSource):
+            raise E("mcs_source must be a typed McsSource")
+        if not isinstance(self.mcs_event, RadioEventProvenanceV1):
+            raise E("mcs_event must be RadioEventProvenanceV1")
+        if not isinstance(self.bsr_report, BsrReportV1):
+            raise E("bsr_report must be a typed BsrReportV1")
+        self.bsr_report.require_complete_for_policy()
+        if self.bsr_report.scope is not self.bsr_scope:
+            raise E("flat BSR scope disagrees with the typed BSR report")
+        if (
+            self.bsr_report.logical_channel_group
+            != self.bsr_logical_channel_group
+        ):
+            raise E("flat BSR logical-channel group disagrees with its report")
+        if self.bsr_report.measured_ns != self.bsr_measured_ns:
+            raise E("flat BSR timestamp disagrees with its report")
+        if self.bsr_report.total_bytes != self.bsr_bytes:
+            raise E(
+                f"flat bsr_bytes={self.bsr_bytes} disagrees with the explicit "
+                f"BSR vector total {self.bsr_report.total_bytes}"
+            )
         _non_empty_str(self.source_id, "radio source_id", E)
         _sha256_hex(self.source_sha256, "radio source_sha256", E)
         if not isinstance(self.clock_domain, ClockDomain):
@@ -2917,8 +4605,185 @@ class RadioObservationV1:
                 f"{self.mcs_direction.value}"
             )
 
+        expected_snr_wall = {
+            SnrSource.SIMULATOR_TESTBED_PRIVILEGED: RadioSourceWall.SIMULATOR_TESTBED,
+            SnrSource.UE_VISIBLE_MEASURED_FEEDBACK: RadioSourceWall.UE,
+            SnrSource.GNB_MAC_PUSCH_POWER_CONTROL: RadioSourceWall.GNB,
+            SnrSource.GNB_MAC_UL_MCS_DECISION_EMA: RadioSourceWall.GNB,
+        }[self.snr_source]
+        if self.snr_event.source_wall is not expected_snr_wall:
+            raise E(
+                f"SNR source {self.snr_source.value} must originate on the "
+                f"{expected_snr_wall.value} wall"
+            )
+        expected_mcs_wall = {
+            McsSource.SIMULATOR_TESTBED_PRIVILEGED: RadioSourceWall.SIMULATOR_TESTBED,
+            McsSource.NRUE_MAC_DCI_GRANT: RadioSourceWall.UE,
+            McsSource.GNB_MAC_UL_MCS_DECISION_SELECTED: RadioSourceWall.GNB,
+            McsSource.GNB_MAC_UL_MCS_DECISION_FINAL: RadioSourceWall.GNB,
+            McsSource.GNB_MAC_UL_SCHEDULED_GRANT: RadioSourceWall.GNB,
+        }[self.mcs_source]
+        if self.mcs_event.source_wall is not expected_mcs_wall:
+            raise E(
+                f"MCS source {self.mcs_source.value} must originate on the "
+                f"{expected_mcs_wall.value} wall"
+            )
+
+        events = (self.snr_event, self.mcs_event, self.bsr_report.event)
+        if self.bsr_report.event is None:  # guarded by a complete report
+            raise E("a policy-facing BSR must carry event provenance")
+        epoch_ids = {event.ran_epoch_id for event in events if event is not None}
+        session_ids = {
+            event.control_session_id for event in events if event is not None
+        }
+        if len(epoch_ids) != 1 or len(session_ids) != 1:
+            raise E(
+                "SNR, MCS and BSR events must share one RAN epoch and control session"
+            )
+
+        if self.evidence_path is RadioEvidencePath.SIMULATOR_TESTBED_PRIVILEGED:
+            if self.policy_availability is not None:
+                raise E(
+                    "simulator/testbed privileged evidence does not masquerade "
+                    "as a UE-visible runtime observation"
+                )
+            if (
+                self.snr_source is not SnrSource.SIMULATOR_TESTBED_PRIVILEGED
+                or self.mcs_source
+                is not McsSource.SIMULATOR_TESTBED_PRIVILEGED
+                or self.bsr_report.source
+                is not BsrSource.SIMULATOR_TESTBED_PRIVILEGED
+            ):
+                raise E(
+                    "the privileged simulator path accepts only explicitly "
+                    "simulator/testbed radio sources"
+                )
+        else:  # pragma: no cover - UE_VISIBLE_RUNTIME fails closed above
+            if self.snr_source is SnrSource.SIMULATOR_TESTBED_PRIVILEGED:
+                raise E("runtime radio evidence cannot use a simulator SNR source")
+            if self.mcs_source is McsSource.SIMULATOR_TESTBED_PRIVILEGED:
+                raise E("runtime radio evidence cannot use a simulator MCS source")
+            if self.bsr_report.source is BsrSource.SIMULATOR_TESTBED_PRIVILEGED:
+                raise E("runtime radio evidence cannot use a simulator BSR source")
+            if not isinstance(
+                self.policy_availability, RadioPolicyAvailabilityV1
+            ):
+                raise E(
+                    "UE-visible runtime radio evidence requires measured "
+                    "UE-local policy availability; collector ingest is not "
+                    "availability"
+                )
+            availability = self.policy_availability
+            if availability.ran_epoch_id not in epoch_ids:
+                raise E("runtime availability is for a different RAN epoch")
+            if availability.control_session_id not in session_ids:
+                raise E("runtime availability is for a different control session")
+            latest_measurement = max(
+                self.snr_measured_ns,
+                self.mcs_measured_ns,
+                self.bsr_measured_ns,
+            )
+            if (
+                availability.policy_observation_available_monotonic_ns
+                < latest_measurement
+            ):
+                raise E(
+                    "policy availability predates a component measurement; "
+                    "the aggregate observation was not yet available"
+                )
+        expected_snr_metric = {
+            SnrSource.SIMULATOR_TESTBED_PRIVILEGED: (
+                SnrMetric.SIMULATOR_EFFECTIVE_UL_SNR_DB
+            ),
+            SnrSource.UE_VISIBLE_MEASURED_FEEDBACK: (
+                SnrMetric.GNB_MAC_POWER_CONTROL_NORMALIZED_PUSCH_SNR_DB
+            ),
+            SnrSource.GNB_MAC_PUSCH_POWER_CONTROL: (
+                SnrMetric.GNB_MAC_POWER_CONTROL_NORMALIZED_PUSCH_SNR_DB
+            ),
+            SnrSource.GNB_MAC_UL_MCS_DECISION_EMA: (
+                SnrMetric.GNB_SCHEDULER_EMA_SNR_DB
+            ),
+        }[self.snr_source]
+        if self.snr_metric is not expected_snr_metric:
+            raise E(
+                f"SNR source {self.snr_source.value} carries "
+                f"{expected_snr_metric.value}, not {self.snr_metric.value}"
+            )
+        if self._attestation is not None and not _valid_radio(
+            self._attestation, self._binding()
+        ):
+            raise UnattestedRecordError(
+                "the radio-observation attestation does not match its fields"
+            )
+
+    @property
+    def _checker(self) -> Callable:
+        return _valid_radio
+
+    @classmethod
+    def for_simulator_testbed(
+        cls,
+        *,
+        achieved_snr_db: float,
+        snr_measured_ns: int,
+        mcs_index: int,
+        mcs_table_id: str,
+        mcs_measured_ns: int,
+        bsr_bytes: int,
+        bsr_scope: BsrScope,
+        bsr_logical_channel_group: int,
+        bsr_measured_ns: int,
+        snr_event: RadioEventProvenanceV1,
+        mcs_event: RadioEventProvenanceV1,
+        bsr_report: BsrReportV1,
+        source_id: str,
+        source_sha256: str,
+    ) -> "RadioObservationV1":
+        """Issue the only currently supported policy-facing radio record.
+
+        Values are explicitly privileged simulator/testbed observations.  This
+        factory makes no deployability claim and cannot be used to relabel
+        stock OAI collector rows as UE-visible policy inputs.
+        """
+        record = cls(
+            achieved_snr_db=achieved_snr_db,
+            snr_metric=SnrMetric.SIMULATOR_EFFECTIVE_UL_SNR_DB,
+            snr_direction=LinkDirection.UPLINK,
+            snr_measured_ns=snr_measured_ns,
+            mcs_index=mcs_index,
+            mcs_table_id=mcs_table_id,
+            mcs_direction=LinkDirection.UPLINK,
+            mcs_measured_ns=mcs_measured_ns,
+            bsr_bytes=bsr_bytes,
+            bsr_scope=bsr_scope,
+            bsr_logical_channel_group=bsr_logical_channel_group,
+            bsr_measured_ns=bsr_measured_ns,
+            evidence_path=RadioEvidencePath.SIMULATOR_TESTBED_PRIVILEGED,
+            snr_source=SnrSource.SIMULATOR_TESTBED_PRIVILEGED,
+            snr_event=snr_event,
+            mcs_source=McsSource.SIMULATOR_TESTBED_PRIVILEGED,
+            mcs_event=mcs_event,
+            bsr_report=bsr_report,
+            policy_availability=None,
+            source_id=source_id,
+            source_sha256=source_sha256,
+        )
+        return replace(record, _attestation=_issue_radio(record._binding()))
+
     def ages_ns(self, observed_ns: int) -> Dict[str, int]:
         """Derived per-source ages; fails closed on any future measurement."""
+        if (
+            self.evidence_path is RadioEvidencePath.UE_VISIBLE_RUNTIME
+            and self.policy_availability is not None
+            and self.policy_availability.decision_cutoff_monotonic_ns
+            != observed_ns
+        ):
+            raise CausalStateError(
+                "runtime radio availability is bound to decision cutoff "
+                f"{self.policy_availability.decision_cutoff_monotonic_ns}, "
+                f"not this state's observation instant {observed_ns}"
+            )
         ages: Dict[str, int] = {}
         for label, measured in (
             ("snr", self.snr_measured_ns),
@@ -2934,22 +4799,288 @@ class RadioObservationV1:
             ages[label] = observed_ns - measured
         return ages
 
-    def to_canonical_dict(self) -> Dict[str, Any]:
+    def _serialized_fields(self) -> Dict[str, Any]:
         return {
             "achieved_snr_db": float(self.achieved_snr_db),
             "bsr_bytes": self.bsr_bytes,
             "bsr_logical_channel_group": self.bsr_logical_channel_group,
             "bsr_measured_ns": self.bsr_measured_ns,
+            "bsr_report": self.bsr_report.to_canonical_dict(),
             "bsr_scope": self.bsr_scope.value,
             "clock_domain": self.clock_domain.value,
+            "evidence_path": self.evidence_path.value,
             "mcs_direction": self.mcs_direction.value,
+            "mcs_event": self.mcs_event.to_canonical_dict(),
             "mcs_index": self.mcs_index,
             "mcs_measured_ns": self.mcs_measured_ns,
+            "mcs_source": self.mcs_source.value,
             "mcs_table_id": self.mcs_table_id,
+            "policy_availability": (
+                None
+                if self.policy_availability is None
+                else self.policy_availability.to_canonical_dict()
+            ),
             "record": "radio_observation_v1",
             "snr_direction": self.snr_direction.value,
+            "snr_event": self.snr_event.to_canonical_dict(),
             "snr_measured_ns": self.snr_measured_ns,
             "snr_metric": self.snr_metric.value,
+            "snr_source": self.snr_source.value,
+            "source_id": self.source_id,
+            "source_sha256": self.source_sha256,
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class RadioDiagnosticObservationV1:
+    """Typed radio collector evidence that is structurally non-causal.
+
+    This record deliberately is not a :class:`RadioObservationV1`, so
+    :class:`CausalStateV1` rejects it by type.  It retains missing values and
+    their reasons without substituting zeros or prior observations.
+    """
+
+    achieved_snr_db: Optional[float]
+    snr_metric: SnrMetric
+    snr_direction: LinkDirection
+    snr_measured_ns: Optional[int]
+    snr_source: SnrSource
+    snr_event: Optional[RadioEventProvenanceV1]
+    mcs_index: Optional[int]
+    mcs_table_id: str
+    mcs_direction: LinkDirection
+    mcs_measured_ns: Optional[int]
+    mcs_source: McsSource
+    mcs_event: Optional[RadioEventProvenanceV1]
+    bsr_report: BsrReportV1
+    valid_mask: Tuple[bool, bool, bool]
+    missing_reasons: Tuple[
+        Optional[RadioMissingReason],
+        Optional[RadioMissingReason],
+        Optional[RadioMissingReason],
+    ]
+    source_id: str
+    source_sha256: str
+    clock_domain: ClockDomain = ClockDomain.UE_LOCAL_MONOTONIC
+
+    FIELD_ORDER: Tuple[str, str, str] = field(
+        default=("snr", "mcs", "bsr"), init=False, repr=False
+    )
+
+    def __post_init__(self) -> None:
+        E = CausalStateError
+        if type(self.valid_mask) is not tuple or len(self.valid_mask) != 3:
+            raise E("radio diagnostic valid_mask must be (snr, mcs, bsr)")
+        if type(self.missing_reasons) is not tuple or len(self.missing_reasons) != 3:
+            raise E("radio diagnostic missing_reasons must be (snr, mcs, bsr)")
+        for name, value in (
+            ("snr_metric", self.snr_metric),
+            ("snr_direction", self.snr_direction),
+            ("snr_source", self.snr_source),
+            ("mcs_direction", self.mcs_direction),
+            ("mcs_source", self.mcs_source),
+        ):
+            expected = {
+                "snr_metric": SnrMetric,
+                "snr_direction": LinkDirection,
+                "snr_source": SnrSource,
+                "mcs_direction": LinkDirection,
+                "mcs_source": McsSource,
+            }[name]
+            if not isinstance(value, expected):
+                raise E(f"{name} must be typed {expected.__name__}")
+        _non_empty_str(self.mcs_table_id, "diagnostic mcs_table_id", E)
+        if not isinstance(self.bsr_report, BsrReportV1):
+            raise E("diagnostic BSR must be a BsrReportV1")
+        _non_empty_str(self.source_id, "diagnostic radio source_id", E)
+        _sha256_hex(self.source_sha256, "diagnostic radio source_sha256", E)
+        if self.clock_domain is not ClockDomain.UE_LOCAL_MONOTONIC:
+            raise ClockDomainError(
+                "diagnostic monotonic timestamps must use UE_LOCAL_MONOTONIC"
+            )
+
+        values = (self.achieved_snr_db, self.mcs_index, self.bsr_report)
+        times = (self.snr_measured_ns, self.mcs_measured_ns)
+        events = (self.snr_event, self.mcs_event)
+        for index, (name, valid, reason) in enumerate(
+            zip(self.FIELD_ORDER, self.valid_mask, self.missing_reasons)
+        ):
+            _exact_bool(valid, f"diagnostic valid_mask[{name}]", E)
+            if valid:
+                if reason is not None:
+                    raise E(f"valid diagnostic {name} cannot have a missing reason")
+                if name == "bsr":
+                    self.bsr_report.require_complete_for_policy()
+                elif values[index] is None:
+                    raise E(f"valid diagnostic {name} requires a value")
+            else:
+                if not isinstance(reason, RadioMissingReason):
+                    raise E(f"missing diagnostic {name} requires a typed reason")
+                if name != "bsr" and values[index] is not None:
+                    raise E(
+                        f"missing diagnostic {name} must be None; zero and "
+                        "forward fill are forbidden"
+                    )
+                if name == "bsr" and self.bsr_report.complete_for_scope:
+                    raise E("a diagnostic BSR marked missing cannot be complete")
+        if self.valid_mask[0]:
+            _finite_float(self.achieved_snr_db, "diagnostic achieved_snr_db", E)
+        if self.valid_mask[1]:
+            _non_negative_int(self.mcs_index, "diagnostic mcs_index", E)
+        for index, (name, measured, event) in enumerate(
+            zip(("snr", "mcs"), times, events)
+        ):
+            if self.valid_mask[index] and (measured is None or event is None):
+                raise E(f"valid diagnostic {name} requires time and event provenance")
+            if measured is not None:
+                _non_negative_int(measured, f"diagnostic {name}_measured_ns", E)
+            if event is not None and not isinstance(event, RadioEventProvenanceV1):
+                raise E(f"diagnostic {name}_event has the wrong type")
+
+    def to_canonical_dict(self) -> Dict[str, Any]:
+        return {
+            "achieved_snr_db": (
+                None if self.achieved_snr_db is None else float(self.achieved_snr_db)
+            ),
+            "bsr_report": self.bsr_report.to_canonical_dict(),
+            "causal_policy_eligible": False,
+            "clock_domain": self.clock_domain.value,
+            "evidence_path": RadioEvidencePath.UNBOUND_COLLECTOR_DIAGNOSTIC.value,
+            "field_order": list(self.FIELD_ORDER),
+            "mcs_direction": self.mcs_direction.value,
+            "mcs_event": None if self.mcs_event is None else self.mcs_event.to_canonical_dict(),
+            "mcs_index": self.mcs_index,
+            "mcs_measured_ns": self.mcs_measured_ns,
+            "mcs_source": self.mcs_source.value,
+            "mcs_table_id": self.mcs_table_id,
+            "missing_reasons": [
+                None if reason is None else reason.value
+                for reason in self.missing_reasons
+            ],
+            "record": "radio_diagnostic_observation_v1",
+            "snr_direction": self.snr_direction.value,
+            "snr_event": None if self.snr_event is None else self.snr_event.to_canonical_dict(),
+            "snr_measured_ns": self.snr_measured_ns,
+            "snr_metric": self.snr_metric.value,
+            "snr_source": self.snr_source.value,
+            "source_id": self.source_id,
+            "source_sha256": self.source_sha256,
+            "valid_mask": list(self.valid_mask),
+            "zero_fill_authorized": False,
+            "forward_fill_authorized": False,
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class EpisodeStartProofV1(_Attested):
+    """Pre-decision proof that a state has no policy predecessor.
+
+    ``previous=None`` is otherwise ambiguous: it could mean a genuine episode
+    start or a dropped predecessor record.  The controller genesis proof is
+    explicitly authorized after the first state is observed but before any
+    decision opens. This wrapper binds that proof to the first proposed
+    decision/state. Replay
+    later checks that the completed ticket is genuinely ordinal zero in the
+    same lineage; no future ticket hash enters the policy observation.
+    """
+
+    controller_genesis: ControllerGenesisProof
+    source_id: str
+    source_sha256: str
+    _attestation: Any = field(default=None, compare=False, repr=False)
+
+    def __post_init__(self) -> None:
+        E = CausalStateError
+        if not isinstance(self.controller_genesis, ControllerGenesisProof):
+            raise E(
+                "controller_genesis must be a ControllerGenesisProof issued "
+                "by RewardTicketController"
+            )
+        try:
+            self.controller_genesis.require_attested()
+        except Exception as exc:
+            raise E(
+                "controller_genesis is not an attested pre-decision proof"
+            ) from exc
+        _non_empty_str(self.source_id, "episode-start source_id", E)
+        _sha256_hex(self.source_sha256, "episode-start source_sha256", E)
+        if self._attestation is not None and not _valid_episode_start(
+            self._attestation, self._binding()
+        ):
+            raise UnattestedRecordError(
+                "the episode-start attestation does not match its serialized fields"
+            )
+
+    @property
+    def _checker(self) -> Callable:
+        return _valid_episode_start
+
+    @property
+    def session_uuid(self) -> str:
+        return self.controller_genesis.session_uuid
+
+    @property
+    def controller_lineage_uuid(self) -> str:
+        return self.controller_genesis.controller_lineage_uuid
+
+    @property
+    def first_decision_seq(self) -> int:
+        return self.controller_genesis.first_decision_seq
+
+    @property
+    def first_tensor_seq(self) -> int:
+        return self.controller_genesis.first_tensor_seq
+
+    @property
+    def first_carla_frame_id(self) -> int:
+        return self.controller_genesis.first_carla_frame_id
+
+    @property
+    def episode_started_ns(self) -> int:
+        return self.controller_genesis.state_observed_ns
+
+    @classmethod
+    def from_controller_genesis(
+        cls,
+        controller_genesis: ControllerGenesisProof,
+        *,
+        source_id: str,
+        source_sha256: str,
+    ) -> "EpisodeStartProofV1":
+        """Bind a controller-issued genesis proof before the first action."""
+        if not isinstance(controller_genesis, ControllerGenesisProof):
+            raise CausalStateError(
+                "controller_genesis must be a ControllerGenesisProof, got "
+                f"{type(controller_genesis).__name__}"
+            )
+        try:
+            controller_genesis.require_attested()
+        except Exception as exc:
+            raise CausalStateError(
+                "controller_genesis was not issued by RewardTicketController"
+            ) from exc
+        record = cls(
+            controller_genesis=controller_genesis,
+            source_id=source_id,
+            source_sha256=source_sha256,
+        )
+        return replace(
+            record, _attestation=_issue_episode_start(record._binding())
+        )
+
+    def _serialized_fields(self) -> Dict[str, Any]:
+        return {
+            "controller_genesis": self.controller_genesis.to_canonical_dict(),
+            "controller_genesis_sha256": (
+                self.controller_genesis.canonical_sha256()
+            ),
+            "episode_started_ns": self.episode_started_ns,
+            "first_carla_frame_id": self.first_carla_frame_id,
+            "first_decision_seq": self.first_decision_seq,
+            "first_tensor_seq": self.first_tensor_seq,
+            "record": "episode_start_proof_v1",
+            "session_uuid": self.session_uuid,
+            "controller_lineage_uuid": self.controller_lineage_uuid,
             "source_id": self.source_id,
             "source_sha256": self.source_sha256,
         }
@@ -2957,13 +5088,13 @@ class RadioObservationV1:
 
 @dataclass(frozen=True, slots=True)
 class PreviousOutcomeV1(_Attested):
-    """The previous completed decision, derived from its validated records.
+    """Policy-visible closure snapshot of the previous decision.
 
     Build with :meth:`from_completed`, which is the only path that can issue the
-    attestation.  It binds the session and decision, the ticket and outcome
-    hashes, the resolution timestamp, the reward-spec hash, the ground-truth
-    source of the quality and the latency clock domain -- so a state can never
-    carry an outcome that was not actually measured for that decision.
+    attestation.  This is deliberately *not* the later replay adjudication.  A
+    timeout is frozen as ``PENDING`` at ticket closure; a later reconciliation
+    may change the replay outcome but can never rewrite the historical policy
+    observation.  ``available_ns`` makes that causality check explicit.
     """
 
     session_uuid: str
@@ -2974,11 +5105,15 @@ class PreviousOutcomeV1(_Attested):
     completed_ticket_sha256: str
     outcome_sha256: str
     reward_spec_sha256: str
+    available_ns: int
     resolution_ns: Optional[int]
     quality_normalized: Optional[float]
     latency_normalized: Optional[float]
     quality_gt_source: Optional[str]
     latency_clock_domain: Optional[str]
+    controller_lineage_uuid: str
+    lineage_ordinal: int
+    predecessor_completed_ticket_sha256: Optional[str]
     _attestation: Any = field(default=None, compare=False, repr=False)
 
     def __post_init__(self) -> None:
@@ -3003,6 +5138,26 @@ class PreviousOutcomeV1(_Attested):
             "reward_spec_sha256",
         ):
             _sha256_hex(getattr(self, name), name, E)
+        _non_negative_int(self.available_ns, "available_ns", E)
+        _canonical_uuid(self.controller_lineage_uuid, E)
+        _non_negative_int(self.lineage_ordinal, "lineage_ordinal", E)
+        if self.lineage_ordinal == 0:
+            if self.predecessor_completed_ticket_sha256 is not None:
+                raise E(
+                    "the controller genesis previous outcome cannot name a "
+                    "predecessor ticket"
+                )
+        else:
+            if self.predecessor_completed_ticket_sha256 is None:
+                raise E(
+                    f"previous outcome at controller lineage ordinal "
+                    f"{self.lineage_ordinal} requires its predecessor hash"
+                )
+            _sha256_hex(
+                self.predecessor_completed_ticket_sha256,
+                "predecessor_completed_ticket_sha256",
+                E,
+            )
         if self.resolution_ns is not None:
             _non_negative_int(self.resolution_ns, "resolution_ns", E)
         if self.quality_normalized is not None:
@@ -3038,6 +5193,15 @@ class PreviousOutcomeV1(_Attested):
                 f"terminal class {self.terminal_class.value} yields no exact "
                 f"quality; got {self.quality_normalized!r}"
             )
+        if (
+            self.terminal_class is TerminalClass.FEEDBACK_TIMEOUT
+            and self.eligibility
+            != LearningEligibility.CENSORED_PENDING_ADJUDICATION.value
+        ):
+            raise E(
+                "a policy-visible timeout snapshot must remain PENDING at "
+                "ticket closure; later adjudication is replay-only"
+            )
         if self._attestation is not None and not _valid_previous(
             self._attestation, self._binding()
         ):
@@ -3063,6 +5227,7 @@ class PreviousOutcomeV1(_Attested):
                 f"completed_ticket must be a controller CompletedTicket, got "
                 f"{type(completed_ticket).__name__}"
             )
+        completed_ticket.require_lineage_attested()
         if not isinstance(outcome, DecisionOutcomeV1):
             raise CausalStateError(
                 f"outcome must be a DecisionOutcomeV1, got "
@@ -3083,8 +5248,24 @@ class PreviousOutcomeV1(_Attested):
             raise CausalStateError(
                 "the outcome was measured under a different reward spec"
             )
+        if outcome.adjudication is not None:
+            raise CausalStateError(
+                "a policy-visible previous snapshot cannot be constructed "
+                "from a later adjudication; use the closure-time outcome"
+            )
+        if (
+            completed_ticket.terminal_class is TerminalClass.FEEDBACK_TIMEOUT
+            and outcome.eligibility
+            is not LearningEligibility.CENSORED_PENDING_ADJUDICATION
+        ):
+            raise CausalStateError(
+                "a timeout enters policy history only as the closure-time "
+                "PENDING snapshot"
+            )
         quality = outcome.quality
         latency = outcome.latency
+        assert completed_ticket.controller_lineage_uuid is not None
+        assert completed_ticket.lineage_ordinal is not None
         record = cls(
             session_uuid=completed_ticket.session_uuid,
             decision_seq=completed_ticket.decision_seq,
@@ -3094,6 +5275,7 @@ class PreviousOutcomeV1(_Attested):
             completed_ticket_sha256=completed_ticket.canonical_sha256(),
             outcome_sha256=outcome.canonical_sha256(),
             reward_spec_sha256=outcome.reward_spec_sha256,
+            available_ns=completed_ticket.closed_ns,
             resolution_ns=completed_ticket.resolution_ns,
             quality_normalized=None if quality is None else quality.q_perc,
             latency_normalized=(
@@ -3106,6 +5288,13 @@ class PreviousOutcomeV1(_Attested):
             ),
             latency_clock_domain=(
                 None if latency is None else latency.clock_domain
+            ),
+            controller_lineage_uuid=(
+                completed_ticket.controller_lineage_uuid
+            ),
+            lineage_ordinal=completed_ticket.lineage_ordinal,
+            predecessor_completed_ticket_sha256=(
+                completed_ticket.predecessor_completed_ticket_sha256
             ),
         )
         return replace(
@@ -3122,7 +5311,9 @@ class PreviousOutcomeV1(_Attested):
 
     def _serialized_fields(self) -> Dict[str, Any]:
         return {
+            "available_ns": self.available_ns,
             "completed_ticket_sha256": self.completed_ticket_sha256,
+            "controller_lineage_uuid": self.controller_lineage_uuid,
             "decision_seq": self.decision_seq,
             "eligibility": self.eligibility,
             "executed_action": self.action.to_canonical_dict(),
@@ -3133,6 +5324,7 @@ class PreviousOutcomeV1(_Attested):
                 else float(self.latency_normalized)
             ),
             "latency_valid": self.latency_valid,
+            "lineage_ordinal": self.lineage_ordinal,
             "outcome_sha256": self.outcome_sha256,
             "quality_gt_source": self.quality_gt_source,
             "quality_normalized": (
@@ -3141,6 +5333,9 @@ class PreviousOutcomeV1(_Attested):
                 else float(self.quality_normalized)
             ),
             "quality_valid": self.quality_valid,
+            "predecessor_completed_ticket_sha256": (
+                self.predecessor_completed_ticket_sha256
+            ),
             "record": "previous_outcome_v1",
             "resolution_ns": self.resolution_ns,
             "reward_spec_sha256": self.reward_spec_sha256,
@@ -3173,6 +5368,7 @@ class CausalStateV1:
     carla_frame_id: int
     clock_domain: ClockDomain = ClockDomain.UE_LOCAL_MONOTONIC
     previous: Optional[PreviousOutcomeV1] = None
+    episode_start: Optional[EpisodeStartProofV1] = None
 
     def __post_init__(self) -> None:
         E = CausalStateError
@@ -3186,6 +5382,7 @@ class CausalStateV1:
                 f"radio must be a typed RadioObservationV1, got "
                 f"{type(self.radio).__name__}"
             )
+        self.radio.require_attested()
         _canonical_uuid(self.session_uuid, E)
         _non_negative_int(self.observed_ns, "observed_ns", E)
         _non_negative_int(self.tensor_seq, "tensor_seq", E)
@@ -3214,6 +5411,12 @@ class CausalStateV1:
                 f"{self.carla_frame_id}; a descriptor is never reused across "
                 f"frames"
             )
+        if (self.previous is None) == (self.episode_start is None):
+            raise E(
+                "a causal state must carry exactly one predecessor proof: "
+                "either the policy-visible previous outcome or an explicit "
+                "episode-start proof"
+            )
         if self.previous is not None:
             if not isinstance(self.previous, PreviousOutcomeV1):
                 raise E(
@@ -3227,6 +5430,45 @@ class CausalStateV1:
                     f"the previous outcome belongs to session "
                     f"{self.previous.session_uuid}, not this state's "
                     f"{self.session_uuid}"
+                )
+            if self.previous.available_ns > self.observed_ns:
+                raise E(
+                    f"the previous outcome became available at "
+                    f"{self.previous.available_ns} ns, after this state was "
+                    f"observed at {self.observed_ns} ns; later adjudication "
+                    f"or feedback may never leak into an earlier policy state"
+                )
+        else:
+            start = self.episode_start
+            assert start is not None
+            if not isinstance(start, EpisodeStartProofV1):
+                raise E(
+                    "episode_start must be an EpisodeStartProofV1 when no "
+                    "previous policy outcome exists"
+                )
+            start.require_attested()
+            if start.session_uuid != self.session_uuid:
+                raise E(
+                    f"episode-start proof session {start.session_uuid} does "
+                    f"not match state session {self.session_uuid}"
+                )
+            if start.first_tensor_seq != self.tensor_seq:
+                raise E(
+                    f"episode-start proof names first tensor "
+                    f"{start.first_tensor_seq}, not state tensor "
+                    f"{self.tensor_seq}"
+                )
+            if start.first_carla_frame_id != self.carla_frame_id:
+                raise E(
+                    f"episode-start proof names first CARLA frame "
+                    f"{start.first_carla_frame_id}, not state frame "
+                    f"{self.carla_frame_id}"
+                )
+            if start.episode_started_ns != self.observed_ns:
+                raise E(
+                    f"episode-start authorization binds policy observation "
+                    f"{start.episode_started_ns} ns, not this state's exact "
+                    f"observation instant {self.observed_ns} ns"
                 )
 
     # -- derived ----------------------------------------------------------- #
@@ -3267,6 +5509,11 @@ class CausalStateV1:
             "carla_frame_id": self.carla_frame_id,
             "clock_domain": self.clock_domain.value,
             "deployability": POLICY_OBSERVATION_DEPLOYABILITY,
+            "episode_start": (
+                None
+                if self.episode_start is None
+                else self.episode_start.to_canonical_dict()
+            ),
             "measurement_ages_ns": dict(self.measurement_ages_ns),
             "observed_ns": self.observed_ns,
             "previous": (
@@ -3644,7 +5891,7 @@ class StateNormalizationSpecV1:
 
 
 @dataclass(frozen=True, slots=True)
-class PolicyFeatureVectorV1:
+class PolicyFeatureVectorV1(_Attested):
     """A fixed-width, deterministically ordered policy feature vector.
 
     Marked :data:`POLICY_OBSERVATION_DEPLOYABILITY` because it carries the
@@ -3653,9 +5900,10 @@ class PolicyFeatureVectorV1:
     """
 
     values: Tuple[float, ...]
-    state_normalization_spec_sha256: str
-    freshness_policy_sha256: str
-    freshness_policy_id: str
+    source_state_sha256: str
+    normalization: StateNormalizationSpecV1
+    freshness: StateFreshnessPolicyV1
+    _attestation: Any = field(default=None, compare=False, repr=False)
 
     def __post_init__(self) -> None:
         E = StateRewardContractError
@@ -3672,13 +5920,40 @@ class PolicyFeatureVectorV1:
                     f"feature {name!r} must be a finite float, got "
                     f"{type(value).__name__}: {value!r}"
                 )
-        _sha256_hex(
-            self.state_normalization_spec_sha256,
-            "state_normalization_spec_sha256",
-            E,
-        )
-        _sha256_hex(self.freshness_policy_sha256, "freshness_policy_sha256", E)
-        _non_empty_str(self.freshness_policy_id, "freshness_policy_id", E)
+        _sha256_hex(self.source_state_sha256, "source_state_sha256", E)
+        if not isinstance(self.normalization, StateNormalizationSpecV1):
+            raise E(
+                "normalization must be the complete "
+                "StateNormalizationSpecV1, not only an asserted hash"
+            )
+        if not isinstance(self.freshness, StateFreshnessPolicyV1):
+            raise E(
+                "freshness must be the complete StateFreshnessPolicyV1, not "
+                "only an asserted hash"
+            )
+        if self._attestation is not None and not _valid_features(
+            self._attestation, self._binding()
+        ):
+            raise UnattestedRecordError(
+                "the policy-feature attestation does not match the source "
+                "state, values or complete preprocessing specifications"
+            )
+
+    @property
+    def _checker(self) -> Callable:
+        return _valid_features
+
+    @property
+    def state_normalization_spec_sha256(self) -> str:
+        return self.normalization.canonical_sha256()
+
+    @property
+    def freshness_policy_sha256(self) -> str:
+        return self.freshness.canonical_sha256()
+
+    @property
+    def freshness_policy_id(self) -> str:
+        return self.freshness.policy_id
 
     @property
     def feature_names(self) -> Tuple[str, ...]:
@@ -3696,21 +5971,40 @@ class PolicyFeatureVectorV1:
         """A fresh defensive ``name -> value`` copy; mutating it is harmless."""
         return dict(zip(POLICY_FEATURE_ORDER, self.values))
 
-    def to_canonical_dict(self) -> Dict[str, Any]:
+    def assert_binds(self, state: CausalStateV1) -> None:
+        """Rebuild this vector from its full sources and compare exactly."""
+        self.require_attested()
+        if not isinstance(state, CausalStateV1):
+            raise TransitionIdentityError(
+                f"feature source must be CausalStateV1, got "
+                f"{type(state).__name__}"
+            )
+        if self.source_state_sha256 != state.canonical_sha256():
+            raise TransitionIdentityError(
+                "policy features are bound to a different causal state"
+            )
+        rebuilt = build_policy_features(state, self.normalization, self.freshness)
+        if rebuilt.canonical_sha256() != self.canonical_sha256():
+            raise TransitionIdentityError(
+                "policy features do not survive recomputation from the "
+                "bound state and complete preprocessing specifications"
+            )
+
+    def _serialized_fields(self) -> Dict[str, Any]:
         return {
             "deployability": self.deployability,
             "feature_order": list(POLICY_FEATURE_ORDER),
+            "freshness_policy": self.freshness.to_canonical_dict(),
             "freshness_policy_id": self.freshness_policy_id,
             "freshness_policy_sha256": self.freshness_policy_sha256,
+            "normalization": self.normalization.to_canonical_dict(),
             "record": "policy_feature_vector_v1",
+            "source_state_sha256": self.source_state_sha256,
             "state_normalization_spec_sha256": (
                 self.state_normalization_spec_sha256
             ),
             "values": [float(value) for value in self.values],
         }
-
-    def canonical_sha256(self) -> str:
-        return canonical_sha256(self.to_canonical_dict())
 
 
 def build_policy_features(
@@ -3821,12 +6115,13 @@ def build_policy_features(
             f"feature mapping disagrees with the frozen order; missing "
             f"{sorted(missing)}, unexpected {sorted(extra)}"
         )
-    return PolicyFeatureVectorV1(
+    record = PolicyFeatureVectorV1(
         values=tuple(float(named[name]) for name in POLICY_FEATURE_ORDER),
-        state_normalization_spec_sha256=normalization.canonical_sha256(),
-        freshness_policy_sha256=freshness.canonical_sha256(),
-        freshness_policy_id=freshness.policy_id,
+        source_state_sha256=state.canonical_sha256(),
+        normalization=normalization,
+        freshness=freshness,
     )
+    return replace(record, _attestation=_issue_features(record._binding()))
 
 
 # --------------------------------------------------------------------------- #
@@ -3835,12 +6130,12 @@ def build_policy_features(
 
 
 class Adjudication(Enum):
-    """Authoritative post-run verdict on a censored deadline expiry.
+    """Reserved verdict vocabulary for a future reconciliation protocol.
 
-    Only ``AUTHORITATIVE_SERVICE_FAILURE`` may turn a censored timeout into a
-    negative reward, and only through an explicit, ticket-bound
-    :class:`AdjudicationRecordV1`.  ``FEEDBACK_ONLY_LOSS`` is a proven
-    control-plane miss and must never penalize the action.
+    Phase 4a.2 has no verified carrier for these verdicts, so
+    :func:`evaluate_completed_decision` rejects every supplied adjudication and
+    leaves feedback timeouts censored.  The enum and record describe the
+    intended future semantics; their presence does not make them admissible.
     """
 
     PENDING = "PENDING"
@@ -3851,12 +6146,14 @@ class Adjudication(Enum):
 
 @dataclass(frozen=True, slots=True)
 class AdjudicationRecordV1:
-    """An attributed reconciliation verdict, bound to exactly one ticket.
+    """Reserved ticket-bound verdict record; not admissible in Phase 4a.2.
 
     Binds the session, the decision, the ticket hash and the terminal class, and
     requires ``adjudicated_ns >= ticket.closed_ns`` -- a verdict cannot predate
     the event it adjudicates.  Because the ticket hash is part of the record, an
-    adjudication is **not reusable** for another ticket.
+    adjudication is **not reusable** for another ticket.  These structural
+    checks are necessary but not sufficient evidence: until a reviewed carrier
+    can issue this record, the reward evaluator refuses it.
     """
 
     verdict: Adjudication
@@ -4161,19 +6458,13 @@ def evaluate_completed_decision(
     )
 
     if adjudication is not None:
-        if not isinstance(adjudication, AdjudicationRecordV1):
-            raise AdjudicationError(
-                f"adjudication must be an AdjudicationRecordV1 or None, got "
-                f"{type(adjudication).__name__}"
-            )
-        if terminal is not TerminalClass.FEEDBACK_TIMEOUT:
-            raise AdjudicationError(
-                f"an adjudication record applies only to a censored "
-                f"{TerminalClass.FEEDBACK_TIMEOUT.value}; decision "
-                f"{completed_ticket.decision_seq} closed as {terminal.value}, "
-                f"whose classification is already authoritative"
-            )
-        adjudication.assert_binds(completed_ticket)
+        raise AdjudicationError(
+            "Phase 4a.2 has no verified timeout-reconciliation evidence "
+            "protocol.  An arbitrary adjudicator id and evidence hash are "
+            "not sufficient to score a timeout.  Keep every feedback timeout "
+            "censored until a separately reviewed reconciliation carrier is "
+            "implemented"
+        )
 
     def _outcome(**kwargs: Any) -> DecisionOutcomeV1:
         record = DecisionOutcomeV1(
@@ -4186,11 +6477,12 @@ def evaluate_completed_decision(
         )
         return replace(record, _attestation=_issue_outcome(record._binding()))
 
-    # -- exact feedback: the only learning-eligible perception outcome ----- #
+    # -- exact feedback: structurally eligible only after source proof ------ #
     if terminal is TerminalClass.REWARD_FINAL_EXACT:
         if quality_components is None:
             raise QualityContractError(
-                f"{terminal.value} is learning eligible and requires exact "
+                f"{terminal.value} requires exact quality components before "
+                f"it could become learning eligible; "
                 f"quality components; none were supplied for decision "
                 f"{completed_ticket.decision_seq}"
             )
@@ -4207,6 +6499,12 @@ def evaluate_completed_decision(
                 "the quality evidence was verified against a different ticket "
                 "than the one being evaluated"
             )
+        # Internal consistency and hash binding are not source authenticity.
+        # The current live v1 evaluator cannot produce the raw, persisted
+        # artifacts needed to prove actor/mask/match derivation, so exact
+        # positive rewards remain fail-closed rather than silently training on
+        # caller-asserted summaries.
+        quality_components.evidence.require_learning_ready()
         latency = LatencyMeasurementV1.from_completed_ticket(completed_ticket)
         try:
             quality = reward_spec.evaluate_quality(quality_components)
@@ -4288,35 +6586,6 @@ def evaluate_completed_decision(
         raise StateRewardContractError(
             f"unhandled terminal class {terminal.value}"
         )
-    verdict = Adjudication.PENDING if adjudication is None else adjudication.verdict
-    if verdict is Adjudication.AUTHORITATIVE_SERVICE_FAILURE:
-        return _outcome(
-            eligibility=LearningEligibility.ELIGIBLE,
-            costs=ConstraintCostsV1(
-                c_deadline=1.0, c_authoritative_failure=1.0
-            ),
-            diagnostics=DiagnosticSignalsV1(c_latency_excess=None),
-            scalar_reward=float(reward_spec.r_registered_failure) - switch.total,
-            adjudication=adjudication,
-        )
-    if verdict is Adjudication.INFRASTRUCTURE_FAULT:
-        return _outcome(
-            eligibility=LearningEligibility.EXCLUDED_INFRASTRUCTURE_FAULT,
-            costs=ConstraintCostsV1(
-                c_deadline=1.0, c_authoritative_failure=None
-            ),
-            diagnostics=DiagnosticSignalsV1(c_latency_excess=None),
-            adjudication=adjudication,
-        )
-    if verdict is Adjudication.FEEDBACK_ONLY_LOSS:
-        return _outcome(
-            eligibility=LearningEligibility.CENSORED_FEEDBACK_ONLY_LOSS,
-            costs=ConstraintCostsV1(
-                c_deadline=1.0, c_authoritative_failure=0.0
-            ),
-            diagnostics=DiagnosticSignalsV1(c_latency_excess=None),
-            adjudication=adjudication,
-        )
     return _outcome(
         eligibility=LearningEligibility.CENSORED_PENDING_ADJUDICATION,
         costs=ConstraintCostsV1(c_deadline=1.0, c_authoritative_failure=None),
@@ -4331,42 +6600,66 @@ def evaluate_completed_decision(
 
 
 @dataclass(frozen=True, slots=True)
-class PolicyDecisionTraceV1:
+class PolicyDecisionTraceV1(_Attested):
     """What the actor sampled, and how it became the executed action.
 
     The sampled continuous ``q`` is verified into the executed ``q_e4`` with the
     registered half-up rule, so a stored transition cannot claim an execution
     that its own sample would not have produced.
+
+    This off-policy Hybrid-SAC replay contract intentionally does *not* store
+    caller-reported behaviour log-probabilities.  SAC recomputes log-probability
+    under the current actor when forming its actor and critic targets; the
+    behaviour density is not an input to either update.  A pair of unattested
+    scalar log-probabilities would therefore add no learning information and
+    could not be reproduced from this record.  A future importance-weighted
+    algorithm must introduce a separately versioned, distribution-complete
+    trace (categorical logits plus all bounded-continuous distribution
+    parameters), rather than repurposing this record.
     """
 
+    session_uuid: str
+    decision_seq: int
+    policy_feature_sha256: str
+    source_state_sha256: str
+    state_normalization_spec_sha256: str
+    freshness_policy_sha256: str
     sampled_mode_id: int
     sampled_q: float
     executed_action: ExecutedActionIdentity
-    log_prob_discrete: float
-    log_prob_continuous: float
     actor_version_sha256: str
+    _attestation: Any = field(default=None, compare=False, repr=False)
 
     def __post_init__(self) -> None:
         E = StateRewardContractError
+        _canonical_uuid(self.session_uuid, E)
+        _non_negative_int(self.decision_seq, "decision_seq", E)
+        for name in (
+            "policy_feature_sha256",
+            "source_state_sha256",
+            "state_normalization_spec_sha256",
+            "freshness_policy_sha256",
+        ):
+            _sha256_hex(getattr(self, name), name, E)
         _non_negative_int(self.sampled_mode_id, "sampled_mode_id", E)
         if self.sampled_mode_id >= EXPECTED_MODE_COUNT:
             raise E(
                 f"sampled_mode_id {self.sampled_mode_id} is outside the "
                 f"catalog's {EXPECTED_MODE_COUNT} joint modes"
             )
-        _finite_float(self.sampled_q, "sampled_q", E)
+        _finite_in(
+            self.sampled_q,
+            "sampled_q",
+            float(Q_E4_MIN) / Q_E4_SCALE,
+            float(Q_E4_MAX) / Q_E4_SCALE,
+            E,
+        )
         if not isinstance(self.executed_action, ExecutedActionIdentity):
             raise E(
                 f"executed_action must be an ExecutedActionIdentity, got "
                 f"{type(self.executed_action).__name__}"
             )
         self.executed_action.require_reconciled()
-        for name in ("log_prob_discrete", "log_prob_continuous"):
-            value = _finite_float(getattr(self, name), name, E)
-            if value > 0.0:
-                raise E(
-                    f"{name} is a log-probability and must be <= 0, got {value}"
-                )
         _sha256_hex(self.actor_version_sha256, "actor_version_sha256", E)
 
         if self.sampled_mode_id != self.executed_action.mode_id:
@@ -4375,12 +6668,92 @@ class PolicyDecisionTraceV1:
                 f"executed action is mode {self.executed_action.mode_id}"
             )
         expected_q_e4 = round_half_up_q_e4(self.sampled_q)
-        expected_q_e4 = min(max(expected_q_e4, Q_E4_MIN), Q_E4_MAX)
         if expected_q_e4 != self.executed_action.q_e4:
             raise E(
                 f"the sampled q {self.sampled_q!r} quantizes to q_e4="
                 f"{expected_q_e4} under the registered half-up rule, but the "
                 f"executed action carries q_e4={self.executed_action.q_e4}"
+            )
+        if self._attestation is not None and not _valid_policy_trace(
+            self._attestation, self._binding()
+        ):
+            raise UnattestedRecordError(
+                "the policy-decision trace attestation does not match its "
+                "state, feature, specification or action binding"
+            )
+
+    @property
+    def _checker(self) -> Callable:
+        return _valid_policy_trace
+
+    @classmethod
+    def for_decision(
+        cls,
+        *,
+        state: CausalStateV1,
+        features: PolicyFeatureVectorV1,
+        decision_seq: int,
+        sampled_mode_id: int,
+        sampled_q: float,
+        executed_action: ExecutedActionIdentity,
+        actor_version_sha256: str,
+    ) -> "PolicyDecisionTraceV1":
+        if not isinstance(state, CausalStateV1):
+            raise CausalStateError(
+                f"state must be CausalStateV1, got {type(state).__name__}"
+            )
+        if not isinstance(features, PolicyFeatureVectorV1):
+            raise StateRewardContractError(
+                "features must be an attested PolicyFeatureVectorV1"
+            )
+        features.assert_binds(state)
+        record = cls(
+            session_uuid=state.session_uuid,
+            decision_seq=decision_seq,
+            policy_feature_sha256=features.canonical_sha256(),
+            source_state_sha256=state.canonical_sha256(),
+            state_normalization_spec_sha256=(
+                features.state_normalization_spec_sha256
+            ),
+            freshness_policy_sha256=features.freshness_policy_sha256,
+            sampled_mode_id=sampled_mode_id,
+            sampled_q=sampled_q,
+            executed_action=executed_action,
+            actor_version_sha256=actor_version_sha256,
+        )
+        return replace(
+            record, _attestation=_issue_policy_trace(record._binding())
+        )
+
+    def assert_binds(
+        self,
+        *,
+        state: CausalStateV1,
+        features: PolicyFeatureVectorV1,
+        decision_seq: int,
+        executed_action: ExecutedActionIdentity,
+    ) -> None:
+        self.require_attested()
+        features.assert_binds(state)
+        expected = {
+            "session_uuid": state.session_uuid,
+            "decision_seq": decision_seq,
+            "policy_feature_sha256": features.canonical_sha256(),
+            "source_state_sha256": state.canonical_sha256(),
+            "state_normalization_spec_sha256": (
+                features.state_normalization_spec_sha256
+            ),
+            "freshness_policy_sha256": features.freshness_policy_sha256,
+        }
+        for name, value in expected.items():
+            if getattr(self, name) != value:
+                raise TransitionIdentityError(
+                    f"policy trace {name}={getattr(self, name)!r} does not "
+                    f"match the decision source {value!r}"
+                )
+        if self.executed_action != executed_action:
+            raise TransitionIdentityError(
+                "policy trace executed action does not match the ticket"
             )
 
     @property
@@ -4388,22 +6761,27 @@ class PolicyDecisionTraceV1:
         """The executed continuous value actually put on the wire."""
         return float(self.executed_action.q_e4) / Q_E4_SCALE
 
-    def to_canonical_dict(self) -> Dict[str, Any]:
+    def _serialized_fields(self) -> Dict[str, Any]:
         return {
             "actor_version_sha256": self.actor_version_sha256,
+            "decision_seq": self.decision_seq,
             "executed_action": self.executed_action.to_canonical_dict(),
             "executed_q_e4": self.executed_action.q_e4,
-            "log_prob_continuous": float(self.log_prob_continuous),
-            "log_prob_discrete": float(self.log_prob_discrete),
+            "policy_feature_sha256": self.policy_feature_sha256,
             "q_exec": self.q_exec,
-            "quantization_rule": "round_half_up(q * 1e4), clipped to [0, 9800]",
+            "quantization_rule": (
+                "require 0 <= q <= 0.98, then round_half_up(q * 1e4)"
+            ),
             "record": "policy_decision_trace_v1",
             "sampled_mode_id": self.sampled_mode_id,
             "sampled_q": float(self.sampled_q),
+            "session_uuid": self.session_uuid,
+            "source_state_sha256": self.source_state_sha256,
+            "state_normalization_spec_sha256": (
+                self.state_normalization_spec_sha256
+            ),
+            "freshness_policy_sha256": self.freshness_policy_sha256,
         }
-
-    def canonical_sha256(self) -> str:
-        return canonical_sha256(self.to_canonical_dict())
 
 
 @dataclass(frozen=True, slots=True)
@@ -4424,6 +6802,8 @@ class ReplayTransitionV1(_Attested):
     completed_ticket: CompletedTicket
     outcome: DecisionOutcomeV1
     policy_trace: PolicyDecisionTraceV1
+    state_features: PolicyFeatureVectorV1
+    next_state_features: Optional[PolicyFeatureVectorV1]
     reward_spec: RewardSpecV1
     state_normalization_spec_sha256: str
     freshness_policy_sha256: str
@@ -4441,6 +6821,7 @@ class ReplayTransitionV1(_Attested):
             ("completed_ticket", CompletedTicket),
             ("outcome", DecisionOutcomeV1),
             ("policy_trace", PolicyDecisionTraceV1),
+            ("state_features", PolicyFeatureVectorV1),
             ("reward_spec", RewardSpecV1),
         ):
             if not isinstance(getattr(self, name), expected):
@@ -4458,8 +6839,31 @@ class ReplayTransitionV1(_Attested):
         _exact_bool(self.truncated, "truncated", E)
 
         ticket = self.completed_ticket
+        ticket.require_lineage_attested()
         self.executed_action.require_reconciled()
         self.outcome.require_attested()
+        self.state_features.require_attested()
+        self.policy_trace.require_attested()
+
+        # Features are values *derived from* this exact state and the complete
+        # preprocessing specifications.  Hash labels alone are insufficient.
+        self.state_features.assert_binds(self.state)
+        if (
+            self.state_normalization_spec_sha256
+            != self.state_features.state_normalization_spec_sha256
+        ):
+            raise E(
+                "transition normalization hash does not match the complete "
+                "specification bound into the state feature vector"
+            )
+        if (
+            self.freshness_policy_sha256
+            != self.state_features.freshness_policy_sha256
+        ):
+            raise E(
+                "transition freshness hash does not match the complete policy "
+                "that actually accepted the state"
+            )
 
         # -- one exact session and decision throughout --------------------- #
         if self.state.session_uuid != ticket.session_uuid:
@@ -4501,7 +6905,6 @@ class ReplayTransitionV1(_Attested):
                 "the policy-decision trace records a different executed action "
                 "than the hold executed"
             )
-
         # -- the state joins the reward-requested tensor and frame --------- #
         if self.state.tensor_seq != ticket.reward_tensor_seq:
             raise E(
@@ -4522,11 +6925,95 @@ class ReplayTransitionV1(_Attested):
                 f"can only be conditioned on an observation that precedes it"
             )
         previous = self.state.previous
-        if previous is not None and previous.decision_seq >= ticket.decision_seq:
+        if previous is not None:
+            if previous.decision_seq >= ticket.decision_seq:
+                raise E(
+                    f"the state's previous decision {previous.decision_seq} "
+                    f"must precede this decision {ticket.decision_seq}; a "
+                    f"state may never carry its own or a future outcome"
+                )
+            if previous.controller_lineage_uuid != (
+                ticket.controller_lineage_uuid
+            ):
+                raise E(
+                    "the previous outcome belongs to a different concrete "
+                    "controller episode than the current ticket"
+                )
+            if ticket.lineage_ordinal != previous.lineage_ordinal + 1:
+                raise E(
+                    f"the current ticket has controller completion ordinal "
+                    f"{ticket.lineage_ordinal}, but the policy state carries "
+                    f"ordinal {previous.lineage_ordinal}; exact adjacency is "
+                    f"proved by completion order, not by decision_seq-1"
+                )
+            if ticket.predecessor_completed_ticket_sha256 != (
+                previous.completed_ticket_sha256
+            ):
+                raise E(
+                    "the current controller ticket does not name the state's "
+                    "previous completed ticket as its exact predecessor"
+                )
+        if previous is None:
+            start = self.state.episode_start
+            if start is None:  # guarded by CausalStateV1; retained for audit
+                raise E(
+                    "a transition without a predecessor requires an explicit "
+                    "episode-start proof"
+                )
+            if start.first_decision_seq != ticket.decision_seq:
+                raise E(
+                    f"episode-start proof authorizes first decision "
+                    f"{start.first_decision_seq}, not ticket decision "
+                    f"{ticket.decision_seq}; a missing predecessor cannot be "
+                    f"silently represented as episode start"
+                )
+            if start.first_tensor_seq != ticket.reward_tensor_seq:
+                raise E(
+                    "episode-start proof does not bind the ticket's first "
+                    "reward-requested tensor"
+                )
+            if start.first_carla_frame_id != ticket.reward_carla_frame_id:
+                raise E(
+                    "episode-start proof does not bind the ticket's first "
+                    "CARLA frame"
+                )
+            if start.controller_lineage_uuid != ticket.controller_lineage_uuid:
+                raise E(
+                    "episode-start proof belongs to a different concrete "
+                    "controller episode"
+                )
+            if ticket.controller_genesis_proof_sha256 != (
+                start.controller_genesis.canonical_sha256()
+            ):
+                raise E(
+                    "the completed genesis ticket does not carry the exact "
+                    "pre-decision authorization used by the first policy state"
+                )
+            if ticket.lineage_ordinal != 0 or (
+                ticket.predecessor_completed_ticket_sha256 is not None
+            ):
+                raise E(
+                    "a transition represented as episode start is not the "
+                    "controller genesis ticket (ordinal 0, no predecessor)"
+                )
+        self.policy_trace.assert_binds(
+            state=self.state,
+            features=self.state_features,
+            decision_seq=ticket.decision_seq,
+            executed_action=self.executed_action,
+        )
+        if ticket.policy_decision_trace_sha256 is None:
             raise E(
-                f"the state's previous decision {previous.decision_seq} must "
-                f"precede this decision {ticket.decision_seq}; a state may "
-                f"never carry its own or a future outcome"
+                "the controller ticket has no pre-execution policy-decision "
+                "trace commitment; a trace constructed after execution is "
+                "not causal replay evidence"
+            )
+        if ticket.policy_decision_trace_sha256 != (
+            self.policy_trace.canonical_sha256()
+        ):
+            raise E(
+                "the replay policy trace is not the exact trace committed to "
+                "the controller before this decision executed"
             )
 
         # -- terminal/truncation bookkeeping ------------------------------- #
@@ -4552,6 +7039,10 @@ class ReplayTransitionV1(_Attested):
                     "a non-terminal transition requires a next state; only a "
                     "terminated or truncated transition may omit it"
                 )
+            if self.next_state_features is not None:
+                raise E(
+                    "next_state_features must be absent when next_state is absent"
+                )
         else:
             if not isinstance(self.next_state, CausalStateV1):
                 raise E(
@@ -4563,6 +7054,27 @@ class ReplayTransitionV1(_Attested):
                     f"next state session {self.next_state.session_uuid} "
                     f"crosses out of session {self.state.session_uuid}; a "
                     f"transition never spans two sessions"
+                )
+            if not isinstance(self.next_state_features, PolicyFeatureVectorV1):
+                raise E(
+                    "a non-terminal transition must carry the attested feature "
+                    "vector derived for its bootstrap next state"
+                )
+            self.next_state_features.require_attested()
+            self.next_state_features.assert_binds(self.next_state)
+            if (
+                self.next_state_features.state_normalization_spec_sha256
+                != self.state_normalization_spec_sha256
+            ):
+                raise E(
+                    "next-state features use a different normalization spec"
+                )
+            if (
+                self.next_state_features.freshness_policy_sha256
+                != self.freshness_policy_sha256
+            ):
+                raise E(
+                    "next-state features use a different freshness policy"
                 )
             if self.next_state.observed_ns < ticket.closed_ns:
                 raise E(
@@ -4598,10 +7110,21 @@ class ReplayTransitionV1(_Attested):
                     f"{successor.decision_seq}, not this transition's "
                     f"{ticket.decision_seq}"
                 )
-            if successor.outcome_sha256 != self.outcome.canonical_sha256():
+            closure_outcome = evaluate_completed_decision(
+                ticket,
+                self.reward_spec,
+                quality_components=self.outcome.quality_components,
+                previous_action=(None if previous is None else previous.action),
+                adjudication=None,
+            )
+            closure_snapshot = PreviousOutcomeV1.from_completed(
+                ticket, closure_outcome, self.reward_spec
+            )
+            if successor.canonical_sha256() != closure_snapshot.canonical_sha256():
                 raise E(
-                    "next_state.previous summarizes a different outcome than "
-                    "this transition measured"
+                    "next_state.previous is not the immutable closure-time "
+                    "policy snapshot for this decision.  A later replay "
+                    "adjudication must never rewrite historical policy state"
                 )
 
         # -- the switch penalty must come from the state's own previous ---- #
@@ -4772,6 +7295,24 @@ class ReplayTransitionV1(_Attested):
                 as an action failure all fail here.
         """
         self.require_attested()
+        self.state_features.assert_binds(self.state)
+        if self.next_state is None:
+            if self.next_state_features is not None:  # pragma: no cover
+                raise TransitionIdentityError(
+                    "next-state feature vector exists without a next state"
+                )
+        else:
+            if self.next_state_features is None:  # pragma: no cover
+                raise TransitionIdentityError(
+                    "next state is missing its bootstrap feature vector"
+                )
+            self.next_state_features.assert_binds(self.next_state)
+        self.policy_trace.assert_binds(
+            state=self.state,
+            features=self.state_features,
+            decision_seq=self.decision_seq,
+            executed_action=self.executed_action,
+        )
         recomputed = evaluate_completed_decision(
             self.completed_ticket,
             self.reward_spec,
@@ -4814,6 +7355,12 @@ class ReplayTransitionV1(_Attested):
             ),
             "outcome": self.outcome.to_canonical_dict(),
             "policy_trace": self.policy_trace.to_canonical_dict(),
+            "state_features": self.state_features.to_canonical_dict(),
+            "next_state_features": (
+                None
+                if self.next_state_features is None
+                else self.next_state_features.to_canonical_dict()
+            ),
             "raw_quality_ack_sha256": self.raw_quality_ack_sha256,
             "record": "replay_transition_v1",
             "reward_carla_frame_id": self.reward_carla_frame_id,
@@ -4873,12 +7420,20 @@ def build_replay_transition(
             f"completed_ticket must be a controller CompletedTicket, got "
             f"{type(completed_ticket).__name__}"
         )
+    state_features = build_policy_features(state, normalization, freshness)
+    next_state_features = (
+        None
+        if next_state is None
+        else build_policy_features(next_state, normalization, freshness)
+    )
     record = ReplayTransitionV1(
         state=state,
         executed_action=completed_ticket.action,
         completed_ticket=completed_ticket,
         outcome=outcome,
         policy_trace=policy_trace,
+        state_features=state_features,
+        next_state_features=next_state_features,
         reward_spec=reward_spec,
         state_normalization_spec_sha256=normalization.canonical_sha256(),
         freshness_policy_sha256=freshness.canonical_sha256(),
@@ -4899,20 +7454,24 @@ def build_replay_transition(
 # --------------------------------------------------------------------------- #
 
 SCHEMA_ID: str = "splitfusion_hybrid_sac_state_reward_transition_v1"
-SCHEMA_VERSION: int = 2
+SCHEMA_VERSION: int = 4
 
 SCHEMA_DESCRIPTOR: Mapping[str, Any] = _deep_freeze(
     {
         "schema_id": SCHEMA_ID,
         "version": SCHEMA_VERSION,
         "revision_note": (
-            "v2 (phase 4a.1) verifies ACK documents through the real protocol "
-            "validator against a transmission-time obligation, adds the "
-            "evidence kind/granularity split, corrects the quality "
-            "formulation to recall-weighted localization over a hash-bound "
-            "per-UE eligibility mask, completes the scalar reward with the "
-            "mode and q switch penalties, replaces caller-supplied ages with "
-            "timestamped typed observations, and attests every derived record"
+            "v4 (phase 4a.2 repair) makes runtime radio admission fail closed, "
+            "binds a controller-issued pre-decision genesis proof plus "
+            "gap-tolerant completed-ticket lineage, requires the controller "
+            "to commit the exact policy-decision trace before execution, "
+            "removes "
+            "incomplete behaviour log-probabilities, and separates internally "
+            "consistent quality fixtures from source-authenticated evidence. "
+            "Exact positive rewards remain blocked from learning/replay until "
+            "a reviewed producer derives them from frozen CARLA and prediction "
+            "artifacts; v3 causal-state, freshness and replay revalidation "
+            "invariants remain unchanged"
         ),
         "phase": (
             "pure in-memory causal-state, reward-measurement and "
@@ -4978,9 +7537,14 @@ SCHEMA_DESCRIPTOR: Mapping[str, Any] = _deep_freeze(
             ),
             "attested_records": [
                 "quality_ack_binding_v1",
+                "evaluation_eligibility_result_v1",
+                "quality_components_v1",
                 "quality_evaluation_v1",
                 "latency_measurement_v1",
+                "episode_start_proof_v1",
                 "previous_outcome_v1",
+                "policy_feature_vector_v1",
+                "policy_decision_trace_v1",
                 "decision_outcome_v1",
                 "replay_transition_v1",
             ],
@@ -4988,8 +7552,9 @@ SCHEMA_DESCRIPTOR: Mapping[str, Any] = _deep_freeze(
                 "ReplayTransitionV1.revalidate() recomputes the outcome from "
                 "the raw components plus the reward spec and compares the "
                 "canonical hash, so an arbitrary scalar reward, an "
-                "inconsistent Q, a latency unrelated to the ticket, an "
-                "eligible timeout without a bound adjudication or an "
+                "inconsistent Q, a latency unrelated to the ticket, a "
+                "stale or source-mismatched policy vector, an eligible "
+                "timeout without verified reconciliation evidence or an "
                 "infrastructure fault dressed as an action failure all fail"
             ),
             "not_a_security_boundary": (
@@ -5001,17 +7566,41 @@ SCHEMA_DESCRIPTOR: Mapping[str, Any] = _deep_freeze(
             "schema": QUALITY_ACK_SCHEMA,
             "anchor_only": QUALITY_ACK_IS_ANCHOR_ONLY,
             "obligation": (
-                "a QualityAckObligationV1 recorded at transmission time binds "
-                "run/cell/stream, frame_id and capture_timestamp_ns, the "
-                "session/decision/reward-tensor identity and the complete "
-                "executed action"
+                "QualityAckObligationV1 binds run/cell/stream, frame_id and "
+                "capture_timestamp_ns, the session/decision/reward-tensor "
+                "identity and the complete executed action, but the current "
+                "factory reconstructs it from a completed ticket and does not "
+                "authenticate that it existed before ACK arrival"
+            ),
+            "obligation_precommit_authenticated": (
+                QUALITY_OBLIGATION_PRECOMMIT_AUTHENTICATED
             ),
             "verification": (
                 "from_ack_document calls the real protocol validator, "
                 "recomputes the raw ACK SHA-256 from the document itself, "
-                "extracts dh, retains all seven identity fields and "
-                "cross-checks the obligation and the CompletedTicket; a "
-                "caller-supplied opaque hash is never sufficient proof"
+                "opens the actual detail whose digest must equal dh, validates "
+                "its versioned phase4a2 reward-support extension, retains all "
+                "seven identity fields and cross-checks the obligation and "
+                "CompletedTicket. This proves identity and internal arithmetic "
+                "consistency only: current v2 support rows/arrays are caller-"
+                "supplied fixtures, not authenticated CARLA source evidence, "
+                "and therefore cannot enter learning or replay"
+            ),
+            "reuse_rule": (
+                "one private module-owned process registry enforces a "
+                "bijection between raw legacy-v1 ACK digest and exact "
+                "obligation/ticket while the reverse key is the completed "
+                "ticket alone: neither one ACK for two tickets nor two "
+                "conflicting ACKs hidden behind different obligations for one "
+                "ticket are accepted; callers cannot "
+                "substitute a fresh registry. Protocol-v2 must carry the "
+                "complete decision and continuous-action identity on wire for "
+                "cross-process durability"
+            ),
+            "legacy_detail_status": (
+                "legacy v1 details without the versioned reward-support "
+                "extension fail closed pending a producer update or "
+                "identity-bearing protocol-v2"
             ),
             "off_anchor_rule": (
                 "an off-anchor continuous q raises OffAnchorQualityAckError "
@@ -5060,8 +7649,16 @@ SCHEMA_DESCRIPTOR: Mapping[str, Any] = _deep_freeze(
                 "and different credit assignment, never summed"
             ),
             "segmentation_masking": (
-                "segmentation IoU must be computed over eligibility-masked "
-                "ground truth; the contract refuses an unmasked claim"
+                "the same depth/range eligibility domain is applied to both "
+                "prediction and ground-truth masks before segmentation IoU; "
+                "the contract refuses an unmasked or asymmetric claim"
+            ),
+            "per_frame_result": (
+                "the per-frame eligibility result is attested, binds the "
+                "recomputed contract hash and the exact frame/UE/detail, and "
+                "is the sole source of eligible instance and mask support. "
+                "In v4 this is a formula fixture with unverified source, not "
+                "learning evidence"
             ),
         },
         "quality": {
@@ -5071,6 +7668,17 @@ SCHEMA_DESCRIPTOR: Mapping[str, Any] = _deep_freeze(
             ),
             "gt_privileged": True,
             "gt_deployable": False,
+            "producer_status": (
+                QualityProducerStatus.CONTRACT_FIXTURE_UNVERIFIED_SOURCE.value
+            ),
+            "learning_ready": False,
+            "producer_requirement": (
+                "a reviewed producer must derive actor eligibility, calibrated "
+                "depth-masked GT/prediction masks and localization matching "
+                "from frozen source artifacts, bind their manifest and code/"
+                "configuration identities, and emit protocol-v2 full action/"
+                "decision identity before exact positive rewards are admitted"
+            ),
             "localization": (
                 "U_xy,c = exp(-e_c / tau_c); U_loc,c = sqrt(recall_c * U_xy,c) "
                 "over the eligible GT set; eligible GT with tp=0 gives "
@@ -5131,16 +7739,18 @@ SCHEMA_DESCRIPTOR: Mapping[str, Any] = _deep_freeze(
             ),
             "terminal_handling": {
                 TerminalClass.REWARD_FINAL_EXACT.value: (
-                    "learning eligible; exact Q and L both required, and a "
-                    "verified ACK binding is mandatory"
+                    "structurally eligible only after producer authentication; "
+                    "exact Q and L plus a verified ACK binding are required, "
+                    "but the current fixture producer fails closed and cannot "
+                    "enter learning/replay"
                 ),
                 TerminalClass.ACTION_PATH_FAILURE.value: (
                     "registered negative failure outcome; Q is never fabricated"
                 ),
                 TerminalClass.FEEDBACK_TIMEOUT.value: (
-                    "censored pending authoritative reconciliation; becomes a "
-                    "negative only through an AUTHORITATIVE_SERVICE_FAILURE "
-                    "adjudication bound to this exact ticket"
+                    "censored pending reconciliation.  Phase 4a.2 deliberately "
+                    "does not score it because no verified timeout-"
+                    "reconciliation evidence carrier exists yet"
                 ),
                 TerminalClass.INFRASTRUCTURE_FAULT_EXCLUDED.value: (
                     "excluded; never converted into an agent penalty"
@@ -5151,9 +7761,9 @@ SCHEMA_DESCRIPTOR: Mapping[str, Any] = _deep_freeze(
                 for terminal, disposition in TERMINAL_LEARNING_DISPOSITION.items()
             },
             "adjudication_binding": (
-                "an adjudication binds session_uuid, decision_seq, the ticket "
-                "hash and the terminal class, requires adjudicated_ns >= "
-                "ticket.closed_ns, and is not reusable for another ticket"
+                "arbitrary adjudicator ids and evidence hashes are refused by "
+                "evaluate_completed_decision; all timeouts remain censored "
+                "until a separately reviewed reconciliation protocol exists"
             ),
         },
         "causal_state": {
@@ -5175,16 +7785,39 @@ SCHEMA_DESCRIPTOR: Mapping[str, Any] = _deep_freeze(
                 "source SHA-256, and must match the state's frame"
             ),
             "radio_semantics": (
-                "typed SnrMetric, LinkDirection for SNR and MCS, MCS table id, "
-                "BsrScope and logical channel group, each with its own "
-                "measurement instant and source hash; a free-form string can "
-                "never silently change a metric's meaning"
+                "typed SNR/MCS/BSR sources; an eight-LCG BSR vector with "
+                "per-entry validity and missing reasons; source-event wall "
+                "time, collector wall/monotonic ingest and UE-local policy "
+                "availability retained as distinct facts; zero fill and "
+                "forward fill are forbidden"
+            ),
+            "radio_admission": (
+                "Phase 4a.2 admits only factory-attested, explicitly "
+                "privileged simulator/testbed radio observations.  The stock "
+                "OAI collectors have no measured UE-visible feedback/IPC "
+                "availability path, so UE_VISIBLE_RUNTIME fails closed even "
+                "when a caller supplies well-shaped timestamps and hashes.  "
+                "Collector evidence has a separate diagnostic-only type and "
+                "cannot enter CausalStateV1"
             ),
             "causality_chain": (
-                "measured_ns <= state.observed_ns <= ticket.opened_ns; "
+                "measured_ns and previous.available_ns <= state.observed_ns "
+                "<= ticket.opened_ns; "
                 "next_state.observed_ns >= ticket.closed_ns; "
                 "next_state.tensor_seq follows every held tensor; "
-                "next_state.previous is exactly this completed decision"
+                "next_state.previous is the immutable closure-time snapshot, "
+                "never a later replay adjudication"
+            ),
+            "predecessor_proof": (
+                "every state carries exactly one attested predecessor: a "
+                "policy-visible previous outcome or an episode-start proof "
+                "bound to a controller genesis proof issued before the first "
+                "policy decision. Replay later requires the realized ticket "
+                "to be ordinal zero with no predecessor. Every "
+                "non-genesis transition requires the exact predecessor "
+                "ticket hash and consecutive controller completion ordinal; "
+                "decision_seq gaps are legitimate and never used as the "
+                "adjacency test"
             ),
             "deployability": POLICY_OBSERVATION_DEPLOYABILITY,
             "deployability_reason": (
@@ -5212,9 +7845,10 @@ SCHEMA_DESCRIPTOR: Mapping[str, Any] = _deep_freeze(
                 "table and BSR scope it was fitted for"
             ),
             "freshness_binding": (
-                "the complete freshness-policy SHA-256, not only its id, is "
-                "bound into every feature vector and transition, and the "
-                "bounds are the denominators of the normalized age features"
+                "the attested feature vector carries the complete "
+                "normalization and freshness records plus its source-state "
+                "hash; both current and bootstrap vectors are recomputed and "
+                "freshness-checked during transition construction/revalidation"
             ),
         },
         "transition": {
@@ -5225,9 +7859,16 @@ SCHEMA_DESCRIPTOR: Mapping[str, Any] = _deep_freeze(
             "policy_provenance": (
                 "PolicyDecisionTraceV1 carries the sampled joint mode, the "
                 "sampled continuous q, the executed q_e4 and complete action "
-                "identity, both behaviour log-probabilities and the actor "
-                "version hash, and verifies the sampled-to-executed "
-                "quantization with the registered half-up rule"
+                "identity, actor version hash, source session/decision, "
+                "state/feature hash and both preprocessing-spec hashes, and "
+                "verifies the sampled-to-executed quantization with the "
+                "registered half-up rule.  Behaviour log-probabilities are "
+                "deliberately absent: off-policy SAC recomputes current-policy "
+                "densities and does not consume behaviour density.  Any future "
+                "importance-weighted method requires a separately versioned, "
+                "distribution-complete trace. The controller commits this "
+                "trace's canonical digest at gate time before execution, and "
+                "replay requires that exact digest"
             ),
             "invariants": [
                 "exactly one session and one decision throughout",
@@ -5235,7 +7876,12 @@ SCHEMA_DESCRIPTOR: Mapping[str, Any] = _deep_freeze(
                 "the state joins the ticket's reward-requested tensor and frame",
                 "the state precedes the decision it conditioned",
                 "the next state follows ticket closure and every held tensor",
-                "next_state.previous is exactly this completed decision",
+                "next_state.previous is exactly the closure-time policy snapshot",
+                "missing previous history requires an episode-start proof",
+                "state and next-state features are recomputed and fresh",
+                "the actor trace binds session/decision/state/features/specs",
+                "the controller ticket precommits that exact actor trace "
+                "before executing the action",
                 "every quality-bearing transition binds a verified ACK plus "
                 "raw_quality_ack_sha256 and detailed_evidence_sha256",
                 "no scalar reward for a censored or excluded transition",
