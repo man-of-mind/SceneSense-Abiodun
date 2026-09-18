@@ -203,23 +203,33 @@ def canonical_sha256(payload: Any) -> str:
 def _make_reconciliation_gate():
     """Build an attestation issuer/checker pair over a closure-held sentinel.
 
-    The sentinel never becomes a module attribute, so a reconciliation
-    attestation cannot be produced by ordinary construction or by importing a
-    private name.  This is a guard against accidental or mistaken bypass, not a
-    security boundary: Python offers no true privacy, and a caller determined to
-    reach into ``__closure__`` can still forge one.
+    An attestation is ``(sentinel, binding)``, where ``binding`` is derived from
+    **every serialized field** of the identity it was issued for (see
+    :meth:`ExecutedActionIdentity._identity_binding`).  It is therefore not
+    transferable: copying it onto a record whose serialized fields differ --
+    whether by :func:`dataclasses.replace` or by assigning another identity's
+    attestation -- leaves the recomputed binding mismatched, and the attestation
+    is refused.  An attestation does authenticate any record with *identical*
+    serialized fields, because such a record is the same reconciled fact and is
+    byte-indistinguishable once serialized.
+
+    The sentinel never becomes a module attribute, so an attestation cannot be
+    produced by ordinary construction or by importing a private name.  This is a
+    guard against accidental or mistaken bypass, not a security boundary: Python
+    offers no true privacy, and a caller determined to reach into ``__closure__``
+    can still forge one.
     """
     sentinel = object()
 
-    def issue(catalog_sha256: str) -> Tuple[Any, str]:
-        return (sentinel, catalog_sha256)
+    def issue(binding: Any) -> Tuple[Any, Any]:
+        return (sentinel, binding)
 
-    def is_valid(token: Any, catalog_sha256: str) -> bool:
+    def is_valid(token: Any, binding: Any) -> bool:
         return (
             type(token) is tuple
             and len(token) == 2
             and token[0] is sentinel
-            and token[1] == catalog_sha256
+            and token[1] == binding
         )
 
     return issue, is_valid
@@ -515,6 +525,14 @@ class ExecutedActionIdentity:
     and returns an attested copy; :meth:`from_executable_action` does both in
     one step.  This is how a fabricated anchor identity is prevented from
     reaching canonical serialization.
+
+    The attestation is bound to :meth:`_identity_binding`, a value derived from
+    every serialized field, and that binding is recomputed from the record's own
+    current fields every time the attestation is accepted.  An attestation
+    therefore cannot be carried onto a mutated copy: passing a reconciled record
+    through :func:`dataclasses.replace` with a changed ``q_e4``, ``keep_count``,
+    ``drop_count``, mode, family, quantizer, ``action_id`` or ``profile_id``
+    fails at construction, and so does copying another identity's attestation.
     """
 
     execution_mode: str
@@ -530,8 +548,10 @@ class ExecutedActionIdentity:
     catalog_sha256: str = CATALOG_SHA256
     action_identity_schema: str = ACTION_IDENTITY_SCHEMA_ID
     action_identity_sha256: str = ACTION_IDENTITY_SCHEMA_SHA256
-    #: Private catalog-reconciliation attestation.  Never serialized, excluded
-    #: from equality and repr, and only obtainable via reconciled_against().
+    #: Private catalog-reconciliation attestation, bound to every serialized
+    #: field of this record.  Never serialized, excluded from equality and
+    #: repr, only obtainable via reconciled_against(), and not transferable to
+    #: a record whose serialized fields differ.
     _reconciliation: Any = field(default=None, compare=False, repr=False)
 
     def __post_init__(self) -> None:
@@ -597,13 +617,18 @@ class ExecutedActionIdentity:
             )
 
         if self._reconciliation is not None and not _is_valid_reconciliation(
-            self._reconciliation, self.catalog_sha256
+            self._reconciliation, self._identity_binding()
         ):
             raise UnreconciledActionIdentityError(
-                "the catalog-reconciliation attestation was not issued by "
-                "reconciled_against(); build this record with "
-                "from_executable_action() or reconciled_against() instead of "
-                "supplying an attestation directly"
+                f"the catalog-reconciliation attestation does not bind to this "
+                f"record's own serialized fields ({self.canonical_mode} "
+                f"q_e4={self.q_e4} action_id={self.action_id!r}).  An "
+                f"attestation is issued for one exact set of serialized fields "
+                f"and is not transferable: it cannot be carried onto a copy "
+                f"mutated by dataclasses.replace(), nor taken from another "
+                f"identity.  Re-reconcile the mutated record with "
+                f"reconciled_against(contract), or build it with "
+                f"from_executable_action(action, contract)"
             )
 
     # -- construction ------------------------------------------------------ #
@@ -715,8 +740,41 @@ class ExecutedActionIdentity:
         self.verify_against_catalog(contract)
         return replace(
             self,
-            _reconciliation=_issue_reconciliation(self.catalog_sha256),
+            _reconciliation=_issue_reconciliation(self._identity_binding()),
         )
+
+    def _serialized_fields(self) -> Dict[str, Any]:
+        """The canonical payload of this identity, without any reconciliation check.
+
+        This is the single definition of *which* fields are serialized, used
+        both by :meth:`to_canonical_dict` and by :meth:`_identity_binding`, so
+        the attestation binding can never drift from the serialized content.
+        """
+        return {
+            "action_id": self.action_id,
+            "action_identity_schema": self.action_identity_schema,
+            "action_identity_sha256": self.action_identity_sha256,
+            "catalog_schema": self.catalog_schema,
+            "catalog_sha256": self.catalog_sha256,
+            "drop_count": self.drop_count,
+            "execution_mode": self.execution_mode,
+            "family": self.family,
+            "keep_count": self.keep_count,
+            "mode_id": self.mode_id,
+            "profile_id": self.profile_id,
+            "q_e4": self.q_e4,
+            "quantizer": self.quantizer,
+        }
+
+    def _identity_binding(self) -> Tuple[Tuple[str, Any], ...]:
+        """The value an attestation is bound to: every serialized field.
+
+        A sorted key/value tuple over :meth:`_serialized_fields`.  A tuple
+        rather than a hash keeps the comparison exact and cheap, and deriving it
+        from the serialized payload means a future serialized field is covered
+        automatically.
+        """
+        return tuple(sorted(self._serialized_fields().items()))
 
     def require_reconciled(self) -> None:
         """Fail closed unless this identity carries a catalog attestation.
@@ -726,18 +784,26 @@ class ExecutedActionIdentity:
         """
         if not self.is_catalog_reconciled:
             raise UnreconciledActionIdentityError(
-                f"executed action {self.canonical_mode} q_e4={self.q_e4} has "
-                f"not been reconciled against catalog {self.catalog_sha256}; "
-                f"call reconciled_against(contract) or build it with "
-                f"from_executable_action(action, contract)"
+                f"executed action {self.canonical_mode} q_e4={self.q_e4} "
+                f"carries no attestation bound to its own serialized fields, "
+                f"so it has not been reconciled against catalog "
+                f"{self.catalog_sha256}; call reconciled_against(contract) or "
+                f"build it with from_executable_action(action, contract)"
             )
 
     # -- properties / serialization ---------------------------------------- #
 
     @property
     def is_catalog_reconciled(self) -> bool:
-        """True when this identity carries a valid catalog attestation."""
-        return _is_valid_reconciliation(self._reconciliation, self.catalog_sha256)
+        """True when this identity carries an attestation bound to its own fields.
+
+        The binding is recomputed from the record's current fields on every
+        call, so this stays correct even for a record whose fields were mutated
+        after construction through :func:`object.__setattr__`.
+        """
+        return _is_valid_reconciliation(
+            self._reconciliation, self._identity_binding()
+        )
 
     @property
     def is_registered_anchor(self) -> bool:
@@ -758,21 +824,7 @@ class ExecutedActionIdentity:
                 identity therefore cannot be serialized.
         """
         self.require_reconciled()
-        return {
-            "action_id": self.action_id,
-            "action_identity_schema": self.action_identity_schema,
-            "action_identity_sha256": self.action_identity_sha256,
-            "catalog_schema": self.catalog_schema,
-            "catalog_sha256": self.catalog_sha256,
-            "drop_count": self.drop_count,
-            "execution_mode": self.execution_mode,
-            "family": self.family,
-            "keep_count": self.keep_count,
-            "mode_id": self.mode_id,
-            "profile_id": self.profile_id,
-            "q_e4": self.q_e4,
-            "quantizer": self.quantizer,
-        }
+        return self._serialized_fields()
 
     def canonical_bytes(self) -> bytes:
         """Canonical serialization of this action identity."""

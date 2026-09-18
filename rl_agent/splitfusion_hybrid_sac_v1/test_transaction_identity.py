@@ -10,7 +10,8 @@ Three test methods:
    minimum, variable-duration holds, the derived feedback identity,
    permutation-invariant canonical bytes, and independently recomputed hashes.
 3. ``test_rejects_malformed_identity_and_invalid_holds`` -- table-driven
-   negative cases.
+   negative cases, including attestation-transfer forgeries built with
+   :func:`dataclasses.replace`.
 
 Hashes are recomputed here with a locally written canonicalizer and a locally
 written container-flattener, rather than by calling the module's own helpers, so
@@ -20,6 +21,7 @@ the tests do not merely restate the implementation.
 from __future__ import annotations
 
 import dataclasses
+from dataclasses import replace
 import hashlib
 import json
 import unittest
@@ -566,6 +568,19 @@ class TransactionIdentityTest(unittest.TestCase):
         unreconciled_honest = act()
         self.assertFalse(unreconciled_honest.is_catalog_reconciled)
         self.assertFalse(fabricated_non_anchor.is_catalog_reconciled)
+
+        # Genuinely reconciled records, used as the *source* of the attestation
+        # in the transfer forgeries below.  A reconciliation attestation is
+        # bound to every serialized field, so it must not survive any mutation
+        # of those fields and must not authenticate a different identity.
+        reconciled_3000 = self._action_identity(0, 3000)
+        reconciled_5000 = self._action_identity(0, 5000)
+        reconciled_non_anchor = self._action_identity(0, 4237)
+        anchor_5000 = contract.find_anchor("noAE", "UINT8", 5000)
+        self.assertTrue(reconciled_3000.is_catalog_reconciled)
+        self.assertTrue(reconciled_5000.is_catalog_reconciled)
+        self.assertTrue(reconciled_non_anchor.is_catalog_reconciled)
+        stolen_attestation = reconciled_3000._reconciliation
         wrong_anchor_id = act(action_id=anchor_3000.action_id + 1)
         missing_anchor_id = act(action_id=None, profile_id=None)
         contradictory_mode = act(family="AE128", quantizer="UINT8")
@@ -684,6 +699,101 @@ class TransactionIdentityTest(unittest.TestCase):
             ("action identity sha wrong",
              lambda: act(action_identity_sha256="f" * 64),
              ti.ActionIdentityError),
+
+            # --- a reconciliation attestation is not transferable ---------- #
+            # The reported blocker: replace() a reconciled record's q_e4 and
+            # keep/drop consistently, so nothing but the attestation can catch
+            # it.  This previously serialized a q_e4=4237 record carrying the
+            # q3000 anchor's action_id.
+            ("replace() changes q_e4 and keep/drop consistently",
+             lambda: replace(
+                 reconciled_3000,
+                 q_e4=4237,
+                 keep_count=keep_4237,
+                 drop_count=drop_4237,
+             ),
+             ti.UnreconciledActionIdentityError),
+            ("replace() changes q_e4 to another registered anchor",
+             lambda: replace(
+                 reconciled_3000,
+                 q_e4=5000,
+                 keep_count=anchor_5000.keep_count,
+                 drop_count=anchor_5000.drop_count,
+             ),
+             ti.UnreconciledActionIdentityError),
+            # keep/drop alone is caught earlier, by the registered keep/drop
+            # rule rather than by the attestation
+            ("replace() changes keep_count only",
+             lambda: replace(
+                 reconciled_3000, keep_count=reconciled_3000.keep_count + 1
+             ),
+             ti.ActionIdentityError),
+            ("replace() changes drop_count only",
+             lambda: replace(
+                 reconciled_3000, drop_count=reconciled_3000.drop_count - 1
+             ),
+             ti.ActionIdentityError),
+            ("replace() changes mode_id, family and quantizer",
+             lambda: replace(
+                 reconciled_3000, mode_id=3, family="AE128", quantizer="UINT8"
+             ),
+             ti.UnreconciledActionIdentityError),
+            ("replace() changes mode_id only",
+             lambda: replace(reconciled_3000, mode_id=7),
+             ti.UnreconciledActionIdentityError),
+            ("replace() changes family only",
+             lambda: replace(reconciled_3000, family="AE32"),
+             ti.UnreconciledActionIdentityError),
+            ("replace() changes quantizer only",
+             lambda: replace(reconciled_3000, quantizer="UINT4"),
+             ti.UnreconciledActionIdentityError),
+            ("replace() changes action_id and profile_id",
+             lambda: replace(
+                 reconciled_3000,
+                 action_id=anchor_5000.action_id,
+                 profile_id=anchor_5000.profile_id,
+             ),
+             ti.UnreconciledActionIdentityError),
+            ("replace() grafts anchor ids onto a reconciled non-anchor",
+             lambda: replace(
+                 reconciled_non_anchor,
+                 action_id=anchor_5000.action_id,
+                 profile_id=anchor_5000.profile_id,
+             ),
+             ti.UnreconciledActionIdentityError),
+            ("replace() drops the anchor ids of a reconciled anchor",
+             lambda: replace(reconciled_3000, action_id=None, profile_id=None),
+             ti.UnreconciledActionIdentityError),
+            ("attestation copied onto another valid identity",
+             lambda: replace(
+                 reconciled_5000, _reconciliation=stolen_attestation
+             ),
+             ti.UnreconciledActionIdentityError),
+            ("attestation copied onto a reconciled non-anchor",
+             lambda: replace(
+                 reconciled_non_anchor, _reconciliation=stolen_attestation
+             ),
+             ti.UnreconciledActionIdentityError),
+            ("attestation copied into a fresh direct construction",
+             lambda: act(
+                 q_e4=5000,
+                 keep_count=anchor_5000.keep_count,
+                 drop_count=anchor_5000.drop_count,
+                 action_id=anchor_5000.action_id,
+                 profile_id=anchor_5000.profile_id,
+                 _reconciliation=stolen_attestation,
+             ),
+             ti.UnreconciledActionIdentityError),
+            ("attestation copied onto a fabricated anchor identity",
+             lambda: act(
+                 q_e4=4237,
+                 keep_count=keep_4237,
+                 drop_count=drop_4237,
+                 action_id=anchor_3000.action_id,
+                 profile_id=anchor_3000.profile_id,
+                 _reconciliation=stolen_attestation,
+             ),
+             ti.UnreconciledActionIdentityError),
 
             # --- unreconciled / fabricated identity blocked before any
             #     canonical serialization can happen -------------------------- #
@@ -943,6 +1053,64 @@ class TransactionIdentityTest(unittest.TestCase):
         self.assertIsNone(honest_payload["action_id"])
         self.assertIsNone(honest_payload["profile_id"])
         self.assertEqual(honest_payload["q_e4"], 4237)
+
+        # --- an unchanged honest identity still serializes normally ------ #
+        for honest in (reconciled_3000, reconciled_5000, reconciled_non_anchor):
+            self.assertTrue(honest.is_catalog_reconciled)
+            honest.require_reconciled()
+            honest.verify_against_catalog(contract)
+            self.assertEqual(
+                honest.canonical_sha256(),
+                _independent_sha256(honest.to_canonical_dict()),
+            )
+            # replace() with no field change is not a forgery: the binding still
+            # matches, so the record stays reconciled and byte-identical
+            untouched = replace(honest)
+            self.assertTrue(untouched.is_catalog_reconciled)
+            self.assertEqual(untouched.canonical_bytes(), honest.canonical_bytes())
+            # and it is still usable in the records that embed it
+            ti.TensorTransmissionEnvelope(txn(), True, untouched)
+        # a mutated copy becomes serializable again only by re-reconciling it
+        re_reconciled = replace(
+            reconciled_3000,
+            q_e4=5000,
+            keep_count=anchor_5000.keep_count,
+            drop_count=anchor_5000.drop_count,
+            action_id=anchor_5000.action_id,
+            profile_id=anchor_5000.profile_id,
+            _reconciliation=None,
+        ).reconciled_against(contract)
+        self.assertTrue(re_reconciled.is_catalog_reconciled)
+        self.assertEqual(re_reconciled.to_canonical_dict(),
+                         reconciled_5000.to_canonical_dict())
+
+        # --- mutation that bypasses __init__ is caught before serialization - #
+        # object.__setattr__ evades every constructor check, so the binding is
+        # recomputed on acceptance as well: this must fail no later than
+        # canonical serialization.
+        smuggled = self._action_identity(0, 3000)
+        object.__setattr__(smuggled, "q_e4", 4237)
+        object.__setattr__(smuggled, "keep_count", keep_4237)
+        object.__setattr__(smuggled, "drop_count", drop_4237)
+        self.assertFalse(smuggled.is_catalog_reconciled)
+        for blocked in (
+            smuggled.require_reconciled,
+            smuggled.to_canonical_dict,
+            smuggled.canonical_bytes,
+            smuggled.canonical_sha256,
+        ):
+            with self.assertRaises(ti.UnreconciledActionIdentityError):
+                blocked()
+        with self.assertRaises(ti.UnreconciledActionIdentityError):
+            ti.TensorTransmissionEnvelope(txn(), True, smuggled)
+        with self.assertRaises(ti.UnreconciledActionIdentityError):
+            ti.RewardFeedbackIdentity(
+                session_uuid=SESSION,
+                decision_seq=7,
+                reward_tensor_seq=101,
+                carla_frame_id=5000,
+                action=smuggled,
+            )
 
         # --- the reconciled counterpart of the same identity is accepted - #
         reconciled = unreconciled_honest.reconciled_against(contract)
