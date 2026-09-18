@@ -12,8 +12,17 @@ The identifier separation is the one registered in DESIGN.md section 9::
     carla_frame_id  validates the simulator frame
 
 Several ``tensor_seq`` values may share one ``decision_seq`` (the action hold).
-Exactly one of them is marked ``reward_requested=true`` and is the only tensor
-that may generate that decision's reward.
+``tensor_seq`` is the **frozen sender chronology within a decision**: neither
+``carla_frame_id`` nor input-list position is ever used to infer order.  Per
+DESIGN.md section 3, the actor opens the reward ticket on the first frame of the
+hold, so the *earliest* ``tensor_seq`` carries ``reward_requested=true`` and
+every subsequent tensor reuses the action with ``reward_requested=false``.
+DESIGN.md section 2 freezes ``k_min = 2`` frames, so a *completed* hold contains
+at least two tensors.
+
+Every serializable record fails closed unless its
+:class:`ExecutedActionIdentity` has been reconciled against the frozen catalog,
+so a manually fabricated anchor identity cannot reach canonical serialization.
 
 Records
 -------
@@ -51,7 +60,7 @@ import hashlib
 import json
 import uuid
 from collections.abc import Iterable as _AbcIterable
-from dataclasses import dataclass
+from dataclasses import dataclass, field, replace
 from types import MappingProxyType
 from typing import Any, Dict, Iterable, Mapping, Optional, Tuple
 
@@ -73,7 +82,9 @@ __all__ = [
     "TransactionIdentityError",
     "IdentityFieldError",
     "ActionIdentityError",
+    "UnreconciledActionIdentityError",
     "ActionHoldError",
+    "MINIMUM_HOLD_TENSORS",
     "SCHEMA_ID",
     "SCHEMA_VERSION",
     "SCHEMA_SHA256",
@@ -108,13 +119,61 @@ class ActionIdentityError(TransactionIdentityError):
     """An executed-action identity is inconsistent with its declared bindings."""
 
 
+class UnreconciledActionIdentityError(ActionIdentityError):
+    """An executed-action identity was used before it was reconciled.
+
+    Raised when a record that must be serializable, or canonical serialization
+    itself, is handed an :class:`ExecutedActionIdentity` that never passed
+    :meth:`ExecutedActionIdentity.verify_against_catalog`.  Build identities
+    with :meth:`ExecutedActionIdentity.from_executable_action` or
+    :meth:`ExecutedActionIdentity.reconciled_against`.
+    """
+
+
 class ActionHoldError(TransactionIdentityError):
     """A set of tensors does not form one valid completed action hold."""
+
+
+#: Minimum number of tensors in a *completed* action hold.  DESIGN.md section 2
+#: freezes the minimum hold at ``k_min = 2`` frames; section 3 holds the
+#: selected action for at least two frames.  No maximum is imposed: the hold is
+#: a variable-duration relationship.
+MINIMUM_HOLD_TENSORS = 2
 
 
 # --------------------------------------------------------------------------- #
 # Canonical serialization
 # --------------------------------------------------------------------------- #
+
+
+def _deep_freeze(value: Any) -> Any:
+    """Recursively freeze a literal into read-only mappings and tuples.
+
+    Mappings become :class:`types.MappingProxyType` and lists become tuples, at
+    every depth, so an exported schema descriptor cannot be mutated into
+    disagreeing with its published SHA-256.
+    """
+    if isinstance(value, Mapping):
+        return MappingProxyType(
+            {key: _deep_freeze(item) for key, item in value.items()}
+        )
+    if isinstance(value, (list, tuple)):
+        return tuple(_deep_freeze(item) for item in value)
+    return value
+
+
+def _thaw(value: Any) -> Any:
+    """Recursively convert frozen containers back to plain JSON containers.
+
+    Only mappings and list/tuple sequences are converted; anything else is
+    passed through unchanged so that :func:`json.dumps` still rejects
+    unsupported types rather than silently coercing them.
+    """
+    if isinstance(value, Mapping):
+        return {key: _thaw(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_thaw(item) for item in value]
+    return value
 
 
 def canonical_json_bytes(payload: Any) -> bytes:
@@ -123,10 +182,11 @@ def canonical_json_bytes(payload: Any) -> bytes:
     Canonical form is sorted keys, compact separators, ASCII escaping and
     ``allow_nan=False``, encoded UTF-8.  ``allow_nan=False`` means a NaN or
     infinity anywhere in a record is a serialization failure rather than
-    non-standard JSON.
+    non-standard JSON.  Deep-frozen containers are accepted and serialize
+    identically to their plain equivalents.
     """
     text = json.dumps(
-        payload,
+        _thaw(payload),
         sort_keys=True,
         separators=(",", ":"),
         ensure_ascii=True,
@@ -140,13 +200,46 @@ def canonical_sha256(payload: Any) -> str:
     return hashlib.sha256(canonical_json_bytes(payload)).hexdigest()
 
 
+def _make_reconciliation_gate():
+    """Build an attestation issuer/checker pair over a closure-held sentinel.
+
+    The sentinel never becomes a module attribute, so a reconciliation
+    attestation cannot be produced by ordinary construction or by importing a
+    private name.  This is a guard against accidental or mistaken bypass, not a
+    security boundary: Python offers no true privacy, and a caller determined to
+    reach into ``__closure__`` can still forge one.
+    """
+    sentinel = object()
+
+    def issue(catalog_sha256: str) -> Tuple[Any, str]:
+        return (sentinel, catalog_sha256)
+
+    def is_valid(token: Any, catalog_sha256: str) -> bool:
+        return (
+            type(token) is tuple
+            and len(token) == 2
+            and token[0] is sentinel
+            and token[1] == catalog_sha256
+        )
+
+    return issue, is_valid
+
+
+_issue_reconciliation, _is_valid_reconciliation = _make_reconciliation_gate()
+
+
 #: Semantic descriptor of the executed-action identity record.  This is a pure
 #: literal: it describes field *semantics*, not any measured value, so its hash
 #: changes only when the action-identity contract itself changes.
-ACTION_IDENTITY_DESCRIPTOR: Mapping[str, Any] = MappingProxyType(
+ACTION_IDENTITY_DESCRIPTOR: Mapping[str, Any] = _deep_freeze(
     {
         "schema_id": "splitfusion_hybrid_sac_executed_action_identity_v1",
         "version": 1,
+        "catalog_reconciliation_required": (
+            "canonical serialization requires an identity produced by "
+            "from_executable_action() or reconciled_against(); an unreconciled "
+            "or fabricated identity cannot be serialized"
+        ),
         "execution_mode": "the single SPLIT execution mode of the frozen catalog",
         "authoritative_continuous_value": "q_e4",
         "anchor_id_rule": (
@@ -177,18 +270,31 @@ ACTION_IDENTITY_DESCRIPTOR: Mapping[str, Any] = MappingProxyType(
 
 #: Versioned action-identity schema id and hash, carried in every action record.
 ACTION_IDENTITY_SCHEMA_ID: str = str(ACTION_IDENTITY_DESCRIPTOR["schema_id"])
-ACTION_IDENTITY_SCHEMA_SHA256: str = canonical_sha256(dict(ACTION_IDENTITY_DESCRIPTOR))
+ACTION_IDENTITY_SCHEMA_SHA256: str = canonical_sha256(ACTION_IDENTITY_DESCRIPTOR)
 
 
 #: Semantic descriptor of the whole transaction-identity contract.  The
 #: action-identity descriptor is embedded so there is exactly one source of
 #: truth for it.
-SCHEMA_DESCRIPTOR: Mapping[str, Any] = MappingProxyType(
+SCHEMA_DESCRIPTOR: Mapping[str, Any] = _deep_freeze(
     {
         "schema_id": "splitfusion_hybrid_sac_transaction_identity_v1",
-        "version": 1,
+        "version": 2,
         "phase": "identity records only; no reward, state, scheduling or storage",
-        "design_reference": "DESIGN.md section 9 transaction identity",
+        "design_reference": (
+            "DESIGN.md section 2 frozen minimum hold, section 3 runtime control "
+            "contract, section 9 transaction identity"
+        ),
+        "catalog_reconciliation": (
+            "every serializable envelope, hold manifest and reward-feedback "
+            "record requires an executed action identity already reconciled "
+            "against the frozen catalog"
+        ),
+        "tensor_seq_semantics": (
+            "tensor_seq defines sender chronology within one decision_seq; "
+            "carla_frame_id and input-list position are never used to infer "
+            "order"
+        ),
         "catalog_binding": {
             "schema": CATALOG_SCHEMA,
             "sha256": CATALOG_SHA256,
@@ -200,25 +306,39 @@ SCHEMA_DESCRIPTOR: Mapping[str, Any] = MappingProxyType(
             "sort_keys": True,
             "encoding": "utf-8",
         },
-        "executed_action_identity": dict(ACTION_IDENTITY_DESCRIPTOR),
+        "executed_action_identity": ACTION_IDENTITY_DESCRIPTOR,
         "records": {
             "action_hold_manifest": {
-                "canonicalization": "tensors are ordered by tensor_seq",
+                "canonicalization": (
+                    "tensors are ordered by ascending tensor_seq before any "
+                    "ordering rule is applied, so input permutation cannot "
+                    "change the serialized bytes"
+                ),
+                "chronology": (
+                    "tensor_seq is the sender chronology within the decision; "
+                    "carla_frame_id and input order are not chronology"
+                ),
+                "minimum_tensors": MINIMUM_HOLD_TENSORS,
+                "maximum_tensors": None,
                 "fields": {
                     "decision_seq": "int: the held policy invocation",
                     "executed_action": "executed_action_identity: shared by all tensors",
-                    "reward_tensor_seq": "int: tensor_seq of the registered reward tensor",
+                    "reward_tensor_seq": (
+                        "int: tensor_seq of the registered reward tensor, "
+                        "always the minimum tensor_seq of the hold"
+                    ),
                     "session_uuid": "str: canonical lowercase hyphenated uuid",
                     "tensor_count": "int: number of tensors in the hold",
                     "tensors": "list: per-tensor transaction + reward_requested",
                 },
                 "invariants": [
-                    "at least one tensor",
+                    "a completed hold has at least two tensors (k_min=2)",
                     "all tensors share session_uuid and decision_seq",
-                    "all tensors carry an identical executed action",
+                    "all tensors carry an identical reconciled executed action",
                     "tensor_seq values are unique",
-                    "exactly one tensor has reward_requested true",
-                    "frame and sequence numbers need not be consecutive",
+                    "the earliest tensor_seq has reward_requested true",
+                    "every subsequent tensor has reward_requested false",
+                    "tensor_seq and carla_frame_id need not be consecutive",
                     "no maximum hold length is imposed",
                 ],
             },
@@ -261,7 +381,7 @@ SCHEMA_DESCRIPTOR: Mapping[str, Any] = MappingProxyType(
 #: Versioned transaction-identity schema id, version and hash.
 SCHEMA_ID: str = str(SCHEMA_DESCRIPTOR["schema_id"])
 SCHEMA_VERSION: int = int(SCHEMA_DESCRIPTOR["version"])
-SCHEMA_SHA256: str = canonical_sha256(dict(SCHEMA_DESCRIPTOR))
+SCHEMA_SHA256: str = canonical_sha256(SCHEMA_DESCRIPTOR)
 
 
 # --------------------------------------------------------------------------- #
@@ -388,6 +508,13 @@ class ExecutedActionIdentity:
     remaining claim -- that a present anchor identity really is *this*
     ``(family, quantizer, q_e4)``'s registered anchor -- needs the catalog and
     is checked by :meth:`verify_against_catalog`.
+
+    A directly constructed record is therefore **unreconciled**: it carries no
+    catalog attestation, so :meth:`to_canonical_dict` and every record that
+    embeds it fail closed.  :meth:`reconciled_against` runs the catalog check
+    and returns an attested copy; :meth:`from_executable_action` does both in
+    one step.  This is how a fabricated anchor identity is prevented from
+    reaching canonical serialization.
     """
 
     execution_mode: str
@@ -403,6 +530,9 @@ class ExecutedActionIdentity:
     catalog_sha256: str = CATALOG_SHA256
     action_identity_schema: str = ACTION_IDENTITY_SCHEMA_ID
     action_identity_sha256: str = ACTION_IDENTITY_SCHEMA_SHA256
+    #: Private catalog-reconciliation attestation.  Never serialized, excluded
+    #: from equality and repr, and only obtainable via reconciled_against().
+    _reconciliation: Any = field(default=None, compare=False, repr=False)
 
     def __post_init__(self) -> None:
         if self.execution_mode != EXECUTION_MODE:
@@ -466,6 +596,16 @@ class ExecutedActionIdentity:
                 f"got {self.action_identity_sha256!r}"
             )
 
+        if self._reconciliation is not None and not _is_valid_reconciliation(
+            self._reconciliation, self.catalog_sha256
+        ):
+            raise UnreconciledActionIdentityError(
+                "the catalog-reconciliation attestation was not issued by "
+                "reconciled_against(); build this record with "
+                "from_executable_action() or reconciled_against() instead of "
+                "supplying an attestation directly"
+            )
+
     # -- construction ------------------------------------------------------ #
 
     @classmethod
@@ -503,8 +643,7 @@ class ExecutedActionIdentity:
             catalog_schema=contract.schema,
             catalog_sha256=contract.catalog_sha256,
         )
-        identity.verify_against_catalog(contract)
-        return identity
+        return identity.reconciled_against(contract)
 
     # -- verification ------------------------------------------------------ #
 
@@ -563,7 +702,42 @@ class ExecutedActionIdentity:
                     f"({anchor.keep_count}, {anchor.drop_count})"
                 )
 
+    def reconciled_against(
+        self,
+        contract: SplitActionContract,
+    ) -> "ExecutedActionIdentity":
+        """Verify against the catalog and return an attested copy.
+
+        The returned record is byte-identical in every serialized field; it
+        differs only by carrying the private attestation that the catalog check
+        actually ran, which is what makes it serializable.
+        """
+        self.verify_against_catalog(contract)
+        return replace(
+            self,
+            _reconciliation=_issue_reconciliation(self.catalog_sha256),
+        )
+
+    def require_reconciled(self) -> None:
+        """Fail closed unless this identity carries a catalog attestation.
+
+        Raises:
+            UnreconciledActionIdentityError: if the record was never reconciled.
+        """
+        if not self.is_catalog_reconciled:
+            raise UnreconciledActionIdentityError(
+                f"executed action {self.canonical_mode} q_e4={self.q_e4} has "
+                f"not been reconciled against catalog {self.catalog_sha256}; "
+                f"call reconciled_against(contract) or build it with "
+                f"from_executable_action(action, contract)"
+            )
+
     # -- properties / serialization ---------------------------------------- #
+
+    @property
+    def is_catalog_reconciled(self) -> bool:
+        """True when this identity carries a valid catalog attestation."""
+        return _is_valid_reconciliation(self._reconciliation, self.catalog_sha256)
 
     @property
     def is_registered_anchor(self) -> bool:
@@ -576,7 +750,14 @@ class ExecutedActionIdentity:
         return f"{self.execution_mode}/{self.family}/{self.quantizer}"
 
     def to_canonical_dict(self) -> Dict[str, Any]:
-        """Return the canonical mapping, with null anchor IDs for non-anchors."""
+        """Return the canonical mapping, with null anchor IDs for non-anchors.
+
+        Raises:
+            UnreconciledActionIdentityError: if this identity was never
+                reconciled against the frozen catalog.  A fabricated anchor
+                identity therefore cannot be serialized.
+        """
+        self.require_reconciled()
         return {
             "action_id": self.action_id,
             "action_identity_schema": self.action_identity_schema,
@@ -638,6 +819,7 @@ class TensorTransmissionEnvelope:
                 f"action must be an ExecutedActionIdentity, got "
                 f"{type(self.action).__name__}"
             )
+        self.action.require_reconciled()
 
     @property
     def tensor_seq(self) -> int:
@@ -685,22 +867,32 @@ class TensorTransmissionEnvelope:
 
 @dataclass(frozen=True, slots=True)
 class ActionHoldManifest:
-    """A completed action hold over one or more transmitted tensors.
+    """A completed action hold over two or more transmitted tensors.
 
-    Invariants (DESIGN.md section 3 and section 9):
+    Invariants (DESIGN.md sections 2, 3 and 9):
 
-    * at least one tensor;
+    * at least :data:`MINIMUM_HOLD_TENSORS` tensors -- section 2 freezes the
+      minimum hold at ``k_min = 2`` frames, so a one-tensor hold is not a
+      completed hold;
     * all tensors share ``session_uuid`` and ``decision_seq``;
-    * all tensors carry an identical executed action;
+    * all tensors carry an identical, catalog-reconciled executed action;
     * ``tensor_seq`` values are unique;
-    * exactly one tensor has ``reward_requested=True``, exposed as
-      :attr:`reward_tensor`.
+    * the **earliest** ``tensor_seq`` has ``reward_requested=True`` and is
+      exposed as :attr:`reward_tensor`;
+    * every subsequent tensor has ``reward_requested=False``.
 
-    Frame and sequence numbers are **not** assumed consecutive and no maximum
-    hold length is imposed: DESIGN.md section 3 makes the hold a
-    variable-duration relationship.  Tensors are canonicalized into
-    ``tensor_seq`` order at construction, so input permutation cannot change
-    :meth:`canonical_bytes`.
+    ``tensor_seq`` is the frozen sender chronology within a decision.  Section 3
+    opens the reward ticket on the first frame of the hold and reuses the action
+    on later frames, so "first" means the minimum ``tensor_seq`` -- **not** the
+    smallest ``carla_frame_id`` and **not** the first element of the input
+    iterable.  Neither is ever consulted to infer order.
+
+    ``tensor_seq`` and ``carla_frame_id`` are **not** assumed consecutive, and
+    no maximum hold length is imposed: section 3 makes the hold a
+    variable-duration relationship.  Tensors are canonicalized into ascending
+    ``tensor_seq`` order *before* the ordering rules are applied, so input
+    permutation can neither change :meth:`canonical_bytes` nor change which
+    tensor is accepted as the reward tensor.
     """
 
     tensors: Tuple[TensorTransmissionEnvelope, ...]
@@ -716,7 +908,8 @@ class ActionHoldManifest:
         members = tuple(self.tensors)
         if not members:
             raise ActionHoldError(
-                "an action hold must contain at least one tensor"
+                "a completed action hold must contain at least "
+                f"{MINIMUM_HOLD_TENSORS} tensors; got none"
             )
         for position, member in enumerate(members):
             if not isinstance(member, TensorTransmissionEnvelope):
@@ -724,6 +917,13 @@ class ActionHoldManifest:
                     f"tensors[{position}] must be a TensorTransmissionEnvelope, "
                     f"got {type(member).__name__}"
                 )
+        if len(members) < MINIMUM_HOLD_TENSORS:
+            raise ActionHoldError(
+                f"a completed action hold must contain at least "
+                f"{MINIMUM_HOLD_TENSORS} tensors (DESIGN.md section 2 freezes "
+                f"the minimum hold at k_min={MINIMUM_HOLD_TENSORS} frames); "
+                f"got {len(members)}"
+            )
 
         reference = members[0]
         for member in members[1:]:
@@ -752,19 +952,36 @@ class ActionHoldManifest:
                 f"{duplicates}"
             )
 
-        reward_seqs = [m.tensor_seq for m in members if m.reward_requested]
-        if len(reward_seqs) != 1:
+        # Canonicalize by tensor_seq *first*: tensor_seq is the frozen sender
+        # chronology within a decision, so every ordering rule below is applied
+        # to this order and never to the input order or to carla_frame_id.
+        # Permutation of the input therefore cannot change the serialized bytes
+        # or which tensor is accepted as the reward tensor.
+        ordered = tuple(sorted(members, key=lambda m: m.tensor_seq))
+
+        earliest = ordered[0]
+        if not earliest.reward_requested:
+            requested = [m.tensor_seq for m in ordered if m.reward_requested]
             raise ActionHoldError(
-                f"exactly one tensor must have reward_requested=True, found "
-                f"{len(reward_seqs)}"
-                + (f" at tensor_seq {sorted(reward_seqs)}" if reward_seqs else "")
+                f"reward_requested must be True on the earliest tensor_seq "
+                f"{earliest.tensor_seq} of the hold (DESIGN.md section 3 opens "
+                f"the reward ticket on the first frame of the hold); it is "
+                + (
+                    f"set on tensor_seq {requested} instead"
+                    if requested
+                    else "set on no tensor at all"
+                )
+            )
+        later_requests = [m.tensor_seq for m in ordered[1:] if m.reward_requested]
+        if later_requests:
+            raise ActionHoldError(
+                f"every tensor after the earliest tensor_seq "
+                f"{earliest.tensor_seq} must have reward_requested=False "
+                f"(DESIGN.md section 3: later frames reuse the held action); "
+                f"tensor_seq {later_requests} also requested a reward"
             )
 
-        # Canonicalize by tensor_seq: permutation of the input must not change
-        # the serialized bytes.
-        object.__setattr__(
-            self, "tensors", tuple(sorted(members, key=lambda m: m.tensor_seq))
-        )
+        object.__setattr__(self, "tensors", ordered)
 
     # -- construction ------------------------------------------------------ #
 
@@ -773,7 +990,11 @@ class ActionHoldManifest:
         cls,
         tensors: Iterable[TensorTransmissionEnvelope],
     ) -> "ActionHoldManifest":
-        """Build a manifest from any iterable of envelopes, in any order."""
+        """Build a manifest from any iterable of envelopes, in any order.
+
+        Input order is irrelevant: the tensors are canonicalized by
+        ``tensor_seq`` before the hold rules are applied.
+        """
         return cls(tuple(tensors))
 
     # -- derived identity -------------------------------------------------- #
@@ -800,22 +1021,26 @@ class ActionHoldManifest:
 
     @property
     def tensor_seqs(self) -> Tuple[int, ...]:
-        """Canonical ascending ``tensor_seq`` values; not necessarily contiguous."""
+        """Canonical ascending ``tensor_seq`` values; not necessarily contiguous.
+
+        This is the frozen sender chronology of the hold.
+        """
         return tuple(m.tensor_seq for m in self.tensors)
 
     @property
     def reward_tensor(self) -> TensorTransmissionEnvelope:
-        """The single registered reward-requested tensor of this hold."""
-        for member in self.tensors:
-            if member.reward_requested:
-                return member
-        raise ActionHoldError(  # pragma: no cover - construction guarantees one
-            "internal invariant violated: no registered reward tensor"
-        )
+        """The registered reward tensor: the earliest ``tensor_seq`` of the hold."""
+        earliest = self.tensors[0]
+        if not earliest.reward_requested:
+            raise ActionHoldError(  # pragma: no cover - construction guarantees it
+                "internal invariant violated: the earliest tensor_seq is not "
+                "the registered reward tensor"
+            )
+        return earliest
 
     @property
     def reward_tensor_seq(self) -> int:
-        """``tensor_seq`` of the registered reward tensor."""
+        """``tensor_seq`` of the registered reward tensor (the hold minimum)."""
         return self.reward_tensor.tensor_seq
 
     def reward_feedback_identity(self) -> "RewardFeedbackIdentity":
@@ -880,6 +1105,7 @@ class RewardFeedbackIdentity:
                 f"action must be an ExecutedActionIdentity, got "
                 f"{type(self.action).__name__}"
             )
+        self.action.require_reconciled()
 
     @classmethod
     def from_manifest(cls, manifest: ActionHoldManifest) -> "RewardFeedbackIdentity":

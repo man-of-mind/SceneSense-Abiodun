@@ -6,14 +6,15 @@ Three test methods:
    modes across every ``q_e4`` in ``[0, 9800]``: identity fields, keep/drop,
    schema/catalog bindings, exact-anchor IDs and null IDs for non-anchors.
 2. ``test_multi_tensor_hold_feedback_and_canonical_bytes`` -- a multi-tensor
-   hold with one reward-requested tensor, the derived feedback identity,
+   hold whose earliest ``tensor_seq`` carries the reward request, the two-frame
+   minimum, variable-duration holds, the derived feedback identity,
    permutation-invariant canonical bytes, and independently recomputed hashes.
 3. ``test_rejects_malformed_identity_and_invalid_holds`` -- table-driven
    negative cases.
 
-Hashes are recomputed here with a locally written canonicalizer rather than by
-calling the module's own helper, so the tests do not merely restate the
-implementation.
+Hashes are recomputed here with a locally written canonicalizer and a locally
+written container-flattener, rather than by calling the module's own helpers, so
+the tests do not merely restate the implementation.
 """
 
 from __future__ import annotations
@@ -23,7 +24,7 @@ import hashlib
 import json
 import unittest
 from itertools import permutations
-from typing import Any
+from typing import Any, Mapping
 
 from . import action_contract as ac
 from . import transaction_identity as ti
@@ -32,10 +33,19 @@ SESSION = "3f263fce-cc44-476e-93b5-19d09d439471"
 OTHER_SESSION = "9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d"
 
 
+def _plain(value: Any) -> Any:
+    """Locally written flattener for read-only mappings/tuples to JSON types."""
+    if isinstance(value, Mapping):
+        return {key: _plain(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_plain(item) for item in value]
+    return value
+
+
 def _independent_canonical_bytes(payload: Any) -> bytes:
     """A locally written canonicalizer, independent of the module under test."""
     return json.dumps(
-        payload,
+        _plain(payload),
         sort_keys=True,
         separators=(",", ":"),
         ensure_ascii=True,
@@ -94,17 +104,17 @@ class TransactionIdentityTest(unittest.TestCase):
         self.assertEqual(
             ti.SCHEMA_ID, "splitfusion_hybrid_sac_transaction_identity_v1"
         )
-        self.assertEqual(ti.SCHEMA_VERSION, 1)
+        self.assertEqual(ti.SCHEMA_VERSION, 2)
         self.assertEqual(
             ti.ACTION_IDENTITY_SCHEMA_ID,
             "splitfusion_hybrid_sac_executed_action_identity_v1",
         )
         self.assertEqual(
-            ti.SCHEMA_SHA256, _independent_sha256(dict(ti.SCHEMA_DESCRIPTOR))
+            ti.SCHEMA_SHA256, _independent_sha256(_plain(ti.SCHEMA_DESCRIPTOR))
         )
         self.assertEqual(
             ti.ACTION_IDENTITY_SCHEMA_SHA256,
-            _independent_sha256(dict(ti.ACTION_IDENTITY_DESCRIPTOR)),
+            _independent_sha256(_plain(ti.ACTION_IDENTITY_DESCRIPTOR)),
         )
         for digest in (ti.SCHEMA_SHA256, ti.ACTION_IDENTITY_SCHEMA_SHA256):
             self.assertEqual(len(digest), 64)
@@ -117,7 +127,44 @@ class TransactionIdentityTest(unittest.TestCase):
         )
         self.assertEqual(
             ti.SCHEMA_DESCRIPTOR["executed_action_identity"],
-            dict(ti.ACTION_IDENTITY_DESCRIPTOR),
+            ti.ACTION_IDENTITY_DESCRIPTOR,
+        )
+
+        # --- exported descriptors are deep-frozen ----------------------- #
+        manifest_spec = ti.SCHEMA_DESCRIPTOR["records"]["action_hold_manifest"]
+        self.assertEqual(manifest_spec["minimum_tensors"], ti.MINIMUM_HOLD_TENSORS)
+        self.assertEqual(ti.MINIMUM_HOLD_TENSORS, 2)
+        self.assertIsNone(manifest_spec["maximum_tensors"])
+        for target, key, value in (
+            (ti.SCHEMA_DESCRIPTOR, "schema_id", "tampered"),
+            (ti.ACTION_IDENTITY_DESCRIPTOR, "version", 99),
+            (ti.SCHEMA_DESCRIPTOR["records"], "action_hold_manifest", {}),
+            (manifest_spec, "minimum_tensors", 1),
+            (manifest_spec["fields"], "tensors", "tampered"),
+        ):
+            with self.assertRaises(TypeError):
+                target[key] = value  # type: ignore[index]
+            with self.assertRaises(AttributeError):
+                target.pop(key)  # type: ignore[union-attr]
+        for sequence in (
+            manifest_spec["invariants"],
+            ti.ACTION_IDENTITY_DESCRIPTOR["q_e4_bounds"],
+        ):
+            self.assertIsInstance(sequence, tuple)
+            with self.assertRaises(TypeError):
+                sequence[0] = "tampered"  # type: ignore[index]
+        # after every attempted mutation the descriptors still hash as published
+        self.assertEqual(
+            ti.SCHEMA_SHA256, _independent_sha256(_plain(ti.SCHEMA_DESCRIPTOR))
+        )
+        self.assertEqual(
+            ti.ACTION_IDENTITY_SCHEMA_SHA256,
+            _independent_sha256(_plain(ti.ACTION_IDENTITY_DESCRIPTOR)),
+        )
+        # the frozen chronology rule is stated in the descriptor
+        self.assertIn("tensor_seq", ti.SCHEMA_DESCRIPTOR["tensor_seq_semantics"])
+        self.assertIn(
+            "carla_frame_id", ti.SCHEMA_DESCRIPTOR["tensor_seq_semantics"]
         )
 
         seen_anchor_ids = set()
@@ -177,8 +224,12 @@ class TransactionIdentityTest(unittest.TestCase):
                     self.assertIsNone(payload["profile_id"])
                     non_anchor_rows += 1
 
-                # catalog reconciliation succeeds for every executed action
+                # catalog reconciliation succeeds, and the record built by
+                # from_executable_action carries the attestation that makes it
+                # serializable
                 identity.verify_against_catalog(contract)
+                self.assertTrue(identity.is_catalog_reconciled)
+                identity.require_reconciled()
 
         # --- sweep accounting ------------------------------------------- #
         total = ac.Q_E4_MAX - ac.Q_E4_MIN + 1
@@ -223,13 +274,18 @@ class TransactionIdentityTest(unittest.TestCase):
         anchor_action = self._action_identity(9, 9000)
         non_anchor_action = self._action_identity(9, 4237)
 
-        # Deliberately non-consecutive tensor_seq and carla_frame_id, and the
-        # reward tensor is not the first member, so nothing may be positional.
+        # Adversarial ordering, so that neither input position nor
+        # carla_frame_id can be mistaken for chronology:
+        #   * the earliest tensor_seq (101) is LAST in the input tuple;
+        #   * the earliest tensor_seq does NOT carry the smallest frame id
+        #     (5040, while tensor_seq 104 carries 5000);
+        #   * tensor_seq and carla_frame_id are both non-consecutive, and
+        #     carla_frame_id is not monotone in tensor_seq.
         tensors = (
-            self._envelope(101, 5000, False, anchor_action),
-            self._envelope(104, 5011, True, anchor_action),
-            self._envelope(109, 5040, False, anchor_action),
-            self._envelope(117, 5102, False, anchor_action),
+            self._envelope(104, 5000, False, anchor_action),
+            self._envelope(117, 5011, False, anchor_action),
+            self._envelope(109, 5102, False, anchor_action),
+            self._envelope(101, 5040, True, anchor_action),
         )
         manifest = ti.ActionHoldManifest.build(tensors)
 
@@ -242,33 +298,70 @@ class TransactionIdentityTest(unittest.TestCase):
         self.assertEqual(
             list(manifest.tensor_seqs), sorted(manifest.tensor_seqs)
         )
-        # non-consecutive by construction, and no maximum hold is imposed
+        # non-consecutive tensor_seq and non-monotone frame ids are preserved
         gaps = {
             b - a
             for a, b in zip(manifest.tensor_seqs, manifest.tensor_seqs[1:])
         }
         self.assertNotEqual(gaps, {1})
+        frames = [m.transaction.carla_frame_id for m in manifest.tensors]
+        self.assertNotEqual(frames, sorted(frames))
+
+        # --- the two-frame minimum is the smallest completed hold -------- #
+        self.assertEqual(ti.MINIMUM_HOLD_TENSORS, 2)
+        minimum_hold = ti.ActionHoldManifest.build(
+            [
+                self._envelope(41, 6100, False, anchor_action),
+                self._envelope(40, 6200, True, anchor_action),
+            ]
+        )
+        self.assertEqual(minimum_hold.tensor_count, ti.MINIMUM_HOLD_TENSORS)
+        self.assertEqual(minimum_hold.tensor_seqs, (40, 41))
+        self.assertEqual(minimum_hold.reward_tensor_seq, 40)
+        # a one-tensor hold is not a completed hold (negative case in test 3)
+        with self.assertRaises(ti.ActionHoldError):
+            ti.ActionHoldManifest.build(
+                [self._envelope(500, 6000, True, anchor_action)]
+            )
+
+        # --- long variable-duration holds, no maximum -------------------- #
+        for length in (2, 3, 7, 40, 137):
+            variable = ti.ActionHoldManifest.build(
+                [
+                    self._envelope(3 * i, 9000 + 7 * i, i == 0, anchor_action)
+                    for i in reversed(range(length))
+                ]
+            )
+            self.assertEqual(variable.tensor_count, length)
+            self.assertEqual(variable.reward_tensor_seq, 0)
+            self.assertEqual(variable.tensor_seqs[0], 0)
+            self.assertEqual(
+                [m.reward_requested for m in variable.tensors],
+                [True] + [False] * (length - 1),
+            )
         long_hold = ti.ActionHoldManifest.build(
             [
-                self._envelope(3 * i, 9000 + 7 * i, i == 13, anchor_action)
+                self._envelope(3 * i, 9000 + 7 * i, i == 0, anchor_action)
                 for i in range(40)
             ]
         )
         self.assertEqual(long_hold.tensor_count, 40)
-        self.assertEqual(long_hold.reward_tensor_seq, 39)
-        single = ti.ActionHoldManifest.build(
-            [self._envelope(500, 6000, True, anchor_action)]
-        )
-        self.assertEqual(single.tensor_count, 1)
-        self.assertEqual(single.reward_tensor_seq, 500)
+        self.assertEqual(long_hold.reward_tensor_seq, 0)
 
-        # --- exactly one registered reward tensor ----------------------- #
-        self.assertEqual(manifest.reward_tensor_seq, 104)
-        self.assertIs(manifest.reward_tensor, manifest.tensors[1])
+        # --- the earliest tensor_seq is the registered reward tensor ---- #
+        self.assertEqual(manifest.reward_tensor_seq, 101)
+        self.assertEqual(manifest.reward_tensor_seq, min(manifest.tensor_seqs))
+        self.assertIs(manifest.reward_tensor, manifest.tensors[0])
         self.assertTrue(manifest.reward_tensor.reward_requested)
         self.assertEqual(
             [m.reward_requested for m in manifest.tensors],
-            [False, True, False, False],
+            [True, False, False, False],
+        )
+        # chronology came from tensor_seq, not from input order or frame id
+        self.assertIsNot(manifest.reward_tensor, tensors[0])
+        self.assertEqual(manifest.reward_tensor.transaction.carla_frame_id, 5040)
+        self.assertNotEqual(
+            manifest.reward_tensor.transaction.carla_frame_id, min(frames)
         )
         self.assertEqual(
             sum(1 for m in manifest.tensors if m.reward_requested), 1
@@ -282,12 +375,16 @@ class TransactionIdentityTest(unittest.TestCase):
         self.assertEqual(feedback, ti.RewardFeedbackIdentity.from_manifest(manifest))
         self.assertEqual(feedback.session_uuid, SESSION)
         self.assertEqual(feedback.decision_seq, 7)
-        self.assertEqual(feedback.reward_tensor_seq, 104)
-        self.assertEqual(feedback.carla_frame_id, 5011)
+        self.assertEqual(feedback.reward_tensor_seq, 101)
+        self.assertEqual(feedback.carla_frame_id, 5040)
         self.assertEqual(feedback.action, anchor_action)
         self.assertEqual(feedback.decision_key, (SESSION, 7))
-        # it is the reward tensor's frame, not the first or last tensor's
-        self.assertNotEqual(feedback.carla_frame_id, tensors[0].transaction.carla_frame_id)
+        # it is the earliest tensor_seq's frame: neither the input-first
+        # tensor's frame nor the smallest frame in the hold
+        self.assertNotEqual(
+            feedback.carla_frame_id, tensors[0].transaction.carla_frame_id
+        )
+        self.assertNotEqual(feedback.carla_frame_id, min(frames))
         self.assertEqual(feedback.action.action_id, 58)
         self.assertEqual(feedback.action.profile_id, "split_ae32_uint8_q9000")
 
@@ -316,6 +413,10 @@ class TransactionIdentityTest(unittest.TestCase):
         self.assertEqual(
             [m["transaction"]["tensor_seq"] for m in round_tripped["tensors"]],
             [101, 104, 109, 117],
+        )
+        self.assertEqual(
+            [m["reward_requested"] for m in round_tripped["tensors"]],
+            [True, False, False, False],
         )
         # NaN/infinity can never appear in canonical bytes
         with self.assertRaises(ValueError):
@@ -383,10 +484,11 @@ class TransactionIdentityTest(unittest.TestCase):
         # --- a hold on a non-anchor action serializes null IDs ---------- #
         non_anchor_manifest = ti.ActionHoldManifest.build(
             [
-                self._envelope(200, 7000, True, non_anchor_action, decision_seq=8),
                 self._envelope(203, 7013, False, non_anchor_action, decision_seq=8),
+                self._envelope(200, 7000, True, non_anchor_action, decision_seq=8),
             ]
         )
+        self.assertEqual(non_anchor_manifest.reward_tensor_seq, 200)
         non_anchor_payload = non_anchor_manifest.to_canonical_dict()
         self.assertIsNone(non_anchor_payload["executed_action"]["action_id"])
         self.assertIsNone(non_anchor_payload["executed_action"]["profile_id"])
@@ -410,7 +512,7 @@ class TransactionIdentityTest(unittest.TestCase):
         with self.assertRaises(dataclasses.FrozenInstanceError):
             manifest.reward_tensor.reward_requested = False  # type: ignore[misc]
         self.assertEqual(
-            ti.TensorTransactionId(SESSION, 7, 104, 5011),
+            ti.TensorTransactionId(SESSION, 7, 101, 5040),
             manifest.reward_tensor.transaction,
         )
 
@@ -460,6 +562,10 @@ class TransactionIdentityTest(unittest.TestCase):
             action_id=anchor_3000.action_id,
             profile_id=anchor_3000.profile_id,
         )
+        # structurally honest, but never reconciled against the catalog
+        unreconciled_honest = act()
+        self.assertFalse(unreconciled_honest.is_catalog_reconciled)
+        self.assertFalse(fabricated_non_anchor.is_catalog_reconciled)
         wrong_anchor_id = act(action_id=anchor_3000.action_id + 1)
         missing_anchor_id = act(action_id=None, profile_id=None)
         contradictory_mode = act(family="AE128", quantizer="UINT8")
@@ -579,6 +685,52 @@ class TransactionIdentityTest(unittest.TestCase):
              lambda: act(action_identity_sha256="f" * 64),
              ti.ActionIdentityError),
 
+            # --- unreconciled / fabricated identity blocked before any
+            #     canonical serialization can happen -------------------------- #
+            ("fabricated identity to_canonical_dict",
+             lambda: fabricated_non_anchor.to_canonical_dict(),
+             ti.UnreconciledActionIdentityError),
+            ("fabricated identity canonical_bytes",
+             lambda: fabricated_non_anchor.canonical_bytes(),
+             ti.UnreconciledActionIdentityError),
+            ("fabricated identity canonical_sha256",
+             lambda: fabricated_non_anchor.canonical_sha256(),
+             ti.UnreconciledActionIdentityError),
+            ("fabricated identity in an envelope",
+             lambda: ti.TensorTransmissionEnvelope(
+                 txn(), True, fabricated_non_anchor
+             ),
+             ti.UnreconciledActionIdentityError),
+            ("unreconciled honest identity to_canonical_dict",
+             lambda: unreconciled_honest.to_canonical_dict(),
+             ti.UnreconciledActionIdentityError),
+            ("unreconciled honest identity in an envelope",
+             lambda: ti.TensorTransmissionEnvelope(
+                 txn(), True, unreconciled_honest
+             ),
+             ti.UnreconciledActionIdentityError),
+            ("unreconciled honest identity in a feedback record",
+             lambda: ti.RewardFeedbackIdentity(
+                 session_uuid=SESSION,
+                 decision_seq=7,
+                 reward_tensor_seq=101,
+                 carla_frame_id=5000,
+                 action=unreconciled_honest,
+             ),
+             ti.UnreconciledActionIdentityError),
+            ("require_reconciled on an unreconciled identity",
+             lambda: unreconciled_honest.require_reconciled(),
+             ti.UnreconciledActionIdentityError),
+            ("forged reconciliation attestation",
+             lambda: act(_reconciliation=("forged", ac.CATALOG_SHA256)),
+             ti.UnreconciledActionIdentityError),
+            ("attestation bound to a foreign catalog sha",
+             lambda: act(_reconciliation=(object(), "0" * 64)),
+             ti.UnreconciledActionIdentityError),
+            ("reconciled_against a fabricated identity",
+             lambda: fabricated_non_anchor.reconciled_against(contract),
+             ti.ActionIdentityError),
+
             # --- fabricated anchor identity (needs the catalog) ----------- #
             ("anchor id fabricated on non-anchor q_e4",
              lambda: fabricated_non_anchor.verify_against_catalog(contract),
@@ -607,6 +759,46 @@ class TransactionIdentityTest(unittest.TestCase):
             ("hold with zero tensors", lambda: hold(), ti.ActionHoldError),
             ("hold from an empty list",
              lambda: ti.ActionHoldManifest.build([]), ti.ActionHoldError),
+            ("one-tensor hold is not completed",
+             lambda: hold(self._envelope(101, 5000, True, action)),
+             ti.ActionHoldError),
+            ("one-tensor hold without a reward request",
+             lambda: hold(self._envelope(101, 5000, False, action)),
+             ti.ActionHoldError),
+            ("reward requested on the later tensor only",
+             lambda: hold(
+                 self._envelope(101, 5000, False, action),
+                 self._envelope(104, 5010, True, action),
+             ),
+             ti.ActionHoldError),
+            ("reward requested on the last of four",
+             lambda: hold(
+                 self._envelope(101, 5000, False, action),
+                 self._envelope(104, 5010, False, action),
+                 self._envelope(109, 5020, False, action),
+                 self._envelope(117, 5030, True, action),
+             ),
+             ti.ActionHoldError),
+            ("reward requested on a middle tensor",
+             lambda: hold(
+                 self._envelope(101, 5000, False, action),
+                 self._envelope(104, 5010, True, action),
+                 self._envelope(109, 5020, False, action),
+             ),
+             ti.ActionHoldError),
+            ("reward on the smallest frame but not the earliest tensor_seq",
+             lambda: hold(
+                 self._envelope(101, 5900, False, action),
+                 self._envelope(104, 5000, True, action),
+             ),
+             ti.ActionHoldError),
+            ("earliest requests but a later tensor also requests",
+             lambda: hold(
+                 self._envelope(101, 5000, True, action),
+                 self._envelope(104, 5010, False, action),
+                 self._envelope(109, 5020, True, action),
+             ),
+             ti.ActionHoldError),
             ("hold with no reward request",
              lambda: hold(
                  self._envelope(101, 5000, False, action),
@@ -710,7 +902,13 @@ class TransactionIdentityTest(unittest.TestCase):
              ti.ActionIdentityError),
         ]
 
-        self.assertGreaterEqual(len(cases), 60)
+        # The negative-case count is derived from the table, never hard-coded:
+        # labels must be unique and every row must actually be exercised.
+        labels = [label for label, _, _ in cases]
+        self.assertEqual(
+            len(labels), len(set(labels)), "negative-case labels must be unique"
+        )
+        exercised = 0
         for label, thunk, expected in cases:
             with self.subTest(case=label):
                 with self.assertRaises(expected) as caught:
@@ -720,17 +918,56 @@ class TransactionIdentityTest(unittest.TestCase):
                 self.assertIsInstance(caught.exception, ti.TransactionIdentityError)
                 self.assertIsInstance(caught.exception, ac.ActionContractError)
                 self.assertTrue(str(caught.exception).strip())
+            exercised += 1
+        self.assertEqual(exercised, len(cases))
+        # published for the report; the number is the table length itself
+        type(self).negative_case_count = len(cases)
 
-        # --- the structurally fabricated record is caught by the catalog,
-        #     and the honest record for the same q_e4 is accepted ---------- #
+        # --- the fabricated record can never be serialized, while the
+        #     honest record for the same q_e4 serializes normally ---------- #
         self.assertEqual(fabricated_non_anchor.q_e4, 4237)
         self.assertTrue(fabricated_non_anchor.is_registered_anchor)
+        self.assertFalse(fabricated_non_anchor.is_catalog_reconciled)
+        for blocked in (
+            fabricated_non_anchor.to_canonical_dict,
+            fabricated_non_anchor.canonical_bytes,
+            fabricated_non_anchor.canonical_sha256,
+        ):
+            with self.assertRaises(ti.UnreconciledActionIdentityError):
+                blocked()
         honest_non_anchor = self._action_identity(0, 4237)
         self.assertFalse(honest_non_anchor.is_registered_anchor)
+        self.assertTrue(honest_non_anchor.is_catalog_reconciled)
         honest_non_anchor.verify_against_catalog(contract)
-        self.assertNotEqual(
-            fabricated_non_anchor.canonical_bytes(),
-            honest_non_anchor.canonical_bytes(),
+        honest_payload = honest_non_anchor.to_canonical_dict()
+        self.assertIsNone(honest_payload["action_id"])
+        self.assertIsNone(honest_payload["profile_id"])
+        self.assertEqual(honest_payload["q_e4"], 4237)
+
+        # --- the reconciled counterpart of the same identity is accepted - #
+        reconciled = unreconciled_honest.reconciled_against(contract)
+        self.assertTrue(reconciled.is_catalog_reconciled)
+        self.assertEqual(reconciled, unreconciled_honest)  # same serialized fields
+        self.assertEqual(
+            reconciled.to_canonical_dict(),
+            self._action_identity(0, 3000).to_canonical_dict(),
+        )
+        ti.TensorTransmissionEnvelope(txn(), True, reconciled)
+
+        # --- the minimum completed hold and its permutation are accepted - #
+        accepted = ti.ActionHoldManifest.build(
+            [
+                self._envelope(104, 5000, False, action),
+                self._envelope(101, 5090, True, action),
+            ]
+        )
+        self.assertEqual(accepted.tensor_count, ti.MINIMUM_HOLD_TENSORS)
+        self.assertEqual(accepted.reward_tensor_seq, 101)
+        self.assertEqual(
+            ti.ActionHoldManifest.build(
+                list(reversed(accepted.tensors))
+            ).canonical_bytes(),
+            accepted.canonical_bytes(),
         )
 
         # --- valid boundary values are accepted ------------------------- #

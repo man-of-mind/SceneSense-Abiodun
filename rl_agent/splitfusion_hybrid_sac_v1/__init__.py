@@ -7,7 +7,11 @@ This package exposes two things:
   representation ``(joint mode, continuous q)``.
 * **Phase 2** (:mod:`.transaction_identity`) -- versioned immutable
   transaction / action / feedback identity records with canonical
-  serialization, following DESIGN.md section 9.
+  serialization, following DESIGN.md sections 2, 3 and 9.  ``tensor_seq`` is
+  the frozen sender chronology within a decision; a completed action hold has
+  at least ``k_min = 2`` tensors and requests its reward on the earliest
+  ``tensor_seq``; and every serializable record requires an executed action
+  identity already reconciled against the frozen catalog.
 
 Nothing here implements reward, radar/camera state, payload/accuracy/latency
 prediction, q-anchor interpolation, actor/critic or SAC updates, replay buffers
@@ -60,6 +64,7 @@ from .transaction_identity import (  # noqa: F401
     ActionIdentityError,
     ExecutedActionIdentity,
     IdentityFieldError,
+    MINIMUM_HOLD_TENSORS,
     RewardFeedbackIdentity,
     SCHEMA_DESCRIPTOR,
     SCHEMA_ID,
@@ -68,6 +73,7 @@ from .transaction_identity import (  # noqa: F401
     TensorTransactionId,
     TensorTransmissionEnvelope,
     TransactionIdentityError,
+    UnreconciledActionIdentityError,
     canonical_json_bytes,
     canonical_sha256,
 )
@@ -111,6 +117,7 @@ __all__ = [
     "ActionIdentityError",
     "ExecutedActionIdentity",
     "IdentityFieldError",
+    "MINIMUM_HOLD_TENSORS",
     "RewardFeedbackIdentity",
     "SCHEMA_DESCRIPTOR",
     "SCHEMA_ID",
@@ -119,6 +126,7 @@ __all__ = [
     "TensorTransactionId",
     "TensorTransmissionEnvelope",
     "TransactionIdentityError",
+    "UnreconciledActionIdentityError",
     "canonical_json_bytes",
     "canonical_sha256",
 ]
