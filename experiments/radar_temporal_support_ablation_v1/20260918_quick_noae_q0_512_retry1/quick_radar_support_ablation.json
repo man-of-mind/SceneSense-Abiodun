@@ -1,0 +1,169 @@
+{
+  "bindings": {
+    "dataset_manifest": {
+      "path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/route_b_v3_1_expanded_train_camera_plane_v1/20260828_094151/dataset/manifest.csv",
+      "sha256": "5d65e6eb14aadea11ca6bab6e82f0c94c31a50746611d167d282d8988a4504c2"
+    },
+    "phase8b": {
+      "frozen_perception_checkpoint": {
+        "path": "experiments/route_b_v3_1_splitfusion_fcos_r50_fpn_p2_p7_v1_numerical_recovery_v1/20260830_recovered_epoch10_gate_v1/checkpoints/epoch_026.pt",
+        "sha256": "da14d21edbd374c1c3abce02ca4674b9f4097becfba9759aba945cea160a297f"
+      },
+      "hybrid_q_locked_config": {
+        "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1/locked_config.json",
+        "sha256": "b2b0d8427bd867f46058ebba49ac6a183eb89413b4d69326fef93b150ebfcde6"
+      },
+      "perception_forward_lock": {
+        "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_person_p025_calibration_v1/PERCEPTION_FORWARD_LOCK_P025_V1.json",
+        "sha256": "86d6f13ae9168b33b697df5b785c5f7c320afc52cfdcded5b632d94a6d943fe1"
+      },
+      "phase6_fp32_validation_curve": {
+        "path": "experiments/splitfusion_fcos_hybrid_q_v1/20260902_182401_phase6_validation_curve/validation_curve.json",
+        "sha256": "54987920a7430564425664e82511d1121e77935beabfbd4cf2f34bee5cadfc74"
+      },
+      "protected_source_sha256": {
+        "codec.py": "7b3833398a84fea31f65b86ec294c6675727390035b5761d372fd5a3cbba7b79",
+        "continuous_q.py": "8ea72faed324c29b7106bd5f6277699bd7e7ba16a66073905f9ff28c69bab23c",
+        "guards.py": "77d8d8bfd168e74a7f0b6a7e3c8e7abc4c3549a86cda392feb394d7580a33031",
+        "locked_config.json": "b2b0d8427bd867f46058ebba49ac6a183eb89413b4d69326fef93b150ebfcde6",
+        "ranker.py": "462536991f195651a1ee641f8e83444882ec370a8dffab72f13f0d770422b353",
+        "selection.py": "ccc2b12919b078eac7af6131418989567d618d42f7b908b2db74df42e0342a71",
+        "zstd_transport.py": "57d1846b3fdc4084266e5a8adcc7abf99556ed2b187befec729003fcdb77edec"
+      },
+      "stable_epoch4_ranker": {
+        "path": "experiments/splitfusion_fcos_hybrid_q_v1/20260901_185725_phase5_ranker_training/checkpoints/ranker_epoch_04.pt",
+        "sha256": "07781c56a4c0f306f16d332f64627ce6b9458e154f40ab9fef89f89909b79cb5"
+      },
+      "uint8_implementation": {
+        "codec": {
+          "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1/uint8_codec.py",
+          "sha256": "b6f07723860821e93c0dc2aeec456073617942b5ed8446f4555fe87b2c7ca803"
+        },
+        "implementation_base_commit": "bdd95b1221e24ac113d1f26842f9be21648621d8",
+        "mandatory_zstd_wrapper": {
+          "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1/uint8_zstd_transport.py",
+          "sha256": "db1f79e3786f2d5a12e367b688fd79401bc5e5c8f10523a7bbf7418f14aaa11d"
+        }
+      }
+    },
+    "sample_ids_sha256": "16390b53f11a957e459d3cd0c004eca8e150de290fe6e1382fbb2b92031b979b"
+  },
+  "decision_rule": "This bounded check does not change production. Retain 200 ms unless 100 ms is consistently favorable and then confirm with native tracker replay/fine-tuning and live validation.",
+  "delta_current_100ms_minus_rolling_200ms": {
+    "foreground_miou": -0.0036164142815383604,
+    "person_avo_f1": -0.0028529500979674882,
+    "person_avo_precision": 0.0012908074899513622,
+    "person_avo_recall": -0.007025761124121788,
+    "person_avo_recall_20_40m": -0.0076045627376425395,
+    "person_avo_xy_mae_m": -0.007445623835909965,
+    "person_box_mask_iou": -0.005047304626298987,
+    "vehicle_f1": 0.0029228681221802333,
+    "vehicle_iou": -0.0021855239367778445,
+    "vehicle_precision": 0.005498266350952075,
+    "vehicle_recall": 0.0006811989100817817,
+    "vehicle_xy_mae_m": 0.0120115820980351
+  },
+  "generated_utc": "2026-09-18T18:14:13.792879+00:00",
+  "interpretation": "MIXED_OR_EFFECTIVELY_EQUAL_RETAIN_EXISTING_200MS_CONTRACT",
+  "limitations": [
+    "512-frame deterministic validation subset, not the full 3345-frame split",
+    "frozen model was trained with 200-ms radar support",
+    "current-only raster retains stationary_age_s produced by the historical persistent tracker",
+    "aggregate sensitivity result has no run-to-run training variance"
+  ],
+  "qualification": {
+    "bit_exact": true,
+    "checked_frames": 32,
+    "current_returns": {
+      "maximum": 19994,
+      "median": 18875.5,
+      "minimum": 16605
+    },
+    "maximum_absolute_error": 0.0,
+    "previous_returns": {
+      "maximum": 19995,
+      "median": 18854.5,
+      "minimum": 16509
+    }
+  },
+  "schema": "splitfusion.quick_radar_temporal_support_ablation.v1",
+  "scope": {
+    "carla_or_oai_launched": false,
+    "episode_counts": {
+      "canonical_v3_05_val_30_30_s601_tm1601": 256,
+      "canonical_v3_06_val_50_50_s602_tm1602": 256
+    },
+    "family": "noAE",
+    "purpose": "quick frozen-model point-support sensitivity check",
+    "q": 0.0,
+    "quantizer": "UINT8",
+    "samples": 512,
+    "selection": "deterministic evenly spaced within each validation episode",
+    "training": false
+  },
+  "status": "COMPLETE",
+  "supports": {
+    "current_100ms": {
+      "canonical_person_metrics": {
+        "person_f1": 0.685427135678392,
+        "person_precision": 0.806146572104019,
+        "person_recall": 0.5961538461538461,
+        "person_xy_mae_m": 0.8281533251894843
+      },
+      "compressed_zstd_bytes": {
+        "maximum": 3645934,
+        "median": 3565010.0,
+        "minimum": 3492135,
+        "p95": 3611508.4
+      },
+      "frames": 512,
+      "metrics": {
+        "foreground_miou": 0.7127670726134673,
+        "person_avo_f1": 0.7104337631887457,
+        "person_avo_precision": 0.7112676056338029,
+        "person_avo_recall": 0.7096018735362998,
+        "person_avo_recall_20_40m": 0.5741444866920152,
+        "person_avo_xy_mae_m": 0.8119362059137191,
+        "person_box_mask_iou": 0.5253192876593242,
+        "vehicle_f1": 0.8997175141242937,
+        "vehicle_iou": 0.9002148575676103,
+        "vehicle_precision": 0.9340175953079178,
+        "vehicle_recall": 0.8678474114441417,
+        "vehicle_xy_mae_m": 0.4872585573943774
+      },
+      "wall_seconds": 87.29439520835876
+    },
+    "rolling_200ms": {
+      "canonical_person_metrics": {
+        "person_f1": 0.6887550200803213,
+        "person_precision": 0.8089622641509434,
+        "person_recall": 0.5996503496503497,
+        "person_xy_mae_m": 0.8351278445980537
+      },
+      "compressed_zstd_bytes": {
+        "maximum": 3653048,
+        "median": 3567857.0,
+        "minimum": 3492030,
+        "p95": 3617854.1
+      },
+      "frames": 512,
+      "metrics": {
+        "foreground_miou": 0.7163834868950056,
+        "person_avo_f1": 0.7132867132867132,
+        "person_avo_precision": 0.7099767981438515,
+        "person_avo_recall": 0.7166276346604216,
+        "person_avo_recall_20_40m": 0.5817490494296578,
+        "person_avo_xy_mae_m": 0.819381829749629,
+        "person_box_mask_iou": 0.5303665922856232,
+        "vehicle_f1": 0.8967946460021134,
+        "vehicle_iou": 0.9024003815043882,
+        "vehicle_precision": 0.9285193289569658,
+        "vehicle_recall": 0.8671662125340599,
+        "vehicle_xy_mae_m": 0.4752469752963423
+      },
+      "wall_seconds": 79.41774845123291
+    }
+  },
+  "wall_seconds": 174.6965253353119,
+  "working_predictions_removed": true
+}
