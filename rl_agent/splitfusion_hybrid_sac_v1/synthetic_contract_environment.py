@@ -512,20 +512,15 @@ class AnalyticOutcomeProvider:
     ) -> SyntheticActionChoice:
         """Known fixture optimum using only admissible current observations."""
 
-        # The discrete optimum spans all modes as the allowed scene/radio
-        # values change.  It never uses a frame/tensor/decision identifier.
-        mode_signal = (
-            0.37 * camera_si_normalized
-            + 0.29 * radar_p40
-            + 0.19 * achieved_snr_scaled
-            + 0.15 * mcs_scaled
-        )
-        mode_id = min(
-            EXPECTED_MODE_COUNT - 1,
-            int(math.floor(mode_signal * EXPECTED_MODE_COUNT)),
-        )
-        channel_strength = achieved_snr_scaled
+        # The catalog is a 4-family x 3-quantizer Cartesian product.  Assign
+        # those two categorical factors separately rather than pretending the
+        # resulting mode IDs are ordinal distances.  A denser scene prefers a
+        # higher-capacity family; a stronger channel permits a wider quantizer.
         scene_complexity = 0.5 * (camera_si_normalized + radar_p40)
+        channel_strength = 0.5 * (achieved_snr_scaled + mcs_scaled)
+        family_id = min(3, int((1.0 - scene_complexity) * 4.0))
+        quantizer_id = min(2, int((1.0 - channel_strength) * 3.0))
+        mode_id = family_id * 3 + quantizer_id
         q = 0.08 + 0.72 * (1.0 - channel_strength) + 0.18 * (
             1.0 - scene_complexity
         )
@@ -565,8 +560,11 @@ class AnalyticOutcomeProvider:
             )
         preferred = self.preferred_action(context.state)
         q_exec = context.action.q_e4 / 10_000.0
-        mode_distance = abs(context.action.mode_id - preferred.mode_id) / (
-            EXPECTED_MODE_COUNT - 1
+        family_mismatch = float(
+            context.action.mode_id // 3 != preferred.mode_id // 3
+        )
+        quantizer_mismatch = float(
+            context.action.mode_id % 3 != preferred.mode_id % 3
         )
         q_distance = abs(q_exec - preferred.q) / Q_MAX
         jitter = counter_uniform(
@@ -577,7 +575,14 @@ class AnalyticOutcomeProvider:
             context.action.q_e4,
         )
         quality = min(
-            max(0.98 - 0.30 * mode_distance - 0.55 * q_distance + 0.01 * (jitter - 0.5), 0.0),
+            max(
+                0.98
+                - 0.20 * family_mismatch
+                - 0.10 * quantizer_mismatch
+                - 0.55 * q_distance
+                + 0.01 * (jitter - 0.5),
+                0.0,
+            ),
             1.0,
         )
 
@@ -587,7 +592,8 @@ class AnalyticOutcomeProvider:
         latency_ms = (
             55.0
             + 105.0 * (1.0 - channel_strength) * (1.0 - q_exec)
-            + 20.0 * mode_distance
+            + 12.0 * family_mismatch
+            + 8.0 * quantizer_mismatch
             + 5.0
             * counter_uniform(
                 self._seed,

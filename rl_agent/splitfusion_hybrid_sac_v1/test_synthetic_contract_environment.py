@@ -117,6 +117,21 @@ class SyntheticContractEnvironmentTests(unittest.TestCase):
         anchors = {0, 3000, 5000, 7000, 9000, 9800}
         self.assertTrue(any(result.q_e4 not in anchors for result in report.decisions))
 
+    def test_preferred_surface_covers_cartesian_modes_without_id_distance(self):
+        # Four scene-capacity regions x three channel/quantizer regions must
+        # expose every categorical family--quantizer mode exactly once.
+        modes = {
+            AnalyticOutcomeProvider._preferred_from_scalars(
+                camera_si_normalized=scene,
+                radar_p40=scene,
+                achieved_snr_scaled=channel,
+                mcs_scaled=channel,
+            ).mode_id
+            for scene in (0.125, 0.375, 0.625, 0.875)
+            for channel in (1.0 / 6.0, 0.5, 5.0 / 6.0)
+        }
+        self.assertEqual(modes, set(range(12)))
+
     def test_each_decision_requests_one_reward_and_reuses_exact_action(self):
         report = self._run_default(12)
         frames = [
