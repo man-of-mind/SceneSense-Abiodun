@@ -55,6 +55,21 @@ expiry is classified ``FEEDBACK_TIMEOUT`` and carries the learning disposition
 ``censored_pending_post_run_reconciliation``.  The adjudication itself is
 explicitly out of scope for this phase.
 
+Concurrency
+-----------
+:class:`RewardTicketController` is **not thread-safe**.  It holds mutable gate
+state and enforces a single-outstanding-ticket invariant plus strictly
+increasing ``decision_seq``/``tensor_seq``/clock, none of which is defended by a
+lock.  Two concurrent callers can interleave a frame admission with a feedback
+submission and observe a state the declared transition table never permits.
+
+Future runtime integration must therefore **serialize every event through one
+event loop or queue**: frame admission, feedback receipt, deadline/clock
+observation and infrastructure-fault recording must all be delivered from a
+single thread of control.  Broad locking is deliberately *not* added in this
+phase: the correct boundary is the runtime's event loop, and adding locks here
+would only hide a concurrent caller that is already violating the contract.
+
 Importing this module performs no filesystem access, mutation or other runtime
 side effect.  The schema hash below is computed from in-module literals.
 """
@@ -63,7 +78,7 @@ from __future__ import annotations
 
 import uuid
 from collections import OrderedDict
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, replace
 from enum import Enum
 from types import MappingProxyType
 from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple
@@ -297,6 +312,14 @@ TERMINAL_LEARNING_DISPOSITION: Mapping[TerminalClass, str] = MappingProxyType(
     }
 )
 
+#: The terminal classes reachable only by accepting exact feedback.  Their
+#: complement -- FEEDBACK_TIMEOUT and INFRASTRUCTURE_FAULT_EXCLUDED -- closes a
+#: ticket with no accepted feedback at all.
+_FEEDBACK_TERMINAL_CLASSES: Tuple[TerminalClass, ...] = (
+    TerminalClass.REWARD_FINAL_EXACT,
+    TerminalClass.ACTION_PATH_FAILURE,
+)
+
 _FEEDBACK_TERMINAL_CLASS: Mapping[FeedbackTerminalStatus, TerminalClass] = (
     MappingProxyType(
         {
@@ -386,7 +409,14 @@ def _declared_transition_literal() -> Dict[str, Tuple[str, ...]]:
 CONTROLLER_SCHEMA_DESCRIPTOR: Mapping[str, Any] = _deep_freeze(
     {
         "schema_id": "splitfusion_hybrid_sac_reward_ticket_controller_v1",
-        "version": 1,
+        "version": 2,
+        "revision_note": (
+            "v2 (phase 3b.1) corrects min_hold_satisfied_ns to the admission "
+            "that first reached k_min rather than the closure instant, makes "
+            "frame non-readmission absolute over the session lifetime rather "
+            "than only over the retained terminal history, and hardens the "
+            "completed-ticket timestamp/terminal-consistency invariants"
+        ),
         "phase": (
             "one-ticket action-hold and feedback state machine only; no reward, "
             "state vector, replay storage, SAC or live integration"
@@ -492,6 +522,24 @@ CONTROLLER_SCHEMA_DESCRIPTOR: Mapping[str, Any] = _deep_freeze(
             "evicted oldest-first; an evicted decision_seq is rejected as "
             "REJECTED_UNKNOWN_DECISION and can never mutate an active ticket"
         ),
+        "frame_readmission": (
+            "admitted carla_frame_id values are retained for the whole "
+            "controller session, independently of the bounded terminal "
+            "history, so an already-admitted frame stays refused even after "
+            "its completed ticket has been evicted; a frame id is recorded "
+            "only after its admission has fully succeeded"
+        ),
+        "min_hold_timestamp": (
+            "min_hold_satisfied_ns is stamped exactly once, by the admission "
+            "that first brings the governed tensor count to k_min, and is "
+            "never overwritten by a later reused frame, feedback, deadline "
+            "expiry, fault or closure"
+        ),
+        "concurrency": (
+            "not thread-safe and intentionally unlocked; runtime integration "
+            "must serialize frame admission, feedback, clock/deadline "
+            "observation and fault recording through one event loop or queue"
+        ),
     }
 )
 
@@ -521,6 +569,40 @@ def _exact_non_negative_int(value: Any, field_name: str) -> int:
         )
     if value < 0:
         raise SequenceOrderError(f"{field_name} must be >= 0, got {value}")
+    return value
+
+
+def _require_ns(value: Any, field_name: str) -> int:
+    """Validate an exact non-negative nanosecond timestamp on a record field."""
+    if isinstance(value, bool):
+        raise RewardTicketControllerError(
+            f"{field_name} must be a non-negative int, not a bool: {value!r}"
+        )
+    if type(value) is not int:
+        raise RewardTicketControllerError(
+            f"{field_name} must be an exact int nanosecond reading, got "
+            f"{type(value).__name__}: {value!r}"
+        )
+    if value < 0:
+        raise RewardTicketControllerError(
+            f"{field_name} must be >= 0, got {value}"
+        )
+    return value
+
+
+def _require_sha256_hex(value: Any, field_name: str) -> str:
+    """Validate a 64-character lowercase hex SHA-256 digest."""
+    if not isinstance(value, str):
+        raise RewardTicketControllerError(
+            f"{field_name} must be a str digest, got "
+            f"{type(value).__name__}: {value!r}"
+        )
+    if len(value) != 64 or any(
+        character not in "0123456789abcdef" for character in value
+    ):
+        raise RewardTicketControllerError(
+            f"{field_name} must be 64 lowercase hex characters, got {value!r}"
+        )
     return value
 
 
@@ -642,6 +724,19 @@ class CompletedTicket:
     ``hold_duration_tensors`` is the realized ``d``.  No scalar reward,
     discount or ``gamma**d`` appears: those belong to the later SMDP/replay
     layer.
+
+    ``min_hold_satisfied_ns`` is the instant of the admission that first brought
+    the hold to ``k_min`` tensors.  It is **not** the closure instant: on the
+    normal path the ticket closes later, when exact feedback arrives, so
+    ``min_hold_satisfied_ns < closed_ns``.  The two coincide only when the
+    ``k_min``-satisfying reuse is itself what releases an already-terminal
+    ticket.
+
+    ``__post_init__`` enforces the full timestamp and terminal-consistency
+    algebra: the deadline is exactly ``opened_ns + B``, the timestamps are
+    ordered ``opened_ns <= min_hold_satisfied_ns <= closed_ns``, and the
+    terminal class, the resolution timestamp and the accepted-feedback digest
+    either all describe accepted feedback or all describe its absence.
     """
 
     session_uuid: str
@@ -666,6 +761,30 @@ class CompletedTicket:
                 f"terminal_class must be a TerminalClass, got "
                 f"{type(self.terminal_class).__name__}"
             )
+        # -- formats first, so a malformed field is reported as itself rather
+        # -- than as a downstream hold disagreement ------------------------ #
+        _canonical_uuid(self.session_uuid)
+        if isinstance(self.decision_seq, bool) or type(self.decision_seq) is not int:
+            raise RewardTicketControllerError(
+                f"decision_seq must be an exact int, got "
+                f"{type(self.decision_seq).__name__}: {self.decision_seq!r}"
+            )
+        if self.decision_seq < 0:
+            raise RewardTicketControllerError(
+                f"decision_seq must be >= 0, got {self.decision_seq}"
+            )
+        _require_ns(self.opened_ns, "opened_ns")
+        _require_ns(self.deadline_ns, "deadline_ns")
+        _require_ns(self.closed_ns, "closed_ns")
+        _require_ns(self.min_hold_satisfied_ns, "min_hold_satisfied_ns")
+        if self.resolution_ns is not None:
+            _require_ns(self.resolution_ns, "resolution_ns")
+        if self.accepted_feedback_sha256 is not None:
+            _require_sha256_hex(
+                self.accepted_feedback_sha256, "accepted_feedback_sha256"
+            )
+
+        # -- cross-record consistency -------------------------------------- #
         if self.hold.session_uuid != self.session_uuid:
             raise RewardTicketControllerError(
                 "completed ticket session_uuid disagrees with its hold"
@@ -674,6 +793,66 @@ class CompletedTicket:
             raise RewardTicketControllerError(
                 "completed ticket decision_seq disagrees with its hold"
             )
+
+        # -- timestamp algebra --------------------------------------------- #
+        if self.deadline_ns != self.opened_ns + B_REWARD_DEADLINE_NS:
+            raise RewardTicketControllerError(
+                f"deadline_ns must be exactly opened_ns + "
+                f"{B_REWARD_DEADLINE_NS} (the frozen B); got "
+                f"{self.deadline_ns} for opened_ns {self.opened_ns}, which "
+                f"implies {self.deadline_ns - self.opened_ns}"
+            )
+        if not (
+            self.opened_ns <= self.min_hold_satisfied_ns <= self.closed_ns
+        ):
+            raise RewardTicketControllerError(
+                f"timestamps must satisfy opened_ns <= min_hold_satisfied_ns "
+                f"<= closed_ns; got {self.opened_ns} / "
+                f"{self.min_hold_satisfied_ns} / {self.closed_ns}"
+            )
+
+        # -- terminal consistency ------------------------------------------ #
+        resolved_by_feedback = self.terminal_class in _FEEDBACK_TERMINAL_CLASSES
+        if resolved_by_feedback:
+            if self.resolution_ns is None or self.accepted_feedback_sha256 is None:
+                raise RewardTicketControllerError(
+                    f"terminal class {self.terminal_class.value} is reached "
+                    f"only by accepted exact feedback, so it requires both a "
+                    f"resolution_ns and an accepted_feedback_sha256; got "
+                    f"{self.resolution_ns!r} and "
+                    f"{self.accepted_feedback_sha256!r}"
+                )
+            if not self.opened_ns <= self.resolution_ns <= self.closed_ns:
+                raise RewardTicketControllerError(
+                    f"resolution_ns {self.resolution_ns} must lie within "
+                    f"[opened_ns {self.opened_ns}, closed_ns {self.closed_ns}]"
+                )
+            if self.resolution_ns > self.deadline_ns:
+                raise RewardTicketControllerError(
+                    f"resolution_ns {self.resolution_ns} is past deadline_ns "
+                    f"{self.deadline_ns}; feedback accepted after the deadline "
+                    f"is a LATE_ORPHAN and can never close a ticket"
+                )
+        else:
+            if self.resolution_ns is not None or (
+                self.accepted_feedback_sha256 is not None
+            ):
+                raise RewardTicketControllerError(
+                    f"terminal class {self.terminal_class.value} closes a "
+                    f"ticket with no accepted feedback, so resolution_ns and "
+                    f"accepted_feedback_sha256 must both be null; got "
+                    f"{self.resolution_ns!r} and "
+                    f"{self.accepted_feedback_sha256!r}"
+                )
+            if (
+                self.terminal_class is TerminalClass.FEEDBACK_TIMEOUT
+                and self.closed_ns <= self.deadline_ns
+            ):
+                raise RewardTicketControllerError(
+                    f"a FEEDBACK_TIMEOUT closes only after the deadline has "
+                    f"passed, so closed_ns {self.closed_ns} must exceed "
+                    f"deadline_ns {self.deadline_ns}"
+                )
 
     # -- derived ----------------------------------------------------------- #
 
@@ -773,6 +952,7 @@ class GateStatus:
     held_decision_seq: Optional[int]
     governed_tensor_count: int
     min_hold_satisfied: bool
+    min_hold_satisfied_ns: Optional[int]
     opened_ns: Optional[int]
     deadline_ns: Optional[int]
     remaining_ns: Optional[int]
@@ -874,6 +1054,10 @@ class _ActiveTicket:
     opened_ns: int
     deadline_ns: int
     envelopes: List[TensorTransmissionEnvelope]
+    #: The instant of the admission that first brought the hold to ``k_min``
+    #: tensors.  ``None`` until that admission happens, and written exactly
+    #: once thereafter -- never by feedback, a deadline, a fault or closure.
+    min_hold_satisfied_ns: Optional[int] = None
     pending_terminal_class: Optional[TerminalClass] = None
     resolution_ns: Optional[int] = None
     accepted_feedback_sha256: Optional[str] = None
@@ -881,6 +1065,18 @@ class _ActiveTicket:
     @property
     def tensor_count(self) -> int:
         return len(self.envelopes)
+
+    def stamp_min_hold(self, now_ns: int) -> None:
+        """Record the ``k_min``-satisfying instant, at most once per ticket.
+
+        Called after every successful admission.  The ``is None`` guard is what
+        makes the stamp immune to later reused frames: a hold of three or more
+        tensors keeps the timestamp of its *second* tensor.
+        """
+        if self.min_hold_satisfied_ns is None and (
+            self.tensor_count >= K_MIN_TENSORS
+        ):
+            self.min_hold_satisfied_ns = now_ns
 
     @property
     def reward_tensor_seq(self) -> int:
@@ -917,6 +1113,20 @@ class RewardTicketController:
     exactly one of them.  :meth:`admit_frame` invokes the supplied actor
     callable **only** when the gate is available, so the actor is provably not
     consulted during a hold.
+
+    **This class is not thread-safe and is intentionally unlocked.**  Frame
+    admission, feedback submission, clock/deadline observation and
+    infrastructure-fault recording all mutate the same gate state, and the
+    single-outstanding-ticket, strictly-increasing-sequence and monotonic-clock
+    invariants are enforced without any mutual exclusion.  A runtime embedding
+    this controller must serialize all four event kinds through one event loop
+    or queue; see the module docstring.
+
+    Memory: the terminal history is bounded by ``max_terminal_history``, but the
+    set of admitted ``carla_frame_id`` values is **session-lifetime** state, by
+    design -- frame non-readmission must not expire when a ticket is evicted.
+    It grows by one integer per admitted frame and is released with the
+    controller.
     """
 
     __slots__ = (
@@ -925,6 +1135,7 @@ class RewardTicketController:
         "_state",
         "_ticket",
         "_history",
+        "_admitted_frame_ids",
         "_last_observed_ns",
         "_last_decision_seq",
         "_last_tensor_seq",
@@ -956,6 +1167,9 @@ class RewardTicketController:
         self._state: ControllerState = ControllerState.READY
         self._ticket: Optional[_ActiveTicket] = None
         self._history: "OrderedDict[int, CompletedTicket]" = OrderedDict()
+        # Session-lifetime identity set, deliberately *not* bounded by
+        # max_terminal_history: frame non-readmission must survive eviction.
+        self._admitted_frame_ids: "set[int]" = set()
         self._last_observed_ns: Optional[int] = None
         self._last_decision_seq: Optional[int] = None
         self._last_tensor_seq: Optional[int] = None
@@ -1103,6 +1317,13 @@ class RewardTicketController:
                 f"a ticket cannot close with {ticket.tensor_count} governed "
                 f"tensors; the frozen minimum hold is k_min={K_MIN_TENSORS}"
             )
+        min_hold_satisfied_ns = ticket.min_hold_satisfied_ns
+        if min_hold_satisfied_ns is None:  # pragma: no cover - guarded above
+            raise IllegalTransitionError(
+                f"decision {ticket.decision_seq} has {ticket.tensor_count} "
+                f"governed tensors but no recorded k_min-satisfying instant; a "
+                f"ticket cannot close without one"
+            )
         completed = CompletedTicket(
             session_uuid=self._session_uuid,
             decision_seq=ticket.decision_seq,
@@ -1113,7 +1334,7 @@ class RewardTicketController:
             closed_ns=now_ns,
             resolution_ns=ticket.resolution_ns,
             accepted_feedback_sha256=ticket.accepted_feedback_sha256,
-            min_hold_satisfied_ns=now_ns,
+            min_hold_satisfied_ns=min_hold_satisfied_ns,
         )
         self._transition(event, ControllerState.CLOSED)
         self._ticket = None
@@ -1151,6 +1372,9 @@ class RewardTicketController:
             min_hold_satisfied=(
                 False if ticket is None else ticket.tensor_count >= K_MIN_TENSORS
             ),
+            min_hold_satisfied_ns=(
+                None if ticket is None else ticket.min_hold_satisfied_ns
+            ),
             opened_ns=None if ticket is None else ticket.opened_ns,
             deadline_ns=None if ticket is None else ticket.deadline_ns,
             remaining_ns=remaining,
@@ -1161,14 +1385,19 @@ class RewardTicketController:
     # -- frame admission --------------------------------------------------- #
 
     def _reject_readmitted_frame(self, carla_frame_id: int) -> None:
-        """Refuse a frame already governed by a retained decision.
+        """Refuse any frame already admitted anywhere in this session.
 
         A decision may open only on a *future* frame.  ``carla_frame_id`` is not
-        chronology, so this is a set membership test over the active hold and the
-        bounded terminal history, never an ordering comparison.  The check is
-        exact inside the retained window; beyond it, a strictly increasing
-        ``decision_seq`` already makes retroactive re-decision unrepresentable.
+        chronology, so this is a set membership test, never an ordering
+        comparison.  The set spans the **whole controller session** and is
+        independent of ``max_terminal_history``: a frame stays refused after its
+        completed ticket has been evicted from the bounded terminal history.
+        The decision named in the message is best-effort diagnostic detail
+        drawn from whatever is still retained; the refusal itself does not
+        depend on it.
         """
+        if carla_frame_id not in self._admitted_frame_ids:
+            return
         if self._ticket is not None and carla_frame_id in (
             self._ticket.governed_frame_ids
         ):
@@ -1186,6 +1415,12 @@ class RewardTicketController:
                     f"retroactively on one already admitted under the old "
                     f"action"
                 )
+        raise FrameReadmissionError(
+            f"carla_frame_id {carla_frame_id} was already admitted earlier in "
+            f"this controller session; its completed ticket has since been "
+            f"evicted from the bounded terminal history, but frame "
+            f"non-readmission is session-lifetime and does not expire with it"
+        )
 
     def open_decision(
         self,
@@ -1263,6 +1498,11 @@ class RewardTicketController:
         self._transition(TicketEvent.OPEN_DECISION, ControllerState.OPEN_UNRESOLVED)
         self._last_decision_seq = decision_seq
         self._last_tensor_seq = tensor_seq
+        # k_min is frozen at 2, so opening never satisfies the minimum hold;
+        # the call is kept unconditional so the stamp has exactly one writer.
+        self._ticket.stamp_min_hold(now_ns)
+        # Recorded only now that the admission has fully succeeded.
+        self._admitted_frame_ids.add(carla_frame_id)
         return AdmissionResult(
             disposition=AdmissionDisposition.OPENED_NEW_DECISION,
             envelope=envelope,
@@ -1337,6 +1577,12 @@ class RewardTicketController:
         self._last_tensor_seq = tensor_seq
         governed_index = ticket.tensor_count
         deadline_ns = ticket.deadline_ns
+        # Stamp before any closure, so a terminal-pending ticket released by
+        # this very tensor carries this instant rather than its closure time --
+        # which for that one path are the same instant anyway.
+        ticket.stamp_min_hold(now_ns)
+        # Recorded only now that the admission has fully succeeded.
+        self._admitted_frame_ids.add(carla_frame_id)
 
         if state_before is ControllerState.OPEN_UNRESOLVED:
             self._transition(

@@ -16,6 +16,9 @@ Ten test methods:
 9.  ``test_controller_schema_descriptor_is_immutable_and_hash_bound``
 10. ``test_terminal_classes_stay_distinguishable_and_unscored``
 11. ``test_malformed_inputs_and_record_guards_fail_closed``
+12. ``test_min_hold_timestamp_is_stamped_once_at_k_min`` (phase 3b.1)
+13. ``test_frame_non_readmission_is_session_lifetime`` (phase 3b.1)
+14. ``test_completed_ticket_timestamp_and_terminal_algebra`` (phase 3b.1)
 
 The schema hash in test 9 is recomputed with a locally written canonicalizer
 rather than by calling the module's own helper, so the test does not merely
@@ -212,6 +215,10 @@ class RewardTicketControllerTest(unittest.TestCase):
         self.assertEqual(closed.learning_disposition, "included")
         self.assertEqual(closed.resolution_ns, T0 + 150 * MS)
         self.assertEqual(closed.feedback_latency_ns, 150 * MS)
+        # the k_min instant is the tensor-2 admission, not the closure
+        self.assertEqual(closed.min_hold_satisfied_ns, T0 + 100 * MS)
+        self.assertEqual(closed.closed_ns, T0 + 150 * MS)
+        self.assertLess(closed.min_hold_satisfied_ns, closed.closed_ns)
         self.assertFalse(closed.timed_out)
         self.assertEqual(closed.accepted_feedback_sha256, message.canonical_sha256())
         # the completed-ticket summary serializes only through a reconciled action
@@ -376,6 +383,9 @@ class RewardTicketControllerTest(unittest.TestCase):
         self.assertEqual(closed.hold_duration_tensors, 4)
         self.assertEqual(closed.tensor_seqs, (40, 41, 42, 43))
         self.assertEqual(closed.governed_frame_ids, (300, 301, 302, 303))
+        # k_min was reached by the second tensor and later reuses never moved it
+        self.assertEqual(closed.min_hold_satisfied_ns, T0 + 40 * MS)
+        self.assertEqual(closed.closed_ns, T0 + 160 * MS)
         self.assertEqual(closed.reward_tensor_seq, 40)
         # every governed tensor after the first reused the action without a
         # second reward request
@@ -438,6 +448,10 @@ class RewardTicketControllerTest(unittest.TestCase):
             "censored_pending_post_run_reconciliation",
         )
         self.assertEqual(timed_out.hold_duration_tensors, 2)
+        # a timeout closes at the expiry observation but the k_min instant is
+        # still the tensor-2 admission
+        self.assertEqual(timed_out.min_hold_satisfied_ns, T0 + 100 * MS)
+        self.assertEqual(timed_out.closed_ns, T0 + B + 1)
         orphan = late.submit_feedback(
             self._message(action, decision_seq=0, reward_tensor_seq=0,
                           carla_frame_id=410),
@@ -480,6 +494,9 @@ class RewardTicketControllerTest(unittest.TestCase):
         self.assertIs(
             released.terminal_class, rtc.TerminalClass.FEEDBACK_TIMEOUT
         )
+        # here the k_min-satisfying reuse *is* the release, so they coincide
+        self.assertEqual(released.min_hold_satisfied_ns, T0 + B + 10 * MS)
+        self.assertEqual(released.closed_ns, T0 + B + 10 * MS)
 
         # (d) a timed-out decision can never attach to a newer decision
         newer_action = self._action(mode_id=8, q_e4=3000)
@@ -943,7 +960,8 @@ class RewardTicketControllerTest(unittest.TestCase):
             rtc.CONTROLLER_SCHEMA_ID,
             "splitfusion_hybrid_sac_reward_ticket_controller_v1",
         )
-        self.assertEqual(rtc.CONTROLLER_SCHEMA_VERSION, 1)
+        self.assertEqual(rtc.CONTROLLER_SCHEMA_VERSION, 2)
+        self.assertIn("phase 3b.1", descriptor["revision_note"])
         self.assertEqual(
             rtc.CONTROLLER_SCHEMA_SHA256, _independent_sha256(descriptor)
         )
@@ -972,6 +990,21 @@ class RewardTicketControllerTest(unittest.TestCase):
         self.assertEqual(constants["reward_deadline_ns"], rtc.B_REWARD_DEADLINE_NS)
         self.assertEqual(constants["minimum_hold_tensors"], rtc.K_MIN_TENSORS)
         self.assertEqual(constants["outstanding_tickets_max"], 1)
+
+        # the phase-3b.1 clauses are part of the hashed contract
+        self.assertIn("session", descriptor["frame_readmission"])
+        self.assertIn("evicted", descriptor["frame_readmission"])
+        self.assertIn("exactly once", descriptor["min_hold_timestamp"])
+        self.assertIn("never overwritten", descriptor["min_hold_timestamp"])
+        # the concurrency contract is stated explicitly and is hash-bound
+        self.assertIn("not thread-safe", descriptor["concurrency"])
+        self.assertIn("serialize", descriptor["concurrency"])
+        self.assertIn("event loop", descriptor["concurrency"])
+        for text in (
+            rtc.__doc__ or "", rtc.RewardTicketController.__doc__ or ""
+        ):
+            self.assertIn("not thread-safe", text)
+            self.assertIn("serialize", text)
 
         # the dependency schema ids and hashes are bound exactly
         dependencies = descriptor["dependencies"]
@@ -1316,6 +1349,335 @@ class RewardTicketControllerTest(unittest.TestCase):
         self.assertEqual(opened.carla_frame_id, 9)
         self.assertEqual(controller.session_uuid, SESSION)
         self.assertEqual(controller.last_observed_ns, T0 + 500 * MS)
+
+    # ----------------------------------------------------------------- 12 -- #
+
+    def test_min_hold_timestamp_is_stamped_once_at_k_min(self) -> None:
+        """Phase 3b.1: the k_min instant is an admission, never a closure."""
+        action = self._action(mode_id=2, q_e4=3000)
+
+        # (a) normal feedback: stamped at tensor 2, closed later by feedback
+        normal = self._controller()
+        normal.open_decision(
+            decision_seq=0, tensor_seq=0, carla_frame_id=1,
+            action=action, now_ns=T0,
+        )
+        self.assertIsNone(normal.snapshot().min_hold_satisfied_ns)
+        normal.reuse_held_action(
+            tensor_seq=1, carla_frame_id=2, now_ns=T0 + 40 * MS
+        )
+        self.assertEqual(normal.snapshot().min_hold_satisfied_ns, T0 + 40 * MS)
+        self.assertTrue(normal.snapshot().min_hold_satisfied)
+        closed = normal.submit_feedback(
+            self._message(action, decision_seq=0, reward_tensor_seq=0,
+                          carla_frame_id=1),
+            T0 + 120 * MS,
+        ).completed_ticket
+        assert closed is not None
+        self.assertEqual(closed.min_hold_satisfied_ns, T0 + 40 * MS)
+        self.assertEqual(closed.closed_ns, T0 + 120 * MS)
+        self.assertEqual(closed.resolution_ns, T0 + 120 * MS)
+        # feedback did not overwrite the admission instant
+        self.assertNotEqual(closed.min_hold_satisfied_ns, closed.closed_ns)
+        self.assertEqual(
+            closed.to_canonical_dict()["min_hold_satisfied_ns"], T0 + 40 * MS
+        )
+
+        # (b) early feedback: the releasing reuse is itself the k_min instant
+        early = self._controller()
+        early.open_decision(
+            decision_seq=0, tensor_seq=0, carla_frame_id=11,
+            action=action, now_ns=T0,
+        )
+        early.submit_feedback(
+            self._message(action, decision_seq=0, reward_tensor_seq=0,
+                          carla_frame_id=11),
+            T0 + 10 * MS,
+        )
+        # accepting feedback while below k_min must not stamp anything
+        self.assertIsNone(early.snapshot().min_hold_satisfied_ns)
+        early_closed = early.reuse_held_action(
+            tensor_seq=1, carla_frame_id=12, now_ns=T0 + 60 * MS
+        ).completed_ticket
+        assert early_closed is not None
+        self.assertEqual(early_closed.min_hold_satisfied_ns, T0 + 60 * MS)
+        self.assertEqual(early_closed.closed_ns, T0 + 60 * MS)
+        self.assertEqual(early_closed.resolution_ns, T0 + 10 * MS)
+        # the resolution precedes the hold being satisfied, which is legal
+        self.assertLess(
+            early_closed.resolution_ns, early_closed.min_hold_satisfied_ns
+        )
+
+        # (c) timeout after two tensors: stamped at tensor 2, closed at expiry
+        timeout = self._controller()
+        timeout.open_decision(
+            decision_seq=0, tensor_seq=0, carla_frame_id=21,
+            action=action, now_ns=T0,
+        )
+        timeout.reuse_held_action(
+            tensor_seq=1, carla_frame_id=22, now_ns=T0 + 30 * MS
+        )
+        expired = timeout.observe(T0 + B + 1).completed_ticket
+        assert expired is not None
+        self.assertIs(expired.terminal_class, rtc.TerminalClass.FEEDBACK_TIMEOUT)
+        self.assertEqual(expired.min_hold_satisfied_ns, T0 + 30 * MS)
+        self.assertEqual(expired.closed_ns, T0 + B + 1)
+        # neither the deadline nor the closure supplied the stamp
+        self.assertNotEqual(expired.min_hold_satisfied_ns, expired.deadline_ns)
+        self.assertNotEqual(expired.min_hold_satisfied_ns, expired.closed_ns)
+
+        # (d) reuse beyond k_min never moves the stamp
+        long_hold = self._controller()
+        long_hold.open_decision(
+            decision_seq=0, tensor_seq=0, carla_frame_id=31,
+            action=action, now_ns=T0,
+        )
+        long_hold.reuse_held_action(
+            tensor_seq=1, carla_frame_id=32, now_ns=T0 + 20 * MS
+        )
+        for tensor_seq, frame_id, offset in (
+            (2, 33, 40 * MS), (3, 34, 60 * MS), (4, 35, 80 * MS),
+        ):
+            with self.subTest(tensor_seq=tensor_seq):
+                long_hold.reuse_held_action(
+                    tensor_seq=tensor_seq, carla_frame_id=frame_id,
+                    now_ns=T0 + offset,
+                )
+                self.assertEqual(
+                    long_hold.snapshot().min_hold_satisfied_ns, T0 + 20 * MS
+                )
+        long_closed = long_hold.submit_feedback(
+            self._message(action, decision_seq=0, reward_tensor_seq=0,
+                          carla_frame_id=31),
+            T0 + 100 * MS,
+        ).completed_ticket
+        assert long_closed is not None
+        self.assertEqual(long_closed.hold_duration_tensors, 5)
+        self.assertEqual(long_closed.min_hold_satisfied_ns, T0 + 20 * MS)
+
+        # (e) an infrastructure fault below k_min also leaves the stamp to the
+        # releasing admission
+        faulted = self._controller()
+        faulted.open_decision(
+            decision_seq=0, tensor_seq=0, carla_frame_id=41,
+            action=action, now_ns=T0,
+        )
+        faulted.record_infrastructure_fault(
+            decision_seq=0, now_ns=T0 + 5 * MS, detail="evaluator fault"
+        )
+        self.assertIsNone(faulted.snapshot().min_hold_satisfied_ns)
+        fault_closed = faulted.reuse_held_action(
+            tensor_seq=1, carla_frame_id=42, now_ns=T0 + 70 * MS
+        ).completed_ticket
+        assert fault_closed is not None
+        self.assertEqual(fault_closed.min_hold_satisfied_ns, T0 + 70 * MS)
+        self.assertIsNone(fault_closed.resolution_ns)
+
+    # ----------------------------------------------------------------- 13 -- #
+
+    def test_frame_non_readmission_is_session_lifetime(self) -> None:
+        """Phase 3b.1: a frame stays refused after its ticket is evicted."""
+        controller = self._controller(max_terminal_history=1)
+        action = self._action(mode_id=6, q_e4=5000)
+
+        first = self._complete_two_tensor_ticket(
+            controller, decision_seq=0, first_tensor_seq=0,
+            first_frame_id=10, opened_ns=T0, action=action,
+        )
+        self.assertEqual(controller.retained_decision_seqs, (0,))
+        self._complete_two_tensor_ticket(
+            controller, decision_seq=1, first_tensor_seq=2,
+            first_frame_id=12, opened_ns=T0 + 300 * MS, action=action,
+        )
+        # the bounded history has evicted the first ticket entirely
+        self.assertEqual(controller.retained_decision_seqs, (1,))
+        self.assertEqual(controller.completed_count, 2)
+        self.assertEqual(first.governed_frame_ids, (10, 11))
+        self.assertNotIn(
+            first.decision_seq,
+            [t.decision_seq for t in controller.completed_tickets],
+        )
+        # its feedback is no longer classifiable ...
+        self.assertIs(
+            controller.submit_feedback(
+                self._message(
+                    action, decision_seq=first.decision_seq,
+                    reward_tensor_seq=first.reward_tensor_seq,
+                    carla_frame_id=first.reward_carla_frame_id,
+                ),
+                T0 + 600 * MS,
+            ).disposition,
+            rtc.FeedbackDisposition.REJECTED_UNKNOWN_DECISION,
+        )
+        # ... but its frames can still never be re-admitted
+        for evicted_frame in first.governed_frame_ids:
+            with self.subTest(frame=evicted_frame, path="open"):
+                with self.assertRaises(rtc.FrameReadmissionError):
+                    controller.open_decision(
+                        decision_seq=2, tensor_seq=4,
+                        carla_frame_id=evicted_frame,
+                        action=action, now_ns=T0 + 610 * MS,
+                    )
+        self.assertIs(controller.state, rtc.ControllerState.CLOSED)
+        self.assertTrue(controller.gate_available)
+
+        # the same holds on the reuse path
+        controller.open_decision(
+            decision_seq=2, tensor_seq=4, carla_frame_id=14,
+            action=action, now_ns=T0 + 620 * MS,
+        )
+        for evicted_frame in first.governed_frame_ids:
+            with self.subTest(frame=evicted_frame, path="reuse"):
+                with self.assertRaises(rtc.FrameReadmissionError):
+                    controller.reuse_held_action(
+                        tensor_seq=5, carla_frame_id=evicted_frame,
+                        now_ns=T0 + 630 * MS,
+                    )
+        self.assertEqual(controller.snapshot().governed_tensor_count, 1)
+
+        # a frame id is recorded only after a *successful* admission: a frame
+        # rejected on an unrelated rule stays admissible afterwards
+        with self.assertRaises(rtc.SequenceOrderError):
+            controller.reuse_held_action(
+                tensor_seq=4, carla_frame_id=99, now_ns=T0 + 640 * MS
+            )
+        accepted = controller.reuse_held_action(
+            tensor_seq=5, carla_frame_id=99, now_ns=T0 + 650 * MS
+        )
+        self.assertEqual(accepted.carla_frame_id, 99)
+        self.assertEqual(accepted.governed_tensor_index, 2)
+        # and now that it succeeded, it is refused like any other
+        with self.assertRaises(rtc.FrameReadmissionError):
+            controller.reuse_held_action(
+                tensor_seq=6, carla_frame_id=99, now_ns=T0 + 660 * MS
+            )
+
+    # ----------------------------------------------------------------- 14 -- #
+
+    def test_completed_ticket_timestamp_and_terminal_algebra(self) -> None:
+        """Phase 3b.1: the hardened completed-ticket invariants."""
+        controller = self._controller()
+        action = self._action(mode_id=3, q_e4=7000)
+        closed = self._complete_two_tensor_ticket(
+            controller, decision_seq=0, first_tensor_seq=0,
+            first_frame_id=1, opened_ns=T0, action=action,
+        )
+        valid = dict(
+            session_uuid=closed.session_uuid,
+            decision_seq=closed.decision_seq,
+            hold=closed.hold,
+            terminal_class=closed.terminal_class,
+            opened_ns=closed.opened_ns,
+            deadline_ns=closed.deadline_ns,
+            closed_ns=closed.closed_ns,
+            resolution_ns=closed.resolution_ns,
+            accepted_feedback_sha256=closed.accepted_feedback_sha256,
+            min_hold_satisfied_ns=closed.min_hold_satisfied_ns,
+        )
+        # the real record satisfies the whole algebra
+        self.assertEqual(closed.deadline_ns, closed.opened_ns + B)
+        self.assertLessEqual(closed.opened_ns, closed.min_hold_satisfied_ns)
+        self.assertLessEqual(closed.min_hold_satisfied_ns, closed.closed_ns)
+        self.assertEqual(
+            rtc.CompletedTicket(**valid).canonical_sha256(),
+            closed.canonical_sha256(),
+        )
+
+        digest = closed.accepted_feedback_sha256
+        assert digest is not None
+        cases = (
+            # deadline must be exactly opened_ns + B
+            ("deadline short", {"deadline_ns": closed.opened_ns + B - 1}),
+            ("deadline long", {"deadline_ns": closed.opened_ns + B + 1}),
+            ("deadline zero", {"deadline_ns": 0}),
+            # opened <= min_hold <= closed
+            ("min hold before open",
+             {"min_hold_satisfied_ns": closed.opened_ns - 1}),
+            ("min hold after close",
+             {"min_hold_satisfied_ns": closed.closed_ns + 1}),
+            # feedback-resolved classes need both feedback fields
+            ("resolved without resolution_ns", {"resolution_ns": None}),
+            ("resolved without digest", {"accepted_feedback_sha256": None}),
+            ("resolution before open",
+             {"resolution_ns": closed.opened_ns - 1}),
+            ("resolution after close",
+             {"resolution_ns": closed.closed_ns + 1,
+              "closed_ns": closed.closed_ns}),
+            # timeout/fault classes must carry neither
+            ("timeout with resolution",
+             {"terminal_class": rtc.TerminalClass.FEEDBACK_TIMEOUT}),
+            ("fault with digest",
+             {"terminal_class": rtc.TerminalClass.INFRASTRUCTURE_FAULT_EXCLUDED}),
+            # a timeout can only close after the deadline
+            ("timeout closing before deadline",
+             {"terminal_class": rtc.TerminalClass.FEEDBACK_TIMEOUT,
+              "resolution_ns": None, "accepted_feedback_sha256": None}),
+            # format validation
+            ("float opened_ns", {"opened_ns": float(closed.opened_ns)}),
+            ("negative opened_ns", {"opened_ns": -1}),
+            ("bool decision_seq", {"decision_seq": True}),
+            ("negative decision_seq", {"decision_seq": -1}),
+            ("bool closed_ns", {"closed_ns": True}),
+            ("digest too short", {"accepted_feedback_sha256": digest[:63]}),
+            ("digest uppercase", {"accepted_feedback_sha256": digest.upper()}),
+            ("digest non-hex",
+             {"accepted_feedback_sha256": "z" * 64}),
+            ("digest not a str", {"accepted_feedback_sha256": 1}),
+            ("session not canonical",
+             {"session_uuid": closed.session_uuid.upper()}),
+        )
+        for label, override in cases:
+            with self.subTest(case=label):
+                with self.assertRaises(rtc.RewardTicketControllerError):
+                    rtc.CompletedTicket(**{**valid, **override})
+
+        # a real timeout ticket is the positive control for the other branch
+        timeout_ctl = self._controller()
+        timeout_ctl.open_decision(
+            decision_seq=0, tensor_seq=0, carla_frame_id=1,
+            action=action, now_ns=T0,
+        )
+        timeout_ctl.reuse_held_action(
+            tensor_seq=1, carla_frame_id=2, now_ns=T0 + 10 * MS
+        )
+        expired = timeout_ctl.observe(T0 + B + 1).completed_ticket
+        assert expired is not None
+        self.assertIsNone(expired.resolution_ns)
+        self.assertIsNone(expired.accepted_feedback_sha256)
+        self.assertGreater(expired.closed_ns, expired.deadline_ns)
+        timeout_valid = dict(
+            session_uuid=expired.session_uuid,
+            decision_seq=expired.decision_seq,
+            hold=expired.hold,
+            terminal_class=expired.terminal_class,
+            opened_ns=expired.opened_ns,
+            deadline_ns=expired.deadline_ns,
+            closed_ns=expired.closed_ns,
+            resolution_ns=None,
+            accepted_feedback_sha256=None,
+            min_hold_satisfied_ns=expired.min_hold_satisfied_ns,
+        )
+        self.assertEqual(
+            rtc.CompletedTicket(**timeout_valid).canonical_sha256(),
+            expired.canonical_sha256(),
+        )
+        for label, override in (
+            ("timeout gains a digest",
+             {"accepted_feedback_sha256": digest}),
+            ("timeout gains a resolution",
+             {"resolution_ns": expired.opened_ns + 1}),
+            ("reward class without feedback fields",
+             {"terminal_class": rtc.TerminalClass.REWARD_FINAL_EXACT}),
+            # feedback accepted past the deadline is a LATE_ORPHAN and can
+            # never be the resolution of a closed ticket
+            ("resolution past the deadline",
+             {"terminal_class": rtc.TerminalClass.REWARD_FINAL_EXACT,
+              "resolution_ns": expired.deadline_ns + 1,
+              "accepted_feedback_sha256": digest}),
+        ):
+            with self.subTest(case=label):
+                with self.assertRaises(rtc.RewardTicketControllerError):
+                    rtc.CompletedTicket(**{**timeout_valid, **override})
 
 
 if __name__ == "__main__":  # pragma: no cover
