@@ -341,6 +341,10 @@ class _StoredRow:
     q_e4: int
     reward: float
     duration: int
+    #: The contract's own derived ``gamma_per_tensor ** duration``, validated
+    #: in the replay dtype at insertion and carried verbatim into the batch.
+    #: It is never recomputed downstream; see :meth:`ReplayTensorBatchV1.discount`.
+    discount_multiplier: float
     terminated: bool
     truncated: bool
 
@@ -413,6 +417,7 @@ class ReplayTensorBatchV1:
     _q_e4: Tensor
     _reward: Tensor
     _duration: Tensor
+    _discount: Tensor
     _has_next_state: Tensor
     _bootstrap: Tensor
     _terminated: Tensor
@@ -429,6 +434,7 @@ class ReplayTensorBatchV1:
         "_q_e4",
         "_reward",
         "_duration",
+        "_discount",
         "_has_next_state",
         "_bootstrap",
         "_terminated",
@@ -527,11 +533,29 @@ class ReplayTensorBatchV1:
         return self.binding.gamma_per_tensor
 
     def discount(self) -> Tensor:
-        """``[B]`` float ``gamma ** d``, the SMDP discount per row."""
-        return torch.pow(
-            torch.tensor(self.gamma_per_tensor, dtype=self.float_dtype),
-            self._duration.to(self.float_dtype),
-        )
+        """``[B]`` float SMDP discount, exactly as the contract derived it.
+
+        This returns the stored per-row ``transition.discount_multiplier``
+        converted once to the replay dtype.  It deliberately does **not**
+        recompute ``gamma ** duration``, because rounding ``gamma`` to the
+        replay dtype *before* exponentiating is not the same number as
+        rounding the contract's own ``float64`` power afterwards, and the gap
+        is not small.  With ``gamma = 0.99999999`` and ``d = 150``, float32
+        rounds ``gamma`` to exactly ``1.0`` and the recomputed discount
+        becomes ``1.0`` instead of ``0.9999985098838806``; with
+        ``gamma = 0.500000021051642`` and ``d = 150`` the recomputed value
+        underflows to ``0.0`` while the correct conversion is the smallest
+        float32 subnormal.  One validated value is derived once, by the
+        contract, and carried verbatim.
+
+        Phase-C integration requirement: the trainer must consume this method.
+        It must not form its own discount with
+        ``hybrid_sac_models.critic_target`` in that function's present
+        dtype-first ``gamma``/``duration`` form (it builds
+        ``torch.pow(tensor(gamma, dtype), duration)``), because doing so would
+        reintroduce exactly this rounding defect.
+        """
+        return self._discount.clone()
 
     def to_canonical_metadata(self) -> Dict[str, Any]:
         """Deterministic non-tensor description of this batch."""
@@ -785,14 +809,20 @@ class ReplayBufferV1:
         _assert_finite_in_dtype(
             [q_e4 / float(Q_CRITIC_NORMALIZER)], "q_normalized_executed", dtype
         )
-        # A nonzero discount that underflows to exactly zero is not an
-        # overflow, but it silently erases the entire bootstrap term, so it is
-        # refused on the same principle.
-        if discount > 0.0 and float(torch.tensor(discount, dtype=dtype)) == 0.0:
+        # A nonzero discount that underflows to exactly zero silently erases
+        # the bootstrap term -- but only for a row that actually bootstraps.
+        # A terminal or next-state-free row never multiplies by this discount,
+        # so refusing it for an unused value would reject good evidence.
+        bootstraps = next_values is not None and not transition.terminated
+        if (
+            bootstraps
+            and discount > 0.0
+            and float(torch.tensor(discount, dtype=dtype)) == 0.0
+        ):
             raise NonFiniteInReplayDtypeError(
                 f"discount_multiplier {discount!r} underflows to exactly zero "
-                f"in replay dtype {dtype}; the bootstrap term would be "
-                f"silently erased"
+                f"in replay dtype {dtype} on a bootstrap-eligible row; the "
+                f"bootstrap term would be silently erased"
             )
 
         digest = transition.canonical_sha256()
@@ -830,6 +860,7 @@ class ReplayBufferV1:
             q_e4=q_e4,
             reward=reward,
             duration=duration,
+            discount_multiplier=discount,
             terminated=bool(transition.terminated),
             truncated=bool(transition.truncated),
         )
@@ -945,6 +976,11 @@ class ReplayBufferV1:
             _reward=torch.tensor([row.reward for row in rows], dtype=float_dtype),
             _duration=torch.tensor(
                 [row.duration for row in rows], dtype=torch.int64
+            ),
+            # The contract's derived discount, converted once.  Never
+            # recomputed from gamma and duration in the replay dtype.
+            _discount=torch.tensor(
+                [row.discount_multiplier for row in rows], dtype=float_dtype
             ),
             _has_next_state=torch.tensor(
                 [row.has_next_state for row in rows], dtype=torch.bool

@@ -730,11 +730,21 @@ class TensorizationTest(ReplayBufferTestBase):
                 self._transition(extra_reuses=index, tag=f"disc{index}")
             )
         batch = buffer.sample(3, torch.Generator().manual_seed(6))
-        gamma = batch.gamma_per_tensor
+        by_digest = {
+            transition.canonical_sha256(): transition
+            for transition in buffer.stored_transitions()
+        }
         for row in range(3):
-            duration = int(batch.duration[row])
-            self.assertAlmostEqual(
-                float(batch.discount()[row]), gamma ** duration, places=6
+            source = by_digest[batch.audit[row]["transition_sha256"]]
+            # The emitted discount is the contract's own derived value
+            # converted once -- not gamma ** duration recomputed in float32.
+            self.assertEqual(
+                float(batch.discount()[row]),
+                float(
+                    torch.tensor(
+                        source.discount_multiplier, dtype=batch.float_dtype
+                    )
+                ),
             )
         for transition in buffer.stored_transitions():
             self.assertEqual(
@@ -975,6 +985,179 @@ class ReplayDtypeOverflowTest(ReplayBufferTestBase):
             )
 
 
+class DiscountFidelityTest(ReplayBufferTestBase):
+    """The emitted discount is the contract's value, never a recomputation.
+
+    Rounding ``gamma`` into the replay dtype and *then* exponentiating is a
+    different number from rounding the contract's own float64 power.  These
+    cases pin the difference so the recomputation cannot come back.
+    """
+
+    def _single(self, gamma: float, extra_reuses: int, **kwargs):
+        spec = self._reward_spec(gamma_per_tensor=gamma)
+        transition = self._transition(
+            spec=spec, extra_reuses=extra_reuses, tag=f"disc{gamma}", **kwargs
+        )
+        buffer = rbuf.ReplayBufferV1(capacity=2, float_dtype=torch.float32)
+        buffer.insert(transition)
+        batch = buffer.sample(1, torch.Generator().manual_seed(0))
+        return transition, batch
+
+    def test_case_a_subnormal_discount_is_not_flushed_to_zero(self) -> None:
+        gamma = 0.500000021051642
+        transition, batch = self._single(gamma, extra_reuses=148)
+        self.assertEqual(transition.hold_duration_tensors, 150)
+        self.assertTrue(bool(batch.bootstrap[0]))
+
+        direct = torch.tensor(
+            transition.discount_multiplier, dtype=torch.float32
+        )
+        self.assertNotEqual(float(direct), 0.0)
+        self.assertEqual(float(batch.discount()[0]), float(direct))
+        self.assertNotEqual(
+            float(batch.discount()[0]),
+            0.0,
+            "a nonzero direct conversion was flushed to zero",
+        )
+        # What the removed recomputation would have produced.
+        recomputed = float(
+            torch.pow(
+                torch.tensor(gamma, dtype=torch.float32),
+                torch.tensor(150.0, dtype=torch.float32),
+            )
+        )
+        self.assertEqual(recomputed, 0.0)
+        self.assertNotEqual(float(batch.discount()[0]), recomputed)
+
+    def test_case_b_near_one_gamma_does_not_collapse_to_one(self) -> None:
+        gamma = 0.99999999
+        transition, batch = self._single(gamma, extra_reuses=148)
+        self.assertEqual(transition.hold_duration_tensors, 150)
+
+        emitted = float(batch.discount()[0])
+        direct = float(
+            torch.tensor(transition.discount_multiplier, dtype=torch.float32)
+        )
+        self.assertEqual(emitted, direct)
+        self.assertAlmostEqual(emitted, 0.9999985098838806, places=12)
+        self.assertNotEqual(emitted, 1.0)
+        # float32 rounds this gamma to exactly 1.0, so the old recomputation
+        # produced 1.0 and erased the discount entirely.
+        self.assertEqual(float(torch.tensor(gamma, dtype=torch.float32)), 1.0)
+        self.assertEqual(
+            float(
+                torch.pow(
+                    torch.tensor(gamma, dtype=torch.float32),
+                    torch.tensor(150.0, dtype=torch.float32),
+                )
+            ),
+            1.0,
+        )
+
+    def test_ordinary_discount_also_comes_from_the_contract(self) -> None:
+        # Even the default gamma drifts: 0.9800999760627747 (correct) versus
+        # 0.9801000356674194 (recomputed).
+        transition, batch = self._single(0.99, extra_reuses=0)
+        self.assertEqual(
+            float(batch.discount()[0]),
+            float(
+                torch.tensor(transition.discount_multiplier, dtype=torch.float32)
+            ),
+        )
+        self.assertNotEqual(
+            float(batch.discount()[0]),
+            float(
+                torch.pow(
+                    torch.tensor(0.99, dtype=torch.float32),
+                    torch.tensor(2.0, dtype=torch.float32),
+                )
+            ),
+        )
+
+    def test_discount_accessor_returns_an_isolated_clone(self) -> None:
+        buffer, _ = self._filled(3)
+        batch = buffer.sample(3, torch.Generator().manual_seed(2))
+        first = batch.discount()
+        second = batch.discount()
+        self.assertNotEqual(first.data_ptr(), second.data_ptr())
+        first.add_(5.0)
+        self.assertTrue(torch.equal(batch.discount(), second))
+        self.assertEqual(first.dtype, batch.float_dtype)
+        self.assertEqual(tuple(first.shape), (3,))
+
+    def test_bootstrap_eligible_underflow_is_rejected_before_mutation(
+        self,
+    ) -> None:
+        # gamma ** d that underflows to exactly zero in float32 on a row that
+        # will actually bootstrap.
+        spec = self._reward_spec(gamma_per_tensor=0.5)
+        transition = self._transition(
+            spec=spec, extra_reuses=148, tag="under-boot"
+        )
+        self.assertFalse(transition.terminated)
+        self.assertIsNotNone(transition.next_state)
+        self.assertGreater(transition.discount_multiplier, 0.0)
+        self.assertEqual(
+            float(
+                torch.tensor(transition.discount_multiplier, dtype=torch.float32)
+            ),
+            0.0,
+        )
+        buffer = rbuf.ReplayBufferV1(capacity=4, float_dtype=torch.float32)
+        with self.assertRaises(rbuf.NonFiniteInReplayDtypeError) as caught:
+            buffer.insert(transition)
+        self.assertIn("bootstrap-eligible", str(caught.exception))
+        self.assertEqual(len(buffer), 0)
+        self.assertEqual(buffer.seen_digest_count, 0)
+        self.assertEqual(buffer.seen_identity_count, 0)
+        self.assertIsNone(buffer.binding)
+
+    def test_terminal_and_no_next_state_underflow_are_accepted(self) -> None:
+        # The same underflowing discount is harmless when the row never
+        # bootstraps, so it must not be rejected.
+        spec = self._reward_spec(gamma_per_tensor=0.5)
+        buffer = rbuf.ReplayBufferV1(capacity=8, float_dtype=torch.float32)
+        cases = (
+            {"terminated": True, "with_next": True},
+            {"terminated": True, "with_next": False},
+            {"truncated": True, "with_next": False},
+        )
+        for index, case in enumerate(cases):
+            buffer.insert(
+                self._transition(
+                    spec=spec,
+                    extra_reuses=148,
+                    tag=f"under-term{index}",
+                    **case,
+                )
+            )
+        self.assertEqual(len(buffer), 3)
+        batch = buffer.sample(3, torch.Generator().manual_seed(0))
+        self.assertFalse(bool(batch.bootstrap.any()))
+        # Their discounts are emitted as the contract's value converted once,
+        # and stay finite even where that value is zero.
+        self.assertTrue(torch.isfinite(batch.discount()).all())
+        self.assertTrue(torch.all(batch.discount() == 0.0))
+
+    def test_emitted_discounts_are_always_finite(self) -> None:
+        for gamma in (0.5, 0.99, 0.99999999, 1.0, 0.500000021051642):
+            spec = self._reward_spec(gamma_per_tensor=gamma)
+            buffer = rbuf.ReplayBufferV1(capacity=4, float_dtype=torch.float32)
+            buffer.insert(
+                self._transition(
+                    spec=spec,
+                    terminated=True,
+                    with_next=False,
+                    extra_reuses=20,
+                    tag=f"fin{gamma}",
+                )
+            )
+            batch = buffer.sample(1, torch.Generator().manual_seed(0))
+            self.assertTrue(
+                torch.isfinite(batch.discount()).all(), f"gamma={gamma}"
+            )
+
+
 class GeneratorRestrictionTest(ReplayBufferTestBase):
     """Replay sampling owns a private CPU stream and nothing else."""
 
@@ -1113,6 +1296,7 @@ class ConstructorAliasingTest(ReplayBufferTestBase):
         q_e4 = torch.zeros(2, dtype=torch.int64)
         reward = torch.zeros(2, dtype=torch.float32)
         duration = torch.full((2,), 2, dtype=torch.int64)
+        discount = torch.zeros(2, dtype=torch.float32)
         mask = torch.zeros(2, dtype=torch.bool)
         binding = rbuf.ReplayBindingV1(
             reward_spec_sha256=HEX_A,
@@ -1133,6 +1317,7 @@ class ConstructorAliasingTest(ReplayBufferTestBase):
             _q_e4=q_e4,
             _reward=reward,
             _duration=duration,
+            _discount=discount,
             _has_next_state=mask,
             _bootstrap=mask,
             _terminated=mask,
@@ -1148,6 +1333,7 @@ class ConstructorAliasingTest(ReplayBufferTestBase):
         q_e4.fill_(9800)
         reward.fill_(3.0)
         duration.fill_(11)
+        discount.fill_(0.5)
         mask.fill_(True)
 
         self.assertTrue(torch.all(batch.state == 0.0))
@@ -1156,6 +1342,7 @@ class ConstructorAliasingTest(ReplayBufferTestBase):
         self.assertTrue(torch.all(batch.q_e4 == 0))
         self.assertTrue(torch.all(batch.reward == 0.0))
         self.assertTrue(torch.all(batch.duration == 2))
+        self.assertTrue(torch.all(batch.discount() == 0.0))
         for name in ("has_next_state", "bootstrap", "terminated", "truncated"):
             self.assertFalse(bool(getattr(batch, name).any()), name)
         # The four masks were one shared tensor; the batch must hold four
