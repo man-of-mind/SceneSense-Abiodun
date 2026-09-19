@@ -7,6 +7,7 @@ import unittest
 from copy import deepcopy
 from dataclasses import replace
 from pathlib import Path
+from types import SimpleNamespace
 from unittest import mock
 
 import cv2
@@ -51,6 +52,7 @@ from .store import ExactRowStore
 from .preflight import behavioral_source_bindings
 from .contract import OfflineGridContractError
 from .executor import (
+    _frozen_detection_match_frame,
     _rehash_bound_runtime_sources,
     _rehash_selection_global_sources,
     _runtime_preflight_evidence,
@@ -185,6 +187,51 @@ class OfflineQualityGridContractTest(unittest.TestCase):
             "anchor_x": "1.0", "anchor_y": "2.0", "anchor_z": "3.0",
             "anchor_pitch": "0.0", "anchor_yaw": "5.0", "anchor_roll": "0.0",
         }
+
+    def test_frame_matcher_uses_the_frozen_detection_module_api(self) -> None:
+        calls: list[tuple[object, object]] = []
+        expected = ({0}, {1}, {0: 1})
+
+        def match_frame(predictions, targets):
+            calls.append((predictions, targets))
+            return expected
+
+        predictions = [{"class_name": "vehicle"}]
+        targets = [{"class_name": "person"}, {"class_name": "vehicle"}]
+        scorers = SimpleNamespace(
+            detection=SimpleNamespace(match_frame=match_frame)
+        )
+        self.assertEqual(
+            _frozen_detection_match_frame(scorers, predictions, targets), expected
+        )
+        self.assertEqual(calls, [(predictions, targets)])
+        with self.assertRaisesRegex(RuntimeError, "does not expose match_frame"):
+            _frozen_detection_match_frame(SimpleNamespace(), predictions, targets)
+
+    def test_frame_matcher_seam_agrees_with_the_real_frozen_matcher(self) -> None:
+        from pole_lraspp_multimodal_fusion.object_head_pilot_v1.splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1.phase5_common import (
+            load_frozen_scorers,
+        )
+
+        scorers = load_frozen_scorers()
+        predictions = [
+            {"class_name": "vehicle", "world_x": 0.1, "world_y": 0.0},
+            {"class_name": "vehicle", "world_x": 1.0, "world_y": 0.0},
+            {"class_name": "person", "world_x": 0.0, "world_y": 0.0},
+        ]
+        targets = [
+            {"class_name": "vehicle", "world_x": 0.0, "world_y": 0.0},
+            {"class_name": "vehicle", "world_x": 2.0, "world_y": 0.0},
+            {"class_name": "person", "world_x": 0.0, "world_y": 0.0},
+        ]
+        expected = scorers.detection.match_frame(predictions, targets)
+        self.assertEqual(
+            expected, ({0, 1, 2}, {0, 1, 2}, {0: 0, 1: 1, 2: 2})
+        )
+        self.assertEqual(
+            _frozen_detection_match_frame(scorers, predictions, targets), expected
+        )
+
     def test_behavioral_source_closure_has_required_paths_and_roles(self) -> None:
         hashes, roles = behavioral_source_bindings(repository_root())
         self.assertGreater(len(hashes), len(REQUIRED_BEHAVIORAL_SOURCE_ROLES))

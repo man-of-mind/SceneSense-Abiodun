@@ -506,6 +506,26 @@ def _xy_errors(predictions: list[Mapping[str, Any]], targets: list[Mapping[str, 
     ]
 
 
+def _frozen_detection_match_frame(
+    scorers: Any,
+    predictions: list[Mapping[str, Any]],
+    targets: list[Mapping[str, Any]],
+) -> tuple[set[int], set[int], dict[int, int]]:
+    """Call the registered frame matcher through its owning detection module.
+
+    ``FrozenScorers`` intentionally exposes only the scoring/load helpers as
+    convenience properties.  The frame matcher remains on its frozen
+    ``detection`` module, so reaching for ``scorers.match_frame`` would invent
+    an API that the registered adapter does not provide.
+    """
+
+    detection = getattr(scorers, "detection", None)
+    matcher = getattr(detection, "match_frame", None)
+    if not callable(matcher):
+        raise RuntimeError("frozen detection scorer does not expose match_frame")
+    return matcher(predictions, targets)
+
+
 def _score_one(
     *, modules: Mapping[str, Any], runtime: Mapping[str, Any], row: Mapping[str, Any],
     records: list[dict[str, Any]], labels: Any, scorers: Any, validation_gt: Mapping[str, Any],
@@ -576,7 +596,9 @@ def _score_one(
 
     threshold = modules["phase6"].contract.VEHICLE_SCORE_THRESHOLD
     vehicle_predictions = [item for item in records if float(item["score"]) >= threshold]
-    _used_pred, _used_gt, vehicle_match = scorers.match_frame(vehicle_predictions, frame_gt)
+    _used_pred, _used_gt, vehicle_match = _frozen_detection_match_frame(
+        scorers, vehicle_predictions, frame_gt
+    )
     vehicle_errors = [
         value for (pred, gt), value in zip(
             sorted(vehicle_match.items()), _xy_errors(vehicle_predictions, frame_gt, vehicle_match)
