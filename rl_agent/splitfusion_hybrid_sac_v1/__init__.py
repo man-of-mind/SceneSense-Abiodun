@@ -1,23 +1,23 @@
-"""SplitFusion conditional Hybrid-SAC foundation (Phases 1-2: contracts only).
+"""SplitFusion conditional Hybrid-SAC research implementation.
 
-This package exposes two things:
+The package contains the fail-closed contracts and CPU-side learning mechanics
+for the feed-forward parameterized-action controller: continuous-q action and
+transaction identity, SI/P40 state descriptors, the one-ticket/two-tensor hold
+controller, perception-quality/reward/replay schemas, measured-anchor binding,
+production replay storage, conditional actor/twin critics, one-update trainer,
+and a bounded analytic algorithm-qualification runner.
 
-* **Phase 1** (:mod:`.action_contract`) -- a strict, read-only adapter from the
-  frozen 72-profile SplitFusion action catalog to the Hybrid-SAC action
-  representation ``(joint mode, continuous q)``.
-* **Phase 2** (:mod:`.transaction_identity`) -- versioned immutable
-  transaction / action / feedback identity records with canonical
-  serialization, following DESIGN.md sections 2, 3 and 9.  ``tensor_seq`` is
-  the frozen sender chronology within a decision; a completed action hold has
-  at least ``k_min = 2`` tensors and requests its reward on the earliest
-  ``tensor_seq``; and every serializable record requires an executed action
-  identity already reconciled against the frozen catalog.
+Important claim boundaries remain.  The 288 measured cells are aggregate
+anchors, not sequential policy transitions, and their leave-one-anchor-out
+proxy is not qualified for continuous-q interpolation.  Protocol v2 can bind
+exact CARLA-only quality evidence but is not integrated into the live path.
+The analytic qualification checks optimizer mechanics only; it is not
+SplitFusion performance or deployable-policy evidence.  Exact off-anchor
+quality and payload/network outcome models are separate, source-bound stages.
 
-Nothing here implements reward, radar/camera state, payload/accuracy/latency
-prediction, q-anchor interpolation, actor/critic or SAC updates, replay buffers
-or storage, feedback joining/acceptance/deduplication, timeout/ticket logic, or
-any CARLA/OAI/Docker/CUDA/network integration.  ``SPLIT`` is the only execution
-mode represented; ``LOCAL_*`` and ``SKIP`` are separate future top-level modes.
+``SPLIT`` is the only execution mode represented; ``LOCAL_*`` and ``SKIP`` are
+future top-level modes.  This package does not launch CARLA, OAI, Docker, CUDA
+or network services on import.
 
 Importing this package has no filesystem or other runtime side effect: the
 locked catalog is read only when :func:`load_contract` or

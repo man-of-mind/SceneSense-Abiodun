@@ -1,8 +1,9 @@
 # SplitFusion feed-forward conditional Hybrid SAC architecture v1
 
 Prepared: 2026-09-18  
-Status: **runtime/action/state/reward contracts and actor/twin critics
-implemented and tested; replay storage and training loop not yet implemented**  
+Status: **contracts, replay storage, actor/twin critics and one-update trainer
+implemented and tested; analytic optimizer qualification passed; measured
+SplitFusion environment construction is in progress**
 Scope: split inference only; `LOCAL` and `SKIP` remain outside the v1 action space
 
 ## 1. Decision summary
@@ -40,7 +41,7 @@ $$
 | Item | v1 contract | Status |
 |---|---|---|
 | Discrete action | $m=(k,b)$: 4 feature families $\times$ 3 quantizers (`UINT4`, `UINT6`, `UINT8`) = 12 joint modes | Implemented contract |
-| Continuous action | $q\in[0,0.98]$ | Execution contract and conditional actor implemented; training pending |
+| Continuous action | $q\in[0,0.98]$ | Execution path and conditional actor implemented; off-anchor quality qualification in progress |
 | Meaning of $q$ | **spatial drop fraction**, not a detector-confidence or literal ROI threshold | Must not be renamed |
 | Wire representation | $q_{e4}=\operatorname{round}(10^4q)$; execute $q_{e4}/10^4$ | Implemented contract |
 | Quantizer | selected inside joint mode $m$ from `UINT4`, `UINT6`, `UINT8` | Retained for the primary policy |
@@ -60,6 +61,40 @@ extra payload of `UINT6` or `UINT8` may be worthwhile for quality in some
 states; this is precisely a trade-off the policy should learn rather than a
 choice to remove in advance. Fixed-`UINT4` is allowed only as an implementation
 smoke test and a registered ablation, not as the primary action contract.
+
+### 2.1 What continuous $q$ actually controls
+
+The dropping is **selective, not random**. For every fused C2 feature tensor
+of shape $256\times112\times192$, the existing lightweight learned ranker
+produces one importance score for each of the 21,504 spatial cells. Its exact
+architecture is a $1\times1$ convolution from 256 to 8 channels, ReLU, a
+depthwise $3\times3$ convolution, ReLU, and a bias-free $1\times1$ projection
+to one score. It has 2,144 parameters and sees only detached C2 features—no
+ground truth, object labels or authored ROI side channel.
+
+For resolved wire value $q_{e4}$, execution keeps
+
+$$
+K(q)=\operatorname{round}\big((1-q)\,21504\big)
+$$
+
+highest-scoring cells and zeros every channel of each remaining cell. Stable
+descending sorting and row-major tie breaking make selection deterministic.
+The ranker itself does not receive $q$, so it creates one ordering per frame;
+$q$ only moves the cutoff along that ordering. Consequently the masks are
+nested: increasing $q$ removes the next-lowest-ranked cells rather than
+redrawing a random subset. At $q=0$ all 21,504 cells survive; at $q=0.50$,
+10,752 survive; and at $q=0.98$, about 430 survive.
+
+Arbitrary $q$ at $10^{-4}$ wire resolution is already implemented and tested.
+No model retraining is required merely to execute, for example, $q=0.2345$.
+That does **not** establish that perception quality varies safely between the
+six measured anchors. The deployed ranker is the stable distillation-only
+checkpoint; the earlier q-aware fine-tuning checkpoints diverged and remain
+excluded. Therefore the next evidence stage evaluates exact off-anchor
+outputs with the frozen ranker/FCOS/AE models. Retraining is warranted only
+if that evidence exposes unacceptable off-anchor instability—not as a
+precondition for continuous control.
 
 ## 3. Runtime control contract
 
@@ -571,24 +606,33 @@ It cannot by itself train or validate this continuous sequential policy:
 - all 12 family--quantizer modes are retained, but each still has only six
   measured $q$ anchors.
 
-Use the 288 anchors to check units, initialize outcome models or warm-start a
-critic conservatively. Before claiming continuous-$q$ control, collect new
-space-filling points, for example a preregistered Sobol or Latin-hypercube set,
-stratified by feature family, scene density and channel state, with extra
-samples around observed knees. Hold out entire route segments/seeds for final
-evaluation.
+Use the 288 anchors to check units and constrain payload/network outcome
+models. A strict leave-one-anchor-out audit rejected direct interpolation as
+a continuous-$q$ quality source, so interpolated anchor values must not enter
+production replay. Exact off-anchor perception labels can instead be
+regenerated from retained Route-B raw validation episodes using the frozen
+ranker, AE and FCOS artifacts; no new CARLA capture is required for that first
+surface. Preserve separate route episodes for fitting and held-scene checks,
+and leave the final test episodes unopened until the policy is frozen.
 
 ## 11. Implementation sequence and gates
 
 Current implementation status: the action adapter, transaction identity,
 SI/P40 descriptors, one-ticket/two-tensor gate, causal state, quality/reward
-contract, replay-transition schema, deterministic synthetic environment and
-conditional Hybrid-SAC actor/twin critics are implemented and covered by 198
-focused tests. Replay storage and the trainer are not yet implemented, and no
-trained-policy claim is made. Exact-positive reward generation also remains
-fail-closed: the current quality producer is not source-authenticated, the v1
-ACK is restricted to the 72 anchors, and a protocol-v2 carrier is required to
-identify and authenticate arbitrary off-anchor continuous-$q$ outcomes.
+contract, replay-transition schema, production replay storage, conditional
+Hybrid-SAC actor/twin critics and one-update trainer are implemented and
+covered by the package test suite. A three-seed bounded analytic task passed,
+showing that the optimizer can learn its deliberately encoded hybrid target;
+it is explicitly an algorithm-mechanics qualification, not generalization,
+SplitFusion performance or a trained-policy claim. The 288-anchor proxy failed
+its registered leave-one-anchor-out gates, which correctly blocks unsupported
+continuous interpolation.
+
+Protocol v2 now authenticates exact simulator quality inputs and arbitrary
+off-anchor action identity, but remains labelled **NOT LIVE INTEGRATED** and
+never marks an ACK learning-ready. The live controller boundary, exact
+off-anchor label producer and payload/network surrogate must be connected and
+qualified before measured-environment training.
 
 1. **Scene-state foundation — complete.** SI and P40 definitions are
    implemented, timed in the live preparation path and fail closed on invalid
@@ -601,18 +645,18 @@ identify and authenticate arbitrary off-anchor continuous-$q$ outcomes.
 3. **Identity/state/replay foundation — complete.** The exact identity,
    one-ticket action-hold state machine and fail-closed replay-transition
    contract precede all training code.
-4. **Deterministic synthetic test.** Make known states prefer known $(m,q)$
-   regions; prove all 12 modes are reachable, continuous bounds, exact
-   12-mode enumeration, critic target, duplicate feedback and timeout
-   behavior. Prove that the frozen reference maps to normalized segmentation
-   one (within tolerance), a collapsed class is not hidden, and absent-class
-   masks renormalize as registered. Reconcile the 12 modes $\times$ six exact
-   anchors to all 72 catalog actions with no duplicate or missing anchor.
-5. **Continuous-$q$ coverage and protocol v2.** Implement the authenticated
-   off-anchor feedback carrier, then collect preregistered space-filling live or
-   qualified simulator evidence. Do not interpolate unsupported quality knees
-   and call them measurements.
-6. **Hybrid SAC training.** Report learning curves, entropy, joint-mode,
+4. **Deterministic algorithm qualification — complete.** All 12 modes are
+   reachable, continuous bounds and exact discrete enumeration are tested,
+   replay discounts are consumed verbatim, and three registered seeds learn a
+   fixed analytic hybrid target. The task exposes its target directly in the
+   state and is not called held-out generalization.
+5. **Continuous-$q$ environment construction — active.** Generate exact
+   off-anchor perception labels on source-bound retained Route-B frames; fit a
+   separately labelled payload/network surrogate from measured anchors; keep
+   the authored network profile privileged to the simulator and absent from
+   policy state. Protocol v2 must then be integrated at the live boundary.
+   Do not interpolate unsupported quality knees and call them measurements.
+6. **Measured-environment Hybrid SAC training.** Report learning curves, entropy, joint-mode,
    family and quantizer frequencies, $q$ distributions, deadline outcomes,
    reward components and at least three seeds.
 7. **Ablations.** Compare fixed-`UINT4`, fixed-$q$, discrete-anchor SAC,
