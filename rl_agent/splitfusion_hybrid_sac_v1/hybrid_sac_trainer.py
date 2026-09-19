@@ -50,6 +50,23 @@ A row that does not bootstrap never reaches ``soft_state_value`` at all, so
 the zero-filled sentinel in ``next_state`` is never evaluated as if it were a
 real observation.
 
+Precision
+---------
+
+Everything here is float32: :class:`HybridSacModelConfig` defaults to
+``torch.float32``, the replay binding is float32, and the trainer requires the
+two to agree.  Sampled-``q`` quantization inside the actor therefore runs in
+float32; that is a *training proposal*, and the exact wire quantization at the
+execution boundary remains the registered decimal half-up rule in
+``action_contract``, which this module never performs.
+
+Diagnostic reductions -- gradient norms and parameter-delta norms -- are
+accumulated in float64 instead.  Squaring a float32 gradient can overflow
+while the gradient itself is perfectly finite: at a reward of ``-1e19`` the
+critic gradients are all finite and the float64 norm is ``4.14e19``, but
+squaring in float32 yields ``inf``.  A diagnostic must never veto an update
+that is numerically sound.
+
 Update order
 ------------
 
@@ -76,7 +93,12 @@ from typing import Any, Dict, Iterator, List, Optional, Tuple
 import torch
 from torch import Tensor, nn
 
-from .action_contract import EXPECTED_MODE_COUNT, Q_E4_MAX, Q_E4_MIN
+from .action_contract import (
+    CATALOG_SHA256,
+    EXPECTED_MODE_COUNT,
+    Q_E4_MAX,
+    Q_E4_MIN,
+)
 from .hybrid_sac_models import (
     ConditionalHybridActor,
     TwinHybridCritics,
@@ -86,9 +108,16 @@ from .hybrid_sac_models import (
 )
 from .replay_buffer import (
     Q_CRITIC_NORMALIZER,
+    ReplayBindingV1,
     ReplayTensorBatchV1,
 )
-from .state_reward_transition_contract import POLICY_FEATURE_COUNT
+from .state_reward_transition_contract import (
+    POLICY_FEATURE_COUNT,
+    POLICY_FEATURE_ORDER,
+    SCHEMA_ID,
+    SCHEMA_SHA256,
+    SCHEMA_VERSION,
+)
 from .transaction_identity import MINIMUM_HOLD_TENSORS
 
 __all__ = [
@@ -278,20 +307,40 @@ def _param_snapshot(parameters) -> List[Tensor]:
 
 
 def _delta_norm(before: List[Tensor], after) -> float:
-    """L2 norm of the concatenated parameter difference."""
+    """L2 norm of the concatenated parameter difference, summed in float64."""
     total = 0.0
     for old, new in zip(before, after):
-        total += float(torch.sum((new.detach() - old) ** 2))
+        difference = (new.detach() - old).to(torch.float64)
+        total += float(torch.sum(difference * difference))
     return math.sqrt(total)
 
 
 def _grad_norm(parameters) -> float:
-    """L2 norm of the concatenated gradient, treating absent grads as zero."""
+    """L2 norm of the concatenated gradient, summed in float64.
+
+    The squaring is done after widening to float64 on purpose.  A float32
+    gradient near ``1e19`` is finite, but its square overflows float32 to
+    ``inf``; accumulating in float32 would then fail an update whose
+    gradients are entirely sound.  Absent gradients count as zero.
+    """
     total = 0.0
     for parameter in parameters:
         if parameter.grad is not None:
-            total += float(torch.sum(parameter.grad**2))
+            widened = parameter.grad.detach().to(torch.float64)
+            total += float(torch.sum(widened * widened))
     return math.sqrt(total)
+
+
+def _require_finite_tensor(tensor: Tensor, name: str) -> None:
+    """Fail closed unless every entry of ``tensor`` is finite."""
+    if not bool(torch.isfinite(tensor).all()):
+        raise TrainerError(f"{name} is not finite")
+
+
+def _require_finite_scalar(value: float, name: str) -> None:
+    """Fail closed unless ``value`` is a finite Python float."""
+    if not math.isfinite(float(value)):
+        raise TrainerError(f"{name} is not finite: {value!r}")
 
 
 class _FrozenParameters:
@@ -336,6 +385,7 @@ class HybridSacTrainerV1:
         critics: TwinHybridCritics,
         config: TrainerConfigV1,
         *,
+        expected_binding: ReplayBindingV1,
         target_generator: torch.Generator,
         actor_generator: torch.Generator,
     ) -> None:
@@ -363,19 +413,15 @@ class HybridSacTrainerV1:
             raise TrainerStateError(
                 "the target-q and actor-q streams must be separate generators"
             )
-        for name, module in (("actor", actor), ("critics", critics)):
-            if module.config.dtype is not config.float_dtype:
-                raise TrainerStateError(
-                    f"{name} is built in {module.config.dtype} but the trainer "
-                    f"and the replay binding use {config.float_dtype}"
-                )
-            for parameter in module.parameters():
-                if parameter.device.type != "cpu":
-                    raise TrainerStateError(f"{name} must be on CPU")
+        self._validate_expected_binding(expected_binding, config)
+        # Structure is validated against the real modules, before any
+        # optimizer exists, so a malformed pair can never own optimizer state.
+        self._validate_model_structure(actor, critics, config)
 
         self.actor = actor
         self.critics = critics
         self.config = config
+        self.expected_binding = expected_binding
         self._target_generator = target_generator
         self._actor_generator = actor_generator
 
@@ -391,28 +437,213 @@ class HybridSacTrainerV1:
         self._assert_no_target_parameters_in_optimizers()
         self.update_count = 0
 
+    # -- binding and structure --------------------------------------------- #
+
+    @staticmethod
+    def _validate_expected_binding(
+        expected_binding: Any, config: TrainerConfigV1
+    ) -> None:
+        """Freeze the complete replay binding this trainer will ever accept.
+
+        Every static field is checked against what this process actually has
+        compiled in, so a binding carrying a foreign schema, a foreign catalog
+        or a permuted feature order is refused at construction rather than
+        learned from.  ``policy_feature_order`` is compared element by element,
+        not merely by length: a reversed order has the right count and the
+        wrong semantics for all 31 features.
+        """
+        if type(expected_binding) is not ReplayBindingV1:
+            raise TrainerStateError(
+                f"expected_binding must be an exact ReplayBindingV1, got "
+                f"{type(expected_binding).__name__}"
+            )
+        static = (
+            ("schema_id", expected_binding.schema_id, SCHEMA_ID),
+            ("schema_version", expected_binding.schema_version, SCHEMA_VERSION),
+            ("schema_sha256", expected_binding.schema_sha256, SCHEMA_SHA256),
+            ("catalog_sha256", expected_binding.catalog_sha256, CATALOG_SHA256),
+            (
+                "policy_feature_order",
+                expected_binding.policy_feature_order,
+                tuple(POLICY_FEATURE_ORDER),
+            ),
+            (
+                "policy_feature_count",
+                expected_binding.policy_feature_count,
+                POLICY_FEATURE_COUNT,
+            ),
+        )
+        for name, declared, current in static:
+            if declared != current:
+                raise TrainerStateError(
+                    f"expected_binding.{name} is {declared!r}, but this "
+                    f"process is built against {current!r}"
+                )
+        if config.gamma_per_tensor != expected_binding.gamma_per_tensor:
+            raise TrainerStateError(
+                f"config.gamma_per_tensor {config.gamma_per_tensor!r} is not "
+                f"exactly expected_binding.gamma_per_tensor "
+                f"{expected_binding.gamma_per_tensor!r}"
+            )
+
+    @staticmethod
+    def _first_linear(container: Any, label: str) -> nn.Linear:
+        """Return the first ``nn.Linear`` inside a sequential trunk."""
+        for module in container:
+            if isinstance(module, nn.Linear):
+                return module
+        raise TrainerStateError(f"{label} contains no Linear layer")
+
+    @classmethod
+    def _validate_model_structure(
+        cls,
+        actor: ConditionalHybridActor,
+        critics: TwinHybridCritics,
+        config: TrainerConfigV1,
+    ) -> None:
+        """Validate the real modules, not their declared configuration.
+
+        ``module.config.dtype`` is metadata and can go stale: calling
+        ``actor.double()`` changes every parameter while leaving the config
+        saying ``float32``.  Every floating parameter and buffer is therefore
+        inspected directly.
+        """
+        if not isinstance(actor, ConditionalHybridActor):
+            raise TrainerStateError("actor must be a ConditionalHybridActor")
+        if not isinstance(critics, TwinHybridCritics):
+            raise TrainerStateError("critics must be TwinHybridCritics")
+
+        modules = (
+            ("actor", actor),
+            ("critic_1", critics.critic_1),
+            ("critic_2", critics.critic_2),
+            ("target_1", critics.target_1),
+            ("target_2", critics.target_2),
+        )
+        for label, module in modules:
+            for name, tensor in chain(
+                module.named_parameters(), module.named_buffers()
+            ):
+                if tensor.device.type != "cpu":
+                    raise TrainerStateError(
+                        f"{label}.{name} is on {tensor.device}; this phase is "
+                        f"CPU-only"
+                    )
+                if (
+                    tensor.is_floating_point()
+                    and tensor.dtype is not config.float_dtype
+                ):
+                    raise TrainerStateError(
+                        f"{label}.{name} is {tensor.dtype}, but the trainer "
+                        f"and the replay binding use {config.float_dtype}; "
+                        f"declared config metadata is not trusted here"
+                    )
+
+        # Declared dimensions must match the frozen contracts ...
+        for label, module in (
+            ("actor", actor),
+            ("critic_1", critics.critic_1),
+            ("critic_2", critics.critic_2),
+            ("target_1", critics.target_1),
+            ("target_2", critics.target_2),
+        ):
+            if module.config.state_dim != POLICY_FEATURE_COUNT:
+                raise TrainerStateError(
+                    f"{label} declares state_dim {module.config.state_dim}, "
+                    f"but the frozen policy feature count is "
+                    f"{POLICY_FEATURE_COUNT}"
+                )
+            if module.config.mode_count != EXPECTED_MODE_COUNT:
+                raise TrainerStateError(
+                    f"{label} declares mode_count {module.config.mode_count}, "
+                    f"but the frozen catalog has {EXPECTED_MODE_COUNT} modes"
+                )
+
+        # ... and the real layer shapes must agree with them.
+        encoder_input = cls._first_linear(actor.encoder, "actor.encoder")
+        if encoder_input.in_features != POLICY_FEATURE_COUNT:
+            raise TrainerStateError(
+                f"the actor encoder accepts {encoder_input.in_features} "
+                f"features, but the frozen policy state has "
+                f"{POLICY_FEATURE_COUNT}"
+            )
+        for name in ("logit_head", "mean_head", "log_std_head"):
+            head = getattr(actor, name)
+            if head.out_features != EXPECTED_MODE_COUNT:
+                raise TrainerStateError(
+                    f"actor.{name} emits {head.out_features} outputs, but the "
+                    f"frozen catalog has {EXPECTED_MODE_COUNT} joint modes"
+                )
+        critic_input_width = POLICY_FEATURE_COUNT + EXPECTED_MODE_COUNT + 1
+        for label, critic in (
+            ("critic_1", critics.critic_1),
+            ("critic_2", critics.critic_2),
+            ("target_1", critics.target_1),
+            ("target_2", critics.target_2),
+        ):
+            trunk_input = cls._first_linear(critic.trunk, f"{label}.trunk")
+            if trunk_input.in_features != critic_input_width:
+                raise TrainerStateError(
+                    f"{label} accepts {trunk_input.in_features} inputs, but "
+                    f"[state, one_hot(mode), q] is {critic_input_width} wide"
+                )
+            if critic.value_head.out_features != 1:
+                raise TrainerStateError(
+                    f"{label} emits {critic.value_head.out_features} values; "
+                    f"a critic returns one scalar"
+                )
+        if hasattr(actor, "target") or hasattr(critics, "target_actor"):
+            raise TrainerStateError("this phase has no target actor")
+
     # -- wiring proof ------------------------------------------------------ #
 
     def _assert_no_target_parameters_in_optimizers(self) -> None:
-        """Fail closed if any Polyak target parameter is optimizer-visible."""
+        """Prove each optimizer owns exactly its intended parameter set.
+
+        Re-run at the start of every update, not only at construction: a
+        parameter group added later -- a Polyak target slipped into the critic
+        optimizer, say -- would otherwise be stepped like an online parameter
+        and silently destroy the target's role.
+        """
         target_ids = {
             id(parameter)
             for target in (self.critics.target_1, self.critics.target_2)
             for parameter in target.parameters()
         }
-        for label, optimizer in (
-            ("actor_optimizer", self.actor_optimizer),
-            ("critic_optimizer", self.critic_optimizer),
-        ):
-            for group in optimizer.param_groups:
-                for parameter in group["params"]:
-                    if id(parameter) in target_ids:
-                        raise TrainerStateError(
-                            f"{label} contains a Polyak target parameter; "
-                            f"targets are updated only by polyak_update"
-                        )
-        # There is no target actor to guard against; assert that too.
-        if hasattr(self.actor, "target"):  # pragma: no cover - defensive
+        expected = {
+            "actor_optimizer": (
+                self.actor_optimizer,
+                [id(p) for p in self.actor.parameters()],
+            ),
+            "critic_optimizer": (
+                self.critic_optimizer,
+                [id(p) for p in self._online_critic_parameters],
+            ),
+        }
+        for label, (optimizer, expected_ids) in expected.items():
+            observed = [
+                id(parameter)
+                for group in optimizer.param_groups
+                for parameter in group["params"]
+            ]
+            if len(observed) != len(set(observed)):
+                raise TrainerStateError(
+                    f"{label} holds a duplicated parameter"
+                )
+            leaked = sorted(target_ids.intersection(observed))
+            if leaked:
+                raise TrainerStateError(
+                    f"{label} contains {len(leaked)} Polyak target "
+                    f"parameter(s); targets are updated only by polyak_update"
+                )
+            if set(observed) != set(expected_ids):
+                foreign = len(set(observed) - set(expected_ids))
+                missing = len(set(expected_ids) - set(observed))
+                raise TrainerStateError(
+                    f"{label} does not hold exactly its intended parameter "
+                    f"set: {foreign} foreign, {missing} missing"
+                )
+        if hasattr(self.actor, "target") or hasattr(self.critics, "target_actor"):
             raise TrainerStateError("this phase has no target actor")
 
     # -- preflight --------------------------------------------------------- #
@@ -420,6 +651,8 @@ class HybridSacTrainerV1:
     def _preflight(self, batch: Any) -> None:
         """Validate everything before any parameter or optimizer mutation."""
         E = TrainerPreflightError
+        # Wiring is re-proved before anything else touches a parameter.
+        self._assert_no_target_parameters_in_optimizers()
         if type(batch) is not ReplayTensorBatchV1:
             raise E(
                 f"update_once consumes an exact ReplayTensorBatchV1, got "
@@ -434,15 +667,44 @@ class HybridSacTrainerV1:
         if size < 1:
             raise E("batch is empty")
 
-        # gamma is binding metadata only: prove exact equality, never compute.
-        binding_gamma = batch.binding.gamma_per_tensor
-        if binding_gamma != self.config.gamma_per_tensor:
+        # The whole binding is frozen, not just gamma: reward spec,
+        # normalization, freshness, schema, catalog, feature order and gamma
+        # must all be the identical learning problem on every update.
+        if type(batch.binding) is not ReplayBindingV1:
+            raise E(
+                f"batch.binding must be an exact ReplayBindingV1, got "
+                f"{type(batch.binding).__name__}"
+            )
+        if batch.binding != self.expected_binding:
+            differing = [
+                name
+                for name in (
+                    "reward_spec_sha256",
+                    "state_normalization_spec_sha256",
+                    "freshness_policy_sha256",
+                    "gamma_per_tensor",
+                    "schema_id",
+                    "schema_version",
+                    "schema_sha256",
+                    "catalog_sha256",
+                    "policy_feature_order",
+                    "policy_feature_count",
+                )
+                if getattr(batch.binding, name)
+                != getattr(self.expected_binding, name)
+            ]
+            raise E(
+                f"batch binding differs from the trainer's frozen binding in "
+                f"{differing}; a trainer may not learn across two replay "
+                f"learning problems"
+            )
+        # gamma is binding metadata only: proved equal, never computed with.
+        if batch.binding.gamma_per_tensor != self.config.gamma_per_tensor:
             raise E(
                 f"trainer gamma_per_tensor {self.config.gamma_per_tensor!r} is "
-                f"not exactly the batch binding's {binding_gamma!r}"
+                f"not exactly the batch binding's "
+                f"{batch.binding.gamma_per_tensor!r}"
             )
-        if batch.binding.policy_feature_count != POLICY_FEATURE_COUNT:
-            raise E("batch binding declares a foreign policy feature count")
 
         float_fields = {
             "state": (batch.state, (size, POLICY_FEATURE_COUNT)),
@@ -578,25 +840,33 @@ class HybridSacTrainerV1:
                 discount * next_value,
                 torch.zeros_like(next_value),
             )
-        if not bool(torch.isfinite(target).all()):
-            raise TrainerError("the critic target is not finite")
+        _require_finite_tensor(target, "the critic target")
 
         # -- 2. one critic step -------------------------------------------- #
         one_hot = mode_one_hot(modes, EXPECTED_MODE_COUNT, dtype)
         q1, q2 = self.critics.q_values(state, one_hot, q_normalized)
+        _require_finite_tensor(q1.detach(), "q1")
+        _require_finite_tensor(q2.detach(), "q2")
         critic_1_loss = torch.mean((q1 - target) ** 2)
         critic_2_loss = torch.mean((q2 - target) ** 2)
         critic_loss = critic_1_loss + critic_2_loss
+        # A finite reward can still square to infinity in float32: at a
+        # reward near -1e20 the MSE overflows even though every input was
+        # valid.  Refuse before the backward pass rather than step on inf.
+        _require_finite_tensor(critic_1_loss.detach(), "critic_1_loss")
+        _require_finite_tensor(critic_2_loss.detach(), "critic_2_loss")
+        _require_finite_tensor(critic_loss.detach(), "the total critic loss")
 
         self.critic_optimizer.zero_grad(set_to_none=True)
         self.actor_optimizer.zero_grad(set_to_none=True)
         critic_loss.backward()
-        for parameter in self._online_critic_parameters:
-            if parameter.grad is not None and not bool(
-                torch.isfinite(parameter.grad).all()
-            ):
-                raise TrainerError("a critic gradient is not finite")
+        for index, parameter in enumerate(self._online_critic_parameters):
+            if parameter.grad is not None:
+                _require_finite_tensor(
+                    parameter.grad, f"critic gradient {index}"
+                )
         critic_grad_norm = _grad_norm(self._online_critic_parameters)
+        _require_finite_scalar(critic_grad_norm, "critic_grad_norm")
         self.critic_optimizer.step()
 
         # -- 3. one actor step --------------------------------------------- #
@@ -611,6 +881,26 @@ class HybridSacTrainerV1:
                 self.config.alpha_c,
                 generator=self._actor_generator,
             )
+            _require_finite_tensor(
+                objective.objective.detach(), "the actor objective"
+            )
+            for name in (
+                "per_mode_term",
+                "probs",
+            ):
+                _require_finite_tensor(
+                    getattr(objective, name).detach(), f"actor {name}"
+                )
+            for name in (
+                "log_prob_discrete",
+                "log_prob_continuous",
+                "q",
+                "q_normalized_straight_through",
+            ):
+                _require_finite_tensor(
+                    getattr(objective.sample, name).detach(),
+                    f"actor sample {name}",
+                )
             objective.objective.backward()
             contaminated = [
                 index
@@ -623,17 +913,16 @@ class HybridSacTrainerV1:
                     f"parameters {contaminated}; the critic step's gradient "
                     f"would be corrupted"
                 )
-        for parameter in self.actor.parameters():
-            if parameter.grad is None or not bool(
-                torch.isfinite(parameter.grad).all()
-            ):
-                raise TrainerError("an actor gradient is absent or not finite")
+        for index, parameter in enumerate(self.actor.parameters()):
+            if parameter.grad is None:
+                raise TrainerError(f"actor gradient {index} is absent")
+            _require_finite_tensor(parameter.grad, f"actor gradient {index}")
         actor_grad_norm = _grad_norm(self.actor.parameters())
+        _require_finite_scalar(actor_grad_norm, "actor_grad_norm")
         self.actor_optimizer.step()
 
         # -- 4. one Polyak target update ----------------------------------- #
         self.critics.polyak_update(self.config.tau)
-        self.update_count += 1
 
         metrics = self._metrics(
             batch=batch,
@@ -654,7 +943,10 @@ class HybridSacTrainerV1:
             target_before=target_before,
             target_parameters=target_parameters,
         )
+        # Diagnostics are validated before the update is recorded, so a
+        # non-finite diagnostic never leaves behind a counted update.
         metrics.assert_finite()
+        self.update_count += 1
         return metrics
 
     # -- diagnostics ------------------------------------------------------- #

@@ -27,6 +27,7 @@ import torch
 from . import hybrid_sac_models as hsm
 from . import hybrid_sac_trainer as hst
 from . import replay_buffer as rbuf
+from . import state_reward_transition_contract as src
 from .test_replay_buffer import ReplayBufferTestBase
 
 DTYPE = torch.float32
@@ -86,6 +87,7 @@ class TrainerTestBase(ReplayBufferTestBase):
             actor,
             critics,
             config,
+            expected_binding=batch.binding,
             target_generator=torch.Generator().manual_seed(target_seed),
             actor_generator=torch.Generator().manual_seed(actor_seed),
         )
@@ -298,6 +300,8 @@ class DiscountDriftSentinelTest(TrainerTestBase):
         self.assertIn("batch.discount()", body)
 
     def test_gamma_is_binding_metadata_and_must_match_exactly(self) -> None:
+        # A gamma that disagrees with the frozen binding is now refused at
+        # construction, before any optimizer exists.
         batch = self._batch()
         actor, critics = self._models()
         config = hst.TrainerConfigV1(
@@ -305,19 +309,16 @@ class DiscountDriftSentinelTest(TrainerTestBase):
             alpha_d=0.2,
             alpha_c=0.05,
         )
-        trainer = hst.HybridSacTrainerV1(
-            actor,
-            critics,
-            config,
-            target_generator=torch.Generator().manual_seed(1),
-            actor_generator=torch.Generator().manual_seed(2),
-        )
-        before = [p.detach().clone() for p in actor.parameters()]
-        with self.assertRaises(hst.TrainerPreflightError) as caught:
-            trainer.update_once(batch)
+        with self.assertRaises(hst.TrainerStateError) as caught:
+            hst.HybridSacTrainerV1(
+                actor,
+                critics,
+                config,
+                expected_binding=batch.binding,
+                target_generator=torch.Generator().manual_seed(1),
+                actor_generator=torch.Generator().manual_seed(2),
+            )
         self.assertIn("gamma_per_tensor", str(caught.exception))
-        for old, new in zip(before, actor.parameters()):
-            self.assertTrue(torch.equal(old, new))
 
 
 class BootstrapRoutingTest(TrainerTestBase):
@@ -612,6 +613,7 @@ class PolyakTest(TrainerTestBase):
             actor,
             critics,
             config,
+            expected_binding=batch.binding,
             target_generator=torch.Generator().manual_seed(1),
             actor_generator=torch.Generator().manual_seed(2),
         )
@@ -693,6 +695,7 @@ class DeterminismTest(TrainerTestBase):
                 actor,
                 critics,
                 config,
+                expected_binding=batch.binding,
                 target_generator=shared,
                 actor_generator=shared,
             )
@@ -702,6 +705,7 @@ class DeterminismTest(TrainerTestBase):
                     actor,
                     critics,
                     config,
+                    expected_binding=batch.binding,
                     target_generator=bad,
                     actor_generator=torch.Generator().manual_seed(1),
                 )
@@ -812,6 +816,7 @@ class PreflightTest(TrainerTestBase):
                 hsm.build_actor(wide, seed=1),
                 hsm.build_twin_critics(wide, seed=2),
                 config,
+                expected_binding=batch.binding,
                 target_generator=torch.Generator().manual_seed(1),
                 actor_generator=torch.Generator().manual_seed(2),
             )
@@ -844,6 +849,309 @@ class PreflightTest(TrainerTestBase):
             base.update(kwargs)
             with self.assertRaises(hst.TrainerPreflightError):
                 hst.TrainerConfigV1(**base)
+
+
+class HardeningTest(TrainerTestBase):
+    """Phase C.1: nothing malformed may reach an optimizer or a parameter."""
+
+    def _assert_construction_refused(self, actor, critics, batch) -> None:
+        """Construction must fail, leaving no optimizer and no mutation."""
+        before = [p.detach().clone() for p in actor.parameters()]
+        config = hst.TrainerConfigV1(
+            gamma_per_tensor=batch.binding.gamma_per_tensor,
+            alpha_d=0.2,
+            alpha_c=0.05,
+        )
+        with self.assertRaises(hst.TrainerStateError) as caught:
+            hst.HybridSacTrainerV1(
+                actor,
+                critics,
+                config,
+                expected_binding=batch.binding,
+                target_generator=torch.Generator().manual_seed(1),
+                actor_generator=torch.Generator().manual_seed(2),
+            )
+        for old, new in zip(before, actor.parameters()):
+            self.assertTrue(torch.equal(old, new))
+        return caught.exception
+
+    # -- 3. structural validation before any optimizer exists ------------- #
+
+    def test_actor_with_foreign_state_dim_is_refused(self) -> None:
+        batch = self._batch()
+        wrong = hsm.HybridSacModelConfig(state_dim=32, dtype=DTYPE)
+        actor = hsm.build_actor(wrong, seed=1)
+        _, critics = self._models()
+        self.assertEqual(
+            hsm.ConditionalHybridActor(wrong).encoder[0].in_features, 32
+        )
+        error = self._assert_construction_refused(actor, critics, batch)
+        self.assertIn("state_dim", str(error))
+
+    def test_actor_doubled_with_stale_config_metadata_is_refused(self) -> None:
+        # config.dtype still claims float32 while every parameter is float64.
+        batch = self._batch()
+        actor, critics = self._models()
+        actor.double()
+        self.assertIs(actor.config.dtype, torch.float32)
+        self.assertIs(next(actor.parameters()).dtype, torch.float64)
+        error = self._assert_construction_refused(actor, critics, batch)
+        self.assertIn("float64", str(error))
+        self.assertIn("not trusted", str(error))
+
+    def test_doubled_critics_are_refused(self) -> None:
+        batch = self._batch()
+        actor, critics = self._models()
+        critics.critic_2.double()
+        error = self._assert_construction_refused(actor, critics, batch)
+        self.assertIn("critic_2", str(error))
+
+    def test_doubled_target_critics_are_refused(self) -> None:
+        batch = self._batch()
+        actor, critics = self._models()
+        critics.target_1.double()
+        error = self._assert_construction_refused(actor, critics, batch)
+        self.assertIn("target_1", str(error))
+
+    # -- 2. the complete binding is frozen -------------------------------- #
+
+    def _binding(self, batch, **overrides) -> rbuf.ReplayBindingV1:
+        fields = {
+            name: getattr(batch.binding, name)
+            for name in (
+                "reward_spec_sha256",
+                "state_normalization_spec_sha256",
+                "freshness_policy_sha256",
+                "gamma_per_tensor",
+                "schema_id",
+                "schema_version",
+                "schema_sha256",
+                "catalog_sha256",
+                "policy_feature_order",
+                "policy_feature_count",
+            )
+        }
+        fields.update(overrides)
+        return rbuf.ReplayBindingV1(**fields)
+
+    def test_foreign_schema_catalog_or_feature_order_is_refused(self) -> None:
+        batch = self._batch()
+        actor, critics = self._models()
+        foreign = (
+            {"schema_id": "some_other_schema_v9"},
+            {"schema_version": src.SCHEMA_VERSION + 1},
+            {"schema_sha256": "0" * 64},
+            {"catalog_sha256": "0" * 64},
+            {
+                "policy_feature_order": tuple(
+                    reversed(src.POLICY_FEATURE_ORDER)
+                )
+            },
+            {"policy_feature_count": 30},
+        )
+        config = hst.TrainerConfigV1(
+            gamma_per_tensor=batch.binding.gamma_per_tensor,
+            alpha_d=0.2,
+            alpha_c=0.05,
+        )
+        for overrides in foreign:
+            name = next(iter(overrides))
+            with self.assertRaises(hst.TrainerStateError, msg=name) as caught:
+                hst.HybridSacTrainerV1(
+                    actor,
+                    critics,
+                    config,
+                    expected_binding=self._binding(batch, **overrides),
+                    target_generator=torch.Generator().manual_seed(1),
+                    actor_generator=torch.Generator().manual_seed(2),
+                )
+            self.assertIn(name, str(caught.exception))
+
+    def test_reversed_feature_order_has_the_right_length(self) -> None:
+        # The order check must be element-wise: a reversal passes a length
+        # check and is semantically wrong for all 31 features.
+        reversed_order = tuple(reversed(src.POLICY_FEATURE_ORDER))
+        self.assertEqual(len(reversed_order), len(src.POLICY_FEATURE_ORDER))
+        self.assertNotEqual(reversed_order, tuple(src.POLICY_FEATURE_ORDER))
+
+    def test_non_binding_expected_binding_is_refused(self) -> None:
+        batch = self._batch()
+        actor, critics = self._models()
+        config = hst.TrainerConfigV1(
+            gamma_per_tensor=batch.binding.gamma_per_tensor,
+            alpha_d=0.2,
+            alpha_c=0.05,
+        )
+        for bad in (None, {"gamma_per_tensor": 0.99}, 0.99):
+            with self.assertRaises(hst.TrainerStateError):
+                hst.HybridSacTrainerV1(
+                    actor,
+                    critics,
+                    config,
+                    expected_binding=bad,
+                    target_generator=torch.Generator().manual_seed(1),
+                    actor_generator=torch.Generator().manual_seed(2),
+                )
+
+    def test_a_batch_from_a_different_binding_is_refused(self) -> None:
+        # Two buffers, two reward specs: the same trainer may not learn from
+        # both.  Caught at update time, before any mutation.
+        batch = self._batch()
+        actor, critics = self._models()
+        trainer = self._trainer(batch, actor, critics)
+        trainer.update_once(batch)
+        self.assertEqual(trainer.update_count, 1)
+
+        other_spec = self._reward_spec(r_registered_failure=-2.0)
+        other = rbuf.ReplayBufferV1(capacity=4, float_dtype=DTYPE)
+        for index in range(2):
+            other.insert(
+                self._transition(spec=other_spec, tag=f"otherbind{index}")
+            )
+        foreign_batch = other.sample(2, torch.Generator().manual_seed(0))
+        self.assertNotEqual(foreign_batch.binding, batch.binding)
+
+        params = list(actor.parameters()) + list(
+            chain(
+                critics.critic_1.parameters(), critics.critic_2.parameters()
+            )
+        )
+        before = [p.detach().clone() for p in params]
+        with self.assertRaises(hst.TrainerPreflightError) as caught:
+            trainer.update_once(foreign_batch)
+        self.assertIn("reward_spec_sha256", str(caught.exception))
+        for old, new in zip(before, params):
+            self.assertTrue(torch.equal(old, new))
+        self.assertEqual(trainer.update_count, 1)
+
+    # -- 4. optimizer wiring is revalidated every update ------------------ #
+
+    def test_target_added_to_an_optimizer_after_construction_is_refused(
+        self,
+    ) -> None:
+        batch = self._batch()
+        actor, critics = self._models()
+        trainer = self._trainer(batch, actor, critics)
+        trainer.critic_optimizer.add_param_group(
+            {"params": list(critics.target_1.parameters())}
+        )
+        params = list(actor.parameters()) + list(
+            chain(
+                critics.critic_1.parameters(),
+                critics.critic_2.parameters(),
+                critics.target_1.parameters(),
+                critics.target_2.parameters(),
+            )
+        )
+        before = [p.detach().clone() for p in params]
+        with self.assertRaises(hst.TrainerStateError) as caught:
+            trainer.update_once(batch)
+        self.assertIn("target", str(caught.exception))
+        for old, new in zip(before, params):
+            self.assertTrue(torch.equal(old, new))
+        self.assertEqual(trainer.update_count, 0)
+        self.assertEqual(len(trainer.critic_optimizer.state), 0)
+        self.assertEqual(len(trainer.actor_optimizer.state), 0)
+
+    def test_foreign_parameter_added_to_an_optimizer_is_refused(self) -> None:
+        batch = self._batch()
+        trainer = self._trainer(batch)
+        trainer.actor_optimizer.add_param_group(
+            {"params": [torch.nn.Parameter(torch.zeros(3, dtype=DTYPE))]}
+        )
+        with self.assertRaises(hst.TrainerStateError) as caught:
+            trainer.update_once(batch)
+        self.assertIn("foreign", str(caught.exception))
+        self.assertEqual(trainer.update_count, 0)
+
+    def test_duplicated_parameter_in_an_optimizer_is_refused(self) -> None:
+        batch = self._batch()
+        actor, critics = self._models()
+        trainer = self._trainer(batch, actor, critics)
+        trainer.actor_optimizer.param_groups[0]["params"].append(
+            actor.mean_head.weight
+        )
+        with self.assertRaises(hst.TrainerStateError) as caught:
+            trainer.update_once(batch)
+        self.assertIn("duplicated", str(caught.exception))
+        self.assertEqual(trainer.update_count, 0)
+
+    # -- 5. finite loss and diagnostic overflow --------------------------- #
+
+    def test_finite_reward_with_nonfinite_float32_mse_is_refused(self) -> None:
+        # r_registered_failure = -1e20 is contract-finite and survives the
+        # replay dtype, but (q - y)^2 overflows float32 to inf.
+        spec = self._reward_spec(r_registered_failure=-1e20)
+        transition = self._transition(spec=spec, tag="mse-overflow")
+        self.assertTrue(math.isfinite(transition.scalar_reward))
+        buffer = rbuf.ReplayBufferV1(capacity=2, float_dtype=DTYPE)
+        buffer.insert(transition)
+        batch = buffer.sample(1, torch.Generator().manual_seed(0))
+        self.assertTrue(torch.isfinite(batch.reward).all())
+
+        actor, critics = self._models()
+        trainer = self._trainer(batch, actor, critics)
+        params = list(actor.parameters()) + list(
+            chain(
+                critics.critic_1.parameters(),
+                critics.critic_2.parameters(),
+                critics.target_1.parameters(),
+                critics.target_2.parameters(),
+            )
+        )
+        before = [p.detach().clone() for p in params]
+
+        with self.assertRaises(hst.TrainerError) as caught:
+            trainer.update_once(batch)
+        self.assertIn("critic_1_loss", str(caught.exception))
+        for old, new in zip(before, params):
+            self.assertTrue(torch.equal(old, new), "a parameter moved")
+        self.assertEqual(len(trainer.actor_optimizer.state), 0)
+        self.assertEqual(len(trainer.critic_optimizer.state), 0)
+        self.assertEqual(trainer.update_count, 0)
+
+    def test_large_but_representable_reward_still_updates(self) -> None:
+        # -1e19 gives a finite float32 MSE and finite gradients.  It must not
+        # be rejected: squaring the gradient in float32 would overflow to inf
+        # even though the float64 norm is about 4.1e19.
+        spec = self._reward_spec(r_registered_failure=-1e19)
+        transition = self._transition(spec=spec, tag="big-but-ok")
+        buffer = rbuf.ReplayBufferV1(capacity=2, float_dtype=DTYPE)
+        buffer.insert(transition)
+        batch = buffer.sample(1, torch.Generator().manual_seed(0))
+
+        metrics = self._trainer(batch).update_once(batch)
+        metrics.assert_finite()
+        self.assertTrue(math.isfinite(metrics.critic_grad_norm))
+        self.assertGreater(metrics.critic_grad_norm, 1e18)
+        self.assertTrue(math.isfinite(metrics.critic_loss_total))
+
+    def test_grad_norm_accumulates_in_float64(self) -> None:
+        # Direct proof that the float32 square overflows where float64 does not.
+        parameter = torch.nn.Parameter(torch.zeros(4, dtype=DTYPE))
+        parameter.grad = torch.full((4,), 1e19, dtype=DTYPE)
+        naive = float(torch.sum(parameter.grad**2))
+        self.assertEqual(naive, float("inf"))
+        widened = hst._grad_norm([parameter])
+        self.assertTrue(math.isfinite(widened))
+        self.assertAlmostEqual(widened / 2e19, 1.0, places=6)
+
+    def test_update_count_increments_only_after_metrics_validate(self) -> None:
+        batch = self._batch()
+        trainer = self._trainer(batch)
+        self.assertEqual(trainer.update_count, 0)
+        with mock.patch.object(
+            hst.UpdateMetricsV1,
+            "assert_finite",
+            side_effect=hst.TrainerError("synthetic diagnostic failure"),
+        ):
+            with self.assertRaises(hst.TrainerError):
+                trainer.update_once(batch)
+        self.assertEqual(
+            trainer.update_count, 0, "a failed update was still counted"
+        )
+        trainer.update_once(batch)
+        self.assertEqual(trainer.update_count, 1)
 
 
 class ReplayIntegrationTest(TrainerTestBase):
