@@ -113,6 +113,8 @@ from .transaction_identity import MINIMUM_HOLD_TENSORS
 __all__ = [
     "BindingMismatchError",
     "DEFAULT_FLOAT_DTYPE",
+    "NonFiniteInReplayDtypeError",
+    "SUPPORTED_FLOAT_DTYPES",
     "DuplicateTransitionError",
     "IdentityConflictError",
     "IneligibleTransitionError",
@@ -139,6 +141,16 @@ REPLAY_BUFFER_SCHEMA_ID = "splitfusion_hybrid_sac_replay_buffer_v1"
 #: Floating dtype of replay tensors, matching ``HybridSacModelConfig``.
 DEFAULT_FLOAT_DTYPE: torch.dtype = torch.float32
 
+#: The only floating dtypes this buffer supports.
+#:
+#: Restricted deliberately.  ``float16`` and ``bfloat16`` have roughly 3 and 2
+#: decimal digits of mantissa and an exponent range far narrower than the
+#: reward and discount values this buffer carries, and several CPU reductions
+#: are not implemented for them.  Rather than silently degrade, an unsupported
+#: dtype is refused until it is explicitly proven to support every required
+#: CPU operation.
+SUPPORTED_FLOAT_DTYPES: Tuple[torch.dtype, ...] = (torch.float32, torch.float64)
+
 #: The critic's continuous action input is ``q_e4 / 9800`` in ``[0, 1]``.
 Q_CRITIC_NORMALIZER: int = Q_E4_MAX
 
@@ -160,6 +172,18 @@ class IneligibleTransitionError(TransitionRejectedError):
     """The transition is censored, excluded or carries no finite reward."""
 
 
+class NonFiniteInReplayDtypeError(TransitionRejectedError):
+    """A contract-finite value stops being finite in the replay dtype.
+
+    The reward contract requires a *finite* float, which ``float64`` honours
+    over the full IEEE double range.  The replay tensors are ``float32`` by
+    default, whose maximum magnitude is about ``3.4e38``.  A perfectly legal
+    reward of ``-1e300`` therefore becomes ``-inf`` the moment it is stored,
+    and would poison every loss computed from the batch.  The conversion is
+    proved *before* insertion rather than discovered during training.
+    """
+
+
 class DuplicateTransitionError(TransitionRejectedError):
     """This exact transition digest has already been seen in this process."""
 
@@ -174,6 +198,32 @@ class BindingMismatchError(TransitionRejectedError):
 
 class ReplaySamplingError(ReplayBufferError):
     """A sampling request is malformed or cannot be satisfied."""
+
+
+def _assert_finite_in_dtype(
+    values: Sequence[float], name: str, dtype: torch.dtype
+) -> None:
+    """Prove every value is still finite after conversion to ``dtype``.
+
+    Contract validity is checked in Python ``float`` (IEEE double).  Storage
+    happens in the configured replay dtype, which may be narrower.  A value
+    that overflows on conversion is refused here, not silently turned into an
+    infinity inside a tensor.
+
+    Raises:
+        NonFiniteInReplayDtypeError: naming the first offending index.
+    """
+    converted = torch.tensor(tuple(values), dtype=dtype)
+    finite = torch.isfinite(converted)
+    if bool(finite.all()):
+        return
+    index = int((~finite).nonzero()[0])
+    raise NonFiniteInReplayDtypeError(
+        f"{name}[{index}] is finite as a contract float ({values[index]!r}) "
+        f"but converts to {converted[index].item()!r} in replay dtype "
+        f"{dtype}; storing it would put a non-finite value into every batch "
+        f"drawn from this buffer"
+    )
 
 
 # --------------------------------------------------------------------------- #
@@ -341,13 +391,20 @@ class _StoredRow:
 
 @dataclass(frozen=True, slots=True, eq=False)
 class ReplayTensorBatchV1:
-    """An immutable tensor view of a uniform sample of stored transitions.
+    """A tensor view of a uniform sample of stored transitions.
 
-    Every public accessor returns a fresh ``clone()``.  A frozen dataclass
-    prevents rebinding an attribute but cannot freeze tensor *contents*, so the
-    stored tensors are private and never handed out directly.  The claim is
-    therefore narrow and exact: a caller cannot reach or mutate the batch's own
-    storage, and two accesses never alias.
+    Constructor inputs are defensively cloned and detached, so the batch never
+    shares storage with the buffer or with whatever the caller passed in.
+    Every supported public accessor then returns a fresh ``clone()``, so two
+    accesses never alias and mutating what an accessor returns cannot reach
+    the batch.
+
+    The guarantee is exactly that and no more.  A frozen dataclass prevents
+    rebinding an attribute; it does not make tensor contents read-only, and
+    Python has no private state.  A caller that deliberately reaches the
+    underscore-prefixed fields, or uses ``object.__setattr__``, can still
+    mutate this object.  The claim is protection against accidental aliasing
+    and ordinary mutation, **not** a sandbox against a determined caller.
     """
 
     _state: Tensor
@@ -363,6 +420,33 @@ class ReplayTensorBatchV1:
     binding: ReplayBindingV1
     audit: Tuple[Mapping[str, Any], ...]
     float_dtype: torch.dtype
+
+    #: Tensor fields cloned on construction so the batch owns its storage.
+    _TENSOR_FIELDS = (
+        "_state",
+        "_next_state",
+        "_mode_id",
+        "_q_e4",
+        "_reward",
+        "_duration",
+        "_has_next_state",
+        "_bootstrap",
+        "_terminated",
+        "_truncated",
+    )
+
+    def __post_init__(self) -> None:
+        # Defensive copy of every constructor input: the caller keeps no
+        # handle into this batch, and the batch keeps no handle into the
+        # buffer's own row storage.
+        for name in self._TENSOR_FIELDS:
+            value = getattr(self, name)
+            if not isinstance(value, Tensor):
+                raise ReplayBufferError(
+                    f"{name} must be a torch.Tensor, got "
+                    f"{type(value).__name__}"
+                )
+            object.__setattr__(self, name, value.detach().clone())
 
     # -- learning tensors (clone-returning) -------------------------------- #
 
@@ -486,9 +570,13 @@ class ReplayBufferV1:
             raise ReplayBufferError(
                 f"capacity must be a positive integer, got {capacity}"
             )
-        if not torch.is_floating_point(torch.empty(0, dtype=float_dtype)):
+        if float_dtype not in SUPPORTED_FLOAT_DTYPES:
             raise ReplayBufferError(
-                f"float_dtype must be a floating-point dtype, got {float_dtype}"
+                f"float_dtype must be one of "
+                f"{[str(d) for d in SUPPORTED_FLOAT_DTYPES]}, got "
+                f"{float_dtype}.  A narrower dtype is refused until it is "
+                f"explicitly proven to support every required CPU operation "
+                f"at the precision the reward and discount need"
             )
         # The frozen feature order is re-proved here rather than trusted, so a
         # buffer can never be built on an order that gained a forbidden field.
@@ -679,6 +767,34 @@ class ReplayBufferV1:
                 "a non-terminal transition requires an exact next state"
             )
 
+        # 7. Every floating value must still be finite once converted to the
+        #    configured replay dtype.  Contract validity is proved in IEEE
+        #    double; storage may be narrower, and an overflow here would put a
+        #    non-finite value into every batch drawn from this buffer.
+        dtype = self._float_dtype
+        _assert_finite_in_dtype([reward], "scalar_reward", dtype)
+        _assert_finite_in_dtype(state_values, "state_features", dtype)
+        if next_values is not None:
+            _assert_finite_in_dtype(next_values, "next_state_features", dtype)
+        discount = float(transition.discount_multiplier)
+        _assert_finite_in_dtype([discount], "discount_multiplier", dtype)
+        _assert_finite_in_dtype([gamma], "gamma_per_tensor", dtype)
+        # The derived critic action q_e4/9800 is bounded to [0, 1] by the
+        # integer range, but it is a floating replay field so it is proved
+        # rather than assumed.
+        _assert_finite_in_dtype(
+            [q_e4 / float(Q_CRITIC_NORMALIZER)], "q_normalized_executed", dtype
+        )
+        # A nonzero discount that underflows to exactly zero is not an
+        # overflow, but it silently erases the entire bootstrap term, so it is
+        # refused on the same principle.
+        if discount > 0.0 and float(torch.tensor(discount, dtype=dtype)) == 0.0:
+            raise NonFiniteInReplayDtypeError(
+                f"discount_multiplier {discount!r} underflows to exactly zero "
+                f"in replay dtype {dtype}; the bootstrap term would be "
+                f"silently erased"
+            )
+
         digest = transition.canonical_sha256()
         logical_key = (
             transition.session_uuid,
@@ -686,7 +802,7 @@ class ReplayBufferV1:
             int(transition.decision_seq),
         )
 
-        # 7. Duplicate and identity conflict, both against lifetime indexes
+        # 8. Duplicate and identity conflict, both against lifetime indexes
         #    that eviction never prunes.
         known = self._seen_identities.get(logical_key)
         if known is not None and known != digest:
@@ -746,9 +862,11 @@ class ReplayBufferV1:
 
         Args:
             batch_size: Number of distinct rows, ``1 <= batch_size <= len()``.
-            generator: An explicit local ``torch.Generator``.  Required; there
-                is deliberately no default, because an implicit default would
-                silently couple replay sampling to the global stream.
+            generator: An explicit local CPU ``torch.Generator``.  Required;
+                there is deliberately no default, because an implicit default
+                would silently couple replay sampling to the global stream.
+                ``torch.default_generator`` itself is refused for the same
+                reason, and so is any non-CPU generator.
 
         Raises:
             ReplaySamplingError: on a malformed request or an empty buffer.
@@ -758,6 +876,23 @@ class ReplayBufferV1:
                 f"sampling requires an explicit torch.Generator, got "
                 f"{type(generator).__name__}; replay must not draw from the "
                 f"global RNG stream"
+            )
+        # Passing the process-wide default generator would couple replay
+        # sampling to the global stream by the back door: it is a real
+        # torch.Generator, so the type check alone would admit it, and every
+        # draw would then perturb target-q, actor-q and evaluation sampling.
+        if generator is torch.default_generator:
+            raise ReplaySamplingError(
+                "sampling refuses torch.default_generator: replay must own a "
+                "private stream, and drawing from the global generator would "
+                "advance the same state the target-q, actor-q and evaluation "
+                "streams depend on"
+            )
+        if generator.device.type != "cpu":
+            raise ReplaySamplingError(
+                f"sampling requires a CPU generator, got one on device "
+                f"{generator.device}; this phase is CPU-only and a non-CPU "
+                f"generator would not reproduce the same draw"
             )
         if isinstance(batch_size, bool) or not isinstance(batch_size, int):
             raise ReplaySamplingError(

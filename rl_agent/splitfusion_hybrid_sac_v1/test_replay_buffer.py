@@ -15,6 +15,8 @@ from __future__ import annotations
 
 import dataclasses
 import json
+import math
+import os
 import subprocess
 import sys
 import unittest
@@ -886,6 +888,303 @@ class BootstrapTruthTableTest(ReplayBufferTestBase):
         self.assertTrue(torch.all(batch.next_state[zeroed] == 0.0))
         self.assertFalse(bool(batch.has_next_state[zeroed]))
         self.assertFalse(bool(batch.bootstrap[zeroed]))
+
+
+class ReplayDtypeOverflowTest(ReplayBufferTestBase):
+    """A contract-finite value must stay finite in the configured dtype."""
+
+    def test_float32_reward_overflow_is_rejected_before_any_mutation(self) -> None:
+        # -1e300 is a perfectly legal finite negative service reward, and is
+        # fully reachable through the reward spec.  In float32 it is -inf.
+        spec = self._reward_spec(r_registered_failure=-1e300)
+        transition = self._transition(spec=spec, tag="overflow")
+        self.assertEqual(transition.scalar_reward, -1e300)
+        self.assertTrue(math.isfinite(transition.scalar_reward))
+        self.assertEqual(
+            float(torch.tensor(transition.scalar_reward, dtype=torch.float32)),
+            float("-inf"),
+        )
+
+        buffer = rbuf.ReplayBufferV1(capacity=4, float_dtype=torch.float32)
+        with self.assertRaises(rbuf.NonFiniteInReplayDtypeError) as caught:
+            buffer.insert(transition)
+        self.assertIn("scalar_reward", str(caught.exception))
+        self.assertEqual(len(buffer), 0)
+        self.assertEqual(buffer.seen_digest_count, 0)
+        self.assertEqual(buffer.seen_identity_count, 0)
+        self.assertEqual(buffer.accepted_count, 0)
+        self.assertIsNone(buffer.binding)
+
+        # The same record is representable in float64 and is accepted there,
+        # which proves the rejection is about the dtype and not the contract.
+        wide = rbuf.ReplayBufferV1(capacity=4, float_dtype=torch.float64)
+        wide.insert(transition)
+        self.assertEqual(len(wide), 1)
+        batch = wide.sample(1, torch.Generator().manual_seed(0))
+        self.assertTrue(torch.isfinite(batch.reward).all())
+        self.assertEqual(float(batch.reward[0]), -1e300)
+
+    def test_no_stored_batch_ever_contains_a_non_finite_value(self) -> None:
+        buffer, _ = self._filled(4)
+        batch = buffer.sample(4, torch.Generator().manual_seed(1))
+        for name in (
+            "state",
+            "next_state",
+            "reward",
+            "q_normalized_executed",
+        ):
+            self.assertTrue(
+                torch.isfinite(getattr(batch, name)).all(), f"{name} not finite"
+            )
+        self.assertTrue(torch.isfinite(batch.discount()).all())
+
+    def test_finiteness_helper_rejects_overflowing_feature_vectors(self) -> None:
+        # A state-feature overflow is not reachable through the normalization
+        # contract today: every feature is clipped into a bounded range.  The
+        # guard is still exercised directly so it cannot silently rot.
+        overflowing = [0.0] * 30 + [1e300]
+        with self.assertRaises(rbuf.NonFiniteInReplayDtypeError) as caught:
+            rbuf._assert_finite_in_dtype(
+                overflowing, "state_features", torch.float32
+            )
+        self.assertIn("state_features[30]", str(caught.exception))
+        # float64 keeps it finite, so the same values pass there.
+        rbuf._assert_finite_in_dtype(overflowing, "state_features", torch.float64)
+        rbuf._assert_finite_in_dtype(
+            [0.0] * 31, "next_state_features", torch.float32
+        )
+
+    def test_unsupported_dtypes_are_rejected(self) -> None:
+        for dtype in (
+            torch.float16,
+            torch.bfloat16,
+            torch.int64,
+            torch.bool,
+            torch.complex64,
+        ):
+            with self.assertRaises(rbuf.ReplayBufferError) as caught:
+                rbuf.ReplayBufferV1(capacity=4, float_dtype=dtype)
+            self.assertIn("float_dtype", str(caught.exception))
+        self.assertEqual(
+            rbuf.SUPPORTED_FLOAT_DTYPES, (torch.float32, torch.float64)
+        )
+        for dtype in rbuf.SUPPORTED_FLOAT_DTYPES:
+            self.assertEqual(
+                rbuf.ReplayBufferV1(capacity=1, float_dtype=dtype).float_dtype,
+                dtype,
+            )
+
+
+class GeneratorRestrictionTest(ReplayBufferTestBase):
+    """Replay sampling owns a private CPU stream and nothing else."""
+
+    def test_default_generator_is_rejected_without_disturbing_global_rng(
+        self,
+    ) -> None:
+        buffer, _ = self._filled(5)
+        torch.manual_seed(31337)
+        before_state = torch.get_rng_state()
+        before_default = torch.default_generator.get_state()
+
+        with self.assertRaises(rbuf.ReplaySamplingError) as caught:
+            buffer.sample(2, torch.default_generator)
+        self.assertIn("default_generator", str(caught.exception))
+
+        # Rejected before sampling, so the global stream is untouched.
+        self.assertTrue(torch.equal(torch.get_rng_state(), before_state))
+        self.assertTrue(
+            torch.equal(torch.default_generator.get_state(), before_default)
+        )
+        # And the buffer still samples normally from a private stream.
+        batch = buffer.sample(2, torch.Generator().manual_seed(4))
+        self.assertEqual(batch.batch_size, 2)
+        self.assertTrue(torch.equal(torch.get_rng_state(), before_state))
+
+    def test_torch_random_default_generator_is_the_same_rejected_object(
+        self,
+    ) -> None:
+        self.assertIs(torch.default_generator, torch.random.default_generator)
+        buffer, _ = self._filled(2)
+        with self.assertRaises(rbuf.ReplaySamplingError):
+            buffer.sample(1, torch.random.default_generator)
+
+    def test_a_fresh_cpu_generator_is_accepted(self) -> None:
+        buffer, _ = self._filled(3)
+        explicit = torch.Generator(device="cpu").manual_seed(8)
+        self.assertEqual(explicit.device.type, "cpu")
+        self.assertIsNot(explicit, torch.default_generator)
+        self.assertEqual(buffer.sample(2, explicit).batch_size, 2)
+
+    @unittest.skipUnless(
+        os.environ.get("SPLITFUSION_ALLOW_CUDA_TEST") == "1"
+        and torch.cuda.is_available(),
+        "CUDA generators are not constructed in this phase: building one "
+        "initializes a CUDA context, which this phase forbids.  Set "
+        "SPLITFUSION_ALLOW_CUDA_TEST=1 to run the real-device check.",
+    )
+    def test_non_cpu_generator_is_rejected(self) -> None:  # pragma: no cover
+        buffer, _ = self._filled(2)
+        cuda_generator = torch.Generator(device="cuda")
+        self.assertNotEqual(cuda_generator.device.type, "cpu")
+        with self.assertRaises(rbuf.ReplaySamplingError) as caught:
+            buffer.sample(1, cuda_generator)
+        self.assertIn("CPU generator", str(caught.exception))
+
+    def test_device_guard_is_present_in_the_sampling_path(self) -> None:
+        # The CUDA path above cannot run here, so at minimum prove the guard
+        # exists and that the accepted generator satisfies it.
+        source = Path(rbuf.__file__).read_text(encoding="utf-8")
+        self.assertIn('generator.device.type != "cpu"', source)
+        self.assertIn("generator is torch.default_generator", source)
+
+
+class PostAttestationTamperTest(ReplayBufferTestBase):
+    """A record mutated after attestation is refused and poisons nothing."""
+
+    def test_object_setattr_tamper_is_rejected_and_leaves_no_trace(self) -> None:
+        buffer, stored = self._filled(2, capacity=8)
+        victim = self._transition(tag="tamper")
+        self.assertTrue(victim.is_attested)
+        self.assertFalse(victim.terminated)
+        original_digest = victim.canonical_sha256()
+
+        before = (
+            len(buffer),
+            buffer.accepted_count,
+            buffer.seen_digest_count,
+            buffer.seen_identity_count,
+            buffer.evicted_count,
+            buffer.stored_transitions(),
+        )
+
+        # Tamper in place, bypassing the frozen dataclass entirely.  This is
+        # the same object; no copy was made, so the attestation travels with
+        # it and the only defence is recomputing the binding.
+        object.__setattr__(victim, "terminated", True)
+        object.__setattr__(victim, "episode_end_reason", "forged-terminal")
+        self.assertFalse(victim.is_attested)
+
+        with self.assertRaises(src.UnattestedRecordError):
+            buffer.insert(victim)
+
+        after = (
+            len(buffer),
+            buffer.accepted_count,
+            buffer.seen_digest_count,
+            buffer.seen_identity_count,
+            buffer.evicted_count,
+            buffer.stored_transitions(),
+        )
+        self.assertEqual(before, after, "a rejected tamper changed the buffer")
+        self.assertNotIn(victim, buffer.stored_transitions())
+
+        # Restore the object to exactly what was attested.  If the rejected
+        # attempt had poisoned either lifetime index, this insert would now
+        # fail as a duplicate or an identity conflict.
+        object.__setattr__(victim, "terminated", False)
+        object.__setattr__(victim, "episode_end_reason", None)
+        self.assertTrue(victim.is_attested)
+        self.assertEqual(victim.canonical_sha256(), original_digest)
+
+        buffer.insert(victim)
+        self.assertEqual(len(buffer), before[0] + 1)
+        self.assertEqual(buffer.seen_digest_count, before[2] + 1)
+        self.assertEqual(buffer.seen_identity_count, before[3] + 1)
+        self.assertIn(victim, buffer.stored_transitions())
+        self.assertEqual(buffer.stored_transitions()[:2], tuple(stored))
+
+    def test_tampering_a_reward_bearing_field_is_rejected(self) -> None:
+        buffer = rbuf.ReplayBufferV1(capacity=4)
+        victim = self._transition(tag="tamper-reward")
+        object.__setattr__(victim, "state_normalization_spec_sha256", HEX_A)
+        with self.assertRaises(src.UnattestedRecordError):
+            buffer.insert(victim)
+        self.assertEqual(len(buffer), 0)
+        self.assertEqual(buffer.seen_digest_count, 0)
+
+
+class ConstructorAliasingTest(ReplayBufferTestBase):
+    """The batch never shares storage with its inputs or with the buffer."""
+
+    def test_batch_clones_its_constructor_inputs(self) -> None:
+        state = torch.zeros(2, 31, dtype=torch.float32)
+        next_state = torch.zeros(2, 31, dtype=torch.float32)
+        mode_id = torch.zeros(2, dtype=torch.int64)
+        q_e4 = torch.zeros(2, dtype=torch.int64)
+        reward = torch.zeros(2, dtype=torch.float32)
+        duration = torch.full((2,), 2, dtype=torch.int64)
+        mask = torch.zeros(2, dtype=torch.bool)
+        binding = rbuf.ReplayBindingV1(
+            reward_spec_sha256=HEX_A,
+            state_normalization_spec_sha256=HEX_A,
+            freshness_policy_sha256=HEX_A,
+            gamma_per_tensor=0.99,
+            schema_id=src.SCHEMA_ID,
+            schema_version=src.SCHEMA_VERSION,
+            schema_sha256=src.SCHEMA_SHA256,
+            catalog_sha256=ac.CATALOG_SHA256,
+            policy_feature_order=tuple(src.POLICY_FEATURE_ORDER),
+            policy_feature_count=31,
+        )
+        batch = rbuf.ReplayTensorBatchV1(
+            _state=state,
+            _next_state=next_state,
+            _mode_id=mode_id,
+            _q_e4=q_e4,
+            _reward=reward,
+            _duration=duration,
+            _has_next_state=mask,
+            _bootstrap=mask,
+            _terminated=mask,
+            _truncated=mask,
+            binding=binding,
+            audit=(),
+            float_dtype=torch.float32,
+        )
+        # Mutating the originals must not reach the batch.
+        state.fill_(7.0)
+        next_state.fill_(9.0)
+        mode_id.fill_(5)
+        q_e4.fill_(9800)
+        reward.fill_(3.0)
+        duration.fill_(11)
+        mask.fill_(True)
+
+        self.assertTrue(torch.all(batch.state == 0.0))
+        self.assertTrue(torch.all(batch.next_state == 0.0))
+        self.assertTrue(torch.all(batch.mode_id == 0))
+        self.assertTrue(torch.all(batch.q_e4 == 0))
+        self.assertTrue(torch.all(batch.reward == 0.0))
+        self.assertTrue(torch.all(batch.duration == 2))
+        for name in ("has_next_state", "bootstrap", "terminated", "truncated"):
+            self.assertFalse(bool(getattr(batch, name).any()), name)
+        # The four masks were one shared tensor; the batch must hold four
+        # independent copies rather than four references to it.
+        pointers = {
+            getattr(batch, f"_{name}").data_ptr()
+            for name in (
+                "has_next_state",
+                "bootstrap",
+                "terminated",
+                "truncated",
+            )
+        }
+        self.assertEqual(len(pointers), 4, "batch aliased one shared mask")
+
+    def test_batch_rejects_non_tensor_constructor_inputs(self) -> None:
+        buffer, _ = self._filled(1)
+        batch = buffer.sample(1, torch.Generator().manual_seed(0))
+        with self.assertRaises(rbuf.ReplayBufferError):
+            dataclasses.replace(batch, _state=[[0.0] * 31])
+
+    def test_batch_does_not_alias_buffer_row_storage(self) -> None:
+        buffer, _ = self._filled(2)
+        first = buffer.sample(2, torch.Generator().manual_seed(0))
+        second = buffer.sample(2, torch.Generator().manual_seed(0))
+        self.assertNotEqual(first._state.data_ptr(), second._state.data_ptr())
+        first._state.add_(100.0)
+        third = buffer.sample(2, torch.Generator().manual_seed(0))
+        self.assertTrue(torch.equal(second.state, third.state))
 
 
 class ImportPurityTest(unittest.TestCase):
