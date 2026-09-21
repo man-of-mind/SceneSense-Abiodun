@@ -126,6 +126,33 @@ case and observe at least one real association containing both UE sources.
 SciPy is required for `scipy.optimize.linear_sum_assignment`; both the system
 Python and the registered CARLA virtual environment currently provide it.
 
+## Transport-independent normalization seam
+
+`spatial_map_coop/coop_input_v1/` normalizes both the cooperative-demo HTTP
+document and the production `splitfusion_direct_object_map_update.v1` document
+into one `NormalizedCoopBatch`, retaining run/cell/UE/session/stream/frame/
+sequence/action/profile identity, both clock domains by name, the p025 records
+verbatim, edge-timing provenance, the map terminal outcome and payload hashes.
+
+The two paths are **not plug-compatible**: only the p025 record layer matches.
+The contract-by-contract audit, including the pinned SHA-256 digests of the
+production reference modules, is `coop_input_v1/PRODUCTION_COMPATIBILITY_V1.md`.
+This branch predates `rl_agent/splitfusion_direct_edge_map_v1/` and cannot import
+the frozen production validator, so the adapters validate canonical fixture
+documents and accept an `upstream_validator` hook. **Final runtime integration
+must happen in a master-based bridge worktree** that calls
+`protocol.validate_object_map_update` first.
+
+Production protocol v1 carries no ego pose and no sensor FoV, so the 40 m
+ego-follow view and the FoV wedges cannot be driven from it. `pose_sidecar_v1.py`
+implements the compatibility option (a versioned sidecar keyed by
+`(run_id, cell_id, stream_id, frame_id, capture_timestamp_ns)`); the recommended
+option is a future protocol v2 carrying the SFD1 frame-context pose atomically,
+which is deliberately not implemented here because the frozen production
+protocol must not be modified from this branch. An absent pose renders
+`pose unavailable` and draws no wedge; no CARLA ground-truth actor is ever
+queried.
+
 ## Deliberate boundary
 
 This version does not estimate positional covariance, average positions,

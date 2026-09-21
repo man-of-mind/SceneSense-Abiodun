@@ -216,11 +216,26 @@ python3 -u spatial_map_coop/spatial_map_server_moving_ego.py \
 
 Open `http://127.0.0.1:35011/api/spatial_map/viewer`. The default view is the
 associated map. Press `R` or `1` for raw reports, `F` or `2` for associated
-tracks, or Space to toggle. Buttons at the lower-right provide the same control.
+tracks, or Space to toggle. Buttons at the lower-left provide the same control;
+`M` toggles the live-metrics panel, `L` the legend, `C` the controls, `B` the
+canonical Route-B overlay, and `P` enters presentation mode (chrome stripped for
+a screen recording). The canvas is laid out on a 16:9 stage so framing is
+identical on any monitor.
+
 Raw mode shows the two UE report sets independently. Associated mode shows A-only
-and B-only tracks in their source colors and one green representation for an
-A+B association. A lane tangent may orient nearby vehicle rectangles for display,
-but it never changes their measured world-XY positions or scientific association.
+and B-only tracks in their source colors and one green, double-stroked
+representation for an A+B association. Colors are the Okabe-Ito colour-blind-safe
+set, and A+B is additionally marked by the double stroke so it is never
+distinguished by hue alone. A lane tangent may orient nearby vehicle rectangles
+for display, but it never changes their measured world-XY positions or scientific
+association. The lane lookup is a cached spatial index, not a per-frame scan of
+the whole road network.
+
+Add `--route-mode route-b-passive --route-overlay` to draw the hash-verified
+canonical Town10HD_Opt Route-B path as a background reference. The default
+`--route-mode stage2` is the historical configurable spawn-index loop and is
+**not** Route B; the contract reports that explicitly and refuses to be labelled
+otherwise. Binding the Route-B contract does not authorize a Route-B run.
 
 In terminal 2, run a longer single demonstration using a new output leaf:
 
@@ -244,9 +259,31 @@ server separately with Ctrl+C after recording.
 
 The owned synchronous CARLA clock advances in its own 20 Hz thread rather than
 waiting for the two sequential model paths. The browser canvas redraws at the
-display refresh rate and requests snapshots at 20 Hz; new learned detections still
-arrive only when both model paths finish. Display interpolation makes those
-measured steps readable without inventing additional detections. The translucent
-cyan/orange wedges are the two measured 120-degree sensor FoVs. The associated
-presentation renders only tracks supported by the current association snapshot;
-historical tracks remain unchanged in the scientific service state and evidence.
+display refresh rate, requests snapshots at 20 Hz and refreshes the metrics panel
+at 2 Hz; new learned detections still arrive only when both model paths finish.
+
+Between measured frames the **associated** tracks and the measured ego poses use a
+causal, presentation-only constant-velocity predictor bounded at 200 ms with
+conservative class speed clamps; past that bound the pose holds rather than
+drifting, and a held pose is drawn with a dashed outline. **Raw mode is
+deliberately measurement-stepped**: smoothing it would obscure which measurements
+were actually received. A predicted object is drawn as one footprint with a faint
+leader line back to its measured point, never as an additional detection. The
+translucent blue/orange wedges are the two measured 120-degree sensor FoVs. The
+associated presentation renders only tracks supported by the current association
+snapshot; historical tracks remain unchanged in the scientific service state and
+evidence.
+
+The live-metrics panel reports stream rates, last accepted frame per UE, time
+since last receipt, raw/associated counts, A-only/B-only/A+B counts, the
+`1 - associated/raw` reduction ratio, ingest counters, stale tracks hidden,
+browser poll RTT, render FPS and the server snapshot-build window. Direct
+edge-to-map latency charts stay **empty** on this transport because it carries no
+edge stage stamps or map terminal, and the panel says so rather than showing
+zeros. Cross-clock wall AoI displays `N/A - incompatible clock domains`: this
+demonstration's capture clock is `carla_simulation_ns` and the server receipt is
+`unix_wall_ns`. The HTTP POST is labelled `demo-control delivery time` and the
+inference `localhost model path`. **Neither is 5G, radio or network latency.**
+
+Full presentation and metrics contract: `spatial_map_coop/VIEWER_PRESENTATION_V2.md`.
+Production-path compatibility: `spatial_map_coop/coop_input_v1/PRODUCTION_COMPATIBILITY_V1.md`.

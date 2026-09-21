@@ -1,0 +1,75 @@
+{
+  "clock_domain": "carla_simulation_ns",
+  "ego_pose": {
+    "actor_id": 412,
+    "location": {
+      "x": -19.0,
+      "y": 28.05,
+      "z": 0.6
+    },
+    "rotation": {
+      "pitch": 0.0,
+      "roll": 0.0,
+      "yaw": 0.2
+    }
+  },
+  "horizontal_fov_deg": 120.0,
+  "payload": {
+    "action_id": 50,
+    "capture_timestamp_ns": 612500000000,
+    "frame_id": 4098,
+    "object_map_update": {
+      "action_id": 50,
+      "capture_timestamp_ns": 612500000000,
+      "frame_id": 4098,
+      "records": [
+        {
+          "actor_forward_depth_m": 11.5,
+          "bbox_x0": 352.0,
+          "bbox_x1": 416.0,
+          "bbox_y0": 200.0,
+          "bbox_y1": 248.0,
+          "candidate_identity": "4098:0:1024",
+          "capture_timestamp_ns": 612500000000,
+          "center_x_px": 384.0,
+          "center_y_px": 224.0,
+          "class_name": "vehicle",
+          "depth_bin": 4,
+          "depth_residual": 0.125,
+          "fpn_level": "p3",
+          "frame_id": 4098,
+          "internal_class": 1,
+          "level_index": 0,
+          "local_x": 11.5,
+          "local_y": 0.75,
+          "local_z": 0.0,
+          "parked_score": 0.0625,
+          "physical_ray_x_px": 384.0,
+          "physical_ray_y_px": 224.0,
+          "point_index": 1024,
+          "prediction_index": 0,
+          "radar_support_score": 0.75,
+          "sample_id": "two-ue/ue-b:4098",
+          "score": 0.8125,
+          "size_x": 4.6,
+          "size_y": 2.0,
+          "size_z": 1.55,
+          "stream_id": "two-ue/ue-b",
+          "world_x": 12.25,
+          "world_y": 28.25,
+          "world_z": 0.5,
+          "yaw_cos": 1.0,
+          "yaw_sin": 0.0
+        }
+      ],
+      "schema": "splitfusion_object_map_update.v1",
+      "stream_id": "two-ue/ue-b"
+    },
+    "profile_id": "split_ae64_uint4_q5000",
+    "schema": "splitfusion_edge_result.v2",
+    "stream_id": "two-ue/ue-b"
+  },
+  "schema": "scenesense.multi_ue_live_view_update.v1",
+  "session_id": "two-ue-live-action50-v1",
+  "ue_id": "ue-b"
+}

@@ -55,6 +55,8 @@ from data_collection.radar_sweep_aggregator_v1 import (
 )
 from pole_lraspp_multimodal_fusion.radar_fusion import build_radar_sample
 
+from ..coop_input_v1 import route_contract_v1
+from ..coop_input_v1.normalized import CoopInputError
 from .association import AssociationPolicy
 from .contracts import MultiUEContractError
 from .faults import FAULT_CASES, deterministic_fault_case, mutate_edge_result
@@ -70,6 +72,15 @@ ACTION_ID = 50
 EXPECTED_PROFILE = ("split_ae64_uint4_q5000", "AE64", "UINT4", 5000, 10752)
 CLOCK_DOMAIN = "carla_simulation_ns"
 LIVE_VIEW_UPDATE_SCHEMA = "scenesense.multi_ue_live_view_update.v1"
+# Registered ego/stream identities. Two explicit identities are required in
+# every mode; route-b-passive additionally refuses to bind with fewer.
+STREAM_UE_A = "two-ue/ue-a"
+STREAM_UE_B = "two-ue/ue-b"
+REGISTERED_STREAM_IDS = (STREAM_UE_A, STREAM_UE_B)
+REGISTERED_UE_IDS = ("ue-a", "ue-b")
+# The historical Stage-2 loop. These are configurable spawn indices, NOT a
+# qualified route: no combination of them constitutes a Route-B demonstration.
+STAGE2_DEFAULT_SPAWN_INDICES = "80,85,91,94,99,80"
 CAMERA_MOUNT = (1.8, 0.0, 1.55, -4.0, 0.0, 0.0)
 RADAR_MOUNT = (2.0, 0.0, 1.0, 0.0, 0.0, 0.0)
 MODEL_SIZE = (768, 448)
@@ -1030,6 +1041,53 @@ def _resolve_vehicle(world: Any, actor_id: int) -> Any:
     return actor
 
 
+def _build_route_contract(args: argparse.Namespace) -> "route_contract_v1.RouteContract":
+    """Bind and validate the route contract for this configuration.
+
+    ``stage2`` is the historical configurable spawn-index loop and reports
+    ``is_route_b = False``. ``route-b-passive`` binds the canonical Town10HD_Opt
+    Route-B JSON, verifies its SHA-256, optionally requires the route-progress
+    contract, and refuses fewer than two registered ego/stream identities.
+
+    Binding a Route-B contract does not authorize a Route-B run and does not by
+    itself constitute a two-UE Route-B demonstration.
+    """
+
+    indices: tuple[int, ...] = ()
+    if str(args.route_mode) == route_contract_v1.ROUTE_MODE_STAGE2:
+        indices = tuple(
+            int(value.strip())
+            for value in str(args.fixed_route_spawn_indices).split(",")
+            if value.strip()
+        )
+    return route_contract_v1.build_route_contract(
+        mode=str(args.route_mode),
+        stream_ids=REGISTERED_STREAM_IDS,
+        ue_ids=REGISTERED_UE_IDS,
+        stage2_spawn_indices=indices,
+        route_path=(args.route_b_path or None),
+        require_progress=bool(args.require_route_progress),
+    )
+
+
+def _require_route_contract(args: argparse.Namespace) -> "route_contract_v1.RouteContract":
+    try:
+        contract = _build_route_contract(args)
+    except CoopInputError as exc:
+        raise LiveTwoUEError(f"route contract refused: {exc}") from exc
+    if str(args.route_mode) == route_contract_v1.ROUTE_MODE_ROUTE_B_PASSIVE:
+        _require(
+            contract.is_route_b and contract.route is not None,
+            "route-b-passive must bind a hash-verified canonical Route-B route",
+        )
+    else:
+        _require(
+            not contract.is_route_b,
+            "stage2 mode must never report a Route-B contract",
+        )
+    return contract
+
+
 def _require_actor_selection(args: argparse.Namespace) -> None:
     """Validate external IDs only when the harness does not own the egos."""
 
@@ -1096,6 +1154,19 @@ def run(args: argparse.Namespace) -> int:
         print(json.dumps(_vehicle_rows(world), indent=2, sort_keys=True))
         return 0
 
+    # Bind and validate the route contract before any actor, sensor or output
+    # is created, so a refused contract costs nothing.
+    contract = _require_route_contract(args)
+    if contract.is_route_b:
+        # A Route-B demonstration cannot be produced by spawning egos at
+        # configurable indices; it must be driven by the canonical route runner.
+        _require(
+            not args.spawn_two_egos,
+            "route-b-passive requires externally owned egos driven by the "
+            "canonical Route-B runner; --spawn-two-egos cannot produce a "
+            "Route-B demonstration",
+        )
+
     registry = SplitActionRegistry.from_runtime_binding()
     profile = _verify_profile(registry)
     runtime = _runtime_api()
@@ -1147,8 +1218,8 @@ def run(args: argparse.Namespace) -> int:
         del ue_models, edge_models
         # Load and freeze every model before sensors begin. Otherwise callbacks
         # accumulate an unbounded pre-anchor radar backlog during checkpoint IO.
-        source_a = _PassiveUESensors(world, vehicle_a, "two-ue/ue-a")
-        source_b = _PassiveUESensors(world, vehicle_b, "two-ue/ue-b")
+        source_a = _PassiveUESensors(world, vehicle_a, STREAM_UE_A)
+        source_b = _PassiveUESensors(world, vehicle_b, STREAM_UE_B)
         if owned_scenario is not None:
             owned_scenario.start_clock()
         service = MultiUESpatialMapService(_policy())
@@ -1295,6 +1366,8 @@ def run(args: argparse.Namespace) -> int:
                 "CALIBRATED_POSITION_COVARIANCE_FUSION",
                 "AGENT_SELECTED_ACTIONS",
                 "UI_QUALIFICATION",
+                "ROUTE_B_LIVE_QUALIFICATION",
+                "COMPLETE_TWO_UE_ROUTE_B_DEMONSTRATION",
             ],
             "profile": _profile_document(profile),
             "actor_ids": {"ue-a": int(vehicle_a.id), "ue-b": int(vehicle_b.id)},
@@ -1306,6 +1379,12 @@ def run(args: argparse.Namespace) -> int:
             "nominal_multi_source_associations": nominal_multi_source,
             "fault_case_counts": dict(sorted(fault_counts.items())),
             "association_policy": _policy().as_dict(),
+            # The route contract is recorded verbatim, including
+            # is_route_b/qualification_status, so no downstream reader can
+            # mistake a Stage-2 loop for a Route-B demonstration.
+            "route_contract": contract.as_dict(),
+            "registered_stream_ids": list(REGISTERED_STREAM_IDS),
+            "registered_ue_ids": list(REGISTERED_UE_IDS),
             "resident_runtime_shared_by_logical_ues": True,
             "scenario_ownership": (
                 "SELF_CONTAINED_OWNED_TWO_EGO"
@@ -1429,7 +1508,29 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--ego-blueprint", default="vehicle.lincoln.mkz")
     parser.add_argument("--ego-spawn-index", type=int, default=80)
     parser.add_argument("--ego-gap-m", type=float, default=15.0)
-    parser.add_argument("--fixed-route-spawn-indices", default="80,85,91,94,99,80")
+    parser.add_argument(
+        "--fixed-route-spawn-indices", default=STAGE2_DEFAULT_SPAWN_INDICES
+    )
+    parser.add_argument(
+        "--route-mode",
+        choices=route_contract_v1.ROUTE_MODES,
+        default=route_contract_v1.ROUTE_MODE_STAGE2,
+        help=(
+            "stage2 = the historical configurable spawn-index loop (NOT Route B). "
+            "route-b-passive = bind and hash-verify the canonical Town10HD_Opt "
+            "Route-B loop. Binding it does not authorize a Route-B run."
+        ),
+    )
+    parser.add_argument(
+        "--route-b-path",
+        default="",
+        help="Override the canonical Route-B JSON path; the SHA-256 pin still applies.",
+    )
+    parser.add_argument(
+        "--require-route-progress",
+        action="store_true",
+        help="Refuse route-b-passive unless the route-progress contract is present.",
+    )
     parser.add_argument("--npc-vehicles", type=int, default=28)
     parser.add_argument("--npc-pedestrians", type=int, default=35)
     parser.add_argument("--spawn-radius-m", type=float, default=80.0)
