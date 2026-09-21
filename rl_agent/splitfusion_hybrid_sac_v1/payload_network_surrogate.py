@@ -92,6 +92,7 @@ __all__ = [
     "NetworkSurrogateError",
     "NetworkSurrogatePrediction",
     "PayloadNetworkSurrogate",
+    "PrevalidatedPredictionSession",
     "PrivilegedContextLeakError",
     "SurrogateContract",
     "SupportSummary",
@@ -779,6 +780,23 @@ class NetworkSurrogatePrediction:
             )
         return self._latency_on_admitted_retained_survivor
 
+    def conditional_retained_survivor_latency_model(self) -> LatencyPrediction:
+        """Return the modeled conditional survivor-latency distribution.
+
+        This accessor is for deterministic expectation models.  It makes no
+        claim that an admission or downstream-retention event occurred for a
+        particular frame; callers that are adjudicating an observed event must
+        continue to use :meth:`require_latency` with the corresponding event
+        evidence.  Unsupported payloads remain fail-closed.
+        """
+        if self._latency_on_admitted_retained_survivor is None:
+            raise ExtrapolationRefusedError(
+                "payload is outside the qualified retained-survivor latency "
+                "envelope; deterministic expectation modeling does not "
+                "authorize zero imputation or extrapolation"
+            )
+        return self._latency_on_admitted_retained_survivor
+
     def to_canonical_dict(self) -> Dict[str, Any]:
         return {
             "schema": self.schema,
@@ -971,6 +989,31 @@ class PayloadNetworkSurrogate:
         datagram_count: int,
     ) -> NetworkSurrogatePrediction:
         self.revalidate()
+        return self._predict_prevalidated(
+            network_profile=network_profile,
+            payload_bytes=payload_bytes,
+            datagram_count=datagram_count,
+        )
+
+    def prevalidated_prediction_session(self) -> "PrevalidatedPredictionSession":
+        """Bind one immutable model after a full validation for hot-loop use.
+
+        The ordinary :meth:`predict` remains independently fail-closed.  A
+        session is suitable only while retaining this exact frozen model
+        object and records the model's complete canonical identity.
+        """
+        self.revalidate()
+        return PrevalidatedPredictionSession(
+            model=self, model_sha256=self.canonical_sha256()
+        )
+
+    def _predict_prevalidated(
+        self,
+        *,
+        network_profile: str,
+        payload_bytes: float,
+        datagram_count: int,
+    ) -> NetworkSurrogatePrediction:
         if network_profile not in self.profile_models:
             raise ExtrapolationRefusedError(
                 f"unknown network_profile {network_profile!r}; expected one of "
@@ -1281,6 +1324,43 @@ class PayloadNetworkSurrogate:
             ]
         )
         return "\n".join(lines) + "\n"
+
+
+@dataclass(frozen=True, slots=True)
+class PrevalidatedPredictionSession:
+    """Hot-loop view bound to one already fully validated frozen model.
+
+    This is mistake-resistant for ordinary use of the frozen dataclasses and
+    mapping proxies, not a security boundary against deliberate
+    ``object.__setattr__`` forgery.  Create it only after source preflight and
+    do not deserialize or accept one across a trust boundary.
+    """
+
+    model: PayloadNetworkSurrogate
+    model_sha256: str
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.model, PayloadNetworkSurrogate):
+            raise EvidenceDefinitionError(
+                "prevalidated session requires PayloadNetworkSurrogate"
+            )
+        if self.model_sha256 != self.model.canonical_sha256():
+            raise EvidenceDefinitionError(
+                "prevalidated session model identity does not match its model"
+            )
+
+    def predict(
+        self,
+        *,
+        network_profile: str,
+        payload_bytes: float,
+        datagram_count: int,
+    ) -> NetworkSurrogatePrediction:
+        return self.model._predict_prevalidated(
+            network_profile=network_profile,
+            payload_bytes=payload_bytes,
+            datagram_count=datagram_count,
+        )
 
 
 def _extract_observations(

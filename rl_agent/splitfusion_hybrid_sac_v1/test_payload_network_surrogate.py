@@ -95,6 +95,41 @@ class EvidenceBindingTest(PayloadNetworkSurrogateTestBase):
             )
             self.assertEqual(row.datagram_count, nominal)
 
+    def test_expectation_accessor_does_not_claim_an_observed_event(self) -> None:
+        row = next(
+            row
+            for row in self.model.observations
+            if row.network_support >= ns.LATENCY_MIN_SUPPORT
+        )
+        prediction = self.model.predict(
+            network_profile=row.network_profile,
+            payload_bytes=row.payload_bytes,
+            datagram_count=row.datagram_count,
+        )
+        latency = prediction.conditional_retained_survivor_latency_model()
+        self.assertGreater(latency.p50_ms, 0.0)
+        with self.assertRaises(ns.ExtrapolationRefusedError):
+            prediction.require_latency(
+                edge_admission_succeeded=False,
+                downstream_result_retained=False,
+            )
+
+    def test_prevalidated_session_matches_fail_closed_public_prediction(self) -> None:
+        row = self.model.observations[0]
+        session = self.model.prevalidated_prediction_session()
+        public = self.model.predict(
+            network_profile=row.network_profile,
+            payload_bytes=row.payload_bytes,
+            datagram_count=row.datagram_count,
+        )
+        hot = session.predict(
+            network_profile=row.network_profile,
+            payload_bytes=row.payload_bytes,
+            datagram_count=row.datagram_count,
+        )
+        self.assertEqual(public.to_canonical_dict(), hot.to_canonical_dict())
+        self.assertEqual(session.model_sha256, self.model.canonical_sha256())
+
     def test_preflight_states_the_scientific_boundaries(self) -> None:
         document = self.model.preflight_document()
         self.assertEqual(document["evidence_class"], ns.EVIDENCE_CLASS)
