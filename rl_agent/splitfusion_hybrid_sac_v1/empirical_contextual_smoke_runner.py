@@ -145,8 +145,8 @@ class EmpiricalSmokeConfigV1:
             raise EmpiricalSmokeError(
                 "the mechanics smoke must retain its full history without eviction"
             )
-        if self.scope != PHASE_LABEL:
-            raise EmpiricalSmokeError("mechanics-only scope label drift")
+        if type(self.scope) is not str or not self.scope.strip():
+            raise EmpiricalSmokeError("scope must be a non-empty string")
 
     @property
     def total_transitions(self) -> int:

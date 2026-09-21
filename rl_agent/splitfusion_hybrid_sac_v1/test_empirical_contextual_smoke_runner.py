@@ -64,6 +64,18 @@ class RegisteredScheduleTest(unittest.TestCase):
             with self.assertRaises(EmpiricalSmokeError):
                 replace(REGISTERED_SMOKE_CONFIG, **mutation)
 
+        with self.assertRaises(EmpiricalSmokeError):
+            replace(REGISTERED_SMOKE_CONFIG, scope="")
+
+    def test_nonempty_scope_specialization_does_not_change_registered_default(self) -> None:
+        specialized = replace(REGISTERED_SMOKE_CONFIG, scope="ANOTHER_EXPLICIT_SCOPE")
+        self.assertEqual(specialized.scope, "ANOTHER_EXPLICIT_SCOPE")
+        self.assertEqual(REGISTERED_SMOKE_CONFIG.scope, PHASE_LABEL)
+        self.assertEqual(
+            REGISTERED_SMOKE_CONFIG.canonical_sha256(),
+            "d0f991545bf7d4bcf4cf513bd8882bba5c952274ef3a0a8f9d9b53e680645431",
+        )
+
 
 class EndToEndMechanicalTest(unittest.TestCase):
     """One small schedule exercises real registered D1 without live systems."""
