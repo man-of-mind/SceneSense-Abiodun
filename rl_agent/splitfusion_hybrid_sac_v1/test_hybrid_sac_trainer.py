@@ -26,6 +26,7 @@ import torch
 
 from . import hybrid_sac_models as hsm
 from . import hybrid_sac_trainer as hst
+from . import modeled_smoke_support as mss
 from . import replay_buffer as rbuf
 from . import state_reward_transition_contract as src
 from .test_replay_buffer import ReplayBufferTestBase
@@ -110,6 +111,11 @@ class SingleUpdateTest(TrainerTestBase):
         self.assertEqual(
             metrics.gamma_per_tensor, batch.binding.gamma_per_tensor
         )
+        self.assertEqual(
+            metrics.continuous_log_prob_coordinate,
+            hsm.PHYSICAL_Q_DENSITY,
+        )
+        self.assertIsNone(metrics.modeled_smoke_support_sha256)
         for name, value in metrics.as_dict().items():
             if isinstance(value, (int, float)) and not isinstance(value, bool):
                 self.assertTrue(
@@ -126,6 +132,83 @@ class SingleUpdateTest(TrainerTestBase):
         self.assertLessEqual(metrics.q_executed_max, 0.98)
         self.assertGreater(metrics.discrete_entropy, 0.0)
         self.assertLessEqual(metrics.discrete_entropy, math.log(hsm.MODE_COUNT))
+
+    def test_modeled_smoke_update_records_coordinate_support_and_bounds(self) -> None:
+        batch = self._batch()
+        model_config = hsm.HybridSacModelConfig(
+            dtype=DTYPE,
+            modeled_smoke_support=mss.MODELED_SMOKE_SUPPORT,
+        )
+        actor = hsm.build_actor(model_config, seed=10)
+        critics = hsm.build_twin_critics(model_config, seed=11)
+        with torch.no_grad():
+            actor.mean_head.weight.zero_()
+            actor.mean_head.bias.copy_(
+                torch.tensor(
+                    [-100.0 if mode % 2 == 0 else 100.0 for mode in range(12)],
+                    dtype=DTYPE,
+                )
+            )
+        metrics = self._trainer(
+            batch, actor=actor, critics=critics
+        ).update_once(batch)
+        metrics.assert_finite()
+        self.assertEqual(
+            metrics.continuous_log_prob_coordinate,
+            hsm.NORMALIZED_Z_DENSITY,
+        )
+        self.assertEqual(
+            metrics.modeled_smoke_support_sha256,
+            mss.MODELED_SMOKE_SUPPORT_SHA256,
+        )
+        self.assertEqual(metrics.q_saturation_fraction, 1.0)
+        document = metrics.as_dict()
+        self.assertEqual(
+            document["continuous_log_prob_coordinate"],
+            hsm.NORMALIZED_Z_DENSITY,
+        )
+        self.assertEqual(
+            document["modeled_smoke_support_sha256"],
+            mss.MODELED_SMOKE_SUPPORT_SHA256,
+        )
+
+    def test_tampered_modeled_smoke_support_is_refused_before_update(self) -> None:
+        batch = self._batch(terminated=True)
+        self.assertFalse(batch.bootstrap.any())
+        model_config = hsm.HybridSacModelConfig(
+            dtype=DTYPE,
+            modeled_smoke_support=mss.MODELED_SMOKE_SUPPORT,
+        )
+        actor = hsm.build_actor(model_config, seed=10)
+        critics = hsm.build_twin_critics(model_config, seed=11)
+        trainer = self._trainer(batch, actor=actor, critics=critics)
+        before_actor = [parameter.detach().clone() for parameter in actor.parameters()]
+        before_critics = [
+            parameter.detach().clone() for parameter in critics.parameters()
+        ]
+        actor_optimizer_before = copy.deepcopy(
+            trainer.actor_optimizer.state_dict()
+        )
+        critic_optimizer_before = copy.deepcopy(
+            trainer.critic_optimizer.state_dict()
+        )
+        with torch.no_grad():
+            actor._support_q_e4_lower[0] = 0
+        with self.assertRaisesRegex(
+            hst.TrainerPreflightError, "changed after trainer construction"
+        ):
+            trainer.update_once(batch)
+        for before, after in zip(before_actor, actor.parameters()):
+            self.assertTrue(torch.equal(before, after))
+        for before, after in zip(before_critics, critics.parameters()):
+            self.assertTrue(torch.equal(before, after))
+        self.assertEqual(
+            actor_optimizer_before, trainer.actor_optimizer.state_dict()
+        )
+        self.assertEqual(
+            critic_optimizer_before, trainer.critic_optimizer.state_dict()
+        )
+        self.assertEqual(trainer.update_count, 0)
 
     def test_provisional_hyperparameters_are_labelled(self) -> None:
         self.assertEqual(

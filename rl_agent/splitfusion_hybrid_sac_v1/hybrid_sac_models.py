@@ -6,8 +6,9 @@ This module implements the *mathematics* of the feed-forward conditional
 Hybrid-SAC actor and twin critics, and nothing else.  It contains no replay
 buffer, no training loop, no optimizer schedule, no plotting and no
 CARLA/OAI/Docker/CUDA integration.  Importing it reads no evidence file and
-launches no runtime: the only import-time work is building constants from the
-already-frozen action and state contracts.
+launches no runtime.  Its optional modeled-smoke curriculum imports only an
+immutable contract assembled from already-frozen source SHA pins; loading
+evidence remains an explicit operation owned by the evidence modules.
 
 What is implemented
 -------------------
@@ -23,7 +24,11 @@ Actor (DESIGN.md section 5)::
     z          = f_theta(s)                        shared 2x128 ReLU MLP
     pi_d(m|s)  = softmax(logits(s))                12 logits
     u_m        = mu_m(s) + sigma_m(s) * eps_m      eps_m ~ N(0, 1)
-    q_m        = 0.49 * (tanh(u_m) + 1)            in [0, 0.98]
+    q_m        = 0.49 * (tanh(u_m) + 1)            default: [0, 0.98]
+
+An explicit ``MODELED_SMOKE_SUPPORT`` configuration instead maps the same
+normalized ``z_m = (tanh(u_m) + 1) / 2`` directly into each mode's hash-bound
+inclusive curriculum interval.  It never samples globally and then projects.
 
 ``log_std`` is clamped to ``[LOG_STD_MIN, LOG_STD_MAX]``.  The continuous log
 probability carries the **complete** change-of-variables Jacobian for both the
@@ -33,6 +38,12 @@ probability carries the **complete** change-of-variables Jacobian for both the
     log pi_c(q|s,m)  = log N(u; mu_m, sigma_m)
                        - log(0.49)
                        - log(1 - tanh(u)^2)
+
+The curriculum records its continuous density as ``NORMALIZED_Z_DENSITY`` and
+uses ``-log(0.5)`` instead of ``-log(0.49)``.  It intentionally does not
+subtract a mode's physical interval width, so evidence-derived width
+differences cannot bias categorical entropy.  The default
+:func:`continuous_log_prob` remains a physical-q density.
 
 Execution quantization uses the repository action contract verbatim::
 
@@ -87,8 +98,9 @@ Scope boundary
 
 Nothing here may consume the 288-cell measured aggregates as replay
 transitions, and nothing here interpolates between the six measured ``q``
-anchors.  This module never touches that evidence at all; see
-``anchor_store.py`` for why those aggregates are inadmissible as transitions.
+anchors.  The optional support contract carries source hashes and precomputed
+bounds but reads no evidence; see ``anchor_store.py`` for why aggregates are
+inadmissible as transitions.
 """
 
 from __future__ import annotations
@@ -97,7 +109,7 @@ import math
 from contextlib import contextmanager
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import Iterator, Optional, Tuple
+from typing import Any, Iterator, Mapping, Optional, Tuple
 
 import torch
 from torch import Tensor, nn
@@ -111,6 +123,13 @@ from .action_contract import (
     Q_MAX,
     Q_MIN,
     round_half_up_q_e4,
+)
+from .modeled_smoke_support import (
+    MODELED_SMOKE_SUPPORT,
+    MODELED_SMOKE_SUPPORT_SHA256,
+    ModeledSmokeSupportContract,
+    ModeledSmokeSupportError,
+    require_registered_modeled_smoke_support,
 )
 from .state_reward_transition_contract import POLICY_FEATURE_COUNT
 from .transaction_identity import MINIMUM_HOLD_TENSORS
@@ -130,7 +149,9 @@ __all__ = [
     "LOG_STD_MIN",
     "MODE_COUNT",
     "ModeConditionalSample",
+    "NORMALIZED_Z_DENSITY",
     "PHASE_LABEL",
+    "PHYSICAL_Q_DENSITY",
     "Q_SQUASH_SCALE",
     "STATE_DIM",
     "TwinHybridCritics",
@@ -139,6 +160,7 @@ __all__ = [
     "build_twin_critics",
     "critic_target",
     "mode_one_hot",
+    "normalized_z_log_prob",
     "quantize_q_e4",
     "soft_state_value",
 ]
@@ -172,6 +194,12 @@ Q_SQUASH_SCALE = Q_MAX / 2.0
 
 #: ``log(0.49)``, the constant part of the squash Jacobian.
 _LOG_Q_SQUASH_SCALE = math.log(Q_SQUASH_SCALE)
+
+#: Names make the entropy coordinate part of each sample's audit surface.
+PHYSICAL_Q_DENSITY = "PHYSICAL_Q_DENSITY"
+NORMALIZED_Z_DENSITY = "NORMALIZED_Z_DENSITY"
+
+_LOG_NORMALIZED_Z_SQUASH_SCALE = math.log(0.5)
 
 _LOG_TWO = math.log(2.0)
 _HALF_LOG_TWO_PI = 0.5 * math.log(2.0 * math.pi)
@@ -333,7 +361,9 @@ class HybridSacModelConfig:
     """Shapes and bounds shared by the actor and the critics.
 
     The defaults are bound to the frozen contracts: ``state_dim`` is the
-    31-feature policy vector and ``mode_count`` is the 12-mode catalog.
+    31-feature policy vector and ``mode_count`` is the 12-mode catalog.  The
+    actor retains its original full-physical-q distribution unless the exact
+    hash-bound ``MODELED_SMOKE_SUPPORT`` contract is supplied explicitly.
     """
 
     state_dim: int = STATE_DIM
@@ -343,6 +373,7 @@ class HybridSacModelConfig:
     log_std_min: float = LOG_STD_MIN
     log_std_max: float = LOG_STD_MAX
     dtype: torch.dtype = torch.float32
+    modeled_smoke_support: Optional[ModeledSmokeSupportContract] = None
 
     def __post_init__(self) -> None:
         for name in ("state_dim", "mode_count", "hidden_width", "hidden_depth"):
@@ -366,6 +397,21 @@ class HybridSacModelConfig:
             raise InvalidHyperparameterError(
                 f"dtype must be a floating-point dtype, got {self.dtype}"
             )
+        if self.modeled_smoke_support is not None:
+            try:
+                require_registered_modeled_smoke_support(
+                    self.modeled_smoke_support
+                )
+            except ModeledSmokeSupportError as exc:
+                raise InvalidHyperparameterError(
+                    "modeled_smoke_support is not the registered hash-bound "
+                    "MODELED_SMOKE_SUPPORT curriculum"
+                ) from exc
+            if self.mode_count != MODE_COUNT:
+                raise InvalidHyperparameterError(
+                    "MODELED_SMOKE_SUPPORT is defined only for the frozen "
+                    f"{MODE_COUNT}-mode catalog"
+                )
 
     @property
     def critic_input_dim(self) -> int:
@@ -516,10 +562,10 @@ class ActorHeads:
 class ModeConditionalSample:
     """One reparameterized sample of ``q`` for **every** one of the 12 modes.
 
-    Every field is ``(batch, mode_count)`` except ``log_prob_discrete`` and
-    ``probs``, which are the categorical terms over the same grid.  Sampling
-    all modes at once is what makes the exact 12-mode enumeration in
-    :func:`soft_state_value` and :func:`actor_objective` possible.
+    Every tensor field is ``(batch, mode_count)``; the coordinate label is a
+    string.  Sampling all modes at once is what makes the exact 12-mode
+    enumeration in :func:`soft_state_value` and :func:`actor_objective`
+    possible.
     """
 
     #: Pre-squash Gaussian sample ``u_m``.
@@ -532,12 +578,14 @@ class ModeConditionalSample:
     q_normalized_executed: Tensor
     #: ``q_e4 / 9800`` forward, request gradient backward.
     q_normalized_straight_through: Tensor
-    #: ``log pi_c(q_m | s, m)`` including the full tanh and 0.49 Jacobian.
+    #: Continuous density in the explicitly named coordinate below.
     log_prob_continuous: Tensor
     #: ``log pi_d(m | s)``.
     log_prob_discrete: Tensor
     #: ``pi_d(m | s)``.
     probs: Tensor
+    #: Coordinate of ``log_prob_continuous``; default preserves legacy API.
+    continuous_log_prob_coordinate: str = PHYSICAL_Q_DENSITY
 
     @property
     def q_executed(self) -> Tensor:
@@ -587,6 +635,249 @@ class ConditionalHybridActor(nn.Module):
         self.log_std_head = nn.Linear(
             cfg.hidden_width, cfg.mode_count, dtype=cfg.dtype
         )
+        support = cfg.modeled_smoke_support
+        self._modeled_smoke_support_expected = support is not None
+        if support is not None:
+            registered = require_registered_modeled_smoke_support(support)
+            bounds = torch.tensor(
+                registered.mode_q_e4_bounds, dtype=torch.int64
+            )
+            # Curriculum buffers are persistent: a bounded actor checkpoint is
+            # visibly distinct from a default actor checkpoint.  Exact-value
+            # load validation below prevents a checkpoint from replacing the
+            # registered immutable bounds or digest.
+            self.register_buffer(
+                "_support_q_e4_lower", bounds[:, 0].clone(), persistent=True
+            )
+            self.register_buffer(
+                "_support_q_e4_upper", bounds[:, 1].clone(), persistent=True
+            )
+            self.register_buffer(
+                "_support_sha256_bytes",
+                torch.tensor(
+                    list(bytes.fromhex(MODELED_SMOKE_SUPPORT_SHA256)),
+                    dtype=torch.uint8,
+                ),
+                persistent=True,
+            )
+
+    @property
+    def uses_modeled_smoke_support(self) -> bool:
+        """Whether this actor uses the opt-in contextual smoke curriculum."""
+        names = (
+            "_support_q_e4_lower",
+            "_support_q_e4_upper",
+            "_support_sha256_bytes",
+        )
+        present = tuple(
+            name in self._buffers and self._buffers[name] is not None
+            for name in names
+        )
+        if any(present) and not all(present):
+            raise InvalidTensorError(
+                "MODELED_SMOKE_SUPPORT buffer set is incomplete; refusing "
+                "to infer default or bounded semantics"
+            )
+        observed = all(present)
+        expected = self._modeled_smoke_support_expected
+        if observed != expected:
+            raise InvalidTensorError(
+                "MODELED_SMOKE_SUPPORT buffer inventory differs from the "
+                "actor's construction-time semantics"
+            )
+        if type(self.config) is not HybridSacModelConfig:
+            raise InvalidHyperparameterError(
+                "actor config was replaced with a foreign type"
+            )
+        declared = self.config.modeled_smoke_support is not None
+        if declared != expected:
+            raise InvalidHyperparameterError(
+                "actor config support declaration differs from its "
+                "construction-time semantics"
+            )
+        if declared:
+            try:
+                require_registered_modeled_smoke_support(
+                    self.config.modeled_smoke_support
+                )
+            except ModeledSmokeSupportError as exc:
+                raise InvalidHyperparameterError(
+                    "actor config no longer carries registered "
+                    "MODELED_SMOKE_SUPPORT"
+                ) from exc
+        return expected
+
+    @property
+    def continuous_density_coordinate(self) -> str:
+        """Coordinate used by ``ModeConditionalSample.log_prob_continuous``."""
+        if self.uses_modeled_smoke_support:
+            return NORMALIZED_Z_DENSITY
+        return PHYSICAL_Q_DENSITY
+
+    @property
+    def modeled_smoke_support_sha256(self) -> Optional[str]:
+        """Registered support digest, or ``None`` for the default actor."""
+        if not self.uses_modeled_smoke_support:
+            return None
+        self._validate_registered_support_buffers()
+        return bytes(self._support_sha256_bytes.tolist()).hex()
+
+    def active_q_e4_bounds(self) -> Tuple[Tensor, Tensor]:
+        """Return cloned per-mode bounds used by this actor on its device."""
+        if self.uses_modeled_smoke_support:
+            self._validate_registered_support_buffers()
+            return (
+                self._support_q_e4_lower.detach().clone(),
+                self._support_q_e4_upper.detach().clone(),
+            )
+        device = next(self.parameters()).device
+        return (
+            torch.full(
+                (MODE_COUNT,), Q_E4_MIN, dtype=torch.int64, device=device
+            ),
+            torch.full(
+                (MODE_COUNT,), Q_E4_MAX, dtype=torch.int64, device=device
+            ),
+        )
+
+    @staticmethod
+    def _expected_support_buffer_values() -> Tuple[Tensor, Tensor, Tensor]:
+        """Build exact CPU values from the statically hash-bound contract."""
+        bounds = torch.tensor(
+            MODELED_SMOKE_SUPPORT.mode_q_e4_bounds, dtype=torch.int64
+        )
+        digest = torch.tensor(
+            list(bytes.fromhex(MODELED_SMOKE_SUPPORT_SHA256)),
+            dtype=torch.uint8,
+        )
+        return bounds[:, 0], bounds[:, 1], digest
+
+    def _validate_registered_support_buffers(self) -> None:
+        """Refuse any runtime mutation of the active support or its digest."""
+        if not self.uses_modeled_smoke_support:
+            return
+        expected_values = self._expected_support_buffer_values()
+        for name, expected_cpu in zip(
+            (
+                "_support_q_e4_lower",
+                "_support_q_e4_upper",
+                "_support_sha256_bytes",
+            ),
+            expected_values,
+        ):
+            observed = self._buffers.get(name)
+            if (
+                not isinstance(observed, Tensor)
+                or observed.dtype != expected_cpu.dtype
+                or observed.shape != expected_cpu.shape
+                or observed.requires_grad
+                or not torch.equal(
+                    observed, expected_cpu.to(device=observed.device)
+                )
+            ):
+                raise InvalidTensorError(
+                    f"{name} differs from registered MODELED_SMOKE_SUPPORT; "
+                    "refusing actor output"
+                )
+
+    def _preflight_support_state_dict(
+        self, state_dict: Mapping[str, Any], prefix: str
+    ) -> None:
+        """Validate checkpoint support semantics before any tensor is copied."""
+        names = (
+            "_support_q_e4_lower",
+            "_support_q_e4_upper",
+            "_support_sha256_bytes",
+        )
+        expected_keys = {prefix + name for name in names}
+        offered_support_keys = {
+            key
+            for key in state_dict
+            if isinstance(key, str)
+            and key.startswith(prefix + "_support_")
+            and "." not in key[len(prefix) :]
+        }
+        if self.uses_modeled_smoke_support:
+            self._validate_registered_support_buffers()
+            if offered_support_keys != expected_keys:
+                raise RuntimeError(
+                    "checkpoint MODELED_SMOKE_SUPPORT keys differ: expected "
+                    f"{sorted(expected_keys)}, got {sorted(offered_support_keys)}"
+                )
+            expected_values = self._expected_support_buffer_values()
+            for key, expected_cpu in zip(
+                (prefix + name for name in names), expected_values
+            ):
+                offered = state_dict[key]
+                if (
+                    not isinstance(offered, Tensor)
+                    or offered.dtype != expected_cpu.dtype
+                    or offered.shape != expected_cpu.shape
+                    or not torch.equal(
+                        offered, expected_cpu.to(device=offered.device)
+                    )
+                ):
+                    raise RuntimeError(
+                        f"checkpoint {key} differs from registered "
+                        "MODELED_SMOKE_SUPPORT"
+                    )
+        elif offered_support_keys:
+            raise RuntimeError(
+                "default actor refuses checkpoint MODELED_SMOKE_SUPPORT keys, "
+                "including when strict=False"
+            )
+
+    def _load_from_state_dict(
+        self,
+        state_dict: dict,
+        prefix: str,
+        local_metadata: dict,
+        strict: bool,
+        missing_keys: list,
+        unexpected_keys: list,
+        error_msgs: list,
+    ) -> None:
+        """Refuse support-semantic drift before this module or children load."""
+        self._preflight_support_state_dict(state_dict, prefix)
+        super()._load_from_state_dict(
+            state_dict,
+            prefix,
+            local_metadata,
+            strict,
+            missing_keys,
+            unexpected_keys,
+            error_msgs,
+        )
+
+    def _map_pre_squash_to_q(
+        self, pre_squash: Tensor, mode_index: Optional[Tensor] = None
+    ) -> Tensor:
+        """Apply the selected policy's direct squash-to-action mapping."""
+        if not self.uses_modeled_smoke_support:
+            q = Q_SQUASH_SCALE * (torch.tanh(pre_squash) + 1.0)
+            return q.clamp(min=Q_MIN, max=Q_MAX)
+
+        self._validate_registered_support_buffers()
+        if (
+            self._support_q_e4_lower.device != pre_squash.device
+            or self._support_q_e4_upper.device != pre_squash.device
+        ):
+            raise InvalidTensorError(
+                "MODELED_SMOKE_SUPPORT buffers and actor sample must share a device"
+            )
+        z = 0.5 * (torch.tanh(pre_squash) + 1.0)
+        lower_e4 = self._support_q_e4_lower
+        upper_e4 = self._support_q_e4_upper
+        if mode_index is not None:
+            lower_e4 = lower_e4.gather(0, mode_index)
+            upper_e4 = upper_e4.gather(0, mode_index)
+        lower = lower_e4.to(dtype=pre_squash.dtype) / float(Q_E4_SCALE)
+        width = (upper_e4 - lower_e4).to(
+            dtype=pre_squash.dtype
+        ) / float(Q_E4_SCALE)
+        # This is a direct per-mode affine transform.  There is deliberately
+        # no global draw followed by clamp/projection onto the support set.
+        return lower + width * z
 
     # -- forward ----------------------------------------------------------- #
 
@@ -639,12 +930,17 @@ class ConditionalHybridActor(nn.Module):
         self, heads: ActorHeads, pre_squash: Tensor
     ) -> ModeConditionalSample:
         """Squash, quantize and score a pre-squash sample for all modes."""
-        q = Q_SQUASH_SCALE * (torch.tanh(pre_squash) + 1.0)
-        # Guard the registered range against any floating-point overshoot; the
-        # clamp is a no-op for finite pre-squash values.
-        q = q.clamp(min=Q_MIN, max=Q_MAX)
+        q = self._map_pre_squash_to_q(pre_squash)
         q_e4 = _quantize_q_e4_training(q)
         log_prob_discrete = F.log_softmax(heads.logits, dim=-1)
+        if self.uses_modeled_smoke_support:
+            log_prob_continuous = normalized_z_log_prob(
+                pre_squash, heads.mean, heads.log_std
+            )
+        else:
+            log_prob_continuous = continuous_log_prob(
+                pre_squash, heads.mean, heads.log_std
+            )
         return ModeConditionalSample(
             pre_squash=pre_squash,
             q=q,
@@ -653,9 +949,8 @@ class ConditionalHybridActor(nn.Module):
             q_normalized_straight_through=(
                 _straight_through_executed_normalized_q(q, q_e4)
             ),
-            log_prob_continuous=continuous_log_prob(
-                pre_squash, heads.mean, heads.log_std
-            ),
+            log_prob_continuous=log_prob_continuous,
+            continuous_log_prob_coordinate=self.continuous_density_coordinate,
             log_prob_discrete=log_prob_discrete,
             probs=log_prob_discrete.exp(),
         )
@@ -673,8 +968,7 @@ class ConditionalHybridActor(nn.Module):
         heads = self(state)
         mode_index = torch.argmax(heads.logits, dim=-1)
         selected_mean = heads.mean.gather(1, mode_index.unsqueeze(1)).squeeze(1)
-        q = Q_SQUASH_SCALE * (torch.tanh(selected_mean) + 1.0)
-        q = q.clamp(min=Q_MIN, max=Q_MAX)
+        q = self._map_pre_squash_to_q(selected_mean, mode_index=mode_index)
         q_e4 = quantize_q_e4(q)
         return DeterministicExecution(
             mode_index=mode_index,
@@ -705,6 +999,30 @@ def continuous_log_prob(
         _LOG_TWO - pre_squash - F.softplus(-2.0 * pre_squash)
     )
     return log_normal - _LOG_Q_SQUASH_SCALE - log_tanh_jacobian
+
+
+def normalized_z_log_prob(
+    pre_squash: Tensor, mean: Tensor, log_std: Tensor
+) -> Tensor:
+    """Density in normalized ``z = (tanh(u) + 1) / 2`` coordinates.
+
+    This coordinate is used only by the opt-in modeled-smoke curriculum.  It
+    includes the Gaussian density, tanh Jacobian and ``log(0.5)`` scale, but
+    intentionally excludes each mode's physical interval width.  Thus
+    evidence-artifact support widths cannot introduce a spurious categorical
+    entropy preference.  :func:`continuous_log_prob` retains its original
+    physical-q semantics unchanged.
+    """
+    standardized = (pre_squash - mean) / log_std.exp()
+    log_normal = -0.5 * standardized.pow(2) - log_std - _HALF_LOG_TWO_PI
+    log_tanh_jacobian = 2.0 * (
+        _LOG_TWO - pre_squash - F.softplus(-2.0 * pre_squash)
+    )
+    return (
+        log_normal
+        - _LOG_NORMALIZED_Z_SQUASH_SCALE
+        - log_tanh_jacobian
+    )
 
 
 # --------------------------------------------------------------------------- #

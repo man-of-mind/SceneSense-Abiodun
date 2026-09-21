@@ -101,11 +101,15 @@ from .action_contract import (
 )
 from .hybrid_sac_models import (
     ConditionalHybridActor,
+    HybridSacModelError,
+    NORMALIZED_Z_DENSITY,
+    PHYSICAL_Q_DENSITY,
     TwinHybridCritics,
     actor_objective,
     mode_one_hot,
     soft_state_value,
 )
+from .modeled_smoke_support import MODELED_SMOKE_SUPPORT_SHA256
 from .replay_buffer import (
     Q_CRITIC_NORMALIZER,
     ReplayBindingV1,
@@ -128,6 +132,7 @@ __all__ = [
     "TrainerError",
     "TrainerPreflightError",
     "TrainerStateError",
+    "ModeledSmokeUpdateMetricsV1",
     "UpdateMetricsV1",
 ]
 
@@ -284,8 +289,18 @@ class UpdateMetricsV1:
         """Plain serializable mapping of every diagnostic."""
         return {
             name: getattr(self, name)
-            for name in self.__dataclass_fields__  # type: ignore[attr-defined]
+            for name in UpdateMetricsV1.__dataclass_fields__
         }
+
+    @property
+    def continuous_log_prob_coordinate(self) -> str:
+        """Default metrics retain the legacy physical-q density coordinate."""
+        return PHYSICAL_Q_DENSITY
+
+    @property
+    def modeled_smoke_support_sha256(self) -> Optional[str]:
+        """Default full-range updates have no modeled-smoke support binding."""
+        return None
 
     def assert_finite(self) -> None:
         """Fail closed if any numeric diagnostic is not finite."""
@@ -294,6 +309,48 @@ class UpdateMetricsV1:
                 continue
             if not math.isfinite(float(value)):
                 raise TrainerError(f"diagnostic {name} is not finite: {value!r}")
+        if self.continuous_log_prob_coordinate not in (
+            PHYSICAL_Q_DENSITY,
+            NORMALIZED_Z_DENSITY,
+        ):
+            raise TrainerError(
+                "diagnostic continuous_log_prob_coordinate is unknown"
+            )
+        if self.continuous_log_prob_coordinate == PHYSICAL_Q_DENSITY:
+            if self.modeled_smoke_support_sha256 is not None:
+                raise TrainerError(
+                    "physical-q diagnostics cannot claim modeled-smoke support"
+                )
+        elif self.modeled_smoke_support_sha256 != MODELED_SMOKE_SUPPORT_SHA256:
+            raise TrainerError(
+                "normalized-z diagnostics require a canonical support SHA-256"
+            )
+
+
+@dataclass(frozen=True, slots=True)
+class ModeledSmokeUpdateMetricsV1(UpdateMetricsV1):
+    """Support-bound diagnostics without changing legacy checkpoint fields."""
+
+    _density_coordinate_record: str = NORMALIZED_Z_DENSITY
+    _support_sha256_record: str = MODELED_SMOKE_SUPPORT_SHA256
+
+    @property
+    def continuous_log_prob_coordinate(self) -> str:
+        return self._density_coordinate_record
+
+    @property
+    def modeled_smoke_support_sha256(self) -> Optional[str]:
+        return self._support_sha256_record
+
+    def as_dict(self) -> Dict[str, Any]:
+        document = UpdateMetricsV1.as_dict(self)
+        document["continuous_log_prob_coordinate"] = (
+            self.continuous_log_prob_coordinate
+        )
+        document["modeled_smoke_support_sha256"] = (
+            self.modeled_smoke_support_sha256
+        )
+        return document
 
 
 # --------------------------------------------------------------------------- #
@@ -594,6 +651,28 @@ class HybridSacTrainerV1:
                 )
         if hasattr(actor, "target") or hasattr(critics, "target_actor"):
             raise TrainerStateError("this phase has no target actor")
+        try:
+            lower, upper = actor.active_q_e4_bounds()
+            coordinate = actor.continuous_density_coordinate
+            support_sha256 = actor.modeled_smoke_support_sha256
+        except HybridSacModelError as exc:
+            raise TrainerStateError(
+                "actor support contract or registered buffers are invalid"
+            ) from exc
+        if lower.shape != (EXPECTED_MODE_COUNT,) or upper.shape != (
+            EXPECTED_MODE_COUNT,
+        ):
+            raise TrainerStateError("actor support bounds have the wrong shape")
+        if coordinate == PHYSICAL_Q_DENSITY and support_sha256 is not None:
+            raise TrainerStateError(
+                "physical-q actor unexpectedly declares modeled-smoke support"
+            )
+        if coordinate == NORMALIZED_Z_DENSITY and (
+            support_sha256 != MODELED_SMOKE_SUPPORT_SHA256
+        ):
+            raise TrainerStateError(
+                "normalized-z actor lacks registered modeled-smoke provenance"
+            )
 
     # -- wiring proof ------------------------------------------------------ #
 
@@ -651,6 +730,15 @@ class HybridSacTrainerV1:
     def _preflight(self, batch: Any) -> None:
         """Validate everything before any parameter or optimizer mutation."""
         E = TrainerPreflightError
+        try:
+            self.actor.active_q_e4_bounds()
+            self.actor.continuous_density_coordinate
+            self.actor.modeled_smoke_support_sha256
+        except HybridSacModelError as exc:
+            raise E(
+                "actor support contract or registered buffers changed after "
+                "trainer construction"
+            ) from exc
         # Wiring is re-proved before anything else touches a parameter.
         self._assert_no_target_parameters_in_optimizers()
         if type(batch) is not ReplayTensorBatchV1:
@@ -971,16 +1059,37 @@ class HybridSacTrainerV1:
         q_requested = sample.q.detach()
         q_executed = sample.q_executed.detach()
         q_e4_sampled = sample.q_e4
-        saturated = (q_e4_sampled == Q_E4_MIN) | (q_e4_sampled == Q_E4_MAX)
+        saturation_lower, saturation_upper = self.actor.active_q_e4_bounds()
+        if saturation_lower.shape != (EXPECTED_MODE_COUNT,) or (
+            saturation_upper.shape != (EXPECTED_MODE_COUNT,)
+        ):
+            raise TrainerStateError(
+                "actor returned malformed per-mode q_e4 saturation bounds"
+            )
+        saturated = (
+            q_e4_sampled == saturation_lower.unsqueeze(0)
+        ) | (q_e4_sampled == saturation_upper.unsqueeze(0))
 
         log_probs_d = sample.log_prob_discrete.detach()
         log_probs_c = sample.log_prob_continuous.detach()
+        if (
+            sample.continuous_log_prob_coordinate
+            != self.actor.continuous_density_coordinate
+        ):
+            raise TrainerStateError(
+                "actor sample density coordinate differs from actor semantics"
+            )
         discrete_entropy = float(
             (-(probs * log_probs_d).sum(dim=-1)).mean()
         )
         conditional_logprob = float((probs * log_probs_c).sum(dim=-1).mean())
 
-        return UpdateMetricsV1(
+        metrics_type = (
+            ModeledSmokeUpdateMetricsV1
+            if self.actor.uses_modeled_smoke_support
+            else UpdateMetricsV1
+        )
+        return metrics_type(
             batch_size=size,
             bootstrap_count=bootstrap_count,
             bootstrap_fraction=bootstrap_count / size,

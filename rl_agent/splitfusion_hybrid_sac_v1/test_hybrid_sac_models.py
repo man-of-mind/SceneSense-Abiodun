@@ -17,16 +17,21 @@ import math
 import subprocess
 import sys
 import unittest
+from dataclasses import replace
 from pathlib import Path
 
 import torch
 
 from . import action_contract as ac
 from . import hybrid_sac_models as hsm
+from . import modeled_smoke_support as mss
 from .state_reward_transition_contract import POLICY_FEATURE_COUNT
 
 DTYPE = torch.float64
 REFERENCE_CONFIG = hsm.HybridSacModelConfig(dtype=DTYPE)
+CURRICULUM_CONFIG = hsm.HybridSacModelConfig(
+    dtype=DTYPE, modeled_smoke_support=mss.MODELED_SMOKE_SUPPORT
+)
 
 
 def _state(batch: int = 5, seed: int = 17) -> torch.Tensor:
@@ -245,6 +250,341 @@ class BoundedQualityTest(ModelsTestBase):
         self.assertEqual(int(sample.q_e4[0, 1]), 9800)
 
 
+class ModeledSmokeCurriculumTest(ModelsTestBase):
+    """The optional actor support is direct, mode-conditional and hash-bound."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.actor = hsm.build_actor(CURRICULUM_CONFIG, seed=1234)
+        cls.critics = hsm.build_twin_critics(CURRICULUM_CONFIG, seed=5678)
+        cls.state = _state()
+
+    def test_default_path_is_an_exact_legacy_regression(self) -> None:
+        default = hsm.build_actor(REFERENCE_CONFIG, seed=314)
+        explicit_none = hsm.build_actor(
+            hsm.HybridSacModelConfig(dtype=DTYPE, modeled_smoke_support=None),
+            seed=314,
+        )
+        default_state = default.state_dict()
+        explicit_state = explicit_none.state_dict()
+        self.assertEqual(tuple(default_state), tuple(explicit_state))
+        for key, value in default_state.items():
+            self.assertEqual(
+                value.numpy().tobytes(), explicit_state[key].numpy().tobytes()
+            )
+        self.assertFalse(
+            any("support" in key for key in default.state_dict()),
+            "default checkpoints acquired curriculum-only state",
+        )
+        self.assertEqual(tuple(default.named_buffers()), ())
+        state = _state(4, seed=72)
+        generator = self.generator(1001)
+        rng_state = generator.get_state()
+        sample = default.sample_all_modes(state, generator=generator)
+        replay = torch.Generator().set_state(rng_state)
+        heads = default(state)
+        pre = heads.mean + heads.log_std.exp() * torch.randn(
+            heads.mean.shape, dtype=DTYPE, generator=replay
+        )
+        expected_q = (0.49 * (torch.tanh(pre) + 1.0)).clamp(0.0, 0.98)
+        self.assertEqual(
+            sample.q.detach().numpy().tobytes(),
+            expected_q.detach().numpy().tobytes(),
+        )
+        torch.testing.assert_close(
+            sample.log_prob_continuous,
+            hsm.continuous_log_prob(pre, heads.mean, heads.log_std),
+            rtol=0.0,
+            atol=0.0,
+        )
+        self.assertEqual(
+            sample.continuous_log_prob_coordinate, hsm.PHYSICAL_Q_DENSITY
+        )
+
+    def test_samples_are_inside_every_inclusive_mode_bound(self) -> None:
+        lower = torch.tensor(
+            [pair[0] for pair in mss.MODELED_SMOKE_MODE_Q_E4_BOUNDS]
+        )
+        upper = torch.tensor(
+            [pair[1] for pair in mss.MODELED_SMOKE_MODE_Q_E4_BOUNDS]
+        )
+        for seed in range(8):
+            sample = self.actor.sample_all_modes(
+                _state(16, seed=seed), generator=self.generator(seed + 200)
+            )
+            self.assertTrue((sample.q_e4 >= lower).all())
+            self.assertTrue((sample.q_e4 <= upper).all())
+            self.assertEqual(
+                sample.continuous_log_prob_coordinate,
+                hsm.NORMALIZED_Z_DENSITY,
+            )
+            expected = [
+                ac.round_half_up_q_e4(float(q))
+                for q in sample.q.detach().reshape(-1)
+            ]
+            self.assertEqual(sample.q_e4.reshape(-1).tolist(), expected)
+            torch.testing.assert_close(
+                sample.q_normalized_executed,
+                sample.q_e4.to(DTYPE) / 9800.0,
+                rtol=0.0,
+                atol=0.0,
+            )
+
+    def test_deterministic_path_uses_each_modes_same_affine_mapping(self) -> None:
+        actor = hsm.build_actor(CURRICULUM_CONFIG, seed=1234)
+        state = _state(3, seed=81)
+        with torch.no_grad():
+            actor.logit_head.weight.zero_()
+            actor.mean_head.weight.zero_()
+            actor.mean_head.bias.copy_(
+                torch.linspace(-1.1, 1.1, 12, dtype=DTYPE)
+            )
+            for mode, (lower, upper) in enumerate(
+                mss.MODELED_SMOKE_MODE_Q_E4_BOUNDS
+            ):
+                actor.logit_head.bias.fill_(-10.0)
+                actor.logit_head.bias[mode] = 10.0
+                execution = actor.deterministic_execution(state)
+                self.assertTrue((execution.mode_index == mode).all())
+                z = (math.tanh(float(actor.mean_head.bias[mode])) + 1.0) / 2.0
+                expected_q = (lower + (upper - lower) * z) / 10000.0
+                torch.testing.assert_close(
+                    execution.q,
+                    torch.full_like(execution.q, expected_q),
+                    rtol=0.0,
+                    atol=3e-16,
+                )
+                self.assertTrue((execution.q_e4 >= lower).all())
+                self.assertTrue((execution.q_e4 <= upper).all())
+
+    def test_direct_affine_samples_have_no_projection_atoms(self) -> None:
+        heads = hsm.ActorHeads(
+            logits=torch.zeros(17, 12, dtype=DTYPE),
+            mean=torch.zeros(17, 12, dtype=DTYPE),
+            log_std=torch.zeros(17, 12, dtype=DTYPE),
+        )
+        pre = torch.linspace(-8.0, 8.0, 17, dtype=DTYPE).unsqueeze(1).expand(-1, 12)
+        sample = self.actor._finish_sample(heads, pre)
+        lower = torch.tensor(
+            [pair[0] for pair in mss.MODELED_SMOKE_MODE_Q_E4_BOUNDS],
+            dtype=DTYPE,
+        ) / 10000.0
+        upper = torch.tensor(
+            [pair[1] for pair in mss.MODELED_SMOKE_MODE_Q_E4_BOUNDS],
+            dtype=DTYPE,
+        ) / 10000.0
+        z = (torch.tanh(pre) + 1.0) / 2.0
+        expected = lower + (upper - lower) * z
+        torch.testing.assert_close(sample.q, expected, rtol=0.0, atol=2e-16)
+        self.assertTrue((sample.q > lower).all())
+        self.assertTrue((sample.q < upper).all())
+        torch.testing.assert_close(
+            sample.log_prob_continuous,
+            sample.log_prob_continuous[:, :1].expand_as(
+                sample.log_prob_continuous
+            ),
+        )
+
+    def test_actor_and_target_helpers_share_the_bounded_mapping(self) -> None:
+        lower = torch.tensor(
+            [pair[0] for pair in mss.MODELED_SMOKE_MODE_Q_E4_BOUNDS]
+        )
+        upper = torch.tensor(
+            [pair[1] for pair in mss.MODELED_SMOKE_MODE_Q_E4_BOUNDS]
+        )
+        actor_breakdown = hsm.actor_objective(
+            self.actor,
+            self.critics,
+            self.state,
+            0.2,
+            0.05,
+            generator=self.generator(600),
+        )
+        self.assertTrue((actor_breakdown.sample.q_e4 >= lower).all())
+        self.assertTrue((actor_breakdown.sample.q_e4 <= upper).all())
+
+        captured = []
+        original = self.actor.sample_all_modes
+
+        def recording_sample(state, generator=None):
+            sample = original(state, generator=generator)
+            captured.append(sample)
+            return sample
+
+        self.actor.sample_all_modes = recording_sample
+        try:
+            hsm.soft_state_value(
+                self.actor,
+                self.critics,
+                self.state,
+                0.2,
+                0.05,
+                generator=self.generator(601),
+            )
+        finally:
+            del self.actor.sample_all_modes
+        self.assertEqual(len(captured), 1)
+        self.assertTrue((captured[0].q_e4 >= lower).all())
+        self.assertTrue((captured[0].q_e4 <= upper).all())
+
+    def test_curriculum_gradients_reach_every_actor_head(self) -> None:
+        actor = hsm.build_actor(CURRICULUM_CONFIG, seed=1234)
+        critics = hsm.build_twin_critics(CURRICULUM_CONFIG, seed=5678)
+        result = hsm.actor_objective(
+            actor,
+            critics,
+            self.state,
+            0.2,
+            0.05,
+            generator=self.generator(777),
+        )
+        result.objective.backward()
+        for name, head in (
+            ("logit", actor.logit_head),
+            ("mean", actor.mean_head),
+            ("log_std", actor.log_std_head),
+        ):
+            self.assertIsNotNone(head.weight.grad, name)
+            self.assertTrue(torch.isfinite(head.weight.grad).all(), name)
+            self.assertTrue((head.weight.grad.abs().sum(dim=1) > 0).all(), name)
+
+    def test_curriculum_checkpoint_buffers_are_exact_and_fail_closed(self) -> None:
+        state = self.actor.state_dict()
+        for name in (
+            "_support_q_e4_lower",
+            "_support_q_e4_upper",
+            "_support_sha256_bytes",
+        ):
+            self.assertIn(name, state)
+        restored = hsm.build_actor(CURRICULUM_CONFIG, seed=9)
+        restored.load_state_dict(state)
+        self.assertEqual(
+            restored.modeled_smoke_support_sha256,
+            mss.MODELED_SMOKE_SUPPORT_SHA256,
+        )
+        tampered = {key: value.clone() for key, value in state.items()}
+        tampered["_support_q_e4_lower"][0] -= 1
+        before = restored._support_q_e4_lower.clone()
+        with self.assertRaisesRegex(RuntimeError, "MODELED_SMOKE_SUPPORT"):
+            restored.load_state_dict(tampered)
+        self.assertTrue(torch.equal(restored._support_q_e4_lower, before))
+
+        default = hsm.build_actor(REFERENCE_CONFIG, seed=9)
+        with self.assertRaises(RuntimeError):
+            default.load_state_dict(state, strict=False)
+        with self.assertRaises(RuntimeError):
+            restored.load_state_dict(default.state_dict(), strict=False)
+
+    def test_support_checkpoint_preflight_is_atomic_for_missing_and_extra_keys(self) -> None:
+        actor = hsm.build_actor(CURRICULUM_CONFIG, seed=31)
+        donor = hsm.build_actor(CURRICULUM_CONFIG, seed=32)
+        donor_state = {
+            key: value.clone() for key, value in donor.state_dict().items()
+        }
+        support_names = (
+            "_support_q_e4_lower",
+            "_support_q_e4_upper",
+            "_support_sha256_bytes",
+        )
+        missing = {
+            key: value.clone() for key, value in donor_state.items()
+            if key != support_names[0]
+        }
+        extra = {key: value.clone() for key, value in donor_state.items()}
+        extra["_support_foreign"] = torch.tensor([1], dtype=torch.int64)
+        before = {
+            key: value.clone() for key, value in actor.state_dict().items()
+        }
+        for malformed in (missing, extra):
+            with self.assertRaisesRegex(RuntimeError, "MODELED_SMOKE_SUPPORT"):
+                actor.load_state_dict(malformed, strict=False)
+            after = actor.state_dict()
+            self.assertEqual(tuple(after), tuple(before))
+            for key, value in before.items():
+                self.assertTrue(torch.equal(after[key], value), key)
+
+    def test_runtime_support_buffer_or_config_tampering_fails_closed(self) -> None:
+        for name in (
+            "_support_q_e4_lower",
+            "_support_q_e4_upper",
+            "_support_sha256_bytes",
+        ):
+            actor = hsm.build_actor(CURRICULUM_CONFIG, seed=41)
+            with torch.no_grad():
+                getattr(actor, name)[0] ^= 1
+            with self.assertRaisesRegex(
+                hsm.InvalidTensorError, "MODELED_SMOKE_SUPPORT"
+            ):
+                actor.sample_all_modes(self.state, generator=self.generator(4))
+            with self.assertRaisesRegex(
+                hsm.InvalidTensorError, "MODELED_SMOKE_SUPPORT"
+            ):
+                actor.deterministic_execution(self.state)
+            with self.assertRaisesRegex(
+                hsm.InvalidTensorError, "MODELED_SMOKE_SUPPORT"
+            ):
+                hsm.actor_objective(
+                    actor,
+                    self.critics,
+                    self.state,
+                    0.2,
+                    0.05,
+                    generator=self.generator(5),
+                )
+
+        actor = hsm.build_actor(CURRICULUM_CONFIG, seed=42)
+        actor.config = REFERENCE_CONFIG
+        with self.assertRaisesRegex(
+            hsm.InvalidHyperparameterError, "construction-time semantics"
+        ):
+            actor.sample_all_modes(self.state, generator=self.generator(6))
+
+        actor = hsm.build_actor(CURRICULUM_CONFIG, seed=43)
+        for name in (
+            "_support_q_e4_lower",
+            "_support_q_e4_upper",
+            "_support_sha256_bytes",
+        ):
+            delattr(actor, name)
+        with self.assertRaisesRegex(
+            hsm.InvalidTensorError, "construction-time semantics"
+        ):
+            actor.deterministic_execution(self.state)
+
+    def test_curriculum_buffers_keep_exact_integer_dtype_across_model_dtype(self) -> None:
+        actor = hsm.build_actor(CURRICULUM_CONFIG, seed=12).to(dtype=torch.float32)
+        self.assertEqual(actor._support_q_e4_lower.dtype, torch.int64)
+        self.assertEqual(actor._support_q_e4_upper.dtype, torch.int64)
+        self.assertEqual(actor._support_sha256_bytes.dtype, torch.uint8)
+        sample = actor.sample_all_modes(
+            _state(2, seed=8).to(torch.float32),
+            generator=self.generator(333),
+        )
+        self.assertEqual(sample.q.dtype, torch.float32)
+        lower = torch.tensor(
+            [pair[0] for pair in mss.MODELED_SMOKE_MODE_Q_E4_BOUNDS]
+        )
+        upper = torch.tensor(
+            [pair[1] for pair in mss.MODELED_SMOKE_MODE_Q_E4_BOUNDS]
+        )
+        self.assertTrue((sample.q_e4 >= lower).all())
+        self.assertTrue((sample.q_e4 <= upper).all())
+
+    def test_foreign_support_is_refused_by_configuration(self) -> None:
+        foreign = replace(
+            mss.MODELED_SMOKE_SUPPORT,
+            evidence_class="FOREIGN_MODELED_SUPPORT",
+        )
+        with self.assertRaises(hsm.InvalidHyperparameterError):
+            hsm.HybridSacModelConfig(
+                dtype=DTYPE, modeled_smoke_support=foreign
+            )
+        with self.assertRaises(hsm.InvalidHyperparameterError):
+            hsm.HybridSacModelConfig(
+                dtype=DTYPE, modeled_smoke_support={"schema": "foreign"}
+            )
+
+
 class QuantizationTest(ModelsTestBase):
     """Tensor quantization is the registered contract rule, not a copy of it."""
 
@@ -398,6 +738,51 @@ class ContinuousLogProbTest(ModelsTestBase):
         log_normal = -0.5 * z * z - log_std - 0.5 * math.log(2.0 * math.pi)
         jacobian = math.log(0.49) + math.log(1.0 - math.tanh(pre) ** 2)
         self.assertAlmostEqual(produced, log_normal - jacobian, places=12)
+
+    def test_physical_q_and_normalized_z_coordinates_are_both_explicit(self) -> None:
+        mean, log_std, pre = -0.2, 0.35, 0.7
+        args = (
+            torch.tensor([pre], dtype=DTYPE),
+            torch.tensor([mean], dtype=DTYPE),
+            torch.tensor([log_std], dtype=DTYPE),
+        )
+        physical = float(hsm.continuous_log_prob(*args))
+        normalized = float(hsm.normalized_z_log_prob(*args))
+        sigma = math.exp(log_std)
+        standardized = (pre - mean) / sigma
+        log_normal = (
+            -0.5 * standardized * standardized
+            - log_std
+            - 0.5 * math.log(2.0 * math.pi)
+        )
+        tanh_log_jacobian = math.log(1.0 - math.tanh(pre) ** 2)
+        self.assertAlmostEqual(
+            physical,
+            log_normal - math.log(0.49) - tanh_log_jacobian,
+            places=12,
+        )
+        self.assertAlmostEqual(
+            normalized,
+            log_normal - math.log(0.5) - tanh_log_jacobian,
+            places=12,
+        )
+        self.assertAlmostEqual(normalized - physical, math.log(0.98), places=12)
+
+        curriculum = hsm.build_actor(CURRICULUM_CONFIG, seed=1234)
+        heads = curriculum(_state(1))
+        finished = curriculum._finish_sample(
+            heads, torch.full_like(heads.mean, pre)
+        )
+        torch.testing.assert_close(
+            finished.log_prob_continuous,
+            hsm.normalized_z_log_prob(
+                torch.full_like(heads.mean, pre), heads.mean, heads.log_std
+            ),
+        )
+        self.assertEqual(
+            finished.continuous_log_prob_coordinate,
+            hsm.NORMALIZED_Z_DENSITY,
+        )
 
     def test_matches_hand_calculation_across_a_grid(self) -> None:
         for mean in (-1.5, 0.0, 2.0):
