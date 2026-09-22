@@ -1,0 +1,10 @@
+{
+  "criteria": {
+    "admission_drop_le_0_001": true,
+    "quality_retention_ge_0_95": true,
+    "shaped_matches_constrained": true,
+    "zero_p95_misses": true
+  },
+  "deadline_penalty": 0.5742957604173842,
+  "status": "GO"
+}

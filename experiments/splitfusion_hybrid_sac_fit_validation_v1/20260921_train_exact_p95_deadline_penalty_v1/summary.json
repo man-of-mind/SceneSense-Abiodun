@@ -1,0 +1,78 @@
+{
+  "bindings": {
+    "exact_penalty_spec_sha256": "5ea0c50dd384323004421fad076654dea2ab2cfeb54c6fd526237bf117a05c3c",
+    "fit_partition_sha256": "44dad342d09cc39cab37e069627b8b9019e8cb9221fff25e1a8a8f240e8e1061",
+    "implementation_sha256": "ed0f53a1b82d877c7ccc48e4388895cf24f3e2ff5e1a6ca18f7e7a04974aad85",
+    "modeled_smoke_support_sha256": "dc545c8703c9763165240bec5ad3f341979d1dd3b64e5bd5615222adeb24f566",
+    "original_d1_utility_spec_sha256": "2f6d6aaf22d3995152c5ca9fb726abb07beef32a1b6f846336764ac6f18ea11b"
+  },
+  "canonical_content_sha256": "b1abbf2b38d895222eeba845c18022ee45abaa499f4e704104eb16318513307a",
+  "constrained_oracle": {
+    "admission_change": 0.0009788429871534499,
+    "mean_p_admit": 0.99961474975781,
+    "mean_q_perc": 0.6799896723191776,
+    "p95_miss_count": 0,
+    "quality_retention": 0.9649297804976571
+  },
+  "decision": {
+    "criteria": {
+      "admission_drop_le_0_001": true,
+      "quality_retention_ge_0_95": true,
+      "shaped_matches_constrained": true,
+      "zero_p95_misses": true
+    },
+    "deadline_penalty": 0.5742957604173842,
+    "delta": 0.5742957604173841,
+    "representable_search_evaluations": 1,
+    "status": "GO",
+    "winner_identity_match_count": 1564
+  },
+  "exactness": {
+    "actions_per_context": 52240,
+    "first_pass_action_context_evaluations": 81703360,
+    "requirement_count": 882466,
+    "scalar_revalidated_winner_count": 1564,
+    "second_pass_action_context_evaluations": 81703360,
+    "train_context_count": 1564,
+    "train_scene_count": 391
+  },
+  "files": {
+    "REPORT.md": "c2c84e2a05fb15188ac238d75d094fe546954a946f37861b9c4cee5c90cd24e2",
+    "selection_decision.json": "5caea12b04bf9be7c7c9a05bbfe934910fc71c3ef189587e8a19edae493f5e45",
+    "train_context_oracles.csv": "2597b4050552cfdcef15396bc811170d458d3a5a9b5d50fae559e4987b654c1f"
+  },
+  "schema": "splitfusion.train_exact_p95_deadline_penalty.v1",
+  "scope": {
+    "claims_excluded": [
+      "POLICY_TRAINING",
+      "VALIDATION_OR_TEST_SELECTION",
+      "LIVE_200_MS_SLA",
+      "EMPIRICAL_TIMEOUT_PROBABILITY"
+    ],
+    "context_selection": "TRAIN_IDS_ONLY",
+    "feasibility_semantics": "MODELED_CONDITIONAL_RETAINED_SURVIVOR_LATENCY_PROXY_LE_BUDGET_NOT_UNCONDITIONAL_SERVICE_SUCCESS",
+    "fit_validation_scene_id_intersection_count": 0,
+    "queried_train_scene_id_count": 391,
+    "queried_train_scene_id_sha256": "8baa9c63ae2a71fb170a03484a0a0a9420b41a1ec974367c3f2eede8cb39b183",
+    "registered_bundle_load": "WHOLE_REGISTERED_BUNDLES_INTEGRITY_AUDITED_AT_LOAD"
+  },
+  "status": "COMPLETE_TRAIN_ONLY_EXACT_P95_DEADLINE_PENALTY",
+  "unconstrained_oracle": {
+    "mean_p_admit": 0.9986359067706565,
+    "mean_q_perc": 0.7047037888793076,
+    "p95_miss_count": 415
+  },
+  "worst_penalty_requirement": {
+    "best_feasible_base_reward": -0.13886236214769926,
+    "context_index": 938,
+    "infeasible_base_reward": 0.4307913313758727,
+    "latency_p95_ms": 214.58358472906113,
+    "mode_id": 2,
+    "network_profile": "ADVERSE_STABLE",
+    "p_admit": 0.9919169403402207,
+    "q_e4": 9000,
+    "q_perc": 0.7106802277300279,
+    "required_penalty_ratio": 0.5742957604173841,
+    "sample_id": "canonical_v3_05_val_30_30_s601_tm1601_001007_frame4277"
+  }
+}
