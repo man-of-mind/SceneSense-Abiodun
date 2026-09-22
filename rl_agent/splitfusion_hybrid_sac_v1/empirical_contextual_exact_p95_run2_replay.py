@@ -523,6 +523,61 @@ class ExactP95Run2ReplayBindingV1:
             raise ExactP95Run2BindingError("Run-2 replay binding mismatch")
 
 
+_BATCH_AUDIT_SOURCE_KEY = "_authenticated_run2_transition"
+_BATCH_AUDIT_ATTESTATION_KEY = "row_attestation_sha256"
+
+
+def _float32_scalar(value: float) -> float:
+    """Return the exact scalar value stored by a CPU float32 tensor."""
+    return float(torch.tensor(value, dtype=torch.float32).item())
+
+
+def _batch_audit_payload(
+    transition: ExactP95Run2ShapedTransitionV1,
+) -> Dict[str, Any]:
+    """Derive one canonical execution-dtype row from its authenticated source."""
+    if type(transition) is not ExactP95Run2ShapedTransitionV1:
+        raise ExactP95Run2ReplayError("batch audit source has a foreign type")
+    transition.revalidate()
+    source = transition.source_d1_transition
+    return {
+        "collection_seq": source.collection_seq,
+        "mode_id": source.action.mode_id,
+        "p95_base_reward": transition.p95_base_reward,
+        "p95_base_reward_float32": _float32_scalar(transition.p95_base_reward),
+        "q_e4": source.action.q_e4,
+        "record": "splitfusion.exact_p95_run2_batch_audit_row.v1",
+        "reward_binding_sha256": transition.reward_binding.canonical_sha256(),
+        "run2_transition_sha256": transition.canonical_sha256(),
+        "shaped_reward": transition.shaped_reward,
+        "shaped_reward_float32": _float32_scalar(transition.shaped_reward),
+        "source_d1_reward": transition.source_d1_reward,
+        "source_d1_reward_float32": _float32_scalar(transition.source_d1_reward),
+        "source_d1_transition_sha256": source.canonical_sha256(),
+        "state_float32": [
+            float(value)
+            for value in torch.tensor(
+                source.observation.values, dtype=torch.float32
+            ).tolist()
+        ],
+        "terminal_discount": transition.terminal_discount,
+        "terminal_discount_float32": _float32_scalar(
+            transition.terminal_discount
+        ),
+    }
+
+
+def _batch_audit_row(
+    transition: ExactP95Run2ShapedTransitionV1,
+) -> Dict[str, Any]:
+    payload = _batch_audit_payload(transition)
+    return {
+        **payload,
+        _BATCH_AUDIT_ATTESTATION_KEY: canonical_sha256(payload),
+        _BATCH_AUDIT_SOURCE_KEY: transition,
+    }
+
+
 @dataclass(frozen=True, slots=True, eq=False)
 class ExactP95Run2BatchV1:
     _state: Tensor
@@ -587,17 +642,85 @@ class ExactP95Run2BatchV1:
                 raise ExactP95Run2ReplayError(
                     "batch action escaped modeled support"
                 ) from exc
-        if (
-            type(self.audit) is not tuple
-            or len(self.audit) != size
-            or any(not isinstance(row, Mapping) for row in self.audit)
-        ):
+        if type(self.audit) is not tuple or len(self.audit) != size:
             raise ExactP95Run2ReplayError("batch audit cardinality drift")
+        checked_audit = []
+        for index, supplied in enumerate(self.audit):
+            if not isinstance(supplied, Mapping):
+                raise ExactP95Run2ReplayError("batch audit row is not a mapping")
+            row = dict(supplied)
+            source = row.pop(_BATCH_AUDIT_SOURCE_KEY, None)
+            stated_attestation = row.pop(_BATCH_AUDIT_ATTESTATION_KEY, None)
+            expected = _batch_audit_payload(source)
+            if set(row) != set(expected):
+                raise ExactP95Run2ReplayError("batch audit row schema drift")
+            if (
+                canonical_sha256(row) != stated_attestation
+                or row != expected
+                or canonical_sha256(expected) != stated_attestation
+            ):
+                raise ExactP95Run2ReplayError("batch audit row attestation drift")
+            if (
+                source.reward_binding != self.binding.reward_binding
+                or EmpiricalTerminalBindingV1.from_transition(
+                    source.source_d1_transition
+                )
+                != self.binding.source_terminal_binding
+            ):
+                raise ExactP95Run2BindingError(
+                    "batch audit source differs from batch binding"
+                )
+            expected_state = torch.tensor(
+                expected["state_float32"], dtype=torch.float32
+            )
+            scalar_checks = (
+                (self._source_d1_reward, "source_d1_reward_float32"),
+                (self._p95_base_reward, "p95_base_reward_float32"),
+                (self._reward, "shaped_reward_float32"),
+                (self._discount, "terminal_discount_float32"),
+            )
+            if (
+                not torch.equal(self._state[index], expected_state)
+                or int(self._mode_id[index]) != expected["mode_id"]
+                or int(self._q_e4[index]) != expected["q_e4"]
+                or any(
+                    not torch.equal(
+                        tensor[index : index + 1],
+                        torch.tensor([expected[name]], dtype=torch.float32),
+                    )
+                    for tensor, name in scalar_checks
+                )
+            ):
+                raise ExactP95Run2ReplayError(
+                    "batch tensor row differs from authenticated audit source"
+                )
+            checked_audit.append(
+                MappingProxyType(
+                    {
+                        **expected,
+                        _BATCH_AUDIT_ATTESTATION_KEY: stated_attestation,
+                        _BATCH_AUDIT_SOURCE_KEY: source,
+                    }
+                )
+            )
         object.__setattr__(
             self,
             "audit",
-            tuple(MappingProxyType(dict(row)) for row in self.audit),
+            tuple(checked_audit),
         )
+
+    def revalidate(self) -> None:
+        """Re-prove tensor/source identity after construction.
+
+        A later trainer must call this before any optimizer mutation.  Calling
+        ``__post_init__`` deliberately repeats every exact source, binding,
+        audit and tensor comparison; it also refreshes the private tensor
+        clones so no caller-owned storage can become authoritative.
+        """
+
+        if type(self) is not ExactP95Run2BatchV1:
+            raise ExactP95Run2ReplayError("Run-2 batch has a foreign type")
+        self.__post_init__()
 
     @property
     def batch_size(self) -> int:
@@ -726,20 +849,7 @@ class ExactP95Run2ReplayV1:
         indices = torch.randperm(len(self._rows), generator=generator)[:batch_size]
         resident = tuple(self._rows)
         rows = tuple(resident[int(index)] for index in indices)
-        audits = tuple(
-            {
-                "collection_seq": row.source_d1_transition.collection_seq,
-                "reward_binding_sha256": row.reward_binding.canonical_sha256(),
-                "run2_transition_sha256": row.canonical_sha256(),
-                "shaped_reward": row.shaped_reward,
-                "source_d1_reward": row.source_d1_reward,
-                "source_d1_transition_sha256": (
-                    row.source_d1_transition.canonical_sha256()
-                ),
-                "terminal_discount": row.terminal_discount,
-            }
-            for row in rows
-        )
+        audits = tuple(_batch_audit_row(row) for row in rows)
         return ExactP95Run2BatchV1(
             _state=torch.tensor(
                 [row.source_d1_transition.observation.values for row in rows],

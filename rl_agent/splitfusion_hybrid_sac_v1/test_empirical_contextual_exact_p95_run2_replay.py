@@ -29,6 +29,7 @@ from .empirical_contextual_exact_p95_run2_replay import (
 from .test_empirical_contextual_terminal_replay import make_binding, make_transition
 from .test_empirical_contextual_terminal_trainer import build_trainer, make_batch
 from .transaction_identity import canonical_sha256
+from .modeled_smoke_support import MODELED_SMOKE_SUPPORT
 
 
 def with_p95_proxy(transition, latency_p95_ms: float):
@@ -177,6 +178,22 @@ class Run2ReplayTest(unittest.TestCase):
             replay.insert(self._row(index, p95=190.0 + 10.0 * index))
         return replay
 
+    @staticmethod
+    def _rebuild_batch(batch, **changes) -> ExactP95Run2BatchV1:
+        values = {
+            "_state": batch.state,
+            "_mode_id": batch.mode_id,
+            "_q_e4": batch.q_e4,
+            "_source_d1_reward": batch.source_d1_reward,
+            "_p95_base_reward": batch.p95_base_reward,
+            "_reward": batch.reward,
+            "_discount": batch.discount(),
+            "binding": batch.binding,
+            "audit": batch.audit,
+        }
+        values.update(changes)
+        return ExactP95Run2BatchV1(**values)
+
     def test_replay_preserves_sources_and_rejects_foreign_records(self) -> None:
         replay = ExactP95Run2ReplayV1(2)
         row = self._row(0)
@@ -219,6 +236,78 @@ class Run2ReplayTest(unittest.TestCase):
                 for row in batch.audit
             )
         )
+        self.assertTrue(
+            all(
+                row["row_attestation_sha256"]
+                == canonical_sha256(
+                    {
+                        key: value
+                        for key, value in row.items()
+                        if key
+                        not in (
+                            "row_attestation_sha256",
+                            "_authenticated_run2_transition",
+                        )
+                    }
+                )
+                for row in batch.audit
+            )
+        )
+
+    def test_batch_rejects_tensor_substitution_and_audit_reordering(self) -> None:
+        batch = self._filled().sample(4, torch.Generator().manual_seed(8))
+
+        state = batch.state
+        state[0, 0] += 0.125
+
+        mode = batch.mode_id
+        q_for_mode = batch.q_e4
+        mode[0] = (int(mode[0]) + 1) % len(
+            MODELED_SMOKE_SUPPORT.mode_q_e4_bounds
+        )
+        lower, upper = MODELED_SMOKE_SUPPORT.mode_q_e4_bounds[int(mode[0])]
+        q_for_mode[0] = (lower + upper) // 2
+
+        q_only = batch.q_e4
+        original_mode = int(batch.mode_id[0])
+        lower, upper = MODELED_SMOKE_SUPPORT.mode_q_e4_bounds[original_mode]
+        q_only[0] = lower if int(q_only[0]) != lower else lower + 1
+
+        p95_base = batch.p95_base_reward
+        p95_base[0] += 0.125
+
+        discount = batch.discount()
+        discount[0] = 0.5
+
+        cases = (
+            {"_reward": batch.source_d1_reward},
+            {"_state": state},
+            {"_mode_id": mode, "_q_e4": q_for_mode},
+            {"_q_e4": q_only},
+            {"_p95_base_reward": p95_base},
+            {"_discount": discount},
+            {"audit": tuple(reversed(batch.audit))},
+        )
+        for changes in cases:
+            with self.subTest(changes=tuple(changes)):
+                with self.assertRaises(ExactP95Run2ReplayError):
+                    self._rebuild_batch(batch, **changes)
+
+    def test_batch_revalidation_rejects_postconstruction_raw_d1_target(self) -> None:
+        replay = ExactP95Run2ReplayV1(1)
+        replay.insert(self._row(0, p95=220.0))
+        batch = replay.sample(1, torch.Generator().manual_seed(3))
+        original = batch.reward
+        forged = batch.source_d1_reward
+        self.assertFalse(torch.equal(original, forged))
+
+        object.__setattr__(batch, "_reward", forged)
+        with self.assertRaises(ExactP95Run2ReplayError):
+            batch.revalidate()
+
+        object.__setattr__(batch, "_reward", original)
+        batch.revalidate()
+        self.assertTrue(torch.equal(batch.reward, original))
 
     def test_existing_d1_batch_and_trainer_cannot_mislabel_run2_reward(self) -> None:
         run2_batch = self._filled().sample(2, torch.Generator().manual_seed(4))
