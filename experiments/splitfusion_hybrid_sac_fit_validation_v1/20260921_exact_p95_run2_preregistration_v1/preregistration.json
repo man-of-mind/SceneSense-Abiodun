@@ -1,0 +1,134 @@
+{
+  "schema": "splitfusion.hybrid_sac.exact_p95_run2_preregistration.v1",
+  "status": "FROZEN_BEFORE_RUN2_TRAINING",
+  "scientific_scope": "OFFLINE_CONTEXTUAL_HYBRID_SAC_WARM_START_AND_MODELED_RISK_CONTROL",
+  "claims_excluded": [
+    "LIVE_200_MS_SLA",
+    "UNCONDITIONAL_P95_SERVICE_GUARANTEE",
+    "STOCHASTIC_POLICY_DEADLINE_GUARANTEE",
+    "FINAL_TEST_GENERALIZATION",
+    "ONLINE_DEPLOYMENT_VALIDATION"
+  ],
+  "reward": {
+    "deadline_ms": 200.0,
+    "deadline_penalty": 0.5742957604173842,
+    "deadline_penalty_float_hex": "0x1.260a180a72bf6p-1",
+    "formula": "p_admit*(q_perc-0.25*latency_p95_ms/200-0.5742957604173842*indicator(latency_p95_ms>200))+(1-p_admit)*(-1)",
+    "penalty_placement": "INSIDE_ADMITTED_BRANCH",
+    "latency_semantics": "MODELED_CONDITIONAL_RETAINED_SURVIVOR_P95",
+    "execution_action_semantics": "EXACT_MODE_ID_AND_EXECUTED_Q_E4_AFTER_REGISTERED_QUANTIZATION",
+    "lambda_selection": "ANALYTIC_TRAIN_ONLY_EXACT_PENALTY_NOT_VALIDATION_TUNED"
+  },
+  "bindings": {
+    "exact_penalty_spec_sha256": "5ea0c50dd384323004421fad076654dea2ab2cfeb54c6fd526237bf117a05c3c",
+    "exact_penalty_preflight_summary_sha256": "29e9677caad5c2e558da572c784a00ae8a2ef068f5c55191bf30eb8af934cd63",
+    "exact_penalty_selection_decision_sha256": "5caea12b04bf9be7c7c9a05bbfe934910fc71c3ef189587e8a19edae493f5e45",
+    "exact_penalty_implementation_sha256": "ed0f53a1b82d877c7ccc48e4388895cf24f3e2ff5e1a6ca18f7e7a04974aad85",
+    "fit_partition_sha256": "44dad342d09cc39cab37e069627b8b9019e8cb9221fff25e1a8a8f240e8e1061",
+    "fit_validation_panel_sha256": "1946272c4060c193b3e9e57d3b1cb490b411b889af394f8c089eeddbf611b3d5",
+    "modeled_smoke_support_sha256": "dc545c8703c9763165240bec5ad3f341979d1dd3b64e5bd5615222adeb24f566",
+    "original_d1_utility_spec_sha256": "2f6d6aaf22d3995152c5ca9fb726abb07beef32a1b6f846336764ac6f18ea11b",
+    "run1_analysis_summary_sha256": "de9f7b2a9940182899c0023a170420a4e8f44daba167ea9f0c3c9975e7b6592c",
+    "run1_fit_validation_rows_sha256": "70c3398c86b54a891dfe736257a9356f6acaf734708695b708be89e0dbdd74be"
+  },
+  "training_schedule": {
+    "seeds": [17, 29, 43],
+    "warmup_transitions": 1024,
+    "batch_size": 256,
+    "collect_per_update": 4,
+    "update_count": 5000,
+    "replay_capacity": 32768,
+    "cpu_threads": 1,
+    "checkpoint_interval_updates": 500,
+    "checkpoint_selection": "NONE_UPDATE_5000_IS_THE_FIXED_PRIMARY_ENDPOINT",
+    "training_population": "REGISTERED_TRAIN_IDS_ONLY",
+    "fit_validation_access_during_training": "FORBIDDEN"
+  },
+  "evaluation": {
+    "policy": "DETERMINISTIC_ARGMAX_MODE_PLUS_CONDITIONAL_MEAN_Q_EXECUTED_THROUGH_EXACT_Q_E4_QUANTIZATION",
+    "primary_update": 5000,
+    "diagnostic_updates": [0, 500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000],
+    "fit_validation_contexts_per_seed": 340,
+    "profile_count": 4,
+    "result_interpretation": "DEVELOPMENT_FIT_VALIDATION_NOT_UNTOUCHED_FINAL_TEST"
+  },
+  "pretraining_go_no_go": {
+    "every_fit_validation_context_has_at_least_one_p95_feasible_action": true,
+    "frozen_lambda_shaped_oracle_must_equal_p95_constrained_oracle": true,
+    "frozen_lambda_shaped_oracle_p95_miss_count": 0,
+    "failure_action": "DO_NOT_RETUNE_ON_FIT_VALIDATION_REPORT_AS_PENALTY_GENERALIZATION_FAILURE_AND_CREATE_SEPARATE_RUN3_DESIGN"
+  },
+  "success_tiers": {
+    "tier_0_mechanical_hard_gate": {
+      "all_three_seeds_complete": true,
+      "finite_tensors_and_metrics": true,
+      "action_support_violation_count": 0,
+      "exact_checkpoint_resume_required": true,
+      "training_id_leak_count": 0,
+      "raw_d1_and_run2_rewards_separately_auditable": true,
+      "executed_q_e4_scoring_required": true
+    },
+    "tier_1_deadline_learning_signal": {
+      "each_seed_p95_miss_rate_below_matched_update_0": true,
+      "cross_seed_relative_miss_reduction_minimum": 0.5,
+      "relative_reduction_comparators": [
+        "MATCHED_UPDATE_0_ACTORS",
+        "RUN1_UPDATE_5000_ACTORS_RESCORED_UNDER_RUN2"
+      ],
+      "report_overall_and_per_profile_integer_counts": true,
+      "report_latency_margin_200_minus_p95_ms": true
+    },
+    "tier_2_useful_deadline_behavior": {
+      "cross_seed_mean_p95_miss_rate_maximum": 0.05,
+      "per_seed_p95_miss_rate_maximum": 0.1,
+      "per_profile_cross_seed_mean_p95_miss_rate_maximum": 0.1,
+      "mean_q_perc_fraction_of_constrained_oracle_minimum": 0.9,
+      "mean_p_admit_absolute_drop_from_constrained_oracle_maximum": 0.001
+    },
+    "tier_3_strict_modeled_compliance": {
+      "p95_miss_count_per_seed": 0,
+      "p95_miss_count_per_profile": 0,
+      "interpretation": "MODELED_CONDITIONAL_SURVIVOR_COMPLIANCE_NOT_LIVE_SLA"
+    }
+  },
+  "adaptation_test": {
+    "primary_fixed_baseline": "BEST_EXACT_EXECUTABLE_MODE_Q_E4_SELECTED_ON_TRAIN_CONTEXTS_ONLY_THEN_FROZEN",
+    "fixed_baseline_tie_rule": "MAX_MEAN_RUN2_REWARD_THEN_MIN_MODE_ID_THEN_MIN_Q_E4",
+    "required_pooled_result": "LEARNED_UPDATE_5000_MEAN_MINUS_TRAIN_SELECTED_FIXED_MEAN_GREATER_THAN_ZERO",
+    "required_seed_result": "AT_LEAST_TWO_OF_THREE_SEEDS_HAVE_POSITIVE_PAIRED_MEAN_DIFFERENCE",
+    "uncertainty": {
+      "method": "SCENE_CLUSTERED_PAIRED_BOOTSTRAP",
+      "resamples": 10000,
+      "seed": 20260921,
+      "required_lower_95_percent_ci": "GREATER_THAN_ZERO"
+    },
+    "failure_interpretation": "DEADLINE_CONTROL_MAY_BE_USEFUL_BUT_CONTEXTUAL_RL_ADAPTATION_NOT_ESTABLISHED"
+  },
+  "comparators": [
+    "REGISTERED_IDENTITY_DERIVED_UNIFORM_RANDOM_EXECUTABLE_ACTION",
+    "MATCHED_UPDATE_0_ACTOR_PER_SEED",
+    "TRAIN_SELECTED_FIXED_ACTION_EVALUATED_UNCHANGED",
+    "RUN1_UPDATE_5000_ACTORS_RESCORED_UNDER_RUN2",
+    "EXACT_CONTEXT_DEPENDENT_RUN2_SHAPED_ORACLE",
+    "EXACT_CONTEXT_DEPENDENT_P95_CONSTRAINED_ORACLE"
+  ],
+  "learning_and_convergence_reporting": {
+    "raw_reward_target_near_one": false,
+    "normalized_progress_formula": "(J_policy-J_random)/(J_context_oracle-J_random)",
+    "normalized_progress_detected_learning_threshold": 0.0,
+    "normalized_progress_useful_threshold": 0.5,
+    "normalized_progress_strong_threshold": 0.75,
+    "normalized_progress_clamped": false,
+    "plateau_window": "FINAL_FIVE_REGISTERED_CHECKPOINTS",
+    "plateau_normalized_reward_range_maximum": 0.05,
+    "plateau_absolute_slope_per_1000_updates_maximum": 0.02,
+    "plateau_requires_no_rising_p95_miss_trend": true,
+    "plateau_alone_implies_success": false
+  },
+  "run1_retention": {
+    "label": "RUN1_P50_SMOOTH_REWARD_BASELINE",
+    "artifacts_are_immutable": true,
+    "raw_reward_directly_comparable_to_run2": false,
+    "presentation_role": "SHOWS_INITIAL_LEARNING_SIGNAL_AND_THE_P95_FAILURE_THAT_MOTIVATED_RUN2"
+  }
+}
