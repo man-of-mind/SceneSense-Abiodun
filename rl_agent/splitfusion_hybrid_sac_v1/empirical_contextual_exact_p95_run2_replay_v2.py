@@ -31,11 +31,6 @@ from .empirical_contextual_contract import (
     PILOT_UTILITY_SPEC_SHA256,
     require_supported_action,
 )
-from .empirical_contextual_exact_p95_deadline_penalty_v2 import (
-    REGISTERED_FLOAT32_EXACT_PENALTY_SPEC_SHA256,
-    base_p95_expected_utility64_v2,
-    shaped_p95_expected_utility64_v2,
-)
 from .empirical_contextual_terminal_replay import (
     EmpiricalTerminalBindingV1,
     EmpiricalTerminalTransitionV1,
@@ -77,6 +72,15 @@ RUN2_V2_BATCH_AUDIT_SCHEMA = "splitfusion.exact_p95_run2_batch_audit_row.v2"
 RUN2_V2_RUNTIME_ARITHMETIC = (
     "PYTHON_BINARY64_BASE_THEN_CONDITIONAL_BINARY64_SUBTRACTION_THEN_"
     "ONE_EXPLICIT_CPU_TORCH_FLOAT32_SCALAR_EMISSION"
+)
+
+# Keep the execution-time replay boundary independent of the exhaustive
+# train/development analysis modules.  Importing the derivation module would
+# transitively import the split-oracle evaluator and validation-panel modules,
+# even though replay needs only this already-frozen digest and the two scalar
+# operations below.
+REGISTERED_FLOAT32_EXACT_PENALTY_SPEC_SHA256 = (
+    "9ea4e4a3d2ffa791ae189b1ff478871f48ca6d84572b2830a0a6795f2cd254e3"
 )
 
 TRAIN_V2_RELATIVE_DIRECTORY = (
@@ -191,6 +195,49 @@ def _emit_cpu_float32(value64: float) -> float:
     if emitted.device.type != "cpu" or not bool(torch.isfinite(emitted)):
         raise ExactP95Run2ReplayV2Error("CPU float32 reward emission failed")
     return float(emitted.item())
+
+
+def _base_p95_expected_utility64_v2(
+    *, p_admit: float, q_perc: float, latency_p95_ms: float
+) -> float:
+    """Execute the frozen binary64 base formula in its pinned order."""
+
+    p = _require_float(float(p_admit), "p_admit")
+    quality = _require_float(float(q_perc), "q_perc")
+    latency = _require_float(float(latency_p95_ms), "latency_p95_ms")
+    if not 0.0 <= p <= 1.0:
+        raise ExactP95Run2ReplayV2Error("p_admit must lie in [0,1]")
+    if not 0.0 <= quality <= 1.0:
+        raise ExactP95Run2ReplayV2Error("q_perc must lie in [0,1]")
+    if latency < 0.0:
+        raise ExactP95Run2ReplayV2Error(
+            "latency_p95_ms must be non-negative"
+        )
+    return p * (quality - 0.25 * (latency / 200.0)) + (1.0 - p) * (-1.0)
+
+
+def _shaped_p95_expected_utility64_v2(
+    *,
+    p_admit: float,
+    q_perc: float,
+    latency_p95_ms: float,
+    deadline_penalty: float,
+) -> float:
+    """Apply the frozen conditional subtraction without analysis imports."""
+
+    penalty = _require_float(float(deadline_penalty), "deadline_penalty")
+    if penalty < 0.0:
+        raise ExactP95Run2ReplayV2Error(
+            "deadline_penalty must be non-negative"
+        )
+    base64 = _base_p95_expected_utility64_v2(
+        p_admit=p_admit,
+        q_perc=q_perc,
+        latency_p95_ms=latency_p95_ms,
+    )
+    if float(latency_p95_ms) > RUN2_V2_DEADLINE_MS:
+        return base64 - float(p_admit) * penalty
+    return base64
 
 
 def exact_p95_run2_reward_spec_document_v2() -> Dict[str, Any]:
@@ -564,12 +611,12 @@ def _derive_reward_components(
     source.revalidate()
     policy = source.result.policy
     source_reward64 = _require_float(source.reward, "source D1 reward")
-    base64 = base_p95_expected_utility64_v2(
+    base64 = _base_p95_expected_utility64_v2(
         p_admit=float(policy.p_edge_admission_given_sent),
         q_perc=float(policy.q_perc),
         latency_p95_ms=float(policy.latency_proxy_p95_ms),
     )
-    shaped64 = shaped_p95_expected_utility64_v2(
+    shaped64 = _shaped_p95_expected_utility64_v2(
         p_admit=float(policy.p_edge_admission_given_sent),
         q_perc=float(policy.q_perc),
         latency_p95_ms=float(policy.latency_proxy_p95_ms),

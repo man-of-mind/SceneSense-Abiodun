@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import math
+import subprocess
+import sys
 import tempfile
 import unittest
 from dataclasses import replace
@@ -74,6 +76,28 @@ def with_p95_proxy(transition, latency_p95_ms: float):
 
 
 class Run2V2RewardContractTest(unittest.TestCase):
+    def test_clean_replay_import_does_not_load_validation_modules(self) -> None:
+        package = "rl_agent.splitfusion_hybrid_sac_v1"
+        code = f"""
+import sys
+import {package}.empirical_contextual_exact_p95_run2_replay_v2
+forbidden = (
+    {package!r} + '.empirical_contextual_fit_validation_panel',
+    {package!r} + '.empirical_contextual_fit_validation_evaluator',
+    {package!r} + '.empirical_contextual_split_oracle',
+    {package!r} + '.empirical_contextual_exact_p95_deadline_penalty_v2',
+)
+loaded = [name for name in forbidden if name in sys.modules]
+if loaded:
+    raise SystemExit('forbidden transitive imports: ' + ','.join(loaded))
+"""
+        subprocess.run(
+            [sys.executable, "-c", code],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
     def test_reward_contract_is_pinned_and_distinct(self) -> None:
         self.assertEqual(RUN2_V2_DEADLINE_MS, 200.0)
         self.assertEqual(RUN2_V2_DEADLINE_PENALTY, 0.5742957622788527)
