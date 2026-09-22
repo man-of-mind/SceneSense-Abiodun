@@ -1,0 +1,21 @@
+{
+  "action": {
+    "mode_id": 11,
+    "q_e4": 6000
+  },
+  "action_selection": "MAXIMUM_MEAN_RUN2_REWARD_ON_TRAIN_THEN_MIN_MODE_ID_THEN_MIN_Q_E4",
+  "context_count": 1564,
+  "exhaustive_action_context_evaluations": 81703360,
+  "fit_validation_outcome_access_before_freeze": false,
+  "frozen_selection_sha256": "962972bbd25e13fdc6cd0f67c6bf1c911565aa124930ef3d58e4cd36ec3e53f7",
+  "mean_base_p95_reward": 0.3280894708722937,
+  "mean_latency_p95_ms": 185.28339347867157,
+  "mean_p_admit": 0.999381581722649,
+  "mean_q_perc": 0.5605094057874827,
+  "mean_shaped_reward": 0.3280894708722937,
+  "p95_miss_count": 0,
+  "scalar_revalidation_count": 1564,
+  "selection_population": "REGISTERED_TRAIN_CONTEXTS_ONLY",
+  "train_scene_count": 391,
+  "validation_scene_id_intersection_count": 0
+}

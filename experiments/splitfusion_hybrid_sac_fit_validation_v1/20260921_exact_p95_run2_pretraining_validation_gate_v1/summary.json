@@ -1,0 +1,109 @@
+{
+  "bindings": {
+    "exact_penalty_spec_sha256": "5ea0c50dd384323004421fad076654dea2ab2cfeb54c6fd526237bf117a05c3c",
+    "fit_partition_sha256": "44dad342d09cc39cab37e069627b8b9019e8cb9221fff25e1a8a8f240e8e1061",
+    "fit_validation_panel_sha256": "1946272c4060c193b3e9e57d3b1cb490b411b889af394f8c089eeddbf611b3d5",
+    "implementation_sha256": "3fe4e34f523cc65896a58324c19e382999625fc56031205fbd91ed34a012e94d",
+    "modeled_smoke_support_sha256": "dc545c8703c9763165240bec5ad3f341979d1dd3b64e5bd5615222adeb24f566",
+    "penalty_preflight_decision_sha256": "5caea12b04bf9be7c7c9a05bbfe934910fc71c3ef189587e8a19edae493f5e45",
+    "penalty_preflight_summary_sha256": "29e9677caad5c2e558da572c784a00ae8a2ef068f5c55191bf30eb8af934cd63",
+    "run2_preregistration_observed_sha256": "77e6e6b98c4fbf7e03994d73621bdec12ba9853872e1dfdcce17ce15905c1171",
+    "run2_preregistration_relative_path": "experiments/splitfusion_hybrid_sac_fit_validation_v1/20260921_exact_p95_run2_preregistration_v1/preregistration.json",
+    "run2_preregistration_sha256": "77e6e6b98c4fbf7e03994d73621bdec12ba9853872e1dfdcce17ce15905c1171",
+    "source_file_sha256": {
+      "empirical_contextual_environment.py": "84fd97e8332b992c4b73dafd35fb764e4d46a400683d44819a69d558e325bc24",
+      "empirical_contextual_exact_p95_deadline_penalty.py": "ed0f53a1b82d877c7ccc48e4388895cf24f3e2ff5e1a6ca18f7e7a04974aad85",
+      "empirical_contextual_fit_partition.py": "4345da41d4d72ffb88fdc64b3dc0a194184849abd911c7e8dd4515ea92a3f993",
+      "empirical_contextual_fit_validation_evaluator.py": "39197b98a7477b901e8d8349e2528b7018807508cdd311e5411f4274a9b25009",
+      "empirical_contextual_fit_validation_panel.py": "e25d1409411b121c3747185cc1fea54dfb2c90d452954222beb4712ced0ca1aa",
+      "empirical_contextual_split_oracle.py": "0d4a0e06933d7163afc599e1547afcc9091b6730692a7c3b9f956d6c51a49fad",
+      "modeled_smoke_support.py": "d588d2ceda83be750fcb5df4dfece6c85c6c2b033ab47be2d7bd97eb47ea03dc"
+    },
+    "test_implementation_sha256": "edc7eb43f4eb4637dfb083ae25345e21fbf9bb5c1a3aa3b935f64de44798a89d"
+  },
+  "canonical_content_sha256": "5f2ca0c0b71b5b0168c70dacdc800776af5625bb80105ca4d9a40740fc372a1e",
+  "decision": {
+    "criteria": {
+      "all_validation_winners_scalar_revalidated": true,
+      "every_context_has_p95_feasible_action": true,
+      "frozen_lambda_shaped_oracle_has_zero_p95_misses": true,
+      "frozen_lambda_shaped_oracle_matches_constrained": true
+    },
+    "failure_action": "DO_NOT_RETUNE_ON_FIT_VALIDATION; REPORT_PENALTY_GENERALIZATION_FAILURE_AND_CREATE_SEPARATE_RUN3_DESIGN",
+    "status": "GO"
+  },
+  "exactness": {
+    "action_domain": "ALL_EXECUTABLE_INTEGER_MODE_Q_E4_PAIRS",
+    "actions_per_context": 52240,
+    "scalar_vector_absolute_tolerance": 2e-09,
+    "train_context_count": 1564,
+    "validation_context_count": 340,
+    "validation_scene_count": 85
+  },
+  "files": {
+    "GO_NO_GO.json": "faa1cbf217d4c5500420f86ddd09a5f20a9d86461a7bbff1bf23a109b0c07b0d",
+    "REPORT.md": "6dff68be3bef993b7c8267e4ef1e9aeb55146632e25d37671b7d5b6e8a4cee09",
+    "profile_summary.csv": "f2c46114664f5bc7619bf8ee93a92605032b3e91779f5acb479400812797d1a9",
+    "train_selected_fixed_action.json": "41a2b52e2654f4a7d79a9c6d03ba1bae638d057f654e657be307f1f3d27699a1",
+    "validation_context_oracles.csv": "d50c5c4acf3fbe5d4437b57180fcffe5eecae900b1d0875d735b96e325dea328"
+  },
+  "reward": {
+    "deadline_ms": 200.0,
+    "deadline_penalty": 0.5742957604173842,
+    "formula": "p_admit*(q_perc-0.25*latency_p95_ms/200-0.5742957604173842*indicator(latency_p95_ms>200))+(1-p_admit)*(-1)",
+    "penalty_placement": "INSIDE_ADMITTED_BRANCH"
+  },
+  "schema": "splitfusion.exact_p95_run2_validation_gate.v1",
+  "scope": {
+    "claims_excluded": [
+      "POLICY_TRAINING",
+      "LIVE_200_MS_SLA",
+      "UNCONDITIONAL_SERVICE_GUARANTEE",
+      "FINAL_TEST_GENERALIZATION"
+    ],
+    "feasibility_semantics": "MODELED_CONDITIONAL_RETAINED_SURVIVOR_LATENCY_PROXY_LE_BUDGET_NOT_UNCONDITIONAL_SERVICE_SUCCESS",
+    "fixed_action_selection": "TRAIN_CONTEXTS_ONLY",
+    "lambda_retuned_on_validation": false,
+    "validation_access_before_fixed_action_freeze": false,
+    "validation_role": "FROZEN_DEVELOPMENT_FIT_VALIDATION"
+  },
+  "status": "COMPLETE_EXACT_P95_RUN2_PRETRAINING_VALIDATION_GATE",
+  "tie_rules": {
+    "constrained_oracle": "MAX_FEASIBLE_BASE_REWARD_THEN_MIN_P95_THEN_MIN_MODE_ID_THEN_MIN_Q_E4",
+    "shaped_oracle": "MAX_SHAPED_REWARD_THEN_FEASIBLE_FIRST_THEN_MIN_P95_THEN_MIN_MODE_ID_THEN_MIN_Q_E4",
+    "train_fixed": "MAX_MEAN_RUN2_REWARD_THEN_MIN_MODE_ID_THEN_MIN_Q_E4"
+  },
+  "train_selected_fixed_action": {
+    "action": {
+      "mode_id": 11,
+      "q_e4": 6000
+    },
+    "action_selection": "MAXIMUM_MEAN_RUN2_REWARD_ON_TRAIN_THEN_MIN_MODE_ID_THEN_MIN_Q_E4",
+    "context_count": 1564,
+    "exhaustive_action_context_evaluations": 81703360,
+    "fit_validation_outcome_access_before_freeze": false,
+    "frozen_selection_sha256": "962972bbd25e13fdc6cd0f67c6bf1c911565aa124930ef3d58e4cd36ec3e53f7",
+    "mean_base_p95_reward": 0.3280894708722937,
+    "mean_latency_p95_ms": 185.28339347867157,
+    "mean_p_admit": 0.999381581722649,
+    "mean_q_perc": 0.5605094057874827,
+    "mean_shaped_reward": 0.3280894708722937,
+    "p95_miss_count": 0,
+    "scalar_revalidation_count": 1564,
+    "selection_population": "REGISTERED_TRAIN_CONTEXTS_ONLY",
+    "train_scene_count": 391,
+    "validation_scene_id_intersection_count": 0
+  },
+  "validation_gate": {
+    "constrained_scalar_revalidation_count": 340,
+    "context_count": 340,
+    "exhaustive_action_context_evaluations": 17761600,
+    "feasible_context_count": 340,
+    "fixed_scalar_evaluation_count": 340,
+    "infeasible_context_count": 0,
+    "shaped_constrained_identity_match_count": 340,
+    "shaped_constrained_identity_mismatch_count": 0,
+    "shaped_oracle_p95_miss_count": 0,
+    "shaped_scalar_revalidation_count": 340
+  }
+}

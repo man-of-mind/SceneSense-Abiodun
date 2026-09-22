@@ -1,0 +1,10 @@
+{
+  "criteria": {
+    "all_validation_winners_scalar_revalidated": true,
+    "every_context_has_p95_feasible_action": true,
+    "frozen_lambda_shaped_oracle_has_zero_p95_misses": true,
+    "frozen_lambda_shaped_oracle_matches_constrained": true
+  },
+  "failure_action": "DO_NOT_RETUNE_ON_FIT_VALIDATION; REPORT_PENALTY_GENERALIZATION_FAILURE_AND_CREATE_SEPARATE_RUN3_DESIGN",
+  "status": "GO"
+}
