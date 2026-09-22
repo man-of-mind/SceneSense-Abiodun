@@ -1,0 +1,16 @@
+{
+  "criteria": {
+    "admission_drop_le_0_001": true,
+    "mean_quality_retention_ge_0_95": true,
+    "predecessor_is_insufficient": true,
+    "shaped_matches_emitted_float32_constrained": true,
+    "strict_emitted_float32_ordering_for_every_infeasible_action": true,
+    "zero_train_p95_misses": true
+  },
+  "deadline_penalty": 0.5742957622788527,
+  "deadline_penalty_float_hex": "0x1.260a181a70290p-1",
+  "deadline_penalty_uint64_hex": "0x3fe260a181a70290",
+  "predecessor": 0.5742957622788526,
+  "predecessor_insufficient": true,
+  "status": "GO"
+}
