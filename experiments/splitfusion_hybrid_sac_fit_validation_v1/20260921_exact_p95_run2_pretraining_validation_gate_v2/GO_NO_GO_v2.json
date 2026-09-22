@@ -1,0 +1,10 @@
+{
+  "criteria": {
+    "actual_emitted_float32_targets_must_be_used": true,
+    "every_fit_validation_context_has_at_least_one_p95_feasible_action": true,
+    "frozen_lambda_shaped_oracle_must_equal_emitted_float32_p95_constrained_oracle": true,
+    "frozen_lambda_shaped_oracle_p95_miss_count": true
+  },
+  "failure_action": "DO_NOT_RETUNE_ON_FIT_VALIDATION_REPORT_AS_PENALTY_GENERALIZATION_FAILURE_AND_CREATE_SEPARATE_RUN3_DESIGN",
+  "status": "GO"
+}
