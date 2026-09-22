@@ -164,12 +164,15 @@ class CampaignIntegrityTest(unittest.TestCase):
                 output_directory=output / "seed_17", seed=17
             )
             self.assertFalse((output / "campaign_report.json").exists())
-            campaign = module._run_campaign_to_directory(
-                output=output,
-                seeds=(29, 43),
-                comparator_binding=comparator,
-                seed_runner=fake_seed_runner,
-            )
+            with mock.patch.object(
+                module, "_preflight_existing_output", return_value=(None, None)
+            ):
+                campaign = module._run_campaign_to_directory(
+                    output=output,
+                    seeds=(29, 43),
+                    comparator_binding=comparator,
+                    seed_runner=fake_seed_runner,
+                )
             self.assertEqual(campaign["seeds"], [17, 29, 43])
             self.assertEqual(
                 [report["seed"] for report in campaign["reports"]],
@@ -183,12 +186,15 @@ class CampaignIntegrityTest(unittest.TestCase):
 
             # A subset rerun must retain completed unrequested seed reports
             # and the full campaign seed inventory.
-            subset = module._run_campaign_to_directory(
-                output=output,
-                seeds=(17,),
-                comparator_binding=comparator,
-                seed_runner=fake_seed_runner,
-            )
+            with mock.patch.object(
+                module, "_preflight_existing_output", return_value=(None, None)
+            ):
+                subset = module._run_campaign_to_directory(
+                    output=output,
+                    seeds=(17,),
+                    comparator_binding=comparator,
+                    seed_runner=fake_seed_runner,
+                )
             self.assertEqual(subset["seeds"], [17, 29, 43])
             self.assertEqual(
                 before_seed_reports,
@@ -215,12 +221,17 @@ class CampaignIntegrityTest(unittest.TestCase):
                 raise AssertionError("seed runner must not be invoked")
 
             with self.assertRaises(Run2V2ArtifactError):
-                module._run_campaign_to_directory(
-                    output=output,
-                    seeds=(17,),
-                    comparator_binding=comparator,
-                    seed_runner=forbidden_runner,
-                )
+                with mock.patch.object(
+                    module,
+                    "_preflight_existing_output",
+                    return_value=(None, None),
+                ):
+                    module._run_campaign_to_directory(
+                        output=output,
+                        seeds=(17,),
+                        comparator_binding=comparator,
+                        seed_runner=forbidden_runner,
+                    )
             self.assertEqual(calls, [])
             self.assertEqual(before, _tree_bytes(output))
 
@@ -228,7 +239,7 @@ class CampaignIntegrityTest(unittest.TestCase):
 class DurableRun2V2OutputTest(unittest.TestCase):
     def test_direct_interrupted_resume_and_fail_closed_outputs(self) -> None:
         config = ExactP95Run2RunnerConfigV2(
-            seeds=(17,),
+            seeds=(17, 29),
             warmup_transitions=4,
             batch_size=4,
             collect_per_update=2,
@@ -397,6 +408,41 @@ class DurableRun2V2OutputTest(unittest.TestCase):
                 )
                 self.assertRegex(row["source_d1_transition_sha256"], r"^[0-9a-f]{64}$")
                 self.assertRegex(row["run2_v2_transition_sha256"], r"^[0-9a-f]{64}$")
+
+            # A subset campaign must validate every existing seed's physical
+            # artifacts before invoking a requested seed or writing a campaign
+            # report.  Seed 17 is deliberately unrequested here.
+            from . import run_empirical_contextual_exact_p95_run2_v2 as module
+
+            campaign_output = root / "corrupt_unrequested_campaign"
+            _copy_directory(
+                resumed_directory, campaign_output / "seed_17"
+            )
+            with (campaign_output / "seed_17" / "metrics.csv").open(
+                "ab"
+            ) as stream:
+                stream.write(b"physical-corruption")
+            campaign_before = _tree_bytes(campaign_output)
+            campaign_runner_calls = []
+
+            def forbidden_campaign_runner(**kwargs):
+                campaign_runner_calls.append(kwargs)
+                raise AssertionError("seed runner must not be invoked")
+
+            with self.assertRaises(Run2V2ArtifactError):
+                module._run_campaign_to_directory(
+                    output=campaign_output,
+                    seeds=(29,),
+                    comparator_binding=report["fixed_comparator"],
+                    seed_runner=forbidden_campaign_runner,
+                    config=config,
+                    checkpoint_interval_updates=1,
+                )
+            self.assertEqual(campaign_runner_calls, [])
+            self.assertEqual(campaign_before, _tree_bytes(campaign_output))
+            self.assertFalse(
+                (campaign_output / "campaign_report.json").exists()
+            )
 
             # Every malformed or foreign reusable directory is rejected
             # before another byte in that directory changes.

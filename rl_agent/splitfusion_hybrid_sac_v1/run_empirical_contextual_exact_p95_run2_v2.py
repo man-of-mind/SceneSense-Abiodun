@@ -760,6 +760,44 @@ def _preflight_existing_output(
         or report.get("phase_label") != PHASE_LABEL
     ):
         raise Run2V2ArtifactError("output report/checkpoint identity mismatch")
+    expected_artifact_paths = {
+        "bindings.json": output_directory / "bindings.json",
+        "checkpoint_000000.pt": output_directory / "checkpoint_000000.pt",
+        "checkpoint_latest.pt": output_directory / "checkpoint_latest.pt",
+        "config.json": output_directory / "config.json",
+        "metrics.csv": output_directory / "metrics.csv",
+        "transition_reward_audit.csv": (
+            output_directory / "transition_reward_audit.csv"
+        ),
+    }
+    reported_artifact_hashes = report.get("artifact_file_sha256")
+    if type(reported_artifact_hashes) is not dict or set(
+        reported_artifact_hashes
+    ) != set(expected_artifact_paths):
+        raise Run2V2ArtifactError("report physical artifact inventory drift")
+    for name, path in expected_artifact_paths.items():
+        if reported_artifact_hashes.get(name) != _sha256_file(path):
+            raise Run2V2ArtifactError(
+                f"physical artifact hash mismatch at {name}"
+            )
+    reported_series = report.get("checkpoint_series")
+    if type(reported_series) is not dict or set(reported_series) != {
+        f"{update:06d}" for update in numbered
+    }:
+        raise Run2V2ArtifactError("report checkpoint-series inventory drift")
+    for update, path in numbered.items():
+        expected_entry = {
+            "file_sha256": _sha256_file(path),
+            "path": f"checkpoints/checkpoint_{update:06d}.pt",
+        }
+        if reported_series.get(f"{update:06d}") != expected_entry:
+            raise Run2V2ArtifactError(
+                f"physical checkpoint-series hash mismatch at update {update}"
+            )
+    if report.get("latest_checkpoint_file_sha256") != _sha256_file(
+        output_directory / "checkpoint_latest.pt"
+    ):
+        raise Run2V2ArtifactError("latest physical checkpoint hash mismatch")
     _validate_csv_shape(
         output_directory / "metrics.csv",
         expected_fields=_METRIC_FIELDS,
@@ -1003,11 +1041,12 @@ def _campaign_document(
     reports: Sequence[Mapping[str, Any]],
     seeds: Sequence[int],
     comparator_binding: Mapping[str, Any],
+    config: ExactP95Run2RunnerConfigV2,
 ) -> Dict[str, Any]:
     complete = all(report.get("status") == "COMPLETE" for report in reports)
     document = {
         "checkpoint_selection": CHECKPOINT_SELECTION,
-        "config_sha256": REGISTERED_EXACT_P95_RUN2_CONFIG_V2.canonical_sha256(),
+        "config_sha256": config.canonical_sha256(),
         "fixed_comparator": dict(comparator_binding),
         "output_schema": OUTPUT_SCHEMA,
         "phase_label": PHASE_LABEL,
@@ -1043,6 +1082,7 @@ def _read_campaign_seed_report(
     output: Path,
     seed: int,
     comparator_binding: Mapping[str, Any],
+    expected_config: ExactP95Run2RunnerConfigV2,
 ) -> Dict[str, Any]:
     directory = output / f"seed_{seed}"
     if not directory.is_dir():
@@ -1053,7 +1093,7 @@ def _read_campaign_seed_report(
         config.get("record") != CONFIG_SCHEMA
         or config.get("seed") != seed
         or config.get("config_sha256")
-        != REGISTERED_EXACT_P95_RUN2_CONFIG_V2.canonical_sha256()
+        != expected_config.canonical_sha256()
         or config.get("fixed_comparator") != comparator_binding
     ):
         raise Run2V2ArtifactError(f"campaign seed_{seed} config drift")
@@ -1065,7 +1105,7 @@ def _read_campaign_seed_report(
         or report.get("phase_label") != PHASE_LABEL
         or report.get("seed") != seed
         or report.get("configured_updates")
-        != REGISTERED_EXACT_P95_RUN2_CONFIG_V2.update_count
+        != expected_config.update_count
         or report.get("fixed_comparator") != comparator_binding
     ):
         raise Run2V2ArtifactError(f"campaign seed_{seed} report drift")
@@ -1093,10 +1133,22 @@ def _run_campaign_to_directory(
     seeds: Sequence[int],
     comparator_binding: Optional[Mapping[str, Any]] = None,
     seed_runner=None,
+    config: ExactP95Run2RunnerConfigV2 = REGISTERED_EXACT_P95_RUN2_CONFIG_V2,
+    checkpoint_interval_updates: int = (
+        EXACT_P95_RUN2_CHECKPOINT_INTERVAL_UPDATES_V2
+    ),
 ) -> Dict[str, Any]:
     """Run requested seeds while preserving every prior campaign seed."""
     requested = tuple(seeds)
-    registered = REGISTERED_EXACT_P95_RUN2_CONFIG_V2.seeds
+    if type(config) is not ExactP95Run2RunnerConfigV2:
+        raise Run2V2ArtifactError("campaign config has a foreign type")
+    config.__post_init__()
+    if (
+        type(checkpoint_interval_updates) is not int
+        or checkpoint_interval_updates < 1
+    ):
+        raise Run2V2ArtifactError("campaign checkpoint interval is invalid")
+    registered = config.seeds
     if (
         not requested
         or len(set(requested)) != len(requested)
@@ -1130,7 +1182,7 @@ def _run_campaign_to_directory(
                 campaign.get("record") != CAMPAIGN_SCHEMA
                 or campaign.get("phase_label") != PHASE_LABEL
                 or campaign.get("config_sha256")
-                != REGISTERED_EXACT_P95_RUN2_CONFIG_V2.canonical_sha256()
+                != config.canonical_sha256()
                 or campaign.get("fixed_comparator") != comparator
             ):
                 raise Run2V2ArtifactError("foreign campaign report")
@@ -1161,6 +1213,14 @@ def _run_campaign_to_directory(
                     output=output,
                     seed=seed,
                     comparator_binding=comparator,
+                    expected_config=config,
+                )
+                _preflight_existing_output(
+                    output_directory=directory,
+                    config=config,
+                    seed=seed,
+                    checkpoint_interval_updates=checkpoint_interval_updates,
+                    comparator_binding=comparator,
                 )
                 prior = prior_by_seed.get(seed)
                 if prior is not None and prior != current and not (
@@ -1187,6 +1247,7 @@ def _run_campaign_to_directory(
             output=output,
             seed=seed,
             comparator_binding=comparator,
+            expected_config=config,
         )
         if reported != materialized:
             raise Run2V2ArtifactError(
@@ -1199,6 +1260,7 @@ def _run_campaign_to_directory(
         reports=reports,
         seeds=merged_seeds,
         comparator_binding=comparator,
+        config=config,
     )
     _atomic_json(output / "campaign_report.json", campaign)
     return campaign
