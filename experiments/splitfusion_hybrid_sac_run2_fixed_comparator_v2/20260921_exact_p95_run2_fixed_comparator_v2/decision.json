@@ -1,0 +1,21 @@
+{
+  "actor_checkpoint_read_count": 0,
+  "decision": "GO_FIXED_COMPARATOR_FROZEN_BEFORE_RUN2_OUTCOME_ACCESS",
+  "decision_content_sha256": "d85a016366bced4fc85f06821389609981d89687175390c2518d11fe2fae8f51",
+  "fit_validation_outcome_query_count": 0,
+  "record": "splitfusion.exact_p95_run2_fixed_comparator_decision.v2",
+  "winner": {
+    "action_context_evaluations": 81703360,
+    "action_count": 52240,
+    "context_count": 1564,
+    "context_order_sha256": "3c77a1386a3deed508f50105491a0148f54400ad4c0d041dd8419ba329857a23",
+    "mean_emitted_target": 0.32808947087029744,
+    "mode_id": 11,
+    "q_e4": 6000,
+    "runner_up_mean_emitted_target": 0.32808617690859165,
+    "runner_up_mode_id": 11,
+    "runner_up_q_e4": 6001,
+    "schema": "splitfusion.exact_p95_run2_fixed_comparator_decision.v2",
+    "winner_margin": 3.293961705785886e-06
+  }
+}

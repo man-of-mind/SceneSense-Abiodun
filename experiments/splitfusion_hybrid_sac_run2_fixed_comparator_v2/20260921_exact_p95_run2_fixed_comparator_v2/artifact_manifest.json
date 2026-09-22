@@ -1,0 +1,15 @@
+{
+  "actor_checkpoint_read_count": 0,
+  "files": {
+    "REPORT.md": "8eafc6987ac627e416c332535a5ab7a073ef6bb4a28197df05e95f558e1e78de",
+    "action_scores.csv": "a5f617cd5cdf57bffa85ee2dcd04d138247eed0e3e95d2a3a71473fb110203c7",
+    "context_winner_revalidation.csv": "bd6af2f988acd89d21c44bb112596c488f4b6d6dcb1d20a7b21d69b98e28dda8",
+    "decision.json": "01b2bc229791b55f498339c01467c93c647cd17fa3ca6aa4eaaa3a04586b3038",
+    "summary.json": "6fcb4d68cc49f7a89ce0a552f0721fd209904d92bb9089d583aca56685986be5"
+  },
+  "fit_validation_outcome_query_count": 0,
+  "manifest_content_sha256": "6166cfb4593949386802d06eaa2c4198b196d8a5734d17764d5a0b9649a58719",
+  "record": "splitfusion.exact_p95_run2_fixed_comparator_artifacts.v2",
+  "status": "COMPLETE",
+  "summary_content_sha256": "9711495c7a0c47edf5ac5362a192261a0ab96cc743df6b1429c51a9fc1001ab1"
+}
