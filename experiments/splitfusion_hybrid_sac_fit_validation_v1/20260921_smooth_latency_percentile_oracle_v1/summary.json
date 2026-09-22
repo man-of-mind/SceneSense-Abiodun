@@ -1,0 +1,161 @@
+{
+  "bindings": {
+    "d1_pilot_utility_spec_sha256": "2f6d6aaf22d3995152c5ca9fb726abb07beef32a1b6f846336764ac6f18ea11b",
+    "fit_validation_panel_sha256": "1946272c4060c193b3e9e57d3b1cb490b411b889af394f8c089eeddbf611b3d5",
+    "modeled_smoke_support_sha256": "dc545c8703c9763165240bec5ad3f341979d1dd3b64e5bd5615222adeb24f566",
+    "oracle_implementation_sha256": "2b2fa67d93314f6a5ad81a5539dead67e9c8652db66f56485f4ae4f1d3352b42",
+    "smooth_risk_spec_sha256": "4c57f2aa734a0dded9915a84c97a0bdfe9102477e6af3f58db9c5e9d7dcaafb3"
+  },
+  "canonical_content_sha256": "7bbcd5d46e31cb0c9ee1178c81fc43df5c5f95abb4ea000c1d002d4209853cbd",
+  "exactness": {
+    "actions_per_context": 52240,
+    "exhaustive_action_context_evaluations": 17761600,
+    "panel_contexts": 340,
+    "scalar_vector_absolute_tolerance": 2e-09,
+    "winner_validation": "UNCONSTRAINED_AND_CONSTRAINED_WINNERS_REEVALUATED_THROUGH_AUTHORITATIVE_SCALAR_SURFACES"
+  },
+  "files": {
+    "REPORT.md": "22291718e26c75ac89c9704560041bd104c9c5195b14d41c92a11dfe59394f61",
+    "action_distribution.csv": "b84db6487906d155ddb49f5dd07b310751c4f65e1ee3b536a17853243d4e0e4e",
+    "per_context.csv": "966adf56845b5b410bbfece0c58d67aa9761220f25edc37707df51d03ece1e56",
+    "profile_summary.csv": "1a4d14263ccd87f078e5d2acf298697fc69ae33f5cc9e9d13223723cae247a54"
+  },
+  "hypothesis_suite": {
+    "d1_control_utility_spec_sha256": "2f6d6aaf22d3995152c5ca9fb726abb07beef32a1b6f846336764ac6f18ea11b",
+    "deadline_semantics": "REPORT_OWN_QUANTILE_LTE_200_MS; NO_HINGE_OR_ACTION_MASK",
+    "fixed_latency_stages_ms": [
+      [
+        "sensor_compute",
+        30.0
+      ],
+      [
+        "ue_action_and_send",
+        25.0
+      ],
+      [
+        "decompression",
+        10.0
+      ],
+      [
+        "model_tail",
+        22.0
+      ],
+      [
+        "exact_carla_reward_evaluation",
+        20.0
+      ],
+      [
+        "compact_ack_downlink",
+        6.0
+      ]
+    ],
+    "probability_semantics": "P_EDGE_ADMISSION_GIVEN_SENT_EQUALS_P_REASSEMBLY_GIVEN_SENT_TIMES_P_EDGE_ADMISSION_GIVEN_REASSEMBLED; NOT_END_TO_FEEDBACK_SUCCESS;_D1_CONDITIONAL_ADMITTED_UTILITY_ASSUMES_EVALUATION_AND_ACK_COMPLETE_BECAUSE_THEIR_SUCCESS_PROBABILITIES_ARE_UNAVAILABLE",
+    "schema": "splitfusion.smooth_latency_percentile_utility_suite.v1",
+    "timeout_probability_status": "NOT_INFERRED_FROM_ANY_CONDITIONAL_LATENCY_QUANTILE",
+    "variants": [
+      {
+        "deadline_ms": 200.0,
+        "label": "D1_SMOOTH_P50_CONTROL",
+        "latency_coordinate": "FIXED_113_MS_PLUS_CONDITIONAL_RETAINED_SURVIVOR_P50",
+        "latency_weight": 0.25,
+        "percentile": "p50",
+        "quality_component": "q_perc",
+        "quality_weight": 1.0,
+        "service_non_admission_utility": -1.0
+      },
+      {
+        "deadline_ms": 200.0,
+        "label": "COUNTERFACTUAL_SMOOTH_P95",
+        "latency_coordinate": "FIXED_113_MS_PLUS_CONDITIONAL_RETAINED_SURVIVOR_P95",
+        "latency_weight": 0.25,
+        "percentile": "p95",
+        "quality_component": "q_perc",
+        "quality_weight": 1.0,
+        "service_non_admission_utility": -1.0
+      },
+      {
+        "deadline_ms": 200.0,
+        "label": "COUNTERFACTUAL_SMOOTH_P99",
+        "latency_coordinate": "FIXED_113_MS_PLUS_CONDITIONAL_RETAINED_SURVIVOR_P99",
+        "latency_weight": 0.25,
+        "percentile": "p99",
+        "quality_component": "q_perc",
+        "quality_weight": 1.0,
+        "service_non_admission_utility": -1.0
+      }
+    ]
+  },
+  "overall_results": {
+    "COUNTERFACTUAL_SMOOTH_P95": {
+      "constrained_oracle_different_action_count": 81,
+      "context_count": 340,
+      "feasibility_semantics": "MODELED_CONDITIONAL_RETAINED_SURVIVOR_LATENCY_PROXY_LE_BUDGET_NOT_UNCONDITIONAL_SERVICE_SUCCESS",
+      "latency_percentile": "p95",
+      "mean_constrained_q_perc": 0.6575026841735581,
+      "mean_constrained_reward": 0.42738597371201686,
+      "mean_own_quantile_latency_ms": 189.60548379915136,
+      "mean_p_edge_admission_given_sent": 0.998885463560556,
+      "mean_q_perc": 0.6769048870093696,
+      "mean_reward": 0.4382337845964596,
+      "mean_reward_cost_to_obey_200ms": 0.010847810884442722,
+      "network_profile": "ALL_PROFILES",
+      "own_quantile_budget_hit_count": 259,
+      "own_quantile_budget_miss_count": 81,
+      "own_quantile_budget_miss_rate": 0.23823529411764705,
+      "variant": "COUNTERFACTUAL_SMOOTH_P95"
+    },
+    "COUNTERFACTUAL_SMOOTH_P99": {
+      "constrained_oracle_different_action_count": 222,
+      "context_count": 340,
+      "feasibility_semantics": "MODELED_CONDITIONAL_RETAINED_SURVIVOR_LATENCY_PROXY_LE_BUDGET_NOT_UNCONDITIONAL_SERVICE_SUCCESS",
+      "latency_percentile": "p99",
+      "mean_constrained_q_perc": 0.5184651314076728,
+      "mean_constrained_reward": 0.27571535699428357,
+      "mean_own_quantile_latency_ms": 212.7757417827755,
+      "mean_p_edge_admission_given_sent": 0.9989752614821829,
+      "mean_q_perc": 0.6728442897319438,
+      "mean_reward": 0.40539175298059893,
+      "mean_reward_cost_to_obey_200ms": 0.12967639598631536,
+      "network_profile": "ALL_PROFILES",
+      "own_quantile_budget_hit_count": 118,
+      "own_quantile_budget_miss_count": 222,
+      "own_quantile_budget_miss_rate": 0.6529411764705882,
+      "variant": "COUNTERFACTUAL_SMOOTH_P99"
+    },
+    "D1_SMOOTH_P50_CONTROL": {
+      "constrained_oracle_different_action_count": 2,
+      "context_count": 340,
+      "feasibility_semantics": "MODELED_CONDITIONAL_RETAINED_SURVIVOR_LATENCY_PROXY_LE_BUDGET_NOT_UNCONDITIONAL_SERVICE_SUCCESS",
+      "latency_percentile": "p50",
+      "mean_constrained_q_perc": 0.683016152681101,
+      "mean_constrained_reward": 0.4724577622440424,
+      "mean_own_quantile_latency_ms": 166.86577355994646,
+      "mean_p_edge_admission_given_sent": 0.9986490062043285,
+      "mean_q_perc": 0.6834806745553104,
+      "mean_reward": 0.47284343904880394,
+      "mean_reward_cost_to_obey_200ms": 0.0003856768047615523,
+      "network_profile": "ALL_PROFILES",
+      "own_quantile_budget_hit_count": 338,
+      "own_quantile_budget_miss_count": 2,
+      "own_quantile_budget_miss_rate": 0.0058823529411764705,
+      "variant": "D1_SMOOTH_P50_CONTROL"
+    }
+  },
+  "row_counts": {
+    "action_distribution": 774,
+    "per_context": 1020,
+    "profile_summary": 15
+  },
+  "schema": "splitfusion.smooth_latency_percentile_oracle.v1",
+  "scope": {
+    "claims_excluded": [
+      "TRAINING",
+      "LIVE_OR_ONLINE_PERFORMANCE",
+      "TIMEOUT_PROBABILITY",
+      "HARD_DEADLINE_GUARANTEE",
+      "LOCAL_ACTION_NECESSITY"
+    ],
+    "reward_change": "P50_CONTROL_IS_D1_EXACT; P95_P99_REPLACE_ONLY_THE_SMOOTH_LATENCY_COORDINATE"
+  },
+  "status": "COMPLETE_CPU_ONLY_PRETRAINING_ORACLE_SCREEN"
+}
