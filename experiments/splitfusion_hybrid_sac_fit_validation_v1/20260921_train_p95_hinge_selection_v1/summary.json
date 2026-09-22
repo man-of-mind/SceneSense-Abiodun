@@ -1,0 +1,303 @@
+{
+  "bindings": {
+    "d1_pilot_utility_spec_sha256": "2f6d6aaf22d3995152c5ca9fb726abb07beef32a1b6f846336764ac6f18ea11b",
+    "fit_partition_sha256": "44dad342d09cc39cab37e069627b8b9019e8cb9221fff25e1a8a8f240e8e1061",
+    "modeled_smoke_support_sha256": "dc545c8703c9763165240bec5ad3f341979d1dd3b64e5bd5615222adeb24f566",
+    "p95_hinge_spec_sha256": "12b471d4b20d6641bb10a8b903108265dba18f90717333870b4869555148d429",
+    "selection_implementation_sha256": "70305715509f08d7d587bf6fe25103c7202c0172cf1b2371585225e98b63bbc4"
+  },
+  "canonical_content_sha256": "c615851c2f18d79f4cfd8c9d4282cb9f177dffab5edb18063eee1f8845b3d44f",
+  "exactness": {
+    "actions_per_context": 52240,
+    "exact_action_context_evaluations": 81703360,
+    "train_context_count": 1564,
+    "train_scene_count": 391,
+    "utility_evaluations": 653626880,
+    "winner_validation": "EVERY_LAMBDA_CONTEXT_WINNER_REEVALUATED_THROUGH_SCALAR_SURFACES"
+  },
+  "files": {
+    "REPORT.md": "4e38a0917c2082a722100b2bee713d795c1d41de94a0ddeda85925b9176e47d7",
+    "lambda_summary.csv": "a7ed3b7784949b6ec4dafe33876c80bcf5755217521aa5f04cf0dad45ebe9e4e",
+    "selection_decision.json": "013a7986b154a4612688f64d6ab1238f21e931875c1774437b135777899a7f5c",
+    "train_context_winners.csv": "807014e31c2fb9aa64df17f2eb5fd18d6592b7838729d3c5baccf97b6e9d7f4e"
+  },
+  "hypothesis_suite": {
+    "criterion": {
+      "admission_rule": "mean_p_admit >= lambda_zero_mean_p_admit - max_absolute_drop",
+      "deadline_ms": 200.0,
+      "deadline_rule": "train_p95_budget_miss_count == 0",
+      "max_absolute_drop": 0.001,
+      "minimum_quality_retention": 0.95,
+      "quality_rule": "mean_q_perc >= minimum_retention * lambda_zero_mean_q_perc",
+      "selection": "SMALLEST_HINGE_LAMBDA_MEETING_CRITERION; NO_VALIDATION_ACCESS"
+    },
+    "d1_control_utility_spec_sha256": "2f6d6aaf22d3995152c5ca9fb726abb07beef32a1b6f846336764ac6f18ea11b",
+    "fixed_latency_stages_ms": [
+      [
+        "sensor_compute",
+        30.0
+      ],
+      [
+        "ue_action_and_send",
+        25.0
+      ],
+      [
+        "decompression",
+        10.0
+      ],
+      [
+        "model_tail",
+        22.0
+      ],
+      [
+        "exact_carla_reward_evaluation",
+        20.0
+      ],
+      [
+        "compact_ack_downlink",
+        6.0
+      ]
+    ],
+    "lambda_grid": [
+      0.0,
+      0.25,
+      0.5,
+      1.0,
+      2.0,
+      4.0,
+      8.0,
+      16.0
+    ],
+    "pre_registration_disclosure": "AN_UNCOMMITTED_EXPLORATORY_PROBE_OF_THE_SAME_GRID_PRECEDED_THE_STRICT_ZERO_MISS_QUALITY_AND_ADMISSION_ACCEPTANCE_RULE",
+    "probability_semantics": "P_EDGE_ADMISSION_GIVEN_SENT_EQUALS_P_REASSEMBLY_GIVEN_SENT_TIMES_P_EDGE_ADMISSION_GIVEN_REASSEMBLED; NOT_END_TO_FEEDBACK_SUCCESS;_D1_CONDITIONAL_ADMITTED_UTILITY_ASSUMES_EVALUATION_AND_ACK_COMPLETE_BECAUSE_THEIR_SUCCESS_PROBABILITIES_ARE_UNAVAILABLE",
+    "schema": "splitfusion.p95_deadline_hinge_suite.v1",
+    "training_contexts": "ALL_REGISTERED_TRAIN_SCENES_CROSSED_WITH_ALL_FOUR_NETWORK_PROFILES",
+    "utility_specs": [
+      {
+        "deadline_ms": 200.0,
+        "hinge_lambda": 0.0,
+        "hinge_term": "max(0,(latency_proxy_p95_ms-deadline_ms)/deadline_ms)",
+        "latency_coordinate": "FIXED_113_MS_PLUS_CONDITIONAL_RETAINED_SURVIVOR_P95",
+        "latency_weight": 0.25,
+        "quality_component": "q_perc",
+        "quality_weight": 1.0,
+        "service_non_admission_utility": -1.0
+      },
+      {
+        "deadline_ms": 200.0,
+        "hinge_lambda": 0.25,
+        "hinge_term": "max(0,(latency_proxy_p95_ms-deadline_ms)/deadline_ms)",
+        "latency_coordinate": "FIXED_113_MS_PLUS_CONDITIONAL_RETAINED_SURVIVOR_P95",
+        "latency_weight": 0.25,
+        "quality_component": "q_perc",
+        "quality_weight": 1.0,
+        "service_non_admission_utility": -1.0
+      },
+      {
+        "deadline_ms": 200.0,
+        "hinge_lambda": 0.5,
+        "hinge_term": "max(0,(latency_proxy_p95_ms-deadline_ms)/deadline_ms)",
+        "latency_coordinate": "FIXED_113_MS_PLUS_CONDITIONAL_RETAINED_SURVIVOR_P95",
+        "latency_weight": 0.25,
+        "quality_component": "q_perc",
+        "quality_weight": 1.0,
+        "service_non_admission_utility": -1.0
+      },
+      {
+        "deadline_ms": 200.0,
+        "hinge_lambda": 1.0,
+        "hinge_term": "max(0,(latency_proxy_p95_ms-deadline_ms)/deadline_ms)",
+        "latency_coordinate": "FIXED_113_MS_PLUS_CONDITIONAL_RETAINED_SURVIVOR_P95",
+        "latency_weight": 0.25,
+        "quality_component": "q_perc",
+        "quality_weight": 1.0,
+        "service_non_admission_utility": -1.0
+      },
+      {
+        "deadline_ms": 200.0,
+        "hinge_lambda": 2.0,
+        "hinge_term": "max(0,(latency_proxy_p95_ms-deadline_ms)/deadline_ms)",
+        "latency_coordinate": "FIXED_113_MS_PLUS_CONDITIONAL_RETAINED_SURVIVOR_P95",
+        "latency_weight": 0.25,
+        "quality_component": "q_perc",
+        "quality_weight": 1.0,
+        "service_non_admission_utility": -1.0
+      },
+      {
+        "deadline_ms": 200.0,
+        "hinge_lambda": 4.0,
+        "hinge_term": "max(0,(latency_proxy_p95_ms-deadline_ms)/deadline_ms)",
+        "latency_coordinate": "FIXED_113_MS_PLUS_CONDITIONAL_RETAINED_SURVIVOR_P95",
+        "latency_weight": 0.25,
+        "quality_component": "q_perc",
+        "quality_weight": 1.0,
+        "service_non_admission_utility": -1.0
+      },
+      {
+        "deadline_ms": 200.0,
+        "hinge_lambda": 8.0,
+        "hinge_term": "max(0,(latency_proxy_p95_ms-deadline_ms)/deadline_ms)",
+        "latency_coordinate": "FIXED_113_MS_PLUS_CONDITIONAL_RETAINED_SURVIVOR_P95",
+        "latency_weight": 0.25,
+        "quality_component": "q_perc",
+        "quality_weight": 1.0,
+        "service_non_admission_utility": -1.0
+      },
+      {
+        "deadline_ms": 200.0,
+        "hinge_lambda": 16.0,
+        "hinge_term": "max(0,(latency_proxy_p95_ms-deadline_ms)/deadline_ms)",
+        "latency_coordinate": "FIXED_113_MS_PLUS_CONDITIONAL_RETAINED_SURVIVOR_P95",
+        "latency_weight": 0.25,
+        "quality_component": "q_perc",
+        "quality_weight": 1.0,
+        "service_non_admission_utility": -1.0
+      }
+    ]
+  },
+  "lambda_summary": [
+    {
+      "admission_absolute_change_vs_lambda_zero": 0.0,
+      "criterion_met": false,
+      "hinge_lambda": 0.0,
+      "mean_latency_p95_ms": 191.35743315265958,
+      "mean_p_edge_admission_given_sent": 0.9986359067706565,
+      "mean_q_perc": 0.7047037888793076,
+      "mean_reward": 0.463545029166662,
+      "quality_retention_vs_lambda_zero": 1.0,
+      "train_context_count": 1564,
+      "train_p95_budget_hit_count": 1149,
+      "train_p95_budget_miss_count": 415,
+      "train_p95_budget_miss_rate": 0.2653452685421995,
+      "zero_p95_budget_misses": false
+    },
+    {
+      "admission_absolute_change_vs_lambda_zero": 0.0003813925526199302,
+      "criterion_met": false,
+      "hinge_lambda": 0.25,
+      "mean_latency_p95_ms": 188.5428209495886,
+      "mean_p_edge_admission_given_sent": 0.9990172993232764,
+      "mean_q_perc": 0.699574776594506,
+      "mean_reward": 0.4592293233004421,
+      "quality_retention_vs_lambda_zero": 0.9927217472564489,
+      "train_context_count": 1564,
+      "train_p95_budget_hit_count": 1263,
+      "train_p95_budget_miss_count": 301,
+      "train_p95_budget_miss_rate": 0.19245524296675193,
+      "zero_p95_budget_misses": false
+    },
+    {
+      "admission_absolute_change_vs_lambda_zero": 0.0006627860615094905,
+      "criterion_met": false,
+      "hinge_lambda": 0.5,
+      "mean_latency_p95_ms": 187.07536959551214,
+      "mean_p_edge_admission_given_sent": 0.999298692832166,
+      "mean_q_perc": 0.695419506340245,
+      "mean_reward": 0.4566072322496445,
+      "quality_retention_vs_lambda_zero": 0.9868252694457235,
+      "train_context_count": 1564,
+      "train_p95_budget_hit_count": 1328,
+      "train_p95_budget_miss_count": 236,
+      "train_p95_budget_miss_rate": 0.15089514066496162,
+      "zero_p95_budget_misses": false
+    },
+    {
+      "admission_absolute_change_vs_lambda_zero": 0.0008183909184719118,
+      "criterion_met": false,
+      "hinge_lambda": 1.0,
+      "mean_latency_p95_ms": 185.90310382433572,
+      "mean_p_edge_admission_given_sent": 0.9994542976891284,
+      "mean_q_perc": 0.6908483900858481,
+      "mean_reward": 0.4538955380767471,
+      "quality_retention_vs_lambda_zero": 0.9803386912173498,
+      "train_context_count": 1564,
+      "train_p95_budget_hit_count": 1411,
+      "train_p95_budget_miss_count": 153,
+      "train_p95_budget_miss_rate": 0.09782608695652174,
+      "zero_p95_budget_misses": false
+    },
+    {
+      "admission_absolute_change_vs_lambda_zero": 0.000899045230239981,
+      "criterion_met": false,
+      "hinge_lambda": 2.0,
+      "mean_latency_p95_ms": 185.1357539835453,
+      "mean_p_edge_admission_given_sent": 0.9995349520008965,
+      "mean_q_perc": 0.6867636602510069,
+      "mean_reward": 0.45149309476511745,
+      "quality_retention_vs_lambda_zero": 0.974542312796656,
+      "train_context_count": 1564,
+      "train_p95_budget_hit_count": 1466,
+      "train_p95_budget_miss_count": 98,
+      "train_p95_budget_miss_rate": 0.06265984654731457,
+      "zero_p95_budget_misses": false
+    },
+    {
+      "admission_absolute_change_vs_lambda_zero": 0.0009533652486031219,
+      "criterion_met": false,
+      "hinge_lambda": 4.0,
+      "mean_latency_p95_ms": 184.58325402815603,
+      "mean_p_edge_admission_given_sent": 0.9995892720192596,
+      "mean_q_perc": 0.6829703546915044,
+      "mean_reward": 0.44983882081588017,
+      "quality_retention_vs_lambda_zero": 0.9691594758950196,
+      "train_context_count": 1564,
+      "train_p95_budget_hit_count": 1521,
+      "train_p95_budget_miss_count": 43,
+      "train_p95_budget_miss_rate": 0.027493606138107418,
+      "zero_p95_budget_misses": false
+    },
+    {
+      "admission_absolute_change_vs_lambda_zero": 0.0009742531283726263,
+      "criterion_met": false,
+      "hinge_lambda": 8.0,
+      "mean_latency_p95_ms": 184.4398458399977,
+      "mean_p_edge_admission_given_sent": 0.9996101598990291,
+      "mean_q_perc": 0.6807972932935529,
+      "mean_reward": 0.449038476940893,
+      "quality_retention_vs_lambda_zero": 0.9660758236822122,
+      "train_context_count": 1564,
+      "train_p95_budget_hit_count": 1544,
+      "train_p95_budget_miss_count": 20,
+      "train_p95_budget_miss_rate": 0.01278772378516624,
+      "zero_p95_budget_misses": false
+    },
+    {
+      "admission_absolute_change_vs_lambda_zero": 0.0009780888517829656,
+      "criterion_met": false,
+      "hinge_lambda": 16.0,
+      "mean_latency_p95_ms": 184.42527464806312,
+      "mean_p_edge_admission_given_sent": 0.9996139956224395,
+      "mean_q_perc": 0.6801460034742194,
+      "mean_reward": 0.44890917783008233,
+      "quality_retention_vs_lambda_zero": 0.9651516200244324,
+      "train_context_count": 1564,
+      "train_p95_budget_hit_count": 1557,
+      "train_p95_budget_miss_count": 7,
+      "train_p95_budget_miss_rate": 0.004475703324808184,
+      "zero_p95_budget_misses": false
+    }
+  ],
+  "row_counts": {
+    "lambda_summary": 8,
+    "train_context_winners": 12512
+  },
+  "schema": "splitfusion.train_p95_deadline_hinge_selection.v1",
+  "scope": {
+    "claims_excluded": [
+      "TRAINING",
+      "FIT_VALIDATION_PERFORMANCE",
+      "LIVE_OR_ONLINE_PERFORMANCE",
+      "TIMEOUT_PROBABILITY",
+      "HARD_DEADLINE_GUARANTEE",
+      "LOCAL_ACTION_NECESSITY"
+    ],
+    "original_d1_p50_code_and_artifacts": "UNCHANGED"
+  },
+  "selected": null,
+  "selection_decision": {
+    "decision": "NO_GO",
+    "selected_hinge_lambda": null,
+    "selection_rule": "SMALLEST_PREREGISTERED_LAMBDA_WITH_ZERO_TRAIN_P95_MISSES_QUALITY_RETENTION_GE_0.95_ADMISSION_DROP_LE_0.001"
+  },
+  "status": "COMPLETE_TRAIN_ONLY_P95_HINGE_NO_GO"
+}

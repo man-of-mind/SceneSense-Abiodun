@@ -1,0 +1,5 @@
+{
+  "decision": "NO_GO",
+  "selected_hinge_lambda": null,
+  "selection_rule": "SMALLEST_PREREGISTERED_LAMBDA_WITH_ZERO_TRAIN_P95_MISSES_QUALITY_RETENTION_GE_0.95_ADMISSION_DROP_LE_0.001"
+}
