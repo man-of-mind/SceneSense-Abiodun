@@ -108,9 +108,15 @@ actions and report:
 8. fixed-action, fixed-mode/best-\(q\), and contextual-oracle comparators.
 9. the registered unknown-upper-tail sensitivity alongside the base proxy.
 
-The preflight is a design check, not checkpoint selection.  The fit-validation
-panel remains untouched until the reward/kernel hashes, training endpoint and
-three seeds are frozen.
+The preflight is a design check, not checkpoint selection.  Initialization
+re-verifies the hash-pinned full quality artifact and its pre-existing legacy
+D1 qualification, including its registered legacy held-scene evidence, and
+loads reward-blind partition metadata containing fit-validation identities.
+Neither legacy held-scene nor fit-validation identities enter any Run-3
+aggregate, action selection or reward evaluation: only the 391 registered
+training identities do.  No Run-3 reward evaluation or checkpoint selection
+is performed on fit-validation until the reward/kernel hashes, training
+endpoint and three seeds are frozen.
 
 ## 6. Initial Run-3 decision rule
 
