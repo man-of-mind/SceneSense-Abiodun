@@ -1,0 +1,18 @@
+{
+  "artifact_count": 7,
+  "byte_identical": true,
+  "comparison": "recursive file-name and byte comparison",
+  "first_execution": "20260922_train_only_reward_v1_run1",
+  "record": "splitfusion.run3_train_only_preflight_reproducibility.v1",
+  "registered_artifact_sha256": {
+    "contextual_winner_frequency.csv": "1a5aa02740d8e4d4a8d29a988c8a8795e6828773ceb14c745896c05281590e26",
+    "explicit_q_summary.csv": "9aa96ac8084bc09c93b9ec379702d4c59c58901e4f6b183295c2c009fae70b1e",
+    "high_q_pareto.csv": "5d33904cd9ffa16e3ea181aaffddfe27c4621d7145becace8292b7d788f81d7a",
+    "manifest.json": "d2bfd7dff0635b54ae3d0ecabbe6bedbecc42f3cfc5ced2284e797fd3e121351",
+    "preflight.json": "52801ce029eaac4dfde4834a2d8031429663a3efb383deed7ec1ed06d50ebab7",
+    "q_bin_summary.csv": "e6caa38e689ba5fb7d4b862f87b97e3cbfb9b6215496cce1951acd1d5130d653",
+    "train_only_baselines.csv": "fa9f37dfa4a13bb5b6656c4c11058fd0f087b36ab7b0c1693d50780a660cfda5"
+  },
+  "second_execution": "20260922_train_only_reward_v1_run2",
+  "status": "PASS"
+}
