@@ -33,6 +33,9 @@ from .empirical_contextual_run3_reward import (
 from .empirical_contextual_run3_runner import (
     RUN3_PREFLIGHT_RESULT_SHA256,
     RUN3_REGISTERED_CONFIG,
+    _REGISTERED_DECISION_LINEAGE_SEED17_BINDING_SHA256,
+    _REGISTERED_DECISION_LINEAGE_SEED17_SESSION_UUID,
+    _decision_lineage_binding_sha256,
     Run3RunnerConfigV1,
     Run3TrainingRunnerV1,
 )
@@ -40,6 +43,7 @@ from .empirical_contextual_run3_terminal_replay import (
     Run3DuplicateTransition,
     Run3IdentityConflict,
     Run3ReplayError,
+    Run3ReplayBindingV1,
     Run3TerminalBatchV1,
     Run3TerminalReplayV1,
     Run3TerminalTransitionV1,
@@ -214,6 +218,7 @@ class Run3TrainingIntegrationTest(unittest.TestCase):
             cls.checkpoint_2 = runner.checkpoint()
             cls.rows = runner.transitions
             cls.binding = runner.replay.binding
+            cls.replay = runner.replay
             generator = torch.Generator(device="cpu")
             generator.manual_seed(991)
             cls.batch = runner.replay.sample(4, generator=generator)
@@ -228,6 +233,30 @@ class Run3TrainingIntegrationTest(unittest.TestCase):
             cls.resumed_checkpoint_2 = resumed.checkpoint()
         finally:
             resumed.close()
+
+        # Reference execution repeats the former deep row/binding audit after
+        # each sample.  It must produce the exact same learning/checkpoint
+        # state as the optimized authenticated compact path.
+        reference = Run3TrainingRunnerV1(seed=17, config=TINY_CONFIG)
+        try:
+            optimized_sample = reference.replay.sample
+
+            def deep_reference_sample(batch_size, *, generator):
+                batch = optimized_sample(batch_size, generator=generator)
+                for row in batch.rows:
+                    row.revalidate()
+                    self_binding = Run3ReplayBindingV1.from_transition(
+                        row, reference.environment._fit_partition
+                    )
+                    if self_binding != batch.binding:
+                        raise AssertionError("reference replay binding drift")
+                return batch
+
+            reference.replay.sample = deep_reference_sample
+            reference.run_until_updates(2)
+            cls.deep_reference_checkpoint_2 = reference.checkpoint()
+        finally:
+            reference.close()
 
         validation = PartitionedEmpiricalOneStepEnvironmentV1.load_registered(
             seed=773, split=FIT_VALIDATION_SPLIT
@@ -252,6 +281,9 @@ class Run3TrainingIntegrationTest(unittest.TestCase):
             critics,
             Run3TerminalTrainerConfigV1(batch_size=4),
             expected_binding=self.binding,
+            expected_batch_issuer_capability=(
+                self.replay.trainer_issuer_capability
+            ),
             actor_generator=generator,
         )
         return trainer
@@ -269,6 +301,23 @@ class Run3TrainingIntegrationTest(unittest.TestCase):
             RUN3_PREFLIGHT_RESULT_SHA256,
         )
 
+    def test_registered_seed17_decision_lineage_matches_prefixed_run(self) -> None:
+        document = copy.deepcopy(self.checkpoint_0.runner_binding_document)
+        document["config"] = RUN3_REGISTERED_CONFIG.to_canonical_dict()
+        document["config_sha256"] = RUN3_REGISTERED_CONFIG.canonical_sha256()
+        document["trainer_config_sha256"] = Run3TerminalTrainerConfigV1(
+            batch_size=RUN3_REGISTERED_CONFIG.batch_size
+        ).canonical_sha256()
+        lineage = _decision_lineage_binding_sha256(document)
+        self.assertEqual(
+            lineage, _REGISTERED_DECISION_LINEAGE_SEED17_BINDING_SHA256
+        )
+        session = str(uuid.uuid5(
+            uuid.UUID("5b8c1332-6d6c-59a4-8ec1-df34f8c2f6db"),
+            f"{lineage}:17",
+        ))
+        self.assertEqual(session, _REGISTERED_DECISION_LINEAGE_SEED17_SESSION_UUID)
+
     def test_resume_from_matched_boundary_is_byte_state_equivalent(self) -> None:
         self.assertEqual(
             self.resumed_checkpoint_2.checkpoint_sha256,
@@ -276,6 +325,12 @@ class Run3TrainingIntegrationTest(unittest.TestCase):
         )
         self.assertEqual(
             self.resumed_checkpoint_2.metrics, self.checkpoint_2.metrics
+        )
+
+    def test_optimized_and_deep_reference_checkpoints_are_identical(self) -> None:
+        self.assertEqual(
+            self.deep_reference_checkpoint_2.checkpoint_sha256,
+            self.checkpoint_2.checkpoint_sha256,
         )
 
     def test_decision_identity_is_unique_and_action_independent(self) -> None:
@@ -349,11 +404,174 @@ class Run3TrainingIntegrationTest(unittest.TestCase):
         bad = replace(self.batch, _state=self.batch.state.to(torch.float64))
         self.assertTrue(torch.equal(bad._state, self.batch.state))
         with self.assertRaises(Run3ReplayError):
-            bad.revalidate()
+            bad.revalidate(
+                expected_issuer_capability=self.replay.trainer_issuer_capability
+            )
         bad_mode = replace(self.batch, _mode_id=self.batch.mode_id.to(torch.float32))
         self.assertTrue(torch.equal(bad_mode._mode_id, self.batch.mode_id))
         with self.assertRaises(Run3ReplayError):
-            bad_mode.revalidate()
+            bad_mode.revalidate(
+                expected_issuer_capability=self.replay.trainer_issuer_capability
+            )
+
+    def test_sampling_and_update_hot_path_never_repeat_deep_authentication(self) -> None:
+        generator = torch.Generator(device="cpu")
+        generator.manual_seed(817)
+        with mock.patch.object(
+            Run3TerminalTransitionV1,
+            "revalidate",
+            side_effect=AssertionError("deep row validation entered hot path"),
+        ), mock.patch.object(
+            Run3ReplayBindingV1,
+            "from_transition",
+            side_effect=AssertionError("binding reconstruction entered hot path"),
+        ), mock.patch.object(
+            type(self.partition),
+            "canonical_sha256",
+            side_effect=AssertionError("partition hashing entered hot path"),
+        ):
+            batch = self.replay.sample(4, generator=generator)
+            metric = self._fresh_trainer().update_once(batch)
+        self.assertEqual(metric.batch_size, 4)
+
+    def test_resident_rich_row_tamper_is_detected_at_sampling(self) -> None:
+        replay = Run3TerminalReplayV1(16, partition=self.partition)
+        row = self.rows[0]
+        replay.insert(row)
+        original = row.q_loc
+        object.__setattr__(row, "q_loc", original + 0.001)
+        try:
+            generator = torch.Generator(device="cpu")
+            generator.manual_seed(19)
+            with self.assertRaises(Run3ReplayError):
+                replay.sample(1, generator=generator)
+        finally:
+            object.__setattr__(row, "q_loc", original)
+        row.revalidate()
+
+    def test_resident_compact_tamper_is_rejected_without_rng_poisoning(self) -> None:
+        replay = Run3TerminalReplayV1(16, partition=self.partition)
+        replay.insert(self.rows[0])
+        record = replay._records[0]
+        original = record.reward
+        object.__setattr__(record, "reward", original + 0.001)
+        generator = torch.Generator(device="cpu")
+        generator.manual_seed(119)
+        rng_before = generator.get_state().clone()
+        indexes_before = (
+            len(replay), replay.accepted_count, replay.evicted_count,
+            set(replay._lifetime_digests), dict(replay._identity_digests), replay.binding,
+        )
+        try:
+            with self.assertRaises(Run3ReplayError):
+                replay.sample(1, generator=generator)
+        finally:
+            object.__setattr__(record, "reward", original)
+        self.assertTrue(torch.equal(generator.get_state(), rng_before))
+        self.assertEqual(
+            indexes_before,
+            (
+                len(replay), replay.accepted_count, replay.evicted_count,
+                set(replay._lifetime_digests), dict(replay._identity_digests), replay.binding,
+            ),
+        )
+
+    def test_resident_compact_signed_zero_tamper_is_rejected(self) -> None:
+        replay = Run3TerminalReplayV1(16, partition=self.partition)
+        replay.insert(self.rows[0])
+        record = replay._records[0]
+        values = list(record.observation_values)
+        zero_index = next(
+            (index for index, value in enumerate(values) if value == 0.0), None
+        )
+        self.assertIsNotNone(zero_index)
+        original = values[zero_index]
+        values[zero_index] = -0.0 if struct.pack(">d", original) == struct.pack(">d", 0.0) else 0.0
+        object.__setattr__(record, "observation_values", tuple(values))
+        generator = torch.Generator(device="cpu")
+        generator.manual_seed(120)
+        rng_before = generator.get_state().clone()
+        try:
+            with self.assertRaises(Run3ReplayError):
+                replay.sample(1, generator=generator)
+        finally:
+            values[zero_index] = original
+            object.__setattr__(record, "observation_values", tuple(values))
+        self.assertTrue(torch.equal(generator.get_state(), rng_before))
+
+    def test_post_sample_rich_row_and_compact_record_tamper_are_rejected(self) -> None:
+        generator = torch.Generator(device="cpu")
+        generator.manual_seed(23)
+        batch = self.replay.sample(4, generator=generator)
+        row = batch.rows[0]
+        original_row = row.q_seg
+        object.__setattr__(row, "q_seg", original_row + 0.001)
+        try:
+            with self.assertRaises(Run3ReplayError):
+                batch.revalidate(
+                    expected_issuer_capability=(
+                        self.replay.trainer_issuer_capability
+                    )
+                )
+        finally:
+            object.__setattr__(row, "q_seg", original_row)
+        record = batch.compact_records[0]
+        original_record = record.q_seg
+        object.__setattr__(record, "q_seg", original_record + 0.001)
+        try:
+            with self.assertRaises(Run3ReplayError):
+                batch.revalidate(
+                    expected_issuer_capability=(
+                        self.replay.trainer_issuer_capability
+                    )
+                )
+        finally:
+            object.__setattr__(record, "q_seg", original_record)
+
+    def test_cross_replay_batch_is_rejected_before_optimizer_mutation(self) -> None:
+        foreign = Run3TerminalReplayV1(16, partition=self.partition)
+        for row in self.rows[:4]:
+            foreign.insert(row)
+        generator = torch.Generator(device="cpu")
+        generator.manual_seed(29)
+        foreign_batch = foreign.sample(4, generator=generator)
+        trainer = self._fresh_trainer()
+        actor_before = copy.deepcopy(trainer.actor.state_dict())
+        with self.assertRaises(Run3TransitionRejected):
+            trainer.update_once(foreign_batch)
+        self.assertEqual(trainer.update_count, 0)
+        self.assertFalse(trainer.actor_optimizer.state)
+        self.assertFalse(trainer.critic_optimizer.state)
+        for name, value in trainer.actor.state_dict().items():
+            self.assertTrue(torch.equal(value, actor_before[name]))
+
+    def test_sampled_indices_and_learner_tensor_bytes_match_reference(self) -> None:
+        observed_generator = torch.Generator(device="cpu")
+        reference_generator = torch.Generator(device="cpu")
+        observed_generator.manual_seed(31337)
+        reference_generator.manual_seed(31337)
+        expected_indices = torch.randperm(
+            len(self.replay), generator=reference_generator
+        )[:4].tolist()
+        batch = self.replay.sample(4, generator=observed_generator)
+        expected_rows = tuple(self.replay.rows[index] for index in expected_indices)
+        self.assertEqual(batch.rows, expected_rows)
+        self.assertTrue(torch.equal(
+            batch.state,
+            torch.tensor([row.observation.values for row in expected_rows], dtype=torch.float32),
+        ))
+        self.assertTrue(torch.equal(
+            batch.mode_id,
+            torch.tensor([row.action.mode_id for row in expected_rows], dtype=torch.int64),
+        ))
+        self.assertTrue(torch.equal(
+            batch.q_e4,
+            torch.tensor([row.action.q_e4 for row in expected_rows], dtype=torch.int64),
+        ))
+        self.assertTrue(torch.equal(
+            batch.reward,
+            torch.tensor([row.reward for row in expected_rows], dtype=torch.float32),
+        ))
 
     def test_duplicate_and_identity_conflict_survive_replay_gates(self) -> None:
         replay = Run3TerminalReplayV1(1, partition=self.partition)
@@ -427,11 +645,20 @@ class Run3TrainingIntegrationTest(unittest.TestCase):
             self.assertTrue(torch.equal(value, before[name]))
 
     def test_direct_batch_rejects_fit_validation_scene(self) -> None:
-        batch = _direct_batch(
-            self.validation_row, binding=self.binding, partition=self.partition
+        replay = Run3TerminalReplayV1(16, partition=self.partition)
+        before = (
+            len(replay), replay.accepted_count, replay.evicted_count,
+            set(replay._lifetime_digests), dict(replay._identity_digests), replay.binding,
         )
         with self.assertRaises(Run3TransitionRejected):
-            batch.revalidate()
+            replay.insert(self.validation_row)
+        self.assertEqual(
+            before,
+            (
+                len(replay), replay.accepted_count, replay.evicted_count,
+                set(replay._lifetime_digests), dict(replay._identity_digests), replay.binding,
+            )
+        )
 
     def test_direct_batch_rejects_nontraining_radio_row(self) -> None:
         base = self.rows[0]
@@ -471,9 +698,36 @@ class Run3TrainingIntegrationTest(unittest.TestCase):
             realized=base.realized,
             d1_environment_binding_sha256=base.d1_environment_binding_sha256,
         )
-        batch = _direct_batch(changed, binding=self.binding, partition=self.partition)
+        replay = Run3TerminalReplayV1(16, partition=self.partition)
+        before = (
+            len(replay), replay.accepted_count, replay.evicted_count,
+            set(replay._lifetime_digests), dict(replay._identity_digests), replay.binding,
+        )
         with self.assertRaises(Run3TransitionRejected):
-            batch.revalidate()
+            replay.insert(changed)
+        self.assertEqual(
+            before,
+            (
+                len(replay), replay.accepted_count, replay.evicted_count,
+                set(replay._lifetime_digests), dict(replay._identity_digests), replay.binding,
+            )
+        )
+
+    def test_direct_forged_batch_is_rejected_independently_of_split(self) -> None:
+        forged = _direct_batch(
+            self.rows[0], binding=self.binding, partition=self.partition
+        )
+        with self.assertRaises(Run3TransitionRejected):
+            forged.revalidate(
+                expected_issuer_capability=self.replay.trainer_issuer_capability
+            )
+
+    def test_batch_partition_replacement_is_rejected_without_partition_hashing(self) -> None:
+        changed = replace(self.batch, partition=replace(self.partition))
+        with self.assertRaises(Run3ReplayError):
+            changed.revalidate(
+                expected_issuer_capability=self.replay.trainer_issuer_capability
+            )
 
     def test_transition_tamper_fails_before_replay_mutation(self) -> None:
         replay = Run3TerminalReplayV1(16, partition=self.partition)

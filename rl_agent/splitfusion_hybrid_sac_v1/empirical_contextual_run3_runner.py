@@ -81,6 +81,18 @@ RUN3_MODEL_SNAPSHOT_SCHEMA = "splitfusion.run3_model_only_snapshot.v1"
 RUN3_PHASE_LABEL = "RUN3_REALIZED_REWARD_TRAIN_ONLY_HYBRID_SAC"
 RUN3_SEED_SCHEMA = "splitfusion.run3_rng_streams.v1"
 _SESSION_NAMESPACE = uuid.UUID("5b8c1332-6d6c-59a4-8ec1-df34f8c2f6db")
+_REGISTERED_DECISION_LINEAGE_IMPLEMENTATION_HASHES = (
+    ("empirical_contextual_run3_reward.py", "37309fd539a7a2db3365c7c040a4ae9c8b74b85611baecd8574537e57cd921b6"),
+    ("empirical_contextual_run3_terminal_replay.py", "bfdf700e11433a629e1ec399a1ac4ef8032a610db8f1672300e3a419f15ab781"),
+    ("empirical_contextual_run3_terminal_trainer.py", "90176f108b2f412efa0cb07c074bd2c3289f1f71813a422c4f4315994a582095"),
+    ("empirical_contextual_run3_runner.py", "ece95021f283f592ce2b39989be73e255c918b8d6e68575781c166723a03baab"),
+)
+_REGISTERED_DECISION_LINEAGE_SEED17_BINDING_SHA256 = (
+    "80ed51b8e02bc4c36224451cc0a9d1d66876e2a0076f16da46205d435d7f3e34"
+)
+_REGISTERED_DECISION_LINEAGE_SEED17_SESSION_UUID = (
+    "6dc674b2-4fd5-5720-84b4-e59ffe1330a1"
+)
 
 
 class Run3RunnerError(RuntimeError):
@@ -98,6 +110,24 @@ def _sha256_file(path: Path) -> str:
         for block in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(block)
     return digest.hexdigest()
+
+
+def _decision_lineage_binding_sha256(
+    current_binding_document: Mapping[str, Any],
+) -> str:
+    """Reconstruct the registered d11095c decision-key lineage.
+
+    Current implementation hashes remain authoritative evidence metadata.
+    This separate registered lineage prevents a performance-only refactor from
+    changing decision keys and therefore counter-kernel realized outcomes.
+    """
+
+    document = copy.deepcopy(dict(current_binding_document))
+    document.pop("registered_decision_lineage", None)
+    document["implementation_hashes"] = dict(
+        _REGISTERED_DECISION_LINEAGE_IMPLEMENTATION_HASHES
+    )
+    return canonical_sha256(document)
 
 
 def _hash_state(value: Any) -> str:
@@ -412,7 +442,22 @@ class Run3TrainingRunnerV1:
         self._train_radio_rows = frozenset(row.csv_row_number for row in partition.radio_assignments if row.split == TRAIN_SPLIT)
         self._runner_binding_document = self._make_binding()
         self._runner_binding_sha256 = canonical_sha256(self._runner_binding_document)
-        self._collection_session_uuid = str(uuid.uuid5(_SESSION_NAMESPACE, f"{self._runner_binding_sha256}:{seed}"))
+        self._decision_lineage_binding_sha256 = _decision_lineage_binding_sha256(
+            self._runner_binding_document
+        )
+        self._collection_session_uuid = str(
+            uuid.uuid5(
+                _SESSION_NAMESPACE,
+                f"{self._decision_lineage_binding_sha256}:{seed}",
+            )
+        )
+        if self.config == RUN3_REGISTERED_CONFIG and seed == 17 and (
+            self._decision_lineage_binding_sha256
+            != _REGISTERED_DECISION_LINEAGE_SEED17_BINDING_SHA256
+            or self._collection_session_uuid
+            != _REGISTERED_DECISION_LINEAGE_SEED17_SESSION_UUID
+        ):
+            raise Run3RunnerError("registered seed-17 decision lineage drift")
         self._assert_process_isolation()
 
     def _fresh_optimizer_states(self):
@@ -444,6 +489,16 @@ class Run3TrainingRunnerV1:
             "modeled_smoke_support_sha256": MODELED_SMOKE_SUPPORT_SHA256,
             "phase_label": RUN3_PHASE_LABEL,
             "preflight_result_sha256": RUN3_PREFLIGHT_RESULT_SHA256,
+            "registered_decision_lineage": {
+                "baseline_commit": "d11095ce0077e89a414c63e6489e90bade4bd400",
+                "implementation_hashes": dict(
+                    _REGISTERED_DECISION_LINEAGE_IMPLEMENTATION_HASHES
+                ),
+                "purpose": (
+                    "PRESERVE_DECISION_KEYS_AND_COUNTER_KERNEL_DRAWS_ACROSS_"
+                    "PERFORMANCE_ONLY_REFACTOR"
+                ),
+            },
             "reward_spec_sha256": RUN3_REWARD_SPEC_SHA256,
             "rng_stream_seeds": dict(self._stream_seeds),
             "runner_schema": RUN3_RUNNER_SCHEMA,
@@ -593,6 +648,9 @@ class Run3TrainingRunnerV1:
             trainer = Run3TerminalHybridSacTrainerV1(
                 self.actor, self.critics, self.trainer_config,
                 expected_binding=self.replay.binding,
+                expected_batch_issuer_capability=(
+                    self.replay.trainer_issuer_capability
+                ),
                 actor_generator=self._actor_update_rng,
             )
             trainer.actor_optimizer.load_state_dict(copy.deepcopy(self._pending_actor_optimizer_state))
@@ -716,7 +774,11 @@ class Run3TrainingRunnerV1:
                 raise Run3RunnerError("checkpoint trainer lacks replay binding")
             staged_trainer = Run3TerminalHybridSacTrainerV1(
                 staged_actor, staged_critics, self.trainer_config,
-                expected_binding=rebuilt.binding, actor_generator=actor_rng,
+                expected_binding=rebuilt.binding,
+                expected_batch_issuer_capability=(
+                    rebuilt.trainer_issuer_capability
+                ),
+                actor_generator=actor_rng,
             )
             staged_trainer.actor_optimizer.load_state_dict(copy.deepcopy(checkpoint.actor_optimizer_state))
             staged_trainer.critic_optimizer.load_state_dict(copy.deepcopy(checkpoint.critic_optimizer_state))

@@ -8,6 +8,7 @@ the immutable simulator audit record; they are never tensorized for learning.
 
 from __future__ import annotations
 
+import hashlib
 import math
 import struct
 import uuid
@@ -82,6 +83,19 @@ class Run3DuplicateTransition(Run3TransitionRejected):
 
 class Run3IdentityConflict(Run3TransitionRejected):
     """One collection identity was reused for different content."""
+
+
+def _tensor_sha256(value: Tensor) -> str:
+    """Hash exact CPU tensor metadata and bytes without changing its value."""
+
+    if type(value) is not Tensor or value.device.type != "cpu":
+        raise Run3ReplayError("batch seal accepts exact CPU tensors only")
+    contiguous = value.detach().contiguous()
+    digest = hashlib.sha256()
+    digest.update(str(contiguous.dtype).encode("ascii"))
+    digest.update(repr(tuple(contiguous.shape)).encode("ascii"))
+    digest.update(contiguous.numpy().tobytes(order="C"))
+    return digest.hexdigest()
 
 
 def _is_sha256(value: object) -> bool:
@@ -524,6 +538,153 @@ class Run3ReplayBindingV1:
         return canonical_sha256(asdict(self))
 
 
+@dataclass(frozen=True, slots=True)
+class _AdmittedRun3Record:
+    """Compact immutable learner/diagnostic view issued after deep admission."""
+
+    row: Run3TerminalTransitionV1 = field(repr=False)
+    accepted_digest: str
+    logical_key: Tuple[str, int]
+    observation_values: Tuple[float, ...]
+    mode_id: int
+    q_e4: int
+    reward: float
+    q_loc: float
+    q_seg: float
+    q_perc: float
+    terminal_outcome: Run3TerminalOutcome
+    latency_ms: Optional[float]
+
+    @classmethod
+    def from_admitted(
+        cls, row: Run3TerminalTransitionV1, digest: str
+    ) -> "_AdmittedRun3Record":
+        return cls(
+            row=row,
+            accepted_digest=digest,
+            logical_key=row.logical_key,
+            observation_values=tuple(row.observation.values),
+            mode_id=row.action.mode_id,
+            q_e4=row.action.q_e4,
+            reward=row.reward,
+            q_loc=row.q_loc,
+            q_seg=row.q_seg,
+            q_perc=row.q_perc,
+            terminal_outcome=row.terminal_outcome,
+            latency_ms=row.latency_ms,
+        )
+
+    def seal_document(self) -> Dict[str, Any]:
+        return {
+            "accepted_digest": self.accepted_digest,
+            "latency_ms": self.latency_ms,
+            "logical_key": list(self.logical_key),
+            "mode_id": self.mode_id,
+            "observation_values": list(self.observation_values),
+            "q_e4": self.q_e4,
+            "q_loc": self.q_loc,
+            "q_perc": self.q_perc,
+            "q_seg": self.q_seg,
+            "reward": self.reward,
+            "terminal_outcome": self.terminal_outcome.value,
+        }
+
+    def require_compact_valid(self) -> None:
+        if type(self.row) is not Run3TerminalTransitionV1:
+            raise Run3ReplayError("compact record rich row type drift")
+        if not _is_sha256(self.accepted_digest):
+            raise Run3ReplayError("compact record digest drift")
+        if self.logical_key != self.row.logical_key:
+            raise Run3ReplayError("compact record logical key drift")
+        if (
+            type(self.observation_values) is not tuple
+            or len(self.observation_values) != POLICY_FEATURE_COUNT
+            or any(type(value) is not float or not math.isfinite(value) for value in self.observation_values)
+        ):
+            raise Run3ReplayError("compact observation drift")
+        if type(self.mode_id) is not int or not 0 <= self.mode_id < EXPECTED_MODE_COUNT:
+            raise Run3ReplayError("compact mode drift")
+        if type(self.q_e4) is not int:
+            raise Run3ReplayError("compact q type drift")
+        require_supported_action(self.mode_id, self.q_e4)
+        for name in ("reward", "q_loc", "q_seg", "q_perc"):
+            value = getattr(self, name)
+            if type(value) is not float or not math.isfinite(value):
+                raise Run3ReplayError(f"compact {name} drift")
+        if not all(0.0 <= value <= 1.0 for value in (self.q_loc, self.q_seg, self.q_perc)):
+            raise Run3ReplayError("compact quality range drift")
+        if type(self.terminal_outcome) is not Run3TerminalOutcome:
+            raise Run3ReplayError("compact outcome drift")
+        if self.latency_ms is not None and (
+            type(self.latency_ms) is not float or not math.isfinite(self.latency_ms)
+        ):
+            raise Run3ReplayError("compact latency drift")
+        # The accepted rich-row digest binds provenance integrity; every compact
+        # field must still join exactly to that rich row so a finite in-range
+        # compact mutation cannot be resealed at sampling.
+        def same_float(left: float, right: float) -> bool:
+            return struct.pack(">d", left) == struct.pack(">d", right)
+
+        rich_observation = tuple(self.row.observation.values)
+        floats_match = (
+            len(self.observation_values) == len(rich_observation)
+            and all(
+                same_float(left, right)
+                for left, right in zip(self.observation_values, rich_observation)
+            )
+            and same_float(self.reward, self.row.reward)
+            and same_float(self.q_loc, self.row.q_loc)
+            and same_float(self.q_seg, self.row.q_seg)
+            and same_float(self.q_perc, self.row.q_perc)
+            and (
+                (self.latency_ms is None and self.row.latency_ms is None)
+                or (
+                    self.latency_ms is not None
+                    and self.row.latency_ms is not None
+                    and same_float(self.latency_ms, self.row.latency_ms)
+                )
+            )
+        )
+        if (
+            not floats_match
+            or self.mode_id != self.row.action.mode_id
+            or self.q_e4 != self.row.action.q_e4
+            or self.terminal_outcome is not self.row.terminal_outcome
+        ):
+            raise Run3ReplayError("compact record differs from admitted rich row")
+
+    def require_rich_row_untampered(self) -> None:
+        self.require_compact_valid()
+        if self.row.canonical_sha256() != self.accepted_digest:
+            raise Run3ReplayError("resident rich row changed after admission")
+
+
+def _batch_seal(
+    *,
+    binding: Run3ReplayBindingV1,
+    records: Tuple[_AdmittedRun3Record, ...],
+    state: Tensor,
+    mode_id: Tensor,
+    q_e4: Tensor,
+    reward: Tensor,
+    schema: str,
+) -> str:
+    return canonical_sha256(
+        {
+            "binding_sha256": binding.canonical_sha256(),
+            "record_digests": [record.accepted_digest for record in records],
+            "records": [record.seal_document() for record in records],
+            "schema": schema,
+            "tensor_sha256": {
+                "mode_id": _tensor_sha256(mode_id),
+                "q_e4": _tensor_sha256(q_e4),
+                "reward": _tensor_sha256(reward),
+                "state": _tensor_sha256(state),
+            },
+        }
+    )
+
+
 @dataclass(frozen=True, slots=True, eq=False)
 class Run3TerminalBatchV1:
     """Private learner tensors plus immutable diagnostic source rows."""
@@ -536,10 +697,18 @@ class Run3TerminalBatchV1:
     _q_e4: Tensor = field(repr=False)
     _reward: Tensor = field(repr=False)
     schema: str = _BATCH_SCHEMA
+    _records: Tuple[_AdmittedRun3Record, ...] = field(default=(), repr=False)
+    _issuer_capability: object = field(default=None, repr=False)
+    _partition_identity: object = field(default=None, repr=False)
+    _seal_sha256: str = field(default="", repr=False)
 
     @property
     def batch_size(self) -> int:
         return len(self.rows)
+
+    @property
+    def compact_records(self) -> Tuple[_AdmittedRun3Record, ...]:
+        return self._records
 
     @property
     def state(self) -> Tensor:
@@ -593,31 +762,39 @@ class Run3TerminalBatchV1:
             "reward": self.reward,
         }
 
-    def revalidate(self) -> None:
+    def revalidate(self, *, expected_issuer_capability: object) -> None:
+        if (
+            expected_issuer_capability is None
+            or self._issuer_capability is not expected_issuer_capability
+        ):
+            raise Run3TransitionRejected(
+                "batch was not issued by the paired Run-3 replay"
+            )
         if type(self.binding) is not Run3ReplayBindingV1:
             raise Run3ReplayError("batch binding has foreign type")
         self.binding.require_valid()
-        if type(self.partition) is not EmpiricalFitPartitionV1:
-            raise Run3ReplayError("batch partition type drift")
-        if self.schema != _BATCH_SCHEMA or not self.rows:
+        if self.schema != _BATCH_SCHEMA or not self.rows or len(self._records) != len(self.rows):
             raise Run3ReplayError("batch schema/size drift")
-        for row in self.rows:
-            if type(row) is not Run3TerminalTransitionV1:
-                raise Run3ReplayError("batch row has foreign type")
-            row.revalidate()
-            if Run3ReplayBindingV1.from_transition(row, self.partition) != self.binding:
-                raise Run3ReplayError("batch row binding drift")
+        if (
+            type(self.partition) is not EmpiricalFitPartitionV1
+            or self.partition is not self._partition_identity
+        ):
+            raise Run3ReplayError("batch partition type drift")
+        for row, record in zip(self.rows, self._records):
+            if row is not record.row:
+                raise Run3ReplayError("batch rich/compact row identity drift")
+            record.require_rich_row_untampered()
         expected_state = torch.tensor(
-            [row.observation.values for row in self.rows], dtype=torch.float32
+            [record.observation_values for record in self._records], dtype=torch.float32
         )
         expected_mode = torch.tensor(
-            [row.action.mode_id for row in self.rows], dtype=torch.int64
+            [record.mode_id for record in self._records], dtype=torch.int64
         )
         expected_q = torch.tensor(
-            [row.action.q_e4 for row in self.rows], dtype=torch.int64
+            [record.q_e4 for record in self._records], dtype=torch.int64
         )
         expected_reward = torch.tensor(
-            [row.reward for row in self.rows], dtype=torch.float32
+            [record.reward for record in self._records], dtype=torch.float32
         )
         for name, observed, expected in (
             ("state", self._state, expected_state),
@@ -634,6 +811,17 @@ class Run3TerminalBatchV1:
                 or not torch.equal(observed, expected)
             ):
                 raise Run3ReplayError(f"batch {name} tensor drift")
+        expected_seal = _batch_seal(
+            binding=self.binding,
+            records=self._records,
+            state=self._state,
+            mode_id=self._mode_id,
+            q_e4=self._q_e4,
+            reward=self._reward,
+            schema=self.schema,
+        )
+        if not _is_sha256(self._seal_sha256) or self._seal_sha256 != expected_seal:
+            raise Run3ReplayError("batch seal mismatch")
 
 
 class Run3TerminalReplayV1:
@@ -655,23 +843,38 @@ class Run3TerminalReplayV1:
         self._train_radio_rows = frozenset(
             item.csv_row_number for item in partition.radio_assignments if item.split == TRAIN_SPLIT
         )
-        self._rows: Deque[Run3TerminalTransitionV1] = deque()
+        self._train_scene_inventory_sha256 = canonical_sha256(
+            {"train_scene_ids": sorted(self._train_scene_ids)}
+        )
+        self._train_radio_inventory_sha256 = canonical_sha256(
+            {"train_radio_rows": sorted(self._train_radio_rows)}
+        )
+        self._records: Deque[_AdmittedRun3Record] = deque()
         self._lifetime_digests: set[str] = set()
         self._identity_digests: Dict[Tuple[str, int], str] = {}
         self._binding: Optional[Run3ReplayBindingV1] = None
+        # Per-replay identity, deliberately absent from checkpoints.  A
+        # resumed replay/trainer pair receives a fresh matching capability.
+        self._issuer_capability = object()
         self.accepted_count = 0
         self.evicted_count = 0
 
     def __len__(self) -> int:
-        return len(self._rows)
+        return len(self._records)
 
     @property
     def binding(self) -> Optional[Run3ReplayBindingV1]:
         return self._binding
 
     @property
+    def trainer_issuer_capability(self) -> object:
+        """Opaque identity passed only to the trainer paired with this replay."""
+
+        return self._issuer_capability
+
+    @property
     def rows(self) -> Tuple[Run3TerminalTransitionV1, ...]:
-        return tuple(self._rows)
+        return tuple(record.row for record in self._records)
 
     def insert(self, row: Run3TerminalTransitionV1) -> None:
         if type(row) is not Run3TerminalTransitionV1:
@@ -689,18 +892,23 @@ class Run3TerminalReplayV1:
             raise Run3IdentityConflict("collection identity conflict")
         if digest in self._lifetime_digests:
             raise Run3DuplicateTransition("lifetime digest duplicate")
-        binding = Run3ReplayBindingV1.from_transition(row, self._partition)
+        binding = Run3ReplayBindingV1(
+            d1_environment_binding_sha256=row.d1_environment_binding_sha256,
+            train_scene_inventory_sha256=self._train_scene_inventory_sha256,
+            train_radio_inventory_sha256=self._train_radio_inventory_sha256,
+        )
+        binding.require_valid()
         if self._binding is not None and binding != self._binding:
             raise Run3TransitionRejected("replay binding mismatch")
         # All gates above complete before any mutation.
         if self._binding is None:
             self._binding = binding
-        self._rows.append(row)
+        self._records.append(_AdmittedRun3Record.from_admitted(row, digest))
         self._lifetime_digests.add(digest)
         self._identity_digests[row.logical_key] = digest
         self.accepted_count += 1
-        if len(self._rows) > self.capacity:
-            self._rows.popleft()
+        if len(self._records) > self.capacity:
+            self._records.popleft()
             self.evicted_count += 1
 
     def sample(
@@ -712,27 +920,56 @@ class Run3TerminalReplayV1:
             raise Run3ReplayError("an explicit torch.Generator is required")
         if generator is torch.default_generator or generator.device.type != "cpu":
             raise Run3ReplayError("replay generator must be private CPU state")
+        generator_state = generator.get_state().clone()
         indices = torch.randperm(len(self), generator=generator)[:batch_size].tolist()
-        resident = tuple(self._rows)
-        rows = tuple(resident[index] for index in indices)
+        resident = tuple(self._records)
+        records = tuple(resident[index] for index in indices)
+        # This is the sampling-time tamper gate.  The trainer later validates
+        # the sealed compact copy once, without repeating deep row/D1/partition
+        # authentication.
+        try:
+            for record in records:
+                record.require_rich_row_untampered()
+        except BaseException:
+            # A rejected batch must not perturb the deterministic sample
+            # sequence used by a later repaired/resumed attempt.
+            generator.set_state(generator_state)
+            raise
+        rows = tuple(record.row for record in records)
         if self._binding is None:  # pragma: no cover - nonempty implies binding
             raise Run3ReplayError("nonempty replay lacks a binding")
+        state = torch.tensor(
+            [record.observation_values for record in records], dtype=torch.float32
+        ).clone().detach()
+        mode_id = torch.tensor(
+            [record.mode_id for record in records], dtype=torch.int64
+        ).clone().detach()
+        q_e4 = torch.tensor(
+            [record.q_e4 for record in records], dtype=torch.int64
+        ).clone().detach()
+        reward = torch.tensor(
+            [record.reward for record in records], dtype=torch.float32
+        ).clone().detach()
+        seal = _batch_seal(
+            binding=self._binding,
+            records=records,
+            state=state,
+            mode_id=mode_id,
+            q_e4=q_e4,
+            reward=reward,
+            schema=_BATCH_SCHEMA,
+        )
         batch = Run3TerminalBatchV1(
             binding=self._binding,
             partition=self._partition,
             rows=rows,
-            _state=torch.tensor(
-                [row.observation.values for row in rows], dtype=torch.float32
-            ).clone().detach(),
-            _mode_id=torch.tensor(
-                [row.action.mode_id for row in rows], dtype=torch.int64
-            ).clone().detach(),
-            _q_e4=torch.tensor(
-                [row.action.q_e4 for row in rows], dtype=torch.int64
-            ).clone().detach(),
-            _reward=torch.tensor(
-                [row.reward for row in rows], dtype=torch.float32
-            ).clone().detach(),
+            _state=state,
+            _mode_id=mode_id,
+            _q_e4=q_e4,
+            _reward=reward,
+            _records=records,
+            _issuer_capability=self._issuer_capability,
+            _partition_identity=self._partition,
+            _seal_sha256=seal,
         )
-        batch.revalidate()
         return batch

@@ -198,6 +198,7 @@ class Run3TerminalHybridSacTrainerV1:
         config: Run3TerminalTrainerConfigV1,
         *,
         expected_binding: Run3ReplayBindingV1,
+        expected_batch_issuer_capability: object,
         actor_generator: torch.Generator,
     ) -> None:
         if type(actor) is not ConditionalHybridActor or type(critics) is not TwinHybridCritics:
@@ -219,6 +220,9 @@ class Run3TerminalHybridSacTrainerV1:
         self.critics = critics
         self.config = config
         self.expected_binding = expected_binding
+        if expected_batch_issuer_capability is None:
+            raise Run3TrainerError("trainer requires an opaque replay issuer capability")
+        self._expected_batch_issuer_capability = expected_batch_issuer_capability
         self._binding_sha256 = expected_binding.canonical_sha256()
         self._config_sha256 = config.canonical_sha256()
         self._model_config_snapshot = copy.deepcopy(actor.config)
@@ -310,7 +314,9 @@ class Run3TerminalHybridSacTrainerV1:
     def _preflight(self, batch: Run3TerminalBatchV1) -> None:
         if type(batch) is not Run3TerminalBatchV1:
             raise Run3TrainerError("trainer accepts only exact Run3 batches")
-        batch.revalidate()
+        batch.revalidate(
+            expected_issuer_capability=self._expected_batch_issuer_capability
+        )
         self.config.__post_init__()
         if self.config.canonical_sha256() != self._config_sha256:
             raise Run3TrainerError("trainer config digest drift")
@@ -417,7 +423,10 @@ class Run3TerminalHybridSacTrainerV1:
         self.actor_optimizer.step()
         self.critics.polyak_update(self.config.tau)
 
-        rows = batch.rows
+        # Diagnostics consume the sealed compact admission records.  The rich
+        # provenance rows remain available for checkpoints/final deep audit,
+        # but are not traversed in the trainer hot path.
+        rows = batch.compact_records
         outcome_order = tuple(Run3TerminalOutcome)
         outcome_counts = tuple(
             sum(row.terminal_outcome is outcome for row in rows)
