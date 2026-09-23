@@ -274,7 +274,17 @@ def _disk_gate(
     *,
     projected_bytes: Optional[int] = None,
 ) -> Dict[str, int]:
-    usage = shutil.disk_usage(path.parent if not path.exists() else path)
+    # A fresh campaign may name several not-yet-created directories.  Query the
+    # nearest existing ancestor instead of assuming the immediate parent exists.
+    usage_path = Path(path)
+    while not usage_path.exists():
+        parent = usage_path.parent
+        if parent == usage_path:
+            raise Run3ArtifactError(
+                f"could not find an existing ancestor for disk preflight: {path}"
+            )
+        usage_path = parent
+    usage = shutil.disk_usage(usage_path)
     projected = (
         PROJECTED_BYTES_PER_SEED * seed_count
         if projected_bytes is None

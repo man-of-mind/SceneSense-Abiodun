@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import copy
 import json
+import shutil
 import struct
 import subprocess
 import sys
@@ -56,6 +57,7 @@ from .run_empirical_contextual_run3 import (
     PROJECTED_BYTES_PER_SEED,
     Run3ArtifactError,
     _bootstrap_checkpoint_pointer,
+    _disk_gate,
     _discard_non_authoritative_tail,
     _json_bytes,
     _remaining_campaign_projection,
@@ -581,6 +583,22 @@ class Run3TrainingIntegrationTest(unittest.TestCase):
             (partial / "partial.bin").write_bytes(b"x" * 123)
             projected = _remaining_campaign_projection(root, (17, 29, 43))
             self.assertEqual(projected, 2 * PROJECTED_BYTES_PER_SEED)
+
+    def test_disk_gate_accepts_nested_not_yet_created_campaign_path(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            target = Path(temporary) / "new" / "nested" / "campaign"
+            with mock.patch(
+                "rl_agent.splitfusion_hybrid_sac_v1.run_empirical_contextual_run3."
+                "shutil.disk_usage",
+                return_value=shutil._ntuple_diskusage(
+                    total=100 * 1024**3,
+                    used=10 * 1024**3,
+                    free=90 * 1024**3,
+                ),
+            ) as disk_usage:
+                result = _disk_gate(target, seed_count=3)
+            disk_usage.assert_called_once_with(Path(temporary))
+            self.assertEqual(result["projected_bytes"], 3 * PROJECTED_BYTES_PER_SEED)
 
     def test_official_campaign_refuses_tiny_schedule(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
