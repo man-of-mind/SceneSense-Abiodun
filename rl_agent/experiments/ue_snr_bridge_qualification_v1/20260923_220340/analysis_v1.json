@@ -1,0 +1,806 @@
+{
+  "clock_anchors": [
+    {
+      "label": "run_start",
+      "local_iso": "2026-09-23T22:03:40.626576-07:00",
+      "monotonic_ns": 6863803937276547,
+      "utc_offset_s": -25200,
+      "wall_ns": 1790226220626575502
+    },
+    {
+      "label": "FAVORABLE_STABLE:before_traffic",
+      "local_iso": "2026-09-23T22:04:11.329906-07:00",
+      "monotonic_ns": 6863834640602286,
+      "utc_offset_s": -25200,
+      "wall_ns": 1790226251329905641
+    },
+    {
+      "label": "MID_VARIABLE:before_traffic",
+      "local_iso": "2026-09-23T22:04:45.727714-07:00",
+      "monotonic_ns": 6863869038410708,
+      "utc_offset_s": -25200,
+      "wall_ns": 1790226285727714035
+    },
+    {
+      "label": "ADVERSE_STABLE:before_traffic",
+      "local_iso": "2026-09-23T22:05:20.147458-07:00",
+      "monotonic_ns": 6863903458154640,
+      "utc_offset_s": -25200,
+      "wall_ns": 1790226320147457698
+    },
+    {
+      "label": "FADE_RECOVERY:before_traffic",
+      "local_iso": "2026-09-23T22:05:54.693759-07:00",
+      "monotonic_ns": 6863938004455780,
+      "utc_offset_s": -25200,
+      "wall_ns": 1790226354693759014
+    },
+    {
+      "label": "run_end",
+      "local_iso": "2026-09-23T22:06:29.156917-07:00",
+      "monotonic_ns": 6863972467613495,
+      "utc_offset_s": -25200,
+      "wall_ns": 1790226389156916940
+    }
+  ],
+  "figures": [
+    "fig01_aligned_time_series_by_profile.png",
+    "fig01_aligned_time_series_by_profile.pdf",
+    "fig02_ue_downlink_vs_gnb_uplink_scatter.png",
+    "fig02_ue_downlink_vs_gnb_uplink_scatter.pdf",
+    "fig03_ue_downlink_snr_distribution_by_profile.png",
+    "fig03_ue_downlink_snr_distribution_by_profile.pdf",
+    "fig04_ue_downlink_snr_vs_uplink_delivery.png",
+    "fig04_ue_downlink_snr_vs_uplink_delivery.pdf"
+  ],
+  "interpretation": {
+    "checks": [
+      {
+        "check": "FRESH_UE_COVERAGE_AT_10HZ",
+        "detail": "worst per-profile 100 ms bin coverage 0.9357429718875502; required >= 0.9",
+        "passed": true,
+        "per_profile": {
+          "ADVERSE_STABLE": 0.9879518072289156,
+          "FADE_RECOVERY": 0.9477911646586346,
+          "FAVORABLE_STABLE": 0.9477911646586346,
+          "MID_VARIABLE": 0.9357429718875502
+        }
+      },
+      {
+        "check": "SUFFICIENT_UE_SAMPLES",
+        "detail": "per-profile UE sample counts {'FAVORABLE_STABLE': 557, 'MID_VARIABLE': 549, 'ADVERSE_STABLE': 842, 'FADE_RECOVERY': 607}; required >= 100",
+        "passed": true
+      },
+      {
+        "check": "FAVORABLE_ABOVE_ADVERSE_ORDERING",
+        "detail": "FAVORABLE p50 -93.0 vs ADVERSE p50 -93.0, Cliff's delta -0.016520467212800163 (NEGLIGIBLE)",
+        "passed": false
+      },
+      {
+        "check": "USEFUL_POSITIVE_ASSOCIATION_WITH_UPLINK",
+        "detail": "pooled Spearman -0.013528753907036737 CI [-0.0625301869296305, 0.036773764324303994]; UE SNR vs uplink throughput r=None; per-profile Spearman {'FAVORABLE_STABLE': -0.030575728496894404, 'MID_VARIABLE': 0.02539456067726033, 'ADVERSE_STABLE': -0.0018306665805091985, 'FADE_RECOVERY': -0.07591939617998722}",
+        "passed": false
+      },
+      {
+        "check": "NO_FABRICATED_OR_FORWARD_FILLED_MEASUREMENT",
+        "detail": "no forward fill; unmatched UE samples were dropped, not carried",
+        "passed": true
+      },
+      {
+        "check": "NO_RELIANCE_ON_FUTURE_SAMPLES",
+        "detail": "availability uses only observations at or before each decision boundary; alignment is symmetric and reported, never predictive",
+        "passed": true
+      },
+      {
+        "check": "UE_RECEIVE_PATH_PRODUCES_A_LIVE_MEASUREMENT",
+        "detail": "the UE downlink receive path is degenerate in this testbed: rsrp is unpopulated (int32 min) in 100% of rows, rssi and rx_power are constant, so snr = rx_power - noise_power varies only through noise_power (7 distinct values over 3397 rows). The flat UE series is therefore a property of the measurement path and the uplink-only channel actuation, not evidence that a UE downlink SNR is uninformative in general",
+        "passed": false
+      }
+    ],
+    "passed": 4,
+    "scope": "Even where qualified, UE_PHY_MEAS.snr is a deployable *predictor* of uplink condition in this RFsim testbed. It is a UE receive-side downlink measurement and is NOT a direct measurement of the gNB's received uplink PUSCH SNR. Numerical equality between the two directions was never required and is not claimed.",
+    "total": 7,
+    "verdict": "NOT_SUPPORTED_AS_UPLINK_PREDICTOR"
+  },
+  "labels": {
+    "gnb": "gNB received uplink PUSCH SNR",
+    "ue": "UE downlink SNR"
+  },
+  "per_profile": {
+    "ADVERSE_STABLE": {
+      "alignment": {
+        "ambiguous_matches": 0,
+        "forward_fill_used": false,
+        "gnb_samples": 10806,
+        "max_skew_ns": 5000000,
+        "pair_distance_ns": {
+          "count": 752,
+          "max": 4447232.0,
+          "mean": 1496504.170212766,
+          "min": 2816.0,
+          "p50": 453888.0,
+          "p95": 3913728.0,
+          "p99": 4154112.0,
+          "stdev": 1541302.249089432
+        },
+        "paired": 752,
+        "ue_samples": 842,
+        "unmatched_ue_samples": 90
+      },
+      "association": {
+        "pairs": 752,
+        "pearson_ci": {
+          "block_length": 34,
+          "ci_high": 0.18262875749668372,
+          "ci_low": -0.042917009354827604,
+          "iterations": 2000,
+          "method": "MOVING_BLOCK_BOOTSTRAP"
+        },
+        "pearson_r": 0.10511159015465513,
+        "spearman_ci": {
+          "block_length": 34,
+          "ci_high": 0.08137916441511824,
+          "ci_low": -0.06675994359886123,
+          "iterations": 2000,
+          "method": "MOVING_BLOCK_BOOTSTRAP"
+        },
+        "spearman_rho": -0.0018306665805091985
+      },
+      "availability": {
+        "bin_ms": 100,
+        "bins": 249,
+        "bins_with_no_prior_observation": 0,
+        "bins_with_observation": 246,
+        "coverage": 0.9879518072289156,
+        "observation_age_ms": {
+          "count": 249,
+          "max": 118.088714,
+          "mean": 20.064536393574297,
+          "min": 0.412682,
+          "p50": 14.54977,
+          "p95": 52.19585,
+          "p99": 107.757578,
+          "stdev": 19.063342887806918
+        }
+      },
+      "commands_sent": 267,
+      "commands_skipped_obsolete": 0,
+      "gnb_uplink_pusch_snr_db": {
+        "count": 10806,
+        "max": 16.5,
+        "mean": 8.836387192300574,
+        "min": 5.0,
+        "p50": 8.5,
+        "p95": 14.5,
+        "p99": 15.5,
+        "stdev": 2.1612797515250017
+      },
+      "measured_window_s": 24.900181761,
+      "target_snr_db_max": 17.030379,
+      "target_snr_db_min": 5.53734,
+      "targets_clamped_to_mapping": 0,
+      "trace_id": "GM_V2_ADVERSE_STABLE_SEED_2026082103",
+      "traffic": [
+        {
+          "achieved_mbps": "4.0000953546510765",
+          "argv": "iperf3 -c 192.168.70.135 -p 5401 -u -b 4.0M -l 1200 -t 31 -B 10.0.0.2 --forceflush -J",
+          "direction": "UPLINK_UE_TO_NETWORK",
+          "jitter_ms": "2.6357156141515863",
+          "lost_packets": "0",
+          "lost_percent": "0",
+          "offered_bytes": "15500400",
+          "profile_id": "ADVERSE_STABLE",
+          "seconds": "31.070076",
+          "total_packets": "12917"
+        },
+        {
+          "achieved_mbps": "1.0002560962702622",
+          "argv": "sudo -n docker exec oai-ext-dn iperf3 -c 10.0.0.2 -p 5402 -u -b 1.0M -l 1200 -t 31 --forceflush -J",
+          "direction": "DOWNLINK_NETWORK_TO_UE",
+          "jitter_ms": "0.512150400574713",
+          "lost_packets": "0",
+          "lost_percent": "0",
+          "offered_bytes": "3876000",
+          "profile_id": "ADVERSE_STABLE",
+          "seconds": "31.071756",
+          "total_packets": "3230"
+        }
+      ],
+      "ue_downlink_snr_db": {
+        "count": 842,
+        "max": 0.0,
+        "mean": -93.5332541567696,
+        "min": -97.0,
+        "p50": -93.0,
+        "p95": -90.0,
+        "p99": -90.0,
+        "stdev": 3.6160057365099987
+      },
+      "ue_measurement_cadence_hz": 33.81501420679529
+    },
+    "FADE_RECOVERY": {
+      "alignment": {
+        "ambiguous_matches": 0,
+        "forward_fill_used": false,
+        "gnb_samples": 9305,
+        "max_skew_ns": 5000000,
+        "pair_distance_ns": {
+          "count": 577,
+          "max": 4801024.0,
+          "mean": 1461116.2287694975,
+          "min": 6144.0,
+          "p50": 529920.0,
+          "p95": 3944960.0,
+          "p99": 4189952.0,
+          "stdev": 1432664.5889932625
+        },
+        "paired": 577,
+        "ue_samples": 607,
+        "unmatched_ue_samples": 30
+      },
+      "association": {
+        "pairs": 577,
+        "pearson_ci": {
+          "block_length": 24,
+          "ci_high": 0.0038987378839199925,
+          "ci_low": -0.16075710059005444,
+          "iterations": 2000,
+          "method": "MOVING_BLOCK_BOOTSTRAP"
+        },
+        "pearson_r": -0.08356561748992757,
+        "spearman_ci": {
+          "block_length": 24,
+          "ci_high": 0.00841811578184538,
+          "ci_low": -0.15506222735654124,
+          "iterations": 2000,
+          "method": "MOVING_BLOCK_BOOTSTRAP"
+        },
+        "spearman_rho": -0.07591939617998722
+      },
+      "availability": {
+        "bin_ms": 100,
+        "bins": 249,
+        "bins_with_no_prior_observation": 0,
+        "bins_with_observation": 236,
+        "coverage": 0.9477911646586346,
+        "observation_age_ms": {
+          "count": 249,
+          "max": 212.653233,
+          "mean": 32.84153590763052,
+          "min": 0.111281,
+          "p50": 23.706289,
+          "p95": 102.347185,
+          "p99": 163.200177,
+          "stdev": 33.1766859642466
+        }
+      },
+      "commands_sent": 266,
+      "commands_skipped_obsolete": 0,
+      "gnb_uplink_pusch_snr_db": {
+        "count": 9305,
+        "max": 24.5,
+        "mean": 15.1947877485223,
+        "min": 5.0,
+        "p50": 15.0,
+        "p95": 21.5,
+        "p99": 23.0,
+        "stdev": 2.986548693911969
+      },
+      "measured_window_s": 24.90030143,
+      "target_snr_db_max": 24.200833,
+      "target_snr_db_min": 5.577715,
+      "targets_clamped_to_mapping": 0,
+      "trace_id": "GM_V2_FADE_RECOVERY_SEED_2026082104",
+      "traffic": [
+        {
+          "achieved_mbps": "4.0000954836861595",
+          "argv": "iperf3 -c 192.168.70.135 -p 5401 -u -b 4.0M -l 1200 -t 31 -B 10.0.0.2 --forceflush -J",
+          "direction": "UPLINK_UE_TO_NETWORK",
+          "jitter_ms": "3.17484622454774",
+          "lost_packets": "0",
+          "lost_percent": "0",
+          "offered_bytes": "15500400",
+          "profile_id": "FADE_RECOVERY",
+          "seconds": "31.063924",
+          "total_packets": "12917"
+        },
+        {
+          "achieved_mbps": "1.0002561608027907",
+          "argv": "sudo -n docker exec oai-ext-dn iperf3 -c 10.0.0.2 -p 5402 -u -b 1.0M -l 1200 -t 31 --forceflush -J",
+          "direction": "DOWNLINK_NETWORK_TO_UE",
+          "jitter_ms": "0.27001323788804854",
+          "lost_packets": "0",
+          "lost_percent": "0",
+          "offered_bytes": "3876000",
+          "profile_id": "FADE_RECOVERY",
+          "seconds": "31.06514",
+          "total_packets": "3230"
+        }
+      ],
+      "ue_downlink_snr_db": {
+        "count": 607,
+        "max": -90.0,
+        "mean": -93.65403624382208,
+        "min": -97.0,
+        "p50": -93.0,
+        "p95": -90.0,
+        "p99": -90.0,
+        "stdev": 1.631318086854485
+      },
+      "ue_measurement_cadence_hz": 24.377214938799238
+    },
+    "FAVORABLE_STABLE": {
+      "alignment": {
+        "ambiguous_matches": 0,
+        "forward_fill_used": false,
+        "gnb_samples": 8967,
+        "max_skew_ns": 5000000,
+        "pair_distance_ns": {
+          "count": 537,
+          "max": 4672000.0,
+          "mean": 1245200.6852886407,
+          "min": 13056.0,
+          "p50": 507136.0,
+          "p95": 3941120.0,
+          "p99": 4169728.0,
+          "stdev": 1353233.137584882
+        },
+        "paired": 537,
+        "ue_samples": 557,
+        "unmatched_ue_samples": 20
+      },
+      "association": {
+        "pairs": 537,
+        "pearson_ci": {
+          "block_length": 22,
+          "ci_high": 0.038057696676611144,
+          "ci_low": -0.11863082097919893,
+          "iterations": 2000,
+          "method": "MOVING_BLOCK_BOOTSTRAP"
+        },
+        "pearson_r": -0.04160083363166964,
+        "spearman_ci": {
+          "block_length": 22,
+          "ci_high": 0.05336781715587346,
+          "ci_low": -0.10536323093722458,
+          "iterations": 2000,
+          "method": "MOVING_BLOCK_BOOTSTRAP"
+        },
+        "spearman_rho": -0.030575728496894404
+      },
+      "availability": {
+        "bin_ms": 100,
+        "bins": 249,
+        "bins_with_no_prior_observation": 0,
+        "bins_with_observation": 236,
+        "coverage": 0.9477911646586346,
+        "observation_age_ms": {
+          "count": 249,
+          "max": 245.729115,
+          "mean": 32.52211406827309,
+          "min": 0.105051,
+          "p50": 21.792859,
+          "p95": 101.454171,
+          "p99": 159.582299,
+          "stdev": 35.563218664493434
+        }
+      },
+      "commands_sent": 262,
+      "commands_skipped_obsolete": 0,
+      "gnb_uplink_pusch_snr_db": {
+        "count": 8967,
+        "max": 24.5,
+        "mean": 16.710438273670125,
+        "min": 6.0,
+        "p50": 16.5,
+        "p95": 23.0,
+        "p99": 23.5,
+        "stdev": 5.030950298873361
+      },
+      "measured_window_s": 24.900213123,
+      "target_snr_db_max": 24.487938,
+      "target_snr_db_min": 6.719892,
+      "targets_clamped_to_mapping": 0,
+      "trace_id": "GM_V2_FAVORABLE_STABLE_SEED_2026082101",
+      "traffic": [
+        {
+          "achieved_mbps": "4.00007535431366",
+          "argv": "iperf3 -c 192.168.70.135 -p 5401 -u -b 4.0M -l 1200 -t 31 -B 10.0.0.2 --forceflush -J",
+          "direction": "UPLINK_UE_TO_NETWORK",
+          "jitter_ms": "3.677553637586272",
+          "lost_packets": "0",
+          "lost_percent": "0",
+          "offered_bytes": "15500400",
+          "profile_id": "FAVORABLE_STABLE",
+          "seconds": "31.064912",
+          "total_packets": "12917"
+        },
+        {
+          "achieved_mbps": "1.0002557090752657",
+          "argv": "sudo -n docker exec oai-ext-dn iperf3 -c 10.0.0.2 -p 5402 -u -b 1.0M -l 1200 -t 31 --forceflush -J",
+          "direction": "DOWNLINK_NETWORK_TO_UE",
+          "jitter_ms": "0.5791623217187528",
+          "lost_packets": "0",
+          "lost_percent": "0",
+          "offered_bytes": "3876000",
+          "profile_id": "FAVORABLE_STABLE",
+          "seconds": "31.049554",
+          "total_packets": "3230"
+        }
+      ],
+      "ue_downlink_snr_db": {
+        "count": 557,
+        "max": -90.0,
+        "mean": -93.71095152603232,
+        "min": -97.0,
+        "p50": -93.0,
+        "p95": -90.0,
+        "p99": -90.0,
+        "stdev": 1.5605454069425946
+      },
+      "ue_measurement_cadence_hz": 22.369286449420244
+    },
+    "MID_VARIABLE": {
+      "alignment": {
+        "ambiguous_matches": 0,
+        "forward_fill_used": false,
+        "gnb_samples": 9448,
+        "max_skew_ns": 5000000,
+        "pair_distance_ns": {
+          "count": 529,
+          "max": 4208896.0,
+          "mean": 1518840.741020794,
+          "min": 2304.0,
+          "p50": 519936.0,
+          "p95": 3940864.0,
+          "p99": 4110080.0,
+          "stdev": 1473946.7518146827
+        },
+        "paired": 529,
+        "ue_samples": 549,
+        "unmatched_ue_samples": 20
+      },
+      "association": {
+        "pairs": 529,
+        "pearson_ci": {
+          "block_length": 22,
+          "ci_high": 0.15389762643783056,
+          "ci_low": -0.03718766790720619,
+          "iterations": 2000,
+          "method": "MOVING_BLOCK_BOOTSTRAP"
+        },
+        "pearson_r": 0.06253976043377464,
+        "spearman_ci": {
+          "block_length": 22,
+          "ci_high": 0.12661844546410062,
+          "ci_low": -0.08310276763892689,
+          "iterations": 2000,
+          "method": "MOVING_BLOCK_BOOTSTRAP"
+        },
+        "spearman_rho": 0.02539456067726033
+      },
+      "availability": {
+        "bin_ms": 100,
+        "bins": 249,
+        "bins_with_no_prior_observation": 0,
+        "bins_with_observation": 233,
+        "coverage": 0.9357429718875502,
+        "observation_age_ms": {
+          "count": 249,
+          "max": 258.727583,
+          "mean": 34.888211176706825,
+          "min": 0.327583,
+          "p50": 23.978399,
+          "p95": 105.777567,
+          "p99": 200.411295,
+          "stdev": 37.48264143624167
+        }
+      },
+      "commands_sent": 270,
+      "commands_skipped_obsolete": 0,
+      "gnb_uplink_pusch_snr_db": {
+        "count": 9448,
+        "max": 24.0,
+        "mean": 14.872618543607112,
+        "min": 6.5,
+        "p50": 14.5,
+        "p95": 22.5,
+        "p99": 23.0,
+        "stdev": 3.9035585712503353
+      },
+      "measured_window_s": 24.900237143,
+      "target_snr_db_max": 24.138279,
+      "target_snr_db_min": 6.378466,
+      "targets_clamped_to_mapping": 0,
+      "trace_id": "GM_V2_MID_VARIABLE_SEED_2026082102",
+      "traffic": [
+        {
+          "achieved_mbps": "4.00009470947578",
+          "argv": "iperf3 -c 192.168.70.135 -p 5401 -u -b 4.0M -l 1200 -t 31 -B 10.0.0.2 --forceflush -J",
+          "direction": "UPLINK_UE_TO_NETWORK",
+          "jitter_ms": "3.39819583490464",
+          "lost_packets": "0",
+          "lost_percent": "0",
+          "offered_bytes": "15500400",
+          "profile_id": "MID_VARIABLE",
+          "seconds": "31.05923",
+          "total_packets": "12917"
+        },
+        {
+          "achieved_mbps": "1.0002560962702622",
+          "argv": "sudo -n docker exec oai-ext-dn iperf3 -c 10.0.0.2 -p 5402 -u -b 1.0M -l 1200 -t 31 --forceflush -J",
+          "direction": "DOWNLINK_NETWORK_TO_UE",
+          "jitter_ms": "0.45428536020169535",
+          "lost_packets": "0",
+          "lost_percent": "0",
+          "offered_bytes": "3876000",
+          "profile_id": "MID_VARIABLE",
+          "seconds": "31.06213",
+          "total_packets": "3230"
+        }
+      ],
+      "ue_downlink_snr_db": {
+        "count": 549,
+        "max": -90.0,
+        "mean": -93.71402550091075,
+        "min": -98.0,
+        "p50": -93.0,
+        "p95": -90.0,
+        "p99": -90.0,
+        "stdev": 1.5518377398859724
+      },
+      "ue_measurement_cadence_hz": 22.047982790169367
+    }
+  },
+  "pooled_association": {
+    "caveat": "pools four profiles; the across-profile spread dominates it",
+    "pairs": 2395,
+    "pearson_ci": {
+      "block_length": 24,
+      "ci_high": 0.025321622152477755,
+      "ci_low": -0.055412338375656324,
+      "iterations": 2000,
+      "method": "MOVING_BLOCK_BOOTSTRAP"
+    },
+    "pearson_r": -0.008889634429679527,
+    "spearman_ci": {
+      "block_length": 24,
+      "ci_high": 0.036773764324303994,
+      "ci_low": -0.0625301869296305,
+      "iterations": 2000,
+      "method": "MOVING_BLOCK_BOOTSTRAP"
+    },
+    "spearman_rho": -0.013528753907036737
+  },
+  "predictive_relevance": {
+    "caveat": "computed across 4 profile-level points; with so few points these coefficients are descriptive and have no useful confidence interval",
+    "claim": "ASSOCIATION_ONLY_NOT_CAUSAL",
+    "per_profile": [
+      {
+        "gnb_uplink_pusch_snr_p50_db": 16.5,
+        "profile_id": "FAVORABLE_STABLE",
+        "ue_downlink_snr_p50_db": -93.0,
+        "uplink_achieved_mbps": 4.00007535431366,
+        "uplink_jitter_ms": 3.677553637586272,
+        "uplink_lost_packets": 0,
+        "uplink_lost_percent": 0.0,
+        "uplink_total_packets": 12917
+      },
+      {
+        "gnb_uplink_pusch_snr_p50_db": 14.5,
+        "profile_id": "MID_VARIABLE",
+        "ue_downlink_snr_p50_db": -93.0,
+        "uplink_achieved_mbps": 4.00009470947578,
+        "uplink_jitter_ms": 3.39819583490464,
+        "uplink_lost_packets": 0,
+        "uplink_lost_percent": 0.0,
+        "uplink_total_packets": 12917
+      },
+      {
+        "gnb_uplink_pusch_snr_p50_db": 8.5,
+        "profile_id": "ADVERSE_STABLE",
+        "ue_downlink_snr_p50_db": -93.0,
+        "uplink_achieved_mbps": 4.0000953546510765,
+        "uplink_jitter_ms": 2.6357156141515863,
+        "uplink_lost_packets": 0,
+        "uplink_lost_percent": 0.0,
+        "uplink_total_packets": 12917
+      },
+      {
+        "gnb_uplink_pusch_snr_p50_db": 15.0,
+        "profile_id": "FADE_RECOVERY",
+        "ue_downlink_snr_p50_db": -93.0,
+        "uplink_achieved_mbps": 4.0000954836861595,
+        "uplink_jitter_ms": 3.17484622454774,
+        "uplink_lost_packets": 0,
+        "uplink_lost_percent": 0.0,
+        "uplink_total_packets": 12917
+      }
+    ],
+    "r_ue_snr_vs_uplink_jitter": null,
+    "r_ue_snr_vs_uplink_loss": null,
+    "r_ue_snr_vs_uplink_throughput": null
+  },
+  "run_dir": "rl_agent/experiments/ue_snr_bridge_qualification_v1/20260923_220340",
+  "stable_profile_ordering": {
+    "adverse_p50": -93.0,
+    "effect_size": {
+      "delta": -0.016520467212800163,
+      "interpretation": "NEGLIGIBLE",
+      "overlap_fraction": 0.9992852037169406,
+      "overlap_range_db": [
+        -97.0,
+        -90.0
+      ]
+    },
+    "favorable_above_adverse": false,
+    "favorable_p50": -93.0,
+    "note": "compares UE downlink SNR only; it is not a claim about the uplink"
+  },
+  "temporal_tracking_fade_recovery": {
+    "peak": {
+      "lag_samples": 18,
+      "pairs": 559,
+      "r": 0.05375276729503746
+    },
+    "per_lag": [
+      {
+        "lag_samples": -10,
+        "pairs": 567,
+        "r": -0.017990627051855137
+      },
+      {
+        "lag_samples": -9,
+        "pairs": 568,
+        "r": -0.022122680797180674
+      },
+      {
+        "lag_samples": -8,
+        "pairs": 569,
+        "r": -0.03248989699329118
+      },
+      {
+        "lag_samples": -7,
+        "pairs": 570,
+        "r": -0.048698562829972085
+      },
+      {
+        "lag_samples": -6,
+        "pairs": 571,
+        "r": -0.06240691807498945
+      },
+      {
+        "lag_samples": -5,
+        "pairs": 572,
+        "r": -0.06890410842975382
+      },
+      {
+        "lag_samples": -4,
+        "pairs": 573,
+        "r": -0.06703920341580562
+      },
+      {
+        "lag_samples": -3,
+        "pairs": 574,
+        "r": -0.036162554972550595
+      },
+      {
+        "lag_samples": -2,
+        "pairs": 575,
+        "r": -0.04762580820598934
+      },
+      {
+        "lag_samples": -1,
+        "pairs": 576,
+        "r": -0.0635389142940103
+      },
+      {
+        "lag_samples": 0,
+        "pairs": 577,
+        "r": -0.08356561748992757
+      },
+      {
+        "lag_samples": 1,
+        "pairs": 576,
+        "r": -0.05947966942140495
+      },
+      {
+        "lag_samples": 2,
+        "pairs": 575,
+        "r": -0.048096364564926726
+      },
+      {
+        "lag_samples": 3,
+        "pairs": 574,
+        "r": -0.016349452335771186
+      },
+      {
+        "lag_samples": 4,
+        "pairs": 573,
+        "r": -0.007673237088488783
+      },
+      {
+        "lag_samples": 5,
+        "pairs": 572,
+        "r": -0.011825987500841621
+      },
+      {
+        "lag_samples": 6,
+        "pairs": 571,
+        "r": -0.004256034139737868
+      },
+      {
+        "lag_samples": 7,
+        "pairs": 570,
+        "r": -0.020942521892207477
+      },
+      {
+        "lag_samples": 8,
+        "pairs": 569,
+        "r": -0.027294530679531633
+      },
+      {
+        "lag_samples": 9,
+        "pairs": 568,
+        "r": -0.03361395565384234
+      },
+      {
+        "lag_samples": 10,
+        "pairs": 567,
+        "r": -0.028610297478085644
+      }
+    ],
+    "relation": "UE_DOWNLINK_SNR_LEADS_GNB_UPLINK_PUSCH_SNR",
+    "sample_period_note": "lags are in aligned-pair steps; one step is one UE measurement, at most one per 10 ms SFN frame"
+  },
+  "totals": {
+    "gnb_pusch_rows": 50879,
+    "ue_phy_meas_rows": 3397
+  },
+  "ue_measurement_path_diagnostics": {
+    "degenerate_receive_path": true,
+    "fields": {
+      "noise_power": {
+        "constant": false,
+        "distinct": 7,
+        "max": 8,
+        "min": -90
+      },
+      "rsrp": {
+        "constant": true,
+        "distinct": 1,
+        "max": -2147483648,
+        "min": -2147483648
+      },
+      "rssi": {
+        "constant": true,
+        "distinct": 1,
+        "max": -183,
+        "min": -183
+      },
+      "rx_power": {
+        "constant": true,
+        "distinct": 1,
+        "max": -90,
+        "min": -90
+      },
+      "snr": {
+        "constant": false,
+        "distinct": 7,
+        "max": 0,
+        "min": -98
+      },
+      "w_cqi": {
+        "constant": false,
+        "distinct": 7,
+        "max": 0,
+        "min": -98
+      }
+    },
+    "interpretation": "w_cqi and snr are emitted from the identical expression (nr_ue_measurements.c:102 vs phy_procedures_nr_ue.c:415), so a measured equality fraction of 1.0 confirms the source reading rather than adding an independent signal",
+    "rows": 3397,
+    "rsrp_unpopulated_int32_min_fraction": 1.0,
+    "snr_equals_rx_power_minus_noise_power_fraction": 1.0,
+    "w_cqi_equals_snr_fraction": 1.0
+  }
+}

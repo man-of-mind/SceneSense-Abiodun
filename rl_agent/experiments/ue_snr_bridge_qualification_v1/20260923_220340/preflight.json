@@ -1,0 +1,24 @@
+{
+  "utc": "2026-09-24T05:03:40.598239Z",
+  "loadavg": "0.34 0.34 0.34 2/2536 4010651",
+  "core_containers": {
+    "oai-amf": "true healthy",
+    "oai-smf": "true healthy",
+    "oai-upf": "true healthy",
+    "oai-ext-dn": "true healthy"
+  },
+  "cold_softmodem": true,
+  "cold_tunnels": true,
+  "free_ports": [
+    4043,
+    9090,
+    2021,
+    2022,
+    2121,
+    2122,
+    5402
+  ],
+  "iperf3_host_version": "iperf 3.9 (cJSON 1.7.13)",
+  "iperf3_ext_dn_version": "iperf 3.9 (cJSON 1.7.13)",
+  "ue_phy_meas_in_database": true
+}

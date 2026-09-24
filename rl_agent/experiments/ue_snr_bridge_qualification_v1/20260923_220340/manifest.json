@@ -1,0 +1,520 @@
+{
+  "schema": "scenesense.ue_snr_bridge_qualification.v1",
+  "experiment_id": "ue_snr_bridge_qualification_v1",
+  "claim_boundary": "SHORT_BIDIRECTIONAL_IPERF_UE_DOWNLINK_SNR_VERSUS_GNB_UPLINK_PUSCH_SNR_QUALIFICATION_NOT_A_PHYSICAL_BOUNDARY_STUDY",
+  "status": "UE_SNR_BRIDGE_EVIDENCE_CAPTURED",
+  "utc": "2026-09-24T05:06:35.743982Z",
+  "config_sha256": "6b93aa01fe1561760d8a4724ba995b105b49b7624130fbfeafe76eb2c632ff37",
+  "traffic_design": {
+    "note": "One constant offered load for every profile. Channel condition is the only intended independent variable.",
+    "uplink_mbps": 4.0,
+    "downlink_mbps": 1.0,
+    "datagram_bytes": 1200,
+    "uplink_port": 5401,
+    "downlink_port": 5402,
+    "server_settle_s": 2.0
+  },
+  "replay_design": {
+    "profile_order": [
+      "FAVORABLE_STABLE",
+      "MID_VARIABLE",
+      "ADVERSE_STABLE",
+      "FADE_RECOVERY"
+    ],
+    "sample_period_s": 0.1,
+    "warmup_samples": 50,
+    "measured_samples": 250,
+    "clean_recovery_s": 3.0,
+    "catch_up_policy": "SKIP_OBSOLETE_NEVER_BURST"
+  },
+  "failure": null,
+  "interrupted": false,
+  "teardown_notes": [
+    "ul_server: [Errno 1] Operation not permitted",
+    "container iperf3 reap: rc=137 "
+  ],
+  "final_cold_state": {
+    "utc": "2026-09-24T05:06:35.705846Z",
+    "loadavg": "2.45 1.35 0.73 1/2526 4022411",
+    "orphan_processes": {},
+    "residual_ue_tunnels": [],
+    "cold": true
+  },
+  "restored_clean_channel": true,
+  "profiles": [
+    {
+      "profile_id": "FAVORABLE_STABLE",
+      "trace_id": "GM_V2_FAVORABLE_STABLE_SEED_2026082101",
+      "samples_scheduled": 300,
+      "warmup_samples": 50,
+      "measured_samples": 250,
+      "commands_sent": 262,
+      "commands_skipped_obsolete": 0,
+      "targets_clamped_to_mapping": 0,
+      "profile_start_wall_ns": 1790226251332203099,
+      "measured_window_start_wall_ns": 1790226256332203099,
+      "profile_end_wall_ns": 1790226281232416222,
+      "target_snr_db_min": 6.719892,
+      "target_snr_db_max": 24.487938
+    },
+    {
+      "profile_id": "MID_VARIABLE",
+      "trace_id": "GM_V2_MID_VARIABLE_SEED_2026082102",
+      "samples_scheduled": 300,
+      "warmup_samples": 50,
+      "measured_samples": 250,
+      "commands_sent": 270,
+      "commands_skipped_obsolete": 0,
+      "targets_clamped_to_mapping": 0,
+      "profile_start_wall_ns": 1790226285728662431,
+      "measured_window_start_wall_ns": 1790226290728662431,
+      "profile_end_wall_ns": 1790226315628899574,
+      "target_snr_db_min": 6.378466,
+      "target_snr_db_max": 24.138279
+    },
+    {
+      "profile_id": "ADVERSE_STABLE",
+      "trace_id": "GM_V2_ADVERSE_STABLE_SEED_2026082103",
+      "samples_scheduled": 300,
+      "warmup_samples": 50,
+      "measured_samples": 250,
+      "commands_sent": 267,
+      "commands_skipped_obsolete": 0,
+      "targets_clamped_to_mapping": 0,
+      "profile_start_wall_ns": 1790226320148254730,
+      "measured_window_start_wall_ns": 1790226325148254730,
+      "profile_end_wall_ns": 1790226350048436491,
+      "target_snr_db_min": 5.53734,
+      "target_snr_db_max": 17.030379
+    },
+    {
+      "profile_id": "FADE_RECOVERY",
+      "trace_id": "GM_V2_FADE_RECOVERY_SEED_2026082104",
+      "samples_scheduled": 300,
+      "warmup_samples": 50,
+      "measured_samples": 250,
+      "commands_sent": 266,
+      "commands_skipped_obsolete": 0,
+      "targets_clamped_to_mapping": 0,
+      "profile_start_wall_ns": 1790226354694678193,
+      "measured_window_start_wall_ns": 1790226359694678193,
+      "profile_end_wall_ns": 1790226384594979623,
+      "target_snr_db_min": 5.577715,
+      "target_snr_db_max": 24.200833
+    }
+  ],
+  "traffic": [
+    {
+      "profile_id": "CALIBRATION",
+      "direction": "UPLINK_UE_TO_NETWORK",
+      "argv": "iperf3 -c 192.168.70.135 -p 5401 -u -b 4.0M -l 1200 -t 9 -B 10.0.0.2 --forceflush -J",
+      "offered_bytes": 4500000,
+      "achieved_mbps": 3.999973777949678,
+      "jitter_ms": 3.049225526598066,
+      "lost_packets": 0,
+      "total_packets": 3750,
+      "lost_percent": 0,
+      "seconds": 9.042615
+    },
+    {
+      "profile_id": "CALIBRATION",
+      "direction": "DOWNLINK_NETWORK_TO_UE",
+      "argv": "sudo -n docker exec oai-ext-dn iperf3 -c 10.0.0.2 -p 5402 -u -b 1.0M -l 1200 -t 9 --forceflush -J",
+      "offered_bytes": 1125600,
+      "achieved_mbps": 1.0005265519867033,
+      "jitter_ms": 0.29185038627464216,
+      "lost_packets": 0,
+      "total_packets": 938,
+      "lost_percent": 0,
+      "seconds": 9.05099
+    },
+    {
+      "profile_id": "FAVORABLE_STABLE",
+      "direction": "UPLINK_UE_TO_NETWORK",
+      "argv": "iperf3 -c 192.168.70.135 -p 5401 -u -b 4.0M -l 1200 -t 31 -B 10.0.0.2 --forceflush -J",
+      "offered_bytes": 15500400,
+      "achieved_mbps": 4.00007535431366,
+      "jitter_ms": 3.677553637586272,
+      "lost_packets": 0,
+      "total_packets": 12917,
+      "lost_percent": 0,
+      "seconds": 31.064912
+    },
+    {
+      "profile_id": "FAVORABLE_STABLE",
+      "direction": "DOWNLINK_NETWORK_TO_UE",
+      "argv": "sudo -n docker exec oai-ext-dn iperf3 -c 10.0.0.2 -p 5402 -u -b 1.0M -l 1200 -t 31 --forceflush -J",
+      "offered_bytes": 3876000,
+      "achieved_mbps": 1.0002557090752657,
+      "jitter_ms": 0.5791623217187528,
+      "lost_packets": 0,
+      "total_packets": 3230,
+      "lost_percent": 0,
+      "seconds": 31.049554
+    },
+    {
+      "profile_id": "MID_VARIABLE",
+      "direction": "UPLINK_UE_TO_NETWORK",
+      "argv": "iperf3 -c 192.168.70.135 -p 5401 -u -b 4.0M -l 1200 -t 31 -B 10.0.0.2 --forceflush -J",
+      "offered_bytes": 15500400,
+      "achieved_mbps": 4.00009470947578,
+      "jitter_ms": 3.39819583490464,
+      "lost_packets": 0,
+      "total_packets": 12917,
+      "lost_percent": 0,
+      "seconds": 31.05923
+    },
+    {
+      "profile_id": "MID_VARIABLE",
+      "direction": "DOWNLINK_NETWORK_TO_UE",
+      "argv": "sudo -n docker exec oai-ext-dn iperf3 -c 10.0.0.2 -p 5402 -u -b 1.0M -l 1200 -t 31 --forceflush -J",
+      "offered_bytes": 3876000,
+      "achieved_mbps": 1.0002560962702622,
+      "jitter_ms": 0.45428536020169535,
+      "lost_packets": 0,
+      "total_packets": 3230,
+      "lost_percent": 0,
+      "seconds": 31.06213
+    },
+    {
+      "profile_id": "ADVERSE_STABLE",
+      "direction": "UPLINK_UE_TO_NETWORK",
+      "argv": "iperf3 -c 192.168.70.135 -p 5401 -u -b 4.0M -l 1200 -t 31 -B 10.0.0.2 --forceflush -J",
+      "offered_bytes": 15500400,
+      "achieved_mbps": 4.0000953546510765,
+      "jitter_ms": 2.6357156141515863,
+      "lost_packets": 0,
+      "total_packets": 12917,
+      "lost_percent": 0,
+      "seconds": 31.070076
+    },
+    {
+      "profile_id": "ADVERSE_STABLE",
+      "direction": "DOWNLINK_NETWORK_TO_UE",
+      "argv": "sudo -n docker exec oai-ext-dn iperf3 -c 10.0.0.2 -p 5402 -u -b 1.0M -l 1200 -t 31 --forceflush -J",
+      "offered_bytes": 3876000,
+      "achieved_mbps": 1.0002560962702622,
+      "jitter_ms": 0.512150400574713,
+      "lost_packets": 0,
+      "total_packets": 3230,
+      "lost_percent": 0,
+      "seconds": 31.071756
+    },
+    {
+      "profile_id": "FADE_RECOVERY",
+      "direction": "UPLINK_UE_TO_NETWORK",
+      "argv": "iperf3 -c 192.168.70.135 -p 5401 -u -b 4.0M -l 1200 -t 31 -B 10.0.0.2 --forceflush -J",
+      "offered_bytes": 15500400,
+      "achieved_mbps": 4.0000954836861595,
+      "jitter_ms": 3.17484622454774,
+      "lost_packets": 0,
+      "total_packets": 12917,
+      "lost_percent": 0,
+      "seconds": 31.063924
+    },
+    {
+      "profile_id": "FADE_RECOVERY",
+      "direction": "DOWNLINK_NETWORK_TO_UE",
+      "argv": "sudo -n docker exec oai-ext-dn iperf3 -c 10.0.0.2 -p 5402 -u -b 1.0M -l 1200 -t 31 --forceflush -J",
+      "offered_bytes": 3876000,
+      "achieved_mbps": 1.0002561608027907,
+      "jitter_ms": 0.27001323788804854,
+      "lost_packets": 0,
+      "total_packets": 3230,
+      "lost_percent": 0,
+      "seconds": 31.06514
+    }
+  ],
+  "files": [
+    {
+      "relative_path": "channel_state_initial.txt",
+      "size_bytes": 1470,
+      "sha256": "d42722e503e8af1d21448d22b05587f997fb05427db7d30617392d4774f68593"
+    },
+    {
+      "relative_path": "channel_state_restored.txt",
+      "size_bytes": 1470,
+      "sha256": "d42722e503e8af1d21448d22b05587f997fb05427db7d30617392d4774f68593"
+    },
+    {
+      "relative_path": "clock_anchors.json",
+      "size_bytes": 1214,
+      "sha256": "8cddf330141de96556a6e413687af7c943c8f97d2a40d3d5434758bcac4e7be6"
+    },
+    {
+      "relative_path": "command_log.csv",
+      "size_bytes": 152947,
+      "sha256": "41da01a264677140b39325ae2509a7012aeb8d393ffb8e1d23fc2822c261cbdc"
+    },
+    {
+      "relative_path": "final_cold_state.json",
+      "size_bytes": 160,
+      "sha256": "3dbf8c4163a12ff2fb1d0e71449eb3913525def855bf5ff39228fca8c0469a8c"
+    },
+    {
+      "relative_path": "logs/attach_ping.log",
+      "size_bytes": 424,
+      "sha256": "9995ed462f5c4e98e8449c33218d690463662a1e06ae8d01dbc08ab30f130248"
+    },
+    {
+      "relative_path": "logs/gnb.log",
+      "size_bytes": 254386,
+      "sha256": "4803b9a5c13be3389b80e292d75aba6a215c43f0c6095b4e414e5b771ab8c59c"
+    },
+    {
+      "relative_path": "logs/gnb_record.log",
+      "size_bytes": 146,
+      "sha256": "3f11cd1f709da59be87e83536ac2c8c79a8ba4d84a7210a2c9cc83032c8d91e6"
+    },
+    {
+      "relative_path": "logs/gnb_relay.log",
+      "size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "relative_path": "logs/iperf_dl_server.log",
+      "size_bytes": 13666,
+      "sha256": "55b9aad8f738560443def930efd16ae85d2c144ae720086650560f1ff25e3f44"
+    },
+    {
+      "relative_path": "logs/iperf_ul_server.log",
+      "size_bytes": 13520,
+      "sha256": "48b151590eaeef9afd67ceed9c1f094c57a340b5e1ad977e1fd8c9ffde131df0"
+    },
+    {
+      "relative_path": "logs/ue.log",
+      "size_bytes": 55921,
+      "sha256": "f8e7f6b8c4c622739c106cb2751d87e71d953677911049bfc1cd2939228571a9"
+    },
+    {
+      "relative_path": "logs/ue_record.log",
+      "size_bytes": 194,
+      "sha256": "49bda151347e48221cbde2f847380e318f004a0405b6490b10b54a12d3bfce6a"
+    },
+    {
+      "relative_path": "logs/ue_relay.log",
+      "size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "relative_path": "preflight.json",
+      "size_bytes": 528,
+      "sha256": "82a27e9b181ceadab9d50f144526afeacbcfbc6a11c68be1900e7cd86a2f194c"
+    },
+    {
+      "relative_path": "profiles.csv",
+      "size_bytes": 847,
+      "sha256": "c82d95d819b1507515a866446772ce8412d679eeae0e9b7c7880cd71f2e16e6e"
+    },
+    {
+      "relative_path": "restore_readback.json",
+      "size_bytes": 143,
+      "sha256": "b0cd2391a4c4238d22fa8e35fca75c506a8dbb12e8355714106bc2e47e0615f7"
+    },
+    {
+      "relative_path": "runtime/config_hashes.json",
+      "size_bytes": 308,
+      "sha256": "ad15730211075ee6c4816b532db1b89731e12bb3642b04fe039bbd1d6d7245e0"
+    },
+    {
+      "relative_path": "runtime/effective_gnb.conf",
+      "size_bytes": 10170,
+      "sha256": "a3c2140dceb28aee34865ddd28fa6ffeae69abd8bfd59dfdb97083847d981d22"
+    },
+    {
+      "relative_path": "runtime/effective_ue.conf",
+      "size_bytes": 1166,
+      "sha256": "ab06afcc1cfc2bb777fa35973811aaad655032f6541e1b4565541cac9cc04f97"
+    },
+    {
+      "relative_path": "traffic/ADVERSE_STABLE_dl.json",
+      "size_bytes": 16478,
+      "sha256": "8328008c2c56813f39a80bee1c2237d64a377873f4e24ecf74476e212707e594"
+    },
+    {
+      "relative_path": "traffic/ADVERSE_STABLE_ul.json",
+      "size_bytes": 16547,
+      "sha256": "d32dd6b374a56c82dffcc420c512c91bb853641af2a714e68692a71137455fcd"
+    },
+    {
+      "relative_path": "traffic/CALIBRATION_dl.json",
+      "size_bytes": 5943,
+      "sha256": "5d3ca53c0d0fac293283e3dc619fca85d450f5f331fdde6c6fae781ec4c55597"
+    },
+    {
+      "relative_path": "traffic/CALIBRATION_ul.json",
+      "size_bytes": 5969,
+      "sha256": "0e9d08176dd09ace269f467754c3bf7831951ba49fe1104294741a322558000b"
+    },
+    {
+      "relative_path": "traffic/FADE_RECOVERY_dl.json",
+      "size_bytes": 16405,
+      "sha256": "5444880fbb476d849cff11cea5e894e41441357487f5db3bfc01e8a298a35a73"
+    },
+    {
+      "relative_path": "traffic/FADE_RECOVERY_ul.json",
+      "size_bytes": 16379,
+      "sha256": "9c0881b6d74aa2a41c0ffe4e65514af0628f8f2b1c60caab7ca6ffc29a41ee70"
+    },
+    {
+      "relative_path": "traffic/FAVORABLE_STABLE_dl.json",
+      "size_bytes": 16272,
+      "sha256": "f746ec37e2c300adbe4625c151999a093f3241f5bad92fa6585143c2f1654633"
+    },
+    {
+      "relative_path": "traffic/FAVORABLE_STABLE_ul.json",
+      "size_bytes": 16449,
+      "sha256": "f6d59dcae84ce09afd1e2526f2005c086675269b02f58fec8a8c02ef06ae6f75"
+    },
+    {
+      "relative_path": "traffic/MID_VARIABLE_dl.json",
+      "size_bytes": 16562,
+      "sha256": "357a32ad386bed92d63889df092bd07a77bb9aa2f4612d96e9899d4874fac2c5"
+    },
+    {
+      "relative_path": "traffic/MID_VARIABLE_ul.json",
+      "size_bytes": 16654,
+      "sha256": "64c8701f31bc1484f4990c3d03c22f2975308baed82b56fa4c75e25b5504bea7"
+    },
+    {
+      "relative_path": "traffic_summary.csv",
+      "size_bytes": 2050,
+      "sha256": "36b089865f59017455283bdb57e7df33e08b305881718275bdc7363b0ea13e92"
+    },
+    {
+      "relative_path": "ttracer/gnb/GNB_MAC_PUSCH_POWER_CONTROL_csv.log",
+      "size_bytes": 68,
+      "sha256": "0efbe4e4f3b14268009db12289e069e142e24d4edf0bce32a53747d79c8848c9"
+    },
+    {
+      "relative_path": "ttracer/gnb/GNB_MAC_PUSCH_POWER_CONTROL_replay.log",
+      "size_bytes": 49,
+      "sha256": "061f6ff095d24d2d69e57b3158af10bd6c7a508efdd5abf9197ca426c1b84512"
+    },
+    {
+      "relative_path": "ttracer/gnb/GNB_MAC_UL_MCS_DECISION_csv.log",
+      "size_bytes": 64,
+      "sha256": "e004e12f5bb867e9a8f26be2d7fa20b71e0d8312b8955eee3a881548b0207afa"
+    },
+    {
+      "relative_path": "ttracer/gnb/GNB_MAC_UL_MCS_DECISION_replay.log",
+      "size_bytes": 49,
+      "sha256": "061f6ff095d24d2d69e57b3158af10bd6c7a508efdd5abf9197ca426c1b84512"
+    },
+    {
+      "relative_path": "ttracer/gnb/csv/GNB_MAC_PUSCH_POWER_CONTROL.csv",
+      "size_bytes": 2737738,
+      "sha256": "6b453561c30d0a8a0ece36058c51f8ffc820b24dfd9fd881087d17b21f91a714"
+    },
+    {
+      "relative_path": "ttracer/gnb/csv/GNB_MAC_UL_MCS_DECISION.csv",
+      "size_bytes": 4631809,
+      "sha256": "aaf7c6a68d597dab9e31c76abe2ad221c078a180bfca2b1ab7a30cc8060017a1"
+    },
+    {
+      "relative_path": "ttracer/gnb/gnb.raw",
+      "size_bytes": 9342107,
+      "sha256": "455c8d5d48a0193f6bb423b86ca632c21d80a4f8aa855c66f3b7a84921a63e2f"
+    },
+    {
+      "relative_path": "ttracer/gnb/gnb_extract_config.log",
+      "size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "relative_path": "ttracer/gnb/gnb_extracted_T_messages.txt",
+      "size_bytes": 144111,
+      "sha256": "2f4945814ad2f47197816756819afc0d087156c499e8c746cf0d9a81653005c5"
+    },
+    {
+      "relative_path": "ttracer/gnb/live_pusch_with_ingest.csv",
+      "size_bytes": 4614753,
+      "sha256": "4acabf953042206957bc004ad5e647061f4b28be3335084ae21cbda0ee3e9614"
+    },
+    {
+      "relative_path": "ttracer/ue/NRUE_MAC_BSR_STATUS_csv.log",
+      "size_bytes": 60,
+      "sha256": "b30b82075bbfb95de540ce3a871f46a4fb4842ba55d338aa1b0c6356fa62c01a"
+    },
+    {
+      "relative_path": "ttracer/ue/NRUE_MAC_BSR_STATUS_replay.log",
+      "size_bytes": 49,
+      "sha256": "1b2bedef0d3a6ad251e9ab7c5e583cfc4725ac544a6e08fb0e979ac4c93c5b1f"
+    },
+    {
+      "relative_path": "ttracer/ue/NRUE_MAC_DCI_GRANT_csv.log",
+      "size_bytes": 59,
+      "sha256": "673d6ac77086324755234ca2c445af4647b6b96a0c7311a1f7cc55278f4b2ea0"
+    },
+    {
+      "relative_path": "ttracer/ue/NRUE_MAC_DCI_GRANT_replay.log",
+      "size_bytes": 49,
+      "sha256": "1b2bedef0d3a6ad251e9ab7c5e583cfc4725ac544a6e08fb0e979ac4c93c5b1f"
+    },
+    {
+      "relative_path": "ttracer/ue/NRUE_MAC_RLC_BUFFER_STATUS_csv.log",
+      "size_bytes": 67,
+      "sha256": "69aed62653d58d1b411cac1bbd73434cf54b573adee425bc518149e69b82585f"
+    },
+    {
+      "relative_path": "ttracer/ue/NRUE_MAC_RLC_BUFFER_STATUS_replay.log",
+      "size_bytes": 49,
+      "sha256": "1b2bedef0d3a6ad251e9ab7c5e583cfc4725ac544a6e08fb0e979ac4c93c5b1f"
+    },
+    {
+      "relative_path": "ttracer/ue/UE_PHY_MEAS_csv.log",
+      "size_bytes": 52,
+      "sha256": "d260b3baca4018b7b8058563fc08b7c854111a4074349f98ce1f1dac5c939331"
+    },
+    {
+      "relative_path": "ttracer/ue/UE_PHY_MEAS_replay.log",
+      "size_bytes": 49,
+      "sha256": "1b2bedef0d3a6ad251e9ab7c5e583cfc4725ac544a6e08fb0e979ac4c93c5b1f"
+    },
+    {
+      "relative_path": "ttracer/ue/csv/NRUE_MAC_BSR_STATUS.csv",
+      "size_bytes": 4160204,
+      "sha256": "af5a5f75e000d0fabf7cdb0b65886f11f24d99e1effa7d1ae0124f9d03927276"
+    },
+    {
+      "relative_path": "ttracer/ue/csv/NRUE_MAC_DCI_GRANT.csv",
+      "size_bytes": 6493413,
+      "sha256": "6064f055cf3a3f63e71fa2f68201cbe81f234cc3886082532415df0ced2e72f0"
+    },
+    {
+      "relative_path": "ttracer/ue/csv/NRUE_MAC_RLC_BUFFER_STATUS.csv",
+      "size_bytes": 21065436,
+      "sha256": "4193dc81ec08be5429f1a3c4541888940b37b44b366a8f1386533e5452d13194"
+    },
+    {
+      "relative_path": "ttracer/ue/csv/UE_PHY_MEAS.csv",
+      "size_bytes": 193421,
+      "sha256": "2c55cc044befa09525fff85442fbd7f9dc323551d191ca49ddcd26e6b0fc7dd7"
+    },
+    {
+      "relative_path": "ttracer/ue/ue.raw",
+      "size_bytes": 42068443,
+      "sha256": "4646bb764d388fd20f45a16c963299f25c4847ec0af4c9169c86eedfc67723fb"
+    },
+    {
+      "relative_path": "ttracer/ue/ue_extract_config.log",
+      "size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "relative_path": "ttracer/ue/ue_extracted_T_messages.txt",
+      "size_bytes": 144111,
+      "sha256": "2f4945814ad2f47197816756819afc0d087156c499e8c746cf0d9a81653005c5"
+    },
+    {
+      "relative_path": "ue_network_identity.json",
+      "size_bytes": 165,
+      "sha256": "3c848129c0eecc679ecdadbc86c916864c096a1239cc0ebf103561f940e9d768"
+    },
+    {
+      "relative_path": "upper_anchor.json",
+      "size_bytes": 1138,
+      "sha256": "9d19cc6e8f8bab5babdf785ea80dc763bd2df5db226e7bde5913cd95c12637ab"
+    }
+  ]
+}

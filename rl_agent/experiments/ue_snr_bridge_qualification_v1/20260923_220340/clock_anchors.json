@@ -1,0 +1,44 @@
+[
+  {
+    "label": "run_start",
+    "wall_ns": 1790226220626575502,
+    "monotonic_ns": 6863803937276547,
+    "local_iso": "2026-09-23T22:03:40.626576-07:00",
+    "utc_offset_s": -25200
+  },
+  {
+    "label": "FAVORABLE_STABLE:before_traffic",
+    "wall_ns": 1790226251329905641,
+    "monotonic_ns": 6863834640602286,
+    "local_iso": "2026-09-23T22:04:11.329906-07:00",
+    "utc_offset_s": -25200
+  },
+  {
+    "label": "MID_VARIABLE:before_traffic",
+    "wall_ns": 1790226285727714035,
+    "monotonic_ns": 6863869038410708,
+    "local_iso": "2026-09-23T22:04:45.727714-07:00",
+    "utc_offset_s": -25200
+  },
+  {
+    "label": "ADVERSE_STABLE:before_traffic",
+    "wall_ns": 1790226320147457698,
+    "monotonic_ns": 6863903458154640,
+    "local_iso": "2026-09-23T22:05:20.147458-07:00",
+    "utc_offset_s": -25200
+  },
+  {
+    "label": "FADE_RECOVERY:before_traffic",
+    "wall_ns": 1790226354693759014,
+    "monotonic_ns": 6863938004455780,
+    "local_iso": "2026-09-23T22:05:54.693759-07:00",
+    "utc_offset_s": -25200
+  },
+  {
+    "label": "run_end",
+    "wall_ns": 1790226389156916940,
+    "monotonic_ns": 6863972467613495,
+    "local_iso": "2026-09-23T22:06:29.156917-07:00",
+    "utc_offset_s": -25200
+  }
+]

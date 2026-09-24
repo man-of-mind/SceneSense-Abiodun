@@ -1,0 +1,49 @@
+{
+  "commanded_noise_power_db": -12.5,
+  "window_start_wall_ns": 1790226240420594220,
+  "window_end_wall_ns": 1790226246426701739,
+  "pusch_sample_count": 1826,
+  "minimum_required": 30,
+  "achieved_median_pusch_snr_db": 25.0,
+  "resolved": true,
+  "snrx10_to_db": "gNB reports snrx10; dB = snrx10 / 10",
+  "mapping_upper_bound_db": 25.0,
+  "anchors_in_use": [
+    {
+      "noise_power_db": -2.25,
+      "achieved_median_pusch_snr_db": 5.5
+    },
+    {
+      "noise_power_db": -2.5,
+      "achieved_median_pusch_snr_db": 6.0
+    },
+    {
+      "noise_power_db": -3.0,
+      "achieved_median_pusch_snr_db": 6.5
+    },
+    {
+      "noise_power_db": -3.5,
+      "achieved_median_pusch_snr_db": 7.5
+    },
+    {
+      "noise_power_db": -4.0,
+      "achieved_median_pusch_snr_db": 8.5
+    },
+    {
+      "noise_power_db": -5.0,
+      "achieved_median_pusch_snr_db": 10.0
+    },
+    {
+      "noise_power_db": -8.0,
+      "achieved_median_pusch_snr_db": 16.0
+    },
+    {
+      "noise_power_db": -10.0,
+      "achieved_median_pusch_snr_db": 19.5
+    },
+    {
+      "noise_power_db": -12.5,
+      "achieved_median_pusch_snr_db": 25.0
+    }
+  ]
+}
